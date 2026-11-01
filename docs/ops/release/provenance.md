@@ -185,11 +185,13 @@ After preparing that public commit, the existing provenance report can record it
 node build/scripts/release/verify-release-provenance.mjs \
   --expected-revision <canonical-build-sha> \
   --public-source-commit <curated-public-commit> \
-  --source-archive-url <exact-public-archive-url> \
-  --source-archive-sha256 <archive-sha256>
+  --public-source-tree <qualified-public-tree>
 ```
 
-The configured archive must exist and match the supplied digest. The report
+The commit/tree come from the existing qualified public-source preparation.
+Normal Git pushes transfer the missing objects; no additional source archive is
+uploaded. GitHub provides commit-specific ZIP/TAR downloads. Their compressed
+bytes can change, so no permanent archive SHA-256 is claimed. The report
 retains its normal boundary readiness results; attaching the mapping does not
 make an unqualified boundary ready or prove public reachability. A private build
 SHA must never be inserted into a GitHub commit URL. Neither the future public
@@ -197,10 +199,10 @@ commit nor the archive's own digest is an input to the exported source tree.
 
 Set `MYOXUS_SOURCE_PROVENANCE` to this report when producing legal bundles or
 SBOMs. The desktop metadata writer also accepts `--source-provenance <report>`.
-Consumers reject a different build revision or inconsistent archive digest.
-The legal assembler retains its explicit `MYOXUS_SOURCE_ARCHIVE_URL` and
-`MYOXUS_SOURCE_ARCHIVE_SHA256` pair; if both forms are supplied they must agree.
-SBOMs retain the canonical revision and add the public VCS/archive references.
+Consumers reject a different build revision or invalid Git identity. Historical
+archive-bound reports and their explicit URL/SHA-256 pair remain readable and
+must agree when supplied. SBOMs retain the canonical revision and add public
+source references without inventing hashes for generated GitHub downloads.
 Unconfigured development builds make no claim about public source availability.
 
 The OCI workflow accepts `source_provenance_url` and `source_provenance_sha256`
@@ -218,9 +220,10 @@ Dispatch `.forgejo/workflows/publish-github-release.yml` with the Forgejo URL of
 the publication input JSON. It contains the version/tag, `prerelease`, inline
 `notes`, the qualified OCI digest references in `containers`, and the explicit
 `assets` list using the existing artifact names and SHA-256 values. Each asset
-has `name`, `url`, `sha256` and optional `size`; identify the source archive with
-`kind: "source-archive"` and the existing release provenance report with
-`kind: "provenance"`. Server Build starts automatically on `server-v*` tags.
+has `name`, `url`, `sha256` and optional `size`; identify original legal/SBOM
+files with `kind: "legal"` / `kind: "sbom"`, and the release provenance report
+with `kind: "provenance"`. Git-based source correspondence needs no source asset.
+Server Build starts automatically on `server-v*` tags.
 After the existing Ubuntu DEB and Fedora RPM installation jobs pass, it retains
 the accepted packages and original native SBOM in the runner's `server-release`
 cache. The GitHub workflow automatically adds those three files for the exact
@@ -229,20 +232,25 @@ Do not add them manually to the input list. If Server Build is still running or
 failed, preparation stops before a GitHub write; finish or recover that existing
 run and prepare again. Copying performs no build, repackaging or installation.
 Desktop packages keep their separate release scope.
-A locally prepared source archive may use `path` instead
-of `url`. Set `scope: "selfhost"` for the first beta; it excludes desktop
-packages and update metadata. Other artifacts come from Forgejo.
+Set `scope: "selfhost"` for server releases; it excludes desktop packages and
+update metadata. Artifacts come from Forgejo. Preparation packs the unchanged
+original legal/SBOM/provenance files in one legal/provenance bundle with a
+contents/checksum list. Accepted binaries are not repackaged.
 
 The `prepare` dispatch copies the named bytes, checks their digests and source
-mapping, and retains `github-release-plan.json`, its SHA-256 and the assets for
-review. It makes no GitHub write. Source/build qualification stays with the
+mapping, and retains prepared bytes in the existing runner cache. The review
+artifact contains only `github-release-plan.json` and its SHA-256; no duplicate
+binary upload. It makes no GitHub write. Source/build qualification stays with the
 existing export and release owners; the publisher does not repeat it.
 
-After approval, dispatch `publish` with the same input and the approved
-`expected_plan_sha256`. The workflow prepares again and requires that exact
-plan digest before writing. `GITHUB_RELEASE_TOKEN` is a repository-scoped
+After approval, dispatch `publish` with the approved `expected_plan_sha256`.
+No input URL is needed: the workflow selects that retained candidate and checks
+its bytes without re-preparing or re-downloading them. Missing candidates fail
+without a build/version change. `GITHUB_RELEASE_TOKEN` is a repository-scoped
 fine-grained credential for `superions/myoxus`; the publisher requires Metadata
 read and Contents write. Preparation does not receive it. All payloads remain unchanged.
-The publisher keeps incomplete uploads as drafts, verifies uploaded bytes,
-preserves existing tags/assets and supports same-byte retries. Existing bundle
-checksums are retained; `GITHUB-SHA256SUMS` covers the complete GitHub asset set.
+The publisher keeps incomplete uploads as drafts, compares GitHub's stored
+SHA-256 digests and uploads at most three independent assets concurrently.
+Only assets lacking an API digest need a full readback. Wrong existing uploaded
+bytes are never replaced; same-byte retries may remove their own empty failed
+draft upload placeholders. `GITHUB-SHA256SUMS` covers the complete asset set.

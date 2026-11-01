@@ -30,8 +30,10 @@ references, corresponding source and legal/SBOM material. Follow its linked
 [installation guide](../ops/getting-started/installation.md) and use a matching
 set of server and frontend versions.
 
-The 0.41.38 server release includes DEB and RPM files, the original native SBOM
-and a separate **SERVER-PACKAGES-SHA256SUMS** list. Follow the
+The 0.41.38 server release includes DEB and RPM files and one legal/provenance
+bundle containing the original SBOMs and notices. **GITHUB-SHA256SUMS** covers
+the packages and bundle. Source downloads come from the release's public Git
+commit. Follow the
 [native package installation](../ops/getting-started/installation.md#native-server-packages).
 The [manual Linux source installation](../ops/deployment/systemd/README.md)
 remains available.

@@ -57,8 +57,9 @@ Server DEB/APT and RPM packages for Linux x86_64 are available in
 Both formats use the same server bundle. Existing package installation, dependency,
 permission, reinstall and removal checks passed on Ubuntu 24.04 (DEB) and
 Fedora 44 (RPM). See the [package status](./installation-decision.md#distribution-packages).
-Use **SERVER-PACKAGES-SHA256SUMS** for the native packages and native SBOM;
-**GITHUB-SHA256SUMS** covers the original container/source release files.
+Use **GITHUB-SHA256SUMS** for the packages and the legal/provenance bundle.
+The bundle contains the original native SBOM and license material; its
+`source-correspondence.json` records the corrected public source for 0.41.38.
 
 When a release lists a package for your distribution, download it from that
 release and verify its checksum. Install the **server** package using the native
