@@ -1,0 +1,617 @@
+{
+  "schemaVersion": 1,
+  "decision": {
+    "iconSet": "tabler",
+    "package": "@tabler/icons-react",
+    "version": "3.45.0",
+    "license": "MIT"
+  },
+  "scope": {
+    "reviewCandidateCount": 65,
+    "recordedDecisionCount": 50,
+    "acceptedTablerCount": 32,
+    "keepMyoxusCount": 11,
+    "customRequiredCount": 0,
+    "removedExportCount": 7,
+    "unresolvedCount": 15
+  },
+  "review": {
+    "completedAt": "2026-07-17T14:42:51.588Z",
+    "sources": [
+      {
+        "file": "output/icon-review/tabler-decisions-open.json",
+        "updatedAt": "2026-07-17T14:42:51.588Z"
+      }
+    ],
+    "decisions": [
+      {
+        "myoxus": "MyoxusIcon",
+        "status": "keep",
+        "tabler": "IconHexagonLetterM",
+        "note": ""
+      },
+      {
+        "myoxus": "AiThinkingIcon",
+        "status": "keep",
+        "tabler": "IconMessageChatbot",
+        "note": ""
+      },
+      {
+        "myoxus": "ArrowDownSmallPlusIcon",
+        "status": "keep",
+        "tabler": "IconArrowDown",
+        "note": ""
+      },
+      {
+        "myoxus": "ArrowLeftSmallPlusIcon",
+        "status": "keep",
+        "tabler": "IconArrowLeft",
+        "note": ""
+      },
+      {
+        "myoxus": "ArrowRightSmallPlusIcon",
+        "status": "keep",
+        "tabler": "IconArrowRight",
+        "note": ""
+      },
+      {
+        "myoxus": "ArrowShapeIcon",
+        "status": "accept",
+        "tabler": "IconArrowGuide",
+        "note": ""
+      },
+      {
+        "myoxus": "ArrowUpSmallPlusIcon",
+        "status": "keep",
+        "tabler": "IconArrowUp",
+        "note": ""
+      },
+      {
+        "myoxus": "AutoTidyUpIcon",
+        "status": "accept",
+        "tabler": "IconWand",
+        "note": ""
+      },
+      {
+        "myoxus": "ClaudeDuotoneIcon",
+        "status": "accept",
+        "tabler": "IconSparkles",
+        "note": ""
+      },
+      {
+        "myoxus": "CloudBubbleIcon",
+        "status": "accept",
+        "tabler": "IconMessageCircle",
+        "note": ""
+      },
+      {
+        "myoxus": "EmptyIcon",
+        "status": "accept",
+        "tabler": "IconX",
+        "note": ""
+      },
+      {
+        "myoxus": "FileIconAviIcon",
+        "status": "accept",
+        "tabler": "IconVideo",
+        "note": ""
+      },
+      {
+        "myoxus": "FileIconDmgIcon",
+        "status": "accept",
+        "tabler": "IconBrandApple",
+        "note": ""
+      },
+      {
+        "myoxus": "FileIconExeIcon",
+        "status": "accept",
+        "tabler": "IconBinary",
+        "note": ""
+      },
+      {
+        "myoxus": "FileIconGifIcon",
+        "status": "accept",
+        "tabler": "IconPhoto",
+        "note": ""
+      },
+      {
+        "myoxus": "FileIconImgIcon",
+        "status": "accept",
+        "tabler": "IconPhoto",
+        "note": ""
+      },
+      {
+        "myoxus": "FileIconJavaIcon",
+        "status": "accept",
+        "tabler": "IconFileCode",
+        "note": ""
+      },
+      {
+        "myoxus": "FileIconJsonIcon",
+        "status": "accept",
+        "tabler": "IconFileCode",
+        "note": ""
+      },
+      {
+        "myoxus": "FileIconMkvIcon",
+        "status": "accept",
+        "tabler": "IconVideo",
+        "note": ""
+      },
+      {
+        "myoxus": "FileIconMp3Icon",
+        "status": "accept",
+        "tabler": "IconFileMusic",
+        "note": ""
+      },
+      {
+        "myoxus": "FileIconMp4Icon",
+        "status": "accept",
+        "tabler": "IconVideo",
+        "note": ""
+      },
+      {
+        "myoxus": "FileIconMpegIcon",
+        "status": "accept",
+        "tabler": "IconVideo",
+        "note": ""
+      },
+      {
+        "myoxus": "FileIconTiffIcon",
+        "status": "accept",
+        "tabler": "IconPhoto",
+        "note": ""
+      },
+      {
+        "myoxus": "FileIconWavIcon",
+        "status": "accept",
+        "tabler": "IconFileMusic",
+        "note": ""
+      },
+      {
+        "myoxus": "FileIconWebpIcon",
+        "status": "accept",
+        "tabler": "IconPhoto",
+        "note": ""
+      },
+      {
+        "myoxus": "HardDriveIcon",
+        "status": "accept",
+        "tabler": "IconServer",
+        "note": ""
+      },
+      {
+        "myoxus": "IssueIcon",
+        "status": "accept",
+        "tabler": "IconAlertCircle",
+        "note": ""
+      },
+      {
+        "myoxus": "NewXxxEdgelessIcon",
+        "status": "accept",
+        "tabler": "IconFileInfinity",
+        "note": ""
+      },
+      {
+        "myoxus": "NoteShadowDuotoneIcon",
+        "status": "remove",
+        "tabler": "IconNote",
+        "note": ""
+      },
+      {
+        "myoxus": "OctobaseIcon",
+        "status": "remove",
+        "tabler": "IconDatabase",
+        "note": ""
+      },
+      {
+        "myoxus": "ParallelogramIcon",
+        "status": "keep",
+        "tabler": "IconShape",
+        "note": ""
+      },
+      {
+        "myoxus": "PaymentIcon",
+        "status": "accept",
+        "tabler": "IconCreditCard",
+        "note": ""
+      },
+      {
+        "myoxus": "PenThickIcon",
+        "status": "remove",
+        "tabler": "IconPencil",
+        "note": ""
+      },
+      {
+        "myoxus": "PenThickLeftIcon",
+        "status": "remove",
+        "tabler": "IconPencil",
+        "note": ""
+      },
+      {
+        "myoxus": "PenThinIcon",
+        "status": "remove",
+        "tabler": "IconPencil",
+        "note": ""
+      },
+      {
+        "myoxus": "RadiantIcon",
+        "status": "accept",
+        "tabler": "IconTopologyStar3",
+        "note": ""
+      },
+      {
+        "myoxus": "ReadwiseIcon",
+        "status": "accept",
+        "tabler": "IconBookmark",
+        "note": ""
+      },
+      {
+        "myoxus": "ReadwiseLogoDuotoneIcon",
+        "status": "accept",
+        "tabler": "IconBookmark",
+        "note": ""
+      },
+      {
+        "myoxus": "ReauthenticationIcon",
+        "status": "accept",
+        "tabler": "IconLockExclamation",
+        "note": ""
+      },
+      {
+        "myoxus": "ReleaseFromGroupIcon",
+        "status": "keep",
+        "tabler": "IconBoxOff",
+        "note": ""
+      },
+      {
+        "myoxus": "ResizeTidyUpIcon",
+        "status": "accept",
+        "tabler": "IconWand",
+        "note": ""
+      },
+      {
+        "myoxus": "ShortPantsPanelIcon",
+        "status": "keep",
+        "tabler": "IconHanger",
+        "note": ""
+      },
+      {
+        "myoxus": "SkirtPanelIcon",
+        "status": "keep",
+        "tabler": "IconHanger",
+        "note": ""
+      },
+      {
+        "myoxus": "SnowMountainPanelIcon",
+        "status": "keep",
+        "tabler": "IconMountain",
+        "note": ""
+      },
+      {
+        "myoxus": "StopAiIcon",
+        "status": "accept",
+        "tabler": "IconPlayerStop",
+        "note": ""
+      },
+      {
+        "myoxus": "SubNodeIcon",
+        "status": "accept",
+        "tabler": "IconHierarchy3",
+        "note": ""
+      },
+      {
+        "myoxus": "VerticalCylinderIcon",
+        "status": "accept",
+        "tabler": "IconCylinder",
+        "note": ""
+      },
+      {
+        "myoxus": "ViewBarIcon",
+        "status": "accept",
+        "tabler": "IconAspectRatio",
+        "note": ""
+      },
+      {
+        "myoxus": "ZendeskDuotoneIcon",
+        "status": "remove",
+        "tabler": "IconMessageCircle",
+        "note": ""
+      },
+      {
+        "myoxus": "ZendeskIcon",
+        "status": "remove",
+        "tabler": "IconMessageCircle",
+        "note": ""
+      }
+    ]
+  },
+  "icons": [
+    {
+      "myoxus": "ArrowShapeIcon",
+      "tabler": "IconArrowGuide",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "AutoTidyUpIcon",
+      "tabler": "IconWand",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "ClaudeDuotoneIcon",
+      "tabler": "IconSparkles",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "CloudBubbleIcon",
+      "tabler": "IconMessageCircle",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "EmptyIcon",
+      "tabler": "IconX",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "FileIconAviIcon",
+      "tabler": "IconVideo",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "FileIconDmgIcon",
+      "tabler": "IconBrandApple",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "FileIconExeIcon",
+      "tabler": "IconBinary",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "FileIconGifIcon",
+      "tabler": "IconPhoto",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "FileIconImgIcon",
+      "tabler": "IconPhoto",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "FileIconJavaIcon",
+      "tabler": "IconFileCode",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "FileIconJsonIcon",
+      "tabler": "IconFileCode",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "FileIconMkvIcon",
+      "tabler": "IconVideo",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "FileIconMp3Icon",
+      "tabler": "IconFileMusic",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "FileIconMp4Icon",
+      "tabler": "IconVideo",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "FileIconMpegIcon",
+      "tabler": "IconVideo",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "FileIconTiffIcon",
+      "tabler": "IconPhoto",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "FileIconWavIcon",
+      "tabler": "IconFileMusic",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "FileIconWebpIcon",
+      "tabler": "IconPhoto",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "HardDriveIcon",
+      "tabler": "IconServer",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "IssueIcon",
+      "tabler": "IconAlertCircle",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "NewXxxEdgelessIcon",
+      "tabler": "IconFileInfinity",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "PaymentIcon",
+      "tabler": "IconCreditCard",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "RadiantIcon",
+      "tabler": "IconTopologyStar3",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "ReadwiseIcon",
+      "tabler": "IconBookmark",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "ReadwiseLogoDuotoneIcon",
+      "tabler": "IconBookmark",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "ReauthenticationIcon",
+      "tabler": "IconLockExclamation",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "ResizeTidyUpIcon",
+      "tabler": "IconWand",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "StopAiIcon",
+      "tabler": "IconPlayerStop",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "SubNodeIcon",
+      "tabler": "IconHierarchy3",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "VerticalCylinderIcon",
+      "tabler": "IconCylinder",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    },
+    {
+      "myoxus": "ViewBarIcon",
+      "tabler": "IconAspectRatio",
+      "status": "accepted",
+      "reviewStatus": "accept"
+    }
+  ],
+  "keepMyoxus": [
+    {
+      "myoxus": "MyoxusIcon",
+      "status": "keep"
+    },
+    {
+      "myoxus": "AiThinkingIcon",
+      "status": "keep"
+    },
+    {
+      "myoxus": "ArrowDownSmallPlusIcon",
+      "status": "keep"
+    },
+    {
+      "myoxus": "ArrowLeftSmallPlusIcon",
+      "status": "keep"
+    },
+    {
+      "myoxus": "ArrowRightSmallPlusIcon",
+      "status": "keep"
+    },
+    {
+      "myoxus": "ArrowUpSmallPlusIcon",
+      "status": "keep"
+    },
+    {
+      "myoxus": "ParallelogramIcon",
+      "status": "keep"
+    },
+    {
+      "myoxus": "ReleaseFromGroupIcon",
+      "status": "keep"
+    },
+    {
+      "myoxus": "ShortPantsPanelIcon",
+      "status": "keep"
+    },
+    {
+      "myoxus": "SkirtPanelIcon",
+      "status": "keep"
+    },
+    {
+      "myoxus": "SnowMountainPanelIcon",
+      "status": "keep"
+    }
+  ],
+  "customRequired": [],
+  "removedExports": [
+    {
+      "myoxus": "NoteShadowDuotoneIcon",
+      "status": "remove"
+    },
+    {
+      "myoxus": "OctobaseIcon",
+      "status": "remove"
+    },
+    {
+      "myoxus": "PenThickIcon",
+      "status": "remove"
+    },
+    {
+      "myoxus": "PenThickLeftIcon",
+      "status": "remove"
+    },
+    {
+      "myoxus": "PenThinIcon",
+      "status": "remove"
+    },
+    {
+      "myoxus": "ZendeskDuotoneIcon",
+      "status": "remove"
+    },
+    {
+      "myoxus": "ZendeskIcon",
+      "status": "remove"
+    }
+  ],
+  "unresolved": [
+    "BulletedList01Icon",
+    "BulletedList02Icon",
+    "BulletedList03Icon",
+    "BulletedList04Icon",
+    "ClientIcon",
+    "DirectionSign2PanelIcon",
+    "DirectionSign3PanelIcon",
+    "DirectionSign4PanelIcon",
+    "DropCursorDuotoneIcon",
+    "DropCursorIcon",
+    "LinearLogoDuotoneIcon",
+    "LinearLogoIcon",
+    "RightLayoutIcon",
+    "SiblingNodeIcon",
+    "SoloViewIcon"
+  ]
+}

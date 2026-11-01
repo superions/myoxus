@@ -1,0 +1,21 @@
+{
+  "name": "@myoxus/routes",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "r build.ts"
+  },
+  "devDependencies": {
+    "@myoxus-tools/cli": "workspace:*",
+    "@myoxus-tools/utils": "workspace:*",
+    "vitest": "4.1.11"
+  },
+  "peerDependencies": {
+    "react": "^19.2.1",
+    "react-router": "7.18.4"
+  },
+  "license": "AGPL-3.0-or-later"
+}

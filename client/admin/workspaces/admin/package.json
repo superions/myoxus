@@ -1,0 +1,47 @@
+{
+  "name": "@myoxus/admin",
+  "private": true,
+  "dependencies": {
+    "@myoxus/debug": "workspace:*",
+    "@myoxus/env": "workspace:*",
+    "@myoxus/error": "workspace:*",
+    "@myoxus/graphql": "workspace:*",
+    "@myoxus/i18n": "workspace:*",
+    "@myoxus/icons": "workspace:*",
+    "@myoxus/infra": "workspace:*",
+    "@myoxus/routes": "workspace:*",
+    "@myoxus/theme": "workspace:*",
+    "@myoxus/track": "workspace:*",
+    "@myoxus/ui-facade": "workspace:*",
+    "@sentry/react": "10.75.0",
+    "core-js": "^3.49.0",
+    "pdfjs-dist": "^6.4.299",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-is": "19.3.0",
+    "react-router": "7.18.4",
+    "recharts": "3.10.1",
+    "swr": "^2.4.1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@swc/core": "1.16.12",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/lodash-es": "^4.17.12",
+    "cross-env": "^10.1.0",
+    "vitest": "4.1.11"
+  },
+  "scripts": {
+    "build": "myoxus bundle",
+    "dev": "myoxus bundle --dev",
+    "test": "vitest run --config ../../vitest.config.mts --reporter=verbose",
+    "test:ci": "vitest run --config ../../vitest.config.mts --reporter=verbose",
+    "test:config-coverage": "vitest run --config ../../vitest.config.mts --reporter=verbose src/__tests__/config-api-coverage.spec.ts"
+  },
+  "exports": {
+    "./*": "./src/*.ts"
+  },
+  "license": "AGPL-3.0-or-later"
+}

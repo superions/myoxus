@@ -1,0 +1,166 @@
+formatVersion: 1
+packages:
+  - id: myoxus.assistant.workspace.empty
+    enabled: true
+    current: 1.1.0
+    defaultFor:
+      - workspaceCreation
+    definitions:
+      - version: 1.1.0
+        path: myoxus.assistant.workspace.empty/1.1.0.yaml
+        sha256: ada19611f68ed0e4ed10c7d2839a1dbeb3e287362ca985fb331d72be5614d0ab
+  - id: myoxus.assistant.project.simple_project
+    enabled: true
+    current: 1.4.0
+    defaultFor:
+      - projectCreation
+    definitions:
+      - version: 1.4.0
+        path: myoxus.assistant.project.simple_project/1.4.0.yaml
+        sha256: 3f10ceadde34f90bfb8c8e31ae737ef8b43840fbb8b015e1625dd878a55e5e93
+  - id: myoxus.assistant.project.product_roadmap
+    enabled: true
+    current: 1.4.0
+    defaultFor: []
+    definitions:
+      - version: 1.4.0
+        path: myoxus.assistant.project.product_roadmap/1.4.0.yaml
+        sha256: c03e0aa9c4f7c8c05497e70f8e1a1d1490785ce279648c5ebf1b19451a810cdf
+  - id: myoxus.assistant.project.bug_tracker
+    enabled: true
+    current: 1.4.0
+    defaultFor: []
+    definitions:
+      - version: 1.4.0
+        path: myoxus.assistant.project.bug_tracker/1.4.0.yaml
+        sha256: 1ed3eafe1a70dd39ce2ac2cc0fb9fb8c6c1024f955b22ddc49ce4a12b74e8749
+  - id: myoxus.assistant.taskHome
+    current: 1.1.0
+    defaultFor:
+      - taskHome
+    definitions:
+      - version: 1.1.0
+        path: myoxus.assistant.taskHome/1.1.0.yaml
+        sha256: dc6452851b08ab20fc6eb92a077bcd00cd5840d8f1db0a90a00e3668f5992b22
+  - id: myoxus.assistant.taskInventory
+    current: 1.2.0
+    defaultFor:
+      - taskInventory
+    definitions:
+      - version: 1.2.0
+        path: myoxus.assistant.taskInventory/1.2.0.yaml
+        sha256: 9a10318fda1f5c8e508ac4b0d2bc5ee8cd99fe247ac892f0aab132e842f8c9c2
+      - version: 1.1.0
+        path: myoxus.assistant.taskInventory/1.1.0.yaml
+        sha256: 5299e8acafab23e47a0a399dca1ee116e8480b0a76caa7f9b724f4769592b94c
+  - id: myoxus.assistant.taskCreation
+    current: 1.2.0
+    defaultFor:
+      - taskCreation
+    definitions:
+      - version: 1.2.0
+        path: myoxus.assistant.taskCreation/1.2.0.yaml
+        sha256: 16efe09824e8c8629caaac7d6432ba694bd26648ec8ab6028a1207cd690cd022
+  - id: myoxus.assistant.taskCapture
+    current: 1.2.0
+    defaultFor:
+      - taskCapture
+    definitions:
+      - version: 1.2.0
+        path: myoxus.assistant.taskCapture/1.2.0.yaml
+        sha256: 97cdf44cec529a4d1b079072451e691d957c4da73f0b395d059adaad9defeef9
+  - id: myoxus.assistant.taskSubtask
+    current: 1.0.0
+    defaultFor:
+      - taskSubtask
+    definitions:
+      - version: 1.0.0
+        path: myoxus.assistant.taskSubtask/1.0.0.yaml
+        sha256: 1faef036a1ef3b230a3d0d05d02e98ef750ab14d2299fff2abb9f993bbd34926
+  - id: myoxus.assistant.taskDetail
+    current: 1.2.0
+    defaultFor:
+      - taskDetail
+    definitions:
+      - version: 1.2.0
+        path: myoxus.assistant.taskDetail/1.2.0.yaml
+        sha256: 84892069b34ecd62e20813e1a39ffd6a0dabd5b3ff03f952e72c99d72c347e69
+  - id: myoxus.assistant.taskMovement
+    current: 1.1.0
+    defaultFor:
+      - taskMovement
+    definitions:
+      - version: 1.1.0
+        path: myoxus.assistant.taskMovement/1.1.0.yaml
+        sha256: cf8ff1159302e0fd878506c20c7c71e2f24e01bdf72143975edfb549eeb32a48
+  - id: myoxus.assistant.context.meeting
+    enabled: false
+    current: 1.1.0
+    defaultFor:
+      - taskContainerAssistance
+    definitions:
+      - version: 1.1.0
+        path: myoxus.assistant.context.meeting/1.1.0.yaml
+        sha256: b0a18ee45fa922925e906da03fdff83dc6a5852f389e46ad1f095114b3c78dc0
+  - id: myoxus.assistant.context.decision
+    enabled: false
+    current: 1.1.0
+    defaultFor: []
+    definitions:
+      - version: 1.1.0
+        path: myoxus.assistant.context.decision/1.1.0.yaml
+        sha256: bed768f9a63401658ecb91dc2bcf156db46078514cf5cffbe8abc1e048f1f89e
+  - id: myoxus.assistant.context.review
+    enabled: false
+    current: 1.1.0
+    defaultFor: []
+    definitions:
+      - version: 1.1.0
+        path: myoxus.assistant.context.review/1.1.0.yaml
+        sha256: cd35a3a5b43c56b387b9c27b83989367dd281a1bf810eb03764b0e6399665072
+  - id: myoxus.assistant.document-review
+    enabled: false
+    current: 1.0.0
+    defaultFor: []
+    definitions:
+      - version: 1.0.0
+        path: myoxus.assistant.document-review/1.0.0.yaml
+        sha256: 61218b5fd1af1b32622fe8c41a0d363ce328c356e087f0560950fed06c4b69a6
+  - id: myoxus.assistant.task-handover
+    enabled: false
+    current: 1.0.0
+    defaultFor: []
+    definitions:
+      - version: 1.0.0
+        path: myoxus.assistant.task-handover/1.0.0.yaml
+        sha256: 7333646032c1cc57a0b9eb84c6743eb0ff96ebe5b91f628ab1a470801723fa0f
+  - id: myoxus.assistant.task-maintenance
+    enabled: false
+    current: 1.0.0
+    defaultFor: []
+    definitions:
+      - version: 1.0.0
+        path: myoxus.assistant.task-maintenance/1.0.0.yaml
+        sha256: f9708fd32b0e926ff4194e6c46d698866fe105baf5c50d7097dc1c858819d9fe
+  - id: myoxus.assistant.task-content-preparation
+    enabled: false
+    current: 1.0.0
+    defaultFor: []
+    definitions:
+      - version: 1.0.0
+        path: myoxus.assistant.task-content-preparation/1.0.0.yaml
+        sha256: 0da6352d19b4244801d7141a749cb4fab25a5fc673e730cea322d71309155d16
+  - id: myoxus.assistant.workspace.personal-knowledge
+    current: 1.0.1
+    defaultFor: []
+    definitions:
+      - version: 1.0.1
+        path: myoxus.assistant.workspace.personal-knowledge/1.0.1.yaml
+        sha256: 3e6e8fc453385b211898bdc02a9d2c72b58c6b93253f8f932284662c12320d1e
+  - id: myoxus.assistant.workspace.team-wiki
+    current: 1.0.1
+    defaultFor: []
+    definitions:
+      - version: 1.0.1
+        path: myoxus.assistant.workspace.team-wiki/1.0.1.yaml
+        sha256: c7e32b8357e316007378dfdc596eaeba68853816001a79080f76c2df3a822198

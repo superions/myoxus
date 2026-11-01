@@ -1,0 +1,13 @@
+Touying 0.7.4 and uniwarn 0.1.1 are vendored from the Typst Universe archives.
+
+Touying archive: https://packages.typst.org/preview/touying-0.7.4.tar.gz
+SHA-256: 7ab85405a6327533f530ac70206721032e364c9ca900fabc324952ae0c0b528b
+License: MIT. Copyright notices are retained in touying/0.7.4/LICENSE.
+
+uniwarn archive: https://packages.typst.org/preview/uniwarn-0.1.1.tar.gz
+SHA-256: 68247432dab1b165c16055411c0f0ec154a63d7fcf5ef0f65906269695d368ea
+License: MIT. Copyright notices are retained in uniwarn/0.1.1/LICENSE.
+
+Myoxus changes only Touying's active uniwarn import: the package import is
+rewritten to the bundle-local module with an explicit `as uniwarn` alias. The
+remaining upstream Typst source is preserved from the verified archives.

@@ -1,0 +1,151 @@
+{% extends "_layout.html" %} {% block subject %}Recordatorio: {{ event_title
+}}{% endblock subject %} {% block preheader %}Abre el evento para prepararte y
+consultar la información actualizada.{% endblock preheader %} {% block category
+%}TU RECORDATORIO{% endblock category %} {% block heading %}Tu evento se
+acerca.{% endblock heading %} {% block introduction %}Ha llegado el momento del
+recordatorio de este evento del calendario. Aquí tienes el título, la hora de
+inicio y un enlace directo a sus detalles.{% endblock introduction %} {% block
+details %}{% if event_title %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  EVENTO
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ event_title }}
+</p>
+{% endif %}{% if actor %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Organizado por
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ actor }}
+</p>
+{% endif %}{% if starts_at %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Fecha prevista
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ starts_at }}
+</p>
+{% endif %}{% if previous_starts_at %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Horario anterior
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ previous_starts_at }}
+</p>
+{% endif %}{% if ends_at %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Fin
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ ends_at }}
+</p>
+{% endif %}{% if location %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Lugar
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ location }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}Abre el evento para
+prepararte y consultar la información actualizada.{% endblock next_step %} {%
+block action %}Abrir evento{% endblock action %} {% block note %}Puedes cambiar
+o eliminar el recordatorio en los ajustes de este evento.{% endblock note %} {%
+block reason %}Recibes este correo porque se ha configurado un recordatorio por
+correo para este evento.{% endblock reason %}

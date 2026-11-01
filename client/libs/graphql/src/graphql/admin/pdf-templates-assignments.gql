@@ -1,0 +1,68 @@
+query adminPdfWorkspaceAssignments($workspaceId: ID!) {
+  admin {
+    pdfWorkspaceAssignments(workspaceId: $workspaceId) {
+      workspaceId
+      templateId
+      isDefault
+      assignedBy
+      assignedAt
+    }
+  }
+}
+
+query adminPdfTemplateAssignedWorkspaces($templateId: ID!) {
+  admin {
+    pdfTemplateAssignedWorkspaces(templateId: $templateId) {
+      workspaceId
+      templateId
+      isDefault
+      assignedBy
+      assignedAt
+    }
+  }
+}
+
+mutation adminAssignPdfTemplateToWorkspace(
+  $workspaceId: ID!
+  $templateId: ID!
+) {
+  admin {
+    assignPdfTemplateToWorkspace(
+      workspaceId: $workspaceId
+      templateId: $templateId
+    ) {
+      workspaceId
+      templateId
+      isDefault
+      assignedBy
+      assignedAt
+    }
+  }
+}
+
+mutation adminUnassignPdfTemplateFromWorkspace(
+  $workspaceId: ID!
+  $templateId: ID!
+) {
+  admin {
+    unassignPdfTemplateFromWorkspace(
+      workspaceId: $workspaceId
+      templateId: $templateId
+    )
+  }
+}
+
+mutation adminSetWorkspaceDefaultPdfTemplate(
+  $workspaceId: ID!
+  $templateId: ID!
+) {
+  admin {
+    setWorkspaceDefaultPdfTemplate(
+      workspaceId: $workspaceId
+      templateId: $templateId
+    ) {
+      workspaceId
+      defaultTemplateId
+    }
+  }
+}

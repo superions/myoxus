@@ -1,0 +1,151 @@
+{% extends "_layout.html" %} {% block subject %}Änderung: {{ event_title }}{%
+endblock subject %} {% block preheader %}Öffne den Termin, um alle aktuellen
+Details und deine Teilnahme zu prüfen.{% endblock preheader %} {% block category
+%}DEIN KALENDER{% endblock category %} {% block heading %}Der Termin wurde
+geändert.{% endblock heading %} {% block introduction %}der Organisator hat
+diesen Termin aktualisiert. Die neue Uhrzeit und die bisherige Uhrzeit findest
+du unten.{% endblock introduction %} {% block details %}{% if event_title %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  TERMIN
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ event_title }}
+</p>
+{% endif %}{% if actor %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Organisiert von
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ actor }}
+</p>
+{% endif %}{% if starts_at %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Neuer Termin
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ starts_at }}
+</p>
+{% endif %}{% if previous_starts_at %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Bisheriger Termin
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ previous_starts_at }}
+</p>
+{% endif %}{% if ends_at %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Ende
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ ends_at }}
+</p>
+{% endif %}{% if location %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Ort
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ location }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}Öffne den Termin, um alle
+aktuellen Details und deine Teilnahme zu prüfen.{% endblock next_step %} {%
+block action %}Änderungen ansehen{% endblock action %} {% block note %}Die
+E-Mail enthält eine iCalendar-Datei. Öffne den Anhang in deiner
+Kalenderanwendung, um die Einladung, Änderung oder Absage zu übernehmen.{%
+endblock note %} {% block reason %}Du erhältst diese E-Mail, weil ein Termin
+geändert wurde, zu dem du eingeladen bist.{% endblock reason %}

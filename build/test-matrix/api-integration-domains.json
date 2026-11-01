@@ -1,0 +1,1070 @@
+{
+  "api.integration": [
+    {
+      "module": "transcription_pipeline_test",
+      "path": "server/crates/api/tests/copilot/transcription_pipeline_test.rs"
+    },
+    {
+      "module": "transcription_results_test",
+      "path": "server/crates/api/tests/copilot/transcription_results_test.rs"
+    },
+    {
+      "module": "graphql_billing_compat",
+      "path": "server/crates/api/tests/contract/graphql/graphql_billing_compat.rs"
+    },
+    {
+      "module": "compat_rest_endpoints",
+      "path": "server/crates/api/tests/contract/schema/compat_rest_endpoints.rs"
+    },
+    {
+      "module": "graphql_enum_casing_test",
+      "path": "server/crates/api/tests/contract/schema/graphql_enum_casing_test.rs"
+    },
+    {
+      "module": "graphql_schema_drift_test",
+      "path": "server/crates/api/tests/contract/schema/graphql_schema_drift_test.rs"
+    },
+    {
+      "module": "schema_compat_mutations_test",
+      "path": "server/crates/api/tests/contract/schema/schema_compat_mutations_test.rs"
+    },
+    {
+      "module": "schema_compat_queries_test",
+      "path": "server/crates/api/tests/contract/schema/schema_compat_queries_test.rs"
+    },
+    {
+      "module": "schema_compat_types_test",
+      "path": "server/crates/api/tests/contract/schema/schema_compat_types_test.rs"
+    },
+    {
+      "module": "cors_test",
+      "path": "server/crates/api/tests/ops/http/cors_test.rs"
+    },
+    {
+      "module": "health_endpoints",
+      "path": "server/crates/api/tests/ops/http/health_endpoints.rs"
+    },
+    {
+      "module": "info_endpoints",
+      "path": "server/crates/api/tests/ops/http/info_endpoints.rs"
+    },
+    {
+      "module": "startup_failfast",
+      "path": "server/crates/api/tests/ops/http/startup_failfast.rs"
+    },
+    {
+      "module": "security_regression_test",
+      "path": "server/crates/api/tests/ops/misc/security_regression_test.rs"
+    },
+    {
+      "module": "lint_doc_id_parsing",
+      "path": "server/crates/api/tests/contract/source_scan/lint_doc_id_parsing.rs"
+    }
+  ],
+  "mcp.calendar.e2e": [
+    {
+      "module": "mcp_calendar_test",
+      "path": "server/crates/api/tests/mcp/mcp_calendar_test.rs"
+    }
+  ],
+  "mcp.database.contract": [
+    {
+      "module": "mcp_database_test",
+      "path": "server/crates/api/tests/mcp/mcp_database_test.rs"
+    }
+  ],
+  "mcp.document-capabilities.contract": [
+    {
+      "module": "mcp_document_metadata_test",
+      "path": "server/crates/api/tests/mcp/mcp_document_metadata_test.rs"
+    },
+    {
+      "module": "mcp_document_template_test",
+      "path": "server/crates/api/tests/mcp/mcp_document_template_test.rs"
+    },
+    {
+      "module": "mcp_document_version_test",
+      "path": "server/crates/api/tests/mcp/mcp_document_version_test.rs"
+    }
+  ],
+  "mcp.organization-unit-lifecycle.e2e": [
+    {
+      "module": "mcp_organization_unit_lifecycle_e2e_test",
+      "path": "server/crates/api/tests/mcp/mcp_organization_unit_lifecycle_e2e_test.rs"
+    }
+  ],
+  "server.admin.integration": [
+    {
+      "module": "admin_endpoints",
+      "path": "server/crates/api/tests/admin/admin_endpoints.rs"
+    },
+    {
+      "module": "admin_frontend_schema_compat_test",
+      "path": "server/crates/api/tests/admin/admin_frontend_schema_compat_test.rs"
+    },
+    {
+      "module": "inv_admin_api_schema_test",
+      "path": "server/crates/api/tests/admin/inv_admin_api_schema_test.rs"
+    },
+    {
+      "module": "graphql_admin_compat",
+      "path": "server/crates/api/tests/contract/graphql/graphql_admin_compat.rs"
+    },
+    {
+      "module": "graphql_admin_dashboard_test",
+      "path": "server/crates/api/tests/contract/graphql/graphql_admin_dashboard_test.rs"
+    }
+  ],
+  "server.auth.integration": [
+    {
+      "module": "auth_error_paths_test",
+      "path": "server/crates/api/tests/auth/auth_error_paths_test.rs"
+    },
+    {
+      "module": "auth_magic_link_test",
+      "path": "server/crates/api/tests/auth/auth_magic_link_test.rs"
+    },
+    {
+      "module": "auth_oauth_test",
+      "path": "server/crates/api/tests/auth/auth_oauth_test.rs"
+    },
+    {
+      "module": "auth_oidc_ou_sync_test",
+      "path": "server/crates/api/tests/auth/auth_oidc_ou_sync_test.rs"
+    },
+    {
+      "module": "auth_password_test",
+      "path": "server/crates/api/tests/auth/auth_password_test.rs"
+    },
+    {
+      "module": "auth_session_regression",
+      "path": "server/crates/api/tests/auth/auth_session_regression.rs"
+    },
+    {
+      "module": "auth_session_test",
+      "path": "server/crates/api/tests/auth/auth_session_test.rs"
+    },
+    {
+      "module": "captcha_endpoint_test",
+      "path": "server/crates/api/tests/auth/captcha_endpoint_test.rs"
+    },
+    {
+      "module": "inv_admin_unauthorized_test",
+      "path": "server/crates/api/tests/auth/inv_admin_unauthorized_test.rs"
+    },
+    {
+      "module": "inv_auth_test",
+      "path": "server/crates/api/tests/auth/inv_auth_test.rs"
+    },
+    {
+      "module": "personal_workspace_theme_test",
+      "path": "server/crates/api/tests/auth/personal_workspace_theme_test.rs"
+    },
+    {
+      "module": "socketio_auth_test",
+      "path": "server/crates/api/tests/auth/socketio_auth_test.rs"
+    },
+    {
+      "module": "user_preferences_workbench_test",
+      "path": "server/crates/api/tests/auth/user_preferences_workbench_test.rs"
+    },
+    {
+      "module": "user_suspension_test",
+      "path": "server/crates/api/tests/auth/user_suspension_test.rs"
+    },
+    {
+      "module": "graphql_admin_user_test",
+      "path": "server/crates/api/tests/contract/graphql/graphql_admin_user_test.rs"
+    },
+    {
+      "module": "graphql_auth",
+      "path": "server/crates/api/tests/contract/graphql/graphql_auth.rs"
+    },
+    {
+      "module": "invite_link_hash_test",
+      "path": "server/crates/api/tests/ops/misc/invite_link_hash_test.rs"
+    }
+  ],
+  "server.branding.integration": [
+    {
+      "module": "theme_branding_api_test",
+      "path": "server/crates/api/tests/admin/theme_branding_api_test.rs"
+    },
+    {
+      "module": "font_endpoints_test",
+      "path": "server/crates/api/tests/ops/http/font_endpoints_test.rs"
+    }
+  ],
+  "server.cache.integration": [
+    {
+      "module": "cache_auto_tuning_test",
+      "path": "server/crates/api/tests/ops/cache/cache_auto_tuning_test.rs"
+    },
+    {
+      "module": "cache_stampede_test",
+      "path": "server/crates/api/tests/ops/cache/cache_stampede_test.rs"
+    },
+    {
+      "module": "cache_tuning_retention_test",
+      "path": "server/crates/api/tests/ops/cache/cache_tuning_retention_test.rs"
+    },
+    {
+      "module": "cache_user_features_test",
+      "path": "server/crates/api/tests/ops/cache/cache_user_features_test.rs"
+    },
+    {
+      "module": "inv_cache_test",
+      "path": "server/crates/api/tests/ops/cache/inv_cache_test.rs"
+    },
+    {
+      "module": "inv_doc_cache_integration_test",
+      "path": "server/crates/api/tests/ops/cache/inv_doc_cache_integration_test.rs"
+    },
+    {
+      "module": "inv_doc_cache_tuning_test",
+      "path": "server/crates/api/tests/ops/cache/inv_doc_cache_tuning_test.rs"
+    },
+    {
+      "module": "inv_p103_cache_read_path_test",
+      "path": "server/crates/api/tests/ops/cache/inv_p103_cache_read_path_test.rs"
+    },
+    {
+      "module": "multi_instance_cache_bus_test",
+      "path": "server/crates/api/tests/ops/cache/multi_instance_cache_bus_test.rs"
+    },
+    {
+      "module": "multi_instance_cache_stampede_test",
+      "path": "server/crates/api/tests/ops/cache/multi_instance_cache_stampede_test.rs"
+    },
+    {
+      "module": "multi_instance_config_sync_test",
+      "path": "server/crates/api/tests/ops/cache/multi_instance_config_sync_test.rs"
+    },
+    {
+      "module": "multi_instance_feature_toggle_test",
+      "path": "server/crates/api/tests/ops/cache/multi_instance_feature_toggle_test.rs"
+    },
+    {
+      "module": "multi_instance_redis_failure_test",
+      "path": "server/crates/api/tests/ops/cache/multi_instance_redis_failure_test.rs"
+    },
+    {
+      "module": "multi_instance_session_isolation_test",
+      "path": "server/crates/api/tests/ops/cache/multi_instance_session_isolation_test.rs"
+    }
+  ],
+  "server.calendar.integration": [
+    {
+      "module": "graphql_calendar",
+      "path": "server/crates/api/tests/contract/graphql/graphql_calendar.rs"
+    },
+    {
+      "module": "graphql_calendar_native_test",
+      "path": "server/crates/api/tests/contract/graphql/graphql_calendar_native_test.rs"
+    },
+    {
+      "module": "caldav_sync_integration_test",
+      "path": "server/crates/api/tests/calendar/caldav_sync_integration_test.rs"
+    },
+    {
+      "module": "calendar_native_repo_test",
+      "path": "server/crates/api/tests/calendar/calendar_native_repo_test.rs"
+    },
+    {
+      "module": "inv_caldav_test",
+      "path": "server/crates/api/tests/calendar/inv_caldav_test.rs"
+    },
+    {
+      "module": "inv_caldav_write_test",
+      "path": "server/crates/api/tests/calendar/inv_caldav_write_test.rs"
+    },
+    {
+      "module": "inv_caldav_writeback_test",
+      "path": "server/crates/api/tests/calendar/inv_caldav_writeback_test.rs"
+    },
+    {
+      "module": "inv_calendar_conflict_test",
+      "path": "server/crates/api/tests/calendar/inv_calendar_conflict_test.rs"
+    },
+    {
+      "module": "inv_calendar_ics_test",
+      "path": "server/crates/api/tests/calendar/inv_calendar_ics_test.rs"
+    },
+    {
+      "module": "inv_calendar_instance_test",
+      "path": "server/crates/api/tests/calendar/inv_calendar_instance_test.rs"
+    },
+    {
+      "module": "inv_calendar_native_schema_test",
+      "path": "server/crates/api/tests/calendar/inv_calendar_native_schema_test.rs"
+    },
+    {
+      "module": "inv_calendar_native_svc_test",
+      "path": "server/crates/api/tests/calendar/inv_calendar_native_svc_test.rs"
+    },
+    {
+      "module": "inv_calendar_realtime_test",
+      "path": "server/crates/api/tests/calendar/inv_calendar_realtime_test.rs"
+    },
+    {
+      "module": "inv_calendar_recurrence_test",
+      "path": "server/crates/api/tests/calendar/inv_calendar_recurrence_test.rs"
+    },
+    {
+      "module": "inv_calendar_reminder_test",
+      "path": "server/crates/api/tests/calendar/inv_calendar_reminder_test.rs"
+    },
+    {
+      "module": "inv_calendar_rsvp_test",
+      "path": "server/crates/api/tests/calendar/inv_calendar_rsvp_test.rs"
+    },
+    {
+      "module": "inv_calendar_security_test",
+      "path": "server/crates/api/tests/calendar/inv_calendar_security_test.rs"
+    },
+    {
+      "module": "inv_calendar_webhook_test",
+      "path": "server/crates/api/tests/calendar/inv_calendar_webhook_test.rs"
+    },
+    {
+      "module": "inv_calendar_writeback_test",
+      "path": "server/crates/api/tests/calendar/inv_calendar_writeback_test.rs"
+    }
+  ],
+  "server.config.integration": [
+    {
+      "module": "admin_config_journal_test",
+      "path": "server/crates/api/tests/admin/admin_config_journal_test.rs"
+    },
+    {
+      "module": "admin_config_schema_test",
+      "path": "server/crates/api/tests/admin/admin_config_schema_test.rs"
+    },
+    {
+      "module": "admin_config_update_test",
+      "path": "server/crates/api/tests/admin/admin_config_update_test.rs"
+    },
+    {
+      "module": "config_readiness_test",
+      "path": "server/crates/api/tests/ops/config/config_readiness_test.rs"
+    },
+    {
+      "module": "inv_config_changelog_test",
+      "path": "server/crates/api/tests/ops/config/inv_config_changelog_test.rs"
+    },
+    {
+      "module": "inv_config_defaults_test",
+      "path": "server/crates/api/tests/ops/config/inv_config_defaults_test.rs"
+    },
+    {
+      "module": "inv_config_download_url_test",
+      "path": "server/crates/api/tests/ops/config/inv_config_download_url_test.rs"
+    },
+    {
+      "module": "inv_config_export_test",
+      "path": "server/crates/api/tests/ops/config/inv_config_export_test.rs"
+    },
+    {
+      "module": "inv_config_hotreload_test",
+      "path": "server/crates/api/tests/ops/config/inv_config_hotreload_test.rs"
+    },
+    {
+      "module": "inv_config_import_test",
+      "path": "server/crates/api/tests/ops/config/inv_config_import_test.rs"
+    },
+    {
+      "module": "inv_config_password_policy_test",
+      "path": "server/crates/api/tests/ops/config/inv_config_password_policy_test.rs"
+    },
+    {
+      "module": "inv_config_prodcheck_test",
+      "path": "server/crates/api/tests/ops/config/inv_config_prodcheck_test.rs"
+    },
+    {
+      "module": "inv_config_setup_test",
+      "path": "server/crates/api/tests/ops/config/inv_config_setup_test.rs"
+    },
+    {
+      "module": "inv_config_yaml_compat_test",
+      "path": "server/crates/api/tests/ops/config/inv_config_yaml_compat_test.rs"
+    },
+    {
+      "module": "inv_deployment_type_test",
+      "path": "server/crates/api/tests/ops/config/inv_deployment_type_test.rs"
+    },
+    {
+      "module": "runtime_toggle_test",
+      "path": "server/crates/api/tests/ops/config/runtime_toggle_test.rs"
+    },
+    {
+      "module": "graphql_compat_config",
+      "path": "server/crates/api/tests/contract/graphql/graphql_compat_config.rs"
+    },
+    {
+      "module": "setup_endpoints",
+      "path": "server/crates/api/tests/ops/http/setup_endpoints.rs"
+    }
+  ],
+  "server.copilot.integration": [
+    {
+      "module": "inv_admin_p17_cleanup_embeddings_test",
+      "path": "server/crates/api/tests/admin/inv_admin_p17_cleanup_embeddings_test.rs"
+    },
+    {
+      "module": "graphql_copilot_lifecycle",
+      "path": "server/crates/api/tests/contract/graphql/graphql_copilot_lifecycle.rs"
+    },
+    {
+      "module": "graphql_copilot_test",
+      "path": "server/crates/api/tests/contract/graphql/graphql_copilot_test.rs"
+    },
+    {
+      "module": "copilot_embedding_pipeline_test",
+      "path": "server/crates/api/tests/copilot/copilot_embedding_pipeline_test.rs"
+    },
+    {
+      "module": "inv_copilot_adoption_test",
+      "path": "server/crates/api/tests/copilot/inv_copilot_adoption_test.rs"
+    },
+    {
+      "module": "inv_copilot_config_test",
+      "path": "server/crates/api/tests/copilot/inv_copilot_config_test.rs"
+    },
+    {
+      "module": "inv_copilot_exa_test",
+      "path": "server/crates/api/tests/copilot/inv_copilot_exa_test.rs"
+    },
+    {
+      "module": "inv_copilot_rag_test",
+      "path": "server/crates/api/tests/copilot/inv_copilot_rag_test.rs"
+    },
+    {
+      "module": "inv_copilot_schema_test",
+      "path": "server/crates/api/tests/copilot/inv_copilot_schema_test.rs"
+    },
+    {
+      "module": "inv_copilot_test",
+      "path": "server/crates/api/tests/copilot/inv_copilot_test.rs"
+    }
+  ],
+  "server.database.integration": [
+    {
+      "module": "database_socketio_collaboration_test",
+      "path": "server/crates/api/tests/db/workspaces/database_socketio_collaboration_test.rs"
+    },
+    {
+      "module": "graphql_database_test",
+      "path": "server/crates/api/tests/db/workspaces/graphql_database_test.rs"
+    },
+    {
+      "module": "pdb29b_realtime_emission_test",
+      "path": "server/crates/api/tests/db/workspaces/pdb29b_realtime_emission_test.rs"
+    }
+  ],
+  "server.document-history.integration": [
+    {
+      "module": "graphql_doc_test",
+      "path": "server/crates/api/tests/db/documents/graphql_doc_test.rs"
+    },
+    {
+      "module": "workspace_docs_rest_compat",
+      "path": "server/crates/api/tests/db/workspaces/workspace_docs_rest_compat.rs"
+    },
+    {
+      "module": "document_version_graphql_test",
+      "path": "server/crates/api/tests/pdf/document_version_graphql_test.rs"
+    }
+  ],
+  "server.documents.integration": [
+    {
+      "module": "cli_seed_root_doc_test",
+      "path": "server/crates/api/tests/db/documents/cli_seed_root_doc_test.rs"
+    },
+    {
+      "module": "doc_acl_test",
+      "path": "server/crates/api/tests/db/documents/doc_acl_test.rs"
+    },
+    {
+      "module": "doc_role_roundtrip_test",
+      "path": "server/crates/api/tests/db/documents/doc_role_roundtrip_test.rs"
+    },
+    {
+      "module": "doc_view_tracking_test",
+      "path": "server/crates/api/tests/db/documents/doc_view_tracking_test.rs"
+    },
+    {
+      "module": "doc_view_tracking_ws_e2e_test",
+      "path": "server/crates/api/tests/db/documents/doc_view_tracking_ws_e2e_test.rs"
+    },
+    {
+      "module": "document_audit_graphql_test",
+      "path": "server/crates/api/tests/db/documents/document_audit_graphql_test.rs"
+    },
+    {
+      "module": "document_metadata_graphql_test",
+      "path": "server/crates/api/tests/db/documents/document_metadata_graphql_test.rs"
+    },
+    {
+      "module": "document_metadata_initial_sync_concurrency_test",
+      "path": "server/crates/api/tests/db/documents/document_metadata_initial_sync_concurrency_test.rs"
+    },
+    {
+      "module": "document_metadata_initial_sync_test",
+      "path": "server/crates/api/tests/db/documents/document_metadata_initial_sync_test.rs"
+    },
+    {
+      "module": "document_metadata_policy_graphql_test",
+      "path": "server/crates/api/tests/db/documents/document_metadata_policy_graphql_test.rs"
+    },
+    {
+      "module": "document_permanent_delete_graphql_test",
+      "path": "server/crates/api/tests/db/documents/document_permanent_delete_graphql_test.rs"
+    },
+    {
+      "module": "document_transport_acl_test",
+      "path": "server/crates/api/tests/db/documents/document_transport_acl_test.rs"
+    },
+    {
+      "module": "document_update_replay_guard_test",
+      "path": "server/crates/api/tests/db/documents/document_update_replay_guard_test.rs"
+    },
+    {
+      "module": "inv_doc_logging_test",
+      "path": "server/crates/api/tests/db/documents/inv_doc_logging_test.rs"
+    },
+    {
+      "module": "inv_doc_path_consistency_test",
+      "path": "server/crates/api/tests/db/documents/inv_doc_path_consistency_test.rs"
+    },
+    {
+      "module": "inv_doc_permissions_test",
+      "path": "server/crates/api/tests/db/documents/inv_doc_permissions_test.rs"
+    },
+    {
+      "module": "inv_doc_service_split_test",
+      "path": "server/crates/api/tests/db/documents/inv_doc_service_split_test.rs"
+    },
+    {
+      "module": "inv_doc_timestamp_filter_test",
+      "path": "server/crates/api/tests/db/documents/inv_doc_timestamp_filter_test.rs"
+    },
+    {
+      "module": "inv_doc_trait_isolation_test",
+      "path": "server/crates/api/tests/db/documents/inv_doc_trait_isolation_test.rs"
+    },
+    {
+      "module": "inv_doc_view_tracking_consolidated_test",
+      "path": "server/crates/api/tests/db/documents/inv_doc_view_tracking_consolidated_test.rs"
+    },
+    {
+      "module": "inv_p102_compact_test",
+      "path": "server/crates/api/tests/db/documents/inv_p102_compact_test.rs"
+    },
+    {
+      "module": "inv_p102_trash_test",
+      "path": "server/crates/api/tests/db/documents/inv_p102_trash_test.rs"
+    },
+    {
+      "module": "inv_userspace_load_test",
+      "path": "server/crates/api/tests/db/documents/inv_userspace_load_test.rs"
+    },
+    {
+      "module": "page_lifecycle_test",
+      "path": "server/crates/api/tests/db/documents/page_lifecycle_test.rs"
+    },
+    {
+      "module": "sync_doc_id_roundtrip_test",
+      "path": "server/crates/api/tests/db/documents/sync_doc_id_roundtrip_test.rs"
+    },
+    {
+      "module": "graphql_comments",
+      "path": "server/crates/api/tests/contract/graphql/graphql_comments.rs"
+    },
+    {
+      "module": "graphql_document_graph_identity_test",
+      "path": "server/crates/api/tests/contract/graphql/graphql_document_graph_identity_test.rs"
+    },
+    {
+      "module": "workspace_content_operation_persistence_test",
+      "path": "server/crates/api/tests/contract/persistence/workspace_content_operation_persistence_test.rs"
+    },
+    {
+      "module": "inv_ignored_docs_shape_test",
+      "path": "server/crates/api/tests/ops/misc/inv_ignored_docs_shape_test.rs"
+    },
+    {
+      "module": "inv_userspace_view_test",
+      "path": "server/crates/api/tests/ops/misc/inv_userspace_view_test.rs"
+    }
+  ],
+  "server.git-sync.integration": [
+    {
+      "module": "graphql_git_sync_profile_test",
+      "path": "server/crates/api/tests/contract/graphql/graphql_git_sync_profile_test.rs"
+    },
+    {
+      "module": "git_sync_conflict_resolution_test",
+      "path": "server/crates/api/tests/integrations/git_sync/git_sync_conflict_resolution_test.rs"
+    },
+    {
+      "module": "git_sync_db_invariants_test",
+      "path": "server/crates/api/tests/integrations/git_sync/git_sync_db_invariants_test.rs"
+    },
+    {
+      "module": "git_sync_enum_test",
+      "path": "server/crates/api/tests/integrations/git_sync/git_sync_enum_test.rs"
+    },
+    {
+      "module": "git_sync_file_pipeline_test",
+      "path": "server/crates/api/tests/integrations/git_sync/git_sync_file_pipeline_test.rs"
+    },
+    {
+      "module": "git_sync_rebase_test",
+      "path": "server/crates/api/tests/integrations/git_sync/git_sync_rebase_test.rs"
+    },
+    {
+      "module": "git_sync_runner_harness_test",
+      "path": "server/crates/api/tests/integrations/git_sync/git_sync_runner_harness_test.rs"
+    },
+    {
+      "module": "git_sync_scheduler_test",
+      "path": "server/crates/api/tests/integrations/git_sync/git_sync_scheduler_test.rs"
+    },
+    {
+      "module": "git_sync_source_guard_test",
+      "path": "server/crates/api/tests/integrations/git_sync/git_sync_source_guard_test.rs"
+    },
+    {
+      "module": "git_sync_ssh_host_key_policy_test",
+      "path": "server/crates/api/tests/integrations/git_sync/git_sync_ssh_host_key_policy_test.rs"
+    },
+    {
+      "module": "git_sync_webhook_test",
+      "path": "server/crates/api/tests/integrations/git_sync/git_sync_webhook_test.rs"
+    },
+    {
+      "module": "inv_git_sync_test",
+      "path": "server/crates/api/tests/integrations/git_sync/inv_git_sync_test.rs"
+    }
+  ],
+  "server.mcp.integration": [
+    {
+      "module": "mcp_user_management_test",
+      "path": "server/crates/api/tests/mcp/mcp_user_management_test.rs"
+    },
+    {
+      "module": "mcp_api_key_graphql_test",
+      "path": "server/crates/api/tests/mcp/mcp_api_key_graphql_test.rs"
+    },
+    {
+      "module": "mcp_blob_tools_test",
+      "path": "server/crates/api/tests/mcp/mcp_blob_tools_test.rs"
+    },
+    {
+      "module": "mcp_create_page_test",
+      "path": "server/crates/api/tests/mcp/mcp_create_page_test.rs"
+    },
+    {
+      "module": "mcp_cross_workspace_test",
+      "path": "server/crates/api/tests/mcp/mcp_cross_workspace_test.rs"
+    },
+    {
+      "module": "mcp_folder_tools_test",
+      "path": "server/crates/api/tests/mcp/mcp_folder_tools_test.rs"
+    },
+    {
+      "module": "mcp_pagination_test",
+      "path": "server/crates/api/tests/mcp/mcp_pagination_test.rs"
+    },
+    {
+      "module": "mcp_publication_test",
+      "path": "server/crates/api/tests/mcp/mcp_publication_test.rs"
+    },
+    {
+      "module": "mcp_scope_enforcement_test",
+      "path": "server/crates/api/tests/mcp/mcp_scope_enforcement_test.rs"
+    },
+    {
+      "module": "mcp_workspace_tag_test",
+      "path": "server/crates/api/tests/mcp/mcp_workspace_tag_test.rs"
+    },
+    {
+      "module": "mcp_organization_membership_test",
+      "path": "server/crates/api/tests/mcp/mcp_organization_membership_test.rs"
+    }
+  ],
+  "server.notifications.integration": [
+    {
+      "module": "graphql_notifications",
+      "path": "server/crates/api/tests/contract/graphql/graphql_notifications.rs"
+    },
+    {
+      "module": "notification_mail_e2e_test",
+      "path": "server/crates/api/tests/ops/misc/notification_mail_e2e_test.rs"
+    },
+    {
+      "module": "notification_mail_pipeline_test",
+      "path": "server/crates/api/tests/ops/misc/notification_mail_pipeline_test.rs"
+    }
+  ],
+  "server.operations.integration": [
+    {
+      "module": "admin_runtime_graphql_test",
+      "path": "server/crates/api/tests/admin/admin_runtime_graphql_test.rs"
+    },
+    {
+      "module": "inv_audit_log_test",
+      "path": "server/crates/api/tests/admin/inv_audit_log_test.rs"
+    },
+    {
+      "module": "logging_admin_test",
+      "path": "server/crates/api/tests/admin/logging_admin_test.rs"
+    },
+    {
+      "module": "monitoring_assets_test",
+      "path": "server/crates/api/tests/ops/http/monitoring_assets_test.rs"
+    },
+    {
+      "module": "inv_server_directories_test",
+      "path": "server/crates/api/tests/ops/misc/inv_server_directories_test.rs"
+    },
+    {
+      "module": "log_rotation_test",
+      "path": "server/crates/api/tests/ops/misc/log_rotation_test.rs"
+    },
+    {
+      "module": "logging_tail_rotation_test",
+      "path": "server/crates/api/tests/ops/misc/logging_tail_rotation_test.rs"
+    }
+  ],
+  "server.organization.integration": [
+    {
+      "module": "graphql_implicit_manager_capability_test",
+      "path": "server/crates/api/tests/contract/graphql/graphql_implicit_manager_capability_test.rs"
+    },
+    {
+      "module": "graphql_organization_audit_test",
+      "path": "server/crates/api/tests/contract/graphql/graphql_organization_audit_test.rs"
+    },
+    {
+      "module": "graphql_organization_import_export_test",
+      "path": "server/crates/api/tests/contract/graphql/graphql_organization_import_export_test.rs"
+    },
+    {
+      "module": "graphql_organization_legacy_team_test",
+      "path": "server/crates/api/tests/contract/graphql/graphql_organization_legacy_team_test.rs"
+    },
+    {
+      "module": "graphql_organization_test",
+      "path": "server/crates/api/tests/contract/graphql/graphql_organization_test.rs"
+    },
+    {
+      "module": "graphql_organization_unit_lifecycle_test",
+      "path": "server/crates/api/tests/contract/graphql/graphql_organization_unit_lifecycle_test.rs"
+    },
+    {
+      "module": "graphql_search_organization_units_test",
+      "path": "server/crates/api/tests/contract/graphql/graphql_search_organization_units_test.rs"
+    },
+    {
+      "module": "graphql_user_organization_memberships_test",
+      "path": "server/crates/api/tests/contract/graphql/graphql_user_organization_memberships_test.rs"
+    },
+    {
+      "module": "graphql_workspace_member_permission_test",
+      "path": "server/crates/api/tests/contract/graphql/graphql_workspace_member_permission_test.rs"
+    },
+    {
+      "module": "organization_source_gate_test",
+      "path": "server/crates/api/tests/contract/graphql/organization_source_gate_test.rs"
+    }
+  ],
+  "server.pdf.integration": [
+    {
+      "module": "mcp_pdf_template_test",
+      "path": "server/crates/api/tests/mcp/mcp_pdf_template_test.rs"
+    },
+    {
+      "module": "admin_pdf_export_graphql_test",
+      "path": "server/crates/api/tests/pdf/admin_pdf_export_graphql_test.rs"
+    },
+    {
+      "module": "admin_template_override_graphql_test",
+      "path": "server/crates/api/tests/pdf/admin_template_override_graphql_test.rs"
+    },
+    {
+      "module": "document_version_invariants",
+      "path": "server/crates/api/tests/pdf/document_version_invariants.rs"
+    },
+    {
+      "module": "pdf_audit_invariants_test",
+      "path": "server/crates/api/tests/pdf/pdf_audit_invariants_test.rs"
+    },
+    {
+      "module": "pdf_brand_admin_test",
+      "path": "server/crates/api/tests/pdf/pdf_brand_admin_test.rs"
+    },
+    {
+      "module": "pdf_export_api_test",
+      "path": "server/crates/api/tests/pdf/pdf_export_api_test.rs"
+    },
+    {
+      "module": "pdf_export_assignment_test",
+      "path": "server/crates/api/tests/pdf/pdf_export_assignment_test.rs"
+    },
+    {
+      "module": "pdf_export_audit_failmode_test",
+      "path": "server/crates/api/tests/pdf/pdf_export_audit_failmode_test.rs"
+    },
+    {
+      "module": "pdf_export_cleanup_test",
+      "path": "server/crates/api/tests/pdf/pdf_export_cleanup_test.rs"
+    },
+    {
+      "module": "pdf_export_contract_source_gate_test",
+      "path": "server/crates/api/tests/pdf/pdf_export_contract_source_gate_test.rs"
+    },
+    {
+      "module": "pdf_export_render_audit_test",
+      "path": "server/crates/api/tests/pdf/pdf_export_render_audit_test.rs"
+    },
+    {
+      "module": "pdf_export_v2_invariants",
+      "path": "server/crates/api/tests/pdf/pdf_export_v2_invariants.rs"
+    },
+    {
+      "module": "pdf_export_v2_mutation_test",
+      "path": "server/crates/api/tests/pdf/pdf_export_v2_mutation_test.rs"
+    },
+    {
+      "module": "pdf_font_lifecycle_test",
+      "path": "server/crates/api/tests/pdf/pdf_font_lifecycle_test.rs"
+    },
+    {
+      "module": "pdf_template_admin_test",
+      "path": "server/crates/api/tests/pdf/pdf_template_admin_test.rs"
+    },
+    {
+      "module": "pdf_workspace_admin_test",
+      "path": "server/crates/api/tests/pdf/pdf_workspace_admin_test.rs"
+    },
+    {
+      "module": "pdf_workspace_readonly_test",
+      "path": "server/crates/api/tests/pdf/pdf_workspace_readonly_test.rs"
+    }
+  ],
+  "server.public-publishing.integration": [
+    {
+      "module": "public_publishing_routes_test",
+      "path": "server/crates/api/tests/public_publishing/public_publishing_routes_test.rs"
+    }
+  ],
+  "server.search.integration": [
+    {
+      "module": "graphql_admin_search_workspaces_test",
+      "path": "server/crates/api/tests/db/workspaces/graphql_admin_search_workspaces_test.rs"
+    },
+    {
+      "module": "graphql_search",
+      "path": "server/crates/api/tests/contract/graphql/graphql_search.rs"
+    },
+    {
+      "module": "graphql_search_missing_repository_test",
+      "path": "server/crates/api/tests/contract/graphql/graphql_search_missing_repository_test.rs"
+    },
+    {
+      "module": "graphql_search_users_test",
+      "path": "server/crates/api/tests/contract/graphql/graphql_search_users_test.rs"
+    },
+    {
+      "module": "inv_mix_search_contract_test",
+      "path": "server/crates/api/tests/contract/graphql/inv_mix_search_contract_test.rs"
+    },
+    {
+      "module": "indexer_job_payload_test",
+      "path": "server/crates/api/tests/ops/misc/indexer_job_payload_test.rs"
+    },
+    {
+      "module": "search_content_test",
+      "path": "server/crates/api/tests/ops/misc/search_content_test.rs"
+    }
+  ],
+  "server.storage.integration": [
+    {
+      "module": "inv_workspace_blob_cleanup_test",
+      "path": "server/crates/api/tests/db/workspaces/inv_workspace_blob_cleanup_test.rs"
+    },
+    {
+      "module": "blob_download_test",
+      "path": "server/crates/api/tests/db/storage/blob_download_test.rs"
+    },
+    {
+      "module": "blob_quota_test",
+      "path": "server/crates/api/tests/db/storage/blob_quota_test.rs"
+    },
+    {
+      "module": "blob_upload_test",
+      "path": "server/crates/api/tests/db/storage/blob_upload_test.rs"
+    },
+    {
+      "module": "inv_quota_usage_test",
+      "path": "server/crates/api/tests/db/storage/inv_quota_usage_test.rs"
+    },
+    {
+      "module": "inv_workspace_quota_test",
+      "path": "server/crates/api/tests/db/storage/inv_workspace_quota_test.rs"
+    },
+    {
+      "module": "quota_enforcement_test",
+      "path": "server/crates/api/tests/db/storage/quota_enforcement_test.rs"
+    },
+    {
+      "module": "storage_complex_test",
+      "path": "server/crates/api/tests/db/storage/storage_complex_test.rs"
+    }
+  ],
+  "server.sync.integration": [
+    {
+      "module": "client_update_control_test",
+      "path": "server/crates/api/tests/realtime/client_update_control_test.rs"
+    },
+    {
+      "module": "connection_admission_test",
+      "path": "server/crates/api/tests/realtime/connection_admission_test.rs"
+    },
+    {
+      "module": "document_event_acl_test",
+      "path": "server/crates/api/tests/realtime/document_event_acl_test.rs"
+    },
+    {
+      "module": "sync_lifecycle_test",
+      "path": "server/crates/api/tests/realtime/sync_lifecycle_test.rs"
+    },
+    {
+      "module": "sync_permission_test",
+      "path": "server/crates/api/tests/realtime/sync_permission_test.rs"
+    },
+    {
+      "module": "websocket_protocol_test",
+      "path": "server/crates/api/tests/realtime/websocket_protocol_test.rs"
+    }
+  ],
+  "server.templates.integration": [
+    {
+      "module": "graphql_template_suggestions",
+      "path": "server/crates/api/tests/contract/graphql/graphql_template_suggestions.rs"
+    },
+    {
+      "module": "graphql_workspace_template_context_test",
+      "path": "server/crates/api/tests/contract/graphql/graphql_workspace_template_context_test.rs"
+    },
+    {
+      "module": "inv_template_registry_config_test",
+      "path": "server/crates/api/tests/templates/inv_template_registry_config_test.rs"
+    },
+    {
+      "module": "template_builtin_bridge_invariants",
+      "path": "server/crates/api/tests/templates/template_builtin_bridge_invariants.rs"
+    },
+    {
+      "module": "template_registry_test",
+      "path": "server/crates/api/tests/templates/template_registry_test.rs"
+    }
+  ],
+  "server.worker.integration": [
+    {
+      "module": "admin_queue_graphql_test",
+      "path": "server/crates/api/tests/admin/admin_queue_graphql_test.rs"
+    },
+    {
+      "module": "inv_metrics_pipeline_test",
+      "path": "server/crates/api/tests/worker/inv_metrics_pipeline_test.rs"
+    },
+    {
+      "module": "inv_telemetry_dsgvo_test",
+      "path": "server/crates/api/tests/worker/inv_telemetry_dsgvo_test.rs"
+    },
+    {
+      "module": "inv_telemetry_pipeline_test",
+      "path": "server/crates/api/tests/worker/inv_telemetry_pipeline_test.rs"
+    },
+    {
+      "module": "inv_telemetry_status_test",
+      "path": "server/crates/api/tests/worker/inv_telemetry_status_test.rs"
+    },
+    {
+      "module": "metrics_worker_telemetry",
+      "path": "server/crates/api/tests/worker/metrics_worker_telemetry.rs"
+    },
+    {
+      "module": "queue_mgmt_invariant_test",
+      "path": "server/crates/api/tests/worker/queue_mgmt_invariant_test.rs"
+    },
+    {
+      "module": "worker_outbox_e2e_test",
+      "path": "server/crates/api/tests/worker/worker_outbox_e2e_test.rs"
+    },
+    {
+      "module": "worker_outbox_test",
+      "path": "server/crates/api/tests/worker/worker_outbox_test.rs"
+    },
+    {
+      "module": "worker_queue_redis_test",
+      "path": "server/crates/api/tests/worker/worker_queue_redis_test.rs"
+    },
+    {
+      "module": "inv_outbox_test",
+      "path": "server/crates/api/tests/ops/misc/inv_outbox_test.rs"
+    }
+  ],
+  "server.workspaces.integration": [
+    {
+      "module": "graphql_admin_workspace_test",
+      "path": "server/crates/api/tests/db/workspaces/graphql_admin_workspace_test.rs"
+    },
+    {
+      "module": "graphql_orphaned_workspaces_test",
+      "path": "server/crates/api/tests/db/workspaces/graphql_orphaned_workspaces_test.rs"
+    },
+    {
+      "module": "graphql_workspace",
+      "path": "server/crates/api/tests/db/workspaces/graphql_workspace.rs"
+    },
+    {
+      "module": "graphql_workspace_compat",
+      "path": "server/crates/api/tests/db/workspaces/graphql_workspace_compat.rs"
+    },
+    {
+      "module": "graphql_workspace_resolvers_test",
+      "path": "server/crates/api/tests/db/workspaces/graphql_workspace_resolvers_test.rs"
+    },
+    {
+      "module": "graphql_workspace_tags_test",
+      "path": "server/crates/api/tests/db/workspaces/graphql_workspace_tags_test.rs"
+    },
+    {
+      "module": "inv_workspace_invite_test",
+      "path": "server/crates/api/tests/db/workspaces/inv_workspace_invite_test.rs"
+    },
+    {
+      "module": "inv_workspace_member_invite_test",
+      "path": "server/crates/api/tests/db/workspaces/inv_workspace_member_invite_test.rs"
+    },
+    {
+      "module": "inv_workspace_test",
+      "path": "server/crates/api/tests/db/workspaces/inv_workspace_test.rs"
+    },
+    {
+      "module": "inv_workspace_type_test",
+      "path": "server/crates/api/tests/db/workspaces/inv_workspace_type_test.rs"
+    },
+    {
+      "module": "nightly_cleanup_test",
+      "path": "server/crates/api/tests/db/workspaces/nightly_cleanup_test.rs"
+    },
+    {
+      "module": "workspace_preview_test",
+      "path": "server/crates/api/tests/db/workspaces/workspace_preview_test.rs"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+formatVersion: 1
+id: myoxus.workflow.workspace_team_wiki
+version: 1.0.0
+capabilityVersions:
+  createWorkingDocument: 1
+  placeNativeLink: 1
+nodes:
+  - id: home
+    action:
+      kind: createWorkingDocument
+      component: home
+  - id: procedure
+    action:
+      kind: createWorkingDocument
+      component: procedure
+  - id: decision
+    action:
+      kind: createWorkingDocument
+      component: decision
+  - id: place-home
+    action:
+      kind: placeNativeLink
+      component: place-home
+  - id: place-procedure
+    action:
+      kind: placeNativeLink
+      component: place-procedure
+  - id: place-decision
+    action:
+      kind: placeNativeLink
+      component: place-decision

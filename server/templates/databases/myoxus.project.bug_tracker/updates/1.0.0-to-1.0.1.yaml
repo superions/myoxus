@@ -1,0 +1,9 @@
+format_version: 1
+template_id: myoxus.project.bug_tracker
+source:
+  version: 1.0.0
+  sha256: 360f226d8564c0cf1374b84c9b90760735485b439be65736c006f3787a1d762d
+target:
+  version: 1.0.1
+  sha256: 83ca5e669285f04dd329526439ac5aba85b63058f3707adb5504520d1123b612
+operations: []

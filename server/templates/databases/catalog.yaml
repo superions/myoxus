@@ -1,0 +1,1686 @@
+format_version: 1
+templates:
+  - id: myoxus.database.blank
+    current: 1.0.1
+    definitions:
+      - version: 1.0.1
+        path: myoxus.database.blank/1.0.1.yaml
+        sha256: f5a76a4b3aba5ff36a9ffd2f3b47c7d5c89cd3bfa3d4a9c81a13609033380ae3
+        selections:
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+    offering: true
+    default_variant:
+      priority: threeStep
+      complexity: threeStep
+      structure: phases
+  - id: myoxus.database.simple_task_list
+    current: 1.0.1
+    definitions:
+      - version: 1.0.1
+        path: myoxus.database.simple_task_list/1.0.1.yaml
+        sha256: 202e68e97e3da60bd7815ab4b69fb4e394af7eeb6ef811cd5d3b050b33d2bf47
+        selections:
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+    offering: true
+    default_variant:
+      priority: threeStep
+      complexity: threeStep
+      structure: phases
+  - id: myoxus.project.simple_project
+    current: 1.0.1
+    updates:
+      - from: 1.0.0
+        to: 1.0.1
+        path: myoxus.project.simple_project/updates/1.0.0-to-1.0.1.yaml
+        sha256: 436e6e145a7bdee19a06f4576717172247471bcad01b84c356e9ac74355c0dc5
+    definitions:
+      - version: 1.0.0
+        path: myoxus.project.simple_project/1.0.0.yaml
+        sha256: 189cf193fbc889141d3825f19624b17c73528462b00d3c0f4dee0dc1389474ab
+        selections:
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: milestones
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases_and_milestones
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: fiveStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: fiveStep
+              structure: milestones
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: tasks_only
+            variant:
+              priority: fiveStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases
+            variant:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: milestones
+            variant:
+              priority: fiveStep
+              complexity: threeStep
+              structure: milestones
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases_and_milestones
+            variant:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases_and_milestones
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: tasks_only
+            variant:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases
+            variant:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: milestones
+            variant:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: milestones
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+            variant:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+      - version: 1.0.1
+        path: myoxus.project.simple_project/1.0.1.yaml
+        sha256: 1a4a68ae00c991b32584fff2d612aedeb70d3cfbbb24873e2699eade90f068cc
+        selections:
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: milestones
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases_and_milestones
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: fiveStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: fiveStep
+              structure: milestones
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: tasks_only
+            variant:
+              priority: fiveStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases
+            variant:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: milestones
+            variant:
+              priority: fiveStep
+              complexity: threeStep
+              structure: milestones
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases_and_milestones
+            variant:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases_and_milestones
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: tasks_only
+            variant:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases
+            variant:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: milestones
+            variant:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: milestones
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+            variant:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+    offering: true
+    default_variant:
+      priority: threeStep
+      complexity: threeStep
+      structure: phases
+  - id: myoxus.project.product_roadmap
+    current: 1.0.1
+    updates:
+      - from: 1.0.0
+        to: 1.0.1
+        path: myoxus.project.product_roadmap/updates/1.0.0-to-1.0.1.yaml
+        sha256: b2e3f8ec7f259c9bfe39cb035417b181f0c823610f5b882c12aad29f734b0dbe
+    definitions:
+      - version: 1.0.0
+        path: myoxus.project.product_roadmap/1.0.0.yaml
+        sha256: 73cfc6457fa5d0d421a007057cc76242bc6e95c9ede377b4c39d1abf7da36172
+        selections:
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+      - version: 1.0.1
+        path: myoxus.project.product_roadmap/1.0.1.yaml
+        sha256: bdf1d29e1ff2cec3cb08bdee5b9b85e4f68ae1a7d69a7200e307f04afcd33d57
+        selections:
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+    offering: true
+    default_variant:
+      priority: fiveStep
+      complexity: fiveStep
+      structure: phases_and_milestones
+  - id: myoxus.database.content_calendar
+    current: 1.0.1
+    definitions:
+      - version: 1.0.1
+        path: myoxus.database.content_calendar/1.0.1.yaml
+        sha256: c10901c9497cd412165d086ffea4a73c528d7412173ad891fd33b2b7f95497e1
+        selections:
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+    offering: true
+    default_variant:
+      priority: threeStep
+      complexity: threeStep
+      structure: phases
+  - id: myoxus.database.crm_contacts
+    current: 1.0.1
+    definitions:
+      - version: 1.0.1
+        path: myoxus.database.crm_contacts/1.0.1.yaml
+        sha256: 0ea208eee94f87a1584e699903833109e447c5156fb845a47f9adc6bf2f8df0a
+        selections:
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+    offering: true
+    default_variant:
+      priority: threeStep
+      complexity: threeStep
+      structure: phases
+  - id: myoxus.database.inventory_assets
+    current: 1.0.1
+    definitions:
+      - version: 1.0.1
+        path: myoxus.database.inventory_assets/1.0.1.yaml
+        sha256: d13b9b447ac850de9bdcf57bd99cfe8e67c6f3c97cf1cdea5baae1cb30a44346
+        selections:
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+    offering: true
+    default_variant:
+      priority: threeStep
+      complexity: threeStep
+      structure: phases
+  - id: myoxus.project.bug_tracker
+    current: 1.0.1
+    updates:
+      - from: 1.0.0
+        to: 1.0.1
+        path: myoxus.project.bug_tracker/updates/1.0.0-to-1.0.1.yaml
+        sha256: 86a80823fe0781d01c3ab23ba7c4208a9fcfb7f38963a487eef08a741c1a8e9d
+    definitions:
+      - version: 1.0.0
+        path: myoxus.project.bug_tracker/1.0.0.yaml
+        sha256: 360f226d8564c0cf1374b84c9b90760735485b439be65736c006f3787a1d762d
+        selections:
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+      - version: 1.0.1
+        path: myoxus.project.bug_tracker/1.0.1.yaml
+        sha256: 83ca5e669285f04dd329526439ac5aba85b63058f3707adb5504520d1123b612
+        selections:
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+    offering: true
+    default_variant:
+      priority: fiveStep
+      complexity: threeStep
+      structure: milestones
+  - id: myoxus.database.research_index
+    current: 1.0.1
+    definitions:
+      - version: 1.0.1
+        path: myoxus.database.research_index/1.0.1.yaml
+        sha256: ca5de735b62ab39323fcb608506cafc499e1149e10e601fbd5d3895c2acb6db3
+        selections:
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: threeStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: threeStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: threeStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: tasks_only
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+          - input:
+              priority: fiveStep
+              complexity: fiveStep
+              structure: phases_and_milestones
+            variant:
+              priority: threeStep
+              complexity: threeStep
+              structure: tasks_only
+    offering: true
+    default_variant:
+      priority: threeStep
+      complexity: threeStep
+      structure: phases
+system_sources:
+  - role: projectDefault
+    template_id: myoxus.project.simple_project
+    selection:
+      priority: threeStep
+      complexity: threeStep
+      structure: phases
+  - role: workspaceTasks
+    template_id: myoxus.project.simple_project
+    selection:
+      priority: threeStep
+      complexity: threeStep
+      structure: tasks_only

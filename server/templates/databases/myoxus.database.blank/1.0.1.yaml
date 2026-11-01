@@ -1,0 +1,70 @@
+format_version: 1
+id: myoxus.database.blank
+version: 1.0.1
+task_core: null
+variants:
+  - option_extensions: []
+    field_order:
+      - title
+    role_order: []
+    priority: threeStep
+    complexity: threeStep
+    structure: tasks_only
+    spec:
+      category: database
+      complexity_preset: null
+      default_structure: null
+      description: A clean table with only a title field.
+      fields:
+        - config:
+            Direct:
+              kind: title
+          field_type: title
+          key: title
+          name: Title
+          required: true
+      id: myoxus.database.blank
+      name: Blank Database
+      priority_preset: null
+      profile_kind: generic
+      roles: []
+      row_templates:
+        - description: null
+          initial_cells: []
+          is_default: true
+          key: blank-row
+          name: Blank row
+          row_kind: record
+      sample_rows: []
+      views:
+        - config:
+            Table:
+              group: null
+              visible:
+                - title
+          kind: table
+          name: Table
+      metadata:
+        name_key: com.myoxus.database.starter-template.database-blank.name
+        description_key: com.myoxus.database.starter-template.database-blank.description
+        fields:
+          - key: title
+            name_key: com.myoxus.database.starter-template.database-blank.field.title.name
+            import_export_behavior: read_write
+        views:
+          - key: table
+            name_key: com.myoxus.database.starter-template.database-blank.view.table.name
+        row_templates:
+          - key: blank-row
+            name_key: com.myoxus.database.starter-template.database-blank.row-template.blank-row.name
+            description_key: null
+        sample_rows: []
+        import_mappings:
+          - columnMappings:
+              - fieldKey: title
+                required: true
+                sourceHeader: Title
+            key: default-csv
+            nameKey: com.myoxus.database.starter-template.database-blank.import-mapping.default-csv.name
+supported_predecessors:
+  - 1.0.0

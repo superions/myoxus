@@ -1,0 +1,20 @@
+{
+  "greeting": "Bonjour,",
+  "fallbackLabel": "Si le bouton ne fonctionne pas, ouvrez ce lien :",
+  "footer": "Myoxus · Message automatique",
+  "code": "Code à usage unique",
+  "roles": {
+    "Owner": "Propriétaire",
+    "Admin": "Administrateur",
+    "Collaborator": "Collaborateur",
+    "Reader": "Lecteur",
+    "Editor": "Éditeur",
+    "Commenter": "Commentateur",
+    "Manager": "Gestionnaire"
+  },
+  "actorFallback": "Un membre",
+  "eventFallback": "Événement sans titre",
+  "documentFallback": "Document sans titre",
+  "workspaceFallback": "Espace de travail",
+  "rowFallback": "Ligne sans titre"
+}

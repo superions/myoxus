@@ -1,0 +1,9 @@
+#import "./admin-organization-unit-type-fragment.gql"
+
+query adminOrganizationUnitTypes($includeInactive: Boolean) {
+  admin {
+    organizationUnitTypes(includeInactive: $includeInactive) {
+      ...AdminOrganizationUnitTypeFragment
+    }
+  }
+}

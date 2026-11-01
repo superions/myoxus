@@ -1,0 +1,9 @@
+[Unit]
+Description=Update Myoxus Linux package installation runner
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/myoxus-update-linux-install-runner
+TimeoutStartSec=45min

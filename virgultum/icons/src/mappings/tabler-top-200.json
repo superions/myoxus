@@ -1,0 +1,1879 @@
+{
+  "schemaVersion": 1,
+  "decision": {
+    "iconSet": "tabler",
+    "package": "@tabler/icons-react",
+    "version": "3.45.0",
+    "license": "MIT"
+  },
+  "scope": {
+    "rankStart": 1,
+    "rankEnd": 200,
+    "reviewedIconCount": 200,
+    "scannedFileCount": 4824,
+    "filesWithIconReferences": 583,
+    "distinctIconCount": 453,
+    "totalReferences": 2150
+  },
+  "review": {
+    "completedAt": "2026-07-17T13:16:20.707Z",
+    "summary": {
+      "acceptedWithoutChange": 195,
+      "changedAndResolved": 5,
+      "keepMyoxus": 0,
+      "customRequired": 0,
+      "unresolved": 0
+    },
+    "resolutions": [
+      {
+        "rank": 34,
+        "myoxus": "WorkflowIcon",
+        "rejected": "IconSitemap",
+        "accepted": "IconAutomation",
+        "reason": "Expliziter Workflow-/Automatisierungsbezug statt allgemeiner Sitemap."
+      },
+      {
+        "rank": 58,
+        "myoxus": "YesterdayIcon",
+        "rejected": "IconCalendarMinus",
+        "accepted": "IconArrowLeft",
+        "reason": "Kalender-Minus wirkt wie Löschen; relative Rückwärtsnavigation ist eindeutig."
+      },
+      {
+        "rank": 73,
+        "myoxus": "TomorrowIcon",
+        "rejected": "IconCalendarPlus",
+        "accepted": "IconArrowRight",
+        "reason": "Kalender-Plus wirkt wie Termin anlegen; relative Vorwärtsnavigation ist eindeutig."
+      },
+      {
+        "rank": 195,
+        "myoxus": "CopyAsImgaeIcon",
+        "rejected": "IconPhotoDown",
+        "accepted": "IconPhoto",
+        "reason": "Das allgemeine Bildsymbol bildet die Aktion im vorhandenen Kontext besser ab."
+      },
+      {
+        "rank": 197,
+        "myoxus": "DiamondIcon",
+        "rejected": "IconDiamond",
+        "accepted": "IconSquareRotated",
+        "reason": "IconDiamond zeigt einen Edelstein; IconSquareRotated ist die einfache geometrische Raute."
+      }
+    ]
+  },
+  "methodology": {
+    "description": "Statische TypeScript/JavaScript-Identifierreferenzen auf benannte oder Namespace-Imports aus @myoxus/icons/react und @myoxus/icons/lit.",
+    "sourceRoots": [
+      "client/admin",
+      "client/web",
+      "client/libs",
+      "client/apps",
+      "virgultum/editor"
+    ],
+    "excluded": "Generierte Ausgaben, dist/out/output, node_modules, Fixtures, Tests, Specs, Stories und Testverzeichnisse.",
+    "ranking": "Absteigend nach Quellreferenzen, danach Dateianzahl und Exportname."
+  },
+  "icons": [
+    {
+      "rank": 1,
+      "myoxus": "PlusIcon",
+      "tabler": "IconPlus",
+      "references": 85,
+      "fileCount": 67,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 2,
+      "myoxus": "DeleteIcon",
+      "tabler": "IconTrashX",
+      "references": 78,
+      "fileCount": 69,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 3,
+      "myoxus": "PageIcon",
+      "tabler": "IconFile",
+      "references": 57,
+      "fileCount": 32,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 4,
+      "myoxus": "CloseIcon",
+      "tabler": "IconX",
+      "references": 50,
+      "fileCount": 37,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 5,
+      "myoxus": "MoreHorizontalIcon",
+      "tabler": "IconDots",
+      "references": 44,
+      "fileCount": 38,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 6,
+      "myoxus": "PenIcon",
+      "tabler": "IconPencil",
+      "references": 39,
+      "fileCount": 9,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 7,
+      "myoxus": "ArrowDownSmallIcon",
+      "tabler": "IconChevronDown",
+      "references": 35,
+      "fileCount": 29,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 8,
+      "myoxus": "CopyIcon",
+      "tabler": "IconCopy",
+      "references": 34,
+      "fileCount": 29,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 9,
+      "myoxus": "DatabaseIcon",
+      "tabler": "IconDatabase",
+      "references": 34,
+      "fileCount": 23,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 10,
+      "myoxus": "EdgelessIcon",
+      "tabler": "IconInfinity",
+      "references": 34,
+      "fileCount": 20,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 11,
+      "myoxus": "EditIcon",
+      "tabler": "IconEdit",
+      "references": 31,
+      "fileCount": 26,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 12,
+      "myoxus": "ArrowRightSmallIcon",
+      "tabler": "IconChevronRight",
+      "references": 31,
+      "fileCount": 23,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 13,
+      "myoxus": "DoneIcon",
+      "tabler": "IconCheck",
+      "references": 30,
+      "fileCount": 24,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 14,
+      "myoxus": "DuplicateIcon",
+      "tabler": "IconCopyPlus",
+      "references": 29,
+      "fileCount": 27,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 15,
+      "myoxus": "OpenInNewIcon",
+      "tabler": "IconExternalLink",
+      "references": 28,
+      "fileCount": 26,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 16,
+      "myoxus": "ImageIcon",
+      "tabler": "IconPhoto",
+      "references": 26,
+      "fileCount": 14,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 17,
+      "myoxus": "SettingsIcon",
+      "tabler": "IconSettings",
+      "references": 26,
+      "fileCount": 14,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 18,
+      "myoxus": "LinkIcon",
+      "tabler": "IconLink",
+      "references": 24,
+      "fileCount": 20,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 19,
+      "myoxus": "SearchIcon",
+      "tabler": "IconSearch",
+      "references": 23,
+      "fileCount": 20,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 20,
+      "myoxus": "LinkedPageIcon",
+      "tabler": "IconFileSymlink",
+      "references": 22,
+      "fileCount": 16,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 21,
+      "myoxus": "TodayIcon",
+      "tabler": "IconCalendarDot",
+      "references": 21,
+      "fileCount": 15,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 22,
+      "myoxus": "InformationIcon",
+      "tabler": "IconInfoCircle",
+      "references": 20,
+      "fileCount": 19,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 23,
+      "myoxus": "ResetIcon",
+      "tabler": "IconRefresh",
+      "references": 20,
+      "fileCount": 19,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 24,
+      "myoxus": "ExpandFullIcon",
+      "tabler": "IconMaximize",
+      "references": 20,
+      "fileCount": 17,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 25,
+      "myoxus": "FilterIcon",
+      "tabler": "IconFilter",
+      "references": 18,
+      "fileCount": 17,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 26,
+      "myoxus": "SplitViewIcon",
+      "tabler": "IconColumns2",
+      "references": 16,
+      "fileCount": 15,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 27,
+      "myoxus": "TrashIcon",
+      "tabler": "IconTrash",
+      "references": 16,
+      "fileCount": 14,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 28,
+      "myoxus": "MoreVerticalIcon",
+      "tabler": "IconDotsVertical",
+      "references": 15,
+      "fileCount": 12,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 29,
+      "myoxus": "FrameIcon",
+      "tabler": "IconFrame",
+      "references": 14,
+      "fileCount": 13,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 30,
+      "myoxus": "ViewIcon",
+      "tabler": "IconEye",
+      "references": 13,
+      "fileCount": 12,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 31,
+      "myoxus": "ArrowUpSmallIcon",
+      "tabler": "IconChevronUp",
+      "references": 13,
+      "fileCount": 11,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 32,
+      "myoxus": "CaptionIcon",
+      "tabler": "IconTextCaption",
+      "references": 13,
+      "fileCount": 11,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 33,
+      "myoxus": "DownloadIcon",
+      "tabler": "IconDownload",
+      "references": 13,
+      "fileCount": 11,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 34,
+      "myoxus": "WorkflowIcon",
+      "tabler": "IconAutomation",
+      "references": 13,
+      "fileCount": 9,
+      "status": "accepted",
+      "note": "Nach Review von IconSitemap auf IconAutomation geändert."
+    },
+    {
+      "rank": 35,
+      "myoxus": "ViewLayersIcon",
+      "tabler": "IconStack2",
+      "references": 12,
+      "fileCount": 12,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 36,
+      "myoxus": "ArrowLeftSmallIcon",
+      "tabler": "IconChevronLeft",
+      "references": 12,
+      "fileCount": 8,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 37,
+      "myoxus": "FavoriteIcon",
+      "tabler": "IconStar",
+      "references": 11,
+      "fileCount": 11,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 38,
+      "myoxus": "AllDocsIcon",
+      "tabler": "IconFiles",
+      "references": 11,
+      "fileCount": 10,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 39,
+      "myoxus": "TemplateIcon",
+      "tabler": "IconTemplate",
+      "references": 11,
+      "fileCount": 8,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 40,
+      "myoxus": "ImportIcon",
+      "tabler": "IconFileImport",
+      "references": 11,
+      "fileCount": 6,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 41,
+      "myoxus": "CenterPeekIcon",
+      "tabler": "IconLayoutSidebarRight",
+      "references": 10,
+      "fileCount": 10,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 42,
+      "myoxus": "MoveLeftIcon",
+      "tabler": "IconArrowBarToLeft",
+      "references": 10,
+      "fileCount": 10,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 43,
+      "myoxus": "MoveRightIcon",
+      "tabler": "IconArrowBarToRight",
+      "references": 10,
+      "fileCount": 10,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 44,
+      "myoxus": "SortIcon",
+      "tabler": "IconArrowsSort",
+      "references": 10,
+      "fileCount": 8,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 45,
+      "myoxus": "ArrowLeftBigIcon",
+      "tabler": "IconArrowLeft",
+      "references": 9,
+      "fileCount": 9,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 46,
+      "myoxus": "ArrowUpBigIcon",
+      "tabler": "IconArrowUp",
+      "references": 9,
+      "fileCount": 9,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 47,
+      "myoxus": "DatabaseTableViewIcon",
+      "tabler": "IconTable",
+      "references": 9,
+      "fileCount": 8,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 48,
+      "myoxus": "AttachmentIcon",
+      "tabler": "IconPaperclip",
+      "references": 9,
+      "fileCount": 7,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 49,
+      "myoxus": "HistoryIcon",
+      "tabler": "IconHistory",
+      "references": 9,
+      "fileCount": 7,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 50,
+      "myoxus": "DateTimeIcon",
+      "tabler": "IconCalendarClock",
+      "references": 9,
+      "fileCount": 6,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 51,
+      "myoxus": "AddCursorIcon",
+      "tabler": "IconPointerPlus",
+      "references": 8,
+      "fileCount": 8,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 52,
+      "myoxus": "ArrowDownBigIcon",
+      "tabler": "IconArrowDown",
+      "references": 8,
+      "fileCount": 8,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 53,
+      "myoxus": "PresentationIcon",
+      "tabler": "IconPresentation",
+      "references": 8,
+      "fileCount": 8,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 54,
+      "myoxus": "ArchiveRestoreIcon",
+      "tabler": "IconRestore",
+      "references": 8,
+      "fileCount": 7,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 55,
+      "myoxus": "MindmapIcon",
+      "tabler": "IconBinaryTree2",
+      "references": 8,
+      "fileCount": 7,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 56,
+      "myoxus": "NetworkIcon",
+      "tabler": "IconNetwork",
+      "references": 8,
+      "fileCount": 6,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 57,
+      "myoxus": "UploadIcon",
+      "tabler": "IconUpload",
+      "references": 8,
+      "fileCount": 6,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 58,
+      "myoxus": "YesterdayIcon",
+      "tabler": "IconArrowLeft",
+      "references": 8,
+      "fileCount": 4,
+      "status": "accepted",
+      "note": "Nach Review von IconCalendarMinus auf IconArrowLeft geändert."
+    },
+    {
+      "rank": 59,
+      "myoxus": "CheckBoxCheckSolidIcon",
+      "tabler": "IconSquareCheckFilled",
+      "references": 7,
+      "fileCount": 7,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 60,
+      "myoxus": "CheckBoxUnIcon",
+      "tabler": "IconSquare",
+      "references": 7,
+      "fileCount": 7,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 61,
+      "myoxus": "FolderIcon",
+      "tabler": "IconFolder",
+      "references": 7,
+      "fileCount": 7,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 62,
+      "myoxus": "GithubIcon",
+      "tabler": "IconBrandGithub",
+      "references": 7,
+      "fileCount": 7,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 63,
+      "myoxus": "LocalWorkspaceIcon",
+      "tabler": "IconDeviceDesktop",
+      "references": 7,
+      "fileCount": 7,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 64,
+      "myoxus": "RefreshCwIcon",
+      "tabler": "IconRefresh",
+      "references": 7,
+      "fileCount": 7,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 65,
+      "myoxus": "ToggleDownIcon",
+      "tabler": "IconChevronDown",
+      "references": 7,
+      "fileCount": 7,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 66,
+      "myoxus": "ArchiveIcon",
+      "tabler": "IconArchive",
+      "references": 7,
+      "fileCount": 6,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 67,
+      "myoxus": "CloudWorkspaceIcon",
+      "tabler": "IconCloud",
+      "references": 7,
+      "fileCount": 6,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 68,
+      "myoxus": "ExportIcon",
+      "tabler": "IconFileExport",
+      "references": 7,
+      "fileCount": 6,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 69,
+      "myoxus": "InvisibleIcon",
+      "tabler": "IconEyeOff",
+      "references": 7,
+      "fileCount": 6,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 70,
+      "myoxus": "TextIcon",
+      "tabler": "IconLetterT",
+      "references": 7,
+      "fileCount": 6,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 71,
+      "myoxus": "NotificationIcon",
+      "tabler": "IconBell",
+      "references": 7,
+      "fileCount": 5,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 72,
+      "myoxus": "BlockLinkIcon",
+      "tabler": "IconLink",
+      "references": 7,
+      "fileCount": 4,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 73,
+      "myoxus": "TomorrowIcon",
+      "tabler": "IconArrowRight",
+      "references": 7,
+      "fileCount": 4,
+      "status": "accepted",
+      "note": "Nach Review von IconCalendarPlus auf IconArrowRight geändert."
+    },
+    {
+      "rank": 74,
+      "myoxus": "ExplainIcon",
+      "tabler": "IconMessageQuestion",
+      "references": 7,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 75,
+      "myoxus": "LinkedEdgelessIcon",
+      "tabler": "IconFileInfinity",
+      "references": 7,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 76,
+      "myoxus": "WebIcon",
+      "tabler": "IconWorld",
+      "references": 7,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 77,
+      "myoxus": "AiIcon",
+      "tabler": "IconSparkles",
+      "references": 6,
+      "fileCount": 6,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 78,
+      "myoxus": "ArrowRightBigIcon",
+      "tabler": "IconArrowRight",
+      "references": 6,
+      "fileCount": 6,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 79,
+      "myoxus": "LockIcon",
+      "tabler": "IconLock",
+      "references": 6,
+      "fileCount": 6,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 80,
+      "myoxus": "LongerIcon",
+      "tabler": "IconArrowsHorizontal",
+      "references": 6,
+      "fileCount": 6,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 81,
+      "myoxus": "WarningIcon",
+      "tabler": "IconAlertTriangle",
+      "references": 6,
+      "fileCount": 6,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 82,
+      "myoxus": "ConnectorCIcon",
+      "tabler": "IconVectorSpline",
+      "references": 6,
+      "fileCount": 5,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 83,
+      "myoxus": "DatabaseKanbanViewIcon",
+      "tabler": "IconLayoutKanban",
+      "references": 6,
+      "fileCount": 5,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 84,
+      "myoxus": "PaletteIcon",
+      "tabler": "IconPalette",
+      "references": 6,
+      "fileCount": 5,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 85,
+      "myoxus": "ChevronDownIcon",
+      "tabler": "IconChevronDown",
+      "references": 6,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 86,
+      "myoxus": "FileTextIcon",
+      "tabler": "IconFileText",
+      "references": 6,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 87,
+      "myoxus": "TeXIcon",
+      "tabler": "IconTex",
+      "references": 6,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 88,
+      "myoxus": "TimerIcon",
+      "tabler": "IconStopwatch",
+      "references": 6,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 89,
+      "myoxus": "CheckBoxCheckLinearIcon",
+      "tabler": "IconSquareCheck",
+      "references": 5,
+      "fileCount": 5,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 90,
+      "myoxus": "CollectionsIcon",
+      "tabler": "IconFolders",
+      "references": 5,
+      "fileCount": 5,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 91,
+      "myoxus": "CommentIcon",
+      "tabler": "IconMessageCircle",
+      "references": 5,
+      "fileCount": 5,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 92,
+      "myoxus": "DualLinkIcon",
+      "tabler": "IconExternalLink",
+      "references": 5,
+      "fileCount": 5,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 93,
+      "myoxus": "EmbedIcon",
+      "tabler": "IconCode",
+      "references": 5,
+      "fileCount": 5,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 94,
+      "myoxus": "FavoritedIcon",
+      "tabler": "IconStarFilled",
+      "references": 5,
+      "fileCount": 5,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 95,
+      "myoxus": "GroupingIcon",
+      "tabler": "IconBoxMultiple",
+      "references": 5,
+      "fileCount": 5,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 96,
+      "myoxus": "InsertLeftIcon",
+      "tabler": "IconColumnInsertLeft",
+      "references": 5,
+      "fileCount": 5,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 97,
+      "myoxus": "InsertRightIcon",
+      "tabler": "IconColumnInsertRight",
+      "references": 5,
+      "fileCount": 5,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 98,
+      "myoxus": "LanguageIcon",
+      "tabler": "IconLanguage",
+      "references": 5,
+      "fileCount": 5,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 99,
+      "myoxus": "SignOutIcon",
+      "tabler": "IconLogout",
+      "references": 5,
+      "fileCount": 5,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 100,
+      "myoxus": "TagsIcon",
+      "tabler": "IconTags",
+      "references": 5,
+      "fileCount": 5,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 101,
+      "myoxus": "ToggleRightIcon",
+      "tabler": "IconChevronRight",
+      "references": 5,
+      "fileCount": 5,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 102,
+      "myoxus": "ToolIcon",
+      "tabler": "IconTool",
+      "references": 5,
+      "fileCount": 5,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 103,
+      "myoxus": "CollaborationIcon",
+      "tabler": "IconUsersGroup",
+      "references": 5,
+      "fileCount": 4,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 104,
+      "myoxus": "FileIcon",
+      "tabler": "IconFile",
+      "references": 5,
+      "fileCount": 4,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 105,
+      "myoxus": "GlobeIcon",
+      "tabler": "IconWorld",
+      "references": 5,
+      "fileCount": 4,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 106,
+      "myoxus": "Heading1Icon",
+      "tabler": "IconH1",
+      "references": 5,
+      "fileCount": 4,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 107,
+      "myoxus": "RotateCcw",
+      "tabler": "IconRotate2",
+      "references": 5,
+      "fileCount": 4,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 108,
+      "myoxus": "TagIcon",
+      "tabler": "IconTag",
+      "references": 5,
+      "fileCount": 4,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 109,
+      "myoxus": "DisclosureTriangleIcon",
+      "tabler": "IconCaretRightFilled",
+      "references": 5,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 110,
+      "myoxus": "RefreshCw",
+      "tabler": "IconRefresh",
+      "references": 5,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 111,
+      "myoxus": "SidebarIcon",
+      "tabler": "IconLayoutSidebar",
+      "references": 5,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 112,
+      "myoxus": "AliasIcon",
+      "tabler": "IconArrowMerge",
+      "references": 5,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 113,
+      "myoxus": "ChevronRightIcon",
+      "tabler": "IconChevronRight",
+      "references": 5,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 114,
+      "myoxus": "CheckIcon",
+      "tabler": "IconCheck",
+      "references": 4,
+      "fileCount": 4,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 115,
+      "myoxus": "CodeBlockIcon",
+      "tabler": "IconCode",
+      "references": 4,
+      "fileCount": 4,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 116,
+      "myoxus": "ConnectorEIcon",
+      "tabler": "IconRouteSquare2",
+      "references": 4,
+      "fileCount": 4,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 117,
+      "myoxus": "ConnectorLIcon",
+      "tabler": "IconLine",
+      "references": 4,
+      "fileCount": 4,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 118,
+      "myoxus": "DeletePermanentlyIcon",
+      "tabler": "IconTrashX",
+      "references": 4,
+      "fileCount": 4,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 119,
+      "myoxus": "ExpandCloseIcon",
+      "tabler": "IconMinimize",
+      "references": 4,
+      "fileCount": 4,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 120,
+      "myoxus": "EyeIcon",
+      "tabler": "IconEye",
+      "references": 4,
+      "fileCount": 4,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 121,
+      "myoxus": "GroupIcon",
+      "tabler": "IconBoxMultiple",
+      "references": 4,
+      "fileCount": 4,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 122,
+      "myoxus": "InformationFillDuotoneIcon",
+      "tabler": "IconInfoCircleFilled",
+      "references": 4,
+      "fileCount": 4,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 123,
+      "myoxus": "InsertBleowIcon",
+      "tabler": "IconRowInsertBottom",
+      "references": 4,
+      "fileCount": 4,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 124,
+      "myoxus": "InsertIntoPageIcon",
+      "tabler": "IconFilePlus",
+      "references": 4,
+      "fileCount": 4,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 125,
+      "myoxus": "NowIcon",
+      "tabler": "IconClock",
+      "references": 4,
+      "fileCount": 4,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 126,
+      "myoxus": "NumberedListIcon",
+      "tabler": "IconListNumbers",
+      "references": 4,
+      "fileCount": 4,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 127,
+      "myoxus": "XCircleIcon",
+      "tabler": "IconCircleX",
+      "references": 4,
+      "fileCount": 4,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 128,
+      "myoxus": "FontIcon",
+      "tabler": "IconTypography",
+      "references": 4,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 129,
+      "myoxus": "ImproveWritingIcon",
+      "tabler": "IconWriting",
+      "references": 4,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 130,
+      "myoxus": "UnlinkIcon",
+      "tabler": "IconUnlink",
+      "references": 4,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 131,
+      "myoxus": "XIcon",
+      "tabler": "IconX",
+      "references": 4,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 132,
+      "myoxus": "FileIconNoneIcon",
+      "tabler": "IconFileUnknown",
+      "references": 4,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 133,
+      "myoxus": "MemberIcon",
+      "tabler": "IconUser",
+      "references": 4,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 134,
+      "myoxus": "Save",
+      "tabler": "IconDeviceFloppy",
+      "references": 4,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 135,
+      "myoxus": "ShapeIcon",
+      "tabler": "IconShape",
+      "references": 4,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 136,
+      "myoxus": "AccountIcon",
+      "tabler": "IconUserCircle",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 137,
+      "myoxus": "ActivityIcon",
+      "tabler": "IconActivity",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 138,
+      "myoxus": "AlignLeftIcon",
+      "tabler": "IconLayoutAlignLeft",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 139,
+      "myoxus": "AllDocsGridViewIcon",
+      "tabler": "IconLayoutGrid",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 140,
+      "myoxus": "BlockIcon",
+      "tabler": "IconCube",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": "verwendung genau prüfen ist das ein absatz oder was? dann passt das icon nicht"
+    },
+    {
+      "rank": 141,
+      "myoxus": "BrokenImageIcon",
+      "tabler": "IconPhotoOff",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 142,
+      "myoxus": "BulletedListIcon",
+      "tabler": "IconList",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 143,
+      "myoxus": "CalendarDaysIcon",
+      "tabler": "IconCalendarMonth",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 144,
+      "myoxus": "CheckCircle2Icon",
+      "tabler": "IconCircleCheck",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 145,
+      "myoxus": "CodeIcon",
+      "tabler": "IconCode",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 146,
+      "myoxus": "ExportToPdfIcon",
+      "tabler": "IconFileTypePdf",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 147,
+      "myoxus": "FileIconDocxIcon",
+      "tabler": "IconFileTypeDocx",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 148,
+      "myoxus": "FileIconHtmlIcon",
+      "tabler": "IconFileTypeHtml",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 149,
+      "myoxus": "FileIconZipIcon",
+      "tabler": "IconFileZip",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 150,
+      "myoxus": "FilterMinusIcon",
+      "tabler": "IconFilterMinus",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 151,
+      "myoxus": "Heading2Icon",
+      "tabler": "IconH2",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 152,
+      "myoxus": "Heading3Icon",
+      "tabler": "IconH3",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 153,
+      "myoxus": "Heading4Icon",
+      "tabler": "IconH4",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 154,
+      "myoxus": "Heading5Icon",
+      "tabler": "IconH5",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 155,
+      "myoxus": "Heading6Icon",
+      "tabler": "IconH6",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 156,
+      "myoxus": "InfoIcon",
+      "tabler": "IconInfoCircle",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 157,
+      "myoxus": "IntegrationsIcon",
+      "tabler": "IconPlugConnected",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 158,
+      "myoxus": "MakeItRealIcon",
+      "tabler": "IconWand",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 159,
+      "myoxus": "MinusIcon",
+      "tabler": "IconMinus",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 160,
+      "myoxus": "Plus",
+      "tabler": "IconPlus",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 161,
+      "myoxus": "ProgressIcon",
+      "tabler": "IconProgress",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 162,
+      "myoxus": "PublishIcon",
+      "tabler": "IconWorldUpload",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 163,
+      "myoxus": "QuoteIcon",
+      "tabler": "IconQuote",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 164,
+      "myoxus": "SelectionIcon",
+      "tabler": "IconSelect",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 165,
+      "myoxus": "ShieldCheckIcon",
+      "tabler": "IconShieldCheck",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 166,
+      "myoxus": "ShorterIcon",
+      "tabler": "IconArrowsHorizontal",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 167,
+      "myoxus": "StyleGeneralIcon",
+      "tabler": "IconAdjustments",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 168,
+      "myoxus": "StyleScribbleIcon",
+      "tabler": "IconScribble",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 169,
+      "myoxus": "TeamWorkspaceIcon",
+      "tabler": "IconUsersGroup",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 170,
+      "myoxus": "TextAlignCenterIcon",
+      "tabler": "IconAlignCenter",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 171,
+      "myoxus": "TextAlignLeftIcon",
+      "tabler": "IconAlignLeft",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 172,
+      "myoxus": "TextAlignRightIcon",
+      "tabler": "IconAlignRight",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 173,
+      "myoxus": "TocIcon",
+      "tabler": "IconListTree",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 174,
+      "myoxus": "ToneIcon",
+      "tabler": "IconMoodSmile",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 175,
+      "myoxus": "UngroupIcon",
+      "tabler": "IconDeselect",
+      "references": 3,
+      "fileCount": 3,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 176,
+      "myoxus": "AddOrganizeIcon",
+      "tabler": "IconCategoryPlus",
+      "references": 3,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 177,
+      "myoxus": "AddTextIcon",
+      "tabler": "IconTextPlus",
+      "references": 3,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 178,
+      "myoxus": "AiEmbeddingIcon",
+      "tabler": "IconDatabaseCog",
+      "references": 3,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 179,
+      "myoxus": "ExternalLink",
+      "tabler": "IconExternalLink",
+      "references": 3,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 180,
+      "myoxus": "FileIconMdIcon",
+      "tabler": "IconMarkdown",
+      "references": 3,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 181,
+      "myoxus": "Trash2Icon",
+      "tabler": "IconTrash",
+      "references": 3,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 182,
+      "myoxus": "UserIcon",
+      "tabler": "IconUser",
+      "references": 3,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 183,
+      "myoxus": "ColorPickerIcon",
+      "tabler": "IconColorPicker",
+      "references": 3,
+      "fileCount": 1,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 184,
+      "myoxus": "AddCollectionIcon",
+      "tabler": "IconFolderPlus",
+      "references": 2,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 185,
+      "myoxus": "AddTagIcon",
+      "tabler": "IconTagPlus",
+      "references": 2,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 186,
+      "myoxus": "AlertTriangle",
+      "tabler": "IconAlertTriangle",
+      "references": 2,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 187,
+      "myoxus": "AlertTriangleIcon",
+      "tabler": "IconAlertTriangle",
+      "references": 2,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 188,
+      "myoxus": "BoldIcon",
+      "tabler": "IconBold",
+      "references": 2,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 189,
+      "myoxus": "BookmarkIcon",
+      "tabler": "IconBookmark",
+      "references": 2,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 190,
+      "myoxus": "Briefcase",
+      "tabler": "IconBriefcase",
+      "references": 2,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 191,
+      "myoxus": "CalendarXmarkIcon",
+      "tabler": "IconCalendarX",
+      "references": 2,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 192,
+      "myoxus": "CameraIcon",
+      "tabler": "IconCamera",
+      "references": 2,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 193,
+      "myoxus": "ChatWithAiIcon",
+      "tabler": "IconMessageChatbot",
+      "references": 2,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 194,
+      "myoxus": "ConvertIcon",
+      "tabler": "IconTransform",
+      "references": 2,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 195,
+      "myoxus": "CopyAsImgaeIcon",
+      "tabler": "IconPhoto",
+      "references": 2,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": "Nach Review von IconPhotoDown auf das allgemeine IconPhoto geändert."
+    },
+    {
+      "rank": 196,
+      "myoxus": "DatabaseListViewIcon",
+      "tabler": "IconListDetails",
+      "references": 2,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 197,
+      "myoxus": "DiamondIcon",
+      "tabler": "IconSquareRotated",
+      "references": 2,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": "Nach Review vom Edelstein IconDiamond auf die einfache Raute IconSquareRotated geändert."
+    },
+    {
+      "rank": 198,
+      "myoxus": "DividerIcon",
+      "tabler": "IconSeparatorHorizontal",
+      "references": 2,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 199,
+      "myoxus": "EndPointArrowIcon",
+      "tabler": "IconArrowRight",
+      "references": 2,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    },
+    {
+      "rank": 200,
+      "myoxus": "ExportToHtmlIcon",
+      "tabler": "IconFileTypeHtml",
+      "references": 2,
+      "fileCount": 2,
+      "status": "accepted",
+      "note": ""
+    }
+  ]
+}

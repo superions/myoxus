@@ -1,0 +1,9 @@
+mutation updateAccount($id: String!, $input: ManageUserInput!) {
+  admin {
+    updateUser(id: $id, input: $input) {
+      id
+      name
+      email
+    }
+  }
+}

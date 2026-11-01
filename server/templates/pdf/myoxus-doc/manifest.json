@@ -1,0 +1,110 @@
+{
+  "schema_version": "2.0",
+  "id": "myoxus-doc",
+  "name": "Documentation",
+  "description": "Long-form documentation with a branded cover, table of contents, chapter headings and running footer.",
+  "version": "1.7.0",
+  "engine": {
+    "name": "typst",
+    "version": "0.15.x"
+  },
+  "provenance": {
+    "license_spdx": "AGPL-3.0-or-later AND MIT-0",
+    "copyright_notice": "Myoxus contributors 2026; ilm by Talal",
+    "source_url": "https://github.com/talal/ilm",
+    "source_revision": "b8429f456ec519717a11e24656ceaf0cc1435d82",
+    "notice": "ilm 2.1.1; original lib.typ SHA-256 d8b1ffe129e40e54e266871175e18f2f3fb5e6bbc13cc676de46869fece9a1cb; bundled SHA-256 84ba2ae0d780a4402da5c607dd143a4d8bf2c2cc7183ddaa9224e91f5cb40fa9. Adapter parameterizes theme, page policy and content footers. See vendor/NOTICE and vendor/LICENSE."
+  },
+  "entry": "main.typ",
+  "assets": [
+    "i18n/de.json",
+    "i18n/en.json",
+    "i18n/es.json",
+    "i18n/fr.json",
+    "main.typ",
+    "preamble.typ",
+    "theme.typ",
+    "vendor/LICENSE",
+    "vendor/NOTICE",
+    "vendor/ilm.typ"
+  ],
+  "capabilities": {
+    "colorVariant": {
+      "kind": "enum",
+      "values": ["mono", "accent", "brand"],
+      "default": "accent"
+    },
+    "headerStyle": {
+      "kind": "enum",
+      "values": ["none"],
+      "default": "none"
+    },
+    "footerStyle": {
+      "kind": "enum",
+      "values": ["none", "page-only", "brand-and-page"],
+      "default": "brand-and-page"
+    },
+    "coverPage": {
+      "kind": "boolean",
+      "default": true
+    },
+    "tocBehavior": {
+      "kind": "enum",
+      "values": ["off", "auto", "force"],
+      "default": "auto"
+    },
+    "pageNumbering": {
+      "kind": "enum",
+      "values": ["arabic", "roman", "none"],
+      "default": "arabic"
+    },
+    "customMargins": {
+      "kind": "boolean",
+      "default": false
+    },
+    "accentColor": {
+      "kind": "color",
+      "default": "#0F766E"
+    },
+    "confidentialityLabels": {
+      "kind": "array<string>",
+      "min_items": 0,
+      "max_items": 0,
+      "item_pattern": "^[A-Za-z0-9 _-]{1,32}$",
+      "default": []
+    },
+    "language": {
+      "kind": "enum",
+      "values": ["en", "de", "fr", "es"],
+      "default": "en"
+    }
+  },
+  "inputs_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [],
+    "properties": {
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200,
+        "description": "Document title; defaults to the document metadata."
+      },
+      "subtitle": {
+        "type": "string",
+        "maxLength": 200,
+        "description": "Optional subtitle rendered below the title on the cover page."
+      },
+      "author": {
+        "type": "string",
+        "maxLength": 120,
+        "description": "Optional report author name displayed on the cover page."
+      },
+      "report_date": {
+        "type": "string",
+        "format": "date",
+        "description": "Optional ISO-8601 date displayed on the cover page (YYYY-MM-DD)."
+      }
+    }
+  }
+}

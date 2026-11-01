@@ -1,0 +1,7 @@
+mutation createOrganizationProject($input: CreateOrganizationProjectInput!) {
+  createOrganizationProject(input: $input) {
+    decision
+    requestId
+    createdUnitId
+  }
+}

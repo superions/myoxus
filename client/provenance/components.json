@@ -1,0 +1,2533 @@
+{
+  "schemaVersion": 1,
+  "policy": {
+    "canonicalMyoxusCopyright": "2026-present Daniel Scharf and Myoxus contributors",
+    "upstreamCopyright": "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+    "upstreamCutoff": {
+      "revision": "e31cca33540af2737dc9e520b70acac170c0709e",
+      "date": "2026-03-04"
+    },
+    "upstreamMitLicense": {
+      "path": "client/provenance/LICENSE-UPSTREAM-MIT.txt",
+      "sha256": "c107c8088fe42bce6def95d313cfe7b5984d3bb2c1608b67f855327da45f497b",
+      "originalCopyrightNotice": "2022-present TOEVERYTHING PTE. LTD. and its affiliates."
+    },
+    "scopedFiles": {
+      "roots": [
+        "client/web",
+        "client/admin",
+        "client/libs",
+        "client/branding",
+        "client/apps/electron",
+        "client/apps/electron-renderer"
+      ],
+      "pathCount": 4913,
+      "pathSha256": "a5711f3ff40fe01201883cf0f467b8651125b2f6a811cc6ecd5b1e8d1c6948f6"
+    },
+    "bundledAssets": {
+      "extensions": [
+        "avif",
+        "gif",
+        "ico",
+        "jpeg",
+        "jpg",
+        "node",
+        "otf",
+        "png",
+        "ttf",
+        "wasm",
+        "webp",
+        "woff",
+        "woff2",
+        "zip"
+      ],
+      "pathCount": 238,
+      "contentSha256": "a47f3e9c881f88a1f7d88de72daa5003f2c42491e44ad492ee07ff87b3a5cacb"
+    },
+    "packageLicenses": {
+      "client/admin/workspaces/admin/package.json": "AGPL-3.0-or-later",
+      "client/libs/classnames/package.json": "AGPL-3.0-or-later",
+      "client/libs/core/package.json": "AGPL-3.0-or-later",
+      "client/libs/crypto/package.json": "AGPL-3.0-or-later",
+      "client/libs/debug/package.json": "AGPL-3.0-or-later",
+      "client/libs/desktop-api-contract/package.json": "AGPL-3.0-or-later",
+      "client/libs/dialogs/package.json": "AGPL-3.0-or-later",
+      "client/libs/env/package.json": "AGPL-3.0-or-later",
+      "client/libs/error/package.json": "AGPL-3.0-or-later",
+      "client/libs/global-loading/package.json": "AGPL-3.0-or-later",
+      "client/libs/graphql/package.json": "AGPL-3.0-or-later",
+      "client/libs/i18n/package.json": "AGPL-3.0-or-later",
+      "client/libs/icons/package.json": "AGPL-3.0-or-later",
+      "client/libs/infra/package.json": "AGPL-3.0-or-later",
+      "client/libs/lit-react/package.json": "AGPL-3.0-or-later",
+      "client/libs/local-store/package.json": "MIT AND AGPL-3.0-or-later",
+      "client/libs/media-capture/package.json": "AGPL-3.0-or-later",
+      "client/libs/notifications/package.json": "AGPL-3.0-or-later",
+      "client/libs/reader/package.json": "AGPL-3.0-or-later",
+      "client/libs/routes/package.json": "AGPL-3.0-or-later",
+      "client/libs/storage/package.json": "AGPL-3.0-or-later",
+      "client/libs/theme/package.json": "AGPL-3.0-or-later",
+      "client/libs/track/package.json": "AGPL-3.0-or-later",
+      "client/libs/ui-facade/package.json": "AGPL-3.0-or-later",
+      "client/web/workspaces/web/package.json": "AGPL-3.0-or-later",
+      "client/libs/bpmn-editor/package.json": "AGPL-3.0-or-later AND Apache-2.0 AND LicenseRef-OMG-BPMN",
+      "client/apps/electron/package.json": "MIT AND AGPL-3.0-or-later",
+      "client/apps/electron-renderer/package.json": "MIT AND AGPL-3.0-or-later",
+      "client/apps/electron/scripts/package.json": "MIT AND AGPL-3.0-or-later"
+    },
+    "explicitLicenseExceptions": [
+      {
+        "path": "client/apps/electron/resources/templates/linux.metainfo.xml",
+        "licenseExpression": "CC0-1.0",
+        "decision": "Explicitly authorized by Daniel Scharf on 2026-10-29 for this metadata XML only, including Myoxus additions. Application source remains AGPL.",
+        "source": "https://www.freedesktop.org/software/appstream/docs/chap-Metadata.html#tag-metadata_license"
+      }
+    ],
+    "sourceLicensing": {
+      "unit": "file",
+      "retainedMitFileLicense": "MIT",
+      "newIndependentFileLicense": "AGPL-3.0-or-later",
+      "retainedThirdPartyFiles": "Retained source files, including Myoxus modifications, keep their recorded original license. Independently new files are AGPL.",
+      "decidedBy": "Daniel Scharf",
+      "decidedOn": "2026-10-30"
+    }
+  },
+  "components": [
+    {
+      "id": "client-web-forkline",
+      "paths": ["client/web/**"],
+      "origin": "F1/F2/M0",
+      "licenseExpression": "MIT AND AGPL-3.0-or-later",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ],
+      "upstreamCutoff": {
+        "revision": "e31cca33540af2737dc9e520b70acac170c0709e",
+        "date": "2026-03-04"
+      },
+      "noticePaths": [
+        "client/REUSE.toml",
+        "client/provenance/LICENSE-UPSTREAM-MIT.txt"
+      ],
+      "rationale": "Path-exact REUSE entries distinguish retained upstream expression from Myoxus-created browser source."
+    },
+    {
+      "id": "client-admin-forkline",
+      "paths": ["client/admin/**"],
+      "origin": "M0",
+      "licenseExpression": "AGPL-3.0-or-later",
+      "copyrightNotices": [
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ],
+      "noticePaths": ["client/REUSE.toml"],
+      "rationale": "The Admin frontend is independently implemented Myoxus source; path-exact REUSE evidence contains no retained AFFiNE expression."
+    },
+    {
+      "id": "client-shared-forkline",
+      "paths": [
+        "client/libs/classnames/**",
+        "client/libs/core/**",
+        "client/libs/debug/**",
+        "client/libs/desktop-api-contract/**",
+        "client/libs/dialogs/**",
+        "client/libs/env/**",
+        "client/libs/error/**",
+        "client/libs/global-loading/**",
+        "client/libs/graphql/**",
+        "client/libs/i18n/**",
+        "client/libs/infra/**",
+        "client/libs/notifications/**",
+        "client/libs/reader/**",
+        "client/libs/routes/**",
+        "client/libs/storage/**",
+        "client/libs/theme/**",
+        "client/libs/track/**",
+        "client/libs/ui-facade/**"
+      ],
+      "origin": "F1/F2/M0",
+      "licenseExpression": "MIT AND AGPL-3.0-or-later",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ],
+      "upstreamCutoff": {
+        "revision": "e31cca33540af2737dc9e520b70acac170c0709e",
+        "date": "2026-03-04"
+      },
+      "noticePaths": [
+        "client/REUSE.toml",
+        "client/provenance/LICENSE-UPSTREAM-MIT.txt"
+      ],
+      "rationale": "The shared tree is mixed. Exact REUSE entries, rather than this aggregate component description, are authoritative per file.",
+      "reviewedFileOrigins": {
+        "reviewedOn": "2026-10-30",
+        "retainedFiles": [
+          {
+            "path": "client/libs/core/src/components/page-list/docs/select-page.tsx",
+            "originalPath": "packages/frontend/core/src/components/page-list/docs/select-page.tsx",
+            "originalSha256": "2a95b6ac5f6e547eace3a48934ba1cb26fc16804e2ce102cd38b35f05d47611a"
+          },
+          {
+            "path": "client/libs/core/src/components/tags/tag-edit-menu.tsx",
+            "originalPath": "packages/frontend/core/src/components/tags/tag-edit-menu.tsx",
+            "originalSha256": "b44f28929a83efe05656c0c10bc4f66fc389f2992959e89231719a6ed4c6649a"
+          },
+          {
+            "path": "client/libs/core/src/desktop/dialogs/create-workspace/index.tsx",
+            "originalPath": "packages/frontend/core/src/desktop/dialogs/create-workspace/index.tsx",
+            "originalSha256": "31e06d951aa20ccc1b46c4a941847257ab854bda3691f3de54e22f2801c9d439"
+          },
+          {
+            "path": "client/libs/core/src/desktop/dialogs/import-workspace/index.tsx",
+            "originalPath": "packages/frontend/core/src/desktop/dialogs/import-workspace/index.tsx",
+            "originalSha256": "136bf59239c3d71025ff5171aeb7ecafe8b9d131bccf3baf6bbf330abee91170"
+          },
+          {
+            "path": "client/libs/core/src/desktop/dialogs/setting/general-setting/journal/calendar-accounts.tsx",
+            "originalPath": "packages/frontend/core/src/desktop/dialogs/setting/account-setting/integrations-panel.tsx",
+            "originalSha256": "8a7e9d8d2332c5d381df79fc6f7e3056d23d1c28dd024545c19973537e6bf5b9"
+          },
+          {
+            "path": "client/libs/core/src/editor/ai/chat-panel/ai-loading.ts",
+            "originalPath": "packages/frontend/core/src/blocksuite/ai/chat-panel/ai-loading.ts",
+            "originalSha256": "33a7b3743f2ad621126998afd179f83a2312d0a8203958dc41ec35b535bbf7bb"
+          },
+          {
+            "path": "client/libs/core/src/editor/ai/chat-panel/message/user.ts",
+            "originalPath": "packages/frontend/core/src/blocksuite/ai/chat-panel/message/user.ts",
+            "originalSha256": "cbf0099cbe6d4b02e9914e024be63edf9b92b18f1a30f2f211fc454ec9f86a20"
+          },
+          {
+            "path": "client/libs/core/src/editor/ai/components/ai-chat-add-context/ai-chat-add-context.ts",
+            "originalPath": "packages/frontend/core/src/blocksuite/ai/components/ai-chat-add-context/ai-chat-add-context.ts",
+            "originalSha256": "36adcf994a9f31c67d151432e60eb23b4ef760fb27fa3c16ef293cbde907753b"
+          },
+          {
+            "path": "client/libs/core/src/editor/ai/components/ai-chat-chips/add-popover.ts",
+            "originalPath": "packages/frontend/core/src/blocksuite/ai/components/ai-chat-chips/add-popover.ts",
+            "originalSha256": "b34d19a93e912fb33fc9cef230d3cf3cc2ff217a81bf91e7698f42f7db9b6ab2"
+          },
+          {
+            "path": "client/libs/core/src/editor/ai/components/ai-chat-chips/candidates-popover.ts",
+            "originalPath": "packages/frontend/core/src/blocksuite/ai/components/ai-chat-chips/candidates-popover.ts",
+            "originalSha256": "4bf4857d4b7cf1744c7de48eddaf4fc19e234636695c3b3f361ab5ac15e126bf"
+          },
+          {
+            "path": "client/libs/core/src/editor/ai/components/ai-chat-chips/chat-panel-chips.ts",
+            "originalPath": "packages/frontend/core/src/blocksuite/ai/components/ai-chat-chips/chat-panel-chips.ts",
+            "originalSha256": "14c6379f07eed200c6933eeda7412a466b8c4ce6d54042c498938ac1088b4134"
+          },
+          {
+            "path": "client/libs/core/src/editor/ai/components/ai-chat-chips/chip.ts",
+            "originalPath": "packages/frontend/core/src/blocksuite/ai/components/ai-chat-chips/chip.ts",
+            "originalSha256": "d488f0eee16333a44ae14b9afd71644716b56c13e96a5b46b9c7fe5a3b3f43d2"
+          },
+          {
+            "path": "client/libs/core/src/editor/ai/components/ai-chat-chips/tag-chip.ts",
+            "originalPath": "packages/frontend/core/src/blocksuite/ai/components/ai-chat-chips/tag-chip.ts",
+            "originalSha256": "c1ce5a4f1ca6bf2163521a5a85c35c9d120d37bb65101b52b60efe33d6951969"
+          },
+          {
+            "path": "client/libs/core/src/editor/ai/components/ai-chat-composer/ai-chat-composer-tip.ts",
+            "originalPath": "packages/frontend/core/src/blocksuite/ai/components/ai-chat-composer/ai-chat-composer-tip.ts",
+            "originalSha256": "9a30e94e4f7bc0b273a55ff02efb4d65975291adf9b967b9ee5d0e029398b3f4"
+          },
+          {
+            "path": "client/libs/core/src/editor/ai/components/ai-chat-input/ai-chat-input.ts",
+            "originalPath": "packages/frontend/core/src/blocksuite/ai/components/ai-chat-input/ai-chat-input.ts",
+            "originalSha256": "f8a5f3e59b926bdf519ab7bbcbcd3b89e8aadb4ee2ba15b1bed17764f8d95997"
+          },
+          {
+            "path": "client/libs/core/src/editor/ai/components/ai-chat-input/preference-popup.ts",
+            "originalPath": "packages/frontend/core/src/blocksuite/ai/components/ai-chat-input/preference-popup.ts",
+            "originalSha256": "9e74c1db3cc31a96a5b00a6af6d87322ad1a952ef79e58fde1b0a67828c5139a"
+          },
+          {
+            "path": "client/libs/core/src/editor/ai/components/ai-message-content/pure-text.ts",
+            "originalPath": "packages/frontend/core/src/blocksuite/ai/components/ai-message-content/pure-text.ts",
+            "originalSha256": "da362a238bcf1adaa78e5dc37e416dc4947e9779414e60f8c8e8f257ac20842c"
+          },
+          {
+            "path": "client/libs/core/src/editor/ai/components/copy-more.ts",
+            "originalPath": "packages/frontend/core/src/blocksuite/ai/components/copy-more.ts",
+            "originalSha256": "44a0d08fd1c71517354c029302c74c7d651e455653c185bb798f68cc8e31e6c9"
+          },
+          {
+            "path": "client/libs/core/src/editor/ai/messages/error.ts",
+            "originalPath": "packages/frontend/core/src/blocksuite/ai/messages/error.ts",
+            "originalSha256": "9c84eed646d66b65f18f0c351fb0f42f7946b02b1e5e1b6c4fd94b79bad33ae4"
+          },
+          {
+            "path": "client/libs/core/src/editor/ai/mini-mindmap/mindmap-preview.ts",
+            "originalPath": "packages/frontend/core/src/blocksuite/ai/mini-mindmap/mindmap-preview.ts",
+            "originalSha256": "601c33d08b1a207e7df26dc1f46aec2a3417966f758ad658a4a57c3ef7cafdf4"
+          },
+          {
+            "path": "client/libs/core/src/editor/attachment-viewer/audio/audio-block.tsx",
+            "originalPath": "packages/frontend/core/src/blocksuite/attachment-viewer/audio/audio-block.tsx",
+            "originalSha256": "f3c0207e28e0fc8c113e774a1bf6c5ea8e2255c62302d3a58e6843c41889d494"
+          },
+          {
+            "path": "client/libs/core/src/editor/view-extensions/code-block-preview/typst.ts",
+            "originalPath": "packages/frontend/core/src/blocksuite/view-extensions/code-block-preview/typst.ts",
+            "originalSha256": "82d8754416205fd05dbf130efae2bf6fed7ddab2d0036af9221bdbb9eccdd861"
+          },
+          {
+            "path": "client/libs/core/src/mobile/pages/workspace/tag/detail.tsx",
+            "originalPath": "packages/frontend/core/src/mobile/pages/workspace/tag/detail.tsx",
+            "originalSha256": "8678b90c34d27c3e8d9d2961fe3ba2cc6c540d311b1433d6a9c98c3c7b2a52c2"
+          },
+          {
+            "path": "client/libs/core/src/modules/app-sidebar/views/app-sidebar-toggle.tsx",
+            "originalPath": "packages/frontend/core/src/modules/app-sidebar/views/sidebar-header/sidebar-switch.tsx",
+            "originalSha256": "0a46c9adf1642603cefa976bbb1f06e88a572a1bdcb0bee888ca704ac7a8409e"
+          },
+          {
+            "path": "client/libs/core/src/modules/media/entities/audio-attachment-block.ts",
+            "originalPath": "packages/frontend/core/src/modules/media/entities/audio-attachment-block.ts",
+            "originalSha256": "9bca453ae19f3a93c9a10e5b3fde8cbf70cceb29816a09d3803244e79433f6a8"
+          },
+          {
+            "path": "client/libs/core/src/modules/media/entities/audio-transcription-job-store.ts",
+            "originalPath": "packages/frontend/core/src/modules/media/entities/audio-transcription-job-store.ts",
+            "originalSha256": "ee42bc8ad14d54d8fa8622a41a9145c353eb38bb9ae4551f422eaf6a8f344b72"
+          },
+          {
+            "path": "client/libs/core/src/modules/media/entities/audio-transcription-job.ts",
+            "originalPath": "packages/frontend/core/src/modules/media/entities/audio-transcription-job.ts",
+            "originalSha256": "b477694cf658e4cdd6f20ffd7e76b15ed2ed8e616630a3391a4eb88b85edf7ad"
+          },
+          {
+            "path": "client/libs/desktop-api-contract/src/index.ts",
+            "originalPath": "packages/frontend/electron-api/src/index.ts",
+            "originalSha256": "ae02fcdd395dfba681e48de5bc8bf0d71e4ba1004f3964828fc5ecd9187e1e11"
+          },
+          {
+            "path": "client/libs/ui-facade/src/dnd/common.ts",
+            "originalPath": "packages/frontend/component/src/ui/dnd/common.ts",
+            "originalSha256": "6d3592fbd85e7edcc4aab69683778a2ab60c215695741b4b6c3d64aa08b79521"
+          },
+          {
+            "path": "client/libs/ui-facade/src/dnd/context.ts",
+            "originalPath": "packages/frontend/component/src/ui/dnd/context.ts",
+            "originalSha256": "666f4a8cff19ab741ddc4a74ace2ba27a1bc639a20936d4125b7a839c63b1a82"
+          },
+          {
+            "path": "client/libs/ui-facade/src/dnd/draggable.ts",
+            "originalPath": "packages/frontend/component/src/ui/dnd/draggable.ts",
+            "originalSha256": "16520b26ddfe436d20de80f1cd8cf6047bd8ec50815eda2bf213d4a5f9aaa0f9"
+          },
+          {
+            "path": "client/libs/ui-facade/src/dnd/drop-indicator.tsx",
+            "originalPath": "packages/frontend/component/src/ui/dnd/drop-indicator.tsx",
+            "originalSha256": "b57f43f46cef8e4af9d752b6b0ed8851409aea85c58e46322dd0e5e2cae75930"
+          },
+          {
+            "path": "client/libs/ui-facade/src/dnd/drop-target.ts",
+            "originalPath": "packages/frontend/component/src/ui/dnd/drop-target.ts",
+            "originalSha256": "732ef7508701bf6a3ab83d2791596131c50fb059579741c268da764158e9f123"
+          },
+          {
+            "path": "client/libs/ui-facade/src/dnd/monitor.tsx",
+            "originalPath": "packages/frontend/component/src/ui/dnd/monitor.tsx",
+            "originalSha256": "51075a36c920fb96995908db31d952b6adc714e1fa2a0f7828fd351f0e03ca21"
+          },
+          {
+            "path": "client/libs/ui-facade/src/dnd/types.ts",
+            "originalPath": "packages/frontend/component/src/ui/dnd/types.ts",
+            "originalSha256": "501c66cae594d742e20a1f20302feea4235a310ab7ebd412048948fe5b9f1b7e"
+          },
+          {
+            "path": "client/libs/ui-facade/src/helpers/icon-data.ts",
+            "originalPath": "packages/frontend/component/src/ui/icon-picker/type.ts",
+            "originalSha256": "d8023586e447713fe44edfbeb92a9bb51aadcfdeb78d398f47c536339debc758"
+          },
+          {
+            "path": "client/libs/ui-facade/src/masonry-utils.ts",
+            "originalPath": "packages/frontend/component/src/ui/masonry/utils.ts",
+            "originalSha256": "27732ebbcfe088ca5ac6f12bc2508bbfa2bd1f0ec652ceefb3292760680dfdef"
+          },
+          {
+            "path": "client/libs/ui-facade/src/masonry.tsx",
+            "originalPath": "packages/frontend/component/src/ui/masonry/masonry.tsx",
+            "originalSha256": "cb8e9ad2daff810f264f5f149ab4afd1a09314e704f2346145daceaea2a777e5"
+          }
+        ],
+        "independentFiles": [
+          {
+            "path": "client/libs/notifications/src/index.ts",
+            "rationale": "Independently authored Mantine notification-store boundary; no retained expression from the old toast renderer/barrel. Source and new wrapper remain AGPL."
+          }
+        ]
+      }
+    },
+    {
+      "id": "client-libs-crypto",
+      "paths": ["client/libs/crypto/**"],
+      "origin": "M0",
+      "licenseExpression": "AGPL-3.0-or-later",
+      "copyrightNotices": [
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ],
+      "noticePaths": ["client/REUSE.toml"],
+      "rationale": "Myoxus clean-room Rust and N-API implementation."
+    },
+    {
+      "id": "client-libs-doc-indexer",
+      "paths": ["client/libs/doc-indexer/**"],
+      "origin": "M0/C0",
+      "licenseExpression": "AGPL-3.0-or-later",
+      "copyrightNotices": [
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ],
+      "noticePaths": ["client/REUSE.toml"],
+      "rationale": "Myoxus clean-room parser; persisted affine-prefixed identifiers are compatibility markers and do not create upstream copyright."
+    },
+    {
+      "id": "client-libs-local-store",
+      "paths": ["client/libs/local-store/**"],
+      "origin": "F1/F2/M0",
+      "licenseExpression": "MIT AND AGPL-3.0-or-later",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ],
+      "upstreamCutoff": {
+        "revision": "e31cca33540af2737dc9e520b70acac170c0709e",
+        "date": "2026-03-04"
+      },
+      "noticePaths": [
+        "client/REUSE.toml",
+        "client/provenance/LICENSE-UPSTREAM-MIT.txt"
+      ],
+      "rationale": "MIT forkline from the historical frontend native store. Exact REUSE entries distinguish unchanged moves, modified fork files and new Myoxus wrapper files. Independently new Myoxus files are AGPL; retained MIT files including Myoxus modifications remain MIT. Package labels are not source-license evidence."
+    },
+    {
+      "id": "client-libs-media-capture-inner",
+      "paths": ["client/libs/media-capture/media_capture/**"],
+      "origin": "F1/F2/M0",
+      "licenseExpression": "MIT AND AGPL-3.0-or-later",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ],
+      "upstreamCutoff": {
+        "revision": "e31cca33540af2737dc9e520b70acac170c0709e",
+        "date": "2026-03-04"
+      },
+      "noticePaths": [
+        "client/REUSE.toml",
+        "client/libs/media-capture/media_capture/LICENSE",
+        "client/libs/media-capture/NOTICE.md"
+      ],
+      "rationale": "Retained upstream MIT inner crate. Exact REUSE entries distinguish unchanged moves, modified fork files and the new Linux module. Independently new Myoxus files are AGPL; retained MIT files including Myoxus modifications remain MIT. Package labels are not source-license evidence."
+    },
+    {
+      "id": "client-libs-media-capture-outer",
+      "paths": [
+        "client/libs/media-capture/Cargo.toml",
+        "client/libs/media-capture/NOTICE.md",
+        "client/libs/media-capture/build.rs",
+        "client/libs/media-capture/index.d.ts",
+        "client/libs/media-capture/package.json",
+        "client/libs/media-capture/src/**"
+      ],
+      "origin": "M0",
+      "licenseExpression": "AGPL-3.0-or-later",
+      "copyrightNotices": [
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ],
+      "noticePaths": [
+        "client/REUSE.toml",
+        "client/libs/media-capture/NOTICE.md"
+      ],
+      "rationale": "Myoxus-owned outer N-API wrapper around the retained inner MIT crate."
+    },
+    {
+      "id": "client-libs-icons-facade",
+      "paths": ["client/libs/icons/**"],
+      "origin": "M0",
+      "licenseExpression": "AGPL-3.0-or-later",
+      "copyrightNotices": [
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ],
+      "noticePaths": ["client/REUSE.toml", "client/libs/icons/PROVENANCE.md"],
+      "rationale": "Myoxus facade and native assets. Tabler geometry is owned and attributed in the separate Virgultum icon source, not falsely assigned to this facade."
+    },
+    {
+      "id": "client-libs-icons-generated-index",
+      "paths": [
+        "client/libs/icons/src/assets/generated/manifest.json",
+        "client/libs/icons/src/assets/index.ts"
+      ],
+      "origin": "M0",
+      "licenseExpression": "AGPL-3.0-or-later",
+      "copyrightNotices": [
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ],
+      "generatedFrom": {
+        "generator": "client/libs/icons/scripts/build-assets.mjs",
+        "sources": [
+          "client/libs/icons/src/assets/native/**",
+          "client/libs/icons/src/assets/platform/**"
+        ],
+        "deterministic": true
+      },
+      "noticePaths": ["client/REUSE.toml", "client/libs/icons/PROVENANCE.md"],
+      "rationale": "Deterministic indices generated from the checked-in Myoxus-owned SVG asset set."
+    },
+    {
+      "id": "client-libs-lit-react-google",
+      "paths": ["client/libs/lit-react/src/create-component.ts"],
+      "origin": "T1",
+      "licenseExpression": "BSD-3-Clause",
+      "copyrightNotices": ["2018 Google LLC"],
+      "upstreamUrl": "https://github.com/lit/lit",
+      "noticePaths": [
+        "client/libs/lit-react/src/create-component.ts",
+        "client/REUSE.toml"
+      ],
+      "rationale": "The file carries Google's embedded BSD-3-Clause notice; Myoxus and AFFiNE are not asserted as blanket copyright holders."
+    },
+    {
+      "id": "client-libs-lit-react-wrapper",
+      "paths": ["client/libs/lit-react/**"],
+      "origin": "F1/F2/M0/T1",
+      "licenseExpression": "BSD-3-Clause AND MIT AND AGPL-3.0-or-later",
+      "copyrightNotices": [
+        "2018 Google LLC",
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ],
+      "upstreamCutoff": {
+        "revision": "e31cca33540af2737dc9e520b70acac170c0709e",
+        "date": "2026-03-04"
+      },
+      "noticePaths": [
+        "client/REUSE.toml",
+        "client/provenance/LICENSE-UPSTREAM-MIT.txt",
+        "client/libs/lit-react/src/create-component.ts"
+      ],
+      "rationale": "Mixed wrapper component; exact file entries prevent the embedded Google source from inheriting blanket Myoxus or AFFiNE notices."
+    },
+    {
+      "id": "client-branding-runtime",
+      "paths": ["client/branding/**"],
+      "origin": "M0",
+      "licenseExpression": "AGPL-3.0-or-later",
+      "copyrightNotices": [
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ],
+      "noticePaths": ["client/REUSE.toml"],
+      "rationale": "Myoxus runtime branding, generated fallbacks and their focused tests."
+    },
+    {
+      "id": "client-bundled-assets",
+      "paths": [
+        "client/branding/artwork/access-denied.webp",
+        "client/branding/artwork/assistant-all-set.webp",
+        "client/branding/artwork/assistant-automatic.webp",
+        "client/branding/artwork/assistant-capture-decision.webp",
+        "client/branding/artwork/assistant-choose-your-path.webp",
+        "client/branding/artwork/assistant-first-task.webp",
+        "client/branding/artwork/assistant-focus.webp",
+        "client/branding/artwork/assistant-fresh-start.webp",
+        "client/branding/artwork/assistant-guided.webp",
+        "client/branding/artwork/assistant-hello-blank.webp",
+        "client/branding/artwork/assistant-hello.webp",
+        "client/branding/artwork/assistant-issue-tracker.webp",
+        "client/branding/artwork/assistant-knowledge-garden.webp",
+        "client/branding/artwork/assistant-manual.webp",
+        "client/branding/artwork/assistant-organize.webp",
+        "client/branding/artwork/assistant-prepare-meeting.webp",
+        "client/branding/artwork/assistant-resume.webp",
+        "client/branding/artwork/assistant-review.webp",
+        "client/branding/artwork/assistant-roadmap.webp",
+        "client/branding/artwork/assistant-simple-project.webp",
+        "client/branding/artwork/assistant-team-wiki.webp",
+        "client/branding/artwork/assistant-welcome-to-my-hedge-blank.webp",
+        "client/branding/artwork/assistant-welcome-to-my-hedge.webp",
+        "client/branding/artwork/auth-background.webp",
+        "client/branding/artwork/collection-detail.webp",
+        "client/branding/artwork/collections.webp",
+        "client/branding/artwork/database.webp",
+        "client/branding/artwork/docs-develop.webp",
+        "client/branding/artwork/docs-handbook.webp",
+        "client/branding/artwork/docs-hero.webp",
+        "client/branding/artwork/docs-integrate.webp",
+        "client/branding/artwork/docs-operate.webp",
+        "client/branding/artwork/documents.webp",
+        "client/branding/artwork/guide-collaborate.webp",
+        "client/branding/artwork/guide-data.webp",
+        "client/branding/artwork/guide-exchange.webp",
+        "client/branding/artwork/guide-help.webp",
+        "client/branding/artwork/guide-meeting.webp",
+        "client/branding/artwork/guide-organize.webp",
+        "client/branding/artwork/guide-recovery.webp",
+        "client/branding/artwork/guide-start.webp",
+        "client/branding/artwork/guide-write.webp",
+        "client/branding/artwork/history.webp",
+        "client/branding/artwork/installer-dmg.webp",
+        "client/branding/artwork/installer-nsis.webp",
+        "client/branding/artwork/invitation-error.webp",
+        "client/branding/artwork/invitation-success.webp",
+        "client/branding/artwork/journal.webp",
+        "client/branding/artwork/loading.webp",
+        "client/branding/artwork/mascot.webp",
+        "client/branding/artwork/meeting.webp",
+        "client/branding/artwork/not-found.webp",
+        "client/branding/artwork/presentation.webp",
+        "client/branding/artwork/search.webp",
+        "client/branding/artwork/server-error.webp",
+        "client/branding/artwork/table.webp",
+        "client/branding/artwork/tags.webp",
+        "client/branding/artwork/tooltip-bookmark.webp",
+        "client/branding/artwork/tooltip-design.webp",
+        "client/branding/artwork/tooltip-iframe.webp",
+        "client/branding/artwork/tooltip-image.webp",
+        "client/branding/artwork/tooltip-linked-document.webp",
+        "client/branding/artwork/tooltip-new-document.webp",
+        "client/branding/artwork/tooltip-repository.webp",
+        "client/branding/artwork/tooltip-video.webp",
+        "client/branding/artwork/tooltip-walkthrough.webp",
+        "client/branding/artwork/welcome.webp",
+        "client/libs/core/public/apple-touch-icon.png",
+        "client/libs/core/public/document-bundles/agile-retro/1.1.0.zip",
+        "client/libs/core/public/document-bundles/agile-retro/1.3.0.zip",
+        "client/libs/core/public/document-bundles/agile-retro/1.4.0.zip",
+        "client/libs/core/public/document-bundles/agile-standup/1.1.0.zip",
+        "client/libs/core/public/document-bundles/agile-standup/1.3.0.zip",
+        "client/libs/core/public/document-bundles/agile-standup/1.4.0.zip",
+        "client/libs/core/public/document-bundles/architecture-decision/1.1.0.zip",
+        "client/libs/core/public/document-bundles/architecture-decision/1.2.0.zip",
+        "client/libs/core/public/document-bundles/block-agenda-item/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-approval-record/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-architecture-comparison/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-architecture-comparison/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-architecture-comparison/1.0.2.zip",
+        "client/libs/core/public/document-bundles/block-assumption/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-callback/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-cause-analysis/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-change-note/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-change-request/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-check-record/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-checklist/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-checklist/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-confirmation/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-confirmation/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-conversation-note/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-conversation-prep/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-conversation-prep/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-corrective-action/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-daci/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-daily-focus/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-daily-focus/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-decision-brief/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-decision-brief/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-decision/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-decision/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-decision/1.0.2.zip",
+        "client/libs/core/public/document-bundles/block-definition/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-definition/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-dependency/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-deviation/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-event-log/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-faq/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-faq/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-follow-up-question/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-follow-up-question/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-follow-up/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-follow-up/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-handover/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-handover/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-how-to/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-how-to/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-immediate-action/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-immediate-action/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-incident/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-incident/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-interface-contract/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-madr-rationale/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-madr-rationale/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-meeting-close/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-milestone/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-minutes-item/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-next-meeting/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-note-close/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-note-close/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-open-question/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-open-question/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-options-comparison/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-peer-check/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-phone-note/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-post-incident-review/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-post-incident-review/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-process-step/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-project-brief/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-raci-customer-service/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-raci/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-recovery-check/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-recovery-check/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-retro-prompt/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-risk-matrix/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-risk/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-rollback-steps/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-rollback-steps/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-rollout-steps/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-rollout-steps/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-selection-must/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-selection-pairwise/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-selection-weighted/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-short-message/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-short-message/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-source-note/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-standup/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-status-update/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-technical-acceptance/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-technical-acceptance/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-technical-profile/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-weekly-review/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-work-package/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-work-package/1.0.1.zip",
+        "client/libs/core/public/document-bundles/business-daily/1.0.0.zip",
+        "client/libs/core/public/document-bundles/business-daily/1.2.0.zip",
+        "client/libs/core/public/document-bundles/business-daily/1.3.0.zip",
+        "client/libs/core/public/document-bundles/databases-guide-myoxus/1.0.0.zip",
+        "client/libs/core/public/document-bundles/databases-guide-myoxus/1.1.0.zip",
+        "client/libs/core/public/document-bundles/databases-guide-myoxus/1.3.0.zip",
+        "client/libs/core/public/document-bundles/databases-guide-myoxus/1.4.0.zip",
+        "client/libs/core/public/document-bundles/decision-record/1.0.0.zip",
+        "client/libs/core/public/document-bundles/editor-advanced-myoxus/1.0.0.zip",
+        "client/libs/core/public/document-bundles/eisenhower/1.0.0.zip",
+        "client/libs/core/public/document-bundles/eisenhower/1.2.0.zip",
+        "client/libs/core/public/document-bundles/eisenhower/1.3.0.zip",
+        "client/libs/core/public/document-bundles/getting-started-myoxus/1.0.0.zip",
+        "client/libs/core/public/document-bundles/getting-started-myoxus/1.1.0.zip",
+        "client/libs/core/public/document-bundles/getting-started-myoxus/1.2.0.zip",
+        "client/libs/core/public/document-bundles/getting-started-myoxus/1.3.0.zip",
+        "client/libs/core/public/document-bundles/gtd-weekly-review/1.0.0.zip",
+        "client/libs/core/public/document-bundles/gtd-weekly-review/1.2.0.zip",
+        "client/libs/core/public/document-bundles/gtd-weekly-review/1.3.0.zip",
+        "client/libs/core/public/document-bundles/handover/1.1.0.zip",
+        "client/libs/core/public/document-bundles/handover/1.2.0.zip",
+        "client/libs/core/public/document-bundles/hybrid-day-sprint/1.0.0.zip",
+        "client/libs/core/public/document-bundles/importing-content-myoxus/1.0.0.zip",
+        "client/libs/core/public/document-bundles/incident-report/1.1.0.zip",
+        "client/libs/core/public/document-bundles/incident-report/1.2.0.zip",
+        "client/libs/core/public/document-bundles/knowledge-home/1.0.0.zip",
+        "client/libs/core/public/document-bundles/meeting-agenda/1.0.1.zip",
+        "client/libs/core/public/document-bundles/meeting-agenda/1.1.0.zip",
+        "client/libs/core/public/document-bundles/meeting-agenda/1.3.0.zip",
+        "client/libs/core/public/document-bundles/meeting-agenda/1.4.0.zip",
+        "client/libs/core/public/document-bundles/meeting-focus/1.1.1.zip",
+        "client/libs/core/public/document-bundles/meeting-focus/1.2.0.zip",
+        "client/libs/core/public/document-bundles/meeting-register/1.0.1.zip",
+        "client/libs/core/public/document-bundles/meeting-register/1.1.0.zip",
+        "client/libs/core/public/document-bundles/meeting-templates-myoxus/1.0.0.zip",
+        "client/libs/core/public/document-bundles/meeting-templates-myoxus/1.1.0.zip",
+        "client/libs/core/public/document-bundles/meeting-templates-myoxus/1.3.0.zip",
+        "client/libs/core/public/document-bundles/meeting-templates-myoxus/1.4.0.zip",
+        "client/libs/core/public/document-bundles/one-on-one/1.1.0.zip",
+        "client/libs/core/public/document-bundles/one-on-one/1.2.0.zip",
+        "client/libs/core/public/document-bundles/personal-journal/1.0.0.zip",
+        "client/libs/core/public/document-bundles/personal-journal/1.2.0.zip",
+        "client/libs/core/public/document-bundles/personal-journal/1.3.0.zip",
+        "client/libs/core/public/document-bundles/procedure/1.0.0.zip",
+        "client/libs/core/public/document-bundles/project-brief/1.0.0.zip",
+        "client/libs/core/public/document-bundles/project-status/1.1.0.zip",
+        "client/libs/core/public/document-bundles/project-status/1.2.0.zip",
+        "client/libs/core/public/document-bundles/research-note/1.0.0.zip",
+        "client/libs/core/public/document-bundles/rollout-rollback/1.1.0.zip",
+        "client/libs/core/public/document-bundles/rollout-rollback/1.2.0.zip",
+        "client/libs/core/public/document-bundles/task-content-agenda/1.0.0.zip",
+        "client/libs/core/public/document-bundles/team-wiki-home/1.0.0.zip",
+        "client/libs/core/public/document-bundles/time-blocking/1.0.0.zip",
+        "client/libs/core/public/document-bundles/time-blocking/1.2.0.zip",
+        "client/libs/core/public/document-bundles/time-blocking/1.3.0.zip",
+        "client/libs/core/public/document-bundles/using-folders-myoxus/1.0.0.zip",
+        "client/libs/core/public/document-bundles/using-folders-myoxus/1.1.0.zip",
+        "client/libs/core/public/document-bundles/using-folders-myoxus/1.3.0.zip",
+        "client/libs/core/public/document-bundles/using-folders-myoxus/1.4.0.zip",
+        "client/libs/core/public/document-bundles/using-tasks-myoxus/1.0.0.zip",
+        "client/libs/core/public/document-bundles/welcome-myoxus/1.0.0.zip",
+        "client/libs/core/public/document-bundles/welcome-myoxus/1.1.0.zip",
+        "client/libs/core/public/document-bundles/welcome-myoxus/1.2.0.zip",
+        "client/libs/core/public/document-bundles/welcome-myoxus/1.3.0.zip",
+        "client/libs/core/public/favicon-144.png",
+        "client/libs/core/public/favicon-192.png",
+        "client/libs/core/public/favicon-32.png",
+        "client/libs/core/public/favicon-36.png",
+        "client/libs/core/public/favicon-48.png",
+        "client/libs/core/public/favicon-72.png",
+        "client/libs/core/public/favicon-96.png",
+        "client/libs/core/public/favicon.ico",
+        "client/libs/theme/src/noise.avif"
+      ],
+      "origin": "F1/F2/M0",
+      "licenseExpression": "MIT AND AGPL-3.0-or-later",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ],
+      "upstreamCutoff": {
+        "revision": "e31cca33540af2737dc9e520b70acac170c0709e",
+        "date": "2026-03-04"
+      },
+      "contentSha256": "a47f3e9c881f88a1f7d88de72daa5003f2c42491e44ad492ee07ff87b3a5cacb",
+      "noticePaths": [
+        "client/REUSE.toml",
+        "client/provenance/LICENSE-UPSTREAM-MIT.txt",
+        "client/libs/icons/PROVENANCE.md"
+      ],
+      "rationale": "Aggregate integrity record for all non-text bundled assets. Per-file holders and licenses remain authoritative in REUSE.toml."
+    },
+    {
+      "id": "client-bpmn-apache-retained",
+      "paths": [
+        "client/libs/bpmn-editor/scripts/codegen.ts",
+        "client/libs/bpmn-editor/scripts/types.d.ts",
+        "client/libs/bpmn-editor/scripts/xsd/meta.ts",
+        "client/libs/bpmn-editor/scripts/xsd/types.d.ts",
+        "client/libs/bpmn-editor/src/editor/BpmnEditor.tsx",
+        "client/libs/bpmn-editor/src/editor/BpmnEditorContext.tsx",
+        "client/libs/bpmn-editor/src/editor/BpmnEditorErrorFallback.tsx",
+        "client/libs/bpmn-editor/src/editor/clipboard/Clipboard.ts",
+        "client/libs/bpmn-editor/src/editor/commands/CommandsContextProvider.tsx",
+        "client/libs/bpmn-editor/src/editor/diagram/BpmnDiagram.tsx",
+        "client/libs/bpmn-editor/src/editor/diagram/BpmnDiagramCommands.tsx",
+        "client/libs/bpmn-editor/src/editor/diagram/BpmnDiagramDomain.tsx",
+        "client/libs/bpmn-editor/src/editor/diagram/BpmnDiagramEmptyState.tsx",
+        "client/libs/bpmn-editor/src/editor/diagram/BpmnDiagramTopRightPanels.tsx",
+        "client/libs/bpmn-editor/src/editor/diagram/BpmnPalette.tsx",
+        "client/libs/bpmn-editor/src/editor/diagram/DiagramContainerContext.tsx",
+        "client/libs/bpmn-editor/src/editor/diagram/edges/EdgeSvgs.tsx",
+        "client/libs/bpmn-editor/src/editor/diagram/edges/Edges.css",
+        "client/libs/bpmn-editor/src/editor/diagram/edges/Edges.tsx",
+        "client/libs/bpmn-editor/src/editor/diagram/nodes/NodeIcons.tsx",
+        "client/libs/bpmn-editor/src/editor/diagram/nodes/NodeStyle.ts",
+        "client/libs/bpmn-editor/src/editor/diagram/nodes/NodeSvgs.tsx",
+        "client/libs/bpmn-editor/src/editor/diagram/nodes/Nodes.tsx",
+        "client/libs/bpmn-editor/src/editor/diagram/nodes/morphing/MorphingAction.ts",
+        "client/libs/bpmn-editor/src/editor/diagram/nodes/morphing/NodeMorphingPanel.tsx",
+        "client/libs/bpmn-editor/src/editor/diagram/nodes/morphing/keepIntersection.ts",
+        "client/libs/bpmn-editor/src/editor/diagram/nodes/morphing/useEventNodeMorphingActions.tsx",
+        "client/libs/bpmn-editor/src/editor/diagram/nodes/morphing/useGatewayNodeMorphingActions.tsx",
+        "client/libs/bpmn-editor/src/editor/diagram/nodes/morphing/useKeyboardShortcutsForMorphingActions.tsx",
+        "client/libs/bpmn-editor/src/editor/diagram/nodes/morphing/useSubProcessNodeMorphingActions.tsx",
+        "client/libs/bpmn-editor/src/editor/diagram/nodes/morphing/useTaskNodeMorphingActions.tsx",
+        "client/libs/bpmn-editor/src/editor/focus/useFocusableElement.ts",
+        "client/libs/bpmn-editor/src/editor/i18n/index.ts",
+        "client/libs/bpmn-editor/src/editor/i18n/setup.ts",
+        "client/libs/bpmn-editor/src/editor/idRandomizer/bpmn-id-randomizer.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/addConnectedNode.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/addEdge.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/addEdgeWaypoint.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/addOrGetCategory.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/addOrGetErrors.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/addOrGetEscalations.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/addOrGetInterfaces.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/addOrGetItemDefinitions.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/addOrGetLanes.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/addOrGetMessages.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/addOrGetOperations.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/addOrGetProcessAndDiagramElements.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/addOrGetSignals.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/addStandaloneNode.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/addVariable.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/data-mapping.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/deleteEdge.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/deleteEdgeWaypoint.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/deleteError.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/deleteEscalation.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/deleteItemDefinition.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/deleteMessage.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/deleteNode.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/deleteSignal.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/detachBoundaryEvent.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/element-visitor.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/makeBoundaryEvent.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/moveNodesInsideLane.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/moveNodesInsideSubProcess.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/moveNodesOutOfLane.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/moveNodesOutOfSubProcess.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/node-nature.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/renameError.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/renameEscalation.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/renameItemDefinition.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/renameMessage.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/renameNode.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/renameSignal.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/repositionEdgeWaypoint.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/repositionNode.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/resizeNode.ts",
+        "client/libs/bpmn-editor/src/editor/normalization/normalize.ts",
+        "client/libs/bpmn-editor/src/editor/overlaysPanel/OverlaysPanel.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/GlobalProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/PropertiesPanel.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/SingleEdgeProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/SingleNodeProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/activitySelector/ActivitySelector.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/calledElementSelector/CalledElementSelector.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/conditionalExpression/ConditionalExpressionSelector.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/correlations/Correlations.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/dataMapping/DataMappingFormSection.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/defaultRouteSelector/DefaultRouteSelector.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/emptyState/PropertiesPanelListEmptyState.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/errorSelector/ErrorSelector.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/escalationSelector/EscalationSelector.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/eventDefinition/EventDefinitionProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/itemDefinitionRefSelector/ItemDefinitionRefSelector.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/linkInput/LinkInput.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/messageSelector/MessageSelector.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/multiInstance/MultiInstanceProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/multiInstanceCheckbox/MultiInstanceCheckbox.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/nameDocumentationAndId/NameDocumentationAndId.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/propertiesManager/PropertiesManager.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/resources/ResourceRoles.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/signalSelector/SignalSelector.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleEdgeProperties/AssociationProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleEdgeProperties/SequenceFlowProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleNodeProperties/AdHocSubProcessProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleNodeProperties/BoundaryEventProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleNodeProperties/BusinessRuleTaskProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleNodeProperties/CallActivityProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleNodeProperties/ComplexGatewayProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleNodeProperties/DataObjectProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleNodeProperties/EndEventProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleNodeProperties/EventBasedGatewayProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleNodeProperties/EventSubProcessProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleNodeProperties/ExclusiveGatewayProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleNodeProperties/GroupProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleNodeProperties/InclusiveGatewayProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleNodeProperties/IntermediateCatchEventProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleNodeProperties/IntermediateThrowEventProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleNodeProperties/LaneProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleNodeProperties/ParallelGatewayProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleNodeProperties/ScriptTaskProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleNodeProperties/ServiceTaskProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleNodeProperties/StartEventProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleNodeProperties/SubProcessProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleNodeProperties/TaskProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleNodeProperties/TextAnnotationProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleNodeProperties/TransactionProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleNodeProperties/UserTaskProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/timerOptions/TimerOptions.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/variableSelector/VariableSelector.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/variables/Variables.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/variables/VariablesFormSection.tsx",
+        "client/libs/bpmn-editor/src/editor/store/Store.ts",
+        "client/libs/bpmn-editor/src/editor/store/StoreContext.ts",
+        "client/libs/bpmn-editor/src/editor/store/computeBoundaryEventIdsByAttachedBpmnElementId.ts",
+        "client/libs/bpmn-editor/src/editor/store/computeDiagramData.ts",
+        "client/libs/bpmn-editor/src/editor/store/initialComputedCache.ts",
+        "client/libs/bpmn-editor/src/editor/svg/BpmnDiagramSvg.tsx",
+        "client/libs/bpmn-editor/src/editor/ts-ext/assertUnreachable.ts",
+        "client/libs/bpmn-editor/src/editor/ts-ext/switch-expression.ts",
+        "client/libs/bpmn-editor/src/editor/typeaheadSelect/use-definition-choice.ts",
+        "client/libs/bpmn-editor/src/marshaller.ts",
+        "client/libs/bpmn-editor/src/schemas/bpmn-2_0/spec.ts",
+        "client/libs/bpmn-editor/src/xml-parser/element-filter.ts",
+        "client/libs/bpmn-editor/src/xml-parser/id-randomizer.ts",
+        "client/libs/bpmn-editor/src/xml-parser/index.ts",
+        "client/libs/bpmn-editor/src/xml-parser/q-names.ts",
+        "client/libs/bpmn-editor/src/xyflow/diagram/SelectionStatusLabel.tsx",
+        "client/libs/bpmn-editor/src/xyflow/diagram/XyFlowReactKieDiagram.tsx",
+        "client/libs/bpmn-editor/src/xyflow/draggable/Draggable.tsx",
+        "client/libs/bpmn-editor/src/xyflow/edges/AutoPositionedEdgeMarker.ts",
+        "client/libs/bpmn-editor/src/xyflow/edges/ConnectionLine.tsx",
+        "client/libs/bpmn-editor/src/xyflow/edges/EdgeMarkers.tsx",
+        "client/libs/bpmn-editor/src/xyflow/edges/Hooks.css",
+        "client/libs/bpmn-editor/src/xyflow/edges/Hooks.ts",
+        "client/libs/bpmn-editor/src/xyflow/edges/getSnappedMultiPointAnchoredEdgePath.tsx",
+        "client/libs/bpmn-editor/src/xyflow/edges/useAlwaysVisibleEdgeUpdatersAtNodeBorders.ts",
+        "client/libs/bpmn-editor/src/xyflow/edges/usePathForEdgeWithWaypoints.tsx",
+        "client/libs/bpmn-editor/src/xyflow/graph/childNodes.ts",
+        "client/libs/bpmn-editor/src/xyflow/graph/graph.ts",
+        "client/libs/bpmn-editor/src/xyflow/graph/graphStructure.ts",
+        "client/libs/bpmn-editor/src/xyflow/graph/isValidConnection.ts",
+        "client/libs/bpmn-editor/src/xyflow/maths/DcMaths.ts",
+        "client/libs/bpmn-editor/src/xyflow/maths/Maths.ts",
+        "client/libs/bpmn-editor/src/xyflow/maths/model.ts",
+        "client/libs/bpmn-editor/src/xyflow/memoization/memoization.ts",
+        "client/libs/bpmn-editor/src/xyflow/nodes/EditableNodeLabel.css",
+        "client/libs/bpmn-editor/src/xyflow/nodes/EditableNodeLabel.tsx",
+        "client/libs/bpmn-editor/src/xyflow/nodes/Hooks.css",
+        "client/libs/bpmn-editor/src/xyflow/nodes/Hooks.tsx",
+        "client/libs/bpmn-editor/src/xyflow/nodes/InfoNodePanel.css",
+        "client/libs/bpmn-editor/src/xyflow/nodes/InfoNodePanel.tsx",
+        "client/libs/bpmn-editor/src/xyflow/nodes/NodeIcons.css",
+        "client/libs/bpmn-editor/src/xyflow/nodes/NodeIcons.tsx",
+        "client/libs/bpmn-editor/src/xyflow/nodes/NodeSizes.ts",
+        "client/libs/bpmn-editor/src/xyflow/nodes/NodeSvgs.css",
+        "client/libs/bpmn-editor/src/xyflow/nodes/NodeSvgs.tsx",
+        "client/libs/bpmn-editor/src/xyflow/nodes/OutgoingStuffNodePanel.css",
+        "client/libs/bpmn-editor/src/xyflow/nodes/OutgoingStuffNodePanel.tsx",
+        "client/libs/bpmn-editor/src/xyflow/nodes/PositionalNodeHandles.css",
+        "client/libs/bpmn-editor/src/xyflow/nodes/PositionalNodeHandles.tsx",
+        "client/libs/bpmn-editor/src/xyflow/propertiesPanel/SectionHeader.tsx",
+        "client/libs/bpmn-editor/src/xyflow/reactExt/useEffectAfterFirstRender.ts",
+        "client/libs/bpmn-editor/src/xyflow/reactExt/useIsHovered.tsx",
+        "client/libs/bpmn-editor/src/xyflow/reactExt/usePrevious.ts",
+        "client/libs/bpmn-editor/src/xyflow/reactExt/useStateAsItWasBeforeConditionBecameTrue.ts",
+        "client/libs/bpmn-editor/src/xyflow/responsiveness/useInViewSelect.ts",
+        "client/libs/bpmn-editor/src/xyflow/snapgrid/BorderSnapping.ts",
+        "client/libs/bpmn-editor/src/xyflow/snapgrid/SnapGrid.ts",
+        "client/libs/bpmn-editor/src/xyflow/store/ComputedStateCache.ts",
+        "client/libs/bpmn-editor/src/xyflow/store/State.ts",
+        "client/libs/bpmn-editor/src/xyflow/store/Store.ts",
+        "client/libs/bpmn-editor/src/xyflow/store/computed/computeIsDiagramEditingInProgress.ts",
+        "client/libs/bpmn-editor/src/xyflow/store/dispatch/setEdgeStatus.ts",
+        "client/libs/bpmn-editor/src/xyflow/store/dispatch/setNodeStatus.ts",
+        "client/libs/bpmn-editor/src/xyflow/tsExt/tsExt.ts",
+        "client/libs/bpmn-editor/src/xyflow/uuid/uuid.ts",
+        "client/libs/bpmn-editor/src/xyflow/waypoints/WaypointActionsContext.tsx",
+        "client/libs/bpmn-editor/src/xyflow/waypoints/Waypoints.css",
+        "client/libs/bpmn-editor/src/xyflow/waypoints/Waypoints.tsx",
+        "client/libs/bpmn-editor/src/xyflow/waypoints/usePotentialWaypointControls.ts",
+        "client/libs/bpmn-editor/src/xyflow/xml/xmlHrefToQName.ts",
+        "client/libs/bpmn-editor/src/xyflow/xml/xmlHrefs.ts",
+        "client/libs/bpmn-editor/src/xyflow/xml/xmlNamespaceDeclarations.ts",
+        "client/libs/bpmn-editor/src/xyflow/xyflow-customizations.css",
+        "client/libs/bpmn-editor/LICENSE",
+        "client/libs/bpmn-editor/NOTICE"
+      ],
+      "origin": "T1",
+      "licenseExpression": "Apache-2.0",
+      "copyrightNotices": [
+        "2023-2026 The Apache Software Foundation",
+        "Red Hat, Inc. and/or its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ],
+      "noticePaths": [
+        "client/libs/bpmn-editor/LICENSE",
+        "client/libs/bpmn-editor/NOTICE",
+        "client/libs/bpmn-editor/THIRD-PARTY-NOTICES",
+        "client/libs/bpmn-editor/provenance.json"
+      ],
+      "rationale": "Pinned Apache KIE source and original license/notices. Retained files and Myoxus modifications in those files remain Apache-2.0; independently authored new files are classified separately under AGPL.",
+      "upstreamUrl": "https://github.com/apache/incubator-kie-tools",
+      "upstreamRevision": "116e8d86d846f04dbb884d05a556876d455cd3ee"
+    },
+    {
+      "id": "client-bpmn-myoxus-additions",
+      "paths": [
+        "client/libs/bpmn-editor/package.json",
+        "client/libs/bpmn-editor/provenance.json",
+        "client/libs/bpmn-editor/scripts/generate.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/activity-context.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/activity.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/connection-context.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/connection.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/data-association-context.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/data-association.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/data-context.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/data-store.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/data.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/event.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/global-tasks.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/group.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/io-context.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/io-sets.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/lane-partition.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/process-io-context.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/process-io.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/qname-list.ts",
+        "client/libs/bpmn-editor/src/editor/mutations/resource.ts",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/categories/FlowCategories.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/dataMapping/InputOutputSets.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/eventDefinition/useEventDefinition.ts",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/resources/ResourceDefinitions.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleEdgeProperties/DataAssociationProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleNodeProperties/DataStoreProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleNodeProperties/GatewayPropertiesFields.tsx",
+        "client/libs/bpmn-editor/src/editor/propertiesPanel/singleNodeProperties/ProcessIoProperties.tsx",
+        "client/libs/bpmn-editor/src/editor/public-api.spec.ts",
+        "client/libs/bpmn-editor/src/editor/state.spec.ts",
+        "client/libs/bpmn-editor/src/editor/svg/bpmn-svg-label.tsx",
+        "client/libs/bpmn-editor/src/editor/svg/sanitize.spec.ts",
+        "client/libs/bpmn-editor/src/editor/svg/sanitize.ts",
+        "client/libs/bpmn-editor/src/fixtures/associations-standard.bpmn",
+        "client/libs/bpmn-editor/src/fixtures/blank.bpmn",
+        "client/libs/bpmn-editor/src/fixtures/cancel-loop.bpmn",
+        "client/libs/bpmn-editor/src/fixtures/data-associations-standard.bpmn",
+        "client/libs/bpmn-editor/src/fixtures/data-objects-standard.bpmn",
+        "client/libs/bpmn-editor/src/fixtures/data-references-standard.bpmn",
+        "client/libs/bpmn-editor/src/fixtures/data-stores-standard.bpmn",
+        "client/libs/bpmn-editor/src/fixtures/definitions-references.bpmn",
+        "client/libs/bpmn-editor/src/fixtures/event-subprocess-standard.bpmn",
+        "client/libs/bpmn-editor/src/fixtures/events-standard.bpmn",
+        "client/libs/bpmn-editor/src/fixtures/flows-standard.bpmn",
+        "client/libs/bpmn-editor/src/fixtures/gateways-standard.bpmn",
+        "client/libs/bpmn-editor/src/fixtures/global-tasks-standard.bpmn",
+        "client/libs/bpmn-editor/src/fixtures/globals-standard.bpmn",
+        "client/libs/bpmn-editor/src/fixtures/groups-standard.bpmn",
+        "client/libs/bpmn-editor/src/fixtures/lanes-standard.bpmn",
+        "client/libs/bpmn-editor/src/fixtures/process-io-standard.bpmn",
+        "client/libs/bpmn-editor/src/fixtures/profile-initial.bpmn",
+        "client/libs/bpmn-editor/src/fixtures/start-task-end.bpmn",
+        "client/libs/bpmn-editor/src/fixtures/subprocesses-standard.bpmn",
+        "client/libs/bpmn-editor/src/fixtures/tasks-standard.bpmn",
+        "client/libs/bpmn-editor/src/modeller.tsx",
+        "client/libs/bpmn-editor/src/preview.ts",
+        "client/libs/bpmn-editor/src/process-source.ts",
+        "client/libs/bpmn-editor/src/source-profile.ts",
+        "client/libs/bpmn-editor/src/source.spec.ts",
+        "client/libs/bpmn-editor/src/source.ts",
+        "client/libs/bpmn-editor/src/xml-parser/preflight.ts",
+        "client/libs/bpmn-editor/src/xyflow/diagram/DiagramActionContext.ts",
+        "client/libs/bpmn-editor/src/xyflow/reactExt/PendingEdits.tsx",
+        "client/libs/bpmn-editor/tsconfig.json",
+        "client/libs/bpmn-editor/tsconfig.source.json",
+        "client/libs/bpmn-editor/tsconfig.tools.json",
+        "client/libs/bpmn-editor/vitest.config.ts",
+        "client/libs/bpmn-editor/vitest.editor.config.ts"
+      ],
+      "origin": "M0",
+      "licenseExpression": "AGPL-3.0-or-later",
+      "copyrightNotices": [
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ],
+      "noticePaths": [
+        "client/libs/bpmn-editor/LICENSE",
+        "client/libs/bpmn-editor/NOTICE",
+        "client/libs/bpmn-editor/THIRD-PARTY-NOTICES",
+        "client/libs/bpmn-editor/provenance.json"
+      ],
+      "rationale": "Independently authored Myoxus integration, commands, synthetic fixtures and metadata are AGPL. Retained Apache expression and schema inputs are classified separately; no package-level Apache exception is inferred."
+    },
+    {
+      "id": "client-bpmn-official-schemas",
+      "paths": [
+        "client/libs/bpmn-editor/src/schemas/bpmn-2_0/BPMN20.xsd",
+        "client/libs/bpmn-editor/src/schemas/bpmn-2_0/BPMNDI.xsd",
+        "client/libs/bpmn-editor/src/schemas/bpmn-2_0/DC.xsd",
+        "client/libs/bpmn-editor/src/schemas/bpmn-2_0/DI.xsd",
+        "client/libs/bpmn-editor/src/schemas/bpmn-2_0/Semantic.xsd"
+      ],
+      "origin": "T1",
+      "licenseExpression": "LicenseRef-OMG-BPMN",
+      "copyrightNotices": [
+        "2010, Axway",
+        "2010, BizAgi",
+        "2010, Bruce Silver Associates",
+        "2010, IDS Scheer",
+        "2010, IBM Corp.",
+        "2010, MEGA International",
+        "2010, Model Driven Solutions",
+        "2010, Object Management Group",
+        "2010, Oracle",
+        "2010, SAP AG",
+        "2010, Software AG",
+        "2010, TIBCO Software",
+        "2010, Unisys"
+      ],
+      "noticePaths": [
+        "client/libs/bpmn-editor/LICENSE",
+        "client/libs/bpmn-editor/NOTICE",
+        "client/libs/bpmn-editor/THIRD-PARTY-NOTICES",
+        "client/libs/bpmn-editor/provenance.json"
+      ],
+      "rationale": "Unmodified official OMG BPMN machine-readable schemas, verified byte-for-byte against the five normative 20100501 URLs; no Apache or Myoxus relicensing.",
+      "upstreamUrl": "https://www.omg.org/spec/BPMN/2.0.2"
+    },
+    {
+      "id": "client-bpmn-schema-types",
+      "paths": [
+        "client/libs/bpmn-editor/src/schemas/bpmn-2_0/ts-gen/meta.ts",
+        "client/libs/bpmn-editor/src/schemas/bpmn-2_0/ts-gen/types.ts"
+      ],
+      "origin": "T1",
+      "licenseExpression": "Apache-2.0 AND LicenseRef-OMG-BPMN",
+      "copyrightNotices": [
+        "2023-2026 The Apache Software Foundation",
+        "2010, Axway",
+        "2010, BizAgi",
+        "2010, Bruce Silver Associates",
+        "2010, IDS Scheer",
+        "2010, IBM Corp.",
+        "2010, MEGA International",
+        "2010, Model Driven Solutions",
+        "2010, Object Management Group",
+        "2010, Oracle",
+        "2010, SAP AG",
+        "2010, Software AG",
+        "2010, TIBCO Software",
+        "2010, Unisys"
+      ],
+      "noticePaths": [
+        "client/libs/bpmn-editor/LICENSE",
+        "client/libs/bpmn-editor/NOTICE",
+        "client/libs/bpmn-editor/THIRD-PARTY-NOTICES",
+        "client/libs/bpmn-editor/provenance.json"
+      ],
+      "rationale": "Generated types and metadata retain both the adapted Apache generator and OMG schema origins.",
+      "generatedFrom": {
+        "generator": "client/libs/bpmn-editor/scripts/generate.ts",
+        "sources": [
+          "client/libs/bpmn-editor/scripts/codegen.ts",
+          "client/libs/bpmn-editor/src/schemas/bpmn-2_0/BPMN20.xsd",
+          "client/libs/bpmn-editor/src/schemas/bpmn-2_0/BPMNDI.xsd",
+          "client/libs/bpmn-editor/src/schemas/bpmn-2_0/DC.xsd",
+          "client/libs/bpmn-editor/src/schemas/bpmn-2_0/DI.xsd",
+          "client/libs/bpmn-editor/src/schemas/bpmn-2_0/Semantic.xsd"
+        ],
+        "deterministic": true
+      }
+    },
+    {
+      "id": "client-bpmn-third-party-notices",
+      "paths": ["client/libs/bpmn-editor/THIRD-PARTY-NOTICES"],
+      "origin": "T1",
+      "licenseExpression": "LicenseRef-OMG-BPMN AND W3C-20150513",
+      "copyrightNotices": [
+        "2010, Axway",
+        "2010, BizAgi",
+        "2010, Bruce Silver Associates",
+        "2010, IDS Scheer",
+        "2010, IBM Corp.",
+        "2010, MEGA International",
+        "2010, Model Driven Solutions",
+        "2010, Object Management Group",
+        "2010, Oracle",
+        "2010, SAP AG",
+        "2010, Software AG",
+        "2010, TIBCO Software",
+        "2010, Unisys",
+        "World Wide Web Consortium"
+      ],
+      "noticePaths": [
+        "client/libs/bpmn-editor/LICENSE",
+        "client/libs/bpmn-editor/NOTICE",
+        "client/libs/bpmn-editor/THIRD-PARTY-NOTICES",
+        "client/libs/bpmn-editor/provenance.json"
+      ],
+      "rationale": "Retained OMG and W3C notice sections. SPDX W3C-20150513 also identifies the 2023 text under its matching guidelines."
+    },
+    {
+      "id": "client-native-document-bundles",
+      "paths": [
+        "client/libs/core/public/document-bundles/agile-retro/1.1.0.zip",
+        "client/libs/core/public/document-bundles/agile-retro/1.3.0.zip",
+        "client/libs/core/public/document-bundles/agile-retro/1.4.0.zip",
+        "client/libs/core/public/document-bundles/agile-standup/1.1.0.zip",
+        "client/libs/core/public/document-bundles/agile-standup/1.3.0.zip",
+        "client/libs/core/public/document-bundles/agile-standup/1.4.0.zip",
+        "client/libs/core/public/document-bundles/architecture-decision/1.1.0.zip",
+        "client/libs/core/public/document-bundles/architecture-decision/1.2.0.zip",
+        "client/libs/core/public/document-bundles/block-agenda-item/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-approval-record/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-architecture-comparison/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-architecture-comparison/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-architecture-comparison/1.0.2.zip",
+        "client/libs/core/public/document-bundles/block-assumption/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-callback/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-cause-analysis/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-change-note/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-change-request/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-check-record/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-checklist/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-checklist/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-confirmation/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-confirmation/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-conversation-note/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-conversation-prep/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-conversation-prep/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-corrective-action/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-daci/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-daily-focus/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-daily-focus/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-decision-brief/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-decision-brief/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-decision/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-decision/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-decision/1.0.2.zip",
+        "client/libs/core/public/document-bundles/block-definition/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-definition/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-dependency/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-deviation/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-event-log/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-faq/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-faq/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-follow-up-question/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-follow-up-question/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-follow-up/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-follow-up/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-handover/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-handover/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-how-to/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-how-to/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-immediate-action/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-immediate-action/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-incident/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-incident/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-interface-contract/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-madr-rationale/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-madr-rationale/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-meeting-close/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-milestone/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-minutes-item/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-next-meeting/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-note-close/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-note-close/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-open-question/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-open-question/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-options-comparison/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-peer-check/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-phone-note/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-post-incident-review/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-post-incident-review/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-process-step/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-project-brief/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-raci-customer-service/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-raci/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-recovery-check/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-recovery-check/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-retro-prompt/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-risk-matrix/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-risk/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-rollback-steps/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-rollback-steps/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-rollout-steps/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-rollout-steps/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-selection-must/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-selection-pairwise/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-selection-weighted/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-short-message/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-short-message/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-source-note/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-standup/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-status-update/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-technical-acceptance/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-technical-acceptance/1.0.1.zip",
+        "client/libs/core/public/document-bundles/block-technical-profile/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-weekly-review/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-work-package/1.0.0.zip",
+        "client/libs/core/public/document-bundles/block-work-package/1.0.1.zip",
+        "client/libs/core/public/document-bundles/business-daily/1.0.0.zip",
+        "client/libs/core/public/document-bundles/business-daily/1.2.0.zip",
+        "client/libs/core/public/document-bundles/business-daily/1.3.0.zip",
+        "client/libs/core/public/document-bundles/databases-guide-myoxus/1.0.0.zip",
+        "client/libs/core/public/document-bundles/databases-guide-myoxus/1.1.0.zip",
+        "client/libs/core/public/document-bundles/databases-guide-myoxus/1.3.0.zip",
+        "client/libs/core/public/document-bundles/databases-guide-myoxus/1.4.0.zip",
+        "client/libs/core/public/document-bundles/decision-record/1.0.0.zip",
+        "client/libs/core/public/document-bundles/editor-advanced-myoxus/1.0.0.zip",
+        "client/libs/core/public/document-bundles/eisenhower/1.0.0.zip",
+        "client/libs/core/public/document-bundles/eisenhower/1.2.0.zip",
+        "client/libs/core/public/document-bundles/eisenhower/1.3.0.zip",
+        "client/libs/core/public/document-bundles/getting-started-myoxus/1.0.0.zip",
+        "client/libs/core/public/document-bundles/getting-started-myoxus/1.1.0.zip",
+        "client/libs/core/public/document-bundles/getting-started-myoxus/1.2.0.zip",
+        "client/libs/core/public/document-bundles/getting-started-myoxus/1.3.0.zip",
+        "client/libs/core/public/document-bundles/gtd-weekly-review/1.0.0.zip",
+        "client/libs/core/public/document-bundles/gtd-weekly-review/1.2.0.zip",
+        "client/libs/core/public/document-bundles/gtd-weekly-review/1.3.0.zip",
+        "client/libs/core/public/document-bundles/handover/1.1.0.zip",
+        "client/libs/core/public/document-bundles/handover/1.2.0.zip",
+        "client/libs/core/public/document-bundles/hybrid-day-sprint/1.0.0.zip",
+        "client/libs/core/public/document-bundles/importing-content-myoxus/1.0.0.zip",
+        "client/libs/core/public/document-bundles/incident-report/1.1.0.zip",
+        "client/libs/core/public/document-bundles/incident-report/1.2.0.zip",
+        "client/libs/core/public/document-bundles/knowledge-home/1.0.0.zip",
+        "client/libs/core/public/document-bundles/meeting-agenda/1.0.1.zip",
+        "client/libs/core/public/document-bundles/meeting-agenda/1.1.0.zip",
+        "client/libs/core/public/document-bundles/meeting-agenda/1.3.0.zip",
+        "client/libs/core/public/document-bundles/meeting-agenda/1.4.0.zip",
+        "client/libs/core/public/document-bundles/meeting-focus/1.1.1.zip",
+        "client/libs/core/public/document-bundles/meeting-focus/1.2.0.zip",
+        "client/libs/core/public/document-bundles/meeting-register/1.0.1.zip",
+        "client/libs/core/public/document-bundles/meeting-register/1.1.0.zip",
+        "client/libs/core/public/document-bundles/meeting-templates-myoxus/1.0.0.zip",
+        "client/libs/core/public/document-bundles/meeting-templates-myoxus/1.1.0.zip",
+        "client/libs/core/public/document-bundles/meeting-templates-myoxus/1.3.0.zip",
+        "client/libs/core/public/document-bundles/meeting-templates-myoxus/1.4.0.zip",
+        "client/libs/core/public/document-bundles/one-on-one/1.1.0.zip",
+        "client/libs/core/public/document-bundles/one-on-one/1.2.0.zip",
+        "client/libs/core/public/document-bundles/personal-journal/1.0.0.zip",
+        "client/libs/core/public/document-bundles/personal-journal/1.2.0.zip",
+        "client/libs/core/public/document-bundles/personal-journal/1.3.0.zip",
+        "client/libs/core/public/document-bundles/procedure/1.0.0.zip",
+        "client/libs/core/public/document-bundles/project-brief/1.0.0.zip",
+        "client/libs/core/public/document-bundles/project-status/1.1.0.zip",
+        "client/libs/core/public/document-bundles/project-status/1.2.0.zip",
+        "client/libs/core/public/document-bundles/research-note/1.0.0.zip",
+        "client/libs/core/public/document-bundles/rollout-rollback/1.1.0.zip",
+        "client/libs/core/public/document-bundles/rollout-rollback/1.2.0.zip",
+        "client/libs/core/public/document-bundles/task-content-agenda/1.0.0.zip",
+        "client/libs/core/public/document-bundles/team-wiki-home/1.0.0.zip",
+        "client/libs/core/public/document-bundles/time-blocking/1.0.0.zip",
+        "client/libs/core/public/document-bundles/time-blocking/1.2.0.zip",
+        "client/libs/core/public/document-bundles/time-blocking/1.3.0.zip",
+        "client/libs/core/public/document-bundles/using-folders-myoxus/1.0.0.zip",
+        "client/libs/core/public/document-bundles/using-folders-myoxus/1.1.0.zip",
+        "client/libs/core/public/document-bundles/using-folders-myoxus/1.3.0.zip",
+        "client/libs/core/public/document-bundles/using-folders-myoxus/1.4.0.zip",
+        "client/libs/core/public/document-bundles/using-tasks-myoxus/1.0.0.zip",
+        "client/libs/core/public/document-bundles/welcome-myoxus/1.0.0.zip",
+        "client/libs/core/public/document-bundles/welcome-myoxus/1.1.0.zip",
+        "client/libs/core/public/document-bundles/welcome-myoxus/1.2.0.zip",
+        "client/libs/core/public/document-bundles/welcome-myoxus/1.3.0.zip",
+        "client/libs/core/src/modules/template-doc/generated/document-bundles.json"
+      ],
+      "origin": "M0",
+      "licenseExpression": "AGPL-3.0-or-later",
+      "copyrightNotices": [
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ],
+      "noticePaths": [
+        "client/REUSE.toml",
+        "build/scripts/templates/generate-document-bundles.mjs"
+      ],
+      "rationale": "Native document template archives are byte-identical to committed Server template sources; the index selects existing versions rather than authoring content.",
+      "generatedFrom": {
+        "generator": "build/scripts/templates/generate-document-bundles.mjs",
+        "sources": [
+          "server/templates/features/base/manifest.yaml",
+          "server/templates/documents/agile-retro/1.1.0.zip",
+          "server/templates/documents/agile-retro/1.3.0.zip",
+          "server/templates/documents/agile-retro/1.4.0.zip",
+          "server/templates/documents/agile-standup/1.1.0.zip",
+          "server/templates/documents/agile-standup/1.3.0.zip",
+          "server/templates/documents/agile-standup/1.4.0.zip",
+          "server/templates/documents/architecture-decision/1.1.0.zip",
+          "server/templates/documents/architecture-decision/1.2.0.zip",
+          "server/templates/documents/block-agenda-item/1.0.0.zip",
+          "server/templates/documents/block-approval-record/1.0.0.zip",
+          "server/templates/documents/block-architecture-comparison/1.0.0.zip",
+          "server/templates/documents/block-architecture-comparison/1.0.1.zip",
+          "server/templates/documents/block-architecture-comparison/1.0.2.zip",
+          "server/templates/documents/block-assumption/1.0.0.zip",
+          "server/templates/documents/block-callback/1.0.0.zip",
+          "server/templates/documents/block-cause-analysis/1.0.0.zip",
+          "server/templates/documents/block-change-note/1.0.0.zip",
+          "server/templates/documents/block-change-request/1.0.0.zip",
+          "server/templates/documents/block-check-record/1.0.0.zip",
+          "server/templates/documents/block-checklist/1.0.0.zip",
+          "server/templates/documents/block-checklist/1.0.1.zip",
+          "server/templates/documents/block-confirmation/1.0.0.zip",
+          "server/templates/documents/block-confirmation/1.0.1.zip",
+          "server/templates/documents/block-conversation-note/1.0.0.zip",
+          "server/templates/documents/block-conversation-prep/1.0.0.zip",
+          "server/templates/documents/block-conversation-prep/1.0.1.zip",
+          "server/templates/documents/block-corrective-action/1.0.0.zip",
+          "server/templates/documents/block-daci/1.0.0.zip",
+          "server/templates/documents/block-daily-focus/1.0.0.zip",
+          "server/templates/documents/block-daily-focus/1.0.1.zip",
+          "server/templates/documents/block-decision-brief/1.0.0.zip",
+          "server/templates/documents/block-decision-brief/1.0.1.zip",
+          "server/templates/documents/block-decision/1.0.0.zip",
+          "server/templates/documents/block-decision/1.0.1.zip",
+          "server/templates/documents/block-decision/1.0.2.zip",
+          "server/templates/documents/block-definition/1.0.0.zip",
+          "server/templates/documents/block-definition/1.0.1.zip",
+          "server/templates/documents/block-dependency/1.0.0.zip",
+          "server/templates/documents/block-deviation/1.0.0.zip",
+          "server/templates/documents/block-event-log/1.0.0.zip",
+          "server/templates/documents/block-faq/1.0.0.zip",
+          "server/templates/documents/block-faq/1.0.1.zip",
+          "server/templates/documents/block-follow-up-question/1.0.0.zip",
+          "server/templates/documents/block-follow-up-question/1.0.1.zip",
+          "server/templates/documents/block-follow-up/1.0.0.zip",
+          "server/templates/documents/block-follow-up/1.0.1.zip",
+          "server/templates/documents/block-handover/1.0.0.zip",
+          "server/templates/documents/block-handover/1.0.1.zip",
+          "server/templates/documents/block-how-to/1.0.0.zip",
+          "server/templates/documents/block-how-to/1.0.1.zip",
+          "server/templates/documents/block-immediate-action/1.0.0.zip",
+          "server/templates/documents/block-immediate-action/1.0.1.zip",
+          "server/templates/documents/block-incident/1.0.0.zip",
+          "server/templates/documents/block-incident/1.0.1.zip",
+          "server/templates/documents/block-interface-contract/1.0.0.zip",
+          "server/templates/documents/block-madr-rationale/1.0.0.zip",
+          "server/templates/documents/block-madr-rationale/1.0.1.zip",
+          "server/templates/documents/block-meeting-close/1.0.0.zip",
+          "server/templates/documents/block-milestone/1.0.0.zip",
+          "server/templates/documents/block-minutes-item/1.0.0.zip",
+          "server/templates/documents/block-next-meeting/1.0.0.zip",
+          "server/templates/documents/block-note-close/1.0.0.zip",
+          "server/templates/documents/block-note-close/1.0.1.zip",
+          "server/templates/documents/block-open-question/1.0.0.zip",
+          "server/templates/documents/block-open-question/1.0.1.zip",
+          "server/templates/documents/block-options-comparison/1.0.0.zip",
+          "server/templates/documents/block-peer-check/1.0.0.zip",
+          "server/templates/documents/block-phone-note/1.0.0.zip",
+          "server/templates/documents/block-post-incident-review/1.0.0.zip",
+          "server/templates/documents/block-post-incident-review/1.0.1.zip",
+          "server/templates/documents/block-process-step/1.0.0.zip",
+          "server/templates/documents/block-project-brief/1.0.0.zip",
+          "server/templates/documents/block-raci-customer-service/1.0.0.zip",
+          "server/templates/documents/block-raci/1.0.0.zip",
+          "server/templates/documents/block-recovery-check/1.0.0.zip",
+          "server/templates/documents/block-recovery-check/1.0.1.zip",
+          "server/templates/documents/block-retro-prompt/1.0.0.zip",
+          "server/templates/documents/block-risk-matrix/1.0.0.zip",
+          "server/templates/documents/block-risk/1.0.0.zip",
+          "server/templates/documents/block-rollback-steps/1.0.0.zip",
+          "server/templates/documents/block-rollback-steps/1.0.1.zip",
+          "server/templates/documents/block-rollout-steps/1.0.0.zip",
+          "server/templates/documents/block-rollout-steps/1.0.1.zip",
+          "server/templates/documents/block-selection-must/1.0.0.zip",
+          "server/templates/documents/block-selection-pairwise/1.0.0.zip",
+          "server/templates/documents/block-selection-weighted/1.0.0.zip",
+          "server/templates/documents/block-short-message/1.0.0.zip",
+          "server/templates/documents/block-short-message/1.0.1.zip",
+          "server/templates/documents/block-source-note/1.0.0.zip",
+          "server/templates/documents/block-standup/1.0.0.zip",
+          "server/templates/documents/block-status-update/1.0.0.zip",
+          "server/templates/documents/block-technical-acceptance/1.0.0.zip",
+          "server/templates/documents/block-technical-acceptance/1.0.1.zip",
+          "server/templates/documents/block-technical-profile/1.0.0.zip",
+          "server/templates/documents/block-weekly-review/1.0.0.zip",
+          "server/templates/documents/block-work-package/1.0.0.zip",
+          "server/templates/documents/block-work-package/1.0.1.zip",
+          "server/templates/documents/business-daily/1.0.0.zip",
+          "server/templates/documents/business-daily/1.2.0.zip",
+          "server/templates/documents/business-daily/1.3.0.zip",
+          "server/templates/documents/databases-guide-myoxus/1.0.0.zip",
+          "server/templates/documents/databases-guide-myoxus/1.1.0.zip",
+          "server/templates/documents/databases-guide-myoxus/1.3.0.zip",
+          "server/templates/documents/databases-guide-myoxus/1.4.0.zip",
+          "server/templates/documents/decision-record/1.0.0.zip",
+          "server/templates/documents/editor-advanced-myoxus/1.0.0.zip",
+          "server/templates/documents/eisenhower/1.0.0.zip",
+          "server/templates/documents/eisenhower/1.2.0.zip",
+          "server/templates/documents/eisenhower/1.3.0.zip",
+          "server/templates/documents/getting-started-myoxus/1.0.0.zip",
+          "server/templates/documents/getting-started-myoxus/1.1.0.zip",
+          "server/templates/documents/getting-started-myoxus/1.2.0.zip",
+          "server/templates/documents/getting-started-myoxus/1.3.0.zip",
+          "server/templates/documents/gtd-weekly-review/1.0.0.zip",
+          "server/templates/documents/gtd-weekly-review/1.2.0.zip",
+          "server/templates/documents/gtd-weekly-review/1.3.0.zip",
+          "server/templates/documents/handover/1.1.0.zip",
+          "server/templates/documents/handover/1.2.0.zip",
+          "server/templates/documents/hybrid-day-sprint/1.0.0.zip",
+          "server/templates/documents/importing-content-myoxus/1.0.0.zip",
+          "server/templates/documents/incident-report/1.1.0.zip",
+          "server/templates/documents/incident-report/1.2.0.zip",
+          "server/templates/documents/knowledge-home/1.0.0.zip",
+          "server/templates/documents/meeting-agenda/1.0.1.zip",
+          "server/templates/documents/meeting-agenda/1.1.0.zip",
+          "server/templates/documents/meeting-agenda/1.3.0.zip",
+          "server/templates/documents/meeting-agenda/1.4.0.zip",
+          "server/templates/documents/meeting-focus/1.1.1.zip",
+          "server/templates/documents/meeting-focus/1.2.0.zip",
+          "server/templates/documents/meeting-register/1.0.1.zip",
+          "server/templates/documents/meeting-register/1.1.0.zip",
+          "server/templates/documents/meeting-templates-myoxus/1.0.0.zip",
+          "server/templates/documents/meeting-templates-myoxus/1.1.0.zip",
+          "server/templates/documents/meeting-templates-myoxus/1.3.0.zip",
+          "server/templates/documents/meeting-templates-myoxus/1.4.0.zip",
+          "server/templates/documents/one-on-one/1.1.0.zip",
+          "server/templates/documents/one-on-one/1.2.0.zip",
+          "server/templates/documents/personal-journal/1.0.0.zip",
+          "server/templates/documents/personal-journal/1.2.0.zip",
+          "server/templates/documents/personal-journal/1.3.0.zip",
+          "server/templates/documents/procedure/1.0.0.zip",
+          "server/templates/documents/project-brief/1.0.0.zip",
+          "server/templates/documents/project-status/1.1.0.zip",
+          "server/templates/documents/project-status/1.2.0.zip",
+          "server/templates/documents/research-note/1.0.0.zip",
+          "server/templates/documents/rollout-rollback/1.1.0.zip",
+          "server/templates/documents/rollout-rollback/1.2.0.zip",
+          "server/templates/documents/task-content-agenda/1.0.0.zip",
+          "server/templates/documents/team-wiki-home/1.0.0.zip",
+          "server/templates/documents/time-blocking/1.0.0.zip",
+          "server/templates/documents/time-blocking/1.2.0.zip",
+          "server/templates/documents/time-blocking/1.3.0.zip",
+          "server/templates/documents/using-folders-myoxus/1.0.0.zip",
+          "server/templates/documents/using-folders-myoxus/1.1.0.zip",
+          "server/templates/documents/using-folders-myoxus/1.3.0.zip",
+          "server/templates/documents/using-folders-myoxus/1.4.0.zip",
+          "server/templates/documents/using-tasks-myoxus/1.0.0.zip",
+          "server/templates/documents/welcome-myoxus/1.0.0.zip",
+          "server/templates/documents/welcome-myoxus/1.1.0.zip",
+          "server/templates/documents/welcome-myoxus/1.2.0.zip",
+          "server/templates/documents/welcome-myoxus/1.3.0.zip"
+        ],
+        "deterministic": true
+      }
+    },
+    {
+      "id": "client-approved-artwork",
+      "paths": [
+        "client/branding/artwork/access-denied.svg",
+        "client/branding/artwork/access-denied.webp",
+        "client/branding/artwork/assistant-all-set.svg",
+        "client/branding/artwork/assistant-all-set.webp",
+        "client/branding/artwork/assistant-automatic.svg",
+        "client/branding/artwork/assistant-automatic.webp",
+        "client/branding/artwork/assistant-capture-decision.svg",
+        "client/branding/artwork/assistant-capture-decision.webp",
+        "client/branding/artwork/assistant-choose-your-path.svg",
+        "client/branding/artwork/assistant-choose-your-path.webp",
+        "client/branding/artwork/assistant-first-task.svg",
+        "client/branding/artwork/assistant-first-task.webp",
+        "client/branding/artwork/assistant-focus.svg",
+        "client/branding/artwork/assistant-focus.webp",
+        "client/branding/artwork/assistant-fresh-start.svg",
+        "client/branding/artwork/assistant-fresh-start.webp",
+        "client/branding/artwork/assistant-guided.svg",
+        "client/branding/artwork/assistant-guided.webp",
+        "client/branding/artwork/assistant-hello-blank.svg",
+        "client/branding/artwork/assistant-hello-blank.webp",
+        "client/branding/artwork/assistant-hello.svg",
+        "client/branding/artwork/assistant-hello.webp",
+        "client/branding/artwork/assistant-issue-tracker.svg",
+        "client/branding/artwork/assistant-issue-tracker.webp",
+        "client/branding/artwork/assistant-knowledge-garden.svg",
+        "client/branding/artwork/assistant-knowledge-garden.webp",
+        "client/branding/artwork/assistant-manual.svg",
+        "client/branding/artwork/assistant-manual.webp",
+        "client/branding/artwork/assistant-organize.svg",
+        "client/branding/artwork/assistant-organize.webp",
+        "client/branding/artwork/assistant-prepare-meeting.svg",
+        "client/branding/artwork/assistant-prepare-meeting.webp",
+        "client/branding/artwork/assistant-resume.svg",
+        "client/branding/artwork/assistant-resume.webp",
+        "client/branding/artwork/assistant-review.svg",
+        "client/branding/artwork/assistant-review.webp",
+        "client/branding/artwork/assistant-roadmap.svg",
+        "client/branding/artwork/assistant-roadmap.webp",
+        "client/branding/artwork/assistant-simple-project.svg",
+        "client/branding/artwork/assistant-simple-project.webp",
+        "client/branding/artwork/assistant-team-wiki.svg",
+        "client/branding/artwork/assistant-team-wiki.webp",
+        "client/branding/artwork/assistant-welcome-to-my-hedge-blank.svg",
+        "client/branding/artwork/assistant-welcome-to-my-hedge-blank.webp",
+        "client/branding/artwork/assistant-welcome-to-my-hedge.svg",
+        "client/branding/artwork/assistant-welcome-to-my-hedge.webp",
+        "client/branding/artwork/auth-background.svg",
+        "client/branding/artwork/auth-background.webp",
+        "client/branding/artwork/collection-detail.svg",
+        "client/branding/artwork/collection-detail.webp",
+        "client/branding/artwork/collections.svg",
+        "client/branding/artwork/collections.webp",
+        "client/branding/artwork/database.svg",
+        "client/branding/artwork/database.webp",
+        "client/branding/artwork/docs-develop.svg",
+        "client/branding/artwork/docs-develop.webp",
+        "client/branding/artwork/docs-handbook.svg",
+        "client/branding/artwork/docs-handbook.webp",
+        "client/branding/artwork/docs-hero.svg",
+        "client/branding/artwork/docs-hero.webp",
+        "client/branding/artwork/docs-integrate.svg",
+        "client/branding/artwork/docs-integrate.webp",
+        "client/branding/artwork/docs-operate.svg",
+        "client/branding/artwork/docs-operate.webp",
+        "client/branding/artwork/documents.svg",
+        "client/branding/artwork/documents.webp",
+        "client/branding/artwork/guide-collaborate.svg",
+        "client/branding/artwork/guide-collaborate.webp",
+        "client/branding/artwork/guide-data.svg",
+        "client/branding/artwork/guide-data.webp",
+        "client/branding/artwork/guide-exchange.svg",
+        "client/branding/artwork/guide-exchange.webp",
+        "client/branding/artwork/guide-help.svg",
+        "client/branding/artwork/guide-help.webp",
+        "client/branding/artwork/guide-meeting.svg",
+        "client/branding/artwork/guide-meeting.webp",
+        "client/branding/artwork/guide-organize.svg",
+        "client/branding/artwork/guide-organize.webp",
+        "client/branding/artwork/guide-recovery.svg",
+        "client/branding/artwork/guide-recovery.webp",
+        "client/branding/artwork/guide-start.svg",
+        "client/branding/artwork/guide-start.webp",
+        "client/branding/artwork/guide-write.svg",
+        "client/branding/artwork/guide-write.webp",
+        "client/branding/artwork/history.svg",
+        "client/branding/artwork/history.webp",
+        "client/branding/artwork/installer-dmg.svg",
+        "client/branding/artwork/installer-dmg.webp",
+        "client/branding/artwork/installer-nsis.svg",
+        "client/branding/artwork/installer-nsis.webp",
+        "client/branding/artwork/invitation-error.svg",
+        "client/branding/artwork/invitation-error.webp",
+        "client/branding/artwork/invitation-success.svg",
+        "client/branding/artwork/invitation-success.webp",
+        "client/branding/artwork/journal.svg",
+        "client/branding/artwork/journal.webp",
+        "client/branding/artwork/loading.svg",
+        "client/branding/artwork/loading.webp",
+        "client/branding/artwork/mascot.svg",
+        "client/branding/artwork/mascot.webp",
+        "client/branding/artwork/meeting.svg",
+        "client/branding/artwork/meeting.webp",
+        "client/branding/artwork/not-found.svg",
+        "client/branding/artwork/not-found.webp",
+        "client/branding/artwork/presentation.svg",
+        "client/branding/artwork/presentation.webp",
+        "client/branding/artwork/search.svg",
+        "client/branding/artwork/search.webp",
+        "client/branding/artwork/server-error.svg",
+        "client/branding/artwork/server-error.webp",
+        "client/branding/artwork/table.svg",
+        "client/branding/artwork/table.webp",
+        "client/branding/artwork/tags.svg",
+        "client/branding/artwork/tags.webp",
+        "client/branding/artwork/tooltip-bookmark.svg",
+        "client/branding/artwork/tooltip-bookmark.webp",
+        "client/branding/artwork/tooltip-design.svg",
+        "client/branding/artwork/tooltip-design.webp",
+        "client/branding/artwork/tooltip-iframe.svg",
+        "client/branding/artwork/tooltip-iframe.webp",
+        "client/branding/artwork/tooltip-image.svg",
+        "client/branding/artwork/tooltip-image.webp",
+        "client/branding/artwork/tooltip-linked-document.svg",
+        "client/branding/artwork/tooltip-linked-document.webp",
+        "client/branding/artwork/tooltip-new-document.svg",
+        "client/branding/artwork/tooltip-new-document.webp",
+        "client/branding/artwork/tooltip-repository.svg",
+        "client/branding/artwork/tooltip-repository.webp",
+        "client/branding/artwork/tooltip-video.svg",
+        "client/branding/artwork/tooltip-video.webp",
+        "client/branding/artwork/tooltip-walkthrough.svg",
+        "client/branding/artwork/tooltip-walkthrough.webp",
+        "client/branding/artwork/welcome.svg",
+        "client/branding/artwork/welcome.webp"
+      ],
+      "origin": "M0",
+      "licenseExpression": "AGPL-3.0-or-later",
+      "copyrightNotices": [
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ],
+      "noticePaths": [
+        "client/REUSE.toml",
+        "assets/branding/artwork/manifest.json",
+        "server/static/fonts/licenses/lobster-OFL.txt"
+      ],
+      "rationale": "Approved Myoxus artwork and traced derivatives match the original/materialization hashes; the manifest preserves the image-generation route and the two Lobster lettering inputs. The legacy Myoxus copyright alias is normalized in REUSE without changing approved artwork bytes."
+    },
+    {
+      "id": "client-electron-retained",
+      "paths": [
+        "client/apps/electron-renderer/src/app/effects/index.ts",
+        "client/apps/electron-renderer/src/app/global.css",
+        "client/apps/electron/src/helper/logger.ts",
+        "client/apps/electron/src/helper/main-rpc.ts",
+        "client/apps/electron/src/helper/provide.ts",
+        "client/apps/electron/src/helper/workspace/subjects.ts",
+        "client/apps/electron/src/main/constants.ts",
+        "client/apps/electron/src/main/find-in-page/index.ts",
+        "client/apps/electron/src/main/power/index.ts",
+        "client/apps/electron/src/main/recording/allow-list.ts",
+        "client/apps/electron/src/main/shared-storage/index.ts",
+        "client/apps/electron/src/main/ui/index.ts",
+        "client/apps/electron/src/main/windows-manager/utils.ts",
+        "client/apps/electron/src/preload/bootstrap.ts",
+        "client/apps/electron/src/preload/index.ts",
+        "client/apps/electron-renderer/package.json",
+        "client/apps/electron-renderer/src/app/app.tsx",
+        "client/apps/electron-renderer/src/app/effects/events.ts",
+        "client/apps/electron-renderer/src/app/effects/modules.ts",
+        "client/apps/electron-renderer/src/app/effects/power.ts",
+        "client/apps/electron-renderer/src/app/effects/recording.ts",
+        "client/apps/electron-renderer/src/app/effects/store-manager.ts",
+        "client/apps/electron-renderer/src/app/effects/utils.ts",
+        "client/apps/electron-renderer/src/app/index.tsx",
+        "client/apps/electron-renderer/src/app/language-sync.ts",
+        "client/apps/electron-renderer/src/app/setup.ts",
+        "client/apps/electron-renderer/src/app/theme-sync.ts",
+        "client/apps/electron-renderer/src/background-worker/index.ts",
+        "client/apps/electron-renderer/src/global.d.ts",
+        "client/apps/electron-renderer/src/popup/app.tsx",
+        "client/apps/electron-renderer/src/popup/index.tsx",
+        "client/apps/electron-renderer/src/popup/recording/index.tsx",
+        "client/apps/electron-renderer/src/popup/setup.ts",
+        "client/apps/electron-renderer/src/shell/app.tsx",
+        "client/apps/electron-renderer/src/shell/index.tsx",
+        "client/apps/electron-renderer/src/shell/setup.ts",
+        "client/apps/electron-renderer/tsconfig.json",
+        "client/apps/electron/.gitignore",
+        "client/apps/electron/package.json",
+        "client/apps/electron/scripts/build-layers.ts",
+        "client/apps/electron/scripts/common.ts",
+        "client/apps/electron/scripts/dev.ts",
+        "client/apps/electron/scripts/lib/linux-native-packager.ts",
+        "client/apps/electron/scripts/lib/package-postprocess.ts",
+        "client/apps/electron/src/helper/dialog/dialog.ts",
+        "client/apps/electron/src/helper/dialog/index.ts",
+        "client/apps/electron/src/helper/exposed.ts",
+        "client/apps/electron/src/helper/index.ts",
+        "client/apps/electron/src/helper/storage/handlers.ts",
+        "client/apps/electron/src/helper/type.ts",
+        "client/apps/electron/src/helper/workspace/handlers.ts",
+        "client/apps/electron/src/helper/workspace/index.ts",
+        "client/apps/electron/src/helper/workspace/meta.ts",
+        "client/apps/electron/src/main/application-menu/create.ts",
+        "client/apps/electron/src/main/application-menu/index.ts",
+        "client/apps/electron/src/main/application-menu/subject.ts",
+        "client/apps/electron/src/main/cleanup.ts",
+        "client/apps/electron/src/main/clipboard/index.ts",
+        "client/apps/electron/src/main/config.ts",
+        "client/apps/electron/src/main/deep-link.ts",
+        "client/apps/electron/src/main/events.ts",
+        "client/apps/electron/src/main/exposed.ts",
+        "client/apps/electron/src/main/find-in-page/handlers.ts",
+        "client/apps/electron/src/main/handlers.ts",
+        "client/apps/electron/src/main/helper-process.ts",
+        "client/apps/electron/src/main/index.ts",
+        "client/apps/electron/src/main/logger.ts",
+        "client/apps/electron/src/main/protocol.ts",
+        "client/apps/electron/src/main/recording/feature.ts",
+        "client/apps/electron/src/main/recording/index.ts",
+        "client/apps/electron/src/main/recording/state-machine.ts",
+        "client/apps/electron/src/main/recording/types.ts",
+        "client/apps/electron/src/main/security-restrictions.ts",
+        "client/apps/electron/src/main/security/open-external.ts",
+        "client/apps/electron/src/main/security/redirect-proxy.ts",
+        "client/apps/electron/src/main/security/url-safety.ts",
+        "client/apps/electron/src/main/shared-state-schema.ts",
+        "client/apps/electron/src/main/shared-storage/events.ts",
+        "client/apps/electron/src/main/shared-storage/handlers.ts",
+        "client/apps/electron/src/main/shared-storage/json-file.ts",
+        "client/apps/electron/src/main/shared-storage/storage.ts",
+        "client/apps/electron/src/main/tray/icons.ts",
+        "client/apps/electron/src/main/tray/index.ts",
+        "client/apps/electron/src/main/ui/challenge.ts",
+        "client/apps/electron/src/main/ui/events.ts",
+        "client/apps/electron/src/main/ui/handlers.ts",
+        "client/apps/electron/src/main/ui/subject.ts",
+        "client/apps/electron/src/main/updater/electron-updater.ts",
+        "client/apps/electron/src/main/updater/event.ts",
+        "client/apps/electron/src/main/updater/index.ts",
+        "client/apps/electron/src/main/utils.ts",
+        "client/apps/electron/src/main/web-preferences.ts",
+        "client/apps/electron/src/main/windows-manager/authentication.ts",
+        "client/apps/electron/src/main/windows-manager/context-menu.ts",
+        "client/apps/electron/src/main/windows-manager/index.ts",
+        "client/apps/electron/src/main/windows-manager/launcher.ts",
+        "client/apps/electron/src/main/windows-manager/main-window.ts",
+        "client/apps/electron/src/main/windows-manager/onboarding.ts",
+        "client/apps/electron/src/main/windows-manager/popup.ts",
+        "client/apps/electron/src/main/windows-manager/tab-views.ts",
+        "client/apps/electron/src/main/worker/handlers.ts",
+        "client/apps/electron/src/main/worker/pool.ts",
+        "client/apps/electron/src/preload/electron-api.ts",
+        "client/apps/electron/src/preload/shared-storage.ts",
+        "client/apps/electron/src/preload/worker.ts",
+        "client/apps/electron/src/shared/type.ts",
+        "client/apps/electron/src/shared/utils.ts",
+        "client/apps/electron/test/workspace/handlers.spec.ts",
+        "client/apps/electron/tsconfig.json",
+        "client/apps/electron/tsconfig.node.json",
+        "client/apps/electron/vitest.config.mts",
+        "client/apps/electron/scripts/package.json"
+      ],
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ],
+      "upstreamCutoff": {
+        "revision": "e31cca33540af2737dc9e520b70acac170c0709e",
+        "date": "2026-03-04"
+      },
+      "noticePaths": [
+        "client/REUSE.toml",
+        "client/provenance/LICENSE-UPSTREAM-MIT.txt"
+      ],
+      "rationale": "Retained desktop source has per-file MIT-only move or modified-fork declarations; new independent code is separate. Original file identities include the renamed storage handlers and retained packaging/configuration material.",
+      "upstreamFiles": [
+        {
+          "path": "client/apps/electron-renderer/package.json",
+          "originalPath": "packages/frontend/apps/electron-renderer/package.json",
+          "originalSha256": "eb8b797cc0b195569fb7cc6595b06b5a53bae999bb75c3ee07155259e964730b"
+        },
+        {
+          "path": "client/apps/electron-renderer/src/app/app.tsx",
+          "originalPath": "packages/frontend/apps/electron-renderer/src/app/app.tsx",
+          "originalSha256": "c0b348f75bb550a3f6018f2667a135896992ba52794c399d39e203f2575157dd"
+        },
+        {
+          "path": "client/apps/electron-renderer/src/app/effects/events.ts",
+          "originalPath": "packages/frontend/apps/electron-renderer/src/app/effects/events.ts",
+          "originalSha256": "740ac5d44e56f08697fd0f9dde2c9c5811fdd8ab856aa2b97137bf2df9adc097"
+        },
+        {
+          "path": "client/apps/electron-renderer/src/app/effects/index.ts",
+          "originalPath": "packages/frontend/apps/electron-renderer/src/app/effects/index.ts",
+          "originalSha256": "8133d601d2a4b4dd86fdbfcb22fff2795996cf5d6fb9471ee7bdd6f277e3c1c5"
+        },
+        {
+          "path": "client/apps/electron-renderer/src/app/effects/modules.ts",
+          "originalPath": "packages/frontend/apps/electron-renderer/src/app/effects/modules.ts",
+          "originalSha256": "3a8506ec867e23bd04d0b5de98c30418b28755b8028c1a75226c839d45c944db"
+        },
+        {
+          "path": "client/apps/electron-renderer/src/app/effects/power.ts",
+          "originalPath": "packages/frontend/apps/electron-renderer/src/app/effects/power.ts",
+          "originalSha256": "72f86775924c12a85e33435698e606e619041aabb7d8a5aca4a3d1c74616019f"
+        },
+        {
+          "path": "client/apps/electron-renderer/src/app/effects/recording.ts",
+          "originalPath": "packages/frontend/apps/electron-renderer/src/app/effects/recording.ts",
+          "originalSha256": "65719a4dc0095afa5037fc57d8d1a16c8948a35e0d27bbabe9ff5176b7f046c6"
+        },
+        {
+          "path": "client/apps/electron-renderer/src/app/effects/store-manager.ts",
+          "originalPath": "packages/frontend/apps/electron-renderer/src/app/effects/store-manager.ts",
+          "originalSha256": "aeb5da729d61f884e738b24b0ad591eada6f15035456d3c15562ad40da030ba7"
+        },
+        {
+          "path": "client/apps/electron-renderer/src/app/effects/utils.ts",
+          "originalPath": "packages/frontend/apps/electron-renderer/src/app/effects/utils.ts",
+          "originalSha256": "643ebcbb298cb18bc3aaf74971ce4c8d2cd0f0c71e1f7e01ae61697e1cca06f7"
+        },
+        {
+          "path": "client/apps/electron-renderer/src/app/global.css",
+          "originalPath": "packages/frontend/apps/electron-renderer/src/app/global.css",
+          "originalSha256": "d7477736f927d135e85ccd63aa7d0ba483fe168dd9b6234f3fc0b87f2bce45fe"
+        },
+        {
+          "path": "client/apps/electron-renderer/src/app/index.tsx",
+          "originalPath": "packages/frontend/apps/electron-renderer/src/app/index.tsx",
+          "originalSha256": "ca84f194209397b78fc5601e71d98c23c0b570e3392ae127ac0af5ed7148b425"
+        },
+        {
+          "path": "client/apps/electron-renderer/src/app/language-sync.ts",
+          "originalPath": "packages/frontend/apps/electron-renderer/src/app/language-sync.ts",
+          "originalSha256": "5b3ae5fe193eae7f9f14f9b5031d1d1bbb5d6d2d5d57bfed5b92ec3332b5dd5f"
+        },
+        {
+          "path": "client/apps/electron-renderer/src/app/setup.ts",
+          "originalPath": "packages/frontend/apps/electron-renderer/src/app/setup.ts",
+          "originalSha256": "291f9a5d4ad61a1176bcbbc3cc3fa2c821cc82612ea737926bb937a88a958059"
+        },
+        {
+          "path": "client/apps/electron-renderer/src/app/theme-sync.ts",
+          "originalPath": "packages/frontend/apps/electron-renderer/src/app/theme-sync.ts",
+          "originalSha256": "22b71f64ceebc9d9c0a7ab610e3d4f6782a4ac919f986e1a2104eaad1a0fc497"
+        },
+        {
+          "path": "client/apps/electron-renderer/src/background-worker/index.ts",
+          "originalPath": "packages/frontend/apps/electron-renderer/src/background-worker/index.ts",
+          "originalSha256": "4f39aaaacca342ab22a8840e5c20749753572a09341fdab774694fe21c3c05fb"
+        },
+        {
+          "path": "client/apps/electron-renderer/src/global.d.ts",
+          "originalPath": "packages/frontend/apps/electron-renderer/src/global.d.ts",
+          "originalSha256": "122854a34f94c4b2d8bd96c0f72a8d9e0569b532051778a616804a56c02fef20"
+        },
+        {
+          "path": "client/apps/electron-renderer/src/popup/app.tsx",
+          "originalPath": "packages/frontend/apps/electron-renderer/src/popup/app.tsx",
+          "originalSha256": "ce42201da73a61dd4c1db09cc98490b0d3251ddd1885a90fa998975a50635571"
+        },
+        {
+          "path": "client/apps/electron-renderer/src/popup/index.tsx",
+          "originalPath": "packages/frontend/apps/electron-renderer/src/popup/index.tsx",
+          "originalSha256": "6c5c9a61c8b9dac7bb9c91ce811b982f4e617bcaaf0be125fba703d7f007b8e8"
+        },
+        {
+          "path": "client/apps/electron-renderer/src/popup/recording/index.tsx",
+          "originalPath": "packages/frontend/apps/electron-renderer/src/popup/recording/index.tsx",
+          "originalSha256": "c9ced8e60fef9d5ba11576f0643404950df26e0e55c656f924eee826b001cb7f"
+        },
+        {
+          "path": "client/apps/electron-renderer/src/popup/setup.ts",
+          "originalPath": "packages/frontend/apps/electron-renderer/src/popup/setup.ts",
+          "originalSha256": "3a43178431f60712c28c512534b01be231398541066ccc35e023e2e8c53823ff"
+        },
+        {
+          "path": "client/apps/electron-renderer/src/shell/app.tsx",
+          "originalPath": "packages/frontend/apps/electron-renderer/src/shell/app.tsx",
+          "originalSha256": "181ea92e0ea7628782edd6017c27a9889ec5ad84b928e76511cb4ffb85fa2b39"
+        },
+        {
+          "path": "client/apps/electron-renderer/src/shell/index.tsx",
+          "originalPath": "packages/frontend/apps/electron-renderer/src/shell/index.tsx",
+          "originalSha256": "f745ee16838af266b2a7fadb7ff4b06e70ba78a7d5367bf73d3ef33f8bd878bf"
+        },
+        {
+          "path": "client/apps/electron-renderer/src/shell/setup.ts",
+          "originalPath": "packages/frontend/apps/electron-renderer/src/shell/setup.ts",
+          "originalSha256": "f95c279f41d8157d27ac579ffd5a70dd8e367d0bf89dfb237caa2ea3d8fe0753"
+        },
+        {
+          "path": "client/apps/electron-renderer/tsconfig.json",
+          "originalPath": "packages/frontend/apps/electron-renderer/tsconfig.json",
+          "originalSha256": "281c81549721601e98f8c1ce21f282875da5e5261aecb2cfe357ee83bfab65b5"
+        },
+        {
+          "path": "client/apps/electron/.gitignore",
+          "originalPath": "packages/frontend/apps/electron/.gitignore",
+          "originalSha256": "d7c19199c8129cfa9daba19be1ff45bc61e95b102a16f61dbc3096a3034dc715"
+        },
+        {
+          "path": "client/apps/electron/package.json",
+          "originalPath": "packages/frontend/apps/electron/package.json",
+          "originalSha256": "19ea5b6eedec3edd8dfc7b2e275edc04cb90651c6be6a433814e297b60e1f945"
+        },
+        {
+          "path": "client/apps/electron/scripts/build-layers.ts",
+          "originalPath": "packages/frontend/apps/electron/scripts/build-layers.ts",
+          "originalSha256": "1ff807adb48e9bc3c8d8a6e3ff3d82720dd99b17601c970d2892c0f87ce2eb64"
+        },
+        {
+          "path": "client/apps/electron/scripts/common.ts",
+          "originalPath": "packages/frontend/apps/electron/scripts/common.ts",
+          "originalSha256": "c5252842d451bced51e57469c344b2b63887d1355bb8eb57310eeb6c5e4b99af"
+        },
+        {
+          "path": "client/apps/electron/scripts/dev.ts",
+          "originalPath": "packages/frontend/apps/electron/scripts/dev.ts",
+          "originalSha256": "bc49e5b405cd32741a7c51f05397f89ea0ec3e4d81a0d9fdd2faae127af55323"
+        },
+        {
+          "path": "client/apps/electron/scripts/lib/linux-native-packager.ts",
+          "originalPath": "packages/frontend/apps/electron/forge.config.mjs",
+          "originalSha256": "58f4e7063be5b5a3a0cee6fca4643ffcd328ea8819b350c3d14f5c9b21021a43"
+        },
+        {
+          "path": "client/apps/electron/scripts/lib/package-postprocess.ts",
+          "originalPath": "packages/frontend/apps/electron/forge.config.mjs",
+          "originalSha256": "58f4e7063be5b5a3a0cee6fca4643ffcd328ea8819b350c3d14f5c9b21021a43"
+        },
+        {
+          "path": "client/apps/electron/scripts/package.json",
+          "originalPath": "packages/frontend/apps/electron/scripts/package.json",
+          "originalSha256": "3ca9d4afd21425087cf31893b8f9f63c81b0b8408db5e343ca76e5f8aa26ab9a"
+        },
+        {
+          "path": "client/apps/electron/src/helper/dialog/dialog.ts",
+          "originalPath": "packages/frontend/apps/electron/src/helper/dialog/dialog.ts",
+          "originalSha256": "2a6ab6c1c16d055fd2418752d863d6f977bbaa84f1dbe9dc15b793121ee065e0"
+        },
+        {
+          "path": "client/apps/electron/src/helper/dialog/index.ts",
+          "originalPath": "packages/frontend/apps/electron/src/helper/dialog/index.ts",
+          "originalSha256": "9055025f33595fe41f19b57d8b0fca36a6e1802729abe55d370645e0633d7311"
+        },
+        {
+          "path": "client/apps/electron/src/helper/exposed.ts",
+          "originalPath": "packages/frontend/apps/electron/src/helper/exposed.ts",
+          "originalSha256": "e1b2f86197a6a543d561d73845562df21dee2fc47c87438ddfc7acf4b6709657"
+        },
+        {
+          "path": "client/apps/electron/src/helper/index.ts",
+          "originalPath": "packages/frontend/apps/electron/src/helper/index.ts",
+          "originalSha256": "4161b2b81fdef7b611bf4f3c65f15aa7715a994036a4d203e32c57f57cc3b0b6"
+        },
+        {
+          "path": "client/apps/electron/src/helper/logger.ts",
+          "originalPath": "packages/frontend/apps/electron/src/helper/logger.ts",
+          "originalSha256": "4e689833af65ae367a0f294ac86496a617331ee8b3bdd3501dad97247336758c"
+        },
+        {
+          "path": "client/apps/electron/src/helper/main-rpc.ts",
+          "originalPath": "packages/frontend/apps/electron/src/helper/main-rpc.ts",
+          "originalSha256": "84d71e88b3d5a47799fc713032d66ef54f32a14f0d6d498a74c3994d3ff481e3"
+        },
+        {
+          "path": "client/apps/electron/src/helper/provide.ts",
+          "originalPath": "packages/frontend/apps/electron/src/helper/provide.ts",
+          "originalSha256": "c95e0a0f40e2256aee2fe78c1dbb8bfd9ca09af1699418bd1e0667f038aae3e8"
+        },
+        {
+          "path": "client/apps/electron/src/helper/storage/handlers.ts",
+          "originalPath": "packages/frontend/apps/electron/src/helper/nbstore/handlers.ts",
+          "originalSha256": "da11c3dab814bb2414f3acd26d4180d0df751a97c4a1276d4a1bce715fdb1bf9"
+        },
+        {
+          "path": "client/apps/electron/src/helper/type.ts",
+          "originalPath": "packages/frontend/apps/electron/src/helper/type.ts",
+          "originalSha256": "071db178ca13f43484457af192335cae9df586b9cb892e4e9aab9e176283cadd"
+        },
+        {
+          "path": "client/apps/electron/src/helper/workspace/handlers.ts",
+          "originalPath": "packages/frontend/apps/electron/src/helper/workspace/handlers.ts",
+          "originalSha256": "69e89c8b9561e3a6bc55c588407dcca9995ef2318d8869084511940ee9e1cccc"
+        },
+        {
+          "path": "client/apps/electron/src/helper/workspace/index.ts",
+          "originalPath": "packages/frontend/apps/electron/src/helper/workspace/index.ts",
+          "originalSha256": "1fac9576e348f7daf930e491b94b2f73df921aadbccd1626e5b7fadb345e0a91"
+        },
+        {
+          "path": "client/apps/electron/src/helper/workspace/meta.ts",
+          "originalPath": "packages/frontend/apps/electron/src/helper/workspace/meta.ts",
+          "originalSha256": "ab4c418520699d9e068114d2f96fa6b408fcc6b895273aa6d854fcd02c7b6697"
+        },
+        {
+          "path": "client/apps/electron/src/helper/workspace/subjects.ts",
+          "originalPath": "packages/frontend/apps/electron/src/helper/workspace/subjects.ts",
+          "originalSha256": "9ddad62cdb71a3fbf57049a0f1f480eb68d9e20b2d06781ab964790611aa9106"
+        },
+        {
+          "path": "client/apps/electron/src/main/application-menu/create.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/application-menu/create.ts",
+          "originalSha256": "f45e870d7d8a6bb185ed1f6079c0395fbd50e43623dbf540299d2e646009a5d9"
+        },
+        {
+          "path": "client/apps/electron/src/main/application-menu/index.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/application-menu/index.ts",
+          "originalSha256": "05fa028479ba77b9b304c919df120ef1f9e91832f1a9f840c388dbac0a708053"
+        },
+        {
+          "path": "client/apps/electron/src/main/application-menu/subject.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/application-menu/subject.ts",
+          "originalSha256": "b9b78284285ebdd53777323b2b1aed8289e27aa02a6dedf1e78a004db8fe0622"
+        },
+        {
+          "path": "client/apps/electron/src/main/cleanup.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/cleanup.ts",
+          "originalSha256": "babc139ee673282e05a31a3b6a2c0b0837614d68664e93fe93e0dbbe94bd55f0"
+        },
+        {
+          "path": "client/apps/electron/src/main/clipboard/index.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/clipboard/index.ts",
+          "originalSha256": "19995ca055500ad1f848f2fd630c3d2933276e358b374428e6ccf579b0bdf228"
+        },
+        {
+          "path": "client/apps/electron/src/main/config.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/config.ts",
+          "originalSha256": "73a7748d68e54d77ed6c93e2683f05af719f81d04572bb445bef9cceed359b26"
+        },
+        {
+          "path": "client/apps/electron/src/main/constants.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/constants.ts",
+          "originalSha256": "8a54bd78c4a3b311b4d67e8463ccba6e81d8c5bbdc4e359b984c53b88e7d817c"
+        },
+        {
+          "path": "client/apps/electron/src/main/deep-link.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/deep-link.ts",
+          "originalSha256": "3a47ab42369fb9c1e20d9e6897dbbdd84693ca3e3151ca83702de2db5ccd6125"
+        },
+        {
+          "path": "client/apps/electron/src/main/events.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/events.ts",
+          "originalSha256": "8a21117d628ab718baf5db89d8ddd6584679d26116f902fbe5a24cf604d8b888"
+        },
+        {
+          "path": "client/apps/electron/src/main/exposed.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/exposed.ts",
+          "originalSha256": "f66578b63e10ffd6a72ebcef1263c18f9426933b253014164d0d1ca2b9705028"
+        },
+        {
+          "path": "client/apps/electron/src/main/find-in-page/handlers.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/find-in-page/handlers.ts",
+          "originalSha256": "171ff00f13828949a5243a0eba1accee7990bb56abe5adcb28bfd236b263ca10"
+        },
+        {
+          "path": "client/apps/electron/src/main/find-in-page/index.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/find-in-page/index.ts",
+          "originalSha256": "1f6c75885cfef0197c53bedf1b8cefec70981138bd318cc16bec99ce15bcecb1"
+        },
+        {
+          "path": "client/apps/electron/src/main/handlers.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/handlers.ts",
+          "originalSha256": "a42e82dffcd4d3542b3f0f9aacdd934eda89ec899b025d59bc0f5105dec07c1c"
+        },
+        {
+          "path": "client/apps/electron/src/main/helper-process.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/helper-process.ts",
+          "originalSha256": "6d6339df3519850cff72b681b391a9b328b81ddb2e6b4e6fb136bcc497e94662"
+        },
+        {
+          "path": "client/apps/electron/src/main/index.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/index.ts",
+          "originalSha256": "3862f3414fc083699a0426c148218506d1da4ff44400ce2b681bdc6bdaff8a03"
+        },
+        {
+          "path": "client/apps/electron/src/main/logger.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/logger.ts",
+          "originalSha256": "8c7411a6e8cb4d3c9ac427cedcc685dec66363e83895c85f317f07278c0faecb"
+        },
+        {
+          "path": "client/apps/electron/src/main/power/index.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/power/index.ts",
+          "originalSha256": "0697fbebad8cbc2fe143d34fce0a177f2f928b2be6dfb7f41e9e8480fa159dcb"
+        },
+        {
+          "path": "client/apps/electron/src/main/protocol.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/protocol.ts",
+          "originalSha256": "a3547a8a27feceebed594d64f376d8f95f4488e62978fa54b7037609e16a7c80"
+        },
+        {
+          "path": "client/apps/electron/src/main/recording/allow-list.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/recording/allow-list.ts",
+          "originalSha256": "231d1d432e6034a19e1887b6499300d52c6ff4eba94a6091084722839a937b78"
+        },
+        {
+          "path": "client/apps/electron/src/main/recording/feature.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/recording/feature.ts",
+          "originalSha256": "a9139785efbbef5e3b1d9a41dbdddc58a7eba5a1f2e78ac3d47aa7fe64495613"
+        },
+        {
+          "path": "client/apps/electron/src/main/recording/index.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/recording/index.ts",
+          "originalSha256": "2a5b43a04c98380a4e3cfe06e42376e3b7e49722afcb87e6fd5808661635183b"
+        },
+        {
+          "path": "client/apps/electron/src/main/recording/state-machine.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/recording/state-machine.ts",
+          "originalSha256": "df741e89fc04417fa79345366136c69a09a88bbcc52611bd3f9df858040dc954"
+        },
+        {
+          "path": "client/apps/electron/src/main/recording/types.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/recording/types.ts",
+          "originalSha256": "96372ac49aa9be1417d02fd4d9fd55a58a6989acb66550598b95bbaf98ec176f"
+        },
+        {
+          "path": "client/apps/electron/src/main/security-restrictions.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/security-restrictions.ts",
+          "originalSha256": "43fa6abd9358e1f91b5c4f757957cd73e49e53fe78a480da3258be1c4684efa9"
+        },
+        {
+          "path": "client/apps/electron/src/main/security/open-external.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/security/open-external.ts",
+          "originalSha256": "0124851b2481800e109df4c5ae503f845fcd904bb95c61405ac91495c3967a41"
+        },
+        {
+          "path": "client/apps/electron/src/main/security/redirect-proxy.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/security/redirect-proxy.ts",
+          "originalSha256": "9d1fa09ca8b4c99f3136f0eb8b6e2d57923ad6fef480605ba15aef734283b5c6"
+        },
+        {
+          "path": "client/apps/electron/src/main/security/url-safety.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/security/url-safety.ts",
+          "originalSha256": "edb60741b4a742e31885689ff10d5c31e31ff7fad345f4b9fa97e54d65d2f701"
+        },
+        {
+          "path": "client/apps/electron/src/main/shared-state-schema.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/shared-state-schema.ts",
+          "originalSha256": "8825dfc1acddf73e8cbeee709694fb0cac0f337326ce53c57865852de3509265"
+        },
+        {
+          "path": "client/apps/electron/src/main/shared-storage/events.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/shared-storage/events.ts",
+          "originalSha256": "ca3d263ff8368444cfd0e13911415aa160915faf2fb99417662b79b4804ace63"
+        },
+        {
+          "path": "client/apps/electron/src/main/shared-storage/handlers.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/shared-storage/handlers.ts",
+          "originalSha256": "7c5594e4843574a20359be3df5e90b269a168962bdefaaf1093ed9aa5086e666"
+        },
+        {
+          "path": "client/apps/electron/src/main/shared-storage/index.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/shared-storage/index.ts",
+          "originalSha256": "6080c0df8884e19e6e2eed1dc40f3fcbb08a9e62a6dd6d97b11aa0395d756598"
+        },
+        {
+          "path": "client/apps/electron/src/main/shared-storage/json-file.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/shared-storage/json-file.ts",
+          "originalSha256": "10de17438eefb5690077494767161e099d4303f0cdb639fd2f0da151cb853fd9"
+        },
+        {
+          "path": "client/apps/electron/src/main/shared-storage/storage.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/shared-storage/storage.ts",
+          "originalSha256": "139c62675bebddb398d87e6d4e73014c0720ab6661959f255f60f974231f8ec0"
+        },
+        {
+          "path": "client/apps/electron/src/main/tray/icons.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/tray/icons.ts",
+          "originalSha256": "43def42e42ffcd1f36ac60c8b0e2d3c9219cee448399d5262001cd21d9b4a043"
+        },
+        {
+          "path": "client/apps/electron/src/main/tray/index.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/tray/index.ts",
+          "originalSha256": "1bc7d500447960d85791f43595b9b75cc6f03297fd70f3a76b93ac11b8cd5a8c"
+        },
+        {
+          "path": "client/apps/electron/src/main/ui/challenge.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/ui/challenge.ts",
+          "originalSha256": "b43490a2aeba66f05b28f41aa1539678071c82d71af62ecdc2223b538056fa0e"
+        },
+        {
+          "path": "client/apps/electron/src/main/ui/events.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/ui/events.ts",
+          "originalSha256": "415943bf7e3abd530fa9296ba8e949d16e1d3ade22c447e11243179a30c2181d"
+        },
+        {
+          "path": "client/apps/electron/src/main/ui/handlers.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/ui/handlers.ts",
+          "originalSha256": "8cd0887f585b282f8156e9e11cc4815f5179095be63a683ee127aac7e4fea9ea"
+        },
+        {
+          "path": "client/apps/electron/src/main/ui/index.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/ui/index.ts",
+          "originalSha256": "134f1c6a3d12407250311060a1c354b8b0f39441d91650784c2108e0a82b008d"
+        },
+        {
+          "path": "client/apps/electron/src/main/ui/subject.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/ui/subject.ts",
+          "originalSha256": "e9814fc2f449f476457520ea0e2035318166aca517fad85398d8255dfe17b6e8"
+        },
+        {
+          "path": "client/apps/electron/src/main/updater/electron-updater.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/updater/electron-updater.ts",
+          "originalSha256": "e7099fc32f98e914cbbf7cc8803ca1f17da368a8b4183ddf0b3888910d19075e"
+        },
+        {
+          "path": "client/apps/electron/src/main/updater/event.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/updater/event.ts",
+          "originalSha256": "664bd78349bf9dfe339c688a2dfcdb112569aeb6ff9b5d7a7e49bae0ad31eec2"
+        },
+        {
+          "path": "client/apps/electron/src/main/updater/index.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/updater/index.ts",
+          "originalSha256": "e9c9a8bc5103548698659f4eb3e81c83152407ae5e7d871b27e5285b950348dd"
+        },
+        {
+          "path": "client/apps/electron/src/main/utils.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/utils.ts",
+          "originalSha256": "6c53012c95ef14ae39129d5bbb41b4562bf9a1080a55c60758074011b46f8fe4"
+        },
+        {
+          "path": "client/apps/electron/src/main/web-preferences.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/web-preferences.ts",
+          "originalSha256": "8cb9cbb925d43ec59bb4bfcb2783fdcf6fb55a28575c0b4f7689d9812b79dd6d"
+        },
+        {
+          "path": "client/apps/electron/src/main/windows-manager/authentication.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/windows-manager/authentication.ts",
+          "originalSha256": "17e60fda9bf531760d3c0f4388e747aaad10427b7abcc240aa9caa50f103cc19"
+        },
+        {
+          "path": "client/apps/electron/src/main/windows-manager/context-menu.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/windows-manager/context-menu.ts",
+          "originalSha256": "e1a40903496a0cf34fe1efa302d66c9613db55376b63f38116a53c01d32042a7"
+        },
+        {
+          "path": "client/apps/electron/src/main/windows-manager/index.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/windows-manager/index.ts",
+          "originalSha256": "0855b8a59315cbc39f00b6006fcb6b42d7ea17515054a1d1ec5b2a8a9d333011"
+        },
+        {
+          "path": "client/apps/electron/src/main/windows-manager/launcher.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/windows-manager/launcher.ts",
+          "originalSha256": "08181eceaf9494976af6627f6a9d658cc0a7f5a90a768ac6e4c05ef1a4aff4a8"
+        },
+        {
+          "path": "client/apps/electron/src/main/windows-manager/main-window.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/windows-manager/main-window.ts",
+          "originalSha256": "d8a416f5c9109a170d62d7fb43c6188e47a403382b956ed739cb15e8cdec4b86"
+        },
+        {
+          "path": "client/apps/electron/src/main/windows-manager/onboarding.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/windows-manager/onboarding.ts",
+          "originalSha256": "169bf217124a09f699c5f1b4801db819d5bce4987b31f43d15a547ad02c61608"
+        },
+        {
+          "path": "client/apps/electron/src/main/windows-manager/popup.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/windows-manager/popup.ts",
+          "originalSha256": "cc10a70a9896a83665482288c6c28c61dc6e779a7d7b1a9c83c54fc514b55b09"
+        },
+        {
+          "path": "client/apps/electron/src/main/windows-manager/tab-views.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/windows-manager/tab-views.ts",
+          "originalSha256": "fed5ff80ac028979ab4eff83055c840832692b5b6e54f4b6a26a0874622bc106"
+        },
+        {
+          "path": "client/apps/electron/src/main/windows-manager/utils.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/windows-manager/utils.ts",
+          "originalSha256": "e3b6d5ce2bb9d1b923672e5bf53b799c9d0fa9a32841670cf92f81c9e4413e0b"
+        },
+        {
+          "path": "client/apps/electron/src/main/worker/handlers.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/worker/handlers.ts",
+          "originalSha256": "5b2de24401dfd1b769b7d0a2f9c362267ced76b2f34eb03b55b37e54b22ead4c"
+        },
+        {
+          "path": "client/apps/electron/src/main/worker/pool.ts",
+          "originalPath": "packages/frontend/apps/electron/src/main/worker/pool.ts",
+          "originalSha256": "9882ff466d8d25a6785f256ebaa0079d7c2c77d76d76e90fc3a143b119855e34"
+        },
+        {
+          "path": "client/apps/electron/src/preload/bootstrap.ts",
+          "originalPath": "packages/frontend/apps/electron/src/preload/bootstrap.ts",
+          "originalSha256": "9f6e7df0ebee4940290da8c7359a790cc59a9e1faabb76e5648df5eb0a4fcb55"
+        },
+        {
+          "path": "client/apps/electron/src/preload/electron-api.ts",
+          "originalPath": "packages/frontend/apps/electron/src/preload/electron-api.ts",
+          "originalSha256": "7eddfbf207f145daffa528db4b141514d7f90b33368e46006867003fe0de4fc6"
+        },
+        {
+          "path": "client/apps/electron/src/preload/index.ts",
+          "originalPath": "packages/frontend/apps/electron/src/preload/index.ts",
+          "originalSha256": "cf6dab196c721f6911ff99cc4f910897f978599a2d289971a316a5fc33091f94"
+        },
+        {
+          "path": "client/apps/electron/src/preload/shared-storage.ts",
+          "originalPath": "packages/frontend/apps/electron/src/preload/shared-storage.ts",
+          "originalSha256": "d490b8c991f627658619caae740e42c173c624148a65bff6a6802f25c6bbb7b6"
+        },
+        {
+          "path": "client/apps/electron/src/preload/worker.ts",
+          "originalPath": "packages/frontend/apps/electron/src/preload/worker.ts",
+          "originalSha256": "9f7047472a1eece8cb523c033007f833b6e0cf47caea3427510a8fdf21b81da9"
+        },
+        {
+          "path": "client/apps/electron/src/shared/type.ts",
+          "originalPath": "packages/frontend/apps/electron/src/shared/type.ts",
+          "originalSha256": "a074fa3f69ba03ea5676708bb3e70e6a7c5d511be68453192cd68db7991191e5"
+        },
+        {
+          "path": "client/apps/electron/src/shared/utils.ts",
+          "originalPath": "packages/frontend/apps/electron/src/shared/utils.ts",
+          "originalSha256": "8a58e56090b809364c86dd06dc284a00e7444536c559de7db118576141117b60"
+        },
+        {
+          "path": "client/apps/electron/test/workspace/handlers.spec.ts",
+          "originalPath": "packages/frontend/apps/electron/test/workspace/handlers.spec.ts",
+          "originalSha256": "8f1917b04e3aea439bd40bd6660f212482c6da74bddf7ef88695160a6c2f0c45"
+        },
+        {
+          "path": "client/apps/electron/tsconfig.json",
+          "originalPath": "packages/frontend/apps/electron/tsconfig.json",
+          "originalSha256": "b2b368ed19aafd97cd640fdba5a2d8878c3ad0414cd041530fb96fd1e10f1c38"
+        },
+        {
+          "path": "client/apps/electron/tsconfig.node.json",
+          "originalPath": "packages/frontend/apps/electron/tsconfig.node.json",
+          "originalSha256": "da378630edd6b92dbfb13c9f82c9372fe6c2308cb3bad0526f78d50937cd7820"
+        },
+        {
+          "path": "client/apps/electron/vitest.config.mts",
+          "originalPath": "packages/frontend/apps/electron/vitest.config.ts",
+          "originalSha256": "8e2c7e6b11635171903dbd5d729c6038212fc4c88555b1aae11acf414eebd5fc"
+        }
+      ]
+    },
+    {
+      "id": "client-electron-myoxus",
+      "paths": [
+        "client/apps/electron-renderer/src/app/effects/recording.spec.ts",
+        "client/apps/electron-renderer/src/app/runtime-server-sync.tsx",
+        "client/apps/electron-renderer/src/app/runtime-theme.spec.ts",
+        "client/apps/electron-renderer/src/app/runtime-theme.ts",
+        "client/apps/electron-renderer/src/popup/app.css",
+        "client/apps/electron-renderer/src/popup/app.styles.ts",
+        "client/apps/electron-renderer/src/popup/recording/styles.css",
+        "client/apps/electron-renderer/src/popup/recording/styles.ts",
+        "client/apps/electron-renderer/src/shell/app.css",
+        "client/apps/electron-renderer/src/shell/app.styles.ts",
+        "client/apps/electron-renderer/src/windows-app-controls.tsx",
+        "client/apps/electron/resources/templates/app-update.yml",
+        "client/apps/electron/scripts/ensure-native-bindings.ts",
+        "client/apps/electron/scripts/lib/application-packager.ts",
+        "client/apps/electron/scripts/lib/archive-native-packager.ts",
+        "client/apps/electron/scripts/lib/build-context.ts",
+        "client/apps/electron/scripts/lib/native-files.ts",
+        "client/apps/electron/scripts/lib/package-layout.ts",
+        "client/apps/electron/scripts/lib/packaging-config.ts",
+        "client/apps/electron/scripts/lib/packaging-runner.ts",
+        "client/apps/electron/scripts/lib/process.ts",
+        "client/apps/electron/scripts/lib/windows-native-packager.ts",
+        "client/apps/electron/scripts/macos-arm64-output-check.ts",
+        "client/apps/electron/scripts/nsis-installer.nsi",
+        "client/apps/electron/scripts/packaging/desktop.ts",
+        "client/apps/electron/scripts/packaging/linux.ts",
+        "client/apps/electron/scripts/packaging/windows-nsis.ts",
+        "client/apps/electron/scripts/stage-package.ts",
+        "client/apps/electron/scripts/verify-macos-packaged-layout.ts",
+        "client/apps/electron/scripts/windows-launch.ps1",
+        "client/apps/electron/src/helper/dialog/workspace-backup.ts",
+        "client/apps/electron/src/helper/storage/index.ts",
+        "client/apps/electron/src/main/application-menu/doc-versions.ts",
+        "client/apps/electron/src/main/close-admission.ts",
+        "client/apps/electron/src/main/e2e-entry.ts",
+        "client/apps/electron/src/main/recording/delivery-lifetime.spec.ts",
+        "client/apps/electron/src/main/recording/delivery-lifetime.ts",
+        "client/apps/electron/src/main/recording/destination.spec.ts",
+        "client/apps/electron/src/main/recording/destination.ts",
+        "client/apps/electron/src/main/recording/iso-bmff.spec.ts",
+        "client/apps/electron/src/main/recording/iso-bmff.ts",
+        "client/apps/electron/src/main/recording/recovery.spec.ts",
+        "client/apps/electron/src/main/recording/recovery.ts",
+        "client/apps/electron/src/main/recording/state-machine.spec.ts",
+        "client/apps/electron/src/main/renderer-arguments.ts",
+        "client/apps/electron/src/main/response-cookies.ts",
+        "client/apps/electron/src/main/server-routing.ts",
+        "client/apps/electron/src/main/type.ts",
+        "client/apps/electron/src/main/ui/bookmark-data.ts",
+        "client/apps/electron/src/main/ui/save-pdf.ts",
+        "client/apps/electron/src/main/updater/desktop-updater-port.ts",
+        "client/apps/electron/src/main/updater/myoxus-update-provider.ts",
+        "client/apps/electron/src/main/updater/update-manifest.ts",
+        "client/apps/electron/src/main/windows-manager/onboarding-state.ts",
+        "client/apps/electron/src/main/windows-manager/window-state.ts",
+        "client/apps/electron/src/preload/message-port-channel.ts",
+        "client/apps/electron/src/shared/exposed-meta.ts",
+        "client/apps/electron/src/shared/ids.ts",
+        "client/apps/electron/test/build/native-packaging.spec.ts",
+        "client/apps/electron/test/build/package-layout.spec.ts",
+        "client/apps/electron/test/build/packaging-config.spec.ts",
+        "client/apps/electron/test/dialog/workspace-backup.spec.ts",
+        "client/apps/electron/test/main/bookmark-data.spec.ts",
+        "client/apps/electron/test/main/clipboard.spec.ts",
+        "client/apps/electron/test/main/close-admission.spec.ts",
+        "client/apps/electron/test/main/csp.spec.ts",
+        "client/apps/electron/test/main/doc-versions-menu.spec.ts",
+        "client/apps/electron/test/main/event-lifecycle.spec.ts",
+        "client/apps/electron/test/main/exposed-meta.spec.ts",
+        "client/apps/electron/test/main/handlers.spec.ts",
+        "client/apps/electron/test/main/launcher.spec.ts",
+        "client/apps/electron/test/main/native-bindings.spec.ts",
+        "client/apps/electron/test/main/no-private-updater-imports.spec.ts",
+        "client/apps/electron/test/main/onboarding-state.spec.ts",
+        "client/apps/electron/test/main/protocol-fonts.spec.ts",
+        "client/apps/electron/test/main/redirect-proxy.spec.ts",
+        "client/apps/electron/test/main/renderer-arguments.spec.ts",
+        "client/apps/electron/test/main/response-cookies.spec.ts",
+        "client/apps/electron/test/main/runtime-dependencies.spec.ts",
+        "client/apps/electron/test/main/save-pdf.spec.ts",
+        "client/apps/electron/test/main/sentry.spec.ts",
+        "client/apps/electron/test/main/shared-storage-handlers.spec.ts",
+        "client/apps/electron/test/main/startup-failure.spec.ts",
+        "client/apps/electron/test/main/state-startup.spec.ts",
+        "client/apps/electron/test/main/state-storage.spec.ts",
+        "client/apps/electron/test/main/storage-path.spec.ts",
+        "client/apps/electron/test/main/updater-state.spec.ts",
+        "client/apps/electron/test/main/updater.spec.ts",
+        "client/apps/electron/test/main/window-state.spec.ts",
+        "client/apps/electron/test/packaging-process-lifetime.spec.ts",
+        "client/apps/electron/test/preload/shared-storage.spec.ts",
+        "client/apps/electron/test/renderer/helper-message-port.spec.ts",
+        "client/apps/electron/test/renderer/power.spec.ts",
+        "client/apps/electron/test/scripts/native-files.spec.ts",
+        "client/apps/electron/test/workspace/storage-handlers.spec.ts"
+      ],
+      "origin": "M0",
+      "licenseExpression": "AGPL-3.0-or-later",
+      "copyrightNotices": [
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ],
+      "noticePaths": [
+        "client/REUSE.toml",
+        "client/provenance/LICENSE-UPSTREAM-MIT.txt"
+      ],
+      "rationale": "Independent Myoxus native packaging, updater contracts, state/runtime fixes, typed interfaces and synthetic tests. Complete replacements are reviewed separately from retained entry files."
+    },
+    {
+      "id": "client-electron-appstream",
+      "paths": ["client/apps/electron/resources/templates/linux.metainfo.xml"],
+      "origin": "F1",
+      "licenseExpression": "CC0-1.0",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ],
+      "upstreamCutoff": {
+        "revision": "e31cca33540af2737dc9e520b70acac170c0709e",
+        "date": "2026-03-04"
+      },
+      "noticePaths": [
+        "client/REUSE.toml",
+        "client/provenance/LICENSE-UPSTREAM-MIT.txt"
+      ],
+      "rationale": "Retained CC0 metadata and Myoxus additions, expressly authorized by Daniel Scharf on 2026-10-29 for this single XML file. This is not a package-derived exception.",
+      "upstreamFiles": [
+        {
+          "path": "client/apps/electron/resources/templates/linux.metainfo.xml",
+          "originalPath": "packages/frontend/apps/electron/resources/affine.metainfo.xml",
+          "originalSha256": "669f781e1d50238c5e5faedb9aaf4221a5a7d053f0f8f58139865bae541057b2"
+        }
+      ]
+    }
+  ]
+}

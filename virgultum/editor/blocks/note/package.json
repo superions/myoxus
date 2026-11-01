@@ -1,0 +1,53 @@
+{
+  "name": "@virgultum/block-note",
+  "description": "Note block for Virgultum.",
+  "type": "module",
+  "scripts": {
+    "build": "yarn --cwd \"$PROJECT_CWD\" exec tsc -p \"$PWD/tsconfig.json\" --noEmit"
+  },
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "keywords": [],
+  "author": "Myoxus Contributors",
+  "license": "AGPL-3.0-or-later AND MIT",
+  "dependencies": {
+    "@lit/context": "^1.1.6",
+    "@myoxus/icons": "workspace:*",
+    "@myoxus/theme": "workspace:*",
+    "@preact/signals-core": "^1.8.0",
+    "@types/lodash-es": "^4.17.12",
+    "@types/mdast": "^4.0.4",
+    "@virgultum/block-embed": "workspace:*",
+    "@virgultum/block-surface": "workspace:*",
+    "@virgultum/components": "workspace:*",
+    "@virgultum/ext-loader": "workspace:*",
+    "@virgultum/fragment-doc-title": "workspace:*",
+    "@virgultum/gfx-turbo-renderer": "workspace:*",
+    "@virgultum/global": "workspace:*",
+    "@virgultum/inline-preset": "workspace:*",
+    "@virgultum/model": "workspace:*",
+    "@virgultum/rich-text": "workspace:*",
+    "@virgultum/shared": "workspace:*",
+    "@virgultum/std": "workspace:*",
+    "@virgultum/store": "workspace:*",
+    "@virgultum/widget-slash-menu": "workspace:*",
+    "lit": "^3.3.3",
+    "lodash-es": "4.18.1",
+    "rxjs": "^7.8.2",
+    "zod": "^3.25.76"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./turbo-painter": "./src/turbo/note-painter.worker.ts",
+    "./store": "./src/store.ts",
+    "./view": "./src/view.ts"
+  },
+  "files": [
+    "src",
+    "dist",
+    "!src/__tests__",
+    "!dist/__tests__"
+  ],
+  "version": "0.41.5"
+}

@@ -1,0 +1,639 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://myoxus.local/schemas/pdf_template_manifest_v2.json",
+  "title": "Myoxus PDF Template Manifest (v2)",
+  "description": "Manifest schema for the L2 (Template-Capabilities) layer of the Myoxus PDF-Export V2 system. A manifest describes the static metadata of a template bundle: which Typst engine version it targets, which assets it ships, which capability switches it exposes (with their defaults), and which per-render L3 inputs it accepts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "name",
+    "description",
+    "version",
+    "engine",
+    "provenance",
+    "entry",
+    "assets",
+    "capabilities",
+    "inputs_schema"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "2.0",
+      "description": "Manifest schema version. Pinned to '2.0' for V2 manifests (D6)."
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "minLength": 1,
+      "maxLength": 64,
+      "description": "Stable, kebab-case template identifier. Used as the registry key and as the on-disk directory name."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "description": "Human-readable template name shown in UI pickers."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 0,
+      "maxLength": 500,
+      "description": "One-paragraph description of the template, shown in admin UI."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Stable SemVer release of this exact template bundle. The database version column mirrors this canonical manifest field."
+    },
+    "engine": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "const": "typst",
+          "description": "Render engine identifier. V2 supports only Typst."
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.(?:[0-9]+|x)$",
+          "description": "Required Typst engine version. Supports the exact pinned renderer version or its patch wildcard (currently '0.15.1' or '0.15.x')."
+        }
+      }
+    },
+    "provenance": {
+      "$ref": "#/$defs/TemplateProvenance",
+      "description": "Legal and source provenance covering the complete template bundle."
+    },
+    "entry": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_./-]+\\.typ$",
+      "minLength": 5,
+      "maxLength": 256,
+      "description": "Relative path (within the template bundle) of the Typst entry file. Must end in '.typ'."
+    },
+    "assets": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 256,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9_./-]+$",
+        "minLength": 1,
+        "maxLength": 256,
+        "description": "Relative path (within the template bundle) of an asset file (Typst source, image, font, etc). Must not contain '..' segments."
+      },
+      "description": "Files that are part of the template bundle and must be embedded by the renderer."
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "colorVariant",
+        "headerStyle",
+        "footerStyle",
+        "coverPage",
+        "tocBehavior",
+        "pageNumbering",
+        "customMargins",
+        "accentColor",
+        "confidentialityLabels",
+        "language"
+      ],
+      "properties": {
+        "paperSize": { "$ref": "#/$defs/CapabilityPaperSize" },
+        "colorVariant": { "$ref": "#/$defs/CapabilityColorVariant" },
+        "headerStyle": { "$ref": "#/$defs/CapabilityHeaderStyle" },
+        "footerStyle": { "$ref": "#/$defs/CapabilityFooterStyle" },
+        "coverPage": { "$ref": "#/$defs/CapabilityCoverPage" },
+        "tocBehavior": { "$ref": "#/$defs/CapabilityTocBehavior" },
+        "pageNumbering": { "$ref": "#/$defs/CapabilityPageNumbering" },
+        "customMargins": { "$ref": "#/$defs/CapabilityCustomMargins" },
+        "accentColor": { "$ref": "#/$defs/CapabilityAccentColor" },
+        "confidentialityLabels": {
+          "$ref": "#/$defs/CapabilityConfidentialityLabels"
+        },
+        "language": { "$ref": "#/$defs/CapabilityLanguage" }
+      },
+      "description": "L2 capability matrix. Each property declares the kind of switch the template supports and its default value (per-render overrides come via L3 inputs)."
+    },
+    "inputs_schema": {
+      "$ref": "#/$defs/L3InputsSchema",
+      "description": "JSON Schema (a small subset) describing the L3 per-render inputs the template accepts."
+    }
+  },
+  "examples": [
+    {
+      "schema_version": "2.0",
+      "id": "default",
+      "name": "Default",
+      "description": "Neutral default template — A4, mono color variant, minimal header, page-only footer.",
+      "version": "1.3.0",
+      "engine": { "name": "typst", "version": "0.15.x" },
+      "provenance": {
+        "license_spdx": "AGPL-3.0-or-later",
+        "copyright_notice": "Copyright 2026 Myoxus contributors",
+        "source_url": "https://github.com/superions/myoxus",
+        "source_revision": "1.3.0"
+      },
+      "entry": "main.typ",
+      "assets": ["main.typ"],
+      "capabilities": {
+        "colorVariant": {
+          "kind": "enum",
+          "values": ["mono", "accent", "brand"],
+          "default": "mono"
+        },
+        "headerStyle": {
+          "kind": "enum",
+          "values": ["none", "minimal", "branded"],
+          "default": "minimal"
+        },
+        "footerStyle": {
+          "kind": "enum",
+          "values": ["none", "minimal", "page-only", "brand-and-page"],
+          "default": "page-only"
+        },
+        "coverPage": { "kind": "boolean", "default": false },
+        "tocBehavior": {
+          "kind": "enum",
+          "values": ["off", "auto", "force"],
+          "default": "off"
+        },
+        "pageNumbering": {
+          "kind": "enum",
+          "values": ["arabic", "roman", "none"],
+          "default": "arabic"
+        },
+        "customMargins": { "kind": "boolean", "default": false },
+        "accentColor": { "kind": "color", "default": "#1F2937" },
+        "confidentialityLabels": {
+          "kind": "array<string>",
+          "min_items": 0,
+          "max_items": 8,
+          "item_pattern": "^[A-Za-z0-9 _-]{1,32}$",
+          "default": []
+        },
+        "language": {
+          "kind": "enum",
+          "values": [
+            "en",
+            "de",
+            "fr",
+            "es",
+            "it",
+            "pt",
+            "nl",
+            "pl",
+            "cs",
+            "da",
+            "sv",
+            "no",
+            "fi",
+            "el",
+            "ru",
+            "uk",
+            "tr",
+            "hu",
+            "ro",
+            "bg",
+            "hr",
+            "sk",
+            "sl",
+            "sr",
+            "et",
+            "lv",
+            "lt",
+            "pt-BR",
+            "es-MX"
+          ],
+          "default": "en"
+        }
+      },
+      "inputs_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title"],
+        "properties": {
+          "title": { "type": "string", "minLength": 1, "maxLength": 200 }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "TemplateProvenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "license_spdx",
+        "copyright_notice",
+        "source_url",
+        "source_revision"
+      ],
+      "properties": {
+        "license_spdx": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9.+() -]+$",
+          "minLength": 2,
+          "maxLength": 160,
+          "description": "SPDX license identifier or expression covering the complete bundle."
+        },
+        "copyright_notice": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500,
+          "description": "Human-readable copyright statement."
+        },
+        "source_url": {
+          "type": "string",
+          "pattern": "^https://.+$",
+          "maxLength": 1000,
+          "description": "HTTPS location from which the template source can be obtained."
+        },
+        "source_revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Immutable upstream revision or template release identifier."
+        },
+        "notice": {
+          "type": "string",
+          "maxLength": 4000,
+          "description": "Optional attribution or redistribution notice."
+        }
+      }
+    },
+    "EnumKind": {
+      "type": "string",
+      "const": "enum",
+      "description": "Capability kind tag for enum-valued switches."
+    },
+    "BooleanKind": {
+      "type": "string",
+      "const": "boolean",
+      "description": "Capability kind tag for boolean switches."
+    },
+    "StringKind": {
+      "type": "string",
+      "const": "string",
+      "description": "Capability kind tag for free-form string switches."
+    },
+    "ColorKind": {
+      "type": "string",
+      "const": "color",
+      "description": "Capability kind tag for hex-color (#RRGGBB) switches."
+    },
+    "NumberKind": {
+      "type": "string",
+      "const": "number",
+      "description": "Capability kind tag for numeric switches."
+    },
+    "ArrayStringKind": {
+      "type": "string",
+      "const": "array<string>",
+      "description": "Capability kind tag for arrays of strings."
+    },
+    "HexColor": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}$",
+      "description": "Hex color string in #RRGGBB form."
+    },
+
+    "CapabilityColorVariant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "values", "default"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/EnumKind" },
+        "values": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "enum": ["mono", "accent", "brand"] },
+          "minItems": 1,
+          "maxItems": 3,
+          "description": "Supported subset of the canonical V2 color-variant tokens."
+        },
+        "default": {
+          "type": "string",
+          "enum": ["mono", "accent", "brand"]
+        }
+      },
+      "description": "Color treatment variant. 'mono' = grayscale, 'accent' = monochrome + accent color highlights, 'brand' = full brand palette."
+    },
+
+    "CapabilityPaperSize": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "values", "default"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/EnumKind" },
+        "values": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": ["A4", "Letter", "A3", "A5", "16:9"]
+          },
+          "minItems": 1,
+          "maxItems": 5
+        },
+        "default": {
+          "type": "string",
+          "enum": ["A4", "Letter", "A3", "A5", "16:9"]
+        }
+      },
+      "description": "Optional template-specific subset of physical page formats. Absence preserves the renderer's established choices."
+    },
+
+    "CapabilityHeaderStyle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "values", "default"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/EnumKind" },
+        "values": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "enum": ["none", "minimal", "branded"] },
+          "minItems": 1,
+          "maxItems": 3
+        },
+        "default": {
+          "type": "string",
+          "enum": ["none", "minimal", "branded"]
+        }
+      },
+      "description": "Page header layout."
+    },
+
+    "CapabilityFooterStyle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "values", "default"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/EnumKind" },
+        "values": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": ["none", "minimal", "page-only", "brand-and-page"]
+          },
+          "minItems": 1,
+          "maxItems": 4
+        },
+        "default": {
+          "type": "string",
+          "enum": ["none", "minimal", "page-only", "brand-and-page"]
+        }
+      },
+      "description": "Page footer layout."
+    },
+
+    "CapabilityCoverPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "default"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/BooleanKind" },
+        "default": { "type": "boolean" }
+      },
+      "description": "Whether the template emits a dedicated cover page before the document body."
+    },
+
+    "CapabilityTocBehavior": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "values", "default"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/EnumKind" },
+        "values": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "enum": ["off", "auto", "force"] },
+          "minItems": 1,
+          "maxItems": 3
+        },
+        "default": {
+          "type": "string",
+          "enum": ["off", "auto", "force"]
+        }
+      },
+      "description": "Table-of-contents behaviour. 'auto' = include only if document has >= 2 headings, 'force' = always include, 'off' = never include."
+    },
+
+    "CapabilityPageNumbering": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "values", "default"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/EnumKind" },
+        "values": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "enum": ["arabic", "roman", "none"] },
+          "minItems": 1,
+          "maxItems": 3
+        },
+        "default": {
+          "type": "string",
+          "enum": ["arabic", "roman", "none"]
+        }
+      },
+      "description": "Page-number style."
+    },
+
+    "CapabilityCustomMargins": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "default"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/BooleanKind" },
+        "default": { "type": "boolean" }
+      },
+      "description": "When true, the renderer reads margin overrides from L3 inputs; when false, the template's built-in margin defaults apply."
+    },
+
+    "CapabilityAccentColor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "default"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/ColorKind" },
+        "default": { "$ref": "#/$defs/HexColor" }
+      },
+      "description": "Single accent color (hex). Applied to headings, links, dividers (subject to colorVariant)."
+    },
+
+    "CapabilityConfidentialityLabels": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "min_items", "max_items", "item_pattern", "default"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/ArrayStringKind" },
+        "min_items": { "type": "integer", "const": 0 },
+        "max_items": { "type": "integer", "minimum": 0, "maximum": 8 },
+        "item_pattern": { "type": "string", "const": "^[A-Za-z0-9 _-]{1,32}$" },
+        "default": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9 _-]{1,32}$"
+          }
+        }
+      },
+      "description": "Selectable confidentiality watermark labels. Each label must match the item_pattern; up to 8 labels per template."
+    },
+
+    "CapabilityLanguage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "values", "default"],
+      "properties": {
+        "kind": { "$ref": "#/$defs/EnumKind" },
+        "values": {
+          "type": "array",
+          "uniqueItems": true,
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": [
+              "en",
+              "de",
+              "fr",
+              "es",
+              "it",
+              "pt",
+              "nl",
+              "pl",
+              "cs",
+              "da",
+              "sv",
+              "no",
+              "fi",
+              "el",
+              "ru",
+              "uk",
+              "tr",
+              "hu",
+              "ro",
+              "bg",
+              "hr",
+              "sk",
+              "sl",
+              "sr",
+              "et",
+              "lv",
+              "lt",
+              "pt-BR",
+              "es-MX"
+            ]
+          }
+        },
+        "default": {
+          "type": "string",
+          "enum": [
+            "en",
+            "de",
+            "fr",
+            "es",
+            "it",
+            "pt",
+            "nl",
+            "pl",
+            "cs",
+            "da",
+            "sv",
+            "no",
+            "fi",
+            "el",
+            "ru",
+            "uk",
+            "tr",
+            "hu",
+            "ro",
+            "bg",
+            "hr",
+            "sk",
+            "sl",
+            "sr",
+            "et",
+            "lv",
+            "lt",
+            "pt-BR",
+            "es-MX"
+          ]
+        }
+      },
+      "description": "Locale used for hyphenation, date formatting, and stock UI labels (TOC heading, page-X-of-Y). Restricted to Europe + Americas (per project scope rule)."
+    },
+
+    "L3InputsSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "properties", "additionalProperties"],
+      "properties": {
+        "type": { "type": "string", "const": "object" },
+        "additionalProperties": { "type": "boolean", "const": false },
+        "required": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1, "maxLength": 64 }
+        },
+        "properties": {
+          "type": "object",
+          "minProperties": 0,
+          "additionalProperties": { "$ref": "#/$defs/L3InputProperty" }
+        }
+      },
+      "description": "A small JSON-Schema subset describing the L3 per-render inputs (no $ref, no allOf/anyOf/oneOf)."
+    },
+
+    "L3InputProperty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["string", "integer", "number", "boolean", "array", "object"]
+        },
+        "description": { "type": "string", "maxLength": 500 },
+        "enum": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": ["string", "number", "integer", "boolean"] }
+        },
+        "pattern": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "format": { "type": "string", "const": "date" },
+        "minLength": { "type": "integer", "minimum": 0 },
+        "maxLength": { "type": "integer", "minimum": 0 },
+        "minimum": { "type": "number" },
+        "maximum": { "type": "number" },
+        "minItems": { "type": "integer", "minimum": 0 },
+        "maxItems": { "type": "integer", "minimum": 0 },
+        "items": { "$ref": "#/$defs/L3InputProperty" },
+        "properties": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/L3InputProperty" }
+        },
+        "required": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1, "maxLength": 64 }
+        },
+        "additionalProperties": { "type": "boolean" },
+        "default": {}
+      }
+    }
+  }
+}

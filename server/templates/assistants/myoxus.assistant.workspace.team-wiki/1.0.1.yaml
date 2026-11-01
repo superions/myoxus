@@ -1,0 +1,352 @@
+formatVersion: 1
+id: myoxus.assistant.workspace.team-wiki
+version: 1.0.1
+name: &a1
+  en: Team Wiki
+  de: Team-Wiki
+  fr: Wiki d’équipe
+  es: Wiki de equipo
+description:
+  en:
+    Start a team entry point with editable procedures and decision records in an
+    explicit folder. Inviting people and assigning Tasks remain separate
+    deliberate actions.
+  de: Beginne mit einem Teameinstieg, bearbeitbaren Abläufen und
+    Entscheidungsprotokollen in einem ausdrücklich gewählten Ordner. Personen
+    einzuladen und Aufgaben zuzuweisen bleiben separate bewusste Aktionen.
+  fr:
+    Créez un point d’entrée avec des procédures et décisions modifiables dans un
+    dossier explicitement choisi. Inviter des personnes et attribuer des tâches
+    restent des actions distinctes.
+  es:
+    Crea una entrada de equipo con procedimientos y decisiones editables en una
+    carpeta elegida explícitamente. Invitar personas y asignar tareas siguen
+    siendo acciones separadas.
+contexts:
+  - workspaceCreation
+inputs:
+  - id: folder
+    target: folder
+    label:
+      en: Content folder
+      de: Inhaltsordner
+      fr: Dossier du contenu
+      es: Carpeta de contenido
+    description:
+      en: Name the folder for this content in the new workspace.
+      de: Benenne den Ordner für diese Inhalte im neuen Arbeitsbereich.
+      fr: Nommez le dossier de ce contenu dans le nouvel espace.
+      es: Nombra la carpeta para este contenido en el nuevo espacio.
+    valueType: folder
+    required: true
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: include-home
+    target: includeComponent
+    label:
+      en: Team Wiki home
+      de: Team-Wiki-Start
+      fr: Accueil du Wiki d’équipe
+      es: Inicio del Wiki de equipo
+    description: null
+    valueType: boolean
+    required: false
+    default:
+      kind: boolean
+      value: true
+    choices: []
+    visibleWhen: null
+  - id: include-procedure
+    target: includeComponent
+    label:
+      en: Procedure
+      de: Ablaufbeschreibung
+      fr: Procédure
+      es: Procedimiento
+    description: null
+    valueType: boolean
+    required: false
+    default:
+      kind: boolean
+      value: true
+    choices: []
+    visibleWhen: null
+  - id: include-decision
+    target: includeComponent
+    label:
+      en: Decision record
+      de: Entscheidungsprotokoll
+      fr: Compte rendu de décision
+      es: Registro de decisión
+    description: null
+    valueType: boolean
+    required: false
+    default:
+      kind: boolean
+      value: true
+    choices: []
+    visibleWhen: null
+components:
+  - id: workspace
+    action:
+      kind: createWorkspace
+      inputs: {}
+  - id: home
+    action:
+      kind: createWorkingDocument
+      selected:
+        kind: input
+        input: include-home
+      folder:
+        kind: input
+        input: folder
+      variables: {}
+  - id: procedure
+    action:
+      kind: createWorkingDocument
+      selected:
+        kind: input
+        input: include-procedure
+      folder:
+        kind: input
+        input: folder
+      variables: {}
+  - id: decision
+    action:
+      kind: createWorkingDocument
+      selected:
+        kind: input
+        input: include-decision
+      folder:
+        kind: input
+        input: folder
+      variables: {}
+  - id: place-home
+    action:
+      kind: placeNativeLink
+      target:
+        kind: result
+        component: home
+        value: document
+      folder:
+        kind: input
+        input: folder
+  - id: place-procedure
+    action:
+      kind: placeNativeLink
+      target:
+        kind: result
+        component: procedure
+        value: document
+      folder:
+        kind: input
+        input: folder
+  - id: place-decision
+    action:
+      kind: placeNativeLink
+      target:
+        kind: result
+        component: decision
+        value: document
+      folder:
+        kind: input
+        input: folder
+presentation:
+  steps:
+    - id: choose
+      title:
+        en: Template
+        de: Vorlage
+        fr: Modèle
+        es: Plantilla
+      groups:
+        - id: catalog
+          title: null
+          role: content
+          controls:
+            - kind: offeringSelection
+              search: true
+          visibleWhen: null
+      actions:
+        - id: choose-cancel
+          label:
+            en: Cancel
+            de: Abbrechen
+            fr: Annuler
+            es: Cancelar
+          action: cancel
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: choose-next
+          label:
+            en: Next
+            de: Weiter
+            fr: Suivant
+            es: Siguiente
+          action: next
+          component: null
+          targetStep: details
+          dialog: null
+          visibleWhen: null
+        - id: choose-check
+          label:
+            en: Check status
+            de: Status prüfen
+            fr: Vérifier le statut
+            es: Comprobar estado
+          action: check
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: choose-close
+          label:
+            en: Close
+            de: Schließen
+            fr: Fermer
+            es: Cerrar
+          action: close
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+    - id: details
+      title: *a1
+      groups:
+        - id: content
+          title: null
+          role: content
+          controls:
+            - kind: input
+              input: folder
+              control: folder
+            - kind: input
+              input: include-home
+              control: toggle
+            - kind: input
+              input: include-procedure
+              control: toggle
+            - kind: input
+              input: include-decision
+              control: toggle
+          visibleWhen: null
+      actions:
+        - id: back-choose
+          label:
+            en: Back to templates
+            de: Zurück zu Vorlagen
+            fr: Revenir aux modèles
+            es: Volver a las plantillas
+          action: back
+          component: null
+          targetStep: choose
+          dialog: null
+          visibleWhen: null
+        - id: cancel
+          label:
+            en: Cancel
+            de: Abbrechen
+            fr: Annuler
+            es: Cancelar
+          action: cancel
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: next
+          label: &a2
+            en: Review setup
+            de: Einrichtung prüfen
+            fr: Vérifier la configuration
+            es: Revisar configuración
+          action: next
+          component: null
+          targetStep: review
+          dialog: null
+          visibleWhen: null
+        - id: check
+          label: &a3
+            en: Check status
+            de: Status prüfen
+            fr: Vérifier le statut
+            es: Comprobar estado
+          action: check
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: close
+          label: &a4
+            en: Close
+            de: Schließen
+            fr: Fermer
+            es: Cerrar
+          action: close
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+    - id: review
+      title: *a2
+      groups:
+        - id: plan
+          title: null
+          role: review
+          controls:
+            - kind: workspaceReview
+          visibleWhen: null
+      actions:
+        - id: back
+          label:
+            en: Back to editing
+            de: Zurück zur Bearbeitung
+            fr: Revenir à la modification
+            es: Volver a editar
+          action: back
+          component: null
+          targetStep: details
+          dialog: null
+          visibleWhen: null
+        - id: create
+          label:
+            en: Create workspace
+            de: Arbeitsbereich erstellen
+            fr: Créer l’espace de travail
+            es: Crear espacio de trabajo
+          action: createWorkspace
+          component: workspace
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: review-check
+          label: *a3
+          action: check
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: review-close
+          label: *a4
+          action: close
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+  dialogs: []
+  guidedHelp:
+    id: first-use
+    title: &a5
+      en: Write first procedure
+      de: Ersten Ablauf beschreiben
+      fr: Rédiger une première procédure
+      es: Escribir el primer procedimiento
+    groups:
+      - id: help
+        title: *a5
+        role: content
+        controls: []
+        visibleWhen: null
+    actions: []

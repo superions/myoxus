@@ -1,0 +1,37 @@
+{% extends "_layout.html" %} {% block subject %}Conferma il nuovo indirizzo
+email per Myoxus{% endblock subject %} {% block preheader %}Il nuovo indirizzo
+sarà utilizzato solo dopo la tua conferma.{% endblock preheader %} {% block
+category %}IL TUO ACCOUNT{% endblock category %} {% block heading %}Conferma il
+nuovo indirizzo email.{% endblock heading %} {% block introduction %}Hai
+richiesto di modificare l’indirizzo email del tuo account. Conferma il nuovo
+indirizzo prima di utilizzarlo in Myoxus.{% endblock introduction %} {% block
+details %}{% if email %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  NUOVO INDIRIZZO EMAIL
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ email }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}Il nuovo indirizzo sarà
+utilizzato solo dopo la tua conferma.{% endblock next_step %} {% block action
+%}Conferma nuovo indirizzo{% endblock action %} {% block note %}Non hai
+richiesto questa email? Puoi ignorarla. Non verrà modificato nulla senza la tua
+conferma.{% endblock note %} {% block reason %}Ricevi questa email perché questo
+indirizzo è stato indicato come nuovo indirizzo di un account Myoxus.{% endblock
+reason %}

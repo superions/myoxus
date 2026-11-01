@@ -1,0 +1,9 @@
+query workspaceTemplateContext($workspaceId: String!, $organization: Boolean!, $ownerUnit: Boolean!) {
+  workspace(id: $workspaceId) {
+    id
+    templateContext {
+      organizationName @include(if: $organization)
+      organizationUnitName @include(if: $ownerUnit)
+    }
+  }
+}

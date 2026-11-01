@@ -1,0 +1,840 @@
+format_version: 1
+id: myoxus.project.bug_tracker
+version: 1.0.1
+task_core:
+  id: myoxus.project.task-core
+  version: 1.0.0
+  path: myoxus.project.task-core/1.0.0.yaml
+  sha256: 8ab0ddf3d0970727e61c241ea58494f46cc8817905161ffbfefc7edec742a806
+variants:
+  - option_extensions:
+      - field_key: priority
+        options:
+          - colorRole: database.priority.lowest
+            id: priority.lowest
+            name: Lowest
+            position: 0
+          - colorRole: database.priority.critical
+            id: priority.critical
+            name: Critical
+            position: 4
+        option_order:
+          - priority.lowest
+          - priority.low
+          - priority.normal
+          - priority.high
+          - priority.critical
+    field_order:
+      - title
+      - description
+      - status
+      - priority
+      - tags
+      - owner
+      - assignees
+      - assigned_by
+      - progress
+      - public_id
+      - complexity
+      - effort
+      - cost
+      - start
+      - due
+      - completed
+      - attachments
+      - linked_document
+      - parent
+      - dependencies
+      - blocked_by
+      - watchers
+      - acceptance
+      - milestone
+    role_order:
+      - task.title
+      - task.description
+      - task.status
+      - task.priority
+      - task.tags
+      - task.owner
+      - task.assignees
+      - task.assignedBy
+      - task.progress
+      - task.publicId
+      - task.complexity
+      - task.effort
+      - task.cost
+      - task.startDate
+      - task.dueDate
+      - task.completedAt
+      - task.attachments
+      - task.document
+      - task.parent
+      - task.dependencies
+      - task.blockedBy
+      - task.watchers
+      - task.acceptanceCriteria
+      - task.milestone
+      - milestone.title
+      - milestone.description
+      - milestone.status
+      - milestone.dueDate
+      - project.template
+    priority: threeStep
+    complexity: threeStep
+    structure: tasks_only
+    spec:
+      category: project
+      complexity_preset: threeStep
+      default_structure: milestones
+      description: A focused issue workflow with status, priority, complexity and acceptance criteria.
+      fields:
+        - config:
+            SelfRelation:
+              allow_multiple: false
+              max_targets: 1
+          field_type: relation
+          key: milestone
+          name: Milestone
+          required: true
+      id: myoxus.project.bug_tracker
+      name: Bug / Issue Tracker
+      priority_preset: fiveStep
+      profile_kind: project
+      roles:
+        - config: {}
+          field_key: milestone
+          managed_state: user_editable
+          required: true
+          role_key: task.milestone
+          row_kind_scope: task
+        - config: {}
+          field_key: title
+          managed_state: user_editable
+          required: true
+          role_key: milestone.title
+          row_kind_scope: milestone
+        - config: {}
+          field_key: description
+          managed_state: user_editable
+          required: false
+          role_key: milestone.description
+          row_kind_scope: milestone
+        - config: {}
+          field_key: status
+          managed_state: user_editable
+          required: false
+          role_key: milestone.status
+          row_kind_scope: milestone
+        - config: {}
+          field_key: due
+          managed_state: user_editable
+          required: false
+          role_key: milestone.dueDate
+          row_kind_scope: milestone
+        - config:
+            templateId: myoxus.project.bug_tracker
+          field_key: title
+          managed_state: null
+          required: false
+          role_key: project.template
+          row_kind_scope: null
+      row_templates:
+        - description: Start a Project task with open status, normal priority and reviewable acceptance criteria.
+          initial_cells:
+            - - status
+              - kind: status
+                value: status.todo
+            - - priority
+              - kind: select
+                value: priority.normal
+            - - complexity
+              - kind: select
+                value: complexity.moderate
+            - - progress
+              - kind: percent
+                value: 0.0
+            - - effort
+              - kind: duration
+                value:
+                  minutes: 60
+            - - cost
+              - kind: currency
+                value:
+                  amount: 0.0
+                  currencyCode: EUR
+            - - description
+              - kind: rich_text
+                value:
+                  document:
+                    content:
+                      - content:
+                          - text: Clarify owner, scope and next action.
+                            type: text
+                        type: paragraph
+                    type: doc
+                  plainText: Clarify owner, scope and next action.
+            - - acceptance
+              - kind: rich_text
+                value:
+                  document:
+                    content:
+                      - content:
+                          - text: Definition of done is explicit and reviewable.
+                            type: text
+                        type: paragraph
+                    type: doc
+                  plainText: Definition of done is explicit and reviewable.
+          is_default: true
+          key: task
+          name: Task
+          row_kind: task
+        - description: Start a Project milestone for a dated delivery target.
+          initial_cells:
+            - - status
+              - kind: status
+                value: status.todo
+            - - description
+              - kind: rich_text
+                value:
+                  document:
+                    content:
+                      - content:
+                          - text: Clarify milestone scope, owner and acceptance criteria.
+                            type: text
+                        type: paragraph
+                    type: doc
+                  plainText: Clarify milestone scope, owner and acceptance criteria.
+          is_default: false
+          key: milestone
+          name: Milestone
+          row_kind: milestone
+      sample_rows:
+        - cells: []
+          key: Alpha milestone
+          relation_cells: []
+          row_kind: milestone
+          title: Alpha milestone
+        - cells: []
+          key: Launch readiness milestone
+          relation_cells: []
+          row_kind: milestone
+          title: Launch readiness milestone
+        - cells:
+            - - status
+              - kind: status
+                value: status.in_progress
+            - - priority
+              - kind: select
+                value: priority.high
+            - - complexity
+              - kind: select
+                value: complexity.moderate
+            - - progress
+              - kind: percent
+                value: 60.0
+            - - effort
+              - kind: duration
+                value:
+                  minutes: 120
+            - - cost
+              - kind: currency
+                value:
+                  amount: 0.0
+                  currencyCode: EUR
+            - - description
+              - kind: rich_text
+                value:
+                  document:
+                    content:
+                      - content:
+                          - text: Clarify scope, owner and next action.
+                            type: text
+                        type: paragraph
+                    type: doc
+                  plainText: Clarify scope, owner and next action.
+            - - acceptance
+              - kind: rich_text
+                value:
+                  document:
+                    content:
+                      - content:
+                          - text: Definition of done is explicit and reviewable.
+                            type: text
+                        type: paragraph
+                    type: doc
+                  plainText: Definition of done is explicit and reviewable.
+            - - start
+              - kind: date_time
+                value:
+                  allDay: false
+                  end: null
+                  start: "2026-07-13T09:00:00Z"
+                  timeZone: UTC
+            - - due
+              - kind: date_time
+                value:
+                  allDay: false
+                  end: null
+                  start: "2026-07-17T17:00:00Z"
+                  timeZone: UTC
+          key: Fix exported PDF title wrapping
+          relation_cells:
+            - - milestone
+              - - Alpha milestone
+          row_kind: task
+          title: Fix exported PDF title wrapping
+        - cells:
+            - - status
+              - kind: status
+                value: status.todo
+            - - priority
+              - kind: select
+                value: priority.critical
+            - - complexity
+              - kind: select
+                value: complexity.moderate
+            - - progress
+              - kind: percent
+                value: 10.0
+            - - effort
+              - kind: duration
+                value:
+                  minutes: 90
+            - - cost
+              - kind: currency
+                value:
+                  amount: 0.0
+                  currencyCode: EUR
+            - - description
+              - kind: rich_text
+                value:
+                  document:
+                    content:
+                      - content:
+                          - text: Clarify scope, owner and next action.
+                            type: text
+                        type: paragraph
+                    type: doc
+                  plainText: Clarify scope, owner and next action.
+            - - acceptance
+              - kind: rich_text
+                value:
+                  document:
+                    content:
+                      - content:
+                          - text: Definition of done is explicit and reviewable.
+                            type: text
+                        type: paragraph
+                    type: doc
+                  plainText: Definition of done is explicit and reviewable.
+            - - start
+              - kind: date_time
+                value:
+                  allDay: false
+                  end: null
+                  start: "2026-07-13T09:00:00Z"
+                  timeZone: UTC
+            - - due
+              - kind: date_time
+                value:
+                  allDay: false
+                  end: null
+                  start: "2026-07-17T17:00:00Z"
+                  timeZone: UTC
+          key: Reproduce trash bulk-delete failure
+          relation_cells:
+            - - milestone
+              - - Launch readiness milestone
+          row_kind: task
+          title: Reproduce trash bulk-delete failure
+        - cells:
+            - - status
+              - kind: status
+                value: status.todo
+            - - priority
+              - kind: select
+                value: priority.normal
+            - - complexity
+              - kind: select
+                value: complexity.moderate
+            - - progress
+              - kind: percent
+                value: 0.0
+            - - effort
+              - kind: duration
+                value:
+                  minutes: 60
+            - - cost
+              - kind: currency
+                value:
+                  amount: 0.0
+                  currencyCode: EUR
+            - - description
+              - kind: rich_text
+                value:
+                  document:
+                    content:
+                      - content:
+                          - text: Clarify scope, owner and next action.
+                            type: text
+                        type: paragraph
+                    type: doc
+                  plainText: Clarify scope, owner and next action.
+            - - acceptance
+              - kind: rich_text
+                value:
+                  document:
+                    content:
+                      - content:
+                          - text: Definition of done is explicit and reviewable.
+                            type: text
+                        type: paragraph
+                    type: doc
+                  plainText: Definition of done is explicit and reviewable.
+            - - start
+              - kind: date_time
+                value:
+                  allDay: false
+                  end: null
+                  start: "2026-07-13T09:00:00Z"
+                  timeZone: UTC
+            - - due
+              - kind: date_time
+                value:
+                  allDay: false
+                  end: null
+                  start: "2026-07-17T17:00:00Z"
+                  timeZone: UTC
+          key: Add regression for journal date locale
+          relation_cells:
+            - - milestone
+              - - Alpha milestone
+          row_kind: task
+          title: Add regression for journal date locale
+        - cells:
+            - - status
+              - kind: status
+                value: status.done
+            - - priority
+              - kind: select
+                value: priority.high
+            - - complexity
+              - kind: select
+                value: complexity.moderate
+            - - progress
+              - kind: percent
+                value: 100.0
+            - - effort
+              - kind: duration
+                value:
+                  minutes: 180
+            - - cost
+              - kind: currency
+                value:
+                  amount: 0.0
+                  currencyCode: EUR
+            - - description
+              - kind: rich_text
+                value:
+                  document:
+                    content:
+                      - content:
+                          - text: Clarify scope, owner and next action.
+                            type: text
+                        type: paragraph
+                    type: doc
+                  plainText: Clarify scope, owner and next action.
+            - - acceptance
+              - kind: rich_text
+                value:
+                  document:
+                    content:
+                      - content:
+                          - text: Definition of done is explicit and reviewable.
+                            type: text
+                        type: paragraph
+                    type: doc
+                  plainText: Definition of done is explicit and reviewable.
+            - - start
+              - kind: date_time
+                value:
+                  allDay: false
+                  end: null
+                  start: "2026-07-13T09:00:00Z"
+                  timeZone: UTC
+            - - due
+              - kind: date_time
+                value:
+                  allDay: false
+                  end: null
+                  start: "2026-07-17T17:00:00Z"
+                  timeZone: UTC
+          key: Verify workspace OIDC group mapping
+          relation_cells:
+            - - milestone
+              - - Launch readiness milestone
+          row_kind: task
+          title: Verify workspace OIDC group mapping
+        - cells:
+            - - status
+              - kind: status
+                value: status.in_progress
+            - - priority
+              - kind: select
+                value: priority.normal
+            - - complexity
+              - kind: select
+                value: complexity.moderate
+            - - progress
+              - kind: percent
+                value: 35.0
+            - - effort
+              - kind: duration
+                value:
+                  minutes: 120
+            - - cost
+              - kind: currency
+                value:
+                  amount: 0.0
+                  currencyCode: EUR
+            - - description
+              - kind: rich_text
+                value:
+                  document:
+                    content:
+                      - content:
+                          - text: Clarify scope, owner and next action.
+                            type: text
+                        type: paragraph
+                    type: doc
+                  plainText: Clarify scope, owner and next action.
+            - - acceptance
+              - kind: rich_text
+                value:
+                  document:
+                    content:
+                      - content:
+                          - text: Definition of done is explicit and reviewable.
+                            type: text
+                        type: paragraph
+                    type: doc
+                  plainText: Definition of done is explicit and reviewable.
+            - - start
+              - kind: date_time
+                value:
+                  allDay: false
+                  end: null
+                  start: "2026-07-13T09:00:00Z"
+                  timeZone: UTC
+            - - due
+              - kind: date_time
+                value:
+                  allDay: false
+                  end: null
+                  start: "2026-07-17T17:00:00Z"
+                  timeZone: UTC
+          key: Review database template rollback
+          relation_cells:
+            - - milestone
+              - - Alpha milestone
+          row_kind: task
+          title: Review database template rollback
+      views:
+        - config:
+            Kanban:
+              group: status
+              visible:
+                - title
+                - description
+                - status
+                - priority
+                - assignees
+                - due
+                - progress
+          kind: kanban
+          name: Kanban
+        - config:
+            Table:
+              group: status
+              visible:
+                - title
+                - description
+                - status
+                - priority
+                - tags
+                - owner
+                - assignees
+                - assigned_by
+                - progress
+                - public_id
+                - complexity
+                - effort
+                - cost
+                - start
+                - due
+                - completed
+                - attachments
+                - linked_document
+                - parent
+                - dependencies
+                - blocked_by
+                - watchers
+                - acceptance
+                - milestone
+          kind: table
+          name: Table
+        - config:
+            Progress:
+              group: milestone
+              progress: progress
+              visible:
+                - title
+                - status
+                - priority
+                - assignees
+                - due
+                - progress
+          kind: progress
+          name: Progress
+        - config:
+            List:
+              group: status
+              visible:
+                - title
+                - status
+                - priority
+                - assignees
+                - due
+                - progress
+          kind: list
+          name: List
+        - config:
+            Calendar:
+              date: due
+              visible:
+                - title
+                - status
+                - priority
+                - assignees
+                - due
+                - progress
+          kind: calendar
+          name: Calendar
+        - config:
+            Timeline:
+              end: due
+              start: start
+              visible:
+                - title
+                - status
+                - priority
+                - assignees
+                - due
+                - progress
+          kind: timeline
+          name: Timeline
+        - config:
+            Gallery:
+              cover: attachments
+              group: null
+              show_empty_cover: true
+              visible:
+                - title
+                - status
+                - priority
+                - assignees
+                - due
+                - progress
+          kind: gallery
+          name: Gallery
+      metadata:
+        name_key: com.myoxus.database.starter-template.project-bug-tracker.name
+        description_key: com.myoxus.database.starter-template.project-bug-tracker.description
+        fields:
+          - key: title
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.field.title.name
+            import_export_behavior: read_write
+          - key: description
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.field.description.name
+            import_export_behavior: read_write
+          - key: status
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.field.status.name
+            import_export_behavior: read_write
+          - key: priority
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.field.priority.name
+            import_export_behavior: read_write
+          - key: tags
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.field.tags.name
+            import_export_behavior: read_write
+          - key: owner
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.field.owner.name
+            import_export_behavior: read_write
+          - key: assignees
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.field.assignees.name
+            import_export_behavior: read_write
+          - key: assigned_by
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.field.assigned-by.name
+            import_export_behavior: read_write
+          - key: progress
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.field.progress.name
+            import_export_behavior: read_write
+          - key: public_id
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.field.public-id.name
+            import_export_behavior: computed_export
+          - key: complexity
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.field.complexity.name
+            import_export_behavior: read_write
+          - key: effort
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.field.effort.name
+            import_export_behavior: read_write
+          - key: cost
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.field.cost.name
+            import_export_behavior: read_write
+          - key: start
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.field.start.name
+            import_export_behavior: read_write
+          - key: due
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.field.due.name
+            import_export_behavior: read_write
+          - key: completed
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.field.completed.name
+            import_export_behavior: read_write
+          - key: attachments
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.field.attachments.name
+            import_export_behavior: read_write
+          - key: linked_document
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.field.linked-document.name
+            import_export_behavior: read_write
+          - key: parent
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.field.parent.name
+            import_export_behavior: read_write
+          - key: dependencies
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.field.dependencies.name
+            import_export_behavior: read_write
+          - key: blocked_by
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.field.blocked-by.name
+            import_export_behavior: read_write
+          - key: watchers
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.field.watchers.name
+            import_export_behavior: read_write
+          - key: acceptance
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.field.acceptance.name
+            import_export_behavior: read_write
+          - key: milestone
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.field.milestone.name
+            import_export_behavior: read_write
+        views:
+          - key: kanban
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.view.kanban.name
+          - key: table
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.view.table.name
+          - key: progress
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.view.progress.name
+          - key: list
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.view.list.name
+          - key: calendar
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.view.calendar.name
+          - key: timeline
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.view.timeline.name
+          - key: gallery
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.view.gallery.name
+        row_templates:
+          - key: task
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.row-template.task.name
+            description_key: com.myoxus.database.starter-template.project-bug-tracker.row-template.task.description
+          - key: milestone
+            name_key: com.myoxus.database.starter-template.project-bug-tracker.row-template.milestone.name
+            description_key: com.myoxus.database.starter-template.project-bug-tracker.row-template.milestone.description
+        sample_rows:
+          - key: sample-1
+            title_key: com.myoxus.database.starter-template.project-bug-tracker.sample-row.sample-1.title
+          - key: sample-2
+            title_key: com.myoxus.database.starter-template.project-bug-tracker.sample-row.sample-2.title
+          - key: sample-3
+            title_key: com.myoxus.database.starter-template.project-bug-tracker.sample-row.sample-3.title
+          - key: sample-4
+            title_key: com.myoxus.database.starter-template.project-bug-tracker.sample-row.sample-4.title
+          - key: sample-5
+            title_key: com.myoxus.database.starter-template.project-bug-tracker.sample-row.sample-5.title
+          - key: sample-6
+            title_key: com.myoxus.database.starter-template.project-bug-tracker.sample-row.sample-6.title
+          - key: sample-7
+            title_key: com.myoxus.database.starter-template.project-bug-tracker.sample-row.sample-7.title
+        import_mappings:
+          - columnMappings:
+              - fieldKey: title
+                required: true
+                sourceHeader: Task
+              - fieldKey: description
+                required: true
+                sourceHeader: Description
+              - fieldKey: status
+                required: true
+                sourceHeader: Status
+              - fieldKey: priority
+                required: true
+                sourceHeader: Priority
+              - fieldKey: tags
+                required: true
+                sourceHeader: Tags
+              - fieldKey: owner
+                required: true
+                sourceHeader: Owner
+              - fieldKey: assignees
+                required: true
+                sourceHeader: Assignees
+              - fieldKey: assigned_by
+                required: true
+                sourceHeader: Assigned by
+              - fieldKey: progress
+                required: true
+                sourceHeader: Progress
+              - fieldKey: public_id
+                required: false
+                sourceHeader: Task ID
+              - fieldKey: complexity
+                required: false
+                sourceHeader: Complexity
+              - fieldKey: effort
+                required: false
+                sourceHeader: Effort
+              - fieldKey: cost
+                required: false
+                sourceHeader: Cost
+              - fieldKey: start
+                required: false
+                sourceHeader: Start date
+              - fieldKey: due
+                required: false
+                sourceHeader: Due date
+              - fieldKey: completed
+                required: false
+                sourceHeader: Completed at
+              - fieldKey: attachments
+                required: false
+                sourceHeader: Attachments
+              - fieldKey: linked_document
+                required: false
+                sourceHeader: Linked document
+              - fieldKey: parent
+                required: false
+                sourceHeader: Parent
+              - fieldKey: dependencies
+                required: false
+                sourceHeader: Dependencies
+              - fieldKey: blocked_by
+                required: false
+                sourceHeader: Blocked by
+              - fieldKey: watchers
+                required: false
+                sourceHeader: Watchers
+              - fieldKey: acceptance
+                required: false
+                sourceHeader: Acceptance criteria
+              - fieldKey: milestone
+                required: true
+                sourceHeader: Milestone
+            key: default-csv
+            nameKey: com.myoxus.database.starter-template.project-bug-tracker.import-mapping.default-csv.name
+supported_predecessors:
+  - 1.0.0

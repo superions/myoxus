@@ -1,0 +1,16 @@
+mutation ImportUsers($input: ImportUsersInput!) {
+  admin {
+    importUsers(input: $input) {
+      __typename
+      ... on UserType {
+        id
+        name
+        email
+      }
+      ... on UserImportFailedType {
+        email
+        error
+      }
+    }
+  }
+}

@@ -1,0 +1,12 @@
+query userOrganizationMemberships($userId: ID!) {
+  admin {
+    userOrganizationMemberships(userId: $userId) {
+      unitId
+      unitName
+      unitSlug
+      role
+      source
+      joinedAt
+    }
+  }
+}

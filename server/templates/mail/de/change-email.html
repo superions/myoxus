@@ -1,0 +1,37 @@
+{% extends "_layout.html" %} {% block subject %}Neue E-Mail-Adresse für Myoxus
+bestätigen{% endblock subject %} {% block preheader %}Die neue Adresse wird erst
+nach deiner Bestätigung übernommen.{% endblock preheader %} {% block category
+%}DEIN KONTO{% endblock category %} {% block heading %}Bestätige deine neue
+E-Mail-Adresse.{% endblock heading %} {% block introduction %}du hast eine
+Änderung der E-Mail-Adresse deines Myoxus-Kontos angefordert. Bitte bestätige
+die neue Adresse, bevor sie für dein Konto verwendet wird.{% endblock
+introduction %} {% block details %}{% if email %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  NEUE E-MAIL-ADRESSE
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ email }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}Die neue Adresse wird
+erst nach deiner Bestätigung übernommen.{% endblock next_step %} {% block action
+%}Neue Adresse bestätigen{% endblock action %} {% block note %}Du hast diese
+E-Mail nicht angefordert? Dann kannst du sie ignorieren. Ohne deine Bestätigung
+wird nichts geändert.{% endblock note %} {% block reason %}Du erhältst diese
+E-Mail, weil diese Adresse als neue E-Mail-Adresse für ein Myoxus-Konto
+angegeben wurde.{% endblock reason %}

@@ -1,0 +1,151 @@
+query AdminQueueStatus {
+  admin {
+    queueStatus {
+      redisAvailable
+      degraded
+      queues {
+        name
+        displayName
+        paused
+        degraded
+        history {
+          timestamp
+          pending
+        }
+        counts {
+          waiting
+          active
+          completed
+          failed
+          delayed
+          stalled
+        }
+      }
+    }
+  }
+}
+
+query AdminQueueJobs(
+  $queueName: String!
+  $status: String!
+  $cursor: Int!
+  $limit: Int!
+) {
+  admin {
+    queueJobs(
+      queueName: $queueName
+      status: $status
+      cursor: $cursor
+      limit: $limit
+    ) {
+      totalCount
+      numOfPages
+      nextCursor
+      jobs {
+        id
+        name
+        timestamp
+        attemptsMade
+        finishedOn
+        failedReason
+        data
+        returnValue
+        workspaceContentOperation {
+          ...WorkspaceContentOperationProjection
+        }
+      }
+    }
+  }
+}
+
+mutation AdminPauseQueue($queueName: String!) {
+  admin {
+    pauseQueue(queueName: $queueName) {
+      ok
+      name
+      error
+    }
+  }
+}
+
+mutation AdminResumeQueue($queueName: String!) {
+  admin {
+    resumeQueue(queueName: $queueName) {
+      ok
+      name
+      error
+    }
+  }
+}
+
+mutation AdminPauseAllQueues {
+  admin {
+    pauseAllQueues {
+      ok
+      failed
+      error
+    }
+  }
+}
+
+mutation AdminResumeAllQueues {
+  admin {
+    resumeAllQueues {
+      ok
+      failed
+      error
+    }
+  }
+}
+
+mutation AdminCleanQueue(
+  $queueName: String!
+  $status: String!
+  $gracePeriodMs: Int!
+) {
+  admin {
+    cleanQueue(
+      queueName: $queueName
+      status: $status
+      gracePeriodMs: $gracePeriodMs
+    ) {
+      ok
+      name
+      removed
+      error
+    }
+  }
+}
+
+mutation AdminEmptyQueue($queueName: String!) {
+  admin {
+    emptyQueue(queueName: $queueName) {
+      ok
+      name
+      removed
+      error
+    }
+  }
+}
+
+mutation AdminRetryQueueJob($queueName: String!, $jobId: String!) {
+  admin {
+    retryJob(queueName: $queueName, jobId: $jobId) {
+      ok
+      name
+      jobId
+      error
+    }
+  }
+}
+
+mutation AdminPromoteQueueJob($queueName: String!, $jobId: String!) {
+  admin {
+    promoteJob(queueName: $queueName, jobId: $jobId) {
+      ok
+      name
+      jobId
+      error
+    }
+  }
+}

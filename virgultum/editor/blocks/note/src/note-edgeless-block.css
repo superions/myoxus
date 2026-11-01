@@ -1,0 +1,73 @@
+.virgultum-note-edgeless-container {
+  height: 100%;
+  padding: 24px;
+  box-sizing: border-box;
+  pointer-events: all;
+  transform-origin: 0 0;
+  font-weight: 400;
+  line-height: var(--myoxus-line-height);
+}
+
+.virgultum-note-collapse-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  z-index: 2;
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0.2;
+  transition: opacity 0.3s;
+}
+
+.virgultum-note-collapse-button:hover {
+  opacity: 1;
+}
+
+.virgultum-note-collapse-button.flip {
+  transform: translateX(-50%) rotate(180deg);
+}
+
+.virgultum-note-background {
+  position: absolute;
+  border-color: var(--myoxus-black-10);
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.virgultum-note-edgeless-container[data-editing="true"]
+  .virgultum-note-background {
+  left: -20px;
+  top: -20px;
+  width: calc(100% + 40px);
+  height: calc(100% + 40px);
+  transition:
+    left 0.3s,
+    top 0.3s,
+    width 0.3s,
+    height 0.3s;
+  box-shadow: var(--myoxus-active-shadow);
+}
+
+.virgultum-note-clip-container {
+  /* Paint all document content above the positioned note background. Individual
+     blocks must not need their own stacking layers just to remain visible. */
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.virgultum-note-collapsed-content {
+  position: absolute;
+  background: var(--myoxus-white);
+  opacity: 0.5;
+  pointer-events: none;
+  border: 2px var(--myoxus-blue) solid;
+  border-top: unset;
+  border-radius: 0 0 8px 8px;
+}

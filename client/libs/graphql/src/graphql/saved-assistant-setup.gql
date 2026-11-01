@@ -1,0 +1,54 @@
+fragment SavedAssistantSelectionFragment on SavedAssistantSelection {
+  packageId
+  defaults { input value { ...AssistantValueFragment } }
+  documentSources { componentId templateId version digest }
+  databaseSources { componentId definitionId }
+  workflow { id version digest }
+}
+
+fragment SavedSetupConfigurationFragment on SavedSetupConfiguration {
+  id name context assistanceMode
+  package { ...SavedAssistantSelectionFragment }
+  project { ...SavedAssistantSelectionFragment }
+  setup { ...SavedAssistantSelectionFragment }
+}
+
+fragment SavedSetupPreferencesFragment on UserPreferencesType {
+  updatedAt
+  values { savedSetups { ...SavedSetupConfigurationFragment } }
+}
+
+query savedAssistantSetups {
+  currentUser {
+    id
+    preferences { ...SavedSetupPreferencesFragment }
+  }
+}
+
+mutation saveAssistantSetup($expectedUserId: ID!, $input: SaveAssistantSetupInput!) {
+  saveAssistantSetup(expectedUserId: $expectedUserId, input: $input) { ...SavedSetupPreferencesFragment }
+}
+
+mutation deleteAssistantSetup($expectedUserId: ID!, $id: ID!) {
+  deleteAssistantSetup(expectedUserId: $expectedUserId, id: $id) { ...SavedSetupPreferencesFragment }
+}
+
+fragment ResolvedSavedAssistantSelectionFragment on ResolvedSavedAssistantSelection {
+  descriptor { identity { ...AssistantPackageIdentityFragment } contexts }
+  defaults { input value { ...AssistantValueFragment } }
+  cleared { inputId componentId reason }
+  unavailable
+}
+
+query resolveSavedAssistantSetup($id: ID!) {
+  currentUser {
+    id
+    resolveSavedAssistantSetup(id: $id) {
+      configuration { ...SavedSetupConfigurationFragment }
+      package { ...ResolvedSavedAssistantSelectionFragment }
+      project { ...ResolvedSavedAssistantSelectionFragment }
+      setup { ...ResolvedSavedAssistantSelectionFragment }
+      unavailable
+    }
+  }
+}

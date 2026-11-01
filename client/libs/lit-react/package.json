@@ -1,0 +1,22 @@
+{
+  "name": "@myoxus/lit-react",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./utils": "./src/utils.ts",
+    "./*": "./src/*"
+  },
+  "dependencies": {
+    "@virgultum/shared": "workspace:*",
+    "lit": "^3.3.3",
+    "nanoid": "6.0.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "vitest": "4.1.11"
+  },
+  "license": "AGPL-3.0-or-later"
+}

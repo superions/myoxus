@@ -1,0 +1,59 @@
+{% extends "_layout.html" %} {% block subject %}Accesso terminato a «{{
+workspace_name }}»{% endblock subject %} {% block preheader %}Apri Myoxus per
+continuare negli altri spazi di lavoro.{% endblock preheader %} {% block
+category %}COLLABORAZIONE{% endblock category %} {% block heading %}Il tuo
+accesso è terminato.{% endblock heading %} {% block introduction %}Il tuo
+accesso allo spazio di lavoro è stato revocato. Non puoi più aprire i suoi
+contenuti con questo account.{% endblock introduction %} {% block details %}{%
+if workspace_name %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  SPAZIO DI LAVORO
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ workspace_name }}
+</p>
+{% endif %}{% if actor %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Da
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ actor }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}Apri Myoxus per
+continuare negli altri spazi di lavoro.{% endblock next_step %} {% block action
+%}Apri Myoxus{% endblock action %} {% block note %}Trovi le informazioni
+aggiornate e le azioni disponibili direttamente in Myoxus.{% endblock note %} {%
+block reason %}Ricevi questa email perché il tuo account è stato rimosso da
+questo spazio di lavoro.{% endblock reason %}

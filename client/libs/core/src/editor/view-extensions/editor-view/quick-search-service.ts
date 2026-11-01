@@ -1,0 +1,181 @@
+import { DocsService } from "@myoxus/core/modules/doc";
+import {
+  CreationQuickSearchSession,
+  DocsQuickSearchSession,
+  LinksQuickSearchSession,
+  QuickSearchService,
+  RecentDocsQuickSearchSession,
+} from "@myoxus/core/modules/quicksearch";
+import { ExternalLinksQuickSearchSession } from "@myoxus/core/modules/quicksearch/impls/external-links";
+import { JournalsQuickSearchSession } from "@myoxus/core/modules/quicksearch/impls/journals";
+import type { FrameworkProvider } from "@myoxus/infra";
+import { track } from "@myoxus/track";
+import {
+  BookmarkSlashMenuConfigIdentifier,
+  insertLinkByQuickSearchCommand,
+} from "@virgultum/editor/blocks/bookmark";
+import { LinkedDocSlashMenuConfigIdentifier } from "@virgultum/editor/blocks/embed-doc";
+import type { ServiceIdentifier } from "@virgultum/editor/global/di";
+import {
+  QuickSearchExtension,
+  type QuickSearchResult,
+} from "@virgultum/editor/shared/services";
+import { type ExtensionType } from "@virgultum/editor/store";
+import type {
+  SlashMenuConfig,
+  SlashMenuItem,
+} from "@virgultum/editor/widgets/slash-menu";
+import { pick } from "lodash-es";
+
+export function patchQuickSearchService(framework: FrameworkProvider) {
+  const QuickSearch = QuickSearchExtension({
+    async openQuickSearch() {
+      let searchResult: QuickSearchResult = null;
+      searchResult = await new Promise((resolve, reject) =>
+        framework.get(QuickSearchService).quickSearch.show(
+          [
+            framework.createEntity(RecentDocsQuickSearchSession),
+            framework.createEntity(CreationQuickSearchSession),
+            framework.createEntity(DocsQuickSearchSession),
+            framework.createEntity(LinksQuickSearchSession),
+            framework.createEntity(ExternalLinksQuickSearchSession),
+            framework.createEntity(JournalsQuickSearchSession),
+          ],
+          (result) => {
+            if (result === null) {
+              resolve(null);
+              return;
+            }
+
+            if (result.source === "docs") {
+              resolve({
+                docId: result.payload.docId,
+              });
+              return;
+            }
+
+            if (result.source === "recent-doc") {
+              resolve({
+                docId: result.payload.docId,
+              });
+              return;
+            }
+
+            if (result.source === "link") {
+              resolve({
+                docId: result.payload.docId,
+                params: pick(result.payload, [
+                  "mode",
+                  "blockIds",
+                  "elementIds",
+                ]),
+              });
+              return;
+            }
+
+            if (result.source === "date-picker") {
+              result.payload
+                .getDocId()
+                .then((docId) => {
+                  if (docId) {
+                    resolve({ docId });
+                  }
+                })
+                .catch(reject);
+              return;
+            }
+
+            if (result.source === "external-link") {
+              const externalUrl = result.payload.url;
+              resolve({ externalUrl });
+              return;
+            }
+
+            if (result.source === "creation") {
+              const docsService = framework.get(DocsService);
+              const mode =
+                result.id === "creation:create-edgeless" ? "edgeless" : "page";
+              const newDoc = docsService.createDoc({
+                primaryMode: mode,
+                title: result.payload.title,
+              });
+
+              resolve({ docId: newDoc.id });
+              return;
+            }
+          },
+          {
+            label: {
+              i18nKey: "com.myoxus.cmdk.insert-links",
+            },
+            placeholder: {
+              i18nKey: "com.myoxus.cmdk.docs.placeholder",
+            },
+          },
+        ),
+      );
+
+      return searchResult;
+    },
+  });
+
+  const SlashMenuQuickSearchExtension: ExtensionType = {
+    setup: (di) => {
+      const overrideFn = (identifier: ServiceIdentifier<SlashMenuConfig>) => {
+        const prev = di.getFactory(identifier);
+        if (!prev) return;
+
+        di.override(identifier, (provider) => {
+          const prevConfig: SlashMenuConfig = prev(provider);
+
+          if (typeof prevConfig.items === "function") {
+            const prevConfigItemGenerator = prevConfig.items;
+            prevConfig.items = (ctx) =>
+              prevConfigItemGenerator(ctx).map(modifyFn);
+          } else {
+            prevConfig.items = prevConfig.items.map(modifyFn);
+          }
+
+          return prevConfig;
+        });
+      };
+
+      overrideFn(LinkedDocSlashMenuConfigIdentifier);
+      overrideFn(BookmarkSlashMenuConfigIdentifier);
+
+      const modifyFn = (item: SlashMenuItem): SlashMenuItem => {
+        if ("action" in item && item.id === "block-bookmark-insert") {
+          item.action = ({ std }) => {
+            const [success, { insertedLinkType }] = std.command.exec(
+              insertLinkByQuickSearchCommand,
+            );
+
+            if (!success) return;
+
+            insertedLinkType
+              ?.then((type) => {
+                const flavour = type?.flavour;
+                if (!flavour) return;
+
+                if (flavour === "myoxus:bookmark") {
+                  track.doc.editor.slashMenu.bookmark();
+                  return;
+                }
+
+                if (flavour === "myoxus:embed-linked-doc") {
+                  track.doc.editor.slashMenu.linkDoc({
+                    control: "linkDoc",
+                  });
+                  return;
+                }
+              })
+              .catch(console.error);
+          };
+        }
+        return item;
+      };
+    },
+  };
+
+  return [QuickSearch, SlashMenuQuickSearchExtension];
+}

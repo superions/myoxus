@@ -1,0 +1,26 @@
+# syntax=docker/dockerfile:1.7
+
+FROM node:26-trixie-slim AS identity
+WORKDIR /workspace
+
+ARG GITHUB_SHA=localdev
+ARG MYOXUS_CLIENT_VERSION
+COPY package.json ./
+COPY build/scripts/release/write-release-identity.mjs build/scripts/release/write-release-identity.mjs
+RUN node build/scripts/release/write-release-identity.mjs \
+      --role admin \
+      --revision "${GITHUB_SHA}" \
+      --expected-version "${MYOXUS_CLIENT_VERSION}" \
+      --output /out/release.json
+
+FROM scratch AS artifact
+
+ARG GITHUB_SHA=localdev
+ARG MYOXUS_CLIENT_VERSION
+LABEL org.opencontainers.image.title="Myoxus Admin static artifact" \
+      org.opencontainers.image.version="${MYOXUS_CLIENT_VERSION}" \
+      org.opencontainers.image.revision="${GITHUB_SHA}" \
+      org.opencontainers.image.source="https://github.com/superions/myoxus"
+
+COPY --from=identity /out/release.json /myoxus-artifact/release.json
+COPY client/frontends/static/admin/ /myoxus-artifact/admin/

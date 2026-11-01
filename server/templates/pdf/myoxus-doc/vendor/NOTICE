@@ -1,0 +1,11 @@
+Original ilm 2.1.1 by Talal: MIT-0; see the unchanged upstream LICENSE.
+Source: https://github.com/talal/ilm
+Revision: b8429f456ec519717a11e24656ceaf0cc1435d82
+Original lib.typ SHA-256: d8b1ffe129e40e54e266871175e18f2f3fb5e6bbc13cc676de46869fece9a1cb
+Bundled ilm.typ SHA-256: 84ba2ae0d780a4402da5c607dd143a4d8bf2c2cc7183ddaa9224e91f5cb40fa9
+Myoxus modifications: parameterize effective text, paragraph and page styles,
+structural colors, and accept content footers. Preserve upstream layout and
+inactive bibliography, appendix and index implementations. No package imports.
+The retained ilm.typ file, including Myoxus modifications, is MIT-0.
+The independently authored Myoxus adapter and bundle metadata are
+AGPL-3.0-or-later, Myoxus contributors 2026.

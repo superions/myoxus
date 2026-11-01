@@ -1,0 +1,166 @@
+formatVersion: 1
+id: myoxus.assistant.workspace.empty
+version: 1.0.0
+name: &id001
+  en: Empty workspace
+  de: Leerer Arbeitsbereich
+  fr: Espace de travail vide
+  es: Espacio de trabajo vacío
+description:
+  en:
+    Start without pages, examples or a Project. Workspace Tasks is ready for your
+    own tasks.
+  de:
+    Beginne ohne Seiten, Beispiele oder ein Projekt. Arbeitsbereichsaufgaben sind
+    für deine eigenen Aufgaben bereit.
+  fr:
+    Commencez sans pages, exemples ni projet. Les tâches de l’espace sont prêtes
+    pour vos propres tâches.
+  es:
+    Empieza sin páginas, ejemplos ni proyecto. Las tareas del espacio están listas
+    para tus propias tareas.
+contexts:
+  - workspaceCreation
+inputs:
+  - id: name
+    target: workspaceName
+    label:
+      en: Name
+      de: Name
+      fr: Nom
+      es: Nombre
+    description: null
+    valueType: text
+    required: true
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: initialContent
+    target: initialContent
+    label:
+      en: Initial content
+      de: Anfangsinhalt
+      fr: Contenu initial
+      es: Contenido inicial
+    description: null
+    valueType: choice
+    required: true
+    default:
+      kind: choice
+      value: empty
+    choices:
+      - id: empty
+        label: *id001
+        value:
+          kind: choice
+          value: empty
+    visibleWhen: null
+  - id: assistance
+    target: assistanceMode
+    label:
+      en: Assistance
+      de: Unterstützung
+      fr: Assistance
+      es: Asistencia
+    description:
+      en: Selecting a mode does not start automatic actions.
+      de: Die Modusauswahl startet keine automatischen Aktionen.
+      fr: Choisir un mode ne déclenche aucune action automatique.
+      es: Elegir un modo no inicia acciones automáticas.
+    valueType: choice
+    required: true
+    default: null
+    choices:
+      - id: manual
+        label:
+          en: Manual
+          de: Manuell
+          fr: Manuel
+          es: Manual
+        value:
+          kind: choice
+          value: manual
+      - id: guided
+        label:
+          en: Guided
+          de: Geführt
+          fr: Guidé
+          es: Guiado
+        value:
+          kind: choice
+          value: guided
+      - id: automatic
+        label:
+          en: Automatic
+          de: Automatisch
+          fr: Automatique
+          es: Automático
+        value:
+          kind: choice
+          value: automatic
+    visibleWhen: null
+components:
+  - id: workspace
+    action:
+      kind: createWorkspace
+      inputs:
+        workspaceName:
+          kind: input
+          input: name
+        initialContent:
+          kind: input
+          input: initialContent
+        assistanceMode:
+          kind: input
+          input: assistance
+presentation:
+  steps:
+    - id: create
+      title: *id001
+      groups:
+        - id: choices
+          title: null
+          role: content
+          controls:
+            - kind: input
+              input: name
+              control: text
+            - kind: input
+              input: initialContent
+              control: radioCards
+            - kind: input
+              input: assistance
+              control: radioCards
+          visibleWhen: null
+        - id: review
+          title: null
+          role: review
+          controls:
+            - kind: workspaceReview
+          visibleWhen: null
+      actions:
+        - id: create
+          action: createWorkspace
+          component: workspace
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: cancel
+          action: cancel
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: check
+          action: check
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: close
+          action: close
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+  dialogs: []

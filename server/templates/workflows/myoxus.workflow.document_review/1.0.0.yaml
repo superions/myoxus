@@ -1,0 +1,37 @@
+formatVersion: 1
+id: myoxus.workflow.document_review
+version: 1.0.0
+capabilityVersions:
+  createTaskFromDocument: 1
+  awaitSignal: 1
+  branch: 1
+nodes:
+  - id: review-task
+    action:
+      kind: createTaskFromDocument
+      component: review-task
+  - id: decision
+    action:
+      kind: awaitSignal
+      waitId: review-decision
+      deadline:
+        kind: input
+        input: deadline
+  - id: decision-branch
+    action:
+      kind: branch
+      outcome:
+        kind: result
+        component: decision
+        value: outcome
+      cases:
+        approve:
+          - id: handover
+            action:
+              kind: createTaskFromDocument
+              component: handover
+        requestChanges:
+          - id: revision
+            action:
+              kind: createTaskFromDocument
+              component: revision

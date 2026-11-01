@@ -1,0 +1,16 @@
+query templateRevisions($templateId: ID!, $skip: Int, $take: Int) {
+  admin {
+    templateRevisions(templateId: $templateId, skip: $skip, take: $take) {
+      id
+      templateId
+      version
+      state
+      checksum
+      manifest
+      releaseNotes
+      createdAt
+      publishedAt
+      createdBy
+    }
+  }
+}

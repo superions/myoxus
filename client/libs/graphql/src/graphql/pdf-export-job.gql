@@ -1,0 +1,18 @@
+query pdfExportJob($jobId: String!) {
+  pdfExportJob(jobId: $jobId) {
+    id
+    workspaceId
+    docId
+    status
+    downloadUrl
+    errorClass
+    errorDetail
+    createdAt
+    expiresAt
+    unmappedFontFamilies
+  }
+}
+
+mutation cancelPdfExportJob($jobId: String!) {
+  cancelPdfExportJob(jobId: $jobId)
+}

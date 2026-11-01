@@ -1,0 +1,17 @@
+{
+  "id": "sync_join_load_push_path_contract",
+  "kind": "socketio_handshake",
+  "smoke": false,
+  "description": "Golden fixture anchor for sync join/load/push over Socket.io transport",
+  "request": {
+    "path": "/socket.io/",
+    "query": {
+      "EIO": "4",
+      "transport": "polling"
+    }
+  },
+  "expect": {
+    "status_any": [200],
+    "body_prefix": "0{"
+  }
+}

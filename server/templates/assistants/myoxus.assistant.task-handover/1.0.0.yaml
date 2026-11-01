@@ -1,0 +1,300 @@
+formatVersion: 1
+id: myoxus.assistant.task-handover
+version: 1.0.0
+name:
+  en: Handover after prerequisites
+  de: Übergabe nach Voraussetzungen
+  fr: Transmettre après les prérequis
+  es: Entregar tras los requisitos previos
+description:
+  en:
+    Wait for selected existing Tasks to complete, then create one assigned task
+    linked to an existing document. No Project, prerequisite link or access
+    grant is created.
+  de:
+    Warte auf den Abschluss ausgewählter bestehender Aufgaben und erstelle dann
+    eine zugewiesene Aufgabe mit dem bestehenden Dokument. Es entstehen weder
+    ein Projekt noch Voraussetzungskanten oder neue Zugriffsrechte.
+  fr: Attendez la fin des tâches existantes sélectionnées, puis créez une tâche
+    attribuée liée à un document existant. Aucun projet, lien de dépendance ni
+    droit d’accès n’est créé.
+  es:
+    Espera a que finalicen las tareas existentes seleccionadas y crea una tarea
+    asignada vinculada a un documento existente. No se crean proyectos, enlaces
+    de dependencia ni permisos de acceso.
+contexts:
+  - taskContainerAssistance
+inputs:
+  - id: document
+    target: sourceDocument
+    label:
+      en: Document
+      de: Dokument
+      fr: Document
+      es: Documento
+    description: null
+    valueType: document
+    required: true
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: prerequisites
+    target: prerequisiteTasks
+    label:
+      en: Prerequisite Tasks
+      de: Vorausgesetzte Aufgaben
+      fr: Tâches prérequises
+      es: Tareas previas
+    description:
+      en:
+        Select distinct existing Tasks from Workspace Tasks or ready Projects in
+        this workspace. Already completed Tasks count; no blocker links are
+        added.
+      de: Wähle unterschiedliche bestehende Aufgaben aus Workspace-Aufgaben oder
+        bereiten Projekten dieses Workspace. Bereits abgeschlossene Aufgaben
+        zählen; es entstehen keine Blocker-Verknüpfungen.
+      fr:
+        Sélectionnez des tâches existantes distinctes dans les tâches de l’espace ou
+        ses projets prêts. Les tâches déjà terminées comptent ; aucun lien de
+        blocage n’est ajouté.
+      es: Selecciona tareas existentes distintas de las tareas del espacio o sus
+        proyectos preparados. Las tareas ya completadas cuentan; no se añaden
+        enlaces de bloqueo.
+    valueType: taskReferences
+    required: true
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: responsible
+    target: assignees
+    label:
+      en: Responsible person
+      de: Verantwortliche Person
+      fr: Personne responsable
+      es: Persona responsable
+    description:
+      en: Choose exactly one person for the handover task.
+      de: Wähle genau eine Person für die Übergabeaufgabe.
+      fr: Choisissez une seule personne pour la tâche de transmission.
+      es: Elige exactamente una persona para la tarea de entrega.
+    valueType: members
+    required: true
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: destination
+    target: destination
+    label:
+      en: Task destination
+      de: Aufgabenziel
+      fr: Destination des tâches
+      es: Destino de tareas
+    description:
+      en:
+        Workspace Tasks is the default. Choose another ready native Project only if
+        intended.
+      de:
+        Workspace-Aufgaben sind das Standardziel. Wähle nur bei Bedarf ein anderes
+        bereites natives Projekt.
+      fr:
+        Les tâches de l’espace sont la destination par défaut. Choisissez un autre
+        projet natif prêt uniquement si vous le souhaitez.
+      es:
+        Las tareas del espacio son el destino predeterminado. Elige otro proyecto
+        nativo preparado solo si lo deseas.
+    valueType: databaseDestination
+    required: false
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: title
+    target: title
+    label:
+      en: Handover task title
+      de: Titel der Übergabeaufgabe
+      fr: Titre de la tâche de transmission
+      es: Título de la tarea de entrega
+    description: null
+    valueType: text
+    required: true
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: deadline
+    target: deadline
+    label:
+      en: Prerequisite deadline
+      de: Frist für die Voraussetzungen
+      fr: Échéance des prérequis
+      es: Plazo de los requisitos previos
+    description:
+      en:
+        Choose a future date and time by which every prerequisite must finish. This
+        is the waiting deadline, not the new task’s due date.
+      de: Wähle einen zukünftigen Zeitpunkt, bis zu dem alle Voraussetzungen
+        abgeschlossen sein müssen. Dies ist die Wartefrist, nicht die Fälligkeit
+        der neuen Aufgabe.
+      fr: Choisissez une date et une heure futures auxquelles tous les prérequis
+        doivent être terminés. Il s’agit de la limite d’attente, pas de
+        l’échéance de la nouvelle tâche.
+      es:
+        Elige una fecha y hora futuras para completar todos los requisitos previos.
+        Es el límite de espera, no el vencimiento de la nueva tarea.
+    valueType: dateTime
+    required: true
+    default: null
+    choices: []
+    visibleWhen: null
+components:
+  - id: request-handover
+    action:
+      kind: taskHandover
+      inputs:
+        sourceDocument:
+          kind: input
+          input: document
+        assignees:
+          kind: input
+          input: responsible
+        destination:
+          kind: input
+          input: destination
+        title:
+          kind: input
+          input: title
+        prerequisiteTasks:
+          kind: input
+          input: prerequisites
+        deadline:
+          kind: input
+          input: deadline
+  - id: handover
+    action:
+      kind: createTaskFromDocument
+      inputs:
+        sourceDocument:
+          kind: input
+          input: document
+        assignees:
+          kind: input
+          input: responsible
+        destination:
+          kind: input
+          input: destination
+        title:
+          kind: input
+          input: title
+presentation:
+  steps:
+    - id: details
+      title:
+        en: Handover after prerequisites
+        de: Übergabe nach Voraussetzungen
+        fr: Transmettre après les prérequis
+        es: Entregar tras los requisitos previos
+      groups:
+        - id: request
+          title: null
+          role: content
+          controls:
+            - kind: input
+              input: document
+              control: document
+            - kind: input
+              input: prerequisites
+              control: taskReferences
+            - kind: input
+              input: responsible
+              control: members
+            - kind: input
+              input: destination
+              control: destination
+            - kind: input
+              input: title
+              control: text
+            - kind: input
+              input: deadline
+              control: dateTime
+          visibleWhen: null
+      actions:
+        - id: cancel
+          label:
+            en: Cancel
+            de: Abbrechen
+            fr: Annuler
+            es: Cancelar
+          action: cancel
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: prepare
+          label:
+            en: Review handover
+            de: Übergabe überprüfen
+            fr: Vérifier la transmission
+            es: Revisar entrega
+          action: prepareTaskHandover
+          component: null
+          targetStep: null
+          dialog: confirm
+          visibleWhen: null
+        - id: check
+          label:
+            en: Check status
+            de: Status prüfen
+            fr: Vérifier le statut
+            es: Comprobar estado
+          action: check
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: close
+          label:
+            en: Close
+            de: Schließen
+            fr: Fermer
+            es: Cerrar
+          action: close
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+  dialogs:
+    - id: confirm
+      title:
+        en: Review handover
+        de: Übergabe überprüfen
+        fr: Vérifier la transmission
+        es: Revisar entrega
+      groups:
+        - id: plan
+          title: null
+          role: review
+          controls:
+            - kind: taskHandoverReview
+          visibleWhen: null
+      actions:
+        - id: back
+          label:
+            en: Back to editing
+            de: Zurück zur Bearbeitung
+            fr: Revenir à la modification
+            es: Volver a editar
+          action: cancel
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: request
+          label:
+            en: Start handover
+            de: Übergabe starten
+            fr: Démarrer la transmission
+            es: Iniciar entrega
+          action: startTaskHandover
+          component: request-handover
+          targetStep: null
+          dialog: null
+          visibleWhen: null

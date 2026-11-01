@@ -1,0 +1,137 @@
+formatVersion: 1
+id: myoxus.assistant.taskMovement
+version: 1.1.0
+name:
+  en: Move to Project
+  de: In Projekt verschieben
+  fr: Déplacer vers un projet
+  es: Mover a un proyecto
+description:
+  en: The same Task keeps its supported Task field values, source link and content link. The Project assigns new display IDs. People with access to the destination can read the Task title and copied description. Permissions for the original source and content documents remain unchanged. Review the included and required related Tasks before confirming.
+  de: Dieselbe Aufgabe behält ihre unterstützten Aufgabenfeldwerte, den Quellenlink und den Inhaltslink. Das Projekt vergibt neue Anzeigenummern. Personen mit Zugriff auf das Ziel können den Aufgabentitel und die kopierte Beschreibung lesen. Die Berechtigungen für das ursprüngliche Quelldokument und das Inhaltsdokument bleiben unverändert. Prüfe vor dem Bestätigen die enthaltenen und zusätzlich erforderlichen Aufgaben.
+  fr: La même tâche conserve les valeurs de ses champs de tâche pris en charge, son lien vers la source et son lien vers le contenu. Le projet attribue de nouveaux identifiants d’affichage. Les personnes ayant accès à la destination peuvent lire le titre et la description copiée de la tâche. Les autorisations des documents source et de contenu restent inchangées. Vérifiez les tâches incluses et les tâches liées requises avant de confirmer.
+  es: La misma tarea conserva los valores de sus campos de tarea compatibles, su enlace al origen y su enlace al contenido. El proyecto asigna nuevos identificadores visibles. Las personas con acceso al destino pueden leer el título y la descripción copiada de la tarea. Los permisos de los documentos originales de origen y contenido no cambian. Revisa las tareas incluidas y las tareas relacionadas necesarias antes de confirmar.
+contexts:
+  - taskMovement
+inputs:
+  - id: target
+    target: destination
+    label:
+      en: Destination
+      de: Ziel
+      fr: Destination
+      es: Destino
+    description: null
+    valueType: databaseDestination
+    required: false
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: phase
+    target: phase
+    label:
+      en: Phases
+      de: Phasen
+      fr: Phases
+      es: Fases
+    description: null
+    valueType: row
+    required: false
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: milestone
+    target: milestone
+    label:
+      en: Milestones
+      de: Meilensteine
+      fr: Jalons
+      es: Hitos
+    description: null
+    valueType: row
+    required: false
+    default: null
+    choices: []
+    visibleWhen: null
+components: []
+presentation:
+  steps:
+    - id: move
+      title:
+        en: Move to Project
+        de: In Projekt verschieben
+        fr: Déplacer vers un projet
+        es: Mover a un proyecto
+      groups:
+        - id: destination
+          title: null
+          role: content
+          controls:
+            - kind: input
+              input: target
+              control: destination
+            - kind: destinationAudience
+            - kind: input
+              input: phase
+              control: row
+            - kind: input
+              input: milestone
+              control: row
+          visibleWhen: null
+        - id: selection
+          title: null
+          role: content
+          controls:
+            - kind: moveSelection
+          visibleWhen: null
+        - id: impact
+          title: null
+          role: review
+          controls:
+            - kind: moveImpact
+            - kind: currentOwnerReadback
+          visibleWhen: null
+      actions:
+        - id: cancel
+          action: cancel
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: preview
+          action: prepareTaskMove
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: move
+          action: commitTaskMove
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: refresh
+          action: refresh
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: check
+          action: check
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: close
+          action: close
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: new-project
+          action: openProjectCreation
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+  dialogs: []

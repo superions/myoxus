@@ -1,0 +1,3 @@
+mutation approveWorkspaceMember($workspaceId: String!, $userId: String!) {
+  approveMember(workspaceId: $workspaceId, userId: $userId)
+}

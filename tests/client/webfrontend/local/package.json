@@ -1,0 +1,15 @@
+{
+  "name": "@myoxus-test/myoxus-local",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "e2e": "bash ./scripts/run-local-e2e.sh",
+    "e2e:legacy": "MYOXUS_RUN_LEGACY_LOCAL_WEB_E2E=1 bash ./scripts/run-local-e2e.sh"
+  },
+  "devDependencies": {
+    "@myoxus-test/kit": "workspace:*",
+    "@myoxus-tools/cli": "workspace:*",
+    "@myoxus-tools/utils": "workspace:*",
+    "@playwright/test": "=1.63.0"
+  }
+}

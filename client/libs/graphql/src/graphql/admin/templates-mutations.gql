@@ -1,0 +1,221 @@
+mutation importTemplate($file: Upload!) {
+  admin {
+    importTemplate(file: $file) {
+      package
+      jobId
+      error
+      documents {
+        entry { id slug title }
+        revision { id version state }
+      }
+      entry {
+        id
+        slug
+        title
+        description
+        category
+        tags
+        status
+        source
+        minClientVersion
+        createdAt
+        updatedAt
+        archivedAt
+      }
+      revision {
+        id
+        templateId
+        version
+        state
+        checksum
+        releaseNotes
+        createdAt
+        publishedAt
+        createdBy
+      }
+      warnings {
+        code
+        message
+        field
+        severity
+      }
+    }
+  }
+}
+
+mutation publishRevision($revisionId: ID!) {
+  admin {
+    publishRevision(revisionId: $revisionId) {
+      id
+      templateId
+      version
+      state
+      checksum
+      releaseNotes
+      createdAt
+      publishedAt
+      createdBy
+    }
+  }
+}
+
+mutation archiveTemplate($templateId: ID!) {
+  admin {
+    archiveTemplate(templateId: $templateId) {
+      id
+      slug
+      title
+      status
+      archivedAt
+    }
+  }
+}
+
+mutation enableTemplate($templateId: ID!) {
+  admin {
+    enableTemplate(templateId: $templateId) {
+      id
+      slug
+      title
+      status
+    }
+  }
+}
+
+mutation disableTemplate($templateId: ID!) {
+  admin {
+    disableTemplate(templateId: $templateId) {
+      id
+      slug
+      title
+      status
+    }
+  }
+}
+
+mutation assignTemplateToWorkspace(
+  $workspaceId: String!
+  $templateId: ID!
+  $provisioningMode: ProvisioningModeType!
+  $selectionMode: SelectionModeType!
+  $selectedRevisionId: ID
+) {
+  admin {
+    assignTemplateToWorkspace(
+      workspaceId: $workspaceId
+      templateId: $templateId
+      provisioningMode: $provisioningMode
+      selectionMode: $selectionMode
+      selectedRevisionId: $selectedRevisionId
+    ) {
+      id
+      workspaceId
+      templateId
+      selectionMode
+      selectedRevisionId
+      provisioningMode
+      isEnabled
+      createdAt
+      updatedAt
+    }
+  }
+}
+
+mutation applyTemplateManualUpdate(
+  $workspaceId: String!
+  $templateId: ID!
+  $revisionId: ID!
+) {
+  admin {
+    applyTemplateManualUpdate(
+      workspaceId: $workspaceId
+      templateId: $templateId
+      revisionId: $revisionId
+    ) {
+      id
+      workspaceId
+      templateId
+      revisionId
+      workspaceDocId
+      state
+      lastSyncedAt
+      lastErrorCode
+      lastErrorMessage
+    }
+  }
+}
+
+mutation removeTemplateAssignment($assignmentId: ID!) {
+  admin {
+    removeTemplateAssignment(policyId: $assignmentId)
+  }
+}
+
+mutation triggerReconcile($workspaceId: String!) {
+  admin {
+    triggerReconcile(workspaceId: $workspaceId)
+  }
+}
+
+mutation updateBuiltinTemplateMetadata(
+  $templateId: ID!
+  $category: String
+  $tags: [String!]
+) {
+  admin {
+    updateBuiltinTemplateMetadata(
+      templateId: $templateId
+      category: $category
+      tags: $tags
+    ) {
+      id
+      slug
+      title
+      description
+      category
+      tags
+      status
+      source
+      minClientVersion
+      createdAt
+      updatedAt
+      archivedAt
+    }
+  }
+}
+
+mutation setTemplateDefaultPolicy(
+  $templateId: String!
+  $applyToNewWorkspaces: Boolean!
+  $selectionMode: SelectionModeType!
+  $provisioningMode: ProvisioningModeType!
+) {
+  admin {
+    setTemplateDefaultPolicy(
+      input: {
+        templateId: $templateId
+        applyToNewWorkspaces: $applyToNewWorkspaces
+        selectionMode: $selectionMode
+        provisioningMode: $provisioningMode
+      }
+    )
+  }
+}
+
+mutation setWorkspaceTemplateOverride(
+  $workspaceId: String!
+  $templateId: String!
+  $isEnabled: Boolean!
+  $provisioningMode: ProvisioningModeType
+) {
+  admin {
+    setWorkspaceTemplateOverride(
+      input: {
+        workspaceId: $workspaceId
+        templateId: $templateId
+        isEnabled: $isEnabled
+        provisioningMode: $provisioningMode
+      }
+    )
+  }
+}

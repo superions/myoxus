@@ -1,0 +1,2064 @@
+{
+  "upstream": {
+    "repository": "https://github.com/apache/incubator-kie-tools",
+    "tag": "10.2.0",
+    "commit": "116e8d86d846f04dbb884d05a556876d455cd3ee"
+  },
+  "retainedFiles": [
+    {
+      "path": "src/marshaller.ts",
+      "originalPath": "packages/bpmn-marshaller/src/index.ts",
+      "originalSha256": "ed7da10bff041270565d083d73a5c11f097db3c3d2fd89605e385818d66e5134",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local parser and generated types",
+        "Standard definitions root and namespace checks with distinct payload-free errors",
+        "Remove unused KIE extension version type"
+      ]
+    },
+    {
+      "path": "src/xml-parser/index.ts",
+      "originalPath": "packages/xml-parser-ts/src/index.ts",
+      "originalSha256": "68b1c7a893c9593758c6e303115446a39639a437dec6534c5b622a97160034c2",
+      "license": "Apache-2.0",
+      "patches": [
+        "One XML-only xmldom implementation for worker and Node",
+        "String input, XML BOM handling and payload-free malformed/DTD errors",
+        "Delegate DOM construction to the bounded SAX-event preflight shared by file and persisted-source inspection",
+        "Opaque unknown XML subtrees preserve mixed content and order; XSD bootstrap explicitly retains structural traversal",
+        "Scoped namespace declarations, shadow-safe reverse aliases and collision-free namespace emission only when needed",
+        "XML boolean forms, whole-value numeric parsing and whitespace references, including text/opaque carriage returns",
+        "Preserve mixed rich-text XML at the parser boundary instead of flattening markup into a plain property field",
+        "Preserve substitution array order instead of engine declaration sorting"
+      ]
+    },
+    {
+      "path": "scripts/codegen.ts",
+      "originalPath": "packages/xml-parser-ts-codegen/src/codegen.ts",
+      "originalSha256": "acb7f48587d183d4cecdc7c4e62c1c95bdcafc3752975cd2cde3cccdd0a5f170",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local parser/bootstrap and lodash-es imports",
+        "Explicit offline generator function and output directory",
+        "Generated provenance headers and local type-only imports"
+      ]
+    },
+    {
+      "path": "scripts/types.d.ts",
+      "originalPath": "packages/xml-parser-ts-codegen/src/types.d.ts",
+      "originalSha256": "340acf86a894688ec0cb377462a48a0834a7380b66fe0b69ac30dfd0b084aefb",
+      "license": "Apache-2.0",
+      "patches": []
+    },
+    {
+      "path": "scripts/xsd/meta.ts",
+      "originalPath": "packages/xml-parser-ts-codegen/src/schemas/xsd-incomplete--manually-written/ts-gen/meta.ts",
+      "originalSha256": "f3884dffb781d46e557609ad9399742ec106fc08fb6ccd4d09cede66a149f7c8",
+      "license": "Apache-2.0",
+      "patches": [],
+      "note": "Handwritten KIE XSD bootstrap, not generated BPMN output; upstream W3C notices retained in THIRD-PARTY-NOTICES."
+    },
+    {
+      "path": "scripts/xsd/types.d.ts",
+      "originalPath": "packages/xml-parser-ts-codegen/src/schemas/xsd-incomplete--manually-written/ts-gen/types.d.ts",
+      "originalSha256": "01b899c1f39031fb78c2edb4f19db8864c316593ad4c5aab64120e0ecb35dc18",
+      "license": "Apache-2.0",
+      "patches": ["Local type-only parser import"],
+      "note": "Handwritten KIE XSD bootstrap; upstream W3C notices retained in THIRD-PARTY-NOTICES."
+    },
+    {
+      "path": "src/xml-parser/q-names.ts",
+      "originalPath": "packages/xml-parser-ts/src/qNames.ts",
+      "originalSha256": "1727889e127d44ec8d8d70a8e73d607ef0a4a64afab2c92ab9c4e748e6de6a5c",
+      "license": "Apache-2.0",
+      "patches": [
+        "SPDX identifier, repository filename and formatting",
+        "XML 1.0 Unicode NCName validation, QName lookup whitespace and payload-free failures"
+      ]
+    },
+    {
+      "path": "src/xml-parser/id-randomizer.ts",
+      "originalPath": "packages/xml-parser-ts/src/idRandomizer.ts",
+      "originalSha256": "5d763f0ce39700bf6efcd2ff32e30d343a40f6f8712f52e8e658e23fc4b0f3f9",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local imports and type-only metadata",
+        "Payload-free errors and removed model logging",
+        "Only remap declarations owned by the acknowledged fragment",
+        "Resolve QName prefixes in lexical scope and preserve reference-element attributes",
+        "Preserve array substitution markers; expose focused declaration rename and conservative reference indexing",
+        "Reject duplicate IDs and allow concrete domain metadata to distinguish non-identity QNames",
+        "Retain actual field scopes, including text-reference declarations, for observational identity lookup and transaction-owned QName selection encoding",
+        "Retarget owned namespace references without rebinding external types; expose effective bindings for detached clipboard roots"
+      ]
+    },
+    {
+      "path": "src/editor/idRandomizer/bpmn-id-randomizer.ts",
+      "originalPath": "packages/bpmn-editor/src/idRandomizer/bpmnIdRandomizer.tsx",
+      "originalSha256": "95874a13a1fefa0d122b958e35bdbb694cf0be47e8d4da013128bcab371af47f",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local metadata/runtime imports and repository filename",
+        "Explicit definitions namespace context",
+        "Resolve bare BPMN default-namespace references and index schema-owned definition uses",
+        "Distinguish external type/implementation QNames from owned declaration identities and reject duplicate declarations before writes"
+      ]
+    },
+    {
+      "path": "src/editor/normalization/normalize.ts",
+      "originalPath": "packages/bpmn-editor/src/normalization/normalize.ts",
+      "originalSha256": "1303df795e2d5e88bf2eb10bae0a6042c976c46deeb879c5dcb6e26b602d3f8d",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local imports without a store type cycle",
+        "Normalize a private clone, never the caller-owned parsed model",
+        "Do not assign optional imported identities; source inspection owns required identities"
+      ]
+    },
+    {
+      "path": "src/xml-parser/element-filter.ts",
+      "originalPath": "packages/xml-parser-ts/src/elementFilter.ts",
+      "originalSha256": "369b7b89f7c25c1ac37f5a83417c85603d8465e5c27528f7d9d030cede2163fa",
+      "license": "Apache-2.0",
+      "patches": ["SPDX identifier, repository filename and formatting"]
+    },
+    {
+      "path": "src/editor/mutations/element-visitor.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/_elementVisitor.ts",
+      "originalSha256": "411137bc9f5c095e25aceec50738abf6276099aa297b00bd4564dc33e8b9b192",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local imports and repository filename",
+        "Propagate visitor cancellation across recursive owners and artifacts",
+        "Traverse nested lane sets with the actual immediate owner, parent, depth and lane index",
+        "Observational unnormalized whole-source property visitor using the existing generated metadata"
+      ]
+    },
+    {
+      "path": "src/editor/BpmnEditor.tsx",
+      "originalPath": "packages/bpmn-editor/src/BpmnEditor.tsx",
+      "originalSha256": "a919d1469b7453e34bc8def005bffedb7256ba082e2e5713aa671f2345ae998f",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring",
+        "SVG consumes the same canonical DI projection without a second snap-grid input",
+        "Adapt the existing emission timer; observe commands synchronously, commit field drafts and cancel unfinished gestures on flush; measure one font-ready committed SVG for export and complete fit bounds with guaranteed disposal",
+        "Load projected glyph fonts before wrapping and freeze the standalone export surface without changing source geometry",
+        "Only reset on a changed host-model identity; StrictMode mount-effect replay must not manufacture a dirty source"
+      ]
+    },
+    {
+      "path": "src/editor/BpmnEditorContext.tsx",
+      "originalPath": "packages/bpmn-editor/src/BpmnEditorContext.tsx",
+      "originalSha256": "6ff12e96670de63839fbfdecb8523d8ee8cd7d3f274faaf87cd51009e2433f14",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/BpmnEditorErrorFallback.tsx",
+      "originalPath": "packages/bpmn-editor/src/BpmnEditorErrorFallback.tsx",
+      "originalSha256": "e35c17204876fd70b50048de7b277407ce0866ec181163ad3bbe00498880a25f",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/clipboard/Clipboard.ts",
+      "originalPath": "packages/bpmn-editor/src/clipboard/Clipboard.ts",
+      "originalSha256": "d0d7ccfa34bb1f8387b72eb986d9d1680ba2e4fa1419a95430aadacd7e314749",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "React 19/native node types, scoped command lifecycle and read-only/async clipboard boundaries",
+        "Preserve inherited bindings on detached roots and prune prefixed flow references by owned identity without mutating source"
+      ]
+    },
+    {
+      "path": "src/editor/commands/CommandsContextProvider.tsx",
+      "originalPath": "packages/bpmn-editor/src/commands/CommandsContextProvider.tsx",
+      "originalSha256": "ae703045cd3b1e65a5582089b9120cd27f4b2f9517b3d648a956bb0af7be38a7",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "React 19/native node types, scoped command lifecycle and read-only/async clipboard boundaries"
+      ]
+    },
+    {
+      "path": "src/editor/diagram/BpmnDiagram.tsx",
+      "originalPath": "packages/bpmn-editor/src/diagram/BpmnDiagram.tsx",
+      "originalSha256": "becefa08c420cf54de3e22dd7b114d6a986628487fb4e0e03f0cd0b0c01512b4",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Native XYFlow 12 API/data contracts and server-projected notation roles"
+      ]
+    },
+    {
+      "path": "src/editor/diagram/BpmnDiagramCommands.tsx",
+      "originalPath": "packages/bpmn-editor/src/diagram/BpmnDiagramCommands.tsx",
+      "originalSha256": "5f2abda3868399162bb5a2e82aa09abd7c09fedf09658ea156d70133e187d885",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Native XYFlow 12 API/data contracts and server-projected notation roles",
+        "React 19/native node types, scoped command lifecycle and read-only/async clipboard boundaries"
+      ]
+    },
+    {
+      "path": "src/editor/diagram/BpmnDiagramDomain.tsx",
+      "originalPath": "packages/bpmn-editor/src/diagram/BpmnDiagramDomain.tsx",
+      "originalSha256": "5225e4499c16bc75a7e154983fba86e7e4e2028b356a27f86107cfa7564c1248",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Native XYFlow 12 API/data contracts and server-projected notation roles"
+      ]
+    },
+    {
+      "path": "src/editor/diagram/BpmnDiagramEmptyState.tsx",
+      "originalPath": "packages/bpmn-editor/src/diagram/BpmnDiagramEmptyState.tsx",
+      "originalSha256": "89d77f9887ac9d79f6e33b5eafbee326646313b2c5f9ddd0f4517c0ed407fd76",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Native XYFlow 12 API/data contracts and server-projected notation roles"
+      ]
+    },
+    {
+      "path": "src/editor/diagram/BpmnDiagramTopRightPanels.tsx",
+      "originalPath": "packages/bpmn-editor/src/diagram/BpmnDiagramTopRightPanels.tsx",
+      "originalSha256": "168b80e622fef8885f00154a238f407c064e918b5abea7626290af71727c6e96",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring",
+        "Native XYFlow 12 API/data contracts and server-projected notation roles"
+      ]
+    },
+    {
+      "path": "src/editor/diagram/BpmnPalette.tsx",
+      "originalPath": "packages/bpmn-editor/src/diagram/BpmnPalette.tsx",
+      "originalSha256": "e90df89bc5c9bd60441a5af220943d2e27a722510c1ca87eff790cef2c4717f0",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring",
+        "Native XYFlow 12 API/data contracts and server-projected notation roles"
+      ]
+    },
+    {
+      "path": "src/editor/diagram/DiagramContainerContext.tsx",
+      "originalPath": "packages/bpmn-editor/src/diagram/DiagramContainerContext.tsx",
+      "originalSha256": "4fae1daf9e0060921bf0f88cd011fe2cb08c920b64750c4b0645e23d46f9ada5",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Native XYFlow 12 API/data contracts and server-projected notation roles"
+      ]
+    },
+    {
+      "path": "src/editor/diagram/edges/EdgeSvgs.tsx",
+      "originalPath": "packages/bpmn-editor/src/diagram/edges/EdgeSvgs.tsx",
+      "originalSha256": "22d5b780695f798bea7dda2dd48e64aac1b6d4c96e4f067491c30dfb406dda41",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Native XYFlow 12 API/data contracts and server-projected notation roles"
+      ]
+    },
+    {
+      "path": "src/editor/diagram/edges/Edges.css",
+      "originalPath": "packages/bpmn-editor/src/diagram/edges/Edges.css",
+      "originalSha256": "e19582781cb7ab14b57d5451dcc7491dc17ee21d0c938996e8f62cdc9e5ae65b",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Native XYFlow 12 API/data contracts and server-projected notation roles"
+      ]
+    },
+    {
+      "path": "src/editor/diagram/edges/Edges.tsx",
+      "originalPath": "packages/bpmn-editor/src/diagram/edges/Edges.tsx",
+      "originalSha256": "8f1c720fcef5167cb08535e17cfdb45a0c9500b48c8dfb7f666baf42f597bc22",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Native XYFlow 12 API/data contracts and server-projected notation roles",
+        "Consume canonical routes rather than minimum-expanded import bounds"
+      ]
+    },
+    {
+      "path": "src/editor/diagram/nodes/NodeIcons.tsx",
+      "originalPath": "packages/bpmn-editor/src/diagram/nodes/NodeIcons.tsx",
+      "originalSha256": "ecd730c761648023c935c9f68f5379ad2bfff63fba31a403078064e3ef90fc4c",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Native XYFlow 12 API/data contracts and server-projected notation roles"
+      ]
+    },
+    {
+      "path": "src/editor/diagram/nodes/NodeStyle.ts",
+      "originalPath": "packages/bpmn-editor/src/diagram/nodes/NodeStyle.ts",
+      "originalSha256": "0af3687b2501c4bc1b5d02bbb929931b6e4a98d0cab831253890329d0947be8b",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Native XYFlow 12 API/data contracts and server-projected notation roles"
+      ]
+    },
+    {
+      "path": "src/editor/diagram/nodes/NodeSvgs.tsx",
+      "originalPath": "packages/bpmn-editor/src/diagram/nodes/NodeSvgs.tsx",
+      "originalSha256": "46d8ea1f9438951e45164ecade8a1a10b31a4ebd68f86f61785062c731136220",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Native XYFlow 12 API/data contracts and server-projected notation roles",
+        "Remove Kogito addon IDs and duplicate export outlines; share standard notation between canvas and SVG"
+      ]
+    },
+    {
+      "path": "src/editor/diagram/nodes/Nodes.tsx",
+      "originalPath": "packages/bpmn-editor/src/diagram/nodes/Nodes.tsx",
+      "originalSha256": "79a443a3dca17b6f473fb35e9ebd867329eb7a3bb4ceecef465c906cb334db9e",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Native XYFlow 12 API/data contracts and server-projected notation roles",
+        "Draw notation at the same canonical dimensions as the XYFlow node"
+      ]
+    },
+    {
+      "path": "src/editor/diagram/nodes/morphing/MorphingAction.ts",
+      "originalPath": "packages/bpmn-editor/src/diagram/nodes/morphing/MorphingAction.ts",
+      "originalSha256": "fef06374a56f2c419961f9015f696e5809ffd8decfa904faea59db9e1ce741e8",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Native XYFlow 12 API/data contracts and server-projected notation roles"
+      ]
+    },
+    {
+      "path": "src/editor/diagram/nodes/morphing/NodeMorphingPanel.tsx",
+      "originalPath": "packages/bpmn-editor/src/diagram/nodes/morphing/NodeMorphingPanel.tsx",
+      "originalSha256": "e1244b6980e958d32c20d87b6765a382fe37c824c7b1e37d4fc3b10247b89f6a",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Native XYFlow 12 API/data contracts and server-projected notation roles"
+      ]
+    },
+    {
+      "path": "src/editor/diagram/nodes/morphing/keepIntersection.ts",
+      "originalPath": "packages/bpmn-editor/src/diagram/nodes/morphing/keepIntersection.ts",
+      "originalSha256": "789a3bec3bb61620995bf295e66447451b46cead5a20e3c32856f4fbd296aa99",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Native XYFlow 12 API/data contracts and server-projected notation roles"
+      ]
+    },
+    {
+      "path": "src/editor/diagram/nodes/morphing/useEventNodeMorphingActions.tsx",
+      "originalPath": "packages/bpmn-editor/src/diagram/nodes/morphing/useEventNodeMorphingActions.tsx",
+      "originalSha256": "40edd195917ad4243ff95743cc12d1a786f80ddc0872fc90042f3e3decfe8b42",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Native XYFlow 12 API/data contracts and server-projected notation roles"
+      ]
+    },
+    {
+      "path": "src/editor/diagram/nodes/morphing/useGatewayNodeMorphingActions.tsx",
+      "originalPath": "packages/bpmn-editor/src/diagram/nodes/morphing/useGatewayNodeMorphingActions.tsx",
+      "originalSha256": "734451a5c44e8e0598ca60b3c3a646f239dfdb6f9baafb346a4309e22f466d80",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Native XYFlow 12 API/data contracts and server-projected notation roles"
+      ]
+    },
+    {
+      "path": "src/editor/diagram/nodes/morphing/useKeyboardShortcutsForMorphingActions.tsx",
+      "originalPath": "packages/bpmn-editor/src/diagram/nodes/morphing/useKeyboardShortcutsForMorphingActions.tsx",
+      "originalSha256": "4957b2f43a28d50c3818b8dbf4cb7279b8b8e277de1655c5b80f0a2acc7d0b4d",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Native XYFlow 12 API/data contracts and server-projected notation roles"
+      ]
+    },
+    {
+      "path": "src/editor/diagram/nodes/morphing/useSubProcessNodeMorphingActions.tsx",
+      "originalPath": "packages/bpmn-editor/src/diagram/nodes/morphing/useSubProcessNodeMorphingActions.tsx",
+      "originalSha256": "b07ac4f3b31ef3bfe97f5d4f07566defe79e4a0db369c8577c4eeacb1f80ea0d",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Native XYFlow 12 API/data contracts and server-projected notation roles"
+      ]
+    },
+    {
+      "path": "src/editor/diagram/nodes/morphing/useTaskNodeMorphingActions.tsx",
+      "originalPath": "packages/bpmn-editor/src/diagram/nodes/morphing/useTaskNodeMorphingActions.tsx",
+      "originalSha256": "1e2520659ef6ad1c425a17279eb61fd293627be4d9a7735ff7521e88899383ce",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Native XYFlow 12 API/data contracts and server-projected notation roles"
+      ]
+    },
+    {
+      "path": "src/editor/focus/useFocusableElement.ts",
+      "originalPath": "packages/bpmn-editor/src/focus/useFocusableElement.ts",
+      "originalSha256": "8e2379b297f0e7506c96574a5bff8469e58e9a3413160d71de70762d52b20218",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Route the native fit control to the same committed notation/label/route extent measurement used by the public source API"
+      ]
+    },
+    {
+      "path": "src/editor/i18n/index.ts",
+      "originalPath": "packages/bpmn-editor/src/i18n/index.ts",
+      "originalSha256": "7ca386a3ffd9c8a34dc3361a6717c6107e79df6bf163c5e8f11400d5cea16fc9",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Generated Myoxus literal lookups and main-language resources instead of KIE dictionaries"
+      ]
+    },
+    {
+      "path": "src/editor/i18n/setup.ts",
+      "originalPath": "packages/bpmn-editor/src/i18n/setup.ts",
+      "originalSha256": "d8a185e93d5626051dbef2c5ba328ae42190469a61f908c196f6a39e09a52133",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Generated Myoxus literal lookups and main-language resources instead of KIE dictionaries"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/node-nature.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/_NodeNature.ts",
+      "originalSha256": "783c5157532e1b4e1fc095de60b9188e4089f56ce241e0086111877da4652281",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/data-mapping.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/_dataMapping.ts",
+      "originalSha256": "7207c98c9e47b499a84ef7fdf4320686f9d06f3196f7b436bdb3eb2b56e189c5",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Keep stable I/O/association/set identities and unrelated standard content when editing rows",
+        "Reject destructive replacement of richer bindings and require a real output-expression target"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/addConnectedNode.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/addConnectedNode.ts",
+      "originalSha256": "4f0c29af91b82ccd2e404e3cf19c0a2ea5c9aef2a02c547752210268b10b36bd",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Explicit command-owned DI allocation; addEdge alone creates the semantic edge and its DI instead of duplicate/dangling preliminary entries"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/addEdge.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/addEdge.ts",
+      "originalSha256": "7ee491609f624b1ace31d8cf6f83608aa0f7d855b55fa4ed5c305906f5286297",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/addEdgeWaypoint.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/addEdgeWaypoint.ts",
+      "originalSha256": "8fad2368a6114d9abb0edf19ed0d18ab1b422467a35cda9c96f67529f95910fd",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/addOrGetCategory.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/addOrGetCategory.ts",
+      "originalSha256": "03e68154ba8de4d209ea47f9dd58a7682e3d0f4285c6d7b091a87a1d456912dc",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/addOrGetErrors.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/addOrGetErrors.ts",
+      "originalSha256": "ee477c41bedceef6d50229422ac85a2fab2ea21f092d77686b94935dea3bacba",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/addOrGetEscalations.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/addOrGetEscalations.ts",
+      "originalSha256": "6bec8b9fbb7fb3abd640fbd38ca78304c492eecac4446b064823a39780914bd7",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/addOrGetInterfaces.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/addOrGetInterfaces.ts",
+      "originalSha256": "5db78683969979c96f802d07f4fe6229419f16d052b2c633f239e6e4a7dd31ff",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/addOrGetItemDefinitions.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/addOrGetItemDefinitions.ts",
+      "originalSha256": "e88ca91427ad4ee59c20649daac27dcc2351de1f81e0eff2bcaec6eeb8cf0f39",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/addOrGetLanes.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/addOrGetLanes.ts",
+      "originalSha256": "fe548658162b083984b66104f489bf9de7187515f0eb7d061436b81688f2985d",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/addOrGetMessages.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/addOrGetMessages.ts",
+      "originalSha256": "a7e2e155dcfe942d1bd271678353b565201a0274174b780e9d688aa30a0a0bd3",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/addOrGetOperations.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/addOrGetOperations.ts",
+      "originalSha256": "8ae709bdcdc36daacaf6886b82a13371687e6d136f6b4727b7b3099a2e7c2d21",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/addOrGetProcessAndDiagramElements.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/addOrGetProcessAndDiagramElements.ts",
+      "originalSha256": "58d279709ca67a87af2117f3a151574423dc3a6e98053a249db8b89c8a655aed",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Strict observational process/diagram/plane resolution; new content uses the separate DOM-free source factory"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/addOrGetSignals.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/addOrGetSignals.ts",
+      "originalSha256": "fe8933dc37c2109068ee513adf7b12eabd4be0bd4c79fbc00ccdff8818e743e0",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/addStandaloneNode.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/addStandaloneNode.ts",
+      "originalSha256": "3b537c3acdadaa44663145315161246b2787aaac9b94e0a6541e9f2f4db129c9",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/addVariable.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/addVariable.ts",
+      "originalSha256": "f6268dff739cdc31c2ecab47a39bd14350fa7e7c88be4967a8f52b062f6a904c",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/deleteEdge.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/deleteEdge.ts",
+      "originalSha256": "28d2fb30a3a9f26696edfcfba6ea8f3133da278cd5bbfc8497cba250b36fa1a5",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Visit both flow endpoints completely when deleting references, including self-loops; do not materialize unrelated outgoing arrays"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/deleteEdgeWaypoint.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/deleteEdgeWaypoint.ts",
+      "originalSha256": "d55ea234933e32f4bedcc93e13155cebaf0ca699f0d8384544e5a33f674f2cae",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/deleteError.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/deleteError.ts",
+      "originalSha256": "8736a5b734b21d426aa476c97f87c3f334687769704c1b0092e06a32d2b963d2",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/deleteEscalation.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/deleteEscalation.ts",
+      "originalSha256": "fa4936c7b261eb6fea9cebbf2414eab401cb551996c0e2d02178473167501ebe",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/deleteItemDefinition.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/deleteItemDefinition.ts",
+      "originalSha256": "76165210f2b6673078f232e67c794be3a6d7ccde01a26843d234994cfd435fc3",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/deleteMessage.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/deleteMessage.ts",
+      "originalSha256": "25c7b409db1b6cc976b0b3f58bfc8811ed6d69fb5010ee507ddb20ab6ea8c22a",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/deleteNode.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/deleteNode.ts",
+      "originalSha256": "5db393eba4f3ba2705b03698c9ba7b4f8b3f8ae0d7d2198622a2230497514dc0",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/deleteSignal.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/deleteSignal.ts",
+      "originalSha256": "b3a777a7ca44c31bb79911fcd01ebd6280b210af141cbda447f109cfac4f6ba1",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/detachBoundaryEvent.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/detachBoundaryEvent.ts",
+      "originalSha256": "e1f6f253a41b81f6244b4c4f6d30cca272d05f700d58f6c883c0de0cdee3f95a",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/makeBoundaryEvent.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/makeBoundaryEvent.ts",
+      "originalSha256": "2297788309b748b8387a2ac42d8eff25db5d5c0b93e1e2d37e7c52e6088da1ae",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/moveNodesInsideLane.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/moveNodesInsideLane.ts",
+      "originalSha256": "0234b51eee275ceb6d6ae5953e6bb79998a7732a150a077b417467653bbd0a87",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/moveNodesInsideSubProcess.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/moveNodesInsideSubProcess.ts",
+      "originalSha256": "4f2cf8c179ab7efffd5e5851d4444763663d636b4b3aae965857caebbc5473cd",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/moveNodesOutOfLane.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/moveNodesOutOfLane.ts",
+      "originalSha256": "b1f8d0df98889e61be3632cb82e6bf48e0ee6e88898cb4610b98e8acd33e5f5b",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/moveNodesOutOfSubProcess.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/moveNodesOutOfSubProcess.ts",
+      "originalSha256": "c41f6247f270e8601d633b4289cd0e99da4a5b4d82d0c6f4e344685117d4bd75",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/renameError.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/renameError.ts",
+      "originalSha256": "8418a465288ddf677c0801efd56f7d17540c1652510d48ea7542e57429d0fafb",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/renameEscalation.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/renameEscalation.ts",
+      "originalSha256": "59dfe94a9f40e4eff630a7e50a7ab3c54e5485bf70612b7226bc7f5bc90069cb",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/renameItemDefinition.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/renameItemDefinition.ts",
+      "originalSha256": "e5f4b5c08034a522d4083db2b48872d1f56995925d276210cf396c4150bf682b",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/renameMessage.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/renameMessage.ts",
+      "originalSha256": "e59f208839e547c31fe1b8107af2278092f87e5ea91ecd39386b2dbd49885758",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/renameNode.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/renameNode.ts",
+      "originalSha256": "5dc2e66dc745fef4d14d4c8276eb79345a06c2098b0f29731987799e9a1732f3",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/renameSignal.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/renameSignal.ts",
+      "originalSha256": "650420d5736ca04bf973977bd04ccd7889ef4c9499dfa60dbe7a25d8f8dd3a89",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/repositionEdgeWaypoint.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/repositionEdgeWaypoint.ts",
+      "originalSha256": "1a93e2874de44704ad416d19eb4634ee6c802c47a3e8dad54b6c6c003080fa92",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/repositionNode.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/repositionNode.ts",
+      "originalSha256": "0a74c6392f73ebd49130928e94ef6c4b481cf58f0d147403466227668bcab8ad",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/mutations/resizeNode.ts",
+      "originalPath": "packages/bpmn-editor/src/mutations/resizeNode.ts",
+      "originalSha256": "b1d205b1db3e99d0cf193bf8828e6d2c05b1e56b44d8abcf37f39c11b2386732",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/overlaysPanel/OverlaysPanel.tsx",
+      "originalPath": "packages/bpmn-editor/src/overlaysPanel/OverlaysPanel.tsx",
+      "originalSha256": "bc421b61bf85967db40d2938a41d1d75e84951eefecbc21b88ec6da087637b6d",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/GlobalProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/GlobalProperties.tsx",
+      "originalSha256": "c094a1409cf7e6f1c8ddfa414b629f1a2db9d59d042aec15b6a8f5ae9445bc80",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring",
+        "Preserve pending process-ID drafts; reject invalid or duplicate IDs on flush and focus the retained field instead of exporting its previous value"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/PropertiesPanel.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/PropertiesPanel.tsx",
+      "originalSha256": "f93b54eaba4958e1b85f19c25c250737aa707e1f578704e04e8591656b5f0bf9",
+      "license": "Apache-2.0",
+      "mergedSources": [
+        {
+          "originalPath": "packages/bpmn-editor/src/propertiesPanel/MixedNodesAndEdgesProperties.tsx",
+          "originalSha256": "7c8ff2e65ff371b4c295a163586b69f55ddd2393e1eb3d27de58946d75f5457e"
+        },
+        {
+          "originalPath": "packages/bpmn-editor/src/propertiesPanel/MultipleEdgesProperties.tsx",
+          "originalSha256": "3ec41a6d8458d1afbe41d0a9a8bb876b5f42cb676178f1d2d0873e3fa1092a2d"
+        },
+        {
+          "originalPath": "packages/bpmn-editor/src/propertiesPanel/MultipleNodesProperties.tsx",
+          "originalSha256": "b160155373af326500489f8f1c95f45791f4a3ce6feb6a608074e9ab22375d23"
+        }
+      ],
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring",
+        "Retain one inspector pane across collapse with explicit close/open and invalid-field focus ownership",
+        "Inline selection counts and existing node/edge selection filters; remove duplicate close controls and empty layout/form wrappers"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/SingleEdgeProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/SingleEdgeProperties.tsx",
+      "originalSha256": "955d119b91998e88c433720012f233b3c622ffb2c45b7270e8e43481119e88ad",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/SingleNodeProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/SingleNodeProperties.tsx",
+      "originalSha256": "039336ff3be84b02047df6fb6f4765bc9886e20e853f1f1345bf99ba104312d7",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/activitySelector/ActivitySelector.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/activitySelector/ActivitySelector.tsx",
+      "originalSha256": "67f0aeba2f68a17203bd743988803e5e7bfea184f8f20735fa238d4d9aaa9a6b",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/calledElementSelector/CalledElementSelector.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/calledElementSelector/CalledElementSelector.tsx",
+      "originalSha256": "0bd5c0af943da206eb30ca6dc0f41bef28619e85e9aef9a2ef081106c1598b93",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/conditionalExpression/ConditionalExpressionSelector.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/conditionalExpression/ConditionalExpressionSelector.tsx",
+      "originalSha256": "83bc32ae4e92f764c9c9029ef72ca83bb33c8e4c362a9ac90ecf42242fcdd760",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/correlations/Correlations.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/correlations/Correlations.tsx",
+      "originalSha256": "b0b711dd8fa984854858e795f72f0f973e0399873a2060f2f0b153f5f178db15",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/dataMapping/DataMappingFormSection.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/dataMapping/DataMappingFormSection.tsx",
+      "originalSha256": "912e2bc74aed8d589838ea9e79804e32fd39a4ac82f459b00d2a4e4f9fdcc032",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring",
+        "Register modal drafts with the same retained form/command validation for immediate host flush and explicit discard"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/defaultRouteSelector/DefaultRouteSelector.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/defaultRouteSelector/DefaultRouteSelector.tsx",
+      "originalSha256": "ffaf9e04dd00bf15f247bb7504e59871bf6510f0472f81311f4956b371b14907",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/emptyState/PropertiesPanelListEmptyState.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/emptyState/PropertiesPanelListEmptyState.tsx",
+      "originalSha256": "0a18575eb600a3de67b5ebc292d19f69178c77932772be21fc46b43bbdbdcf1b",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/errorSelector/ErrorSelector.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/errorSelector/ErrorSelector.tsx",
+      "originalSha256": "6394a4a497907731ad5b9dc1dd8ea87acef52bf702037abd25f84d91eb570db8",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/escalationSelector/EscalationSelector.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/escalationSelector/EscalationSelector.tsx",
+      "originalSha256": "c92daa705450d0855bf6d44c3970417e778cce713292c7b48fcbcdbe6bba5d57",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/eventDefinition/EventDefinitionProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/eventDefinition/EventDefinitionProperties.tsx",
+      "originalSha256": "e19d474bedd644a68dcffad5f49a75853fca44e71030e302224530e77a022a0d",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/itemDefinitionRefSelector/ItemDefinitionRefSelector.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/itemDefinitionRefSelector/ItemDefinitionRefSelector.tsx",
+      "originalSha256": "9610f39ced939a4872d03c04e1658dc8cdf3f66b82fcf765a05eb56ef24b0a59",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/linkInput/LinkInput.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/linkInput/LinkInput.tsx",
+      "originalSha256": "177ef8cf306bfbfc47a896fb5eb5d091484d4061a26bad7a6cdcaa2992663c78",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/messageSelector/MessageSelector.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/messageSelector/MessageSelector.tsx",
+      "originalSha256": "6b21eb8e1af56a7fe90f6d7644f9fe46998e506b828e414060f4799dc6257f22",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/multiInstance/MultiInstanceProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/multiInstance/MultiInstanceProperties.tsx",
+      "originalSha256": "b3367e01fb1f1f6bc873b4fa6eb5a903bb71f52b1291e33261c1a66e68ebfd5d",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/multiInstanceCheckbox/MultiInstanceCheckbox.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/multiInstanceCheckbox/MultiInstanceCheckbox.tsx",
+      "originalSha256": "035d0ae1b7ad7edfacc10a735b43a9bb0615e6cafa184c346b9e86e6bdcf7d0b",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/nameDocumentationAndId/NameDocumentationAndId.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/nameDocumentationAndId/NameDocumentationAndId.tsx",
+      "originalSha256": "25be5a9a1aaad0b6387a01dc1acb6ec6d640ede506afb9eaf99f77c8bc5406ae",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/propertiesManager/PropertiesManager.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/propertiesManager/PropertiesManager.tsx",
+      "originalSha256": "8f7d78a2b64227d48d16a17f27721cee22d79de209e862229124442163c83049",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/signalSelector/SignalSelector.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/signalSelector/SignalSelector.tsx",
+      "originalSha256": "3e11e7014497ed2f1b6681d4b4a2313d0e50f0db36682bee4c273d42725ef3e7",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleEdgeProperties/AssociationProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/singleEdgeProperties/AssociationProperties.tsx",
+      "originalSha256": "8d7882b67ddb00d718ce9a2c02caf099af4a8fbceef3db4dace2615f7ab95bce",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleEdgeProperties/SequenceFlowProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/singleEdgeProperties/SequenceFlowProperties.tsx",
+      "originalSha256": "a17ef7491ed6bc69574b8f573d8122ea145e1e6bddb77991af66595b5e493d01",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleNodeProperties/AdHocSubProcessProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/singleNodeProperties/AdHocSubProcessProperties.tsx",
+      "originalSha256": "b54c9c98f1613ad75059201e3678204297b24b0d0c0f31d8a4a73ac67e66ba92",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleNodeProperties/BoundaryEventProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/singleNodeProperties/BoundaryEventProperties.tsx",
+      "originalSha256": "a3d64e26ecb3b719856702ac4a01833237e33afa164a8d51f1b98565dd5630bd",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleNodeProperties/BusinessRuleTaskProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/singleNodeProperties/BusinessRuleTaskProperties.tsx",
+      "originalSha256": "6348f964ac5e5e6bec3851866a209d99be3bf40bbcd3dda7c488af803b087389",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleNodeProperties/CallActivityProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/singleNodeProperties/CallActivityProperties.tsx",
+      "originalSha256": "06a8cacdf399edb896ad58f26b66571fdc75e7c1031ae3abf2afcde9381d0ddd",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleNodeProperties/ComplexGatewayProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/singleNodeProperties/ComplexGatewayProperties.tsx",
+      "originalSha256": "887dd9b3d5abd48a39931000340c67f7435e675529644144c65fdcbe330349ae",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleNodeProperties/DataObjectProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/singleNodeProperties/DataObjectProperties.tsx",
+      "originalSha256": "b704019b97aa0b9cb14731b6f861dc7ff5e7763a11c74181f40e46daf36ae867",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleNodeProperties/EndEventProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/singleNodeProperties/EndEventProperties.tsx",
+      "originalSha256": "560aa6d9ee06823b51fa00683399f477d193268f6a509d998f4ceef8b6b06685",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleNodeProperties/EventBasedGatewayProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/singleNodeProperties/EventBasedGatewayProperties.tsx",
+      "originalSha256": "d0eaede2f303276f9147958ad7ac8b089d52663e0f8e9d9e9ccaccad6f178d43",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleNodeProperties/EventSubProcessProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/singleNodeProperties/EventSubProcessProperties.tsx",
+      "originalSha256": "b445facac82381cc265974c376290a74e5dcc2031b5dd3b529111e43a4395235",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleNodeProperties/ExclusiveGatewayProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/singleNodeProperties/ExclusiveGatewayProperties.tsx",
+      "originalSha256": "b6848c199611ada5f309fdd47fb072f1a1918cc9aa14c905cd46d4a18d52be44",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleNodeProperties/GroupProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/singleNodeProperties/GroupProperties.tsx",
+      "originalSha256": "20c81a7695a013610eb37b21cb36920a7d09b244e27b6adf1e6e45cba7864a75",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleNodeProperties/InclusiveGatewayProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/singleNodeProperties/InclusiveGatewayProperties.tsx",
+      "originalSha256": "92165b98ded43f1a060918b381355a0d5b285bf40eca318ca81a309c645277f5",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleNodeProperties/IntermediateCatchEventProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/singleNodeProperties/IntermediateCatchEventProperties.tsx",
+      "originalSha256": "c64647fd22556d6dce7ed085e91d4b653ce25d7aad75c155e1ec4fb2d7f2810a",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleNodeProperties/IntermediateThrowEventProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/singleNodeProperties/IntermediateThrowEventProperties.tsx",
+      "originalSha256": "400cd9193074ea920fec5d5c2ed7e6c58fe26412bd82c00cacec8caedbab6679",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleNodeProperties/LaneProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/singleNodeProperties/LaneProperties.tsx",
+      "originalSha256": "e238a61facbec937899c15995aa39a7988421e6db707774353efa65a31538d15",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleNodeProperties/ParallelGatewayProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/singleNodeProperties/ParallelGatewayProperties.tsx",
+      "originalSha256": "23a16372431fdf12c0bd085d853f3f9d4a7bf339dee57b0574aa47a100252fb6",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleNodeProperties/ScriptTaskProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/singleNodeProperties/ScriptTaskProperties.tsx",
+      "originalSha256": "94c7e385ebdb7d4074335b5cb8fbb8550352ce1fa05aabaedc1f07dc851afa0a",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleNodeProperties/ServiceTaskProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/singleNodeProperties/ServiceTaskProperties.tsx",
+      "originalSha256": "1623592458b6f0ad093643425797630c0f1b05e36a17ae4b606c669263760da3",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleNodeProperties/StartEventProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/singleNodeProperties/StartEventProperties.tsx",
+      "originalSha256": "e3ec2a4292be5b940c94b80dc05baeac194f0fc065dd13e274f4055790e7ac52",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleNodeProperties/SubProcessProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/singleNodeProperties/SubProcessProperties.tsx",
+      "originalSha256": "e7d9a46ad033b60294d1bd5628ef5209d8478a3557ee394def5cf1fef82a76f5",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleNodeProperties/TaskProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/singleNodeProperties/TaskProperties.tsx",
+      "originalSha256": "a55b5006ea90aaf75391e5afb79445049557634a96fab66a1ab0104d8b7c7e02",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleNodeProperties/TextAnnotationProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/singleNodeProperties/TextAnnotationProperties.tsx",
+      "originalSha256": "a221686598329ce58e14fcb15624a174dd0b778dc3faaa267f8d9e5bba5f5cde",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleNodeProperties/TransactionProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/singleNodeProperties/TransactionProperties.tsx",
+      "originalSha256": "d8ddb13b5da867463d732fc202b8ddf381a338956d87b385f9caeb4df767c518",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleNodeProperties/UserTaskProperties.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/singleNodeProperties/UserTaskProperties.tsx",
+      "originalSha256": "403e789a725285e0c4224e6f16f2359600a3c98b4803da0cc5616b62a6cbc2cb",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/timerOptions/TimerOptions.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/timerOptions/TimerOptions.tsx",
+      "originalSha256": "54aed84f86f10fac84206515a7bf07060c383102ac1719312a4696dc86288f9d",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/variableSelector/VariableSelector.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/variableSelector/VariableSelector.tsx",
+      "originalSha256": "6ffbe92b8f765d72433d68fb2c251d63d34e4b9383240b0585bb9eff088a8243",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/variables/Variables.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/variables/Variables.tsx",
+      "originalSha256": "db7d4409d407841b754784e0e1958db9d748b2ec8c65bf75dc1aec102b69ac30",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/variables/VariablesFormSection.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/variables/VariablesFormSection.tsx",
+      "originalSha256": "4b6e0308680c5c02df860c83fc2ccadde32593ad5288cf55788b9249b17b73a3",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Direct existing Facade controls; remove displaced PatternFly structure, chrome CSS and isolated engine authoring"
+      ]
+    },
+    {
+      "path": "src/editor/store/Store.ts",
+      "originalPath": "packages/bpmn-editor/src/store/Store.ts",
+      "originalSha256": "d06551effc4edc9449f241b7564bb3ca86d50a38d90896e139064c5fe9a715fc",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Instance-owned cache, explicit source reset and bounded session-only model history"
+      ]
+    },
+    {
+      "path": "src/editor/store/StoreContext.ts",
+      "originalPath": "packages/bpmn-editor/src/store/StoreContext.ts",
+      "originalSha256": "9064f3e9be984715d42c9a34442e12bbcd0a4af3ec257ea684f1c4b8a085027b",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/store/computeBoundaryEventIdsByAttachedBpmnElementId.ts",
+      "originalPath": "packages/bpmn-editor/src/store/computeBoundaryEventIdsByAttachedBpmnElementId.ts",
+      "originalSha256": "588922bb072c70e9bb9905dcef15677747237641137c03782a9b0b69f4c33449",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/store/computeDiagramData.ts",
+      "originalPath": "packages/bpmn-editor/src/store/computeDiagramData.ts",
+      "originalSha256": "04a61666df0c1f470ef45485be32d47ea989a0ee9bd79968541d9875e4bfa7b0",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Read one validated existing process/plane rather than flattening multiple owners",
+        "Project canonical stored DI bounds without read-time snapping or minimum-size enlargement",
+        "Reject incomplete semantic/DI projection rather than silently omitting nodes or edges"
+      ]
+    },
+    {
+      "path": "src/editor/store/initialComputedCache.ts",
+      "originalPath": "packages/bpmn-editor/src/store/initialComputedCache.ts",
+      "originalSha256": "9858d0d79926dc18827c98123e3b3363cfc0c8f3a5f2efb476e9debff14af4d6",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/svg/BpmnDiagramSvg.tsx",
+      "originalPath": "packages/bpmn-editor/src/svg/BpmnDiagramSvg.tsx",
+      "originalSha256": "958d05b3926304029e7900abb9950edda25c4441f7524ee92f9dff341f558ea3",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution",
+        "Native SVG labels measured with the resolved mounted font; remove custom-task/Kogito hooks",
+        "Use canonical routes and remove displaced Kogito addon group metadata"
+      ]
+    },
+    {
+      "path": "src/editor/ts-ext/assertUnreachable.ts",
+      "originalPath": "packages/bpmn-editor/src/ts-ext/assertUnreachable.ts",
+      "originalSha256": "8759d541a3bc12aeca4f47ce628eff7aa4f71a9a25e51ea759afd25f77e81481",
+      "license": "Apache-2.0",
+      "patches": [
+        "Local source/runtime imports, React 19 types, repository formatting and SPDX attribution"
+      ]
+    },
+    {
+      "path": "src/editor/typeaheadSelect/use-definition-choice.ts",
+      "originalPath": "packages/bpmn-editor/src/typeaheadSelect/TypeaheadSelect.tsx",
+      "originalSha256": "57ba3c7203b90d54165c4d835d9cb1d16b7bda33a15229972117fec7d71c6b73",
+      "license": "Apache-2.0",
+      "patches": [
+        "Retain definition-choice state as a nonvisual controller; consumers render native SearchCombobox directly",
+        "Stable XML IDs and distinct option/create/clear identities; generated Myoxus translations"
+      ]
+    },
+    {
+      "path": "src/editor/ts-ext/switch-expression.ts",
+      "originalPath": "packages/switch-expression-ts/src/switchExpression.ts",
+      "originalSha256": "3b1a9c60d15235fe305372be86edea338b7e774d99f628a04a1014ff08e5d5e8",
+      "license": "Apache-2.0",
+      "patches": [
+        "Retain exhaustive/default typing with direct own-key lookup and payload-free failure"
+      ]
+    },
+    {
+      "path": "src/schemas/bpmn-2_0/spec.ts",
+      "originalPath": "packages/bpmn-marshaller/src/schemas/bpmn-2_0/Bpmn20Spec.ts",
+      "originalSha256": "356334b5d1f239f77749b4e1f90c97d3d653f10ed67e7d242e186c72ed9c4455",
+      "license": "Apache-2.0",
+      "patches": [
+        "Retain standard event defaults only; omit KIE namespace and no-op validation"
+      ]
+    },
+    {
+      "path": "src/editor/propertiesPanel/resources/ResourceRoles.tsx",
+      "originalPath": "packages/bpmn-editor/src/propertiesPanel/singleNodeProperties/TaskProperties.tsx",
+      "originalSha256": "a55b5006ea90aaf75391e5afb79445049557634a96fab66a1ab0104d8b7c7e02",
+      "license": "Apache-2.0",
+      "patches": [
+        "Resource-role controls extracted from the retained TaskProperties and CalledElementSelector owners; native Facade fields and reference-aware resource commands"
+      ],
+      "relatedRetainedPaths": [
+        "src/editor/propertiesPanel/calledElementSelector/CalledElementSelector.tsx"
+      ]
+    }
+  ],
+  "standardSchemas": {
+    "specification": "https://www.omg.org/spec/BPMN/2.0.2",
+    "baseUrl": "https://www.omg.org/spec/BPMN/20100501/",
+    "directory": "src/schemas/bpmn-2_0",
+    "license": "LicenseRef-OMG-BPMN",
+    "notice": "THIRD-PARTY-NOTICES",
+    "clearance": "Unmodified official machine-readable schemas used to create BPMN software; copyright and permission notices retained. Not relicensed as Apache-2.0. No conformance or trademark endorsement claim.",
+    "patches": [],
+    "sha256": {
+      "BPMN20.xsd": "a07c159cb0594573dd7c97b1370dd116112378f377e43c89a8bf512ac5030705",
+      "BPMNDI.xsd": "f0dff1cd559d1514d8ebfc8c646f58402bcaced27ec22e2aa6456c2dcc80b038",
+      "DC.xsd": "a2f90e5ad9bb48c6915e4e034b4e27ac838264a1d4f27bfc70dbdfc69351312d",
+      "DI.xsd": "8220b179c175572df74e08a51bffabe957867962035cee7b5fee0b6acb4c4498",
+      "Semantic.xsd": "c4318842f7d2bbc262d7954c9452c501db16f0868eac0b8732ec5d7fb384d9a7"
+    }
+  },
+  "generatedFiles": {
+    "paths": [
+      "src/schemas/bpmn-2_0/ts-gen/types.ts",
+      "src/schemas/bpmn-2_0/ts-gen/meta.ts"
+    ],
+    "command": "yarn workspace @myoxus/bpmn-editor generate",
+    "check": "yarn workspace @myoxus/bpmn-editor generate:check",
+    "license": "Apache-2.0 AND LicenseRef-OMG-BPMN"
+  },
+  "dependencies": {
+    "runtime": [
+      {
+        "name": "@xmldom/xmldom",
+        "license": "MIT",
+        "transitive": []
+      },
+      {
+        "name": "@xyflow/react",
+        "license": "MIT",
+        "transitiveOwner": "../../../yarn.lock"
+      },
+      {
+        "name": "react",
+        "license": "MIT",
+        "transitiveOwner": "../../../yarn.lock"
+      },
+      {
+        "name": "react-dom",
+        "license": "MIT",
+        "transitiveOwner": "../../../yarn.lock"
+      },
+      {
+        "name": "zustand",
+        "license": "MIT",
+        "transitiveOwner": "../../../yarn.lock"
+      },
+      {
+        "name": "immer",
+        "license": "MIT",
+        "transitiveOwner": "../../../yarn.lock"
+      },
+      {
+        "name": "d3-drag",
+        "license": "ISC",
+        "transitiveOwner": "../../../yarn.lock"
+      },
+      {
+        "name": "d3-selection",
+        "license": "ISC",
+        "transitiveOwner": "../../../yarn.lock"
+      },
+      {
+        "name": "dompurify",
+        "license": "MPL-2.0 OR Apache-2.0",
+        "transitiveOwner": "../../../yarn.lock"
+      },
+      {
+        "name": "lodash-es",
+        "license": "MIT",
+        "transitiveOwner": "../../../yarn.lock"
+      },
+      {
+        "name": "@myoxus/ui-facade",
+        "license": "AGPL-3.0-or-later",
+        "source": "repository workspace"
+      },
+      {
+        "name": "@myoxus/i18n",
+        "license": "AGPL-3.0-or-later",
+        "source": "repository workspace"
+      },
+      {
+        "name": "@myoxus/icons",
+        "license": "AGPL-3.0-or-later",
+        "source": "repository workspace"
+      },
+      {
+        "name": "react-error-boundary",
+        "license": "MIT",
+        "transitiveOwner": "../../../yarn.lock"
+      }
+    ],
+    "generatorOnly": ["tsx (MIT)", "prettier (MIT)", "typescript (Apache-2.0)"],
+    "testOnly": ["vitest (MIT)"],
+    "resolutionOwner": "../../../yarn.lock",
+    "excluded": [
+      "Published @kie-tools runtime packages",
+      "Drools schemas and Kogito semantic additions",
+      "DMN/FEEL/PMML",
+      "Standalone/envelope",
+      "PatternFly",
+      "jsdom",
+      "Server Java/Hibernate/LGPL",
+      "Classic editor",
+      "Upstream fonts and icon assets"
+    ]
+  },
+  "originalNotices": {
+    "LICENSE": "packages/bpmn-marshaller/LICENSE (Apache-2.0 text)",
+    "NOTICE": "NOTICE (Apache KIE attribution)",
+    "THIRD-PARTY-NOTICES": "Applicable BPMN schema and XSD bootstrap portions of root LICENSE"
+  },
+  "runtime": {
+    "directory": "src/xyflow",
+    "originalDirectory": "packages/xyflow-react-kie-diagram/src",
+    "license": "Apache-2.0",
+    "retainedFileSha256": {
+      "diagram/SelectionStatusLabel.tsx": "543fdb3ef157ce18f1e7a82aaf163eb0bcbe898a875db2f61633504740f0b461",
+      "diagram/XyFlowReactKieDiagram.tsx": "2a16e26f802a967c7bfee43271a2af0bbdd87cee7d8feb7f26140bc6ccd518fb",
+      "draggable/Draggable.tsx": "45fc958279743a2af629cc6874e7df2d46dc2f37ef4c4415657fd4398f75df6f",
+      "edges/AutoPositionedEdgeMarker.ts": "7dde90d850bf6b576f938ffb3c2e1231b026c07da2a20ad757464452b2a42429",
+      "edges/ConnectionLine.tsx": "042c4f237dcd1176f838f3599ee259efb176cddc582dec3a8413d56c62a2791b",
+      "edges/EdgeMarkers.tsx": "a4172e44ce9d293ef0deba5eda01282deacbbcb39c42cd5ef4d6d029309945c0",
+      "edges/Hooks.css": "ad91b2e7e15636fe7de47f6c1f925c18e6747f51f5a44ad06224f42af98e3547",
+      "edges/Hooks.ts": "060600760648ab850150c4e55bd5fff6596dacaf9c37293de14a81c8ea73cb6a",
+      "edges/getSnappedMultiPointAnchoredEdgePath.tsx": "08b07204db0ef60e7d3718729ca7518e1e4b049628a78cc425e89d0e50d0918a",
+      "edges/useAlwaysVisibleEdgeUpdatersAtNodeBorders.ts": "3f7b977ac6a864b24b06436d7ac6a43043ceb4915918716838eff56342d28740",
+      "edges/usePathForEdgeWithWaypoints.tsx": "8cbb5564576ed3e0ef5e82b5dd30cf16419d9a6eb02beae568bb058c39ec9f57",
+      "graph/childNodes.ts": "ae29de30ac408d9b121e79181bb38744fc796aec854653ba96952c6d6e47a277",
+      "graph/graph.ts": "597ab13cc739b959d9b4d648ada526699518792eb0dcc56be148e46fb6ceca7a",
+      "graph/graphStructure.ts": "3a73f28f1957e7792126482e697e1d8d235f22e36e425e06cace25df261ff2d2",
+      "graph/isValidConnection.ts": "15aa6d296e99fa2df31cbb19269966689965b62e732e6360c292073ea35e5ca8",
+      "maths/DcMaths.ts": "7954bf4e248104382f737f9a0f6bdee0246e8c80d59458ed6ea58d754e96d17a",
+      "maths/Maths.ts": "b0d643231d09c6c37e5d125901ebd6f9392fc1d39b062aea9a3e105d639afab9",
+      "maths/model.ts": "a27a65a734c0721bb7b1835aef2a67a67a648a800573878eef72e0146e75d126",
+      "memoization/memoization.ts": "782b199bf57a6ab3d17542e7a9779c96b58797ea1d4dbd67e8d137238c07610c",
+      "nodes/EditableNodeLabel.css": "fffd70ebe97e5169105a370219fc33259d7e4d26f7c2db300aa6ec7b799c3dfb",
+      "nodes/EditableNodeLabel.tsx": "040991b6331afdde9e4abae5caee5cf9bb72ce259d4eacb714549830246cfd75",
+      "nodes/Hooks.css": "007b4634f4514e96aed9130cf258c8fed4e8ecfed7c3f0f12b3bcddbebd6e0de",
+      "nodes/Hooks.tsx": "81e491574b41f4f5ca843580e1195b7911af2380d2dfe54b9d1dd7808a076a78",
+      "nodes/InfoNodePanel.css": "e8fc6976a44a15c407a48b35bfb78e5b9025c3bb1786d021c7e90fb427ecdd14",
+      "nodes/InfoNodePanel.tsx": "4714022670dfc4a19e1c5ed1f1a88ec7ac611310b9ce61eb88cb08f623485e8a",
+      "nodes/NodeIcons.css": "599e72489268bf73a05158011d1c863589d522153c505e74a24224579bc26348",
+      "nodes/NodeIcons.tsx": "9bdec8d918946cb72be516e56a7a896065352c55db4b57068ef86b8f1e734bef",
+      "nodes/NodeSizes.ts": "9390427b21be9de0f6ac227890e6820ba4c55dda960db2ead0c0e6d527ffb9dd",
+      "nodes/NodeSvgs.css": "0b09db22aa7d767d35338797a6aa367b85050e53b9b95df691553d239587f253",
+      "nodes/NodeSvgs.tsx": "02d47517c2121136f7fab6a414bf065d9a04418921f43372116ff7edb7485cc3",
+      "nodes/OutgoingStuffNodePanel.css": "c24b7f5b99d0dc334ff8b83983a412ed324e93e4d33c23e3da447ba9d58ce609",
+      "nodes/OutgoingStuffNodePanel.tsx": "1740e3bb6723be5d7662bcb32075f6fc94327d743a3dfdaee4a9ccf0a9578f2d",
+      "nodes/PositionalNodeHandles.css": "4e1e5c064f19c325b2ccb4c1928371144d033be83cc06864d40034e784a85989",
+      "nodes/PositionalNodeHandles.tsx": "8b3a67c4f7eef6c695f8251079ab5e655ccdebcd173eed66bd5a95f7223ca299",
+      "propertiesPanel/SectionHeader.tsx": "83a23f9cfbb22a7a7fa4370b969900a65b39ad827253f470407f5423cd982746",
+      "reactExt/useEffectAfterFirstRender.ts": "bce280936f03bb21c06909c51e1798aecef8b913ad90cc8b3385201b77ac6ba2",
+      "reactExt/useIsHovered.tsx": "6a197928f2c30417e21149c2680dc151767113ecd7d4dc39a5ccab6d541bcdf3",
+      "reactExt/usePrevious.ts": "1e39fa74e2d243afd701834aabe77cd1d95d4933d26e88e0c01174def2ea7f0f",
+      "reactExt/useStateAsItWasBeforeConditionBecameTrue.ts": "896d3175769c0312e3cbd8e03114fb4828786f733cab1f124400f24019e1d27e",
+      "responsiveness/useInViewSelect.ts": "da0e68729fb68cb05984b9a8f6bc612da493939742d9f27138aae74b6dab22de",
+      "snapgrid/BorderSnapping.ts": "c70bb5359db848ff9f0af1d47020b474f1a20851cab2e7beb5528b30bc38d38b",
+      "snapgrid/SnapGrid.ts": "89d745a1e374203483bc69b4d4b55f880f162d6b281a4913b8276e49d58bdb8c",
+      "store/ComputedStateCache.ts": "fe274498c61938ff633d0ebdac38c026244aa1fe2229db96e9b47ae4a2697fc9",
+      "store/State.ts": "688b5e207716a14dd6cf6ac78430086024f53e57c0063001bc12466729a4796c",
+      "store/Store.ts": "9dbfc3236f297b4153493dd47a932988ede565c7903a9a80fefa5ba265111ccc",
+      "store/computed/computeIsDiagramEditingInProgress.ts": "865a8302540c28cb3747ec291c5e9a718efc9bf7dd974793717b557ff9773898",
+      "store/dispatch/setEdgeStatus.ts": "d0eaf3c3052a3ab849661ec73fdaa035856ff9bdb4eec14742560700c58e3cc6",
+      "store/dispatch/setNodeStatus.ts": "4e1bfd5ed3b4b38ff59d9dc4966d675e2484b1bc7b4f754f1b163a12eba57c5a",
+      "tsExt/tsExt.ts": "c31e88eb1b65bd8e71ad90a2368730e6eee7465a67b49a3a173e778668923262",
+      "uuid/uuid.ts": "4889e4672956301fbfc1688f1c45b045740bd37d69d1c50e01e992dc6782ec53",
+      "waypoints/WaypointActionsContext.tsx": "7e0cd0cc31db883679bcc5ac7a67ea31b491cd07aa9bab6521bb9f281fa464e6",
+      "waypoints/Waypoints.css": "4493c5eee10f1b7eb04b3d0da0d776e0d8359f62089b6c3ab588ab652f84f439",
+      "waypoints/Waypoints.tsx": "4ec71942e56c54b5c76611d034e0f8b3a3db733d92a21696b99b942bb82ad17b",
+      "waypoints/usePotentialWaypointControls.ts": "3e0494f097622e7cfc3a5a34adb59df7e07e0395b1861cb3907450195c7536ff",
+      "xml/xmlHrefToQName.ts": "83dd8f7efd5a30421d178f6d80c5e3b99d957f6c7a14db76069c1bb58c313ad0",
+      "xml/xmlHrefs.ts": "21a1674747cf9b86ec4dadac469b7b549f0f49e291ad8424d1672912cf2f59c3",
+      "xml/xmlNamespaceDeclarations.ts": "1f711482b7f87b307d6052690c312419d588b5f75a90e223aa908f86bc749c37",
+      "xyflow-customizations.css": "d25631544c431fa542bd8e288f40425928c9144f63c6c849d7a0e5f70039e146"
+    },
+    "patches": [
+      "Type-only imports and explicit refs for repository TypeScript/React 19",
+      "One installed @xyflow/react 12 instance: nodeLookup/internals/measured dimensions, reconnect callbacks, replace changes and connection cancellation",
+      "Retain virtual parenting; settled drag callbacks do not depend on dragging=true; ignore passive measurement as authoring; reject descendant drop targets",
+      "Direct Facade controls; no PatternFly, KIE i18n/OS packages or product-chrome styles; existing Myoxus translation keys and native UUID API",
+      "Instance-scoped renderer CSS; semantic theme roles; no local control skins",
+      "Idempotent gesture/selection membership and uninitialized computed-cache repair",
+      "Payload-free diagnostic behavior and rollback error handoff",
+      "Concrete immutable/draft store callbacks, isolated cache entries and complete source-reset transient clearing",
+      "Native control-sized glyph viewBoxes, nullable React 19 refs, read-only inline-label lifetime and ReactNode children",
+      "Read canonical dimensions; minimum-size constraints remain mutation-owned",
+      "Preserve manual DI waypoints exactly and derive marked automatic routes against unsnapped canonical bounds",
+      "Share canonical route projection between canvas and SVG without render-time grid/minimum constraints",
+      "Use the shared canonical route projection for edge reconnection previews",
+      "Inline-label drafts participate in the mounted nonvisual pending-edit owner and current flush/discard contract",
+      "Allow the native fit control to delegate complete content extents to its notation renderer rather than forcing node-rectangle-only bounds",
+      "Remove React Flow's default 50-percent zoom floor so measured large-source bounds can fit without clipping"
+    ],
+    "omitted": [
+      "PatternFly stylesheet",
+      "Displaced section/header and draggable chrome styles",
+      "Embedded English-only KIE dictionary/providers"
+    ]
+  },
+  "repositoryOwnedFiles": [
+    {
+      "path": "src/editor/mutations/process-io-context.ts",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Pure lookup of top-level process interface items; tagged diagram projections do not move declarations into flowElement"
+    },
+    {
+      "path": "src/editor/mutations/process-io.ts",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Explicit process interface creation, type/cardinality/state fields and reference-aware semantic deletion with set and association repair"
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleNodeProperties/ProcessIoProperties.tsx",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Existing native Facade fields for the real process interface owner, separate from flow-element properties"
+    },
+    {
+      "path": "src/editor/mutations/io-context.ts",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Pure I/O-set membership, subset, counterpart-IDREF and required-pair invariants shared by source admission and commands"
+    },
+    {
+      "path": "src/editor/mutations/io-sets.ts",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Current process/activity/global-task/event I/O set ownership, prospective reference edits, explicit lifecycle and evaluation-order commands"
+    },
+    {
+      "path": "src/editor/propertiesPanel/dataMapping/InputOutputSets.tsx",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Native Facade fields for real I/O-set membership, optional/executing subsets, counterpart sets, names and ordering without a parallel mapping DTO"
+    },
+    {
+      "path": "src/editor/mutations/resource.ts",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Current-owner process/activity/global-task resource roles, scoped resource selection and explicit reference-aware definitions lifetime"
+    },
+    {
+      "path": "src/editor/propertiesPanel/resources/ResourceDefinitions.tsx",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Existing definitions-manager Resource tab, shared-root/parameter fields and reference-aware explicit deletion"
+    },
+    {
+      "path": "src/editor/mutations/data-association-context.ts",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Pure standard data-association direction, ItemAware IDREF versus visual FlowNode projection and semantic scope checks"
+    },
+    {
+      "path": "src/editor/mutations/data-association.ts",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Graphical data-association creation/reconnect, real implicit I/O/set ownership, exclusive anonymous-slot retirement and metadata-preserving expression/assignment commands"
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleEdgeProperties/DataAssociationProperties.tsx",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Native Facade data-association inspector over current-ID semantic source, target, transformation and assignments"
+    },
+    {
+      "path": "src/editor/mutations/data-store.ts",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Definitions-level DataStore lifetime, scoped QName selection and focused metadata/type/capacity/state edits"
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleNodeProperties/DataStoreProperties.tsx",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Native Facade fields for semantic DataStoreReferences and separately shared root metadata"
+    },
+    {
+      "path": "src/editor/mutations/data-context.ts",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Pure same-scope DataObjectReference IDREF validation shared with source admission; unbound draft semantics"
+    },
+    {
+      "path": "src/editor/mutations/data.ts",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Current-ID item-aware notation, collection/state/type commands and reference-backed DataObject lifetime"
+    },
+    {
+      "path": "src/editor/mutations/group.ts",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Stable group/category-value reference and text commands, shared category lifetime, current-ID canvas/SVG label lookup"
+    },
+    {
+      "path": "src/editor/propertiesPanel/singleNodeProperties/GatewayPropertiesFields.tsx",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Shared native Facade fields composed by the five retained gateway property owners; stable-ID semantic commands and absent-default preservation"
+    },
+    {
+      "path": "src/editor/mutations/connection-context.ts",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Shared official-model endpoint/default/gateway configuration and scoped association QName rules for source inspection and semantic commands"
+    },
+    {
+      "path": "src/editor/mutations/connection.ts",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Stable-ID condition/default ownership and notation, reference-safe gateway fields and standard association direction commands"
+    },
+    {
+      "path": "src/editor/mutations/event.ts",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Official-model event context rules, identity/reference-safe trigger authoring, attachment, link groups and shared canvas/SVG notation including event-subprocess and transaction/cancel contexts"
+    },
+    {
+      "path": "src/editor/propertiesPanel/eventDefinition/useEventDefinition.ts",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Current-snapshot binding of retained event controls to one inline or referenced definition, including duplicate-kind definitions and absent optional imported IDs"
+    },
+    {
+      "path": "src/editor/mutations/activity-context.ts",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Pure official-model subprocess context rules shared by DOM-free source admission, morphing and real-scope containment; no editor runtime dependency"
+    },
+    {
+      "path": "src/editor/mutations/activity.ts",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Concrete retained activity lookup and standard loop/compensation mutations; preserve compatible loop metadata without rebuilding I/O or process variables"
+    },
+    {
+      "path": "src/editor/mutations/global-tasks.ts",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Concrete definitions-level global task creation, identity rename and fail-closed deletion with scoped call-reference selection; never diagram nodes or a registry"
+    },
+    {
+      "path": "src/editor/svg/sanitize.ts",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "BPMN-renderer-only DOMPurify SVG/attribute and local-marker boundary; no imported opaque XML enters SVG output"
+    },
+    {
+      "path": "src/source-profile.ts",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Concrete staged process profile and semantic findings shared by inspection, palette, morphing and connection choices; no host allowlist or alternate schema"
+    },
+    {
+      "path": "src/xml-parser/preflight.ts",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Strict BOM-preserving UTF-8 decoding and budget/security callbacks on the existing xmldom SAX DOM builder; no parallel tokenizer or BPMN model"
+    },
+    {
+      "path": "src/process-source.ts",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "DOM-free source factory, strict observational owner resolution and initial process/DI inspection retaining exact rejected input"
+    },
+    {
+      "path": "src/editor/svg/bpmn-svg-label.tsx",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Native measured SVG label renderer replacing the unretained visx dependency; normal canvas whitespace wrapping without splitting unbreakable labels"
+    },
+    {
+      "path": "src/modeller.tsx",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Source-controlled public entry, exact-source acknowledgement, synchronous working state and current candidate/SVG lifecycle without exposing the retained model or another timer"
+    },
+    {
+      "path": "src/xyflow/reactExt/PendingEdits.tsx",
+      "license": "AGPL-3.0-or-later",
+      "purpose": "Nonvisual mounted field-owner registry for dirty/flush/discard validation; field owners retain mutation semantics"
+    }
+  ],
+  "connectedEditor": {
+    "directory": "src/editor",
+    "originalDirectory": "packages/bpmn-editor/src",
+    "license": "Apache-2.0",
+    "excluded": [
+      "Standalone/envelope host",
+      "External DMN models and custom-task providers",
+      "Engine-only metadata, async, SLA, autostart, reassignment, notifications, entry/exit scripts and imports",
+      "Collaboration-key/pool authoring outside the fixed process-only profile",
+      "Displaced product-chrome CSS and KIE-only dictionary/version integration"
+    ],
+    "ownershipBoundary": "Definitions mutations, graph mutations and process selectors share the strict existing single-process/single-plane resolver; no owner creation or first-process fallback on read",
+    "referenceSelectionBoundary": "Event/activity/data/operation consumers use retained scoped identity resolution/encoding; display-name edits preserve payload type and escalation code. Builtin type creation uses expanded XML Schema names; type/call drafts use the existing pending-edit owner, and mapping rows retain explicit selection intent without persisting DTO tokens. Full standard families stay unadvertised until their end-to-end contracts pass.",
+    "laneBoundary": "Retain recursive lane creation/projection/properties and actual owner-tree reparenting; preserve valid ancestor IDREF memberships, carry inherited namespace scopes in clipboard subtrees and remove subtree DI without deleting process tasks. Canvas/SVG honor shape orientation; native Splitter collapse changes only the viewport. Remaining standard families stay staged.",
+    "taskBoundary": "Extend the retained TaskNode/TaskNodeSvg, palette, creation and morph chain to all eight standard process task kinds. Morph only schema-illegal fields; preserve compatible implementation, I/O, resource/loop data, references, namespaces and DI without mapping reconciliation or shared-definition deletion. Compose existing Facade task properties for standard fields and real resource roles; preserve valid I/O display names with spaces.",
+    "globalTaskBoundary": "Five definitions-level global task kinds stay outside node/palette/DI maps. Extend the retained CalledElementSelector/CallActivityProperties directly with Facade choices, modals and legal fields. The shared scoped index owns identity/reference repair and fail-closed deletion, including child consumers; explicit raw references remain distinct from selection IDs. Global I/O preserves sets/bindings, scripts use scriptLanguage, rendering extensions survive documentation edits. Call nodes borrow the resolved task marker from their current definitions snapshot in canvas and SVG; collapsed fields retain pending drafts through native display-none retention. Other unfinished families remain staged.",
+    "activityBoundary": "Retained activity properties expose standard, parallel and sequential loop semantics plus compensation without rebuilding I/O. Ordinary/ad-hoc/event/transaction subprocesses share recursive owner/lane projection and lossless expanded/collapsed DI. Fields preserve expression metadata/default absence; schema-intersection and explicit event-mode morphs retain compatible data and reject referenced removals. Pure context guards share source/morph/containment rules. Retained clipboard/delete own complete hidden descendants and boundaries in history transactions. Deepest visible containment wins; rejected gestures restore model and selection identities. Native Facade controls and the shared in-canvas Alert add no stylesheet. Full activity-family acceptance remains with the Phase 3 review.",
+    "eventBoundary": "Retained event nodes/morphs/properties use concrete definition arrays, eventDefinitionRef and parallelMultiple. Source, canvas, property headers and standalone SVG share resolved notation. Native trigger controls preserve repeated definitions, expression metadata and shared-root identity; copied inline declarations remap only their owned subtree. Attachment/detachment retains event XML and semantic scope. QName host clipboard closure, actual-DI containment and centered border snapping replace raw-reference/minimum-size assumptions. Event-subprocess/transaction Cancel contexts share that chain; full family acceptance remains with the Phase 3 review.",
+    "eventSubProcessBoundary": "Retained event-subprocess properties compose shared expansion/variables without prohibited loop controls. Standard triggeredByEvent mode requires one triggered start and no external flows; explicit morphs retain compatible XML/DI and guard removed trigger consumers. Collapsed canvas/SVG derive the actual start marker and interruption. Native RF onBeforeDelete commits selected semantic groups atomically so required-start rejection cannot strand connected-edge removals.",
+    "status": "Integrated XML-backed Page/editor with bounded initial source profile; mandatory standard families and full release acceptance remain open"
+  },
+  "licensing": {
+    "newMyoxusSource": "AGPL-3.0-or-later",
+    "retainedSource": "Retained Apache source files, including Myoxus changes in those files, remain Apache-2.0. Independently authored new files are AGPL. The package label does not determine source licenses.",
+    "modifiedRetainedPaths": [
+      "scripts/codegen.ts",
+      "scripts/xsd/meta.ts",
+      "scripts/xsd/types.d.ts",
+      "src/editor/BpmnEditor.tsx",
+      "src/editor/BpmnEditorContext.tsx",
+      "src/editor/BpmnEditorErrorFallback.tsx",
+      "src/editor/clipboard/Clipboard.ts",
+      "src/editor/commands/CommandsContextProvider.tsx",
+      "src/editor/diagram/BpmnDiagram.tsx",
+      "src/editor/diagram/BpmnDiagramCommands.tsx",
+      "src/editor/diagram/BpmnDiagramDomain.tsx",
+      "src/editor/diagram/BpmnDiagramEmptyState.tsx",
+      "src/editor/diagram/BpmnDiagramTopRightPanels.tsx",
+      "src/editor/diagram/BpmnPalette.tsx",
+      "src/editor/diagram/DiagramContainerContext.tsx",
+      "src/editor/diagram/edges/EdgeSvgs.tsx",
+      "src/editor/diagram/edges/Edges.css",
+      "src/editor/diagram/edges/Edges.tsx",
+      "src/editor/diagram/nodes/NodeIcons.tsx",
+      "src/editor/diagram/nodes/NodeStyle.ts",
+      "src/editor/diagram/nodes/NodeSvgs.tsx",
+      "src/editor/diagram/nodes/Nodes.tsx",
+      "src/editor/diagram/nodes/morphing/NodeMorphingPanel.tsx",
+      "src/editor/diagram/nodes/morphing/keepIntersection.ts",
+      "src/editor/diagram/nodes/morphing/useEventNodeMorphingActions.tsx",
+      "src/editor/diagram/nodes/morphing/useGatewayNodeMorphingActions.tsx",
+      "src/editor/diagram/nodes/morphing/useKeyboardShortcutsForMorphingActions.tsx",
+      "src/editor/diagram/nodes/morphing/useSubProcessNodeMorphingActions.tsx",
+      "src/editor/diagram/nodes/morphing/useTaskNodeMorphingActions.tsx",
+      "src/editor/focus/useFocusableElement.ts",
+      "src/editor/i18n/index.ts",
+      "src/editor/i18n/setup.ts",
+      "src/editor/idRandomizer/bpmn-id-randomizer.ts",
+      "src/editor/mutations/addConnectedNode.ts",
+      "src/editor/mutations/addEdge.ts",
+      "src/editor/mutations/addEdgeWaypoint.ts",
+      "src/editor/mutations/addOrGetCategory.ts",
+      "src/editor/mutations/addOrGetErrors.ts",
+      "src/editor/mutations/addOrGetEscalations.ts",
+      "src/editor/mutations/addOrGetInterfaces.ts",
+      "src/editor/mutations/addOrGetItemDefinitions.ts",
+      "src/editor/mutations/addOrGetLanes.ts",
+      "src/editor/mutations/addOrGetMessages.ts",
+      "src/editor/mutations/addOrGetOperations.ts",
+      "src/editor/mutations/addOrGetProcessAndDiagramElements.ts",
+      "src/editor/mutations/addOrGetSignals.ts",
+      "src/editor/mutations/addStandaloneNode.ts",
+      "src/editor/mutations/addVariable.ts",
+      "src/editor/mutations/data-mapping.ts",
+      "src/editor/mutations/deleteEdge.ts",
+      "src/editor/mutations/deleteEdgeWaypoint.ts",
+      "src/editor/mutations/deleteError.ts",
+      "src/editor/mutations/deleteEscalation.ts",
+      "src/editor/mutations/deleteItemDefinition.ts",
+      "src/editor/mutations/deleteMessage.ts",
+      "src/editor/mutations/deleteNode.ts",
+      "src/editor/mutations/deleteSignal.ts",
+      "src/editor/mutations/detachBoundaryEvent.ts",
+      "src/editor/mutations/element-visitor.ts",
+      "src/editor/mutations/makeBoundaryEvent.ts",
+      "src/editor/mutations/moveNodesInsideLane.ts",
+      "src/editor/mutations/moveNodesInsideSubProcess.ts",
+      "src/editor/mutations/moveNodesOutOfLane.ts",
+      "src/editor/mutations/moveNodesOutOfSubProcess.ts",
+      "src/editor/mutations/node-nature.ts",
+      "src/editor/mutations/renameError.ts",
+      "src/editor/mutations/renameEscalation.ts",
+      "src/editor/mutations/renameItemDefinition.ts",
+      "src/editor/mutations/renameMessage.ts",
+      "src/editor/mutations/renameNode.ts",
+      "src/editor/mutations/renameSignal.ts",
+      "src/editor/mutations/repositionEdgeWaypoint.ts",
+      "src/editor/mutations/repositionNode.ts",
+      "src/editor/mutations/resizeNode.ts",
+      "src/editor/normalization/normalize.ts",
+      "src/editor/overlaysPanel/OverlaysPanel.tsx",
+      "src/editor/propertiesPanel/GlobalProperties.tsx",
+      "src/editor/propertiesPanel/PropertiesPanel.tsx",
+      "src/editor/propertiesPanel/SingleEdgeProperties.tsx",
+      "src/editor/propertiesPanel/SingleNodeProperties.tsx",
+      "src/editor/propertiesPanel/activitySelector/ActivitySelector.tsx",
+      "src/editor/propertiesPanel/calledElementSelector/CalledElementSelector.tsx",
+      "src/editor/propertiesPanel/conditionalExpression/ConditionalExpressionSelector.tsx",
+      "src/editor/propertiesPanel/correlations/Correlations.tsx",
+      "src/editor/propertiesPanel/dataMapping/DataMappingFormSection.tsx",
+      "src/editor/propertiesPanel/defaultRouteSelector/DefaultRouteSelector.tsx",
+      "src/editor/propertiesPanel/emptyState/PropertiesPanelListEmptyState.tsx",
+      "src/editor/propertiesPanel/errorSelector/ErrorSelector.tsx",
+      "src/editor/propertiesPanel/escalationSelector/EscalationSelector.tsx",
+      "src/editor/propertiesPanel/eventDefinition/EventDefinitionProperties.tsx",
+      "src/editor/propertiesPanel/itemDefinitionRefSelector/ItemDefinitionRefSelector.tsx",
+      "src/editor/propertiesPanel/linkInput/LinkInput.tsx",
+      "src/editor/propertiesPanel/messageSelector/MessageSelector.tsx",
+      "src/editor/propertiesPanel/multiInstance/MultiInstanceProperties.tsx",
+      "src/editor/propertiesPanel/multiInstanceCheckbox/MultiInstanceCheckbox.tsx",
+      "src/editor/propertiesPanel/nameDocumentationAndId/NameDocumentationAndId.tsx",
+      "src/editor/propertiesPanel/propertiesManager/PropertiesManager.tsx",
+      "src/editor/propertiesPanel/resources/ResourceRoles.tsx",
+      "src/editor/propertiesPanel/signalSelector/SignalSelector.tsx",
+      "src/editor/propertiesPanel/singleEdgeProperties/AssociationProperties.tsx",
+      "src/editor/propertiesPanel/singleEdgeProperties/SequenceFlowProperties.tsx",
+      "src/editor/propertiesPanel/singleNodeProperties/AdHocSubProcessProperties.tsx",
+      "src/editor/propertiesPanel/singleNodeProperties/BoundaryEventProperties.tsx",
+      "src/editor/propertiesPanel/singleNodeProperties/BusinessRuleTaskProperties.tsx",
+      "src/editor/propertiesPanel/singleNodeProperties/CallActivityProperties.tsx",
+      "src/editor/propertiesPanel/singleNodeProperties/ComplexGatewayProperties.tsx",
+      "src/editor/propertiesPanel/singleNodeProperties/DataObjectProperties.tsx",
+      "src/editor/propertiesPanel/singleNodeProperties/EndEventProperties.tsx",
+      "src/editor/propertiesPanel/singleNodeProperties/EventBasedGatewayProperties.tsx",
+      "src/editor/propertiesPanel/singleNodeProperties/EventSubProcessProperties.tsx",
+      "src/editor/propertiesPanel/singleNodeProperties/ExclusiveGatewayProperties.tsx",
+      "src/editor/propertiesPanel/singleNodeProperties/GroupProperties.tsx",
+      "src/editor/propertiesPanel/singleNodeProperties/InclusiveGatewayProperties.tsx",
+      "src/editor/propertiesPanel/singleNodeProperties/IntermediateCatchEventProperties.tsx",
+      "src/editor/propertiesPanel/singleNodeProperties/IntermediateThrowEventProperties.tsx",
+      "src/editor/propertiesPanel/singleNodeProperties/LaneProperties.tsx",
+      "src/editor/propertiesPanel/singleNodeProperties/ParallelGatewayProperties.tsx",
+      "src/editor/propertiesPanel/singleNodeProperties/ScriptTaskProperties.tsx",
+      "src/editor/propertiesPanel/singleNodeProperties/ServiceTaskProperties.tsx",
+      "src/editor/propertiesPanel/singleNodeProperties/StartEventProperties.tsx",
+      "src/editor/propertiesPanel/singleNodeProperties/SubProcessProperties.tsx",
+      "src/editor/propertiesPanel/singleNodeProperties/TaskProperties.tsx",
+      "src/editor/propertiesPanel/singleNodeProperties/TextAnnotationProperties.tsx",
+      "src/editor/propertiesPanel/singleNodeProperties/TransactionProperties.tsx",
+      "src/editor/propertiesPanel/singleNodeProperties/UserTaskProperties.tsx",
+      "src/editor/propertiesPanel/timerOptions/TimerOptions.tsx",
+      "src/editor/propertiesPanel/variableSelector/VariableSelector.tsx",
+      "src/editor/propertiesPanel/variables/Variables.tsx",
+      "src/editor/propertiesPanel/variables/VariablesFormSection.tsx",
+      "src/editor/store/Store.ts",
+      "src/editor/store/StoreContext.ts",
+      "src/editor/store/computeBoundaryEventIdsByAttachedBpmnElementId.ts",
+      "src/editor/store/computeDiagramData.ts",
+      "src/editor/store/initialComputedCache.ts",
+      "src/editor/svg/BpmnDiagramSvg.tsx",
+      "src/editor/ts-ext/switch-expression.ts",
+      "src/editor/typeaheadSelect/use-definition-choice.ts",
+      "src/marshaller.ts",
+      "src/schemas/bpmn-2_0/spec.ts",
+      "src/xml-parser/element-filter.ts",
+      "src/xml-parser/id-randomizer.ts",
+      "src/xml-parser/index.ts",
+      "src/xml-parser/q-names.ts",
+      "src/xyflow/diagram/SelectionStatusLabel.tsx",
+      "src/xyflow/diagram/XyFlowReactKieDiagram.tsx",
+      "src/xyflow/draggable/Draggable.tsx",
+      "src/xyflow/edges/ConnectionLine.tsx",
+      "src/xyflow/edges/EdgeMarkers.tsx",
+      "src/xyflow/edges/Hooks.css",
+      "src/xyflow/edges/Hooks.ts",
+      "src/xyflow/edges/getSnappedMultiPointAnchoredEdgePath.tsx",
+      "src/xyflow/edges/useAlwaysVisibleEdgeUpdatersAtNodeBorders.ts",
+      "src/xyflow/edges/usePathForEdgeWithWaypoints.tsx",
+      "src/xyflow/graph/childNodes.ts",
+      "src/xyflow/graph/graph.ts",
+      "src/xyflow/graph/graphStructure.ts",
+      "src/xyflow/graph/isValidConnection.ts",
+      "src/xyflow/maths/DcMaths.ts",
+      "src/xyflow/maths/Maths.ts",
+      "src/xyflow/memoization/memoization.ts",
+      "src/xyflow/nodes/EditableNodeLabel.css",
+      "src/xyflow/nodes/EditableNodeLabel.tsx",
+      "src/xyflow/nodes/Hooks.css",
+      "src/xyflow/nodes/Hooks.tsx",
+      "src/xyflow/nodes/InfoNodePanel.css",
+      "src/xyflow/nodes/InfoNodePanel.tsx",
+      "src/xyflow/nodes/NodeIcons.css",
+      "src/xyflow/nodes/NodeIcons.tsx",
+      "src/xyflow/nodes/NodeSizes.ts",
+      "src/xyflow/nodes/NodeSvgs.css",
+      "src/xyflow/nodes/NodeSvgs.tsx",
+      "src/xyflow/nodes/OutgoingStuffNodePanel.css",
+      "src/xyflow/nodes/OutgoingStuffNodePanel.tsx",
+      "src/xyflow/nodes/PositionalNodeHandles.css",
+      "src/xyflow/nodes/PositionalNodeHandles.tsx",
+      "src/xyflow/propertiesPanel/SectionHeader.tsx",
+      "src/xyflow/reactExt/useEffectAfterFirstRender.ts",
+      "src/xyflow/reactExt/useIsHovered.tsx",
+      "src/xyflow/reactExt/useStateAsItWasBeforeConditionBecameTrue.ts",
+      "src/xyflow/responsiveness/useInViewSelect.ts",
+      "src/xyflow/snapgrid/BorderSnapping.ts",
+      "src/xyflow/snapgrid/SnapGrid.ts",
+      "src/xyflow/store/ComputedStateCache.ts",
+      "src/xyflow/store/State.ts",
+      "src/xyflow/store/Store.ts",
+      "src/xyflow/store/computed/computeIsDiagramEditingInProgress.ts",
+      "src/xyflow/store/dispatch/setEdgeStatus.ts",
+      "src/xyflow/store/dispatch/setNodeStatus.ts",
+      "src/xyflow/uuid/uuid.ts",
+      "src/xyflow/waypoints/WaypointActionsContext.tsx",
+      "src/xyflow/waypoints/Waypoints.css",
+      "src/xyflow/waypoints/Waypoints.tsx",
+      "src/xyflow/waypoints/usePotentialWaypointControls.ts",
+      "src/xyflow/xml/xmlHrefToQName.ts",
+      "src/xyflow/xml/xmlHrefs.ts",
+      "src/xyflow/xml/xmlNamespaceDeclarations.ts",
+      "src/xyflow/xyflow-customizations.css"
+    ],
+    "policyDecision": {
+      "unit": "file",
+      "retainedMitFileLicense": "MIT",
+      "newIndependentFileLicense": "AGPL-3.0-or-later",
+      "retainedThirdPartyFiles": "Retained source files, including Myoxus modifications, keep their recorded original license. Independently new files are AGPL.",
+      "decidedBy": "Daniel Scharf",
+      "decidedOn": "2026-10-30"
+    }
+  }
+}

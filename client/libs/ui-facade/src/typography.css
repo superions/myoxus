@@ -1,0 +1,21 @@
+/* Ongoing status feedback without adding another spinner or visual container. */
+[data-myoxus-text-pending="true"] {
+  animation: myoxus-text-pending 2.4s ease-in-out infinite;
+}
+
+@keyframes myoxus-text-pending {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.65;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-myoxus-text-pending="true"] {
+    animation: none;
+  }
+}

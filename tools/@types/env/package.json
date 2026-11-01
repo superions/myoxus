@@ -1,0 +1,10 @@
+{
+  "name": "@types/affine__env",
+  "private": true,
+  "types": "./__all.d.ts",
+  "type": "module",
+  "dependencies": {
+    "@myoxus/env": "workspace:*",
+    "@virgultum/editor": "workspace:*"
+  }
+}

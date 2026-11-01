@@ -1,0 +1,14 @@
+query getGitSyncPolicies {
+  serverConfig {
+    gitSync {
+      allowedAuthMethods
+      allowedDirections
+      autoSyncAllowed
+      defaultBranch
+      enabled
+      maxMirrorStorageMb
+      sshHostKeyPolicy
+      webhookAllowed
+    }
+  }
+}

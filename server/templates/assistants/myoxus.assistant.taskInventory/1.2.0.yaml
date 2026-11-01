@@ -1,0 +1,167 @@
+formatVersion: 1
+id: myoxus.assistant.taskInventory
+version: 1.2.0
+name:
+  en: Open tasks
+  de: Aufgaben öffnen
+  fr: Ouvrir les tâches
+  es: Abrir tareas
+description:
+  en: People with access to the selected destination can read this Task.
+  de: Personen mit Zugriff auf das gewählte Ziel können diese Aufgabe lesen.
+  fr: Les personnes ayant accès à la destination choisie peuvent lire cette tâche.
+  es: Las personas con acceso al destino elegido pueden leer esta tarea.
+contexts:
+  - taskInventory
+inputs:
+  - id: scope
+    target: taskScope
+    label:
+      en: Task scope
+      de: Aufgabenumfang
+      fr: Portée des tâches
+      es: Alcance de las tareas
+    description: null
+    valueType: choice
+    required: false
+    default:
+      kind: choice
+      value: mine
+    choices:
+      - id: mine
+        label:
+          en: My tasks
+          de: Meine Aufgaben
+          fr: Mes tâches
+          es: Mis tareas
+        value:
+          kind: choice
+          value: mine
+      - id: following
+        label:
+          en: Following
+          de: Gefolgt
+          fr: Suivies
+          es: Seguidas
+        value:
+          kind: choice
+          value: following
+      - id: all
+        label:
+          en: All
+          de: Alle
+          fr: Toutes
+          es: Todos
+        value:
+          kind: choice
+          value: all
+    visibleWhen: null
+  - id: lifecycle
+    target: taskLifecycle
+    label:
+      en: Task lifecycle
+      de: Aufgabenstatus
+      fr: Cycle de vie des tâches
+      es: Ciclo de vida de las tareas
+    description: null
+    valueType: choice
+    required: false
+    default:
+      kind: choice
+      value: open
+    choices:
+      - id: open
+        label:
+          en: Open work
+          de: Offene Aufgaben
+          fr: Tâches ouvertes
+          es: Tareas abiertas
+        value:
+          kind: choice
+          value: open
+      - id: all
+        label:
+          en: All statuses
+          de: Alle Status
+          fr: Tous les statuts
+          es: Todos los estados
+        value:
+          kind: choice
+          value: all
+      - id: closed
+        label:
+          en: Closed work
+          de: Abgeschlossene Aufgaben
+          fr: Tâches closes
+          es: Tareas cerradas
+        value:
+          kind: choice
+          value: closed
+      - id: trash
+        label:
+          en: Trash
+          de: Papierkorb
+          fr: Corbeille
+          es: Papelera de reciclaje
+        value:
+          kind: choice
+          value: trash
+    visibleWhen: null
+components: []
+presentation:
+  steps:
+    - id: tasks
+      title:
+        en: Open tasks
+        de: Aufgaben öffnen
+        fr: Ouvrir les tâches
+        es: Abrir tareas
+      groups:
+        - id: filters
+          title: null
+          role: filters
+          controls:
+            - kind: taskFilter
+              filter: scope
+            - kind: taskFilter
+              filter: destination
+            - kind: taskFilter
+              filter: assignee
+            - kind: taskFilter
+              filter: statusGroup
+            - kind: taskFilter
+              filter: lifecycle
+            - kind: taskFilter
+              filter: duePreset
+            - kind: taskFilter
+              filter: search
+            - kind: taskFilter
+              filter: blockedOnly
+          visibleWhen: null
+        - id: tasks
+          title: null
+          role: inventory
+          controls:
+            - kind: taskSummary
+              value: title
+            - kind: taskSummary
+              value: destination
+            - kind: taskSummary
+              value: due
+            - kind: taskSummary
+              value: rowActions
+          visibleWhen: null
+      actions:
+        - id: new-task
+          action: createTask
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: refresh
+          action: refresh
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+  dialogs: []

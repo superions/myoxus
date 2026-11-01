@@ -1,0 +1,14 @@
+query getUserByEmail($email: String!) {
+  admin {
+    userByEmail(email: $email) {
+      id
+      name
+      email
+      features
+      hasPassword
+      emailVerified
+      avatarUrl
+      disabled
+    }
+  }
+}

@@ -1,0 +1,55 @@
+[package]
+description = "Local SQLite document & blob storage engine for Myoxus clients (Electron, mobile, web worker)"
+edition     = "2024"
+name        = "client_storage"
+version     = "0.0.0"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default    = []
+napi       = []
+use-as-lib = ["napi-derive/noop", "napi/noop"]
+
+[dependencies]
+anyhow = { workspace = true }
+chrono = { workspace = true }
+client_schema = { path = "../schema" }
+memory-indexer = { workspace = true }
+myoxus-doc-indexer = { workspace = true }
+napi = { workspace = true }
+napi-derive = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+sqlx = { workspace = true, default-features = false, features = [
+  "chrono",
+  "macros",
+  "migrate",
+  "runtime-tokio",
+  "sqlite",
+] }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+yrs = { workspace = true }
+zstd = "0.13"
+
+[target.'cfg(any(target_os = "ios", target_os = "android"))'.dependencies]
+uniffi = { workspace = true }
+
+[build-dependencies]
+client_schema = { path = "../schema" }
+dotenvy = { workspace = true }
+napi-build = { workspace = true }
+sqlx = { workspace = true, default-features = false, features = [
+  "chrono",
+  "macros",
+  "migrate",
+  "runtime-tokio",
+  "sqlite",
+] }
+tokio = { workspace = true, features = ["full"] }
+
+
+[dev-dependencies]
+uuid = { workspace = true, features = ["v4"] }

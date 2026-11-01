@@ -1,0 +1,139 @@
+formatVersion: 1
+id: myoxus.assistant.taskMovement
+version: 1.0.0
+name:
+  en: Move to Project
+  de: In Projekt verschieben
+  fr: Déplacer vers un projet
+  es: Mover a un proyecto
+description:
+  en: The destination allocates new display IDs. Task links and content keep their original identity.
+  de: Das Ziel vergibt neue Anzeigenummern. Aufgabenlinks und Inhalte behalten ihre ursprüngliche Identität.
+  fr:
+    La destination attribue de nouveaux identifiants d’affichage. Les liens et le contenu des tâches conservent leur identité
+    d’origine.
+  es: El destino asigna nuevos identificadores visibles. Los enlaces y el contenido de las tareas conservan su identidad original.
+contexts:
+  - taskMovement
+inputs:
+  - id: target
+    target: destination
+    label:
+      en: Destination
+      de: Ziel
+      fr: Destination
+      es: Destino
+    description: null
+    valueType: databaseDestination
+    required: false
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: phase
+    target: phase
+    label:
+      en: Phases
+      de: Phasen
+      fr: Phases
+      es: Fases
+    description: null
+    valueType: row
+    required: false
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: milestone
+    target: milestone
+    label:
+      en: Milestones
+      de: Meilensteine
+      fr: Jalons
+      es: Hitos
+    description: null
+    valueType: row
+    required: false
+    default: null
+    choices: []
+    visibleWhen: null
+components: []
+presentation:
+  steps:
+    - id: move
+      title:
+        en: Move to Project
+        de: In Projekt verschieben
+        fr: Déplacer vers un projet
+        es: Mover a un proyecto
+      groups:
+        - id: selection
+          title: null
+          role: content
+          controls:
+            - kind: moveSelection
+          visibleWhen: null
+        - id: destination
+          title: null
+          role: content
+          controls:
+            - kind: input
+              input: target
+              control: destination
+            - kind: destinationAudience
+            - kind: input
+              input: phase
+              control: row
+            - kind: input
+              input: milestone
+              control: row
+          visibleWhen: null
+        - id: impact
+          title: null
+          role: review
+          controls:
+            - kind: moveImpact
+            - kind: currentOwnerReadback
+          visibleWhen: null
+      actions:
+        - id: cancel
+          action: cancel
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: preview
+          action: prepareTaskMove
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: move
+          action: commitTaskMove
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: refresh
+          action: refresh
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: check
+          action: check
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: close
+          action: close
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: new-project
+          action: openProjectCreation
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+  dialogs: []

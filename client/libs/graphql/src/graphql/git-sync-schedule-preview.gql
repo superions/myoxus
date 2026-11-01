@@ -1,0 +1,15 @@
+query gitSyncSchedulePreview(
+  $cron: String!
+  $cronTimezone: String!
+  $count: Int
+) {
+  gitSyncSchedulePreview(
+    cron: $cron
+    cronTimezone: $cronTimezone
+    count: $count
+  ) {
+    scheduledAtUtc
+    localDateTime
+    utcOffsetSeconds
+  }
+}

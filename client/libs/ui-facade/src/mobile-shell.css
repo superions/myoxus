@@ -1,0 +1,55 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+:root {
+  --myoxus-mobile-app-keyboard-height: calc(
+    calc(var(--mantine-scale) * 1px) * 0
+  );
+  --myoxus-mobile-app-keyboard-static-height: calc(
+    calc(var(--mantine-scale) * 1px) * 0
+  );
+  --myoxus-mobile-app-tab-height: calc(
+    calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm)) +
+      var(--mantine-spacing-md) + var(--mantine-spacing-md)
+  );
+  --myoxus-mobile-app-tab-safe-area: calc(
+    var(--myoxus-mobile-app-tab-height) + env(safe-area-inset-bottom)
+  );
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body {
+  height: auto;
+  min-height: 100dvh;
+  overflow-y: unset;
+}
+
+body:has(> #app-tabs):not(:has(myoxus-keyboard-toolbar)) {
+  padding-bottom: var(--myoxus-mobile-app-tab-safe-area);
+}
+
+body:has(myoxus-keyboard-toolbar) {
+  padding-bottom: calc(
+    var(--myoxus-mobile-app-keyboard-static-height) +
+      calc(
+        var(--mantine-spacing-sm) +
+          calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-2xs)) +
+          var(--mantine-spacing-xs)
+      )
+  );
+}
+
+body:has(> #app-tabs) edgeless-toolbar-widget {
+  bottom: var(--myoxus-mobile-app-tab-safe-area);
+}
+
+html {
+  height: 100dvh;
+  overflow-y: auto;
+  background: var(--myoxus-background-secondary-color);
+}
+
+a:focus,
+button:focus {
+  outline: none;
+}

@@ -1,0 +1,11 @@
+mutation adminAddWorkspaceFeature($workspaceId: String!, $feature: FeatureType!) {
+  admin {
+    addWorkspaceFeature(workspaceId: $workspaceId, feature: $feature)
+  }
+}
+
+mutation adminRemoveWorkspaceFeature($workspaceId: String!, $feature: FeatureType!) {
+  admin {
+    removeWorkspaceFeature(workspaceId: $workspaceId, feature: $feature)
+  }
+}

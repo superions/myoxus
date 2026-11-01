@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // Source-adjacent contract tests use explicit Node modules and globals.
+    // Vitest 3 exposed these types transitively; keep that test contract
+    // explicit now that Vitest 4 declares @types/node as an optional peer.
+    "types": ["env", "build-config", "node"],
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "composite": true
+  }
+}

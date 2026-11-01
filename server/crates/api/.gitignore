@@ -1,0 +1,2 @@
+# Integration test artifacts — opendal local storage backend writes here during tests
+test-storage/

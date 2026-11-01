@@ -1,0 +1,514 @@
+{
+  "generator": "@myoxus/icons/scripts/build-assets.mjs",
+  "license": "AGPL-3.0-or-later",
+  "sources": [
+    {
+      "id": "app-beta",
+      "path": "client/libs/icons/src/assets/platform/app-beta.svg",
+      "sha256": "ad67834ce8a9c7b949b49d62c88262c0d2a658bd87ffc8875e2c9879d0e83350"
+    },
+    {
+      "id": "app-internal",
+      "path": "client/libs/icons/src/assets/platform/app-internal.svg",
+      "sha256": "92f4927ac36d23891796a408de9497c308098474dc57dc56995ff15892802092"
+    },
+    {
+      "id": "app-stable",
+      "path": "client/libs/icons/src/assets/platform/app-stable.svg",
+      "sha256": "fc81cf6e8c277160899c3c8f1eb8a1f21135fe7d4cc5183be72991776fba0487"
+    },
+    {
+      "id": "browser-favicon",
+      "path": "client/libs/icons/src/assets/platform/browser-favicon.svg",
+      "sha256": "c966faf3266cacfa89f57cc9a1a5cb55d67fc83ab13cca217b3c890771dc763c"
+    },
+    {
+      "id": "dmg-background",
+      "path": "client/branding/artwork/installer-dmg.svg",
+      "sha256": "dd87fb9f2bc2d581cac24586dcdfd6c0e93b50e93f8ec97996ad6a77807ed7ee"
+    },
+    {
+      "id": "edgeless",
+      "path": "client/libs/icons/src/assets/native/edgeless.svg",
+      "sha256": "ef70d0fd7e2bb5eec3492863913fe37717f22a971bc4bd1263757da4c79f363c"
+    },
+    {
+      "id": "journal",
+      "path": "client/libs/icons/src/assets/native/journal.svg",
+      "sha256": "9d69da3489235183d25ecd9125926477647fb037c293bedfffe5af96e711dbc3"
+    },
+    {
+      "id": "monitor",
+      "path": "client/libs/icons/src/assets/native/monitor.svg",
+      "sha256": "8a8207d23a57a011dc635324aa5d7ebd0a901c49fa82c0853abf4c34d1102733"
+    },
+    {
+      "id": "nsis-sidebar",
+      "path": "client/branding/artwork/installer-nsis.svg",
+      "sha256": "4e0560420c478daf781690c9c20d9bdb8d3a15fccc1fbfb7a3af396983a3ce52"
+    },
+    {
+      "id": "page",
+      "path": "client/libs/icons/src/assets/native/page.svg",
+      "sha256": "bda00aa1eca9c4ed6105e231840b4dfc16ee87f215e233a5ca72c9119ec0fdfe"
+    },
+    {
+      "id": "tray",
+      "path": "client/libs/icons/src/assets/native/tray.svg",
+      "sha256": "e837d477077247ba2621104a918218b5dd631e82b02a7432c1356400daa167a8"
+    },
+    {
+      "id": "waveform",
+      "path": "client/libs/icons/src/assets/native/waveform.svg",
+      "sha256": "bd9f33453b828b025bc44edffdf0dca431c14e09f751a657eaddc15a581d7e4c"
+    },
+    {
+      "id": "waveform-recording",
+      "path": "client/libs/icons/src/assets/native/waveform-recording.svg",
+      "sha256": "88c5fdd92c3cf3f328664eb6802f3514b392138f7287756c3a49af4a4ae95f1c"
+    }
+  ],
+  "recipes": [
+    {
+      "id": "browser-apple-touch-icon",
+      "source": "browser-favicon",
+      "format": "png",
+      "sizes": ["180x180"],
+      "channel": "shared",
+      "consumers": ["browser.apple-touch-icon"]
+    },
+    {
+      "id": "browser-favicon-144",
+      "source": "browser-favicon",
+      "format": "png",
+      "sizes": ["144x144"],
+      "channel": "shared",
+      "consumers": ["browser.web-favicon"]
+    },
+    {
+      "id": "browser-favicon-192",
+      "source": "browser-favicon",
+      "format": "png",
+      "sizes": ["192x192"],
+      "channel": "shared",
+      "consumers": ["browser.web-favicon"]
+    },
+    {
+      "id": "browser-favicon-32",
+      "source": "browser-favicon",
+      "format": "png",
+      "sizes": ["32x32"],
+      "channel": "shared",
+      "consumers": ["browser.web-favicon"]
+    },
+    {
+      "id": "browser-favicon-36",
+      "source": "browser-favicon",
+      "format": "png",
+      "sizes": ["36x36"],
+      "channel": "shared",
+      "consumers": ["browser.web-favicon"]
+    },
+    {
+      "id": "browser-favicon-48",
+      "source": "browser-favicon",
+      "format": "png",
+      "sizes": ["48x48"],
+      "channel": "shared",
+      "consumers": ["browser.web-favicon"]
+    },
+    {
+      "id": "browser-favicon-72",
+      "source": "browser-favicon",
+      "format": "png",
+      "sizes": ["72x72"],
+      "channel": "shared",
+      "consumers": ["browser.web-favicon"]
+    },
+    {
+      "id": "browser-favicon-96",
+      "source": "browser-favicon",
+      "format": "png",
+      "sizes": ["96x96"],
+      "channel": "shared",
+      "consumers": ["browser.web-favicon"]
+    },
+    {
+      "id": "browser-favicon-ico",
+      "source": "browser-favicon",
+      "format": "ico",
+      "sizes": ["16x16", "32x32", "48x48"],
+      "channel": "shared",
+      "consumers": ["browser.web-favicon"]
+    },
+    {
+      "id": "electron-app-beta-icns",
+      "source": "app-beta",
+      "format": "icns",
+      "sizes": [
+        "16x16",
+        "32x32",
+        "64x64",
+        "128x128",
+        "256x256",
+        "512x512",
+        "1024x1024"
+      ],
+      "channel": "beta",
+      "consumers": ["electron.dmg", "electron.packager.macos"]
+    },
+    {
+      "id": "electron-app-beta-ico",
+      "source": "app-beta",
+      "format": "ico",
+      "sizes": ["16x16", "32x32", "48x48", "64x64", "128x128", "256x256"],
+      "channel": "beta",
+      "consumers": [
+        "electron.file-association.windows",
+        "electron.nsis",
+        "electron.packager.windows"
+      ]
+    },
+    {
+      "id": "electron-app-beta-png",
+      "source": "app-beta",
+      "format": "png",
+      "sizes": ["512x512"],
+      "channel": "beta",
+      "consumers": ["electron.browser-window", "electron.native-image"]
+    },
+    {
+      "id": "electron-app-beta-svg",
+      "source": "app-beta",
+      "format": "svg",
+      "sizes": [],
+      "channel": "beta",
+      "consumers": ["electron.linux-package-metadata"]
+    },
+    {
+      "id": "electron-app-internal-icns",
+      "source": "app-internal",
+      "format": "icns",
+      "sizes": [
+        "16x16",
+        "32x32",
+        "64x64",
+        "128x128",
+        "256x256",
+        "512x512",
+        "1024x1024"
+      ],
+      "channel": "internal",
+      "consumers": ["electron.dmg", "electron.packager.macos"]
+    },
+    {
+      "id": "electron-app-internal-ico",
+      "source": "app-internal",
+      "format": "ico",
+      "sizes": ["16x16", "32x32", "48x48", "64x64", "128x128", "256x256"],
+      "channel": "internal",
+      "consumers": [
+        "electron.file-association.windows",
+        "electron.nsis",
+        "electron.packager.windows"
+      ]
+    },
+    {
+      "id": "electron-app-internal-png",
+      "source": "app-internal",
+      "format": "png",
+      "sizes": ["512x512"],
+      "channel": "internal",
+      "consumers": ["electron.browser-window", "electron.native-image"]
+    },
+    {
+      "id": "electron-app-internal-svg",
+      "source": "app-internal",
+      "format": "svg",
+      "sizes": [],
+      "channel": "internal",
+      "consumers": ["electron.linux-package-metadata"]
+    },
+    {
+      "id": "electron-app-stable-icns",
+      "source": "app-stable",
+      "format": "icns",
+      "sizes": [
+        "16x16",
+        "32x32",
+        "64x64",
+        "128x128",
+        "256x256",
+        "512x512",
+        "1024x1024"
+      ],
+      "channel": "stable",
+      "consumers": ["electron.dmg", "electron.packager.macos"]
+    },
+    {
+      "id": "electron-app-stable-ico",
+      "source": "app-stable",
+      "format": "ico",
+      "sizes": ["16x16", "32x32", "48x48", "64x64", "128x128", "256x256"],
+      "channel": "stable",
+      "consumers": [
+        "electron.file-association.windows",
+        "electron.nsis",
+        "electron.packager.windows"
+      ]
+    },
+    {
+      "id": "electron-app-stable-png",
+      "source": "app-stable",
+      "format": "png",
+      "sizes": ["512x512"],
+      "channel": "stable",
+      "consumers": ["electron.browser-window", "electron.native-image"]
+    },
+    {
+      "id": "electron-app-stable-svg",
+      "source": "app-stable",
+      "format": "svg",
+      "sizes": [],
+      "channel": "stable",
+      "consumers": ["electron.linux-package-metadata"]
+    },
+    {
+      "id": "electron-dmg-background",
+      "source": "dmg-background",
+      "format": "png",
+      "sizes": ["610x365"],
+      "channel": "shared",
+      "consumers": ["electron.forge-dmg"]
+    },
+    {
+      "id": "electron-dmg-background-2x",
+      "source": "dmg-background",
+      "format": "png",
+      "sizes": ["1220x730"],
+      "channel": "shared",
+      "consumers": ["electron.forge-dmg"]
+    },
+    {
+      "id": "electron-native-edgeless",
+      "source": "edgeless",
+      "format": "png",
+      "sizes": ["64x64"],
+      "channel": "shared",
+      "consumers": ["electron.native-image.edgeless"]
+    },
+    {
+      "id": "electron-native-journal",
+      "source": "journal",
+      "format": "png",
+      "sizes": ["64x64"],
+      "channel": "shared",
+      "consumers": ["electron.native-image.journal"]
+    },
+    {
+      "id": "electron-native-monitor",
+      "source": "monitor",
+      "format": "png",
+      "sizes": ["64x64"],
+      "channel": "shared",
+      "consumers": ["electron.native-image.monitor"]
+    },
+    {
+      "id": "electron-native-page",
+      "source": "page",
+      "format": "png",
+      "sizes": ["64x64"],
+      "channel": "shared",
+      "consumers": ["electron.native-image.page"]
+    },
+    {
+      "id": "electron-native-tray",
+      "source": "tray",
+      "format": "png",
+      "sizes": ["64x64"],
+      "channel": "shared",
+      "consumers": ["electron.native-image.tray"]
+    },
+    {
+      "id": "electron-native-waveform",
+      "source": "waveform",
+      "format": "png",
+      "sizes": ["64x64"],
+      "channel": "shared",
+      "consumers": ["electron.native-image.waveform"]
+    },
+    {
+      "id": "electron-native-waveform-recording",
+      "source": "waveform-recording",
+      "format": "png",
+      "sizes": ["64x64"],
+      "channel": "shared",
+      "consumers": ["electron.native-image.waveform-recording"]
+    },
+    {
+      "id": "electron-nsis-sidebar",
+      "source": "nsis-sidebar",
+      "format": "bmp",
+      "sizes": ["164x314"],
+      "channel": "shared",
+      "consumers": ["electron.builder-nsis"]
+    }
+  ],
+  "outputs": [
+    {
+      "recipe": "browser-apple-touch-icon",
+      "path": "client/libs/core/public/apple-touch-icon.png",
+      "sha256": "30da21407f0685f433ce36267532618129b19077773ac1001ab09524b70fa321"
+    },
+    {
+      "recipe": "browser-favicon-144",
+      "path": "client/libs/core/public/favicon-144.png",
+      "sha256": "b91be5026bb8ec5e98109afa16aa51c11d2f984698ccdf0699f68dde7272ca7f"
+    },
+    {
+      "recipe": "browser-favicon-192",
+      "path": "client/libs/core/public/favicon-192.png",
+      "sha256": "502f14d99356a4b528cd001938782eed2192bdb2d09d401b40f02d3f0c90c542"
+    },
+    {
+      "recipe": "browser-favicon-32",
+      "path": "client/libs/core/public/favicon-32.png",
+      "sha256": "0649faef51da67e5d467d6f418e80539a4d00affdb703dc5ec16894302fc0133"
+    },
+    {
+      "recipe": "browser-favicon-36",
+      "path": "client/libs/core/public/favicon-36.png",
+      "sha256": "7af56203ed157484eecb7dd03de947fae5bb6442fee8ca5f10f31051e4b3bb2f"
+    },
+    {
+      "recipe": "browser-favicon-48",
+      "path": "client/libs/core/public/favicon-48.png",
+      "sha256": "c12283596683e8c46c2cf0e9242b94f3e2e32c7b47f2a6f3aebf80c5b9ec89e0"
+    },
+    {
+      "recipe": "browser-favicon-72",
+      "path": "client/libs/core/public/favicon-72.png",
+      "sha256": "c9d38558facc617995255a4c753bbe39d13323f934275d76eb4d56ba16a5143d"
+    },
+    {
+      "recipe": "browser-favicon-96",
+      "path": "client/libs/core/public/favicon-96.png",
+      "sha256": "5c7a516f91f81d3fadf6eb4fb135770c5bf7a9c5aa3bc7f39fddd2e4849d31b9"
+    },
+    {
+      "recipe": "browser-favicon-ico",
+      "path": "client/libs/core/public/favicon.ico",
+      "sha256": "3d0c00e41051c815c53d0f6b842847150a53ff8281c518cc9228454e253bada0"
+    },
+    {
+      "recipe": "electron-app-beta-icns",
+      "path": "resources/icons/app-icon.icns",
+      "sha256": "38efff3136f59bf2f67b14a9dc59452f8dc88efe4a36430e4218b625a4c9ee77"
+    },
+    {
+      "recipe": "electron-app-internal-icns",
+      "path": "resources/icons/app-icon.icns",
+      "sha256": "deb60a6d20d21832b2ecdaabad86163343e10b2fcb474985bbc19e1c8edb9632"
+    },
+    {
+      "recipe": "electron-app-stable-icns",
+      "path": "resources/icons/app-icon.icns",
+      "sha256": "d18d97a5c33f0ca366a34c785a1ff74b6ce735efce2281afe654c1e4f033a333"
+    },
+    {
+      "recipe": "electron-app-beta-ico",
+      "path": "resources/icons/app-icon.ico",
+      "sha256": "49d57f05832b4759ee47dd87736ea01c22183af7998e1a71a656208ad7b486ec"
+    },
+    {
+      "recipe": "electron-app-internal-ico",
+      "path": "resources/icons/app-icon.ico",
+      "sha256": "a85a2f8829b2fd2ca195b039c9bd3ee6c7d3ebeddad2185d64271e91ac99cd17"
+    },
+    {
+      "recipe": "electron-app-stable-ico",
+      "path": "resources/icons/app-icon.ico",
+      "sha256": "89b8b0895ce609c5b89eac45ee3c014c1e3d033ebd14778e84815405c53c7dce"
+    },
+    {
+      "recipe": "electron-app-beta-png",
+      "path": "resources/icons/app-icon.png",
+      "sha256": "4e0c297a6f794ad89bef50675008695a5ada95210b27d954500d4898978cfaac"
+    },
+    {
+      "recipe": "electron-app-internal-png",
+      "path": "resources/icons/app-icon.png",
+      "sha256": "0250b4314bd8959472107a6492bb637b1a4a820d0e845bccebfe5b0045e9a44d"
+    },
+    {
+      "recipe": "electron-app-stable-png",
+      "path": "resources/icons/app-icon.png",
+      "sha256": "bb2f5ebbbb867e1ad078299d01309957492bc5115e17bcf3b5298dd927b85b70"
+    },
+    {
+      "recipe": "electron-app-beta-svg",
+      "path": "resources/icons/app-icon.svg",
+      "sha256": "ad67834ce8a9c7b949b49d62c88262c0d2a658bd87ffc8875e2c9879d0e83350"
+    },
+    {
+      "recipe": "electron-app-internal-svg",
+      "path": "resources/icons/app-icon.svg",
+      "sha256": "92f4927ac36d23891796a408de9497c308098474dc57dc56995ff15892802092"
+    },
+    {
+      "recipe": "electron-app-stable-svg",
+      "path": "resources/icons/app-icon.svg",
+      "sha256": "fc81cf6e8c277160899c3c8f1eb8a1f21135fe7d4cc5183be72991776fba0487"
+    },
+    {
+      "recipe": "electron-dmg-background",
+      "path": "resources/icons/dmg-background.png",
+      "sha256": "114a9094966e2d1fc1c1251b9be238de99f16b724bdf46de06567be5bf2d1b50"
+    },
+    {
+      "recipe": "electron-dmg-background-2x",
+      "path": "resources/icons/dmg-background@2x.png",
+      "sha256": "77f45af25f6cd0004e6f1f4702db2a4f4c3f4f5d12e403ca15261e8b56abf15e"
+    },
+    {
+      "recipe": "electron-native-edgeless",
+      "path": "resources/icons/edgeless.png",
+      "sha256": "4059aacea0533b682b17559eb80a4a9e7991d36eb7e183f2451546daeebfc068"
+    },
+    {
+      "recipe": "electron-native-journal",
+      "path": "resources/icons/journal.png",
+      "sha256": "f02e358a257614fa018d6ea5cba0e6b0008f12855755b71e8e9ed703b072f4ce"
+    },
+    {
+      "recipe": "electron-native-monitor",
+      "path": "resources/icons/monitor.png",
+      "sha256": "4d46fe6ca197505710dcae557344ffee1a63fa9bc04a2e28bb72a2e642746ecb"
+    },
+    {
+      "recipe": "electron-nsis-sidebar",
+      "path": "resources/icons/nsis-sidebar.bmp",
+      "sha256": "91bf5a2b32ab2f51e17f6f87ab678f046528808285e6ef5f6aafedc8b8fb8f06"
+    },
+    {
+      "recipe": "electron-native-page",
+      "path": "resources/icons/page.png",
+      "sha256": "a01993359c2faa3880feb47d048841d69111fc12682f0640a925a4cdc534c973"
+    },
+    {
+      "recipe": "electron-native-tray",
+      "path": "resources/icons/tray.png",
+      "sha256": "14c56eea0f132492d349c3e0f32bd229bb7e54bf57b3e8c88168d7698d33fe76"
+    },
+    {
+      "recipe": "electron-native-waveform-recording",
+      "path": "resources/icons/waveform-recording.png",
+      "sha256": "9cb607309255f56956741dc4221874090db261627d9f2103e394396c7022526f"
+    },
+    {
+      "recipe": "electron-native-waveform",
+      "path": "resources/icons/waveform.png",
+      "sha256": "fc339578a9719b811dce87f9fcebb289b3a4c719e2879667a83aa74e75cf9e4a"
+    }
+  ]
+}

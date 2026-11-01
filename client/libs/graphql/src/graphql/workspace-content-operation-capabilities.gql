@@ -1,0 +1,12 @@
+query workspaceContentOperationCapabilities($workspaceId: String!) {
+  workspace(id: $workspaceId) {
+    gitSyncProfile {
+      id
+    }
+    permissions {
+      Workspace_Read
+      Workspace_Organize_Update
+      Workspace_Content_Transfer
+    }
+  }
+}

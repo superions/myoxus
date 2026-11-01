@@ -1,0 +1,11 @@
+{
+  "toc_heading": "Inhaltsverzeichnis",
+  "page_of": "Seite {current} / {total}",
+  "cover_page_label": "Bericht",
+  "executive_summary_heading": "Zusammenfassung",
+  "confidentiality": {
+    "Internal": "Intern",
+    "Confidential": "Vertraulich",
+    "Restricted": "Streng vertraulich"
+  }
+}

@@ -1,0 +1,31 @@
+query getAudioTranscription(
+  $workspaceId: String!
+  $jobId: String
+  $blobId: String
+) {
+  currentUser {
+    copilot(workspaceId: $workspaceId) {
+      audioTranscription(jobId: $jobId, blobId: $blobId) {
+        id
+        status
+        errorMessage
+        title
+        summary
+        actions
+        text
+        segments {
+          text
+          startSeconds
+          endSeconds
+          speaker
+        }
+        transcription {
+          speaker
+          start
+          end
+          transcription
+        }
+      }
+    }
+  }
+}

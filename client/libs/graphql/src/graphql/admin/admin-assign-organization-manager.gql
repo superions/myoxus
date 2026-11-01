@@ -1,0 +1,9 @@
+#import "./admin-organization-unit-member-fragment.gql"
+
+mutation adminAssignOrganizationManager($input: AssignOrganizationManagerInput!) {
+  admin {
+    assignOrganizationManager(input: $input) {
+      ...AdminOrganizationUnitMemberFragment
+    }
+  }
+}

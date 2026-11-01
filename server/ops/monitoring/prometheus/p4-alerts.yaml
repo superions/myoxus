@@ -1,0 +1,53 @@
+groups:
+  - name: myoxus.p4
+    rules:
+      - alert: MyoxusHighErrorRate
+        expr: |
+          sum(rate(myoxus_http_requests_total{status=~"5.."}[5m]))
+          / sum(rate(myoxus_http_requests_total[5m])) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High HTTP error rate (>5%)"
+          description: "More than 5% of requests are returning 5xx errors."
+
+      - alert: MyoxusWorkerQueueLagSearch
+        expr: |
+          myoxus_queue_lag_seconds{queue="indexer"} > 30
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Search indexer queue lagging"
+          description: "The indexer queue lag exceeds 30 seconds for more than 5 minutes."
+
+      - alert: MyoxusWorkerQueueLagCalendarReminder
+        expr: |
+          myoxus_queue_lag_seconds{queue="calendar-reminder"} > 60
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Calendar reminder queue lagging"
+          description: "The calendar-reminder queue lag exceeds 60 seconds for more than 5 minutes."
+
+      - alert: MyoxusDeadLetterGrowth
+        expr: |
+          sum by (queue)(increase(myoxus_queue_failed_total[1h])) > 10
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Dead letter queue growing"
+          description: "Queue {{ $labels.queue }} accumulated more than 10 failed jobs in the last hour."
+
+      - alert: MyoxusStorageErrors
+        expr: |
+          sum(rate(myoxus_http_requests_total{route=~"/api/blob.*",status=~"5.."}[5m])) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Storage route error spike"
+          description: "Storage endpoints returning errors at more than 0.1 req/s."

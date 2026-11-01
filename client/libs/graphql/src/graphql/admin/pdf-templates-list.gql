@@ -1,0 +1,42 @@
+query adminPdfTemplates($includeDeleted: Boolean) {
+  admin {
+    pdfTemplates(includeDeleted: $includeDeleted) {
+      id
+      slug
+      name
+      version
+      schemaVersion
+      manifest
+      createdBy
+      createdAt
+      deletedAt
+    }
+  }
+}
+
+query adminPdfTemplate($id: ID!) {
+  admin {
+    pdfTemplate(id: $id) {
+      id
+      slug
+      name
+      version
+      schemaVersion
+      manifest
+      createdBy
+      createdAt
+      deletedAt
+    }
+  }
+}
+
+query adminPdfTemplateFiles($templateId: ID!) {
+  admin {
+    pdfTemplateFiles(templateId: $templateId) {
+      templateId
+      filePath
+      blobKey
+      contentHash
+    }
+  }
+}

@@ -1,0 +1,105 @@
+query getUserPreferences {
+  currentUser {
+    preferences {
+      updatedAt
+      values {
+        assistanceMode
+        workspaceAssistanceOverrides { workspaceId mode }
+        projectAssistanceOverrides { workspaceId projectId mode }
+        locale
+        defaultDocumentLanguage
+        timezone
+        dateFormat
+        timeFormat
+        receiveInvitationEmail
+        receiveMentionEmail
+        receiveCommentEmail
+        notifyCreatedDocuments
+        journalFirstDayOfWeek
+        journalShowCalendarWeeks
+        colorMode
+        showLinkedDocuments
+        imageAntialiasing
+        noisyBackground
+        editorFontFamily
+        editorCustomFontFamily
+        editorFontSize
+        newDocumentMode
+        fullWidthLayout
+        openDocumentMode
+        edgelessDefaultTheme
+        telemetryEnabled
+        aiModelId
+        templateCatalogViews { workspaceId view }
+      aiReasoningEnabled
+        documentMetadataHeaderVisibility {
+          workspaceId
+          fields { field visible }
+        }
+        workbenchToolLayouts {
+          workspaceId
+          viewFamily
+          orderedToolIds
+          visibleToolIds
+          collapsedToolIds
+        }
+        workspaceDashboardLayouts {
+          workspaceId
+          orderedDashletIds
+          dashletSizes {
+            dashletId
+            size
+          }
+        }
+      }
+      effectiveValues {
+        assistanceMode
+        locale
+        defaultDocumentLanguage
+        timezone
+        dateFormat
+        timeFormat
+        receiveInvitationEmail
+        receiveMentionEmail
+        receiveCommentEmail
+        notifyCreatedDocuments
+        journalFirstDayOfWeek
+        journalShowCalendarWeeks
+        colorMode
+        showLinkedDocuments
+        imageAntialiasing
+        noisyBackground
+        editorFontFamily
+        editorCustomFontFamily
+        editorFontSize
+        newDocumentMode
+        fullWidthLayout
+        openDocumentMode
+        edgelessDefaultTheme
+        telemetryEnabled
+        aiModelId
+        templateCatalogViews { workspaceId view }
+      aiReasoningEnabled
+        documentMetadataHeaderVisibility {
+          workspaceId
+          fields { field visible }
+        }
+        workbenchToolLayouts {
+          workspaceId
+          viewFamily
+          orderedToolIds
+          visibleToolIds
+          collapsedToolIds
+        }
+        workspaceDashboardLayouts {
+          workspaceId
+          orderedDashletIds
+          dashletSizes {
+            dashletId
+            size
+          }
+        }
+      }
+    }
+  }
+}

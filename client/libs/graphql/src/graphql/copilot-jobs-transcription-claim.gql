@@ -1,0 +1,22 @@
+mutation claimAudioTranscription($jobId: String!) {
+  claimAudioTranscription(jobId: $jobId) {
+    id
+    status
+    title
+    summary
+    actions
+    text
+    segments {
+      text
+      startSeconds
+      endSeconds
+      speaker
+    }
+    transcription {
+      speaker
+      start
+      end
+      transcription
+    }
+  }
+}

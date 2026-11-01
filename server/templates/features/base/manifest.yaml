@@ -1,0 +1,3241 @@
+formatVersion: 1
+id: myoxus.features.base
+version: 1.0.34
+capabilities:
+  artwork: 1
+  assistant: 1
+  database: 1
+  documentTemplate: 1
+  workflow: 1
+components:
+  # Frozen deployed Builtin baselines. Retained migration evidence only: no
+  # standalone exports and no new-Workspace defaults.
+  - id: document.business-daily.1.0.0
+    kind: documentTemplate
+    path: documents/business-daily/1.0.0.zip
+  - id: document.eisenhower.1.0.0
+    kind: documentTemplate
+    path: documents/eisenhower/1.0.0.zip
+  - id: document.time-blocking.1.0.0
+    kind: documentTemplate
+    path: documents/time-blocking/1.0.0.zip
+  - id: document.gtd-weekly-review.1.0.0
+    kind: documentTemplate
+    path: documents/gtd-weekly-review/1.0.0.zip
+  - id: document.hybrid-day-sprint.1.0.0
+    kind: documentTemplate
+    path: documents/hybrid-day-sprint/1.0.0.zip
+  - id: document.personal-journal.1.0.0
+    kind: documentTemplate
+    path: documents/personal-journal/1.0.0.zip
+  - id: document.agile-standup.1.0.0
+    kind: documentTemplate
+    path: documents/agile-standup/1.0.0.zip
+  - id: document.agile-retro.1.0.0
+    kind: documentTemplate
+    path: documents/agile-retro/1.0.0.zip
+  - id: document.meeting-notes.1.0.0
+    kind: documentTemplate
+    path: documents/meeting-notes/1.0.0.zip
+  - id: document.welcome-myoxus.1.0.0
+    kind: documentTemplate
+    path: documents/welcome-myoxus/1.0.0.zip
+  - id: document.getting-started-myoxus.1.0.0
+    kind: documentTemplate
+    path: documents/getting-started-myoxus/1.0.0.zip
+  - id: document.using-folders-myoxus.1.0.0
+    kind: documentTemplate
+    path: documents/using-folders-myoxus/1.0.0.zip
+  - id: document.meeting-templates-myoxus.1.0.0
+    kind: documentTemplate
+    path: documents/meeting-templates-myoxus/1.0.0.zip
+  - id: document.databases-guide-myoxus.1.0.0
+    kind: documentTemplate
+    path: documents/databases-guide-myoxus/1.0.0.zip
+  - id: databases
+    kind: databaseCatalog
+    path: databases/catalog.yaml
+  - id: assistants
+    kind: assistantCatalog
+    path: assistants/catalog.yaml
+  - id: task-core
+    kind: taskCore
+    path: databases/myoxus.project.task-core/1.0.0.yaml
+  - id: document.project-brief.1.0.0
+    kind: documentTemplate
+    path: documents/project-brief/1.0.0.zip
+  - id: artwork.project.simple-project
+    kind: artwork
+    path: features/artwork/simple-project.svg
+    artwork:
+      mediaType: image/svg+xml
+      width: 640
+      height: 240
+      alternative:
+        en: Three task groups with milestone markers and a completed task.
+        de: Drei Aufgabengruppen mit Meilensteinmarkierungen und einer erledigten Aufgabe.
+        fr: Trois groupes de tâches avec des repères de jalons et une tâche terminée.
+        es: Tres grupos de tareas con marcadores de hitos y una tarea completada.
+      caption:
+        en: Group tasks into phases and milestones, or keep a task-only structure. Choose the structure and initial view below.
+        de: Gruppiere Aufgaben in Phasen und Meilensteine oder verwende nur Aufgaben. Wähle unten die Struktur und die anfängliche Ansicht.
+        fr: Regroupez les tâches en phases et jalons ou conservez uniquement des tâches. Choisissez la structure et la vue initiale ci-dessous.
+        es: Agrupa las tareas en fases e hitos o utiliza solo tareas. Elige la estructura y la vista inicial a continuación.
+  - id: artwork.project.product-roadmap
+    kind: artwork
+    path: features/artwork/product-roadmap.svg
+    artwork:
+      mediaType: image/svg+xml
+      width: 640
+      height: 240
+      alternative:
+        en: Three work streams on a timeline, each ending at a milestone.
+        de: Drei Arbeitsstränge auf einer Zeitachse, die jeweils an einem Meilenstein enden.
+        fr: Trois axes de travail sur une chronologie, chacun se terminant par un jalon.
+        es: Tres líneas de trabajo en una cronología, cada una terminando en un hito.
+      caption:
+        en: Compare work and milestones over time. Choose the initial view and task options below.
+        de: Vergleiche Aufgaben und Meilensteine im zeitlichen Verlauf. Wähle unten die anfängliche Ansicht und die Aufgabenoptionen.
+        fr: Comparez les tâches et les jalons dans le temps. Choisissez la vue initiale et les options des tâches ci-dessous.
+        es: Compara las tareas y los hitos a lo largo del tiempo. Elige la vista inicial y las opciones de las tareas a continuación.
+  - id: artwork.project.bug-tracker
+    kind: artwork
+    path: features/artwork/bug-tracker.svg
+    artwork:
+      mediaType: image/svg+xml
+      width: 640
+      height: 240
+      alternative:
+        en: Issue cards move from a bug symbol through investigation to completed items.
+        de: Fehlerkarten durchlaufen die Untersuchung bis zum Abschluss.
+        fr: Des fiches de bogues passent de leur identification à leur résolution.
+        es: Las tarjetas de errores pasan de la identificación a la investigación y la finalización.
+      caption:
+        en: Track issues from triage to completion. Choose the initial view and task options below.
+        de: Verfolge Fehler von der ersten Prüfung bis zum Abschluss. Wähle unten die anfängliche Ansicht und die Aufgabenoptionen.
+        fr: Suivez les bogues du triage à la résolution. Choisissez la vue initiale et les options des tâches ci-dessous.
+        es: Sigue los errores desde su clasificación hasta su resolución. Elige la vista inicial y las opciones de las tareas a continuación.
+  - id: document.meeting-focus.1.2.0
+    kind: documentTemplate
+    path: documents/meeting-focus/1.2.0.zip
+  - id: document.meeting-agenda.1.1.0
+    kind: documentTemplate
+    path: documents/meeting-agenda/1.1.0.zip
+  - id: document.meeting-register.1.1.0
+    kind: documentTemplate
+    path: documents/meeting-register/1.1.0.zip
+  - id: artwork.context.preparation
+    kind: artwork
+    path: features/artwork/context-preparation.svg
+    artwork:
+      mediaType: image/svg+xml
+      width: 640
+      height: 240
+      alternative:
+        en: A work container with an optional task points to a separate document containing editable notes and context links.
+        de: Ein Arbeitscontainer mit optionaler Aufgabe verweist auf ein separates Dokument mit editierbaren Notizen und Kontextlinks.
+        fr: Un conteneur de travail avec une tâche facultative mène à un document distinct contenant des notes modifiables et des liens contextuels.
+        es: Un contenedor de trabajo con una tarea opcional apunta a un documento separado con notas editables y enlaces contextuales.
+      caption:
+        en: Prepare a separate editable copy with authorized context links. Choose any people and date explicitly; no task is assigned or changed.
+        de: Bereite eine separate editierbare Kopie mit autorisierten Kontextlinks vor. Wähle Personen und Datum ausdrücklich; keine Aufgabe wird zugewiesen oder verändert.
+        fr: Préparez une copie modifiable distincte avec des liens contextuels autorisés. Choisissez explicitement les personnes et la date ; aucune tâche n’est assignée ni modifiée.
+        es: Prepara una copia editable separada con enlaces contextuales autorizados. Elige personas y fecha explícitamente; no se asigna ni cambia ninguna tarea.
+  - id: workflow.context-documents.1.0.0
+    kind: workflow
+    path: workflows/myoxus.workflow.context_documents/1.0.0.yaml
+  - id: workflow.document-review.1.0.0
+    kind: workflow
+    path: workflows/myoxus.workflow.document_review/1.0.0.yaml
+  - id: artwork.document-review
+    kind: artwork
+    path: features/base/document-review.svg
+    artwork:
+      mediaType: image/svg+xml
+      width: 640
+      height: 240
+      alternative:
+        en: One existing document is reviewed by one person, then branches to handover or revision.
+        de: Eine Person prüft ein bestehendes Dokument; danach folgt eine Übergabe oder Überarbeitung.
+        fr: Une personne relit un document existant, puis le transmet ou demande une révision.
+        es: Una persona revisa un documento existente y después lo entrega o solicita una revisión.
+      caption:
+        en: Review the original document. Approval hands work back; requested changes include the reviewer’s reason.
+        de: Prüfe das Originaldokument. Eine Freigabe übergibt die Arbeit zurück; Änderungswünsche enthalten die Begründung der prüfenden Person.
+        fr: Relisez le document d’origine. L’approbation transmet le travail ; une demande de modifications inclut le motif de la personne chargée de la relecture.
+        es: Revisa el documento original. La aprobación devuelve el trabajo; los cambios solicitados incluyen el motivo de la persona revisora.
+  - id: workflow.task-handover.1.0.0
+    kind: workflow
+    path: workflows/myoxus.workflow.handover_after_prerequisites/1.0.0.yaml
+  - id: artwork.task-handover
+    kind: artwork
+    path: features/base/task-handover.svg
+    artwork:
+      mediaType: image/svg+xml
+      width: 640
+      height: 240
+      alternative:
+        en: Two prerequisite Tasks converge before a document-linked task is assigned to one person.
+        de: Zwei vorausgesetzte Aufgaben laufen zusammen, bevor eine Aufgabe mit Dokument einer Person zugewiesen wird.
+        fr: Deux tâches prérequises convergent avant qu’une tâche liée au document soit attribuée à une personne.
+        es: Dos tareas previas convergen antes de asignar una tarea vinculada al documento a una persona.
+      caption:
+        en: Choose existing Tasks and a deadline. After every prerequisite completes, create one handover linked to the original document.
+        de: Wähle bestehende Aufgaben und eine Frist. Nach Abschluss aller Voraussetzungen entsteht eine Übergabeaufgabe mit dem Originaldokument.
+        fr: Choisissez des tâches existantes et une échéance. Une fois tous les prérequis terminés, créez une transmission liée au document d’origine.
+        es: Elige tareas existentes y un plazo. Tras completar todos los requisitos previos, crea una entrega vinculada al documento original.
+  - id: document.task-content-agenda.1.0.0
+    kind: documentTemplate
+    path: documents/task-content-agenda/1.0.0.zip
+  - id: workflow.task-maintenance.1.0.0
+    kind: workflow
+    path: workflows/myoxus.workflow.task_maintenance/1.0.0.yaml
+  - id: artwork.task-maintenance
+    kind: artwork
+    path: features/base/maintenance.svg
+    artwork:
+      mediaType: image/svg+xml
+      width: 640
+      height: 240
+      alternative:
+        en: A Task is inspected, its proposed correction is reviewed, then accepted or declined.
+        de: Eine Aufgabe wird geprüft; ihre vorgeschlagene Korrektur wird kontrolliert und bestätigt oder abgelehnt.
+        fr: Une tâche est vérifiée ; sa correction proposée est examinée puis confirmée ou refusée.
+        es: Se revisa una tarea; su corrección propuesta se examina y se confirma o rechaza.
+      caption:
+        en: Inspect current Task values. Review exact changes before confirming them; declining changes nothing.
+        de: Prüfe aktuelle Aufgabenwerte. Kontrolliere genaue Änderungen vor der Bestätigung; Ablehnen ändert nichts.
+        fr: Vérifiez les valeurs actuelles des tâches. Examinez les modifications exactes avant de les confirmer ; un refus ne change rien.
+        es: Revisa los valores actuales de las tareas. Examina los cambios exactos antes de confirmarlos; rechazarlos no cambia nada.
+  - id: workflow.task-content-preparation.1.0.0
+    kind: workflow
+    path: workflows/myoxus.workflow.task_content_preparation/1.0.0.yaml
+  - id: artwork.task-content-preparation
+    kind: artwork
+    path: features/base/task-content-preparation.svg
+    artwork:
+      mediaType: image/svg+xml
+      width: 640
+      height: 240
+      alternative:
+        en: A new Task receives content from a selected native source without replacing existing content.
+        de: Eine neue Aufgabe erhält Inhalt aus einer gewählten nativen Quelle, ohne vorhandenen Inhalt zu ersetzen.
+        fr: Une nouvelle tâche reçoit le contenu d’une source native sélectionnée sans remplacer le contenu existant.
+        es: Una tarea nueva recibe contenido de una fuente nativa seleccionada sin reemplazar el contenido existente.
+      caption:
+        en: Personally review the source and literal inputs before enabling automatic preparation for your new Tasks.
+        de: Prüfe Quelle und wörtliche Eingaben persönlich, bevor du die automatische Vorbereitung für deine neuen Aufgaben aktivierst.
+        fr: Vérifiez personnellement la source et les saisies littérales avant d’activer la préparation automatique de vos nouvelles tâches.
+        es: Revisa personalmente la fuente y las entradas literales antes de activar la preparación automática de tus nuevas tareas.
+  - id: artwork.assistant-fresh-start
+    kind: artwork
+    path: features/artwork/assistant-fresh-start.webp
+    artwork:
+      role: illustration
+      mediaType: image/webp
+      width: 1536
+      height: 1024
+      alternative:
+        en: A friendly assistant beside an open blank book and a seedling.
+        de: Ein freundlicher Assistent neben einem offenen leeren Buch und einem Keimling.
+        fr: Un assistant accueillant près d’un livre ouvert vierge et d’une jeune pousse.
+        es: Un asistente amable junto a un libro abierto en blanco y un brote.
+      caption: null
+  - id: artwork.assistant-simple-project
+    kind: artwork
+    path: features/artwork/assistant-simple-project.webp
+    artwork:
+      role: illustration
+      mediaType: image/webp
+      width: 1536
+      height: 1024
+      alternative:
+        en: A friendly assistant beside a project folder and a target.
+        de: Ein freundlicher Assistent neben einer Projektmappe und einem Ziel.
+        fr: Un assistant accueillant près d’un dossier de projet et d’une cible.
+        es: Un asistente amable junto a una carpeta de proyecto y un objetivo.
+      caption: null
+  - id: artwork.assistant-roadmap
+    kind: artwork
+    path: features/artwork/assistant-roadmap.webp
+    artwork:
+      role: illustration
+      mediaType: image/webp
+      width: 1536
+      height: 1024
+      alternative:
+        en: A friendly assistant beside a path with milestones and a flag.
+        de: Ein freundlicher Assistent neben einem Weg mit Meilensteinen und einer Fahne.
+        fr: Un assistant accueillant près d’un chemin avec des jalons et un drapeau.
+        es: Un asistente amable junto a un camino con hitos y una bandera.
+      caption: null
+  - id: artwork.assistant-issue-tracker
+    kind: artwork
+    path: features/artwork/assistant-issue-tracker.webp
+    artwork:
+      role: illustration
+      mediaType: image/webp
+      width: 1536
+      height: 1024
+      alternative:
+        en: A friendly assistant beside a magnifying glass highlighting an issue.
+        de: Ein freundlicher Assistent neben einer Lupe, die einen Fehler hervorhebt.
+        fr: Un assistant accueillant près d’une loupe mettant en évidence un problème.
+        es: Un asistente amable junto a una lupa que destaca una incidencia.
+      caption: null
+  - id: artwork.assistant-knowledge-garden
+    kind: artwork
+    path: features/artwork/assistant-knowledge-garden.webp
+    artwork:
+      role: illustration
+      mediaType: image/webp
+      width: 1536
+      height: 1024
+      alternative:
+        en: A friendly assistant beside an open book with growing leaves.
+        de: Ein freundlicher Assistent neben einem offenen Buch mit wachsenden Blättern.
+        fr: Un assistant accueillant près d’un livre ouvert d’où poussent des feuilles.
+        es: Un asistente amable junto a un libro abierto del que brotan hojas.
+      caption: null
+  - id: artwork.assistant-team-wiki
+    kind: artwork
+    path: features/artwork/assistant-team-wiki.webp
+    artwork:
+      role: illustration
+      mediaType: image/webp
+      width: 1536
+      height: 1024
+      alternative:
+        en: A friendly assistant beside three connected documents.
+        de: Ein freundlicher Assistent neben drei verbundenen Dokumenten.
+        fr: Un assistant accueillant près de trois documents reliés.
+        es: Un asistente amable junto a tres documentos conectados.
+      caption: null
+  - id: document.knowledge-home.1.0.0
+    kind: documentTemplate
+    path: documents/knowledge-home/1.0.0.zip
+  - id: document.research-note.1.0.0
+    kind: documentTemplate
+    path: documents/research-note/1.0.0.zip
+  - id: document.team-wiki-home.1.0.0
+    kind: documentTemplate
+    path: documents/team-wiki-home/1.0.0.zip
+  - id: document.procedure.1.0.0
+    kind: documentTemplate
+    path: documents/procedure/1.0.0.zip
+  - id: document.decision-record.1.0.0
+    kind: documentTemplate
+    path: documents/decision-record/1.0.0.zip
+  - id: workflow.workspace_personal_knowledge.1.0.0
+    kind: workflow
+    path: workflows/myoxus.workflow.workspace_personal_knowledge/1.0.0.yaml
+  - id: workflow.workspace_team_wiki.1.0.0
+    kind: workflow
+    path: workflows/myoxus.workflow.workspace_team_wiki/1.0.0.yaml
+  - id: document.databases-guide-myoxus.1.4.0
+    kind: documentTemplate
+    path: documents/databases-guide-myoxus/1.4.0.zip
+  - id: document.getting-started-myoxus.1.3.0
+    kind: documentTemplate
+    path: documents/getting-started-myoxus/1.3.0.zip
+  - id: document.editor-advanced-myoxus.1.0.0
+    kind: documentTemplate
+    path: documents/editor-advanced-myoxus/1.0.0.zip
+  - id: document.importing-content-myoxus.1.0.0
+    kind: documentTemplate
+    path: documents/importing-content-myoxus/1.0.0.zip
+  - id: document.using-folders-myoxus.1.4.0
+    kind: documentTemplate
+    path: documents/using-folders-myoxus/1.4.0.zip
+  - id: document.welcome-myoxus.1.3.0
+    kind: documentTemplate
+    path: documents/welcome-myoxus/1.3.0.zip
+  - id: document.meeting-templates-myoxus.1.4.0
+    kind: documentTemplate
+    path: documents/meeting-templates-myoxus/1.4.0.zip
+  - id: document.handover.1.2.0
+    kind: documentTemplate
+    path: documents/handover/1.2.0.zip
+  - id: document.project-status.1.2.0
+    kind: documentTemplate
+    path: documents/project-status/1.2.0.zip
+  - id: document.one-on-one.1.2.0
+    kind: documentTemplate
+    path: documents/one-on-one/1.2.0.zip
+  - id: document.business-daily.1.3.0
+    kind: documentTemplate
+    path: documents/business-daily/1.3.0.zip
+  - id: document.architecture-decision.1.2.0
+    kind: documentTemplate
+    path: documents/architecture-decision/1.2.0.zip
+  - id: document.eisenhower.1.3.0
+    kind: documentTemplate
+    path: documents/eisenhower/1.3.0.zip
+  - id: document.meeting-agenda.1.4.0
+    kind: documentTemplate
+    path: documents/meeting-agenda/1.4.0.zip
+  - id: document.time-blocking.1.3.0
+    kind: documentTemplate
+    path: documents/time-blocking/1.3.0.zip
+  - id: document.personal-journal.1.3.0
+    kind: documentTemplate
+    path: documents/personal-journal/1.3.0.zip
+  - id: document.gtd-weekly-review.1.3.0
+    kind: documentTemplate
+    path: documents/gtd-weekly-review/1.3.0.zip
+  - id: document.incident-report.1.2.0
+    kind: documentTemplate
+    path: documents/incident-report/1.2.0.zip
+  - id: document.rollout-rollback.1.2.0
+    kind: documentTemplate
+    path: documents/rollout-rollback/1.2.0.zip
+  - id: document.agile-standup.1.4.0
+    kind: documentTemplate
+    path: documents/agile-standup/1.4.0.zip
+  - id: document.agile-retro.1.4.0
+    kind: documentTemplate
+    path: documents/agile-retro/1.4.0.zip
+  - id: document.using-tasks-myoxus.1.0.0
+    kind: documentTemplate
+    path: documents/using-tasks-myoxus/1.0.0.zip
+  - id: document.block-checklist.1.0.1
+    kind: documentTemplate
+    path: documents/block-checklist/1.0.1.zip
+  - id: document.block-conversation-note.1.0.0
+    kind: documentTemplate
+    path: documents/block-conversation-note/1.0.0.zip
+  - id: document.block-daci.1.0.0
+    kind: documentTemplate
+    path: documents/block-daci/1.0.0.zip
+  - id: document.block-options-comparison.1.0.0
+    kind: documentTemplate
+    path: documents/block-options-comparison/1.0.0.zip
+  - id: document.block-raci-customer-service.1.0.0
+    kind: documentTemplate
+    path: documents/block-raci-customer-service/1.0.0.zip
+  - id: document.block-risk-matrix.1.0.0
+    kind: documentTemplate
+    path: documents/block-risk-matrix/1.0.0.zip
+  - id: document.block-phone-note.1.0.0
+    kind: documentTemplate
+    path: documents/block-phone-note/1.0.0.zip
+  - id: document.block-callback.1.0.0
+    kind: documentTemplate
+    path: documents/block-callback/1.0.0.zip
+  - id: document.block-agenda-item.1.0.0
+    kind: documentTemplate
+    path: documents/block-agenda-item/1.0.0.zip
+  - id: document.block-minutes-item.1.0.0
+    kind: documentTemplate
+    path: documents/block-minutes-item/1.0.0.zip
+  - id: document.block-meeting-close.1.0.0
+    kind: documentTemplate
+    path: documents/block-meeting-close/1.0.0.zip
+  - id: document.block-next-meeting.1.0.0
+    kind: documentTemplate
+    path: documents/block-next-meeting/1.0.0.zip
+  - id: document.block-standup.1.0.0
+    kind: documentTemplate
+    path: documents/block-standup/1.0.0.zip
+  - id: document.block-retro-prompt.1.0.0
+    kind: documentTemplate
+    path: documents/block-retro-prompt/1.0.0.zip
+  - id: document.block-selection-must.1.0.0
+    kind: documentTemplate
+    path: documents/block-selection-must/1.0.0.zip
+  - id: document.block-selection-weighted.1.0.0
+    kind: documentTemplate
+    path: documents/block-selection-weighted/1.0.0.zip
+  - id: document.block-selection-pairwise.1.0.0
+    kind: documentTemplate
+    path: documents/block-selection-pairwise/1.0.0.zip
+  - id: document.block-risk.1.0.0
+    kind: documentTemplate
+    path: documents/block-risk/1.0.0.zip
+  - id: document.block-assumption.1.0.0
+    kind: documentTemplate
+    path: documents/block-assumption/1.0.0.zip
+  - id: document.block-project-brief.1.0.0
+    kind: documentTemplate
+    path: documents/block-project-brief/1.0.0.zip
+  - id: document.block-milestone.1.0.0
+    kind: documentTemplate
+    path: documents/block-milestone/1.0.0.zip
+  - id: document.block-status-update.1.0.0
+    kind: documentTemplate
+    path: documents/block-status-update/1.0.0.zip
+  - id: document.block-change-request.1.0.0
+    kind: documentTemplate
+    path: documents/block-change-request/1.0.0.zip
+  - id: document.block-dependency.1.0.0
+    kind: documentTemplate
+    path: documents/block-dependency/1.0.0.zip
+  - id: document.block-check-record.1.0.0
+    kind: documentTemplate
+    path: documents/block-check-record/1.0.0.zip
+  - id: document.block-deviation.1.0.0
+    kind: documentTemplate
+    path: documents/block-deviation/1.0.0.zip
+  - id: document.block-corrective-action.1.0.0
+    kind: documentTemplate
+    path: documents/block-corrective-action/1.0.0.zip
+  - id: document.block-approval-record.1.0.0
+    kind: documentTemplate
+    path: documents/block-approval-record/1.0.0.zip
+  - id: document.block-peer-check.1.0.0
+    kind: documentTemplate
+    path: documents/block-peer-check/1.0.0.zip
+  - id: document.block-event-log.1.0.0
+    kind: documentTemplate
+    path: documents/block-event-log/1.0.0.zip
+  - id: document.block-cause-analysis.1.0.0
+    kind: documentTemplate
+    path: documents/block-cause-analysis/1.0.0.zip
+  - id: document.block-process-step.1.0.0
+    kind: documentTemplate
+    path: documents/block-process-step/1.0.0.zip
+  - id: document.block-source-note.1.0.0
+    kind: documentTemplate
+    path: documents/block-source-note/1.0.0.zip
+  - id: document.block-change-note.1.0.0
+    kind: documentTemplate
+    path: documents/block-change-note/1.0.0.zip
+  - id: document.block-weekly-review.1.0.0
+    kind: documentTemplate
+    path: documents/block-weekly-review/1.0.0.zip
+  - id: document.block-raci.1.0.0
+    kind: documentTemplate
+    path: documents/block-raci/1.0.0.zip
+  - id: document.block-technical-profile.1.0.0
+    kind: documentTemplate
+    path: documents/block-technical-profile/1.0.0.zip
+  - id: document.block-interface-contract.1.0.0
+    kind: documentTemplate
+    path: documents/block-interface-contract/1.0.0.zip
+  - id: document.block-madr-rationale.1.0.1
+    kind: documentTemplate
+    path: documents/block-madr-rationale/1.0.1.zip
+  - id: document.block-work-package.1.0.1
+    kind: documentTemplate
+    path: documents/block-work-package/1.0.1.zip
+  - id: document.block-architecture-comparison.1.0.2
+    kind: documentTemplate
+    path: documents/block-architecture-comparison/1.0.2.zip
+  - id: document.block-confirmation.1.0.1
+    kind: documentTemplate
+    path: documents/block-confirmation/1.0.1.zip
+  - id: document.block-conversation-prep.1.0.1
+    kind: documentTemplate
+    path: documents/block-conversation-prep/1.0.1.zip
+  - id: document.block-daily-focus.1.0.1
+    kind: documentTemplate
+    path: documents/block-daily-focus/1.0.1.zip
+  - id: document.block-decision-brief.1.0.1
+    kind: documentTemplate
+    path: documents/block-decision-brief/1.0.1.zip
+  - id: document.block-decision.1.0.2
+    kind: documentTemplate
+    path: documents/block-decision/1.0.2.zip
+  - id: document.block-definition.1.0.1
+    kind: documentTemplate
+    path: documents/block-definition/1.0.1.zip
+  - id: document.block-faq.1.0.1
+    kind: documentTemplate
+    path: documents/block-faq/1.0.1.zip
+  - id: document.block-follow-up-question.1.0.1
+    kind: documentTemplate
+    path: documents/block-follow-up-question/1.0.1.zip
+  - id: document.block-follow-up.1.0.1
+    kind: documentTemplate
+    path: documents/block-follow-up/1.0.1.zip
+  - id: document.block-handover.1.0.1
+    kind: documentTemplate
+    path: documents/block-handover/1.0.1.zip
+  - id: document.block-how-to.1.0.1
+    kind: documentTemplate
+    path: documents/block-how-to/1.0.1.zip
+  - id: document.block-immediate-action.1.0.1
+    kind: documentTemplate
+    path: documents/block-immediate-action/1.0.1.zip
+  - id: document.block-incident.1.0.1
+    kind: documentTemplate
+    path: documents/block-incident/1.0.1.zip
+  - id: document.block-note-close.1.0.1
+    kind: documentTemplate
+    path: documents/block-note-close/1.0.1.zip
+  - id: document.block-open-question.1.0.1
+    kind: documentTemplate
+    path: documents/block-open-question/1.0.1.zip
+  - id: document.block-post-incident-review.1.0.1
+    kind: documentTemplate
+    path: documents/block-post-incident-review/1.0.1.zip
+  - id: document.block-recovery-check.1.0.1
+    kind: documentTemplate
+    path: documents/block-recovery-check/1.0.1.zip
+  - id: document.block-rollback-steps.1.0.1
+    kind: documentTemplate
+    path: documents/block-rollback-steps/1.0.1.zip
+  - id: document.block-rollout-steps.1.0.1
+    kind: documentTemplate
+    path: documents/block-rollout-steps/1.0.1.zip
+  - id: document.block-short-message.1.0.1
+    kind: documentTemplate
+    path: documents/block-short-message/1.0.1.zip
+  - id: document.block-technical-acceptance.1.0.1
+    kind: documentTemplate
+    path: documents/block-technical-acceptance/1.0.1.zip
+links:
+  - kind: taskCore
+    from:
+      component: databases
+      export: myoxus.project.simple_project@1.0.0
+    to:
+      scope: local
+      reference:
+        component: task-core
+        export: myoxus.project.task-core@1.0.0
+  - kind: taskCore
+    from:
+      component: databases
+      export: myoxus.project.simple_project@1.0.1
+    to:
+      scope: local
+      reference:
+        component: task-core
+        export: myoxus.project.task-core@1.0.0
+  - kind: taskCore
+    from:
+      component: databases
+      export: myoxus.project.product_roadmap@1.0.0
+    to:
+      scope: local
+      reference:
+        component: task-core
+        export: myoxus.project.task-core@1.0.0
+  - kind: taskCore
+    from:
+      component: databases
+      export: myoxus.project.product_roadmap@1.0.1
+    to:
+      scope: local
+      reference:
+        component: task-core
+        export: myoxus.project.task-core@1.0.0
+  - kind: taskCore
+    from:
+      component: databases
+      export: myoxus.project.bug_tracker@1.0.0
+    to:
+      scope: local
+      reference:
+        component: task-core
+        export: myoxus.project.task-core@1.0.0
+  - kind: taskCore
+    from:
+      component: databases
+      export: myoxus.project.bug_tracker@1.0.1
+    to:
+      scope: local
+      reference:
+        component: task-core
+        export: myoxus.project.task-core@1.0.0
+  - kind: documentComponent
+    from:
+      component: assistants
+      export: myoxus.assistant.context.meeting@1.1.0
+      key: component/document
+    to:
+      scope: local
+      reference:
+        component: document.meeting-agenda.1.1.0
+        export: meeting-agenda@1.1.0
+  - kind: context
+    from:
+      component: assistants
+      export: myoxus.assistant.context.meeting@1.1.0
+      key: component/document/variable/context.container
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.context.meeting@1.1.0
+        key: context/database
+    valueType: databaseDestination
+  - kind: context
+    from:
+      component: assistants
+      export: myoxus.assistant.context.meeting@1.1.0
+      key: component/document/variable/context.task
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.context.meeting@1.1.0
+        key: context/row
+    valueType: row
+  - kind: artwork
+    from:
+      component: assistants
+      export: myoxus.assistant.context.meeting@1.1.0
+      key: group/details/preparation
+    to:
+      scope: local
+      reference:
+        component: artwork.context.preparation
+        export: artwork.context.preparation
+  - kind: workflow
+    from:
+      component: assistants
+      export: myoxus.assistant.context.meeting@1.1.0
+    to:
+      scope: local
+      reference:
+        component: workflow.context-documents.1.0.0
+        export: myoxus.workflow.context_documents@1.0.0
+  - kind: documentComponent
+    from:
+      component: assistants
+      export: myoxus.assistant.context.decision@1.1.0
+      key: component/document
+    to:
+      scope: local
+      reference:
+        component: document.meeting-register.1.1.0
+        export: meeting-register@1.1.0
+  - kind: context
+    from:
+      component: assistants
+      export: myoxus.assistant.context.decision@1.1.0
+      key: component/document/variable/context.container
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.context.decision@1.1.0
+        key: context/database
+    valueType: databaseDestination
+  - kind: context
+    from:
+      component: assistants
+      export: myoxus.assistant.context.decision@1.1.0
+      key: component/document/variable/context.task
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.context.decision@1.1.0
+        key: context/row
+    valueType: row
+  - kind: artwork
+    from:
+      component: assistants
+      export: myoxus.assistant.context.decision@1.1.0
+      key: group/details/preparation
+    to:
+      scope: local
+      reference:
+        component: artwork.context.preparation
+        export: artwork.context.preparation
+  - kind: workflow
+    from:
+      component: assistants
+      export: myoxus.assistant.context.decision@1.1.0
+    to:
+      scope: local
+      reference:
+        component: workflow.context-documents.1.0.0
+        export: myoxus.workflow.context_documents@1.0.0
+  - kind: documentComponent
+    from:
+      component: assistants
+      export: myoxus.assistant.context.review@1.1.0
+      key: component/document
+    to:
+      scope: local
+      reference:
+        component: document.meeting-focus.1.2.0
+        export: meeting-focus@1.2.0
+  - kind: context
+    from:
+      component: assistants
+      export: myoxus.assistant.context.review@1.1.0
+      key: component/document/variable/context.container
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.context.review@1.1.0
+        key: context/database
+    valueType: databaseDestination
+  - kind: context
+    from:
+      component: assistants
+      export: myoxus.assistant.context.review@1.1.0
+      key: component/document/variable/context.task
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.context.review@1.1.0
+        key: context/row
+    valueType: row
+  - kind: artwork
+    from:
+      component: assistants
+      export: myoxus.assistant.context.review@1.1.0
+      key: group/details/preparation
+    to:
+      scope: local
+      reference:
+        component: artwork.context.preparation
+        export: artwork.context.preparation
+  - kind: workflow
+    from:
+      component: assistants
+      export: myoxus.assistant.context.review@1.1.0
+    to:
+      scope: local
+      reference:
+        component: workflow.context-documents.1.0.0
+        export: myoxus.workflow.context_documents@1.0.0
+  - kind: workflow
+    from:
+      component: assistants
+      export: myoxus.assistant.document-review@1.0.0
+    to:
+      scope: local
+      reference:
+        component: workflow.document-review.1.0.0
+        export: myoxus.workflow.document_review@1.0.0
+  - kind: artwork
+    from:
+      component: assistants
+      export: myoxus.assistant.document-review@1.0.0
+      key: group/details/request
+    to:
+      scope: local
+      reference:
+        component: artwork.document-review
+        export: artwork.document-review
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.document-review@1.0.0
+      key: component/request-review/input/sourceDocument
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.document-review@1.0.0
+        key: input/document
+    valueType: document
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.document-review@1.0.0
+      key: component/request-review/input/reviewer
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.document-review@1.0.0
+        key: input/reviewer
+    valueType: members
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.document-review@1.0.0
+      key: component/request-review/input/destination
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.document-review@1.0.0
+        key: input/destination
+    valueType: databaseDestination
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.document-review@1.0.0
+      key: component/request-review/input/title
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.document-review@1.0.0
+        key: input/title
+    valueType: text
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.document-review@1.0.0
+      key: component/request-review/input/deadline
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.document-review@1.0.0
+        key: input/deadline
+    valueType: dateTime
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.document-review@1.0.0
+      key: component/review-task/input/sourceDocument
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.document-review@1.0.0
+        key: input/document
+    valueType: document
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.document-review@1.0.0
+      key: component/review-task/input/assignees
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.document-review@1.0.0
+        key: input/reviewer
+    valueType: members
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.document-review@1.0.0
+      key: component/review-task/input/destination
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.document-review@1.0.0
+        key: input/destination
+    valueType: databaseDestination
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.document-review@1.0.0
+      key: component/review-task/input/title
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.document-review@1.0.0
+        key: input/title
+    valueType: text
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.document-review@1.0.0
+      key: component/review-task/input/due
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.document-review@1.0.0
+        key: input/deadline
+    valueType: dateTime
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.document-review@1.0.0
+      key: component/handover/input/sourceDocument
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.document-review@1.0.0
+        key: input/document
+    valueType: document
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.document-review@1.0.0
+      key: component/handover/input/destination
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.document-review@1.0.0
+        key: input/destination
+    valueType: databaseDestination
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.document-review@1.0.0
+      key: component/revision/input/sourceDocument
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.document-review@1.0.0
+        key: input/document
+    valueType: document
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.document-review@1.0.0
+      key: component/revision/input/destination
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.document-review@1.0.0
+        key: input/destination
+    valueType: databaseDestination
+  - kind: workflow
+    from:
+      component: assistants
+      export: myoxus.assistant.task-handover@1.0.0
+    to:
+      scope: local
+      reference:
+        component: workflow.task-handover.1.0.0
+        export: myoxus.workflow.handover_after_prerequisites@1.0.0
+  - kind: artwork
+    from:
+      component: assistants
+      export: myoxus.assistant.task-handover@1.0.0
+      key: group/details/request
+    to:
+      scope: local
+      reference:
+        component: artwork.task-handover
+        export: artwork.task-handover
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.task-handover@1.0.0
+      key: component/request-handover/input/sourceDocument
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.task-handover@1.0.0
+        key: input/document
+    valueType: document
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.task-handover@1.0.0
+      key: component/request-handover/input/assignees
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.task-handover@1.0.0
+        key: input/responsible
+    valueType: members
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.task-handover@1.0.0
+      key: component/request-handover/input/destination
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.task-handover@1.0.0
+        key: input/destination
+    valueType: databaseDestination
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.task-handover@1.0.0
+      key: component/request-handover/input/title
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.task-handover@1.0.0
+        key: input/title
+    valueType: text
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.task-handover@1.0.0
+      key: component/request-handover/input/prerequisiteTasks
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.task-handover@1.0.0
+        key: input/prerequisites
+    valueType: taskReferences
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.task-handover@1.0.0
+      key: component/request-handover/input/deadline
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.task-handover@1.0.0
+        key: input/deadline
+    valueType: dateTime
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.task-handover@1.0.0
+      key: component/handover/input/sourceDocument
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.task-handover@1.0.0
+        key: input/document
+    valueType: document
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.task-handover@1.0.0
+      key: component/handover/input/assignees
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.task-handover@1.0.0
+        key: input/responsible
+    valueType: members
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.task-handover@1.0.0
+      key: component/handover/input/destination
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.task-handover@1.0.0
+        key: input/destination
+    valueType: databaseDestination
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.task-handover@1.0.0
+      key: component/handover/input/title
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.task-handover@1.0.0
+        key: input/title
+    valueType: text
+  - kind: workflow
+    from:
+      component: assistants
+      export: myoxus.assistant.task-maintenance@1.0.0
+    to:
+      scope: local
+      reference:
+        component: workflow.task-maintenance.1.0.0
+        export: myoxus.workflow.task_maintenance@1.0.0
+  - kind: artwork
+    from:
+      component: assistants
+      export: myoxus.assistant.task-maintenance@1.0.0
+      key: group/details/illustration
+    to:
+      scope: local
+      reference:
+        component: artwork.task-maintenance
+        export: artwork.task-maintenance
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.task-maintenance@1.0.0
+      key: component/maintenance/input/tasks
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.task-maintenance@1.0.0
+        key: input/tasks
+    valueType: taskReferences
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.task-maintenance@1.0.0
+      key: component/inspect/input/tasks
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.task-maintenance@1.0.0
+        key: input/tasks
+    valueType: taskReferences
+  - kind: workflow
+    from:
+      component: assistants
+      export: myoxus.assistant.task-content-preparation@1.0.0
+    to:
+      scope: local
+      reference:
+        component: workflow.task-content-preparation.1.0.0
+        export: myoxus.workflow.task_content_preparation@1.0.0
+  - kind: artwork
+    from:
+      component: assistants
+      export: myoxus.assistant.task-content-preparation@1.0.0
+      key: group/details/illustration
+    to:
+      scope: local
+      reference:
+        component: artwork.task-content-preparation
+        export: artwork.task-content-preparation
+  - kind: documentComponent
+    from:
+      component: assistants
+      export: myoxus.assistant.task-content-preparation@1.0.0
+      key: component/content
+    to:
+      scope: local
+      reference:
+        component: document.task-content-agenda.1.0.0
+        export: task-content-agenda@1.0.0
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.task-content-preparation@1.0.0
+      key: component/content/variable/input.notes
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.task-content-preparation@1.0.0
+        key: input/notes
+    valueType: text
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.empty@1.1.0
+      key: component/workspace/input/workspaceName
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.workspace.empty@1.1.0
+        key: input/name
+    valueType: text
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.empty@1.1.0
+      key: component/workspace/input/initialContent
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.workspace.empty@1.1.0
+        key: input/initialContent
+    valueType: choice
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.empty@1.1.0
+      key: component/workspace/input/assistanceMode
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.workspace.empty@1.1.0
+        key: input/assistance
+    valueType: choice
+  - kind: artwork
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.empty@1.1.0
+      key: group/create/choices
+    to:
+      scope: local
+      reference:
+        component: artwork.assistant-fresh-start
+        export: artwork.assistant-fresh-start
+  - kind: schema
+    from:
+      component: assistants
+      export: myoxus.assistant.project.simple_project@1.4.0
+      key: component/project
+    to:
+      scope: local
+      reference:
+        component: databases
+        export: myoxus.project.simple_project@1.0.1
+  - kind: view
+    from:
+      component: assistants
+      export: myoxus.assistant.project.simple_project@1.4.0
+      key: input/view
+    to:
+      scope: local
+      reference:
+        component: databases
+        export: myoxus.project.simple_project@1.0.1
+        key: view/kanban
+  - kind: view
+    from:
+      component: assistants
+      export: myoxus.assistant.project.simple_project@1.4.0
+      key: input/view
+    to:
+      scope: local
+      reference:
+        component: databases
+        export: myoxus.project.simple_project@1.0.1
+        key: view/table
+  - kind: view
+    from:
+      component: assistants
+      export: myoxus.assistant.project.simple_project@1.4.0
+      key: input/view
+    to:
+      scope: local
+      reference:
+        component: databases
+        export: myoxus.project.simple_project@1.0.1
+        key: view/progress
+  - kind: view
+    from:
+      component: assistants
+      export: myoxus.assistant.project.simple_project@1.4.0
+      key: input/view
+    to:
+      scope: local
+      reference:
+        component: databases
+        export: myoxus.project.simple_project@1.0.1
+        key: view/list
+  - kind: view
+    from:
+      component: assistants
+      export: myoxus.assistant.project.simple_project@1.4.0
+      key: input/view
+    to:
+      scope: local
+      reference:
+        component: databases
+        export: myoxus.project.simple_project@1.0.1
+        key: view/calendar
+  - kind: view
+    from:
+      component: assistants
+      export: myoxus.assistant.project.simple_project@1.4.0
+      key: input/view
+    to:
+      scope: local
+      reference:
+        component: databases
+        export: myoxus.project.simple_project@1.0.1
+        key: view/timeline
+  - kind: view
+    from:
+      component: assistants
+      export: myoxus.assistant.project.simple_project@1.4.0
+      key: input/view
+    to:
+      scope: local
+      reference:
+        component: databases
+        export: myoxus.project.simple_project@1.0.1
+        key: view/gallery
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.project.simple_project@1.4.0
+      key: component/project/input/title
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.project.simple_project@1.4.0
+        key: input/name
+    valueType: text
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.project.simple_project@1.4.0
+      key: component/project/input/description
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.project.simple_project@1.4.0
+        key: input/overview
+    valueType: text
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.project.simple_project@1.4.0
+      key: component/project/input/folder
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.project.simple_project@1.4.0
+        key: input/folder
+    valueType: folder
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.project.simple_project@1.4.0
+      key: component/project/input/priorityPreset
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.project.simple_project@1.4.0
+        key: input/priority
+    valueType: choice
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.project.simple_project@1.4.0
+      key: component/project/input/complexityPreset
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.project.simple_project@1.4.0
+        key: input/complexity
+    valueType: choice
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.project.simple_project@1.4.0
+      key: component/project/input/structurePreset
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.project.simple_project@1.4.0
+        key: input/structure
+    valueType: choice
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.project.simple_project@1.4.0
+      key: component/project/input/includeSamples
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.project.simple_project@1.4.0
+        key: input/samples
+    valueType: boolean
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.project.simple_project@1.4.0
+      key: component/project/input/defaultCurrency
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.project.simple_project@1.4.0
+        key: input/currency
+    valueType: text
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.project.simple_project@1.4.0
+      key: component/project/input/initialView
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.project.simple_project@1.4.0
+        key: input/view
+    valueType: choice
+  - kind: artwork
+    from:
+      component: assistants
+      export: myoxus.assistant.project.simple_project@1.4.0
+      key: group/setup/variant
+    to:
+      scope: local
+      reference:
+        component: artwork.project.simple-project
+        export: artwork.project.simple-project
+  - kind: documentComponent
+    from:
+      component: assistants
+      export: myoxus.assistant.project.simple_project@1.4.0
+      key: component/brief
+    to:
+      scope: local
+      reference:
+        component: document.project-brief.1.0.0
+        export: project-brief@1.0.0
+  - kind: documentComponent
+    from:
+      component: assistants
+      export: myoxus.assistant.project.simple_project@1.4.0
+      key: component/focus
+    to:
+      scope: local
+      reference:
+        component: document.meeting-focus.1.2.0
+        export: meeting-focus@1.2.0
+  - kind: documentComponent
+    from:
+      component: assistants
+      export: myoxus.assistant.project.simple_project@1.4.0
+      key: component/agenda
+    to:
+      scope: local
+      reference:
+        component: document.meeting-agenda.1.1.0
+        export: meeting-agenda@1.1.0
+  - kind: documentComponent
+    from:
+      component: assistants
+      export: myoxus.assistant.project.simple_project@1.4.0
+      key: component/register
+    to:
+      scope: local
+      reference:
+        component: document.meeting-register.1.1.0
+        export: meeting-register@1.1.0
+  - kind: artwork
+    from:
+      component: assistants
+      export: myoxus.assistant.project.simple_project@1.4.0
+      key: group/choose/catalog
+    to:
+      scope: local
+      reference:
+        component: artwork.assistant-simple-project
+        export: artwork.assistant-simple-project
+  - kind: schema
+    from:
+      component: assistants
+      export: myoxus.assistant.project.product_roadmap@1.4.0
+      key: component/project
+    to:
+      scope: local
+      reference:
+        component: databases
+        export: myoxus.project.product_roadmap@1.0.1
+  - kind: view
+    from:
+      component: assistants
+      export: myoxus.assistant.project.product_roadmap@1.4.0
+      key: input/view
+    to:
+      scope: local
+      reference:
+        component: databases
+        export: myoxus.project.product_roadmap@1.0.1
+        key: view/kanban
+  - kind: view
+    from:
+      component: assistants
+      export: myoxus.assistant.project.product_roadmap@1.4.0
+      key: input/view
+    to:
+      scope: local
+      reference:
+        component: databases
+        export: myoxus.project.product_roadmap@1.0.1
+        key: view/table
+  - kind: view
+    from:
+      component: assistants
+      export: myoxus.assistant.project.product_roadmap@1.4.0
+      key: input/view
+    to:
+      scope: local
+      reference:
+        component: databases
+        export: myoxus.project.product_roadmap@1.0.1
+        key: view/progress
+  - kind: view
+    from:
+      component: assistants
+      export: myoxus.assistant.project.product_roadmap@1.4.0
+      key: input/view
+    to:
+      scope: local
+      reference:
+        component: databases
+        export: myoxus.project.product_roadmap@1.0.1
+        key: view/list
+  - kind: view
+    from:
+      component: assistants
+      export: myoxus.assistant.project.product_roadmap@1.4.0
+      key: input/view
+    to:
+      scope: local
+      reference:
+        component: databases
+        export: myoxus.project.product_roadmap@1.0.1
+        key: view/calendar
+  - kind: view
+    from:
+      component: assistants
+      export: myoxus.assistant.project.product_roadmap@1.4.0
+      key: input/view
+    to:
+      scope: local
+      reference:
+        component: databases
+        export: myoxus.project.product_roadmap@1.0.1
+        key: view/timeline
+  - kind: view
+    from:
+      component: assistants
+      export: myoxus.assistant.project.product_roadmap@1.4.0
+      key: input/view
+    to:
+      scope: local
+      reference:
+        component: databases
+        export: myoxus.project.product_roadmap@1.0.1
+        key: view/gallery
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.project.product_roadmap@1.4.0
+      key: component/project/input/title
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.project.product_roadmap@1.4.0
+        key: input/name
+    valueType: text
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.project.product_roadmap@1.4.0
+      key: component/project/input/description
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.project.product_roadmap@1.4.0
+        key: input/overview
+    valueType: text
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.project.product_roadmap@1.4.0
+      key: component/project/input/folder
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.project.product_roadmap@1.4.0
+        key: input/folder
+    valueType: folder
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.project.product_roadmap@1.4.0
+      key: component/project/input/priorityPreset
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.project.product_roadmap@1.4.0
+        key: input/priority
+    valueType: choice
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.project.product_roadmap@1.4.0
+      key: component/project/input/complexityPreset
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.project.product_roadmap@1.4.0
+        key: input/complexity
+    valueType: choice
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.project.product_roadmap@1.4.0
+      key: component/project/input/structurePreset
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.project.product_roadmap@1.4.0
+        key: input/structure
+    valueType: choice
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.project.product_roadmap@1.4.0
+      key: component/project/input/includeSamples
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.project.product_roadmap@1.4.0
+        key: input/samples
+    valueType: boolean
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.project.product_roadmap@1.4.0
+      key: component/project/input/defaultCurrency
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.project.product_roadmap@1.4.0
+        key: input/currency
+    valueType: text
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.project.product_roadmap@1.4.0
+      key: component/project/input/initialView
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.project.product_roadmap@1.4.0
+        key: input/view
+    valueType: choice
+  - kind: artwork
+    from:
+      component: assistants
+      export: myoxus.assistant.project.product_roadmap@1.4.0
+      key: group/setup/variant
+    to:
+      scope: local
+      reference:
+        component: artwork.project.product-roadmap
+        export: artwork.project.product-roadmap
+  - kind: documentComponent
+    from:
+      component: assistants
+      export: myoxus.assistant.project.product_roadmap@1.4.0
+      key: component/brief
+    to:
+      scope: local
+      reference:
+        component: document.project-brief.1.0.0
+        export: project-brief@1.0.0
+  - kind: documentComponent
+    from:
+      component: assistants
+      export: myoxus.assistant.project.product_roadmap@1.4.0
+      key: component/focus
+    to:
+      scope: local
+      reference:
+        component: document.meeting-focus.1.2.0
+        export: meeting-focus@1.2.0
+  - kind: documentComponent
+    from:
+      component: assistants
+      export: myoxus.assistant.project.product_roadmap@1.4.0
+      key: component/agenda
+    to:
+      scope: local
+      reference:
+        component: document.meeting-agenda.1.1.0
+        export: meeting-agenda@1.1.0
+  - kind: documentComponent
+    from:
+      component: assistants
+      export: myoxus.assistant.project.product_roadmap@1.4.0
+      key: component/register
+    to:
+      scope: local
+      reference:
+        component: document.meeting-register.1.1.0
+        export: meeting-register@1.1.0
+  - kind: artwork
+    from:
+      component: assistants
+      export: myoxus.assistant.project.product_roadmap@1.4.0
+      key: group/choose/catalog
+    to:
+      scope: local
+      reference:
+        component: artwork.assistant-roadmap
+        export: artwork.assistant-roadmap
+  - kind: schema
+    from:
+      component: assistants
+      export: myoxus.assistant.project.bug_tracker@1.4.0
+      key: component/project
+    to:
+      scope: local
+      reference:
+        component: databases
+        export: myoxus.project.bug_tracker@1.0.1
+  - kind: view
+    from:
+      component: assistants
+      export: myoxus.assistant.project.bug_tracker@1.4.0
+      key: input/view
+    to:
+      scope: local
+      reference:
+        component: databases
+        export: myoxus.project.bug_tracker@1.0.1
+        key: view/kanban
+  - kind: view
+    from:
+      component: assistants
+      export: myoxus.assistant.project.bug_tracker@1.4.0
+      key: input/view
+    to:
+      scope: local
+      reference:
+        component: databases
+        export: myoxus.project.bug_tracker@1.0.1
+        key: view/table
+  - kind: view
+    from:
+      component: assistants
+      export: myoxus.assistant.project.bug_tracker@1.4.0
+      key: input/view
+    to:
+      scope: local
+      reference:
+        component: databases
+        export: myoxus.project.bug_tracker@1.0.1
+        key: view/progress
+  - kind: view
+    from:
+      component: assistants
+      export: myoxus.assistant.project.bug_tracker@1.4.0
+      key: input/view
+    to:
+      scope: local
+      reference:
+        component: databases
+        export: myoxus.project.bug_tracker@1.0.1
+        key: view/list
+  - kind: view
+    from:
+      component: assistants
+      export: myoxus.assistant.project.bug_tracker@1.4.0
+      key: input/view
+    to:
+      scope: local
+      reference:
+        component: databases
+        export: myoxus.project.bug_tracker@1.0.1
+        key: view/calendar
+  - kind: view
+    from:
+      component: assistants
+      export: myoxus.assistant.project.bug_tracker@1.4.0
+      key: input/view
+    to:
+      scope: local
+      reference:
+        component: databases
+        export: myoxus.project.bug_tracker@1.0.1
+        key: view/timeline
+  - kind: view
+    from:
+      component: assistants
+      export: myoxus.assistant.project.bug_tracker@1.4.0
+      key: input/view
+    to:
+      scope: local
+      reference:
+        component: databases
+        export: myoxus.project.bug_tracker@1.0.1
+        key: view/gallery
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.project.bug_tracker@1.4.0
+      key: component/project/input/title
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.project.bug_tracker@1.4.0
+        key: input/name
+    valueType: text
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.project.bug_tracker@1.4.0
+      key: component/project/input/description
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.project.bug_tracker@1.4.0
+        key: input/overview
+    valueType: text
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.project.bug_tracker@1.4.0
+      key: component/project/input/folder
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.project.bug_tracker@1.4.0
+        key: input/folder
+    valueType: folder
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.project.bug_tracker@1.4.0
+      key: component/project/input/priorityPreset
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.project.bug_tracker@1.4.0
+        key: input/priority
+    valueType: choice
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.project.bug_tracker@1.4.0
+      key: component/project/input/complexityPreset
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.project.bug_tracker@1.4.0
+        key: input/complexity
+    valueType: choice
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.project.bug_tracker@1.4.0
+      key: component/project/input/structurePreset
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.project.bug_tracker@1.4.0
+        key: input/structure
+    valueType: choice
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.project.bug_tracker@1.4.0
+      key: component/project/input/includeSamples
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.project.bug_tracker@1.4.0
+        key: input/samples
+    valueType: boolean
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.project.bug_tracker@1.4.0
+      key: component/project/input/defaultCurrency
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.project.bug_tracker@1.4.0
+        key: input/currency
+    valueType: text
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.project.bug_tracker@1.4.0
+      key: component/project/input/initialView
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.project.bug_tracker@1.4.0
+        key: input/view
+    valueType: choice
+  - kind: artwork
+    from:
+      component: assistants
+      export: myoxus.assistant.project.bug_tracker@1.4.0
+      key: group/setup/variant
+    to:
+      scope: local
+      reference:
+        component: artwork.project.bug-tracker
+        export: artwork.project.bug-tracker
+  - kind: documentComponent
+    from:
+      component: assistants
+      export: myoxus.assistant.project.bug_tracker@1.4.0
+      key: component/brief
+    to:
+      scope: local
+      reference:
+        component: document.project-brief.1.0.0
+        export: project-brief@1.0.0
+  - kind: documentComponent
+    from:
+      component: assistants
+      export: myoxus.assistant.project.bug_tracker@1.4.0
+      key: component/focus
+    to:
+      scope: local
+      reference:
+        component: document.meeting-focus.1.2.0
+        export: meeting-focus@1.2.0
+  - kind: documentComponent
+    from:
+      component: assistants
+      export: myoxus.assistant.project.bug_tracker@1.4.0
+      key: component/agenda
+    to:
+      scope: local
+      reference:
+        component: document.meeting-agenda.1.1.0
+        export: meeting-agenda@1.1.0
+  - kind: documentComponent
+    from:
+      component: assistants
+      export: myoxus.assistant.project.bug_tracker@1.4.0
+      key: component/register
+    to:
+      scope: local
+      reference:
+        component: document.meeting-register.1.1.0
+        export: meeting-register@1.1.0
+  - kind: artwork
+    from:
+      component: assistants
+      export: myoxus.assistant.project.bug_tracker@1.4.0
+      key: group/choose/catalog
+    to:
+      scope: local
+      reference:
+        component: artwork.assistant-issue-tracker
+        export: artwork.assistant-issue-tracker
+  - kind: documentComponent
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+      key: component/home
+    to:
+      scope: local
+      reference:
+        component: document.knowledge-home.1.0.0
+        export: knowledge-home@1.0.0
+  - kind: documentComponent
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+      key: component/note
+    to:
+      scope: local
+      reference:
+        component: document.research-note.1.0.0
+        export: research-note@1.0.0
+  - kind: workflow
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+    to:
+      scope: local
+      reference:
+        component: workflow.workspace_personal_knowledge.1.0.0
+        export: myoxus.workflow.workspace_personal_knowledge@1.0.0
+  - kind: artwork
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+      key: group/choose/catalog
+    to:
+      scope: local
+      reference:
+        component: artwork.assistant-knowledge-garden
+        export: artwork.assistant-knowledge-garden
+  - kind: artwork
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+      key: group/first-use/help
+    to:
+      scope: local
+      reference:
+        component: artwork.assistant-knowledge-garden
+        export: artwork.assistant-knowledge-garden
+  - kind: documentSource
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+      key: group/first-use/help
+    to:
+      scope: local
+      reference:
+        component: document.research-note.1.0.0
+        export: research-note@1.0.0
+  - kind: schema
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+      key: component/index
+    to:
+      scope: local
+      reference:
+        component: databases
+        export: myoxus.database.research_index@1.0.1
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+      key: component/index/input/includeSamples
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+        key: input/samples
+    valueType: boolean
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+      key: component/index/input/includeComponent
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+        key: input/include-index
+    valueType: boolean
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+      key: component/home/variable/selected
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+        key: input/include-home
+    valueType: boolean
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+      key: component/home/variable/folder
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+        key: input/folder
+    valueType: folder
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+      key: component/note/variable/selected
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+        key: input/include-note
+    valueType: boolean
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+      key: component/note/variable/folder
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+        key: input/folder
+    valueType: folder
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+      key: component/place-index/input/folder
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+        key: input/folder
+    valueType: folder
+  - kind: priorResult
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+      key: component/place-index/input/target
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+        key: component/index/result/database
+    valueType: databaseDestination
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+      key: component/place-home/input/folder
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+        key: input/folder
+    valueType: folder
+  - kind: priorResult
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+      key: component/place-home/input/target
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+        key: component/home/result/document
+    valueType: document
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+      key: component/place-note/input/folder
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+        key: input/folder
+    valueType: folder
+  - kind: priorResult
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+      key: component/place-note/input/target
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+        key: component/note/result/document
+    valueType: document
+  - kind: documentComponent
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.team-wiki@1.0.1
+      key: component/home
+    to:
+      scope: local
+      reference:
+        component: document.team-wiki-home.1.0.0
+        export: team-wiki-home@1.0.0
+  - kind: documentComponent
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.team-wiki@1.0.1
+      key: component/procedure
+    to:
+      scope: local
+      reference:
+        component: document.procedure.1.0.0
+        export: procedure@1.0.0
+  - kind: documentComponent
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.team-wiki@1.0.1
+      key: component/decision
+    to:
+      scope: local
+      reference:
+        component: document.decision-record.1.0.0
+        export: decision-record@1.0.0
+  - kind: workflow
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.team-wiki@1.0.1
+    to:
+      scope: local
+      reference:
+        component: workflow.workspace_team_wiki.1.0.0
+        export: myoxus.workflow.workspace_team_wiki@1.0.0
+  - kind: artwork
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.team-wiki@1.0.1
+      key: group/choose/catalog
+    to:
+      scope: local
+      reference:
+        component: artwork.assistant-team-wiki
+        export: artwork.assistant-team-wiki
+  - kind: artwork
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.team-wiki@1.0.1
+      key: group/first-use/help
+    to:
+      scope: local
+      reference:
+        component: artwork.assistant-team-wiki
+        export: artwork.assistant-team-wiki
+  - kind: documentSource
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.team-wiki@1.0.1
+      key: group/first-use/help
+    to:
+      scope: local
+      reference:
+        component: document.procedure.1.0.0
+        export: procedure@1.0.0
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.team-wiki@1.0.1
+      key: component/home/variable/selected
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.workspace.team-wiki@1.0.1
+        key: input/include-home
+    valueType: boolean
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.team-wiki@1.0.1
+      key: component/home/variable/folder
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.workspace.team-wiki@1.0.1
+        key: input/folder
+    valueType: folder
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.team-wiki@1.0.1
+      key: component/procedure/variable/selected
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.workspace.team-wiki@1.0.1
+        key: input/include-procedure
+    valueType: boolean
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.team-wiki@1.0.1
+      key: component/procedure/variable/folder
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.workspace.team-wiki@1.0.1
+        key: input/folder
+    valueType: folder
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.team-wiki@1.0.1
+      key: component/decision/variable/selected
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.workspace.team-wiki@1.0.1
+        key: input/include-decision
+    valueType: boolean
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.team-wiki@1.0.1
+      key: component/decision/variable/folder
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.workspace.team-wiki@1.0.1
+        key: input/folder
+    valueType: folder
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.team-wiki@1.0.1
+      key: component/place-home/input/folder
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.workspace.team-wiki@1.0.1
+        key: input/folder
+    valueType: folder
+  - kind: priorResult
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.team-wiki@1.0.1
+      key: component/place-home/input/target
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.workspace.team-wiki@1.0.1
+        key: component/home/result/document
+    valueType: document
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.team-wiki@1.0.1
+      key: component/place-procedure/input/folder
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.workspace.team-wiki@1.0.1
+        key: input/folder
+    valueType: folder
+  - kind: priorResult
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.team-wiki@1.0.1
+      key: component/place-procedure/input/target
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.workspace.team-wiki@1.0.1
+        key: component/procedure/result/document
+    valueType: document
+  - kind: input
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.team-wiki@1.0.1
+      key: component/place-decision/input/folder
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.workspace.team-wiki@1.0.1
+        key: input/folder
+    valueType: folder
+  - kind: priorResult
+    from:
+      component: assistants
+      export: myoxus.assistant.workspace.team-wiki@1.0.1
+      key: component/place-decision/input/target
+    to:
+      scope: local
+      reference:
+        component: assistants
+        export: myoxus.assistant.workspace.team-wiki@1.0.1
+        key: component/decision/result/document
+    valueType: document
+exports:
+  - id: database.myoxus.database.blank
+    source:
+      component: databases
+      export: myoxus.database.blank@1.0.1
+  - id: database.myoxus.database.simple_task_list
+    source:
+      component: databases
+      export: myoxus.database.simple_task_list@1.0.1
+  - id: database.myoxus.project.simple_project
+    source:
+      component: databases
+      export: myoxus.project.simple_project@1.0.1
+  - id: database.myoxus.project.product_roadmap
+    source:
+      component: databases
+      export: myoxus.project.product_roadmap@1.0.1
+  - id: database.myoxus.database.content_calendar
+    source:
+      component: databases
+      export: myoxus.database.content_calendar@1.0.1
+  - id: database.myoxus.database.crm_contacts
+    source:
+      component: databases
+      export: myoxus.database.crm_contacts@1.0.1
+  - id: database.myoxus.database.inventory_assets
+    source:
+      component: databases
+      export: myoxus.database.inventory_assets@1.0.1
+  - id: database.myoxus.project.bug_tracker
+    source:
+      component: databases
+      export: myoxus.project.bug_tracker@1.0.1
+  - id: database.myoxus.database.research_index
+    source:
+      component: databases
+      export: myoxus.database.research_index@1.0.1
+  - id: assistant.myoxus.assistant.project.simple_project
+    source:
+      component: assistants
+      export: myoxus.assistant.project.simple_project@1.4.0
+    contexts:
+      - projectCreation
+      - workspaceCreation
+  - id: assistant.myoxus.assistant.project.product_roadmap
+    source:
+      component: assistants
+      export: myoxus.assistant.project.product_roadmap@1.4.0
+    contexts:
+      - projectCreation
+      - workspaceCreation
+  - id: assistant.myoxus.assistant.project.bug_tracker
+    source:
+      component: assistants
+      export: myoxus.assistant.project.bug_tracker@1.4.0
+    contexts:
+      - projectCreation
+      - workspaceCreation
+  - id: assistant.myoxus.assistant.taskHome
+    source:
+      component: assistants
+      export: myoxus.assistant.taskHome@1.1.0
+    contexts:
+      - taskHome
+  - id: assistant.myoxus.assistant.taskInventory
+    source:
+      component: assistants
+      export: myoxus.assistant.taskInventory@1.2.0
+    contexts:
+      - taskInventory
+  - id: assistant.myoxus.assistant.taskCreation
+    source:
+      component: assistants
+      export: myoxus.assistant.taskCreation@1.2.0
+    contexts:
+      - taskCreation
+  - id: assistant.myoxus.assistant.taskCapture
+    source:
+      component: assistants
+      export: myoxus.assistant.taskCapture@1.2.0
+    contexts:
+      - taskCapture
+  - id: assistant.myoxus.assistant.taskSubtask
+    source:
+      component: assistants
+      export: myoxus.assistant.taskSubtask@1.0.0
+    contexts:
+      - taskSubtask
+  - id: assistant.myoxus.assistant.taskDetail
+    source:
+      component: assistants
+      export: myoxus.assistant.taskDetail@1.2.0
+    contexts:
+      - taskDetail
+  - id: assistant.myoxus.assistant.taskMovement
+    source:
+      component: assistants
+      export: myoxus.assistant.taskMovement@1.1.0
+    contexts:
+      - taskMovement
+  - id: assistant.myoxus.assistant.workspace.empty
+    source:
+      component: assistants
+      export: myoxus.assistant.workspace.empty@1.1.0
+    contexts:
+      - workspaceCreation
+  - id: task-core
+    source:
+      component: task-core
+      export: myoxus.project.task-core@1.0.0
+  - id: document.agile-retro
+    source:
+      component: document.agile-retro.1.4.0
+      export: agile-retro@1.4.0
+    document:
+      newWorkspaceDefault: false
+  - id: document.agile-standup
+    source:
+      component: document.agile-standup.1.4.0
+      export: agile-standup@1.4.0
+    document:
+      newWorkspaceDefault: false
+  - id: document.business-daily
+    source:
+      component: document.business-daily.1.3.0
+      export: business-daily@1.3.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.eisenhower
+    source:
+      component: document.eisenhower.1.3.0
+      export: eisenhower@1.3.0
+    document:
+      newWorkspaceDefault: false
+  - id: document.gtd-weekly-review
+    source:
+      component: document.gtd-weekly-review.1.3.0
+      export: gtd-weekly-review@1.3.0
+    document:
+      newWorkspaceDefault: false
+  - id: document.meeting-agenda
+    source:
+      component: document.meeting-agenda.1.4.0
+      export: meeting-agenda@1.4.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.personal-journal
+    source:
+      component: document.personal-journal.1.3.0
+      export: personal-journal@1.3.0
+    document:
+      newWorkspaceDefault: false
+  - id: document.project-brief
+    source:
+      component: document.project-brief.1.0.0
+      export: project-brief@1.0.0
+    document:
+      newWorkspaceDefault: false
+  - id: document.time-blocking
+    source:
+      component: document.time-blocking.1.3.0
+      export: time-blocking@1.3.0
+    document:
+      newWorkspaceDefault: false
+  - id: artwork.project.simple-project
+    source:
+      component: artwork.project.simple-project
+      export: artwork.project.simple-project
+  - id: artwork.project.product-roadmap
+    source:
+      component: artwork.project.product-roadmap
+      export: artwork.project.product-roadmap
+  - id: artwork.project.bug-tracker
+    source:
+      component: artwork.project.bug-tracker
+      export: artwork.project.bug-tracker
+  - id: assistant.myoxus.assistant.context.meeting
+    source:
+      component: assistants
+      export: myoxus.assistant.context.meeting@1.1.0
+    contexts:
+      - taskContainerAssistance
+  - id: assistant.myoxus.assistant.context.decision
+    source:
+      component: assistants
+      export: myoxus.assistant.context.decision@1.1.0
+    contexts:
+      - taskContainerAssistance
+  - id: assistant.myoxus.assistant.context.review
+    source:
+      component: assistants
+      export: myoxus.assistant.context.review@1.1.0
+    contexts:
+      - taskContainerAssistance
+  - id: artwork.context.preparation
+    source:
+      component: artwork.context.preparation
+      export: artwork.context.preparation
+  - id: workflow.context-documents
+    source:
+      component: workflow.context-documents.1.0.0
+      export: myoxus.workflow.context_documents@1.0.0
+  - id: assistant.myoxus.assistant.document-review
+    source:
+      component: assistants
+      export: myoxus.assistant.document-review@1.0.0
+    contexts:
+      - taskContainerAssistance
+  - id: workflow.document-review
+    source:
+      component: workflow.document-review.1.0.0
+      export: myoxus.workflow.document_review@1.0.0
+  - id: artwork.document-review
+    source:
+      component: artwork.document-review
+      export: artwork.document-review
+  - id: assistant.myoxus.assistant.task-handover
+    source:
+      component: assistants
+      export: myoxus.assistant.task-handover@1.0.0
+    contexts:
+      - taskContainerAssistance
+  - id: workflow.task-handover
+    source:
+      component: workflow.task-handover.1.0.0
+      export: myoxus.workflow.handover_after_prerequisites@1.0.0
+  - id: artwork.task-handover
+    source:
+      component: artwork.task-handover
+      export: artwork.task-handover
+  - id: assistant.myoxus.assistant.task-maintenance
+    source:
+      component: assistants
+      export: myoxus.assistant.task-maintenance@1.0.0
+    contexts:
+      - taskContainerAssistance
+  - id: workflow.task-maintenance
+    source:
+      component: workflow.task-maintenance.1.0.0
+      export: myoxus.workflow.task_maintenance@1.0.0
+  - id: artwork.task-maintenance
+    source:
+      component: artwork.task-maintenance
+      export: artwork.task-maintenance
+  - id: assistant.myoxus.assistant.task-content-preparation
+    source:
+      component: assistants
+      export: myoxus.assistant.task-content-preparation@1.0.0
+    contexts:
+      - taskContainerAssistance
+  - id: workflow.task-content-preparation
+    source:
+      component: workflow.task-content-preparation.1.0.0
+      export: myoxus.workflow.task_content_preparation@1.0.0
+  - id: artwork.task-content-preparation
+    source:
+      component: artwork.task-content-preparation
+      export: artwork.task-content-preparation
+  - id: document.task-content-agenda
+    source:
+      component: document.task-content-agenda.1.0.0
+      export: task-content-agenda@1.0.0
+    document:
+      newWorkspaceDefault: false
+  - id: artwork.assistant-fresh-start
+    source:
+      component: artwork.assistant-fresh-start
+      export: artwork.assistant-fresh-start
+  - id: artwork.assistant-simple-project
+    source:
+      component: artwork.assistant-simple-project
+      export: artwork.assistant-simple-project
+  - id: artwork.assistant-roadmap
+    source:
+      component: artwork.assistant-roadmap
+      export: artwork.assistant-roadmap
+  - id: artwork.assistant-issue-tracker
+    source:
+      component: artwork.assistant-issue-tracker
+      export: artwork.assistant-issue-tracker
+  - id: artwork.assistant-knowledge-garden
+    source:
+      component: artwork.assistant-knowledge-garden
+      export: artwork.assistant-knowledge-garden
+  - id: artwork.assistant-team-wiki
+    source:
+      component: artwork.assistant-team-wiki
+      export: artwork.assistant-team-wiki
+  - id: document.knowledge-home
+    source:
+      component: document.knowledge-home.1.0.0
+      export: knowledge-home@1.0.0
+    document:
+      newWorkspaceDefault: false
+  - id: document.research-note
+    source:
+      component: document.research-note.1.0.0
+      export: research-note@1.0.0
+    document:
+      newWorkspaceDefault: false
+  - id: document.team-wiki-home
+    source:
+      component: document.team-wiki-home.1.0.0
+      export: team-wiki-home@1.0.0
+    document:
+      newWorkspaceDefault: false
+  - id: document.procedure
+    source:
+      component: document.procedure.1.0.0
+      export: procedure@1.0.0
+    document:
+      newWorkspaceDefault: false
+  - id: document.decision-record
+    source:
+      component: document.decision-record.1.0.0
+      export: decision-record@1.0.0
+    document:
+      newWorkspaceDefault: false
+  - id: assistant.myoxus.assistant.workspace.personal-knowledge
+    source:
+      component: assistants
+      export: myoxus.assistant.workspace.personal-knowledge@1.0.1
+    contexts:
+      - workspaceCreation
+  - id: workflow.workspace_personal_knowledge
+    source:
+      component: workflow.workspace_personal_knowledge.1.0.0
+      export: myoxus.workflow.workspace_personal_knowledge@1.0.0
+  - id: assistant.myoxus.assistant.workspace.team-wiki
+    source:
+      component: assistants
+      export: myoxus.assistant.workspace.team-wiki@1.0.1
+    contexts:
+      - workspaceCreation
+  - id: workflow.workspace_team_wiki
+    source:
+      component: workflow.workspace_team_wiki.1.0.0
+      export: myoxus.workflow.workspace_team_wiki@1.0.0
+  - id: document.handover
+    source:
+      component: document.handover.1.2.0
+      export: handover@1.2.0
+    document:
+      newWorkspaceDefault: false
+  - id: document.project-status
+    source:
+      component: document.project-status.1.2.0
+      export: project-status@1.2.0
+    document:
+      newWorkspaceDefault: false
+  - id: document.incident-report
+    source:
+      component: document.incident-report.1.2.0
+      export: incident-report@1.2.0
+    document:
+      newWorkspaceDefault: false
+  - id: document.rollout-rollback
+    source:
+      component: document.rollout-rollback.1.2.0
+      export: rollout-rollback@1.2.0
+    document:
+      newWorkspaceDefault: false
+  - id: document.architecture-decision
+    source:
+      component: document.architecture-decision.1.2.0
+      export: architecture-decision@1.2.0
+    document:
+      newWorkspaceDefault: false
+  - id: document.one-on-one
+    source:
+      component: document.one-on-one.1.2.0
+      export: one-on-one@1.2.0
+    document:
+      newWorkspaceDefault: false
+  - id: document.welcome-myoxus
+    source:
+      component: document.welcome-myoxus.1.3.0
+      export: welcome-myoxus@1.3.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.getting-started-myoxus
+    source:
+      component: document.getting-started-myoxus.1.3.0
+      export: getting-started-myoxus@1.3.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.editor-advanced-myoxus
+    source:
+      component: document.editor-advanced-myoxus.1.0.0
+      export: editor-advanced-myoxus@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.importing-content-myoxus
+    source:
+      component: document.importing-content-myoxus.1.0.0
+      export: importing-content-myoxus@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.using-folders-myoxus
+    source:
+      component: document.using-folders-myoxus.1.4.0
+      export: using-folders-myoxus@1.4.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.meeting-templates-myoxus
+    source:
+      component: document.meeting-templates-myoxus.1.4.0
+      export: meeting-templates-myoxus@1.4.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.databases-guide-myoxus
+    source:
+      component: document.databases-guide-myoxus.1.4.0
+      export: databases-guide-myoxus@1.4.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.using-tasks-myoxus
+    source:
+      component: document.using-tasks-myoxus.1.0.0
+      export: using-tasks-myoxus@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-checklist
+    source:
+      component: document.block-checklist.1.0.1
+      export: block-checklist@1.0.1
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-conversation-note
+    source:
+      component: document.block-conversation-note.1.0.0
+      export: block-conversation-note@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-daci
+    source:
+      component: document.block-daci.1.0.0
+      export: block-daci@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-madr-rationale
+    source:
+      component: document.block-madr-rationale.1.0.1
+      export: block-madr-rationale@1.0.1
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-options-comparison
+    source:
+      component: document.block-options-comparison.1.0.0
+      export: block-options-comparison@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-raci-customer-service
+    source:
+      component: document.block-raci-customer-service.1.0.0
+      export: block-raci-customer-service@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-risk-matrix
+    source:
+      component: document.block-risk-matrix.1.0.0
+      export: block-risk-matrix@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-work-package
+    source:
+      component: document.block-work-package.1.0.1
+      export: block-work-package@1.0.1
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-phone-note
+    source:
+      component: document.block-phone-note.1.0.0
+      export: block-phone-note@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-callback
+    source:
+      component: document.block-callback.1.0.0
+      export: block-callback@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-short-message
+    source:
+      component: document.block-short-message.1.0.1
+      export: block-short-message@1.0.1
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-follow-up-question
+    source:
+      component: document.block-follow-up-question.1.0.1
+      export: block-follow-up-question@1.0.1
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-confirmation
+    source:
+      component: document.block-confirmation.1.0.1
+      export: block-confirmation@1.0.1
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-agenda-item
+    source:
+      component: document.block-agenda-item.1.0.0
+      export: block-agenda-item@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-minutes-item
+    source:
+      component: document.block-minutes-item.1.0.0
+      export: block-minutes-item@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-meeting-close
+    source:
+      component: document.block-meeting-close.1.0.0
+      export: block-meeting-close@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-next-meeting
+    source:
+      component: document.block-next-meeting.1.0.0
+      export: block-next-meeting@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-standup
+    source:
+      component: document.block-standup.1.0.0
+      export: block-standup@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-retro-prompt
+    source:
+      component: document.block-retro-prompt.1.0.0
+      export: block-retro-prompt@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-decision
+    source:
+      component: document.block-decision.1.0.2
+      export: block-decision@1.0.2
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-decision-brief
+    source:
+      component: document.block-decision-brief.1.0.1
+      export: block-decision-brief@1.0.1
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-selection-must
+    source:
+      component: document.block-selection-must.1.0.0
+      export: block-selection-must@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-selection-weighted
+    source:
+      component: document.block-selection-weighted.1.0.0
+      export: block-selection-weighted@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-selection-pairwise
+    source:
+      component: document.block-selection-pairwise.1.0.0
+      export: block-selection-pairwise@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-risk
+    source:
+      component: document.block-risk.1.0.0
+      export: block-risk@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-assumption
+    source:
+      component: document.block-assumption.1.0.0
+      export: block-assumption@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-open-question
+    source:
+      component: document.block-open-question.1.0.1
+      export: block-open-question@1.0.1
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-project-brief
+    source:
+      component: document.block-project-brief.1.0.0
+      export: block-project-brief@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-milestone
+    source:
+      component: document.block-milestone.1.0.0
+      export: block-milestone@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-status-update
+    source:
+      component: document.block-status-update.1.0.0
+      export: block-status-update@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-change-request
+    source:
+      component: document.block-change-request.1.0.0
+      export: block-change-request@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-dependency
+    source:
+      component: document.block-dependency.1.0.0
+      export: block-dependency@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-check-record
+    source:
+      component: document.block-check-record.1.0.0
+      export: block-check-record@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-deviation
+    source:
+      component: document.block-deviation.1.0.0
+      export: block-deviation@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-corrective-action
+    source:
+      component: document.block-corrective-action.1.0.0
+      export: block-corrective-action@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-approval-record
+    source:
+      component: document.block-approval-record.1.0.0
+      export: block-approval-record@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-peer-check
+    source:
+      component: document.block-peer-check.1.0.0
+      export: block-peer-check@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-incident
+    source:
+      component: document.block-incident.1.0.1
+      export: block-incident@1.0.1
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-event-log
+    source:
+      component: document.block-event-log.1.0.0
+      export: block-event-log@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-immediate-action
+    source:
+      component: document.block-immediate-action.1.0.1
+      export: block-immediate-action@1.0.1
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-cause-analysis
+    source:
+      component: document.block-cause-analysis.1.0.0
+      export: block-cause-analysis@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-recovery-check
+    source:
+      component: document.block-recovery-check.1.0.1
+      export: block-recovery-check@1.0.1
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-post-incident-review
+    source:
+      component: document.block-post-incident-review.1.0.1
+      export: block-post-incident-review@1.0.1
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-how-to
+    source:
+      component: document.block-how-to.1.0.1
+      export: block-how-to@1.0.1
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-process-step
+    source:
+      component: document.block-process-step.1.0.0
+      export: block-process-step@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-definition
+    source:
+      component: document.block-definition.1.0.1
+      export: block-definition@1.0.1
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-faq
+    source:
+      component: document.block-faq.1.0.1
+      export: block-faq@1.0.1
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-source-note
+    source:
+      component: document.block-source-note.1.0.0
+      export: block-source-note@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-change-note
+    source:
+      component: document.block-change-note.1.0.0
+      export: block-change-note@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-daily-focus
+    source:
+      component: document.block-daily-focus.1.0.1
+      export: block-daily-focus@1.0.1
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-weekly-review
+    source:
+      component: document.block-weekly-review.1.0.0
+      export: block-weekly-review@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-handover
+    source:
+      component: document.block-handover.1.0.1
+      export: block-handover@1.0.1
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-follow-up
+    source:
+      component: document.block-follow-up.1.0.1
+      export: block-follow-up@1.0.1
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-conversation-prep
+    source:
+      component: document.block-conversation-prep.1.0.1
+      export: block-conversation-prep@1.0.1
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-note-close
+    source:
+      component: document.block-note-close.1.0.1
+      export: block-note-close@1.0.1
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-raci
+    source:
+      component: document.block-raci.1.0.0
+      export: block-raci@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-technical-profile
+    source:
+      component: document.block-technical-profile.1.0.0
+      export: block-technical-profile@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-architecture-comparison
+    source:
+      component: document.block-architecture-comparison.1.0.2
+      export: block-architecture-comparison@1.0.2
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-interface-contract
+    source:
+      component: document.block-interface-contract.1.0.0
+      export: block-interface-contract@1.0.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-rollout-steps
+    source:
+      component: document.block-rollout-steps.1.0.1
+      export: block-rollout-steps@1.0.1
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-rollback-steps
+    source:
+      component: document.block-rollback-steps.1.0.1
+      export: block-rollback-steps@1.0.1
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-technical-acceptance
+    source:
+      component: document.block-technical-acceptance.1.0.1
+      export: block-technical-acceptance@1.0.1
+    document:
+      newWorkspaceDefault: true

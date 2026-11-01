@@ -1,0 +1,59 @@
+{% extends "_layout.html" %} {% block subject %}Nuevo rol en «{{ workspace_name
+}}»{% endblock subject %} {% block preheader %}Abre el espacio de trabajo para
+consultar las acciones que tienes disponibles.{% endblock preheader %} {% block
+category %}COLABORACIÓN{% endblock category %} {% block heading %}Tu rol ha
+cambiado.{% endblock heading %} {% block introduction %}Un {{ role_name }} ha
+cambiado tu rol en este espacio de trabajo. El nuevo rol determina las acciones
+que puedes realizar allí.{% endblock introduction %} {% block details %}{% if
+workspace_name %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  ESPACIO DE TRABAJO
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ workspace_name }}
+</p>
+{% endif %}{% if role_name %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Nuevo rol
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ role_name }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}Abre el espacio de
+trabajo para consultar las acciones que tienes disponibles.{% endblock next_step
+%} {% block action %}Abrir espacio de trabajo{% endblock action %} {% block note
+%}Encontrarás la información actualizada y las acciones disponibles directamente
+en Myoxus.{% endblock note %} {% block reason %}Recibes este correo porque ha
+cambiado tu rol en este espacio de trabajo.{% endblock reason %}

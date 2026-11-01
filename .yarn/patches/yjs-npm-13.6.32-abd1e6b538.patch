@@ -1,0 +1,39 @@
+diff --git a/dist/yjs.cjs b/dist/yjs.cjs
+index 81a465d69969ade5d3210c15e0c796992d7969a7..e10830ddbe9cdfb834087fd21cad111d60b1cb42 100644
+--- a/dist/yjs.cjs
++++ b/dist/yjs.cjs
+@@ -419,7 +419,7 @@ const equalDeleteSets = (ds1, ds2) => {
+  */
+ 
+ 
+-const generateNewClientId = random__namespace.uint32;
++const generateNewClientId = random__namespace.uint53;
+ 
+ /**
+  * @typedef {Object} DocOpts
+diff --git a/dist/yjs.mjs b/dist/yjs.mjs
+index 513519b4efa0fee11983baae9c48d6a6be707927..1cd51b0396901726a6a261177aac8970ea3048bb 100644
+--- a/dist/yjs.mjs
++++ b/dist/yjs.mjs
+@@ -382,7 +382,7 @@ const equalDeleteSets = (ds1, ds2) => {
+  */
+ 
+ 
+-const generateNewClientId = random.uint32;
++const generateNewClientId = random.uint53;
+ 
+ /**
+  * @typedef {Object} DocOpts
+diff --git a/src/utils/Doc.js b/src/utils/Doc.js
+index 317f8c213b8d27e975f3a6677544ead5bebcae4a..40e9dd67cbc922bd30f19de787019af81dff90ab 100644
+--- a/src/utils/Doc.js
++++ b/src/utils/Doc.js
+@@ -20,7 +20,7 @@ import * as map from 'lib0/map'
+ import * as array from 'lib0/array'
+ import * as promise from 'lib0/promise'
+ 
+-export const generateNewClientId = random.uint32
++export const generateNewClientId = random.uint53
+ 
+ /**
+  * @typedef {Object} DocOpts

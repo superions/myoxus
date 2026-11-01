@@ -1,0 +1,91 @@
+[package]
+autotests         = false
+edition.workspace = true
+license.workspace = true
+name              = "myoxus-api"
+version.workspace = true
+
+[dependencies]
+async-graphql.workspace      = true
+async-stream.workspace       = true
+async-trait.workspace        = true
+axum.workspace               = true
+base64.workspace             = true
+bytes.workspace              = true
+chrono.workspace             = true
+chrono-tz.workspace          = true
+config.workspace             = true
+dashmap.workspace            = true
+fs2.workspace                = true
+futures-util.workspace       = true
+git2.workspace               = true
+hex.workspace                = true
+hmac.workspace               = true
+http.workspace               = true
+infer.workspace              = true
+jsonwebtoken.workspace       = true
+lettre.workspace             = true
+libc                         = "0.2"
+moka.workspace               = true
+oauth2.workspace             = true
+quick-xml.workspace          = true
+rand.workspace               = true
+redis.workspace              = true
+reqwest.workspace            = true
+semver.workspace             = true
+serde.workspace              = true
+serde_json.workspace         = true
+sha2.workspace               = true
+socketioxide.workspace       = true
+sqlx.workspace               = true
+subtle.workspace             = true
+tempfile.workspace           = true
+thiserror.workspace          = true
+tokio.workspace              = true
+tower-http.workspace         = true
+tracing.workspace            = true
+tracing-appender.workspace   = true
+tracing-subscriber.workspace = true
+urlencoding.workspace        = true
+uuid.workspace               = true
+zip.workspace                = true
+
+myoxus-application = { path = "../application" }
+myoxus-contracts = { path = "../contracts" }
+myoxus-doc-pipeline = { path = "../doc_pipeline", default-features = false, features = [
+  "pdf",
+  "splitting",
+] }
+myoxus-domain = { path = "../domain" }
+myoxus-infrastructure = { path = "../infrastructure" }
+myoxus-mcp = { path = "../mcp" }
+myoxus-pdf-export = { path = "../pdf_export" }
+myoxus-public-render = { path = "../public_render" }
+myoxus-worker = { path = "../worker" }
+myoxus-workspace-import = { path = "../workspace_import" }
+yjs = { path = "../yjs" }
+
+[dev-dependencies]
+altcha-lib-rs            = { version = "0.3.2", features = ["json"] }
+http-body-util.workspace = true
+lopdf                    = "0.42.0"
+moxcms                   = "0.8"
+myoxus-tests             = { path = "../tests" }
+openssl.workspace        = true
+pdf-extract              = "0.12.0"
+tera.workspace           = true
+tower.workspace          = true
+yaml_serde.workspace     = true
+yrs.workspace            = true
+
+[[test]]
+name = "integration"
+path = "tests/integration.rs"
+
+[[test]]
+name = "integration_quick"
+path = "tests/integration_quick.rs"
+
+[[test]]
+name = "sync_load_protocol"
+path = "tests/sync_load_protocol.rs"

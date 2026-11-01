@@ -1,0 +1,11 @@
+{
+  "name": "@myoxus/desktop-api-contract",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./bridge": "./src/bridge.ts"
+  },
+  "license": "AGPL-3.0-or-later"
+}

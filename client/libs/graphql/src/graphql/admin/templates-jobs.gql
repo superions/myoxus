@@ -1,0 +1,14 @@
+query templateJobs($skip: Int, $take: Int) {
+  admin {
+    templateJobs(skip: $skip, take: $take) {
+      id
+      jobType
+      state
+      templateId
+      workspaceId
+      startedAt
+      finishedAt
+      summaryJson
+    }
+  }
+}

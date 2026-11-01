@@ -1,0 +1,150 @@
+{% extends "_layout.html" %} {% block subject %}Promemoria: {{ event_title }}{%
+endblock subject %} {% block preheader %}Apri l’evento per prepararti e vedere
+le informazioni aggiornate.{% endblock preheader %} {% block category %}IL TUO
+PROMEMORIA{% endblock category %} {% block heading %}Il tuo evento sta per
+iniziare.{% endblock heading %} {% block introduction %}È arrivato il momento
+del promemoria per questo evento. Qui trovi il titolo, l’orario e un link ai
+dettagli.{% endblock introduction %} {% block details %}{% if event_title %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  EVENTO
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ event_title }}
+</p>
+{% endif %}{% if actor %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Organizzato da
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ actor }}
+</p>
+{% endif %}{% if starts_at %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Data prevista
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ starts_at }}
+</p>
+{% endif %}{% if previous_starts_at %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Orario precedente
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ previous_starts_at }}
+</p>
+{% endif %}{% if ends_at %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Fine
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ ends_at }}
+</p>
+{% endif %}{% if location %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Luogo
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ location }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}Apri l’evento per
+prepararti e vedere le informazioni aggiornate.{% endblock next_step %} {% block
+action %}Apri evento{% endblock action %} {% block note %}Puoi modificare o
+eliminare il promemoria nelle impostazioni dell’evento.{% endblock note %} {%
+block reason %}Ricevi questa email perché è stato configurato un promemoria via
+email per questo evento.{% endblock reason %}

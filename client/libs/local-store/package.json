@@ -1,0 +1,38 @@
+{
+  "name": "@myoxus/local-store",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "types": "./src/binding.d.ts",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "napi": {
+    "binaryName": "myoxus_storage",
+    "targets": [
+      "x86_64-apple-darwin",
+      "x86_64-unknown-linux-gnu",
+      "x86_64-pc-windows-msvc",
+      "aarch64-apple-darwin",
+      "aarch64-unknown-linux-gnu",
+      "aarch64-pc-windows-msvc"
+    ],
+    "constEnum": false
+  },
+  "scripts": {
+    "artifacts": "napi artifacts",
+    "build": "napi build -p myoxus-local-store-native --platform --release --no-js --dts src/binding.d.ts",
+    "build:debug": "napi build -p myoxus-local-store-native --platform --no-js --dts src/binding.d.ts",
+    "universal": "napi universal",
+    "version": "napi version"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "3.7.4",
+    "@types/node": "^26.0.0"
+  },
+  "engines": {
+    "node": ">=26.0.0 <27.0.0"
+  },
+  "license": "MIT AND AGPL-3.0-or-later"
+}

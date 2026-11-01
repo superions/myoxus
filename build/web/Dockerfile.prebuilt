@@ -1,0 +1,41 @@
+# syntax=docker/dockerfile:1.7
+
+FROM node:26-trixie-slim AS identity
+WORKDIR /workspace
+
+ARG GITHUB_SHA=localdev
+ARG MYOXUS_CLIENT_VERSION
+COPY package.json ./
+COPY build/scripts/release/write-release-identity.mjs build/scripts/release/write-release-identity.mjs
+RUN node build/scripts/release/write-release-identity.mjs \
+      --role web \
+      --revision "${GITHUB_SHA}" \
+      --expected-version "${MYOXUS_CLIENT_VERSION}" \
+      --output /out/release.json
+
+FROM scratch AS artifact
+
+ARG GITHUB_SHA=localdev
+ARG MYOXUS_CLIENT_VERSION
+LABEL org.opencontainers.image.title="Myoxus Web static artifact" \
+      org.opencontainers.image.version="${MYOXUS_CLIENT_VERSION}" \
+      org.opencontainers.image.revision="${GITHUB_SHA}" \
+      org.opencontainers.image.source="https://github.com/superions/myoxus"
+
+COPY --from=identity /out/release.json /myoxus-artifact/release.json
+COPY client/frontends/static/web/ /myoxus-artifact/web/
+COPY client/frontends/static/api/fonts/ /myoxus-artifact/api/fonts/
+COPY client/branding/theme-fallback.css /myoxus-artifact/style/theme-fallback.css
+COPY client/branding/brand-identity-fallback.json /myoxus-artifact/style/brand-identity-fallback.json
+COPY client/branding/artwork/ /myoxus-artifact/style/artwork/
+COPY assets/branding/myoxus_text.svg /myoxus-artifact/canonical-style/logo.svg
+COPY client/libs/icons/src/assets/platform/browser-favicon.svg /myoxus-artifact/canonical-style/product-mark.svg
+COPY client/frontends/nginx/myoxus.conf /myoxus-artifact/deployment/nginx/myoxus.conf
+COPY build/scripts/frontends/render-basepath-nginx.sh /myoxus-artifact/deployment/nginx/render-basepath-nginx.sh
+COPY build/scripts/frontends/materialize-static-artifacts.sh /myoxus-artifact/deployment/materialize-static-artifacts.sh
+COPY build/scripts/frontends/verify-public-static-root.sh /myoxus-artifact/deployment/verify-public-static-root.sh
+COPY build/scripts/server/prepare-swarm-state.sh /myoxus-artifact/deployment/prepare-swarm-state.sh
+COPY build/scripts/server/prepare-templates.sh /myoxus-artifact/deployment/prepare-templates.sh
+COPY build/server/docker-stack.registry.yml /myoxus-artifact/deployment/docker-stack.registry.yml
+COPY build/server/docker-compose.selfhost.yml /myoxus-artifact/deployment/docker-compose.selfhost.yml
+COPY build/server/docker-compose.registry.yml /myoxus-artifact/deployment/docker-compose.registry.yml

@@ -1,0 +1,80 @@
+{
+  "title": "Myoxus P4 Observability",
+  "uid": "myoxus-p4-observability",
+  "schemaVersion": 38,
+  "version": 1,
+  "panels": [
+    {
+      "id": 1,
+      "title": "Storage Route Errors",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(myoxus_http_requests_total{route=~\"/api/blob.*\",status=~\"5..\"}[5m]))",
+          "legendFormat": "Storage 5xx/s"
+        }
+      ],
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 }
+    },
+    {
+      "id": 2,
+      "title": "Notifications Queue Pressure",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "myoxus_queue_waiting{queue=\"notification\"} + myoxus_queue_active{queue=\"notification\"}",
+          "legendFormat": "notification queue depth"
+        }
+      ],
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 }
+    },
+    {
+      "id": 3,
+      "title": "Search Queue Pressure",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "myoxus_queue_waiting{queue=\"indexer\"} + myoxus_queue_active{queue=\"indexer\"}",
+          "legendFormat": "indexer queue depth"
+        }
+      ],
+      "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 }
+    },
+    {
+      "id": 4,
+      "title": "Worker Queue Lag (s)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "myoxus_queue_lag_seconds",
+          "legendFormat": "{{queue}} lag"
+        }
+      ],
+      "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 }
+    },
+    {
+      "id": 5,
+      "title": "Dead Letter Queue Growth",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (queue)(increase(myoxus_queue_failed_total[1h]))",
+          "legendFormat": "{{queue}} failed/h"
+        }
+      ],
+      "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 }
+    },
+    {
+      "id": 6,
+      "title": "HTTP Request Rate",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(myoxus_http_requests_total[1m]))",
+          "legendFormat": "req/s"
+        }
+      ],
+      "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 }
+    }
+  ]
+}

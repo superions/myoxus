@@ -1,0 +1,19 @@
+{
+  "id": "doc_publish_contract",
+  "kind": "graphql",
+  "smoke": false,
+  "description": "Golden fixture for publishDoc mutation contract",
+  "request": {
+    "path": "/graphql",
+    "query": "mutation DocPublishContract($workspaceId: String!, $docId: String!) { publishDoc(workspaceId: $workspaceId, docId: $docId) { mode } }",
+    "variables": {
+      "workspaceId": "00000000-0000-0000-0000-000000000000",
+      "docId": "00000000-0000-0000-0000-000000000000"
+    }
+  },
+  "expect": {
+    "status_any": [200],
+    "content_type_contains": "application/json",
+    "body_contains": "publishDoc"
+  }
+}

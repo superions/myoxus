@@ -1,0 +1,442 @@
+formatVersion: 1
+id: myoxus.assistant.project.bug_tracker
+version: 1.0.0
+name:
+  en: Bug / Issue Tracker
+  de: Bug- / Issue-Tracker
+  fr: Suivi des bugs / tickets
+  es: Seguimiento de bugs / issues
+description:
+  en: Triage issues with acceptance criteria, linked docs and progress.
+  de: Priorisiere Issues mit Abnahmekriterien, verknüpften Dokumenten und Fortschritt.
+  fr: Triez les tickets avec critères d’acceptation, documents liés et progression.
+  es: Prioriza issues con criterios de aceptación, documentos vinculados y progreso.
+contexts:
+  - projectCreation
+inputs:
+  - id: name
+    target: title
+    label:
+      en: Project name
+      de: Projektname
+      fr: Nom du projet
+      es: Nombre del proyecto
+    description: null
+    valueType: text
+    required: true
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: overview
+    target: description
+    label:
+      en: Description
+      de: Beschreibung
+      fr: Description
+      es: Descripción
+    description: null
+    valueType: text
+    required: true
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: folder
+    target: folder
+    label:
+      en: Folder
+      de: Ordner
+      fr: Dossier
+      es: Carpeta
+    description: null
+    valueType: folder
+    required: false
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: priority
+    target: priorityPreset
+    label:
+      en: Priority preset
+      de: Prioritaets-Preset
+      fr: Preset de priorite
+      es: Preset de prioridad
+    description:
+      en: "Priority preset: Choose three or five levels."
+      de: "Prioritaets-Preset: Wähle drei oder fünf Stufen."
+      fr: "Preset de priorite : choisissez trois ou cinq niveaux."
+      es: "Preset de prioridad: elige tres o cinco niveles."
+    valueType: choice
+    required: false
+    default:
+      kind: choice
+      value: fiveStep
+    choices:
+      - id: fiveStep
+        label:
+          en: 5-step
+          de: 5 Stufen
+          fr: 5 niveaux
+          es: 5 pasos
+        value:
+          kind: choice
+          value: fiveStep
+    visibleWhen: null
+  - id: complexity
+    target: complexityPreset
+    label:
+      en: Complexity preset
+      de: Komplexitaets-Preset
+      fr: Preset de complexite
+      es: Preset de complejidad
+    description:
+      en: "Complexity preset: Choose three or five levels."
+      de: "Komplexitaets-Preset: Wähle drei oder fünf Stufen."
+      fr: "Preset de complexite : choisissez trois ou cinq niveaux."
+      es: "Preset de complejidad: elige tres o cinco niveles."
+    valueType: choice
+    required: false
+    default:
+      kind: choice
+      value: threeStep
+    choices:
+      - id: threeStep
+        label:
+          en: 3-step
+          de: 3 Stufen
+          fr: 3 niveaux
+          es: 3 pasos
+        value:
+          kind: choice
+          value: threeStep
+    visibleWhen: null
+  - id: structure
+    target: structurePreset
+    label:
+      en: Project structure
+      de: Projektstruktur
+      fr: Structure du projet
+      es: Estructura del proyecto
+    description: null
+    valueType: choice
+    required: false
+    default:
+      kind: choice
+      value: milestones
+    choices:
+      - id: milestones
+        label:
+          en: Milestones
+          de: Meilensteine
+          fr: Jalons
+          es: Hitos
+        value:
+          kind: choice
+          value: milestones
+    visibleWhen: null
+  - id: samples
+    target: includeSamples
+    label:
+      en: Add sample rows
+      de: Beispielzeilen hinzufügen
+      fr: Ajouter des lignes d’exemple
+      es: Añadir filas de ejemplo
+    description: null
+    valueType: boolean
+    required: false
+    default:
+      kind: boolean
+      value: false
+    choices: []
+    visibleWhen: null
+  - id: currency
+    target: defaultCurrency
+    label:
+      en: Currency
+      de: Währung
+      fr: Devise
+      es: Moneda
+    description: null
+    valueType: text
+    required: false
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: view
+    target: initialView
+    label:
+      en: View type
+      de: Ansichtstyp
+      fr: Type de vue
+      es: Tipo de vista
+    description: null
+    valueType: choice
+    required: false
+    default:
+      kind: choice
+      value: table
+    choices:
+      - id: kanban
+        label:
+          en: Kanban
+          de: Kanban
+          fr: Kanban
+          es: Kanban
+        value:
+          kind: choice
+          value: kanban
+      - id: table
+        label:
+          en: Table
+          de: Tabelle
+          fr: Table
+          es: Tabla
+        value:
+          kind: choice
+          value: table
+      - id: progress
+        label:
+          en: Progress
+          de: Fortschritt
+          fr: Progression
+          es: Progreso
+        value:
+          kind: choice
+          value: progress
+      - id: list
+        label:
+          en: List
+          de: Liste
+          fr: Liste
+          es: Lista
+        value:
+          kind: choice
+          value: list
+      - id: calendar
+        label:
+          en: Calendar
+          de: Kalender
+          fr: Calendrier
+          es: Calendario
+        value:
+          kind: choice
+          value: calendar
+      - id: timeline
+        label:
+          en: Timeline
+          de: Zeitleiste
+          fr: Chronologie
+          es: Cronología
+        value:
+          kind: choice
+          value: timeline
+      - id: gallery
+        label:
+          en: Gallery
+          de: Galerie
+          fr: Galerie
+          es: Galería
+        value:
+          kind: choice
+          value: gallery
+    visibleWhen: null
+components:
+  - id: project
+    action:
+      kind: createProject
+      templateId: myoxus.project.bug_tracker
+      inputs:
+        title:
+          kind: input
+          input: name
+        description:
+          kind: input
+          input: overview
+        folder:
+          kind: input
+          input: folder
+        priorityPreset:
+          kind: input
+          input: priority
+        complexityPreset:
+          kind: input
+          input: complexity
+        structurePreset:
+          kind: input
+          input: structure
+        includeSamples:
+          kind: input
+          input: samples
+        defaultCurrency:
+          kind: input
+          input: currency
+        initialView:
+          kind: input
+          input: view
+presentation:
+  steps:
+    - id: choose
+      title:
+        en: Template
+        de: Vorlage
+        fr: Modèle
+        es: Plantilla
+      groups:
+        - id: catalog
+          title: null
+          role: content
+          controls:
+            - kind: offeringSelection
+              search: true
+          visibleWhen: null
+      actions:
+        - id: cancel-choose
+          action: cancel
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: next-details
+          action: next
+          component: null
+          targetStep: details
+          dialog: null
+          visibleWhen: null
+    - id: details
+      title:
+        en: Details
+        de: Details
+        fr: Détails
+        es: Detalles
+      groups:
+        - id: identity
+          title: null
+          role: content
+          controls:
+            - kind: input
+              input: name
+              control: text
+            - kind: input
+              input: overview
+              control: multiline
+            - kind: input
+              input: folder
+              control: folder
+          visibleWhen: null
+      actions:
+        - id: back-choose
+          action: back
+          component: null
+          targetStep: choose
+          dialog: null
+          visibleWhen: null
+        - id: cancel-details
+          action: cancel
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: next-setup
+          action: next
+          component: null
+          targetStep: setup
+          dialog: null
+          visibleWhen: null
+    - id: setup
+      title:
+        en: Setup
+        de: Einrichtung
+        fr: Configuration
+        es: Configuración
+      groups:
+        - id: variant
+          title: null
+          role: content
+          controls:
+            - kind: input
+              input: priority
+              control: select
+            - kind: input
+              input: complexity
+              control: select
+            - kind: input
+              input: structure
+              control: radioCards
+            - kind: input
+              input: view
+              control: select
+          visibleWhen: null
+        - id: samples
+          title: null
+          role: content
+          controls:
+            - kind: input
+              input: samples
+              control: toggle
+            - kind: input
+              input: currency
+              control: text
+          visibleWhen: null
+      actions:
+        - id: back-details
+          action: back
+          component: null
+          targetStep: details
+          dialog: null
+          visibleWhen: null
+        - id: cancel-setup
+          action: cancel
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: next-review
+          action: next
+          component: null
+          targetStep: review
+          dialog: null
+          visibleWhen: null
+    - id: review
+      title:
+        en: Review
+        de: Überprüfen
+        fr: Vérification
+        es: Revisión
+      groups:
+        - id: plan
+          title: null
+          role: review
+          controls:
+            - kind: projectReview
+          visibleWhen: null
+      actions:
+        - id: back-setup
+          action: back
+          component: null
+          targetStep: setup
+          dialog: null
+          visibleWhen: null
+        - id: cancel-review
+          action: cancel
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: apply-project
+          action: createProject
+          component: project
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: check-project
+          action: check
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: close-project
+          action: close
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+  dialogs: []

@@ -1,0 +1,9 @@
+#import "./admin-organization-unit-fragment.gql"
+
+query adminOrganizationUnits($status: OrganizationUnitStatusEnum) {
+  admin {
+    organizationUnits(status: $status) {
+      ...AdminOrganizationUnitFragment
+    }
+  }
+}

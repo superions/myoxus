@@ -1,0 +1,14 @@
+# cargo-audit policy for the Myoxus server wrapper
+# Run: build/scripts/ci/cargo-audit-local.sh
+# CI: .forgejo/workflows/dependency-health.yml
+
+[advisories]
+# SQLx retains its optional MySQL dependency graph in Cargo.lock even when the
+# workspace disables default features and enables PostgreSQL only. The RSA
+# package therefore has no normal, build, dev, or target-specific consumer in
+# Myoxus (`cargo tree --target all -i rsa` is empty). Reaching it by enabling
+# SQLx MySQL remains a release blocker.
+ignore = ["RUSTSEC-2023-0071"]
+
+[output]
+deny = ["warnings"]

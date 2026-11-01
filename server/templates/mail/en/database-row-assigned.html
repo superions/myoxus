@@ -1,0 +1,59 @@
+{% extends "_layout.html" %} {% block subject %}You were assigned to “{{
+row_title }}”{% endblock subject %} {% block preheader %}You can find the
+assignment in the people field shown below.{% endblock preheader %} {% block
+category %}YOUR TASKS{% endblock category %} {% block heading %}A record was
+assigned to you.{% endblock heading %} {% block introduction %}You were added to
+a people field on a database record. Open the record to view the context and
+related information.{% endblock introduction %} {% block details %}{% if
+row_title %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  DATABASE RECORD
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ row_title }}
+</p>
+{% endif %}{% if field_name %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  People field
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ field_name }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}You can find the
+assignment in the people field shown below.{% endblock next_step %} {% block
+action %}Open record{% endblock action %} {% block note %}You can find the
+latest information and available actions directly in Myoxus.{% endblock note %}
+{% block reason %}You received this email because you were assigned to a
+database record.{% endblock reason %}

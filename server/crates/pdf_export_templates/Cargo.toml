@@ -1,0 +1,19 @@
+[package]
+description = "Schema-only crate: JSON Schema (v2) and seed manifests for the Myoxus PDF-Export V2 template system."
+edition     = "2021"
+license     = "AGPL-3.0-or-later"
+name        = "myoxus-pdf-export-templates"
+version     = "0.1.0"
+
+[lib]
+path = "src/lib.rs"
+
+# NOTE: the original Mikropaket spec asked for `jsonschema = "0.18"` here.
+# In the build sandbox crates.io is unreachable and several of jsonschema-0.18's
+# transitive dependencies (`fraction`, `iso8601`, `num-cmp`) are not in the
+# local cargo cache, which would prevent offline workspace resolution. The
+# manifest validation test therefore ships a small, scope-limited Draft 2020-12
+# subset validator (see `tests/manifest_schema.rs`). The deviation is recorded
+# in the agent report for P-PDF-TPL-02.
+[dev-dependencies]
+serde_json = { workspace = true }

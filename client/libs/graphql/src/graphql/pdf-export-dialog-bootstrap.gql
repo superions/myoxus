@@ -1,0 +1,52 @@
+query pdfExportDialogBootstrap($workspaceId: ID!, $docId: ID!, $locale: String) {
+  availablePdfTemplates(workspaceId: $workspaceId, locale: $locale) {
+    id
+    slug
+    name
+    version
+    schemaVersion
+    capabilities
+    inputsSchema
+    isDefault
+  }
+  pdfExportSettings(workspaceId: $workspaceId) {
+    workspaceId
+    defaultTemplateId
+    defaultLocale
+    defaultPaperSize
+    defaultColorProfile
+    defaultImageQuality
+    ligaturesEnabled
+  }
+  documentBrandingProfile(workspaceId: $workspaceId) {
+    workspaceId
+    logoLargeBlob
+    logoSmallBlob
+    footerText
+    brandColorPrimary
+    brandColorAccent
+  }
+  documentVersioningSettings(workspaceId: $workspaceId, docId: $docId) {
+    docId
+    enabled
+    retentionCount
+    autoVersionOn
+  }
+  documentVersions(workspaceId: $workspaceId, docId: $docId) {
+    id
+    label
+    description
+    createdAt
+    isPinned
+  }
+  documentMetadataValidation(
+    workspaceId: $workspaceId
+    docId: $docId
+    action: export_pdf
+  ) {
+    ...DocumentMetadataValidationFields
+  }
+  documentMetadata(workspaceId: $workspaceId, docId: $docId) {
+    ...DocumentMetadataFields
+  }
+}

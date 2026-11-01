@@ -1,0 +1,203 @@
+{
+  "style": "Keramik & Licht",
+  "date": "2026-10-17",
+  "generation": "built-in image_gen",
+  "reviewStatus": "proposed",
+  "direction": "Exactly match the fourteen existing documentation illustrations, as explicitly confirmed by the user.",
+  "references": [
+    {
+      "path": "assets/branding/artwork/originals/docs-handbook.png",
+      "role": "Binding mascot identity, surface material, lighting and finish"
+    },
+    {
+      "path": "assets/branding/artwork/originals/guide-organize.png",
+      "role": "Binding proportions, accessory material and hierarchy"
+    },
+    {
+      "path": "assets/branding/myoxus_text.svg",
+      "role": "Additional wordmark brand reference; rendered at 800 by 450 for the image tool, never inserted in motifs"
+    }
+  ],
+  "commonPrompt": "Create ONE new illustration that belongs EXACTLY to the existing fourteen Myoxus documentation illustrations, not a redesign or a different rendering style. Reference image 1 ('docs-handbook') binds the exact mascot identity, creamy finely detailed ceramic/fur-like relief, sculpting, soft warm upper-left studio lighting, colors and overall finish. Reference image 2 ('guide-organize') binds the same series' character proportions, accessory material and visual hierarchy. Reference 3 is the Myoxus wordmark for additional brand mood only: do not insert the logo or its lettering. Reproduce the SAME recognizable friendly face from these references: ivory face with fine tactile relief, scalloped deep forest-green surround with subtle sculpted grooves, curved eyebrows, dark round eyes with tiny ivory highlights, clover nose, THREE whiskers on each cheek, curved smile. Keep its compact head form with no new body, limbs, hands or costume. A gentle tilt, eye direction or slight expression variation is allowed. Same premium 'Keramik & Licht' craftsmanship, not flat graphics, not a smoother generic toy, not a new animal design. Palette: deep forest green, sage, ivory, restrained amber accent. Landscape 3:2, 1536x1024 or larger. Genuine transparent alpha background; only small local contact shadows under objects, no broad glow clouds, opaque backdrop, floor plane or halo. All objects fully contained with generous margins. Mascot is the main figure, comparable size throughout the set, about 650-730px tall in 1536x1024. At most two or three clear accessory objects; restrained botanical accents only where requested. Airy clean silhouettes that remain understandable at 200px width. No words, letters, numbers, watermarks, extra logos or imitated software UI.",
+  "items": [
+    {
+      "number": 1,
+      "name": "assistant-hello-blank",
+      "prompt": "Use case: precise-object-edit.\nImage 1 is the EDIT TARGET: the Myoxus mascot head with the EMPTY oval speech bubble. Image 2 is a STYLE REFERENCE ONLY: the raised ivory ceramic rim of the large Welcome speech bubble.\nChange only the speech bubble's edge treatment in image 1: add the same continuous, gently raised, softly rounded ivory ceramic rim as image 2, with a subtle inset inner surface, warm upper-left highlight and soft inner rim shading. The rim is sculpted ivory, never a dark outline. Let it flow naturally into the bubble tail just like the reference. Scale rim thickness appropriately to the smaller bubble.\nPreserve image 1's exact composition, head identity, facial features, position, proportion, ceramic relief, forest green/ivory palette, lighting and bubble silhouette, location and empty central area. Do not insert the leaves or any other objects from image 2. No lettering or symbols. Preserve the 1536 x 1024 canvas, with genuinely transparent background and clear outside gutters; no opaque backdrop, no cropping. Output only the edited image 1.",
+      "transparentBackground": true,
+      "initialPrompt": "Motif 01, 'hello', EMPTY SPEECH BUBBLE MASTER. The exact Myoxus from the documentation references looks straight at the viewer, a gentle five-degree head tilt and open friendly smile, positioned lower-left/center. One small ivory ceramic speech bubble floats at upper-right, its tail clearly pointing toward the mascot, never covering the face. The bubble interior is completely smooth, empty and spacious, ready for the short word 'Hi' to be typeset later; DO NOT write any text now. Suggest a horizontal oval bubble centered approximately x=1120,y=310, with an uncluttered inner area at least 320x180 pixels. No other accessories, no book, no flowers. Copy the fine surface detail and charming expression of the documentation artwork exactly. Keep the whole composition balanced and airy with transparent margins.",
+      "revision": 2,
+      "revisionReason": "Unify speech-bubble rims with the raised ivory ceramic rim of Welcome to my hedge, as approved by the user.",
+      "editReferences": [
+        {
+          "path": "assets/branding/artwork/originals/assistant-hello-blank.png",
+          "role": "Existing composition and mascot edit target, revision 1"
+        },
+        {
+          "path": "assets/branding/artwork/originals/assistant-welcome-to-my-hedge-blank.png",
+          "role": "Binding raised ivory ceramic speech-bubble rim"
+        }
+      ]
+    },
+    {
+      "number": 2,
+      "name": "assistant-welcome-to-my-hedge-blank",
+      "prompt": "Motif 02, 'welcome-to-my-hedge', EMPTY SPEECH BUBBLE MASTER. The exact friendly Myoxus from the documentation series at front-left welcomes the viewer with a gentle head tilt. TWO restrained sage-green leafy branches behind it form a light OPEN arch, never a dense hedge wall and never obscuring the face. One generous smooth ivory ceramic speech bubble at upper-right, clearly pointing toward the mascot. Leave its entire interior EMPTY, smooth and uncluttered, ready to typeset 'Welcome to my hedge' later in two lines. DO NOT write text. Aim for a spacious horizontal oval bubble approx x=770..1470 and y=110..485, with a clear central writing area. Mascot around 680px high. Only the two sparse branches and the bubble are props. Exact documentation-series sculpting, tactile details and colors. No bloom, no broad halo. Balanced airy 3:2 scene and transparent margins.",
+      "transparentBackground": true
+    },
+    {
+      "number": 3,
+      "name": "assistant-fresh-start",
+      "prompt": "Motif 03, 'fresh-start'. The exact friendly Myoxus documentation mascot sits front-left beside ONE open ivory notebook with a sage cover at right. BOTH pages are completely BLANK, no grooves, lines, checkmarks, diagrams or lettering. A single tiny fresh green shoot with just two leaves emerges near the notebook's base. Only these TWO accessories: book and small sprout. Sense of a fresh beginning and plenty of free space. Same documentation-series ceramic texture and warm lighting, mascot roughly 690px tall, all objects fully inside clear margins, transparent background with no glow cloud.",
+      "transparentBackground": true
+    },
+    {
+      "number": 4,
+      "name": "assistant-choose-your-path",
+      "prompt": "Motif 04, 'choose-your-path'. Exact documentation-series Myoxus with a subtly curious, open expression at left. Beside it THREE equally sized short paths made of rounded sage ceramic stepping stones fan gently apart from a common start, each only three stones, all equally prominent. The three paths must be visually separate and obviously equivalent; no checkmark, winner, arrow, flag or preferred direction. No compass, book or other props. Small clean stone group remains legible at 200px. Maintain the same rich material and face as the documentation references; generous alpha margins and no broad glow.",
+      "transparentBackground": true
+    },
+    {
+      "number": 5,
+      "name": "assistant-manual",
+      "prompt": "Motif 05, 'manual'. Exact documentation-series Myoxus at front-left, calm friendly expression and restrained slight head inclination toward the tools. At right, ONE blank ivory sheet with a single softly folded corner and ONE simple sage-green pencil resting diagonally alongside it. The page is entirely EMPTY, no grooves, marks, lines, checkboxes, lettering or symbols. These two objects only, no book, no folders, no extra cards, no plants. The user has room to shape their own work. Airy very simple composition, beautiful tactile ceramic material and upper-left light exactly like the reference series.",
+      "transparentBackground": true
+    },
+    {
+      "number": 6,
+      "name": "assistant-guided",
+      "prompt": "Motif 06, 'guided'. The exact documentation-series Myoxus at front-left, a subtly attentive expression. At right ONE small ivory compass with sage/forest-green ceramic rim and restrained amber central pin, plus a clear short path of THREE rounded sage stepping stones. Compass and three-stone path are the only two accessory groups. Do not add a notebook, checkmark, flag, folder, lettering or extra foliage. Calm orientation and support, not pressure. The stones and compass remain smaller than the main mascot. Same detailed tactile material, face proportions and warm upper-left light as the documentation references. Full generous alpha margins and no glow clouds.",
+      "transparentBackground": true
+    },
+    {
+      "number": 7,
+      "name": "assistant-automatic",
+      "prompt": "Motif 07, 'automatic'. Exact documentation-series Myoxus at front-left with a calm confident friendly expression. At right THREE neatly arranged ivory document cards, with only a few abstract shallow horizontal grooves, and ONE small sage ceramic cogwheel resting in front. The three cards form a single ordered accessory group; one gear is the other object. No sparkles, magic wand, robot, extra faces, amber checkmarks or fictional UI. Reliable unobtrusive support. Keep the mascot primary, rich ceramic tactile finish exactly as the documentation references, generous transparent margins and only tiny local contact shadows.",
+      "transparentBackground": true
+    },
+    {
+      "number": 8,
+      "name": "assistant-first-task",
+      "prompt": "Motif 08, 'first-task'. Exact documentation-series Myoxus at front-left with a warm encouraging smile. At right ONE ivory task card with a single LARGE EMPTY square checkbox: sage outline and blank ivory center, absolutely no tick/checkmark. ONE sage-green pencil rests ready beside the card. These are the only two accessories. No other cards, leaves, books, text or numbered list. The large unchecked box should remain clear at 200px. Show one small achievable first action through a very clean composition, exact documentation-series texture and soft warm upper-left light, all objects fully within transparent margins.",
+      "transparentBackground": true
+    },
+    {
+      "number": 9,
+      "name": "assistant-simple-project",
+      "prompt": "Motif 09, 'simple-project'. Exact documentation-series Myoxus at front-left. At right ONE open sage-green project folder containing ONE short ivory planning sheet with two shallow abstract lines, plus ONE small elegant target marker with just two concentric green/ivory rings and a tiny restrained amber center. Exactly these three clear objects, no extra documents or loose cards. Simple manageable planning, no text or digits. Mascot primary, target small and secondary. Airy balanced composition, exact documentation-series tactile sculpting, soft warm light and transparent margins.",
+      "transparentBackground": true
+    },
+    {
+      "number": 10,
+      "name": "assistant-roadmap",
+      "prompt": "Motif 10, 'roadmap'. Exact documentation-series Myoxus at front-left. At right ONE gently curved sage ceramic pathway, with THREE clearly distinct small ivory milestone markers along its length. At the far end, ONE small elegant forest-green goal pennant on a slim ivory pole. Make the path simple and physically clear, not a roadway interchange; all three milestones fully visible, no extra stones, symbols or labels. The mascot remains the largest subject. No letters or numbers. Same premium tactile ceramic and upper-left studio lighting as the documentation references, ample alpha margins.",
+      "transparentBackground": true
+    },
+    {
+      "number": 11,
+      "name": "assistant-issue-tracker",
+      "prompt": "Motif 11, 'issue-tracker'. Exact documentation-series Myoxus at front-left, gently curious and competent, slightly looking toward the card. At right ONE ivory task card with a SINGLE tiny stylized dark-green beetle/bug symbol. ONE small sage-green magnifying glass leans across the card, enlarging or framing that bug symbol. The symbol should read as a tiny simple bug, not a scary insect. Only card and magnifier, no other objects, no text, digits or warning symbols. Keep the recognizable mascot facial geometry, no added hands or body. Full clear silhouettes, same detailed ceramic material, warm light and alpha margins.",
+      "transparentBackground": true
+    },
+    {
+      "number": 12,
+      "name": "assistant-prepare-meeting",
+      "prompt": "Use case: precise-object-edit.\nImage 1 is the EDIT TARGET: the Myoxus mascot head with agenda book, clock and a small EMPTY speech bubble. Image 2 is a STYLE REFERENCE ONLY: the raised ivory ceramic rim of the Welcome speech bubble.\nChange ONLY the small speech bubble edge in image 1. Adopt the same continuous raised, softly rounded ivory ceramic rim as image 2, with a subtle recessed central surface, warm upper-left rim highlight and soft inner rim shading. Scale the rim to this smaller bubble so it looks refined, not heavy. The rim is ivory ceramic, never a dark outline; it continues naturally into the tail.\nKeep the bubble EMPTY. Preserve its rounded-rectangle shape, exact size/location and tail. Preserve the entire mascot, facial identity, scalloped forest-green surround, 3 whiskers per cheek, ceramic relief, agenda book, clock and hands, palette, lighting and exact composition of image 1. No leaves, text, other objects or new borders. Preserve the 1536 x 1024 canvas and genuinely transparent background with outside gutters, no opaque backdrop or cropping. Output only the edited image 1.",
+      "transparentBackground": true,
+      "initialPrompt": "Motif 12, 'prepare-meeting'. Exact documentation-series Myoxus at front-left, warm attentive expression. At right ONE compact ivory agenda book with sage cover and just three shallow line grooves, ONE small ivory clock with sage-green rim and simple hands, and ONE SMALL EMPTY ivory speech bubble. No writing, numbers, dots or icons inside the bubble, no room/table/people/extra documents. A prepared calm moment, only three accessories, all smaller than the mascot and fully visible. Exact reference-series ceramic textures and light, generous transparent margins and no broad halo.",
+      "revision": 2,
+      "revisionReason": "Unify speech-bubble rims with the raised ivory ceramic rim of Welcome to my hedge, as approved by the user.",
+      "editReferences": [
+        {
+          "path": "assets/branding/artwork/originals/assistant-prepare-meeting.png",
+          "role": "Existing composition and mascot edit target, revision 1"
+        },
+        {
+          "path": "assets/branding/artwork/originals/assistant-welcome-to-my-hedge-blank.png",
+          "role": "Binding raised ivory ceramic speech-bubble rim"
+        }
+      ]
+    },
+    {
+      "number": 13,
+      "name": "assistant-capture-decision",
+      "prompt": "Motif 13, 'capture-decision'. Exact documentation-series Myoxus at front-left, calm satisfied expression. At right TWO SHORT clearly diverging sage stepping-stone paths from one shared start. Above the end of exactly ONE path place ONE obvious elegant ivory/sage checkmark medallion. The other path remains unmarked. This represents one documented choice. Do not add a compass, book, flag, text or further branches. Both short paths fully legible and inside frame, mascot is main character. Exact documentation-series sculpting and lighting, transparent background and local contact shadows only.",
+      "transparentBackground": true
+    },
+    {
+      "number": 14,
+      "name": "assistant-knowledge-garden",
+      "prompt": "Motif 14, 'knowledge-garden'. Exact documentation-series Myoxus at front-left, friendly thoughtful expression. At right ONE open ivory book with sage cover. From its center seam emerge ONLY TWO slender orderly leafy branches with a few sage leaves, growing upward without hiding the pages or mascot. The open pages are blank, no text or line grooves. Knowledge grows while staying accessible. No other books, pots, tools or flowers. The botanical book is secondary to the mascot. Same fine tactile ceramic detail and warm upper-left light as reference series, all elements fully contained with transparent margins.",
+      "transparentBackground": true
+    },
+    {
+      "number": 15,
+      "name": "assistant-team-wiki",
+      "prompt": "Motif 15, 'team-wiki'. Exact documentation-series Myoxus at front-left. At right EXACTLY THREE ivory document cards, each with two shallow abstract line grooves, connected to each other by short clear sage-green ceramic links to form a small stable triangular structure. Shared knowledge and belonging. The three cards read as one coherent accessory group, not a complex network. No people, extra faces, folder, speech bubbles, labels or numbers. Main mascot remains largest, friendly and relaxed. Exact same detailed ceramic texture, proportions, soft lighting and transparent margins as documentation series.",
+      "transparentBackground": true
+    },
+    {
+      "number": 16,
+      "name": "assistant-organize",
+      "prompt": "Motif 16, 'organize'. Exact documentation-series Myoxus at front-left, relaxed and gently inclined toward the organizing objects. At right ONE open sage folder with THREE ivory cards of visibly different sizes neatly aligned and partially sliding into it. Show the cards being brought into order through their arrangement, without adding hands, paws or a body to the compact mascot. The cards have blank faces or at most one subtle groove; no labels, numbers, checkmarks or tags. No extra accessories or plants. Clear quiet composition, exact documentation-series ceramic detail and warm upper-left lighting, full alpha margins.",
+      "transparentBackground": true
+    },
+    {
+      "number": 17,
+      "name": "assistant-focus",
+      "prompt": "Motif 17, 'focus'. Exact documentation-series Myoxus at front-left with calm concentrated gaze and a SMALL, relaxed friendly smile rather than a huge grin. Preserve normal eye and brow shapes, do not make it angry, sad, sleepy or confused. At right EXACTLY ONE ivory task card with a prominent inset sage-green header and one simple EMPTY checkbox. No tick. No pencil, clock, magnifier, extra cards, leaves, effects or decorative emblems. Exceptionally reduced composition, lots of negative space; the card's own framing makes it stand out. Exact reference-series tactile ceramic material and warm upper-left light. Genuine transparency and only tiny local contact shadow.\nCRITICAL: the accessory must be ONE single thick ceramic rectangular plaque with ONE outer silhouette, no paper stack, no second sheet, no offset backing layer. Background entirely empty alpha zero, including the distant corners; do not put a translucent veil across the canvas. One modest relaxed smile and attentive eyes, same as the documentation mascot.",
+      "revisionReason": "A single task plaque and fully transparent background; earlier drafts retained a backing card or a residual alpha veil.",
+      "transparentBackground": true,
+      "initialPrompt": "Motif 17, 'focus'. Exact documentation-series Myoxus at front-left with calm concentrated gaze and a SMALL, relaxed friendly smile rather than a huge grin. Preserve normal eye and brow shapes, do not make it angry, sad, sleepy or confused. At right EXACTLY ONE ivory task card with a prominent inset sage-green header and one simple EMPTY checkbox. No tick. No pencil, clock, magnifier, extra cards, leaves, effects or decorative emblems. Exceptionally reduced composition, lots of negative space; the card's own framing makes it stand out. Exact reference-series tactile ceramic material and warm upper-left light. Genuine transparency and only tiny local contact shadow.",
+      "revision": 3
+    },
+    {
+      "number": 18,
+      "name": "assistant-review",
+      "prompt": "Motif 18, 'review'. Exact documentation-series Myoxus at front-left, attentive competent friendly expression looking toward the pages. At right EXACTLY TWO neatly arranged ivory document cards, ONE small sage-green magnifying glass resting over them, and a SMALL elegant sage checkmark on the front card. No bug/insect symbol (that belongs only to issue-tracker), no extra card, clock, pencil, text or digits. The magnifier plus two-card group are clear and restrained; mascot is primary. Same rich detailed ceramic material, proportions, soft upper-left warm light and complete transparent margins as documentation references.",
+      "transparentBackground": true
+    },
+    {
+      "number": 19,
+      "name": "assistant-resume",
+      "prompt": "Motif 19, 'resume'. Exact documentation-series Myoxus at front-left, confident gentle smile. At right ONE open ivory book with sage cover, a CLEAR forest-green ribbon bookmark hanging from its center seam over the lower page edge, plus ONE small restrained sage forward arrow to the right. The bookmark is immediately recognizable and the arrow points right; no clock, restore loop, extra pages, extra cards, labels or numbers. Pages may have only a couple shallow abstract grooves, no writing. Calmly continue where you left off. Same exact documentation-series ceramic finish, lighting and full alpha margins.",
+      "transparentBackground": true
+    },
+    {
+      "number": 20,
+      "name": "assistant-all-set",
+      "prompt": "Motif 20, 'all-set'. Exact documentation-series Myoxus at front-left with a slightly more delighted warm smile, same open dark round eyes and recognizable face. At right ONE large elegant sage-green ceramic checkmark, clearly secondary to the mascot yet prominent. TWO small green leaves float gently upward near the checkmark, a restrained celebratory botanical accent. No confetti, glitter, fireworks, trophy, stars, speech bubble or words. Warm satisfied and understated. Main subject plus check and two small leaves only. Exact documentation-series tactile detail and soft upper-left lighting, airy clean silhouette and full transparent margins.",
+      "transparentBackground": true
+    }
+  ],
+  "lettering": {
+    "method": "Lobster shaped with HarfBuzz and converted to self-contained SVG glyph paths using fontTools. The outlines are typeset over the two empty-bubble originals at their native resolution.",
+    "fontSource": "server/static/fonts/lobster-regular.ttf",
+    "captions": [
+      {
+        "name": "assistant-hello",
+        "text": "Hi",
+        "blank": "assistant-hello-blank",
+        "outline": "assets/branding/artwork/lettering/assistant-hello.svg"
+      },
+      {
+        "name": "assistant-welcome-to-my-hedge",
+        "text": "Welcome to my hedge",
+        "lines": ["Welcome to", "my hedge"],
+        "blank": "assistant-welcome-to-my-hedge-blank",
+        "outline": "assets/branding/artwork/lettering/assistant-welcome-to-my-hedge.svg"
+      }
+    ]
+  },
+  "speechBubbleRim": {
+    "reference": "assets/branding/artwork/originals/assistant-welcome-to-my-hedge-blank.png",
+    "treatment": "Continuous softly rounded raised ivory ceramic rim, recessed interior, warm upper-left highlight and soft inner shading; scaled to each bubble.",
+    "appliesTo": [
+      "assistant-hello",
+      "assistant-hello-blank",
+      "assistant-welcome-to-my-hedge",
+      "assistant-welcome-to-my-hedge-blank",
+      "assistant-prepare-meeting"
+    ]
+  }
+}

@@ -1,0 +1,17 @@
+query audioTranscriptionCapability($workspaceId: String!) {
+  serverConfig {
+    features
+    transcription {
+      enabled
+      configured
+      status
+      maxInputBytes
+      maxDurationSeconds
+    }
+  }
+  workspace(id: $workspaceId) {
+    permissions {
+      Workspace_Transcription
+    }
+  }
+}

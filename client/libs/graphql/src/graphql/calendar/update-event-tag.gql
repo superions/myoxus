@@ -1,0 +1,10 @@
+mutation updateEventTag($tagId: String!, $input: UpdateEventTagInput!) {
+  updateEventTag(tagId: $tagId, input: $input) {
+    id
+    workspaceId
+    name
+    color
+    createdAt
+    updatedAt
+  }
+}

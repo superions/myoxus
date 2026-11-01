@@ -1,0 +1,3 @@
+mutation deleteEventTag($tagId: String!, $workspaceId: String!) {
+  deleteEventTag(tagId: $tagId, workspaceId: $workspaceId)
+}

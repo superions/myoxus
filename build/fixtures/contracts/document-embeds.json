@@ -1,0 +1,67 @@
+[
+  {
+    "name": "whole note and normal link",
+    "source": "![[Target|Live review]]\n\n[[Target|Open review]]\n",
+    "embeds": 1,
+    "links": 1,
+    "unresolved": 0,
+    "unsupported": 0
+  },
+  {
+    "name": "rich surrounding prose",
+    "source": "**Before ![[Target]] after**.\n",
+    "embeds": 1,
+    "links": 0,
+    "unresolved": 0,
+    "unsupported": 0
+  },
+  {
+    "name": "list and quote owners",
+    "source": "- Review ![[Target]] afterwards.\n\n> ![[Target]]\n",
+    "embeds": 2,
+    "links": 0,
+    "unresolved": 0,
+    "unsupported": 0
+  },
+  {
+    "name": "code escaped and annotation bodies stay literal",
+    "source": "`![[Target]]`\n\n\\![[Target]]\n\n\\[[Target]]\n\n~~~md\n![[Target]]\n~~~\n\n    ![[Target]]\n\n%%Review ![[Target]] later%%\n",
+    "embeds": 0,
+    "links": 0,
+    "unresolved": 0,
+    "unsupported": 0
+  },
+  {
+    "name": "HTML code keeps the existing server rejection boundary",
+    "source": "<code>![[Target]]</code>\n",
+    "serverRejected": true,
+    "embeds": 0,
+    "links": 0,
+    "unresolved": 0,
+    "unsupported": 0
+  },
+  {
+    "name": "filename periods are not attachments",
+    "source": "![[Target.v2]]\n",
+    "embeds": 1,
+    "links": 0,
+    "unresolved": 0,
+    "unsupported": 0
+  },
+  {
+    "name": "missing and ambiguous notes",
+    "source": "![[Missing]]\n\n![[Duplicate]]\n",
+    "embeds": 0,
+    "links": 0,
+    "unresolved": 2,
+    "unsupported": 0
+  },
+  {
+    "name": "selected notes and attachments are not whole documents",
+    "source": "![[Target#Heading]]\n\n![[Target#^block]]\n\n![[photo.png]]\n",
+    "embeds": 0,
+    "links": 0,
+    "unresolved": 1,
+    "unsupported": 2
+  }
+]

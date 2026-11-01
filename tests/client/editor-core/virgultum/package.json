@@ -1,0 +1,17 @@
+{
+  "name": "@myoxus-test/virgultum",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "yarn playwright test"
+  },
+  "dependencies": {
+    "@myoxus-test/kit": "workspace:*",
+    "@myoxus/theme": "workspace:*",
+    "@playwright/test": "=1.63.0",
+    "@virgultum/editor": "workspace:*",
+    "@virgultum/integration-test": "workspace:*",
+    "json-stable-stringify": "^1.2.1",
+    "rxjs": "^7.8.2"
+  }
+}

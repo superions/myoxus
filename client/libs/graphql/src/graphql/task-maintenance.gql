@@ -1,0 +1,36 @@
+fragment PreparedTaskMaintenanceFragment on PreparedTaskMaintenance {
+  actorId workspaceId target { databaseId taskId }
+  package { ...AssistantPackageIdentityFragment }
+  answers { input value { ...AssistantValueFragment } }
+  locale clientVersion executionAvailable planDigest
+  proposal {
+    actorId workspaceId databaseId digest tasks { databaseId rowId }
+    findings { task { databaseId rowId } fieldId kind }
+    patches { rowId fieldId oldValue { ...DatabaseCellValueData } value { ...DatabaseCellValueData } clear expectedEditRevision }
+    rowPreconditions { rowId expectedEditRevision }
+  }
+}
+fragment TaskMaintenanceFragment on TaskMaintenance {
+  requestId
+  run { ...WorkspaceAutomationRun }
+  acceptedPlan { ...PreparedTaskMaintenanceFragment }
+  acceptedDescriptor { ...AssistantPackageFragment }
+  confirmation { requestId waitId proposalDigest outcome acceptedAt }
+  waitId canConfirm canApply canDecline canRetry canStop reasonCode
+}
+query prepareTaskMaintenance($workspaceId: String!, $input: PrepareTaskMaintenanceInput!) {
+  currentUser { id }
+  workspace(id: $workspaceId) { id prepareTaskMaintenance(input: $input) { ...PreparedTaskMaintenanceFragment } }
+}
+query taskMaintenance($workspaceId: String!, $runId: ID!) {
+  currentUser { id }
+  workspace(id: $workspaceId) { id taskMaintenance(runId: $runId) { ...TaskMaintenanceFragment } }
+}
+query taskMaintenanceRequest($workspaceId: String!, $requestId: ID!) {
+  currentUser { id }
+  workspace(id: $workspaceId) { id taskMaintenanceRequest(requestId: $requestId) { ...TaskMaintenanceFragment } }
+}
+mutation startTaskMaintenance($input: StartTaskMaintenanceInput!) { startTaskMaintenance(input: $input) { ...TaskMaintenanceFragment } }
+mutation stopTaskMaintenance($input: TaskMaintenanceRunInput!) { stopTaskMaintenance(input: $input) { ...TaskMaintenanceFragment } }
+mutation retryTaskMaintenance($input: TaskMaintenanceRunInput!) { retryTaskMaintenance(input: $input) { ...TaskMaintenanceFragment } }
+mutation confirmTaskCorrections($input: ConfirmTaskCorrectionsInput!) { confirmTaskCorrections(input: $input) { ...TaskMaintenanceFragment } }

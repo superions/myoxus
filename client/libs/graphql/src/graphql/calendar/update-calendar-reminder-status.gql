@@ -1,0 +1,13 @@
+mutation updateCalendarReminderStatus(
+  $workspaceId: String!
+  $reminderId: String!
+  $delivered: Boolean!
+) {
+  updateCalendarReminderStatus(
+    workspaceId: $workspaceId
+    reminderId: $reminderId
+    delivered: $delivered
+  ) {
+    ok
+  }
+}

@@ -1,0 +1,37 @@
+{% extends "_layout.html" %} {% block subject %}Tu enlace para iniciar sesión en
+Myoxus{% endblock subject %} {% block preheader %}También puedes introducir el
+código de un solo uso en el diálogo de inicio de sesión que ya has abierto.{%
+endblock preheader %} {% block category %}TU CUENTA{% endblock category %} {%
+block heading %}Inicia sesión en Myoxus.{% endblock heading %} {% block
+introduction %}Has solicitado un enlace para iniciar sesión en tu cuenta de
+Myoxus. Utiliza el botón para continuar.{% endblock introduction %} {% block
+details %}{% if email %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  DIRECCIÓN DE CORREO
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ email }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}También puedes introducir
+el código de un solo uso en el diálogo de inicio de sesión que ya has abierto.{%
+endblock next_step %} {% block action %}Iniciar sesión en Myoxus{% endblock
+action %} {% block note %}No compartas este enlace ni el código de un solo uso
+con nadie. Si no has solicitado iniciar sesión, ignora este correo.{% endblock
+note %} {% block reason %}Recibes este correo porque se ha solicitado iniciar
+sesión en Myoxus con esta dirección.{% endblock reason %}

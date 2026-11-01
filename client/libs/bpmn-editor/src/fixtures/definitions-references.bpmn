@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+ xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+ xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+ xmlns:tns="urn:myoxus:definitions" xmlns:foreign="urn:outside"
+ id="Definitions" targetNamespace="urn:myoxus:definitions" exporter="Independent fixture" exporterVersion="1">
+ <import importType="http://www.w3.org/2001/XMLSchema" location="types.xsd" namespace="urn:myoxus:definitions"/>
+ <itemDefinition id="Payload" structureRef="tns:Payload"/>
+ <message id="Message" name="Request" itemRef="tns:Payload"/>
+ <signal id="Signal" name="Notice" structureRef="tns:Payload"/>
+ <error id="Error" name="Failure" errorCode="E1" structureRef="tns:Payload"/>
+ <escalation id="Escalation" name="Escalate" escalationCode="E2" structureRef="tns:Payload"/>
+ <interface id="Interface" name="Service" implementationRef="tns:Message">
+  <operation id="Operation" name="Invoke" implementationRef="tns:Message"><inMessageRef>tns:Message</inMessageRef><outMessageRef>foreign:Message</outMessageRef></operation>
+ </interface>
+ <globalTask id="Global" name="Reusable"/>
+ <category id="Category"><categoryValue id="CategoryValue" value="Workflow"/></category>
+ <process id="Process" name="References" isExecutable="false">
+  <startEvent id="Start"><messageEventDefinition id="MessageEvent" messageRef="tns:Message"/></startEvent>
+  <intermediateCatchEvent id="Catch"><signalEventDefinition id="SignalEvent" signalRef="tns:Signal"/></intermediateCatchEvent>
+  <endEvent id="End"><errorEventDefinition id="ErrorEvent" errorRef="tns:Error"/></endEvent>
+  <boundaryEvent id="Boundary" attachedToRef="Service"><escalationEventDefinition id="EscalationEvent" escalationRef="tns:Escalation"/></boundaryEvent>
+  <serviceTask id="Service" name="Invoke" operationRef="tns:Operation"/>
+  <callActivity id="Call" name="Reuse" calledElement="tns:Global"/>
+  <task id="Task" name="Input"><ioSpecification id="IO"><dataInput id="Input" itemSubjectRef="tns:Payload"/><inputSet id="Inputs"><dataInputRefs>Input</dataInputRefs></inputSet><outputSet id="Outputs"/></ioSpecification></task>
+  <task id="Shadow" name="External" xmlns:tns="urn:outside"><ioSpecification id="ShadowIO"><dataInput id="ShadowInput" itemSubjectRef="tns:Payload"/><inputSet id="ShadowInputs"><dataInputRefs>ShadowInput</dataInputRefs></inputSet><outputSet id="ShadowOutputs"/></ioSpecification></task>
+  <group id="Group" categoryValueRef="tns:CategoryValue"/>
+ </process>
+ <bpmndi:BPMNDiagram id="Diagram"><bpmndi:BPMNPlane id="Plane" bpmnElement="Process">
+  <bpmndi:BPMNShape id="StartDI" bpmnElement="Start"><dc:Bounds x="40" y="40" width="36" height="36"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="CatchDI" bpmnElement="Catch"><dc:Bounds x="120" y="40" width="36" height="36"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="EndDI" bpmnElement="End"><dc:Bounds x="200" y="40" width="36" height="36"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="ServiceDI" bpmnElement="Service"><dc:Bounds x="280" y="40" width="120" height="80"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="BoundaryDI" bpmnElement="Boundary"><dc:Bounds x="310" y="102" width="36" height="36"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="CallDI" bpmnElement="Call"><dc:Bounds x="440" y="40" width="120" height="80"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="TaskDI" bpmnElement="Task"><dc:Bounds x="40" y="200" width="120" height="80"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="ShadowDI" bpmnElement="Shadow"><dc:Bounds x="200" y="200" width="120" height="80"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="GroupDI" bpmnElement="Group"><dc:Bounds x="20" y="180" width="320" height="120"/></bpmndi:BPMNShape>
+ </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+</definitions>

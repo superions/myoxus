@@ -1,0 +1,149 @@
+{% extends "_layout.html" %} {% block subject %}Reminder: {{ event_title }}{%
+endblock subject %} {% block preheader %}Open the event to prepare and view the
+latest details.{% endblock preheader %} {% block category %}YOUR REMINDER{%
+endblock category %} {% block heading %}Your event is coming up.{% endblock
+heading %} {% block introduction %}Your reminder for this calendar event is due
+now. Here are the title, start time and a direct link to the event details.{%
+endblock introduction %} {% block details %}{% if event_title %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  EVENT
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ event_title }}
+</p>
+{% endif %}{% if actor %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Organized by
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ actor }}
+</p>
+{% endif %}{% if starts_at %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Scheduled date
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ starts_at }}
+</p>
+{% endif %}{% if previous_starts_at %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Previous time
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ previous_starts_at }}
+</p>
+{% endif %}{% if ends_at %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Ends
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ ends_at }}
+</p>
+{% endif %}{% if location %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Location
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ location }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}Open the event to prepare
+and view the latest details.{% endblock next_step %} {% block action %}Open
+event{% endblock action %} {% block note %}You can change or remove the reminder
+in this event’s settings.{% endblock note %} {% block reason %}You received this
+email because an email reminder was set up for this event.{% endblock reason %}

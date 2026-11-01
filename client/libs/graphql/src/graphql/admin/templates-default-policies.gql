@@ -1,0 +1,12 @@
+query templateDefaultPolicies {
+  admin {
+    templateDefaultPolicies {
+      templateId
+      applyToNewWorkspaces
+      selectionMode
+      provisioningMode
+      createdAt
+      updatedAt
+    }
+  }
+}

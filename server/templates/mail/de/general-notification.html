@@ -1,0 +1,37 @@
+{% extends "_layout.html" %} {% block subject %}Neue Benachrichtigung in
+Myoxus{% endblock subject %} {% block preheader %}Öffne die Übersicht, um den
+Anlass und die verfügbaren Aktionen anzusehen.{% endblock preheader %} {% block
+category %}MYOXUS{% endblock category %} {% block heading %}Eine neue
+Benachrichtigung für dich.{% endblock heading %} {% block introduction %}in
+Myoxus liegt eine neue Benachrichtigung für dich vor. Die zugehörigen
+Informationen findest du in deiner Benachrichtigungsübersicht.{% endblock
+introduction %} {% block details %}{% if email %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  BENACHRICHTIGUNG
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ email }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}Öffne die Übersicht, um
+den Anlass und die verfügbaren Aktionen anzusehen.{% endblock next_step %} {%
+block action %}Benachrichtigungen öffnen{% endblock action %} {% block note
+%}Die aktuellen Informationen und verfügbaren Aktionen findest du direkt in
+Myoxus.{% endblock note %} {% block reason %}Du erhältst diese E-Mail, weil eine
+Benachrichtigung für dein Konto erstellt wurde und der Mail-Versand aktiviert
+ist.{% endblock reason %}

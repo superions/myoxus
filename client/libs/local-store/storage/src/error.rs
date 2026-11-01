@@ -1,0 +1,21 @@
+use myoxus_doc_indexer::ParseError;
+
+pub type Result<T> = std::result::Result<T, Error>;
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+  #[error("Sqlite Error: {0}")]
+  SqlxError(#[from] sqlx::Error),
+  #[error("Migrate Error: {0}")]
+  MigrateError(#[from] sqlx::migrate::MigrateError),
+  #[error("Connection in progress")]
+  ConnectionInProgress,
+  #[error("Invalid operation")]
+  InvalidOperation,
+  #[error("Serialization Error: {0}")]
+  Serialization(String),
+  #[error("Search index temporarily unavailable ({0})")]
+  IndexTemporarilyUnavailable(&'static str),
+  #[error(transparent)]
+  Parse(#[from] ParseError),
+}

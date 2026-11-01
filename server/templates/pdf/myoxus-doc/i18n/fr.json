@@ -1,0 +1,6 @@
+{
+  "template_name": "Documentation",
+  "template_description": "Documentation longue avec couverture personnalisée, table des matières, titres de chapitre et pied de page.",
+  "toc_heading": "Table des matières",
+  "page_label": "Page"
+}

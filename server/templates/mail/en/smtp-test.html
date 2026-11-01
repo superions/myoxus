@@ -1,0 +1,35 @@
+{% extends "_layout.html" %} {% block subject %}Myoxus · SMTP test message{%
+endblock subject %} {% block preheader %}Open the email settings if you would
+like to review or adjust the configuration.{% endblock preheader %} {% block
+category %}MYOXUS{% endblock category %} {% block heading %}Email delivery
+worked.{% endblock heading %} {% block introduction %}You sent a test message
+from the email settings. This email confirms that SMTP delivery worked for this
+test.{% endblock introduction %} {% block details %}{% if email %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  EMAIL DELIVERY
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ email }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}Open the email settings
+if you would like to review or adjust the configuration.{% endblock next_step %}
+{% block action %}Open email settings{% endblock action %} {% block note %}This
+confirmation applies to the delivery of this test message.{% endblock note %} {%
+block reason %}You received this email because you tested email delivery in
+Myoxus.{% endblock reason %}

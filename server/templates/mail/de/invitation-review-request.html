@@ -1,0 +1,59 @@
+{% extends "_layout.html" %} {% block subject %}Beitrittsanfrage für „{{
+workspace_name }}“ prüfen{% endblock subject %} {% block preheader %}Prüfe die
+Anfrage und entscheide, ob du den Beitritt genehmigen oder ablehnen möchtest.{%
+endblock preheader %} {% block category %}ZUSAMMENARBEIT{% endblock category %}
+{% block heading %}Eine Beitrittsanfrage wartet auf dich.{% endblock heading %}
+{% block introduction %}{{ actor }} möchte dem Workspace beitreten. Die Anfrage
+wartet auf die Entscheidung eines zuständigen Admins.{% endblock introduction %}
+{% block details %}{% if workspace_name %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  WORKSPACE
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ workspace_name }}
+</p>
+{% endif %}{% if actor %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Von
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ actor }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}Prüfe die Anfrage und
+entscheide, ob du den Beitritt genehmigen oder ablehnen möchtest.{% endblock
+next_step %} {% block action %}Anfrage prüfen{% endblock action %} {% block note
+%}Die aktuellen Informationen und verfügbaren Aktionen findest du direkt in
+Myoxus.{% endblock note %} {% block reason %}Du erhältst diese E-Mail, weil du
+Beitrittsanfragen für diesen Workspace prüfen kannst.{% endblock reason %}

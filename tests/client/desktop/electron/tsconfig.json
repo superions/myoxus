@@ -1,0 +1,22 @@
+{
+  "extends": "../../../../tsconfig.web.json",
+  "compilerOptions": {
+    "composite": false,
+    "noEmit": true,
+    "types": ["node"]
+  },
+  "files": [
+    "e2e/product-flow.spec.ts",
+    "e2e/quit-lifecycle.spec.ts",
+    "e2e/release-smoke.spec.ts",
+    "e2e/window-lifecycle.spec.ts",
+    "fixtures/packaged-runtime.ts",
+    "fixtures/product-flow.ts",
+    "playwright.config.ts"
+  ],
+  "references": [
+    {
+      "path": "../../../../client/libs/desktop-api-contract"
+    }
+  ]
+}

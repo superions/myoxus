@@ -1,0 +1,20 @@
+{
+  "greeting": "Hallo,",
+  "fallbackLabel": "Falls der Button nicht funktioniert, öffne diesen Link:",
+  "footer": "Myoxus · Automatische Nachricht",
+  "code": "Einmalcode",
+  "roles": {
+    "Owner": "Eigentümer",
+    "Admin": "Admin",
+    "Collaborator": "Mitglied",
+    "Reader": "Leser",
+    "Editor": "Bearbeiter",
+    "Commenter": "Kommentator",
+    "Manager": "Manager"
+  },
+  "actorFallback": "Ein Mitglied",
+  "eventFallback": "Termin ohne Titel",
+  "documentFallback": "Dokument ohne Titel",
+  "workspaceFallback": "Workspace",
+  "rowFallback": "Eintrag ohne Titel"
+}

@@ -1,0 +1,21 @@
+mutation updateGitSyncProfile($profileId: String!, $input: UpdateGitSyncProfileInput!) {
+  updateGitSyncProfile(profileId: $profileId, input: $input) {
+    id
+    repoUrl
+    branch
+    rootPath
+    syncDirection
+    triggerMode
+    pollingIntervalSecs
+    cronExpression
+    cronTimezone
+    cronMisfirePolicy
+    cronNextScheduledAt
+    cronPendingMisfireScheduledFor
+    authMethod
+    enabled
+    createdAt
+    updatedAt
+    credentialExpiresAt
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "name": "@virgultum/integration-test",
+  "description": "Integration test app for Virgultum",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "yarn --cwd \"$PROJECT_CWD\" exec tsc -p \"$PWD/tsconfig.json\" --noEmit",
+    "test:unit": "vitest --browser.headless --run",
+    "test:debug": "PWDEBUG=1 npx vitest"
+  },
+  "sideEffects": false,
+  "keywords": [],
+  "author": "Myoxus Contributors",
+  "license": "AGPL-3.0-or-later AND MIT",
+  "dependencies": {
+    "@floating-ui/dom": "^1.6.13",
+    "@lit/context": "^1.1.6",
+    "@myoxus/core": "workspace:*",
+    "@myoxus/env": "workspace:*",
+    "@myoxus/i18n": "workspace:*",
+    "@myoxus/icons": "workspace:*",
+    "@myoxus/lit-react": "workspace:*",
+    "@myoxus/theme": "workspace:*",
+    "@myoxus/ui-facade": "workspace:*",
+    "@preact/signals-core": "^1.8.0",
+    "@virgultum/editor": "workspace:*",
+    "lit": "^3.3.3",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "rxjs": "^7.8.2",
+    "yjs": "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch",
+    "zod": "^3.25.76"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./effects": "./src/effects.ts",
+    "./store": "./src/store.ts",
+    "./view": "./src/view.ts"
+  },
+  "files": [
+    "src",
+    "dist",
+    "themes",
+    "!src/__tests__",
+    "!dist/__tests__"
+  ],
+  "devDependencies": {
+    "vite": "8.3.1",
+    "vite-plugin-wasm": "3.6.0",
+    "vitest": "4.1.11"
+  },
+  "version": "0.41.5"
+}

@@ -1,0 +1,78 @@
+    #[instrument(skip(self))]
+    async fn list_workspace_members(&self, workspace_id: Uuid, skip: i64, take: i64, query: Option<String>) -> AuthResult<Vec<myoxus_domain::entities::WorkspaceMember>> {
+        let memberships = self.memberships.read().expect("in-memory memberships lock poisoned");
+        let users = self.users_by_id.read().expect("in-memory users lock poisoned");
+        
+        let query = query.map(|q| q.to_lowercase());
+        
+        let members: Vec<myoxus_domain::entities::WorkspaceMember> = memberships.iter()
+            .filter(|((ws_id, _), _)| *ws_id == workspace_id)
+            .filter_map(|((_, uid), (role, status))| {
+                users.get(uid).map(|user| (user, role, status))
+            })
+            .filter(|(user, _, _)| {
+                if let Some(q) = &query {
+                    user.email.to_lowercase().contains(q) || user.name.as_ref().map(|n| n.to_lowercase().contains(q)).unwrap_or(false)
+                } else {
+                    true
+                }
+            })
+            .skip(skip as usize)
+            .take(take as usize)
+            .map(|(user, role, status)| {
+                myoxus_domain::entities::WorkspaceMember {
+                    user: myoxus_domain::entities::User {
+                        id: user.id,
+                        name: user.name.clone().unwrap_or_default(),
+                        email: user.email.clone(),
+                        email_verified_at: user.email_verified_at,
+                        avatar_url: user.avatar_url.clone(),
+                        avatar_key: user.avatar_url.clone(),
+                        status: if user.disabled { myoxus_domain::entities::AccountStatus::Disabled } else { myoxus_domain::entities::AccountStatus::Active },
+                        registered: user.registered,
+                        disabled: user.disabled,
+                        created_at: Utc::now(), // mock
+                        updated_at: Utc::now(), // mock
+                        password_hash: user.password_hash.clone(),
+                    },
+                    role: *role,
+                    status: *status,
+                    invite_id: Uuid::new_v4(), // mock
+                }
+            })
+            .collect();
+            
+        Ok(members)
+    }
+
+    #[instrument(skip(self))]
+    async fn count_workspace_members(&self, workspace_id: Uuid) -> AuthResult<i64> {
+        let memberships = self.memberships.read().expect("in-memory memberships lock poisoned");
+        Ok(memberships.iter().filter(|((ws_id, _), _)| *ws_id == workspace_id).count() as i64)
+    }
+
+    #[instrument(skip(self))]
+    async fn get_workspace_owner(&self, workspace_id: Uuid) -> AuthResult<Option<myoxus_domain::entities::User>> {
+        let workspaces = self.workspaces.read().expect("in-memory workspaces lock poisoned");
+        let users = self.users_by_id.read().expect("in-memory users lock poisoned");
+        
+        if let Some(ws) = workspaces.get(&workspace_id) {
+            if let Some(user) = users.get(&ws.owner_user_id) {
+                return Ok(Some(myoxus_domain::entities::User {
+                    id: user.id,
+                    name: user.name.clone().unwrap_or_default(),
+                    email: user.email.clone(),
+                    email_verified_at: user.email_verified_at,
+                    avatar_url: user.avatar_url.clone(),
+                    avatar_key: user.avatar_url.clone(),
+                    status: if user.disabled { myoxus_domain::entities::AccountStatus::Disabled } else { myoxus_domain::entities::AccountStatus::Active },
+                    registered: user.registered,
+                    disabled: user.disabled,
+                    created_at: Utc::now(), // mock
+                    updated_at: Utc::now(), // mock
+                    password_hash: user.password_hash.clone(),
+                }));
+            }
+        }
+        Ok(None)
+    }

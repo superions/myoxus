@@ -1,0 +1,72 @@
+{
+  "generated_at": "2026-03-07T00:00:00Z",
+  "owner_package": "P4-01",
+  "status": "active",
+  "scope": "blob_and_attachment_contract_seed",
+  "graphql_operations": [
+    {
+      "operation_name": "setBlob",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "createBlobUpload",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "getBlobUploadPartUrl",
+      "operation_type": "query"
+    },
+    {
+      "operation_name": "completeBlobUpload",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "abortBlobUpload",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "deleteBlob",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "releaseDeletedBlobs",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "listBlobs",
+      "operation_type": "query"
+    },
+    {
+      "operation_name": "uploadCommentAttachment",
+      "operation_type": "mutation"
+    }
+  ],
+  "rest_endpoints": [
+    {
+      "http_method": "GET",
+      "resolved_path": "/api/workspaces/:id/blobs/:name"
+    },
+    {
+      "http_method": "GET",
+      "resolved_path": "/api/workspaces/:id/docs/:docId/comment-attachments/:key"
+    },
+    {
+      "http_method": "PUT",
+      "route_literal": "upload"
+    },
+    {
+      "http_method": "PUT",
+      "route_literal": "multipart"
+    }
+  ],
+  "sources": [
+    "refactor/server-dev/14_client_contract_backlog.md",
+    "refactor/server-dev/15_legacy_code_map.md",
+    "servers/rust/crates/contracts/inventory/graphql_operations.json",
+    "servers/rust/crates/contracts/inventory/rest_endpoints.json"
+  ],
+  "notes": [
+    "This inventory is a seed contract list for P4-01 and is intentionally strict for client-visible routes and operations.",
+    "Decisions about billing or quota behavior are not represented here and remain governed by p0d_paid_surface_decisions.json."
+  ]
+}

@@ -1,0 +1,5 @@
+body {
+  color: var(--myoxus-text-primary-color);
+  font-family: var(--myoxus-font-family);
+  font-size: var(--myoxus-font-base);
+}

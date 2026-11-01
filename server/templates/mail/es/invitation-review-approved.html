@@ -1,0 +1,59 @@
+{% extends "_layout.html" %} {% block subject %}Ya puedes abrir «{{
+workspace_name }}»{% endblock subject %} {% block preheader %}Abre el espacio de
+trabajo para consultar el contenido al que tienes acceso.{% endblock preheader
+%} {% block category %}COLABORACIÓN{% endblock category %} {% block heading %}Tu
+solicitud de acceso ha sido aprobada.{% endblock heading %} {% block
+introduction %}Tu solicitud de acceso ha sido aprobada. Ya puedes abrir el
+espacio de trabajo en Myoxus.{% endblock introduction %} {% block details %}{%
+if workspace_name %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  ESPACIO DE TRABAJO
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ workspace_name }}
+</p>
+{% endif %}{% if actor %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  De
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ actor }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}Abre el espacio de
+trabajo para consultar el contenido al que tienes acceso.{% endblock next_step
+%} {% block action %}Abrir espacio de trabajo{% endblock action %} {% block note
+%}Encontrarás la información actualizada y las acciones disponibles directamente
+en Myoxus.{% endblock note %} {% block reason %}Recibes este correo porque ha
+cambiado el estado de tu solicitud de acceso.{% endblock reason %}

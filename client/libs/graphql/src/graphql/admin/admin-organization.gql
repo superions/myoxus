@@ -1,0 +1,9 @@
+#import "./admin-organization-fragment.gql"
+
+query adminOrganization {
+  admin {
+    organization {
+      ...AdminOrganizationFragment
+    }
+  }
+}

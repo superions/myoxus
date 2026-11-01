@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+server:
+  origin: "https://myoxus.example.com"
+database:
+  url: "postgres://myoxus:CHANGE_ME@127.0.0.1:5432/myoxus"
+redis:
+  url: "redis://127.0.0.1:6379"
+crypto:
+  private_key: "REPLACE_WITH_OPENSSL_RAND_HEX_32"
+storage:
+  backend: "local"
+  root: "/var/lib/myoxus/storage"
+  pdf_fonts:
+    driver: opendal
+    opendal:
+      backend: fs
+      root: "/var/lib/myoxus/pdf-fonts"
+branding:
+  style_dir: "/var/lib/myoxus/style"
+git_sync:
+  repo_base_dir: "/var/lib/myoxus/git-sync"
+public_publishing:
+  static_export_root: "/var/lib/myoxus/public"
+mail:
+  template_dir: "/usr/share/myoxus/templates/mail"
+logging:
+  file_path: "/var/log/myoxus/myoxus.log"

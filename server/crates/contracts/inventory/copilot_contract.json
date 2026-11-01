@@ -1,0 +1,236 @@
+{
+  "generated_at": "2026-03-07T00:00:00Z",
+  "owner_package": "P5-01",
+  "status": "active",
+  "scope": "copilot_contract_seed",
+  "graphql_operations": [
+    {
+      "operation_name": "addContextBlob",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "addContextCategory",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "addContextDoc",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "addContextFile",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "addWorkspaceEmbeddingFiles",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "addWorkspaceEmbeddingIgnoredDocs",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "applyDocUpdates",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "claimAudioTranscription",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "cleanupCopilotSession",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "createCopilotContext",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "createCopilotMessage",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "createCopilotSession",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "createCopilotSessionWithHistory",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "forkCopilotSession",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "queueWorkspaceEmbedding",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "removeContextBlob",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "removeContextCategory",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "removeContextDoc",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "removeContextFile",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "removeWorkspaceEmbeddingFiles",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "removeWorkspaceEmbeddingIgnoredDocs",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "retryAudioTranscription",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "submitAudioTranscription",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "updateCopilotSession",
+      "operation_type": "mutation"
+    },
+    {
+      "operation_name": "copilotQuota",
+      "operation_type": "query"
+    },
+    {
+      "operation_name": "getAllWorkspaceEmbeddingIgnoredDocs",
+      "operation_type": "query"
+    },
+    {
+      "operation_name": "getAudioTranscription",
+      "operation_type": "query"
+    },
+    {
+      "operation_name": "getCopilotDocSessions",
+      "operation_type": "query"
+    },
+    {
+      "operation_name": "getCopilotHistories",
+      "operation_type": "query"
+    },
+    {
+      "operation_name": "getCopilotHistoryIds",
+      "operation_type": "query"
+    },
+    {
+      "operation_name": "getCopilotLatestDocSession",
+      "operation_type": "query"
+    },
+    {
+      "operation_name": "getCopilotPinnedSessions",
+      "operation_type": "query"
+    },
+    {
+      "operation_name": "getCopilotRecentSessions",
+      "operation_type": "query"
+    },
+    {
+      "operation_name": "getCopilotSession",
+      "operation_type": "query"
+    },
+    {
+      "operation_name": "getCopilotSessions",
+      "operation_type": "query"
+    },
+    {
+      "operation_name": "getCopilotWorkspaceSessions",
+      "operation_type": "query"
+    },
+    {
+      "operation_name": "getPromptModels",
+      "operation_type": "query"
+    },
+    {
+      "operation_name": "getWorkspaceEmbeddingFiles",
+      "operation_type": "query"
+    },
+    {
+      "operation_name": "getWorkspaceEmbeddingIgnoredDocs",
+      "operation_type": "query"
+    },
+    {
+      "operation_name": "getWorkspaceEmbeddingStatus",
+      "operation_type": "query"
+    },
+    {
+      "operation_name": "listContext",
+      "operation_type": "query"
+    },
+    {
+      "operation_name": "listContextObject",
+      "operation_type": "query"
+    },
+    {
+      "operation_name": "matchContext",
+      "operation_type": "query"
+    },
+    {
+      "operation_name": "matchFiles",
+      "operation_type": "query"
+    },
+    {
+      "operation_name": "matchWorkspaceDocs",
+      "operation_type": "query"
+    }
+  ],
+  "rest_endpoints": [
+    {
+      "http_method": "DELETE",
+      "resolved_path": "/api/workspaces/:workspaceId/mcp/",
+      "route_literal": "/"
+    },
+    {
+      "http_method": "GET",
+      "resolved_path": "/api/copilot/blob/:userId/:workspaceId/:key",
+      "route_literal": "/blob/:userId/:workspaceId/:key"
+    },
+    {
+      "http_method": "GET",
+      "resolved_path": "/api/copilot/unsplash/photos",
+      "route_literal": "/unsplash/photos"
+    },
+    {
+      "http_method": "GET",
+      "resolved_path": "/api/workspaces/:workspaceId/mcp/",
+      "route_literal": "/"
+    },
+    {
+      "http_method": "POST",
+      "resolved_path": "/api/workspaces/:workspaceId/mcp/",
+      "route_literal": "/"
+    }
+  ],
+  "current_rust_coverage": {
+    "graphql": {
+      "implemented_operation_names": [],
+      "notes": "Rust currently exposes only compatibility quota fields on currentUser.copilot; dedicated copilot operations are not implemented yet."
+    },
+    "rest": {
+      "implemented_paths": [],
+      "notes": "Rust API currently has no /api/copilot routes."
+    }
+  },
+  "sources": [
+    "client/libs/graphql/src/graphql/copilot-*.gql",
+    "servers/rust/crates/contracts/inventory/graphql_operations.json",
+    "servers/rust/crates/contracts/inventory/rest_endpoints.json",
+    "refactor/server-dev/14_client_contract_backlog.md",
+    "refactor/server-dev/15_legacy_code_map.md"
+  ],
+  "notes": [
+    "This seed inventory is the contract baseline for P5-01 and drives implementation sequencing for P5-02..P5-25.",
+    "Billing and usage restrictions remain excluded per project scope; contract compatibility is preserved via neutral surfaces where needed."
+  ]
+}

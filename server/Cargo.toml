@@ -1,0 +1,252 @@
+[workspace]
+members = [
+  "crates/api",
+  "crates/application",
+  "crates/domain",
+  "crates/infrastructure",
+  "crates/contracts",
+  "crates/tests",
+  "crates/yjs",
+  "crates/worker",
+  "crates/cli",
+  "crates/mcp",
+  "crates/doc_pipeline",
+  "crates/mermaid_render",
+  "crates/pdf_export",
+  "crates/pdf_export_templates",
+  "crates/public_render",
+  "crates/workspace_import",
+]
+resolver = "2"
+
+  [workspace.package]
+  edition = "2024"
+  license = "AGPL-3.0-or-later"
+  version = "0.41.38"
+
+  [workspace.dependencies]
+  aes-gcm = "0.10"
+  anyhow  = "1"
+  argon2  = "0.5"
+  # Keep the static schema, Playground and file-backed multipart uploads.
+  async-graphql = { version = "7.2.1", default-features = false, features = [
+    "uuid",
+    "chrono",
+    "playground",
+    "tempfile",
+  ] }
+  async-trait = "0.1"
+  axum = { version = "0.8", features = ["macros", "ws", "multipart"] }
+  base64 = "0.22"
+  bytes = "1"
+  chrono = { version = "0.4", features = ["serde"] }
+  clap = { version = "4", features = ["derive", "env"] }
+  # Startup consumes normalized JSON; YAML remains required by configuration tests.
+  config = { version = "0.15.26", default-features = false, features = [
+    "json",
+  ] }
+  cron = "0.12"
+  csv = "1"
+  dashmap = "6"
+  fs2 = "0.4"
+  futures-util = "0.3"
+  glirulus-core = { version = "=1.0.0", default-features = false, features = [
+    "tokio",
+  ] }
+  glirulus-persistence = "=1.0.0"
+  glirulus-postgres = "=1.0.0"
+  glirulus-runtime = { version = "=1.0.0", default-features = false, features = [
+    "json",
+  ] }
+  hex = "0.4"
+  hmac = "0.12"
+  http = "1"
+  http-body-util = "0.1"
+  lettre = { version = "0.11.23", default-features = false, features = [
+    "tokio1-rustls",
+    "ring",
+    "webpki-roots",
+    "smtp-transport",
+    "hostname",
+    "builder",
+  ] }
+  moka = { version = "0.12", features = ["future"] }
+  oauth2 = { version = "5", default-features = false }
+  opendal = { version = "0.58.1", default-features = false, features = [
+    "executors-tokio",
+    # Keep OpenDAL's Reqwest transport without selecting a second Rustls
+    # provider; StorageAdapter installs the transport lazily before S3 use.
+    "http-transport-reqwest-rustls-no-provider",
+    "services-s3",
+    "services-fs",
+    "layers-tracing",
+  ] } # minimal: only Fs + S3 backends; add services-* only when new storage backend is needed
+  opendal-http-transport-reqwest = { version = "0.58.1", default-features = false, features = [
+    "rustls-no-provider",
+  ] }
+  openssl = "0.10"
+  pem = "3"
+  percent-encoding = "2.3.2"
+  pulldown-cmark = "0.13.4"
+  rand = "0.8"
+  rcgen = "0.12"
+  redis = { version = "1.7.1", features = [
+    "tokio-rustls-comp",
+    "connection-manager",
+  ] }
+  reqwest = { version = "0.13.5", default-features = false, features = [
+    "form",
+    "json",
+    "multipart",
+    "query",
+    "rustls-no-provider",
+    "stream",
+  ] }
+  resvg = "0.47"
+  rpassword = "7.5"
+  rustls = { version = "0.23.45", default-features = false, features = [
+    "ring",
+    "std",
+    "tls12",
+  ] }
+  # SQLx 0.8.6 already links libsqlite3-sys 0.30 in the workspace graph.
+  # rusqlite 0.32 is the matching line; `bundled` keeps server images
+  # independent from a host SQLite installation and `blob` permits streaming
+  # legacy assets without allocating their complete payloads.
+  rmcp = { version = "3.8.0", default-features = false, features = [
+    "server",
+    "transport-streamable-http-server",
+  ] }
+  rusqlite = { version = "0.32.1", features = ["blob", "bundled"] }
+  scraper = "0.27"
+  semver = "1"
+  serde = { version = "1", features = ["derive"] }
+  serde_json = "1"
+  serde_path_to_error = "0.1.20"
+  sha2 = "0.10"
+  similar = { version = "2.7", features = ["unicode"] }
+  socketioxide = { version = "0.16", features = ["state"] }
+  sqlx = { version = "0.8", default-features = false, features = [
+    "postgres",
+    "runtime-tokio-rustls",
+    "uuid",
+    "chrono",
+    "migrate",
+    "macros",
+    "json",
+  ] }
+  symphonia = { version = "=0.6.1", default-features = false, features = [
+    "isomp4",
+    "mkv",
+    "ogg",
+    "wav",
+    "flac",
+    "mp3",
+  ] }
+  syntect = "5.3"
+  tabled = "0.22"
+  tempfile = "3"
+  tera = "1"
+  thiserror = "2"
+  tiny-skia = "0.12"
+  tokio = { version = "1", features = [
+    "macros",
+    "rt-multi-thread",
+    "signal",
+    "sync",
+    "process",
+  ] }
+  tokio-rustls = { version = "0.26.6", default-features = false, features = [
+    "ring",
+    "logging",
+    "tls12",
+  ] }
+  tower = { version = "0.5", features = ["util"] }
+  tower-http = { version = "0.6", features = [
+    "trace",
+    "cors",
+    "compression-gzip",
+    "compression-br",
+  ] }
+  tracing = "0.1"
+  tracing-appender = "0.2"
+  tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+  unicode-normalization = "0.1"
+  unicode-segmentation = "1"
+  url = "2"
+  urlencoding = "2.1"
+  uuid = { version = "1", features = ["serde", "v4", "v5"] }
+  v_htmlescape = "0.15"
+  yaml_serde = "=0.10.7"
+  yrs = { package = "myoxus-yrs", version = "=0.28.0-myoxus.1" }
+  # Yjs v1 codec dependencies
+  async-stream = "0.3"
+  byteorder = "1"
+  chrono-tz = "0.10"
+  git2 = { version = "0.21.0", features = ["ssh", "https"] }
+  hickory-resolver = { version = "0.26.3", default-features = false, features = [
+    "tokio",
+  ] }
+  infer = "0.19"
+  jsonwebtoken = { version = "9.3.1", default-features = false, features = [
+    "use_pem",
+  ] }
+  # P-PDF-TPL-IMG-01: image-rs for the PDF render image-compression pipeline.
+  # `default-features = false` keeps the build offline-friendly; we explicitly
+  # enable only the codecs the pipeline supports today (PNG, JPEG, WebP).
+  image = { version = "0.25", default-features = false, features = [
+    "png",
+    "jpeg",
+    "webp",
+  ] }
+  log = "0.4"
+  mime = "0.3"
+  mime_guess = "2.0"
+  nom = "7"
+  ordered-float = "4"
+  quick-xml = "0.41.0"
+  subtle = "2"
+  ttf-parser = "0.25"
+  # Share Typst/Krilla's SVG renderer family; keep resvg/usvg/tiny-skia aligned.
+  # P-PDF-TPL-09-08: SVG sanitization uses the AST round-trip. Each untrusted
+  # consumer must explicitly disable non-data image resolution.
+  usvg = { version = "0.47", default-features = false }
+  x509-parser = "0.18"
+  zip = { version = "9.0.5", default-features = false, features = [
+    "deflate-flate2-zlib-rs",
+  ] }
+
+  [workspace.lints.clippy]
+  # Warn when a Result or other #[must_use] type is silently dropped via `let _ = …`.
+  # This prevents future regressions where error handling is accidentally omitted.
+  let_underscore_must_use = "warn"
+
+[patch.crates-io]
+# Published sources with only their retired macro dependency replaced by pastey.
+# All incoming edges are patched; renderer, bibliography and SIMD APIs are unchanged.
+biblatex    = { path = "../vendor/cargo/biblatex" }
+hayagriva   = { path = "../vendor/cargo/hayagriva" }
+safer-bytes = { path = "../vendor/cargo/safer-bytes" }
+simba       = { path = "../vendor/cargo/simba" }
+# The commit immediately after syntect 5.3.0 replaces its retired YAML parser.
+# Keep all consumers on this bounded upstream delta until a release includes it.
+syntect = { git = "https://github.com/trishume/syntect.git", rev = "af7d1a88cce6680ed99a2623197cc7fa779f30e4" }
+# Typst 0.15.1 still resolves citationberg 0.7.0, whose XML parser predates the
+# quick-xml security fix. Pin the reviewed upstream commit until a crates.io
+# release contains the same dependency floor.
+citationberg = { git = "https://github.com/typst/citationberg.git", rev = "072ae9f46b503f6151481ecd02560ac34de5fb78" }
+
+# Standard server builds intentionally omit debug information. A developer
+# investigating a native crash may opt in explicitly for that one diagnostic;
+# normal local, matrix and CI commands must keep this shared artifact shape.
+[profile.dev]
+debug = 0
+strip = "debuginfo"
+
+[profile.test]
+debug = 0
+strip = "debuginfo"
+
+[profile.release]
+debug = 0
+strip = "symbols"

@@ -1,0 +1,43 @@
+{
+  "name": "@myoxus/icons",
+  "private": true,
+  "description": "Global Myoxus icon facade and platform asset generator",
+  "license": "AGPL-3.0-or-later",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./react": "./src/react.ts",
+    "./rc": "./src/react.ts",
+    "./lit": "./src/lit.ts",
+    "./names": "./src/names.ts",
+    "./keywords/en": "./src/keywords/en.ts",
+    "./assets": "./src/assets/index.ts",
+    "./catalog": "./src/catalog.ts"
+  },
+  "scripts": {
+    "build": "yarn check:ui",
+    "check": "yarn check:ui && yarn check:assets && yarn check:boundaries",
+    "check:boundaries": "node scripts/check-icon-boundaries.mjs",
+    "check:assets": "node scripts/build-assets.mjs --check",
+    "check:ui": "node scripts/build-facade.mjs --check",
+    "generate": "yarn generate:ui && yarn generate:assets",
+    "generate:assets": "node scripts/build-assets.mjs",
+    "generate:ui": "node scripts/build-facade.mjs"
+  },
+  "dependencies": {
+    "@virgultum/icons": "workspace:*"
+  },
+  "peerDependencies": {
+    "lit": "^3.1.1",
+    "react": "^18.2.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "lit": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  }
+}

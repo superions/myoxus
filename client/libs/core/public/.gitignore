@@ -1,0 +1,5 @@
+*.js
+*.map
+!sw.js
+
+plugins

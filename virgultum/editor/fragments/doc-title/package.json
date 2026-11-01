@@ -1,0 +1,43 @@
+{
+  "name": "@virgultum/fragment-doc-title",
+  "description": "Doc title fragment for Virgultum.",
+  "type": "module",
+  "scripts": {
+    "build": "yarn --cwd \"$PROJECT_CWD\" exec tsc -p \"$PWD/tsconfig.json\" --noEmit"
+  },
+  "sideEffects": false,
+  "keywords": [],
+  "author": "Myoxus Contributors",
+  "license": "MIT",
+  "dependencies": {
+    "@floating-ui/dom": "^1.6.13",
+    "@lit/context": "^1.1.6",
+    "@myoxus/icons": "workspace:*",
+    "@myoxus/theme": "workspace:*",
+    "@preact/signals-core": "^1.8.0",
+    "@virgultum/block-frame": "workspace:*",
+    "@virgultum/block-surface": "workspace:*",
+    "@virgultum/components": "workspace:*",
+    "@virgultum/ext-loader": "workspace:*",
+    "@virgultum/global": "workspace:*",
+    "@virgultum/model": "workspace:*",
+    "@virgultum/rich-text": "workspace:*",
+    "@virgultum/shared": "workspace:*",
+    "@virgultum/std": "workspace:*",
+    "@virgultum/store": "workspace:*",
+    "lit": "^3.3.3",
+    "rxjs": "^7.8.2",
+    "zod": "^3.25.76"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./view": "./src/view.ts"
+  },
+  "files": [
+    "src",
+    "dist",
+    "!src/__tests__",
+    "!dist/__tests__"
+  ],
+  "version": "0.41.5"
+}

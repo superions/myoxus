@@ -1,0 +1,4926 @@
+{
+  "tools": {
+    "database_list": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workspaceId", "databases"],
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "databases": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DatabaseSummary"
+          },
+          "maxItems": 200
+        }
+      }
+    },
+    "database_query": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["database", "rows", "totalCount", "nextCursor"],
+      "properties": {
+        "database": {
+          "$ref": "#/$defs/DatabaseRecord"
+        },
+        "rows": {
+          "type": "array",
+          "maxItems": 200,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["row", "cells", "redacted"],
+            "properties": {
+              "row": {
+                "$ref": "#/$defs/DatabaseRow"
+              },
+              "cells": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/DatabaseCellValue"
+                }
+              },
+              "redacted": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "totalCount": {
+          "type": "integer"
+        },
+        "nextCursor": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    "database_row_get": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["row"],
+      "properties": {
+        "row": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["row", "cells", "redacted"],
+          "properties": {
+            "row": {
+              "$ref": "#/$defs/DatabaseRow"
+            },
+            "cells": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DatabaseCellValue"
+              }
+            },
+            "redacted": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "database_row_create": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["row"],
+      "properties": {
+        "row": {
+          "$ref": "#/$defs/DatabaseRowRecord"
+        }
+      }
+    },
+    "database_row_from_template": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["row"],
+      "properties": {
+        "row": {
+          "$ref": "#/$defs/DatabaseRowRecord"
+        }
+      }
+    },
+    "database_cell_update": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cell"],
+      "properties": {
+        "cell": {
+          "$ref": "#/$defs/DatabaseCellValue"
+        }
+      }
+    },
+    "database_row_update": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rowId", "result"],
+      "properties": {
+        "rowId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "result": {
+          "$ref": "#/$defs/DatabaseBulkOperationResult"
+        }
+      }
+    },
+    "database_row_delete": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rowId", "deleted", "result"],
+      "properties": {
+        "rowId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "deleted": {
+          "type": "boolean",
+          "const": true
+        },
+        "result": {
+          "$ref": "#/$defs/DatabaseBulkOperationResult"
+        }
+      }
+    },
+    "database_row_restore": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rowId", "restored", "result"],
+      "properties": {
+        "rowId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "restored": {
+          "type": "boolean",
+          "const": true
+        },
+        "result": {
+          "$ref": "#/$defs/DatabaseBulkOperationResult"
+        }
+      }
+    },
+    "database_csv_export": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["export"],
+      "properties": {
+        "export": {
+          "$ref": "#/$defs/DatabaseCsvExport"
+        }
+      }
+    },
+    "database_json_export": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["export"],
+      "properties": {
+        "export": {
+          "$ref": "#/$defs/DatabaseJsonExport"
+        }
+      }
+    },
+    "database_notion_export": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["export"],
+      "properties": {
+        "export": {
+          "$ref": "#/$defs/NotionHtmlExport"
+        }
+      }
+    },
+    "database_json_import_preview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["preview"],
+      "properties": {
+        "preview": {
+          "$ref": "#/$defs/DatabaseJsonPreview"
+        }
+      }
+    },
+    "database_notion_import_preview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["preview"],
+      "properties": {
+        "preview": {
+          "$ref": "#/$defs/DatabaseJsonPreview"
+        }
+      }
+    },
+    "database_json_import": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["result"],
+      "properties": {
+        "result": {
+          "$ref": "#/$defs/DatabaseJsonImportResult"
+        }
+      }
+    },
+    "database_notion_import": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["result"],
+      "properties": {
+        "result": {
+          "$ref": "#/$defs/DatabaseJsonImportResult"
+        }
+      }
+    },
+    "database_row_templates_list": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["databaseId", "bindings"],
+      "properties": {
+        "databaseId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "bindings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DatabaseRowTemplateBinding"
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "Database": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "workspace_id",
+        "profile_kind",
+        "profile_structure_preset",
+        "profile_config",
+        "title",
+        "description",
+        "created_by",
+        "updated_by",
+        "deleted_at",
+        "deleted_by",
+        "edit_revision",
+        "created_at",
+        "updated_at",
+        "system_role",
+        "managed_installation"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "workspace_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "profile_kind": {
+          "$ref": "#/$defs/DatabaseProfileKind"
+        },
+        "profile_structure_preset": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "profile_config": {
+          "type": ["object", "array", "string", "number", "boolean", "null"],
+          "description": "Arbitrary JSON retained by the serde_json::Value DTO slot."
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "created_by": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "uuid"
+            }
+          ]
+        },
+        "updated_by": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "uuid"
+            }
+          ]
+        },
+        "deleted_at": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "date-time"
+            }
+          ]
+        },
+        "deleted_by": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "uuid"
+            }
+          ]
+        },
+        "edit_revision": {
+          "type": "integer"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "system_role": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "enum": ["workspace_tasks"]
+            }
+          ]
+        },
+        "managed_installation": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/DatabaseManagedSchemaInstallation"
+            }
+          ]
+        }
+      }
+    },
+    "DatabaseBulkOperationResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "succeeded",
+        "failed",
+        "total",
+        "successCount",
+        "failureCount",
+        "transactionCommitted"
+      ],
+      "properties": {
+        "succeeded": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "failed": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DatabaseBulkRowOutcome"
+          }
+        },
+        "total": {
+          "type": "integer"
+        },
+        "successCount": {
+          "type": "integer"
+        },
+        "failureCount": {
+          "type": "integer"
+        },
+        "transactionCommitted": {
+          "type": "boolean"
+        }
+      }
+    },
+    "DatabaseBulkRowOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rowId", "success", "errorCode", "errorMessage"],
+      "properties": {
+        "rowId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "success": {
+          "type": "boolean"
+        },
+        "errorCode": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "errorMessage": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    "DatabaseCalendarDateMode": {
+      "type": "string",
+      "enum": ["day", "week", "month", "year"]
+    },
+    "DatabaseCalendarInitialRange": {
+      "type": "string",
+      "enum": ["today", "current_week", "current_month", "current_year"]
+    },
+    "DatabaseCardDensity": {
+      "type": "string",
+      "enum": ["compact", "default", "comfortable"]
+    },
+    "DatabaseCellRevision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rowId", "fieldId", "editRevision", "hasValue"],
+      "properties": {
+        "rowId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "fieldId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "editRevision": {
+          "type": "integer"
+        },
+        "hasValue": {
+          "type": "boolean"
+        }
+      }
+    },
+    "DatabaseCellValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "row_id",
+        "field_id",
+        "field_type",
+        "value",
+        "updated_by",
+        "edit_revision",
+        "updated_at"
+      ],
+      "properties": {
+        "row_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "field_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "field_type": {
+          "$ref": "#/$defs/DatabaseFieldType"
+        },
+        "value": {
+          "$ref": "#/$defs/DatabaseCellValueData"
+        },
+        "updated_by": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "uuid"
+            }
+          ]
+        },
+        "edit_revision": {
+          "type": "integer"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "DatabaseCellValueData": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "text"
+            },
+            "value": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "rich_text"
+            },
+            "value": {
+              "$ref": "#/$defs/DatabaseRichTextValue"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "number"
+            },
+            "value": {
+              "type": "number"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "percent"
+            },
+            "value": {
+              "type": "number"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "currency"
+            },
+            "value": {
+              "$ref": "#/$defs/DatabaseCurrencyValue"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "duration"
+            },
+            "value": {
+              "$ref": "#/$defs/DatabaseDurationValue"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "checkbox"
+            },
+            "value": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "date"
+            },
+            "value": {
+              "$ref": "#/$defs/DatabaseDateValue"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "date_time"
+            },
+            "value": {
+              "$ref": "#/$defs/DatabaseDateTimeValue"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "files"
+            },
+            "value": {
+              "$ref": "#/$defs/DatabaseFilesValue"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "unique_id"
+            },
+            "value": {
+              "$ref": "#/$defs/DatabaseUniqueIdValue"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "select"
+            },
+            "value": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "multi_select"
+            },
+            "value": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "tags"
+            },
+            "value": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "status"
+            },
+            "value": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "user"
+            },
+            "value": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "users"
+            },
+            "value": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "document_link"
+            },
+            "value": {
+              "$ref": "#/$defs/DatabaseDocumentLinkValue"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "relation"
+            },
+            "value": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "rollup"
+            },
+            "value": {
+              "$ref": "#/$defs/DatabaseRollupValue"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "formula"
+            },
+            "value": {
+              "$ref": "#/$defs/DatabaseFormulaValue"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "url"
+            },
+            "value": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "email"
+            },
+            "value": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "phone"
+            },
+            "value": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "created_time"
+            },
+            "value": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "created_by"
+            },
+            "value": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "updated_time"
+            },
+            "value": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "updated_by"
+            },
+            "value": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      ]
+    },
+    "DatabaseCsvDiagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "source", "row", "field", "message"],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "row": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer"
+            }
+          ]
+        },
+        "field": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "DatabaseCsvExport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fileName",
+        "contentType",
+        "content",
+        "rowCount",
+        "columnCount",
+        "databaseId",
+        "viewId",
+        "target",
+        "includeHeader",
+        "quoteStrategy",
+        "localeMode",
+        "locale",
+        "warnings",
+        "workspaceTagDiagnostics"
+      ],
+      "properties": {
+        "fileName": {
+          "type": "string"
+        },
+        "contentType": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "rowCount": {
+          "type": "integer"
+        },
+        "columnCount": {
+          "type": "integer"
+        },
+        "databaseId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "viewId": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "uuid"
+            }
+          ]
+        },
+        "target": {
+          "$ref": "#/$defs/DatabaseCsvExportTarget"
+        },
+        "includeHeader": {
+          "type": "boolean"
+        },
+        "quoteStrategy": {
+          "$ref": "#/$defs/DatabaseCsvQuoteStrategy"
+        },
+        "localeMode": {
+          "$ref": "#/$defs/DatabaseCsvLocaleMode"
+        },
+        "locale": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DatabaseCsvDiagnostic"
+          }
+        },
+        "workspaceTagDiagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DatabaseWorkspaceTagImportDiagnostic"
+          }
+        }
+      }
+    },
+    "DatabaseCsvExportTarget": {
+      "type": "string",
+      "enum": ["database", "view", "selected_rows"]
+    },
+    "DatabaseCsvLocaleMode": {
+      "type": "string",
+      "enum": ["machine", "localized"]
+    },
+    "DatabaseCsvQuoteStrategy": {
+      "type": "string",
+      "enum": ["minimal", "all"]
+    },
+    "DatabaseCurrencyRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end", "currencyCode"],
+      "properties": {
+        "start": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        },
+        "end": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        },
+        "currencyCode": {
+          "type": "string"
+        }
+      }
+    },
+    "DatabaseCurrencyValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["amount", "currencyCode"],
+      "properties": {
+        "amount": {
+          "type": "number"
+        },
+        "currencyCode": {
+          "type": "string"
+        }
+      }
+    },
+    "DatabaseDateRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end"],
+      "properties": {
+        "start": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "date"
+            }
+          ]
+        },
+        "end": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "date"
+            }
+          ]
+        }
+      }
+    },
+    "DatabaseDateTimeValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end", "allDay", "timeZone"],
+      "properties": {
+        "start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "end": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "date-time"
+            }
+          ]
+        },
+        "allDay": {
+          "type": "boolean"
+        },
+        "timeZone": {
+          "type": "string"
+        }
+      }
+    },
+    "DatabaseDateValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end"],
+      "properties": {
+        "start": {
+          "type": "string",
+          "format": "date"
+        },
+        "end": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "date"
+            }
+          ]
+        }
+      }
+    },
+    "DatabaseDocumentLinkValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["docId"],
+      "properties": {
+        "docId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    },
+    "DatabaseDurationDisplayUnit": {
+      "type": "string",
+      "enum": ["minutes", "hours", "days"]
+    },
+    "DatabaseDurationRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["startMinutes", "endMinutes"],
+      "properties": {
+        "startMinutes": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer"
+            }
+          ]
+        },
+        "endMinutes": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer"
+            }
+          ]
+        }
+      }
+    },
+    "DatabaseDurationValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["minutes"],
+      "properties": {
+        "minutes": {
+          "type": "integer"
+        }
+      }
+    },
+    "DatabaseField": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "database_id",
+        "name",
+        "field_type",
+        "config",
+        "position",
+        "required",
+        "edit_revision",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "database_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "field_type": {
+          "$ref": "#/$defs/DatabaseFieldType"
+        },
+        "config": {
+          "$ref": "#/$defs/DatabaseFieldConfig"
+        },
+        "position": {
+          "type": "integer"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "edit_revision": {
+          "type": "integer"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "DatabaseFieldConfig": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "title"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "multiline"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "text"
+            },
+            "multiline": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "maxPlainTextBytes"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "rich_text"
+            },
+            "maxPlainTextBytes": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "format"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "number"
+            },
+            "format": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "minValue", "maxValue"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "percent"
+            },
+            "minValue": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "maxValue": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "defaultCurrency",
+            "allowCurrencyOverride",
+            "minValue",
+            "maxValue"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "currency"
+            },
+            "defaultCurrency": {
+              "type": "string"
+            },
+            "allowCurrencyOverride": {
+              "type": "boolean"
+            },
+            "minValue": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "maxValue": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "displayUnit", "minMinutes", "maxMinutes"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "duration"
+            },
+            "displayUnit": {
+              "$ref": "#/$defs/DatabaseDurationDisplayUnit"
+            },
+            "minMinutes": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "maxMinutes": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "checkbox"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "includeTime"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "date"
+            },
+            "includeTime": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "defaultTimeZone", "allowReminders"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "date_time"
+            },
+            "defaultTimeZone": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "allowReminders": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "allowedMimeCategories",
+            "maxItemCount",
+            "maxItemSize",
+            "previewPolicy"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "files"
+            },
+            "allowedMimeCategories": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DatabaseFileMimeCategory"
+              }
+            },
+            "maxItemCount": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "maxItemSize": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "previewPolicy": {
+              "$ref": "#/$defs/DatabaseFilesPreviewPolicy"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "prefix", "startNumber", "padding"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "unique_id"
+            },
+            "prefix": {
+              "type": "string"
+            },
+            "startNumber": {
+              "type": "integer"
+            },
+            "padding": {
+              "type": "integer"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "options"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "select"
+            },
+            "options": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DatabaseSelectOption"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "options"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "multi_select"
+            },
+            "options": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DatabaseSelectOption"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "maxCount"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "tags"
+            },
+            "maxCount": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "options", "defaultOptionId"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "status"
+            },
+            "options": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DatabaseStatusOption"
+              }
+            },
+            "defaultOptionId": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "user"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "minCount", "maxCount"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "users"
+            },
+            "minCount": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "maxCount": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "document_link"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "targetDatabaseId",
+            "allowMultiple",
+            "reciprocalFieldId",
+            "maxTargets"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "relation"
+            },
+            "targetDatabaseId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "allowMultiple": {
+              "type": "boolean"
+            },
+            "reciprocalFieldId": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ]
+            },
+            "maxTargets": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "sourceRelationFieldId",
+            "targetFieldId",
+            "aggregate",
+            "emptyValue",
+            "stalePolicy"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "rollup"
+            },
+            "sourceRelationFieldId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "targetFieldId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "aggregate": {
+              "$ref": "#/$defs/DatabaseRollupAggregate"
+            },
+            "emptyValue": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/DatabaseRollupScalarValue"
+                }
+              ]
+            },
+            "stalePolicy": {
+              "$ref": "#/$defs/DatabaseRollupStalePolicy"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "expression",
+            "resultType",
+            "dependencyFieldIds",
+            "stalePolicy",
+            "format"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "formula"
+            },
+            "expression": {
+              "type": "string"
+            },
+            "resultType": {
+              "$ref": "#/$defs/DatabaseFormulaResultType"
+            },
+            "dependencyFieldIds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "stalePolicy": {
+              "$ref": "#/$defs/DatabaseFormulaStalePolicy"
+            },
+            "format": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "url"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "email"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "phone"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "created_time"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "created_by"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "updated_time"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "updated_by"
+            }
+          }
+        }
+      ]
+    },
+    "DatabaseFieldRole": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "databaseId",
+        "profileKind",
+        "roleKey",
+        "rowKindScope",
+        "fieldId",
+        "required",
+        "config",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "databaseId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "profileKind": {
+          "$ref": "#/$defs/DatabaseProfileKind"
+        },
+        "roleKey": {
+          "type": "string"
+        },
+        "rowKindScope": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "fieldId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "config": {
+          "type": ["object", "array", "string", "number", "boolean", "null"],
+          "description": "Arbitrary JSON retained by the serde_json::Value DTO slot."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "DatabaseFieldType": {
+      "type": "string",
+      "enum": [
+        "title",
+        "text",
+        "rich_text",
+        "number",
+        "percent",
+        "currency",
+        "duration",
+        "checkbox",
+        "date",
+        "date_time",
+        "files",
+        "unique_id",
+        "select",
+        "multi_select",
+        "tags",
+        "status",
+        "user",
+        "users",
+        "document_link",
+        "relation",
+        "rollup",
+        "formula",
+        "url",
+        "email",
+        "phone",
+        "created_time",
+        "created_by",
+        "updated_time",
+        "updated_by"
+      ]
+    },
+    "DatabaseFileMimeCategory": {
+      "type": "string",
+      "enum": ["any", "image", "video", "audio", "pdf", "document", "archive"]
+    },
+    "DatabaseFileReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blobKey", "name", "mime", "size", "caption", "cover"],
+      "properties": {
+        "blobKey": {
+          "type": "string"
+        },
+        "name": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "mime": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "size": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer"
+            }
+          ]
+        },
+        "caption": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "cover": {
+          "type": "boolean"
+        }
+      }
+    },
+    "DatabaseFilesPreviewPolicy": {
+      "type": "string",
+      "enum": ["auto", "disabled"]
+    },
+    "DatabaseFilesValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["files"],
+      "properties": {
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DatabaseFileReference"
+          }
+        }
+      }
+    },
+    "DatabaseFilterConjunction": {
+      "type": "string",
+      "enum": ["and", "or"]
+    },
+    "DatabaseFilterGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["conjunction", "rules", "groups"],
+      "properties": {
+        "conjunction": {
+          "$ref": "#/$defs/DatabaseFilterConjunction"
+        },
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DatabaseFilterRule"
+          }
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DatabaseFilterGroup"
+          }
+        }
+      }
+    },
+    "DatabaseFilterOperator": {
+      "type": "string",
+      "enum": [
+        "empty",
+        "not_empty",
+        "contains",
+        "does_not_contain",
+        "contains_all",
+        "is",
+        "is_not",
+        "starts_with",
+        "ends_with",
+        "equals",
+        "not_equals",
+        "greater",
+        "less",
+        "greater_or_equal",
+        "less_or_equal",
+        "between",
+        "any_of",
+        "none_of",
+        "group_is",
+        "group_is_not",
+        "group_any_of",
+        "group_none_of",
+        "checked",
+        "unchecked",
+        "contains_user",
+        "does_not_contain_user",
+        "current_user",
+        "contains_row",
+        "does_not_contain_row",
+        "before",
+        "after",
+        "on",
+        "relative"
+      ]
+    },
+    "DatabaseFilterRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fieldId", "operator", "value"],
+      "properties": {
+        "fieldId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "operator": {
+          "$ref": "#/$defs/DatabaseFilterOperator"
+        },
+        "value": {
+          "$ref": "#/$defs/DatabaseFilterValue"
+        }
+      }
+    },
+    "DatabaseFilterValue": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "none"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "text"
+            },
+            "value": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "number"
+            },
+            "value": {
+              "type": "number"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "number_range"
+            },
+            "value": {
+              "$ref": "#/$defs/DatabaseNumberRange"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "currency"
+            },
+            "value": {
+              "$ref": "#/$defs/DatabaseCurrencyValue"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "currency_range"
+            },
+            "value": {
+              "$ref": "#/$defs/DatabaseCurrencyRange"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "duration"
+            },
+            "value": {
+              "$ref": "#/$defs/DatabaseDurationValue"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "duration_range"
+            },
+            "value": {
+              "$ref": "#/$defs/DatabaseDurationRange"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "option_id"
+            },
+            "value": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "ids"
+            },
+            "value": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "date"
+            },
+            "value": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "date_range"
+            },
+            "value": {
+              "$ref": "#/$defs/DatabaseDateRange"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "instant"
+            },
+            "value": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "instant_range"
+            },
+            "value": {
+              "$ref": "#/$defs/DatabaseInstantRange"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "relative_date"
+            },
+            "value": {
+              "$ref": "#/$defs/DatabaseRelativeDatePreset"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "user_id"
+            },
+            "value": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "user_ids"
+            },
+            "value": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "relation_row_id"
+            },
+            "value": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "relation_row_ids"
+            },
+            "value": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "boolean"
+            },
+            "value": {
+              "type": "boolean"
+            }
+          }
+        }
+      ]
+    },
+    "DatabaseFormulaResultType": {
+      "type": "string",
+      "enum": [
+        "text",
+        "number",
+        "percent",
+        "currency",
+        "duration",
+        "checkbox",
+        "date",
+        "date_time",
+        "user",
+        "users"
+      ]
+    },
+    "DatabaseFormulaScalarValue": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "number"
+            },
+            "value": {
+              "type": "number"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "percent"
+            },
+            "value": {
+              "type": "number"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "currency"
+            },
+            "value": {
+              "$ref": "#/$defs/DatabaseCurrencyValue"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "duration"
+            },
+            "value": {
+              "$ref": "#/$defs/DatabaseDurationValue"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "text"
+            },
+            "value": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "checkbox"
+            },
+            "value": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "date"
+            },
+            "value": {
+              "$ref": "#/$defs/DatabaseDateValue"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "date_time"
+            },
+            "value": {
+              "$ref": "#/$defs/DatabaseDateTimeValue"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "user"
+            },
+            "value": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "users"
+            },
+            "value": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "DatabaseFormulaStalePolicy": {
+      "type": "string",
+      "enum": ["async"]
+    },
+    "DatabaseFormulaStaleState": {
+      "type": "string",
+      "enum": ["current", "stale", "queued", "failed", "recompute_pending"]
+    },
+    "DatabaseFormulaValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "staleState",
+        "computedAt",
+        "failedAt",
+        "errorCode",
+        "errorMessage"
+      ],
+      "properties": {
+        "value": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/DatabaseFormulaScalarValue"
+            }
+          ]
+        },
+        "staleState": {
+          "$ref": "#/$defs/DatabaseFormulaStaleState"
+        },
+        "computedAt": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "date-time"
+            }
+          ]
+        },
+        "failedAt": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "date-time"
+            }
+          ]
+        },
+        "errorCode": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "errorMessage": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    "DatabaseGalleryCardDensity": {
+      "type": "string",
+      "enum": ["compact", "default", "large"]
+    },
+    "DatabaseGroupRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fieldId", "descending", "showEmptyGroups"],
+      "properties": {
+        "fieldId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "descending": {
+          "type": "boolean"
+        },
+        "showEmptyGroups": {
+          "type": "boolean"
+        }
+      }
+    },
+    "DatabaseInstantRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end"],
+      "properties": {
+        "start": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "date-time"
+            }
+          ]
+        },
+        "end": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "date-time"
+            }
+          ]
+        }
+      }
+    },
+    "DatabaseJsonConflictStrategy": {
+      "type": "string",
+      "enum": ["abort", "rename", "overwrite"]
+    },
+    "DatabaseJsonDiagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "source", "path", "message"],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "path": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "DatabaseJsonExport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filename", "contentType", "content"],
+      "properties": {
+        "filename": {
+          "type": "string"
+        },
+        "contentType": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        }
+      }
+    },
+    "DatabaseJsonImportMode": {
+      "type": "string",
+      "enum": ["create", "replace", "merge"]
+    },
+    "DatabaseJsonImportResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "database",
+        "mode",
+        "conflictStrategy",
+        "dryRun",
+        "createdFieldCount",
+        "createdViewCount",
+        "createdRowCount",
+        "updatedRowCount",
+        "skippedRowCount",
+        "createdTemplateCount",
+        "missingFileCount",
+        "warnings",
+        "conflictWarnings",
+        "workspaceTagDiagnostics"
+      ],
+      "properties": {
+        "database": {
+          "$ref": "#/$defs/DatabaseRecord"
+        },
+        "mode": {
+          "$ref": "#/$defs/DatabaseJsonImportMode"
+        },
+        "conflictStrategy": {
+          "$ref": "#/$defs/DatabaseJsonConflictStrategy"
+        },
+        "dryRun": {
+          "type": "boolean"
+        },
+        "createdFieldCount": {
+          "type": "integer"
+        },
+        "createdViewCount": {
+          "type": "integer"
+        },
+        "createdRowCount": {
+          "type": "integer"
+        },
+        "updatedRowCount": {
+          "type": "integer"
+        },
+        "skippedRowCount": {
+          "type": "integer"
+        },
+        "createdTemplateCount": {
+          "type": "integer"
+        },
+        "missingFileCount": {
+          "type": "integer"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DatabaseJsonDiagnostic"
+          }
+        },
+        "conflictWarnings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DatabaseJsonDiagnostic"
+          }
+        },
+        "workspaceTagDiagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DatabaseWorkspaceTagImportDiagnostic"
+          }
+        }
+      }
+    },
+    "DatabaseJsonPreview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "schemaVersionSupported",
+        "title",
+        "fieldCount",
+        "viewCount",
+        "rowCount",
+        "templateCount",
+        "fileManifestCount",
+        "matchedPageCount",
+        "contentDocumentCount",
+        "emptyPageCount",
+        "bodyBlockCount",
+        "rewrittenInternalLinkCount",
+        "exportActor",
+        "exportedAt",
+        "defaultMode",
+        "defaultConflictStrategy",
+        "warnings",
+        "errors",
+        "workspaceTagDiagnostics"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer"
+        },
+        "schemaVersionSupported": {
+          "type": "boolean"
+        },
+        "title": {
+          "type": "string"
+        },
+        "fieldCount": {
+          "type": "integer"
+        },
+        "viewCount": {
+          "type": "integer"
+        },
+        "rowCount": {
+          "type": "integer"
+        },
+        "templateCount": {
+          "type": "integer"
+        },
+        "fileManifestCount": {
+          "type": "integer"
+        },
+        "matchedPageCount": {
+          "type": "integer"
+        },
+        "contentDocumentCount": {
+          "type": "integer"
+        },
+        "emptyPageCount": {
+          "type": "integer"
+        },
+        "bodyBlockCount": {
+          "type": "integer"
+        },
+        "rewrittenInternalLinkCount": {
+          "type": "integer"
+        },
+        "exportActor": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "exportedAt": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "date-time"
+            }
+          ]
+        },
+        "defaultMode": {
+          "$ref": "#/$defs/DatabaseJsonImportMode"
+        },
+        "defaultConflictStrategy": {
+          "$ref": "#/$defs/DatabaseJsonConflictStrategy"
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DatabaseJsonDiagnostic"
+          }
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DatabaseJsonDiagnostic"
+          }
+        },
+        "workspaceTagDiagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DatabaseWorkspaceTagImportDiagnostic"
+          }
+        }
+      }
+    },
+    "DatabaseListDensity": {
+      "type": "string",
+      "enum": ["compact", "default", "comfortable"]
+    },
+    "DatabaseNumberRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end"],
+      "properties": {
+        "start": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        },
+        "end": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        }
+      }
+    },
+    "DatabaseProfileKind": {
+      "type": "string",
+      "enum": ["generic", "project"]
+    },
+    "DatabaseRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "database",
+        "fields",
+        "views",
+        "field_roles",
+        "view_roles",
+        "row_count",
+        "managed_schema"
+      ],
+      "properties": {
+        "database": {
+          "$ref": "#/$defs/Database"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DatabaseField"
+          }
+        },
+        "views": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DatabaseView"
+          }
+        },
+        "field_roles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DatabaseFieldRole"
+          }
+        },
+        "view_roles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DatabaseViewRole"
+          }
+        },
+        "row_count": {
+          "type": "integer"
+        },
+        "managed_schema": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/DatabaseManagedSchema"
+            }
+          ]
+        }
+      }
+    },
+    "DatabaseRelativeDatePreset": {
+      "type": "string",
+      "enum": [
+        "today",
+        "yesterday",
+        "tomorrow",
+        "next7_days",
+        "past7_days",
+        "current_week",
+        "current_month",
+        "current_year",
+        "overdue"
+      ]
+    },
+    "DatabaseRichTextValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plainText", "document"],
+      "properties": {
+        "plainText": {
+          "type": "string"
+        },
+        "document": {
+          "type": ["object", "array", "string", "number", "boolean", "null"],
+          "description": "Arbitrary JSON retained by the serde_json::Value DTO slot."
+        }
+      }
+    },
+    "DatabaseRollupAggregate": {
+      "type": "string",
+      "enum": [
+        "count",
+        "count_values",
+        "sum",
+        "average",
+        "min",
+        "max",
+        "earliest",
+        "latest",
+        "checked_percent",
+        "unchecked_percent",
+        "unique_values"
+      ]
+    },
+    "DatabaseRollupScalarValue": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "number"
+            },
+            "value": {
+              "type": "number"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "text"
+            },
+            "value": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "currency"
+            },
+            "value": {
+              "$ref": "#/$defs/DatabaseCurrencyValue"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "duration"
+            },
+            "value": {
+              "$ref": "#/$defs/DatabaseDurationValue"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "checkbox"
+            },
+            "value": {
+              "type": "boolean"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "date"
+            },
+            "value": {
+              "$ref": "#/$defs/DatabaseDateValue"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "text_list"
+            },
+            "value": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "DatabaseRollupStalePolicy": {
+      "type": "string",
+      "enum": ["async"]
+    },
+    "DatabaseRollupStaleState": {
+      "type": "string",
+      "enum": ["current", "stale", "queued", "failed", "recompute_pending"]
+    },
+    "DatabaseRollupValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "staleState",
+        "computedAt",
+        "failedAt",
+        "errorCode",
+        "errorMessage"
+      ],
+      "properties": {
+        "value": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/DatabaseRollupScalarValue"
+            }
+          ]
+        },
+        "staleState": {
+          "$ref": "#/$defs/DatabaseRollupStaleState"
+        },
+        "computedAt": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "date-time"
+            }
+          ]
+        },
+        "failedAt": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "date-time"
+            }
+          ]
+        },
+        "errorCode": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "errorMessage": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    "DatabaseRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "database_id",
+        "content_document_id",
+        "row_kind",
+        "title",
+        "position",
+        "created_by",
+        "updated_by",
+        "edit_revision",
+        "created_at",
+        "updated_at",
+        "deleted_at"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "database_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "content_document_id": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "uuid"
+            }
+          ]
+        },
+        "row_kind": {
+          "$ref": "#/$defs/DatabaseRowKind"
+        },
+        "title": {
+          "type": "string"
+        },
+        "position": {
+          "type": "integer"
+        },
+        "created_by": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "uuid"
+            }
+          ]
+        },
+        "updated_by": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "uuid"
+            }
+          ]
+        },
+        "edit_revision": {
+          "type": "integer"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "deleted_at": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "date-time"
+            }
+          ]
+        }
+      }
+    },
+    "DatabaseRowKind": {
+      "type": "string",
+      "enum": ["record", "task", "phase", "milestone"]
+    },
+    "DatabaseRowRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["row", "cells", "cell_revisions"],
+      "properties": {
+        "row": {
+          "$ref": "#/$defs/DatabaseRow"
+        },
+        "cells": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DatabaseCellValue"
+          }
+        },
+        "cell_revisions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DatabaseCellRevision"
+          }
+        }
+      }
+    },
+    "DatabaseRowTemplate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "editRevision",
+        "id",
+        "workspaceId",
+        "databaseId",
+        "templateId",
+        "rowKind",
+        "name",
+        "description",
+        "position",
+        "enabled",
+        "isDefault",
+        "initialCellValues",
+        "createdBy",
+        "updatedBy",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "editRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "contentDocumentId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "databaseId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "templateId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "rowKind": {
+          "$ref": "#/$defs/DatabaseRowKind"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "position": {
+          "type": "integer"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "isDefault": {
+          "type": "boolean"
+        },
+        "initialCellValues": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/DatabaseCellValueData"
+          },
+          "propertyNames": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "createdBy": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "uuid"
+            }
+          ]
+        },
+        "updatedBy": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "uuid"
+            }
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "DatabaseRowTemplateBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rowTemplate",
+        "templateAvailable",
+        "reconcileRequired",
+        "detached",
+        "disabled",
+        "archived"
+      ],
+      "properties": {
+        "rowTemplate": {
+          "$ref": "#/$defs/DatabaseRowTemplate"
+        },
+        "templateAvailable": {
+          "type": "boolean"
+        },
+        "reconcileRequired": {
+          "type": "boolean"
+        },
+        "detached": {
+          "type": "boolean"
+        },
+        "disabled": {
+          "type": "boolean"
+        },
+        "archived": {
+          "type": "boolean"
+        }
+      }
+    },
+    "DatabaseSelectOption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "position", "colorRole"],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "position": {
+          "type": "integer"
+        },
+        "colorRole": {
+          "type": "string"
+        }
+      }
+    },
+    "DatabaseSortDirection": {
+      "type": "string",
+      "enum": ["asc", "desc"]
+    },
+    "DatabaseSortRule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fieldId", "direction"],
+      "properties": {
+        "fieldId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "direction": {
+          "$ref": "#/$defs/DatabaseSortDirection"
+        }
+      }
+    },
+    "DatabaseStatusGroup": {
+      "type": "string",
+      "enum": ["notStarted", "active", "complete", "archived"]
+    },
+    "DatabaseStatusOption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "position", "colorRole", "group"],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "position": {
+          "type": "integer"
+        },
+        "colorRole": {
+          "type": "string"
+        },
+        "group": {
+          "$ref": "#/$defs/DatabaseStatusGroup"
+        }
+      }
+    },
+    "DatabaseSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "systemRole",
+        "workspaceId",
+        "profileKind",
+        "profileStructurePreset",
+        "title",
+        "description",
+        "deletedAt",
+        "editRevision",
+        "createdAt",
+        "updatedAt",
+        "rowCount",
+        "fieldCount",
+        "viewCount"
+      ],
+      "properties": {
+        "systemRole": {
+          "oneOf": [
+            { "type": "null" },
+            { "type": "string", "enum": ["workspace_tasks"] }
+          ]
+        },
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "profileKind": {
+          "$ref": "#/$defs/DatabaseProfileKind"
+        },
+        "profileStructurePreset": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "deletedAt": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "date-time"
+            }
+          ]
+        },
+        "editRevision": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "rowCount": {
+          "type": "integer"
+        },
+        "fieldCount": {
+          "type": "integer"
+        },
+        "viewCount": {
+          "type": "integer"
+        }
+      }
+    },
+    "DatabaseTimelineGroupBy": {
+      "type": "string",
+      "enum": ["none", "day", "week", "month"]
+    },
+    "DatabaseTimelineOrder": {
+      "type": "string",
+      "enum": ["asc", "desc"]
+    },
+    "DatabaseTimelineZoom": {
+      "type": "string",
+      "enum": ["day", "week", "month", "quarter", "year"]
+    },
+    "DatabaseUniqueIdValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["prefix", "sequence", "display"],
+      "properties": {
+        "prefix": {
+          "type": "string"
+        },
+        "sequence": {
+          "type": "integer"
+        },
+        "display": {
+          "type": "string"
+        }
+      }
+    },
+    "DatabaseView": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "database_id",
+        "name",
+        "view_kind",
+        "icon",
+        "config",
+        "position",
+        "edit_revision",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "database_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "view_kind": {
+          "$ref": "#/$defs/DatabaseViewKind"
+        },
+        "icon": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/DatabaseViewIcon"
+            }
+          ]
+        },
+        "config": {
+          "$ref": "#/$defs/DatabaseViewConfig"
+        },
+        "position": {
+          "type": "integer"
+        },
+        "edit_revision": {
+          "type": "integer"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "DatabaseViewConfig": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "titleFieldId",
+            "visibleFieldIds",
+            "fieldWidths",
+            "searchFieldIds",
+            "sort",
+            "filter",
+            "filterTree",
+            "group",
+            "subgroup"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "table"
+            },
+            "titleFieldId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "visibleFieldIds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "fieldWidths": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "integer"
+              },
+              "propertyNames": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "searchFieldIds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "sort": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DatabaseSortRule"
+              }
+            },
+            "filter": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DatabaseFilterRule"
+              }
+            },
+            "filterTree": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/DatabaseFilterGroup"
+                }
+              ]
+            },
+            "group": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/DatabaseGroupRule"
+                }
+              ]
+            },
+            "subgroup": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/DatabaseGroupRule"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "titleFieldId",
+            "groupFieldId",
+            "visibleFieldIds",
+            "coverFieldId",
+            "cardDensity",
+            "sort",
+            "filter",
+            "filterTree"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "kanban"
+            },
+            "titleFieldId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "groupFieldId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "visibleFieldIds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "coverFieldId": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ]
+            },
+            "cardDensity": {
+              "$ref": "#/$defs/DatabaseCardDensity"
+            },
+            "sort": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DatabaseSortRule"
+              }
+            },
+            "filter": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DatabaseFilterRule"
+              }
+            },
+            "filterTree": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/DatabaseFilterGroup"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "titleFieldId",
+            "visibleFieldIds",
+            "sort",
+            "filter",
+            "filterTree",
+            "density",
+            "showFieldLabels",
+            "group",
+            "subgroup"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "list"
+            },
+            "titleFieldId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "visibleFieldIds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "sort": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DatabaseSortRule"
+              }
+            },
+            "filter": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DatabaseFilterRule"
+              }
+            },
+            "filterTree": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/DatabaseFilterGroup"
+                }
+              ]
+            },
+            "density": {
+              "$ref": "#/$defs/DatabaseListDensity"
+            },
+            "showFieldLabels": {
+              "type": "boolean"
+            },
+            "group": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/DatabaseGroupRule"
+                }
+              ]
+            },
+            "subgroup": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/DatabaseGroupRule"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "titleFieldId",
+            "visibleFieldIds",
+            "coverFieldId",
+            "sort",
+            "filter",
+            "filterTree",
+            "cardDensity",
+            "showEmptyCover",
+            "group",
+            "subgroup"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "gallery"
+            },
+            "titleFieldId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "visibleFieldIds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "coverFieldId": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ]
+            },
+            "sort": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DatabaseSortRule"
+              }
+            },
+            "filter": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DatabaseFilterRule"
+              }
+            },
+            "filterTree": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/DatabaseFilterGroup"
+                }
+              ]
+            },
+            "cardDensity": {
+              "$ref": "#/$defs/DatabaseGalleryCardDensity"
+            },
+            "showEmptyCover": {
+              "type": "boolean"
+            },
+            "group": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/DatabaseGroupRule"
+                }
+              ]
+            },
+            "subgroup": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/DatabaseGroupRule"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "titleFieldId",
+            "dateFieldId",
+            "visibleFieldIds",
+            "sort",
+            "filter",
+            "filterTree",
+            "dateMode",
+            "initialRange",
+            "group",
+            "subgroup"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "calendar"
+            },
+            "titleFieldId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "dateFieldId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "visibleFieldIds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "sort": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DatabaseSortRule"
+              }
+            },
+            "filter": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DatabaseFilterRule"
+              }
+            },
+            "filterTree": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/DatabaseFilterGroup"
+                }
+              ]
+            },
+            "dateMode": {
+              "$ref": "#/$defs/DatabaseCalendarDateMode"
+            },
+            "initialRange": {
+              "$ref": "#/$defs/DatabaseCalendarInitialRange"
+            },
+            "group": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/DatabaseGroupRule"
+                }
+              ]
+            },
+            "subgroup": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/DatabaseGroupRule"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "titleFieldId",
+            "startFieldId",
+            "endFieldId",
+            "visibleFieldIds",
+            "sort",
+            "filter",
+            "filterTree",
+            "groupBy",
+            "order",
+            "zoom"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "timeline"
+            },
+            "titleFieldId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "startFieldId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "endFieldId": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ]
+            },
+            "visibleFieldIds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "sort": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DatabaseSortRule"
+              }
+            },
+            "filter": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DatabaseFilterRule"
+              }
+            },
+            "filterTree": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/DatabaseFilterGroup"
+                }
+              ]
+            },
+            "groupBy": {
+              "$ref": "#/$defs/DatabaseTimelineGroupBy"
+            },
+            "order": {
+              "$ref": "#/$defs/DatabaseTimelineOrder"
+            },
+            "zoom": {
+              "$ref": "#/$defs/DatabaseTimelineZoom"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "titleFieldId",
+            "startFieldId",
+            "endFieldId",
+            "visibleFieldIds",
+            "sort",
+            "filter",
+            "filterTree",
+            "group",
+            "zoom",
+            "dependencyFieldId"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "gantt"
+            },
+            "titleFieldId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "startFieldId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "endFieldId": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ]
+            },
+            "visibleFieldIds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "sort": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DatabaseSortRule"
+              }
+            },
+            "filter": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DatabaseFilterRule"
+              }
+            },
+            "filterTree": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/DatabaseFilterGroup"
+                }
+              ]
+            },
+            "group": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/DatabaseGroupRule"
+                }
+              ]
+            },
+            "zoom": {
+              "$ref": "#/$defs/DatabaseTimelineZoom"
+            },
+            "dependencyFieldId": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "titleFieldId",
+            "progressFieldId",
+            "groupFieldId",
+            "visibleFieldIds",
+            "sort",
+            "filter",
+            "filterTree"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "progress"
+            },
+            "titleFieldId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "progressFieldId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "groupFieldId": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ]
+            },
+            "visibleFieldIds": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            },
+            "sort": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DatabaseSortRule"
+              }
+            },
+            "filter": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/DatabaseFilterRule"
+              }
+            },
+            "filterTree": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "$ref": "#/$defs/DatabaseFilterGroup"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "DatabaseViewIcon": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "system"
+            },
+            "value": {
+              "$ref": "#/$defs/DatabaseViewSystemIcon"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "const": "emoji"
+            },
+            "value": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "DatabaseViewKind": {
+      "type": "string",
+      "enum": [
+        "table",
+        "kanban",
+        "list",
+        "gallery",
+        "calendar",
+        "timeline",
+        "gantt",
+        "progress"
+      ]
+    },
+    "DatabaseViewRole": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "databaseId",
+        "profileKind",
+        "roleKey",
+        "viewId",
+        "required",
+        "createdAt",
+        "updatedAt"
+      ],
+      "properties": {
+        "databaseId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "profileKind": {
+          "$ref": "#/$defs/DatabaseProfileKind"
+        },
+        "roleKey": {
+          "type": "string"
+        },
+        "viewId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "DatabaseViewSystemIcon": {
+      "type": "string",
+      "enum": [
+        "table",
+        "board",
+        "list",
+        "gallery",
+        "calendar",
+        "timeline",
+        "progress",
+        "database",
+        "project"
+      ]
+    },
+    "DatabaseWorkspaceTagImportAction": {
+      "type": "string",
+      "enum": ["create", "reuse", "archivedReference", "rejected"]
+    },
+    "DatabaseWorkspaceTagImportDiagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourceId",
+        "targetId",
+        "name",
+        "slug",
+        "sourceColor",
+        "colorRole",
+        "action",
+        "affectedRows",
+        "affectedFields",
+        "message"
+      ],
+      "properties": {
+        "sourceId": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "uuid"
+            }
+          ]
+        },
+        "targetId": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "uuid"
+            }
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "sourceColor": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "colorRole": {
+          "type": "string"
+        },
+        "action": {
+          "$ref": "#/$defs/DatabaseWorkspaceTagImportAction"
+        },
+        "affectedRows": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "affectedFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "NotionDiagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "severity", "path", "message"],
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/NotionDiagnosticSeverity"
+        },
+        "path": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "NotionDiagnosticSeverity": {
+      "type": "string",
+      "enum": ["info", "warning", "error"]
+    },
+    "NotionHtmlExport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pages", "diagnostics"],
+      "properties": {
+        "pages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NotionHtmlExportPage"
+          }
+        },
+        "diagnostics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NotionDiagnostic"
+          }
+        }
+      }
+    },
+    "NotionHtmlExportPage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filename", "title", "content"],
+      "properties": {
+        "filename": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        }
+      }
+    },
+    "DatabaseManagedSchemaVariant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["priority", "complexity", "structure", "currency"],
+      "properties": {
+        "priority": {
+          "type": "string",
+          "enum": ["threeStep", "fiveStep"]
+        },
+        "complexity": {
+          "type": "string",
+          "enum": ["threeStep", "fiveStep"]
+        },
+        "structure": {
+          "type": "string",
+          "enum": [
+            "tasks_only",
+            "phases",
+            "milestones",
+            "phases_and_milestones"
+          ]
+        },
+        "currency": {
+          "type": "string"
+        }
+      }
+    },
+    "DatabaseManagedSchemaInstallation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "templateId",
+        "templateVersion",
+        "templateDigest",
+        "variant",
+        "schemaRevision",
+        "fieldBindings",
+        "viewBindings",
+        "readiness",
+        "reasonCode"
+      ],
+      "properties": {
+        "templateId": {
+          "type": "string"
+        },
+        "templateVersion": {
+          "type": "string"
+        },
+        "templateDigest": {
+          "type": "string"
+        },
+        "variant": {
+          "$ref": "#/$defs/DatabaseManagedSchemaVariant"
+        },
+        "schemaRevision": {
+          "type": "integer"
+        },
+        "fieldBindings": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "viewBindings": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "readiness": {
+          "type": "string",
+          "enum": ["ready", "unavailable"]
+        },
+        "reasonCode": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    "DatabaseTaskBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["roleKey", "fieldId"],
+      "properties": {
+        "roleKey": {
+          "type": "string"
+        },
+        "fieldId": {
+          "type": "string",
+          "format": "uuid"
+        }
+      }
+    },
+    "DatabaseManagedSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "readiness",
+        "reasonCode",
+        "templateId",
+        "templateVersion",
+        "templateDigest",
+        "variant",
+        "schemaRevision",
+        "canEditStructure",
+        "canEditMetadata",
+        "canManageLifecycle",
+        "taskBindings"
+      ],
+      "properties": {
+        "readiness": {
+          "type": "string",
+          "enum": ["ready", "unavailable"]
+        },
+        "reasonCode": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "templateId": {
+          "type": "string"
+        },
+        "templateVersion": {
+          "type": "string"
+        },
+        "templateDigest": {
+          "type": "string"
+        },
+        "variant": {
+          "$ref": "#/$defs/DatabaseManagedSchemaVariant"
+        },
+        "schemaRevision": {
+          "type": "integer"
+        },
+        "canEditStructure": {
+          "type": "boolean"
+        },
+        "canEditMetadata": {
+          "type": "boolean"
+        },
+        "canManageLifecycle": {
+          "type": "boolean"
+        },
+        "taskBindings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DatabaseTaskBinding"
+          }
+        }
+      }
+    }
+  }
+}

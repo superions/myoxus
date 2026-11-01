@@ -1,0 +1,238 @@
+fragment DocumentMetadataFieldDefinitionFields on DocumentMetadataFieldDefinitionType {
+  key
+  label
+  enabled
+  requiredMode
+  editableBy
+  visibleInHeader
+  visibleInProperties
+  visibleInLists
+  exportMode
+  validationConfig
+  metadata
+  updatedBy
+  updatedAt
+}
+
+fragment DocumentStatusValueFields on DocumentStatusValueType {
+  id
+  schemaId
+  key
+  label
+  description
+  color
+  icon
+  sortOrder
+  terminal
+  okfStatus
+  isActive
+  metadata
+}
+
+fragment DocumentTypeDefinitionFields on DocumentTypeDefinitionType {
+  id
+  key
+  label
+  description
+  icon
+  color
+  isActive
+  isSuggested
+}
+
+query documentMetadataIndex($workspaceId: ID!, $tagWorkspaceId: String!) {
+  documentMetadataIndex(workspaceId: $workspaceId) {
+    ...DocumentMetadataIndexFields
+  }
+  workspace(id: $tagWorkspaceId) {
+    id
+    workspaceTags(includeArchived: true) {
+      ...WorkspaceTagFields
+    }
+  }
+}
+
+query documentMetadataFieldDefinitions {
+  documentMetadataFieldDefinitions {
+    ...DocumentMetadataFieldDefinitionFields
+  }
+}
+
+query documentMetadataValueDefinitions($fieldKey: String!) {
+  documentMetadataValueDefinitions(fieldKey: $fieldKey) {
+    id
+    fieldKey
+    key
+    label
+    description
+    color
+    icon
+    sortOrder
+    isActive
+    metadata
+  }
+}
+
+query documentStatusSchemas {
+  documentStatusSchemas {
+    id
+    key
+    label
+    description
+    complexity
+    isPreset
+    isActive
+    metadata
+  }
+}
+
+query documentStatusValues($schemaKey: String!) {
+  documentStatusValues(schemaKey: $schemaKey) {
+    ...DocumentStatusValueFields
+  }
+}
+
+query documentTypes {
+  documentTypes {
+    ...DocumentTypeDefinitionFields
+  }
+}
+
+query documentVersionPolicies($workspaceId: ID!) {
+  documentVersionPolicies(workspaceId: $workspaceId) {
+    id
+    scope
+    workspaceId
+    name
+    isDefault
+    enabledByDefault
+    schemePreset
+    customPattern
+    timezoneMode
+    autoVersionOn
+    retentionCount
+    pinManualVersions
+    pinPublishVersions
+    publishedVersionsProtected
+    exportVersionsProtected
+    metadataSchema
+    createdBy
+    createdAt
+    updatedBy
+    updatedAt
+  }
+}
+
+query workspaceDocumentSettings($workspaceId: ID!) {
+  workspaceDocumentSettings(workspaceId: $workspaceId) {
+    workspaceId
+    statusSchemaId
+    defaultStatusId
+    versionPolicyId
+    defaultDocumentTypeId
+    defaultClassificationId
+    defaultRetentionPolicyId
+    updatedBy
+    updatedAt
+  }
+}
+
+query workspaceHistorySettings($workspaceId: ID!) {
+  workspaceHistorySettings(workspaceId: $workspaceId) {
+    workspaceId
+    namedVersioningEnabled
+    autoVersionOn
+    retentionCount
+    editCaptureEnabled
+    editCaptureIntervalMs
+    effectiveNamedVersioningEnabled
+    effectiveAutoVersionOn
+    effectiveRetentionCount
+    effectiveEditCaptureEnabled
+    effectiveEditCaptureIntervalMs
+    enabledSource
+    intervalSource
+    legacyIntervalNormalized
+    runtimeAvailable
+    lastEditCaptureAt
+    revision
+    updatedAt
+  }
+}
+
+mutation updateWorkspaceHistorySettings(
+  $workspaceId: ID!
+  $input: UpdateWorkspaceHistorySettingsInput!
+) {
+  updateWorkspaceHistorySettings(workspaceId: $workspaceId, input: $input) {
+    workspaceId
+    namedVersioningEnabled
+    autoVersionOn
+    retentionCount
+    editCaptureEnabled
+    editCaptureIntervalMs
+    effectiveNamedVersioningEnabled
+    effectiveAutoVersionOn
+    effectiveRetentionCount
+    effectiveEditCaptureEnabled
+    effectiveEditCaptureIntervalMs
+    enabledSource
+    intervalSource
+    legacyIntervalNormalized
+    runtimeAvailable
+    lastEditCaptureAt
+    revision
+    updatedAt
+  }
+}
+
+mutation transitionDocumentStatus($workspaceId: ID!, $docId: ID!, $input: TransitionDocumentStatusInput!) {
+  transitionDocumentStatus(workspaceId: $workspaceId, docId: $docId, input: $input) {
+    metadata {
+      ...DocumentMetadataFields
+    }
+    validation {
+      ...DocumentMetadataValidationFields
+    }
+  }
+}
+
+mutation updateWorkspaceDocumentSettings($workspaceId: ID!, $input: UpdateWorkspaceDocumentSettingsInput!) {
+  updateWorkspaceDocumentSettings(workspaceId: $workspaceId, input: $input) {
+    workspaceId
+    statusSchemaId
+    defaultStatusId
+    versionPolicyId
+    defaultDocumentTypeId
+    defaultClassificationId
+    defaultRetentionPolicyId
+    updatedBy
+    updatedAt
+  }
+}
+
+fragment DocumentMetadataIndexFields on DocumentMetadataIndexRowType {
+    docId
+    externalId
+    createdBy
+    updatedBy
+    journalDate
+    isTemplate
+    templateState
+    templateOrigin
+    templateCategory
+    templateTags
+    primaryMode
+    pageWidth
+    edgelessColorTheme
+    integrationType
+    canPublish
+    statusId
+    documentTypeId
+    currentVersionId
+    dirtySinceCurrentVersion
+    reviewDueAt
+    validUntil
+    classificationId
+    tagIds
+}

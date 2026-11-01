@@ -1,0 +1,6 @@
+mutation updateWorkspaceDescription($id: String!, $description: String!) {
+  updateWorkspace(input: { id: $id, description: $description }) {
+    id
+    description
+  }
+}

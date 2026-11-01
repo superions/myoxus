@@ -1,0 +1,17 @@
+{
+  "name": "@myoxus/env",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./automation": "./src/automation.ts",
+    "./global": "./src/global.ts",
+    "./constant": "./src/constant.ts",
+    "./filter": "./src/filter.ts",
+    "./worker": "./src/worker.ts"
+  },
+  "dependencies": {
+    "@virgultum/editor": "workspace:*",
+    "zod": "^3.25.76"
+  },
+  "license": "AGPL-3.0-or-later"
+}

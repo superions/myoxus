@@ -1,0 +1,437 @@
+{
+  "generated_at": "2026-03-15T15:01:19.018785+00:00",
+  "source_root": "packages/backend/server/src",
+  "total_endpoints": 43,
+  "endpoints": [
+    {
+      "http_method": "POST",
+      "controller_class": "TestResolver",
+      "controller_prefix_expr": "'/'",
+      "controller_prefix_literal": "/",
+      "route_expr": "'/upload'",
+      "route_literal": "/upload",
+      "resolved_path": "//upload",
+      "source_line": 43
+    },
+    {
+      "http_method": "GET",
+      "controller_class": "CaptchaController",
+      "controller_prefix_expr": "'/api/auth'",
+      "controller_prefix_literal": "/api/auth",
+      "route_expr": "'/challenge'",
+      "route_literal": "/challenge",
+      "resolved_path": "/api/auth/challenge",
+      "source_line": 13
+    },
+    {
+      "http_method": "POST",
+      "controller_class": "AuthController",
+      "controller_prefix_expr": "'/api/auth'",
+      "controller_prefix_literal": "/api/auth",
+      "route_expr": "'/magic-link'",
+      "route_literal": "/magic-link",
+      "resolved_path": "/api/auth/magic-link",
+      "source_line": 330
+    },
+    {
+      "http_method": "POST",
+      "controller_class": "AuthController",
+      "controller_prefix_expr": "'/api/auth'",
+      "controller_prefix_literal": "/api/auth",
+      "route_expr": "'/open-app/sign-in'",
+      "route_literal": "/open-app/sign-in",
+      "resolved_path": "/api/auth/open-app/sign-in",
+      "source_line": 305
+    },
+    {
+      "http_method": "POST",
+      "controller_class": "AuthController",
+      "controller_prefix_expr": "'/api/auth'",
+      "controller_prefix_literal": "/api/auth",
+      "route_expr": "'/open-app/sign-in-code'",
+      "route_literal": "/open-app/sign-in-code",
+      "resolved_path": "/api/auth/open-app/sign-in-code",
+      "source_line": 287
+    },
+    {
+      "http_method": "POST",
+      "controller_class": "AuthController",
+      "controller_prefix_expr": "'/api/auth'",
+      "controller_prefix_literal": "/api/auth",
+      "route_expr": "'/preflight'",
+      "route_literal": "/preflight",
+      "resolved_path": "/api/auth/preflight",
+      "source_line": 83
+    },
+    {
+      "http_method": "GET",
+      "controller_class": "AuthController",
+      "controller_prefix_expr": "'/api/auth'",
+      "controller_prefix_literal": "/api/auth",
+      "route_expr": "'/session'",
+      "route_literal": "/session",
+      "resolved_path": "/api/auth/session",
+      "source_line": 378
+    },
+    {
+      "http_method": "GET",
+      "controller_class": "AuthController",
+      "controller_prefix_expr": "'/api/auth'",
+      "controller_prefix_literal": "/api/auth",
+      "route_expr": "'/sessions'",
+      "route_literal": "/sessions",
+      "resolved_path": "/api/auth/sessions",
+      "source_line": 387
+    },
+    {
+      "http_method": "POST",
+      "controller_class": "AuthController",
+      "controller_prefix_expr": "'/api/auth'",
+      "controller_prefix_literal": "/api/auth",
+      "route_expr": "'/sign-in'",
+      "route_literal": "/sign-in",
+      "resolved_path": "/api/auth/sign-in",
+      "source_line": 109
+    },
+    {
+      "http_method": "GET",
+      "controller_class": "AuthController",
+      "controller_prefix_expr": "'/api/auth'",
+      "controller_prefix_literal": "/api/auth",
+      "route_expr": "'/sign-out'",
+      "route_literal": "/sign-out",
+      "resolved_path": "/api/auth/sign-out",
+      "source_line": 236
+    },
+    {
+      "http_method": "POST",
+      "controller_class": "AuthController",
+      "controller_prefix_expr": "'/api/auth'",
+      "controller_prefix_literal": "/api/auth",
+      "route_expr": "'/sign-out'",
+      "route_literal": "/sign-out",
+      "resolved_path": "/api/auth/sign-out",
+      "source_line": 256
+    },
+    {
+      "http_method": "GET",
+      "controller_class": "UserAvatarController",
+      "controller_prefix_expr": "'/api/avatars'",
+      "controller_prefix_literal": "/api/avatars",
+      "route_expr": "'/:id'",
+      "route_literal": "/:id",
+      "resolved_path": "/api/avatars/:id",
+      "source_line": 17
+    },
+    {
+      "http_method": "GET",
+      "controller_class": "CalendarController",
+      "controller_prefix_expr": "'/api/calendar'",
+      "controller_prefix_literal": "/api/calendar",
+      "route_expr": "'/oauth/callback'",
+      "route_literal": "/oauth/callback",
+      "resolved_path": "/api/calendar/oauth/callback",
+      "source_line": 62
+    },
+    {
+      "http_method": "POST",
+      "controller_class": "CalendarController",
+      "controller_prefix_expr": "'/api/calendar'",
+      "controller_prefix_literal": "/api/calendar",
+      "route_expr": "'/oauth/callback'",
+      "route_literal": "/oauth/callback",
+      "resolved_path": "/api/calendar/oauth/callback",
+      "source_line": 73
+    },
+    {
+      "http_method": "POST",
+      "controller_class": "CalendarController",
+      "controller_prefix_expr": "'/api/calendar'",
+      "controller_prefix_literal": "/api/calendar",
+      "route_expr": "'/oauth/preflight'",
+      "route_literal": "/oauth/preflight",
+      "resolved_path": "/api/calendar/oauth/preflight",
+      "source_line": 34
+    },
+    {
+      "http_method": "POST",
+      "controller_class": "CalendarController",
+      "controller_prefix_expr": "'/api/calendar'",
+      "controller_prefix_literal": "/api/calendar",
+      "route_expr": "'/webhook/google'",
+      "route_literal": "/webhook/google",
+      "resolved_path": "/api/calendar/webhook/google",
+      "source_line": 84
+    },
+    {
+      "http_method": "GET",
+      "controller_class": "CopilotController",
+      "controller_prefix_expr": "'/api/copilot'",
+      "controller_prefix_literal": "/api/copilot",
+      "route_expr": "'/blob/:userId/:workspaceId/:key'",
+      "route_literal": "/blob/:userId/:workspaceId/:key",
+      "resolved_path": "/api/copilot/blob/:userId/:workspaceId/:key",
+      "source_line": 707
+    },
+    {
+      "http_method": "GET",
+      "controller_class": "CopilotController",
+      "controller_prefix_expr": "'/api/copilot'",
+      "controller_prefix_literal": "/api/copilot",
+      "route_expr": "'/unsplash/photos'",
+      "route_literal": "/unsplash/photos",
+      "resolved_path": "/api/copilot/unsplash/photos",
+      "source_line": 675
+    },
+    {
+      "http_method": "POST",
+      "controller_class": "OAuthController",
+      "controller_prefix_expr": "'/api/oauth'",
+      "controller_prefix_literal": "/api/oauth",
+      "route_expr": "'/callback'",
+      "route_literal": "/callback",
+      "resolved_path": "/api/oauth/callback",
+      "source_line": 121
+    },
+    {
+      "http_method": "POST",
+      "controller_class": "OAuthController",
+      "controller_prefix_expr": "'/api/oauth'",
+      "controller_prefix_literal": "/api/oauth",
+      "route_expr": "'/preflight'",
+      "route_literal": "/preflight",
+      "resolved_path": "/api/oauth/preflight",
+      "source_line": 51
+    },
+    {
+      "http_method": "POST",
+      "controller_class": "CustomSetupController",
+      "controller_prefix_expr": "'/api/setup'",
+      "controller_prefix_literal": "/api/setup",
+      "route_expr": "'/create-admin-user'",
+      "route_literal": "/create-admin-user",
+      "resolved_path": "/api/setup/create-admin-user",
+      "source_line": 35
+    },
+    {
+      "http_method": "OPTIONS",
+      "controller_class": "TelemetryController",
+      "controller_prefix_expr": "'/api/telemetry'",
+      "controller_prefix_literal": "/api/telemetry",
+      "route_expr": "'/collect'",
+      "route_literal": "/collect",
+      "resolved_path": "/api/telemetry/collect",
+      "source_line": 20
+    },
+    {
+      "http_method": "POST",
+      "controller_class": "TelemetryController",
+      "controller_prefix_expr": "'/api/telemetry'",
+      "controller_prefix_literal": "/api/telemetry",
+      "route_expr": "'/collect'",
+      "route_literal": "/collect",
+      "resolved_path": "/api/telemetry/collect",
+      "source_line": 38
+    },
+    {
+      "http_method": "GET",
+      "controller_class": "WorkerController",
+      "controller_prefix_expr": "'/api/worker'",
+      "controller_prefix_literal": "/api/worker",
+      "route_expr": "'/image-proxy'",
+      "route_literal": "/image-proxy",
+      "resolved_path": "/api/worker/image-proxy",
+      "source_line": 97
+    },
+    {
+      "http_method": "OPTIONS",
+      "controller_class": "WorkerController",
+      "controller_prefix_expr": "'/api/worker'",
+      "controller_prefix_literal": "/api/worker",
+      "route_expr": "'/image-proxy'",
+      "route_literal": "/image-proxy",
+      "resolved_path": "/api/worker/image-proxy",
+      "source_line": 81
+    },
+    {
+      "http_method": "OPTIONS",
+      "controller_class": "WorkerController",
+      "controller_prefix_expr": "'/api/worker'",
+      "controller_prefix_literal": "/api/worker",
+      "route_expr": "'/link-preview'",
+      "route_literal": "/link-preview",
+      "resolved_path": "/api/worker/link-preview",
+      "source_line": 230
+    },
+    {
+      "http_method": "POST",
+      "controller_class": "WorkerController",
+      "controller_prefix_expr": "'/api/worker'",
+      "controller_prefix_literal": "/api/worker",
+      "route_expr": "'/link-preview'",
+      "route_literal": "/link-preview",
+      "resolved_path": "/api/worker/link-preview",
+      "source_line": 246
+    },
+    {
+      "http_method": "GET",
+      "controller_class": "WorkspacesController",
+      "controller_prefix_expr": "'/api/workspaces'",
+      "controller_prefix_literal": "/api/workspaces",
+      "route_expr": "'/:id/blobs/:name'",
+      "route_literal": "/:id/blobs/:name",
+      "resolved_path": "/api/workspaces/:id/blobs/:name",
+      "source_line": 55
+    },
+    {
+      "http_method": "GET",
+      "controller_class": "WorkspacesController",
+      "controller_prefix_expr": "'/api/workspaces'",
+      "controller_prefix_literal": "/api/workspaces",
+      "route_expr": "'/:id/docs/:docId/comment-attachments/:key'",
+      "route_literal": "/:id/docs/:docId/comment-attachments/:key",
+      "resolved_path": "/api/workspaces/:id/docs/:docId/comment-attachments/:key",
+      "source_line": 227
+    },
+    {
+      "http_method": "GET",
+      "controller_class": "WorkspacesController",
+      "controller_prefix_expr": "'/api/workspaces'",
+      "controller_prefix_literal": "/api/workspaces",
+      "route_expr": "'/:id/docs/:guid'",
+      "route_literal": "/:id/docs/:guid",
+      "resolved_path": "/api/workspaces/:id/docs/:guid",
+      "source_line": 116
+    },
+    {
+      "http_method": "GET",
+      "controller_class": "WorkspacesController",
+      "controller_prefix_expr": "'/api/workspaces'",
+      "controller_prefix_literal": "/api/workspaces",
+      "route_expr": "'/:id/docs/:guid/histories/:timestamp'",
+      "route_literal": "/:id/docs/:guid/histories/:timestamp",
+      "resolved_path": "/api/workspaces/:id/docs/:guid/histories/:timestamp",
+      "source_line": 189
+    },
+    {
+      "http_method": "DELETE",
+      "controller_class": "WorkspaceMcpController",
+      "controller_prefix_expr": "'/api/workspaces/:workspaceId/mcp'",
+      "controller_prefix_literal": "/api/workspaces/:workspaceId/mcp",
+      "route_expr": "'/'",
+      "route_literal": "/",
+      "resolved_path": "/api/workspaces/:workspaceId/mcp/",
+      "source_line": 25
+    },
+    {
+      "http_method": "GET",
+      "controller_class": "WorkspaceMcpController",
+      "controller_prefix_expr": "'/api/workspaces/:workspaceId/mcp'",
+      "controller_prefix_literal": "/api/workspaces/:workspaceId/mcp",
+      "route_expr": "'/'",
+      "route_literal": "/",
+      "resolved_path": "/api/workspaces/:workspaceId/mcp/",
+      "source_line": 24
+    },
+    {
+      "http_method": "POST",
+      "controller_class": "WorkspaceMcpController",
+      "controller_prefix_expr": "'/api/workspaces/:workspaceId/mcp'",
+      "controller_prefix_literal": "/api/workspaces/:workspaceId/mcp",
+      "route_expr": "'/'",
+      "route_literal": "/",
+      "resolved_path": "/api/workspaces/:workspaceId/mcp/",
+      "source_line": 38
+    },
+    {
+      "http_method": "GET",
+      "controller_class": "DocRpcController",
+      "controller_prefix_expr": "'/rpc'",
+      "controller_prefix_literal": "/rpc",
+      "route_expr": "'/workspaces/:workspaceId/content'",
+      "route_literal": "/workspaces/:workspaceId/content",
+      "resolved_path": "/rpc/workspaces/:workspaceId/content",
+      "source_line": 115
+    },
+    {
+      "http_method": "GET",
+      "controller_class": "DocRpcController",
+      "controller_prefix_expr": "'/rpc'",
+      "controller_prefix_literal": "/rpc",
+      "route_expr": "'/workspaces/:workspaceId/docs/:docId'",
+      "route_literal": "/workspaces/:workspaceId/docs/:docId",
+      "resolved_path": "/rpc/workspaces/:workspaceId/docs/:docId",
+      "source_line": 25
+    },
+    {
+      "http_method": "GET",
+      "controller_class": "DocRpcController",
+      "controller_prefix_expr": "'/rpc'",
+      "controller_prefix_literal": "/rpc",
+      "route_expr": "'/workspaces/:workspaceId/docs/:docId/content'",
+      "route_literal": "/workspaces/:workspaceId/docs/:docId/content",
+      "resolved_path": "/rpc/workspaces/:workspaceId/docs/:docId/content",
+      "source_line": 96
+    },
+    {
+      "http_method": "POST",
+      "controller_class": "DocRpcController",
+      "controller_prefix_expr": "'/rpc'",
+      "controller_prefix_literal": "/rpc",
+      "route_expr": "'/workspaces/:workspaceId/docs/:docId/diff'",
+      "route_literal": "/workspaces/:workspaceId/docs/:docId/diff",
+      "resolved_path": "/rpc/workspaces/:workspaceId/docs/:docId/diff",
+      "source_line": 66
+    },
+    {
+      "http_method": "GET",
+      "controller_class": "DocRpcController",
+      "controller_prefix_expr": "'/rpc'",
+      "controller_prefix_literal": "/rpc",
+      "route_expr": "'/workspaces/:workspaceId/docs/:docId/markdown'",
+      "route_literal": "/workspaces/:workspaceId/docs/:docId/markdown",
+      "resolved_path": "/rpc/workspaces/:workspaceId/docs/:docId/markdown",
+      "source_line": 47
+    },
+    {
+      "http_method": "GET",
+      "controller_class": "DocRendererController",
+      "controller_prefix_expr": "'/workspace'",
+      "controller_prefix_literal": "/workspace",
+      "route_expr": "'/*path'",
+      "route_literal": "/*path",
+      "resolved_path": "/workspace/*path",
+      "source_line": 93
+    },
+    {
+      "http_method": "GET",
+      "controller_class": "AppController",
+      "controller_prefix_expr": "'/info'",
+      "controller_prefix_literal": "/info",
+      "route_expr": "",
+      "route_literal": null,
+      "resolved_path": null,
+      "source_line": 10
+    },
+    {
+      "http_method": "PUT",
+      "controller_class": "R2UploadController",
+      "controller_prefix_expr": "STORAGE_PROXY_ROOT",
+      "controller_prefix_literal": null,
+      "route_expr": "'upload'",
+      "route_literal": "upload",
+      "resolved_path": null,
+      "source_line": 173
+    },
+    {
+      "http_method": "PUT",
+      "controller_class": "R2UploadController",
+      "controller_prefix_expr": "STORAGE_PROXY_ROOT",
+      "controller_prefix_literal": null,
+      "route_expr": "'multipart'",
+      "route_literal": "multipart",
+      "resolved_path": null,
+      "source_line": 251
+    }
+  ]
+}

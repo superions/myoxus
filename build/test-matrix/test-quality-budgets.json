@@ -1,0 +1,180 @@
+{
+  "schema_version": 1,
+  "generated_from": [
+    "node build/scripts/ci/audit-test-quality.mjs --json",
+    "node build/scripts/test/inventory.mjs --json"
+  ],
+  "policy": {
+    "mode": "non-increase-ratchet",
+    "description": "Existing weak-test debt stays visible but must not grow by domain. Reductions are accepted without changing this file; increases require an intentional budget update with a review reason.",
+    "js_ts_patterns": [
+      "test_only",
+      "test_skip",
+      "catch_null",
+      "truthy",
+      "bare_ok"
+    ],
+    "rust_patterns": ["rust_cleanup_ok"],
+    "review_rule": "Do not raise a budget to hide new debt. First remove, rewrite, or move the weak test. Raise only when the added assertion is deliberately accepted and documented."
+  },
+  "jsTs": {
+    "domains": {
+      "admin-e2e": {
+        "test_only": 0,
+        "test_skip": 0,
+        "catch_null": 0,
+        "truthy": 25,
+        "bare_ok": 0
+      },
+      "admin-unit": {
+        "test_only": 0,
+        "test_skip": 0,
+        "catch_null": 0,
+        "truthy": 195,
+        "bare_ok": 0
+      },
+      "client-apps": {
+        "test_only": 0,
+        "test_skip": 0,
+        "catch_null": 0,
+        "truthy": 2,
+        "bare_ok": 0
+      },
+      "client-libs": {
+        "test_only": 0,
+        "test_skip": 0,
+        "catch_null": 0,
+        "truthy": 10,
+        "bare_ok": 0
+      },
+      "client-shared": {
+        "test_only": 0,
+        "test_skip": 0,
+        "catch_null": 0,
+        "truthy": 3,
+        "bare_ok": 0
+      },
+      "core-unit": {
+        "test_only": 0,
+        "test_skip": 0,
+        "catch_null": 0,
+        "truthy": 165,
+        "bare_ok": 0
+      },
+      "desktop-local": {
+        "test_only": 0,
+        "test_skip": 0,
+        "catch_null": 0,
+        "truthy": 0,
+        "bare_ok": 0
+      },
+      "editor-core-virgultum": {
+        "test_only": 0,
+        "test_skip": 3,
+        "catch_null": 2,
+        "truthy": 31,
+        "bare_ok": 0
+      },
+      "mobile-app": {
+        "test_only": 0,
+        "test_skip": 0,
+        "catch_null": 0,
+        "truthy": 0,
+        "bare_ok": 0
+      },
+      "other": {
+        "test_only": 0,
+        "test_skip": 0,
+        "catch_null": 0,
+        "truthy": 3,
+        "bare_ok": 0
+      },
+      "ui-facade-unit": {
+        "test_only": 0,
+        "test_skip": 0,
+        "catch_null": 0,
+        "truthy": 0,
+        "bare_ok": 0
+      },
+      "virgultum": {
+        "test_only": 0,
+        "test_skip": 0,
+        "catch_null": 0,
+        "truthy": 165,
+        "bare_ok": 0
+      },
+      "web-flow": {
+        "test_only": 0,
+        "test_skip": 0,
+        "catch_null": 0,
+        "truthy": 5,
+        "bare_ok": 0
+      },
+      "web-document-history": {
+        "test_only": 0,
+        "test_skip": 0,
+        "catch_null": 0,
+        "truthy": 0,
+        "bare_ok": 0
+      },
+      "web-editor-flow": {
+        "test_only": 0,
+        "test_skip": 0,
+        "catch_null": 0,
+        "truthy": 28,
+        "bare_ok": 0
+      },
+      "web-local": {
+        "test_only": 0,
+        "test_skip": 0,
+        "catch_null": 0,
+        "truthy": 9,
+        "bare_ok": 0
+      },
+      "web-playwright-shared": {
+        "test_only": 0,
+        "test_skip": 0,
+        "catch_null": 0,
+        "truthy": 0,
+        "bare_ok": 0
+      },
+      "web-smoke": {
+        "test_only": 0,
+        "test_skip": 0,
+        "catch_null": 0,
+        "truthy": 0,
+        "bare_ok": 0
+      },
+      "web-visual": {
+        "test_only": 0,
+        "test_skip": 0,
+        "catch_null": 0,
+        "truthy": 0,
+        "bare_ok": 0
+      },
+      "web-unit": {
+        "test_only": 0,
+        "test_skip": 0,
+        "catch_null": 0,
+        "truthy": 0,
+        "bare_ok": 0
+      }
+    }
+  },
+  "rust": {
+    "crates": {
+      "api": {
+        "rust_cleanup_ok": 580
+      },
+      "cli": {
+        "rust_cleanup_ok": 21
+      },
+      "infrastructure": {
+        "rust_cleanup_ok": 77
+      },
+      "pdf_export_templates": {
+        "rust_cleanup_ok": 2
+      }
+    }
+  }
+}

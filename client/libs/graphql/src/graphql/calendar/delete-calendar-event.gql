@@ -1,0 +1,3 @@
+mutation deleteCalendarEvent($eventId: String!) {
+  deleteCalendarEvent(eventId: $eventId)
+}

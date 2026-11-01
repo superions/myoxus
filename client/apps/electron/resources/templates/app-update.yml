@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+owner: myoxus
+repo: packages
+provider: custom
+private: false
+updaterCacheDirName: __MYOXUS_UPDATER_CACHE_DIR__

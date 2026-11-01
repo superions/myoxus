@@ -1,0 +1,64 @@
+[package]
+description       = "Document parsing pipeline for Myoxus — extracts structured text chunks from various file formats"
+edition.workspace = true
+license.workspace = true
+name              = "myoxus-doc-pipeline"
+version.workspace = true
+
+[features]
+code = [
+  "dep:tree-sitter",
+  "dep:tree-sitter-rust",
+  "dep:tree-sitter-javascript",
+  "dep:tree-sitter-typescript",
+  "dep:tree-sitter-python",
+  "dep:tree-sitter-go",
+  "dep:tree-sitter-c",
+  "dep:tree-sitter-cpp",
+]
+default = ["pdf", "docx", "html", "code"]
+docx = ["dep:zip", "dep:quick-xml"]
+html = ["dep:readability", "dep:html2text", "dep:scraper", "dep:url"]
+pdf = ["dep:pdf-extract"]
+splitting = ["dep:text-splitter", "tokenizer-tiktoken"]
+tokenizer-tiktoken = ["dep:tiktoken-rs"]
+
+[dependencies]
+infer      = { workspace = true }
+mime       = { workspace = true }
+mime_guess = { workspace = true }
+thiserror  = { workspace = true }
+tracing    = { workspace = true }
+
+# PDF
+pdf-extract = { version = "0.12.0", optional = true }
+
+# DOCX (manual ZIP + XML parsing — lightweight, no image dependency)
+quick-xml = { workspace = true, optional = true }
+zip       = { workspace = true, optional = true }
+
+# HTML
+html2text   = { version = "0.16", optional = true }
+readability = { version = "0.3", default-features = false, optional = true }
+scraper     = { workspace = true, optional = true }
+url         = { version = "2.5", optional = true }
+
+# Source Code
+tree-sitter            = { version = "0.26", optional = true }
+tree-sitter-c          = { version = "0.24", optional = true }
+tree-sitter-cpp        = { version = "0.23", optional = true }
+tree-sitter-go         = { version = "0.25", optional = true }
+tree-sitter-javascript = { version = "0.25", optional = true }
+tree-sitter-python     = { version = "0.25", optional = true }
+tree-sitter-rust       = { version = "0.24", optional = true }
+tree-sitter-typescript = { version = "0.23", optional = true }
+
+# Splitting + Tokens
+text-splitter = { version = "0.28", optional = true, features = [
+  "markdown",
+  "tiktoken-rs",
+] }
+tiktoken-rs = { version = "0.7", optional = true }
+
+[dev-dependencies]
+lopdf = "0.42.0"

@@ -1,0 +1,32 @@
+formatVersion: 1
+id: myoxus.workflow.workspace_personal_knowledge
+version: 1.0.0
+capabilityVersions:
+  createWorkingDocument: 1
+  placeNativeLink: 1
+  createDatabaseFromDefinition: 1
+nodes:
+  - id: index
+    action:
+      kind: createDatabaseFromDefinition
+      component: index
+  - id: home
+    action:
+      kind: createWorkingDocument
+      component: home
+  - id: note
+    action:
+      kind: createWorkingDocument
+      component: note
+  - id: place-index
+    action:
+      kind: placeNativeLink
+      component: place-index
+  - id: place-home
+    action:
+      kind: placeNativeLink
+      component: place-home
+  - id: place-note
+    action:
+      kind: placeNativeLink
+      component: place-note

@@ -1,0 +1,14 @@
+mutation createWorkspace($input: CreateWorkspaceInput) {
+  createWorkspace(input: $input) {
+    id
+    name
+    initialized
+    role
+    workspaceType
+    owner { id }
+    public
+    createdAt
+    initialContentPolicy
+    creation { ...WorkspaceCreationResultFragment }
+  }
+}

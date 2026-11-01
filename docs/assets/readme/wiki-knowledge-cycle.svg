@@ -1,0 +1,62 @@
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" viewBox="0 0 1200 410" role="img" aria-labelledby="title desc">
+  <title id="title">Knowledge that grows with the work</title>
+  <desc id="desc">Capture together, connect knowledge, maintain it, and deliver it to readers. A return path connects reader feedback to collaborative writing. Private personal workspaces and shared workspaces for departments, topics and projects provide the working contexts, supported by central standards and a mature Rust server on your infrastructure.</desc>
+  <defs>
+    <linearGradient id="foundation" x1="0" y1="0" x2="1" y2="0">
+      <stop stop-color="#183a50"/>
+      <stop offset="1" stop-color="#244e60"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#668b9d"/>
+    </marker>
+  </defs>
+  <style>
+    text { font-family: Arial, Helvetica, sans-serif; }
+    .eyebrow { fill: #54798b; font-size: 13px; font-weight: 700; letter-spacing: 2px; }
+    .title { fill: #173a50; font-size: 30px; font-weight: 700; }
+    .heading { fill: #173a50; font-size: 24px; font-weight: 700; }
+    .body { fill: #416371; font-size: 16px; }
+    .base { fill: #fff; font-size: 21px; font-weight: 700; }
+    .foot { fill: #d7e9f0; font-size: 15px; }
+  </style>
+  <rect width="1200" height="410" rx="18" fill="#f5f8fa"/>
+  <text x="36" y="37" class="eyebrow">THE MODERN WIKI WORKFLOW</text>
+  <text x="36" y="76" class="title">Knowledge that grows with the work</text>
+
+  <rect x="36" y="104" width="258" height="142" rx="12" fill="#fff" stroke="#d7e3e8"/>
+  <text x="56" y="134" class="eyebrow">01 · TOGETHER</text>
+  <text x="56" y="170" class="heading">Capture</text>
+  <text x="56" y="199" class="body">Rich documents &amp; live editing</text>
+  <text x="56" y="223" class="body">Notes, ideas &amp; explanations</text>
+
+  <rect x="326" y="104" width="258" height="142" rx="12" fill="#fff" stroke="#d7e3e8"/>
+  <text x="346" y="134" class="eyebrow">02 · IN CONTEXT</text>
+  <text x="346" y="170" class="heading">Connect</text>
+  <text x="346" y="199" class="body">Linked knowledge &amp; records</text>
+  <text x="346" y="223" class="body">Tags, collections &amp; views</text>
+
+  <rect x="616" y="104" width="258" height="142" rx="12" fill="#fff" stroke="#d7e3e8"/>
+  <text x="636" y="134" class="eyebrow">03 · AS WORK EVOLVES</text>
+  <text x="636" y="170" class="heading">Maintain</text>
+  <text x="636" y="199" class="body">Comments, history &amp; tasks</text>
+  <text x="636" y="223" class="body">Shared standards &amp; reminders</text>
+
+  <rect x="906" y="104" width="258" height="142" rx="12" fill="#fff" stroke="#d7e3e8"/>
+  <text x="926" y="134" class="eyebrow">04 · FOR READERS</text>
+  <text x="926" y="170" class="heading">Deliver</text>
+  <text x="926" y="199" class="body">Public HTML &amp; Typst PDFs</text>
+  <text x="926" y="223" class="body">Handbooks, guides &amp; reports</text>
+
+  <path d="M299 176 H319" fill="none" stroke="#668b9d" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M589 176 H609" fill="none" stroke="#668b9d" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M879 176 H899" fill="none" stroke="#668b9d" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M1035 254 V276 H165 V254" fill="none" stroke="#668b9d" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="370" y="264" width="460" height="24" rx="12" fill="#f5f8fa"/>
+  <text x="600" y="282" text-anchor="middle" class="body">Questions and feedback inform the next edit</text>
+
+  <rect x="36" y="310" width="1128" height="76" rx="12" fill="url(#foundation)"/>
+  <text x="56" y="342" class="base">Private and shared workspaces. Your infrastructure.</text>
+  <text x="56" y="369" class="foot">Central templates, roles, fonts &amp; branding · One mature Rust server foundation</text>
+  <text x="1144" y="354" text-anchor="end" class="foot">Open source · Self-hosted · Designed to scale</text>
+</svg>

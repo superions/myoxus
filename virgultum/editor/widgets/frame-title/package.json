@@ -1,0 +1,38 @@
+{
+  "name": "@virgultum/widget-frame-title",
+  "description": "Myoxus frame title widget.",
+  "type": "module",
+  "scripts": {
+    "build": "yarn --cwd \"$PROJECT_CWD\" exec tsc -p \"$PWD/tsconfig.json\" --noEmit"
+  },
+  "sideEffects": false,
+  "keywords": [],
+  "author": "Myoxus Contributors",
+  "license": "AGPL-3.0-or-later AND MIT",
+  "dependencies": {
+    "@lit/context": "^1.1.6",
+    "@myoxus/theme": "workspace:*",
+    "@preact/signals-core": "^1.8.0",
+    "@virgultum/block-surface": "workspace:*",
+    "@virgultum/components": "workspace:*",
+    "@virgultum/ext-loader": "workspace:*",
+    "@virgultum/global": "workspace:*",
+    "@virgultum/model": "workspace:*",
+    "@virgultum/rich-text": "workspace:*",
+    "@virgultum/shared": "workspace:*",
+    "@virgultum/std": "workspace:*",
+    "lit": "^3.3.3",
+    "rxjs": "^7.8.2"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./view": "./src/view.ts"
+  },
+  "files": [
+    "src",
+    "dist",
+    "!src/__tests__",
+    "!dist/__tests__"
+  ],
+  "version": "0.41.5"
+}

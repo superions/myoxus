@@ -1,0 +1,292 @@
+format_version: 1
+id: myoxus.database.simple_task_list
+version: 1.0.1
+task_core: null
+variants:
+  - option_extensions: []
+    field_order:
+      - title
+      - status
+      - priority
+      - assignees
+      - due
+      - tags
+    role_order: []
+    priority: threeStep
+    complexity: threeStep
+    structure: tasks_only
+    spec:
+      category: database
+      complexity_preset: null
+      default_structure: null
+      description: A lightweight task list with status, priority, assignees, due dates and tags.
+      fields:
+        - config:
+            Direct:
+              kind: title
+          field_type: title
+          key: title
+          name: Task
+          required: true
+        - config:
+            Direct:
+              defaultOptionId: status.todo
+              kind: status
+              options:
+                - colorRole: database.status.todo
+                  group: notStarted
+                  id: status.todo
+                  name: Todo
+                  position: 0
+                - colorRole: database.status.inProgress
+                  group: active
+                  id: status.in_progress
+                  name: In progress
+                  position: 1
+                - colorRole: database.status.done
+                  group: complete
+                  id: status.done
+                  name: Done
+                  position: 2
+          field_type: status
+          key: status
+          name: Status
+          required: true
+        - config:
+            Direct:
+              kind: select
+              options:
+                - colorRole: database.priority.low
+                  id: priority.low
+                  name: Low
+                  position: 0
+                - colorRole: database.priority.normal
+                  id: priority.normal
+                  name: Normal
+                  position: 1
+                - colorRole: database.priority.high
+                  id: priority.high
+                  name: High
+                  position: 2
+          field_type: select
+          key: priority
+          name: Priority
+          required: false
+        - config:
+            Direct:
+              kind: users
+              maxCount: null
+              minCount: null
+          field_type: users
+          key: assignees
+          name: Assignees
+          required: false
+        - config:
+            Direct:
+              includeTime: false
+              kind: date
+          field_type: date
+          key: due
+          name: Due date
+          required: false
+        - config:
+            Direct:
+              kind: tags
+              maxCount: null
+          field_type: tags
+          key: tags
+          name: Tags
+          required: false
+      id: myoxus.database.simple_task_list
+      name: Simple Task List
+      priority_preset: null
+      profile_kind: generic
+      roles: []
+      row_templates:
+        - description: Start a task with open status and normal priority.
+          initial_cells:
+            - - status
+              - kind: status
+                value: status.todo
+            - - priority
+              - kind: select
+                value: priority.normal
+            - - due
+              - kind: date
+                value:
+                  end: null
+                  start: "2026-07-17"
+          is_default: true
+          key: task
+          name: Task
+          row_kind: record
+      sample_rows:
+        - cells:
+            - - status
+              - kind: status
+                value: status.in_progress
+            - - priority
+              - kind: select
+                value: priority.high
+            - - due
+              - kind: date
+                value:
+                  end: null
+                  start: "2026-07-13"
+          key: Review launch checklist
+          relation_cells: []
+          row_kind: record
+          title: Review launch checklist
+        - cells:
+            - - status
+              - kind: status
+                value: status.todo
+            - - priority
+              - kind: select
+                value: priority.normal
+            - - due
+              - kind: date
+                value:
+                  end: null
+                  start: "2026-07-15"
+          key: Draft customer update
+          relation_cells: []
+          row_kind: record
+          title: Draft customer update
+        - cells:
+            - - status
+              - kind: status
+                value: status.todo
+            - - priority
+              - kind: select
+                value: priority.high
+            - - due
+              - kind: date
+                value:
+                  end: null
+                  start: "2026-07-17"
+          key: Confirm analytics dashboard
+          relation_cells: []
+          row_kind: record
+          title: Confirm analytics dashboard
+        - cells:
+            - - status
+              - kind: status
+                value: status.done
+            - - priority
+              - kind: select
+                value: priority.normal
+            - - due
+              - kind: date
+                value:
+                  end: null
+                  start: "2026-07-10"
+          key: Close accessibility findings
+          relation_cells: []
+          row_kind: record
+          title: Close accessibility findings
+        - cells:
+            - - status
+              - kind: status
+                value: status.todo
+            - - priority
+              - kind: select
+                value: priority.low
+            - - due
+              - kind: date
+                value:
+                  end: null
+                  start: "2026-07-20"
+          key: Plan next review block
+          relation_cells: []
+          row_kind: record
+          title: Plan next review block
+      views:
+        - config:
+            Table:
+              group: status
+              visible:
+                - title
+                - status
+                - priority
+                - assignees
+                - due
+                - tags
+          kind: table
+          name: Table
+        - config:
+            List:
+              group: status
+              visible:
+                - title
+                - status
+                - priority
+                - due
+          kind: list
+          name: List
+      metadata:
+        name_key: com.myoxus.database.starter-template.database-simple-task-list.name
+        description_key: com.myoxus.database.starter-template.database-simple-task-list.description
+        fields:
+          - key: title
+            name_key: com.myoxus.database.starter-template.database-simple-task-list.field.title.name
+            import_export_behavior: read_write
+          - key: status
+            name_key: com.myoxus.database.starter-template.database-simple-task-list.field.status.name
+            import_export_behavior: read_write
+          - key: priority
+            name_key: com.myoxus.database.starter-template.database-simple-task-list.field.priority.name
+            import_export_behavior: read_write
+          - key: assignees
+            name_key: com.myoxus.database.starter-template.database-simple-task-list.field.assignees.name
+            import_export_behavior: read_write
+          - key: due
+            name_key: com.myoxus.database.starter-template.database-simple-task-list.field.due.name
+            import_export_behavior: read_write
+          - key: tags
+            name_key: com.myoxus.database.starter-template.database-simple-task-list.field.tags.name
+            import_export_behavior: read_write
+        views:
+          - key: table
+            name_key: com.myoxus.database.starter-template.database-simple-task-list.view.table.name
+          - key: list
+            name_key: com.myoxus.database.starter-template.database-simple-task-list.view.list.name
+        row_templates:
+          - key: task
+            name_key: com.myoxus.database.starter-template.database-simple-task-list.row-template.task.name
+            description_key: com.myoxus.database.starter-template.database-simple-task-list.row-template.task.description
+        sample_rows:
+          - key: sample-1
+            title_key: com.myoxus.database.starter-template.database-simple-task-list.sample-row.sample-1.title
+          - key: sample-2
+            title_key: com.myoxus.database.starter-template.database-simple-task-list.sample-row.sample-2.title
+          - key: sample-3
+            title_key: com.myoxus.database.starter-template.database-simple-task-list.sample-row.sample-3.title
+          - key: sample-4
+            title_key: com.myoxus.database.starter-template.database-simple-task-list.sample-row.sample-4.title
+          - key: sample-5
+            title_key: com.myoxus.database.starter-template.database-simple-task-list.sample-row.sample-5.title
+        import_mappings:
+          - columnMappings:
+              - fieldKey: title
+                required: true
+                sourceHeader: Task
+              - fieldKey: status
+                required: true
+                sourceHeader: Status
+              - fieldKey: priority
+                required: false
+                sourceHeader: Priority
+              - fieldKey: assignees
+                required: false
+                sourceHeader: Assignees
+              - fieldKey: due
+                required: false
+                sourceHeader: Due date
+              - fieldKey: tags
+                required: false
+                sourceHeader: Tags
+            key: default-csv
+            nameKey: com.myoxus.database.starter-template.database-simple-task-list.import-mapping.default-csv.name
+supported_predecessors:
+  - 1.0.0

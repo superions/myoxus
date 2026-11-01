@@ -1,0 +1,36 @@
+{% extends "_layout.html" %} {% block subject %}Dein Anmeldelink für Myoxus{%
+endblock subject %} {% block preheader %}Alternativ kannst du den Einmalcode im
+geöffneten Anmeldedialog eingeben.{% endblock preheader %} {% block category
+%}DEIN KONTO{% endblock category %} {% block heading %}Melde dich bei Myoxus
+an.{% endblock heading %} {% block introduction %}du hast einen Anmeldelink für
+dein Myoxus-Konto angefordert. Über den Button kannst du deine Anmeldung
+fortsetzen.{% endblock introduction %} {% block details %}{% if email %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  E-MAIL-ADRESSE
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ email }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}Alternativ kannst du den
+Einmalcode im geöffneten Anmeldedialog eingeben.{% endblock next_step %} {%
+block action %}Bei Myoxus anmelden{% endblock action %} {% block note %}Teile
+diesen Link und den Einmalcode mit niemandem. Wenn du dich nicht anmelden
+wolltest, ignoriere diese E-Mail.{% endblock note %} {% block reason %}Du
+erhältst diese E-Mail, weil für diese Adresse eine Anmeldung in Myoxus
+angefordert wurde.{% endblock reason %}

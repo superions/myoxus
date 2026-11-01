@@ -1,0 +1,244 @@
+diff --git a/dist/chunks/mermaid.core/blockDiagram-I7D4REHJ.mjs b/dist/chunks/mermaid.core/blockDiagram-I7D4REHJ.mjs
+index 6217863b9635a7b20536c75c072b303053c96f31..f3a4dbdbe5de983ac61f6488712c5dbd5d47c57c 100644
+--- a/dist/chunks/mermaid.core/blockDiagram-I7D4REHJ.mjs
++++ b/dist/chunks/mermaid.core/blockDiagram-I7D4REHJ.mjs
+@@ -1060,7 +1060,8 @@ var parser = (function() {
+         }
+       }, "anonymous"),
+       rules: [/^(?:block-beta\b)/, /^(?:block:)/, /^(?:block\b)/, /^(?:[\s]+)/, /^(?:[\n]+)/, /^(?:((\u000D\u000A)|(\u000A)))/, /^(?:columns\s+auto\b)/, /^(?:columns\s+[\d]+)/, /^(?:["][`])/, /^(?:[^`"]+)/, /^(?:[`]["])/, /^(?:["])/, /^(?:["])/, /^(?:[^"]*)/, /^(?:space[:]\d+)/, /^(?:space\b)/, /^(?:default\b)/, /^(?:linkStyle\b)/, /^(?:interpolate\b)/, /^(?:classDef\s+)/, /^(?:DEFAULT\s+)/, /^(?:\w+\s+)/, /^(?:[^\n]*)/, /^(?:class\s+)/, /^(?:(\w+)+((,\s*\w+)*))/, /^(?:[^\n]*)/, /^(?:style\s+)/, /^(?:(\w+)+((,\s*\w+)*))/, /^(?:[^\n]*)/, /^(?:accTitle\s*:\s*)/, /^(?:(?!\n||)*[^\n]*)/, /^(?:accDescr\s*:\s*)/, /^(?:(?!\n||)*[^\n]*)/, /^(?:accDescr\s*\{\s*)/, /^(?:[\}])/, /^(?:[^\}]*)/, /^(?:end\b\s*)/, /^(?:\(\(\()/, /^(?:\)\)\))/, /^(?:[\)]\))/, /^(?:\}\})/, /^(?:\})/, /^(?:\(-)/, /^(?:-\))/, /^(?:\(\()/, /^(?:\]\])/, /^(?:\()/, /^(?:\]\))/, /^(?:\\\])/, /^(?:\/\])/, /^(?:\)\])/, /^(?:[\)])/, /^(?:\]>)/, /^(?:[\]])/, /^(?:-\))/, /^(?:\(-)/, /^(?:\)\))/, /^(?:\))/, /^(?:\(\(\()/, /^(?:\(\()/, /^(?:\{\{)/, /^(?:\{)/, /^(?:>)/, /^(?:\(\[)/, /^(?:\()/, /^(?:\[\[)/, /^(?:\[\|)/, /^(?:\[\()/, /^(?:\)\)\))/, /^(?:\[\\)/, /^(?:\[\/)/, /^(?:\[\\)/, /^(?:\[)/, /^(?:<\[)/, /^(?:[^\(\[\n\-\)\{\}\s\<\>:=]+)/, /^(?:$)/, /^(?:["][`])/, /^(?:["][`])/, /^(?:[^`"]+)/, /^(?:[`]["])/, /^(?:["])/, /^(?:["])/, /^(?:[^"]+)/, /^(?:["])/, /^(?:\]>\s*\()/, /^(?:,?\s*right\s*)/, /^(?:,?\s*left\s*)/, /^(?:,?\s*x\s*)/, /^(?:,?\s*y\s*)/, /^(?:,?\s*up\s*)/, /^(?:,?\s*down\s*)/, /^(?:\)\s*)/, /^(?:\s*[xo<]?--+[-xo>]\s*)/, /^(?:\s*[xo<]?==+[=xo>]\s*)/, /^(?:\s*[xo<]?-?\.+-[xo>]?\s*)/, /^(?:\s*~~[\~]+\s*)/, /^(?:\s*[xo<]?--\s*)/, /^(?:\s*[xo<]?==\s*)/, /^(?:\s*[xo<]?-\.\s*)/, /^(?:["][`])/, /^(?:["])/, /^(?:\s*[xo<]?--+[-xo>]\s*)/, /^(?:\s*[xo<]?==+[=xo>]\s*)/, /^(?:\s*[xo<]?-?\.+-[xo>]?\s*)/, /^(?::\d+)/],
+-      conditions: { "STYLE_DEFINITION": { "rules": [28], "inclusive": false }, "STYLE_STMNT": { "rules": [27], "inclusive": false }, "CLASSDEFID": { "rules": [22], "inclusive": false }, "CLASSDEF": { "rules": [20, 21], "inclusive": false }, "CLASS_STYLE": { "rules": [25], "inclusive": false }, "CLASS": { "rules": [24], "inclusive": false }, "LLABEL": { "rules": [99, 100, 101, 102, 103], "inclusive": false }, "ARROW_DIR": { "rules": [85, 86, 87, 88, 89, 90, 91], "inclusive": false }, "BLOCK_ARROW": { "rules": [76, 81, 84], "inclusive": false }, "NODE": { "rules": [37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 77, 80], "inclusive": false }, "md_string": { "rules": [9, 10, 78, 79], "inclusive": false }, "space": { "rules": [], "inclusive": false }, "string": { "rules": [12, 13, 82, 83], "inclusive": false }, "acc_descr_multiline": { "rules": [34, 35], "inclusive": false }, "acc_descr": { "rules": [32], "inclusive": false }, "acc_title": { "rules": [30], "inclusive": false }, "INITIAL": { "rules": [0, 1, 2, 3, 4, 5, 6, 7, 8, 11, 14, 15, 16, 17, 18, 19, 23, 26, 29, 31, 33, 36, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 92, 93, 94, 95, 96, 97, 98, 104], "inclusive": true } }
++      // Connector tokens precede broad bare IDs: o-- and ~~~ are not nodes.
++      conditions: { "STYLE_DEFINITION": { "rules": [28], "inclusive": false }, "STYLE_STMNT": { "rules": [27], "inclusive": false }, "CLASSDEFID": { "rules": [22], "inclusive": false }, "CLASSDEF": { "rules": [20, 21], "inclusive": false }, "CLASS_STYLE": { "rules": [25], "inclusive": false }, "CLASS": { "rules": [24], "inclusive": false }, "LLABEL": { "rules": [99, 100, 101, 102, 103], "inclusive": false }, "ARROW_DIR": { "rules": [85, 86, 87, 88, 89, 90, 91], "inclusive": false }, "BLOCK_ARROW": { "rules": [76, 81, 84], "inclusive": false }, "NODE": { "rules": [37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 77, 80], "inclusive": false }, "md_string": { "rules": [9, 10, 78, 79], "inclusive": false }, "space": { "rules": [], "inclusive": false }, "string": { "rules": [12, 13, 82, 83], "inclusive": false }, "acc_descr_multiline": { "rules": [34, 35], "inclusive": false }, "acc_descr": { "rules": [32], "inclusive": false }, "acc_title": { "rules": [30], "inclusive": false }, "INITIAL": { "rules": [0, 1, 2, 3, 4, 5, 6, 7, 8, 11, 14, 15, 16, 17, 18, 19, 23, 26, 29, 31, 33, 36, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 92, 93, 94, 95, 96, 97, 98, 74, 75, 104], "inclusive": true } }
+     };
+     return lexer2;
+   })();
+@@ -1927,7 +1928,8 @@ async function insertBlockPositioned(elem, block, db2) {
+   if (obj.type !== "space") {
+     const config = getConfig();
+     await insertNode(elem, node, { config });
+-    block.intersect = node?.intersect;
++    // Shape intersections may call this.calcIntersect; retain the drawn node.
++    block.intersect = node.intersect?.bind(node);
+     positionNode(node);
+   }
+ }
+@@ -1977,7 +1979,15 @@ async function insertEdges(elem, edges, blocks2, db2, id) {
+       if (startBlock?.size && endBlock?.size) {
+         const start = startBlock.size;
+         const end = endBlock.size;
+-        const points = [
++        // Coincident endpoints need a real loop before native intersections/curves.
++        const loopGap = Math.max(start.width, start.height) / 4 + (getConfig().block?.padding ?? 0);
++        const points = edge.start === edge.end ? [
++          { x: start.x, y: start.y },
++          { x: start.x + start.width / 2 + loopGap, y: start.y + start.height / 2 + loopGap },
++          { x: start.x, y: start.y + start.height / 2 + loopGap * 2 },
++          { x: start.x - start.width / 2 - loopGap, y: start.y + start.height / 2 + loopGap },
++          { x: end.x, y: end.y }
++        ] : [
+           { x: start.x, y: start.y },
+           { x: start.x + (end.x - start.x) / 2, y: start.y + (end.y - start.y) / 2 },
+           { x: end.x, y: end.y }
+diff --git a/dist/chunks/mermaid.core/ganttDiagram-EL5Y4UJY.mjs b/dist/chunks/mermaid.core/ganttDiagram-EL5Y4UJY.mjs
+index 69d322839c123d4b6e9db6d465527650b516f8fc..067e9da34c4b0e9b8f893cebd196b30872814ad4 100644
+--- a/dist/chunks/mermaid.core/ganttDiagram-EL5Y4UJY.mjs
++++ b/dist/chunks/mermaid.core/ganttDiagram-EL5Y4UJY.mjs
+@@ -90,7 +90,7 @@ var parser = (function() {
+           this.$ = $$[$0].substr(18);
+           break;
+         case 19:
+-          yy.TopAxis();
++          yy.enableTopAxis();
+           this.$ = $$[$0].substr(8);
+           break;
+         case 20:
+diff --git a/dist/chunks/mermaid.core/timeline-definition-24CTP7MA.mjs b/dist/chunks/mermaid.core/timeline-definition-24CTP7MA.mjs
+index ba0d72430024a70c59e637cdba2211dbdc00b5f7..6a2170a95ad6be8a302a18f450ce32d3ac83f6e7 100644
+--- a/dist/chunks/mermaid.core/timeline-definition-24CTP7MA.mjs
++++ b/dist/chunks/mermaid.core/timeline-definition-24CTP7MA.mjs
+@@ -614,13 +614,18 @@ __export(timelineDb_exports, {
+   addTaskOrg: () => addTaskOrg,
+   clear: () => clear2,
+   default: () => timelineDb_default,
++  // The Diagram API consumes this namespace, rather than the default DB object.
++  getAccTitle: () => commonDb_exports.getAccTitle,
++  getAccDescription: () => commonDb_exports.getAccDescription,
+   getCommonDb: () => getCommonDb,
+   getDirection: () => getDirection,
+   getSections: () => getSections,
+   getTasks: () => getTasks,
+-  setDirection: () => setDirection
++  setDirection: () => setDirection,
++  setDiagramTitle: () => commonDb_exports.setDiagramTitle
+ });
+ var currentSection = "";
++var currentSectionId = null;
+ var currentTaskId = 0;
+ var direction = "LR";
+ var sections = [];
+@@ -631,6 +636,8 @@ var clear2 = /* @__PURE__ */ __name(function() {
+   sections.length = 0;
+   tasks.length = 0;
+   currentSection = "";
++  currentSectionId = null;
++  currentTaskId = 0;
+   rawTasks.length = 0;
+   direction = "LR";
+   clear();
+@@ -643,10 +650,14 @@ var getDirection = /* @__PURE__ */ __name(function() {
+ }, "getDirection");
+ var addSection = /* @__PURE__ */ __name(function(txt) {
+   currentSection = txt;
+-  sections.push(txt);
++  // Labels are presentation; repeated sections own distinct native instances.
++  currentSectionId = sections.length;
++  sections.push({ id: currentSectionId, label: txt });
+ }, "addSection");
+ var getSections = /* @__PURE__ */ __name(function() {
+-  return sections;
++  return sections.length && rawTasks.some((task) => task.sectionId === null)
++    ? [{ id: null, label: "", implicit: true }, ...sections]
++    : sections;
+ }, "getSections");
+ var getTasks = /* @__PURE__ */ __name(function() {
+   let allItemsProcessed = compileTasks();
+@@ -663,6 +674,7 @@ var addTask = /* @__PURE__ */ __name(function(period, length, event) {
+   const rawTask = {
+     id: currentTaskId++,
+     section: currentSection,
++    sectionId: currentSectionId,
+     type: currentSection,
+     task: period,
+     score: length ? length : 0,
+@@ -678,6 +690,7 @@ var addEvent = /* @__PURE__ */ __name(function(event) {
+ var addTaskOrg = /* @__PURE__ */ __name(function(descr) {
+   const newTask = {
+     section: currentSection,
++    sectionId: currentSectionId,
+     type: currentSection,
+     description: descr,
+     task: descr,
+@@ -1068,9 +1081,10 @@ var draw = /* @__PURE__ */ __name(function(text, id, version, diagObj) {
+   let sectionNumber = 0;
+   let hasSections = true;
+   sections2.forEach(function(section) {
++    if (section.implicit) return;
+     const sectionNode = {
+       number: sectionNumber,
+-      descr: section,
++      descr: section.label,
+       section: sectionNumber,
+       width: 150,
+       padding: 20,
+@@ -1117,20 +1131,22 @@ var draw = /* @__PURE__ */ __name(function(text, id, version, diagObj) {
+   log.debug("maxTaskHeight before draw", maxTaskHeight);
+   if (sections2 && sections2.length > 0) {
+     sections2.forEach((section) => {
+-      const tasksForSection = tasks2.filter((task) => task.section === section);
++      const tasksForSection = tasks2.filter((task) => task.sectionId === section.id);
+       const sectionNode = {
+         number: sectionNumber,
+-        descr: section,
++        descr: section.label,
+         section: sectionNumber,
+         width: 200 * Math.max(tasksForSection.length, 1) - 50,
+         padding: 20,
+         maxHeight: maxSectionHeight
+       };
+       log.debug("sectionNode", sectionNode);
+-      const sectionNodeWrapper = svg.append("g");
+-      const node = svgDraw_default.drawNode(sectionNodeWrapper, sectionNode, sectionNumber, conf, id);
+-      log.debug("sectionNode output", node);
+-      sectionNodeWrapper.attr("transform", `translate(${masterX}, ${sectionBeginY})`);
++      if (!section.implicit) {
++        const sectionNodeWrapper = svg.append("g");
++        const node = svgDraw_default.drawNode(sectionNodeWrapper, sectionNode, sectionNumber, conf, id);
++        log.debug("sectionNode output", node);
++        sectionNodeWrapper.attr("transform", `translate(${masterX}, ${sectionBeginY})`);
++      }
+       masterY += maxSectionHeight + 50;
+       if (tasksForSection.length > 0) {
+         drawTasks(
+@@ -1144,13 +1160,13 @@ var draw = /* @__PURE__ */ __name(function(text, id, version, diagObj) {
+           maxEventCount,
+           maxEventLineLength,
+           maxSectionHeight,
+-          false,
++          Boolean(section.implicit),
+           id
+         );
+       }
+       masterX += 200 * Math.max(tasksForSection.length, 1);
+       masterY = sectionBeginY;
+-      sectionNumber++;
++      if (!section.implicit) sectionNumber++;
+     });
+   } else {
+     hasSections = false;
+@@ -1291,9 +1307,10 @@ var draw2 = /* @__PURE__ */ __name(function(text, id, version, diagObj) {
+   const timelineX = hasSections ? axisX : masterX + leftWidth;
+   const sectionWidth = Math.max(50, leftWidth + rightWidth - NODE_PADDING * 2);
+   sections2.forEach(function(section) {
++    if (section.implicit) return;
+     const sectionNode = {
+       number: sectionNumber,
+-      descr: section,
++      descr: section.label,
+       section: sectionNumber,
+       width: sectionWidth,
+       padding: NODE_PADDING,
+@@ -1340,22 +1357,26 @@ var draw2 = /* @__PURE__ */ __name(function(text, id, version, diagObj) {
+   const taskSpacing = taskBlockHeight + TASK_VERTICAL_GAP;
+   if (hasSections) {
+     sections2.forEach((section) => {
+-      const tasksForSection = tasks2.filter((task) => task.section === section);
++      const tasksForSection = tasks2.filter((task) => task.sectionId === section.id);
+       const sectionNode = {
+         number: sectionNumber,
+-        descr: section,
++        descr: section.label,
+         section: sectionNumber,
+         width: sectionWidth,
+         padding: NODE_PADDING,
+         maxHeight: maxSectionHeight
+       };
+       log.debug("sectionNode", sectionNode);
+-      const sectionNodeWrapper = svg.append("g");
+-      const node = svgDraw_default.drawNode(sectionNodeWrapper, sectionNode, sectionNumber, conf);
+-      log.debug("sectionNode output", node);
+-      const sectionX = timelineX - leftWidth;
+-      sectionNodeWrapper.attr("transform", `translate(${sectionX}, ${masterY})`);
+-      const taskStartY = masterY + node.height + SECTION_TASK_GAP;
++      let headerHeight = 0;
++      if (!section.implicit) {
++        const sectionNodeWrapper = svg.append("g");
++        const node = svgDraw_default.drawNode(sectionNodeWrapper, sectionNode, sectionNumber, conf);
++        log.debug("sectionNode output", node);
++        const sectionX = timelineX - leftWidth;
++        sectionNodeWrapper.attr("transform", `translate(${sectionX}, ${masterY})`);
++        headerHeight = node.height + SECTION_TASK_GAP;
++      }
++      const taskStartY = masterY + headerHeight;
+       if (tasksForSection.length > 0) {
+         drawTasks2(
+           svg,
+@@ -1366,13 +1387,16 @@ var draw2 = /* @__PURE__ */ __name(function(text, id, version, diagObj) {
+           maxTaskHeight,
+           conf,
+           taskSpacing,
+-          false
++          Boolean(section.implicit)
+         );
+       }
+       const taskCount2 = tasksForSection.length;
+-      const sectionHeight = node.height + SECTION_TASK_GAP + taskSpacing * Math.max(taskCount2, 1) - (taskCount2 > 0 ? TASK_VERTICAL_GAP * 2 : 0);
++      // The implicit first group has no header that can provide trailing clearance.
++      const sectionHeight = section.implicit
++        ? taskSpacing * taskCount2
++        : headerHeight + taskSpacing * Math.max(taskCount2, 1);
+       masterY += sectionHeight;
+-      sectionNumber++;
++      if (!section.implicit) sectionNumber++;
+     });
+   } else {
+     drawTasks2(

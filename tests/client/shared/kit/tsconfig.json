@@ -1,0 +1,15 @@
+{
+  "extends": "../../../../tsconfig.web.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo"
+  },
+  "include": ["./src"],
+  "references": [
+    { "path": "../../../../tools/utils" },
+    { "path": "../../../../client/libs/desktop-api-contract" },
+    { "path": "../../../../client/libs/infra" },
+    { "path": "../../../../virgultum/editor/all" }
+  ]
+}

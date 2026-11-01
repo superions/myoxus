@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "contentHash": "fc40836c5dca11a567ded2f43a07c2a9d82adec866d2359a35d180d8e010f73a",
+  "generatedFrom": [
+    "assets/branding/myoxus_text.svg",
+    "client/libs/icons/src/assets/platform/browser-favicon.svg",
+    "client/libs/core/public/favicon-32.png",
+    "client/libs/core/public/favicon-36.png",
+    "client/libs/core/public/favicon-48.png",
+    "client/libs/core/public/favicon-72.png",
+    "client/libs/core/public/favicon-96.png",
+    "client/libs/core/public/favicon-144.png",
+    "client/libs/core/public/favicon-192.png",
+    "client/libs/core/public/favicon.ico",
+    "client/libs/core/public/apple-touch-icon.png"
+  ],
+  "appServerBranding": {
+    "logo": {
+      "slot": "logo",
+      "variant": "large",
+      "qualityClass": "web",
+      "storageKind": "style_static",
+      "storageKey": "logo.svg",
+      "publicUrl": "/style/logo.svg?v=9c1e0b39f20885cc",
+      "mime": "image/svg+xml",
+      "sha256": "9c1e0b39f20885cc8d0eec3d9830e9117675e24a8bd0d7ce2b99084b74509ae2",
+      "byteSize": 8177
+    },
+    "productMark": {
+      "slot": "product_mark",
+      "variant": "mark",
+      "qualityClass": "web",
+      "storageKind": "style_static",
+      "storageKey": "product-mark.svg",
+      "publicUrl": "/style/product-mark.svg?v=c966faf3266cacfa",
+      "mime": "image/svg+xml",
+      "sha256": "c966faf3266cacfa89f57cc9a1a5cb55d67fc83ab13cca217b3c890771dc763c",
+      "byteSize": 1519
+    },
+    "faviconPack": {
+      "slot": "favicon_pack",
+      "variant": "pack",
+      "qualityClass": "favicon",
+      "storageKind": "static_root",
+      "storageKey": "favicon-pack",
+      "publicUrl": "/favicon-192.png?v=c3ae577e717c7683",
+      "mime": "application/vnd.myoxus.favicon-pack+json",
+      "sha256": "c3ae577e717c7683252341a49d9ff907587a0fa3af793f62dffd1b21fe607cdb",
+      "byteSize": 53267
+    }
+  },
+  "favicons": [
+    {
+      "storageKey": "favicon-32.png",
+      "publicUrl": "/favicon-32.png?v=0649faef51da67e5",
+      "mime": "image/png",
+      "sha256": "0649faef51da67e5d467d6f418e80539a4d00affdb703dc5ec16894302fc0133",
+      "byteSize": 1813,
+      "sizePx": 32
+    },
+    {
+      "storageKey": "favicon-36.png",
+      "publicUrl": "/favicon-36.png?v=7af56203ed157484",
+      "mime": "image/png",
+      "sha256": "7af56203ed157484eecb7dd03de947fae5bb6442fee8ca5f10f31051e4b3bb2f",
+      "byteSize": 2113,
+      "sizePx": 36
+    },
+    {
+      "storageKey": "favicon-48.png",
+      "publicUrl": "/favicon-48.png?v=c12283596683e8c4",
+      "mime": "image/png",
+      "sha256": "c12283596683e8c46c2cf0e9242b94f3e2e32c7b47f2a6f3aebf80c5b9ec89e0",
+      "byteSize": 2745,
+      "sizePx": 48
+    },
+    {
+      "storageKey": "favicon-72.png",
+      "publicUrl": "/favicon-72.png?v=c9d38558facc6179",
+      "mime": "image/png",
+      "sha256": "c9d38558facc617995255a4c753bbe39d13323f934275d76eb4d56ba16a5143d",
+      "byteSize": 4199,
+      "sizePx": 72
+    },
+    {
+      "storageKey": "favicon-96.png",
+      "publicUrl": "/favicon-96.png?v=5c7a516f91f81d3f",
+      "mime": "image/png",
+      "sha256": "5c7a516f91f81d3fadf6eb4fb135770c5bf7a9c5aa3bc7f39fddd2e4849d31b9",
+      "byteSize": 5705,
+      "sizePx": 96
+    },
+    {
+      "storageKey": "favicon-144.png",
+      "publicUrl": "/favicon-144.png?v=b91be5026bb8ec5e",
+      "mime": "image/png",
+      "sha256": "b91be5026bb8ec5e98109afa16aa51c11d2f984698ccdf0699f68dde7272ca7f",
+      "byteSize": 8635,
+      "sizePx": 144
+    },
+    {
+      "storageKey": "favicon-192.png",
+      "publicUrl": "/favicon-192.png?v=502f14d99356a4b5",
+      "mime": "image/png",
+      "sha256": "502f14d99356a4b528cd001938782eed2192bdb2d09d401b40f02d3f0c90c542",
+      "byteSize": 11674,
+      "sizePx": 192
+    },
+    {
+      "storageKey": "favicon.ico",
+      "publicUrl": "/favicon.ico?v=3d0c00e41051c815",
+      "mime": "image/x-icon",
+      "sha256": "3d0c00e41051c815c53d0f6b842847150a53ff8281c518cc9228454e253bada0",
+      "byteSize": 5433
+    },
+    {
+      "storageKey": "apple-touch-icon.png",
+      "publicUrl": "/apple-touch-icon.png?v=30da21407f0685f4",
+      "mime": "image/png",
+      "sha256": "30da21407f0685f433ce36267532618129b19077773ac1001ab09524b70fa321",
+      "byteSize": 10950
+    }
+  ]
+}

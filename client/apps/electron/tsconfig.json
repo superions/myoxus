@@ -1,0 +1,16 @@
+{
+  "extends": "../../../tsconfig.node.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./lib/tsc/runtime",
+    "tsBuildInfoFile": "./lib/tsc/runtime/tsconfig.tsbuildinfo"
+  },
+  "include": ["./src"],
+  "references": [
+    { "path": "../../libs/desktop-api-contract" },
+    { "path": "../../../tools/utils" },
+    { "path": "../../libs/i18n" },
+    { "path": "../../libs/infra" },
+    { "path": "../../libs/storage" }
+  ]
+}

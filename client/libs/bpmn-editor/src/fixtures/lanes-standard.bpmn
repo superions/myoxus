@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<b:definitions xmlns="urn:fixture:external-default" xmlns:b="http://www.omg.org/spec/BPMN/20100524/MODEL"
+ xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+ xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+ xmlns:tns="urn:myoxus:lanes" id="Definitions" targetNamespace="urn:myoxus:lanes">
+ <b:process id="Process" name="Nested lane membership">
+  <b:laneSet id="Lanes">
+   <b:lane id="Outer" name="Operations"><b:documentation>Keep ancestor membership</b:documentation>
+    <b:flowNodeRef>TaskA</b:flowNodeRef><b:flowNodeRef>TaskB</b:flowNodeRef>
+    <b:childLaneSet id="Children">
+     <b:lane id="Middle" name="Review"><b:flowNodeRef>TaskA</b:flowNodeRef>
+      <b:childLaneSet id="Grandchildren"><b:lane id="Deep" name="Specialist review"><b:flowNodeRef>TaskA</b:flowNodeRef></b:lane></b:childLaneSet>
+     </b:lane>
+     <b:lane id="Sibling" name="Dispatch"><b:flowNodeRef>TaskB</b:flowNodeRef></b:lane>
+    </b:childLaneSet>
+   </b:lane>
+   <b:lane id="Other" name="External review"><b:flowNodeRef>TaskC</b:flowNodeRef></b:lane>
+  </b:laneSet>
+  <b:task id="TaskA" name="Assess"/><b:task id="TaskB" name="Send"/><b:task id="TaskC" name="Check"/>
+ </b:process>
+ <bpmndi:BPMNDiagram id="Diagram"><bpmndi:BPMNPlane id="Plane" bpmnElement="tns:Process">
+  <bpmndi:BPMNShape id="OuterDI" bpmnElement="tns:Outer" isHorizontal="true"><dc:Bounds x="20" y="20" width="800" height="700"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="MiddleDI" bpmnElement="tns:Middle" isHorizontal="true"><dc:Bounds x="80" y="60" width="700" height="400"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="DeepDI" bpmnElement="tns:Deep" isHorizontal="true"><dc:Bounds x="140" y="100" width="600" height="320"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="SiblingDI" bpmnElement="tns:Sibling" isHorizontal="true"><dc:Bounds x="80" y="480" width="700" height="200"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="OtherDI" bpmnElement="tns:Other" isHorizontal="true"><dc:Bounds x="900" y="20" width="400" height="700"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="TaskADI" bpmnElement="tns:TaskA"><dc:Bounds x="240" y="160" width="120" height="80"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="TaskBDI" bpmnElement="tns:TaskB"><dc:Bounds x="240" y="520" width="120" height="80"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="TaskCDI" bpmnElement="tns:TaskC"><dc:Bounds x="1000" y="160" width="120" height="80"/></bpmndi:BPMNShape>
+ </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+</b:definitions>

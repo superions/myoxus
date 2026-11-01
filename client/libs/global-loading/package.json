@@ -1,0 +1,16 @@
+{
+  "name": "@myoxus/global-loading",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "jotai": "^2.10.3",
+    "nanoid": "6.0.1"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2"
+  },
+  "license": "AGPL-3.0-or-later"
+}

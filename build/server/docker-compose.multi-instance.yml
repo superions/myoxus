@@ -1,0 +1,113 @@
+# Isolated two-node server test topology.
+#
+# Lifecycle, credentials, dynamic host ports and cleanup are owned by
+# build/scripts/test/run-multi-instance.sh. Do not start this file directly:
+# the wrapper supplies a unique project name, image and secret files.
+
+x-api-common: &api-common
+  image: "${MYOXUS_MI_IMAGE:?run through build/scripts/test/run-multi-instance.sh}"
+  depends_on:
+    postgres-mi:
+      condition: service_healthy
+    redis-mi:
+      condition: service_healthy
+  environment:
+    RUN_MODE: development
+    POSTGRES_HOST: postgres-mi
+    POSTGRES_PORT: "5432"
+    POSTGRES_USER: myoxus_mi
+    POSTGRES_DB: myoxus_mi
+    POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    MYOXUS__DATABASE__URL_FILE: /run/myoxus/database-url
+    MYOXUS__CRYPTO__PRIVATE_KEY_FILE: /run/secrets/crypto_private_key
+    MYOXUS__SERVER__HOST: 0.0.0.0
+    MYOXUS__SERVER__PORT: "3001"
+    MYOXUS__REDIS__URL: redis://redis-mi:6379
+    MYOXUS__STORAGE__ROOT: /opt/myoxus/data/storage
+    MYOXUS__LOGGING__LEVEL: info
+    # A three-second lease keeps crash/expiry assertions bounded.
+    MYOXUS__WEBSOCKET__PING_INTERVAL_SECONDS: "1"
+    # Align cron admission with the owned one-second reminder fixture cadence.
+    MYOXUS__WORKER__CRON_TICK_INTERVAL_SECONDS: "1"
+    MYOXUS__WORKER__POLLING__DATABASE_REMINDER_INTERVAL_MS: "1000"
+  secrets:
+    - postgres_password
+    - crypto_private_key
+  volumes:
+    - shared-storage:/opt/myoxus/data/storage
+  healthcheck:
+    test: ["CMD", "/usr/local/bin/myoxus-cli", "container", "health", "--ready"]
+    interval: 5s
+    timeout: 3s
+    retries: 40
+    start_period: 15s
+  restart: "no"
+
+services:
+  postgres-mi:
+    image: pgvector/pgvector:pg16
+    command: ["postgres", "-c", "max_connections=200"]
+    environment:
+      POSTGRES_USER: myoxus_mi
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_DB: myoxus_mi
+    secrets:
+      - postgres_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myoxus_mi -d myoxus_mi"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: "no"
+
+  redis-mi:
+    image: redis:8
+    command: ["redis-server", "--appendonly", "no", "--save", ""]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    tmpfs:
+      - /data
+    restart: "no"
+
+  api-1:
+    <<: *api-common
+    ports:
+      - "127.0.0.1::3001"
+
+  api-2:
+    <<: *api-common
+    ports:
+      - "127.0.0.1::3001"
+
+  gateway:
+    image: nginx:1.27-alpine
+    depends_on:
+      api-1:
+        condition: service_healthy
+      api-2:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1::8080"
+    volumes:
+      - ./nginx.multi-instance.conf:/etc/nginx/nginx.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/health >/dev/null"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: "no"
+
+secrets:
+  postgres_password:
+    file: "${MYOXUS_MI_POSTGRES_PASSWORD_FILE:?missing PostgreSQL secret file}"
+  crypto_private_key:
+    file: "${MYOXUS_MI_CRYPTO_PRIVATE_KEY_FILE:?missing crypto secret file}"
+
+volumes:
+  postgres-data:
+  shared-storage:

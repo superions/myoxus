@@ -1,0 +1,11 @@
+mutation adminTriggerWorkspaceReindex($workspaceId: ID!) {
+  admin {
+    triggerWorkspaceReindex(workspaceId: $workspaceId)
+  }
+}
+
+mutation adminTriggerFullReindex {
+  admin {
+    triggerFullReindex
+  }
+}

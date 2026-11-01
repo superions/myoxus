@@ -1,0 +1,52 @@
+{
+  "name": "@myoxus/ios",
+  "private": true,
+  "description": "Myoxus iOS application",
+  "type": "module",
+  "browser": "src/index.tsx",
+  "scripts": {
+    "build": "myoxus bundle",
+    "dev": "myoxus bundle --dev",
+    "sync": "cap sync",
+    "sync:dev": "CAP_SERVER_URL=http://localhost:8080 cap sync",
+    "xcode": "cap open ios",
+    "codegen": "r ./codegen.ts"
+  },
+  "dependencies": {
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/browser": "^8.0.4",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.5.2",
+    "@capacitor/keyboard": "^8.0.5",
+    "@myoxus/core": "workspace:*",
+    "@myoxus/env": "workspace:*",
+    "@myoxus/graphql": "workspace:*",
+    "@myoxus/i18n": "workspace:*",
+    "@myoxus/icons": "workspace:*",
+    "@myoxus/infra": "workspace:*",
+    "@myoxus/mobile-shared": "workspace:*",
+    "@myoxus/storage": "workspace:*",
+    "@myoxus/theme": "workspace:*",
+    "@myoxus/track": "workspace:*",
+    "@myoxus/ui-facade": "workspace:*",
+    "@sentry/react": "10.75.0",
+    "@virgultum/editor": "workspace:*",
+    "async-call-rpc": "^6.4.2",
+    "capacitor-plugin-app-tracking-transparency": "^2.0.5",
+    "idb": "^8.0.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-router": "7.18.4",
+    "yjs": "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
+    "@myoxus-tools/cli": "workspace:*",
+    "@myoxus-tools/utils": "workspace:*",
+    "@types/react": "^19.0.1",
+    "@types/react-dom": "^19.0.2",
+    "cross-env": "^10.1.0",
+    "typescript": "7.0.2"
+  }
+}

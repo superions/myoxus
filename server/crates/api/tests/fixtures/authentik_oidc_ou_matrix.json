@@ -1,0 +1,341 @@
+{
+  "version": 1,
+  "description": "Deterministic Authentik OIDC to Myoxus OU sync fixture. Test-only identities and groups.",
+  "groups": [
+    { "name": "dept-finance", "role": "member", "mapped": true },
+    { "name": "dept-engineering", "role": "member", "mapped": true },
+    { "name": "dept-people", "role": "reader", "mapped": true },
+    { "name": "dept-support", "role": "member", "mapped": true },
+    { "name": "team-platform", "role": "manager", "mapped": true },
+    { "name": "team-design", "role": "member", "mapped": true },
+    { "name": "team-sales", "role": "reader", "mapped": true },
+    { "name": "team-security", "role": "manager", "mapped": true },
+    { "name": "contractors", "role": "reader", "mapped": true },
+    { "name": "unmapped-lab", "mapped": false }
+  ],
+  "users": [
+    {
+      "username": "oidc-user-001",
+      "email": "oidc-user-001@example.test",
+      "groups": ["dept-finance"],
+      "expectedMemberships": ["dept-finance"]
+    },
+    {
+      "username": "oidc-user-002",
+      "email": "oidc-user-002@example.test",
+      "groups": ["dept-engineering"],
+      "expectedMemberships": ["dept-engineering"]
+    },
+    {
+      "username": "oidc-user-003",
+      "email": "oidc-user-003@example.test",
+      "groups": ["dept-people"],
+      "expectedMemberships": ["dept-people"]
+    },
+    {
+      "username": "oidc-user-004",
+      "email": "oidc-user-004@example.test",
+      "groups": ["dept-support"],
+      "expectedMemberships": ["dept-support"]
+    },
+    {
+      "username": "oidc-user-005",
+      "email": "oidc-user-005@example.test",
+      "groups": ["team-platform"],
+      "expectedMemberships": ["team-platform"]
+    },
+    {
+      "username": "oidc-user-006",
+      "email": "oidc-user-006@example.test",
+      "groups": ["team-design"],
+      "expectedMemberships": ["team-design"]
+    },
+    {
+      "username": "oidc-user-007",
+      "email": "oidc-user-007@example.test",
+      "groups": ["team-sales"],
+      "expectedMemberships": ["team-sales"]
+    },
+    {
+      "username": "oidc-user-008",
+      "email": "oidc-user-008@example.test",
+      "groups": ["team-security"],
+      "expectedMemberships": ["team-security"]
+    },
+    {
+      "username": "oidc-user-009",
+      "email": "oidc-user-009@example.test",
+      "groups": ["contractors"],
+      "expectedMemberships": ["contractors"]
+    },
+    {
+      "username": "oidc-user-010",
+      "email": "oidc-user-010@example.test",
+      "groups": ["unmapped-lab"],
+      "expectedMemberships": []
+    },
+    {
+      "username": "oidc-user-011",
+      "email": "oidc-user-011@example.test",
+      "groups": ["dept-finance", "team-platform"],
+      "expectedMemberships": ["dept-finance", "team-platform"]
+    },
+    {
+      "username": "oidc-user-012",
+      "email": "oidc-user-012@example.test",
+      "groups": ["dept-engineering", "team-security"],
+      "expectedMemberships": ["dept-engineering", "team-security"]
+    },
+    {
+      "username": "oidc-user-013",
+      "email": "oidc-user-013@example.test",
+      "groups": ["dept-people", "contractors"],
+      "expectedMemberships": ["dept-people", "contractors"]
+    },
+    {
+      "username": "oidc-user-014",
+      "email": "oidc-user-014@example.test",
+      "groups": ["dept-support", "team-sales"],
+      "expectedMemberships": ["dept-support", "team-sales"]
+    },
+    {
+      "username": "oidc-user-015",
+      "email": "oidc-user-015@example.test",
+      "groups": ["team-design", "unmapped-lab"],
+      "expectedMemberships": ["team-design"]
+    },
+    {
+      "username": "oidc-user-016",
+      "email": "oidc-user-016@example.test",
+      "groups": ["dept-finance", "dept-engineering"],
+      "expectedMemberships": ["dept-finance", "dept-engineering"]
+    },
+    {
+      "username": "oidc-user-017",
+      "email": "oidc-user-017@example.test",
+      "groups": ["dept-finance", "team-security"],
+      "expectedMemberships": ["dept-finance", "team-security"]
+    },
+    {
+      "username": "oidc-user-018",
+      "email": "oidc-user-018@example.test",
+      "groups": ["dept-engineering", "team-design"],
+      "expectedMemberships": ["dept-engineering", "team-design"]
+    },
+    {
+      "username": "oidc-user-019",
+      "email": "oidc-user-019@example.test",
+      "groups": ["dept-people", "team-sales"],
+      "expectedMemberships": ["dept-people", "team-sales"]
+    },
+    {
+      "username": "oidc-user-020",
+      "email": "oidc-user-020@example.test",
+      "groups": ["dept-support", "contractors"],
+      "expectedMemberships": ["dept-support", "contractors"]
+    },
+    {
+      "username": "oidc-user-021",
+      "email": "oidc-user-021@example.test",
+      "groups": ["dept-finance"],
+      "expectedMemberships": ["dept-finance"]
+    },
+    {
+      "username": "oidc-user-022",
+      "email": "oidc-user-022@example.test",
+      "groups": ["dept-engineering"],
+      "expectedMemberships": ["dept-engineering"]
+    },
+    {
+      "username": "oidc-user-023",
+      "email": "oidc-user-023@example.test",
+      "groups": ["dept-people"],
+      "expectedMemberships": ["dept-people"]
+    },
+    {
+      "username": "oidc-user-024",
+      "email": "oidc-user-024@example.test",
+      "groups": ["dept-support"],
+      "expectedMemberships": ["dept-support"]
+    },
+    {
+      "username": "oidc-user-025",
+      "email": "oidc-user-025@example.test",
+      "groups": ["team-platform"],
+      "expectedMemberships": ["team-platform"]
+    },
+    {
+      "username": "oidc-user-026",
+      "email": "oidc-user-026@example.test",
+      "groups": ["team-design"],
+      "expectedMemberships": ["team-design"]
+    },
+    {
+      "username": "oidc-user-027",
+      "email": "oidc-user-027@example.test",
+      "groups": ["team-sales"],
+      "expectedMemberships": ["team-sales"]
+    },
+    {
+      "username": "oidc-user-028",
+      "email": "oidc-user-028@example.test",
+      "groups": ["team-security"],
+      "expectedMemberships": ["team-security"]
+    },
+    {
+      "username": "oidc-user-029",
+      "email": "oidc-user-029@example.test",
+      "groups": ["contractors"],
+      "expectedMemberships": ["contractors"]
+    },
+    {
+      "username": "oidc-user-030",
+      "email": "oidc-user-030@example.test",
+      "groups": ["unmapped-lab"],
+      "expectedMemberships": []
+    },
+    {
+      "username": "oidc-user-031",
+      "email": "oidc-user-031@example.test",
+      "groups": ["dept-finance", "team-platform", "unmapped-lab"],
+      "expectedMemberships": ["dept-finance", "team-platform"]
+    },
+    {
+      "username": "oidc-user-032",
+      "email": "oidc-user-032@example.test",
+      "groups": ["dept-engineering", "team-security", "contractors"],
+      "expectedMemberships": [
+        "dept-engineering",
+        "team-security",
+        "contractors"
+      ]
+    },
+    {
+      "username": "oidc-user-033",
+      "email": "oidc-user-033@example.test",
+      "groups": ["dept-people", "team-design"],
+      "expectedMemberships": ["dept-people", "team-design"]
+    },
+    {
+      "username": "oidc-user-034",
+      "email": "oidc-user-034@example.test",
+      "groups": ["dept-support", "team-sales", "unmapped-lab"],
+      "expectedMemberships": ["dept-support", "team-sales"]
+    },
+    {
+      "username": "oidc-user-035",
+      "email": "oidc-user-035@example.test",
+      "groups": ["dept-finance", "contractors"],
+      "expectedMemberships": ["dept-finance", "contractors"]
+    },
+    {
+      "username": "oidc-user-036",
+      "email": "oidc-user-036@example.test",
+      "groups": ["dept-engineering", "team-platform"],
+      "expectedMemberships": ["dept-engineering", "team-platform"]
+    },
+    {
+      "username": "oidc-user-037",
+      "email": "oidc-user-037@example.test",
+      "groups": ["dept-people", "team-security"],
+      "expectedMemberships": ["dept-people", "team-security"]
+    },
+    {
+      "username": "oidc-user-038",
+      "email": "oidc-user-038@example.test",
+      "groups": ["dept-support", "team-design"],
+      "expectedMemberships": ["dept-support", "team-design"]
+    },
+    {
+      "username": "oidc-user-039",
+      "email": "oidc-user-039@example.test",
+      "groups": ["team-sales", "contractors"],
+      "expectedMemberships": ["team-sales", "contractors"]
+    },
+    {
+      "username": "oidc-user-040",
+      "email": "oidc-user-040@example.test",
+      "groups": ["unmapped-lab"],
+      "expectedMemberships": []
+    },
+    {
+      "username": "oidc-user-041",
+      "email": "oidc-user-041@example.test",
+      "groups": ["dept-finance", "dept-support"],
+      "expectedMemberships": ["dept-finance", "dept-support"]
+    },
+    {
+      "username": "oidc-user-042",
+      "email": "oidc-user-042@example.test",
+      "groups": ["dept-engineering", "dept-people"],
+      "expectedMemberships": ["dept-engineering", "dept-people"]
+    },
+    {
+      "username": "oidc-user-043",
+      "email": "oidc-user-043@example.test",
+      "groups": ["team-platform", "team-security"],
+      "expectedMemberships": ["team-platform", "team-security"]
+    },
+    {
+      "username": "oidc-user-044",
+      "email": "oidc-user-044@example.test",
+      "groups": ["team-design", "team-sales"],
+      "expectedMemberships": ["team-design", "team-sales"]
+    },
+    {
+      "username": "oidc-user-045",
+      "email": "oidc-user-045@example.test",
+      "groups": ["contractors", "unmapped-lab"],
+      "expectedMemberships": ["contractors"]
+    },
+    {
+      "username": "oidc-user-046",
+      "email": "oidc-user-046@example.test",
+      "groups": ["dept-finance", "dept-engineering", "team-platform"],
+      "expectedMemberships": [
+        "dept-finance",
+        "dept-engineering",
+        "team-platform"
+      ]
+    },
+    {
+      "username": "oidc-user-047",
+      "email": "oidc-user-047@example.test",
+      "groups": ["dept-people", "dept-support", "team-sales"],
+      "expectedMemberships": ["dept-people", "dept-support", "team-sales"]
+    },
+    {
+      "username": "oidc-user-048",
+      "email": "oidc-user-048@example.test",
+      "groups": ["team-design", "team-security", "contractors"],
+      "expectedMemberships": ["team-design", "team-security", "contractors"]
+    },
+    {
+      "username": "oidc-user-049",
+      "email": "oidc-user-049@example.test",
+      "groups": [],
+      "expectedMemberships": [],
+      "missingMappedGroup": true
+    },
+    {
+      "username": "oidc-user-050",
+      "email": "oidc-user-050@example.test",
+      "groupsClaim": null,
+      "expectedDenied": true
+    }
+  ],
+  "revocationScenario": {
+    "username": "oidc-user-011",
+    "beforeGroups": ["dept-finance", "team-platform"],
+    "afterGroups": ["dept-finance"],
+    "removedOidcMemberships": ["team-platform"],
+    "manualMembershipMustRemain": true
+  },
+  "expectedCounts": {
+    "users": 50,
+    "groups": 10,
+    "mappedGroups": 9,
+    "usersWithDeniedMissingGroupsClaim": 1,
+    "usersWithOnlyUnmappedGroups": 3
+  }
+}

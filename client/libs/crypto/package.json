@@ -1,0 +1,29 @@
+{
+  "name": "@myoxus/crypto",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "napi build --release --features napi",
+    "build:debug": "napi build --features napi"
+  },
+  "napi": {
+    "binaryName": "myoxus_crypto",
+    "targets": [
+      "x86_64-apple-darwin",
+      "aarch64-apple-darwin",
+      "x86_64-pc-windows-msvc",
+      "x86_64-unknown-linux-gnu",
+      "x86_64-unknown-linux-musl",
+      "aarch64-unknown-linux-gnu",
+      "aarch64-unknown-linux-musl"
+    ]
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "3.7.4"
+  },
+  "license": "AGPL-3.0-or-later"
+}

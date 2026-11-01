@@ -1,0 +1,28 @@
+.myoxus-drag-handle {
+  cursor: grab;
+  color: var(--myoxus-icon-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.myoxus-drag-handle:focus-visible {
+  outline: 2px solid var(--myoxus-primary-color, currentColor);
+  outline-offset: 2px;
+}
+
+.myoxus-drag-handle[data-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.myoxus-drag-handle__icon {
+  width: var(--mantine-spacing-xl);
+  height: var(--mantine-spacing-xl);
+  border-radius: var(--mantine-radius-md);
+}
+
+.myoxus-drag-handle[data-dragging="true"] .myoxus-drag-handle__icon,
+.myoxus-drag-handle:hover .myoxus-drag-handle__icon {
+  background-color: var(--myoxus-hover-color);
+}

@@ -1,0 +1,13 @@
+query serverDirectories {
+  admin {
+    serverDirectories {
+      name
+      path
+      exists
+      totalBytes
+      freeBytes
+      capacityBytes
+      entryCount
+    }
+  }
+}

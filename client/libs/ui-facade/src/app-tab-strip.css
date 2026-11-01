@@ -1,0 +1,291 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+/*
+ * Native-window tab strips are application chrome rather than content tabs.
+ * These roles centralize Electron drag-region, split-view overflow and close
+ * affordance behavior so product packages do not carry route-local tab CSS.
+ */
+.myoxus-app-tab-strip {
+  width: 100%;
+  height: calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm));
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-sm);
+  overflow: clip;
+  pointer-events: auto;
+  -webkit-app-region: drag;
+}
+
+.myoxus-app-tab-strip[data-windows="false"] {
+  padding-right: var(--mantine-spacing-sm);
+}
+
+.myoxus-app-tab-strip__leading {
+  --myoxus-app-tab-strip-traffic-light-offset: calc(
+    var(--mantine-spacing-2xs) - var(--mantine-spacing-2xs)
+  );
+  --myoxus-app-tab-strip-expanded-inline-size: calc(
+    calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm)) +
+      calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm)) +
+      calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm))
+  );
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: calc(
+    var(--myoxus-app-tab-strip-expanded-inline-size) +
+      var(--myoxus-app-tab-strip-traffic-light-offset)
+  );
+  flex-shrink: 0;
+  padding-left: calc(
+    calc(var(--mantine-spacing-2xs) + var(--mantine-spacing-xs)) +
+      var(--myoxus-app-tab-strip-traffic-light-offset)
+  );
+  padding-right: var(--mantine-spacing-md);
+  gap: calc(var(--mantine-spacing-sm) + var(--mantine-spacing-2xs));
+}
+
+.myoxus-app-tab-strip[data-mode="app"] .myoxus-app-tab-strip__leading {
+  transition:
+    width 300ms,
+    padding-left 300ms,
+    margin-right 300ms;
+}
+
+.myoxus-app-tab-strip__leading[data-open="true"] {
+  width: var(--myoxus-app-tab-strip-expanded-inline-size);
+  margin-right: calc(-1 * var(--mantine-spacing-sm));
+}
+
+.myoxus-app-tab-strip__leading[data-resizing="true"] {
+  transition: none;
+}
+
+.myoxus-app-tab-strip__divider {
+  background: var(--myoxus-divider-color);
+  width: var(--mantine-spacing-2xs);
+  flex-shrink: 0;
+}
+
+.myoxus-app-tab-strip__divider[data-orientation="pinned"] {
+  height: var(--mantine-spacing-lg);
+  margin-right: var(--mantine-spacing-sm);
+}
+
+.myoxus-app-tab-strip__divider[data-orientation="split-view"] {
+  height: 100%;
+}
+
+.myoxus-app-tab-strip__list-content {
+  height: 100%;
+  align-items: center;
+}
+
+.myoxus-app-tab-strip__tab-slot {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+.myoxus-app-tab-strip__tab {
+  height: var(--mantine-spacing-xl);
+  max-width: var(--myoxus-app-tab-strip-tab-max-inline-size);
+  width: var(--myoxus-app-tab-strip-tab-max-inline-size);
+  overflow: clip;
+  background: var(--myoxus-background-secondary-color);
+  display: flex;
+  align-items: center;
+  user-select: none;
+  border-radius: var(--mantine-radius-sm);
+  position: relative;
+  -webkit-app-region: no-drag;
+}
+
+.myoxus-app-tab-strip__tab[data-active="true"] {
+  background: var(--myoxus-background-primary-color);
+}
+
+.myoxus-app-tab-strip__view-button {
+  --myoxus-app-tab-strip-view-font-color: var(--myoxus-text-disable-color);
+  --myoxus-app-tab-strip-view-icon-color: var(--myoxus-icon-secondary);
+
+  padding: 0 var(--mantine-spacing-sm);
+  height: 100%;
+  display: flex;
+  gap: var(--mantine-spacing-xs);
+  font: var(
+      --mantine-font-weight-body-small,
+      var(--mantine-font-weight-regular)
+    )
+    var(--mantine-font-size-body-small, var(--mantine-font-size-md)) /
+    var(--mantine-line-height-body-small, var(--mantine-line-height-md))
+    var(--mantine-font-family-body-small, var(--mantine-font-family));
+  align-items: center;
+  cursor: default;
+  flex: 1;
+  min-width: 0;
+  color: var(--myoxus-app-tab-strip-view-font-color);
+}
+
+.myoxus-app-tab-strip__view-button[data-active="true"] {
+  --myoxus-app-tab-strip-view-font-color: var(--myoxus-text-primary-color);
+  --myoxus-app-tab-strip-view-icon-color: var(--myoxus-icon-color);
+
+  background: var(--myoxus-background-primary-color);
+}
+
+.myoxus-app-tab-strip__view-icon {
+  color: var(--myoxus-app-tab-strip-view-icon-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--mantine-spacing-lg);
+  height: var(--mantine-spacing-lg);
+  font-size: var(--mantine-spacing-lg);
+  flex-shrink: 0;
+}
+
+.myoxus-app-tab-strip__view-button[data-active="false"]:hover
+  .myoxus-app-tab-strip__view-icon,
+.myoxus-app-tab-strip__tab:has(.myoxus-app-tab-strip__close-slot:hover)
+  .myoxus-app-tab-strip__view-button:last-of-type[data-active="false"]
+  .myoxus-app-tab-strip__view-icon,
+.myoxus-app-tab-strip__view-button[data-active="false"]:hover
+  .myoxus-app-tab-strip__view-label,
+.myoxus-app-tab-strip__tab:has(.myoxus-app-tab-strip__close-slot:hover)
+  .myoxus-app-tab-strip__view-button:last-of-type[data-active="false"]
+  .myoxus-app-tab-strip__view-label {
+  --myoxus-app-tab-strip-view-font-color: var(--myoxus-text-primary-color);
+  --myoxus-app-tab-strip-view-icon-color: var(--myoxus-icon-color);
+}
+
+.myoxus-app-tab-strip__view-label {
+  min-width: 0;
+  text-overflow: ellipsis;
+  overflow: clip;
+  white-space: nowrap;
+  color: var(--myoxus-app-tab-strip-view-font-color);
+  padding-right: var(--mantine-spacing-xs);
+}
+
+.myoxus-app-tab-strip__close-slot {
+  flex-shrink: 0;
+  width: calc(var(--mantine-spacing-xl) + var(--mantine-spacing-xs));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.myoxus-app-tab-strip__close-button {
+  pointer-events: auto;
+  display: flex;
+  color: var(--myoxus-icon-secondary);
+}
+
+.myoxus-app-tab-strip__close-button:hover {
+  color: var(--myoxus-icon-color);
+  background: var(--myoxus-hover-color);
+}
+
+.myoxus-app-tab-strip__spacer {
+  flex-grow: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  margin-left: calc(-1 * var(--mantine-spacing-sm));
+  position: relative;
+}
+
+.myoxus-app-tab-strip__spacer[data-dragged-over="true"]::after {
+  content: "";
+  position: absolute;
+  top: var(--mantine-spacing-2xs);
+  height: var(--mantine-spacing-xl);
+  left: calc(-1 * var(--mantine-spacing-xs) - var(--mantine-spacing-2xs));
+  right: 0;
+  width: var(--mantine-spacing-2xs);
+  border-radius: var(--mantine-radius-xs);
+  background: var(--myoxus-primary-color);
+}
+
+.myoxus-app-tab-strip .myoxus-app-tab-strip__action-button {
+  min-width: calc(var(--mantine-spacing-xl) + var(--mantine-spacing-xs));
+  min-height: calc(var(--mantine-spacing-xl) + var(--mantine-spacing-xs));
+  -webkit-app-region: no-drag;
+}
+
+.myoxus-app-tab-strip__windows-controls-placeholder {
+  width: calc(
+    var(--mantine-spacing-xl) + var(--mantine-spacing-xl) +
+      var(--mantine-spacing-xl) + var(--mantine-spacing-xl) +
+      var(--mantine-spacing-xl)
+  );
+  height: 100%;
+  flex-shrink: 0;
+}
+
+.myoxus-app-window-controls {
+  display: flex;
+  flex-shrink: 0;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  position: fixed;
+  z-index: 20;
+}
+
+.myoxus-app-window-controls__button {
+  -webkit-app-region: no-drag;
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  color: var(--myoxus-icon-color);
+  cursor: pointer;
+  display: inline-flex;
+  block-size: calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm));
+  inline-size: calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm));
+  justify-content: center;
+  padding: 0;
+}
+
+.myoxus-app-window-controls__button:hover {
+  background: var(--myoxus-hover-color);
+}
+
+.myoxus-app-window-controls__button[data-window-control="close"]:hover {
+  background: var(--myoxus-windows-close-button);
+  color: var(--myoxus-pure-white);
+}
+
+.myoxus-app-tab-strip__drop-indicator {
+  position: absolute;
+  height: var(--mantine-spacing-xl);
+  top: var(--mantine-spacing-2xs);
+  width: var(--mantine-spacing-2xs);
+  border-radius: var(--mantine-radius-xs);
+  opacity: 0;
+  background: var(--myoxus-primary-color);
+}
+
+.myoxus-app-tab-strip__drop-indicator[data-edge="left"] {
+  opacity: 1;
+  transform: translateX(
+    calc(-1 * var(--mantine-spacing-xs) - var(--mantine-spacing-2xs))
+  );
+}
+
+.myoxus-app-tab-strip__drop-indicator[data-edge="right"] {
+  right: 0;
+  opacity: 1;
+  transform: translateX(
+    calc(
+      -1 * calc(var(--mantine-spacing-sm) + var(--mantine-spacing-2xs)) +
+        var(--mantine-spacing-2xs)
+    )
+  );
+}

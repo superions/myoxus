@@ -1,0 +1,243 @@
+query adminDocumentMetadataFieldDefinitions {
+  admin {
+    documentMetadataFieldDefinitions {
+      ...DocumentMetadataFieldDefinitionFields
+    }
+  }
+}
+
+query adminDocumentStatusSchemas {
+  admin {
+    documentStatusSchemas {
+      id
+      key
+      label
+      description
+      complexity
+      isPreset
+      isActive
+      metadata
+    }
+  }
+}
+
+query adminDocumentStatusValues($schemaKey: String!) {
+  admin {
+    documentStatusValues(schemaKey: $schemaKey) {
+      ...DocumentStatusValueFields
+    }
+  }
+}
+
+query adminDocumentTypes {
+  admin {
+    documentTypes {
+      ...DocumentTypeDefinitionFields
+    }
+  }
+}
+
+query adminDocumentRuntimeOverview {
+  admin {
+    documentRuntimeOverview {
+      totalDocuments
+      byStatus {
+        key
+        label
+        count
+      }
+      byDocumentType {
+        key
+        label
+        count
+      }
+      byClassification {
+        key
+        label
+        count
+      }
+      byReviewDue {
+        key
+        label
+        count
+      }
+      byVersionState {
+        key
+        label
+        count
+      }
+    }
+  }
+}
+
+fragment AdminDocumentVersioningWorkspaceSettingsFields on AdminDocumentVersioningWorkspaceSettingsType {
+  workspaceId
+  workspaceName
+  enabled
+  autoVersionOnPdfExport
+  retentionCount
+  effectiveEnabled
+  effectiveAutoVersionOnPdfExport
+  effectiveRetentionCount
+  editCaptureEnabled
+  editCaptureIntervalMs
+  effectiveEditCaptureEnabled
+  effectiveEditCaptureIntervalMs
+  legacyIntervalNormalized
+  editCaptureRuntimeAvailable
+  updatedAt
+}
+
+query documentVersioningAdminSettings {
+  admin {
+    documentVersioningDefaults {
+      defaultEnabled
+      defaultAutoVersionOnPdfExport
+      defaultRetentionCount
+      defaultEditCaptureEnabled
+      defaultEditCaptureIntervalMs
+    }
+    documentVersioningWorkspaceSettings {
+      ...AdminDocumentVersioningWorkspaceSettingsFields
+    }
+  }
+}
+
+mutation updateDocumentVersioningWorkspaceSettings(
+  $input: AdminUpdateDocumentVersioningWorkspaceSettingsInput!
+) {
+  admin {
+    updateDocumentVersioningWorkspaceSettings(input: $input) {
+      ...AdminDocumentVersioningWorkspaceSettingsFields
+    }
+  }
+}
+
+fragment AdminDocumentVersionPolicyFields on DocumentVersionPolicyType {
+  id
+  scope
+  workspaceId
+  name
+  isDefault
+  enabledByDefault
+  schemePreset
+  customPattern
+  timezoneMode
+  autoVersionOn
+  retentionCount
+  pinManualVersions
+  pinPublishVersions
+  publishedVersionsProtected
+  exportVersionsProtected
+  metadataSchema
+  createdBy
+  createdAt
+  updatedBy
+  updatedAt
+}
+
+query adminDocumentVersionPolicies {
+  admin {
+    documentVersionPolicies {
+      ...AdminDocumentVersionPolicyFields
+    }
+  }
+}
+
+query adminDocumentMetadataValueDefinitions($fieldKey: String!) {
+  admin {
+    documentMetadataValueDefinitions(fieldKey: $fieldKey) {
+      id
+      fieldKey
+      key
+      label
+      description
+      color
+      icon
+      sortOrder
+      isActive
+      metadata
+    }
+  }
+}
+
+mutation adminUpdateDocumentMetadataFieldDefinition($input: AdminUpdateDocumentMetadataFieldDefinitionInput!) {
+  admin {
+    updateDocumentMetadataFieldDefinition(input: $input) {
+      ...DocumentMetadataFieldDefinitionFields
+    }
+  }
+}
+
+mutation adminUpsertDocumentMetadataValueDefinition(
+  $input: AdminUpsertDocumentMetadataValueDefinitionInput!
+) {
+  admin {
+    upsertDocumentMetadataValueDefinition(input: $input) {
+      id
+      fieldKey
+      key
+      label
+      description
+      color
+      icon
+      sortOrder
+      isActive
+      metadata
+    }
+  }
+}
+
+mutation adminUpsertDocumentStatusSchema($input: AdminUpsertDocumentStatusSchemaInput!) {
+  admin {
+    upsertDocumentStatusSchema(input: $input) {
+      id
+      key
+      label
+      description
+      complexity
+      isPreset
+      isActive
+      metadata
+    }
+  }
+}
+
+mutation adminUpsertDocumentStatusValue($input: AdminUpsertDocumentStatusValueInput!) {
+  admin {
+    upsertDocumentStatusValue(input: $input) {
+      ...DocumentStatusValueFields
+    }
+  }
+}
+
+mutation adminUpsertDocumentStatusTransition($input: AdminUpsertDocumentStatusTransitionInput!) {
+  admin {
+    upsertDocumentStatusTransition(input: $input) {
+      fromStatusId
+      toStatusId
+      requiredRoles
+      requiredMetadataFields
+      createsVersion
+      setsVersionKind
+      dateEnforcement
+      metadata
+    }
+  }
+}
+
+mutation adminUpsertDocumentType($input: AdminUpsertDocumentTypeInput!) {
+  admin {
+    upsertDocumentType(input: $input) {
+      ...DocumentTypeDefinitionFields
+    }
+  }
+}
+
+mutation adminUpsertDocumentVersionPolicy($input: AdminUpsertDocumentVersionPolicyInput!) {
+  admin {
+    upsertDocumentVersionPolicy(input: $input) {
+      ...AdminDocumentVersionPolicyFields
+    }
+  }
+}

@@ -1,0 +1,21 @@
+query adminSearchWorkspaces(
+  $query: String!
+  $ouId: ID
+  $excludeUnitId: ID
+  $limit: Int
+) {
+  admin {
+    adminSearchWorkspaces(
+      query: $query
+      ouId: $ouId
+      excludeUnitId: $excludeUnitId
+      limit: $limit
+    ) {
+      id
+      name
+      ownerUserId
+      ownerEmail
+      linkedOuIds
+    }
+  }
+}

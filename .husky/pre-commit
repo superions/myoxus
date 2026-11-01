@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+# Format staged files while preserving unfinished work.
+set -e
+
+# Run patterns sequentially; hide unfinished edits from tasks with whole-file side effects.
+yarn exec lint-staged --concurrent false --hide-unstaged

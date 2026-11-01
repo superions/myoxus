@@ -1,0 +1,37 @@
+{% extends "_layout.html" %} {% block subject %}Nouvelle notification dans
+Myoxus{% endblock subject %} {% block preheader %}Ouvrez l’aperçu pour consulter
+le motif et les actions disponibles.{% endblock preheader %} {% block category
+%}MYOXUS{% endblock category %} {% block heading %}Une nouvelle notification
+pour vous.{% endblock heading %} {% block introduction %}Une nouvelle
+notification vous attend dans Myoxus. Vous trouverez les informations associées
+dans votre aperçu des notifications.{% endblock introduction %} {% block details
+%}{% if email %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  NOTIFICATION
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ email }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}Ouvrez l’aperçu pour
+consulter le motif et les actions disponibles.{% endblock next_step %} {% block
+action %}Ouvrir les notifications{% endblock action %} {% block note %}Vous
+trouverez les informations à jour et les actions disponibles directement dans
+Myoxus.{% endblock note %} {% block reason %}Vous recevez cet e-mail car une
+notification a été créée pour votre compte et l’envoi d’e-mails est activé.{%
+endblock reason %}

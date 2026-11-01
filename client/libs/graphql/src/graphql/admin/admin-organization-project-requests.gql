@@ -1,0 +1,21 @@
+query adminOrganizationProjectRequests($status: ProjectRequestStatusEnum) {
+  admin {
+    organizationProjectRequests(status: $status) {
+      id
+      organizationId
+      requestedBy
+      requestedScope
+      parentUnitId
+      proposedName
+      proposedTypeId
+      proposedMembers
+      proposedWorkspace
+      status
+      decidedBy
+      decidedAt
+      metadata
+      createdAt
+      updatedAt
+    }
+  }
+}

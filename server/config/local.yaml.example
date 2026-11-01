@@ -1,0 +1,253 @@
+# Myoxus Self-Host Configuration Example
+#
+# Copy this file to server/config/local.yaml and edit it.
+# This file overrides server/config/default.yaml.
+#
+# All values shown here are production-appropriate defaults for a single-server
+# Docker Compose selfhost. Change only what you need to.
+#
+# Config layering (later wins):
+#   1. config/default.yaml   (built-in defaults)
+#   2. config/${RUN_MODE}.yaml (optional, e.g. production.yaml)
+#   3. config/local.yaml     (this file)
+#   4. MYOXUS__* env vars    (emergency overrides only)
+
+# ---------------------------------------------------------------------------
+# Server
+# ---------------------------------------------------------------------------
+server:
+  host: "0.0.0.0"
+  port: 3001
+
+  # REQUIRED: Public URL that the browser uses. Must include scheme and host.
+  # OAuth callbacks and email links use this value.
+  # CRITICAL: Change this to your actual domain before production.
+  # Examples: https://myoxus.example.com  or  http://192.168.1.10:3001
+  origin: "https://myoxus.example.com"
+
+  # Session lifetime: 15 days
+  session_ttl: 1296000
+  # Refresh session if it will expire within 7 days
+  session_ttr: 604800
+
+# ---------------------------------------------------------------------------
+# Database
+# ---------------------------------------------------------------------------
+database:
+  # REQUIRED: PostgreSQL connection URL.
+  # In Docker Compose this is overridden by MYOXUS__DATABASE__URL env var,
+  # so the value here only matters for bare-metal deployments.
+  url: "postgres://myoxus:myoxus@postgres:5432/myoxus"
+
+  # Connection pool size. 50 is sufficient for HTTP + WebSocket + 4 workers.
+  # Lower values risk pool exhaustion under load (causes WebSocket sync failures).
+  max_connections: 50
+  min_connections: 2
+
+  # Seconds to wait for a pool connection before returning an error.
+  # Keep this low so WebSocket ACK handlers fail fast instead of hanging.
+  acquire_timeout_seconds: 5
+
+# ---------------------------------------------------------------------------
+# Redis (REQUIRED — hard dependency, server will not start without it)
+# ---------------------------------------------------------------------------
+redis:
+  url: "redis://redis:6379"
+  namespace: "myoxus"
+
+  # Role profiles — all default to the root redis.url.
+  # To route a role to a separate Redis instance, add a `url:` key in that role.
+  roles:
+    cache: {}
+    session: {}
+    queue: {}
+    socket: {}
+    lock: {}
+
+  # Cache session tokens in Redis to reduce database reads.
+  session_cache:
+    enabled: true
+    ttl_seconds: 300
+
+# ---------------------------------------------------------------------------
+# Crypto
+# ---------------------------------------------------------------------------
+crypto:
+  # REQUIRED: Secret used to sign session tokens and cookies.
+  # CRITICAL: MUST be changed before first use. If changed after first use,
+  # all active sessions are invalidated.
+  # Generate with: openssl rand -hex 32
+  # MUST NOT USE DEFAULT VALUE IN PRODUCTION.
+  private_key: "REPLACE_THIS_WITH_A_RANDOM_64_CHAR_STRING"
+
+# ---------------------------------------------------------------------------
+# Storage
+# ---------------------------------------------------------------------------
+storage:
+  # Backend: "local", "s3", or "r2"
+  backend: "local"
+
+  # Local filesystem root (only used when backend = local).
+  # This path is mounted into the container by docker-compose.selfhost.yml.
+  root: "/opt/myoxus/storage"
+
+  # Minimum free space in bytes before startup fails.
+  # 0 = no check. Set to e.g. 1073741824 (1 GB) to prevent storage full issues.
+  min_free_space_bytes: 0
+
+  # --- S3 / R2 settings (only needed when backend = s3 or r2) ---
+  # bucket: "my-myoxus-bucket"
+  # endpoint: "https://ACCOUNT_ID.r2.cloudflarestorage.com"   # R2 or custom S3
+  # region: "eu-west-1"                                       # AWS region
+  # access_key: "YOUR_ACCESS_KEY"
+  # secret_key: "YOUR_SECRET_KEY"
+  # prefix: null   # optional key prefix within the bucket
+
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+logging:
+  # Log level: trace | debug | info | warn | error
+  # RUST_LOG env var overrides this and supports per-module syntax.
+  level: "info"
+
+  # Log file path. If null, logs go to stdout only.
+  # The directory is created automatically.
+  file_path: "/opt/myoxus/logs/myoxus.log"
+
+  # Rotation: never | daily | hourly
+  rotation: "daily"
+
+  # Number of rotated log files to keep.
+  max_files: 7
+
+# ---------------------------------------------------------------------------
+# Public publishing
+#
+# Public access is still controlled by docs.public_mode and workspaces.public.
+# These settings only control anonymous route delivery, static export output,
+# cache headers and renderer/search/social-card features.
+# ---------------------------------------------------------------------------
+public_publishing:
+  enabled: true
+  dynamic_routes_enabled: true
+  static_export_root: "/var/lib/myoxus/public"
+  static_retention_releases: 5
+  html_cache_ttl_seconds: 300
+  asset_cache_max_age_seconds: 31536000
+  default_noindex: false
+  site_shell:
+    breadcrumbs_enabled: true
+    toc_enabled: true
+    max_toc_depth: 3
+    previous_next_enabled: true
+    code_copy_enabled: true
+    syntax_highlighting_enabled: true
+    search_enabled: true
+  pagefind:
+    enabled: true
+    binary: "pagefind"
+  social_cards:
+    enabled: true
+
+# ---------------------------------------------------------------------------
+# Mail (RECOMMENDED — needed for invites, password reset, notifications)
+# ---------------------------------------------------------------------------
+mail:
+  sender: "Myoxus Self Hosted <noreply@example.com>"
+
+  # If smtp_host is null, emails are logged to stdout instead of being sent.
+  # RECOMMENDED: Configure SMTP for production to enable invitations and password resets.
+  smtp_host: null          # e.g. "smtp.example.com"
+  smtp_port: 587
+  smtp_user: null          # e.g. "myoxus@example.com"
+  smtp_pass: null          # SMTP password — DO NOT commit to version control
+
+
+  # Set to true to send notification emails (mentions, invites, etc.)
+  enable_notification_emails: false
+
+# ---------------------------------------------------------------------------
+# Auth policy defaults
+# ---------------------------------------------------------------------------
+auth:
+  # Default: reject email addresses with "+" aliases (for example
+  # user+tag@example.com). Admin runtime config can override this value by
+  # writing auth.rejectPlusAliases to app_configs.
+  rejectPlusAliases: true
+
+# ---------------------------------------------------------------------------
+# OAuth (OPTIONAL — enables OAuth login)
+# ---------------------------------------------------------------------------
+oauth:
+  # Google OAuth
+  # Register at: https://console.cloud.google.com
+  # CRITICAL (if OAuth enabled): Do not expose secrets in logs or config.
+  google_client_id: null          # e.g. "1234567890-abc...apps.googleusercontent.com"
+  google_client_secret: null      # DO NOT commit to version control
+
+  # GitHub OAuth
+  # Register at: https://github.com/settings/apps
+  github_client_id: null          # e.g. "Ov1.abcd1234..."
+  github_client_secret: null      # DO NOT commit to version control
+
+  # Generic OAuth/OIDC providers (e.g. for Authentik, Keycloak)
+  providers: {}
+
+# ---------------------------------------------------------------------------
+# Compatibility shims
+#
+# These are static responses to client queries about billing/quota/features.
+# They are NOT real billing logic — they make the client behave correctly
+# without any actual subscription or payment system.
+# Do not change these unless you understand the client-compatibility impact.
+# ---------------------------------------------------------------------------
+compat:
+  # Plan name reported to clients. Valid: free | pro | lifetime_pro | unlimited
+  quota_plan: "pro"
+
+  quota:
+    blob_limit: 2147483647           # max blob upload size reported to client
+    storage_quota: 9223372036854775807  # total storage quota reported to client
+    history_period: 2147483647       # history retention period
+    member_limit: 2147483647         # workspace member limit
+    copilot_limit: 9223372036854775807
+    copilot_used: 0
+
+  billing:
+    # Plan name returned to client. Valid: self_hosted | self_hosted_team | team | pro | enterprise | free
+    plan: "self_hosted_team"
+    # Recurring period. Valid: lifetime | monthly | yearly
+    recurring: "lifetime"
+    currency: "USD"
+    subscription:
+      default_status: "active"
+      cancel_status: "canceled"
+
+# ---------------------------------------------------------------------------
+# Calendar (OPTIONAL)
+# ---------------------------------------------------------------------------
+calendar:
+  google_webhook:
+    enabled: false
+    token: null
+
+# ---------------------------------------------------------------------------
+# Metrics
+# ---------------------------------------------------------------------------
+metrics:
+  # Enabled by default for new deployments. Set false only when business
+  # metrics should be disabled completely.
+  enabled: true
+
+# ---------------------------------------------------------------------------
+# Git Sync
+# ---------------------------------------------------------------------------
+git_sync:
+  # Enabled by default for local/self-hosted deployments. Set false to hide all
+  # git-sync endpoints and UI entry points.
+  enabled: true
+
+# Common operator-owned input for mail, document, PDF and HTML templates.
+templates:
+  root_dir: "./templates"

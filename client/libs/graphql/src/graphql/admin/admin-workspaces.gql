@@ -1,0 +1,94 @@
+query adminWorkspaces($filter: ListWorkspaceInput!) {
+  admin {
+    adminWorkspaces(filter: $filter) {
+      id
+      public
+      createdAt
+      name
+      avatarKey
+      enableAi
+      enableSharing
+      enableUrlPreview
+      enableDocEmbedding
+      features
+      owner {
+        id
+        name
+        email
+        avatarUrl
+      }
+      ownerPrincipalType
+      ownerPrincipalId
+      ownerPrincipalName
+      memberCount
+      publicPageCount
+      snapshotCount
+      snapshotSize
+      blobCount
+      blobSize
+      storageQuotaBytes
+      storageQuotaUsed
+      isPersonal
+      workspaceType
+      gitSyncEnabled
+      gitSyncProfileId
+      gitSyncLastStatus
+      gitSyncTriggerMode
+      gitSyncNextScheduledAt
+      gitSyncTokenRotationProvider
+      gitSyncTokenRotationEnabled
+      gitSyncTokenRotationState
+    }
+  }
+}
+
+query adminWorkspacesCount($filter: ListWorkspaceInput!) {
+  admin {
+    adminWorkspacesCount(filter: $filter)
+  }
+}
+
+query adminWorkspacesList($filter: ListWorkspaceInput!) {
+  admin {
+    adminWorkspaces(filter: $filter) {
+      id
+      public
+      createdAt
+      name
+      avatarKey
+      enableAi
+      enableSharing
+      enableUrlPreview
+      enableDocEmbedding
+      features
+      owner {
+        id
+        name
+        email
+        avatarUrl
+      }
+      ownerPrincipalType
+      ownerPrincipalId
+      ownerPrincipalName
+      memberCount
+      publicPageCount
+      snapshotCount
+      snapshotSize
+      blobCount
+      blobSize
+      storageQuotaBytes
+      storageQuotaUsed
+      isPersonal
+      workspaceType
+      gitSyncEnabled
+      gitSyncProfileId
+      gitSyncLastStatus
+      gitSyncTriggerMode
+      gitSyncNextScheduledAt
+      gitSyncTokenRotationProvider
+      gitSyncTokenRotationEnabled
+      gitSyncTokenRotationState
+    }
+    adminWorkspacesCount(filter: $filter)
+  }
+}

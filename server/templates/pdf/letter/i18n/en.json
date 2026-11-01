@@ -1,0 +1,6 @@
+{
+  "subject_label": "Subject:",
+  "salutation_default": "Dear Sir or Madam,",
+  "closing_default": "Yours sincerely,",
+  "page_of": "Page {current} / {total}"
+}

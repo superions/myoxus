@@ -1,0 +1,9 @@
+query adminCacheTuningHistory($cacheName: String!, $hours: Int) {
+  admin {
+    adminCacheTuningHistory(cacheName: $cacheName, hours: $hours) {
+      bucket
+      hitRate
+      ttlSeconds
+    }
+  }
+}

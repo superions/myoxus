@@ -1,0 +1,22 @@
+query adminSearchUsers(
+  $query: String!
+  $limit: Int
+  $features: [String!]
+  $excludeUnitId: ID
+) {
+  admin {
+    adminSearchUsers(
+      query: $query
+      limit: $limit
+      features: $features
+      excludeUnitId: $excludeUnitId
+    ) {
+      id
+      email
+      name
+      features
+      isAdmin
+      disabled
+    }
+  }
+}

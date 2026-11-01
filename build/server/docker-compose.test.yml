@@ -1,0 +1,166 @@
+# Isolated test infrastructure — separate from dev stack.
+#
+# Provides Postgres (port 5434) and Redis (port 6380) for integration tests.
+# With the `minio` profile it also provides MinIO (port 9000) plus a bucket
+# initializer for S3-compatible storage tests.
+# Does NOT start the API container — tests run via `cargo test` directly.
+#
+# Usage:
+#   build/scripts/test/stack-up.sh    # start test infra
+#   build/scripts/test/stack-down.sh  # stop test infra
+#
+# Tests connect via:
+#   TEST_DATABASE_URL=postgres://myoxus_test:myoxus_test@localhost:5434/myoxus_test
+#   TEST_REDIS_URL=redis://localhost:6380
+#   MINIO_ENDPOINT=http://localhost:9000
+
+services:
+  postgres-test:
+    image: pgvector/pgvector:pg16
+    container_name: myoxus-test-postgres
+    command: ["postgres", "-c", "max_connections=500"]
+    environment:
+      POSTGRES_USER: myoxus_test
+      POSTGRES_PASSWORD: myoxus_test
+      POSTGRES_DB: myoxus_test
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myoxus_test -d myoxus_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "5434:5432"
+    volumes:
+      - myoxus-test-postgres-data:/var/lib/postgresql/data
+    restart: "no"
+
+  redis-test:
+    image: redis:8
+    container_name: myoxus-test-redis
+    command: ["redis-server", "--appendonly", "no", "--save", ""]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "6380:6379"
+    tmpfs:
+      - /data
+    restart: "no"
+
+  minio-test:
+    profiles: ["minio"]
+    image: quay.io/minio/minio:RELEASE.2025-04-22T22-12-26Z
+    container_name: myoxus-test-minio
+    command:
+      ["server", "/data", "--address", ":9000", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:9000/minio/health/ready >/dev/null || exit 1",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - myoxus-test-minio-data:/data
+    restart: "no"
+
+  minio-init:
+    profiles: ["minio"]
+    image: quay.io/minio/mc:RELEASE.2025-04-16T18-13-26Z
+    depends_on:
+      minio-test:
+        condition: service_healthy
+    entrypoint:
+      - /bin/sh
+      - -lc
+      - |
+        mc alias set local http://minio-test:9000 minioadmin minioadmin
+        mc mb --ignore-existing local/myoxus-ci
+
+  verapdf:
+    profiles: ["pdfa"]
+    image: verapdf/rest:latest
+    mem_limit: 1g
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    ports:
+      - "8080:8080"
+    restart: "no"
+
+  # Explicit speech fixture only. Neither regular test startup nor product
+  # configuration downloads a model or starts a recognition service.
+  transcription-model-init:
+    profiles: ["transcription"]
+    image: ghcr.io/speaches-ai/speaches:0.9.0-rc.3-cpu@sha256:2163775b6df5e451a71200e8f675fed68dbd8ab184fc604453d549e486f22fd2
+    entrypoint: ["python", "/test/prepare-transcription-model.py"]
+    environment:
+      HF_HOME: /home/ubuntu/.cache/huggingface
+      HF_HUB_DOWNLOAD_TIMEOUT: "60"
+      HF_HUB_ETAG_TIMEOUT: "20"
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      HF_HUB_DISABLE_XET: "1"
+    volumes:
+      - myoxus-test-transcription-model:/home/ubuntu/.cache/huggingface
+      - ../scripts/test/prepare-transcription-model.py:/test/prepare-transcription-model.py:ro
+    cpus: 2
+    mem_limit: 2g
+    memswap_limit: 2g
+    pids_limit: 128
+    restart: "no"
+
+  transcription-test:
+    profiles: ["transcription"]
+    image: ghcr.io/speaches-ai/speaches:0.9.0-rc.3-cpu@sha256:2163775b6df5e451a71200e8f675fed68dbd8ab184fc604453d549e486f22fd2
+    depends_on:
+      transcription-model-init:
+        condition: service_completed_successfully
+    environment:
+      HF_HOME: /home/ubuntu/.cache/huggingface
+      HF_HUB_OFFLINE: "1"
+      HF_HUB_DISABLE_TELEMETRY: "1"
+      ENABLE_UI: "false"
+      LOG_LEVEL: info
+      WHISPER__INFERENCE_DEVICE: cpu
+      WHISPER__COMPUTE_TYPE: int8
+      WHISPER__CPU_THREADS: "2"
+      WHISPER__NUM_WORKERS: "1"
+      OMP_NUM_THREADS: "2"
+    ports:
+      - "127.0.0.1:${MYOXUS_TEST_TRANSCRIPTION_PORT:-8091}:8000"
+    volumes:
+      - myoxus-test-transcription-model:/home/ubuntu/.cache/huggingface:ro
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).close()"
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    cpus: 2
+    mem_limit: 3g
+    memswap_limit: 3g
+    pids_limit: 128
+    stop_grace_period: 10s
+    restart: "no"
+
+volumes:
+  myoxus-test-postgres-data:
+  myoxus-test-minio-data:
+  myoxus-test-transcription-model:

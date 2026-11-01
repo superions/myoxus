@@ -1,0 +1,8 @@
+query workspaceCalendarSettings($workspaceId: String!) {
+  workspaceCalendarSettings(workspaceId: $workspaceId) {
+    workspaceId
+    writebackSubscriptionId
+    defaultReminderOffsetMinutes
+    updatedAt
+  }
+}

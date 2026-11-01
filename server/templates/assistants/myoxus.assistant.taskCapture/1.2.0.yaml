@@ -1,0 +1,112 @@
+formatVersion: 1
+id: myoxus.assistant.taskCapture
+version: 1.2.0
+name:
+  en: Capture as Task
+  de: Als Aufgabe erfassen
+  fr: Créer une tâche à partir du texte
+  es: Crear tarea a partir del texto
+description:
+  en: People with access to the selected destination can read this Task.
+  de: Personen mit Zugriff auf das gewählte Ziel können diese Aufgabe lesen.
+  fr: Les personnes ayant accès à la destination choisie peuvent lire cette tâche.
+  es: Las personas con acceso al destino elegido pueden leer esta tarea.
+contexts:
+  - taskCapture
+inputs:
+  - id: destination
+    target: destination
+    label:
+      en: Destination
+      de: Ziel
+      fr: Destination
+      es: Destino
+    description: null
+    valueType: databaseDestination
+    required: false
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: title
+    target: title
+    label:
+      en: Title
+      de: Titel
+      fr: Titre
+      es: Título
+    description: null
+    valueType: text
+    required: true
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: description
+    target: description
+    label:
+      en: Description (optional)
+      de: Beschreibung (optional)
+      fr: Description (facultative)
+      es: Descripción (opcional)
+    description: null
+    valueType: text
+    required: false
+    default: null
+    choices: []
+    visibleWhen: null
+components: []
+presentation:
+  steps:
+    - id: create
+      title:
+        en: Capture as Task
+        de: Als Aufgabe erfassen
+        fr: Créer une tâche à partir du texte
+        es: Crear tarea a partir del texto
+      groups:
+        - id: task
+          title: null
+          role: content
+          controls:
+            - kind: input
+              input: title
+              control: text
+            - kind: input
+              input: description
+              control: multiline
+          visibleWhen: null
+        - id: options
+          title: null
+          role: more
+          controls:
+            - kind: input
+              input: destination
+              control: destination
+            - kind: destinationAudience
+            - kind: sourceOrigin
+          visibleWhen: null
+      actions:
+        - id: cancel
+          action: cancel
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: apply
+          action: captureTask
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: check
+          action: check
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: close
+          action: close
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+  dialogs: []

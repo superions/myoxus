@@ -1,0 +1,851 @@
+formatVersion: 1
+id: myoxus.assistant.project.product_roadmap
+version: 1.3.0
+name:
+  en: Product Roadmap
+  de: Produkt-Roadmap
+  fr: Feuille de route produit
+  es: Hoja de ruta de producto
+description:
+  en: Coordinate releases, owners, dependencies, effort and cost.
+  de: Koordiniere Releases, Verantwortliche, Abhängigkeiten, Aufwand und Kosten.
+  fr: Coordonnez versions, responsables, dépendances, effort et coût.
+  es: Coordina lanzamientos, responsables, dependencias, esfuerzo y coste.
+contexts:
+  - projectCreation
+  - workspaceCreation
+inputs:
+  - id: name
+    target: title
+    label:
+      en: Project name
+      de: Projektname
+      fr: Nom du projet
+      es: Nombre del proyecto
+    description: null
+    valueType: text
+    required: true
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: overview
+    target: description
+    label:
+      en: Description
+      de: Beschreibung
+      fr: Description
+      es: Descripción
+    description: null
+    valueType: text
+    required: false
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: goal
+    target: goal
+    label:
+      en: Goal
+      de: Ziel
+      fr: Objectif
+      es: Objetivo
+    description:
+      en: "Optional: describe the change this project should achieve."
+      de: "Optional: Beschreibe, welche Veränderung dieses Projekt erreichen soll."
+      fr: "Facultatif : décrivez le changement que ce projet doit apporter."
+      es: "Opcional: describe el cambio que debe lograr este proyecto."
+    valueType: text
+    required: false
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: scope
+    target: scope
+    label:
+      en: Scope
+      de: Umfang
+      fr: Périmètre
+      es: Alcance
+    description:
+      en: "Optional: record what is included, what is excluded, and important
+        constraints."
+      de:
+        "Optional: Halte fest, was dazugehört, was ausgeschlossen ist und welche
+        wichtigen Rahmenbedingungen gelten."
+      fr: "Facultatif : précisez ce qui est inclus, ce qui est exclu et les
+        principales contraintes."
+      es: "Opcional: indica qué se incluye, qué se excluye y las principales
+        limitaciones."
+    valueType: text
+    required: false
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: start-date
+    target: startDate
+    label:
+      en: Start date
+      de: Startdatum
+      fr: Date de début
+      es: Fecha de inicio
+    description:
+      en: Optional project start date; this does not schedule individual Tasks.
+      de:
+        Optionales Startdatum des Projekts; einzelne Aufgaben werden dadurch nicht
+        terminiert.
+      fr: Date de début facultative du projet ; elle ne planifie pas les tâches
+        individuelles.
+      es: Fecha de inicio opcional del proyecto; no programa las tareas individuales.
+    valueType: date
+    required: false
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: end-date
+    target: endDate
+    label:
+      en: End date
+      de: Enddatum
+      fr: Date de fin
+      es: Fecha de fin
+    description:
+      en: Optional project end date; this does not distribute Task deadlines.
+      de: Optionales Enddatum des Projekts; Aufgabenfristen werden dadurch nicht
+        verteilt.
+      fr:
+        Date de fin facultative du projet ; elle ne répartit pas les échéances des
+        tâches.
+      es: Fecha de fin opcional del proyecto; no distribuye los plazos de las tareas.
+    valueType: date
+    required: false
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: people
+    target: people
+    label:
+      en: People
+      de: Personen
+      fr: Personnes
+      es: Personas
+    description:
+      en:
+        "Optional: select existing workspace members. This does not assign Tasks or
+        change membership."
+      de:
+        "Optional: Wähle bestehende Mitglieder des Arbeitsbereichs. Dies weist keine
+        Aufgaben zu und ändert keine Mitgliedschaften."
+      fr:
+        "Facultatif : sélectionnez des membres existants de l’espace de travail.
+        Cela n’attribue aucune tâche et ne modifie pas les adhésions."
+      es:
+        "Opcional: selecciona miembros existentes del espacio de trabajo. No asigna
+        tareas ni cambia las membresías."
+    valueType: members
+    required: false
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: folder
+    target: folder
+    label:
+      en: Folder
+      de: Ordner
+      fr: Dossier
+      es: Carpeta
+    description:
+      en:
+        Optional for the Project alone. Select an existing folder or name a new
+        folder when creating document copies.
+      de:
+        Für das Projekt allein optional. Wähle einen bestehenden Ordner oder benenne
+        einen neuen Ordner, wenn Dokumentkopien erstellt werden.
+      fr:
+        Facultatif pour le projet seul. Sélectionnez un dossier existant ou nommez
+        un nouveau dossier pour créer des copies de documents.
+      es:
+        Opcional para el proyecto solo. Selecciona una carpeta existente o nombra
+        una nueva al crear copias de documentos.
+    valueType: folder
+    required: false
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: priority
+    target: priorityPreset
+    label:
+      en: Priority preset
+      de: Prioritaets-Preset
+      fr: Preset de priorite
+      es: Preset de prioridad
+    description:
+      en: "Priority preset: Choose three or five levels."
+      de: "Prioritaets-Preset: Wähle drei oder fünf Stufen."
+      fr: "Preset de priorite : choisissez trois ou cinq niveaux."
+      es: "Preset de prioridad: elige tres o cinco niveles."
+    valueType: choice
+    required: false
+    default:
+      kind: choice
+      value: fiveStep
+    choices:
+      - id: fiveStep
+        label:
+          en: 5-step
+          de: 5 Stufen
+          fr: 5 niveaux
+          es: 5 pasos
+        value:
+          kind: choice
+          value: fiveStep
+    visibleWhen: null
+  - id: complexity
+    target: complexityPreset
+    label:
+      en: Complexity preset
+      de: Komplexitaets-Preset
+      fr: Preset de complexite
+      es: Preset de complejidad
+    description:
+      en: "Complexity preset: Choose three or five levels."
+      de: "Komplexitaets-Preset: Wähle drei oder fünf Stufen."
+      fr: "Preset de complexite : choisissez trois ou cinq niveaux."
+      es: "Preset de complejidad: elige tres o cinco niveles."
+    valueType: choice
+    required: false
+    default:
+      kind: choice
+      value: fiveStep
+    choices:
+      - id: fiveStep
+        label:
+          en: 5-step
+          de: 5 Stufen
+          fr: 5 niveaux
+          es: 5 pasos
+        value:
+          kind: choice
+          value: fiveStep
+    visibleWhen: null
+  - id: structure
+    target: structurePreset
+    label:
+      en: Project structure
+      de: Projektstruktur
+      fr: Structure du projet
+      es: Estructura del proyecto
+    description: null
+    valueType: choice
+    required: false
+    default:
+      kind: choice
+      value: phases_and_milestones
+    choices:
+      - id: phases_and_milestones
+        label:
+          en: Phases and milestones
+          de: Phasen und Meilensteine
+          fr: Phases et jalons
+          es: Fases e hitos
+        value:
+          kind: choice
+          value: phases_and_milestones
+    visibleWhen: null
+  - id: samples
+    target: includeSamples
+    label:
+      en: Add sample rows
+      de: Beispielzeilen hinzufügen
+      fr: Ajouter des lignes d’exemple
+      es: Añadir filas de ejemplo
+    description: null
+    valueType: boolean
+    required: false
+    default:
+      kind: boolean
+      value: false
+    choices: []
+    visibleWhen: null
+  - id: currency
+    target: defaultCurrency
+    label:
+      en: Currency
+      de: Währung
+      fr: Devise
+      es: Moneda
+    description: null
+    valueType: text
+    required: false
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: view
+    target: initialView
+    label:
+      en: View type
+      de: Ansichtstyp
+      fr: Type de vue
+      es: Tipo de vista
+    description: null
+    valueType: choice
+    required: false
+    default:
+      kind: choice
+      value: table
+    choices:
+      - id: kanban
+        label:
+          en: Kanban
+          de: Kanban
+          fr: Kanban
+          es: Kanban
+        value:
+          kind: choice
+          value: kanban
+      - id: table
+        label:
+          en: Table
+          de: Tabelle
+          fr: Table
+          es: Tabla
+        value:
+          kind: choice
+          value: table
+      - id: progress
+        label:
+          en: Progress
+          de: Fortschritt
+          fr: Progression
+          es: Progreso
+        value:
+          kind: choice
+          value: progress
+      - id: list
+        label:
+          en: List
+          de: Liste
+          fr: Liste
+          es: Lista
+        value:
+          kind: choice
+          value: list
+      - id: calendar
+        label:
+          en: Calendar
+          de: Kalender
+          fr: Calendrier
+          es: Calendario
+        value:
+          kind: choice
+          value: calendar
+      - id: timeline
+        label:
+          en: Timeline
+          de: Zeitleiste
+          fr: Chronologie
+          es: Cronología
+        value:
+          kind: choice
+          value: timeline
+      - id: gallery
+        label:
+          en: Gallery
+          de: Galerie
+          fr: Galerie
+          es: Galería
+        value:
+          kind: choice
+          value: gallery
+    visibleWhen: null
+  - id: scaffold
+    target: includeScaffold
+    label:
+      en: Include phase and milestone scaffold
+      de: Phasen- und Meilensteingerüst hinzufügen
+      fr: Inclure une structure de phases et de jalons
+      es: Incluir una estructura de fases e hitos
+    description:
+      en:
+        Propose Prepare, Execute and Review phases and a Completion milestone where
+        the selected structure supports them. Review their counts before
+        confirmation. This scaffold contains no Tasks and is separate from
+        sample rows.
+      de:
+        Schlage die Phasen Vorbereitung, Durchführung und Überprüfung sowie den
+        Meilenstein Abschluss vor, soweit die gewählte Struktur sie unterstützt.
+        Prüfe ihre Anzahl vor der Bestätigung. Dieses Gerüst enthält keine
+        Aufgaben und ist von Beispielzeilen getrennt.
+      fr: Proposez les phases Préparation, Exécution et Revue ainsi qu’un jalon
+        Achèvement lorsque la structure choisie les prend en charge. Vérifiez
+        leur nombre avant confirmation. Cette structure ne contient aucune tâche
+        et reste distincte des lignes d’exemple.
+      es:
+        Propón las fases Preparación, Ejecución y Revisión y un hito Finalización
+        cuando la estructura seleccionada los admita. Revisa sus cantidades
+        antes de confirmar. Esta estructura no contiene tareas y es
+        independiente de las filas de ejemplo.
+    valueType: boolean
+    required: false
+    default:
+      kind: boolean
+      value: true
+    choices: []
+    visibleWhen: null
+  - id: include-brief
+    target: includeComponent
+    label:
+      en: Create a project brief
+      de: Projektbrief erstellen
+      fr: Créer une note de cadrage du projet
+      es: Crear un resumen del proyecto
+    description:
+      en:
+        Optional editable copy with the reviewed project title, goal, scope, dates
+        and people.
+      de:
+        Optionale bearbeitbare Kopie mit den überprüften Angaben zu Projektname,
+        Ziel, Umfang, Terminen und Personen.
+      fr:
+        Copie modifiable facultative reprenant le nom, l’objectif, le périmètre, les
+        dates et les personnes du projet vérifiés.
+      es:
+        Copia editable opcional con el nombre, el objetivo, el alcance, las fechas y
+        las personas del proyecto revisados.
+    valueType: boolean
+    required: false
+    default:
+      kind: boolean
+      value: false
+    choices: []
+    visibleWhen: null
+  - id: include-focus
+    target: includeComponent
+    label:
+      en: Create a Fokus working copy
+      de: Fokus-Arbeitskopie erstellen
+      fr: Créer une copie de travail Fokus
+      es: Crear una copia de trabajo Fokus
+    description:
+      en:
+        Optional editable Fokus copy. This does not schedule a meeting or assign
+        Tasks.
+      de:
+        Optionale bearbeitbare Fokus-Kopie. Dies plant keine Besprechung und weist
+        keine Aufgaben zu.
+      fr: Copie Fokus modifiable facultative. Cela ne planifie aucune réunion et
+        n’attribue aucune tâche.
+      es: Copia Fokus editable opcional. No programa reuniones ni asigna tareas.
+    valueType: boolean
+    required: false
+    default:
+      kind: boolean
+      value: false
+    choices: []
+    visibleWhen: null
+  - id: include-agenda
+    target: includeComponent
+    label:
+      en: Create an Agenda working copy
+      de: Agenda-Arbeitskopie erstellen
+      fr: Créer une copie de travail Agenda
+      es: Crear una copia de trabajo Agenda
+    description:
+      en:
+        Optional editable Agenda copy. This does not schedule a meeting or invite
+        people.
+      de:
+        Optionale bearbeitbare Agenda-Kopie. Dies plant keine Besprechung und lädt
+        keine Personen ein.
+      fr:
+        Copie Agenda modifiable facultative. Cela ne planifie aucune réunion et
+        n’invite personne.
+      es: Copia Agenda editable opcional. No programa reuniones ni invita a personas.
+    valueType: boolean
+    required: false
+    default:
+      kind: boolean
+      value: false
+    choices: []
+    visibleWhen: null
+  - id: include-register
+    target: includeComponent
+    label:
+      en: Create a Register working copy
+      de: Register-Arbeitskopie erstellen
+      fr: Créer une copie de travail Register
+      es: Crear una copia de trabajo Register
+    description:
+      en: Optional editable Register copy for recording decisions and open questions.
+      de:
+        Optionale bearbeitbare Register-Kopie zum Festhalten von Entscheidungen und
+        offenen Fragen.
+      fr:
+        Copie Register modifiable facultative pour consigner les décisions et les
+        questions ouvertes.
+      es: Copia Register editable opcional para registrar decisiones y preguntas
+        abiertas.
+    valueType: boolean
+    required: false
+    default:
+      kind: boolean
+      value: false
+    choices: []
+    visibleWhen: null
+components:
+  - id: project
+    action:
+      kind: createProject
+      templateId: myoxus.project.product_roadmap
+      inputs:
+        title:
+          kind: input
+          input: name
+        description:
+          kind: input
+          input: overview
+        folder:
+          kind: input
+          input: folder
+        priorityPreset:
+          kind: input
+          input: priority
+        complexityPreset:
+          kind: input
+          input: complexity
+        structurePreset:
+          kind: input
+          input: structure
+        includeSamples:
+          kind: input
+          input: samples
+        defaultCurrency:
+          kind: input
+          input: currency
+        initialView:
+          kind: input
+          input: view
+        goal:
+          kind: input
+          input: goal
+        scope:
+          kind: input
+          input: scope
+        startDate:
+          kind: input
+          input: start-date
+        endDate:
+          kind: input
+          input: end-date
+        people:
+          kind: input
+          input: people
+        includeScaffold:
+          kind: input
+          input: scaffold
+      scaffold:
+        - id: prepare
+          kind: phase
+          title:
+            en: Prepare
+            de: Vorbereitung
+            fr: Préparation
+            es: Preparación
+        - id: execute
+          kind: phase
+          title:
+            en: Execute
+            de: Durchführung
+            fr: Exécution
+            es: Ejecución
+        - id: review
+          kind: phase
+          title:
+            en: Review
+            de: Überprüfung
+            fr: Revue
+            es: Revisión
+        - id: completion
+          kind: milestone
+          title:
+            en: Completion
+            de: Abschluss
+            fr: Achèvement
+            es: Finalización
+  - id: brief
+    action:
+      kind: createDocument
+      selected:
+        kind: input
+        input: include-brief
+      folder:
+        kind: input
+        input: folder
+      variables:
+        project.title:
+          kind: input
+          input: name
+        project.goal:
+          kind: input
+          input: goal
+        project.scope:
+          kind: input
+          input: scope
+        project.start_date:
+          kind: input
+          input: start-date
+        project.end_date:
+          kind: input
+          input: end-date
+        project.people:
+          kind: input
+          input: people
+  - id: focus
+    action:
+      kind: createDocument
+      selected:
+        kind: input
+        input: include-focus
+      folder:
+        kind: input
+        input: folder
+      variables: {}
+  - id: agenda
+    action:
+      kind: createDocument
+      selected:
+        kind: input
+        input: include-agenda
+      folder:
+        kind: input
+        input: folder
+      variables: {}
+  - id: register
+    action:
+      kind: createDocument
+      selected:
+        kind: input
+        input: include-register
+      folder:
+        kind: input
+        input: folder
+      variables: {}
+presentation:
+  steps:
+    - id: choose
+      title:
+        en: Template
+        de: Vorlage
+        fr: Modèle
+        es: Plantilla
+      groups:
+        - id: catalog
+          title: null
+          role: content
+          controls:
+            - kind: offeringSelection
+              search: true
+          visibleWhen: null
+      actions:
+        - id: cancel-choose
+          action: cancel
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: next-details
+          action: next
+          component: null
+          targetStep: details
+          dialog: null
+          visibleWhen: null
+    - id: details
+      title:
+        en: Details
+        de: Details
+        fr: Détails
+        es: Detalles
+      groups:
+        - id: identity
+          title: null
+          role: content
+          controls:
+            - kind: input
+              input: name
+              control: text
+            - kind: input
+              input: overview
+              control: multiline
+            - kind: input
+              input: goal
+              control: multiline
+            - kind: input
+              input: scope
+              control: multiline
+            - kind: input
+              input: folder
+              control: folder
+          visibleWhen: null
+        - id: people-and-dates
+          title:
+            en: People and dates (optional)
+            de: Personen und Termine (optional)
+            fr: Personnes et dates (facultatif)
+            es: Personas y fechas (opcional)
+          role: content
+          controls:
+            - kind: input
+              input: people
+              control: members
+            - kind: input
+              input: start-date
+              control: date
+            - kind: input
+              input: end-date
+              control: date
+          visibleWhen: null
+      actions:
+        - id: back-choose
+          action: back
+          component: null
+          targetStep: choose
+          dialog: null
+          visibleWhen: null
+        - id: cancel-details
+          action: cancel
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: next-setup
+          action: next
+          component: null
+          targetStep: setup
+          dialog: null
+          visibleWhen: null
+    - id: setup
+      title:
+        en: Setup
+        de: Einrichtung
+        fr: Configuration
+        es: Configuración
+      groups:
+        - id: variant
+          title: null
+          role: content
+          controls:
+            - kind: input
+              input: priority
+              control: select
+            - kind: input
+              input: complexity
+              control: select
+            - kind: input
+              input: structure
+              control: radioCards
+            - kind: input
+              input: view
+              control: select
+          visibleWhen: null
+        - id: scaffold
+          title: null
+          role: content
+          controls:
+            - kind: input
+              input: scaffold
+              control: toggle
+          visibleWhen: null
+        - id: samples
+          title: null
+          role: content
+          controls:
+            - kind: input
+              input: samples
+              control: toggle
+            - kind: input
+              input: currency
+              control: text
+          visibleWhen: null
+        - id: documents
+          title:
+            en: Documents (optional)
+            de: Dokumente (optional)
+            fr: Documents (facultatif)
+            es: Documentos (opcional)
+          role: content
+          controls:
+            - kind: input
+              input: include-brief
+              control: toggle
+            - kind: input
+              input: include-focus
+              control: toggle
+            - kind: input
+              input: include-agenda
+              control: toggle
+            - kind: input
+              input: include-register
+              control: toggle
+          visibleWhen: null
+      actions:
+        - id: back-details
+          action: back
+          component: null
+          targetStep: details
+          dialog: null
+          visibleWhen: null
+        - id: cancel-setup
+          action: cancel
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: next-review
+          action: next
+          component: null
+          targetStep: review
+          dialog: null
+          visibleWhen: null
+    - id: review
+      title:
+        en: Review
+        de: Überprüfen
+        fr: Vérification
+        es: Revisión
+      groups:
+        - id: plan
+          title: null
+          role: review
+          controls:
+            - kind: projectReview
+          visibleWhen: null
+      actions:
+        - id: back-setup
+          action: back
+          component: null
+          targetStep: setup
+          dialog: null
+          visibleWhen: null
+        - id: cancel-review
+          action: cancel
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: apply-project
+          action: createProject
+          component: project
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: check-project
+          action: check
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: close-project
+          action: close
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+  dialogs: []

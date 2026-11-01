@@ -1,0 +1,246 @@
+formatVersion: 1
+id: myoxus.assistant.context.meeting
+version: 1.0.0
+name: &a1
+  en: Prepare meeting
+  de: Besprechung vorbereiten
+  fr: Préparer une réunion
+  es: Preparar reunión
+description:
+  en: Prepare an editable agenda for this work context. Choose people and a date
+    explicitly; nothing is scheduled or assigned.
+  de: Bereite eine editierbare Agenda zu diesem Arbeitskontext vor. Wähle Personen
+    und Datum ausdrücklich; es wird nichts geplant oder zugewiesen.
+  fr: Préparez un ordre du jour modifiable pour ce contexte de travail. Choisissez
+    explicitement les personnes et la date ; rien n’est planifié ni assigné.
+  es: Prepara una agenda editable para este contexto de trabajo. Elige personas y
+    fecha explícitamente; no se programa ni asigna nada.
+contexts:
+  - taskContainerAssistance
+inputs:
+  - id: title
+    target: title
+    label:
+      en: Title
+      de: Titel
+      fr: Titre
+      es: Título
+    description: null
+    valueType: text
+    required: true
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: notes
+    target: description
+    label:
+      en: Notes (optional)
+      de: Notizen (optional)
+      fr: Notes (facultatif)
+      es: Notas (opcional)
+    description: null
+    valueType: text
+    required: false
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: date
+    target: startDate
+    label:
+      en: Date (optional)
+      de: Datum (optional)
+      fr: Date (facultatif)
+      es: Fecha (opcional)
+    description: null
+    valueType: date
+    required: false
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: people
+    target: people
+    label:
+      en: People (optional)
+      de: Personen (optional)
+      fr: Personnes (facultatif)
+      es: Personas (opcional)
+    description:
+      en: Select people explicitly; this does not record attendance or assign tasks.
+      de: Wähle Personen ausdrücklich; dies erfasst keine Anwesenheit und weist keine
+        Aufgaben zu.
+      fr: Choisissez les personnes explicitement ; cela ne consigne aucune présence et
+        n’assigne aucune tâche.
+      es: Elige las personas explícitamente; esto no registra asistencia ni asigna
+        tareas.
+    valueType: members
+    required: false
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: folder
+    target: folder
+    label:
+      en: Folder destination
+      de: Zielordner
+      fr: Dossier de destination
+      es: Carpeta de destino
+    description: null
+    valueType: folder
+    required: true
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: include-document
+    target: includeComponent
+    label:
+      en: Create the reviewed editable copy
+      de: Überprüfte editierbare Kopie erstellen
+      fr: Créer la copie modifiable vérifiée
+      es: Crear la copia editable revisada
+    description: null
+    valueType: boolean
+    required: false
+    default:
+      kind: boolean
+      value: true
+    choices: []
+    visibleWhen: null
+components:
+  - id: document
+    action:
+      kind: createDocument
+      selected:
+        kind: input
+        input: include-document
+      folder:
+        kind: input
+        input: folder
+      variables:
+        preparation.title:
+          kind: input
+          input: title
+        preparation.date:
+          kind: input
+          input: date
+        preparation.people:
+          kind: input
+          input: people
+        preparation.notes:
+          kind: input
+          input: notes
+        context.container:
+          kind: context
+          value: database
+        context.task:
+          kind: context
+          value: row
+presentation:
+  steps:
+    - id: details
+      title: *a1
+      groups:
+        - id: preparation
+          title: null
+          role: content
+          controls:
+            - kind: input
+              input: title
+              control: text
+            - kind: input
+              input: notes
+              control: multiline
+            - kind: input
+              input: date
+              control: date
+            - kind: input
+              input: people
+              control: members
+            - kind: input
+              input: folder
+              control: folder
+            - kind: input
+              input: include-document
+              control: toggle
+          visibleWhen: null
+      actions:
+        - id: cancel
+          label:
+            en: Cancel
+            de: Abbrechen
+            fr: Annuler
+            es: Cancelar
+          action: cancel
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: prepare
+          label:
+            en: Review preparation
+            de: Vorbereitung überprüfen
+            fr: Vérifier la préparation
+            es: Revisar preparación
+          action: prepareDocuments
+          component: null
+          targetStep: null
+          dialog: confirm
+          visibleWhen: null
+        - id: check
+          label:
+            en: Check status
+            de: Status prüfen
+            fr: Vérifier le statut
+            es: Comprobar estado
+          action: check
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: close
+          label:
+            en: Close
+            de: Schließen
+            fr: Fermer
+            es: Cerrar
+          action: close
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+  dialogs:
+    - id: confirm
+      title:
+        en: Review preparation
+        de: Vorbereitung überprüfen
+        fr: Vérifier la préparation
+        es: Revisar preparación
+      groups:
+        - id: plan
+          title: null
+          role: review
+          controls:
+            - kind: documentReview
+          visibleWhen: null
+      actions:
+        - id: cancel-confirm
+          label:
+            en: Back to editing
+            de: Zurück zur Bearbeitung
+            fr: Revenir à la modification
+            es: Volver a editar
+          action: cancel
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: apply
+          label:
+            en: Create editable copy
+            de: Editierbare Kopie erstellen
+            fr: Créer une copie modifiable
+            es: Crear copia editable
+          action: applyDocuments
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null

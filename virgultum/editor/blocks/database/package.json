@@ -1,0 +1,35 @@
+{
+  "name": "@virgultum/block-database",
+  "description": "Reference-only server Database block for Virgultum.",
+  "type": "module",
+  "scripts": {
+    "build": "yarn --cwd \"$PROJECT_CWD\" exec tsc -p \"$PWD/tsconfig.json\" --noEmit"
+  },
+  "sideEffects": false,
+  "keywords": [],
+  "author": "Myoxus Contributors",
+  "license": "AGPL-3.0-or-later AND MIT",
+  "dependencies": {
+    "@virgultum/ext-loader": "workspace:*",
+    "@virgultum/global": "workspace:*",
+    "@virgultum/model": "workspace:*",
+    "@virgultum/shared": "workspace:*",
+    "@virgultum/std": "workspace:*",
+    "@virgultum/store": "workspace:*",
+    "@virgultum/widget-slash-menu": "workspace:*",
+    "lit": "^3.3.3",
+    "zod": "^3.25.76"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./reference-store": "./src/reference-store.ts",
+    "./reference-view": "./src/reference-view.ts"
+  },
+  "files": [
+    "src",
+    "dist",
+    "!src/__tests__",
+    "!dist/__tests__"
+  ],
+  "version": "0.41.5"
+}

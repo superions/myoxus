@@ -1,0 +1,15 @@
+.myoxus-electron-popup-root {
+  width: 100%;
+  height: 100%;
+  user-select: none;
+  background-color: transparent;
+}
+
+.myoxus-electron-popup-root[data-is-windows] {
+  background-color: var(--myoxus-background-primary-color);
+}
+
+html,
+body {
+  background-color: transparent;
+}

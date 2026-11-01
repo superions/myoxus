@@ -1,0 +1,24 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+.myoxus-annotation-paper[data-myoxus-ui-role="annotation-paper"] {
+  position: relative;
+  background: var(--myoxus-sem-annotation-paper);
+  color: var(--myoxus-sem-annotation-ink);
+  --myoxus-icon-color: var(--myoxus-sem-annotation-accent);
+}
+/* The folded paper corner is annotation geometry, not route-local chrome. */
+.myoxus-annotation-paper::after {
+  content: "";
+  position: absolute;
+  inset-inline-end: 0;
+  inset-block-end: 0;
+  inline-size: var(--mantine-spacing-sm);
+  block-size: var(--mantine-spacing-sm);
+  background: var(--myoxus-sem-annotation-fold);
+  clip-path: polygon(0 0, 100% 0, 0 100%);
+  pointer-events: none;
+}
+[data-myoxus-annotation-body] {
+  /* Bodies are literal document content: retain spaces and line breaks. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

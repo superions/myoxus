@@ -1,0 +1,15 @@
+query adminOrganizationUnitDeletionPreview($id: ID!) {
+  admin {
+    organizationUnitDeletionPreview(id: $id) {
+      id
+      name
+      status
+      updatedAt
+      deletable
+      blockers {
+        code
+        count
+      }
+    }
+  }
+}

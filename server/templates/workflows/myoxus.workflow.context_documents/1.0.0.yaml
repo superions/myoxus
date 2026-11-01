@@ -1,0 +1,10 @@
+formatVersion: 1
+id: myoxus.workflow.context_documents
+version: 1.0.0
+capabilityVersions:
+  createContextDocument: 1
+nodes:
+  - id: document
+    action:
+      kind: createContextDocument
+      component: document

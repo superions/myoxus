@@ -1,0 +1,26 @@
+query indexerSearchDocs($id: String!, $input: SearchDocsInput!) {
+  workspace(id: $id) {
+    searchDocs(input: $input) {
+      docId
+      externalId
+      title
+      blockId
+      highlight
+      createdAt
+      updatedAt
+      databaseContexts {
+        ...DatabaseDocumentReferenceFields
+      }
+      createdByUser {
+        id
+        name
+        avatarUrl
+      }
+      updatedByUser {
+        id
+        name
+        avatarUrl
+      }
+    }
+  }
+}

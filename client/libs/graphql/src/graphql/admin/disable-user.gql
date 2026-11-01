@@ -1,0 +1,8 @@
+mutation disableUser($id: String!) {
+  admin {
+    banUser(id: $id) {
+      email
+      disabled
+    }
+  }
+}

@@ -1,0 +1,8 @@
+mutation createWorkspaceInOrganizationUnit($input: CreateWorkspaceInOrganizationUnitInput!) {
+  createWorkspaceInOrganizationUnit(input: $input) {
+    id
+    name
+    initialized
+    public
+  }
+}

@@ -1,0 +1,432 @@
+format_version: 1
+id: myoxus.database.research_index
+version: 1.0.0
+task_core: null
+variants:
+  - option_extensions: []
+    field_order:
+      - title
+      - tags
+      - document
+      - source
+      - notes
+      - attachments
+      - status
+      - related
+    role_order: []
+    priority: threeStep
+    complexity: threeStep
+    structure: tasks_only
+    spec:
+      category: database
+      complexity_preset: null
+      default_structure: null
+      description: Collect sources, notes, attachments, tags, status and related research items.
+      fields:
+        - config:
+            Direct:
+              kind: title
+          field_type: title
+          key: title
+          name: Entry
+          required: true
+        - config:
+            Direct:
+              kind: tags
+              maxCount: null
+          field_type: tags
+          key: tags
+          name: Tags
+          required: false
+        - config:
+            Direct:
+              kind: document_link
+          field_type: document_link
+          key: document
+          name: Linked document
+          required: false
+        - config:
+            Direct:
+              kind: url
+          field_type: url
+          key: source
+          name: Source URL
+          required: false
+        - config:
+            Direct:
+              kind: rich_text
+              maxPlainTextBytes: null
+          field_type: rich_text
+          key: notes
+          name: Notes
+          required: false
+        - config:
+            Direct:
+              allowedMimeCategories:
+                - any
+              kind: files
+              maxItemCount: null
+              maxItemSize: null
+              previewPolicy: auto
+          field_type: files
+          key: attachments
+          name: Attachments
+          required: false
+        - config:
+            Direct:
+              defaultOptionId: status.todo
+              kind: status
+              options:
+                - colorRole: database.status.todo
+                  group: notStarted
+                  id: status.todo
+                  name: Todo
+                  position: 0
+                - colorRole: database.status.inProgress
+                  group: active
+                  id: status.in_progress
+                  name: In progress
+                  position: 1
+                - colorRole: database.status.done
+                  group: complete
+                  id: status.done
+                  name: Done
+                  position: 2
+          field_type: status
+          key: status
+          name: Status
+          required: true
+        - config:
+            SelfRelation:
+              allow_multiple: true
+              max_targets: null
+          field_type: relation
+          key: related
+          name: Related entries
+          required: false
+      id: myoxus.database.research_index
+      manifest:
+        category: database
+        defaultStructure: null
+        descriptionKey: com.myoxus.database.starter-template.database-research-index.description
+        fields:
+          - configKind: title
+            fieldType: title
+            importExportBehavior: read_write
+            key: title
+            nameKey: com.myoxus.database.starter-template.database-research-index.field.title.name
+            required: true
+          - configKind: tags
+            fieldType: tags
+            importExportBehavior: read_write
+            key: tags
+            nameKey: com.myoxus.database.starter-template.database-research-index.field.tags.name
+            required: false
+          - configKind: document_link
+            fieldType: document_link
+            importExportBehavior: read_write
+            key: document
+            nameKey: com.myoxus.database.starter-template.database-research-index.field.document.name
+            required: false
+          - configKind: url
+            fieldType: url
+            importExportBehavior: read_write
+            key: source
+            nameKey: com.myoxus.database.starter-template.database-research-index.field.source.name
+            required: false
+          - configKind: rich_text
+            fieldType: rich_text
+            importExportBehavior: read_write
+            key: notes
+            nameKey: com.myoxus.database.starter-template.database-research-index.field.notes.name
+            required: false
+          - configKind: files
+            fieldType: files
+            importExportBehavior: read_write
+            key: attachments
+            nameKey: com.myoxus.database.starter-template.database-research-index.field.attachments.name
+            required: false
+          - configKind: status
+            fieldType: status
+            importExportBehavior: read_write
+            key: status
+            nameKey: com.myoxus.database.starter-template.database-research-index.field.status.name
+            required: true
+          - configKind: self_relation
+            fieldType: relation
+            importExportBehavior: read_write
+            key: related
+            nameKey: com.myoxus.database.starter-template.database-research-index.field.related.name
+            required: false
+        id: myoxus.database.research_index
+        importMappings:
+          - columnMappings:
+              - fieldKey: title
+                required: true
+                sourceHeader: Entry
+              - fieldKey: tags
+                required: false
+                sourceHeader: Tags
+              - fieldKey: document
+                required: false
+                sourceHeader: Linked document
+              - fieldKey: source
+                required: false
+                sourceHeader: Source URL
+              - fieldKey: notes
+                required: false
+                sourceHeader: Notes
+              - fieldKey: attachments
+                required: false
+                sourceHeader: Attachments
+              - fieldKey: status
+                required: true
+                sourceHeader: Status
+              - fieldKey: related
+                required: false
+                sourceHeader: Related entries
+            key: default-csv
+            nameKey: com.myoxus.database.starter-template.database-research-index.import-mapping.default-csv.name
+        nameKey: com.myoxus.database.starter-template.database-research-index.name
+        profileKind: generic
+        roles: []
+        rowTemplates:
+          - descriptionKey: com.myoxus.database.starter-template.database-research-index.row-template.research-entry.description
+            initialFieldKeys:
+              - status
+              - notes
+            isDefault: true
+            key: research-entry
+            nameKey: com.myoxus.database.starter-template.database-research-index.row-template.research-entry.name
+            rowKind: record
+        sampleRows:
+          - fieldKeys:
+              - source
+              - status
+              - notes
+            key: sample-1
+            titleKey: com.myoxus.database.starter-template.database-research-index.sample-row.sample-1.title
+          - fieldKeys:
+              - source
+              - status
+              - notes
+            key: sample-2
+            titleKey: com.myoxus.database.starter-template.database-research-index.sample-row.sample-2.title
+          - fieldKeys:
+              - source
+              - status
+              - notes
+            key: sample-3
+            titleKey: com.myoxus.database.starter-template.database-research-index.sample-row.sample-3.title
+          - fieldKeys:
+              - source
+              - status
+              - notes
+            key: sample-4
+            titleKey: com.myoxus.database.starter-template.database-research-index.sample-row.sample-4.title
+          - fieldKeys:
+              - source
+              - status
+              - notes
+            key: sample-5
+            titleKey: com.myoxus.database.starter-template.database-research-index.sample-row.sample-5.title
+        schemaVersion: 1
+        views:
+          - axisFieldKeys:
+              - status
+            fieldKeys:
+              - status
+              - title
+              - document
+              - source
+              - tags
+              - notes
+            key: table
+            nameKey: com.myoxus.database.starter-template.database-research-index.view.table.name
+            primary: true
+            viewKind: table
+            visibleFieldKeys:
+              - title
+              - document
+              - source
+              - status
+              - tags
+              - notes
+          - axisFieldKeys:
+              - status
+            fieldKeys:
+              - status
+              - title
+              - document
+              - source
+              - notes
+            key: list
+            nameKey: com.myoxus.database.starter-template.database-research-index.view.list.name
+            primary: false
+            viewKind: list
+            visibleFieldKeys:
+              - title
+              - document
+              - source
+              - status
+              - notes
+      name: Research / Knowledge Index
+      priority_preset: null
+      profile_kind: generic
+      roles: []
+      row_templates:
+        - description: Start a research item with open review status and notes space.
+          initial_cells:
+            - - status
+              - kind: status
+                value: status.todo
+            - - notes
+              - kind: rich_text
+                value:
+                  document:
+                    content:
+                      - content:
+                          - text: Summarize the source, decision impact and open questions.
+                            type: text
+                        type: paragraph
+                    type: doc
+                  plainText: Summarize the source, decision impact and open questions.
+          is_default: true
+          key: research-entry
+          name: Research entry
+          row_kind: record
+      sample_rows:
+        - cells:
+            - - source
+              - kind: url
+                value: https://example.com/search-ranking
+            - - status
+              - kind: status
+                value: status.in_progress
+            - - notes
+              - kind: rich_text
+                value:
+                  document:
+                    content:
+                      - content:
+                          - text: Capture summary, decision impact and open questions.
+                            type: text
+                        type: paragraph
+                    type: doc
+                  plainText: Capture summary, decision impact and open questions.
+          key: Search ranking review
+          relation_cells: []
+          row_kind: record
+          title: Search ranking review
+        - cells:
+            - - source
+              - kind: url
+                value: https://example.com/database-ux
+            - - status
+              - kind: status
+                value: status.todo
+            - - notes
+              - kind: rich_text
+                value:
+                  document:
+                    content:
+                      - content:
+                          - text: Capture summary, decision impact and open questions.
+                            type: text
+                        type: paragraph
+                    type: doc
+                  plainText: Capture summary, decision impact and open questions.
+          key: Database UX notes
+          relation_cells: []
+          row_kind: record
+          title: Database UX notes
+        - cells:
+            - - source
+              - kind: url
+                value: https://example.com/export-checklist
+            - - status
+              - kind: status
+                value: status.done
+            - - notes
+              - kind: rich_text
+                value:
+                  document:
+                    content:
+                      - content:
+                          - text: Capture summary, decision impact and open questions.
+                            type: text
+                        type: paragraph
+                    type: doc
+                  plainText: Capture summary, decision impact and open questions.
+          key: Export validation checklist
+          relation_cells: []
+          row_kind: record
+          title: Export validation checklist
+        - cells:
+            - - source
+              - kind: url
+                value: https://example.com/accessibility
+            - - status
+              - kind: status
+                value: status.todo
+            - - notes
+              - kind: rich_text
+                value:
+                  document:
+                    content:
+                      - content:
+                          - text: Capture summary, decision impact and open questions.
+                            type: text
+                        type: paragraph
+                    type: doc
+                  plainText: Capture summary, decision impact and open questions.
+          key: Accessibility heuristics
+          relation_cells: []
+          row_kind: record
+          title: Accessibility heuristics
+        - cells:
+            - - source
+              - kind: url
+                value: https://example.com/logging
+            - - status
+              - kind: status
+                value: status.in_progress
+            - - notes
+              - kind: rich_text
+                value:
+                  document:
+                    content:
+                      - content:
+                          - text: Capture summary, decision impact and open questions.
+                            type: text
+                        type: paragraph
+                    type: doc
+                  plainText: Capture summary, decision impact and open questions.
+          key: Operational logging patterns
+          relation_cells: []
+          row_kind: record
+          title: Operational logging patterns
+      views:
+        - config:
+            Table:
+              group: status
+              visible:
+                - title
+                - document
+                - source
+                - status
+                - tags
+                - notes
+          kind: table
+          name: Table
+        - config:
+            List:
+              group: status
+              visible:
+                - title
+                - document
+                - source
+                - status
+                - notes
+          kind: list
+          name: List

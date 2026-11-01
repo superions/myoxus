@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+# Shared development hosts must not let direct Cargo invocations fan out across
+# every CPU or accumulate incompatible incremental graphs. Explicit environment
+# overrides remain available for dedicated or explicitly approved development
+# hosts (dev-01: 16; dev-02: 24). Their persistent login profiles own those values.
+[build]
+incremental = false
+jobs        = 8

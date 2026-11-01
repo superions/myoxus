@@ -1,0 +1,2079 @@
+{
+  "generated_at": "2026-08-04T01:56:51.766500+00:00",
+  "source_root": "client/libs/graphql/src/graphql",
+  "total_operations": 518,
+  "operations": [
+    {
+      "operation_type": "mutation",
+      "operation_name": "AdminCleanQueue"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "AdminEmptyQueue"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "AdminPauseAllQueues"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "AdminPauseQueue"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "AdminPromoteQueueJob"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "AdminResumeAllQueues"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "AdminResumeQueue"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "AdminRetryQueueJob"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "FlushMetrics"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "FlushTelemetry"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "ImportUsers"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "InviteServerUserById"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "abortBlobUpload"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "acceptInviteByInviteId"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "addContextBlob"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "addContextCategory"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "addContextDoc"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "addContextFile"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "addOrganizationUnitMemberAsManager"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "addWorkspaceEmbeddingFiles"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "addWorkspaceEmbeddingIgnoredDocs"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminAddWorkspaceFeature"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminAddWorkspaceMember"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminApprovePdfFont"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminAssignOrganizationManager"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminAssignOrganizationUnitWorkspace"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminAssignPdfTemplateToWorkspace"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminCancelPdfExportJob"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminCleanupTrashedDocEmbeddings"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminDeactivateOrganizationUnit"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminDeactivateOrganizationUnitType"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminDecideOrganizationProjectRequest"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminDeleteDocumentBrandLogo"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminDeleteIccProfile"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminDeleteOrganizationUnitPermanently"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminDeletePdfFont"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminDeletePdfTemplate"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminDeleteWorkspace"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminExportRevision"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminFlushAllDocCaches"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminFlushDocMetadataCache"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminFlushDocMetadataProjectionCache"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminFlushDocSnapshotCache"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminOrganizationImportApply"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminOrganizationImportDryRun"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminRejectPdfFont"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminRemoveWorkspaceFeature"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminRemoveWorkspaceMember"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminReplacePdfTemplateBundle"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminResetWorkspaceDocumentBranding"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminResetWorkspaceThemeProfile"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminRetireTemplateAssignment"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminSetColorSchemaValues"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminSetDocumentBrandingColorPolicy"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminSetOrganizationUnitParent"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminSetOrganizationUnitStatus"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminSetThemeProfile"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminSetTypographyStyles"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminSetUserAdmin"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminSetUserManagerFeature"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminSetWorkspaceDefaultPdfTemplate"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminTestOidcProvider"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminTriggerDriftScan"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminTriggerFullReindex"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminTriggerWorkspaceReindex"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminUnassignOrganizationManager"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminUnassignOrganizationUnitWorkspace"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminUnassignPdfTemplateFromWorkspace"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminUpdateAppServerBranding"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminUpdateConfig"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminUpdateDocumentBrandingColors"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminUpdateDocumentBrandingText"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminUpdateDocumentMetadataFieldDefinition"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminUpdateOrganization"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminUpdateOrganizationIdentity"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminUpdateOrganizationPolicy"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminUpdatePdfExportSettings"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminUpdatePdfTemplateMetadata"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminUpdateWorkspace"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminUpdateWorkspaceMemberRole"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminUploadDocumentBrandLogo"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminUploadIccProfile"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminUploadPdfFont"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminUploadPdfTemplate"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminUpsertDocumentMetadataValueDefinition"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminUpsertDocumentStatusSchema"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminUpsertDocumentStatusTransition"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminUpsertDocumentStatusValue"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminUpsertDocumentType"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminUpsertDocumentVersionPolicy"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminUpsertOrganizationUnit"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "adminUpsertOrganizationUnitType"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "applyDocUpdates"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "applyLegacyDatabaseMigration"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "applyLogPreset"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "applyWorkspaceImport"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "approveWorkspaceMember"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "archiveTemplate"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "archiveWorkspaceTag"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "assignTemplateToWorkspace"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "attachDatabaseRowContentDocument"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "bootstrapWorkspaceTags"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "bulkApplyDatabaseCellPatches"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "bulkClearDatabaseCellValue"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "bulkDeleteDatabaseRows"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "bulkRestoreDatabaseRows"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "bulkSetDatabaseCellValue"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "bulkUpdateDatabaseRowPositions"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "bumpBuilderVersion"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "cancelOrganizationProjectRequest"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "cancelPdfExportJob"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "cancelWorkspaceContentOperation"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "cancelWorkspaceImport"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "changeEmail"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "changePassword"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "claimAudioTranscription"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "cleanupCopilotSession"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "clearDatabaseCellValue"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "completeBlobUpload"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "completeWorkspaceImportUpload"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createBlobUpload"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createChangePasswordUrl"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createComment"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createCopilotContext"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createCopilotMessage"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createCopilotSession"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createCopilotSessionWithHistory"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createCustomerPortal"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createDatabase"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createDatabaseField"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createDatabaseFromTemplate"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createDatabaseRow"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createDatabaseRowContentDocument"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createDatabaseRowFromTemplate"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createDatabaseRowTemplate"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createDatabaseView"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createEventTag"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createGitSyncProfile"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createInviteLink"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createMcpApiKey"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createOrganizationProject"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createProject"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createReply"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createSelfhostCustomerPortal"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createUser"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createWorkspace"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createWorkspaceAutomation"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createWorkspaceEvent"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createWorkspaceImportUpload"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createWorkspaceInOrganizationUnit"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "createWorkspaceTag"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "deleteAccount"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "deleteBlob"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "deleteCalendarEvent"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "deleteComment"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "deleteDatabaseField"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "deleteDatabasePermanently"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "deleteDatabaseRow"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "deleteDatabaseRowReminder"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "deleteDatabaseRowTemplate"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "deleteDatabaseView"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "deleteDocumentPermanently"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "deleteDocumentsPermanently"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "deleteEventTag"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "deleteGitSyncProfile"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "deleteGitSyncSshHostKey"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "deleteReply"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "deleteUser"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "deleteWorkspace"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "deleteWorkspaceEvent"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "detachDatabaseRowContentDocument"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "disableGitSyncSshHostKey"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "disableTemplate"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "disableUser"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "disableWorkspaceAutomation"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "emptyWorkspaceTrash"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "enableTemplate"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "enableUser"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "executeWorkspaceContentOperation"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "exportPdf"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "forkCopilotSession"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "generateUserAccessToken"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "grantDocUserRoles"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "grantWorkspaceMember"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "importDatabaseCsv"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "importDatabaseJson"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "importDatabaseNotion"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "importTemplate"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "importWorkspaceCalendarIcs"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "inviteByEmails"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "leaveWorkspace"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "linkCalDavAccount"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "linkCalendarAccount"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "mentionUser"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "previewDatabaseCsvImport"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "previewDatabaseJsonImport"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "previewDatabaseNotionImport"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "previewWorkspaceImport"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "publishPage"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "publishRevision"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "queueWorkspaceEmbedding"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "readAllNotifications"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "readNotification"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "reassignWorkspaceOwner"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "recolorWorkspaceTag"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "recoverDoc"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "releaseDeletedBlobs"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "removeAvatar"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "removeContextBlob"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "removeContextCategory"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "removeContextDoc"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "removeContextFile"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "removeOrganizationUnitMemberAsManager"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "removeTemplateAssignment"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "removeWorkspaceEmbeddingFiles"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "removeWorkspaceEmbeddingIgnoredDocs"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "renameWorkspaceTag"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "reorderDatabaseFields"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "reorderDatabaseViews"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "reportTemplateBuilderApplied"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "reportTemplateBuilderTrashed"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "resetDatabaseViewUserState"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "resetLogLevels"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "resetPersonalWorkspaceTheme"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "resolveComment"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "resolveGitSyncConflict"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "resolveGitSyncFileConflict"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "restoreDatabase"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "restoreWorkspaceTag"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "retryAudioTranscription"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "retryWorkspaceContentOperation"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "revokeDocUserRoles"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "revokeInviteLink"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "revokeMcpApiKey"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "revokeMemberPermission"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "revokePublicPage"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "revokeUserAccessToken"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "saveDatabaseViewUserState"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "sendChangeEmail"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "sendChangePasswordEmail"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "sendSetPasswordEmail"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "sendTestEmail"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "sendVerifyChangeEmail"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "sendVerifyEmail"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "setBlob"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "setDatabaseRowReminder"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "setDocumentMetadata"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "setDocumentWorkspaceTags"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "setEnableAi"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "setEnableDocEmbedding"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "setEnableSharing"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "setEnableUrlPreview"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "setPersonalWorkspaceTheme"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "setTemplateDefaultPolicy"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "setWorkspacePublicById"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "setWorkspaceTemplateOverride"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "submitAudioTranscription"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "testGitConnection"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "transitionDocumentStatus"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "trashDatabase"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "triggerGitSync"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "triggerReconcile"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "undoWorkspaceContentOperation"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "unlinkCalendarAccount"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateAccount"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateAccountFeatures"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateBuiltinTemplateMetadata"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateCalendarAccount"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateCalendarEventRsvp"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateCalendarReminderStatus"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateComment"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateCopilotSession"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateDatabase"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateDatabaseCellValue"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateDatabaseField"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateDatabaseRowPosition"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateDatabaseRowTemplate"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateDatabaseRowTitle"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateDatabaseView"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateDocDefaultRole"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateDocUserRole"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateDocumentVersioningWorkspaceSettings"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateEventTag"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateGitSyncProfile"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateLogModuleLevel"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateLogOutput"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateReply"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateUserPreferences"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateUserProfile"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateWorkspaceCalendarSettings"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateWorkspaceCalendars"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateWorkspaceDocumentSettings"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateWorkspaceEvent"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "updateWorkspaceName"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "uploadAvatar"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "uploadCommentAttachment"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "upsertCalendarEvent"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "upsertDatabaseViewUserState"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "verifyEmail"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "workspaceContentPreflight"
+    },
+    {
+      "operation_type": "mutation",
+      "operation_name": "workspaceTemplateReconcileSlugs"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "AdminMetricsStatus"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "AdminQueueJobs"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "AdminQueueStatus"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "AdminTelemetryStatus"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "ServerUsers"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminAllSharedLinks"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminAppServerBranding"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminAuditLog"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminCacheTuningHistory"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminCacheTuningStatus"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminConfigChangelog"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminConfigSchema"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminConfigValues"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminDashboard"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminDocumentAuditLog"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminDocumentBrandColorPalettes"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminDocumentBrandingProfile"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminDocumentMetadataFieldDefinitions"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminDocumentMetadataValueDefinitions"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminDocumentRuntimeOverview"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminDocumentStatusSchemas"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminDocumentStatusValues"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminDocumentTypes"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminDocumentVersionPolicies"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminEffectiveThemeProfile"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminOrganization"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminOrganizationExport"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminOrganizationIdentity"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminOrganizationPolicy"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminOrganizationProjectRequests"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminOrganizationUnitDeletionPreview"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminOrganizationUnitMembers"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminOrganizationUnitTypes"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminOrganizationUnitWorkspaces"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminOrganizationUnits"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminPdfExportJobs"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminPdfExportSettings"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminPdfFont"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminPdfFonts"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminPdfIccProfile"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminPdfIccProfiles"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminPdfTemplate"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminPdfTemplateAssignedWorkspaces"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminPdfTemplateFiles"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminPdfTemplatePreviewPdf"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminPdfTemplates"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminPdfWorkspaceAssignments"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminSearchUsers"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminSearchWorkspaces"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminServerConfig"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminThemeCatalog"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminWorkspace"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminWorkspaceOrganizationUnitWorkspaces"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminWorkspaceQuotaDetails"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminWorkspaces"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminWorkspacesCount"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "adminWorkspacesList"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "calendarAccounts"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "calendarEvent"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "calendarEventTags"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "calendarEvents"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "calendarFreeBusy"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "calendarProviders"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "canCreateOrganizationProject"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "canCreateWorkspaceInOrganizationUnit"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "clientUpdateControl"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "copilotQuota"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "database"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "databaseActivity"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "databaseAutomations"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "databaseCsvExport"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "databaseEffectiveViewState"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "databaseJsonExport"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "databaseProgress"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "databaseRow"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "databaseRowActivity"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "databaseRowGroups"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "databaseRowReminders"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "databaseRowTemplates"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "databaseRows"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "databaseSchema"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "databaseSearch"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "databaseStarterTemplates"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "databaseSummary"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "databaseView"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "databaseViews"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "databases"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "documentGraph"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "documentGraphIndexStatus"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "documentLinks"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "documentMetadata"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "documentMetadataFieldDefinitions"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "documentMetadataIndex"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "documentMetadataValidation"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "documentMetadataValueDefinitions"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "documentStatusSchemas"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "documentStatusValues"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "documentTypes"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "documentVersionPolicies"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "documentVersioningAdminSettings"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "documentWorkspaceTagIds"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "exportWorkspaceCalendarIcs"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getAllWorkspaceEmbeddingIgnoredDocs"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getAudioTranscription"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getBlobUploadPartUrl"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getCopilotDocSessions"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getCopilotHistories"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getCopilotHistoryIds"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getCopilotLatestDocSession"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getCopilotPinnedSessions"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getCopilotRecentSessions"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getCopilotSession"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getCopilotSessions"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getCopilotWorkspaceSessions"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getCurrentUser"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getCurrentUserFeatures"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getCurrentUserProfile"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getDocCreatedByUpdatedByList"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getDocDefaultRole"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getDocLastAccessedMembers"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getDocPageAnalytics"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getDocRolePermissions"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getDocSummary"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getGitSyncBindings"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getGitSyncConflicts"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getGitSyncFileBindings"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getGitSyncFileConflicts"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getGitSyncPolicies"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getGitSyncProfile"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getGitSyncRuns"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getGitSyncSshHostKeys"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getGitSyncStatus"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getInviteInfo"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getMemberCountByWorkspaceId"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getMembersByWorkspaceId"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getPageGrantedUsersList"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getPromptModels"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getPublicUserById"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getRecentlyUpdatedDocs"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getUser"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getUserByEmail"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getUserFeatures"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getUserPreferences"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getWorkspace"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getWorkspaceConfig"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getWorkspaceEmbeddingFiles"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getWorkspaceEmbeddingIgnoredDocs"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getWorkspaceEmbeddingStatus"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getWorkspaceInfo"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getWorkspacePageById"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getWorkspacePageMetaById"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getWorkspacePublicById"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getWorkspacePublicPages"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getWorkspaceRolePermissions"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "getWorkspaces"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "gitSyncSchedulePreview"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "gitSyncTimezones"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "indexerAggregate"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "indexerSearch"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "indexerSearchDocs"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "listBlobs"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "listCommentChanges"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "listComments"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "listContext"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "listContextObject"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "listHistory"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "listMcpApiKeys"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "listNotifications"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "listUserAccessTokens"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "listUsers"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "loggingConfig"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "managerSearchUsers"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "matchContext"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "matchFiles"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "matchWorkspaceDocs"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "myOrganizationAuditLog"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "myOrganizationUnitMembers"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "myOrganizationUnitWorkspaces"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "myOrganizationUnits"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "notificationCount"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "oauthProviders"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "orphanedWorkspaces"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "orphanedWorkspacesCount"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "pdfExportDialogBootstrap"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "pdfExportJob"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "pdfTemplatePreviewPdf"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "personalWorkspaceTheme"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "previewLegacyDatabaseMigration"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "prices"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "quota"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "resolveWorkspaceTags"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "searchOrganizationUnits"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "serverConfig"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "serverDirectories"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "serverSetupStatus"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "templateAssignments"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "templateCatalog"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "templateDefaultPolicies"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "templateJobs"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "templateRevisions"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "templateSuggestions"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "trashedDatabases"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "userLastLoginAt"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "userOrganizationMemberships"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "workspaceBlobQuota"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "workspaceCalendarSettings"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "workspaceCalendars"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "workspaceContentOperation"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "workspaceContentOperationCapabilities"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "workspaceContentRedirect"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "workspaceDocumentSettings"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "workspaceImport"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "workspaceQuota"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "workspaceTag"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "workspaceTagDatabaseRowUsages"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "workspaceTags"
+    },
+    {
+      "operation_type": "query",
+      "operation_name": "workspaceTemplateInstances"
+    }
+  ]
+}

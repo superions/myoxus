@@ -1,0 +1,5 @@
+query userLastLoginAt($userId: ID!) {
+  admin {
+    userLastLoginAt(userId: $userId)
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "name": "@myoxus/mobile",
+  "private": true,
+  "description": "Myoxus Mobile Web application",
+  "browser": "src/index.tsx",
+  "scripts": {
+    "build": "myoxus bundle",
+    "dev": "myoxus bundle --dev"
+  },
+  "dependencies": {
+    "@myoxus/core": "workspace:*",
+    "@myoxus/env": "workspace:*",
+    "@myoxus/i18n": "workspace:*",
+    "@myoxus/icons": "workspace:*",
+    "@myoxus/infra": "workspace:*",
+    "@myoxus/storage": "workspace:*",
+    "@myoxus/theme": "workspace:*",
+    "@myoxus/track": "workspace:*",
+    "@sentry/react": "10.75.0",
+    "@virgultum/editor": "workspace:*",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-router": "7.18.4"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.1",
+    "@types/react-dom": "^19.0.2",
+    "cross-env": "^10.1.0",
+    "typescript": "7.0.2"
+  }
+}

@@ -1,0 +1,170 @@
+[
+  {
+    "name": "empty note",
+    "source": "> [!note]\n",
+    "title": "",
+    "native": 1,
+    "unsupported": 0
+  },
+  {
+    "name": "title only",
+    "source": "> [!note] Rollout checklist\n",
+    "title": "Rollout checklist",
+    "native": 1,
+    "unsupported": 0
+  },
+  {
+    "name": "paragraphs and lists",
+    "source": "> [!note] Before rollout\n> **Review** the changes.\n> Second line.\n>\n> - Check privacy\n> - [x] Obtain approval\n>\n> [[Target|Open target]]\n",
+    "title": "Before rollout",
+    "native": 1,
+    "unsupported": 0
+  },
+  {
+    "name": "case and CRLF",
+    "kind": "NOTE",
+    "source": "> [!NOTE] Review\r\n> Current body\r\n",
+    "title": "Review",
+    "native": 1,
+    "unsupported": 0
+  },
+  {
+    "name": "list first preserves order",
+    "source": "> [!note] Checklist\n> - First action\n> - Second action\n>\n> Final paragraph\n",
+    "title": "Checklist",
+    "native": 1,
+    "unsupported": 0
+  },
+  {
+    "name": "hard body break",
+    "source": "> [!note] Review\n> First line\\\n> Second line\n",
+    "title": "Review",
+    "native": 1,
+    "unsupported": 0
+  },
+  {
+    "name": "foldable plus",
+    "source": "> [!note]+ Title\n> Body\n",
+    "title": "Title",
+    "foldable": true,
+    "defaultOpen": true,
+    "native": 1,
+    "unsupported": 0
+  },
+  {
+    "name": "foldable minus",
+    "source": "> [!note]- Title\n> Body\n",
+    "title": "Title",
+    "foldable": true,
+    "defaultOpen": false,
+    "native": 1,
+    "unsupported": 0
+  },
+  {
+    "name": "other type",
+    "source": "> [!warning] Title\n> Body\n",
+    "kind": "warning",
+    "title": "Title",
+    "native": 1,
+    "unsupported": 0
+  },
+  {
+    "name": "unknown type",
+    "source": "> [!custom] Title\n> Body\n",
+    "kind": "custom",
+    "title": "Title",
+    "native": 1,
+    "unsupported": 0
+  },
+  {
+    "name": "literal code child",
+    "source": "> [!note] Title\n> ```text\n> literal\n> ```\n",
+    "title": "Title",
+    "native": 1,
+    "unsupported": 0
+  },
+  {
+    "name": "nested note",
+    "source": "> Outer\n>\n> > [!note] Nested\n> > Body\n",
+    "title": "Nested",
+    "native": 1,
+    "unsupported": 0
+  },
+  {
+    "name": "nested typed callouts",
+    "source": "> [!warning]- Deployment approval\n> Check access.\n>\n> - Approval\n>   - Audit trail\n>\n> > [!TIP]+ Recovery procedure\n> > Keep rollback ready.\n> >\n> > ```text\n> > %%literal%% and [!danger]-\n> > ```\n>\n> ## Release checklist\n>\n> > Ordinary quoted instruction.\n>\n> %%Internal reviewer: keep the backup.%%\n>\n> Final approval paragraph.\n",
+    "kind": "warning",
+    "title": "Deployment approval",
+    "foldable": true,
+    "defaultOpen": false,
+    "native": 2,
+    "unsupported": 0
+  },
+  {
+    "name": "callout inside list with nested list",
+    "source": "- Outer instruction\n\n  > [!custom]- Review\n  > - Inner action\n  >   - Retain backup\n  >\n  > Final paragraph\n",
+    "kind": "custom",
+    "title": "Review",
+    "foldable": true,
+    "defaultOpen": false,
+    "native": 1,
+    "unsupported": 0
+  },
+  {
+    "name": "nested child first preserves order",
+    "source": "> [!custom] Review\n> > [!note]-\n> > Inner body\n>\n> Final outer paragraph\n",
+    "kind": "custom",
+    "title": "Review",
+    "native": 2,
+    "unsupported": 0
+  },
+  {
+    "name": "ordinary quote containing a callout first",
+    "source": "> > [!note]- Nested\n> > Inner body\n>\n> Final outer quote paragraph\n",
+    "title": "Nested",
+    "foldable": true,
+    "defaultOpen": false,
+    "native": 1,
+    "unsupported": 0
+  },
+  {
+    "name": "empty folded unknown kind",
+    "source": "> [!Research_Review]-\n",
+    "kind": "Research_Review",
+    "title": "",
+    "foldable": true,
+    "defaultOpen": false,
+    "native": 1,
+    "unsupported": 0
+  },
+  {
+    "name": "unsupported table keeps diagnosis",
+    "source": "> [!note] Review\n>\n> | Decision | Owner |\n> | --- | --- |\n> | Approve | Reviewer |\n",
+    "native": 0,
+    "unsupported": 1
+  },
+  {
+    "name": "unsupported display math keeps diagnosis",
+    "source": "> [!note] Calculation\n>\n> $$\n> a+b\n> $$\n",
+    "native": 0,
+    "unsupported": 1
+  },
+  {
+    "name": "unsupported diagram keeps diagnosis",
+    "source": "> [!note] Overview\n> ```mermaid\n> graph LR\n> A-->B\n> ```\n",
+    "native": 0,
+    "unsupported": 1
+  },
+  {
+    "name": "code stays literal",
+    "source": "```md\n> [!note] Literal\n> body\n```\n",
+    "native": 0,
+    "unsupported": 0
+  },
+  {
+    "name": "escaped header stays literal",
+    "source": "> \\[!note] Literal\n> body\n",
+    "native": 0,
+    "unsupported": 0
+  }
+]

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+ xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+ xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:tns="urn:myoxus:events" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ id="Definitions" targetNamespace="urn:myoxus:events">
+ <message id="Request" name="Request"/>
+ <signal id="Notice" name="Notice"/>
+ <error id="Failure" name="Failure" errorCode="E1"/>
+ <escalation id="Escalate" name="Escalate" escalationCode="E2"/>
+ <timerEventDefinition id="SharedTimer"><timeDuration id="SharedExpression" xsi:type="tFormalExpression" language="urn:timer">PT5M</timeDuration></timerEventDefinition>
+ <process id="Process" name="Standard event contexts">
+  <laneSet id="Lanes"><lane id="Lane" name="Event contexts"><flowNodeRef>Start</flowNodeRef><flowNodeRef>Host</flowNodeRef><flowNodeRef>End</flowNodeRef><flowNodeRef>MultiStart</flowNodeRef><flowNodeRef>CatchTimer</flowNodeRef><flowNodeRef>CatchConditional</flowNodeRef><flowNodeRef>ThrowMultiple</flowNodeRef><flowNodeRef>LinkCatch</flowNodeRef><flowNodeRef>LinkThrow</flowNodeRef><flowNodeRef>EndError</flowNodeRef><flowNodeRef>EndCompensation</flowNodeRef><flowNodeRef>EndEscalation</flowNodeRef><flowNodeRef>EndTerminate</flowNodeRef><flowNodeRef>SubProcess</flowNodeRef></lane></laneSet>
+  <startEvent id="Start" name="Message start"><outgoing>ToHost</outgoing><messageEventDefinition id="StartMessage" messageRef="tns:Request"/></startEvent>
+  <task id="Host" name="Boundary host"><incoming>ToHost</incoming><outgoing>ToEnd</outgoing></task>
+  <boundaryEvent id="Boundary" name="Noninterrupting timer" attachedToRef="tns:Host" cancelActivity="false"><documentation id="BoundaryDoc">Retain attachment metadata</documentation><eventDefinitionRef>tns:SharedTimer</eventDefinitionRef></boundaryEvent>
+  <endEvent id="End" name="None end"><incoming>ToEnd</incoming></endEvent>
+  <sequenceFlow id="ToHost" sourceRef="Start" targetRef="Host"/>
+  <sequenceFlow id="ToEnd" sourceRef="Host" targetRef="End"/>
+  <startEvent id="MultiStart" name="Parallel multiple start" parallelMultiple="true"><messageEventDefinition id="MultiMessage" messageRef="tns:Request"/><eventDefinitionRef>tns:SharedTimer</eventDefinitionRef></startEvent>
+  <intermediateCatchEvent id="CatchTimer" name="Repeated timers"><timerEventDefinition id="TimerA"><timeDuration id="DurationA">PT1M</timeDuration></timerEventDefinition><timerEventDefinition id="TimerB"><timeCycle id="CycleB" xsi:type="tFormalExpression" language="urn:timer">R3/PT2M</timeCycle></timerEventDefinition></intermediateCatchEvent>
+  <intermediateCatchEvent id="CatchConditional" name="Conditional catch"><conditionalEventDefinition id="Conditional"><condition id="Condition" xsi:type="tFormalExpression" language="urn:condition">approved</condition></conditionalEventDefinition></intermediateCatchEvent>
+  <intermediateThrowEvent id="ThrowMultiple" name="Multiple throw"><messageEventDefinition id="ThrowMessage" messageRef="tns:Request"/><signalEventDefinition id="ThrowSignal" signalRef="tns:Notice"/></intermediateThrowEvent>
+  <intermediateCatchEvent id="LinkCatch" name="Link catch"><linkEventDefinition id="CatchLinkDefinition" name="Continue"><source>tns:ThrowLinkDefinition</source></linkEventDefinition></intermediateCatchEvent>
+  <intermediateThrowEvent id="LinkThrow" name="Link throw"><linkEventDefinition id="ThrowLinkDefinition" name="Continue"><target>tns:CatchLinkDefinition</target></linkEventDefinition></intermediateThrowEvent>
+  <endEvent id="EndError" name="Error end"><errorEventDefinition id="ErrorDefinition" errorRef="tns:Failure"/></endEvent>
+  <endEvent id="EndCompensation" name="Compensation end"><compensateEventDefinition id="CompensationDefinition" activityRef="tns:Host" waitForCompletion="true"/></endEvent>
+  <endEvent id="EndEscalation" name="Escalation end"><escalationEventDefinition id="EscalationDefinition" escalationRef="tns:Escalate"/></endEvent>
+  <endEvent id="EndTerminate" name="Terminate end"><terminateEventDefinition id="TerminateDefinition"/></endEvent>
+  <subProcess id="SubProcess" name="Nested event scope">
+   <startEvent id="NestedStart" name="None start"><outgoing>NestedToTask</outgoing></startEvent>
+   <manualTask id="NestedTask" name="Nested host"><incoming>NestedToTask</incoming><outgoing>NestedToEnd</outgoing></manualTask>
+   <boundaryEvent id="NestedBoundary" attachedToRef="tns:NestedTask"><errorEventDefinition id="NestedError" errorRef="tns:Failure"/></boundaryEvent>
+   <endEvent id="NestedEnd"><incoming>NestedToEnd</incoming></endEvent>
+   <sequenceFlow id="NestedToTask" sourceRef="NestedStart" targetRef="NestedTask"/>
+   <sequenceFlow id="NestedToEnd" sourceRef="NestedTask" targetRef="NestedEnd"/>
+  </subProcess>
+ </process>
+ <bpmndi:BPMNDiagram id="Diagram"><bpmndi:BPMNPlane id="Plane" bpmnElement="Process">
+  <bpmndi:BPMNShape id="LaneDI" bpmnElement="Lane" isHorizontal="true"><dc:Bounds x="20" y="20" width="960" height="820"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="StartDI" bpmnElement="Start"><dc:Bounds x="100" y="80" width="48" height="48"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="HostDI" bpmnElement="Host"><dc:Bounds x="260" y="60" width="180" height="100"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="BoundaryDI" bpmnElement="Boundary"><dc:Bounds x="360" y="136" width="48" height="48"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="EndDI" bpmnElement="End"><dc:Bounds x="560" y="80" width="48" height="48"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="MultiStartDI" bpmnElement="MultiStart"><dc:Bounds x="100" y="250" width="48" height="48"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="CatchTimerDI" bpmnElement="CatchTimer"><dc:Bounds x="340" y="250" width="48" height="48"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="CatchConditionalDI" bpmnElement="CatchConditional"><dc:Bounds x="580" y="250" width="48" height="48"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="ThrowMultipleDI" bpmnElement="ThrowMultiple"><dc:Bounds x="820" y="250" width="48" height="48"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="LinkCatchDI" bpmnElement="LinkCatch"><dc:Bounds x="100" y="400" width="48" height="48"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="LinkThrowDI" bpmnElement="LinkThrow"><dc:Bounds x="340" y="400" width="48" height="48"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="EndErrorDI" bpmnElement="EndError"><dc:Bounds x="580" y="400" width="48" height="48"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="EndCompensationDI" bpmnElement="EndCompensation"><dc:Bounds x="820" y="400" width="48" height="48"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="EndEscalationDI" bpmnElement="EndEscalation"><dc:Bounds x="100" y="550" width="48" height="48"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="EndTerminateDI" bpmnElement="EndTerminate"><dc:Bounds x="340" y="550" width="48" height="48"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="SubProcessDI" bpmnElement="SubProcess" isExpanded="true"><dc:Bounds x="500" y="520" width="430" height="260"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="NestedStartDI" bpmnElement="NestedStart"><dc:Bounds x="530" y="610" width="36" height="36"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="NestedTaskDI" bpmnElement="NestedTask"><dc:Bounds x="620" y="590" width="150" height="80"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="NestedBoundaryDI" bpmnElement="NestedBoundary"><dc:Bounds x="690" y="652" width="36" height="36"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="NestedEndDI" bpmnElement="NestedEnd"><dc:Bounds x="850" y="610" width="36" height="36"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNEdge id="ToHostDI" bpmnElement="ToHost"><di:waypoint x="148" y="104"/><di:waypoint x="200" y="104"/><di:waypoint x="260" y="110"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="ToEndDI" bpmnElement="ToEnd"><di:waypoint x="440" y="110"/><di:waypoint x="500" y="104"/><di:waypoint x="560" y="104"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="NestedToTaskDI" bpmnElement="NestedToTask"><di:waypoint x="566" y="628"/><di:waypoint x="620" y="630"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="NestedToEndDI" bpmnElement="NestedToEnd"><di:waypoint x="770" y="630"/><di:waypoint x="850" y="628"/></bpmndi:BPMNEdge>
+ </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+</definitions>

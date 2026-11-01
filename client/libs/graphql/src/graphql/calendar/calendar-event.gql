@@ -1,0 +1,23 @@
+query calendarEvent($workspaceId: String!, $eventId: String!) {
+  calendarEvent(workspaceId: $workspaceId, eventId: $eventId) {
+    id
+    origin
+    workspaceId
+    title
+    startsAt
+    endsAt
+    allDay
+    allMembers
+    tagId
+    sourceExternalId
+    descriptionDelta
+    recurrenceParentId
+    reminders {
+      id
+      channel
+      minutesBefore
+      scheduledFor
+      deliveredAt
+    }
+  }
+}

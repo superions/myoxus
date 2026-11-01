@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily updates for Myoxus Linux package installation runner
+
+[Timer]
+OnCalendar=*-*-* 04:15:00 Europe/Berlin
+RandomizedDelaySec=20min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

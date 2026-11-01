@@ -1,0 +1,24 @@
+mutation adminOrganizationImportDryRun($input: OrganizationImportInput!) {
+  admin {
+    organizationImportDryRun(input: $input) {
+      errors {
+        source
+        row
+        field
+        message
+      }
+      summary {
+        organizationUpdated
+        unitTypesInserted
+        unitTypesUpdated
+        unitsInserted
+        unitsUpdated
+        membersInserted
+        membersUpdated
+        workspaceLinksInserted
+        workspaceLinksUpdated
+        policyUpdated
+      }
+    }
+  }
+}

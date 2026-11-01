@@ -1,0 +1,39 @@
+{
+  "name": "@myoxus/storage",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./worker/client": "./src/worker/client.ts",
+    "./worker/consumer": "./src/worker/consumer.ts",
+    "./idb": "./src/impls/idb/index.ts",
+    "./tokenizer": "./src/impls/idb/indexer/tokenizer.ts",
+    "./broadcast-channel": "./src/impls/broadcast-channel/index.ts",
+    "./cloud": "./src/impls/cloud/index.ts",
+    "./sqlite": "./src/impls/sqlite/index.ts",
+    "./sync": "./src/sync/index.ts",
+    "./frontend": "./src/frontend/index.ts"
+  },
+  "dependencies": {
+    "@myoxus/debug": "workspace:*",
+    "@myoxus/desktop-api-contract": "workspace:*",
+    "@myoxus/error": "workspace:*",
+    "@myoxus/graphql": "workspace:*",
+    "@myoxus/infra": "workspace:*",
+    "@myoxus/reader": "workspace:*",
+    "idb": "^8.0.0",
+    "lib0": "^0.2.119",
+    "lodash-es": "4.18.1",
+    "nanoid": "6.0.1",
+    "rxjs": "^7.8.2",
+    "socket.io-client": "^4.8.4",
+    "uuid": "13.0.1",
+    "y-protocols": "^1.0.7",
+    "yjs": "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
+  },
+  "license": "AGPL-3.0-or-later",
+  "devDependencies": {
+    "vitest": "4.1.11"
+  }
+}

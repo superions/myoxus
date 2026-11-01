@@ -1,0 +1,35 @@
+query adminDocumentAuditLog(
+  $filter: AdminDocumentAuditFilterInput
+  $limit: Int!
+  $offset: Int!
+) {
+  admin {
+    adminDocumentAuditLog(filter: $filter, limit: $limit, offset: $offset) {
+      id
+      source
+      group
+      eventKey
+      sourceCategory
+      target {
+        id
+        type
+        label
+      }
+      actor {
+        id
+        label
+        kind
+        credentialType
+        credentialId
+      }
+      createdAt
+      oldValue
+      newValue
+      metadata
+      targetUnitId
+      workspaceId
+      docId
+    }
+    adminDocumentAuditLogCount(filter: $filter)
+  }
+}

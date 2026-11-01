@@ -1,0 +1,18 @@
+[package]
+edition = "2024"
+name    = "myoxus-local-store-native"
+version = "0.1.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+client_storage = { path = "./storage", features = ["napi"] }
+napi           = { workspace = true }
+napi-derive    = { workspace = true }
+
+[target.'cfg(not(target_arch = "arm"))'.dependencies]
+mimalloc = { workspace = true }
+
+[build-dependencies]
+napi-build = { workspace = true }

@@ -1,0 +1,119 @@
+{
+  "generatedAt": "2026-07-09T06:50:50.435Z",
+  "purpose": "P-DB-01 migration ratchet. Counts are legacy Database naming debt, not approved target names; reductions are always allowed, additions fail the guard.",
+  "scanRoots": [
+    "server/crates/domain/src",
+    "server/crates/application/src",
+    "server/crates/api/src",
+    "server/crates/infrastructure/src",
+    "server/crates/infrastructure/migrations",
+    "server/crates/mcp/src",
+    "server/crates/worker/src",
+    "server/crates/cli/src",
+    "client/libs/graphql/src/graphql",
+    "client/libs/core/src",
+    "client/web/src",
+    "client/admin/workspaces/admin/src",
+    "build/scripts",
+    "build/test-matrix",
+    "docs/dev",
+    "docs/ops",
+    "todo/databases.md"
+  ],
+  "rules": [
+    "pascal-symbol",
+    "product-phrase",
+    "camel-symbol",
+    "snake-symbol",
+    "kebab-symbol",
+    "lower-product-phrase"
+  ],
+  "files": {
+    "build/scripts/ci/verify-database-operational-naming.mjs": {
+      "product-phrase": 1,
+      "snake-symbol": 1,
+      "kebab-symbol": 3,
+      "lower-product-phrase": 1
+    },
+    "build/scripts/test/seed-test-users.sh": {
+      "snake-symbol": 13
+    },
+    "docs/dev/clients/webfrontend/databases.md": {
+      "snake-symbol": 7
+    },
+    "docs/dev/server/databases-data-model.md": {
+      "snake-symbol": 44
+    },
+    "docs/dev/server/databases-naming-migration.md": {
+      "pascal-symbol": 2,
+      "camel-symbol": 2,
+      "snake-symbol": 3,
+      "kebab-symbol": 4
+    },
+    "docs/dev/server/workspace-automations.md": {
+      "snake-symbol": 1,
+      "kebab-symbol": 3
+    },
+    "docs/dev/test-ci-consolidation.md": {
+      "kebab-symbol": 3
+    },
+    "docs/ops/configuration/reference.md": {
+      "camel-symbol": 1,
+      "snake-symbol": 1
+    },
+    "docs/ops/data/databases/README.md": {
+      "snake-symbol": 2
+    },
+    "server/crates/api/src/bin/server.rs": {
+      "snake-symbol": 1
+    },
+    "server/crates/api/src/config.rs": {
+      "camel-symbol": 2,
+      "snake-symbol": 2,
+      "kebab-symbol": 3
+    },
+    "server/crates/api/src/graphql/config.rs": {
+      "kebab-symbol": 3
+    },
+    "server/crates/api/src/websocket/handlers/database.rs": {
+      "snake-symbol": 2
+    },
+    "server/crates/application/src/database/editing/templates.rs": {
+      "lower-product-phrase": 2
+    },
+    "server/crates/cli/src/main.rs": {
+      "product-phrase": 1
+    },
+    "server/crates/cli/src/services.rs": {
+      "product-phrase": 2,
+      "camel-symbol": 8,
+      "snake-symbol": 1
+    },
+    "server/crates/cli/src/templates.rs": {
+      "product-phrase": 2
+    },
+    "server/crates/domain/src/database.rs": {
+      "lower-product-phrase": 1
+    },
+    "server/crates/domain/src/ids.rs": {
+      "lower-product-phrase": 2
+    },
+    "server/crates/domain/src/repositories.rs": {
+      "lower-product-phrase": 1
+    },
+    "server/crates/infrastructure/src/lib.rs": {
+      "snake-symbol": 1
+    },
+    "server/crates/mcp/src/tools.rs": {
+      "snake-symbol": 14
+    },
+    "todo/databases.md": {
+      "pascal-symbol": 9,
+      "product-phrase": 2,
+      "camel-symbol": 6,
+      "snake-symbol": 32,
+      "kebab-symbol": 6,
+      "lower-product-phrase": 1
+    }
+  }
+}

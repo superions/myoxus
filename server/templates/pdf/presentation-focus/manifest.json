@@ -1,0 +1,136 @@
+{
+  "schema_version": "2.0",
+  "id": "presentation-focus",
+  "name": "Focus",
+  "description": "A Metropolis-based presentation layout with strong section hierarchy and a restrained progress footer.",
+  "version": "1.0.1",
+  "engine": {
+    "name": "typst",
+    "version": "0.15.x"
+  },
+  "provenance": {
+    "license_spdx": "AGPL-3.0-or-later AND MIT",
+    "copyright_notice": "Myoxus contributors 2026; Touying contributors 2026; fornings-typ 2026",
+    "source_url": "https://packages.typst.org/preview/touying-0.7.4.tar.gz",
+    "source_revision": "sha256:7ab85405a6327533f530ac70206721032e364c9ca900fabc324952ae0c0b528b",
+    "notice": "Touying 0.7.4 and uniwarn 0.1.1 are pinned bundle-local dependencies. Archive hashes and the single import-path adaptation are recorded in vendor/NOTICE."
+  },
+  "entry": "main.typ",
+  "assets": [
+    "i18n/de.json",
+    "i18n/en.json",
+    "i18n/es.json",
+    "i18n/fr.json",
+    "main.typ",
+    "preamble.typ",
+    "theme.typ",
+    "vendor/touying/0.7.4/LICENSE",
+    "vendor/touying/0.7.4/lib.typ",
+    "vendor/touying/0.7.4/src/components.typ",
+    "vendor/touying/0.7.4/src/configs.typ",
+    "vendor/touying/0.7.4/src/core.typ",
+    "vendor/touying/0.7.4/src/exports.typ",
+    "vendor/touying/0.7.4/src/extern.typ",
+    "vendor/touying/0.7.4/src/magic.typ",
+    "vendor/touying/0.7.4/src/pdfpc.typ",
+    "vendor/touying/0.7.4/src/slides.typ",
+    "vendor/touying/0.7.4/src/utils.typ",
+    "vendor/touying/0.7.4/themes/aqua.typ",
+    "vendor/touying/0.7.4/themes/default.typ",
+    "vendor/touying/0.7.4/themes/dewdrop.typ",
+    "vendor/touying/0.7.4/themes/metropolis.typ",
+    "vendor/touying/0.7.4/themes/simple.typ",
+    "vendor/touying/0.7.4/themes/stargazer.typ",
+    "vendor/touying/0.7.4/themes/themes.typ",
+    "vendor/touying/0.7.4/themes/university.typ",
+    "vendor/uniwarn/0.1.1/LICENSE",
+    "vendor/uniwarn/0.1.1/internal.typ",
+    "vendor/uniwarn/0.1.1/lib.typ",
+    "vendor/NOTICE",
+    "vendor/myoxus/presentation-adapter.typ"
+  ],
+  "capabilities": {
+    "paperSize": {
+      "kind": "enum",
+      "values": ["A4", "Letter", "A3", "A5", "16:9"],
+      "default": "16:9"
+    },
+    "colorVariant": {
+      "kind": "enum",
+      "values": ["mono", "accent", "brand"],
+      "default": "accent"
+    },
+    "headerStyle": {
+      "kind": "enum",
+      "values": ["none"],
+      "default": "none"
+    },
+    "footerStyle": {
+      "kind": "enum",
+      "values": ["none", "page-only"],
+      "default": "page-only"
+    },
+    "coverPage": {
+      "kind": "boolean",
+      "default": true
+    },
+    "tocBehavior": {
+      "kind": "enum",
+      "values": ["off", "auto", "force"],
+      "default": "off"
+    },
+    "pageNumbering": {
+      "kind": "enum",
+      "values": ["arabic", "none"],
+      "default": "arabic"
+    },
+    "customMargins": {
+      "kind": "boolean",
+      "default": false
+    },
+    "accentColor": {
+      "kind": "color",
+      "default": "#0F766E"
+    },
+    "confidentialityLabels": {
+      "kind": "array<string>",
+      "min_items": 0,
+      "max_items": 0,
+      "item_pattern": "^[A-Za-z0-9 _-]{1,32}$",
+      "default": []
+    },
+    "language": {
+      "kind": "enum",
+      "values": ["en", "de", "fr", "es"],
+      "default": "en"
+    }
+  },
+  "inputs_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [],
+    "properties": {
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200,
+        "description": "Presentation title; defaults to document metadata."
+      },
+      "subtitle": {
+        "type": "string",
+        "maxLength": 200,
+        "description": "Optional subtitle rendered on the cover slide."
+      },
+      "author": {
+        "type": "string",
+        "maxLength": 120,
+        "description": "Optional presentation author."
+      },
+      "report_date": {
+        "type": "string",
+        "format": "date",
+        "description": "Optional ISO-8601 presentation date (YYYY-MM-DD)."
+      }
+    }
+  }
+}

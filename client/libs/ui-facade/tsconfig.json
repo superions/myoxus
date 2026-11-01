@@ -1,0 +1,17 @@
+{
+  "extends": "../../../tsconfig.web.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "composite": true,
+    "outDir": "./dist",
+    "declarationDir": "./dist",
+    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo"
+  },
+  "include": ["./src", "./src/**/*.json"],
+  "references": [
+    { "path": "../dialogs" },
+    { "path": "../i18n" },
+    { "path": "../icons" },
+    { "path": "../notifications" }
+  ]
+}

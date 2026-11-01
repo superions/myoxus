@@ -1,0 +1,5 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Mantine 9 hardcodes white for the active option; the server owns primary contrast. */
+.mantine-Combobox-option[data-combobox-selected] {
+  color: var(--mantine-primary-color-contrast);
+}

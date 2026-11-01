@@ -1,0 +1,9 @@
+#import "./admin-organization-unit-member-fragment.gql"
+
+query adminOrganizationUnitMembers($unitId: ID!, $role: OrganizationUnitRoleEnum) {
+  admin {
+    organizationUnitMembers(unitId: $unitId, role: $role) {
+      ...AdminOrganizationUnitMemberFragment
+    }
+  }
+}

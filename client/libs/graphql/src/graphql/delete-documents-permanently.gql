@@ -1,0 +1,19 @@
+mutation deleteDocumentsPermanently($input: DeleteDocumentsPermanentlyInput!) {
+  deleteDocumentsPermanently(input: $input) {
+    requested
+    deleted
+    notFound
+    forbidden
+    alreadyDeleted
+    notTrashed
+    failed
+    rootMetaRemoved
+    documents {
+      clientDocId
+      resolvedDocId
+      title
+      status
+      reason
+    }
+  }
+}

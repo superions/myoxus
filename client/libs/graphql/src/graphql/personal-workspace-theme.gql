@@ -1,0 +1,33 @@
+query personalWorkspaceTheme($workspaceId: ID!) {
+  personalWorkspaceThemeCatalog(workspaceId: $workspaceId) {
+    slug
+    name
+    isDefault
+  }
+  personalWorkspaceThemeSelection(workspaceId: $workspaceId) {
+    workspaceId
+    themeSlug
+    themeName
+    inheritsGlobal
+  }
+}
+
+mutation setPersonalWorkspaceTheme(
+  $input: SetPersonalWorkspaceThemeInput!
+) {
+  setPersonalWorkspaceTheme(input: $input) {
+    workspaceId
+    themeSlug
+    themeName
+    inheritsGlobal
+  }
+}
+
+mutation resetPersonalWorkspaceTheme($workspaceId: ID!) {
+  resetPersonalWorkspaceTheme(workspaceId: $workspaceId) {
+    workspaceId
+    themeSlug
+    themeName
+    inheritsGlobal
+  }
+}

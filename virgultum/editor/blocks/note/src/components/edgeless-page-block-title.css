@@ -1,0 +1,9 @@
+.virgultum-edgeless-page-block-title {
+  position: relative;
+}
+
+.virgultum-edgeless-page-block-title .doc-title-container {
+  padding: 26px 0;
+  margin-left: unset;
+  margin-right: unset;
+}

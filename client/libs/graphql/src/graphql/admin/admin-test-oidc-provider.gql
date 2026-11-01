@@ -1,0 +1,18 @@
+mutation adminTestOidcProvider($config: JSON!, $sampleClaims: JSON) {
+  admin {
+    testOidcProvider(config: $config, sampleClaims: $sampleClaims) {
+      discoveryOk
+      jwksOk
+      issuer
+      authorizationEndpointPresent
+      tokenEndpointPresent
+      userinfoEndpointPresent
+      jwksKeyCount
+      groupsClaimPresent
+      groupsCount
+      mappedGroupsCount
+      unknownGroupsCount
+      warnings
+    }
+  }
+}

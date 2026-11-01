@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<b:definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:b="http://www.omg.org/spec/BPMN/20100524/MODEL"
+ xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+ xmlns:tns="urn:myoxus:global-tasks" xmlns:ext="urn:external:callables" xmlns:vendor="urn:myoxus:fixture"
+ id="Definitions" targetNamespace="urn:myoxus:global-tasks">
+ <b:itemDefinition id="Payload" structureRef="ext:Payload"/>
+ <b:message id="Message" name="Request" itemRef="tns:Payload"/>
+ <b:interface id="Interface" name="Callable interface"><b:operation id="Operation" name="Invoke"><b:inMessageRef>tns:Message</b:inMessageRef></b:operation></b:interface>
+ <b:resource id="Resource" name="Reviewer"/>
+ <b:globalTask id="GlobalGeneric" name="Reusable work">
+  <b:documentation id="GlobalDocumentation">Global task documentation</b:documentation>
+  <b:supportedInterfaceRef>tns:Interface</b:supportedInterfaceRef>
+  <b:ioSpecification id="GlobalIO"><b:dataInput id="GlobalInput" name="Input value" itemSubjectRef="tns:Payload"/><b:dataOutput id="GlobalOutput" name="Output value" itemSubjectRef="tns:Payload"/><b:inputSet id="GlobalInputSet"><b:dataInputRefs>GlobalInput</b:dataInputRefs></b:inputSet><b:outputSet id="GlobalOutputSet"><b:dataOutputRefs>GlobalOutput</b:dataOutputRefs></b:outputSet></b:ioSpecification>
+  <b:potentialOwner id="GlobalOwner" name="Reviewers"><b:resourceRef>tns:Resource</b:resourceRef><b:resourceAssignmentExpression id="GlobalAssignment"><b:formalExpression id="GlobalExpression" language="urn:fixture:expression" evaluatesToTypeRef="tns:Payload">reviewer</b:formalExpression></b:resourceAssignmentExpression></b:potentialOwner>
+ </b:globalTask>
+ <b:globalUserTask id="GlobalUser" name="Reusable human work" implementation="urn:fixture:user">
+  <b:rendering id="Rendering"><b:extensionElements><vendor:rendering>retain&#13;exactly</vendor:rendering></b:extensionElements></b:rendering>
+ </b:globalUserTask>
+ <b:globalManualTask id="GlobalManual" name="Reusable manual work"><b:performer id="ManualPerformer"><b:resourceRef>tns:Resource</b:resourceRef></b:performer></b:globalManualTask>
+ <b:globalScriptTask id="GlobalScript" name="Reusable script" scriptLanguage="urn:fixture:script"><b:script>return value;</b:script></b:globalScriptTask>
+ <b:globalBusinessRuleTask id="GlobalRules" name="Reusable rules" implementation="##unspecified"/>
+ <b:process id="Process">
+  <b:callActivity id="LocalA" name="Local A" calledElement="tns:GlobalGeneric"/>
+  <b:callActivity id="LocalB" xmlns:local="urn:myoxus:global-tasks" name="Local B" calledElement="local:GlobalGeneric"/>
+  <b:callActivity id="NoDefault" xmlns="" name="Unqualified local" calledElement="GlobalGeneric"/>
+  <b:callActivity id="External" name="External same name" calledElement="ext:GlobalGeneric"/>
+  <b:callActivity id="ForeignDefault" xmlns="urn:external:callables" name="Foreign default same name" calledElement="GlobalGeneric"/>
+  <b:callActivity id="User" name="Call user" calledElement="tns:GlobalUser"/>
+  <b:callActivity id="Manual" name="Call manual" calledElement="tns:GlobalManual"/>
+  <b:callActivity id="Script" name="Call script" calledElement="tns:GlobalScript"/>
+  <b:callActivity id="Rules" name="Call rules" calledElement="tns:GlobalRules"/>
+ </b:process>
+ <bpmndi:BPMNDiagram id="Diagram"><bpmndi:BPMNPlane id="Plane" bpmnElement="Process">
+  <bpmndi:BPMNShape id="LocalADI" bpmnElement="LocalA"><dc:Bounds x="40" y="40" width="180" height="100"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="LocalBDI" bpmnElement="LocalB"><dc:Bounds x="280" y="40" width="180" height="100"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="NoDefaultDI" bpmnElement="NoDefault"><dc:Bounds x="1000" y="40" width="180" height="100"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="ExternalDI" bpmnElement="External"><dc:Bounds x="520" y="40" width="180" height="100"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="ForeignDefaultDI" bpmnElement="ForeignDefault"><dc:Bounds x="760" y="40" width="180" height="100"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="UserDI" bpmnElement="User"><dc:Bounds x="40" y="220" width="180" height="100"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="ManualDI" bpmnElement="Manual"><dc:Bounds x="280" y="220" width="180" height="100"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="ScriptDI" bpmnElement="Script"><dc:Bounds x="520" y="220" width="180" height="100"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="RulesDI" bpmnElement="Rules"><dc:Bounds x="760" y="220" width="180" height="100"/></bpmndi:BPMNShape>
+ </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+</b:definitions>

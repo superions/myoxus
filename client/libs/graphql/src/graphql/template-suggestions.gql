@@ -1,0 +1,45 @@
+fragment TemplateSuggestionItemFields on TemplateSuggestionItem {
+  templateId
+  templateDocId
+  slug
+  title
+  description
+  source
+  updatedAt
+  category
+  titlePolicy
+  sourceRevisionId
+  tags
+  score
+  reasons
+  instanceState
+  available
+  protectedSource
+}
+
+query templateSuggestions(
+  $workspaceId: String!
+  $input: TemplateSuggestionInput!
+) {
+  workspace(id: $workspaceId) {
+    templateSuggestions(input: $input) {
+      items {
+        ...TemplateSuggestionItemFields
+      }
+      guideDeliveries {
+        slug
+        documentId
+        pending
+      }
+      pageDefaultReplacements {
+        retiredSourceDocId
+        replacementSourceDocId
+      }
+      emptyDocumentAllowed
+      reconcileRequired
+      stale
+      hasNextPage
+      endCursor
+    }
+  }
+}

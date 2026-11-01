@@ -1,0 +1,13 @@
+mutation workspaceTemplateReconcileSlugs(
+  $workspaceId: String!
+  $locale: String!
+  $provisionSources: Boolean
+) {
+  workspaceTemplateReconcileSlugs(workspaceId: $workspaceId, locale: $locale, provisionSources: $provisionSources) {
+    slug
+    provisioningMode
+    workspaceDocId
+    instanceState
+    hasInstance
+  }
+}

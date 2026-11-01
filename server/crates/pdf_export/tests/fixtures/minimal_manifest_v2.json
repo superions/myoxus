@@ -1,0 +1,63 @@
+{
+  "schema_version": "2.0",
+  "id": "validator-test",
+  "name": "Validator Test Template",
+  "description": "Minimal manifest for compile-validator integration tests.",
+  "version": "1.0.0",
+  "engine": { "name": "typst", "version": "0.15.x" },
+  "provenance": {
+    "license_spdx": "AGPL-3.0-or-later",
+    "copyright_notice": "Copyright 2026 Myoxus test contributors",
+    "source_url": "https://example.test/templates/validator-test",
+    "source_revision": "1.0.0"
+  },
+  "entry": "preamble.typ",
+  "assets": ["theme.typ", "preamble.typ"],
+  "capabilities": {
+    "colorVariant": {
+      "kind": "enum",
+      "values": ["mono", "accent", "brand"],
+      "default": "mono"
+    },
+    "headerStyle": {
+      "kind": "enum",
+      "values": ["none", "minimal", "branded"],
+      "default": "minimal"
+    },
+    "footerStyle": {
+      "kind": "enum",
+      "values": ["none", "minimal", "page-only", "brand-and-page"],
+      "default": "page-only"
+    },
+    "coverPage": { "kind": "boolean", "default": false },
+    "tocBehavior": {
+      "kind": "enum",
+      "values": ["off", "auto", "force"],
+      "default": "off"
+    },
+    "pageNumbering": {
+      "kind": "enum",
+      "values": ["arabic", "roman", "none"],
+      "default": "arabic"
+    },
+    "customMargins": { "kind": "boolean", "default": false },
+    "accentColor": { "kind": "color", "default": "#1F2937" },
+    "confidentialityLabels": {
+      "kind": "array<string>",
+      "min_items": 0,
+      "max_items": 8,
+      "item_pattern": "^[A-Za-z0-9 _-]{1,32}$",
+      "default": []
+    },
+    "language": {
+      "kind": "enum",
+      "values": ["en", "de", "fr", "es"],
+      "default": "en"
+    }
+  },
+  "inputs_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}

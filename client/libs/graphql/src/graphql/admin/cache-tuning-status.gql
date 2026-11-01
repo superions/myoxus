@@ -1,0 +1,13 @@
+query adminCacheTuningStatus {
+  admin {
+    adminCacheTuningStatus {
+      name
+      currentTtlSeconds
+      hitRate1H
+      hitRate24H
+      lastAction
+      lastActionAt
+      isFixedOverride
+    }
+  }
+}

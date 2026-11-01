@@ -1,0 +1,190 @@
+{
+  "title": "Myoxus Business Metrics",
+  "uid": "myoxus-business-metrics",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "title": "Auth — Sign-in / Sign-up (rate/min)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(myoxus_metric_auth_user_signin[5m])) * 60",
+          "legendFormat": "signin ok"
+        },
+        {
+          "expr": "sum(rate(myoxus_metric_auth_user_signin_failed[5m])) * 60",
+          "legendFormat": "signin failed"
+        },
+        {
+          "expr": "sum(rate(myoxus_metric_auth_user_signup[5m])) * 60",
+          "legendFormat": "signup"
+        },
+        {
+          "expr": "sum(rate(myoxus_metric_auth_magic_link_requested[5m])) * 60",
+          "legendFormat": "magic_link"
+        }
+      ]
+    },
+    {
+      "title": "Auth — Sign-in failure ratio",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(myoxus_metric_auth_user_signin_failed[10m])) / clamp_min(sum(rate(myoxus_metric_auth_user_signin[10m])) + sum(rate(myoxus_metric_auth_user_signin_failed[10m])), 0.0001)",
+          "legendFormat": "failure ratio (10m)"
+        }
+      ]
+    },
+    {
+      "title": "Auth — Captcha",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(myoxus_metric_auth_captcha_verified[5m])) * 60",
+          "legendFormat": "verified"
+        },
+        {
+          "expr": "sum(rate(myoxus_metric_auth_captcha_rejected[5m])) * 60",
+          "legendFormat": "rejected"
+        },
+        {
+          "expr": "sum(rate(myoxus_metric_auth_captcha_honeypot[5m])) * 60",
+          "legendFormat": "honeypot"
+        }
+      ]
+    },
+    {
+      "title": "Workspace — Lifecycle (rate/min)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(myoxus_metric_workspace_workspace_created[5m])) * 60",
+          "legendFormat": "created"
+        },
+        {
+          "expr": "sum(rate(myoxus_metric_workspace_workspace_updated[5m])) * 60",
+          "legendFormat": "updated"
+        },
+        {
+          "expr": "sum(rate(myoxus_metric_workspace_workspace_deleted[5m])) * 60",
+          "legendFormat": "deleted"
+        }
+      ]
+    },
+    {
+      "title": "Workspace — Invites (rate/min)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(myoxus_metric_workspace_invite_sent[5m])) * 60",
+          "legendFormat": "sent"
+        },
+        {
+          "expr": "sum(rate(myoxus_metric_workspace_invite_failed[5m])) * 60",
+          "legendFormat": "failed"
+        },
+        {
+          "expr": "sum(rate(myoxus_metric_workspace_invite_accepted[5m])) * 60",
+          "legendFormat": "accepted"
+        }
+      ]
+    },
+    {
+      "title": "Doc — Lifecycle (rate/min)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(myoxus_metric_doc_doc_deleted[5m])) * 60",
+          "legendFormat": "deleted"
+        },
+        {
+          "expr": "sum(rate(myoxus_metric_doc_doc_share_changed[5m])) * 60",
+          "legendFormat": "share changed"
+        }
+      ]
+    },
+    {
+      "title": "Collab — Sessions & Updates (rate/min)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(myoxus_metric_collab_session_started[5m])) * 60",
+          "legendFormat": "sessions started"
+        },
+        {
+          "expr": "sum(rate(myoxus_metric_collab_doc_update_pushed[5m])) * 60",
+          "legendFormat": "updates pushed"
+        }
+      ]
+    },
+    {
+      "title": "AI — Chat messages (rate/min)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(myoxus_metric_ai_chat_message[5m])) * 60",
+          "legendFormat": "chat messages"
+        }
+      ]
+    },
+    {
+      "title": "Recorder — Offered vs Accepted vs Rejected",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "rate(myoxus_metrics_offered_total[5m]) * 60",
+          "legendFormat": "offered /min"
+        },
+        {
+          "expr": "rate(myoxus_metrics_accepted_total[5m]) * 60",
+          "legendFormat": "accepted /min"
+        },
+        {
+          "expr": "rate(myoxus_metrics_rejected_disabled_total[5m]) * 60",
+          "legendFormat": "rejected (disabled) /min"
+        },
+        {
+          "expr": "rate(myoxus_metrics_cardinality_drops_total[5m]) * 60",
+          "legendFormat": "cardinality drops /min"
+        }
+      ]
+    },
+    {
+      "title": "Recorder — Active series",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "myoxus_metrics_active_series",
+          "legendFormat": "active series"
+        }
+      ]
+    },
+    {
+      "title": "Persistence — Flush age (s)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "time() - myoxus_metrics_last_flush_unix_secs",
+          "legendFormat": "seconds since last flush"
+        },
+        {
+          "expr": "myoxus_metrics_flush_interval_seconds",
+          "legendFormat": "flush interval"
+        }
+      ]
+    },
+    {
+      "title": "Persistence — Rows per flush",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "myoxus_metrics_last_flush_count",
+          "legendFormat": "rows in last flush"
+        }
+      ]
+    }
+  ]
+}

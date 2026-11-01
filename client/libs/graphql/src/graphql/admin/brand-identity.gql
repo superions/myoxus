@@ -1,0 +1,132 @@
+# SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+query adminAppServerBranding {
+  admin {
+    appServerBranding {
+      logo {
+        id
+        slot
+        variant
+        qualityClass
+        storageKind
+        storageKey
+        publicUrl
+        mime
+        sha256
+        byteSize
+        widthPx
+        heightPx
+      }
+      productMark {
+        id
+        slot
+        variant
+        qualityClass
+        storageKind
+        storageKey
+        publicUrl
+        mime
+        sha256
+        byteSize
+        widthPx
+        heightPx
+      }
+      faviconPack {
+        id
+        slot
+        variant
+        qualityClass
+        storageKind
+        storageKey
+        publicUrl
+        mime
+        sha256
+        byteSize
+        widthPx
+        heightPx
+      }
+    }
+  }
+}
+
+query adminOrganizationIdentity {
+  admin {
+    organizationIdentity {
+      displayName
+      legalName
+      shortName
+      jurisdiction
+      websiteUrl
+      contactEmail
+      addressLines
+      taxId
+      registrationId
+    }
+  }
+}
+
+mutation adminUpdateOrganizationIdentity($input: UpdateOrganizationIdentityInput!) {
+  admin {
+    updateOrganizationIdentity(input: $input) {
+      displayName
+      legalName
+      shortName
+      jurisdiction
+      websiteUrl
+      contactEmail
+      addressLines
+      taxId
+      registrationId
+    }
+  }
+}
+
+mutation adminUpdateAppServerBranding($input: UpdateAppServerBrandingInput!) {
+  admin {
+    updateAppServerBranding(input: $input) {
+      logo {
+        id
+        slot
+        variant
+        qualityClass
+        storageKind
+        storageKey
+        publicUrl
+        mime
+        sha256
+        byteSize
+        widthPx
+        heightPx
+      }
+      productMark {
+        id
+        slot
+        variant
+        qualityClass
+        storageKind
+        storageKey
+        publicUrl
+        mime
+        sha256
+        byteSize
+        widthPx
+        heightPx
+      }
+      faviconPack {
+        id
+        slot
+        variant
+        qualityClass
+        storageKind
+        storageKey
+        publicUrl
+        mime
+        sha256
+        byteSize
+        widthPx
+        heightPx
+      }
+    }
+  }
+}

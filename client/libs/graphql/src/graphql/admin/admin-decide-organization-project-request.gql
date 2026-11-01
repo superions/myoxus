@@ -1,0 +1,5 @@
+mutation adminDecideOrganizationProjectRequest($id: ID!, $newStatus: ProjectRequestStatusEnum!) {
+  admin {
+    decideOrganizationProjectRequest(id: $id, newStatus: $newStatus)
+  }
+}

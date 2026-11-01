@@ -1,0 +1,8 @@
+query managerSearchUsers($query: String!, $unitId: ID!, $limit: Int) {
+  managerSearchUsers(query: $query, unitId: $unitId, limit: $limit) {
+    id
+    email
+    name
+    features
+  }
+}

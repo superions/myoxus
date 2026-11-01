@@ -1,0 +1,5 @@
+mutation adminDeactivateOrganizationUnitType($id: ID!) {
+  admin {
+    deactivateOrganizationUnitType(id: $id)
+  }
+}

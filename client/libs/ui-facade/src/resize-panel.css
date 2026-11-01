@@ -1,0 +1,96 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+.myoxus-ui-resize-panel {
+  --myoxus-ui-resize-panel-width: 256px;
+  --myoxus-ui-resize-handle-offset: 0px;
+  --myoxus-ui-resize-handle-vertical-padding: 0px;
+  --myoxus-ui-resize-panel-transition: 300ms;
+
+  position: relative;
+  z-index: 4;
+  width: var(--myoxus-ui-resize-panel-width);
+  min-width: var(--myoxus-ui-resize-panel-width);
+  max-width: min(50%, max(0px, calc(100% - 20rem)));
+  height: 100%;
+  flex-shrink: 0;
+  transform: translateX(0);
+}
+
+.myoxus-ui-resize-panel[data-open="false"][data-handle-position="right"] {
+  margin-left: calc(var(--myoxus-ui-resize-panel-width) * -1);
+}
+
+.myoxus-ui-resize-panel[data-open="false"][data-handle-position="left"] {
+  margin-right: calc(var(--myoxus-ui-resize-panel-width) * -1);
+}
+
+.myoxus-ui-resize-panel[data-enable-animation="true"] {
+  transition:
+    margin-left var(--myoxus-ui-resize-panel-transition),
+    margin-right var(--myoxus-ui-resize-panel-transition),
+    transform var(--myoxus-ui-resize-panel-transition),
+    background var(--myoxus-ui-resize-panel-transition);
+}
+
+.myoxus-ui-resize-panel[data-transition-state="exited"] {
+  visibility: hidden;
+}
+
+.myoxus-ui-resize-panel-content {
+  contain: strict;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+}
+
+.myoxus-ui-resize-panel-handle {
+  position: absolute;
+  top: var(--myoxus-ui-resize-handle-vertical-padding);
+  right: var(--myoxus-ui-resize-handle-offset);
+  bottom: var(--myoxus-ui-resize-handle-vertical-padding);
+  z-index: 1;
+  display: flex;
+  width: 8px;
+  justify-content: center;
+  cursor: col-resize;
+  background-color: transparent;
+  opacity: 0;
+  transform: translateX(50%);
+  transition: opacity 0.15s ease 0.1s;
+}
+
+.myoxus-ui-resize-panel-handle[data-handle-position="left"] {
+  right: auto;
+  left: var(--myoxus-ui-resize-handle-offset);
+  transform: translateX(-50%);
+}
+
+.myoxus-ui-resize-panel-handle[data-open="false"] {
+  display: none;
+}
+
+.myoxus-ui-resize-panel-handle[data-resizing="true"],
+.myoxus-ui-resize-panel-handle:hover {
+  opacity: 1;
+}
+
+@media (max-width: 600px) {
+  .myoxus-ui-resize-panel-handle {
+    display: none;
+  }
+}
+
+.myoxus-ui-resize-panel-handle-inner {
+  width: 2px;
+  height: 100%;
+  border-radius: 2px;
+  background-color: var(--myoxus-primary-color);
+  transform: translateX(0.5px);
+  transition: all 0.2s ease-in-out;
+}
+
+.myoxus-ui-resize-panel-handle[data-resizing="true"]
+  .myoxus-ui-resize-panel-handle-inner {
+  width: 4px;
+  border-radius: 4px;
+}

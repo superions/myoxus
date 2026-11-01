@@ -1,0 +1,7 @@
+query ServerUsers($search: String!, $skip: Int, $take: Int) {
+  serverUsers(search: $search, skip: $skip, take: $take) {
+    id
+    name
+    avatarUrl
+  }
+}

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:tns="urn:myoxus:flows" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions" targetNamespace="urn:myoxus:flows">
+ <process id="Process" name="Sequence flow semantics">
+  <task id="A" name="Decide" default="tns:Default"><outgoing>Conditional</outgoing><outgoing>Default</outgoing></task>
+  <manualTask id="B" name="Review"><incoming>Conditional</incoming><incoming>Reverse</incoming><outgoing>Forward</outgoing></manualTask>
+  <serviceTask id="C" name="Deliver"><incoming>Default</incoming><incoming>Forward</incoming><outgoing>Reverse</outgoing></serviceTask>
+  <task id="D" name="Alternative"/>
+  <sequenceFlow id="Conditional" name="Approved" sourceRef="A" targetRef="B"><conditionExpression id="Condition" xsi:type="tFormalExpression" language="urn:myoxus:expression">approved</conditionExpression></sequenceFlow>
+  <sequenceFlow id="Default" name="Otherwise" sourceRef="A" targetRef="C"/>
+  <sequenceFlow id="Forward" name="Proceed" sourceRef="B" targetRef="C"><documentation id="FlowDoc">Retain on reconnect</documentation></sequenceFlow>
+  <sequenceFlow id="Reverse" name="Retry" sourceRef="C" targetRef="B"/>
+ </process>
+ <bpmndi:BPMNDiagram id="Diagram"><bpmndi:BPMNPlane id="Plane" bpmnElement="Process">
+  <bpmndi:BPMNShape id="ADI" bpmnElement="A"><dc:Bounds x="80" y="200" width="180" height="100"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="BDI" bpmnElement="B"><dc:Bounds x="400" y="80" width="180" height="100"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="CDI" bpmnElement="C"><dc:Bounds x="720" y="200" width="180" height="100"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="DDI" bpmnElement="D"><dc:Bounds x="400" y="430" width="180" height="100"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNEdge id="ConditionalDI" bpmnElement="Conditional" sourceElement="ADI" targetElement="BDI"><di:waypoint x="260" y="250"/><di:waypoint x="330" y="250"/><di:waypoint x="330" y="130"/><di:waypoint x="400" y="130"/><bpmndi:BPMNLabel><dc:Bounds x="270" y="210" width="80" height="30"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="DefaultDI" bpmnElement="Default" sourceElement="ADI" targetElement="CDI"><di:waypoint x="170" y="300"/><di:waypoint x="170" y="370"/><di:waypoint x="810" y="370"/><di:waypoint x="810" y="300"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="ForwardDI" bpmnElement="Forward" sourceElement="BDI" targetElement="CDI"><di:waypoint x="580" y="130"/><di:waypoint x="650" y="130"/><di:waypoint x="650" y="250"/><di:waypoint x="720" y="250"/><bpmndi:BPMNLabel><dc:Bounds x="590" y="100" width="80" height="30"/></bpmndi:BPMNLabel></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="ReverseDI" bpmnElement="Reverse" sourceElement="CDI" targetElement="BDI"><di:waypoint x="810" y="200"/><di:waypoint x="810" y="40"/><di:waypoint x="490" y="40"/><di:waypoint x="490" y="80"/></bpmndi:BPMNEdge>
+ </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+</definitions>

@@ -1,0 +1,764 @@
+html {
+  min-inline-size: 100%;
+  background: var(--myoxus-sem-surface-page);
+}
+
+body {
+  margin: 0;
+  font-family: var(--myoxus-typography-body-family);
+  font-size: var(--myoxus-typography-body-size);
+  font-weight: var(--myoxus-typography-body-weight);
+  line-height: var(--myoxus-typography-body-line-height);
+  background: var(--myoxus-sem-surface-page);
+  color: var(--myoxus-sem-text-primary);
+}
+
+a {
+  color: var(--myoxus-sem-link-default);
+  text-underline-offset: 0.18em;
+}
+
+img {
+  display: block;
+  max-inline-size: 100%;
+  block-size: auto;
+}
+
+.mx-public-shell {
+  min-block-size: 100vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+.mx-public-header,
+.mx-public-footer {
+  border-block-end: 1px solid var(--myoxus-sem-border-default);
+  background: var(--myoxus-sem-surface-card);
+}
+
+.mx-public-footer {
+  border-block-start: 1px solid var(--myoxus-sem-border-default);
+  border-block-end: 0;
+}
+
+.mx-public-header-inner,
+.mx-public-footer-inner,
+.mx-public-layout {
+  inline-size: min(100% - 2rem, 78rem);
+  margin-inline: auto;
+}
+
+.mx-public-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--myoxus-spacing-md, 1rem);
+  padding-block: var(--myoxus-spacing-md, 1rem);
+}
+
+.mx-public-brand {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.mx-public-heading {
+  min-inline-size: 0;
+}
+
+.mx-public-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--myoxus-spacing-xs, 0.5rem);
+  margin: var(--myoxus-spacing-xs, 0.5rem) 0 0;
+}
+
+.mx-public-badge {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--myoxus-sem-border-default);
+  border-radius: var(--myoxus-radius-md, 0.5rem);
+  background: var(--myoxus-sem-surface-muted);
+}
+
+.mx-public-badge dt,
+.mx-public-badge dd {
+  margin: 0;
+}
+
+.mx-public-badge dt {
+  color: var(--myoxus-sem-text-muted);
+  font-family: var(--myoxus-typography-label-compact-family);
+  font-size: var(--myoxus-typography-label-compact-size);
+  font-weight: var(--myoxus-typography-label-compact-weight);
+  line-height: var(--myoxus-typography-label-compact-line-height);
+}
+
+.mx-public-badge dd {
+  color: var(--myoxus-sem-text-primary);
+  font-family: var(--myoxus-typography-body-small-family);
+  font-size: var(--myoxus-typography-body-small-size);
+  font-weight: var(--myoxus-typography-body-small-weight);
+  line-height: var(--myoxus-typography-body-small-line-height);
+}
+
+.mx-public-brand strong {
+  font-family: var(--myoxus-typography-card-title-family);
+  font-size: var(--myoxus-typography-card-title-size);
+  font-weight: var(--myoxus-typography-card-title-weight);
+  line-height: var(--myoxus-typography-card-title-line-height);
+}
+
+.mx-public-brand span,
+.mx-public-footer,
+.mx-public-breadcrumbs,
+.mx-public-toc,
+.mx-public-adjacent span,
+.mx-public-index small,
+.mx-public-code-language {
+  color: var(--myoxus-sem-text-muted);
+  font-family: var(--myoxus-typography-label-compact-family);
+  font-size: var(--myoxus-typography-label-compact-size);
+  font-weight: var(--myoxus-typography-label-compact-weight);
+  line-height: var(--myoxus-typography-label-compact-line-height);
+}
+
+.mx-public-search {
+  display: flex;
+  align-items: center;
+  gap: var(--myoxus-spacing-xs, 0.5rem);
+}
+
+.mx-public-search input {
+  font: inherit;
+  min-inline-size: 14rem;
+  padding: var(--myoxus-spacing-xs, 0.5rem) var(--myoxus-spacing-sm, 0.75rem);
+  border: 1px solid var(--myoxus-sem-border-default);
+  border-radius: var(--myoxus-radius-md, 0.5rem);
+  background: var(--myoxus-sem-surface-card);
+  color: inherit;
+}
+
+.mx-public-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(14rem, 18rem);
+  gap: var(--myoxus-spacing-2xl, 3rem);
+  padding-block: var(--myoxus-spacing-xl, 2rem);
+}
+
+.mx-public-content {
+  min-inline-size: 0;
+}
+
+.mx-public-breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--myoxus-spacing-xs, 0.5rem);
+  margin-block-end: var(--myoxus-spacing-lg, 1.5rem);
+}
+
+.mx-public-breadcrumbs a {
+  color: inherit;
+}
+
+.mx-public-document {
+  max-inline-size: 46rem;
+}
+
+.mx-private-export {
+  padding: var(--myoxus-spacing-xl, 2rem);
+}
+
+.mx-private-export .mx-public-document {
+  margin-inline: auto;
+}
+
+.mx-public-document h1,
+.mx-public-document h2,
+.mx-public-document h3,
+.mx-public-document h4,
+.mx-public-document h5,
+.mx-public-document h6,
+.mx-public-index h1 {
+  margin-block: 1.8em 0.65em;
+}
+
+.mx-public-document h1,
+.mx-public-index h1 {
+  font-family: var(--myoxus-typography-h1-family);
+  font-size: var(--myoxus-typography-h1-size);
+  font-weight: var(--myoxus-typography-h1-weight);
+  line-height: var(--myoxus-typography-h1-line-height);
+  margin-block-start: 0;
+}
+
+.mx-public-document h2 {
+  font-family: var(--myoxus-typography-h2-family);
+  font-size: var(--myoxus-typography-h2-size);
+  font-weight: var(--myoxus-typography-h2-weight);
+  line-height: var(--myoxus-typography-h2-line-height);
+}
+
+.mx-public-document h3 {
+  font-family: var(--myoxus-typography-h3-family);
+  font-size: var(--myoxus-typography-h3-size);
+  font-weight: var(--myoxus-typography-h3-weight);
+  line-height: var(--myoxus-typography-h3-line-height);
+}
+
+.mx-public-document h4 {
+  font-family: var(--myoxus-typography-h4-family);
+  font-size: var(--myoxus-typography-h4-size);
+  font-weight: var(--myoxus-typography-h4-weight);
+  line-height: var(--myoxus-typography-h4-line-height);
+}
+
+.mx-public-document h5 {
+  font-family: var(--myoxus-typography-h5-family);
+  font-size: var(--myoxus-typography-h5-size);
+  font-weight: var(--myoxus-typography-h5-weight);
+  line-height: var(--myoxus-typography-h5-line-height);
+}
+
+.mx-public-document h6 {
+  font-family: var(--myoxus-typography-section-title-family);
+  font-size: var(--myoxus-typography-section-title-size);
+  font-weight: var(--myoxus-typography-section-title-weight);
+  line-height: var(--myoxus-typography-section-title-line-height);
+}
+
+.mx-public-document p,
+.mx-public-document ul,
+.mx-public-document ol,
+.mx-public-document blockquote,
+.mx-public-document figure,
+.mx-public-document pre,
+.mx-public-table-wrap {
+  margin-block: 0 1.1rem;
+}
+
+.mx-public-document li + li {
+  margin-block-start: 0.35rem;
+}
+
+.mx-public-document .mx-public-list .mx-public-list {
+  margin-block: var(--myoxus-spacing-xs, 0.5rem) 0;
+}
+
+.mx-public-list--todo {
+  list-style: none;
+  padding-inline-start: 0;
+}
+
+.mx-public-task {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--myoxus-spacing-xs, 0.5rem);
+}
+
+.mx-public-task input {
+  margin-block-start: 0.35em;
+}
+
+.mx-public-document blockquote {
+  margin-inline: 0;
+  padding-inline-start: var(--myoxus-spacing-md, 1rem);
+  border-inline-start: 0.25rem solid var(--myoxus-sem-border-default);
+  color: var(--myoxus-sem-text-muted);
+}
+
+.mx-public-callout {
+  box-sizing: border-box;
+  margin-block: 0 1.1rem;
+  padding: var(--myoxus-spacing-sm, 0.75rem) var(--myoxus-spacing-md, 1rem);
+  border-radius: var(--myoxus-radius-md, 0.5rem);
+}
+
+.mx-public-callout--soft {
+  background: var(--myoxus-sem-surface-muted);
+}
+
+.mx-public-callout--accent {
+  border-inline-start: 0.1875rem solid var(--myoxus-sem-accent-primary);
+  background: var(--myoxus-sem-surface-muted);
+}
+
+.mx-public-callout--outline {
+  border: 1px solid var(--myoxus-sem-border-default);
+  background: var(--myoxus-sem-surface-card);
+}
+
+.mx-public-callout > :last-child {
+  margin-block-end: 0;
+}
+
+.mx-public-table-wrap {
+  overflow-x: auto;
+}
+
+:is(.mx-public-document, .mx-public-index) table {
+  inline-size: 100%;
+  border-collapse: collapse;
+  border: 1px solid var(--myoxus-sem-border-default);
+  border-radius: var(--myoxus-radius-md, 0.5rem);
+  background: var(--myoxus-sem-surface-card);
+}
+
+:is(.mx-public-document, .mx-public-index) th,
+:is(.mx-public-document, .mx-public-index) td {
+  padding: var(--myoxus-spacing-xs, 0.5rem) var(--myoxus-spacing-sm, 0.75rem);
+  border: 1px solid var(--myoxus-sem-border-default);
+  text-align: start;
+  vertical-align: top;
+}
+
+:is(.mx-public-document, .mx-public-index) table.mx-public-table--ruled {
+  border-inline: 0;
+}
+
+:is(.mx-public-document, .mx-public-index) table.mx-public-table--ruled th,
+:is(.mx-public-document, .mx-public-index) table.mx-public-table--ruled td {
+  border-inline: 0;
+}
+
+:is(.mx-public-document, .mx-public-index) table.mx-public-table--plain,
+:is(.mx-public-document, .mx-public-index) table.mx-public-table--plain th,
+:is(.mx-public-document, .mx-public-index) table.mx-public-table--plain td {
+  border: 0;
+}
+
+:is(.mx-public-document, .mx-public-index) table.mx-public-table--compact th,
+:is(.mx-public-document, .mx-public-index) table.mx-public-table--compact td {
+  padding: calc(var(--myoxus-spacing-xs, 0.5rem) / 2)
+    var(--myoxus-spacing-xs, 0.5rem);
+}
+
+:is(.mx-public-document, .mx-public-index) th {
+  font-family: var(--myoxus-typography-label-compact-family);
+  font-size: var(--myoxus-typography-label-compact-size);
+  font-weight: var(--myoxus-typography-label-compact-weight);
+  line-height: var(--myoxus-typography-label-compact-line-height);
+  background: var(--myoxus-sem-surface-muted);
+}
+
+.mx-public-document pre {
+  position: relative;
+  overflow: auto;
+  border: 1px solid var(--myoxus-sem-border-default);
+  border-radius: var(--myoxus-radius-lg, 0.75rem);
+  background: var(--myoxus-background-code-block);
+}
+
+.mx-public-document code {
+  font-family: var(--myoxus-typography-mono-family);
+  font-size: var(--myoxus-typography-mono-size);
+  font-weight: var(--myoxus-typography-mono-weight);
+  line-height: var(--myoxus-typography-mono-line-height);
+}
+
+.mx-public-document :not(pre) > code {
+  padding: 0.1rem 0.3rem;
+  border: 1px solid var(--myoxus-sem-border-default);
+  border-radius: var(--myoxus-radius-sm, 0.375rem);
+  background: var(--myoxus-background-code-block);
+}
+
+.mx-public-document pre[data-myoxus-role="public-code"] > code {
+  display: block;
+  min-inline-size: max-content;
+  padding: var(--myoxus-spacing-md, 1rem) var(--myoxus-spacing-lg, 1.5rem);
+  white-space: pre;
+  tab-size: 2;
+}
+
+.mx-public-code-header {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--myoxus-spacing-sm, 0.75rem);
+  padding: var(--myoxus-spacing-sm, 0.75rem) var(--myoxus-spacing-lg, 1.5rem);
+  border-block-end: 1px solid var(--myoxus-sem-border-default);
+  background: var(--myoxus-background-code-block);
+}
+
+.mx-public-code-copy {
+  font: inherit;
+  border: 1px solid var(--myoxus-sem-border-default);
+  border-radius: var(--myoxus-radius-sm, 0.375rem);
+  background: var(--myoxus-sem-surface-card);
+  color: inherit;
+  padding: 0.25rem 0.55rem;
+  cursor: pointer;
+}
+
+.mx-public-code-copy:focus-visible,
+.mx-public-search input:focus-visible {
+  outline: 2px solid var(--myoxus-accent-primary);
+  outline-offset: 2px;
+}
+
+.mx-public-search-results {
+  max-inline-size: 46rem;
+  margin-block-end: var(--myoxus-spacing-lg, 1.5rem);
+  border: 1px solid var(--myoxus-sem-border-default);
+  border-radius: var(--myoxus-radius-lg, 0.75rem);
+  background: var(--myoxus-sem-surface-card);
+}
+
+.mx-public-search-results[hidden] {
+  display: none;
+}
+
+.mx-public-search-results a {
+  display: block;
+  padding: var(--myoxus-spacing-md, 1rem);
+  color: inherit;
+  text-decoration: none;
+}
+
+.mx-public-search-results a + a {
+  border-block-start: 1px solid var(--myoxus-sem-border-default);
+}
+
+.mx-public-search-results strong,
+.mx-public-search-results span {
+  display: block;
+}
+
+.mx-public-search-results span {
+  margin-block-start: 0.25rem;
+  color: var(--myoxus-sem-text-muted);
+  font-family: var(--myoxus-typography-body-small-family);
+  font-size: var(--myoxus-typography-body-small-size);
+  font-weight: var(--myoxus-typography-body-small-weight);
+  line-height: var(--myoxus-typography-body-small-line-height);
+}
+
+.mx-public-document figure {
+  overflow: hidden;
+  border: 1px solid var(--myoxus-sem-border-default);
+  border-radius: var(--myoxus-radius-lg, 0.75rem);
+}
+
+.mx-public-mermaid-canvas {
+  overflow: auto;
+  padding: var(--myoxus-spacing-md, 1rem);
+  background: var(--myoxus-sem-surface-card);
+}
+
+.mx-public-mermaid svg {
+  display: block;
+  max-inline-size: 100%;
+  block-size: auto;
+  margin-inline: auto;
+}
+
+.mx-public-mermaid figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: var(--myoxus-spacing-sm, 0.75rem) var(--myoxus-spacing-md, 1rem);
+  border-block-start: 1px solid var(--myoxus-sem-border-default);
+  color: var(--myoxus-sem-text-muted);
+  font-family: var(--myoxus-typography-body-small-family);
+  font-size: var(--myoxus-typography-body-small-size);
+  font-weight: var(--myoxus-typography-body-small-weight);
+  line-height: var(--myoxus-typography-body-small-line-height);
+}
+
+.mx-public-mermaid figcaption strong {
+  color: var(--myoxus-sem-text-primary);
+}
+
+.mx-public-mermaid--unavailable p {
+  margin: 0;
+  padding: var(--myoxus-spacing-md, 1rem);
+  color: var(--myoxus-sem-text-muted);
+}
+
+.mx-public-bookmark {
+  border: 1px solid var(--myoxus-sem-border-default);
+  border-radius: var(--myoxus-radius-lg, 0.75rem);
+  padding: var(--myoxus-spacing-md, 1rem);
+  background: var(--myoxus-sem-surface-card);
+}
+
+.mx-public-unsupported {
+  border: 1px dashed var(--myoxus-sem-border-default);
+  border-radius: var(--myoxus-radius-md, 0.5rem);
+  padding: var(--myoxus-spacing-md, 1rem);
+  color: var(--myoxus-sem-text-muted);
+}
+
+.mx-public-layout--workspace {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.mx-public-workspace-intro {
+  margin: 0 0 var(--myoxus-spacing-lg, 1.5rem);
+  color: var(--myoxus-sem-text-muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.mx-public-index-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--myoxus-spacing-md, 1rem);
+  padding-block-end: var(--myoxus-spacing-sm, 0.75rem);
+  border-block-end: 1px solid var(--myoxus-sem-border-default);
+}
+
+.mx-public-index-heading h2 {
+  margin: 0;
+  font-family: var(--myoxus-typography-section-title-family);
+  font-size: var(--myoxus-typography-section-title-size);
+  font-weight: var(--myoxus-typography-section-title-weight);
+  line-height: var(--myoxus-typography-section-title-line-height);
+}
+
+.mx-public-index-heading span,
+.mx-public-index-empty {
+  color: var(--myoxus-sem-text-muted);
+}
+
+.mx-public-document-list,
+.mx-public-folder-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.mx-public-document-list a,
+.mx-public-folder-list a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--myoxus-spacing-md, 1rem);
+  padding-block: var(--myoxus-spacing-md, 1rem);
+  border-block-end: 1px solid var(--myoxus-sem-border-default);
+  color: var(--myoxus-sem-text-primary);
+  text-decoration: none;
+}
+
+.mx-public-document-list a:hover strong,
+.mx-public-folder-list a:hover strong {
+  color: var(--myoxus-sem-link-default);
+}
+
+.mx-public-document-list a:focus-visible,
+.mx-public-folder-list a:focus-visible,
+.mx-public-overview-nav a:focus-visible {
+  outline: 2px solid var(--myoxus-sem-accent-primary);
+  outline-offset: 2px;
+}
+
+.mx-public-index-item,
+.mx-public-folder-list strong {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.mx-public-index-item strong,
+.mx-public-index-item small {
+  display: block;
+}
+
+.mx-public-index-item strong,
+.mx-public-folder-list strong {
+  font-family: var(--myoxus-typography-card-title-family);
+  font-size: var(--myoxus-typography-card-title-size);
+  font-weight: var(--myoxus-typography-card-title-weight);
+  line-height: var(--myoxus-typography-card-title-line-height);
+}
+
+.mx-public-index-item small {
+  margin-block-start: var(--myoxus-spacing-xs, 0.5rem);
+}
+
+.mx-public-index-arrow {
+  flex: none;
+  color: var(--myoxus-sem-link-default);
+}
+
+.mx-public-aside {
+  min-inline-size: 0;
+}
+
+.mx-public-toc {
+  position: sticky;
+  inset-block-start: var(--myoxus-spacing-lg, 1.5rem);
+}
+
+.mx-public-toc strong {
+  display: block;
+  margin-block-end: var(--myoxus-spacing-sm, 0.75rem);
+  color: var(--myoxus-sem-text-primary);
+}
+
+.mx-public-toc ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.mx-public-toc a {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  padding-block: 0.25rem;
+}
+
+.mx-public-toc-level-2 a {
+  padding-inline-start: 0.75rem;
+}
+
+.mx-public-toc-level-3 a,
+.mx-public-toc-level-4 a,
+.mx-public-toc-level-5 a,
+.mx-public-toc-level-6 a {
+  padding-inline-start: 1.5rem;
+}
+
+.mx-public-adjacent {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--myoxus-spacing-md, 1rem);
+  margin-block-start: var(--myoxus-spacing-xl, 2rem);
+}
+
+.mx-public-adjacent a {
+  min-inline-size: 0;
+  border: 1px solid var(--myoxus-sem-border-default);
+  border-radius: var(--myoxus-radius-lg, 0.75rem);
+  padding: var(--myoxus-spacing-md, 1rem);
+  color: inherit;
+  text-decoration: none;
+}
+
+.mx-public-adjacent strong {
+  display: block;
+  overflow-wrap: anywhere;
+  color: var(--myoxus-sem-text-primary);
+}
+
+.mx-public-footer-inner {
+  padding-block: var(--myoxus-spacing-lg, 1.5rem);
+}
+
+@media (max-width: 56rem) {
+  .mx-public-header-inner,
+  .mx-public-layout {
+    inline-size: min(100% - 1rem, 78rem);
+  }
+
+  .mx-public-header-inner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .mx-public-search,
+  .mx-public-search input {
+    inline-size: 100%;
+  }
+
+  .mx-public-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .mx-public-aside {
+    order: -1;
+  }
+
+  .mx-public-toc {
+    position: static;
+    border-block-end: 1px solid var(--myoxus-sem-border-default);
+    padding-block-end: var(--myoxus-spacing-md, 1rem);
+  }
+
+  .mx-public-adjacent {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Standalone reading HTML has no Facade provider; reuse this renderer's existing
+   spacing roles. Runtime theme CSS continues to own colors and typography. */
+.mx-public-overview-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--myoxus-spacing-xl, 2rem);
+  padding-block: var(--myoxus-spacing-md, 1rem);
+  border-block-end: 1px solid var(--myoxus-sem-border-default);
+}
+
+.mx-public-overview-nav a {
+  text-decoration: none;
+}
+
+.mx-public-overview-nav a:hover {
+  text-decoration: underline;
+}
+
+.mx-public-overview-section {
+  margin-block-start: var(--myoxus-spacing-xl, 2rem);
+}
+
+.mx-public-folder-list {
+  display: grid;
+}
+
+.mx-public-folder-list li {
+  min-inline-size: 0;
+}
+
+.mx-public-folder-list strong {
+  font-family: var(--myoxus-typography-body-family);
+  font-size: var(--myoxus-typography-body-size);
+  font-weight: var(--myoxus-typography-body-weight);
+  line-height: var(--myoxus-typography-body-line-height);
+}
+
+/* The same admitted sections form a reading column and ordered folder rail.
+   Empty or introduction-only pages keep their existing single-column flow. */
+.mx-public-index:has(> [data-myoxus-role="public-workspace-introduction"]):has(
+    > [id="myoxus:overview:folders"]
+  ) {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  column-gap: var(--myoxus-spacing-2xl, 3rem);
+}
+
+.mx-public-index > h1,
+.mx-public-index > .mx-public-workspace-intro,
+.mx-public-index > .mx-public-overview-nav,
+.mx-public-index > [id="myoxus:overview:documents"] {
+  grid-column: 1 / -1;
+}
+
+.mx-public-index > [data-myoxus-role="public-workspace-introduction"] {
+  grid-column: 1;
+  min-inline-size: 0;
+}
+
+.mx-public-index:has(> [data-myoxus-role="public-workspace-introduction"])
+  > [id="myoxus:overview:folders"] {
+  grid-column: 2;
+  min-inline-size: 0;
+}
+
+.mx-public-index > [id="myoxus:overview:folders"] > h2 {
+  margin-block: 0 var(--myoxus-spacing-sm, 0.75rem);
+  font-family: var(--myoxus-typography-label-compact-family);
+  font-size: var(--myoxus-typography-label-compact-size);
+  font-weight: var(--myoxus-typography-label-compact-weight);
+  line-height: var(--myoxus-typography-label-compact-line-height);
+}

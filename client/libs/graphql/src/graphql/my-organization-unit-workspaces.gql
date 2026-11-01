@@ -1,0 +1,10 @@
+query myOrganizationUnitWorkspaces {
+  myOrganizationUnitWorkspaces {
+    unitId
+    unitName
+    unitSlug
+    workspaceId
+    workspaceName
+    relationship
+  }
+}

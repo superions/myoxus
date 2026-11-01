@@ -1,0 +1,239 @@
+# Myoxus Self-Host Configuration Example
+#
+# For native development, copy this file to server/config/local.yaml. Container
+# deployments use their writable runtime overlay instead. This file contains no
+# credentials; provide the database URL and crypto key through the documented
+# secret-file variables before starting Myoxus.
+#
+# Config layering (later wins):
+#   1. config/default.yaml   (built-in defaults)
+#   2. config/${RUN_MODE}.yaml (optional, e.g. production.yaml)
+#   3. package-local config/local.yaml
+#   4. the configured runtime overlay
+#   5. MYOXUS__* env vars
+#   6. allowlisted secret files
+
+# ---------------------------------------------------------------------------
+# Server
+# ---------------------------------------------------------------------------
+server:
+  host: "0.0.0.0"
+  port: 3001
+
+  # REQUIRED: Public URL that the browser uses. Must include scheme and host.
+  # OAuth callbacks and email links use this value.
+  # Example: https://myoxus.example.com  or  http://192.168.1.10:3001
+  origin: "https://myoxus.example.com"
+
+  # deployment_type: "standalone"  # "standalone" | "cloud" — see docs/ops/deployment/README.md
+  #   standalone (default): polling+WS transport (resilient behind reverse proxies),
+  #     HTTP telemetry, standalone admin UI. The right value for self-hosting.
+  #   cloud: WS-only transport, WS telemetry, cloud-only admin modules. Only correct
+  #     with a clean end-to-end WebSocket path.
+  #   Admin changes require an API restart.
+
+  # Session lifetime: 15 days
+  session_ttl: 1296000
+  # Refresh session if it will expire within 7 days
+  session_ttr: 604800
+
+# ---------------------------------------------------------------------------
+# Database
+# ---------------------------------------------------------------------------
+database:
+  # REQUIRED: supply the PostgreSQL URL through
+  # MYOXUS__DATABASE__URL_FILE. Do not put it in this file.
+  # Connection pool limits. Measure database wait time and connection use on
+  # the target installation before changing them.
+  max_connections: 50
+  min_connections: 2
+
+  # Seconds to wait for a pool connection before returning an error.
+  # Keep this low so WebSocket ACK handlers fail fast instead of hanging.
+  acquire_timeout_seconds: 5
+
+# ---------------------------------------------------------------------------
+# Redis (required — hard dependency, server will not start without it)
+# ---------------------------------------------------------------------------
+redis:
+  url: "redis://redis:6379"
+  namespace: "myoxus"
+
+  # Role profiles — all default to the root redis.url.
+  # To route a role to a separate Redis instance, add a `url:` key in that role.
+  roles:
+    cache: {}
+    session: {}
+    queue: {}
+    socket: {}
+    lock: {}
+
+  # Cache session tokens in Redis to reduce database reads.
+  session_cache:
+    enabled: true
+    ttl_seconds: 300
+
+# REQUIRED: supply the session-signing key through
+# MYOXUS__CRYPTO__PRIVATE_KEY_FILE. Generate it once with `openssl rand -hex
+# 32`, restrict the file to the service account, and include it in the secret
+# recovery procedure. Rotating it invalidates active sessions.
+
+# ---------------------------------------------------------------------------
+# Storage
+# ---------------------------------------------------------------------------
+storage:
+  # Backend: "local", "s3", or "r2"
+  backend: "local"
+
+  # Local filesystem root (only used when backend = local).
+  # This path is mounted into the container by docker-compose.selfhost.yml.
+  root: "/opt/myoxus/data/storage"
+
+  # Minimum free space in MiB before startup fails for the local backend.
+  # 0 = no startup check. Choose a positive threshold from the operator's
+  # measured growth rate and recovery reserve.
+  min_free_space_mb: 0
+
+  # --- S3 / R2 settings (only needed when backend = s3 or r2) ---
+  # bucket: "my-myoxus-bucket"
+  # endpoint: "https://ACCOUNT_ID.r2.cloudflarestorage.com"   # R2 or custom S3
+  # region: "eu-west-1"                                       # AWS region
+  # Supply access_key and secret_key through protected environment/config
+  # injection; do not commit either value here.
+  # prefix: null   # optional key prefix within the bucket
+
+  # Optional technical workspace storage limit in MiB. 0 means unlimited.
+  # Set a positive value only when the operator has defined and tested that
+  # capacity policy; workspace-specific overrides remain available in Admin.
+  # default_workspace_quota_mb: 0
+
+# Override the PDF font storage backend (default = fs at /data/pdf-fonts).
+# Uncomment to point at S3 / MinIO:
+# storage:
+#   pdf_fonts:
+#     driver: opendal
+#     opendal:
+#       backend: s3
+#       bucket: my-pdf-fonts
+#       region: eu-central-1
+
+# ---------------------------------------------------------------------------
+# Logging
+# ---------------------------------------------------------------------------
+logging:
+  # Log level: trace | debug | info | warn | error
+  # RUST_LOG env var overrides this and supports per-module syntax.
+  level: "info"
+
+  # Log file path. If null, logs go to stdout only.
+  # The directory is created automatically.
+  file_path: "/opt/myoxus/logs/myoxus.log"
+
+  # Rotation: never | daily | hourly
+  rotation: "daily"
+
+  # Number of rotated log files to keep.
+  max_files: 7
+
+# ---------------------------------------------------------------------------
+# Public publishing
+#
+# Public access is still controlled by docs.public_mode and workspaces.public.
+# These settings only control anonymous route delivery, static export output,
+# cache headers and renderer/search/social-card features.
+# ---------------------------------------------------------------------------
+public_publishing:
+  enabled: true
+  dynamic_routes_enabled: true
+  static_export_root: "/var/lib/myoxus/public"
+  static_retention_releases: 5
+  html_cache_ttl_seconds: 300
+  asset_cache_max_age_seconds: 31536000
+  default_noindex: false
+  site_shell:
+    breadcrumbs_enabled: true
+    toc_enabled: true
+    max_toc_depth: 3
+    previous_next_enabled: true
+    code_copy_enabled: true
+    syntax_highlighting_enabled: true
+    search_enabled: true
+  pagefind:
+    enabled: true
+    binary: "pagefind"
+  social_cards:
+    enabled: true
+
+# ---------------------------------------------------------------------------
+# Mail (optional — needed for invites, password reset, notifications)
+# ---------------------------------------------------------------------------
+mail:
+  sender: "Myoxus Self Hosted <noreply@example.com>"
+
+  # If smtp_host is null, emails are logged to stdout instead of being sent.
+  smtp_host: null # e.g. "smtp.example.com"
+  smtp_port: 587
+  smtp_user: null # e.g. "myoxus@example.com"
+  smtp_pass: null # SMTP password
+
+  template_dir: "/opt/myoxus/templates/mail"
+
+  # Set to true to send notification emails (mentions, invites, etc.)
+  enable_notification_emails: false
+
+# ---------------------------------------------------------------------------
+# Calendar (optional)
+# ---------------------------------------------------------------------------
+calendar:
+  google_webhook:
+    enabled: false
+    token: null
+
+# ---------------------------------------------------------------------------
+# Metrics
+# ---------------------------------------------------------------------------
+metrics:
+  # Enabled by default for new deployments. Set false only when business
+  # metrics should be disabled completely.
+  enabled: true
+
+# ---------------------------------------------------------------------------
+# Git Sync
+# ---------------------------------------------------------------------------
+git_sync:
+  # Enabled by default for local/self-hosted deployments. Set false to hide all
+  # git-sync endpoints and UI entry points.
+  enabled: true
+# Private Page preview limits. Environment equivalents use the
+# MYOXUS__PREVIEW__ prefix; cache/concurrency changes require a restart.
+preview:
+  max_input_bytes: 16777216
+  max_source_blocks: 10000
+  max_projected_blocks: 30
+  max_text_chars: 4000
+  max_depth: 32
+  max_table_rows: 4
+  max_table_columns: 4
+  max_visuals: 1
+  max_media_bytes: 4194304
+  max_font_bytes: 33554432
+  max_decoded_image_pixels: 16777216
+  max_svg_input_bytes: 2097152
+  max_mermaid_source_bytes: 262144
+  max_mermaid_elements: 1000
+  max_outlined_paths: 100000
+  max_output_svg_bytes: 4194304
+  max_png_pixels: 256000
+  max_active_global_renders: 8
+  max_active_renders_per_actor: 2
+  max_in_flight_requests: 32
+  output_cache_max_bytes: 134217728
+  output_cache_max_entries: 1000
+  output_cache_ttl_seconds: 300
+  prepared_font_cache_max_bytes: 67108864
+  prepared_font_cache_max_entries: 8
+  prepared_font_cache_ttl_seconds: 3600
+  request_timeout_ms: 5000
+  render_timeout_ms: 3000
+  failure_expiry_seconds: 5
+  retry_count: 1

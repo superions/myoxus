@@ -1,0 +1,708 @@
+# Default Myoxus Server Configuration
+#
+# This file contains built-in defaults for all configuration options.
+# For local development or self-host deployment:
+#   cp server/config/local.yaml.example server/config/local.yaml
+# Then edit local.yaml with your environment-specific values.
+#
+# Configuration precedence (later wins):
+#   1. default.yaml (this file)
+#   2. config/${RUN_MODE}.yaml (if it exists)
+#   3. config/local.yaml (for deployments)
+#   4. MYOXUS__* environment variables (emergency overrides)
+
+server:
+  name: "Myoxus Server"
+  port: 3001
+  host: "0.0.0.0"
+  origin: "http://localhost:3001"
+  session_ttl: 1296000 # 15 days
+  session_ttr: 604800 # 7 days
+  magic_link_ttl_seconds: 1800 # 30 minutes
+  shutdown_timeout_seconds: 5
+  deployment_type: "standalone" # "standalone" | "cloud" — controls client behavior (socket transport, telemetry, UI)
+
+cors:
+  # Additional allowed origins beyond server.origin and app origins.
+  # Example: ["http://localhost:3010", "https://myoxus.example.com"]
+  allowed_origins: []
+  max_age_seconds: 86400
+  # URI schemes always accepted as Desktop/Mobile app origins (prefix match).
+  app_origins:
+    - "file://"
+    - "null"
+    - "app://"
+    - "assets://"
+    - "myoxus-app://"
+    - "tauri://"
+    - "myoxus://"
+    - "capacitor://"
+  # Custom HTTP headers allowed in CORS requests (beyond Content-Type,
+  # Authorization, Cookie which are always allowed).
+  allowed_custom_headers:
+    - "x-myoxus-version"
+    - "x-myoxus-client"
+    - "x-myoxus-client-format"
+    - "x-myoxus-client-capabilities"
+    - "x-myoxus-csrf-token"
+    - "x-affine-version"
+    - "x-request-id"
+    - "x-operation-name"
+    - "x-definition-name"
+    - "x-apollo-operation-name"
+
+database:
+  url: "postgres://myoxus:myoxus@localhost:5432/myoxus"
+  # Pool size: 50 handles 4 background workers + HTTP + WebSocket handlers
+  # without exhaustion under normal load.
+  max_connections: 50
+  min_connections: 2
+  # Seconds to wait for a pool connection. Low value ensures WebSocket ACK
+  # handlers return an error to the client quickly instead of hanging.
+  acquire_timeout_seconds: 5
+
+redis:
+  url: "redis://localhost:6379"
+  namespace: "myoxus"
+  roles:
+    cache: {}
+    session: {}
+    queue: {}
+    socket: {}
+    lock: {}
+  session_cache:
+    enabled: true
+    ttl_seconds: 300
+  cache_ttl_quota_seconds: 300
+  cache_ttl_usage_seconds: 60
+  cache_ttl_git_status_seconds: 120
+  doc_snapshot_cache_enabled: true
+  cache_ttl_doc_snapshot_seconds: 120
+  doc_snapshot_cache_max_size_mb: 10
+  doc_metadata_cache_enabled: true
+  cache_ttl_doc_metadata_seconds: 60
+  doc_metadata_projection_cache_enabled: true
+  cache_ttl_doc_metadata_projection_seconds: 60
+  document_metadata_index_cache_enabled: true
+  cache_ttl_document_metadata_index_seconds: 60
+  document_metadata_index_cache_max_size_mb: 2
+  doc_view_dedup_enabled: true
+  compaction_lock_enabled: true
+  compaction_lock_ttl_seconds: 60
+  doc_timestamps_cache_enabled: true
+  cache_ttl_doc_timestamps_seconds: 30
+  doc_timestamps_cache_max_docs: 1000
+
+crypto:
+  private_key: "myoxus-change-me-private-key"
+
+throttle:
+  enabled: false
+  throttlers:
+    default:
+      ttl_ms: 60000
+      limit: 120
+    strict:
+      ttl_ms: 60000
+      limit: 20
+
+auth:
+  # Reject email addresses with "+" aliases (for example user+tag@example.com)
+  # unless an admin explicitly disables auth.reject_plus_aliases through the
+  # runtime config UI/API. This is the server-owned default used before an
+  # app_configs override row exists.
+  allow_signup: true
+  allow_signup_for_oauth: true
+  allowed_email_domains: []
+  require_email_domain_verification: false
+  require_email_verification: false
+  reject_plus_aliases: true
+  password_requirements:
+    min: 8
+    max: 128
+  # Newly issued password-reset tokens only. Admin changes are materialized
+  # on server restart so in-flight token expiry remains immutable.
+  password_reset_ttl_seconds: 1800
+
+mail:
+  sender: "noreply@myoxus.local"
+  smtp_name: null
+  smtp_port: 587
+  smtp_transport: "starttls"
+  smtp_verify_certificate: true
+  fallback_domains: []
+  fallback_smtp: null
+  enable_notification_emails: false
+
+storage:
+  backend: "local"
+  root: "./storage"
+  bucket: "myoxus-local"
+  prefix: null
+  endpoint: null
+  region: null
+  access_key: null
+  secret_key: null
+  io_timeout_seconds: 15
+  s3_max_retries: 3
+  default_workspace_quota_mb: 0 # 0 = unlimited
+  signed_url_ttl_seconds: 3600
+  max_upload_mb: 512
+  multipart_threshold_mb: 8
+  multipart_part_size_bytes: 5242880
+  multipart_max_parts: 10000
+  min_free_space_mb: 0
+  # Admin-uploaded PDF font library — persists across container restarts via a
+  # named Docker volume mounted at /data/pdf-fonts (see docker-compose.selfhost.yml).
+  # Override to point at S3/MinIO for multi-node or cloud deployments.
+  pdf_fonts:
+    driver: opendal
+    opendal:
+      backend: fs
+      root: /data/pdf-fonts
+
+doc:
+  # Shared per-process pull/write decoder capacity; restart after changes.
+  decoder_concurrency: 8
+  experimental:
+    yocto: false
+  history:
+    interval: 86400000
+  ingress:
+    # Maximum decoded Yjs-v1 update size accepted from external clients.
+    # This is startup-only; override with MYOXUS__DOC__INGRESS__MAX_UPDATE_MB.
+    max_update_mb: 32
+
+doc_service:
+  endpoint: null
+
+client:
+  download_url: ""
+  clipboard_http_fallback: false
+  version_control:
+    enabled: true
+    required_version: ">=0.41.5"
+
+i18n:
+  default_locale: "en"
+  # ISO-4217 money currency used by Database Currency fields when no field
+  # specific default exists. Runtime Admin config key: i18n.defaultCurrency.
+  default_currency: "EUR"
+  # Top 10 European-relevance locales with >=95% translation coverage
+  # (en, de, fr, it, es = West+South; pl, uk = East; nl, pt-BR, el-GR = remaining major EU)
+  available_locales:
+    ["en", "de", "fr", "it", "es", "pl", "uk", "nl", "pt-BR", "el-GR"]
+
+admin_i18n:
+  default_locale: "en"
+
+logging:
+  # EnvFilter directive string. Supports per-module levels:
+  # "info,sqlx::query=warn,tungstenite=warn" etc.
+  # Override via MYOXUS__LOGGING__LEVEL env var or RUST_LOG.
+  level: "info,sqlx::query=warn,tungstenite=warn,tokio_tungstenite=warn,axum::serve=warn,hyper=warn,tower_http=warn,h2=warn,rustls=warn"
+  file_path: null
+  rotation: "daily"
+  max_files: 7
+  max_history: 20
+
+cleanup:
+  history_retention_days: 30
+  notification_retention_days: 90
+  pending_blob_retention_hours: 24
+  outbox_retention_days: 7
+
+document_versioning:
+  default_enabled: true
+  default_auto_version_on_pdf_export: true
+  default_retention_count: 10
+
+public_publishing:
+  enabled: true
+  dynamic_routes_enabled: true
+  static_export_root: "/var/lib/myoxus/public"
+  static_retention_releases: 5
+  html_cache_ttl_seconds: 300
+  asset_cache_max_age_seconds: 31536000
+  default_noindex: false
+  site_shell:
+    breadcrumbs_enabled: true
+    toc_enabled: true
+    max_toc_depth: 3
+    previous_next_enabled: true
+    code_copy_enabled: true
+    syntax_highlighting_enabled: true
+    search_enabled: true
+  pagefind:
+    enabled: true
+    binary: "pagefind"
+  social_cards:
+    enabled: true
+
+preview:
+  max_input_bytes: 16777216
+  max_source_blocks: 10000
+  max_projected_blocks: 30
+  max_text_chars: 4000
+  max_depth: 32
+  max_table_rows: 4
+  max_table_columns: 4
+  max_visuals: 1
+  max_media_bytes: 4194304
+  max_font_bytes: 33554432
+  max_decoded_image_pixels: 16777216
+  max_svg_input_bytes: 2097152
+  max_mermaid_source_bytes: 262144
+  max_mermaid_elements: 1000
+  max_outlined_paths: 100000
+  max_output_svg_bytes: 4194304
+  max_png_pixels: 256000
+  max_active_global_renders: 8
+  max_active_renders_per_actor: 2
+  max_in_flight_requests: 32
+  output_cache_max_bytes: 134217728
+  output_cache_max_entries: 1000
+  output_cache_ttl_seconds: 300
+  prepared_font_cache_max_bytes: 67108864
+  prepared_font_cache_max_entries: 8
+  prepared_font_cache_ttl_seconds: 3600
+  request_timeout_ms: 5000
+  render_timeout_ms: 3000
+  failure_expiry_seconds: 5
+  retry_count: 1
+
+compat:
+  # Valid values: free | pro | lifetime_pro | unlimited
+  quota_plan: "pro"
+  quota:
+    blob_limit: 2147483647
+    storage_quota: 9223372036854775807
+    history_period: 2147483647
+    member_limit: 2147483647
+    copilot_limit: 9223372036854775807
+    copilot_used: 0
+  features:
+    # Paths are resolved relative to `servers/rust/config/` unless absolute.
+    user_file: "features.user.yaml"
+    workspace_file: "features.workspace.yaml"
+  billing:
+    # Valid values: ai | enterprise | free | pro | self_hosted | self_hosted_team | team
+    plan: "self_hosted_team"
+    # Valid values: lifetime | monthly | yearly
+    recurring: "lifetime"
+    currency: "USD"
+    prices:
+      type: "default"
+      amount: 0
+      yearly_amount: 0
+      lifetime_amount: 0
+    subscription:
+      id: "neutral"
+      # Valid values: active | canceled | incomplete | incomplete_expired | past_due | paused | trialing | unpaid
+      default_status: "active"
+      cancel_status: "canceled"
+      # Valid values: ea | onetime | null
+      variant: "onetime"
+    license:
+      quantity: 2147483647
+      recurring: "lifetime"
+      variant: "onetime"
+    portal:
+      checkout_path: "/billing/neutral-checkout"
+      customer_portal_path: "/billing/portal"
+
+oauth:
+  google_client_id: null
+  google_client_secret: null
+  github_client_id: null
+  github_client_secret: null
+  # Generic OAuth/OIDC providers (provider name -> config), e.g. for Authentik.
+  # The key is used as provider value in /api/oauth/preflight (case-insensitive),
+  # for frontend compatibility use "oidc", "google" or "github".
+  providers: {}
+
+job:
+  queue:
+    attempts: 5
+    backoff:
+      type: "exponential"
+      delay: 1000
+    removeOnComplete: true
+    removeOnFail:
+      age: 86400
+      count: 500
+  worker:
+    pollTimeoutSeconds: 5
+  queues:
+    copilot:
+      concurrency: 2
+    doc:
+      concurrency: 1
+    indexer:
+      concurrency: 3
+    notification:
+      concurrency: 4
+    nightly:
+      concurrency: 1
+    calendar-reminder:
+      concurrency: 2
+    git-sync:
+      concurrency: 1
+    template-registry:
+      concurrency: 1
+    caldav-sync:
+      concurrency: 1
+    google-calendar-sync:
+      concurrency: 1
+    pdf-export:
+      concurrency: 1
+    database:
+      concurrency: 1
+
+# Server-side PDF export pipeline (Yjs → IR → Typst → PDF).
+pdf_export:
+  limits:
+    # Reject exportPdf when the workspace already has this many active
+    # (queued/running) jobs that started in the last hour. Protects the
+    # compiler admission against per-tenant flooding.
+    max_concurrent_per_workspace: 3
+    # IR builder hard cap on visited block count. Documents above this are
+    # rejected with error_class = TooLarge.
+    max_input_blocks: 10000
+    # Compiled-document page-count cap. Checked after typst::compile, before
+    # pdf serialisation. Rejects with error_class = TooLarge.
+    max_pages: 500
+    # Compiler deadline including admission and pipe transport. Timeout stops
+    # and reaps execution before returning error_class = Timeout.
+    render_timeout_seconds: 120
+    # Hard per-compiler address-space budget in MiB (Linux 64-bit RLIMIT_AS).
+    # Exhaustion is TooLarge; API container limits remain independently enforced.
+    max_memory_mb: 1024
+  # Total accepted size for one uploaded PDF template bundle.
+  max_template_size_mb: 32
+  # Accepted size for one uploaded font binary.
+  max_font_size_mb: 16
+  # Accepted size for one workspace brand logo upload (PNG or SVG).
+  max_brand_asset_size_mb: 8
+  # Server-side image compression ceiling.
+  max_dpi: 600
+  # Server defaults used when neither request input nor workspace defaults set
+  # these values.
+  default_locale: en
+  default_paper_size: A4
+  # Optional external veraPDF REST validator. Leave unset for local/dev stacks
+  # without the JVM validator; Docker selfhost can set this through
+  # MYOXUS__PDF_EXPORT__VERAPDF_VALIDATOR_URL when the `pdfa` profile runs.
+  verapdf_validator_url:
+  # Per-request timeout for the external validator.
+  verapdf_timeout_seconds: 30
+  edgeless_snapshot:
+    max_dim_px: 8192
+    max_total_px: 16777216
+    max_size_mb: 32
+  # Block-count threshold below which `exportPdf` renders synchronously
+  # inside the mutation and returns `status: done` with a usable downloadUrl
+  # immediately. Above the threshold the request falls through to the async
+  # Redis-queue path. Heuristic: ~16 blocks/page at typical density, so 80
+  # corresponds to ADR §6's "<= 5 Seiten Aequivalent". Set to 0 to disable
+  # the sync path entirely (every job is queued).
+  sync_threshold_blocks: 80
+
+worker:
+  polling:
+    doc_maintenance_interval_ms: 120000
+    indexer_auto_index_interval_ms: 30000
+    database_projection_interval_ms: 30000
+    calendar_reminder_interval_ms: 60000
+    caldav_sync_interval_ms: 900000
+    google_calendar_sync_interval_ms: 900000
+  cron_tick_interval_seconds: 30
+
+transcription:
+  enabled: false
+  request_timeout_ms: 120000
+  max_input_bytes: 104857600
+  max_response_bytes: 16777216
+  max_duration_seconds: 7200
+  max_concurrency: 2
+
+copilot:
+  enabled: false
+  default_provider: "openai"
+  fallback_providers: ["local"]
+  request_timeout_ms: 30000
+  embedding_model: "text-embedding-3-small"
+  embedding:
+    model: "text-embedding-3-small"
+    dimensions: 1536
+    # Enable only for endpoints supporting document/query task_type encoding.
+    send_task_type: false
+    # Number of text chunks sent per embedding API request.
+    # Tune down if you see 413 errors or token-limit rejections from the provider.
+    batch_size: 20
+  unsplash:
+    key: null
+  exa:
+    key: null
+  storage_prefix: "copilot/"
+  providers:
+    openai:
+      enabled: false
+      kind: "openai"
+      endpoint: "https://api.openai.com/v1"
+      api_key: null
+      models: ["gpt-4.1", "gpt-4o-mini", "gpt-4.1-mini"]
+      timeout_ms: 30000
+    local:
+      enabled: false
+      kind: "local"
+      endpoint: "http://localhost:11434/v1"
+      api_key: null
+      models: ["llama3.1"]
+      timeout_ms: 30000
+    anthropic:
+      enabled: false
+      kind: "openai"
+      endpoint: "https://api.anthropic.com/v1"
+      api_key: null
+      models: ["claude-3-5-sonnet-20241022", "claude-3-haiku-20240307"]
+      timeout_ms: 30000
+    gemini:
+      enabled: false
+      kind: "openai"
+      endpoint: "https://generativelanguage.googleapis.com/v1beta/openai"
+      api_key: null
+      models: ["gemini-2.0-flash-exp", "gemini-1.5-pro"]
+      timeout_ms: 30000
+    perplexity:
+      enabled: false
+      kind: "openai"
+      endpoint: "https://api.perplexity.ai"
+      api_key: null
+      models: ["llama-3.1-sonar-large-128k-online"]
+      timeout_ms: 30000
+    fal:
+      enabled: false
+      kind: "openai"
+      endpoint: "https://fal.run/fal-ai"
+      api_key: null
+      models: []
+      timeout_ms: 30000
+    morph:
+      enabled: false
+      kind: "openai"
+      endpoint: "https://api.morphllm.com/v1"
+      api_key: null
+      models: []
+      timeout_ms: 30000
+
+journal:
+  calendar_enabled: true # P-JCAL feature gate; set false to hide calendar UI until QG passes
+
+databases:
+  max_fields_per_database: 100
+  max_views_per_database: 25
+  default_rows_per_page: 100
+  max_rows_per_page: 500
+  max_cell_text_bytes: 16384
+  csv_max_bytes: 5242880
+  csv_max_rows: 10000
+  csv_max_columns: 100
+  csv_sample_rows_for_type_inference: 100
+  notion_max_bytes: 67108864
+  reminder_batch_size: 100
+  max_reminders_per_user_per_cell: 5
+  max_reminder_offset_minutes: 525600
+
+calendar:
+  google_webhook:
+    enabled: false
+    token: null
+  google: null
+  caldav: null
+
+mcp:
+  enabled: true
+
+indexer:
+  enabled: false
+  provider_type: null
+  provider_endpoint: null
+  provider_api_key: null
+  provider_username: null
+  provider_password: null
+  auto_index_batch_size: 50
+
+captcha:
+  # ALTCHA self-hosted proof-of-work (DSGVO-compliant, no third-party calls).
+  # When enabled, hmac_key MUST be set — server start-up fails otherwise.
+  # Set via ENV: MYOXUS__CAPTCHA__HMAC_KEY=$(openssl rand -hex 32)
+  enabled: false
+  algorithm: "SHA-256" # SHA-256 | SHA-384 | SHA-512 (altcha-lib-rs v0.3.x)
+  hmac_key: "" # REQUIRED when enabled=true; set via ENV, never commit
+  challenge_expires_seconds: 1800 # 30 min
+  max_number: 50000 # solver upper bound, ~1 s on desktop
+  rate_limit_per_ip_per_min: 10
+  rate_limit_per_account_per_hour: 5
+  honeypot_field_name: "website"
+
+telemetry:
+  # Master switch. false → ingest returns 503 (INV-TEL-03). No events land
+  # in the DB and the flush/rollup/retention jobs stay idle.
+  enabled: true
+  # CORS allow-list for POST /api/telemetry/collect. Empty falls back to
+  # the global cors.allowed_origins. GA4 fields were removed in P-Telemetry-A
+  # (2026-04-18) — Myoxus does not forward telemetry to third parties.
+  allowed_origins: []
+  # Redis SETNX TTL for dedupe (event_id → exists). 1 h covers retries/reconnects.
+  dedupe_ttl_hours: 1
+  dedupe_max_entries: 100000
+  # HotBuffer flush threshold; crossed → worker flushes before the next tick.
+  batch_max_events: 500
+  flush_interval_seconds: 60
+  # Retention windows for the retention job. Raw events keep user_id, so
+  # prefer short TTLs; daily rollups are aggregate-only, so tolerate longer.
+  retention_raw_days: 14
+  retention_daily_days: 90
+  # Per-category toggles (INV-TEL-02). Any category absent or false is dropped
+  # before persistence. Keys must match application::telemetry::models::Category.
+  categories:
+    page_view: true
+    doc_op: true
+    error: true
+    auth: true
+    admin_action: true
+    ai_interaction: true
+  # Per-category sampling rate 0.0..=1.0. Events retained with this probability
+  # after the category filter. Clamped in code — out-of-range values are safe.
+  sampling_rates:
+    page_view: 1.0
+    doc_op: 1.0
+    error: 1.0
+    auth: 1.0
+    admin_action: 1.0
+    ai_interaction: 1.0
+  # Per-IP DoS cap on /api/telemetry/collect. Independent of auth/captcha limits.
+  ingest_rate_limit_per_ip_per_min: 600
+
+websocket:
+  transports: ["websocket", "polling"]
+  max_http_buffer_size_mb: 100 # 100 MB Socket.IO payload limit
+  broadcast_channel_capacity: 4096
+  # Startup-bound analytics cadence; separate from protocol heartbeat timers.
+  ping_interval_seconds: 60
+  eio_ping_interval_seconds: 60
+  eio_ping_timeout_seconds: 120
+  # Distributed Socket.IO namespace admissions per client and account in one second.
+  max_connections_per_second_per_client: 10
+
+flags:
+  allow_guest_demo_workspace: false
+
+metrics:
+  enabled: true
+  categories:
+    auth: true
+    workspace: true
+    doc: true
+    collab: true
+    ai: true
+    pdf_export: true
+    mcp: true
+
+branding:
+  accent_primary: "#1E96EB"
+  accent_secondary: "#0A6DCA"
+  accent_primary_dark: ""
+  accent_secondary_dark: ""
+  logo_url: "/style/logo.svg"
+  product_mark_url: ""
+  style_dir: "./config/style"
+  max_upload_mb: 1
+
+http:
+  proxy_timeout_seconds: 10
+
+tls:
+  # Additional CA trust for all outgoing server/worker/CLI connections.
+  # File/ENV only, relative to runtime-config; restart every process to activate.
+  # null leaves the deprecated Git-only DB migration branch available; "" disables it.
+  additional_ca_bundle_path: null
+
+git_sync:
+  retention_days: 7
+  enabled: true
+  allowed_directions:
+    - bidirectional
+    - myoxus_to_git
+    - git_to_myoxus
+  allowed_auth_methods:
+    - https_token
+    - ssh_key
+  allowed_hosts: []
+  default_branch: "main"
+  auto_sync_allowed: true
+  webhook_allowed: false
+  ssh_host_key_policy: "accept_new"
+  https_certificate_policy: "strict"
+  # Optional path relative to the runtime-config directory, for example
+  # "git-sync/ca-bundle.pem". The PEM file is loaded on server restart.
+  https_ca_bundle_path: null
+  # YAML/ENV-only secret for /api/git-sync/webhook/{profile_id}; never exposed
+  # through admin config APIs. Set MYOXUS__GIT_SYNC__WEBHOOK_SECRET when enabling
+  # webhook_allowed.
+  webhook_secret: null
+  network_timeout_secs: 120
+  dns_timeout_seconds: 5
+  local_timeout_secs: 30
+  repo_base_dir: "./storage/git-sync"
+  clone_depth: 1
+  push_max_retries: 1
+  commit_author_name: "Myoxus Sync"
+  commit_author_email: "sync@myoxus.local"
+  parallel_conversion_threshold: 10
+  max_docs_per_sync: 0
+  max_mirror_storage_mb: 1024
+  min_free_disk_mb: 500
+  mime_allowlist_admin:
+    - "image/png"
+    - "image/jpeg"
+    - "image/webp"
+    - "image/svg+xml"
+    - "application/pdf"
+    - "text/plain"
+    - "text/markdown"
+    - "application/json"
+    - "application/yaml"
+    - "application/zip"
+  mime_blocklist_admin: []
+  mime_validation_mode: "warn"
+
+cache:
+  server_config_ttl_seconds: 300
+  user_features_ttl_seconds: 120
+  throttle_config_ttl_seconds: 30
+  user_features_max_capacity: 50000
+
+template_registry:
+  enabled: true
+  import_max_bundle_size_mb: 50
+  # ZIP archive safety limits for imported template bundles.
+  zip_limits:
+    # Maximum number of files allowed inside one ZIP archive.
+    max_entries: 256
+    # Maximum combined uncompressed size of all ZIP entries.
+    max_total_uncompressed_size_mb: 200
+    # Maximum uncompressed size of a single ZIP entry.
+    max_entry_uncompressed_size_mb: 50
+    # Maximum uncompressed/compressed ratio for a single ZIP entry.
+    max_compression_ratio: 200.0
+    # Maximum allowed path length of a ZIP entry.
+    max_path_length: 512
+  reconcile_default_mode: "managed_until_local_edit"
+  drift_scan_enabled: true
+  drift_scan_interval_seconds: 3600
+
+# One root: release-pinned features and operator-owned mail/PDF/HTML families.
+templates:
+  root_dir: "./templates"

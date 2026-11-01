@@ -1,0 +1,23 @@
+[package]
+description       = "Cryptographic utilities for Myoxus clients — Hashcash challenge-response"
+edition.workspace = true
+license           = "AGPL-3.0-or-later"
+name              = "myoxus-crypto"
+version           = "0.1.0"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[features]
+napi = ["dep:napi", "dep:napi-derive", "dep:napi-build"]
+
+[dependencies]
+napi        = { workspace = true, optional = true }
+napi-derive = { workspace = true, optional = true }
+sha3        = "0.10"
+
+[dev-dependencies]
+# Tests are inline in hashcash.rs
+
+[build-dependencies]
+napi-build = { workspace = true, optional = true }

@@ -1,0 +1,21 @@
+formatVersion: 1
+id: myoxus.workflow.handover_after_prerequisites
+version: 1.0.0
+capabilityVersions:
+  awaitTaskSet: 1
+  createTaskFromDocument: 1
+nodes:
+  - id: prerequisites
+    action:
+      kind: awaitTaskSet
+      waitId: prerequisite
+      tasks:
+        kind: input
+        input: prerequisites
+      deadline:
+        kind: input
+        input: deadline
+  - id: handover
+    action:
+      kind: createTaskFromDocument
+      component: handover

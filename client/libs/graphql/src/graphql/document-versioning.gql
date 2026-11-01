@@ -1,0 +1,111 @@
+fragment DocumentVersionFields on DocumentVersionType {
+  id
+  docId
+  workspaceId
+  docHistoryId
+  versionNo
+  label
+  description
+  createdBy
+  createdAt
+  isPinned
+  event
+  kind
+  isProtected
+  policyId
+  contentHash
+}
+
+query documentVersioningOverview($workspaceId: ID!, $docId: ID!) {
+  workspaceHistorySettings(workspaceId: $workspaceId) {
+    effectiveEditCaptureEnabled
+    effectiveEditCaptureIntervalMs
+    runtimeAvailable
+    lastEditCaptureAt
+  }
+  documentMetadata(workspaceId: $workspaceId, docId: $docId) {
+    ...DocumentMetadataFields
+  }
+  documentMetadataValidation(workspaceId: $workspaceId, docId: $docId) {
+    ...DocumentMetadataValidationFields
+  }
+  documentVersions(workspaceId: $workspaceId, docId: $docId) {
+    ...DocumentVersionFields
+  }
+}
+
+mutation createDocumentVersion($workspaceId: ID!, $docId: ID!, $label: String!, $description: String) {
+  createDocumentVersion(workspaceId: $workspaceId, docId: $docId, label: $label, description: $description) {
+    ...DocumentVersionFields
+  }
+}
+
+mutation captureDocumentHistory(
+  $workspaceId: ID!
+  $docId: ID!
+  $requestKey: ID!
+  $name: String
+  $description: String
+) {
+  captureDocumentHistory(
+    workspaceId: $workspaceId
+    docId: $docId
+    requestKey: $requestKey
+    name: $name
+    description: $description
+  ) {
+    historyId
+    version { ...DocumentVersionFields }
+  }
+}
+
+mutation nameDocumentHistoryState(
+  $workspaceId: ID!
+  $docId: ID!
+  $historyId: ID!
+  $expectedVersionIds: [ID!]!
+  $name: String!
+  $description: String
+) {
+  nameDocumentHistoryState(
+    workspaceId: $workspaceId
+    docId: $docId
+    historyId: $historyId
+    expectedVersionIds: $expectedVersionIds
+    name: $name
+    description: $description
+  ) {
+    ...DocumentVersionFields
+  }
+}
+
+mutation updateDocumentVersion($id: ID!, $label: String!, $description: String) {
+  updateDocumentVersion(id: $id, label: $label, description: $description) { ...DocumentVersionFields }
+}
+
+mutation pinDocumentVersion($id: ID!) {
+  pinDocumentVersion(id: $id) { ...DocumentVersionFields }
+}
+
+mutation unpinDocumentVersion($id: ID!) {
+  unpinDocumentVersion(id: $id) { ...DocumentVersionFields }
+}
+
+query documentHistoryRevision($workspaceId: ID!, $docId: ID!) {
+  documentHistoryRevision(workspaceId: $workspaceId, docId: $docId)
+}
+
+mutation restoreDocumentVersion($id: ID!, $expectedRevision: String) {
+  restoreDocumentVersion(id: $id, expectedRevision: $expectedRevision) { ...DocumentVersionFields }
+}
+
+query documentVersionDiff($fromId: ID!, $toId: ID!) {
+  documentVersionDiff(fromId: $fromId, toId: $toId) {
+    fromBlockCount
+    toBlockCount
+    extractionPartial
+    stateVector { fromStateVectorSha256 toStateVectorSha256 changed }
+    blockDiffs { blockId kind fromFlavour toFlavour fromText toText fromChildren toChildren }
+    textDiffs { blockId fromText toText removedLines addedLines removedWords addedWords }
+  }
+}

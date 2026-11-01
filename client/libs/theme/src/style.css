@@ -1,0 +1,385 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Shared technical, renderer and authored-content variables. */
+/* Server-projected UI colors and typography do not belong in this file. */
+
+/* ============================================================================
+   :root — base theme variables (not affected by data-theme, applied globally)
+   ============================================================================ */
+:root {
+  /* font families */
+  --myoxus-font-serif-family:
+    "Source Serif 4", "Noto Serif", serif, "Cambria", apple-system,
+    BlinkMacSystemFont, "Helvetica Neue", Tahoma, Arial, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --myoxus-font-mono-family:
+    "Source Code Pro", "IBM Plex Mono", "Roboto Mono", "Noto Sans Mono",
+    "Noto Sans CJK", apple-system, BlinkMacSystemFont, "Helvetica Neue", Tahoma,
+    Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+    "Noto Color Emoji";
+  --myoxus-font-sans-family:
+    "Inter", "Source Sans 3", Poppins, apple-system, BlinkMacSystemFont,
+    "Helvetica Neue", Tahoma, Arial, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --myoxus-font-number-family:
+    "Roboto Mono", "Noto Sans Mono", apple-system, BlinkMacSystemFont,
+    "Helvetica Neue", Tahoma, Arial, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  /* font sizes */
+  --myoxus-font-h-1: var(--myoxus-typography-h1-size);
+  --myoxus-font-h-2: var(--myoxus-typography-h2-size);
+  --myoxus-font-h-3: var(--myoxus-typography-h3-size);
+  --myoxus-font-h-4: var(--myoxus-typography-h4-size);
+  --myoxus-font-h-5: var(--myoxus-typography-h5-size);
+  /* H6 has no separate theme role; use body size below the H5 hierarchy. */
+  --myoxus-font-h-6: var(--myoxus-typography-body-size);
+  --myoxus-font-sm: 14px;
+  --myoxus-font-xs: 12px;
+  /* layout */
+  --myoxus-z-index-modal: 1000;
+  --myoxus-z-index-popover: 1000;
+  --myoxus-paragraph-space: 8px;
+  --myoxus-popover-radius: 12px;
+  --myoxus-editor-width: 944px;
+  --myoxus-editor-side-padding: 96px;
+  --myoxus-editor-content-padding-inline: clamp(
+    var(--mantine-spacing-lg),
+    5cqw,
+    var(--myoxus-editor-side-padding, var(--mantine-spacing-lg))
+  );
+  --myoxus-zoom: 1;
+  --myoxus-scale: calc(1 / var(--myoxus-zoom));
+  /* palette — line colors */
+  --myoxus-palette-line-yellow: rgb(255, 211, 56);
+  --myoxus-palette-line-orange: rgb(255, 175, 56);
+  --myoxus-palette-line-tangerine: rgb(250, 124, 69);
+  --myoxus-palette-line-red: rgb(237, 63, 63);
+  --myoxus-palette-line-magenta: rgb(230, 96, 164);
+  --myoxus-palette-line-purple: rgb(110, 82, 223);
+  --myoxus-palette-line-navy: rgb(59, 37, 204);
+  --myoxus-palette-line-blue: rgb(79, 144, 255);
+  --myoxus-palette-line-teal: rgb(122, 226, 213);
+  --myoxus-palette-line-green: rgb(124, 194, 112);
+  --myoxus-palette-line-white: rgb(255, 255, 255);
+  --myoxus-palette-line-black: rgb(35, 35, 35);
+  --myoxus-palette-line-grey: rgb(191, 192, 191);
+  /* palette — shape colors */
+  --myoxus-palette-shape-yellow: rgb(255, 223, 107);
+  --myoxus-palette-shape-orange: rgb(255, 196, 107);
+  --myoxus-palette-shape-tangerine: rgb(251, 161, 121);
+  --myoxus-palette-shape-red: rgb(241, 111, 111);
+  --myoxus-palette-shape-magenta: rgb(237, 140, 189);
+  --myoxus-palette-shape-purple: rgb(147, 126, 231);
+  --myoxus-palette-shape-navy: rgb(122, 149, 246);
+  --myoxus-palette-shape-blue: rgb(184, 227, 255);
+  --myoxus-palette-shape-green: rgb(157, 209, 148);
+  --myoxus-palette-shape-white: rgb(255, 255, 255);
+  --myoxus-palette-shape-black: rgb(35, 35, 35);
+  /* multiplayer cursor colors */
+  --myoxus-multi-players-purple: rgba(123, 97, 255, 1);
+  --myoxus-multi-players-magenta: rgba(245, 49, 179, 1);
+  --myoxus-multi-players-red: rgba(243, 87, 52, 1);
+  --myoxus-multi-players-orange: rgba(255, 138, 0, 1);
+  --myoxus-multi-players-green: rgba(27, 196, 125, 1);
+  --myoxus-multi-players-blue: rgba(24, 160, 251, 1);
+  --myoxus-multi-players-brown: rgba(154, 101, 51, 1);
+  --myoxus-multi-players-grey: rgba(170, 170, 170, 1);
+  /* misc static tokens */
+  --myoxus-blue: rgba(30, 150, 235, 1);
+  --myoxus-pure-black-10: rgba(0, 0, 0, 0.1);
+  --myoxus-pure-black-20: rgba(0, 0, 0, 0.2);
+  --myoxus-pure-white: rgba(255, 255, 255, 1);
+  --myoxus-button-inner-shadow: unset;
+  /* authored-content and renderer light-mode values */
+  --myoxus-theme-mode: light;
+  --myoxus-tertiary-color: rgba(239, 250, 255, 1);
+  --myoxus-primary-color-04: rgba(30, 150, 235, 0.04);
+  --myoxus-blue-50: rgba(239, 250, 255, 1);
+  --myoxus-blue-100: rgba(219, 244, 254, 1);
+  --myoxus-blue-600: rgba(30, 150, 235, 1);
+  --myoxus-blue-700: rgba(28, 129, 217, 1);
+  --myoxus-background-modal-color: rgba(0, 0, 0, 0.75);
+  --myoxus-hover-color-filled: rgb(245, 245, 245);
+  --myoxus-quote-color: rgba(194, 193, 197, 1);
+  --myoxus-edgeless-grid-color: rgb(230, 230, 230);
+  --myoxus-black-10: rgba(0, 0, 0, 0.1);
+  --myoxus-black-30: rgba(0, 0, 0, 0.3);
+  --myoxus-black-50: rgba(0, 0, 0, 0.5);
+  --myoxus-black-60: rgba(0, 0, 0, 0.6);
+  --myoxus-black-80: rgba(0, 0, 0, 0.8);
+  --myoxus-black-90: rgba(0, 0, 0, 0.9);
+  --myoxus-black: rgb(0, 0, 0);
+  --myoxus-white-10: rgba(255, 255, 255, 0.1);
+  --myoxus-white-30: rgba(255, 255, 255, 0.3);
+  --myoxus-white-50: rgba(255, 255, 255, 0.5);
+  --myoxus-white-60: rgba(255, 255, 255, 0.6);
+  --myoxus-white-80: rgba(255, 255, 255, 0.8);
+  --myoxus-white-90: rgba(255, 255, 255, 0.9);
+  --myoxus-white: rgb(255, 255, 255);
+  --myoxus-tag-white: rgba(245, 245, 245, 1);
+  --myoxus-tag-gray: rgba(227, 226, 224, 1);
+  --myoxus-tag-red: rgba(255, 225, 225, 1);
+  --myoxus-tag-orange: rgba(255, 233, 201, 1);
+  --myoxus-tag-yellow: rgba(255, 243, 215, 1);
+  --myoxus-tag-green: rgba(222, 244, 231, 1);
+  --myoxus-tag-teal: rgba(222, 244, 243, 1);
+  --myoxus-tag-blue: rgba(225, 238, 255, 1);
+  --myoxus-tag-purple: rgba(243, 240, 255, 1);
+  --myoxus-tag-pink: rgba(251, 231, 255, 1);
+  --myoxus-tag-magenta: rgba(249, 232, 255, 1);
+  --myoxus-tooltip: rgba(0, 0, 0, 1);
+  --myoxus-button-shadow:
+    0px 0px 1px 0px rgba(0, 0, 0, 0.12), 0px 1px 5px 0px rgba(0, 0, 0, 0.12);
+  --myoxus-overlay-panel-shadow:
+    0px 1px 6px rgba(0, 0, 0, 0.16), 0px 8px 14px rgba(0, 0, 0, 0.08);
+  --myoxus-active-shadow: 0px 0px 0px 2px rgba(30, 150, 235, 0.3);
+  --myoxus-menu-shadow:
+    0px 10px 18px rgba(0, 0, 0, 0.14), 0px -1px 12px rgba(0, 0, 0, 0.08);
+  --myoxus-toolbar-shadow: 0px 6px 16px #00000024;
+  --myoxus-shadow-1: 0px 0px 4px 0px rgba(66, 65, 73, 0.14);
+  --myoxus-shadow-2: 0px 0px 12px 0px rgba(66, 65, 73, 0.18);
+  --myoxus-shadow-3: 0px 0px 20px 0px rgba(66, 65, 73, 0.22);
+  --myoxus-overlay-shadow:
+    0px 1px 6px 0px rgba(0, 0, 0, 0.16), 0px 8px 14px 0px rgba(0, 0, 0, 0.08);
+  --myoxus-popover-shadow:
+    0px 0px 30px rgba(75, 75, 75, 0.2), 0px 0px 4px rgba(75, 75, 75, 0.3),
+    inset 0px 0px 0px rgba(227, 226, 228, 1);
+  --myoxus-float-button-shadow:
+    0px 0px 10px rgba(0, 0, 0, 0.05), 0px 0px 0px 0.5px rgba(0, 0, 0, 0.1);
+  --myoxus-note-shadow-box:
+    0px 0px 4px 0px rgba(0, 0, 0, 0.14), 0px 2px 12px 0px rgba(0, 0, 0, 0.14);
+  --myoxus-note-shadow-sticker:
+    0px 6px 16px 0px rgba(0, 0, 0, 0.08), 0px 26px 18px -20px rgba(0, 0, 0, 0.1);
+  --myoxus-note-shadow-paper:
+    0px 2px 4px 0px rgba(0, 0, 0, 0.05), 0px 0px 0px 10px #fff,
+    0px 3px 6px 12px rgba(0, 0, 0, 0.14);
+  --myoxus-note-shadow-float:
+    0px 0px 32px 0px rgba(0, 0, 0, 0.09), 0px 0px 3px 0px rgba(0, 0, 0, 0.1);
+  --myoxus-note-shadow-film: 10px 10px 0px 6px #000, 0px 0px 0px 6px #000;
+  --myoxus-windows-close-button: #c42b1c;
+  /* text highlight (background) */
+  --myoxus-text-highlight-pink: rgba(255, 206, 206, 1);
+  --myoxus-text-highlight-red: rgba(254, 213, 213, 1);
+  --myoxus-text-highlight-orange: rgba(254, 223, 187, 1);
+  --myoxus-text-highlight-yellow: rgba(254, 243, 161, 1);
+  --myoxus-text-highlight-green: rgba(225, 250, 177, 1);
+  --myoxus-text-highlight-teal: rgba(173, 248, 233, 1);
+  --myoxus-text-highlight-blue: rgba(204, 226, 254, 1);
+  --myoxus-text-highlight-purple: rgba(237, 221, 255, 1);
+  --myoxus-text-highlight-grey: rgba(234, 236, 239, 1);
+  /* text highlight (foreground) */
+  --myoxus-text-highlight-foreground-red: rgba(198, 34, 34, 1);
+  --myoxus-text-highlight-foreground-orange: rgba(211, 79, 11, 1);
+  --myoxus-text-highlight-foreground-yellow: rgba(182, 124, 4, 1);
+  --myoxus-text-highlight-foreground-green: rgba(20, 147, 67, 1);
+  --myoxus-text-highlight-foreground-teal: rgba(7, 130, 160, 1);
+  --myoxus-text-highlight-foreground-blue: rgba(33, 89, 211, 1);
+  --myoxus-text-highlight-foreground-purple: rgba(132, 46, 211, 1);
+  --myoxus-text-highlight-foreground-grey: rgba(122, 122, 122, 1);
+  /* note background colors */
+}
+
+/* ============================================================================
+   [data-theme=light] — explicit light theme
+   ============================================================================ */
+[data-theme="light"] {
+  --myoxus-theme-mode: light;
+  --myoxus-tertiary-color: rgba(239, 250, 255, 1);
+  --myoxus-primary-color-04: rgba(30, 150, 235, 0.04);
+  --myoxus-blue-50: rgba(239, 250, 255, 1);
+  --myoxus-blue-100: rgba(219, 244, 254, 1);
+  --myoxus-blue-600: rgba(30, 150, 235, 1);
+  --myoxus-blue-700: rgba(28, 129, 217, 1);
+  --myoxus-background-modal-color: rgba(0, 0, 0, 0.75);
+  --myoxus-hover-color-filled: rgb(245, 245, 245);
+  --myoxus-quote-color: rgba(194, 193, 197, 1);
+  --myoxus-edgeless-grid-color: rgb(230, 230, 230);
+  --myoxus-black-10: rgba(0, 0, 0, 0.1);
+  --myoxus-black-30: rgba(0, 0, 0, 0.3);
+  --myoxus-black-50: rgba(0, 0, 0, 0.5);
+  --myoxus-black-60: rgba(0, 0, 0, 0.6);
+  --myoxus-black-80: rgba(0, 0, 0, 0.8);
+  --myoxus-black-90: rgba(0, 0, 0, 0.9);
+  --myoxus-black: rgb(0, 0, 0);
+  --myoxus-white-10: rgba(255, 255, 255, 0.1);
+  --myoxus-white-30: rgba(255, 255, 255, 0.3);
+  --myoxus-white-50: rgba(255, 255, 255, 0.5);
+  --myoxus-white-60: rgba(255, 255, 255, 0.6);
+  --myoxus-white-80: rgba(255, 255, 255, 0.8);
+  --myoxus-white-90: rgba(255, 255, 255, 0.9);
+  --myoxus-white: rgb(255, 255, 255);
+  --myoxus-tag-white: rgba(245, 245, 245, 1);
+  --myoxus-tag-gray: rgba(227, 226, 224, 1);
+  --myoxus-tag-red: rgba(255, 225, 225, 1);
+  --myoxus-tag-orange: rgba(255, 233, 201, 1);
+  --myoxus-tag-yellow: rgba(255, 243, 215, 1);
+  --myoxus-tag-green: rgba(222, 244, 231, 1);
+  --myoxus-tag-teal: rgba(222, 244, 243, 1);
+  --myoxus-tag-blue: rgba(225, 238, 255, 1);
+  --myoxus-tag-purple: rgba(243, 240, 255, 1);
+  --myoxus-tag-pink: rgba(251, 231, 255, 1);
+  --myoxus-tag-magenta: rgba(249, 232, 255, 1);
+  --myoxus-tooltip: rgba(0, 0, 0, 1);
+  --myoxus-button-shadow:
+    0px 0px 1px 0px rgba(0, 0, 0, 0.12), 0px 1px 5px 0px rgba(0, 0, 0, 0.12);
+  --myoxus-overlay-panel-shadow:
+    0px 1px 6px rgba(0, 0, 0, 0.16), 0px 8px 14px rgba(0, 0, 0, 0.08);
+  --myoxus-active-shadow: 0px 0px 0px 2px rgba(30, 150, 235, 0.3);
+  --myoxus-menu-shadow:
+    0px 10px 18px rgba(0, 0, 0, 0.14), 0px -1px 12px rgba(0, 0, 0, 0.08);
+  --myoxus-toolbar-shadow: 0px 6px 16px #00000024;
+  --myoxus-shadow-1: 0px 0px 4px 0px rgba(66, 65, 73, 0.14);
+  --myoxus-shadow-2: 0px 0px 12px 0px rgba(66, 65, 73, 0.18);
+  --myoxus-shadow-3: 0px 0px 20px 0px rgba(66, 65, 73, 0.22);
+  --myoxus-overlay-shadow:
+    0px 1px 6px 0px rgba(0, 0, 0, 0.16), 0px 8px 14px 0px rgba(0, 0, 0, 0.08);
+  --myoxus-popover-shadow:
+    0px 0px 30px rgba(75, 75, 75, 0.2), 0px 0px 4px rgba(75, 75, 75, 0.3),
+    inset 0px 0px 0px rgba(227, 226, 228, 1);
+  --myoxus-float-button-shadow:
+    0px 0px 10px rgba(0, 0, 0, 0.05), 0px 0px 0px 0.5px rgba(0, 0, 0, 0.1);
+  --myoxus-note-shadow-box:
+    0px 0px 4px 0px rgba(0, 0, 0, 0.14), 0px 2px 12px 0px rgba(0, 0, 0, 0.14);
+  --myoxus-note-shadow-sticker:
+    0px 6px 16px 0px rgba(0, 0, 0, 0.08), 0px 26px 18px -20px rgba(0, 0, 0, 0.1);
+  --myoxus-note-shadow-paper:
+    0px 2px 4px 0px rgba(0, 0, 0, 0.05), 0px 0px 0px 10px #fff,
+    0px 3px 6px 12px rgba(0, 0, 0, 0.14);
+  --myoxus-note-shadow-float:
+    0px 0px 32px 0px rgba(0, 0, 0, 0.09), 0px 0px 3px 0px rgba(0, 0, 0, 0.1);
+  --myoxus-note-shadow-film: 10px 10px 0px 6px #000, 0px 0px 0px 6px #000;
+  --myoxus-windows-close-button: #c42b1c;
+  --myoxus-text-highlight-pink: rgba(255, 206, 206, 1);
+  --myoxus-text-highlight-red: rgba(254, 213, 213, 1);
+  --myoxus-text-highlight-orange: rgba(254, 223, 187, 1);
+  --myoxus-text-highlight-yellow: rgba(254, 243, 161, 1);
+  --myoxus-text-highlight-green: rgba(225, 250, 177, 1);
+  --myoxus-text-highlight-teal: rgba(173, 248, 233, 1);
+  --myoxus-text-highlight-blue: rgba(204, 226, 254, 1);
+  --myoxus-text-highlight-purple: rgba(237, 221, 255, 1);
+  --myoxus-text-highlight-grey: rgba(234, 236, 239, 1);
+  --myoxus-text-highlight-foreground-red: rgba(198, 34, 34, 1);
+  --myoxus-text-highlight-foreground-orange: rgba(211, 79, 11, 1);
+  --myoxus-text-highlight-foreground-yellow: rgba(182, 124, 4, 1);
+  --myoxus-text-highlight-foreground-green: rgba(20, 147, 67, 1);
+  --myoxus-text-highlight-foreground-teal: rgba(7, 130, 160, 1);
+  --myoxus-text-highlight-foreground-blue: rgba(33, 89, 211, 1);
+  --myoxus-text-highlight-foreground-purple: rgba(132, 46, 211, 1);
+  --myoxus-text-highlight-foreground-grey: rgba(122, 122, 122, 1);
+}
+
+/* ============================================================================
+   [data-theme=dark] — authored-content and renderer dark-mode values
+   ============================================================================ */
+[data-theme="dark"] {
+  --myoxus-theme-mode: dark;
+  --myoxus-primary-color-04: rgba(52, 116, 173, 0.1);
+  --myoxus-tertiary-color: rgb(30, 30, 30);
+  --myoxus-blue-50: rgba(181, 208, 242, 1);
+  --myoxus-blue-100: rgba(171, 204, 237, 1);
+  --myoxus-blue-600: rgba(52, 116, 173, 1);
+  --myoxus-blue-700: rgba(55, 106, 154, 1);
+  --myoxus-hover-color-filled: rgb(42, 42, 42);
+  --myoxus-quote-color: rgba(142, 141, 145, 1);
+  --myoxus-edgeless-grid-color: rgba(49, 49, 49, 0.35);
+  --myoxus-black-10: rgba(255, 255, 255, 0.1);
+  --myoxus-black-30: rgba(255, 255, 255, 0.3);
+  --myoxus-black-50: rgba(255, 255, 255, 0.5);
+  --myoxus-black-60: rgba(255, 255, 255, 0.6);
+  --myoxus-black-80: rgba(255, 255, 255, 0.8);
+  --myoxus-black-90: rgba(255, 255, 255, 0.9);
+  --myoxus-black: rgb(255, 255, 255);
+  --myoxus-white-10: rgba(0, 0, 0, 0.1);
+  --myoxus-white-30: rgba(0, 0, 0, 0.3);
+  --myoxus-white-50: rgba(0, 0, 0, 0.5);
+  --myoxus-white-60: rgba(0, 0, 0, 0.6);
+  --myoxus-white-80: rgba(0, 0, 0, 0.8);
+  --myoxus-white-90: rgba(0, 0, 0, 0.9);
+  --myoxus-white: rgb(0, 0, 0);
+  --myoxus-background-modal-color: rgba(0, 0, 0, 0.5);
+  --myoxus-tag-blue: rgba(8, 67, 136, 1);
+  --myoxus-tag-green: rgba(44, 108, 63, 1);
+  --myoxus-tag-teal: rgba(26, 115, 110, 1);
+  --myoxus-tag-white: rgba(67, 67, 67, 1);
+  --myoxus-tag-purple: rgba(47, 30, 113, 1);
+  --myoxus-tag-red: rgba(111, 50, 50, 1);
+  --myoxus-tag-pink: rgba(155, 106, 106, 1);
+  --myoxus-tag-magenta: rgba(105, 47, 111, 1);
+  --myoxus-tag-yellow: rgba(150, 132, 49, 1);
+  --myoxus-tag-orange: rgba(185, 129, 46, 1);
+  --myoxus-tag-gray: rgba(41, 41, 41, 1);
+  --myoxus-tooltip: rgba(234, 234, 234, 1);
+  --myoxus-button-shadow:
+    0px 0px 1px 0px rgba(0, 0, 0, 0.2), 0px 1px 5px 0px rgba(0, 0, 0, 0.2);
+  --myoxus-overlay-panel-shadow:
+    0px 1px 6px rgba(0, 0, 0, 0.2), 0px 8px 14px rgba(0, 0, 0, 0.3);
+  --myoxus-active-shadow: 0px 0px 0px 2px rgba(28, 158, 228, 0.3);
+  --myoxus-menu-shadow:
+    0px 10px 18px rgba(0, 0, 0, 0.14), 0px -1px 12px rgba(0, 0, 0, 0.08);
+  --myoxus-toolbar-shadow: 0px 6px 18px #00000052;
+  --myoxus-shadow-1: 0px 0px 4px 0px rgba(0, 0, 0, 0.24);
+  --myoxus-shadow-2: 0px 0px 12px 0px rgba(0, 0, 0, 0.28);
+  --myoxus-shadow-3: 0px 0px 20px 0px rgba(0, 0, 0, 0.32);
+  --myoxus-overlay-shadow:
+    0px 1px 6px 0px rgba(0, 0, 0, 0.72), 0px 8px 14px 0px rgba(0, 0, 0, 0.32);
+  --myoxus-popover-shadow:
+    0px 0px 30px 0px rgba(0, 0, 0, 0.1), 0px 0px 8px 0px rgba(0, 0, 0, 0.18),
+    0px 0px 0px 0.5px rgba(48, 48, 48, 1) inset;
+  --myoxus-float-button-shadow:
+    0px 0px 10px rgba(0, 0, 0, 0.05), 0px 0px 0px 0.5px rgba(0, 0, 0, 0.1);
+  --myoxus-note-shadow-box:
+    0px 0px 2px 0px rgba(255, 255, 255, 0.44),
+    0px 2px 12px 0px rgba(0, 0, 0, 0.3);
+  --myoxus-note-shadow-sticker:
+    0px 24px 26px -10px rgba(0, 0, 0, 0.22),
+    0px 26px 18px -18px rgba(0, 0, 0, 0.52);
+  --myoxus-note-shadow-paper:
+    0px 2px 4px 0px rgba(0, 0, 0, 0.3), 0px 0px 10px #7a7a7a,
+    0px 6px 12px rgba(0, 0, 0, 0.4);
+  --myoxus-note-shadow-float:
+    0px 0px 32px 0px rgba(0, 0, 0, 0.3),
+    0px 0px 2px 0px rgba(255, 255, 255, 0.44);
+  --myoxus-note-shadow-film: 10px 10px 0px 6px #7a7a7a, 0px 0px 0px 6px #7a7a7a;
+  --myoxus-windows-close-button: #c42b1c;
+  --myoxus-text-highlight-pink: rgba(127, 93, 93, 1);
+  --myoxus-text-highlight-red: rgba(108, 39, 39, 1);
+  --myoxus-text-highlight-orange: rgba(112, 58, 21, 1);
+  --myoxus-text-highlight-yellow: rgba(106, 84, 15, 1);
+  --myoxus-text-highlight-green: rgba(26, 91, 50, 1);
+  --myoxus-text-highlight-teal: rgba(14, 85, 97, 1);
+  --myoxus-text-highlight-blue: rgba(56, 75, 122, 1);
+  --myoxus-text-highlight-purple: rgba(80, 46, 111, 1);
+  --myoxus-text-highlight-grey: rgba(64, 67, 74, 1);
+  --myoxus-text-highlight-foreground-red: rgba(249, 141, 141, 1);
+  --myoxus-text-highlight-foreground-orange: rgba(252, 168, 99, 1);
+  --myoxus-text-highlight-foreground-yellow: rgba(251, 214, 68, 1);
+  --myoxus-text-highlight-foreground-green: rgba(110, 229, 153, 1);
+  --myoxus-text-highlight-foreground-teal: rgba(87, 221, 204, 1);
+  --myoxus-text-highlight-foreground-blue: rgba(128, 183, 251, 1);
+  --myoxus-text-highlight-foreground-purple: rgba(205, 157, 253, 1);
+  --myoxus-text-highlight-foreground-grey: rgba(86, 86, 86, 1);
+}
+
+/* ============================================================================
+   @media print — override font stacks for print (no system fonts)
+   ============================================================================ */
+@media print {
+  :root {
+    --myoxus-font-serif-family:
+      "Source Serif 4", "Noto Serif", serif, "Cambria", "Helvetica Neue",
+      Tahoma, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji",
+      "Segoe UI Symbol", "Noto Color Emoji";
+    --myoxus-font-mono-family:
+      "Source Code Pro", "IBM Plex Mono", "Roboto Mono", "Noto Sans Mono",
+      "Noto Sans CJK", "Helvetica Neue", Tahoma, Arial, sans-serif,
+      "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+      "Noto Color Emoji";
+    --myoxus-font-sans-family:
+      "Inter", "Source Sans 3", Poppins, "Helvetica Neue", Tahoma, Arial,
+      sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+      "Noto Color Emoji";
+    --myoxus-font-number-family:
+      "Roboto Mono", "Noto Sans Mono", "Helvetica Neue", Tahoma, Arial,
+      sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+      "Noto Color Emoji";
+  }
+}

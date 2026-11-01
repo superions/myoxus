@@ -1,0 +1,17 @@
+query clientUpdateControl {
+  clientUpdateControl {
+    schemaVersion
+    stateId
+    phase
+    operationId
+    maxAttempts
+    retryAfterMs
+    completion {
+      operationId
+      action
+    }
+    requiredWebBuildId
+    cacheEpoch
+    updatedAt
+  }
+}

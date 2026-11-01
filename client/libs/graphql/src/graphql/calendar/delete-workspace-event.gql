@@ -1,0 +1,13 @@
+mutation deleteWorkspaceEvent(
+  $eventId: String!
+  $workspaceId: String!
+  $scope: NativeEventScope!
+  $instanceStart: DateTime
+) {
+  deleteWorkspaceEvent(
+    eventId: $eventId
+    workspaceId: $workspaceId
+    scope: $scope
+    instanceStart: $instanceStart
+  )
+}

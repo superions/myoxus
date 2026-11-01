@@ -1,0 +1,74 @@
+import type { I18nString } from "@myoxus/i18n";
+
+import {
+  type QuickActionProps,
+  QuickDelete,
+  QuickDeletePermanently,
+  QuickFavorite,
+  QuickRestore,
+  QuickSelect,
+  QuickSplit,
+  QuickTab,
+} from "./docs-view/quick-actions";
+import type { ExplorerDisplayPreference } from "./types";
+
+interface QuickActionItem {
+  name: I18nString;
+  Component: React.FC<QuickActionProps>;
+  disabled?: boolean;
+}
+
+type ExtractPrefixKeys<Obj extends object, Prefix extends string> = {
+  [Key in keyof Obj]-?: Key extends `${Prefix}${string}` ? Key : never;
+}[keyof Obj];
+
+export type QuickActionKey = ExtractPrefixKeys<
+  ExplorerDisplayPreference,
+  "quick"
+>;
+
+const QUICK_ACTION_MAP: Record<QuickActionKey, QuickActionItem> = {
+  quickFavorite: {
+    name: "com.myoxus.all-docs.quick-action.favorite",
+    Component: QuickFavorite,
+  },
+  quickTrash: {
+    name: "com.myoxus.all-docs.quick-action.trash",
+    Component: QuickDelete,
+  },
+  quickSplit: {
+    name: "com.myoxus.all-docs.quick-action.split",
+    Component: QuickSplit,
+    disabled: !BUILD_CONFIG.isElectron,
+  },
+  quickTab: {
+    name: "com.myoxus.all-docs.quick-action.tab",
+    Component: QuickTab,
+  },
+  quickSelect: {
+    name: "com.myoxus.all-docs.quick-action.select",
+    Component: QuickSelect,
+  },
+  quickDeletePermanently: {
+    name: "com.myoxus.all-docs.quick-action.delete-permanently",
+    Component: QuickDeletePermanently,
+    disabled: true, // can only be controlled in code
+  },
+  quickRestore: {
+    name: "com.myoxus.all-docs.quick-action.restore",
+    Component: QuickRestore,
+    disabled: true, // can only be controlled in code
+  },
+};
+export const quickActions = Object.entries(QUICK_ACTION_MAP).map(
+  ([key, config]) => {
+    return { key: key as QuickActionKey, ...config };
+  },
+);
+
+/** List rows already expose one permanent leading selection checkbox. */
+export const listQuickActions = quickActions.filter(
+  (action) => action.key !== "quickSelect",
+);
+
+export type QuickAction = (typeof quickActions)[number];

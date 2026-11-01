@@ -1,0 +1,170 @@
+formatVersion: 1
+id: myoxus.assistant.task-content-preparation
+version: 1.0.0
+name:
+  en: Prepare content for new Tasks
+  de: Inhalt für neue Aufgaben vorbereiten
+  fr: Préparer le contenu des nouvelles tâches
+  es: Preparar contenido para nuevas tareas
+description:
+  en:
+    Review the Agenda source and its notes before personally enabling automatic
+    content preparation for your newly created Tasks. Existing content is
+    preserved. Automatic mode and explicit opt-in are required.
+  de: Prüfe die Agenda-Quelle und ihre Notizen, bevor du die automatische
+    Inhaltsvorbereitung für deine neu erstellten Aufgaben persönlich aktivierst.
+    Vorhandene Inhalte bleiben erhalten. Der automatische Modus und eine
+    ausdrückliche Zustimmung sind erforderlich.
+  fr: Vérifiez la source Agenda et ses notes avant d’activer personnellement la
+    préparation automatique du contenu de vos nouvelles tâches. Le contenu
+    existant est conservé. Le mode automatique et un consentement explicite sont
+    requis.
+  es: Revisa la fuente Agenda y sus notas antes de activar personalmente la
+    preparación automática de contenido para tus nuevas tareas. Se conserva el
+    contenido existente. Se requieren el modo automático y el consentimiento
+    explícito.
+contexts:
+  - taskContainerAssistance
+inputs:
+  - id: notes
+    target: description
+    label:
+      en: Notes for new Task content
+      de: Notizen für neue Aufgabeninhalte
+      fr: Notes pour le contenu des nouvelles tâches
+      es: Notas para el contenido de nuevas tareas
+    description:
+      en:
+        These literal notes fill the Agenda source. They do not select people, infer
+        a date or grant access.
+      de:
+        Diese wörtlichen Notizen füllen die Agenda-Quelle. Sie wählen keine Personen
+        aus, leiten kein Datum ab und vergeben keine Zugriffsrechte.
+      fr:
+        Ces notes littérales remplissent la source Agenda. Elles ne sélectionnent
+        personne, ne déduisent aucune date et n’accordent aucun accès.
+      es:
+        Estas notas literales completan la fuente Agenda. No seleccionan personas,
+        no infieren fechas ni conceden acceso.
+    valueType: text
+    required: true
+    default: null
+    choices: []
+    visibleWhen: null
+components:
+  - id: configuration
+    action:
+      kind: configureTaskPreparation
+      inputs: {}
+  - id: content
+    action:
+      kind: createLinkedDocument
+      inputs: {}
+      variables:
+        input.notes:
+          kind: input
+          input: notes
+presentation:
+  steps:
+    - id: details
+      title:
+        en: Prepare content for new Tasks
+        de: Inhalt für neue Aufgaben vorbereiten
+        fr: Préparer le contenu des nouvelles tâches
+        es: Preparar contenido para nuevas tareas
+      groups:
+        - id: illustration
+          title: null
+          role: content
+          controls: []
+          visibleWhen: null
+        - id: request
+          title: null
+          role: content
+          controls:
+            - kind: input
+              input: notes
+              control: multiline
+          visibleWhen: null
+      actions:
+        - id: cancel
+          label:
+            en: Cancel
+            de: Abbrechen
+            fr: Annuler
+            es: Cancelar
+          action: cancel
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: prepare
+          label:
+            en: Review automatic preparation
+            de: Automatische Vorbereitung prüfen
+            fr: Vérifier la préparation automatique
+            es: Revisar preparación automática
+          action: prepareTaskPreparation
+          component: null
+          targetStep: null
+          dialog: confirm
+          visibleWhen: null
+        - id: check
+          label:
+            en: Check status
+            de: Status prüfen
+            fr: Vérifier le statut
+            es: Comprobar estado
+          action: check
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: close
+          label:
+            en: Close
+            de: Schließen
+            fr: Fermer
+            es: Cerrar
+          action: close
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+  dialogs:
+    - id: confirm
+      title:
+        en: Review automatic preparation
+        de: Automatische Vorbereitung prüfen
+        fr: Vérifier la préparation automatique
+        es: Revisar preparación automática
+      groups:
+        - id: plan
+          title: null
+          role: review
+          controls:
+            - kind: taskPreparationReview
+          visibleWhen: null
+      actions:
+        - id: back
+          label:
+            en: Back to editing
+            de: Zurück zur Bearbeitung
+            fr: Revenir à la modification
+            es: Volver a editar
+          action: cancel
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: request
+          label:
+            en: Enable personally for new Tasks
+            de: Persönlich für neue Aufgaben aktivieren
+            fr: Activer personnellement pour les nouvelles tâches
+            es: Activar personalmente para nuevas tareas
+          action: configureTaskPreparation
+          component: configuration
+          targetStep: null
+          dialog: null
+          visibleWhen: null

@@ -1,0 +1,39 @@
+query adminConfigSchema {
+  admin {
+    adminConfigSchema {
+      revision
+      modules {
+        module
+        label
+        groups {
+          groupKey
+          label
+          helpText
+          fields {
+            key
+            path
+            groupKey
+            label
+            helpText
+            databaseWritable
+            sensitive
+            immediate_apply: immediateApply
+            restart_required: requiresRestart
+            enum
+            min
+            max
+            valueType
+            defaultValue
+          }
+        }
+      }
+      effectiveFields {
+        path
+        winningSource
+        runtimeEffectiveState
+        requiresRestart
+        sensitive
+      }
+    }
+  }
+}

@@ -1,0 +1,195 @@
+import {
+  ArrowDownBigIcon as ArrowDownIcon,
+  ArrowUpBigIcon as ArrowUpIcon,
+  DoneIcon,
+  ExplainIcon,
+  ImageIcon,
+  ImproveWritingIcon,
+  LanguageIcon,
+  LongerIcon,
+  MakeItRealIcon,
+  MindmapIcon,
+  MindmapNodeIcon,
+  PenIcon,
+  PresentationIcon,
+  SearchIcon,
+  SelectionIcon,
+  ShorterIcon,
+  ToneIcon,
+} from "@myoxus/icons/lit";
+import { WithDisposable } from "@virgultum/editor/global/lit";
+import {
+  fontSMStyle,
+  fontXSStyle,
+  scrollbarStyle,
+} from "@virgultum/editor/shared/styles";
+import { unsafeCSSValue, unsafeCSSVar } from "@virgultum/editor/shared/theme";
+import type { EditorHost } from "@virgultum/editor/std";
+import { ThemeProvider } from "@virgultum/shared/services";
+import { css, html, LitElement, nothing, type TemplateResult } from "lit";
+import { property, state } from "lit/decorators.js";
+
+import { type ChatAction } from "../../components/ai-chat-messages";
+import { createTextRenderer } from "../../components/text-renderer";
+import { HISTORY_IMAGE_ACTIONS } from "../../utils/history-image-actions";
+
+const icons: Record<string, TemplateResult<1>> = {
+  "Fix spelling for it": DoneIcon(),
+  "Improve grammar for it": DoneIcon(),
+  "Explain this code": ExplainIcon(),
+  "Check code error": SearchIcon(),
+  "Explain this": SelectionIcon(),
+  Translate: LanguageIcon(),
+  "Change tone": ToneIcon(),
+  "Improve writing for it": ImproveWritingIcon(),
+  "Make it longer": LongerIcon(),
+  "Make it shorter": ShorterIcon(),
+  "Continue writing": PenIcon(),
+  "Make it real": MakeItRealIcon(),
+  "Find action items from it": SearchIcon(),
+  Summary: PenIcon(),
+  "Create headings": PenIcon(),
+  "Write outline": PenIcon(),
+  image: ImageIcon(),
+  "Brainstorm mindmap": MindmapIcon(),
+  "Expand mind map": MindmapNodeIcon(),
+  "Create a presentation": PresentationIcon(),
+  "Write a poem about this": PenIcon(),
+  "Write a blog post about this": PenIcon(),
+  "AI image filter clay style": ImageIcon(),
+  "AI image filter sketch style": ImageIcon(),
+  "AI image filter anime style": ImageIcon(),
+  "AI image filter pixel style": ImageIcon(),
+  Clearer: ImageIcon(),
+  "Remove background": ImageIcon(),
+  "Convert to sticker": ImageIcon(),
+};
+
+export class ActionWrapper extends WithDisposable(LitElement) {
+  static override styles = css`
+    .action-name {
+      display: flex;
+      align-items: center;
+      gap: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
+      min-height: ${unsafeCSSValue("var(--mantine-spacing-xl)")};
+      margin-bottom: ${unsafeCSSValue("var(--mantine-spacing-md)")};
+
+      svg {
+        color: ${unsafeCSSVar("primaryColor")};
+      }
+
+      div:last-child {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        flex: 1;
+
+        div:last-child svg {
+          margin-left: auto;
+        }
+      }
+    }
+
+    .answer-prompt {
+      padding: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
+      background-color: ${unsafeCSSVar("tagGray")};
+      display: flex;
+      flex-direction: column;
+      gap: ${unsafeCSSValue("var(--mantine-spacing-xs)")};
+      color: ${unsafeCSSVar("textPrimaryColor")};
+      max-height: ${unsafeCSSValue(
+        "calc(calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm)) * 13)",
+      )};
+      overflow-y: auto;
+      border-radius: ${unsafeCSSValue("var(--mantine-radius-sm)")};
+
+      .subtitle {
+        color: ${unsafeCSSVar("textSecondaryColor")};
+        min-height: ${unsafeCSSValue(
+          "calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))",
+        )};
+      }
+
+      .prompt {
+        margin-top: ${unsafeCSSValue("var(--mantine-spacing-md)")};
+      }
+    }
+
+    ${fontSMStyle(".answer-prompt")}
+    ${fontXSStyle(".answer-prompt .subtitle")}
+    ${scrollbarStyle(".answer-prompt")}
+  `;
+
+  @state()
+  accessor promptShow = false;
+
+  @property({ attribute: false })
+  accessor item!: ChatAction;
+
+  @property({ attribute: false })
+  accessor host!: EditorHost;
+
+  protected override render() {
+    const { item } = this;
+
+    const originalText = item.messages[1].content;
+    const answer = item.messages[2]?.content;
+    const images = item.messages[1].attachments;
+
+    return html`<slot></slot>
+      <div
+        class="action-name"
+        data-testid="action-name"
+        @click=${() => (this.promptShow = !this.promptShow)}
+      >
+        ${icons[item.action] ? icons[item.action] : DoneIcon()}
+        <div>
+          <div>${item.action}</div>
+          <div>${this.promptShow ? ArrowDownIcon() : ArrowUpIcon()}</div>
+        </div>
+      </div>
+      ${
+        this.promptShow
+          ? html`
+              <div class="answer-prompt" data-testid="answer-prompt">
+                <div class="subtitle">Answer</div>
+                ${
+                  HISTORY_IMAGE_ACTIONS.includes(item.action)
+                    ? images &&
+                      html`<chat-content-images
+                        .images=${images}
+                        data-testid="generated-image"
+                      ></chat-content-images>`
+                    : nothing
+                }
+                ${
+                  answer
+                    ? createTextRenderer({
+                        customHeading: true,
+                        testId: "chat-message-action-answer",
+                        theme: this.host.std.get(ThemeProvider).app$,
+                      })(answer)
+                    : nothing
+                }
+                ${
+                  originalText
+                    ? html`<div class="subtitle prompt">Prompt</div>
+                        ${createTextRenderer({
+                          customHeading: true,
+                          testId: "chat-message-action-prompt",
+                          theme: this.host.std.get(ThemeProvider).app$,
+                        })(item.messages[0].content + originalText)}`
+                    : nothing
+                }
+              </div>
+            `
+          : nothing
+      } `;
+  }
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "action-wrapper": ActionWrapper;
+  }
+}

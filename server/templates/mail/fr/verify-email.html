@@ -1,0 +1,37 @@
+{% extends "_layout.html" %} {% block subject %}Confirmez votre adresse e-mail
+pour Myoxus{% endblock subject %} {% block preheader %}La confirmation associe
+cette adresse à votre compte.{% endblock preheader %} {% block category %}VOTRE
+COMPTE{% endblock category %} {% block heading %}Confirmez votre adresse
+e-mail.{% endblock heading %} {% block introduction %}Vous avez demandé un
+e-mail de confirmation pour votre compte Myoxus. Veuillez confirmer que vous
+utilisez cette adresse e-mail.{% endblock introduction %} {% block details %}{%
+if email %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  ADRESSE E-MAIL
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ email }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}La confirmation associe
+cette adresse à votre compte.{% endblock next_step %} {% block action
+%}Confirmer l’adresse e-mail{% endblock action %} {% block note %}Vous n’avez
+pas demandé cet e-mail ? Vous pouvez l’ignorer. Rien ne sera modifié sans votre
+confirmation.{% endblock note %} {% block reason %}Vous recevez cet e-mail car
+une confirmation a été demandée pour cette adresse dans Myoxus.{% endblock
+reason %}

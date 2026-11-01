@@ -1,0 +1,15 @@
+query listUsers($filter: ListUserInput!) {
+  admin {
+    users(filter: $filter) {
+      id
+      name
+      email
+      disabled
+      features
+      hasPassword
+      emailVerified
+      avatarUrl
+    }
+    usersCount(filter: $filter)
+  }
+}

@@ -1,0 +1,153 @@
+[
+  {
+    "name": "literal inline",
+    "markdown": "before %%**literal** [[Notiz]] ✓%% after",
+    "annotations": [{ "body": "**literal** [[Notiz]] ✓", "standalone": false }]
+  },
+  {
+    "name": "literal HTML body",
+    "markdown": "before %%<b>literal</b>%% after",
+    "annotations": [{ "body": "<b>literal</b>", "standalone": false }]
+  },
+  {
+    "name": "HTML code literal",
+    "markdown": "before <code>%%literal%%</code> after",
+    "annotations": []
+  },
+  {
+    "name": "literal preprocessing syntax",
+    "markdown": "before %%$12 \\(literal\\) https://example.org[^a]%% after",
+    "annotations": [
+      {
+        "body": "$12 \\(literal\\) https://example.org[^a]",
+        "standalone": false
+      }
+    ]
+  },
+  {
+    "name": "multiline inline",
+    "markdown": "before %%first\nsecond%% after",
+    "annotations": [{ "body": "first\nsecond", "standalone": false }]
+  },
+  {
+    "name": "quoted multiline inline",
+    "markdown": "> before %%first\n> second%% after",
+    "annotations": [{ "body": "first\nsecond", "standalone": false }]
+  },
+  {
+    "name": "listed multiline inline",
+    "markdown": "- before %%first\n  second%% after",
+    "annotations": [{ "body": "first\nsecond", "standalone": false }]
+  },
+  {
+    "name": "blank line inline",
+    "markdown": "before %%first\n\nsecond%% after",
+    "annotations": [{ "body": "first\n\nsecond", "standalone": false }]
+  },
+  {
+    "name": "standalone block",
+    "markdown": "%%literal *body*%%",
+    "annotations": [{ "body": "literal *body*", "standalone": true }]
+  },
+  {
+    "name": "multiline block",
+    "markdown": "%%first\n\nsecond%%",
+    "annotations": [{ "body": "first\n\nsecond", "standalone": true }]
+  },
+  {
+    "name": "empty block",
+    "markdown": "%%%%",
+    "annotations": [{ "body": "", "standalone": true }]
+  },
+  {
+    "name": "padded block",
+    "markdown": "  %%padded%%  ",
+    "annotations": [{ "body": "padded", "standalone": true }]
+  },
+  {
+    "name": "standalone list annotation",
+    "markdown": "- %%list body%%",
+    "annotations": [{ "body": "list body", "standalone": true }]
+  },
+  {
+    "name": "standalone quote annotation",
+    "markdown": "> %%first\n> second%%",
+    "annotations": [{ "body": "first\nsecond", "standalone": true }]
+  },
+  {
+    "name": "empty inline literal",
+    "markdown": "before %%%% after",
+    "annotations": []
+  },
+  {
+    "name": "multiple independent pairs",
+    "markdown": "before %%one%%%%two%% after",
+    "annotations": [
+      { "body": "one", "standalone": false },
+      { "body": "two", "standalone": false }
+    ]
+  },
+  {
+    "name": "soft wrap is not block",
+    "markdown": "%%body%%\nordinary text",
+    "annotations": [{ "body": "body", "standalone": false }]
+  },
+  {
+    "name": "unmatched literal",
+    "markdown": "before %%unmatched **text**",
+    "annotations": []
+  },
+  {
+    "name": "escaped literal pairs",
+    "markdown": "before \\%\\%literal\\%\\% after",
+    "annotations": []
+  },
+  {
+    "name": "escaped body delimiter",
+    "markdown": "before %%body \\%\\% literal%% after",
+    "annotations": [{ "body": "body %% literal", "standalone": false }]
+  },
+  {
+    "name": "inline code literal",
+    "markdown": "before `%%literal%%` after",
+    "annotations": []
+  },
+  {
+    "name": "backtick fence literal",
+    "markdown": "```mermaid\n%% literal %%\ngraph TD\n```",
+    "annotations": []
+  },
+  {
+    "name": "tilde fence literal",
+    "markdown": "~~~text\n%% literal %%\n~~~",
+    "annotations": []
+  },
+  {
+    "name": "indented code literal",
+    "markdown": "    %%literal%%",
+    "annotations": []
+  },
+  {
+    "name": "do not cross inline code",
+    "markdown": "%%open `code %%`",
+    "annotations": []
+  },
+  {
+    "name": "do not cross fenced code",
+    "markdown": "%%open\n~~~\ncode\n~~~\nclose%%",
+    "annotations": []
+  },
+  {
+    "name": "do not cross indented code",
+    "markdown": "%%open\n\n    code\n\nclose%%",
+    "annotations": []
+  },
+  {
+    "name": "list and table cells",
+    "markdown": "- before %%list%% after\n\n| A |\n| --- |\n| before %%cell%% after |",
+    "annotations": [
+      { "body": "list", "standalone": false },
+      { "body": "cell", "standalone": false }
+    ]
+  }
+]

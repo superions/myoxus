@@ -1,0 +1,14 @@
+mutation exportPdf($input: PdfExportInputV2Input!) {
+  exportPdf(input: $input) {
+    id
+    workspaceId
+    docId
+    status
+    downloadUrl
+    errorClass
+    errorDetail
+    createdAt
+    expiresAt
+    unmappedFontFamilies
+  }
+}

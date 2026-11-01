@@ -1,0 +1,5 @@
+mutation adminUnassignOrganizationManager($unitId: ID!, $userId: ID!) {
+  admin {
+    unassignOrganizationManager(unitId: $unitId, userId: $userId)
+  }
+}

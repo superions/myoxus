@@ -1,0 +1,2 @@
+// The shared runner-maintenance lock owns OS updates on installation runners.
+APT::Periodic::Unattended-Upgrade "0";

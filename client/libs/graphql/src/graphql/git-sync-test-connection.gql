@@ -1,0 +1,3 @@
+mutation testGitConnection($repoUrl: String!, $branch: String, $authMethod: GitSyncAuthMethod!, $token: String, $username: String, $password: String, $sshPrivateKey: String, $sshPassphrase: String) {
+  testGitConnection(repoUrl: $repoUrl, branch: $branch, authMethod: $authMethod, token: $token, username: $username, password: $password, sshPrivateKey: $sshPrivateKey, sshPassphrase: $sshPassphrase)
+}

@@ -1,0 +1,15 @@
+{
+  "extends": "../../../tsconfig.web.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo"
+  },
+  "include": ["./src"],
+  "references": [
+    { "path": "../debug" },
+    { "path": "../desktop-api-contract" },
+    { "path": "../env" },
+    { "path": "../error" }
+  ]
+}

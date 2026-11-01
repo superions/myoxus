@@ -1,0 +1,13 @@
+query myOrganizationUnitMembers($unitId: ID!) {
+  myOrganizationUnitMembers(unitId: $unitId) {
+    unitId
+    userId
+    userEmail
+    userName
+    userAvatarUrl
+    role
+    source
+    createdAt
+    updatedAt
+  }
+}

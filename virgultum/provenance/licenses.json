@@ -1,0 +1,1021 @@
+{
+  "schemaVersion": 1,
+  "generatedFrom": {
+    "generator": "build/scripts/ci/generate-virgultum-source-provenance.mjs",
+    "sourceInventory": {
+      "path": "virgultum/provenance/sources.json",
+      "sha256": "05e32a5d241af819dd2a87096cca5fe6992d232ed3d574141108bdeaf644c2df"
+    },
+    "trackedPathCount": 3791,
+    "trackedPathSha256": "47bb3917eb098a9009be6e3ad2bbe64e27ed2ea5c51ac079be76230d9fe56caa",
+    "publicExport": {
+      "excludedPaths": ["virgultum/icons/dist/**"],
+      "trackedPathCount": 3783,
+      "trackedPathSha256": "80def7472d150669153529fc164c265d9fcb32418fb10242705fc3ea661d0e0e"
+    },
+    "packageManifestCount": 74,
+    "packageLicenseCounts": {
+      "AGPL-3.0-or-later": 3,
+      "AGPL-3.0-or-later AND BSD-3-Clause AND MIT": 1,
+      "AGPL-3.0-or-later AND MIT": 36,
+      "MIT": 34
+    }
+  },
+  "policy": {
+    "upstreamCutoff": {
+      "revision": "e31cca33540af2737dc9e520b70acac170c0709e",
+      "date": "2026-03-04"
+    },
+    "upstreamMitLicense": "client/provenance/LICENSE-UPSTREAM-MIT.txt",
+    "mplLicense": {
+      "path": "virgultum/provenance/LICENSE-MPL-2.0.txt",
+      "sha256": "fab3dd6bdab226f1c08630b1dd917e11fcb4ec5e1e020e2c16f83a0a13863e85"
+    },
+    "myoxusLicense": "LICENSE",
+    "unresolvedOriginAllowed": false
+  },
+  "rootFiles": {
+    "paths": ["virgultum/scripts/vitest-global.js", "virgultum/tsconfig.json"],
+    "origin": "F2/M0",
+    "licenseExpression": "AGPL-3.0-or-later AND MIT",
+    "copyrightNotices": [
+      "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+      "2026-present Daniel Scharf and Myoxus contributors"
+    ]
+  },
+  "packages": [
+    {
+      "manifest": "virgultum/editor/all/package.json",
+      "path": "virgultum/editor/all/**",
+      "packageName": "@virgultum/editor",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/blocks/annotation/package.json",
+      "path": "virgultum/editor/blocks/annotation/**",
+      "packageName": "@virgultum/block-annotation",
+      "declaredPackageLicense": "AGPL-3.0-or-later",
+      "origin": "M0",
+      "licenseExpression": "AGPL-3.0-or-later",
+      "copyrightNotices": ["2026-present Daniel Scharf and Myoxus contributors"]
+    },
+    {
+      "manifest": "virgultum/editor/blocks/attachment/package.json",
+      "path": "virgultum/editor/blocks/attachment/**",
+      "packageName": "@virgultum/block-attachment",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/blocks/bookmark/package.json",
+      "path": "virgultum/editor/blocks/bookmark/**",
+      "packageName": "@virgultum/block-bookmark",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/blocks/bpmn/package.json",
+      "path": "virgultum/editor/blocks/bpmn/**",
+      "packageName": "@virgultum/block-bpmn",
+      "declaredPackageLicense": "AGPL-3.0-or-later",
+      "origin": "M0",
+      "licenseExpression": "AGPL-3.0-or-later",
+      "copyrightNotices": ["2026-present Daniel Scharf and Myoxus contributors"]
+    },
+    {
+      "manifest": "virgultum/editor/blocks/callout/package.json",
+      "path": "virgultum/editor/blocks/callout/**",
+      "packageName": "@virgultum/block-callout",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/blocks/code/package.json",
+      "path": "virgultum/editor/blocks/code/**",
+      "packageName": "@virgultum/block-code",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/blocks/data-view/package.json",
+      "path": "virgultum/editor/blocks/data-view/**",
+      "packageName": "@virgultum/block-data-view",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/blocks/database/package.json",
+      "path": "virgultum/editor/blocks/database/**",
+      "packageName": "@virgultum/block-database",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/blocks/divider/package.json",
+      "path": "virgultum/editor/blocks/divider/**",
+      "packageName": "@virgultum/block-divider",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/blocks/edgeless-text/package.json",
+      "path": "virgultum/editor/blocks/edgeless-text/**",
+      "packageName": "@virgultum/block-edgeless-text",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/blocks/embed-doc/package.json",
+      "path": "virgultum/editor/blocks/embed-doc/**",
+      "packageName": "@virgultum/block-embed-doc",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/blocks/embed/package.json",
+      "path": "virgultum/editor/blocks/embed/**",
+      "packageName": "@virgultum/block-embed",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/blocks/event/package.json",
+      "path": "virgultum/editor/blocks/event/**",
+      "packageName": "@virgultum/block-event",
+      "declaredPackageLicense": "AGPL-3.0-or-later",
+      "origin": "M0",
+      "licenseExpression": "AGPL-3.0-or-later",
+      "copyrightNotices": ["2026-present Daniel Scharf and Myoxus contributors"]
+    },
+    {
+      "manifest": "virgultum/editor/blocks/frame/package.json",
+      "path": "virgultum/editor/blocks/frame/**",
+      "packageName": "@virgultum/block-frame",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/blocks/image/package.json",
+      "path": "virgultum/editor/blocks/image/**",
+      "packageName": "@virgultum/block-image",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/blocks/latex/package.json",
+      "path": "virgultum/editor/blocks/latex/**",
+      "packageName": "@virgultum/block-latex",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/blocks/list/package.json",
+      "path": "virgultum/editor/blocks/list/**",
+      "packageName": "@virgultum/block-list",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/blocks/mermaid/package.json",
+      "path": "virgultum/editor/blocks/mermaid/**",
+      "packageName": "@virgultum/block-mermaid",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/blocks/note/package.json",
+      "path": "virgultum/editor/blocks/note/**",
+      "packageName": "@virgultum/block-note",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/blocks/paragraph/package.json",
+      "path": "virgultum/editor/blocks/paragraph/**",
+      "packageName": "@virgultum/block-paragraph",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/blocks/root/package.json",
+      "path": "virgultum/editor/blocks/root/**",
+      "packageName": "@virgultum/block-root",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/blocks/surface-ref/package.json",
+      "path": "virgultum/editor/blocks/surface-ref/**",
+      "packageName": "@virgultum/block-surface-ref",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/blocks/surface/package.json",
+      "path": "virgultum/editor/blocks/surface/**",
+      "packageName": "@virgultum/block-surface",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2/M0/T1",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2020 Preet",
+        "2020 Preet Shihn",
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/blocks/table/package.json",
+      "path": "virgultum/editor/blocks/table/**",
+      "packageName": "@virgultum/block-table",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/components/package.json",
+      "path": "virgultum/editor/components/**",
+      "packageName": "@virgultum/components",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/data-view/package.json",
+      "path": "virgultum/editor/data-view/**",
+      "packageName": "@virgultum/data-view",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/ext-loader/package.json",
+      "path": "virgultum/editor/ext-loader/**",
+      "packageName": "@virgultum/ext-loader",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/foundation/package.json",
+      "path": "virgultum/editor/foundation/**",
+      "packageName": "@virgultum/foundation",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/fragments/doc-title/package.json",
+      "path": "virgultum/editor/fragments/doc-title/**",
+      "packageName": "@virgultum/fragment-doc-title",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/fragments/frame-panel/package.json",
+      "path": "virgultum/editor/fragments/frame-panel/**",
+      "packageName": "@virgultum/fragment-frame-panel",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/fragments/outline/package.json",
+      "path": "virgultum/editor/fragments/outline/**",
+      "packageName": "@virgultum/fragment-outline",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/gfx/brush/package.json",
+      "path": "virgultum/editor/gfx/brush/**",
+      "packageName": "@virgultum/gfx-brush",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/gfx/connector/package.json",
+      "path": "virgultum/editor/gfx/connector/**",
+      "packageName": "@virgultum/gfx-connector",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/gfx/group/package.json",
+      "path": "virgultum/editor/gfx/group/**",
+      "packageName": "@virgultum/gfx-group",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/gfx/link/package.json",
+      "path": "virgultum/editor/gfx/link/**",
+      "packageName": "@virgultum/gfx-link",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/gfx/note/package.json",
+      "path": "virgultum/editor/gfx/note/**",
+      "packageName": "@virgultum/gfx-note",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/gfx/pointer/package.json",
+      "path": "virgultum/editor/gfx/pointer/**",
+      "packageName": "@virgultum/gfx-pointer",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/gfx/shape/package.json",
+      "path": "virgultum/editor/gfx/shape/**",
+      "packageName": "@virgultum/gfx-shape",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/gfx/template/package.json",
+      "path": "virgultum/editor/gfx/template/**",
+      "packageName": "@virgultum/gfx-template",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/gfx/text/package.json",
+      "path": "virgultum/editor/gfx/text/**",
+      "packageName": "@virgultum/gfx-text",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/gfx/turbo-renderer/package.json",
+      "path": "virgultum/editor/gfx/turbo-renderer/**",
+      "packageName": "@virgultum/gfx-turbo-renderer",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/inlines/comment/package.json",
+      "path": "virgultum/editor/inlines/comment/**",
+      "packageName": "@virgultum/inline-comment",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/inlines/footnote/package.json",
+      "path": "virgultum/editor/inlines/footnote/**",
+      "packageName": "@virgultum/inline-footnote",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/inlines/latex/package.json",
+      "path": "virgultum/editor/inlines/latex/**",
+      "packageName": "@virgultum/inline-latex",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/inlines/link/package.json",
+      "path": "virgultum/editor/inlines/link/**",
+      "packageName": "@virgultum/inline-link",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/inlines/mention/package.json",
+      "path": "virgultum/editor/inlines/mention/**",
+      "packageName": "@virgultum/inline-mention",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/inlines/preset/package.json",
+      "path": "virgultum/editor/inlines/preset/**",
+      "packageName": "@virgultum/inline-preset",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/inlines/reference/package.json",
+      "path": "virgultum/editor/inlines/reference/**",
+      "packageName": "@virgultum/inline-reference",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/model/package.json",
+      "path": "virgultum/editor/model/**",
+      "packageName": "@virgultum/model",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/rich-text/package.json",
+      "path": "virgultum/editor/rich-text/**",
+      "packageName": "@virgultum/rich-text",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/shared/package.json",
+      "path": "virgultum/editor/shared/**",
+      "packageName": "@virgultum/shared",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2/M0/T1",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2020 Titus Wormer <tituswormer@gmail.com>",
+        "2021 Tien Pham",
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/widgets/drag-handle/package.json",
+      "path": "virgultum/editor/widgets/drag-handle/**",
+      "packageName": "@virgultum/widget-drag-handle",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/widgets/edgeless-auto-connect/package.json",
+      "path": "virgultum/editor/widgets/edgeless-auto-connect/**",
+      "packageName": "@virgultum/widget-edgeless-auto-connect",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/widgets/edgeless-dragging-area/package.json",
+      "path": "virgultum/editor/widgets/edgeless-dragging-area/**",
+      "packageName": "@virgultum/widget-edgeless-dragging-area",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/widgets/edgeless-selected-rect/package.json",
+      "path": "virgultum/editor/widgets/edgeless-selected-rect/**",
+      "packageName": "@virgultum/widget-edgeless-selected-rect",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/widgets/edgeless-toolbar/package.json",
+      "path": "virgultum/editor/widgets/edgeless-toolbar/**",
+      "packageName": "@virgultum/widget-edgeless-toolbar",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/widgets/edgeless-zoom-toolbar/package.json",
+      "path": "virgultum/editor/widgets/edgeless-zoom-toolbar/**",
+      "packageName": "@virgultum/widget-edgeless-zoom-toolbar",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/widgets/frame-title/package.json",
+      "path": "virgultum/editor/widgets/frame-title/**",
+      "packageName": "@virgultum/widget-frame-title",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/widgets/keyboard-toolbar/package.json",
+      "path": "virgultum/editor/widgets/keyboard-toolbar/**",
+      "packageName": "@virgultum/widget-keyboard-toolbar",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/widgets/linked-doc/package.json",
+      "path": "virgultum/editor/widgets/linked-doc/**",
+      "packageName": "@virgultum/widget-linked-doc",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/widgets/note-slicer/package.json",
+      "path": "virgultum/editor/widgets/note-slicer/**",
+      "packageName": "@virgultum/widget-note-slicer",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/widgets/page-dragging-area/package.json",
+      "path": "virgultum/editor/widgets/page-dragging-area/**",
+      "packageName": "@virgultum/widget-page-dragging-area",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/widgets/remote-selection/package.json",
+      "path": "virgultum/editor/widgets/remote-selection/**",
+      "packageName": "@virgultum/widget-remote-selection",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1/F2",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/widgets/scroll-anchoring/package.json",
+      "path": "virgultum/editor/widgets/scroll-anchoring/**",
+      "packageName": "@virgultum/widget-scroll-anchoring",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/widgets/slash-menu/package.json",
+      "path": "virgultum/editor/widgets/slash-menu/**",
+      "packageName": "@virgultum/widget-slash-menu",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/widgets/toolbar/package.json",
+      "path": "virgultum/editor/widgets/toolbar/**",
+      "packageName": "@virgultum/widget-toolbar",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/editor/widgets/viewport-overlay/package.json",
+      "path": "virgultum/editor/widgets/viewport-overlay/**",
+      "packageName": "@virgultum/widget-viewport-overlay",
+      "declaredPackageLicense": "MIT",
+      "origin": "F1",
+      "licenseExpression": "MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/framework/global/package.json",
+      "path": "virgultum/framework/global/**",
+      "packageName": "@virgultum/global",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND BSD-3-Clause AND MIT",
+      "origin": "F1/F2/M0/T1",
+      "licenseExpression": "AGPL-3.0-or-later AND BSD-3-Clause AND MIT",
+      "copyrightNotices": [
+        "2021 Stephen Ruiz Ltd",
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2023 Google LLC. All rights reserved.",
+        "2026-present Daniel Scharf and Myoxus contributors",
+        "The Lit Project Contributors."
+      ]
+    },
+    {
+      "manifest": "virgultum/framework/std/package.json",
+      "path": "virgultum/framework/std/**",
+      "packageName": "@virgultum/std",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/framework/store/package.json",
+      "path": "virgultum/framework/store/**",
+      "packageName": "@virgultum/store",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/framework/sync/package.json",
+      "path": "virgultum/framework/sync/**",
+      "packageName": "@virgultum/sync",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/icons/package.json",
+      "path": "virgultum/icons/**",
+      "packageName": "@virgultum/icons",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "M0/T1",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2020-2026 Paweł Kuna",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    },
+    {
+      "manifest": "virgultum/integration-test/package.json",
+      "path": "virgultum/integration-test/**",
+      "packageName": "@virgultum/integration-test",
+      "declaredPackageLicense": "AGPL-3.0-or-later AND MIT",
+      "origin": "F1/F2/M0",
+      "licenseExpression": "AGPL-3.0-or-later AND MIT",
+      "copyrightNotices": [
+        "2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.",
+        "2026-present Daniel Scharf and Myoxus contributors"
+      ]
+    }
+  ],
+  "embeddedComponents": [
+    {
+      "path": "virgultum/editor/blocks/surface/src/utils/path-data-parser/LICENSE",
+      "scope": "virgultum/editor/blocks/surface/src/utils/path-data-parser/**",
+      "origin": "T1",
+      "licenseExpression": "MIT",
+      "copyrightNotices": ["2020 Preet Shihn"],
+      "sha256": "a734fd0e3f64745e4d78dd34b37a3546f4488a3e516879d62e952f2b9e0f69a4"
+    },
+    {
+      "path": "virgultum/editor/blocks/surface/src/utils/points-on-curve/LICENSE",
+      "scope": "virgultum/editor/blocks/surface/src/utils/points-on-curve/**",
+      "origin": "T1",
+      "licenseExpression": "MIT",
+      "copyrightNotices": ["2020 Preet Shihn"],
+      "sha256": "a734fd0e3f64745e4d78dd34b37a3546f4488a3e516879d62e952f2b9e0f69a4"
+    },
+    {
+      "path": "virgultum/editor/blocks/surface/src/utils/points-on-path/LICENSE",
+      "scope": "virgultum/editor/blocks/surface/src/utils/points-on-path/**",
+      "origin": "T1",
+      "licenseExpression": "MIT",
+      "copyrightNotices": ["2020 Preet"],
+      "sha256": "05a601c405df8b356c034413e7d3db9f57300cffad0eea2df809414151914864"
+    },
+    {
+      "path": "virgultum/editor/blocks/surface/src/utils/rough/LICENSE",
+      "scope": "virgultum/editor/blocks/surface/src/utils/rough/**",
+      "origin": "T1",
+      "licenseExpression": "MIT",
+      "copyrightNotices": ["2020 Preet Shihn"],
+      "sha256": "a734fd0e3f64745e4d78dd34b37a3546f4488a3e516879d62e952f2b9e0f69a4"
+    },
+    {
+      "path": "virgultum/framework/global/src/gfx/perfect-freehand/LICENSE",
+      "scope": "virgultum/framework/global/src/gfx/perfect-freehand/**",
+      "origin": "T1",
+      "licenseExpression": "MIT",
+      "copyrightNotices": ["2021 Stephen Ruiz Ltd"],
+      "sha256": "6a5ac82b42ce0af6a1e5fe39b46f0b52f1368e81e437175e8d9ae21569c8688e"
+    },
+    {
+      "path": "virgultum/icons/THIRD_PARTY_LICENSES.md",
+      "paths": ["virgultum/icons/THIRD_PARTY_LICENSES.md"],
+      "origin": "T1",
+      "licenseExpression": "MIT",
+      "copyrightNotices": ["2020-2026 Paweł Kuna"],
+      "sha256": "b815747a1cd72bd1e242b0bd21ad76b9293505a942957528571af80abbd2f2a7"
+    },
+    {
+      "path": "virgultum/provenance/LICENSE-LIT-BSD-3-Clause.txt",
+      "paths": [
+        "virgultum/framework/global/src/lit/signal-watcher.ts",
+        "virgultum/framework/global/src/lit/watch.ts"
+      ],
+      "origin": "T1",
+      "licenseExpression": "BSD-3-Clause",
+      "copyrightNotices": [
+        "The Lit Project Contributors.",
+        "2023 Google LLC. All rights reserved."
+      ],
+      "sha256": "4df18318e39a537b9af159f5ebbc7da3b30effde5644b9c40b750ce8197a4996",
+      "upstreamUrl": "https://github.com/lit/lit/blob/16507ef656417c9c53a55a02a44a563bbbf2c484/packages/labs/preact-signals/LICENSE"
+    },
+    {
+      "path": "virgultum/provenance/LICENSE-FIGMA-SQUIRCLE-MIT.txt",
+      "paths": [
+        "virgultum/editor/shared/src/utils/figma-squircle/distribute.ts",
+        "virgultum/editor/shared/src/utils/figma-squircle/draw.ts",
+        "virgultum/editor/shared/src/utils/figma-squircle/index.ts"
+      ],
+      "origin": "T1",
+      "licenseExpression": "MIT",
+      "copyrightNotices": ["2021 Tien Pham"],
+      "sha256": "13eb4acc1fc901948e57ba3e7e48c3b3022d6eac689db2fd81c1d1336531e92f",
+      "upstreamUrl": "https://github.com/phamfoo/figma-squircle/blob/7239f0aca50ba236d05f3779e89cea4d4b32d8bf/LICENSE"
+    },
+    {
+      "path": "virgultum/provenance/LICENSE-GFM-AUTOLINK-MIT.txt",
+      "paths": ["virgultum/editor/shared/src/adapters/markdown/gfm.ts"],
+      "origin": "T1",
+      "licenseExpression": "MIT",
+      "copyrightNotices": ["2020 Titus Wormer <tituswormer@gmail.com>"],
+      "sha256": "536804b3adbff17dbbb9ed0d2bf9655b78f07640278581e37e3d7475282d5e61",
+      "upstreamUrl": "https://github.com/syntax-tree/mdast-util-gfm-autolink-literal/blob/182000e93a49c259d362e6d3f474b13d35b6472d/license"
+    }
+  ]
+}

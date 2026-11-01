@@ -1,0 +1,13 @@
+query adminOrganizationExport {
+  admin {
+    organizationExport {
+      schemaVersion
+      json
+      files {
+        name
+        contentType
+        content
+      }
+    }
+  }
+}

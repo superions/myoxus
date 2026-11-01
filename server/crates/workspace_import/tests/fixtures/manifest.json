@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "build/scripts/test/generate-workspace-import-fixtures.mjs",
+  "expected": {
+    "documents": 2,
+    "assets": 1,
+    "sourceDatabases": 2,
+    "databaseReferences": 3,
+    "rows": 3,
+    "views": 3
+  },
+  "diagnosticFixtures": {
+    "MIX_WORKSPACE_IMPORT_FORMAT_UNSUPPORTED": "invalid/format-unsupported.bin",
+    "MIX_WORKSPACE_IMPORT_UPLOAD_LIMIT": "invalid/upload-limit.bin",
+    "MIX_WORKSPACE_IMPORT_ARCHIVE_INVALID": "invalid/archive-invalid.zip",
+    "MIX_WORKSPACE_IMPORT_ARCHIVE_LIMIT": "invalid/archive-limit.zip",
+    "MIX_WORKSPACE_IMPORT_SQLITE_INVALID": "invalid/sqlite-invalid.db",
+    "MIX_WORKSPACE_IMPORT_SQLITE_SCHEMA_UNSUPPORTED": "invalid/sqlite-schema-unsupported.db",
+    "MIX_WORKSPACE_IMPORT_SNAPSHOT_INVALID": "invalid/snapshot-invalid.zip",
+    "MIX_WORKSPACE_IMPORT_ASSET_MISSING": "invalid/asset-missing.zip",
+    "MIX_WORKSPACE_IMPORT_DOCUMENT_INVALID": "invalid/document-invalid.zip",
+    "MIX_WORKSPACE_IMPORT_DATABASE_INVALID": "invalid/database-invalid.zip",
+    "MIX_WORKSPACE_IMPORT_DATABASE_UNSUPPORTED": "invalid/database-unsupported.zip",
+    "MIX_WORKSPACE_IMPORT_APPLY_BLOCKED": "invalid/apply-blocked.zip",
+    "MIX_WORKSPACE_IMPORT_PERMISSION_DENIED": "invalid/permission-denied.zip",
+    "MIX_WORKSPACE_IMPORT_CANCELLED": "invalid/cancelled.zip",
+    "MIX_WORKSPACE_IMPORT_CLEANUP_REQUIRED": "invalid/cleanup-required.zip",
+    "MIX_WORKSPACE_IMPORT_EXPIRED": "invalid/expired.zip"
+  },
+  "supplementalFixtures": {
+    "malformedYjs": "invalid/yjs-invalid.myoxus"
+  },
+  "files": {
+    "invalid/apply-blocked.zip": "eb30b5903d225033a7a2c76cb01843e2a35f86649056ec8a01ef9796f0c56f6b",
+    "invalid/archive-invalid.zip": "43590a67dc6fd1bdd55ade65ad3bb2261aea3aaca0d93111e2e34fe577bf43eb",
+    "invalid/archive-limit.zip": "1a2c1da9f00a37db41e2ab9e7eea50bae307c706572516e3e5c0680dea69bf19",
+    "invalid/asset-missing.zip": "26f854db323438a5767a704ee9b1473bfa48886919c43ed1bd2faf5e452ed89d",
+    "invalid/cancelled.zip": "0940673da86a24afad1a565eaf0bb896b3c9cf81ad782c03cf07868d4db3d167",
+    "invalid/cleanup-required.zip": "0940673da86a24afad1a565eaf0bb896b3c9cf81ad782c03cf07868d4db3d167",
+    "invalid/database-invalid.zip": "eb30b5903d225033a7a2c76cb01843e2a35f86649056ec8a01ef9796f0c56f6b",
+    "invalid/database-unsupported.zip": "b24563b941a2c8634b57ce6d092fcb8672ad5893b954e016dfaa3dc9f71db8c4",
+    "invalid/document-invalid.zip": "75ca85847f4869f5967b09cdeb9fa94989ba61233b098159c565997af3a10bfe",
+    "invalid/expired.zip": "0940673da86a24afad1a565eaf0bb896b3c9cf81ad782c03cf07868d4db3d167",
+    "invalid/format-unsupported.bin": "77fc814b1f9ce2c8e5a9003567d8a16504883626f6836d9a30e37c3a10af96a6",
+    "invalid/permission-denied.zip": "0940673da86a24afad1a565eaf0bb896b3c9cf81ad782c03cf07868d4db3d167",
+    "invalid/snapshot-invalid.zip": "0911d073b42c14e0d79c915198bb5c9bcaab2883969f161587d69f33758d0f5a",
+    "invalid/sqlite-invalid.db": "62bb516d73b96d97105cbbfc5854f4321cc0ccf775429933d40d4776956954b1",
+    "invalid/sqlite-schema-unsupported.db": "eff7e2cba90cb935e12cacb6b774e2c0cf309909bdf9bfdbca8c71afac446a4e",
+    "invalid/upload-limit.bin": "1773740a6e07387f8434ce8b6733eafb37db3299f4f4033745929595d0d6e05f",
+    "invalid/yjs-invalid.myoxus": "176cd24c146bd346f7d23e46daa85545958d619215151b022537b4890cae66ae",
+    "workspace-snapshot-valid.zip": "0940673da86a24afad1a565eaf0bb896b3c9cf81ad782c03cf07868d4db3d167",
+    "workspace-sqlite-v1-valid.myoxus": "fe0320c39878b40951969fccf5b9783e31698d6e80d3caaf6bc2cbf392792bd4"
+  }
+}

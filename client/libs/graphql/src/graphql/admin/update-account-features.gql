@@ -1,0 +1,5 @@
+mutation updateAccountFeatures($userId: String!, $features: [FeatureType!]!) {
+  admin {
+    updateUserFeatures(id: $userId, features: $features)
+  }
+}

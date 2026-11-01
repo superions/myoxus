@@ -1,0 +1,13 @@
+query adminOidcGroupDirectory {
+  admin {
+    oidcGroupDirectory {
+      entries {
+        id
+        displayName
+        path
+        claimValue
+        state
+      }
+    }
+  }
+}

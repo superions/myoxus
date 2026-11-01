@@ -1,0 +1,25 @@
+query getGitSyncProfile($workspaceId: String!) {
+  workspace(id: $workspaceId) {
+    gitSyncProfile {
+      id
+      repoUrl
+      branch
+      rootPath
+      manifestPath
+      credentialInherited
+      syncDirection
+      triggerMode
+      pollingIntervalSecs
+      cronExpression
+      cronTimezone
+      cronMisfirePolicy
+      cronNextScheduledAt
+      cronPendingMisfireScheduledFor
+      authMethod
+      enabled
+      createdAt
+      updatedAt
+      credentialExpiresAt
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "generated_at": "2026-03-15T15:01:19.019385+00:00",
+  "incoming_events": [
+    "space:delete-doc",
+    "space:join",
+    "space:join-awareness",
+    "space:leave",
+    "space:leave-awareness",
+    "space:load-awarenesses",
+    "space:load-doc",
+    "space:load-doc-timestamps",
+    "space:push-doc-update",
+    "space:update-awareness"
+  ],
+  "outgoing_events": [
+    "space:broadcast-awareness-update",
+    "space:broadcast-doc-update",
+    "space:broadcast-doc-updates",
+    "space:collect-awareness",
+    "workspace.embedding"
+  ],
+  "known_room_markers": [
+    "sync",
+    "sync-025",
+    "sync-026",
+    "userspace",
+    "workspace"
+  ],
+  "known_client_version_markers": ["0.25.0", "0.26.0-0"]
+}

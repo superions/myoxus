@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+ xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+ xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+ xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+ xmlns:tns="urn:myoxus:tasks" xmlns:ext="urn:external:tasks" xmlns:vendor="urn:myoxus:fixture"
+ id="Definitions" targetNamespace="urn:myoxus:tasks">
+ <itemDefinition id="Payload" structureRef="ext:Payload"/>
+ <message id="Message" name="Request" itemRef="tns:Payload"/>
+ <interface id="Interface" name="Requests"><operation id="Operation" name="Receive"><inMessageRef>tns:Message</inMessageRef></operation></interface>
+ <resource id="Reviewer" name="Reviewer"/>
+ <process id="Process">
+  <laneSet id="Lanes"><lane id="Lane" name="Task variants"><flowNodeRef>Task</flowNodeRef></lane></laneSet>
+  <startEvent id="Start"><outgoing>ToTask</outgoing></startEvent>
+  <receiveTask id="Task" name="Receive request" implementation="urn:myoxus:implementation" messageRef="tns:Message" operationRef="tns:Operation" instantiate="true">
+   <documentation id="Documentation">Task documentation</documentation>
+   <extensionElements><vendor:metadata>retain&#13;exactly</vendor:metadata></extensionElements>
+   <incoming>ToTask</incoming><outgoing>ToEnd</outgoing>
+   <ioSpecification id="IO">
+    <dataInput id="Input" name="Request" itemSubjectRef="tns:Payload"/>
+    <dataOutput id="Output" name="Result" itemSubjectRef="tns:Payload"/>
+    <inputSet id="InputSet"><dataInputRefs>Input</dataInputRefs></inputSet>
+    <outputSet id="OutputSet"><dataOutputRefs>Output</dataOutputRefs></outputSet>
+   </ioSpecification>
+   <property id="Local" name="Local request" itemSubjectRef="tns:Payload"/>
+   <dataInputAssociation id="InputAssociation"><sourceRef>Local</sourceRef><targetRef>Input</targetRef><transformation id="Transform" language="urn:fixture:language">request.value</transformation></dataInputAssociation>
+   <dataOutputAssociation id="OutputAssociation"><sourceRef>Output</sourceRef><targetRef>Local</targetRef></dataOutputAssociation>
+   <resourceRole id="ResourceRole" name="Observer"><resourceRef>tns:Reviewer</resourceRef></resourceRole>
+   <performer id="Performer" name="Performer"><resourceAssignmentExpression id="Assignment"><formalExpression id="Assigned" language="urn:fixture:language" evaluatesToTypeRef="tns:Payload">reviewer</formalExpression></resourceAssignmentExpression></performer>
+   <humanPerformer id="Human" name="Reviewer"/>
+   <potentialOwner id="Potential" name="Potential reviewer"/>
+   <standardLoopCharacteristics id="Loop" testBefore="true"><loopCondition language="urn:fixture:language">retry</loopCondition></standardLoopCharacteristics>
+  </receiveTask>
+  <endEvent id="End"><incoming>ToEnd</incoming></endEvent>
+  <sequenceFlow id="ToTask" sourceRef="Start" targetRef="Task"/>
+  <sequenceFlow id="ToEnd" sourceRef="Task" targetRef="End"/>
+ </process>
+ <bpmndi:BPMNDiagram id="Diagram"><bpmndi:BPMNPlane id="Plane" bpmnElement="Process">
+  <bpmndi:BPMNShape id="LaneDI" bpmnElement="Lane" isHorizontal="true"><dc:Bounds x="20" y="20" width="760" height="320"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="StartDI" bpmnElement="Start"><dc:Bounds x="80" y="140" width="36" height="36"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="TaskDI" bpmnElement="Task"><dc:Bounds x="240" y="120" width="180" height="100"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="EndDI" bpmnElement="End"><dc:Bounds x="600" y="140" width="36" height="36"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNEdge id="ToTaskDI" bpmnElement="ToTask"><di:waypoint x="116" y="158"/><di:waypoint x="240" y="170"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="ToEndDI" bpmnElement="ToEnd"><di:waypoint x="420" y="170"/><di:waypoint x="600" y="158"/></bpmndi:BPMNEdge>
+ </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+</definitions>

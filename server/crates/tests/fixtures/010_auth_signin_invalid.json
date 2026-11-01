@@ -1,0 +1,18 @@
+{
+  "id": "auth_signin_invalid_credentials",
+  "kind": "rest",
+  "smoke": false,
+  "description": "Golden fixture for auth login error semantics",
+  "request": {
+    "method": "POST",
+    "path": "/api/auth/sign-in",
+    "json": {
+      "email": "nobody@example.invalid",
+      "password": "invalid-password"
+    }
+  },
+  "expect": {
+    "status_any": [400, 401, 403],
+    "content_type_contains": "application/json"
+  }
+}

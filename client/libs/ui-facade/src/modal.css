@@ -1,0 +1,8 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+/* Mantine's stack hides inactive content with !important opacity. Immersive
+ * editors may retain the context behind a nested form; native pointer blocking,
+ * top-only focus/Escape and the active modal's overlay remain unchanged. */
+[data-myoxus-ui-role="settings-modal"][data-myoxus-modal-background][data-hidden] {
+  opacity: 1 !important;
+}

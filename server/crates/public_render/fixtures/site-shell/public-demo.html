@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en" data-myoxus-role="public-page">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Public Renderer Fixture</title>
+    <style>
+      @import url("../../assets/public.css");
+
+      html {
+        --myoxus-sem-surface-page: #f8fafc;
+        --myoxus-sem-surface-card: #ffffff;
+        --myoxus-sem-surface-muted: #f1f5f9;
+        --myoxus-background-code-block: #e4e4e7;
+        --myoxus-sem-border-default: #d7dde6;
+        --myoxus-sem-text-primary: #111827;
+        --myoxus-sem-text-muted: #64748b;
+        --myoxus-sem-link-default: #2454a6;
+        --myoxus-accent-primary: #2563eb;
+        --myoxus-radius-sm: 0.375rem;
+        --myoxus-radius-md: 0.5rem;
+        --myoxus-radius-lg: 0.75rem;
+        --myoxus-spacing-xs: 0.5rem;
+        --myoxus-spacing-sm: 0.75rem;
+        --myoxus-spacing-md: 1rem;
+        --myoxus-spacing-lg: 1.5rem;
+        --myoxus-spacing-xl: 2rem;
+        --myoxus-spacing-2xl: 3rem;
+        --myoxus-typography-body-family:
+          Inter, ui-sans-serif, system-ui, sans-serif;
+        --myoxus-typography-body-size: 1rem;
+        --myoxus-typography-body-weight: 400;
+        --myoxus-typography-body-line-height: 1.65;
+        --myoxus-typography-body-small-family: var(
+          --myoxus-typography-body-family
+        );
+        --myoxus-typography-body-small-size: 0.875rem;
+        --myoxus-typography-body-small-weight: 400;
+        --myoxus-typography-body-small-line-height: 1.45;
+        --myoxus-typography-card-title-family: var(
+          --myoxus-typography-body-family
+        );
+        --myoxus-typography-card-title-size: 1rem;
+        --myoxus-typography-card-title-weight: 700;
+        --myoxus-typography-card-title-line-height: 1.35;
+        --myoxus-typography-label-compact-family: var(
+          --myoxus-typography-body-family
+        );
+        --myoxus-typography-label-compact-size: 0.8125rem;
+        --myoxus-typography-label-compact-weight: 700;
+        --myoxus-typography-label-compact-line-height: 1.25;
+        --myoxus-typography-h1-family: var(--myoxus-typography-body-family);
+        --myoxus-typography-h1-size: 2rem;
+        --myoxus-typography-h1-weight: 750;
+        --myoxus-typography-h1-line-height: 1.15;
+        --myoxus-typography-h2-family: var(--myoxus-typography-body-family);
+        --myoxus-typography-h2-size: 1.45rem;
+        --myoxus-typography-h2-weight: 720;
+        --myoxus-typography-h2-line-height: 1.25;
+        --myoxus-typography-h3-family: var(--myoxus-typography-body-family);
+        --myoxus-typography-h3-size: 1.25rem;
+        --myoxus-typography-h3-weight: 700;
+        --myoxus-typography-h3-line-height: 1.3;
+        --myoxus-typography-h4-family: var(--myoxus-typography-body-family);
+        --myoxus-typography-h4-size: 1.05rem;
+        --myoxus-typography-h4-weight: 700;
+        --myoxus-typography-h4-line-height: 1.35;
+        --myoxus-typography-h5-family: var(--myoxus-typography-body-family);
+        --myoxus-typography-h5-size: 0.95rem;
+        --myoxus-typography-h5-weight: 700;
+        --myoxus-typography-h5-line-height: 1.35;
+        --myoxus-typography-section-title-family: var(
+          --myoxus-typography-body-family
+        );
+        --myoxus-typography-section-title-size: 0.85rem;
+        --myoxus-typography-section-title-weight: 700;
+        --myoxus-typography-section-title-line-height: 1.3;
+        --myoxus-typography-mono-family:
+          "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        --myoxus-typography-mono-size: 0.9rem;
+        --myoxus-typography-mono-weight: 400;
+        --myoxus-typography-mono-line-height: 1.6;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="mx-public-shell">
+      <header
+        class="mx-public-header"
+        data-pagefind-ignore
+        data-myoxus-role="public-header"
+      >
+        <div class="mx-public-header-inner">
+          <a class="mx-public-brand" href="#">
+            <strong>Public Renderer Fixture</strong>
+            <span>Public document</span>
+          </a>
+          <form class="mx-public-search" role="search">
+            <input type="search" placeholder="Search public pages" />
+          </form>
+        </div>
+      </header>
+      <main class="mx-public-layout">
+        <section class="mx-public-content">
+          <nav
+            class="mx-public-breadcrumbs"
+            aria-label="Breadcrumb"
+            data-pagefind-ignore
+          >
+            <a href="#">Workspace</a><span aria-hidden="true">/</span
+            ><span>Fixture</span>
+          </nav>
+          <article
+            data-myoxus-role="public-document"
+            class="mx-public-document"
+            data-pagefind-body
+          >
+            <h1 id="fixture">Long Documentation Fixture</h1>
+            <p>
+              This fixture validates public rendering with long prose, code,
+              navigation, lists and unsupported blocks without loading Web,
+              Admin, editor or workspace bundles.
+            </p>
+            <h2 id="overview">Overview</h2>
+            <p>
+              Public pages should read like documentation, not like an editor
+              preview. The line length, table of contents and adjacent
+              navigation must remain stable across desktop and compact
+              viewports.
+            </p>
+            <ul
+              class="mx-public-list mx-public-list--bulleted"
+              data-myoxus-role="public-list"
+              data-list-type="bulleted"
+            >
+              <li data-myoxus-role="public-list-item">
+                Readable typography with native list markers.
+                <ul
+                  class="mx-public-list mx-public-list--bulleted"
+                  data-myoxus-role="public-list"
+                  data-list-type="bulleted"
+                >
+                  <li data-myoxus-role="public-list-item">
+                    Nested editor lists remain nested in public HTML.
+                  </li>
+                </ul>
+              </li>
+              <li data-myoxus-role="public-list-item">
+                Consecutive items share one semantic list.
+              </li>
+            </ul>
+            <ol
+              class="mx-public-list mx-public-list--numbered"
+              data-myoxus-role="public-list"
+              data-list-type="numbered"
+            >
+              <li data-myoxus-role="public-list-item">
+                Numbered editor lists use native ordered markers.
+              </li>
+            </ol>
+            <ul
+              class="mx-public-list mx-public-list--todo"
+              data-myoxus-role="public-list"
+              data-list-type="todo"
+            >
+              <li data-myoxus-role="public-list-item">
+                <label class="mx-public-task" data-myoxus-role="public-task"
+                  ><input type="checkbox" disabled /><span
+                    >Unchecked Todo</span
+                  ></label
+                >
+              </li>
+              <li data-myoxus-role="public-list-item">
+                <label class="mx-public-task" data-myoxus-role="public-task"
+                  ><input type="checkbox" disabled checked /><span
+                    >Completed Todo</span
+                  ></label
+                >
+              </li>
+            </ul>
+            <pre
+              data-myoxus-role="public-code"
+              data-pagefind-ignore
+            ><div class="mx-public-code-header"><span class="mx-public-code-language">rust</span><button class="mx-public-code-copy" type="button" data-myoxus-public-copy data-copy-label="Copy" data-copied-label="Copied" data-failed-label="Failed">Copy</button></div><code class="language-rust">fn main() {
+    println!("public fixture");
+}</code></pre>
+            <blockquote>
+              Public publishing is anonymous read-only delivery, not workspace
+              membership.
+            </blockquote>
+            <p
+              class="mx-public-unsupported"
+              data-myoxus-role="public-unsupported"
+              data-pagefind-ignore
+            >
+              Unsupported block: interactive-widget
+            </p>
+          </article>
+          <nav
+            class="mx-public-adjacent"
+            aria-label="Adjacent pages"
+            data-pagefind-ignore
+          >
+            <a href="#"><span>Previous</span><strong>Architecture</strong></a>
+            <a href="#"><span>Next</span><strong>Operations</strong></a>
+          </nav>
+        </section>
+        <aside class="mx-public-aside" data-pagefind-ignore>
+          <nav class="mx-public-toc" aria-label="Table of contents">
+            <strong>Contents</strong>
+            <ol>
+              <li class="mx-public-toc-level-1">
+                <a href="#fixture">Long Documentation Fixture</a>
+              </li>
+              <li class="mx-public-toc-level-2">
+                <a href="#overview">Overview</a>
+              </li>
+            </ol>
+          </nav>
+        </aside>
+      </main>
+      <footer
+        class="mx-public-footer"
+        data-pagefind-ignore
+        data-myoxus-role="public-footer"
+      >
+        <div class="mx-public-footer-inner">Published with Myoxus</div>
+      </footer>
+    </div>
+    <script>
+      (() => {
+        for (const button of document.querySelectorAll(
+          "[data-myoxus-public-copy]",
+        )) {
+          button.addEventListener("click", () => {
+            button.textContent = "Copied";
+          });
+        }
+      })();
+    </script>
+  </body>
+</html>

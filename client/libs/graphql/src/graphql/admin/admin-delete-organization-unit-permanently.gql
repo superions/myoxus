@@ -1,0 +1,13 @@
+mutation adminDeleteOrganizationUnitPermanently(
+  $id: ID!
+  $confirmedName: String!
+  $previewRevision: DateTime!
+) {
+  admin {
+    deleteOrganizationUnitPermanently(
+      id: $id
+      confirmedName: $confirmedName
+      previewRevision: $previewRevision
+    )
+  }
+}

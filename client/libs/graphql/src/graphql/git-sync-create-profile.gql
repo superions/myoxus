@@ -1,0 +1,7 @@
+mutation createGitSyncProfile($workspaceId: String!, $input: GitSyncProfileInput!) {
+  createGitSyncProfile(workspaceId: $workspaceId, input: $input) {
+    id
+    repoUrl
+    branch
+  }
+}

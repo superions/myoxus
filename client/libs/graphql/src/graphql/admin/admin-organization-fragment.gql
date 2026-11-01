@@ -1,0 +1,9 @@
+fragment AdminOrganizationFragment on OrganizationType {
+  id
+  key
+  name
+  slug
+  metadata
+  createdAt
+  updatedAt
+}

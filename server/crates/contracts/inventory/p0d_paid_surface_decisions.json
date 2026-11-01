@@ -1,0 +1,359 @@
+{
+  "generated_at": "2026-03-04T00:00:00Z",
+  "owner_package": "P0-D",
+  "status": "active",
+  "decision_kinds": {
+    "compat_neutral": "Keep signature for client compatibility but return neutral non-paid values.",
+    "compat_disabled_error": "Keep signature temporarily but return deterministic feature-disabled error without side effects.",
+    "client_patch_remove": "Remove only with documented client patch in the same delivery scope.",
+    "remove_from_rust_target": "Legacy reference only, not implemented as Rust business logic."
+  },
+  "neutral_profiles": {
+    "unlimited_numeric_sentinel": 9007199254740991,
+    "user_quota": {
+      "name": "Open",
+      "blobLimit": 9007199254740991,
+      "storageQuota": 9007199254740991,
+      "usedStorageQuota": "<real_usage_bytes_or_0>",
+      "historyPeriod": 9007199254740991,
+      "memberLimit": 2147483647,
+      "copilotActionLimit": null,
+      "humanReadable": {
+        "name": "Open",
+        "blobLimit": "Unlimited",
+        "storageQuota": "Unlimited",
+        "usedStorageQuota": "<derived_readable_usage_or_0 B>",
+        "historyPeriod": "Unlimited",
+        "memberLimit": "Unlimited",
+        "copilotActionLimit": "Unlimited"
+      }
+    },
+    "workspace_quota": {
+      "name": "Open",
+      "blobLimit": 9007199254740991,
+      "storageQuota": 9007199254740991,
+      "usedStorageQuota": "<real_usage_bytes_or_0>",
+      "historyPeriod": 9007199254740991,
+      "memberLimit": 2147483647,
+      "memberCount": "<real_member_count_or_0>",
+      "overcapacityMemberCount": 0,
+      "usedSize": "<same_as_usedStorageQuota>",
+      "humanReadable": {
+        "name": "Open",
+        "blobLimit": "Unlimited",
+        "storageQuota": "Unlimited",
+        "storageQuotaUsed": "<derived_readable_usage_or_0 B>",
+        "historyPeriod": "Unlimited",
+        "memberLimit": "Unlimited",
+        "memberCount": "<derived_member_count_or_0>",
+        "overcapacityMemberCount": "0"
+      }
+    },
+    "copilot_quota": {
+      "limit": null,
+      "used": "<real_usage_count_or_0>"
+    }
+  },
+  "graphql_operations": [
+    {
+      "operation_name": "quota",
+      "operation_type": "query",
+      "resolver_field": "UserType.quota",
+      "decision": "compat_neutral",
+      "p0_behavior": "Return unlimited user quota and non-gating usage values."
+    },
+    {
+      "operation_name": "workspaceQuota",
+      "operation_type": "query",
+      "resolver_field": "WorkspaceType.quota",
+      "decision": "compat_neutral",
+      "p0_behavior": "Return unlimited workspace quota and informational memberCount."
+    },
+    {
+      "operation_name": "workspaceBlobQuota",
+      "operation_type": "query",
+      "resolver_field": "WorkspaceType.quota.blobLimit",
+      "decision": "compat_neutral",
+      "p0_behavior": "Return unlimited blob limit."
+    },
+    {
+      "operation_name": "copilotQuota",
+      "operation_type": "query",
+      "resolver_field": "Copilot.quota",
+      "decision": "compat_neutral",
+      "p0_behavior": "Return limit=null and informational used count."
+    },
+    {
+      "operation_name": "prices",
+      "operation_type": "query",
+      "resolver_field": "Query.prices",
+      "decision": "compat_neutral",
+      "p0_behavior": "Return empty list."
+    },
+    {
+      "operation_name": "subscription",
+      "operation_type": "query",
+      "resolver_field": "UserType.subscriptions",
+      "decision": "compat_neutral",
+      "p0_behavior": "Return empty list."
+    },
+    {
+      "operation_name": "refreshSubscription",
+      "operation_type": "mutation",
+      "resolver_field": "Mutation.refreshUserSubscriptions",
+      "decision": "compat_neutral",
+      "p0_behavior": "Return empty list."
+    },
+    {
+      "operation_name": "requestApplySubscription",
+      "operation_type": "mutation",
+      "resolver_field": "Mutation.requestApplySubscription",
+      "decision": "compat_neutral",
+      "p0_behavior": "Return empty list."
+    },
+    {
+      "operation_name": "getWorkspaceSubscription",
+      "operation_type": "query",
+      "resolver_field": "WorkspaceType.subscription",
+      "decision": "compat_neutral",
+      "p0_behavior": "Return null."
+    },
+    {
+      "operation_name": "invoices",
+      "operation_type": "query",
+      "resolver_field": "UserType.invoices",
+      "decision": "compat_neutral",
+      "p0_behavior": "Return invoiceCount=0 and invoices=[]."
+    },
+    {
+      "operation_name": "getInvoicesCount",
+      "operation_type": "query",
+      "resolver_field": "UserType.invoiceCount",
+      "decision": "compat_neutral",
+      "p0_behavior": "Return 0."
+    },
+    {
+      "operation_name": "workspaceInvoices",
+      "operation_type": "query",
+      "resolver_field": "WorkspaceType.invoices",
+      "decision": "compat_neutral",
+      "p0_behavior": "Return invoiceCount=0 and invoices=[]."
+    },
+    {
+      "operation_name": "getLicense",
+      "operation_type": "query",
+      "resolver_field": "WorkspaceType.license",
+      "decision": "compat_neutral",
+      "p0_behavior": "Return null."
+    },
+    {
+      "operation_name": "createCheckoutSession",
+      "operation_type": "mutation",
+      "resolver_field": "Mutation.createCheckoutSession",
+      "decision": "compat_disabled_error",
+      "p0_behavior": "Return deterministic feature-disabled error; no provider calls.",
+      "p5_target": "client_patch_remove"
+    },
+    {
+      "operation_name": "createCustomerPortal",
+      "operation_type": "mutation",
+      "resolver_field": "Mutation.createCustomerPortal",
+      "decision": "compat_disabled_error",
+      "p0_behavior": "Return deterministic feature-disabled error; no provider calls.",
+      "p5_target": "client_patch_remove"
+    },
+    {
+      "operation_name": "createSelfhostCustomerPortal",
+      "operation_type": "mutation",
+      "resolver_field": "Mutation.createSelfhostWorkspaceCustomerPortal",
+      "decision": "compat_disabled_error",
+      "p0_behavior": "Return deterministic feature-disabled error; no provider calls.",
+      "p5_target": "client_patch_remove"
+    },
+    {
+      "operation_name": "updateSubscription",
+      "operation_type": "mutation",
+      "resolver_field": "Mutation.updateSubscriptionRecurring",
+      "decision": "compat_disabled_error",
+      "p0_behavior": "Return deterministic feature-disabled error; no provider calls.",
+      "p5_target": "client_patch_remove"
+    },
+    {
+      "operation_name": "cancelSubscription",
+      "operation_type": "mutation",
+      "resolver_field": "Mutation.cancelSubscription",
+      "decision": "compat_disabled_error",
+      "p0_behavior": "Return deterministic feature-disabled error; no provider calls.",
+      "p5_target": "client_patch_remove"
+    },
+    {
+      "operation_name": "resumeSubscription",
+      "operation_type": "mutation",
+      "resolver_field": "Mutation.resumeSubscription",
+      "decision": "compat_disabled_error",
+      "p0_behavior": "Return deterministic feature-disabled error; no provider calls.",
+      "p5_target": "client_patch_remove"
+    },
+    {
+      "operation_name": "generateLicenseKey",
+      "operation_type": "mutation",
+      "resolver_field": "Mutation.generateLicenseKey",
+      "decision": "compat_disabled_error",
+      "p0_behavior": "Return deterministic feature-disabled error.",
+      "p5_target": "client_patch_remove"
+    },
+    {
+      "operation_name": "activateLicense",
+      "operation_type": "mutation",
+      "resolver_field": "Mutation.activateLicense",
+      "decision": "compat_disabled_error",
+      "p0_behavior": "Return deterministic feature-disabled error; no seat/license mutation.",
+      "p5_target": "client_patch_remove"
+    },
+    {
+      "operation_name": "deactivateLicense",
+      "operation_type": "mutation",
+      "resolver_field": "Mutation.deactivateLicense",
+      "decision": "compat_disabled_error",
+      "p0_behavior": "Return deterministic feature-disabled error; no seat/license mutation.",
+      "p5_target": "client_patch_remove"
+    },
+    {
+      "operation_name": "installLicense",
+      "operation_type": "mutation",
+      "resolver_field": "Mutation.installLicense",
+      "decision": "compat_disabled_error",
+      "p0_behavior": "Return deterministic feature-disabled error; no seat/license mutation.",
+      "p5_target": "client_patch_remove"
+    }
+  ],
+  "graphql_fields": [
+    {
+      "field_path": "ServerConfigType.availableUpgrade",
+      "decision": "compat_neutral",
+      "value": null
+    },
+    {
+      "field_path": "ServerConfigType.availableWorkspaceFeatures",
+      "decision": "compat_neutral",
+      "value": "exclude team_plan_v1"
+    },
+    {
+      "field_path": "WorkspaceType.team",
+      "decision": "compat_neutral",
+      "value": false
+    },
+    {
+      "field_path": "WorkspacePermissions.Workspace_Payment_Manage",
+      "decision": "compat_neutral",
+      "value": false
+    },
+    {
+      "field_path": "UserType.quota",
+      "decision": "compat_neutral",
+      "value": "neutral_profiles.user_quota"
+    },
+    {
+      "field_path": "UserType.quotaUsage.storageQuota",
+      "decision": "compat_neutral",
+      "value": "<real_usage_bytes_or_0>"
+    },
+    {
+      "field_path": "WorkspaceType.quota",
+      "decision": "compat_neutral",
+      "value": "neutral_profiles.workspace_quota"
+    },
+    {
+      "field_path": "Copilot.quota",
+      "decision": "compat_neutral",
+      "value": "neutral_profiles.copilot_quota"
+    },
+    {
+      "field_path": "UserType.subscriptions",
+      "decision": "compat_neutral",
+      "value": []
+    },
+    {
+      "field_path": "UserType.invoiceCount",
+      "decision": "compat_neutral",
+      "value": 0
+    },
+    {
+      "field_path": "UserType.invoices",
+      "decision": "compat_neutral",
+      "value": []
+    },
+    {
+      "field_path": "WorkspaceType.subscription",
+      "decision": "compat_neutral",
+      "value": null
+    },
+    {
+      "field_path": "WorkspaceType.invoiceCount",
+      "decision": "compat_neutral",
+      "value": 0
+    },
+    {
+      "field_path": "WorkspaceType.invoices",
+      "decision": "compat_neutral",
+      "value": []
+    },
+    {
+      "field_path": "WorkspaceType.license",
+      "decision": "compat_neutral",
+      "value": null
+    }
+  ],
+  "rest_endpoints": [
+    {
+      "method": "POST",
+      "path": "/api/stripe/webhook",
+      "decision": "remove_from_rust_target"
+    },
+    {
+      "method": "POST",
+      "path": "/api/revenuecat/webhook",
+      "decision": "remove_from_rust_target"
+    },
+    {
+      "method": "POST",
+      "path": "/api/team/licenses/:license/activate",
+      "decision": "remove_from_rust_target"
+    },
+    {
+      "method": "POST",
+      "path": "/api/team/licenses/:license/deactivate",
+      "decision": "remove_from_rust_target"
+    },
+    {
+      "method": "GET",
+      "path": "/api/team/licenses/:license/health",
+      "decision": "remove_from_rust_target"
+    },
+    {
+      "method": "POST",
+      "path": "/api/team/licenses/:license/seats",
+      "decision": "remove_from_rust_target"
+    },
+    {
+      "method": "POST",
+      "path": "/api/team/licenses/:license/recurring",
+      "decision": "remove_from_rust_target"
+    },
+    {
+      "method": "POST",
+      "path": "/api/team/licenses/:license/create-customer-portal",
+      "decision": "remove_from_rust_target"
+    }
+  ],
+  "legacy_sources": [
+    "packages/backend/server/src/models/common/feature.ts",
+    "packages/backend/server/src/core/quota/",
+    "packages/backend/server/src/plugins/payment/",
+    "packages/backend/server/src/plugins/license/",
+    "packages/backend/server/src/core/config/resolver.ts",
+    "packages/backend/server/src/core/workspaces/resolvers/workspace.ts",
+    "packages/backend/server/src/plugins/copilot/session.ts",
+    "packages/backend/server/src/schema.gql"
+  ]
+}

@@ -1,0 +1,11 @@
+query adminWorkspaceQuotaDetails($workspaceId: ID!) {
+  admin {
+    adminWorkspaceQuotaDetails(workspaceId: $workspaceId) {
+      source
+      workspaceOverrideBytes
+      configDefaultMb
+      effectiveBytes
+      usedBytes
+    }
+  }
+}

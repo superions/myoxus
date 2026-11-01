@@ -1,0 +1,14 @@
+query myOrganizationUnits {
+  myOrganizationUnits {
+    id
+    organizationId
+    parentUnitId
+    unitTypeId
+    name
+    slug
+    description
+    status
+    createdAt
+    updatedAt
+  }
+}

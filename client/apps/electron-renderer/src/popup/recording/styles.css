@@ -1,0 +1,11 @@
+/* The native window owns geometry; only its title surface is draggable. */
+.myoxus-electron-recording-root {
+  width: 100%;
+  height: 100%;
+  -webkit-app-region: drag;
+}
+
+/* Interactive controls must remain outside the native drag region. */
+.myoxus-electron-recording-controls {
+  -webkit-app-region: no-drag;
+}

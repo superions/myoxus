@@ -1,0 +1,110 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+// SPDX-License-Identifier: Apache-2.0
+// Modified by Myoxus; see provenance.json for retained source and patches.
+
+import { type BPMN20__tProcess } from "../../../schemas/bpmn-2_0/ts-gen/types";
+import { type ElementFilter } from "../../../xml-parser/element-filter";
+import { type Unpacked } from "../../../xyflow/tsExt/tsExt";
+import { SearchCombobox } from "@myoxus/ui-facade";
+import { type Normalized } from "../../normalization/normalize";
+import {
+  useBpmnEditorStore,
+  useBpmnEditorStoreApi,
+} from "../../store/StoreContext";
+import { useDefinitionChoice } from "../../typeaheadSelect/use-definition-choice";
+import { useCallback, useMemo } from "react";
+import { addOrGetSignals } from "../../mutations/addOrGetSignals";
+import { useBpmnEditorI18n } from "../../i18n";
+export type EventWithSignal =
+  | undefined
+  | Normalized<
+      ElementFilter<
+        Unpacked<NonNullable<BPMN20__tProcess["flowElement"]>>,
+        | "startEvent"
+        | "intermediateCatchEvent"
+        | "intermediateThrowEvent"
+        | "endEvent"
+        | "boundaryEvent"
+      >
+    >;
+export type OnSignalChange = (newSignalRef: string | undefined) => void;
+export function SignalSelector({
+  value,
+  onChange,
+  referenceOwner,
+  omitValues,
+}: {
+  value: string | undefined;
+  onChange: OnSignalChange;
+  referenceOwner?: object;
+  omitValues?: string[];
+}) {
+  const { i18n } = useBpmnEditorI18n();
+  const isReadOnly = useBpmnEditorStore((s) => s.settings.isReadOnly);
+  const bpmnEditorStoreApi = useBpmnEditorStoreApi();
+  const signalsById = useBpmnEditorStore(
+    (s) =>
+      new Map(
+        s.bpmn.model.definitions.rootElement
+          ?.filter((e) => e.__$$element === "signal")
+          .map((m) => [m["@_id"], m] as const),
+      ),
+  );
+  const omitIdsSet = useMemo(
+    () => new Set<string | undefined>(omitValues),
+    [omitValues],
+  );
+  const options = useMemo(
+    () =>
+      [...signalsById.values()]
+        .filter((m) => !omitIdsSet.has(m["@_id"]))
+        .map((m) => ({
+          value: m["@_id"],
+          label: m["@_name"] ?? m["@_id"],
+        })),
+    [signalsById, omitIdsSet],
+  );
+  const onCreate = useCallback(
+    (newSignalName: string) => {
+      let newSignalId: string;
+      bpmnEditorStoreApi.setState((s) => {
+        if (s.settings.isReadOnly) return;
+        newSignalId = addOrGetSignals({
+          definitions: s.bpmn.model.definitions,
+          signalName: newSignalName,
+        }).signalRef;
+      });
+      return newSignalId!;
+    },
+    [bpmnEditorStoreApi],
+  );
+  const choice = useDefinitionChoice({
+    choices: options,
+    selected: value,
+    referenceOwner,
+    disabled: isReadOnly,
+    label: i18n.eventDefinitionProperties.signal,
+    emptyLabel: i18n.propertiesPanel.noMatches,
+    onSelect: onChange,
+    create: onCreate,
+    createLabel: i18n.propertiesPanel.createSignal,
+  });
+  return <SearchCombobox {...choice} />;
+}

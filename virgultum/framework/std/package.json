@@ -1,0 +1,51 @@
+{
+  "name": "@virgultum/std",
+  "description": "Std for Virgultum blocks",
+  "type": "module",
+  "scripts": {
+    "build": "yarn --cwd \"$PROJECT_CWD\" exec tsc -p \"$PWD/tsconfig.json\" --noEmit"
+  },
+  "sideEffects": false,
+  "keywords": [],
+  "author": "Myoxus Contributors",
+  "license": "AGPL-3.0-or-later AND MIT",
+  "dependencies": {
+    "@atlaskit/pragmatic-drag-and-drop": "^1.4.0",
+    "@atlaskit/pragmatic-drag-and-drop-auto-scroll": "^2.1.2",
+    "@atlaskit/pragmatic-drag-and-drop-hitbox": "^1.1.0",
+    "@lit/context": "^1.1.6",
+    "@preact/signals-core": "^1.8.0",
+    "@types/hast": "^3.0.4",
+    "@types/lodash-es": "^4.17.12",
+    "@virgultum/global": "workspace:*",
+    "@virgultum/store": "workspace:*",
+    "dompurify": "3.4.16",
+    "fractional-indexing": "^3.2.0",
+    "lib0": "^0.2.119",
+    "lit": "^3.3.3",
+    "lodash-es": "4.18.1",
+    "lz-string": "^1.5.0",
+    "rehype-parse": "^9.0.0",
+    "rxjs": "^7.8.2",
+    "unified": "^11.0.5",
+    "w3c-keyname": "^2.2.8",
+    "yjs": "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "vitest": "4.1.11"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./gfx": "./src/gfx/index.ts",
+    "./effects": "./src/effects.ts",
+    "./inline": "./src/inline/index.ts"
+  },
+  "files": [
+    "src",
+    "dist",
+    "!src/__tests__",
+    "!dist/__tests__"
+  ],
+  "version": "0.41.5"
+}

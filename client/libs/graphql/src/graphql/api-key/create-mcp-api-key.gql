@@ -1,0 +1,19 @@
+mutation createMcpApiKey(
+  $name: String!
+  $scopes: [String!]!
+  $expiresInDays: Int
+) {
+  apiKeys {
+    createApiKey(
+      name: $name
+      scopes: $scopes
+      expiresInDays: $expiresInDays
+    ) {
+      id
+      name
+      key
+      scopes
+      expiresAt
+    }
+  }
+}

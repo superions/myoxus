@@ -1,0 +1,11 @@
+query getGitSyncBindings($workspaceId: String!) {
+  workspace(id: $workspaceId) {
+    gitSyncBindings {
+      id
+      docId
+      syncId
+      repoPath
+      tombstone
+    }
+  }
+}

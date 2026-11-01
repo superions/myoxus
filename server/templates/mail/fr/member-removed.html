@@ -1,0 +1,60 @@
+{% extends "_layout.html" %} {% block subject %}Fin de l’accès à « {{
+workspace_name }} »{% endblock subject %} {% block preheader %}Si vous ne vous
+attendiez pas à ce changement, contactez un Admin de l’espace de travail.{%
+endblock preheader %} {% block category %}COLLABORATION{% endblock category %}
+{% block heading %}Votre accès à l’espace de travail a pris fin.{% endblock
+heading %} {% block introduction %}Votre participation à cet espace de travail a
+pris fin. Ses contenus ne vous sont plus accessibles au titre de cette
+participation.{% endblock introduction %} {% block details %}{% if
+workspace_name %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  ESPACE DE TRAVAIL
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ workspace_name }}
+</p>
+{% endif %}{% if actor %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  De
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ actor }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}Si vous ne vous attendiez
+pas à ce changement, contactez un Admin de l’espace de travail.{% endblock
+next_step %} {% block action %}Ouvrir Myoxus{% endblock action %} {% block note
+%}Vous trouverez les informations à jour et les actions disponibles directement
+dans Myoxus.{% endblock note %} {% block reason %}Vous recevez cet e-mail car
+votre accès à cet espace de travail a changé.{% endblock reason %}

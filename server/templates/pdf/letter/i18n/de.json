@@ -1,0 +1,6 @@
+{
+  "subject_label": "Betreff:",
+  "salutation_default": "Sehr geehrte Damen und Herren,",
+  "closing_default": "Mit freundlichen Grüßen",
+  "page_of": "Seite {current} / {total}"
+}

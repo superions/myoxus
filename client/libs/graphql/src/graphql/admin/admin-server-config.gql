@@ -1,0 +1,31 @@
+#import '../fragments/password-limits.gql'
+#import '../fragments/credentials-requirement.gql'
+
+query adminServerConfig {
+  admin {
+    serverInfo {
+      version
+      baseUrl
+      name
+      features
+      type
+      deploymentType
+      initialized
+      i18n {
+        defaultLocale
+        availableLocales
+      }
+      credentialsRequirement {
+        ...CredentialsRequirements
+      }
+      availableUpgrade {
+        changelog
+        version
+        publishedAt
+        url
+      }
+      availableUserFeatures
+      availableWorkspaceFeatures
+    }
+  }
+}

@@ -1,0 +1,7 @@
+mutation triggerGitSync($workspaceId: String!, $direction: GitSyncDirection) {
+  triggerGitSync(workspaceId: $workspaceId, direction: $direction) {
+    id
+    status
+    startedAt
+  }
+}

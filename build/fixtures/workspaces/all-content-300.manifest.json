@@ -1,0 +1,52 @@
+{
+  "formatVersion": 1,
+  "fixture": "all-content-300",
+  "archive": "all-content-300.obsidian.zip",
+  "sourceFormat": "ObsidianZip",
+  "capturedDate": "2026-10-02",
+  "purpose": "Desktop inventory, label-readiness and navigation tests with a larger persisted workspace.",
+  "archiveBytes": 85227,
+  "sha256": "0b269637c9355169ea6ae1c893a7b5b322a9604caac20691ec3a9c1d9be17053",
+  "documents": 303,
+  "generatedDocuments": 300,
+  "generatedTitleRange": [
+    "Performance document 000",
+    "Performance document 299"
+  ],
+  "additionalDocuments": [
+    "Agenda · Besprechungsprotokoll",
+    "Fokus · Besprechungsprotokoll",
+    "Register · Besprechungsprotokoll"
+  ],
+  "labels": [
+    {
+      "name": "Performance",
+      "assignedDocuments": 303,
+      "sourceColorRole": "tag.blue",
+      "restoredColorRole": "tag.grey"
+    }
+  ],
+  "databases": 0,
+  "databaseRows": 0,
+  "sourceMediaAssets": 0,
+  "partialDocuments": 0,
+  "roundtrip": {
+    "verifiedDate": "2026-10-02",
+    "restoredDocuments": 303,
+    "identicalMarkdownFiles": 303,
+    "missingMarkdownFiles": 0,
+    "extraMarkdownFiles": 0,
+    "labelAssignments": 303
+  },
+  "normalizations": [
+    "The import creates fresh workspace/document/label identities and uses the importing account as owner.",
+    "The label color follows the standard Obsidian import normalization.",
+    "The export report is retained as one authorized recovery attachment."
+  ],
+  "excluded": [
+    "User accounts and sessions",
+    "Workspace memberships and document permissions",
+    "Comments, activity and version history",
+    "Server configuration and external credentials"
+  ]
+}

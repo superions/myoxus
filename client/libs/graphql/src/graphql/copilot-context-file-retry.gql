@@ -1,0 +1,12 @@
+mutation retryContextFile($options: RemoveContextFileInput!) {
+  retryContextFile(options: $options) {
+    id
+    createdAt
+    name
+    mimeType
+    chunkSize
+    error
+    status
+    blobId
+  }
+}

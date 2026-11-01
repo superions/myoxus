@@ -1,0 +1,41 @@
+import { useI18n } from "@myoxus/i18n";
+import type { Workspace } from "@virgultum/editor/store";
+import { useCallback } from "react";
+
+import {
+  RouteLogic,
+  useNavigateHelper,
+} from "../../../../components/hooks/use-navigate-helper";
+import { ErrorDetail, ErrorStatus } from "../error-basic/error-detail";
+import { createErrorFallback } from "../error-basic/fallback-creator";
+
+class PageNotFoundError extends TypeError {
+  readonly docCollection: Workspace;
+  readonly pageId: string;
+
+  constructor(docCollection: Workspace, pageId: string) {
+    super();
+    this.docCollection = docCollection;
+    this.pageId = pageId;
+  }
+}
+
+export const PageNotFoundDetail = createErrorFallback(PageNotFoundError, () => {
+  const t = useI18n();
+  const { jumpToIndex } = useNavigateHelper();
+
+  const onBtnClick = useCallback(
+    () => jumpToIndex(RouteLogic.REPLACE),
+    [jumpToIndex],
+  );
+
+  return (
+    <ErrorDetail
+      title={t["com.myoxus.notFoundPage.title"]()}
+      description={t["404.hint"]()}
+      buttonText={t["404.back"]()}
+      onButtonClick={onBtnClick}
+      status={ErrorStatus.NotFound}
+    />
+  );
+});

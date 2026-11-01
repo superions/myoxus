@@ -1,0 +1,270 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "5"
+
+services:
+  postgres:
+    image: pgvector/pgvector:${POSTGRES_IMAGE_TAG:-pg16}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-myoxus}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_DB: ${POSTGRES_DB:-myoxus}
+      POSTGRES_INITDB_ARGS: --data-checksums
+    secrets:
+      - source: postgres_password
+        target: postgres_password
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U ${POSTGRES_USER:-myoxus} -d ${POSTGRES_DB:-myoxus}
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    volumes:
+      - type: bind
+        source: ${MYOXUS_SWARM_STATE_ROOT:?Set MYOXUS_SWARM_STATE_ROOT to an absolute path on the labelled state node}/postgres
+        target: /var/lib/postgresql/data
+    networks:
+      - internal
+    stop_grace_period: 60s
+    logging: *default-logging
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.myoxus.data == true
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+        window: 2m
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+        monitor: 30s
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+        monitor: 30s
+      resources:
+        reservations:
+          memory: 512M
+        limits:
+          memory: ${POSTGRES_MEMORY_LIMIT:-4G}
+
+  redis:
+    image: redis:${REDIS_IMAGE_TAG:-8}
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --save
+      - ""
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    volumes:
+      - type: bind
+        source: ${MYOXUS_SWARM_STATE_ROOT:?Set MYOXUS_SWARM_STATE_ROOT to an absolute path on the labelled state node}/redis
+        target: /data
+    networks:
+      - internal
+    stop_grace_period: 30s
+    logging: *default-logging
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.myoxus.data == true
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+        window: 2m
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+        monitor: 30s
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+        monitor: 30s
+      resources:
+        reservations:
+          memory: 256M
+        limits:
+          memory: ${REDIS_MEMORY_LIMIT:-2G}
+
+  api:
+    image: ${MYOXUS_IMAGE_PREFIX:-git.blume29.de/myoxus}/myoxus:${MYOXUS_SERVER_IMAGE_TAG:?Set MYOXUS_SERVER_IMAGE_TAG to an immutable server release or commit tag}
+    user: "${MYOXUS_API_USER:-1000:1000}"
+    environment:
+      RUN_MODE: production
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER:-myoxus}
+      POSTGRES_DB: ${POSTGRES_DB:-myoxus}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      MYOXUS__DATABASE__URL_FILE: /run/myoxus/database-url
+      MYOXUS__CRYPTO__PRIVATE_KEY_FILE: /run/secrets/crypto_private_key
+      MYOXUS__SERVER__HOST: 0.0.0.0
+      MYOXUS__SERVER__PORT: "3001"
+      MYOXUS__SERVER__ORIGIN: ${MYOXUS_SERVER_ORIGIN:?Set MYOXUS_SERVER_ORIGIN to the public browser URL}
+      MYOXUS__REDIS__URL: redis://redis:6379
+      MYOXUS__STORAGE__ROOT: /opt/myoxus/data/storage
+      MYOXUS__LOGGING__LEVEL: ${MYOXUS_LOG_LEVEL:-info}
+      MYOXUS__LOGGING__FILE_PATH: /opt/myoxus/data/logs/myoxus.log
+      MYOXUS__GIT_SYNC__REPO_BASE_DIR: /opt/myoxus/data/git-sync
+      MYOXUS__CONFIG__WRITEBACK_PATH: /opt/myoxus/runtime-config/local.yaml
+      MYOXUS__BRANDING__STYLE_DIR: /opt/myoxus/runtime-assets/style
+    secrets:
+      - source: postgres_password
+        target: postgres_password
+      - source: crypto_private_key
+        target: crypto_private_key
+    healthcheck:
+      test: [CMD, /usr/local/bin/myoxus-cli, container, health]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    volumes:
+      - type: bind
+        source: ${MYOXUS_SWARM_STATE_ROOT:?Set MYOXUS_SWARM_STATE_ROOT to an absolute path on the labelled state node}/data
+        target: /opt/myoxus/data
+      - type: bind
+        source: ${MYOXUS_SWARM_STATE_ROOT:?Set MYOXUS_SWARM_STATE_ROOT to an absolute path on the labelled state node}/pdf-fonts
+        target: /data/pdf-fonts
+      - type: bind
+        source: ${MYOXUS_SWARM_STATE_ROOT:?Set MYOXUS_SWARM_STATE_ROOT to an absolute path on the labelled state node}/runtime-config
+        target: /opt/myoxus/runtime-config
+      - type: bind
+        source: ${MYOXUS_SWARM_STATE_ROOT:?Set MYOXUS_SWARM_STATE_ROOT to an absolute path on the labelled state node}/style
+        target: /opt/myoxus/runtime-assets/style
+      - type: bind
+        source: ${MYOXUS_TEMPLATE_HOST_DIR:-${MYOXUS_SWARM_STATE_ROOT:?Set MYOXUS_SWARM_STATE_ROOT to an absolute path on the labelled state node}/templates}
+        target: /opt/myoxus/templates
+        read_only: true
+    networks:
+      - internal
+    stop_grace_period: 45s
+    logging: *default-logging
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.myoxus.data == true
+      restart_policy:
+        condition: on-failure
+        delay: 10s
+        max_attempts: 20
+        window: 5m
+      update_config:
+        parallelism: 1
+        order: stop-first
+        failure_action: rollback
+        monitor: 45s
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+        monitor: 45s
+      resources:
+        reservations:
+          memory: 512M
+        limits:
+          memory: ${MYOXUS_API_MEMORY_LIMIT:-6G}
+
+  frontend:
+    # This is an operator-selected upstream Nginx image, not a Myoxus image.
+    # Materialize the Web/Admin OCI artifacts into the version-bound directory
+    # before deploying the stack; the Web artifact supplies this Nginx config.
+    image: ${MYOXUS_NGINX_IMAGE:-nginx:stable-alpine}
+    environment:
+      MYOXUS_FRONTEND_BASE_PATH: ${MYOXUS_FRONTEND_BASE_PATH:-}
+      MYOXUS_SOCKET_IO_PROXY_READ_TIMEOUT_SECONDS: ${MYOXUS_SOCKET_IO_PROXY_READ_TIMEOUT_SECONDS-300}
+      MYOXUS_SOCKET_IO_PROXY_SEND_TIMEOUT_SECONDS: ${MYOXUS_SOCKET_IO_PROXY_SEND_TIMEOUT_SECONDS-300}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -qO- http://127.0.0.1:3010/health | grep -qx ok
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    ports:
+      - target: 3010
+        published: ${MYOXUS_FRONTEND_PORT:-3010}
+        protocol: tcp
+        mode: ingress
+    networks:
+      - internal
+    volumes:
+      - type: bind
+        source: ${MYOXUS_FRONTEND_ASSET_ROOT:?Set MYOXUS_FRONTEND_ASSET_ROOT to the absolute materialized frontend directory}
+        target: /usr/share/nginx/frontends
+        read_only: true
+      - type: bind
+        source: ${MYOXUS_FRONTEND_ASSET_ROOT:?Set MYOXUS_FRONTEND_ASSET_ROOT to the absolute materialized frontend directory}/deployment/nginx/myoxus.conf
+        target: /etc/nginx/myoxus.conf.template
+        read_only: true
+      - type: bind
+        source: ${MYOXUS_FRONTEND_ASSET_ROOT:?Set MYOXUS_FRONTEND_ASSET_ROOT to the absolute materialized frontend directory}/deployment/nginx/render-basepath-nginx.sh
+        target: /docker-entrypoint.d/40-render-basepath-nginx.sh
+        read_only: true
+      - type: bind
+        source: ${MYOXUS_SWARM_STATE_ROOT:?Set MYOXUS_SWARM_STATE_ROOT to an absolute path on the labelled state node}/style
+        target: /usr/share/nginx/frontends/style
+        read_only: true
+    logging: *default-logging
+    deploy:
+      mode: replicated
+      replicas: ${MYOXUS_FRONTEND_REPLICAS:-1}
+      placement:
+        constraints:
+          - node.labels.myoxus.data == true
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 10
+        window: 2m
+      update_config:
+        parallelism: 1
+        order: start-first
+        failure_action: rollback
+        monitor: 45s
+      rollback_config:
+        parallelism: 1
+        order: stop-first
+        monitor: 45s
+      resources:
+        reservations:
+          memory: 32M
+        limits:
+          memory: 256M
+
+networks:
+  internal:
+    driver: overlay
+    driver_opts:
+      encrypted: "true"
+
+secrets:
+  postgres_password:
+    external: true
+    name: ${MYOXUS_POSTGRES_PASSWORD_SECRET:-myoxus_postgres_password}
+  crypto_private_key:
+    external: true
+    name: ${MYOXUS_CRYPTO_PRIVATE_KEY_SECRET:-myoxus_crypto_private_key}

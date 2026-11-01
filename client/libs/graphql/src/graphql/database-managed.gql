@@ -1,0 +1,72 @@
+fragment DatabaseManagedSchema on DatabaseManagedSchema {
+  readiness
+  reasonCode
+  templateId
+  templateVersion
+  templateDigest
+  variant { priority complexity structure currency }
+  schemaRevision
+  canEditStructure
+  canEditMetadata
+  canManageLifecycle
+  taskBindings { roleKey fieldId }
+}
+
+fragment DatabaseTaskDestination on DatabaseTaskDestination {
+  databaseId
+  title
+  editRevision
+  managedSchema { ...DatabaseManagedSchema }
+}
+
+query databaseTaskDestinations($workspaceId: String!, $first: Int, $after: ID) {
+  workspace(id: $workspaceId) {
+    id
+    databaseTaskDestinations(first: $first, after: $after) {
+      defaultDestination { ...DatabaseTaskDestination }
+      projects { ...DatabaseTaskDestination }
+      nextCursor
+      unavailableProjects { databaseId title reasonCode }
+      coverageComplete
+    }
+  }
+}
+
+fragment DatabaseTaskMovePlan on DatabaseTaskMovePlan {
+  workspaceId
+  sourceDatabaseId
+  targetDatabaseId
+  sourceEditRevision
+  targetEditRevision
+  sourceSchemaRevision
+  targetSchemaRevision
+  selection {
+    rowId
+    expectedEditRevision
+    cellRevisions { fieldId expectedEditRevision }
+  }
+  phaseRowId
+  milestoneRowId
+}
+
+query prepareDatabaseTaskMove($workspaceId: String!, $input: DatabaseTaskMoveInput!) {
+  workspace(id: $workspaceId) {
+    id
+    prepareDatabaseTaskMove(input: $input) {
+      input { ...DatabaseTaskMovePlan }
+      eligible
+      reasons
+      requiredRelatedTasks
+      boundaries { rowId fieldId relatedRowId inbound recoverableTrash }
+      allocatesDisplayIds
+    }
+  }
+}
+
+mutation moveDatabaseTasks($input: DatabaseTaskMoveInput!) {
+  moveDatabaseTasks(input: $input) {
+    sourceDatabaseId
+    targetDatabaseId
+    rows { ...DatabaseRowRecord }
+  }
+}

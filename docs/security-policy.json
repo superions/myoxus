@@ -1,0 +1,15 @@
+{
+  "supportWindow": "current-release-line",
+  "securityContact": "Email myoxus@blume29.de. Do not report security vulnerabilities in public GitHub issues.",
+  "releasePolicy": "Releases are made as needed and at least once per month. Security releases are made as needed and are not tied to a fixed release cycle.",
+  "disclosure": "Coordinated disclosure is preferred. Do not publish exploit details before maintainers have assessed the report and agreed on a disclosure date.",
+  "scope": [
+    "The Myoxus source tree and its documented release artifacts",
+    "The Rust server, Browser Web, Admin frontend, and supported deployment tooling"
+  ],
+  "outOfScope": [
+    "Third-party services and dependencies without a Myoxus-specific vulnerability",
+    "Unsupported platforms or locally modified deployments",
+    "Denial-of-service testing against public infrastructure without prior written approval"
+  ]
+}

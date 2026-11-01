@@ -1,0 +1,13 @@
+query getUserAssistance($workspaceId: ID, $projectId: ID) {
+  currentUser {
+    id
+    preferences {
+      assistance(workspaceId: $workspaceId, projectId: $projectId) {
+        mode
+        source
+        userDefaultExplicit
+        interactiveMode
+      }
+    }
+  }
+}

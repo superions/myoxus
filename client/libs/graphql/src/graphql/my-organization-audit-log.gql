@@ -1,0 +1,24 @@
+query myOrganizationAuditLog($unitId: ID!, $skip: Int, $take: Int) {
+  myOrganizationAuditLog(unitId: $unitId, skip: $skip, take: $take) {
+    id
+    eventKey
+    category
+    targetUnitId
+    target {
+      type
+      id
+      label
+    }
+    actor {
+      id
+      label
+      kind
+      credentialType
+      credentialId
+    }
+    oldValue
+    newValue
+    metadata
+    createdAt
+  }
+}

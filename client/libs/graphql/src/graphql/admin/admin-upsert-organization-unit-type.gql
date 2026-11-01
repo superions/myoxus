@@ -1,0 +1,9 @@
+#import "./admin-organization-unit-type-fragment.gql"
+
+mutation adminUpsertOrganizationUnitType($input: UpsertOrganizationUnitTypeInput!) {
+  admin {
+    upsertOrganizationUnitType(input: $input) {
+      ...AdminOrganizationUnitTypeFragment
+    }
+  }
+}

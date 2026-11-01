@@ -1,0 +1,3 @@
+mutation InviteServerUserById($workspaceId: String!, $userId: String!, $role: String) {
+  inviteServerUserById(workspaceId: $workspaceId, userId: $userId, role: $role)
+}

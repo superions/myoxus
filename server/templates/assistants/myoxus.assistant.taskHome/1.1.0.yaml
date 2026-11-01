@@ -1,0 +1,51 @@
+formatVersion: 1
+id: myoxus.assistant.taskHome
+version: 1.1.0
+name:
+  en: My tasks
+  de: Meine Aufgaben
+  fr: Mes tâches
+  es: Mis tareas
+description:
+  en: People with access to the selected destination can read this Task.
+  de: Personen mit Zugriff auf das gewählte Ziel können diese Aufgabe lesen.
+  fr: Les personnes ayant accès à la destination choisie peuvent lire cette tâche.
+  es: Las personas con acceso al destino elegido pueden leer esta tarea.
+contexts:
+  - taskHome
+inputs: []
+components: []
+presentation:
+  steps:
+    - id: tasks
+      title:
+        en: My tasks
+        de: Meine Aufgaben
+        fr: Mes tâches
+        es: Mis tareas
+      groups:
+        - id: tasks
+          title: null
+          role: inventory
+          controls:
+            - kind: taskSummary
+              value: title
+            - kind: taskSummary
+              value: destination
+            - kind: taskSummary
+              value: due
+          visibleWhen: null
+      actions:
+        - id: new-task
+          action: createTask
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: refresh
+          action: refresh
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+  dialogs: []

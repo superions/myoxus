@@ -1,0 +1,3 @@
+mutation deleteGitSyncSshHostKey($host: String!, $port: Int!, $keyType: String!) {
+  deleteGitSyncSshHostKey(host: $host, port: $port, keyType: $keyType)
+}

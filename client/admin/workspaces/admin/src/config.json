@@ -1,0 +1,817 @@
+{
+  "admin_i18n": {
+    "default_locale": {
+      "desc": "admin.config.adminI18n.defaultLocale.desc"
+    }
+  },
+  "auth": {
+    "allow_signup": {
+      "desc": "admin.config.auth.allowSignup.desc"
+    },
+    "allow_signup_for_oauth": {
+      "desc": "admin.config.auth.allowSignupForOauth.desc"
+    },
+    "allowed_email_domains": {
+      "desc": "admin.config.auth.allowedEmailDomains.desc"
+    },
+    "dns_timeout_seconds": {
+      "desc": "admin.config.auth.dnsTimeoutSeconds.desc",
+      "suffix": "s"
+    },
+    "password_requirements": {
+      "desc": "admin.config.auth.passwordRequirements.desc"
+    },
+    "password_reset_ttl_seconds": {
+      "suffix": "s",
+      "desc": "admin.config.auth.passwordResetTtlSeconds.desc"
+    },
+    "reject_plus_aliases": {
+      "desc": "admin.config.auth.rejectPlusAliases.desc"
+    },
+    "require_email_domain_verification": {
+      "desc": "admin.config.auth.requireEmailDomainVerification.desc"
+    },
+    "require_email_verification": {
+      "desc": "admin.config.auth.requireEmailVerification.desc"
+    }
+  },
+  "calendar": {
+    "caldav": {
+      "desc": "admin.config.calendar.caldav.desc"
+    },
+    "google": {
+      "desc": "admin.config.calendar.google.desc",
+      "link": "https://developers.google.com/calendar/api/guides/push"
+    }
+  },
+  "captcha": {
+    "algorithm": {
+      "desc": "admin.config.captcha.algorithm.desc"
+    },
+    "challenge_expires_seconds": {
+      "desc": "admin.config.captcha.challengeExpiresSeconds.desc",
+      "suffix": "s"
+    },
+    "enabled": {
+      "desc": "admin.config.captcha.enabled.desc"
+    },
+    "hmac_key": {
+      "desc": "admin.config.captcha.hmacKey.desc"
+    },
+    "honeypot_field_name": {
+      "desc": "admin.config.captcha.honeypotFieldName.desc"
+    },
+    "max_number": {
+      "desc": "admin.config.captcha.maxNumber.desc"
+    },
+    "rate_limit_per_account_per_hour": {
+      "desc": "admin.config.captcha.rateLimitPerAccountPerHour.desc",
+      "suffix": "/h"
+    },
+    "rate_limit_per_ip_per_min": {
+      "desc": "admin.config.captcha.rateLimitPerIpPerMin.desc",
+      "suffix": "/min"
+    }
+  },
+  "client": {
+    "clipboard_http_fallback": {
+      "desc": "admin.config.client.clipboardHttpFallback.desc"
+    },
+    "download_url": {
+      "desc": "admin.config.client.downloadUrl.desc"
+    },
+    "version_control.enabled": {
+      "desc": "admin.config.client.versionControl.enabled.desc"
+    },
+    "version_control.required_version": {
+      "desc": "admin.config.client.versionControl.requiredVersion.desc"
+    }
+  },
+  "copilot": {
+    "enabled": {
+      "desc": "admin.config.copilot.enabled.desc"
+    },
+    "exa": {
+      "desc": "admin.config.copilot.exa.desc"
+    },
+    "providers": {
+      "desc": "admin.ai.section.providers"
+    },
+    "storage_prefix": {
+      "desc": "admin.ai.storage.prefix-hint"
+    },
+    "unsplash": {
+      "desc": "admin.config.copilot.unsplash.desc"
+    }
+  },
+  "cors": {
+    "allowed_custom_headers": {
+      "desc": "admin.config.cors.allowedCustomHeaders.desc"
+    },
+    "allowed_origins": {
+      "desc": "admin.config.cors.allowedOrigins.desc"
+    },
+    "app_origins": {
+      "desc": "admin.config.cors.appOrigins.desc"
+    },
+    "max_age_seconds": {
+      "suffix": "s",
+      "desc": "admin.config.cors.maxAgeSeconds.desc"
+    }
+  },
+  "crypto": {
+    "private_key": {
+      "desc": "admin.config.crypto.privateKey.desc"
+    }
+  },
+  "databases": {
+    "csv_max_bytes": {
+      "desc": "admin.config.databases.csvMaxBytes.desc"
+    },
+    "csv_max_columns": {
+      "desc": "admin.config.databases.csvMaxColumns.desc"
+    },
+    "csv_max_rows": {
+      "desc": "admin.config.databases.csvMaxRows.desc"
+    },
+    "csv_sample_rows_for_type_inference": {
+      "desc": "admin.config.databases.csvSampleRowsForTypeInference.desc"
+    },
+    "max_cell_text_bytes": {
+      "desc": "admin.config.databases.maxCellTextBytes.desc"
+    },
+    "max_fields_per_database": {
+      "desc": "admin.config.databases.maxFieldsPerDatabase.desc"
+    },
+    "max_reminder_offset_minutes": {
+      "desc": "admin.performance.field.database-reminder-offset.desc",
+      "suffix": "min"
+    },
+    "max_reminders_per_user_per_cell": {
+      "desc": "admin.performance.field.database-reminders-per-cell.desc"
+    },
+    "max_rows_per_page": {
+      "desc": "admin.config.databases.maxRowsPerPage.desc"
+    },
+    "max_views_per_database": {
+      "desc": "admin.config.databases.maxViewsPerDatabase.desc"
+    },
+    "reminder_batch_size": {
+      "desc": "admin.performance.field.database-reminder-batch-size.desc"
+    }
+  },
+  "doc": {
+    "decoder_concurrency": {
+      "desc": "admin.config.doc.decoder_concurrency.desc"
+    },
+    "history.enabled": {
+      "desc": "admin.config.doc.history.enabled.desc"
+    },
+    "history.interval": {
+      "desc": "admin.config.doc.history.interval.desc",
+      "suffix": "ms"
+    }
+  },
+  "doc_service": {
+    "endpoint": {
+      "desc": "admin.config.docService.endpoint.desc"
+    }
+  },
+  "flags": {
+    "allow_guest_demo_workspace": {
+      "desc": "admin.config.flags.allowGuestDemoWorkspace.desc"
+    }
+  },
+  "git_sync": {
+    "allowed_auth_methods": {
+      "desc": "admin.config.gitSync.allowedAuthMethods.desc"
+    },
+    "allowed_directions": {
+      "desc": "admin.config.gitSync.allowedDirections.desc"
+    },
+    "allowed_hosts": {
+      "desc": "admin.config.gitSync.allowedHosts.desc"
+    },
+    "auto_sync_allowed": {
+      "desc": "admin.config.gitSync.autoSyncAllowed.desc"
+    },
+    "clone_depth": {
+      "desc": "admin.config.gitSync.cloneDepth.desc"
+    },
+    "commit_author_email": {
+      "desc": "admin.config.gitSync.commitAuthorEmail.desc"
+    },
+    "commit_author_name": {
+      "desc": "admin.config.gitSync.commitAuthorName.desc"
+    },
+    "default_branch": {
+      "desc": "admin.config.gitSync.defaultBranch.desc"
+    },
+    "enabled": {
+      "desc": "admin.config.gitSync.enabled.desc"
+    },
+    "https_ca_bundle_path": {
+      "desc": "admin.git-sync.policy.https-ca-bundle-path.desc"
+    },
+    "https_certificate_policy": {
+      "desc": "admin.git-sync.policy.https-certificate-policy.desc"
+    },
+    "local_timeout_secs": {
+      "desc": "admin.config.gitSync.localTimeoutSecs.desc",
+      "suffix": "s"
+    },
+    "lock_ttl_seconds": {
+      "desc": "admin.config.gitSync.lockTtlSeconds.desc",
+      "suffix": "s"
+    },
+    "max_docs_per_sync": {
+      "desc": "admin.config.gitSync.maxDocsPerSync.desc"
+    },
+    "max_mirror_storage_mb": {
+      "desc": "admin.config.gitSync.maxMirrorStorageMb.desc",
+      "suffix": "MB"
+    },
+    "mime_allowlist_admin": {
+      "desc": "admin.config.gitSync.mimeAllowlistAdmin.desc"
+    },
+    "mime_blocklist_admin": {
+      "desc": "admin.config.gitSync.mimeBlocklistAdmin.desc"
+    },
+    "mime_validation_mode": {
+      "desc": "admin.config.gitSync.mimeValidationMode.desc"
+    },
+    "min_free_disk_mb": {
+      "desc": "admin.config.gitSync.minFreeDiskMb.desc",
+      "suffix": "MB"
+    },
+    "network_timeout_secs": {
+      "desc": "admin.config.gitSync.networkTimeoutSecs.desc",
+      "suffix": "s"
+    },
+    "parallel_conversion_threshold": {
+      "desc": "admin.config.gitSync.parallelConversionThreshold.desc"
+    },
+    "push_max_retries": {
+      "desc": "admin.config.gitSync.pushMaxRetries.desc"
+    },
+    "repo_base_dir": {
+      "desc": "admin.config.gitSync.repoBaseDir.desc"
+    },
+    "ssh_host_key_policy": {
+      "desc": "admin.git-sync.policy.ssh-host-key-policy.desc"
+    },
+    "webhook_allowed": {
+      "desc": "admin.config.gitSync.webhookAllowed.desc"
+    }
+  },
+  "i18n": {
+    "available_locales": {
+      "desc": "admin.config.i18n.availableLocales.desc"
+    },
+    "default_currency": {
+      "desc": "admin.config.i18n.defaultCurrency.desc"
+    },
+    "default_locale": {
+      "desc": "admin.config.i18n.defaultLocale.desc"
+    }
+  },
+  "indexer": {
+    "auto_index_batch_size": {
+      "desc": "admin.config.indexer.autoIndex.batchSize.desc"
+    },
+    "enabled": {
+      "desc": "admin.config.indexer.enabled.desc"
+    },
+    "provider_api_key": {
+      "desc": "admin.config.indexer.provider.apiKey.desc",
+      "link": "https://www.elastic.co/guide/server/current/api-key.html"
+    },
+    "provider_endpoint": {
+      "desc": "admin.config.indexer.provider.endpoint.desc"
+    },
+    "provider_password": {
+      "desc": "admin.config.indexer.provider.password.desc"
+    },
+    "provider_type": {
+      "desc": "admin.config.indexer.provider.type.desc"
+    },
+    "provider_username": {
+      "desc": "admin.config.indexer.provider.username.desc",
+      "link": "https://www.elastic.co/guide/en/elasticsearch/reference/current/http-clients.html"
+    }
+  },
+  "job": {
+    "queue": {
+      "desc": "admin.config.job.queue.desc"
+    },
+    "queues.caldav-sync": {
+      "desc": "admin.config.job.queues.caldav-sync.desc"
+    },
+    "queues.calendar-reminder": {
+      "desc": "admin.config.job.queues.calendar-reminder.desc"
+    },
+    "queues.copilot": {
+      "desc": "admin.config.job.queues.copilot.desc"
+    },
+    "queues.database": {
+      "desc": "admin.config.job.queues.database.desc"
+    },
+    "queues.doc": {
+      "desc": "admin.config.job.queues.doc.desc"
+    },
+    "queues.document-graph": {
+      "desc": "admin.config.job.queues.document-graph.desc"
+    },
+    "queues.git-sync": {
+      "desc": "admin.config.job.queues.git-sync.desc"
+    },
+    "queues.google-calendar-sync": {
+      "desc": "admin.config.job.queues.google-calendar-sync.desc"
+    },
+    "queues.indexer": {
+      "desc": "admin.config.job.queues.indexer.desc"
+    },
+    "queues.nightly": {
+      "desc": "admin.config.job.queues.nightly.desc"
+    },
+    "queues.notification": {
+      "desc": "admin.config.job.queues.notification.desc"
+    },
+    "queues.pdf-export": {
+      "desc": "admin.config.job.queues.pdf-export.desc"
+    },
+    "queues.template-registry": {
+      "desc": "admin.config.job.queues.template-registry.desc"
+    },
+    "queues.workspace-automation": {
+      "desc": "admin.config.job.queues.workspace-automation.desc"
+    },
+    "queues.workspace-content-operation": {
+      "desc": "admin.config.job.queues.workspace-content-operation.desc"
+    },
+    "worker": {
+      "desc": "admin.config.job.worker.desc"
+    }
+  },
+  "journal": {
+    "first_day_of_week": {
+      "desc": "admin.config.journal.firstDayOfWeek.desc"
+    },
+    "show_calendar_weeks": {
+      "desc": "admin.config.journal.showCalendarWeeks.desc"
+    }
+  },
+  "logging": {
+    "file_path": {
+      "desc": "admin.config.logging.filePath.desc"
+    }
+  },
+  "mail": {
+    "fallback_domains": {
+      "desc": "admin.config.mailer.fallbackDomains.desc"
+    },
+    "fallback_smtp.host": {
+      "desc": "admin.config.mailer.fallbackSMTP.host.desc"
+    },
+    "fallback_smtp.name": {
+      "desc": "admin.config.mailer.fallbackSMTP.name.desc"
+    },
+    "fallback_smtp.password": {
+      "desc": "admin.config.mailer.fallbackSMTP.password.desc"
+    },
+    "fallback_smtp.port": {
+      "desc": "admin.config.mailer.fallbackSMTP.port.desc"
+    },
+    "fallback_smtp.sender": {
+      "desc": "admin.config.mailer.fallbackSMTP.sender.desc"
+    },
+    "fallback_smtp.transport": {
+      "desc": "admin.config.mailer.fallbackSMTP.transport.desc"
+    },
+    "fallback_smtp.username": {
+      "desc": "admin.config.mailer.fallbackSMTP.username.desc"
+    },
+    "fallback_smtp.verify_certificate": {
+      "desc": "admin.config.mailer.fallbackSMTP.verifyCertificate.desc"
+    },
+    "sender": {
+      "desc": "admin.config.mailer.SMTP.sender.desc"
+    },
+    "smtp_host": {
+      "desc": "admin.config.mailer.SMTP.host.desc"
+    },
+    "smtp_name": {
+      "desc": "admin.config.mailer.SMTP.name.desc"
+    },
+    "smtp_pass": {
+      "desc": "admin.config.mailer.SMTP.password.desc"
+    },
+    "smtp_port": {
+      "desc": "admin.config.mailer.SMTP.port.desc"
+    },
+    "smtp_transport": {
+      "desc": "admin.config.mailer.SMTP.transport.desc"
+    },
+    "smtp_user": {
+      "desc": "admin.config.mailer.SMTP.username.desc"
+    },
+    "smtp_verify_certificate": {
+      "desc": "admin.config.mailer.SMTP.verifyCertificate.desc"
+    }
+  },
+  "mcp": {
+    "enabled": {
+      "desc": "admin.config.mcp.enabled.desc"
+    }
+  },
+  "metrics": {
+    "cardinality_limit_per_metric": {
+      "desc": "admin.config.metrics.cardinalityLimitPerMetric.desc"
+    },
+    "categories": {
+      "desc": "admin.config.metrics.categories.desc"
+    },
+    "enabled": {
+      "desc": "admin.config.metrics.enabled.desc"
+    },
+    "flush_interval_seconds": {
+      "desc": "admin.config.metrics.flushIntervalSeconds.desc",
+      "suffix": "s"
+    },
+    "label_workspace_id_enabled": {
+      "desc": "admin.config.metrics.labelWorkspaceIdEnabled.desc"
+    },
+    "persistence_enabled": {
+      "desc": "admin.config.metrics.persistenceEnabled.desc"
+    },
+    "prometheus_enabled": {
+      "desc": "admin.config.metrics.prometheusEnabled.desc"
+    },
+    "retention_daily_days": {
+      "desc": "admin.config.metrics.retentionDailyDays.desc",
+      "suffix": "d"
+    },
+    "retention_raw_days": {
+      "desc": "admin.config.metrics.retentionRawDays.desc",
+      "suffix": "d"
+    }
+  },
+  "oauth": {
+    "providers.apple": {
+      "desc": "admin.config.oauth.providers.apple.desc",
+      "link": "https://developer.apple.com/documentation/sign_in_with_apple/sign_in_with_apple_js/implementing_sign_in_with_apple_in_your_app"
+    },
+    "providers.github": {
+      "desc": "admin.config.oauth.providers.github.desc",
+      "link": "https://docs.github.com/en/apps/oauth-apps"
+    },
+    "providers.google": {
+      "desc": "admin.config.oauth.providers.google.desc",
+      "link": "https://developers.google.com/identity/protocols/oauth2/web-server"
+    },
+    "providers.oidc": {
+      "desc": "admin.config.oauth.providers.oidc.desc",
+      "link": "https://openid.net/specs/openid-connect-core-1_0.html"
+    }
+  },
+  "preview": {
+    "max_input_bytes": {
+      "desc": "admin.performance.preview.field.max-input-bytes",
+      "suffix": "bytes"
+    },
+    "max_source_blocks": {
+      "desc": "admin.performance.preview.field.max-source-blocks"
+    },
+    "max_projected_blocks": {
+      "desc": "admin.performance.preview.field.max-projected-blocks"
+    },
+    "max_text_chars": {
+      "desc": "admin.performance.preview.field.max-text-chars",
+      "suffix": "chars"
+    },
+    "max_depth": {
+      "desc": "admin.performance.preview.field.max-depth"
+    },
+    "max_table_rows": {
+      "desc": "admin.performance.preview.field.max-table-rows"
+    },
+    "max_table_columns": {
+      "desc": "admin.performance.preview.field.max-table-columns"
+    },
+    "max_visuals": {
+      "desc": "admin.performance.preview.field.max-visuals"
+    },
+    "max_media_bytes": {
+      "desc": "admin.performance.preview.field.max-media-bytes",
+      "suffix": "bytes"
+    },
+    "max_font_bytes": {
+      "desc": "admin.performance.preview.field.max-font-bytes",
+      "suffix": "bytes"
+    },
+    "max_decoded_image_pixels": {
+      "desc": "admin.performance.preview.field.max-decoded-image-pixels",
+      "suffix": "px"
+    },
+    "max_svg_input_bytes": {
+      "desc": "admin.performance.preview.field.max-svg-input-bytes",
+      "suffix": "bytes"
+    },
+    "max_mermaid_source_bytes": {
+      "desc": "admin.performance.preview.field.max-mermaid-source-bytes",
+      "suffix": "bytes"
+    },
+    "max_mermaid_elements": {
+      "desc": "admin.performance.preview.field.max-mermaid-elements"
+    },
+    "max_outlined_paths": {
+      "desc": "admin.performance.preview.field.max-outlined-paths"
+    },
+    "max_output_svg_bytes": {
+      "desc": "admin.performance.preview.field.max-output-svg-bytes",
+      "suffix": "bytes"
+    },
+    "max_png_pixels": {
+      "desc": "admin.performance.preview.field.max-png-pixels",
+      "suffix": "px"
+    },
+    "max_active_global_renders": {
+      "desc": "admin.performance.preview.field.max-active-global-renders"
+    },
+    "max_active_renders_per_actor": {
+      "desc": "admin.performance.preview.field.max-active-renders-per-actor"
+    },
+    "max_in_flight_requests": {
+      "desc": "admin.performance.preview.field.max-in-flight-requests"
+    },
+    "output_cache_max_bytes": {
+      "desc": "admin.performance.preview.field.output-cache-max-bytes",
+      "suffix": "bytes"
+    },
+    "output_cache_max_entries": {
+      "desc": "admin.performance.preview.field.output-cache-max-entries"
+    },
+    "output_cache_ttl_seconds": {
+      "desc": "admin.performance.preview.field.output-cache-ttl-seconds",
+      "suffix": "s"
+    },
+    "prepared_font_cache_max_bytes": {
+      "desc": "admin.performance.preview.field.prepared-font-cache-max-bytes",
+      "suffix": "bytes"
+    },
+    "prepared_font_cache_max_entries": {
+      "desc": "admin.performance.preview.field.prepared-font-cache-max-entries"
+    },
+    "prepared_font_cache_ttl_seconds": {
+      "desc": "admin.performance.preview.field.prepared-font-cache-ttl-seconds",
+      "suffix": "s"
+    },
+    "request_timeout_ms": {
+      "desc": "admin.performance.preview.field.request-timeout-ms",
+      "suffix": "ms"
+    },
+    "render_timeout_ms": {
+      "desc": "admin.performance.preview.field.render-timeout-ms",
+      "suffix": "ms"
+    },
+    "failure_expiry_seconds": {
+      "desc": "admin.performance.preview.field.failure-expiry-seconds",
+      "suffix": "s"
+    },
+    "retry_count": {
+      "desc": "admin.performance.preview.field.retry-count"
+    }
+  },
+  "server": {
+    "deployment_type": {
+      "desc": "admin.config.server.deploymentType.desc"
+    },
+    "host": {
+      "desc": "admin.config.server.host.desc"
+    },
+    "magic_link_ttl_seconds": {
+      "suffix": "s",
+      "desc": "admin.config.auth.magicLinkTtlSeconds.desc"
+    },
+    "name": {
+      "desc": "admin.config.server.name.desc"
+    },
+    "origin": {
+      "desc": "admin.config.server.externalUrl.desc"
+    },
+    "port": {
+      "desc": "admin.config.server.port.desc"
+    },
+    "session_ttl": {
+      "desc": "admin.config.auth.session.ttl.desc",
+      "suffix": "s"
+    },
+    "session_ttr": {
+      "desc": "admin.config.auth.session.ttr.desc",
+      "suffix": "s"
+    }
+  },
+  "storage": {
+    "access_key": {
+      "desc": "admin.storage.field.blob-access-key-id.desc"
+    },
+    "backend": {
+      "desc": "admin.storage.field.blob-provider.desc"
+    },
+    "bucket": {
+      "desc": "admin.storage.field.blob-bucket.desc"
+    },
+    "default_workspace_quota_mb": {
+      "suffix": "MB",
+      "desc": "admin.config.storage.defaultWorkspaceQuotaMb.desc"
+    },
+    "endpoint": {
+      "desc": "admin.storage.field.blob-endpoint.desc"
+    },
+    "max_upload_mb": {
+      "suffix": "MB",
+      "desc": "admin.config.storage.maxUploadMb.desc"
+    },
+    "min_free_space_mb": {
+      "suffix": "MB",
+      "desc": "admin.config.storage.minFreeSpaceMb.desc"
+    },
+    "multipart_threshold_mb": {
+      "suffix": "MB",
+      "desc": "admin.config.storage.multipartThresholdMb.desc"
+    },
+    "prefix": {
+      "desc": "admin.storage.section.providers-description"
+    },
+    "region": {
+      "desc": "admin.storage.field.blob-region.desc"
+    },
+    "root": {
+      "desc": "admin.config.storage.root.desc"
+    },
+    "secret_key": {
+      "desc": "admin.storage.field.blob-secret-key.desc"
+    },
+    "signed_url_ttl_seconds": {
+      "suffix": "s",
+      "desc": "admin.config.storage.signedUrlTtlSeconds.desc"
+    }
+  },
+  "telemetry": {
+    "allowed_origins": {
+      "desc": "admin.config.telemetry.allowedOrigins.desc"
+    },
+    "batch_max_events": {
+      "desc": "admin.config.telemetry.batch.maxEvents.desc"
+    },
+    "categories": {
+      "desc": "admin.config.telemetry.categories.desc"
+    },
+    "dedupe_max_entries": {
+      "desc": "admin.config.telemetry.dedupe.maxEntries.desc"
+    },
+    "dedupe_ttl_hours": {
+      "desc": "admin.config.telemetry.dedupe.ttlHours.desc",
+      "suffix": "h"
+    },
+    "enabled": {
+      "desc": "admin.config.telemetry.enabled.desc"
+    },
+    "flush_interval_seconds": {
+      "desc": "admin.config.telemetry.flushIntervalSeconds.desc",
+      "suffix": "s"
+    },
+    "ingest_rate_limit_per_ip_per_min": {
+      "desc": "admin.config.telemetry.ingestRateLimitPerIpPerMin.desc"
+    },
+    "retention_daily_days": {
+      "desc": "admin.config.telemetry.retention.dailyDays.desc",
+      "suffix": "d"
+    },
+    "retention_raw_days": {
+      "desc": "admin.config.telemetry.retention.rawDays.desc",
+      "suffix": "d"
+    },
+    "sampling_rates": {
+      "desc": "admin.config.telemetry.samplingRates.desc"
+    }
+  },
+  "template_registry": {
+    "drift_scan_enabled": {
+      "desc": "admin.config.templateRegistry.driftScanEnabled.desc"
+    },
+    "drift_scan_interval_seconds": {
+      "desc": "admin.config.templateRegistry.driftScanIntervalSeconds.desc",
+      "suffix": "s"
+    },
+    "enabled": {
+      "desc": "admin.config.templateRegistry.enabled.desc"
+    },
+    "import_max_bundle_size_mb": {
+      "desc": "admin.config.templateRegistry.importMaxBundleSizeMb.desc",
+      "suffix": "MB"
+    },
+    "reconcile_default_mode": {
+      "desc": "admin.config.templateRegistry.reconcileDefaultMode.desc"
+    }
+  },
+  "templates": {
+    "root_dir": {
+      "desc": "admin.config.templates.rootDir.desc"
+    }
+  },
+  "throttle": {
+    "throttlers.default.limit": {
+      "desc": "admin.config.throttle.throttlers.default.limit.desc"
+    },
+    "throttlers.default.ttl_ms": {
+      "desc": "admin.config.throttle.default.ttlMs.desc",
+      "suffix": "ms"
+    },
+    "enabled": {
+      "desc": "admin.config.throttle.enabled.desc"
+    },
+    "throttlers.strict.limit": {
+      "desc": "admin.config.throttle.throttlers.strict.limit.desc"
+    },
+    "throttlers.strict.ttl_ms": {
+      "desc": "admin.config.throttle.strict.ttlMs.desc",
+      "suffix": "ms"
+    }
+  },
+  "transcription": {
+    "enabled": {
+      "desc": "admin.transcription.description"
+    },
+    "endpoint": {
+      "desc": "admin.transcription.endpoint-description"
+    },
+    "model": {
+      "desc": "admin.transcription.model-description"
+    },
+    "api_key": {
+      "desc": "admin.transcription.api-key-description"
+    },
+    "language": {
+      "desc": "admin.transcription.language-description"
+    },
+    "request_timeout_ms": {
+      "desc": "admin.transcription.request-timeout"
+    },
+    "max_input_bytes": {
+      "desc": "admin.transcription.max-input"
+    },
+    "max_response_bytes": {
+      "desc": "admin.transcription.max-response"
+    },
+    "max_duration_seconds": {
+      "desc": "admin.transcription.max-duration"
+    },
+    "max_concurrency": {
+      "desc": "admin.transcription.max-concurrency"
+    }
+  },
+  "websocket": {
+    "max_connections_per_second_per_client": {
+      "suffix": "/s",
+      "desc": "admin.config.websocket.maxConnectionsPerSecondPerClient.desc"
+    },
+    "max_http_buffer_size_mb": {
+      "desc": "admin.config.websocket.maxHttpBufferSizeMb.desc",
+      "suffix": "MB"
+    },
+    "ping_interval_seconds": {
+      "suffix": "s",
+      "desc": "admin.config.websocket.pingIntervalSeconds.desc"
+    },
+    "transports": {
+      "desc": "admin.config.websocket.transports.desc"
+    },
+    "eio_ping_interval_seconds": {
+      "suffix": "s",
+      "desc": "admin.config.websocket.eioPingIntervalSeconds.desc"
+    },
+    "eio_ping_timeout_seconds": {
+      "suffix": "s",
+      "desc": "admin.config.websocket.eioPingTimeoutSeconds.desc"
+    }
+  },
+  "workspace_automation": {
+    "enabled": {
+      "desc": "admin.config.workspaceAutomation.enabled.desc"
+    },
+    "max_actions_per_run": {
+      "desc": "admin.config.workspaceAutomation.maxActionsPerRun.desc"
+    },
+    "max_retry_attempts": {
+      "desc": "admin.config.workspaceAutomation.maxRetryAttempts.desc"
+    },
+    "max_runs_per_minute": {
+      "desc": "admin.config.workspaceAutomation.maxRunsPerMinute.desc"
+    },
+    "webhook_timeout_seconds": {
+      "desc": "admin.config.workspaceAutomation.webhookTimeoutSeconds.desc",
+      "suffix": "s"
+    }
+  }
+}

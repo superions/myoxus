@@ -1,0 +1,23 @@
+[Unit]
+Description=Myoxus API Server
+After=network-online.target postgresql.service redis-server.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=myoxus
+Group=myoxus
+WorkingDirectory=/opt/myoxus
+EnvironmentFile=-/etc/myoxus/myoxus.env
+ExecStart=/usr/local/bin/myoxus-server
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/myoxus/config /opt/myoxus/storage /opt/myoxus/logs /opt/myoxus/git-sync /opt/myoxus/pdf-fonts /opt/myoxus/public
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

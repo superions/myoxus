@@ -1,0 +1,15 @@
+query getGitSyncFileBindings($workspaceId: String!, $includeTombstoned: Boolean) {
+  workspace(id: $workspaceId) {
+    gitSyncFileBindings(includeTombstoned: $includeTombstoned) {
+      id
+      blobKey
+      repoPath
+      contentHash
+      mimeType
+      fileSize
+      tombstoned
+      createdAt
+      updatedAt
+    }
+  }
+}

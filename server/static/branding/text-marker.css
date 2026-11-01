@@ -1,0 +1,10 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+/* Document markers retain their fluorescent fill and readable ink in every UI theme. */
+:root {
+  --myoxus-sem-text-marker-yellow: #f5ff00;
+  --myoxus-sem-text-marker-green: #63ff00;
+  --myoxus-sem-text-marker-pink: #ff4fd8;
+  --myoxus-sem-text-marker-orange: #ff9d00;
+  --myoxus-sem-text-marker-blue: #00dfff;
+  --myoxus-sem-text-marker-ink: #1f2330;
+}

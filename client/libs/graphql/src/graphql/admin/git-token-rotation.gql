@@ -1,0 +1,56 @@
+query adminGitTokenRotation($profileId: String!) {
+  admin {
+    gitTokenRotationProviders
+    gitTokenRotationStatus(profileId: $profileId) {
+      profileId
+      provider
+      enabled
+      state
+      renewBeforeDays
+      requestedLifetimeDays
+      currentCredentialExpiresAt
+      nextAttemptAt
+      lastAttemptAt
+      lastSuccessAt
+      diagnosis
+    }
+  }
+}
+
+mutation configureGitTokenRotation(
+  $input: ConfigureGitTokenRotationInput!
+) {
+  admin {
+    configureGitTokenRotation(input: $input) {
+      profileId
+      provider
+      enabled
+      state
+      renewBeforeDays
+      requestedLifetimeDays
+      currentCredentialExpiresAt
+      nextAttemptAt
+      lastAttemptAt
+      lastSuccessAt
+      diagnosis
+    }
+  }
+}
+
+mutation runGitTokenRotationNow($profileId: String!) {
+  admin {
+    runGitTokenRotationNow(profileId: $profileId) {
+      profileId
+      provider
+      enabled
+      state
+      renewBeforeDays
+      requestedLifetimeDays
+      currentCredentialExpiresAt
+      nextAttemptAt
+      lastAttemptAt
+      lastSuccessAt
+      diagnosis
+    }
+  }
+}

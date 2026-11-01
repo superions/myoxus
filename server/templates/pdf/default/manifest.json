@@ -1,0 +1,119 @@
+{
+  "schema_version": "2.0",
+  "id": "default",
+  "name": "Default",
+  "description": "Neutral default template — document filename and version in the header; date, organisation and page position in the footer. Used when no other template is selected.",
+  "version": "1.7.0",
+  "engine": {
+    "name": "typst",
+    "version": "0.15.x"
+  },
+  "provenance": {
+    "license_spdx": "AGPL-3.0-or-later",
+    "copyright_notice": "Copyright 2026 Myoxus contributors",
+    "source_url": "https://github.com/superions/myoxus",
+    "source_revision": "1.7.0"
+  },
+  "entry": "main.typ",
+  "assets": [
+    "main.typ",
+    "preamble.typ",
+    "theme.typ",
+    "i18n/en.json",
+    "i18n/de.json"
+  ],
+  "capabilities": {
+    "colorVariant": {
+      "kind": "enum",
+      "values": ["mono", "accent", "brand"],
+      "default": "mono"
+    },
+    "headerStyle": {
+      "kind": "enum",
+      "values": ["none", "minimal", "branded"],
+      "default": "minimal"
+    },
+    "footerStyle": {
+      "kind": "enum",
+      "values": ["none", "minimal", "page-only", "brand-and-page"],
+      "default": "page-only"
+    },
+    "coverPage": {
+      "kind": "boolean",
+      "default": false
+    },
+    "tocBehavior": {
+      "kind": "enum",
+      "values": ["off", "auto", "force"],
+      "default": "off"
+    },
+    "pageNumbering": {
+      "kind": "enum",
+      "values": ["arabic", "roman", "none"],
+      "default": "arabic"
+    },
+    "customMargins": {
+      "kind": "boolean",
+      "default": false
+    },
+    "accentColor": {
+      "kind": "color",
+      "default": "#1F2937"
+    },
+    "confidentialityLabels": {
+      "kind": "array<string>",
+      "min_items": 0,
+      "max_items": 8,
+      "item_pattern": "^[A-Za-z0-9 _-]{1,32}$",
+      "default": []
+    },
+    "language": {
+      "kind": "enum",
+      "values": [
+        "en",
+        "de",
+        "fr",
+        "es",
+        "it",
+        "pt",
+        "nl",
+        "pl",
+        "cs",
+        "da",
+        "sv",
+        "no",
+        "fi",
+        "el",
+        "ru",
+        "uk",
+        "tr",
+        "hu",
+        "ro",
+        "bg",
+        "hr",
+        "sk",
+        "sl",
+        "sr",
+        "et",
+        "lv",
+        "lt",
+        "pt-BR",
+        "es-MX"
+      ],
+      "default": "en"
+    }
+  },
+  "inputs_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["title"],
+    "properties": {
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200,
+        "description": "Document title rendered at the top of the first page."
+      }
+    }
+  }
+}

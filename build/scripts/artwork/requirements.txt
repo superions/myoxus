@@ -1,0 +1,2 @@
+vtracer==1.0.0a4
+pillow==12.3.0

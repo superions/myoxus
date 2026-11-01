@@ -1,0 +1,25 @@
+{
+  "extends": "../../../tsconfig.web.json",
+  "include": ["./src", "./src/config.json"],
+  "compilerOptions": {
+    "strict": true,
+    "composite": true,
+    "resolveJsonModule": true,
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "declarationDir": "./dist",
+    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo"
+  },
+  "references": [
+    { "path": "../../../libs/debug" },
+    { "path": "../../../libs/env" },
+    { "path": "../../../libs/error" },
+    { "path": "../../../libs/graphql" },
+    { "path": "../../../libs/i18n" },
+    { "path": "../../../libs/icons" },
+    { "path": "../../../libs/infra" },
+    { "path": "../../../libs/routes" },
+    { "path": "../../../libs/track" },
+    { "path": "../../../libs/ui-facade" }
+  ]
+}

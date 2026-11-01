@@ -1,0 +1,70 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:best-practices"],
+  "configMigration": true,
+  "automerge": false,
+  "labels": ["dependencies"],
+  "schedule": ["before 6am"],
+  "osvVulnerabilityAlerts": true,
+  "dependencyDashboardOSVVulnerabilitySummary": "all",
+  "prHourlyLimit": 4,
+  "prConcurrentLimit": 10,
+  "rangeStrategy": "bump",
+  "dependencyDashboard": true,
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on the first day of the month"]
+  },
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"],
+    "schedule": ["at any time"]
+  },
+  "baseBranchPatterns": ["wip"],
+  "packageRules": [
+    {
+      "description": "Review Electron patch and minor updates every day",
+      "matchPackageNames": ["electron", "electron-*", "@electron/*"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "Electron packages",
+      "schedule": ["before 6am"],
+      "automerge": false
+    },
+    {
+      "description": "Discover Electron major updates in the monthly migration batch",
+      "matchPackageNames": ["electron", "electron-*", "@electron/*"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "Electron major updates",
+      "schedule": ["before 6am on the first day of the month"],
+      "automerge": false
+    },
+    {
+      "description": "Discover active Virgultum dependencies for explicit editor review",
+      "matchFileNames": ["virgultum/**/package.json"],
+      "labels": ["dependencies", "editor-review"],
+      "automerge": false
+    },
+    {
+      "description": "Group Yjs and yrs together — must be upgraded in lockstep",
+      "matchPackageNames": ["yjs", "y-protocols", "y-indexeddb"],
+      "groupName": "Yjs packages"
+    },
+    {
+      "description": "Label major updates for explicit migration review",
+      "matchUpdateTypes": ["major"],
+      "labels": ["dependencies", "major-update"],
+      "automerge": false
+    },
+    {
+      "description": "Review patch updates for development tooling",
+      "matchUpdateTypes": ["patch"],
+      "matchPackageNames": ["eslint-*", "prettier", "@types/*", "vitest"],
+      "automerge": false
+    },
+    {
+      "description": "Never auto-merge — all updates require human review",
+      "matchUpdateTypes": ["major", "minor", "patch"],
+      "automerge": false
+    }
+  ]
+}

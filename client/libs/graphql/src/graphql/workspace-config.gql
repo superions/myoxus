@@ -1,0 +1,14 @@
+query getWorkspaceConfig($id: String!) {
+  workspace(id: $id) {
+    name
+    description
+    public
+    publicDeliveryEnabled
+    publiclyAccessible
+    publicDocumentSelectionCount
+    enableAi
+    enableSharing
+    enableUrlPreview
+    enableDocEmbedding
+  }
+}

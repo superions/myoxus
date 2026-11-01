@@ -1,0 +1,3 @@
+mutation removeOrganizationUnitMemberAsManager($unitId: ID!, $userId: ID!) {
+  removeOrganizationUnitMemberAsManager(unitId: $unitId, userId: $userId)
+}

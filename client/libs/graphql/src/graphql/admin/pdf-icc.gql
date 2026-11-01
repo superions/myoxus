@@ -1,0 +1,48 @@
+query adminPdfIccProfiles {
+  admin {
+    pdfIccProfiles {
+      id
+      name
+      profileType
+      sha256
+      uploadedBy
+      uploadedAt
+    }
+  }
+}
+
+query adminPdfIccProfile($id: ID!) {
+  admin {
+    pdfIccProfile(id: $id) {
+      id
+      name
+      profileType
+      sha256
+      uploadedBy
+      uploadedAt
+    }
+  }
+}
+
+mutation adminUploadIccProfile(
+  $name: String!
+  $profileType: PdfIccProfileTypeEnum!
+  $file: Upload!
+) {
+  admin {
+    uploadIccProfile(name: $name, profileType: $profileType, file: $file) {
+      id
+      name
+      profileType
+      sha256
+      uploadedBy
+      uploadedAt
+    }
+  }
+}
+
+mutation adminDeleteIccProfile($id: ID!) {
+  admin {
+    deleteIccProfile(id: $id)
+  }
+}

@@ -1,0 +1,59 @@
+{% extends "_layout.html" %} {% block subject %}Sei stato aggiunto a «{{
+workspace_name }}»{% endblock subject %} {% block preheader %}Apri lo spazio di
+lavoro per vedere i documenti condivisi.{% endblock preheader %} {% block
+category %}COLLABORAZIONE{% endblock category %} {% block heading %}Ora fai
+parte dello spazio di lavoro.{% endblock heading %} {% block introduction %}Un
+amministratore ti ha aggiunto allo spazio di lavoro. Il tuo account può ora
+accedere ai contenuti consentiti dal tuo ruolo.{% endblock introduction %} {%
+block details %}{% if workspace_name %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  SPAZIO DI LAVORO
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ workspace_name }}
+</p>
+{% endif %}{% if actor %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Da
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ actor }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}Apri lo spazio di lavoro
+per vedere i documenti condivisi.{% endblock next_step %} {% block action %}Apri
+spazio di lavoro{% endblock action %} {% block note %}Trovi le informazioni
+aggiornate e le azioni disponibili direttamente in Myoxus.{% endblock note %} {%
+block reason %}Ricevi questa email perché il tuo account è stato aggiunto a
+questo spazio di lavoro.{% endblock reason %}

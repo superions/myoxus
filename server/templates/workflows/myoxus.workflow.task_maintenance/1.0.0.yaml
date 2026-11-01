@@ -1,0 +1,33 @@
+formatVersion: 1
+id: myoxus.workflow.task_maintenance
+version: 1.0.0
+trigger:
+  kind: taskChanged
+capabilityVersions:
+  inspectTaskContent: 1
+  awaitCorrectionConfirmation: 1
+  branch: 1
+  applyTaskCorrections: 1
+nodes:
+  - id: inspect
+    action:
+      kind: inspectTaskContent
+      component: inspect
+  - id: confirmation
+    action:
+      kind: awaitCorrectionConfirmation
+      waitId: correction
+  - id: correction-branch
+    action:
+      kind: branch
+      outcome:
+        kind: result
+        component: confirmation
+        value: outcome
+      cases:
+        apply:
+          - id: apply
+            action:
+              kind: applyTaskCorrections
+              component: apply
+        decline: []

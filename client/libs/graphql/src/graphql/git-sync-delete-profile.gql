@@ -1,0 +1,3 @@
+mutation deleteGitSyncProfile($profileId: String!) {
+  deleteGitSyncProfile(profileId: $profileId)
+}

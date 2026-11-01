@@ -1,0 +1,60 @@
+{% extends "_layout.html" %} {% block subject %}{{ actor }} vous invite dans «
+{{ workspace_name }} »{% endblock subject %} {% block preheader %}Ouvrez
+l’invitation et décidez si vous souhaitez rejoindre cet espace de travail.{%
+endblock preheader %} {% block category %}COLLABORATION{% endblock category %}
+{% block heading %}Une place pour vous dans l’espace de travail.{% endblock
+heading %} {% block introduction %}{{ actor }} vous a invité à rejoindre un
+espace de travail dans Myoxus. Vous pourrez y travailler ensemble sur des
+documents et partager vos connaissances.{% endblock introduction %} {% block
+details %}{% if workspace_name %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  ESPACE DE TRAVAIL
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ workspace_name }}
+</p>
+{% endif %}{% if actor %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  De
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ actor }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}Ouvrez l’invitation et
+décidez si vous souhaitez rejoindre cet espace de travail.{% endblock next_step
+%} {% block action %}Voir l’invitation{% endblock action %} {% block note %}Vous
+ne souhaitez pas rejoindre cet espace ? Vous pouvez ignorer cet e-mail.{%
+endblock note %} {% block reason %}Vous recevez cet e-mail car vous avez été
+invité à rejoindre cet espace de travail.{% endblock reason %}

@@ -1,0 +1,111 @@
+fragment DocumentGraphNodeFields on DocumentGraphNodeType {
+  workspaceId
+  docId
+  rawDocId
+  title
+  documentType
+  status
+  classification
+  deleted
+  redacted
+}
+
+fragment DocumentGraphOccurrenceFields on DocumentGraphOccurrenceType {
+  id
+  sourceDocId
+  sourceBlockId
+  sourceParentBlockId
+  sourceParentFlavour
+  rawTargetDocId
+  targetWorkspaceId
+  targetDocId
+  linkKind
+  paramsJson
+  markdownPreview
+  targetState
+  extractedAt
+  sourceUpdatedAt
+}
+
+fragment DocumentGraphEdgeFields on DocumentGraphEdgeType {
+  sourceDocId
+  targetDocId
+  rawTargetDocId
+  targetWorkspaceId
+  targetState
+  linkKind
+  occurrenceCount
+  firstOccurrencePreview
+  staleState
+  occurrences {
+    ...DocumentGraphOccurrenceFields
+  }
+}
+
+fragment DocumentGraphIndexStatusFields on DocumentGraphIndexStatusType {
+  staleState
+  indexedAt
+  queuedAt
+  startedAt
+  failedAt
+  errorCode
+  errorMessage
+  attemptCount
+  occurrenceCount
+  currentCount
+  staleCount
+  queuedCount
+  extractingCount
+  failedCount
+  deletedCount
+  missingStateCount
+}
+
+query documentGraph($workspaceId: String!, $input: DocumentGraphInput!) {
+  workspace(id: $workspaceId) {
+    id
+    documentGraph(input: $input) {
+      nodes {
+        ...DocumentGraphNodeFields
+      }
+      edges {
+        ...DocumentGraphEdgeFields
+      }
+      databaseReferences {
+        ...DatabaseDocumentReferenceFields
+      }
+      indexStatus {
+        ...DocumentGraphIndexStatusFields
+      }
+    }
+  }
+}
+
+query documentLinks($workspaceId: String!, $input: DocumentLinksInput!) {
+  workspace(id: $workspaceId) {
+    id
+    documentLinks(input: $input) {
+      nodes {
+        ...DocumentGraphNodeFields
+      }
+      edges {
+        ...DocumentGraphEdgeFields
+      }
+      databaseReferences {
+        ...DatabaseDocumentReferenceFields
+      }
+      indexStatus {
+        ...DocumentGraphIndexStatusFields
+      }
+    }
+  }
+}
+
+query documentGraphIndexStatus($workspaceId: String!, $docId: ID) {
+  workspace(id: $workspaceId) {
+    id
+    documentGraphIndexStatus(docId: $docId) {
+      ...DocumentGraphIndexStatusFields
+    }
+  }
+}

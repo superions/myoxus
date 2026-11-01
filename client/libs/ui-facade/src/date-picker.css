@@ -1,0 +1,54 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+.myoxus-ui-date-picker-day[data-weekend="true"]:not(
+    [data-current-month="false"]
+  ):not([data-selected="true"]) {
+  color: var(--myoxus-error-color);
+}
+
+.myoxus-ui-date-picker-day[data-selection-variant="outline"][data-selected="true"] {
+  color: var(--myoxus-text-primary-color);
+  background: transparent;
+  box-shadow: inset 0 0 0 calc(var(--mantine-spacing-2xs) / 2)
+    var(--myoxus-accent-primary);
+}
+
+.myoxus-ui-date-picker-day-content {
+  position: relative;
+  display: inline-flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+}
+
+.myoxus-ui-date-picker-day-label {
+  min-width: 0;
+}
+
+.myoxus-ui-date-picker-day-indicator {
+  position: absolute;
+  inset-block-end: var(--mantine-spacing-2xs);
+  inset-inline: 0;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.myoxus-ui-date-picker-day-indicator-dot {
+  width: var(--mantine-spacing-xs);
+  height: var(--mantine-spacing-xs);
+  border-radius: var(--mantine-radius-xl);
+  background-color: var(
+    --myoxus-ui-date-picker-day-indicator-color,
+    var(--myoxus-processing-color)
+  );
+  box-shadow: var(--mantine-shadow-sm);
+}
+
+.myoxus-ui-date-picker-day[data-selected="true"]
+  .myoxus-ui-date-picker-day-indicator-dot {
+  box-shadow: 0 0 0 var(--mantine-spacing-2xs)
+    color-mix(in srgb, var(--myoxus-accent-primary) 30%, transparent);
+}

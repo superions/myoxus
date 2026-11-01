@@ -1,0 +1,14 @@
+mutation enrichAudioTranscription(
+  $workspaceId: String!
+  $jobId: String!
+  $summary: Boolean!
+  $actions: Boolean!
+) {
+  enrichAudioTranscription(workspaceId: $workspaceId, jobId: $jobId, summary: $summary, actions: $actions) {
+    id
+    status
+    errorMessage
+    summary
+    actions
+  }
+}

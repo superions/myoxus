@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>Myoxus RSVP</title>
+<link rel="stylesheet" href="/api/branding/theme.css">
+<style>{{ public_css | safe }}</style>
+</head>
+<body><main class="mx-public-layout mx-public-layout--workspace"><article class="mx-public-content mx-public-document">
+{% if state == "success" %}
+<h2>You have {% if status == "accepted" %}accepted{% elif status == "declined" %}declined{% elif status == "tentative" %}tentatively accepted{% else %}marked as pending{% endif %} the invitation to <em>{{ event_title | default(value="the event") }}</em>.</h2>
+<p>Your response has been recorded. You can close this window.</p>
+{% elif state == "invalid_link" %}
+<h1>This RSVP link is invalid or has expired.</h1>
+{% elif state == "invalid_status" %}
+<h1>Unknown RSVP status: {{ status }}</h1>
+{% elif state == "unavailable" %}
+<h1>Calendar service is not available.</h1>
+{% else %}
+<h1>Could not process RSVP{% if failure %}: {{ failure }}{% endif %}</h1>
+{% endif %}
+</article></main></body></html>

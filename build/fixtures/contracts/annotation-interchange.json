@@ -1,0 +1,10 @@
+[
+  { "body": "first\n\nsecond **literal** [[Note]] ✓", "supported": true },
+  { "body": "literal %% and trailing%", "supported": true },
+  { "body": "%", "supported": true },
+  { "body": "literal \\%", "supported": false },
+  { "body": "", "supported": true },
+  { "body": "trailing \\", "supported": false },
+  { "body": "literal `code`", "supported": false },
+  { "body": "literal <code>HTML</code>", "supported": false }
+]

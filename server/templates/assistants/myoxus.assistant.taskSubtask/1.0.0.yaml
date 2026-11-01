@@ -1,0 +1,69 @@
+formatVersion: 1
+id: myoxus.assistant.taskSubtask
+version: 1.0.0
+name: &id001
+  en: Add subtask
+  de: Unteraufgabe hinzufügen
+  fr: Ajouter une sous-tâche
+  es: Añadir subtarea
+description:
+  en: People with access to the selected destination can read this Task.
+  de: Personen mit Zugriff auf das gewählte Ziel können diese Aufgabe lesen.
+  fr: Les personnes ayant accès à la destination choisie peuvent lire cette tâche.
+  es: Las personas con acceso al destino elegido pueden leer esta tarea.
+contexts:
+  - taskSubtask
+inputs:
+  - id: title
+    target: title
+    label:
+      en: Title
+      de: Titel
+      fr: Titre
+      es: Título
+    description: null
+    valueType: text
+    required: true
+    default: null
+    choices: []
+    visibleWhen: null
+components: []
+presentation:
+  steps:
+    - id: create
+      title: *id001
+      groups:
+        - id: task
+          title: null
+          role: content
+          controls:
+            - kind: input
+              input: title
+              control: text
+          visibleWhen: null
+      actions:
+        - id: cancel
+          action: cancel
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: apply
+          action: createSubtask
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: check
+          action: check
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: close
+          action: close
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+  dialogs: []

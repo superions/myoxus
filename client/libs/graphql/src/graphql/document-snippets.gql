@@ -1,0 +1,9 @@
+query documentSnippets($workspaceId: String!, $docIds: [ID!]!) {
+  workspace(id: $workspaceId) {
+    documentSnippets(docIds: $docIds) {
+      docId
+      snippet
+      indexedAt
+    }
+  }
+}

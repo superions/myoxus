@@ -1,0 +1,34 @@
+mutation adminUpdateConfig($updates: [UpdateAppConfigInput!]!) {
+  admin {
+    adminUpdateConfig(updates: $updates) {
+      applied
+      writeback
+      fieldErrors {
+        module
+        key
+        path
+        message
+      }
+      config {
+        revision
+        modules {
+          module
+          groups {
+            fields {
+              path
+              value
+            }
+          }
+        }
+        effectiveFields {
+          path
+          runtimeEffectiveValue
+          winningSource
+          runtimeEffectiveState
+          requiresRestart
+          sensitive
+        }
+      }
+    }
+  }
+}

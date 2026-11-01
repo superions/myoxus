@@ -1,0 +1,18 @@
+{
+  "name": "@myoxus/mobile-shared",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./storage/payload": "./src/storage/payload.ts"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.5.2",
+    "@myoxus/core": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "vitest": "4.1.11"
+  }
+}

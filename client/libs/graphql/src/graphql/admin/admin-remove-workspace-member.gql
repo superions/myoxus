@@ -1,0 +1,5 @@
+mutation adminRemoveWorkspaceMember($workspaceId: ID!, $userId: ID!) {
+  admin {
+    adminRemoveWorkspaceMember(workspaceId: $workspaceId, userId: $userId)
+  }
+}

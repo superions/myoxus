@@ -1,0 +1,13 @@
+[package]
+description       = "Safe server-side Mermaid SVG rendering shared by Myoxus exports"
+edition.workspace = true
+license.workspace = true
+name              = "myoxus-mermaid-render"
+version.workspace = true
+
+[dependencies]
+hex.workspace        = true
+merman               = { version = "0.5", default-features = false, features = ["render"] }
+serde_json.workspace = true
+sha2.workspace       = true
+thiserror.workspace  = true

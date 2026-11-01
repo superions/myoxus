@@ -1,0 +1,3 @@
+mutation resolveGitSyncConflict($input: ResolveConflictInput!) {
+  resolveGitSyncConflict(input: $input)
+}

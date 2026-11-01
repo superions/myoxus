@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:tns="urn:myoxus:data-objects" xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="Definitions" targetNamespace="urn:myoxus:data-objects">
+ <itemDefinition id="Item" structureRef="xsd:string" itemKind="Information"/>
+ <itemDefinition id="CollectionItem" structureRef="xsd:string" itemKind="Information" isCollection="true"/>
+ <process id="Process" name="Data object notation">
+  <laneSet id="Lanes"><lane id="Lane" name="Item ownership"><flowNodeRef>Review</flowNodeRef><flowNodeRef>Sub</flowNodeRef></lane></laneSet>
+  <dataObject id="Orders" name="Orders" itemSubjectRef="tns:CollectionItem" isCollection="true"><dataState id="OrderState" name="Draft"><documentation id="StateDoc">Preserve state identity and metadata</documentation></dataState></dataObject>
+  <dataObject id="Receipt" name="Receipt"/>
+  <task id="Review" name="Review data"/>
+  <subProcess id="Sub" name="Nested data"><dataObject id="Nested" name="Nested" isCollection="true"><dataState id="NestedState" name="Ready"/></dataObject><task id="Child" name="Nested work"/></subProcess>
+ </process>
+ <bpmndi:BPMNDiagram id="Diagram"><bpmndi:BPMNPlane id="Plane" bpmnElement="Process">
+  <bpmndi:BPMNShape id="LaneDI" bpmnElement="Lane" isHorizontal="true"><dc:Bounds x="20" y="20" width="1040" height="760"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="OrdersDI" bpmnElement="Orders"><dc:Bounds x="150" y="130" width="100" height="140"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="ReceiptDI" bpmnElement="Receipt"><dc:Bounds x="470" y="130" width="100" height="140"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="ReviewDI" bpmnElement="Review"><dc:Bounds x="760" y="170" width="180" height="100"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="SubDI" bpmnElement="Sub" isExpanded="true"><dc:Bounds x="100" y="430" width="840" height="280"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="NestedDI" bpmnElement="Nested"><dc:Bounds x="210" y="500" width="60" height="80"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="ChildDI" bpmnElement="Child"><dc:Bounds x="620" y="520" width="180" height="100"/></bpmndi:BPMNShape>
+ </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+</definitions>

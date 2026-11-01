@@ -1,0 +1,81 @@
+{% extends "_layout.html" %} {% block subject %}Reminder: {{ row_title }}{%
+endblock subject %} {% block preheader %}Open the record to view the details and
+update them if needed.{% endblock preheader %} {% block category %}YOUR
+REMINDER{% endblock category %} {% block heading %}Keep the date in sight.{%
+endblock heading %} {% block introduction %}Your reminder for “{{ row_title }}”
+is due now. Here is the related date and a direct link to the record.{% endblock
+introduction %} {% block details %}{% if row_title %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  DATABASE RECORD
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ row_title }}
+</p>
+{% endif %}{% if field_name %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Reminder field
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ field_name }}
+</p>
+{% endif %}{% if scheduled_label %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Scheduled date
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ scheduled_label }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}Open the record to view
+the details and update them if needed.{% endblock next_step %} {% block action
+%}Open record{% endblock action %} {% block note %}You can change or remove this
+reminder on the record’s date field.{% endblock note %} {% block reason %}You
+received this email because you set up an email reminder for this date field.{%
+endblock reason %}

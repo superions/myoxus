@@ -1,0 +1,22 @@
+{
+  "name": "@myoxus/theme",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-or-later",
+  "repository": "myoxus/theme",
+  "exports": {
+    ".": "./src/index.ts",
+    "./browser-runtime": "./src/browser-runtime.ts",
+    "./client.css": "./src/client.css",
+    "./fonts.css": "./src/fonts.css",
+    "./global.css": "./src/global.css",
+    "./style.css": "./src/style.css",
+    "./theme.css": "./src/theme.css",
+    "./v2/themes": "./src/v2/themes/index.ts",
+    "./typography": "./src/index.ts",
+    "./artwork": "./src/artwork.ts"
+  },
+  "files": [
+    "src"
+  ]
+}

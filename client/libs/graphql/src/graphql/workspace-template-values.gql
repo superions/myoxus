@@ -1,0 +1,7 @@
+query workspaceTemplateValues($workspaceId: String!, $requested: [String!]!, $targetDocId: String, $folderId: String, $parentDocId: String, $deferCreation: Boolean! = false) {
+  workspace(id: $workspaceId) {
+    templateContext {
+      requestedValues(requested: $requested, targetDocId: $targetDocId, folderId: $folderId, parentDocId: $parentDocId, deferCreation: $deferCreation)
+    }
+  }
+}

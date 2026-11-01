@@ -1,0 +1,98 @@
+[
+  {
+    "name": "forward Unicode and repeated normalized references",
+    "source": "Before[^Straße], again[^STRASSE], Unicode[^ÉTUDE] and numeric[^2].\n\n[^Straße]: First **body**.\n\n    Second paragraph.\n\n[^ÉTUDE]: Study body.\n\n[^2]: Numeric body.",
+    "labels": ["Straße", "ÉTUDE", "2"],
+    "markers": 4,
+    "unreferenced": 0
+  },
+  {
+    "name": "code and escaped markers stay literal",
+    "source": "Escaped \\[^missing] and `[^missing]`.\n\n```md\n[^missing]: not a definition\n```",
+    "labels": [],
+    "markers": 0,
+    "unreferenced": 0
+  },
+  {
+    "name": "unreferenced native content",
+    "source": "Ordinary body.\n\n[^Unused]: First body.\n\n    Second body.",
+    "labels": ["Unused"],
+    "markers": 0,
+    "unreferenced": 1
+  },
+  {
+    "name": "mixed native and deployed citation",
+    "source": "Body[^local], citation[^url], repeat[^LOCAL].\n\n[^local]: **Full** body.\n\n[^url]: {\"title\":\"Site\",\"url\":\"https%3A%2F%2Fexample.org%2F%3Fq%3Dx%2520y\",\"type\":\"url\"}",
+    "labels": ["local"],
+    "markers": 3,
+    "unreferenced": 0
+  },
+  {
+    "name": "ordinary JSON prose and fenced JSON",
+    "source": "Read[^ordinary] and[^code].\n\n[^ordinary]: {\"type\":\"example\",\"answer\":42}\n\n[^code]:\n    ```json\n    {\"type\":\"url\",\"url\":\"https://example.org\"}\n    ```",
+    "labels": ["ordinary", "code"],
+    "markers": 2,
+    "unreferenced": 0
+  },
+  {
+    "name": "citation-looking paragraph with additional content is ordinary",
+    "source": "Read[^rich].\n\n[^rich]: {\"type\":\"doc\",\"docId\":\"existing-key\"}\n\n    Second paragraph stays local.",
+    "labels": ["rich"],
+    "markers": 1,
+    "unreferenced": 0
+  },
+  {
+    "name": "unreferenced legacy citation",
+    "source": "Ordinary body.\n\n[^source]: {\"type\":\"url\",\"url\":\"https%3A%2F%2Fexample.org\"}",
+    "labels": [],
+    "markers": 0,
+    "unreferenced": 1
+  },
+  {
+    "name": "missing definition",
+    "source": "Missing[^absent].",
+    "error": "Missing footnote definition"
+  },
+  {
+    "name": "case-normalized duplicate",
+    "source": "Body[^note].\n\n[^Note]: first\n\n[^NOTE]: second",
+    "error": "Conflicting footnote definition"
+  },
+  {
+    "name": "Unicode-normalized duplicate",
+    "source": "Body[^Straße].\n\n[^Straße]: first\n\n[^STRASSE]: second",
+    "error": "Conflicting footnote definition"
+  },
+  {
+    "name": "nested reference",
+    "source": "Body[^outer].\n\n[^outer]: Inner[^inner].\n\n[^inner]: prohibited",
+    "error": "Nested footnote reference"
+  },
+  {
+    "name": "missing legacy target",
+    "source": "Body[^source].\n\n[^source]: {\"type\":\"url\",\"title\":\"private payload should not appear\"}",
+    "error": "Missing citation target"
+  },
+  {
+    "name": "invalid legacy field",
+    "source": "Body[^source].\n\n[^source]: {\"type\":\"url\",\"url\":\"https%3A%2F%2Fexample.org\",\"title\":42}",
+    "error": "Invalid citation definition"
+  },
+  {
+    "name": "recognizable malformed citation with type after target",
+    "source": "Body[^source].\n\n[^source]: {\"url\":\"private payload should not appear\",\"type\":\"url\",",
+    "error": "Invalid citation definition"
+  },
+  {
+    "name": "unreferenced citation with malformed encoded target",
+    "source": "Body.\n\n[^source]: {\"type\":\"url\",\"url\":\"https%ZZ\"}",
+    "error": "Invalid citation URL encoding"
+  },
+  {
+    "name": "raw citation URL preserves a literal malformed percent sequence",
+    "source": "Body[^source].\n\n[^source]: {\"type\":\"url\",\"url\":\"https://example.org/%ZZ\"}",
+    "labels": [],
+    "markers": 1,
+    "unreferenced": 0
+  }
+]

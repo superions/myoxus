@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+[Unit]
+Description=Myoxus API Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=myoxus
+Group=myoxus
+WorkingDirectory=/usr/share/myoxus
+EnvironmentFile=/etc/myoxus/myoxus.env
+ExecStart=/usr/bin/myoxus-server
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/myoxus /var/log/myoxus
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

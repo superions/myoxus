@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="{{ page.html_lang_attr | safe }}" data-myoxus-role="public-page">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ page.seo_title }}</title>
+    <meta name="description" content="{{ page.seo_description }}" />
+    <meta name="robots" content="{{ page.robots }}" />
+    <link rel="canonical" href="{{ page.canonical_url_attr | safe }}" />
+    <meta property="og:title" content="{{ page.seo_title }}" />
+    <meta property="og:description" content="{{ page.seo_description }}" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="{{ page.canonical_url_attr | safe }}" />
+    {% if shell.social_card_url %}
+    <meta property="og:image" content="{{ shell.social_card_url }}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="{{ shell.social_card_url }}" />
+    {% endif %}
+    <link rel="stylesheet" href="{{ page.theme_css_url_attr | safe }}" />
+    <link rel="icon" href="{{ page.favicon_url_attr | safe }}" />
+    {% if shell.public_css_url %}
+    <link rel="stylesheet" href="{{ shell.public_css_url }}" />
+    {% else %}
+    <style>{{ shell.public_css | safe }}</style>
+    {% endif %}
+    {% if shell.search_enabled %}
+    <script type="module">
+      import * as pagefind from {{ shell.search_bundle_url | json_encode | safe }};
+      const searchModuleUrl = new URL({{ shell.search_bundle_url | json_encode | safe }}, document.baseURI);
+      await pagefind.options({ baseUrl: new URL("../../", searchModuleUrl).pathname });
+      window.pagefind = pagefind;
+    </script>
+    {% endif %}
+    {% if shell.public_js_url %}
+    <script defer src="{{ shell.public_js_url }}"></script>
+    {% else %}
+    <script defer>{{ shell.public_js | safe }}</script>
+    {% endif %}
+  </head>
+  <body>
+    <div class="mx-public-shell{% if page.workspace_variant %} mx-public-shell--workspace{% endif %}">
+      <header class="mx-public-header" data-pagefind-ignore data-myoxus-role="public-header">
+        <div class="mx-public-header-inner">
+          <div class="mx-public-heading">
+            <a class="mx-public-brand" href="{{ page.public_root_href | safe }}">
+              <strong>{{ page.brand_title }}</strong>
+              <span>{{ page.brand_subtitle }}</span>
+            </a>
+            {% if page.badges | length > 0 %}
+            <dl class="mx-public-badges" data-myoxus-role="public-document-metadata">
+              {% for badge in page.badges %}
+              <div class="mx-public-badge" data-metadata-key="{{ badge.key }}">
+                <dt>{{ badge.label }}</dt>
+                <dd>{{ badge.value }}</dd>
+              </div>
+              {% endfor %}
+            </dl>
+            {% endif %}
+          </div>
+          {% if shell.search_enabled %}
+          <form class="mx-public-search" role="search">
+            <input type="search" placeholder="{{ page.labels.search_placeholder }}" data-pagefind-search />
+          </form>
+          {% endif %}
+        </div>
+      </header>
+      <main class="mx-public-layout{% if page.workspace_variant %} mx-public-layout--workspace{% endif %}">
+        <section class="mx-public-content">
+          {% if shell.breadcrumbs_enabled %}
+          <nav class="mx-public-breadcrumbs" aria-label="{{ page.labels.breadcrumb }}" data-pagefind-ignore>
+            {% for crumb in shell.breadcrumbs %}
+              {% if crumb.href %}
+              <a href="{{ crumb.href }}">{{ crumb.label }}</a>
+              {% else %}
+              <span>{{ crumb.label }}</span>
+              {% endif %}
+              {% if not loop.last %}<span aria-hidden="true">/</span>{% endif %}
+            {% endfor %}
+          </nav>
+          {% endif %}
+          {% if shell.search_enabled %}
+          <section class="mx-public-search-results" data-pagefind-results data-pagefind-ignore hidden></section>
+          {% endif %}
+          {{ page.body | safe }}
+          {% if shell.previous_next_enabled %}
+          <nav class="mx-public-adjacent" aria-label="{{ page.labels.adjacent_pages }}" data-pagefind-ignore>
+            {% if shell.previous %}
+            <a href="{{ shell.previous.href }}">
+              <span>{{ page.labels.previous }}</span>
+              <strong>{{ shell.previous.label }}</strong>
+            </a>
+            {% else %}
+            <span></span>
+            {% endif %}
+            {% if shell.next %}
+            <a href="{{ shell.next.href }}">
+              <span>{{ page.labels.next }}</span>
+              <strong>{{ shell.next.label }}</strong>
+            </a>
+            {% endif %}
+          </nav>
+          {% endif %}
+        </section>
+        {% if shell.toc_enabled %}
+        <aside class="mx-public-aside" data-pagefind-ignore>
+          <nav class="mx-public-toc" aria-label="{{ page.labels.contents }}">
+            <strong>{{ page.labels.contents }}</strong>
+            <ol>
+              {% for entry in shell.toc %}
+              <li class="mx-public-toc-level-{{ entry.level }}">
+                <a href="#{{ entry.id }}">{{ entry.title }}</a>
+              </li>
+              {% endfor %}
+            </ol>
+          </nav>
+        </aside>
+        {% endif %}
+      </main>
+      <footer class="mx-public-footer" data-pagefind-ignore data-myoxus-role="public-footer">
+        <div class="mx-public-footer-inner">
+          {% if shell.footer_note %}{{ shell.footer_note }}{% else %}{{ page.labels.footer }}{% endif %}
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>

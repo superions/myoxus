@@ -1,0 +1,59 @@
+{% extends "_layout.html" %} {% block subject %}Record assegnato: {{ row_title
+}}{% endblock subject %} {% block preheader %}Controlla il record e aggiorna i
+dettagli necessari.{% endblock preheader %} {% block category %}LE TUE
+ATTIVITÀ{% endblock category %} {% block heading %}Un record ti è stato
+assegnato.{% endblock heading %} {% block introduction %}Sei stato inserito in
+un campo persone di questo record. Aprilo per vedere le informazioni e le
+attività associate.{% endblock introduction %} {% block details %}{% if
+row_title %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  RECORD
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ row_title }}
+</p>
+{% endif %}{% if field_name %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Campo persone
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ field_name }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}Controlla il record e
+aggiorna i dettagli necessari.{% endblock next_step %} {% block action %}Apri
+record{% endblock action %} {% block note %}Trovi le informazioni aggiornate e
+le azioni disponibili direttamente in Myoxus.{% endblock note %} {% block reason
+%}Ricevi questa email perché sei stato assegnato a questo record.{% endblock
+reason %}

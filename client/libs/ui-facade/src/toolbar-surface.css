@@ -1,0 +1,109 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+.myoxus-ui-toolbar-surface[data-compact="true"] {
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  justify-content: flex-start;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.myoxus-ui-toolbar-surface[data-compact="true"]::-webkit-scrollbar {
+  display: none;
+}
+
+.myoxus-ui-toolbar-surface[data-placement="bottom-overlay"] {
+  position: absolute;
+  bottom: var(--mantine-spacing-lg);
+  left: 50%;
+  z-index: var(--myoxus-z-index-popover);
+  max-inline-size: calc(100% - (var(--mantine-spacing-lg) * 2));
+  /* Intrinsic width avoids shrink-to-fit using only the space after left: 50%. */
+  inline-size: max-content;
+  flex-wrap: nowrap;
+  transform: translateX(-50%);
+}
+
+.myoxus-floating-action-dock {
+  position: absolute;
+  inset-inline-end: var(--mantine-spacing-lg);
+  inset-block-end: var(--mantine-spacing-lg);
+  z-index: var(--myoxus-z-index-popover);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--mantine-spacing-md);
+}
+
+.myoxus-floating-action-dock[data-concealed="true"] {
+  pointer-events: none;
+}
+
+.myoxus-floating-action-dock[data-elevated="true"] {
+  inset-block-end: calc(
+    calc(
+        var(--mantine-spacing-2xl) + var(--mantine-spacing-lg) +
+          var(--mantine-spacing-xs)
+      ) +
+      var(--mantine-spacing-xl) + var(--mantine-spacing-xs)
+  );
+}
+
+.myoxus-floating-action-trigger {
+  transform: translateY(0);
+  transition: transform 200ms ease;
+}
+
+.myoxus-floating-action-trigger[data-concealed="true"] {
+  pointer-events: none;
+  transform: translateY(
+    calc(calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm)) * 3)
+  );
+  transition-delay: 200ms;
+}
+
+.myoxus-canvas-overlay-toolbar {
+  position: relative;
+  z-index: var(--myoxus-ui-canvas-overlay-z-index, 2);
+  pointer-events: none;
+}
+
+.myoxus-canvas-overlay-toolbar :where(button, a, [role="button"]) {
+  pointer-events: auto;
+}
+
+.myoxus-canvas-overlay-title-slot {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.myoxus-canvas-overlay-title-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  color: var(--myoxus-icon-color);
+}
+
+.myoxus-canvas-overlay-title-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.myoxus-canvas-overlay-title-text[data-emphasis="strong"] {
+  font-weight: var(
+    --mantine-font-weight-section-title,
+    var(--mantine-font-weight-regular)
+  );
+}
+
+.myoxus-canvas-overlay-title-text[data-emphasis="balanced"] {
+  font-weight: var(
+    --mantine-font-weight-label-compact,
+    var(--mantine-font-weight-regular)
+  );
+}

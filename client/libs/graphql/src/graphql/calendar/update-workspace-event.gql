@@ -1,0 +1,35 @@
+mutation updateWorkspaceEvent(
+  $eventId: String!
+  $workspaceId: String!
+  $scope: NativeEventScope!
+  $instanceStart: DateTime
+  $input: UpdateWorkspaceEventInput!
+) {
+  updateWorkspaceEvent(
+    eventId: $eventId
+    workspaceId: $workspaceId
+    scope: $scope
+    instanceStart: $instanceStart
+    input: $input
+  ) {
+    id
+    origin
+    workspaceId
+    title
+    startsAt
+    endsAt
+    allDay
+    allMembers
+    tagId
+    sourceExternalId
+    descriptionDelta
+    recurrenceParentId
+    reminders {
+      id
+      channel
+      minutesBefore
+      scheduledFor
+      deliveredAt
+    }
+  }
+}

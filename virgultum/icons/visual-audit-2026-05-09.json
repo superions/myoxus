@@ -1,0 +1,5165 @@
+{
+  "schema": "myoxus-icon-visual-audit/v2",
+  "reviewedAt": "2026-05-09",
+  "reviewer": "Codex strict visual QA with in-app browser contact-sheet review",
+  "sourcePackage": "@myoxus/icons/react via @virgultum/icons/rc",
+  "totalIcons": 733,
+  "categories": ["ok", "review", "fix"],
+  "summary": {
+    "ok": 500,
+    "review": 233,
+    "fix": 0
+  },
+  "rules": [
+    "Any random hash/polygon fallback is a fix, not ok.",
+    "Badges must be detached from the base metaphor and remain readable at 18px.",
+    "Panel icons may not be meaningless lines in a frame; they must use semantic motifs or explicit text fallback.",
+    "File-type icons use committed font-path extension labels inside one shared document shell.",
+    "Brand-adjacent exports are review unless product usage proves a domain-specific Myoxus icon would be clearer.",
+    "Text glyphs are generated from committed font outlines, not hand-drawn pseudo letters."
+  ],
+  "resolvedFixFamilies": [
+    "Account/User status badges",
+    "Delete and Filter detached action badges",
+    "AI outline/embedding/thinking metaphors",
+    "Alias, Appearance, AllDocs, AddOrganize, ArchiveRestore, AutoTidyUp",
+    "Panel icon family random-line fallback",
+    "Panel routing and fixed-size panel text/typography",
+    "Panel motifs: Flash, Light, Settings, Sunglass",
+    "FileIcon extension-label family",
+    "ColorPicker, Database, Direction, Discord, Eraser, Organization"
+  ],
+  "entries": [
+    {
+      "index": 1,
+      "name": "AccountBanIcon",
+      "category": "ok",
+      "resolvedFromFix": true,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 2,
+      "name": "AccountEnableIcon",
+      "category": "ok",
+      "resolvedFromFix": true,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 3,
+      "name": "AccountIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 4,
+      "name": "ActivityIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 5,
+      "name": "AddCollectionIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 6,
+      "name": "AddCommentIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 7,
+      "name": "AddCursorDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 8,
+      "name": "AddCursorIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 9,
+      "name": "AddOrganizeIcon",
+      "category": "ok",
+      "resolvedFromFix": true,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 10,
+      "name": "AddTagIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 11,
+      "name": "AddTextIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 12,
+      "name": "AdminIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 13,
+      "name": "MyoxusIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 14,
+      "name": "AiEmbeddingIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 15,
+      "name": "AiIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 16,
+      "name": "AiOutlineIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 17,
+      "name": "AiThinkingIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 18,
+      "name": "AlertTriangleIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 19,
+      "name": "AliasIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 20,
+      "name": "AlignBottomIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 21,
+      "name": "AlignHorizontalCenterIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 22,
+      "name": "AlignJustifyIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 23,
+      "name": "AlignLeftIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 24,
+      "name": "AlignRightIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 25,
+      "name": "AlignTopIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 26,
+      "name": "AlignVerticalCenterIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 27,
+      "name": "AllDocsIcon",
+      "category": "ok",
+      "resolvedFromFix": true,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 28,
+      "name": "AppearanceIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 29,
+      "name": "AppleDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 30,
+      "name": "AppleIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 31,
+      "name": "ArchiveIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 32,
+      "name": "ArchiveRestoreIcon",
+      "category": "ok",
+      "resolvedFromFix": true,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 33,
+      "name": "ArrowDownBigBottomIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 34,
+      "name": "ArrowDownBigIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 35,
+      "name": "ArrowDownSmallIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 36,
+      "name": "ArrowDownSmallPlusIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 37,
+      "name": "ArrowLeftBigIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 38,
+      "name": "ArrowLeftIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 39,
+      "name": "ArrowLeftRightIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 40,
+      "name": "ArrowLeftSmallIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 41,
+      "name": "ArrowLeftSmallPlusIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 42,
+      "name": "ArrowRightBigIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 43,
+      "name": "ArrowRightIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 44,
+      "name": "ArrowRightSmallIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 45,
+      "name": "ArrowRightSmallPlusIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 46,
+      "name": "ArrowShapeIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 47,
+      "name": "ArrowsLeftIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 48,
+      "name": "ArrowsRightIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 49,
+      "name": "ArrowUpBigIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 50,
+      "name": "ArrowUpBigTopIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 51,
+      "name": "ArrowUpCircleIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 52,
+      "name": "ArrowUpSmallIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 53,
+      "name": "ArrowUpSmallPlusIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 54,
+      "name": "AtIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 55,
+      "name": "AtSignIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 56,
+      "name": "AttachmentIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 57,
+      "name": "AutoHeightIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 58,
+      "name": "AutoSizeIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 59,
+      "name": "AutoTidyUpIcon",
+      "category": "ok",
+      "resolvedFromFix": true,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 60,
+      "name": "BackwardPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 61,
+      "name": "BagPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 62,
+      "name": "BanIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 63,
+      "name": "BarChart3Icon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 64,
+      "name": "BaseballPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 65,
+      "name": "BasketballPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 66,
+      "name": "BitcoinPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 67,
+      "name": "BlockIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 68,
+      "name": "BlockLinkIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 69,
+      "name": "BlocksuiteIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 70,
+      "name": "BoldIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 71,
+      "name": "BookmarkIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 72,
+      "name": "BookPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 73,
+      "name": "BookTemplateIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 74,
+      "name": "BrainIcon",
+      "category": "ok",
+      "resolvedFromFix": true,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 75,
+      "name": "BriefcaseIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 76,
+      "name": "BrokenImageIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 77,
+      "name": "BroomIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 78,
+      "name": "BrushIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 79,
+      "name": "BubbleIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 80,
+      "name": "BulletedList01Icon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 81,
+      "name": "BulletedList02Icon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 82,
+      "name": "BulletedList03Icon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 83,
+      "name": "BulletedList04Icon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 84,
+      "name": "BulletedListIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 85,
+      "name": "CalendarClockIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 86,
+      "name": "CalendarDaysIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 87,
+      "name": "CalendarPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 88,
+      "name": "CalendarXmarkIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 89,
+      "name": "CameraIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 90,
+      "name": "CameraPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 91,
+      "name": "CancelWrapIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 92,
+      "name": "CaptionIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 93,
+      "name": "CardPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 94,
+      "name": "Cart2PanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 95,
+      "name": "CartPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 96,
+      "name": "CategoryPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 97,
+      "name": "CenterPeekIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 98,
+      "name": "ChartPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 99,
+      "name": "ChatPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 100,
+      "name": "ChatWithAiIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 101,
+      "name": "CheckBoxCheckLinearIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 102,
+      "name": "CheckBoxCheckSolidIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 103,
+      "name": "CheckBoxIntermediateIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 104,
+      "name": "CheckBoxUnIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 105,
+      "name": "CheckCircle2Icon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 106,
+      "name": "CheckCircleIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 107,
+      "name": "CheckIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 108,
+      "name": "ChemicalPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 109,
+      "name": "ChevronDownIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 110,
+      "name": "ChevronLeftIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 111,
+      "name": "ChevronRightIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 112,
+      "name": "ChevronsLeftIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 113,
+      "name": "ChevronsRightIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 114,
+      "name": "ChevronUpIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 115,
+      "name": "ChromeIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 116,
+      "name": "CircleIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 117,
+      "name": "CirclePanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 118,
+      "name": "CircleUserIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 119,
+      "name": "ClaudeDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 120,
+      "name": "ClientIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 121,
+      "name": "ClipboardCheckIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 122,
+      "name": "ClipboardListIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 123,
+      "name": "ClockIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 124,
+      "name": "CloseIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 125,
+      "name": "CloudBubbleIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 126,
+      "name": "CloudWorkspaceIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 127,
+      "name": "Cloudy2PanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 128,
+      "name": "CloudyPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 129,
+      "name": "CodeBlockIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 130,
+      "name": "CodeIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 131,
+      "name": "CodePanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 132,
+      "name": "CogIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 133,
+      "name": "CoinPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 134,
+      "name": "CollaborationIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 135,
+      "name": "CollapseIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 136,
+      "name": "CollapseTabIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 137,
+      "name": "CollectionsIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 138,
+      "name": "CollectPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 139,
+      "name": "ColorPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 140,
+      "name": "ColorPickerIcon",
+      "category": "ok",
+      "resolvedFromFix": true,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 141,
+      "name": "CommentDuodoneIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 142,
+      "name": "CommentIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 143,
+      "name": "CompressIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 144,
+      "name": "Computer2PanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 145,
+      "name": "ComputerPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 146,
+      "name": "ConfusePanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 147,
+      "name": "ConnectorCIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 148,
+      "name": "ConnectorEIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 149,
+      "name": "ConnectorLIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 150,
+      "name": "ContactWithUsIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 151,
+      "name": "ConvertIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 152,
+      "name": "CopyAsImgaeIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 153,
+      "name": "CopyIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 154,
+      "name": "CornerDownRightIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 155,
+      "name": "CornerIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 156,
+      "name": "CreatedIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 157,
+      "name": "CropIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 158,
+      "name": "CrossedCircleIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 159,
+      "name": "CrownIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 160,
+      "name": "CubePanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 161,
+      "name": "CurveLineIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 162,
+      "name": "CustomizedHeightIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 163,
+      "name": "CustomSizeIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 164,
+      "name": "CylinderIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 165,
+      "name": "DarkModeIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 166,
+      "name": "DashLineIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 167,
+      "name": "Data2PanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 168,
+      "name": "DatabaseIcon",
+      "category": "ok",
+      "resolvedFromFix": true,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 169,
+      "name": "DatabaseKanbanViewIcon",
+      "category": "ok",
+      "resolvedFromFix": true,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 170,
+      "name": "DatabaseListViewIcon",
+      "category": "ok",
+      "resolvedFromFix": true,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 171,
+      "name": "DatabaseTableViewIcon",
+      "category": "ok",
+      "resolvedFromFix": true,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 172,
+      "name": "DataPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 173,
+      "name": "DateTimeIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 174,
+      "name": "DeleteIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 175,
+      "name": "DeletePermanentlyIcon",
+      "category": "ok",
+      "resolvedFromFix": true,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 176,
+      "name": "DeleteTemporarilyIcon",
+      "category": "ok",
+      "resolvedFromFix": true,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 177,
+      "name": "Diagonally_2LinesIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 178,
+      "name": "DiamondIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 179,
+      "name": "DirectionPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 180,
+      "name": "DirectionSign2PanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 181,
+      "name": "DirectionSign3PanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 182,
+      "name": "DirectionSign4PanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 183,
+      "name": "DirectionSignPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 184,
+      "name": "DiscordDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 185,
+      "name": "DiscordIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 186,
+      "name": "DiscordPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 187,
+      "name": "DistributeHorizontalIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 188,
+      "name": "DistributeVerticalIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 189,
+      "name": "DividerIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 190,
+      "name": "DocsDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 191,
+      "name": "DocsIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 192,
+      "name": "DoneIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 193,
+      "name": "DotDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 194,
+      "name": "DownloadIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 195,
+      "name": "DragCursorDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 196,
+      "name": "DragCursorIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 197,
+      "name": "Drink2PanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 198,
+      "name": "DrinkPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 199,
+      "name": "DropCursorDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 200,
+      "name": "DropCursorIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 201,
+      "name": "DualLinkIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 202,
+      "name": "DuplicateIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 203,
+      "name": "EdgelessIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 204,
+      "name": "EditIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 205,
+      "name": "ElbowedLineIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 206,
+      "name": "EllipseIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 207,
+      "name": "EllipsisIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 208,
+      "name": "EmailIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 209,
+      "name": "EmailWarningIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 210,
+      "name": "EmbedIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 211,
+      "name": "EmbedWebIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 212,
+      "name": "EmptyIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 213,
+      "name": "EndPointArrowIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 214,
+      "name": "EndPointCircleIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 215,
+      "name": "EndPointDiamondIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 216,
+      "name": "EndPointTriangleIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 217,
+      "name": "EnterIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 218,
+      "name": "EqIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 219,
+      "name": "EraserIcon",
+      "category": "ok",
+      "resolvedFromFix": true,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 220,
+      "name": "ExpandCloseIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 221,
+      "name": "ExpandFullIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 222,
+      "name": "ExpandIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 223,
+      "name": "ExpandWideIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 224,
+      "name": "ExperimentIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 225,
+      "name": "ExplainIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 226,
+      "name": "ExportIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 227,
+      "name": "ExportToHtmlIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 228,
+      "name": "ExportToMarkdownIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 229,
+      "name": "ExportToPdfIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 230,
+      "name": "ExportToPngIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 231,
+      "name": "ExportToSvgIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 232,
+      "name": "ExternalLinkIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 233,
+      "name": "EyeIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 234,
+      "name": "EyeOffIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 235,
+      "name": "EyePanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 236,
+      "name": "FacebookDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 237,
+      "name": "FacebookIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 238,
+      "name": "FavoritedIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 239,
+      "name": "FavoriteIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 240,
+      "name": "FigmaDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 241,
+      "name": "FigmaIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 242,
+      "name": "FileClockIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 243,
+      "name": "FileIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 244,
+      "name": "FileIconAepIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 245,
+      "name": "FileIconAiIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 246,
+      "name": "FileIconAviIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 247,
+      "name": "FileIconCssIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 248,
+      "name": "FileIconCsvIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 249,
+      "name": "FileIconDmgIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 250,
+      "name": "FileIconDocIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 251,
+      "name": "FileIconDocxIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 252,
+      "name": "FileIconEpsIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 253,
+      "name": "FileIconExeIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 254,
+      "name": "FileIconFigIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 255,
+      "name": "FileIconGifIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 256,
+      "name": "FileIconHtmlIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 257,
+      "name": "FileIconImgIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 258,
+      "name": "FileIconInddIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 259,
+      "name": "FileIconJavaIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 260,
+      "name": "FileIconJpegIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 261,
+      "name": "FileIconJpgIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 262,
+      "name": "FileIconJsIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 263,
+      "name": "FileIconJsonIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 264,
+      "name": "FileIconMdIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 265,
+      "name": "FileIconMkvIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 266,
+      "name": "FileIconMp3Icon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 267,
+      "name": "FileIconMp4Icon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 268,
+      "name": "FileIconMpegIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 269,
+      "name": "FileIconNoneIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 270,
+      "name": "FileIconPdfIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 271,
+      "name": "FileIconPngIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 272,
+      "name": "FileIconPptIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 273,
+      "name": "FileIconPptxIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 274,
+      "name": "FileIconPsdIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 275,
+      "name": "FileIconRarIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 276,
+      "name": "FileIconRssIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 277,
+      "name": "FileIconSketchIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 278,
+      "name": "FileIconSqlIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 279,
+      "name": "FileIconSvgIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 280,
+      "name": "FileIconTiffIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 281,
+      "name": "FileIconTxtIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 282,
+      "name": "FileIconWavIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 283,
+      "name": "FileIconWebpIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 284,
+      "name": "FileIconXlsIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 285,
+      "name": "FileIconXlsxIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 286,
+      "name": "FileIconXmlIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 287,
+      "name": "FileIconZipIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 288,
+      "name": "FilePanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 289,
+      "name": "FileSearchIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 290,
+      "name": "FilesIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 291,
+      "name": "FileSignatureIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 292,
+      "name": "FileSpreadsheetIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 293,
+      "name": "FileTextIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 294,
+      "name": "FileWarningIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 295,
+      "name": "FilteredIcon",
+      "category": "ok",
+      "resolvedFromFix": true,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 296,
+      "name": "FilterIcon",
+      "category": "ok",
+      "resolvedFromFix": true,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 297,
+      "name": "FilterMinusIcon",
+      "category": "ok",
+      "resolvedFromFix": true,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 298,
+      "name": "FilterUndoIcon",
+      "category": "ok",
+      "resolvedFromFix": true,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 299,
+      "name": "FirePanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 300,
+      "name": "Flag2PanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 301,
+      "name": "Flag3PanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 302,
+      "name": "FlagPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 303,
+      "name": "FlashPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 304,
+      "name": "FlipDirectionIcon",
+      "category": "ok",
+      "resolvedFromFix": true,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 305,
+      "name": "FlowerPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 306,
+      "name": "Folder2PanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 307,
+      "name": "Folder3PanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 308,
+      "name": "FolderIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 309,
+      "name": "FolderOpenIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 310,
+      "name": "FolderPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 311,
+      "name": "FontIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 312,
+      "name": "FoodPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 313,
+      "name": "ForwardPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 314,
+      "name": "ForwardThirtySecondsIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 315,
+      "name": "FrameIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 316,
+      "name": "FruitPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 317,
+      "name": "FullDayIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 318,
+      "name": "GamePanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 319,
+      "name": "GaugeIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 320,
+      "name": "GeminiDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 321,
+      "name": "GiftPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 322,
+      "name": "GitBranchIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 323,
+      "name": "GithubDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 324,
+      "name": "GithubIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 325,
+      "name": "GithubPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 326,
+      "name": "GitlabDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 327,
+      "name": "GitlabIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 328,
+      "name": "GlobeIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 329,
+      "name": "GobletPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 330,
+      "name": "GoodIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 331,
+      "name": "GoogleDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 332,
+      "name": "GoogleIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 333,
+      "name": "GoogleMapDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 334,
+      "name": "GoogleMapIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 335,
+      "name": "GooglePanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 336,
+      "name": "GptDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 337,
+      "name": "GridIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 338,
+      "name": "GripVerticalIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 339,
+      "name": "GroupIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 340,
+      "name": "GroupingIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 341,
+      "name": "GroupPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 342,
+      "name": "GtIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 343,
+      "name": "HamburgerPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 344,
+      "name": "HandIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 345,
+      "name": "HappyPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 346,
+      "name": "HardDriveIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 347,
+      "name": "HashIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 348,
+      "name": "HeaderColumnIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 349,
+      "name": "HeaderRowIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 350,
+      "name": "Heading1Icon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 351,
+      "name": "Heading2Icon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 352,
+      "name": "Heading3Icon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 353,
+      "name": "Heading4Icon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 354,
+      "name": "Heading5Icon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 355,
+      "name": "Heading6Icon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 356,
+      "name": "HeadingsIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 357,
+      "name": "HeadphonePanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 358,
+      "name": "HeartbreakIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 359,
+      "name": "HeartPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 360,
+      "name": "HelpCenterIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 361,
+      "name": "HelpIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 362,
+      "name": "HexagonIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 363,
+      "name": "HidePanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 364,
+      "name": "HighHeelPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 365,
+      "name": "HighLightDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 366,
+      "name": "HighLightLinearIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 367,
+      "name": "HistoryIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 368,
+      "name": "HomeIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 369,
+      "name": "HomePanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 370,
+      "name": "ImageIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 371,
+      "name": "ImagePanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 372,
+      "name": "ImportIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 373,
+      "name": "ImproveWritingIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 374,
+      "name": "InboxIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 375,
+      "name": "InfoIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 376,
+      "name": "InformationFillDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 377,
+      "name": "InformationIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 378,
+      "name": "InformationPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 379,
+      "name": "InsertAboveIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 380,
+      "name": "InsertBelowIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 381,
+      "name": "InsertBleowIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 382,
+      "name": "InsertBlocksIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 383,
+      "name": "InsertIntoPageIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 384,
+      "name": "InsertLeftIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 385,
+      "name": "InsertRightIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 386,
+      "name": "InsertTopIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 387,
+      "name": "InstagramDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 388,
+      "name": "InstagramIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 389,
+      "name": "InsyncIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 390,
+      "name": "IntegrationsIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 391,
+      "name": "InvisibleIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 392,
+      "name": "IssueIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 393,
+      "name": "ItalicIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 394,
+      "name": "JournalIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 395,
+      "name": "KeyboardIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 396,
+      "name": "KeyRoundIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 397,
+      "name": "LanguageIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 398,
+      "name": "LayerIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 399,
+      "name": "LayersIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 400,
+      "name": "LayoutDashboardIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 401,
+      "name": "LayoutIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 402,
+      "name": "LayoutTemplateIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 403,
+      "name": "LeafPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 404,
+      "name": "LeftBracketIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 405,
+      "name": "LiftPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 406,
+      "name": "LightModeIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 407,
+      "name": "LightPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 408,
+      "name": "LinearLogoDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 409,
+      "name": "LinearLogoIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 410,
+      "name": "LineStyleIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 411,
+      "name": "LinkBlockIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 412,
+      "name": "LinkedEdgelessIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 413,
+      "name": "LinkedPageIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 414,
+      "name": "LinkIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 415,
+      "name": "ListChecksIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 416,
+      "name": "Loader2Icon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 417,
+      "name": "LoadingIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 418,
+      "name": "LocalDataIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 419,
+      "name": "LocalWorkspaceIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 420,
+      "name": "LocateIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 421,
+      "name": "LockIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 422,
+      "name": "LockKeyholeIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 423,
+      "name": "LockPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 424,
+      "name": "Logo1DuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 425,
+      "name": "Logo1Icon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 426,
+      "name": "Logo2DuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 427,
+      "name": "Logo2Icon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 428,
+      "name": "Logo3DuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 429,
+      "name": "Logo3Icon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 430,
+      "name": "Logo4DuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 431,
+      "name": "Logo4Icon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 432,
+      "name": "LogOutIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 433,
+      "name": "LongerIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 434,
+      "name": "LongSleevePanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 435,
+      "name": "LoomLogoDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 436,
+      "name": "LoomLogoIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 437,
+      "name": "LtIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 438,
+      "name": "MailboxPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 439,
+      "name": "MailIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 440,
+      "name": "MailPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 441,
+      "name": "MakeItRealIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 442,
+      "name": "MapPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 443,
+      "name": "MathPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 444,
+      "name": "McpIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 445,
+      "name": "MeetingIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 446,
+      "name": "MemberIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 447,
+      "name": "MenubarIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 448,
+      "name": "MessageSquareTextIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 449,
+      "name": "MicPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 450,
+      "name": "MicrophoneIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 451,
+      "name": "MindmapIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 452,
+      "name": "MindmapNodeIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 453,
+      "name": "MinusIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 454,
+      "name": "MonitorIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 455,
+      "name": "MoonIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 456,
+      "name": "MoonPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 457,
+      "name": "MoreHorizontalIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 458,
+      "name": "MoreVerticalIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 459,
+      "name": "MountainPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 460,
+      "name": "MousePanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 461,
+      "name": "MoveLeftIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 462,
+      "name": "MoveRightIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 463,
+      "name": "MoveToIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 464,
+      "name": "MoveToLeftDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 465,
+      "name": "MoveToRightDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 466,
+      "name": "MoviePanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 467,
+      "name": "MultiCursorDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 468,
+      "name": "MultiPeopleIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 469,
+      "name": "MultiSelectIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 470,
+      "name": "NeIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 471,
+      "name": "NetworkIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 472,
+      "name": "NewIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 473,
+      "name": "NewPageIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 474,
+      "name": "NewXxxEdgelessIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 475,
+      "name": "NewXxxPageIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 476,
+      "name": "NightPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 477,
+      "name": "NoNetworkIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 478,
+      "name": "NoteShadowDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 479,
+      "name": "NotificationIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 480,
+      "name": "NotionDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 481,
+      "name": "NotionIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 482,
+      "name": "NowIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 483,
+      "name": "NumberedListIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 484,
+      "name": "NumberIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 485,
+      "name": "OctobaseIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 486,
+      "name": "OpenInNewIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 487,
+      "name": "OrganizationIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 488,
+      "name": "OtherIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 489,
+      "name": "PageIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 490,
+      "name": "PaletteIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 491,
+      "name": "ParallelogramIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 492,
+      "name": "PasteIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 493,
+      "name": "PauseCircleIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 494,
+      "name": "PauseIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 495,
+      "name": "PausePanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 496,
+      "name": "PaymentIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 497,
+      "name": "PeacePanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 498,
+      "name": "PencilIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 499,
+      "name": "PenIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 500,
+      "name": "PenThickIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 501,
+      "name": "PenThickLeftIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 502,
+      "name": "PenThinIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 503,
+      "name": "PeriodIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 504,
+      "name": "PersonPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 505,
+      "name": "PhonePanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 506,
+      "name": "PickerPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 507,
+      "name": "PillIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 508,
+      "name": "PinedIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 509,
+      "name": "PinIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 510,
+      "name": "PlanetPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 511,
+      "name": "PlayFillIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 512,
+      "name": "PlayIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 513,
+      "name": "PlayPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 514,
+      "name": "PlugIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 515,
+      "name": "PluginIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 516,
+      "name": "PlusIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 517,
+      "name": "PlusThickIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 518,
+      "name": "PowerIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 519,
+      "name": "PowerOffIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 520,
+      "name": "PptIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 521,
+      "name": "Presentation2PanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 522,
+      "name": "PresentationIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 523,
+      "name": "PresentationPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 524,
+      "name": "PrinterIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 525,
+      "name": "ProductHuntDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 526,
+      "name": "ProductHuntIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 527,
+      "name": "ProgressIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 528,
+      "name": "PropertyIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 529,
+      "name": "PublishIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 530,
+      "name": "QrCodePanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 531,
+      "name": "QuoteIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 532,
+      "name": "RadarIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 533,
+      "name": "RadiantIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 534,
+      "name": "RainPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 535,
+      "name": "ReadwiseIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 536,
+      "name": "ReadwiseLogoDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 537,
+      "name": "ReauthenticationIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 538,
+      "name": "RecentIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 539,
+      "name": "RedditDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 540,
+      "name": "RedditIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 541,
+      "name": "RedoIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 542,
+      "name": "RefreshCwIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 543,
+      "name": "ReleaseFromGroupIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 544,
+      "name": "RemoveFolderIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 545,
+      "name": "RemoveIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 546,
+      "name": "ReplaceIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 547,
+      "name": "ResetIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 548,
+      "name": "ResizeTidyUpIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 549,
+      "name": "RewindFifteenSecondsIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 550,
+      "name": "RightBracketIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 551,
+      "name": "RightLayoutIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 552,
+      "name": "RightSidebarIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 553,
+      "name": "RightTabIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 554,
+      "name": "RotateAnticlockwiseIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 555,
+      "name": "RotateCcwIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 556,
+      "name": "RotateIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 557,
+      "name": "RoundedRectangleIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 558,
+      "name": "RoundedSquareIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 559,
+      "name": "RulerPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 560,
+      "name": "SadPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 561,
+      "name": "SaveIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 562,
+      "name": "ScaleAltIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 563,
+      "name": "ScaleIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 564,
+      "name": "ScissorsIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 565,
+      "name": "ScrollTextIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 566,
+      "name": "SearchIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 567,
+      "name": "SelectAreaIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 568,
+      "name": "SelectIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 569,
+      "name": "SelectionIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 570,
+      "name": "SelectTextIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 571,
+      "name": "SelfhostIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 572,
+      "name": "SendIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 573,
+      "name": "ServerCogIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 574,
+      "name": "ServerIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 575,
+      "name": "Settings2Icon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 576,
+      "name": "SettingsIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 577,
+      "name": "SettingsPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 578,
+      "name": "ShapeIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 579,
+      "name": "ShapesIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 580,
+      "name": "SharedIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 581,
+      "name": "ShareIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 582,
+      "name": "ShareiOsIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 583,
+      "name": "ShieldAlertIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 584,
+      "name": "ShieldCheckIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 585,
+      "name": "ShieldIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 586,
+      "name": "ShoesPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 587,
+      "name": "ShorterIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 588,
+      "name": "ShortPantsPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 589,
+      "name": "SiblingNodeIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 590,
+      "name": "SidebarDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 591,
+      "name": "SidebarIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 592,
+      "name": "SignalIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 593,
+      "name": "SignalPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 594,
+      "name": "SignOutIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 595,
+      "name": "SingleSelectCheckSolidIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 596,
+      "name": "SingleSelectIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 597,
+      "name": "SingleSelectSelectLinearIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 598,
+      "name": "SingleSelectUnIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 599,
+      "name": "SkateboardPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 600,
+      "name": "SkirtPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 601,
+      "name": "SmileIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 602,
+      "name": "SmilePanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 603,
+      "name": "SmileSolidIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 604,
+      "name": "Snow2PanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 605,
+      "name": "SnowMountainPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 606,
+      "name": "SnowPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 607,
+      "name": "SocketPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 608,
+      "name": "SoloViewIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 609,
+      "name": "SortDownIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 610,
+      "name": "SortIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 611,
+      "name": "SortUpIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 612,
+      "name": "SparklesIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 613,
+      "name": "SplitViewIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 614,
+      "name": "SquareIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 615,
+      "name": "StarIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 616,
+      "name": "StarPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 617,
+      "name": "StartNumberingIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 618,
+      "name": "StartPointArrowIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 619,
+      "name": "StartPointCircleIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 620,
+      "name": "StartPointDiamondIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 621,
+      "name": "StartPointIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 622,
+      "name": "StartPointTriangleIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 623,
+      "name": "StopAiIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 624,
+      "name": "StopIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 625,
+      "name": "StraightLineIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 626,
+      "name": "StrikeThroughIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 627,
+      "name": "StyleGeneralIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 628,
+      "name": "StyleIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 629,
+      "name": "StyleScribbleIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 630,
+      "name": "SubNodeIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 631,
+      "name": "SucessfulDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 632,
+      "name": "SucessfulIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 633,
+      "name": "SuitcasePanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 634,
+      "name": "SummarizeIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 635,
+      "name": "SunglassPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 636,
+      "name": "SunIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 637,
+      "name": "SunPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 638,
+      "name": "TableIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 639,
+      "name": "TagIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 640,
+      "name": "TagPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 641,
+      "name": "TagsIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 642,
+      "name": "TeamWorkspaceIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 643,
+      "name": "TelegramDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 644,
+      "name": "TelegramIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 645,
+      "name": "TemplateColoredIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 646,
+      "name": "TemplateIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 647,
+      "name": "TemplateOutlineIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 648,
+      "name": "TeXDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 649,
+      "name": "TeXIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 650,
+      "name": "TextAlignBottomIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 651,
+      "name": "TextAlignCenterIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 652,
+      "name": "TextAlignLeftIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 653,
+      "name": "TextAlignMediumIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 654,
+      "name": "TextAlignRightIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 655,
+      "name": "TextAlignTopIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 656,
+      "name": "TextBackgroundDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 657,
+      "name": "TextColorIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 658,
+      "name": "TextIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 659,
+      "name": "TextTypeIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 660,
+      "name": "ThinkingIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 661,
+      "name": "TimelineIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 662,
+      "name": "TimePanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 663,
+      "name": "TimerIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 664,
+      "name": "TitleIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 665,
+      "name": "TocIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 666,
+      "name": "TodayIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 667,
+      "name": "ToggleDownIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 668,
+      "name": "ToggleLeftIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 669,
+      "name": "ToggleRightIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 670,
+      "name": "ToggleUpIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 671,
+      "name": "TomorrowIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 672,
+      "name": "ToneIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 673,
+      "name": "ToolIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 674,
+      "name": "TranscriptWithAiIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 675,
+      "name": "Trash2Icon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 676,
+      "name": "TrashIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 677,
+      "name": "TreePanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 678,
+      "name": "TriangleIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 679,
+      "name": "TriangleRulerPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 680,
+      "name": "TShirtPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 681,
+      "name": "TwitterDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 682,
+      "name": "TwitterIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 683,
+      "name": "TypeIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 684,
+      "name": "UmbrellaPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 685,
+      "name": "UnderLineIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 686,
+      "name": "UndoIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 687,
+      "name": "UngroupIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 688,
+      "name": "UnlinkIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 689,
+      "name": "UnlockIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 690,
+      "name": "UnpinIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 691,
+      "name": "UnsucessfulDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 692,
+      "name": "UnsucessfulIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 693,
+      "name": "UnsyncIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 694,
+      "name": "UpdatedIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 695,
+      "name": "UpgradeIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 696,
+      "name": "UploadCloudIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 697,
+      "name": "UploadIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 698,
+      "name": "UsbPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 699,
+      "name": "UserCogIcon",
+      "category": "ok",
+      "resolvedFromFix": true,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 700,
+      "name": "UserGuideIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 701,
+      "name": "UserIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 702,
+      "name": "UserMinusIcon",
+      "category": "ok",
+      "resolvedFromFix": true,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 703,
+      "name": "UserPlusIcon",
+      "category": "ok",
+      "resolvedFromFix": true,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 704,
+      "name": "UserRoundCheckIcon",
+      "category": "ok",
+      "resolvedFromFix": true,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 705,
+      "name": "UsersIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 706,
+      "name": "VerticalCylinderIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 707,
+      "name": "ViewBarIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 708,
+      "name": "ViewIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 709,
+      "name": "ViewLayersIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 710,
+      "name": "VoiceIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 711,
+      "name": "VolumePanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 712,
+      "name": "WalletPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 713,
+      "name": "WarningIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 714,
+      "name": "WaveRectangleIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 715,
+      "name": "WaypointsIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 716,
+      "name": "WebIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 717,
+      "name": "WifiIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 718,
+      "name": "WindmillPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 719,
+      "name": "WindowPanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 720,
+      "name": "WorkflowIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 721,
+      "name": "WrapIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 722,
+      "name": "XCircleIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 723,
+      "name": "XIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 724,
+      "name": "YesterdayIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 725,
+      "name": "YoutubeDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 726,
+      "name": "YoutubeIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 727,
+      "name": "YoutubePanelIcon",
+      "category": "review",
+      "resolvedFromFix": true,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 728,
+      "name": "ZapIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 729,
+      "name": "ZendeskDuotoneIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 730,
+      "name": "ZendeskIcon",
+      "category": "review",
+      "resolvedFromFix": false,
+      "reason": "Context-sensitive family: visually present and no longer accepted as random fallback, but should be rechecked in real product usage and future contact-sheet reviews."
+    },
+    {
+      "index": 731,
+      "name": "ZipIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 732,
+      "name": "ZoomDownIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    },
+    {
+      "index": 733,
+      "name": "ZoomUpIcon",
+      "category": "ok",
+      "resolvedFromFix": false,
+      "reason": "Accepted in the 2026-05-09 strict contact-sheet pass after family-level fixes and generator checks."
+    }
+  ]
+}

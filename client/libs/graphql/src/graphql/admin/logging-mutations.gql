@@ -1,0 +1,51 @@
+mutation updateLogModuleLevel($input: UpdateLogModuleLevelInput!) {
+  admin {
+    updateLogModuleLevel(input: $input) {
+      group
+      displayName
+      level
+      recommendedDefault
+      description
+      highVolumeWarning
+    }
+  }
+}
+
+mutation applyLogPreset($preset: String!) {
+  admin {
+    applyLogPreset(preset: $preset) {
+      group
+      displayName
+      level
+      recommendedDefault
+      description
+      highVolumeWarning
+    }
+  }
+}
+
+mutation resetLogLevels {
+  admin {
+    resetLogLevels {
+      group
+      displayName
+      level
+      recommendedDefault
+      description
+      highVolumeWarning
+    }
+  }
+}
+
+mutation updateLogOutput($input: UpdateLogOutputInput!) {
+  admin {
+    updateLogOutput(input: $input) {
+      filePath
+      rotation
+      maxFiles
+      pathValid
+      pathError
+      requiresRestart
+    }
+  }
+}

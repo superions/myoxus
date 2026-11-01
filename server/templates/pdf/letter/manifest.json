@@ -1,0 +1,156 @@
+{
+  "schema_version": "2.0",
+  "id": "letter",
+  "name": "Brief",
+  "description": "Formal correspondence template (DIN-5008-style). German default locale, minimal header, page-only footer, no cover page, custom margins enabled so callers can tune the address window.",
+  "version": "1.8.0",
+  "engine": {
+    "name": "typst",
+    "version": "0.15.x"
+  },
+  "provenance": {
+    "license_spdx": "AGPL-3.0-or-later",
+    "copyright_notice": "Copyright 2026 Myoxus contributors",
+    "source_url": "https://github.com/superions/myoxus",
+    "source_revision": "1.8.0"
+  },
+  "entry": "main.typ",
+  "assets": [
+    "main.typ",
+    "preamble.typ",
+    "theme.typ",
+    "i18n/en.json",
+    "i18n/de.json"
+  ],
+  "capabilities": {
+    "colorVariant": {
+      "kind": "enum",
+      "values": ["mono", "accent", "brand"],
+      "default": "mono"
+    },
+    "headerStyle": {
+      "kind": "enum",
+      "values": ["none", "minimal", "branded"],
+      "default": "minimal"
+    },
+    "footerStyle": {
+      "kind": "enum",
+      "values": ["none", "minimal", "page-only", "brand-and-page"],
+      "default": "page-only"
+    },
+    "coverPage": {
+      "kind": "boolean",
+      "default": false
+    },
+    "tocBehavior": {
+      "kind": "enum",
+      "values": ["off", "auto", "force"],
+      "default": "off"
+    },
+    "pageNumbering": {
+      "kind": "enum",
+      "values": ["arabic", "roman", "none"],
+      "default": "arabic"
+    },
+    "customMargins": {
+      "kind": "boolean",
+      "default": true
+    },
+    "accentColor": {
+      "kind": "color",
+      "default": "#1E3A8A"
+    },
+    "confidentialityLabels": {
+      "kind": "array<string>",
+      "min_items": 0,
+      "max_items": 8,
+      "item_pattern": "^[A-Za-z0-9 _-]{1,32}$",
+      "default": []
+    },
+    "language": {
+      "kind": "enum",
+      "values": [
+        "en",
+        "de",
+        "fr",
+        "es",
+        "it",
+        "pt",
+        "nl",
+        "pl",
+        "cs",
+        "da",
+        "sv",
+        "no",
+        "fi",
+        "el",
+        "ru",
+        "uk",
+        "tr",
+        "hu",
+        "ro",
+        "bg",
+        "hr",
+        "sk",
+        "sl",
+        "sr",
+        "et",
+        "lv",
+        "lt",
+        "pt-BR",
+        "es-MX"
+      ],
+      "default": "de"
+    }
+  },
+  "inputs_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["recipient_name", "recipient_address", "subject_line"],
+    "properties": {
+      "recipient_name": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120,
+        "description": "Full name of the addressee, rendered above the address block."
+      },
+      "recipient_address": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 6,
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "description": "Postal address of the recipient, one line per array element."
+      },
+      "subject_line": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200,
+        "description": "Re:/Betreff line shown above the salutation."
+      },
+      "salutation": {
+        "type": "string",
+        "maxLength": 120,
+        "description": "Optional opening line (e.g. 'Sehr geehrte Damen und Herren,'). When omitted, the template's locale default is used."
+      },
+      "closing": {
+        "type": "string",
+        "maxLength": 120,
+        "description": "Optional closing line (e.g. 'Mit freundlichen Grüßen'). When omitted, the template's locale default is used."
+      },
+      "sender_name": {
+        "type": "string",
+        "maxLength": 120,
+        "description": "Optional sender name printed below the closing."
+      },
+      "letter_date": {
+        "type": "string",
+        "format": "date",
+        "description": "Optional ISO-8601 date for the letter (YYYY-MM-DD)."
+      }
+    }
+  }
+}

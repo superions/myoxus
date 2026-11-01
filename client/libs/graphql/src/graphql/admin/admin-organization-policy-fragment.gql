@@ -1,0 +1,10 @@
+fragment AdminOrganizationPolicyFragment on OrganizationPolicyType {
+  organizationId
+  managerRootProjectCreation
+  managerUnitProjectCreation
+  managerCanCreateWorkspaces
+  managerCanManageOuMembers
+  importExportEnabled
+  updatedBy
+  updatedAt
+}

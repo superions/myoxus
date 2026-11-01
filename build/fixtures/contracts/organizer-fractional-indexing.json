@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "validKeys": [
+    "Zz",
+    "a0",
+    "a00V",
+    "A000000000000000000000000001",
+    "a0011111111111111111111111111111111",
+    "a0022222222222222222222222222222222"
+  ],
+  "invalidKeys": ["", "0000", "a", "A00000000000000000000000000", "a00", "a0-"],
+  "reindexKeys": [
+    "a0011111111111111111111111111111111",
+    "a1011111111111111111111111111111111",
+    "a2011111111111111111111111111111111",
+    "a3011111111111111111111111111111111",
+    "a4011111111111111111111111111111111",
+    "a5011111111111111111111111111111111"
+  ],
+  "relations": [
+    {
+      "name": "first",
+      "lower": null,
+      "upper": null,
+      "advance": "lower",
+      "iterations": 1
+    },
+    {
+      "name": "before",
+      "lower": null,
+      "upper": "a0",
+      "advance": "upper",
+      "iterations": 8
+    },
+    {
+      "name": "after",
+      "lower": "a0",
+      "upper": null,
+      "advance": "lower",
+      "iterations": 8
+    },
+    {
+      "name": "between",
+      "lower": "a0",
+      "upper": "a1",
+      "advance": "lower",
+      "iterations": 8
+    },
+    {
+      "name": "prefix",
+      "lower": "a0",
+      "upper": "a00V",
+      "advance": "lower",
+      "iterations": 8
+    },
+    {
+      "name": "adjacent-full-keys",
+      "lower": "a0011111111111111111111111111111111",
+      "upper": "a0022222222222222222222222222222222",
+      "advance": "lower",
+      "iterations": 8
+    }
+  ]
+}

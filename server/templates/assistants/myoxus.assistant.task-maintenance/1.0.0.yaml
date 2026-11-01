@@ -1,0 +1,187 @@
+formatVersion: 1
+id: myoxus.assistant.task-maintenance
+version: 1.0.0
+name:
+  en: Inspect task content
+  de: Aufgabeninhalte prüfen
+  fr: Vérifier le contenu des tâches
+  es: Revisar contenido de tareas
+description:
+  en:
+    Inspect existing Tasks and review exact value corrections before confirming
+    or declining them. Unassigned Tasks and valid drafts remain valid; no
+    fields, options or Views are changed. A separately enabled personal rule
+    inspects only this selected set after your own Task changes. Every
+    correction still requires its own confirmation.
+  de:
+    Prüfe bestehende Aufgaben und kontrolliere genaue Wertkorrekturen, bevor du
+    sie bestätigst oder ablehnst. Nicht zugewiesene Aufgaben und gültige
+    Entwürfe bleiben gültig; Felder, Optionen und Ansichten werden nicht
+    geändert. Eine separat aktivierte persönliche Regel prüft nur diese Auswahl
+    nach deinen eigenen Aufgabenänderungen. Jede Korrektur benötigt weiterhin
+    eine eigene Bestätigung.
+  fr:
+    Vérifiez les tâches existantes et leurs corrections de valeurs exactes avant
+    de les confirmer ou de les refuser. Les tâches non attribuées et les
+    brouillons valides restent valides ; aucun champ, option ou vue n’est
+    modifié. Une règle personnelle activée séparément vérifie uniquement cette
+    sélection après vos propres modifications de tâches. Chaque correction exige
+    toujours sa propre confirmation.
+  es:
+    Revisa las tareas existentes y las correcciones exactas de sus valores antes
+    de confirmarlas o rechazarlas. Las tareas sin asignar y los borradores
+    válidos siguen siendo válidos; no se cambian campos, opciones ni vistas. Una
+    regla personal activada por separado revisa únicamente esta selección tras
+    tus propios cambios de tareas. Cada corrección sigue requiriendo su propia
+    confirmación.
+contexts:
+  - taskContainerAssistance
+inputs:
+  - id: tasks
+    target: tasks
+    label:
+      en: Tasks to inspect
+      de: Zu prüfende Aufgaben
+      fr: Tâches à vérifier
+      es: Tareas que revisar
+    description:
+      en: From a Task, leaving this selection empty inspects that Task. From a
+        container, explicitly select the Tasks to inspect.
+      de:
+        Von einer Aufgabe aus prüft eine leere Auswahl genau diese Aufgabe. Wähle im
+        Container ausdrücklich die zu prüfenden Aufgaben.
+      fr: Depuis une tâche, une sélection vide vérifie cette tâche. Depuis un
+        conteneur, sélectionnez explicitement les tâches à vérifier.
+      es:
+        Desde una tarea, una selección vacía revisa esa tarea. Desde un contenedor,
+        selecciona explícitamente las tareas que revisar.
+    valueType: taskReferences
+    required: false
+    default: null
+    choices: []
+    visibleWhen: null
+components:
+  - id: maintenance
+    action:
+      kind: taskMaintenance
+      inputs:
+        tasks:
+          kind: input
+          input: tasks
+  - id: inspect
+    action:
+      kind: inspectTaskContent
+      tasks:
+        kind: input
+        input: tasks
+  - id: apply
+    action:
+      kind: applyTaskCorrections
+      proposal:
+        kind: result
+        component: inspect
+        value: correctionProposal
+presentation:
+  steps:
+    - id: details
+      title:
+        en: Inspect task content
+        de: Aufgabeninhalte prüfen
+        fr: Vérifier le contenu des tâches
+        es: Revisar contenido de tareas
+      groups:
+        - id: illustration
+          title: null
+          role: content
+          controls: []
+          visibleWhen: null
+        - id: request
+          title: null
+          role: content
+          controls:
+            - kind: input
+              input: tasks
+              control: taskReferences
+          visibleWhen: null
+      actions:
+        - id: cancel
+          label:
+            en: Cancel
+            de: Abbrechen
+            fr: Annuler
+            es: Cancelar
+          action: cancel
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: prepare
+          label:
+            en: Review findings
+            de: Befunde überprüfen
+            fr: Vérifier les constats
+            es: Revisar hallazgos
+          action: prepareTaskMaintenance
+          component: null
+          targetStep: null
+          dialog: confirm
+          visibleWhen: null
+        - id: check
+          label:
+            en: Check status
+            de: Status prüfen
+            fr: Vérifier le statut
+            es: Comprobar estado
+          action: check
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: close
+          label:
+            en: Close
+            de: Schließen
+            fr: Fermer
+            es: Cerrar
+          action: close
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+  dialogs:
+    - id: confirm
+      title:
+        en: Review findings
+        de: Befunde überprüfen
+        fr: Vérifier les constats
+        es: Revisar hallazgos
+      groups:
+        - id: plan
+          title: null
+          role: review
+          controls:
+            - kind: taskMaintenanceReview
+          visibleWhen: null
+      actions:
+        - id: back
+          label:
+            en: Back to editing
+            de: Zurück zur Bearbeitung
+            fr: Revenir à la modification
+            es: Volver a editar
+          action: cancel
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: request
+          label:
+            en: Start correction review
+            de: Korrekturprüfung starten
+            fr: Démarrer la vérification des corrections
+            es: Iniciar revisión de correcciones
+          action: startTaskMaintenance
+          component: maintenance
+          targetStep: null
+          dialog: null
+          visibleWhen: null

@@ -1,0 +1,9 @@
+#import "./admin-organization-policy-fragment.gql"
+
+query adminOrganizationPolicy {
+  admin {
+    organizationPolicy {
+      ...AdminOrganizationPolicyFragment
+    }
+  }
+}

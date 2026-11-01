@@ -1,0 +1,2380 @@
+{
+  "tools": {
+    "list_workspaces": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workspaces"],
+      "properties": {
+        "workspaces": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/workspace"
+          },
+          "maxItems": 200
+        }
+      }
+    },
+    "list_pages": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pages"],
+      "properties": {
+        "pages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/page"
+          },
+          "maxItems": 200
+        },
+        "next_cursor": {
+          "type": "string"
+        }
+      }
+    },
+    "folder_list": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workspaceId", "revision", "folders"],
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "revision": {
+          "type": "string"
+        },
+        "folders": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/folder"
+          }
+        }
+      }
+    },
+    "folder_create": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workspaceId", "folder"],
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "folder": {
+          "$ref": "#/$defs/folder"
+        }
+      }
+    },
+    "folder_update": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workspaceId", "folder"],
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "folder": {
+          "$ref": "#/$defs/folder"
+        }
+      }
+    },
+    "folder_delete": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workspaceId", "deletedFolderId", "deletedIds"],
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "deletedFolderId": {
+          "type": "string"
+        },
+        "deletedIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "folder_entry_list": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workspaceId", "revision", "entries"],
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "revision": {
+          "type": "string"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/entry"
+          }
+        }
+      }
+    },
+    "folder_entry_create": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workspaceId", "entry"],
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "entry": {
+          "$ref": "#/$defs/entry"
+        }
+      }
+    },
+    "folder_entry_update": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workspaceId", "entry"],
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "entry": {
+          "$ref": "#/$defs/entry"
+        }
+      }
+    },
+    "folder_entry_delete": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workspaceId", "deletedEntryId"],
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "deletedEntryId": {
+          "type": "string"
+        }
+      }
+    },
+    "folder_tree": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workspaceId", "revision", "maxDepth", "folders"],
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "revision": {
+          "type": "string"
+        },
+        "maxDepth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32
+        },
+        "folders": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/treeFolder"
+          }
+        }
+      }
+    },
+    "folder_path_ensure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workspaceId", "folderId", "path", "createdSegments"],
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "folderId": {
+          "type": "string"
+        },
+        "path": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdSegments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "name"],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "folder_entry_place": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workspaceId",
+        "externalId",
+        "folderId",
+        "folderPath",
+        "entryId",
+        "outcome"
+      ],
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "externalId": {
+          "type": "string"
+        },
+        "folderId": {
+          "type": "string"
+        },
+        "folderPath": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "entryId": {
+          "type": "string"
+        },
+        "outcome": {
+          "type": "string",
+          "enum": ["created", "already_placed", "moved"]
+        }
+      }
+    },
+    "blob_list": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workspaceId", "limit", "offset", "includeDeleted", "blobs"],
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "includeDeleted": {
+          "type": "boolean"
+        },
+        "blobs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/blob"
+          },
+          "maxItems": 200
+        }
+      }
+    },
+    "blob_get_metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workspaceId", "blob"],
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "blob": {
+          "$ref": "#/$defs/blob"
+        }
+      }
+    },
+    "blob_upload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workspaceId", "blob"],
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "blob": {
+          "$ref": "#/$defs/blob"
+        }
+      }
+    },
+    "blob_read": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workspaceId", "blob", "encoding", "dataBase64"],
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "blob": {
+          "$ref": "#/$defs/blob"
+        },
+        "encoding": {
+          "type": "string",
+          "const": "base64"
+        },
+        "dataBase64": {
+          "type": "string",
+          "contentEncoding": "base64",
+          "maxLength": 6990508
+        }
+      }
+    },
+    "blob_delete": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workspaceId", "deleted", "permanently"],
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "deleted": {
+          "type": "boolean"
+        },
+        "permanently": {
+          "type": "boolean"
+        }
+      }
+    },
+    "template_list_for_workspace": {
+      "type": "object",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["workspaceId", "locale", "templates"],
+          "properties": {
+            "workspaceId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "locale": {
+              "type": "string"
+            },
+            "templates": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/template"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["message"],
+          "properties": {
+            "message": {
+              "type": "string",
+              "const": "Template registry is not enabled."
+            }
+          }
+        }
+      ]
+    },
+    "template_request_reconcile": {
+      "type": "object",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "workspaceId",
+            "locale",
+            "totalTemplates",
+            "staleOrMissing",
+            "message"
+          ],
+          "properties": {
+            "workspaceId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "locale": {
+              "type": "string"
+            },
+            "totalTemplates": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "staleOrMissing": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "message": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["message"],
+          "properties": {
+            "message": {
+              "type": "string",
+              "const": "Template registry is not enabled."
+            }
+          }
+        }
+      ]
+    },
+    "template_suggestions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "items",
+        "emptyDocumentAllowed",
+        "reconcileRequired",
+        "stale",
+        "hasNextPage",
+        "endCursor"
+      ],
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/suggestion"
+          },
+          "maxItems": 20
+        },
+        "emptyDocumentAllowed": {
+          "type": "boolean"
+        },
+        "reconcileRequired": {
+          "type": "boolean"
+        },
+        "stale": {
+          "type": "boolean"
+        },
+        "hasNextPage": {
+          "type": "boolean"
+        },
+        "endCursor": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    "pdf_template_list": {
+      "type": "object",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["workspaceId", "templates"],
+          "properties": {
+            "workspaceId": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "templates": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/pdfTemplate"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["message"],
+          "properties": {
+            "message": {
+              "type": "string",
+              "const": "PDF template registry is not enabled on this server."
+            }
+          }
+        }
+      ]
+    },
+    "document_graph_read": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["graph"],
+      "properties": {
+        "graph": {
+          "$ref": "#/$defs/graph"
+        }
+      }
+    },
+    "automation_run_retry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run", "jobId"],
+      "properties": {
+        "run": {
+          "$ref": "#/$defs/automationRun"
+        },
+        "jobId": {
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "doc_version_list": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["externalId", "versions"],
+      "properties": {
+        "externalId": {
+          "type": "string"
+        },
+        "versions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/version"
+          }
+        }
+      }
+    },
+    "doc_version_create": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version"],
+      "properties": {
+        "version": {
+          "$ref": "#/$defs/version"
+        }
+      }
+    },
+    "doc_metadata_get": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["documentMetadata"],
+      "properties": {
+        "documentMetadata": {
+          "$ref": "#/$defs/DocumentMetadataProjection"
+        }
+      }
+    },
+    "doc_metadata_validate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["externalId", "validation"],
+      "properties": {
+        "externalId": {
+          "type": "string"
+        },
+        "validation": {
+          "$ref": "#/$defs/DocumentMetadataValidation"
+        }
+      }
+    },
+    "doc_metadata_update": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["externalId", "documentMetadata", "validation"],
+      "properties": {
+        "externalId": {
+          "type": "string"
+        },
+        "documentMetadata": {
+          "$ref": "#/$defs/DocumentMetadataProjection"
+        },
+        "validation": {
+          "$ref": "#/$defs/DocumentMetadataValidation"
+        }
+      }
+    },
+    "doc_metadata_transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["externalId", "fromStatusId", "toStatusId", "validation"],
+      "properties": {
+        "externalId": {
+          "type": "string"
+        },
+        "fromStatusId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "toStatusId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "validation": {
+          "$ref": "#/$defs/DocumentMetadataValidation"
+        }
+      }
+    },
+    "automation_run_stop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run"],
+      "properties": {
+        "run": {
+          "$ref": "#/$defs/automationRun"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "DocumentGraphIndexSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workspaceId",
+        "currentCount",
+        "staleCount",
+        "queuedCount",
+        "extractingCount",
+        "failedCount",
+        "deletedCount",
+        "missingStateCount"
+      ],
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "currentCount": {
+          "type": "integer"
+        },
+        "staleCount": {
+          "type": "integer"
+        },
+        "queuedCount": {
+          "type": "integer"
+        },
+        "extractingCount": {
+          "type": "integer"
+        },
+        "failedCount": {
+          "type": "integer"
+        },
+        "deletedCount": {
+          "type": "integer"
+        },
+        "missingStateCount": {
+          "type": "integer"
+        }
+      }
+    },
+    "DocumentGraphLinkKind": {
+      "type": "string",
+      "enum": [
+        "inline_reference",
+        "embed_linked_doc",
+        "embed_synced_doc",
+        "surface_ref",
+        "database_cell_reference"
+      ]
+    },
+    "DocumentGraphStaleState": {
+      "type": "string",
+      "enum": ["current", "stale", "queued", "extracting", "failed", "deleted"]
+    },
+    "DocumentGraphTargetState": {
+      "type": "string",
+      "enum": ["available", "redacted", "deleted", "missing", "unresolved"]
+    },
+    "DocumentMetadataAudience": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value", "source"],
+      "properties": {
+        "value": {
+          "$ref": "#/$defs/DocumentMetadataReferenceValue"
+        },
+        "source": {
+          "$ref": "#/$defs/DocumentMetadataSource"
+        }
+      }
+    },
+    "DocumentMetadataFieldLock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "inheritance_mode", "editable", "reason"],
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "inheritance_mode": {
+          "$ref": "#/$defs/DocumentMetadataInheritanceMode"
+        },
+        "editable": {
+          "type": "boolean"
+        },
+        "reason": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    "DocumentMetadataFieldValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "source",
+        "reference",
+        "text_value",
+        "timestamp_value",
+        "date_value",
+        "user_id"
+      ],
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/DocumentMetadataSource"
+        },
+        "reference": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/DocumentMetadataReferenceValue"
+            }
+          ]
+        },
+        "text_value": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "timestamp_value": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "date-time"
+            }
+          ]
+        },
+        "date_value": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "date"
+            }
+          ]
+        },
+        "user_id": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "uuid"
+            }
+          ]
+        }
+      }
+    },
+    "DocumentMetadataInheritanceMode": {
+      "type": "string",
+      "enum": [
+        "inherited",
+        "document_only",
+        "relation_inherited",
+        "system_readonly",
+        "specialized_subsystem"
+      ]
+    },
+    "DocumentMetadataIntegration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["integration_type"],
+      "properties": {
+        "integration_type": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    "DocumentMetadataJournal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["journal_date"],
+      "properties": {
+        "journal_date": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "date"
+            }
+          ]
+        }
+      }
+    },
+    "DocumentMetadataPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["locks"],
+      "properties": {
+        "locks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DocumentMetadataFieldLock"
+          }
+        }
+      }
+    },
+    "DocumentMetadataPresentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primary_mode", "page_width", "edgeless_color_theme"],
+      "properties": {
+        "primary_mode": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "page_width": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "edgeless_color_theme": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    "DocumentMetadataProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workspace_id",
+        "projection_version",
+        "metadata_revision",
+        "metadata_updated_at",
+        "metadata_updated_by",
+        "system",
+        "fields",
+        "audience",
+        "template",
+        "journal",
+        "presentation",
+        "integration",
+        "policy",
+        "externalId"
+      ],
+      "properties": {
+        "workspace_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "projection_version": {
+          "type": "string"
+        },
+        "metadata_revision": {
+          "type": "integer"
+        },
+        "metadata_updated_at": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "date-time"
+            }
+          ]
+        },
+        "metadata_updated_by": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "uuid"
+            }
+          ]
+        },
+        "system": {
+          "$ref": "#/$defs/DocumentMetadataSystemFacts"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DocumentMetadataFieldValue"
+          }
+        },
+        "audience": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DocumentMetadataAudience"
+          }
+        },
+        "template": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/DocumentMetadataTemplateState"
+            }
+          ]
+        },
+        "journal": {
+          "$ref": "#/$defs/DocumentMetadataJournal"
+        },
+        "presentation": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/DocumentMetadataPresentation"
+            }
+          ]
+        },
+        "integration": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/DocumentMetadataIntegration"
+            }
+          ]
+        },
+        "policy": {
+          "$ref": "#/$defs/DocumentMetadataPolicy"
+        },
+        "externalId": {
+          "type": "string"
+        }
+      }
+    },
+    "DocumentMetadataReferenceValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "key", "label", "is_active"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "key": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "is_active": {
+          "type": "boolean"
+        }
+      }
+    },
+    "DocumentMetadataSource": {
+      "type": "string",
+      "enum": ["document", "workspace", "organization", "fallback"]
+    },
+    "DocumentMetadataSystemFacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "created_at",
+        "updated_at",
+        "created_by",
+        "updated_by",
+        "metadata_updated_at",
+        "metadata_updated_by"
+      ],
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "created_by": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "uuid"
+            }
+          ]
+        },
+        "updated_by": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "uuid"
+            }
+          ]
+        },
+        "metadata_updated_at": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "date-time"
+            }
+          ]
+        },
+        "metadata_updated_by": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "uuid"
+            }
+          ]
+        }
+      }
+    },
+    "DocumentMetadataTemplateState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "origin",
+        "template_id",
+        "revision_id",
+        "instance_id"
+      ],
+      "properties": {
+        "state": {
+          "type": "string"
+        },
+        "origin": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "template_id": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "uuid"
+            }
+          ]
+        },
+        "revision_id": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "uuid"
+            }
+          ]
+        },
+        "instance_id": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "uuid"
+            }
+          ]
+        }
+      }
+    },
+    "DocumentMetadataValidation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "errors",
+        "warnings",
+        "missing_required_metadata_fields",
+        "blocked_actions",
+        "valid"
+      ],
+      "properties": {
+        "errors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DocumentMetadataValidationIssue"
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/DocumentMetadataValidationIssue"
+          }
+        },
+        "missing_required_metadata_fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "blocked_actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "valid": {
+          "type": "boolean"
+        }
+      }
+    },
+    "DocumentMetadataValidationCode": {
+      "type": "string",
+      "enum": [
+        "DOCUMENT_METADATA_REQUIRED",
+        "DOCUMENT_STATUS_TRANSITION_BLOCKED",
+        "DOCUMENT_VALIDITY_EXPIRED",
+        "DOCUMENT_CLASSIFICATION_BLOCKS_SHARE",
+        "DOCUMENT_EXPORT_BLOCKED",
+        "DOCUMENT_STATUS_REQUIRES_TRANSITION",
+        "DOCUMENT_METADATA_FORBIDDEN",
+        "DOCUMENT_WORKSPACE_OVERRIDE_FORBIDDEN",
+        "DOCUMENT_VERSION_PROTECTED",
+        "DOCUMENT_VERSION_LABEL_CONFLICT",
+        "DOCUMENT_CONCURRENCY_CONFLICT"
+      ]
+    },
+    "DocumentMetadataValidationIssue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "key",
+        "message",
+        "severity",
+        "blocked_actions",
+        "details"
+      ],
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/DocumentMetadataValidationCode"
+        },
+        "key": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "severity": {
+          "$ref": "#/$defs/DocumentMetadataValidationSeverity"
+        },
+        "blocked_actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "details": {
+          "type": ["object", "array", "string", "number", "boolean", "null"],
+          "description": "Arbitrary JSON retained by the serde_json::Value DTO slot."
+        }
+      }
+    },
+    "DocumentMetadataValidationSeverity": {
+      "type": "string",
+      "enum": ["info", "warning", "error"]
+    },
+    "WorkspaceAutomationTriggerEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workspaceId",
+        "databaseId",
+        "rowId",
+        "triggerType",
+        "fieldId",
+        "occurredAt"
+      ],
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "databaseId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "rowId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "triggerType": {
+          "$ref": "#/$defs/WorkspaceAutomationTriggerType"
+        },
+        "fieldId": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "uuid"
+            }
+          ]
+        },
+        "occurredAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "WorkspaceAutomationTriggerType": {
+      "type": "string",
+      "enum": [
+        "row_created",
+        "row_updated",
+        "relation_changed",
+        "status_select_changed"
+      ]
+    },
+    "automationRun": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "automationId",
+        "workspaceId",
+        "triggerType",
+        "triggerEvent",
+        "status",
+        "attemptCount",
+        "errorCode",
+        "errorMessage",
+        "deadLetter",
+        "queuedAt",
+        "startedAt",
+        "finishedAt",
+        "origin",
+        "requestId"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "automationId": {
+          "type": ["string", "null"],
+          "format": "uuid"
+        },
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "triggerType": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/WorkspaceAutomationTriggerType"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "triggerEvent": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/WorkspaceAutomationTriggerEvent"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "queued",
+            "running",
+            "succeeded",
+            "failed",
+            "dead_letter",
+            "skipped"
+          ]
+        },
+        "attemptCount": {
+          "type": "integer"
+        },
+        "errorCode": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "errorMessage": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "deadLetter": {
+          "type": "boolean"
+        },
+        "queuedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "startedAt": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "date-time"
+            }
+          ]
+        },
+        "finishedAt": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "date-time"
+            }
+          ]
+        },
+        "origin": {
+          "type": "string",
+          "enum": ["rule", "confirmed_request"]
+        },
+        "requestId": {
+          "type": ["string", "null"],
+          "format": "uuid"
+        }
+      }
+    },
+    "blob": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "workspaceId",
+        "key",
+        "size",
+        "mime",
+        "checksum",
+        "status",
+        "createdAt",
+        "updatedAt",
+        "deletedAt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "key": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "mime": {
+          "type": "string"
+        },
+        "checksum": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "uploading", "completed", "failed"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "deletedAt": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "date-time"
+            }
+          ]
+        }
+      }
+    },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "parentId",
+        "targetType",
+        "targetId",
+        "targetWorkspaceId",
+        "index"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "parentId": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "targetType": {
+          "type": "string",
+          "enum": ["doc", "database", "collection", "tag", "workspace"]
+        },
+        "targetId": {
+          "type": "string"
+        },
+        "targetWorkspaceId": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "uuid"
+            }
+          ]
+        },
+        "index": {
+          "type": "string"
+        }
+      }
+    },
+    "folder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "parentId", "name", "type", "index"],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "parentId": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["folder", "workspace-root"]
+        },
+        "index": {
+          "type": "string"
+        }
+      }
+    },
+    "graph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodes", "edges", "databaseReferences", "indexSummary"],
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/graphNode"
+          }
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/graphEdge"
+          }
+        },
+        "databaseReferences": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/graphDatabaseReference"
+          }
+        },
+        "indexSummary": {
+          "$ref": "#/$defs/DocumentGraphIndexSummary"
+        }
+      }
+    },
+    "graphDatabaseReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workspaceId",
+        "databaseId",
+        "databaseTitle",
+        "rowId",
+        "rowTitle",
+        "fieldId",
+        "fieldName",
+        "referenceKind",
+        "rawTargetExternalId",
+        "targetExternalId",
+        "refreshedAt"
+      ],
+      "properties": {
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "databaseId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "databaseTitle": {
+          "type": "string"
+        },
+        "rowId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "rowTitle": {
+          "type": "string"
+        },
+        "fieldId": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "uuid"
+            }
+          ]
+        },
+        "fieldName": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "referenceKind": {
+          "type": "string",
+          "enum": ["row_content_document", "document_link_field"]
+        },
+        "rawTargetExternalId": {
+          "type": "string"
+        },
+        "targetExternalId": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "refreshedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "graphEdge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sourceExternalId",
+        "targetExternalId",
+        "rawTargetExternalId",
+        "targetState",
+        "linkKind",
+        "occurrenceCount",
+        "firstOccurrencePreview",
+        "staleState",
+        "occurrences"
+      ],
+      "properties": {
+        "sourceExternalId": {
+          "type": "string"
+        },
+        "targetExternalId": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "rawTargetExternalId": {
+          "type": "string"
+        },
+        "targetState": {
+          "$ref": "#/$defs/DocumentGraphTargetState"
+        },
+        "linkKind": {
+          "$ref": "#/$defs/DocumentGraphLinkKind"
+        },
+        "occurrenceCount": {
+          "type": "integer"
+        },
+        "firstOccurrencePreview": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "staleState": {
+          "$ref": "#/$defs/DocumentGraphStaleState"
+        },
+        "occurrences": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/graphOccurrence"
+          }
+        }
+      }
+    },
+    "graphNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "externalId",
+        "rawExternalId",
+        "title",
+        "documentType",
+        "status",
+        "classification",
+        "deleted",
+        "redacted"
+      ],
+      "properties": {
+        "externalId": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "rawExternalId": {
+          "type": "string"
+        },
+        "title": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "documentType": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "status": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "classification": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "deleted": {
+          "type": "boolean"
+        },
+        "redacted": {
+          "type": "boolean"
+        }
+      }
+    },
+    "graphOccurrence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "workspaceId",
+        "sourceExternalId",
+        "sourceBlockId",
+        "sourceParentBlockId",
+        "sourceParentFlavour",
+        "rawTargetExternalId",
+        "targetExternalId",
+        "linkKind",
+        "paramsJson",
+        "paramsKey",
+        "markdownPreview",
+        "targetState",
+        "extractedAt",
+        "sourceUpdatedAt",
+        "createdAt"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "sourceExternalId": {
+          "type": "string"
+        },
+        "sourceBlockId": {
+          "type": "string"
+        },
+        "sourceParentBlockId": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "sourceParentFlavour": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "rawTargetExternalId": {
+          "type": "string"
+        },
+        "targetExternalId": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "linkKind": {
+          "$ref": "#/$defs/DocumentGraphLinkKind"
+        },
+        "paramsJson": {
+          "type": ["object", "array", "string", "number", "boolean", "null"],
+          "description": "Arbitrary JSON retained by the serde_json::Value DTO slot."
+        },
+        "paramsKey": {
+          "type": "string"
+        },
+        "markdownPreview": {
+          "type": "string"
+        },
+        "targetState": {
+          "$ref": "#/$defs/DocumentGraphTargetState"
+        },
+        "extractedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "sourceUpdatedAt": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "date-time"
+            }
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "page": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["externalId", "title", "created_at", "updated_at"],
+      "properties": {
+        "externalId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "pdfTemplate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "slug",
+        "name",
+        "version",
+        "schemaVersion",
+        "capabilities",
+        "isDefault"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "schemaVersion": {
+          "type": "string"
+        },
+        "capabilities": {
+          "type": ["object", "array", "string", "number", "boolean", "null"],
+          "description": "Arbitrary JSON retained by the serde_json::Value DTO slot."
+        },
+        "isDefault": {
+          "type": "boolean"
+        }
+      }
+    },
+    "suggestion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "templateId",
+        "templateDocId",
+        "slug",
+        "title",
+        "description",
+        "category",
+        "tags",
+        "score",
+        "reasons",
+        "instanceState",
+        "available"
+      ],
+      "properties": {
+        "templateId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "templateDocId": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "slug": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "category": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "score": {
+          "type": "integer"
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "WorkspacePolicy",
+              "DefaultPolicy",
+              "SurfaceCategory",
+              "MetadataDocumentType",
+              "MetadataStatus",
+              "MetadataClassification",
+              "InstanceOk",
+              "UpdateAvailable",
+              "Detached",
+              "ReconcileRequired",
+              "InstanceError",
+              "Redacted",
+              "Preparing",
+              "AccessDenied",
+              "SourceMissing",
+              "IncompatibleClient",
+              "RetryableFailure"
+            ]
+          }
+        },
+        "instanceState": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "available": {
+          "type": "boolean"
+        }
+      }
+    },
+    "template": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slug",
+        "builderVersion",
+        "expectedHash",
+        "hasInstance",
+        "needsRebuild",
+        "provisioningMode"
+      ],
+      "properties": {
+        "slug": {
+          "type": "string"
+        },
+        "builderVersion": {
+          "type": "integer"
+        },
+        "expectedHash": {
+          "type": "string"
+        },
+        "hasInstance": {
+          "type": "boolean"
+        },
+        "needsRebuild": {
+          "type": "boolean"
+        },
+        "provisioningMode": {
+          "type": "string",
+          "enum": ["SeedOnce", "ManagedUntilLocalEdit", "ManualUpdate"]
+        }
+      }
+    },
+    "treeEntry": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "targetType",
+            "externalId",
+            "targetWorkspaceId",
+            "index"
+          ],
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "targetType": {
+              "type": "string",
+              "const": "doc"
+            },
+            "externalId": {
+              "type": "string"
+            },
+            "targetWorkspaceId": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ]
+            },
+            "index": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "targetType",
+            "targetId",
+            "targetWorkspaceId",
+            "index"
+          ],
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "targetType": {
+              "type": "string",
+              "enum": ["database", "collection", "tag", "workspace"]
+            },
+            "targetId": {
+              "type": "string"
+            },
+            "targetWorkspaceId": {
+              "oneOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              ]
+            },
+            "index": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "treeFolder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "path", "index", "entries", "children"],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "path": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "index": {
+          "type": "string"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/treeEntry"
+          }
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/treeFolder"
+          }
+        }
+      }
+    },
+    "version": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "externalId",
+        "workspaceId",
+        "docHistoryId",
+        "versionNo",
+        "label",
+        "description",
+        "event",
+        "kind",
+        "createdBy",
+        "createdAt",
+        "isPinned",
+        "isProtected",
+        "currentVersionId",
+        "isCurrentDocumentVersion",
+        "dirtySinceCurrentVersion"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "externalId": {
+          "type": "string"
+        },
+        "workspaceId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "docHistoryId": {
+          "type": "integer"
+        },
+        "versionNo": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "integer"
+            }
+          ]
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string"
+            }
+          ]
+        },
+        "event": {
+          "type": "string",
+          "enum": ["manual", "publish", "pdf_export", "daily", "api", "restore"]
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "checkpoint",
+            "milestone",
+            "published",
+            "exported",
+            "restored"
+          ]
+        },
+        "createdBy": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "isPinned": {
+          "type": "boolean"
+        },
+        "isProtected": {
+          "type": "boolean"
+        },
+        "currentVersionId": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "format": "uuid"
+            }
+          ]
+        },
+        "isCurrentDocumentVersion": {
+          "type": "boolean"
+        },
+        "dirtySinceCurrentVersion": {
+          "type": "boolean"
+        }
+      }
+    },
+    "workspace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "public", "created_at"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "public": {
+          "type": "boolean"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}

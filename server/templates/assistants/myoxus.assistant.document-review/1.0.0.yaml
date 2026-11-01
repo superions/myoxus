@@ -1,0 +1,298 @@
+formatVersion: 1
+id: myoxus.assistant.document-review
+version: 1.0.0
+name:
+  en: Request review
+  de: Überprüfung anfordern
+  fr: Demander une relecture
+  es: Solicitar revisión
+description:
+  en: Ask one person to review an existing document by an explicit deadline. Approval
+    creates a handover task; requested changes create a revision task. Access is not
+    granted automatically.
+  de: Bitte eine Person, ein bestehendes Dokument bis zu einem ausdrücklich gewählten
+    Zeitpunkt zu überprüfen. Eine Freigabe erzeugt eine Übergabeaufgabe;
+    Änderungswünsche erzeugen eine Überarbeitungsaufgabe. Zugriff wird nicht automatisch
+    gewährt.
+  fr: Demandez à une personne de relire un document existant avant une échéance explicite.
+    L’approbation crée une tâche de transmission ; les modifications demandées créent
+    une tâche de révision. Aucun accès n’est accordé automatiquement.
+  es: Pide a una persona que revise un documento existente antes de un plazo explícito. La
+    aprobación crea una tarea de entrega; los cambios solicitados crean una tarea de
+    revisión. No se concede acceso automáticamente.
+contexts:
+  - taskContainerAssistance
+inputs:
+  - id: document
+    target: sourceDocument
+    label:
+      en: Document
+      de: Dokument
+      fr: Document
+      es: Documento
+    description: null
+    valueType: document
+    required: true
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: reviewer
+    target: reviewer
+    label:
+      en: Reviewer
+      de: Prüfende Person
+      fr: Personne chargée de la relecture
+      es: Persona revisora
+    description: null
+    valueType: members
+    required: true
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: destination
+    target: destination
+    label:
+      en: Task destination
+      de: Aufgabenziel
+      fr: Destination des tâches
+      es: Destino de tareas
+    description:
+      en: Workspace Tasks is the default. Choose another ready native Project only if
+        intended.
+      de: Workspace-Aufgaben sind das Standardziel. Wähle nur bei Bedarf ein anderes bereites
+        natives Projekt.
+      fr: Les tâches de l’espace sont la destination par défaut. Choisissez un autre projet
+        natif prêt uniquement si vous le souhaitez.
+      es: Las tareas del espacio son el destino predeterminado. Elige otro proyecto nativo
+        preparado solo si lo deseas.
+    valueType: databaseDestination
+    required: false
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: title
+    target: title
+    label:
+      en: Review task title
+      de: Titel der Prüfaufgabe
+      fr: Titre de la tâche de relecture
+      es: Título de la tarea de revisión
+    description: null
+    valueType: text
+    required: true
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: deadline
+    target: deadline
+    label:
+      en: Review deadline
+      de: Prüffrist
+      fr: Échéance de la relecture
+      es: Plazo de revisión
+    description:
+      en: Choose a future date and time. The confirmed deadline is fixed for this process.
+      de: Wähle ein zukünftiges Datum mit Uhrzeit. Die bestätigte Frist bleibt für diesen
+        Prozess fest.
+      fr: Choisissez une date et une heure futures. L’échéance confirmée reste fixe pour ce
+        processus.
+      es: Elige una fecha y hora futuras. El plazo confirmado queda fijo para este proceso.
+    valueType: dateTime
+    required: true
+    default: null
+    choices: []
+    visibleWhen: null
+components:
+  - id: request-review
+    action:
+      kind: requestDocumentReview
+      inputs:
+        sourceDocument:
+          kind: input
+          input: document
+        reviewer:
+          kind: input
+          input: reviewer
+        destination:
+          kind: input
+          input: destination
+        title:
+          kind: input
+          input: title
+        deadline:
+          kind: input
+          input: deadline
+  - id: review-task
+    action:
+      kind: createTaskFromDocument
+      inputs:
+        sourceDocument:
+          kind: input
+          input: document
+        assignees:
+          kind: input
+          input: reviewer
+        destination:
+          kind: input
+          input: destination
+        title:
+          kind: input
+          input: title
+        due:
+          kind: input
+          input: deadline
+  - id: handover
+    action:
+      kind: createTaskFromDocument
+      inputs:
+        sourceDocument:
+          kind: input
+          input: document
+        assignees:
+          kind: context
+          value: requester
+        destination:
+          kind: input
+          input: destination
+        title:
+          kind: localizedText
+          value:
+            en: Continue after document approval
+            de: Nach Dokumentfreigabe fortfahren
+            fr: Poursuivre après l’approbation du document
+            es: Continuar tras la aprobación del documento
+  - id: revision
+    action:
+      kind: createTaskFromDocument
+      inputs:
+        sourceDocument:
+          kind: input
+          input: document
+        assignees:
+          kind: context
+          value: requester
+        destination:
+          kind: input
+          input: destination
+        title:
+          kind: localizedText
+          value:
+            en: Revise the document
+            de: Dokument überarbeiten
+            fr: Réviser le document
+            es: Revisar el documento
+        description:
+          kind: result
+          component: decision
+          value: reason
+presentation:
+  steps:
+    - id: details
+      title:
+        en: Request review
+        de: Überprüfung anfordern
+        fr: Demander une relecture
+        es: Solicitar revisión
+      groups:
+        - id: request
+          title: null
+          role: content
+          controls:
+            - kind: input
+              input: document
+              control: document
+            - kind: input
+              input: reviewer
+              control: members
+            - kind: input
+              input: destination
+              control: destination
+            - kind: input
+              input: title
+              control: text
+            - kind: input
+              input: deadline
+              control: dateTime
+          visibleWhen: null
+      actions:
+        - id: cancel
+          label:
+            en: Cancel
+            de: Abbrechen
+            fr: Annuler
+            es: Cancelar
+          action: cancel
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: prepare
+          label:
+            en: Review request
+            de: Anfrage überprüfen
+            fr: Vérifier la demande
+            es: Revisar solicitud
+          action: prepareDocumentReview
+          component: null
+          targetStep: null
+          dialog: confirm
+          visibleWhen: null
+        - id: check
+          label:
+            en: Check status
+            de: Status prüfen
+            fr: Vérifier le statut
+            es: Comprobar estado
+          action: check
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: close
+          label:
+            en: Close
+            de: Schließen
+            fr: Fermer
+            es: Cerrar
+          action: close
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+  dialogs:
+    - id: confirm
+      title:
+        en: Review request
+        de: Anfrage überprüfen
+        fr: Vérifier la demande
+        es: Revisar solicitud
+      groups:
+        - id: plan
+          title: null
+          role: review
+          controls:
+            - kind: documentReview
+          visibleWhen: null
+      actions:
+        - id: back
+          label:
+            en: Back to editing
+            de: Zurück zur Bearbeitung
+            fr: Revenir à la modification
+            es: Volver a editar
+          action: cancel
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: request
+          label:
+            en: Request review
+            de: Überprüfung anfordern
+            fr: Demander une relecture
+            es: Solicitar revisión
+          action: requestDocumentReview
+          component: request-review
+          targetStep: null
+          dialog: null
+          visibleWhen: null

@@ -1,0 +1,36 @@
+fragment AdminCaBundleFields on AdminCaBundleStatus {
+  path
+  fingerprint
+  certificateCount
+  expiresAt
+  fileError
+  restriction
+  rollbackAvailable
+  loadedSnapshot
+  restartRequired
+  maxUploadBytes
+}
+
+query adminCaBundleStatus {
+  admin {
+    adminCaBundleStatus { ...AdminCaBundleFields }
+  }
+}
+
+mutation adminApplyCaBundle($file: Upload!) {
+  admin {
+    adminApplyCaBundle(file: $file) { ...AdminCaBundleFields }
+  }
+}
+
+mutation adminRestoreCaBundle {
+  admin {
+    adminRestoreCaBundle { ...AdminCaBundleFields }
+  }
+}
+
+mutation adminRemoveCaBundle {
+  admin {
+    adminRemoveCaBundle { ...AdminCaBundleFields }
+  }
+}

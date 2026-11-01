@@ -1,0 +1,13 @@
+mutation adminUpdateWorkspaceMemberRole(
+  $workspaceId: ID!
+  $userId: ID!
+  $role: Permission!
+) {
+  admin {
+    adminUpdateWorkspaceMemberRole(
+      workspaceId: $workspaceId
+      userId: $userId
+      role: $role
+    )
+  }
+}

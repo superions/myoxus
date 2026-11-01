@@ -1,0 +1,61 @@
+todo export-ignore
+todo/** export-ignore
+learnings export-ignore
+learnings/** export-ignore
+docs/dev export-ignore
+docs/dev/** export-ignore
+docs/test export-ignore
+docs/test/** export-ignore
+tests/[Rr][Ee][Aa][Dd][Mm][Ee]* export-ignore
+tests/**/[Rr][Ee][Aa][Dd][Mm][Ee]* export-ignore
+build/test-matrix/README.md export-ignore
+build/scripts/ci/README.md export-ignore
+.agents export-ignore
+.agents/** export-ignore
+.codex export-ignore
+.codex/** export-ignore
+AGENTS.md export-ignore
+/Cargo.toml export-ignore
+docs/dev/legacy-server/** export-ignore
+server/archive/** export-ignore
+server/runtime/** export-ignore
+client/frontends/static/** export-ignore
+client/apps/android/** export-ignore
+client/apps/android/package.json -export-ignore
+client/apps/ios/** export-ignore
+client/apps/ios/package.json -export-ignore
+client/apps/mobile/** export-ignore
+client/apps/mobile/package.json -export-ignore
+client/apps/mobile-shared/** export-ignore
+client/apps/mobile-shared/package.json -export-ignore
+client/apps/mobile-native export-ignore
+client/apps/mobile-native/** export-ignore
+tests/client/mobile/** export-ignore
+tests/client/mobile/app -export-ignore
+tests/client/mobile/app/package.json -export-ignore
+server/crates/api/test-storage export-ignore
+server/crates/api/test-storage/** export-ignore
+server/crates/tests/reports export-ignore
+server/crates/tests/reports/** export-ignore
+tests/client/shared/fixtures/alpha export-ignore
+tests/client/shared/fixtures/alpha/** export-ignore
+virgultum/icons/dist export-ignore
+virgultum/icons/dist/** export-ignore
+*.afdesign binary
+*.sh text eol=lf
+.yarn/patches/*.patch whitespace=-blank-at-eol
+
+.private export-ignore
+.private/** export-ignore
+.forgejo export-ignore
+.forgejo/** export-ignore
+/tools/handbook*.mjs export-ignore
+/verify.mjs export-ignore
+*.pdf binary
+*.yjs binary
+
+# Whitespace is semantic data in this cross-writer Markdown fixture.
+build/fixtures/markdown/roundtrip-line-breaks.md whitespace=-blank-at-eol
+
+# Official OMG inputs retain their original bytes (including BOM/CRLF/spacing).
+client/libs/bpmn-editor/src/schemas/bpmn-2_0/*.xsd -text -whitespace

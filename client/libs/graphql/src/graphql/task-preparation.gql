@@ -1,0 +1,58 @@
+fragment TaskPreparationSourceFragment on TaskPreparationSource {
+  source { componentId templateId version digest }
+  sourceRevisionId sourceRevisionDigest sourceContentDigest locale title
+  variables { name value }
+}
+fragment PreparedTaskPreparationFragment on PreparedTaskPreparation {
+  actorId workspaceId target { databaseId taskId }
+  package { ...AssistantPackageIdentityFragment }
+  answers { input value { ...AssistantValueFragment } }
+  locale clientVersion executionAvailable planDigest
+  source { ...TaskPreparationSourceFragment }
+}
+fragment TaskPreparationConfigurationFragment on TaskPreparationConfiguration {
+  id actorId workspaceId databaseId executionRevision planDigest status
+  package { ...AssistantPackageIdentityFragment }
+  answers { input value { ...AssistantValueFragment } }
+  locale clientVersion source { ...TaskPreparationSourceFragment }
+}
+fragment TaskPreparationRunFragment on TaskPreparationRun {
+  run { ...WorkspaceAutomationRun }
+  target { databaseId rowId }
+  documentId documentExternalId canRetry canStop
+}
+query taskPreparationRun($workspaceId: String!, $runId: ID!) {
+  currentUser { id }
+  workspace(id: $workspaceId) {
+    id
+    taskPreparationRun(runId: $runId) { ...TaskPreparationRunFragment }
+  }
+}
+mutation retryTaskPreparationRun($runId: ID!) {
+  retryTaskPreparationRun(runId: $runId) { ...TaskPreparationRunFragment }
+}
+mutation stopTaskPreparationRun($runId: ID!) {
+  stopTaskPreparationRun(runId: $runId) { ...TaskPreparationRunFragment }
+}
+query prepareTaskPreparation($workspaceId: String!, $input: PrepareTaskPreparationInput!) {
+  currentUser { id }
+  workspace(id: $workspaceId) { id prepareTaskPreparation(input: $input) { ...PreparedTaskPreparationFragment } }
+}
+query taskPreparation($workspaceId: String!, $databaseId: ID!) {
+  currentUser { id }
+  workspace(id: $workspaceId) { id taskPreparation(databaseId: $databaseId) { ...TaskPreparationConfigurationFragment } }
+}
+mutation configureTaskPreparation($input: ConfigureTaskPreparationInput!) {
+  configureTaskPreparation(input: $input) { ...TaskPreparationConfigurationFragment }
+}
+query prepareTaskMaintenanceRule($workspaceId: String!, $input: PrepareTaskMaintenanceInput!) {
+  currentUser { id }
+  workspace(id: $workspaceId) { id prepareTaskMaintenanceRule(input: $input) { ...PreparedTaskMaintenanceFragment } }
+}
+query taskMaintenanceRule($workspaceId: String!, $databaseId: ID!) {
+  currentUser { id }
+  workspace(id: $workspaceId) { id taskMaintenanceRule(databaseId: $databaseId) { ...TaskPreparationConfigurationFragment } }
+}
+mutation configureTaskMaintenance($input: ConfigureTaskPreparationInput!) {
+  configureTaskMaintenance(input: $input) { ...TaskPreparationConfigurationFragment }
+}

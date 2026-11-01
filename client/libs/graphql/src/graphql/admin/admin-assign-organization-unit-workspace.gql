@@ -1,0 +1,5 @@
+mutation adminAssignOrganizationUnitWorkspace($input: AssignOrganizationUnitWorkspaceInput!) {
+  admin {
+    assignOrganizationUnitWorkspace(input: $input)
+  }
+}

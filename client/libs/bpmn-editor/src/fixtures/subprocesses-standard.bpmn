@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+ xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+ xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:tns="urn:myoxus:subprocesses"
+ id="Definitions" targetNamespace="urn:myoxus:subprocesses">
+ <process id="Process">
+  <laneSet id="RootLanes"><lane id="RootLane" name="Root partition"><flowNodeRef>Outer</flowNodeRef></lane></laneSet>
+  <subProcess id="Outer" name="Outer process">
+   <laneSet id="OuterLanes"><lane id="OuterLane" name="Outer partition"><flowNodeRef>OuterStart</flowNodeRef><flowNodeRef>Inner</flowNodeRef><flowNodeRef>OuterEnd</flowNodeRef><flowNodeRef>Timeout</flowNodeRef></lane></laneSet>
+   <startEvent id="OuterStart"><outgoing>EnterInner</outgoing></startEvent>
+   <subProcess id="Inner" name="Inner process">
+    <documentation id="InnerDocumentation">Keep child geometry and source</documentation>
+    <incoming>EnterInner</incoming><outgoing>LeaveInner</outgoing>
+    <startEvent id="InnerStart"><outgoing>ToManual</outgoing></startEvent>
+    <manualTask id="Manual" name="Nested manual task"><incoming>ToManual</incoming><outgoing>FromManual</outgoing></manualTask>
+    <endEvent id="InnerEnd"><incoming>FromManual</incoming></endEvent>
+    <sequenceFlow id="ToManual" sourceRef="InnerStart" targetRef="Manual"/>
+    <sequenceFlow id="FromManual" sourceRef="Manual" targetRef="InnerEnd"/>
+   </subProcess>
+   <boundaryEvent id="Timeout" name="Timeout" attachedToRef="Inner"><timerEventDefinition id="Timer"><timeDuration id="Duration">PT10M</timeDuration></timerEventDefinition></boundaryEvent>
+   <endEvent id="OuterEnd"><incoming>LeaveInner</incoming></endEvent>
+   <sequenceFlow id="EnterInner" sourceRef="OuterStart" targetRef="Inner"/>
+   <sequenceFlow id="LeaveInner" sourceRef="Inner" targetRef="OuterEnd"/>
+  </subProcess>
+ </process>
+ <bpmndi:BPMNDiagram id="Diagram"><bpmndi:BPMNPlane id="Plane" bpmnElement="Process">
+  <bpmndi:BPMNShape id="RootLaneDI" bpmnElement="RootLane" isHorizontal="true"><dc:Bounds x="20" y="20" width="1060" height="620"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="OuterDI" bpmnElement="Outer" isExpanded="true"><dc:Bounds x="80" y="70" width="940" height="500"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="OuterLaneDI" bpmnElement="OuterLane" isHorizontal="true"><dc:Bounds x="100" y="110" width="900" height="430"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="OuterStartDI" bpmnElement="OuterStart"><dc:Bounds x="145" y="260" width="36" height="36"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="InnerDI" bpmnElement="Inner" isExpanded="true"><dc:Bounds x="240" y="170" width="580" height="300"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="TimeoutDI" bpmnElement="Timeout"><dc:Bounds x="760" y="452" width="36" height="36"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="InnerStartDI" bpmnElement="InnerStart"><dc:Bounds x="280" y="270" width="36" height="36"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="ManualDI" bpmnElement="Manual"><dc:Bounds x="410" y="240" width="180" height="100"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="InnerEndDI" bpmnElement="InnerEnd"><dc:Bounds x="700" y="270" width="36" height="36"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="OuterEndDI" bpmnElement="OuterEnd"><dc:Bounds x="920" y="260" width="36" height="36"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNEdge id="EnterInnerDI" bpmnElement="EnterInner"><di:waypoint x="181" y="278"/><di:waypoint x="240" y="278"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="LeaveInnerDI" bpmnElement="LeaveInner"><di:waypoint x="820" y="278"/><di:waypoint x="920" y="278"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="ToManualDI" bpmnElement="ToManual"><di:waypoint x="316" y="288"/><di:waypoint x="350" y="288"/><di:waypoint x="410" y="290"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="FromManualDI" bpmnElement="FromManual"><di:waypoint x="590" y="290"/><di:waypoint x="650" y="288"/><di:waypoint x="700" y="288"/></bpmndi:BPMNEdge>
+ </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+</definitions>

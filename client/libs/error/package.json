@@ -1,0 +1,12 @@
+{
+  "name": "@myoxus/error",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "graphql": "^16.14.2"
+  },
+  "license": "AGPL-3.0-or-later"
+}

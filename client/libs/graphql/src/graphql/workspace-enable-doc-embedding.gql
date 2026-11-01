@@ -1,0 +1,5 @@
+mutation setEnableDocEmbedding($id: String!, $enableDocEmbedding: Boolean!) {
+  updateWorkspace(input: { id: $id, enableDocEmbedding: $enableDocEmbedding }) {
+    id
+  }
+}

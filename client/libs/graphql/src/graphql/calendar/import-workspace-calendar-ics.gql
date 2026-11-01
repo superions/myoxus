@@ -1,0 +1,10 @@
+mutation importWorkspaceCalendarIcs(
+  $workspaceId: String!
+  $icsBody: String!
+) {
+  importWorkspaceCalendarIcs(workspaceId: $workspaceId, icsBody: $icsBody) {
+    importedCount
+    skippedCount
+    errors
+  }
+}

@@ -1,0 +1,35 @@
+query loggingConfig {
+  admin {
+    loggingConfig {
+      modules {
+        group
+        displayName
+        level
+        recommendedDefault
+        description
+        highVolumeWarning
+      }
+      output {
+        filePath
+        rotation
+        maxFiles
+        pathValid
+        pathError
+        requiresRestart
+      }
+      recentChanges {
+        timestamp
+        group
+        previousLevel
+        newLevel
+        changedBy
+        autoRevertAt
+      }
+      diskUsage {
+        totalBytes
+        fileCount
+        freeBytes
+      }
+    }
+  }
+}

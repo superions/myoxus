@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "generatedFrom": "client/libs/ui-facade/src/admin-app.css",
+  "policy": "Facade-owned Admin app bridge literals are frozen. New signatures or increased counts fail admin-global-css-token-literals.spec.ts.",
+  "entries": {
+    "margin: 0": 1
+  }
+}

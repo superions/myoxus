@@ -1,0 +1,82 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+.myoxus-structure-tree-root {
+  --myoxus-ui-structure-tree-indent: var(--mantine-spacing-md);
+
+  min-width: 0;
+}
+
+.myoxus-structure-tree-section__header[data-dragged-over="true"],
+.myoxus-structure-tree-drop-target[data-dragged-over="true"] {
+  background: var(--myoxus-hover-color);
+}
+
+.myoxus-structure-tree-drop-target[data-dragged-over="true"] {
+  border-radius: var(--mantine-radius-sm);
+}
+
+.myoxus-structure-tree-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.myoxus-structure-tree-row {
+  position: relative;
+  user-select: none;
+}
+
+.myoxus-structure-tree-row[data-dragging="true"] {
+  opacity: 0.5;
+}
+
+.myoxus-structure-tree-rename-anchor {
+  position: absolute;
+  top: calc(calc(var(--mantine-spacing-sm) + var(--mantine-spacing-2xs)) * -1);
+  left: 0;
+  width: calc(var(--mantine-spacing-sm) + var(--mantine-spacing-2xs));
+  height: calc(var(--mantine-spacing-sm) + var(--mantine-spacing-2xs));
+  pointer-events: none;
+}
+
+.myoxus-structure-tree-content {
+  position: relative;
+  padding-left: var(--myoxus-ui-structure-tree-indent);
+}
+
+.myoxus-structure-tree-drag-preview {
+  width: calc(15.5rem - var(--mantine-spacing-lg));
+  max-width: calc(100vw - var(--mantine-spacing-lg));
+  border-radius: var(--mantine-radius-md);
+  background: var(--myoxus-background-primary-color);
+}
+
+.myoxus-structure-tree-drop-highlight {
+  position: relative;
+}
+
+.myoxus-structure-tree-drop-highlight[data-tree-instruction="make-child"][data-self-dragged-over="false"]::after {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: var(--myoxus-ui-structure-tree-indent);
+  display: block;
+  width: calc(100% - var(--myoxus-ui-structure-tree-indent));
+  height: 100%;
+  background: var(--myoxus-hover-color);
+  content: "";
+}
+
+.myoxus-structure-tree-drop-effect {
+  position: fixed;
+  z-index: var(--myoxus-z-index-popover);
+  top: calc(calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs)) * -1);
+  left: calc(var(--mantine-spacing-sm) + var(--mantine-spacing-2xs));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mantine-spacing-xs);
+  padding: 0 var(--mantine-spacing-xs);
+  border-radius: var(--mantine-radius-sm);
+  background: var(--myoxus-background-primary-color);
+  box-shadow: var(--myoxus-toolbar-shadow);
+}

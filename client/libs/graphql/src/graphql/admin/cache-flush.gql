@@ -1,0 +1,23 @@
+mutation adminFlushDocSnapshotCache {
+  admin {
+    adminFlushDocSnapshotCache
+  }
+}
+
+mutation adminFlushDocMetadataCache {
+  admin {
+    adminFlushDocMetadataCache
+  }
+}
+
+mutation adminFlushDocMetadataProjectionCache {
+  admin {
+    adminFlushDocMetadataProjectionCache
+  }
+}
+
+mutation adminFlushAllDocCaches {
+  admin {
+    adminFlushAllDocCaches
+  }
+}

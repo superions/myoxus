@@ -1,0 +1,19 @@
+query workspaceTemplateInstances($workspaceId: String!) {
+  admin {
+    workspaceTemplateInstances(workspaceId: $workspaceId) {
+      id
+      workspaceId
+      templateId
+      revisionId
+      workspaceDocId
+      state
+      lastAppliedHash
+      currentHash
+      lastSyncedAt
+      detachedAt
+      retiredAt
+      lastErrorCode
+      lastErrorMessage
+    }
+  }
+}

@@ -1,0 +1,97 @@
+import {
+  type DBSchemaBuilder,
+  f,
+  type FieldSchemaBuilder,
+  type ORMEntity,
+  t,
+} from "@myoxus/infra";
+import type { IconData } from "@myoxus/ui-facade";
+import { nanoid } from "nanoid";
+
+import type { WorkspacePropertyType } from "../../workspace-property";
+
+const integrationType = f.enum("readwise");
+
+export const Myoxus_WORKSPACE_DB_SCHEMA = {
+  folders: {
+    id: f.string().primaryKey().optional().default(nanoid),
+    parentId: f.string().optional(),
+    data: f.string(),
+    type: f.string(),
+    index: f.string(),
+    /**
+     * Omitted for local/legacy links. Cross-workspace organizer links retain
+     * their owning target workspace explicitly in the shared Yjs row.
+     */
+    targetWorkspaceId: f.string().optional(),
+  },
+  docProperties: t.document({
+    // { [`custom:{customPropertyId}`]: any }
+    id: f.string().primaryKey(),
+    primaryMode: f.string().optional(),
+    edgelessColorTheme: f.string().optional(),
+    journal: f.string().optional(),
+    pageWidth: f.string().optional(),
+    isTemplate: f.boolean().optional(),
+    templateCategory: f.string().optional(),
+    templateTags: f.json<string[] | null>().optional(),
+    integrationType: integrationType.optional(),
+    createdBy: f.string().optional(),
+    updatedBy: f.string().optional(),
+  }),
+  docCustomPropertyInfo: {
+    id: f.string().primaryKey().optional().default(nanoid),
+    name: f.string().optional(),
+    type: f.string() as FieldSchemaBuilder<WorkspacePropertyType, false, false>,
+    show: f.enum("always-show", "always-hide", "hide-when-empty").optional(),
+    index: f.string().optional(),
+    icon: f.string().optional(),
+    additionalData: f.json().optional(),
+    isDeleted: f.boolean().optional(),
+    // we will keep deleted properties in the database, for override legacy data
+  },
+  pinnedCollections: {
+    collectionId: f.string().primaryKey(),
+    index: f.string(),
+  },
+  explorerIcon: {
+    /**
+     * ${doc|collection|folder|tag}:${id}
+     */
+    id: f.string().primaryKey(),
+    icon: f.json<IconData>(),
+  },
+} as const satisfies DBSchemaBuilder;
+export type MyoxusWorkspaceDbSchema = typeof Myoxus_WORKSPACE_DB_SCHEMA;
+
+export type DocProperties = ORMEntity<MyoxusWorkspaceDbSchema["docProperties"]>;
+export type DocCustomPropertyInfo = ORMEntity<
+  MyoxusWorkspaceDbSchema["docCustomPropertyInfo"]
+>;
+
+export const Myoxus_WORKSPACE_USERDATA_DB_SCHEMA = {
+  favorite: {
+    key: f.string().primaryKey(),
+    index: f.string(),
+  },
+  settings: {
+    key: f.string().primaryKey(),
+    value: f.json(),
+  },
+  docIntegrationRef: {
+    // docId as primary key
+    id: f.string().primaryKey(),
+    type: integrationType,
+    /**
+     * Identify **affine user** and **integration type** and **integration account**
+     * Used to quickly find user's all integrations
+     */
+    integrationId: f.string(),
+    refMeta: f.json(),
+  },
+} as const satisfies DBSchemaBuilder;
+export type MyoxusWorkspaceUserdataDbSchema =
+  typeof Myoxus_WORKSPACE_USERDATA_DB_SCHEMA;
+export type DocIntegrationRef = ORMEntity<
+  MyoxusWorkspaceUserdataDbSchema["docIntegrationRef"]
+>;

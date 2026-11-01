@@ -1,0 +1,46 @@
+.virgultum-outline-setting-menu-host {
+  display: contents;
+}
+
+.virgultum-outline-setting-menu-container {
+  padding: 8px;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+}
+
+.virgultum-outline-setting-menu-item {
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  height: 28px;
+  padding: 4px 12px;
+  align-items: center;
+}
+
+.virgultum-outline-setting-menu-label {
+  font-family: var(--myoxus-font-sans-family);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--myoxus-text-secondary-color);
+  padding: 0 4px;
+}
+
+.virgultum-outline-setting-menu-action {
+  gap: 4px;
+}
+
+.virgultum-outline-setting-menu-action-label {
+  width: 138px;
+  height: 20px;
+  padding: 0 4px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--myoxus-text-primary-color);
+}
+
+.virgultum-outline-setting-menu-toggle-button {
+  display: flex;
+}

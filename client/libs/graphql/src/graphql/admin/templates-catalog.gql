@@ -1,0 +1,19 @@
+query templateCatalog($skip: Int, $take: Int, $status: TemplateStatusType) {
+  admin {
+    templateCatalog(skip: $skip, take: $take, status: $status) {
+      id
+      slug
+      title
+      description
+      category
+      tags
+      status
+      source
+      minClientVersion
+      createdAt
+      updatedAt
+      archivedAt
+    }
+    templateCatalogCount(status: $status)
+  }
+}

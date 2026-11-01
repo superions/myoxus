@@ -1,0 +1,2817 @@
+{
+  "schemaVersion": 1,
+  "decision": {
+    "iconSet": "tabler",
+    "package": "@tabler/icons-react",
+    "version": "3.45.0",
+    "license": "MIT"
+  },
+  "scope": {
+    "publicIconCount": 721,
+    "previouslyReviewedGlyphCount": 197,
+    "acceptedObviousGlyphCount": 466,
+    "remainingAfterObviousCount": 58
+  },
+  "methodology": {
+    "description": "Namensgleiche Glyphen, rein technische Stil-/Panel-/Brandvarianten und explizit gepflegte semantisch eindeutige Aliase.",
+    "exclusion": "Produktglyphen, mehrdeutige Zustände/Richtungen und verlustbehaftete Dateityp-Zuordnungen bleiben zur manuellen Prüfung offen."
+  },
+  "icons": [
+    {
+      "myoxus": "AccountBanIcon",
+      "tabler": "IconUserCancel",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "AccountEnableIcon",
+      "tabler": "IconUserCheck",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "AddCommentIcon",
+      "tabler": "IconMessageCirclePlus",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "AddCursorDuotoneIcon",
+      "tabler": "IconPointerPlus",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "AdminIcon",
+      "tabler": "IconUserShield",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "AiOutlineIcon",
+      "tabler": "IconSparkles",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "AlignBottomIcon",
+      "tabler": "IconLayoutAlignBottom",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "AlignHorizontalCenterIcon",
+      "tabler": "IconLayoutAlignCenter",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "AlignJustifyIcon",
+      "tabler": "IconAlignJustified",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "AlignRightIcon",
+      "tabler": "IconAlignRight",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "AlignTopIcon",
+      "tabler": "IconLayoutAlignTop",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "AlignVerticalCenterIcon",
+      "tabler": "IconLayoutAlignMiddle",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "AllDocsListViewIcon",
+      "tabler": "IconLayoutList",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "AllDocsMasonryViewIcon",
+      "tabler": "IconLayoutCollage",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "AppearanceIcon",
+      "tabler": "IconPalette",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "AppleDuotoneIcon",
+      "tabler": "IconBrandApple",
+      "classification": "brand-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "AppleIcon",
+      "tabler": "IconBrandApple",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ArrowDownBigBottomIcon",
+      "tabler": "IconArrowBarToDown",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ArrowLeftIcon",
+      "tabler": "IconArrowLeft",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ArrowLeftRightIcon",
+      "tabler": "IconArrowLeftRight",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ArrowRightIcon",
+      "tabler": "IconArrowRight",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ArrowsLeftIcon",
+      "tabler": "IconArrowsLeft",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ArrowsRightIcon",
+      "tabler": "IconArrowsRight",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ArrowUpBigTopIcon",
+      "tabler": "IconArrowBarToUp",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ArrowUpCircleIcon",
+      "tabler": "IconArrowUpCircle",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "AtIcon",
+      "tabler": "IconAt",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "AtSignIcon",
+      "tabler": "IconAt",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "AutoHeightIcon",
+      "tabler": "IconArrowAutofitHeight",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "AutoSizeIcon",
+      "tabler": "IconArrowAutofitContent",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "BackwardPanelIcon",
+      "tabler": "IconPlayerTrackPrev",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "BagPanelIcon",
+      "tabler": "IconShoppingBag",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "BanIcon",
+      "tabler": "IconBan",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "BarChart3Icon",
+      "tabler": "IconChartBar",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "BaseballPanelIcon",
+      "tabler": "IconBallBaseball",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "BasketballPanelIcon",
+      "tabler": "IconBallBasketball",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "BitcoinPanelIcon",
+      "tabler": "IconCurrencyBitcoin",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "BookPanelIcon",
+      "tabler": "IconBook",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "BookTemplateIcon",
+      "tabler": "IconTemplate",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "BrainIcon",
+      "tabler": "IconBrain",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "BroomIcon",
+      "tabler": "IconClearAll",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "BrushIcon",
+      "tabler": "IconBrush",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "BubbleIcon",
+      "tabler": "IconMessage",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CalendarClockIcon",
+      "tabler": "IconCalendarClock",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CalendarPanelIcon",
+      "tabler": "IconCalendar",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CameraPanelIcon",
+      "tabler": "IconCamera",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CancelWrapIcon",
+      "tabler": "IconTextWrapDisabled",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CardPanelIcon",
+      "tabler": "IconCreditCard",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "Cart2PanelIcon",
+      "tabler": "IconShoppingCart",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CartPanelIcon",
+      "tabler": "IconShoppingCart",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CategoryPanelIcon",
+      "tabler": "IconCategory",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ChartPanelIcon",
+      "tabler": "IconChartBar",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ChatPanelIcon",
+      "tabler": "IconMessageCircle",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CheckBoxIntermediateIcon",
+      "tabler": "IconSquareMinus",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CheckCircleIcon",
+      "tabler": "IconCircleCheck",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ChemicalPanelIcon",
+      "tabler": "IconFlask",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ChevronLeftIcon",
+      "tabler": "IconChevronLeft",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ChevronsLeftIcon",
+      "tabler": "IconChevronsLeft",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ChevronsRightIcon",
+      "tabler": "IconChevronsRight",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ChevronUpIcon",
+      "tabler": "IconChevronUp",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ChromeIcon",
+      "tabler": "IconBrandChrome",
+      "classification": "brand-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CircleIcon",
+      "tabler": "IconCircle",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CirclePanelIcon",
+      "tabler": "IconCircle",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CircleUserIcon",
+      "tabler": "IconUserCircle",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ClipboardCheckIcon",
+      "tabler": "IconClipboardCheck",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ClipboardListIcon",
+      "tabler": "IconClipboardList",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ClockIcon",
+      "tabler": "IconClock",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "Cloudy2PanelIcon",
+      "tabler": "IconCloud",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CloudyPanelIcon",
+      "tabler": "IconCloud",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CodePanelIcon",
+      "tabler": "IconCode",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CogIcon",
+      "tabler": "IconSettings",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CoinPanelIcon",
+      "tabler": "IconCoin",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CollapseIcon",
+      "tabler": "IconArrowsMinimize",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CollapseTabIcon",
+      "tabler": "IconLayoutSidebarLeftCollapse",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CollectPanelIcon",
+      "tabler": "IconStack",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ColorPanelIcon",
+      "tabler": "IconPalette",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CommentDuodoneIcon",
+      "tabler": "IconMessageCircle",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CompressIcon",
+      "tabler": "IconArrowsMinimize",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "Computer2PanelIcon",
+      "tabler": "IconDeviceDesktop",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ComputerPanelIcon",
+      "tabler": "IconDeviceDesktop",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ConfusePanelIcon",
+      "tabler": "IconMoodConfused",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ContactWithUsIcon",
+      "tabler": "IconMessages",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CornerDownRightIcon",
+      "tabler": "IconCornerDownRight",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CornerIcon",
+      "tabler": "IconCornerDownRight",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CreatedIcon",
+      "tabler": "IconCalendarPlus",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CropIcon",
+      "tabler": "IconCrop",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CrossedCircleIcon",
+      "tabler": "IconCircleX",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CrownIcon",
+      "tabler": "IconCrown",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CubePanelIcon",
+      "tabler": "IconCube",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CurveLineIcon",
+      "tabler": "IconVectorSpline",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CustomizedHeightIcon",
+      "tabler": "IconArrowsVertical",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CustomSizeIcon",
+      "tabler": "IconResize",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "CylinderIcon",
+      "tabler": "IconCylinder",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "DarkModeIcon",
+      "tabler": "IconMoon",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "DashLineIcon",
+      "tabler": "IconLineDashed",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "Data2PanelIcon",
+      "tabler": "IconDatabase",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "DataPanelIcon",
+      "tabler": "IconDatabase",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "DeleteTemporarilyIcon",
+      "tabler": "IconTrash",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "Diagonally_2LinesIcon",
+      "tabler": "IconArrowsDiagonal2",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "DirectionPanelIcon",
+      "tabler": "IconDirection",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "DirectionSignPanelIcon",
+      "tabler": "IconDirectionSign",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "DiscordDuotoneIcon",
+      "tabler": "IconBrandDiscord",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "DiscordIcon",
+      "tabler": "IconBrandDiscord",
+      "classification": "brand-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "DiscordPanelIcon",
+      "tabler": "IconBrandDiscord",
+      "classification": "brand-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "DistributeHorizontalIcon",
+      "tabler": "IconLayoutDistributeHorizontal",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "DistributeVerticalIcon",
+      "tabler": "IconLayoutDistributeVertical",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "DocsDuotoneIcon",
+      "tabler": "IconFiles",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "DocsIcon",
+      "tabler": "IconFiles",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "DotDuotoneIcon",
+      "tabler": "IconPointFilled",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "DragCursorDuotoneIcon",
+      "tabler": "IconHandMove",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "DragCursorIcon",
+      "tabler": "IconHandMove",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "Drink2PanelIcon",
+      "tabler": "IconGlassFull",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "DrinkPanelIcon",
+      "tabler": "IconGlass",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ElbowedLineIcon",
+      "tabler": "IconArrowElbowRight",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "EllipseIcon",
+      "tabler": "IconOval",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "EllipsisIcon",
+      "tabler": "IconDots",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "EmailIcon",
+      "tabler": "IconMail",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "EmailWarningIcon",
+      "tabler": "IconMailExclamation",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "EmbedWebIcon",
+      "tabler": "IconWorldCode",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "EndPointCircleIcon",
+      "tabler": "IconCircle",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "EndPointDiamondIcon",
+      "tabler": "IconSquareRotated",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "EndPointTriangleIcon",
+      "tabler": "IconTriangle",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "EnterIcon",
+      "tabler": "IconCornerDownLeft",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "EqIcon",
+      "tabler": "IconEqual",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "EraserIcon",
+      "tabler": "IconEraser",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ExpandIcon",
+      "tabler": "IconArrowsMaximize",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ExpandWideIcon",
+      "tabler": "IconArrowsHorizontal",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ExperimentIcon",
+      "tabler": "IconFlask",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ExportToMarkdownIcon",
+      "tabler": "IconMarkdown",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ExportToPngIcon",
+      "tabler": "IconFileTypePng",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ExportToSvgIcon",
+      "tabler": "IconFileTypeSvg",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "EyeOffIcon",
+      "tabler": "IconEyeOff",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "EyePanelIcon",
+      "tabler": "IconEye",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FacebookDuotoneIcon",
+      "tabler": "IconBrandFacebook",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FacebookIcon",
+      "tabler": "IconBrandFacebook",
+      "classification": "brand-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FigmaDuotoneIcon",
+      "tabler": "IconBrandFigma",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FigmaIcon",
+      "tabler": "IconBrandFigma",
+      "classification": "brand-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileClockIcon",
+      "tabler": "IconFileTime",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileIconAepIcon",
+      "tabler": "IconBrandAdobeAfterEffects",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileIconAiIcon",
+      "tabler": "IconFileAi",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileIconCssIcon",
+      "tabler": "IconFileTypeCss",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileIconCsvIcon",
+      "tabler": "IconFileTypeCsv",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileIconDocIcon",
+      "tabler": "IconFileTypeDoc",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileIconEpsIcon",
+      "tabler": "IconFileVector",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileIconFigIcon",
+      "tabler": "IconBrandFigma",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileIconInddIcon",
+      "tabler": "IconBrandAdobeIndesign",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileIconJpegIcon",
+      "tabler": "IconFileTypeJpg",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileIconJpgIcon",
+      "tabler": "IconFileTypeJpg",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileIconJsIcon",
+      "tabler": "IconFileTypeJs",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileIconPdfIcon",
+      "tabler": "IconFileTypePdf",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileIconPngIcon",
+      "tabler": "IconFileTypePng",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileIconPptIcon",
+      "tabler": "IconFileTypePpt",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileIconPptxIcon",
+      "tabler": "IconFileTypePpt",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileIconPsdIcon",
+      "tabler": "IconBrandAdobePhotoshop",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileIconRarIcon",
+      "tabler": "IconFileZip",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileIconRssIcon",
+      "tabler": "IconFileRss",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileIconSketchIcon",
+      "tabler": "IconBrandSketch",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileIconSqlIcon",
+      "tabler": "IconFileTypeSql",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileIconSvgIcon",
+      "tabler": "IconFileTypeSvg",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileIconTxtIcon",
+      "tabler": "IconFileTypeTxt",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileIconXlsIcon",
+      "tabler": "IconFileTypeXls",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileIconXlsxIcon",
+      "tabler": "IconFileTypeXls",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileIconXmlIcon",
+      "tabler": "IconFileTypeXml",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FilePanelIcon",
+      "tabler": "IconFile",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileSearchIcon",
+      "tabler": "IconFileSearch",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FilesIcon",
+      "tabler": "IconFiles",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileSignatureIcon",
+      "tabler": "IconFileCertificate",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileSpreadsheetIcon",
+      "tabler": "IconFileSpreadsheet",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FileWarningIcon",
+      "tabler": "IconFileAlert",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FilteredIcon",
+      "tabler": "IconFilterCheck",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FilterUndoIcon",
+      "tabler": "IconFilterOff",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FirePanelIcon",
+      "tabler": "IconFlame",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "Flag2PanelIcon",
+      "tabler": "IconFlag2",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "Flag3PanelIcon",
+      "tabler": "IconFlag3",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FlagPanelIcon",
+      "tabler": "IconFlag",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FlashPanelIcon",
+      "tabler": "IconBolt",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FlipDirectionIcon",
+      "tabler": "IconSwitchHorizontal",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FlowerPanelIcon",
+      "tabler": "IconFlower",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "Folder2PanelIcon",
+      "tabler": "IconFolder",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "Folder3PanelIcon",
+      "tabler": "IconFolder",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FolderOpenIcon",
+      "tabler": "IconFolderOpen",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FolderPanelIcon",
+      "tabler": "IconFolder",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FoodPanelIcon",
+      "tabler": "IconToolsKitchen2",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ForwardPanelIcon",
+      "tabler": "IconPlayerTrackNext",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ForwardThirtySecondsIcon",
+      "tabler": "IconRewindForward30",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FruitPanelIcon",
+      "tabler": "IconApple",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "FullDayIcon",
+      "tabler": "IconCalendar",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "GamePanelIcon",
+      "tabler": "IconDeviceGamepad2",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "GaugeIcon",
+      "tabler": "IconGauge",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "GeminiDuotoneIcon",
+      "tabler": "IconBrandGoogle",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "GiftPanelIcon",
+      "tabler": "IconGift",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "GitBranchIcon",
+      "tabler": "IconGitBranch",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "GithubDuotoneIcon",
+      "tabler": "IconBrandGithub",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "GithubPanelIcon",
+      "tabler": "IconBrandGithub",
+      "classification": "brand-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "GitlabDuotoneIcon",
+      "tabler": "IconBrandGitlab",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "GitlabIcon",
+      "tabler": "IconBrandGitlab",
+      "classification": "brand-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "GobletPanelIcon",
+      "tabler": "IconGlass",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "GoodIcon",
+      "tabler": "IconCheck",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "GoogleDuotoneIcon",
+      "tabler": "IconBrandGoogle",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "GoogleIcon",
+      "tabler": "IconBrandGoogle",
+      "classification": "brand-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "GoogleMapDuotoneIcon",
+      "tabler": "IconBrandGoogleMaps",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "GoogleMapIcon",
+      "tabler": "IconBrandGoogleMaps",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "GooglePanelIcon",
+      "tabler": "IconBrandGoogle",
+      "classification": "brand-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "GptDuotoneIcon",
+      "tabler": "IconBrandOpenai",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "GridIcon",
+      "tabler": "IconLayoutGrid",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "GripVerticalIcon",
+      "tabler": "IconGripVertical",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "GroupPanelIcon",
+      "tabler": "IconUsersGroup",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "GtIcon",
+      "tabler": "IconMathGreater",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "HamburgerPanelIcon",
+      "tabler": "IconBurger",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "HandIcon",
+      "tabler": "IconHandStop",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "HappyPanelIcon",
+      "tabler": "IconMoodHappy",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "HashIcon",
+      "tabler": "IconHash",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "HeaderColumnIcon",
+      "tabler": "IconTableColumn",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "HeaderRowIcon",
+      "tabler": "IconTableRow",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "HeadingsIcon",
+      "tabler": "IconHeading",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "HeadphonePanelIcon",
+      "tabler": "IconHeadphones",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "HeartbreakIcon",
+      "tabler": "IconHeartBroken",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "HeartPanelIcon",
+      "tabler": "IconHeart",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "HelpCenterIcon",
+      "tabler": "IconHelpCircle",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "HelpIcon",
+      "tabler": "IconHelp",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "HexagonIcon",
+      "tabler": "IconHexagon",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "HidePanelIcon",
+      "tabler": "IconEyeOff",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "HighHeelPanelIcon",
+      "tabler": "IconShoe",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "HighLightDuotoneIcon",
+      "tabler": "IconHighlight",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "HighLightLinearIcon",
+      "tabler": "IconHighlight",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "HomeIcon",
+      "tabler": "IconHome",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "HomePanelIcon",
+      "tabler": "IconHome",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ImagePanelIcon",
+      "tabler": "IconPhoto",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "InboxIcon",
+      "tabler": "IconInbox",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "InformationPanelIcon",
+      "tabler": "IconInfoCircle",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "InsertAboveIcon",
+      "tabler": "IconRowInsertTop",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "InsertBelowIcon",
+      "tabler": "IconRowInsertBottom",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "InsertBlocksIcon",
+      "tabler": "IconBlocks",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "InsertTopIcon",
+      "tabler": "IconRowInsertTop",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "InstagramDuotoneIcon",
+      "tabler": "IconBrandInstagram",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "InstagramIcon",
+      "tabler": "IconBrandInstagram",
+      "classification": "brand-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "InsyncIcon",
+      "tabler": "IconCloudCheck",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ItalicIcon",
+      "tabler": "IconItalic",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "JournalIcon",
+      "tabler": "IconNotebook",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "KeyboardIcon",
+      "tabler": "IconKeyboard",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "KeyRoundIcon",
+      "tabler": "IconKey",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "LayerIcon",
+      "tabler": "IconStack2",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "LayersIcon",
+      "tabler": "IconStack",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "LayoutDashboardIcon",
+      "tabler": "IconLayoutDashboard",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "LayoutIcon",
+      "tabler": "IconLayout",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "LayoutTemplateIcon",
+      "tabler": "IconTemplate",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "LeafPanelIcon",
+      "tabler": "IconLeaf",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "LeftBracketIcon",
+      "tabler": "IconBrackets",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "LiftPanelIcon",
+      "tabler": "IconElevator",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "LightModeIcon",
+      "tabler": "IconSun",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "LightPanelIcon",
+      "tabler": "IconBulb",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "LineStyleIcon",
+      "tabler": "IconBorderStyle2",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "LinkBlockIcon",
+      "tabler": "IconLink",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ListChecksIcon",
+      "tabler": "IconListCheck",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "Loader2Icon",
+      "tabler": "IconLoader2",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "LoadingIcon",
+      "tabler": "IconLoader2",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "LocalDataIcon",
+      "tabler": "IconDownload",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "LocateIcon",
+      "tabler": "IconCurrentLocation",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "LockKeyholeIcon",
+      "tabler": "IconLock",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "LockPanelIcon",
+      "tabler": "IconLock",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "LogOutIcon",
+      "tabler": "IconLogout",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "LongSleevePanelIcon",
+      "tabler": "IconShirt",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "LoomLogoDuotoneIcon",
+      "tabler": "IconBrandLoom",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "LoomLogoIcon",
+      "tabler": "IconBrandLoom",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "LtIcon",
+      "tabler": "IconMathLower",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "MailboxPanelIcon",
+      "tabler": "IconMailbox",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "MailIcon",
+      "tabler": "IconMail",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "MailPanelIcon",
+      "tabler": "IconMail",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "MapPanelIcon",
+      "tabler": "IconMap",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "MathPanelIcon",
+      "tabler": "IconMath",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "McpIcon",
+      "tabler": "IconPlugConnected",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "MeetingIcon",
+      "tabler": "IconUsersGroup",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "MenubarIcon",
+      "tabler": "IconMenu2",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "MessageSquareTextIcon",
+      "tabler": "IconMessage",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "MicPanelIcon",
+      "tabler": "IconMicrophone",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "MicrophoneIcon",
+      "tabler": "IconMicrophone",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "MindmapNodeIcon",
+      "tabler": "IconHierarchy3",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "MonitorIcon",
+      "tabler": "IconDeviceDesktop",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "MoonIcon",
+      "tabler": "IconMoon",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "MoonPanelIcon",
+      "tabler": "IconMoon",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "MountainPanelIcon",
+      "tabler": "IconMountain",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "MousePanelIcon",
+      "tabler": "IconMouse",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "MoveToIcon",
+      "tabler": "IconArrowsMove",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "MoveToLeftDuotoneIcon",
+      "tabler": "IconArrowBarToLeft",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "MoveToRightDuotoneIcon",
+      "tabler": "IconArrowBarToRight",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "MoviePanelIcon",
+      "tabler": "IconMovie",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "MultiCursorDuotoneIcon",
+      "tabler": "IconPointerCollaboration",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "MultiPeopleIcon",
+      "tabler": "IconUsersGroup",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "MultiSelectIcon",
+      "tabler": "IconListCheck",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "NeIcon",
+      "tabler": "IconArrowUpRight",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "NewIcon",
+      "tabler": "IconPlus",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "NewPageIcon",
+      "tabler": "IconFilePlus",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "NewXxxPageIcon",
+      "tabler": "IconFilePlus",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "NightPanelIcon",
+      "tabler": "IconMoon",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "NoNetworkIcon",
+      "tabler": "IconWifiOff",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "NotionDuotoneIcon",
+      "tabler": "IconBrandNotion",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "NotionIcon",
+      "tabler": "IconBrandNotion",
+      "classification": "brand-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "NumberIcon",
+      "tabler": "IconHash",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "OrganizationIcon",
+      "tabler": "IconBuilding",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "OtherIcon",
+      "tabler": "IconDots",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "PasteIcon",
+      "tabler": "IconClipboard",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "PauseCircleIcon",
+      "tabler": "IconPlayerPauseFilled",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "PauseIcon",
+      "tabler": "IconPlayerPause",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "PausePanelIcon",
+      "tabler": "IconPlayerPause",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "PeacePanelIcon",
+      "tabler": "IconPeace",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "PencilIcon",
+      "tabler": "IconPencil",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "PeriodIcon",
+      "tabler": "IconPointFilled",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "PersonPanelIcon",
+      "tabler": "IconUser",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "PhonePanelIcon",
+      "tabler": "IconPhone",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "PickerPanelIcon",
+      "tabler": "IconColorPicker",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "PillIcon",
+      "tabler": "IconPill",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "PinedIcon",
+      "tabler": "IconPinnedFilled",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "PinIcon",
+      "tabler": "IconPin",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "PlanetPanelIcon",
+      "tabler": "IconPlanet",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "PlayFillIcon",
+      "tabler": "IconPlayerPlayFilled",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "PlayIcon",
+      "tabler": "IconPlayerPlay",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "PlayPanelIcon",
+      "tabler": "IconPlayerPlay",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "PlugIcon",
+      "tabler": "IconPlug",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "PluginIcon",
+      "tabler": "IconPuzzle",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "PlusThickIcon",
+      "tabler": "IconPlus",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "PowerIcon",
+      "tabler": "IconPower",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "PowerOffIcon",
+      "tabler": "IconPower",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "PptIcon",
+      "tabler": "IconFileTypePpt",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "Presentation2PanelIcon",
+      "tabler": "IconPresentation",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "PresentationPanelIcon",
+      "tabler": "IconPresentation",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "PrinterIcon",
+      "tabler": "IconPrinter",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ProductHuntDuotoneIcon",
+      "tabler": "IconBrandProducthunt",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ProductHuntIcon",
+      "tabler": "IconBrandProducthunt",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "PropertyIcon",
+      "tabler": "IconAdjustmentsHorizontal",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "QrCodePanelIcon",
+      "tabler": "IconQrcode",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "RadarIcon",
+      "tabler": "IconRadar",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "RainPanelIcon",
+      "tabler": "IconCloudRain",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "RecentIcon",
+      "tabler": "IconHistory",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "RedditDuotoneIcon",
+      "tabler": "IconBrandReddit",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "RedditIcon",
+      "tabler": "IconBrandReddit",
+      "classification": "brand-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "RedoIcon",
+      "tabler": "IconArrowForwardUp",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "RemoveFolderIcon",
+      "tabler": "IconFolderMinus",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "RemoveIcon",
+      "tabler": "IconMinus",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ReplaceIcon",
+      "tabler": "IconReplace",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "RewindFifteenSecondsIcon",
+      "tabler": "IconRewindBackward15",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "RightBracketIcon",
+      "tabler": "IconBrackets",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "RightSidebarIcon",
+      "tabler": "IconLayoutSidebarRight",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "RightTabIcon",
+      "tabler": "IconIndentIncrease",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "RotateAnticlockwiseIcon",
+      "tabler": "IconRotate2",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "RotateIcon",
+      "tabler": "IconRotate",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "RoundedRectangleIcon",
+      "tabler": "IconRectangleRoundedTop",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "RoundedSquareIcon",
+      "tabler": "IconSquareRounded",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "RulerPanelIcon",
+      "tabler": "IconRuler",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SadPanelIcon",
+      "tabler": "IconMoodSad",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ScaleAltIcon",
+      "tabler": "IconResize",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ScaleIcon",
+      "tabler": "IconResize",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ScissorsIcon",
+      "tabler": "IconScissors",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ScrollTextIcon",
+      "tabler": "IconFileText",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SelectAreaIcon",
+      "tabler": "IconSelect",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SelectIcon",
+      "tabler": "IconPointer",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SelectTextIcon",
+      "tabler": "IconCursorText",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SelfhostIcon",
+      "tabler": "IconServer",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SendIcon",
+      "tabler": "IconSend",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ServerCogIcon",
+      "tabler": "IconServerCog",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ServerIcon",
+      "tabler": "IconServer",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "Settings2Icon",
+      "tabler": "IconSettings2",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SettingsPanelIcon",
+      "tabler": "IconSettings",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ShapesIcon",
+      "tabler": "IconShape",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SharedIcon",
+      "tabler": "IconUsers",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ShareIcon",
+      "tabler": "IconShare",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ShareiOsIcon",
+      "tabler": "IconUpload",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ShieldAlertIcon",
+      "tabler": "IconShieldExclamation",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ShieldIcon",
+      "tabler": "IconShield",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ShoesPanelIcon",
+      "tabler": "IconShoe",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SidebarDuotoneIcon",
+      "tabler": "IconLayoutSidebar",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SignalIcon",
+      "tabler": "IconBrandSignal",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SignalPanelIcon",
+      "tabler": "IconBrandSignal",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SingleSelectCheckSolidIcon",
+      "tabler": "IconCircleCheckFilled",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SingleSelectIcon",
+      "tabler": "IconCircle",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SingleSelectSelectLinearIcon",
+      "tabler": "IconCircleCheck",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SingleSelectUnIcon",
+      "tabler": "IconCircle",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SkateboardPanelIcon",
+      "tabler": "IconSkateboard",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SmileIcon",
+      "tabler": "IconMoodSmile",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SmilePanelIcon",
+      "tabler": "IconMoodSmile",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SmileSolidIcon",
+      "tabler": "IconMoodSmileFilled",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "Snow2PanelIcon",
+      "tabler": "IconSnowflake",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SnowPanelIcon",
+      "tabler": "IconSnowflake",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SocketPanelIcon",
+      "tabler": "IconPlugConnected",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SortDownIcon",
+      "tabler": "IconSortDescending",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SortUpIcon",
+      "tabler": "IconSortAscending",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SparklesIcon",
+      "tabler": "IconSparkles",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SquareIcon",
+      "tabler": "IconSquare",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "StarIcon",
+      "tabler": "IconStar",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "StarPanelIcon",
+      "tabler": "IconStar",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "StartNumberingIcon",
+      "tabler": "IconListNumbers",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "StartPointArrowIcon",
+      "tabler": "IconArrowRight",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "StartPointCircleIcon",
+      "tabler": "IconCircle",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "StartPointDiamondIcon",
+      "tabler": "IconSquareRotated",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "StartPointIcon",
+      "tabler": "IconPointFilled",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "StartPointTriangleIcon",
+      "tabler": "IconTriangle",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "StopIcon",
+      "tabler": "IconPlayerStop",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "StraightLineIcon",
+      "tabler": "IconLine",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "StrikeThroughIcon",
+      "tabler": "IconStrikethrough",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "StyleIcon",
+      "tabler": "IconPalette",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SucessfulDuotoneIcon",
+      "tabler": "IconCircleCheck",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SucessfulIcon",
+      "tabler": "IconCircleCheck",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SuitcasePanelIcon",
+      "tabler": "IconLuggage",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SummarizeIcon",
+      "tabler": "IconFileDescription",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SunglassPanelIcon",
+      "tabler": "IconSunglasses",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SunIcon",
+      "tabler": "IconSun",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "SunPanelIcon",
+      "tabler": "IconSun",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "TableIcon",
+      "tabler": "IconTable",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "TagPanelIcon",
+      "tabler": "IconTag",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "TelegramDuotoneIcon",
+      "tabler": "IconBrandTelegram",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "TelegramIcon",
+      "tabler": "IconBrandTelegram",
+      "classification": "brand-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "TemplateColoredIcon",
+      "tabler": "IconTemplate",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "TemplateOutlineIcon",
+      "tabler": "IconTemplate",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "TeXDuotoneIcon",
+      "tabler": "IconTex",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "TextAlignBottomIcon",
+      "tabler": "IconLayoutAlignBottom",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "TextAlignMediumIcon",
+      "tabler": "IconLayoutAlignMiddle",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "TextAlignTopIcon",
+      "tabler": "IconLayoutAlignTop",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "TextBackgroundDuotoneIcon",
+      "tabler": "IconHighlight",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "TextColorIcon",
+      "tabler": "IconTextColor",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "TextTypeIcon",
+      "tabler": "IconLetterT",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ThinkingIcon",
+      "tabler": "IconBrain",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "TimelineIcon",
+      "tabler": "IconTimeline",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "TimePanelIcon",
+      "tabler": "IconClock",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "TitleIcon",
+      "tabler": "IconHeading",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ToggleLeftIcon",
+      "tabler": "IconToggleLeft",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ToggleUpIcon",
+      "tabler": "IconChevronUp",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "TranscriptWithAiIcon",
+      "tabler": "IconFileTextSpark",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "TreePanelIcon",
+      "tabler": "IconTree",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "TriangleIcon",
+      "tabler": "IconTriangle",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "TriangleRulerPanelIcon",
+      "tabler": "IconRulerMeasure",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "TShirtPanelIcon",
+      "tabler": "IconShirt",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "TwitterDuotoneIcon",
+      "tabler": "IconBrandTwitter",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "TwitterIcon",
+      "tabler": "IconBrandTwitter",
+      "classification": "brand-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "TypeIcon",
+      "tabler": "IconLetterT",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "UmbrellaPanelIcon",
+      "tabler": "IconUmbrella",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "UnderLineIcon",
+      "tabler": "IconUnderline",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "UndoIcon",
+      "tabler": "IconArrowBackUp",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "UnlockIcon",
+      "tabler": "IconLockOpen",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "UnpinIcon",
+      "tabler": "IconPinnedOff",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "UnsucessfulDuotoneIcon",
+      "tabler": "IconCircleX",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "UnsucessfulIcon",
+      "tabler": "IconCircleX",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "UnsyncIcon",
+      "tabler": "IconCloudUpload",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "UpdatedIcon",
+      "tabler": "IconCalendarCheck",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "UpgradeIcon",
+      "tabler": "IconCircleArrowUp",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "UploadCloudIcon",
+      "tabler": "IconCloudUpload",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "UsbPanelIcon",
+      "tabler": "IconUsb",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "UserCogIcon",
+      "tabler": "IconUserCog",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "UserGuideIcon",
+      "tabler": "IconBook2",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "UserMinusIcon",
+      "tabler": "IconUserMinus",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "UserPlusIcon",
+      "tabler": "IconUserPlus",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "UserRoundCheckIcon",
+      "tabler": "IconUserCheck",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "UsersIcon",
+      "tabler": "IconUsers",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "VoiceIcon",
+      "tabler": "IconMicrophone",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "VolumePanelIcon",
+      "tabler": "IconVolume",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "WalletPanelIcon",
+      "tabler": "IconWallet",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "WaveRectangleIcon",
+      "tabler": "IconWaveSquare",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "WaypointsIcon",
+      "tabler": "IconRoute",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "WifiIcon",
+      "tabler": "IconWifi",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "WindmillPanelIcon",
+      "tabler": "IconWindmill",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "WindowPanelIcon",
+      "tabler": "IconWindow",
+      "classification": "style-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "WrapIcon",
+      "tabler": "IconTextWrap",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "YoutubeDuotoneIcon",
+      "tabler": "IconBrandYoutube",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "YoutubeIcon",
+      "tabler": "IconBrandYoutube",
+      "classification": "brand-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "YoutubePanelIcon",
+      "tabler": "IconBrandYoutube",
+      "classification": "brand-variant",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ZapIcon",
+      "tabler": "IconBolt",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ZipIcon",
+      "tabler": "IconZip",
+      "classification": "same-name",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ZoomDownIcon",
+      "tabler": "IconZoomOut",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "ZoomUpIcon",
+      "tabler": "IconZoomIn",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    }
+  ]
+}

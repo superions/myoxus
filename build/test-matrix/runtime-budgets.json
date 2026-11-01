@@ -1,0 +1,602 @@
+{
+  "schema_version": 1,
+  "policy": {
+    "mode": "soft-by-default",
+    "fluctuation_tolerance_percent": 20,
+    "description": "Declared runtime budgets remain the review baseline. Runs up to and including 20 percent above warn or strict thresholds are recorded as tolerated host fluctuation; `build/scripts/test/run.sh --strict` blocks only above the strict fluctuation ceiling.",
+    "baseline_rule": "Each baseline cites its successful matrix artifact or an explicit local evidence source; new owner suites use their first successful bounded run while historical broad baselines remain available for comparison.",
+    "review_rule": "Raise a budget only with a recorded reason; prefer narrowing or moving weak default gates before accepting slower defaults."
+  },
+  "budgets": [
+    {
+      "suite_id": "web.bpmn.editor",
+      "baseline_ms": 30214,
+      "warn_budget_ms": 45000,
+      "strict_budget_ms": 90000,
+      "cost_center": "One served desktop Page author/save/reload/download journey with verified disposable document deletion",
+      "decision": "retain the single explicit consumer guard rather than nonblank-pixel GFX assertions or another browser aggregate",
+      "source_artifact": "output/test-runs/matrix-run-2026-10-24T19-02-54-539Z.json",
+      "notes": "First successful replacement on dev-02 against the current 3011 Web bundle; old content-only cleanup was replaced with normal trash plus permanent metadata deletion."
+    },
+    {
+      "suite_id": "bpmn.integration",
+      "baseline_ms": 10087,
+      "warn_budget_ms": 15000,
+      "strict_budget_ms": 22000,
+      "cost_center": "Existing isolated Virgultum desktop browser harness in Chromium and Firefox",
+      "decision": "retain explicit public-entry command consumer without adding it to broad default gates",
+      "source_artifact": "output/test-runs/matrix-run-2026-10-24T18-47-08-577Z.json",
+      "notes": "First successful bounded replacement of the removed GFX cases; no service stack or persisted product data."
+    },
+    {
+      "suite_id": "bpmn.block",
+      "baseline_ms": 12340,
+      "warn_budget_ms": 18000,
+      "strict_budget_ms": 25000,
+      "cost_center": "BPMN package TypeScript plus Store and Core portal/session Vitest consumers",
+      "decision": "retain changed-path ownership; the existing root Virgultum filter does not discover the block package",
+      "source_artifact": "output/test-runs/matrix-run-2026-10-24T18-43-21-817Z.json",
+      "notes": "First successful bounded owner run on dev-02, with four block and three consuming-host checks. No services or CI lane added."
+    },
+    {
+      "suite_id": "tooling.lint-staged",
+      "baseline_ms": 6815,
+      "warn_budget_ms": 10000,
+      "strict_budget_ms": 15000,
+      "cost_center": "Git backup/hide/restore operations and installed lint-staged CLI startup in four isolated fixture repositories",
+      "decision": "keep focused hook data-preservation gate; no product builds",
+      "source_artifact": "output/test-runs/matrix-run-2026-10-03T23-41-09-776Z.json",
+      "notes": "First successful final hook/test inputs on macOS Node 26/Git 2.50.1; staging fixture canonicalizes its temporary root and cleans up after failures."
+    },
+    {
+      "suite_id": "i18n.time.vitest",
+      "baseline_ms": 5239,
+      "warn_budget_ms": 10000,
+      "strict_budget_ms": 15000,
+      "cost_center": "bounded Vitest startup and native Intl formatting contracts",
+      "decision": "keep changed-path formatting and constructor-reuse regression gate",
+      "source_artifact": "output/test-runs/matrix-run-2026-10-02T16-36-10-513Z.json",
+      "notes": "First successful two-worker owner run on dev-02; no database or browser startup."
+    },
+    {
+      "suite_id": "templates.native-assets",
+      "baseline_ms": 115,
+      "warn_budget_ms": 500,
+      "strict_budget_ms": 1000,
+      "cost_center": "three small ZIP/Yjs decodes and native review comparisons",
+      "decision": "keep direct portable-content fidelity gate",
+      "source_artifact": "output/test-runs/matrix-run-2026-09-07T11-36-28-258Z.json",
+      "notes": "Read-only Node 26 validation of published registry content; no database or browser startup."
+    },
+    {
+      "suite_id": "matrix.self-check",
+      "baseline_ms": 177,
+      "warn_budget_ms": 500,
+      "strict_budget_ms": 1000,
+      "cost_center": "Node startup and JSON validation",
+      "decision": "keep cheap source contract",
+      "source_artifact": "output/test-runs/matrix-run-2026-06-27T15-01-00-064Z.json",
+      "notes": "Protects suite, owner, path-rule and runtime-budget schema."
+    },
+    {
+      "suite_id": "skills.repo",
+      "baseline_ms": 1500,
+      "warn_budget_ms": 3000,
+      "strict_budget_ms": 5000,
+      "cost_center": "Node startup, skill validation and temporary positive/negative fixtures",
+      "decision": "keep as the direct repository-skill portability and behavior contract",
+      "source_artifact": "local macOS execution during repository skill introduction on 2026-07-15",
+      "notes": "The suite is service-free, uses temporary directories and delegates gate selection to the repository matrix. Linux CI and macOS development hosts execute the same Node 26 code."
+    },
+    {
+      "suite_id": "test.quality-ratchet",
+      "baseline_ms": 282,
+      "warn_budget_ms": 500,
+      "strict_budget_ms": 1000,
+      "cost_center": "Git diff parsing, changed-line JS/TS scan and domain budget source scan",
+      "decision": "keep cheap changed-line and domain-budget ratchet",
+      "source_artifact": "output/test-runs/matrix-run-2026-06-27T15-18-33-344Z.json",
+      "notes": "Blocks new skipped/focused/swallowed/bare-ok test debt and prevents domain weak-test budget increases."
+    },
+    {
+      "suite_id": "test.rust-quality-ratchet",
+      "baseline_ms": 151,
+      "warn_budget_ms": 500,
+      "strict_budget_ms": 1000,
+      "cost_center": "Git diff parsing, changed-line Rust test-owned scan and crate budget source scan",
+      "decision": "keep cheap Rust changed-line and crate-budget ratchet",
+      "source_artifact": "output/test-runs/matrix-run-2026-06-27T15-18-33-344Z.json",
+      "notes": "Blocks new cleanup .ok() debt and prevents server-crate cleanup .ok() budget increases."
+    },
+    {
+      "suite_id": "server.test-ownership",
+      "baseline_ms": 208,
+      "warn_budget_ms": 500,
+      "strict_budget_ms": 1000,
+      "cost_center": "Git source scan plus inventory JSON generation",
+      "decision": "keep cheap server ownership structural guard",
+      "source_artifact": "output/test-runs/matrix-run-2026-06-27T16-07-08-412Z.json",
+      "notes": "Ensures server test-owned crates remain represented without starting services."
+    },
+    {
+      "suite_id": "server.rust.clippy",
+      "baseline_ms": 24819,
+      "warn_budget_ms": 180000,
+      "strict_budget_ms": 600000,
+      "cost_center": "Rust fmt and workspace Clippy after Rust 1.95 lint cleanup",
+      "decision": "keep direct fast-lane subguard; do not route through the server.fast composite",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-04T12-41-52-215Z.json",
+      "notes": "C-05 blocker cleanup restored the gate without lowering lint strictness. The baseline is the first green post-cleanup matrix run."
+    },
+    {
+      "suite_id": "server.rust.check",
+      "baseline_ms": 143180,
+      "warn_budget_ms": 240000,
+      "strict_budget_ms": 600000,
+      "cost_center": "Service-free Rust workspace check across all server crates",
+      "decision": "keep explicit for Cargo manifest changes; ordinary Rust source selection uses owner-domain unit suites without this workspace compile",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-04T12-50-54-150Z.json",
+      "notes": "The prior ordinary source selector ran this before server.rust.unit and paid for overlapping workspace library compilation. P-ENV-TEST-MATRIX-COLD-PATH-20260727 removes that duplicate selection without removing the explicit gate."
+    },
+    {
+      "suite_id": "server.rust.unit",
+      "baseline_ms": 309237,
+      "warn_budget_ms": 420000,
+      "strict_budget_ms": 900000,
+      "cost_center": "Service-free Rust lib unit tests across server crates excluding myoxus-worker",
+      "decision": "keep explicit whole-workspace compatibility coverage for Cargo manifests; ordinary server source changes select owner-domain unit suites",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-04T12-50-54-150Z.json",
+      "notes": "Historical whole-workspace baseline retained for comparison. Source-path defaults no longer execute this suite; its test bodies remain unchanged."
+    },
+    {
+      "suite_id": "server.domain.unit",
+      "baseline_ms": 46676,
+      "warn_budget_ms": 90000,
+      "strict_budget_ms": 180000,
+      "cost_center": "Service-free Domain, Application and Contracts owner unit tests",
+      "decision": "select the authoritative domain owner set for its source paths instead of the whole server workspace",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-27T23-41-22-607Z.json",
+      "notes": "First successful no-debug owner run. It executes only myoxus-domain, myoxus-application and myoxus-contracts; the former 309237 ms whole-workspace baseline remains explicit-only."
+    },
+    {
+      "suite_id": "server.api.unit",
+      "baseline_ms": 91799,
+      "warn_budget_ms": 180000,
+      "strict_budget_ms": 300000,
+      "cost_center": "Service-free API owner unit tests",
+      "decision": "select the API crate for API source paths instead of the whole server workspace",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-27T23-41-22-607Z.json",
+      "notes": "First successful no-debug owner run, including compilation and all 381 API library tests. The budget does not widen the former whole-workspace gate; it records the new narrower owner."
+    },
+    {
+      "suite_id": "server.fast",
+      "baseline_ms": 81264,
+      "warn_budget_ms": 180000,
+      "strict_budget_ms": 600000,
+      "cost_center": "Compatibility wrapper that reruns toolchain, Clippy, check and service-free unit tests",
+      "decision": "keep explicit server-fast.yml compatibility only; remove from broad fast-tier selection",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-04T12-50-54-150Z.json",
+      "notes": "This measured duplicate wrapper cost is removed from `build/scripts/test/run.sh --tier fast`; explicit `--suite server.fast` still runs for the Forgejo compatibility workflow."
+    },
+    {
+      "suite_id": "test.runtime-summary",
+      "baseline_ms": 35,
+      "warn_budget_ms": 250,
+      "strict_budget_ms": 500,
+      "cost_center": "Timing JSON aggregation",
+      "decision": "keep report-only baseline generator",
+      "source_artifact": "output/test-runs/matrix-run-2026-06-27T14-35-53-515Z.json",
+      "notes": "Ignored output directory remains the storage location for local timing artifacts."
+    },
+    {
+      "suite_id": "ui-facade.vitest",
+      "baseline_ms": 40571,
+      "warn_budget_ms": 45000,
+      "strict_budget_ms": 50000,
+      "cost_center": "Focused Vitest package run with happy-dom component tests",
+      "decision": "keep focused owner-domain frontend suite",
+      "source_artifact": "output/test-runs/matrix-run-2026-09-28T11-06-49-649Z.json",
+      "notes": "User-authorized runtime recalibration on 2026-09-29, not an acceleration claim. The complete focused owner passed in 40571ms on dev-02; another successful bounded run measured 42738ms in matrix-run-2026-09-28T13-11-52-759Z.json. After productive Mermaid corrections and review, all 307 tests in 65 files passed functionally in 40994ms (matrix-run-2026-09-29T02-21-21-629Z.json); its strict exit 125 was exclusively the obsolete 25000ms budget. The historical June baseline was 8787ms; the July dev-01 cleanup passed 260 tests in 13062ms. Retain the complete package owner because shared Database and Timeline consumers need coverage; no split, test deletion or scope reduction is part of this recalibration. Keep the eight-worker cap, 600-second timeout, assertions and global 20-percent tolerance unchanged. Transform/import/environment setup is a material cost center. These host-local measurements do not establish the cause of the cross-host difference."
+    },
+    {
+      "suite_id": "admin.vitest",
+      "baseline_ms": 43927,
+      "warn_budget_ms": 70000,
+      "strict_budget_ms": 120000,
+      "cost_center": "Admin Vitest full-suite execution after stale contract fixes",
+      "decision": "keep blocking Admin gate while owner-domain splits continue to prevent unrelated defaults",
+      "source_artifact": "output/test-runs/matrix-run-2026-06-27T16-20-39-754Z.json",
+      "notes": "The 2026-07-27 correction removed Core specs from the Admin config and restored stale Admin contracts. The unchanged broad gate passed 173 Admin files and 3445 tests in 37731 ms; the prior diagnostic incorrectly collected 254 files and 3929 tests and failed after 64386 ms."
+    },
+    {
+      "suite_id": "admin.queue.vitest",
+      "baseline_ms": 4616,
+      "warn_budget_ms": 8000,
+      "strict_budget_ms": 15000,
+      "cost_center": "Focused Admin Queue module Vitest execution",
+      "decision": "keep focused Queue owner-domain gate for Queue module changes instead of broad admin.vitest",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-04T11-22-49-153Z.json",
+      "notes": "P-TCI-C-02 measured three passing runs at 4268/4674/4616 ms after merging duplicate Queue tests; median 4616 ms."
+    },
+    {
+      "suite_id": "admin.workspaces.vitest",
+      "baseline_ms": 7818,
+      "warn_budget_ms": 15000,
+      "strict_budget_ms": 30000,
+      "cost_center": "Focused Workspace Admin module Vitest execution",
+      "decision": "use the complete Workspace owner domain for Workspace paths instead of broad Admin",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-27T23-38-38-141Z.json",
+      "notes": "Successful owner run covered 11 files and 70 tests. Exact selection, rather than a noisy single-run percentage, proves the common-path reduction."
+    },
+    {
+      "suite_id": "admin.git-sync.vitest",
+      "baseline_ms": 5673,
+      "warn_budget_ms": 15000,
+      "strict_budget_ms": 30000,
+      "cost_center": "Focused Git Sync Admin module Vitest execution",
+      "decision": "use the complete Git Sync owner domain for Git Sync paths instead of broad Admin",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-27T23-38-54-546Z.json",
+      "notes": "Successful owner run covered 6 files and 91 tests. Exact selection, rather than a noisy single-run percentage, proves the common-path reduction."
+    },
+    {
+      "suite_id": "admin.pdf-export.vitest",
+      "baseline_ms": 6018,
+      "warn_budget_ms": 15000,
+      "strict_budget_ms": 30000,
+      "cost_center": "Focused PDF Export Admin module Vitest execution",
+      "decision": "use the complete PDF Export owner domain for PDF Export paths instead of broad Admin",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-27T23-38-54-546Z.json",
+      "notes": "Successful owner run covered 13 files and 67 tests. Exact selection, rather than a noisy single-run percentage, proves the common-path reduction."
+    },
+    {
+      "suite_id": "virgultum.data-view.build",
+      "baseline_ms": 1427,
+      "warn_budget_ms": 5000,
+      "strict_budget_ms": 10000,
+      "cost_center": "Focused @virgultum/data-view TypeScript package build",
+      "decision": "use this package build for Data-View changed paths instead of unrelated representative Virgultum package builds",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-04T11-38-55-787Z.json",
+      "notes": "P-TCI-C-04 measured three passing runs at 1856/1427/1384 ms; median 1427 ms."
+    },
+    {
+      "suite_id": "virgultum.data-view.vitest",
+      "baseline_ms": 4992,
+      "warn_budget_ms": 9000,
+      "strict_budget_ms": 20000,
+      "cost_center": "Focused @virgultum/data-view package-local Vitest run",
+      "decision": "use this package-local Vitest gate for Data-View changed paths instead of the root Virgultum name-filter command",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-04T11-38-36-853Z.json",
+      "notes": "P-TCI-C-04 measured three passing runs at 4992/5130/4992 ms after consolidating nonEmptyCards duplicate tests; median 4992 ms."
+    },
+    {
+      "suite_id": "virgultum.store.build",
+      "baseline_ms": 1500,
+      "warn_budget_ms": 5000,
+      "strict_budget_ms": 10000,
+      "cost_center": "Focused @virgultum/store TypeScript package build",
+      "decision": "use this package build for Store changed paths instead of unrelated representative Virgultum package builds",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-04T11-55-27-793Z.json",
+      "notes": "P-TCI-C-04 measured the final combined strict run at 1500 ms after routing Store changes; standalone probes also passed at 1430 ms and concurrent stress probes at 1520/1747 ms."
+    },
+    {
+      "suite_id": "virgultum.store.vitest",
+      "baseline_ms": 2045,
+      "warn_budget_ms": 5000,
+      "strict_budget_ms": 10000,
+      "cost_center": "Focused @virgultum/store package-local Vitest run",
+      "decision": "use this package-local Vitest gate for Store changed paths instead of the root Virgultum name-filter command",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-04T11-52-55-436Z.json",
+      "notes": "P-TCI-C-04 measured three passing runs at 1916/2045/2165 ms after merging duplicate alias-completeness tests; median 2045 ms."
+    },
+    {
+      "suite_id": "virgultum.std.build",
+      "baseline_ms": 2208,
+      "warn_budget_ms": 5000,
+      "strict_budget_ms": 10000,
+      "cost_center": "Focused @virgultum/std TypeScript package build",
+      "decision": "use this package build for Std changed paths instead of unrelated representative Virgultum package builds",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-04T12-00-38-135Z.json",
+      "notes": "P-TCI-C-04 measured three passing runs at 1641/2208/2308 ms after routing Std changes; median 2208 ms."
+    },
+    {
+      "suite_id": "virgultum.std.vitest",
+      "baseline_ms": 6639,
+      "warn_budget_ms": 10000,
+      "strict_budget_ms": 20000,
+      "cost_center": "Focused @virgultum/std package-local browser Vitest run",
+      "decision": "use this package-local Vitest gate for Std changed paths instead of the root Virgultum name-filter command",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-04T12-00-42-528Z.json",
+      "notes": "P-TCI-C-04 measured one sequential run at 5373 ms and two concurrent stress probes at 6639/7219 ms after merging duplicate CommandManager tests; the conservative budget uses the 6639 ms parsed median across the three passing artifacts."
+    },
+    {
+      "suite_id": "virgultum.mermaid.build",
+      "baseline_ms": 16948,
+      "warn_budget_ms": 20000,
+      "strict_budget_ms": 25000,
+      "cost_center": "Focused @virgultum/block-mermaid forced TypeScript composite build",
+      "decision": "use the package's forced composite build for Mermaid changed paths so referenced-project drift cannot pass through stale declaration outputs",
+      "source_artifact": "output/test-runs/matrix-run-2026-09-28T11-06-49-649Z.json",
+      "notes": "User-authorized runtime recalibration on 2026-09-29, not an acceleration claim. The forced composite build passed on dev-02 in 16948ms; another successful bounded run measured 16784ms in matrix-run-2026-09-28T13-11-52-759Z.json. The current build completed functionally in 19057ms (matrix-run-2026-09-29T00-36-33-183Z.json); its strict exit 125 was exclusively the obsolete 10000ms budget. Preserve the historical dev-01 measurements of 6175/6025/6145ms (median 6145ms) from matrix-run-2026-08-28T21-23-56-734Z.json. Keep --force and referenced-project checking: narrowing to noEmit or an incremental stale-output check would weaken the gate. The command, graph, 180-second timeout and global 20-percent tolerance are unchanged. These host-local measurements do not establish the cause of the cross-host difference."
+    },
+    {
+      "suite_id": "virgultum.mermaid.vitest",
+      "baseline_ms": 10373,
+      "warn_budget_ms": 15000,
+      "strict_budget_ms": 30000,
+      "cost_center": "Focused @virgultum/block-mermaid package-scoped Vitest run",
+      "decision": "use this package-scoped Vitest gate for Mermaid changed paths instead of the root Virgultum name-filter command",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-04T12-16-56-868Z.json",
+      "notes": "P-TCI-C-04 measured three pre-containment runs at 10373/10292/10539 ms after deleting six duplicate stale source-boundary tests; median 10373 ms. After the shared diagnostic contract began defaulting unspecified matrix commands to two workers, comparable 506-test runs measured 55057/54058/55562 ms (median 55057 ms). While the correction was in flight, f8034a9ee1 normalized the shared contract to eight workers; clean latest-wip 506-test baselines then measured 22909/22652/21409 ms (median 22652 ms). A mixed Node/happy-dom experiment measured 25051/25647/24615 ms (median 25051 ms, 10.6% slower than clean latest-wip) and was rejected. The final correction therefore retains one happy-dom environment, pins the current eight-worker contract explicitly, and consolidates 14 boundary tests into two invariant gates (494 tests total). Three strict dev-02 runs passed at 21631/21482/21230 ms (median 21482 ms, 61.0% below the two-worker median and 5.2% below the clean eight-worker latest-wip median) in output/test-runs/matrix-run-2026-07-15T15-02-37-765Z.json, matrix-run-2026-07-15T15-02-59-341Z.json and matrix-run-2026-07-15T15-03-20-660Z.json. The historical baseline and all budgets and timeouts remain unchanged; the current result must not be described as an all-time acceleration."
+    },
+    {
+      "suite_id": "branding.vitest",
+      "baseline_ms": 1644,
+      "warn_budget_ms": 5000,
+      "strict_budget_ms": 10000,
+      "cost_center": "Focused brand identity/static-export Vitest contracts",
+      "decision": "keep focused owner-domain frontend suite",
+      "source_artifact": "output/test-runs/matrix-run-2026-06-27T15-01-00-064Z.json",
+      "notes": "Covers brand identity and static-export hygiene. Runtime theme loaders are owned by their Web/Admin/Electron suites; full-catalog fallback parity is a direct generator gate."
+    },
+    {
+      "suite_id": "graphql.client.vitest",
+      "baseline_ms": 1628,
+      "warn_budget_ms": 5000,
+      "strict_budget_ms": 10000,
+      "cost_center": "Focused GraphQL client contract Vitest specs",
+      "decision": "keep focused GraphQL client suite",
+      "source_artifact": "output/test-runs/matrix-run-2026-06-27T14-47-42-267Z.json",
+      "notes": "Client-only GraphQL tests should not start the codegen stack."
+    },
+    {
+      "suite_id": "graphql.client.typecheck",
+      "baseline_ms": 904,
+      "warn_budget_ms": 3000,
+      "strict_budget_ms": 10000,
+      "cost_center": "GraphQL package-only TypeScript contract",
+      "decision": "use package typecheck for transport/package changes instead of compiling the complete Core consumer",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-27T23-38-54-546Z.json",
+      "notes": "Successful package typecheck baseline. Generated documents still select their real consumers; package-only fetcher changes do not."
+    },
+    {
+      "suite_id": "core.vitest",
+      "baseline_ms": 584306,
+      "warn_budget_ms": 600000,
+      "strict_budget_ms": 720000,
+      "cost_center": "Core-wide Vitest run across editor, workspace, mobile and facade contract specs",
+      "decision": "keep focused owner-domain suite for Core spec-file changes only",
+      "source_artifact": "output/test-runs/matrix-run-2026-09-08T16-40-28-842Z.json",
+      "notes": "Selected by Core spec path rules; ordinary Core source changes continue to use core.typecheck unless a test path or explicit suite selection requires Vitest. User-authorized recalibration on 2026-09-08: the complete 326-file owner passed all 1657 tests without unhandled errors in the cited core.vitest result. Four workers avoid the interaction timeout seen under seven; every assertion, individual test deadline and process-tree cleanup remains intact. Outer timeout: 900s. The former 44808ms baseline is retained in matrix-run-2026-06-27T15-33-51-610Z.json; this recalibration is not an acceleration claim."
+    },
+    {
+      "suite_id": "core.database.vitest",
+      "baseline_ms": 18451,
+      "warn_budget_ms": 30000,
+      "strict_budget_ms": 60000,
+      "cost_center": "Database Core model, route-state, facade surface and editor-embed Vitest specs",
+      "decision": "use this focused owner-domain suite for Database spec-only changed paths instead of core.vitest",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-04T08-50-49-777Z.json",
+      "notes": "The original 18.451-second baseline predates the expanded Database UI. The 2026-07-15 content review removed duplicate and non-detecting tests without raising the unchanged 60-second strict budget. A clean dev-01 owner-suite run passed 32 files and 290 tests in 58,619ms."
+    },
+    {
+      "suite_id": "core.typecheck",
+      "baseline_ms": 5375,
+      "warn_budget_ms": 15000,
+      "strict_budget_ms": 30000,
+      "cost_center": "TypeScript project-reference check for Core/Web consuming contracts",
+      "decision": "keep cheap default contract for ordinary Web/Core source changes",
+      "source_artifact": "output/test-runs/matrix-run-2026-06-27T16-07-08-412Z.json",
+      "notes": "Ordinary Core/Web source changes still prefer this cheaper contract over broad Vitest unless a spec path selects Vitest."
+    },
+    {
+      "suite_id": "web.vitest",
+      "baseline_ms": 2208,
+      "warn_budget_ms": 5000,
+      "strict_budget_ms": 10000,
+      "cost_center": "Focused Browser Web workspace Vitest contracts",
+      "decision": "keep focused owner-domain suite for Web spec-file changes",
+      "source_artifact": "output/test-runs/matrix-run-2026-06-27T15-34-09-330Z.json",
+      "notes": "Covers Web runtime-theme and hover contracts without running Core/Admin/UI Facade suites."
+    },
+    {
+      "suite_id": "playwright.shared-kit.typecheck",
+      "baseline_ms": 2694,
+      "warn_budget_ms": 8000,
+      "strict_budget_ms": 15000,
+      "cost_center": "TypeScript project compile for shared Playwright kit",
+      "decision": "keep cheap shared browser-kit contract",
+      "source_artifact": "output/test-runs/matrix-run-2026-06-27T14-24-09-419Z.json",
+      "notes": "Prevents browser suite helper drift without running browsers."
+    },
+    {
+      "suite_id": "frontend.theme.boundary",
+      "baseline_ms": 684,
+      "warn_budget_ms": 2000,
+      "strict_budget_ms": 5000,
+      "cost_center": "Theme boundary source scan",
+      "decision": "keep cheap theme guard",
+      "source_artifact": "output/test-runs/matrix-run-2026-06-27T15-01-00-064Z.json",
+      "notes": "Guards raw visible styling regressions."
+    },
+    {
+      "suite_id": "frontend.no-vanilla-extract",
+      "baseline_ms": 1577,
+      "warn_budget_ms": 5000,
+      "strict_budget_ms": 10000,
+      "cost_center": "Vanilla-Extract cut-over source scan",
+      "decision": "keep direct frontend-quality subguard; do not route through the frontend.quality composite",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-04T12-56-47-967Z.json",
+      "notes": "C-06 measured this in the explicit subguard/wrapper comparison run."
+    },
+    {
+      "suite_id": "frontend.ui-framework-graph",
+      "baseline_ms": 3466,
+      "warn_budget_ms": 8000,
+      "strict_budget_ms": 15000,
+      "cost_center": "Web/Admin UI framework graph scans",
+      "decision": "keep focused graph guard",
+      "source_artifact": "output/test-runs/matrix-run-2026-06-27T15-01-00-064Z.json",
+      "notes": "Allowed Mantine imports remain limited to the Facade adapter."
+    },
+    {
+      "suite_id": "branding.theme-db-cutover",
+      "baseline_ms": 4013,
+      "warn_budget_ms": 8000,
+      "strict_budget_ms": 15000,
+      "cost_center": "Theme DB cutover and generated fallback validation",
+      "decision": "keep generated-artifact contract",
+      "source_artifact": "output/test-runs/matrix-run-2026-06-27T15-01-00-064Z.json",
+      "notes": "Materializes theme/font fallback contracts without browser startup."
+    },
+    {
+      "suite_id": "branding.font-audit",
+      "baseline_ms": 511,
+      "warn_budget_ms": 8000,
+      "strict_budget_ms": 20000,
+      "cost_center": "Python font parsing; first run may bootstrap isolated venv",
+      "decision": "keep binary font validation",
+      "source_artifact": "output/test-runs/matrix-run-2026-06-27T15-01-00-064Z.json",
+      "notes": "Warn budget accounts for one-time venv/package bootstrap on fresh hosts."
+    },
+    {
+      "suite_id": "frontend.container-isolation",
+      "baseline_ms": 571,
+      "warn_budget_ms": 2000,
+      "strict_budget_ms": 5000,
+      "cost_center": "Frontend container/static export source validation",
+      "decision": "keep cheap container isolation contract",
+      "source_artifact": "output/test-runs/matrix-run-2026-06-27T15-01-00-064Z.json",
+      "notes": "Catches Web/Admin static artifact and one-Nginx deployment drift."
+    },
+    {
+      "suite_id": "frontend.nginx-topology",
+      "baseline_ms": 15000,
+      "warn_budget_ms": 30000,
+      "strict_budget_ms": 60000,
+      "cost_center": "One API echo container and two short external-Nginx route checks",
+      "decision": "replace the retired multi-upstream lifecycle with focused static/API topology evidence",
+      "source_artifact": "P-ENV-FRONTEND-STATIC-ARTIFACT-CUTOVER-20260717",
+      "notes": "No rolling Web/Admin DNS windows and no broad frontend test suite."
+    },
+    {
+      "suite_id": "tooling.legacy-js",
+      "baseline_ms": 9757,
+      "warn_budget_ms": 15000,
+      "strict_budget_ms": 30000,
+      "cost_center": "Legacy JS tooling and forbidden-product-link source scan",
+      "decision": "keep direct frontend-quality subguard; do not route through the frontend.quality composite",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-04T12-56-47-967Z.json",
+      "notes": "The direct subguard blocks forbidden product links without an accepted active-source warning baseline."
+    },
+    {
+      "suite_id": "virgultum.package-builds",
+      "baseline_ms": 3529,
+      "warn_budget_ms": 8000,
+      "strict_budget_ms": 15000,
+      "cost_center": "Virgultum package build-script guard",
+      "decision": "keep direct frontend-quality subguard; do not route through the frontend.quality composite",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-04T12-56-47-967Z.json",
+      "notes": "C-06 measured the active package-build guard directly before the compatibility wrapper reran it."
+    },
+    {
+      "suite_id": "selfhost.logging-contract",
+      "baseline_ms": 55,
+      "warn_budget_ms": 1000,
+      "strict_budget_ms": 5000,
+      "cost_center": "Read-only Compose and shell source validation with four in-memory negative fixtures",
+      "decision": "keep focused selfhost operational logging contract",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-14T21-42-47-121Z.json",
+      "notes": "The guard must stay source-only; it must not start a second stack or scan live Docker logs."
+    },
+    {
+      "suite_id": "ci.forgejo.local",
+      "baseline_ms": 46765,
+      "warn_budget_ms": 60000,
+      "strict_budget_ms": 90000,
+      "cost_center": "Workflow YAML, shell syntax and CI helper fixtures",
+      "decision": "keep CI source hygiene gate",
+      "source_artifact": "output/test-runs/matrix-run-2026-09-08T16-42-18-611Z.json",
+      "notes": "User-authorized runtime recalibration: CI source checks and all current helper fixtures passed in 46765ms, exceeding the June 1053ms baseline and 10s budget. The owner now also executes desktop/native artifact, multi-platform publisher and unified overview fixtures (8eabdf52e1, 572d584a73, f9e1d276fc). No checks, fixture assertions or outer timeout changed. Local Ruby absence still skips the existing optional YAML parse; no YAML is changed by this budget update."
+    },
+    {
+      "suite_id": "docs.consistency",
+      "baseline_ms": 16177,
+      "warn_budget_ms": 20000,
+      "strict_budget_ms": 30000,
+      "cost_center": "Markdown/source consistency and complete public-source export verification",
+      "decision": "keep docs-only default gate",
+      "source_artifact": "output/test-runs/matrix-run-2026-09-08T07-12-26-419Z.json",
+      "notes": "User-authorized recalibration on 2026-09-08: 93f2c6cc0c added full public-source export and safe extraction to the former Markdown-only scan. All checks and the 300-second process timeout remain unchanged. Docs-only changes must not trigger product test monoliths."
+    },
+    {
+      "suite_id": "frontend.quality",
+      "baseline_ms": 21302,
+      "warn_budget_ms": 45000,
+      "strict_budget_ms": 90000,
+      "cost_center": "Composite frontend/theme/docs guard; dominated by subguards and font audit",
+      "decision": "keep explicit frontend-quality.yml compatibility only; remove from broad fast-tier selection",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-04T12-56-47-967Z.json",
+      "notes": "C-06 measured the wrapper after the direct subguards had already passed in the same comparison run."
+    },
+    {
+      "suite_id": "api.integration.quick",
+      "baseline_ms": 53796,
+      "warn_budget_ms": 90000,
+      "strict_budget_ms": 180000,
+      "cost_center": "Seventy-nine exact API smoke filters in the dedicated integration_quick target, executed serially in one process",
+      "decision": "keep exact smoke subset, bound its cold compile surface and leave the 1,000+ test target to api.integration",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-27T20-02-53-113Z.json",
+      "notes": "Historical baseline: the 2026-07-27 replacement target completed its then-current smoke set, compile/link and isolated service lifecycle in 53.796 seconds. The 120-second strict budget was last set on 2026-06-27; the 2026-08-28 description still covered forty-one filters. On 2026-09-13 the user authorized a 180-second strict budget for the current seventy-nine unchanged filters after removing repeated Cargo/test-process launches. Current complete measurements: 142.359 seconds profiled warm, 152.698 seconds first warm and 165.079 seconds including the target rebuild. The historical attempt artifacts, including failures under the previous budget, were removed at the user’s request on 2026-10-05. The warning budget, historical baseline, test scope and global 20-percent fluctuation tolerance remain unchanged; the strict tolerance ceiling is now 216 seconds. This calibration is not a runtime optimization or a fully cold-build guarantee. Since the capability partition, this is historical evidence for the former 79-case aggregate, not a measurement of the eight-case shared API group. Existing thresholds are unchanged."
+    },
+    {
+      "suite_id": "server.cli.integration",
+      "baseline_ms": 17966,
+      "warn_budget_ms": 30000,
+      "strict_budget_ms": 120000,
+      "cost_center": "CLI binary integration tests against isolated Postgres and Redis, including user credential lifecycle",
+      "decision": "use this focused service-backed gate for CLI changes instead of the full server.integration wrapper",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-15T15-41-38-256Z.json",
+      "notes": "P-TCI-C-07 split the CLI gate from the broad server suite. P-OFFICE-06 corrected it to execute every CLI integration-test binary and added the Redis-backed credential lifecycle. The baseline is the first successful strict run after that correction."
+    },
+    {
+      "suite_id": "server.worker.redis",
+      "baseline_ms": 1804,
+      "warn_budget_ms": 8000,
+      "strict_budget_ms": 30000,
+      "cost_center": "Redis-backed worker library integration tests",
+      "decision": "use this focused Redis gate for worker/queue changes instead of the full server.integration wrapper",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-04T13-15-03-582Z.json",
+      "notes": "P-TCI-C-07 measured 50 worker library tests through the matrix runner after starting the isolated Redis test service."
+    },
+    {
+      "suite_id": "client.update-control",
+      "baseline_ms": 34206,
+      "warn_budget_ms": 60000,
+      "strict_budget_ms": 120000,
+      "cost_center": "Single persistent Chromium lifecycle with CLI transitions, SWR retry admission, service-worker reload and real IndexedDB reset/resume",
+      "decision": "keep as the explicit serial Browser Web update closeout gate",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-27T01-33-04-582Z.json",
+      "notes": "P-CUP-07 representative successful run after deterministic operation observation and isolated reset contexts."
+    },
+    {
+      "suite_id": "server.storage.minio",
+      "baseline_ms": 405,
+      "warn_budget_ms": 5000,
+      "strict_budget_ms": 15000,
+      "cost_center": "Single MinIO/S3 storage adapter roundtrip and idempotent delete integration test",
+      "decision": "use this focused MinIO gate for storage-adapter changes instead of the full server.integration wrapper",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-04T13-15-03-582Z.json",
+      "notes": "P-TCI-C-07 measured the storage adapter gate with explicit MINIO_* defaults and the isolated MinIO test service."
+    },
+    {
+      "suite_id": "server.multi-instance",
+      "baseline_ms": 29318,
+      "warn_budget_ms": 600000,
+      "strict_budget_ms": 1200000,
+      "cost_center": "One cached release server image build and an isolated two-node shared-state lifecycle",
+      "decision": "keep as the sole process-independence gate; do not route ordinary server source paths through it",
+      "source_artifact": "output/test-runs/matrix-run-2026-07-28T11-55-27-303Z.json",
+      "notes": "The measured baseline is a successful warm-cache run. The warn budget includes a cold release image build observed below ten minutes; the strict budget remains well below the suite's 3600-second process-tree timeout and does not hide hangs."
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+#import "./admin-organization-fragment.gql"
+
+mutation adminUpdateOrganization($input: UpdateOrganizationInput!) {
+  admin {
+    updateOrganization(input: $input) {
+      ...AdminOrganizationFragment
+    }
+  }
+}

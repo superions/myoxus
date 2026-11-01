@@ -1,0 +1,5 @@
+query adminPdfTemplatePreviewPdf($templateId: String!, $locale: String) {
+  admin {
+    pdfTemplatePreviewPdf(templateId: $templateId, locale: $locale)
+  }
+}

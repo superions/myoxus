@@ -1,0 +1,32 @@
+{
+  "name": "@virgultum/ext-loader",
+  "description": "Extension loader for Myoxus",
+  "type": "module",
+  "scripts": {
+    "build": "yarn --cwd \"$PROJECT_CWD\" exec tsc -p \"$PWD/tsconfig.json\" --noEmit"
+  },
+  "sideEffects": false,
+  "keywords": [],
+  "author": "Myoxus Contributors",
+  "license": "AGPL-3.0-or-later AND MIT",
+  "dependencies": {
+    "@virgultum/global": "workspace:*",
+    "@virgultum/store": "workspace:*",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "vitest": "4.1.11"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./mode-surface-contract": "./src/mode-surface-contract.ts",
+    "./mode-surface-geometry-assert": "./src/mode-surface-geometry-assert.ts"
+  },
+  "files": [
+    "src",
+    "dist",
+    "!src/__tests__",
+    "!dist/__tests__"
+  ],
+  "version": "0.41.5"
+}

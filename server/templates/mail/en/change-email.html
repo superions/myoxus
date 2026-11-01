@@ -1,0 +1,36 @@
+{% extends "_layout.html" %} {% block subject %}Confirm your new email address
+for Myoxus{% endblock subject %} {% block preheader %}The new address will only
+be applied after your confirmation.{% endblock preheader %} {% block category
+%}YOUR ACCOUNT{% endblock category %} {% block heading %}Verify your new email
+address.{% endblock heading %} {% block introduction %}You requested to change
+the email address for your Myoxus account. Please verify the new address before
+it is used for your account.{% endblock introduction %} {% block details %}{% if
+email %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  NEW EMAIL ADDRESS
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ email }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}The new address will only
+be applied after your confirmation.{% endblock next_step %} {% block action
+%}Confirm new address{% endblock action %} {% block note %}Did not request this
+email? You can ignore it. Nothing will change without your confirmation.{%
+endblock note %} {% block reason %}You received this email because this address
+was entered as the new email address for a Myoxus account.{% endblock reason %}

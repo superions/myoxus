@@ -1,0 +1,31 @@
+query adminAuditLog(
+  $filter: AuditLogFilterInput
+  $limit: Int!
+  $offset: Int!
+) {
+  admin {
+    adminAuditLog(filter: $filter, limit: $limit, offset: $offset) {
+      id
+      eventKey
+      category
+      target {
+        id
+        type
+        label
+      }
+      actor {
+        id
+        label
+        kind
+        credentialType
+        credentialId
+      }
+      createdAt
+      oldValue
+      newValue
+      metadata
+      targetUnitId
+    }
+    adminAuditLogCount(filter: $filter)
+  }
+}

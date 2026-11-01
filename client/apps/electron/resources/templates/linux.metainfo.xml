@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- SPDX-License-Identifier: CC0-1.0 -->
+<component type="desktop-application">
+  <id>org.myoxus.desktop</id>
+  <name>Myoxus</name>
+  <summary>Collaborative workspace — docs, whiteboards, and databases</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>AGPL-3.0-or-later</project_license>
+  <url type="homepage">__MYOXUS_HOMEPAGE_URL__</url>
+  <url type="bugtracker">__MYOXUS_ISSUES_URL__</url>
+  <url type="help">__MYOXUS_HELP_URL__</url>
+  <url type="vcs-browser">__MYOXUS_SOURCE_URL__</url>
+  <developer id="org.myoxus">
+    <name>Myoxus Contributors</name>
+  </developer>
+  <content_rating type="oars-1.1"/>
+  <categories>
+    <category>Office</category>
+  </categories>
+  <keywords>
+    <keyword>notes</keyword>
+    <keyword>canvas</keyword>
+    <keyword>collaboration</keyword>
+    <keyword>selfhost</keyword>
+  </keywords>
+  <branding>
+    <color type="primary">#1e96eb</color>
+  </branding>
+  <recommends>
+    <display_length compare="ge">800</display_length>
+    <internet>always</internet>
+  </recommends>
+  <provides>
+    <mediatype>x-scheme-handler/myoxus</mediatype>
+  </provides>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+    <control>tablet</control>
+    <control>touch</control>
+  </supports>
+  <description>
+    <p>Write, Draw, Plan — All at Once.</p>
+    <p>Myoxus is a self-hosted collaborative workspace combining docs, whiteboards, and databases in one place.</p>
+    <ul>
+      <li>Block-based document editing with rich content types.</li>
+      <li>Infinite canvas whiteboard for visual collaboration.</li>
+      <li>Integrated database and task planning views.</li>
+      <li>Real-time sync across all connected clients.</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">Myoxus.desktop</launchable>
+  <releases>
+    <release version="__MYOXUS_VERSION__"/>
+  </releases>
+</component>

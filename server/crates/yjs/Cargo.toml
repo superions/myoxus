@@ -1,0 +1,24 @@
+[package]
+edition           = "2024"
+license.workspace = true
+name              = "yjs"
+publish           = false
+version           = "0.1.0"
+
+[dependencies]
+base64         = { workspace = true }
+pulldown-cmark = { workspace = true }
+rand           = { workspace = true }
+scraper        = { workspace = true }
+serde          = { workspace = true }
+serde_json     = { workspace = true }
+tokio          = { workspace = true }
+tracing        = { workspace = true }
+uuid           = { workspace = true }
+yrs            = { workspace = true }
+# Yjs v1 codec dependencies
+byteorder     = { workspace = true }
+log           = { workspace = true }
+nom           = { workspace = true }
+ordered-float = { workspace = true }
+thiserror     = { workspace = true }

@@ -1,0 +1,2 @@
+The ZIP fixture builder adds explicit directory entries for Empty folder/ and
+Projects/Empty child/. This manifest is not included in the generated vault.

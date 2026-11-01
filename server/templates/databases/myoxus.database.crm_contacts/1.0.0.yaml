@@ -1,0 +1,457 @@
+format_version: 1
+id: myoxus.database.crm_contacts
+version: 1.0.0
+task_core: null
+variants:
+  - option_extensions: []
+    field_order:
+      - title
+      - company
+      - email
+      - phone
+      - website
+      - status
+      - follow_up
+      - related_contacts
+    role_order: []
+    priority: threeStep
+    complexity: threeStep
+    structure: tasks_only
+    spec:
+      category: database
+      complexity_preset: null
+      default_structure: null
+      description: Track contacts, companies, communication details, status and follow-up dates.
+      fields:
+        - config:
+            Direct:
+              kind: title
+          field_type: title
+          key: title
+          name: Contact
+          required: true
+        - config:
+            Direct:
+              kind: text
+              multiline: false
+          field_type: text
+          key: company
+          name: Company
+          required: false
+        - config:
+            Direct:
+              kind: email
+          field_type: email
+          key: email
+          name: Email
+          required: false
+        - config:
+            Direct:
+              kind: phone
+          field_type: phone
+          key: phone
+          name: Phone
+          required: false
+        - config:
+            Direct:
+              kind: url
+          field_type: url
+          key: website
+          name: Website
+          required: false
+        - config:
+            Direct:
+              defaultOptionId: status.new
+              kind: status
+              options:
+                - colorRole: database.status.todo
+                  group: notStarted
+                  id: status.new
+                  name: New
+                  position: 0
+                - colorRole: database.status.inProgress
+                  group: active
+                  id: status.contacted
+                  name: Contacted
+                  position: 1
+                - colorRole: database.status.inProgress
+                  group: active
+                  id: status.qualified
+                  name: Qualified
+                  position: 2
+                - colorRole: database.status.done
+                  group: complete
+                  id: status.customer
+                  name: Customer
+                  position: 3
+          field_type: status
+          key: status
+          name: Status
+          required: true
+        - config:
+            Direct:
+              includeTime: false
+              kind: date
+          field_type: date
+          key: follow_up
+          name: Next follow-up
+          required: false
+        - config:
+            SelfRelation:
+              allow_multiple: true
+              max_targets: null
+          field_type: relation
+          key: related_contacts
+          name: Related contacts
+          required: false
+      id: myoxus.database.crm_contacts
+      manifest:
+        category: database
+        defaultStructure: null
+        descriptionKey: com.myoxus.database.starter-template.database-crm-contacts.description
+        fields:
+          - configKind: title
+            fieldType: title
+            importExportBehavior: read_write
+            key: title
+            nameKey: com.myoxus.database.starter-template.database-crm-contacts.field.title.name
+            required: true
+          - configKind: text
+            fieldType: text
+            importExportBehavior: read_write
+            key: company
+            nameKey: com.myoxus.database.starter-template.database-crm-contacts.field.company.name
+            required: false
+          - configKind: email
+            fieldType: email
+            importExportBehavior: read_write
+            key: email
+            nameKey: com.myoxus.database.starter-template.database-crm-contacts.field.email.name
+            required: false
+          - configKind: phone
+            fieldType: phone
+            importExportBehavior: read_write
+            key: phone
+            nameKey: com.myoxus.database.starter-template.database-crm-contacts.field.phone.name
+            required: false
+          - configKind: url
+            fieldType: url
+            importExportBehavior: read_write
+            key: website
+            nameKey: com.myoxus.database.starter-template.database-crm-contacts.field.website.name
+            required: false
+          - configKind: status
+            fieldType: status
+            importExportBehavior: read_write
+            key: status
+            nameKey: com.myoxus.database.starter-template.database-crm-contacts.field.status.name
+            required: true
+          - configKind: date
+            fieldType: date
+            importExportBehavior: read_write
+            key: follow_up
+            nameKey: com.myoxus.database.starter-template.database-crm-contacts.field.follow-up.name
+            required: false
+          - configKind: self_relation
+            fieldType: relation
+            importExportBehavior: read_write
+            key: related_contacts
+            nameKey: com.myoxus.database.starter-template.database-crm-contacts.field.related-contacts.name
+            required: false
+        id: myoxus.database.crm_contacts
+        importMappings:
+          - columnMappings:
+              - fieldKey: title
+                required: true
+                sourceHeader: Contact
+              - fieldKey: company
+                required: false
+                sourceHeader: Company
+              - fieldKey: email
+                required: false
+                sourceHeader: Email
+              - fieldKey: phone
+                required: false
+                sourceHeader: Phone
+              - fieldKey: website
+                required: false
+                sourceHeader: Website
+              - fieldKey: status
+                required: true
+                sourceHeader: Status
+              - fieldKey: follow_up
+                required: false
+                sourceHeader: Next follow-up
+              - fieldKey: related_contacts
+                required: false
+                sourceHeader: Related contacts
+            key: default-csv
+            nameKey: com.myoxus.database.starter-template.database-crm-contacts.import-mapping.default-csv.name
+        nameKey: com.myoxus.database.starter-template.database-crm-contacts.name
+        profileKind: generic
+        roles: []
+        rowTemplates:
+          - descriptionKey: com.myoxus.database.starter-template.database-crm-contacts.row-template.contact.description
+            initialFieldKeys:
+              - status
+              - follow_up
+            isDefault: true
+            key: contact
+            nameKey: com.myoxus.database.starter-template.database-crm-contacts.row-template.contact.name
+            rowKind: record
+        sampleRows:
+          - fieldKeys:
+              - company
+              - email
+              - phone
+              - website
+              - status
+              - follow_up
+            key: sample-1
+            titleKey: com.myoxus.database.starter-template.database-crm-contacts.sample-row.sample-1.title
+          - fieldKeys:
+              - company
+              - email
+              - phone
+              - website
+              - status
+              - follow_up
+            key: sample-2
+            titleKey: com.myoxus.database.starter-template.database-crm-contacts.sample-row.sample-2.title
+          - fieldKeys:
+              - company
+              - email
+              - phone
+              - website
+              - status
+              - follow_up
+            key: sample-3
+            titleKey: com.myoxus.database.starter-template.database-crm-contacts.sample-row.sample-3.title
+          - fieldKeys:
+              - company
+              - email
+              - phone
+              - website
+              - status
+              - follow_up
+            key: sample-4
+            titleKey: com.myoxus.database.starter-template.database-crm-contacts.sample-row.sample-4.title
+          - fieldKeys:
+              - company
+              - email
+              - phone
+              - website
+              - status
+              - follow_up
+            key: sample-5
+            titleKey: com.myoxus.database.starter-template.database-crm-contacts.sample-row.sample-5.title
+        schemaVersion: 1
+        views:
+          - axisFieldKeys:
+              - status
+            fieldKeys:
+              - status
+              - title
+              - company
+              - email
+              - phone
+              - follow_up
+              - related_contacts
+            key: table
+            nameKey: com.myoxus.database.starter-template.database-crm-contacts.view.table.name
+            primary: true
+            viewKind: table
+            visibleFieldKeys:
+              - title
+              - company
+              - email
+              - phone
+              - status
+              - follow_up
+              - related_contacts
+          - axisFieldKeys:
+              - status
+            fieldKeys:
+              - status
+              - title
+              - company
+              - email
+              - follow_up
+            key: list
+            nameKey: com.myoxus.database.starter-template.database-crm-contacts.view.list.name
+            primary: false
+            viewKind: list
+            visibleFieldKeys:
+              - title
+              - company
+              - email
+              - follow_up
+      name: CRM / Contacts
+      priority_preset: null
+      profile_kind: generic
+      roles: []
+      row_templates:
+        - description: Start a contact with open follow-up status.
+          initial_cells:
+            - - status
+              - kind: status
+                value: status.new
+            - - follow_up
+              - kind: date
+                value:
+                  end: null
+                  start: "2026-07-21"
+          is_default: true
+          key: contact
+          name: Contact
+          row_kind: record
+      sample_rows:
+        - cells:
+            - - company
+              - kind: text
+                value: Northstar Labs
+            - - email
+              - kind: email
+                value: mira.cole@example.com
+            - - phone
+              - kind: phone
+                value: +49 30 123 456
+            - - website
+              - kind: url
+                value: https://example.com
+            - - status
+              - kind: status
+                value: status.qualified
+            - - follow_up
+              - kind: date
+                value:
+                  end: null
+                  start: "2026-07-14"
+          key: Mira Cole
+          relation_cells: []
+          row_kind: record
+          title: Mira Cole
+        - cells:
+            - - company
+              - kind: text
+                value: Atlas Systems
+            - - email
+              - kind: email
+                value: jonas.reed@example.com
+            - - phone
+              - kind: phone
+                value: +1 555 0182
+            - - website
+              - kind: url
+                value: https://example.com
+            - - status
+              - kind: status
+                value: status.contacted
+            - - follow_up
+              - kind: date
+                value:
+                  end: null
+                  start: "2026-07-16"
+          key: Jonas Reed
+          relation_cells: []
+          row_kind: record
+          title: Jonas Reed
+        - cells:
+            - - company
+              - kind: text
+                value: Clearpath Studio
+            - - email
+              - kind: email
+                value: priya.shah@example.com
+            - - phone
+              - kind: phone
+                value: +44 20 7946 0958
+            - - website
+              - kind: url
+                value: https://example.com
+            - - status
+              - kind: status
+                value: status.new
+            - - follow_up
+              - kind: date
+                value:
+                  end: null
+                  start: "2026-07-21"
+          key: Priya Shah
+          relation_cells: []
+          row_kind: record
+          title: Priya Shah
+        - cells:
+            - - company
+              - kind: text
+                value: Signal Works
+            - - email
+              - kind: email
+                value: elena.novak@example.com
+            - - phone
+              - kind: phone
+                value: +420 222 555 011
+            - - website
+              - kind: url
+                value: https://example.com
+            - - status
+              - kind: status
+                value: status.customer
+            - - follow_up
+              - kind: date
+                value:
+                  end: null
+                  start: "2026-07-18"
+          key: Elena Novak
+          relation_cells: []
+          row_kind: record
+          title: Elena Novak
+        - cells:
+            - - company
+              - kind: text
+                value: Fieldnote
+            - - email
+              - kind: email
+                value: theo.meyer@example.com
+            - - phone
+              - kind: phone
+                value: +49 40 987 654
+            - - website
+              - kind: url
+                value: https://example.com
+            - - status
+              - kind: status
+                value: status.contacted
+            - - follow_up
+              - kind: date
+                value:
+                  end: null
+                  start: "2026-07-24"
+          key: Theo Meyer
+          relation_cells: []
+          row_kind: record
+          title: Theo Meyer
+      views:
+        - config:
+            Table:
+              group: status
+              visible:
+                - title
+                - company
+                - email
+                - phone
+                - status
+                - follow_up
+                - related_contacts
+          kind: table
+          name: Table
+        - config:
+            List:
+              group: status
+              visible:
+                - title
+                - company
+                - email
+                - follow_up
+          kind: list
+          name: List

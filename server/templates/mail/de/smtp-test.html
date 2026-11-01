@@ -1,0 +1,37 @@
+{% extends "_layout.html" %} {% block subject %}Myoxus · SMTP-Testnachricht{%
+endblock subject %} {% block preheader %}Öffne die Mail-Einstellungen, wenn du
+die Konfiguration weiter prüfen oder anpassen möchtest.{% endblock preheader %}
+{% block category %}MYOXUS{% endblock category %} {% block heading %}Der
+Mail-Versand hat funktioniert.{% endblock heading %} {% block introduction %}du
+hast in den Mail-Einstellungen eine Testnachricht ausgelöst. Diese E-Mail
+bestätigt, dass der SMTP-Versand für diesen Test funktioniert hat.{% endblock
+introduction %} {% block details %}{% if email %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  MAIL-VERSAND
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ email }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}Öffne die
+Mail-Einstellungen, wenn du die Konfiguration weiter prüfen oder anpassen
+möchtest.{% endblock next_step %} {% block action %}Mail-Einstellungen öffnen{%
+endblock action %} {% block note %}Diese Bestätigung bezieht sich auf den
+Versand dieser Testnachricht.{% endblock note %} {% block reason %}Du erhältst
+diese E-Mail, weil du den Mail-Versand in Myoxus getestet hast.{% endblock
+reason %}

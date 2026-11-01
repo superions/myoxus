@@ -1,0 +1,18 @@
+{
+  "id": "workspace_invite_accept_contract",
+  "kind": "graphql",
+  "smoke": false,
+  "description": "Golden fixture for acceptInviteById mutation contract",
+  "request": {
+    "path": "/graphql",
+    "query": "mutation InviteAcceptContract($inviteId: String!) { acceptInviteById(inviteId: $inviteId) { workspace { id } } }",
+    "variables": {
+      "inviteId": "00000000-0000-0000-0000-000000000000"
+    }
+  },
+  "expect": {
+    "status_any": [200],
+    "content_type_contains": "application/json",
+    "body_contains": "acceptInviteById"
+  }
+}

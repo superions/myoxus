@@ -1,0 +1,15 @@
+query templateAssignments($workspaceId: String!, $skip: Int, $take: Int) {
+  admin {
+    templateAssignments(workspaceId: $workspaceId, skip: $skip, take: $take) {
+      id
+      workspaceId
+      templateId
+      selectionMode
+      selectedRevisionId
+      provisioningMode
+      isEnabled
+      createdAt
+      updatedAt
+    }
+  }
+}

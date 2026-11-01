@@ -1,0 +1,37 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+/*
+ * Audio waveform CSS is renderer geometry: the canvas painter reads these
+ * values to calculate bars, gaps and progress handles. Player chrome belongs to
+ * Mantine components in audio-player.tsx, not to this file.
+ */
+.myoxus-audio-waveform {
+  --myoxus-audio-waveform-min-amplitude: 0.1;
+
+  position: relative;
+  width: 100%;
+  height: var(--mantine-spacing-2xl);
+  overflow: hidden;
+  accent-color: var(--myoxus-error-color, var(--myoxus-primary-color));
+  color: var(--myoxus-placeholder-color);
+  column-gap: calc(var(--mantine-scale) * 1px);
+  cursor: pointer;
+  outline: calc(var(--mantine-scale) * 1px) solid transparent;
+  scroll-padding-inline: var(--mantine-spacing-2xs);
+}
+
+.myoxus-audio-waveform[data-mini="true"] {
+  height: var(--mantine-spacing-xl);
+}
+
+.myoxus-audio-waveform__canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.myoxus-attachment-container:has(
+  [data-myoxus-ui-role="attachment-audio-block"]
+) {
+  border: none;
+  overflow: visible;
+}

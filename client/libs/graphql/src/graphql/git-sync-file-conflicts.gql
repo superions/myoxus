@@ -1,0 +1,19 @@
+query getGitSyncFileConflicts($workspaceId: String!, $resolved: Boolean) {
+  workspace(id: $workspaceId) {
+    gitSyncFileConflicts(resolved: $resolved) {
+      id
+      runId
+      bindingId
+      blobKey
+      repoPath
+      conflictType
+      resolution
+      gitHash
+      myoxusHash
+      baselineHash
+      createdAt
+      resolvedAt
+      resolvedBy
+    }
+  }
+}

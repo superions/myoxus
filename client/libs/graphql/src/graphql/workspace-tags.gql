@@ -1,0 +1,180 @@
+fragment WorkspaceTagFields on WorkspaceTag {
+  id
+  workspaceId
+  name
+  slug
+  colorRole
+  description
+  archived
+  archivedAt
+  createdAt
+  updatedAt
+}
+
+query workspaceTagCatalog(
+  $workspaceId: String!
+  $includeArchived: Boolean
+) {
+  workspace(id: $workspaceId) {
+    workspaceTagCatalog(includeArchived: $includeArchived) {
+      tag {
+        ...WorkspaceTagFields
+      }
+      documentCount
+      databaseRowCount
+    }
+  }
+}
+
+query workspaceTags($workspaceId: String!, $includeArchived: Boolean) {
+  workspace(id: $workspaceId) {
+    workspaceTags(includeArchived: $includeArchived) {
+      ...WorkspaceTagFields
+    }
+  }
+}
+
+query workspaceTag($workspaceId: String!, $tagId: ID!) {
+  workspace(id: $workspaceId) {
+    workspaceTag(tagId: $tagId) {
+      ...WorkspaceTagFields
+    }
+  }
+}
+
+query resolveWorkspaceTags($workspaceId: String!, $tagIds: [ID!]!) {
+  workspace(id: $workspaceId) {
+    resolveWorkspaceTags(tagIds: $tagIds) {
+      ...WorkspaceTagFields
+    }
+  }
+}
+
+query documentWorkspaceTagIds($workspaceId: String!, $docId: ID!) {
+  workspace(id: $workspaceId) {
+    documentWorkspaceTagIds(docId: $docId)
+  }
+}
+
+query workspaceTagDatabaseRowUsages(
+  $workspaceId: String!
+  $tagId: ID!
+  $first: Int
+  $offset: Int
+) {
+  workspace(id: $workspaceId) {
+    workspaceTagDatabaseRowUsages(
+      tagId: $tagId
+      first: $first
+      offset: $offset
+    ) {
+      databaseId
+      databaseTitle
+      rowId
+      rowTitle
+      updatedAt
+    }
+  }
+}
+
+mutation createWorkspaceTag($input: CreateWorkspaceTagInput!) {
+  createWorkspaceTag(input: $input) {
+    ...WorkspaceTagFields
+  }
+}
+
+mutation renameWorkspaceTag($input: RenameWorkspaceTagInput!) {
+  renameWorkspaceTag(input: $input) {
+    ...WorkspaceTagFields
+  }
+}
+
+mutation recolorWorkspaceTag($input: RecolorWorkspaceTagInput!) {
+  recolorWorkspaceTag(input: $input) {
+    ...WorkspaceTagFields
+  }
+}
+
+mutation updateWorkspaceTagDescription(
+  $input: UpdateWorkspaceTagDescriptionInput!
+) {
+  updateWorkspaceTagDescription(input: $input) {
+    ...WorkspaceTagFields
+  }
+}
+
+mutation archiveWorkspaceTag($input: WorkspaceTagLifecycleInput!) {
+  archiveWorkspaceTag(input: $input) {
+    ...WorkspaceTagFields
+  }
+}
+
+mutation restoreWorkspaceTag($input: WorkspaceTagLifecycleInput!) {
+  restoreWorkspaceTag(input: $input) {
+    ...WorkspaceTagFields
+  }
+}
+
+mutation deleteWorkspaceTagPermanently($input: WorkspaceTagLifecycleInput!) {
+  deleteWorkspaceTagPermanently(input: $input)
+}
+
+mutation setDocumentWorkspaceTags($input: SetDocumentWorkspaceTagsInput!) {
+  setDocumentWorkspaceTags(input: $input)
+}
+
+mutation bootstrapWorkspaceTags($input: BootstrapWorkspaceTagsInput!) {
+  bootstrapWorkspaceTags(input: $input) {
+    tags {
+      ...WorkspaceTagFields
+    }
+    legacyIdMappings {
+      legacyId
+      tagId
+    }
+    colorNormalizations {
+      legacyId
+      sourceColor
+      colorRole
+      normalized
+    }
+    importedTags
+    reusedTags
+    importedAssignments
+  }
+}
+
+query documentWorkspaceTagAssignments($workspaceId: String!, $externalIds: [ID!]!) {
+  workspace(id: $workspaceId) {
+    id
+    documentWorkspaceTagAssignments(externalIds: $externalIds) {
+      externalId
+      tagIds
+    }
+  }
+}
+
+query workspaceTagDocumentUsages($workspaceId: String!, $tagId: ID!, $first: Int, $offset: Int) {
+  workspace(id: $workspaceId) {
+    id
+    workspaceTagDocumentUsages(tagId: $tagId, first: $first, offset: $offset) {
+      items { externalId title }
+      nextOffset
+    }
+  }
+}
+
+mutation importWorkspaceTags($input: ImportWorkspaceTagsInput!) {
+  importWorkspaceTags(input: $input) {
+    tags { ...WorkspaceTagFields }
+    mappings
+    diagnostics
+  }
+}
+
+query exportWorkspaceTags($workspaceId: String!, $externalIds: [ID!]!) {
+  workspace(id: $workspaceId) {
+    id
+    exportWorkspaceTags(externalIds: $externalIds)
+  }
+}

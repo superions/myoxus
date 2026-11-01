@@ -1,0 +1,31 @@
+{
+  "name": "@myoxus/electron-renderer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "yarn run -T myoxus bundle -p @myoxus/electron-renderer",
+    "dev": "yarn run -T myoxus bundle -p @myoxus/electron-renderer --dev"
+  },
+  "dependencies": {
+    "@myoxus/core": "workspace:*",
+    "@myoxus/debug": "workspace:*",
+    "@myoxus/desktop-api-contract": "workspace:*",
+    "@myoxus/i18n": "workspace:*",
+    "@myoxus/infra": "workspace:*",
+    "@myoxus/storage": "workspace:*",
+    "@myoxus/theme": "workspace:*",
+    "@myoxus/track": "workspace:*",
+    "@myoxus/ui-facade": "workspace:*",
+    "@virgultum/editor": "workspace:*",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-router": "7.18.4",
+    "uuid": "13.0.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.1",
+    "@types/react-dom": "^19.0.2",
+    "typescript": "7.0.2"
+  },
+  "license": "MIT AND AGPL-3.0-or-later"
+}

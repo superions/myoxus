@@ -1,0 +1,27 @@
+mutation adminExportRevision($revisionId: ID!) {
+  admin {
+    exportRevision(revisionId: $revisionId) {
+      id
+      templateId
+      version
+      state
+      checksum
+      releaseNotes
+      createdAt
+      publishedAt
+      createdBy
+    }
+  }
+}
+
+mutation adminTriggerDriftScan($workspaceId: String!) {
+  admin {
+    triggerDriftScan(workspaceId: $workspaceId)
+  }
+}
+
+mutation adminRetireTemplateAssignment($policyId: ID!) {
+  admin {
+    retireTemplateAssignment(policyId: $policyId)
+  }
+}

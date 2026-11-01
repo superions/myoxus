@@ -1,0 +1,299 @@
+formatVersion: 1
+id: myoxus.assistant.taskDetail
+version: 1.0.0
+name:
+  en: Task details
+  de: Aufgabendetails
+  fr: Détails de la tâche
+  es: Detalles de la tarea
+description:
+  en: People with access to the selected destination can read this Task.
+  de: Personen mit Zugriff auf das gewählte Ziel können diese Aufgabe lesen.
+  fr: Les personnes ayant accès à la destination choisie peuvent lire cette tâche.
+  es: Las personas con acceso al destino elegido pueden leer esta tarea.
+contexts:
+  - taskDetail
+inputs: []
+components: []
+presentation:
+  steps:
+    - id: detail
+      title:
+        en: Task details
+        de: Aufgabendetails
+        fr: Détails de la tâche
+        es: Detalles de la tarea
+      groups:
+        - id: title
+          title: null
+          role: content
+          controls:
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.title
+              presence: always
+          visibleWhen: null
+        - id: source
+          title: null
+          role: content
+          controls:
+            - kind: sourceOrigin
+          visibleWhen: null
+        - id: description
+          title: null
+          role: content
+          controls:
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.description
+              presence: always
+          visibleWhen: null
+        - id: workflow
+          title:
+            en: Workflow
+            de: Workflow
+            fr: Workflow
+            es: Flujo de trabajo
+          role: workflow
+          controls:
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.status
+              presence: always
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.priority
+              presence: always
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.progress
+              presence: always
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.complexity
+              presence: always
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.owner
+              presence: always
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.assignees
+              presence: always
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.startDate
+              presence: always
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.dueDate
+              presence: always
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.tags
+              presence: always
+            - kind: reminder
+              offsetsMinutes:
+                - 0
+                - 10
+                - 30
+                - 60
+                - 1440
+                - 10080
+              defaultOffsetMinutes: 120
+              allowCustomOffset: true
+          visibleWhen: null
+        - id: parent
+          title: null
+          role: content
+          controls:
+            - kind: parent
+          visibleWhen: null
+        - id: blockers
+          title: null
+          role: content
+          controls:
+            - kind: blockedBy
+          visibleWhen: null
+        - id: details
+          title:
+            en: Details
+            de: Details
+            fr: Détails
+            es: Detalles
+          role: details
+          controls:
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.assignedBy
+              presence: present
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.document
+              presence: present
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.publicId
+              presence: present
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.effort
+              presence: present
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.cost
+              presence: present
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.completedAt
+              presence: present
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.attachments
+              presence: present
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.dependencies
+              presence: present
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.watchers
+              presence: present
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.acceptanceCriteria
+              presence: present
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.phase
+              presence: present
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.milestone
+              presence: present
+          visibleWhen: null
+        - id: more
+          title:
+            en: More
+            de: Mehr
+            fr: Plus
+            es: Más
+          role: more
+          controls:
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.assignedBy
+              presence: empty
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.document
+              presence: empty
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.publicId
+              presence: empty
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.effort
+              presence: empty
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.cost
+              presence: empty
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.completedAt
+              presence: empty
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.attachments
+              presence: empty
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.dependencies
+              presence: empty
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.watchers
+              presence: empty
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.acceptanceCriteria
+              presence: empty
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.phase
+              presence: empty
+            - kind: nativeCell
+              binding:
+                kind: role
+                roleKey: task.milestone
+              presence: empty
+          visibleWhen: null
+        - id: content
+          title: null
+          role: content
+          controls:
+            - kind: rowContent
+          visibleWhen: null
+        - id: activity
+          title: null
+          role: content
+          controls:
+            - kind: activity
+          visibleWhen: null
+        - id: lifecycle
+          title: null
+          role: content
+          controls:
+            - kind: rowLifecycle
+            - kind: follow
+          visibleWhen: null
+      actions:
+        - id: close
+          action: close
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: refresh
+          action: refresh
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+  dialogs: []

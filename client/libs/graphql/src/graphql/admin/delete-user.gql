@@ -1,0 +1,7 @@
+mutation deleteUser($id: String!) {
+  admin {
+    deleteUser(id: $id) {
+      success
+    }
+  }
+}

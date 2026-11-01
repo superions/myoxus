@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "owner": "build/scripts/release/",
+  "revisionRef": {
+    "kind": "git",
+    "ref": "HEAD"
+  },
+  "sourceArchive": {
+    "producer": "build/scripts/release/export-public-source.sh",
+    "path": "build/dist/source-export.tar",
+    "manifest": "build/dist/source-export.tar.manifest",
+    "sha256Sidecar": "build/dist/source-export.tar.sha256",
+    "validator": "build/scripts/ci/verify-public-source-export.mjs",
+    "targetTree": {
+      "requiredPolicies": [
+        "README.md",
+        "CONTRIBUTING.md",
+        "CODE_OF_CONDUCT.md",
+        "SECURITY.md"
+      ],
+      "generatedPublicRootManifest": {
+        "path": "Cargo.toml",
+        "source": "Cargo.toml",
+        "excludedWorkspaceMember": "client/apps/mobile-native"
+      },
+      "requiredIntakeTemplates": [
+        ".github/ISSUE_TEMPLATE/bug_report.yml",
+        ".github/ISSUE_TEMPLATE/feature_request.yml",
+        ".github/ISSUE_TEMPLATE/config.yml",
+        ".github/PULL_REQUEST_TEMPLATE.md"
+      ],
+      "excludedGeneratedOrLocalPaths": [
+        ".github/workflows/**",
+        "server/crates/api/test-storage/**",
+        "tests/client/shared/fixtures/alpha/**",
+        "virgultum/icons/dist/**"
+      ]
+    }
+  },
+  "evidenceRepositories": [
+    {
+      "id": "server-provenance",
+      "path": "server/provenance/components.json",
+      "validator": "build/scripts/ci/verify-server-source-provenance.mjs"
+    },
+    {
+      "id": "client-provenance",
+      "path": "client/provenance/components.json",
+      "validator": "build/scripts/ci/verify-client-source-provenance.mjs"
+    },
+    {
+      "id": "virgultum-provenance",
+      "path": "virgultum/provenance/licenses.json",
+      "validator": "build/scripts/ci/verify-virgultum-source-provenance.mjs"
+    }
+  ],
+  "boundaries": [
+    {
+      "id": "server",
+      "kind": "server",
+      "inRelease": true,
+      "owner": "build/server/Dockerfile + build/scripts/release/",
+      "requiredEvidence": [
+        {
+          "kind": "sourceArchive",
+          "ref": "build/dist/source-export.tar"
+        },
+        {
+          "kind": "manifest",
+          "ref": "server/provenance/components.json"
+        },
+        {
+          "kind": "lockfile",
+          "ref": "server/Cargo.lock"
+        },
+        {
+          "kind": "sbom",
+          "ref": "build/dist/server.cdx.json",
+          "producedBy": "build/scripts/release/generate-sbom.sh"
+        },
+        {
+          "kind": "legalBundle",
+          "ref": "build/dist/server-legal/THIRD_PARTY_NOTICES.md",
+          "producedBy": "build/scripts/release/assemble-server-legal.sh"
+        }
+      ],
+      "owningGate": "build/scripts/ci/verify-server-source-provenance.mjs"
+    },
+    {
+      "id": "frontends",
+      "kind": "static-frontend",
+      "inRelease": true,
+      "owner": "build/web/Dockerfile + build/admin/Dockerfile + build/scripts/frontends/",
+      "requiredEvidence": [
+        {
+          "kind": "sourceArchive",
+          "ref": "build/dist/source-export.tar"
+        },
+        {
+          "kind": "manifest",
+          "ref": "client/provenance/components.json"
+        },
+        {
+          "kind": "manifest",
+          "ref": "client/REUSE.toml"
+        },
+        {
+          "kind": "legalBundle",
+          "ref": "client/provenance/LICENSE-UPSTREAM-MIT.txt"
+        },
+        {
+          "kind": "lockfile",
+          "ref": "yarn.lock"
+        },
+        {
+          "kind": "sbom",
+          "ref": "build/dist/frontend.cdx.json",
+          "producedBy": "build/scripts/release/generate-sbom.sh"
+        }
+      ],
+      "owningGate": "build/scripts/ci/verify-client-source-provenance.mjs"
+    },
+    {
+      "id": "electron-linux",
+      "kind": "electron-desktop",
+      "inRelease": false,
+      "owner": "client/apps/electron/ + client/apps/electron-renderer/",
+      "requiredEvidence": [],
+      "exclusionReason": "Electron source is included in the curated source export; Electron platform binaries are explicitly outside the current binary release assertion."
+    },
+    {
+      "id": "electron-macos",
+      "kind": "electron-desktop",
+      "inRelease": false,
+      "owner": "client/apps/electron/ + client/apps/electron-renderer/",
+      "requiredEvidence": [],
+      "exclusionReason": "Electron source is included in the curated source export; Electron platform binaries are explicitly outside the current binary release assertion."
+    },
+    {
+      "id": "electron-windows",
+      "kind": "electron-desktop",
+      "inRelease": false,
+      "owner": "client/apps/electron/ + client/apps/electron-renderer/",
+      "requiredEvidence": [],
+      "exclusionReason": "Electron source is included in the curated source export; Electron platform binaries are explicitly outside the current binary release assertion."
+    },
+    {
+      "id": "android",
+      "kind": "mobile",
+      "inRelease": false,
+      "owner": "client/apps/android/",
+      "requiredEvidence": [],
+      "exclusionReason": "Android is not part of the current server, Web, Admin, and Electron source scope or the current server/Web/Admin binary release assertion."
+    },
+    {
+      "id": "ios",
+      "kind": "mobile",
+      "inRelease": false,
+      "owner": "client/apps/ios/",
+      "requiredEvidence": [],
+      "exclusionReason": "iOS is not part of the current server, Web, Admin, and Electron source scope or the current server/Web/Admin binary release assertion."
+    }
+  ]
+}

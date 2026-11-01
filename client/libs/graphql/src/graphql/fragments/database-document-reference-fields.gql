@@ -1,0 +1,13 @@
+fragment DatabaseDocumentReferenceFields on DatabaseDocumentReferenceType {
+  databaseId
+  databaseTitle
+  rowId
+  rowTitle
+  fieldId
+  fieldName
+  referenceKind
+  rawTargetDocId
+  targetDocId
+  targetWorkspaceId
+  refreshedAt
+}

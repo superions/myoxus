@@ -1,0 +1,10 @@
+mutation exportCopilotMessage($messageId: ID!, $format: CopilotExportFormat!) {
+  exportCopilotMessage(messageId: $messageId, format: $format) {
+    id
+    fileName
+    mimeType
+    sizeBytes
+    format
+    downloadUrl
+  }
+}

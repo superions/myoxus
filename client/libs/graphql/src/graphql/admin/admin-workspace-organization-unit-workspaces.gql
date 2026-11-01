@@ -1,0 +1,18 @@
+query adminWorkspaceOrganizationUnitWorkspaces($workspaceId: ID!) {
+  admin {
+    workspaceOrganizationUnitWorkspaces(workspaceId: $workspaceId) {
+      unitId
+      unitName
+      unitSlug
+      workspaceId
+      workspaceName
+      ownerUserId
+      ownerEmail
+      relationship
+      storageUsedBytes
+      effectiveQuotaBytes
+      createdAt
+      updatedAt
+    }
+  }
+}

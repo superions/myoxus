@@ -1,0 +1,51 @@
+.git
+.github/**/*.md
+.gitignore
+
+# Local dependency/build artifacts
+/node_modules
+/target
+/server/target
+/server/runtime
+/dist
+/output
+/build/server/runtime-config
+/build/server/mail-templates
+/build/server/templates
+/build/server/runtime-secrets
+/build/server/runtime-frontends
+
+# Yarn v4 artifacts (not needed for image packaging)
+/.yarn/cache
+/.yarn/unplugged
+/.yarn/install-state.gz
+/.pnp.*
+
+# Test artifacts
+**/test-storage
+/test-results
+/playwright-report
+/coverage
+/.coverage
+
+# Full-source Docker builds must compile frontend bundles inside the image.
+# Host-side dist artifacts are ignored so stale local bundles cannot be copied
+# into production images when a build command regresses or exits too early.
+/client/**/dist
+/client/**/dist/**
+/client/admin/workspaces/*/dist
+/client/admin/workspaces/*/dist/**
+/client/web/workspaces/*/dist
+/client/web/workspaces/*/dist/**
+/client/libs/*/dist
+/client/libs/*/dist/**
+/client/apps/*/dist
+/client/apps/*/dist/**
+
+# OS noise
+.DS_Store
+
+# Sourcemaps
+**/*.map
+# Vendored dependency bytes must match Yarn's reviewed file-package checksum.
+!/.yarn/vendor/electron-updater/**/*.map

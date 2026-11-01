@@ -1,0 +1,318 @@
+formatVersion: 1
+id: myoxus.assistant.workspace.personal-knowledge
+version: 1.0.0
+name: &a1
+  en: Personal Knowledge
+  de: Persönliches Wissen
+  fr: Connaissances personnelles
+  es: Conocimiento personal
+description:
+  en: Collect sources and connect your own notes with a free Research Index.
+    Workspace Tasks stays ready; no Project, assignment or access change is
+    required.
+  de: Sammle Quellen und verbinde eigene Notizen mit einem frei anpassbaren
+    Rechercheindex. Arbeitsbereichsaufgaben bleiben bereit; Projekt, Zuweisung
+    und Zugriffsänderung sind nicht erforderlich.
+  fr: Rassemblez les sources et reliez vos notes avec un index de recherche
+    librement personnalisable. Les tâches de l’espace restent disponibles, sans
+    projet, attribution ni changement d’accès.
+  es: Reúne fuentes y conecta tus notas con un índice de investigación
+    personalizable. Las tareas del espacio siguen disponibles, sin proyecto,
+    asignación ni cambios de acceso.
+contexts:
+  - workspaceCreation
+inputs:
+  - id: folder
+    target: folder
+    label:
+      en: Content folder
+      de: Inhaltsordner
+      fr: Dossier du contenu
+      es: Carpeta de contenido
+    description:
+      en: Name the folder for this content in the new workspace.
+      de: Benenne den Ordner für diese Inhalte im neuen Arbeitsbereich.
+      fr: Nommez le dossier de ce contenu dans le nouvel espace.
+      es: Nombra la carpeta para este contenido en el nuevo espacio.
+    valueType: folder
+    required: true
+    default: null
+    choices: []
+    visibleWhen: null
+  - id: include-index
+    target: includeComponent
+    label:
+      en: Research Index
+      de: Rechercheindex
+      fr: Index de recherche
+      es: Índice de investigación
+    description:
+      en: Create a freely customizable Research Index database. It is not a Task destination.
+      de: Erstelle eine frei anpassbare Rechercheindex-Datenbank. Sie ist kein Aufgabenziel.
+      fr: Créez un index de recherche librement personnalisable. Ce n’est pas une destination de tâches.
+      es: Crea un índice de investigación personalizable. No es un destino de tareas.
+    valueType: boolean
+    required: false
+    default:
+      kind: boolean
+      value: true
+    choices: []
+    visibleWhen: null
+  - id: samples
+    target: includeSamples
+    label:
+      en: Research sample rows
+      de: Recherche-Beispielzeilen
+      fr: Exemples de recherche
+      es: Filas de ejemplo de investigación
+    description:
+      en:
+        Optional examples in the free Research Index only; no Tasks or assignments
+        are created.
+      de: Optionale Beispiele nur im freien Rechercheindex; es entstehen keine
+        Aufgaben oder Zuweisungen.
+      fr: Exemples facultatifs dans l’index libre uniquement ; aucune tâche ni
+        attribution n’est créée.
+      es: Ejemplos opcionales solo en el índice libre; no se crean tareas ni
+        asignaciones.
+    valueType: boolean
+    required: false
+    default:
+      kind: boolean
+      value: false
+    choices: []
+    visibleWhen: null
+  - id: include-home
+    target: includeComponent
+    label:
+      en: Knowledge home
+      de: Wissensstart
+      fr: Accueil des connaissances
+      es: Inicio del conocimiento
+    description: null
+    valueType: boolean
+    required: false
+    default:
+      kind: boolean
+      value: true
+    choices: []
+    visibleWhen: null
+  - id: include-note
+    target: includeComponent
+    label:
+      en: Research note
+      de: Recherchenotiz
+      fr: Note de recherche
+      es: Nota de investigación
+    description: null
+    valueType: boolean
+    required: false
+    default:
+      kind: boolean
+      value: true
+    choices: []
+    visibleWhen: null
+components:
+  - id: workspace
+    action:
+      kind: createWorkspace
+      inputs: {}
+  - id: index
+    action:
+      kind: createDatabaseFromDefinition
+      definitionId: myoxus.database.research_index
+      selected:
+        kind: input
+        input: include-index
+      inputs:
+        title:
+          kind: localizedText
+          value:
+            en: Research Index
+            de: Rechercheindex
+            fr: Index de recherche
+            es: Índice de investigación
+        includeSamples:
+          kind: input
+          input: samples
+  - id: home
+    action:
+      kind: createWorkingDocument
+      selected:
+        kind: input
+        input: include-home
+      folder:
+        kind: input
+        input: folder
+      variables: {}
+  - id: note
+    action:
+      kind: createWorkingDocument
+      selected:
+        kind: input
+        input: include-note
+      folder:
+        kind: input
+        input: folder
+      variables: {}
+  - id: place-index
+    action:
+      kind: placeNativeLink
+      target:
+        kind: result
+        component: index
+        value: database
+      folder:
+        kind: input
+        input: folder
+  - id: place-home
+    action:
+      kind: placeNativeLink
+      target:
+        kind: result
+        component: home
+        value: document
+      folder:
+        kind: input
+        input: folder
+  - id: place-note
+    action:
+      kind: placeNativeLink
+      target:
+        kind: result
+        component: note
+        value: document
+      folder:
+        kind: input
+        input: folder
+presentation:
+  steps:
+    - id: details
+      title: *a1
+      groups:
+        - id: content
+          title: null
+          role: content
+          controls:
+            - kind: input
+              input: folder
+              control: folder
+            - kind: input
+              input: include-index
+              control: toggle
+            - kind: input
+              input: samples
+              control: toggle
+            - kind: input
+              input: include-home
+              control: toggle
+            - kind: input
+              input: include-note
+              control: toggle
+          visibleWhen: null
+      actions:
+        - id: cancel
+          label:
+            en: Cancel
+            de: Abbrechen
+            fr: Annuler
+            es: Cancelar
+          action: cancel
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: next
+          label: &a2
+            en: Review setup
+            de: Einrichtung prüfen
+            fr: Vérifier la configuration
+            es: Revisar configuración
+          action: next
+          component: null
+          targetStep: review
+          dialog: null
+          visibleWhen: null
+        - id: check
+          label: &a3
+            en: Check status
+            de: Status prüfen
+            fr: Vérifier le statut
+            es: Comprobar estado
+          action: check
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: close
+          label: &a4
+            en: Close
+            de: Schließen
+            fr: Fermer
+            es: Cerrar
+          action: close
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+    - id: review
+      title: *a2
+      groups:
+        - id: plan
+          title: null
+          role: review
+          controls:
+            - kind: workspaceReview
+          visibleWhen: null
+      actions:
+        - id: back
+          label:
+            en: Back to editing
+            de: Zurück zur Bearbeitung
+            fr: Revenir à la modification
+            es: Volver a editar
+          action: back
+          component: null
+          targetStep: details
+          dialog: null
+          visibleWhen: null
+        - id: create
+          label:
+            en: Create workspace
+            de: Arbeitsbereich erstellen
+            fr: Créer l’espace de travail
+            es: Crear espacio de trabajo
+          action: createWorkspace
+          component: workspace
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: review-check
+          label: *a3
+          action: check
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+        - id: review-close
+          label: *a4
+          action: close
+          component: null
+          targetStep: null
+          dialog: null
+          visibleWhen: null
+  dialogs: []
+  guidedHelp:
+    id: first-use
+    title: &a5
+      en: Add first source
+      de: Erste Quelle hinzufügen
+      fr: Ajouter une première source
+      es: Añadir la primera fuente
+    groups:
+      - id: help
+        title: *a5
+        role: content
+        controls: []
+        visibleWhen: null
+    actions: []

@@ -1,0 +1,12 @@
+formatVersion: 1
+id: myoxus.workflow.task_content_preparation
+version: 1.0.0
+trigger:
+  kind: taskCreated
+capabilityVersions:
+  createLinkedDocument: 1
+nodes:
+  - id: content
+    action:
+      kind: createLinkedDocument
+      component: content

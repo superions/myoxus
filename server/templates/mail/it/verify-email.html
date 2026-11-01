@@ -1,0 +1,35 @@
+{% extends "_layout.html" %} {% block subject %}Conferma il tuo indirizzo email
+per Myoxus{% endblock subject %} {% block preheader %}La conferma associa questo
+indirizzo al tuo account.{% endblock preheader %} {% block category %}IL TUO
+ACCOUNT{% endblock category %} {% block heading %}Conferma il tuo indirizzo
+email.{% endblock heading %} {% block introduction %}Hai richiesto un’email di
+verifica per il tuo account Myoxus. Conferma che questo indirizzo email ti
+appartiene.{% endblock introduction %} {% block details %}{% if email %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  INDIRIZZO EMAIL
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ email }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}La conferma associa
+questo indirizzo al tuo account.{% endblock next_step %} {% block action
+%}Conferma indirizzo email{% endblock action %} {% block note %}Non hai
+richiesto questa email? Puoi ignorarla. Non verrà modificato nulla senza la tua
+conferma.{% endblock note %} {% block reason %}Ricevi questa email perché è
+stata richiesta una verifica di questo indirizzo in Myoxus.{% endblock reason %}

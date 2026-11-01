@@ -1,0 +1,37 @@
+{% extends "_layout.html" %} {% block subject %}Confirmez votre nouvelle adresse
+e-mail pour Myoxus{% endblock subject %} {% block preheader %}La nouvelle
+adresse ne sera appliquée qu’après votre confirmation.{% endblock preheader %}
+{% block category %}VOTRE COMPTE{% endblock category %} {% block heading
+%}Confirmez votre nouvelle adresse e-mail.{% endblock heading %} {% block
+introduction %}Vous avez demandé à modifier l’adresse e-mail de votre compte
+Myoxus. Veuillez confirmer la nouvelle adresse avant qu’elle soit utilisée pour
+votre compte.{% endblock introduction %} {% block details %}{% if email %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  NOUVELLE ADRESSE E-MAIL
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ email }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}La nouvelle adresse ne
+sera appliquée qu’après votre confirmation.{% endblock next_step %} {% block
+action %}Confirmer la nouvelle adresse{% endblock action %} {% block note %}Vous
+n’avez pas demandé cet e-mail ? Vous pouvez l’ignorer. Rien ne sera modifié sans
+votre confirmation.{% endblock note %} {% block reason %}Vous recevez cet e-mail
+car cette adresse a été indiquée comme nouvelle adresse e-mail d’un compte
+Myoxus.{% endblock reason %}

@@ -1,0 +1,62 @@
+fragment PreparedDocumentReviewFragment on PreparedDocumentReview {
+  target { databaseId taskId }
+  package { ...AssistantPackageIdentityFragment }
+  answers { input value { ...AssistantValueFragment } }
+  locale clientVersion executionAvailable planDigest
+  sourceDocumentId sourceExternalId sourceRevision reviewerId
+  destinationDatabaseId title deadlineAt deadlineTimeZone
+}
+
+fragment DocumentReviewFragment on DocumentReview {
+  run { ...WorkspaceAutomationRun }
+  acceptedPlan { ...PreparedDocumentReviewFragment }
+  acceptedDescriptor { ...AssistantPackageFragment }
+  waitId expectedTaskEditRevision expectedStatusEditRevision
+  sourceAvailable currentSourceRevision
+  reviewTaskId followUpTaskId reviewTaskAvailable followUpTaskAvailable
+  decision reason canApprove canRequestChanges canRetry canStop reasonCode
+}
+
+query prepareDocumentReview($workspaceId: String!, $input: PrepareDocumentReviewInput!) {
+  currentUser { id }
+  workspace(id: $workspaceId) {
+    id prepareDocumentReview(input: $input) { ...PreparedDocumentReviewFragment }
+  }
+}
+
+query documentReview($workspaceId: String!, $runId: ID!) {
+  currentUser { id }
+  workspace(id: $workspaceId) {
+    id documentReview(runId: $runId) { ...DocumentReviewFragment }
+  }
+}
+
+query documentReviewRequest($workspaceId: String!, $requestId: ID!) {
+  currentUser { id }
+  workspace(id: $workspaceId) {
+    id documentReviewRequest(requestId: $requestId) { ...DocumentReviewFragment }
+  }
+}
+
+query documentReviewForTask($workspaceId: String!, $databaseId: ID!, $rowId: ID!) {
+  currentUser { id }
+  workspace(id: $workspaceId) {
+    id documentReviewForTask(databaseId: $databaseId, rowId: $rowId) { ...DocumentReviewFragment }
+  }
+}
+
+mutation startDocumentReview($input: StartDocumentReviewInput!) {
+  startDocumentReview(input: $input) { ...DocumentReviewFragment }
+}
+
+mutation decideDocumentReview($input: DecideDocumentReviewInput!) {
+  decideDocumentReview(input: $input) { ...DocumentReviewFragment }
+}
+
+mutation stopDocumentReview($input: DocumentReviewRunInput!) {
+  stopDocumentReview(input: $input) { ...DocumentReviewFragment }
+}
+
+mutation retryDocumentReview($input: DocumentReviewRunInput!) {
+  retryDocumentReview(input: $input) { ...DocumentReviewFragment }
+}

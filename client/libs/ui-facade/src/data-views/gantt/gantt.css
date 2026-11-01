@@ -1,0 +1,389 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+[data-myoxus-ui-role="gantt-grid"] {
+  display: grid;
+  grid-template-columns: var(--myoxus-gantt-label-width) minmax(0, 1fr);
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--myoxus-border-color);
+  border-radius: var(--mantine-radius-default);
+  background: var(--myoxus-background-primary-color);
+}
+
+[data-myoxus-ui-role="gantt-labels"] {
+  position: relative;
+  z-index: 2;
+  min-width: 0;
+  border-inline-end: 1px solid var(--myoxus-border-color);
+  background: var(--myoxus-background-primary-color);
+}
+
+[data-myoxus-ui-role="gantt-section-header"]:not(tr),
+[data-myoxus-ui-role="gantt-row-label"]:not(tr) {
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+  min-width: 0;
+  block-size: var(--myoxus-gantt-row-height);
+  padding-inline: var(--mantine-spacing-sm);
+  border-block-end: 1px solid var(--myoxus-divider-color);
+}
+
+[data-myoxus-ui-role="gantt-section-header"] {
+  background: var(--myoxus-background-secondary-color);
+  font-weight: 600;
+}
+
+[data-myoxus-ui-role="gantt-axis"] {
+  position: relative;
+  inline-size: var(--myoxus-gantt-axis-width);
+  min-inline-size: var(--myoxus-gantt-axis-width);
+}
+
+[data-myoxus-ui-role="gantt-axis-header"] {
+  position: relative;
+  block-size: var(--myoxus-gantt-axis-header-height);
+  background: var(--myoxus-background-secondary-color);
+  border-block-end: 1px solid var(--myoxus-border-color);
+}
+
+[data-myoxus-ui-role="gantt-axis-tick"] {
+  position: absolute;
+  inset-block-start: var(--mantine-spacing-xs);
+  padding-inline: var(--mantine-spacing-xs);
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+[data-myoxus-ui-role="gantt-axis-tick"][data-position="start"] {
+  transform: none;
+}
+
+[data-myoxus-ui-role="gantt-axis-tick"][data-position="end"] {
+  transform: translateX(-100%);
+}
+
+[data-myoxus-ui-role="gantt-excluded-band"] {
+  position: absolute;
+  inset-block: 0;
+  z-index: 0;
+  background: var(--myoxus-hover-color);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+[data-myoxus-ui-role="gantt-section-band"] {
+  pointer-events: none;
+}
+
+[data-myoxus-ui-role="gantt-gridline"] {
+  position: absolute;
+  inset-block: 0;
+  z-index: 0;
+  border-inline-start: 1px solid var(--myoxus-divider-color);
+  pointer-events: none;
+}
+
+[data-myoxus-ui-role="gantt-row"] {
+  position: relative;
+  block-size: var(--myoxus-gantt-row-height);
+  border-block-end: 1px solid var(--myoxus-divider-color);
+}
+
+.myoxus-gantt-bar {
+  white-space: nowrap;
+  position: absolute;
+  inset-block-start: 50%;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  min-inline-size: var(--myoxus-gantt-minimum-bar-width);
+  block-size: 24px;
+  overflow: hidden;
+  padding-inline: var(--mantine-spacing-xs);
+  border: 1px solid var(--myoxus-border-color);
+  border-radius: var(--mantine-radius-default);
+  color: var(--myoxus-text-primary-color);
+  background: var(--myoxus-background-secondary-color);
+  cursor: grab;
+  transform: translateY(-50%);
+}
+
+.myoxus-gantt-bar[data-selected="true"] {
+  border-color: var(--myoxus-accent-primary);
+  background: var(--myoxus-hover-color);
+}
+
+.myoxus-gantt-bar[data-status~="done"] {
+  opacity: 0.75;
+}
+
+.myoxus-gantt-bar[data-status~="crit"] {
+  border-color: var(--myoxus-accent-primary);
+}
+
+.myoxus-gantt-bar[data-milestone="true"] {
+  padding: 0;
+  border-color: var(--myoxus-accent-primary);
+  transform: rotate(45deg);
+}
+
+.myoxus-gantt-milestone {
+  position: absolute;
+  inset-block-start: 50%;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--mantine-spacing-xs);
+  transform: translateY(-50%);
+}
+
+.myoxus-gantt-milestone-label {
+  color: var(--myoxus-text-primary-color);
+  white-space: nowrap;
+}
+
+.myoxus-gantt-bar[data-readonly="true"],
+.myoxus-gantt-bar[data-editable="false"] {
+  cursor: default;
+}
+
+.myoxus-gantt-bar:focus-visible {
+  outline: 2px solid var(--myoxus-accent-primary);
+  outline-offset: 2px;
+}
+
+.myoxus-gantt-bar-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Resize handles own the bar's edges and must stay pointer-reachable; they sit
+   above the connect nub so a drag on the end edge always resizes. */
+.myoxus-gantt-resize-handle {
+  position: absolute;
+  inset-block: 0;
+  z-index: 5;
+  inline-size: var(--mantine-spacing-sm);
+  cursor: ew-resize;
+}
+
+.myoxus-gantt-resize-handle[data-edge="start"] {
+  inset-inline-start: 0;
+}
+
+.myoxus-gantt-resize-handle[data-edge="end"] {
+  inset-inline-end: 0;
+}
+
+/* A `vert` marker is a real object: a wide transparent hit area carries the
+   thin dashed line so it stays selectable/movable by pointer without blocking
+   the surrounding bars. */
+.myoxus-gantt-marker {
+  position: absolute;
+  inset-block: 0;
+  z-index: 1;
+  inline-size: 2px;
+  border-inline-start: 2px dashed var(--myoxus-accent-primary);
+  pointer-events: auto;
+  cursor: ew-resize;
+}
+
+.myoxus-gantt-marker::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 50%;
+  inline-size: 16px;
+  transform: translateX(-50%);
+}
+
+.myoxus-gantt-marker[data-readonly="true"],
+.myoxus-gantt-marker[data-editable="false"] {
+  cursor: default;
+}
+
+.myoxus-gantt-marker:focus-visible {
+  outline: 2px solid var(--myoxus-accent-primary);
+  outline-offset: 2px;
+}
+
+.myoxus-gantt-marker-label {
+  position: absolute;
+  inset-block-start: 0;
+  padding-inline: var(--mantine-spacing-xs);
+  border: 1px solid var(--myoxus-border-color);
+  border-radius: var(--mantine-radius-default);
+  background: var(--myoxus-background-primary-color);
+  white-space: nowrap;
+}
+
+/* Bars own their hit areas, including minimum-width point tasks. Edges remain
+   selectable along their visible strokes outside bar bodies. */
+[data-myoxus-ui-role="gantt-dependencies"] {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: visible;
+  pointer-events: none;
+}
+
+[data-myoxus-ui-role="gantt-dependency-handles"] {
+  pointer-events: none;
+  z-index: 3;
+}
+
+.myoxus-gantt-dependency {
+  fill: none;
+  stroke: var(--myoxus-accent-primary);
+  stroke-width: 2;
+}
+
+.myoxus-gantt-dependency-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 12;
+  cursor: pointer;
+  pointer-events: stroke;
+}
+
+.myoxus-gantt-dependency-arrow {
+  fill: var(--myoxus-accent-primary);
+}
+
+.myoxus-gantt-dependency[data-selected="true"] {
+  stroke-width: 3;
+}
+
+/* The connect nub sits fully outside the bar so it never covers the end resize
+   handle; both ends stay grabbable by pointer. */
+.myoxus-gantt-connect-handle {
+  position: absolute;
+  inset-block-start: 50%;
+  inset-inline-end: -14px;
+  z-index: 4;
+  inline-size: 10px;
+  block-size: 10px;
+  border: 1px solid var(--myoxus-accent-primary);
+  border-radius: 50%;
+  background: var(--myoxus-background-primary-color);
+  cursor: crosshair;
+  transform: translateY(-50%);
+}
+
+.myoxus-gantt-dependency-endpoint {
+  fill: var(--myoxus-background-primary-color);
+  stroke: var(--myoxus-accent-primary);
+  stroke-width: 2;
+  cursor: crosshair;
+  pointer-events: all;
+}
+
+[data-myoxus-ui-role="gantt-comment-marker"] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 20px;
+  block-size: 20px;
+  padding: 0;
+  border: 1px solid var(--myoxus-accent-primary);
+  border-radius: 50%;
+  color: var(--myoxus-accent-primary);
+  background: var(--myoxus-background-primary-color);
+  cursor: pointer;
+}
+
+[data-myoxus-ui-role="gantt-comment-marker"]:focus-visible {
+  outline: 2px solid var(--myoxus-accent-primary);
+  outline-offset: 2px;
+}
+
+[data-myoxus-ui-role="gantt-insert-marker"] {
+  background: var(--myoxus-accent-primary);
+  border-radius: var(--mantine-radius-small);
+  pointer-events: none;
+}
+
+/* Use the anchored object's technical bounds, not its possibly clipped start
+   point. This invisible reference never owns pointer interaction. */
+[data-myoxus-ui-role="gantt-popover-anchor"] > [data-myoxus-ui-role="popover"] {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+  pointer-events: none;
+}
+
+/* Precise ranges separate geometry from the transparent minimum hit box.
+   SVG stroke retains subpixel spans without widening their temporal extent. */
+.myoxus-gantt-bar[data-precise-range="true"] {
+  padding: 0;
+  border: 0;
+  background: none;
+  overflow: visible;
+}
+
+.myoxus-gantt-range-shape {
+  position: absolute;
+  overflow: visible;
+  pointer-events: none;
+  fill: var(--myoxus-background-secondary-color);
+  stroke: var(--myoxus-border-color);
+  stroke-width: 1;
+}
+
+.myoxus-gantt-range-shape[data-selected="true"] {
+  fill: var(--myoxus-hover-color);
+  stroke: var(--myoxus-accent-primary);
+}
+
+.myoxus-gantt-bar[data-precise-range="true"] .myoxus-gantt-bar-label {
+  position: absolute;
+  padding-inline: var(--mantine-spacing-xs);
+  pointer-events: auto;
+}
+
+.myoxus-gantt-bar-label[data-outside="true"] {
+  overflow: visible;
+  color: var(--myoxus-text-primary-color);
+}
+
+/* Placement overlays are transient geometry, never synthetic persisted rows. */
+[data-myoxus-ui-role="gantt-create-preview"] {
+  z-index: 8;
+  background: var(--myoxus-background-primary-color);
+  color: var(--myoxus-text-primary-color);
+}
+[data-myoxus-ui-role="gantt-create-span"] {
+  block-size: 24px;
+  border: 1px solid var(--myoxus-accent-primary);
+  background: var(--myoxus-hover-color);
+}
+[data-myoxus-ui-role="gantt-create-span"][data-point="true"] {
+  block-size: 18px;
+  transform: rotate(45deg);
+}
+
+/* Native SVG focus outlines cover the edge's entire bounding rectangle.
+   Mark the actual connection path instead, retaining its wide transparent hit. */
+[data-connection="true"] .myoxus-gantt-dependency-hit:focus-visible {
+  outline: none;
+}
+[data-connection="true"]
+  .myoxus-gantt-dependency-hit:focus-visible
+  + .myoxus-gantt-dependency {
+  stroke: var(--myoxus-accent-primary);
+  stroke-width: 3;
+}
+.myoxus-gantt-milestone[data-precise-range="true"]:focus-visible {
+  outline: 2px solid var(--myoxus-accent-primary);
+  outline-offset: 2px;
+}
+
+/* Native Table supplies column sizes and intrinsic heights. Column minima
+   keep headings and short values readable while the time surface scrolls
+   independently. */
+[data-myoxus-ui-role="gantt-pinned-table"] th {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}

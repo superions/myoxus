@@ -1,0 +1,215 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "5"
+
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:-pgvector/pgvector:${POSTGRES_IMAGE_TAG:-pg16}}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-myoxus}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_DB: ${POSTGRES_DB:-myoxus}
+      POSTGRES_INITDB_ARGS: "--data-checksums"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-myoxus} -d ${POSTGRES_DB:-myoxus}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - ${POSTGRES_DATA_VOLUME:-myoxus-postgres-data}:/var/lib/postgresql/data
+    secrets:
+      - postgres_password
+    mem_limit: ${POSTGRES_MEMORY_LIMIT:-4g}
+    memswap_limit: ${POSTGRES_MEMORY_SWAP_LIMIT:-5g}
+    logging: *default-logging
+    restart: unless-stopped
+
+  redis:
+    image: ${REDIS_IMAGE:-redis:${REDIS_IMAGE_TAG:-8}}
+    command: ["redis-server", "--appendonly", "yes", "--save", ""]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - ${REDIS_DATA_VOLUME:-myoxus-redis-data}:/data
+    mem_limit: ${REDIS_MEMORY_LIMIT:-2g}
+    memswap_limit: ${REDIS_MEMORY_SWAP_LIMIT:-3g}
+    stop_grace_period: 30s
+    logging: *default-logging
+    restart: unless-stopped
+
+  verapdf:
+    profiles: ["pdfa"]
+    image: verapdf/rest:latest
+    mem_limit: 1g
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    ports:
+      - "8080:8080"
+    logging: *default-logging
+    restart: unless-stopped
+
+  pdf-fonts-init:
+    # One-shot service: ensures /data/pdf-fonts is owned by the API container user
+    # (UID 1000) before the api service starts. Docker named volumes are created with
+    # root ownership, so without this step the opendal fs backend cannot write fonts.
+    image: debian:trixie-slim
+    user: root
+    # chown target must match MYOXUS_API_USER (default 1000:1000). If you change
+    # MYOXUS_API_USER, update the chown command below to match.
+    command:
+      - sh
+      - -c
+      - "mkdir -p /data/pdf-fonts && chown -R ${MYOXUS_PDF_FONTS_UID:-1000}:${MYOXUS_PDF_FONTS_GID:-1000} /data/pdf-fonts && chmod 755 /data/pdf-fonts"
+    volumes:
+      - ${MYOXUS_PDF_FONTS_VOLUME:-myoxus-pdf-fonts-data}:/data/pdf-fonts
+    logging: *default-logging
+    restart: no
+
+  api:
+    image: ${MYOXUS_API_IMAGE:-myoxus-api:local}
+    build:
+      context: ../..
+      dockerfile: build/server/Dockerfile
+      args:
+        # Local selfhost builds default to bounded parallelism. Override with
+        # CARGO_BUILD_JOBS=1 on memory-constrained hosts or a higher value on
+        # dedicated builders.
+        CARGO_BUILD_JOBS: ${CARGO_BUILD_JOBS:-8}
+        GITHUB_SHA: ${MYOXUS_BUILD_REVISION:-localdev}
+        MYOXUS_SERVER_VERSION: ${MYOXUS_SERVER_VERSION:-}
+    user: "${MYOXUS_API_USER:-1000:1000}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      pdf-fonts-init:
+        condition: service_completed_successfully
+    environment:
+      RUN_MODE: ${RUN_MODE:-development}
+      MYOXUS__SERVER__HOST: ${MYOXUS_SERVER_HOST:-0.0.0.0}
+      MYOXUS__SERVER__PORT: ${MYOXUS_SERVER_PORT:-3001}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: ${POSTGRES_USER:-myoxus}
+      POSTGRES_DB: ${POSTGRES_DB:-myoxus}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      MYOXUS__DATABASE__URL_FILE: /run/myoxus/database-url
+      MYOXUS__CRYPTO__PRIVATE_KEY_FILE: /run/secrets/crypto_private_key
+      MYOXUS__REDIS__URL: redis://redis:6379
+      MYOXUS__STORAGE__ROOT: ${MYOXUS_STORAGE_ROOT:-/opt/myoxus/data/storage}
+      MYOXUS__LOGGING__FILE_PATH: ${MYOXUS_LOG_FILE_PATH:-/opt/myoxus/data/logs/myoxus.log}
+      MYOXUS__GIT_SYNC__REPO_BASE_DIR: ${MYOXUS_GIT_SYNC_REPO_BASE_DIR:-/opt/myoxus/data/git-sync}
+      MYOXUS__SERVER__ORIGIN: ${MYOXUS_SERVER_ORIGIN:-http://192.168.30.10:3010}
+      MYOXUS__CONFIG__WRITEBACK_PATH: /opt/myoxus/runtime-config/local.yaml
+      MYOXUS__BRANDING__STYLE_DIR: /opt/myoxus/runtime-assets/style
+      # Optional external PDF/A validation via veraPDF. Start the validator with
+      # `docker compose --profile pdfa up -d verapdf` and set
+      # MYOXUS_VERAPDF_VALIDATOR_URL=http://verapdf:8080 to make PDF/A exports
+      # fail-closed on a negative validator report. Empty keeps native Typst
+      # standards active without an external JVM validator.
+      MYOXUS__PDF_EXPORT__VERAPDF_VALIDATOR_URL: ${MYOXUS_VERAPDF_VALIDATOR_URL:-}
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/myoxus-cli", "container", "health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 25s
+    ports:
+      - "${MYOXUS_PUBLIC_PORT:-3001}:${MYOXUS_SERVER_PORT:-3001}"
+    # Volume permissions: the API container runs as UID 1000 (configurable via
+    # MYOXUS_API_USER). The data directory must be writable by this UID.
+    # Package defaults stay image-owned. Runtime config and operator branding
+    # use separate writable host directories.
+    #
+    # Mount layout inside the container:
+    #   /opt/myoxus/data/storage   — blob storage files
+    #   /opt/myoxus/data/logs      — rotating log files
+    #   /opt/myoxus/data/git-sync  — git mirror repositories
+    #   /opt/myoxus/runtime-config/local.yaml — persistent Admin config mirror
+    #   /opt/myoxus/runtime-assets/style/     — operator branding assets
+    #   /opt/myoxus/templates/                — operator-owned template inputs (read-only)
+    #   /data/pdf-fonts            — admin-uploaded PDF font library (persistent named volume)
+    #
+    volumes:
+      - ${MYOXUS_DATA_DIR:-./data}:/opt/myoxus/data:rw
+      - ${MYOXUS_RUNTIME_CONFIG_DIR:-./runtime-config}:/opt/myoxus/runtime-config:rw
+      - ${MYOXUS_STYLE_HOST_DIR:-../../client/branding}:/opt/myoxus/runtime-assets/style:rw
+      - type: bind
+        source: ${MYOXUS_TEMPLATE_HOST_DIR:-./templates}
+        target: /opt/myoxus/templates
+        read_only: true
+        bind:
+          create_host_path: false
+      - ${MYOXUS_PDF_FONTS_VOLUME:-myoxus-pdf-fonts-data}:/data/pdf-fonts
+    secrets:
+      - postgres_password
+      - crypto_private_key
+    mem_limit: ${MYOXUS_API_MEMORY_LIMIT:-6g}
+    memswap_limit: ${MYOXUS_API_MEMORY_SWAP_LIMIT:-8g}
+    logging: *default-logging
+    restart: unless-stopped
+
+  frontend:
+    # The operator owns the Nginx runtime and can update it independently of
+    # Myoxus. Web/Admin release images are static OCI artifacts materialized
+    # into MYOXUS_FRONTEND_ASSET_ROOT; they are never started as containers.
+    image: ${MYOXUS_NGINX_IMAGE:-nginx:stable-alpine}
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      MYOXUS_FRONTEND_BASE_PATH: ${MYOXUS_FRONTEND_BASE_PATH:-}
+      MYOXUS_SOCKET_IO_PROXY_READ_TIMEOUT_SECONDS: ${MYOXUS_SOCKET_IO_PROXY_READ_TIMEOUT_SECONDS-300}
+      MYOXUS_SOCKET_IO_PROXY_SEND_TIMEOUT_SECONDS: ${MYOXUS_SOCKET_IO_PROXY_SEND_TIMEOUT_SECONDS-300}
+    healthcheck:
+      test:
+        ["CMD-SHELL", "wget -qO- http://127.0.0.1:3010/health | grep -qx ok"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    ports:
+      - "${MYOXUS_FRONTEND_PORT:-3010}:3010"
+    volumes:
+      - ${MYOXUS_FRONTEND_ASSET_ROOT:-./runtime-frontends/current}:/usr/share/nginx/frontends:ro
+      - ${MYOXUS_FRONTEND_ASSET_ROOT:-./runtime-frontends/current}/deployment/nginx/myoxus.conf:/etc/nginx/myoxus.conf.template:ro
+      - ${MYOXUS_FRONTEND_ASSET_ROOT:-./runtime-frontends/current}/deployment/nginx/render-basepath-nginx.sh:/docker-entrypoint.d/40-render-basepath-nginx.sh:ro
+      - ${MYOXUS_STYLE_HOST_DIR:-../../client/branding}:/usr/share/nginx/frontends/style:ro
+      # Visual QA artifacts are copied from Playwright's volatile
+      # `test-results/` tree into this stable ignored publish directory. Keep
+      # this as a sibling of the read-only frontend root: nested bind mounts
+      # cannot create their target below that already mounted read-only tree.
+      - ${MYOXUS_QA_ARTIFACT_DIR:-../../playwright/.qa}:/usr/share/nginx/qa:ro
+    logging: *default-logging
+    restart: unless-stopped
+
+volumes:
+  myoxus-postgres-data:
+  myoxus-redis-data:
+  myoxus-pdf-fonts-data:
+
+secrets:
+  postgres_password:
+    file: ${MYOXUS_POSTGRES_PASSWORD_FILE:-./runtime-secrets/postgres_password}
+  crypto_private_key:
+    file: ${MYOXUS_CRYPTO_PRIVATE_KEY_FILE:-./runtime-secrets/crypto_private_key}

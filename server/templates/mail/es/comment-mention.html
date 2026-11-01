@@ -1,0 +1,59 @@
+{% extends "_layout.html" %} {% block subject %}{{ actor }} te ha mencionado en
+«{{ document_title }}»{% endblock subject %} {% block preheader %}El enlace te
+lleva al documento y al comentario correspondientes.{% endblock preheader %} {%
+block category %}DOCUMENTOS{% endblock category %} {% block heading %}Te han
+mencionado en un comentario.{% endblock heading %} {% block introduction %}{{
+actor }} te ha mencionado en un comentario de un documento. Abre el comentario
+para consultar el contexto y responder si es necesario.{% endblock introduction
+%} {% block details %}{% if document_title %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  DOCUMENTO
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ document_title }}
+</p>
+{% endif %}{% if actor %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  De
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ actor }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}El enlace te lleva al
+documento y al comentario correspondientes.{% endblock next_step %} {% block
+action %}Ver comentario{% endblock action %} {% block note %}Encontrarás la
+información actualizada y las acciones disponibles directamente en Myoxus.{%
+endblock note %} {% block reason %}Recibes este correo porque te han mencionado
+en este comentario.{% endblock reason %}

@@ -1,0 +1,412 @@
+format_version: 1
+id: myoxus.database.content_calendar
+version: 1.0.0
+task_core: null
+variants:
+  - option_extensions: []
+    field_order:
+      - title
+      - status
+      - owner
+      - publish
+      - channel
+      - tags
+      - assets
+    role_order: []
+    priority: threeStep
+    complexity: threeStep
+    structure: tasks_only
+    spec:
+      category: database
+      complexity_preset: null
+      default_structure: null
+      description: Plan publish dates, channels, owners, attachments and workflow status.
+      fields:
+        - config:
+            Direct:
+              kind: title
+          field_type: title
+          key: title
+          name: Content item
+          required: true
+        - config:
+            Direct:
+              defaultOptionId: status.todo
+              kind: status
+              options:
+                - colorRole: database.status.todo
+                  group: notStarted
+                  id: status.todo
+                  name: Todo
+                  position: 0
+                - colorRole: database.status.inProgress
+                  group: active
+                  id: status.in_progress
+                  name: In progress
+                  position: 1
+                - colorRole: database.status.done
+                  group: complete
+                  id: status.done
+                  name: Done
+                  position: 2
+          field_type: status
+          key: status
+          name: Status
+          required: true
+        - config:
+            Direct:
+              kind: user
+          field_type: user
+          key: owner
+          name: Owner
+          required: false
+        - config:
+            Direct:
+              allowReminders: true
+              defaultTimeZone: null
+              kind: date_time
+          field_type: date_time
+          key: publish
+          name: Publish date
+          required: false
+        - config:
+            Direct:
+              kind: multi_select
+              options:
+                - colorRole: database.option.blog
+                  id: blog
+                  name: Blog
+                  position: 0
+                - colorRole: database.option.social
+                  id: social
+                  name: Social
+                  position: 1
+                - colorRole: database.option.email
+                  id: email
+                  name: Email
+                  position: 2
+          field_type: multi_select
+          key: channel
+          name: Channel
+          required: false
+        - config:
+            Direct:
+              kind: tags
+              maxCount: null
+          field_type: tags
+          key: tags
+          name: Tags
+          required: false
+        - config:
+            Direct:
+              allowedMimeCategories:
+                - any
+              kind: files
+              maxItemCount: null
+              maxItemSize: null
+              previewPolicy: auto
+          field_type: files
+          key: assets
+          name: Assets
+          required: false
+      id: myoxus.database.content_calendar
+      manifest:
+        category: database
+        defaultStructure: null
+        descriptionKey: com.myoxus.database.starter-template.database-content-calendar.description
+        fields:
+          - configKind: title
+            fieldType: title
+            importExportBehavior: read_write
+            key: title
+            nameKey: com.myoxus.database.starter-template.database-content-calendar.field.title.name
+            required: true
+          - configKind: status
+            fieldType: status
+            importExportBehavior: read_write
+            key: status
+            nameKey: com.myoxus.database.starter-template.database-content-calendar.field.status.name
+            required: true
+          - configKind: user
+            fieldType: user
+            importExportBehavior: read_write
+            key: owner
+            nameKey: com.myoxus.database.starter-template.database-content-calendar.field.owner.name
+            required: false
+          - configKind: date_time
+            fieldType: date_time
+            importExportBehavior: read_write
+            key: publish
+            nameKey: com.myoxus.database.starter-template.database-content-calendar.field.publish.name
+            required: false
+          - configKind: multi_select
+            fieldType: multi_select
+            importExportBehavior: read_write
+            key: channel
+            nameKey: com.myoxus.database.starter-template.database-content-calendar.field.channel.name
+            required: false
+          - configKind: tags
+            fieldType: tags
+            importExportBehavior: read_write
+            key: tags
+            nameKey: com.myoxus.database.starter-template.database-content-calendar.field.tags.name
+            required: false
+          - configKind: files
+            fieldType: files
+            importExportBehavior: read_write
+            key: assets
+            nameKey: com.myoxus.database.starter-template.database-content-calendar.field.assets.name
+            required: false
+        id: myoxus.database.content_calendar
+        importMappings:
+          - columnMappings:
+              - fieldKey: title
+                required: true
+                sourceHeader: Content item
+              - fieldKey: status
+                required: true
+                sourceHeader: Status
+              - fieldKey: owner
+                required: false
+                sourceHeader: Owner
+              - fieldKey: publish
+                required: false
+                sourceHeader: Publish date
+              - fieldKey: channel
+                required: false
+                sourceHeader: Channel
+              - fieldKey: tags
+                required: false
+                sourceHeader: Tags
+              - fieldKey: assets
+                required: false
+                sourceHeader: Assets
+            key: default-csv
+            nameKey: com.myoxus.database.starter-template.database-content-calendar.import-mapping.default-csv.name
+        nameKey: com.myoxus.database.starter-template.database-content-calendar.name
+        profileKind: generic
+        roles: []
+        rowTemplates:
+          - descriptionKey: com.myoxus.database.starter-template.database-content-calendar.row-template.content-item.description
+            initialFieldKeys:
+              - status
+              - publish
+              - channel
+            isDefault: true
+            key: content-item
+            nameKey: com.myoxus.database.starter-template.database-content-calendar.row-template.content-item.name
+            rowKind: record
+        sampleRows:
+          - fieldKeys:
+              - status
+              - channel
+              - publish
+            key: sample-1
+            titleKey: com.myoxus.database.starter-template.database-content-calendar.sample-row.sample-1.title
+          - fieldKeys:
+              - status
+              - channel
+              - publish
+            key: sample-2
+            titleKey: com.myoxus.database.starter-template.database-content-calendar.sample-row.sample-2.title
+          - fieldKeys:
+              - status
+              - channel
+              - publish
+            key: sample-3
+            titleKey: com.myoxus.database.starter-template.database-content-calendar.sample-row.sample-3.title
+          - fieldKeys:
+              - status
+              - channel
+              - publish
+            key: sample-4
+            titleKey: com.myoxus.database.starter-template.database-content-calendar.sample-row.sample-4.title
+          - fieldKeys:
+              - status
+              - channel
+              - publish
+            key: sample-5
+            titleKey: com.myoxus.database.starter-template.database-content-calendar.sample-row.sample-5.title
+        schemaVersion: 1
+        views:
+          - axisFieldKeys:
+              - publish
+            fieldKeys:
+              - publish
+              - title
+              - status
+              - owner
+              - channel
+            key: calendar
+            nameKey: com.myoxus.database.starter-template.database-content-calendar.view.calendar.name
+            primary: true
+            viewKind: calendar
+            visibleFieldKeys:
+              - title
+              - status
+              - owner
+              - channel
+          - axisFieldKeys:
+              - status
+            fieldKeys:
+              - status
+              - title
+              - publish
+              - owner
+              - channel
+              - tags
+            key: table
+            nameKey: com.myoxus.database.starter-template.database-content-calendar.view.table.name
+            primary: false
+            viewKind: table
+            visibleFieldKeys:
+              - title
+              - status
+              - publish
+              - owner
+              - channel
+              - tags
+      name: Content Calendar
+      priority_preset: null
+      profile_kind: generic
+      roles: []
+      row_templates:
+        - description: Start a publishable content item with draft status.
+          initial_cells:
+            - - status
+              - kind: status
+                value: status.todo
+            - - publish
+              - kind: date_time
+                value:
+                  allDay: false
+                  end: null
+                  start: "2026-07-21T09:00:00Z"
+                  timeZone: UTC
+            - - channel
+              - kind: multi_select
+                value:
+                  - blog
+          is_default: true
+          key: content-item
+          name: Content item
+          row_kind: record
+      sample_rows:
+        - cells:
+            - - status
+              - kind: status
+                value: status.todo
+            - - channel
+              - kind: multi_select
+                value:
+                  - blog
+            - - publish
+              - kind: date_time
+                value:
+                  allDay: false
+                  end: null
+                  start: "2026-07-14T09:00:00Z"
+                  timeZone: UTC
+          key: Release announcement
+          relation_cells: []
+          row_kind: record
+          title: Release announcement
+        - cells:
+            - - status
+              - kind: status
+                value: status.in_progress
+            - - channel
+              - kind: multi_select
+                value:
+                  - blog
+            - - publish
+              - kind: date_time
+                value:
+                  allDay: false
+                  end: null
+                  start: "2026-07-17T12:00:00Z"
+                  timeZone: UTC
+          key: Customer story draft
+          relation_cells: []
+          row_kind: record
+          title: Customer story draft
+        - cells:
+            - - status
+              - kind: status
+                value: status.todo
+            - - channel
+              - kind: multi_select
+                value:
+                  - social
+            - - publish
+              - kind: date_time
+                value:
+                  allDay: false
+                  end: null
+                  start: "2026-07-20T08:00:00Z"
+                  timeZone: UTC
+          key: Weekly product tip
+          relation_cells: []
+          row_kind: record
+          title: Weekly product tip
+        - cells:
+            - - status
+              - kind: status
+                value: status.done
+            - - channel
+              - kind: multi_select
+                value:
+                  - email
+            - - publish
+              - kind: date_time
+                value:
+                  allDay: false
+                  end: null
+                  start: "2026-07-11T15:00:00Z"
+                  timeZone: UTC
+          key: Newsletter intro
+          relation_cells: []
+          row_kind: record
+          title: Newsletter intro
+        - cells:
+            - - status
+              - kind: status
+                value: status.todo
+            - - channel
+              - kind: multi_select
+                value:
+                  - social
+            - - publish
+              - kind: date_time
+                value:
+                  allDay: false
+                  end: null
+                  start: "2026-07-22T10:00:00Z"
+                  timeZone: UTC
+          key: Launch recap
+          relation_cells: []
+          row_kind: record
+          title: Launch recap
+      views:
+        - config:
+            Calendar:
+              date: publish
+              visible:
+                - title
+                - status
+                - owner
+                - channel
+          kind: calendar
+          name: Calendar
+        - config:
+            Table:
+              group: status
+              visible:
+                - title
+                - status
+                - publish
+                - owner
+                - channel
+                - tags
+          kind: table
+          name: Table

@@ -1,0 +1,9 @@
+query calendarFreeBusy($workspaceId: String!, $userIds: [String!]!, $from: DateTime!, $to: DateTime!) {
+  calendarFreeBusy(workspaceId: $workspaceId, userIds: $userIds, from: $from, to: $to) {
+    userId
+    busyPeriods {
+      start
+      end
+    }
+  }
+}

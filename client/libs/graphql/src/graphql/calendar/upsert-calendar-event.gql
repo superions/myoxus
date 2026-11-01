@@ -1,0 +1,27 @@
+mutation upsertCalendarEvent($input: CalendarEventInput!) {
+  upsertCalendarEvent(input: $input) {
+    id
+    accountId
+    workspaceId
+    remoteEventId
+    startsAt
+    endsAt
+    title
+    sourceExternalId
+    participants {
+      id
+      userId
+      email
+      displayName
+      responseStatus
+      isOrganizer
+    }
+    reminders {
+      id
+      channel
+      minutesBefore
+      scheduledFor
+      deliveredAt
+    }
+  }
+}

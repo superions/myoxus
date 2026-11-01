@@ -1,0 +1,64 @@
+query workspaceOverview($id: String!, $folderId: String, $first: Int = 50, $offset: Int = 0) {
+  workspace(id: $id) {
+    id
+    overview(folderId: $folderId, first: $first, offset: $offset) {
+      registerPresentation { ...workspaceOverviewRegisterPresentationFields }
+      documentCount
+      limit
+      offset
+      hasMore
+      folder { id name }
+      breadcrumbs { id name }
+      children { id name }
+      introduction {
+        resource { workspaceId kind id }
+        title
+        updatedAt
+        canEdit
+      }
+      introductionUnavailable
+      documents {
+        metadata { ...DocumentMetadataIndexFields }
+        metadataLabels { statusLabel documentTypeLabel versionLabel classificationLabel }
+        createdAt
+        createdByName
+        tags { ...WorkspaceTagFields }
+        resource { workspaceId kind id }
+        title
+        updatedAt
+        canEdit
+      }
+    }
+  }
+}
+
+fragment workspaceOverviewSettingsFields on WorkspaceOverviewSettingsType {
+  revision
+  introduction { workspaceId kind id }
+  folderIds
+  registerPresentation { ...workspaceOverviewRegisterPresentationFields }
+  folders {
+    folderId
+    introduction { workspaceId kind id }
+    registerPresentation { ...workspaceOverviewRegisterPresentationFields }
+  }
+}
+
+fragment workspaceOverviewRegisterPresentationFields on WorkspaceOverviewRegisterPresentationType {
+  displayProperties
+  orderBy { type key desc }
+}
+
+query workspaceOverviewSettings($id: String!) {
+  workspace(id: $id) {
+    id
+    overviewSettings { ...workspaceOverviewSettingsFields }
+  }
+}
+
+mutation updateWorkspaceOverview($input: UpdateWorkspaceInput!) {
+  updateWorkspace(input: $input) {
+    id
+    overviewSettings { ...workspaceOverviewSettingsFields }
+  }
+}

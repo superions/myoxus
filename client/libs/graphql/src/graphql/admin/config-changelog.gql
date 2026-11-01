@@ -1,0 +1,16 @@
+query adminConfigChangelog($limit: Int, $offset: Int) {
+  admin {
+    configChangelog(limit: $limit, offset: $offset) {
+      id
+      configKey
+      oldValue
+      newValue
+      changedBy {
+        id
+        name
+        email
+      }
+      changedAt
+    }
+  }
+}

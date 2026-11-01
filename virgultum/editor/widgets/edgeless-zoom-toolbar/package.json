@@ -1,0 +1,33 @@
+{
+  "name": "@virgultum/widget-edgeless-zoom-toolbar",
+  "description": "Myoxus edgeless zoom toolbar widget.",
+  "type": "module",
+  "scripts": {
+    "build": "yarn --cwd \"$PROJECT_CWD\" exec tsc -p \"$PWD/tsconfig.json\" --noEmit"
+  },
+  "sideEffects": false,
+  "keywords": [],
+  "author": "Myoxus Contributors",
+  "license": "AGPL-3.0-or-later AND MIT",
+  "dependencies": {
+    "@preact/signals-core": "^1.8.0",
+    "@virgultum/block-surface": "workspace:*",
+    "@virgultum/ext-loader": "workspace:*",
+    "@virgultum/global": "workspace:*",
+    "@virgultum/model": "workspace:*",
+    "@virgultum/shared": "workspace:*",
+    "@virgultum/std": "workspace:*",
+    "lit": "^3.3.3"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./view": "./src/view.ts"
+  },
+  "files": [
+    "src",
+    "dist",
+    "!src/__tests__",
+    "!dist/__tests__"
+  ],
+  "version": "0.41.5"
+}

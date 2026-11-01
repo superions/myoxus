@@ -1,0 +1,5 @@
+mutation adminSetUserAdmin($userId: ID!, $isAdmin: Boolean!) {
+  admin {
+    setUserAdmin(userId: $userId, isAdmin: $isAdmin)
+  }
+}

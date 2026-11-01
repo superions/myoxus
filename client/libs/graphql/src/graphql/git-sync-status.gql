@@ -1,0 +1,55 @@
+query getGitSyncStatus($workspaceId: String!) {
+  workspace(id: $workspaceId) {
+    pendingGitContentOperations {
+      ...WorkspaceContentOperationProjection
+    }
+    gitSyncStatus {
+      profile {
+        id
+        repoUrl
+        branch
+        syncDirection
+        triggerMode
+        cronExpression
+        cronTimezone
+        cronMisfirePolicy
+        cronNextScheduledAt
+        cronPendingMisfireScheduledFor
+        enabled
+      }
+      lastRun {
+        id
+        direction
+        triggerSource
+        scheduledFor
+        status
+        startedAt
+        finishedAt
+        jobId
+        commitBefore
+        commitAfter
+        observedRemoteOid
+        reconciliationRequired
+        reconciliationReason
+        docsCreated
+        docsUpdated
+        docsDeleted
+        conflictsFound
+        errorMessage
+        errorClass
+      }
+      openConflicts
+      totalBindings
+      openDocConflicts
+      openFileConflicts
+      totalDocBindings
+      totalFileBindings
+      partialSessionId
+      partialStatus
+      partialHasMore
+      partialTotalItems
+      partialProcessedItems
+      partialFailedItems
+    }
+  }
+}

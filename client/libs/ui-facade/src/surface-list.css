@@ -1,0 +1,5 @@
+[data-myoxus-ui-role="surface-list-row-link"],
+[data-myoxus-ui-role="doc-list-row-link"] {
+  color: inherit;
+  text-decoration: none;
+}

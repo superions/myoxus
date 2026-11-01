@@ -1,0 +1,209 @@
+query adminDocumentBrandingProfile($workspaceId: ID!) {
+  admin {
+    documentBrandingProfile(workspaceId: $workspaceId) {
+      workspaceId
+      logoLargeBlob
+      logoSmallBlob
+      footerText
+      colorPolicy
+      colorPaletteKey
+      brandColorPrimary
+      brandColorAccent
+      brandColorRule
+      brandColorText
+      brandColorBackground
+      updatedAt
+      updatedBy
+    }
+  }
+}
+
+query adminDocumentBrandColorPalettes($workspaceId: ID!) {
+  admin {
+    documentBrandColorPalettes(workspaceId: $workspaceId) {
+      themeSlug
+      themeName
+      paletteKey
+      name
+      primaryColor
+      accentColor
+      ruleColor
+      textColor
+      backgroundColor
+      isDefault
+    }
+  }
+}
+
+query adminPdfExportSettings($workspaceId: ID!) {
+  admin {
+    pdfExportSettings(workspaceId: $workspaceId) {
+      workspaceId
+      defaultTemplateId
+      defaultPaperSize
+      defaultLocale
+      defaultColorProfile
+      defaultImageQuality
+      ligaturesEnabled
+    }
+  }
+}
+
+mutation adminUploadDocumentBrandLogo(
+  $workspaceId: ID!
+  $kind: BrandLogoKind!
+  $file: Upload!
+) {
+  admin {
+    uploadDocumentBrandLogo(workspaceId: $workspaceId, kind: $kind, file: $file) {
+      workspaceId
+      logoLargeBlob
+      logoSmallBlob
+      footerText
+      colorPolicy
+      colorPaletteKey
+      brandColorPrimary
+      brandColorAccent
+      brandColorRule
+      brandColorText
+      brandColorBackground
+      updatedAt
+      updatedBy
+    }
+  }
+}
+
+mutation adminDeleteDocumentBrandLogo($workspaceId: ID!, $kind: BrandLogoKind!) {
+  admin {
+    deleteDocumentBrandLogo(workspaceId: $workspaceId, kind: $kind) {
+      workspaceId
+      logoLargeBlob
+      logoSmallBlob
+      footerText
+      colorPolicy
+      colorPaletteKey
+      brandColorPrimary
+      brandColorAccent
+      brandColorRule
+      brandColorText
+      brandColorBackground
+      updatedAt
+      updatedBy
+    }
+  }
+}
+
+mutation adminResetWorkspaceDocumentBranding($workspaceId: ID!) {
+  admin {
+    resetWorkspaceDocumentBranding(workspaceId: $workspaceId) {
+      workspaceId
+      logoLargeBlob
+      logoSmallBlob
+      footerText
+      colorPolicy
+      colorPaletteKey
+      brandColorPrimary
+      brandColorAccent
+      brandColorRule
+      brandColorText
+      brandColorBackground
+      updatedAt
+      updatedBy
+    }
+  }
+}
+
+mutation adminUpdateDocumentBrandingText(
+  $workspaceId: ID!
+  $footerText: String
+) {
+  admin {
+    updateDocumentBrandingText(
+      workspaceId: $workspaceId
+      footerText: $footerText
+    ) {
+      workspaceId
+      footerText
+      updatedAt
+      updatedBy
+    }
+  }
+}
+
+mutation adminUpdateDocumentBrandingColors(
+  $workspaceId: ID!
+  $primary: String
+  $accent: String
+) {
+  admin {
+    updateDocumentBrandingColors(
+      workspaceId: $workspaceId
+      primary: $primary
+      accent: $accent
+    ) {
+      workspaceId
+      brandColorPrimary
+      brandColorAccent
+      brandColorRule
+      brandColorText
+      brandColorBackground
+      colorPolicy
+      colorPaletteKey
+      updatedAt
+      updatedBy
+    }
+  }
+}
+
+mutation adminSetDocumentBrandingColorPolicy(
+  $workspaceId: ID!
+  $policy: DocumentBrandColorPolicy!
+  $paletteKey: String!
+) {
+  admin {
+    setDocumentBrandingColorPolicy(
+      workspaceId: $workspaceId
+      policy: $policy
+      paletteKey: $paletteKey
+    ) {
+      workspaceId
+      colorPolicy
+      colorPaletteKey
+      brandColorPrimary
+      brandColorAccent
+      brandColorRule
+      brandColorText
+      brandColorBackground
+      updatedAt
+      updatedBy
+    }
+  }
+}
+
+mutation adminUpdatePdfExportSettings(
+  $workspaceId: ID!
+  $paperSize: String
+  $locale: String
+  $colorProfile: String
+  $imageQuality: String
+  $ligaturesEnabled: Boolean
+) {
+  admin {
+    updatePdfExportSettings(
+      workspaceId: $workspaceId
+      paperSize: $paperSize
+      locale: $locale
+      colorProfile: $colorProfile
+      imageQuality: $imageQuality
+      ligaturesEnabled: $ligaturesEnabled
+    ) {
+      workspaceId
+      defaultTemplateId
+      defaultPaperSize
+      defaultLocale
+      defaultColorProfile
+      defaultImageQuality
+      ligaturesEnabled
+    }
+  }
+}

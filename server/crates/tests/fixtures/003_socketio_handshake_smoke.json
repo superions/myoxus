@@ -1,0 +1,17 @@
+{
+  "id": "socketio_handshake_smoke",
+  "kind": "socketio_handshake",
+  "smoke": true,
+  "description": "Socket.io engine handshake path check",
+  "request": {
+    "path": "/socket.io/",
+    "query": {
+      "EIO": "4",
+      "transport": "polling"
+    }
+  },
+  "expect": {
+    "status_any": [200],
+    "body_prefix": "0{"
+  }
+}

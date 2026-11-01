@@ -1,0 +1,28 @@
+query listNotifications(
+  $pagination: PaginationInput!
+  $filter: NotificationListFilterInput
+) {
+  currentUser {
+    notifications(pagination: $pagination, filter: $filter) {
+      totalCount
+      edges {
+        cursor
+        node {
+          id
+          type
+          level
+          read
+          createdAt
+          updatedAt
+          body
+        }
+      }
+      pageInfo {
+        startCursor
+        endCursor
+        hasNextPage
+        hasPreviousPage
+      }
+    }
+  }
+}

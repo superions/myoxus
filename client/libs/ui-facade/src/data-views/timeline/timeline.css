@@ -1,0 +1,161 @@
+/* Axis, card stacks and connectors are renderer geometry. Native Mantine owns chrome. */
+.timeline-time-plane {
+  position: relative;
+}
+.timeline-time-axis {
+  position: sticky;
+  top: 0;
+  height: 40px;
+  z-index: 2;
+  background: var(--mantine-color-body);
+  border-bottom: 1px solid var(--mantine-color-default-border);
+}
+.timeline-time-axis > .timeline-time-tick {
+  white-space: nowrap;
+  position: absolute;
+  top: 8px;
+  transform: translateX(-50%);
+}
+.timeline-time-tick[data-edge="start"] {
+  transform: none;
+}
+.timeline-time-tick[data-edge="end"] {
+  transform: translateX(-100%);
+}
+.timeline-time-group {
+  position: relative;
+}
+.timeline-time-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  fill: var(--mantine-primary-color-filled);
+  stroke: var(--mantine-primary-color-filled);
+}
+.timeline-time-baseline {
+  stroke: var(--mantine-color-default-border);
+}
+.timeline-time-now {
+  stroke: var(--mantine-primary-color-filled);
+  stroke-dasharray: 4 4;
+}
+.timeline-time-plane > .timeline-time-card {
+  position: absolute;
+}
+.timeline-time-card[data-selected] {
+  outline: 2px solid var(--mantine-primary-color-filled);
+}
+[data-myoxus-ui-role="timeline-view"] {
+  min-inline-size: 0;
+  max-inline-size: 100%;
+  /* Fit measures the available viewport, never the growing intrinsic card grid. */
+  contain: inline-size;
+}
+.timeline-ordinal-flow {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: var(--timeline-card-width);
+  grid-template-rows: auto auto;
+  column-gap: var(--timeline-anchor-gap);
+  width: max-content;
+}
+.timeline-period {
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-row: span 2;
+  min-inline-size: 0;
+}
+.timeline-period-axis {
+  position: relative;
+  padding-block-end: 16px;
+}
+.timeline-period-axis::after {
+  content: "";
+  position: absolute;
+  inset-block-end: 0;
+  inset-inline-start: 0;
+  width: calc(100% + var(--timeline-anchor-gap));
+  border-block-end: 1px solid var(--mantine-color-default-border);
+}
+.timeline-period:last-child .timeline-period-axis::after {
+  width: 100%;
+}
+.timeline-event-stack {
+  position: relative;
+  padding-block-start: 16px;
+}
+.timeline-event-stack::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 16px;
+  block-size: 16px;
+  border-inline-start: 1px solid var(--mantine-color-default-border);
+}
+[data-myoxus-ui-role="timeline-view"][data-direction="TD"]
+  .timeline-ordinal-flow {
+  display: grid;
+  grid-auto-flow: row;
+  grid-template-rows: none;
+  grid-auto-columns: auto;
+  row-gap: var(--timeline-anchor-gap);
+  width: max-content;
+}
+[data-myoxus-ui-role="timeline-view"][data-direction="TD"] .timeline-period {
+  grid-template-rows: auto;
+  grid-template-columns: var(--timeline-card-width) var(--timeline-card-width);
+  grid-row: auto;
+  column-gap: var(--timeline-anchor-gap);
+}
+[data-myoxus-ui-role="timeline-view"][data-direction="TD"]
+  .timeline-period-axis {
+  padding-block-end: 0;
+  padding-inline-end: 16px;
+}
+[data-myoxus-ui-role="timeline-view"][data-direction="TD"]
+  .timeline-period-axis::after {
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+  inset-block-start: 0;
+  height: calc(100% + var(--timeline-anchor-gap));
+  width: 0;
+  border-block-end: 0;
+  border-inline-end: 1px solid var(--mantine-color-default-border);
+}
+[data-myoxus-ui-role="timeline-view"][data-direction="TD"]
+  .timeline-period:last-child
+  .timeline-period-axis::after {
+  height: 100%;
+}
+[data-myoxus-ui-role="timeline-view"][data-direction="TD"]
+  .timeline-event-stack {
+  padding-block-start: 0;
+}
+[data-myoxus-ui-role="timeline-view"][data-direction="TD"]
+  .timeline-event-stack::before {
+  inset-inline-start: calc(-1 * var(--timeline-anchor-gap));
+  inset-block-start: 16px;
+  width: var(--timeline-anchor-gap);
+  height: 0;
+  border-inline-start: 0;
+  border-block-start: 1px solid var(--mantine-color-default-border);
+}
+
+.timeline-period-slot {
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-row: span 2;
+}
+.timeline-insert-marker {
+  border-inline-start: 2px solid var(--mantine-color-default-border);
+}
+[data-myoxus-ui-role="timeline-view"][data-direction="TD"]
+  .timeline-period-slot {
+  grid-row: auto;
+  grid-template-rows: auto;
+}
+
+.timeline-time-plane > .timeline-time-place {
+  position: absolute;
+  top: 0;
+}

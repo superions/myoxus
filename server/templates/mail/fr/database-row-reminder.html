@@ -1,0 +1,83 @@
+{% extends "_layout.html" %} {% block subject %}Rappel : {{ row_title }}{%
+endblock subject %} {% block preheader %}Ouvrez l’enregistrement pour consulter
+les détails et les mettre à jour si nécessaire.{% endblock preheader %} {% block
+category %}VOTRE RAPPEL{% endblock category %} {% block heading %}Gardez
+l’échéance en vue.{% endblock heading %} {% block introduction %}Votre rappel
+pour l’enregistrement « {{ row_title }} » est arrivé. Retrouvez la date prévue
+et un lien direct vers l’enregistrement.{% endblock introduction %} {% block
+details %}{% if row_title %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  ENREGISTREMENT
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ row_title }}
+</p>
+{% endif %}{% if field_name %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Champ concerné
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ field_name }}
+</p>
+{% endif %}{% if scheduled_label %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Date prévue
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ scheduled_label }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}Ouvrez l’enregistrement
+pour consulter les détails et les mettre à jour si nécessaire.{% endblock
+next_step %} {% block action %}Ouvrir l’enregistrement{% endblock action %} {%
+block note %}Vous pouvez modifier ou supprimer ce rappel dans le champ de date
+de l’enregistrement.{% endblock note %} {% block reason %}Vous recevez cet
+e-mail car vous avez configuré un rappel par e-mail pour ce champ de date.{%
+endblock reason %}

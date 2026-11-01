@@ -1,0 +1,10 @@
+query calendarEventTags($workspaceId: String!) {
+  calendarEventTags(workspaceId: $workspaceId) {
+    id
+    workspaceId
+    name
+    color
+    createdAt
+    updatedAt
+  }
+}

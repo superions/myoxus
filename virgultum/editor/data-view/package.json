@@ -1,0 +1,49 @@
+{
+  "name": "@virgultum/data-view",
+  "description": "Views of database in Myoxus",
+  "type": "module",
+  "scripts": {
+    "build": "yarn --cwd \"$PROJECT_CWD\" exec tsc -p \"$PWD/tsconfig.json\" --noEmit"
+  },
+  "sideEffects": false,
+  "keywords": [],
+  "author": "Myoxus Contributors",
+  "license": "AGPL-3.0-or-later AND MIT",
+  "dependencies": {
+    "@floating-ui/dom": "^1.6.13",
+    "@lit/context": "^1.1.6",
+    "@myoxus/icons": "workspace:*",
+    "@myoxus/theme": "workspace:*",
+    "@preact/signals-core": "^1.8.0",
+    "@types/lodash-es": "^4.17.12",
+    "@virgultum/components": "workspace:*",
+    "@virgultum/global": "workspace:*",
+    "@virgultum/shared": "workspace:*",
+    "@virgultum/std": "workspace:*",
+    "@virgultum/store": "workspace:*",
+    "dayjs": "^1.11.23",
+    "lit": "^3.3.3",
+    "lodash-es": "4.18.1",
+    "rxjs": "^7.8.2",
+    "yjs": "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "vitest": "4.1.11"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./property-presets": "./src/property-presets/index.ts",
+    "./property-pure-presets": "./src/property-presets/pure-index.ts",
+    "./view-presets": "./src/view-presets/index.ts",
+    "./widget-presets": "./src/widget-presets/index.ts",
+    "./effects": "./src/effects.ts"
+  },
+  "files": [
+    "src",
+    "dist",
+    "!src/__tests__",
+    "!dist/__tests__"
+  ],
+  "version": "0.41.5"
+}

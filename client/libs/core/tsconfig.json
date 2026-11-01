@@ -1,0 +1,42 @@
+{
+  "extends": "../../../tsconfig.web.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "composite": true,
+    "outDir": "./dist",
+    "declarationDir": "./dist",
+    "tsBuildInfoFile": "./dist/tsconfig.tsbuildinfo",
+    "emitDeclarationOnly": true
+  },
+  "include": ["./src", "src/**/*.json"],
+  "references": [
+    { "path": "../bpmn-editor" },
+    { "path": "../debug" },
+    { "path": "../desktop-api-contract" },
+    { "path": "../env" },
+    { "path": "../error" },
+    { "path": "../graphql" },
+    { "path": "../i18n" },
+    { "path": "../icons" },
+    { "path": "../infra" },
+    { "path": "../reader" },
+    { "path": "../storage" },
+    { "path": "../track" },
+    { "path": "../ui-facade" },
+    { "path": "../../../virgultum/editor/blocks/bpmn" },
+    { "path": "../../../virgultum/editor/blocks/database" },
+    { "path": "../../../virgultum/editor/blocks/mermaid" },
+    { "path": "../../../virgultum/editor/blocks/root" },
+    { "path": "../../../virgultum/editor/components" },
+    { "path": "../../../virgultum/editor/data-view" },
+    { "path": "../../../virgultum/editor/all" },
+    { "path": "../../../virgultum/framework/global" },
+    { "path": "../../../virgultum/editor/model" },
+    { "path": "../../../virgultum/editor/shared" },
+    { "path": "../../../virgultum/framework/std" },
+    { "path": "../../../virgultum/editor/blocks/table" },
+    { "path": "../../../virgultum/editor/ext-loader" },
+    { "path": "../../../virgultum/editor/gfx/pointer" },
+    { "path": "../../../virgultum/framework/store" }
+  ]
+}

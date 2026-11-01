@@ -1,0 +1,3 @@
+query canCreateOrganizationProject($unitId: ID) {
+  canCreateOrganizationProject(unitId: $unitId)
+}

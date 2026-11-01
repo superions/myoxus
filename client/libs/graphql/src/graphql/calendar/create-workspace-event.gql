@@ -1,0 +1,23 @@
+mutation createWorkspaceEvent($input: CreateWorkspaceEventInput!) {
+  createWorkspaceEvent(input: $input) {
+    id
+    origin
+    workspaceId
+    title
+    startsAt
+    endsAt
+    allDay
+    allMembers
+    tagId
+    sourceExternalId
+    descriptionDelta
+    recurrenceParentId
+    reminders {
+      id
+      channel
+      minutesBefore
+      scheduledFor
+      deliveredAt
+    }
+  }
+}

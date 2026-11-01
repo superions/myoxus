@@ -1,0 +1,45 @@
+{
+  "name": "@myoxus/android",
+  "private": true,
+  "type": "module",
+  "description": "Myoxus Android application",
+  "scripts": {
+    "build": "myoxus bundle",
+    "dev": "myoxus bundle --dev",
+    "sync": "cap sync",
+    "sync:dev": "CAP_SERVER_URL=http://10.0.2.2:8080 cap sync",
+    "studio": "cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/keyboard": "^8.0.5",
+    "@capacitor/status-bar": "^8.0.3",
+    "@capgo/capacitor-inappbrowser": "8.20.0",
+    "@myoxus/core": "workspace:*",
+    "@myoxus/env": "workspace:*",
+    "@myoxus/i18n": "workspace:*",
+    "@myoxus/icons": "workspace:*",
+    "@myoxus/infra": "workspace:*",
+    "@myoxus/mobile-shared": "workspace:*",
+    "@myoxus/storage": "workspace:*",
+    "@myoxus/theme": "workspace:*",
+    "@myoxus/track": "workspace:*",
+    "@myoxus/ui-facade": "workspace:*",
+    "@sentry/react": "10.75.0",
+    "@virgultum/editor": "workspace:*",
+    "async-call-rpc": "^6.4.2",
+    "idb": "^8.0.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-router": "7.18.4"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
+    "@types/react": "^19.0.1",
+    "@types/react-dom": "^19.0.2",
+    "cross-env": "^10.1.0",
+    "typescript": "7.0.2"
+  }
+}

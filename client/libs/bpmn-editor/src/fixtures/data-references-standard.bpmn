@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:tns="urn:myoxus:data-references" xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="Definitions" targetNamespace="urn:myoxus:data-references">
+ <itemDefinition id="Item" structureRef="xsd:string" isCollection="true"/>
+ <process id="Process" name="Referenced data ownership">
+  <dataObject id="Backing" name="Shared orders" isCollection="true" itemSubjectRef="tns:Item"><documentation id="BackingDoc">Shared process-local backing</documentation></dataObject>
+  <dataObject id="Visible" name="Visible data"/>
+  <dataObjectReference id="First" name="Incoming orders" dataObjectRef="Backing"><dataState id="FirstState" name="Draft"/></dataObjectReference>
+  <dataObjectReference id="Second" name="Outgoing orders" dataObjectRef="Backing"><dataState id="SecondState" name="Ready"/></dataObjectReference>
+  <dataObjectReference id="Unbound" name="Unbound reference"/>
+  <task id="Review" name="Review data"/>
+  <subProcess id="Sub" name="Nested references"><dataObject id="NestedBacking" isCollection="true"/><dataObjectReference id="NestedRef" name="Nested data" dataObjectRef="NestedBacking"><dataState id="NestedState" name="Received"/></dataObjectReference></subProcess>
+ </process>
+ <bpmndi:BPMNDiagram id="Diagram"><bpmndi:BPMNPlane id="Plane" bpmnElement="Process">
+  <bpmndi:BPMNShape id="FirstDI" bpmnElement="First"><dc:Bounds x="100" y="110" width="120" height="140"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="SecondDI" bpmnElement="Second"><dc:Bounds x="360" y="110" width="120" height="140"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="UnboundDI" bpmnElement="Unbound"><dc:Bounds x="620" y="110" width="120" height="140"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="VisibleDI" bpmnElement="Visible"><dc:Bounds x="100" y="370" width="120" height="140"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="ReviewDI" bpmnElement="Review"><dc:Bounds x="800" y="130" width="180" height="100"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="SubDI" bpmnElement="Sub" isExpanded="true"><dc:Bounds x="320" y="350" width="660" height="310"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="NestedDI" bpmnElement="NestedRef"><dc:Bounds x="530" y="440" width="100" height="120"/></bpmndi:BPMNShape>
+ </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+</definitions>

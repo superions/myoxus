@@ -1,0 +1,13 @@
+{
+  "id": "rest_info_smoke",
+  "kind": "rest",
+  "smoke": true,
+  "description": "Public /info endpoint smoke check",
+  "request": {
+    "method": "GET",
+    "path": "/info"
+  },
+  "expect": {
+    "status_any": [200]
+  }
+}

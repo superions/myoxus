@@ -1,0 +1,12 @@
+fragment AdminOrganizationUnitMemberFragment on OrganizationUnitMemberType {
+  unitId
+  userId
+  userEmail
+  userName
+  userAvatarUrl
+  role
+  source
+  metadata
+  createdAt
+  updatedAt
+}

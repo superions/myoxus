@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:tns="urn:myoxus:gateways" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions" targetNamespace="urn:myoxus:gateways">
+ <signal id="Signal" name="Ready"/>
+ <process id="Process" name="Standard gateway routing">
+  <task id="A" name="Request A"/>
+  <task id="B" name="Request B"/>
+  <exclusiveGateway id="Exclusive" name="Exclusive decision" gatewayDirection="Mixed" default="tns:ChooseD"/>
+  <task id="C" name="Review"/>
+  <task id="D" name="Escalate"/>
+  <inclusiveGateway id="Inclusive" name="Inclusive split" gatewayDirection="Diverging" default="tns:ChooseF"/>
+  <task id="E" name="Prepare"/>
+  <task id="F" name="Approve"/>
+  <parallelGateway id="Parallel" name="Parallel join" gatewayDirection="Converging"/>
+  <task id="G" name="Complete"/>
+  <complexGateway id="Complex" name="Complex join and split" gatewayDirection="Mixed" default="tns:ChooseI"><activationCondition id="Activation" xsi:type="tFormalExpression" language="urn:gateway">readyCount &gt; 1</activationCondition></complexGateway>
+  <task id="H" name="Archive"/>
+  <task id="I" name="Retry"/>
+  <eventBasedGateway id="Event" name="Wait for an event"/>
+  <intermediateCatchEvent id="Timer" name="Timeout"><timerEventDefinition id="TimerDefinition"><timeDuration id="Duration">PT5M</timeDuration></timerEventDefinition></intermediateCatchEvent>
+  <intermediateCatchEvent id="SignalCatch" name="Ready signal"><signalEventDefinition id="SignalDefinition" signalRef="tns:Signal"/></intermediateCatchEvent>
+  <sequenceFlow id="FromA" sourceRef="A" targetRef="Exclusive"/>
+  <sequenceFlow id="FromB" sourceRef="B" targetRef="Exclusive"/>
+  <sequenceFlow id="ChooseC" name="Accepted" sourceRef="Exclusive" targetRef="C"><conditionExpression id="ChoiceCondition" xsi:type="tFormalExpression" language="urn:choice">accepted</conditionExpression></sequenceFlow>
+  <sequenceFlow id="ChooseD" name="Otherwise" sourceRef="Exclusive" targetRef="D"/>
+  <sequenceFlow id="ToInclusive" sourceRef="C" targetRef="Inclusive"/>
+  <sequenceFlow id="ChooseE" sourceRef="Inclusive" targetRef="E"><conditionExpression id="PrepareCondition">prepare</conditionExpression></sequenceFlow>
+  <sequenceFlow id="ChooseF" sourceRef="Inclusive" targetRef="F"/>
+  <sequenceFlow id="JoinE" sourceRef="E" targetRef="Parallel"/>
+  <sequenceFlow id="JoinF" sourceRef="F" targetRef="Parallel"/>
+  <sequenceFlow id="ToG" sourceRef="Parallel" targetRef="G"/>
+  <sequenceFlow id="JoinD" sourceRef="D" targetRef="Complex"/>
+  <sequenceFlow id="JoinG" sourceRef="G" targetRef="Complex"/>
+  <sequenceFlow id="ChooseH" sourceRef="Complex" targetRef="H"><conditionExpression id="ArchiveCondition">archive</conditionExpression></sequenceFlow>
+  <sequenceFlow id="ChooseI" sourceRef="Complex" targetRef="I"/>
+  <sequenceFlow id="WaitTimer" sourceRef="Event" targetRef="Timer"/>
+  <sequenceFlow id="WaitSignal" sourceRef="Event" targetRef="SignalCatch"/>
+ </process>
+ <bpmndi:BPMNDiagram id="Diagram"><bpmndi:BPMNPlane id="Plane" bpmnElement="Process">
+  <bpmndi:BPMNShape id="ADI" bpmnElement="A"><dc:Bounds x="80" y="80" width="150" height="80"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="BDI" bpmnElement="B"><dc:Bounds x="80" y="240" width="150" height="80"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="ExclusiveDI" bpmnElement="Exclusive" isMarkerVisible="false"><dc:Bounds x="340" y="180" width="60" height="60"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="CDI" bpmnElement="C"><dc:Bounds x="540" y="80" width="150" height="80"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="DDI" bpmnElement="D"><dc:Bounds x="540" y="240" width="150" height="80"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="InclusiveDI" bpmnElement="Inclusive"><dc:Bounds x="780" y="80" width="60" height="60"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="EDI" bpmnElement="E"><dc:Bounds x="1020" y="40" width="150" height="80"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="FDI" bpmnElement="F"><dc:Bounds x="1020" y="200" width="150" height="80"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="ParallelDI" bpmnElement="Parallel"><dc:Bounds x="1000" y="400" width="60" height="60"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="GDI" bpmnElement="G"><dc:Bounds x="780" y="450" width="150" height="80"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="ComplexDI" bpmnElement="Complex"><dc:Bounds x="340" y="500" width="60" height="60"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="HDI" bpmnElement="H"><dc:Bounds x="80" y="480" width="150" height="80"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="IDI" bpmnElement="I"><dc:Bounds x="80" y="660" width="150" height="80"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="EventDI" bpmnElement="Event"><dc:Bounds x="780" y="650" width="60" height="60"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="TimerDI" bpmnElement="Timer"><dc:Bounds x="1020" y="600" width="48" height="48"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="SignalDI" bpmnElement="SignalCatch"><dc:Bounds x="1020" y="760" width="48" height="48"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNEdge id="FromADI" bpmnElement="FromA"><di:waypoint x="230" y="120"/><di:waypoint x="300" y="120"/><di:waypoint x="340" y="210"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="FromBDI" bpmnElement="FromB"><di:waypoint x="230" y="280"/><di:waypoint x="300" y="280"/><di:waypoint x="340" y="210"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="ChooseCDI" bpmnElement="ChooseC"><di:waypoint x="400" y="210"/><di:waypoint x="470" y="120"/><di:waypoint x="540" y="120"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="ChooseDDI" bpmnElement="ChooseD"><di:waypoint x="400" y="210"/><di:waypoint x="470" y="280"/><di:waypoint x="540" y="280"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="ToInclusiveDI" bpmnElement="ToInclusive"><di:waypoint x="690" y="120"/><di:waypoint x="780" y="110"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="ChooseEDI" bpmnElement="ChooseE"><di:waypoint x="840" y="110"/><di:waypoint x="930" y="80"/><di:waypoint x="1020" y="80"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="ChooseFDI" bpmnElement="ChooseF"><di:waypoint x="810" y="140"/><di:waypoint x="810" y="240"/><di:waypoint x="1020" y="240"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="JoinEDI" bpmnElement="JoinE"><di:waypoint x="1170" y="80"/><di:waypoint x="1220" y="80"/><di:waypoint x="1220" y="430"/><di:waypoint x="1060" y="430"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="JoinFDI" bpmnElement="JoinF"><di:waypoint x="1095" y="280"/><di:waypoint x="1095" y="350"/><di:waypoint x="1030" y="400"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="ToGDI" bpmnElement="ToG"><di:waypoint x="1000" y="430"/><di:waypoint x="960" y="490"/><di:waypoint x="930" y="490"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="JoinDDI" bpmnElement="JoinD"><di:waypoint x="615" y="320"/><di:waypoint x="615" y="380"/><di:waypoint x="370" y="380"/><di:waypoint x="370" y="500"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="JoinGDI" bpmnElement="JoinG"><di:waypoint x="780" y="490"/><di:waypoint x="700" y="530"/><di:waypoint x="400" y="530"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="ChooseHDI" bpmnElement="ChooseH"><di:waypoint x="340" y="530"/><di:waypoint x="230" y="520"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="ChooseIDI" bpmnElement="ChooseI"><di:waypoint x="370" y="560"/><di:waypoint x="370" y="700"/><di:waypoint x="230" y="700"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="WaitTimerDI" bpmnElement="WaitTimer"><di:waypoint x="840" y="680"/><di:waypoint x="930" y="624"/><di:waypoint x="1020" y="624"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="WaitSignalDI" bpmnElement="WaitSignal"><di:waypoint x="810" y="710"/><di:waypoint x="810" y="784"/><di:waypoint x="1020" y="784"/></bpmndi:BPMNEdge>
+ </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+</definitions>

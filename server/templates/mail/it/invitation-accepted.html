@@ -1,0 +1,58 @@
+{% extends "_layout.html" %} {% block subject %}{{ actor }} partecipa a «{{
+workspace_name }}»{% endblock subject %} {% block preheader %}Apri lo spazio di
+lavoro per continuare a collaborare.{% endblock preheader %} {% block category
+%}COLLABORAZIONE{% endblock category %} {% block heading %}Il tuo invito è stato
+accettato.{% endblock heading %} {% block introduction %}{{ actor }} ha
+accettato il tuo invito e si è unito allo spazio di lavoro.{% endblock
+introduction %} {% block details %}{% if workspace_name %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  SPAZIO DI LAVORO
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ workspace_name }}
+</p>
+{% endif %}{% if actor %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Da
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ actor }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}Apri lo spazio di lavoro
+per continuare a collaborare.{% endblock next_step %} {% block action %}Apri
+spazio di lavoro{% endblock action %} {% block note %}Trovi le informazioni
+aggiornate e le azioni disponibili direttamente in Myoxus.{% endblock note %} {%
+block reason %}Ricevi questa email perché hai invitato questa persona nello
+spazio di lavoro.{% endblock reason %}

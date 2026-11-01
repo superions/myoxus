@@ -1,0 +1,29 @@
+{
+  "name": "@virgultum/gfx-turbo-renderer",
+  "description": "Turbo renderer for viewport in Virgultum.",
+  "type": "module",
+  "scripts": {
+    "build": "yarn --cwd \"$PROJECT_CWD\" exec tsc -p \"$PWD/tsconfig.json\" --noEmit"
+  },
+  "sideEffects": false,
+  "keywords": [],
+  "author": "Myoxus Contributors",
+  "license": "MIT",
+  "dependencies": {
+    "@virgultum/global": "workspace:*",
+    "@virgultum/std": "workspace:*",
+    "@virgultum/store": "workspace:*",
+    "rxjs": "^7.8.2"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./painter": "./src/painter/painter.worker.ts"
+  },
+  "files": [
+    "src",
+    "dist",
+    "!src/__tests__",
+    "!dist/__tests__"
+  ],
+  "version": "0.41.5"
+}

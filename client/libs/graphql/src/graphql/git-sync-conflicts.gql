@@ -1,0 +1,13 @@
+query getGitSyncConflicts($workspaceId: String!) {
+  workspace(id: $workspaceId) {
+    gitSyncConflicts {
+      id
+      repoPath
+      conflictType
+      resolution
+      myoxusContent
+      gitContent
+      createdAt
+    }
+  }
+}

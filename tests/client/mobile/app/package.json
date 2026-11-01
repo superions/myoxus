@@ -1,0 +1,12 @@
+{
+  "name": "@myoxus-test/myoxus-mobile",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "e2e": "yarn playwright test"
+  },
+  "devDependencies": {
+    "@myoxus-test/kit": "workspace:*",
+    "@playwright/test": "=1.63.0"
+  }
+}

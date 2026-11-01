@@ -1,0 +1,79 @@
+mutation adminUploadPdfTemplate(
+  $manifest: JSON!
+  $filePaths: [String!]!
+  $files: [Upload!]!
+  $rightsConfirmed: Boolean!
+) {
+  admin {
+    uploadPdfTemplate(
+      manifest: $manifest
+      filePaths: $filePaths
+      files: $files
+      rightsConfirmed: $rightsConfirmed
+    ) {
+      id
+      slug
+      name
+      version
+      schemaVersion
+      manifest
+      createdBy
+      createdAt
+      deletedAt
+    }
+  }
+}
+
+mutation adminReplacePdfTemplateBundle(
+  $id: ID!
+  $manifest: JSON!
+  $filePaths: [String!]!
+  $files: [Upload!]!
+  $rightsConfirmed: Boolean!
+) {
+  admin {
+    replacePdfTemplateBundle(
+      id: $id
+      manifest: $manifest
+      filePaths: $filePaths
+      files: $files
+      rightsConfirmed: $rightsConfirmed
+    ) {
+      id
+      slug
+      name
+      version
+      schemaVersion
+      manifest
+      createdBy
+      createdAt
+      deletedAt
+    }
+  }
+}
+
+mutation adminDeletePdfTemplate($id: ID!) {
+  admin {
+    deletePdfTemplate(id: $id)
+  }
+}
+
+mutation adminUpdatePdfTemplateMetadata(
+  $id: ID!
+  $name: String
+  $description: String
+) {
+  admin {
+    updatePdfTemplateMetadata(id: $id, name: $name, description: $description) {
+      id
+      slug
+      name
+      version
+      schemaVersion
+      manifest
+      createdBy
+      createdAt
+      deletedAt
+    }
+  }
+}

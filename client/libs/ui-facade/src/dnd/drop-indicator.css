@@ -1,0 +1,66 @@
+.myoxus-dnd-tree-line {
+  position: absolute;
+  right: 0;
+  height: 2px;
+  background: var(--myoxus-dnd-indicator-color);
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.myoxus-dnd-line-above {
+  top: 0;
+  left: var(--myoxus-dnd-horizontal-indent);
+}
+
+.myoxus-dnd-line-below {
+  bottom: 0;
+  left: var(--myoxus-dnd-horizontal-indent);
+}
+
+.myoxus-dnd-outline {
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--myoxus-dnd-indicator-color);
+  border-radius: var(--mantine-radius-sm);
+  pointer-events: none;
+}
+
+.myoxus-dnd-edge-line {
+  position: absolute;
+  pointer-events: none;
+  background: var(--myoxus-primary-color);
+  border-radius: 999px;
+}
+
+.myoxus-dnd-edge-line[data-no-terminal="true"]::before,
+.myoxus-dnd-edge-line[data-no-terminal="true"]::after {
+  display: none;
+}
+
+.myoxus-dnd-horizontal {
+  height: 2px;
+  left: 0;
+  right: 0;
+}
+
+.myoxus-dnd-vertical {
+  width: 2px;
+  top: 0;
+  bottom: 0;
+}
+
+.myoxus-dnd-top {
+  top: var(--myoxus-dnd-line-offset);
+}
+
+.myoxus-dnd-bottom {
+  bottom: var(--myoxus-dnd-line-offset);
+}
+
+.myoxus-dnd-left {
+  left: var(--myoxus-dnd-line-offset);
+}
+
+.myoxus-dnd-right {
+  right: var(--myoxus-dnd-line-offset);
+}

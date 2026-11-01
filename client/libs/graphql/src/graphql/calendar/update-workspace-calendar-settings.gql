@@ -1,0 +1,10 @@
+mutation updateWorkspaceCalendarSettings(
+  $input: UpdateWorkspaceCalendarSettingsInput!
+) {
+  updateWorkspaceCalendarSettings(input: $input) {
+    workspaceId
+    writebackSubscriptionId
+    defaultReminderOffsetMinutes
+    updatedAt
+  }
+}

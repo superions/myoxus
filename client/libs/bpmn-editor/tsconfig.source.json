@@ -1,0 +1,14 @@
+{
+  "extends": "../../../tsconfig.json",
+  "include": [
+    "src/source.ts",
+    "src/marshaller.ts",
+    "src/xml-parser/**/*.ts",
+    "src/schemas/**/*.ts"
+  ],
+  "compilerOptions": {
+    "composite": false,
+    "noEmit": true,
+    "types": []
+  }
+}

@@ -1,0 +1,128 @@
+fragment WorkspaceContentOperationProjection on WorkspaceContentOperationType {
+  id
+  kind
+  sourceWorkspaceId
+  targetWorkspaceId
+  status
+  revision
+  errorCode
+  errorMessage
+  errorPhase
+  originOperationId
+  gitSyncPending
+  gitSyncErrorCode
+  gitSyncRetryExhausted
+  gitSync {
+    ...WorkspaceContentGitSyncProjection
+  }
+}
+
+fragment WorkspaceContentGitSyncProjection on WorkspaceContentGitSyncPreflightType {
+  choice
+  isUndo
+  repository
+  branch
+  sourceProfileId
+  newRoot
+  ownManifest
+  intendedEnabled
+}
+
+fragment WorkspaceContentPreflightProjection on WorkspaceContentPreflightType {
+  operation {
+    ...WorkspaceContentOperationProjection
+  }
+  revision
+  blockers
+  gitSync {
+    ...WorkspaceContentGitSyncProjection
+  }
+  missingResources {
+    workspaceId
+    kind
+    id
+  }
+  requiredConfirmations {
+    kind
+    userId
+    role
+    resource {
+      workspaceId
+      kind
+      id
+    }
+  }
+  membershipImpacts {
+    userId
+    currentRole
+    requiredRole
+    requiredCapability
+  }
+  conflicts {
+    kind
+    resource {
+      workspaceId
+      kind
+      id
+    }
+    suggestedName
+  }
+  resourceCounts {
+    kind
+    count
+  }
+  resourceCount
+  membershipImpactCount
+}
+
+mutation workspaceContentPreflight($input: WorkspaceContentPreflightInput!) {
+  workspaceContentPreflight(input: $input) {
+    ...WorkspaceContentPreflightProjection
+  }
+}
+
+mutation executeWorkspaceContentOperation(
+  $input: WorkspaceContentExecuteInput!
+) {
+  executeWorkspaceContentOperation(input: $input) {
+    ...WorkspaceContentOperationProjection
+  }
+}
+
+query workspaceContentOperation($operationId: UUID!) {
+  workspaceContentOperation(operationId: $operationId) {
+    ...WorkspaceContentOperationProjection
+  }
+}
+
+mutation cancelWorkspaceContentOperation($operationId: UUID!) {
+  cancelWorkspaceContentOperation(operationId: $operationId) {
+    ...WorkspaceContentOperationProjection
+  }
+}
+
+mutation retryWorkspaceContentOperation($operationId: UUID!) {
+  retryWorkspaceContentOperation(operationId: $operationId) {
+    ...WorkspaceContentOperationProjection
+  }
+}
+
+mutation undoWorkspaceContentOperation(
+  $originOperationId: UUID!
+  $idempotencyId: UUID!
+) {
+  undoWorkspaceContentOperation(
+    originOperationId: $originOperationId
+    idempotencyId: $idempotencyId
+  ) {
+    ...WorkspaceContentPreflightProjection
+  }
+}
+
+query workspaceContentRedirect($input: WorkspaceContentRedirectInput!) {
+  workspaceContentRedirect(input: $input) {
+    workspaceId
+    kind
+    id
+  }
+}

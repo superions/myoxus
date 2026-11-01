@@ -1,0 +1,11 @@
+query pdfTemplatePreviewPdf(
+  $templateId: String!
+  $locale: String
+  $workspaceId: String
+) {
+  pdfTemplatePreviewPdf(
+    templateId: $templateId
+    locale: $locale
+    workspaceId: $workspaceId
+  )
+}

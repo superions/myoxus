@@ -1,0 +1,62 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: myoxus-postgres
+    environment:
+      POSTGRES_USER: myoxus
+      POSTGRES_PASSWORD: myoxus
+      POSTGRES_DB: myoxus
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U myoxus -d myoxus"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "5432:5432"
+    volumes:
+      - myoxus-postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:8
+    container_name: myoxus-redis
+    command: ["redis-server", "--appendonly", "yes", "--save", ""]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - myoxus-redis-data:/data
+
+  api:
+    build:
+      context: ../..
+      dockerfile: build/server/Dockerfile
+    container_name: myoxus-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      RUN_MODE: development
+      MYOXUS__DATABASE__URL: postgres://myoxus:myoxus@postgres:5432/myoxus
+      MYOXUS__SERVER__HOST: 0.0.0.0
+      MYOXUS__SERVER__PORT: 3001
+      MYOXUS__REDIS__URL: redis://redis:6379
+      MYOXUS__STORAGE__ROOT: /opt/myoxus/storage
+      MYOXUS__LOGGING__LEVEL: info
+      MYOXUS__LOGGING__FILE_PATH: /opt/myoxus/logs/myoxus.log
+      MYOXUS__LOGGING__ROTATION: daily
+      MYOXUS__LOGGING__MAX_FILES: 7
+    ports:
+      - "3001:3001"
+    volumes:
+      - myoxus-storage:/opt/myoxus/storage
+      - myoxus-logs:/opt/myoxus/logs
+
+volumes:
+  myoxus-postgres-data:
+  myoxus-redis-data:
+  myoxus-storage:
+  myoxus-logs:

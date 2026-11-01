@@ -1,0 +1,18 @@
+fragment AdminOrganizationUnitFragment on OrganizationUnitTypeOutput {
+  id
+  organizationId
+  parentUnitId
+  unitTypeId
+  name
+  slug
+  description
+  status
+  maxMembers
+  metadata
+  createdBy
+  childUnitCount
+  memberCount
+  workspaceCount
+  createdAt
+  updatedAt
+}

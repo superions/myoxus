@@ -1,0 +1,21 @@
+query workspaceTemplateSources($workspaceId: ID!, $skip: Int = 0, $take: Int = 50) {
+  admin {
+    workspaceTemplateSources(workspaceId: $workspaceId, skip: $skip, take: $take) {
+      sources {
+        docId
+        title
+        documentRevision
+        metadataRevision
+        origin
+        identifier
+        version
+        description
+        category
+        tags
+        locale
+        titlePolicy
+      }
+      nextOffset
+    }
+  }
+}

@@ -1,0 +1,24 @@
+query orphanedWorkspaces($skip: Int, $take: Int) {
+  admin {
+    orphanedWorkspaces(skip: $skip, take: $take) {
+      id
+      name
+      createdAt
+      enableAi
+      enableSharing
+      memberCount
+    }
+  }
+}
+
+query orphanedWorkspacesCount {
+  admin {
+    orphanedWorkspacesCount
+  }
+}
+
+mutation reassignWorkspaceOwner($workspaceId: String!, $newOwnerId: String!) {
+  admin {
+    reassignWorkspaceOwner(workspaceId: $workspaceId, newOwnerId: $newOwnerId)
+  }
+}

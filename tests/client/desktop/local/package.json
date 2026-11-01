@@ -1,0 +1,16 @@
+{
+  "name": "@myoxus-test/myoxus-desktop",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "e2e": "yarn playwright test --reporter=list"
+  },
+  "devDependencies": {
+    "@myoxus-test/kit": "workspace:*",
+    "@myoxus/desktop-api-contract": "workspace:*",
+    "@playwright/test": "=1.63.0",
+    "@types/fs-extra": "^11.0.4",
+    "fs-extra": "^11.2.0",
+    "playwright": "=1.63.0"
+  }
+}

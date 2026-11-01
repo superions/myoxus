@@ -1,0 +1,13 @@
+query getGitSyncSshHostKeys {
+  gitSyncSshHostKeys {
+    host
+    port
+    keyType
+    fingerprintSha256
+    firstSeenAt
+    lastSeenAt
+    source
+    createdBy
+    enabled
+  }
+}

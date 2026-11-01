@@ -1,0 +1,28 @@
+query adminTranscriptionStatus {
+  admin {
+    transcriptionStatus {
+      capability {
+        enabled
+        configured
+        status
+      }
+      lastConnectionCheck {
+        successful
+        catalogSupported
+        modelListed
+        error
+      }
+    }
+  }
+}
+
+mutation adminCheckTranscriptionConnection {
+  admin {
+    checkTranscriptionConnection {
+      successful
+      catalogSupported
+      modelListed
+      error
+    }
+  }
+}

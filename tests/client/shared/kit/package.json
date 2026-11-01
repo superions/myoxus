@@ -1,0 +1,23 @@
+{
+  "name": "@myoxus-test/kit",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./electron": "./src/electron.ts",
+    "./mobile": "./src/mobile.ts",
+    "./playwright": "./src/playwright.ts",
+    "./utils/*": "./src/utils/*.ts",
+    "./bs/*": "./src/bs/*.ts"
+  },
+  "devDependencies": {
+    "@myoxus-tools/utils": "workspace:*",
+    "@myoxus/desktop-api-contract": "workspace:*",
+    "@myoxus/infra": "workspace:*",
+    "@playwright/test": "=1.63.0",
+    "@virgultum/editor": "workspace:*",
+    "fs-extra": "11.3.4"
+  },
+  "peerDependencies": {
+    "@playwright/test": "*"
+  }
+}

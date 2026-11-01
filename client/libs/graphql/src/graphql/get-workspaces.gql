@@ -1,0 +1,13 @@
+query getWorkspaces {
+  workspaces {
+    id
+    name
+    initialized
+    initialContentPolicy
+    role
+    workspaceType
+    owner {
+      id
+    }
+  }
+}

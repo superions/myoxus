@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "components": [
+    {
+      "id": "google-fonts-bundle",
+      "paths": ["server/static/fonts/manifest.json"],
+      "origin": "T1",
+      "licenseExpression": "OFL-1.1",
+      "upstreamUrl": "https://github.com/google/fonts",
+      "upstreamRevision": "sha256-manifest:0e45cee4697e86f3886eda785f64a7f1e300998a64d097d8a4e49ffb19ea51f0",
+      "sha256": [
+        "0e45cee4697e86f3886eda785f64a7f1e300998a64d097d8a4e49ffb19ea51f0"
+      ],
+      "noticePaths": ["docs/ops/configuration/font-provenance.md"]
+    },
+    {
+      "id": "compact-icc-srgb-v4",
+      "paths": ["server/static/icc/sRGB-v4.icc"],
+      "origin": "T1",
+      "licenseExpression": "CC0-1.0",
+      "upstreamUrl": "https://github.com/saucecontrol/Compact-ICC-Profiles",
+      "upstreamRevision": "bdd84663061bc4ae95ca70decff54f581e27f702",
+      "sha256": [
+        "c56e1685d888f5edb92fe07f2750f387f8fe8e91b32ff8fb0b56bfbbb9458353"
+      ],
+      "noticePaths": ["server/static/icc/LICENSE"]
+    },
+    {
+      "id": "artifex-ghostscript-default-cmyk",
+      "paths": ["server/static/icc/Artifex-CMYK-SWOP.icc"],
+      "origin": "T1",
+      "licenseExpression": "AGPL-3.0-or-later",
+      "upstreamUrl": "https://github.com/ArtifexSoftware/ghostpdl/blob/3e77f51125837ce346731d7de23d389e35872a70/iccprofiles/default_cmyk.icc",
+      "upstreamRevision": "3e77f51125837ce346731d7de23d389e35872a70",
+      "sha256": [
+        "8472fa1493a024b800b67dee9424835ec0c41ab79490200ae8ec4a689fd1b9a9"
+      ],
+      "noticePaths": ["server/static/icc/NOTICE-Artifex-Ghostscript.md"]
+    },
+    {
+      "id": "artifex-ghostscript-postscript-cmyk",
+      "paths": ["server/static/icc/Artifex-PostScript-CMYK.icc"],
+      "origin": "T1",
+      "licenseExpression": "AGPL-3.0-or-later",
+      "upstreamUrl": "https://github.com/ArtifexSoftware/ghostpdl/blob/3e77f51125837ce346731d7de23d389e35872a70/iccprofiles/ps_cmyk.icc",
+      "upstreamRevision": "3e77f51125837ce346731d7de23d389e35872a70",
+      "sha256": [
+        "020236a6458406743848a12c6be280e54bcd0fd8e2d4bea9c4899410cef98cb2"
+      ],
+      "noticePaths": ["server/static/icc/NOTICE-Artifex-Ghostscript.md"]
+    },
+    {
+      "id": "ilm-documentation-template",
+      "paths": ["server/templates/pdf/myoxus-doc/vendor/ilm.typ"],
+      "origin": "T1",
+      "licenseExpression": "MIT-0",
+      "upstreamUrl": "https://github.com/talal/ilm",
+      "upstreamRevision": "b8429f456ec519717a11e24656ceaf0cc1435d82",
+      "sha256": [
+        "84ba2ae0d780a4402da5c607dd143a4d8bf2c2cc7183ddaa9224e91f5cb40fa9"
+      ],
+      "noticePaths": [
+        "server/templates/pdf/myoxus-doc/vendor/NOTICE",
+        "server/templates/pdf/myoxus-doc/vendor/LICENSE"
+      ]
+    },
+    {
+      "id": "touying-presentation-framework",
+      "paths": [
+        "server/templates/pdf/vendor/touying/0.7.4/lib.typ",
+        "server/templates/pdf/vendor/touying/0.7.4/src/components.typ",
+        "server/templates/pdf/vendor/touying/0.7.4/src/configs.typ",
+        "server/templates/pdf/vendor/touying/0.7.4/src/core.typ",
+        "server/templates/pdf/vendor/touying/0.7.4/src/exports.typ",
+        "server/templates/pdf/vendor/touying/0.7.4/src/extern.typ",
+        "server/templates/pdf/vendor/touying/0.7.4/src/magic.typ",
+        "server/templates/pdf/vendor/touying/0.7.4/src/pdfpc.typ",
+        "server/templates/pdf/vendor/touying/0.7.4/src/slides.typ",
+        "server/templates/pdf/vendor/touying/0.7.4/src/utils.typ",
+        "server/templates/pdf/vendor/touying/0.7.4/themes/aqua.typ",
+        "server/templates/pdf/vendor/touying/0.7.4/themes/default.typ",
+        "server/templates/pdf/vendor/touying/0.7.4/themes/dewdrop.typ",
+        "server/templates/pdf/vendor/touying/0.7.4/themes/metropolis.typ",
+        "server/templates/pdf/vendor/touying/0.7.4/themes/simple.typ",
+        "server/templates/pdf/vendor/touying/0.7.4/themes/stargazer.typ",
+        "server/templates/pdf/vendor/touying/0.7.4/themes/themes.typ",
+        "server/templates/pdf/vendor/touying/0.7.4/themes/university.typ"
+      ],
+      "origin": "T1",
+      "licenseExpression": "MIT",
+      "upstreamUrl": "https://github.com/touying-typ/touying",
+      "upstreamRevision": "sha256:7ab85405a6327533f530ac70206721032e364c9ca900fabc324952ae0c0b528b",
+      "sha256": [
+        "c372c4e5b4711795eeaaccd5dbd6b1abf1d2e19a80860c1ae0c51da6a8b97b81",
+        "ea62029b106dd30c424817f58bbda8484ea4de6c2bd3282c4e4186e9bdd63655",
+        "dcda64a9d463cb5b19d350b5c3cc666548d4279148ba4949becc943971617e1c",
+        "520fb1a20004b57040a953e194703ef432542b28e05c201f4446311e519d0eb2",
+        "f0caf10e72a449b4d485d4bcd230bdaf408a2f693fadd89aee834ffcb97882ae",
+        "eb19f0e931e33671ca7ebdfcb353bfb78102e06175d37cb0e341931896e4068e",
+        "f074933897fcda9f7de311cde104caa0dcd8675ccbd4a380b3c09e51c45931bc",
+        "fa7da80ee2bec5db5681dbf1dcb468c3f23f9093c1d62fe268d7d3ac54efc6e4",
+        "6b64e8b537c684dfc39cdc1f17f54e5858d7335074d4e5efecab5ceed105d9c3",
+        "7c870a518c7f34a734749b70f883cf4c077cff1d12a3e58a564d1c69762c00ce",
+        "69bf0cb612e4a260533134ffc2be162bbe4fd2d9ec3961dc4af8e146da4e3381",
+        "f78a86abd92d1221c2cbe066bb7465cd0612d586535f67a01e7e1179fb38bb29",
+        "8ea2544680677eb8f61a1dc3212c7791b51749ac5b5805f1b294f0bee5924862",
+        "b13603a5ded0e0fce57e5febb372ae431c9c4047ad2e684aeeea9fc37b8b1cd1",
+        "412f1cc7b858c35469d5881f8067f10242e76d84743aa119bd47af5f2071e66a",
+        "4f0bd936748bd9cd9a2af47a28004e3d5f49c983663c882f98cdfb6656527af2",
+        "460fbb80c1f85160751b9f4f0678f79a0a63fcc5790cd16d8bcac363475754e4",
+        "1021fb731ac110b1b1ba8b20e8974caf1255f28831ada24983f417eb3e168f73"
+      ],
+      "noticePaths": [
+        "server/templates/pdf/vendor/NOTICE",
+        "server/templates/pdf/vendor/NOTICE",
+        "server/templates/pdf/vendor/NOTICE",
+        "server/templates/pdf/vendor/NOTICE",
+        "server/templates/pdf/vendor/NOTICE",
+        "server/templates/pdf/vendor/NOTICE",
+        "server/templates/pdf/vendor/NOTICE",
+        "server/templates/pdf/vendor/NOTICE",
+        "server/templates/pdf/vendor/NOTICE",
+        "server/templates/pdf/vendor/NOTICE",
+        "server/templates/pdf/vendor/NOTICE",
+        "server/templates/pdf/vendor/NOTICE",
+        "server/templates/pdf/vendor/NOTICE",
+        "server/templates/pdf/vendor/NOTICE",
+        "server/templates/pdf/vendor/NOTICE",
+        "server/templates/pdf/vendor/NOTICE",
+        "server/templates/pdf/vendor/NOTICE",
+        "server/templates/pdf/vendor/NOTICE"
+      ]
+    },
+    {
+      "id": "uniwarn-typst-module",
+      "paths": [
+        "server/templates/pdf/vendor/uniwarn/0.1.1/internal.typ",
+        "server/templates/pdf/vendor/uniwarn/0.1.1/lib.typ"
+      ],
+      "origin": "T1",
+      "licenseExpression": "MIT",
+      "upstreamUrl": "https://github.com/fornings/uniwarn",
+      "upstreamRevision": "sha256:68247432dab1b165c16055411c0f0ec154a63d7fcf5ef0f65906269695d368ea",
+      "sha256": [
+        "ad097c2837b21034aa88b345295b25605a33b172d651ba0fae230bacad152278",
+        "649ab7f61b165b4f89fa83f8a9ba60c525e9e759e1aa758d9cb82ffa76c86fbd"
+      ],
+      "noticePaths": [
+        "server/templates/pdf/vendor/NOTICE",
+        "server/templates/pdf/vendor/NOTICE"
+      ]
+    }
+  ]
+}

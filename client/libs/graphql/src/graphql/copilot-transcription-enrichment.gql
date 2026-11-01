@@ -1,0 +1,9 @@
+query getAudioTranscriptionEnrichment($workspaceId: String!, $jobId: String!, $blobId: String!) {
+  currentUser {
+    copilot(workspaceId: $workspaceId) {
+      audioTranscription(jobId: $jobId, blobId: $blobId) {
+        enrichment { id status errorMessage summary actions }
+      }
+    }
+  }
+}

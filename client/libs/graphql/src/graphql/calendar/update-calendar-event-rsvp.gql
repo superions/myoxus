@@ -1,0 +1,27 @@
+mutation updateCalendarEventRsvp($eventId: String!, $status: CalendarRsvpStatus!) {
+  updateCalendarEventRsvp(eventId: $eventId, status: $status) {
+    id
+    accountId
+    workspaceId
+    remoteEventId
+    startsAt
+    endsAt
+    title
+    sourceExternalId
+    participants {
+      id
+      userId
+      email
+      displayName
+      responseStatus
+      isOrganizer
+    }
+    reminders {
+      id
+      channel
+      minutesBefore
+      scheduledFor
+      deliveredAt
+    }
+  }
+}

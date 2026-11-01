@@ -1,0 +1,16 @@
+mutation addOrganizationUnitMemberAsManager(
+  $unitId: ID!
+  $userId: ID!
+  $role: OrganizationUnitRoleEnum!
+) {
+  addOrganizationUnitMemberAsManager(
+    unitId: $unitId
+    userId: $userId
+    role: $role
+  ) {
+    unitId
+    userId
+    role
+    source
+  }
+}

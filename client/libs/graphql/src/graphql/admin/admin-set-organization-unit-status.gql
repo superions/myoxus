@@ -1,0 +1,9 @@
+#import "./admin-organization-unit-fragment.gql"
+
+mutation adminSetOrganizationUnitStatus($id: ID!, $status: OrganizationUnitStatusEnum!) {
+  admin {
+    setOrganizationUnitStatus(id: $id, status: $status) {
+      ...AdminOrganizationUnitFragment
+    }
+  }
+}

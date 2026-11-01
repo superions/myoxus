@@ -1,0 +1,131 @@
+fragment DocumentMetadataReferenceValueFields on DocumentMetadataReferenceValueType {
+  id
+  key
+  label
+  isActive
+}
+
+fragment DocumentMetadataFieldValueFields on DocumentMetadataFieldValueType {
+  key
+  source
+  reference {
+    ...DocumentMetadataReferenceValueFields
+  }
+  textValue
+  timestampValue
+  dateValue
+  userId
+}
+
+fragment DocumentMetadataAudienceFields on DocumentMetadataAudienceType {
+  source
+  value {
+    ...DocumentMetadataReferenceValueFields
+  }
+}
+
+fragment DocumentMetadataValidationIssueFields on DocumentMetadataValidationIssueType {
+  code
+  key
+  message
+  severity
+  blockedActions
+  details
+}
+
+fragment DocumentMetadataValidationFields on DocumentMetadataValidationType {
+  valid
+  missingRequiredMetadataFields
+  blockedActions
+  errors {
+    ...DocumentMetadataValidationIssueFields
+  }
+  warnings {
+    ...DocumentMetadataValidationIssueFields
+  }
+}
+
+fragment DocumentMetadataFields on DocumentMetadataType {
+  docId
+  workspaceId
+  projectionMode
+  projectionVersion
+  metadataRevision
+  metadataUpdatedAt
+  metadataUpdatedBy
+  system {
+    createdAt
+    updatedAt
+    createdBy
+    updatedBy
+    metadataUpdatedAt
+    metadataUpdatedBy
+  }
+  fields {
+    ...DocumentMetadataFieldValueFields
+  }
+  audience {
+    ...DocumentMetadataAudienceFields
+  }
+  template {
+    state
+    origin
+    category
+    tags
+    templateId
+    revisionId
+    instanceId
+  }
+  journal {
+    journalDate
+  }
+  presentation {
+    primaryMode
+    pageWidth
+    edgelessColorTheme
+  }
+  integration {
+    integrationType
+  }
+  policy {
+    locks {
+      key
+      inheritanceMode
+      editable
+      reason
+    }
+  }
+  legacy
+}
+
+query documentMetadata(
+  $workspaceId: ID!
+  $docId: ID!
+  $requestedProjectionMode: DocumentMetadataProjectionModeType
+) {
+  documentMetadata(
+    workspaceId: $workspaceId
+    docId: $docId
+    requestedProjectionMode: $requestedProjectionMode
+  ) {
+    ...DocumentMetadataFields
+  }
+}
+
+query documentMetadataValidation(
+  $workspaceId: ID!
+  $docId: ID!
+  $action: DocumentMetadataValidationActionType
+) {
+  documentMetadataValidation(workspaceId: $workspaceId, docId: $docId, action: $action) {
+    ...DocumentMetadataValidationFields
+  }
+}
+
+mutation setDocumentMetadata($workspaceId: ID!, $docId: ID!, $input: SetDocumentMetadataInput!) {
+  setDocumentMetadata(workspaceId: $workspaceId, docId: $docId, input: $input) {
+    metadata {
+      ...DocumentMetadataFields
+    }
+  }
+}

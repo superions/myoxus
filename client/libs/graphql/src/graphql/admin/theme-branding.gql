@@ -1,0 +1,258 @@
+query adminThemeCatalog {
+  admin {
+    themeCatalog {
+      catalogHash
+      themes {
+        slug
+        name
+        category
+        previewGroup
+        previewOrder
+        taglineKey
+        descriptionKey
+        origin
+        locked
+        isDefault
+        colorSchemaSlug
+        typographySlug
+        colors
+        typographyStyles {
+          styleKey
+          fontFamilySlug
+          fontFamily
+          cssFamily
+          fontWeight
+          fontStyle
+          sizePx
+          lineHeight
+          letterSpacingEm
+          textTransform
+          decoration
+          hoverDecoration
+          fontFeatures
+          fontVariations
+          pdfRole
+        }
+      }
+      fontFamilies {
+        slug
+        displayName
+        cssFamily
+        genericClass
+        source
+        licenseSpdx
+        licenseStatus
+        isSelectable
+        assets {
+          usage
+          format
+          style
+          weightMin
+          weightMax
+          weightDefault
+          assetKey
+          sha256
+          mime
+          unicodeRanges
+          subsetTags
+        }
+      }
+    }
+  }
+}
+
+query adminEffectiveThemeProfile($workspaceId: ID) {
+  admin {
+    effectiveThemeProfile(workspaceId: $workspaceId) {
+      scope
+      workspaceId
+      themeMode
+      theme {
+        slug
+        name
+        category
+        previewGroup
+        previewOrder
+        taglineKey
+        descriptionKey
+        origin
+        locked
+        isDefault
+        colorSchemaSlug
+        typographySlug
+        colors
+        typographyStyles {
+          styleKey
+          fontFamilySlug
+          fontFamily
+          cssFamily
+          fontWeight
+          fontStyle
+          sizePx
+          lineHeight
+          letterSpacingEm
+          textTransform
+          decoration
+          hoverDecoration
+          fontFeatures
+          fontVariations
+          pdfRole
+        }
+      }
+    }
+  }
+}
+
+mutation adminSetThemeProfile($input: SetThemeProfileInput!) {
+  admin {
+    setThemeProfile(input: $input) {
+      scope
+      workspaceId
+      themeMode
+      theme {
+        slug
+        name
+        category
+        previewGroup
+        previewOrder
+        taglineKey
+        descriptionKey
+        colors
+        typographyStyles {
+          styleKey
+          fontFamily
+          fontWeight
+          pdfRole
+        }
+      }
+    }
+  }
+}
+
+mutation adminSetTypographyStyles($typographyInput: SetTypographyStylesInput!) {
+  admin {
+    setTypographyStyles(input: $typographyInput) {
+      scope
+      workspaceId
+      themeMode
+      theme {
+        slug
+        name
+        category
+        previewGroup
+        previewOrder
+        taglineKey
+        descriptionKey
+        origin
+        locked
+        isDefault
+        colorSchemaSlug
+        typographySlug
+        colors
+        typographyStyles {
+          styleKey
+          fontFamilySlug
+          fontFamily
+          cssFamily
+          fontWeight
+          fontStyle
+          sizePx
+          lineHeight
+          letterSpacingEm
+          textTransform
+          decoration
+          hoverDecoration
+          fontFeatures
+          fontVariations
+          pdfRole
+        }
+      }
+    }
+  }
+}
+
+mutation adminSetColorSchemaValues($colorInput: SetColorSchemaValuesInput!) {
+  admin {
+    setColorSchemaValues(input: $colorInput) {
+      scope
+      workspaceId
+      themeMode
+      theme {
+        slug
+        name
+        category
+        previewGroup
+        previewOrder
+        taglineKey
+        descriptionKey
+        origin
+        locked
+        isDefault
+        colorSchemaSlug
+        typographySlug
+        colors
+        typographyStyles {
+          styleKey
+          fontFamilySlug
+          fontFamily
+          cssFamily
+          fontWeight
+          fontStyle
+          sizePx
+          lineHeight
+          letterSpacingEm
+          textTransform
+          decoration
+          hoverDecoration
+          fontFeatures
+          fontVariations
+          pdfRole
+        }
+      }
+    }
+  }
+}
+
+mutation adminResetWorkspaceThemeProfile(
+  $resetInput: ResetWorkspaceThemeProfileInput!
+) {
+  admin {
+    resetWorkspaceThemeProfile(input: $resetInput) {
+      scope
+      workspaceId
+      themeMode
+      theme {
+        slug
+        name
+        category
+        previewGroup
+        previewOrder
+        taglineKey
+        descriptionKey
+        origin
+        locked
+        isDefault
+        colorSchemaSlug
+        typographySlug
+        colors
+        typographyStyles {
+          styleKey
+          fontFamilySlug
+          fontFamily
+          cssFamily
+          fontWeight
+          fontStyle
+          sizePx
+          lineHeight
+          letterSpacingEm
+          textTransform
+          decoration
+          hoverDecoration
+          fontFeatures
+          fontVariations
+          pdfRole
+        }
+      }
+    }
+  }
+}

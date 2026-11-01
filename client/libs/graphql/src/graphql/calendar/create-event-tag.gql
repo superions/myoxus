@@ -1,0 +1,10 @@
+mutation createEventTag($input: CreateEventTagInput!) {
+  createEventTag(input: $input) {
+    id
+    workspaceId
+    name
+    color
+    createdAt
+    updatedAt
+  }
+}

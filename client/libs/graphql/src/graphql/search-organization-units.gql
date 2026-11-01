@@ -1,0 +1,8 @@
+query searchOrganizationUnits($query: String!, $limit: Int) {
+  searchOrganizationUnits(query: $query, limit: $limit) {
+    id
+    name
+    slug
+    parentBreadcrumb
+  }
+}

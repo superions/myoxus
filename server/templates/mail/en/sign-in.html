@@ -1,0 +1,36 @@
+{% extends "_layout.html" %} {% block subject %}Your sign-in link for Myoxus{%
+endblock subject %} {% block preheader %}You can also enter the one-time code in
+the sign-in dialog you already opened.{% endblock preheader %} {% block category
+%}YOUR ACCOUNT{% endblock category %} {% block heading %}Sign in to Myoxus.{%
+endblock heading %} {% block introduction %}You requested a sign-in link for
+your Myoxus account. Use the button to continue signing in.{% endblock
+introduction %} {% block details %}{% if email %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  EMAIL ADDRESS
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ email }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}You can also enter the
+one-time code in the sign-in dialog you already opened.{% endblock next_step %}
+{% block action %}Sign in to Myoxus{% endblock action %} {% block note %}Do not
+share this link or the one-time code with anyone. If you did not request a
+sign-in, ignore this email.{% endblock note %} {% block reason %}You received
+this email because a sign-in was requested for this address in Myoxus.{%
+endblock reason %}

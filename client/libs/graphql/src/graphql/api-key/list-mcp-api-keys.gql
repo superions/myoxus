@@ -1,0 +1,12 @@
+query listMcpApiKeys {
+  apiKeys {
+    listApiKeys {
+      id
+      name
+      scopes
+      createdAt
+      lastUsedAt
+      expiresAt
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{% extends "_layout.html" %} {% block subject %}Access to “{{ workspace_name }}”
+ended{% endblock subject %} {% block preheader %}If you did not expect this
+change, contact an Admin of the workspace.{% endblock preheader %} {% block
+category %}COLLABORATION{% endblock category %} {% block heading %}Your
+workspace access has ended.{% endblock heading %} {% block introduction %}Your
+membership in this workspace has ended. Its content is no longer available to
+you through that membership.{% endblock introduction %} {% block details %}{% if
+workspace_name %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  WORKSPACE
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ workspace_name }}
+</p>
+{% endif %}{% if actor %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  From
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ actor }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}If you did not expect
+this change, contact an Admin of the workspace.{% endblock next_step %} {% block
+action %}Open Myoxus{% endblock action %} {% block note %}You can find the
+latest information and available actions directly in Myoxus.{% endblock note %}
+{% block reason %}You received this email because your access to this workspace
+changed.{% endblock reason %}

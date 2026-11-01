@@ -1,0 +1,300 @@
+format_version: 1
+id: myoxus.database.inventory_assets
+version: 1.0.1
+task_core: null
+variants:
+  - option_extensions: []
+    field_order:
+      - title
+      - files
+      - cost
+      - tags
+      - owner
+      - location
+      - status
+    role_order: []
+    priority: threeStep
+    complexity: threeStep
+    structure: tasks_only
+    spec:
+      category: database
+      complexity_preset: null
+      default_structure: null
+      description: Manage assets with status, owner, location, cost, tags and gallery-ready files.
+      fields:
+        - config:
+            Direct:
+              kind: title
+          field_type: title
+          key: title
+          name: Asset
+          required: true
+        - config:
+            Direct:
+              allowedMimeCategories:
+                - any
+              kind: files
+              maxItemCount: null
+              maxItemSize: null
+              previewPolicy: auto
+          field_type: files
+          key: files
+          name: Files
+          required: false
+        - config:
+            Direct:
+              allowCurrencyOverride: true
+              defaultCurrency: EUR
+              kind: currency
+              maxValue: null
+              minValue: 0.0
+          field_type: currency
+          key: cost
+          name: Cost
+          required: false
+        - config:
+            Direct:
+              kind: tags
+              maxCount: null
+          field_type: tags
+          key: tags
+          name: Tags
+          required: false
+        - config:
+            Direct:
+              kind: user
+          field_type: user
+          key: owner
+          name: Owner
+          required: false
+        - config:
+            Direct:
+              kind: text
+              multiline: false
+          field_type: text
+          key: location
+          name: Location
+          required: false
+        - config:
+            Direct:
+              defaultOptionId: status.todo
+              kind: status
+              options:
+                - colorRole: database.status.todo
+                  group: notStarted
+                  id: status.todo
+                  name: Todo
+                  position: 0
+                - colorRole: database.status.inProgress
+                  group: active
+                  id: status.in_progress
+                  name: In progress
+                  position: 1
+                - colorRole: database.status.done
+                  group: complete
+                  id: status.done
+                  name: Done
+                  position: 2
+          field_type: status
+          key: status
+          name: Status
+          required: true
+      id: myoxus.database.inventory_assets
+      name: Inventory / Assets
+      priority_preset: null
+      profile_kind: generic
+      roles: []
+      row_templates:
+        - description: Start an asset record with active status and zero cost.
+          initial_cells:
+            - - status
+              - kind: status
+                value: status.todo
+            - - cost
+              - kind: currency
+                value:
+                  amount: 0.0
+                  currencyCode: EUR
+          is_default: true
+          key: asset
+          name: Asset
+          row_kind: record
+      sample_rows:
+        - cells:
+            - - status
+              - kind: status
+                value: status.in_progress
+            - - cost
+              - kind: currency
+                value:
+                  amount: 850.0
+                  currencyCode: EUR
+            - - location
+              - kind: text
+                value: Meeting room
+          key: Conference display
+          relation_cells: []
+          row_kind: record
+          title: Conference display
+        - cells:
+            - - status
+              - kind: status
+                value: status.todo
+            - - cost
+              - kind: currency
+                value:
+                  amount: 1450.0
+                  currencyCode: EUR
+            - - location
+              - kind: text
+                value: IT shelf
+          key: Loaner laptop 01
+          relation_cells: []
+          row_kind: record
+          title: Loaner laptop 01
+        - cells:
+            - - status
+              - kind: status
+                value: status.done
+            - - cost
+              - kind: currency
+                value:
+                  amount: 320.0
+                  currencyCode: EUR
+            - - location
+              - kind: text
+                value: Studio
+          key: Podcast microphone kit
+          relation_cells: []
+          row_kind: record
+          title: Podcast microphone kit
+        - cells:
+            - - status
+              - kind: status
+                value: status.todo
+            - - cost
+              - kind: currency
+                value:
+                  amount: 2200.0
+                  currencyCode: EUR
+            - - location
+              - kind: text
+                value: Training room
+          key: Workshop tablet set
+          relation_cells: []
+          row_kind: record
+          title: Workshop tablet set
+        - cells:
+            - - status
+              - kind: status
+                value: status.in_progress
+            - - cost
+              - kind: currency
+                value:
+                  amount: 410.0
+                  currencyCode: EUR
+            - - location
+              - kind: text
+                value: Operations
+          key: Portable scanner
+          relation_cells: []
+          row_kind: record
+          title: Portable scanner
+      views:
+        - config:
+            Gallery:
+              cover: null
+              group: status
+              show_empty_cover: false
+              visible:
+                - title
+                - status
+                - cost
+                - owner
+                - location
+          kind: gallery
+          name: Gallery
+        - config:
+            Table:
+              group: status
+              visible:
+                - title
+                - status
+                - cost
+                - owner
+                - location
+                - tags
+          kind: table
+          name: Table
+      metadata:
+        name_key: com.myoxus.database.starter-template.database-inventory-assets.name
+        description_key: com.myoxus.database.starter-template.database-inventory-assets.description
+        fields:
+          - key: title
+            name_key: com.myoxus.database.starter-template.database-inventory-assets.field.title.name
+            import_export_behavior: read_write
+          - key: files
+            name_key: com.myoxus.database.starter-template.database-inventory-assets.field.files.name
+            import_export_behavior: read_write
+          - key: cost
+            name_key: com.myoxus.database.starter-template.database-inventory-assets.field.cost.name
+            import_export_behavior: read_write
+          - key: tags
+            name_key: com.myoxus.database.starter-template.database-inventory-assets.field.tags.name
+            import_export_behavior: read_write
+          - key: owner
+            name_key: com.myoxus.database.starter-template.database-inventory-assets.field.owner.name
+            import_export_behavior: read_write
+          - key: location
+            name_key: com.myoxus.database.starter-template.database-inventory-assets.field.location.name
+            import_export_behavior: read_write
+          - key: status
+            name_key: com.myoxus.database.starter-template.database-inventory-assets.field.status.name
+            import_export_behavior: read_write
+        views:
+          - key: gallery
+            name_key: com.myoxus.database.starter-template.database-inventory-assets.view.gallery.name
+          - key: table
+            name_key: com.myoxus.database.starter-template.database-inventory-assets.view.table.name
+        row_templates:
+          - key: asset
+            name_key: com.myoxus.database.starter-template.database-inventory-assets.row-template.asset.name
+            description_key: com.myoxus.database.starter-template.database-inventory-assets.row-template.asset.description
+        sample_rows:
+          - key: sample-1
+            title_key: com.myoxus.database.starter-template.database-inventory-assets.sample-row.sample-1.title
+          - key: sample-2
+            title_key: com.myoxus.database.starter-template.database-inventory-assets.sample-row.sample-2.title
+          - key: sample-3
+            title_key: com.myoxus.database.starter-template.database-inventory-assets.sample-row.sample-3.title
+          - key: sample-4
+            title_key: com.myoxus.database.starter-template.database-inventory-assets.sample-row.sample-4.title
+          - key: sample-5
+            title_key: com.myoxus.database.starter-template.database-inventory-assets.sample-row.sample-5.title
+        import_mappings:
+          - columnMappings:
+              - fieldKey: title
+                required: true
+                sourceHeader: Asset
+              - fieldKey: files
+                required: false
+                sourceHeader: Files
+              - fieldKey: cost
+                required: false
+                sourceHeader: Cost
+              - fieldKey: tags
+                required: false
+                sourceHeader: Tags
+              - fieldKey: owner
+                required: false
+                sourceHeader: Owner
+              - fieldKey: location
+                required: false
+                sourceHeader: Location
+              - fieldKey: status
+                required: true
+                sourceHeader: Status
+            key: default-csv
+            nameKey: com.myoxus.database.starter-template.database-inventory-assets.import-mapping.default-csv.name
+supported_predecessors:
+  - 1.0.0

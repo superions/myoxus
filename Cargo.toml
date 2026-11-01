@@ -1,0 +1,104 @@
+[workspace]
+members = [
+  "./client/libs/doc-indexer",
+  "./client/libs/local-store",
+  "./client/libs/local-store/storage",
+  "./client/libs/local-store/schema",
+  "./client/libs/crypto",
+  "./client/libs/media-capture",
+  "./client/libs/media-capture/media_capture",
+]
+resolver = "3"
+
+  [workspace.package]
+  edition = "2024"
+  license = "AGPL-3.0-or-later"
+  version = "0.30.0"
+
+  [workspace.dependencies]
+  # affine_common REMOVED (EE-licensed). Replaced by myoxus-crypto + myoxus-doc-indexer.
+  anyhow = "=1.0.104"
+  base64-simd = "0.8"
+  block2 = "0.6"
+  chrono = "0.4"
+  client_storage = { path = "./client/libs/local-store/storage" }
+  core-foundation = "0.10"
+  coreaudio-rs = "0.12"
+  cpal = "0.15"
+  criterion2 = { version = "3", default-features = false }
+  crossbeam-channel = "0.5"
+  dispatch2 = "0.3"
+  dotenvy = "0.15"
+  homedir = "0.3"
+  libc = "0.2"
+  libpulse = { package = "libpulse-binding", version = "2.30.1" }
+  libpulse_simple = { package = "libpulse-simple-binding", version = "2.29.0" }
+  lru = "0.18.4"
+  memory-indexer = "0.3.0"
+  mimalloc = "0.1"
+  myoxus-crypto = { path = "./client/libs/crypto" }
+  myoxus-doc-indexer = { path = "./client/libs/doc-indexer" }
+  napi = { version = "=3.11.0", features = [
+    "async",
+    "chrono_date",
+    "error_anyhow",
+    "napi9",
+    "serde",
+  ] }
+  napi-build = { version = "2" }
+  napi-derive = { version = "=3.6.0" }
+  objc2 = "0.6"
+  objc2-foundation = "0.3"
+  rubato = "0.16"
+  screencapturekit = "0.3"
+  serde = "1"
+  serde_json = "1"
+  sqlx = { version = "0.8", default-features = false, features = [
+    "chrono",
+    "macros",
+    "migrate",
+    "runtime-tokio",
+    "sqlite",
+  ] }
+  symphonia = { version = "0.5", features = ["all", "opt-simd"] }
+  thiserror = "2"
+  tokio = "1.45"
+  uniffi = "0.29"
+  uuid = "1.8"
+  windows = { version = "0.61", features = [
+    "Win32_Devices_FunctionDiscovery",
+    "Win32_Foundation",
+    "Win32_Media_Audio",
+    "Win32_System_Com",
+    "Win32_System_Com_StructuredStorage",
+    "Win32_System_Diagnostics_ToolHelp",
+    "Win32_System_ProcessStatus",
+    "Win32_System_Threading",
+    "Win32_System_Variant",
+    "Win32_UI_Shell_PropertiesSystem",
+  ] }
+  windows-core = { version = "0.61" }
+  # y-octo REMOVED — replaced by server/crates/yjs/src/codec/ (P85)
+  yrs = { package = "myoxus-yrs", version = "=0.28.0-myoxus.1" }
+
+# Standard Myoxus builds intentionally omit debug information. Debug-symbol
+# builds are explicit diagnostics and must opt in with a Cargo profile override;
+# ordinary local, matrix and CI work must share this cache-compatible baseline.
+[profile.dev]
+debug = 0
+strip = "debuginfo"
+
+[profile.test]
+debug = 0
+strip = "debuginfo"
+
+  [profile.dev.package.sqlx-macros]
+  opt-level = 3
+
+[profile.release]
+codegen-units = 1
+debug         = 0
+lto           = true
+opt-level     = 3
+strip         = "symbols"
+

@@ -1,0 +1,5 @@
+mutation revokeMcpApiKey($id: String!) {
+  apiKeys {
+    revokeApiKey(id: $id)
+  }
+}

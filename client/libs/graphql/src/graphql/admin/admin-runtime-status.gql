@@ -1,0 +1,84 @@
+query AdminMetricsStatus {
+  admin {
+    metricsStatus {
+      enabled
+      prometheusEnabled
+      persistenceEnabled
+      categories
+      flushIntervalSeconds
+      retentionRawDays
+      retentionDailyDays
+      cardinalityLimitPerMetric
+      labelWorkspaceIdEnabled
+      activeSeries
+      persisted24h
+      dailyRollups7d
+      lastFlushAt
+      lastFlushCount
+      counters {
+        offeredTotal
+        acceptedTotal
+        rejectedDisabledTotal
+        cardinalityDropsTotal
+        snapshotsTotal
+      }
+      topSeries {
+        category
+        name
+        labels
+        value
+      }
+    }
+  }
+}
+
+mutation FlushMetrics {
+  admin {
+    flushMetrics {
+      buffered
+      inserted
+    }
+  }
+}
+
+query AdminTelemetryStatus {
+  admin {
+    telemetryStatus {
+      enabled
+      categories
+      samplingRates
+      retentionRawDays
+      retentionDailyDays
+      flushIntervalSeconds
+      batchMaxEvents
+      dedupeTtlHours
+      ingestRateLimitPerIpPerMin
+      counters {
+        offeredTotal
+        acceptedTotal
+        rejectedDisabledTotal
+        rejectedCategoryTotal
+        rejectedSampledTotal
+        rejectedDuplicateTotal
+        rejectedInvalidTotal
+        bufferOverflowTotal
+        flushedTotal
+      }
+      hotBufferLen
+      persisted24h
+      dailyRollups7d
+      lastFlushAt
+      lastFlushCount
+      dedupeHitRate
+    }
+  }
+}
+
+mutation FlushTelemetry {
+  admin {
+    flushTelemetry {
+      buffered
+      inserted
+    }
+  }
+}

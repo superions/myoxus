@@ -1,0 +1,3 @@
+mutation disableGitSyncSshHostKey($host: String!, $port: Int!, $keyType: String!) {
+  disableGitSyncSshHostKey(host: $host, port: $port, keyType: $keyType)
+}

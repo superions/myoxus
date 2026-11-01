@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+ xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+ xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+ xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+ xmlns:drools="http://www.jboss.org/drools" xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+ targetNamespace="urn:myoxus:profile" id="Definitions" drools:packageName="retained-only">
+ <itemDefinition id="Item" structureRef="xsd:string"/>
+ <process id="Process" isExecutable="true">
+  <extensionElements><drools:metaData name="passive"><drools:metaValue><![CDATA[before <&> after]]></drools:metaValue></drools:metaData><drools:metaData name="line-endings">A&#13;B</drools:metaData></extensionElements>
+  <startEvent id="Start"><outgoing>ToTask</outgoing></startEvent>
+  <task id="Task" name="Original"><documentation>Unchanged&#13;documentation</documentation><incoming>ToTask</incoming><outgoing>ToEnd</outgoing></task>
+  <endEvent id="End"><incoming>ToEnd</incoming></endEvent>
+  <sequenceFlow id="ToTask" sourceRef="Start" targetRef="Task"/>
+  <sequenceFlow id="ToEnd" sourceRef="Task" targetRef="End"/>
+ </process>
+ <bpmndi:BPMNDiagram id="Diagram"><bpmndi:BPMNPlane id="Plane" bpmnElement="Process">
+  <bpmndi:BPMNShape id="StartDI" bpmnElement="Start"><dc:Bounds x="40" y="60" width="36" height="36"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="TaskDI" bpmnElement="Task"><dc:Bounds x="160" y="40" width="120" height="80"/><bpmndi:BPMNLabel><dc:Bounds x="164" y="65" width="110" height="25"/></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="EndDI" bpmnElement="End"><dc:Bounds x="360" y="60" width="36" height="36"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNEdge id="ToTaskDI" bpmnElement="ToTask"><di:waypoint x="76" y="78"/><di:waypoint x="120" y="78"/><di:waypoint x="160" y="80"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="ToEndDI" bpmnElement="ToEnd"><di:waypoint x="280" y="80"/><di:waypoint x="360" y="78"/></bpmndi:BPMNEdge>
+ </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+</definitions>

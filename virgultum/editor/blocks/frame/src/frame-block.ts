@@ -1,0 +1,222 @@
+import { cssVar } from "@myoxus/theme";
+import { effect } from "@preact/signals-core";
+import { OverlayIdentifier } from "@virgultum/block-surface";
+import { Bound } from "@virgultum/global/gfx";
+import {
+  DefaultTheme,
+  type FrameBlockModel,
+  FrameBlockSchema,
+  isTransparent,
+} from "@virgultum/model";
+import { ThemeProvider } from "@virgultum/shared/services";
+import { GfxBlockComponent } from "@virgultum/std";
+import {
+  type BoxSelectionContext,
+  getTopElements,
+  GfxViewInteractionExtension,
+} from "@virgultum/std/gfx";
+import { html } from "lit";
+import { state } from "lit/decorators.js";
+import { repeat } from "lit/directives/repeat.js";
+import { styleMap } from "lit/directives/style-map.js";
+
+import {
+  EdgelessFrameManagerIdentifier,
+  type FrameOverlay,
+} from "./frame-manager";
+
+const trackSignalDependencies = (...values: readonly unknown[]) =>
+  values.length;
+
+export class FrameBlockComponent extends GfxBlockComponent<FrameBlockModel> {
+  override connectedCallback() {
+    super.connectedCallback();
+
+    this._disposables.add(
+      effect(() => {
+        trackSignalDependencies(this.transformState$.value);
+        // Frame selection and resize are handled by GFX hit testing. The DOM
+        // frame must stay transparent so floating GFX toolbars remain clickable;
+        // only its title opts back into DOM events for the existing title editor.
+        this.style.pointerEvents = "none";
+      }),
+    );
+    this._disposables.add(
+      this.store.slots.blockUpdated.subscribe(({ type, id }) => {
+        if (id === this.model.id && type === "update") {
+          this.requestUpdate();
+        }
+      }),
+    );
+    this._disposables.add(
+      this.gfx.viewport.viewportUpdated.subscribe(() => {
+        this.requestUpdate();
+      }),
+    );
+  }
+
+  /**
+   * Due to potentially very large frame sizes, CSS scaling can cause iOS Safari to crash.
+   * To mitigate this issue, we combine size calculations within the rendering rect.
+   */
+  override getCSSTransform(): string {
+    return "";
+  }
+
+  override getRenderingRect() {
+    const viewport = this.gfx.viewport;
+    const { translateX, translateY, zoom } = viewport;
+    const { xywh, rotate } = this.model;
+    const bound = Bound.deserialize(xywh);
+
+    const scaledX = bound.x * zoom + translateX;
+    const scaledY = bound.y * zoom + translateY;
+
+    return {
+      x: scaledX,
+      y: scaledY,
+      w: bound.w * zoom,
+      h: bound.h * zoom,
+      rotate,
+      zIndex: this.toZIndex(),
+    };
+  }
+
+  override onBoxSelected(context: BoxSelectionContext) {
+    const { box } = context;
+    const bound = new Bound(box.x, box.y, box.w, box.h);
+    const elementBound = this.model.elementBound;
+
+    return (
+      this.model.childElements.length === 0 || bound.contains(elementBound)
+    );
+  }
+
+  override renderGfxBlock() {
+    const { model, showBorder, std } = this;
+    const backgroundColor = std
+      .get(ThemeProvider)
+      .generateColorProperty(model.props.background, DefaultTheme.transparent);
+    const _isNavigator =
+      this.gfx.tool.currentToolName$.value === "frameNavigator";
+    const frameIndex = this.gfx.layer.getZIndex(model);
+
+    const widgets = html`${repeat(
+      Object.entries(this.widgets),
+      ([id]) => id,
+      ([_, widget]) => widget,
+    )}`;
+
+    return html`
+      <div
+        class="myoxus-frame-container"
+        style=${styleMap({
+          zIndex: `${frameIndex}`,
+          backgroundColor,
+          height: "100%",
+          width: "100%",
+          pointerEvents: "none",
+          borderRadius: "2px",
+          border:
+            _isNavigator || !showBorder
+              ? "none"
+              : `1px solid ${cssVar("borderColor")}`,
+        })}
+      ></div>
+      ${widgets}
+    `;
+  }
+
+  @state()
+  accessor showBorder = true;
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "myoxus-frame": FrameBlockComponent;
+  }
+}
+
+export const FrameBlockInteraction =
+  GfxViewInteractionExtension<FrameBlockComponent>(
+    FrameBlockSchema.model.flavour,
+    {
+      handleResize: (context) => {
+        const { model, std } = context;
+
+        return {
+          onResizeStart(context): void {
+            context.default(context);
+            model.stash("childElementIds");
+          },
+
+          onResizeMove(context): void {
+            const { newBound } = context;
+            const frameManager = std.getOptional(
+              EdgelessFrameManagerIdentifier,
+            );
+            const overlay = std.getOptional(
+              OverlayIdentifier("frame"),
+            ) as FrameOverlay;
+
+            model.xywh = newBound.serialize();
+
+            if (!frameManager) {
+              return;
+            }
+
+            const oldChildren = frameManager.getChildElementsInFrame(model);
+
+            const newChildren = getTopElements(
+              frameManager.getElementsInFrameBound(model),
+            ).concat(
+              oldChildren.filter((oldChild) => {
+                return model.intersectsBound(oldChild.elementBound);
+              }),
+            );
+
+            frameManager.removeAllChildrenFromFrame(model);
+            frameManager.addElementsToFrame(model, newChildren);
+
+            overlay?.highlight(model, true, false);
+          },
+          onResizeEnd(context): void {
+            context.default(context);
+            model.pop("childElementIds");
+          },
+        };
+      },
+      handleRotate: () => {
+        return {
+          beforeRotate(context): void {
+            context.set({
+              rotatable: false,
+            });
+          },
+        };
+      },
+      handleSelection: () => {
+        return {
+          selectable(context) {
+            const { model } = context;
+
+            const onTitle =
+              model.externalBound?.containsPoint([
+                context.position.x,
+                context.position.y,
+              ]) ?? false;
+
+            return (
+              context.default(context) &&
+              (model.isLocked() ||
+                !isTransparent(model.props.background) ||
+                onTitle)
+            );
+          },
+          onSelect(context) {
+            return context.default(context);
+          },
+        };
+      },
+    },
+  );

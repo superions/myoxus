@@ -1,0 +1,82 @@
+{% extends "_layout.html" %} {% block subject %}Recordatorio: {{ row_title }}{%
+endblock subject %} {% block preheader %}Abre el registro para consultar los
+detalles y actualizarlos si es necesario.{% endblock preheader %} {% block
+category %}TU RECORDATORIO{% endblock category %} {% block heading %}Ten
+presente la fecha.{% endblock heading %} {% block introduction %}Ha llegado el
+momento de tu recordatorio para el registro «{{ row_title }}». Aquí tienes la
+fecha prevista y un enlace directo al registro.{% endblock introduction %} {%
+block details %}{% if row_title %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  REGISTRO
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ row_title }}
+</p>
+{% endif %}{% if field_name %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Campo del recordatorio
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ field_name }}
+</p>
+{% endif %}{% if scheduled_label %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Fecha prevista
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ scheduled_label }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}Abre el registro para
+consultar los detalles y actualizarlos si es necesario.{% endblock next_step %}
+{% block action %}Abrir registro{% endblock action %} {% block note %}Puedes
+cambiar o eliminar este recordatorio en el campo de fecha del registro.{%
+endblock note %} {% block reason %}Recibes este correo porque has configurado un
+recordatorio por correo para este campo de fecha.{% endblock reason %}

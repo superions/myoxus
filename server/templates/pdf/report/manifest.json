@@ -1,0 +1,144 @@
+{
+  "schema_version": "2.0",
+  "id": "report",
+  "name": "Report",
+  "description": "Branded report template with cover page, automatic table of contents, accent-colored headings, and a brand-and-page footer. Includes confidentiality watermark labels.",
+  "version": "1.6.0",
+  "engine": {
+    "name": "typst",
+    "version": "0.15.x"
+  },
+  "provenance": {
+    "license_spdx": "AGPL-3.0-or-later",
+    "copyright_notice": "Copyright 2026 Myoxus contributors",
+    "source_url": "https://github.com/superions/myoxus",
+    "source_revision": "1.6.0"
+  },
+  "entry": "main.typ",
+  "assets": [
+    "main.typ",
+    "preamble.typ",
+    "theme.typ",
+    "i18n/en.json",
+    "i18n/de.json"
+  ],
+  "capabilities": {
+    "colorVariant": {
+      "kind": "enum",
+      "values": ["mono", "accent", "brand"],
+      "default": "accent"
+    },
+    "headerStyle": {
+      "kind": "enum",
+      "values": ["none", "minimal", "branded"],
+      "default": "branded"
+    },
+    "footerStyle": {
+      "kind": "enum",
+      "values": ["none", "minimal", "page-only", "brand-and-page"],
+      "default": "brand-and-page"
+    },
+    "coverPage": {
+      "kind": "boolean",
+      "default": true
+    },
+    "tocBehavior": {
+      "kind": "enum",
+      "values": ["off", "auto", "force"],
+      "default": "auto"
+    },
+    "pageNumbering": {
+      "kind": "enum",
+      "values": ["arabic", "roman", "none"],
+      "default": "arabic"
+    },
+    "customMargins": {
+      "kind": "boolean",
+      "default": false
+    },
+    "accentColor": {
+      "kind": "color",
+      "default": "#0F766E"
+    },
+    "confidentialityLabels": {
+      "kind": "array<string>",
+      "min_items": 0,
+      "max_items": 8,
+      "item_pattern": "^[A-Za-z0-9 _-]{1,32}$",
+      "default": ["Internal", "Confidential", "Restricted"]
+    },
+    "language": {
+      "kind": "enum",
+      "values": [
+        "en",
+        "de",
+        "fr",
+        "es",
+        "it",
+        "pt",
+        "nl",
+        "pl",
+        "cs",
+        "da",
+        "sv",
+        "no",
+        "fi",
+        "el",
+        "ru",
+        "uk",
+        "tr",
+        "hu",
+        "ro",
+        "bg",
+        "hr",
+        "sk",
+        "sl",
+        "sr",
+        "et",
+        "lv",
+        "lt",
+        "pt-BR",
+        "es-MX"
+      ],
+      "default": "en"
+    }
+  },
+  "inputs_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["title"],
+    "properties": {
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200,
+        "description": "Report title rendered on the cover page."
+      },
+      "subtitle": {
+        "type": "string",
+        "maxLength": 200,
+        "description": "Optional subtitle rendered below the title on the cover page."
+      },
+      "executive_summary": {
+        "type": "string",
+        "maxLength": 4000,
+        "description": "Optional executive-summary paragraph inserted before the first section."
+      },
+      "report_date": {
+        "type": "string",
+        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+        "description": "Optional ISO-8601 date displayed on the cover page (YYYY-MM-DD)."
+      },
+      "author": {
+        "type": "string",
+        "maxLength": 120,
+        "description": "Optional report author name displayed on the cover page."
+      },
+      "confidentiality_label": {
+        "type": "string",
+        "enum": ["Internal", "Confidential", "Restricted"],
+        "description": "Selected confidentiality watermark label (must match one of the template's configured labels)."
+      }
+    }
+  }
+}

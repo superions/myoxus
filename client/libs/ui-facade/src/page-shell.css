@@ -1,0 +1,349 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+.myoxus-app-container-root[data-translucent="true"] {
+  background-color: transparent;
+}
+
+/* The preference belongs to navigation; document/workbench surfaces stay clean. */
+.myoxus-app-container-root[data-noise-background="true"]
+  [data-myoxus-ui-role="app-sidebar-shell"] {
+  position: relative;
+}
+
+.myoxus-app-container-root[data-noise-background="true"]
+  [data-myoxus-ui-role="app-sidebar-shell"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--myoxus-app-container-noise-opacity, 0);
+  background-image: var(--noise-background);
+  background-repeat: repeat;
+  background-size: calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm));
+}
+
+html[data-theme="light"] .myoxus-app-container-root {
+  --myoxus-app-container-noise-opacity: 0.2;
+}
+
+html[data-theme="dark"] .myoxus-app-container-root {
+  --myoxus-app-container-noise-opacity: 1;
+}
+
+@media print {
+  [data-myoxus-ui-role="global-loading-overlay"] {
+    display: none;
+  }
+}
+
+@media print {
+  [data-myoxus-ui-role="workbench-route-header"] {
+    display: none;
+  }
+}
+
+@media print {
+  [data-myoxus-ui-role="public-share-floating-brand-link"] {
+    display: none;
+  }
+}
+
+.myoxus-mobile-workspace-page-root {
+  display: flex;
+  min-height: 100dvh;
+  flex-direction: column;
+  background: var(--myoxus-background-primary-color);
+}
+
+.myoxus-mobile-workspace-page-root[data-bounded="true"] {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.myoxus-detail-page-main-frame {
+  container-type: inline-size;
+}
+
+.myoxus-detail-page-main-frame[data-editor-mode="edgeless"] {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.myoxus-detail-page-editor-frame {
+  position: relative;
+  z-index: 0;
+}
+
+.myoxus-detail-page-main-frame[data-editor-mode="edgeless"]
+  > .myoxus-detail-page-editor-frame {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.myoxus-detail-page-editor-viewport {
+  container-name: viewport;
+  container-type: inline-size;
+}
+
+.myoxus-detail-page-editor-viewport[data-editor-mode="edgeless"] {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+
+.myoxus-detail-page-editor-viewport--mobile[data-editor-mode="edgeless"] {
+  position: absolute;
+  inset: 0;
+}
+
+.myoxus-page-detail-editor {
+  flex: 1 1 auto;
+  min-height: 100%;
+}
+
+.myoxus-page-detail-editor[data-full-width-layout="true"],
+[data-full-width-layout="true"] .myoxus-page-detail-editor {
+  --myoxus-editor-width: 100%;
+  --myoxus-editor-side-padding: calc(
+    calc(var(--mantine-spacing-2xl) * 2) + var(--mantine-spacing-sm)
+  );
+}
+
+.myoxus-editor-outline-floating-frame {
+  position: absolute;
+  top: calc(
+    calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm)) * 4 +
+      calc(
+        var(--mantine-spacing-lg) + var(--mantine-spacing-xs) +
+          var(--mantine-spacing-2xs)
+      )
+  );
+  right: var(--mantine-spacing-md);
+  display: flex;
+  max-height: calc(
+    100% - calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm)) * 4 -
+      calc(
+        var(--mantine-spacing-lg) + var(--mantine-spacing-xs) +
+          var(--mantine-spacing-2xs)
+      ) -
+      calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-xs)) -
+      var(--mantine-spacing-xs)
+  );
+}
+
+/* Keep this aligned with the Myoxus/Mantine sm breakpoint projection. */
+@container viewport (width <= 48em) {
+  .myoxus-editor-outline-floating-frame {
+    display: none;
+  }
+}
+
+.myoxus-comment-editor-viewport {
+  --myoxus-paragraph-margin: 0;
+  --myoxus-font-base: var(--mantine-font-size-nav, var(--mantine-font-size-md));
+}
+
+.myoxus-comment-editor-viewport .myoxus-page-root-block-container {
+  min-height: calc(
+    var(--mantine-spacing-xl) + var(--mantine-spacing-xs) +
+      var(--mantine-spacing-2xs)
+  );
+  padding: var(--mantine-spacing-sm) 0;
+}
+
+.myoxus-comment-editor-viewport .myoxus-paragraph-rich-text-wrapper {
+  margin: 0;
+}
+
+.myoxus-document-header-title-edit[data-editing="true"] {
+  -webkit-app-region: no-drag;
+}
+
+.myoxus-document-editor-root {
+  display: flex;
+  flex-direction: column;
+  overflow-x: clip;
+}
+
+/* Embedded native bodies inherit their surrounding section's geometry. */
+.myoxus-document-editor-root[data-editor-mode="page"][data-content-only="true"] {
+  --myoxus-editor-width: 100%;
+  --myoxus-editor-content-padding-inline: 0;
+  --myoxus-editor-bottom-padding: 0;
+}
+
+.myoxus-document-editor-root[data-editor-mode="edgeless"] {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 100%;
+}
+
+.myoxus-document-editor-page-viewport {
+  flex: 1 1 auto;
+  height: 100%;
+  padding-bottom: calc(
+    calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-lg)) * 2
+  );
+}
+
+.myoxus-document-editor-edgeless-viewport {
+  flex: 1 1 auto;
+  height: 100%;
+}
+
+.myoxus-document-editor-root[data-editor-mode="edgeless"]
+  .myoxus-document-editor-edgeless-viewport,
+.myoxus-document-editor-root[data-editor-mode="edgeless"]
+  .myoxus-document-editor-edgeless-viewport
+  > div,
+.myoxus-document-editor-root[data-editor-mode="edgeless"] edgeless-editor,
+.myoxus-document-editor-root[data-editor-mode="edgeless"]
+  .myoxus-edgeless-viewport {
+  display: block;
+  height: 100%;
+  min-height: 100%;
+  width: 100%;
+}
+
+/* Virgultum's AI panel is rendered inside the Lit editor and needs bottom
+   scroll room while generation/error states are mounted. Keep this as editor
+   geometry at the facade boundary instead of a product pixel value. */
+.myoxus-document-editor-content:has(
+  myoxus-ai-panel-widget[data-state="generating"]
+),
+.myoxus-document-editor-content:has(
+  myoxus-ai-panel-widget[data-state="finished"]
+),
+.myoxus-document-editor-content:has(
+  myoxus-ai-panel-widget[data-state="error"]
+) {
+  padding-bottom: 100dvh;
+}
+
+.myoxus-document-editor-blank-gap {
+  display: block;
+  flex-grow: 1;
+  width: 100%;
+  margin: 0 auto;
+  padding-block: calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-lg));
+  cursor: text;
+}
+
+.myoxus-document-title-row {
+  --myoxus-doc-title-line-height: calc(
+    var(--myoxus-typography-page-title-size) *
+      var(--myoxus-document-reading-scale, 1) *
+      var(--myoxus-typography-page-title-line-height)
+  );
+  --myoxus-doc-title-icon-inline-size: calc(
+    var(--mantine-spacing-2xl) + var(--mantine-spacing-sm)
+  );
+  --myoxus-doc-title-icon-gap: calc(
+    var(--mantine-spacing-2xs) + var(--mantine-spacing-xs)
+  );
+
+  display: grid;
+  grid-template-columns:
+    var(--myoxus-doc-title-icon-inline-size)
+    minmax(0, 1fr);
+  align-items: start;
+  column-gap: var(--myoxus-doc-title-icon-gap);
+  width: 100%;
+  max-width: var(--myoxus-editor-width);
+  margin: 0 auto;
+  padding-inline-start: max(
+    0,
+    calc(
+      var(--myoxus-editor-content-padding-inline) -
+        var(--myoxus-doc-title-icon-inline-size) -
+        var(--myoxus-doc-title-icon-gap)
+    )
+  );
+  padding-inline-end: var(--myoxus-editor-content-padding-inline);
+}
+
+.myoxus-document-title-row .doc-icon-container {
+  grid-column: 1;
+  grid-row: 1;
+  width: var(--myoxus-doc-title-icon-inline-size);
+  margin-block-start: calc(
+    (
+        var(--myoxus-doc-title-line-height) -
+          var(--myoxus-doc-title-icon-inline-size)
+      ) /
+      2
+  );
+  padding: 0;
+  overflow: hidden;
+}
+
+.myoxus-document-title-row .doc-icon-container[data-has-icon="false"] button {
+  width: var(--myoxus-doc-title-icon-inline-size);
+  min-width: var(--myoxus-doc-title-icon-inline-size);
+  height: var(--myoxus-doc-title-icon-inline-size);
+  padding: 0;
+}
+
+.myoxus-document-title-row doc-title {
+  grid-column: 2;
+  grid-row: 1;
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.myoxus-document-title-row .doc-title-container {
+  max-width: none;
+  width: 100%;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+@media print {
+  .myoxus-document-title-row .doc-icon-container[data-has-icon="false"] {
+    display: none;
+  }
+}
+
+/* Keep this in sync with the projected Mantine `sm` breakpoint. CSS container
+   queries cannot consume the theme object's JavaScript breakpoint value. */
+@container viewport (width <= 48em) {
+  .myoxus-document-title-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 0 var(--mantine-spacing-lg);
+  }
+
+  .myoxus-document-title-row .doc-icon-container {
+    grid-column: 2;
+  }
+
+  .myoxus-document-title-row doc-title {
+    grid-column: 1;
+  }
+}
+
+@media print {
+  .myoxus-detail-page-editor-viewport {
+    z-index: -1;
+    display: none;
+  }
+}
+
+/* Personal reading size scales page typography, not chrome or canvas geometry.
+   tan(atan2(a, b)) yields the length ratio in Firefox as well as Chromium;
+   dividing two CSS lengths directly is not supported by all target browsers.
+   Resolve it before nested theme scopes reintroduce their default base size. */
+.myoxus-document-editor-root[data-editor-mode="page"] {
+  --myoxus-document-reading-scale: tan(
+    atan2(
+      var(--myoxus-document-reading-size, var(--myoxus-typography-body-size)),
+      var(--myoxus-typography-body-size)
+    )
+  );
+}

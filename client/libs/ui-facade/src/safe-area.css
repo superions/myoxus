@@ -1,0 +1,22 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+.myoxus-ui-safe-area[data-top] {
+  padding-top: calc(var(--myoxus-ui-safe-area-top-offset, 0px) + 12px);
+}
+
+.myoxus-ui-safe-area[data-bottom] {
+  padding-bottom: var(--myoxus-ui-safe-area-bottom-offset, 0px);
+}
+
+.myoxus-ui-safe-area[data-standalone][data-top] {
+  padding-top: calc(
+    env(safe-area-inset-top, 12px) + var(--myoxus-ui-safe-area-top-offset, 0px)
+  );
+}
+
+.myoxus-ui-safe-area[data-standalone][data-bottom] {
+  padding-bottom: calc(
+    env(safe-area-inset-bottom, 0px) +
+      var(--myoxus-ui-safe-area-bottom-offset, 0px)
+  );
+}

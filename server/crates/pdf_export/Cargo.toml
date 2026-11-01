@@ -1,0 +1,62 @@
+[package]
+description       = "Myoxus PDF export: Yjs→IR builder, Typst renderer, template engine"
+edition.workspace = true
+license.workspace = true
+name              = "myoxus-pdf-export"
+version.workspace = true
+
+[dependencies]
+# Private compiler protocol (compact binary assets; public JSON stays arrays).
+ciborium    = "0.2.2"
+serde_bytes = "0.11"
+
+# IR serde
+chrono     = { workspace = true }
+serde      = { workspace = true }
+serde_json = { workspace = true }
+thiserror  = { workspace = true }
+uuid       = { workspace = true }
+
+# V2 template manifest (compile validator)
+myoxus-domain = { path = "../domain" }
+
+# Async admission and supervised compiler process.
+async-trait = { workspace = true }
+libc        = "0.2"
+tokio       = { workspace = true, features = ["rt-multi-thread", "macros", "time"] }
+
+# Yjs document parsing
+yjs = { path = "../yjs" }
+yrs = { workspace = true }
+
+# Typst PDF rendering. The "fonts" feature on typst-assets embeds the
+# upstream baseline (Linux Libertine, NewCM, DejaVu Mono) so the
+# FontBook always has a usable fallback even when no extra dirs are
+# supplied — required for P-FONT-COVERAGE Decision 5 (Inter-anchored
+# fallback chain). Without this feature, typst_assets::fonts() returns
+# an empty iter and PDFs render with no embedded fonts.
+rayon        = "1.11"
+typst        = "0.15.1"
+typst-assets = { version = "0.15.1", features = ["fonts"] }
+typst-layout = "0.15.1"
+typst-pdf    = "0.15.1"
+
+# P-PDF-TPL-IMG-01: image decode/resize/encode for the V2 render image
+# compression pipeline.
+image                 = { workspace = true }
+myoxus-mermaid-render = { path = "../mermaid_render" }
+
+# Logging
+tracing = { workspace = true }
+
+# Misc
+base64 = { workspace = true }
+
+[dev-dependencies]
+lopdf       = "0.42.0"
+pdf-extract = "0.12.0"
+tempfile    = { workspace = true }
+tokio       = { workspace = true, features = ["rt-multi-thread", "macros"] }
+# Test fixtures can derive temporary TTF bytes from bundled browser WOFF2 files;
+# the production renderer must not decode or index WOFF2 on the PDF hotpath.
+woff2-patched = "0.4"

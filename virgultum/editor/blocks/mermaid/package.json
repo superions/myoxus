@@ -1,0 +1,49 @@
+{
+  "name": "@virgultum/block-mermaid",
+  "description": "First-class Mermaid diagram block for Myoxus.",
+  "type": "module",
+  "scripts": {
+    "build": "yarn --cwd \"$PROJECT_CWD\" exec tsc -b \"$PROJECT_CWD/virgultum/editor/blocks/mermaid/tsconfig.json\" --force --pretty false"
+  },
+  "sideEffects": false,
+  "keywords": [],
+  "author": "Myoxus Contributors",
+  "license": "AGPL-3.0-or-later AND MIT",
+  "dependencies": {
+    "@myoxus/icons": "workspace:*",
+    "@myoxus/theme": "workspace:*",
+    "@virgultum/block-code": "workspace:*",
+    "@virgultum/block-frame": "workspace:*",
+    "@virgultum/block-surface": "workspace:*",
+    "@virgultum/components": "workspace:*",
+    "@virgultum/ext-loader": "workspace:*",
+    "@virgultum/gfx-connector": "workspace:*",
+    "@virgultum/gfx-shape": "workspace:*",
+    "@virgultum/gfx-text": "workspace:*",
+    "@virgultum/global": "workspace:*",
+    "@virgultum/model": "workspace:*",
+    "@virgultum/shared": "workspace:*",
+    "@virgultum/std": "workspace:*",
+    "@virgultum/store": "workspace:*",
+    "@virgultum/widget-edgeless-toolbar": "workspace:*",
+    "@virgultum/widget-slash-menu": "workspace:*",
+    "dayjs": "^1.11.23",
+    "dompurify": "3.4.16",
+    "lit": "^3.3.3",
+    "marked": "^16.3.0",
+    "mermaid": "patch:mermaid@npm%3A11.17.2#~/.yarn/patches/mermaid-npm-11.17.2-97875ab19c.patch",
+    "ts-dedent": "^2.2.0",
+    "yaml": "2.9.1"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./view": "./src/view.ts",
+    "./store": "./src/store.ts",
+    "./manifest": "./src/manifest.ts"
+  },
+  "files": [
+    "src",
+    "dist"
+  ],
+  "version": "0.41.5"
+}

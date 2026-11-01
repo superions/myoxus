@@ -1,0 +1,55 @@
+fragment PreparedContextDocumentsFragment on PreparedContextDocuments {
+  target { databaseId taskId }
+  package { ...AssistantPackageIdentityFragment }
+  answers { input value { ...AssistantValueFragment } }
+  locale clientVersion executionAvailable planDigest
+  folder { ...AssistantFolderDestinationFragment }
+  documents {
+    source { componentId templateId version digest }
+    sourceRevisionId sourceContentDigest locale title
+    folder { ...AssistantFolderDestinationFragment }
+  }
+}
+
+fragment ContextDocumentsFragment on ContextDocuments {
+  requestId status reasonCode folderId placementComplete
+  run { ...WorkspaceAutomationRun }
+  canRetry canStop
+  acceptedPlan { ...PreparedContextDocumentsFragment }
+  acceptedDescriptor { ...AssistantPackageFragment }
+  currentReview { ...PreparedContextDocumentsFragment }
+  documents { componentId reservedDocumentId externalId created placed }
+  assistance { mode source userDefaultExplicit interactiveMode }
+}
+
+query prepareContextDocuments($workspaceId: String!, $input: PrepareContextDocumentsInput!) {
+  currentUser { id }
+  workspace(id: $workspaceId) {
+    id
+    prepareContextDocuments(input: $input) {
+      plan { ...PreparedContextDocumentsFragment }
+      assistance { mode source userDefaultExplicit interactiveMode }
+      context { containerTitle taskTitle }
+    }
+  }
+}
+
+query contextDocuments($workspaceId: String!, $requestId: ID!) {
+  currentUser { id }
+  workspace(id: $workspaceId) {
+    id
+    contextDocuments(requestId: $requestId) { ...ContextDocumentsFragment }
+  }
+}
+
+mutation applyContextDocuments($input: ApplyContextDocumentsInput!) {
+  applyContextDocuments(input: $input) { ...ContextDocumentsFragment }
+}
+
+mutation stopContextDocuments($input: StopContextDocumentsInput!) {
+  stopContextDocuments(input: $input) { ...ContextDocumentsFragment }
+}
+
+mutation retryContextDocuments($input: RetryContextDocumentsInput!) {
+  retryContextDocuments(input: $input) { ...ContextDocumentsFragment }
+}

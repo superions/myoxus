@@ -1,0 +1,38 @@
+{
+  "$schema": "./schema.json",
+  "route": "/",
+  "children": {
+    "admin": {
+      "route": "adminfrontend",
+      "children": {
+        "auth": "auth",
+        "setup": "setup",
+        "configWizard": "config-wizard",
+        "dashboard": "dashboard",
+        "security": "security",
+        "workspaces": "workspaces",
+        "design": "design",
+        "typography": "typography",
+        "queue": "queue",
+        "gitSync": "git-sync",
+        "templates": "templates",
+        "documents": "documents",
+        "pdfExport": "pdf-export",
+        "ai": "ai",
+        "storage": "storage",
+        "performance": "performance",
+        "organization": {
+          "route": "organization",
+          "children": {
+            "organigram": "organigram",
+            "unit": "units/:id"
+          }
+        },
+        "configChanges": "config-changes",
+        "auditLog": "audit-log",
+        "system": "system",
+        "notFound": "404"
+      }
+    }
+  }
+}

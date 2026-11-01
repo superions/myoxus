@@ -1,0 +1,60 @@
+{
+  "generated_at": "2026-03-15T15:01:19.019391+00:00",
+  "note": "This is a seed catalog and should be extended while implementing P1-P5 domains.",
+  "domains": [
+    {
+      "domain": "auth",
+      "codes": [
+        "InvalidEmail",
+        "InvalidEmailToken",
+        "EmailTokenNotFound",
+        "WrongSignInCredentials",
+        "WrongSignInMethod",
+        "SignUpForbidden",
+        "ActionForbidden",
+        "EmailAlreadyUsed",
+        "EmailVerificationRequired",
+        "LinkExpired",
+        "SameEmailProvided"
+      ],
+      "sources": [
+        "refactor/server-dev/09_business_logic_auth.md",
+        "packages/backend/server/src/core/auth/service.ts",
+        "packages/backend/server/src/core/auth/controller.ts"
+      ]
+    },
+    {
+      "domain": "workspace_membership",
+      "codes": [
+        "AlreadyInSpace",
+        "NoMoreSeat",
+        "MemberNotFoundInSpace",
+        "SpaceAccessDenied",
+        "OwnerCanNotLeaveWorkspace",
+        "CanNotRevokeYourself",
+        "InvalidInvitation"
+      ],
+      "sources": [
+        "refactor/server-dev/10_business_logic_workspace.md",
+        "packages/backend/server/src/core/workspaces/resolvers/member.ts",
+        "packages/backend/server/src/core/permission/workspace.ts"
+      ]
+    },
+    {
+      "domain": "sync",
+      "codes": ["NotInSpace", "SpaceAccessDenied"],
+      "sources": [
+        "refactor/server-dev/12_business_logic_sync.md",
+        "packages/backend/server/src/core/sync/gateway.ts"
+      ]
+    },
+    {
+      "domain": "search_limits",
+      "codes": ["QueryTooLong", "TooManyRequest"],
+      "sources": [
+        "refactor/server-dev/10_business_logic_workspace.md",
+        "packages/backend/server/src/plugins/indexer/resolver.ts"
+      ]
+    }
+  ]
+}

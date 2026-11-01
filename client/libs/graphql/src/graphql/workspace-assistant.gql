@@ -1,0 +1,110 @@
+query workspaceAssistantPackages {
+  currentUser {
+    id
+    assistantPackages(context: WorkspaceCreation) {
+      ...AssistantPackageFragment
+    }
+  }
+}
+
+query prepareWorkspaceAssistant($input: PrepareWorkspaceAssistantInput!) {
+  currentUser {
+    id
+    prepareWorkspaceAssistant(input: $input) {
+      ...PreparedWorkspaceAssistantFragment
+    }
+  }
+}
+
+fragment PreparedWorkspaceAssistantFragment on PreparedWorkspaceAssistant {
+  ...WorkspaceCreationPlanFragment
+  setup { ...PreparedWorkspaceSetupFragment }
+}
+
+fragment WorkspaceCreationPlanFragment on PreparedWorkspaceAssistant {
+  package { ...AssistantPackageIdentityFragment }
+  planDigest
+  answers { input value { ...AssistantValueFragment } }
+  name initialContent assistanceMode
+  project { ...PreparedProjectAssistantFragment }
+}
+
+fragment PreparedWorkspaceSetupFragment on PreparedWorkspaceSetup {
+  folder { ...AssistantFolderDestinationFragment }
+  package { ...AssistantPackageIdentityFragment }
+  answers { input value { ...AssistantValueFragment } }
+  locale clientVersion executionAvailable
+  workflow { id version digest }
+  components {
+    id action {
+      kind definitionId templateId
+      inputs { target binding { ...AssistantValueBindingFragment } }
+      selected { ...AssistantValueBindingFragment }
+      target { ...AssistantValueBindingFragment }
+      folder { ...AssistantValueBindingFragment }
+      variables { name binding { ...AssistantValueBindingFragment } }
+    }
+  }
+  definitions {
+    componentId definitionId version digest title description
+    includeSampleRows defaultCurrency priority complexity structure
+  }
+  documentMetadata {
+    source { componentId templateId version digest }
+    sourceRevisionId locale title folder { ...AssistantFolderDestinationFragment }
+  }
+  documents {
+    source { componentId templateId version digest }
+    sourceRevisionId sourceContentDigest locale title
+    folder { ...AssistantFolderDestinationFragment }
+  }
+}
+
+fragment WorkspaceSetupFragment on WorkspaceSetup {
+  requestId status canRetry canStop reasonCode
+  acceptedPlan { ...PreparedWorkspaceSetupFragment }
+  currentReview { ...PreparedWorkspaceSetupFragment }
+  run { id status }
+  components {
+    componentId reservedId documentExternalId available
+    result {
+      kind databaseId documentId entryId
+    }
+  }
+}
+
+fragment WorkspaceCreationResultFragment on WorkspaceCreationResultType {
+  workspaceId requestId status rootReady tasksReady tasksDatabaseId
+  assistanceSaved retryRequired reasonCode
+  acceptedPlan { ...WorkspaceCreationPlanFragment }
+  projectSetup { ...ProjectSetupFragment }
+  setup { ...WorkspaceSetupFragment }
+}
+
+query workspaceCreation($requestId: ID!) {
+  currentUser {
+    id
+    workspaceCreation(requestId: $requestId) { ...WorkspaceCreationResultFragment }
+  }
+}
+
+mutation stopWorkspaceCreation($input: StopWorkspaceCreationInput!) {
+  stopWorkspaceCreation(input: $input) { ...WorkspaceCreationResultFragment }
+}
+
+mutation retryWorkspaceCreation($input: RetryWorkspaceCreationInput!) {
+  retryWorkspaceCreation(input: $input) { ...WorkspaceCreationResultFragment }
+}
+
+query workspaceSetupAssistance($workspaceId: String!) {
+  currentUser { id }
+  workspace(id: $workspaceId) {
+    id
+    workspaceSetupAssistance {
+      descriptor { ...AssistantPackageFragment }
+      documentTargets {
+        step group sourceDigest componentId documentId documentExternalId
+      }
+    }
+  }
+}

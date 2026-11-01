@@ -1,0 +1,11 @@
+{
+  "toc_heading": "Table of Contents",
+  "page_of": "Page {current} / {total}",
+  "cover_page_label": "Report",
+  "executive_summary_heading": "Executive Summary",
+  "confidentiality": {
+    "Internal": "Internal",
+    "Confidential": "Confidential",
+    "Restricted": "Restricted"
+  }
+}

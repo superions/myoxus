@@ -1,0 +1,35 @@
+{
+  "source": "End[^End] then foot[^Research] citation[^source] repeated[^Research].\n\n[^source]\n\nLater[^Later].\n\n| Table |\n| --- |\n| cell[^Table] |\n\n[^End]: End body.\n\n[^Research]: Foot body.\n\n[^Later]: Later body.\n\n[^Table]: Table body.\n\n[^Unused]: Retained body.\n\n[^source]: {\"type\":\"url\",\"url\":\"https://example.org\"}\n",
+  "placements": {
+    "End": "endnote",
+    "Research": null,
+    "Later": "footnote",
+    "Table": "footnote",
+    "Unused": "endnote"
+  },
+  "expected": {
+    "End": {
+      "placement": "endnote",
+      "number": 1,
+      "order": 1
+    },
+    "Research": {
+      "placement": "footnote",
+      "number": 1,
+      "order": 2
+    },
+    "Later": {
+      "placement": "footnote",
+      "number": 4,
+      "order": 3
+    },
+    "Table": {
+      "placement": "footnote",
+      "number": 5,
+      "order": 4
+    },
+    "Unused": {
+      "placement": "endnote"
+    }
+  }
+}

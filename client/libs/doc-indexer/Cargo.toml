@@ -1,0 +1,16 @@
+[package]
+description = "Clean-room Y-Doc block parser for indexing collaborative documents"
+edition     = "2024"
+license     = "AGPL-3.0-or-later"
+name        = "myoxus-doc-indexer"
+version     = "0.1.0"
+
+[dependencies]
+serde      = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror  = { workspace = true }
+tracing    = "0.1"
+yrs        = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

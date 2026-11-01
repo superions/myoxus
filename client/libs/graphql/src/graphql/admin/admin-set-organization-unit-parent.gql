@@ -1,0 +1,5 @@
+mutation adminSetOrganizationUnitParent($unitId: ID!, $parentUnitId: ID) {
+  admin {
+    setOrganizationUnitParent(unitId: $unitId, parentUnitId: $parentUnitId)
+  }
+}

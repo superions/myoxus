@@ -1,0 +1,14 @@
+{
+  "id": "auth_session_refresh_path",
+  "kind": "rest",
+  "smoke": false,
+  "description": "Golden fixture for session retrieval and refresh semantics",
+  "request": {
+    "method": "GET",
+    "path": "/api/auth/session"
+  },
+  "expect": {
+    "status_any": [200, 401],
+    "content_type_contains": "application/json"
+  }
+}

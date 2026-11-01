@@ -1,0 +1,60 @@
+{% extends "_layout.html" %} {% block subject %}Examinez une demande pour « {{
+workspace_name }} »{% endblock subject %} {% block preheader %}Examinez la
+demande et décidez si vous souhaitez l’approuver ou la refuser.{% endblock
+preheader %} {% block category %}COLLABORATION{% endblock category %} {% block
+heading %}Une demande d’accès attend votre avis.{% endblock heading %} {% block
+introduction %}{{ actor }} souhaite rejoindre l’espace de travail. La demande
+attend la décision d’un Admin autorisé.{% endblock introduction %} {% block
+details %}{% if workspace_name %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  ESPACE DE TRAVAIL
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ workspace_name }}
+</p>
+{% endif %}{% if actor %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  De
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ actor }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}Examinez la demande et
+décidez si vous souhaitez l’approuver ou la refuser.{% endblock next_step %} {%
+block action %}Examiner la demande{% endblock action %} {% block note %}Vous
+trouverez les informations à jour et les actions disponibles directement dans
+Myoxus.{% endblock note %} {% block reason %}Vous recevez cet e-mail car vous
+pouvez examiner les demandes d’accès à cet espace de travail.{% endblock reason
+%}

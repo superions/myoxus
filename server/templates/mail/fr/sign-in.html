@@ -1,0 +1,37 @@
+{% extends "_layout.html" %} {% block subject %}Votre lien de connexion à
+Myoxus{% endblock subject %} {% block preheader %}Vous pouvez aussi saisir le
+code à usage unique dans la fenêtre de connexion déjà ouverte.{% endblock
+preheader %} {% block category %}VOTRE COMPTE{% endblock category %} {% block
+heading %}Connectez-vous à Myoxus.{% endblock heading %} {% block introduction
+%}Vous avez demandé un lien de connexion pour votre compte Myoxus. Utilisez le
+bouton pour poursuivre la connexion.{% endblock introduction %} {% block details
+%}{% if email %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  ADRESSE E-MAIL
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ email }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}Vous pouvez aussi saisir
+le code à usage unique dans la fenêtre de connexion déjà ouverte.{% endblock
+next_step %} {% block action %}Se connecter à Myoxus{% endblock action %} {%
+block note %}Ne partagez ce lien ni le code à usage unique avec personne. Si
+vous n’avez pas demandé à vous connecter, ignorez cet e-mail.{% endblock note %}
+{% block reason %}Vous recevez cet e-mail car une connexion à Myoxus a été
+demandée pour cette adresse.{% endblock reason %}

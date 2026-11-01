@@ -1,0 +1,27 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+[data-myoxus-ui-role="kanban-column-frame"] {
+  flex: 0 0 auto;
+  inline-size: calc(var(--mantine-spacing-2xl) * 8);
+}
+
+[data-myoxus-ui-role="kanban-column-list"],
+[data-myoxus-ui-role="kanban-card-list"] {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Equal-height column tracks are board geometry; chrome comes from Mantine Card. */
+[data-myoxus-ui-role="kanban-column"] {
+  block-size: 100%;
+}
+
+/* Native surface panels retain their content height inside the shared rail. */
+[data-appearance="surface"] [data-myoxus-ui-role="kanban-column"] {
+  block-size: auto;
+}
+
+[data-myoxus-ui-role="kanban-add-column"] {
+  flex: 0 0 auto;
+}

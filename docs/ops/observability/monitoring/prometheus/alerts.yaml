@@ -1,0 +1,34 @@
+groups:
+  - name: myoxus-ops
+    rules:
+      - alert: MyoxusWorkerQueueFailures
+        expr: max by (queue) (myoxus_worker_queue_failed) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Worker queue has permanently failed jobs"
+          description: "Queue {{ $labels.queue }} contains one or more permanently failed jobs"
+
+  - name: myoxus-business
+    rules:
+      - alert: MetricsCardinalityDrops
+        expr: increase(myoxus_metrics_cardinality_drops_total[5m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Metrics cardinality limit reached"
+          description: "Business metrics are being dropped because a per-metric cardinality cap was exceeded — review label usage"
+
+      - alert: MetricsFlushStalled
+        expr: |
+          (myoxus_metrics_last_flush_unix_secs > 0)
+          and
+          ((time() - myoxus_metrics_last_flush_unix_secs) > (2 * myoxus_metrics_flush_interval_seconds))
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Metrics flush stalled"
+          description: "No successful metrics flush observed within 2x the configured flush interval — persistence pipeline degraded"

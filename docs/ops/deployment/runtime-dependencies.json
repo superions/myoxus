@@ -1,0 +1,34 @@
+{
+  "binary": ["/usr/local/bin/myoxus-server"],
+  "config": [
+    "server/config/default.yaml",
+    "optional: server/config/local.yaml",
+    "optional: /etc/myoxus/myoxus.env"
+  ],
+  "templates": ["server/templates/mail/*"],
+  "database": {
+    "required": true,
+    "engine": "postgresql",
+    "env": "MYOXUS__DATABASE__URL"
+  },
+  "redis": {
+    "required": true,
+    "required_roles": ["session", "queue", "lock"],
+    "optional_roles": ["cache", "socket"],
+    "url_env": "MYOXUS__REDIS__URL"
+  },
+  "blob_storage": {
+    "required": true,
+    "mode": ["local", "s3", "r2"],
+    "env_prefix": "MYOXUS__STORAGE__"
+  },
+  "filesystem": [
+    "storage root writable (local backend)",
+    "log directory writable when file logging enabled"
+  ],
+  "network_endpoints": [
+    "postgres host from MYOXUS__DATABASE__URL",
+    "redis host from MYOXUS__REDIS__URL",
+    "optional object-storage endpoint when backend=s3|r2"
+  ]
+}

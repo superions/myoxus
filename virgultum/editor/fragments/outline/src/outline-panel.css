@@ -1,0 +1,11 @@
+.virgultum-outline-panel {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--myoxus-background-primary-color);
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  font-family: var(--myoxus-font-sans-family);
+  padding-top: 8px;
+  position: relative;
+}

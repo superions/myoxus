@@ -1,0 +1,173 @@
+{
+  "style": "Keramik & Licht",
+  "date": "2026-10-11",
+  "generation": "built-in image_gen",
+  "reviewStatus": "proposed",
+  "referenceRoles": [
+    "Exact approved mascot identity",
+    "Approved material, palette and lighting"
+  ],
+  "commonPrompt": "Create one new premium Myoxus brand illustration. Reference image 1 is the exact approved mascot identity; reference image 2 establishes the approved 'Keramik & Licht' material, lighting, palette and sculptural treatment. Preserve the recognizable cream face, scalloped deep forest-green surround, paired arched eyebrows, dark round eyes with tiny ivory highlights, three whiskers on each cheek, rounded clover nose and friendly curved smile. Use the same slightly plastic, softly sculpted ceramic/clay material with fine tactile detail, warm studio light from upper left, sage-green accessories, ivory and tiny restrained amber accents. Polished editorial product artwork, not a cartoon animal with a new body, not photorealistic fur. Entire illustration fully visible with generous transparent margins, no cropping. Text-free and language-neutral: no words, letters, digits, logos, invented UI screenshots or watermarks. Genuine alpha transparency, no opaque backdrop, no black or white rectangle. The mascot should feel friendly and capable.",
+  "items": [
+    {
+      "name": "docs-hero",
+      "prompt": "Asset: a wide, richly composed README masthead, landscape 3:2, broad horizontal sculptural still life. Place the recognizable mascot prominently near the center, surrounded by an open ivory notebook, a few neatly stacked blank documents, a sage folder, a clearly technical database stack without amber dots, and one small framed connected-node diagram. Unify these into one coherent knowledge-workspace scene with elegant depth, layered overlapping objects, two delicate green leafy twigs and a tiny ivory blossom. The objects occupy a calm broad composition, with enough detail to reward a large view while retaining clean readable silhouettes. No separate tiles or icon grid. Transparent outside the objects; subtle contact shadows only.",
+      "transparentBackground": true,
+      "references": [
+        "assets/branding/artwork/originals/mascot.png",
+        "assets/branding/artwork/originals/welcome.png"
+      ],
+      "intendedUses": ["README.md", "docs/README.md", "welcome-myoxus"]
+    },
+    {
+      "name": "docs-handbook",
+      "prompt": "Asset: an elegant handbook cover illustration, landscape 3:2, centered and carefully balanced. A beautiful open ivory book with rounded thick pages, a sage-green cover and forest-green ribbon bookmark; our exact smiling mascot sits prominently in front of the book's lower left corner. Behind the book, a few small quiet sculpted symbols of learning: a slim pencil, a circular compass and a small botanical twig with realistic green leaves and one small ivory blossom. The page surfaces show only abstract shallow line grooves, never legible text. Refined rich material detail, subtle shadows, no floor or enclosing panel; alpha transparent outside every object. Do not turn the mascot into an animal body. This should feel like the definitive Myoxus handbook identity.",
+      "transparentBackground": true,
+      "references": [
+        "assets/branding/artwork/originals/mascot.png",
+        "assets/branding/artwork/originals/documents.png"
+      ],
+      "intendedUses": [
+        "docs/user/README.md",
+        "docs/user/handbook/index.md",
+        "docs/user/handbook/de/index.md",
+        "handbook cover"
+      ]
+    },
+    {
+      "name": "guide-start",
+      "prompt": "Asset: onboarding and handbook chapter 'first steps and orientation'. Landscape 3:2, one cohesive small still life: our exact smiling mascot at front-left, a large ivory compass with deep-green rim and small amber pivot behind-right, a gently curved sage path made of three rounded stepping stones leading towards an upright ivory document with one tiny check emblem. Two green leaves create a quiet sense of discovering a garden. Premium layered ceramic detail with airy spacing. No destination labels, no numbers, no text, no map with words. Do not change the mascot's head identity. Fully transparent background and soft alpha contact shadows; all objects inside the frame.",
+      "transparentBackground": true,
+      "references": [
+        "assets/branding/artwork/originals/mascot.png",
+        "assets/branding/artwork/originals/welcome.png"
+      ],
+      "intendedUses": ["getting-started-myoxus", "handbook chapter 01"]
+    },
+    {
+      "name": "guide-write",
+      "prompt": "Asset: learning to write and edit documents. Landscape 3:2 editorial still life. Our exact friendly mascot at front-left, beside an ivory open notebook with thick curved pages and subtle engraved paragraph lines, a lovely oversized sage-green pencil lying diagonally across the right page, and three small stacked ceramic cards representing a heading line, checkbox and picture. A small leaf tucked behind the notebook. Keep the book and pencil structurally plausible, clean and beautifully detailed. Text-free, no letters even on the small cards. Transparent background with restrained contact shadow, no container, all elements fully visible.",
+      "transparentBackground": true,
+      "references": [
+        "assets/branding/artwork/originals/mascot.png",
+        "assets/branding/artwork/originals/documents.png"
+      ],
+      "intendedUses": ["handbook chapter 02"]
+    },
+    {
+      "name": "guide-organize",
+      "prompt": "Asset: folders, collections, tags and finding content again. Landscape 3:2. Our exact smiling mascot at front-left, beside three beautifully layered sage and deep-green folders, one ivory document slightly protruding, two small rounded ceramic tag shapes threaded together with a subtle green loop, and a tiny bookmark star in amber. A few restrained realistic green leaves. Suggest useful organization, not a storage box full of clutter. Elegant tactile ceramic detailing, coherent lighting, natural balance, all elements contained. No words or numbers. Transparent background and only soft alpha contact shadows.",
+      "transparentBackground": true,
+      "references": [
+        "assets/branding/artwork/originals/mascot.png",
+        "assets/branding/artwork/originals/documents.png"
+      ],
+      "intendedUses": ["using-folders-myoxus", "handbook chapter 03"]
+    },
+    {
+      "name": "guide-data",
+      "prompt": "Asset: databases, tables and visual thinking for an onboarding guide. Landscape 3:2. Our exact friendly mascot at front-left. Behind and right, a clearly technical sage-green database symbol made of three smooth elliptical stacked discs with slim ivory horizontal separations, absolutely no amber dots, buttons, taps, barrel staves or hoops. In front-right an ivory sculpted table board with a small precise grid of rounded sage cells; behind it a small connected-node card suggesting a diagram. Beautiful coherent still life, realistic ceramic/clay detail and a restrained pair of green leaves. No words or numbers and no imitation software screenshot. Transparent alpha background, soft shadows only around the objects. Make the database unmistakably a database, never a barrel.",
+      "transparentBackground": true,
+      "references": [
+        "assets/branding/artwork/originals/mascot.png",
+        "assets/branding/artwork/originals/documents.png"
+      ],
+      "intendedUses": ["databases-guide-myoxus", "handbook chapter 04"]
+    },
+    {
+      "name": "guide-collaborate",
+      "prompt": "Asset: collaboration, comments and sharing knowledge. Landscape 3:2 coherent ceramic still life. Preserve exactly the reference mascot, prominently front-left; behind it an upright ivory document with shallow line grooves, surrounded by two overlapping rounded sage and ivory speech bubbles with simple recessed horizontal lines, a small linked-circle symbol and a restrained amber sharing connector. The bubbles have believable smooth ceramic thickness and distinct tails. A pair of quiet green leaves anchors the scene. No second invented mascot, no animal body, no words or digits. Refined tactile detail and soft warm upper-left light. Alpha transparent outside the complete objects with subtle contact shadows only.",
+      "transparentBackground": true,
+      "references": [
+        "assets/branding/artwork/originals/mascot.png",
+        "assets/branding/artwork/originals/documents.png"
+      ],
+      "intendedUses": ["handbook chapter 05"]
+    },
+    {
+      "name": "guide-exchange",
+      "prompt": "Asset: importing and exporting documents, portable knowledge. Landscape 3:2. Our exact smiling mascot at front-left. Behind-right, two thick ivory document stacks with folded corners and shallow line grooves, connected by two elegant curved sage-green directional arrows indicating exchange in opposite directions. In front, one open sage archive folder containing a small image card and one amber check emblem for a completed transfer. Add two restrained green leaves. Sculptural ceramic/clay detail, clear readable geometry, no invented brand marks or format labels, no text or digits. Keep all objects fully inside the canvas, uncluttered layered composition, alpha transparent background and soft local shadows.",
+      "transparentBackground": true,
+      "references": [
+        "assets/branding/artwork/originals/mascot.png",
+        "assets/branding/artwork/originals/documents.png"
+      ],
+      "intendedUses": ["handbook chapter 06"]
+    },
+    {
+      "name": "guide-recovery",
+      "prompt": "Asset: document history, reviewing versions and recovering content. Landscape 3:2. Exact reference mascot with a calm reassuring friendly smile at front-left. Behind-right, an ivory clock face with forest-green rim, simple hour ticks and two sage hands, framed partly by a beautifully sculpted curved green restore arrow. In front-right a neat stack of three slightly staggered ivory document cards suggests saved versions, with one restrained small amber check emblem. A pair of green leaves. This depicts confident recovery guidance, not an active error: keep the mascot friendly, not sad. No text or digits, no technical UI reconstruction. Premium clay/ceramic material, soft upper-left lighting and genuine alpha background, all objects completely visible.",
+      "transparentBackground": true,
+      "references": [
+        "assets/branding/artwork/originals/mascot.png",
+        "assets/branding/artwork/originals/documents.png"
+      ],
+      "intendedUses": ["handbook chapter 07"]
+    },
+    {
+      "name": "guide-help",
+      "prompt": "Asset: desktop clients, updates and getting help. Landscape 3:2. Our exact smiling mascot at front-left, beside a beautiful sage-green laptop with an ivory screen showing only a simple forest-green document emblem, and behind it an upright rounded ivory help card carrying one sculpted forest-green question mark. A small amber check medallion near the laptop represents successful updates; two green leaves anchor the scene. The laptop is a stylized ceramic object, not a reconstructed software UI. No letters, digits or words; the question mark is the single allowed punctuation symbol. Rich tactile material and clean readable forms, warm soft studio lighting, fully transparent background and restrained alpha shadows.",
+      "transparentBackground": true,
+      "references": [
+        "assets/branding/artwork/originals/mascot.png",
+        "assets/branding/artwork/originals/documents.png"
+      ],
+      "intendedUses": [
+        "handbook chapter 08",
+        "docs/user/web-and-rich-clients.md",
+        "docs/user/downloads.md"
+      ]
+    },
+    {
+      "name": "guide-meeting",
+      "prompt": "Asset: the Myoxus meetings onboarding document. Landscape 3:2. Exact reference mascot friendly and attentive at front-left. Behind-right, a neatly upright ivory agenda notebook with three recessed lines and three small sage checkboxes; in front-right a small elegant circular sage tabletop with three ivory-and-green rounded abstract seat markers arranged around it, plus a small ivory speech bubble. One restrained amber clock pivot or check accent, no numbers. Keep a coherent sculpted ceramic still life, not a complete room and not humanoid animals. A pair of green leaves balances the notebook. Distinct from generic document artwork and clearly suggests a prepared meeting. No words or logos. Fully transparent background, rich soft material detail and restrained local shadows.",
+      "transparentBackground": true,
+      "references": [
+        "assets/branding/artwork/originals/mascot.png",
+        "assets/branding/artwork/originals/documents.png"
+      ],
+      "intendedUses": ["meeting-templates-myoxus"]
+    },
+    {
+      "name": "docs-operate",
+      "prompt": "Asset: self-hosting and operations documentation README. Landscape 3:2 premium coherent still life. Exact friendly reference mascot at front-left, beside two compact forest-green and sage server towers with clean ivory horizontal slot accents and very small sage indicator lights; a smooth ivory shield with one sage check mark sits in front-right. A short visibly connected sage cable between the two servers, and a quiet green botanical twig. These are abstract beautifully crafted ceramic infrastructure objects, not an actual hardware brand, no black generic rack photo. No words, digits or yellow dots on cylinders; there is no database barrel here. Rich restrained detailing, warm upper-left light, full alpha transparency and soft contact shadows, all objects fully within the canvas.",
+      "transparentBackground": true,
+      "references": [
+        "assets/branding/artwork/originals/mascot.png",
+        "assets/branding/artwork/originals/documents.png"
+      ],
+      "intendedUses": [
+        "docs/ops/README.md",
+        "docs/ops/getting-started/README.md",
+        "docs/ops/deployment/README.md",
+        "docs/ops/security/README.md"
+      ]
+    },
+    {
+      "name": "docs-develop",
+      "prompt": "Asset: developer documentation README. Landscape 3:2. Exact friendly reference mascot front-left, beside a beautiful small sage-green laptop with ivory screen carrying only one simple raised forest-green pair of angle brackets, and three carefully stacked ivory and sage modular building blocks behind it that suggest a well-built system. A small clean ceramic tool, such as a rounded green spanner, rests in front-right; two green leaves gently frame the scene. The brackets are the only allowed symbolic punctuation, no source code text, letters, digits or pseudo logos. Premium tactile ceramic/clay material, warm coherent lighting and readable silhouettes. Keep all objects completely visible. Genuine transparent background and subtle local contact shadows; no enclosing frame.",
+      "transparentBackground": true,
+      "references": [
+        "assets/branding/artwork/originals/mascot.png",
+        "assets/branding/artwork/originals/documents.png"
+      ],
+      "intendedUses": [
+        "docs/dev/README.md",
+        "docs/dev/clients/README.md",
+        "docs/dev/server/README.md",
+        "docs/test/README.md",
+        "CONTRIBUTING.md"
+      ]
+    },
+    {
+      "name": "docs-integrate",
+      "prompt": "Asset: API, integrations and connecting systems documentation README. Landscape 3:2 coherent sculptural still life. Exact reference smiling mascot front-left; behind-right, three ivory and sage rounded panels connected by smooth thick forest-green links, each panel showing only a simple recessed document, grid or node symbol. At front-right a lovely ivory-and-sage plug with two simple prongs fits neatly beside a matching socket, representing integration. One tiny restrained amber connector pivot, a quiet leafy twig. No wires forming a messy network, no third-party branding, no words, digits, acronyms or pseudo UI. Premium tactile ceramic/clay materials, warm upper-left lighting, complete objects fully visible and genuine alpha transparency with subtle contact shadows.",
+      "transparentBackground": true,
+      "references": [
+        "assets/branding/artwork/originals/mascot.png",
+        "assets/branding/artwork/originals/documents.png"
+      ],
+      "intendedUses": ["docs/api/README.md", "docs/ops/integrations/README.md"]
+    }
+  ]
+}

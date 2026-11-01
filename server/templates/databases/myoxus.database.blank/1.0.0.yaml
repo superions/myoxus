@@ -1,0 +1,87 @@
+format_version: 1
+id: myoxus.database.blank
+version: 1.0.0
+task_core: null
+variants:
+  - option_extensions: []
+    field_order:
+      - title
+    role_order: []
+    priority: threeStep
+    complexity: threeStep
+    structure: tasks_only
+    spec:
+      category: database
+      complexity_preset: null
+      default_structure: null
+      description: A clean table with only a title field.
+      fields:
+        - config:
+            Direct:
+              kind: title
+          field_type: title
+          key: title
+          name: Title
+          required: true
+      id: myoxus.database.blank
+      manifest:
+        category: database
+        defaultStructure: null
+        descriptionKey: com.myoxus.database.starter-template.database-blank.description
+        fields:
+          - configKind: title
+            fieldType: title
+            importExportBehavior: read_write
+            key: title
+            nameKey: com.myoxus.database.starter-template.database-blank.field.title.name
+            required: true
+        id: myoxus.database.blank
+        importMappings:
+          - columnMappings:
+              - fieldKey: title
+                required: true
+                sourceHeader: Title
+            key: default-csv
+            nameKey: com.myoxus.database.starter-template.database-blank.import-mapping.default-csv.name
+        nameKey: com.myoxus.database.starter-template.database-blank.name
+        profileKind: generic
+        roles: []
+        rowTemplates:
+          - descriptionKey: null
+            initialFieldKeys: []
+            isDefault: true
+            key: blank-row
+            nameKey: com.myoxus.database.starter-template.database-blank.row-template.blank-row.name
+            rowKind: record
+        sampleRows: []
+        schemaVersion: 1
+        views:
+          - axisFieldKeys: []
+            fieldKeys:
+              - title
+            key: table
+            nameKey: com.myoxus.database.starter-template.database-blank.view.table.name
+            primary: true
+            viewKind: table
+            visibleFieldKeys:
+              - title
+      name: Blank Database
+      priority_preset: null
+      profile_kind: generic
+      roles: []
+      row_templates:
+        - description: null
+          initial_cells: []
+          is_default: true
+          key: blank-row
+          name: Blank row
+          row_kind: record
+      sample_rows: []
+      views:
+        - config:
+            Table:
+              group: null
+              visible:
+                - title
+          kind: table
+          name: Table

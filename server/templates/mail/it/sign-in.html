@@ -1,0 +1,35 @@
+{% extends "_layout.html" %} {% block subject %}Il tuo link di accesso a
+Myoxus{% endblock subject %} {% block preheader %}Puoi anche inserire il codice
+monouso nella finestra di accesso.{% endblock preheader %} {% block category
+%}IL TUO ACCOUNT{% endblock category %} {% block heading %}Accedi a Myoxus.{%
+endblock heading %} {% block introduction %}Hai richiesto un link per accedere
+al tuo account Myoxus. Usa il pulsante per continuare.{% endblock introduction
+%} {% block details %}{% if email %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  INDIRIZZO EMAIL
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ email }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}Puoi anche inserire il
+codice monouso nella finestra di accesso.{% endblock next_step %} {% block
+action %}Accedi a Myoxus{% endblock action %} {% block note %}Non condividere
+questo link o il codice monouso. Se non hai richiesto di accedere, ignora questa
+email.{% endblock note %} {% block reason %}Ricevi questa email perché è stato
+richiesto un link di accesso per questo indirizzo.{% endblock reason %}

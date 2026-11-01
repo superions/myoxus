@@ -1,0 +1,61 @@
+query listHistory(
+  $workspaceId: String!
+  $pageDocId: String!
+  $take: Int
+  $before: DateTime
+  $cursor: String
+  $namedOnly: Boolean
+) {
+  workspace(id: $workspaceId) {
+    histories(
+      guid: $pageDocId
+      take: $take
+      before: $before
+      cursor: $cursor
+      namedOnly: $namedOnly
+    ) {
+      id
+      snapshotId
+      cursor
+      timestamp
+      origin
+      editor {
+        name
+        avatarUrl
+      }
+    }
+  }
+}
+
+query historyMetadata($workspaceId: String!, $pageDocId: String!, $snapshotId: ID!) {
+  workspace(id: $workspaceId) {
+    history(guid: $pageDocId, snapshotId: $snapshotId) {
+      id
+      snapshotId
+      cursor
+      timestamp
+      origin
+      editor { name avatarUrl }
+    }
+  }
+}
+
+query historyDiff($workspaceId: String!, $pageDocId: String!, $snapshotId: ID!) {
+  workspace(id: $workspaceId) {
+    id
+    historyDiff(guid: $pageDocId, snapshotId: $snapshotId) {
+      snapshotId
+      currentRevision
+      readAt
+      extractionPartial
+      comparisonBlocks {
+        blockId
+        kind
+        flavour
+        placementKnown
+        runs { kind text }
+      }
+      notices { kind blockId }
+    }
+  }
+}

@@ -1,0 +1,32 @@
+.myoxus-electron-shell-root {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--myoxus-background-primary-color);
+}
+
+.myoxus-electron-shell-root[data-translucent="true"] {
+  background: transparent;
+}
+
+.myoxus-electron-shell-body {
+  flex: 1;
+  padding-top: 52px;
+}
+
+.myoxus-electron-shell-app-tabs-header {
+  z-index: 1;
+  position: absolute;
+  top: 0;
+}
+
+.myoxus-electron-shell-split-view-fallback {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  z-index: 0;
+  background: var(--myoxus-background-primary-color);
+}

@@ -1,0 +1,2135 @@
+[
+  {
+    "id": "native-server-package-installation",
+    "paths": [
+      "build/scripts/ci/verify-installed-server-package.sh",
+      "build/server/packages/**"
+    ],
+    "select_suites": ["server.packages.install"],
+    "reason": "The dedicated install guests own real package-manager and filesystem checks; this manual suite never installs packages on a development or general CI host."
+  },
+  {
+    "id": "pre-commit-staging",
+    "paths": [
+      ".husky/pre-commit",
+      "package.json",
+      "yarn.lock",
+      "build/scripts/ci/lint-staged.test.mjs"
+    ],
+    "select_suites": ["tooling.lint-staged"],
+    "reason": "Verify repository hook arguments, glob matching, partial staging, side-effect protection, rollback and linked-worktree isolation."
+  },
+  {
+    "id": "ci-pr-event-lanes",
+    "paths": [
+      ".forgejo/workflows/**",
+      "build/scripts/ci/ci-lane-plan.mjs",
+      "build/scripts/ci/ci-pr-lanes.test.mjs",
+      "build/scripts/ci/run-pr-source-checks.mjs",
+      "build/scripts/ci/source-tools.mjs",
+      "build/scripts/ci/source-imports.mjs",
+      "build/scripts/ci/lint-changed-sources.mjs",
+      "build/scripts/ci/verify-merge-source-contracts.mjs",
+      "build/scripts/ci/merge-source-contracts.test.mjs",
+      "build/scripts/ci/verify-workflow-lanes.mjs"
+    ],
+    "select_suites": ["ci.pr-lanes"],
+    "reason": "Verify separated PR/pre-merge source lanes, reused lint, changed import/SQL contracts and process-tree cleanup without product builds."
+  },
+  {
+    "id": "integration-source-lint",
+    "paths": [
+      "client/**/*.ts",
+      "client/**/*.tsx",
+      "client/**/*.js",
+      "client/**/*.jsx",
+      "virgultum/**/*.ts",
+      "virgultum/**/*.tsx",
+      "build/scripts/**/*.mjs",
+      "build/scripts/ci/lint-changed-sources.mjs"
+    ],
+    "select_suites": ["lint.oxlint.changed"],
+    "reason": "Lint the complete integration source diff instead of the whole repository."
+  },
+  {
+    "id": "workspace-runtime-import-boundaries",
+    "paths": [
+      "client/admin/workspaces/admin/**",
+      "client/libs/core/**",
+      "tools/**",
+      "build/scripts/ci/verify-workspace-dependency-boundaries.mjs",
+      "build/scripts/ci/source-imports.mjs"
+    ],
+    "select_suites": ["lint.workspace-dependencies"],
+    "reason": "Keep actual runtime import ownership checked at integration, including specs, without installing parser dependencies in PR source checks."
+  },
+  {
+    "id": "bpmn-source",
+    "paths": [
+      "client/libs/bpmn-editor/src/source.ts",
+      "client/libs/bpmn-editor/src/process-source.ts",
+      "client/libs/bpmn-editor/src/source-profile.ts",
+      "client/libs/bpmn-editor/src/editor/mutations/element-visitor.ts",
+      "client/libs/bpmn-editor/src/editor/normalization/normalize.ts",
+      "client/libs/bpmn-editor/src/marshaller.ts",
+      "client/libs/bpmn-editor/src/xml-parser/**",
+      "client/libs/bpmn-editor/src/schemas/**",
+      "client/libs/bpmn-editor/src/fixtures/**",
+      "client/libs/bpmn-editor/src/source.spec.ts",
+      "client/libs/bpmn-editor/scripts/**",
+      "client/libs/bpmn-editor/tsconfig.source.json",
+      "client/libs/bpmn-editor/vitest.config.ts",
+      "client/libs/bpmn-editor/package.json"
+    ],
+    "select_suites": ["bpmn.source"],
+    "reason": "Verify generated schema reproducibility, independent build, semantic/DI roundtrips and worker-safe source loading."
+  },
+  {
+    "id": "bpmn-runtime",
+    "paths": [
+      "client/libs/bpmn-editor/src/source-profile.ts",
+      "client/libs/bpmn-editor/src/modeller.tsx",
+      "client/libs/bpmn-editor/src/xyflow/**",
+      "client/libs/bpmn-editor/src/editor/**",
+      "client/libs/bpmn-editor/tsconfig.json",
+      "client/libs/bpmn-editor/tsconfig.tools.json",
+      "client/libs/bpmn-editor/vitest.editor.config.ts",
+      "client/libs/bpmn-editor/package.json"
+    ],
+    "select_suites": ["bpmn.runtime"],
+    "reason": "Build, lint and check retained editor model/history invariants at their package owner without repeating source-only fixtures."
+  },
+  {
+    "id": "bpmn-block",
+    "paths": [
+      "virgultum/editor/blocks/bpmn/**",
+      "virgultum/editor/model/src/blocks/bpmn/**",
+      "client/libs/core/src/modules/bpmn-editor/**",
+      "client/libs/core/src/editor/view-extensions/editor-view/bpmn-block-presentation*",
+      "client/libs/core/src/editor/virgultum/doc-editor/myoxus-host-adapter.ts",
+      "virgultum/editor/shared/src/services/host/{types,myoxus-host-service}.ts"
+    ],
+    "select_suites": ["bpmn.block"],
+    "reason": "The root Virgultum name filter does not discover the block package tests; execute its actual XML model/clipboard and real Core portal/session consumers."
+  },
+  {
+    "id": "bpmn-integration",
+    "paths": [
+      "virgultum/integration-test/src/__tests__/main/bpmn-block.spec.ts"
+    ],
+    "select_suites": ["bpmn.integration"],
+    "reason": "Expose the explicit desktop public-command browser consumer without promoting it to default test execution."
+  },
+  {
+    "id": "bpmn-page-journey",
+    "paths": [
+      "tests/client/webfrontend/editor-flow/tests/virgultum-bpmn-block.spec.ts"
+    ],
+    "select_suites": ["web.bpmn.editor"],
+    "reason": "Explicit persisted Page insertion/save/reload consumer; not a default browser run."
+  },
+  {
+    "id": "editor-annotation-consumer",
+    "paths": [
+      "client/libs/core/src/editor/view-extensions/editor-view/annotation*",
+      "client/libs/core/src/editor/view-extensions/editor-view/callout*",
+      "client/libs/core/src/editor/view-extensions/editor-view/doc-embed*",
+      "client/libs/core/src/modules/workbench/view/browser-adapter.ts",
+      "client/libs/core/src/modules/workbench/view/__tests__/browser-adapter.spec.ts",
+      "client/libs/core/src/editor/utils/annotation-interchange.spec.ts",
+      "client/libs/core/src/editor/utils/markdown-utils.ts",
+      "client/libs/core/src/editor/view-extensions/editor-view/notification-service*",
+      "client/libs/core/src/desktop/dialogs/import/import-diagnostics.spec.tsx",
+      "client/libs/core/src/desktop/dialogs/import-workspace/import-workspace.spec.tsx",
+      "client/libs/core/src/components/hooks/myoxus/use-export-page.ts",
+      "client/libs/core/src/components/page-list/operation-menu-items/import.tsx",
+      "client/libs/ui-facade/src/annotation*"
+    ],
+    "select_suites": ["editor.annotations.vitest"],
+    "reason": "Verify annotation authoring through the consuming desktop Core UI and native Mantine typography, without mobile/compact UI execution."
+  },
+  {
+    "id": "yrs-shared-source",
+    "paths": ["build/dependencies/yrs-source.json"],
+    "select_suites": [
+      "yjs.compat",
+      "server.document.unit",
+      "client.native.rust"
+    ],
+    "reason": "The immutable external CRDT package is shared by server and native persisted-protocol consumers."
+  },
+  {
+    "id": "cargo-dependency-source",
+    "paths": [
+      "Cargo.toml",
+      "Cargo.lock",
+      "server/Cargo.toml",
+      "server/Cargo.lock",
+      "server/**/Cargo.toml",
+      "client/**/Cargo.toml",
+      "build/scripts/ci/verify-cargo-dependency-source.py",
+      "build/scripts/ci/test-cargo-dependency-source.py"
+    ],
+    "select_suites": ["lint.cargo-dependency-source"],
+    "reason": "Validate real workspace consumers and resolved advisory targets before compilation."
+  },
+  {
+    "id": "repository-skills",
+    "paths": [".agents/skills/**", "tools/codex/**"],
+    "select_suites": ["skills.repo"],
+    "reason": "Repository-owned Codex skills and their portable validators must pass structural and representative failure-fixture checks."
+  },
+  {
+    "id": "server-api-rust-unit",
+    "paths": ["server/crates/api/**/*.rs"],
+    "select_suites": ["server.api.unit"],
+    "reason": "API source changes execute API-owned service-free library invariants instead of every server crate's unit tests.",
+    "exclude_paths": ["server/crates/api/tests/**"]
+  },
+  {
+    "id": "server-domain-rust-unit",
+    "paths": [
+      "server/crates/domain/**/*.rs",
+      "server/crates/application/**/*.rs",
+      "server/crates/contracts/**/*.rs"
+    ],
+    "select_suites": ["server.domain.unit"],
+    "reason": "Domain, application and shared-contract source changes execute their bounded service-free owner suite."
+  },
+  {
+    "id": "server-infrastructure-rust-unit",
+    "paths": ["server/crates/infrastructure/**/*.rs"],
+    "exclude_paths": [
+      "server/crates/infrastructure/tests/migration_baseline.rs",
+      "server/crates/infrastructure/tests/migrations_idempotent.rs",
+      "server/crates/infrastructure/tests/migrations_idempotent/**"
+    ],
+    "select_suites": ["server.infrastructure.unit"],
+    "reason": "Infrastructure source changes execute infrastructure-owned service-free library invariants."
+  },
+  {
+    "id": "server-infrastructure-migrations",
+    "paths": [
+      "server/crates/infrastructure/src/workspace_database/**",
+      "server/crates/infrastructure/migrations/**",
+      "server/crates/infrastructure/tests/migration_baseline.rs",
+      "server/crates/infrastructure/tests/migrations_idempotent.rs",
+      "server/crates/infrastructure/tests/migrations_idempotent/**",
+      "server/crates/infrastructure/src/workspace_database/definition/**"
+    ],
+    "select_suites": ["server.infrastructure.migrations"],
+    "reason": "Database repository and migration changes execute their existing PostgreSQL integration target, including migration idempotency and relational writer invariants."
+  },
+  {
+    "id": "server-document-history",
+    "paths": [
+      "server/crates/application/src/doc/history.rs",
+      "server/crates/application/src/doc/traits.rs",
+      "server/crates/application/src/document_version/**",
+      "server/crates/infrastructure/src/document_version/**",
+      "server/crates/infrastructure/src/doc/**",
+      "server/crates/infrastructure/src/document_version*.rs",
+      "server/crates/infrastructure/tests/doc_history_test.rs",
+      "server/crates/infrastructure/tests/document_version_repos.rs",
+      "server/crates/api/src/graphql/auth/workspace.rs",
+      "server/crates/api/src/graphql/document_version.rs",
+      "server/crates/api/src/handlers/workspace_doc.rs",
+      "server/crates/api/tests/pdf/document_version_graphql_test.rs",
+      "server/crates/api/tests/db/workspaces/workspace_docs_rest_compat.rs",
+      "server/crates/api/tests/db/documents/graphql_doc_test.rs"
+    ],
+    "select_suites": ["server.document-history.integration"],
+    "reason": "Snapshot pagination, authorization, capture and restore execute their existing infrastructure and API integration owners."
+  },
+  {
+    "id": "server-git-sync-token-rotation",
+    "paths": [
+      "server/crates/application/src/git_sync/git_token_rotation.rs",
+      "server/crates/infrastructure/src/git_sync/gitlab_token_rotation.rs",
+      "server/crates/infrastructure/src/git_sync/token_rotation.rs",
+      "server/crates/infrastructure/tests/gitlab_token_rotation_test.rs",
+      "server/crates/infrastructure/tests/support/git_https_fixture.rs"
+    ],
+    "select_suites": ["server.git-sync.token-rotation"],
+    "reason": "GitLab token-rotation changes execute the exact bounded private-CA provider request and terminal-outcome fixture."
+  },
+  {
+    "id": "server-git-sync-https",
+    "paths": [
+      "server/crates/application/src/git_sync/backend.rs",
+      "server/crates/api/src/bin/server.rs",
+      "server/crates/api/src/config.rs",
+      "server/crates/api/src/graphql/mod.rs",
+      "server/crates/infrastructure/src/git_sync/git2_adapter.rs",
+      "server/crates/infrastructure/tests/git_sync_integration_test.rs",
+      "server/crates/infrastructure/tests/support/git_https_fixture.rs"
+    ],
+    "select_suites": ["server.git-sync.https"],
+    "reason": "Git-Sync HTTPS trust changes must pass the exact local private-CA probe/clone/fetch/push and strict negative-control journey."
+  },
+  {
+    "id": "server-mcp-rust-unit",
+    "paths": ["server/crates/mcp/**/*.rs"],
+    "select_suites": ["server.mcp.unit"],
+    "reason": "MCP source changes execute MCP-owned service-free protocol and tool invariants."
+  },
+  {
+    "id": "server-pdf-templates-contract",
+    "paths": [
+      "server/crates/pdf_export/**",
+      "server/crates/pdf_export_templates/**",
+      "server/templates/pdf/**",
+      "server/crates/infrastructure/src/pdf_export/template_bootstrap.rs",
+      "server/crates/infrastructure/src/pdf_export/registry.rs",
+      "server/crates/infrastructure/tests/pdf_template_seeding.rs",
+      "server/crates/infrastructure/tests/pdf_template_registry.rs",
+      "server/crates/domain/tests/pdf_template_manifest_roundtrip.rs"
+    ],
+    "select_suites": ["server.pdf-templates.contract"],
+    "reason": "PDF source, Typst modules, manifests and locale files execute upload/preview, final-PDF and manifest integration contracts."
+  },
+  {
+    "id": "server-rendering-rust-unit",
+    "paths": [
+      "server/crates/mermaid_render/**/*.rs",
+      "server/crates/pdf_export/**/*.rs",
+      "server/crates/pdf_export_templates/**/*.rs",
+      "server/crates/public_render/**/*.rs",
+      "server/templates/html/**",
+      "server/crates/infrastructure/src/html_templates.rs"
+    ],
+    "select_suites": ["server.rendering.unit"],
+    "reason": "Rendering source changes execute the bounded HTML, Mermaid and PDF library owner suite."
+  },
+  {
+    "id": "server-document-rust-unit",
+    "paths": [
+      "server/crates/doc_pipeline/**/*.rs",
+      "server/crates/tests/**/*.rs",
+      "server/crates/yjs/**/*.rs"
+    ],
+    "select_suites": ["server.document.unit"],
+    "reason": "Document pipeline, Yjs and shared server-test support changes execute their bounded service-free owner suite."
+  },
+  {
+    "id": "server-rust-workspace-contract",
+    "paths": [
+      "server/Cargo.toml",
+      "server/Cargo.lock",
+      "server/crates/**/Cargo.toml"
+    ],
+    "select_suites": ["server.rust.check", "server.rust.unit"],
+    "reason": "Workspace and crate manifest changes retain explicit whole-workspace library, binary and unit-target coverage."
+  },
+  {
+    "id": "rust-test-quality-ratchet",
+    "paths": ["server/**/*.rs"],
+    "select_suites": ["test.rust-quality-ratchet", "server.test-ownership"],
+    "reason": "Changed Rust test-owned files must not add bare cleanup ok calls and must remain represented in the server ownership inventory."
+  },
+  {
+    "id": "server-api-integration",
+    "paths": [
+      "server/crates/api/**",
+      "server/crates/application/**",
+      "server/crates/infrastructure/**"
+    ],
+    "exclude_paths": [
+      "server/crates/infrastructure/src/storage/**",
+      "server/crates/infrastructure/src/workspace_database/**",
+      "server/crates/infrastructure/tests/storage_minio.rs",
+      "server/crates/infrastructure/migrations/**",
+      "server/crates/infrastructure/tests/migration_baseline.rs",
+      "server/crates/infrastructure/tests/migrations_idempotent.rs",
+      "server/crates/infrastructure/tests/migrations_idempotent/**",
+      "server/crates/api/tests/**"
+    ],
+    "select_suites": ["api.integration.quick"],
+    "reason": "Only shared API smoke contracts run for every API/application/infrastructure change; capability rules select their own integration cases."
+  },
+  {
+    "id": "server-standard-storage",
+    "paths": ["server/crates/api/tests/db/storage/blob_upload_test.rs"],
+    "select_suites": ["server.storage.integration.quick"],
+    "reason": "Execute the unchanged standard integration cases for storage and its explicit consuming contracts."
+  },
+  {
+    "id": "server-standard-documents",
+    "paths": [
+      "server/crates/api/tests/contract/graphql/graphql_document_graph_identity_test.rs",
+      "server/crates/api/tests/contract/graphql/graphql_workspace_template_context_test.rs",
+      "server/crates/api/tests/db/workspaces/graphql_workspace_tags_test.rs",
+      "server/crates/api/tests/contract/persistence/workspace_content_operation_persistence_test.rs",
+      "server/crates/api/tests/db/documents/page_lifecycle_test.rs",
+      "server/crates/api/tests/db/documents/graphql_doc_test.rs",
+      "server/crates/api/tests/db/workspaces/workspace_docs_rest_compat.rs",
+      "server/crates/api/tests/mcp/mcp_create_page_test.rs",
+      "server/crates/api/tests/mcp/mcp_blob_tools_test.rs",
+      "server/crates/api/tests/mcp/mcp_folder_tools_test.rs",
+      "server/crates/api/tests/mcp/mcp_workspace_tag_test.rs",
+      "server/crates/api/tests/mcp/mcp_document_template_test.rs",
+      "server/crates/api/tests/db/documents/sync_doc_id_roundtrip_test.rs"
+    ],
+    "select_suites": ["server.documents.integration.quick"],
+    "reason": "Execute the unchanged standard integration cases for documents and its explicit consuming contracts."
+  },
+  {
+    "id": "server-standard-config",
+    "paths": [
+      "server/crates/api/tests/admin/admin_config_schema_test.rs",
+      "server/crates/api/tests/admin/admin_config_update_test.rs",
+      "server/crates/api/tests/ops/config/inv_config_import_test.rs",
+      "server/crates/api/tests/ops/config/inv_config_setup_test.rs"
+    ],
+    "select_suites": ["server.config.integration.quick"],
+    "reason": "Execute the unchanged standard integration cases for config and its explicit consuming contracts."
+  },
+  {
+    "id": "server-standard-auth",
+    "paths": [
+      "server/crates/api/tests/auth/auth_error_paths_test.rs",
+      "server/crates/api/tests/auth/auth_oidc_ou_sync_test.rs",
+      "server/crates/api/tests/contract/graphql/graphql_admin_user_test.rs",
+      "server/crates/api/tests/auth/auth_password_test.rs"
+    ],
+    "select_suites": ["server.auth.integration.quick"],
+    "reason": "Execute the unchanged standard integration cases for auth and its explicit consuming contracts."
+  },
+  {
+    "id": "server-standard-organization",
+    "paths": [
+      "server/crates/api/src/graphql/organization*.rs",
+      "server/crates/api/src/organization/**",
+      "server/crates/application/src/organization/**",
+      "server/crates/infrastructure/src/organization/**",
+      "server/crates/api/tests/contract/graphql/graphql_organization_import_export_test.rs",
+      "server/crates/api/tests/contract/graphql/graphql_workspace_member_permission_test.rs"
+    ],
+    "select_suites": [
+      "server.organization.integration.quick",
+      "server.auth.integration.quick",
+      "server.documents.integration.quick"
+    ],
+    "reason": "Execute the unchanged standard integration cases for organization and its explicit consuming contracts."
+  },
+  {
+    "id": "server-standard-calendar",
+    "paths": [
+      "server/crates/api/src/graphql/auth/calendar.rs",
+      "server/crates/api/src/handlers/calendar.rs",
+      "server/crates/api/src/websocket/calendar_broadcast.rs",
+      "server/crates/application/src/calendar/**",
+      "server/crates/infrastructure/src/calendar/**",
+      "server/crates/infrastructure/src/calendar_write.rs",
+      "server/crates/api/tests/calendar/**",
+      "server/crates/api/tests/contract/graphql/graphql_calendar*",
+      "server/crates/api/tests/contract/graphql/graphql_calendar.rs",
+      "server/crates/api/tests/contract/graphql/graphql_calendar_native_test.rs"
+    ],
+    "select_suites": ["server.calendar.integration.quick"],
+    "reason": "Execute the unchanged standard integration cases for calendar and its explicit consuming contracts."
+  },
+  {
+    "id": "server-standard-git-sync",
+    "paths": [
+      "server/crates/api/src/git_sync_engine/**",
+      "server/crates/api/src/handlers/git_sync.rs",
+      "server/crates/api/src/graphql/git_sync.rs",
+      "server/crates/application/src/git_sync/**",
+      "server/crates/infrastructure/src/git_sync/**",
+      "server/crates/domain/src/git_sync.rs",
+      "server/crates/api/tests/integrations/git_sync/**",
+      "server/crates/api/tests/contract/graphql/graphql_git_sync*",
+      "server/crates/api/tests/contract/graphql/graphql_git_sync_profile_test.rs",
+      "server/crates/api/tests/integrations/git_sync/git_sync_db_invariants_test.rs",
+      "server/crates/api/tests/integrations/git_sync/git_sync_file_pipeline_test.rs",
+      "server/crates/api/tests/integrations/git_sync/git_sync_mirror_maintenance_test.rs",
+      "server/crates/api/tests/integrations/git_sync/git_sync_rebase_test.rs",
+      "server/crates/api/tests/integrations/git_sync/git_sync_runner_harness_test.rs"
+    ],
+    "select_suites": ["server.git-sync.integration.quick"],
+    "reason": "Execute the unchanged standard integration cases for git-sync and its explicit consuming contracts."
+  },
+  {
+    "id": "server-standard-api",
+    "paths": [
+      "server/crates/api/src/handlers/health.rs",
+      "server/crates/api/tests/contract/schema/graphql_schema_drift_test.rs",
+      "server/crates/api/tests/realtime/sync_permission_test.rs",
+      "server/crates/api/tests/ops/http/health_endpoints.rs",
+      "server/crates/api/tests/contract/graphql/graphql_search_missing_repository_test.rs",
+      "server/crates/api/tests/contract/source_scan/lint_doc_id_parsing.rs",
+      "server/crates/api/tests/realtime/connection_admission_test.rs",
+      "server/crates/api/tests/auth/socketio_auth_test.rs"
+    ],
+    "select_suites": ["api.integration.quick"],
+    "reason": "Execute the unchanged standard integration cases for api and its explicit consuming contracts."
+  },
+  {
+    "id": "server-standard-shared-integration",
+    "paths": [
+      "server/crates/api/**",
+      "server/crates/application/**",
+      "server/crates/infrastructure/**",
+      "server/crates/domain/**",
+      "server/crates/contracts/**",
+      "server/crates/tests/**",
+      "server/crates/yjs/**",
+      "server/crates/mcp/**",
+      "server/config/**"
+    ],
+    "exclude_paths": [
+      "server/crates/infrastructure/src/storage/**",
+      "server/crates/infrastructure/src/workspace_database/**",
+      "server/crates/infrastructure/tests/storage_minio.rs",
+      "server/crates/infrastructure/migrations/**",
+      "server/crates/infrastructure/tests/migration_baseline.rs",
+      "server/crates/infrastructure/tests/migrations_idempotent.rs",
+      "server/crates/infrastructure/tests/migrations_idempotent/**",
+      "server/crates/api/src/handlers/health.rs",
+      "server/crates/api/tests/contract/schema/graphql_schema_drift_test.rs",
+      "server/crates/api/tests/realtime/sync_permission_test.rs",
+      "server/crates/api/tests/ops/http/health_endpoints.rs",
+      "server/crates/api/tests/contract/graphql/graphql_search_missing_repository_test.rs",
+      "server/crates/api/tests/contract/source_scan/lint_doc_id_parsing.rs",
+      "server/crates/api/tests/realtime/connection_admission_test.rs",
+      "server/crates/api/tests/auth/socketio_auth_test.rs",
+      "server/crates/api/src/git_sync_engine/**",
+      "server/crates/api/src/handlers/git_sync.rs",
+      "server/crates/api/src/graphql/git_sync.rs",
+      "server/crates/application/src/git_sync/**",
+      "server/crates/infrastructure/src/git_sync/**",
+      "server/crates/domain/src/git_sync.rs",
+      "server/crates/api/tests/integrations/git_sync/**",
+      "server/crates/api/tests/contract/graphql/graphql_git_sync*",
+      "server/crates/api/tests/contract/graphql/graphql_git_sync_profile_test.rs",
+      "server/crates/api/tests/integrations/git_sync/git_sync_db_invariants_test.rs",
+      "server/crates/api/tests/integrations/git_sync/git_sync_file_pipeline_test.rs",
+      "server/crates/api/tests/integrations/git_sync/git_sync_mirror_maintenance_test.rs",
+      "server/crates/api/tests/integrations/git_sync/git_sync_rebase_test.rs",
+      "server/crates/api/tests/integrations/git_sync/git_sync_runner_harness_test.rs",
+      "server/crates/api/src/graphql/auth/calendar.rs",
+      "server/crates/api/src/handlers/calendar.rs",
+      "server/crates/api/src/websocket/calendar_broadcast.rs",
+      "server/crates/application/src/calendar/**",
+      "server/crates/infrastructure/src/calendar/**",
+      "server/crates/infrastructure/src/calendar_write.rs",
+      "server/crates/api/tests/calendar/**",
+      "server/crates/api/tests/contract/graphql/graphql_calendar*",
+      "server/crates/api/tests/contract/graphql/graphql_calendar.rs",
+      "server/crates/api/tests/contract/graphql/graphql_calendar_native_test.rs",
+      "server/crates/api/src/graphql/organization*.rs",
+      "server/crates/api/src/organization/**",
+      "server/crates/application/src/organization/**",
+      "server/crates/infrastructure/src/organization/**",
+      "server/crates/api/tests/contract/graphql/graphql_organization_import_export_test.rs",
+      "server/crates/api/tests/contract/graphql/graphql_workspace_member_permission_test.rs",
+      "server/crates/api/tests/auth/auth_error_paths_test.rs",
+      "server/crates/api/tests/auth/auth_oidc_ou_sync_test.rs",
+      "server/crates/api/tests/contract/graphql/graphql_admin_user_test.rs",
+      "server/crates/api/tests/auth/auth_password_test.rs",
+      "server/crates/api/tests/admin/admin_config_schema_test.rs",
+      "server/crates/api/tests/admin/admin_config_update_test.rs",
+      "server/crates/api/tests/ops/config/inv_config_import_test.rs",
+      "server/crates/api/tests/ops/config/inv_config_setup_test.rs",
+      "server/crates/api/tests/contract/graphql/graphql_document_graph_identity_test.rs",
+      "server/crates/api/tests/contract/graphql/graphql_workspace_template_context_test.rs",
+      "server/crates/api/tests/db/workspaces/graphql_workspace_tags_test.rs",
+      "server/crates/api/tests/contract/persistence/workspace_content_operation_persistence_test.rs",
+      "server/crates/api/tests/db/documents/page_lifecycle_test.rs",
+      "server/crates/api/tests/db/documents/graphql_doc_test.rs",
+      "server/crates/api/tests/db/workspaces/workspace_docs_rest_compat.rs",
+      "server/crates/api/tests/mcp/mcp_create_page_test.rs",
+      "server/crates/api/tests/mcp/mcp_blob_tools_test.rs",
+      "server/crates/api/tests/mcp/mcp_folder_tools_test.rs",
+      "server/crates/api/tests/mcp/mcp_workspace_tag_test.rs",
+      "server/crates/api/tests/mcp/mcp_document_template_test.rs",
+      "server/crates/api/tests/db/documents/sync_doc_id_roundtrip_test.rs",
+      "server/crates/api/tests/db/storage/blob_upload_test.rs",
+      "server/crates/api/tests/**"
+    ],
+    "select_suites": [
+      "api.integration.quick",
+      "server.auth.integration.quick",
+      "server.config.integration.quick",
+      "server.calendar.integration.quick",
+      "server.git-sync.integration.quick",
+      "server.organization.integration.quick",
+      "server.documents.integration.quick",
+      "server.storage.integration.quick"
+    ],
+    "reason": "Shared and not-yet-classified server changes preserve the complete former standard coverage; reviewed capability leaves select only their owners."
+  },
+  {
+    "id": "mcp-organization-unit-lifecycle",
+    "paths": [
+      "server/crates/mcp/src/tools/organization.rs",
+      "server/crates/mcp/src/tool_registry.rs",
+      "server/crates/api/tests/mcp/mcp_organization_unit_lifecycle_e2e_test.rs",
+      "server/crates/application/src/organization/**",
+      "server/crates/infrastructure/src/organization/**"
+    ],
+    "select_suites": ["mcp.organization-unit-lifecycle.e2e"],
+    "reason": "Organization lifecycle changes must execute the bearer-authenticated MCP HTTP journey."
+  },
+  {
+    "id": "mcp-calendar-lifecycle",
+    "paths": [
+      "server/crates/mcp/src/tools/calendar.rs",
+      "server/crates/mcp/src/tool_registry.rs",
+      "server/crates/api/tests/mcp/mcp_calendar_test.rs",
+      "server/crates/application/src/calendar/native.rs",
+      "server/crates/infrastructure/src/calendar/**"
+    ],
+    "select_suites": ["mcp.calendar.e2e"],
+    "reason": "Calendar MCP changes must execute the bearer-authenticated lifecycle, ACL, bounds and replay journey."
+  },
+  {
+    "id": "mcp-database-contract",
+    "paths": [
+      "server/crates/mcp/src/tools/database.rs",
+      "server/crates/api/tests/mcp/mcp_database_test.rs"
+    ],
+    "select_suites": ["mcp.database.contract"],
+    "reason": "Database MCP changes must execute the focused saved-view, cursor, ACL, atomicity, replay, lifecycle and redaction contract."
+  },
+  {
+    "id": "mcp-client-runtime-smoke",
+    "paths": [
+      "build/scripts/test/mcp-http-smoke.mjs",
+      "build/scripts/test/mcp-native-smoke.mjs",
+      "build/scripts/test/smoke-mcp-clients.sh",
+      "docs/ops/integrations/mcp/**"
+    ],
+    "select_suites": ["mcp.client-runtime.smoke"],
+    "reason": "MCP runtime/client compatibility changes keep the explicit post-deploy smoke visible while its credential and live-stack requirements remain manual-only."
+  },
+  {
+    "id": "mcp-compatibility-contract",
+    "paths": [
+      "server/crates/mcp/src/protocol.rs",
+      "server/crates/mcp/src/router.rs",
+      "server/crates/api/tests/mcp/mcp_create_page_test.rs"
+    ],
+    "select_suites": ["mcp.compatibility.contract"],
+    "reason": "MCP wire or document compatibility changes require the bounded protocol and canonical Yjs projection/convergence owner."
+  },
+  {
+    "id": "server-sync-load-protocol",
+    "paths": [
+      "server/crates/api/src/websocket/**",
+      "server/crates/api/tests/realtime/yjs_ingress_validation_test.rs",
+      "server/crates/api/tests/sync_load_protocol.rs",
+      "server/crates/application/src/doc/**",
+      "server/crates/infrastructure/src/doc/**",
+      "server/crates/yjs/src/lib.rs",
+      "build/scripts/test/api-sync-load-protocol.sh"
+    ],
+    "select_suites": ["api.sync-load.protocol"],
+    "reason": "Document load/push changes must execute the real Socket.IO ACK and PostgreSQL side-effect contract in its bounded target."
+  },
+  {
+    "id": "database-operational-naming",
+    "paths": [
+      "server/crates/api/src/**",
+      "server/crates/application/src/**",
+      "server/crates/worker/src/**",
+      "server/crates/cli/src/**",
+      "client/admin/workspaces/admin/src/**",
+      "docs/ops/**",
+      "build/scripts/ci/verify-database-operational-naming.mjs",
+      "build/test-matrix/**",
+      ".forgejo/**",
+      "package.json"
+    ],
+    "select_suites": ["database.operational-naming"],
+    "reason": "Database operational queue/job/config/logging names must remain on canonical database naming after P-DB-01 starts."
+  },
+  {
+    "id": "database-legacy-naming-ratchet",
+    "paths": [
+      "server/crates/domain/src/**",
+      "server/crates/application/src/**",
+      "server/crates/api/src/**",
+      "server/crates/infrastructure/src/**",
+      "server/crates/infrastructure/migrations/**",
+      "server/crates/mcp/src/**",
+      "server/crates/worker/src/**",
+      "server/crates/cli/src/**",
+      "client/libs/graphql/src/graphql/**",
+      "client/libs/core/src/**",
+      "client/web/src/**",
+      "client/admin/workspaces/admin/src/**",
+      "build/scripts/ci/verify-database-legacy-naming.mjs",
+      "build/scripts/ci/database-legacy-naming-baseline.json",
+      "build/test-matrix/**",
+      "docs/dev/**",
+      "docs/ops/**"
+    ],
+    "select_suites": ["database.legacy-naming-ratchet"],
+    "reason": "P-DB-01 legacy Database naming debt is baseline-ratcheted; changed hand-written product/domain/API/UI/docs paths must not add new legacy names."
+  },
+  {
+    "id": "database-decommission-ratchet",
+    "paths": [
+      "client/apps/electron/src/**",
+      "client/libs/core/src/desktop/dialogs/import/**",
+      "client/libs/core/src/desktop/dialogs/import-workspace/**",
+      "client/libs/core/src/editor/**",
+      "client/libs/core/src/modules/backup/**",
+      "client/libs/core/src/modules/database/**",
+      "client/libs/core/src/modules/workspace-engine/**",
+      "client/web/**",
+      "server/crates/application/src/template_registry/**",
+      "server/crates/workspace_import/**",
+      "virgultum/editor/blocks/database/**",
+      "virgultum/editor/blocks/mermaid/**",
+      "virgultum/editor/widgets/linked-doc/**",
+      "build/scripts/ci/database-decommission-baseline.json",
+      "build/scripts/ci/verify-database-decommission.mjs",
+      "build/scripts/test/generate-workspace-import-fixtures.mjs",
+      "build/scripts/test/verify-workspace-import-fixtures.mjs"
+    ],
+    "select_suites": ["database.decommission.guard"],
+    "reason": "P-DB-36 transition paths must remove, never expand, editor-local Database and legacy workspace import behavior."
+  },
+  {
+    "id": "crdt-runtime-lockstep",
+    "paths": [
+      "Cargo.toml",
+      "Cargo.lock",
+      "server/Cargo.toml",
+      "server/Cargo.lock",
+      "package.json",
+      "yarn.lock",
+      ".yarn/patches/yjs-*",
+      "client/apps/electron/package.json",
+      "client/apps/ios/package.json",
+      "client/libs/core/package.json",
+      "client/libs/infra/package.json",
+      "client/libs/reader/package.json",
+      "client/libs/storage/package.json",
+      "virgultum/**/package.json",
+      "build/scripts/ci/yjs-compat-local.sh",
+      "build/scripts/ci/test-yjs-compat-fail.sh",
+      "build/scripts/ci/verify-yrs-source.mjs",
+      "build/scripts/ci/test-yjs-runtime.mjs"
+    ],
+    "select_suites": ["yjs.compat"],
+    "reason": "Every manifest, lockfile and patch owner in the cross-runtime CRDT boundary must preserve exact Yjs, y-protocols and yrs lockstep."
+  },
+  {
+    "id": "client-native-rust",
+    "paths": [
+      "Cargo.toml",
+      "Cargo.lock",
+      "client/apps/mobile-native/**",
+      "client/libs/doc-indexer/**",
+      "client/libs/local-store/Cargo.toml",
+      "client/libs/local-store/src/**",
+      "client/libs/local-store/schema/**",
+      "client/libs/local-store/storage/**",
+      "build/scripts/ci/verify-client-native-rust.sh"
+    ],
+    "select_suites": ["client.native.rust"],
+    "reason": "Root-native protocol, persistence and manifest changes must execute the complete bounded host Rust owner before platform packaging."
+  },
+  {
+    "id": "client-local-store-current",
+    "paths": [
+      "client/libs/local-store/storage/**",
+      "client/libs/local-store/schema/**",
+      "client/libs/local-store/Cargo.toml",
+      "client/libs/local-store/src/**"
+    ],
+    "select_suites": ["client.local-store.current"],
+    "reason": "Current local-store and schema changes must execute the native SQLite persistence contract."
+  },
+  {
+    "id": "server-workspace-import-unit",
+    "paths": [
+      "server/crates/workspace_import/**",
+      "server/crates/yjs/src/lib.rs",
+      "server/crates/application/src/workspace_import/**",
+      "server/crates/application/src/database/import_export/legacy_migration.rs",
+      "server/crates/application/src/template_registry/bundle.rs",
+      "server/crates/api/src/config.rs",
+      "server/crates/api/src/config_reload.rs",
+      "server/crates/api/src/graphql/admin_config.rs",
+      "server/crates/api/src/graphql/config.rs"
+    ],
+    "select_suites": ["server.workspace-import.unit"],
+    "reason": "Workspace import decoding, shared archive safety and legacy Database planning are one executable P-DB-36 contract."
+  },
+  {
+    "id": "server-workspace-import-integration",
+    "paths": [
+      "server/crates/application/src/workspace_import/**",
+      "server/crates/application/src/database/import_export/legacy_migration.rs",
+      "server/crates/domain/src/workspace_import.rs",
+      "server/crates/infrastructure/src/workspace_import.rs",
+      "server/crates/infrastructure/tests/workspace_import.rs"
+    ],
+    "select_suites": ["server.workspace-import.integration"],
+    "reason": "Workspace import apply/recovery changes need the focused SQLx product-write contract without selecting the broad API integration binary."
+  },
+  {
+    "id": "server-cli-integration",
+    "paths": [
+      "server/crates/cli/**",
+      "server/crates/application/src/workspace_tags/migration.rs"
+    ],
+    "select_suites": ["server.cli.integration"],
+    "reason": "CLI changes need the CLI binary tests against the isolated test database, not the full server integration composite."
+  },
+  {
+    "id": "server-worker-redis-integration",
+    "paths": ["server/crates/worker/**"],
+    "select_suites": ["server.worker.redis"],
+    "reason": "Worker and queue changes need the Redis-backed worker lib tests without rerunning API, CLI and MinIO integration."
+  },
+  {
+    "id": "server-storage-minio-integration",
+    "paths": [
+      "server/crates/infrastructure/src/storage/**",
+      "server/crates/infrastructure/tests/storage_minio.rs"
+    ],
+    "select_suites": ["server.storage.minio"],
+    "reason": "S3/MinIO storage adapter changes need the MinIO roundtrip test without the full server integration composite."
+  },
+  {
+    "id": "server-multi-instance",
+    "paths": [
+      "build/server/docker-compose.multi-instance.yml",
+      "build/server/nginx.multi-instance.conf",
+      "build/scripts/test/run-multi-instance.sh",
+      "build/scripts/test/smoke-multi-instance.sh",
+      "build/scripts/test/smoke-multi-instance-realtime.mjs",
+      "server/crates/api/src/cache_bus.rs",
+      "server/crates/api/src/workspace_content_coordination.rs",
+      "server/crates/api/src/websocket/redis_adapter.rs"
+    ],
+    "select_suites": ["server.multi-instance"],
+    "reason": "Cluster topology and shared-state adapter changes require the sole isolated two-node lifecycle gate; ordinary server binary changes remain in API owner gates."
+  },
+  {
+    "id": "server-integration-scripts",
+    "paths": [
+      "build/scripts/ci/verify-server-integration.sh",
+      "build/scripts/server/test-compose-integration.sh",
+      "build/scripts/test/stack-*.sh",
+      "build/server/docker-compose.test.yml",
+      ".forgejo/workflows/server-integration.yml"
+    ],
+    "select_suites": ["server.integration"],
+    "reason": "Server integration wrappers must be validated against isolated services."
+  },
+  {
+    "id": "client-storage",
+    "paths": ["client/libs/storage/**"],
+    "select_suites": ["storage.vitest", "core.typecheck"],
+    "reason": "Client storage changes need storage-owned behavior coverage and consuming Core type coverage."
+  },
+  {
+    "id": "client-infra-contract",
+    "paths": [
+      "client/libs/infra/src/**",
+      "build/fixtures/contracts/organizer-fractional-indexing.json"
+    ],
+    "select_suites": ["client.infra.vitest"],
+    "reason": "Client infrastructure utilities and shared Organizer ordering fixtures require their focused cross-runtime contract suite."
+  },
+  {
+    "id": "test-quality-ratchet",
+    "paths": ["client/**", "tests/**", "virgultum/**"],
+    "exclude_paths": ["virgultum/provenance/**"],
+    "select_suites": ["test.quality-ratchet"],
+    "reason": "Changed frontend/editor/test files must not add new skipped, swallowed, focused, or bare-ok test debt."
+  },
+  {
+    "id": "graphql-codegen-tooling",
+    "paths": [
+      "client/libs/graphql/codegen.mjs",
+      "client/libs/graphql/codegen.yml",
+      "client/libs/graphql/schema-loader.cjs",
+      "client/libs/graphql/export-gql-plugin.d.cts",
+      "client/libs/graphql/export-gql-plugin.cjs"
+    ],
+    "select_suites": [
+      "graphql.client.vitest",
+      "graphql.client.typecheck",
+      "graphql.codegen.stack",
+      "core.typecheck"
+    ],
+    "reason": "GraphQL generator, schema-loader and custom-plugin changes require live output parity plus package and consuming Core contracts."
+  },
+  {
+    "id": "graphql-generated-client-contract",
+    "paths": [
+      "client/libs/graphql/src/graphql/**",
+      "client/libs/graphql/src/schema.ts",
+      "client/libs/graphql/src/operations.ts",
+      "client/libs/graphql/src/index.ts"
+    ],
+    "select_suites": [
+      "graphql.client.vitest",
+      "graphql.client.typecheck",
+      "graphql.codegen.stack",
+      "core.typecheck"
+    ],
+    "reason": "GraphQL documents and generated exports require codegen, package contracts and consuming Core type coverage."
+  },
+  {
+    "id": "graphql-server-schema-contract",
+    "paths": [
+      "server/crates/api/src/graphql/**",
+      "server/crates/api/tests/**/*graphql*"
+    ],
+    "select_suites": ["graphql.codegen.stack"],
+    "reason": "Server GraphQL schema changes must regenerate and compare real client artifacts; generated-file changes independently select their consuming checks."
+  },
+  {
+    "id": "graphql-client-package",
+    "paths": [
+      "client/libs/graphql/package.json",
+      "client/libs/graphql/tsconfig.json",
+      "client/libs/graphql/src/fetcher.ts"
+    ],
+    "select_suites": ["graphql.client.vitest", "graphql.client.typecheck"],
+    "reason": "GraphQL package and transport changes need package-owned behavior and type coverage without the complete Core project."
+  },
+  {
+    "id": "graphql-client-unit",
+    "paths": ["client/libs/graphql/src/__tests__/**"],
+    "select_suites": ["graphql.client.vitest"],
+    "reason": "GraphQL client test/fetcher changes need focused client contract specs without starting the codegen stack."
+  },
+  {
+    "id": "admin-client",
+    "paths": ["client/admin/**"],
+    "exclude_paths": [
+      "client/admin/workspaces/admin/src/modules/queue/**",
+      "client/admin/workspaces/admin/src/modules/organization/**",
+      "client/admin/workspaces/admin/src/modules/workspaces/**",
+      "client/admin/workspaces/admin/src/modules/git-sync/**",
+      "client/admin/workspaces/admin/src/modules/pdf-export/**"
+    ],
+    "select_suites": ["admin.typecheck", "admin.vitest"],
+    "reason": "Admin frontend changes need Admin TS and Vitest gates without running unrelated Web/Core unit suites."
+  },
+  {
+    "id": "admin-queue-module",
+    "paths": ["client/admin/workspaces/admin/src/modules/queue/**"],
+    "select_suites": ["admin.typecheck", "admin.queue.vitest"],
+    "reason": "Queue Admin module changes have a complete focused Vitest owner-domain and no longer need broad admin.vitest by default."
+  },
+  {
+    "id": "admin-organization-module",
+    "paths": ["client/admin/workspaces/admin/src/modules/organization/**"],
+    "select_suites": ["admin.typecheck", "admin.organization.vitest"],
+    "reason": "Organization Admin changes have a complete focused owner-domain Vitest scope."
+  },
+  {
+    "id": "admin-workspaces-module",
+    "paths": ["client/admin/workspaces/admin/src/modules/workspaces/**"],
+    "select_suites": ["admin.typecheck", "admin.workspaces.vitest"],
+    "reason": "Workspace Admin changes have a complete focused owner-domain Vitest scope."
+  },
+  {
+    "id": "admin-git-sync-module",
+    "paths": ["client/admin/workspaces/admin/src/modules/git-sync/**"],
+    "select_suites": ["admin.typecheck", "admin.git-sync.vitest"],
+    "reason": "Git Sync Admin changes have a complete focused owner-domain Vitest scope."
+  },
+  {
+    "id": "admin-pdf-export-module",
+    "paths": ["client/admin/workspaces/admin/src/modules/pdf-export/**"],
+    "select_suites": ["admin.typecheck", "admin.pdf-export.vitest"],
+    "reason": "PDF Export Admin changes have a complete focused owner-domain Vitest scope."
+  },
+  {
+    "id": "markdown-line-break-fixture",
+    "paths": ["build/fixtures/markdown/roundtrip-line-breaks.md"],
+    "select_suites": ["virgultum.vitest"],
+    "reason": "Changes to semantic whitespace in the shared fixture must run its existing consuming roundtrip contract."
+  },
+  {
+    "id": "i18n-time-formatting",
+    "paths": [
+      "client/libs/i18n/src/utils/time.ts",
+      "client/libs/i18n/src/utils/__tests__/time.spec.ts"
+    ],
+    "select_suites": ["i18n.time.vitest"],
+    "reason": "Date formatter reuse must preserve locale, options and relative-time output through the existing formatter consumer tests."
+  },
+  {
+    "id": "i18n-locale-resources",
+    "paths": [
+      "client/libs/i18n/src/resources/**",
+      "client/libs/i18n/src/date-locale-coverage.spec.ts",
+      "client/libs/i18n/src/captcha-widget-coverage.spec.ts",
+      "client/libs/i18n/src/virgultum-editor-coverage.spec.ts",
+      "client/libs/i18n/src/virgultum-visible-literals.spec.ts",
+      "virgultum/editor/**/*.ts",
+      "client/libs/core/src/editor/**",
+      "build/scripts/test/setup/vi-mock.ts"
+    ],
+    "select_suites": ["i18n.locales.vitest"],
+    "reason": "Exercise existing locale loaders once at their owning boundary instead of inside every frontend mock."
+  },
+  {
+    "id": "i18n-codegen",
+    "paths": [
+      "client/libs/i18n/build.ts",
+      "client/libs/i18n/generate.ts",
+      "client/libs/i18n/source-files.ts",
+      "client/libs/i18n/generate.spec.ts",
+      "client/libs/i18n/package.json"
+    ],
+    "select_suites": ["i18n.codegen.vitest"],
+    "reason": "The server-neutral i18n generator must preserve interpolation, plural and rich-component contracts without a TypeScript compiler API dependency."
+  },
+  {
+    "id": "tooling-cli",
+    "paths": [
+      "tools/cli/src/**",
+      "tools/cli/package.json",
+      "tools/cli/vitest.config.ts"
+    ],
+    "select_suites": ["tooling.cli.vitest"],
+    "reason": "Myoxus CLI changes must retain package-build failure propagation and package-owned command behavior."
+  },
+  {
+    "id": "core-database-unit-tests",
+    "paths": [
+      "client/libs/core/src/modules/database/*.spec.ts",
+      "client/libs/core/src/modules/database/*.spec.tsx",
+      "client/libs/core/src/modules/database/*.test.ts",
+      "client/libs/core/src/modules/database/*.test.tsx",
+      "client/libs/core/src/modules/database/**/*.spec.ts",
+      "client/libs/core/src/modules/database/**/*.spec.tsx",
+      "client/libs/core/src/modules/database/**/*.test.ts",
+      "client/libs/core/src/modules/database/**/*.test.tsx"
+    ],
+    "select_suites": ["core.database.vitest"],
+    "reason": "Database Core specs have a measured owner-domain Vitest scope; use it instead of the full Core Vitest package gate for these spec-only changes."
+  },
+  {
+    "id": "core-i18n-quality-unit-test",
+    "paths": ["client/libs/core/src/__tests__/i18n-quality.spec.ts"],
+    "select_suites": ["core.i18n-quality.vitest"],
+    "reason": "The global locale-resource quality contract has a complete single-spec owner scope; execute it without pulling in unrelated Core feature tests."
+  },
+  {
+    "id": "core-unit-tests",
+    "paths": [
+      "client/libs/core/**/*.spec.ts",
+      "client/libs/core/**/*.spec.tsx",
+      "client/libs/core/**/*.test.ts",
+      "client/libs/core/**/*.test.tsx"
+    ],
+    "exclude_paths": [
+      "client/libs/core/src/__tests__/i18n-quality.spec.ts",
+      "client/libs/core/src/__tests__/ai/utils/apply-model/apply-patch-to-doc.spec.ts",
+      "client/libs/core/src/editor/view-extensions/editor-view/annotation.spec.tsx",
+      "client/libs/core/src/editor/view-extensions/editor-view/doc-embed.spec.ts",
+      "client/libs/core/src/modules/workbench/view/__tests__/browser-adapter.spec.ts",
+      "client/libs/core/src/editor/view-extensions/editor-view/notification-service-facade-contract.spec.ts",
+      "client/libs/core/src/editor/utils/annotation-interchange.spec.ts",
+      "client/libs/core/src/desktop/dialogs/import/import-diagnostics.spec.tsx",
+      "client/libs/core/src/modules/database/*.spec.ts",
+      "client/libs/core/src/modules/database/*.spec.tsx",
+      "client/libs/core/src/modules/database/*.test.ts",
+      "client/libs/core/src/modules/database/*.test.tsx",
+      "client/libs/core/src/modules/database/**/*.spec.ts",
+      "client/libs/core/src/modules/database/**/*.spec.tsx",
+      "client/libs/core/src/modules/database/**/*.test.ts",
+      "client/libs/core/src/modules/database/**/*.test.tsx"
+    ],
+    "select_suites": ["core.vitest"],
+    "reason": "Core spec changes need Core-owned Vitest without falling back to the root frontend-unit suite."
+  },
+  {
+    "id": "web-unit-tests",
+    "paths": [
+      "client/web/**/*.spec.ts",
+      "client/web/**/*.spec.tsx",
+      "client/web/**/*.test.ts",
+      "client/web/**/*.test.tsx"
+    ],
+    "select_suites": ["web.vitest"],
+    "reason": "Web spec changes need Web-owned Vitest without running unrelated Admin/Core suites."
+  },
+  {
+    "id": "web-core-client",
+    "paths": ["client/web/**", "client/libs/core/**"],
+    "select_suites": ["core.typecheck"],
+    "reason": "Web/Core changes need consuming type coverage first; browser smoke remains explicit unless smoke tests or UI closeout require it."
+  },
+  {
+    "id": "client-update-control-e2e",
+    "paths": [
+      "build/scripts/test/client-update-control-e2e.sh",
+      "build/scripts/test/client-update-control-e2e.mjs"
+    ],
+    "select_suites": ["client.update-control"],
+    "reason": "The served CLI/server/browser lifecycle harness must execute its own serial live-stack owner."
+  },
+  {
+    "id": "web-smoke-harness",
+    "paths": [
+      "tests/client/webfrontend/smoke/**",
+      "build/scripts/server/playwright-frontend-smoke.sh"
+    ],
+    "select_suites": ["web.smoke"],
+    "reason": "Changes to the runtime smoke harness itself should run the served-bundle smoke suite explicitly."
+  },
+  {
+    "id": "web-flow-harness",
+    "paths": ["tests/client/webfrontend/flow/**"],
+    "exclude_paths": ["tests/client/webfrontend/flow/tests/doc-versioning/**"],
+    "select_suites": ["web.flow"],
+    "reason": "Browser Web flow changes need the explicit live-stack flow suite, separated from smoke and unit/typecheck gates."
+  },
+  {
+    "id": "web-document-history-owner",
+    "paths": [
+      "client/libs/core/src/desktop/pages/workspace/detail-page/history-view.tsx",
+      "client/libs/core/src/desktop/pages/workspace/detail-page/detail-page.tsx",
+      "client/libs/core/src/components/document-header-menu/index.tsx",
+      "client/libs/core/src/components/hooks/myoxus/use-register-virgultum-editor-commands.tsx",
+      "client/libs/core/src/components/hooks/use-document-view-context.ts",
+      "client/libs/core/src/modules/doc-versioning/**",
+      "tests/client/webfrontend/flow/tests/doc-versioning/**",
+      "build/scripts/server/playwright-web-document-history.sh"
+    ],
+    "select_suites": ["web.document-history"],
+    "reason": "Document History uses its existing browser journeys without executing developing editor families."
+  },
+  {
+    "id": "web-mermaid-editor-owner",
+    "paths": [
+      "virgultum/editor/blocks/mermaid/**",
+      "tests/client/webfrontend/editor-flow/tests/virgultum-mermaid-*",
+      "build/scripts/server/playwright-web-mermaid-editor.sh"
+    ],
+    "select_suites": ["web.mermaid.editor"],
+    "reason": "Mermaid product and consumer changes run the focused served Page viewport journey; family-specific browser coverage is owned by the corresponding Mermaid phase."
+  },
+  {
+    "id": "web-mermaid-visual-owner",
+    "paths": [
+      "tests/client/webfrontend/visual/tests/mermaid-*.evidence.spec.ts",
+      "build/scripts/server/playwright-web-mermaid-visual.sh"
+    ],
+    "select_suites": ["web.mermaid.visual"],
+    "reason": "Mermaid visual evidence changes must run the small Mermaid-only served report/probe owner."
+  },
+  {
+    "id": "web-visual-harness",
+    "paths": [
+      "tests/client/webfrontend/visual/**",
+      "build/scripts/server/playwright-web-visual.sh"
+    ],
+    "exclude_paths": [
+      "tests/client/webfrontend/visual/tests/mermaid-*.evidence.spec.ts"
+    ],
+    "select_suites": ["web.visual"],
+    "reason": "Visual evidence harness changes need the opt-in visual suite, separated from runtime smoke."
+  },
+  {
+    "id": "web-playwright-shared-helpers",
+    "paths": ["tests/client/webfrontend/shared/**"],
+    "select_suites": ["web.smoke", "web.visual"],
+    "reason": "Shared Browser Web Playwright auth/workspace helpers affect all served-stack Browser Web suites that import them."
+  },
+  {
+    "id": "admin-e2e-harness",
+    "paths": ["tests/client/adminfrontend/e2e/**"],
+    "select_suites": ["admin.smoke"],
+    "reason": "Admin Playwright harness changes need the explicit live-stack Admin smoke/visual suite."
+  },
+  {
+    "id": "web-local-quarantine",
+    "paths": ["tests/client/webfrontend/local/**"],
+    "select_suites": ["web.local.quarantine"],
+    "reason": "Legacy Browser Web local-workspace tests remain visible as manual-only quarantine debt and must not silently re-enter default gates."
+  },
+  {
+    "id": "playwright-shared-kit",
+    "paths": ["tests/client/shared/kit/**"],
+    "select_suites": ["playwright.shared-kit.typecheck"],
+    "reason": "Shared Playwright kit changes need a cheap package compile contract because all browser suites import it."
+  },
+  {
+    "id": "ui-facade-client",
+    "paths": ["client/libs/ui-facade/**"],
+    "select_suites": [
+      "ui-facade.vitest",
+      "frontend.theme.boundary",
+      "frontend.ui-framework-graph"
+    ],
+    "reason": "UI Facade changes need focused primitive tests plus facade/theme boundary guards."
+  },
+  {
+    "id": "branding-theme-client",
+    "paths": ["client/libs/theme/**", "client/branding/**"],
+    "select_suites": [
+      "branding.vitest",
+      "frontend.theme.boundary",
+      "branding.theme-db-cutover",
+      "branding.font-audit"
+    ],
+    "reason": "Branding and theme projection changes need focused branding contracts and theme/font artifact guards."
+  },
+  {
+    "id": "server-font-assets",
+    "paths": ["server/static/fonts/**"],
+    "select_suites": ["branding.font-audit"],
+    "reason": "Server font asset changes only need the font materialization audit by default."
+  },
+  {
+    "id": "server-release-provenance",
+    "paths": [
+      "build/scripts/release/assemble-server-legal.mjs",
+      "build/scripts/release/assemble-server-legal.sh",
+      "build/scripts/release/generate-sbom.sh",
+      "build/scripts/release/generate-server-oci-sbom.mjs",
+      "build/scripts/release/normalize-server-sbom.mjs",
+      "build/scripts/release/test-server-legal.sh",
+      "build/scripts/release/validate-sbom.sh",
+      "build/scripts/ci/package-server-deb.sh",
+      "build/scripts/ci/verify-server-build-artifacts.sh",
+      "build/scripts/ci/verify-server-container-legal.sh"
+    ],
+    "select_suites": ["server.release-provenance"],
+    "reason": "Server packaging and SBOM changes need deterministic Legal-tree generation, schema validation and OCI digest negative checks."
+  },
+  {
+    "id": "frontend-quality-infra",
+    "paths": [
+      "build/scripts/ci/verify-frontend-quality.sh",
+      "build/scripts/branding/**",
+      "build/scripts/fonts/**"
+    ],
+    "select_suites": ["frontend.quality"],
+    "reason": "Frontend quality wrapper changes must validate the composite gate they own."
+  },
+  {
+    "id": "internal-package-release-surface",
+    "paths": [
+      "package.json",
+      "client/**/package.json",
+      "tools/**/package.json",
+      "tests/client/**/package.json",
+      "tools/utils/src/package.ts",
+      "tools/utils/src/types.ts",
+      "tools/utils/src/workspace.ts",
+      "build/scripts/ci/verify-internal-package-release-surface.mjs"
+    ],
+    "select_suites": ["environment.internal-package-release-surface"],
+    "reason": "Workspace manifest changes must preserve the private, versionless internal package surface and the separately declared root and Electron release authorities."
+  },
+  {
+    "id": "frontend-build-identity",
+    "paths": [
+      "tools/utils/src/build-config.ts",
+      "tools/utils/src/build-config.spec.ts",
+      "tools/utils/src/package.ts",
+      "tools/utils/src/workspace.ts",
+      "tools/utils/package.json",
+      "tools/utils/vitest.config.ts",
+      "tools/cli/src/rspack/**",
+      "build/scripts/release/write-release-identity.mjs",
+      "build/scripts/release/write-release-identity.d.mts",
+      "build/scripts/ci/verify-built-release-identity.mjs",
+      "build/scripts/ci/verify-built-release-identity.d.mts",
+      "build/scripts/test/setup/global.ts",
+      "client/apps/electron/scripts/common.ts",
+      "client/libs/env/src/worker.ts"
+    ],
+    "select_suites": ["frontend.build-identity"],
+    "reason": "Client product identity changes need the direct Workspace-version producer contract before any release artifact is accepted."
+  },
+  {
+    "id": "frontend-packaged-release-identity",
+    "paths": [
+      "build/web/Dockerfile",
+      "build/admin/Dockerfile",
+      "build/scripts/release/write-release-identity.mjs",
+      "build/scripts/ci/verify-built-release-identity.mjs",
+      "build/scripts/frontends/materialize-static-artifacts.sh",
+      "build/scripts/frontends/test-static-artifact-image.sh",
+      "build/scripts/frontends/test-materialize-release-identity.sh",
+      "build/scripts/frontends/test-packaged-artifacts.sh"
+    ],
+    "select_suites": ["frontend.build-identity", "frontend.packaged-artifacts"],
+    "reason": "Release identity and materialization changes need the direct producer contract plus one consuming Web/Admin OCI build pair."
+  },
+  {
+    "id": "server-native-template-artifacts",
+    "paths": [
+      "build/scripts/server/test-native-template-artifacts.sh",
+      "build/scripts/ci/package-server-deb.sh"
+    ],
+    "select_suites": ["server.packaged-container"],
+    "reason": "Native archive and Debian template delivery consume the existing packaged-container owner without repeating unrelated frontend topology checks."
+  },
+  {
+    "id": "server-packaged-runtime",
+    "paths": [
+      "build/server/Dockerfile",
+      "server/crates/cli/src/container.rs",
+      "build/server/docker-compose.selfhost.yml",
+      "build/server/docker-stack.registry.yml",
+      "build/scripts/server/test-build.sh",
+      "build/scripts/server/prepare-selfhost-runtime.sh",
+      "build/scripts/server/prepare-templates.sh",
+      "build/scripts/server/test-templates.sh",
+      "build/scripts/server/packaged-template-smtp.mjs",
+      "build/scripts/server/test-packaged-template-loaders.mjs",
+      "build/scripts/server/prepare-swarm-state.sh",
+      "server/templates/databases/**",
+      "server/crates/infrastructure/src/database_templates/**",
+      "server/crates/infrastructure/src/assistant_packages/**",
+      "server/crates/infrastructure/src/template_files.rs",
+      "server/crates/infrastructure/src/feature_bundles/**",
+      "server/crates/application/src/feature_bundle/**",
+      "server/templates/features/**",
+      "server/templates/assistants/**",
+      "build/scripts/server/start-selfhost-real.sh",
+      "build/scripts/server/dev-fullstack.sh"
+    ],
+    "select_suites": [
+      "server.packaged-container",
+      "frontend.container-isolation",
+      "frontend.nginx-topology"
+    ],
+    "reason": "Packaged server runtime changes need image/secret/docker-exec parity, static frontend boundaries and the one-Nginx topology contract."
+  },
+  {
+    "id": "frontend-static-container-artifacts",
+    "paths": [
+      "build/web/Dockerfile",
+      "build/web/Dockerfile.prebuilt",
+      "build/admin/Dockerfile",
+      "build/admin/Dockerfile.prebuilt",
+      "build/frontends/**",
+      "build/scripts/frontends/**",
+      "client/frontends/**"
+    ],
+    "select_suites": [
+      "frontend.container-isolation",
+      "frontend.nginx-topology",
+      "branding.vitest"
+    ],
+    "reason": "Frontend container and static-export changes must preserve Web/Admin artifact isolation, one-Nginx routing and pruned production artifacts."
+  },
+  {
+    "id": "frontend-container-release-contract",
+    "paths": [
+      ".forgejo/workflows/release-linux.yml",
+      "build/scripts/ci/build-container-image.sh",
+      "build/scripts/ci/accept-and-promote-container-images.sh",
+      "build/scripts/ci/promote-container-image.sh",
+      "build/scripts/ci/resolve-container-image-env.sh",
+      "build/scripts/ci/verify-container-registry-contract.mjs",
+      "build/scripts/ci/verify-frontend-container-isolation.mjs",
+      "build/scripts/release/release-containers.sh",
+      "build/scripts/release/release.sh"
+    ],
+    "select_suites": ["ci.forgejo.local", "frontend.container-isolation"],
+    "reason": "Release orchestration must preserve Forgejo workflow reachability, the static Web/Admin artifact boundary and the commit-first promotion contract."
+  },
+  {
+    "id": "virgultum-std",
+    "paths": ["virgultum/framework/std/**"],
+    "select_suites": ["virgultum.std.build", "virgultum.std.vitest"],
+    "reason": "Std changes have package-local build and Vitest gates; do not run the root Virgultum name-filter command or unrelated representative package build smoke by default."
+  },
+  {
+    "id": "virgultum-store",
+    "paths": ["virgultum/framework/store/**"],
+    "select_suites": ["virgultum.store.build", "virgultum.store.vitest"],
+    "reason": "Store changes have package-local build and Vitest gates; do not run the root Virgultum name-filter command or unrelated representative package build smoke by default."
+  },
+  {
+    "id": "virgultum-data-view",
+    "paths": ["virgultum/editor/data-view/**"],
+    "select_suites": [
+      "virgultum.data-view.build",
+      "virgultum.data-view.vitest"
+    ],
+    "reason": "Data-View changes have package-local build and Vitest gates; do not run the root Virgultum name-filter command or unrelated representative package build smoke by default."
+  },
+  {
+    "id": "virgultum-mermaid",
+    "paths": ["virgultum/editor/blocks/mermaid/**"],
+    "select_suites": ["virgultum.mermaid.build", "virgultum.mermaid.vitest"],
+    "reason": "Mermaid changes have package build and package-scoped Vitest gates; do not run the root Virgultum name-filter command or unrelated representative package build smoke by default."
+  },
+  {
+    "id": "virgultum",
+    "paths": [
+      "virgultum/**",
+      "client/libs/core/src/editor/virgultum/**",
+      "tests/client/editor-core/virgultum/**"
+    ],
+    "exclude_paths": [
+      "virgultum/provenance/**",
+      "virgultum/editor/data-view/**",
+      "virgultum/editor/blocks/mermaid/**",
+      "virgultum/framework/store/**",
+      "virgultum/framework/std/**"
+    ],
+    "select_suites": [
+      "virgultum.package-builds",
+      "virgultum.vitest",
+      "editor-core.virgultum.browser.manual"
+    ],
+    "reason": "Editor framework changes need package build guards and focused Virgultum tests first; browser evidence is surfaced as manual-only closeout."
+  },
+  {
+    "id": "electron-desktop-sbom",
+    "paths": [
+      ".yarnrc.yml",
+      "package.json",
+      "yarn.lock",
+      "client/apps/electron/package.json",
+      "client/apps/electron-renderer/package.json",
+      "build/scripts/release/generate-sbom.sh",
+      "build/scripts/ci/test-desktop-sbom.sh"
+    ],
+    "select_suites": ["electron.build.baseline", "electron.desktop-sbom"],
+    "reason": "Desktop dependency and SBOM producer changes require both the manifest-owner/build boundary and the consuming reproducibility and CycloneDX content contract."
+  },
+  {
+    "id": "electron",
+    "paths": [
+      "client/apps/electron/**",
+      "client/apps/electron-renderer/**",
+      "client/libs/desktop-api-contract/**",
+      "client/libs/icons/scripts/build-assets.mjs",
+      "client/libs/icons/src/assets/native/**",
+      "client/libs/icons/src/assets/platform/**",
+      "client/libs/icons/src/assets/generated/manifest.json",
+      "build/scripts/electron/**",
+      "build/scripts/ci/*electron*",
+      "build/scripts/release/forgejo-client-release.mjs",
+      "build/scripts/release/release-clients.sh",
+      ".forgejo/workflows/*electron*",
+      ".forgejo/workflows/release-desktop.yml",
+      "tests/client/desktop/electron/**"
+    ],
+    "select_suites": [
+      "electron.build.baseline",
+      "electron.vitest",
+      "desktop.electron.runtime",
+      "desktop.electron.update-e2e",
+      "release.linux.packages"
+    ],
+    "reason": "Electron, renderer, desktop contract, packaging, and packaged-runtime changes share a deterministic build boundary; Electron Vitest and the explicit packaged runtime remain their consuming owners."
+  },
+  {
+    "id": "electron-native-bindings",
+    "paths": [
+      "client/libs/crypto/**",
+      "client/libs/media-capture/**",
+      "client/libs/local-store/**"
+    ],
+    "select_suites": ["electron.build.baseline"],
+    "reason": "Every native binding assembled into Electron must remain visible to the deterministic build and package inventory in addition to its package-owned gate."
+  },
+  {
+    "id": "desktop-local-browser",
+    "paths": ["tests/client/desktop/local/**"],
+    "select_suites": ["desktop.local.browser.manual"],
+    "reason": "Desktop local/offline browser scenarios retain their dedicated manual owner and are not packaged Electron runtime baselines."
+  },
+  {
+    "id": "mobile",
+    "paths": [
+      "client/apps/mobile/**",
+      "client/apps/mobile-shared/**",
+      "tests/client/mobile/**"
+    ],
+    "select_suites": ["mobile.browser.manual"],
+    "reason": "Mobile app browser/device checks are explicit manual suites until default value is measured."
+  },
+  {
+    "id": "selfhost-logging-runtime",
+    "paths": [
+      "build/server/docker-compose.selfhost.yml",
+      "build/scripts/server/smoke-api.sh",
+      "build/scripts/server/dev-fullstack.sh",
+      "build/scripts/ci/verify-selfhost-logging-contract.mjs"
+    ],
+    "select_suites": ["selfhost.logging-contract"],
+    "reason": "Selfhost logging changes need the focused operational contract that rejects forced TRACE and unbounded Docker logs."
+  },
+  {
+    "id": "frontend-vite-vitest4-toolchain",
+    "paths": [
+      "package.json",
+      "yarn.lock",
+      "vitest.config.mts",
+      "**/vite.config.*",
+      "**/vitest.config.*",
+      "build/scripts/ci/verify-vite*.mjs",
+      "build/scripts/ci/verify-vite*.sh",
+      "build/scripts/ci/fixtures/vitest4-coverage/**",
+      "build/scripts/test/run-vitest-diagnostic.mjs",
+      "build/scripts/test/vite-decorator-transform.mts"
+    ],
+    "select_suites": ["frontend.toolchain.vite-vitest4"],
+    "reason": "Vite, Vitest, browser-provider and shared transform changes must pass the consuming build, coverage and two-browser toolchain contract."
+  },
+  {
+    "id": "ci-workflows",
+    "paths": [
+      "build/scripts/release/prepare-internal-source.mjs",
+      "build/scripts/prepare-development-checkout.mjs",
+      "build/scripts/git/**",
+      ".cargo/config.toml",
+      ".forgejo/workflows/**",
+      "build/scripts/ci/**",
+      "build/scripts/server/release-gate-frontend.sh",
+      "build/scripts/test/cargo-diagnostic.sh",
+      "build/scripts/test/process-tree-runner.mjs",
+      "build/scripts/test/run-cargo-diagnostic.mjs",
+      "build/scripts/test/run.*",
+      "build/scripts/test/verify-matrix-self-check.mjs",
+      "build/scripts/test/inventory.mjs",
+      "build/scripts/test/summarize-runs.mjs",
+      "build/test-matrix/**"
+    ],
+    "select_suites": ["ci.forgejo.local", "matrix.self-check"],
+    "reason": "Workflow, Cargo safety and runner changes need local Forgejo/script validation plus matrix self-checks."
+  },
+  {
+    "id": "runtime-budget-reporting",
+    "paths": [
+      "build/test-matrix/runtime-budgets.json",
+      "build/scripts/test/summarize-runs.mjs"
+    ],
+    "select_suites": ["test.runtime-summary"],
+    "reason": "Runtime budget and summary changes must regenerate the matrix timing report contract."
+  },
+  {
+    "id": "runner-smoke-infra",
+    "paths": [
+      ".forgejo/workflows/runner-smoke.yml",
+      ".forgejo/workflows/runner-maintenance.yml",
+      "build/scripts/ci/verify-runner-smoke-toolchain.sh",
+      "build/scripts/ci/verify-runner-cache-env.sh",
+      "build/scripts/ci/verify-runner-network.sh",
+      "build/scripts/ci/verify-runner-docker-smoke.sh",
+      "build/scripts/ci/verify-docker-buildx.sh",
+      "build/scripts/ci/verify-linux-package-tooling.sh",
+      "build/scripts/ci/prune-ci-runner-cache.sh",
+      "build/scripts/ci/verify-repository-context.sh"
+    ],
+    "select_suites": ["runner.smoke"],
+    "reason": "Runner-host infrastructure changes need the explicit runner smoke suite, not product tests."
+  },
+  {
+    "id": "active-path-contracts",
+    "paths": [
+      "AGENTS.md",
+      "**/package.json",
+      "build/scripts/**",
+      "build/test-matrix/**",
+      "client/**",
+      "server/**",
+      "tools/**",
+      "virgultum/**",
+      "docs/api/**",
+      "docs/dev/**",
+      "docs/ops/**",
+      "docs/test/**"
+    ],
+    "select_suites": ["paths.active-contract"],
+    "reason": "Active package exports, source references and developer contracts must not depend on removed repository trees."
+  },
+  {
+    "id": "documentation-contract",
+    "paths": [
+      "docs/**",
+      "todo/**",
+      "learnings/**",
+      "tools/check_docs_consistency.py",
+      "server/**",
+      "client/**",
+      "virgultum/**"
+    ],
+    "select_suites": ["docs.consistency"],
+    "reason": "Documentation edits validate their contracts; source changes also enforce the README placement boundary without adding a parallel checker."
+  },
+  {
+    "id": "generated-server-api-documentation",
+    "paths": [
+      "server/crates/api/src/graphql/**",
+      "server/crates/api/src/lib.rs",
+      "server/crates/api/examples/export-graphql-schema.rs",
+      "build/scripts/docs/generate-server-api*",
+      "docs/api/**"
+    ],
+    "select_suites": ["docs.server-api"],
+    "reason": "The public GraphQL reference and SDL must match the compiled production schema without requiring a running stack."
+  },
+  {
+    "id": "api-domain-server-auth-integration",
+    "paths": [
+      "server/crates/api/tests/auth/auth_error_paths_test.rs",
+      "server/crates/api/tests/auth/auth_magic_link_test.rs",
+      "server/crates/api/tests/auth/auth_oauth_test.rs",
+      "server/crates/api/tests/auth/auth_oidc_ou_sync_test.rs",
+      "server/crates/api/tests/auth/auth_password_test.rs",
+      "server/crates/api/tests/auth/auth_session_regression.rs",
+      "server/crates/api/tests/auth/auth_session_test.rs",
+      "server/crates/api/tests/auth/captcha_endpoint_test.rs",
+      "server/crates/api/tests/auth/inv_admin_unauthorized_test.rs",
+      "server/crates/api/tests/auth/inv_auth_test.rs",
+      "server/crates/api/tests/auth/personal_workspace_theme_test.rs",
+      "server/crates/api/tests/auth/socketio_auth_test.rs",
+      "server/crates/api/tests/auth/user_preferences_workbench_test.rs",
+      "server/crates/api/tests/auth/user_suspension_test.rs",
+      "server/crates/api/tests/contract/graphql/graphql_admin_user_test.rs",
+      "server/crates/api/tests/contract/graphql/graphql_auth.rs",
+      "server/crates/api/tests/ops/misc/invite_link_hash_test.rs"
+    ],
+    "select_suites": ["server.auth.integration"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-domain-server-config-integration",
+    "paths": [
+      "server/crates/api/tests/admin/admin_config_journal_test.rs",
+      "server/crates/api/tests/admin/admin_config_schema_test.rs",
+      "server/crates/api/tests/admin/admin_config_update_test.rs",
+      "server/crates/api/tests/ops/config/config_readiness_test.rs",
+      "server/crates/api/tests/ops/config/inv_config_changelog_test.rs",
+      "server/crates/api/tests/ops/config/inv_config_defaults_test.rs",
+      "server/crates/api/tests/ops/config/inv_config_download_url_test.rs",
+      "server/crates/api/tests/ops/config/inv_config_export_test.rs",
+      "server/crates/api/tests/ops/config/inv_config_hotreload_test.rs",
+      "server/crates/api/tests/ops/config/inv_config_import_test.rs",
+      "server/crates/api/tests/ops/config/inv_config_password_policy_test.rs",
+      "server/crates/api/tests/ops/config/inv_config_prodcheck_test.rs",
+      "server/crates/api/tests/ops/config/inv_config_setup_test.rs",
+      "server/crates/api/tests/ops/config/inv_config_yaml_compat_test.rs",
+      "server/crates/api/tests/ops/config/inv_deployment_type_test.rs",
+      "server/crates/api/tests/ops/config/runtime_toggle_test.rs",
+      "server/crates/api/tests/contract/graphql/graphql_compat_config.rs",
+      "server/crates/api/tests/ops/http/setup_endpoints.rs"
+    ],
+    "select_suites": ["server.config.integration"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-domain-server-admin-integration",
+    "paths": [
+      "server/crates/api/tests/admin/admin_endpoints.rs",
+      "server/crates/api/tests/admin/admin_frontend_schema_compat_test.rs",
+      "server/crates/api/tests/admin/inv_admin_api_schema_test.rs",
+      "server/crates/api/tests/contract/graphql/graphql_admin_compat.rs",
+      "server/crates/api/tests/contract/graphql/graphql_admin_dashboard_test.rs"
+    ],
+    "select_suites": ["server.admin.integration"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-domain-server-worker-integration",
+    "paths": [
+      "server/crates/api/tests/admin/admin_queue_graphql_test.rs",
+      "server/crates/api/tests/worker/inv_metrics_pipeline_test.rs",
+      "server/crates/api/tests/worker/inv_telemetry_dsgvo_test.rs",
+      "server/crates/api/tests/worker/inv_telemetry_pipeline_test.rs",
+      "server/crates/api/tests/worker/inv_telemetry_status_test.rs",
+      "server/crates/api/tests/worker/metrics_worker_telemetry.rs",
+      "server/crates/api/tests/worker/queue_mgmt_invariant_test.rs",
+      "server/crates/api/tests/worker/worker_outbox_e2e_test.rs",
+      "server/crates/api/tests/worker/worker_outbox_test.rs",
+      "server/crates/api/tests/worker/worker_queue_redis_test.rs",
+      "server/crates/api/tests/ops/misc/inv_outbox_test.rs"
+    ],
+    "select_suites": ["server.worker.integration"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-domain-server-operations-integration",
+    "paths": [
+      "server/crates/api/tests/admin/admin_runtime_graphql_test.rs",
+      "server/crates/api/tests/admin/inv_audit_log_test.rs",
+      "server/crates/api/tests/admin/logging_admin_test.rs",
+      "server/crates/api/tests/ops/http/monitoring_assets_test.rs",
+      "server/crates/api/tests/ops/misc/inv_server_directories_test.rs",
+      "server/crates/api/tests/ops/misc/log_rotation_test.rs",
+      "server/crates/api/tests/ops/misc/logging_tail_rotation_test.rs"
+    ],
+    "select_suites": ["server.operations.integration"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-domain-server-copilot-integration",
+    "paths": [
+      "server/crates/api/tests/admin/inv_admin_p17_cleanup_embeddings_test.rs",
+      "server/crates/api/tests/contract/graphql/graphql_copilot_lifecycle.rs",
+      "server/crates/api/tests/contract/graphql/graphql_copilot_test.rs",
+      "server/crates/api/tests/copilot/copilot_embedding_pipeline_test.rs",
+      "server/crates/api/tests/copilot/inv_copilot_adoption_test.rs",
+      "server/crates/api/tests/copilot/inv_copilot_config_test.rs",
+      "server/crates/api/tests/copilot/inv_copilot_exa_test.rs",
+      "server/crates/api/tests/copilot/inv_copilot_rag_test.rs",
+      "server/crates/api/tests/copilot/inv_copilot_schema_test.rs",
+      "server/crates/api/tests/copilot/inv_copilot_test.rs"
+    ],
+    "select_suites": ["server.copilot.integration"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-domain-server-branding-integration",
+    "paths": [
+      "server/crates/api/tests/admin/theme_branding_api_test.rs",
+      "server/crates/api/tests/ops/http/font_endpoints_test.rs"
+    ],
+    "select_suites": ["server.branding.integration"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-domain-server-cache-integration",
+    "paths": [
+      "server/crates/api/tests/ops/cache/cache_auto_tuning_test.rs",
+      "server/crates/api/tests/ops/cache/cache_stampede_test.rs",
+      "server/crates/api/tests/ops/cache/cache_tuning_retention_test.rs",
+      "server/crates/api/tests/ops/cache/cache_user_features_test.rs",
+      "server/crates/api/tests/ops/cache/inv_cache_test.rs",
+      "server/crates/api/tests/ops/cache/inv_doc_cache_integration_test.rs",
+      "server/crates/api/tests/ops/cache/inv_doc_cache_tuning_test.rs",
+      "server/crates/api/tests/ops/cache/inv_p103_cache_read_path_test.rs",
+      "server/crates/api/tests/ops/cache/multi_instance_cache_bus_test.rs",
+      "server/crates/api/tests/ops/cache/multi_instance_cache_stampede_test.rs",
+      "server/crates/api/tests/ops/cache/multi_instance_config_sync_test.rs",
+      "server/crates/api/tests/ops/cache/multi_instance_feature_toggle_test.rs",
+      "server/crates/api/tests/ops/cache/multi_instance_redis_failure_test.rs",
+      "server/crates/api/tests/ops/cache/multi_instance_session_isolation_test.rs"
+    ],
+    "select_suites": ["server.cache.integration"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-domain-server-documents-integration",
+    "paths": [
+      "server/crates/api/tests/db/documents/cli_seed_root_doc_test.rs",
+      "server/crates/api/tests/db/documents/doc_acl_test.rs",
+      "server/crates/api/tests/db/documents/doc_role_roundtrip_test.rs",
+      "server/crates/api/tests/db/documents/doc_view_tracking_test.rs",
+      "server/crates/api/tests/db/documents/doc_view_tracking_ws_e2e_test.rs",
+      "server/crates/api/tests/db/documents/document_audit_graphql_test.rs",
+      "server/crates/api/tests/db/documents/document_metadata_graphql_test.rs",
+      "server/crates/api/tests/db/documents/document_metadata_initial_sync_concurrency_test.rs",
+      "server/crates/api/tests/db/documents/document_metadata_initial_sync_test.rs",
+      "server/crates/api/tests/db/documents/document_metadata_policy_graphql_test.rs",
+      "server/crates/api/tests/db/documents/document_permanent_delete_graphql_test.rs",
+      "server/crates/api/tests/db/documents/document_transport_acl_test.rs",
+      "server/crates/api/tests/db/documents/document_update_replay_guard_test.rs",
+      "server/crates/api/tests/db/documents/inv_doc_logging_test.rs",
+      "server/crates/api/tests/db/documents/inv_doc_path_consistency_test.rs",
+      "server/crates/api/tests/db/documents/inv_doc_permissions_test.rs",
+      "server/crates/api/tests/db/documents/inv_doc_service_split_test.rs",
+      "server/crates/api/tests/db/documents/inv_doc_timestamp_filter_test.rs",
+      "server/crates/api/tests/db/documents/inv_doc_trait_isolation_test.rs",
+      "server/crates/api/tests/db/documents/inv_doc_view_tracking_consolidated_test.rs",
+      "server/crates/api/tests/db/documents/inv_p102_compact_test.rs",
+      "server/crates/api/tests/db/documents/inv_p102_trash_test.rs",
+      "server/crates/api/tests/db/documents/inv_userspace_load_test.rs",
+      "server/crates/api/tests/db/documents/page_lifecycle_test.rs",
+      "server/crates/api/tests/db/documents/sync_doc_id_roundtrip_test.rs",
+      "server/crates/api/tests/contract/graphql/graphql_comments.rs",
+      "server/crates/api/tests/contract/graphql/graphql_document_graph_identity_test.rs",
+      "server/crates/api/tests/contract/persistence/workspace_content_operation_persistence_test.rs",
+      "server/crates/domain/src/database/import_export/workspace_content.rs",
+      "server/crates/application/src/database/import_export/workspace_content.rs",
+      "server/crates/infrastructure/src/workspace_database/import_export/workspace_content.rs",
+      "server/crates/api/tests/ops/misc/inv_ignored_docs_shape_test.rs",
+      "server/crates/api/tests/ops/misc/inv_userspace_view_test.rs"
+    ],
+    "select_suites": ["server.documents.integration"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-domain-server-document-history-integration",
+    "paths": [
+      "server/crates/api/tests/db/documents/graphql_doc_test.rs",
+      "server/crates/api/tests/db/workspaces/workspace_docs_rest_compat.rs",
+      "server/crates/api/tests/pdf/document_version_graphql_test.rs"
+    ],
+    "select_suites": ["server.document-history.integration"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-domain-server-database-integration",
+    "paths": [
+      "server/crates/infrastructure/tests/database_delete_test.rs",
+      "server/crates/infrastructure/tests/database_document_references_test.rs",
+      "server/crates/api/src/graphql/auth/database/mod.rs",
+      "server/crates/api/src/graphql/auth/database/definition/**",
+      "server/crates/api/src/graphql/auth/database/editing/**",
+      "server/crates/api/src/graphql/auth/database/project/**",
+      "server/crates/api/src/graphql/auth/database/views/**",
+      "server/crates/api/src/graphql/auth/database/reminders/**",
+      "server/crates/api/src/graphql/auth/database/import_export/**",
+      "server/crates/api/src/graphql/auth/database/projections/**",
+      "server/crates/api/tests/db/workspaces/database_socketio_collaboration_test.rs",
+      "server/crates/api/tests/db/workspaces/graphql_database_test.rs",
+      "server/crates/api/tests/db/workspaces/pdb29b_realtime_emission_test.rs",
+      "server/crates/application/src/database/definition/**",
+      "server/crates/domain/src/database/definition/**",
+      "server/crates/domain/src/database/templates.rs",
+      "server/crates/domain/src/database/projections/**",
+      "server/crates/application/src/database/projections/**",
+      "server/crates/domain/src/database/import_export/**",
+      "server/crates/application/src/database/import_export/**",
+      "server/crates/domain/src/database/views/**",
+      "server/crates/domain/src/database/editing/**",
+      "server/crates/domain/src/database/reminders/**",
+      "server/crates/domain/src/database/projects.rs",
+      "server/crates/domain/src/assistant_package.rs",
+      "server/crates/application/src/database/views/**",
+      "server/crates/application/src/database/editing/**",
+      "server/crates/application/src/database/reminders/**",
+      "server/crates/application/src/workspace/assistant_packages/**",
+      "server/crates/infrastructure/src/assistant_packages/**",
+      "server/crates/infrastructure/src/template_files.rs",
+      "server/crates/infrastructure/src/feature_bundles/**",
+      "server/crates/application/src/feature_bundle/**",
+      "server/templates/features/**",
+      "server/crates/infrastructure/src/workspace_database/**",
+      "server/templates/assistants/**",
+      "server/crates/infrastructure/src/workspace_database/definition/**",
+      "server/crates/infrastructure/src/workspace_automation/task_events.rs",
+      "server/templates/databases/**"
+    ],
+    "select_suites": ["server.database.integration"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-domain-server-search-integration",
+    "paths": [
+      "server/crates/api/src/search.rs",
+      "server/crates/infrastructure/src/search/**",
+      "server/crates/infrastructure/tests/search_repository_fts_test.rs",
+      "server/crates/api/tests/db/workspaces/graphql_admin_search_workspaces_test.rs",
+      "server/crates/api/tests/contract/graphql/graphql_search.rs",
+      "server/crates/api/tests/contract/graphql/graphql_search_missing_repository_test.rs",
+      "server/crates/api/tests/contract/graphql/graphql_search_users_test.rs",
+      "server/crates/api/tests/contract/graphql/inv_mix_search_contract_test.rs",
+      "server/crates/api/tests/ops/misc/indexer_job_payload_test.rs",
+      "server/crates/api/tests/ops/misc/search_content_test.rs"
+    ],
+    "select_suites": ["server.search.integration"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-domain-server-workspaces-integration",
+    "paths": [
+      "server/crates/api/tests/db/workspaces/graphql_admin_workspace_test.rs",
+      "server/crates/api/tests/db/workspaces/graphql_orphaned_workspaces_test.rs",
+      "server/crates/api/tests/db/workspaces/graphql_workspace.rs",
+      "server/crates/api/tests/db/workspaces/graphql_workspace_compat.rs",
+      "server/crates/api/tests/db/workspaces/graphql_workspace_resolvers_test.rs",
+      "server/crates/api/src/graphql/auth/database/assistance/**",
+      "server/crates/api/tests/db/workspaces/graphql_workspace_tags_test.rs",
+      "server/crates/api/tests/db/workspaces/inv_workspace_invite_test.rs",
+      "server/crates/api/tests/db/workspaces/inv_workspace_member_invite_test.rs",
+      "server/crates/api/tests/db/workspaces/inv_workspace_test.rs",
+      "server/crates/api/tests/db/workspaces/inv_workspace_type_test.rs",
+      "server/crates/api/tests/db/workspaces/nightly_cleanup_test.rs",
+      "server/crates/api/tests/db/workspaces/workspace_preview_test.rs"
+    ],
+    "select_suites": ["server.workspaces.integration"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-domain-server-storage-integration",
+    "paths": [
+      "server/crates/api/tests/db/workspaces/inv_workspace_blob_cleanup_test.rs",
+      "server/crates/api/tests/db/storage/blob_download_test.rs",
+      "server/crates/api/tests/db/storage/blob_quota_test.rs",
+      "server/crates/api/tests/db/storage/blob_upload_test.rs",
+      "server/crates/api/tests/db/storage/inv_quota_usage_test.rs",
+      "server/crates/api/tests/db/storage/inv_workspace_quota_test.rs",
+      "server/crates/api/tests/db/storage/quota_enforcement_test.rs",
+      "server/crates/api/tests/db/storage/storage_complex_test.rs"
+    ],
+    "select_suites": ["server.storage.integration"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-domain-api-integration",
+    "paths": [
+      "server/crates/api/tests/copilot/transcription_results_test.rs",
+      "server/crates/api/tests/contract/graphql/graphql_billing_compat.rs",
+      "server/crates/api/tests/contract/schema/compat_rest_endpoints.rs",
+      "server/crates/api/tests/contract/schema/graphql_enum_casing_test.rs",
+      "server/crates/api/tests/contract/schema/graphql_schema_drift_test.rs",
+      "server/crates/api/tests/contract/schema/schema_compat_mutations_test.rs",
+      "server/crates/api/tests/contract/schema/schema_compat_queries_test.rs",
+      "server/crates/api/tests/contract/schema/schema_compat_types_test.rs",
+      "server/crates/api/tests/ops/http/cors_test.rs",
+      "server/crates/api/tests/ops/http/health_endpoints.rs",
+      "server/crates/api/tests/ops/http/info_endpoints.rs",
+      "server/crates/api/tests/ops/http/startup_failfast.rs",
+      "server/crates/api/tests/ops/misc/security_regression_test.rs",
+      "server/crates/api/tests/contract/source_scan/lint_doc_id_parsing.rs"
+    ],
+    "select_suites": ["api.integration"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-domain-server-calendar-integration",
+    "paths": [
+      "server/crates/api/tests/contract/graphql/graphql_calendar.rs",
+      "server/crates/api/tests/contract/graphql/graphql_calendar_native_test.rs",
+      "server/crates/api/tests/calendar/caldav_sync_integration_test.rs",
+      "server/crates/api/tests/calendar/calendar_native_repo_test.rs",
+      "server/crates/api/tests/calendar/inv_caldav_test.rs",
+      "server/crates/api/tests/calendar/inv_caldav_write_test.rs",
+      "server/crates/api/tests/calendar/inv_caldav_writeback_test.rs",
+      "server/crates/api/tests/calendar/inv_calendar_conflict_test.rs",
+      "server/crates/api/tests/calendar/inv_calendar_ics_test.rs",
+      "server/crates/api/tests/calendar/inv_calendar_instance_test.rs",
+      "server/crates/api/tests/calendar/inv_calendar_native_schema_test.rs",
+      "server/crates/api/tests/calendar/inv_calendar_native_svc_test.rs",
+      "server/crates/api/tests/calendar/inv_calendar_realtime_test.rs",
+      "server/crates/api/tests/calendar/inv_calendar_recurrence_test.rs",
+      "server/crates/api/tests/calendar/inv_calendar_reminder_test.rs",
+      "server/crates/api/tests/calendar/inv_calendar_rsvp_test.rs",
+      "server/crates/api/tests/calendar/inv_calendar_security_test.rs",
+      "server/crates/api/tests/calendar/inv_calendar_webhook_test.rs",
+      "server/crates/api/tests/calendar/inv_calendar_writeback_test.rs"
+    ],
+    "select_suites": ["server.calendar.integration"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-domain-server-git-sync-integration",
+    "paths": [
+      "server/crates/api/tests/contract/graphql/graphql_git_sync_profile_test.rs",
+      "server/crates/api/tests/integrations/git_sync/git_sync_conflict_resolution_test.rs",
+      "server/crates/api/tests/integrations/git_sync/git_sync_db_invariants_test.rs",
+      "server/crates/api/tests/integrations/git_sync/git_sync_enum_test.rs",
+      "server/crates/api/tests/integrations/git_sync/git_sync_file_pipeline_test.rs",
+      "server/crates/api/tests/integrations/git_sync/git_sync_rebase_test.rs",
+      "server/crates/api/tests/integrations/git_sync/git_sync_runner_harness_test.rs",
+      "server/crates/api/tests/integrations/git_sync/git_sync_scheduler_test.rs",
+      "server/crates/api/tests/integrations/git_sync/git_sync_source_guard_test.rs",
+      "server/crates/api/tests/integrations/git_sync/git_sync_ssh_host_key_policy_test.rs",
+      "server/crates/api/tests/integrations/git_sync/git_sync_webhook_test.rs",
+      "server/crates/api/tests/integrations/git_sync/inv_git_sync_test.rs"
+    ],
+    "select_suites": ["server.git-sync.integration"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-domain-server-organization-integration",
+    "paths": [
+      "server/crates/api/tests/contract/graphql/graphql_implicit_manager_capability_test.rs",
+      "server/crates/api/tests/contract/graphql/graphql_organization_audit_test.rs",
+      "server/crates/api/tests/contract/graphql/graphql_organization_import_export_test.rs",
+      "server/crates/api/tests/contract/graphql/graphql_organization_legacy_team_test.rs",
+      "server/crates/api/tests/contract/graphql/graphql_organization_test.rs",
+      "server/crates/api/tests/contract/graphql/graphql_organization_unit_lifecycle_test.rs",
+      "server/crates/api/tests/contract/graphql/graphql_search_organization_units_test.rs",
+      "server/crates/api/tests/contract/graphql/graphql_user_organization_memberships_test.rs",
+      "server/crates/api/tests/contract/graphql/graphql_workspace_member_permission_test.rs",
+      "server/crates/api/tests/contract/graphql/organization_source_gate_test.rs"
+    ],
+    "select_suites": ["server.organization.integration"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-domain-server-notifications-integration",
+    "paths": [
+      "server/crates/api/tests/contract/graphql/graphql_notifications.rs",
+      "server/crates/api/tests/ops/misc/notification_mail_e2e_test.rs",
+      "server/crates/api/tests/ops/misc/notification_mail_pipeline_test.rs"
+    ],
+    "select_suites": ["server.notifications.integration"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-domain-server-templates-integration",
+    "paths": [
+      "server/crates/api/tests/contract/graphql/graphql_template_suggestions.rs",
+      "server/crates/api/tests/contract/graphql/graphql_workspace_template_context_test.rs",
+      "server/crates/api/tests/templates/inv_template_registry_config_test.rs",
+      "server/crates/api/tests/templates/template_builtin_bridge_invariants.rs",
+      "server/crates/api/tests/templates/template_registry_test.rs"
+    ],
+    "select_suites": ["server.templates.integration"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-domain-server-mcp-integration",
+    "paths": [
+      "server/crates/api/tests/mcp/mcp_user_management_test.rs",
+      "server/crates/api/tests/mcp/mcp_api_key_graphql_test.rs",
+      "server/crates/api/tests/mcp/mcp_blob_tools_test.rs",
+      "server/crates/api/tests/mcp/mcp_create_page_test.rs",
+      "server/crates/api/tests/mcp/mcp_cross_workspace_test.rs",
+      "server/crates/api/tests/mcp/mcp_folder_tools_test.rs",
+      "server/crates/api/tests/mcp/mcp_pagination_test.rs",
+      "server/crates/api/tests/mcp/mcp_scope_enforcement_test.rs",
+      "server/crates/api/tests/mcp/mcp_workspace_tag_test.rs",
+      "server/crates/api/tests/mcp/mcp_organization_membership_test.rs"
+    ],
+    "select_suites": ["server.mcp.integration"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-domain-mcp-calendar-e2e",
+    "paths": ["server/crates/api/tests/mcp/mcp_calendar_test.rs"],
+    "select_suites": ["mcp.calendar.e2e"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-domain-mcp-database-contract",
+    "paths": ["server/crates/api/tests/mcp/mcp_database_test.rs"],
+    "select_suites": ["mcp.database.contract"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-domain-mcp-document-capabilities-contract",
+    "paths": [
+      "server/crates/api/tests/mcp/mcp_document_metadata_test.rs",
+      "server/crates/api/tests/mcp/mcp_document_template_test.rs",
+      "server/crates/api/tests/mcp/mcp_document_version_test.rs"
+    ],
+    "select_suites": ["mcp.document-capabilities.contract"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-domain-mcp-organization-unit-lifecycle-e2e",
+    "paths": [
+      "server/crates/api/tests/mcp/mcp_organization_unit_lifecycle_e2e_test.rs"
+    ],
+    "select_suites": ["mcp.organization-unit-lifecycle.e2e"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-domain-server-pdf-integration",
+    "paths": [
+      "server/crates/api/tests/mcp/mcp_pdf_template_test.rs",
+      "server/crates/api/tests/pdf/admin_pdf_export_graphql_test.rs",
+      "server/crates/api/tests/pdf/admin_template_override_graphql_test.rs",
+      "server/crates/api/tests/pdf/document_version_invariants.rs",
+      "server/crates/api/tests/pdf/pdf_audit_invariants_test.rs",
+      "server/crates/api/tests/pdf/pdf_brand_admin_test.rs",
+      "server/crates/api/tests/pdf/pdf_export_api_test.rs",
+      "server/crates/api/tests/pdf/pdf_export_assignment_test.rs",
+      "server/crates/api/tests/pdf/pdf_export_audit_failmode_test.rs",
+      "server/crates/api/tests/pdf/pdf_export_cleanup_test.rs",
+      "server/crates/api/tests/pdf/pdf_export_contract_source_gate_test.rs",
+      "server/crates/api/tests/pdf/pdf_export_render_audit_test.rs",
+      "server/crates/api/tests/pdf/pdf_export_v2_invariants.rs",
+      "server/crates/api/tests/pdf/pdf_export_v2_mutation_test.rs",
+      "server/crates/api/tests/pdf/pdf_font_lifecycle_test.rs",
+      "server/crates/api/tests/pdf/pdf_template_admin_test.rs",
+      "server/crates/api/tests/pdf/pdf_workspace_admin_test.rs",
+      "server/crates/api/tests/pdf/pdf_workspace_readonly_test.rs"
+    ],
+    "select_suites": ["server.pdf.integration"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-domain-server-public-publishing-integration",
+    "paths": [
+      "server/crates/api/tests/public_publishing/public_publishing_routes_test.rs"
+    ],
+    "select_suites": ["server.public-publishing.integration"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-domain-server-sync-integration",
+    "paths": [
+      "server/crates/api/tests/realtime/client_update_control_test.rs",
+      "server/crates/api/tests/realtime/connection_admission_test.rs",
+      "server/crates/api/tests/realtime/document_event_acl_test.rs",
+      "server/crates/api/tests/realtime/sync_lifecycle_test.rs",
+      "server/crates/api/tests/realtime/sync_permission_test.rs",
+      "server/crates/api/tests/realtime/websocket_protocol_test.rs"
+    ],
+    "select_suites": ["server.sync.integration"],
+    "reason": "Changed integration tests execute their complete assigned capability, not the full API-hosted inventory."
+  },
+  {
+    "id": "api-shared-test-support",
+    "paths": ["server/crates/api/tests/support/**"],
+    "select_suites": [
+      "api.integration.quick",
+      "server.auth.integration.quick",
+      "server.config.integration.quick",
+      "server.calendar.integration.quick",
+      "server.git-sync.integration.quick",
+      "server.organization.integration.quick",
+      "server.documents.integration.quick",
+      "server.storage.integration.quick"
+    ],
+    "reason": "Shared fixtures preserve standard cross-capability coverage; changing one feature test does not run library units or every standard capability."
+  },
+  {
+    "id": "api-domain-routing-contract",
+    "paths": [
+      "build/test-matrix/api-integration-domains.json",
+      "build/test-matrix/api-standard-filters.json",
+      "build/scripts/test/api-integration-domain.sh",
+      "build/scripts/test/api-integration-domain.mjs",
+      "build/scripts/test/verify-api-integration-domains.mjs",
+      "build/scripts/test/api-integration-quick.sh",
+      "build/scripts/test/api-standard-filters.mjs",
+      "server/crates/api/tests/integration.rs",
+      "server/crates/api/tests/integration_quick.rs"
+    ],
+    "select_suites": ["matrix.self-check"],
+    "reason": "Assignment and wrapper edits validate complete ownership and exact selection without compiling or executing unchanged product tests."
+  },
+  {
+    "id": "editor-syntax-highlighter",
+    "paths": [
+      "virgultum/editor/components/src/syntax-highlighter/**",
+      "virgultum/editor/components/scripts/generate-syntax-languages.mjs",
+      "virgultum/editor/components/tests/**",
+      "virgultum/editor/components/vitest.config.ts",
+      "virgultum/editor/components/package.json",
+      "virgultum/editor/blocks/code/**",
+      "virgultum/editor/inlines/latex/**",
+      "client/libs/core/src/editor/ai/components/ai-tools/code-artifact.ts"
+    ],
+    "select_suites": ["editor.syntax-highlighter.vitest"],
+    "reason": "Protect native Oniguruma token parity and language metadata at the shared syntax owner."
+  },
+  {
+    "id": "client-routes-vitest",
+    "paths": ["client/libs/routes/**"],
+    "select_suites": ["client.routes.vitest"],
+    "reason": "Generated route parameter types and raw URL factories must survive router consolidation."
+  },
+  {
+    "id": "native-document-assets",
+    "paths": [
+      "server/templates/documents/**",
+      "build/scripts/templates/**",
+      "client/libs/core/public/document-bundles/**",
+      "client/libs/core/src/modules/template-doc/generated/document-bundles.json"
+    ],
+    "select_suites": ["templates.native-assets"],
+    "reason": "Verify current native exports, immutable delivered copies and generated index through the existing generator check mode."
+  },
+  {
+    "id": "database-template-source-fixtures",
+    "paths": ["server/crates/infrastructure/src/database_templates*.json"],
+    "select_suites": ["server.domain.unit", "server.infrastructure.unit"],
+    "reason": "Immutable original starter fixtures are consumed by Application and Infrastructure parity tests."
+  }
+]

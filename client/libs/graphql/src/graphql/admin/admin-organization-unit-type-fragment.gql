@@ -1,0 +1,23 @@
+fragment AdminOrganizationUnitTypeFragment on OrganizationUnitTypeType {
+  id
+  organizationId
+  key
+  label
+  description
+  icon
+  color
+  isPreset
+  isActive
+  isStructural
+  canHaveChildren
+  canBeRootLevel
+  canBeManagerCreated
+  canHaveCrossUnitMembers
+  canOwnWorkspaces
+  canManageWorkspaces
+  isStaffUnit
+  requiresAdminApproval
+  metadata
+  createdAt
+  updatedAt
+}

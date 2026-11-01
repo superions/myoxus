@@ -1,0 +1,16 @@
+{
+  "id": "workspace_create_mutation_contract",
+  "kind": "graphql",
+  "smoke": false,
+  "description": "Golden fixture for createWorkspace mutation contract",
+  "request": {
+    "path": "/graphql",
+    "query": "mutation WorkspaceCreateContract { createWorkspace { id } }",
+    "variables": {}
+  },
+  "expect": {
+    "status_any": [200],
+    "content_type_contains": "application/json",
+    "body_contains": "createWorkspace"
+  }
+}

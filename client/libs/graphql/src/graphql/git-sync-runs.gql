@@ -1,0 +1,25 @@
+query getGitSyncRuns($workspaceId: String!, $take: Int) {
+  workspace(id: $workspaceId) {
+    gitSyncRuns(take: $take) {
+      id
+      direction
+      triggerSource
+      scheduledFor
+      status
+      startedAt
+      finishedAt
+      jobId
+      commitBefore
+      commitAfter
+      observedRemoteOid
+      reconciliationRequired
+      reconciliationReason
+      docsCreated
+      docsUpdated
+      docsDeleted
+      conflictsFound
+      errorMessage
+      errorClass
+    }
+  }
+}

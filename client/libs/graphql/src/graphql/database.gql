@@ -1,0 +1,2021 @@
+fragment DatabaseSelectOption on DatabaseSelectOptionType {
+  id
+  name
+  position
+  colorRole
+}
+
+fragment DatabaseStatusOption on DatabaseStatusOptionType {
+  id
+  name
+  position
+  colorRole
+  group
+}
+
+fragment DatabaseRollupScalarValue on DatabaseRollupScalarValueType {
+  kind
+  number
+  text
+  currency {
+    amount
+    currencyCode
+  }
+  duration {
+    minutes
+  }
+  checkbox
+  date {
+    start
+    end
+  }
+}
+
+fragment DatabaseFormulaScalarValue on DatabaseFormulaScalarValueType {
+  kind
+  number
+  text
+  checkbox
+  date {
+    start
+    end
+  }
+}
+
+fragment DatabaseFieldConfig on DatabaseFieldConfigType {
+  kind
+  text {
+    multiline
+  }
+  richText {
+    maxPlainTextBytes
+  }
+  number {
+    format
+  }
+  percent {
+    minValue
+    maxValue
+  }
+  currency {
+    defaultCurrency
+    allowCurrencyOverride
+    minValue
+    maxValue
+  }
+  duration {
+    displayUnit
+    minMinutes
+    maxMinutes
+  }
+  users {
+    minCount
+    maxCount
+  }
+  date {
+    includeTime
+  }
+  dateTime {
+    defaultTimeZone
+    allowReminders
+  }
+  files {
+    allowedMimeCategories
+    maxItemCount
+    maxItemSize
+    previewPolicy
+  }
+  uniqueId {
+    prefix
+    startNumber
+    padding
+  }
+  select {
+    options {
+      ...DatabaseSelectOption
+    }
+  }
+  multiSelect {
+    options {
+      ...DatabaseSelectOption
+    }
+  }
+  tags {
+    maxCount
+  }
+  status {
+    options {
+      ...DatabaseStatusOption
+    }
+    defaultOptionId
+  }
+  relation {
+    targetDatabaseId
+    allowMultiple
+    reciprocalFieldId
+    maxTargets
+  }
+  rollup {
+    sourceRelationFieldId
+    targetFieldId
+    aggregate
+    emptyValue {
+      ...DatabaseRollupScalarValue
+    }
+    stalePolicy
+  }
+  formula {
+    expression
+    resultType
+    dependencyFieldIds
+    stalePolicy
+    format
+  }
+}
+
+fragment DatabaseSortRule on DatabaseSortRuleType {
+  fieldId
+  direction
+}
+
+fragment DatabaseFilterRule on DatabaseFilterRuleType {
+  fieldId
+  operator
+  value {
+    kind
+    value
+  }
+}
+
+fragment DatabaseFilterGroup on DatabaseFilterGroupType {
+  conjunction
+  rules {
+    ...DatabaseFilterRule
+  }
+  groups {
+    conjunction
+    rules {
+      ...DatabaseFilterRule
+    }
+    groups {
+      conjunction
+      rules {
+        ...DatabaseFilterRule
+      }
+    }
+  }
+}
+
+fragment DatabaseGroupRule on DatabaseGroupRuleType {
+  fieldId
+  descending
+  showEmptyGroups
+}
+
+fragment DatabaseRowGroupSummary on DatabaseRowGroupSummary {
+  key
+  label
+  rowCount
+  groups {
+    key
+    label
+    rowCount
+    groups {
+      key
+      label
+      rowCount
+    }
+  }
+}
+
+fragment DatabaseViewConfig on DatabaseViewConfigType {
+  kind
+  table {
+    titleFieldId
+    visibleFieldIds
+    fieldWidths {
+      fieldId
+      width
+    }
+    searchFieldIds
+    sort {
+      ...DatabaseSortRule
+    }
+    filter {
+      ...DatabaseFilterRule
+    }
+    filterTree {
+      ...DatabaseFilterGroup
+    }
+    group {
+      ...DatabaseGroupRule
+    }
+    subgroup {
+      ...DatabaseGroupRule
+    }
+  }
+  kanban {
+    titleFieldId
+    groupFieldId
+    visibleFieldIds
+    coverFieldId
+    cardDensity
+    sort {
+      ...DatabaseSortRule
+    }
+    filter {
+      ...DatabaseFilterRule
+    }
+    filterTree {
+      ...DatabaseFilterGroup
+    }
+  }
+  list {
+    titleFieldId
+    visibleFieldIds
+    sort {
+      ...DatabaseSortRule
+    }
+    filter {
+      ...DatabaseFilterRule
+    }
+    filterTree {
+      ...DatabaseFilterGroup
+    }
+    density
+    showFieldLabels
+    group {
+      ...DatabaseGroupRule
+    }
+    subgroup {
+      ...DatabaseGroupRule
+    }
+  }
+  gallery {
+    titleFieldId
+    visibleFieldIds
+    coverFieldId
+    sort {
+      ...DatabaseSortRule
+    }
+    filter {
+      ...DatabaseFilterRule
+    }
+    filterTree {
+      ...DatabaseFilterGroup
+    }
+    cardDensity
+    showEmptyCover
+    group {
+      ...DatabaseGroupRule
+    }
+    subgroup {
+      ...DatabaseGroupRule
+    }
+  }
+  calendar {
+    titleFieldId
+    dateFieldId
+    visibleFieldIds
+    sort {
+      ...DatabaseSortRule
+    }
+    filter {
+      ...DatabaseFilterRule
+    }
+    filterTree {
+      ...DatabaseFilterGroup
+    }
+    dateMode
+    initialRange
+    group {
+      ...DatabaseGroupRule
+    }
+    subgroup {
+      ...DatabaseGroupRule
+    }
+  }
+  timeline {
+    titleFieldId
+    startFieldId
+    endFieldId
+    visibleFieldIds
+    sort {
+      ...DatabaseSortRule
+    }
+    filter {
+      ...DatabaseFilterRule
+    }
+    filterTree {
+      ...DatabaseFilterGroup
+    }
+    groupBy
+    order
+    zoom
+  }
+  gantt {
+    titleFieldId
+    startFieldId
+    endFieldId
+    visibleFieldIds
+    sort {
+      ...DatabaseSortRule
+    }
+    filter {
+      ...DatabaseFilterRule
+    }
+    filterTree {
+      ...DatabaseFilterGroup
+    }
+    group {
+      ...DatabaseGroupRule
+    }
+    zoom
+    dependencyFieldId
+  }
+  progress {
+    titleFieldId
+    progressFieldId
+    groupFieldId
+    visibleFieldIds
+    sort {
+      ...DatabaseSortRule
+    }
+    filter {
+      ...DatabaseFilterRule
+    }
+    filterTree {
+      ...DatabaseFilterGroup
+    }
+  }
+}
+
+fragment DatabaseField on DatabaseFieldType {
+  id
+  databaseId
+  name
+  fieldType
+  config {
+    ...DatabaseFieldConfig
+  }
+  position
+  required
+  editRevision
+  createdAt
+  updatedAt
+}
+
+fragment DatabaseView on DatabaseViewType {
+  id
+  databaseId
+  name
+  viewKind
+  icon {
+    system
+    emoji
+  }
+  config {
+    ...DatabaseViewConfig
+  }
+  position
+  editRevision
+  createdAt
+  updatedAt
+}
+
+fragment DatabaseViewSummary on DatabaseViewType {
+  id
+  databaseId
+  name
+  viewKind
+  icon {
+    system
+    emoji
+  }
+  config {
+    kind
+  }
+  position
+  editRevision
+  createdAt
+  updatedAt
+}
+
+fragment Database on DatabaseType {
+  systemRole
+  id
+  workspaceId
+  profileKind
+  profileStructurePreset
+  profileConfig
+  title
+  description
+  createdBy
+  updatedBy
+  deletedAt
+  deletedBy
+  editRevision
+  createdAt
+  updatedAt
+}
+
+fragment DatabaseFieldRole on DatabaseFieldRole {
+  databaseId
+  profileKind
+  roleKey
+  rowKindScope
+  fieldId
+  required
+  config
+  createdAt
+  updatedAt
+}
+
+fragment DatabaseViewRole on DatabaseViewRole {
+  databaseId
+  profileKind
+  roleKey
+  viewId
+  required
+  createdAt
+  updatedAt
+}
+
+fragment DatabaseRecord on DatabaseRecord {
+  managedSchema { ...DatabaseManagedSchema }
+  database {
+    ...Database
+  }
+  fields {
+    ...DatabaseField
+  }
+  views {
+    ...DatabaseView
+  }
+  fieldRoles {
+    ...DatabaseFieldRole
+  }
+  viewRoles {
+    ...DatabaseViewRole
+  }
+  rowCount
+}
+
+fragment DatabaseSchemaRecord on DatabaseRecord {
+  managedSchema { ...DatabaseManagedSchema }
+  database {
+    ...Database
+  }
+  fields {
+    ...DatabaseField
+  }
+  fieldRoles {
+    ...DatabaseFieldRole
+  }
+  viewRoles {
+    ...DatabaseViewRole
+  }
+  rowCount
+}
+
+fragment DatabaseViewsRecord on DatabaseRecord {
+  views {
+    ...DatabaseViewSummary
+  }
+}
+
+fragment DatabaseSummary on DatabaseSummary {
+  id
+  systemRole
+  workspaceId
+  profileKind
+  profileStructurePreset
+  title
+  description
+  deletedAt
+  editRevision
+  createdAt
+  updatedAt
+  rowCount
+  fieldCount
+  viewCount
+}
+
+fragment DatabasePageIdentity on DatabasePageIdentity {
+  id
+  systemRole
+  profileKind
+  title
+  description
+  deletedAt
+  editRevision
+  createdAt
+  updatedAt
+}
+
+fragment DatabaseCellValueData on DatabaseCellValueDataType {
+  kind
+  text
+  richText {
+    plainText
+    document
+  }
+  number
+  percent
+  currency {
+    amount
+    currencyCode
+  }
+  duration {
+    minutes
+  }
+  checkbox
+  date {
+    start
+    end
+  }
+  dateTime {
+    start
+    end
+    allDay
+    timeZone
+  }
+  files {
+    files {
+      blobKey
+      name
+      mime
+      size
+      caption
+      cover
+    }
+  }
+  uniqueId {
+    prefix
+    sequence
+    display
+  }
+  select
+  multiSelect
+  tags
+  status
+  user
+  users
+  documentLink {
+    docId
+    workspaceId
+    target {
+      documentId
+      externalId
+      workspaceId
+      state
+      title
+    }
+  }
+  relation
+  relationTargets {
+    rowId
+    contentDocument {
+      documentId
+      externalId
+      workspaceId
+      state
+      title
+    }
+    title
+    redacted
+    deleted
+  }
+  url
+  email
+  phone
+  createdTime
+  createdBy
+  updatedTime
+  updatedBy
+  rollup {
+    value {
+      ...DatabaseRollupScalarValue
+    }
+    staleState
+    computedAt
+    failedAt
+    errorCode
+    errorMessage
+  }
+  formula {
+    value {
+      ...DatabaseFormulaScalarValue
+    }
+    staleState
+    computedAt
+    failedAt
+    errorCode
+    errorMessage
+  }
+}
+
+fragment DatabaseCellValue on DatabaseCellValueType {
+  rowId
+  fieldId
+  fieldType
+  value {
+    ...DatabaseCellValueData
+  }
+  updatedBy
+  editRevision
+  updatedAt
+}
+
+fragment DatabaseRow on DatabaseRowType {
+  id
+  databaseId
+  contentDocument {
+    documentId
+    externalId
+    workspaceId
+    state
+    title
+  }
+  rowKind
+  title
+  position
+  createdBy
+  updatedBy
+  editRevision
+  createdAt
+  updatedAt
+  deletedAt
+}
+
+fragment DatabaseTaskSource on DatabaseTaskSource {
+  sourceWorkspaceId
+  documentId
+  externalId
+  blockId
+  selectionAnchor
+  state
+  title
+}
+
+fragment DatabaseRowRecord on DatabaseRowRecord {
+  row {
+    ...DatabaseRow
+  }
+  cells {
+    ...DatabaseCellValue
+  }
+  cellRevisions {
+    rowId
+    fieldId
+    editRevision
+    hasValue
+  }
+  redacted
+  groupKeys
+}
+
+fragment DatabaseRowTemplateCellValue on DatabaseRowTemplateCellValue {
+  fieldId
+  fieldType
+  value {
+    ...DatabaseCellValueData
+  }
+}
+
+fragment DatabaseRowTemplate on DatabaseRowTemplate {
+  editRevision
+  id
+  workspaceId
+  databaseId
+  templateId
+  rowKind
+  name
+  description
+  position
+  enabled
+  isDefault
+  initialCellValues {
+    ...DatabaseRowTemplateCellValue
+  }
+  createdBy
+  updatedBy
+  createdAt
+  updatedAt
+}
+
+fragment DatabaseRowTemplateBinding on DatabaseRowTemplateBinding {
+  rowTemplate {
+    ...DatabaseRowTemplate
+  }
+  templateAvailable
+  reconcileRequired
+  detached
+  disabled
+  archived
+}
+
+fragment DatabaseCsvDiagnostic on DatabaseCsvDiagnostic {
+  code
+  source
+  row
+  field
+  message
+}
+
+fragment DatabaseJsonDiagnostic on DatabaseJsonDiagnostic {
+  code
+  source
+  path
+  message
+}
+
+fragment DatabaseWorkspaceTagImportDiagnostic on DatabaseWorkspaceTagImportDiagnostic {
+  sourceId
+  targetId
+  name
+  slug
+  sourceColor
+  colorRole
+  action
+  affectedRows
+  affectedFields
+  message
+}
+
+fragment DatabaseBulkRowOutcome on DatabaseBulkRowOutcome {
+  rowId
+  success
+  errorCode
+  errorMessage
+}
+
+fragment DatabaseBulkOperationResult on DatabaseBulkOperationResult {
+  succeeded
+  failed {
+    ...DatabaseBulkRowOutcome
+  }
+  total
+  successCount
+  failureCount
+  transactionCommitted
+}
+
+fragment WorkspaceAutomationTrigger on WorkspaceAutomationTriggerType {
+  triggerType
+  databaseId
+  fieldId
+  selectOptionId
+}
+
+fragment WorkspaceAutomationAction on WorkspaceAutomationActionType {
+  position
+  actionType
+  config
+}
+
+fragment WorkspaceAutomation on WorkspaceAutomationType {
+  id
+  workspaceId
+  name
+  description
+  status
+  trigger {
+    ...WorkspaceAutomationTrigger
+  }
+  actions {
+    ...WorkspaceAutomationAction
+  }
+  createdAt
+  updatedAt
+}
+
+fragment WorkspaceAutomationRun on WorkspaceAutomationRunType {
+  id
+  automationId
+  origin
+  requestId
+  workspaceId
+  triggerType
+  triggerEvent
+  idempotencyKey
+  status
+  attemptCount
+  errorCode
+  errorMessage
+  deadLetter
+  queuedAt
+  startedAt
+  finishedAt
+}
+
+query databases(
+  $workspaceId: String!
+  $first: Int
+  $offset: Int
+  $search: String
+  $profileKind: DatabaseProfileKind
+  $databaseIds: [ID!]
+  $sort: DatabaseInventorySort
+) {
+  workspace(id: $workspaceId) {
+    databases(
+      first: $first
+      offset: $offset
+      search: $search
+      profileKind: $profileKind
+      databaseIds: $databaseIds
+      sort: $sort
+    ) {
+      ...DatabaseSummary
+    }
+  }
+}
+
+query databaseSearch(
+  $workspaceId: String!
+  $filter: DatabaseSearchFilterInput!
+) {
+  workspace(id: $workspaceId) {
+    databaseSearch(filter: $filter) {
+      rowId
+      databaseId
+      title
+      snippet
+      hasContentDocument
+      updatedAt
+    }
+  }
+}
+
+query trashedDatabases($workspaceId: String!, $first: Int, $offset: Int) {
+  workspace(id: $workspaceId) {
+    trashedDatabases(first: $first, offset: $offset) {
+      ...DatabaseSummary
+    }
+  }
+}
+
+query databasePageIdentities(
+  $workspaceId: String!
+  $first: Int
+  $offset: Int
+) {
+  workspace(id: $workspaceId) {
+    databasePageIdentities(first: $first, offset: $offset) {
+      ...DatabasePageIdentity
+    }
+  }
+}
+
+query trashedDatabasePageIdentities(
+  $workspaceId: String!
+  $first: Int
+  $offset: Int
+) {
+  workspace(id: $workspaceId) {
+    trashedDatabasePageIdentities(first: $first, offset: $offset) {
+      ...DatabasePageIdentity
+    }
+  }
+}
+
+query databaseSummary($workspaceId: String!, $databaseId: ID!) {
+  workspace(id: $workspaceId) {
+    databaseSummary(databaseId: $databaseId) {
+      ...DatabaseSummary
+    }
+  }
+}
+
+query database($workspaceId: String!, $databaseId: ID!) {
+  workspace(id: $workspaceId) {
+    database(databaseId: $databaseId) {
+      ...DatabaseRecord
+    }
+  }
+}
+
+query databaseSchema($workspaceId: String!, $databaseId: ID!) {
+  workspace(id: $workspaceId) {
+    database(databaseId: $databaseId) {
+      ...DatabaseSchemaRecord
+    }
+  }
+}
+
+query databaseViews($workspaceId: String!, $databaseId: ID!) {
+  workspace(id: $workspaceId) {
+    database(databaseId: $databaseId) {
+      ...DatabaseViewsRecord
+    }
+  }
+}
+
+query databaseView($workspaceId: String!, $databaseId: ID!, $viewId: ID!) {
+  workspace(id: $workspaceId) {
+    databaseView(databaseId: $databaseId, viewId: $viewId) {
+      ...DatabaseView
+    }
+  }
+}
+
+query databaseEffectiveViewState($workspaceId: String!, $databaseId: ID!, $viewId: ID!) {
+  workspace(id: $workspaceId) {
+    databaseEffectiveViewState(databaseId: $databaseId, viewId: $viewId) {
+      viewId
+      savedSort {
+        ...DatabaseSortRule
+      }
+      savedFilterTree {
+        ...DatabaseFilterGroup
+      }
+      personalState {
+        viewId
+        searchText
+        sort {
+          ...DatabaseSortRule
+        }
+        filterTree {
+          ...DatabaseFilterGroup
+        }
+        fieldWidthOverrides {
+          fieldId
+          width
+        }
+        collapsedGroupKeys
+        editRevision
+        updatedAt
+      }
+      effectiveSort {
+        ...DatabaseSortRule
+      }
+      effectiveFilterTree {
+        ...DatabaseFilterGroup
+      }
+      searchText
+      effectiveFieldWidths {
+        fieldId
+        width
+      }
+      canEditShared
+      canEditRows
+    }
+  }
+}
+
+query databaseRows(
+  $workspaceId: String!
+  $databaseId: ID!
+  $first: Int
+  $offset: Int
+  $after: String
+  $viewId: ID
+  $search: String
+  $sort: [DatabaseSortRuleInput!]
+  $filter: [DatabaseFilterRuleInput!]
+  $filterTree: DatabaseFilterGroupInput
+  $scheduleWindow: DatabaseScheduleWindowInput
+) {
+  workspace(id: $workspaceId) {
+    databaseRows(
+      databaseId: $databaseId
+      first: $first
+      offset: $offset
+      after: $after
+      viewId: $viewId
+      search: $search
+      sort: $sort
+      filter: $filter
+      filterTree: $filterTree
+      scheduleWindow: $scheduleWindow
+    ) {
+      totalCount
+      endCursor
+      rows {
+        ...DatabaseRowRecord
+      }
+    }
+  }
+}
+
+query databaseRow(
+  $workspaceId: String!
+  $databaseId: ID!
+  $rowId: ID!
+  $includeTrashed: Boolean = false
+) {
+  workspace(id: $workspaceId) {
+    databaseRow(databaseId: $databaseId, rowId: $rowId, includeTrashed: $includeTrashed) {
+      ...DatabaseRowRecord
+    }
+  }
+}
+
+query databaseTaskParent(
+  $workspaceId: String!
+  $databaseId: ID!
+  $rowId: ID!
+) {
+  workspace(id: $workspaceId) {
+    id
+    databaseRow(databaseId: $databaseId, rowId: $rowId, includeTrashed: true) {
+      row {
+        id
+        databaseId
+        taskParent {
+          available
+          fieldId
+          parentRowIds
+          diagnostics
+        }
+      }
+    }
+  }
+}
+
+query databaseTaskBlockedBy(
+  $workspaceId: String!
+  $databaseId: ID!
+  $rowId: ID!
+  $after: String
+) {
+  workspace(id: $workspaceId) {
+    id
+    databaseRow(databaseId: $databaseId, rowId: $rowId, includeTrashed: true) {
+      row {
+        id
+        databaseId
+        taskBlockedBy(first: 50, after: $after) {
+          available
+          fieldId
+          diagnostics
+          retainedRowIds
+          rows { rowId state task { ...DatabaseTaskSummary } }
+          nextCursor
+        }
+      }
+    }
+  }
+}
+
+query databaseTaskBlocks(
+  $workspaceId: String!
+  $databaseId: ID!
+  $rowId: ID!
+  $after: String
+) {
+  workspace(id: $workspaceId) {
+    id
+    databaseRow(databaseId: $databaseId, rowId: $rowId, includeTrashed: true) {
+      row {
+        id
+        databaseId
+        taskBlocks(first: 20, after: $after) {
+          available
+          fieldId
+          diagnostics
+          rows {
+            rowId
+            state
+            task {
+              ...DatabaseTaskSummary
+            }
+          }
+          nextCursor
+        }
+      }
+    }
+  }
+}
+
+query databaseTaskChildren(
+  $workspaceId: String!
+  $databaseId: ID!
+  $rowId: ID!
+  $first: Int
+  $after: String
+) {
+  workspace(id: $workspaceId) {
+    id
+    databaseRow(databaseId: $databaseId, rowId: $rowId, includeTrashed: true) {
+      row {
+        id
+        databaseId
+        taskChildren(first: $first, after: $after) {
+          available
+          fieldId
+          diagnostics
+          rows { ...DatabaseTaskSummary }
+          totalCount
+          completeCount
+          archivedCount
+          nextCursor
+        }
+      }
+    }
+  }
+}
+
+query databaseRowReminders(
+  $workspaceId: String!
+  $databaseId: ID!
+  $rowId: ID!
+  $fieldId: ID!
+) {
+  workspace(id: $workspaceId) {
+    databaseRowReminders(
+      databaseId: $databaseId
+      rowId: $rowId
+      fieldId: $fieldId
+    ) {
+      id
+      databaseId
+      rowId
+      fieldId
+      offsetMinutes
+      triggerAt
+      status
+      scheduleRevision
+    }
+  }
+}
+
+query databaseProgress($workspaceId: String!, $databaseId: ID!, $viewId: ID!) {
+  workspace(id: $workspaceId) {
+    databaseProgress(databaseId: $databaseId, viewId: $viewId) {
+      viewId
+      progressFieldId
+      groupFieldId
+      totalCount
+      completedCount
+      incompleteCount
+      blockedCount
+      overdueCount
+      averageProgress
+      groups {
+        key
+        label
+        totalCount
+        completedCount
+        incompleteCount
+        blockedCount
+        overdueCount
+        averageProgress
+      }
+    }
+  }
+}
+
+query databaseRowGroups($workspaceId: String!, $databaseId: ID!, $viewId: ID!, $search: String, $scheduleWindow: DatabaseScheduleWindowInput, $locale: String) {
+  workspace(id: $workspaceId) {
+    databaseRowGroups(databaseId: $databaseId, viewId: $viewId, search: $search, scheduleWindow: $scheduleWindow, locale: $locale) {
+      ...DatabaseRowGroupSummary
+    }
+  }
+}
+
+query databaseRowTemplates($workspaceId: String!, $databaseId: ID!) {
+  workspace(id: $workspaceId) {
+    databaseRowTemplates(databaseId: $databaseId) {
+      ...DatabaseRowTemplateBinding
+    }
+  }
+}
+
+fragment DatabaseStarterTemplate on DatabaseStarterTemplate {
+  id
+  version
+  digest
+  defaultVariant {priority complexity structure}
+  selections {input {priority complexity structure} variant {priority complexity structure}}
+  name
+  nameKey
+  description
+  descriptionKey
+  category
+  profileKind
+  defaultViewKinds
+  sampleRowCount
+  importMappings {
+    key
+    nameKey
+    columnMappings {
+      sourceHeader
+      fieldKey
+      required
+    }
+  }
+}
+
+query databaseStarterTemplates($workspaceId: String!) {
+  workspace(id: $workspaceId) {
+    databaseStarterTemplates {
+      ...DatabaseStarterTemplate
+    }
+  }
+}
+
+mutation createDatabase($input: CreateDatabaseInput!) {
+  createDatabase(input: $input) {
+    ...DatabaseRecord
+  }
+}
+
+mutation createDatabaseFromTemplate($input: CreateDatabaseFromTemplateInput!) {
+  createDatabaseFromTemplate(input: $input) {
+    initialViewId
+    ...DatabaseRecord
+  }
+}
+
+mutation createProject($input: CreateProjectInput!) {
+  createProject(input: $input) {
+    ...DatabaseRecord
+  }
+}
+
+mutation updateDatabase($input: UpdateDatabaseInput!) {
+  updateDatabase(input: $input) {
+    ...DatabaseRecord
+  }
+}
+
+mutation trashDatabase($input: DatabaseLifecycleInput!) {
+  trashDatabase(input: $input) {
+    database {
+      ...Database
+    }
+  }
+}
+
+mutation restoreDatabase($input: DatabaseLifecycleInput!) {
+  restoreDatabase(input: $input) {
+    database {
+      ...Database
+    }
+  }
+}
+
+mutation deleteDatabasePermanently($input: DatabaseLifecycleInput!) {
+  deleteDatabasePermanently(input: $input)
+}
+
+mutation createDatabaseField($input: CreateDatabaseFieldInput!) {
+  createDatabaseField(input: $input) {
+    ...DatabaseField
+  }
+}
+
+mutation updateDatabaseField($input: UpdateDatabaseFieldInput!) {
+  updateDatabaseField(input: $input) {
+    ...DatabaseField
+  }
+}
+
+mutation deleteDatabaseField($input: DeleteDatabaseFieldInput!) {
+  deleteDatabaseField(input: $input)
+}
+
+mutation reorderDatabaseFields($input: ReorderDatabaseFieldsInput!) {
+  reorderDatabaseFields(input: $input) {
+    ...DatabaseField
+  }
+}
+
+mutation createDatabaseView($input: CreateDatabaseViewInput!) {
+  createDatabaseView(input: $input) {
+    ...DatabaseView
+  }
+}
+
+mutation updateDatabaseView($input: UpdateDatabaseViewInput!) {
+  updateDatabaseView(input: $input) {
+    ...DatabaseView
+  }
+}
+
+mutation upsertDatabaseViewUserState($input: UpsertDatabaseViewUserStateInput!) {
+  upsertDatabaseViewUserState(input: $input) {
+    viewId
+    searchText
+    sort {
+      ...DatabaseSortRule
+    }
+    filterTree {
+      ...DatabaseFilterGroup
+    }
+    fieldWidthOverrides {
+      fieldId
+      width
+    }
+    collapsedGroupKeys
+    editRevision
+    updatedAt
+  }
+}
+
+mutation resetDatabaseViewUserState($input: ResetDatabaseViewUserStateInput!) {
+  resetDatabaseViewUserState(input: $input)
+}
+
+mutation saveDatabaseViewUserState($input: SaveDatabaseViewUserStateInput!) {
+  saveDatabaseViewUserState(input: $input) {
+    ...DatabaseView
+  }
+}
+
+mutation deleteDatabaseView($input: DeleteDatabaseViewInput!) {
+  deleteDatabaseView(input: $input)
+}
+
+mutation reorderDatabaseViews($input: ReorderDatabaseViewsInput!) {
+  reorderDatabaseViews(input: $input) {
+    ...DatabaseView
+  }
+}
+
+mutation createDatabaseRow($input: CreateDatabaseRowInput!) {
+  createDatabaseRow(input: $input) {
+    ...DatabaseRowRecord
+  }
+}
+
+mutation createDatabaseRowContentDocument(
+  $input: CreateDatabaseRowContentDocumentInput!
+) {
+  createDatabaseRowContentDocument(input: $input) {
+    ...DatabaseRowRecord
+  }
+}
+
+mutation attachDatabaseRowContentDocument(
+  $input: AttachDatabaseRowContentDocumentInput!
+) {
+  attachDatabaseRowContentDocument(input: $input) {
+    ...DatabaseRowRecord
+  }
+}
+
+mutation detachDatabaseRowContentDocument(
+  $input: DetachDatabaseRowContentDocumentInput!
+) {
+  detachDatabaseRowContentDocument(input: $input) {
+    ...DatabaseRowRecord
+  }
+}
+
+mutation createDatabaseRowTemplate($input: CreateDatabaseRowTemplateInput!) {
+  createDatabaseRowTemplate(input: $input) {
+    ...DatabaseRowTemplateBinding
+  }
+}
+
+mutation updateDatabaseRowTemplate($input: UpdateDatabaseRowTemplateInput!) {
+  updateDatabaseRowTemplate(input: $input) {
+    ...DatabaseRowTemplateBinding
+  }
+}
+
+mutation deleteDatabaseRowTemplate($input: DeleteDatabaseRowTemplateInput!) {
+  deleteDatabaseRowTemplate(input: $input)
+}
+
+mutation createDatabaseRowFromTemplate($input: CreateDatabaseRowFromTemplateInput!) {
+  createDatabaseRowFromTemplate(input: $input) {
+    ...DatabaseRowRecord
+  }
+}
+
+mutation updateDatabaseRowTitle($input: UpdateDatabaseRowTitleInput!) {
+  updateDatabaseRowTitle(input: $input) {
+    ...DatabaseCellValue
+  }
+}
+
+mutation updateDatabaseRowPosition($input: UpdateDatabaseRowPositionInput!) {
+  updateDatabaseRowPosition(input: $input) {
+    ...DatabaseRowRecord
+  }
+}
+
+mutation updateDatabaseCellValue($input: UpdateDatabaseCellValueInput!) {
+  updateDatabaseCellValue(input: $input) {
+    ...DatabaseCellValue
+  }
+}
+
+mutation clearDatabaseCellValue($input: ClearDatabaseCellValueInput!) {
+  clearDatabaseCellValue(input: $input) {
+    rowId
+    fieldId
+    editRevision
+    hasValue
+  }
+}
+
+mutation deleteDatabaseRow($input: DeleteDatabaseRowInput!) {
+  deleteDatabaseRow(input: $input)
+}
+
+mutation setDatabaseRowReminder($input: SetDatabaseRowReminderInput!) {
+  setDatabaseRowReminder(input: $input) {
+    id
+    databaseId
+    rowId
+    fieldId
+    offsetMinutes
+    triggerAt
+    status
+    scheduleRevision
+  }
+}
+
+mutation deleteDatabaseRowReminder($input: DeleteDatabaseRowReminderInput!) {
+  deleteDatabaseRowReminder(input: $input)
+}
+
+mutation bulkSetDatabaseCellValue($input: BulkSetDatabaseCellValueInput!) {
+  bulkSetDatabaseCellValue(input: $input) {
+    ...DatabaseBulkOperationResult
+  }
+}
+
+mutation bulkClearDatabaseCellValue($input: BulkClearDatabaseCellValueInput!) {
+  bulkClearDatabaseCellValue(input: $input) {
+    ...DatabaseBulkOperationResult
+  }
+}
+
+mutation bulkApplyDatabaseCellPatches($input: BulkApplyDatabaseCellPatchesInput!) {
+  bulkApplyDatabaseCellPatches(input: $input) {
+    ...DatabaseBulkOperationResult
+  }
+}
+
+mutation bulkDeleteDatabaseRows($input: BulkDeleteDatabaseRowsInput!) {
+  bulkDeleteDatabaseRows(input: $input) {
+    ...DatabaseBulkOperationResult
+  }
+}
+
+mutation bulkRestoreDatabaseRows($input: BulkRestoreDatabaseRowsInput!) {
+  bulkRestoreDatabaseRows(input: $input) {
+    ...DatabaseBulkOperationResult
+  }
+}
+
+mutation bulkUpdateDatabaseRowPositions($input: BulkUpdateDatabaseRowPositionsInput!) {
+  bulkUpdateDatabaseRowPositions(input: $input) {
+    ...DatabaseBulkOperationResult
+  }
+}
+
+mutation previewDatabaseCsvImport($file: Upload!, $input: PreviewDatabaseCsvImportInput!) {
+  previewDatabaseCsvImport(file: $file, input: $input) {
+    detectedDelimiter
+    detectedDialect {
+      delimiter
+      customDelimiter
+      quote
+      escape
+      doubleQuote
+    }
+    appliedDialect {
+      delimiter
+      customDelimiter
+      quote
+      escape
+      doubleQuote
+    }
+    confidence
+    detectedColumns {
+      index
+      sourceHeader
+      fieldName
+      fieldType
+      isTitle
+    }
+    appliedMapping {
+      sourceIndex
+      importColumn
+      sourceHeader
+      fieldName
+      fieldType
+      isTitle
+    }
+    inferredFields {
+      ...DatabaseField
+    }
+    rowCount
+    errors {
+      ...DatabaseCsvDiagnostic
+    }
+    warnings {
+      ...DatabaseCsvDiagnostic
+    }
+    workspaceTagDiagnostics {
+      ...DatabaseWorkspaceTagImportDiagnostic
+    }
+  }
+}
+
+mutation importDatabaseCsv($file: Upload!, $input: ImportDatabaseCsvInput!) {
+  importDatabaseCsv(file: $file, input: $input) {
+    database {
+      ...DatabaseRecord
+    }
+    createdFieldCount
+    createdRowCount
+    createdDocCount
+    skippedRowCount
+    errors {
+      ...DatabaseCsvDiagnostic
+    }
+    warnings {
+      ...DatabaseCsvDiagnostic
+    }
+    workspaceTagDiagnostics {
+      ...DatabaseWorkspaceTagImportDiagnostic
+    }
+  }
+}
+
+mutation previewDatabaseJsonImport($file: Upload!, $input: PreviewDatabaseJsonImportInput!) {
+  previewDatabaseJsonImport(file: $file, input: $input) {
+    schemaVersion
+    title
+    fieldCount
+    viewCount
+    rowCount
+    templateCount
+    errors {
+      ...DatabaseJsonDiagnostic
+    }
+    warnings {
+      ...DatabaseJsonDiagnostic
+    }
+    workspaceTagDiagnostics {
+      ...DatabaseWorkspaceTagImportDiagnostic
+    }
+  }
+}
+
+mutation importDatabaseJson($file: Upload!, $input: ImportDatabaseJsonInput!) {
+  importDatabaseJson(file: $file, input: $input) {
+    database {
+      ...DatabaseRecord
+    }
+    createdFieldCount
+    createdViewCount
+    createdRowCount
+    createdTemplateCount
+    warnings {
+      ...DatabaseJsonDiagnostic
+    }
+    workspaceTagDiagnostics {
+      ...DatabaseWorkspaceTagImportDiagnostic
+    }
+  }
+}
+
+mutation previewDatabaseNotionImport($file: Upload!, $input: PreviewDatabaseJsonImportInput!) {
+  previewDatabaseNotionImport(file: $file, input: $input) {
+    schemaVersion
+    title
+    fieldCount
+    viewCount
+    rowCount
+    templateCount
+    matchedPageCount
+    contentDocumentCount
+    emptyPageCount
+    bodyBlockCount
+    rewrittenInternalLinkCount
+    errors {
+      ...DatabaseJsonDiagnostic
+    }
+    warnings {
+      ...DatabaseJsonDiagnostic
+    }
+    workspaceTagDiagnostics {
+      ...DatabaseWorkspaceTagImportDiagnostic
+    }
+  }
+}
+
+mutation importDatabaseNotion($file: Upload!, $input: ImportDatabaseJsonInput!) {
+  importDatabaseNotion(file: $file, input: $input) {
+    database {
+      ...DatabaseRecord
+    }
+    createdFieldCount
+    createdViewCount
+    createdRowCount
+    createdTemplateCount
+    warnings {
+      ...DatabaseJsonDiagnostic
+    }
+    workspaceTagDiagnostics {
+      ...DatabaseWorkspaceTagImportDiagnostic
+    }
+  }
+}
+
+query databaseCsvExport(
+  $workspaceId: String!
+  $databaseId: ID!
+  $options: DatabaseCsvExportOptionsInput
+) {
+  workspace(id: $workspaceId) {
+    databaseCsvExport(databaseId: $databaseId, options: $options) {
+      fileName
+      contentType
+      content
+      rowCount
+      columnCount
+      databaseId
+      viewId
+      target
+      warnings {
+        ...DatabaseCsvDiagnostic
+      }
+      workspaceTagDiagnostics {
+        ...DatabaseWorkspaceTagImportDiagnostic
+      }
+    }
+  }
+}
+
+query databaseJsonExport($workspaceId: String!, $databaseId: ID!) {
+  workspace(id: $workspaceId) {
+    databaseJsonExport(databaseId: $databaseId) {
+      fileName
+      contentType
+      content
+    }
+  }
+}
+
+query databaseAutomations($workspaceId: String!, $first: Int, $offset: Int) {
+  workspace(id: $workspaceId) {
+    automations(first: $first, offset: $offset) {
+      ...WorkspaceAutomation
+    }
+    automationRuns(includeDeadLetter: true, first: 50, offset: 0) {
+      ...WorkspaceAutomationRun
+    }
+  }
+}
+
+fragment DatabaseActivityEvent on DatabaseActivityEvent {
+  id
+  workspaceId
+  databaseId
+  rowId
+  eventType
+  actorUserId
+  actorDisplayName
+  payload
+  createdAt
+}
+
+query databaseActivity(
+  $workspaceId: String!
+  $databaseId: ID!
+  $skip: Int
+  $take: Int
+) {
+  workspace(id: $workspaceId) {
+    databaseActivity(
+      filter: { databaseId: $databaseId }
+      skip: $skip
+      take: $take
+    ) {
+      ...DatabaseActivityEvent
+    }
+  }
+}
+
+query databaseRowActivity(
+  $workspaceId: String!
+  $rowId: ID!
+  $skip: Int
+  $take: Int
+) {
+  workspace(id: $workspaceId) {
+    databaseRowActivity(rowId: $rowId, skip: $skip, take: $take) {
+      ...DatabaseActivityEvent
+    }
+  }
+}
+
+mutation createWorkspaceAutomation($input: CreateWorkspaceAutomationInput!) {
+  createWorkspaceAutomation(input: $input) {
+    ...WorkspaceAutomation
+  }
+}
+
+mutation disableWorkspaceAutomation($input: DisableWorkspaceAutomationInput!) {
+  disableWorkspaceAutomation(input: $input) {
+    ...WorkspaceAutomation
+  }
+}
+
+fragment LegacyDatabaseMigrationPlan on LegacyDatabaseMigrationPlanObjectType {
+  databaseIds
+  blockReferences {
+    sourceDocumentId
+    blockId
+    targetDatabaseId
+    targetViewId
+    alreadyMigrated
+  }
+  fieldCount
+  rowCount
+  cellCount
+  viewCount
+  diagnostics {
+    code
+    severity
+    message
+    context
+  }
+  applyAllowed
+}
+
+query previewLegacyDatabaseMigration($input: LegacyDatabaseMigrationInput!) {
+  previewLegacyDatabaseMigration(input: $input) {
+    ...LegacyDatabaseMigrationPlan
+  }
+}
+
+mutation applyLegacyDatabaseMigration($input: LegacyDatabaseMigrationInput!) {
+  applyLegacyDatabaseMigration(input: $input) {
+    plan {
+      ...LegacyDatabaseMigrationPlan
+    }
+    createdDatabaseIds
+    migratedBlockCount
+  }
+}
+
+fragment DatabaseTaskSummary on DatabaseTaskSummary {
+  workspaceId
+  databaseId
+  rowId
+  projectTitle
+  title
+  descriptionPreview
+  editRevision
+  updatedAt
+  deletedAt
+  status { ...DatabaseStatusOption }
+  assignees { id name }
+  due { start end allDay timeZone }
+  priority { ...DatabaseSelectOption }
+  canEdit
+  hasAssignees
+  hasDue
+  hasPriority
+  isSubtask
+  hasDependencies
+}
+
+query databaseTasks($workspaceId: String!, $input: DatabaseTasksInput!, $first: Int, $after: String) {
+  workspace(id: $workspaceId) {
+    id
+    databaseTasks(input: $input, first: $first, after: $after) {
+      statusOptions { ...DatabaseStatusOption }
+      coverageComplete
+      unavailableProjects { databaseId title reasonCode }
+      rows {
+        ...DatabaseTaskSummary
+        blockers {
+          available
+          activeCount
+          unresolvedCount
+          diagnostics
+        }
+      }
+      totalCount
+      projectCount
+      nextCursor
+    }
+  }
+}
+
+
+fragment DatabaseTaskCaptureResult on DatabaseTaskCaptureResult {
+  requestId
+  databaseId
+  rowId
+  editRevision
+  state
+  replayed
+  record { ...DatabaseRowRecord }
+  source { ...DatabaseTaskSource }
+}
+
+mutation createDatabaseTaskFromSource($input: CreateDatabaseTaskFromSourceInput!) {
+  createDatabaseTaskFromSource(input: $input) { ...DatabaseTaskCaptureResult }
+}
+
+query databaseTaskCaptureReceipt($workspaceId: String!, $requestId: ID!) {
+  workspace(id: $workspaceId) {
+    id
+    databaseTaskCaptureReceipt(requestId: $requestId) { ...DatabaseTaskCaptureResult }
+  }
+}
+
+query databaseRowSource($workspaceId: String!, $databaseId: ID!, $rowId: ID!) {
+  workspace(id: $workspaceId) {
+    id
+    databaseRow(databaseId: $databaseId, rowId: $rowId, includeTrashed: true) {
+      row { id source { ...DatabaseTaskSource } }
+    }
+  }
+}
+
+fragment DatabaseTaskReference on DatabaseTaskReference {
+  workspaceId
+  databaseId
+  rowId
+  state
+  task { ...DatabaseTaskSummary }
+}
+
+query databaseTaskReferences($workspaceId: String!, $targets: [DatabaseTaskReferenceInput!]!) {
+  workspace(id: $workspaceId) {
+    id
+    databaseTaskReferences(targets: $targets) { ...DatabaseTaskReference }
+  }
+}
+
+# Capture only the selected, authorized row-template body before asking for inputs.
+query databaseRowTemplateBodyInputs($workspaceId: String!, $databaseId: ID!, $rowTemplateId: ID!) {
+  workspace(id: $workspaceId) {
+    id
+    databaseRowTemplateBodyInputs(databaseId: $databaseId, rowTemplateId: $rowTemplateId) {
+      requiredInputs
+      sourceRevision
+    }
+  }
+}
+
+fragment AssistantLocalizedTextFragment on AssistantLocalizedText { en de fr es }
+fragment AssistantArtworkFragment on AssistantArtwork {
+  step group url digest mediaType width height role
+  alternative { ...AssistantLocalizedTextFragment }
+  caption { ...AssistantLocalizedTextFragment }
+}
+fragment AssistantDocumentSourceFragment on AssistantDocumentSource {
+  step group templateId version digest
+}
+fragment AssistantPackageIdentityFragment on AssistantPackageIdentity { id version digest }
+fragment AssistantFolderDestinationFragment on AssistantFolderDestination { kind id name parent }
+fragment AssistantValueBindingFragment on AssistantValueBinding {
+  kind input context component result
+  localizedText { ...AssistantLocalizedTextFragment }
+}
+fragment AssistantValueFragment on AssistantValue {
+  kind text boolean choice choices
+  date { start end }
+  dateTime { start end allDay timeZone }
+  memberIds databaseId rowId rowTemplateId documentId
+  taskReferences { databaseId rowId }
+  folder { ...AssistantFolderDestinationFragment }
+  rowSelection { rowId expectedEditRevision cellRevisions { fieldId expectedEditRevision } }
+}
+fragment AssistantVisibilityFragment on AssistantVisibility {
+  kind input value { ...AssistantValueFragment }
+}
+fragment AssistantInputFragment on AssistantInput {
+  id target label { ...AssistantLocalizedTextFragment }
+  description { ...AssistantLocalizedTextFragment }
+  valueType required defaultValue { ...AssistantValueFragment }
+  choices { id label { ...AssistantLocalizedTextFragment } value { ...AssistantValueFragment } }
+  visibleWhen { ...AssistantVisibilityFragment }
+}
+fragment AssistantControlFragment on AssistantControl {
+  kind input control presence binding { kind roleKey fieldKey }
+  offsetsMinutes defaultOffsetMinutes allowCustomOffset value filter search
+}
+fragment AssistantGroupFragment on AssistantGroup {
+  id title { ...AssistantLocalizedTextFragment } role
+  controls { ...AssistantControlFragment } visibleWhen { ...AssistantVisibilityFragment }
+}
+fragment AssistantActionFragment on AssistantAction {
+  id label { ...AssistantLocalizedTextFragment } action component targetStep dialog
+  visibleWhen { ...AssistantVisibilityFragment }
+}
+fragment AssistantStepFragment on AssistantStep {
+  id title { ...AssistantLocalizedTextFragment }
+  groups { ...AssistantGroupFragment } actions { ...AssistantActionFragment }
+}
+fragment AssistantDialogFragment on AssistantDialog {
+  id title { ...AssistantLocalizedTextFragment }
+  groups { ...AssistantGroupFragment } actions { ...AssistantActionFragment }
+}
+fragment AssistantPackageFragment on AssistantPackage {
+  identity { ...AssistantPackageIdentityFragment }
+  name { ...AssistantLocalizedTextFragment } description { ...AssistantLocalizedTextFragment }
+  contexts defaultFor inputs { ...AssistantInputFragment }
+  components {
+    id action {
+      kind templateId definitionId target { ...AssistantValueBindingFragment }
+      inputs { target binding { ...AssistantValueBindingFragment } }
+      selected { ...AssistantValueBindingFragment }
+      tasks { ...AssistantValueBindingFragment }
+      proposal { ...AssistantValueBindingFragment }
+      folder { ...AssistantValueBindingFragment }
+      variables { name binding { ...AssistantValueBindingFragment } }
+    }
+  }
+  documentComponents { componentId templateId version digest }
+  presentation {
+    guidedHelp { ...AssistantStepFragment }
+    steps { ...AssistantStepFragment }
+    dialogs { ...AssistantDialogFragment }
+  }
+  artwork { ...AssistantArtworkFragment }
+  documentSources { ...AssistantDocumentSourceFragment }
+}
+query assistantDocumentSource($workspaceId: String!, $input: AssistantDocumentSourceInput!) {
+  workspace(id: $workspaceId) {
+    id
+    assistantDocumentSource(input: $input) { ...TemplateSuggestionItemFields }
+  }
+}
+fragment AssistantResolvedFieldFragment on AssistantResolvedField {
+  binding { kind roleKey fieldKey } fieldId name fieldType required config { ...DatabaseFieldConfig }
+}
+query assistantPackages($workspaceId: String!, $context: AssistantContext!) {
+  workspace(id: $workspaceId) { id assistantPackages(context: $context) { ...AssistantPackageFragment } }
+}
+query assistantPresentation($workspaceId: String!, $context: AssistantContext!, $databaseId: ID, $rowId: ID) {
+  workspace(id: $workspaceId) {
+    id
+    assistantPresentation(context: $context, databaseId: $databaseId, rowId: $rowId) {
+      descriptor { ...AssistantPackageFragment }
+      databaseId rowId unavailableReason
+      managedSchema {
+        readiness reasonCode templateId templateVersion templateDigest schemaRevision
+        canEditStructure canEditMetadata canManageLifecycle
+        variant { priority complexity structure currency }
+        taskBindings { roleKey fieldId }
+      }
+      fields { ...AssistantResolvedFieldFragment }
+    }
+  }
+}
+fragment PreparedProjectAssistantFragment on PreparedProjectAssistant {
+  package { ...AssistantPackageIdentityFragment }
+  planDigest templateId templateVersion templateDigest locale clientVersion
+  answers { input value { ...AssistantValueFragment } }
+  title description priority complexity structure defaultCurrency includeSampleRows
+  initialViewKey initialViewKind folder { ...AssistantFolderDestinationFragment }
+  setup {
+    goal scope
+    startDate { start end }
+    endDate { start end }
+    people
+    scaffold { id kind title { ...AssistantLocalizedTextFragment } }
+  }
+  counts { phases milestones sampleRows explicitTasks }
+  documents {
+    source { componentId templateId version digest }
+    sourceRevisionId sourceContentDigest locale title
+    folder { ...AssistantFolderDestinationFragment }
+  }
+  documentMetadata {
+    source { componentId templateId version digest }
+    sourceRevisionId locale title
+    folder { ...AssistantFolderDestinationFragment }
+  }
+  executionAvailable
+}
+query prepareProjectAssistant($workspaceId: String!, $input: PrepareProjectAssistantInput!) {
+  currentUser { id }
+  workspace(id: $workspaceId) {
+    id
+    prepareProjectAssistant(input: $input) { ...PreparedProjectAssistantFragment }
+  }
+}
+fragment ProjectSetupFragment on ProjectSetup {
+  requestId status reservedDatabaseId reasonCode folderId placementComplete
+  documents { componentId reservedDocumentId externalId created placed }
+  acceptedPlan { ...PreparedProjectAssistantFragment }
+  acceptedDescriptor { ...AssistantPackageFragment }
+  currentReview { ...PreparedProjectAssistantFragment }
+  database { ...DatabaseRecord initialViewId }
+}
+query projectSetup($workspaceId: String!, $requestId: ID!) {
+  currentUser { id }
+  workspace(id: $workspaceId) {
+    id projectSetup(requestId: $requestId) { ...ProjectSetupFragment }
+  }
+}
+mutation stopProjectSetup($input: StopProjectSetupInput!) {
+  stopProjectSetup(input: $input) { ...ProjectSetupFragment }
+}

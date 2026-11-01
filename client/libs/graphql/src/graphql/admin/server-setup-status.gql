@@ -1,0 +1,17 @@
+query serverSetupStatus {
+  serverSetupStatus {
+    setupCompleted
+    operationalReady
+    bootstrapAvailable
+    authMethods {
+      method
+      supported
+      usable
+      reasonCode
+    }
+    findings {
+      code
+      severity
+    }
+  }
+}

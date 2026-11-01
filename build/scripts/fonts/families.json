@@ -1,0 +1,214 @@
+{
+  "schema_version": 1,
+  "comment": "P-FONT-COVERAGE-03 family inventory. Locked-in decisions from todo/pdf-refactoring.md (2026-04-27): VF where available; body weights = 400/400i/600/600i/700/700i; decoratives = 1 weight, latin+latin-ext by default unless a family sets subsets; new manifest.json schema written by fetch-fonts.sh.",
+  "subsets_body": [
+    "latin",
+    "latin-ext",
+    "cyrillic",
+    "cyrillic-ext",
+    "greek",
+    "greek-ext"
+  ],
+  "subsets_decorative": ["latin", "latin-ext"],
+  "body_weights": [
+    { "weight": 400, "style": "normal", "label": "regular" },
+    { "weight": 400, "style": "italic", "label": "italic" },
+    { "weight": 600, "style": "normal", "label": "semibold" },
+    { "weight": 600, "style": "italic", "label": "semibold-italic" },
+    { "weight": 700, "style": "normal", "label": "bold" },
+    { "weight": 700, "style": "italic", "label": "bold-italic" }
+  ],
+  "families": [
+    {
+      "name": "Inter",
+      "google_id": "Inter",
+      "category": "sans-serif",
+      "decorative": false,
+      "vf": true,
+      "license_file": "inter-OFL.txt"
+    },
+    {
+      "name": "Roboto",
+      "google_id": "Roboto",
+      "category": "sans-serif",
+      "decorative": false,
+      "vf": true,
+      "license_file": "roboto-OFL.txt"
+    },
+    {
+      "name": "Open Sans",
+      "google_id": "Open+Sans",
+      "category": "sans-serif",
+      "decorative": false,
+      "vf": true,
+      "license_file": "opensans-OFL.txt"
+    },
+    {
+      "name": "Lato",
+      "google_id": "Lato",
+      "category": "sans-serif",
+      "decorative": false,
+      "vf": false,
+      "license_file": "lato-OFL.txt"
+    },
+    {
+      "name": "Montserrat",
+      "google_id": "Montserrat",
+      "category": "sans-serif",
+      "decorative": false,
+      "vf": true,
+      "license_file": "montserrat-OFL.txt"
+    },
+    {
+      "name": "Source Sans 3",
+      "google_id": "Source+Sans+3",
+      "category": "sans-serif",
+      "decorative": false,
+      "vf": true,
+      "license_file": "sourcesans3-OFL.txt"
+    },
+    {
+      "name": "Nunito",
+      "google_id": "Nunito",
+      "category": "sans-serif",
+      "decorative": false,
+      "vf": true,
+      "license_file": "nunito-OFL.txt"
+    },
+    {
+      "name": "Poppins",
+      "google_id": "Poppins",
+      "category": "sans-serif",
+      "decorative": false,
+      "vf": false,
+      "license_file": "poppins-OFL.txt"
+    },
+    {
+      "name": "Merriweather",
+      "google_id": "Merriweather",
+      "category": "serif",
+      "decorative": false,
+      "vf": true,
+      "license_file": "merriweather-OFL.txt"
+    },
+    {
+      "name": "Lora",
+      "google_id": "Lora",
+      "category": "serif",
+      "decorative": false,
+      "vf": true,
+      "license_file": "lora-OFL.txt"
+    },
+    {
+      "name": "Source Serif 4",
+      "google_id": "Source+Serif+4",
+      "category": "serif",
+      "decorative": false,
+      "vf": true,
+      "license_file": "sourceserif4-OFL.txt"
+    },
+    {
+      "name": "PT Serif",
+      "google_id": "PT+Serif",
+      "category": "serif",
+      "decorative": false,
+      "vf": false,
+      "license_file": "ptserif-OFL.txt",
+      "upstream_static_pattern": "PT_Serif-Web-{token}{italic_suffix}.ttf",
+      "available_weights": [
+        { "weight": 400, "style": "normal" },
+        { "weight": 400, "style": "italic" },
+        { "weight": 700, "style": "normal" },
+        { "weight": 700, "style": "italic" }
+      ]
+    },
+    {
+      "name": "JetBrains Mono",
+      "google_id": "JetBrains+Mono",
+      "category": "monospace",
+      "decorative": false,
+      "vf": true,
+      "license_file": "jetbrainsmono-OFL.txt"
+    },
+    {
+      "name": "Fira Code",
+      "google_id": "Fira+Code",
+      "category": "monospace",
+      "decorative": false,
+      "vf": true,
+      "license_file": "firacode-OFL.txt"
+    },
+    {
+      "name": "Source Code Pro",
+      "google_id": "Source+Code+Pro",
+      "category": "monospace",
+      "decorative": false,
+      "vf": true,
+      "license_file": "sourcecodepro-OFL.txt"
+    },
+    {
+      "name": "IBM Plex Mono",
+      "google_id": "IBM+Plex+Mono",
+      "category": "monospace",
+      "decorative": false,
+      "vf": false,
+      "license_file": "ibmplexmono-OFL.txt"
+    },
+    {
+      "name": "Kalam",
+      "google_id": "Kalam",
+      "category": "handwriting",
+      "decorative": true,
+      "vf": false,
+      "license_file": "kalam-OFL.txt",
+      "decorative_weights": [400]
+    },
+    {
+      "name": "Bebas Neue",
+      "google_id": "Bebas+Neue",
+      "category": "display",
+      "decorative": true,
+      "vf": false,
+      "license_file": "bebasneue-OFL.txt",
+      "decorative_weights": [400]
+    },
+    {
+      "name": "Orelega One",
+      "google_id": "Orelega+One",
+      "category": "display",
+      "decorative": true,
+      "vf": false,
+      "license_file": "orelegaone-OFL.txt",
+      "decorative_weights": [400]
+    },
+    {
+      "name": "Lobster",
+      "google_id": "Lobster",
+      "category": "display",
+      "decorative": true,
+      "vf": false,
+      "license_file": "lobster-OFL.txt",
+      "decorative_weights": [400]
+    },
+    {
+      "name": "Pattaya",
+      "google_id": "Pattaya",
+      "category": "display",
+      "decorative": true,
+      "vf": false,
+      "license_file": "pattaya-OFL.txt",
+      "decorative_weights": [400],
+      "subsets": ["latin", "latin-ext", "cyrillic", "thai", "vietnamese"]
+    }
+  ],
+  "removed": [
+    { "name": "Outfit", "reason": "swap → Roboto (P-FONT-COVERAGE-02)" },
+    {
+      "name": "Plus Jakarta Sans",
+      "reason": "swap → Open Sans (P-FONT-COVERAGE-02)"
+    },
+    { "name": "Work Sans", "reason": "swap → Lato (P-FONT-COVERAGE-02)" },
+    { "name": "DM Sans", "reason": "swap → Montserrat (P-FONT-COVERAGE-02)" },
+    { "name": "Space Mono", "reason": "no replacement (P-FONT-COVERAGE-02)" }
+  ]
+}

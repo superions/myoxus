@@ -1,0 +1,83 @@
+query adminPdfFonts($status: PdfFontLicenseStatusEnum) {
+  admin {
+    pdfFonts(status: $status) {
+      id
+      familyName
+      style
+      weight
+      sha256
+      license
+      licenseStatus
+      uploadedBy
+      uploadedAt
+      approvedBy
+      approvedAt
+    }
+  }
+}
+
+query adminPdfFont($id: ID!) {
+  admin {
+    pdfFont(id: $id) {
+      id
+      familyName
+      style
+      weight
+      sha256
+      license
+      licenseStatus
+      uploadedBy
+      uploadedAt
+      approvedBy
+      approvedAt
+    }
+  }
+}
+
+mutation adminUploadPdfFont($file: Upload!, $license: String) {
+  admin {
+    uploadPdfFont(file: $file, license: $license) {
+      id
+      familyName
+      style
+      weight
+      sha256
+      license
+      licenseStatus
+      uploadedBy
+      uploadedAt
+      approvedBy
+      approvedAt
+    }
+  }
+}
+
+mutation adminApprovePdfFont($id: ID!) {
+  admin {
+    approvePdfFont(id: $id) {
+      id
+      familyName
+      licenseStatus
+      approvedBy
+      approvedAt
+    }
+  }
+}
+
+mutation adminRejectPdfFont($id: ID!, $reason: String!) {
+  admin {
+    rejectPdfFont(id: $id, reason: $reason) {
+      id
+      familyName
+      licenseStatus
+      approvedBy
+      approvedAt
+    }
+  }
+}
+
+mutation adminDeletePdfFont($id: ID!) {
+  admin {
+    deletePdfFont(id: $id)
+  }
+}

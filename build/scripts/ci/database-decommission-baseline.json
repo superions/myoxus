@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "policies": {
+    "linked_doc_notion": [],
+    "editor_local_database_creation": [],
+    "core_editor_database_runtime": [],
+    "virgultum_projection": [],
+    "editor_local_database_runtime": [],
+    "removed_editor_database_files": [],
+    "legacy_workspace_local_import": [],
+    "electron_legacy_backup_fallback": [],
+    "snapshot_archive_parser": ["server/crates/workspace_import/src/archive.rs"]
+  }
+}

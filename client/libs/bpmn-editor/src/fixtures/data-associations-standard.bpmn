@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:tns="urn:myoxus:data-associations" id="Definitions" targetNamespace="urn:myoxus:data-associations">
+ <itemDefinition id="Item" structureRef="xsd:string"/>
+ <dataStore id="Store" name="Shared results" isUnlimited="false" capacity="1000"/>
+ <process id="Process" name="Semantic I/O and visible routes">
+  <dataObject id="Data" name="Input data"/><dataObject id="OtherData" name="Other data"/>
+  <dataStoreReference id="Result" name="Stored result" dataStoreRef="tns:Store"/>
+  <task id="Review" name="Transform data">
+   <ioSpecification id="IO"><dataInput id="In" name="Order" itemSubjectRef="tns:Item"/><dataInput id="Contract" name="Independent input"/><dataOutput id="Out" name="Result"/><inputSet id="Inputs"><dataInputRefs>In</dataInputRefs><dataInputRefs>Contract</dataInputRefs></inputSet><outputSet id="Outputs"><dataOutputRefs>Out</dataOutputRefs></outputSet></ioSpecification>
+   <dataInputAssociation id="Read"><documentation id="ReadDoc">Preserve semantic slot and manual DI</documentation><sourceRef>Data</sourceRef><targetRef>In</targetRef><transformation id="Transform" language="urn:map">normalize(source)</transformation><assignment id="Assign"><from id="From">sourceValue</from><to id="To">inputValue</to></assignment></dataInputAssociation>
+   <dataInputAssociation id="Passive"><targetRef>Contract</targetRef><assignment id="PassiveAssign"><from>constantValue</from><to>contractValue</to></assignment></dataInputAssociation>
+   <dataOutputAssociation id="Write"><sourceRef>Out</sourceRef><targetRef>Result</targetRef></dataOutputAssociation>
+  </task>
+  <task id="Other" name="Other activity"/>
+  <startEvent id="Start" name="Produced"><dataOutput id="StartOut"/><outputSet id="StartOutputs"><dataOutputRefs>StartOut</dataOutputRefs></outputSet><dataOutputAssociation id="EventWrite"><sourceRef>StartOut</sourceRef><targetRef>OtherData</targetRef></dataOutputAssociation></startEvent>
+  <endEvent id="End" name="Consumed"><dataInput id="EndIn"/><inputSet id="EndInputs"><dataInputRefs>EndIn</dataInputRefs></inputSet><dataInputAssociation id="EventRead"><sourceRef>OtherData</sourceRef><targetRef>EndIn</targetRef></dataInputAssociation></endEvent>
+  <subProcess id="Sub" name="Nested data mapping"><dataObject id="NestedData" name="Nested data"/><task id="NestedTask" name="Nested activity"><ioSpecification id="NestedIO"><dataInput id="NestedIn"/><inputSet id="NestedInputs"><dataInputRefs>NestedIn</dataInputRefs></inputSet><outputSet id="NestedOutputs"/></ioSpecification><dataInputAssociation id="NestedRead"><sourceRef>NestedData</sourceRef><targetRef>NestedIn</targetRef></dataInputAssociation></task></subProcess>
+ </process>
+ <bpmndi:BPMNDiagram id="Diagram"><bpmndi:BPMNPlane id="Plane" bpmnElement="Process">
+  <bpmndi:BPMNShape id="DataDI" bpmnElement="Data"><dc:Bounds x="100" y="100" width="120" height="140"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="OtherDataDI" bpmnElement="OtherData"><dc:Bounds x="100" y="370" width="120" height="140"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="ReviewDI" bpmnElement="Review"><dc:Bounds x="450" y="110" width="200" height="100"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="OtherDI" bpmnElement="Other"><dc:Bounds x="450" y="370" width="200" height="100"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="ResultDI" bpmnElement="Result"><dc:Bounds x="870" y="100" width="160" height="120"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="StartDI" bpmnElement="Start"><dc:Bounds x="310" y="390" width="40" height="40"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="EndDI" bpmnElement="End"><dc:Bounds x="310" y="510" width="40" height="40"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="SubDI" bpmnElement="Sub" isExpanded="true"><dc:Bounds x="100" y="660" width="930" height="270"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="NestedDataDI" bpmnElement="NestedData"><dc:Bounds x="180" y="720" width="100" height="120"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="NestedTaskDI" bpmnElement="NestedTask"><dc:Bounds x="650" y="740" width="180" height="100"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNEdge id="ReadDI" bpmnElement="Read" sourceElement="DataDI" targetElement="ReviewDI"><di:waypoint x="220" y="170"/><di:waypoint x="340" y="170"/><di:waypoint x="450" y="160"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="WriteDI" bpmnElement="Write" sourceElement="ReviewDI" targetElement="ResultDI"><di:waypoint x="650" y="160"/><di:waypoint x="760" y="160"/><di:waypoint x="870" y="160"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="EventWriteDI" bpmnElement="EventWrite"><di:waypoint x="310" y="410"/><di:waypoint x="270" y="410"/><di:waypoint x="220" y="440"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="EventReadDI" bpmnElement="EventRead"><di:waypoint x="220" y="440"/><di:waypoint x="270" y="440"/><di:waypoint x="270" y="530"/><di:waypoint x="310" y="530"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="NestedReadDI" bpmnElement="NestedRead"><di:waypoint x="280" y="780"/><di:waypoint x="450" y="780"/><di:waypoint x="650" y="790"/></bpmndi:BPMNEdge>
+ </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+</definitions>

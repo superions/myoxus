@@ -1,0 +1,74 @@
+[package]
+edition.workspace = true
+license.workspace = true
+name              = "myoxus-infrastructure"
+version.workspace = true
+
+[dependencies]
+async-trait.workspace                    = true
+chrono.workspace                         = true
+fs2.workspace                            = true
+glirulus-core.workspace                  = true
+glirulus-persistence.workspace           = true
+glirulus-postgres.workspace              = true
+glirulus-runtime.workspace               = true
+myoxus-public-render                     = { path = "../public_render" }
+opendal.workspace                        = true
+opendal-http-transport-reqwest.workspace = true
+redis.workspace                          = true
+rustls.workspace                         = true
+serde.workspace                          = true
+serde_json.workspace                     = true
+sqlx.workspace                           = true
+symphonia.workspace                      = true
+thiserror.workspace                      = true
+tokio                                    = { workspace = true, features = ["time"] }
+tracing.workspace                        = true
+uuid.workspace                           = true
+yrs.workspace                            = true
+
+bytes.workspace   = true
+lettre.workspace  = true
+scraper.workspace = true
+tera.workspace    = true
+
+aes-gcm.workspace = true
+git2.workspace    = true
+libc              = "0.2"
+rand.workspace    = true
+sha2.workspace    = true
+
+anyhow.workspace          = true
+hex.workspace             = true
+hmac.workspace            = true
+quick-xml.workspace       = true
+reqwest.workspace         = true
+rustls-native-certs-redis = { package = "rustls-native-certs", version = "0.8" }
+
+async-stream.workspace  = true
+base64.workspace        = true
+chrono-tz.workspace     = true
+dashmap.workspace       = true
+futures-util.workspace  = true
+moka.workspace          = true
+myoxus-application      = { path = "../application" }
+myoxus-contracts        = { path = "../contracts" }
+myoxus-domain           = { path = "../domain" }
+myoxus-pdf-export       = { path = "../pdf_export" }
+myoxus-workspace-import = { path = "../workspace_import" }
+pem.workspace           = true
+tempfile.workspace      = true
+urlencoding.workspace   = true
+x509-parser.workspace   = true
+yjs                     = { path = "../yjs" }
+
+zip.workspace = true
+
+[dev-dependencies]
+myoxus-tests       = { path = "../tests" }
+openssl.workspace  = true
+rcgen.workspace    = true
+tempfile.workspace = true
+tokio              = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tracing-subscriber = { workspace = true }
+yrs                = { workspace = true }

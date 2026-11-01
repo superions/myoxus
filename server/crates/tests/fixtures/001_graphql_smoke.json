@@ -1,0 +1,16 @@
+{
+  "id": "graphql_smoke_typename",
+  "kind": "graphql",
+  "smoke": true,
+  "description": "Basic GraphQL endpoint smoke check",
+  "request": {
+    "path": "/graphql",
+    "query": "query SmokeQuery { __typename }",
+    "variables": {}
+  },
+  "expect": {
+    "status_any": [200],
+    "content_type_contains": "application/json",
+    "json_path_exists": ["data.__typename"]
+  }
+}

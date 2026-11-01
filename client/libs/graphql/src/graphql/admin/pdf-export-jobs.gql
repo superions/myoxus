@@ -1,0 +1,39 @@
+query adminPdfExportJobs($filter: AdminPdfExportJobsFilterInput) {
+  admin {
+    pdfExportJobs(filter: $filter) {
+      id
+      workspaceId
+      docId
+      requestedBy
+      requestedByEmail
+      requestedByName
+      templateId
+      status
+      syncOrAsync
+      pageCount
+      errorClass
+      errorDetail
+      createdAt
+      startedAt
+      finishedAt
+      expiresAt
+      durationMs
+      unmappedFontFamilies
+      audit {
+        id
+        templateVersion
+        renderAppearanceHash
+        locale
+        classification
+        l3Inputs
+        createdAt
+      }
+    }
+  }
+}
+
+mutation adminCancelPdfExportJob($jobId: String!) {
+  admin {
+    cancelPdfExportJob(jobId: $jobId)
+  }
+}

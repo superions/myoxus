@@ -1,0 +1,23 @@
+{
+  "id": "blob_multipart_create_contract",
+  "kind": "graphql",
+  "smoke": false,
+  "description": "Golden fixture for createBlobUpload mutation contract",
+  "request": {
+    "path": "/graphql",
+    "query": "mutation BlobMultipartCreateContract($workspaceId: String!, $input: CreateBlobUploadInput!) { createBlobUpload(workspaceId: $workspaceId, input: $input) { uploadId key } }",
+    "variables": {
+      "workspaceId": "00000000-0000-0000-0000-000000000000",
+      "input": {
+        "name": "fixture.bin",
+        "size": 32,
+        "mimeType": "application/octet-stream"
+      }
+    }
+  },
+  "expect": {
+    "status_any": [200],
+    "content_type_contains": "application/json",
+    "body_contains": "createBlobUpload"
+  }
+}

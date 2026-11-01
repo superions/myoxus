@@ -1,0 +1,14 @@
+mutation sendTestEmail($host: String!, $port: Int!, $name: String, $sender: String!, $username: String, $password: String, $transport: String!, $verifyCertificate: Boolean!) {
+  admin {
+    sendTestEmail(config: {
+      host: $host,
+      port: $port,
+      name: $name,
+      sender: $sender,
+      username: $username,
+      password: $password,
+      transport: $transport,
+      verifyCertificate: $verifyCertificate,
+    })
+  }
+}

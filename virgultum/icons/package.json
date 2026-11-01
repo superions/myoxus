@@ -1,0 +1,57 @@
+{
+  "name": "@virgultum/icons",
+  "version": "0.41.5",
+  "description": "Virgultum icon boundary with reviewed Tabler and Myoxus fallback glyphs",
+  "license": "AGPL-3.0-or-later AND MIT",
+  "scripts": {
+    "analyze:usage": "node scripts/analyze-icon-usage.mjs --json",
+    "build": "node scripts/build-icons.mjs",
+    "check": "node scripts/build-tabler-obvious-mappings.mjs --check && node scripts/build-icons.mjs --check && node scripts/check-no-legacy-icons.mjs",
+    "check:legacy": "node scripts/check-no-legacy-icons.mjs",
+    "gallery": "node scripts/render-icon-gallery.mjs",
+    "gallery:panels": "node scripts/render-icon-gallery.mjs --mode panels",
+    "gallery:review": "node scripts/render-icon-gallery.mjs --mode review",
+    "gallery:typography": "node scripts/render-icon-gallery.mjs --mode panel-typography",
+    "mapping:obvious": "node scripts/build-tabler-obvious-mappings.mjs",
+    "mapping:promote-open-review": "node scripts/promote-tabler-open-review.mjs"
+  },
+  "exports": {
+    "./rc": {
+      "types": "./dist/rc.d.ts",
+      "import": "./dist/rc.mjs",
+      "require": "./dist/rc.js"
+    },
+    "./lit": {
+      "types": "./dist/lit.d.ts",
+      "import": "./dist/lit.mjs",
+      "require": "./dist/lit.js"
+    },
+    "./keywords/*": {
+      "types": "./dist/keywords.d.ts",
+      "import": "./dist/keywords/*",
+      "require": "./dist/keywords/*"
+    },
+    "./catalog": {
+      "types": "./dist/catalog.d.ts",
+      "import": "./dist/catalog.mjs"
+    }
+  },
+  "peerDependencies": {
+    "lit": "^3.1.1",
+    "react": "^18.2.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "lit": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@tabler/icons-react": "3.45.0",
+    "prettier": "3.9.9",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  }
+}

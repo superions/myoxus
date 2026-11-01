@@ -1,0 +1,3 @@
+services:
+  api:
+    image: ${MYOXUS_IMAGE_PREFIX:-git.blume29.de/myoxus}/myoxus:${MYOXUS_SERVER_IMAGE_TAG:?Set MYOXUS_SERVER_IMAGE_TAG to a published server release or commit tag}

@@ -1,0 +1,236 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+/* SPDX-License-Identifier: Apache-2.0
+ * Modified by Myoxus: scoped renderer geometry and semantic theme roles; see provenance.json. */
+
+/* Native renderer roles; product controls are owned by the Facade. */
+.myoxus-bpmn-diagram {
+  --xy-background-color: var(--mantine-color-body);
+  --xy-background-pattern-dots-color: var(--mantine-color-dimmed);
+  --xy-edge-stroke: var(--mantine-color-text);
+  --xy-edge-stroke-selected: var(--mantine-primary-color-filled);
+  --xy-attribution-background-color: var(--mantine-color-body);
+}
+
+/* edge selection / hover */
+.myoxus-bpmn-diagram .react-flow__edge > .xyflow-react-kie-diagram--edge {
+  pointer-events: none;
+}
+.myoxus-bpmn-diagram
+  .react-flow__edge.selected
+  > .xyflow-react-kie-diagram--edge {
+  /* Keep the notation's fill: filling an open routed path closes its bends. */
+  stroke: var(--mantine-primary-color-filled) !important;
+  stroke-width: 3px !important;
+}
+.myoxus-bpmn-diagram
+  .react-flow__edge.selected
+  .react-flow__edge-interaction.normal {
+  cursor: crosshair;
+}
+.myoxus-bpmn-diagram
+  .react-flow__edge.selected
+  .react-flow__edge-interaction.dragging-waypoint,
+.myoxus-bpmn-diagram
+  .react-flow__edge.selected
+  .react-flow__edge-interaction.dragging-waypoint
+  ~ .xyflow-react-kie-diagram--diagram-edge-waypoints
+  circle {
+  cursor: grabbing;
+}
+.myoxus-bpmn-diagram
+  .react-flow__edge:not(.selected)
+  .xyflow-react-kie-diagram--edge:hover,
+.myoxus-bpmn-diagram
+  .react-flow__edge:not(.selected)
+  .react-flow__edge-interaction:hover
+  + .xyflow-react-kie-diagram--edge {
+  stroke-width: 2px !important;
+}
+
+/* nodes selection / hover */
+.myoxus-bpmn-diagram .react-flow__node.selected {
+  color: var(--mantine-primary-color-filled) !important;
+}
+.myoxus-bpmn-diagram
+  .react-flow__node
+  > .xyflow-react-kie-diagram--node-shape.drop-target-inside-invalid
+  ~ .xyflow-react-kie-diagram--node
+  > g {
+  border-color: var(--mantine-color-error) !important;
+  color: var(--mantine-color-error) !important;
+  opacity: 0.4;
+}
+.myoxus-bpmn-diagram
+  .react-flow__node
+  > .xyflow-react-kie-diagram--node-shape.drop-target-inside-invalid
+  > g {
+  border-color: var(--mantine-color-error) !important;
+}
+.myoxus-bpmn-diagram
+  .react-flow__node
+  > .xyflow-react-kie-diagram--node-shape.drop-target-inside-invalid
+  > g
+  > * {
+  stroke: color-mix(
+    in srgb,
+    var(--mantine-color-error) 20%,
+    transparent
+  ) !important;
+  fill: color-mix(
+    in srgb,
+    var(--mantine-color-error) 10%,
+    transparent
+  ) !important;
+}
+.myoxus-bpmn-diagram
+  .react-flow__node
+  > .xyflow-react-kie-diagram--node-shape.drop-target-inside
+  ~ .xyflow-react-kie-diagram--node {
+  color: var(--mantine-primary-color-filled) !important;
+}
+.myoxus-bpmn-diagram
+  .react-flow__node
+  > .xyflow-react-kie-diagram--node-shape.drop-target-inside,
+.myoxus-bpmn-diagram
+  .react-flow__node.selected
+  > .xyflow-react-kie-diagram--node-shape.normal {
+  border-color: var(--mantine-primary-color-filled) !important;
+}
+.myoxus-bpmn-diagram
+  .react-flow__node
+  > .xyflow-react-kie-diagram--node-shape.drop-target-inside
+  > g
+  > * {
+  stroke: var(--mantine-primary-color-filled) !important;
+  fill: color-mix(
+    in srgb,
+    var(--mantine-primary-color-filled) 10%,
+    transparent
+  ) !important;
+}
+
+.myoxus-bpmn-diagram
+  .react-flow__node
+  > .xyflow-react-kie-diagram--node-shape.drop-target-border
+  > g
+  > * {
+  stroke: var(--mantine-primary-color-filled) !important;
+  stroke-width: 20px;
+}
+
+.myoxus-bpmn-diagram
+  .react-flow__node
+  > .xyflow-react-kie-diagram--node-shape.drop-target-invalid-non-container
+  > g
+  > * {
+  opacity: 0.4;
+}
+
+.myoxus-bpmn-diagram
+  .react-flow__node.selected:not(.react-flow__node-node_unknown):not(
+    .react-flow__node-node_textAnnotation
+  )
+  > .xyflow-react-kie-diagram--node-shape
+  > g
+  > * {
+  stroke: var(--mantine-primary-color-filled) !important;
+}
+
+/* hierarchy view */
+
+.myoxus-bpmn-diagram .react-flow__node.hierarchy.up::after,
+.myoxus-bpmn-diagram .react-flow__node.hierarchy.down::after {
+  content: "";
+  width: calc(100% + 20px);
+  height: calc(100% + 20px);
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  border-radius: 24px;
+}
+.myoxus-bpmn-diagram .react-flow__node.hierarchy.up::after {
+  background-color: color-mix(
+    in srgb,
+    var(--mantine-primary-color-filled) 15%,
+    transparent
+  );
+}
+.myoxus-bpmn-diagram .react-flow__node.hierarchy.down::after {
+  background-color: color-mix(
+    in srgb,
+    var(--mantine-primary-color-filled) 10%,
+    transparent
+  );
+}
+.myoxus-bpmn-diagram
+  .react-flow__edge.hierarchy.up
+  .react-flow__edge-interaction {
+  stroke: color-mix(
+    in srgb,
+    var(--mantine-primary-color-filled) 15%,
+    transparent
+  );
+}
+.myoxus-bpmn-diagram
+  .react-flow__edge.hierarchy.down
+  .react-flow__edge-interaction {
+  stroke: color-mix(
+    in srgb,
+    var(--mantine-primary-color-filled) 10%,
+    transparent
+  );
+}
+
+/* selection rect */
+.myoxus-bpmn-diagram .react-flow__nodesselection-rect {
+  display: none;
+}
+
+.myoxus-bpmn-diagram .react-flow__resize-control {
+  z-index: 10000;
+}
+
+/* This is the rectangle that renders when dragging to select nodes. It shouldn't have any interaction with the mouse, as it messes hoverInfo for nodes. */
+.myoxus-bpmn-diagram .react-flow__selection.react-flow__container {
+  pointer-events: none;
+}
+
+/* This is the rectangle that renders when dragging to select nodes. It shouldn't have any interaction with the mouse, as it messes hoverInfo for nodes. */
+.myoxus-bpmn-diagram .react-flow__connectionline {
+  z-index: 10000;
+}
+
+/* edge updaters */
+.myoxus-bpmn-diagram .react-flow__edgeupdater {
+  fill: var(--mantine-color-body);
+  stroke: var(--mantine-primary-color-filled);
+  stroke-width: 2px;
+  cursor: grab;
+}
+.myoxus-bpmn-diagram
+  .react-flow__edge:not(.selected:hover)
+  .react-flow__edgeupdater,
+.myoxus-bpmn-diagram .react-flow__edgeupdater.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.myoxus-bpmn-diagram .react-flow__pane.selection {
+  cursor: crosshair;
+}

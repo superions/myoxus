@@ -1,0 +1,3205 @@
+{
+  "retired": [
+    "hybrid-day-sprint",
+    "meeting-focus",
+    "meeting-notes",
+    "meeting-register"
+  ],
+  "onboarding": [
+    "welcome-myoxus",
+    "getting-started-myoxus",
+    "editor-advanced-myoxus",
+    "importing-content-myoxus",
+    "using-folders-myoxus",
+    "meeting-templates-myoxus",
+    "databases-guide-myoxus",
+    "using-tasks-myoxus"
+  ],
+  "entries": [
+    {
+      "template_id": "agile-retro",
+      "version": "1.4.0",
+      "title": "Retro · {{date}}",
+      "description": "Erfahrungen auswerten, eine Veränderung vereinbaren und ihre Wirkung später prüfen.",
+      "category": "review-sprint",
+      "tags": ["meeting", "retro"],
+      "locale": "de",
+      "kind": "page",
+      "checksum": "29dca422ebb276082f30aaafdc6c66c02b48a0a1f3bab423fabe125638f20db0",
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "335b0f6ad3c8ced76fac1669f2288c48e4288e5fcd1a5b058dbfa2c25cf9ea3f",
+          "title": "Retro · {{date}}",
+          "description": "Review experience, agree on one change and check its effect later."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "ee6af2d083d3ca72496d9e562f6765f34d2681639dfc1b9b9969295242b1cf3d",
+          "title": "Rétro · {{date}}",
+          "description": "Tirer les leçons de l’expérience, convenir d’un changement et en évaluer les effets."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "cb99425ad9f87733e3810051984a595132a2648e4cbb0a8b2d5d20a05a4284ea",
+          "title": "Retro · {{date}}",
+          "description": "Aprender de la experiencia, acordar un cambio y evaluar su efecto después."
+        }
+      },
+      "title_policy": "template",
+      "purpose": "template",
+      "asset": "agile-retro/1.4.0.zip",
+      "sha256": "3b2e274c286327898039002cc12a8c6b5212cab1770f48d08fd4aacf908135ec"
+    },
+    {
+      "template_id": "agile-standup",
+      "version": "1.4.0",
+      "title": "Daily · {{date}}",
+      "description": "Fortschritt, Tagesvorhaben und Hindernisse kurz abstimmen und konkrete Hilfe vereinbaren.",
+      "category": "journal-daily",
+      "tags": ["journal", "daily"],
+      "locale": "de",
+      "kind": "page",
+      "checksum": "c06a4dda7c5ead5f67f75e2c956506e57c06abf99beade9baad392c88d2b485f",
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "f074e2e2a54cf66c4592b7882935b1da4ff77ab3ee0c60c0b5bcfeb375284aeb",
+          "title": "Daily · {{date}}",
+          "description": "Briefly share progress, plans and blockers, then agree on concrete support."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "7941606264389bff1918dc622707efbb78a57a4bdc1eeb9102bf36a16ef0ebf5",
+          "title": "Daily · {{date}}",
+          "description": "Faire un point bref sur les progrès, priorités et obstacles, puis convenir d’une aide concrète."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "80e8e9837a237bba034fcab7556e5b4d10c59547dcae08d7067af2cdee721800",
+          "title": "Daily · {{date}}",
+          "description": "Compartir brevemente avances, planes y obstáculos, y acordar apoyo concreto."
+        }
+      },
+      "title_policy": "template",
+      "purpose": "template",
+      "asset": "agile-standup/1.4.0.zip",
+      "sha256": "7357b2cf2927af704447296d6df4e125f9fe7718b394dd7f632967d2388dd9bc"
+    },
+    {
+      "template_id": "architecture-decision",
+      "version": "1.2.0",
+      "title": "Architekturentscheidung · {{date}}",
+      "description": "Optionen anhand von Kriterien vergleichen, die Entscheidung begründen und Folgen und Prüfanlässe festhalten.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "business",
+      "tags": ["architecture-decision"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "5678c6fb45a1c65b3ec96f851dc068541fa66aedb6af85f5ab8c190f58154d10",
+          "title": "Architecture decision · {{date}}",
+          "description": "Compare options against criteria, explain the decision and record consequences and review triggers."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "387e1bc6caa9cdfa84a32ef94fe15661452d8dec707097f9c81e29fe04d7f83c",
+          "title": "Décision d’architecture · {{date}}",
+          "description": "Comparer les options selon des critères, motiver la décision et noter les conséquences et motifs de réexamen."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "93f0df5274ae14f527f5f55ffde26dd790c70e0a5b7879cb75e3da0b50897822",
+          "title": "Decisión de arquitectura · {{date}}",
+          "description": "Comparar opciones con criterios, justificar la decisión y recoger consecuencias y motivos de revisión."
+        }
+      },
+      "checksum": "4a6cd5ba271649b1451bb53c5f2548d11d4daa9816c0ff90f96c2fbe28bf1784",
+      "asset": "architecture-decision/1.2.0.zip",
+      "sha256": "83c0605dc5e20ac57aa50bf950167437e34075715f55e9a02ad09d17d4de423c"
+    },
+    {
+      "template_id": "block-agenda-item",
+      "version": "1.0.0",
+      "title": "Agendapunkt",
+      "description": "Ein Thema mit Ergebnisziel, vortragender Person und Zeitrahmen einfügen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["meetings"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "2ed5f8c3ad213b9c3d4c9d062443e190eaa6a28b1f40f87e2394574d4e9d15e1",
+          "title": "Agenda item",
+          "description": "Give one meeting topic an outcome and a timebox."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "a97238c6ac577e33f2e4a48c1ba185dad2f7ad7048f0cd2814bdd73f1228b39f",
+          "title": "Point à l’ordre du jour",
+          "description": "Associer un résultat attendu et une durée à un sujet."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "2b99d57ffc0a03b4a1223ea31c5a184359b55b3d8ee9bb59029f1502b3f1ab28",
+          "title": "Punto del orden del día",
+          "description": "Asignar un resultado deseado y una duración a un tema."
+        }
+      },
+      "checksum": "8a72a9f00d6144c0998c5086887db698bd4ba0dcd7b9d66ab240b64a5c634f72",
+      "asset": "block-agenda-item/1.0.0.zip",
+      "sha256": "53174d7ac813fa075de8f46152e609141adf7a0739596cb416633f85cf4e60ff"
+    },
+    {
+      "template_id": "block-approval-record",
+      "version": "1.0.0",
+      "title": "Freigabevermerk",
+      "description": "Eine tatsächliche Freigabe als kompakten Vermerk dokumentieren.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["quality"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "7417afaba81759f17e435a28949193dc5305f01acd7e18db6902f9fd51ae9483",
+          "title": "Approval note",
+          "description": "Document an approval that has actually been given."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "e4ab0a47a2abf6588178c3e1b9c1b0afb852c3029a69e1c668d880c47079946c",
+          "title": "Note d’approbation",
+          "description": "Documenter une approbation réellement donnée."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "28b97df840803c817f56df8b1f3a313e9ba1867908a4b913376a801be265a219",
+          "title": "Nota de aprobación",
+          "description": "Documentar una aprobación que ya se ha concedido."
+        }
+      },
+      "checksum": "4991ee8883d22172175109914b9315113ae23ac68a69b61e6259aa48d27707ec",
+      "asset": "block-approval-record/1.0.0.zip",
+      "sha256": "fa0efb37ce134bb299f87343db44bcbbf8125942bf4b5cd676f089e020e50693"
+    },
+    {
+      "template_id": "block-architecture-comparison",
+      "version": "1.0.2",
+      "title": "Architekturvergleich",
+      "description": "Drei Ansätze anhand von sechs konkreten Qualitäts- und Betriebskriterien vergleichen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["technical-projects"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "367a6dc6cea4d86957a03087fd1d9450438ae4f592e7ed6aaeb5dda82bda7e74",
+          "title": "Architecture comparison",
+          "description": "Compare three approaches using six specific quality and operations criteria."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "c78f2cb62d908d63b117c8395a38c456c46482d90ac251090a91c884cd2334a6",
+          "title": "Comparaison d’architectures",
+          "description": "Comparer trois approches selon six critères concrets de qualité et d’exploitation."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "c0643c7124cdf1cd0ec2ef748ec2c2cae56e936ae70c5ef24c9693886ae8bf5a",
+          "title": "Comparación de arquitecturas",
+          "description": "Comparar tres enfoques mediante seis criterios concretos de calidad y operación."
+        }
+      },
+      "checksum": "1e5ac0c0e81372160d0838fa85f4bc14c0049b49cd1b454f90ce82ced17c519f",
+      "asset": "block-architecture-comparison/1.0.2.zip",
+      "sha256": "cd0aae6345c268e6defea4df5e25e5fe078ef1af9ebea3ea048a67669410b7b5"
+    },
+    {
+      "template_id": "block-assumption",
+      "version": "1.0.0",
+      "title": "Annahmenprüfung",
+      "description": "Eine Annahme mit einem prüfbaren Indiz verknüpfen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["decisions"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "957b0bc7de3f2d29b704df27499464669845266bd598883118f1d27d97e60770",
+          "title": "Assumption check",
+          "description": "Connect an assumption to observable evidence."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "ba20e703fbce6e531d33be817d3782b495a1e798f201e164516a1ca404ce8808",
+          "title": "Vérification d’une hypothèse",
+          "description": "Relier une hypothèse à un indice vérifiable."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "8dae5591a4c8a17b95c68bcb74d5e33b3f3c4aea9afbf82a964307081ce98e4c",
+          "title": "Comprobación de supuesto",
+          "description": "Vincular un supuesto a un indicio verificable."
+        }
+      },
+      "checksum": "38261079403835566ca3949cfb436e478378884d5db973355a7f05af4ea4c698",
+      "asset": "block-assumption/1.0.0.zip",
+      "sha256": "0c74623481c6c7c2ee82a1f0b713f1137812e405fbfe97c820a7f8655f142add"
+    },
+    {
+      "template_id": "block-callback",
+      "version": "1.0.0",
+      "title": "Rückruf",
+      "description": "Kontakt, Rückrufanliegen und gewünschten Termin bündeln.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["communication"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "9daae2f7f2244e662ef5c22085b1c1a35cb0649b766b9c48fe69a60024430089",
+          "title": "Callback",
+          "description": "Record a callback request and the requested deadline."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "a59632f7902d55524acab89c9e970bfaa30e5e3e1186136f2e37c5e1ab7fef07",
+          "title": "Rappel",
+          "description": "Noter une demande de rappel et son échéance."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "fbbe8e1f1fe1194dc3639f34ec86039b4d818b5332a04a8c5178bfbe5e643c4f",
+          "title": "Devolución de llamada",
+          "description": "Anotar una solicitud de llamada y su plazo."
+        }
+      },
+      "checksum": "88c5ccb4e5fca9edeaad6bf32bc8fb4147861418fbe6d927ff022e69d7095435",
+      "asset": "block-callback/1.0.0.zip",
+      "sha256": "423c033dc8c3e49746269cdc32b82ea64512b96440c2522df723adc210321887"
+    },
+    {
+      "template_id": "block-cause-analysis",
+      "version": "1.0.0",
+      "title": "Ursachenhypothesen",
+      "description": "Mögliche Ursachen an Belegen und Gegenbelegen abwägen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["incidents"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "71b3802d3edbe4aacf70708761521429940f90edbdbab5af983e4a38f48e961e",
+          "title": "Cause hypotheses",
+          "description": "Compare possible causes with evidence and counterevidence."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "a67644a5566637251372bcdbc8f5f1b7557acf30a82d2e9a0959dd9cff17cf4d",
+          "title": "Hypothèses de cause",
+          "description": "Comparer les causes possibles aux éléments favorables et contraires."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "71c46d2d151d395fcf9d6d4cd6c641bd64d722ad09f1f1e2a40960a00b6dea8f",
+          "title": "Hipótesis de causa",
+          "description": "Comparar las posibles causas con evidencias a favor y en contra."
+        }
+      },
+      "checksum": "58f17d9af13f9788a4474355228e790d575fcda83213101f41ac9e9206d72f09",
+      "asset": "block-cause-analysis/1.0.0.zip",
+      "sha256": "33d1c5a665dddb7d2af42de9e55e47a497cec31318cc02659f74b0c67c24faaa"
+    },
+    {
+      "template_id": "block-change-note",
+      "version": "1.0.0",
+      "title": "Änderungszeile",
+      "description": "Eine Änderung mit Anlass und Erfassung dokumentieren.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["knowledge"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "689c6250904b8186838e79bae77a326ca9f4b0653d9a9574ea4624e347667bdc",
+          "title": "Change record",
+          "description": "Record one change, its reason and who captured it."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "562c2f0af7e074d447e613146d9b8700f0d3ec8b74c451149374de56cfa45a54",
+          "title": "Trace de modification",
+          "description": "Consigner une modification, son motif et son auteur."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "746c926204a8e4474c364b911b85cc4ede56a69e2b1dcf23c75a17bbabdfff27",
+          "title": "Registro de cambio",
+          "description": "Anotar un cambio, su motivo y quién lo registró."
+        }
+      },
+      "checksum": "04c56171c6a2b2e750a21a6c4c86a79bf2b617a7b8e69ec0e4b1a92183816038",
+      "asset": "block-change-note/1.0.0.zip",
+      "sha256": "1c8108f3b080618b597146ff517f13c00ca59b6597339a4835723fdcaa4238ed"
+    },
+    {
+      "template_id": "block-change-request",
+      "version": "1.0.0",
+      "title": "Vorher / Nachher",
+      "description": "Eine gewünschte Änderung dem bisherigen Stand gegenüberstellen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["projects"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "d62f895a8c8f28439e67d3dce9073f1a425f2731309aae92901526bb115302fb",
+          "title": "Before / After",
+          "description": "Contrast the current state with a requested change."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "da4d5438186bdbbd1d37d677aa8429213312bb73a38b5926feac63dae777142c",
+          "title": "Avant / Après",
+          "description": "Comparer l’état actuel à la modification souhaitée."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "b6f86ebbac73979a85c9b2c51640c05c40babbe6c7a40988e3e2af8b3a747b8a",
+          "title": "Antes / Después",
+          "description": "Comparar el estado actual con el cambio solicitado."
+        }
+      },
+      "checksum": "7bd5762f55a4bfc9fbbfd266526f61de5ebe3fcf44b907b0cfbab33a29ac71f8",
+      "asset": "block-change-request/1.0.0.zip",
+      "sha256": "1b0f5899a6b2c6a4b4327ad87633a54450e8bc7438b3b9a6c22675c7e847bc2b"
+    },
+    {
+      "template_id": "block-check-record",
+      "version": "1.0.0",
+      "title": "Prüfnachweis",
+      "description": "Erwartung und tatsächliches Prüfergebnis gegenüberstellen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["quality"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "cd915a813417898b77dfb95ddc4c865b9f9a89872dbf5022112e8069b008bb75",
+          "title": "Check evidence",
+          "description": "Separate an expectation, the observation and its evidence."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "fde6b99615e2f21a0d69fa90ace51736a3cc7ff70267d0c17bdd27bcb5599f0d",
+          "title": "Preuve de contrôle",
+          "description": "Distinguer l’attendu, l’observation et sa preuve."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "c420b2d7f845b7bc5c13a50a1fbc284b7b168e02f0ed2add534fdadcc5fafe72",
+          "title": "Evidencia de comprobación",
+          "description": "Distinguir lo esperado, lo observado y su evidencia."
+        }
+      },
+      "checksum": "566fc09e84a7c954e488528e039fb0d10de0897b772bc4579eb4816ab28be90d",
+      "asset": "block-check-record/1.0.0.zip",
+      "sha256": "b4eed4bd347c39d61f5c4e9058526241e36730b638c688de3ec2922f6efa7e70"
+    },
+    {
+      "template_id": "block-checklist",
+      "version": "1.0.1",
+      "title": "Dokumentenprüfung · vor Weitergabe",
+      "description": "Sieben konkrete Kriterien für verständliche, belegbare und verwendbare Dokumente.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["quality"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "7a17a3e72c8228b6ae279589158ccafb73f59acbd014fe6b8754eb5bc96a863f",
+          "title": "Document review · before sharing",
+          "description": "Seven concrete checks for clear, supported and usable documents."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "5e928fcc4af9aef31017e43af78a4e17304e62fc52facebcc8994035d9745060",
+          "title": "Relecture du document · avant diffusion",
+          "description": "Sept critères concrets pour des documents clairs, étayés et utilisables."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "bff95f291a7d93e0c0c37fdfad0e126db1a1e023cc0a3129c704afc93992348d",
+          "title": "Revisión del documento · antes de compartir",
+          "description": "Siete criterios concretos para documentos claros, fundamentados y utilizables."
+        }
+      },
+      "checksum": "a207668a2a4f4167f5ad9b42782bc299af07193e7b24a149f0949d8a4058fc06",
+      "asset": "block-checklist/1.0.1.zip",
+      "sha256": "4cf93218e9c403510fdaaede93cb288d2fe8178e25863385164b866f7e10939f"
+    },
+    {
+      "template_id": "block-confirmation",
+      "version": "1.0.1",
+      "title": "Bestätigung",
+      "description": "Den vereinbarten Gegenstand, Zeitraum und verbindlichen Umfang in einem Satzpaar bestätigen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["communication"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "9e6d11eaaf5621bafda51b3bfe17f89757305c0967ac5f68a036088c38a6f2e9",
+          "title": "Confirmation",
+          "description": "Confirm the agreed subject, period and scope in two concise sentences."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "06fbe49015fea9aa53a43b78b7e3f3562d9ce38ae6c02c70b00e7c2e1b7237eb",
+          "title": "Confirmation",
+          "description": "Confirmer l’objet, la période et le périmètre convenus en deux phrases concises."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "42b6eedb53dea0d9265b0d093988935b23980170139537424ed03abcb16eca59",
+          "title": "Confirmación",
+          "description": "Confirmar el objeto, el periodo y el alcance acordados en dos frases concisas."
+        }
+      },
+      "checksum": "b1458f312d3ac07452f7c535dab236f66e729d72f3a81d6269e8164b1e4204d6",
+      "asset": "block-confirmation/1.0.1.zip",
+      "sha256": "4813ee3250e654cba7328030630b0a93dff44f80e5b20b7e862f619a8f1f29b3"
+    },
+    {
+      "template_id": "block-conversation-note",
+      "version": "1.0.0",
+      "title": "Gesprächszeile",
+      "description": "Eine Gesprächsaussage mit ihrer Erfassung dokumentieren.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["communication"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "e24e7bd459b337e3a92f25acb1bc23f3ef9c118ad46abbf86488674d0e4f1a3d",
+          "title": "Conversation record",
+          "description": "Record a conversation statement with its capture date and author."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "e93903e3e6dcf3af89758234c3f39b339c86e996487fab780d952c3ff75dd8ed",
+          "title": "Note de conversation",
+          "description": "Consigner un propos avec sa date de saisie et son auteur."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "7e7161f7d1122bb0d0e5296c9a641a88adc9afdbafbeb2a2eb374c5981104277",
+          "title": "Registro de conversación",
+          "description": "Registrar una declaración con su fecha de captura y autor."
+        }
+      },
+      "checksum": "575ba9529e8974c6b15677405138cd25570485cad995c3bff22da24fc7c32c93",
+      "asset": "block-conversation-note/1.0.0.zip",
+      "sha256": "f40827d00a5351751edccba064fd1b599126eb3f8986af0914413a4ec03e0119"
+    },
+    {
+      "template_id": "block-conversation-prep",
+      "version": "1.0.1",
+      "title": "Gesprächsfragen",
+      "description": "Drei Fragen führen vom gewünschten Gesprächsergebnis zu einem verbindlichen nächsten Schritt.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["personal-work"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "9d4e6d0f15130b25f4304d19136578331a7887677189cd8378b800c754c77c55",
+          "title": "Conversation questions",
+          "description": "Three questions lead from the desired conversation outcome to an agreed next step."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "9cba86270462bd3957ce02f8e8be0c14bde61f57d6bb3f31d115e39ceb101ff7",
+          "title": "Questions préparées",
+          "description": "Trois questions conduisent du résultat attendu de l’échange à une prochaine action convenue."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "4a65316d9afc4473745ad3b7c5dc3e0a0f98697470bd3b8d96125075112a5b42",
+          "title": "Preguntas preparadas",
+          "description": "Tres preguntas llevan del resultado deseado de la conversación a un próximo paso acordado."
+        }
+      },
+      "checksum": "312df9a34208f9e3c872025d200adc7b46c307dbce32e8901dca2aa199bbb529",
+      "asset": "block-conversation-prep/1.0.1.zip",
+      "sha256": "a1115283403901988c6ba6d68a1170e6683f7de5ec764f22050094bb245427d5"
+    },
+    {
+      "template_id": "block-corrective-action",
+      "version": "1.0.0",
+      "title": "Korrekturmaßnahme",
+      "description": "Eine Maßnahme mit ihrer Wirksamkeitsbedingung festhalten.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["quality"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "74f534dfc82e200297631243d24cd454dd2f4aff42254285ed5e310334528a4e",
+          "title": "Corrective action",
+          "description": "Record one corrective action and its observable effect."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "b49156a21c515e1a92e3686db624ee28ede45984697a9e5880029f6e14d7dada",
+          "title": "Mesure corrective",
+          "description": "Consigner une mesure corrective et son effet observable."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "00018ce05c5065b220ab4915f021dfe5e4c0a352601fe3b775a06fe55333e77c",
+          "title": "Medida correctiva",
+          "description": "Anotar una medida correctiva y su efecto observable."
+        }
+      },
+      "checksum": "5886363981273f2b1193442c4c907b665f72c6ff879c3d0fbaf42c7173163011",
+      "asset": "block-corrective-action/1.0.0.zip",
+      "sha256": "914752b4610264b4f84d400b8e1976e09eb30d3cbddac96e930551b18088bb49"
+    },
+    {
+      "template_id": "block-daci",
+      "version": "1.0.0",
+      "title": "DACI-Rollenzuordnung",
+      "description": "Vorbereitung, Entscheidungsrecht, Fachbeiträge und Information zuordnen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["decisions"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "8a1873c7006ee6eadabb668b85ce4b93365fff56084735a3231edbece6840caf",
+          "title": "DACI roles",
+          "description": "Assign decision preparation, authority, expertise and communication."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "afa39b19a186a428290ebe1ad6260efd18e7d94a9b9d9b20290cedffec9df720",
+          "title": "Attribution des rôles DACI",
+          "description": "Attribuer la préparation, la décision, les contributions et l’information."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "e1fc27e0e5d298516613d8750c07ef8f5da5859537a8a66560e48934b875ed8d",
+          "title": "Asignación de roles DACI",
+          "description": "Asignar la preparación, la decisión, las aportaciones y la información."
+        }
+      },
+      "checksum": "adf73c1b8d64dd879b899262965692de83ceb1984605e002524cbfbec45c54d9",
+      "asset": "block-daci/1.0.0.zip",
+      "sha256": "70b4eeef2fddf9432871106c297b87b661c44b59cf320133a8d8fa68f92b0283"
+    },
+    {
+      "template_id": "block-daily-focus",
+      "version": "1.0.1",
+      "title": "Drei Prioritäten",
+      "description": "Drei Tagesprioritäten nach Abschluss, Entlastung anderer und nachhaltiger Verbesserung auswählen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["personal-work"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "f21d572ae508b25fcda0559c67c63d2f6d9f5c30fbbd52ab510e4f0062f6fb1a",
+          "title": "Three priorities",
+          "description": "Choose three daily priorities for completion, unblocking others and lasting improvement."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "f2680608096f67a287d62ce879f93e7a97a08d3352834cf7e82e24c685e91810",
+          "title": "Trois priorités",
+          "description": "Choisir trois priorités du jour pour terminer, débloquer les autres et améliorer durablement."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "6d70a45a02e8dbae79a77d466b09674ef1419cac7ef517d834ef56b3f39ed1bb",
+          "title": "Tres prioridades",
+          "description": "Elegir tres prioridades diarias para completar, desbloquear a otros y mejorar de forma duradera."
+        }
+      },
+      "checksum": "8f9dfca120365b5e6194a245a414cce1b8fea35a7b735d9951b8dda4f651019c",
+      "asset": "block-daily-focus/1.0.1.zip",
+      "sha256": "e64f77f0b5536a7bbab2a92ebb2d089fc6374345351dbf0235db75cad1c615e4"
+    },
+    {
+      "template_id": "block-decision",
+      "version": "1.0.2",
+      "title": "Beschluss",
+      "description": "Eine verbindliche Festlegung mit eindeutigem Geltungsbereich formulieren.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["decisions"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "cb024fdcf525cbd233d9807dd1e4e941ae0d99a4f354208bc622fa8282481723",
+          "title": "Decision",
+          "description": "State a binding decision with an unambiguous scope."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "228bf77196cd2f9881d95795c08bd276cc95d4643443ea0474a8a26a1cbea1c7",
+          "title": "Décision",
+          "description": "Formuler une décision contraignante au périmètre explicite."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "f4c141c74b152a33643e271e19985c7ad6c4ee581b457669ec480beaa2f4f204",
+          "title": "Decisión",
+          "description": "Formular una decisión vinculante con un alcance inequívoco."
+        }
+      },
+      "checksum": "0c5ff0496fe909d2567364669450597a342b0afe7a3067a8f5e38bb7830a84eb",
+      "asset": "block-decision/1.0.2.zip",
+      "sha256": "19ea7ea887fa9e2e60b0d2dce549fa42b880a4a29ef34bb90a32094457d4fb49"
+    },
+    {
+      "template_id": "block-decision-brief",
+      "version": "1.0.1",
+      "title": "Entscheidungsfrage",
+      "description": "Die zu treffende Wahl und ihr entscheidendes Ziel in einer konkreten Entscheidungsfrage benennen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["decisions"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "bdce3ae9b2ecd7e56fab4436b514aab95e5500a89344caa8af415398a6aa4d49",
+          "title": "Decision question",
+          "description": "State the choice to be made and its defining objective as a specific decision question."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "8b721d78554357ed6b882ccb7fe9aad57bf4c2054b35530f88f32f798334fe31",
+          "title": "Question à trancher",
+          "description": "Formuler le choix à faire et son objectif déterminant dans une question de décision précise."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "906b6c7949237d3172a22026a0c6c5e94398a497d5c958da56c0a2de7cda7e14",
+          "title": "Pregunta por decidir",
+          "description": "Formular la elección pendiente y su objetivo determinante en una pregunta de decisión concreta."
+        }
+      },
+      "checksum": "aab0a997a737bf40f68635f5250f8195ae9d160021b153e7e2f22c1da61be4c4",
+      "asset": "block-decision-brief/1.0.1.zip",
+      "sha256": "af2bcf3f9eb5c151fff4294118e89e0c147140329451ef357cde746f3601f544"
+    },
+    {
+      "template_id": "block-definition",
+      "version": "1.0.1",
+      "title": "RTO · Wiederanlaufziel",
+      "description": "Das Wiederanlaufziel eines Dienstes verständlich erklären und vom zulässigen Datenverlust abgrenzen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["knowledge"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "4169acc29f9a4de571314d205167d907bb92b678ef7c7eed237ee0b8e9702d86",
+          "title": "RTO · recovery time objective",
+          "description": "Explain a service’s recovery time objective and distinguish it from acceptable data loss."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "5d72bed2c51d0d9736616e7d9a703102fa6f75320d0fcb1a355d698959f51638",
+          "title": "RTO · objectif de reprise",
+          "description": "Expliquer l’objectif de reprise d’un service et le distinguer de la perte de données acceptable."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "a1f026e16ce3b9a6f4e7c035478c4ea2008de866fb191b9caebc0ff13243581d",
+          "title": "RTO · objetivo de tiempo de recuperación",
+          "description": "Explicar el objetivo de tiempo de recuperación de un servicio y distinguirlo de la pérdida de datos aceptable."
+        }
+      },
+      "checksum": "47f8fb5095ad98d1fe133a28542d2bd33d78186a2917fe71752992863251f28d",
+      "asset": "block-definition/1.0.1.zip",
+      "sha256": "4eea50d5992217dd9f7af5fe78226686f0dbc585c38877ced2b13f7bc898a66a"
+    },
+    {
+      "template_id": "block-dependency",
+      "version": "1.0.0",
+      "title": "Abhängigkeit",
+      "description": "Eine benötigte Zuarbeit mit Quelle und Termin festhalten.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["projects"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "e4a686c374b728507061607a39f8ced8c85f48644b9e8a3485b5ddf4d3e91add",
+          "title": "Dependency",
+          "description": "Record a needed contribution, its provider and deadline."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "d49b9a5ea3413d54a0a960f1f6a28272e2097323756f5ba4b3d64329ed403390",
+          "title": "Dépendance",
+          "description": "Noter une contribution requise, son fournisseur et son échéance."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "e46241d1a6b52a8fea1c42944ca7ceeca8f4abe59725daf73a8078cfd3fcf9ca",
+          "title": "Dependencia",
+          "description": "Anotar una aportación necesaria, su proveedor y su plazo."
+        }
+      },
+      "checksum": "bcff677f61ed1e1d78e25aea0516e3691c58b2d5f0c98821205fda0c4d138849",
+      "asset": "block-dependency/1.0.0.zip",
+      "sha256": "cbd30513b9cc53304f1d088504238b0475f512bd7af974828dd94386a81e5310"
+    },
+    {
+      "template_id": "block-deviation",
+      "version": "1.0.0",
+      "title": "Soll / Ist",
+      "description": "Eine Abweichung auf den direkten Vergleich reduzieren.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["quality"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "a73fbe471fafca42923786fabad0a3693be012a739f0a710419ad51a994f3ff8",
+          "title": "Expected / Actual",
+          "description": "Make a difference between expected and actual conditions visible."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "8de31e92621c49baf1f4ba9bba8aae2d3a0ab765046992ce1c135cefd2ebbb1b",
+          "title": "Attendu / Constaté",
+          "description": "Rendre visible un écart entre l’attendu et le constaté."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "ea861cdaa8bc833884f8caa3bee3e230bb709032b6a53775e2cd289025af880a",
+          "title": "Esperado / Real",
+          "description": "Mostrar una diferencia entre lo esperado y lo real."
+        }
+      },
+      "checksum": "95781e122b006b3a3b8fbebf4beea8fed2cd20a181105366b8f7606cbf60531a",
+      "asset": "block-deviation/1.0.0.zip",
+      "sha256": "61991b52bc899142b2c3c7ef0c7b4122f17aedcc92e199bec9c5572254eaba2d"
+    },
+    {
+      "template_id": "block-event-log",
+      "version": "1.0.0",
+      "title": "Ereignisverlauf",
+      "description": "Beobachtungen und Handlungen chronologisch festhalten.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["incidents"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "d956ca887a0fc5671e16e049d4085723f8bf08e2068180e6a174b24b8e607ba3",
+          "title": "Event log",
+          "description": "Place observed events in chronological order."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "f96a5a1289a87710b92cf1df8c38b146052b0007a63358abba9391e854e873f3",
+          "title": "Chronologie",
+          "description": "Classer les événements observés dans l’ordre chronologique."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "3cafc354f8bde3812cca738976d021a3e920dcac9f9e51f256aa5996eb1f1259",
+          "title": "Registro de eventos",
+          "description": "Ordenar cronológicamente los eventos observados."
+        }
+      },
+      "checksum": "588839d2d9a7b52ebc2790cd222cbdc7fe68e98ccc637218d73818c342c45503",
+      "asset": "block-event-log/1.0.0.zip",
+      "sha256": "6af00336d5968d1249fb282385396906328d89a36c6e23deef7378de657d7817"
+    },
+    {
+      "template_id": "block-faq",
+      "version": "1.0.1",
+      "title": "Störung melden · nötige Angaben",
+      "description": "Die nötigen Angaben für eine verwertbare Störungsmeldung als fertige Frage und Antwort erläutern.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["knowledge"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "478fc69d8ae7742ceb86def06d698daed819b32b892815faf9bd0e6e7a8a39fa",
+          "title": "Report an incident · required details",
+          "description": "Explain the details needed for an actionable incident report as a ready-to-use question and answer."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "b2e40c3db9703fba5ff440668c13abd4689ff5c7c993ce782a5bc6af6c8642f6",
+          "title": "Signaler un incident · informations nécessaires",
+          "description": "Expliquer les informations nécessaires à un signalement exploitable sous forme de question-réponse prête à l’emploi."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "57ef029af9db6fae73e41f7130669dc800765130e28ca0a92c07e559cb7c45aa",
+          "title": "Comunicar una incidencia · datos necesarios",
+          "description": "Explicar los datos necesarios para comunicar una incidencia de forma útil mediante una pregunta y respuesta listas para usar."
+        }
+      },
+      "checksum": "df352ddd8e20f81bc866982d11cd974667604ac1461ae421d7a1d02ff6f0dd3b",
+      "asset": "block-faq/1.0.1.zip",
+      "sha256": "898aceca8642d7a8885d39d28c5057aeefa8d10e63904ad889a0e107e8632aea"
+    },
+    {
+      "template_id": "block-follow-up",
+      "version": "1.0.1",
+      "title": "Wiedervorlage",
+      "description": "Eine erneute Prüfung mit Datum, offener Frage und erkennbarem Abschlusskriterium notieren.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["personal-work"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "4533f0e60c43fee1d308d98dab63916e0d390bcd7efd0198073561dc4aac5de5",
+          "title": "Follow-up date",
+          "description": "Record a follow-up review with its date, open issue and observable completion criterion."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "93c091d8023194e7e8115d7545f56ecd6ea1c51d6e2dc2e96799795398530a72",
+          "title": "Point de suivi",
+          "description": "Consigner un réexamen avec sa date, le point ouvert et un critère de clôture observable."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "a48658b7fb18e2617dab96d1a5e8c650bc23765432e03f54f1eaff471507dd1e",
+          "title": "Fecha de seguimiento",
+          "description": "Registrar una revisión posterior con fecha, cuestión pendiente y criterio de cierre observable."
+        }
+      },
+      "checksum": "dcc9f82fa0be035335769e82533f9786117d0eeb7035c7a3b481c010c72659bd",
+      "asset": "block-follow-up/1.0.1.zip",
+      "sha256": "fbbcda1533aeb8ecf1f5fd2fcd2dfc496b3091711c82f5ddab666317bf01198f"
+    },
+    {
+      "template_id": "block-follow-up-question",
+      "version": "1.0.1",
+      "title": "Rückfrage",
+      "description": "Eine fehlende Information mit ihrem Entscheidungsbezug gezielt erfragen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["communication"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "33479bd28227d173fa3af69319228e160700ef1cddb416f08915385ce106add6",
+          "title": "Follow-up question",
+          "description": "Ask for missing information and explain which decision depends on it."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "5f0e7093d16907b70dff0c2de657574a3fe28d1126136d68d73ba6d44c3a6b38",
+          "title": "Demande de précision",
+          "description": "Demander une information manquante en précisant la décision qui en dépend."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "5c2fad33ca2638c74788cd8abc7fbbb1df748fdf2abed178790390f6106437b6",
+          "title": "Consulta de seguimiento",
+          "description": "Pedir la información que falta e indicar qué decisión depende de ella."
+        }
+      },
+      "checksum": "42bb6c4cea101be6324d7f3d4d6d0a85bb932de8b506bba636d6dc25c7aa20df",
+      "asset": "block-follow-up-question/1.0.1.zip",
+      "sha256": "ecf7192d6951bf3439b325ec78c1b4252e3887406c118dcdfb5d56fba8a18a23"
+    },
+    {
+      "template_id": "block-handover",
+      "version": "1.0.1",
+      "title": "Übergabezeile",
+      "description": "Einen Vorgang mit auffindbarem Arbeitsstand, ausführbarem nächsten Schritt und Übernahme übergeben.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["personal-work"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "285c93b6fb36e86cc418efcd20a028b42e2f5cb6efe77ecc845f723155d7c00b",
+          "title": "Handover row",
+          "description": "Hand over one item with a findable work state, actionable next step and recipient."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "36d5448aa13e87d3a3f791eb00602eb1d08473b94e0bb6281267a8bf7622aeb0",
+          "title": "Ligne de transmission",
+          "description": "Transmettre un dossier avec un état de travail accessible, une prochaine action réalisable et un destinataire."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "58fb22167664726478e1716794b1c3ac317f66e25fa81e66e7a805ab8f113376",
+          "title": "Fila de traspaso",
+          "description": "Traspasar un asunto con un estado de trabajo localizable, un próximo paso ejecutable y un receptor."
+        }
+      },
+      "checksum": "a169386c7474578ff4b763fcb7d5e09f7bc9f38c320cfcb0662ab784b9239c33",
+      "asset": "block-handover/1.0.1.zip",
+      "sha256": "77d138333815e6f2afbf24f4dbe926d07a8bf2b5f821039650a7904bc965fe2c"
+    },
+    {
+      "template_id": "block-how-to",
+      "version": "1.0.1",
+      "title": "Dokumentenlink prüfen",
+      "description": "Einen Dokumentenverweis vor der Weitergabe in drei konkreten Schritten prüfen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["knowledge"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "aa0c0e660672246304372f8f5554533b578cca9a96767cfbc9f5d80a22a86861",
+          "title": "Check a document link",
+          "description": "Check a document link before sharing it in three concrete steps."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "835a874d815e07cb69116e6c9a3b2987a1f9a95f88385ea826bdf3848a1f33ab",
+          "title": "Vérifier un lien documentaire",
+          "description": "Vérifier un lien vers un document avant diffusion en trois étapes concrètes."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "305cab9c2bd503730384469aa51ba07d7ea85f6e304bd0936d9afefa2361932e",
+          "title": "Comprobar un enlace documental",
+          "description": "Comprobar un enlace a un documento antes de compartirlo en tres pasos concretos."
+        }
+      },
+      "checksum": "dc70d4055908e59b6d2242876bea8f75abfcb2d2964cc588dca48014ea4b2ec1",
+      "asset": "block-how-to/1.0.1.zip",
+      "sha256": "0af4ff9025b012fad059c2f593c505e269ffaf9728a90ecd0ef6af54c0dee004"
+    },
+    {
+      "template_id": "block-immediate-action",
+      "version": "1.0.1",
+      "title": "Sofortmaßnahme",
+      "description": "Eine akute Begrenzungsmaßnahme mit Verantwortung, Frist und beobachtbarem Ziel festhalten.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["incidents"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "b081dd06c591fc8d57943fc367e9999365ff54112624d2cd725567d9cd5d6f82",
+          "title": "Immediate action",
+          "description": "Record one immediate containment action with an owner, deadline and observable target."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "027f584bbc9cb9781f873455cb1adf17559a6066c38508374803fb9df7c11f90",
+          "title": "Mesure immédiate",
+          "description": "Consigner une mesure immédiate de limitation avec responsable, échéance et objectif observable."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "96d9d0938bbe14353466faad52b72452af6f75f38a79d6eb94216c54cb52a581",
+          "title": "Medida inmediata",
+          "description": "Registrar una medida inmediata de contención con responsable, plazo y objetivo observable."
+        }
+      },
+      "checksum": "5ee48b0e7f2ad2f2ce7020fad3f45d54c726b03c467ffcd05348d29cb6299796",
+      "asset": "block-immediate-action/1.0.1.zip",
+      "sha256": "520e51fe83a21dd289302b649ef7e181633abfbf19aee86352e81eaea181d02e"
+    },
+    {
+      "template_id": "block-incident",
+      "version": "1.0.1",
+      "title": "Störungshinweis",
+      "description": "Beobachtetes Fehlerbild und tatsächliche Nutzungsauswirkung ab einem benannten Zeitpunkt mitteilen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["incidents"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "e15a9217da93ced33e2dcf845600b1c81eb590f5fb33dabac5611ad90947766c",
+          "title": "Incident notice",
+          "description": "Report an observed failure and its actual user impact from a stated time."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "08e15267d8e883a5519c14b9914abb07509a94510162bd2a5af6e73dfb7dbc03",
+          "title": "Avis d’incident",
+          "description": "Signaler une panne observée et son impact réel pour les utilisateurs depuis une heure précisée."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "9122d0a7330fbd08428ad38ee49274453f8598e21b56334297bbab4e4b179a67",
+          "title": "Aviso de incidencia",
+          "description": "Comunicar un fallo observado y su efecto real en los usuarios desde un momento indicado."
+        }
+      },
+      "checksum": "5739e5e50eb92af5b0cdb0caa756c925f3260442200753b9e1b38ff4a5712e41",
+      "asset": "block-incident/1.0.1.zip",
+      "sha256": "6c835822f0c5cdb2db5813fcc7693fc5bab95efb24730b3a0425a9a1890fdb0a"
+    },
+    {
+      "template_id": "block-interface-contract",
+      "version": "1.0.0",
+      "title": "Schnittstellenparameter",
+      "description": "Die Eckdaten einer Schnittstelle übersichtlich festhalten.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["technical-projects"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "4bcd0687a2eb12e9241903b7dedcf2e77946d3098970f3ccbb91e178e9c32d86",
+          "title": "Interface parameters",
+          "description": "Keep the essential properties of an interface together."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "08b7c8e087d4d09101f65de7e6a3b86ad6cce6fab495b9a6b4624eeee5401097",
+          "title": "Paramètres d’interface",
+          "description": "Rassembler les propriétés essentielles d’une interface."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "4909adf2f2f19caacb78344fbd89b927f2e8385947c6506d8851594fd8067d46",
+          "title": "Parámetros de interfaz",
+          "description": "Reunir las propiedades esenciales de una interfaz."
+        }
+      },
+      "checksum": "c3aaa52daad2a116b146038acdf78c8404495f14d81c1e34e88e6de07b3b532a",
+      "asset": "block-interface-contract/1.0.0.zip",
+      "sha256": "26ae81d87c39cc76735afbc5460f2e6ccca8145d6f689ecbe19bfa18310dc49d"
+    },
+    {
+      "template_id": "block-madr-rationale",
+      "version": "1.0.1",
+      "title": "Entscheidungsbegründung · MADR",
+      "description": "Eine technische Entscheidung mit Grund, Folgen und prüfbarem Nachweis begründen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["technical-projects"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "598328d35571c3f2a05106a125efd421bba40b891949ed6047ff9be37e8954e0",
+          "title": "Decision rationale · MADR",
+          "description": "Explain a technical decision with its reason, consequences and verifiable evidence."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "2284aeee373e35ebb030afd817c6a48e4ecdd5a352e748e469fb3993c45e6c73",
+          "title": "Justification de décision · MADR",
+          "description": "Justifier une décision technique par sa raison, ses conséquences et une preuve vérifiable."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "1492b32122da41d64b0cb8fd8e4f15093ecea3de1829d994a9b264bc3819e618",
+          "title": "Justificación de decisión · MADR",
+          "description": "Justificar una decisión técnica con su motivo, consecuencias y evidencia verificable."
+        }
+      },
+      "checksum": "18c525cac561bd35cbffffdc61e8dcef8988f17fe69d0996e22a9ae3e3442e23",
+      "asset": "block-madr-rationale/1.0.1.zip",
+      "sha256": "607cd32f4f103b9a7ca1358e0575c077afd3d44e39a85534db4605bc99f12844"
+    },
+    {
+      "template_id": "block-meeting-close",
+      "version": "1.0.0",
+      "title": "Ergebnisübersicht",
+      "description": "Ergebnisse und offene Folgeschritte nebeneinander zeigen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["meetings"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "971e65bac78a0efdaf0066b30bd129680f42bd53e72bef12d70a9378df4f7516",
+          "title": "Outcome overview",
+          "description": "Place results and open follow-up actions side by side."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "64476d2b3d6fdfd4a4971396e900e2b36bde356f5bcadbe32e2b7cf26276b7f4",
+          "title": "Vue des résultats",
+          "description": "Rapprocher les résultats et les suites encore ouvertes."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "e51c11df1ecd3648d43c10654e96f465c39bc812552d7b8d3f975674b9931bbb",
+          "title": "Resumen de resultados",
+          "description": "Mostrar los resultados junto a los siguientes pasos pendientes."
+        }
+      },
+      "checksum": "3baf0caf6fd62cdb9a02219ddbb8ee4078736199b4f797c7b1f609f1d2a735cb",
+      "asset": "block-meeting-close/1.0.0.zip",
+      "sha256": "8938c1215799fdadd713a5ce5d23605c598712e3206385d1eaa7ad79d462ef08"
+    },
+    {
+      "template_id": "block-milestone",
+      "version": "1.0.0",
+      "title": "Meilenstein",
+      "description": "Einen Meilenstein mit Termin und Nachweis einfügen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["projects"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "7dc45d4345526f4c8c13d3d5cc58b441622615bb07d59221c2ecc53baff037ce",
+          "title": "Milestone",
+          "description": "Connect a milestone result to its target date and evidence."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "c4973a5c973eecc327689954d20ab3089050f8b20fadb61497462e31e2b32f42",
+          "title": "Jalon",
+          "description": "Relier le résultat d’un jalon à sa date et à sa preuve."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "56a321b5c4dcbd082bfe509c3fcb02592a208436fb8640e7c2006d02f0a7de8d",
+          "title": "Hito",
+          "description": "Vincular el resultado de un hito con su fecha y evidencia."
+        }
+      },
+      "checksum": "023b498492d6484c845f4eec28c3599ad67c59744612b135b850032c14006f98",
+      "asset": "block-milestone/1.0.0.zip",
+      "sha256": "b982982d663139d85a254df8b7780b674618c1fa893733aa65285d8bd3e37c53"
+    },
+    {
+      "template_id": "block-minutes-item",
+      "version": "1.0.0",
+      "title": "Protokollpunkt",
+      "description": "Ein Besprechungsergebnis mit Zuständigkeit festhalten.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["meetings"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "8457993de59a6dc64f9c0b3ce4896eec9e8fc53b4e0c5d640f741150e04c9d97",
+          "title": "Minutes item",
+          "description": "Record one meeting outcome and its owner."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "ccc14574e36a044968b169c225c0700375aa28b2c3c4cfb09b6da15ca4e160c9",
+          "title": "Point de compte rendu",
+          "description": "Consigner un résultat de réunion et son responsable."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "71a9f2a146745df49a80ed43fcc7e7cec2fecd4d174242b6a451de9044291587",
+          "title": "Punto del acta",
+          "description": "Anotar un resultado de reunión y su responsable."
+        }
+      },
+      "checksum": "b46d3060be31965c4527232913950d608ab1cc8d6236dcc4a948424ef13b1e50",
+      "asset": "block-minutes-item/1.0.0.zip",
+      "sha256": "696a2a6339091e3e9f67b642375e9245c9b7ca54913e8237a911f4de202a66fe"
+    },
+    {
+      "template_id": "block-next-meeting",
+      "version": "1.0.0",
+      "title": "Folgetermin",
+      "description": "Den nächsten Termin und seine Vorbereitung notieren.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["meetings"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "470d8366e4450ff4b4ef8ba9f7bb5ada95d974470eb017ca42d4d9215f83af0c",
+          "title": "Next meeting",
+          "description": "Note the proposed next meeting and its preparation."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "44ea01c168dfa252b3b13a5e1515c15a17c4c560d32902c59b826b44dfcb2a91",
+          "title": "Prochaine réunion",
+          "description": "Noter la prochaine réunion proposée et sa préparation."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "0a437eedaa4852666694d0a26e258d0228200976319da0ff798bcc4fc0978d40",
+          "title": "Próxima reunión",
+          "description": "Anotar la próxima reunión propuesta y su preparación."
+        }
+      },
+      "checksum": "d1a6b94dd93fc0fc890517d230d585000d5a92059e2dc0e32ead998b8d3db46b",
+      "asset": "block-next-meeting/1.0.0.zip",
+      "sha256": "323148c03f3fc5b71e594d5da6ced48988657c26c6bbefecc9e8259ff525be8e"
+    },
+    {
+      "template_id": "block-note-close",
+      "version": "1.0.1",
+      "title": "Ergebnis klar benennen",
+      "description": "Den Unterschied zwischen einer ausgeführten Tätigkeit und ihrem nachprüfbaren Ergebnis verdeutlichen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["personal-work"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "379ef26925d9a938f7f044c18b956b2a55bb072ad88f03737346a764a21b5a21",
+          "title": "Describe the outcome",
+          "description": "Clarify the difference between performing an activity and recording its verifiable outcome."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "3e961c464a5434d9fd6f911da380eeffe8556d085be429df1972a21ce432c172",
+          "title": "Décrire le résultat",
+          "description": "Clarifier la différence entre une activité effectuée et son résultat vérifiable."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "3847e2692ae7d150882ebc86e13a1d920f56d1ea8b6e67c676e13a0fd9a607be",
+          "title": "Describir el resultado",
+          "description": "Aclarar la diferencia entre realizar una actividad y registrar su resultado verificable."
+        }
+      },
+      "checksum": "d4872d451ac5386a0073e2749f08bcbe65f08adf9ec9e9e78f5ad986148d3419",
+      "asset": "block-note-close/1.0.1.zip",
+      "sha256": "1173caed102cfeeeed4012a70f2b12b22f7e072c44abd3619f56d8f1874fa052"
+    },
+    {
+      "template_id": "block-open-question",
+      "version": "1.0.1",
+      "title": "Offene Frage",
+      "description": "Eine offene Frage mit ihrer Auswirkung und einem prüfbaren Klärungskriterium festhalten.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["decisions"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "da315b6eb4cfd0f9836ee6495ca3e9abb58bfb0d52c4aa95dd94a943e367f95f",
+          "title": "Open question",
+          "description": "Record an open question, what depends on it and how its resolution can be verified."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "0ae7150040af0d0e7bba1a4064e7083cdd39ae1883db63e0c5562cd0539890d0",
+          "title": "Question ouverte",
+          "description": "Consigner une question ouverte, ce qui en dépend et un critère vérifiable de résolution."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "8861a30fc088bb90d1d3bd5ffac717553a2dffb4692bb379acca85f286f20f82",
+          "title": "Pregunta abierta",
+          "description": "Registrar una cuestión pendiente, qué depende de ella y un criterio verificable de resolución."
+        }
+      },
+      "checksum": "f1cd9ff582c96249b1303a605dab89fe137ffbe7142851143f27f28bbc57888f",
+      "asset": "block-open-question/1.0.1.zip",
+      "sha256": "44ed07f24c8e84eca818d175f44e3f61be13040a440fafedac72579c72c92e0f"
+    },
+    {
+      "template_id": "block-options-comparison",
+      "version": "1.0.0",
+      "title": "Optionenvergleich",
+      "description": "Zwei Optionen nach denselben Kriterien vergleichen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["decisions"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "c724707aa7cf89ca8d7606e5deb77a2a85ed0f8a0edbc04cf4d51541414f8503",
+          "title": "Options comparison",
+          "description": "Compare two options against the same criteria."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "7f5874975192ac2741d0a2046bc92067034a68b17f765e96c22708fb66a10fe9",
+          "title": "Comparaison des options",
+          "description": "Comparer deux options selon les mêmes critères."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "f8afb71db4b835e857f02c7bc7615e9aa8096b4cfaba2170ea88469a036f27ab",
+          "title": "Comparación de opciones",
+          "description": "Comparar dos opciones con los mismos criterios."
+        }
+      },
+      "checksum": "1d7d3bd0d9c647de2f476c24cfd656d2308616b19fafd51746813a1384a9162f",
+      "asset": "block-options-comparison/1.0.0.zip",
+      "sha256": "f8e6e8f50f076d94eddf60124461147238bfd34533cd621027dff15f0f3cd4c0"
+    },
+    {
+      "template_id": "block-peer-check",
+      "version": "1.0.0",
+      "title": "Vieraugenprüfung",
+      "description": "Zwei eigenständige Prüfungen direkt nebeneinander dokumentieren.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["quality"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "b929cd64a71177ea009820cdf94c82538b92830f6b3af603cf7e0c6e06dd80b9",
+          "title": "Two-person check",
+          "description": "Record two independent checks and their evidence."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "bd18d181d06c0fb662ef896dfe4c53aa698f3b014440c1eeab56096e489b1d65",
+          "title": "Double vérification",
+          "description": "Consigner deux vérifications indépendantes et leurs preuves."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "110cc4a183014ef9c737b2d35c15056b1eec2d7a19d10406d7c9ad561fd01da5",
+          "title": "Doble revisión",
+          "description": "Anotar dos revisiones independientes y sus evidencias."
+        }
+      },
+      "checksum": "a077ff081f66831b93b63036866c594852a96bd19e808eb58c26366a2cae353b",
+      "asset": "block-peer-check/1.0.0.zip",
+      "sha256": "ea47faa0749a039cf660879d7c1476be09320bb8270e0f7d120e77f40fde721a"
+    },
+    {
+      "template_id": "block-phone-note",
+      "version": "1.0.0",
+      "title": "Telefonnotiz",
+      "description": "Kontakt und Ergebnis eines Telefonats kompakt festhalten.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["communication"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "b01d683ea3e0da3ac5246ceb00f903f89f0078ec4c67fdc495630f43ded59565",
+          "title": "Phone note",
+          "description": "Keep a compact record of a phone conversation."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "b5338c45ca405d6751856a9c24362c673665b1b26beee5c3435a8916ad14c377",
+          "title": "Note téléphonique",
+          "description": "Consigner brièvement un appel et son résultat."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "1a7bf750851c8a7301fdd45ba28e870c1617643dc15a37d2afb7d06236170c37",
+          "title": "Nota de llamada",
+          "description": "Anotar de forma breve una llamada y su resultado."
+        }
+      },
+      "checksum": "433f1e8d1526613399d9dd1519f6fadccb3d78e138defef7b138b028321b644f",
+      "asset": "block-phone-note/1.0.0.zip",
+      "sha256": "9f4154e6f81a304d7f9915d1b7e9c9b84a1bb8110c6bf72d66c5c80a5c943cdf"
+    },
+    {
+      "template_id": "block-post-incident-review",
+      "version": "1.0.1",
+      "title": "Lernpunkt",
+      "description": "Aus einem beobachteten Zusammenhang einen konkreten Grundsatz für künftiges Handeln ableiten.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["incidents"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "cc86b7ee6d189d80d8a606571c21ea4f8fd8a9ca7ab866bb1367703926daebba",
+          "title": "Lesson learned",
+          "description": "Derive a concrete principle for future action from an observed relationship."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "bc8ea7cdd066afc1d33df047a43333e7d4730fae901509848d91e13ca3a09bc6",
+          "title": "Enseignement",
+          "description": "Déduire d’un lien observé un principe concret pour les actions futures."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "13346ac0e5794607030fba7ca451680595beed46ab5d9406756d942fa6c0c702",
+          "title": "Lección aprendida",
+          "description": "Derivar de una relación observada un principio concreto para actuaciones futuras."
+        }
+      },
+      "checksum": "831ca346d09e5c3319def36c8c55c9a5719c345878d43da73e3b726c031345a8",
+      "asset": "block-post-incident-review/1.0.1.zip",
+      "sha256": "cea2f63386509ca9de65e16e36c87d492c19ade4557af8842a6097f14dd5b853"
+    },
+    {
+      "template_id": "block-process-step",
+      "version": "1.0.0",
+      "title": "Prozessschritt",
+      "description": "Einen Prozessschritt zwischen Eingang und Ausgang beschreiben.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["knowledge"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "d1ef0fc8ac494c425bd83c5054b81909b93d8a05537ba321e06ea9ebb8e38851",
+          "title": "Process step",
+          "description": "Connect a required input, an action and its output."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "75fe3274557230aa05d6fdbadd5b45b6f71f2b1ad785408eab533d18552e166f",
+          "title": "Étape de processus",
+          "description": "Relier une entrée nécessaire, une action et sa sortie."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "b8a99e0f684924a6b4506df6df81ce4feadf02c8fa12cd4bdb6fce0aef440838",
+          "title": "Paso de proceso",
+          "description": "Vincular una entrada necesaria, una acción y su salida."
+        }
+      },
+      "checksum": "323ee5c242324815219763799e764fe88dd7652a5446640eb9f70674b1c12a24",
+      "asset": "block-process-step/1.0.0.zip",
+      "sha256": "70e1e57a14783183a0cacfe701197b81fe24dfc228c13027b623928f3cb04bb0"
+    },
+    {
+      "template_id": "block-project-brief",
+      "version": "1.0.0",
+      "title": "Ziel & Umfang",
+      "description": "Ein Ziel mit seinem bewussten Umfang abgrenzen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["projects"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "03ac21ab7437c3b5d2012f2863bcfe59dc5ffccb1a6c099204936737ec344902",
+          "title": "Goal & Scope",
+          "description": "Separate the goal, included work and explicit boundaries."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "f0131056fadca5a61914dc7452d5adc2e6480e08b4d26d85f43c9eb9882b4595",
+          "title": "Objectif et périmètre",
+          "description": "Distinguer l’objectif, le travail inclus et les limites."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "4a01f5fd172129fba5ad5edab6733fef240292caa5ffde3d907d75552f2e3ae9",
+          "title": "Objetivo y alcance",
+          "description": "Distinguir el objetivo, el trabajo incluido y los límites."
+        }
+      },
+      "checksum": "4b30d3194f4d2b3313e30b68ce2d4ebde34f13565f361c67fa0f14ce5472b1cf",
+      "asset": "block-project-brief/1.0.0.zip",
+      "sha256": "877305fa5661b4cfec2d9dd812ee82a1b0e7a7f4c5e87c1f42ff7c60557b7835"
+    },
+    {
+      "template_id": "block-raci",
+      "version": "1.0.0",
+      "title": "RACI-Matrix",
+      "description": "Zuständigkeiten je Aufgabe oder Ergebnis zuordnen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["technical-projects"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "3718bd66ad43c4ab71959990bafc47c4bbff8bfc6b1dcce0f8d7304dcd9b75a5",
+          "title": "RACI matrix",
+          "description": "Assign responsibilities to tasks and results."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "c2aeae8fbc831538313a18cd70fa7bc243667510813511b1c5707b6f8d96c709",
+          "title": "Matrice RACI",
+          "description": "Attribuer les responsabilités par tâche ou résultat."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "fc5b08e060b384b1e1efc79108c196b0da48726b67887ce651e485b6b1368c62",
+          "title": "Matriz RACI",
+          "description": "Asignar responsabilidades por tarea o resultado."
+        }
+      },
+      "checksum": "446e02f14aa2255d3bdd681f3ffb37ee2f391f5e15db597458495a6757d93507",
+      "asset": "block-raci/1.0.0.zip",
+      "sha256": "df412cb41cab733ec6771c8b533099e167684f877bf4383d26643206d1742e1a"
+    },
+    {
+      "template_id": "block-raci-customer-service",
+      "version": "1.0.0",
+      "title": "RACI-Matrix · Kunde & Serviceerbringer",
+      "description": "Aufgaben zwischen Kunde und Serviceerbringer zuordnen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["technical-projects"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "15e3e8ea1bb90f1bf89df2dc62f4f2f934fa125ad03ae6526c026909c51c875a",
+          "title": "RACI matrix · Customer & service provider",
+          "description": "Assign responsibilities between customer and service provider."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "34d5de94bb14998c9e0528c41f9317ac0ea0eb6bf457b0f3e41eeb33567e23fd",
+          "title": "Matrice RACI · Client et prestataire",
+          "description": "Répartir les responsabilités entre le client et le prestataire."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "6892bcf8ef245cae20fc66d8698b4ec301001983dead6f29560b0eaa28a9b5c5",
+          "title": "Matriz RACI · Cliente y proveedor",
+          "description": "Distribuir las responsabilidades entre el cliente y el proveedor del servicio."
+        }
+      },
+      "checksum": "e6f8130c4ae787d5ce79ab2e08420030c43bc3a61bdda1bea4d8884af849efb1",
+      "asset": "block-raci-customer-service/1.0.0.zip",
+      "sha256": "d7e62ae05341ff5ec648813ead8de9808bd869a85b34932bcbf6cf7b8d5ebdca"
+    },
+    {
+      "template_id": "block-recovery-check",
+      "version": "1.0.1",
+      "title": "Wiederherstellungscheck",
+      "description": "Die Wiederherstellung an sechs beobachtbaren Funktions-, Daten- und Betriebskriterien prüfen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["incidents"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "e333f84eb8bf6a1ab05c812afdef61cd79fe905706d9338fcef6c002e1f40d54",
+          "title": "Recovery check",
+          "description": "Check recovery against six observable functional, data and operational criteria."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "baa3428315fc2157f04485ada54b661a7a31f46f394f279edc962e2508cec3d0",
+          "title": "Vérification du rétablissement",
+          "description": "Vérifier la reprise selon six critères observables de fonctionnement, de données et d’exploitation."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "555581fc92ab183fea5c8220114ec170968ed643dcc6d641b7e8f0ce6cf8b78b",
+          "title": "Comprobación de recuperación",
+          "description": "Comprobar la recuperación mediante seis criterios observables de funcionamiento, datos y operación."
+        }
+      },
+      "checksum": "0ae6192475e402d02bd2ae5c422f2c594e8d66a8a98b01ab2fa310f9eeeb12ba",
+      "asset": "block-recovery-check/1.0.1.zip",
+      "sha256": "8647190bc83211171ed8621b207e7b5779535d36491ca4746bfb3392c99ac063"
+    },
+    {
+      "template_id": "block-retro-prompt",
+      "version": "1.0.0",
+      "title": "Start · Stop · Continue",
+      "description": "Ideen zum Anfangen, Beenden und Beibehalten sammeln.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["meetings"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "56499469ce0ec8e4e6233e59e348e7889f409bda26682b3e800ea5da4ea958d0",
+          "title": "Start · Stop · Continue",
+          "description": "Collect ideas to start, stop or keep doing."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "5e1bae5bda98e06356527906ee213063386d14cf93fbd46ef17f647da750dc77",
+          "title": "Commencer · Arrêter · Continuer",
+          "description": "Recueillir les idées à commencer, arrêter ou conserver."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "bf35561a1b5ab2a126feaaf01eed526fcfc6af3739ae660d0fb6efa0519e53db",
+          "title": "Empezar · Dejar · Continuar",
+          "description": "Recoger ideas sobre qué empezar, dejar o mantener."
+        }
+      },
+      "checksum": "d38741c84501c571d9dd75fc350a10f97a62bfa554acabbfb51e1bfd6cb0eb53",
+      "asset": "block-retro-prompt/1.0.0.zip",
+      "sha256": "9bf856fd2bc970b1cdaffae8a11eaf794c17eb486d5448a8a7daf21bb9ab27ee"
+    },
+    {
+      "template_id": "block-risk",
+      "version": "1.0.0",
+      "title": "Risikoeintrag",
+      "description": "Ein Risiko mit Auswirkung und Gegenmaßnahme erfassen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["decisions"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "f84d68006b515f408bff988268700d75f22b2828735304967c4085e75b69f13c",
+          "title": "Risk entry",
+          "description": "Record one risk with its consequence and mitigation."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "9cc3f69ce5a79369de34f82e20c22cf65f5d2381bdcec6bcc71130cd91e99dd0",
+          "title": "Risque",
+          "description": "Consigner un risque, sa conséquence et sa mesure préventive."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "682b10beaef03c3383cfba5f03885ffad2f7f9f6292462d6a85162acb8531060",
+          "title": "Registro de riesgo",
+          "description": "Anotar un riesgo, su consecuencia y su mitigación."
+        }
+      },
+      "checksum": "60aa720a20566664b0e3fa479a1f6038753abf3a48fce079795786c7bbec3eb3",
+      "asset": "block-risk/1.0.0.zip",
+      "sha256": "45e1328aab2e8b62ef1e9f5ec881179a1fa6d59d1a749e1ed7cee07c245101cf"
+    },
+    {
+      "template_id": "block-risk-matrix",
+      "version": "1.0.0",
+      "title": "Risikomatrix",
+      "description": "Risiken nach Eintritt und Auswirkung in einer qualitativen Matrix verorten.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["projects"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "df00a4937f8940bcf6f187f30d23396baac5bc1224d1a346c651a023b665c60f",
+          "title": "Risk matrix",
+          "description": "Place risks by likelihood and impact in a qualitative matrix."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "c5e9c977ad034c33440f7bb76cdd910d8b10d5710693bfbc7c2b4e0348f0cbb2",
+          "title": "Matrice des risques",
+          "description": "Situer les risques selon leur probabilité et leur impact dans une matrice qualitative."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "8f0dd81031f4625bd18da792356f4da49c8401636e93dd40f65c3f6400dc6b1c",
+          "title": "Matriz de riesgos",
+          "description": "Situar los riesgos por probabilidad e impacto en una matriz cualitativa."
+        }
+      },
+      "checksum": "66f4290770fca60758992761ee492198c5d5de137f61c7001b57772d6cd9fc58",
+      "asset": "block-risk-matrix/1.0.0.zip",
+      "sha256": "6841680d6604edfb7a0051a242dcf1fd712332039cbe5fe690153f0d33cd6771"
+    },
+    {
+      "template_id": "block-rollback-steps",
+      "version": "1.0.1",
+      "title": "Rollback-Schritte",
+      "description": "Eine Rückkehr über gestoppte Ausweitung, zusammenpassenden Zielstand und erneute Funktionsprüfung planen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["technical-projects"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "ada0329a2b44a57380db891cd27c5ad56f8ef6c08484641c95673e2bd5ade173",
+          "title": "Rollback steps",
+          "description": "Plan a rollback through halted expansion, a consistent target state and a repeated functional check."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "3bebd532fca95edb89c932e9dbf5842ad065850c5736db990b7fae7e6697ceb4",
+          "title": "Étapes de retour arrière",
+          "description": "Prévoir le retour arrière par l’arrêt de l’extension, un état cible cohérent et une nouvelle vérification fonctionnelle."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "7d7040818969902b368a43762ac804b155899bc95080a2fe79b046c7b308a726",
+          "title": "Pasos de reversión",
+          "description": "Planificar la reversión deteniendo la ampliación, recuperando un estado coherente y comprobando la función."
+        }
+      },
+      "checksum": "66ffc8eafa9d05e46cdc1be84ef641a6efa0d59225b7ae7168c13168c203d4fd",
+      "asset": "block-rollback-steps/1.0.1.zip",
+      "sha256": "f5609f66bd63a3ee8e47a9db13fa78c5c39c1ccced8a6af14c511cfab34ff93e"
+    },
+    {
+      "template_id": "block-rollout-steps",
+      "version": "1.0.1",
+      "title": "Rollout-Schritte",
+      "description": "Eine Einführung durch begrenzte Bereitstellung, echten Hauptablauf und beobachtete Erweiterung führen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["technical-projects"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "840b9b236b04fe28dde55e2a9e2855ccf78fdda4bc3ec6fdd4e3e45026c6d3c3",
+          "title": "Rollout steps",
+          "description": "Guide a rollout through limited deployment, a real main flow and observed expansion."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "5f0c7dcb34ccac257f0ad55315ce5a42add20815def1bfb5a5afb5e6b8e42bb2",
+          "title": "Étapes de déploiement",
+          "description": "Structurer un déploiement par une mise en place limitée, un parcours réel et une extension observée."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "351f646a4241afdc0788e7ce7d4683b38f5baed3ae235cbdeb00e5462dc8d68f",
+          "title": "Pasos de despliegue",
+          "description": "Guiar un despliegue mediante una puesta en marcha limitada, un flujo real y una ampliación observada."
+        }
+      },
+      "checksum": "221c7a96a82ab11920a993f616c37b7f4d37935913747035e710c23933b81476",
+      "asset": "block-rollout-steps/1.0.1.zip",
+      "sha256": "ee228a209a21f40c63a848ad807bf878f33fae93e7be2fd1be7e95d02e03a13a"
+    },
+    {
+      "template_id": "block-selection-must",
+      "version": "1.0.0",
+      "title": "Auswahlmatrix · Muss-Kriterien",
+      "description": "Optionen anhand verbindlicher Mindestanforderungen eingrenzen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["decisions"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "2a28b6b20d5eba654e06f464d144ebd1404e28c8399467e8a5c97b9a497a3646",
+          "title": "Selection matrix · Mandatory criteria",
+          "description": "Compare three options against binding minimum requirements."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "a72dad9c1f51087b0cbf346ba0fe583b28123bac6fee52cc5a5b64bf435585e3",
+          "title": "Matrice de choix · Critères obligatoires",
+          "description": "Comparer trois options aux exigences minimales obligatoires."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "792ddce83a9fbd531eb2d9c8aa61d2215874f339adfd196c84759b7cf45fa813",
+          "title": "Matriz de selección · Criterios obligatorios",
+          "description": "Comparar tres opciones con los requisitos mínimos obligatorios."
+        }
+      },
+      "checksum": "2901b2e4e498597200ea2b942e441c7f0408eb83ee539321e3e3a4e5d0a153ad",
+      "asset": "block-selection-must/1.0.0.zip",
+      "sha256": "5f0c4367654ca44aef173eedd2a73a5f9210e0eb5d9b98630f3f87fa2d7159b7"
+    },
+    {
+      "template_id": "block-selection-pairwise",
+      "version": "1.0.0",
+      "title": "Auswahlmatrix · Paarvergleich",
+      "description": "Optionen direkt gegeneinander abwägen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["decisions"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "efcc60c1b0780b09d24b1becbdd5b99a01ac8f3f7d378bded1891a46ac8a4258",
+          "title": "Selection matrix · Pairwise comparison",
+          "description": "Compare three options in pairs and record row totals manually."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "faff6d9c0ac8faef529a85224e6fa0c371dd6b0dc0ba5c79feca1411f00d9da7",
+          "title": "Matrice de choix · Comparaison par paires",
+          "description": "Comparer trois options par paires et noter les totaux manuellement."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "6d473458c5e33eef348461f13b05d1e3e69a9ab9f43779af8ce9d3b677c79ad1",
+          "title": "Matriz de selección · Comparación por pares",
+          "description": "Comparar tres opciones por pares y anotar los totales manualmente."
+        }
+      },
+      "checksum": "5f45ca0f85435084469982f3b99f41d0640cd71486427b230c2eaa87824e4dfd",
+      "asset": "block-selection-pairwise/1.0.0.zip",
+      "sha256": "a46f6a21bd54928ef0b855f1c2e827dcbf7c05ebab85ae6cb2a4b519417270c2"
+    },
+    {
+      "template_id": "block-selection-weighted",
+      "version": "1.0.0",
+      "title": "Auswahlmatrix · Gewichtete Bewertung",
+      "description": "Drei Optionen nach gewichteten Kriterien bewerten.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["decisions"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "63810dd1516f5834f2f06a6ef3f17924a282a76194625f8d9c340236f73155a8",
+          "title": "Selection matrix · Weighted scores",
+          "description": "Compare three options using weighted criteria and manual scores."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "044eb64a51ffbdb0c4662af321ad5edf30b0dbe58795f7959c6e540d5b82bd1d",
+          "title": "Matrice de choix · Notes pondérées",
+          "description": "Comparer trois options avec des critères pondérés et des notes manuelles."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "d0416cb0805d9258eada48d9e3c5c1137f24f504f6a4d5e19eedc31938f02ada",
+          "title": "Matriz de selección · Puntuación ponderada",
+          "description": "Comparar tres opciones con criterios ponderados y puntuaciones manuales."
+        }
+      },
+      "checksum": "91e1e00f0ea52b81403972578e5326b11b0791188f700ce25b906a5c2fd47eca",
+      "asset": "block-selection-weighted/1.0.0.zip",
+      "sha256": "9911c8fdbb1dd6f8b575c517be5d2f2627445d6ba104460982fb104f8b3d68e1"
+    },
+    {
+      "template_id": "block-short-message",
+      "version": "1.0.1",
+      "title": "Kurzmitteilung",
+      "description": "Eine konkrete Änderung mit betroffenen Personen, Geltungsbeginn und nötiger Handlung mitteilen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["communication"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "86dbff3611a7ec8441c2caf1a94043a8fd44b01de088622113ac220f4dbaba2d",
+          "title": "Short message",
+          "description": "Communicate a specific change, who it affects, when it applies and the required action."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "442b75fcd73deee9a9b65a4888059d9390e00fc73a8c4255c5d6cc7b07212758",
+          "title": "Message bref",
+          "description": "Annoncer un changement précis, les personnes concernées, sa prise d’effet et l’action attendue."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "dc99649832a2f5254c2131d0aafebf8677340928867e51fc515a4f3db0892cf4",
+          "title": "Mensaje breve",
+          "description": "Comunicar un cambio concreto, a quién afecta, cuándo se aplica y la acción necesaria."
+        }
+      },
+      "checksum": "ed2e82c4d49dcfc5374f4efd2eec4023d93803946d549d178f0123696313a3d8",
+      "asset": "block-short-message/1.0.1.zip",
+      "sha256": "43b2d036a3a59feffa93544affc15ed509fc6eb3d14001b04116961e61e66af6"
+    },
+    {
+      "template_id": "block-source-note",
+      "version": "1.0.0",
+      "title": "Quellenangabe",
+      "description": "Eine Aussage mit Quelle und Abrufdatum belegen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["knowledge"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "5eb454702527b4d2e8b9e7dc1d08101f9ba31e05113a364790896adc829190b5",
+          "title": "Source citation",
+          "description": "Support a statement with its source and retrieval date."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "9f9df7e3ed6dfca9ca8538d92e77a9ad770d719f42c410d80333f25d7556c4d1",
+          "title": "Référence de source",
+          "description": "Étayer une affirmation par sa source et sa date de consultation."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "e74104dad70ccc4a2bc79e142532be93d201a58146d0e36415a3fa2c72a14152",
+          "title": "Referencia de fuente",
+          "description": "Respaldar una afirmación con su fuente y fecha de consulta."
+        }
+      },
+      "checksum": "a80cfae692973970c73c7cb09b659eb988126b4bea75706c7cdf83019a220d63",
+      "asset": "block-source-note/1.0.0.zip",
+      "sha256": "2dcd5d1cf4e3c07e598dd43677a762bdf39c59325dcd4ea0c440c5a8a8774d54"
+    },
+    {
+      "template_id": "block-standup",
+      "version": "1.0.0",
+      "title": "Stand-up",
+      "description": "Fortschritt, nächsten Schritt und Hindernis gegenüberstellen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["meetings"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "f76c5d2de3eef6ee92b5de548c7413a71c573a7889397abd91a2c28fbc74428f",
+          "title": "Stand-up",
+          "description": "Compare progress, the next step and the current obstacle."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "79763ec67c6c3ff26bb2f80007656632a8d932eb01b4c79f47c9dbcba85ec709",
+          "title": "Point quotidien",
+          "description": "Rapprocher les progrès, la suite et l’obstacle actuel."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "093567588f658c4bc36377071fb40f4b812ee0212d607a692665510b2c0a1fe7",
+          "title": "Reunión diaria",
+          "description": "Comparar el progreso, el siguiente paso y el obstáculo actual."
+        }
+      },
+      "checksum": "ae48c36d85930029352a0979f89ae908e328f0378d88e7e2c8e6f70b0a45a4f5",
+      "asset": "block-standup/1.0.0.zip",
+      "sha256": "2d490a15c01ba335258870c8658fabeba309656fd9e154d2c66a59d16cd022da"
+    },
+    {
+      "template_id": "block-status-update",
+      "version": "1.0.0",
+      "title": "Statuszeile",
+      "description": "Einen aktuellen Arbeitsstand in einer Zeile zeigen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["projects"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "43f4c9683a5a9d7920916632389987dce8d53d405f449193c4483780951f9400",
+          "title": "Status row",
+          "description": "Capture progress, the next step and blockers on a given date."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "b6eb4531ce3ff43dec85a3d4815f349a5de9d4458f26a1de8da8d1bb6f637b71",
+          "title": "État d’avancement",
+          "description": "Consigner les progrès, la suite et les blocages à une date."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "d29084d380944a84df77c1c43eed5c52e35bffb753d58ea8d89fea1179e70e10",
+          "title": "Fila de estado",
+          "description": "Registrar el progreso, el siguiente paso y los bloqueos en una fecha."
+        }
+      },
+      "checksum": "a6fb0dbbd5d3313cb4dde86000878f826e7bedf295ab0a794d710074e04509e4",
+      "asset": "block-status-update/1.0.0.zip",
+      "sha256": "821b9c401ea8f8f593364a7f9bebcf1719e3e467a2ce7c50ea1b606d2a1dd02f"
+    },
+    {
+      "template_id": "block-technical-acceptance",
+      "version": "1.0.1",
+      "title": "Abnahmekriterien",
+      "description": "Technische Abnahme anhand konkreter Erwartungen mit getrennten Nachweisen und offenem Ergebnis dokumentieren.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["technical-projects"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "4f3e31dbf67bdd8f2c2e4c4e6f16b1710ea64d35054ad1ff56eed9838880dc7c",
+          "title": "Acceptance criteria",
+          "description": "Document technical acceptance against specific expectations, separate evidence and open results."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "1f92dc1665c7fdfcc629a804785ba06519bd7b87d9c69d2746bb2a1b88b0e9de",
+          "title": "Critères de recette",
+          "description": "Documenter la recette technique selon des attentes précises, des preuves distinctes et des résultats ouverts."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "d1bb69710de2fc92a29849c794cd0a89f1219c31a9407d7770c4dbad01f0fde8",
+          "title": "Criterios de aceptación",
+          "description": "Documentar la aceptación técnica con expectativas concretas, pruebas separadas y resultados pendientes."
+        }
+      },
+      "checksum": "2ba0b1b63b654dea369e48af95d18045ac35993ed8b32012e3a9744534632c9a",
+      "asset": "block-technical-acceptance/1.0.1.zip",
+      "sha256": "4abc534e8d25e3fb1502ced423f112ed766fdf8abde671b3ffa626e9c7d24421"
+    },
+    {
+      "template_id": "block-technical-profile",
+      "version": "1.0.0",
+      "title": "Systemsteckbrief",
+      "description": "Die wichtigsten Eigenschaften eines Systems kompakt bündeln.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["technical-projects"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "38412b509c77adc071808292f30a3a532c9456b5cfa3dc443eb7cbc13e8cd2f8",
+          "title": "System profile",
+          "description": "Bring a system’s essential characteristics together."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "37a057e15f7d39d5ba0ae4e771c852e39860c51d6a08c20da50cd25495990748",
+          "title": "Fiche système",
+          "description": "Rassembler les caractéristiques essentielles d’un système."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "780adbe39955b402d4dea4cb7925f39adca0a97740618f9d87e277ed84999ead",
+          "title": "Ficha de sistema",
+          "description": "Reunir las características esenciales de un sistema."
+        }
+      },
+      "checksum": "0c5df7da6074f2d9564fa7833a5827b42f1863df6a7d2347fe66c5a227c7b5c6",
+      "asset": "block-technical-profile/1.0.0.zip",
+      "sha256": "058968ba4f43ef92ecfdf03a24d6f3f6e4ee6b43c716f67666247f3b527e6e58"
+    },
+    {
+      "template_id": "block-weekly-review",
+      "version": "1.0.0",
+      "title": "Rückblick-Matrix",
+      "description": "Ergebnisse, offene Arbeit und Erkenntnisse gegenüberstellen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["personal-work"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "c242dec4b69c115fd9e45aed9f4952d490fd5011ae7c480e4a5b5a3a432417df",
+          "title": "Reflection matrix",
+          "description": "Compare achievements, unfinished work and lessons."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "50419a36abf1225a3c8ee9b548c5721ed5b863b827c9ca757839d2763bc345d5",
+          "title": "Matrice de bilan",
+          "description": "Rapprocher les acquis, le travail restant et les enseignements."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "7c5044df8366f686922761dbf1a22f2cf458040717cdb7b9c4d09d28c37c9fd3",
+          "title": "Matriz de balance",
+          "description": "Comparar lo logrado, el trabajo pendiente y las lecciones."
+        }
+      },
+      "checksum": "91935f67b9ef5a174e65d1473ecb71c25690488fc1455557d70e9abd3e49a2e2",
+      "asset": "block-weekly-review/1.0.0.zip",
+      "sha256": "1825a2a7c2d8bbba17ea3d463f5c1a7175fe4cae85a9c1f51df8b778a7133314"
+    },
+    {
+      "template_id": "block-work-package",
+      "version": "1.0.1",
+      "title": "Arbeitspaket",
+      "description": "Ein lieferbares Ergebnis mit Verantwortung und Termin beschreiben.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["projects"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "8566dfd8eb62d1951a55b2f54899a1b50069876c7ef935b6afaca6a312d4e470",
+          "title": "Work package",
+          "description": "Describe a deliverable with its owner and deadline."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "f4f678d652d0d6e90a17d98f5caa34416efd05074db533d2a8c003873f88715d",
+          "title": "Lot de travail",
+          "description": "Décrire un livrable avec son responsable et son échéance."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "1b9bdb174a37add1d17228abb9b695ec50740d8063ea405560580ff342f41751",
+          "title": "Paquete de trabajo",
+          "description": "Describir un entregable con su responsable y plazo."
+        }
+      },
+      "checksum": "8672bb3c92e41aaca215dc766a05733b1b080a7955cfbbfba4fc1df59ceba6f3",
+      "asset": "block-work-package/1.0.1.zip",
+      "sha256": "04775690bac5bb47d44641d70e44e036979aaf3f0ad0ab60a5270dd7ab9b1d4c"
+    },
+    {
+      "template_id": "business-daily",
+      "version": "1.3.0",
+      "title": "Tagesplan · {{date}}",
+      "description": "Drei Prioritäten festlegen, Termine einplanen und den nächsten Schritt für morgen festhalten.",
+      "category": "journal-daily",
+      "tags": ["journal", "daily"],
+      "locale": "de",
+      "kind": "page",
+      "checksum": "12a690a7e85f2719e73092447dd755c3debd0a2ad22dd2661fdd3c614927fb59",
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "ce030834216699fa3a9d8eabd925a67994988c31b9ee3f7d85142eb57b180bd4",
+          "title": "Daily plan · {{date}}",
+          "description": "Set three priorities, plan commitments and note the next action for tomorrow."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "3581b3fabc14279ea85509f041956bde702c3dbf24e4304952188225f10c73a9",
+          "title": "Ma journée · {{date}}",
+          "description": "Choisir trois priorités, prévoir les rendez-vous et noter la prochaine action pour demain."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "3fa11554973bd86f0f2fccfe449707b093b7c1820792ecaae83f897a02802b88",
+          "title": "Plan del día · {{date}}",
+          "description": "Elegir tres prioridades, planificar compromisos y anotar el próximo paso para mañana."
+        }
+      },
+      "title_policy": "template",
+      "purpose": "template",
+      "asset": "business-daily/1.3.0.zip",
+      "sha256": "864fb3662bfa3d9f46cde6b4aca7d72365d4fb5c870472115dbb78d3d6efd7be"
+    },
+    {
+      "template_id": "databases-guide-myoxus",
+      "version": "1.4.0",
+      "title": "Datenbanken · Mehr aus Listen machen",
+      "description": "Wofür sich Datenbanken eignen und wie Einträge, Felder und Ansichten zusammenhängen.",
+      "category": "onboarding",
+      "tags": ["onboarding", "guide"],
+      "locale": "de",
+      "kind": "page",
+      "checksum": "88b3d4c5512d0922396bf4669cd80f9e01a842483dc8b47a96278044518cf0f4",
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "04bf4acb98372ad61a64de0ef0b6225f1b6575d642e42597d3596ad79fcb01d7",
+          "title": "Databases · Get more from your lists",
+          "description": "Discover what databases are useful for and how entries, fields and views work together."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "e78ff576a63a41547936b2030e8b92615864183d2fec2b71626d15049e23ff26",
+          "title": "Bases de données · Aller plus loin avec vos listes",
+          "description": "Découvrir les usages des bases de données et le rôle des entrées, champs et vues."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "d00f59f628adb23e8593becda8c698b78566d83bfd60205d8e4abfae5da347e4",
+          "title": "Bases de datos · Saca más partido a tus listas",
+          "description": "Descubrir para qué sirven las bases de datos y cómo se relacionan entradas, campos y vistas."
+        }
+      },
+      "title_policy": "template",
+      "purpose": "guide",
+      "asset": "databases-guide-myoxus/1.4.0.zip",
+      "sha256": "7838580fed1aa073de7b1d1f4374f93e1f75c5154ce9446afc0c80591bbf7d43"
+    },
+    {
+      "template_id": "decision-record",
+      "version": "1.0.0",
+      "title": "Decision record",
+      "description": "An editable record of the question, options, decision and follow-up.",
+      "category": "team",
+      "tags": ["decision-record"],
+      "locale": "en",
+      "kind": "page",
+      "checksum": "e5a8b82a9c8681e4b3facfdb7eecdf6467649dbe0b572b26cbaa50ccc4ce2151",
+      "title_policy": "template",
+      "purpose": "template",
+      "localized_contents": {
+        "de": {
+          "path": "localized/de.template.zip",
+          "sha256": "8907b9fa02be306447d5c2e1256495dc76abd831f7161ba24ce4852062413799",
+          "title": "Entscheidungsprotokoll",
+          "description": "Ein bearbeitbares Protokoll für Frage, Optionen, Entscheidung und Weiterarbeit."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "a562ed0b561e16cee0901c76c2e604a09753d1487ef5714e62280f4bd2239d1e",
+          "title": "Compte rendu de décision",
+          "description": "Un compte rendu modifiable de la question, des options, de la décision et du suivi."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "044f07a87e172653a80d781562932060b0b52a4c367e8ed1438427c6c490a841",
+          "title": "Registro de decisión",
+          "description": "Un registro editable de la pregunta, opciones, decisión y seguimiento."
+        }
+      },
+      "asset": "decision-record/1.0.0.zip",
+      "sha256": "1a21bbb8f12ece922518c17005b8fc2c8c193e53f79a6b5f41e3a8023c0c0860"
+    },
+    {
+      "template_id": "editor-advanced-myoxus",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "guide",
+      "category": "onboarding",
+      "tags": ["onboarding", "guide"],
+      "version": "1.0.0",
+      "title_policy": "template",
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "cefca262c3413154bd41de028b7122b953b7cc100d5bf1a57fedd30ccc034401",
+          "title": "Editor · Blocks and structure",
+          "description": "Insert and rearrange blocks; use lists, tables, images and document links."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "b831d910be9837b6b9ce1dbd64c29fc2564f1c2b5a9f24e544188add469185b9",
+          "title": "Éditeur · Blocs et structure",
+          "description": "Insérer et déplacer des blocs ; utiliser les listes, tableaux, images et liens vers des documents."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "1e0b340fd0a3d725e6e4bfb0dacc774d431594f07cd1ccb7fd84c7c01beb1ca6",
+          "title": "Editor · Bloques y estructura",
+          "description": "Insertar y reorganizar bloques; usar listas, tablas, imágenes y enlaces a documentos."
+        }
+      },
+      "title": "Editor · Blöcke und Aufbau",
+      "description": "Blöcke einfügen und umordnen; Listen, Tabellen, Bilder und Dokumentverweise nutzen.",
+      "checksum": "9fe7db19db2da006c11ca1fc866ebbc07759f2ba2cd0a233baa824de7ff9eb45",
+      "asset": "editor-advanced-myoxus/1.0.0.zip",
+      "sha256": "270f1f66e1072eace2548cca23b03361235611123e47b12ce2cc7add7bdf1fab"
+    },
+    {
+      "template_id": "eisenhower",
+      "version": "1.3.0",
+      "title": "Eisenhower-Matrix · {{date}}",
+      "description": "Aufgaben nach Wichtigkeit und Dringlichkeit einordnen und den nächsten Schritt festlegen.",
+      "category": "journal-daily",
+      "tags": ["journal", "journal-daily"],
+      "locale": "de",
+      "kind": "page",
+      "checksum": "98f29e9ee6b95aa6983a7d88d087d6bb9cd86557758ca90d5473e46afe5ac8d3",
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "6918cd56002120e0f9fc6879d19a39e76e3bfa3761789939361c4979d1d054c7",
+          "title": "Eisenhower matrix · {{date}}",
+          "description": "Sort tasks by importance and urgency, then choose the next action."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "f241337e6452e68b868c4c102e7312b5ab1b3c4afc98e561d9cdcd3a17dddd43",
+          "title": "Matrice d’Eisenhower · {{date}}",
+          "description": "Classer les tâches selon leur importance et leur urgence, puis choisir la prochaine action."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "b55efea7424373e61539c7bfeaf17641ea41b2419664fca6e3dc2b2eaea8b776",
+          "title": "Matriz de Eisenhower · {{date}}",
+          "description": "Clasificar tareas por importancia y urgencia y elegir el próximo paso."
+        }
+      },
+      "title_policy": "template",
+      "purpose": "template",
+      "asset": "eisenhower/1.3.0.zip",
+      "sha256": "6a9c7a4380210c1209dbff304dd51f5d2ba4b6b3651b5334be9a27f0c087752c"
+    },
+    {
+      "template_id": "getting-started-myoxus",
+      "version": "1.3.0",
+      "title": "Editor · Grundlagen",
+      "description": "Ein Dokument beginnen, Text markieren und formatieren, Überschriften, Links und Kommentare verwenden.",
+      "category": "onboarding",
+      "tags": ["onboarding", "guide"],
+      "locale": "de",
+      "kind": "page",
+      "checksum": "db219e49ce5cc691ffad7049b20b1991caa3c243f5a18c3de27dbe435459669b",
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "11f8200a13e8400a04d17ae5bb0f1ce264e59489aeeb23c2e4565b935d1a36f0",
+          "title": "Editor · The basics",
+          "description": "Start a document, select and format text, and use headings, links and comments."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "5a5302bfa030d8e7facbeac50bfacb5438569b744bb872df4b5a3a5ca31922a9",
+          "title": "Éditeur · Les bases",
+          "description": "Créer un document, sélectionner et mettre en forme le texte, utiliser les titres, liens et commentaires."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "b5eb284ab8f95d9e61ceabe95b2754ca711c8a836f40b85e598f316222e46f01",
+          "title": "Editor · Lo esencial",
+          "description": "Crear un documento, seleccionar y dar formato al texto, y usar títulos, enlaces y comentarios."
+        }
+      },
+      "title_policy": "template",
+      "purpose": "guide",
+      "asset": "getting-started-myoxus/1.3.0.zip",
+      "sha256": "2d4de118781157f3fba20cfe72c1111d4c08d01e83880ff95c19ca421ad4b564"
+    },
+    {
+      "template_id": "gtd-weekly-review",
+      "version": "1.3.0",
+      "title": "GTD-Wochenrückblick · {{date}}",
+      "description": "Offene Enden sammeln, Aufgaben und Projekte aktualisieren und die kommende Woche vorbereiten.",
+      "category": "review-weekly",
+      "tags": ["journal", "review-weekly"],
+      "locale": "de",
+      "kind": "page",
+      "checksum": "f85f6a35ce7bbd58bcc94927e5222bc3af9dbda0590c5fa35f9bb2310ad08852",
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "5bb6f59ec85c7773ad5d0e9b2699953918f77505494679ab511d92d67d69c118",
+          "title": "GTD weekly review · {{date}}",
+          "description": "Gather loose ends, update tasks and projects, and prepare for the coming week."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "5d2d3b4ab8ec757bb0a35065de752c34f557aad05446faf5b1ab99eaba322c29",
+          "title": "Revue hebdomadaire GTD · {{date}}",
+          "description": "Rassembler les points ouverts, actualiser tâches et projets, et préparer la semaine à venir."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "32ca3a81da0c62920d20ae5206ffa39aec6205c6c9f8609d3dba0f9bc846f7a4",
+          "title": "Revisión semanal GTD · {{date}}",
+          "description": "Reunir asuntos pendientes, actualizar tareas y proyectos y preparar la próxima semana."
+        }
+      },
+      "title_policy": "template",
+      "purpose": "template",
+      "asset": "gtd-weekly-review/1.3.0.zip",
+      "sha256": "c63dfb49c565ecf605bcca1136c1220c0f7328e8f4f751d049f30c2176be029d"
+    },
+    {
+      "template_id": "handover",
+      "version": "1.2.0",
+      "title": "Übergabe · {{input.gegenstand}}",
+      "description": "Arbeitsstand, offene Aufgaben und Unterlagen übergeben und die Übernahme gemeinsam prüfen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "business",
+      "tags": ["handover"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "95232c768aaf8a0d17ccb7dfebfedec4e611e181ebd01f86bfdd8f11024a2dec",
+          "title": "Handover · {{input.subject}}",
+          "description": "Hand over current work, open actions and references, and review readiness together."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "f861642863959d231b71c16d80f87a74875f4fd293b84e1dd731300ad328329d",
+          "title": "Transmission · {{input.objet}}",
+          "description": "Transmettre l’état du travail, les actions ouvertes et les documents, puis vérifier ensemble la reprise."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "822a3f326e949698b71549c1f72df32e6e92b0a52dd2a6b42a6c69fe337c32d3",
+          "title": "Traspaso · {{input.asunto}}",
+          "description": "Traspasar el estado del trabajo, las acciones pendientes y los documentos, y revisar juntos la continuidad."
+        }
+      },
+      "checksum": "39019acc7636d024c031ca4bcfb224a2e588c91d2a95ab25ac1f20c4e49892e1",
+      "asset": "handover/1.2.0.zip",
+      "sha256": "7ed919b2f4c6e9f4eb92f7d8bd887d59bdc1b04c9414c516ffadaf0cdd338b97"
+    },
+    {
+      "template_id": "importing-content-myoxus",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "guide",
+      "category": "onboarding",
+      "tags": ["onboarding", "guide"],
+      "version": "1.0.0",
+      "title_policy": "template",
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "7ac483204140d9a376ef50f396ec45dcd03c9e27a7ecbf499f18701759b09f21",
+          "title": "Importing your content",
+          "description": "Choose an import path for Markdown, Obsidian and Notion, with limitations and recovery guidance."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "2c1912bb4381f532c2925d7c3ca96fe38c392b73a3e6760d607d33bff81d1ef4",
+          "title": "Importer vos contenus",
+          "description": "Choisir une méthode d’import pour Markdown, Obsidian et Notion, connaître les limites et résoudre les erreurs."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "d17cec980d1577e50ba6602fcba1c3122f15f4e1a7cd2c3f12c417b8bf7b1a3d",
+          "title": "Importar contenido",
+          "description": "Elegir cómo importar Markdown, Obsidian y Notion, conocer los límites y resolver errores."
+        }
+      },
+      "title": "Inhalte importieren",
+      "description": "Der passende Importweg für Markdown, Obsidian und Notion, mit Grenzen und Hilfe bei Fehlern.",
+      "checksum": "4323820b5211fd9a3630c406473c738308099be8c9c6908ef15df8ab7eff732c",
+      "asset": "importing-content-myoxus/1.0.0.zip",
+      "sha256": "bd3885a7fe226f0e0fdaade20095a9ba4aaa8d19c964d9c9f3c4e7b60be5c9a4"
+    },
+    {
+      "template_id": "incident-report",
+      "version": "1.2.0",
+      "title": "Vorfallbericht · {{date}}",
+      "description": "Auswirkungen, Zeitlinie und Wiederherstellung dokumentieren und Fakten von Vermutungen trennen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "business",
+      "tags": ["incident-report"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "ccd7d642ab1c58a97ea300a9ac924cf632a8f684f8cf3f130f805029747fdb56",
+          "title": "Incident report · {{date}}",
+          "description": "Record impact, timeline and restoration, keeping facts separate from hypotheses."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "bb11c0cef100c01c83735331896ddb0ca8f7ec748a6496fbf981b76e3817a869",
+          "title": "Rapport d’incident · {{date}}",
+          "description": "Consigner les effets, la chronologie et le rétablissement, en distinguant faits et hypothèses."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "55f4afde8984ecef38d6b84f2b5df4eb399233b379169a10bd8507006341c27e",
+          "title": "Informe de incidente · {{date}}",
+          "description": "Documentar el impacto, la cronología y el restablecimiento, separando hechos e hipótesis."
+        }
+      },
+      "checksum": "580c0659772f505d5a200eefa4ea37491c11a79deaac2ee00b1be76ac24722fc",
+      "asset": "incident-report/1.2.0.zip",
+      "sha256": "23af95e823b7692640e3bfcdd0b63db4758bcc219fd5ab0ffaf013de4bf12d6c"
+    },
+    {
+      "template_id": "knowledge-home",
+      "version": "1.0.0",
+      "title": "Knowledge home",
+      "description": "A personal knowledge inbox, topic map and source index.",
+      "category": "research",
+      "tags": ["knowledge-home"],
+      "locale": "en",
+      "kind": "page",
+      "checksum": "963acaab2e9ba89a7b3c08950844f4dd243ec60ecb2cbc5bf43687e054f763f2",
+      "title_policy": "template",
+      "purpose": "template",
+      "localized_contents": {
+        "de": {
+          "path": "localized/de.template.zip",
+          "sha256": "ad36ec27690e149683a2377e9eafd6c4a16296c1841c0d71a19beb2fdfebf6e4",
+          "title": "Wissensstart",
+          "description": "Ein persönlicher Wissenseingang, eine Themenübersicht und ein Quellenverzeichnis."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "9951135bba8caeb801ab0ec5a5ce5025f0d4aabab7b33aad48162da06143763d",
+          "title": "Accueil des connaissances",
+          "description": "Une boîte de réception personnelle, une carte des sujets et un index des sources."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "0392f5d3b854d2a2168f5c136cf828f1444347889b546c6b3d07a85dc5fa6062",
+          "title": "Inicio del conocimiento",
+          "description": "Una bandeja personal, un mapa de temas y un índice de fuentes."
+        }
+      },
+      "asset": "knowledge-home/1.0.0.zip",
+      "sha256": "dd603e8a827e587a9f0acb186631844ef315e26372bd16d47ca74fb45d8c5bc0"
+    },
+    {
+      "template_id": "meeting-agenda",
+      "version": "1.4.0",
+      "title": "Agenda · {{input.thema}}",
+      "description": "Themen vorbereiten, Ergebnisse festhalten und nächste Schritte mit Personen und Terminen vereinbaren.",
+      "category": "meeting",
+      "tags": ["meeting", "protocol"],
+      "locale": "de",
+      "kind": "page",
+      "checksum": "92e7f203ac32d5960df59b4198a851a8fede2e75386e60d089e3731136cc0ae5",
+      "title_policy": "template",
+      "purpose": "template",
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "8000e78ef840b09b8323893a2b7995d4f9808dd1093f358ce4a683840cc69240",
+          "title": "Agenda · {{input.topic}}",
+          "description": "Prepare topics, record outcomes and agree on next actions, owners and dates."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "f39ce2ceae07ea0473f75ac7f656895d643e33f3f9e78a1cb00f95551bb92aa8",
+          "title": "Ordre du jour · {{input.sujet}}",
+          "description": "Préparer les sujets, consigner les résultats et convenir des actions, responsables et échéances."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "3c17cb7f062d799bc3a18faa10720099912cabbf109b5f778ca98ca28ddb2015",
+          "title": "Agenda · {{input.tema}}",
+          "description": "Preparar temas, recoger resultados y acordar acciones, responsables y fechas."
+        }
+      },
+      "asset": "meeting-agenda/1.4.0.zip",
+      "sha256": "6a0d0bc839c3014c2cb38ca9160853bfa2cb639b67a2bfaf96070bc6cda71f59"
+    },
+    {
+      "template_id": "meeting-templates-myoxus",
+      "version": "1.4.0",
+      "title": "Besprechungen · Die passende Vorlage",
+      "description": "Agenda, Daily, Retro oder 1:1 auswählen und ein nützliches Protokoll führen.",
+      "category": "onboarding",
+      "tags": ["onboarding", "guide"],
+      "locale": "de",
+      "kind": "page",
+      "checksum": "53bd8aed17b59f97660be9d3d8d6a85facb099b4969fa7b735ea373f4ab1513f",
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "fd798ee6ff87dbcfabc4f4b86f4f4938184cbf03cc692c9c843b6a3a88ce4605",
+          "title": "Meetings · Choose a template",
+          "description": "Choose Agenda, Daily, Retro or 1:1 and keep useful meeting notes."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "c56681de99a1c345eb77410d0a052b2f2b73b194ef86db244ce41a179488c78b",
+          "title": "Réunions · Choisir un modèle",
+          "description": "Choisir un ordre du jour, un Daily, une rétro ou un entretien individuel et prendre des notes utiles."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "9a345578ed29ba87ca1009d2008ea975aaaf5502d23144d09c6ee2eefdb5b3e9",
+          "title": "Reuniones · Elige una plantilla",
+          "description": "Elegir Agenda, Daily, Retro o reunión individual y tomar notas útiles."
+        }
+      },
+      "title_policy": "template",
+      "purpose": "guide",
+      "asset": "meeting-templates-myoxus/1.4.0.zip",
+      "sha256": "2458eb0fed3ececb030804a0947e2de4ab67d32ff020ccba4b94dbfeab16ff91"
+    },
+    {
+      "template_id": "one-on-one",
+      "version": "1.2.0",
+      "title": "1:1 · {{date}}",
+      "description": "Beiden Personen Raum für ihre Themen geben und gemeinsame Vereinbarungen festhalten.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "meeting",
+      "tags": ["meeting", "one-on-one"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "01165c1e02fb7960c697ce04466fec99dff4edfbb75eefb8dae9bdcf65a78d8a",
+          "title": "1:1 · {{date}}",
+          "description": "Give both people space for their topics and record shared agreements."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "3d53615fa44ccf37b8f272d98c7177d9cce0274493058bf17630e06357350f9d",
+          "title": "1:1 · {{date}}",
+          "description": "Donner à chacun un espace pour ses sujets et consigner les engagements communs."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "62fee8c702523368d6df7d7fa42abb1b08f37cf93239c87008faedcecc0324da",
+          "title": "1:1 · {{date}}",
+          "description": "Dar espacio a los temas de ambas personas y recoger acuerdos comunes."
+        }
+      },
+      "checksum": "d2d80282e0a50cc932cfd8c8076c56b36190d51c09c66eef4955fb2604b3f104",
+      "asset": "one-on-one/1.2.0.zip",
+      "sha256": "f25347bf6b3d63f892884cf3d7019584e0928e4530a57b24168b4488fb497d40"
+    },
+    {
+      "template_id": "personal-journal",
+      "version": "1.3.0",
+      "title": "Mein Tagebuch · {{date}}",
+      "description": "Freier Platz für Gedanken und Erlebnisse, mit zwei freiwilligen Anregungen zum Rückblick.",
+      "category": "journal-daily",
+      "tags": ["journal", "journal-daily"],
+      "locale": "de",
+      "kind": "page",
+      "checksum": "a8433917c235c8191bee7bb41679a1ca214251721059eefab94765f1a961ff0e",
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "53cfedcff5a09109dfbc188cc32e084c92d2b563937b763c8a6cb7fd5362f9e7",
+          "title": "My journal · {{date}}",
+          "description": "Open space for thoughts and experiences, with two optional prompts for reflection."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "8eebbbb9eb07ab28490ec82e10178785768683e915eba1dd4616eb27d3902ec2",
+          "title": "Mon journal · {{date}}",
+          "description": "Un espace libre pour les pensées et les expériences, avec deux pistes de réflexion facultatives."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "32d67667dea12cc61445edce17d1942af5a71e8cb5737215e927ad0323813d77",
+          "title": "Mi diario · {{date}}",
+          "description": "Espacio libre para pensamientos y experiencias, con dos propuestas opcionales para reflexionar."
+        }
+      },
+      "title_policy": "template",
+      "purpose": "template",
+      "asset": "personal-journal/1.3.0.zip",
+      "sha256": "f2c319ef367a35d632aaf493601c356f757dc85cd722e50506d8630d621931ad"
+    },
+    {
+      "template_id": "procedure",
+      "version": "1.0.0",
+      "title": "Procedure",
+      "description": "An editable procedure covering purpose, steps and references.",
+      "category": "team",
+      "tags": ["procedure"],
+      "locale": "en",
+      "kind": "page",
+      "checksum": "13f84bec27f8f8eceaaf4b03e4ca622b5b63a574c3200f2d087a56ddbd048afd",
+      "title_policy": "template",
+      "purpose": "template",
+      "localized_contents": {
+        "de": {
+          "path": "localized/de.template.zip",
+          "sha256": "6655fe5acc0b4bac421eefafdd24fd5fcb0964dd7bf80f13517f6b49f9e9456b",
+          "title": "Ablaufbeschreibung",
+          "description": "Ein bearbeitbarer Ablauf mit Zweck, Schritten und Verweisen."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "a7071a33b82057486b4074dead197df5c7326bc0b94f1b29b4c41ec81b622c14",
+          "title": "Procédure",
+          "description": "Une procédure modifiable avec objectif, étapes et références."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "1d8c17581785ef74892c479acc47c62c1befdb53d2dbae6b6158b05cb92cb7e3",
+          "title": "Procedimiento",
+          "description": "Un procedimiento editable con propósito, pasos y referencias."
+        }
+      },
+      "asset": "procedure/1.0.0.zip",
+      "sha256": "a40af24736d0bfbfca4dfbc9cc366e287c16148c542d8e0e3a43ffe16476efca"
+    },
+    {
+      "template_id": "project-brief",
+      "version": "1.0.0",
+      "title": "Project brief",
+      "description": "An editable brief for project goals, scope, intended results, responsible people, decisions and open questions.",
+      "category": "project-management",
+      "tags": ["project", "brief"],
+      "locale": "en",
+      "kind": "page",
+      "checksum": "b50ab20ded5780264e334b958a0d14cd6c277265ee78dcaf489f8efa0af06c4a",
+      "title_policy": "template",
+      "purpose": "template",
+      "localized_contents": {
+        "de": {
+          "path": "localized/de.template.zip",
+          "sha256": "e5ac581fa3abac257314f48f2b71b9bae58623114adacee23a5ea81f985fb114",
+          "title": "Projektbrief",
+          "description": "Ein bearbeitbarer Projektbrief für Ziele, Umfang, angestrebte Ergebnisse, Verantwortliche, Entscheidungen und offene Fragen."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "e8741acfadd8f54a80ba203fbfda81d8b1eeda14c0e6523dc63761ab4cecc266",
+          "title": "Note de cadrage du projet",
+          "description": "Une note de cadrage modifiable pour les objectifs, le périmètre, les résultats attendus, les responsables, les décisions et les questions ouvertes."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "dfaa412bf23bd858b17bbf3a792edb1ecccc293e2823482775cb73f7b35d12a2",
+          "title": "Resumen del proyecto",
+          "description": "Un resumen editable para los objetivos, el alcance, los resultados previstos, las personas responsables, las decisiones y las preguntas abiertas."
+        }
+      },
+      "asset": "project-brief/1.0.0.zip",
+      "sha256": "b36a2345e19c8e85825338a0312b9d0c79e44d8270858cae7363e38e1ec93809"
+    },
+    {
+      "template_id": "project-status",
+      "version": "1.2.0",
+      "title": "Projektstatus · {{input.projekt}}",
+      "description": "Fortschritt belegen, Abweichungen erklären und benötigte Entscheidungen und nächste Schritte benennen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "business",
+      "tags": ["project-status"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "8765e767127cc93eab2059d0038113c2c9662a8c89a6add5e6ff4378e3aebb3e",
+          "title": "Project status · {{input.project}}",
+          "description": "Show evidence of progress, explain deviations and identify decisions and next actions."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "03c651b29e122a0d9abd07c896598ae8d1a1ffb0318909aabffceed1c9db5e5d",
+          "title": "Point projet · {{input.projet}}",
+          "description": "Étayer les progrès, expliquer les écarts et préciser les décisions attendues et les prochaines actions."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "7ead1592b61c0a47248035af40522e6ebe60ad01549afbe36a15d3ed3e268fc7",
+          "title": "Estado del proyecto · {{input.proyecto}}",
+          "description": "Acreditar avances, explicar desviaciones e identificar decisiones necesarias y próximos pasos."
+        }
+      },
+      "checksum": "5d71ca32896e58c350e45e11147e87a12b6d91b4846bddcc2824264360da88e9",
+      "asset": "project-status/1.2.0.zip",
+      "sha256": "a33ae0046a91c5c4f73ffba02aa96367c14416d8ccba2978f15425c475f2a029"
+    },
+    {
+      "template_id": "research-note",
+      "version": "1.0.0",
+      "title": "Research note",
+      "description": "An editable source, excerpt and insight record.",
+      "category": "research",
+      "tags": ["research-note"],
+      "locale": "en",
+      "kind": "page",
+      "checksum": "bc0d371295ec776c212cbcb6b188da3b13b390fca94cc6fc3e7ffd4c05df1bfc",
+      "title_policy": "template",
+      "purpose": "template",
+      "localized_contents": {
+        "de": {
+          "path": "localized/de.template.zip",
+          "sha256": "f29dbb9a3c68fcafdb5b94cb1f422f6ec8024c4067fdb96b4e533d3c4709a3d1",
+          "title": "Recherchenotiz",
+          "description": "Eine bearbeitbare Notiz zu Quelle, Auszug und Erkenntnis."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "8b45ee0223b7ba198dcb43777d37a73a303a54a295edacfd72674973616f93c3",
+          "title": "Note de recherche",
+          "description": "Une fiche modifiable de source, d’extrait et d’enseignement."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "80fe940c95196994aa8f7b4df1b327ef9a14bed71f9787edd9e420678f3a27fb",
+          "title": "Nota de investigación",
+          "description": "Una ficha editable de fuente, extracto y conclusión."
+        }
+      },
+      "asset": "research-note/1.0.0.zip",
+      "sha256": "faccbc2999a4d54cc791a57c66b37779f4f28338a494b96635c58550c5cff11a"
+    },
+    {
+      "template_id": "rollout-rollback",
+      "version": "1.2.0",
+      "title": "Rollout und Rollback · {{date}}",
+      "description": "Eine Änderung mit Voraussetzungen, Prüfergebnissen, Stoppbedingungen und Rückweg durchführen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "business",
+      "tags": ["rollout-rollback"],
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "41c93a50764c7cae02df6e419d863af894ccce3c654516f0980aefab3ed94ab1",
+          "title": "Rollout and rollback · {{date}}",
+          "description": "Carry out a change with prerequisites, results, stop conditions and a restoration plan."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "ee9b29c8f4b7622b9d8b004e033a935befb058fe7ddb44872430f43756d9bc6c",
+          "title": "Déploiement et retour arrière · {{date}}",
+          "description": "Réaliser un changement avec prérequis, résultats, conditions d’arrêt et procédure de retour arrière."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "827054ab64caeb4a5c7c410618bfc5e760d79a765f7dbe45c31785b80ad4586d",
+          "title": "Despliegue y reversión · {{date}}",
+          "description": "Ejecutar un cambio con requisitos previos, resultados, condiciones de parada y plan de reversión."
+        }
+      },
+      "checksum": "5ffeceed2d9b68fac5b7f6dda68b1203328b3062c995f89dc0f60be215cc45ef",
+      "asset": "rollout-rollback/1.2.0.zip",
+      "sha256": "6de596a0cf964bc16b9fb111ec908c6ac423943728093488c86946f6c6d60ad4"
+    },
+    {
+      "template_id": "task-content-agenda",
+      "version": "1.0.0",
+      "title": "Agenda · Besprechungsprotokoll",
+      "description": "Editierbare Vorbereitung mit ausdrücklich gewählten Personen, Datum, Notizen und autorisierten Kontextverweisen.",
+      "category": "meeting",
+      "tags": ["meeting", "protocol"],
+      "locale": "de",
+      "kind": "page",
+      "checksum": "ba83caeb86c93139225ec634ef212c755daa559549c41c2e081f2e7fb87bb947",
+      "title_policy": "template",
+      "purpose": "template",
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "a31439e565ab1bc0bd6de420035fbc3cb4e786306166c1cb7108f1d010b30f76",
+          "title": "Agenda · Meeting minutes",
+          "description": "Editable preparation with explicitly selected people, date, notes and authorized context references."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "3e9eea58556d2aabe9ec57338374346eec3720086f314e81d82a6e72b1c3b8bc",
+          "title": "Agenda · Compte rendu de réunion",
+          "description": "Préparation modifiable avec personnes, date et notes explicitement choisies et références contextuelles autorisées."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "5238780c6d5f801b0d68db99db7bf341c3d1f3b1077f653d72144e6d01a3f1f2",
+          "title": "Agenda · Acta de reunión",
+          "description": "Preparación editable con personas, fecha y notas elegidas explícitamente y referencias contextuales autorizadas."
+        }
+      },
+      "asset": "task-content-agenda/1.0.0.zip",
+      "sha256": "c2c5e86eba4fd18252d481d7f480387796391f15a98998466ae06b1bf119b5f2"
+    },
+    {
+      "template_id": "team-wiki-home",
+      "version": "1.0.0",
+      "title": "Team Wiki home",
+      "description": "An editable team entry point for procedures, decisions and useful references.",
+      "category": "team",
+      "tags": ["team-wiki-home"],
+      "locale": "en",
+      "kind": "page",
+      "checksum": "b0c00a96d9fab18544e7c825c3ddc385f525741d968f5c190a10f32c2ef7b353",
+      "title_policy": "template",
+      "purpose": "template",
+      "localized_contents": {
+        "de": {
+          "path": "localized/de.template.zip",
+          "sha256": "3aebcf849ce1b83cea0d7c60c8893293251221065bb56345868bc05c5249905d",
+          "title": "Team-Wiki-Start",
+          "description": "Ein bearbeitbarer Teameinstieg für Abläufe, Entscheidungen und hilfreiche Verweise."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "33e3b7578db032a84cc6c02586ac5099b9a37c5e98ae7ffbf709c24a829e9014",
+          "title": "Accueil du Wiki d’équipe",
+          "description": "Un point d’entrée modifiable pour les procédures, décisions et références de l’équipe."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "39dc97e40399579c94c5512fa2aed50c19ee5f0198a8b4e768e2dd31dfc1bc4b",
+          "title": "Inicio del Wiki de equipo",
+          "description": "Una entrada editable para procedimientos, decisiones y referencias del equipo."
+        }
+      },
+      "asset": "team-wiki-home/1.0.0.zip",
+      "sha256": "6821a33873ca2ed05126013f0cefad348df8dba09b4c77f02fa4fd69546e9dff"
+    },
+    {
+      "template_id": "time-blocking",
+      "version": "1.3.0",
+      "title": "Zeitblöcke · {{date}}",
+      "description": "Fokuszeiten, Pausen und Puffer planen und offene Arbeit übersichtlich festhalten.",
+      "category": "journal-daily",
+      "tags": ["journal", "journal-daily"],
+      "locale": "de",
+      "kind": "page",
+      "checksum": "cd7e600f05ba871b13241b0600d72c89a50ba1bc8212159b589a5f30e19c8b7f",
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "365ba2c842e25e38b5bc79b164110806201fcc4f7743152a0eaa8a59d92feda6",
+          "title": "Time blocks · {{date}}",
+          "description": "Plan focus time, breaks and buffers, and keep track of unscheduled work."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "fe9964644ee488f610c56a84dbfde8cde4b7702f712db0ff9902460af3152feb",
+          "title": "Blocs de temps · {{date}}",
+          "description": "Prévoir des plages de concentration, des pauses et des imprévus, et garder les tâches en attente à vue."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "f4fe39632e1376c2fdd43196cc62867fa9fff17c396d2c91d33333926327bde7",
+          "title": "Bloques de tiempo · {{date}}",
+          "description": "Planificar tiempo de concentración, pausas e imprevistos y anotar lo pendiente."
+        }
+      },
+      "title_policy": "template",
+      "purpose": "template",
+      "asset": "time-blocking/1.3.0.zip",
+      "sha256": "fb24dde1a321c064da0f8a7375e404c6b83a005e8af1fd7020b324b715a598a5"
+    },
+    {
+      "template_id": "using-folders-myoxus",
+      "version": "1.4.0",
+      "title": "Dokumente ordnen und wiederfinden",
+      "description": "Dokumente mit Favoriten, Ordnern, Tags und Sammlungen ordnen und wiederfinden.",
+      "category": "onboarding",
+      "tags": ["onboarding", "guide"],
+      "locale": "de",
+      "kind": "page",
+      "checksum": "d05bd5a315124cfe2823d79b33dc4236187166e88c66bd78d26977b37f4aef3a",
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "5bf4e1e8d50f9eb1d215279fcbee19ed9f83c03cd009f3c3cfbf2d58a208c70f",
+          "title": "Organise and find your documents",
+          "description": "Organise and find documents with favourites, folders, tags and collections."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "0cb48b4add93f49a6d50bc956eb5710ba6bf454f48e47b6056cc808b5ad3ed96",
+          "title": "Organiser et retrouver vos documents",
+          "description": "Organiser et retrouver les documents avec les favoris, dossiers, étiquettes et collections."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "0cb75fe329a40c2bb8d3a2db297cbdb248311d4e04a58dbba7d349d7bb7033a0",
+          "title": "Organizar y encontrar tus documentos",
+          "description": "Organizar y encontrar documentos con favoritos, carpetas, etiquetas y colecciones."
+        }
+      },
+      "title_policy": "template",
+      "purpose": "guide",
+      "asset": "using-folders-myoxus/1.4.0.zip",
+      "sha256": "57a3d7d3b3b1ea7f16f1a4bccb9bb1524705244f0566cf28796d8a6e046ce22a"
+    },
+    {
+      "template_id": "using-tasks-myoxus",
+      "version": "1.0.0",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "guide",
+      "category": "onboarding",
+      "tags": ["onboarding", "guide", "tasks"],
+      "title_policy": "template",
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "6c9a3c559c91d0f6952f4f629afa5d2ceb3eb92324e104c28d91c0a91592ce96",
+          "title": "Tasks · Plan and get things done",
+          "description": "Create tasks, assign responsibility, set due dates, track progress and connect tasks with documents."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "3f220d177e540c1614d181b3ad46ae30d8229312e2a5c7a48f850defa14ba9b0",
+          "title": "Tâches · Organiser et avancer",
+          "description": "Créer des tâches, attribuer les responsabilités, fixer des échéances, suivre l’avancement et relier les tâches aux documents."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "3be953eb9e1bfde44d52a46df984fae221c63734f0f43a7c3654d5362060222c",
+          "title": "Tareas · Planificar y completar",
+          "description": "Crear tareas, asignar responsables, fijar fechas, seguir el progreso y vincular las tareas con documentos."
+        }
+      },
+      "title": "Aufgaben · Planen und erledigen",
+      "description": "Aufgaben anlegen, Verantwortung und Termine festhalten, den Fortschritt pflegen und Aufgaben mit Dokumenten verbinden.",
+      "checksum": "a6c6f3d33f1956e325232b4a53144e1b7e5474ec363894a1866d3e548ac78c37",
+      "asset": "using-tasks-myoxus/1.0.0.zip",
+      "sha256": "6d35d6c5f08a71f664c5fb97f237d0b62224463cfd74f1ce73b41f8218b7d4cb"
+    },
+    {
+      "template_id": "welcome-myoxus",
+      "version": "1.3.0",
+      "title": "Willkommen bei Myoxus",
+      "description": "Orientierung für Schreiben, Planen, Datenbanken und das Ordnen von Dokumenten.",
+      "category": "onboarding",
+      "tags": ["onboarding", "guide"],
+      "locale": "de",
+      "kind": "page",
+      "checksum": "89a269b905181f9640b219edecf97676831162ac5558577370455a701e210688",
+      "localized_contents": {
+        "en": {
+          "path": "localized/en.template.zip",
+          "sha256": "cd8fe3011e176a96233a0f8bc5b79226a22365dd7760b7d8890ee6e39d22c2b2",
+          "title": "Welcome to Myoxus",
+          "description": "Find your way around writing, planning, databases and document organisation."
+        },
+        "fr": {
+          "path": "localized/fr.template.zip",
+          "sha256": "eace94474e69f8b30612e0c6299ad42a95e6bec6d0ad91cee65b56b8f0fce10f",
+          "title": "Bienvenue dans Myoxus",
+          "description": "Repères pour écrire, planifier, utiliser les bases de données et organiser les documents."
+        },
+        "es": {
+          "path": "localized/es.template.zip",
+          "sha256": "dd727ca0e91ded50ac98e724cd12eaa10bdcea738004e3aea01f97ee119d35e9",
+          "title": "Te damos la bienvenida a Myoxus",
+          "description": "Orientación para escribir, planificar, usar bases de datos y organizar documentos."
+        }
+      },
+      "title_policy": "template",
+      "purpose": "guide",
+      "asset": "welcome-myoxus/1.3.0.zip",
+      "sha256": "d6dd3198b6fbcb99c42e8f2e70dbc88fae8026ad2e96a5e0c84d1c9214f0cd90"
+    }
+  ]
+}

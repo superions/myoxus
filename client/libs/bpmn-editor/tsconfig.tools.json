@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "./src/source.spec.ts",
+    "./src/editor/**/*.spec.ts",
+    "./scripts",
+    "./vitest.config.ts",
+    "./vitest.editor.config.ts"
+  ],
+  "exclude": [],
+  "compilerOptions": {
+    "composite": false,
+    "noEmit": true,
+    "types": ["node"],
+    "rootDir": "."
+  }
+}

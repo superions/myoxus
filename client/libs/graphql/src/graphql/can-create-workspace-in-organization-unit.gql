@@ -1,0 +1,3 @@
+query canCreateWorkspaceInOrganizationUnit($unitId: ID!) {
+  canCreateWorkspaceInOrganizationUnit(unitId: $unitId)
+}

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="{{ theme.background_start }}"/>
+      <stop offset="1" stop-color="{{ theme.background_end }}"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" rx="0" fill="url(#bg)"/>
+  <rect x="56" y="56" width="1088" height="518" rx="28" fill="{{ theme.surface }}" stroke="{{ theme.border }}" stroke-width="2"/>
+  <rect x="88" y="94" width="96" height="96" rx="22" fill="{{ theme.primary }}"/>
+  <path d="M88 190 L184 94 L184 190 Z" fill="{{ theme.secondary }}" opacity="0.32"/>
+  <text x="136" y="154" class="mark" text-anchor="middle">{{ theme.mark_text }}</text>
+  <text x="212" y="136" class="brand">{{ brand }}</text>
+  <text x="212" y="174" class="subtitle">{{ subtitle }}</text>
+  {% for line in title_lines %}<text id="social-title-{{ loop.index0 }}" x="88" y="{{ line.y }}" class="title">{{ line.text }}</text>{% endfor %}
+  <text x="88" y="536" class="footer">{{ footer }}</text>
+  <style>
+    text { font-family: {{ theme.font_family }}; fill: {{ theme.text }}; }
+    .mark { fill: #ffffff; font-size: 52px; font-weight: 760; }
+    .brand { font-size: 30px; font-weight: 720; }
+    .subtitle { font-size: 24px; fill: {{ theme.muted }}; }
+    .title { font-size: 58px; font-weight: 760; letter-spacing: 0; }
+    .footer { font-size: 24px; fill: {{ theme.muted }}; }
+  </style>
+</svg>

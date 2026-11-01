@@ -1,0 +1,110 @@
+fragment WorkspaceImportProjection on WorkspaceImportType {
+  id
+  status
+  queuedOperation
+  progressStage
+  progressCurrent
+  progressTotal
+  cancelRequested
+  preview {
+    detectedFormat
+    sourceRoot
+    proposedWorkspaceTitle
+    counts {
+      documents
+      assets
+      databases
+      fields
+      rows
+      cells
+      views
+    }
+    omittedCounts
+    targetPlan {
+      workspaceId
+      documentIds
+      assetIds
+      databaseIds
+      tagIds
+      vault
+    }
+    diagnostics {
+      code
+      severity
+      message
+      context
+    }
+    sourceHash
+    configFingerprint
+    planFingerprint
+    applyAllowed
+  }
+  targetWorkspaceId
+  errorCode
+  errorMessage
+  createdAt
+  updatedAt
+  expiresAt
+}
+
+query workspaceImport($workspaceImportId: ID!) {
+  workspaceImport(workspaceImportId: $workspaceImportId) {
+    ...WorkspaceImportProjection
+  }
+}
+
+mutation createWorkspaceImportUpload(
+  $sourceSizeBytes: Int!
+  $sourceHash: String!
+  $parts: [WorkspaceImportPartManifestInput!]!
+  $sourceFormat: WorkspaceImportSourceFormatInput
+) {
+  createWorkspaceImportUpload(
+    sourceSizeBytes: $sourceSizeBytes
+    sourceHash: $sourceHash
+    parts: $parts
+    sourceFormat: $sourceFormat
+  ) {
+    workspaceImportId
+    partSizeBytes
+    expiresAt
+    parts {
+      partNumber
+      sizeBytes
+      contentHash
+      uploadUrl
+    }
+  }
+}
+
+mutation completeWorkspaceImportUpload(
+  $workspaceImportId: ID!
+  $sourceSizeBytes: Int!
+  $sourceHash: String!
+) {
+  completeWorkspaceImportUpload(
+    workspaceImportId: $workspaceImportId
+    sourceSizeBytes: $sourceSizeBytes
+    sourceHash: $sourceHash
+  ) {
+    ...WorkspaceImportProjection
+  }
+}
+
+mutation previewWorkspaceImport($workspaceImportId: ID!) {
+  previewWorkspaceImport(workspaceImportId: $workspaceImportId) {
+    ...WorkspaceImportProjection
+  }
+}
+
+mutation applyWorkspaceImport($workspaceImportId: ID!) {
+  applyWorkspaceImport(workspaceImportId: $workspaceImportId) {
+    ...WorkspaceImportProjection
+  }
+}
+
+mutation cancelWorkspaceImport($workspaceImportId: ID!) {
+  cancelWorkspaceImport(workspaceImportId: $workspaceImportId) {
+    ...WorkspaceImportProjection
+  }
+}

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" targetNamespace="urn:myoxus:fixture">
+  <process id="Process_1" isExecutable="false">
+    <transaction id="Transaction_1">
+      <ioSpecification id="TransactionIO"><dataInput id="TransactionInput" name="Container request"/><inputSet id="TransactionInputs"><dataInputRefs>TransactionInput</dataInputRefs></inputSet><outputSet id="TransactionOutputs"/></ioSpecification>
+      <task id="Task_1"><standardLoopCharacteristics testBefore="0" loopMaximum="3"><loopCondition>retry</loopCondition></standardLoopCharacteristics></task>
+      <endEvent id="Cancel_1"><cancelEventDefinition id="CancelDefinition_1"/></endEvent>
+    </transaction>
+    <boundaryEvent id="Boundary_1" attachedToRef="Transaction_1" cancelActivity="true"><cancelEventDefinition id="BoundaryCancel_1"/></boundaryEvent>
+  </process>
+  <bpmndi:BPMNDiagram id="Diagram_1">
+    <bpmndi:BPMNPlane id="Plane_1" bpmnElement="Process_1">
+      <bpmndi:BPMNShape id="Transaction_di" bpmnElement="Transaction_1" isExpanded="true"><dc:Bounds x="80" y="80" width="350" height="180"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_di" bpmnElement="Task_1"><dc:Bounds x="120" y="120" width="100" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Cancel_di" bpmnElement="Cancel_1"><dc:Bounds x="320" y="140" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Boundary_di" bpmnElement="Boundary_1"><dc:Bounds x="302" y="242" width="36" height="36"/></bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

@@ -1,0 +1,57 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+/* Packet bits, row height and padding are authored renderer geometry, not UI
+ * density tokens. Chrome, typography, states and colors remain native Mantine. */
+[data-myoxus-ui-role="packet-bit-grid"] {
+  inline-size: max-content;
+  min-inline-size: 100%;
+}
+[data-myoxus-ui-role="packet-bit-row"] {
+  display: grid;
+  grid-template-columns: repeat(
+    var(--packet-column-count),
+    var(--packet-bit-width)
+  );
+  inline-size: calc(var(--packet-column-count) * var(--packet-bit-width));
+  padding-block-end: var(--packet-padding-y);
+}
+[data-myoxus-ui-role="packet-bit-ruler"] {
+  grid-row: 1;
+  text-align: center;
+  min-inline-size: 0;
+}
+[data-myoxus-ui-role="packet-bit-field-shell"] {
+  grid-column: var(--packet-grid-start) / span var(--packet-grid-width);
+  grid-row: 2;
+  min-inline-size: 0;
+  block-size: var(--packet-row-height);
+  position: relative;
+}
+[data-myoxus-ui-role="packet-bit-grid"]
+  [data-myoxus-ui-role="packet-bit-field"] {
+  inline-size: 100%;
+  block-size: 100%;
+  min-inline-size: 0;
+  padding-inline: var(--packet-padding-x);
+  touch-action: none;
+}
+[data-myoxus-ui-role="packet-bit-grid"] [data-packet-resize-edge] {
+  position: absolute;
+  inset-block-start: 100%;
+  inset-inline-end: 0;
+  transform: translate(50%, -50%);
+  touch-action: none;
+  z-index: 1;
+}
+
+[data-myoxus-ui-role="packet-bit-field-marker"] {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+}
+
+/* The selected narrow field exposes its two neighbor boundaries on opposite
+ * vertical edges without expanding or distorting the authored bit span. */
+[data-myoxus-ui-role="packet-bit-grid"] [data-packet-boundary-side="before"] {
+  inset-block-start: 0;
+}

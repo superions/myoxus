@@ -1,0 +1,9 @@
+-- Native Task movement updates these referenced identities inside one transaction.
+-- Every writer retains immediate enforcement unless the move explicitly defers them.
+ALTER TABLE workspace_database_cell_values ALTER CONSTRAINT fk_workspace_database_cells_field_database DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE workspace_database_cell_values ALTER CONSTRAINT fk_workspace_database_cells_row_database DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE workspace_database_relation_edges ALTER CONSTRAINT fk_workspace_database_relations_source_field_database DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE workspace_database_relation_edges ALTER CONSTRAINT fk_workspace_database_relations_source_row_database DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE workspace_database_relation_edges ALTER CONSTRAINT fk_workspace_database_relations_target_row_database DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE database_row_reminders ALTER CONSTRAINT fk_database_row_reminders_field_database DEFERRABLE INITIALLY IMMEDIATE;
+ALTER TABLE database_row_reminders ALTER CONSTRAINT fk_database_row_reminders_row_database DEFERRABLE INITIALLY IMMEDIATE;

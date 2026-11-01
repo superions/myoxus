@@ -1,0 +1,9 @@
+query getWorkspaceEmbeddingStatus($workspaceId: String!) {
+  queryWorkspaceEmbeddingStatus(workspaceId: $workspaceId) {
+    total
+    embedded
+    available
+    status
+    error
+  }
+}

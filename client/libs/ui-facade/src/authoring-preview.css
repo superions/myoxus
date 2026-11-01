@@ -1,0 +1,473 @@
+.myoxus-authoring-preview-surface {
+  border-color: var(--myoxus-border-color);
+  border-style: dashed;
+  background: var(--myoxus-background-primary-color);
+  color: var(--myoxus-text-primary-color);
+}
+
+.myoxus-authoring-preview-card {
+  position: relative;
+  display: flex;
+  min-height: 140px;
+  flex-direction: column;
+  gap: var(--mantine-spacing-sm);
+  border-radius: var(--mantine-radius-xl);
+  padding: calc(var(--mantine-spacing-sm) + var(--mantine-spacing-2xs));
+  text-align: left;
+  transition:
+    transform 120ms ease,
+    border-color 120ms ease;
+}
+
+.myoxus-authoring-preview-card:hover {
+  transform: translateY(-1px);
+}
+
+.myoxus-authoring-preview-card[data-selected="true"] {
+  outline: var(--mantine-spacing-2xs) solid var(--theme-card-accent);
+  outline-offset: var(--mantine-spacing-2xs);
+}
+
+.myoxus-authoring-preview-check {
+  position: absolute;
+  inset-block-start: var(--mantine-spacing-sm);
+  inset-inline-end: var(--mantine-spacing-sm);
+  display: inline-flex;
+  width: calc(
+    var(--mantine-spacing-xl) + var(--mantine-spacing-xs) +
+      var(--mantine-spacing-2xs)
+  );
+  height: calc(
+    var(--mantine-spacing-xl) + var(--mantine-spacing-xs) +
+      var(--mantine-spacing-2xs)
+  );
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--mantine-radius-xl);
+}
+
+.myoxus-authoring-preview-card[data-authoring-preview-kind="theme-card"]
+  .myoxus-authoring-preview-check {
+  background-color: var(--theme-card-accent);
+  color: var(--theme-card-paper);
+}
+
+.myoxus-authoring-preview-check-icon {
+  width: var(--mantine-spacing-lg);
+  height: var(--mantine-spacing-lg);
+}
+
+.myoxus-authoring-preview-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-xs);
+  padding-inline-end: var(--mantine-spacing-lg);
+}
+
+.myoxus-authoring-preview-title {
+  font-family: var(
+    --authoring-typography-h2-family,
+    var(--myoxus-typography-h2-family)
+  );
+  font-size: var(
+    --authoring-typography-h2-size,
+    var(--myoxus-typography-h2-size)
+  );
+  font-weight: var(
+    --authoring-typography-h2-weight,
+    var(--myoxus-typography-h2-weight)
+  );
+  line-height: var(
+    --authoring-typography-h2-line-height,
+    var(--myoxus-typography-h2-line-height)
+  );
+  letter-spacing: var(
+    --authoring-typography-h2-letter-spacing,
+    var(--myoxus-typography-h2-letter-spacing)
+  );
+  font-feature-settings: var(--authoring-typography-h2-features, normal);
+  font-variation-settings: var(--authoring-typography-h2-variations, normal);
+  font-style: var(--authoring-typography-h2-style, normal);
+  text-transform: var(--authoring-typography-h2-transform, none);
+  text-decoration: var(--authoring-typography-h2-decoration, none);
+  color: var(--theme-card-ink, var(--myoxus-text-primary-color));
+}
+
+.myoxus-authoring-preview-tagline {
+  font-family: var(--theme-card-body-family, var(--myoxus-font-family));
+  font-size: var(
+    --mantine-font-size-label-compact,
+    var(--mantine-font-size-md)
+  );
+  font-weight: var(
+    --theme-card-body-weight,
+    var(--mantine-font-weight-label-compact, var(--mantine-font-weight-regular))
+  );
+  line-height: var(
+    --mantine-line-height-label-compact,
+    var(--mantine-line-height-md)
+  );
+  letter-spacing: var(--mantine-letter-spacing-dense-label, 0em);
+  text-transform: uppercase;
+  color: var(--theme-card-ink-mute);
+}
+
+.myoxus-authoring-preview-description {
+  margin-top: auto;
+  font-family: var(--theme-card-body-family, var(--myoxus-font-family));
+  font-size: var(--mantine-font-size-body-small, var(--mantine-font-size-md));
+  font-weight: var(
+    --theme-card-body-weight,
+    var(--myoxus-typography-body-weight)
+  );
+  line-height: var(
+    --mantine-line-height-body-small,
+    var(--mantine-line-height-md)
+  );
+  color: var(--theme-card-ink-soft);
+}
+
+.myoxus-authoring-preview-card[data-authoring-preview-kind="theme-card"]
+  .myoxus-authoring-color-preview-sample {
+  margin-block-start: 0;
+  background: var(--theme-card-paper-deep);
+  padding: calc(var(--mantine-spacing-2xs) + var(--mantine-spacing-xs));
+  gap: var(--mantine-spacing-xs);
+}
+
+.myoxus-authoring-preview-card[data-authoring-preview-kind="theme-card"]
+  .myoxus-authoring-color-preview-line {
+  background: var(--theme-card-rule);
+}
+
+.myoxus-authoring-preview-card[data-authoring-preview-kind="theme-card"]
+  .myoxus-authoring-color-preview-line[data-tone="accent"] {
+  background: var(--theme-card-accent);
+}
+
+.myoxus-authoring-preview-card[data-authoring-preview-kind="theme-card"]
+  .myoxus-authoring-typography-code[data-variant="block"] {
+  border-color: var(--theme-card-rule);
+  background: var(--theme-card-background-code-block);
+  color: var(--theme-card-ink);
+  padding: var(--mantine-spacing-xs)
+    calc(var(--mantine-spacing-2xs) + var(--mantine-spacing-xs));
+}
+
+.myoxus-authoring-color-preview {
+  background: var(
+    --authoring-color-paper-deep,
+    var(--myoxus-background-secondary-color)
+  );
+  color: var(--authoring-color-ink, var(--myoxus-text-primary-color));
+  border-style: solid;
+}
+
+.myoxus-authoring-color-preview .myoxus-authoring-preview-header {
+  padding-inline-end: 0;
+}
+
+.myoxus-authoring-color-preview
+  .myoxus-authoring-color-preview-sample
+  .myoxus-authoring-preview-header {
+  gap: var(--mantine-spacing-2xs);
+}
+
+.myoxus-authoring-color-preview .myoxus-authoring-preview-title {
+  color: var(--authoring-color-ink, var(--myoxus-text-primary-color));
+}
+
+.myoxus-authoring-color-preview .myoxus-authoring-typography-text {
+  color: var(--authoring-color-ink, var(--myoxus-text-primary-color));
+}
+
+.myoxus-authoring-color-preview .myoxus-authoring-preview-tagline,
+.myoxus-authoring-color-preview .myoxus-authoring-preview-description {
+  color: var(--authoring-color-ink-soft, var(--myoxus-text-secondary-color));
+}
+
+.myoxus-authoring-color-preview .myoxus-authoring-typography-link {
+  color: var(--authoring-color-link);
+}
+
+.myoxus-authoring-color-preview-sample {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-sm);
+  margin-block-start: calc(
+    var(--mantine-spacing-sm) + var(--mantine-spacing-2xs)
+  );
+  border-radius: var(--mantine-radius-xl);
+  background: var(--authoring-color-paper-deep, transparent);
+  padding: var(--mantine-spacing-sm);
+}
+
+.myoxus-authoring-color-preview > .myoxus-authoring-color-preview-sample {
+  gap: calc(var(--mantine-spacing-2xs) + var(--mantine-spacing-xs));
+  margin-block-start: var(--mantine-spacing-sm);
+  border: calc(var(--mantine-scale) * 1px) solid var(--authoring-color-rule);
+  background: var(--authoring-color-paper);
+  box-shadow: var(--myoxus-shadow-1);
+  padding: calc(var(--mantine-spacing-sm) + var(--mantine-spacing-2xs));
+}
+
+.myoxus-authoring-color-preview
+  > .myoxus-authoring-color-preview-sample
+  .myoxus-authoring-color-preview-line {
+  width: 100%;
+  height: calc(var(--mantine-scale) * 1px);
+  border-radius: 0;
+}
+
+.myoxus-authoring-color-preview-line {
+  display: block;
+  max-width: 100%;
+  height: var(--mantine-spacing-xs);
+  border-radius: var(--mantine-radius-xl);
+  background: var(--authoring-color-rule, currentColor);
+}
+
+.myoxus-authoring-color-preview-line[data-tone="accent"] {
+  background: var(--authoring-color-accent-primary, currentColor);
+}
+
+.myoxus-authoring-color-preview-line[data-width="short"] {
+  width: calc(calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm)) * 3);
+}
+
+.myoxus-authoring-color-preview-line[data-width="medium"] {
+  width: calc(calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm)) * 4);
+}
+
+.myoxus-authoring-color-preview-line[data-width="long"] {
+  width: calc(calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm)) * 5);
+}
+
+.myoxus-authoring-typography-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mantine-spacing-sm);
+}
+
+.myoxus-authoring-typography-heading {
+  margin: 0;
+}
+
+.myoxus-authoring-typography-heading[data-level="1"] {
+  font-family: var(--authoring-typography-h1-family);
+  font-feature-settings: var(--authoring-typography-h1-features, normal);
+  font-variation-settings: var(--authoring-typography-h1-variations, normal);
+  font-style: var(--authoring-typography-h1-style, normal);
+  text-transform: var(--authoring-typography-h1-transform, none);
+  text-decoration: var(--authoring-typography-h1-decoration, none);
+  font-size: var(--authoring-typography-h1-size);
+  font-weight: var(--authoring-typography-h1-weight);
+  line-height: var(--authoring-typography-h1-line-height);
+  letter-spacing: var(--authoring-typography-h1-letter-spacing);
+}
+
+.myoxus-authoring-typography-heading[data-level="2"] {
+  font-family: var(--authoring-typography-h2-family);
+  font-feature-settings: var(--authoring-typography-h2-features, normal);
+  font-variation-settings: var(--authoring-typography-h2-variations, normal);
+  font-style: var(--authoring-typography-h2-style, normal);
+  text-transform: var(--authoring-typography-h2-transform, none);
+  text-decoration: var(--authoring-typography-h2-decoration, none);
+  font-size: var(--authoring-typography-h2-size);
+  font-weight: var(--authoring-typography-h2-weight);
+  line-height: var(--authoring-typography-h2-line-height);
+  letter-spacing: var(--authoring-typography-h2-letter-spacing);
+}
+
+.myoxus-authoring-typography-heading[data-level="3"] {
+  font-family: var(--authoring-typography-h3-family);
+  font-feature-settings: var(--authoring-typography-h3-features, normal);
+  font-variation-settings: var(--authoring-typography-h3-variations, normal);
+  font-style: var(--authoring-typography-h3-style, normal);
+  text-transform: var(--authoring-typography-h3-transform, none);
+  text-decoration: var(--authoring-typography-h3-decoration, none);
+  font-size: var(--authoring-typography-h3-size);
+  font-weight: var(--authoring-typography-h3-weight);
+  line-height: var(--authoring-typography-h3-line-height);
+  letter-spacing: var(--authoring-typography-h3-letter-spacing);
+}
+
+.myoxus-authoring-typography-heading[data-level="4"] {
+  font-family: var(--authoring-typography-h4-family);
+  font-feature-settings: var(--authoring-typography-h4-features, normal);
+  font-variation-settings: var(--authoring-typography-h4-variations, normal);
+  font-style: var(--authoring-typography-h4-style, normal);
+  text-transform: var(--authoring-typography-h4-transform, none);
+  text-decoration: var(--authoring-typography-h4-decoration, none);
+  font-size: var(--authoring-typography-h4-size);
+  font-weight: var(--authoring-typography-h4-weight);
+  line-height: var(--authoring-typography-h4-line-height);
+  letter-spacing: var(--authoring-typography-h4-letter-spacing);
+}
+
+.myoxus-authoring-typography-heading[data-level="5"] {
+  font-family: var(--authoring-typography-h5-family);
+  font-feature-settings: var(--authoring-typography-h5-features, normal);
+  font-variation-settings: var(--authoring-typography-h5-variations, normal);
+  font-style: var(--authoring-typography-h5-style, normal);
+  text-transform: var(--authoring-typography-h5-transform, none);
+  text-decoration: var(--authoring-typography-h5-decoration, none);
+  font-size: var(--authoring-typography-h5-size);
+  font-weight: var(--authoring-typography-h5-weight);
+  line-height: var(--authoring-typography-h5-line-height);
+  letter-spacing: var(--authoring-typography-h5-letter-spacing);
+}
+
+.myoxus-authoring-typography-text {
+  margin: 0;
+  font-family: var(--authoring-typography-body-family);
+  font-feature-settings: var(--authoring-typography-body-features, normal);
+  font-variation-settings: var(--authoring-typography-body-variations, normal);
+  font-size: var(--authoring-typography-body-size);
+  font-weight: var(--authoring-typography-body-weight);
+  line-height: var(--authoring-typography-body-line-height);
+  letter-spacing: var(--authoring-typography-body-letter-spacing);
+  font-style: var(--authoring-typography-body-style, normal);
+  text-decoration: var(--authoring-typography-body-decoration, none);
+  text-transform: var(--authoring-typography-body-transform, none);
+}
+
+.myoxus-authoring-typography-text[data-variant="bodySmall"] {
+  font-family: var(--authoring-typography-body-small-family);
+  font-feature-settings: var(
+    --authoring-typography-body-small-features,
+    normal
+  );
+  font-variation-settings: var(
+    --authoring-typography-body-small-variations,
+    normal
+  );
+  font-size: var(--authoring-typography-body-small-size);
+  font-weight: var(--authoring-typography-body-small-weight);
+  line-height: var(--authoring-typography-body-small-line-height);
+  letter-spacing: var(--authoring-typography-body-small-letter-spacing);
+  font-style: var(--authoring-typography-body-small-style, normal);
+  text-decoration: var(--authoring-typography-body-small-decoration, none);
+  text-transform: var(--authoring-typography-body-small-transform, none);
+}
+
+.myoxus-authoring-typography-link {
+  color: var(--theme-card-link, var(--myoxus-link-color));
+  font-family: var(--authoring-typography-link-family);
+  font-feature-settings: var(--authoring-typography-link-features, normal);
+  font-variation-settings: var(--authoring-typography-link-variations, normal);
+  font-weight: var(--authoring-typography-link-weight);
+  font-size: var(--authoring-typography-link-size, inherit);
+  line-height: var(--authoring-typography-link-line-height, inherit);
+  letter-spacing: var(--authoring-typography-link-letter-spacing, inherit);
+  font-style: var(--authoring-typography-link-style, normal);
+  text-transform: var(--authoring-typography-link-transform, none);
+  text-decoration: var(--authoring-typography-link-decoration, underline);
+}
+
+.myoxus-authoring-typography-quote {
+  margin: 0;
+  border-left: var(--myoxus-ui-card-border-inline-start-width) solid
+    var(--myoxus-border-color);
+  padding-left: var(--mantine-spacing-sm);
+  font-family: var(--authoring-typography-blockquote-family);
+  font-size: var(--authoring-typography-blockquote-size);
+  font-style: var(--authoring-typography-blockquote-style);
+  font-weight: var(--authoring-typography-blockquote-weight);
+  line-height: var(--authoring-typography-blockquote-line-height);
+}
+
+.myoxus-authoring-typography-code {
+  display: inline-block;
+  max-width: 100%;
+  border: calc(var(--mantine-scale) * 1px) solid var(--myoxus-border-color);
+  border-radius: var(--mantine-radius-sm);
+  background: var(--myoxus-background-code-block);
+  padding: var(--mantine-spacing-2xs) var(--mantine-spacing-xs);
+  font-family: var(
+    --authoring-typography-mono-family,
+    var(--myoxus-typography-mono-family, var(--myoxus-font-code-family))
+  );
+  font-size: var(
+    --authoring-typography-mono-size,
+    var(--myoxus-typography-mono-size, var(--myoxus-font-xs))
+  );
+  font-style: var(
+    --authoring-typography-mono-style,
+    var(--myoxus-typography-mono-font-style, normal)
+  );
+  font-weight: var(
+    --authoring-typography-mono-weight,
+    var(--myoxus-typography-mono-weight, 400)
+  );
+  letter-spacing: var(
+    --authoring-typography-mono-letter-spacing,
+    var(--myoxus-typography-mono-letter-spacing, normal)
+  );
+  line-height: var(
+    --authoring-typography-mono-line-height,
+    var(--myoxus-typography-mono-line-height, inherit)
+  );
+  text-decoration: var(
+    --authoring-typography-mono-decoration,
+    var(--myoxus-typography-mono-decoration, none)
+  );
+  text-transform: var(
+    --authoring-typography-mono-transform,
+    var(--myoxus-typography-mono-text-transform, none)
+  );
+  white-space: pre-wrap;
+}
+
+.myoxus-authoring-typography-code[data-variant="block"] {
+  display: block;
+  overflow-x: auto;
+  padding: calc(var(--mantine-spacing-2xs) + var(--mantine-spacing-xs))
+    var(--mantine-spacing-sm);
+  font-family: var(
+    --authoring-typography-code-block-family,
+    var(--myoxus-typography-code-block-family, var(--myoxus-font-code-family))
+  );
+  font-size: var(
+    --authoring-typography-code-block-size,
+    var(--myoxus-typography-code-block-size, var(--myoxus-font-xs))
+  );
+  font-style: var(
+    --authoring-typography-code-block-style,
+    var(--myoxus-typography-code-block-font-style, normal)
+  );
+  font-weight: var(
+    --authoring-typography-code-block-weight,
+    var(--myoxus-typography-code-block-weight, 400)
+  );
+  letter-spacing: var(
+    --authoring-typography-code-block-letter-spacing,
+    var(--myoxus-typography-code-block-letter-spacing, normal)
+  );
+  line-height: var(
+    --authoring-typography-code-block-line-height,
+    var(--myoxus-typography-code-block-line-height, inherit)
+  );
+  text-decoration: var(
+    --authoring-typography-code-block-decoration,
+    var(--myoxus-typography-code-block-decoration, none)
+  );
+  text-transform: var(
+    --authoring-typography-code-block-transform,
+    var(--myoxus-typography-code-block-text-transform, none)
+  );
+}
+
+.myoxus-authoring-color-preview
+  .myoxus-authoring-typography-code[data-variant="block"] {
+  border-color: var(--authoring-color-rule);
+  background: var(--authoring-color-background-code-block);
+  color: var(--authoring-color-ink);
+}
+
+.myoxus-authoring-typography-link:is(:hover, :focus-visible) {
+  text-decoration: var(
+    --authoring-typography-link-hover-decoration,
+    var(--authoring-typography-link-decoration, underline)
+  );
+}

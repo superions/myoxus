@@ -1,0 +1,78 @@
+{
+  "title": "Myoxus Observability",
+  "uid": "myoxus-observability",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "title": "HTTP Throughput (rps)",
+      "type": "timeseries",
+      "targets": [{ "expr": "myoxus_request_throughput_rps" }]
+    },
+    {
+      "title": "HTTP Error Rate",
+      "type": "timeseries",
+      "targets": [{ "expr": "myoxus_request_error_rate" }]
+    },
+    {
+      "title": "HTTP Latency (avg/max ms)",
+      "type": "timeseries",
+      "targets": [
+        { "expr": "myoxus_request_latency_avg_ms", "legendFormat": "avg" },
+        { "expr": "myoxus_request_latency_max_ms", "legendFormat": "max" }
+      ]
+    },
+    {
+      "title": "Worker Queue Ready Backlog",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "myoxus_worker_queue_pending_ready",
+          "legendFormat": "{{queue}}"
+        }
+      ]
+    },
+    {
+      "title": "Permanently Failed Worker Jobs",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "myoxus_worker_queue_failed",
+          "legendFormat": "{{queue}}"
+        }
+      ]
+    },
+    {
+      "title": "Database Pool Connections",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "myoxus_db_pool_connections",
+          "legendFormat": "{{state}}"
+        }
+      ]
+    },
+    {
+      "title": "Notifications Queue Pressure",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "myoxus_worker_queue_pending_ready{queue=\"notification\"}",
+          "legendFormat": "notification pending"
+        }
+      ]
+    },
+    {
+      "title": "Search Queue Pressure",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "myoxus_worker_queue_pending_ready{queue=\"indexer\"}",
+          "legendFormat": "indexer pending"
+        }
+      ]
+    }
+  ]
+}

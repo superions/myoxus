@@ -1,0 +1,21 @@
+{
+  "extends": "../../../tsconfig.web.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    // dist is kept for webpack output
+    "outDir": "./lib",
+    "tsBuildInfoFile": "./lib/tsconfig.tsbuildinfo"
+  },
+  "include": ["./src"],
+  "references": [
+    { "path": "../../libs/core" },
+    { "path": "../../libs/debug" },
+    { "path": "../../libs/desktop-api-contract" },
+    { "path": "../../libs/i18n" },
+    { "path": "../../libs/infra" },
+    { "path": "../../libs/storage" },
+    { "path": "../../libs/track" },
+    { "path": "../../libs/ui-facade" },
+    { "path": "../../../virgultum/editor/all" }
+  ]
+}

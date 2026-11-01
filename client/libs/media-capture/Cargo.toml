@@ -1,0 +1,23 @@
+[package]
+description       = "Standalone NAPI binding for Myoxus audio capture (macOS, Windows, and Linux Wayland)"
+edition.workspace = true
+license           = "AGPL-3.0-or-later"
+name              = "myoxus-media-capture-native"
+version           = "0.1.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+myoxus_media_capture = { path = "./media_capture" }
+napi                 = { workspace = true }
+napi-derive          = { workspace = true }
+
+[target.'cfg(not(target_arch = "arm"))'.dependencies]
+mimalloc = { workspace = true }
+
+[target.'cfg(all(target_os = "linux", not(target_arch = "arm")))'.dependencies]
+mimalloc = { workspace = true, features = ["local_dynamic_tls"] }
+
+[build-dependencies]
+napi-build = { workspace = true }

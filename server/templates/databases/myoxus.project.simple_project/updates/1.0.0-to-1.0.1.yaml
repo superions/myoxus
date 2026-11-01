@@ -1,0 +1,9 @@
+format_version: 1
+template_id: myoxus.project.simple_project
+source:
+  version: 1.0.0
+  sha256: 189cf193fbc889141d3825f19624b17c73528462b00d3c0f4dee0dc1389474ab
+target:
+  version: 1.0.1
+  sha256: 1a4a68ae00c991b32584fff2d612aedeb70d3cfbbb24873e2699eade90f068cc
+operations: []

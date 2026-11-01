@@ -1,0 +1,81 @@
+{% extends "_layout.html" %} {% block subject %}Promemoria: {{ row_title }}{%
+endblock subject %} {% block preheader %}Apri il record per vedere i dettagli e
+aggiornarli.{% endblock preheader %} {% block category %}IL TUO PROMEMORIA{%
+endblock category %} {% block heading %}È il momento del tuo promemoria.{%
+endblock heading %} {% block introduction %}È arrivato il momento del promemoria
+configurato per questo campo data. Qui trovi il record, il campo e la data
+prevista.{% endblock introduction %} {% block details %}{% if row_title %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  RECORD
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ row_title }}
+</p>
+{% endif %}{% if field_name %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Campo del promemoria
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ field_name }}
+</p>
+{% endif %}{% if scheduled_label %}
+<p
+  style="
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #4b5363;
+  "
+>
+  Data prevista
+</p>
+<p
+  style="
+    margin: 0 0 12px;
+    font-size: 17px;
+    line-height: 1.5;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  "
+>
+  {{ scheduled_label }}
+</p>
+{% endif %}{% endblock details %} {% block next_step %}Apri il record per vedere
+i dettagli e aggiornarli.{% endblock next_step %} {% block action %}Apri
+record{% endblock action %} {% block note %}Puoi modificare o eliminare questo
+promemoria nel campo data del record.{% endblock note %} {% block reason
+%}Ricevi questa email perché hai configurato un promemoria per questo campo
+data.{% endblock reason %}

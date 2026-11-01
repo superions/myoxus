@@ -1,0 +1,58 @@
+{
+  "name": "@virgultum/widget-keyboard-toolbar",
+  "description": "Myoxus keyboard toolbar widget.",
+  "type": "module",
+  "scripts": {
+    "build": "yarn --cwd \"$PROJECT_CWD\" exec tsc -p \"$PWD/tsconfig.json\" --noEmit"
+  },
+  "sideEffects": false,
+  "keywords": [],
+  "author": "Myoxus Contributors",
+  "license": "MIT",
+  "dependencies": {
+    "@lit/context": "^1.1.6",
+    "@myoxus/icons": "workspace:*",
+    "@myoxus/theme": "workspace:*",
+    "@preact/signals-core": "^1.8.0",
+    "@types/lodash-es": "^4.17.12",
+    "@virgultum/block-attachment": "workspace:*",
+    "@virgultum/block-embed": "workspace:*",
+    "@virgultum/block-image": "workspace:*",
+    "@virgultum/block-latex": "workspace:*",
+    "@virgultum/block-list": "workspace:*",
+    "@virgultum/block-note": "workspace:*",
+    "@virgultum/block-paragraph": "workspace:*",
+    "@virgultum/block-surface": "workspace:*",
+    "@virgultum/block-surface-ref": "workspace:*",
+    "@virgultum/block-table": "workspace:*",
+    "@virgultum/components": "workspace:*",
+    "@virgultum/data-view": "workspace:*",
+    "@virgultum/ext-loader": "workspace:*",
+    "@virgultum/fragment-doc-title": "workspace:*",
+    "@virgultum/global": "workspace:*",
+    "@virgultum/inline-latex": "workspace:*",
+    "@virgultum/inline-link": "workspace:*",
+    "@virgultum/inline-preset": "workspace:*",
+    "@virgultum/inline-reference": "workspace:*",
+    "@virgultum/model": "workspace:*",
+    "@virgultum/rich-text": "workspace:*",
+    "@virgultum/shared": "workspace:*",
+    "@virgultum/std": "workspace:*",
+    "@virgultum/store": "workspace:*",
+    "fflate": "^0.8.3",
+    "lit": "^3.3.3",
+    "lodash-es": "4.18.1",
+    "rxjs": "^7.8.2"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./view": "./src/view.ts"
+  },
+  "files": [
+    "src",
+    "dist",
+    "!src/__tests__",
+    "!dist/__tests__"
+  ],
+  "version": "0.41.5"
+}

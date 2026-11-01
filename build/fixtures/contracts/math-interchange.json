@@ -1,0 +1,107 @@
+[
+  {
+    "name": "paragraph formula",
+    "source": "Energy $E=mc^2$ today.",
+    "inline": ["E=mc^2"],
+    "display": [],
+    "unsupported": 0
+  },
+  {
+    "name": "numeric formula",
+    "source": "Result $5$.",
+    "inline": ["5"],
+    "display": [],
+    "unsupported": 0
+  },
+  {
+    "name": "display formula",
+    "source": "$$\n\\frac{a}{b}\n$$",
+    "inline": [],
+    "display": ["\\frac{a}{b}"],
+    "unsupported": 0
+  },
+  {
+    "name": "compact display",
+    "source": "$$x^2$$",
+    "inline": [],
+    "display": ["x^2"],
+    "unsupported": 0
+  },
+  {
+    "name": "list and nested display",
+    "source": "- Result $x^2$.\n\n  $$\n  y=2x\n  $$",
+    "inline": ["x^2"],
+    "display": ["y=2x"],
+    "unsupported": 0
+  },
+  {
+    "name": "table cells",
+    "source": "| Formula | Result |\n| :--- | ---: |\n| $x^2$ | $4$ |",
+    "inline": ["x^2", "4"],
+    "display": [],
+    "unsupported": 0
+  },
+  {
+    "name": "formula-only list and nested code",
+    "source": "- $x^2$\n\n  ```text\n  keep code\n  ```",
+    "inline": ["x^2"],
+    "display": [],
+    "unsupported": 0
+  },
+  {
+    "name": "quoted display",
+    "source": "> $$\n> x^2\n> $$",
+    "inline": [],
+    "display": ["x^2"],
+    "unsupported": 0
+  },
+  {
+    "name": "currency",
+    "source": "Costs $5 and $10; range $5-$10.",
+    "inline": [],
+    "display": [],
+    "unsupported": 0
+  },
+  {
+    "name": "escaped dollars",
+    "source": "Literal \\$x\\$ and \\$5.",
+    "inline": [],
+    "display": [],
+    "unsupported": 0
+  },
+  {
+    "name": "code boundaries",
+    "source": "``$x$ \\(y\\)``\n\n~~~latex\n$$z$$\n~~~\n\n````latex\n$w$\n````",
+    "inline": [],
+    "display": [],
+    "unsupported": 0
+  },
+  {
+    "name": "literal annotations",
+    "source": "Before %%$x$ $$y$$ \\ce{H2O} and \\(literal\\)%% after.\n\n%%$$z$$ and \\[literal display\\]%%",
+    "inline": [],
+    "display": [],
+    "unsupported": 0
+  },
+  {
+    "name": "macro source",
+    "source": "Chemistry $\\ce{H2O}$ and $\\unknownmacro{x}$.",
+    "inline": ["\\ce{H2O}", "\\unknownmacro{x}"],
+    "display": [],
+    "unsupported": 0
+  },
+  {
+    "name": "unsupported inline display",
+    "source": "Before $$x^2$$ after.",
+    "inline": [],
+    "display": [],
+    "unsupported": 1
+  },
+  {
+    "name": "unsupported display cell",
+    "source": "| Formula |\n| --- |\n| $$x^2$$ |",
+    "inline": [],
+    "display": [],
+    "unsupported": 1
+  }
+]

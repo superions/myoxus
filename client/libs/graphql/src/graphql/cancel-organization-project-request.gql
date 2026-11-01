@@ -1,0 +1,3 @@
+mutation cancelOrganizationProjectRequest($id: ID!) {
+  cancelOrganizationProjectRequest(id: $id)
+}

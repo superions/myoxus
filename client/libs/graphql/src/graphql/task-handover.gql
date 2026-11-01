@@ -1,0 +1,51 @@
+fragment PreparedTaskHandoverFragment on PreparedTaskHandover {
+  target { databaseId taskId }
+  package { ...AssistantPackageIdentityFragment }
+  answers { input value { ...AssistantValueFragment } }
+  locale clientVersion executionAvailable planDigest
+  sourceDocumentId sourceExternalId
+  prerequisites { databaseId rowId }
+  responsibleId destinationDatabaseId title deadlineAt deadlineTimeZone
+}
+
+fragment TaskHandoverFragment on TaskHandover {
+  run { ...WorkspaceAutomationRun }
+  acceptedPlan { ...PreparedTaskHandoverFragment }
+  acceptedDescriptor { ...AssistantPackageFragment }
+  resultTaskId resultTask { databaseId rowId } resultAvailable sourceAvailable
+  prerequisites { reference { databaseId rowId } available title complete }
+  canRetry canStop reasonCode
+}
+
+query prepareTaskHandover($workspaceId: String!, $input: PrepareTaskHandoverInput!) {
+  currentUser { id }
+  workspace(id: $workspaceId) {
+    id prepareTaskHandover(input: $input) { ...PreparedTaskHandoverFragment }
+  }
+}
+
+query taskHandover($workspaceId: String!, $runId: ID!) {
+  currentUser { id }
+  workspace(id: $workspaceId) {
+    id taskHandover(runId: $runId) { ...TaskHandoverFragment }
+  }
+}
+
+query taskHandoverRequest($workspaceId: String!, $requestId: ID!) {
+  currentUser { id }
+  workspace(id: $workspaceId) {
+    id taskHandoverRequest(requestId: $requestId) { ...TaskHandoverFragment }
+  }
+}
+
+mutation startTaskHandover($input: StartTaskHandoverInput!) {
+  startTaskHandover(input: $input) { ...TaskHandoverFragment }
+}
+
+mutation stopTaskHandover($input: TaskHandoverRunInput!) {
+  stopTaskHandover(input: $input) { ...TaskHandoverFragment }
+}
+
+mutation retryTaskHandover($input: TaskHandoverRunInput!) {
+  retryTaskHandover(input: $input) { ...TaskHandoverFragment }
+}

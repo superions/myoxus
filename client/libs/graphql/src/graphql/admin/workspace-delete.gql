@@ -1,0 +1,5 @@
+mutation adminDeleteWorkspace($id: ID!) {
+  admin {
+    deleteWorkspace(id: $id)
+  }
+}

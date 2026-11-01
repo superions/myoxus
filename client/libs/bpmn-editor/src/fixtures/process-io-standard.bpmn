@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:tns="urn:myoxus:process-io" id="Definitions" targetNamespace="urn:myoxus:process-io">
+ <itemDefinition id="Item" isCollection="true"/>
+ <process id="Process" name="Process interface">
+  <ioSpecification id="Interface"><dataInput id="Input" name="Request" itemSubjectRef="tns:Item" isCollection="true"><dataState id="State" name="ready"/></dataInput><dataOutput id="Output" name="Result"/><inputSet id="Inputs"><dataInputRefs>Input</dataInputRefs><optionalInputRefs>Input</optionalInputRefs><outputSetRefs>Outputs</outputSetRefs></inputSet><outputSet id="Outputs"><dataOutputRefs>Output</dataOutputRefs><inputSetRefs>Inputs</inputSetRefs></outputSet></ioSpecification>
+  <task id="Task" name="Work"><ioSpecification id="TaskIO"><dataInput id="In" name="Typed input" itemSubjectRef="tns:Item" isCollection="true"/><dataOutput id="Out" name="Produced"/><inputSet id="TaskInputs"><dataInputRefs>In</dataInputRefs></inputSet><outputSet id="TaskOutputs"><dataOutputRefs>Out</dataOutputRefs></outputSet></ioSpecification><dataInputAssociation id="Read"><sourceRef>Input</sourceRef><targetRef>In</targetRef></dataInputAssociation><dataOutputAssociation id="Write"><sourceRef>Out</sourceRef><targetRef>Output</targetRef></dataOutputAssociation></task>
+  <textAnnotation id="Note"><text>Interface</text></textAnnotation><association id="Annotation" sourceRef="tns:Input" targetRef="tns:Note"/>
+ </process>
+ <bpmndi:BPMNDiagram id="Diagram"><bpmndi:BPMNPlane id="Plane" bpmnElement="Process">
+  <bpmndi:BPMNShape id="InputDI" bpmnElement="Input"><dc:Bounds x="100" y="100" width="60" height="80"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="OutputDI" bpmnElement="Output"><dc:Bounds x="660" y="100" width="60" height="80"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="TaskDI" bpmnElement="Task"><dc:Bounds x="320" y="100" width="160" height="80"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNShape id="NoteDI" bpmnElement="Note"><dc:Bounds x="100" y="300" width="160" height="80"/></bpmndi:BPMNShape>
+  <bpmndi:BPMNEdge id="ReadDI" bpmnElement="Read"><di:waypoint x="160" y="140"/><di:waypoint x="230" y="140"/><di:waypoint x="320" y="140"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="WriteDI" bpmnElement="Write"><di:waypoint x="480" y="140"/><di:waypoint x="570" y="140"/><di:waypoint x="660" y="140"/></bpmndi:BPMNEdge>
+  <bpmndi:BPMNEdge id="AnnotationDI" bpmnElement="Annotation"><di:waypoint x="130" y="180"/><di:waypoint x="130" y="300"/></bpmndi:BPMNEdge>
+ </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+</definitions>

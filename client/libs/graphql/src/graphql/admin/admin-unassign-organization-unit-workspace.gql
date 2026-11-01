@@ -1,0 +1,9 @@
+mutation adminUnassignOrganizationUnitWorkspace(
+  $unitId: ID!
+  $workspaceId: ID!
+  $relationship: OrganizationUnitWorkspaceRelationshipEnum!
+) {
+  admin {
+    unassignOrganizationUnitWorkspace(unitId: $unitId, workspaceId: $workspaceId, relationship: $relationship)
+  }
+}

@@ -1,0 +1,676 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later */
+
+.myoxus-data-chart {
+  min-block-size: calc(var(--mantine-spacing-2xl) * 6);
+  inline-size: 100%;
+}
+
+.myoxus-data-chart[data-empty="true"] {
+  display: grid;
+  place-items: center;
+}
+
+.myoxus-data-chart-summary {
+  max-block-size: calc(var(--mantine-spacing-2xl) * 5);
+  overflow: auto;
+}
+
+.myoxus-data-sankey-chart-surface {
+  block-size: clamp(
+    calc(var(--mantine-spacing-2xl) * 9),
+    60cqi,
+    calc(var(--mantine-spacing-2xl) * 16)
+  );
+  container-type: inline-size;
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+
+.myoxus-data-sankey-chart-surface[data-compact="true"] {
+  block-size: calc(var(--mantine-spacing-2xl) * 10);
+}
+
+.myoxus-data-sankey-chart-surface svg {
+  block-size: 100%;
+  inline-size: 100%;
+  overflow: visible;
+  touch-action: none;
+}
+
+.myoxus-data-sankey-chart-surface svg:not([data-use-max-width="true"]) {
+  max-inline-size: calc(var(--mantine-spacing-2xl) * 25);
+}
+
+.myoxus-data-sankey-chart-surface [data-chart-node-id][role="button"],
+.myoxus-data-sankey-chart-surface [data-chart-link-id][role="button"],
+.myoxus-data-sankey-chart-surface [data-chart-comment-id][role="button"] {
+  cursor: pointer;
+  outline: none;
+  pointer-events: bounding-box;
+}
+
+.myoxus-data-sankey-node {
+  fill: var(--myoxus-accent-primary);
+  stroke: var(--mantine-color-body);
+  stroke-width: calc(var(--mantine-scale) * 1px);
+}
+
+.myoxus-data-sankey-node[data-zero="true"] {
+  fill: var(--mantine-color-body);
+  stroke: var(--mantine-color-dimmed);
+  stroke-dasharray: calc(var(--mantine-scale) * 2px);
+}
+
+.myoxus-data-sankey-link {
+  fill: none;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.myoxus-data-sankey-link[data-zero="true"] {
+  opacity: 1;
+  stroke-dasharray: calc(var(--mantine-scale) * 4px);
+}
+
+.myoxus-data-sankey-link-hitarea {
+  fill: none;
+  pointer-events: stroke;
+  stroke: transparent;
+}
+
+.myoxus-data-sankey-label {
+  fill: var(--mantine-color-text);
+  font-family: var(--mantine-font-family);
+  font-size: var(--mantine-font-size-sm);
+  pointer-events: none;
+}
+
+.myoxus-data-sankey-label[data-outlined="true"] {
+  paint-order: stroke;
+  stroke: var(--mantine-color-body);
+  stroke-linejoin: round;
+  stroke-width: calc(var(--mantine-scale) * 3px);
+}
+
+.myoxus-data-sankey-chart-surface
+  [data-selected="true"]
+  .myoxus-data-sankey-node,
+.myoxus-data-sankey-chart-surface
+  [data-selected="true"]
+  .myoxus-data-sankey-link,
+.myoxus-data-sankey-chart-surface
+  [data-chart-node-id]:focus-visible
+  .myoxus-data-sankey-node,
+.myoxus-data-sankey-chart-surface
+  [data-chart-link-id]:focus-visible
+  .myoxus-data-sankey-link {
+  filter: drop-shadow(
+    0 0 calc(var(--mantine-scale) * 2px) var(--myoxus-accent-primary)
+  );
+}
+
+.myoxus-data-sankey-chart-surface
+  [data-selected="true"]
+  .myoxus-data-sankey-node,
+.myoxus-data-sankey-chart-surface
+  [data-chart-node-id]:focus-visible
+  .myoxus-data-sankey-node {
+  stroke: var(--myoxus-accent-primary);
+  stroke-width: calc(var(--mantine-scale) * 2px);
+}
+
+.myoxus-data-sankey-chart-surface
+  [data-selected="true"]
+  .myoxus-data-sankey-link,
+.myoxus-data-sankey-chart-surface
+  [data-chart-link-id]:focus-visible
+  .myoxus-data-sankey-link {
+  opacity: 0.85;
+}
+
+.myoxus-data-sankey-chart-surface
+  [data-connect-target="true"]
+  .myoxus-data-sankey-node {
+  stroke: var(--myoxus-sem-status-success);
+  stroke-width: calc(var(--mantine-scale) * 3px);
+}
+
+.myoxus-data-sankey-handle {
+  cursor: crosshair;
+  fill: var(--mantine-color-body);
+  stroke: var(--myoxus-accent-primary);
+  stroke-width: calc(var(--mantine-scale) * 3px);
+}
+
+.myoxus-data-sankey-handle:focus-visible {
+  outline: none;
+  stroke: var(--mantine-color-text);
+}
+
+.myoxus-data-sankey-connection-preview {
+  fill: none;
+  pointer-events: none;
+  stroke: var(--myoxus-accent-primary);
+  stroke-dasharray: calc(var(--mantine-scale) * 4px);
+  stroke-width: calc(var(--mantine-scale) * 2px);
+}
+
+.myoxus-data-sankey-comment-marker {
+  cursor: pointer;
+  outline: none;
+}
+
+.myoxus-data-sankey-comment-marker circle {
+  fill: var(--mantine-color-body);
+  stroke: var(--myoxus-accent-primary);
+  stroke-width: calc(var(--mantine-scale) * 2px);
+}
+
+.myoxus-data-sankey-comment-marker text {
+  fill: var(--mantine-color-text);
+  font-family: var(--mantine-font-family);
+  font-size: var(--mantine-font-size-xs);
+  pointer-events: none;
+}
+
+.myoxus-data-sankey-comment-marker:focus-visible circle,
+.myoxus-data-sankey-comment-marker[data-selected="true"] circle {
+  stroke: var(--mantine-color-text);
+  stroke-width: calc(var(--mantine-scale) * 3px);
+}
+
+.myoxus-data-treemap-chart-surface {
+  block-size: clamp(
+    calc(var(--mantine-spacing-2xl) * 9),
+    60cqi,
+    calc(var(--mantine-spacing-2xl) * 16)
+  );
+  container-type: inline-size;
+  inline-size: 100%;
+  min-inline-size: 0;
+  position: relative;
+}
+
+.myoxus-data-treemap-chart-surface[data-compact="true"] {
+  block-size: calc(var(--mantine-spacing-2xl) * 10);
+}
+
+.myoxus-data-treemap-chart-surface svg {
+  block-size: 100%;
+  inline-size: 100%;
+  overflow: visible;
+  touch-action: none;
+}
+
+.myoxus-data-treemap-node {
+  cursor: default;
+  outline: none;
+}
+
+.myoxus-data-treemap-chart-surface[data-interactive="true"]
+  .myoxus-data-treemap-node {
+  cursor: pointer;
+}
+
+.myoxus-data-treemap-section,
+.myoxus-data-treemap-leaf {
+  fill: var(--mantine-color-body);
+  stroke: var(--mantine-color-default-border);
+  stroke-width: calc(var(--mantine-scale) * 1px);
+}
+
+.myoxus-data-treemap-section {
+  fill: var(--mantine-color-default);
+}
+
+.myoxus-data-treemap-leaf {
+  fill: color-mix(
+    in srgb,
+    var(--myoxus-accent-primary) 18%,
+    var(--mantine-color-body)
+  );
+}
+
+.myoxus-data-treemap-label,
+.myoxus-data-treemap-value {
+  dominant-baseline: middle;
+  cursor: text;
+  fill: var(--mantine-color-text);
+  font-family: var(--mantine-font-family);
+}
+
+.myoxus-data-treemap-label {
+  font-size: var(--mantine-font-size-sm);
+  font-weight: 600;
+}
+
+.myoxus-data-treemap-value {
+  font-size: var(--mantine-font-size-xs);
+}
+
+.myoxus-data-treemap-chart-surface[data-readonly="true"]
+  :is(.myoxus-data-treemap-label, .myoxus-data-treemap-value) {
+  cursor: default;
+}
+
+.myoxus-data-treemap-node[data-selected="true"] > rect,
+.myoxus-data-treemap-node:focus-visible > rect {
+  stroke: var(--myoxus-accent-primary);
+  stroke-width: calc(var(--mantine-scale) * 3px);
+}
+
+.myoxus-data-treemap-chart-surface
+  svg[data-reparent-target-id]
+  [data-chart-node-id][data-treemap-type="section"]:hover
+  > rect {
+  stroke: var(--myoxus-sem-status-success);
+  stroke-width: calc(var(--mantine-scale) * 3px);
+}
+
+.myoxus-data-treemap-comment {
+  cursor: pointer;
+  outline: none;
+}
+
+.myoxus-data-treemap-comment circle {
+  fill: var(--mantine-color-body);
+  stroke: var(--myoxus-accent-primary);
+  stroke-width: calc(var(--mantine-scale) * 2px);
+}
+
+.myoxus-data-treemap-class rect {
+  fill: var(--mantine-color-body);
+  stroke: var(--mantine-color-default-border);
+}
+
+.myoxus-data-treemap-class text {
+  fill: var(--mantine-color-text);
+  font-family: var(--mantine-font-family);
+  font-size: var(--mantine-font-size-xs);
+}
+
+.myoxus-data-treemap-diagram-comment circle {
+  fill: var(--mantine-color-body);
+  stroke: var(--mantine-color-default-border);
+}
+
+.myoxus-data-treemap-diagram-comment text {
+  fill: var(--mantine-color-text);
+  font-family: var(--mantine-font-family);
+  font-size: var(--mantine-font-size-xs);
+}
+
+.myoxus-data-treemap-editor {
+  position: absolute;
+  z-index: 2;
+  min-inline-size: min(22rem, calc(100% - var(--mantine-spacing-md) * 2));
+  max-inline-size: calc(100% - var(--mantine-spacing-md) * 2);
+  padding: var(--mantine-spacing-sm);
+  border: 1px solid var(--mantine-color-default-border);
+  border-radius: var(--mantine-radius-sm);
+  background: var(--mantine-color-body);
+  box-shadow: var(--mantine-shadow-md);
+  transform: translate(var(--mantine-spacing-sm), var(--mantine-spacing-sm));
+}
+
+.myoxus-data-treemap-comment text {
+  fill: var(--mantine-color-text);
+  font-family: var(--mantine-font-family);
+  font-size: var(--mantine-font-size-xs);
+  pointer-events: none;
+}
+
+.myoxus-data-radar-chart-surface {
+  block-size: clamp(
+    calc(var(--mantine-spacing-2xl) * 9),
+    60cqi,
+    calc(var(--mantine-spacing-2xl) * 16)
+  );
+  container-type: inline-size;
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+
+.myoxus-data-radar-scroll-owner {
+  contain: inline-size;
+  inline-size: 100%;
+  min-inline-size: 0;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.myoxus-data-radar-chart-surface svg {
+  /* Mermaid intentionally lets axis labels use the configured margin area
+     beyond the polar plot. Recharts clips that area unless the Facade keeps
+     the SVG overflow visible. */
+  overflow: visible;
+}
+
+.myoxus-data-radar-axis-label {
+  fill: var(--mantine-color-text);
+  font-family: var(--mantine-font-family);
+  font-size: var(--mantine-font-size-sm);
+  paint-order: stroke;
+  stroke: var(--mantine-color-body);
+  stroke-linejoin: round;
+  stroke-width: calc(var(--mantine-scale) * 3px);
+}
+
+.myoxus-data-radar-axis-line {
+  pointer-events: none;
+}
+
+.myoxus-data-radar-chart-surface [data-chart-axis-id],
+.myoxus-data-radar-chart-surface [data-chart-point-id],
+.myoxus-data-radar-chart-surface [data-chart-curve-id] {
+  cursor: pointer;
+  outline: none;
+}
+
+.myoxus-data-radar-vertex-hitarea {
+  fill: transparent;
+  stroke: transparent;
+  touch-action: none;
+}
+
+.myoxus-data-radar-vertex {
+  fill: var(--mantine-color-body);
+  pointer-events: none;
+  stroke: currentColor;
+  stroke-width: calc(var(--mantine-scale) * 2px);
+}
+
+.myoxus-data-radar-chart-surface
+  [data-chart-vertex-state="missing"]
+  .myoxus-data-radar-vertex {
+  fill: var(--mantine-color-body);
+  stroke-dasharray: calc(var(--mantine-scale) * 2px);
+}
+
+.myoxus-data-radar-chart-surface
+  [data-chart-vertex-state^="clipped"]
+  .myoxus-data-radar-vertex {
+  fill: var(--myoxus-sem-status-warning);
+  stroke: var(--myoxus-sem-status-warning);
+}
+
+.myoxus-data-radar-chart-surface
+  [data-chart-vertex-state="duplicate"]
+  .myoxus-data-radar-vertex {
+  fill: var(--myoxus-sem-status-error);
+  stroke: var(--myoxus-sem-status-error);
+}
+
+.myoxus-data-radar-chart-surface
+  [data-selected="true"]
+  .myoxus-data-radar-vertex,
+.myoxus-data-radar-chart-surface
+  [data-chart-axis-id][data-selected="true"]
+  text,
+.myoxus-data-radar-chart-surface [data-chart-curve-id][data-selected="true"] {
+  color: var(--myoxus-primary-color);
+  filter: drop-shadow(
+    0 0 calc(var(--mantine-scale) * 2px) var(--myoxus-accent-primary)
+  );
+}
+
+.myoxus-data-radar-chart-surface [data-chart-axis-id]:focus-visible text,
+.myoxus-data-radar-chart-surface
+  [data-chart-point-id]:focus-visible
+  .myoxus-data-radar-vertex,
+.myoxus-data-radar-chart-surface [data-chart-curve-id]:focus-visible {
+  stroke: var(--myoxus-accent-primary);
+  stroke-width: calc(var(--mantine-scale) * 2px);
+}
+
+.myoxus-data-radar-curve {
+  pointer-events: none;
+}
+
+.myoxus-data-radar-curve-hitarea {
+  fill: transparent;
+  pointer-events: all;
+  stroke: transparent;
+  stroke-width: calc(var(--mantine-scale) * 12px);
+  touch-action: none;
+}
+
+.myoxus-data-radar-curve[data-selected="true"] {
+  filter: drop-shadow(
+    0 0 calc(var(--mantine-scale) * 2px) var(--myoxus-accent-primary)
+  );
+  stroke: var(--myoxus-accent-primary);
+  stroke-width: calc(var(--mantine-scale) * 2px);
+}
+
+.myoxus-data-radar-annotation {
+  color: var(--mantine-color-dimmed);
+  font-family: var(--mantine-font-family);
+  font-size: var(--mantine-font-size-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.myoxus-data-radar-annotation text {
+  fill: currentColor;
+  stroke: var(--mantine-color-body);
+  stroke-width: calc(var(--mantine-scale) * 2px);
+  paint-order: stroke;
+}
+
+.myoxus-data-composite-chart-surface {
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+
+.myoxus-data-composite-chart-surface > * {
+  margin-inline: auto;
+}
+
+.myoxus-data-composite-legend-swatch {
+  block-size: var(--mantine-spacing-xs);
+  border-radius: var(--mantine-radius-xl);
+  inline-size: var(--mantine-spacing-xs);
+}
+
+.myoxus-data-composite-point-label {
+  fill: var(--mantine-color-text);
+  font-family: var(--mantine-font-family);
+  font-size: var(--mantine-font-size-xs);
+  paint-order: stroke;
+  pointer-events: none;
+  stroke: var(--mantine-color-body);
+  stroke-width: calc(var(--mantine-scale) * 3px);
+}
+
+.myoxus-data-composite-chart-surface .recharts-label,
+.myoxus-data-composite-chart-surface .recharts-label-list text {
+  fill: var(--mantine-color-text);
+  paint-order: stroke;
+  pointer-events: none;
+  stroke: var(--mantine-color-body);
+  stroke-linejoin: round;
+  stroke-width: calc(var(--mantine-scale) * 3px);
+}
+
+.myoxus-data-composite-chart-surface .recharts-label-list {
+  pointer-events: none;
+}
+
+.myoxus-data-composite-chart-surface .mantine-ChartTooltip-tooltipItemBody {
+  min-inline-size: 0;
+}
+
+.myoxus-data-composite-chart-surface .mantine-ChartTooltip-tooltipItemName {
+  overflow-wrap: anywhere;
+}
+
+.myoxus-data-composite-chart-surface [data-selected="true"] {
+  filter: drop-shadow(
+    0 0 calc(var(--mantine-scale) * 2px) var(--myoxus-accent-primary)
+  );
+  outline: none;
+  stroke: var(--myoxus-accent-primary);
+  stroke-width: calc(var(--mantine-scale) * 2px);
+}
+
+.myoxus-data-composite-chart-surface .recharts-cartesian-axis-tick-value,
+.myoxus-data-composite-chart-surface [data-chart-axis-id] text,
+.myoxus-data-composite-chart-surface [data-chart-category-id] {
+  fill: var(--mantine-color-text);
+}
+
+.myoxus-data-composite-range-marker {
+  fill: var(--mantine-color-body);
+  pointer-events: none;
+  stroke: var(--myoxus-sem-status-warning);
+  stroke-width: calc(var(--mantine-scale) * 2px);
+}
+
+.myoxus-data-composite-overflow-label {
+  fill: var(--myoxus-sem-status-warning);
+  font-family: var(--mantine-font-family);
+  font-size: var(--mantine-font-size-xs);
+}
+
+.myoxus-data-composite-chart-surface[data-orientation="vertical"]
+  [data-chart-point-drag-handle] {
+  cursor: ns-resize;
+}
+
+.myoxus-data-composite-chart-surface[data-orientation="horizontal"]
+  [data-chart-point-drag-handle] {
+  cursor: ew-resize;
+}
+
+.myoxus-data-composite-chart-surface [data-chart-point-drag-handle] {
+  touch-action: none;
+}
+
+.myoxus-data-pie-layout {
+  --myoxus-data-pie-preferred-size: calc(var(--mantine-spacing-2xl) * 12);
+
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mantine-spacing-lg);
+  inline-size: 100%;
+  justify-content: center;
+}
+
+.myoxus-data-pie-chart-surface {
+  aspect-ratio: 1;
+  flex: 0 1 var(--myoxus-data-pie-preferred-size);
+  inline-size: min(100%, var(--myoxus-data-pie-preferred-size));
+  max-inline-size: 100%;
+  min-inline-size: 0;
+  position: relative;
+}
+
+.myoxus-data-pie-chart-marker {
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  position: absolute;
+  z-index: 1;
+}
+
+.myoxus-data-pie-zero-state {
+  block-size: 100%;
+}
+
+.myoxus-data-pie-layout[data-legend-position="top"]
+  .myoxus-data-pie-chart-surface,
+.myoxus-data-pie-layout[data-legend-position="bottom"]
+  .myoxus-data-pie-chart-surface,
+.myoxus-data-pie-layout[data-legend-position="center"]
+  .myoxus-data-pie-chart-surface {
+  flex-basis: auto;
+  inline-size: min(100%, var(--myoxus-data-pie-preferred-size));
+}
+
+.myoxus-data-pie-label {
+  fill: var(--mantine-color-text);
+  paint-order: stroke;
+  stroke: var(--mantine-color-body);
+  stroke-linejoin: round;
+  stroke-width: calc(var(--mantine-scale) * 3px);
+}
+
+.myoxus-data-pie-chart-surface [data-selected="true"],
+.myoxus-data-pie-chart-surface [data-highlighted="true"],
+.myoxus-data-pie-chart-surface[data-highlight-on-hover="true"]
+  [data-chart-item-id]:hover {
+  stroke: var(--myoxus-accent-primary);
+  stroke-width: calc(var(--mantine-scale) * 2px);
+}
+
+.myoxus-data-pie-chart-surface [data-chart-item-id]:focus-visible {
+  outline: none;
+  stroke: var(--myoxus-accent-primary);
+  stroke-width: calc(var(--mantine-scale) * 2px);
+}
+
+.myoxus-data-pie-layout[data-legend-position="top"],
+.myoxus-data-pie-layout[data-legend-position="bottom"],
+.myoxus-data-pie-layout[data-legend-position="center"] {
+  flex-direction: column;
+}
+
+.myoxus-data-pie-layout[data-legend-position="top"] .myoxus-data-pie-legend,
+.myoxus-data-pie-layout[data-legend-position="left"] .myoxus-data-pie-legend {
+  order: -1;
+}
+
+.myoxus-data-pie-legend {
+  min-inline-size: min(100%, calc(var(--mantine-spacing-2xl) * 5));
+}
+
+.myoxus-data-pie-legend-item {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  position: relative;
+}
+
+.myoxus-data-pie-legend-issue {
+  flex-basis: 100%;
+  margin-inline-start: var(--mantine-spacing-xl);
+}
+
+.myoxus-data-pie-legend-item[data-selected="true"] {
+  color: var(--myoxus-primary-color);
+}
+
+.myoxus-data-pie-legend-control {
+  align-items: center;
+  border-radius: var(--mantine-radius-default);
+  display: flex;
+  flex: 1;
+  gap: var(--mantine-spacing-xs);
+  justify-content: space-between;
+  min-inline-size: 0;
+  padding: var(--mantine-spacing-xs) var(--mantine-spacing-sm);
+}
+
+.myoxus-data-pie-legend-control > :not(.myoxus-data-pie-legend-swatch) {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.myoxus-data-pie-legend-swatch {
+  flex: 0 0 auto;
+}
+
+.myoxus-data-pie-legend-control:focus-visible {
+  outline: calc(var(--mantine-scale) * 2px) solid var(--myoxus-accent-primary);
+  outline-offset: calc(var(--mantine-scale) * 2px);
+}
+
+.myoxus-data-chart-editor-row[data-drop-edge="top"] {
+  box-shadow: inset 0 calc(var(--mantine-scale) * 2px)
+    var(--myoxus-primary-color);
+}
+
+.myoxus-data-chart-editor-row[data-drop-edge="bottom"] {
+  box-shadow: inset 0 calc(var(--mantine-scale) * -2px)
+    var(--myoxus-primary-color);
+}

@@ -1,0 +1,8 @@
+query getWorkspaceShareInviteLink($id: String!) {
+  workspace(id: $id) {
+    inviteLink {
+      link
+      expireTime
+    }
+  }
+}

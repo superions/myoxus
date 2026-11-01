@@ -1,0 +1,59 @@
+{
+  "admin-frontend": {
+    "description": "Admin React frontend, Admin GraphQL client contracts and admin-only UI gates.",
+    "primary_paths": ["client/admin/", "docs/dev/clients/adminfrontend/"]
+  },
+  "browser-web": {
+    "description": "Browser Web frontend, Core UI integration and served-bundle smoke gates.",
+    "primary_paths": [
+      "client/web/",
+      "client/libs/core/",
+      "tests/client/webfrontend/"
+    ]
+  },
+  "client-shared": {
+    "description": "Shared client libraries, GraphQL artifacts, i18n, storage and theme/facade contracts.",
+    "primary_paths": ["client/libs/", "client/branding/"]
+  },
+  "server": {
+    "description": "Rust server crates and service-free server checks.",
+    "primary_paths": ["server/"]
+  },
+  "server-integration": {
+    "description": "Server tests requiring isolated Postgres, Redis, MinIO or live process boundaries.",
+    "primary_paths": [
+      "server/crates/*/tests/",
+      "build/scripts/test/",
+      "build/server/docker-compose.multi-instance.yml",
+      "build/server/nginx.multi-instance.conf"
+    ]
+  },
+  "virgultum": {
+    "description": "Virgultum editor framework and editor-core browser gates.",
+    "primary_paths": ["virgultum/", "tests/client/editor-core/virgultum/"]
+  },
+  "electron": {
+    "description": "Electron main/preload/helper, browser-like renderer, serializable desktop contract, native package assembly, packaging and packaged runtime checks.",
+    "primary_paths": [
+      "client/apps/electron/",
+      "client/apps/electron-renderer/",
+      "client/libs/desktop-api-contract/",
+      "client/libs/crypto/",
+      "client/libs/media-capture/",
+      "client/libs/local-store/",
+      "tests/client/desktop/electron/"
+    ]
+  },
+  "mobile": {
+    "description": "Mobile app and mobile shared client tests.",
+    "primary_paths": ["client/apps/mobile", "tests/client/mobile/"]
+  },
+  "ci-infra": {
+    "description": "Forgejo workflows, local runner scripts, container/build/test orchestration and dependency health.",
+    "primary_paths": [".forgejo/", "build/scripts/", "build/test-matrix/"]
+  },
+  "docs": {
+    "description": "Active test, CI and developer runbooks.",
+    "primary_paths": ["docs/", "todo/"]
+  }
+}

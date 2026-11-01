@@ -1,0 +1,48 @@
+{
+  "name": "@virgultum/gfx-note",
+  "description": "Gfx note for Virgultum.",
+  "type": "module",
+  "scripts": {
+    "build": "yarn --cwd \"$PROJECT_CWD\" exec tsc -p \"$PWD/tsconfig.json\" --noEmit"
+  },
+  "sideEffects": false,
+  "keywords": [],
+  "author": "Myoxus Contributors",
+  "license": "MIT",
+  "dependencies": {
+    "@lit/context": "^1.1.6",
+    "@myoxus/icons": "workspace:*",
+    "@myoxus/theme": "workspace:*",
+    "@preact/signals-core": "^1.8.0",
+    "@types/lodash-es": "^4.17.12",
+    "@virgultum/block-attachment": "workspace:*",
+    "@virgultum/block-bookmark": "workspace:*",
+    "@virgultum/block-image": "workspace:*",
+    "@virgultum/block-surface": "workspace:*",
+    "@virgultum/components": "workspace:*",
+    "@virgultum/ext-loader": "workspace:*",
+    "@virgultum/global": "workspace:*",
+    "@virgultum/model": "workspace:*",
+    "@virgultum/rich-text": "workspace:*",
+    "@virgultum/shared": "workspace:*",
+    "@virgultum/std": "workspace:*",
+    "@virgultum/store": "workspace:*",
+    "@virgultum/widget-edgeless-toolbar": "workspace:*",
+    "lit": "^3.3.3",
+    "lodash-es": "4.18.1",
+    "rxjs": "^7.8.2",
+    "yjs": "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch",
+    "zod": "^3.25.76"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./view": "./src/view.ts"
+  },
+  "files": [
+    "src",
+    "dist",
+    "!src/__tests__",
+    "!dist/__tests__"
+  ],
+  "version": "0.41.5"
+}
