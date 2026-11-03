@@ -131,6 +131,42 @@ export const adminOrganizationUnitTypeFragment = `fragment AdminOrganizationUnit
   createdAt
   updatedAt
 }`;
+export const calendarRecurrenceFieldsFragment = `fragment CalendarRecurrenceFields on CalendarRecurrence {
+  id
+  revision
+  zone
+  lifecycle
+  endsBefore
+  pausedAt
+  readOnly
+  unsupportedReason
+  sourceRrule
+  rule {
+    ...RecurrenceRuleFields
+  }
+}
+fragment RecurrenceRuleFields on RecurrenceRule {
+  mode
+  zone
+  interval
+  frequency
+  start {
+    ...RecurrenceValueFields
+  }
+  end {
+    ...RecurrenceValueFields
+  }
+  weekdays
+  day
+  lastDay
+  month
+  relativeUnit
+  dateOnly
+}
+fragment RecurrenceValueFields on RecurrenceValue {
+  date
+  localDateTime
+}`;
 export const preparedContextDocumentsFragment = `fragment PreparedContextDocumentsFragment on PreparedContextDocuments {
   target {
     databaseId
@@ -5778,6 +5814,19 @@ fragment DocumentMetadataAudienceFields on DocumentMetadataAudienceType {
     ...DocumentMetadataReferenceValueFields
   }
 }`;
+export const documentReviewPlanningFieldsFragment = `fragment DocumentReviewPlanningFields on DocumentReviewPlanningType {
+  enabled
+  metadataRevision
+  responsibleId
+  sourceDeadline
+  nextStart
+  processDeadline
+  zone
+  leadDays
+  ready
+  blockedReason
+  runId
+}`;
 export const preparedDocumentReviewFragment = `fragment PreparedDocumentReviewFragment on PreparedDocumentReview {
   target {
     databaseId
@@ -6421,6 +6470,143 @@ fragment CopilotChatHistory on CopilotHistories {
 export const passwordLimitsFragment = `fragment PasswordLimits on PasswordLimitsType {
   minLength
   maxLength
+}`;
+export const recurrenceValueFieldsFragment = `fragment RecurrenceValueFields on RecurrenceValue {
+  date
+  localDateTime
+}`;
+export const recurrenceOccurrenceFieldsFragment = `fragment RecurrenceOccurrenceFields on RecurrenceOccurrence {
+  nominal {
+    ...RecurrenceValueFields
+  }
+  dueAt
+}
+fragment RecurrenceValueFields on RecurrenceValue {
+  date
+  localDateTime
+}`;
+export const recurrenceRuleFieldsFragment = `fragment RecurrenceRuleFields on RecurrenceRule {
+  mode
+  zone
+  interval
+  frequency
+  start {
+    ...RecurrenceValueFields
+  }
+  end {
+    ...RecurrenceValueFields
+  }
+  weekdays
+  day
+  lastDay
+  month
+  relativeUnit
+  dateOnly
+}
+fragment RecurrenceValueFields on RecurrenceValue {
+  date
+  localDateTime
+}`;
+export const taskRecurrenceMemberFieldsFragment = `fragment TaskRecurrenceMemberFields on TaskRecurrenceMember {
+  id
+  occurrenceId
+  rowId
+  capturedDatabaseId
+  slot {
+    ...RecurrenceOccurrenceFields
+  }
+  advancedAt
+  advanceKind
+  successorOccurrenceId
+}
+fragment RecurrenceOccurrenceFields on RecurrenceOccurrence {
+  nominal {
+    ...RecurrenceValueFields
+  }
+  dueAt
+}
+fragment RecurrenceValueFields on RecurrenceValue {
+  date
+  localDateTime
+}`;
+export const taskRecurrenceFieldsFragment = `fragment TaskRecurrenceFields on TaskRecurrence {
+  id
+  workspaceId
+  actorId
+  currentMemberId
+  revision
+  generation
+  lifecycle
+  rule {
+    ...RecurrenceRuleFields
+  }
+  recipe {
+    databaseId
+    title
+    description {
+      plainText
+      document
+    }
+    assignees
+    priority
+  }
+  pausedAt
+  blockedReason
+  next {
+    ...RecurrenceOccurrenceFields
+  }
+  pending {
+    ...RecurrenceOccurrenceFields
+  }
+  preservedNext {
+    ...TaskRecurrenceMemberFields
+  }
+  effectiveAfter {
+    ...TaskRecurrenceMemberFields
+  }
+  members {
+    ...TaskRecurrenceMemberFields
+  }
+}
+fragment RecurrenceRuleFields on RecurrenceRule {
+  mode
+  zone
+  interval
+  frequency
+  start {
+    ...RecurrenceValueFields
+  }
+  end {
+    ...RecurrenceValueFields
+  }
+  weekdays
+  day
+  lastDay
+  month
+  relativeUnit
+  dateOnly
+}
+fragment RecurrenceValueFields on RecurrenceValue {
+  date
+  localDateTime
+}
+fragment RecurrenceOccurrenceFields on RecurrenceOccurrence {
+  nominal {
+    ...RecurrenceValueFields
+  }
+  dueAt
+}
+fragment TaskRecurrenceMemberFields on TaskRecurrenceMember {
+  id
+  occurrenceId
+  rowId
+  capturedDatabaseId
+  slot {
+    ...RecurrenceOccurrenceFields
+  }
+  advancedAt
+  advanceKind
+  successorOccurrenceId
 }`;
 export const savedAssistantSelectionFragment = `fragment SavedAssistantSelectionFragment on SavedAssistantSelection {
   packageId
@@ -14732,6 +14918,10 @@ export const calendarEventQuery = {
     sourceExternalId
     descriptionDelta
     recurrenceParentId
+    recurrenceId
+    recurrence {
+      ...CalendarRecurrenceFields
+    }
     reminders {
       id
       channel
@@ -14740,6 +14930,42 @@ export const calendarEventQuery = {
       deliveredAt
     }
   }
+}
+fragment CalendarRecurrenceFields on CalendarRecurrence {
+  id
+  revision
+  zone
+  lifecycle
+  endsBefore
+  pausedAt
+  readOnly
+  unsupportedReason
+  sourceRrule
+  rule {
+    ...RecurrenceRuleFields
+  }
+}
+fragment RecurrenceRuleFields on RecurrenceRule {
+  mode
+  zone
+  interval
+  frequency
+  start {
+    ...RecurrenceValueFields
+  }
+  end {
+    ...RecurrenceValueFields
+  }
+  weekdays
+  day
+  lastDay
+  month
+  relativeUnit
+  dateOnly
+}
+fragment RecurrenceValueFields on RecurrenceValue {
+  date
+  localDateTime
 }`,
 };
 
@@ -14815,6 +15041,80 @@ export const calendarProvidersQuery = {
 }`,
 };
 
+export const controlWorkspaceEventRecurrenceMutation = {
+  id: "controlWorkspaceEventRecurrenceMutation" as const,
+  op: "controlWorkspaceEventRecurrence",
+  kind: "mutation" as const,
+  query: `mutation controlWorkspaceEventRecurrence($workspaceId: String!, $eventId: String!, $expectedRevision: Int!, $action: CalendarTimingAction!) {
+  controlWorkspaceEventRecurrence(
+    workspaceId: $workspaceId
+    eventId: $eventId
+    expectedRevision: $expectedRevision
+    action: $action
+  ) {
+    id
+    origin
+    workspaceId
+    title
+    startsAt
+    endsAt
+    allDay
+    allMembers
+    tagId
+    sourceExternalId
+    descriptionDelta
+    recurrenceParentId
+    recurrenceId
+    recurrence {
+      ...CalendarRecurrenceFields
+    }
+    reminders {
+      id
+      channel
+      minutesBefore
+      scheduledFor
+      deliveredAt
+    }
+  }
+}
+fragment CalendarRecurrenceFields on CalendarRecurrence {
+  id
+  revision
+  zone
+  lifecycle
+  endsBefore
+  pausedAt
+  readOnly
+  unsupportedReason
+  sourceRrule
+  rule {
+    ...RecurrenceRuleFields
+  }
+}
+fragment RecurrenceRuleFields on RecurrenceRule {
+  mode
+  zone
+  interval
+  frequency
+  start {
+    ...RecurrenceValueFields
+  }
+  end {
+    ...RecurrenceValueFields
+  }
+  weekdays
+  day
+  lastDay
+  month
+  relativeUnit
+  dateOnly
+}
+fragment RecurrenceValueFields on RecurrenceValue {
+  date
+  localDateTime
+}`,
+};
+
 export const createEventTagMutation = {
   id: "createEventTagMutation" as const,
   op: "createEventTag",
@@ -14849,6 +15149,10 @@ export const createWorkspaceEventMutation = {
     sourceExternalId
     descriptionDelta
     recurrenceParentId
+    recurrenceId
+    recurrence {
+      ...CalendarRecurrenceFields
+    }
     reminders {
       id
       channel
@@ -14857,6 +15161,42 @@ export const createWorkspaceEventMutation = {
       deliveredAt
     }
   }
+}
+fragment CalendarRecurrenceFields on CalendarRecurrence {
+  id
+  revision
+  zone
+  lifecycle
+  endsBefore
+  pausedAt
+  readOnly
+  unsupportedReason
+  sourceRrule
+  rule {
+    ...RecurrenceRuleFields
+  }
+}
+fragment RecurrenceRuleFields on RecurrenceRule {
+  mode
+  zone
+  interval
+  frequency
+  start {
+    ...RecurrenceValueFields
+  }
+  end {
+    ...RecurrenceValueFields
+  }
+  weekdays
+  day
+  lastDay
+  month
+  relativeUnit
+  dateOnly
+}
+fragment RecurrenceValueFields on RecurrenceValue {
+  date
+  localDateTime
 }`,
 };
 
@@ -15102,6 +15442,10 @@ export const updateWorkspaceEventMutation = {
     sourceExternalId
     descriptionDelta
     recurrenceParentId
+    recurrenceId
+    recurrence {
+      ...CalendarRecurrenceFields
+    }
     reminders {
       id
       channel
@@ -15110,6 +15454,42 @@ export const updateWorkspaceEventMutation = {
       deliveredAt
     }
   }
+}
+fragment CalendarRecurrenceFields on CalendarRecurrence {
+  id
+  revision
+  zone
+  lifecycle
+  endsBefore
+  pausedAt
+  readOnly
+  unsupportedReason
+  sourceRrule
+  rule {
+    ...RecurrenceRuleFields
+  }
+}
+fragment RecurrenceRuleFields on RecurrenceRule {
+  mode
+  zone
+  interval
+  frequency
+  start {
+    ...RecurrenceValueFields
+  }
+  end {
+    ...RecurrenceValueFields
+  }
+  weekdays
+  day
+  lastDay
+  month
+  relativeUnit
+  dateOnly
+}
+fragment RecurrenceValueFields on RecurrenceValue {
+  date
+  localDateTime
 }`,
 };
 
@@ -15143,6 +15523,59 @@ export const upsertCalendarEventMutation = {
       deliveredAt
     }
   }
+}`,
+};
+
+export const workspaceCalendarSeriesQuery = {
+  id: "workspaceCalendarSeriesQuery" as const,
+  op: "workspaceCalendarSeries",
+  kind: "query" as const,
+  query: `query workspaceCalendarSeries($workspaceId: String!) {
+  workspaceCalendarSeries(workspaceId: $workspaceId) {
+    id
+    title
+    startsAt
+    allDay
+    recurrence {
+      ...CalendarRecurrenceFields
+    }
+  }
+}
+fragment CalendarRecurrenceFields on CalendarRecurrence {
+  id
+  revision
+  zone
+  lifecycle
+  endsBefore
+  pausedAt
+  readOnly
+  unsupportedReason
+  sourceRrule
+  rule {
+    ...RecurrenceRuleFields
+  }
+}
+fragment RecurrenceRuleFields on RecurrenceRule {
+  mode
+  zone
+  interval
+  frequency
+  start {
+    ...RecurrenceValueFields
+  }
+  end {
+    ...RecurrenceValueFields
+  }
+  weekdays
+  day
+  lastDay
+  month
+  relativeUnit
+  dateOnly
+}
+fragment RecurrenceValueFields on RecurrenceValue {
+  date
+  localDateTime
 }`,
 };
 
@@ -33097,6 +33530,59 @@ fragment DocumentMetadataAudienceFields on DocumentMetadataAudienceType {
 }`,
 };
 
+export const documentReviewPlanningQuery = {
+  id: "documentReviewPlanningQuery" as const,
+  op: "documentReviewPlanning",
+  kind: "query" as const,
+  query: `query documentReviewPlanning($workspaceId: ID!, $docId: ID!) {
+  documentReviewPlanning(workspaceId: $workspaceId, docId: $docId) {
+    ...DocumentReviewPlanningFields
+  }
+}
+fragment DocumentReviewPlanningFields on DocumentReviewPlanningType {
+  enabled
+  metadataRevision
+  responsibleId
+  sourceDeadline
+  nextStart
+  processDeadline
+  zone
+  leadDays
+  ready
+  blockedReason
+  runId
+}`,
+};
+
+export const configureDocumentReviewPlanningMutation = {
+  id: "configureDocumentReviewPlanningMutation" as const,
+  op: "configureDocumentReviewPlanning",
+  kind: "mutation" as const,
+  query: `mutation configureDocumentReviewPlanning($workspaceId: ID!, $docId: ID!, $enabled: Boolean!, $expectedMetadataRevision: Int!) {
+  configureDocumentReviewPlanning(
+    workspaceId: $workspaceId
+    docId: $docId
+    enabled: $enabled
+    expectedMetadataRevision: $expectedMetadataRevision
+  ) {
+    ...DocumentReviewPlanningFields
+  }
+}
+fragment DocumentReviewPlanningFields on DocumentReviewPlanningType {
+  enabled
+  metadataRevision
+  responsibleId
+  sourceDeadline
+  nextStart
+  processDeadline
+  zone
+  leadDays
+  ready
+  blockedReason
+  runId
+}`,
+};
+
 export const prepareDocumentReviewQuery = {
   id: "prepareDocumentReviewQuery" as const,
   op: "prepareDocumentReview",
@@ -37903,6 +38389,761 @@ export const recoverDocMutation = {
     snapshotId: $snapshotId
     expectedRevision: $expectedRevision
   )
+}`,
+};
+
+export const taskRecurrenceQuery = {
+  id: "taskRecurrenceQuery" as const,
+  op: "taskRecurrence",
+  kind: "query" as const,
+  query: `query taskRecurrence($workspaceId: String!, $input: TaskRecurrenceLookupInput!) {
+  workspace(id: $workspaceId) {
+    id
+    taskRecurrence(input: $input) {
+      ...TaskRecurrenceFields
+    }
+  }
+}
+fragment TaskRecurrenceFields on TaskRecurrence {
+  id
+  workspaceId
+  actorId
+  currentMemberId
+  revision
+  generation
+  lifecycle
+  rule {
+    ...RecurrenceRuleFields
+  }
+  recipe {
+    databaseId
+    title
+    description {
+      plainText
+      document
+    }
+    assignees
+    priority
+  }
+  pausedAt
+  blockedReason
+  next {
+    ...RecurrenceOccurrenceFields
+  }
+  pending {
+    ...RecurrenceOccurrenceFields
+  }
+  preservedNext {
+    ...TaskRecurrenceMemberFields
+  }
+  effectiveAfter {
+    ...TaskRecurrenceMemberFields
+  }
+  members {
+    ...TaskRecurrenceMemberFields
+  }
+}
+fragment RecurrenceRuleFields on RecurrenceRule {
+  mode
+  zone
+  interval
+  frequency
+  start {
+    ...RecurrenceValueFields
+  }
+  end {
+    ...RecurrenceValueFields
+  }
+  weekdays
+  day
+  lastDay
+  month
+  relativeUnit
+  dateOnly
+}
+fragment RecurrenceValueFields on RecurrenceValue {
+  date
+  localDateTime
+}
+fragment RecurrenceOccurrenceFields on RecurrenceOccurrence {
+  nominal {
+    ...RecurrenceValueFields
+  }
+  dueAt
+}
+fragment TaskRecurrenceMemberFields on TaskRecurrenceMember {
+  id
+  occurrenceId
+  rowId
+  capturedDatabaseId
+  slot {
+    ...RecurrenceOccurrenceFields
+  }
+  advancedAt
+  advanceKind
+  successorOccurrenceId
+}`,
+};
+
+export const taskRecurrencesQuery = {
+  id: "taskRecurrencesQuery" as const,
+  op: "taskRecurrences",
+  kind: "query" as const,
+  query: `query taskRecurrences($workspaceId: String!, $after: ID, $first: Int) {
+  workspace(id: $workspaceId) {
+    id
+    taskRecurrences(after: $after, first: $first) {
+      ...TaskRecurrenceFields
+    }
+  }
+}
+fragment TaskRecurrenceFields on TaskRecurrence {
+  id
+  workspaceId
+  actorId
+  currentMemberId
+  revision
+  generation
+  lifecycle
+  rule {
+    ...RecurrenceRuleFields
+  }
+  recipe {
+    databaseId
+    title
+    description {
+      plainText
+      document
+    }
+    assignees
+    priority
+  }
+  pausedAt
+  blockedReason
+  next {
+    ...RecurrenceOccurrenceFields
+  }
+  pending {
+    ...RecurrenceOccurrenceFields
+  }
+  preservedNext {
+    ...TaskRecurrenceMemberFields
+  }
+  effectiveAfter {
+    ...TaskRecurrenceMemberFields
+  }
+  members {
+    ...TaskRecurrenceMemberFields
+  }
+}
+fragment RecurrenceRuleFields on RecurrenceRule {
+  mode
+  zone
+  interval
+  frequency
+  start {
+    ...RecurrenceValueFields
+  }
+  end {
+    ...RecurrenceValueFields
+  }
+  weekdays
+  day
+  lastDay
+  month
+  relativeUnit
+  dateOnly
+}
+fragment RecurrenceValueFields on RecurrenceValue {
+  date
+  localDateTime
+}
+fragment RecurrenceOccurrenceFields on RecurrenceOccurrence {
+  nominal {
+    ...RecurrenceValueFields
+  }
+  dueAt
+}
+fragment TaskRecurrenceMemberFields on TaskRecurrenceMember {
+  id
+  occurrenceId
+  rowId
+  capturedDatabaseId
+  slot {
+    ...RecurrenceOccurrenceFields
+  }
+  advancedAt
+  advanceKind
+  successorOccurrenceId
+}`,
+};
+
+export const recurrencePreviewQuery = {
+  id: "recurrencePreviewQuery" as const,
+  op: "recurrencePreview",
+  kind: "query" as const,
+  query: `query recurrencePreview($workspaceId: String!, $input: RecurrencePreviewInput!) {
+  workspace(id: $workspaceId) {
+    id
+    recurrencePreview(input: $input) {
+      occurrence {
+        ...RecurrenceOccurrenceFields
+      }
+      completionReference {
+        ...RecurrenceValueFields
+      }
+    }
+  }
+}
+fragment RecurrenceOccurrenceFields on RecurrenceOccurrence {
+  nominal {
+    ...RecurrenceValueFields
+  }
+  dueAt
+}
+fragment RecurrenceValueFields on RecurrenceValue {
+  date
+  localDateTime
+}`,
+};
+
+export const configureTaskRecurrenceMutation = {
+  id: "configureTaskRecurrenceMutation" as const,
+  op: "configureTaskRecurrence",
+  kind: "mutation" as const,
+  query: `mutation configureTaskRecurrence($input: ConfigureTaskRecurrenceInput!) {
+  configureTaskRecurrence(input: $input) {
+    ...TaskRecurrenceFields
+  }
+}
+fragment TaskRecurrenceFields on TaskRecurrence {
+  id
+  workspaceId
+  actorId
+  currentMemberId
+  revision
+  generation
+  lifecycle
+  rule {
+    ...RecurrenceRuleFields
+  }
+  recipe {
+    databaseId
+    title
+    description {
+      plainText
+      document
+    }
+    assignees
+    priority
+  }
+  pausedAt
+  blockedReason
+  next {
+    ...RecurrenceOccurrenceFields
+  }
+  pending {
+    ...RecurrenceOccurrenceFields
+  }
+  preservedNext {
+    ...TaskRecurrenceMemberFields
+  }
+  effectiveAfter {
+    ...TaskRecurrenceMemberFields
+  }
+  members {
+    ...TaskRecurrenceMemberFields
+  }
+}
+fragment RecurrenceRuleFields on RecurrenceRule {
+  mode
+  zone
+  interval
+  frequency
+  start {
+    ...RecurrenceValueFields
+  }
+  end {
+    ...RecurrenceValueFields
+  }
+  weekdays
+  day
+  lastDay
+  month
+  relativeUnit
+  dateOnly
+}
+fragment RecurrenceValueFields on RecurrenceValue {
+  date
+  localDateTime
+}
+fragment RecurrenceOccurrenceFields on RecurrenceOccurrence {
+  nominal {
+    ...RecurrenceValueFields
+  }
+  dueAt
+}
+fragment TaskRecurrenceMemberFields on TaskRecurrenceMember {
+  id
+  occurrenceId
+  rowId
+  capturedDatabaseId
+  slot {
+    ...RecurrenceOccurrenceFields
+  }
+  advancedAt
+  advanceKind
+  successorOccurrenceId
+}`,
+};
+
+export const updateTaskRecurrenceMutation = {
+  id: "updateTaskRecurrenceMutation" as const,
+  op: "updateTaskRecurrence",
+  kind: "mutation" as const,
+  query: `mutation updateTaskRecurrence($input: UpdateTaskRecurrenceInput!) {
+  updateTaskRecurrence(input: $input) {
+    ...TaskRecurrenceFields
+  }
+}
+fragment TaskRecurrenceFields on TaskRecurrence {
+  id
+  workspaceId
+  actorId
+  currentMemberId
+  revision
+  generation
+  lifecycle
+  rule {
+    ...RecurrenceRuleFields
+  }
+  recipe {
+    databaseId
+    title
+    description {
+      plainText
+      document
+    }
+    assignees
+    priority
+  }
+  pausedAt
+  blockedReason
+  next {
+    ...RecurrenceOccurrenceFields
+  }
+  pending {
+    ...RecurrenceOccurrenceFields
+  }
+  preservedNext {
+    ...TaskRecurrenceMemberFields
+  }
+  effectiveAfter {
+    ...TaskRecurrenceMemberFields
+  }
+  members {
+    ...TaskRecurrenceMemberFields
+  }
+}
+fragment RecurrenceRuleFields on RecurrenceRule {
+  mode
+  zone
+  interval
+  frequency
+  start {
+    ...RecurrenceValueFields
+  }
+  end {
+    ...RecurrenceValueFields
+  }
+  weekdays
+  day
+  lastDay
+  month
+  relativeUnit
+  dateOnly
+}
+fragment RecurrenceValueFields on RecurrenceValue {
+  date
+  localDateTime
+}
+fragment RecurrenceOccurrenceFields on RecurrenceOccurrence {
+  nominal {
+    ...RecurrenceValueFields
+  }
+  dueAt
+}
+fragment TaskRecurrenceMemberFields on TaskRecurrenceMember {
+  id
+  occurrenceId
+  rowId
+  capturedDatabaseId
+  slot {
+    ...RecurrenceOccurrenceFields
+  }
+  advancedAt
+  advanceKind
+  successorOccurrenceId
+}`,
+};
+
+export const skipTaskRecurrenceMutation = {
+  id: "skipTaskRecurrenceMutation" as const,
+  op: "skipTaskRecurrence",
+  kind: "mutation" as const,
+  query: `mutation skipTaskRecurrence($input: SkipTaskRecurrenceInput!) {
+  skipTaskRecurrence(input: $input) {
+    ...TaskRecurrenceFields
+  }
+}
+fragment TaskRecurrenceFields on TaskRecurrence {
+  id
+  workspaceId
+  actorId
+  currentMemberId
+  revision
+  generation
+  lifecycle
+  rule {
+    ...RecurrenceRuleFields
+  }
+  recipe {
+    databaseId
+    title
+    description {
+      plainText
+      document
+    }
+    assignees
+    priority
+  }
+  pausedAt
+  blockedReason
+  next {
+    ...RecurrenceOccurrenceFields
+  }
+  pending {
+    ...RecurrenceOccurrenceFields
+  }
+  preservedNext {
+    ...TaskRecurrenceMemberFields
+  }
+  effectiveAfter {
+    ...TaskRecurrenceMemberFields
+  }
+  members {
+    ...TaskRecurrenceMemberFields
+  }
+}
+fragment RecurrenceRuleFields on RecurrenceRule {
+  mode
+  zone
+  interval
+  frequency
+  start {
+    ...RecurrenceValueFields
+  }
+  end {
+    ...RecurrenceValueFields
+  }
+  weekdays
+  day
+  lastDay
+  month
+  relativeUnit
+  dateOnly
+}
+fragment RecurrenceValueFields on RecurrenceValue {
+  date
+  localDateTime
+}
+fragment RecurrenceOccurrenceFields on RecurrenceOccurrence {
+  nominal {
+    ...RecurrenceValueFields
+  }
+  dueAt
+}
+fragment TaskRecurrenceMemberFields on TaskRecurrenceMember {
+  id
+  occurrenceId
+  rowId
+  capturedDatabaseId
+  slot {
+    ...RecurrenceOccurrenceFields
+  }
+  advancedAt
+  advanceKind
+  successorOccurrenceId
+}`,
+};
+
+export const pauseTaskRecurrenceMutation = {
+  id: "pauseTaskRecurrenceMutation" as const,
+  op: "pauseTaskRecurrence",
+  kind: "mutation" as const,
+  query: `mutation pauseTaskRecurrence($input: TaskRecurrenceControlInput!) {
+  pauseTaskRecurrence(input: $input) {
+    ...TaskRecurrenceFields
+  }
+}
+fragment TaskRecurrenceFields on TaskRecurrence {
+  id
+  workspaceId
+  actorId
+  currentMemberId
+  revision
+  generation
+  lifecycle
+  rule {
+    ...RecurrenceRuleFields
+  }
+  recipe {
+    databaseId
+    title
+    description {
+      plainText
+      document
+    }
+    assignees
+    priority
+  }
+  pausedAt
+  blockedReason
+  next {
+    ...RecurrenceOccurrenceFields
+  }
+  pending {
+    ...RecurrenceOccurrenceFields
+  }
+  preservedNext {
+    ...TaskRecurrenceMemberFields
+  }
+  effectiveAfter {
+    ...TaskRecurrenceMemberFields
+  }
+  members {
+    ...TaskRecurrenceMemberFields
+  }
+}
+fragment RecurrenceRuleFields on RecurrenceRule {
+  mode
+  zone
+  interval
+  frequency
+  start {
+    ...RecurrenceValueFields
+  }
+  end {
+    ...RecurrenceValueFields
+  }
+  weekdays
+  day
+  lastDay
+  month
+  relativeUnit
+  dateOnly
+}
+fragment RecurrenceValueFields on RecurrenceValue {
+  date
+  localDateTime
+}
+fragment RecurrenceOccurrenceFields on RecurrenceOccurrence {
+  nominal {
+    ...RecurrenceValueFields
+  }
+  dueAt
+}
+fragment TaskRecurrenceMemberFields on TaskRecurrenceMember {
+  id
+  occurrenceId
+  rowId
+  capturedDatabaseId
+  slot {
+    ...RecurrenceOccurrenceFields
+  }
+  advancedAt
+  advanceKind
+  successorOccurrenceId
+}`,
+};
+
+export const resumeTaskRecurrenceMutation = {
+  id: "resumeTaskRecurrenceMutation" as const,
+  op: "resumeTaskRecurrence",
+  kind: "mutation" as const,
+  query: `mutation resumeTaskRecurrence($input: TaskRecurrenceControlInput!) {
+  resumeTaskRecurrence(input: $input) {
+    ...TaskRecurrenceFields
+  }
+}
+fragment TaskRecurrenceFields on TaskRecurrence {
+  id
+  workspaceId
+  actorId
+  currentMemberId
+  revision
+  generation
+  lifecycle
+  rule {
+    ...RecurrenceRuleFields
+  }
+  recipe {
+    databaseId
+    title
+    description {
+      plainText
+      document
+    }
+    assignees
+    priority
+  }
+  pausedAt
+  blockedReason
+  next {
+    ...RecurrenceOccurrenceFields
+  }
+  pending {
+    ...RecurrenceOccurrenceFields
+  }
+  preservedNext {
+    ...TaskRecurrenceMemberFields
+  }
+  effectiveAfter {
+    ...TaskRecurrenceMemberFields
+  }
+  members {
+    ...TaskRecurrenceMemberFields
+  }
+}
+fragment RecurrenceRuleFields on RecurrenceRule {
+  mode
+  zone
+  interval
+  frequency
+  start {
+    ...RecurrenceValueFields
+  }
+  end {
+    ...RecurrenceValueFields
+  }
+  weekdays
+  day
+  lastDay
+  month
+  relativeUnit
+  dateOnly
+}
+fragment RecurrenceValueFields on RecurrenceValue {
+  date
+  localDateTime
+}
+fragment RecurrenceOccurrenceFields on RecurrenceOccurrence {
+  nominal {
+    ...RecurrenceValueFields
+  }
+  dueAt
+}
+fragment TaskRecurrenceMemberFields on TaskRecurrenceMember {
+  id
+  occurrenceId
+  rowId
+  capturedDatabaseId
+  slot {
+    ...RecurrenceOccurrenceFields
+  }
+  advancedAt
+  advanceKind
+  successorOccurrenceId
+}`,
+};
+
+export const endTaskRecurrenceMutation = {
+  id: "endTaskRecurrenceMutation" as const,
+  op: "endTaskRecurrence",
+  kind: "mutation" as const,
+  query: `mutation endTaskRecurrence($input: TaskRecurrenceControlInput!) {
+  endTaskRecurrence(input: $input) {
+    ...TaskRecurrenceFields
+  }
+}
+fragment TaskRecurrenceFields on TaskRecurrence {
+  id
+  workspaceId
+  actorId
+  currentMemberId
+  revision
+  generation
+  lifecycle
+  rule {
+    ...RecurrenceRuleFields
+  }
+  recipe {
+    databaseId
+    title
+    description {
+      plainText
+      document
+    }
+    assignees
+    priority
+  }
+  pausedAt
+  blockedReason
+  next {
+    ...RecurrenceOccurrenceFields
+  }
+  pending {
+    ...RecurrenceOccurrenceFields
+  }
+  preservedNext {
+    ...TaskRecurrenceMemberFields
+  }
+  effectiveAfter {
+    ...TaskRecurrenceMemberFields
+  }
+  members {
+    ...TaskRecurrenceMemberFields
+  }
+}
+fragment RecurrenceRuleFields on RecurrenceRule {
+  mode
+  zone
+  interval
+  frequency
+  start {
+    ...RecurrenceValueFields
+  }
+  end {
+    ...RecurrenceValueFields
+  }
+  weekdays
+  day
+  lastDay
+  month
+  relativeUnit
+  dateOnly
+}
+fragment RecurrenceValueFields on RecurrenceValue {
+  date
+  localDateTime
+}
+fragment RecurrenceOccurrenceFields on RecurrenceOccurrence {
+  nominal {
+    ...RecurrenceValueFields
+  }
+  dueAt
+}
+fragment TaskRecurrenceMemberFields on TaskRecurrenceMember {
+  id
+  occurrenceId
+  rowId
+  capturedDatabaseId
+  slot {
+    ...RecurrenceOccurrenceFields
+  }
+  advancedAt
+  advanceKind
+  successorOccurrenceId
 }`,
 };
 

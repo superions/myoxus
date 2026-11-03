@@ -1135,6 +1135,8 @@ export const myoxusMantineTheme = createTheme({
         color: "myoxus",
         radius: "md",
         withArrow: true,
+        // Availability hints must stay above their owning menu or modal.
+        zIndex: `calc(${cssVar("zIndexPopover")} + 1)`,
       },
       styles: {
         tooltip: {
@@ -1411,8 +1413,17 @@ export function MyoxusUIProvider({
           `<Notifications />` or wrap the Facade renderer; the Facade `notify`
           API is the single entry point and routes through here. */}
         {/* Nested settings providers inherit the application host. */}
+        {/* Native default clips persistent results at 200px. Keep their
+            actions/details reachable without product-specific size props. */}
         {!hasNotificationHost && (
-          <Notifications position="bottom-center" limit={5} />
+          <Notifications
+            position="bottom-center"
+            limit={5}
+            notificationMaxHeight="calc(100dvh - var(--mantine-spacing-xl) * 2)"
+            styles={{
+              notification: { overflowY: "auto", alignItems: "flex-start" },
+            }}
+          />
         )}
         {children}
       </MyoxusMantineProvider>

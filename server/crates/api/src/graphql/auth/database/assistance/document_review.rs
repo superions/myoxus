@@ -65,6 +65,7 @@ pub struct PreparedDocumentReviewObjectType {
   pub title: String,
   pub deadline_at: DateTime<Utc>,
   pub deadline_time_zone: String,
+  pub source_metadata_deadline: Option<chrono::DateTime<chrono::Utc>>,
   pub execution_available: bool,
   pub plan_digest: String,
 }
@@ -119,6 +120,7 @@ fn map_prepared_document_review(
     title: value.title,
     deadline_at: value.deadline_at,
     deadline_time_zone: value.deadline_time_zone,
+    source_metadata_deadline: value.source_metadata_deadline,
     execution_available: value.execution_available,
     plan_digest,
   })

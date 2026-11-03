@@ -541,6 +541,7 @@ fn zip_entry_names_from_bytes(bytes: &[u8]) -> Vec<String> {
         .by_index(i)
         .expect("zip entry should be readable")
         .name()
+        .expect("zip entry name should be readable")
         .to_string(),
     );
   }
@@ -1530,14 +1531,15 @@ async fn inv_released_trashed_guide_restores_as_ordinary_content_without_reseedi
   assert_eq!(upgraded[0].id, original_binding);
   assert_eq!(upgraded[0].state, InstanceState::Retired);
   assert_eq!(upgraded[0].workspace_doc_id, Some(reader.id));
-  let flags: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM document_template_state WHERE doc_id=$1")
-    .bind(reader.id)
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+  let flags: i64 =
+    sqlx::query_scalar("SELECT COUNT(*) FROM document_template_state WHERE doc_id=$1 AND state <> 'guide'")
+      .bind(reader.id)
+      .fetch_one(&pool)
+      .await
+      .unwrap();
   assert_eq!(
     flags, 0,
-    "restoring an ordinary guide must not revive obsolete template ownership"
+    "restoring an introduction must not revive reusable template ownership"
   );
   assert_eq!(
     documents.load_full_doc_consistent(workspace, workspace).await.unwrap(),
@@ -1563,11 +1565,12 @@ async fn inv_released_trashed_guide_restores_as_ordinary_content_without_reseedi
   let restored = registry.store().list_instances_for_workspace(workspace).await.unwrap();
   assert_eq!(restored[0].id, original_binding);
   assert_eq!(restored[0].workspace_doc_id, Some(reader.id));
-  let flags: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM document_template_state WHERE doc_id=$1")
-    .bind(reader.id)
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+  let flags: i64 =
+    sqlx::query_scalar("SELECT COUNT(*) FROM document_template_state WHERE doc_id=$1 AND state <> 'guide'")
+      .bind(reader.id)
+      .fetch_one(&pool)
+      .await
+      .unwrap();
   assert_eq!(flags, 0);
   assert_eq!(
     documents.load_full_doc_consistent(workspace, reader.id).await.unwrap(),
@@ -1721,13 +1724,13 @@ async fn inv_released_guide_cutover_preserves_readers_deletions_copies_and_faile
     root_before
   );
   let states: i64 = sqlx::query_scalar(
-    "SELECT COUNT(*) FROM document_template_state n JOIN docs d ON d.id=n.doc_id WHERE d.workspace_id=$1",
+    "SELECT COUNT(*) FROM document_template_state n JOIN docs d ON d.id=n.doc_id WHERE d.workspace_id=$1 AND n.state <> 'guide'",
   )
   .bind(workspace)
   .fetch_one(&pool)
   .await
   .unwrap();
-  assert_eq!(states, 0, "all reader guides remain ordinary content");
+  assert_eq!(states, 0, "reader guides retain no reusable-source state");
   let restarted = build_materializing_service(&pool, storage);
   for bytes in &assets {
     restarted.register_shipped_bundle(bytes, "guide.zip").await.unwrap();
@@ -2992,6 +2995,7 @@ async fn inv_template_export_rest_download_headers_and_canonical_bundle() {
         .by_index(i)
         .expect("reading zip entry should not fail")
         .name()
+        .expect("zip entry name should be readable")
         .to_string(),
     );
   }
@@ -5916,7 +5920,7 @@ async fn inv_configured_guides_seed_once_and_preserve_reader_copies(pool: PgPool
     );
   }
   let template_states: i64 = sqlx::query_scalar(
-    "SELECT COUNT(*) FROM document_template_state t JOIN docs d ON d.id = t.doc_id WHERE d.workspace_id = $1",
+    "SELECT COUNT(*) FROM document_template_state t JOIN docs d ON d.id = t.doc_id WHERE d.workspace_id = $1 AND t.state <> 'guide'",
   )
   .bind(workspace_id)
   .fetch_one(&pool)
@@ -5924,21 +5928,48 @@ async fn inv_configured_guides_seed_once_and_preserve_reader_copies(pool: PgPool
   .unwrap();
   assert_eq!(
     template_states, 0,
-    "guide delivery must not create reusable template attribution"
+    "guide delivery uses its own native state without becoming a reusable source"
   );
   sqlx::query("UPDATE app_configs SET value = '\"en\"'::jsonb WHERE id = 'i18n.default_locale'")
     .execute(&pool)
     .await
     .unwrap();
-  let edited = &first[0];
-  let old_doc_id = edited.workspace_doc_id.unwrap();
+  let retained = &first[0];
+  let old_doc_id = retained.workspace_doc_id.unwrap();
   let before = documents.load_full_doc(workspace_id, old_doc_id).await.unwrap();
   let edit = yjs::update_document_title(&before, "Reader-owned learning notes").unwrap();
-  documents
+  let denied = documents
     .push_update_raw(workspace_id, old_doc_id, edit, DocSpaceKind::Workspace)
     .await
-    .unwrap();
+    .expect_err("delivered introductions are read-only");
+  assert!(matches!(denied, myoxus_application::auth::AuthError::ActionForbidden));
   let reader_content = documents.load_full_doc(workspace_id, old_doc_id).await.unwrap();
+  assert_eq!(reader_content, before);
+  let metadata = myoxus_infrastructure::document_metadata::PgDocumentMetadataRepository::new(pool.clone());
+  let denied = myoxus_domain::repositories::DocumentMetadataRepository::apply_patch(
+    &metadata,
+    old_doc_id,
+    user_id,
+    &myoxus_domain::entities::DocumentMetadataPatch {
+      template_state: Some(None),
+      ..Default::default()
+    },
+  )
+  .await
+  .expect_err("a reader cannot remove the classification to enable writes");
+  assert!(
+    matches!(denied,myoxus_domain::repositories::RepositoryError::Validation(message) if message == myoxus_application::auth::AuthError::ActionForbidden.to_string())
+  );
+  let (own_copy, _) = documents
+    .create_page_from_snapshot_with_sync_updates(workspace_id, user_id, Some("My own notes".into()), before.clone())
+    .await
+    .unwrap();
+  let copy_content = documents.load_full_doc(workspace_id, own_copy.id).await.unwrap();
+  let edit = yjs::update_document_title(&copy_content, "Edited own notes").unwrap();
+  documents
+    .push_update_raw(workspace_id, own_copy.id, edit, DocSpaceKind::Workspace)
+    .await
+    .expect("own copies stay editable");
   assert!(restarted.scan_drift(workspace_id).await.unwrap().is_empty());
   let again = restarted.reconcile_workspace_templates(workspace_id).await.unwrap();
   assert_eq!(
@@ -5984,7 +6015,7 @@ async fn inv_configured_guides_seed_once_and_preserve_reader_copies(pool: PgPool
   sqlx::raw_sql("CREATE FUNCTION myoxus_qa_reject_guide_rebind() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.workspace_doc_id IS DISTINCT FROM OLD.workspace_doc_id THEN RAISE EXCEPTION 'injected guide attachment failure' USING ERRCODE = '23514'; END IF; RETURN NEW; END $$; CREATE TRIGGER myoxus_qa_guide_rebind BEFORE UPDATE OF workspace_doc_id ON workspace_template_instances FOR EACH ROW EXECUTE FUNCTION myoxus_qa_reject_guide_rebind();")
     .execute(&pool).await.unwrap();
   let failed_copy = restarted
-    .apply_manual_update(workspace_id, edited.template_id, edited.revision_id)
+    .apply_manual_update(workspace_id, retained.template_id, retained.revision_id)
     .await
     .err()
     .unwrap();
@@ -6007,7 +6038,7 @@ async fn inv_configured_guides_seed_once_and_preserve_reader_copies(pool: PgPool
   assert_eq!(
     restarted
       .store()
-      .get_instance(edited.id)
+      .get_instance(retained.id)
       .await
       .unwrap()
       .unwrap()
@@ -6015,11 +6046,45 @@ async fn inv_configured_guides_seed_once_and_preserve_reader_copies(pool: PgPool
     Some(old_doc_id)
   );
   let new_copy = restarted
-    .apply_manual_update(workspace_id, edited.template_id, edited.revision_id)
+    .apply_manual_update(workspace_id, retained.template_id, retained.revision_id)
     .await
     .unwrap();
-  assert_eq!(new_copy.id, edited.id);
-  assert_ne!(new_copy.workspace_doc_id, edited.workspace_doc_id);
+  assert_eq!(new_copy.id, retained.id);
+  assert_ne!(new_copy.workspace_doc_id, retained.workspace_doc_id);
+  let guide_states: Vec<String> =
+    sqlx::query_scalar("SELECT state FROM document_template_state WHERE doc_id = ANY($1)")
+      .bind(vec![old_doc_id, new_copy.workspace_doc_id.unwrap()])
+      .fetch_all(&pool)
+      .await
+      .unwrap();
+  assert_eq!(
+    guide_states,
+    vec!["guide".to_string(), "guide".to_string()],
+    "both original and reinstalled reader copies keep their classification"
+  );
+  let candidates = myoxus_application::document_template::DocumentTemplateRepository::list_candidates(
+    &myoxus_infrastructure::document_metadata::PgDocumentMetadataRepository::new(pool.clone()),
+    workspace_id,
+    100,
+    0,
+  )
+  .await
+  .unwrap();
+  assert!(
+    candidates.is_empty(),
+    "introductions must never enter the reusable template inventory"
+  );
+  let index = myoxus_domain::repositories::DocumentMetadataPolicyRepository::list_metadata_index(
+    &myoxus_infrastructure::document_metadata_policy::PgDocumentMetadataPolicyRepository::new(pool.clone()),
+    workspace_id,
+  )
+  .await
+  .unwrap();
+  for doc in [old_doc_id, new_copy.workspace_doc_id.unwrap()] {
+    let row = index.iter().find(|row| row.doc_id == doc).unwrap();
+    assert!(row.is_template);
+    assert_eq!(row.template_state.as_deref(), Some("guide"));
+  }
   assert_eq!(
     new_copy.locale_hash.as_deref(),
     Some("en"),
@@ -6079,7 +6144,7 @@ async fn inv_configured_guides_seed_once_and_preserve_reader_copies(pool: PgPool
     .await
     .unwrap()
     .into_iter()
-    .find(|policy| policy.template_id == edited.template_id)
+    .find(|policy| policy.template_id == retained.template_id)
     .unwrap();
   let retained_new_copy = documents
     .load_full_doc(workspace_id, new_copy.workspace_doc_id.unwrap())
@@ -6104,7 +6169,7 @@ async fn inv_configured_guides_seed_once_and_preserve_reader_copies(pool: PgPool
   restarted
     .assign_template_to_workspace(
       workspace_id,
-      edited.template_id,
+      retained.template_id,
       SelectionMode::Published,
       None,
       ProvisioningMode::SeedOnce,
@@ -6114,7 +6179,7 @@ async fn inv_configured_guides_seed_once_and_preserve_reader_copies(pool: PgPool
   let reinstalled = restarted.reconcile_workspace_templates(workspace_id).await.unwrap();
   let fresh = reinstalled
     .iter()
-    .find(|instance| instance.template_id == edited.template_id)
+    .find(|instance| instance.template_id == retained.template_id)
     .unwrap();
   assert_ne!(fresh.workspace_doc_id, new_copy.workspace_doc_id);
   assert_eq!(
@@ -6125,7 +6190,7 @@ async fn inv_configured_guides_seed_once_and_preserve_reader_copies(pool: PgPool
     retained_new_copy
   );
   let final_states: i64 = sqlx::query_scalar(
-    "SELECT COUNT(*) FROM document_template_state t JOIN docs d ON d.id = t.doc_id WHERE d.workspace_id = $1",
+    "SELECT COUNT(*) FROM document_template_state t JOIN docs d ON d.id = t.doc_id WHERE d.workspace_id = $1 AND t.state <> 'guide'",
   )
   .bind(workspace_id)
   .fetch_one(&pool)

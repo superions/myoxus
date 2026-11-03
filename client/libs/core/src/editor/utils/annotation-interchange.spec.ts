@@ -49,7 +49,7 @@ import {
 import { clipboardConfigs } from "@virgultum/editor/foundation/clipboard";
 import { replace as replaceEditorMarkdown } from "../ai/utils/editor-actions";
 import { applyPatchToDoc } from "../ai/utils/apply-model/apply-patch-to-doc";
-import JSZip from "jszip";
+import { createZipFixture } from "../../__tests__/zip-fixture";
 import type {
   RootBlockModel,
   ParagraphBlockModel,
@@ -2406,12 +2406,13 @@ test.each(["file", "zip"] as const)(
         });
         return { diagnostics: result.diagnostics, docId: result.docId! };
       }
-      const zip = new JSZip();
-      zip.file("Source.md", source + "\n\n[[Second#Forward|forward]]");
-      zip.file("Second.md", "# Second\n\n## Forward\n\nBatch target.");
+      const zip = await createZipFixture([
+        ["Source.md", source + "\n\n[[Second#Forward|forward]]"],
+        ["Second.md", "# Second\n\n## Forward\n\nBatch target."],
+      ]);
       const result = await MarkdownTransformer.importMarkdownZip({
         ...options,
-        imported: await zip.generateAsync({ type: "blob" }),
+        imported: new Blob([zip]),
       });
       return {
         diagnostics: result.diagnostics,
@@ -3173,13 +3174,14 @@ test("actual file, block and general ZIP consumers preserve literal YAML-looking
     expect(
       store.getBlocksByFlavour("myoxus:annotation")[0].model.text!.toString(),
     ).toBe(body);
-    const zip = new JSZip();
-    zip.file("nested/Actual archive.md", markdown);
+    const zip = await createZipFixture([
+      ["nested/Actual archive.md", markdown],
+    ]);
     const archive = await MarkdownTransformer.importMarkdownZip({
       collection: workspace,
       schema: store.schema,
       extensions,
-      imported: new Blob([await zip.generateAsync({ type: "arraybuffer" })]),
+      imported: new Blob([zip]),
     });
     expect(archive.docIds).toHaveLength(1);
     expect(

@@ -2469,7 +2469,6 @@
   "admin.performance.field.compaction-lock-ttl.desc": "Блокування ущільнення TTL (секунди). Тайм-аут безпеки на випадок збою сервера під час ущільнення.",
   "admin.performance.field.compaction-threshold-default.desc": "Кількість оновлень, що очікують на розгляд, до запуску автоматичного стиснення. Типове значення: 500",
   "admin.performance.field.compaction-threshold-root-doc.desc": "Поріг автоущільнення для кореневих документів. Типове значення: 50",
-  "admin.performance.field.cron-tick-interval.desc": "Інтервал (у секундах) для циклу тиків планувальника cron. Типове значення: 60 · Мін.: 5 · Для повного ефекту може знадобитися перезапуск.",
   "admin.performance.field.daily-enabled.desc": "Увімкнути щоденний цикл автоматичного налаштування TTL.",
   "admin.performance.field.doc-metadata-cache-enabled.desc": "Увімкнути кеш метаданих Redis. Зменшує кількість запитів до БД для пошуку метаданих документів.",
   "admin.performance.field.doc-metadata-fixed-ttl.desc": "Виправлено перевизначення TTL для кешу doc_metadata (у секундах). 0 = використовувати автоналаштування.",

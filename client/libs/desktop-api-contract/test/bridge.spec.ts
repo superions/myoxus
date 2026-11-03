@@ -123,6 +123,12 @@ describe("getDesktopBridge", () => {
     expect(typeof bridge?.apis.ui.moveTab).toBe("function");
     expect(typeof bridge?.events.power["power-source"]).toBe("function");
     expect(bridge?.sharedStorage.globalState.ready).toBeInstanceOf(Promise);
+    const apis = createChannelSurface(clientHandlerChannelManifest);
+    Reflect.deleteProperty(Reflect.get(apis, "ui"), "saveExportFile");
+    Reflect.set(globalThis, "__apis", apis);
+    const publishedClient = getDesktopBridge();
+    expect(publishedClient?.apis.ui.saveExportFile).toBeUndefined();
+    expect(typeof publishedClient?.apis.ui.savePdf).toBe("function");
   });
 
   test("rejects malformed app metadata instead of treating it as browser mode", () => {

@@ -45,6 +45,9 @@ pub trait WorkspaceAutomationRuntime: Send + Sync {
   async fn wait_status(&self, key: WorkflowWaitKey) -> RuntimeResult<WorkflowWaitStatus>;
 
   async fn register_definition(&self, definition: AcceptedAutomationDefinition) -> RuntimeResult<()>;
+  /// Commit the native Review receipt and first engine snapshot together.
+  /// The frozen source, decision receipts and effects remain native-owned.
+  async fn accept_document_review(&self, run: AcceptedAutomationRun) -> RuntimeResult<WorkspaceAutomationRun>;
   /// Idempotent admission of the already persisted native identity. Redis is
   /// only a wake-up; accepted queued runs must also recover after restart.
   async fn ensure_started(&self, run: AcceptedAutomationRun) -> RuntimeResult<()>;
@@ -193,6 +196,7 @@ pub fn effect_input_fingerprint(
       }
     }
     Some(workflow) => workflow.stages.get(position as usize).is_some(),
+    None if run.recurring_task.is_some() => position == 0 && super::recurring_task::validate(run).is_ok(),
     None => run.definition.actions.iter().any(|action| action.position == position),
   };
   if !exists {

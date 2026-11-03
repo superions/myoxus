@@ -8,11 +8,15 @@ import {
   fetchRuntimeThemeCss,
   getBrandingThemeCssHref,
   getRuntimeWorkspaceIdFromPathname,
+  getRuntimeThemeProjectionSource,
+  subscribeRuntimeThemeProjection,
 } from "./runtime-projection";
 
 export {
   getBrandingThemeCssHref,
   getRuntimeWorkspaceIdFromPathname,
+  getRuntimeThemeProjectionSource,
+  subscribeRuntimeThemeProjection,
 } from "./runtime-projection";
 
 const BRANDING_NETWORK_RETRY_DELAYS_MS = [150, 600] as const;
@@ -74,7 +78,7 @@ export function reloadRuntimeTheme(
   subPath: string | undefined = globalThis.environment?.subPath,
   workspaceId: string | null | undefined = getRuntimeWorkspaceIdFromPathname(),
 ) {
-  void injectBrandingCSS(doc, subPath, workspaceId);
+  return injectBrandingCSS(doc, subPath, workspaceId);
 }
 
 export function ensureRuntimeThemeProjection(
@@ -91,13 +95,35 @@ export function startThemeAutoReload() {
   let lastReload = 0;
   const minReloadIntervalMs = 10_000;
   let lastWorkspaceId = getRuntimeWorkspaceIdFromPathname();
+  let recoveryTimer: ReturnType<typeof setTimeout> | undefined;
+  const clearRecovery = () => {
+    clearTimeout(recoveryTimer);
+    recoveryTimer = undefined;
+  };
+  const scheduleRecovery = () => {
+    clearRecovery();
+    if (
+      document.visibilityState === "visible" &&
+      getRuntimeThemeProjectionSource() === "unavailable"
+    ) {
+      // A failed request must recover even when the tab stays focused and online.
+      recoveryTimer = setTimeout(() => void reloadRuntimeTheme(), 15_000);
+    }
+  };
+  const unsubscribeProjection =
+    subscribeRuntimeThemeProjection(scheduleRecovery);
+  scheduleRecovery();
 
   const onVisibilityChange = () => {
     if (document.visibilityState !== "visible") {
+      clearRecovery();
       return;
     }
     const now = Date.now();
-    if (now - lastReload < minReloadIntervalMs) {
+    if (
+      getRuntimeThemeProjectionSource() !== "unavailable" &&
+      now - lastReload < minReloadIntervalMs
+    ) {
       return;
     }
     lastReload = now;
@@ -105,6 +131,8 @@ export function startThemeAutoReload() {
   };
 
   document.addEventListener("visibilitychange", onVisibilityChange);
+  const onOnline = () => void reloadRuntimeTheme();
+  window.addEventListener("online", onOnline);
 
   const reloadOnWorkspaceRouteChange = () => {
     const nextWorkspaceId = getRuntimeWorkspaceIdFromPathname();
@@ -151,6 +179,9 @@ export function startThemeAutoReload() {
   }
 
   return () => {
+    clearRecovery();
+    unsubscribeProjection();
+    window.removeEventListener("online", onOnline);
     document.removeEventListener("visibilitychange", onVisibilityChange);
     window.removeEventListener("popstate", reloadOnWorkspaceRouteChange);
     if (history.pushState === patchedPushState) {

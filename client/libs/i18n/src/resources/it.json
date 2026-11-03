@@ -2469,7 +2469,6 @@
   "admin.performance.field.compaction-lock-ttl.desc": "Blocco compattazione TTL (secondi). Timeout di sicurezza nel caso in cui un server si blocchi durante la compattazione.",
   "admin.performance.field.compaction-threshold-default.desc": "Numero di aggiornamenti in sospeso prima dell'attivazione della compattazione automatica. Predefinito: 500",
   "admin.performance.field.compaction-threshold-root-doc.desc": "Soglia di compattazione automatica per i documenti root. Predefinito: 50",
-  "admin.performance.field.cron-tick-interval.desc": "Intervallo (secondi) per il ciclo di tick dello scheduler cron. Predefinito: 60 · Min: 5 · Potrebbe richiedere il riavvio per ottenere l'effetto completo.",
   "admin.performance.field.daily-enabled.desc": "Abilita il ciclo di autotuning TTL giornaliero.",
   "admin.performance.field.doc-metadata-cache-enabled.desc": "Abilita la cache dei metadati Redis. Riduce le query DB per le ricerche sui metadati dei documenti.",
   "admin.performance.field.doc-metadata-fixed-ttl.desc": "Risolto il problema con l'override TTL per la cache doc_metadata (secondi). 0 = utilizza l'autotuning.",

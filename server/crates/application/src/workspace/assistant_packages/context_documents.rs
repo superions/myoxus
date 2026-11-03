@@ -40,6 +40,24 @@ pub fn context_documents_admission(plan: &AssistantPreparedContextDocuments) -> 
   }
 }
 impl AssistantPackageService {
+  pub async fn metadata_review_target(
+    &self,
+    actor: UserId,
+    workspace: WorkspaceId,
+  ) -> DatabaseResult<ContextDocumentTarget> {
+    let destination = self
+      .views
+      .task_destinations(actor, workspace, 1, None)
+      .await?
+      .default_destination
+      .ok_or_else(|| invalid("Workspace Tasks destination unavailable"))?;
+    let target = ContextDocumentTarget {
+      database_id: destination.database_id,
+      task_id: None,
+    };
+    self.context_document_context(actor, workspace, &target).await?;
+    Ok(target)
+  }
   pub async fn context_document_context(
     &self,
     actor: UserId,
@@ -741,6 +759,7 @@ impl AssistantPackageService {
       title,
       deadline_at,
       deadline_time_zone,
+      source_metadata_deadline: None,
       workflow,
       components: source.components.clone(),
       execution_available: self.context_workflows_enabled,

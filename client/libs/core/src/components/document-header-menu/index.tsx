@@ -7,6 +7,7 @@ import {
 import { useGuard } from "@myoxus/core/components/guard";
 import { useDocumentOperations } from "@myoxus/core/components/hooks/myoxus/use-document-operations";
 import { useEnableServer } from "@myoxus/core/components/hooks/myoxus/use-enable-server";
+import { useSystemOnline } from "@myoxus/core/components/hooks/use-system-online";
 import { useExportPage } from "@myoxus/core/components/hooks/myoxus/use-export-page";
 import { Export, Import, MoveToTrash } from "@myoxus/core/components/page-list";
 import { WorkbenchToolsMenuSub } from "@myoxus/core/components/workbench-tools-menu";
@@ -15,6 +16,7 @@ import { EditorService } from "@myoxus/core/modules/editor";
 import { MermaidDiagramsService } from "@myoxus/core/modules/mermaid-diagrams";
 import { OpenInAppService } from "@myoxus/core/modules/open-in-app/services";
 import { GuardService } from "@myoxus/core/modules/permissions";
+import { WorkspaceServerService } from "@myoxus/core/modules/server";
 import { ShareMenuContent } from "@myoxus/core/modules/share-menu";
 import { WorkbenchService } from "@myoxus/core/modules/workbench";
 import { WorkspaceService } from "@myoxus/core/modules/workspace";
@@ -200,6 +202,15 @@ const PageHeaderMenuItem = ({
   const guardService = useService(GuardService);
   const editorService = useService(EditorService);
   const currentMode = useLiveData(editorService.editor.mode$);
+  const owningServer = useLiveData(useService(WorkspaceServerService).server$);
+  const online = useSystemOnline();
+  const canReadSource = useGuard("Doc_Read", page.id);
+  const docxUnavailableReason =
+    workspace.flavour === "local" || !owningServer || !online
+      ? t["com.myoxus.export.word.unavailable"]()
+      : canReadSource === false
+        ? t["com.myoxus.no-permission"]()
+        : undefined;
   const workbench = useService(WorkbenchService).workbench;
   const mermaidDiagramsService = useService(MermaidDiagramsService);
   const isMermaidDiagram = useLiveData(
@@ -383,6 +394,7 @@ const PageHeaderMenuItem = ({
         exportHandler={exportHandler}
         pageMode={currentMode}
         isMermaidDiagram={isMermaidDiagram}
+        docxUnavailableReason={docxUnavailableReason}
       />
       <MenuSeparator />
       <MoveToTrash

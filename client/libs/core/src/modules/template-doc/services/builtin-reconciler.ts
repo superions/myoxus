@@ -264,25 +264,18 @@ export class BuiltinTemplateReconcilerService extends Service {
         // A delivery binding suppresses automatic recreation after a reader
         // deletes a guide. Neither language nor bundle changes refresh copies.
         if (nextMap[slug]) continue;
-        const response = await fetch(
-          `${environment.publicPath}document-bundles/${bundle.asset}`,
+        const selected = await readNativeTemplateBundle(
+          bundle,
+          locale,
+          async (asset) => {
+            const response = await fetch(
+              `${environment.publicPath}document-bundles/${asset}`,
+            );
+            if (!response.ok)
+              throw new Error("Native document payload is unavailable");
+            return new Uint8Array(await response.arrayBuffer());
+          },
         );
-        if (!response.ok)
-          throw new Error("Native document bundle is unavailable");
-        const bytes = new Uint8Array(await response.arrayBuffer());
-        const digest = await crypto.subtle.digest("SHA-256", bytes);
-        const hash = [...new Uint8Array(digest)]
-          .map((value) => value.toString(16).padStart(2, "0"))
-          .join("");
-        if (hash !== bundle.sha256)
-          throw new Error("Native document bundle asset checksum mismatch");
-        const selected = await readNativeTemplateBundle(bytes, locale);
-        if (
-          selected.manifest.template_id !== slug ||
-          selected.manifest.version !== bundle.version
-        ) {
-          throw new Error("Native document bundle identity mismatch");
-        }
         const imported = await this.docsService.importNativeTemplateDoc(
           selected.content,
           selected.title,

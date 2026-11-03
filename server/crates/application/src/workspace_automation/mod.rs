@@ -11,6 +11,7 @@
 pub mod handover;
 pub mod maintenance;
 mod native_actions;
+pub mod recurring_task;
 pub mod review;
 pub mod runtime;
 pub mod setup;
@@ -264,6 +265,7 @@ impl WorkspaceAutomationService {
         | myoxus_domain::workspace_automation::WorkspaceAutomationRunOrigin::DocumentReview { .. }
         | myoxus_domain::workspace_automation::WorkspaceAutomationRunOrigin::TaskHandover { .. }
         | myoxus_domain::workspace_automation::WorkspaceAutomationRunOrigin::TaskMaintenance { .. }
+        | myoxus_domain::workspace_automation::WorkspaceAutomationRunOrigin::RecurringTask { .. }
     ) && run.accepted.as_ref().and_then(|accepted| accepted.actor_id) == Some(actor))
       || run
         .accepted
@@ -902,6 +904,7 @@ impl WorkspaceAutomationService {
         (freeze_definition(automation.actions.clone(), policy)?, None, None)
       };
       let accepted = AcceptedAutomationRun {
+        recurring_task: None,
         workspace_setup: None,
         run_id,
         automation_id: Some(automation.id),

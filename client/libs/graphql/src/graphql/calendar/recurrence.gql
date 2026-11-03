@@ -1,0 +1,12 @@
+fragment CalendarRecurrenceFields on CalendarRecurrence {
+  id
+  revision
+  zone
+  lifecycle
+  endsBefore
+  pausedAt
+  readOnly
+  unsupportedReason
+  sourceRrule
+  rule { ...RecurrenceRuleFields }
+}

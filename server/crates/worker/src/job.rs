@@ -87,18 +87,9 @@ pub struct Job {
   pub return_value: Option<serde_json::Value>,
 }
 
-/// BullMQ-compatible repeat options for cron/interval jobs.
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct JobRepeatOpts {
-  /// Cron expression (e.g. `"0 0 * * *"` for daily at midnight).
-  pub cron: Option<String>,
-  /// Repeat interval in milliseconds (alternative to cron).
-  pub every_ms: Option<u64>,
-  /// BullMQ repeat job ID (format: `repeat:{name}:{nextRunMs}`).
-  pub job_id: Option<String>,
-}
-
 /// Options controlling job execution behaviour.
+/// Historical queued `repeat` metadata is deliberately ignored by serde;
+/// only the stopped-owner importer reads it, never native execution timing.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JobOptions {
   /// Maximum number of attempts before the job is moved to the failed set.
@@ -110,9 +101,6 @@ pub struct JobOptions {
   /// Optional delay in milliseconds before the job becomes available.
   #[serde(rename = "delayMs")]
   pub delay_ms: Option<i64>,
-  /// Repeat options for cron/interval recurring jobs.
-  #[serde(default)]
-  pub repeat: Option<JobRepeatOpts>,
 }
 
 fn default_max_attempts() -> i32 {
@@ -125,7 +113,6 @@ impl Default for JobOptions {
       max_attempts: default_max_attempts(),
       backoff: BackoffStrategy::default(),
       delay_ms: None,
-      repeat: None,
     }
   }
 }

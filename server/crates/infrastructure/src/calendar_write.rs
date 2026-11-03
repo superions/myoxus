@@ -68,7 +68,7 @@ fn build_vcal(input: &RemoteEventInput) -> String {
     description_delta: None,
     location: input.location.clone(),
     source_doc_id: None,
-    all_day: false,
+    all_day: input.extra_payload["allDay"].as_bool().unwrap_or(false),
     all_members: false,
     tag_id: None,
     recurrence_parent_id: None,
@@ -85,24 +85,27 @@ fn build_vcal(input: &RemoteEventInput) -> String {
 // ─── Google Calendar write helper ─────────────────────────────────────────────
 
 fn build_google_body(input: &RemoteEventInput) -> GoogleEventBody {
+  let all_day = input.extra_payload["allDay"].as_bool().unwrap_or(false);
+  let zone = input.extra_payload["originalTimezone"].as_str().map(str::to_owned);
+  let recurrence = myoxus_domain::scheduling::calendar::recurrence_lines(&input.extra_payload, all_day);
   GoogleEventBody {
     summary: input.title.clone(),
     description: input.description.clone(),
     location: input.location.clone(),
     start: GoogleDateTime {
-      date_time: Some(input.starts_at.to_rfc3339()),
-      date: None,
-      time_zone: None,
+      date_time: (!all_day).then(|| input.starts_at.to_rfc3339()),
+      date: all_day.then(|| input.starts_at.format("%Y-%m-%d").to_string()),
+      time_zone: zone.clone(),
     },
     end: GoogleDateTime {
-      date_time: Some(input.ends_at.to_rfc3339()),
-      date: None,
-      time_zone: None,
+      date_time: (!all_day).then(|| input.ends_at.to_rfc3339()),
+      date: all_day.then(|| input.ends_at.format("%Y-%m-%d").to_string()),
+      time_zone: zone,
     },
     attendees: vec![],
-    recurrence: vec![],
+    recurrence,
     reminders: None,
-    status: None,
+    status: input.extra_payload["status"].as_str().map(str::to_ascii_lowercase),
     transparency: None,
   }
 }
@@ -346,5 +349,60 @@ pub mod api_adapter {
       .find('/')
       .map(|i| (&remote_href[..i], &remote_href[i + 1..]))
       .unwrap_or(("primary", remote_href))
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn google_writeback_preserves_standard_recurrence_and_date_kind() {
+    for all_day in [false, true] {
+      let start = if all_day {
+        "2031-03-23T00:00:00Z"
+      } else {
+        "2031-03-23T08:00:00Z"
+      }
+      .parse()
+      .unwrap();
+      let source_exdate = if all_day {
+        "EXDATE;VALUE=DATE:20310330"
+      } else {
+        "EXDATE;TZID=Europe/Berlin:20310330T090000"
+      };
+      let input = RemoteEventInput {
+        account_id: Uuid::new_v4(),
+        calendar_id: "primary".into(),
+        uid: Uuid::new_v4().to_string(),
+        starts_at: start,
+        ends_at: start
+          + if all_day {
+            chrono::Duration::days(1)
+          } else {
+            chrono::Duration::hours(1)
+          },
+        title: Some("Series".into()),
+        description: None,
+        location: None,
+        extra_payload: serde_json::json!({"allDay":all_day,"originalTimezone":"Europe/Berlin","status":"CANCELLED","rrule":"FREQ=WEEKLY;COUNT=4","sourceRecurrence":[source_exdate],"exdates":["2031-04-06T07:00:00+00:00"]}),
+      };
+      let body = build_google_body(&input);
+      assert!(body.recurrence.contains(&"RRULE:FREQ=WEEKLY;COUNT=4".to_owned()));
+      assert!(body.recurrence.contains(&source_exdate.to_owned()));
+      assert!(body.recurrence.contains(&if all_day {
+        "EXDATE;VALUE=DATE:20310406".to_owned()
+      } else {
+        "EXDATE:20310406T070000Z".to_owned()
+      }));
+      assert_eq!(body.status.as_deref(), Some("cancelled"));
+      assert_eq!(body.start.time_zone.as_deref(), Some("Europe/Berlin"));
+      assert_eq!(body.start.date_time.is_some(), !all_day);
+      assert_eq!(
+        body.start.date.as_deref(),
+        if all_day { Some("2031-03-23") } else { None }
+      );
+      assert_eq!(body.end.date_time.is_some(), !all_day);
+    }
   }
 }

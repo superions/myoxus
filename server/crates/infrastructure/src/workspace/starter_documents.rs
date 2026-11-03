@@ -228,6 +228,7 @@ impl SqlxWorkspaceStore {
       .execute(&mut *tx).await.map_err(Self::map_db_err)?;
     let run_id = accepted.run_id.ok_or(ProjectStarterError::Conflict)?;
     let run = myoxus_domain::workspace_automation::AcceptedAutomationRun {
+      recurring_task: None,
       workspace_setup: None,
       run_id,
       automation_id: None,

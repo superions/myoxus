@@ -62,6 +62,7 @@ export function TaskDetail({
   onChanged,
   onOpenDoc,
   onOpenProject,
+  onOpenTask,
   focusDue,
   onDueFocused,
 }: {
@@ -72,6 +73,7 @@ export function TaskDetail({
   onChanged: DatabaseChangeHandler;
   onOpenDoc: (docId: string) => void;
   onOpenProject: (databaseId: string) => void;
+  onOpenTask?: (databaseId: string, rowId: string) => void;
 }) {
   const t = useI18n();
   // Native Row children use the existing query/variables keys. Their cache
@@ -256,6 +258,7 @@ export function TaskDetail({
                 onChanged={refresh}
                 onOpenDoc={onOpenDoc}
                 onOpenProject={onOpenProject}
+                onOpenTask={onOpenTask}
                 onPresentationReady={focusDueEditor}
                 focusDue={focusDue}
               />
@@ -276,6 +279,7 @@ function ResolvedTaskDetail({
   onChanged,
   onOpenDoc,
   onOpenProject,
+  onOpenTask,
   onPresentationReady,
   focusDue,
 }: {
@@ -286,6 +290,7 @@ function ResolvedTaskDetail({
   onChanged: DatabaseChangeHandler;
   onOpenDoc: (docId: string) => void;
   onOpenProject: (databaseId: string) => void;
+  onOpenTask?: (databaseId: string, rowId: string) => void;
   onPresentationReady: () => void;
   focusDue?: number;
 }) {
@@ -418,6 +423,7 @@ function ResolvedTaskDetail({
         />
       ) : null}
       <DatabaseResolvedRowDetailPeekBody
+        onOpenTask={onOpenTask}
         headerActions={
           <DatabaseRowActionMenu
             row={row}

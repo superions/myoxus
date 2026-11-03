@@ -28,7 +28,6 @@ pub mod projection;
 pub mod reconcile;
 pub mod reconciliation;
 pub mod remote_commit;
-pub mod schedule;
 pub mod webhook;
 
 pub use backend::{

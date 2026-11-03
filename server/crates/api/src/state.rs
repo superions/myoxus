@@ -253,6 +253,8 @@ pub struct ServiceRegistry {
   /// Server-authoritative Database capability owners. Optional only for narrow
   /// tests that do not execute the GraphQL surface.
   pub(crate) database_services: Option<Arc<DatabaseServices>>,
+  /// Same native owner as scheduling, independent of optional Automations.
+  pub(crate) task_recurrence_service: Option<Arc<myoxus_application::recurrence::TaskRecurrenceService>>,
   pub(crate) assistant_packages:
     Option<Arc<myoxus_application::workspace::assistant_packages::AssistantPackageService>>,
   /// Workspace-visible Database activity reader. It is retained separately
@@ -727,6 +729,7 @@ impl ApiState {
         .expect("ApiState requires a constructible policy-bound TLS client"),
         template_registry_service: None,
         database_services: None,
+        task_recurrence_service: None,
         assistant_packages: None,
         database_activity_recorder: None,
         workspace_import_service: None,
@@ -937,6 +940,7 @@ impl ApiState {
         .expect("ApiState requires a constructible policy-bound TLS client"),
         template_registry_service: None,
         database_services: None,
+        task_recurrence_service: None,
         assistant_packages: None,
         database_activity_recorder: None,
         workspace_import_service: None,
@@ -1038,6 +1042,10 @@ impl ApiState {
         self.services.database_activity_recorder.is_none(),
       ),
       ("database_services", self.services.database_services.is_none()),
+      (
+        "task_recurrence_service",
+        self.services.task_recurrence_service.is_none(),
+      ),
       ("document_graph_service", self.services.document_graph_service.is_none()),
       (
         "document_metadata_policy_repo",
@@ -1966,6 +1974,18 @@ impl ApiState {
 
   pub fn database_services(&self) -> Option<Arc<DatabaseServices>> {
     self.services.database_services.clone()
+  }
+
+  pub fn with_task_recurrence_service(
+    mut self,
+    service: Arc<myoxus_application::recurrence::TaskRecurrenceService>,
+  ) -> Self {
+    self.services.task_recurrence_service = Some(service);
+    self
+  }
+
+  pub fn task_recurrence_service(&self) -> Option<Arc<myoxus_application::recurrence::TaskRecurrenceService>> {
+    self.services.task_recurrence_service.clone()
   }
 
   pub fn with_workspace_import_service(mut self, service: Arc<WorkspaceImportService>) -> Self {
@@ -2898,6 +2918,7 @@ oauth:
         "redis_queue",
         "search_indexer",
         "search_repository",
+        "task_recurrence_service",
         "template_registry_service",
         "workspace_automation_service",
         "workspace_content_cluster_coordinator",

@@ -4,6 +4,7 @@ import { GuardService } from "@myoxus/core/modules/permissions";
 import { useLiveData, useService } from "@myoxus/infra";
 import { useContextDocumentMenu } from "../assistance/context";
 import { DocumentReviewTask } from "../assistance/document-review";
+import { TaskRecurrenceControl } from "../../recurrence/task-recurrence";
 import { InlineMemberList } from "@myoxus/core/components/member-selector/inline-member-list";
 import { isWorkspaceTagColorRole } from "@myoxus/core/modules/tag";
 import { useRegionalPreferences } from "@myoxus/core/components/hooks/myoxus/use-user-preferences";
@@ -15,6 +16,7 @@ import {
   AssistantGroupRole,
   DatabaseFieldKind,
   DatabaseProfileKind,
+  DatabaseStatusGroup,
   databaseRowActivityQuery,
   deleteDatabaseRowMutation,
 } from "@myoxus/graphql";
@@ -739,6 +741,7 @@ type DatabaseRowDetailBodyProps = {
   /** Runs after an admitted managed presentation has mounted its native editors. */
   onPresentationReady?: () => void;
   focusDue?: number;
+  onOpenTask?: (databaseId: string, rowId: string) => void;
   record: DatabaseRecord;
   row: DatabaseRowRecord;
   rows: DatabaseRowRecord[];
@@ -867,6 +870,7 @@ function ManagedDatabaseRowDetailBody({
   onChanged,
   onPresentationReady,
   focusDue,
+  onOpenTask,
   record,
   row,
   rows,
@@ -1556,20 +1560,61 @@ function ManagedDatabaseRowDetailBody({
         ) : null}
         <Stack data-testid="database-row-detail-fields">
           {statusField ? renderPropertyRows([], true) : null}
-          {metadataFields.length ? (
+          {metadataFields.length || dueField ? (
             <Group>
-              {metadataFields.map((field) => (
-                <Group key={field.id} wrap="nowrap">
-                  {renderFieldValue(field, true)}
-                  {field.id === dueField?.id && field.id !== activeFieldId ? (
-                    <DatabaseReminderControl
-                      field={field}
-                      record={record}
-                      row={row}
-                    />
+              {metadataFields
+                .filter((field) => field.id !== dueField?.id)
+                .map((field) => (
+                  <Group key={field.id} wrap="nowrap">
+                    {renderFieldValue(field, true)}
+                  </Group>
+                ))}
+              {dueField ? (
+                <Group wrap="nowrap">
+                  {metadataFields.some((field) => field.id === dueField.id) ? (
+                    <>
+                      {renderFieldValue(dueField, true)}
+                      {dueField.id !== activeFieldId ? (
+                        <DatabaseReminderControl
+                          field={dueField}
+                          record={record}
+                          row={row}
+                        />
+                      ) : null}
+                    </>
                   ) : null}
+                  {/* Keep this owner mounted when adoption fills an absent Due,
+                      so native Modal focus returns to the same stable trigger. */}
+                  <TaskRecurrenceControl
+                    record={record}
+                    row={row}
+                    onOpenTask={onOpenTask}
+                    onRequestOpen={(open) =>
+                      withEditorLeave(() => {
+                        setActiveFieldId(null);
+                        setDetailEditor("close");
+                        open();
+                      })
+                    }
+                    onEditOccurrence={
+                      canEdit
+                        ? () =>
+                            openField(
+                              dueField,
+                              propertyTriggers.current.get(dueField.id),
+                            )
+                        : undefined
+                    }
+                    canConfigure={
+                      canEdit &&
+                      statusKnown &&
+                      status?.group !== DatabaseStatusGroup.Complete &&
+                      status?.group !== DatabaseStatusGroup.Archived
+                    }
+                    onChanged={onChanged}
+                  />
                 </Group>
-              ))}
+              ) : null}
             </Group>
           ) : null}
           {activeMetadataField ? (
@@ -1978,6 +2023,7 @@ export function DatabaseResolvedRowDetailPeekBody({
   onOpenDoc,
   onPresentationReady,
   focusDue,
+  onOpenTask,
   headerActions,
   restoreAction,
   record,
@@ -2013,6 +2059,7 @@ export function DatabaseResolvedRowDetailPeekBody({
       onChanged={onChanged}
       onPresentationReady={onPresentationReady}
       focusDue={focusDue}
+      onOpenTask={onOpenTask}
       record={record}
       row={row}
       rows={rows}

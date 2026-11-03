@@ -394,12 +394,16 @@ fn admin_workspaces_git_sync_filters_and_fields_are_db_backed() {
     let profile_id = Uuid::new_v4();
     let next_scheduled_at = Utc::now() + chrono::Duration::hours(1);
     sqlx::query(
-      r#"INSERT INTO git_sync_profiles
+      r#"WITH profile AS (INSERT INTO git_sync_profiles
        (id, workspace_id, owner_id, repo_url, branch, root_path, sync_direction,
         trigger_mode, cron_expression, cron_timezone, cron_misfire_policy,
-        cron_next_scheduled_at, auth_method, enabled)
+         auth_method, enabled)
        VALUES ($1, $2, $3, $4, 'main', 'content/', 'Bidirectional', 'Cron',
-               '0 * * * *', 'UTC', 'Skip', $5, 'HttpsToken', TRUE)"#,
+                '0 * * * *', 'UTC', 'Skip', 'HttpsToken', TRUE) RETURNING id)
+       INSERT INTO scheduling_schedules(id,workspace_id,actor_id,admission_zone,target_json,next_nominal,next_due_at,next_admission_at)
+       SELECT id,$2,$3,'UTC',jsonb_build_object('kind','git_cron','profile_id',id),
+         jsonb_build_object('kind','local_date_time','value',to_char($5::timestamptz AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US')),$5,$5
+       FROM profile"#,
     )
     .bind(profile_id)
     .bind(ws_with_sync)

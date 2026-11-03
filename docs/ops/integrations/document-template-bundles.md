@@ -403,6 +403,21 @@ Author or edit the native document, export the bundle, and publish a new semanti
 version for any content change. Regenerate offline assets with
 `node build/scripts/templates/generate-document-bundles.mjs` and verify the
 result with `templates.native-assets`, which runs the same command plus `--check`. Keep earlier published ZIP bytes immutable.
+
+Offline native clients do not open these ZIPs at runtime. The generator uses
+pinned build-only `@zip.js/zip.js` 2.24.0 to verify archive signatures/CRC, bounded
+paths/output and every declared locale checksum. It emits content-addressed
+direct payloads and assets under `client/libs/core/public/document-bundles/`
+and records their hashes and actual `yjs`/`snapshot` encoding in the generated
+index. A `.template.zip` filename is not an encoding discriminator.
+
+The native consumer captures its language choice once, with regional/base/default
+fallback, verifies that payload and its assets, then enters the same native
+document lifecycle. Snapshot assets are rebound to hash-addressed local blob
+keys before creation is published. No shared source, authored delta or image
+byte is rewritten. Existing delivery bindings still suppress reseeding deleted
+copies; language changes do not refresh existing documents. The source ZIPs
+remain the Registry publication format, not client parsing dependencies.
 Historical builder protocol fields remain only for deployed-client and persisted
 cutover compatibility; current clients neither complete builders nor expose
 builder-version actions.

@@ -66,6 +66,7 @@ import {
   transitionDocumentStatus,
 } from "./api";
 import { DocumentMetadataCacheService } from "./services/document-metadata-cache";
+import { DocumentReviewPlanningAction } from "./review-planning";
 import type {
   CanonicalMetadataKey,
   DocumentMetadataModel,
@@ -1495,6 +1496,7 @@ export function DocumentMetadataDetails({
   const t = useI18n();
   const contentId = useId();
   const {
+    docId,
     model,
     loading,
     savingKey,
@@ -1542,6 +1544,14 @@ export function DocumentMetadataDetails({
       justify="flex-end"
       wrap="wrap"
     >
+      {model ? (
+        <DocumentReviewPlanningAction
+          docId={docId}
+          model={model}
+          readonly={readonly}
+          onChanged={load}
+        />
+      ) : null}
       <Button
         data-myoxus-ui-role="button:compact"
         disabled={loading}

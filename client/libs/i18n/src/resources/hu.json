@@ -1269,7 +1269,6 @@
   "admin.performance.field.compaction-lock-ttl.desc": "Tömörítési zár TTL (másodperc). Biztonsági időtúllépés arra az esetre, ha egy szerver összeomlik tömörítés közben.",
   "admin.performance.field.compaction-threshold-default.desc": "Függőben lévő frissítések száma az automatikus tömörítés elindulása előtt. Alapértelmezett: 500",
   "admin.performance.field.compaction-threshold-root-doc.desc": "Automatikus tömörítési küszöb a gyökérdokumentumokhoz. Alapértelmezett: 50",
-  "admin.performance.field.cron-tick-interval.desc": "Intervallum (másodperc) a cron ütemező tick hurokhoz. Alapértelmezett: 60 · Min: 5 · A teljes hatáshoz újraindítás szükséges lehet.",
   "admin.performance.field.daily-enabled.desc": "Napi TTL automatikus hangolási ciklus engedélyezése.",
   "admin.performance.field.doc-metadata-cache-enabled.desc": "Redis metaadat gyorsítótár engedélyezése. Csökkenti az adatbázis-lekérdezéseket a dokumentum metaadat-kereséseknél.",
   "admin.performance.field.doc-metadata-fixed-ttl.desc": "Rögzített TTL felülbírálás a doc_metadata gyorsítótárhoz (másodperc). 0 = automatikus hangolás használata.",

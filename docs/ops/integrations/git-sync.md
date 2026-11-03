@@ -214,11 +214,15 @@ The REST adapter uses supported system trust roots plus the same validated
 explicit diagnostic exception, token rotation has no
 `insecure_no_verify` mode. Repository URLs must be credential-free HTTPS URLs.
 
-Automatic due checks reuse the existing per-minute `git-sync.scheduleTick` and
-the existing `git-sync` queue. There is no token-specific Cron, queue, runner,
-or repeat job. PostgreSQL admits one attempt; the queue payload contains only
-the profile and attempt UUIDs. A worker redelivery is not sent to GitLab again:
-an attempt still marked `Rotating` becomes `ManualIntervention`.
+Automatic rotation uses a shared expiry-derived one-shot, not the retired
+`git-sync.scheduleTick` or a native due-list sweep. PostgreSQL atomically admits
+one native attempt and its existing outbox handoff. The existing `git-sync`
+queue payload still contains only the profile and attempt UUIDs. Lost enqueue
+ACKs and Redis recovery use the same deterministic job without resetting its
+attempts/backoff. There is no provider-specific Cron, queue or runner. A worker
+redelivery is not sent to GitLab again: an attempt still marked `Rotating`
+becomes `ManualIntervention`. See the
+[controlled transfer](../runbooks/sync-and-workers.md#git-rotation-and-tick-retirement).
 
 The provider-neutral operator commands are:
 
@@ -320,6 +324,15 @@ interval is measured against the last run activity, including failed,
 cancelled, pending and running runs, so a rapidly failing profile is not
 immediately re-enqueued in a tight loop.
 
+Shared scheduling owns the interval cursor. Its `GitPolling` target is unique
+per native profile; `activity_at` tracks the later start/finish time and
+`next_due_at` adds the native interval. Both facts advance in the same transaction
+as Run activity, including manual execution and failure. A profile with no Run
+starts due immediately. Existing Pending/Running Runs or credential rotation
+block new automatic admission; recovered Runs keep their existing queue identity
+and retry/backoff instead of creating another Run. There is no separate polling
+selection loop. See the [controlled transfer](../runbooks/sync-and-workers.md#git-polling-scheduling-cutover).
+
 `pollingIntervalSecs` must be positive. The API rejects invalid profiles and
 the database prevents an invalid polling profile from being enabled.
 
@@ -355,6 +368,15 @@ GraphQL/CLI sync remains available for Cron profiles and does not mutate the
 schedule.
 
 #### Configure and verify cron in Admin
+
+Cron cursor state lives in `scheduling_schedules`, joined by profile ID:
+`next_due_at` is the next scheduled UTC slot, and `pending_due_at` is the latest
+retained RunOnce slot. Existing API/CLI/Admin next/pending fields are projections;
+the rule, enabled state and misfire policy stay native. Shared bounded admission
+commits the native Run and outbox handoff atomically. Queue outages retain that
+intent; retries reuse the native Run's deterministic job and payload. A running
+or pending Run or credential rotation still excludes another automatic Run.
+See the [controlled cutover](../runbooks/sync-and-workers.md#git-cron-scheduling-cutover).
 
 Use **Admin → Git Sync → Profiles** at
 `/adminfrontend/git-sync?tab=profiles` for profile authoring:

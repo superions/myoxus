@@ -1029,6 +1029,12 @@ impl DocService {
     self
   }
 
+  /// The configured snapshot ingress limit also applies to template and DOCX
+  /// page creation; check it before writing assets that would be left unused.
+  pub fn snapshot_ingress_max_bytes(&self) -> usize {
+    self.external_update_ingress_policy.max_update_bytes
+  }
+
   /// Attach the existing server-wide metrics service to external ingress
   /// rejection accounting. No feature-local recorder is created.
   pub fn with_metrics_service(mut self, metrics: Arc<crate::metrics::MetricsService>) -> Self {
@@ -1388,10 +1394,25 @@ impl DocService {
     title: Option<String>,
     source_snapshot: Vec<u8>,
   ) -> AuthResult<(Doc, CreatedPageSyncUpdates)> {
+    self
+      .create_page_from_snapshot_with_purpose(workspace_id, created_by, title, source_snapshot, None)
+      .await
+  }
+
+  /// Registry materialization supplies its purpose to the atomic leaf/root commit.
+  #[instrument(skip(self, title, source_snapshot))]
+  pub(crate) async fn create_page_from_snapshot_with_purpose(
+    &self,
+    workspace_id: Uuid,
+    created_by: Uuid,
+    title: Option<String>,
+    source_snapshot: Vec<u8>,
+    source_purpose: Option<crate::template_registry::bundle::TemplatePurpose>,
+  ) -> AuthResult<(Doc, CreatedPageSyncUpdates)> {
     let (source_snapshot, _) = self.write.validate_snapshot_ingress(source_snapshot).await?;
     let committed = self
       .page_lifecycle
-      .create_from_snapshot(workspace_id, created_by, title, source_snapshot)
+      .create_from_snapshot(workspace_id, created_by, title, source_snapshot, source_purpose)
       .await?;
     let leaf = committed
       .leaf

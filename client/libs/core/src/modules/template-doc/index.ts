@@ -5,6 +5,7 @@ import { TemplateInputPromptService } from "./services/template-input-prompt";
 
 import { WorkspaceDBService } from "../db";
 import { DocsService } from "../doc";
+import { DocumentMetadataCacheService } from "../document-metadata/services/document-metadata-cache";
 import { GuardService } from "../permissions";
 import { DefaultServerService, WorkspaceServerService } from "../server";
 import { WorkspaceScope, WorkspaceService } from "../workspace";
@@ -55,6 +56,7 @@ export const configureTemplateDocModule = (framework: Framework) => {
       WorkspaceServerService,
       DefaultServerService,
       BuiltinTemplateReconcilerService,
+      DocumentMetadataCacheService,
     ])
     .service(TemplateCheckService, [DocsService, TemplateDocService])
     .service(TemplateInstantiationService, [DocsService, TemplateDocService])

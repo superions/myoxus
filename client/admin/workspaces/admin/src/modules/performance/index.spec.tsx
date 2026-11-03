@@ -32,12 +32,21 @@ const tMock = vi.fn((key: string, options?: Record<string, unknown>) => {
 });
 
 vi.mock("@myoxus/i18n", () => ({
-  useI18n: () => ({
-    t: tMock,
-    exists: (key: string) => key in translations,
-    language: "en",
-    changeLanguage: () => Promise.resolve(),
-  }),
+  useI18n: () =>
+    new Proxy(
+      {
+        t: tMock,
+        exists: (key: string) => key in translations,
+        language: "en",
+        changeLanguage: () => Promise.resolve(),
+      },
+      {
+        get: (target, key: string) =>
+          key in target
+            ? target[key as keyof typeof target]
+            : (values?: Record<string, unknown>) => tMock(key, values),
+      },
+    ),
 }));
 
 const mutations = vi.hoisted(() => ({
@@ -141,9 +150,7 @@ const config = {
       indexer_auto_index_interval_ms: 30_000,
       document_graph_reindex_interval_ms: 30_000,
       database_projection_interval_ms: 30_000,
-      database_reminder_interval_ms: 60_000,
       workspace_automation_retry_interval_ms: 30_000,
-      calendar_reminder_interval_ms: 60_000,
     },
     cron_tick_interval_seconds: 60,
   },
@@ -176,7 +183,6 @@ const config = {
     max_reindex_attempts: 5,
   },
   databases: {
-    reminder_batch_size: 100,
     max_reminders_per_user_per_cell: 5,
     max_reminder_offset_minutes: 525_600,
   },

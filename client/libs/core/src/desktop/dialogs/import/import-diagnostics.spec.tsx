@@ -2,11 +2,29 @@
 /** @vitest-environment happy-dom */
 
 import { MyoxusUIProvider } from "@myoxus/ui-facade/provider";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, fireEvent } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 vi.mock("@myoxus/i18n", () => ({
   useI18n: () => ({
+    language: "en",
+    "com.myoxus.conversion.limited": () => "Completed with limitations",
+    "com.myoxus.conversion.best-effort": () =>
+      "Unsupported Word content may be omitted.",
+    "com.myoxus.conversion.details": () => "Conversion details",
+    "com.myoxus.conversion.feature.tables": () => "Tables",
+    "com.myoxus.conversion.feature.images": () => "Images and diagrams",
+    "com.myoxus.conversion.feature.notes": () => "Notes",
+    "com.myoxus.conversion.feature.files": () => "Files and external content",
+    "com.myoxus.conversion.normalized": ({ count }: { count: string }) =>
+      `${count} recognized normalizations`,
+    "com.myoxus.conversion.omitted": ({ count }: { count: string }) =>
+      `${count} recognized omissions`,
+    "com.myoxus.database.document_link.open": () => "Open document",
+    "com.myoxus.import.word.unknown-title": () => "Import outcome unknown",
+    "com.myoxus.import.word.unknown": () =>
+      "The document may already exist. Check workspace contents before importing again.",
+    "All content": () => "All content",
     "com.myoxus.markdown.math-diagnostics": ({ count }: { count: string }) =>
       `${count} source-preserved formulas`,
     "com.myoxus.import.status.success.title": () => "Import completed",
@@ -28,8 +46,84 @@ vi.mock("@myoxus/i18n", () => ({
 }));
 
 import { SuccessStatus } from ".";
+import { DocxImportStatus } from "./docx-result";
 
 afterEach(cleanup);
+
+test("Word completion exposes grouped observed loss, while unknown creation offers inspection rather than retry", () => {
+  const inspect = vi.fn();
+  const open = vi.fn();
+  const select = vi.fn();
+  const context = {
+    attemptId: "attempt",
+    workspaceId: "origin",
+    workspaceName: "Origin workspace",
+    origin: "/origin",
+    filename: "source.docx",
+  };
+  const view = render(
+    <MyoxusUIProvider>
+      <DocxImportStatus
+        attempt={{
+          ...context,
+          status: "complete",
+          id: "created",
+          title: "Word title",
+          ready: true,
+          warnings: [
+            { code: "merged_cells_normalized", count: 2 },
+            { code: "missing_image_omitted", count: 1 },
+            { code: "note_numbering_normalized", count: 3 },
+            { code: "media_reference_normalized", count: 4 },
+            { code: "external_widget_omitted", count: 5 },
+          ],
+        }}
+        onOpen={open}
+        onInspect={inspect}
+        onSelect={select}
+      />
+    </MyoxusUIProvider>,
+  );
+  expect(screen.getByText("Completed with limitations").textContent).toBe(
+    "Completed with limitations",
+  );
+  expect(
+    screen.getByText("Unsupported Word content may be omitted.").textContent,
+  ).toBe("Unsupported Word content may be omitted.");
+  fireEvent.click(screen.getByRole("button", { name: "Conversion details" }));
+  expect(screen.getByText("2 recognized normalizations").textContent).toBe(
+    "2 recognized normalizations",
+  );
+  expect(screen.getByText("1 recognized omissions").textContent).toBe(
+    "1 recognized omissions",
+  );
+  expect(screen.getByText("Notes").textContent).toBe("Notes");
+  expect(screen.getByText("3 recognized normalizations").textContent).toBe(
+    "3 recognized normalizations",
+  );
+  fireEvent.click(screen.getByRole("button", { name: "Open document" }));
+  const files = screen.getByText("Files and external content").parentElement;
+  expect(files?.textContent).toContain("4 recognized normalizations");
+  expect(files?.textContent).toContain("5 recognized omissions");
+  expect(open).toHaveBeenCalledTimes(1);
+  view.rerender(
+    <MyoxusUIProvider>
+      <DocxImportStatus
+        attempt={{ ...context, status: "error", reason: "unknown" }}
+        onOpen={open}
+        onInspect={inspect}
+        onSelect={select}
+      />
+    </MyoxusUIProvider>,
+  );
+  expect(screen.getByText("Import outcome unknown").textContent).toBe(
+    "Import outcome unknown",
+  );
+  expect(screen.queryByRole("button", { name: "Open document" })).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "All content" }));
+  expect(inspect).toHaveBeenCalledTimes(1);
+  expect(select).not.toHaveBeenCalled();
+});
 
 describe("Markdown import result diagnostics", () => {
   test("unsupported HTML tables remain visibly diagnosed", () => {

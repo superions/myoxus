@@ -6,7 +6,13 @@
 
 import { Framework, FrameworkRoot, LiveData } from "@myoxus/infra";
 import { MyoxusUIProvider } from "@myoxus/ui-facade/provider";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { ViewService } from "../../services/view";
@@ -55,9 +61,12 @@ vi.mock("@myoxus/i18n", () => ({
     ),
 }));
 
+let disposeProvider: (() => void) | undefined;
 afterEach(() => {
+  cleanup();
+  disposeProvider?.();
+  disposeProvider = undefined;
   dndHarness.dropTargets.length = 0;
-  document.body.innerHTML = "";
 });
 
 describe("ContextSurfaceHost", () => {
@@ -91,10 +100,12 @@ describe("ContextSurfaceHost", () => {
     };
     const framework = new Framework();
     framework.service(ViewService, { view } as any);
+    const provider = framework.provider();
+    disposeProvider = () => provider.dispose();
 
     render(
       <MyoxusUIProvider>
-        <FrameworkRoot framework={framework.provider()}>
+        <FrameworkRoot framework={provider}>
           <ContextSurfaceHost />
         </FrameworkRoot>
       </MyoxusUIProvider>,

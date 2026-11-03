@@ -424,7 +424,6 @@ fn database_limits(config: &AppConfig) -> DatabaseLimits {
     // helper used to omit this and the P-DB-25 tests stopped compiling once
     // DatabaseLimits grew the field; forward the configured value verbatim.
     notion_max_bytes: config.databases.notion_max_bytes,
-    reminder_batch_size: config.databases.reminder_batch_size,
     max_reminders_per_user_per_cell: config.databases.max_reminders_per_user_per_cell,
     max_reminder_offset_minutes: config.databases.max_reminder_offset_minutes,
     ..DatabaseLimits::default()
@@ -538,10 +537,18 @@ fn wire_database_services(
     ),
   );
   let automation_service = Arc::new(automation_service.with_runtime(runtime));
+  let task_recurrence = Arc::new(myoxus_application::recurrence::TaskRecurrenceService::new(
+    Arc::new(myoxus_infrastructure::recurrence::PgTaskRecurrenceRepository::new(
+      pool.clone(),
+      repo.clone(),
+    )),
+    database_services.editing.clone(),
+  ));
   state
     .with_feature_sources(feature_sources)
     .with_assistant_packages(assistants)
     .with_database_services(database_services)
+    .with_task_recurrence_service(task_recurrence)
     .with_workspace_tag_service(workspace_tag_service)
     .with_workspace_automation_service(automation_service)
     .with_database_activity_recorder(activity_recorder)
@@ -2561,7 +2568,7 @@ async fn cleanup_document_outbox(pool: &PgPool, workspace_ids: &[Uuid]) {
     "DELETE FROM outbox_events
      WHERE (aggregate_type = 'doc'
        AND aggregate_id IN (SELECT id::text FROM docs WHERE workspace_id = ANY($1)))
-       OR (event_type IN ('workspace_doc_broadcast', 'doc_updated', 'workspace_automation_trigger')
+        OR (event_type IN ('workspace_doc_broadcast', 'doc_updated', 'workspace_automation_trigger', 'task_recurrence_due')
          AND payload->>'workspaceId' IN (SELECT unnest($1::uuid[])::text))
        OR (event_type = 'database_task_notification'
          AND payload->'intent'->>'workspaceId' IN (SELECT unnest($1::uuid[])::text))",

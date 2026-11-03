@@ -9,7 +9,9 @@ import { describe, expect, test, vi } from "vitest";
 import { TemplateFilterProvider } from "../../collection-rules/impls/filters/template";
 import { DocsService } from "../../doc";
 
-function createTemplateFilterProvider(entries: Map<string, boolean>) {
+function createTemplateFilterProvider(
+  entries: Map<string, boolean | string | undefined>,
+) {
   const propertyValues$ = vi.fn(() => of(entries));
   const framework = new Framework();
   framework
@@ -23,9 +25,10 @@ function createTemplateFilterProvider(entries: Map<string, boolean>) {
 }
 
 describe("TemplateFilterProvider document visibility", () => {
-  const docs = new Map<string, boolean>([
+  const docs = new Map<string, boolean | string | undefined>([
     ["template-doc-id", true],
-    ["regular-doc-id", false],
+    ["regular-doc-id", "false"],
+    ["reader-introduction", "true"],
   ]);
 
   test("method=is value=false keeps only non-template docs", async () => {
@@ -46,7 +49,7 @@ describe("TemplateFilterProvider document visibility", () => {
       provider.filter$({ method: "is", value: "true" } as any),
     );
 
-    expect([...result]).toEqual(["template-doc-id"]);
+    expect([...result]).toEqual(["template-doc-id", "reader-introduction"]);
   });
 
   test("method=is-not inverts the template predicate", async () => {
@@ -60,12 +63,15 @@ describe("TemplateFilterProvider document visibility", () => {
     );
 
     expect([...notTemplates]).toEqual(["regular-doc-id"]);
-    expect([...notRegularDocs]).toEqual(["template-doc-id"]);
+    expect([...notRegularDocs]).toEqual([
+      "template-doc-id",
+      "reader-introduction",
+    ]);
   });
 
   test("reactive property sources update the filter result", async () => {
     const source$ = new LiveData(
-      new Map<string, boolean>([
+      new Map<string, boolean | string | undefined>([
         ["template-doc-id", true],
         ["regular-doc-id", false],
       ]),
@@ -82,7 +88,7 @@ describe("TemplateFilterProvider document visibility", () => {
       .subscribe((value) => results.push([...value]));
 
     source$.next(
-      new Map<string, boolean>([
+      new Map<string, boolean | string | undefined>([
         ["template-doc-id", true],
         ["regular-doc-id", false],
         ["new-doc-id", false],

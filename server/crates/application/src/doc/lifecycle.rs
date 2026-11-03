@@ -94,6 +94,7 @@ impl PageLifecycleService {
         actor_user_id,
         title,
         initial_leaf_update,
+        source_purpose: None,
         committed_at: Utc::now(),
       })
       .await
@@ -123,6 +124,7 @@ impl PageLifecycleService {
           actor_user_id,
           title,
           initial_leaf_update,
+          source_purpose: None,
           committed_at,
         },
         row_content,
@@ -150,6 +152,7 @@ impl PageLifecycleService {
     actor_user_id: Uuid,
     title: Option<String>,
     source_snapshot: Vec<u8>,
+    source_purpose: Option<crate::template_registry::bundle::TemplatePurpose>,
   ) -> AuthResult<PageLifecycleCommit> {
     let title = normalize_title(title.as_deref().unwrap_or("Untitled"))?;
     let title_delta = yjs::update_document_title(&source_snapshot, &title)
@@ -164,6 +167,7 @@ impl PageLifecycleService {
         actor_user_id,
         title,
         initial_leaf_update,
+        source_purpose,
         committed_at: Utc::now(),
       })
       .await
@@ -194,6 +198,7 @@ impl PageLifecycleService {
           actor_user_id,
           title,
           initial_leaf_update,
+          source_purpose: None,
           committed_at,
         },
         ack,

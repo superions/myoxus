@@ -33,7 +33,7 @@
 
 use std::sync::Arc;
 
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Duration, NaiveDate, NaiveDateTime, TimeZone, Utc};
 use tracing::{debug, error, info, instrument, trace, warn};
 use uuid::Uuid;
 
@@ -52,6 +52,71 @@ use crate::caldav::sync::CredentialDecryptor;
 use crate::redis_lease::RedisLease;
 
 const CALENDAR_SYNC_LEASE_TTL_SECONDS: u64 = 300;
+
+/// Google returns content lines, not one RRULE value. Split supported EXDATE
+/// lines before shared validation; unknown lines remain a preserved unsupported
+/// source rather than silently disappearing from the imported series.
+fn recurrence_source(lines: &[String], default_zone: &str) -> (Option<String>, Vec<String>, Vec<String>) {
+  let mut rule = None;
+  let mut dates = Vec::new();
+  let mut instants = Vec::new();
+  let parsed = (|| -> Option<()> {
+    if lines.iter().map(String::len).sum::<usize>() > 8192 {
+      return None;
+    }
+    for line in lines {
+      let (name, value) = line.split_once(':')?;
+      if name.eq_ignore_ascii_case("RRULE") {
+        if rule.is_some() {
+          return None;
+        }
+        rule = Some(value.to_owned());
+        continue;
+      }
+      let mut parameters = name.split(';');
+      if !parameters.next()?.eq_ignore_ascii_case("EXDATE") {
+        return None;
+      }
+      let mut zone = default_zone;
+      let mut date_only = false;
+      for parameter in parameters {
+        let (name, value) = parameter.split_once('=')?;
+        if name.eq_ignore_ascii_case("TZID") {
+          zone = value
+        } else if name.eq_ignore_ascii_case("VALUE") && value.eq_ignore_ascii_case("DATE") {
+          date_only = true
+        } else if !(name.eq_ignore_ascii_case("VALUE") && value.eq_ignore_ascii_case("DATE-TIME")) {
+          return None;
+        }
+      }
+      for token in value.split(',') {
+        if date_only {
+          NaiveDate::parse_from_str(token, "%Y%m%d").ok()?;
+          dates.push(token.to_owned());
+        } else {
+          let (token, utc) = token.strip_suffix('Z').map_or((token, false), |value| (value, true));
+          let local = NaiveDateTime::parse_from_str(token, "%Y%m%dT%H%M%S").ok()?;
+          let instant = if utc {
+            local.and_utc()
+          } else {
+            zone
+              .parse::<chrono_tz::Tz>()
+              .ok()?
+              .from_local_datetime(&local)
+              .earliest()?
+              .with_timezone(&Utc)
+          };
+          instants.push(instant.to_rfc3339());
+        }
+      }
+    }
+    Some(())
+  })();
+  if parsed.is_none() {
+    return (Some(lines.join("\n")), vec![], vec![]);
+  }
+  (rule, dates, instants)
+}
 
 // ─── Sync result ─────────────────────────────────────────────────────────────
 
@@ -406,7 +471,12 @@ impl GoogleCalendarSyncService {
         format!("google:{}:{}", account.id, remote_event_id).as_bytes(),
       );
 
-      let rrule = event.recurrence.as_ref().map(|r| r.join("\n"));
+      let zone = event
+        .start
+        .as_ref()
+        .and_then(|s| s.time_zone.as_deref())
+        .unwrap_or("UTC");
+      let (rrule, exdate, exdates) = recurrence_source(event.recurrence.as_deref().unwrap_or_default(), zone);
 
       let payload = serde_json::json!({
         "provider": "google",
@@ -414,6 +484,9 @@ impl GoogleCalendarSyncService {
         "location": event.location,
         "status": event.status,
         "rrule": rrule,
+        "sourceRecurrence":event.recurrence,
+        "exdate":exdate.join(","),
+        "exdates":exdates,
         "recurringEventId": event.recurring_event_id,
         "originalTimezone": event.start.as_ref().and_then(|s| s.time_zone.clone()),
         "allDay": all_day,
@@ -435,7 +508,7 @@ impl GoogleCalendarSyncService {
         description_delta: None,
         location: event.location.clone(),
         source_doc_id: None,
-        all_day: false,
+        all_day,
         all_members: false,
         tag_id: None,
         recurrence_parent_id: None,
@@ -456,7 +529,10 @@ impl GoogleCalendarSyncService {
             error = %e,
             "google_cal_sync: failed to upsert event, skipping"
           );
-          continue;
+          // The page is not acknowledged until event and timing both commit.
+          return Err(myoxus_application::ports::PortError::Transport(
+            "calendar persistence unavailable".into(),
+          ));
         }
       }
 
@@ -815,6 +891,28 @@ mod tests {
 
   fn test_lock_redis() -> Arc<dyn RedisPort> {
     Arc::new(InMemoryRedisAdapter::new("google-calendar-sync-test"))
+  }
+
+  #[test]
+  fn recurrence_content_lines_preserve_rule_limits_and_zoned_exclusions() {
+    let lines = vec![
+      "RRULE:FREQ=WEEKLY;COUNT=4".to_owned(),
+      "EXDATE;TZID=Europe/Berlin:20310330T090000".to_owned(),
+    ];
+    assert_eq!(
+      recurrence_source(&lines, "Europe/Berlin"),
+      (
+        Some("FREQ=WEEKLY;COUNT=4".to_owned()),
+        vec![],
+        vec!["2031-03-30T07:00:00+00:00".to_owned()]
+      )
+    );
+    let unsupported = vec![lines[0].clone(), "RDATE:20310401T070000Z".to_owned()];
+    assert_eq!(
+      recurrence_source(&unsupported, "UTC"),
+      (Some(unsupported.join("\n")), vec![], vec![]),
+      "unsupported content must remain a complete source, never a silently weakened RRULE"
+    );
   }
 
   #[test]

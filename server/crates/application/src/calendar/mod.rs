@@ -13,6 +13,7 @@ pub mod merge;
 pub use merge::{FieldConflict, MergeResult, merge_calendar_events};
 
 pub mod native;
+pub mod projection;
 pub use native::{
   CalendarBroadcastPort, DeleteScope, EventOverlap, NativeCreateInput, NativeEventService, NullCalendarBroadcast,
   ReminderInput, UpdateScope,
@@ -27,7 +28,6 @@ use uuid::Uuid;
 use crate::auth::{AuthError, AuthResult, AuthStore, UserPreferenceDefaults};
 use crate::notification::NotificationService;
 use crate::ports::{MailPort, NullRemoteCalendarWrite, PortError, RemoteCalendarWritePort, RemoteEventInput};
-use crate::worker::WorkQueuePort;
 use async_trait::async_trait;
 use myoxus_domain::entities::{
   CalendarAccount, CalendarDeleteSnapshot, CalendarEvent, CalendarEventInstance, CalendarEventOrigin,
@@ -36,6 +36,15 @@ use myoxus_domain::entities::{
 };
 use myoxus_domain::ids::CalendarEventId;
 use myoxus_domain::repositories::CalendarRepository;
+
+/// Read budgets are caller-correctable validation, not an infrastructure outage.
+/// Retain stable error prefixes so transports can distinguish them from faults.
+fn read_error(error: myoxus_domain::repositories::RepositoryError) -> AuthError {
+  match error {
+    myoxus_domain::repositories::RepositoryError::Validation(message) => AuthError::InvalidInput(message),
+    other => AuthError::Storage(other.to_string()),
+  }
+}
 
 /// RSVP status values for calendar event attendees (P90-CAL-H-04).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -99,6 +108,28 @@ pub struct CalendarService {
   /// Defaults to a no-op; call [`with_remote_write`](Self::with_remote_write)
   /// to enable write-through.
   remote_write: Arc<dyn RemoteCalendarWritePort>,
+}
+
+impl CalendarService {
+  pub async fn workspace_calendar_series(&self, workspace_id: Uuid) -> AuthResult<Vec<CalendarEvent>> {
+    self
+      .repo
+      .list_workspace_calendar_series(workspace_id)
+      .await
+      .map_err(|error| AuthError::Storage(error.to_string()))
+  }
+  /// Projection-only timing read: no occurrence admission or workflow execution.
+  #[instrument(skip_all)]
+  pub async fn recurrence(
+    &self,
+    event_id: Uuid,
+  ) -> AuthResult<Option<myoxus_domain::scheduling::calendar::CalendarTiming>> {
+    self
+      .repo
+      .get_calendar_timing(event_id)
+      .await
+      .map_err(|error| AuthError::Storage(error.to_string()))
+  }
 }
 
 async fn build_delete_snapshot(
@@ -402,7 +433,8 @@ impl CalendarService {
       .ok_or_else(|| AuthError::Storage("saved calendar event not found after upsert".to_string()))
   }
 
-  /// List all calendar events in a workspace within the given time window.
+  /// Project workspace events overlapping the bounded `[from, to)` window.
+  /// Recurring copies retain their master ID and original recurrence key.
   #[instrument(skip(self))]
   pub async fn list_workspace_events(
     &self,
@@ -414,10 +446,27 @@ impl CalendarService {
       .repo
       .list_workspace_events(workspace_id, from, to)
       .await
-      .map_err(|e| AuthError::Storage(e.to_string()))
+      .map_err(read_error)
   }
 
-  /// List materialized recurrence instances for a single event within a time window.
+  /// ICS exports authored masters once, not the virtual occurrence copies used
+  /// for Journal display. Each source keeps its DTSTART, UID and exception rule.
+  #[instrument(skip_all)]
+  pub async fn workspace_event_sources(
+    &self,
+    workspace_id: Uuid,
+    from: DateTime<Utc>,
+    to: DateTime<Utc>,
+  ) -> AuthResult<Vec<CalendarEvent>> {
+    self
+      .repo
+      .list_workspace_event_sources(workspace_id, from, to)
+      .await
+      .map_err(|error| AuthError::Storage(error.to_string()))
+  }
+
+  /// Project/read a bounded window, retaining original occurrence IDs and
+  /// overrides/cancellations independently of provider synchronization horizons.
   #[instrument(skip(self))]
   pub async fn list_event_instances(
     &self,
@@ -487,8 +536,7 @@ impl CalendarService {
       .ok_or_else(|| AuthError::Storage("event disappeared after RSVP update".to_string()))
   }
 
-  /// Query free/busy slots from `calendar_event_instances` for a workspace
-  /// within `[from, to)` (P90-CAL-H-07).
+  /// Project free/busy for a workspace within bounded `[from, to)`.
   ///
   /// Returns non-cancelled instances that overlap the time range.
   #[instrument(skip(self))]
@@ -652,7 +700,7 @@ impl CalendarService {
       .ok_or_else(|| format!("{} pending write has no live event", write.operation))?;
     let event = self
       .repo
-      .get_calendar_event(event_id)
+      .get_calendar_export_event(event_id)
       .await
       .map_err(|e| format!("fetch event: {e}"))?
       .ok_or_else(|| format!("event {event_id} not found, skipping pending write"))?;
@@ -669,7 +717,7 @@ impl CalendarService {
       title: event.title.clone(),
       description: event.description.clone(),
       location: None,
-      extra_payload: serde_json::json!({}),
+      extra_payload: event.payload.clone(),
     };
 
     match write.operation.as_str() {
@@ -993,18 +1041,48 @@ impl CalendarService {
     split_at: DateTime<Utc>,
     changes_payload: serde_json::Value,
   ) -> AuthResult<(CalendarEvent, CalendarEvent)> {
-    self
-      .split_recurring_impl(event_id, split_at, changes_payload, true)
-      .await
+    let (head, tail) = self
+      .split_recurring_impl(event_id, split_at, changes_payload, true, None)
+      .await?;
+    Ok((
+      head,
+      tail.ok_or_else(|| AuthError::Storage("Calendar split tail missing".into()))?,
+    ))
   }
 
   /// Future deletion truncates the existing UID without inviting a temporary tail.
   #[instrument(skip_all)]
   pub async fn truncate_recurring_series(&self, event_id: Uuid, split_at: DateTime<Utc>) -> AuthResult<()> {
     self
-      .split_recurring_impl(event_id, split_at, serde_json::json!({}), false)
+      .split_recurring_impl(event_id, split_at, serde_json::json!({}), false, None)
       .await
       .map(|_| ())
+  }
+
+  /// Called only after NativeEventService's workspace/native write admission.
+  async fn split_native_series(
+    &self,
+    event_id: Uuid,
+    actor: Uuid,
+    at: DateTime<Utc>,
+    update: myoxus_domain::repositories::NativeEventUpdate,
+    persist_tail: bool,
+  ) -> AuthResult<CalendarEvent> {
+    let mut changes = serde_json::Map::new();
+    if let Some(start) = update.starts_at {
+      changes.insert("starts_at".into(), serde_json::json!(start));
+    }
+    if let Some(end) = update.ends_at {
+      changes.insert("ends_at".into(), serde_json::json!(end));
+    }
+    let (head, tail) = self
+      .split_recurring_impl(event_id, at, changes.into(), persist_tail, Some((actor, update)))
+      .await?;
+    if persist_tail {
+      tail.ok_or_else(|| AuthError::Storage("Calendar split tail missing".into()))
+    } else {
+      Ok(head)
+    }
   }
 
   async fn split_recurring_impl(
@@ -1013,7 +1091,8 @@ impl CalendarService {
     split_at: DateTime<Utc>,
     changes_payload: serde_json::Value,
     persist_tail: bool,
-  ) -> AuthResult<(CalendarEvent, CalendarEvent)> {
+    native: Option<(Uuid, myoxus_domain::repositories::NativeEventUpdate)>,
+  ) -> AuthResult<(CalendarEvent, Option<CalendarEvent>)> {
     let original = self
       .repo
       .get_calendar_event(event_id)
@@ -1022,40 +1101,75 @@ impl CalendarService {
       .ok_or_else(|| AuthError::NotFound("calendar event not found".to_string()))?;
 
     // Guard: cannot split a non-recurring event.
-    let _rrule = original
+    if original.origin == CalendarEventOrigin::Native && native.is_none() {
+      return Err(AuthError::ActionForbidden);
+    }
+    let rrule = original
       .payload
       .get("rrule")
       .and_then(|v| v.as_str())
       .filter(|s| !s.is_empty())
       .ok_or_else(|| AuthError::InvalidInput("cannot split non-recurring event".into()))?;
 
-    // Terminate the original RRULE with UNTIL = split_at - 1 second.
-    let until = (split_at - chrono::Duration::seconds(1))
-      .format("%Y%m%dT%H%M%SZ")
-      .to_string();
-    let updated_rrule = original
-      .payload
-      .get("rrule")
-      .and_then(|v| v.as_str())
-      .map(|r| {
-        let cleaned: String = r
-          .split(';')
-          .filter(|seg| {
-            let upper = seg.to_uppercase();
-            !upper.starts_with("UNTIL=") && !upper.starts_with("COUNT=")
-          })
-          .collect::<Vec<_>>()
-          .join(";");
-        format!("{cleaned};UNTIL={until}")
-      })
-      .unwrap_or_default();
+    if original.recurrence_parent_id.is_some()
+      || original.payload["recurrenceId"]
+        .as_str()
+        .is_some_and(|value| !value.is_empty())
+    {
+      return Err(AuthError::InvalidInput("Calendar split requires a master".into()));
+    }
+    if changes_payload.get("rrule").is_some() {
+      return Err(AuthError::InvalidInput(
+        "split rule changes require native typed recurrence".into(),
+      ));
+    }
+    let timing = self
+      .repo
+      .get_calendar_timing(event_id)
+      .await
+      .map_err(|error| AuthError::Storage(error.to_string()))?;
+    let zone = timing.as_ref().map(|timing| timing.zone).unwrap_or(
+      myoxus_domain::scheduling::AdmissionZone::try_from(
+        original.payload["originalTimezone"]
+          .as_str()
+          .unwrap_or("UTC")
+          .to_owned(),
+      )
+      .map_err(|_| AuthError::InvalidInput("invalid Calendar source zone".into()))?,
+    );
+    let source_start = if let Some(myoxus_domain::scheduling::calendar::CalendarTimingRule::Fixed { rule }) =
+      timing.as_ref().and_then(|timing| timing.rule.as_ref())
+    {
+      if original.all_day {
+        rule.start.local_datetime().and_utc()
+      } else {
+        crate::scheduling::fixed_occurrence(rule.start, rule.zone.timezone())
+          .map_err(|error| AuthError::InvalidInput(error.to_string()))?
+          .ok_or_else(|| AuthError::InvalidInput("invalid native Calendar start".into()))?
+          .due_at
+      }
+    } else {
+      original.starts_at
+    };
+    let split_rule = crate::scheduling::rrule::split_imported_rrule(
+      rrule,
+      source_start,
+      split_at,
+      original.all_day,
+      if original.all_day {
+        chrono_tz::UTC
+      } else {
+        zone.timezone()
+      },
+    )
+    .map_err(|error| AuthError::InvalidInput(error.to_string()))?;
 
     let mut updated_original_payload = original.payload.clone();
     if let Some(obj) = updated_original_payload.as_object_mut() {
-      obj.insert("rrule".to_string(), serde_json::json!(updated_rrule));
+      obj.insert("rrule".to_string(), serde_json::json!(split_rule.head));
     }
 
-    let updated_original = CalendarEvent {
+    let mut updated_original = CalendarEvent {
       payload: updated_original_payload,
       updated_at: Utc::now(),
       ..original.clone()
@@ -1069,24 +1183,12 @@ impl CalendarService {
     }
     let original_duration = original.ends_at - original.starts_at;
     if let Some(obj) = new_payload.as_object_mut() {
-      if let Some(rrule_val) = original.payload.get("rrule").and_then(|v| v.as_str()) {
-        let stripped: String = rrule_val
-          .split(';')
-          .filter(|seg| {
-            let upper = seg.to_uppercase();
-            !upper.starts_with("UNTIL=") && !upper.starts_with("COUNT=")
-          })
-          .collect::<Vec<_>>()
-          .join(";");
-        obj.insert("rrule".to_string(), serde_json::json!(stripped));
-      }
+      obj.insert("rrule".to_string(), serde_json::json!(split_rule.tail));
       obj.remove("recurrenceId");
-      obj.remove("exdate");
-      obj.remove("exdates");
     }
 
     let tail_id = uuid::Uuid::new_v4();
-    let new_event = CalendarEvent {
+    let mut new_event = CalendarEvent {
       id: tail_id,
       origin: original.origin,
       account_id: original.account_id,
@@ -1112,12 +1214,12 @@ impl CalendarService {
         .map(str::to_owned)
         .or_else(|| original.title.clone()),
       description: original.description.clone(),
-      description_delta: None,
+      description_delta: original.description_delta.clone(),
       location: original.location.clone(),
       source_doc_id: original.source_doc_id,
       all_day: original.all_day,
       all_members: original.all_members,
-      tag_id: None,
+      tag_id: original.tag_id,
       recurrence_parent_id: None,
       participants: original
         .participants
@@ -1144,30 +1246,124 @@ impl CalendarService {
       etag: None,
       remote_href: None,
     };
-    let (saved_original, saved_new) = if persist_tail {
-      self
-        .repo
-        .save_calendar_split(&updated_original, &new_event)
-        .await
-        .map_err(|error| AuthError::Storage(error.to_string()))?
-    } else {
-      (
-        self
-          .repo
-          .save_authored_calendar_event(
-            &updated_original,
-            &updated_original.participants,
-            &updated_original.reminders,
+    if changes_payload.get("ends_at").is_none() {
+      new_event.ends_at = new_event.starts_at + original_duration;
+    }
+    let mut native_rules = None;
+    let mut source_anchor = None;
+    if let Some((actor, update)) = &native {
+      if original.origin != CalendarEventOrigin::Native {
+        return Err(AuthError::ActionForbidden);
+      }
+      new_event.title = update.title.clone().unwrap_or(new_event.title);
+      new_event.description_delta = update.description_delta.clone().unwrap_or(new_event.description_delta);
+      new_event.all_day = update.all_day.unwrap_or(original.all_day);
+      new_event.payload["allDay"] = serde_json::json!(new_event.all_day);
+      new_event.all_members = update.all_members.unwrap_or(original.all_members);
+      if new_event.all_members {
+        new_event.participants.clear();
+      }
+      new_event.tag_id = update.tag_id.unwrap_or(original.tag_id);
+      new_event.source_doc_id = update.source_doc_id.unwrap_or(original.source_doc_id);
+      source_anchor = update.source_anchor.clone();
+      if let Some(reminders) = &update.reminders {
+        new_event.reminders = reminders
+          .iter()
+          .map(|input| CalendarReminder {
+            id: Uuid::new_v4(),
+            event_id: tail_id,
+            channel: input.channel.clone(),
+            minutes_before: input.minutes_before,
+            scheduled_for: new_event.starts_at - chrono::Duration::minutes(input.minutes_before.into()),
+            delivered_at: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+          })
+          .collect();
+      }
+      if let Some(myoxus_domain::scheduling::calendar::CalendarTimingRule::Fixed { rule }) =
+        timing.as_ref().and_then(|timing| timing.rule.as_ref())
+      {
+        let original_rule = myoxus_domain::scheduling::calendar::ConfirmedCalendarRecurrence {
+          rule: rule.clone(),
+          actor_id: *actor,
+        };
+        let tail_rule = match &update.recurrence {
+          Some(value) => value.clone(),
+          None => Some(myoxus_domain::scheduling::calendar::ConfirmedCalendarRecurrence {
+            rule: myoxus_domain::scheduling::calendar::rule_with_start(rule, new_event.starts_at, new_event.all_day),
+            actor_id: *actor,
+          }),
+        };
+        updated_original.payload["rrule"] = serde_json::json!(
+          crate::scheduling::rrule::project_calendar_rrule(&original_rule.rule, Some(split_at))
+            .map_err(|error| AuthError::InvalidInput(error.to_string()))?
+        );
+        if let Some(tail_rule) = &tail_rule {
+          myoxus_domain::scheduling::calendar::validate_native_rule(
+            &tail_rule.rule,
+            new_event.starts_at,
+            new_event.all_day,
           )
-          .await
-          .map_err(|error| AuthError::Storage(error.to_string()))?,
-        new_event,
-      )
-    };
+          .map_err(|error| AuthError::InvalidInput(error.to_string()))?;
+          new_event.payload["rrule"] = serde_json::json!(
+            crate::scheduling::rrule::project_calendar_rrule(
+              &tail_rule.rule,
+              timing.as_ref().and_then(|timing| timing.ends_before)
+            )
+            .map_err(|error| AuthError::InvalidInput(error.to_string()))?
+          );
+        } else {
+          new_event
+            .payload
+            .as_object_mut()
+            .expect("Calendar payload is an object")
+            .remove("rrule");
+        }
+        native_rules = Some(myoxus_domain::repositories::CalendarNativeSplitRules {
+          original: original_rule,
+          tail: tail_rule,
+        });
+      }
+    }
+    if new_event.ends_at < new_event.starts_at {
+      return Err(AuthError::InvalidInput("Calendar tail ends before its start".into()));
+    }
+    for reminder in &mut new_event.reminders {
+      reminder.scheduled_for = new_event.starts_at - chrono::Duration::minutes(reminder.minutes_before.into());
+    }
+    projection::split_exclusions(
+      &original,
+      split_at,
+      zone,
+      &mut updated_original.payload,
+      &mut new_event.payload,
+    )
+    .map_err(|error| AuthError::InvalidInput(error.to_string()))?;
+    if split_rule.before == 0 {
+      projection::exclude_birth_keys(
+        &mut updated_original.payload,
+        &[source_start, original.starts_at],
+        original.all_day,
+      );
+    }
+    let (saved_original, saved_new) = self
+      .repo
+      .save_calendar_split(&myoxus_domain::repositories::CalendarSplitWrite {
+        original: updated_original,
+        tail: if persist_tail { Some(new_event) } else { None },
+        split_at,
+        expected_updated_at: original.updated_at,
+        tail_ends_before: timing.as_ref().and_then(|timing| timing.ends_before),
+        native_rules,
+        source_anchor,
+      })
+      .await
+      .map_err(|error| AuthError::Storage(error.to_string()))?;
 
     info!(
       original_event_id = %event_id,
-      new_event_id = %saved_new.id,
+      new_event_id = ?saved_new.as_ref().map(|event|event.id),
       split_at = %split_at,
       "recurring event split (thisAndFuture)"
     );
@@ -1257,50 +1453,9 @@ impl CalendarService {
       .await
       .map_err(|e| AuthError::Storage(e.to_string()))?;
 
-    // Re-expand non-override instances from the updated RRULE.
-    // Override instances (is_override = true) are preserved — only the
-    // non-override rows are dropped and regenerated.
-    //
-    // Strategy: delete all non-override instances, then re-expand using the
-    // infrastructure rrule expander if available.  Override instances remain
-    // untouched because they are stored under `is_override = true` and the
-    // cascade-delete only applies to the full event deletion path.
-    //
-    // For simplicity (and to keep this crate free of the rrule dependency),
-    // we drop all existing non-override instances for this event and let the
-    // next CalDAV sync (or explicit re-expansion call) recreate them.  The
-    // override instances are re-inserted immediately so they are never lost.
-    let now = Utc::now();
-    let horizon = now + chrono::Duration::days(365);
-
-    // Collect existing override instances before wiping.
-    let existing_overrides: Vec<CalendarEventInstance> = self
-      .repo
-      .list_event_instances(event_id, now - chrono::Duration::days(365 * 5), horizon)
-      .await
-      .unwrap_or_default()
-      .into_iter()
-      .filter(|i| i.is_override)
-      .collect();
-
-    // Wipe all instances (override and non-override) for this event.
-    if let Err(e) = self.repo.delete_event_instances_by_event(event_id).await {
-      warn!(event_id = %event_id, error = %e, "update_recurring_series: failed to delete old instances (non-fatal)");
-    }
-
-    // Re-insert override instances so they survive the series update.
-    for inst in existing_overrides {
-      if let Err(e) = self.repo.upsert_event_instance(&inst).await {
-        warn!(event_id = %event_id, instance_id = %inst.id, error = %e, "update_recurring_series: failed to re-insert override (non-fatal)");
-      }
-    }
-
-    // Non-override instances will be re-expanded on the next CalDAV/Google
-    // sync cycle.  The application crate does not depend on the infrastructure
-    // RRULE expander to avoid a circular-dependency.  Clearing the stale rows
-    // here is enough — the sync service re-populates them from the new RRULE.
-
-    info!(event_id = %event_id, "recurring series updated (SEQUENCE incremented, overrides preserved, instances pending sync re-expansion)");
+    // The repository commits source, timing, retained exceptions, bounded
+    // cached-window reprojection and scheduling intent in one transaction.
+    info!(event_id = %event_id, "recurring series updated and cached windows reprojected");
     Ok(saved)
   }
 
@@ -1434,24 +1589,18 @@ impl ReminderDispatchedPort for NullReminderDispatchedPort {
 pub struct ReminderDispatchPayload {
   /// The ID of the [`CalendarReminder`] to dispatch.
   pub reminder_id: Uuid,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub admission: Option<myoxus_domain::entities::CalendarReminderAdmission>,
 }
 
-/// Redis-queue-backed dispatcher for calendar reminders.
-///
-/// `enqueue_due_reminders` polls for overdue reminders and places them on
-/// the Redis queue.  The actual processing is handled by `CalendarQueueHandler`
-/// in the worker crate via `JobHandler`.
+/// Native recipient delivery for committed shared Calendar reminder admissions.
 #[derive(Clone)]
 pub struct CalendarReminderDispatcher {
-  /// Redis-based worker queue port for enqueueing reminder jobs.
-  queue: Arc<dyn WorkQueuePort>,
-  /// Calendar repository for fetching due reminders.
+  /// Calendar repository for acquiring native delivery ownership.
   repo: Arc<dyn CalendarRepository>,
   /// Current recipient presentation; explicit reminders do not consult optional mail opt-outs.
   auth: Arc<dyn AuthStore>,
   mail_defaults: UserPreferenceDefaults,
-  /// Name of the worker queue used for reminder dispatch jobs.
-  queue_name: String,
   /// Optional notification service for in-app delivery.
   notification_service: Option<Arc<NotificationService>>,
   /// Optional mail port for email delivery.
@@ -1461,15 +1610,11 @@ pub struct CalendarReminderDispatcher {
 }
 
 impl CalendarReminderDispatcher {
-  /// Construct a `CalendarReminderDispatcher` using the default queue name
-  /// `"calendar-reminder"`.
-  pub fn new(queue: Arc<dyn WorkQueuePort>, repo: Arc<dyn CalendarRepository>, auth: Arc<dyn AuthStore>) -> Self {
+  pub fn new(repo: Arc<dyn CalendarRepository>, auth: Arc<dyn AuthStore>) -> Self {
     Self {
-      queue,
       repo,
       auth,
       mail_defaults: UserPreferenceDefaults::default(),
-      queue_name: "calendar-reminder".to_string(),
       notification_service: None,
       mailer: None,
       socket_port: Arc::new(NullReminderDispatchedPort),
@@ -1505,33 +1650,42 @@ impl CalendarReminderDispatcher {
   /// closes its guard, including while waiting to acquire ownership.
   #[instrument(skip(self))]
   pub async fn process_reminder(&self, reminder_id: Uuid) -> AuthResult<()> {
+    self.process_admitted_reminder(reminder_id, None).await
+  }
+
+  #[instrument(skip_all,fields(%reminder_id))]
+  pub async fn process_admitted_reminder(
+    &self,
+    reminder_id: Uuid,
+    admission: Option<&myoxus_domain::entities::CalendarReminderAdmission>,
+  ) -> AuthResult<()> {
     let mut guard = self
       .repo
       .acquire_reminder_delivery_guard(reminder_id)
       .await
       .map_err(|e| AuthError::Storage(e.to_string()))?;
     let result = async {
-      if !guard.begin_dispatch(Uuid::new_v4(), Utc::now()).await
-        .map_err(|e| AuthError::Storage(e.to_string()))? {
+      if !guard
+        .begin_dispatch(Uuid::new_v4(), Utc::now(), admission)
+        .await
+        .map_err(|e| AuthError::Storage(e.to_string()))?
+      {
         debug!(reminder_id = %reminder_id, "calendar reminder completed or absent, skipping");
         return Ok(());
       }
       // Fetch delivery context (user email, event title, starts_at) for routing.
-      let contexts = guard
-        .contexts()
-        .await
-        .map_err(|e| AuthError::Storage(e.to_string()))?;
+      let contexts = guard.contexts().await.map_err(|e| AuthError::Storage(e.to_string()))?;
 
       for ctx in &contexts {
-        let event = self
-          .repo
-          .get_calendar_event(ctx.reminder.event_id)
+        if !guard
+          .is_current()
           .await
-          .map_err(|error| AuthError::Storage(error.to_string()))?;
-        if event.is_none() { continue; }
-        let url = event
-          .as_ref()
-          .and_then(|event| event.workspace_id)
+          .map_err(|error| AuthError::Storage(error.to_string()))?
+        {
+          return Ok(());
+        }
+        let url = ctx
+          .workspace_id
           .map(|workspace| format!("/workspace/{workspace}/journals"))
           .unwrap_or_default();
         let channel = ctx.reminder.channel.as_str();
@@ -1544,8 +1698,8 @@ impl CalendarReminderDispatcher {
               let payload = serde_json::json!({
                 "reminder_id": reminder_id,
                 "eventId":ctx.reminder.event_id,
-                "workspaceId":event.as_ref().and_then(|event|event.workspace_id),
-                "all_day":event.as_ref().is_some_and(|event|event.all_day),
+                "workspaceId":ctx.workspace_id,
+                "all_day":ctx.all_day,
                 "event_title": ctx.event_title,
                 "starts_at": ctx.starts_at.to_rfc3339(),
               });
@@ -1576,7 +1730,12 @@ impl CalendarReminderDispatcher {
               {
                 continue;
               }
-              let preferences = self.auth.get_user_preferences(ctx.user_id).await?.values.resolve(&self.mail_defaults);
+              let preferences = self
+                .auth
+                .get_user_preferences(ctx.user_id)
+                .await?
+                .values
+                .resolve(&self.mail_defaults);
               let presentation = crate::ports::MailPresentation::from_preferences(&preferences, None);
               if let Err(e) = mailer
                 .send_template(crate::ports::TemplateMail::new(
@@ -1584,8 +1743,8 @@ impl CalendarReminderDispatcher {
                   crate::ports::MailTemplate::CalendarReminder,
                   presentation,
                   serde_json::json!({"event_title":ctx.event_title,"starts_at":ctx.starts_at.to_rfc3339(),"url":url,
-                  "all_day":event.as_ref().is_some_and(|event|event.all_day),
-                  "ends_at":event.as_ref().map(|event|event.ends_at.to_rfc3339()),"location":event.as_ref().and_then(|event|event.location.clone())}),
+                   "all_day":ctx.all_day,
+                   "ends_at":ctx.ends_at.to_rfc3339(),"location":ctx.location}),
                 ))
                 .await
               {
@@ -1612,10 +1771,13 @@ impl CalendarReminderDispatcher {
         }
       }
 
-      guard
+      if !guard
         .complete(Utc::now())
         .await
-        .map_err(|e| AuthError::Storage(e.to_string()))?;
+        .map_err(|e| AuthError::Storage(e.to_string()))?
+      {
+        return Ok(());
+      }
 
       for ctx in &contexts {
         self
@@ -1633,32 +1795,5 @@ impl CalendarReminderDispatcher {
       (Ok(()), Ok(())) => Ok(()),
       (Err(error), _) | (Ok(()), Err(error)) => Err(error),
     }
-  }
-
-  /// Enqueue all due reminders (up to `limit`) into the worker queue.
-  ///
-  /// Returns the number of reminders successfully enqueued.
-  #[instrument(skip(self))]
-  pub async fn enqueue_due_reminders(&self, limit: i64) -> AuthResult<usize> {
-    let due = self
-      .repo
-      .list_due_calendar_reminders(Utc::now(), limit)
-      .await
-      .map_err(|e| AuthError::Storage(e.to_string()))?;
-    let mut enqueued = 0_usize;
-    for reminder in due {
-      debug!(reminder_id = %reminder.id, scheduled_for = %reminder.scheduled_for, "enqueueing due calendar reminder");
-      let payload = serde_json::to_value(ReminderDispatchPayload {
-        reminder_id: reminder.id,
-      })
-      .map_err(|e| AuthError::Storage(format!("serialize reminder payload failed: {e}")))?;
-      self
-        .queue
-        .add_job(&self.queue_name, "calendar.processReminder", payload, Some(8), None)
-        .await?;
-      enqueued += 1;
-    }
-    tracing::info!(enqueued, limit, "enqueued due calendar reminders");
-    Ok(enqueued)
   }
 }

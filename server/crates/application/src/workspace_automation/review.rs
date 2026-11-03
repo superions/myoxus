@@ -15,6 +15,167 @@ fn invalid() -> WorkspaceAutomationServiceError {
   WorkspaceAutomationServiceError::new(ERR_AUTOMATION_ACTION_INVALID, "Document review input unavailable")
 }
 impl WorkspaceAutomationService {
+  /// A source-deadline cycle owns stable native identities even if preferences,
+  /// metadata or a losing retry proposal changes before its receipt is returned.
+  pub fn accepted_scheduled_document_review(
+    &self,
+    plan: PreparedDocumentReview,
+    schedule: Uuid,
+    generation: i64,
+  ) -> WorkspaceAutomationResult<AcceptedAutomationRun> {
+    let source_deadline = plan.source_metadata_deadline.ok_or_else(invalid)?;
+    if schedule != myoxus_domain::scheduling::document_review_schedule_id(plan.source_document_id) || generation < 1 {
+      return Err(invalid());
+    }
+    let occurrence = myoxus_domain::scheduling::document_review_occurrence_id(plan.source_document_id, source_deadline);
+    let fingerprint = format!(
+      "{:x}",
+      Sha256::digest(
+        serde_json::to_vec(&(
+          "metadata-document-review",
+          plan.actor_id,
+          plan.workspace_id,
+          plan.source_document_id,
+          source_deadline,
+          &plan.package
+        ))
+        .map_err(|_| invalid())?
+      )
+    );
+    let definition = compile_review_definition(&plan, self.review_policy()?)?;
+    let wait_id = review_wait(&definition)?.0.to_owned();
+    Ok(AcceptedAutomationRun {
+      run_id: Uuid::new_v5(&occurrence, b"run"),
+      workspace_id: plan.workspace_id,
+      actor_id: Some(plan.actor_id),
+      automation_id: None,
+      trigger: None,
+      workspace_setup: None,
+      confirmed_request: None,
+      document_review: Some(AcceptedDocumentReview {
+        request_id: occurrence,
+        scheduling_generation: Some(generation),
+        fingerprint,
+        plan,
+        review_task_id: Uuid::new_v5(&occurrence, b"review-task"),
+        follow_up_task_id: Uuid::new_v5(&occurrence, b"follow-up-task"),
+        wait_id,
+      }),
+      task_handover: None,
+      task_maintenance: None,
+      personal_rule: None,
+      recurring_task: None,
+      definition,
+    })
+  }
+  /// Standing metadata consent needs both metadata editing and the same
+  /// workspace CreateDoc authority used by native Task capture.
+  pub async fn assert_metadata_review_authority(
+    &self,
+    actor: Uuid,
+    workspace: Uuid,
+    document: Uuid,
+  ) -> WorkspaceAutomationResult<()> {
+    self
+      .permission
+      .assert(
+        &WorkspaceResource {
+          user_id: actor,
+          workspace_id: workspace,
+        },
+        WorkspaceAction::CreateDoc,
+      )
+      .await
+      .map_err(|_| runtime::unavailable())?;
+    if !self
+      .permission
+      .get_effective_doc_role(actor, workspace, document)
+      .await
+      .map_err(|_| runtime::unavailable())?
+      .can(DocAction::Update)
+    {
+      return Err(runtime::unavailable());
+    }
+    Ok(())
+  }
+  /// Metadata planning reuses the manual source/authority checks, without
+  /// allocating a Run or weakening manual confirmation's future deadline.
+  #[instrument(skip_all)]
+  pub async fn prepare_metadata_document_review(
+    &self,
+    actor: Uuid,
+    workspace: Uuid,
+    document: Uuid,
+    reviewer: Uuid,
+    deadline: chrono::DateTime<chrono::Utc>,
+    zone: &str,
+    locale: &str,
+    package: &AssistantPackageIdentity,
+  ) -> Result<PreparedDocumentReview, &'static str> {
+    self
+      .assert_metadata_review_authority(actor, workspace, document)
+      .await
+      .map_err(|_| "reviewActorUnavailable")?;
+    self
+      .permission
+      .assert(
+        &WorkspaceResource {
+          user_id: reviewer,
+          workspace_id: workspace,
+        },
+        WorkspaceAction::CreateDoc,
+      )
+      .await
+      .map_err(|_| "reviewerDecisionUnavailable")?;
+    if !self
+      .permission
+      .get_effective_doc_role(reviewer, workspace, document)
+      .await
+      .map_err(|_| "reviewerUnavailable")?
+      .can(DocAction::Read)
+    {
+      return Err("reviewerSourceForbidden");
+    }
+    let native = self.context_documents.as_ref().ok_or("formalReviewUnavailable")?;
+    let target = native
+      .packages
+      .metadata_review_target(actor, workspace)
+      .await
+      .map_err(|_| "reviewDestinationUnavailable")?;
+    let descriptor = native
+      .packages
+      .list(AssistantPackageContext::TaskContainerAssistance)
+      .into_iter()
+      .find(|descriptor| &descriptor.identity == package)
+      .ok_or("formalReviewSourceUnavailable")?;
+    let source = self
+      .doc_service
+      .get_doc_metadata(document)
+      .await
+      .map_err(|_| "reviewSourceUnavailable")?
+      .ok_or("reviewSourceUnavailable")?;
+    let mut answers = BTreeMap::new();
+    for input in &descriptor.inputs {
+      let value = match input.target {
+        AssistantInputTarget::SourceDocument => AssistantValue::Document(document),
+        AssistantInputTarget::Reviewer => AssistantValue::Members(vec![reviewer]),
+        AssistantInputTarget::Destination => AssistantValue::DatabaseDestination(target.database_id),
+        AssistantInputTarget::Title => AssistantValue::Text(source.title.clone()),
+        AssistantInputTarget::Deadline => AssistantValue::DateTime(DatabaseDateTimeValue {
+          start: deadline,
+          end: None,
+          all_day: false,
+          time_zone: zone.into(),
+        }),
+        _ => continue,
+      };
+      answers.insert(input.id.clone(), value);
+    }
+    self
+      .prepare_document_review(actor, workspace, target, package, answers, locale, 1)
+      .await
+      .map_err(|_| "reviewPrerequisitesUnavailable")
+  }
   #[instrument(skip_all)]
   pub async fn prepare_document_review(
     &self,
@@ -113,6 +274,7 @@ impl WorkspaceAutomationService {
       let definition = compile_review_definition(&plan, self.review_policy()?)?;
       let wait_id = review_wait(&definition)?.0.to_string();
       let accepted = AcceptedAutomationRun {
+        recurring_task: None,
         workspace_setup: None,
         run_id: Uuid::new_v4(),
         automation_id: None,
@@ -121,6 +283,7 @@ impl WorkspaceAutomationService {
         trigger: None,
         confirmed_request: None,
         document_review: Some(AcceptedDocumentReview {
+          scheduling_generation: None,
           request_id: input.request_id,
           fingerprint,
           plan,
@@ -133,7 +296,12 @@ impl WorkspaceAutomationService {
         personal_rule: None,
         definition,
       };
-      self.repo.accept_document_review(accepted).await?
+      self
+        .runtime
+        .as_ref()
+        .ok_or_else(runtime::unavailable)?
+        .accept_document_review(accepted)
+        .await?
     };
     if matches!(
       run.status,

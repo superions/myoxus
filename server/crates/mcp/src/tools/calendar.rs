@@ -105,6 +105,8 @@ pub(super) async fn create(
     None => None,
   };
   let input = NativeCreateInput {
+    imported_recurrence: None,
+    recurrence: None,
     title: optional_string(params, "title")?,
     description_delta: optional_json(params, "description_delta")?,
     starts_at: parse_timestamp(params, "starts_at")?,
@@ -162,6 +164,7 @@ pub(super) async fn update(
     }
   };
   let update = NativeEventUpdate {
+    recurrence: None,
     title: optional_string_patch(params, "title")?,
     description_delta: optional_json_patch(params, "description_delta")?,
     starts_at: optional_timestamp(params, "starts_at")?,
@@ -350,17 +353,16 @@ fn optional_bool(params: &Value, key: &str) -> Result<Option<bool>, (i32, String
   }
 }
 
-fn parse_create_reminders(params: &Value) -> Result<Vec<ReminderInput>, (i32, String)> {
-  parse_reminders(params)?
-    .unwrap_or_default()
-    .into_iter()
-    .map(|value| {
-      Ok(ReminderInput {
+fn parse_create_reminders(params: &Value) -> Result<Option<Vec<ReminderInput>>, (i32, String)> {
+  Ok(parse_reminders(params)?.map(|values| {
+    values
+      .into_iter()
+      .map(|value| ReminderInput {
         minutes_before: value.minutes_before,
         channel: value.channel,
       })
-    })
-    .collect()
+      .collect()
+  }))
 }
 
 fn parse_update_reminders(params: &Value) -> Result<Option<Vec<NativeEventReminderInput>>, (i32, String)> {
@@ -486,6 +488,7 @@ fn map_auth_error(error: AuthError) -> (i32, String) {
       -32003,
       "CALENDAR_PERMISSION_DENIED: calendar action is not allowed".to_string(),
     ),
+    AuthError::InvalidInput(message) if message.starts_with("RESULT_TOO_LARGE:") => (-32009, message),
     AuthError::InvalidInput(message) => (-32602, message),
     AuthError::Storage(_) => (
       -32002,

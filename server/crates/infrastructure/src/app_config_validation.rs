@@ -501,7 +501,6 @@ pub(crate) fn validate_config_value_shape(module: &str, key: &str, value: &serde
     ("databases", "csv_max_rows") => validate_number_bounds(module, key, value, 1, 1_000_000),
     ("databases", "csv_max_columns") => validate_number_bounds(module, key, value, 1, 10_000),
     ("databases", "csv_sample_rows_for_type_inference") => validate_number_bounds(module, key, value, 1, 10_000),
-    ("databases", "reminder_batch_size") => validate_number_bounds(module, key, value, 1, 1_000),
     ("databases", "max_reminders_per_user_per_cell") => validate_number_bounds(module, key, value, 1, 20),
     ("databases", "max_reminder_offset_minutes") => validate_number_bounds(module, key, value, 0, 5_256_000),
     ("workspace", "import.max_upload_bytes")
@@ -754,18 +753,10 @@ pub(crate) fn validate_config_value_shape(module: &str, key: &str, value: &serde
     | ("worker", "polling.indexer_auto_index_interval_ms")
     | ("worker", "polling.document_graph_reindex_interval_ms")
     | ("worker", "polling.database_projection_interval_ms")
-    | ("worker", "polling.workspace_automation_retry_interval_ms")
-    | ("worker", "polling.calendar_reminder_interval_ms") => {
+    | ("worker", "polling.workspace_automation_retry_interval_ms") => {
       let v = value.as_u64().unwrap_or_default();
       if !(5000..=86_400_000).contains(&v) {
         return Some(format!("worker.{key} must be between 5000 (5s) and 86400000 (1 day)"));
-      }
-      None
-    }
-    ("worker", "polling.database_reminder_interval_ms") => {
-      let value = value.as_u64().unwrap_or_default();
-      if !(1_000..=3_600_000).contains(&value) {
-        return Some("worker.polling.database_reminder_interval_ms must be between 1000 and 3600000".to_string());
       }
       None
     }

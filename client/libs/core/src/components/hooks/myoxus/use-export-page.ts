@@ -5,7 +5,11 @@ import { WorkspaceDialogService } from "@myoxus/core/modules/dialogs";
 import { EditorService } from "@myoxus/core/modules/editor";
 import { CoreDocEmbedProvider, DocsService } from "@myoxus/core/modules/doc";
 import { GuardService } from "@myoxus/core/modules/permissions";
-import { GraphQLService } from "@myoxus/core/modules/server";
+import {
+  GraphQLService,
+  FetchService,
+  WorkspaceServerService,
+} from "@myoxus/core/modules/server";
 import {
   type Workspace as CoreWorkspace,
   WorkspaceService,
@@ -63,7 +67,12 @@ import {
 } from "../../../modules/pdf-export/export-dialog";
 import type { ServerPdfExportResult } from "../../../modules/pdf-export/run-server-export";
 import { useAsyncCallback } from "../myoxus-async-hooks";
+import {
+  SOURCE_SYNC_TIMEOUT_MS as PDF_SOURCE_SYNC_TIMEOUT_MS,
+  waitForServerDocumentSync as waitForServerPdfSourceSync,
+} from "../../../modules/file-export/source-sync";
 import { materializeDiagramExportSvg } from "./diagram-export-svg";
+import { startDocxExport } from "../../../modules/file-export/docx-export-notification";
 
 export type {
   PdfExportJobPhase,
@@ -74,6 +83,7 @@ export type {
 export { runServerPdfExport } from "../../../modules/pdf-export/run-server-export";
 
 type ExportType =
+  | "docx"
   | "pdf"
   | "html"
   | "png"
@@ -94,7 +104,7 @@ interface ExportHandlerOptions {
    * `HTMLElement`. Tightening here keeps the contract honest.
    */
   editorContainer: HTMLElement | null;
-  type: ExportType;
+  type: Exclude<ExportType, "docx">;
   graphqlService: GraphQLService;
   workspaceDialogService: WorkspaceDialogService;
   /** Editor mode at the time the user clicked Export. Edgeless triggers the
@@ -120,8 +130,6 @@ interface AdapterConfig {
   contentType: string;
   indexFileName: string;
 }
-
-const PDF_SOURCE_SYNC_TIMEOUT_MS = 30_000;
 
 function getFirstMermaidSource(doc: Store) {
   const [block] = doc.getBlocksByFlavour("myoxus:mermaid" as never);
@@ -278,46 +286,6 @@ function pdfSourceSyncError(
       docId: page.id,
     },
   );
-}
-
-async function waitForServerPdfSourceSync(
-  page: Store,
-  workspace: CoreWorkspace,
-): Promise<boolean> {
-  const controller = new AbortController();
-  const timeout = window.setTimeout(
-    () => controller.abort("pdf-export-source-sync-timeout"),
-    PDF_SOURCE_SYNC_TIMEOUT_MS,
-  );
-  try {
-    console.info("pdf export: waiting for document sync before server render", {
-      workspaceId: page.workspace.id,
-      docId: page.id,
-      timeoutMs: PDF_SOURCE_SYNC_TIMEOUT_MS,
-    });
-    // Newly created/edited pages can still be local-only when the user
-    // immediately clicks export, so wait for both the workspace root metadata
-    // and the page doc to reach the websocket persistence layer.
-    await workspace.engine.doc.waitForSynced(workspace.id, controller.signal);
-    await workspace.engine.doc.waitForSynced(page.id, controller.signal);
-    console.info("pdf export: document sync barrier completed", {
-      workspaceId: page.workspace.id,
-      docId: page.id,
-    });
-    return true;
-  } catch (err) {
-    console.warn("pdf export: document sync barrier failed", {
-      workspaceId: page.workspace.id,
-      docId: page.id,
-      err,
-    });
-    // Starting a render after this point is worse than a temporary refusal:
-    // the server can only merge data that has reached PostgreSQL. Proceeding
-    // here produced empty first exports for freshly edited documents.
-    return false;
-  } finally {
-    window.clearTimeout(timeout);
-  }
 }
 
 async function runServerPdfExportPreflight(
@@ -704,6 +672,7 @@ export const useExportPage = (
   const workspaceDialogService = useService(WorkspaceDialogService);
   const guardService = useService(GuardService);
   const docsService = useService(DocsService);
+  const workspaceServerService = useService(WorkspaceServerService);
   const editorContainer = useLiveData(editor.editorContainer$);
   const editorMode = useLiveData(editor.mode$);
   const virgultumDoc = editor.doc.virgultumDoc;
@@ -713,6 +682,22 @@ export const useExportPage = (
 
   const onClickHandler = useAsyncCallback(
     async (type: ExportType) => {
+      if (type === "docx") {
+        track.$.sharePanel.$.export({ type });
+        await startDocxExport(
+          {
+            page: virgultumDoc,
+            pageMode: editorMode ?? "page",
+            workspace: workspaceService.workspace,
+            fetchService:
+              workspaceServerService.server?.scope.get(FetchService),
+          },
+          returnFocusRef,
+        );
+        // DOCX owns its complete result, including neutral save cancellation.
+        // It must never enter global loading or the generic success branch.
+        return;
+      }
       // Only the browser-print export path needs the mounted editor container.
       // Server PDF export opens its own dialog and performs a source-sync
       // preflight before rendering. Blocking it here made narrow Web layouts
@@ -884,6 +869,7 @@ export const useExportPage = (
       workspaceDialogService,
       guardService,
       docsService,
+      workspaceServerService,
       returnFocusRef,
       t,
     ],

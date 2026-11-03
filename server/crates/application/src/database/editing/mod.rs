@@ -11,6 +11,7 @@ mod batches;
 mod links;
 pub mod maintenance;
 mod records;
+mod recurrence;
 mod review;
 pub(crate) use review::task_description_value;
 

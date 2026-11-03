@@ -5,6 +5,7 @@
 //! from SQL table details. Persistence remains a repository concern.
 
 pub mod okf;
+pub mod review;
 
 use std::collections::BTreeSet;
 use std::sync::Arc;
@@ -56,6 +57,7 @@ pub enum DocumentMetadataServiceError {
 
 #[derive(Clone)]
 pub struct DocumentMetadataService {
+  reviews: Option<Arc<review::ReviewPlanningCapabilities>>,
   repo: Arc<dyn DocumentMetadataRepository>,
   projection_cache: Option<Arc<dyn DocCachePort>>,
   projection_loads: Cache<(Uuid, Uuid, &'static str, String), DocumentMetadataProjection>,
@@ -83,6 +85,7 @@ fn clone_repository_error(error: &RepositoryError) -> RepositoryError {
 impl DocumentMetadataService {
   pub fn new(repo: Arc<dyn DocumentMetadataRepository>) -> Self {
     Self {
+      reviews: None,
       repo,
       projection_cache: None,
       projection_loads: Cache::builder().max_capacity(10_000).build(),

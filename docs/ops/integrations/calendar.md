@@ -145,7 +145,11 @@ Check server logs for `401` or `403` responses from the CalDAV server.
 
 The CalDAV parser handles VEVENT components with timezone normalization to UTC. Known limitations:
 
-- `RRULE` is stored as opaque string (no recurrence expansion in V1)
+- Calendar masters reference canonical timing definitions. Native RRULE values
+  are generated projections; imported RRULE/COUNT/UNTIL and source zones remain
+  preserved read-only inputs. Unsupported forms are exposed as unsupported rather
+  than silently returning an empty continuing series. Definition migration does
+  not recreate provider IDs, exception rows, instances or workflow executions.
 - `DURATION`-based events are computed from `DTSTART`
 - All-day events (`DATE` vs `DATE-TIME`) are flagged via `all_day: true`
 
@@ -219,6 +223,13 @@ are retained, and only unfinished recipients are sent again. Dispatch-log and
 whole-reminder completion timestamps are written in one short transaction.
 A completed reminder suppresses replay. SMTP acceptance before its recipient
 receipt still has a redelivery window after a crash.
+Reminder settings are native definitions, separate from per-occurrence delivery
+receipts. Recurring delivery uses the original occurrence key for identity and
+the actual moved occurrence time for notification/mail context, independently
+of calendar view windows. Shared SQL admission and the existing outbox replace
+the former due scan; the controlled deployment steps are in the
+[worker cutover runbook](../runbooks/sync-and-workers.md#calendar-reminder-scheduling-cutover).
+
 Saving an unchanged reminder preserves its identity and delivery status, so
 editing a title or reopening and saving a dialog does not resend a completed reminder.
 

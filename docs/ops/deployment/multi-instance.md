@@ -255,8 +255,13 @@ from the database and live operation; it is not a data backup.
 | Object storage | More concurrent uploads and downloads        | Bucket limits, multipart settings, bandwidth, and egress        |
 | API            | More HTTP, GraphQL, and socket capacity      | p95/p99, open sockets, CPU, memory, and database wait time      |
 
-Every server process starts WorkerRuntime and the cron scheduler. The queue
-role elects exactly one scheduler leader per namespace. CalDAV and Google
+Every server process starts WorkerRuntime and shared PostgreSQL admission.
+SQL locks/frozen receipts prevent duplicate timing admission; no Redis scheduler
+leader is used. Registered-job initialization holds one PostgreSQL session lock
+through bounded pending import and complete startup registration; other replicas
+wait. Timing-owner cutovers require the documented all-instance stop, not a
+rolling bridge; see the [worker transfer](../runbooks/sync-and-workers.md#registered-worker-timing-cutover).
+CalDAV and Google
 Calendar read provider state and write canonical PostgreSQL rows, while the
 mandatory Redis `lock` role serializes each provider account. The fixed account
 TTL is 300 seconds and is value-checked and extended every 100 seconds. A

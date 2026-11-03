@@ -46,6 +46,20 @@ impl PgDatabaseRepository {
     Ok(())
   }
 
+  /// Native adopters must acquire the same definition locks before their Row
+  /// lock, including when no Cell changes and the mutation writer is skipped.
+  pub(crate) async fn lock_project_definition_fields(
+    tx: &mut Transaction<'_, Postgres>,
+    database_id: DatabaseId,
+  ) -> RepoResult<()> {
+    sqlx::query("SELECT id FROM workspace_database_fields WHERE database_id=$1 ORDER BY id FOR SHARE")
+      .bind(database_id)
+      .fetch_all(&mut **tx)
+      .await
+      .map_err(Self::map_sqlx_error)?;
+    Ok(())
+  }
+
   pub(in crate::workspace_database) async fn prepare_project_mutation(
     tx: &mut Transaction<'_, Postgres>,
     database_id: DatabaseId,
@@ -76,11 +90,7 @@ impl PgDatabaseRepository {
 
     // Acquire definition locks before any Row locks. Every decision below is
     // derived from these same transaction-local definitions, never a UI cache.
-    sqlx::query("SELECT id FROM workspace_database_fields WHERE database_id=$1 ORDER BY id FOR SHARE")
-      .bind(database_id)
-      .fetch_all(&mut **tx)
-      .await
-      .map_err(Self::map_sqlx_error)?;
+    Self::lock_project_definition_fields(tx, database_id).await?;
     let fields = Self::list_fields_for(&mut **tx, database_id).await?;
     let roles = Self::list_field_roles_for(&mut **tx, database_id).await?;
     let structure: Option<String> = profile.try_get("structure_preset").map_err(Self::map_sqlx_error)?;

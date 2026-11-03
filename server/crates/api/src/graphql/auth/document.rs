@@ -144,6 +144,26 @@ impl WorkspaceDocType {
       .await
       .map_err(map_gql_error)?;
     let mut permissions = doc_permissions_for_role(role);
+    if permissions.doc_read
+      && let Some(metadata) = state.document_metadata_service()
+    {
+      match metadata.get_projection_uncached(doc_uuid, workspace_uuid).await {
+        Ok(projection) => {
+          if projection
+            .template
+            .as_ref()
+            .is_some_and(|template| template.state == "guide")
+          {
+            permissions.doc_update = false;
+            permissions.doc_properties_update = false;
+          }
+        }
+        // Trashed documents retain Delete/Restore permissions while their
+        // active metadata projection is deliberately absent.
+        Err(myoxus_application::document_metadata::DocumentMetadataServiceError::NotFound) => {}
+        Err(error) => return Err(async_graphql::Error::new(error.to_string())),
+      }
+    }
     if let Some(registry) = state.template_registry()
       && registry
         .is_managed_source(workspace_uuid, doc_uuid)

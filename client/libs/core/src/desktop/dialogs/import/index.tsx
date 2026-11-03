@@ -22,6 +22,7 @@
  */
 import { useAsyncCallback } from "@myoxus/core/components/hooks/myoxus-async-hooks";
 import { useNavigateHelper } from "@myoxus/core/components/hooks/use-navigate-helper";
+import { useSystemOnline } from "@myoxus/core/components/hooks/use-system-online";
 import { getStoreManager } from "@myoxus/core/editor/manager/store";
 import {
   type DialogComponentProps,
@@ -46,6 +47,7 @@ import {
 } from "@myoxus/core/modules/workspace";
 import { CoreDocEmbedProvider, DocsService } from "@myoxus/core/modules/doc";
 import { GuardService } from "@myoxus/core/modules/permissions";
+import { useGuard } from "@myoxus/core/components/guard/use-guard";
 import type { DocEmbedProvider } from "@virgultum/editor/shared/services";
 import {
   DefaultServerService,
@@ -54,10 +56,17 @@ import {
 } from "@myoxus/core/modules/server";
 import type { SnapshotImportHooks } from "@virgultum/editor/widgets/linked-doc";
 import { snapshotLabelImportHooks } from "./import-labels";
+import {
+  DocxImportStatus,
+  showDocxImportNotification,
+  useOwnedDocxImport,
+} from "./docx-result";
+import type { DocxImportAttempt } from "@myoxus/core/modules/doc/services/docs";
 import { DebugLogger } from "@myoxus/debug";
 import { useI18n } from "@myoxus/i18n";
 import {
   ArchiveRestoreIcon,
+  InformationIcon,
   FileIconDocxIcon,
   FileIconHtmlIcon,
   FileIconMdIcon,
@@ -79,6 +88,7 @@ import {
   Notice,
   Group,
   Text,
+  Tooltip,
   Accordion,
   AccordionItem,
   AccordionControl,
@@ -92,7 +102,6 @@ import {
 } from "@virgultum/editor/shared/adapters";
 import type { Workspace } from "@virgultum/editor/store";
 import {
-  DocxTransformer,
   HtmlTransformer,
   MarkdownTransformer,
   ZipTransformer,
@@ -121,6 +130,7 @@ type AcceptType =
 export type ImportStatus = "idle" | "importing" | "success" | "error";
 export type ImportResult = {
   docIds: string[];
+  docx?: Extract<DocxImportAttempt, { status: "complete" }>;
   bpmn?: BpmnImportResult;
   markdownDiagnostics?: MarkdownImportDiagnostics;
   entryId?: string;
@@ -201,7 +211,9 @@ const importOptions = [
   },
 ];
 
-const importConfigs: Record<ImportType, ImportConfig> = {
+const importConfigs: Record<Exclude<ImportType, "docx">, ImportConfig> & {
+  docx: { fileOptions: ImportConfig["fileOptions"] };
+} = {
   bpmn: {
     fileOptions: { acceptType: "Bpmn", multiple: true },
     importFunction: async (
@@ -339,20 +351,6 @@ const importConfigs: Record<ImportType, ImportConfig> = {
   },
   docx: {
     fileOptions: { acceptType: "Docx", multiple: false },
-    importFunction: async (docCollection, file) => {
-      const files = Array.isArray(file) ? file : [file];
-      const docIds: string[] = [];
-      for (const file of files) {
-        const docId = await DocxTransformer.importDocx({
-          collection: docCollection,
-          schema: getMyoxusWorkspaceSchema(),
-          imported: file,
-          extensions: getStoreManager().config.init().value.get("store"),
-        });
-        if (docId) docIds.push(docId);
-      }
-      return { docIds };
-    },
   },
   snapshot: {
     fileOptions: { acceptType: "Zip", multiple: false },
@@ -408,12 +406,14 @@ const ImportOptionItem = ({
   prefixIcon,
   type,
   onImport,
+  unavailableReason,
   ...props
 }: {
   label: string;
   prefixIcon: ReactElement<SVGAttributes<SVGElement>>;
   type: ImportType;
   onImport: (type: ImportType) => void | Promise<unknown>;
+  unavailableReason?: string;
   "data-testid"?: string;
 }) => {
   const t = useI18n();
@@ -422,14 +422,25 @@ const ImportOptionItem = ({
       ? (t as unknown as Record<string, () => string>)[label]()
       : label;
   return (
-    <MenuItem
-      block
-      onSelect={() => void onImport(type)}
-      prefixIcon={prefixIcon}
-      {...props}
+    <Tooltip
+      content={unavailableReason}
+      events={{ hover: true, focus: true, touch: false }}
     >
-      {translatedLabel}
-    </MenuItem>
+      <MenuItem
+        block
+        aria-disabled={Boolean(unavailableReason)}
+        aria-description={unavailableReason}
+        suffixIcon={unavailableReason ? <InformationIcon /> : undefined}
+        closeMenuOnClick={!unavailableReason}
+        onSelect={() => {
+          if (!unavailableReason) void onImport(type);
+        }}
+        prefixIcon={prefixIcon}
+        {...props}
+      >
+        {translatedLabel}
+      </MenuItem>
+    </Tooltip>
   );
 };
 
@@ -438,6 +449,19 @@ export const ImportMenuItems = ({
 }: {
   onImport: (type: ImportType) => void | Promise<unknown>;
 }) => {
+  const t = useI18n();
+  const workspace = useService(WorkspaceService).workspace;
+  const server = useLiveData(useService(WorkspaceServerService).server$);
+  const online = useSystemOnline();
+  const canCreate = useGuard("Workspace_CreateDoc");
+  const wordUnavailable =
+    workspace.flavour === "local" || !server || !online
+      ? t["com.myoxus.import.word.unavailable"]()
+      : canCreate === false
+        ? t["com.myoxus.import.word.permission"]()
+        : canCreate === undefined
+          ? t.Loading()
+          : undefined;
   return (
     <>
       {importOptions.map(({ key, label, prefixIcon, testId, type }) => (
@@ -446,6 +470,7 @@ export const ImportMenuItems = ({
           prefixIcon={prefixIcon}
           label={label}
           type={type}
+          unavailableReason={type === "docx" ? wordUnavailable : undefined}
           onImport={onImport}
           data-testid={testId}
         />
@@ -713,6 +738,7 @@ type UseWorkspaceImportOptions = {
   onComplete?: (result: ImportResult) => void;
   onError?: (error: string | null) => void;
   onStatusChange?: (status: ImportStatus) => void;
+  docxPresentation?: "dialog" | "notification";
 };
 
 export function useWorkspaceImport({
@@ -720,6 +746,7 @@ export function useWorkspaceImport({
   onComplete,
   onError,
   onStatusChange,
+  docxPresentation = "notification",
 }: UseWorkspaceImportOptions = {}) {
   const t = useI18n();
   const workspace = useService(WorkspaceService).workspace;
@@ -733,6 +760,10 @@ export function useWorkspaceImport({
   const explorerIconService = useService(ExplorerIconService);
   const globalDialogService = useService(GlobalDialogService);
   const { jumpToPage } = useNavigateHelper();
+  const importWord = useOwnedDocxImport({
+    onComplete,
+    presentation: docxPresentation,
+  });
 
   const handleCreatedWorkspace = useCallback(
     (payload: { metadata: WorkspaceMetadata; defaultDocId?: string }) => {
@@ -781,6 +812,10 @@ export function useWorkspaceImport({
 
   return useAsyncCallback(
     async (type: ImportType) => {
+      if (type === "docx") {
+        await importWord();
+        return;
+      }
       onError?.(null);
       const access = new CoreDocEmbedProvider(
         guardService,
@@ -797,9 +832,8 @@ export function useWorkspaceImport({
             : await openFilesWith(acceptType, multiple);
 
         if (!files || (files.length === 0 && acceptType !== "Skip")) {
-          throw new Error(
-            t["com.myoxus.import.status.failed.message.no-file-selected"](),
-          );
+          onStatusChange?.("idle");
+          return;
         }
 
         if (acceptType !== "Skip") {
@@ -843,6 +877,10 @@ export function useWorkspaceImport({
           control: "import",
         });
       } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          onStatusChange?.("idle");
+          return;
+        }
         const errorMessage =
           error instanceof Error ? error.message : "Unknown error occurred";
         onError?.(errorMessage);
@@ -859,6 +897,7 @@ export function useWorkspaceImport({
     },
     [
       workspace,
+      importWord,
       docsService,
       diagramRegistry,
       guardService,
@@ -889,7 +928,14 @@ export const ImportDialog = ({
     bpmnImport ? { docIds: bpmnImport.docIds, bpmn: bpmnImport } : null,
   );
   const diagramRegistry = useService(MermaidDiagramsService);
+  const docsService = useService(DocsService);
+  const wordAttempt = useLiveData(docsService.docxImport$);
+  const [wordActive, setWordActive] = useState(
+    wordAttempt?.status === "selecting" || wordAttempt?.status === "importing",
+  );
+  const { jumpToPage } = useNavigateHelper();
   const handleImport = useWorkspaceImport({
+    docxPresentation: "dialog",
     onComplete: setImportResult,
     onError: setImportError,
     onStatusChange: (nextStatus) => {
@@ -903,12 +949,20 @@ export const ImportDialog = ({
   }, [importResult, close]);
 
   const handleRetry = () => {
+    setWordActive(false);
     setImportResult(null);
     setStatus("idle");
   };
 
   const statusComponents = {
-    idle: <ImportOptions onImport={handleImport} />,
+    idle: (
+      <ImportOptions
+        onImport={(type) => {
+          setWordActive(type === "docx");
+          return handleImport(type);
+        }}
+      />
+    ),
     importing: <ImportingStatus />,
     success: importResult?.bpmn ? (
       <BpmnImportStatus
@@ -939,6 +993,11 @@ export const ImportDialog = ({
       open
       onOpenChange={(open: boolean) => {
         if (!open) {
+          if (wordActive && docsService.docxImport$.value) {
+            showDocxImportNotification(docsService, jumpToPage);
+            close();
+            return;
+          }
           close(importResult || undefined);
         }
       }}
@@ -946,15 +1005,34 @@ export const ImportDialog = ({
         ["data-testid" as string]: "import-modal",
         "aria-label": t["Import"](),
       }}
-      withoutCloseButton={status === "importing"}
-      persistent={status === "importing"}
+      withoutCloseButton={!wordActive && status === "importing"}
+      persistent={!wordActive && status === "importing"}
     >
       <Stack
         p="lg"
         data-myoxus-ui-role="import-dialog-content"
         data-testid="import-dialog"
       >
-        {statusComponents[status]}
+        {wordActive && wordAttempt ? (
+          <DocxImportStatus
+            attempt={wordAttempt}
+            onOpen={() => {
+              if (wordAttempt.status !== "complete") return;
+              close({ docIds: [wordAttempt.id] });
+              jumpToPage(wordAttempt.workspaceId, wordAttempt.id);
+            }}
+            onInspect={() => {
+              close();
+              jumpToPage(wordAttempt.workspaceId, "all");
+              showDocxImportNotification(docsService, jumpToPage);
+            }}
+            onSelect={() => {
+              void handleImport("docx");
+            }}
+          />
+        ) : (
+          statusComponents[status]
+        )}
       </Stack>
     </Modal>
   );

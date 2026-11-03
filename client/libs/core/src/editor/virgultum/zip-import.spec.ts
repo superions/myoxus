@@ -1,9 +1,7 @@
 /** @vitest-environment happy-dom */
 import * as Y from "yjs";
 import { exportWorkspaceLabels } from "../../modules/tag/export";
-import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { createRequire } from "node:module";
 
 import { StoreExtensionManager } from "@virgultum/editor/ext-loader";
 import { getInternalStoreExtensions } from "@virgultum/editor/extensions/store";
@@ -16,7 +14,7 @@ import { snapshotLabelImportHooks } from "../../desktop/dialogs/import/import-la
 import type { Workspace } from "../../modules/workspace";
 import type { DocsService } from "../../modules/doc";
 import type { GraphQLService } from "../../modules/server";
-import JSZip from "jszip";
+import { createZipFixture, readZipFixture } from "../../__tests__/zip-fixture";
 import {
   MarkdownTransformer,
   ZipTransformer,
@@ -104,26 +102,18 @@ test("Markdown ZIP import preserves nested content, marks and image bytes", asyn
 });
 
 async function documentLinkArchive() {
-  const zip = new JSZip();
-  zip.file(
-    "a/source.md",
-    "---\ntitle: Source\n---\n[[../b/target|Target alias]] and [Relative alias](../b/target.md) and [[Duplicate]] and [[Missing]] and [[Target#anchor]]",
-  );
-  zip.file(
-    "b/target.md",
-    "---\ntitle: Target\n---\nBack to [[../a/source|Source alias]]",
-  );
-  zip.file("c/one.md", "---\ntitle: Duplicate\n---\nOne");
-  zip.file("d/two.md", "---\ntitle: Duplicate\n---\nTwo");
-  return new Blob([await zip.generateAsync({ type: "arraybuffer" })]);
+  return archiveWithEntries({
+    "a/source.md":
+      "---\ntitle: Source\n---\n[[../b/target|Target alias]] and [Relative alias](../b/target.md) and [[Duplicate]] and [[Missing]] and [[Target#anchor]]",
+    "b/target.md":
+      "---\ntitle: Target\n---\nBack to [[../a/source|Source alias]]",
+    "c/one.md": "---\ntitle: Duplicate\n---\nOne",
+    "d/two.md": "---\ntitle: Duplicate\n---\nTwo",
+  });
 }
 
 async function archiveWithEntries(entries: Record<string, string>) {
-  const zip = new JSZip();
-  for (const [path, content] of Object.entries(entries)) {
-    zip.file(path, content);
-  }
-  return new Blob([await zip.generateAsync({ type: "arraybuffer" })]);
+  return new Blob([await createZipFixture(Object.entries(entries))]);
 }
 
 function referencesInDocument(id: string) {
@@ -252,69 +242,100 @@ test("keeps Unicode paths and duplicate basenames in distinct directories", asyn
 });
 
 test("malformed ZIP64 terminates and creates no partial document", async () => {
-  const require = createRequire(import.meta.url);
-  const importerRequire = createRequire(
-    require.resolve("@virgultum/editor/widgets/linked-doc"),
-  );
-  // Bound the formerly synchronous infinite loop before exercising the importer
-  // in this process. A vulnerable dependency fails here instead of hanging Vitest.
-  const result = execFileSync(
-    process.execPath,
-    [
-      "-e",
-      `
-    const {unzipSync} = require(process.argv[1]);
-    try { unzipSync(Buffer.from(process.argv[2], 'base64')); process.exit(1); }
-    catch (error) { if (error.code !== 13) throw error; process.stdout.write('rejected'); }
-  `,
-      importerRequire.resolve("fflate"),
-      malformedZip,
-    ],
-    { timeout: 1000, encoding: "utf8" },
-  );
-  expect(result).toBe("rejected");
-  await expect(importZip(malformedZip)).rejects.toMatchObject({ code: 13 });
+  await expect(importZip(malformedZip)).rejects.toThrow();
   expect(collection.docs.size).toBe(0);
 });
 
+test("ZIP admission rejects unsafe paths, changed payload CRC and oversized entries before document creation", async () => {
+  const attempted = vi.spyOn(collection, "createDoc");
+  try {
+    const unsafe = await createZipFixture([["../outside.md", "Outside"]]);
+    await expect(
+      MarkdownTransformer.importMarkdownZip({
+        collection,
+        schema,
+        extensions,
+        imported: new Blob([unsafe]),
+      }),
+    ).rejects.toThrow(/Unsafe (?:ZIP entry path|filename)/);
+    const good = await createZipFixture([["ordinary.md", "Hello CRC"]]);
+    const changed = good.slice();
+    const local = new DataView(changed.buffer);
+    const content = 30 + local.getUint16(26, true) + local.getUint16(28, true);
+    changed[content] ^= 1;
+    await expect(
+      MarkdownTransformer.importMarkdownZip({
+        collection,
+        schema,
+        extensions,
+        imported: new Blob([changed]),
+      }),
+    ).rejects.toThrow("Invalid CRC32");
+    const oversized = good.slice();
+    const central = oversized.findIndex(
+      (_, index) =>
+        oversized[index] === 0x50 &&
+        oversized[index + 1] === 0x4b &&
+        oversized[index + 2] === 1 &&
+        oversized[index + 3] === 2,
+    );
+    expect(central).toBeGreaterThan(0);
+    new DataView(oversized.buffer).setUint32(
+      central + 24,
+      50 * 1024 * 1024 + 1,
+      true,
+    );
+    await expect(
+      MarkdownTransformer.importMarkdownZip({
+        collection,
+        schema,
+        extensions,
+        imported: new Blob([oversized]),
+      }),
+    ).rejects.toThrow("output limits");
+    expect(attempted).not.toHaveBeenCalled();
+    expect(collection.docs.size).toBe(0);
+  } finally {
+    attempted.mockRestore();
+  }
+});
+
 async function labelSnapshotArchive() {
-  const zip = new JSZip();
-  zip.file(
-    "info.json",
-    JSON.stringify({
-      workspaceTags: [
-        {
-          id: "source-label",
-          name: "Portable label",
-          colorRole: "tag.blue",
-          description: "Preserved",
+  const entries: [string, string][] = [
+    [
+      "info.json",
+      JSON.stringify({
+        workspaceTags: [
+          {
+            id: "source-label",
+            name: "Portable label",
+            colorRole: "tag.blue",
+            description: "Preserved",
+          },
+        ],
+      }),
+    ],
+    [
+      "document.snapshot.json",
+      JSON.stringify({
+        type: "page",
+        meta: {
+          id: "source-doc",
+          title: "Portable document",
+          createDate: 123,
+          tags: ["source-label"],
         },
-      ],
-    }),
-  );
-  zip.file(
-    "document.snapshot.json",
-    JSON.stringify({
-      type: "page",
-      meta: {
-        id: "source-doc",
-        title: "Portable document",
-        createDate: 123,
-        tags: ["source-label"],
-      },
-      blocks: {
-        type: "block",
-        id: "source-page",
-        flavour: "myoxus:page",
-        props: {},
-        children: [],
-      },
-    }),
-  );
-  return new File(
-    [await zip.generateAsync({ type: "arraybuffer" })],
-    "labels.zip",
-  );
+        blocks: {
+          type: "block",
+          id: "source-page",
+          flavour: "myoxus:page",
+          props: {},
+          children: [],
+        },
+      }),
+    ],
+  ];
+  return new File([await createZipFixture(entries)], "labels.zip");
 }
 
 test("snapshot label preflight, canonical transfer and compensation own the real importer", async () => {
@@ -464,14 +485,14 @@ test("snapshot export uses canonical source identities and leaves live Yjs uncha
   try {
     await ZipTransformer.exportDocs(collection, schema, [doc], projection);
     expect(output).toBeDefined();
-    const zip = await JSZip.loadAsync(await output!.arrayBuffer());
+    const zip = await readZipFixture(output!);
     expect(
-      JSON.parse(await zip.file("info.json")!.async("string")).workspaceTags,
+      JSON.parse(new TextDecoder().decode(zip.get("info.json"))).workspaceTags,
     ).toEqual(labels.workspaceTags);
     const snapshot = JSON.parse(
-      await Object.values(zip.files)
-        .find((file) => file.name.endsWith(".snapshot.json"))!
-        .async("string"),
+      new TextDecoder().decode(
+        [...zip].find(([name]) => name.endsWith(".snapshot.json"))![1],
+      ),
     );
     expect(snapshot.meta.id).toBe(doc.id);
     expect(snapshot.meta.tags).toEqual(["archived", "active"]);

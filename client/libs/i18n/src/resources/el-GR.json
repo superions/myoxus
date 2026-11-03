@@ -2469,7 +2469,6 @@
   "admin.performance.field.compaction-lock-ttl.desc": "Κλείδωμα συμπίεσης TTL (δευτερόλεπτα). Χρονικό όριο ασφαλείας σε περίπτωση διακοπής λειτουργίας διακομιστή κατά τη διάρκεια της συμπίεσης.",
   "admin.performance.field.compaction-threshold-default.desc": "Αριθμός εκκρεμών ενημερώσεων πριν από την ενεργοποίηση της αυτόματης συμπύκνωσης. Προεπιλογή: 500",
   "admin.performance.field.compaction-threshold-root-doc.desc": "Όριο αυτόματης συμπίεσης για έγγραφα ρίζας. Προεπιλογή: 50",
-  "admin.performance.field.cron-tick-interval.desc": "Διάστημα (δευτερόλεπτα) για τον βρόχο επιλογής του προγραμματιστή cron. Προεπιλογή: 60 · Ελάχ.: 5 · Ενδέχεται να απαιτείται επανεκκίνηση για πλήρη ισχύ.",
   "admin.performance.field.daily-enabled.desc": "Ενεργοποιήστε τον ημερήσιο κύκλο αυτόματου συντονισμού TTL.",
   "admin.performance.field.doc-metadata-cache-enabled.desc": "Ενεργοποίηση προσωρινής μνήμης μεταδεδομένων Redis. Μειώνει τα ερωτήματα DB για αναζητήσεις μεταδεδομένων εγγράφων.",
   "admin.performance.field.doc-metadata-fixed-ttl.desc": "Διορθώθηκε η παράκαμψη TTL για την προσωρινή μνήμη doc_metadata (δευτερόλεπτα). 0 = χρήση αυτόματου συντονισμού.",

@@ -39,6 +39,7 @@ This page lists the compiled schema definitions for this section. Use the type l
 | `documentMetadataValidation`<br>[DocumentMetadataValidationType](./objects.md#documentmetadatavalidationtype)! | `action`: [DocumentMetadataValidationActionType](./enums.md#documentmetadatavalidationactiontype)<br>`docId`: `ID`!<br>`workspaceId`: `ID`! |
 | `documentMetadataValueDefinitions`<br>\[[DocumentMetadataValueDefinitionType](./objects.md#documentmetadatavaluedefinitiontype)!\]! | `fieldKey`: `String`! |
 | `documentPdfExportHistory`<br>\[[PdfExportHistoryEntryType](./objects.md#pdfexporthistoryentrytype)!\]! | `docId`: `String`!<br>`limit`: `Int`<br>`workspaceId`: `String`!<br><br>List recent PDF export jobs for a document. Workspace-read protected. |
+| `documentReviewPlanning`<br>[DocumentReviewPlanningType](./objects.md#documentreviewplanningtype)! | `docId`: `ID`!<br>`workspaceId`: `ID`! |
 | `documentStatusSchemas`<br>\[[DocumentStatusSchemaType](./objects.md#documentstatusschematype)!\]! |  |
 | `documentStatusValues`<br>\[[DocumentStatusValueType](./objects.md#documentstatusvaluetype)!\]! | `schemaKey`: `String`! |
 | `documentTypes`<br>\[[DocumentTypeDefinitionType](./objects.md#documenttypedefinitiontype)!\]! |  |
@@ -79,6 +80,7 @@ This page lists the compiled schema definitions for this section. Use the type l
 | `serverUsers`<br>\[[ServerUserSearchResult](./objects.md#serverusersearchresult)!\]! | `search`: `String`!<br>`skip`: `Int`<br>`take`: `Int` |
 | `user`<br>[UserOrLimitedUser](./unions.md#userorlimiteduser) | `email`: `String`! |
 | `workspace`<br>[WorkspaceType](./objects.md#workspacetype) | `docId`: `String`<br>`id`: `String`! |
+| `workspaceCalendarSeries`<br>\[[CalendarEventType](./objects.md#calendareventtype)!\]! | `workspaceId`: `String`!<br><br>Authored native series, independent of their current projected window. |
 | `workspaceCalendarSettings`<br>[WorkspaceCalendarSettingsType](./objects.md#workspacecalendarsettingstype) | `workspaceId`: `String`!<br><br>Get workspace calendar settings (writeback target + default reminder). |
 | `workspaceCalendars`<br>\[[WorkspaceCalendarType](./objects.md#workspacecalendartype)!\]! | `workspaceId`: `String`! |
 | `workspaceContentOperation`<br>[WorkspaceContentOperationType](./objects.md#workspacecontentoperationtype)! | `operationId`: [UUID](./scalars.md#uuid)!<br><br>Actor-scoped, redacted durable XWS status. |

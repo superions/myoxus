@@ -2,6 +2,51 @@
 use crate::workspace_database::*;
 
 impl PgDatabaseRepository {
+  pub(in crate::workspace_database) async fn insert_task_recurrence_completion_intents(
+    tx: &mut Transaction<'_, Postgres>,
+    database: DatabaseId,
+    changes: &[DatabaseCommittedCellChange],
+  ) -> RepoResult<()> {
+    if !changes.iter().any(|change| {
+      matches!(change.previous_value, Some(DatabaseCellValueData::Status(_)))
+        || matches!(change.value, Some(DatabaseCellValueData::Status(_)))
+    }) {
+      return Ok(());
+    }
+    let fields = DATABASE_FIELDS_TABLE;
+    let role = sqlx::query(&format!("SELECT r.field_id,f.config_json FROM database_field_roles r JOIN {fields} f ON f.id=r.field_id AND f.database_id=r.database_id WHERE r.database_id=$1 AND r.profile_kind='project' AND r.row_kind_scope='task' AND r.role_key='task.status' AND f.field_type='status'"))
+      .bind(database).fetch_optional(&mut **tx).await.map_err(Self::map_sqlx_error)?;
+    let Some(role) = role else {
+      return Ok(());
+    };
+    let field: Uuid = role.try_get("field_id").map_err(Self::map_sqlx_error)?;
+    let config: DatabaseFieldConfig =
+      serde_json::from_value(role.try_get("config_json").map_err(Self::map_sqlx_error)?)
+        .map_err(|_| RepositoryError::Validation("Task status configuration unavailable".into()))?;
+    let DatabaseFieldConfig::Status(config) = config else {
+      return Ok(());
+    };
+    let group = |value: Option<&DatabaseCellValueData>| {
+      let key = match value {
+        Some(DatabaseCellValueData::Status(id)) => id.as_str(),
+        None => config.default_option_id.as_str(),
+        _ => return None,
+      };
+      config
+        .options
+        .iter()
+        .find(|option| option.id == key)
+        .map(|option| option.group)
+    };
+    for change in changes.iter().filter(|change| change.field_id == field) {
+      if group(change.previous_value.as_ref()) != Some(DatabaseStatusGroup::Complete)
+        && group(change.value.as_ref()) == Some(DatabaseStatusGroup::Complete)
+      {
+        crate::recurrence::advance_completed_member_in(tx, change.row_id).await?;
+      }
+    }
+    Ok(())
+  }
   /// Capture valid automation preimages without widening notification repair guards.
   pub(in crate::workspace_database) async fn previous_cell_value(
     tx: &mut Transaction<'_, Postgres>,

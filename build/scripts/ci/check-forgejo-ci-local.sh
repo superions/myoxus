@@ -33,6 +33,7 @@ fi
 echo "==> Running CI helper fixtures"
 bash build/scripts/ci/test-ci-support-scripts.sh
 node --test build/scripts/ci/test-publish-github-release.mjs
+node --test build/scripts/ci/test-sync-github-issues.mjs
 node build/scripts/ci/test-publish-electron-release.mjs
 node --test build/scripts/ci/test-publish-distribution-overview.mjs
 node --test build/scripts/ci/test-no-direct-product-svg.mjs

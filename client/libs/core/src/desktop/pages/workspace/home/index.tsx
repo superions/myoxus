@@ -8,6 +8,8 @@ import {
 } from "@myoxus/core/modules/database/tasks/creation-intent";
 import { DatabaseTaskLifecycle, DatabaseTaskScope } from "@myoxus/graphql";
 import { DocsService } from "@myoxus/core/modules/doc";
+import { CollectionRulesService } from "@myoxus/core/modules/collection-rules";
+import { DocumentMetadataCacheService } from "@myoxus/core/modules/document-metadata/services/document-metadata-cache";
 import { getCuratedCommands } from "@myoxus/core/modules/quicksearch/impls/commands";
 import { GlobalState } from "@myoxus/core/modules/storage";
 import { WorkspaceHomeAssistance } from "./assistance";
@@ -259,6 +261,9 @@ const WorkspaceHomeHeader = ({
 export const WorkspaceHomePage = () => {
   const t = useI18n();
   const docsService = useService(DocsService);
+  const collectionRules = useService(CollectionRulesService);
+  const documentMetadataCache = useService(DocumentMetadataCacheService);
+  const metadataIndex = useLiveData(documentMetadataCache.watchIndexState());
   const workspace = useService(WorkspaceService).workspace;
   const globalState = useService(GlobalState);
   const workspaceServer = useLiveData(
@@ -371,6 +376,18 @@ export const WorkspaceHomePage = () => {
     () => globalThis.navigator?.onLine ?? true,
   );
   const workspaceName = useLiveData(workspace.name$) || t["Untitled"]();
+  const ordinaryDocuments$ = useMemo(
+    () =>
+      LiveData.from(
+        collectionRules.watch({
+          filters: [
+            { type: "system", key: "template", method: "is", value: "false" },
+          ],
+        }),
+        undefined,
+      ),
+    [collectionRules],
+  );
   const documents$ = useMemo(
     () =>
       LiveData.computed((get) => {
@@ -380,11 +397,28 @@ export const WorkspaceHomePage = () => {
           get(record.journalDate$);
           get(record.primaryMode$);
         }
-        return createDashboardDocumentSnapshots(current);
+        const ordinary = new Set(
+          get(ordinaryDocuments$)?.groups.flatMap((group) => group.items) ?? [],
+        );
+        return createDashboardDocumentSnapshots(current).filter((document) =>
+          ordinary.has(document.id),
+        );
       }),
-    [docsService],
+    [docsService, ordinaryDocuments$],
   );
   const documents = useLiveData(documents$);
+  const ordinaryDocuments = useLiveData(ordinaryDocuments$);
+  const documentError =
+    workspace.flavour !== "local" &&
+    metadataIndex.phase === "error" &&
+    metadataIndex.rows.length === 0;
+  const documentsLoading = ordinaryDocuments == null && !documentError;
+  const retryDocuments = useCallback(() => {
+    documentMetadataCache.invalidateIndex("home-retry");
+    void documentMetadataCache.hydrateIndex().catch(() => {
+      // The existing index state owns the error and visible retry surface.
+    });
+  }, [documentMetadataCache]);
   const { newDocuments, recentlyEdited } = useMemo(
     () => projectDashboardDocuments(documents),
     [documents],
@@ -587,6 +621,9 @@ export const WorkspaceHomePage = () => {
                       ),
                     )}
                     kind="new"
+                    loading={documentsLoading}
+                    error={documentError}
+                    onRetry={retryDocuments}
                     onOpenAll={openAll}
                     workspaceName={workspaceName}
                   />
@@ -608,6 +645,9 @@ export const WorkspaceHomePage = () => {
                       ),
                     )}
                     kind="recent"
+                    loading={documentsLoading}
+                    error={documentError}
+                    onRetry={retryDocuments}
                     onOpenAll={openAll}
                     workspaceName={workspaceName}
                   />

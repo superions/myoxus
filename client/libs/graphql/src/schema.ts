@@ -2466,9 +2466,12 @@ export interface ApiMutationRoot {
   clearDatabaseCellValue: DatabaseCellRevisionType;
   completeBlobUpload: Scalars["String"]["output"];
   completeWorkspaceImportUpload: WorkspaceImportType;
+  configureDocumentReviewPlanning: DocumentReviewPlanningType;
   configureTaskMaintenance: TaskPreparationConfiguration;
   configureTaskPreparation: TaskPreparationConfiguration;
+  configureTaskRecurrence: TaskRecurrence;
   confirmTaskCorrections: TaskMaintenance;
+  controlWorkspaceEventRecurrence: CalendarEventType;
   /** Create a new MCP API key (root-level alias). */
   createApiKey: CreatedApiKeyType;
   createBlobUpload: BlobUploadInitType;
@@ -2564,6 +2567,7 @@ export interface ApiMutationRoot {
   disableGitSyncSshHostKey: Scalars["Boolean"]["output"];
   disableWorkspaceAutomation: WorkspaceAutomationType;
   emptyWorkspaceTrash: DeleteDocumentsPermanentlyPayload;
+  endTaskRecurrence: TaskRecurrence;
   /** Explicit, independently gated generation; never submits or retries speech. */
   enrichAudioTranscription: TranscriptionEnrichmentType;
   /** Execute exactly the current XWS preflight revision. */
@@ -2611,6 +2615,7 @@ export interface ApiMutationRoot {
   moveDatabaseTasks: DatabaseTaskMoveResult;
   /** Attach a name to an existing immutable document history state. */
   nameDocumentHistoryState: DocumentVersionType;
+  pauseTaskRecurrence: TaskRecurrence;
   /** Pin a named document version. */
   pinDocumentVersion: DocumentVersionType;
   previewDatabaseCsvImport: DatabaseCsvPreview;
@@ -2672,6 +2677,7 @@ export interface ApiMutationRoot {
   restoreDocumentVersion: DocumentVersionType;
   restoreWorkspaceTag: WorkspaceTag;
   resumeSubscription: SubscriptionType;
+  resumeTaskRecurrence: TaskRecurrence;
   retryAudioTranscription: TranscriptionResultType;
   retryContextDocuments: ContextDocuments;
   retryContextFile: CopilotContextFile;
@@ -2706,6 +2712,7 @@ export interface ApiMutationRoot {
   setDocumentWorkspaceTags: Array<Scalars["ID"]["output"]>;
   /** Select an existing server-owned theme for the canonical personal workspace. */
   setPersonalWorkspaceTheme: PersonalWorkspaceThemeSelectionType;
+  skipTaskRecurrence: TaskRecurrence;
   startDocumentReview: DocumentReview;
   startTaskHandover: TaskHandover;
   startTaskMaintenance: TaskMaintenance;
@@ -2776,6 +2783,7 @@ export interface ApiMutationRoot {
   updateProfile: UserType;
   updateReply: Scalars["Boolean"]["output"];
   updateSubscriptionRecurring: SubscriptionType;
+  updateTaskRecurrence: TaskRecurrence;
   updateWorkspace: WorkspaceType;
   /** Update workspace-level calendar settings (writeback target + default reminder). */
   updateWorkspaceCalendarSettings: WorkspaceCalendarSettingsType;
@@ -2981,6 +2989,13 @@ export interface ApiMutationRootCompleteWorkspaceImportUploadArgs {
   workspaceImportId: Scalars["ID"]["input"];
 }
 
+export interface ApiMutationRootConfigureDocumentReviewPlanningArgs {
+  docId: Scalars["ID"]["input"];
+  enabled: Scalars["Boolean"]["input"];
+  expectedMetadataRevision: Scalars["Int"]["input"];
+  workspaceId: Scalars["ID"]["input"];
+}
+
 export interface ApiMutationRootConfigureTaskMaintenanceArgs {
   input: ConfigureTaskPreparationInput;
 }
@@ -2989,8 +3004,19 @@ export interface ApiMutationRootConfigureTaskPreparationArgs {
   input: ConfigureTaskPreparationInput;
 }
 
+export interface ApiMutationRootConfigureTaskRecurrenceArgs {
+  input: ConfigureTaskRecurrenceInput;
+}
+
 export interface ApiMutationRootConfirmTaskCorrectionsArgs {
   input: ConfirmTaskCorrectionsInput;
+}
+
+export interface ApiMutationRootControlWorkspaceEventRecurrenceArgs {
+  action: CalendarTimingAction;
+  eventId: Scalars["String"]["input"];
+  expectedRevision: Scalars["Int"]["input"];
+  workspaceId: Scalars["String"]["input"];
 }
 
 export interface ApiMutationRootCreateApiKeyArgs {
@@ -3270,6 +3296,10 @@ export interface ApiMutationRootEmptyWorkspaceTrashArgs {
   input: EmptyWorkspaceTrashInput;
 }
 
+export interface ApiMutationRootEndTaskRecurrenceArgs {
+  input: TaskRecurrenceControlInput;
+}
+
 export interface ApiMutationRootEnrichAudioTranscriptionArgs {
   actions: Scalars["Boolean"]["input"];
   jobId: Scalars["String"]["input"];
@@ -3408,6 +3438,10 @@ export interface ApiMutationRootNameDocumentHistoryStateArgs {
   historyId: Scalars["ID"]["input"];
   name: Scalars["String"]["input"];
   workspaceId: Scalars["ID"]["input"];
+}
+
+export interface ApiMutationRootPauseTaskRecurrenceArgs {
+  input: TaskRecurrenceControlInput;
 }
 
 export interface ApiMutationRootPinDocumentVersionArgs {
@@ -3565,6 +3599,10 @@ export interface ApiMutationRootResumeSubscriptionArgs {
   workspaceId?: InputMaybe<Scalars["String"]["input"]>;
 }
 
+export interface ApiMutationRootResumeTaskRecurrenceArgs {
+  input: TaskRecurrenceControlInput;
+}
+
 export interface ApiMutationRootRetryAudioTranscriptionArgs {
   jobId: Scalars["String"]["input"];
   workspaceId: Scalars["String"]["input"];
@@ -3695,6 +3733,10 @@ export interface ApiMutationRootSetDocumentWorkspaceTagsArgs {
 
 export interface ApiMutationRootSetPersonalWorkspaceThemeArgs {
   input: SetPersonalWorkspaceThemeInput;
+}
+
+export interface ApiMutationRootSkipTaskRecurrenceArgs {
+  input: SkipTaskRecurrenceInput;
 }
 
 export interface ApiMutationRootStartDocumentReviewArgs {
@@ -3893,6 +3935,10 @@ export interface ApiMutationRootUpdateSubscriptionRecurringArgs {
   workspaceId?: InputMaybe<Scalars["String"]["input"]>;
 }
 
+export interface ApiMutationRootUpdateTaskRecurrenceArgs {
+  input: UpdateTaskRecurrenceInput;
+}
+
 export interface ApiMutationRootUpdateWorkspaceArgs {
   input: UpdateWorkspaceInput;
 }
@@ -4015,6 +4061,7 @@ export interface ApiQueryRoot {
   documentMetadataValueDefinitions: Array<DocumentMetadataValueDefinitionType>;
   /** List recent PDF export jobs for a document. Workspace-read protected. */
   documentPdfExportHistory: Array<PdfExportHistoryEntryType>;
+  documentReviewPlanning: DocumentReviewPlanningType;
   documentStatusSchemas: Array<DocumentStatusSchemaType>;
   documentStatusValues: Array<DocumentStatusValueType>;
   documentTypes: Array<DocumentTypeDefinitionType>;
@@ -4105,6 +4152,8 @@ export interface ApiQueryRoot {
   serverUsers: Array<ServerUserSearchResult>;
   user: Maybe<UserOrLimitedUser>;
   workspace: Maybe<WorkspaceType>;
+  /** Authored native series, independent of their current projected window. */
+  workspaceCalendarSeries: Array<CalendarEventType>;
   /** Get workspace calendar settings (writeback target + default reminder). */
   workspaceCalendarSettings: Maybe<WorkspaceCalendarSettingsType>;
   workspaceCalendars: Array<WorkspaceCalendarType>;
@@ -4224,6 +4273,11 @@ export interface ApiQueryRootDocumentPdfExportHistoryArgs {
   docId: Scalars["String"]["input"];
   limit?: InputMaybe<Scalars["Int"]["input"]>;
   workspaceId: Scalars["String"]["input"];
+}
+
+export interface ApiQueryRootDocumentReviewPlanningArgs {
+  docId: Scalars["ID"]["input"];
+  workspaceId: Scalars["ID"]["input"];
 }
 
 export interface ApiQueryRootDocumentStatusValuesArgs {
@@ -4363,6 +4417,10 @@ export interface ApiQueryRootUserArgs {
 export interface ApiQueryRootWorkspaceArgs {
   docId?: InputMaybe<Scalars["String"]["input"]>;
   id: Scalars["String"]["input"];
+}
+
+export interface ApiQueryRootWorkspaceCalendarSeriesArgs {
+  workspaceId: Scalars["String"]["input"];
 }
 
 export interface ApiQueryRootWorkspaceCalendarSettingsArgs {
@@ -5502,6 +5560,13 @@ export interface CalendarEventType {
   instances: Array<CalendarEventInstanceType>;
   origin: CalendarEventOrigin;
   participants: Array<CalendarEventParticipantType>;
+  /**
+   * Native masters reference one canonical timing definition. Imported source
+   * remains inspectable but cannot be authored through the native rule form.
+   */
+  recurrence: Maybe<CalendarRecurrence>;
+  /** Original exception key, independent of the displayed/moved start. */
+  recurrenceId: Maybe<Scalars["DateTime"]["output"]>;
   recurrenceParentId: Maybe<Scalars["ID"]["output"]>;
   reminders: Array<CalendarReminderType>;
   remoteEventId: Scalars["String"]["output"];
@@ -5561,6 +5626,20 @@ export enum CalendarProviderType {
   Google = "Google",
 }
 
+export interface CalendarRecurrence {
+  __typename?: "CalendarRecurrence";
+  endsBefore: Maybe<Scalars["DateTime"]["output"]>;
+  id: Scalars["ID"]["output"];
+  lifecycle: RecurrenceLifecycle;
+  pausedAt: Maybe<Scalars["DateTime"]["output"]>;
+  readOnly: Scalars["Boolean"]["output"];
+  revision: Scalars["Int"]["output"];
+  rule: Maybe<RecurrenceRule>;
+  sourceRrule: Maybe<Scalars["String"]["output"]>;
+  unsupportedReason: Maybe<Scalars["String"]["output"]>;
+  zone: Scalars["String"]["output"];
+}
+
 export interface CalendarReminderInput {
   channel?: InputMaybe<Scalars["String"]["input"]>;
   minutesBefore: Scalars["Int"]["input"];
@@ -5604,6 +5683,12 @@ export interface CalendarSubscriptionObjectType {
   lastSyncAt: Maybe<Scalars["DateTime"]["output"]>;
   provider: CalendarProviderType;
   timezone: Maybe<Scalars["String"]["output"]>;
+}
+
+export enum CalendarTimingAction {
+  End = "End",
+  Pause = "Pause",
+  Resume = "Resume",
 }
 
 /** Sort order for Copilot chat history queries. */
@@ -5786,6 +5871,12 @@ export interface CommentUpdateInput {
   id: Scalars["String"]["input"];
 }
 
+export interface CompletionRecurrenceInput {
+  amount: Scalars["Int"]["input"];
+  unit: RecurrenceRelativeUnit;
+  zone: Scalars["String"]["input"];
+}
+
 export interface ConfigChangelogEntryType {
   __typename?: "ConfigChangelogEntryType";
   changedAt: Scalars["DateTime"]["output"];
@@ -5814,6 +5905,16 @@ export interface ConfigureTaskPreparationInput {
   planDigest: Scalars["String"]["input"];
   ruleId?: InputMaybe<Scalars["ID"]["input"]>;
   target: ContextDocumentTargetInput;
+  workspaceId: Scalars["ID"]["input"];
+}
+
+export interface ConfigureTaskRecurrenceInput {
+  databaseId: Scalars["ID"]["input"];
+  expectedDueRevision: Scalars["Int"]["input"];
+  expectedRowRevision: Scalars["Int"]["input"];
+  recipe: TaskRecurrenceRecipeInput;
+  rowId: Scalars["ID"]["input"];
+  rule: RecurrenceRuleInput;
   workspaceId: Scalars["ID"]["input"];
 }
 
@@ -6419,6 +6520,7 @@ export interface CreateWorkspaceEventInput {
   allMembers?: InputMaybe<Scalars["Boolean"]["input"]>;
   descriptionDelta?: InputMaybe<Scalars["JSON"]["input"]>;
   endsAt: Scalars["DateTime"]["input"];
+  recurrence?: InputMaybe<FixedRecurrenceInput>;
   reminders?: InputMaybe<Array<NativeReminderInput>>;
   sourceBlockId?: InputMaybe<Scalars["String"]["input"]>;
   /** Deprecated: use `sourceExternalId`. This alias carries the same workspace-local external key. */
@@ -9952,6 +10054,21 @@ export enum DocumentReviewDecisionKind {
   RequestChanges = "RequestChanges",
 }
 
+export interface DocumentReviewPlanningType {
+  __typename?: "DocumentReviewPlanningType";
+  blockedReason: Maybe<Scalars["String"]["output"]>;
+  enabled: Scalars["Boolean"]["output"];
+  leadDays: Scalars["Int"]["output"];
+  metadataRevision: Scalars["Int"]["output"];
+  nextStart: Maybe<Scalars["DateTime"]["output"]>;
+  processDeadline: Maybe<Scalars["DateTime"]["output"]>;
+  ready: Scalars["Boolean"]["output"];
+  responsibleId: Maybe<Scalars["ID"]["output"]>;
+  runId: Maybe<Scalars["ID"]["output"]>;
+  sourceDeadline: Maybe<Scalars["DateTime"]["output"]>;
+  zone: Scalars["String"]["output"];
+}
+
 export interface DocumentReviewRunInput {
   runId: Scalars["ID"]["input"];
 }
@@ -10448,6 +10565,18 @@ export enum FeatureType {
   TeamPlan = "TeamPlan",
   UnlimitedCopilot = "UnlimitedCopilot",
   UnlimitedWorkspace = "UnlimitedWorkspace",
+}
+
+export interface FixedRecurrenceInput {
+  day?: InputMaybe<Scalars["Int"]["input"]>;
+  end?: InputMaybe<RecurrenceValueInput>;
+  frequency: RecurrenceFrequency;
+  interval: Scalars["Int"]["input"];
+  lastDay?: InputMaybe<Scalars["Boolean"]["input"]>;
+  month?: InputMaybe<Scalars["Int"]["input"]>;
+  start: RecurrenceValueInput;
+  weekdays?: InputMaybe<Array<RecurrenceWeekday>>;
+  zone: Scalars["String"]["input"];
 }
 
 export interface ForkChatSessionInput {
@@ -11390,7 +11519,9 @@ export interface MutationRoot {
   completeWorkspaceImportUpload: WorkspaceImportType;
   configureTaskMaintenance: TaskPreparationConfiguration;
   configureTaskPreparation: TaskPreparationConfiguration;
+  configureTaskRecurrence: TaskRecurrence;
   confirmTaskCorrections: TaskMaintenance;
+  controlWorkspaceEventRecurrence: CalendarEventType;
   createBlobUpload: BlobUploadInitType;
   createComment: CommentObjectType;
   createCopilotMessage: Scalars["String"]["output"];
@@ -11478,6 +11609,7 @@ export interface MutationRoot {
   detachDatabaseRowContentDocument: DatabaseRowRecord;
   disableWorkspaceAutomation: WorkspaceAutomationType;
   emptyWorkspaceTrash: DeleteDocumentsPermanentlyPayload;
+  endTaskRecurrence: TaskRecurrence;
   /** Execute exactly the current preflight revision and confirmation set. */
   executeWorkspaceContentOperation: WorkspaceContentOperationType;
   exportCopilotMessage: CopilotGeneratedFileType;
@@ -11519,6 +11651,7 @@ export interface MutationRoot {
   markCommentThreadRead: Scalars["Boolean"]["output"];
   mentionUser: Scalars["ID"]["output"];
   moveDatabaseTasks: DatabaseTaskMoveResult;
+  pauseTaskRecurrence: TaskRecurrence;
   previewDatabaseCsvImport: DatabaseCsvPreview;
   previewDatabaseJsonImport: DatabaseJsonPreview;
   previewDatabaseNotionImport: DatabaseJsonPreview;
@@ -11550,6 +11683,7 @@ export interface MutationRoot {
   resolveComment: Scalars["Boolean"]["output"];
   restoreDatabase: DatabaseRecord;
   restoreWorkspaceTag: WorkspaceTag;
+  resumeTaskRecurrence: TaskRecurrence;
   retryContextDocuments: ContextDocuments;
   retryDocumentReview: DocumentReview;
   retryTaskHandover: TaskHandover;
@@ -11583,6 +11717,7 @@ export interface MutationRoot {
   setDocumentWorkspaceTags: Array<Scalars["ID"]["output"]>;
   /** Set per-workspace template override (enable/disable, provisioning_mode). */
   setWorkspaceTemplateOverride: Scalars["Boolean"]["output"];
+  skipTaskRecurrence: TaskRecurrence;
   startDocumentReview: DocumentReview;
   startTaskHandover: TaskHandover;
   startTaskMaintenance: TaskMaintenance;
@@ -11625,6 +11760,7 @@ export interface MutationRoot {
   updatePreferences: UserPreferencesType;
   updateProfile: UserType;
   updateReply: Scalars["Boolean"]["output"];
+  updateTaskRecurrence: TaskRecurrence;
   updateWorkspace: WorkspaceType;
   /**
    * Update workspace-level calendar settings (writeback target + default reminder).
@@ -11778,8 +11914,19 @@ export interface MutationRootConfigureTaskPreparationArgs {
   input: ConfigureTaskPreparationInput;
 }
 
+export interface MutationRootConfigureTaskRecurrenceArgs {
+  input: ConfigureTaskRecurrenceInput;
+}
+
 export interface MutationRootConfirmTaskCorrectionsArgs {
   input: ConfirmTaskCorrectionsInput;
+}
+
+export interface MutationRootControlWorkspaceEventRecurrenceArgs {
+  action: CalendarTimingAction;
+  eventId: Scalars["String"]["input"];
+  expectedRevision: Scalars["Int"]["input"];
+  workspaceId: Scalars["String"]["input"];
 }
 
 export interface MutationRootCreateBlobUploadArgs {
@@ -11996,6 +12143,10 @@ export interface MutationRootEmptyWorkspaceTrashArgs {
   input: EmptyWorkspaceTrashInput;
 }
 
+export interface MutationRootEndTaskRecurrenceArgs {
+  input: TaskRecurrenceControlInput;
+}
+
 export interface MutationRootExecuteWorkspaceContentOperationArgs {
   input: WorkspaceContentExecuteInput;
 }
@@ -12095,6 +12246,10 @@ export interface MutationRootMoveDatabaseTasksArgs {
   input: DatabaseTaskMoveInput;
 }
 
+export interface MutationRootPauseTaskRecurrenceArgs {
+  input: TaskRecurrenceControlInput;
+}
+
 export interface MutationRootPreviewDatabaseCsvImportArgs {
   file: Scalars["Upload"]["input"];
   input: PreviewDatabaseCsvImportInput;
@@ -12172,6 +12327,10 @@ export interface MutationRootRestoreDatabaseArgs {
 
 export interface MutationRootRestoreWorkspaceTagArgs {
   input: WorkspaceTagLifecycleInput;
+}
+
+export interface MutationRootResumeTaskRecurrenceArgs {
+  input: TaskRecurrenceControlInput;
 }
 
 export interface MutationRootRetryContextDocumentsArgs {
@@ -12272,6 +12431,10 @@ export interface MutationRootSetDocumentWorkspaceTagsArgs {
 
 export interface MutationRootSetWorkspaceTemplateOverrideArgs {
   input: SetWorkspaceTemplateOverrideInput;
+}
+
+export interface MutationRootSkipTaskRecurrenceArgs {
+  input: SkipTaskRecurrenceInput;
 }
 
 export interface MutationRootStartDocumentReviewArgs {
@@ -12403,6 +12566,10 @@ export interface MutationRootUpdateReplyArgs {
   input: ReplyUpdateInput;
 }
 
+export interface MutationRootUpdateTaskRecurrenceArgs {
+  input: UpdateTaskRecurrenceInput;
+}
+
 export interface MutationRootUpdateWorkspaceArgs {
   input: UpdateWorkspaceInput;
 }
@@ -12473,12 +12640,14 @@ export interface MyOrganizationUnitWorkspace {
   workspaceName: Maybe<Scalars["String"]["output"]>;
 }
 
-/** Scope for a recurring-event mutation (v1 supports All and This only). */
+/** Scope for a native recurring-event mutation. */
 export enum NativeEventScope {
   /** Edit / delete the master event and all occurrences. */
   All = "All",
   /** Edit / delete only a single occurrence (creates an EXDATE + override row). */
   This = "This",
+  /** Split / truncate at the addressed original occurrence key. */
+  ThisAndFuture = "ThisAndFuture",
 }
 
 /** Reminder attached to a native calendar event during creation. */
@@ -13485,6 +13654,7 @@ export interface PreparedDocumentReview {
   reviewerId: Scalars["ID"]["output"];
   sourceDocumentId: Scalars["ID"]["output"];
   sourceExternalId: Scalars["String"]["output"];
+  sourceMetadataDeadline: Maybe<Scalars["DateTime"]["output"]>;
   sourceRevision: Scalars["String"]["output"];
   target: ContextDocumentTarget;
   title: Scalars["String"]["output"];
@@ -13822,6 +13992,7 @@ export interface QueryRoot {
    * additional DB queries.
    */
   workspace: Maybe<WorkspaceType>;
+  workspaceCalendarSeries: Array<CalendarEventType>;
   /**
    * Get workspace calendar settings (writeback target, default reminder).
    *
@@ -13952,6 +14123,10 @@ export interface QueryRootWorkspaceArgs {
   id: Scalars["String"]["input"];
 }
 
+export interface QueryRootWorkspaceCalendarSeriesArgs {
+  workspaceId: Scalars["String"]["input"];
+}
+
 export interface QueryRootWorkspaceCalendarSettingsArgs {
   workspaceId: Scalars["String"]["input"];
 }
@@ -14002,6 +14177,93 @@ export interface RecolorWorkspaceTagInput {
   colorRole: Scalars["String"]["input"];
   tagId: Scalars["ID"]["input"];
   workspaceId: Scalars["ID"]["input"];
+}
+
+export enum RecurrenceFrequency {
+  Daily = "Daily",
+  Monthly = "Monthly",
+  Weekly = "Weekly",
+  Yearly = "Yearly",
+}
+
+export enum RecurrenceLifecycle {
+  Active = "Active",
+  Ended = "Ended",
+  Paused = "Paused",
+}
+
+export enum RecurrenceMode {
+  AfterCompletion = "AfterCompletion",
+  Fixed = "Fixed",
+}
+
+export interface RecurrenceOccurrence {
+  __typename?: "RecurrenceOccurrence";
+  dueAt: Scalars["DateTime"]["output"];
+  nominal: RecurrenceValue;
+}
+
+export interface RecurrencePreview {
+  __typename?: "RecurrencePreview";
+  completionReference: Maybe<RecurrenceValue>;
+  occurrence: RecurrenceOccurrence;
+}
+
+export interface RecurrencePreviewInput {
+  after?: InputMaybe<Scalars["DateTime"]["input"]>;
+  completionReference?: InputMaybe<RecurrenceValueInput>;
+  count?: Scalars["Int"]["input"];
+  expectedRevision?: InputMaybe<Scalars["Int"]["input"]>;
+  rule: RecurrenceRuleInput;
+  /** Optional native series-edit boundary; must accompany its current revision. */
+  seriesId?: InputMaybe<Scalars["ID"]["input"]>;
+}
+
+export enum RecurrenceRelativeUnit {
+  Days = "Days",
+  Months = "Months",
+  Weeks = "Weeks",
+}
+
+export interface RecurrenceRule {
+  __typename?: "RecurrenceRule";
+  dateOnly: Scalars["Boolean"]["output"];
+  day: Maybe<Scalars["Int"]["output"]>;
+  end: Maybe<RecurrenceValue>;
+  frequency: Maybe<RecurrenceFrequency>;
+  interval: Scalars["Int"]["output"];
+  lastDay: Scalars["Boolean"]["output"];
+  mode: RecurrenceMode;
+  month: Maybe<Scalars["Int"]["output"]>;
+  relativeUnit: Maybe<RecurrenceRelativeUnit>;
+  start: Maybe<RecurrenceValue>;
+  weekdays: Array<RecurrenceWeekday>;
+  zone: Scalars["String"]["output"];
+}
+
+export type RecurrenceRuleInput =
+  | { afterCompletion: CompletionRecurrenceInput; fixed?: never }
+  | { afterCompletion?: never; fixed: FixedRecurrenceInput };
+
+export interface RecurrenceValue {
+  __typename?: "RecurrenceValue";
+  date: Maybe<Scalars["String"]["output"]>;
+  localDateTime: Maybe<Scalars["String"]["output"]>;
+}
+
+/** Exactly one civil value; a local timestamp must not carry a UTC offset. */
+export type RecurrenceValueInput =
+  | { date: Scalars["String"]["input"]; localDateTime?: never }
+  | { date?: never; localDateTime: Scalars["String"]["input"] };
+
+export enum RecurrenceWeekday {
+  Friday = "Friday",
+  Monday = "Monday",
+  Saturday = "Saturday",
+  Sunday = "Sunday",
+  Thursday = "Thursday",
+  Tuesday = "Tuesday",
+  Wednesday = "Wednesday",
 }
 
 /** An available server upgrade with version string and download URL. */
@@ -14751,6 +15013,15 @@ export interface SetWorkspaceTemplateOverrideInput {
   workspaceId: Scalars["String"]["input"];
 }
 
+export interface SkipTaskRecurrenceInput {
+  expectedRevision: Scalars["Int"]["input"];
+  expectedRowRevision: Scalars["Int"]["input"];
+  expectedStatusRevision: Scalars["Int"]["input"];
+  memberId: Scalars["ID"]["input"];
+  seriesId: Scalars["ID"]["input"];
+  workspaceId: Scalars["ID"]["input"];
+}
+
 export enum SortDirection {
   Asc = "Asc",
   Desc = "Desc",
@@ -15062,6 +15333,66 @@ export interface TaskPreparationVariable {
   __typename?: "TaskPreparationVariable";
   name: Scalars["String"]["output"];
   value: Scalars["String"]["output"];
+}
+
+export interface TaskRecurrence {
+  __typename?: "TaskRecurrence";
+  actorId: Maybe<Scalars["ID"]["output"]>;
+  blockedReason: Maybe<Scalars["String"]["output"]>;
+  currentMemberId: Maybe<Scalars["ID"]["output"]>;
+  effectiveAfter: Maybe<TaskRecurrenceMember>;
+  generation: Scalars["Int"]["output"];
+  id: Scalars["ID"]["output"];
+  lifecycle: RecurrenceLifecycle;
+  members: Array<TaskRecurrenceMember>;
+  next: Maybe<RecurrenceOccurrence>;
+  pausedAt: Maybe<Scalars["DateTime"]["output"]>;
+  pending: Maybe<RecurrenceOccurrence>;
+  preservedNext: Maybe<TaskRecurrenceMember>;
+  recipe: TaskRecurrenceRecipe;
+  revision: Scalars["Int"]["output"];
+  rule: RecurrenceRule;
+  workspaceId: Scalars["ID"]["output"];
+}
+
+export interface TaskRecurrenceControlInput {
+  expectedRevision: Scalars["Int"]["input"];
+  seriesId: Scalars["ID"]["input"];
+  workspaceId: Scalars["ID"]["input"];
+}
+
+export type TaskRecurrenceLookupInput =
+  | { rowId: Scalars["ID"]["input"]; seriesId?: never }
+  | { rowId?: never; seriesId: Scalars["ID"]["input"] };
+
+export interface TaskRecurrenceMember {
+  __typename?: "TaskRecurrenceMember";
+  advanceKind: Maybe<Scalars["String"]["output"]>;
+  advancedAt: Maybe<Scalars["DateTime"]["output"]>;
+  capturedDatabaseId: Scalars["ID"]["output"];
+  id: Scalars["ID"]["output"];
+  occurrenceId: Maybe<Scalars["ID"]["output"]>;
+  rowId: Scalars["ID"]["output"];
+  slot: Maybe<RecurrenceOccurrence>;
+  successorOccurrenceId: Maybe<Scalars["ID"]["output"]>;
+}
+
+export interface TaskRecurrenceRecipe {
+  __typename?: "TaskRecurrenceRecipe";
+  assignees: Array<Scalars["ID"]["output"]>;
+  databaseId: Scalars["ID"]["output"];
+  description: Maybe<DatabaseRichTextCellValueType>;
+  priority: Maybe<Scalars["String"]["output"]>;
+  title: Scalars["String"]["output"];
+}
+
+export interface TaskRecurrenceRecipeInput {
+  assignees: Array<Scalars["ID"]["input"]>;
+  databaseId: Scalars["ID"]["input"];
+  /** Use the native document-only input; its plain-text projection is server-owned. */
+  description?: InputMaybe<DatabaseRichTextCellValueInput>;
+  priority?: InputMaybe<Scalars["String"]["input"]>;
+  title: Scalars["String"]["input"];
 }
 
 /** A template catalog entry as exposed via GraphQL. */
@@ -15713,6 +16044,14 @@ export interface UpdateOrganizationPolicyInput {
   managerUnitProjectCreation?: InputMaybe<PolicyStateEnum>;
 }
 
+export interface UpdateTaskRecurrenceInput {
+  expectedRevision: Scalars["Int"]["input"];
+  recipe: TaskRecurrenceRecipeInput;
+  rule: RecurrenceRuleInput;
+  seriesId: Scalars["ID"]["input"];
+  workspaceId: Scalars["ID"]["input"];
+}
+
 /** Input for updating user profile fields. */
 export interface UpdateUserInput {
   /** New display name. */
@@ -15790,8 +16129,10 @@ export interface UpdateWorkspaceDocumentSettingsInput {
 export interface UpdateWorkspaceEventInput {
   allDay?: InputMaybe<Scalars["Boolean"]["input"]>;
   allMembers?: InputMaybe<Scalars["Boolean"]["input"]>;
+  /** Omit to preserve content; an explicit null clears it. */
   descriptionDelta?: InputMaybe<Scalars["JSON"]["input"]>;
   endsAt?: InputMaybe<Scalars["DateTime"]["input"]>;
+  recurrence?: InputMaybe<FixedRecurrenceInput>;
   /**
    * Omit to leave reminders unchanged; pass `null` or an empty list to clear
    * them; pass a list to replace the complete reminder set atomically.
@@ -16264,6 +16605,7 @@ export interface WorkspaceAutomationNotifyWebhookActionInput {
 export enum WorkspaceAutomationRunOrigin {
   ConfirmedRequest = "ConfirmedRequest",
   DocumentReview = "DocumentReview",
+  RecurringTask = "RecurringTask",
   Rule = "Rule",
   TaskHandover = "TaskHandover",
   TaskMaintenance = "TaskMaintenance",
@@ -17748,6 +18090,7 @@ export interface WorkspaceType {
   quota: UserQuotaType;
   /** Paginated list of recently updated documents in this workspace. */
   recentlyUpdatedDocs: PaginatedDocType;
+  recurrencePreview: Array<RecurrencePreview>;
   resolveWorkspaceTags: Array<WorkspaceTag>;
   /** Complexity 5: triggers a DB query to fetch the user's workspace role. */
   role: Permission;
@@ -17760,6 +18103,8 @@ export interface WorkspaceType {
   taskMaintenanceRule: Maybe<TaskPreparationConfiguration>;
   taskPreparation: Maybe<TaskPreparationConfiguration>;
   taskPreparationRun: Maybe<TaskPreparationRun>;
+  taskRecurrence: Maybe<TaskRecurrence>;
+  taskRecurrences: Array<TaskRecurrence>;
   /**
    * Workspace Read makes only these document-context names visible. It grants
    * no organization administration or manager/member-scoped OU access.
@@ -18111,6 +18456,10 @@ export interface WorkspaceTypeRecentlyUpdatedDocsArgs {
   pagination: PaginationInput;
 }
 
+export interface WorkspaceTypeRecurrencePreviewArgs {
+  input: RecurrencePreviewInput;
+}
+
 export interface WorkspaceTypeResolveWorkspaceTagsArgs {
   tagIds: Array<Scalars["ID"]["input"]>;
 }
@@ -18149,6 +18498,15 @@ export interface WorkspaceTypeTaskPreparationArgs {
 
 export interface WorkspaceTypeTaskPreparationRunArgs {
   runId: Scalars["ID"]["input"];
+}
+
+export interface WorkspaceTypeTaskRecurrenceArgs {
+  input: TaskRecurrenceLookupInput;
+}
+
+export interface WorkspaceTypeTaskRecurrencesArgs {
+  after?: InputMaybe<Scalars["ID"]["input"]>;
+  first?: InputMaybe<Scalars["Int"]["input"]>;
 }
 
 export interface WorkspaceTypeTemplateSuggestionsArgs {

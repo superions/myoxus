@@ -83,17 +83,27 @@ pub(super) async fn publish(
   }
   let target_workspace = operation.target_workspace_id.ok_or_else(stale)?;
   let target = target_profile_id(operation.id);
+  let mut target_timing = SqlxGitSyncStore::profile_in(&mut **tx, plan.source_profile_id)
+    .await
+    .map_err(|_| AuthError::Storage("Git Cron source projection unavailable".into()))?;
+  target_timing.id = target;
+  target_timing.workspace_id = target_workspace;
+  target_timing.root_path = plan.target_root.clone();
+  target_timing.manifest_path = plan.target_manifest.clone();
+  target_timing.scope_revision = 1;
+  target_timing.enabled = false;
+  target_timing.cron_pending_misfire_scheduled_for = None;
   // Copy only configuration and the active credential pointer. Stewardship and
   // rotation remain on the existing credential; no ciphertext enters the receipt.
   sqlx::query(
     "INSERT INTO git_sync_profiles
     (id, workspace_id, owner_id, repo_url, branch, root_path, manifest_path,
       scope_revision, sync_direction, trigger_mode, polling_interval_secs,
-      cron_expression, cron_timezone, cron_misfire_policy, cron_next_scheduled_at,
+      cron_expression, cron_timezone, cron_misfire_policy,
       auth_method, credential_id, enabled, max_mirror_storage_mb)
     SELECT $2, $3, owner_id, repo_url, branch, $4, $5, 1, sync_direction, trigger_mode,
       polling_interval_secs, cron_expression, cron_timezone, cron_misfire_policy,
-      cron_next_scheduled_at, auth_method, credential_id, false, max_mirror_storage_mb
+      auth_method, credential_id, false, max_mirror_storage_mb
     FROM git_sync_profiles WHERE id = $1",
   )
   .bind(plan.source_profile_id)
@@ -104,6 +114,9 @@ pub(super) async fn publish(
   .execute(&mut **tx)
   .await
   .map_err(PgWorkspaceContentOperationRepository::storage)?;
+  SqlxGitSyncStore::write_schedules_in(&mut **tx, None, &target_timing)
+    .await
+    .map_err(|_| AuthError::Storage("Git Cron target timing unavailable".into()))?;
   sqlx::query("UPDATE git_sync_profiles SET scope_revision = scope_revision + 1, updated_at = now() WHERE id = $1")
     .bind(plan.source_profile_id)
     .execute(&mut **tx)
@@ -598,6 +611,11 @@ impl PgWorkspaceContentOperationRepository {
       super::git_undo::complete(&mut tx, &plan, prepared_oid, body_hashes).await?;
     }
     if moving {
+      let previous = SqlxGitSyncStore::profile_in(&mut tx, target_profile_id(operation_id))
+        .await
+        .map_err(|_| AuthError::Storage("Git Cron target projection unavailable".into()))?;
+      let mut updated = previous.clone();
+      updated.enabled = plan.intended_enabled;
       let changed =
         sqlx::query("UPDATE git_sync_profiles SET enabled=$2,updated_at=now() WHERE id=$1 AND workspace_id=$3")
           .bind(target_profile_id(operation_id))
@@ -610,6 +628,9 @@ impl PgWorkspaceContentOperationRepository {
       if changed != 1 {
         return Err(stale());
       }
+      SqlxGitSyncStore::write_schedules_in(&mut tx, Some(&previous), &updated)
+        .await
+        .map_err(|_| AuthError::Storage("Git Cron activation unavailable".into()))?;
     }
     tx.commit().await.map_err(Self::storage)
   }

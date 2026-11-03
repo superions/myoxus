@@ -1,0 +1,335 @@
+{
+  "type": "page",
+  "meta": {
+    "id": "40502c72-7f66-4ff5-b169-bcfbd3826ee0",
+    "title": "Welcome to Myoxus",
+    "createDate": 1792405281887,
+    "tags": []
+  },
+  "blocks": {
+    "type": "block",
+    "id": "mcp-block-88e880f3c7d244e3a010cef76a469737-0000000000000001",
+    "flavour": "myoxus:page",
+    "version": 2,
+    "props": {
+      "title": {
+        "$virgultum:internal:text$": true,
+        "delta": [
+          {
+            "insert": "Welcome to Myoxus"
+          }
+        ]
+      }
+    },
+    "children": [
+      {
+        "type": "block",
+        "id": "mcp-block-88e880f3c7d244e3a010cef76a469737-0000000000000002",
+        "flavour": "myoxus:surface",
+        "version": 6,
+        "props": {
+          "exportSnapshotBlobId": "",
+          "exportSnapshotWidth": 0,
+          "exportSnapshotHeight": 0,
+          "elements": {}
+        },
+        "children": []
+      },
+      {
+        "type": "block",
+        "id": "mcp-block-88e880f3c7d244e3a010cef76a469737-0000000000000003",
+        "flavour": "myoxus:note",
+        "version": 1,
+        "props": {
+          "xywh": "[0,0,498,92]",
+          "background": {
+            "dark": "rgba(0, 0, 0, 1)",
+            "light": "rgba(255, 255, 255, 1)"
+          },
+          "index": "a0",
+          "lockedBySelf": false,
+          "hidden": false,
+          "displayMode": "both",
+          "edgeless": {
+            "style": {
+              "borderRadius": 8,
+              "borderSize": 4,
+              "borderStyle": "none",
+              "shadowType": "--myoxus-note-shadow-box"
+            }
+          }
+        },
+        "children": [
+          {
+            "type": "block",
+            "id": "mcp-block-78c3d972add84e07879b1c6627941849",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "type": "text",
+              "collapsed": false,
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "A place for your notes, plans and shared work. Start with whatever you want to capture today."
+                  }
+                ]
+              },
+              "meta:updatedAt": 1792406402889,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792406402889,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-20fbb8550f684840bac93e62da8122f4",
+            "flavour": "myoxus:image",
+            "version": 1,
+            "props": {
+              "width": 394,
+              "height": 262.6640625,
+              "index": "a0",
+              "xywh": "[0,0,0,0]",
+              "lockedBySelf": false,
+              "rotate": 0,
+              "size": -1,
+              "sourceId": "assets/2b2c3e3135a00f12e47244e4c4c4634894102615a704bb3476883f72dc41bd1b",
+              "caption": "Myoxus helps you with many things.",
+              "meta:updatedAt": 1792406402890,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792406402890,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-20139fa476c74153a93e3169137c7a82",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "collapsed": false,
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Your first note: click + New doc on the left, give it a title and press Enter to start writing. “Editor · The basics” explains the other controls.",
+                    "attributes": {
+                      "color": "var(--myoxus-text-highlight-foreground-blue)"
+                    }
+                  }
+                ]
+              },
+              "type": "quote",
+              "meta:updatedAt": 1792406402892,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792406402892,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-4da725a01d7a47c8a9cb04d5208ddb51",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "What would you like to organise?"
+                  }
+                ]
+              },
+              "type": "h3",
+              "collapsed": false
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-6e1f1a3e13be444fad9d5cb0e71f5be3",
+            "flavour": "myoxus:table",
+            "version": 1,
+            "props": {
+              "headerRows": 1,
+              "rows": {
+                "row-0000": {
+                  "rowId": "row-0000",
+                  "order": "a0000000001",
+                  "backgroundColor": "var(--myoxus-text-highlight-blue)"
+                },
+                "row-0001": {
+                  "rowId": "row-0001",
+                  "order": "a0000000011"
+                },
+                "row-0002": {
+                  "rowId": "row-0002",
+                  "order": "a0000000021"
+                },
+                "row-0003": {
+                  "rowId": "row-0003",
+                  "order": "a0000000031"
+                },
+                "row-0004": {
+                  "rowId": "row-0004",
+                  "order": "a0000000041"
+                }
+              },
+              "columns": {
+                "col-0000": {
+                  "columnId": "col-0000",
+                  "order": "a0000000001",
+                  "width": 310
+                },
+                "col-0001": {
+                  "columnId": "col-0001",
+                  "order": "a0000000011",
+                  "width": 490
+                }
+              },
+              "cells": {
+                "row-0000:col-0000": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Your aim",
+                        "attributes": {
+                          "bold": true
+                        }
+                      }
+                    ]
+                  }
+                },
+                "row-0000:col-0001": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "A good place to start",
+                        "attributes": {
+                          "bold": true
+                        }
+                      }
+                    ]
+                  }
+                },
+                "row-0001:col-0000": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Ideas, writing or meeting notes"
+                      }
+                    ]
+                  }
+                },
+                "row-0001:col-0001": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Documents · write freely, add structure and work together"
+                      }
+                    ]
+                  }
+                },
+                "row-0002:col-0000": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Plan your day or reflect on it"
+                      }
+                    ]
+                  }
+                },
+                "row-0002:col-0001": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Journal · daily planning and personal notes"
+                      }
+                    ]
+                  }
+                },
+                "row-0003:col-0000": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Keep track of a growing collection"
+                      }
+                    ]
+                  }
+                },
+                "row-0003:col-0001": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Databases · entries with useful fields, filters and views"
+                      }
+                    ]
+                  }
+                },
+                "row-0004:col-0000": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Find your documents quickly"
+                      }
+                    ]
+                  }
+                },
+                "row-0004:col-0001": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Favourites, folders, tags and collections"
+                      }
+                    ]
+                  }
+                }
+              },
+              "appearance": "ruled",
+              "density": "compact"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-09aff16f55ad49139dae7c4cb851ccf6",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792406402894,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792406402894,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Use the magnifying glass to find the other guides by title: “Organise and find your documents”, “Databases · Get more from your lists”, “Meetings · Choose a template” and “Importing your content”."
+                  }
+                ]
+              }
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

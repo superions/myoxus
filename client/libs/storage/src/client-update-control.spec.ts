@@ -123,6 +123,32 @@ describe("ClientUpdateGate", () => {
 });
 
 describe("startClientUpdateControlRuntime", () => {
+  test("recovers a failed control read without admitting data retries or requiring a window", async () => {
+    vi.useFakeTimers();
+    const gate = new ClientUpdateGate();
+    const reader = vi
+      .fn<() => Promise<ClientUpdateControl>>()
+      .mockRejectedValueOnce(new TypeError("NetworkError"))
+      .mockResolvedValue(control());
+    const stop = startClientUpdateControlRuntime({ gate, read: reader });
+    try {
+      await vi.advanceTimersByTimeAsync(0);
+      expect(gate.getSnapshot().status).toBe("error");
+      expect(reserveAutomaticRetry("connection")).toBe(false);
+      await vi.advanceTimersByTimeAsync(14_999);
+      expect(reader).toHaveBeenCalledOnce();
+      await vi.advanceTimersByTimeAsync(1);
+      expect(reader).toHaveBeenCalledTimes(2);
+      expect(gate.getSnapshot().status).toBe("ready");
+      expect(reserveAutomaticRetry("connection")).toBe(true);
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(reader).toHaveBeenCalledTimes(2);
+    } finally {
+      stop();
+      vi.useRealTimers();
+    }
+  });
+
   test("installs the gate for retry producers and polls only active sparse states", async () => {
     vi.useFakeTimers();
     const gate = new ClientUpdateGate();

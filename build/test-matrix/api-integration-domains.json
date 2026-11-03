@@ -449,6 +449,10 @@
   ],
   "server.database.integration": [
     {
+      "module": "recurring_tasks_contract",
+      "path": "server/crates/api/tests/db/workspaces/recurring_tasks_contract.rs"
+    },
+    {
       "module": "database_socketio_collaboration_test",
       "path": "server/crates/api/tests/db/workspaces/database_socketio_collaboration_test.rs"
     },

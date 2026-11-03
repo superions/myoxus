@@ -30,7 +30,7 @@ import {
 
 import { initDocFromProps } from "../../../editor/initialization";
 import { getMyoxusWorkspaceSchema } from "../../workspace/global-schema";
-import { readNativeTemplateSnapshot } from "../../template-doc/services/native-bundle";
+import type { NativeTemplateContent } from "../../template-doc/services/native-bundle";
 import { captureTemplateSource } from "../../template-doc/services/template-source-capture";
 import { TemplateDocService } from "../../template-doc/services/template-doc";
 import type {
@@ -63,6 +63,10 @@ import { type DocsStore, isNativeMetadataPropertyKey } from "../stores/docs";
 import type { DocCreateOptions } from "../types";
 import { DocService } from "./doc";
 import { getDuplicatedDocTitle } from "./duplicate-title";
+import { WorkspaceService } from "../../workspace/services/workspace";
+import { WorkspaceServerService } from "../../server/services/workspace-server";
+import { FetchService } from "../../server/services/fetch";
+import { GuardService } from "../../permissions/services/guard";
 import {
   templateVariableCapabilities,
   optionalProjectTemplateVariableNames,
@@ -132,10 +136,46 @@ const logger = new DebugLogger("DocsService");
 // stores used by linked-document/BPMN previews. It is never a document ID.
 const READONLY_DOC_HOST_ID = "core:readonly-doc-host";
 
+export type ConversionWarning = { code: string; count: number };
+export type DocxImportAttempt = {
+  attemptId: string;
+  workspaceId: string;
+  workspaceName: string;
+  origin: string;
+  filename?: string;
+} & (
+  | { status: "selecting" | "importing" }
+  | {
+      status: "complete";
+      id: string;
+      title: string;
+      warnings: ConversionWarning[];
+      ready: boolean;
+      detached?: boolean;
+    }
+  | {
+      status: "error";
+      reason:
+        | "format"
+        | "empty"
+        | "size"
+        | "permission"
+        | "unavailable"
+        | "conversion"
+        | "unknown";
+    }
+);
+
 export class DocsService extends Service {
   private readonly templateAbort = new AbortController();
+  readonly docxImport$ = new LiveData<DocxImportAttempt | null>(null);
+  private docxRequest: Promise<DocxImportAttempt | null> | null = null;
+  private docxDisposed = false;
 
   override dispose() {
+    // Closing a workspace does not cancel an uncertain mutating HTTP request.
+    // Its retained notification can still offer the originating workspace.
+    this.docxDisposed = true;
     this.templateAbort.abort(new TemplateInstantiationError("cancelled"));
     super.dispose();
   }
@@ -261,6 +301,174 @@ export class DocsService extends Service {
     private readonly docCreateMiddlewares: DocCreateMiddleware[],
   ) {
     super();
+  }
+
+  /** One workspace-owned picker/request lifetime. Repeated triggers share the
+   * active attempt; only a server-acknowledged key is ever opened locally. */
+  importDocx(select: () => Promise<File | undefined>, origin: string) {
+    if (this.docxRequest) return this.docxRequest;
+    const previous = this.docxImport$.value;
+    if (previous?.status === "error" && previous.reason === "unknown")
+      return Promise.resolve(previous);
+    const workspace = this.framework.get(WorkspaceService).workspace;
+    const server = this.framework.get(WorkspaceServerService).server;
+    const context = {
+      attemptId: nanoid(),
+      workspaceId: workspace.id,
+      workspaceName: workspace.name$.value ?? "",
+      origin,
+    };
+    this.docxImport$.next({ ...context, status: "selecting" });
+    const request = (async (): Promise<DocxImportAttempt | null> => {
+      let filename: string | undefined;
+      let sent = false;
+      const fail = (
+        reason: Extract<DocxImportAttempt, { status: "error" }>["reason"],
+      ) => {
+        const result: DocxImportAttempt = {
+          ...context,
+          filename,
+          status: "error",
+          reason,
+        };
+        this.docxImport$.next(result);
+        return result;
+      };
+      try {
+        if (workspace.flavour === "local" || !server || !navigator.onLine)
+          return fail("unavailable");
+        let file: File | undefined;
+        try {
+          file = await select();
+        } catch (error) {
+          if (error instanceof Error && error.name === "AbortError") {
+            this.docxImport$.next(null);
+            return null;
+          }
+          throw error;
+        }
+        if (!file) {
+          this.docxImport$.next(null);
+          return null;
+        }
+        filename = file.name;
+        if (!/\.docx$/i.test(file.name)) return fail("format");
+        if (
+          !(await this.framework.get(GuardService).can("Workspace_CreateDoc"))
+        )
+          return fail("permission");
+        this.docxImport$.next({ ...context, filename, status: "importing" });
+        const body = new FormData();
+        body.append("file", file);
+        sent = true;
+        const response = await server.scope
+          .get(FetchService)
+          .fetch(
+            `/api/workspaces/${encodeURIComponent(workspace.id)}/docs/import/docx`,
+            {
+              method: "POST",
+              body,
+              credentials: "include",
+              timeout: 130_000,
+              throwOnHttpError: false,
+            },
+          );
+        const payload: unknown = await response.json();
+        const value =
+          payload && typeof payload === "object"
+            ? (payload as Record<string, unknown>)
+            : {};
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403)
+            return fail("permission");
+          if (response.status === 413) return fail("size");
+          if (value.code === "empty_docx") return fail("empty");
+          if (response.status === 422 || response.status === 400)
+            return fail("format");
+          if (value.code === "conversion_failed") return fail("conversion");
+          if (response.status === 404 || response.status === 429)
+            return fail("unavailable");
+          return fail("unknown");
+        }
+        if (
+          response.status !== 201 ||
+          typeof value.id !== "string" ||
+          !value.id ||
+          typeof value.title !== "string" ||
+          !Array.isArray(value.warnings)
+        ) {
+          return fail("unknown");
+        }
+        const warnings = value.warnings.filter(
+          (warning): warning is ConversionWarning =>
+            warning &&
+            typeof warning === "object" &&
+            typeof warning.code === "string" &&
+            Number.isSafeInteger(warning.count) &&
+            warning.count > 0,
+        );
+        let ready = false;
+        if (!this.docxDisposed) {
+          const release = this.store.addPriorityLoad(value.id, 10);
+          let ref: ReturnType<DocsService["open"]> = null;
+          let stage = "membership";
+          try {
+            const signal = AbortSignal.timeout(30_000);
+            await this.list
+              .doc$(value.id)
+              .waitFor((record) => Boolean(record), signal);
+            // Remote membership cannot settle until a frontend has connected
+            // the leaf. Load it through the read-only host, without initializing
+            // or saving a client-created page while waiting for the server.
+            ref = this.open(value.id, { readonly: true });
+            if (!ref) throw new Error("Imported document is not available");
+            stage = "leaf";
+            await ref.doc.waitForSyncReady(signal);
+            stage = "lifecycle";
+            await this.store.waitForCreateAcknowledgement(value.id, signal);
+            ready = true;
+          } catch {
+            logger.warn(
+              "DOCX page committed but client synchronization is incomplete",
+              { stage },
+            );
+            // Creation is known, even if this original workspace left or its
+            // sync stalled. Never resubmit the POST to repair presentation.
+          } finally {
+            ref?.release();
+            release();
+          }
+        }
+        const result: DocxImportAttempt = {
+          ...context,
+          filename,
+          status: "complete",
+          id: value.id,
+          title: value.title,
+          warnings,
+          ready,
+          detached: this.docxDisposed,
+        };
+        this.docxImport$.next(result);
+        return result;
+      } catch {
+        return fail(sent ? "unknown" : "unavailable");
+      }
+    })();
+    this.docxRequest = request;
+    void request.finally(() => {
+      if (this.docxRequest === request) this.docxRequest = null;
+    });
+    return request;
+  }
+
+  dismissDocxImportResult(attemptId: string) {
+    const state = this.docxImport$.value;
+    if (
+      state?.attemptId === attemptId &&
+      (state.status === "complete" || state.status === "error")
+    )
+      this.docxImport$.next(null);
   }
 
   loaded(docId: string) {
@@ -475,18 +683,15 @@ export class DocsService extends Service {
    * Guides stay ordinary pages; failed creation/attribution trashes only this copy.
    */
   async importNativeTemplateDoc(
-    content: Uint8Array,
+    content: NativeTemplateContent,
     title: string,
     purpose: "template" | "guide",
   ) {
-    const snapshot =
-      content[0] === 0x50 && content[1] === 0x4b
-        ? await readNativeTemplateSnapshot(content)
-        : undefined;
+    const snapshot = content.kind === "snapshot" ? content : undefined;
     const captured = new YDoc();
     try {
-      if (!snapshot) {
-        applyUpdate(captured, content);
+      if (content.kind === "yjs") {
+        applyUpdate(captured, content.bytes);
         const blocks = captured.getMap("blocks");
         const pages = [...blocks.values()].filter(
           (block) =>
@@ -538,8 +743,8 @@ export class DocsService extends Service {
         ) {
           throw new Error("Native template snapshot could not be imported");
         }
-      } else {
-        applyUpdate(store.spaceDoc, content);
+      } else if (content.kind === "yjs") {
+        applyUpdate(store.spaceDoc, content.bytes);
       }
       if (!store.root) throw new Error("Native bundle page is unavailable");
       // A skipInit leaf may not yet be connected to the native storage engine.

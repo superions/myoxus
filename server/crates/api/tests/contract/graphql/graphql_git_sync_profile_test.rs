@@ -449,15 +449,19 @@ async fn cron_profile_preview_and_manual_trigger_preserve_server_owned_schedule(
   let profile_id = Uuid::new_v4();
   sqlx::query(
     r#"
-    INSERT INTO git_sync_profiles
+    WITH profile AS (INSERT INTO git_sync_profiles
       (id, workspace_id, owner_id, repo_url, branch, root_path,
        sync_direction, trigger_mode, polling_interval_secs,
        cron_expression, cron_timezone, cron_misfire_policy,
-       cron_next_scheduled_at, auth_method, enabled)
+       auth_method, enabled)
     VALUES
       ($1, $2, $3, 'https://localhost/acme/cron.git', 'main', 'content/',
        'MyoxusToGit', 'Cron', NULL, '0 * * * *', 'Europe/Berlin', 'RunOnce',
-       $4, 'HttpsToken', true)
+        'HttpsToken', true) RETURNING id)
+    INSERT INTO scheduling_schedules(id,workspace_id,actor_id,admission_zone,target_json,next_nominal,next_due_at,next_admission_at)
+    SELECT id,$2,$3,'Europe/Berlin',jsonb_build_object('kind','git_cron','profile_id',id),
+      jsonb_build_object('kind','local_date_time','value',to_char($4::timestamptz AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US')),$4,$4
+    FROM profile
     "#,
   )
   .bind(profile_id)
@@ -493,12 +497,13 @@ async fn cron_profile_preview_and_manual_trigger_preserve_server_owned_schedule(
   assert!(run.get("errors").is_none(), "manual Cron trigger failed: {run}");
   assert_eq!(run["data"]["triggerGitSync"]["triggerSource"], "Manual");
   assert!(run["data"]["triggerGitSync"]["scheduledFor"].is_null());
-  let next_after: chrono::DateTime<chrono::Utc> =
-    sqlx::query_scalar("SELECT cron_next_scheduled_at FROM git_sync_profiles WHERE workspace_id = $1")
-      .bind(workspace_id)
-      .fetch_one(&pool)
-      .await
-      .expect("next occurrence after manual run");
+  let next_after: chrono::DateTime<chrono::Utc> = sqlx::query_scalar(
+    "SELECT s.next_due_at FROM scheduling_schedules s JOIN git_sync_profiles p ON p.id=s.id WHERE p.workspace_id=$1",
+  )
+  .bind(workspace_id)
+  .fetch_one(&pool)
+  .await
+  .expect("next occurrence after manual run");
   assert_eq!(next_after, next_before, "manual run must not mutate Cron state");
 
   queue.empty_queue("git-sync").await.expect("clean Git-Sync test queue");

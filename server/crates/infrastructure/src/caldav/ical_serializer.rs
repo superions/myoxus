@@ -49,12 +49,20 @@ pub fn calendar_event_to_scheduling(
     .parse::<lettre::Address>()
     .map_err(|_| "Invalid calendar organizer")?;
   let mut event = event.clone();
+  event.payload = myoxus_domain::scheduling::calendar::export_payload(&event.payload, event.all_day);
   if event.all_day && event.ends_at.date_naive() <= event.starts_at.date_naive() {
     event.ends_at = event.starts_at + chrono::Duration::days(1);
   }
   let mut payload = serde_json::json!({"allDay":event.all_day,"sequence":sequence,
     "status":if cancelled {"CANCELLED"} else {"CONFIRMED"},"organizerEmail":organizer});
-  for key in ["rrule", "exdate", "recurrenceId", "description", "location"] {
+  for key in [
+    "rrule",
+    "exdate",
+    "recurrenceId",
+    "description",
+    "location",
+    "originalTimezone",
+  ] {
     if let Some(value) = event.payload.get(key).filter(|value| !value.is_null()) {
       if !matches!(key, "description" | "location")
         && value.as_str().is_none_or(|value| value.chars().any(char::is_control))
@@ -63,6 +71,9 @@ pub fn calendar_event_to_scheduling(
       }
       payload[key] = value.clone();
     }
+  }
+  if let Some(source) = event.payload.get("sourceRecurrence") {
+    payload["sourceRecurrence"] = source.clone();
   }
   if let Some(exdates) = event.payload["exdates"].as_array() {
     let dates = exdates
@@ -78,7 +89,15 @@ pub fn calendar_event_to_scheduling(
       .collect::<Result<Vec<_>, _>>()
       .map_err(|_| "Invalid calendar exclusion")?;
     if !dates.is_empty() {
-      payload["exdate"] = serde_json::json!(dates.join(","));
+      let mut tokens = payload["exdate"]
+        .as_str()
+        .unwrap_or_default()
+        .split(',')
+        .filter(|value| !value.is_empty())
+        .map(str::to_owned)
+        .collect::<std::collections::BTreeSet<_>>();
+      tokens.extend(dates);
+      payload["exdate"] = serde_json::json!(tokens.into_iter().collect::<Vec<_>>().join(","));
     }
   }
   if let Some(value) = payload["recurrenceId"].as_str()
@@ -108,6 +127,9 @@ pub fn calendar_event_to_scheduling(
 }
 
 fn serialize_event(event: &CalendarEvent, method: &str) -> String {
+  let mut projected = event.clone();
+  projected.payload = myoxus_domain::scheduling::calendar::export_payload(&event.payload, event.all_day);
+  let event = &projected;
   trace!(event_id = %event.id, "serializing CalendarEvent to VCALENDAR");
 
   let mut lines: Vec<String> = Vec::with_capacity(32);
@@ -123,12 +145,18 @@ fn serialize_event(event: &CalendarEvent, method: &str) -> String {
   lines.push("BEGIN:VEVENT".to_string());
 
   // UID: prefer remote_event_id (stable across sync rounds), fall back to local id
-  let uid = event
-    .remote_event_id
-    .as_deref()
-    .filter(|s| !s.is_empty())
-    .map(|s| s.to_string())
-    .unwrap_or_else(|| event.id.to_string());
+  let uid = if event.origin == myoxus_domain::entities::CalendarEventOrigin::Native
+    && let Some(parent) = event.recurrence_parent_id
+  {
+    parent.to_string()
+  } else {
+    event
+      .remote_event_id
+      .as_deref()
+      .filter(|s| !s.is_empty())
+      .map(|s| s.to_string())
+      .unwrap_or_else(|| event.id.to_string())
+  };
   lines.push(format!("UID:{}", escape_text(&uid)));
 
   // DTSTAMP: current UTC time
@@ -142,9 +170,21 @@ fn serialize_event(event: &CalendarEvent, method: &str) -> String {
     let dtend = event.ends_at.format("%Y%m%d");
     lines.push(format!("DTSTART;VALUE=DATE:{dtstart}"));
     lines.push(format!("DTEND;VALUE=DATE:{dtend}"));
+  } else if let Some(zone) = payload_str(&event.payload, "originalTimezone")
+    .and_then(|zone| zone.parse::<chrono_tz::Tz>().ok())
+    .filter(|_| payload_str(&event.payload, "rrule").is_some())
+  {
+    // A recurring civil time needs its pinned zone on DTSTART; UTC would turn
+    // the rule into a different schedule after the next DST transition.
+    lines.push(format!(
+      "DTSTART;TZID={zone}:{}",
+      event.starts_at.with_timezone(&zone).format("%Y%m%dT%H%M%S")
+    ));
+    lines.push(format!(
+      "DTEND;TZID={zone}:{}",
+      event.ends_at.with_timezone(&zone).format("%Y%m%dT%H%M%S")
+    ));
   } else {
-    // Always emit UTC Z-form. We do not perform timezone conversion (no chrono-tz),
-    // so emitting TZID=UTC:... would be misleading. UTC Z-form is always unambiguous.
     let dtstart = event.starts_at.format("%Y%m%dT%H%M%SZ");
     let dtend = event.ends_at.format("%Y%m%dT%H%M%SZ");
     lines.push(format!("DTSTART:{dtstart}"));
@@ -221,18 +261,27 @@ fn serialize_event(event: &CalendarEvent, method: &str) -> String {
   let seq = payload_i64(&event.payload, "sequence").unwrap_or(0).max(0);
   lines.push(format!("SEQUENCE:{seq}"));
 
-  // RRULE
-  if let Some(rrule) = payload_str(&event.payload, "rrule") {
-    lines.push(format!("RRULE:{rrule}"));
-  }
-
-  // EXDATE (may be a comma-separated list stored in payload)
-  if let Some(exdate) = payload_str(&event.payload, "exdate") {
-    lines.push(format!("EXDATE{}:{exdate}", if all_day { ";VALUE=DATE" } else { "" }));
-  }
+  lines.extend(myoxus_domain::scheduling::calendar::recurrence_lines(
+    &event.payload,
+    all_day,
+  ));
 
   // RECURRENCE-ID
-  if let Some(rid) = payload_str(&event.payload, "recurrenceId") {
+  if let Some(source) = event.payload["sourceRecurrence"]
+    .as_array()
+    .into_iter()
+    .flatten()
+    .filter_map(|line| line.as_str())
+    .find(|line| {
+      line
+        .split([';', ':'])
+        .next()
+        .is_some_and(|name| name.eq_ignore_ascii_case("RECURRENCE-ID"))
+        && !line.chars().any(char::is_control)
+    })
+  {
+    lines.push(source.to_owned());
+  } else if let Some(rid) = payload_str(&event.payload, "recurrenceId") {
     lines.push(format!(
       "RECURRENCE-ID{}:{rid}",
       if all_day { ";VALUE=DATE" } else { "" }

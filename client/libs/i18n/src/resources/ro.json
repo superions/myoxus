@@ -1269,7 +1269,6 @@
   "admin.performance.field.compaction-lock-ttl.desc": "TTL blocare compactare (secunde). Timeout de siguranță în cazul în care un server se blochează în timpul compactării.",
   "admin.performance.field.compaction-threshold-default.desc": "Numărul de actualizări în așteptare înainte de declanșarea compactării automate. Implicit: 500",
   "admin.performance.field.compaction-threshold-root-doc.desc": "Prag de compactare automată pentru documentele rădăcină. Implicit: 50",
-  "admin.performance.field.cron-tick-interval.desc": "Interval (secunde) pentru bucla de tick a planificatorului cron. Implicit: 60 · Min: 5 · Poate necesita repornire pentru efect complet.",
   "admin.performance.field.daily-enabled.desc": "Activează ciclul zilnic de reglare automată a TTL.",
   "admin.performance.field.doc-metadata-cache-enabled.desc": "Activează cache-ul Redis de metadate. Reduce interogările DB pentru căutările de metadate de documente.",
   "admin.performance.field.doc-metadata-fixed-ttl.desc": "Suprascriere TTL fix pentru cache-ul doc_metadata (secunde). 0 = folosește reglarea automată.",

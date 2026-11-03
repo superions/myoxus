@@ -7,7 +7,15 @@ import { WorkbenchService } from "@myoxus/core/modules/workbench";
 import { i18nTime, useI18n } from "@myoxus/i18n";
 import { NewPageIcon, RecentIcon } from "@myoxus/icons/react";
 import { useLiveData, useService } from "@myoxus/infra";
-import { Center, MyoxusText, NavigationLink, Stack } from "@myoxus/ui-facade";
+import {
+  Button,
+  Center,
+  Loading,
+  MyoxusText,
+  NavigationLink,
+  Notice,
+  Stack,
+} from "@myoxus/ui-facade";
 import { useCallback } from "react";
 
 import type { DashboardDocument } from "./document-views";
@@ -50,19 +58,26 @@ const DashboardDocumentRow = ({
       leftSection={<Icon />}
       onClick={openDocument}
       data-myoxus-ui-role="workspace-home-document-row"
+      data-doc-id={document.id}
     />
   );
 };
 
 export const DashboardDocumentSection = ({
   documents,
+  error,
   kind,
+  loading,
   onOpenAll,
+  onRetry,
   workspaceName,
 }: {
   documents: readonly DashboardDocument[];
+  error: boolean;
   kind: "new" | "recent";
+  loading: boolean;
   onOpenAll: () => void;
+  onRetry: () => void;
   workspaceName: string;
 }) => {
   const t = useI18n();
@@ -73,6 +88,7 @@ export const DashboardDocumentSection = ({
 
   return (
     <DashboardSection
+      busy={loading}
       action={{
         label: t["All content"](),
         onClick: onOpenAll,
@@ -82,7 +98,18 @@ export const DashboardDocumentSection = ({
       title={title}
       uiRole={`workspace-home-${kind}-documents`}
     >
-      {documents.length ? (
+      {error ? (
+        <Notice
+          title={t["com.myoxus.error.unexpected-error.title"]()}
+          tone="error"
+        >
+          <Button variant="secondary" onClick={onRetry}>
+            {t["Retry"]()}
+          </Button>
+        </Notice>
+      ) : loading ? (
+        <Loading />
+      ) : documents.length ? (
         <Stack gap={0}>
           {documents.map((document) => (
             <DashboardDocumentRow

@@ -430,6 +430,9 @@ impl WorkspaceAutomationNativeExecutor for WorkspaceAutomationNativeActions {
           "accepted automation input mismatch",
         ));
       }
+      if accepted.recurring_task.is_some() {
+        return super::recurring_task::execute(&self.repo, &self.editing, invocation, &run).await;
+      }
       if accepted.workspace_setup.is_some()
         || accepted.confirmed_request.is_some()
         || accepted.document_review.is_some()

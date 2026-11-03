@@ -97,8 +97,8 @@ impl DatabaseRowReminderStatus {
 
 /// One authenticated user's reminder for a DateTime Cell.
 ///
-/// The trigger is derived by Application code and persisted so repository and
-/// worker paths never reinterpret timezone or all-day semantics.
+/// Trigger and revision project the canonical shared one-shot. Native status
+/// and completion facts remain with this personal source, not with queue leases.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DatabaseRowReminder {
@@ -112,9 +112,6 @@ pub struct DatabaseRowReminder {
   pub trigger_at: DateTime<Utc>,
   pub status: DatabaseRowReminderStatus,
   pub schedule_revision: i64,
-  pub claim_token: Option<Uuid>,
-  pub claim_expires_at: Option<DateTime<Utc>>,
-  pub claim_attempts: i32,
   pub fired_at: Option<DateTime<Utc>>,
   pub cancelled_at: Option<DateTime<Utc>>,
   pub created_at: DateTime<Utc>,

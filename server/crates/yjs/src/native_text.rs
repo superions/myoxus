@@ -41,6 +41,10 @@ pub struct NativeTextSpan {
   /// Public external document key and authored label; navigation params stay native.
   #[serde(default, skip_serializing_if = "Option::is_none")]
   pub reference: Option<crate::MarkdownDocumentReference>,
+  /// Absence means the containing workspace. Preserve explicit malformed/null
+  /// scopes so authorization consumers cannot reinterpret them as absence.
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub reference_workspace: Option<serde_json::Value>,
   /// Private native identity only. MCP filters current member visibility; the
   /// historical notification link is never part of this editing projection.
   #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -138,9 +142,20 @@ fn field(text: &yrs::TextRef, txn: &impl ReadTxn, name: &str) -> NativeTextField
                 Some(Any::String(title)) => Some(title.to_string()),
                 _ => None,
               },
-              ..Default::default()
+              description: match value.get("description") {
+                Some(Any::String(description)) => Some(description.to_string()),
+                _ => None,
+              },
+              // Private export/edit consumers need the exact navigation
+              // occurrence, not only a Page identity. URL owners still admit
+              // the supported keys before producing navigable destinations.
+              params: value.get("params").map(crate::yjs_any_to_json),
             })
           }
+          _ => None,
+        }),
+        reference_workspace: attrs.and_then(|attrs| match attrs.get("reference")? {
+          Any::Map(value) => value.get("workspaceId").map(crate::yjs_any_to_json),
           _ => None,
         }),
         latex: attrs.and_then(|attrs| match attrs.get("latex")? {
@@ -243,6 +258,7 @@ pub fn native_block_text(block: &yrs::MapRef, txn: &impl ReadTxn) -> Option<Nati
           protected: false,
           annotation_id: None,
           reference: None,
+          reference_workspace: None,
           mention: None,
           latex: None,
           footnote: None,

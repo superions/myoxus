@@ -64,6 +64,7 @@ impl PgDatabaseRepository {
     precondition: DatabaseEditPrecondition,
   ) -> RepoResult<()> {
     Self::insert_task_notification_intents(tx, database_id, actor, changes, false).await?;
+    Self::insert_task_recurrence_completion_intents(tx, database_id, changes).await?;
     PgWorkspaceAutomationRepository::invalidate_document_review_tasks(
       tx,
       &changes.iter().map(|change| change.row_id).collect::<Vec<_>>(),

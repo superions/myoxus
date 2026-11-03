@@ -15,7 +15,6 @@ const config: PlaywrightTestConfig = {
   timeout: 60_000,
   use: {
     baseURL: process.env.E2E_BASE_URL ?? "http://localhost:3010",
-    browserName: "chromium",
     viewport: { width: 1440, height: 900 },
     actionTimeout: 15_000,
     locale: "en-US",
@@ -23,6 +22,10 @@ const config: PlaywrightTestConfig = {
     video: "retain-on-failure",
     ignoreHTTPSErrors: true,
   },
+  projects: [
+    { name: "chromium", use: { browserName: "chromium" } },
+    { name: "firefox", use: { browserName: "firefox" } },
+  ],
   forbidOnly: !!process.env.CI,
   retries: 0,
   reporter: process.env.CI ? "github" : "list",

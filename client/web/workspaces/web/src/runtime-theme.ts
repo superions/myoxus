@@ -5,6 +5,8 @@ export {
   ensureRuntimeThemeProjection,
   getBrandingThemeCssHref,
   getRuntimeWorkspaceIdFromPathname,
+  getRuntimeThemeProjectionSource,
+  subscribeRuntimeThemeProjection,
   reloadRuntimeTheme,
   startThemeAutoReload,
 } from "@myoxus/theme/browser-runtime";

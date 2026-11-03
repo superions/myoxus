@@ -76,6 +76,46 @@ pub struct PreparedPreviewContext {
 }
 
 impl PreparedPreviewContext {
+  /// Rasterize one document figure with the same prepared fonts, SVG limits
+  /// and disabled external-resource resolver as Page previews. This is not a
+  /// preview crop: the entire figure keeps its intrinsic aspect ratio.
+  pub fn rasterize_svg(&self, bytes: &[u8], policy: &PreviewPolicy) -> Result<Vec<u8>, RenderDiagnostic> {
+    let tree = bounded_svg_tree(bytes, self, policy, "figure")?;
+    let size = tree.size();
+    let scale = (1200.0 / size.width())
+      .min(1600.0 / size.height())
+      .min(1.0)
+      .min((policy.max_png_pixels as f32 / (size.width() * size.height())).sqrt());
+    let width = (size.width() * scale).floor().max(1.0) as u32;
+    let height = (size.height() * scale).floor().max(1.0) as u32;
+    // Quantized output dimensions must not crop even a fractional edge pixel.
+    let scale = (width as f32 / size.width()).min(height as f32 / size.height());
+    if u64::from(width) * u64::from(height) > policy.max_png_pixels {
+      return Err(media_diagnostic(
+        "figure",
+        "preview_media_pixel_limit",
+        "Figure exceeds the configured pixel limit.",
+      ));
+    }
+    let mut pixmap = Pixmap::new(width, height)
+      .ok_or_else(|| media_diagnostic("figure", "preview_media_pixel_limit", "Figure allocation failed."))?;
+    resvg::render(
+      &tree,
+      tiny_skia::Transform::from_scale(scale, scale),
+      &mut pixmap.as_mut(),
+    );
+    if !pixmap.pixels().iter().any(|pixel| pixel.alpha() > 0) {
+      return Err(media_diagnostic(
+        "figure",
+        "preview_svg_invalid",
+        "Figure has no renderable content.",
+      ));
+    }
+    pixmap
+      .encode_png()
+      .map_err(|_| media_diagnostic("figure", "preview_svg_invalid", "Figure PNG encoding failed."))
+  }
+
   pub fn prepare(
     revision: impl Into<String>,
     theme: PreviewTheme,
@@ -1275,7 +1315,31 @@ fn normalized_svg(
   policy: &PreviewPolicy,
   block_id: &str,
 ) -> Result<NormalizedVisual, RenderDiagnostic> {
-  if bytes.is_empty() || bytes.len() > policy.max_svg_input_bytes {
+  let tree = bounded_svg_tree(bytes, context, policy, block_id)?;
+  let size = tree.size();
+  let svg = tree.to_string(&WriteOptions {
+    id_prefix: Some(format!("preview-{block_id}-")),
+    preserve_text: false,
+    ..WriteOptions::default()
+  });
+  let inner = svg
+    .split_once('>')
+    .and_then(|(_, rest)| rest.rsplit_once("</svg>").map(|(inner, _)| inner.to_string()))
+    .ok_or_else(|| media_diagnostic(block_id, "preview_svg_invalid", "Normalized SVG has no valid root."))?;
+  Ok(NormalizedVisual {
+    width: size.width(),
+    height: size.height(),
+    inner,
+  })
+}
+
+fn bounded_svg_tree(
+  bytes: &[u8],
+  context: &PreparedPreviewContext,
+  policy: &PreviewPolicy,
+  block_id: &str,
+) -> Result<Tree, RenderDiagnostic> {
+  if bytes.is_empty() || bytes.len() > policy.max_svg_input_bytes || bytes.starts_with(&[0x1f, 0x8b]) {
     return Err(media_diagnostic(
       block_id,
       "preview_svg_limit",
@@ -1295,24 +1359,50 @@ fn normalized_svg(
       "SVG exceeds the configured path-complexity limit.",
     ));
   }
-  let options = context.options();
+  let mut options = context.options();
+  let rejected = Arc::new(std::sync::atomic::AtomicBool::new(false));
+  let reject_data = Arc::clone(&rejected);
+  let embedded_count = std::sync::atomic::AtomicUsize::new(0);
+  let embedded_pixels = std::sync::atomic::AtomicU64::new(0);
+  let max_pixels = policy.max_decoded_image_pixels;
+  let max_bytes = policy.max_svg_input_bytes;
+  // Data references must not bypass the ordinary raster decoder's bounds.
+  // A shared counter also bounds nested SVG data recursion; rejection fails
+  // this figure visibly rather than accepting a silently partial raster.
+  options.image_href_resolver.resolve_data = Box::new(move |mime, data, options| {
+    let valid = if data.len() > max_bytes
+      || data.starts_with(&[0x1f, 0x8b])
+      || embedded_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed) >= 32
+    {
+      false
+    } else if let Ok(reader) = image::ImageReader::new(Cursor::new(data.as_slice())).with_guessed_format()
+      && let Ok((width, height)) = reader.into_dimensions()
+    {
+      let pixels = u64::from(width) * u64::from(height);
+      pixels <= max_pixels
+        && embedded_pixels
+          .fetch_add(pixels, std::sync::atomic::Ordering::Relaxed)
+          .saturating_add(pixels)
+          <= max_pixels
+    } else {
+      mime == "image/svg+xml"
+    };
+    if !valid {
+      reject_data.store(true, std::sync::atomic::Ordering::Relaxed);
+      return None;
+    }
+    usvg::ImageHrefResolver::default_data_resolver()(mime, data, options)
+  });
   let tree = Tree::from_data(bytes, &options)
     .map_err(|_| media_diagnostic(block_id, "preview_svg_invalid", "SVG could not be normalized safely."))?;
-  let size = tree.size();
-  let svg = tree.to_string(&WriteOptions {
-    id_prefix: Some(format!("preview-{block_id}-")),
-    preserve_text: false,
-    ..WriteOptions::default()
-  });
-  let inner = svg
-    .split_once('>')
-    .and_then(|(_, rest)| rest.rsplit_once("</svg>").map(|(inner, _)| inner.to_string()))
-    .ok_or_else(|| media_diagnostic(block_id, "preview_svg_invalid", "Normalized SVG has no valid root."))?;
-  Ok(NormalizedVisual {
-    width: size.width(),
-    height: size.height(),
-    inner,
-  })
+  if rejected.load(std::sync::atomic::Ordering::Relaxed) {
+    return Err(media_diagnostic(
+      block_id,
+      "preview_svg_limit",
+      "Embedded image exceeds the configured decoding limits.",
+    ));
+  }
+  Ok(tree)
 }
 
 fn validate_theme(theme: &PreviewTheme) -> Result<(), PreviewRenderError> {

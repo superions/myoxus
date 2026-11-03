@@ -309,7 +309,7 @@ impl ApiQueryRoot {
         }),
       );
     }
-    let schedule = myoxus_application::git_sync::schedule::GitSyncCronSchedule::parse(&cron, &cron_timezone)
+    let schedule = myoxus_application::scheduling::cron::CronSchedule::parse(&cron, &cron_timezone)
       .map_err(map_git_sync_schedule_error)?;
     schedule
       .occurrences_after(chrono::Utc::now(), count as usize)
@@ -712,6 +712,15 @@ impl ApiQueryRoot {
     auth::QueryRoot.workspace_calendars(ctx, workspace_id).await
   }
 
+  /// Authored native series, independent of their current projected window.
+  async fn workspace_calendar_series(
+    &self,
+    ctx: &Context<'_>,
+    workspace_id: String,
+  ) -> Result<Vec<auth::CalendarEventType>> {
+    auth::QueryRoot.workspace_calendar_series(ctx, workspace_id).await
+  }
+
   /// Query free/busy information for workspace members (P90-CAL-H-07).
   async fn calendar_free_busy(
     &self,
@@ -1101,6 +1110,17 @@ impl ApiQueryRoot {
   ) -> Result<document_metadata::DocumentMetadataType> {
     document_metadata::DocumentMetadataQueryRoot
       .document_metadata(ctx, workspace_id, doc_id, requested_projection_mode)
+      .await
+  }
+
+  async fn document_review_planning(
+    &self,
+    ctx: &Context<'_>,
+    workspace_id: ID,
+    doc_id: ID,
+  ) -> Result<document_metadata::DocumentReviewPlanningType> {
+    document_metadata::DocumentMetadataQueryRoot
+      .document_review_planning(ctx, workspace_id, doc_id)
       .await
   }
 
@@ -1840,6 +1860,54 @@ impl ApiMutationRoot {
     auth::MutationRoot.create_workspace_automation(ctx, input).await
   }
 
+  async fn configure_task_recurrence(
+    &self,
+    ctx: &Context<'_>,
+    input: auth::ConfigureTaskRecurrenceInput,
+  ) -> Result<auth::TaskRecurrenceObject> {
+    auth::MutationRoot.configure_task_recurrence(ctx, input).await
+  }
+
+  async fn update_task_recurrence(
+    &self,
+    ctx: &Context<'_>,
+    input: auth::UpdateTaskRecurrenceInput,
+  ) -> Result<auth::TaskRecurrenceObject> {
+    auth::MutationRoot.update_task_recurrence(ctx, input).await
+  }
+
+  async fn skip_task_recurrence(
+    &self,
+    ctx: &Context<'_>,
+    input: auth::SkipTaskRecurrenceInput,
+  ) -> Result<auth::TaskRecurrenceObject> {
+    auth::MutationRoot.skip_task_recurrence(ctx, input).await
+  }
+
+  async fn pause_task_recurrence(
+    &self,
+    ctx: &Context<'_>,
+    input: auth::TaskRecurrenceControlInput,
+  ) -> Result<auth::TaskRecurrenceObject> {
+    auth::MutationRoot.pause_task_recurrence(ctx, input).await
+  }
+
+  async fn resume_task_recurrence(
+    &self,
+    ctx: &Context<'_>,
+    input: auth::TaskRecurrenceControlInput,
+  ) -> Result<auth::TaskRecurrenceObject> {
+    auth::MutationRoot.resume_task_recurrence(ctx, input).await
+  }
+
+  async fn end_task_recurrence(
+    &self,
+    ctx: &Context<'_>,
+    input: auth::TaskRecurrenceControlInput,
+  ) -> Result<auth::TaskRecurrenceObject> {
+    auth::MutationRoot.end_task_recurrence(ctx, input).await
+  }
+
   async fn disable_workspace_automation(
     &self,
     ctx: &Context<'_>,
@@ -2415,6 +2483,19 @@ impl ApiMutationRoot {
   }
 
   // ── Native-event mutations (P-JCAL-SERVER-03-B) ──────────────────────────
+
+  async fn control_workspace_event_recurrence(
+    &self,
+    ctx: &Context<'_>,
+    workspace_id: String,
+    event_id: String,
+    expected_revision: i64,
+    action: auth::CalendarTimingAction,
+  ) -> Result<auth::CalendarEventType> {
+    auth::MutationRoot
+      .control_workspace_event_recurrence(ctx, workspace_id, event_id, expected_revision, action)
+      .await
+  }
 
   /// Create a workspace-native calendar event (INV-CAL-NATIVE-03).
   async fn create_workspace_event(
@@ -4505,6 +4586,19 @@ impl ApiMutationRoot {
       .set_document_metadata(ctx, workspace_id, doc_id, input)
       .await
   }
+
+  async fn configure_document_review_planning(
+    &self,
+    ctx: &Context<'_>,
+    workspace_id: ID,
+    doc_id: ID,
+    enabled: bool,
+    expected_metadata_revision: i64,
+  ) -> Result<document_metadata::DocumentReviewPlanningType> {
+    document_metadata::DocumentMetadataMutationRoot
+      .configure_document_review_planning(ctx, workspace_id, doc_id, enabled, expected_metadata_revision)
+      .await
+  }
 }
 
 #[derive(async_graphql::InputObject)]
@@ -6490,12 +6584,10 @@ fn map_git_sync_lifecycle_error(error: GitSyncLifecycleError) -> async_graphql::
   })
 }
 
-fn map_git_sync_schedule_error(
-  error: myoxus_application::git_sync::schedule::GitSyncScheduleError,
-) -> async_graphql::Error {
-  use myoxus_application::git_sync::schedule::GitSyncScheduleError;
+fn map_git_sync_schedule_error(error: myoxus_application::scheduling::cron::CronScheduleError) -> async_graphql::Error {
+  use myoxus_application::scheduling::cron::CronScheduleError;
   let field = match error {
-    GitSyncScheduleError::Timezone(_) => "cronTimezone",
+    CronScheduleError::Timezone(_) => "cronTimezone",
     _ => "cronExpression",
   };
   async_graphql::Error::new(error.to_string()).extend_with(|_, extensions| {

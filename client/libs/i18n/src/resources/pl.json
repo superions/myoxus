@@ -2469,7 +2469,6 @@
   "admin.performance.field.compaction-lock-ttl.desc": "Blokada zagęszczenia TTL (sekundy). Limit czasu bezpieczeństwa na wypadek awarii serwera w trakcie kompaktowania.",
   "admin.performance.field.compaction-threshold-default.desc": "Liczba oczekujących aktualizacji przed wyzwoleniem automatycznego kompresowania. Wartość domyślna: 500",
   "admin.performance.field.compaction-threshold-root-doc.desc": "Próg automatycznego zagęszczania dokumentów głównych. Wartość domyślna: 50",
-  "admin.performance.field.cron-tick-interval.desc": "Interwał (sekundy) dla pętli zaznaczeń programu planującego cron. Domyślnie: 60 · Min: 5 · Może wymagać ponownego uruchomienia, aby uzyskać pełny efekt.",
   "admin.performance.field.daily-enabled.desc": "Włącz codzienny cykl automatycznego dostrajania TTL.",
   "admin.performance.field.doc-metadata-cache-enabled.desc": "Włącz pamięć podręczną metadanych Redis. Redukuje zapytania DB dotyczące wyszukiwania metadanych dokumentów.",
   "admin.performance.field.doc-metadata-fixed-ttl.desc": "Naprawiono zastąpienie TTL pamięci podręcznej doc_metadata (sekundy). 0 = użyj automatycznego dostrajania.",

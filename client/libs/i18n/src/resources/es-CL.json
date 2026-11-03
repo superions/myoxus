@@ -2469,7 +2469,6 @@
   "admin.performance.field.compaction-lock-ttl.desc": "Compaction lock TTL (seconds). Safety timeout in case a server crashes mid-compaction.",
   "admin.performance.field.compaction-threshold-default.desc": "Number of pending updates before auto-compaction triggers. Default: 500",
   "admin.performance.field.compaction-threshold-root-doc.desc": "Auto-compaction threshold for root documents. Default: 50",
-  "admin.performance.field.cron-tick-interval.desc": "Interval (seconds) for the cron scheduler tick loop. Default: 60 · Min: 5 · May require restart for full effect.",
   "admin.performance.field.daily-enabled.desc": "Enable daily TTL auto-tuning cycle.",
   "admin.performance.field.doc-metadata-cache-enabled.desc": "Enable Redis metadata cache. Reduces DB queries for document metadata lookups.",
   "admin.performance.field.doc-metadata-fixed-ttl.desc": "Fixed TTL override for doc_metadata cache (seconds). 0 = use auto-tuning.",

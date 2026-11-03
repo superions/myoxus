@@ -15,6 +15,7 @@ use std::sync::Arc;
 
 use chrono::{Duration, Utc};
 use myoxus_application::calendar::CalendarService;
+use myoxus_domain::repositories::CalendarRepository;
 use myoxus_infrastructure::calendar::SqlxCalendarRepository;
 use sqlx::Row;
 use uuid::Uuid;
@@ -58,7 +59,7 @@ async fn teardown_account(pool: &sqlx::PgPool, account_id: Uuid) {
     .bind(account_id)
     .execute(pool)
     .await
-    .ok();
+    .expect("remove Calendar recurrence fixtures");
 }
 
 // ---------------------------------------------------------------------------
@@ -218,61 +219,75 @@ async fn inv_cal_rec03_split_creates_two_events() {
   let pool = helpers::setup_pool().await;
   let (account_id, event_id) = setup_recurring_event(&pool, "rec03").await;
 
-  // Simulate split: update original with UNTIL, insert new tail event.
-  let split_at = Utc::now() + Duration::weeks(3);
-  let until = (split_at - Duration::seconds(1)).format("%Y%m%dT%H%M%SZ").to_string();
-  let new_rrule = format!("FREQ=WEEKLY;BYDAY=MO;UNTIL={until}");
-
-  sqlx::query(
-    "UPDATE calendar_events
-     SET payload = jsonb_set(payload, '{rrule}', $2::jsonb, true), updated_at = now()
-     WHERE id = $1",
-  )
-  .bind(event_id)
-  .bind(serde_json::json!(new_rrule))
-  .execute(&pool)
-  .await
-  .expect("cap original rrule");
-
-  // Insert new tail event.
-  let tail_event_id: Uuid = sqlx::query_scalar(
-    "INSERT INTO calendar_events (account_id, remote_event_id, starts_at, ends_at, payload, updated_at)
-     VALUES ($1, $2, $3, $4, $5, now())
-     RETURNING id",
-  )
-  .bind(account_id)
-  .bind(format!("crec-split-tail-{}", Uuid::new_v4()))
-  .bind(split_at)
-  .bind(split_at + Duration::hours(1))
-  .bind(serde_json::json!({"rrule": "FREQ=WEEKLY;BYDAY=MO"}))
-  .fetch_one(&pool)
-  .await
-  .expect("insert tail event");
-
-  // Assert: 2 events exist for this account.
-  let event_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM calendar_events WHERE account_id = $1")
-    .bind(account_id)
-    .fetch_one(&pool)
+  let repo = Arc::new(SqlxCalendarRepository::new(pool.clone()));
+  let svc = CalendarService::new(repo.clone());
+  let mut source = repo.get_calendar_event(event_id).await.unwrap().unwrap();
+  source.starts_at = "2031-03-02T08:00:00Z".parse().unwrap();
+  source.ends_at = source.starts_at + Duration::hours(1);
+  source.payload = serde_json::json!({"rrule":"FREQ=WEEKLY;BYDAY=SU;COUNT=8","originalTimezone":"Europe/Berlin","exdate":"20310309T080000Z,20310406T070000Z"});
+  repo.upsert_calendar_event(&source).await.unwrap();
+  let from = source.starts_at;
+  let to = "2031-05-01T00:00:00Z".parse().unwrap();
+  let before = svc.list_event_instances(event_id, from, to).await.unwrap();
+  let key = "2031-04-13T07:00:00Z".parse().unwrap();
+  let protected = svc
+    .update_event_instance(event_id, key, serde_json::json!({"title":"Retained exception"}))
     .await
-    .expect("count events");
-  assert_eq!(event_count, 2, "INV-CAL-REC03: exactly 2 events must exist after split");
-
-  // Assert: original has UNTIL in rrule.
-  let original_payload: serde_json::Value = sqlx::query_scalar("SELECT payload FROM calendar_events WHERE id = $1")
-    .bind(event_id)
-    .fetch_one(&pool)
+    .unwrap();
+  let at = "2031-03-23T08:00:00Z".parse().unwrap();
+  let (head, tail) = svc
+    .split_recurring_event(event_id, at, serde_json::json!({"title":"Future"}))
     .await
-    .expect("fetch original payload");
-  let original_rrule = original_payload.get("rrule").and_then(|v| v.as_str()).unwrap_or("");
-  assert!(
-    original_rrule.contains("UNTIL="),
-    "INV-CAL-REC03: original rrule must contain UNTIL after split; got: {original_rrule}"
+    .unwrap();
+  assert_eq!(head.payload["rrule"], "FREQ=WEEKLY;BYDAY=SU;COUNT=3");
+  assert_eq!(
+    tail.payload["rrule"], "FREQ=WEEKLY;BYDAY=SU;COUNT=5",
+    "EXDATE must consume COUNT before the split"
   );
-
-  // Assert: tail event is different from original.
-  assert_ne!(
-    tail_event_id, event_id,
-    "INV-CAL-REC03: tail event must have a different id"
+  assert_eq!(head.payload["exdate"], "20310309T080000Z");
+  assert_eq!(tail.payload["exdate"], "20310406T070000Z");
+  let moved: (Uuid, bool) = sqlx::query_as("SELECT event_id,is_override FROM calendar_event_instances WHERE id=$1")
+    .bind(protected.id)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+  assert_eq!(
+    moved,
+    (tail.id, true),
+    "the split preserves the exception row, ID and original key"
+  );
+  let head_slots = svc.list_event_instances(head.id, from, to).await.unwrap();
+  let tail_slots = svc.list_event_instances(tail.id, from, to).await.unwrap();
+  let mut actual = head_slots
+    .iter()
+    .chain(tail_slots.iter())
+    .map(|slot| (slot.instance_start, slot.id))
+    .collect::<Vec<_>>();
+  actual.sort();
+  let mut expected = before
+    .iter()
+    .map(|slot| (slot.instance_start, slot.id))
+    .collect::<Vec<_>>();
+  expected.sort();
+  assert_eq!(
+    actual, expected,
+    "split and immediate reload retain the complete finite original set through DST"
+  );
+  // The other supported finite source limit must remain inclusive on the tail.
+  let mut finite = source.clone();
+  finite.id = Uuid::new_v4();
+  finite.remote_event_id = Some(format!("until-{}", finite.id));
+  finite.payload =
+    serde_json::json!({"rrule":"FREQ=WEEKLY;BYDAY=SU;UNTIL=20310420T070000Z","originalTimezone":"Europe/Berlin"});
+  repo.upsert_calendar_event(&finite).await.unwrap();
+  let (_, until_tail) = svc
+    .split_recurring_event(finite.id, at, serde_json::json!({}))
+    .await
+    .unwrap();
+  assert_eq!(until_tail.payload["rrule"], finite.payload["rrule"]);
+  assert_eq!(
+    svc.list_event_instances(until_tail.id, from, to).await.unwrap().len(),
+    5
   );
 
   teardown_account(&pool, account_id).await;

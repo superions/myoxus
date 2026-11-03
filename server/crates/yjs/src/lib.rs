@@ -32,7 +32,7 @@ use yrs::updates::decoder::Decode;
 use yrs::updates::encoder::Encode;
 use yrs::{Any, Array, Doc, GetString, Map, ReadTxn, StateVector, Text, Transact, Update};
 
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::sync::Arc;
 
 pub mod adapter;
@@ -4547,6 +4547,9 @@ impl YjsTextSegment {
           Any::String(id.clone().into()),
         )]))),
       );
+      // Annotation bodies are literal, but explicitly authored rich marks are
+      // real content. Do not attach mention/reference/math atom semantics.
+      self.visual_attrs(&mut attrs);
       return Some(attrs);
     }
     if let Some(mention) = &self.mention {
@@ -4563,36 +4566,10 @@ impl YjsTextSegment {
         attrs.insert(Arc::from("footnote"), value);
       }
     }
-    if self.bold {
-      attrs.insert(Arc::from("bold"), Any::Bool(true));
-    }
-    if self.underline {
-      attrs.insert(Arc::from("underline"), Any::Bool(true));
-    }
-    if let Some(color) = &self.color {
-      attrs.insert(Arc::from("color"), Any::String(color.clone().into()));
-    }
-    if let Some(tone) = &self.label_tone {
-      attrs.insert(Arc::from("labelTone"), Any::String(tone.clone().into()));
-    }
     if let Some(latex) = &self.latex {
       attrs.insert(Arc::from("latex"), Any::String(latex.clone().into()));
     }
-    if self.italic {
-      attrs.insert(Arc::from("italic"), Any::Bool(true));
-    }
-    if self.strike {
-      attrs.insert(Arc::from("strike"), Any::Bool(true));
-    }
-    if self.code {
-      attrs.insert(Arc::from("code"), Any::Bool(true));
-    }
-    if let Some(background) = &self.background {
-      attrs.insert(Arc::from("background"), Any::String(background.clone().into()));
-    }
-    if let Some(url) = &self.link {
-      attrs.insert(Arc::from("link"), Any::String(url.clone().into()));
-    }
+    self.visual_attrs(&mut attrs);
     if let Some(reference) = &self.reference {
       let mut payload = HashMap::new();
       payload.insert("type".to_string(), Any::String(Arc::from("LinkedPage")));
@@ -4626,6 +4603,36 @@ impl YjsTextSegment {
     }
     (!attrs.is_empty()).then_some(attrs)
   }
+
+  fn visual_attrs(&self, attrs: &mut Attrs) {
+    for (name, enabled) in [
+      ("bold", self.bold),
+      ("italic", self.italic),
+      ("strike", self.strike),
+      ("underline", self.underline),
+      ("code", self.code),
+    ] {
+      if enabled {
+        attrs.insert(Arc::from(name), Any::Bool(true));
+      }
+    }
+    for (name, value) in [
+      ("color", &self.color),
+      ("labelTone", &self.label_tone),
+      ("background", &self.background),
+      ("link", &self.link),
+    ] {
+      if let Some(value) = value {
+        attrs.insert(Arc::from(name), Any::String(value.clone().into()));
+      }
+    }
+  }
+}
+
+/// Saved nesting; restore it on the same builder after finishing the container.
+pub struct YjsContentContext {
+  parent: Option<String>,
+  list_parents: Vec<String>,
 }
 
 /// Low-level writer for the canonical Virgultum page/surface/note/block Yjs
@@ -4635,6 +4642,8 @@ impl YjsTextSegment {
 /// Import adapters own parsing and normalization; this builder only owns block
 /// identity, parent/child wiring, attributed text and binary update encoding.
 /// It deliberately carries no Markdown, HTML or Notion types.
+/// Explicit parent IDs in child writers must come from this builder, never the
+/// source file. Omitted parents use the active native content container.
 pub struct YjsDocumentBuilder {
   doc: Doc,
   blocks: yrs::MapRef,
@@ -4679,8 +4688,9 @@ impl YjsDocumentBuilder {
     }
   }
 
-  /// Reserve detached native containers before resolving forward inline targets.
-  pub(crate) fn reserve_footnote_definition(&mut self, label: &str) -> String {
+  /// Reserve a detached native definition before resolving forward inline targets.
+  /// Format adapters fill/attach it through `begin_footnote_body` after the main body.
+  pub fn reserve_footnote_definition(&mut self, label: &str) -> String {
     let id = self.next_id();
     let mut txn = self.doc.transact_mut();
     let (block, _) = create_yjs_block(&self.blocks, &mut txn, &id, "myoxus:footnote-definition");
@@ -4689,6 +4699,77 @@ impl YjsDocumentBuilder {
     drop(txn);
     self.block_count += 1;
     id
+  }
+
+  /// Route the ordinary native block writers into one reserved note definition.
+  /// Definitions are root content, never nested in a preceding list or note.
+  pub fn begin_footnote_body(&mut self, id: &str, placement: footnote::FootnotePlacement) -> Result<(), &'static str> {
+    if self.content_parent.is_some() {
+      return Err("Nested native note definitions are unsupported");
+    }
+    let mut txn = self.doc.transact_mut();
+    let Some(yrs::Out::YMap(block)) = self.blocks.get(&txn, id) else {
+      return Err("Native note definition is missing");
+    };
+    if !matches!(block.get(&txn, "sys:flavour"), Some(yrs::Out::Any(Any::String(kind))) if kind.as_ref() == "myoxus:footnote-definition")
+      || self
+        .note_children
+        .iter(&txn)
+        .any(|child| matches!(child, yrs::Out::Any(Any::String(value)) if value.as_ref() == id))
+    {
+      return Err("Invalid or already attached native note definition");
+    }
+    block.insert(
+      &mut txn,
+      "prop:placement",
+      match placement {
+        footnote::FootnotePlacement::Footnote => "footnote",
+        footnote::FootnotePlacement::Endnote => "endnote",
+      },
+    );
+    self.note_children.push_back(&mut txn, id);
+    self.content_parent = Some(id.to_string());
+    self.list_parent_ids.clear();
+    Ok(())
+  }
+
+  /// Finish a note body before writing another root block; empty notes still own
+  /// an editable paragraph, just like the existing Markdown note importer.
+  pub fn end_footnote_body(&mut self) {
+    if let Some(id) = self.content_parent.take() {
+      let empty = {
+        let txn = self.doc.transact();
+        matches!(self.blocks.get(&txn, &id), Some(yrs::Out::YMap(block)) if matches!(block.get(&txn, "sys:children"), Some(yrs::Out::YArray(children)) if children.len(&txn) == 0))
+      };
+      if empty {
+        self.push_paragraph_under(&[], Some(&id));
+      }
+    }
+    self.list_parent_ids.clear();
+  }
+
+  /// Enter children of a container created by this builder, retaining the outer
+  /// list context for restoration. Never pass an untrusted source-format ID.
+  pub fn enter_content_parent(&mut self, parent: String) -> YjsContentContext {
+    YjsContentContext {
+      parent: self.content_parent.replace(parent),
+      list_parents: std::mem::take(&mut self.list_parent_ids),
+    }
+  }
+
+  pub fn restore_content_parent(&mut self, context: YjsContentContext) {
+    self.content_parent = context.parent;
+    self.list_parent_ids = context.list_parents;
+  }
+
+  /// An ordinary indented continuation belongs to the already-created list
+  /// item at that depth; absent ancestors stay in the current content parent.
+  pub fn parent_at_list_depth(&self, depth: usize) -> Option<&str> {
+    depth
+      .checked_sub(1)
+      .and_then(|index| self.list_parent_ids.get(index))
+      .map(String::as_str)
+      .or(self.content_parent.as_deref())
   }
 
   fn next_id(&mut self) -> String {
@@ -4718,11 +4799,11 @@ impl YjsDocumentBuilder {
     }
   }
 
-  pub(crate) fn push_paragraph_under(&mut self, segments: &[YjsTextSegment], parent_id: Option<&str>) -> String {
+  pub fn push_paragraph_under(&mut self, segments: &[YjsTextSegment], parent_id: Option<&str>) -> String {
     self.push_paragraph_typed_under(segments, None, parent_id)
   }
 
-  pub(crate) fn push_quote_under(&mut self, segments: &[YjsTextSegment], parent_id: Option<&str>) -> String {
+  pub fn push_quote_under(&mut self, segments: &[YjsTextSegment], parent_id: Option<&str>) -> String {
     let id = self.next_id();
     {
       let mut txn = self.doc.transact_mut();
@@ -4740,7 +4821,7 @@ impl YjsDocumentBuilder {
     id
   }
 
-  pub(crate) fn push_callout_under(
+  pub fn push_callout_under(
     &mut self,
     kind: &str,
     title: &str,
@@ -4787,7 +4868,7 @@ impl YjsDocumentBuilder {
   }
 
   /// Fill a newly imported text container before any child owns its body order.
-  pub(crate) fn set_container_body(&mut self, id: &str, segments: &[YjsTextSegment]) {
+  pub fn set_container_body(&mut self, id: &str, segments: &[YjsTextSegment]) {
     let mut txn = self.doc.transact_mut();
     if let Some(yrs::Out::YMap(block)) = self.blocks.get(&txn, id) {
       let text = block.insert(&mut txn, "prop:text", yrs::TextPrelim::new(""));
@@ -4884,7 +4965,7 @@ impl YjsDocumentBuilder {
     self.list_parent_ids.clear();
   }
 
-  fn push_paragraph_typed_under(
+  pub fn push_paragraph_typed_under(
     &mut self,
     segments: &[YjsTextSegment],
     heading: Option<u8>,
@@ -4945,7 +5026,7 @@ impl YjsDocumentBuilder {
     id
   }
 
-  pub(crate) fn push_code_under(&mut self, language: &str, text: &str, parent_id: Option<&str>) -> String {
+  pub fn push_code_under(&mut self, language: &str, text: &str, parent_id: Option<&str>) -> String {
     let id = self.next_id();
     {
       let mut txn = self.doc.transact_mut();
@@ -4964,7 +5045,9 @@ impl YjsDocumentBuilder {
     id
   }
 
-  pub(crate) fn push_latex_under(&mut self, latex: &str, parent_id: Option<&str>) -> String {
+  /// Store a complete display-formula source. Parsing and any format-specific
+  /// limits belong to the caller; inline math uses `YjsTextSegment::latex`.
+  pub fn push_latex_under(&mut self, latex: &str, parent_id: Option<&str>) -> String {
     let id = self.next_id();
     {
       let mut txn = self.doc.transact_mut();
@@ -4983,7 +5066,7 @@ impl YjsDocumentBuilder {
     id
   }
 
-  pub(crate) fn push_table_under(
+  pub fn push_table_under(
     &mut self,
     rows: &[Vec<Vec<YjsTextSegment>>],
     alignments: &[Option<String>],
@@ -5014,6 +5097,19 @@ impl YjsDocumentBuilder {
   }
 
   pub fn push_list_item(&mut self, segments: &[YjsTextSegment], ordered: bool, depth: usize, checked: Option<bool>) {
+    self.push_list_item_with_order(segments, ordered, depth, checked, None);
+  }
+
+  /// Add an imported list item with an explicit Word numbering value. The
+  /// editor's `order` is a JavaScript number and cannot represent larger u64s.
+  pub fn push_list_item_with_order(
+    &mut self,
+    segments: &[YjsTextSegment],
+    ordered: bool,
+    depth: usize,
+    checked: Option<bool>,
+    order: Option<u64>,
+  ) {
     let id = self.next_id();
     {
       let mut txn = self.doc.transact_mut();
@@ -5024,6 +5120,13 @@ impl YjsDocumentBuilder {
       } else {
         block.insert(&mut txn, "prop:type", if ordered { "numbered" } else { "bulleted" });
         block.insert(&mut txn, "prop:checked", false);
+      }
+      if ordered && let Some(order) = order {
+        block.insert(
+          &mut txn,
+          "prop:order",
+          Any::from(order.min(9_007_199_254_740_991) as f64),
+        );
       }
       let attached = if depth == 0 {
         false
@@ -5116,6 +5219,13 @@ impl YjsDocumentBuilder {
     }
   }
 
+  /// Preserve the source's consecutive header rows in a native editable table.
+  pub fn push_table_with_header_rows(&mut self, rows: &[Vec<Vec<YjsTextSegment>>], header_rows: usize) {
+    if self.push_table_under(rows, &[], None, Some(header_rows)).is_some() {
+      self.list_parent_ids.clear();
+    }
+  }
+
   pub fn push_image(&mut self, source_id: &str, caption: &str) {
     let id = self.next_id();
     {
@@ -5177,6 +5287,61 @@ impl YjsDocumentBuilder {
 
   pub fn block_count(&self) -> usize {
     self.block_count
+  }
+
+  /// Latest allocation only when it already materialized a block. Importers
+  /// use this after writing content, never to predict or manufacture identities.
+  pub fn last_created_block_id(&self) -> Option<String> {
+    let id = format!("mcp-block-{}-{:016x}", self.import_id, self.counter);
+    self.blocks.get(&self.doc.transact(), &id).map(|_| id)
+  }
+
+  /// Bind source fragments only after all native targets exist. A relative
+  /// query selects an actual generated block on the newly published Page.
+  /// Unresolved names lose only their link, not the authored visible alias.
+  pub fn bind_local_bookmark_links(&mut self, targets: &BTreeMap<String, String>) -> usize {
+    let mut txn = self.doc.transact_mut();
+    let mut missing = 0;
+    let blocks = self
+      .blocks
+      .iter(&txn)
+      .filter_map(|(_, value)| match value {
+        yrs::Out::YMap(block) => Some(block),
+        _ => None,
+      })
+      .collect::<Vec<_>>();
+    for block in blocks {
+      let texts = block
+        .iter(&txn)
+        .filter_map(|(_, value)| match value {
+          yrs::Out::YText(text) => Some(text),
+          _ => None,
+        })
+        .collect::<Vec<_>>();
+      for text in texts {
+        let mut offset = 0;
+        for run in text.diff(&txn, |_| ()) {
+          let length = match &run.insert {
+            yrs::Out::Any(Any::String(text)) => text.len() as u32,
+            _ => 1,
+          };
+          if let Some(Any::String(link)) = run.attributes.as_deref().and_then(|attrs| attrs.get("link"))
+            && let Some(name) = link.strip_prefix('#')
+          {
+            // Targets come from this builder's URI-safe generated identities.
+            let value = if let Some(target) = targets.get(name) {
+              Any::String(format!("?blockIds={target}").into())
+            } else {
+              missing += 1;
+              Any::Null
+            };
+            text.format(&mut txn, offset, length, Attrs::from([(Arc::from("link"), value)]));
+          }
+          offset += length;
+        }
+      }
+    }
+    missing
   }
 
   pub fn state_vector(&self) -> StateVector {

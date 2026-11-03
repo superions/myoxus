@@ -45,6 +45,18 @@ impl RecordingWritePort {
 #[async_trait]
 impl RemoteCalendarWritePort for RecordingWritePort {
   async fn create_event(&self, input: &RemoteEventInput) -> PortResult<RemoteCreateResult> {
+    assert!(
+      input.extra_payload["rrule"]
+        .as_str()
+        .is_some_and(|rule| rule.contains("UNTIL=")),
+      "pending write must pass the current paused projection to the provider, not an empty payload or retained base rule"
+    );
+    assert!(
+      input.extra_payload["exdate"]
+        .as_str()
+        .is_some_and(|value| value.contains(&input.starts_at.format("%Y%m%dT%H%M%SZ").to_string())),
+      "a future DTSTART must remain suppressed at the provider boundary"
+    );
     self
       .calls
       .lock()
@@ -213,6 +225,34 @@ async fn inv_caldav_writeback01_execute_pending_write_calls_port() {
   let recording_port = Arc::new(recording_port);
   let repo = Arc::new(SqlxCalendarRepository::new(pool.clone()));
   let svc = CalendarService::new(repo.clone()).with_remote_write(recording_port.clone());
+  use myoxus_domain::{
+    repositories::CalendarRepository,
+    scheduling::{calendar::*, *},
+  };
+  repo
+    .update_native_event(
+      event_id,
+      &myoxus_domain::repositories::NativeEventUpdate {
+        recurrence: Some(Some(ConfirmedCalendarRecurrence {
+          rule: RecurrenceRule {
+            selector: RecurrenceSelector::Daily,
+            interval: std::num::NonZeroU32::new(1).unwrap(),
+            start: ScheduleValue::LocalDateTime((now + chrono::Duration::hours(1)).naive_utc()),
+            end: None,
+            zone: AdmissionZone::try_from("UTC".to_owned()).unwrap(),
+          },
+          actor_id: user_id,
+        })),
+        ..Default::default()
+      },
+    )
+    .await
+    .unwrap();
+  let revision = repo.get_calendar_timing(event_id).await.unwrap().unwrap().revision;
+  repo
+    .control_calendar_timing(event_id, user_id, revision, CalendarTimingChange::Pause)
+    .await
+    .unwrap();
 
   // Fetch the pending write and execute it.
   use sqlx::Row as _;

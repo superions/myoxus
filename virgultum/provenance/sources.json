@@ -9421,7 +9421,7 @@
         },
         {
           "path": "virgultum/editor/shared/src/utils/file/filesys.ts",
-          "sha256": "dcadaddd030b3fa39793e3a5120673fe5007187fa5d49069077c9922e512f64b",
+          "sha256": "a03aa2789a35879a1a4bd4747b9c5a5d6e285b5459d0628bcf3a8680c1c5a313",
           "originalPath": "blocksuite/affine/shared/src/utils/file/filesys.ts",
           "originalGitBlob": "0258545be65697d21965ed3eee242b1adb0a36d4"
         },
@@ -10093,7 +10093,7 @@
         },
         {
           "path": "virgultum/editor/widgets/linked-doc/package.json",
-          "sha256": "8a308ec9ed1dc7e6fe6f21b00a816f88f90a5fc53850c48337ca7d69cafea0d0",
+          "sha256": "594a200f82e0836e32401da2d2e79f449214949860f5e7e668f0195067d354cf",
           "originalPath": "blocksuite/affine/widgets/linked-doc/package.json",
           "originalGitBlob": "8e8f8aa0784202e11bb75b9f9d41d6db740353b4"
         },
@@ -10152,38 +10152,32 @@
           "originalGitBlob": "2aa717ade4b247b20efd8c0006d557ffa6fc477c"
         },
         {
-          "path": "virgultum/editor/widgets/linked-doc/src/transformers/docx.ts",
-          "sha256": "0ed3b607570d1ee1eee2039ed9cc38c436cc9d5f59773a5c420f94e3695facb9",
-          "originalPath": "blocksuite/affine/widgets/linked-doc/src/transformers/docx.ts",
-          "originalGitBlob": "94c45acb5d278f3a59e4b308d9da0c661963a57a"
-        },
-        {
           "path": "virgultum/editor/widgets/linked-doc/src/transformers/html.ts",
-          "sha256": "dd9d9ed83a1f6678f2526df1b12fd6741e898bfad9e2d3d3cbc33cd9c75392d4",
+          "sha256": "49824f2a1c3f549c40e82f3b3a2755db80804496bd0f8106179085d2f5d8a464",
           "originalPath": "blocksuite/affine/widgets/linked-doc/src/transformers/html.ts",
           "originalGitBlob": "53c102bcdf81b59c54c33d6a39b796441a1ffac6"
         },
         {
           "path": "virgultum/editor/widgets/linked-doc/src/transformers/index.ts",
-          "sha256": "bb3eb2f3415b0bed52ecae3f8e613210701fc0d37cd15a5cfbd07afce81bfefd",
+          "sha256": "91c7ab65fa31c0b33ffb89b9593f2ce6f6d76835fe6740ccbf637ef95bf450e9",
           "originalPath": "blocksuite/affine/widgets/linked-doc/src/transformers/index.ts",
           "originalGitBlob": "28f8f826ec8a73933a270a236f4951d1611871f9"
         },
         {
           "path": "virgultum/editor/widgets/linked-doc/src/transformers/markdown.ts",
-          "sha256": "9fb7f5d1f14eeac05552c37f76af7f70e9052ea4a4286bcf2695cb7afe08c16b",
+          "sha256": "66150491013840cde6c9382108c68779dd32ea75ed961a7f83bb9f418c4e3a6f",
           "originalPath": "blocksuite/affine/widgets/linked-doc/src/transformers/markdown.ts",
           "originalGitBlob": "bdb34771516394e8cee25ad2be10eeb8d41ae311"
         },
         {
           "path": "virgultum/editor/widgets/linked-doc/src/transformers/utils.ts",
-          "sha256": "8f1a7d6e81ef650b168be4a212b26cb10aeac5e1c6a791c3a071267e6fc5f8a9",
+          "sha256": "847e03285cd459258810144f6c2f71648887a9c7be3a58e558aaa4ad8da030e3",
           "originalPath": "blocksuite/affine/widgets/linked-doc/src/transformers/utils.ts",
           "originalGitBlob": "a7f66ea82dfbb0526b071565281ec28091fba8da"
         },
         {
           "path": "virgultum/editor/widgets/linked-doc/src/transformers/zip.ts",
-          "sha256": "e10e0121d80e8d132b2a85be9a250753a8ea5b6fd486ef663dd09a7fd1d916b9",
+          "sha256": "41ceb614f3db66c027f9ab1f318e554481be90ac4ee0fe49eed843aa901216a7",
           "originalPath": "blocksuite/affine/widgets/linked-doc/src/transformers/zip.ts",
           "originalGitBlob": "5aaf22575294d49eaee7ab8921de9933a956a25d"
         },
@@ -20528,7 +20522,7 @@
     {
       "origin": "T1",
       "licenseExpression": "MIT",
-      "copyrightNotices": ["2020-2026 Pawe\u0142 Kuna"],
+      "copyrightNotices": ["2020-2026 Paweł Kuna"],
       "files": [
         {
           "path": "virgultum/icons/THIRD_PARTY_LICENSES.md",
@@ -20541,7 +20535,7 @@
       "licenseExpression": "AGPL-3.0-or-later AND MIT",
       "copyrightNotices": [
         "2026-present Daniel Scharf and Myoxus contributors",
-        "2020-2026 Pawe\u0142 Kuna"
+        "2020-2026 Paweł Kuna"
       ],
       "files": [
         {

@@ -231,7 +231,8 @@ export function startClientUpdateControlRuntime({
   const reread = () => {
     if (stopped) return;
     void gate.read(read).catch(() => {
-      // The blocking UI owns recovery for local control-read failures.
+      // Keep data retries blocked; the sparse control poll also recovers workers,
+      // which have no blocking UI from which to request a manual reread.
     });
   };
 
@@ -239,15 +240,20 @@ export function startClientUpdateControlRuntime({
     clearPoll();
     const snapshot = gate.getSnapshot();
     if (
-      snapshot.status !== "ready" ||
-      (snapshot.control.phase !== "limited" &&
+      snapshot.status === "loading" ||
+      (snapshot.status === "ready" &&
+        snapshot.control.phase !== "limited" &&
         snapshot.control.phase !== "suspended" &&
         snapshot.control.phase !== "failed")
     ) {
       return;
     }
     const delay = Math.min(
-      Math.max(snapshot.control.retryAfterMs ?? 15_000, MIN_POLL_MS),
+      Math.max(
+        (snapshot.status === "ready" ? snapshot.control.retryAfterMs : null) ??
+          15_000,
+        MIN_POLL_MS,
+      ),
       MAX_POLL_MS,
     );
     pollTimer = schedule(() => {

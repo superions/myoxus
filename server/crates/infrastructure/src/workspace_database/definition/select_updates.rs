@@ -104,6 +104,17 @@ impl PgDatabaseRepository {
       {
         return Err(RepositoryError::Conflict("managed Select configuration fence"));
       }
+      if let (DatabaseFieldConfig::Status(before), DatabaseFieldConfig::Status(after)) = (&old.config, &next.config) {
+        if mapping.is_some() {
+          return Err(RepositoryError::Validation(
+            "Status options cannot use Select mappings".into(),
+          ));
+        }
+        myoxus_domain::database::validate_status_option_append(before, after).map_err(RepositoryError::Validation)?;
+        // The definition writer below appends metadata; no Row, template value,
+        // history or personal state is a value-conversion input for this edge.
+        continue;
+      }
       let mapping = DatabaseSelectOptionMapping::new(&old.config, &next.config, mapping.cloned().unwrap_or_default())
         .map_err(RepositoryError::Validation)?;
       updates.push(SelectUpdate {

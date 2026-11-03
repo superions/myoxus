@@ -522,6 +522,8 @@ impl SqlxDocStore {
       return Err(AuthError::NotFound("document".to_string()));
     }
 
+    crate::document_metadata::reject_guide_content_write(tx, doc_id).await?;
+
     let snapshot =
       sqlx::query("SELECT payload, last_sequence FROM doc_snapshots WHERE workspace_id = $1 AND doc_id = $2")
         .bind(workspace_id)
@@ -1035,6 +1037,7 @@ impl SqlxDocStore {
     doc_id: Uuid,
     delta: Vec<u8>,
   ) -> AuthResult<PageLifecycleDelta> {
+    crate::document_metadata::reject_guide_content_write(tx, doc_id).await?;
     if delta.is_empty() {
       return Err(AuthError::Storage(
         "page lifecycle produced an empty Yjs delta".to_string(),
@@ -3144,6 +3147,7 @@ impl DocUpdateStore for SqlxDocStore {
       return Box::pin(self.push_revision_checked_update(workspace_id, doc_id, expected_revision, payload)).await;
     }
 
+    crate::document_metadata::reject_guide_content_write(&mut tx, doc_id).await?;
     let current = Self::load_full_doc_in_tx(&mut tx, workspace_id, doc_id).await?;
     let current_revision =
       canonical_yjs_revision(&current).map_err(|_| AuthError::Storage("persisted Yjs state is invalid".to_string()))?;
@@ -4997,6 +5001,7 @@ impl SqlxDocStore {
       PageLifecycleCommand::Create {
         title: _,
         initial_leaf_update,
+        source_purpose,
         ..
       } => {
         let derived_title = Self::extract_leaf_title(&initial_leaf_update)?
@@ -5057,6 +5062,20 @@ impl SqlxDocStore {
         .map_err(Self::map_db_err)?;
         let external_id: String = row.get("external_id");
         let leaf = Self::append_lifecycle_delta(&mut tx, workspace_id, doc_id, initial_leaf_update).await?;
+        if let Some(purpose) = source_purpose {
+          // Classify before publishing the leaf/root, so ordinary lists never
+          // observe an unclassified source or introduction after creation.
+          let state = match purpose {
+            myoxus_application::template_registry::bundle::TemplatePurpose::Template => "managed",
+            myoxus_application::template_registry::bundle::TemplatePurpose::Guide => "guide",
+          };
+          sqlx::query("INSERT INTO document_template_state(doc_id,state,source) VALUES($1,$2,'workspace')")
+            .bind(doc_id)
+            .bind(state)
+            .execute(&mut *tx)
+            .await
+            .map_err(Self::map_db_err)?;
+        }
         let root = Self::register_created_page_in_tx(
           &mut tx,
           workspace_id,
@@ -5632,6 +5651,10 @@ impl SqlxDocStore {
         registration_request,
         yjs::page_registration::PageRegistrationRequest::None
       );
+    }
+
+    if !auto_created_doc && matches!(update.space_kind, DocSpaceKind::Workspace) {
+      crate::document_metadata::reject_guide_content_write(&mut tx, doc_id).await?;
     }
 
     if let Some(ack) = &ack {

@@ -922,7 +922,7 @@ impl PgDatabaseRepository {
     tx.commit().await.map_err(Self::map_sqlx_error)?;
     Ok(result)
   }
-  pub(in crate::workspace_database) async fn update_cell_value_in_tx(
+  pub(crate) async fn update_cell_value_in_tx(
     &self,
     tx: &mut Transaction<'_, Postgres>,
     row_id: DatabaseRowId,

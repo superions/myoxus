@@ -1282,11 +1282,11 @@ impl TemplateRegistryStore for SqlxTemplateRegistryStore {
           .bind(serde_json::json!({"source_binding_relinquished":true,"document_id":observed.resolved_doc_id}))
           .execute(&mut *tx).await.map_err(Self::map_db_err)?;
       }
-      // Trash retains the reader's document for restoration. Obsolete guide
-      // attribution must be removed there too, without restoring its content.
+      // Trash and later reinstalls retain reader copies. Their existing native
+      // state distinguishes introductions from reusable sources and ordinary pages.
       if observed.source_available || (purpose == TemplatePurpose::Guide && observed.resolved_doc_id.is_some()) {
         if purpose == TemplatePurpose::Guide {
-          sqlx::query("DELETE FROM document_template_state WHERE doc_id=$1 AND (template_id IS NULL OR template_id=$2) AND (instance_id IS NULL OR instance_id=$3)")
+          sqlx::query("INSERT INTO document_template_state(doc_id,state,source) VALUES($1,'guide','workspace') ON CONFLICT(doc_id) DO UPDATE SET state='guide' WHERE (document_template_state.template_id IS NULL OR document_template_state.template_id=$2) AND (document_template_state.instance_id IS NULL OR document_template_state.instance_id=$3)")
             .bind(observed.resolved_doc_id).bind(id).bind(observed.id).execute(&mut *tx).await.map_err(Self::map_db_err)?;
         } else {
           sqlx::query("UPDATE document_template_state SET state=$4,template_id=$5,instance_id=$6,revision_id=$7,source=$8,updated_at=now() WHERE doc_id=$1 AND (template_id IS NULL OR template_id=$2) AND (instance_id IS NULL OR instance_id=$3)")
@@ -3263,18 +3263,24 @@ impl TemplateRegistryStore for SqlxTemplateRegistryStore {
     .fetch_optional(&self.pool)
     .await
     .map_err(Self::map_db_err)?;
+    if purpose == myoxus_application::template_registry::bundle::TemplatePurpose::Guide {
+      // Trusted delivery records the selected language; ordinary metadata
+      // patches cannot edit or remove an introduction's native classification.
+      let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
+      sqlx::query("UPDATE docs SET language_id=COALESCE($2,language_id),language_source=CASE WHEN $2 IS NULL THEN language_source ELSE 'document' END,metadata_updated_by=$3 WHERE id=$1")
+        .bind(doc_id).bind(language_id).bind(actor_id).execute(&mut *tx).await.map_err(Self::map_db_err)?;
+      sqlx::query("INSERT INTO document_template_state(doc_id,state,source) VALUES($1,'guide','workspace') ON CONFLICT(doc_id) DO UPDATE SET state='guide'")
+        .bind(doc_id).execute(&mut *tx).await.map_err(Self::map_db_err)?;
+      tx.commit().await.map_err(Self::map_db_err)?;
+      return Ok(());
+    }
     let repository = crate::document_metadata::PgDocumentMetadataRepository::new(self.pool.clone());
     repository
       .apply_patch(
         doc_id,
         actor_id,
         &DocumentMetadataPatch {
-          template_state: Some(match purpose {
-            myoxus_application::template_registry::bundle::TemplatePurpose::Template => Some("managed".into()),
-            // Guide content belongs to its reader, independently of the
-            // Registry binding used to remember that seed-once delivery.
-            myoxus_application::template_registry::bundle::TemplatePurpose::Guide => None,
-          }),
+          template_state: Some(Some("managed".into())),
           // Legacy bundle locales were hints, not mandatory catalog entries.
           // Keep the normal document default when no canonical language exists;
           // the exact bundle choice remains recorded on its instance.

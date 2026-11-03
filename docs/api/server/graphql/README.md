@@ -16,9 +16,9 @@ This reference describes the compiled server schema. A trailing `!` means non-nu
 | [Query root](./queries.md) | 1 |
 | [Mutation root](./mutations.md) | 1 |
 | [Subscription root](./subscriptions.md) | 0 |
-| [Objects](./objects.md) | 639 |
-| [Input objects](./inputs.md) | 313 |
-| [Enums](./enums.md) | 201 |
+| [Objects](./objects.md) | 648 |
+| [Input objects](./inputs.md) | 324 |
+| [Enums](./enums.md) | 207 |
 | [Unions](./unions.md) | 3 |
 | [Interfaces](./interfaces.md) | 0 |
 | [Scalars](./scalars.md) | 5 |
@@ -224,11 +224,13 @@ This reference describes the compiled server schema. A trailing `!` means non-nu
 | [CalendarParticipantInput](./inputs.md#calendarparticipantinput) | Input objects |
 | [CalendarProviderRequestErrorDataType](./objects.md#calendarproviderrequesterrordatatype) | Objects |
 | [CalendarProviderType](./enums.md#calendarprovidertype) | Enums |
+| [CalendarRecurrence](./objects.md#calendarrecurrence) | Objects |
 | [CalendarReminderInput](./inputs.md#calendarreminderinput) | Input objects |
 | [CalendarReminderStatusResult](./objects.md#calendarreminderstatusresult) | Objects |
 | [CalendarReminderType](./objects.md#calendarremindertype) | Objects |
 | [CalendarRsvpStatus](./enums.md#calendarrsvpstatus) | Enums |
 | [CalendarSubscriptionObjectType](./objects.md#calendarsubscriptionobjecttype) | Objects |
+| [CalendarTimingAction](./enums.md#calendartimingaction) | Enums |
 | [ChatHistoryOrder](./enums.md#chathistoryorder) | Enums |
 | [ChatMessage](./objects.md#chatmessage) | Objects |
 | [ClearDatabaseCellValueInput](./inputs.md#cleardatabasecellvalueinput) | Input objects |
@@ -248,9 +250,11 @@ This reference describes the compiled server schema. A trailing `!` means non-nu
 | [CommentThreadFilter](./enums.md#commentthreadfilter) | Enums |
 | [CommentType](./objects.md#commenttype) | Objects |
 | [CommentUpdateInput](./inputs.md#commentupdateinput) | Input objects |
+| [CompletionRecurrenceInput](./inputs.md#completionrecurrenceinput) | Input objects |
 | [ConfigChangelogEntryType](./objects.md#configchangelogentrytype) | Objects |
 | [ConfigureGitTokenRotationInput](./inputs.md#configuregittokenrotationinput) | Input objects |
 | [ConfigureTaskPreparationInput](./inputs.md#configuretaskpreparationinput) | Input objects |
+| [ConfigureTaskRecurrenceInput](./inputs.md#configuretaskrecurrenceinput) | Input objects |
 | [ConfirmTaskCorrectionsInput](./inputs.md#confirmtaskcorrectionsinput) | Input objects |
 | [ConflictResolution](./enums.md#conflictresolution) | Enums |
 | [ContextDocumentContext](./objects.md#contextdocumentcontext) | Objects |
@@ -638,6 +642,7 @@ This reference describes the compiled server schema. A trailing `!` means non-nu
 | [DocumentMetadataValueDefinitionType](./objects.md#documentmetadatavaluedefinitiontype) | Objects |
 | [DocumentReview](./objects.md#documentreview) | Objects |
 | [DocumentReviewDecisionKind](./enums.md#documentreviewdecisionkind) | Enums |
+| [DocumentReviewPlanningType](./objects.md#documentreviewplanningtype) | Objects |
 | [DocumentReviewRunInput](./inputs.md#documentreviewruninput) | Input objects |
 | [DocumentStatusSchemaType](./objects.md#documentstatusschematype) | Objects |
 | [DocumentStatusTransitionType](./objects.md#documentstatustransitiontype) | Objects |
@@ -665,6 +670,7 @@ This reference describes the compiled server schema. A trailing `!` means non-nu
 | [ExportDatabaseCsvInput](./inputs.md#exportdatabasecsvinput) | Input objects |
 | [ExportDatabaseJsonInput](./inputs.md#exportdatabasejsoninput) | Input objects |
 | [FeatureType](./enums.md#featuretype) | Enums |
+| [FixedRecurrenceInput](./inputs.md#fixedrecurrenceinput) | Input objects |
 | [ForkChatSessionInput](./inputs.md#forkchatsessioninput) | Input objects |
 | [GenerateAccessTokenInput](./inputs.md#generateaccesstokeninput) | Input objects |
 | [GitSyncAuthMethod](./enums.md#gitsyncauthmethod) | Enums |
@@ -855,6 +861,18 @@ This reference describes the compiled server schema. A trailing `!` means non-nu
 | [RecentDocEdge](./objects.md#recentdocedge) | Objects |
 | [RecentDocNode](./objects.md#recentdocnode) | Objects |
 | [RecolorWorkspaceTagInput](./inputs.md#recolorworkspacetaginput) | Input objects |
+| [RecurrenceFrequency](./enums.md#recurrencefrequency) | Enums |
+| [RecurrenceLifecycle](./enums.md#recurrencelifecycle) | Enums |
+| [RecurrenceMode](./enums.md#recurrencemode) | Enums |
+| [RecurrenceOccurrence](./objects.md#recurrenceoccurrence) | Objects |
+| [RecurrencePreview](./objects.md#recurrencepreview) | Objects |
+| [RecurrencePreviewInput](./inputs.md#recurrencepreviewinput) | Input objects |
+| [RecurrenceRelativeUnit](./enums.md#recurrencerelativeunit) | Enums |
+| [RecurrenceRule](./objects.md#recurrencerule) | Objects |
+| [RecurrenceRuleInput](./inputs.md#recurrenceruleinput) | Input objects |
+| [RecurrenceValue](./objects.md#recurrencevalue) | Objects |
+| [RecurrenceValueInput](./inputs.md#recurrencevalueinput) | Input objects |
+| [RecurrenceWeekday](./enums.md#recurrenceweekday) | Enums |
 | [ReleaseVersionType](./objects.md#releaseversiontype) | Objects |
 | [RemoveAvatar](./objects.md#removeavatar) | Objects |
 | [RemoveContextBlobInput](./inputs.md#removecontextblobinput) | Input objects |
@@ -931,6 +949,7 @@ This reference describes the compiled server schema. A trailing `!` means non-nu
 | [SetThemeProfileInput](./inputs.md#setthemeprofileinput) | Input objects |
 | [SetTypographyStylesInput](./inputs.md#settypographystylesinput) | Input objects |
 | [SetWorkspaceTemplateOverrideInput](./inputs.md#setworkspacetemplateoverrideinput) | Input objects |
+| [SkipTaskRecurrenceInput](./inputs.md#skiptaskrecurrenceinput) | Input objects |
 | [SortDirection](./enums.md#sortdirection) | Enums |
 | [SpaceAccessDeniedDataType](./objects.md#spaceaccessdenieddatatype) | Objects |
 | [SpaceNotFoundDataType](./objects.md#spacenotfounddatatype) | Objects |
@@ -970,6 +989,12 @@ This reference describes the compiled server schema. A trailing `!` means non-nu
 | [TaskPreparationRun](./objects.md#taskpreparationrun) | Objects |
 | [TaskPreparationSource](./objects.md#taskpreparationsource) | Objects |
 | [TaskPreparationVariable](./objects.md#taskpreparationvariable) | Objects |
+| [TaskRecurrence](./objects.md#taskrecurrence) | Objects |
+| [TaskRecurrenceControlInput](./inputs.md#taskrecurrencecontrolinput) | Input objects |
+| [TaskRecurrenceLookupInput](./inputs.md#taskrecurrencelookupinput) | Input objects |
+| [TaskRecurrenceMember](./objects.md#taskrecurrencemember) | Objects |
+| [TaskRecurrenceRecipe](./objects.md#taskrecurrencerecipe) | Objects |
+| [TaskRecurrenceRecipeInput](./inputs.md#taskrecurrencerecipeinput) | Input objects |
 | [TemplateCatalogEntryType](./objects.md#templatecatalogentrytype) | Objects |
 | [TemplateCatalogViewInput](./inputs.md#templatecatalogviewinput) | Input objects |
 | [TemplateCatalogViewType](./objects.md#templatecatalogviewtype) | Objects |
@@ -1035,6 +1060,7 @@ This reference describes the compiled server schema. A trailing `!` means non-nu
 | [UpdateOrganizationIdentityInput](./inputs.md#updateorganizationidentityinput) | Input objects |
 | [UpdateOrganizationInput](./inputs.md#updateorganizationinput) | Input objects |
 | [UpdateOrganizationPolicyInput](./inputs.md#updateorganizationpolicyinput) | Input objects |
+| [UpdateTaskRecurrenceInput](./inputs.md#updatetaskrecurrenceinput) | Input objects |
 | [UpdateUserInput](./inputs.md#updateuserinput) | Input objects |
 | [UpdateUserPreferencesInput](./inputs.md#updateuserpreferencesinput) | Input objects |
 | [UpdateWorkspaceCalendarSettingsInput](./inputs.md#updateworkspacecalendarsettingsinput) | Input objects |

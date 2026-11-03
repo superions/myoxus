@@ -13,12 +13,19 @@ import {
   existsSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
-import JSZip from "jszip";
+import { readZip, writeZip } from "../zip-archive.mjs";
 import YAML from "yaml";
 import { parse, print, separateOperations } from "graphql";
 import { createHash, randomUUID } from "node:crypto";
 
 const [api, postgres, root] = process.argv.slice(2);
+const archiveBytes = (archive, name) => {
+  const entry = archive.get(name);
+  assert(entry && !entry.directory, `Missing archive file: ${name}`);
+  return entry.data;
+};
+const archiveText = (archive, name) =>
+  archiveBytes(archive, name).toString("utf8");
 const docker = (...args) =>
   execFileSync("docker", args, { encoding: "utf8", timeout: 60000 });
 // Loader recovery restarts can change Docker's ephemeral published port.
@@ -107,10 +114,8 @@ assert.equal(
   createHash("sha256").update(baseBytes).digest("hex"),
   basePin.sha256,
 );
-const baseArchive = await JSZip.loadAsync(baseBytes);
-const baseManifest = YAML.parse(
-  await baseArchive.file("manifest.yaml").async("string"),
-);
+const baseArchive = await readZip(baseBytes);
+const baseManifest = YAML.parse(archiveText(baseArchive, "manifest.yaml"));
 const image = docker("inspect", "-f", "{{.Image}}", api).trim();
 const nativeCli = (...args) =>
   docker(
@@ -154,7 +159,7 @@ const nativeComponent = async (kind) => {
     (component) => component.kind === kind,
   );
   assert(component, `missing actual native component ${kind}`);
-  return YAML.parse(await baseArchive.file(component.path).async("string"));
+  return YAML.parse(archiveText(baseArchive, component.path));
 };
 const databaseCatalog = await nativeComponent("databaseCatalog");
 const nativeDefinitionDocuments = new WeakMap();
@@ -167,7 +172,7 @@ const nativeDefinition = async (entry) => {
   );
   const parent = component.path.slice(0, component.path.lastIndexOf("/") + 1);
   const document = YAML.parseDocument(
-    await baseArchive.file(parent + reference.path).async("string"),
+    archiveText(baseArchive, parent + reference.path),
   );
   assert.equal(document.errors.length, 0);
   const definition = document.toJS();
@@ -419,9 +424,7 @@ const assistantParent = assistantComponent.path.slice(
   assistantComponent.path.lastIndexOf("/") + 1,
 );
 const extraPackage = YAML.parse(
-  await baseArchive
-    .file(assistantParent + originalPackageRef.path)
-    .async("string"),
+  archiveText(baseArchive, assistantParent + originalPackageRef.path),
 );
 extraPackage.id = "myoxus.assistant.fixture.packaged_project";
 extraPackage.name = {
@@ -508,21 +511,20 @@ assert(
   documentComponent,
   "current native Document source is captured by the release",
 );
-const documentBytes = await baseArchive
-  .file(documentComponent.path)
-  .async("nodebuffer");
-const documentArchive = await JSZip.loadAsync(documentBytes);
+const documentBytes = archiveBytes(baseArchive, documentComponent.path);
+const documentArchive = await readZip(documentBytes);
 const documentManifest = JSON.parse(
-  await documentArchive.file("manifest.json").async("string"),
+  archiveText(documentArchive, "manifest.json"),
 );
 documentManifest.template_id = "packaged-fixture-document";
 documentManifest.version = "1.0.0";
-documentArchive.file("manifest.json", JSON.stringify(documentManifest), {
-  createFolders: false,
+documentArchive.set("manifest.json", {
+  data: Buffer.from(JSON.stringify(documentManifest)),
+  directory: false,
 });
 writeFileSync(
   join(fixtureSource, "document.zip"),
-  await documentArchive.generateAsync({ type: "nodebuffer" }),
+  await writeZip(documentArchive),
 );
 const taskCoreExport = baseManifest.exports.find(
   (entry) =>
@@ -567,19 +569,18 @@ const documentBindings = await Promise.all(
       assert.equal(source?.kind, "documentTemplate");
       const id = `native-child-${component.id}`;
       const path = `${id}.zip`;
-      const childArchive = await JSZip.loadAsync(
-        await baseArchive.file(source.path).async("nodebuffer"),
+      const childArchive = await readZip(
+        archiveBytes(baseArchive, source.path),
       );
       const childManifest = JSON.parse(
-        await childArchive.file("manifest.json").async("string"),
+        archiveText(childArchive, "manifest.json"),
       );
       childManifest.template_id = `packaged-fixture-${id}`;
-      childArchive.file("manifest.json", JSON.stringify(childManifest), {
-        createFolders: false,
+      childArchive.set("manifest.json", {
+        data: Buffer.from(JSON.stringify(childManifest)),
+        directory: false,
       });
-      const childBytes = await childArchive.generateAsync({
-        type: "nodebuffer",
-      });
+      const childBytes = await writeZip(childArchive);
       writeFileSync(join(fixtureSource, path), childBytes);
       return {
         source: { id, kind: "documentTemplate", path },
@@ -1055,17 +1056,17 @@ const packageIdentities = new Set(
     (entry) => `${entry.identity.id}@${entry.identity.version}`,
   ),
 );
-const optionalArchive = await JSZip.loadAsync(optionalBytes);
+const optionalArchive = await readZip(optionalBytes);
 const optionalManifest = YAML.parse(
-  await optionalArchive.file("manifest.yaml").async("string"),
+  archiveText(optionalArchive, "manifest.yaml"),
 );
 assert.equal(
-  await optionalArchive.file(`databases/${projectUpdatePath}`).async("string"),
+  archiveText(optionalArchive, `databases/${projectUpdatePath}`),
   projectUpdateBytes,
   "native delivery preserves the exact pinned Update bytes",
 );
 assert.equal(
-  await optionalArchive.file(`databases/${projectHistoryPath}`).async("string"),
+  archiveText(optionalArchive, `databases/${projectHistoryPath}`),
   projectHistoryBytes,
   "the native source endpoint is retained byte-for-byte",
 );
@@ -1075,13 +1076,14 @@ assert.equal(
   "the delivery inventory contains the native Update pin",
 );
 assert(
-  !optionalArchive.file(`databases/${extraProject.task_core.path}`),
+  !optionalArchive.has(`databases/${extraProject.task_core.path}`),
   "external archive must not copy the pinned platform Task core",
 );
 const capturedProject = YAML.parse(
-  await optionalArchive
-    .file(`databases/${extraProject.id}/${extraProject.version}.yaml`)
-    .async("string"),
+  archiveText(
+    optionalArchive,
+    `databases/${extraProject.id}/${extraProject.version}.yaml`,
+  ),
 );
 assert.deepEqual(
   capturedProject,
@@ -1135,9 +1137,10 @@ for (const artwork of artworks) {
     component,
     "descriptor artwork identifies an actual native archive component",
   );
-  const originalBytes = await (external ? optionalArchive : baseArchive)
-    .file(component.path)
-    .async("nodebuffer");
+  const originalBytes = archiveBytes(
+    external ? optionalArchive : baseArchive,
+    component.path,
+  );
   assert.equal(
     createHash("sha256").update(originalBytes).digest("hex"),
     artwork.digest,
@@ -1493,7 +1496,7 @@ for (const relative of Object.keys(baseManifest.files).filter((path) =>
 )) {
   const target = join(root, "templates", relative);
   mkdirSync(dirname(target), { recursive: true });
-  writeFileSync(target, await baseArchive.file(relative).async("nodebuffer"));
+  writeFileSync(target, archiveBytes(baseArchive, relative));
 }
 await rejected(
   baseRelative,
@@ -1515,13 +1518,14 @@ await rejected(
 );
 // A complete alternate base is valid under an explicit source-development
 // expectation, but cannot replace the image's independent packaged base.
-const forged = await JSZip.loadAsync(baseBytes);
+const forged = await readZip(baseBytes);
 const forgedManifest = structuredClone(baseManifest);
 forgedManifest.id = "example.forged.base";
-forged.file("manifest.yaml", YAML.stringify(forgedManifest), {
-  createFolders: false,
+forged.set("manifest.yaml", {
+  data: Buffer.from(YAML.stringify(forgedManifest)),
+  directory: false,
 });
-const forgedBytes = await forged.generateAsync({ type: "nodebuffer" });
+const forgedBytes = await writeZip(forged);
 const forgedPin = {
   id: forgedManifest.id,
   version: forgedManifest.version,
@@ -1606,15 +1610,14 @@ await rejected(
 // Only failing optional fixture candidates are repinned, so inner archive/native
 // admission is exercised without changing the artifact-owned mandatory base.
 async function changeOptional(file, change) {
-  const archive = await JSZip.loadAsync(optionalBytes);
-  const manifest = YAML.parse(
-    await archive.file("manifest.yaml").async("string"),
-  );
+  const archive = await readZip(optionalBytes);
+  const manifest = YAML.parse(archiveText(archive, "manifest.yaml"));
   await change(archive, manifest);
-  archive.file("manifest.yaml", YAML.stringify(manifest), {
-    createFolders: false,
+  archive.set("manifest.yaml", {
+    data: Buffer.from(YAML.stringify(manifest)),
+    directory: false,
   });
-  const bytes = await archive.generateAsync({ type: "nodebuffer" });
+  const bytes = await writeZip(archive);
   writeFileSync(file, bytes);
   const changed = structuredClone(catalog);
   changed.optional.find((pin) => pin.id === optionalPin.id).sha256 = createHash(
@@ -1625,9 +1628,9 @@ async function changeOptional(file, change) {
   writeFileSync(catalogPath, YAML.stringify(changed));
 }
 function replaceFile(archive, manifest, path, bytes) {
-  // Native Feature inventories contain regular files only. JSZip otherwise
-  // creates parent directory entries even when replacing an existing member.
-  archive.file(path, bytes, { createFolders: false });
+  // Native Feature inventories contain regular files only; replacement must
+  // not manufacture directory entries that change which admission guard fails.
+  archive.set(path, { data: Buffer.from(bytes), directory: false });
   const digest = createHash("sha256").update(bytes).digest("hex");
   manifest.files[path] = digest;
   const component = manifest.components.find(
@@ -1640,7 +1643,7 @@ await rejected(
   (file) =>
     changeOptional(file, (archive, manifest) => {
       const path = `databases/${projectUpdatePath}`;
-      archive.remove(path);
+      archive.delete(path);
       delete manifest.files[path];
     }),
   /updates\/.*declared native file missing/s,
@@ -1664,7 +1667,7 @@ await rejected(
   optionalRelative,
   (file) =>
     changeOptional(file, (archive) => {
-      archive.remove(`databases/${entries[0].definitions[0].path}`);
+      archive.delete(`databases/${entries[0].definitions[0].path}`);
     }),
   /inventory|undeclared|missing|unavailable/i,
 );
@@ -1692,7 +1695,7 @@ await rejected(
   optionalRelative,
   (file) =>
     changeOptional(file, (archive) => {
-      archive.remove(`assistants/${extraPackageRelative}`);
+      archive.delete(`assistants/${extraPackageRelative}`);
     }),
   /inventory|undeclared|missing|unavailable/i,
 );
@@ -1759,7 +1762,7 @@ await rejected(
 );
 await rejected(
   optionalRelative,
-  (file) => changeOptional(file, (archive) => archive.remove("document.zip")),
+  (file) => changeOptional(file, (archive) => archive.delete("document.zip")),
   /inventory|missing|unavailable/i,
 );
 await rejected(
@@ -1779,23 +1782,17 @@ await rejected(
           component.kind === "documentTemplate" &&
           component.nativeIdentity.id === "meeting-focus",
       );
-      const document = await JSZip.loadAsync(
-        await baseArchive.file(differentSource.path).async("nodebuffer"),
+      const document = await readZip(
+        archiveBytes(baseArchive, differentSource.path),
       );
-      const native = JSON.parse(
-        await document.file("manifest.json").async("string"),
-      );
+      const native = JSON.parse(archiveText(document, "manifest.json"));
       native.template_id = documentManifest.template_id;
       native.version = documentManifest.version;
-      document.file("manifest.json", JSON.stringify(native), {
-        createFolders: false,
+      document.set("manifest.json", {
+        data: Buffer.from(JSON.stringify(native)),
+        directory: false,
       });
-      replaceFile(
-        archive,
-        manifest,
-        "document.zip",
-        await document.generateAsync({ type: "nodebuffer" }),
-      );
+      replaceFile(archive, manifest, "document.zip", await writeZip(document));
     }),
   /already exists with different content|immutable.*different|checksum.*mismatch/i,
 );

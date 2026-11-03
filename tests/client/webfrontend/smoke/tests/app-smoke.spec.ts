@@ -16,6 +16,10 @@
  */
 
 import { type BrowserContext, expect, type Page, test } from "@playwright/test";
+import de from "../../../../../client/libs/i18n/src/resources/de.json";
+import en from "../../../../../client/libs/i18n/src/resources/en.json";
+import es from "../../../../../client/libs/i18n/src/resources/es.json";
+import fr from "../../../../../client/libs/i18n/src/resources/fr.json";
 
 import {
   DEFAULT_SMOKE_USER_EMAIL,
@@ -45,6 +49,7 @@ const FATAL_ERROR_PATTERNS = [
   /blocks is not defined/i,
   /ChunkLoadError/i,
   /Loading chunk/i,
+  /AutomaticRetryBlockedError/i,
 ];
 
 function collectFatalErrors(page: Page): () => string[] {
@@ -84,37 +89,22 @@ async function injectCookies(
   }
 }
 
-async function signOutBrowserSession(
-  context: BrowserContext,
-  page: Page,
-): Promise<void> {
+async function signOutBrowserSession(context: BrowserContext): Promise<void> {
   const csrf = (await context.cookies(FRONTEND)).find(
     (cookie) => cookie.name === "myoxus_csrf_token",
   )?.value;
   if (!csrf) return;
-  const result = await page.evaluate(
-    async ({ api, csrfToken }) => {
-      const response = await fetch(`${api}/api/auth/sign-out`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "x-myoxus-csrf-token": csrfToken,
-        },
-      });
-      return {
-        ok: response.ok,
-        status: response.status,
-        text: await response.text(),
-      };
+  // Share the browser cookie jar without racing a post-sign-in navigation.
+  // Keep the request on the same public origin as the product UI.
+  const result = await context.request.post(`${FRONTEND}/api/auth/sign-out`, {
+    headers: {
+      Origin: FRONTEND,
+      "x-myoxus-csrf-token": csrf,
     },
-    // Browser cleanup must use the same public origin as the product UI.
-    // A direct localhost:3001 fetch is a test-only cross-origin path and can
-    // fail before it reaches the auth route, masking the real CAPTCHA contract.
-    { api: FRONTEND, csrfToken: csrf },
-  );
-  if (!result.ok) {
+  });
+  if (!result.ok()) {
     throw new Error(
-      `Browser sign-out failed: HTTP ${result.status} ${result.text}`,
+      `Browser sign-out failed: HTTP ${result.status()} ${await result.text()}`,
     );
   }
 }
@@ -159,28 +149,53 @@ test.describe("Web frontend smoke suite", () => {
     );
     await injectCookies(context, apiSessionCookies);
 
+    // A reachable shell must not hide an unavailable live theme. Restore the
+    // transport in this same context; recovery must preserve its browser data.
+    let themeUnavailable = true;
+    await page.route("**/api/branding/theme.css*", async (route) => {
+      if (themeUnavailable) await route.abort("connectionreset");
+      else await route.continue();
+    });
+    let calendarUnavailable = true;
+    let startupUnavailable = true;
+    await context.route("**/graphql", async (route) => {
+      if (
+        startupUnavailable ||
+        (calendarUnavailable &&
+          route.request().postDataJSON()?.operationName === "calendarAccounts")
+      )
+        await route.abort("connectionreset");
+      else await route.continue();
+    });
+
     // Navigate to app root — should redirect to workspace.
     // Use 'load' (not 'networkidle') — the live sync connection keeps WebSockets active
     // indefinitely, so networkidle never fires on a real session.
     await page.goto(`${FRONTEND}/`, { waitUntil: "load", timeout: 30_000 });
-    await page.waitForTimeout(2_000);
-
-    // Check JS errors FIRST — these are the most informative failure signal
-    const errors = getErrors();
-    expect(
-      errors,
-      `Fatal JS errors in authenticated session:\n${errors.join("\n")}`,
-    ).toHaveLength(0);
-
-    // Must not show React error boundary ("Something is wrong")
-    const bodyText = await page
-      .locator("body")
-      .innerText()
-      .catch(() => "");
-    expect(bodyText, "App showed error boundary").not.toMatch(
-      /Something is wrong/i,
+    await expect(
+      page.locator('[data-myoxus-ui-role="client-update-boundary:error"]'),
+    ).toBeVisible();
+    await page.getByTestId("client-update-control-retry").click();
+    await expect(
+      page.locator('[data-myoxus-ui-role="client-update-boundary:error"]'),
+    ).toBeVisible();
+    const configRevalidated = page.waitForResponse(
+      (response) =>
+        response.url().endsWith("/graphql") &&
+        response.request().postDataJSON()?.operationName === "serverConfig" &&
+        response.status() === 200,
+      { timeout: 30_000 },
     );
-    expect(bodyText, "App showed 500 page").not.toMatch(/\b500\b/);
+    startupUnavailable = false;
+    await expect(page.getByTestId("runtime-theme-retry")).toBeVisible({
+      timeout: 20_000,
+    });
+    await expect(
+      page.locator('[data-myoxus-ui-role="workspace-home-content"]'),
+    ).not.toBeVisible();
+    await page.getByTestId("runtime-theme-retry").click();
+    await expect(page.getByTestId("runtime-theme-retry")).toBeVisible();
+    themeUnavailable = false;
 
     await expect(page).toHaveURL(
       /\/workspace\/[0-9a-f-]{36}\/home(?:[/?#]|$)/i,
@@ -190,6 +205,43 @@ test.describe("Web frontend smoke suite", () => {
       page.locator('[data-myoxus-ui-role="workspace-home-content"]'),
       "The authenticated smoke must reach synced workspace content, not merely render empty chrome",
     ).toBeVisible({ timeout: 20_000 });
+    await expect(page.locator("html")).toHaveAttribute(
+      "data-myoxus-theme-source",
+      "api",
+    );
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          getComputedStyle(document.documentElement)
+            .getPropertyValue("--myoxus-font-family")
+            .trim(),
+        ),
+      )
+      .not.toBe("");
+    await expect(
+      page.locator('[data-myoxus-ui-role="runtime-theme-boundary"]'),
+    ).not.toBeVisible();
+    await configRevalidated;
+    const today = page.locator('[data-myoxus-ui-role="workspace-home-today"]');
+    const calendarError = today.locator(
+      '[data-myoxus-ui-role="settings-notice:error"]',
+    );
+    await expect(calendarError).toBeVisible();
+    calendarUnavailable = false;
+    await calendarError.getByRole("button").click();
+    const emptyCalendarCopy = [de, en, es, fr]
+      .flatMap((locale) => [
+        locale["com.myoxus.integration.calendar.account.linked-empty"],
+        locale["com.myoxus.integration.calendar.section.empty"],
+      ])
+      .map((copy) => copy.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+    await expect(today).toContainText(new RegExp(emptyCalendarCopy.join("|")));
+    await expect(calendarError).not.toBeVisible();
+    const errors = getErrors();
+    expect(
+      errors,
+      `Fatal JS errors after workspace recovery:\n${errors.join("\n")}`,
+    ).toHaveLength(0);
   });
 
   test("INV-SMOKE-08: not-found routes render the shared Myoxus shell", async ({
@@ -332,7 +384,7 @@ test.describe("Web frontend smoke suite", () => {
         /captcha token missing|Verification failed|Sicherheitsprüfung fehlgeschlagen/i,
       );
     } finally {
-      await signOutBrowserSession(context, page);
+      await signOutBrowserSession(context);
     }
   });
 

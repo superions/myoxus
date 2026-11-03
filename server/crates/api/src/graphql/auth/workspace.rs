@@ -1183,6 +1183,34 @@ impl WorkspaceType {
   }
 
   #[graphql(complexity = "10 * child_complexity")]
+  async fn task_recurrence(
+    &self,
+    ctx: &Context<'_>,
+    input: super::recurrence::TaskRecurrenceLookupInput,
+  ) -> Result<Option<super::recurrence::TaskRecurrenceObject>> {
+    super::recurrence::read(ctx, self.id, input).await
+  }
+
+  #[graphql(complexity = "20 * child_complexity")]
+  async fn task_recurrences(
+    &self,
+    ctx: &Context<'_>,
+    after: Option<ID>,
+    first: Option<i32>,
+  ) -> Result<Vec<super::recurrence::TaskRecurrenceObject>> {
+    super::recurrence::list(ctx, self.id, after, first).await
+  }
+
+  #[graphql(complexity = "5 * child_complexity")]
+  async fn recurrence_preview(
+    &self,
+    ctx: &Context<'_>,
+    input: super::recurrence::RecurrencePreviewInput,
+  ) -> Result<Vec<super::recurrence::RecurrencePreviewObject>> {
+    super::recurrence::preview(ctx, self.id, input).await
+  }
+
+  #[graphql(complexity = "10 * child_complexity")]
   async fn automation_runs(
     &self,
     ctx: &Context<'_>,

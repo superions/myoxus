@@ -2088,13 +2088,26 @@ type ApiMutationRoot {
     sourceSizeBytes: Int!
     workspaceImportId: ID!
   ): WorkspaceImportType!
+  configureDocumentReviewPlanning(
+    docId: ID!
+    enabled: Boolean!
+    expectedMetadataRevision: Int!
+    workspaceId: ID!
+  ): DocumentReviewPlanningType!
   configureTaskMaintenance(
     input: ConfigureTaskPreparationInput!
   ): TaskPreparationConfiguration!
   configureTaskPreparation(
     input: ConfigureTaskPreparationInput!
   ): TaskPreparationConfiguration!
+  configureTaskRecurrence(input: ConfigureTaskRecurrenceInput!): TaskRecurrence!
   confirmTaskCorrections(input: ConfirmTaskCorrectionsInput!): TaskMaintenance!
+  controlWorkspaceEventRecurrence(
+    action: CalendarTimingAction!
+    eventId: String!
+    expectedRevision: Int!
+    workspaceId: String!
+  ): CalendarEventType!
   """
   Create a new MCP API key (root-level alias).
   """
@@ -2290,6 +2303,7 @@ type ApiMutationRoot {
   emptyWorkspaceTrash(
     input: EmptyWorkspaceTrashInput!
   ): DeleteDocumentsPermanentlyPayload!
+  endTaskRecurrence(input: TaskRecurrenceControlInput!): TaskRecurrence!
   """
   Explicit, independently gated generation; never submits or retries speech.
   """
@@ -2380,6 +2394,7 @@ type ApiMutationRoot {
     name: String!
     workspaceId: ID!
   ): DocumentVersionType!
+  pauseTaskRecurrence(input: TaskRecurrenceControlInput!): TaskRecurrence!
   """
   Pin a named document version.
   """
@@ -2476,6 +2491,7 @@ type ApiMutationRoot {
     plan: SubscriptionPlanType
     workspaceId: String
   ): SubscriptionType!
+  resumeTaskRecurrence(input: TaskRecurrenceControlInput!): TaskRecurrence!
   retryAudioTranscription(
     jobId: String!
     workspaceId: String!
@@ -2541,6 +2557,7 @@ type ApiMutationRoot {
   setPersonalWorkspaceTheme(
     input: SetPersonalWorkspaceThemeInput!
   ): PersonalWorkspaceThemeSelectionType!
+  skipTaskRecurrence(input: SkipTaskRecurrenceInput!): TaskRecurrence!
   startDocumentReview(input: StartDocumentReviewInput!): DocumentReview!
   startTaskHandover(input: StartTaskHandoverInput!): TaskHandover!
   startTaskMaintenance(input: StartTaskMaintenanceInput!): TaskMaintenance!
@@ -2688,6 +2705,7 @@ type ApiMutationRoot {
     recurring: SubscriptionRecurringType!
     workspaceId: String
   ): SubscriptionType!
+  updateTaskRecurrence(input: UpdateTaskRecurrenceInput!): TaskRecurrence!
   updateWorkspace(input: UpdateWorkspaceInput!): WorkspaceType!
   """
   Update workspace-level calendar settings (writeback target + default reminder).
@@ -2856,6 +2874,10 @@ type ApiQueryRoot {
     limit: Int
     workspaceId: String!
   ): [PdfExportHistoryEntryType!]!
+  documentReviewPlanning(
+    docId: ID!
+    workspaceId: ID!
+  ): DocumentReviewPlanningType!
   documentStatusSchemas: [DocumentStatusSchemaType!]!
   documentStatusValues(schemaKey: String!): [DocumentStatusValueType!]!
   documentTypes: [DocumentTypeDefinitionType!]!
@@ -3010,6 +3032,10 @@ type ApiQueryRoot {
   serverUsers(search: String!, skip: Int, take: Int): [ServerUserSearchResult!]!
   user(email: String!): UserOrLimitedUser
   workspace(docId: String, id: String!): WorkspaceType
+  """
+  Authored native series, independent of their current projected window.
+  """
+  workspaceCalendarSeries(workspaceId: String!): [CalendarEventType!]!
   """
   Get workspace calendar settings (writeback target + default reminder).
   """
@@ -4202,6 +4228,15 @@ type CalendarEventType {
   instances(from: DateTime!, to: DateTime!): [CalendarEventInstanceType!]!
   origin: CalendarEventOrigin!
   participants: [CalendarEventParticipantType!]!
+  """
+  Native masters reference one canonical timing definition. Imported source
+  remains inspectable but cannot be authored through the native rule form.
+  """
+  recurrence: CalendarRecurrence
+  """
+  Original exception key, independent of the displayed/moved start.
+  """
+  recurrenceId: DateTime
   recurrenceParentId: ID
   reminders: [CalendarReminderType!]!
   remoteEventId: String!
@@ -4260,6 +4295,19 @@ enum CalendarProviderType {
   Google
 }
 
+type CalendarRecurrence {
+  endsBefore: DateTime
+  id: ID!
+  lifecycle: RecurrenceLifecycle!
+  pausedAt: DateTime
+  readOnly: Boolean!
+  revision: Int!
+  rule: RecurrenceRule
+  sourceRrule: String
+  unsupportedReason: String
+  zone: String!
+}
+
 input CalendarReminderInput {
   channel: String
   minutesBefore: Int!
@@ -4307,6 +4355,12 @@ type CalendarSubscriptionObjectType {
   lastSyncAt: DateTime
   provider: CalendarProviderType!
   timezone: String
+}
+
+enum CalendarTimingAction {
+  End
+  Pause
+  Resume
 }
 
 """
@@ -4540,6 +4594,12 @@ input CommentUpdateInput {
   id: String!
 }
 
+input CompletionRecurrenceInput {
+  amount: Int!
+  unit: RecurrenceRelativeUnit!
+  zone: String!
+}
+
 type ConfigChangelogEntryType {
   changedAt: DateTime!
   changedBy: UserType
@@ -4567,6 +4627,16 @@ input ConfigureTaskPreparationInput {
   planDigest: String!
   ruleId: ID
   target: ContextDocumentTargetInput!
+  workspaceId: ID!
+}
+
+input ConfigureTaskRecurrenceInput {
+  databaseId: ID!
+  expectedDueRevision: Int!
+  expectedRowRevision: Int!
+  recipe: TaskRecurrenceRecipeInput!
+  rowId: ID!
+  rule: RecurrenceRuleInput!
   workspaceId: ID!
 }
 
@@ -5198,6 +5268,7 @@ input CreateWorkspaceEventInput {
   allMembers: Boolean
   descriptionDelta: JSON
   endsAt: DateTime!
+  recurrence: FixedRecurrenceInput
   reminders: [NativeReminderInput!]
   sourceBlockId: String
   """
@@ -8191,6 +8262,20 @@ enum DocumentReviewDecisionKind {
   RequestChanges
 }
 
+type DocumentReviewPlanningType {
+  blockedReason: String
+  enabled: Boolean!
+  leadDays: Int!
+  metadataRevision: Int!
+  nextStart: DateTime
+  processDeadline: DateTime
+  ready: Boolean!
+  responsibleId: ID
+  runId: ID
+  sourceDeadline: DateTime
+  zone: String!
+}
+
 input DocumentReviewRunInput {
   runId: ID!
 }
@@ -8670,6 +8755,18 @@ enum FeatureType {
   TeamPlan
   UnlimitedCopilot
   UnlimitedWorkspace
+}
+
+input FixedRecurrenceInput {
+  day: Int
+  end: RecurrenceValueInput
+  frequency: RecurrenceFrequency!
+  interval: Int!
+  lastDay: Boolean
+  month: Int
+  start: RecurrenceValueInput!
+  weekdays: [RecurrenceWeekday!]
+  zone: String!
 }
 
 input ForkChatSessionInput {
@@ -9772,7 +9869,14 @@ type MutationRoot {
   configureTaskPreparation(
     input: ConfigureTaskPreparationInput!
   ): TaskPreparationConfiguration!
+  configureTaskRecurrence(input: ConfigureTaskRecurrenceInput!): TaskRecurrence!
   confirmTaskCorrections(input: ConfirmTaskCorrectionsInput!): TaskMaintenance!
+  controlWorkspaceEventRecurrence(
+    action: CalendarTimingAction!
+    eventId: String!
+    expectedRevision: Int!
+    workspaceId: String!
+  ): CalendarEventType!
   createBlobUpload(
     key: String!
     mime: String!
@@ -9914,6 +10018,7 @@ type MutationRoot {
   emptyWorkspaceTrash(
     input: EmptyWorkspaceTrashInput!
   ): DeleteDocumentsPermanentlyPayload!
+  endTaskRecurrence(input: TaskRecurrenceControlInput!): TaskRecurrence!
   """
   Execute exactly the current preflight revision and confirmation set.
   """
@@ -9975,6 +10080,7 @@ type MutationRoot {
   ): Boolean!
   mentionUser(input: MentionInput!): ID!
   moveDatabaseTasks(input: DatabaseTaskMoveInput!): DatabaseTaskMoveResult!
+  pauseTaskRecurrence(input: TaskRecurrenceControlInput!): TaskRecurrence!
   previewDatabaseCsvImport(
     file: Upload!
     input: PreviewDatabaseCsvImportInput!
@@ -10016,6 +10122,7 @@ type MutationRoot {
   resolveComment(commentId: String, input: CommentResolveInput): Boolean!
   restoreDatabase(input: DatabaseLifecycleInput!): DatabaseRecord!
   restoreWorkspaceTag(input: WorkspaceTagLifecycleInput!): WorkspaceTag!
+  resumeTaskRecurrence(input: TaskRecurrenceControlInput!): TaskRecurrence!
   retryContextDocuments(input: RetryContextDocumentsInput!): ContextDocuments!
   retryDocumentReview(input: DocumentReviewRunInput!): DocumentReview!
   retryTaskHandover(input: TaskHandoverRunInput!): TaskHandover!
@@ -10068,6 +10175,7 @@ type MutationRoot {
   setWorkspaceTemplateOverride(
     input: SetWorkspaceTemplateOverrideInput!
   ): Boolean!
+  skipTaskRecurrence(input: SkipTaskRecurrenceInput!): TaskRecurrence!
   startDocumentReview(input: StartDocumentReviewInput!): DocumentReview!
   startTaskHandover(input: StartTaskHandoverInput!): TaskHandover!
   startTaskMaintenance(input: StartTaskMaintenanceInput!): TaskMaintenance!
@@ -10137,6 +10245,7 @@ type MutationRoot {
   updatePreferences(input: UpdateUserPreferencesInput!): UserPreferencesType!
   updateProfile(input: UpdateUserInput!): UserType!
   updateReply(input: ReplyUpdateInput!): Boolean!
+  updateTaskRecurrence(input: UpdateTaskRecurrenceInput!): TaskRecurrence!
   updateWorkspace(input: UpdateWorkspaceInput!): WorkspaceType!
   """
   Update workspace-level calendar settings (writeback target + default reminder).
@@ -10219,7 +10328,7 @@ Format: %Y-%m-%d
 scalar NaiveDate
 
 """
-Scope for a recurring-event mutation (v1 supports All and This only).
+Scope for a native recurring-event mutation.
 """
 enum NativeEventScope {
   """
@@ -10230,6 +10339,10 @@ enum NativeEventScope {
   Edit / delete only a single occurrence (creates an EXDATE + override row).
   """
   This
+  """
+  Split / truncate at the addressed original occurrence key.
+  """
+  ThisAndFuture
 }
 
 """
@@ -11262,6 +11375,7 @@ type PreparedDocumentReview {
   reviewerId: ID!
   sourceDocumentId: ID!
   sourceExternalId: String!
+  sourceMetadataDeadline: DateTime
   sourceRevision: String!
   target: ContextDocumentTarget!
   title: String!
@@ -11645,6 +11759,7 @@ type QueryRoot {
   additional DB queries.
   """
   workspace(docId: String, id: String!): WorkspaceType
+  workspaceCalendarSeries(workspaceId: String!): [CalendarEventType!]!
   """
   Get workspace calendar settings (writeback target, default reminder).
 
@@ -11699,6 +11814,95 @@ input RecolorWorkspaceTagInput {
   colorRole: String!
   tagId: ID!
   workspaceId: ID!
+}
+
+enum RecurrenceFrequency {
+  Daily
+  Monthly
+  Weekly
+  Yearly
+}
+
+enum RecurrenceLifecycle {
+  Active
+  Ended
+  Paused
+}
+
+enum RecurrenceMode {
+  AfterCompletion
+  Fixed
+}
+
+type RecurrenceOccurrence {
+  dueAt: DateTime!
+  nominal: RecurrenceValue!
+}
+
+type RecurrencePreview {
+  completionReference: RecurrenceValue
+  occurrence: RecurrenceOccurrence!
+}
+
+input RecurrencePreviewInput {
+  after: DateTime
+  completionReference: RecurrenceValueInput
+  count: Int! = 5
+  expectedRevision: Int
+  rule: RecurrenceRuleInput!
+  """
+  Optional native series-edit boundary; must accompany its current revision.
+  """
+  seriesId: ID
+}
+
+enum RecurrenceRelativeUnit {
+  Days
+  Months
+  Weeks
+}
+
+type RecurrenceRule {
+  dateOnly: Boolean!
+  day: Int
+  end: RecurrenceValue
+  frequency: RecurrenceFrequency
+  interval: Int!
+  lastDay: Boolean!
+  mode: RecurrenceMode!
+  month: Int
+  relativeUnit: RecurrenceRelativeUnit
+  start: RecurrenceValue
+  weekdays: [RecurrenceWeekday!]!
+  zone: String!
+}
+
+input RecurrenceRuleInput @oneOf {
+  afterCompletion: CompletionRecurrenceInput
+  fixed: FixedRecurrenceInput
+}
+
+type RecurrenceValue {
+  date: String
+  localDateTime: String
+}
+
+"""
+Exactly one civil value; a local timestamp must not carry a UTC offset.
+"""
+input RecurrenceValueInput @oneOf {
+  date: String
+  localDateTime: String
+}
+
+enum RecurrenceWeekday {
+  Friday
+  Monday
+  Saturday
+  Sunday
+  Thursday
+  Tuesday
+  Wednesday
 }
 
 """
@@ -12549,6 +12753,15 @@ input SetWorkspaceTemplateOverrideInput {
   workspaceId: String!
 }
 
+input SkipTaskRecurrenceInput {
+  expectedRevision: Int!
+  expectedRowRevision: Int!
+  expectedStatusRevision: Int!
+  memberId: ID!
+  seriesId: ID!
+  workspaceId: ID!
+}
+
 enum SortDirection {
   Asc
   Desc
@@ -12842,6 +13055,66 @@ type TaskPreparationSource {
 type TaskPreparationVariable {
   name: String!
   value: String!
+}
+
+type TaskRecurrence {
+  actorId: ID
+  blockedReason: String
+  currentMemberId: ID
+  effectiveAfter: TaskRecurrenceMember
+  generation: Int!
+  id: ID!
+  lifecycle: RecurrenceLifecycle!
+  members: [TaskRecurrenceMember!]!
+  next: RecurrenceOccurrence
+  pausedAt: DateTime
+  pending: RecurrenceOccurrence
+  preservedNext: TaskRecurrenceMember
+  recipe: TaskRecurrenceRecipe!
+  revision: Int!
+  rule: RecurrenceRule!
+  workspaceId: ID!
+}
+
+input TaskRecurrenceControlInput {
+  expectedRevision: Int!
+  seriesId: ID!
+  workspaceId: ID!
+}
+
+input TaskRecurrenceLookupInput @oneOf {
+  rowId: ID
+  seriesId: ID
+}
+
+type TaskRecurrenceMember {
+  advanceKind: String
+  advancedAt: DateTime
+  capturedDatabaseId: ID!
+  id: ID!
+  occurrenceId: ID
+  rowId: ID!
+  slot: RecurrenceOccurrence
+  successorOccurrenceId: ID
+}
+
+type TaskRecurrenceRecipe {
+  assignees: [ID!]!
+  databaseId: ID!
+  description: DatabaseRichTextCellValueType
+  priority: String
+  title: String!
+}
+
+input TaskRecurrenceRecipeInput {
+  assignees: [ID!]!
+  databaseId: ID!
+  """
+  Use the native document-only input; its plain-text projection is server-owned.
+  """
+  description: DatabaseRichTextCellValueInput
+  priority: String
+  title: String!
 }
 
 """
@@ -13528,6 +13801,14 @@ input UpdateOrganizationPolicyInput {
   managerUnitProjectCreation: PolicyStateEnum
 }
 
+input UpdateTaskRecurrenceInput {
+  expectedRevision: Int!
+  recipe: TaskRecurrenceRecipeInput!
+  rule: RecurrenceRuleInput!
+  seriesId: ID!
+  workspaceId: ID!
+}
+
 """
 Input for updating user profile fields.
 """
@@ -13609,8 +13890,12 @@ Input for updating a workspace-native calendar event.
 input UpdateWorkspaceEventInput {
   allDay: Boolean
   allMembers: Boolean
+  """
+  Omit to preserve content; an explicit null clears it.
+  """
   descriptionDelta: JSON
   endsAt: DateTime
+  recurrence: FixedRecurrenceInput
   """
   Omit to leave reminders unchanged; pass `null` or an empty list to clear
   them; pass a list to replace the complete reminder set atomically.
@@ -14137,6 +14422,7 @@ Product origin, without exposing accepted workflow inputs or private fingerprint
 enum WorkspaceAutomationRunOrigin {
   ConfirmedRequest
   DocumentReview
+  RecurringTask
   Rule
   TaskHandover
   TaskMaintenance
@@ -15736,6 +16022,7 @@ type WorkspaceType {
   Paginated list of recently updated documents in this workspace.
   """
   recentlyUpdatedDocs(pagination: PaginationInput!): PaginatedDocType!
+  recurrencePreview(input: RecurrencePreviewInput!): [RecurrencePreview!]!
   resolveWorkspaceTags(tagIds: [ID!]!): [WorkspaceTag!]!
   """
   Complexity 5: triggers a DB query to fetch the user's workspace role.
@@ -15750,6 +16037,8 @@ type WorkspaceType {
   taskMaintenanceRule(databaseId: ID!): TaskPreparationConfiguration
   taskPreparation(databaseId: ID!): TaskPreparationConfiguration
   taskPreparationRun(runId: ID!): TaskPreparationRun
+  taskRecurrence(input: TaskRecurrenceLookupInput!): TaskRecurrence
+  taskRecurrences(after: ID, first: Int): [TaskRecurrence!]!
   """
   Workspace Read makes only these document-context names visible. It grants
   no organization administration or manager/member-scoped OU access.

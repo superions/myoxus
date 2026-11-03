@@ -462,6 +462,15 @@ Origin discriminator for a calendar event.
 | `NeedsAction` | Attendee has not yet responded. |
 | `Tentative` | Attendee is tentatively accepting. |
 
+## CalendarTimingAction
+
+<!-- prettier-ignore -->
+| Value | Description |
+| --- | --- |
+| `End` |  |
+| `Pause` |  |
+| `Resume` |  |
+
 ## ChatHistoryOrder
 
 Sort order for Copilot chat history queries.
@@ -1620,13 +1629,14 @@ GraphQL enum for log output rotation policy.
 
 ## NativeEventScope
 
-Scope for a recurring-event mutation (v1 supports All and This only).
+Scope for a native recurring-event mutation.
 
 <!-- prettier-ignore -->
 | Value | Description |
 | --- | --- |
 | `All` | Edit / delete the master event and all occurrences. |
 | `This` | Edit / delete only a single occurrence (creates an EXDATE + override row). |
+| `ThisAndFuture` | Split / truncate at the addressed original occurrence key. |
 
 ## NotificationLevel
 
@@ -1845,6 +1855,55 @@ Provisioning mode for a workspace template policy.
 | --- | --- |
 | `Edgeless` |  |
 | `Page` |  |
+
+## RecurrenceFrequency
+
+<!-- prettier-ignore -->
+| Value | Description |
+| --- | --- |
+| `Daily` |  |
+| `Monthly` |  |
+| `Weekly` |  |
+| `Yearly` |  |
+
+## RecurrenceLifecycle
+
+<!-- prettier-ignore -->
+| Value | Description |
+| --- | --- |
+| `Active` |  |
+| `Ended` |  |
+| `Paused` |  |
+
+## RecurrenceMode
+
+<!-- prettier-ignore -->
+| Value | Description |
+| --- | --- |
+| `AfterCompletion` |  |
+| `Fixed` |  |
+
+## RecurrenceRelativeUnit
+
+<!-- prettier-ignore -->
+| Value | Description |
+| --- | --- |
+| `Days` |  |
+| `Months` |  |
+| `Weeks` |  |
+
+## RecurrenceWeekday
+
+<!-- prettier-ignore -->
+| Value | Description |
+| --- | --- |
+| `Friday` |  |
+| `Monday` |  |
+| `Saturday` |  |
+| `Sunday` |  |
+| `Thursday` |  |
+| `Tuesday` |  |
+| `Wednesday` |  |
 
 ## RevisionStateType
 
@@ -2192,6 +2251,7 @@ Product origin, without exposing accepted workflow inputs or private fingerprint
 | --- | --- |
 | `ConfirmedRequest` |  |
 | `DocumentReview` |  |
+| `RecurringTask` |  |
 | `Rule` |  |
 | `TaskHandover` |  |
 | `TaskMaintenance` |  |

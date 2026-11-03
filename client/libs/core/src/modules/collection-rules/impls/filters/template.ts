@@ -18,7 +18,9 @@ export class TemplateFilterProvider extends Service implements FilterProvider {
         map((values) => {
           const match = new Set<string>();
           for (const [id, value] of values) {
-            if ((value ? "true" : "false") === params.value) {
+            if (
+              (String(value) === "true" ? "true" : "false") === params.value
+            ) {
               match.add(id);
             }
           }
@@ -30,7 +32,9 @@ export class TemplateFilterProvider extends Service implements FilterProvider {
         map((values) => {
           const match = new Set<string>();
           for (const [id, value] of values) {
-            if ((value ? "true" : "false") !== params.value) {
+            if (
+              (String(value) === "true" ? "true" : "false") !== params.value
+            ) {
               match.add(id);
             }
           }

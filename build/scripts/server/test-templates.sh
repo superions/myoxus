@@ -117,33 +117,35 @@ for update_case in missing tampered history; do
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import JSZip from 'jszip';
+import {readZip,writeZip} from './build/scripts/zip-archive.mjs';
 import YAML from 'yaml';
 const root=process.argv[2],mode=process.argv[3],catalogPath=path.join(root,'templates/features/catalog.yaml');
 const catalog=YAML.parse(fs.readFileSync(catalogPath,'utf8'));
 const archivePath=path.join(root,'templates/features',catalog.base.id,`${catalog.base.version}.myoxus.zip`);
-const archive=await JSZip.loadAsync(fs.readFileSync(archivePath));
-const manifest=YAML.parse(await archive.file('manifest.yaml').async('string'));
+const archive=await readZip(fs.readFileSync(archivePath));
+const text=name=>archive.get(name).data.toString('utf8');
+const put=(name,bytes)=>archive.set(name,{data:Buffer.from(bytes),directory:false});
+const manifest=YAML.parse(text('manifest.yaml'));
 const component=manifest.components.find(component=>component.kind==='databaseCatalog');
-const nativeCatalog=YAML.parse(await archive.file(component.path).async('string'));
+const nativeCatalog=YAML.parse(text(component.path));
 const entry=nativeCatalog.templates.find(entry=>entry.updates?.length);
 if(!entry)throw new Error('actual release has no native Update fixture');
 const update=entry.updates[0],prefix=component.path.slice(0,component.path.lastIndexOf('/')+1),updatePath=prefix+update.path;
 const hash=bytes=>crypto.createHash('sha256').update(bytes).digest('hex');
 if(mode==='missing'){
-  archive.remove(updatePath);delete manifest.files[updatePath];
+  archive.delete(updatePath);delete manifest.files[updatePath];
 }else{
-  const bytes=(await archive.file(updatePath).async('string'))+'\n';
-  archive.file(updatePath,bytes,{createFolders:false});manifest.files[updatePath]=hash(bytes);
+  const bytes=text(updatePath)+'\n';
+  put(updatePath,bytes);manifest.files[updatePath]=hash(bytes);
   if(mode==='history'){
     update.sha256=hash(bytes);
     const catalogBytes=YAML.stringify(nativeCatalog);
-    archive.file(component.path,catalogBytes,{createFolders:false});
+    put(component.path,catalogBytes);
     manifest.files[component.path]=hash(catalogBytes);component.sha256=hash(catalogBytes);
   }
 }
-archive.file('manifest.yaml',YAML.stringify(manifest),{createFolders:false});
-const bytes=await archive.generateAsync({type:'nodebuffer'});
+put('manifest.yaml',YAML.stringify(manifest));
+const bytes=await writeZip(archive);
 fs.writeFileSync(archivePath,bytes);catalog.base.sha256=hash(bytes);
 fs.writeFileSync(catalogPath,YAML.stringify(catalog));
 const descriptor=YAML.stringify({formatVersion:1,base:catalog.base});

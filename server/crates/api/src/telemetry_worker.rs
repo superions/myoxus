@@ -23,7 +23,8 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use myoxus_application::telemetry::TelemetryService;
-use myoxus_worker::{CronJob, Job, JobError, JobHandler};
+use myoxus_domain::scheduling::registered::{RegisteredJob, RegisteredWorker};
+use myoxus_worker::{Job, JobError, JobHandler};
 use tracing::{info, instrument, warn};
 
 /// Dedicated BullMQ queue name for telemetry jobs.
@@ -113,34 +114,13 @@ impl TelemetryQueueHandler {
   }
 }
 
-/// Produce the three cron jobs (flush/rollup/retention) given the current
-/// telemetry config.  Callers enqueue these via the shared cron scheduler.
-pub fn telemetry_cron_jobs(flush_interval_seconds: u64) -> Vec<CronJob> {
+/// Produce the three startup-owned shared worker schedules.
+pub fn telemetry_schedules(flush_interval_seconds: u64) -> Vec<RegisteredWorker> {
   let every_ms = flush_interval_seconds.max(1).saturating_mul(1_000);
   vec![
-    CronJob {
-      queue: TELEMETRY_QUEUE.to_string(),
-      job_name: "telemetry.flush".to_string(),
-      data: serde_json::json!({}),
-      cron_expr: None,
-      every_ms: Some(every_ms),
-    },
-    CronJob {
-      queue: TELEMETRY_QUEUE.to_string(),
-      job_name: "telemetry.rollup".to_string(),
-      data: serde_json::json!({}),
-      // 6-field cron: sec min hour dom mon dow — 00:05 UTC daily.
-      cron_expr: Some("0 5 0 * * *".to_string()),
-      every_ms: None,
-    },
-    CronJob {
-      queue: TELEMETRY_QUEUE.to_string(),
-      job_name: "telemetry.retention".to_string(),
-      data: serde_json::json!({}),
-      // 00:15 UTC daily.
-      cron_expr: Some("0 15 0 * * *".to_string()),
-      every_ms: None,
-    },
+    RegisteredWorker::interval(RegisteredJob::TelemetryFlush, every_ms, serde_json::json!({})),
+    RegisteredWorker::cron(RegisteredJob::TelemetryRollup, "0 5 0 * * *", serde_json::json!({})),
+    RegisteredWorker::cron(RegisteredJob::TelemetryRetention, "0 15 0 * * *", serde_json::json!({})),
   ]
 }
 
@@ -169,18 +149,26 @@ mod tests {
 
   #[test]
   fn cron_jobs_carries_every_ms_for_flush() {
-    let jobs = telemetry_cron_jobs(60);
+    let jobs = telemetry_schedules(60);
     assert_eq!(jobs.len(), 3);
-    assert_eq!(jobs[0].job_name, "telemetry.flush");
-    assert_eq!(jobs[0].every_ms, Some(60_000));
-    assert_eq!(jobs[1].job_name, "telemetry.rollup");
-    assert!(jobs[1].cron_expr.as_deref().unwrap_or("").starts_with("0 5"));
-    assert_eq!(jobs[2].job_name, "telemetry.retention");
+    assert_eq!(jobs[0].job, RegisteredJob::TelemetryFlush);
+    assert_eq!(
+      jobs[0].schedule.timing,
+      myoxus_domain::scheduling::registered::WorkerTiming::Interval { every_ms: 60_000 }
+    );
+    assert_eq!(jobs[1].job, RegisteredJob::TelemetryRollup);
+    assert!(
+      matches!(&jobs[1].schedule.timing,myoxus_domain::scheduling::registered::WorkerTiming::UtcCron{expression}if expression.starts_with("0 5"))
+    );
+    assert_eq!(jobs[2].job, RegisteredJob::TelemetryRetention);
   }
 
   #[test]
   fn zero_flush_interval_does_not_panic() {
-    let jobs = telemetry_cron_jobs(0);
-    assert_eq!(jobs[0].every_ms, Some(1_000));
+    let jobs = telemetry_schedules(0);
+    assert_eq!(
+      jobs[0].schedule.timing,
+      myoxus_domain::scheduling::registered::WorkerTiming::Interval { every_ms: 1_000 }
+    );
   }
 }

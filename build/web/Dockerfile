@@ -16,6 +16,7 @@ COPY client/libs/ client/libs/
 COPY server/templates/documents/ server/templates/documents/
 COPY server/templates/features/base/manifest.yaml server/templates/features/base/manifest.yaml
 COPY build/scripts/templates/generate-document-bundles.mjs build/scripts/templates/generate-document-bundles.mjs
+COPY build/scripts/templates/native-payload.mjs build/scripts/templates/native-payload.mjs
 COPY build/scripts/frontends/verify-public-static-root.sh build/scripts/frontends/verify-public-static-root.sh
 COPY tsconfig.json tsconfig.web.json ./
 

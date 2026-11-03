@@ -250,6 +250,10 @@ pub struct WorkspaceAutomationTriggerEvent {
   deny_unknown_fields
 )]
 pub enum WorkspaceAutomationRunOrigin {
+  RecurringTask {
+    schedule_id: uuid::Uuid,
+    occurrence_id: uuid::Uuid,
+  },
   WorkspaceSetup {
     request_id: uuid::Uuid,
     fingerprint: String,
@@ -364,6 +368,8 @@ pub enum ContextDocumentWorkflowStage {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AcceptedAutomationRun {
   #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub recurring_task: Option<AcceptedRecurringTask>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
   pub workspace_setup: Option<AcceptedWorkspaceSetupRequest>,
   pub run_id: WorkspaceAutomationRunId,
   pub automation_id: Option<WorkspaceAutomationId>,
@@ -381,6 +387,27 @@ pub struct AcceptedAutomationRun {
   #[serde(default, skip_serializing_if = "Option::is_none")]
   pub personal_rule: Option<AcceptedPersonalAutomation>,
   pub definition: AcceptedAutomationDefinition,
+}
+
+/// An admitted native creation, not an authorable workflow or a mutable recipe.
+/// The slot receipt and native effect retain the reserved Row even after deletion.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct AcceptedRecurringTask {
+  /// One member advancement, not a generic trigger. Equal Due dates may belong
+  /// to different completed members and must still reserve different Tasks.
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub cause_member_id: Option<uuid::Uuid>,
+  pub schedule_id: uuid::Uuid,
+  pub zone: crate::scheduling::AdmissionZone,
+  pub occurrence_id: uuid::Uuid,
+  pub series_id: uuid::Uuid,
+  pub generation: i64,
+  pub slot: crate::scheduling::Occurrence,
+  pub row_id: DatabaseRowId,
+  pub database_id: DatabaseId,
+  pub title: String,
+  pub cells: Vec<WorkspaceAutomationCellInput>,
 }
 /// Private, versioned engine continuation. Native receipts, never this JSON,
 /// authorize identities and writes; result bindings are checked at consumption.
@@ -488,6 +515,10 @@ pub struct PreparedDocumentReview {
   pub title: String,
   pub deadline_at: DateTime<Utc>,
   pub deadline_time_zone: String,
+  /// Automatic cycle identity, distinct from its future process deadline.
+  /// Deployed manual Reviews omit it and retain their accepted JSON shape.
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub source_metadata_deadline: Option<DateTime<Utc>>,
   pub workflow: crate::assistant_package::AssistantResolvedWorkflow,
   pub components: Vec<crate::assistant_package::AssistantComponent>,
   pub execution_available: bool,
@@ -550,6 +581,10 @@ pub struct DocumentReviewView {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AcceptedDocumentReview {
   pub request_id: uuid::Uuid,
+  /// Slot generation is frozen only for automatic admission. Manual receipts
+  /// omit it; the native generated SQL fence derives from this accepted value.
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub scheduling_generation: Option<i64>,
   pub fingerprint: String,
   pub plan: PreparedDocumentReview,
   pub review_task_id: DatabaseRowId,

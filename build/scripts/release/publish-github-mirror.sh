@@ -203,7 +203,8 @@ grep -Fxq "replace_tag=$REPLACE_TAG" "$WORKDIR/candidate-identities.txt" || fail
 grep -Fxq "expected_tag=$EXPECTED_TAG" "$WORKDIR/candidate-identities.txt" || fail "previous tag differs from preparation"
 grep -Fxq "source_revision=$SOURCE" "$WORKDIR/candidate-identities.txt" || fail "source identity changed"
 [[ "$(digest "$ARCHIVE")" == "$ARCHIVE_SHA" && "$(digest "$ARCHIVE.manifest")" == "$MANIFEST_SHA" && "$(digest "$DESIRED")" == "$SETTINGS_SHA" ]] || fail "reviewed digest changed"
-node "$REPO_ROOT/build/scripts/ci/verify-public-source-export.mjs" --archive "$ARCHIVE"
+# Preparation qualified these exact archive/manifest bytes; their reviewed
+# digests above bind that result. Publication does not repeat the source audit.
 [[ "$(remote_main "$URL" "$BRANCH")" == "$PARENT" ]] || fail "public main moved or diverged"
 push_candidate() {
   local args=() refs=("$COMMIT:refs/heads/$BRANCH")

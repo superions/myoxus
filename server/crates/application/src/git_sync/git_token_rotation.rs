@@ -296,11 +296,6 @@ pub trait GitTokenRotationStore: Send + Sync {
 
   async fn status(&self, profile_id: Uuid) -> Result<Option<GitTokenRotationStatus>, GitTokenRotationStoreError>;
 
-  /// Return a bounded deterministic candidate list. Admission remains the
-  /// authoritative locked check so concurrent schedulers may safely observe
-  /// the same candidate.
-  async fn due_profile_ids(&self, now: DateTime<Utc>, limit: usize) -> Result<Vec<Uuid>, GitTokenRotationStoreError>;
-
   /// Locks all current credential consumers in UUID order, chooses an eligible
   /// steward, and atomically changes the one rotation row to `Rotating`.
   /// `Ok(None)` means disabled, not due, or a same-day failed attempt.
@@ -409,63 +404,6 @@ impl GitTokenRotationService {
 
   pub async fn status(&self, profile_id: Uuid) -> Result<Option<GitTokenRotationStatus>, GitTokenRotationError> {
     Ok(self.store.status(profile_id).await?)
-  }
-
-  pub async fn due_profile_ids(&self, now: DateTime<Utc>, limit: usize) -> Result<Vec<Uuid>, GitTokenRotationError> {
-    Ok(self.store.due_profile_ids(now, limit).await?)
-  }
-
-  /// Admit without decrypting the credential. This is the only scheduler
-  /// boundary; the returned identifiers are safe to publish to Redis.
-  pub async fn admit_attempt(
-    &self,
-    profile_id: Uuid,
-    now: DateTime<Utc>,
-    force: bool,
-  ) -> Result<Option<GitTokenRotationAttempt>, GitTokenRotationError> {
-    let Some(admission) = self.store.admit(profile_id, now, force).await? else {
-      return Ok(None);
-    };
-    if !self
-      .providers
-      .iter()
-      .any(|provider| provider.kind() == admission.provider)
-    {
-      self
-        .store
-        .record_pre_request_failure(
-          admission.profile_id,
-          admission.attempt_id,
-          "configured token rotation provider is not available",
-          now,
-        )
-        .await?;
-      return Err(GitTokenRotationError::InvalidConfiguration(
-        "configured token rotation provider is not available".into(),
-      ));
-    }
-    Ok(Some(GitTokenRotationAttempt {
-      profile_id: admission.profile_id,
-      attempt_id: admission.attempt_id,
-    }))
-  }
-
-  pub async fn record_dispatch_failure(
-    &self,
-    attempt: GitTokenRotationAttempt,
-    now: DateTime<Utc>,
-  ) -> Result<GitTokenRotationStatus, GitTokenRotationError> {
-    Ok(
-      self
-        .store
-        .record_pre_request_failure(
-          attempt.profile_id,
-          attempt.attempt_id,
-          "token rotation could not be published to the existing Git-Sync queue",
-          now,
-        )
-        .await?,
-    )
   }
 
   pub async fn rotate(

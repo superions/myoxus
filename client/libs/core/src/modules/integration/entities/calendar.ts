@@ -1,5 +1,6 @@
 import type {
   CalendarAccountsQuery,
+  CalendarTimingAction,
   CalendarEventQuery,
   CalendarEventsQuery,
   CalendarEventTagsQuery,
@@ -14,6 +15,7 @@ import type {
   WorkspaceCalendarsQuery,
 } from "@myoxus/graphql";
 import { Entity, LiveData } from "@myoxus/infra";
+import { CalendarEventOrigin } from "@myoxus/graphql";
 import dayjs, { type Dayjs } from "dayjs";
 
 import type { CalendarStore } from "../store/calendar";
@@ -26,6 +28,9 @@ type CachedCalendarEvent = NonNullable<
 type WorkspaceEventSnapshot = NonNullable<CalendarEventQuery["calendarEvent"]>;
 
 export class CalendarIntegration extends Entity {
+  private eventsGeneration = 0;
+  private activeRange: { start: Dayjs; end: Dayjs } | null = null;
+  readonly refreshFailed$ = new LiveData(false);
   constructor(private readonly store: CalendarStore) {
     super();
   }
@@ -180,6 +185,7 @@ export class CalendarIntegration extends Entity {
           );
           list.push({
             id: event.id,
+            recurrenceId: event.recurrenceId,
             subscriptionId: event.subscriptionId,
             title: event.title ?? "",
             startAt: dayjs(event.startAtUtc),
@@ -220,6 +226,7 @@ export class CalendarIntegration extends Entity {
           );
           return {
             id: event.id,
+            recurrenceId: event.recurrenceId,
             subscriptionId: event.subscriptionId,
             title: event.title ?? "",
             startAt: dayjs(event.startAtUtc),
@@ -290,6 +297,8 @@ export class CalendarIntegration extends Entity {
   ) {
     const start = rangeStart.startOf("day");
     const end = rangeEnd.endOf("day");
+    this.activeRange = { start, end };
+    const generation = this.eventsGeneration;
     const workspaceCalendarId = this.workspaceCalendars$.value[0]?.id;
     const next = new Map(this.eventsByDateMap$.value);
     let cursor = start;
@@ -308,6 +317,7 @@ export class CalendarIntegration extends Entity {
       end.toISOString(),
       signal,
     );
+    if (generation !== this.eventsGeneration) return events;
     for (const event of events) {
       const startAt = dayjs(event.startAtUtc);
       const endAt = dayjs(event.endAtUtc);
@@ -352,7 +362,10 @@ export class CalendarIntegration extends Entity {
     const cached = this.findEventDetails(eventId);
     if (cached) return cached;
 
+    const generation = this.eventsGeneration;
     const event = await this.store.fetchEvent(eventId, signal);
+    if (generation !== this.eventsGeneration)
+      return this.findEventDetails(eventId);
     if (!event) return null;
     this._rememberEventDetails(event);
     this._ensureEventSnapshotInCache(event);
@@ -360,7 +373,10 @@ export class CalendarIntegration extends Entity {
   }
 
   async revalidateEventDetails(eventId: string, signal?: AbortSignal) {
+    const generation = this.eventsGeneration;
     const event = await this.store.fetchEvent(eventId, signal);
+    if (generation !== this.eventsGeneration)
+      return this.findEventDetails(eventId);
     if (event) {
       this._rememberEventDetails(event);
       this._ensureEventSnapshotInCache(event);
@@ -373,7 +389,7 @@ export class CalendarIntegration extends Entity {
 
   async createEvent(input: Omit<CreateWorkspaceEventInput, "workspaceId">) {
     const result = await this.store.createEvent(input);
-    await this._invalidateEventRange(input.startsAt, input.endsAt);
+    await this._refreshAfterWrite(input.startsAt, input.endsAt);
     this._rememberEventDetails(result);
     this._ensureEventSnapshotInCache(result);
     return result;
@@ -393,7 +409,7 @@ export class CalendarIntegration extends Entity {
     );
     const startsAt = input.startsAt ?? result.startsAt;
     const endsAt = input.endsAt ?? result.endsAt;
-    await this._invalidateEventRange(startsAt, endsAt);
+    await this._refreshAfterWrite(startsAt, endsAt);
     this._rememberEventDetails(result);
     this._ensureEventSnapshotInCache(result);
     return result;
@@ -405,10 +421,26 @@ export class CalendarIntegration extends Entity {
     instanceStart?: string,
   ) {
     await this.store.deleteEvent(eventId, scope, instanceStart);
-    this.eventsByDateMap$.setValue(new Map());
-    const details = new Map(this.eventDetailsById$.value);
-    details.delete(eventId);
-    this.eventDetailsById$.setValue(details);
+    await this._refreshAfterWrite();
+  }
+
+  async controlRecurrence(
+    eventId: string,
+    revision: number,
+    action: CalendarTimingAction,
+  ) {
+    const event = await this.store.controlRecurrence(eventId, revision, action);
+    await this._refreshAfterWrite(event.startsAt, event.endsAt);
+    this._rememberEventDetails(event);
+    return event;
+  }
+
+  resolveWallTime(value: string, zone: string) {
+    return this.store.resolveWallTime(value, zone);
+  }
+
+  listSeries() {
+    return this.store.listSeries();
   }
 
   async listTags(signal?: AbortSignal) {
@@ -487,7 +519,9 @@ export class CalendarIntegration extends Entity {
         if (
           eStart < end &&
           eEnd > start &&
-          !allEvents.some((e) => e.id === event.id)
+          !allEvents.some(
+            (e) => e.id === event.id && e.recurrenceId === event.recurrenceId,
+          )
         ) {
           allEvents.push(event);
         }
@@ -496,13 +530,37 @@ export class CalendarIntegration extends Entity {
     return allEvents;
   }
 
-  private async _invalidateEventRange(startsAt: string, endsAt: string) {
-    const start = dayjs(startsAt);
-    const end = dayjs(endsAt);
-    await this.revalidateEventsRange(start, end);
+  /** A confirmed write must not become a failed Save merely because its read
+   * refresh failed. Fence in-flight old reads and refresh the consuming window,
+   * not only a recurring master's possibly years-old DTSTART. */
+  private async _refreshAfterWrite(startsAt?: string, endsAt?: string) {
+    this.eventsGeneration += 1;
+    this.eventDetailsById$.setValue(new Map());
+    this.refreshFailed$.setValue(false);
+    if (!this.workspaceCalendars$.value[0]?.id) return;
+    const range =
+      this.activeRange ??
+      (startsAt && endsAt
+        ? { start: dayjs(startsAt), end: dayjs(endsAt) }
+        : null);
+    this.eventsByDateMap$.setValue(new Map());
+    if (!range) return;
+    try {
+      await this.revalidateEventsRange(range.start, range.end);
+    } catch {
+      this.refreshFailed$.setValue(true);
+    }
   }
 
   private _ensureEventSnapshotInCache(event: WorkspaceEventSnapshot) {
+    // Detail resolves a master, not an occurrence window. Injecting that
+    // DTSTART snapshot would erase its siblings and can resurrect an exclusion.
+    if (
+      event.origin === CalendarEventOrigin.External ||
+      event.recurrence ||
+      event.recurrenceParentId
+    )
+      return;
     this._upsertEventSnapshot(this._toCachedEvent(event));
   }
 
@@ -530,7 +588,9 @@ export class CalendarIntegration extends Entity {
   private _toCachedEvent(event: WorkspaceEventSnapshot): CachedCalendarEvent {
     return {
       id: event.id,
-      subscriptionId: this.workspaceCalendars$.value[0]?.id ?? "workspace",
+      subscriptionId: event.workspaceId
+        ? `${event.workspaceId}:native`
+        : "workspace",
       externalEventId: event.id,
       recurrenceId: event.recurrenceParentId,
       status: null,

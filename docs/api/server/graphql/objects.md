@@ -1644,6 +1644,8 @@ A user-defined label assignable to native calendar events.
 | `instances`<br>\[[CalendarEventInstanceType](./objects.md#calendareventinstancetype)!\]! | `from`: [DateTime](./scalars.md#datetime)!<br>`to`: [DateTime](./scalars.md#datetime)!<br><br>List materialized recurrence instances within \`\[from, to)\`. For non-recurring events this returns an empty list. Override instances (RECURRENCE-ID exceptions) carry overridden title/description/location from the provider. |
 | `origin`<br>[CalendarEventOrigin](./enums.md#calendareventorigin)! |  |
 | `participants`<br>\[[CalendarEventParticipantType](./objects.md#calendareventparticipanttype)!\]! |  |
+| `recurrence`<br>[CalendarRecurrence](./objects.md#calendarrecurrence) | Native masters reference one canonical timing definition. Imported source remains inspectable but cannot be authored through the native rule form. |
+| `recurrenceId`<br>[DateTime](./scalars.md#datetime) | Original exception key, independent of the displayed/moved start. |
 | `recurrenceParentId`<br>`ID` |  |
 | `reminders`<br>\[[CalendarReminderType](./objects.md#calendarremindertype)!\]! |  |
 | `remoteEventId`<br>`String`! |  |
@@ -1678,6 +1680,22 @@ A user-defined label assignable to native calendar events.
 | --- | --- |
 | `message`<br>`String`! |  |
 | `status`<br>`Int`! |  |
+
+## CalendarRecurrence
+
+<!-- prettier-ignore -->
+| Field and return type | Arguments and description |
+| --- | --- |
+| `endsBefore`<br>[DateTime](./scalars.md#datetime) |  |
+| `id`<br>`ID`! |  |
+| `lifecycle`<br>[RecurrenceLifecycle](./enums.md#recurrencelifecycle)! |  |
+| `pausedAt`<br>[DateTime](./scalars.md#datetime) |  |
+| `readOnly`<br>`Boolean`! |  |
+| `revision`<br>`Int`! |  |
+| `rule`<br>[RecurrenceRule](./objects.md#recurrencerule) |  |
+| `sourceRrule`<br>`String` |  |
+| `unsupportedReason`<br>`String` |  |
+| `zone`<br>`String`! |  |
 
 ## CalendarReminderStatusResult
 
@@ -4380,6 +4398,23 @@ Persisted overrides. Nullable fields intentionally inherit defaults.
 | `sourceAvailable`<br>`Boolean`! |  |
 | `waitId`<br>`String`! |  |
 
+## DocumentReviewPlanningType
+
+<!-- prettier-ignore -->
+| Field and return type | Arguments and description |
+| --- | --- |
+| `blockedReason`<br>`String` |  |
+| `enabled`<br>`Boolean`! |  |
+| `leadDays`<br>`Int`! |  |
+| `metadataRevision`<br>`Int`! |  |
+| `nextStart`<br>[DateTime](./scalars.md#datetime) |  |
+| `processDeadline`<br>[DateTime](./scalars.md#datetime) |  |
+| `ready`<br>`Boolean`! |  |
+| `responsibleId`<br>`ID` |  |
+| `runId`<br>`ID` |  |
+| `sourceDeadline`<br>[DateTime](./scalars.md#datetime) |  |
+| `zone`<br>`String`! |  |
+
 ## DocumentStatusSchemaType
 
 <!-- prettier-ignore -->
@@ -5204,7 +5239,9 @@ Reduced user view shown to callers who are not permitted to see full profile det
 | `completeWorkspaceImportUpload`<br>[WorkspaceImportType](./objects.md#workspaceimporttype)! | `sourceHash`: `String`!<br>`sourceSizeBytes`: `Int`!<br>`workspaceImportId`: `ID`! |
 | `configureTaskMaintenance`<br>[TaskPreparationConfiguration](./objects.md#taskpreparationconfiguration)! | `input`: [ConfigureTaskPreparationInput](./inputs.md#configuretaskpreparationinput)! |
 | `configureTaskPreparation`<br>[TaskPreparationConfiguration](./objects.md#taskpreparationconfiguration)! | `input`: [ConfigureTaskPreparationInput](./inputs.md#configuretaskpreparationinput)! |
+| `configureTaskRecurrence`<br>[TaskRecurrence](./objects.md#taskrecurrence)! | `input`: [ConfigureTaskRecurrenceInput](./inputs.md#configuretaskrecurrenceinput)! |
 | `confirmTaskCorrections`<br>[TaskMaintenance](./objects.md#taskmaintenance)! | `input`: [ConfirmTaskCorrectionsInput](./inputs.md#confirmtaskcorrectionsinput)! |
+| `controlWorkspaceEventRecurrence`<br>[CalendarEventType](./objects.md#calendareventtype)! | `action`: [CalendarTimingAction](./enums.md#calendartimingaction)!<br>`eventId`: `String`!<br>`expectedRevision`: `Int`!<br>`workspaceId`: `String`! |
 | `createBlobUpload`<br>[BlobUploadInitType](./objects.md#blobuploadinittype)! | `key`: `String`!<br>`mime`: `String`!<br>`size`: `Int`!<br>`workspaceId`: `String`! |
 | `createComment`<br>[CommentObjectType](./objects.md#commentobjecttype)! | `attachmentKeys`: \[`String`!\]<br>`body`: [JSON](./scalars.md#json)<br>`docId`: `String`<br>`docText`: `String`<br>`input`: [CommentCreateInput](./inputs.md#commentcreateinput)<br>`parentCommentId`: `String`<br>`selectionAnchor`: [SelectionAnchorInput](./inputs.md#selectionanchorinput)<br>`workspaceId`: `String` |
 | `createCopilotMessage`<br>`String`! | `options`: [CreateChatMessageInput](./inputs.md#createchatmessageinput)! |
@@ -5253,6 +5290,7 @@ Reduced user view shown to callers who are not permitted to see full profile det
 | `detachDatabaseRowContentDocument`<br>[DatabaseRowRecord](./objects.md#databaserowrecord)! | `input`: [DetachDatabaseRowContentDocumentInput](./inputs.md#detachdatabaserowcontentdocumentinput)!<br><br>Detach optional Row content without deleting the document. |
 | `disableWorkspaceAutomation`<br>[WorkspaceAutomationType](./objects.md#workspaceautomationtype)! | `input`: [DisableWorkspaceAutomationInput](./inputs.md#disableworkspaceautomationinput)! |
 | `emptyWorkspaceTrash`<br>[DeleteDocumentsPermanentlyPayload](./objects.md#deletedocumentspermanentlypayload)! | `input`: [EmptyWorkspaceTrashInput](./inputs.md#emptyworkspacetrashinput)! |
+| `endTaskRecurrence`<br>[TaskRecurrence](./objects.md#taskrecurrence)! | `input`: [TaskRecurrenceControlInput](./inputs.md#taskrecurrencecontrolinput)! |
 | `executeWorkspaceContentOperation`<br>[WorkspaceContentOperationType](./objects.md#workspacecontentoperationtype)! | `input`: [WorkspaceContentExecuteInput](./inputs.md#workspacecontentexecuteinput)!<br><br>Execute exactly the current preflight revision and confirmation set. |
 | `exportCopilotMessage`<br>[CopilotGeneratedFileType](./objects.md#copilotgeneratedfiletype)! | `format`: [CopilotExportFormat](./enums.md#copilotexportformat)!<br>`messageId`: `ID`! |
 | `exportDatabaseCsv`<br>[DatabaseCsvExport](./objects.md#databasecsvexport)! | `input`: [ExportDatabaseCsvInput](./inputs.md#exportdatabasecsvinput)! |
@@ -5274,6 +5312,7 @@ Reduced user view shown to callers who are not permitted to see full profile det
 | `markCommentThreadRead`<br>`Boolean`! | `commentId`: `String`!<br>`docId`: `String`!<br>`workspaceId`: `String`! |
 | `mentionUser`<br>`ID`! | `input`: [MentionInput](./inputs.md#mentioninput)! |
 | `moveDatabaseTasks`<br>[DatabaseTaskMoveResult](./objects.md#databasetaskmoveresult)! | `input`: [DatabaseTaskMoveInput](./inputs.md#databasetaskmoveinput)! |
+| `pauseTaskRecurrence`<br>[TaskRecurrence](./objects.md#taskrecurrence)! | `input`: [TaskRecurrenceControlInput](./inputs.md#taskrecurrencecontrolinput)! |
 | `previewDatabaseCsvImport`<br>[DatabaseCsvPreview](./objects.md#databasecsvpreview)! | `file`: [Upload](./scalars.md#upload)!<br>`input`: [PreviewDatabaseCsvImportInput](./inputs.md#previewdatabasecsvimportinput)! |
 | `previewDatabaseJsonImport`<br>[DatabaseJsonPreview](./objects.md#databasejsonpreview)! | `file`: [Upload](./scalars.md#upload)!<br>`input`: [PreviewDatabaseJsonImportInput](./inputs.md#previewdatabasejsonimportinput)! |
 | `previewDatabaseNotionImport`<br>[DatabaseJsonPreview](./objects.md#databasejsonpreview)! | `file`: [Upload](./scalars.md#upload)!<br>`input`: [PreviewDatabaseJsonImportInput](./inputs.md#previewdatabasejsonimportinput)! |
@@ -5294,6 +5333,7 @@ Reduced user view shown to callers who are not permitted to see full profile det
 | `resolveComment`<br>`Boolean`! | `commentId`: `String`<br>`input`: [CommentResolveInput](./inputs.md#commentresolveinput) |
 | `restoreDatabase`<br>[DatabaseRecord](./objects.md#databaserecord)! | `input`: [DatabaseLifecycleInput](./inputs.md#databaselifecycleinput)! |
 | `restoreWorkspaceTag`<br>[WorkspaceTag](./objects.md#workspacetag)! | `input`: [WorkspaceTagLifecycleInput](./inputs.md#workspacetaglifecycleinput)! |
+| `resumeTaskRecurrence`<br>[TaskRecurrence](./objects.md#taskrecurrence)! | `input`: [TaskRecurrenceControlInput](./inputs.md#taskrecurrencecontrolinput)! |
 | `retryContextDocuments`<br>[ContextDocuments](./objects.md#contextdocuments)! | `input`: [RetryContextDocumentsInput](./inputs.md#retrycontextdocumentsinput)! |
 | `retryDocumentReview`<br>[DocumentReview](./objects.md#documentreview)! | `input`: [DocumentReviewRunInput](./inputs.md#documentreviewruninput)! |
 | `retryTaskHandover`<br>[TaskHandover](./objects.md#taskhandover)! | `input`: [TaskHandoverRunInput](./inputs.md#taskhandoverruninput)! |
@@ -5317,6 +5357,7 @@ Reduced user view shown to callers who are not permitted to see full profile det
 | `setDatabaseRowReminder`<br>[DatabaseRowReminder](./objects.md#databaserowreminder)! | `input`: [SetDatabaseRowReminderInput](./inputs.md#setdatabaserowreminderinput)! |
 | `setDocumentWorkspaceTags`<br>\[`ID`!\]! | `input`: [SetDocumentWorkspaceTagsInput](./inputs.md#setdocumentworkspacetagsinput)! |
 | `setWorkspaceTemplateOverride`<br>`Boolean`! | `input`: [SetWorkspaceTemplateOverrideInput](./inputs.md#setworkspacetemplateoverrideinput)!<br><br>Set per-workspace template override (enable/disable, provisioning\_mode). |
+| `skipTaskRecurrence`<br>[TaskRecurrence](./objects.md#taskrecurrence)! | `input`: [SkipTaskRecurrenceInput](./inputs.md#skiptaskrecurrenceinput)! |
 | `startDocumentReview`<br>[DocumentReview](./objects.md#documentreview)! | `input`: [StartDocumentReviewInput](./inputs.md#startdocumentreviewinput)! |
 | `startTaskHandover`<br>[TaskHandover](./objects.md#taskhandover)! | `input`: [StartTaskHandoverInput](./inputs.md#starttaskhandoverinput)! |
 | `startTaskMaintenance`<br>[TaskMaintenance](./objects.md#taskmaintenance)! | `input`: [StartTaskMaintenanceInput](./inputs.md#starttaskmaintenanceinput)! |
@@ -5347,6 +5388,7 @@ Reduced user view shown to callers who are not permitted to see full profile det
 | `updatePreferences`<br>[UserPreferencesType](./objects.md#userpreferencestype)! | `input`: [UpdateUserPreferencesInput](./inputs.md#updateuserpreferencesinput)! |
 | `updateProfile`<br>[UserType](./objects.md#usertype)! | `input`: [UpdateUserInput](./inputs.md#updateuserinput)! |
 | `updateReply`<br>`Boolean`! | `input`: [ReplyUpdateInput](./inputs.md#replyupdateinput)! |
+| `updateTaskRecurrence`<br>[TaskRecurrence](./objects.md#taskrecurrence)! | `input`: [UpdateTaskRecurrenceInput](./inputs.md#updatetaskrecurrenceinput)! |
 | `updateWorkspace`<br>[WorkspaceType](./objects.md#workspacetype)! | `input`: [UpdateWorkspaceInput](./inputs.md#updateworkspaceinput)! |
 | `updateWorkspaceCalendarSettings`<br>[WorkspaceCalendarSettingsType](./objects.md#workspacecalendarsettingstype)! | `input`: [UpdateWorkspaceCalendarSettingsInput](./inputs.md#updateworkspacecalendarsettingsinput)!<br><br>Update workspace-level calendar settings (writeback target + default reminder). Requires SettingsUpdate permission on the workspace. |
 | `updateWorkspaceCalendars`<br>[WorkspaceCalendarObjectType](./objects.md#workspacecalendarobjecttype)! | `input`: [UpdateWorkspaceCalendarsInput](./inputs.md#updateworkspacecalendarsinput)! |
@@ -6042,6 +6084,7 @@ Server admission facts stay native. The client confirms the digest and declared 
 | `reviewerId`<br>`ID`! |  |
 | `sourceDocumentId`<br>`ID`! |  |
 | `sourceExternalId`<br>`String`! |  |
+| `sourceMetadataDeadline`<br>[DateTime](./scalars.md#datetime) |  |
 | `sourceRevision`<br>`String`! |  |
 | `target`<br>[ContextDocumentTarget](./objects.md#contextdocumenttarget)! |  |
 | `title`<br>`String`! |  |
@@ -6257,6 +6300,7 @@ Minimal public user profile exposed in invitation and document-share contexts.
 | `serverUsers`<br>\[[ServerUserSearchResult](./objects.md#serverusersearchresult)!\]! | `search`: `String`!<br>`skip`: `Int`<br>`take`: `Int`<br><br>Search server users by name or email (privacy-scoped — no email/admin field exposure). Permission: caller must be admin OR must hold \`WorkspaceRole::Admin\` (or higher) on at least one workspace (\`WorkspaceAction::UsersManage\`). |
 | `user`<br>[UserOrLimitedUser](./unions.md#userorlimiteduser) | `email`: `String`! |
 | `workspace`<br>[WorkspaceType](./objects.md#workspacetype) | `docId`: `String`<br>`id`: `String`!<br><br>Complexity 10 \* child: permission check + workspace fetch; child fields may trigger additional DB queries. |
+| `workspaceCalendarSeries`<br>\[[CalendarEventType](./objects.md#calendareventtype)!\]! | `workspaceId`: `String`! |
 | `workspaceCalendarSettings`<br>[WorkspaceCalendarSettingsType](./objects.md#workspacecalendarsettingstype) | `workspaceId`: `String`!<br><br>Get workspace calendar settings (writeback target, default reminder). Returns \`None\` when no settings have been saved yet (defaults apply). |
 | `workspaceCalendars`<br>\[[WorkspaceCalendarType](./objects.md#workspacecalendartype)!\]! | `workspaceId`: `String`! |
 | `workspaceContentOperation`<br>[WorkspaceContentOperationType](./objects.md#workspacecontentoperationtype)! | `operationId`: [UUID](./scalars.md#uuid)!<br><br>Actor-scoped, redacted durable XWS status. |
@@ -6294,6 +6338,48 @@ A doc node inside a paginated recently-updated-docs result.
 | `lastUpdaterId`<br>`String` |  |
 | `title`<br>`String` |  |
 | `updatedAt`<br>[DateTime](./scalars.md#datetime) |  |
+
+## RecurrenceOccurrence
+
+<!-- prettier-ignore -->
+| Field and return type | Arguments and description |
+| --- | --- |
+| `dueAt`<br>[DateTime](./scalars.md#datetime)! |  |
+| `nominal`<br>[RecurrenceValue](./objects.md#recurrencevalue)! |  |
+
+## RecurrencePreview
+
+<!-- prettier-ignore -->
+| Field and return type | Arguments and description |
+| --- | --- |
+| `completionReference`<br>[RecurrenceValue](./objects.md#recurrencevalue) |  |
+| `occurrence`<br>[RecurrenceOccurrence](./objects.md#recurrenceoccurrence)! |  |
+
+## RecurrenceRule
+
+<!-- prettier-ignore -->
+| Field and return type | Arguments and description |
+| --- | --- |
+| `dateOnly`<br>`Boolean`! |  |
+| `day`<br>`Int` |  |
+| `end`<br>[RecurrenceValue](./objects.md#recurrencevalue) |  |
+| `frequency`<br>[RecurrenceFrequency](./enums.md#recurrencefrequency) |  |
+| `interval`<br>`Int`! |  |
+| `lastDay`<br>`Boolean`! |  |
+| `mode`<br>[RecurrenceMode](./enums.md#recurrencemode)! |  |
+| `month`<br>`Int` |  |
+| `relativeUnit`<br>[RecurrenceRelativeUnit](./enums.md#recurrencerelativeunit) |  |
+| `start`<br>[RecurrenceValue](./objects.md#recurrencevalue) |  |
+| `weekdays`<br>\[[RecurrenceWeekday](./enums.md#recurrenceweekday)!\]! |  |
+| `zone`<br>`String`! |  |
+
+## RecurrenceValue
+
+<!-- prettier-ignore -->
+| Field and return type | Arguments and description |
+| --- | --- |
+| `date`<br>`String` |  |
+| `localDateTime`<br>`String` |  |
 
 ## ReleaseVersionType
 
@@ -6895,6 +6981,53 @@ A single event in a Copilot streaming response.
 | --- | --- |
 | `name`<br>`String`! |  |
 | `value`<br>`String`! |  |
+
+## TaskRecurrence
+
+<!-- prettier-ignore -->
+| Field and return type | Arguments and description |
+| --- | --- |
+| `actorId`<br>`ID` |  |
+| `blockedReason`<br>`String` |  |
+| `currentMemberId`<br>`ID` |  |
+| `effectiveAfter`<br>[TaskRecurrenceMember](./objects.md#taskrecurrencemember) |  |
+| `generation`<br>`Int`! |  |
+| `id`<br>`ID`! |  |
+| `lifecycle`<br>[RecurrenceLifecycle](./enums.md#recurrencelifecycle)! |  |
+| `members`<br>\[[TaskRecurrenceMember](./objects.md#taskrecurrencemember)!\]! |  |
+| `next`<br>[RecurrenceOccurrence](./objects.md#recurrenceoccurrence) |  |
+| `pausedAt`<br>[DateTime](./scalars.md#datetime) |  |
+| `pending`<br>[RecurrenceOccurrence](./objects.md#recurrenceoccurrence) |  |
+| `preservedNext`<br>[TaskRecurrenceMember](./objects.md#taskrecurrencemember) |  |
+| `recipe`<br>[TaskRecurrenceRecipe](./objects.md#taskrecurrencerecipe)! |  |
+| `revision`<br>`Int`! |  |
+| `rule`<br>[RecurrenceRule](./objects.md#recurrencerule)! |  |
+| `workspaceId`<br>`ID`! |  |
+
+## TaskRecurrenceMember
+
+<!-- prettier-ignore -->
+| Field and return type | Arguments and description |
+| --- | --- |
+| `advanceKind`<br>`String` |  |
+| `advancedAt`<br>[DateTime](./scalars.md#datetime) |  |
+| `capturedDatabaseId`<br>`ID`! |  |
+| `id`<br>`ID`! |  |
+| `occurrenceId`<br>`ID` |  |
+| `rowId`<br>`ID`! |  |
+| `slot`<br>[RecurrenceOccurrence](./objects.md#recurrenceoccurrence) |  |
+| `successorOccurrenceId`<br>`ID` |  |
+
+## TaskRecurrenceRecipe
+
+<!-- prettier-ignore -->
+| Field and return type | Arguments and description |
+| --- | --- |
+| `assignees`<br>\[`ID`!\]! |  |
+| `databaseId`<br>`ID`! |  |
+| `description`<br>[DatabaseRichTextCellValueType](./objects.md#databaserichtextcellvaluetype) |  |
+| `priority`<br>`String` |  |
+| `title`<br>`String`! |  |
 
 ## TemplateCatalogEntryType
 
@@ -8403,6 +8536,7 @@ A workspace template policy as exposed via GraphQL.
 | `publiclyAccessible`<br>`Boolean`! | Server-authoritative effective anonymous workspace availability. |
 | `quota`<br>[UserQuotaType](./objects.md#userquotatype)! | Resolve the effective workspace-owned storage quota and current usage. |
 | `recentlyUpdatedDocs`<br>[PaginatedDocType](./objects.md#paginateddoctype)! | `pagination`: [PaginationInput](./inputs.md#paginationinput)!<br><br>Paginated list of recently updated documents in this workspace. |
+| `recurrencePreview`<br>\[[RecurrencePreview](./objects.md#recurrencepreview)!\]! | `input`: [RecurrencePreviewInput](./inputs.md#recurrencepreviewinput)! |
 | `resolveWorkspaceTags`<br>\[[WorkspaceTag](./objects.md#workspacetag)!\]! | `tagIds`: \[`ID`!\]! |
 | `role`<br>[Permission](./enums.md#permission)! | Complexity 5: triggers a DB query to fetch the user's workspace role. |
 | `search`<br>[SearchResultObjectType](./objects.md#searchresultobjecttype)! | `input`: [SearchInput](./inputs.md#searchinput)! |
@@ -8414,6 +8548,8 @@ A workspace template policy as exposed via GraphQL.
 | `taskMaintenanceRule`<br>[TaskPreparationConfiguration](./objects.md#taskpreparationconfiguration) | `databaseId`: `ID`! |
 | `taskPreparation`<br>[TaskPreparationConfiguration](./objects.md#taskpreparationconfiguration) | `databaseId`: `ID`! |
 | `taskPreparationRun`<br>[TaskPreparationRun](./objects.md#taskpreparationrun) | `runId`: `ID`! |
+| `taskRecurrence`<br>[TaskRecurrence](./objects.md#taskrecurrence) | `input`: [TaskRecurrenceLookupInput](./inputs.md#taskrecurrencelookupinput)! |
+| `taskRecurrences`<br>\[[TaskRecurrence](./objects.md#taskrecurrence)!\]! | `after`: `ID`<br>`first`: `Int` |
 | `templateContext`<br>[WorkspaceTemplateContextType](./objects.md#workspacetemplatecontexttype) | Workspace Read makes only these document-context names visible. It grants no organization administration or manager/member-scoped OU access. |
 | `templateSuggestions`<br>[TemplateSuggestionResult](./objects.md#templatesuggestionresult)! | `input`: [TemplateSuggestionInput](./inputs.md#templatesuggestioninput)! |
 | `trashedDatabasePageIdentities`<br>\[[DatabasePageIdentity](./objects.md#databasepageidentity)!\]! | `first`: `Int`<br>`offset`: `Int`<br><br>Count-free trashed Database identities for the workspace trash list. |

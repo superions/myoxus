@@ -53,8 +53,8 @@ pub(super) fn plan_forward_transition(
         "MANAGED_TRANSITION_REQUIRES_REVIEWED_CONVERSION",
       ));
     }
-    // The immutable edge alone grants a finite Select mapping. All other native
-    // value semantics and role policy retain the existing strict guard.
+    // The immutable edge alone grants a finite Select mapping or metadata-only
+    // Status append. Neither may reinterpret existing Status values/defaults.
     if record.fields.iter().any(|old| {
       state
         .fields
@@ -78,6 +78,14 @@ pub(super) fn plan_forward_transition(
           });
           if field.config == old.config && explicit.is_none() {
             return false;
+          }
+          if let (
+            myoxus_domain::database::DatabaseFieldConfig::Status(before),
+            myoxus_domain::database::DatabaseFieldConfig::Status(after),
+          ) = (&old.config, &field.config)
+          {
+            return explicit.is_some()
+              || myoxus_domain::database::validate_status_option_append(before, after).is_err();
           }
           myoxus_domain::database::DatabaseSelectOptionMapping::new(
             &old.config,

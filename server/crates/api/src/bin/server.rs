@@ -29,8 +29,7 @@ use myoxus_application::comment::{AuthStoreCommentAdapter, CommentService};
 use myoxus_application::copilot::CopilotService;
 use myoxus_application::copilot::provider::LlmProviderRegistry;
 use myoxus_application::database::{
-  DATABASE_QUEUE, DatabaseLimits, DatabaseMutationEffects, DatabaseServiceDependencies, DatabaseServices,
-  JOB_FIRE_REMINDERS, JOB_RECOMPUTE_STALE_PROJECTIONS,
+  DatabaseLimits, DatabaseMutationEffects, DatabaseServiceDependencies, DatabaseServices,
 };
 use myoxus_application::doc::{DocCachePort, DocService};
 use myoxus_application::document_graph::{DocumentGraphLimits, DocumentGraphService};
@@ -88,9 +87,8 @@ use myoxus_infrastructure::workspace_content_operation::{
   PgWorkspaceContentRedirectRepository,
 };
 use myoxus_worker::{
-  CronJob, JobConfigSnapshot, RedisQueue, WorkerRuntime,
+  JobConfigSnapshot, RedisQueue, WorkerRuntime,
   config::{QueueConfig, RuntimeConfig},
-  run_cron_scheduler,
 };
 use sqlx::postgres::PgPoolOptions;
 use tokio::net::TcpListener;
@@ -346,6 +344,8 @@ async fn run(
     Box::new(e) as Box<dyn std::error::Error>
   })?;
   info!("database migrations applied successfully");
+  let reminder_roots = myoxus_infrastructure::scheduling::reminders::initialize(&pool).await?;
+  info!(reminder_roots, "Calendar reminder timing initialized before workers");
 
   // Infrastructure bootstrap uses the file/ENV snapshot. Once PostgreSQL is
   // reachable, all registered DB overrides are applied once and deserialized
@@ -959,7 +959,6 @@ async fn run(
     csv_max_columns: config.databases.csv_max_columns,
     csv_sample_rows_for_type_inference: config.databases.csv_sample_rows_for_type_inference,
     notion_max_bytes: config.databases.notion_max_bytes,
-    reminder_batch_size: config.databases.reminder_batch_size,
     max_reminders_per_user_per_cell: config.databases.max_reminders_per_user_per_cell,
     max_reminder_offset_minutes: config.databases.max_reminder_offset_minutes,
     ..DatabaseLimits::default()
@@ -1149,8 +1148,28 @@ async fn run(
 
   // Build the Redis queue and adapter.
   let redis_worker_queue = RedisQueue::from_client(
+    queue_client.clone(),
+    format!("bull:{}", queue_namespace.trim_end_matches(":queue")),
+  );
+  // Normal SQL startup already transferred pending native reminders. No queue
+  // worker or replacement timing admission may start before retiring this scan.
+  let retired_calendar_scans = redis_worker_queue.retire_calendar_reminder_enqueue_tick().await?;
+  info!(retired_calendar_scans, "retired pending Calendar enqueue scans");
+  let retired_database_scans = redis_worker_queue.retire_database_reminder_fire_tick().await?;
+  let retired_git_ticks = redis_worker_queue.retire_git_sync_schedule_tick().await?;
+  tracing::info!(retired_git_ticks, "retired native Git scheduling tick");
+  info!(retired_database_scans, "retired pending Database reminder timing ticks");
+  let mut registered_startup = myoxus_infrastructure::scheduling::registered_import::RegisteredStartup::acquire(
+    &pool,
     queue_client,
     format!("bull:{}", queue_namespace.trim_end_matches(":queue")),
+  )
+  .await?;
+  let imported = registered_startup.import_pending(chrono::Utc::now()).await?;
+  info!(
+    retained = imported.retained,
+    deduplicated = imported.deduplicated,
+    "registered native repeat slots transferred"
   );
   // Database background work and reminder delivery share the canonical Redis
   // queue. Wire the service only after this handle exists; reading it from
@@ -1316,10 +1335,10 @@ async fn run(
   if let Some(cache) = doc_metadata_projection_cache.clone() {
     document_metadata_policy_service = document_metadata_policy_service.with_index_cache(cache);
   }
-  let document_metadata_repo: Arc<dyn myoxus_domain::repositories::DocumentMetadataRepository> =
+  let document_metadata_repo =
     Arc::new(myoxus_infrastructure::document_metadata::PgDocumentMetadataRepository::new(pool.clone()));
   let mut document_metadata_service =
-    myoxus_application::document_metadata::DocumentMetadataService::new(document_metadata_repo);
+    myoxus_application::document_metadata::DocumentMetadataService::new(document_metadata_repo.clone());
   if let Some(cache) = doc_metadata_projection_cache.clone() {
     document_metadata_service = document_metadata_service.with_projection_cache(cache);
   }
@@ -1363,7 +1382,7 @@ async fn run(
     database_change_notifications,
   );
   let mut database_dependencies = DatabaseServiceDependencies::disabled()
-    .with_effects(database_effects)
+    .with_effects(database_effects.clone())
     .with_blob_service(state.blob_service())
     .with_template_registry(template_service.clone())
     .with_job_queue(database_job_enqueuer)
@@ -1447,13 +1466,44 @@ async fn run(
       pool.clone(),
       workspace_automation_service.native_executor(),
     )
-    .with_database_templates(database_starter_catalog.clone()),
+    .with_database_templates(database_starter_catalog.clone())
+    .with_optional_automations_enabled(config.workspace_automation.enabled),
   );
   workspace_automation_runtime.readiness().await?;
   let workspace_automation_service =
     Arc::new(workspace_automation_service.with_runtime(workspace_automation_runtime.clone()));
+  let task_recurrence = Arc::new(myoxus_application::recurrence::TaskRecurrenceService::new(
+    Arc::new(myoxus_infrastructure::recurrence::PgTaskRecurrenceRepository::new(
+      pool.clone(),
+      database_repo.clone(),
+    )),
+    database_services.editing.clone(),
+  ));
+  document_metadata_service = document_metadata_service.with_review_planning(
+    myoxus_application::document_metadata::review::ReviewPlanningCapabilities {
+      repo: document_metadata_repo,
+      packages: assistant_packages.clone(),
+      automations: workspace_automation_service.clone(),
+      auth: Arc::new(state.auth().clone()),
+      defaults: myoxus_application::auth::UserPreferenceDefaults {
+        locale: config.i18n.default_locale.clone(),
+        ..Default::default()
+      },
+    },
+  );
+  let scheduling = Arc::new(
+    myoxus_infrastructure::scheduling::PgSchedulingRepository::new(pool.clone(), workspace_automation_runtime.clone())
+      .with_task_source(task_recurrence.clone())
+      .with_database_reminders(database_repo.clone(), database_effects)
+      .with_git_rotation_providers(git_token_rotation_service.available_providers())
+      .with_git_policy(Arc::new(
+        myoxus_api::git_sync_engine::scheduler::SharedGitPolicySource::new(state.clone()),
+      ))
+      .with_document_review_source(Arc::new(document_metadata_service.clone())),
+  );
   let state = state
     .with_database_services(database_services.clone())
+    .with_task_recurrence_service(task_recurrence)
     .with_assistant_packages(assistant_packages);
 
   let workspace_import_repository: Arc<dyn myoxus_application::workspace_import::WorkspaceImportRepository> =
@@ -1568,7 +1618,7 @@ async fn run(
   }
 
   let calendar_dispatcher = Arc::new(
-    CalendarReminderDispatcher::new(redis_queue_adapter, calendar_repository.clone(), store.clone())
+    CalendarReminderDispatcher::new(calendar_repository.clone(), store.clone())
       .with_mail_defaults(myoxus_application::auth::UserPreferenceDefaults {
         locale: config.i18n.default_locale.clone(),
         ..Default::default()
@@ -1768,7 +1818,6 @@ async fn run(
   if let Some(database_services) = state.database_services() {
     redis_worker_runtime.register(
       myoxus_api::database_worker::DatabaseQueueHandler::new(
-        database_services.reminders.clone(),
         database_services.projection.clone(),
         database_services.import_export.clone(),
       ),
@@ -2094,7 +2143,6 @@ async fn run(
   redis_worker_runtime.register(
     GitSyncQueueHandler {
       pool: pool.clone(),
-      queue: redis_worker_queue.clone(),
       runner_config: git_sync_runner_config.clone(),
       locks: git_sync_locks,
       blob_storage: state.storage().clone(),
@@ -2213,9 +2261,96 @@ async fn run(
       return Err(format!("registered worker queue {queue_name} is missing from Admin queue inventory").into());
     }
   }
-  if config.workspace_automation.enabled {
-    workspace_automation_runtime.start().await?;
-  }
+  use myoxus_domain::scheduling::registered::{RegisteredJob as R, RegisteredWorker as W};
+  // Preserve the staggered native jobs and current startup payloads. Runtime
+  // feature checks remain in their handlers, not in a parallel timing registry.
+  let mut registered_workers = vec![
+    W::cron(R::CleanUserSessions, "0 0 0 * * *", serde_json::json!({})),
+    W::cron(R::CleanHistories, "0 15 0 * * *", serde_json::json!({})),
+    W::cron(R::CleanNotifications, "0 30 0 * * *", serde_json::json!({})),
+    W::cron(R::CleanPendingBlobs, "0 45 0 * * *", serde_json::json!({})),
+    W::cron(R::CleanOutbox, "0 0 1 * * *", serde_json::json!({})),
+    W::cron(R::CleanMergedUpdates, "0 0 2 * * *", serde_json::json!({})),
+    W::cron(R::CleanGitRepos, "0 0 3 * * *", serde_json::json!({})),
+    W::cron(R::CleanSessionLinks, "0 0 3 * * *", serde_json::json!({})),
+    W::cron(R::CleanOrphanedBlobs, "0 15 3 * * *", serde_json::json!({})),
+    W::cron(R::CleanMultipartUploads, "0 30 3 * * *", serde_json::json!({})),
+    W::cron(R::CleanCopilotBlobs, "0 45 3 * * *", serde_json::json!({})),
+    W::cron(R::ReconcileStorage, "0 0 4 * * *", serde_json::json!({})),
+    W::cron(R::CleanPdfExports, "0 15 4 * * *", serde_json::json!({})),
+    W::cron(R::DocumentVersionDaily, "0 30 4 * * *", serde_json::json!({})),
+    W::cron(R::DocumentVersionGc, "0 45 4 * * *", serde_json::json!({})),
+    W::cron(R::CleanWorkspaceImports, "0 0 5 * * *", serde_json::json!({})),
+    W::cron(R::CleanCopilotSessions, "0 30 1 * * *", serde_json::json!({})),
+    W::cron(R::GenerateCopilotTitles, "0 45 1 * * *", serde_json::json!({})),
+    W::interval(
+      R::CountPendingUpdates,
+      config.worker.polling.doc_maintenance_interval_ms,
+      serde_json::json!({}),
+    ),
+    W::interval(
+      R::FindEmptySummaries,
+      config.worker.polling.doc_maintenance_interval_ms,
+      serde_json::json!({}),
+    ),
+    W::interval(R::CaptureDocumentHistory, 30_000, serde_json::json!({})),
+    W::interval(
+      R::ReindexDocumentGraph,
+      config.worker.polling.document_graph_reindex_interval_ms,
+      serde_json::json!({
+        "workspace_id":null,"limit":config.document_graph.max_reindex_batch,"workspace_limit":config.document_graph.max_catch_up_workspaces,"reason":"catch_up"
+      }),
+    ),
+    W::interval(
+      R::RecomputeDatabase,
+      config.worker.polling.database_projection_interval_ms,
+      serde_json::json!({
+        "workspace_id":null,"limit":100,"database_limit":25,"reason":"catch_up"
+      }),
+    ),
+    W::interval(
+      R::CaldavSync,
+      config.worker.polling.caldav_sync_interval_ms,
+      serde_json::json!({}),
+    ),
+    W::interval(
+      R::GoogleCalendarSync,
+      config.worker.polling.google_calendar_sync_interval_ms,
+      serde_json::json!({}),
+    ),
+    W::cron(R::GoogleChannelRenewal, "0 0 2 * * *", serde_json::json!({})),
+    W::interval(
+      R::IndexWorkspaces,
+      config.worker.polling.indexer_auto_index_interval_ms,
+      serde_json::json!({}),
+    ),
+    W::interval(
+      R::ReconcileTemplates,
+      config
+        .template_registry
+        .drift_scan_interval_seconds
+        .saturating_mul(1000),
+      serde_json::json!({}),
+    ),
+    W::cron(R::ScanTemplateDrift, "0 0 2 * * *", serde_json::json!({})),
+  ];
+  registered_workers.extend(myoxus_api::telemetry_worker::telemetry_schedules(
+    config.telemetry.flush_interval_seconds,
+  ));
+  registered_workers.extend(
+    myoxus_api::metrics_worker::metrics_schedules(config.metrics.flush_interval_seconds)
+      .into_iter()
+      .map(|worker| worker.with_enabled(config.metrics.persistence_enabled)),
+  );
+  let count = registered_startup
+    .register(registered_workers, chrono::Utc::now())
+    .await?;
+  registered_startup.finish().await?;
+  info!(count, "shared registered-worker schedules initialized");
+
+  // No queue worker, delayed promotion or shared admission starts before the
+  // stopped-owner transfer and full registration have completed under one lock.
+  workspace_automation_runtime.start().await?;
   let mut redis_worker_handles = redis_worker_runtime.spawn();
   let mut automation_shutdown = shutdown_rx.clone();
   redis_worker_handles.push(tokio::spawn(async move {
@@ -2232,10 +2367,6 @@ async fn run(
       tracing::error!("workspace automation runtime did not shut down cleanly");
     }
   }));
-
-  // The recovery poll converges this instance after a missed Redis
-  // invalidation. Local writes and Redis wake-ups use the same refresh path
-  // immediately; PostgreSQL remains the authoritative configuration source.
   let config_overrides = state.config_overrides.clone();
   redis_worker_handles.push(tokio::spawn(myoxus_api::config_reload::run_config_reload_loop(
     pool.clone(),
@@ -2248,341 +2379,9 @@ async fn run(
     myoxus_api::config_reload::DEFAULT_RELOAD_INTERVAL,
   )));
 
-  // Cron scheduler: seeds recurring jobs into the Redis delayed set.
-  // NIGHTLY-ROB-05: Jobs are staggered across the night window (00:00 - 03:45)
-  // to avoid all running at once with concurrency=1.
-  let mut nightly_cron_jobs = vec![
-    // One cluster-leader wake-up for all durable per-profile Cron schedules.
-    // PostgreSQL owns occurrence state and deduplication.
-    CronJob {
-      queue: "git-sync".to_string(),
-      job_name: "git-sync.scheduleTick".to_string(),
-      data: serde_json::json!({}),
-      cron_expr: Some("0 * * * * *".to_string()),
-      every_ms: None,
-    },
-    CronJob {
-      queue: "nightly".to_string(),
-      job_name: "nightly.cleanExpiredUserSessions".to_string(),
-      data: serde_json::json!({}),
-      cron_expr: Some("0 0 0 * * *".to_string()), // 00:00
-      every_ms: None,
-    },
-    CronJob {
-      queue: "nightly".to_string(),
-      job_name: "nightly.cleanExpiredHistories".to_string(),
-      data: serde_json::json!({}),
-      cron_expr: Some("0 15 0 * * *".to_string()), // 00:15
-      every_ms: None,
-    },
-    CronJob {
-      queue: "nightly".to_string(),
-      job_name: "nightly.cleanExpiredNotifications".to_string(),
-      data: serde_json::json!({}),
-      cron_expr: Some("0 30 0 * * *".to_string()), // 00:30
-      every_ms: None,
-    },
-    CronJob {
-      queue: "nightly".to_string(),
-      job_name: "nightly.cleanExpiredPendingBlobs".to_string(),
-      data: serde_json::json!({}),
-      cron_expr: Some("0 45 0 * * *".to_string()), // 00:45
-      every_ms: None,
-    },
-    // Clean up processed outbox events older than 7 days
-    CronJob {
-      queue: "nightly".to_string(),
-      job_name: "nightly.cleanProcessedOutboxEvents".to_string(),
-      data: serde_json::json!({}),
-      cron_expr: Some("0 0 1 * * *".to_string()),
-      every_ms: None,
-    },
-    // Clean up already-merged doc_updates (sequence <= snapshot.last_sequence)
-    CronJob {
-      queue: "nightly".to_string(),
-      job_name: "nightly.cleanMergedDocUpdates".to_string(),
-      data: serde_json::json!({}),
-      cron_expr: Some("0 0 2 * * *".to_string()),
-      every_ms: None,
-    },
-    // Clean up stale git-sync repo directories for deleted profiles (ROB-07)
-    CronJob {
-      queue: "nightly".to_string(),
-      job_name: "nightly.cleanStaleGitSyncRepos".to_string(),
-      data: serde_json::json!({}),
-      cron_expr: Some("0 0 3 * * *".to_string()),
-      every_ms: None,
-    },
-    // Clean up expired session_links (orphaned by session deletion)
-    CronJob {
-      queue: "nightly".to_string(),
-      job_name: "nightly.cleanOrphanedSessionLinks".to_string(),
-      data: serde_json::json!({}),
-      cron_expr: Some("0 0 3 * * *".to_string()),
-      every_ms: None,
-    },
-    // Find old registry rows with no Workspace record. Retained trash and
-    // archives are not orphans and stay recoverable.
-    CronJob {
-      queue: "nightly".to_string(),
-      job_name: "nightly.cleanOrphanedBlobs".to_string(),
-      data: serde_json::json!({}),
-      cron_expr: Some("0 15 3 * * *".to_string()), // 03:15 UTC
-      every_ms: None,
-    },
-    // MED-11: Clean up stale multipart uploads (abandoned by clients mid-upload).
-    // Finds blobs with non-null upload_id older than 24h, aborts them on the
-    // storage backend, and clears the upload_id. Runs at 03:30 UTC.
-    CronJob {
-      queue: "nightly".to_string(),
-      job_name: "nightly.cleanStaleMultipartUploads".to_string(),
-      data: serde_json::json!({}),
-      cron_expr: Some("0 30 3 * * *".to_string()),
-      every_ms: None,
-    },
-    // P100-SRV-H-09c: Delete copilot blobs from storage that are not referenced
-    // by any active copilot session.  Runs at 03:45 UTC (after other cleanups).
-    CronJob {
-      queue: "nightly".to_string(),
-      job_name: "nightly.cleanOrphanedCopilotBlobs".to_string(),
-      data: serde_json::json!({}),
-      cron_expr: Some("0 45 3 * * *".to_string()), // 03:45 UTC
-      every_ms: None,
-    },
-    // Reconcile workspace storage stats (BF-SRV-02e) — recalculates from source tables
-    // and writes daily snapshots for trend charts. Runs at 04:00 UTC.
-    CronJob {
-      queue: "nightly".to_string(),
-      job_name: "nightly.reconcileStorageStats".to_string(),
-      data: serde_json::json!({}),
-      cron_expr: Some("0 0 4 * * *".to_string()),
-      every_ms: None,
-    },
-    // PDF export job cleanup (#314) — purge expired job rows and their output blobs.
-    // Runs at 04:15 UTC (after orphaned blob/storage cleanups).
-    CronJob {
-      queue: "nightly".to_string(),
-      job_name: "nightly.cleanExpiredPdfExportJobs".to_string(),
-      data: serde_json::json!({}),
-      cron_expr: Some("0 15 4 * * *".to_string()), // 04:15 UTC
-      every_ms: None,
-    },
-    // Daily document-versioning trigger (opt-in per document). Runs after the
-    // heavy cleanup window and skips unchanged docs before writing snapshots.
-    CronJob {
-      queue: "nightly".to_string(),
-      job_name: "nightly.documentVersionDaily".to_string(),
-      data: serde_json::json!({}),
-      cron_expr: Some("0 30 4 * * *".to_string()), // 04:30 UTC
-      every_ms: None,
-    },
-    // Retention-GC for named document-version labels. Keeps pinned versions and
-    // the newest N unpinned rows per document; underlying DocHistory snapshots
-    // are retained by their own cleanup policy.
-    CronJob {
-      queue: "nightly".to_string(),
-      job_name: "nightly.documentVersionGc".to_string(),
-      data: serde_json::json!({}),
-      cron_expr: Some("0 45 4 * * *".to_string()), // 04:45 UTC
-      every_ms: None,
-    },
-    // Expire abandoned and terminal workspace-import staging artifacts. The
-    // service excludes running and cleanup-required jobs by construction.
-    CronJob {
-      queue: "nightly".to_string(),
-      job_name: "nightly.cleanExpiredWorkspaceImports".to_string(),
-      data: serde_json::json!({}),
-      cron_expr: Some("0 0 5 * * *".to_string()),
-      every_ms: None,
-    },
-    // Copilot session maintenance (P35-B-03)
-    CronJob {
-      queue: "copilot".to_string(),
-      job_name: "copilot.session.cleanupEmptySessions".to_string(),
-      data: serde_json::json!({}),
-      cron_expr: Some("0 30 1 * * *".to_string()), // 01:30
-      every_ms: None,
-    },
-    CronJob {
-      queue: "copilot".to_string(),
-      job_name: "copilot.session.generateMissingTitles".to_string(),
-      data: serde_json::json!({}),
-      cron_expr: Some("0 45 1 * * *".to_string()), // 01:45
-      every_ms: None,
-    },
-    // Doc queue recurring jobs (configurable, default 120s)
-    CronJob {
-      queue: "doc".to_string(),
-      job_name: "doc.recordPendingDocUpdatesCount".to_string(),
-      data: serde_json::json!({}),
-      cron_expr: None,
-      every_ms: Some(config.worker.polling.doc_maintenance_interval_ms),
-    },
-    CronJob {
-      queue: "doc".to_string(),
-      job_name: "doc.findEmptySummaryDocs".to_string(),
-      data: serde_json::json!({}),
-      cron_expr: None,
-      every_ms: Some(config.worker.polling.doc_maintenance_interval_ms),
-    },
-    CronJob {
-      queue: "doc".to_string(),
-      job_name: "doc.captureDueDocumentHistory".to_string(),
-      data: serde_json::json!({}),
-      cron_expr: None,
-      every_ms: Some(30_000),
-    },
-    // Document Graph catch-up (configurable, default 30s). This is the
-    // durability net for missed write-path enqueues and worker outages; the
-    // handler scans only stale, failed or missing index-state candidates.
-    CronJob {
-      queue: "document-graph".to_string(),
-      job_name: "documentGraph.reindexWorkspaceBatch".to_string(),
-      data: serde_json::json!({
-        "workspace_id": null,
-        "limit": config.document_graph.max_reindex_batch,
-        "workspace_limit": config.document_graph.max_catch_up_workspaces,
-        "reason": "catch_up",
-      }),
-      cron_expr: None,
-      every_ms: Some(config.worker.polling.document_graph_reindex_interval_ms),
-    },
-    // Database projection catch-up (configurable, default 30s).
-    // This keeps derived rollup cells current after write-path misses, worker
-    // outages or failed recompute attempts without doing unbounded work on reads.
-    CronJob {
-      queue: DATABASE_QUEUE.to_string(),
-      job_name: JOB_RECOMPUTE_STALE_PROJECTIONS.to_string(),
-      data: serde_json::json!({
-        "workspace_id": null,
-        "limit": 100,
-        "database_limit": 25,
-        "reason": "catch_up",
-      }),
-      cron_expr: None,
-      every_ms: Some(config.worker.polling.database_projection_interval_ms),
-    },
-    CronJob {
-      queue: DATABASE_QUEUE.to_string(),
-      job_name: JOB_FIRE_REMINDERS.to_string(),
-      data: serde_json::json!({ "limit": config.databases.reminder_batch_size }),
-      cron_expr: None,
-      every_ms: Some(config.worker.polling.database_reminder_interval_ms),
-    },
-    // Calendar reminder enqueue (configurable, default 60s)
-    CronJob {
-      queue: "calendar-reminder".to_string(),
-      job_name: "calendar.enqueueReminders".to_string(),
-      data: serde_json::json!({ "limit": 100 }),
-      cron_expr: None,
-      every_ms: Some(config.worker.polling.calendar_reminder_interval_ms),
-    },
-    // CalDAV pull-sync (configurable, default 15 min)
-    CronJob {
-      queue: "caldav-sync".to_string(),
-      job_name: "caldav.syncAll".to_string(),
-      data: serde_json::json!({}),
-      cron_expr: None,
-      every_ms: Some(config.worker.polling.caldav_sync_interval_ms),
-    },
-    // Google Calendar pull-sync (configurable, default 15 min)
-    CronJob {
-      queue: "google-calendar-sync".to_string(),
-      job_name: "googleCalendar.syncAll".to_string(),
-      data: serde_json::json!({}),
-      cron_expr: None,
-      every_ms: Some(config.worker.polling.google_calendar_sync_interval_ms),
-    },
-    // Google Calendar channel renewal (daily at 02:00 UTC)
-    CronJob {
-      queue: "google-calendar-sync".to_string(),
-      job_name: "calendar.renewGoogleChannels".to_string(),
-      data: serde_json::json!({}),
-      cron_expr: Some("0 0 2 * * *".to_string()), // 02:00 UTC daily
-      every_ms: None,
-    },
-  ];
-
-  // Indexer auto-index: always registered so it can be enabled at runtime
-  // via admin settings.  The queue handler checks the search_indexer
-  // availability before processing.
-  nightly_cron_jobs.push(CronJob {
-    queue: "indexer".to_string(),
-    job_name: "indexer.autoIndexWorkspaces".to_string(),
-    data: serde_json::json!({}),
-    cron_expr: None,
-    every_ms: Some(config.worker.polling.indexer_auto_index_interval_ms),
-  });
-
-  // Template Registry cron jobs: always registered.  The queue handler
-  // checks the runtime enabled flag (app_configs) before processing.
-  nightly_cron_jobs.push(CronJob {
-    queue: "template-registry".to_string(),
-    job_name: "template-registry.reconcileAll".to_string(),
-    data: serde_json::json!({}),
-    cron_expr: None,
-    every_ms: Some(config.template_registry.drift_scan_interval_seconds * 1000),
-  });
-  nightly_cron_jobs.push(CronJob {
-    queue: "template-registry".to_string(),
-    job_name: "template-registry.driftScan".to_string(),
-    data: serde_json::json!({}),
-    cron_expr: Some("0 0 2 * * *".to_string()), // 02:00 UTC
-    every_ms: None,
-  });
-  info!(
-    reconcile_interval_s = config.template_registry.drift_scan_interval_seconds,
-    "template-registry cron jobs registered (runtime-toggleable)"
-  );
-
-  // Telemetry cron jobs (P-Telemetry-C): flush (every N s), rollup (00:05 UTC),
-  // retention (00:15 UTC).  Registered unconditionally — the handler itself is
-  // a no-op when the hot buffer is empty, so this carries no cost when
-  // `telemetry.enabled=false`.
-  for job in myoxus_api::telemetry_worker::telemetry_cron_jobs(config.telemetry.flush_interval_seconds) {
-    nightly_cron_jobs.push(job);
-  }
-  info!(
-    flush_interval_s = config.telemetry.flush_interval_seconds,
-    retention_raw_days = config.telemetry.retention_raw_days,
-    retention_daily_days = config.telemetry.retention_daily_days,
-    "telemetry cron jobs registered (flush/rollup/retention)"
-  );
-
-  // Persistence owns flush, rollup, and retention scheduling. Disabling it
-  // must not enqueue recurring no-op jobs or touch the metrics tables.
-  if config.metrics.persistence_enabled {
-    nightly_cron_jobs.extend(myoxus_api::metrics_worker::metrics_cron_jobs(
-      config.metrics.flush_interval_seconds,
-    ));
-  }
-  info!(
-    persistence_enabled = config.metrics.persistence_enabled,
-    flush_interval_s = config.metrics.flush_interval_seconds,
-    retention_raw_days = config.metrics.retention_raw_days,
-    retention_daily_days = config.metrics.retention_daily_days,
-    "metrics persistence schedule configured"
-  );
-
-  redis_worker_handles.push(tokio::spawn(run_cron_scheduler(
-    redis_worker_queue.clone(),
-    nightly_cron_jobs,
-    config.worker.cron_tick_interval_seconds,
-    instance_id,
-    shutdown_rx.clone(),
-  )));
-
   // Git-Sync dispatch is independent from ingress. PostgreSQL Pending rows are
   // durable intent and are replayed idempotently after Redis/process recovery.
   redis_worker_handles.push(tokio::spawn(run_git_sync_pending_dispatcher(
-    pool.clone(),
-    redis_worker_queue.clone(),
-    shutdown_rx.clone(),
-  )));
-
-  // Git Sync polling scheduler: checks for polling-mode profiles and creates
-  // durable Pending intent. The shared dispatcher owns Redis publication.
-  redis_worker_handles.push(tokio::spawn(run_git_sync_polling_scheduler(
     pool.clone(),
     redis_worker_queue.clone(),
     git_sync_runner_config.clone(),
@@ -2595,6 +2394,7 @@ async fn run(
     redis_worker_queue.clone(),
     state.clone(),
     workspace_content_operation_repository.clone(),
+    scheduling,
     shutdown_rx.clone(),
   )));
   redis_worker_handles.push(tokio::spawn(run_workspace_content_queue_reconciler(
@@ -2744,7 +2544,6 @@ impl myoxus_application::database::DatabaseJobEnqueuer for RedisDatabaseJobEnque
     let opts = JobOptions {
       delay_ms: Some(delay_ms),
       max_attempts: 3,
-      repeat: None,
       ..Default::default()
     };
     self
@@ -4479,11 +4278,10 @@ impl myoxus_worker::JobHandler for IndexerQueueHandler {
 
 // ─── Calendar Queue Handler ──────────────────────────────────────────────────
 
-/// Processes `calendar.processReminder`, `calendar.enqueueReminders`, and
+/// Processes `calendar.processReminder` and
 /// `calendar.processPendingWrites` jobs.
 ///
 /// - `calendar.processReminder`: marks a single reminder as delivered.
-/// - `calendar.enqueueReminders`: scans for due reminders and enqueues them.
 /// - `calendar.processPendingWrites`: retries deferred write-back operations
 ///   that failed when the remote server was unreachable.
 struct CalendarQueueHandler {
@@ -4509,29 +4307,15 @@ impl myoxus_worker::JobHandler for CalendarQueueHandler {
         let payload: ReminderDispatchPayload = serde_json::from_value(job.data.clone())
           .map_err(|e| JobError::Permanent(format!("invalid calendar.processReminder payload: {e}")))?;
 
-        // Access the repo via dispatcher — we need a reference to the underlying repo.
-        // Since CalendarReminderDispatcher only exposes enqueue_due_reminders,
-        // we call the CalendarService's mark_reminder_status via the dispatcher's repo.
-        // The dispatcher struct holds the repo; access it through the calendar_repository
-        // stored on CalendarReminderDispatcher.
         self
           .dispatcher
-          .process_reminder(payload.reminder_id)
+          .process_admitted_reminder(payload.reminder_id,payload.admission.as_ref())
           .await
           .map_err(|e| {
             tracing::warn!(job_id = %job.id, reminder_id = %payload.reminder_id, error = %e, "calendar reminder processing failed");
             JobError::Retryable(e.to_string())
           })?;
         Ok(None)
-      }
-      "calendar.enqueueReminders" => {
-        let limit = job.data["limit"].as_i64().unwrap_or(100);
-        let enqueued = self.dispatcher.enqueue_due_reminders(limit).await.map_err(|e| {
-          tracing::warn!(job_id = %job.id, error = %e, "calendar enqueueReminders failed");
-          JobError::Retryable(e.to_string())
-        })?;
-        tracing::info!(job_id = %job.id, enqueued, "calendar.enqueueReminders completed");
-        Ok(Some(serde_json::json!({ "enqueued": enqueued })))
       }
       // P90-CAL-F-05: process deferred write-back operations.
       "calendar.processPendingWrites" => {
@@ -4761,7 +4545,6 @@ impl myoxus_worker::JobHandler for GoogleCalendarSyncQueueHandler {
 /// implements the full sync lifecycle in a structured, modular fashion.
 struct GitSyncQueueHandler {
   pool: sqlx::PgPool,
-  queue: myoxus_worker::RedisQueue,
   runner_config: myoxus_api::git_sync_engine::runner::RunnerConfig,
   locks: myoxus_api::git_sync_engine::locking::ProfileLocks,
   blob_storage: std::sync::Arc<dyn myoxus_application::ports::BlobStoragePort>,
@@ -4781,39 +4564,6 @@ impl myoxus_worker::JobHandler for GitSyncQueueHandler {
     tracing::info!(job_id = %job.id, job_name, queue = "git-sync", "processing git-sync job");
 
     match job_name {
-      "git-sync.scheduleTick" => {
-        let policy = self
-          .runner_config
-          .effective_policy()
-          .await
-          .map_err(JobError::Retryable)?;
-        let processed = myoxus_api::git_sync_engine::scheduler::admit_due_cron_profiles(
-          &self.pool,
-          &self.queue,
-          &policy,
-          chrono::Utc::now(),
-          100,
-        )
-        .await
-        .map_err(JobError::Retryable)?;
-        let history_runs = myoxus_infrastructure::git_sync::SqlxGitSyncStore::new(self.pool.clone())
-          .drain_history_capture_intents(&policy.lifecycle_policy(), 100)
-          .await
-          .map_err(|error| JobError::Retryable(error.to_string()))?;
-        let token_rotations = myoxus_api::git_sync_engine::scheduler::admit_due_token_rotations(
-          &self.queue,
-          self.token_rotation.as_ref(),
-          chrono::Utc::now(),
-          100,
-        )
-        .await
-        .map_err(JobError::Retryable)?;
-        Ok(Some(serde_json::json!({
-          "processedProfiles": processed,
-          "admittedHistoryCaptureRuns": history_runs.len(),
-          "publishedTokenRotations": token_rotations,
-        })))
-      }
       "git-sync.tokenRotation" => {
         let profile_id: uuid::Uuid = job.data["profileId"]
           .as_str()
@@ -5015,6 +4765,7 @@ async fn run_outbox_processor(
   redis_queue: myoxus_worker::RedisQueue,
   state: ApiState,
   workspace_content_repo: Arc<PgWorkspaceContentOperationRepository>,
+  scheduling: Arc<myoxus_infrastructure::scheduling::PgSchedulingRepository>,
   mut shutdown: tokio::sync::watch::Receiver<bool>,
 ) {
   tracing::info!("outbox processor started");
@@ -5027,6 +4778,8 @@ async fn run_outbox_processor(
 
   let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
   interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+  let scheduling_interval = std::time::Duration::from_secs(state.config.worker.cron_tick_interval_seconds);
+  let mut next_scheduling = tokio::time::Instant::now();
 
   loop {
     tokio::select! {
@@ -5051,8 +4804,16 @@ async fn run_outbox_processor(
         if let Err(e) = myoxus_api::document_broadcast_outbox::process_workspace_doc_broadcast_batch(&pool, &publisher).await {
           tracing::warn!(error = %e, "workspace document broadcast outbox batch failed");
         }
-        if let Err(e) = process_outbox_batch(&pool, &redis_queue, &state, &workspace_content_repo).await {
+        if let Err(e) = process_outbox_batch(&pool, &redis_queue, &state, &workspace_content_repo, &scheduling).await {
           tracing::warn!(error = %e, "outbox processor batch failed");
+        }
+        if tokio::time::Instant::now() >= next_scheduling {
+          next_scheduling = tokio::time::Instant::now() + scheduling_interval;
+          match tokio::time::timeout(std::time::Duration::from_millis(750), scheduling.dispatch_due(chrono::Utc::now(), 50)).await {
+            Ok(Ok(report)) => tracing::debug!(admitted=report.admitted, blocked=report.blocked,
+              raced=report.raced, budget_exhausted=report.budget_exhausted, "scheduled admission batch completed"),
+            _ => tracing::warn!("scheduled admission batch unavailable; pending SQL slots retained"),
+          }
         }
       }
     }
@@ -5097,6 +4858,7 @@ async fn process_outbox_batch(
   redis_queue: &myoxus_worker::RedisQueue,
   state: &ApiState,
   workspace_content_repo: &Arc<PgWorkspaceContentOperationRepository>,
+  scheduling: &myoxus_infrastructure::scheduling::PgSchedulingRepository,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
   use myoxus_application::workspace_content_operation::WorkspaceContentOperationRepository;
   use myoxus_domain::repositories::{OutboxRepository, PageRequest};
@@ -5120,6 +4882,7 @@ async fn process_outbox_batch(
   }
 
   tracing::debug!(count = rows.len(), "outbox processor: processing batch");
+  let recurrence_deadline = tokio::time::Instant::now() + std::time::Duration::from_millis(500);
 
   for row in rows {
     let event_id = row.id;
@@ -5136,10 +4899,124 @@ async fn process_outbox_batch(
       myoxus_domain::entities::OutboxEventType::DatabaseTaskNotification => "database_task_notification",
       myoxus_domain::entities::OutboxEventType::WorkspaceAutomationTrigger => "workspace_automation_trigger",
       myoxus_domain::entities::OutboxEventType::WorkspaceAutomationSignal => "workspace_automation_signal",
+      myoxus_domain::entities::OutboxEventType::TaskRecurrenceDue => "task_recurrence_due",
+      myoxus_domain::entities::OutboxEventType::CalendarReminderDue => "calendar_reminder_due",
+      myoxus_domain::entities::OutboxEventType::DatabaseReminderDue => "database_reminder_due",
+      myoxus_domain::entities::OutboxEventType::GitCronDue => "git_cron_due",
+      myoxus_domain::entities::OutboxEventType::GitPollingDue => "git_polling_due",
+      myoxus_domain::entities::OutboxEventType::GitRotationDue => "git_rotation_due",
+      myoxus_domain::entities::OutboxEventType::RegisteredJobDue => "registered_job_due",
     };
     let payload = row.payload;
 
     let (job_name, job_data) = match event_type {
+      "registered_job_due" => {
+        let delivery: myoxus_domain::scheduling::registered::RegisteredDispatch = serde_json::from_value(payload)?;
+        if !myoxus_infrastructure::scheduling::registered::delivery_is_current(pool, &delivery).await? {
+          outbox.mark_event_processed(event_id, chrono::Utc::now()).await?;
+        } else {
+          match redis_queue.enqueue_registered(&delivery).await {
+            Ok(()) => outbox.mark_event_processed(event_id, chrono::Utc::now()).await?,
+            Err(_) => tracing::warn!(%event_id,"registered worker queue handoff unavailable"),
+          }
+        }
+        continue;
+      }
+      "git_rotation_due" => {
+        let envelope: myoxus_domain::scheduling::GitRotationDispatch = serde_json::from_value(payload)?;
+        match myoxus_api::git_sync_engine::scheduler::dispatch_rotation_intent(pool, redis_queue, &envelope).await {
+          Ok(()) => outbox.mark_event_processed(event_id, chrono::Utc::now()).await?,
+          Err(_) => tracing::warn!(%event_id,"native Git rotation handoff unavailable"),
+        }
+        continue;
+      }
+      "git_cron_due" | "git_polling_due" => {
+        let envelope: myoxus_domain::scheduling::GitScheduleDispatch = serde_json::from_value(payload)?;
+        let source = if event_type == "git_cron_due" {
+          myoxus_domain::git_sync::GitSyncRunSource::Cron
+        } else {
+          myoxus_domain::git_sync::GitSyncRunSource::Polling
+        };
+        match myoxus_api::git_sync_engine::scheduler::dispatch_scheduled_intent(pool, redis_queue, &envelope, source)
+          .await
+        {
+          Ok(()) => {
+            outbox.mark_event_processed(event_id, chrono::Utc::now()).await?;
+          }
+          Err(_) => tracing::warn!(%event_id,"Scheduled Git queue handoff unavailable"),
+        }
+        continue;
+      }
+      "database_reminder_due" => {
+        match myoxus_api::database_reminder_notification::enqueue_database_row_reminder_intent(
+          pool,
+          redis_queue,
+          event_id,
+          payload,
+        )
+        .await
+        {
+          Ok(()) => {
+            outbox.mark_event_processed(event_id, chrono::Utc::now()).await?;
+          }
+          Err(_) => tracing::warn!(%event_id,"Database reminder queue handoff unavailable"),
+        }
+        continue;
+      }
+      "calendar_reminder_due" => {
+        let admitted: myoxus_application::calendar::ReminderDispatchPayload = serde_json::from_value(payload)?;
+        let fence = admitted
+          .admission
+          .as_ref()
+          .ok_or("Calendar reminder outbox admission missing")?;
+        match myoxus_infrastructure::scheduling::reminders::delivery_is_current(pool, admitted.reminder_id, fence).await
+        {
+          Ok(current) => {
+            let result = if current {
+              redis_queue
+                .enqueue_idempotent(
+                  "calendar-reminder",
+                  &event_id.to_string(),
+                  "calendar.processReminder",
+                  serde_json::to_value(&admitted)?,
+                  myoxus_worker::JobOptions {
+                    max_attempts: 8,
+                    ..Default::default()
+                  },
+                )
+                .await
+                .map(|_| ())
+            } else {
+              Ok(())
+            };
+            if result.is_ok() {
+              outbox.mark_event_processed(event_id, chrono::Utc::now()).await?;
+            } else {
+              tracing::warn!(%event_id,"Calendar reminder queue handoff unavailable");
+            }
+          }
+          Err(_) => tracing::warn!(%event_id,"Calendar reminder receipt read unavailable"),
+        }
+        continue;
+      }
+      "task_recurrence_due" => {
+        // Leave excess wake-ups pending, but keep visiting ordinary categories.
+        let remaining = recurrence_deadline.saturating_duration_since(tokio::time::Instant::now());
+        if remaining.is_zero() {
+          continue;
+        }
+        if !matches!(
+          tokio::time::timeout(
+            remaining,
+            myoxus_api::workspace_automation_worker::dispatch_recurring_task_completion(pool, scheduling, event_id)
+          )
+          .await,
+          Ok(Ok(()))
+        ) {
+          tracing::warn!(%event_id, "native Task recurrence handoff unavailable");
+        }
+        continue;
+      }
       "workspace_automation_signal" => {
         if let Some(service) = state.workspace_automation_service() {
           if myoxus_api::workspace_automation_worker::dispatch_committed_signal(pool, &service, event_id)
@@ -5619,11 +5496,12 @@ async fn cleanup_moved_source_blobs(
   Ok(())
 }
 
-// ─── Git Sync Polling Scheduler ──────────────────────────────────────────────
+// ─── Native Git intent recovery and delivery ────────────────────────────────
 
 async fn run_git_sync_pending_dispatcher(
   pool: sqlx::PgPool,
   redis_queue: myoxus_worker::RedisQueue,
+  runner_config: myoxus_api::git_sync_engine::runner::RunnerConfig,
   mut shutdown: tokio::sync::watch::Receiver<bool>,
 ) {
   let store = myoxus_infrastructure::git_sync::SqlxGitSyncStore::new(pool);
@@ -5637,6 +5515,15 @@ async fn run_git_sync_pending_dispatcher(
         }
       }
       _ = tokio::time::sleep(std::time::Duration::from_secs(1)) => {
+        // History capture is durable data-driven intent, not a clock rule.
+        // Recover receipts held behind busy Runs through this existing native
+        // dispatcher, independently of the retired automatic timing branches.
+        match runner_config.effective_policy().await {
+          Ok(policy)=>if let Err(error)=store.drain_history_capture_intents(&policy.lifecycle_policy(),100).await{
+            tracing::warn!(%error,"git-sync history intent recovery unavailable");
+          },
+          Err(_)=>tracing::warn!("git-sync history intent policy unavailable"),
+        }
         match myoxus_api::git_sync_engine::dispatch::dispatch_pending_runs(&redis_queue, &store, 100).await {
           Ok(pass) if pass.attempted == 0 => {}
           Ok(pass) => {
@@ -5660,72 +5547,6 @@ async fn run_git_sync_pending_dispatcher(
       }
     }
   }
-}
-
-/// Background task that periodically checks for Git Sync profiles with
-/// `trigger_mode = 'Polling'` and enqueues sync jobs when their polling
-/// interval has elapsed since the last run.
-async fn run_git_sync_polling_scheduler(
-  pool: sqlx::PgPool,
-  redis_queue: myoxus_worker::RedisQueue,
-  runner_config: myoxus_api::git_sync_engine::runner::RunnerConfig,
-  mut shutdown: tokio::sync::watch::Receiver<bool>,
-) {
-  tracing::info!("git-sync polling scheduler started");
-
-  loop {
-    tokio::select! {
-      _ = shutdown.changed() => {
-        if *shutdown.borrow() {
-          tracing::info!("git-sync polling scheduler shutting down");
-          break;
-        }
-      }
-      _ = tokio::time::sleep(std::time::Duration::from_secs(30)) => {
-        if let Err(e) = check_and_enqueue_polling_syncs(&pool, &redis_queue, &runner_config).await {
-          tracing::warn!(error = %e, "git-sync polling check failed");
-        }
-      }
-    }
-  }
-}
-
-/// Check for Polling-mode profiles whose interval has elapsed and enqueue sync jobs.
-async fn check_and_enqueue_polling_syncs(
-  pool: &sqlx::PgPool,
-  redis_queue: &myoxus_worker::RedisQueue,
-  runner_config: &myoxus_api::git_sync_engine::runner::RunnerConfig,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-  let policy = runner_config.effective_policy().await?;
-  let rows = myoxus_api::git_sync_engine::scheduler::due_polling_profiles(pool, &policy, chrono::Utc::now()).await?;
-
-  if rows.is_empty() {
-    return Ok(());
-  }
-
-  tracing::debug!(count = rows.len(), "git-sync polling: found due profiles");
-
-  for row in &rows {
-    let profile_id = row.profile_id;
-    let direction = parse_git_sync_direction(&row.sync_direction)?;
-    let store = myoxus_infrastructure::git_sync::SqlxGitSyncStore::new(pool.clone());
-    let (run, inserted) = store
-      .create_pending_run_if_absent(
-        profile_id,
-        direction,
-        myoxus_domain::git_sync::GitSyncRunSource::Polling,
-      )
-      .await?;
-    let dispatched = myoxus_api::git_sync_engine::dispatch::dispatch_run(
-      redis_queue,
-      &store,
-      myoxus_api::git_sync_engine::dispatch::pending_dispatch(run),
-    )
-    .await?;
-    tracing::info!(%profile_id, run_id = %dispatched.id, job_id = ?dispatched.job_id, inserted, "git-sync polling dispatch acknowledged");
-  }
-
-  Ok(())
 }
 
 fn parse_git_sync_direction(

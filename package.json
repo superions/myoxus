@@ -1,6 +1,6 @@
 {
   "name": "@myoxus/monorepo",
-  "version": "0.41.38",
+  "version": "0.41.40",
   "private": true,
   "author": "Myoxus Contributors",
   "license": "AGPL-3.0-or-later",
@@ -122,11 +122,11 @@
     "@vitest/browser-playwright": "4.1.11",
     "@vitest/coverage-istanbul": "4.1.11",
     "@vitest/ui": "4.1.11",
+    "@zip.js/zip.js": "2.24.0",
     "cross-env": "^10.1.0",
     "eslint-plugin-react-hooks": "7.1.1",
     "happy-dom": "20.11.1",
     "husky": "^9.1.7",
-    "jszip": "^3.10.2",
     "lint-staged": "^17.6.0",
     "oxlint": "^1.47.0",
     "oxlint-tsgolint": "7.0.2001",
@@ -263,7 +263,6 @@
     "internal-slot": "npm:@nolyfill/internal-slot@^1",
     "is-core-module": "npm:@nolyfill/is-core-module@^1",
     "is-typed-array": "npm:@nolyfill/is-typed-array@^1",
-    "isarray": "npm:@nolyfill/isarray@^1",
     "safe-buffer": "npm:@nolyfill/safe-buffer@^1",
     "safer-buffer": "npm:@nolyfill/safer-buffer@^1",
     "set-function-length": "npm:@nolyfill/set-function-length@^1",
@@ -275,7 +274,6 @@
     "decode-named-character-reference@npm:^1.0.0": "patch:decode-named-character-reference@npm%3A1.0.2#~/.yarn/patches/decode-named-character-reference-npm-1.0.2-db17a755fd.patch",
     "@atlaskit/pragmatic-drag-and-drop": "patch:@atlaskit/pragmatic-drag-and-drop@npm%3A1.4.0#~/.yarn/patches/@atlaskit-pragmatic-drag-and-drop-npm-1.4.0-75c45f52d3.patch",
     "yjs": "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch",
-    "argparse@npm:~1.0.3": "npm:2.0.1",
     "katex": "npm:0.18.2",
     "xcode/uuid": "npm:11.1.1"
   }

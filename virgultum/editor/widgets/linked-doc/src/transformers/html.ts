@@ -160,7 +160,7 @@ async function importHTMLZip({
   const pendingPathBlobIdMap: PathBlobIdMap = new Map();
   const htmlBlobs: ImportedFileEntry[] = [];
 
-  for (const { path, content: blob } of unzip) {
+  for await (const { path, content: blob } of unzip) {
     if (path.includes("__MACOSX") || path.includes(".DS_Store")) {
       continue;
     }

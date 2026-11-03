@@ -493,19 +493,20 @@ impl AdminStore for SqlxAdminStore {
         unit.name AS owner_principal_name,
         profile.id AS git_sync_profile_id,
         profile.trigger_mode AS git_sync_trigger_mode,
-        profile.cron_next_scheduled_at AS git_sync_next_scheduled_at,
+        cron.next_due_at AS git_sync_next_scheduled_at,
         run.status AS git_sync_last_status,
         run.started_at AS git_sync_last_run_at
       FROM workspaces w
       LEFT JOIN organization_unit unit
         ON w.owner_principal_type = 'ou' AND unit.id = w.owner_principal_id
       LEFT JOIN LATERAL (
-        SELECT id, trigger_mode, cron_next_scheduled_at
+        SELECT id, trigger_mode
         FROM git_sync_profiles
         WHERE workspace_id = w.id AND enabled = true
         ORDER BY updated_at DESC
         LIMIT 1
       ) profile ON true
+      LEFT JOIN scheduling_schedules cron ON cron.id=profile.id AND cron.target_json->>'kind'='git_cron'
       LEFT JOIN LATERAL (
         SELECT runs.status, runs.started_at
         FROM git_sync_runs runs

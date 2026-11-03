@@ -119,9 +119,10 @@ packages:
         path: myoxus.assistant.context.review/1.1.0.yaml
         sha256: cd35a3a5b43c56b387b9c27b83989367dd281a1bf810eb03764b0e6399665072
   - id: myoxus.assistant.document-review
-    enabled: false
+    enabled: true
     current: 1.0.0
-    defaultFor: []
+    defaultFor:
+      - taskContainerAssistance
     definitions:
       - version: 1.0.0
         path: myoxus.assistant.document-review/1.0.0.yaml

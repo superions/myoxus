@@ -94,8 +94,11 @@ function BlockingUpdateSurface({
         {isLocalError ? (
           <MyoxusButton
             data-testid="client-update-control-retry"
-            onClick={() => void reread()}
-            variant="primary"
+            onClick={() => {
+              void reread().catch(() => {
+                // The gate retains the failure for this visible retry surface.
+              });
+            }}
           >
             {t["com.myoxus.clientUpdate.controlError.retry"]()}
           </MyoxusButton>

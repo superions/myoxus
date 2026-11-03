@@ -95,10 +95,6 @@ impl GitTokenRotationStore for AmbiguousCommitStore {
     Ok((profile_id == self.admission.profile_id).then(|| self.status.lock().expect("rotation status").clone()))
   }
 
-  async fn due_profile_ids(&self, _now: DateTime<Utc>, _limit: usize) -> Result<Vec<Uuid>, GitTokenRotationStoreError> {
-    Ok(vec![self.admission.profile_id])
-  }
-
   async fn admit(
     &self,
     _profile_id: Uuid,

@@ -6,6 +6,7 @@
 /node_modules
 /target
 /server/target
+/vendor/wordcraft/target
 /server/runtime
 /dist
 /output

@@ -11,16 +11,15 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use myoxus_domain::git_sync::{
-  AuthMethod, GitSyncCronMisfirePolicy, GitSyncProfile, ProfileId, SyncDirection, TriggerMode,
-};
+use myoxus_domain::git_sync::{AuthMethod, GitSyncProfile, ProfileId, SyncDirection, TriggerMode};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use tracing::{info, instrument};
 use uuid::Uuid;
 
-use super::schedule::GitSyncCronSchedule;
 use super::{GitAuth, GitError, GitRemoteProbe, GitRepositoryPort};
+use crate::scheduling::cron::CronSchedule;
+use myoxus_domain::scheduling::CronMisfirePolicy;
 
 /// Stable operator-facing failure classes for read-only remote validation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -130,7 +129,7 @@ impl GitSyncLifecyclePolicy {
           "Cron trigger mode requires an IANA timezone",
         )
       })?;
-      GitSyncCronSchedule::parse(expression, timezone)
+      CronSchedule::parse(expression, timezone)
         .map_err(|error| GitConnectionFailure::new(GitConnectionErrorClass::PolicyDenied, error.to_string()))?;
       if profile.cron_misfire_policy.is_none() {
         return Err(GitConnectionFailure::new(
@@ -224,7 +223,7 @@ pub struct GitSyncProfilePatch {
   pub polling_interval_secs: Option<Option<i64>>,
   pub cron_expression: Option<Option<String>>,
   pub cron_timezone: Option<Option<String>>,
-  pub cron_misfire_policy: Option<Option<GitSyncCronMisfirePolicy>>,
+  pub cron_misfire_policy: Option<Option<CronMisfirePolicy>>,
   pub auth_method: Option<AuthMethod>,
   pub enabled: Option<bool>,
   pub max_mirror_storage_mb: Option<Option<i64>>,
@@ -330,7 +329,7 @@ pub struct CreateGitSyncProfile {
   pub polling_interval_secs: Option<i64>,
   pub cron_expression: Option<String>,
   pub cron_timezone: Option<String>,
-  pub cron_misfire_policy: Option<GitSyncCronMisfirePolicy>,
+  pub cron_misfire_policy: Option<CronMisfirePolicy>,
   pub auth_method: AuthMethod,
   pub enabled: bool,
   pub max_mirror_storage_mb: Option<i64>,
@@ -522,7 +521,7 @@ fn initialize_cron_state(
       "Cron trigger mode requires a misfire policy".into(),
     ));
   }
-  let schedule = GitSyncCronSchedule::parse(expression, timezone)
+  let schedule = CronSchedule::parse(expression, timezone)
     .map_err(|error| GitSyncLifecycleError::InvalidInput(error.to_string()))?;
   profile.cron_expression = Some(schedule.expression().to_string());
   profile.cron_timezone = Some(schedule.timezone_name().to_string());
@@ -948,7 +947,7 @@ mod tests {
     command.trigger_mode = TriggerMode::Cron;
     command.cron_expression = Some("0 * * * *".into());
     command.cron_timezone = Some("Europe/Berlin".into());
-    command.cron_misfire_policy = Some(GitSyncCronMisfirePolicy::RunOnce);
+    command.cron_misfire_policy = Some(CronMisfirePolicy::RunOnce);
     let created = service.create(&policy(), command).await.unwrap();
     let original_next = DateTime::parse_from_rfc3339("2099-01-01T05:00:00Z")
       .unwrap()

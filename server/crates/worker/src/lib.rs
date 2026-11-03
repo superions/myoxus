@@ -35,7 +35,7 @@ pub mod runtime;
 pub mod scheduler;
 
 pub use config::{JobConfigSnapshot, QueueConfig, RuntimeConfig, TerminalRetentionPolicy};
-pub use job::{BackoffStrategy, Job, JobCounts, JobError, JobOptions, JobRepeatOpts, JobStatus};
+pub use job::{BackoffStrategy, Job, JobCounts, JobError, JobOptions, JobStatus};
 pub use metrics::QueueStats;
 pub use pdf_export_handler::{
   PDF_EXPORT_QUEUE, PdfAssetReader, PdfBlobWriter, PdfExportJobHandler, PdfExportLimits, PdfFontReader,
@@ -45,4 +45,3 @@ pub use pdf_export_metrics::{NoopPdfExportMetrics, PdfExportMetrics, PdfExportOu
 pub use pdf_pipeline::{SyncRenderInputs, SyncRenderOutcome, try_sync_render};
 pub use queue::{QueueError, QueueResult, RedisQueue};
 pub use runtime::{JobHandler, WorkerRuntime};
-pub use scheduler::{CronJob, run_cron_scheduler};

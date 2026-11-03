@@ -12,7 +12,7 @@ import {
 } from "node:fs";
 import path from "node:path";
 
-import JSZip from "jszip";
+import { writeZip } from "../zip-archive.mjs";
 import * as Y from "yjs";
 
 const repoRoot = path.resolve(import.meta.dirname, "../../..");
@@ -385,19 +385,8 @@ const png = Buffer.from(
   "base64",
 );
 
-function addZipEntry(zip, name, value) {
-  zip.file(name, value, { date: fixedDate, createFolders: false });
-}
-
 async function zipBuffer(entries) {
-  const zip = new JSZip();
-  for (const [name, value] of entries) addZipEntry(zip, name, value);
-  return zip.generateAsync({
-    type: "nodebuffer",
-    compression: "DEFLATE",
-    compressionOptions: { level: 6 },
-    platform: "UNIX",
-  });
+  return writeZip(entries, { date: fixedDate, level: 6 });
 }
 
 function snapshotJson(document, mutate = (value) => value) {

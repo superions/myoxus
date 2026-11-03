@@ -1,0 +1,563 @@
+{
+  "type": "page",
+  "meta": {
+    "id": "ed8e53e0-a758-4de3-a8f5-6f12cca60d57",
+    "title": "Tasks · Plan and get things done",
+    "createDate": 1792410153440,
+    "tags": []
+  },
+  "blocks": {
+    "type": "block",
+    "id": "mcp-block-2f17459828f042d88a7b6fb15d7112d2-0000000000000001",
+    "flavour": "myoxus:page",
+    "version": 2,
+    "props": {
+      "title": {
+        "$virgultum:internal:text$": true,
+        "delta": [
+          {
+            "insert": "Tasks · Plan and get things done"
+          }
+        ]
+      }
+    },
+    "children": [
+      {
+        "type": "block",
+        "id": "mcp-block-2f17459828f042d88a7b6fb15d7112d2-0000000000000002",
+        "flavour": "myoxus:surface",
+        "version": 6,
+        "props": {
+          "exportSnapshotBlobId": "",
+          "exportSnapshotWidth": 0,
+          "exportSnapshotHeight": 0,
+          "elements": {}
+        },
+        "children": []
+      },
+      {
+        "type": "block",
+        "id": "mcp-block-2f17459828f042d88a7b6fb15d7112d2-0000000000000003",
+        "flavour": "myoxus:note",
+        "version": 1,
+        "props": {
+          "xywh": "[0,0,498,92]",
+          "background": {
+            "dark": "rgba(0, 0, 0, 1)",
+            "light": "rgba(255, 255, 255, 1)"
+          },
+          "index": "a0",
+          "lockedBySelf": false,
+          "hidden": false,
+          "displayMode": "both",
+          "edgeless": {
+            "style": {
+              "borderRadius": 8,
+              "borderSize": 4,
+              "borderStyle": "none",
+              "shadowType": "--myoxus-note-shadow-box"
+            }
+          }
+        },
+        "children": [
+          {
+            "type": "block",
+            "id": "mcp-block-fa88e92ddcde4cc9a6d6b70161726cde",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Keep track of what needs doing, who will do it and when it is due. Tasks brings together work from your workspace and the projects you can access."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792410255740,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410255740,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-16b96e0e5b31423c8ec8a29177734e0e",
+            "flavour": "myoxus:image",
+            "version": 1,
+            "props": {
+              "sourceId": "assets/f51bd5c25790e05840581ddeafdf99bbc099ef549c42942dd490345c87618282",
+              "caption": "Myoxus helps you keep track of your tasks.",
+              "width": 390,
+              "height": 260,
+              "index": "a0",
+              "xywh": "[0,0,0,0]",
+              "lockedBySelf": false,
+              "rotate": 0,
+              "size": -1,
+              "meta:updatedAt": 1792410255740,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410255740,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-f5ed8a1338414ea3aab711e435897c14",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "01 · Create a task",
+                    "attributes": {
+                      "color": "var(--myoxus-text-highlight-foreground-teal)"
+                    }
+                  }
+                ]
+              },
+              "type": "h3",
+              "collapsed": false
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-b4f12c502cb5453e927336a9082c403f",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Click Tasks in the left sidebar, then New task. Give it an action-based title, such as “Review the quote”. Use the description to explain the result you need or name the relevant documents."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792410255740,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410255740,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-8e6e3f4782ba477fa89021d9c5750ebc",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Under Destination, choose Workspace Tasks or an available project. You can capture a single task without creating a project. Click Create, then Open task to go straight to its details."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792410255741,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410255741,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-ad67f79a39c642f891b4b48fe157dff8",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "02 · Set responsibility and a due date",
+                    "attributes": {
+                      "color": "var(--myoxus-text-highlight-foreground-teal)"
+                    }
+                  }
+                ]
+              },
+              "type": "h3",
+              "collapsed": false
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-4c8f1db5d1a844bc9b47e857d965960f",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "When creating the task, use the person icon to choose who will do the work. Use the calendar icon to add a due date if needed. You can change both later in the task details; use Add details there for further fields."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792410255741,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410255741,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-eb70a2f4e62241ed85227728adf71ac3",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "03 · Keep the status up to date",
+                    "attributes": {
+                      "color": "var(--myoxus-text-highlight-foreground-teal)"
+                    }
+                  }
+                ]
+              },
+              "type": "h3",
+              "collapsed": false
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-b64cffc2122b4577a05a69cc1ceca99e",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Click a task title in the overview to open its details. Use Status to record progress. The available statuses depend on the selected destination."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792410255741,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410255741,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-d3c5a05c6af7474dacf82ee6e84e0b8d",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "When the work is done, click Complete or tick the checkbox beside the title in the task list. To find it again later, switch from Open work to Closed work. You can reopen it there if needed."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792410255741,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410255741,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-22769b61eba546eabc157500b57e16fe",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "04 · Connect tasks with notes",
+                    "attributes": {
+                      "color": "var(--myoxus-text-highlight-foreground-teal)"
+                    }
+                  }
+                ]
+              },
+              "type": "h3",
+              "collapsed": false
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-430c33d6910343f8a88e08b6511c3530",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Select the text of an action item in a document. Open the three-dot menu in the floating formatting toolbar and choose Capture as Task. Check the title, description and destination before creating it. The task retains a reference to its source in the document."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792410255741,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410255741,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-c22297e1ebf5424bb42e68af1aeeeb16",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "After creating it, use Insert reference to place a link to the task in the document. If the task already exists, choose Insert existing Task in the same menu. Meeting notes can then point to that same task."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792410255741,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410255741,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-1dc0cdda8ef944c2b223f640ca294e80",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "05 · Use the overview",
+                    "attributes": {
+                      "color": "var(--myoxus-text-highlight-foreground-teal)"
+                    }
+                  }
+                ]
+              },
+              "type": "h3",
+              "collapsed": false
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-06269f8765fb48dc9722f47f08830440",
+            "flavour": "myoxus:table",
+            "version": 1,
+            "props": {
+              "rows": {
+                "row-0000": {
+                  "backgroundColor": "var(--myoxus-text-highlight-teal)",
+                  "rowId": "row-0000",
+                  "order": "a0000000001"
+                },
+                "row-0001": {
+                  "rowId": "row-0001",
+                  "order": "a0000000011"
+                },
+                "row-0002": {
+                  "rowId": "row-0002",
+                  "order": "a0000000021"
+                },
+                "row-0003": {
+                  "rowId": "row-0003",
+                  "order": "a0000000031"
+                }
+              },
+              "columns": {
+                "col-0001": {
+                  "width": 615,
+                  "columnId": "col-0001",
+                  "order": "a0000000011"
+                },
+                "col-0000": {
+                  "columnId": "col-0000",
+                  "order": "a0000000001",
+                  "width": 185
+                }
+              },
+              "headerRows": 1,
+              "cells": {
+                "row-0000:col-0000": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "View",
+                        "attributes": {
+                          "bold": true
+                        }
+                      }
+                    ]
+                  }
+                },
+                "row-0000:col-0001": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "What it shows",
+                        "attributes": {
+                          "bold": true
+                        }
+                      }
+                    ]
+                  }
+                },
+                "row-0001:col-0000": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "My tasks"
+                      }
+                    ]
+                  }
+                },
+                "row-0001:col-0001": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Tasks assigned to you."
+                      }
+                    ]
+                  }
+                },
+                "row-0002:col-0000": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Following"
+                      }
+                    ]
+                  }
+                },
+                "row-0002:col-0001": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Tasks you follow through their task menu."
+                      }
+                    ]
+                  }
+                },
+                "row-0003:col-0000": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "All"
+                      }
+                    ]
+                  }
+                },
+                "row-0003:col-0001": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "All tasks you can access."
+                      }
+                    ]
+                  }
+                }
+              },
+              "appearance": "ruled",
+              "density": "compact"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-5c1e8009924a4064a2de92bd273a1bca",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "type": "text",
+              "collapsed": false,
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Search for tasks by title, then narrow the results with filters. Who can read a task depends on its destination; My tasks is a filtered view."
+                  }
+                ]
+              },
+              "meta:updatedAt": 1792410255741,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410255741,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-9c371ed608054c4b93e6292581dd5ad8",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "collapsed": false,
+              "meta:updatedAt": 1792410255742,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410255742,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "A checklist in a document is enough for ticking off small items. Create a task when you want to track responsibility, a due date or progress in the task overview.",
+                    "attributes": {
+                      "color": "var(--myoxus-text-highlight-foreground-teal)"
+                    }
+                  }
+                ]
+              },
+              "type": "quote"
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

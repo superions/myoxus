@@ -207,7 +207,29 @@ async fn inv_cal_native03_create_workspace_event_succeeds() {
   let (app, _state) = build_app(pool.clone(), store.clone()).await;
 
   let (user_id, session_id) = create_session(&pool, &store, "creator").await;
-  let ws_id = seed_workspace(&pool, &store, user_id).await;
+  // The workspace root resolves through WorkspaceService's memory store in
+  // this harness; native event persistence uses SQL. Give both the same owner.
+  let workspace = store
+    .create_workspace(
+      user_id,
+      myoxus_application::workspace::WorkspaceName::parse("Calendar projection").unwrap(),
+    )
+    .await
+    .unwrap();
+  let ws_id = workspace.id;
+  sqlx::query("INSERT INTO workspaces(id,owner_user_id,name) VALUES($1,$2,$3)")
+    .bind(ws_id)
+    .bind(user_id)
+    .bind(&workspace.name)
+    .execute(&pool)
+    .await
+    .expect("persist Calendar workspace identity");
+  sqlx::query("INSERT INTO workspace_memberships(workspace_id,user_id,role,status) VALUES($1,$2,'Owner','Accepted')")
+    .bind(ws_id)
+    .bind(user_id)
+    .execute(&pool)
+    .await
+    .expect("persist Calendar workspace owner");
 
   let resp = gql(
     &app,
@@ -222,7 +244,8 @@ async fn inv_cal_native03_create_workspace_event_succeeds() {
           "title": "Stand-up",
           "startsAt": "2026-05-01T09:00:00Z",
           "endsAt": "2026-05-01T09:30:00Z",
-          "allDay": false
+          "allDay": false,
+          "recurrence":{"frequency":"Weekly","interval":1,"zone":"UTC","weekdays":["Friday"],"start":{"localDateTime":"2026-05-01T09:00:00"}}
         }
       }
     }),
@@ -234,6 +257,26 @@ async fn inv_cal_native03_create_workspace_event_succeeds() {
   assert_eq!(event["origin"], "Native", "origin must be Native, got: {resp}");
   assert_eq!(event["title"], "Stand-up");
   assert_eq!(event["allDay"], false);
+  let projected=gql(&app,session_id,json!({
+    "query":"query($ws:String!){workspace(id:$ws){calendars{items{subscriptionId} events(from:\"2029-05-01T00:00:00Z\",to:\"2029-06-01T00:00:00Z\"){id subscriptionId recurrenceId}}}}",
+    "variables":{"ws":ws_id.to_string()}
+  })).await;
+  assert!(projected.get("errors").is_none(), "{projected}");
+  let native = &projected["data"]["workspace"]["calendars"][0];
+  let visible_subscription = &native["items"][0]["subscriptionId"];
+  assert_eq!(visible_subscription, &format!("{ws_id}:native"));
+  let occurrences = native["events"].as_array().expect("projected native events");
+  assert_eq!(
+    occurrences.len(),
+    4,
+    "the existing workspace calendar query must show continuing native occurrences"
+  );
+  assert!(
+    occurrences.iter().all(|occurrence| occurrence["id"] == event["id"]
+      && occurrence["subscriptionId"] == *visible_subscription
+      && occurrence["recurrenceId"].is_string()),
+    "each occurrence must be admitted by the consumer's existing calendar-identity filter"
+  );
 
   // A single-occurrence delete remains an authenticated master update.
   let event_id = event["id"].as_str().unwrap().to_string();
@@ -283,6 +326,16 @@ async fn inv_cal_native03_create_workspace_event_succeeds() {
     del["data"]["deleteWorkspaceEvent"], true,
     "cleanup delete must succeed: {del}"
   );
+  sqlx::query("DELETE FROM workspaces WHERE id=$1")
+    .bind(ws_id)
+    .execute(&pool)
+    .await
+    .expect("remove native Calendar fixture workspace");
+  sqlx::query("DELETE FROM users WHERE id=$1")
+    .bind(user_id)
+    .execute(&pool)
+    .await
+    .expect("remove native Calendar fixture user");
 }
 
 /// Event references resolve independently from a date-range query and remain
@@ -399,6 +452,7 @@ async fn calendar_native_update_reminders_replace_and_clear() {
         "input": {
           "workspaceId": ws_id.to_string(),
           "title": "Reminder contract",
+          "descriptionDelta": {"text":"Keep until explicitly cleared"},
           "startsAt": "2026-05-03T09:00:00Z",
           "endsAt": "2026-05-03T10:00:00Z",
           "reminders": [{ "minutesBefore": 30, "channel": "email" }]
@@ -458,7 +512,7 @@ async fn calendar_native_update_reminders_replace_and_clear() {
     json!({
       "query": r#"mutation($eventId: String!, $workspaceId: String!, $input: UpdateWorkspaceEventInput!) {
         updateWorkspaceEvent(eventId: $eventId, workspaceId: $workspaceId, scope: All, input: $input) {
-          reminders { minutesBefore }
+          descriptionDelta reminders { minutesBefore }
         }
       }"#,
       "variables": {
@@ -470,6 +524,10 @@ async fn calendar_native_update_reminders_replace_and_clear() {
   )
   .await;
   assert!(unchanged["errors"].is_null(), "omitted patch must succeed: {unchanged}");
+  assert_eq!(
+    unchanged["data"]["updateWorkspaceEvent"]["descriptionDelta"],
+    json!({"text":"Keep until explicitly cleared"})
+  );
   assert_eq!(
     unchanged["data"]["updateWorkspaceEvent"]["reminders"]
       .as_array()
@@ -484,18 +542,22 @@ async fn calendar_native_update_reminders_replace_and_clear() {
     json!({
       "query": r#"mutation($eventId: String!, $workspaceId: String!, $input: UpdateWorkspaceEventInput!) {
         updateWorkspaceEvent(eventId: $eventId, workspaceId: $workspaceId, scope: All, input: $input) {
-          reminders { minutesBefore }
+          descriptionDelta reminders { minutesBefore }
         }
       }"#,
       "variables": {
         "eventId": event_id,
         "workspaceId": ws_id.to_string(),
-        "input": { "reminders": [] }
+        "input": { "reminders": [], "descriptionDelta":null }
       }
     }),
   )
   .await;
   assert!(cleared["errors"].is_null(), "clear must succeed: {cleared}");
+  assert!(
+    cleared["data"]["updateWorkspaceEvent"]["descriptionDelta"].is_null(),
+    "explicit null must cross the GraphQL and SQL patch boundaries"
+  );
   assert!(
     cleared["data"]["updateWorkspaceEvent"]["reminders"]
       .as_array()

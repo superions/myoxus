@@ -1,0 +1,563 @@
+{
+  "type": "page",
+  "meta": {
+    "id": "6f10cf18-c423-4750-9856-19b9ebe4045a",
+    "title": "Tâches · Organiser et avancer",
+    "createDate": 1792410154760,
+    "tags": []
+  },
+  "blocks": {
+    "type": "block",
+    "id": "mcp-block-a355cea4f63243ab99c398670c3defb9-0000000000000001",
+    "flavour": "myoxus:page",
+    "version": 2,
+    "props": {
+      "title": {
+        "$virgultum:internal:text$": true,
+        "delta": [
+          {
+            "insert": "Tâches · Organiser et avancer"
+          }
+        ]
+      }
+    },
+    "children": [
+      {
+        "type": "block",
+        "id": "mcp-block-a355cea4f63243ab99c398670c3defb9-0000000000000002",
+        "flavour": "myoxus:surface",
+        "version": 6,
+        "props": {
+          "exportSnapshotBlobId": "",
+          "exportSnapshotWidth": 0,
+          "exportSnapshotHeight": 0,
+          "elements": {}
+        },
+        "children": []
+      },
+      {
+        "type": "block",
+        "id": "mcp-block-a355cea4f63243ab99c398670c3defb9-0000000000000003",
+        "flavour": "myoxus:note",
+        "version": 1,
+        "props": {
+          "xywh": "[0,0,498,92]",
+          "background": {
+            "dark": "rgba(0, 0, 0, 1)",
+            "light": "rgba(255, 255, 255, 1)"
+          },
+          "index": "a0",
+          "lockedBySelf": false,
+          "hidden": false,
+          "displayMode": "both",
+          "edgeless": {
+            "style": {
+              "borderRadius": 8,
+              "borderSize": 4,
+              "borderStyle": "none",
+              "shadowType": "--myoxus-note-shadow-box"
+            }
+          }
+        },
+        "children": [
+          {
+            "type": "block",
+            "id": "mcp-block-94f11af9e14746e7bad012ddf1950713",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Gardez une trace de ce qu’il faut faire, de la personne qui s’en charge et de l’échéance. La rubrique Tâches regroupe les tâches de votre espace de travail et des projets auxquels vous avez accès."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792410262885,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410262885,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-33eca3f07cd04bb2b36f9a64bbb26907",
+            "flavour": "myoxus:image",
+            "version": 1,
+            "props": {
+              "sourceId": "assets/f51bd5c25790e05840581ddeafdf99bbc099ef549c42942dd490345c87618282",
+              "caption": "Myoxus vous aide à garder vos tâches en vue.",
+              "width": 390,
+              "height": 260,
+              "index": "a0",
+              "xywh": "[0,0,0,0]",
+              "lockedBySelf": false,
+              "rotate": 0,
+              "size": -1,
+              "meta:updatedAt": 1792410262886,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410262886,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-96f5380df34c44da93fb8af9e96df1c4",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "01 · Créer une tâche",
+                    "attributes": {
+                      "color": "var(--myoxus-text-highlight-foreground-teal)"
+                    }
+                  }
+                ]
+              },
+              "type": "h3",
+              "collapsed": false
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-5ae3d60e765a4f88b3c79a0513001644",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Cliquez sur Tâches dans la barre latérale gauche, puis sur Nouvelle tâche. Donnez-lui un titre qui décrit l’action, par exemple « Vérifier le devis ». Dans la description, précisez le résultat attendu ou les documents utiles."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792410262887,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410262887,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-2950bbce3d7d42a7a18d0bf781ff4cca",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Sous Destination, choisissez Tâches de l’espace de travail ou un projet disponible. Un point à traiter peut être enregistré sans créer de projet. Cliquez sur Créer, puis sur Ouvrir la tâche pour accéder à ses détails."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792410262887,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410262887,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-e4eb693363df4079896f5484b509c1a1",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "02 · Attribuer le travail et fixer une échéance",
+                    "attributes": {
+                      "color": "var(--myoxus-text-highlight-foreground-teal)"
+                    }
+                  }
+                ]
+              },
+              "type": "h3",
+              "collapsed": false
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-a83feb50706c4c75a2a47b16ff35b7df",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Dès la création, utilisez l’icône représentant une personne pour choisir qui s’en charge. L’icône du calendrier permet d’ajouter une échéance si nécessaire. Vous pourrez modifier ces deux éléments dans les détails de la tâche ; d’autres champs sont accessibles via « Compléter »."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792410262887,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410262887,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-40fcae884c3c45c08b2f1078f09a7107",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "03 · Tenir l’avancement à jour",
+                    "attributes": {
+                      "color": "var(--myoxus-text-highlight-foreground-teal)"
+                    }
+                  }
+                ]
+              },
+              "type": "h3",
+              "collapsed": false
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-ddae8f09e0cc49079683f69464cba381",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Cliquez sur le titre d’une tâche dans la liste pour ouvrir ses détails. Utilisez Statut pour indiquer l’avancement. Les statuts disponibles dépendent de la destination choisie."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792410262888,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410262888,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-ac055a5d7b4f4ce9b25fb2d23ce2c40a",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Une fois le travail terminé, cliquez sur « Terminé » ou cochez la case à côté du titre dans la liste. Pour retrouver la tâche, passez de Tâches ouvertes à Tâches closes. Vous pourrez la rouvrir si besoin."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792410262888,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410262888,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-0a869cc53e834a2bb1d31ffed792712e",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "04 · Relier les tâches aux notes",
+                    "attributes": {
+                      "color": "var(--myoxus-text-highlight-foreground-teal)"
+                    }
+                  }
+                ]
+              },
+              "type": "h3",
+              "collapsed": false
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-a0ff14775e3942cfa045ec75d5a3ac4f",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Dans un document, sélectionnez le texte d’un point à traiter. Ouvrez le menu à trois points de la barre de mise en forme, puis choisissez Créer une tâche à partir du texte. Vérifiez le titre, la description et la destination avant de créer la tâche. Elle conserve une référence au passage d’origine."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792410262888,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410262888,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-ead70cfb313b4ce3ace28135a3bb85c1",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Après la création, cliquez sur Insérer une référence pour ajouter un lien vers la tâche dans le document. Si la tâche existe déjà, choisissez Insérer une tâche existante dans le même menu. Un compte rendu peut ainsi renvoyer à cette même tâche."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792410262888,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410262888,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-263db3b69f45462884ac24fd6ee1556b",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "05 · Utiliser la vue d’ensemble",
+                    "attributes": {
+                      "color": "var(--myoxus-text-highlight-foreground-teal)"
+                    }
+                  }
+                ]
+              },
+              "type": "h3",
+              "collapsed": false
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-91b726e60bd64ab29f7130070cb729ce",
+            "flavour": "myoxus:table",
+            "version": 1,
+            "props": {
+              "columns": {
+                "col-0001": {
+                  "width": 615,
+                  "columnId": "col-0001",
+                  "order": "a0000000011"
+                },
+                "col-0000": {
+                  "columnId": "col-0000",
+                  "order": "a0000000001",
+                  "width": 185
+                }
+              },
+              "headerRows": 1,
+              "rows": {
+                "row-0000": {
+                  "rowId": "row-0000",
+                  "order": "a0000000001",
+                  "backgroundColor": "var(--myoxus-text-highlight-teal)"
+                },
+                "row-0001": {
+                  "rowId": "row-0001",
+                  "order": "a0000000011"
+                },
+                "row-0002": {
+                  "rowId": "row-0002",
+                  "order": "a0000000021"
+                },
+                "row-0003": {
+                  "rowId": "row-0003",
+                  "order": "a0000000031"
+                }
+              },
+              "cells": {
+                "row-0000:col-0000": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Vue",
+                        "attributes": {
+                          "bold": true
+                        }
+                      }
+                    ]
+                  }
+                },
+                "row-0000:col-0001": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Contenu",
+                        "attributes": {
+                          "bold": true
+                        }
+                      }
+                    ]
+                  }
+                },
+                "row-0001:col-0000": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Mes tâches"
+                      }
+                    ]
+                  }
+                },
+                "row-0001:col-0001": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Les tâches qui vous sont attribuées."
+                      }
+                    ]
+                  }
+                },
+                "row-0002:col-0000": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Suivies"
+                      }
+                    ]
+                  }
+                },
+                "row-0002:col-0001": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Les tâches auxquelles vous vous abonnez depuis leur menu."
+                      }
+                    ]
+                  }
+                },
+                "row-0003:col-0000": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Toutes"
+                      }
+                    ]
+                  }
+                },
+                "row-0003:col-0001": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Toutes les tâches auxquelles vous avez accès."
+                      }
+                    ]
+                  }
+                }
+              },
+              "appearance": "ruled",
+              "density": "compact"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-2a6c87587ff4457a8f89d87d7ddfa920",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "type": "text",
+              "collapsed": false,
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Recherchez une tâche par son titre, puis affinez les résultats avec les filtres. Les droits de lecture dépendent de la destination ; Mes tâches est une vue filtrée."
+                  }
+                ]
+              },
+              "meta:updatedAt": 1792410262889,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410262889,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-c780ed07a79a4b3a9997d0f3cade2990",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "collapsed": false,
+              "meta:updatedAt": 1792410262889,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410262889,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Une liste à cocher dans un document suffit pour de petits points à régler. Créez une tâche pour suivre la personne responsable, l’échéance ou l’avancement dans la rubrique Tâches.",
+                    "attributes": {
+                      "color": "var(--myoxus-text-highlight-foreground-teal)"
+                    }
+                  }
+                ]
+              },
+              "type": "quote"
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

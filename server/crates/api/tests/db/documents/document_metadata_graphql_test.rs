@@ -6,6 +6,88 @@ use serde_json::{Value, json};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 
+/// Native metadata rearm must reach the actual Run/snapshot storage consumer.
+/// Ledger/schema checks alone missed the Task-only generated generation fence.
+#[test]
+fn metadata_deadline_rearms_one_native_review_without_duplicate_admission() {
+  crate::helpers::block_on_large_stack("metadata-review-contract", || async {
+    use futures_util::FutureExt;
+    use myoxus_application::{
+      doc::document_fragment_from_markdown, document_metadata::review::ReviewPlanningCapabilities,
+      workspace_automation::runtime::WorkspaceAutomationRuntime,
+    };
+    use myoxus_infrastructure::{
+      document_metadata::PgDocumentMetadataRepository, scheduling::PgSchedulingRepository,
+      workflow_runtime::GlirulusWorkspaceAutomationRuntime,
+    };
+    use std::{panic::AssertUnwindSafe, sync::Arc};
+    let (_, pool, auth, state) = crate::helpers::setup_app_with_template_registry_and_sql_notifications_state().await;
+    let (actor, session) = crate::helpers::seed_user(&pool, &auth, "metadata-review-contract").await;
+    let workspace = crate::helpers::create_workspace(&pool, actor).await;
+    let mut runs = Vec::new();
+    let result=AssertUnwindSafe(async{
+      state.workspace().seed_root_doc(workspace,actor,yjs::create_initial_workspace_doc("Review contract")).await.unwrap();
+      let created=state.doc().create_page_lifecycle(workspace,actor,Some("Safety review".into()),Some(document_fragment_from_markdown("Inspect the pressure-isolation interlock.").unwrap())).await.unwrap();
+      let document=created.document.id;
+      let metadata=state.document_metadata_service().unwrap().with_review_planning(ReviewPlanningCapabilities{
+        repo:Arc::new(PgDocumentMetadataRepository::new(pool.clone())),packages:state.assistant_packages().unwrap(),
+        automations:state.workspace_automation_service().unwrap(),auth:Arc::new(state.auth().clone()),defaults:state.user_preference_defaults().await});
+      let app=myoxus_api::build_router_for_integration_tests(state.clone().with_document_metadata_service(metadata.clone()));
+      let now=Utc::now();
+      let source=now+Duration::days(5);
+      let first=metadata.review_planning(document,workspace).await.unwrap();
+      let patch=|revision,values:Value|json!({"query":"mutation($ws:ID!,$doc:ID!,$input:SetDocumentMetadataInput!){setDocumentMetadata(workspaceId:$ws,docId:$doc,input:$input){metadata{metadataRevision}}}","variables":{"ws":workspace,"doc":created.document.external_id,"input":{
+        "expectedMetadataRevision":revision,"reviewDueAt":values["reviewDueAt"],"validUntil":values["validUntil"],"responsibleUserId":actor}}});
+      let response=crate::helpers::gql_with_headers(&app,session,patch(first.metadata_revision,json!({"reviewDueAt":source,"validUntil":source+Duration::days(1)})),&[("x-myoxus-client-format","myoxus-native")]).await;
+      assert!(response.get("errors").is_none(),"{response}");
+      let revision=response["data"]["setDocumentMetadata"]["metadata"]["metadataRevision"].as_i64().unwrap();
+      metadata.configure_review_planning(document,workspace,actor,revision,true).await.unwrap();
+      // Edit both sources before admission; only the effective latest minimum
+      // may own a Run. No fabricated accepted JSON or direct Run INSERT.
+      let current=metadata.review_planning(document,workspace).await.unwrap();
+      let earlier=source-Duration::days(1);
+      let response=crate::helpers::gql_with_headers(&app,session,patch(current.metadata_revision,json!({"reviewDueAt":source+Duration::days(2),"validUntil":earlier})),&[("x-myoxus-client-format","myoxus-native")]).await;
+      assert!(response.get("errors").is_none(),"{response}");
+      let current=metadata.review_planning(document,workspace).await.unwrap();
+      assert_eq!(current.source_deadline.unwrap().timestamp_micros(),earlier.timestamp_micros());
+      let runtime=Arc::new(GlirulusWorkspaceAutomationRuntime::new(pool.clone(),state.workspace_automation_service().unwrap().native_executor()));
+      runtime.readiness().await.unwrap();
+      let scheduler=PgSchedulingRepository::new(pool.clone(),runtime).with_document_review_source(Arc::new(metadata.clone()));
+      let slot=myoxus_domain::scheduling::document_review_occurrence_id(document,current.source_deadline.unwrap());
+      let run=Uuid::new_v5(&slot,b"run");runs.push(run);
+      let (a,b)=tokio::join!(scheduler.dispatch_due(now,50),scheduler.dispatch_due(now,50));
+      let _=(a.unwrap(),b.unwrap());
+      let actual:(i64,i64,i64,Option<i64>)=sqlx::query_as("SELECT (SELECT count(*) FROM scheduling_occurrences WHERE schedule_id=$1),(SELECT count(*) FROM workspace_automation_runs WHERE id=$2),(SELECT count(*) FROM sayiir_workflow_snapshots WHERE instance_id=$3),(SELECT scheduling_generation FROM workspace_automation_runs WHERE id=$2)")
+        .bind(myoxus_domain::scheduling::document_review_schedule_id(document)).bind(run).bind(run.to_string()).fetch_one(&pool).await.unwrap();
+      assert_eq!((actual.0,actual.1,actual.2),(1,1,1),"metadata must reach one durable native Run/snapshot even with concurrent dispatch");
+      assert!(actual.3.is_some_and(|generation|generation>0),"automatic Review must pass the generated scheduling fence");
+      let accepted=metadata.review_planning(document,workspace).await.unwrap();
+      assert_eq!(accepted.run_id,Some(run));
+      metadata.configure_review_planning(document,workspace,actor,accepted.metadata_revision,false).await.unwrap();
+      let disabled=metadata.review_planning(document,workspace).await.unwrap();
+      metadata.configure_review_planning(document,workspace,actor,disabled.metadata_revision,true).await.unwrap();
+      scheduler.dispatch_due(now+Duration::seconds(31),50).await.unwrap();
+      let restored=metadata.review_planning(document,workspace).await.unwrap();
+      assert_eq!((restored.run_id,restored.blocked_reason.as_deref()),(Some(run),Some("cycleAlreadyAccepted")));
+      let count:i64=sqlx::query_scalar("SELECT count(*) FROM scheduling_occurrences WHERE schedule_id=$1")
+        .bind(myoxus_domain::scheduling::document_review_schedule_id(document)).fetch_one(&pool).await.unwrap();
+      assert_eq!(count,1,"reconfirmation cannot create another native Review");
+    }).catch_unwind().await;
+    for run in &runs {
+      sqlx::query("DELETE FROM sayiir_workflow_snapshots WHERE instance_id=$1")
+        .bind(run.to_string())
+        .execute(&pool)
+        .await
+        .unwrap();
+    }
+    crate::helpers::cleanup_workspaces(&pool, &[workspace]).await;
+    crate::helpers::cleanup_users(&pool, &[actor]).await;
+    if let Err(panic) = result {
+      std::panic::resume_unwind(panic)
+    }
+  });
+}
+
 async fn reference_id(pool: &PgPool, table: &str, key: &str) -> Uuid {
   let sql = format!("SELECT id FROM {table} WHERE key = $1");
   sqlx::query_scalar(&sql)

@@ -12,6 +12,8 @@ query calendarEvent($workspaceId: String!, $eventId: String!) {
     sourceExternalId
     descriptionDelta
     recurrenceParentId
+    recurrenceId
+    recurrence { ...CalendarRecurrenceFields }
     reminders {
       id
       channel

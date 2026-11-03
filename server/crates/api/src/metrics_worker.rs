@@ -23,8 +23,9 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use chrono::{Duration, Utc};
 use myoxus_application::metrics::MetricsService;
+use myoxus_domain::scheduling::registered::{RegisteredJob, RegisteredWorker};
 use myoxus_infrastructure::metrics::{prune_with_advisory_lock, rollup_day_with_advisory_lock};
-use myoxus_worker::{CronJob, Job, JobError, JobHandler};
+use myoxus_worker::{Job, JobError, JobHandler};
 use sqlx::PgPool;
 use tracing::{info, instrument, warn};
 
@@ -147,35 +148,14 @@ impl MetricsQueueHandler {
 
 /// Produces the persistence schedules for the metrics pipeline.
 ///
-/// Callers must invoke this only when persistence is enabled. The handler
-/// repeats that check so a stale Redis job cannot write after a restart with
-/// persistence disabled.
-pub fn metrics_cron_jobs(flush_interval_seconds: u64) -> Vec<CronJob> {
+/// Register all definitions, setting their enabled state from the same startup
+/// persistence policy. The handler retains its check for old queued deliveries.
+pub fn metrics_schedules(flush_interval_seconds: u64) -> Vec<RegisteredWorker> {
   let every_ms = flush_interval_seconds.max(1).saturating_mul(1_000);
   vec![
-    CronJob {
-      queue: METRICS_QUEUE.to_string(),
-      job_name: "metrics.flush".to_string(),
-      data: serde_json::json!({}),
-      cron_expr: None,
-      every_ms: Some(every_ms),
-    },
-    CronJob {
-      queue: METRICS_QUEUE.to_string(),
-      job_name: "metrics.rollup".to_string(),
-      data: serde_json::json!({}),
-      // 6-field cron: sec min hour dom mon dow — 00:10 UTC daily.
-      cron_expr: Some("0 10 0 * * *".to_string()),
-      every_ms: None,
-    },
-    CronJob {
-      queue: METRICS_QUEUE.to_string(),
-      job_name: "metrics.retention".to_string(),
-      data: serde_json::json!({}),
-      // 00:20 UTC daily (spaced 10 min after rollup).
-      cron_expr: Some("0 20 0 * * *".to_string()),
-      every_ms: None,
-    },
+    RegisteredWorker::interval(RegisteredJob::MetricsFlush, every_ms, serde_json::json!({})),
+    RegisteredWorker::cron(RegisteredJob::MetricsRollup, "0 10 0 * * *", serde_json::json!({})),
+    RegisteredWorker::cron(RegisteredJob::MetricsRetention, "0 20 0 * * *", serde_json::json!({})),
   ]
 }
 
@@ -209,19 +189,29 @@ mod tests {
 
   #[test]
   fn cron_jobs_have_flush_rollup_retention() {
-    let jobs = metrics_cron_jobs(60);
+    let jobs = metrics_schedules(60);
     assert_eq!(jobs.len(), 3);
-    assert_eq!(jobs[0].job_name, "metrics.flush");
-    assert_eq!(jobs[0].every_ms, Some(60_000));
-    assert_eq!(jobs[1].job_name, "metrics.rollup");
-    assert!(jobs[1].cron_expr.as_deref().unwrap_or("").starts_with("0 10"));
-    assert_eq!(jobs[2].job_name, "metrics.retention");
-    assert!(jobs[2].cron_expr.as_deref().unwrap_or("").starts_with("0 20"));
+    assert_eq!(jobs[0].job, RegisteredJob::MetricsFlush);
+    assert_eq!(
+      jobs[0].schedule.timing,
+      myoxus_domain::scheduling::registered::WorkerTiming::Interval { every_ms: 60_000 }
+    );
+    assert_eq!(jobs[1].job, RegisteredJob::MetricsRollup);
+    assert!(
+      matches!(&jobs[1].schedule.timing,myoxus_domain::scheduling::registered::WorkerTiming::UtcCron{expression}if expression.starts_with("0 10"))
+    );
+    assert_eq!(jobs[2].job, RegisteredJob::MetricsRetention);
+    assert!(
+      matches!(&jobs[2].schedule.timing,myoxus_domain::scheduling::registered::WorkerTiming::UtcCron{expression}if expression.starts_with("0 20"))
+    );
   }
 
   #[test]
   fn zero_flush_interval_clamps_to_one_second() {
-    let jobs = metrics_cron_jobs(0);
-    assert_eq!(jobs[0].every_ms, Some(1_000));
+    let jobs = metrics_schedules(0);
+    assert_eq!(
+      jobs[0].schedule.timing,
+      myoxus_domain::scheduling::registered::WorkerTiming::Interval { every_ms: 1_000 }
+    );
   }
 }

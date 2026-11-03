@@ -33,6 +33,8 @@ mod auth_password_test;
 mod blob_upload_test;
 #[path = "realtime/connection_admission_test.rs"]
 mod connection_admission_test;
+#[path = "db/documents/document_metadata_graphql_test.rs"]
+mod document_metadata_graphql_test;
 #[path = "integrations/git_sync/git_sync_db_invariants_test.rs"]
 mod git_sync_db_invariants_test;
 #[path = "integrations/git_sync/git_sync_file_pipeline_test.rs"]

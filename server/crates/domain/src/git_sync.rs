@@ -89,21 +89,6 @@ impl fmt::Display for GitSyncRunSource {
   }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum GitSyncCronMisfirePolicy {
-  Skip,
-  RunOnce,
-}
-
-impl fmt::Display for GitSyncCronMisfirePolicy {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    match self {
-      Self::Skip => f.write_str("Skip"),
-      Self::RunOnce => f.write_str("RunOnce"),
-    }
-  }
-}
-
 /// Authentication method for the remote Git repository.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum AuthMethod {
@@ -381,7 +366,7 @@ pub struct GitSyncProfile {
   pub polling_interval_secs: Option<i64>,
   pub cron_expression: Option<String>,
   pub cron_timezone: Option<String>,
-  pub cron_misfire_policy: Option<GitSyncCronMisfirePolicy>,
+  pub cron_misfire_policy: Option<crate::scheduling::CronMisfirePolicy>,
   pub cron_next_scheduled_at: Option<DateTime<Utc>>,
   pub cron_pending_misfire_scheduled_for: Option<DateTime<Utc>>,
   pub auth_method: AuthMethod,

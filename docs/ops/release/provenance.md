@@ -205,9 +205,11 @@ must agree when supplied. SBOMs retain the canonical revision and add public
 source references without inventing hashes for generated GitHub downloads.
 Unconfigured development builds make no claim about public source availability.
 
-The OCI workflow accepts `source_provenance_url` and `source_provenance_sha256`
-(or the `PUBLIC_SOURCE_PROVENANCE_URL` / `PUBLIC_SOURCE_PROVENANCE_SHA256`
-repository variables for tag builds). It downloads only that digest-bound report
+The OCI workflow accepts explicit `source_provenance_url` and
+`source_provenance_sha256` overrides. Otherwise its shared release preparation
+creates the correspondence for the exact source revision automatically; it
+does not use the obsolete global `PUBLIC_SOURCE_PROVENANCE_*` variables.
+It downloads only that digest-bound report
 and verifies its build revision before use. Server BuildKit receives the report
 through an optional secret mount, while only the resulting correspondence is
 included in the legal bundle. The report is also retained with build evidence.
@@ -222,12 +224,15 @@ the publication input JSON. It contains the version/tag, `prerelease`, inline
 `assets` list using the existing artifact names and SHA-256 values. Each asset
 has `name`, `url`, `sha256` and optional `size`; identify original legal/SBOM
 files with `kind: "legal"` / `kind: "sbom"`, and the release provenance report
-with `kind: "provenance"`. Git-based source correspondence needs no source asset.
+with `kind: "provenance"`. New publication inputs require the qualified Git tree
+and reject duplicate source-archive assets; historical reports remain readable.
 Server Build starts automatically on `server-v*` tags.
 After the existing Ubuntu DEB and Fedora RPM installation jobs pass, it retains
 the accepted packages and original native SBOM in the runner's `server-release`
-cache. The GitHub workflow automatically adds those three files for the exact
-provenance revision and version, including their download links and checksums.
+cache. The GitHub workflow automatically adds those three files from the accepted
+run for the exact provenance revision/version, with download links and checksums.
+Producer-approved reuse keeps original package filenames and SBOM build revisions;
+the publisher does not relabel them or repeat the producer's source qualification.
 Do not add them manually to the input list. If Server Build is still running or
 failed, preparation stops before a GitHub write; finish or recover that existing
 run and prepare again. Copying performs no build, repackaging or installation.

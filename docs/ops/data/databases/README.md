@@ -47,14 +47,12 @@ All Database limit settings are restart-required.
 | `databases.csv_max_columns`<br>Admin: `databases.csvMaxColumns`                                              | 100        | Maximum import columns.                               |
 | `databases.csv_sample_rows_for_type_inference`<br>Admin: `databases.csvSampleRowsForTypeInference`           | 100        | Rows sampled for CSV type inference.                  |
 | `databases.notion_max_bytes`<br>Admin: not exposed                                                           | 67,108,864 | Maximum Notion HTML/ZIP payload.                      |
-| `databases.reminder_batch_size`<br>Admin: `databases.reminderBatchSize`                                      | 100        | Due Reminder claims per scheduler pass.               |
 | `databases.max_reminders_per_user_per_cell`<br>Admin: `databases.maxRemindersPerUserPerCell`                 | 5          | Live personal Reminders per user/Cell.                |
 | `databases.max_reminder_offset_minutes`<br>Admin: `databases.maxReminderOffsetMinutes`                       | 525,600    | Maximum personal Reminder lead time.                  |
 | `i18n.default_currency`<br>Admin: `i18n.defaultCurrency`                                                     | `EUR`      | ISO-4217 default for new Currency Fields/templates.   |
 | `job.queues.database`                                                                                        | object     | Canonical queue policy object.                        |
 | `job.queues.database.concurrency`                                                                            | 1          | Worker concurrency for the canonical Database queue.  |
 | `worker.polling.database_projection_interval_ms`<br>Admin: `serverTuning.workerDatabaseProjectionIntervalMs` | 30,000     | Projection catch-up interval.                         |
-| `worker.polling.database_reminder_interval_ms`<br>Admin: `serverTuning.workerDatabaseReminderIntervalMs`     | 60,000     | Personal Reminder scheduler interval.                 |
 
 Example override:
 
@@ -70,7 +68,6 @@ databases:
   csv_max_columns: 100
   csv_sample_rows_for_type_inference: 100
   notion_max_bytes: 67108864
-  reminder_batch_size: 100
   max_reminders_per_user_per_cell: 5
   max_reminder_offset_minutes: 525600
 i18n:
@@ -82,7 +79,6 @@ job:
 worker:
   polling:
     database_projection_interval_ms: 30000
-    database_reminder_interval_ms: 60000
 ```
 
 Environment variables follow the standard double-underscore convention, for

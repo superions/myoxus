@@ -22,6 +22,21 @@ use uuid::Uuid;
 mod native_text;
 use native_text::{PrivateBlocks, restore_native_text_targets};
 
+/// Project an already captured complete document for format adapters. Preserve
+/// private text, list ordering and table identities without exposing the
+/// structured-response pagination contract or reloading a newer revision.
+pub(crate) fn project_snapshot_for_export(
+  workspace_id: Uuid,
+  doc_id: Uuid,
+  title: &str,
+  snapshot: &[u8],
+) -> Result<PublicDocIr, DocumentProjectionError> {
+  let mut ir = myoxus_public_render::document_from_yjs_for_editing(workspace_id, doc_id, title, "Private", snapshot)
+    .map_err(|_| DocumentProjectionError::Projection)?;
+  restore_native_text_targets(&mut ir);
+  Ok(ir)
+}
+
 use super::DocLoadService;
 use crate::public::PUBLIC_RENDERER_VERSION;
 

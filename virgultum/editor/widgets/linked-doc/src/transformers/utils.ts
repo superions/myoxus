@@ -1,35 +1,34 @@
 import { extMimeMap, getAssetName } from "@virgultum/store";
-import * as fflate from "fflate";
+import {
+  BlobReader,
+  BlobWriter,
+  TextReader,
+  ZipReader,
+  ZipWriter,
+} from "@zip.js/zip.js";
 import { parseDocument, Scalar, visit } from "yaml";
 
 export class Zip {
-  private compressed = new Uint8Array();
+  private readonly zip: ZipWriter<Blob>;
+  private result?: Promise<Blob>;
 
-  private finalize?: () => void;
-
-  private finalized = false;
-
-  private readonly zip = new fflate.Zip((err, chunk, final) => {
-    if (!err) {
-      const temp = new Uint8Array(this.compressed.length + chunk.length);
-      temp.set(this.compressed);
-      temp.set(chunk, this.compressed.length);
-      this.compressed = temp;
-    }
-    if (final) {
-      this.finalized = true;
-      this.finalize?.();
-    }
-  });
+  constructor(signal?: AbortSignal) {
+    this.zip = new ZipWriter(new BlobWriter("application/zip"), {
+      useWebWorkers: false,
+      keepOrder: true,
+      signal,
+    });
+  }
 
   async file(path: string, content: Blob | File | string) {
-    const deflate = new fflate.ZipDeflate(path);
-    this.zip.add(deflate);
-    if (typeof content === "string") {
-      deflate.push(fflate.strToU8(content), true);
-    } else {
-      deflate.push(new Uint8Array(await content.arrayBuffer()), true);
-    }
+    if (this.result) throw new Error("Archive is already finalized");
+    validateArchivePath(path);
+    await this.zip.add(
+      path,
+      typeof content === "string"
+        ? new TextReader(content)
+        : new BlobReader(content),
+    );
   }
 
   folder(folderPath: string) {
@@ -47,146 +46,120 @@ export class Zip {
   }
 
   async generate() {
-    this.zip.end();
-    return new Promise<Blob>((resolve) => {
-      if (this.finalized) {
-        resolve(new Blob([this.compressed], { type: "application/zip" }));
-      } else {
-        this.finalize = () =>
-          resolve(new Blob([this.compressed], { type: "application/zip" }));
-      }
-    });
+    return (this.result ??= this.zip.close());
   }
 }
 
+function validateArchivePath(path: string) {
+  const name = path.replace(/\/$/, "");
+  if (
+    !name ||
+    /[\\\p{Cc}]/u.test(name) ||
+    /^[A-Za-z]:/.test(name) ||
+    name.split("/").some((part) => !part || part === "." || part === "..")
+  ) {
+    throw new Error("Unsafe ZIP entry path");
+  }
+}
+
+// Bound decompressed data at the untrusted archive boundary, before retaining
+// chunks or creating documents. Central-directory sizes are only an early check.
+const MAX_ARCHIVE_BYTES = 50 * 1024 * 1024;
+const MAX_ENTRY_BYTES = 50 * 1024 * 1024;
+const MAX_TOTAL_BYTES = 200 * 1024 * 1024;
+const MAX_ENTRIES = 2048;
+
+/** One-shot archive stream, closed even on failed or interrupted iteration.
+ * Consumers must collect and validate all entries before publishing documents:
+ * a later CRC/path error must not leave partially imported pages. */
 export class Unzip {
-  private unzipped?: ReturnType<typeof fflate.unzipSync>;
+  private archive?: ZipReader<Blob>;
+  private signal?: AbortSignal;
 
-  async load(blob: Blob) {
-    this.unzipped = fflate.unzipSync(new Uint8Array(await blob.arrayBuffer()));
-  }
-
-  private fixFileNameEncoding(fileName: string): string {
-    try {
-      // fflate already returns valid UTF-8 names. Reinterpret bytes only for
-      // recognizable UTF-8-as-Latin-1 mojibake, never for ordinary Unicode.
-      const looksMojibake =
-        /[ÃÂ]/.test(fileName) ||
-        fileName.split("").some((char) => {
-          const code = char.charCodeAt(0);
-          return code >= 0x80 && code <= 0x9f;
-        });
-      if (looksMojibake) {
-        const fixedName = this.tryDifferentEncodings(fileName);
-        if (fixedName && fixedName !== fileName) {
-          return fixedName;
-        }
-      }
-      return fileName;
-    } catch {
-      return fileName;
+  async load(blob: Blob, signal?: AbortSignal) {
+    await this.archive?.close();
+    this.archive = undefined;
+    signal?.throwIfAborted();
+    if (blob.size > MAX_ARCHIVE_BYTES)
+      throw new Error("ZIP archive exceeds input limit");
+    const signature = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+    signal?.throwIfAborted();
+    if (
+      signature[0] !== 0x50 ||
+      signature[1] !== 0x4b ||
+      !(
+        (signature[2] === 3 && signature[3] === 4) ||
+        (signature[2] === 5 && signature[3] === 6)
+      )
+    ) {
+      throw new Error("Invalid ZIP archive signature");
     }
-  }
-
-  // try different encodings
-  private tryDifferentEncodings(fileName: string): string | null {
-    try {
-      // convert string to bytes
-      const bytes = new Uint8Array(fileName.length);
-      for (let i = 0; i < fileName.length; i++) {
-        bytes[i] = fileName.charCodeAt(i);
-      }
-
-      // try different encodings
-      // The macOS system zip tool creates archives with UTF-8 encoded filenames.
-      // However, this implementation doesn't strictly adhere to the ZIP specification.
-      // Simply forcing UTF-8 encoding when unzipping should resolve filename corruption issues.
-      const encodings = ["utf-8"];
-
-      for (const encoding of encodings) {
+    this.signal = signal;
+    this.archive = new ZipReader(new BlobReader(blob), {
+      checkSignature: true,
+      useWebWorkers: false,
+      // macOS archives can contain valid UTF-8 without the language bit. Keep
+      // the library's legacy decoding only when those raw bytes are not UTF-8.
+      decodeText(bytes) {
         try {
-          const decoder = new TextDecoder(encoding);
-          const result = decoder.decode(bytes);
-
-          // check if decoded result is valid
-          if (result && this.isValidDecodedString(result)) {
-            return result;
-          }
+          return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
         } catch {
-          // ignore encoding error, try next encoding
+          return undefined;
         }
-      }
-    } catch {
-      // ignore conversion error
-    }
-
-    return null;
+      },
+    });
   }
 
-  // check if decoded string is valid
-  private isValidDecodedString(str: string): boolean {
-    // check if contains control characters
-    const controlCharCodes = new Set([
-      0x00,
-      0x01,
-      0x02,
-      0x03,
-      0x04,
-      0x05,
-      0x06,
-      0x07,
-      0x08, // \x00-\x08
-      0x0b,
-      0x0c, // \x0B, \x0C
-      0x0e,
-      0x0f,
-      0x10,
-      0x11,
-      0x12,
-      0x13,
-      0x14,
-      0x15,
-      0x16,
-      0x17,
-      0x18,
-      0x19,
-      0x1a,
-      0x1b,
-      0x1c,
-      0x1d,
-      0x1e,
-      0x1f, // \x0E-\x1F
-      0x7f, // \x7F
-    ]);
-
-    return !str
-      .split("")
-      .some((char) => controlCharCodes.has(char.charCodeAt(0)));
-  }
-
-  *[Symbol.iterator]() {
-    const keys = Object.keys(this.unzipped ?? {});
+  async *[Symbol.asyncIterator]() {
+    const archive = this.archive;
+    if (!archive) throw new Error("ZIP archive is not loaded");
+    this.archive = undefined;
+    const signal = this.signal;
+    const names = new Set<string>();
+    let total = 0;
+    let entries = 0;
     let index = 0;
-    while (keys.length) {
-      const path = keys.shift()!;
-      if (path.includes("__MACOSX") || path.includes("DS_Store")) {
-        continue;
+    try {
+      for await (const entry of archive.getEntriesGenerator()) {
+        signal?.throwIfAborted();
+        if (++entries > MAX_ENTRIES)
+          throw new Error("ZIP archive exceeds entry limit");
+        const path = entry.filename;
+        validateArchivePath(path);
+        if (names.has(path)) throw new Error("Duplicate ZIP entry path");
+        names.add(path);
+        if (entry.directory) continue;
+        if (
+          entry.uncompressedSize > MAX_ENTRY_BYTES ||
+          total + entry.uncompressedSize > MAX_TOTAL_BYTES
+        )
+          throw new Error("ZIP archive exceeds output limits");
+        let size = 0;
+        const chunks: Uint8Array<ArrayBuffer>[] = [];
+        await entry.getData(
+          new WritableStream<Uint8Array>({
+            write(chunk) {
+              size += chunk.byteLength;
+              total += chunk.byteLength;
+              if (size > MAX_ENTRY_BYTES || total > MAX_TOTAL_BYTES)
+                throw new Error("ZIP archive exceeds output limits");
+              chunks.push(new Uint8Array(chunk));
+            },
+          }),
+          { checkSignature: true, signal },
+        );
+        if (path.includes("__MACOSX") || path.includes("DS_Store")) continue;
+        const name = path.substring(path.lastIndexOf("/") + 1);
+        const extension = name.includes(".")
+          ? name.split(".").at(-1)?.toLowerCase()
+          : "";
+        const content = new File(chunks, name, {
+          type: extMimeMap.get(extension ?? "") ?? "",
+        });
+        yield { path, content: content as Blob, index: index++ };
       }
-      const lastSplitIndex = path.lastIndexOf("/");
-      const fileName = path.substring(lastSplitIndex + 1);
-      const fileExt =
-        fileName.lastIndexOf(".") === -1 ? "" : fileName.split(".").at(-1);
-      const mime = extMimeMap.get(fileExt ?? "");
-      const content = new File(
-        [new Uint8Array(this.unzipped![path]).buffer],
-        fileName,
-        mime ? { type: mime } : undefined,
-      ) as Blob;
-
-      const fixedPath = this.fixFileNameEncoding(path);
-
-      yield { path: fixedPath, content, index };
-      index++;
+    } finally {
+      await archive.close();
     }
   }
 }

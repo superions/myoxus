@@ -41,6 +41,9 @@ import type {
   WorkerConnection,
 } from "./dto";
 
+/** Closed file-delivery formats; native callers cannot supply arbitrary filters. */
+export type ExportFileFormat = "pdf" | "docx";
+
 export type DesktopHandler<Args, Result = void> = Args extends readonly [
   ...infer Parameters,
 ]
@@ -124,6 +127,10 @@ export type MainClientHandlers = {
     >;
     onLanguageChange: DesktopHandler<[language: string], void>;
     invalidateBranding: DesktopHandler<[], void>;
+    saveExportFile: DesktopHandler<
+      [format: ExportFileFormat, filename: string, bytes: ArrayBuffer],
+      { status: "saved" } | { status: "cancelled" }
+    >;
     savePdf: DesktopHandler<
       [filename: string, bytes: ArrayBuffer],
       { status: "saved" } | { status: "cancelled" }
@@ -415,6 +422,7 @@ export const mainHandlerChannelManifest = {
     showCalendarReminderNotification: true,
     onLanguageChange: true,
     invalidateBranding: true,
+    saveExportFile: true,
     savePdf: true,
     captureArea: true,
   },

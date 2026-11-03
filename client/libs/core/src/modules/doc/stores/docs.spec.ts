@@ -888,25 +888,30 @@ describe("DocsStore native subsystem metadata writes", () => {
     );
   });
 
-  test("maps the canonical template none state to a non-template document", async () => {
-    const workspace = createRootMetaWorkspace([
-      { id: "doc-1", title: "Doc 1", createDate: 1 },
-    ]);
-    const { store } = createStore({
-      flavour: "cloud",
-      metadataByDocId: {
-        "doc-1": metadata({ template: { state: "none" } }),
-      },
-      ...workspace,
-    });
+  test.each(["none", "guide"])(
+    "maps canonical %s through the existing template filter property",
+    async (state) => {
+      const workspace = createRootMetaWorkspace([
+        { id: "doc-1", title: "Doc 1", createDate: 1 },
+      ]);
+      const { store } = createStore({
+        flavour: "cloud",
+        metadataByDocId: {
+          "doc-1": metadata({ template: { state } }),
+        },
+        ...workspace,
+      });
 
-    await expect(
-      firstValueFrom(store.watchNativeMetadataPropertyValues("isTemplate")),
-    ).resolves.toEqual(new Map([["doc-1", undefined]]));
-    await expect(
-      firstValueFrom(store.watchDocTemplateStateSetting("doc-1")),
-    ).resolves.toBe(false);
-  });
+      await expect(
+        firstValueFrom(store.watchNativeMetadataPropertyValues("isTemplate")),
+      ).resolves.toEqual(
+        new Map([["doc-1", state === "none" ? undefined : "true"]]),
+      );
+      await expect(
+        firstValueFrom(store.watchDocTemplateStateSetting("doc-1")),
+      ).resolves.toBe(state !== "none");
+    },
+  );
 
   test("local metadata readers retain every current property-store field without GraphQL hydration", async () => {
     const workspace = createRootMetaWorkspace([

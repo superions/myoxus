@@ -4,8 +4,11 @@
 //! against PostgreSQL. It covers calendar accounts, subscriptions, events,
 //! participants, reminders, and workspace-level calendar associations.
 
+mod lifecycle;
 mod mail_delivery;
 mod mail_intent;
+mod projection;
+mod reminders;
 
 #[cfg(test)]
 pub(crate) mod test_support;
@@ -23,8 +26,8 @@ use myoxus_domain::entities::{
   CalendarSubscription, WorkspaceCalendar, WorkspaceCalendarSettings,
 };
 use myoxus_domain::repositories::{
-  CalendarEventSourceAnchor, CalendarPendingWriteGuard, CalendarRepository, NativeEventInput, NativeEventUpdate,
-  RepoResult, RepositoryError,
+  CalendarEventSourceAnchor, CalendarPendingWriteGuard, CalendarRepository, CalendarSplitWrite, NativeEventInput,
+  NativeEventUpdate, RepoResult, RepositoryError,
 };
 
 struct PgCalendarPendingWriteGuard {
@@ -159,6 +162,11 @@ impl SqlxCalendarRepository {
     participants: &[CalendarEventParticipant],
     reminders: &[CalendarReminder],
   ) -> RepoResult<CalendarEvent> {
+    let mut event = event.clone();
+    if let Some(payload) = event.payload.as_object_mut() {
+      payload.remove("_myoxusCalendarTiming");
+    }
+    lifecycle::normalize_export_echo_in(tx, &mut event).await?;
     let row = if event.origin == CalendarEventOrigin::Native {
       sqlx::query(r#"
   INSERT INTO calendar_events(id,origin,workspace_id,title,description_delta,starts_at,ends_at,all_members,tag_id,source_doc_id,recurrence_parent_id,payload,updated_at)
@@ -215,6 +223,7 @@ impl SqlxCalendarRepository {
     };
     let mut saved = Self::map_event_base(row);
     let event_id = saved.id;
+    crate::scheduling::calendar::bind_imported_in(tx, event_id).await?;
     sqlx::query("DELETE FROM calendar_event_participants WHERE event_id = $1")
       .bind(event_id)
       .execute(&mut **tx)
@@ -244,39 +253,8 @@ impl SqlxCalendarRepository {
       .map_err(Self::map_db_err)?;
     }
 
-    sqlx::query("DELETE FROM calendar_reminders WHERE event_id = $1 AND NOT (id = ANY($2))")
-      .bind(event_id)
-      .bind(reminders.iter().map(|r| r.id).collect::<Vec<_>>())
-      .execute(&mut **tx)
-      .await
-      .map_err(Self::map_db_err)?;
-
-    for reminder in reminders {
-      sqlx::query(
-        r#"
-                INSERT INTO calendar_reminders (
-                    id, event_id, channel, minutes_before, scheduled_for, delivered_at, created_at, updated_at
-                )
-                VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-                ON CONFLICT(id) DO UPDATE SET channel=EXCLUDED.channel, minutes_before=EXCLUDED.minutes_before,
-                  scheduled_for=EXCLUDED.scheduled_for, delivered_at=EXCLUDED.delivered_at, updated_at=EXCLUDED.updated_at
-                "#,
-      )
-      .bind(reminder.id)
-      .bind(event_id)
-      .bind(&reminder.channel)
-      .bind(reminder.minutes_before)
-      .bind(reminder.scheduled_for)
-      .bind(reminder.delivered_at)
-      .bind(reminder.created_at)
-      .bind(reminder.updated_at)
-      .execute(&mut **tx)
-      .await
-      .map_err(Self::map_db_err)?;
-    }
-
     saved.participants = participants.to_vec();
-    saved.reminders = reminders.to_vec();
+    saved.reminders = reminders::replace_in(tx, &saved, reminders).await?;
 
     Ok(saved)
   }
@@ -332,7 +310,7 @@ impl SqlxCalendarRepository {
     }
   }
 
-  fn map_event_base(row: sqlx::postgres::PgRow) -> CalendarEvent {
+  pub(crate) fn map_event_base(row: sqlx::postgres::PgRow) -> CalendarEvent {
     let origin_str: String = row.try_get("origin").unwrap_or_else(|_| "external".to_string());
     let origin = if origin_str == "native" {
       CalendarEventOrigin::Native
@@ -455,7 +433,7 @@ impl SqlxCalendarRepository {
     Ok(())
   }
 
-  fn map_instance(row: sqlx::postgres::PgRow) -> CalendarEventInstance {
+  pub(crate) fn map_instance(row: sqlx::postgres::PgRow) -> CalendarEventInstance {
     CalendarEventInstance {
       id: row.get("id"),
       event_id: row.get("event_id"),
@@ -501,39 +479,23 @@ impl SqlxCalendarRepository {
   }
 
   async fn list_reminders(&self, event_id: Uuid) -> RepoResult<Vec<CalendarReminder>> {
-    let rows = sqlx::query(
-      r#"
-            SELECT id, event_id, channel, minutes_before, scheduled_for, delivered_at, created_at, updated_at
-            FROM calendar_reminders
-            WHERE event_id = $1
-            ORDER BY scheduled_for ASC
-            "#,
-    )
-    .bind(event_id)
-    .fetch_all(&self.pool)
-    .await
-    .map_err(Self::map_db_err)?;
-
-    Ok(
-      rows
-        .into_iter()
-        .map(|row| CalendarReminder {
-          id: row.get("id"),
-          event_id: row.get("event_id"),
-          channel: row.get("channel"),
-          minutes_before: row.get("minutes_before"),
-          scheduled_for: row.get("scheduled_for"),
-          delivered_at: row.get("delivered_at"),
-          created_at: row.get("created_at"),
-          updated_at: row.get("updated_at"),
-        })
-        .collect(),
-    )
+    let mut connection = self.pool.acquire().await.map_err(Self::map_db_err)?;
+    reminders::definitions_in(&mut connection, event_id).await
   }
 }
 
 #[async_trait]
 impl CalendarRepository for SqlxCalendarRepository {
+  #[instrument(skip_all)]
+  async fn control_calendar_timing(
+    &self,
+    event_id: Uuid,
+    actor: Uuid,
+    expected: i64,
+    change: myoxus_domain::scheduling::calendar::CalendarTimingChange,
+  ) -> RepoResult<CalendarEvent> {
+    lifecycle::control(self, event_id, actor, expected, change).await
+  }
   /// Insert or update a calendar account (upserts on `provider + remote_account_id`).
   #[instrument(skip(self, account))]
   async fn upsert_calendar_account(&self, account: &CalendarAccount) -> RepoResult<CalendarAccount> {
@@ -725,6 +687,7 @@ impl CalendarRepository for SqlxCalendarRepository {
   /// Insert or update a calendar event (upserts on `(subscription_id, remote_event_id)`).
   #[instrument(skip(self, event))]
   async fn upsert_calendar_event(&self, event: &CalendarEvent) -> RepoResult<CalendarEvent> {
+    let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
     let row = sqlx::query(
             r#"
             INSERT INTO calendar_events (
@@ -762,14 +725,25 @@ impl CalendarRepository for SqlxCalendarRepository {
         .bind(event.source_doc_id)
         .bind(&event.payload)
         .bind(event.updated_at)
-        .fetch_one(&self.pool)
+        .fetch_one(&mut *tx)
         .await
         .map_err(Self::map_db_err)?;
 
     let mut mapped = Self::map_event_base(row);
+    crate::scheduling::calendar::bind_imported_in(&mut tx, mapped.id).await?;
+    lifecycle::refresh_reminders_in(&mut tx, &mapped).await?;
+    tx.commit().await.map_err(Self::map_db_err)?;
     mapped.participants = self.list_participants(mapped.id).await?;
     mapped.reminders = self.list_reminders(mapped.id).await?;
     Ok(mapped)
+  }
+
+  async fn get_calendar_timing(
+    &self,
+    event_id: Uuid,
+  ) -> RepoResult<Option<myoxus_domain::scheduling::calendar::CalendarTiming>> {
+    let mut connection = self.pool.acquire().await.map_err(Self::map_db_err)?;
+    crate::scheduling::calendar::read_in(&mut connection, event_id).await
   }
 
   #[instrument(skip_all)]
@@ -781,6 +755,7 @@ impl CalendarRepository for SqlxCalendarRepository {
   ) -> RepoResult<CalendarEvent> {
     let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
     let saved = Self::persist_authored_event_tx(&mut tx, event, participants, reminders).await?;
+    projection::reproject_cached_in(&mut tx, saved.id).await?;
     mail_intent::enqueue(&mut tx, &saved, "calendar-update", None).await?;
     tx.commit().await.map_err(Self::map_db_err)?;
     Ok(saved)
@@ -843,6 +818,7 @@ impl CalendarRepository for SqlxCalendarRepository {
     .map_err(Self::map_db_err)?;
 
     let saved = Self::map_instance(row);
+    crate::scheduling::reminders::refresh_event_in(&mut tx, instance.event_id).await?;
     let changes = instance.override_payload.as_ref().cloned().unwrap_or_default();
     event.title = changes["title"].as_str().map(str::to_owned).or(event.title);
     event.starts_at = changes["starts_at"]
@@ -863,16 +839,204 @@ impl CalendarRepository for SqlxCalendarRepository {
   #[instrument(skip_all)]
   async fn save_calendar_split(
     &self,
-    original: &CalendarEvent,
-    tail: &CalendarEvent,
-  ) -> RepoResult<(CalendarEvent, CalendarEvent)> {
+    command: &CalendarSplitWrite,
+  ) -> RepoResult<(CalendarEvent, Option<CalendarEvent>)> {
     let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
-    let original =
-      Self::persist_authored_event_tx(&mut tx, original, &original.participants, &original.reminders).await?;
-    let tail = Self::persist_authored_event_tx(&mut tx, tail, &tail.participants, &tail.reminders).await?;
+    let current = mail_intent::load_event(&mut tx, command.original.id)
+      .await?
+      .ok_or(RepositoryError::NotFound("calendar_event"))?;
+    if current.updated_at != command.expected_updated_at {
+      return Err(RepositoryError::Conflict("calendar source revision"));
+    }
+    crate::scheduling::calendar::narrow_end_in(&mut tx, current.id, command.split_at).await?;
+    if let Some(rules) = &command.native_rules {
+      crate::scheduling::calendar::set_native_in(&mut tx, current.id, Some(&rules.original)).await?;
+    }
+    let protected=sqlx::query("SELECT * FROM calendar_event_instances WHERE event_id=$1 AND instance_start>=$2 AND is_override AND NOT is_cancelled ORDER BY instance_start LIMIT 10001 FOR UPDATE")
+      .bind(current.id).bind(command.split_at).fetch_all(&mut *tx).await.map_err(Self::map_db_err)?;
+    if protected.len() > 10000 {
+      return Err(RepositoryError::Validation("Calendar exception budget exceeded".into()));
+    }
+    let protected = protected.into_iter().map(Self::map_instance).collect::<Vec<_>>();
+    // Lock children before parent mail state: a direct child edit locks its
+    // row first, then reads that state. Reversing this order can deadlock.
+    let children=sqlx::query("SELECT id,payload->>'recurrenceId' AS original_key FROM calendar_events WHERE recurrence_parent_id=$1 ORDER BY id LIMIT 10001 FOR UPDATE")
+      .bind(current.id).fetch_all(&mut *tx).await.map_err(Self::map_db_err)?;
+    if children.len() > 10000 {
+      return Err(RepositoryError::Validation("Calendar exception budget exceeded".into()));
+    }
+    let mut future_children = Vec::new();
+    for child in children {
+      let key: Option<String> = child.try_get("original_key").map_err(Self::map_db_err)?;
+      let key = myoxus_application::calendar::projection::original_key(key.as_deref().unwrap_or_default())
+        .map_err(|error| RepositoryError::Validation(error.to_string()))?;
+      if key >= command.split_at {
+        future_children.push(
+          mail_intent::load_event(&mut tx, child.get::<Uuid, _>("id"))
+            .await?
+            .ok_or(RepositoryError::NotFound("calendar_event"))?,
+        );
+      }
+    }
+    for child in &future_children {
+      mail_intent::enqueue(&mut tx, child, "calendar-cancellation", None).await?;
+    }
+    for instance in &protected {
+      let old = myoxus_application::calendar::projection::occurrence_event(&current, instance);
+      mail_intent::enqueue(&mut tx, &old, "calendar-cancellation", Some(instance.instance_start)).await?;
+    }
+    let mut moved_children = Vec::new();
+    let original = Self::persist_authored_event_tx(
+      &mut tx,
+      &command.original,
+      &command.original.participants,
+      &command.original.reminders,
+    )
+    .await?;
+    let tail = if let Some(tail) = &command.tail {
+      if tail.origin == CalendarEventOrigin::Native {
+        if command.source_anchor.as_ref().is_some_and(|anchor| anchor.is_some()) && tail.source_doc_id.is_none() {
+          return Err(RepositoryError::Validation(
+            "Calendar source anchor needs a document".into(),
+          ));
+        }
+        if let Some(tag) = tail.tag_id {
+          let valid: bool =
+            sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM calendar_event_tags WHERE id=$1 AND workspace_id=$2)")
+              .bind(tag)
+              .bind(tail.workspace_id)
+              .fetch_one(&mut *tx)
+              .await
+              .map_err(Self::map_db_err)?;
+          if !valid {
+            return Err(RepositoryError::Validation(
+              "Calendar tag is outside the workspace".into(),
+            ));
+          }
+        }
+        if let Some(doc) = tail.source_doc_id {
+          let valid: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM docs WHERE id=$1 AND workspace_id=$2)")
+            .bind(doc)
+            .bind(tail.workspace_id)
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(Self::map_db_err)?;
+          if !valid {
+            return Err(RepositoryError::Validation(
+              "Calendar document is outside the workspace".into(),
+            ));
+          }
+        }
+      }
+      let tail = Self::persist_authored_event_tx(&mut tx, tail, &tail.participants, &tail.reminders).await?;
+      sqlx::query("UPDATE calendar_events t SET projection_from=e.projection_from,projection_to=e.projection_to FROM calendar_events e WHERE e.id=$1 AND t.id=$2")
+        .bind(original.id).bind(tail.id).execute(&mut *tx).await.map_err(Self::map_db_err)?;
+      if let Some(cutoff) = command.tail_ends_before {
+        crate::scheduling::calendar::narrow_end_in(&mut tx, tail.id, cutoff).await?;
+      }
+      if let Some(rules) = &command.native_rules {
+        crate::scheduling::calendar::set_native_in(&mut tx, tail.id, rules.tail.as_ref()).await?;
+      }
+      // A split is not a Resume. The tail inherits intentional suppression,
+      // while the head keeps the same intervals for its historical originals.
+      sqlx::query("UPDATE scheduling_schedules t SET lifecycle=s.lifecycle,paused_at=s.paused_at FROM calendar_events a,calendar_events b,scheduling_schedules s WHERE a.id=$1 AND b.id=$2 AND a.recurrence_schedule_id=s.id AND b.recurrence_schedule_id=t.id")
+        .bind(original.id).bind(tail.id).execute(&mut *tx).await.map_err(Self::map_db_err)?;
+      sqlx::query("INSERT INTO scheduling_pause_intervals(schedule_id,starts_at,ends_at) SELECT b.recurrence_schedule_id,p.starts_at,p.ends_at FROM calendar_events a JOIN scheduling_pause_intervals p ON p.schedule_id=a.recurrence_schedule_id CROSS JOIN calendar_events b WHERE a.id=$1 AND b.id=$2 AND b.recurrence_schedule_id IS NOT NULL ON CONFLICT DO NOTHING")
+        .bind(original.id).bind(tail.id).execute(&mut *tx).await.map_err(Self::map_db_err)?;
+      // Association changes preserve deployed instance IDs and original keys.
+      sqlx::query("UPDATE calendar_event_instances SET event_id=$2 WHERE event_id=$1 AND instance_start>=$3")
+        .bind(original.id)
+        .bind(tail.id)
+        .bind(command.split_at)
+        .execute(&mut *tx)
+        .await
+        .map_err(Self::map_db_err)?;
+      for child in &future_children {
+        sqlx::query("UPDATE calendar_events SET recurrence_parent_id=$2,updated_at=now() WHERE id=$1")
+          .bind(child.id)
+          .bind(tail.id)
+          .execute(&mut *tx)
+          .await
+          .map_err(Self::map_db_err)?;
+        moved_children.push(
+          mail_intent::load_event(&mut tx, child.id)
+            .await?
+            .ok_or(RepositoryError::NotFound("calendar_event"))?,
+        );
+      }
+      if let Some(doc) = tail.source_doc_id {
+        if let Some(anchor) = &command.source_anchor {
+          Self::replace_created_from_source_link(&mut tx, tail.id, doc, anchor.as_ref())
+            .await
+            .map_err(Self::map_db_err)?;
+        } else {
+          let copied=sqlx::query("INSERT INTO calendar_event_source_links(event_id,source_doc_id,relation,source_block_id,source_start_offset,source_end_offset,source_kind) SELECT $2,source_doc_id,relation,source_block_id,source_start_offset,source_end_offset,source_kind FROM calendar_event_source_links WHERE event_id=$1 AND source_doc_id=$3 AND relation='created_from' ON CONFLICT DO NOTHING")
+            .bind(original.id).bind(tail.id).bind(doc).execute(&mut *tx).await.map_err(Self::map_db_err)?;
+          if copied.rows_affected() == 0 {
+            Self::replace_created_from_source_link(&mut tx, tail.id, doc, None)
+              .await
+              .map_err(Self::map_db_err)?;
+          }
+        }
+      }
+      projection::reproject_cached_in(&mut tx, tail.id).await?;
+      Some(
+        mail_intent::load_event(&mut tx, tail.id)
+          .await?
+          .ok_or(RepositoryError::NotFound("calendar_event"))?,
+      )
+    } else {
+      None
+    };
+    if tail.is_none() {
+      for child in &future_children {
+        sqlx::query("DELETE FROM calendar_reminders WHERE event_id=$1 AND delivered_at IS NULL")
+          .bind(child.id)
+          .execute(&mut *tx)
+          .await
+          .map_err(Self::map_db_err)?;
+      }
+    }
+    // Move originals before either window is reconciled: projecting the head
+    // first would delete ordinary future cache rows and lose their IDs.
+    projection::reproject_cached_in(&mut tx, original.id).await?;
+    if current.starts_at >= command.split_at {
+      sqlx::query("DELETE FROM calendar_reminders WHERE event_id=$1 AND delivered_at IS NULL")
+        .bind(original.id)
+        .execute(&mut *tx)
+        .await
+        .map_err(Self::map_db_err)?;
+    }
     mail_intent::enqueue(&mut tx, &original, "calendar-update", None).await?;
-    mail_intent::enqueue(&mut tx, &tail, "calendar-invitation", None).await?;
+    if let Some(tail) = &tail {
+      mail_intent::enqueue(&mut tx, tail, "calendar-invitation", None).await?;
+      for instance in &protected {
+        let mut instance = instance.clone();
+        instance.event_id = tail.id;
+        let moved = myoxus_application::calendar::projection::occurrence_event(tail, &instance);
+        mail_intent::enqueue(&mut tx, &moved, "calendar-update", Some(instance.instance_start)).await?;
+      }
+      for child in &moved_children {
+        mail_intent::enqueue(&mut tx, child, "calendar-invitation", None).await?;
+      }
+    }
+    let original_id = original.id;
+    let tail_id = tail.as_ref().map(|event| event.id);
     tx.commit().await.map_err(Self::map_db_err)?;
+    let original = self
+      .get_calendar_event(original_id)
+      .await?
+      .ok_or(RepositoryError::NotFound("calendar_event"))?;
+    let tail = if let Some(id) = tail_id {
+      Some(
+        self
+          .get_calendar_event(id)
+          .await?
+          .ok_or(RepositoryError::NotFound("calendar_event"))?,
+      )
+    } else {
+      None
+    };
     Ok((original, tail))
   }
 
@@ -1003,38 +1167,16 @@ impl CalendarRepository for SqlxCalendarRepository {
     }))
   }
 
-  /// Atomically replace all reminders for an event (delete + re-insert).
+  /// Replace native definitions atomically, retaining unchanged delivery IDs.
   #[instrument(skip(self, reminders))]
   async fn replace_calendar_event_reminders(&self, event_id: Uuid, reminders: &[CalendarReminder]) -> RepoResult<()> {
     let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
-    sqlx::query("DELETE FROM calendar_reminders WHERE event_id = $1")
-      .bind(event_id)
-      .execute(&mut *tx)
-      .await
-      .map_err(Self::map_db_err)?;
+    let event = mail_intent::load_event(&mut tx, event_id)
+      .await?
+      .ok_or(RepositoryError::NotFound("calendar_event"))?;
+    reminders::replace_in(&mut tx, &event, reminders).await?;
 
-    for reminder in reminders {
-      sqlx::query(
-        r#"
-                INSERT INTO calendar_reminders (
-                    id, event_id, channel, minutes_before, scheduled_for, delivered_at, created_at, updated_at
-                )
-                VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-                "#,
-      )
-      .bind(reminder.id)
-      .bind(event_id)
-      .bind(&reminder.channel)
-      .bind(reminder.minutes_before)
-      .bind(reminder.scheduled_for)
-      .bind(reminder.delivered_at)
-      .bind(reminder.created_at)
-      .bind(reminder.updated_at)
-      .execute(&mut *tx)
-      .await
-      .map_err(Self::map_db_err)?;
-    }
-
+    lifecycle::refresh_reminders_in(&mut tx, &event).await?;
     tx.commit().await.map_err(Self::map_db_err)?;
     Ok(())
   }
@@ -1047,49 +1189,40 @@ impl CalendarRepository for SqlxCalendarRepository {
     delivered: bool,
     delivered_at: DateTime<Utc>,
   ) -> RepoResult<()> {
+    let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
+    let source:Option<Uuid>=sqlx::query_scalar("SELECT d.event_id FROM calendar_reminders r JOIN calendar_reminder_definitions d ON d.id=r.definition_id WHERE r.id=$1")
+      .bind(reminder_id).fetch_optional(&mut *tx).await.map_err(Self::map_db_err)?;
+    let source = source.ok_or(RepositoryError::NotFound("calendar_reminder"))?;
+    let event = mail_intent::load_event(&mut tx, source)
+      .await?
+      .ok_or(RepositoryError::NotFound("calendar_event"))?;
+    let previous: Option<DateTime<Utc>> =
+      sqlx::query_scalar("SELECT delivered_at FROM calendar_reminders WHERE id=$1 FOR UPDATE")
+        .bind(reminder_id)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(Self::map_db_err)?;
     let delivered_value = if delivered { Some(delivered_at) } else { None };
     sqlx::query("UPDATE calendar_reminders SET delivered_at = $2, updated_at = now() WHERE id = $1")
       .bind(reminder_id)
       .bind(delivered_value)
-      .execute(&self.pool)
+      .execute(&mut *tx)
       .await
       .map_err(Self::map_db_err)?;
+    if !delivered && previous.is_some() {
+      // The existing explicit reset command rearms native work, not a second
+      // timing sweep. Completed recipient receipts still protect re-delivery.
+      sqlx::query("UPDATE scheduling_schedules SET generation=generation+1,revision=revision+1 WHERE id=(SELECT definition_id FROM calendar_reminders WHERE id=$1)")
+        .bind(reminder_id).execute(&mut *tx).await.map_err(Self::map_db_err)?;
+      sqlx::query("UPDATE calendar_reminders SET suppressed=true WHERE id=$1")
+        .bind(reminder_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(Self::map_db_err)?;
+    }
+    lifecycle::refresh_reminders_in(&mut tx, &event).await?;
+    tx.commit().await.map_err(Self::map_db_err)?;
     Ok(())
-  }
-
-  /// List reminders that are due for dispatch at or before `now`.
-  #[instrument(skip(self))]
-  async fn list_due_calendar_reminders(&self, now: DateTime<Utc>, limit: i64) -> RepoResult<Vec<CalendarReminder>> {
-    let rows = sqlx::query(
-      r#"
-            SELECT id, event_id, channel, minutes_before, scheduled_for, delivered_at, created_at, updated_at
-            FROM calendar_reminders
-            WHERE delivered_at IS NULL
-              AND scheduled_for <= $1
-            ORDER BY scheduled_for ASC
-            LIMIT $2
-            "#,
-    )
-    .bind(now)
-    .bind(limit.clamp(1, 500))
-    .fetch_all(&self.pool)
-    .await
-    .map_err(Self::map_db_err)?;
-    Ok(
-      rows
-        .into_iter()
-        .map(|row| CalendarReminder {
-          id: row.get("id"),
-          event_id: row.get("event_id"),
-          channel: row.get("channel"),
-          minutes_before: row.get("minutes_before"),
-          scheduled_for: row.get("scheduled_for"),
-          delivered_at: row.get("delivered_at"),
-          created_at: row.get("created_at"),
-          updated_at: row.get("updated_at"),
-        })
-        .collect(),
-    )
   }
 
   #[instrument(skip(self), fields(%reminder_id))]
@@ -1108,34 +1241,73 @@ impl CalendarRepository for SqlxCalendarRepository {
     from: DateTime<Utc>,
     to: DateTime<Utc>,
   ) -> RepoResult<Vec<CalendarEvent>> {
-    let rows = sqlx::query(
-      r#"
-            SELECT id, origin::text AS origin, account_id, workspace_id, remote_event_id, starts_at, ends_at, title,
-                   source_doc_id, payload, updated_at, etag, remote_href,
-                   all_members, description_delta, tag_id, recurrence_parent_id
-            FROM calendar_events
-            WHERE workspace_id = $1
-              AND starts_at < $3
-              AND ends_at > $2
-            ORDER BY starts_at ASC, updated_at DESC
-            "#,
-    )
-    .bind(workspace_id)
-    .bind(from)
-    .bind(to)
-    .fetch_all(&self.pool)
-    .await
-    .map_err(Self::map_db_err)?;
-
-    let mut events = Vec::with_capacity(rows.len());
-    for row in rows {
-      let mut event = Self::map_event_base(row);
+    let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
+    let (mut events, _) = projection::workspace_in(&mut tx, workspace_id, from, to).await?;
+    tx.commit().await.map_err(Self::map_db_err)?;
+    for event in &mut events {
       event.participants = self.list_participants(event.id).await?;
       event.reminders = self.list_reminders(event.id).await?;
-      events.push(event);
     }
 
     Ok(events)
+  }
+
+  #[instrument(skip_all)]
+  async fn list_workspace_event_sources(
+    &self,
+    workspace_id: Uuid,
+    from: DateTime<Utc>,
+    to: DateTime<Utc>,
+  ) -> RepoResult<Vec<CalendarEvent>> {
+    myoxus_application::calendar::projection::validate_window(from, to)
+      .map_err(|error| RepositoryError::Validation(error.to_string()))?;
+    let rows=sqlx::query("SELECT *,origin::text AS origin FROM calendar_events WHERE workspace_id=$1 AND (recurrence_schedule_id IS NOT NULL OR recurrence_parent_id IN(SELECT id FROM calendar_events WHERE workspace_id=$1 AND recurrence_schedule_id IS NOT NULL) OR (starts_at<$3 AND ends_at>$2)) ORDER BY starts_at,id LIMIT 501")
+      .bind(workspace_id).bind(from).bind(to).fetch_all(&self.pool).await.map_err(Self::map_db_err)?;
+    if rows.len() > 500 {
+      return Err(RepositoryError::Validation(
+        "Calendar source result budget exceeded".into(),
+      ));
+    }
+    let mut sources = Vec::new();
+    for row in rows {
+      let mut event = Self::map_event_base(row);
+      let mut connection = self.pool.acquire().await.map_err(Self::map_db_err)?;
+      if projection::child_suppressed_in(&mut connection, &event).await? {
+        continue;
+      }
+      projection::attach_timing_in(&mut connection, &mut event).await?;
+      let mut overrides = if event.recurrence_parent_id.is_none() {
+        projection::source_overrides_in(&mut connection, &event).await?
+      } else {
+        vec![]
+      };
+      drop(connection);
+      event.participants = self.list_participants(event.id).await?;
+      event.reminders = self.list_reminders(event.id).await?;
+      for source in &mut overrides {
+        source.participants = event.participants.clone();
+      }
+      sources.push(event);
+      sources.extend(overrides);
+      if sources.len() > 10000 {
+        return Err(RepositoryError::Validation(
+          "Calendar source result budget exceeded".into(),
+        ));
+      }
+    }
+    Ok(sources)
+  }
+
+  #[instrument(skip_all)]
+  async fn list_workspace_calendar_series(&self, workspace_id: Uuid) -> RepoResult<Vec<CalendarEvent>> {
+    let rows=sqlx::query("SELECT *,origin::text AS origin FROM calendar_events WHERE workspace_id=$1 AND origin='native' AND recurrence_parent_id IS NULL AND recurrence_schedule_id IS NOT NULL ORDER BY title,id LIMIT 501")
+      .bind(workspace_id).fetch_all(&self.pool).await.map_err(Self::map_db_err)?;
+    if rows.len() > 500 {
+      return Err(RepositoryError::Validation(
+        "Calendar series result budget exceeded".into(),
+      ));
+    }
+    Ok(rows.into_iter().map(Self::map_event_base).collect())
   }
 
   async fn list_caldav_accounts(&self) -> RepoResult<Vec<CalendarAccount>> {
@@ -1310,6 +1482,10 @@ impl CalendarRepository for SqlxCalendarRepository {
   /// Conflict target: `(event_id, instance_start)`.
   #[instrument(skip(self, instance))]
   async fn upsert_event_instance(&self, instance: &CalendarEventInstance) -> RepoResult<CalendarEventInstance> {
+    let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
+    mail_intent::load_event(&mut tx, instance.event_id)
+      .await?
+      .ok_or(RepositoryError::NotFound("calendar_event"))?;
     let row = sqlx::query(
       r#"
       INSERT INTO calendar_event_instances (
@@ -1338,13 +1514,15 @@ impl CalendarRepository for SqlxCalendarRepository {
     .bind(instance.is_cancelled)
     .bind(&instance.override_payload)
     .bind(instance.created_at)
-    .fetch_one(&self.pool)
+    .fetch_one(&mut *tx)
     .await
     .map_err(Self::map_db_err)?;
+    crate::scheduling::reminders::refresh_event_in(&mut tx, instance.event_id).await?;
+    tx.commit().await.map_err(Self::map_db_err)?;
     Ok(Self::map_instance(row))
   }
 
-  /// List non-cancelled instances for a single event within a time range.
+  /// Project/read one window while holding its master mutation lock.
   #[instrument(skip(self))]
   async fn list_event_instances(
     &self,
@@ -1352,30 +1530,16 @@ impl CalendarRepository for SqlxCalendarRepository {
     from: DateTime<Utc>,
     to: DateTime<Utc>,
   ) -> RepoResult<Vec<CalendarEventInstance>> {
-    let rows = sqlx::query(
-      r#"
-      SELECT id, event_id, instance_start, instance_end,
-             is_override, is_cancelled, override_payload, created_at
-      FROM calendar_event_instances
-      WHERE event_id = $1
-        AND instance_start >= $2
-        AND instance_start < $3
-      ORDER BY instance_start ASC
-      "#,
-    )
-    .bind(event_id)
-    .bind(from)
-    .bind(to)
-    .fetch_all(&self.pool)
-    .await
-    .map_err(Self::map_db_err)?;
-    Ok(rows.into_iter().map(Self::map_instance).collect())
+    let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
+    let Some(event) = mail_intent::load_event(&mut tx, event_id).await? else {
+      return Ok(vec![]);
+    };
+    let instances = projection::instances_in(&mut tx, &event, from, to).await?;
+    tx.commit().await.map_err(Self::map_db_err)?;
+    Ok(instances)
   }
 
-  /// List all non-cancelled instances for a workspace within a time range.
-  ///
-  /// Callers must keep the horizon bounded (≤ 6 months) to avoid runaway
-  /// cross-join queries.
+  /// The busy projection uses the same canonical windows as event display.
   #[instrument(skip(self))]
   async fn list_instances_by_time_range(
     &self,
@@ -1383,26 +1547,10 @@ impl CalendarRepository for SqlxCalendarRepository {
     from: DateTime<Utc>,
     to: DateTime<Utc>,
   ) -> RepoResult<Vec<CalendarEventInstance>> {
-    let rows = sqlx::query(
-      r#"
-      SELECT i.id, i.event_id, i.instance_start, i.instance_end,
-             i.is_override, i.is_cancelled, i.override_payload, i.created_at
-      FROM calendar_event_instances i
-      JOIN calendar_events e ON e.id = i.event_id
-      WHERE e.workspace_id = $1
-        AND i.is_cancelled = false
-        AND i.instance_start >= $2
-        AND i.instance_start < $3
-      ORDER BY i.instance_start ASC
-      "#,
-    )
-    .bind(workspace_id)
-    .bind(from)
-    .bind(to)
-    .fetch_all(&self.pool)
-    .await
-    .map_err(Self::map_db_err)?;
-    Ok(rows.into_iter().map(Self::map_instance).collect())
+    let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
+    let (_, instances) = projection::workspace_in(&mut tx, workspace_id, from, to).await?;
+    tx.commit().await.map_err(Self::map_db_err)?;
+    Ok(instances)
   }
 
   /// Mark a specific recurrence occurrence as cancelled.
@@ -1611,6 +1759,41 @@ impl CalendarRepository for SqlxCalendarRepository {
   }
 
   /// Delete a calendar event (instances cascade via FK).
+  #[instrument(skip_all)]
+  async fn get_calendar_export_event(&self, event_id: Uuid) -> RepoResult<Option<CalendarEvent>> {
+    let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
+    let Some(mut event) = mail_intent::load_event(&mut tx, event_id).await? else {
+      return Ok(None);
+    };
+    projection::attach_timing_in(&mut tx, &mut event).await?;
+    event.payload = myoxus_domain::scheduling::calendar::export_payload(&event.payload, event.all_day);
+    if let Some(payload) = event.payload.as_object_mut() {
+      payload.remove("_myoxusCalendarTiming");
+    }
+    tx.commit().await.map_err(Self::map_db_err)?;
+    Ok(Some(event))
+  }
+
+  #[instrument(skip_all)]
+  async fn find_calendar_event_by_source(
+    &self,
+    account_id: Uuid,
+    remote_event_id: &str,
+  ) -> RepoResult<Option<CalendarEvent>> {
+    let id: Option<Uuid> =
+      sqlx::query_scalar("SELECT id FROM calendar_events WHERE account_id=$1 AND remote_event_id=$2")
+        .bind(account_id)
+        .bind(remote_event_id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(Self::map_db_err)?;
+    match id {
+      Some(id) => self.get_calendar_event(id).await,
+      None => Ok(None),
+    }
+  }
+
+  /// Delete a calendar event (instances cascade via FK).
   #[instrument(skip(self))]
   async fn delete_calendar_event(&self, event_id: Uuid) -> RepoResult<()> {
     sqlx::query("DELETE FROM calendar_events WHERE id = $1")
@@ -1648,13 +1831,31 @@ impl CalendarRepository for SqlxCalendarRepository {
 
   #[instrument(skip(self, input))]
   async fn insert_native_event(&self, input: &NativeEventInput) -> RepoResult<CalendarEvent> {
+    if input.recurrence.is_some() && input.recurrence_parent_id.is_some() {
+      return Err(RepositoryError::Validation(
+        "Calendar override cannot own a timing definition".into(),
+      ));
+    }
     let mut id = Uuid::new_v4();
     let now = Utc::now();
     // all_day and recurrenceId are stored in payload JSONB, not dedicated columns.
-    let payload = serde_json::json!({
+    let mut payload = serde_json::json!({
       "allDay": input.all_day,
       "recurrenceId": input.recurrence_ical_id,
     });
+    if let Some(source) = &input.imported_recurrence {
+      if input.recurrence.is_some() {
+        return Err(RepositoryError::Validation(
+          "Calendar recurrence has two source owners".into(),
+        ));
+      }
+      payload["sourceUid"] = serde_json::json!(source.uid);
+      payload["rrule"] = serde_json::json!(source.rrule);
+      payload["originalTimezone"] = serde_json::json!(source.original_timezone);
+      payload["recurrenceId"] = serde_json::json!(source.recurrence_id);
+      payload["sourceRecurrence"] = serde_json::json!(source.lines);
+      payload["status"] = serde_json::json!(source.status);
+    }
     let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
     if let Some(parent) = input.recurrence_parent_id {
       // Serialize overrides with their master and preserve one identity per
@@ -1735,6 +1936,14 @@ impl CalendarRepository for SqlxCalendarRepository {
     .fetch_one(&mut *tx)
     .await
     .map_err(Self::map_db_err)?;
+    if let Some(recurrence) = &input.recurrence {
+      crate::scheduling::calendar::set_native_in(&mut tx, id, Some(recurrence)).await?;
+    } else if input.imported_recurrence.is_some() {
+      crate::scheduling::calendar::bind_imported_in(&mut tx, id).await?;
+    }
+    if let Some(master) = input.recurrence_parent_id {
+      projection::reproject_cached_in(&mut tx, master).await?;
+    }
     if let Some(source_doc_id) = input.source_doc_id {
       Self::replace_created_from_source_link(&mut tx, id, source_doc_id, input.source_anchor.as_ref())
         .await
@@ -1762,7 +1971,7 @@ impl CalendarRepository for SqlxCalendarRepository {
       r#"
       UPDATE calendar_events SET
         title             = COALESCE($2, title),
-        description_delta = COALESCE($3, description_delta),
+        description_delta = CASE WHEN $13::boolean THEN $3 ELSE description_delta END,
         starts_at         = COALESCE($4, starts_at),
         ends_at           = COALESCE($5, ends_at),
         payload           = CASE WHEN $6::jsonb IS NOT NULL
@@ -1792,10 +2001,19 @@ impl CalendarRepository for SqlxCalendarRepository {
     .bind(input.source_doc_id.is_some())
     .bind(input.source_doc_id.as_ref().and_then(|o| *o))
     .bind(now)
+    .bind(input.description_delta.is_some())
     .fetch_optional(&mut *tx)
     .await
     .map_err(Self::map_db_err)?;
     let event = row.map(Self::map_event_base);
+    if event.is_some()
+      && let Some(recurrence) = &input.recurrence
+    {
+      crate::scheduling::calendar::set_native_in(&mut tx, event_id, recurrence.as_ref()).await?;
+    }
+    if event.is_some() {
+      projection::reproject_cached_in(&mut tx, event_id).await?;
+    }
     if let Some(event) = event.as_ref() {
       match (&input.source_doc_id, &input.source_anchor) {
         (Some(Some(source_doc_id)), _) => {

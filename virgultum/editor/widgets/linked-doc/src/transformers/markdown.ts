@@ -669,7 +669,7 @@ async function importMarkdownZip({
 
   // Validate the complete source inventory before allocating document IDs or
   // preparing assets. Otherwise normalization could overwrite an earlier path.
-  for (const { path, content: blob } of unzip) {
+  for await (const { path, content: blob } of unzip) {
     if (path.includes("__MACOSX") || path.includes(".DS_Store")) {
       continue;
     }

@@ -72,7 +72,7 @@ function globToRegex(pattern) {
   return compiled;
 }
 
-function pathMatches(path, pattern) {
+export function pathMatches(path, pattern) {
   return globToRegex(pattern).test(path);
 }
 
@@ -98,7 +98,7 @@ function walk(root, relativeRoot) {
   return results;
 }
 
-function collectScopedFiles(repoRoot, roots) {
+export function collectScopedFiles(repoRoot, roots) {
   if (existsSync(join(repoRoot, ".git"))) {
     try {
       return execFileSync("git", ["ls-files", "-z", "--", ...roots], {
@@ -150,7 +150,7 @@ function parseTomlArray(inner) {
   return values;
 }
 
-function loadReuseAnnotations(repoRoot) {
+export function loadReuseAnnotations(repoRoot) {
   const absolute = join(repoRoot, REUSE_TOML_PATH);
   if (!existsSync(absolute)) {
     throw new Error(`${REUSE_TOML_PATH} is missing`);
@@ -220,7 +220,7 @@ function normalizeStrings(value) {
     : [];
 }
 
-function parseFileSpdx(repoRoot, file) {
+export function parseFileSpdx(repoRoot, file) {
   const buffer = readFileSync(join(repoRoot, file));
   if (buffer.includes(0)) return { copyright: [], licenses: [] };
   const text = buffer.toString("utf8");
@@ -364,7 +364,7 @@ function validateOriginEvidence(file, annotation, evidence, findings) {
   }
 }
 
-function deterministicAssetHash(repoRoot, files) {
+export function deterministicAssetHash(repoRoot, files) {
   return sha256(
     files
       .map((file) => `${file}\0${sha256(readFileSync(join(repoRoot, file)))}\n`)
@@ -996,7 +996,7 @@ function applyCc0MetadataFixture(root) {
   });
 }
 
-function selfTest() {
+async function selfTest() {
   const positive = createCleanFixture();
   try {
     applyExternalGeneratorFixture(positive);
@@ -1008,6 +1008,9 @@ function selfTest() {
     mutateJson(positive, MANIFEST_PATH, (manifest) => {
       manifest.components[4].copyrightNotices = [thirdPartyNotice];
     });
+    const { refreshClientInventories } =
+      await import("../release/refresh-source-inventories.mjs");
+    refreshClientInventories(positive);
     const findings = validateProvenance(positive);
     if (findings.length > 0) {
       throw new Error(`positive fixture failed: ${findings.join("; ")}`);
@@ -1170,7 +1173,10 @@ const isMain =
 
 if (isMain) {
   if (process.argv.includes("--self-test")) {
-    selfTest();
+    selfTest().catch((error) => {
+      console.error(error);
+      process.exitCode = 1;
+    });
   } else {
     const findings = validateProvenance(process.cwd());
     if (findings.length > 0) {

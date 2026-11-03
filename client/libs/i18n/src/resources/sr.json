@@ -1269,7 +1269,6 @@
   "admin.performance.field.compaction-lock-ttl.desc": "TTL zaključavanja kompakcije (sekunde). Bezbednosni timeout u slučaju pada servera tokom kompakcije.",
   "admin.performance.field.compaction-threshold-default.desc": "Broj ažuriranja na čekanju pre pokretanja automatske kompakcije. Podrazumevano: 500",
   "admin.performance.field.compaction-threshold-root-doc.desc": "Prag automatske kompakcije za korenske dokumente. Podrazumevano: 50",
-  "admin.performance.field.cron-tick-interval.desc": "Interval (sekunde) za tick petlju cron rasporeda. Podrazumevano: 60 · Min: 5 · Može zahtevati ponovno pokretanje za pun efekat.",
   "admin.performance.field.daily-enabled.desc": "Omogući dnevni ciklus automatskog podešavanja TTL-a.",
   "admin.performance.field.doc-metadata-cache-enabled.desc": "Omogući Redis keš metapodataka. Smanjuje upite DB za pretrage metapodataka dokumenata.",
   "admin.performance.field.doc-metadata-fixed-ttl.desc": "Nadjačavanje fiksnog TTL-a za keš doc_metadata (sekunde). 0 = koristi automatsko podešavanje.",

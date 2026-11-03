@@ -17,7 +17,6 @@ use redis::AsyncCommands;
 use std::sync::Arc;
 use tokio::sync::OnceCell;
 use tracing::{debug, info, instrument, trace, warn};
-use uuid::Uuid;
 
 use crate::TerminalRetentionPolicy;
 use crate::job::{Job, JobOptions};
@@ -56,6 +55,32 @@ pub struct RedisQueue {
 }
 
 impl RedisQueue {
+  /// Enqueue the frozen future slot accepted by shared SQL timing. Replays use
+  /// the same native job ID; enqueue_idempotent preserves an existing job's
+  /// attempts/backoff/lease even when the remaining delay has changed.
+  #[instrument(skip_all,fields(dispatch_id=%delivery.dispatch_id))]
+  pub async fn enqueue_registered(
+    &self,
+    delivery: &myoxus_domain::scheduling::registered::RegisteredDispatch,
+  ) -> QueueResult<()> {
+    let remaining = delivery
+      .scheduled_for
+      .timestamp_millis()
+      .saturating_sub(Utc::now().timestamp_millis());
+    self
+      .enqueue_idempotent(
+        delivery.job.queue(),
+        &delivery.job_id(),
+        delivery.job.name(),
+        delivery.data.clone(),
+        JobOptions {
+          delay_ms: (remaining > 0).then_some(remaining),
+          ..JobOptions::default()
+        },
+      )
+      .await?;
+    Ok(())
+  }
   /// Replace a minute atomically across instances, retain at most 24 hours,
   /// and expire inactive histories without touching job or queue metadata.
   pub async fn record_history(&self, stats: &QueueStats, timestamp: i64) -> QueueResult<()> {
@@ -133,51 +158,133 @@ impl RedisQueue {
     Ok(manager.clone())
   }
 
-  /// Expose a Redis connection for use by the cron scheduler module.
-  pub(crate) async fn connection_for_cron(&self) -> QueueResult<redis::aio::ConnectionManager> {
-    self.connection().await
-  }
-
-  /// Acquire or refresh the single cron-scheduler lease for this queue
-  /// namespace.
-  ///
-  /// The Lua script keeps the empty/acquire and same-owner/refresh decisions
-  /// atomic. A foreign owner never changes the key or its TTL.
-  pub(crate) async fn claim_cron_scheduler_leader(&self, owner: Uuid, ttl_seconds: u64) -> QueueResult<bool> {
-    let mut conn = self.connection().await?;
-    let key = format!("{}:cron:scheduler:leader", self.prefix);
-    let script = redis::Script::new(
-      r#"
-      local current = redis.call('GET', KEYS[1])
-      if not current then
-        local acquired = redis.call('SET', KEYS[1], ARGV[1], 'NX', 'EX', ARGV[2])
-        if acquired then
-          return 1
-        end
-        return 0
-      end
-      if current == ARGV[1] then
-        redis.call('EXPIRE', KEYS[1], ARGV[2])
-        return 1
-      end
-      return 0
-      "#,
-    );
-    let claimed: i64 = script
-      .key(key)
-      .arg(owner.to_string())
-      .arg(ttl_seconds.max(1))
-      .invoke_async(&mut conn)
-      .await?;
-    Ok(claimed == 1)
-  }
-
   fn key(&self, queue: &str, suffix: &str) -> String {
     format!("{}:{}:{}", self.prefix, queue, suffix)
   }
 
   fn job_key(&self, queue: &str, job_id: &str) -> String {
     format!("{}:{}:{}", self.prefix, queue, job_id)
+  }
+
+  /// Retire only the old Calendar enqueue scan after its SQL transfer. Deployment
+  /// requires an all-instance stop: an interrupted scan owns no delivery receipt
+  /// and may be discarded, whereas actual processReminder jobs remain untouched.
+  /// Reads are bounded to this one queue; interruption resumes idempotently.
+  #[instrument(skip_all)]
+  pub async fn retire_calendar_reminder_enqueue_tick(&self) -> QueueResult<usize> {
+    self
+      .retire_reminder_tick("calendar-reminder", "calendar.enqueueReminders")
+      .await
+  }
+
+  /// Pending notification.sendDatabaseRowReminder deliveries live on their
+  /// existing notification queue and are not part of this retired timing tick.
+  #[instrument(skip_all)]
+  pub async fn retire_database_reminder_fire_tick(&self) -> QueueResult<usize> {
+    self.retire_reminder_tick("database", "database.fireReminders").await
+  }
+
+  /// Called only after the controlled native timing transfer. Keep real Git
+  /// Run and rotation jobs, including in-progress/retrying native attempts.
+  #[instrument(skip_all)]
+  pub async fn retire_git_sync_schedule_tick(&self) -> QueueResult<usize> {
+    self.retire_reminder_tick("git-sync", "git-sync.scheduleTick").await
+  }
+
+  async fn retire_reminder_tick(&self, queue: &str, job: &str) -> QueueResult<usize> {
+    const LIMIT: isize = 100_000;
+    let mut conn = self.connection().await?;
+    let wait = self.key(queue, "wait");
+    let active = self.key(queue, "active");
+    let delayed = self.key(queue, "delayed");
+    let repeat_prefix = format!("repeat:{job}:");
+    let mut ids = std::collections::BTreeSet::<String>::new();
+    for key in [&wait, &active] {
+      let rows: Vec<String> = conn.lrange(key, 0, LIMIT).await?;
+      if rows.len() > LIMIT as usize {
+        return Err(QueueError::Serialization(
+          "Reminder tick retirement budget exceeded".into(),
+        ));
+      }
+      ids.extend(rows);
+    }
+    let rows: Vec<String> = conn.zrange(&delayed, 0, LIMIT).await?;
+    ids.extend(rows);
+    if ids.len() > LIMIT as usize {
+      return Err(QueueError::Serialization(
+        "Reminder tick retirement budget exceeded".into(),
+      ));
+    }
+    let ids = ids.into_iter().collect::<Vec<_>>();
+    let mut pending = Vec::new();
+    for chunk in ids.chunks(256) {
+      let mut pipe = redis::pipe();
+      for id in chunk {
+        pipe.cmd("HGET").arg(self.job_key(queue, id)).arg("name");
+      }
+      let names: Vec<Option<String>> = pipe.query_async(&mut conn).await?;
+      for (id, name) in chunk.iter().zip(names) {
+        if name.as_deref() != Some(job) {
+          continue;
+        }
+        let opts: Option<String> = conn.hget(self.job_key(queue, id), "opts").await?;
+        let opts = opts.ok_or_else(|| QueueError::Serialization("Retired reminder tick options missing".into()))?;
+        let shape: serde_json::Value = serde_json::from_str(&opts)
+          .map_err(|_| QueueError::Serialization("Retired reminder tick options invalid".into()))?;
+        let repeat = shape["repeat"]["job_id"]
+          .as_str()
+          .ok_or_else(|| QueueError::Serialization("Retired reminder tick repeat identity missing".into()))?;
+        let slot = repeat
+          .strip_prefix(repeat_prefix.as_str())
+          .and_then(|value| value.parse::<u64>().ok());
+        if slot.is_none() {
+          return Err(QueueError::Serialization(
+            "Retired reminder tick repeat identity invalid".into(),
+          ));
+        }
+        pending.push((id.clone(), opts));
+      }
+    }
+    let remove = redis::Script::new(
+      r#"
+      if redis.call('HGET',KEYS[1],'name')~=ARGV[1] then return 0 end
+      if redis.call('HGET',KEYS[1],'opts')~=ARGV[2] then return 0 end
+      redis.call('LREM',KEYS[2],0,ARGV[3]); redis.call('LREM',KEYS[3],0,ARGV[3])
+      redis.call('ZREM',KEYS[4],ARGV[3]); redis.call('DEL',KEYS[1]); return 1
+    "#,
+    );
+    let mut removed = 0;
+    for (id, opts) in pending {
+      let count: i64 = remove
+        .key(self.job_key(queue, &id))
+        .key(&wait)
+        .key(&active)
+        .key(&delayed)
+        .arg(job)
+        .arg(opts)
+        .arg(&id)
+        .invoke_async(&mut conn)
+        .await?;
+      match count {
+        1 => removed += 1,
+        0 => {
+          let name: Option<String> = conn.hget(self.job_key(queue, &id), "name").await?;
+          if name.as_deref() == Some(job) {
+            return Err(QueueError::Serialization(
+              "Retired reminder tick changed during transfer".into(),
+            ));
+          }
+        }
+        _ => {
+          return Err(QueueError::Serialization(
+            "Retired reminder tick acknowledgement invalid".into(),
+          ));
+        }
+      }
+    }
+    // Tracking is deliberately unprefixed in the deployed repeat scheduler.
+    let _: usize = conn.del(format!("cron:{queue}:{job}")).await?;
+    Ok(removed)
   }
 
   fn terminal_retention_key(&self, queue: &str, status: &str) -> String {

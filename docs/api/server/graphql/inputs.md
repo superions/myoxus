@@ -578,6 +578,15 @@ Input for updating the body of an existing comment.
 | `content` | [JSON](./scalars.md#json)! |  | New rich-text body. |
 | `id` | `String`! |  | UUID of the comment to update. |
 
+## CompletionRecurrenceInput
+
+<!-- prettier-ignore -->
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `amount` | `Int`! |  |  |
+| `unit` | [RecurrenceRelativeUnit](./enums.md#recurrencerelativeunit)! |  |  |
+| `zone` | `String`! |  |  |
+
 ## ConfigureGitTokenRotationInput
 
 <!-- prettier-ignore -->
@@ -603,6 +612,19 @@ Input for updating the body of an existing comment.
 | `planDigest` | `String`! |  |  |
 | `ruleId` | `ID` |  |  |
 | `target` | [ContextDocumentTargetInput](./inputs.md#contextdocumenttargetinput)! |  |  |
+| `workspaceId` | `ID`! |  |  |
+
+## ConfigureTaskRecurrenceInput
+
+<!-- prettier-ignore -->
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `databaseId` | `ID`! |  |  |
+| `expectedDueRevision` | `Int`! |  |  |
+| `expectedRowRevision` | `Int`! |  |  |
+| `recipe` | [TaskRecurrenceRecipeInput](./inputs.md#taskrecurrencerecipeinput)! |  |  |
+| `rowId` | `ID`! |  |  |
+| `rule` | [RecurrenceRuleInput](./inputs.md#recurrenceruleinput)! |  |  |
 | `workspaceId` | `ID`! |  |  |
 
 ## ConfirmTaskCorrectionsInput
@@ -848,6 +870,7 @@ Input for creating a workspace-native calendar event.
 | `allMembers` | `Boolean` |  |  |
 | `descriptionDelta` | [JSON](./scalars.md#json) |  |  |
 | `endsAt` | [DateTime](./scalars.md#datetime)! |  |  |
+| `recurrence` | [FixedRecurrenceInput](./inputs.md#fixedrecurrenceinput) |  |  |
 | `reminders` | \[[NativeReminderInput](./inputs.md#nativereminderinput)!\] |  |  |
 | `sourceBlockId` | `String` |  |  |
 | `sourceDocId` | `String` |  | Deprecated: use \`sourceExternalId\`. This alias carries the same workspace-local external key. |
@@ -1828,6 +1851,21 @@ Input for deleting one or more Copilot chat sessions.
 | --- | --- | --- | --- |
 | `databaseId` | `ID`! |  |  |
 
+## FixedRecurrenceInput
+
+<!-- prettier-ignore -->
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `day` | `Int` |  |  |
+| `end` | [RecurrenceValueInput](./inputs.md#recurrencevalueinput) |  |  |
+| `frequency` | [RecurrenceFrequency](./enums.md#recurrencefrequency)! |  |  |
+| `interval` | `Int`! |  |  |
+| `lastDay` | `Boolean` |  |  |
+| `month` | `Int` |  |  |
+| `start` | [RecurrenceValueInput](./inputs.md#recurrencevalueinput)! |  |  |
+| `weekdays` | \[[RecurrenceWeekday](./enums.md#recurrenceweekday)!\] |  |  |
+| `zone` | `String`! |  |  |
+
 ## ForkChatSessionInput
 
 <!-- prettier-ignore -->
@@ -2275,6 +2313,40 @@ Filter/pagination parameters for Copilot chat history queries.
 | `tagId` | `ID`! |  |  |
 | `workspaceId` | `ID`! |  |  |
 
+## RecurrencePreviewInput
+
+<!-- prettier-ignore -->
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `after` | [DateTime](./scalars.md#datetime) |  |  |
+| `completionReference` | [RecurrenceValueInput](./inputs.md#recurrencevalueinput) |  |  |
+| `count` | `Int`! |  = 5 |  |
+| `expectedRevision` | `Int` |  |  |
+| `rule` | [RecurrenceRuleInput](./inputs.md#recurrenceruleinput)! |  |  |
+| `seriesId` | `ID` |  | Optional native series-edit boundary; must accompany its current revision. |
+
+## RecurrenceRuleInput
+
+**OneOf input:** supply exactly one field with a non-null value.
+
+<!-- prettier-ignore -->
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `afterCompletion` | [CompletionRecurrenceInput](./inputs.md#completionrecurrenceinput) |  |  |
+| `fixed` | [FixedRecurrenceInput](./inputs.md#fixedrecurrenceinput) |  |  |
+
+## RecurrenceValueInput
+
+Exactly one civil value; a local timestamp must not carry a UTC offset.
+
+**OneOf input:** supply exactly one field with a non-null value.
+
+<!-- prettier-ignore -->
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `date` | `String` |  |  |
+| `localDateTime` | `String` |  |  |
+
 ## RemoveContextBlobInput
 
 <!-- prettier-ignore -->
@@ -2649,6 +2721,18 @@ Input for \`setWorkspaceTemplateOverride\`.
 | `templateId` | `String`! |  |  |
 | `workspaceId` | `String`! |  |  |
 
+## SkipTaskRecurrenceInput
+
+<!-- prettier-ignore -->
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `expectedRevision` | `Int`! |  |  |
+| `expectedRowRevision` | `Int`! |  |  |
+| `expectedStatusRevision` | `Int`! |  |  |
+| `memberId` | `ID`! |  |  |
+| `seriesId` | `ID`! |  |  |
+| `workspaceId` | `ID`! |  |  |
+
 ## StartDocumentReviewInput
 
 <!-- prettier-ignore -->
@@ -2727,6 +2811,36 @@ Input for \`setWorkspaceTemplateOverride\`.
 | Field | Type | Default | Description |
 | --- | --- | --- | --- |
 | `runId` | `ID`! |  |  |
+
+## TaskRecurrenceControlInput
+
+<!-- prettier-ignore -->
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `expectedRevision` | `Int`! |  |  |
+| `seriesId` | `ID`! |  |  |
+| `workspaceId` | `ID`! |  |  |
+
+## TaskRecurrenceLookupInput
+
+**OneOf input:** supply exactly one field with a non-null value.
+
+<!-- prettier-ignore -->
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `rowId` | `ID` |  |  |
+| `seriesId` | `ID` |  |  |
+
+## TaskRecurrenceRecipeInput
+
+<!-- prettier-ignore -->
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `assignees` | \[`ID`!\]! |  |  |
+| `databaseId` | `ID`! |  |  |
+| `description` | [DatabaseRichTextCellValueInput](./inputs.md#databaserichtextcellvalueinput) |  | Use the native document-only input; its plain-text projection is server-owned. |
+| `priority` | `String` |  |  |
+| `title` | `String`! |  |  |
 
 ## TemplateCatalogViewInput
 
@@ -3037,6 +3151,17 @@ Patch semantics for an existing profile. Omitted fields preserve persisted value
 | `managerRootProjectCreation` | [PolicyStateEnum](./enums.md#policystateenum) |  |  |
 | `managerUnitProjectCreation` | [PolicyStateEnum](./enums.md#policystateenum) |  |  |
 
+## UpdateTaskRecurrenceInput
+
+<!-- prettier-ignore -->
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `expectedRevision` | `Int`! |  |  |
+| `recipe` | [TaskRecurrenceRecipeInput](./inputs.md#taskrecurrencerecipeinput)! |  |  |
+| `rule` | [RecurrenceRuleInput](./inputs.md#recurrenceruleinput)! |  |  |
+| `seriesId` | `ID`! |  |  |
+| `workspaceId` | `ID`! |  |  |
+
 ## UpdateUserInput
 
 Input for updating user profile fields.
@@ -3126,8 +3251,9 @@ Input for updating a workspace-native calendar event.
 | --- | --- | --- | --- |
 | `allDay` | `Boolean` |  |  |
 | `allMembers` | `Boolean` |  |  |
-| `descriptionDelta` | [JSON](./scalars.md#json) |  |  |
+| `descriptionDelta` | [JSON](./scalars.md#json) |  | Omit to preserve content; an explicit null clears it. |
 | `endsAt` | [DateTime](./scalars.md#datetime) |  |  |
+| `recurrence` | [FixedRecurrenceInput](./inputs.md#fixedrecurrenceinput) |  |  |
 | `reminders` | \[[NativeReminderInput](./inputs.md#nativereminderinput)!\] |  | Omit to leave reminders unchanged; pass \`null\` or an empty list to clear them; pass a list to replace the complete reminder set atomically. |
 | `sourceBlockId` | `String` |  |  |
 | `sourceDocId` | `String` |  | Deprecated: use \`sourceExternalId\`. This alias carries the same workspace-local external key. |

@@ -13,6 +13,10 @@ import {
   type CreateWorkspaceEventInput,
   type CreateWorkspaceEventMutation,
   createWorkspaceEventMutation,
+  controlWorkspaceEventRecurrenceMutation,
+  type CalendarTimingAction,
+  recurrencePreviewQuery,
+  RecurrenceFrequency,
   deleteEventTagMutation,
   deleteWorkspaceEventMutation,
   exportWorkspaceCalendarIcsQuery,
@@ -31,6 +35,7 @@ import {
   workspaceCalendarSettingsQuery,
   type WorkspaceCalendarsQuery,
   workspaceCalendarsQuery,
+  workspaceCalendarSeriesQuery,
 } from "@myoxus/graphql";
 import { Store } from "@myoxus/infra";
 
@@ -183,6 +188,74 @@ export class CalendarStore extends Store {
         instanceStart: instanceStart ?? null,
       },
     });
+  }
+
+  async controlRecurrence(
+    eventId: string,
+    expectedRevision: number,
+    action: CalendarTimingAction,
+  ) {
+    const gql = this.gql;
+    if (!gql) throw new Error("No graphql service available");
+    const data = await gql({
+      query: controlWorkspaceEventRecurrenceMutation,
+      variables: {
+        workspaceId: this.workspaceId,
+        eventId,
+        expectedRevision,
+        action,
+      },
+    });
+    return data.controlWorkspaceEventRecurrence;
+  }
+
+  async listSeries() {
+    const gql = this.gql;
+    if (!gql) throw new Error("No graphql service available");
+    const data = await gql({
+      query: workspaceCalendarSeriesQuery,
+      variables: { workspaceId: this.workspaceId },
+    });
+    return data.workspaceCalendarSeries;
+  }
+
+  /** Resolve a civil input using the shared server clock policy. A skipped
+   * clock gap must not silently save the next day's first occurrence instead. */
+  async resolveWallTime(value: string, zone: string) {
+    const gql = this.gql;
+    if (!gql) throw new Error("No graphql service available");
+    const civil = value.replace(" ", "T");
+    const normalized = civil.length === 16 ? `${civil}:00` : civil;
+    const data = await gql({
+      query: recurrencePreviewQuery,
+      variables: {
+        workspaceId: this.workspaceId,
+        input: {
+          count: 1,
+          rule: {
+            afterCompletion: undefined,
+            fixed: {
+              frequency: RecurrenceFrequency.Daily,
+              interval: 1,
+              zone,
+              start: { date: undefined, localDateTime: normalized },
+            },
+          },
+        },
+      },
+    });
+    const occurrence = data.workspace?.recurrencePreview[0]?.occurrence;
+    const comparable = (value: string | null | undefined) =>
+      value
+        ?.replace(
+          /\.(\d+)/,
+          (_, digits: string) => `.${digits.slice(0, 6).padEnd(6, "0")}`,
+        )
+        .replace(/\.0+$/, "");
+    return occurrence &&
+      comparable(occurrence.nominal.localDateTime) === comparable(normalized)
+      ? occurrence.dueAt
+      : null;
   }
 
   async fetchTags(signal?: AbortSignal) {

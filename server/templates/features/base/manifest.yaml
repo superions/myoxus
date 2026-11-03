@@ -61,6 +61,9 @@ components:
   - id: task-core
     kind: taskCore
     path: databases/myoxus.project.task-core/1.0.0.yaml
+  - id: task-core.1.0.1
+    kind: taskCore
+    path: databases/myoxus.project.task-core/1.0.1.yaml
   - id: document.project-brief.1.0.0
     kind: documentTemplate
     path: documents/project-brief/1.0.0.zip
@@ -585,6 +588,33 @@ components:
     kind: documentTemplate
     path: documents/block-technical-acceptance/1.0.1.zip
 links:
+  - kind: taskCore
+    from:
+      component: databases
+      export: myoxus.project.simple_project@1.0.2
+    to:
+      scope: local
+      reference:
+        component: task-core.1.0.1
+        export: myoxus.project.task-core@1.0.1
+  - kind: taskCore
+    from:
+      component: databases
+      export: myoxus.project.product_roadmap@1.0.2
+    to:
+      scope: local
+      reference:
+        component: task-core.1.0.1
+        export: myoxus.project.task-core@1.0.1
+  - kind: taskCore
+    from:
+      component: databases
+      export: myoxus.project.bug_tracker@1.0.2
+    to:
+      scope: local
+      reference:
+        component: task-core.1.0.1
+        export: myoxus.project.task-core@1.0.1
   - kind: taskCore
     from:
       component: databases
@@ -1263,7 +1293,7 @@ links:
       scope: local
       reference:
         component: databases
-        export: myoxus.project.simple_project@1.0.1
+        export: myoxus.project.simple_project@1.0.2
   - kind: view
     from:
       component: assistants
@@ -1273,7 +1303,7 @@ links:
       scope: local
       reference:
         component: databases
-        export: myoxus.project.simple_project@1.0.1
+        export: myoxus.project.simple_project@1.0.2
         key: view/kanban
   - kind: view
     from:
@@ -1284,7 +1314,7 @@ links:
       scope: local
       reference:
         component: databases
-        export: myoxus.project.simple_project@1.0.1
+        export: myoxus.project.simple_project@1.0.2
         key: view/table
   - kind: view
     from:
@@ -1295,7 +1325,7 @@ links:
       scope: local
       reference:
         component: databases
-        export: myoxus.project.simple_project@1.0.1
+        export: myoxus.project.simple_project@1.0.2
         key: view/progress
   - kind: view
     from:
@@ -1306,7 +1336,7 @@ links:
       scope: local
       reference:
         component: databases
-        export: myoxus.project.simple_project@1.0.1
+        export: myoxus.project.simple_project@1.0.2
         key: view/list
   - kind: view
     from:
@@ -1317,7 +1347,7 @@ links:
       scope: local
       reference:
         component: databases
-        export: myoxus.project.simple_project@1.0.1
+        export: myoxus.project.simple_project@1.0.2
         key: view/calendar
   - kind: view
     from:
@@ -1328,7 +1358,7 @@ links:
       scope: local
       reference:
         component: databases
-        export: myoxus.project.simple_project@1.0.1
+        export: myoxus.project.simple_project@1.0.2
         key: view/timeline
   - kind: view
     from:
@@ -1339,7 +1369,7 @@ links:
       scope: local
       reference:
         component: databases
-        export: myoxus.project.simple_project@1.0.1
+        export: myoxus.project.simple_project@1.0.2
         key: view/gallery
   - kind: input
     from:
@@ -1518,7 +1548,7 @@ links:
       scope: local
       reference:
         component: databases
-        export: myoxus.project.product_roadmap@1.0.1
+        export: myoxus.project.product_roadmap@1.0.2
   - kind: view
     from:
       component: assistants
@@ -1528,7 +1558,7 @@ links:
       scope: local
       reference:
         component: databases
-        export: myoxus.project.product_roadmap@1.0.1
+        export: myoxus.project.product_roadmap@1.0.2
         key: view/kanban
   - kind: view
     from:
@@ -1539,7 +1569,7 @@ links:
       scope: local
       reference:
         component: databases
-        export: myoxus.project.product_roadmap@1.0.1
+        export: myoxus.project.product_roadmap@1.0.2
         key: view/table
   - kind: view
     from:
@@ -1550,7 +1580,7 @@ links:
       scope: local
       reference:
         component: databases
-        export: myoxus.project.product_roadmap@1.0.1
+        export: myoxus.project.product_roadmap@1.0.2
         key: view/progress
   - kind: view
     from:
@@ -1561,7 +1591,7 @@ links:
       scope: local
       reference:
         component: databases
-        export: myoxus.project.product_roadmap@1.0.1
+        export: myoxus.project.product_roadmap@1.0.2
         key: view/list
   - kind: view
     from:
@@ -1572,7 +1602,7 @@ links:
       scope: local
       reference:
         component: databases
-        export: myoxus.project.product_roadmap@1.0.1
+        export: myoxus.project.product_roadmap@1.0.2
         key: view/calendar
   - kind: view
     from:
@@ -1583,7 +1613,7 @@ links:
       scope: local
       reference:
         component: databases
-        export: myoxus.project.product_roadmap@1.0.1
+        export: myoxus.project.product_roadmap@1.0.2
         key: view/timeline
   - kind: view
     from:
@@ -1594,7 +1624,7 @@ links:
       scope: local
       reference:
         component: databases
-        export: myoxus.project.product_roadmap@1.0.1
+        export: myoxus.project.product_roadmap@1.0.2
         key: view/gallery
   - kind: input
     from:
@@ -1773,7 +1803,7 @@ links:
       scope: local
       reference:
         component: databases
-        export: myoxus.project.bug_tracker@1.0.1
+        export: myoxus.project.bug_tracker@1.0.2
   - kind: view
     from:
       component: assistants
@@ -1783,7 +1813,7 @@ links:
       scope: local
       reference:
         component: databases
-        export: myoxus.project.bug_tracker@1.0.1
+        export: myoxus.project.bug_tracker@1.0.2
         key: view/kanban
   - kind: view
     from:
@@ -1794,7 +1824,7 @@ links:
       scope: local
       reference:
         component: databases
-        export: myoxus.project.bug_tracker@1.0.1
+        export: myoxus.project.bug_tracker@1.0.2
         key: view/table
   - kind: view
     from:
@@ -1805,7 +1835,7 @@ links:
       scope: local
       reference:
         component: databases
-        export: myoxus.project.bug_tracker@1.0.1
+        export: myoxus.project.bug_tracker@1.0.2
         key: view/progress
   - kind: view
     from:
@@ -1816,7 +1846,7 @@ links:
       scope: local
       reference:
         component: databases
-        export: myoxus.project.bug_tracker@1.0.1
+        export: myoxus.project.bug_tracker@1.0.2
         key: view/list
   - kind: view
     from:
@@ -1827,7 +1857,7 @@ links:
       scope: local
       reference:
         component: databases
-        export: myoxus.project.bug_tracker@1.0.1
+        export: myoxus.project.bug_tracker@1.0.2
         key: view/calendar
   - kind: view
     from:
@@ -1838,7 +1868,7 @@ links:
       scope: local
       reference:
         component: databases
-        export: myoxus.project.bug_tracker@1.0.1
+        export: myoxus.project.bug_tracker@1.0.2
         key: view/timeline
   - kind: view
     from:
@@ -1849,7 +1879,7 @@ links:
       scope: local
       reference:
         component: databases
-        export: myoxus.project.bug_tracker@1.0.1
+        export: myoxus.project.bug_tracker@1.0.2
         key: view/gallery
   - kind: input
     from:
@@ -2457,11 +2487,11 @@ exports:
   - id: database.myoxus.project.simple_project
     source:
       component: databases
-      export: myoxus.project.simple_project@1.0.1
+      export: myoxus.project.simple_project@1.0.2
   - id: database.myoxus.project.product_roadmap
     source:
       component: databases
-      export: myoxus.project.product_roadmap@1.0.1
+      export: myoxus.project.product_roadmap@1.0.2
   - id: database.myoxus.database.content_calendar
     source:
       component: databases
@@ -2477,7 +2507,7 @@ exports:
   - id: database.myoxus.project.bug_tracker
     source:
       component: databases
-      export: myoxus.project.bug_tracker@1.0.1
+      export: myoxus.project.bug_tracker@1.0.2
   - id: database.myoxus.database.research_index
     source:
       component: databases
@@ -2553,8 +2583,8 @@ exports:
       - workspaceCreation
   - id: task-core
     source:
-      component: task-core
-      export: myoxus.project.task-core@1.0.0
+      component: task-core.1.0.1
+      export: myoxus.project.task-core@1.0.1
   - id: document.agile-retro
     source:
       component: document.agile-retro.1.4.0

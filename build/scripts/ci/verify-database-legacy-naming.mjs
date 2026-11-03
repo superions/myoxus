@@ -97,6 +97,22 @@ const rules = [
 
 const allowedStorageSnakeSymbols = new Map([
   [
+    "server/crates/infrastructure/src/recurrence/advance.rs",
+    new Set(["workspace_databases", "workspace_database"]),
+  ],
+  [
+    "server/crates/infrastructure/src/recurrence/mod.rs",
+    new Set(["workspace_databases", "workspace_database"]),
+  ],
+  [
+    "server/crates/infrastructure/src/recurrence/lifecycle.rs",
+    new Set(["workspace_databases", "workspace_database"]),
+  ],
+  [
+    "server/crates/infrastructure/src/scheduling/mod.rs",
+    new Set(["workspace_databases", "workspace_database_fields"]),
+  ],
+  [
     "server/crates/infrastructure/src/workspace_automation/task_events.rs",
     new Set([
       "workspace_database",

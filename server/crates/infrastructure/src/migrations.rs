@@ -249,7 +249,7 @@ async fn validate_final_invariants(
   .fetch_one(&mut *connection)
   .await
   .map_err(MigrationRunError::Database)?;
-  if table_count != 227 {
+  if table_count != 233 {
     return Err(MigrationRunError::SchemaInvariant {
       class: class.label(),
       highest: highest.to_owned(),
@@ -258,12 +258,12 @@ async fn validate_final_invariants(
   }
 
   let required_relations: i64 = sqlx::query_scalar(
-    "SELECT count(*) FROM unnest(ARRAY['users','workspaces','docs','doc_updates','doc_snapshots','blobs','search_content','workspace_' || 'databases','workspace_' || 'database_rows','workspace_' || 'database_cell_values','workspace_tag_retired_ids','organization','organization_unit','git_sync_profiles','git_sync_scope_exclusions','git_sync_bootstrap_attempts','git_token_rotation','git_sync_history_capture_receipts','pdf_workspace_template_assignments','app_configs','page_registration_evidence','document_edit_capture_state','document_edit_capture_runtime','document_history_capture_request','workspace_document_metadata_index_revision','workspace_database_page_inventory_revision','document_change_batches','document_change_batch_actors','calendar_mail_state','calendar_mail_receipts','calendar_reminder_mail_receipts','database_row_source_links','database_task_capture_receipts','workspace_starter_applications','sayiir_workflow_snapshots','sayiir_workflow_snapshot_history','sayiir_workflow_tasks','sayiir_workflow_signals','sayiir_workflow_claims','sayiir_workflow_events']) name WHERE to_regclass('public.' || name) IS NOT NULL",
+    "SELECT count(*) FROM unnest(ARRAY['users','workspaces','docs','doc_updates','doc_snapshots','blobs','search_content','workspace_' || 'databases','workspace_' || 'database_rows','workspace_' || 'database_cell_values','workspace_tag_retired_ids','organization','organization_unit','git_sync_profiles','git_sync_scope_exclusions','git_sync_bootstrap_attempts','git_token_rotation','git_sync_history_capture_receipts','pdf_workspace_template_assignments','app_configs','page_registration_evidence','document_edit_capture_state','document_edit_capture_runtime','document_history_capture_request','workspace_document_metadata_index_revision','workspace_database_page_inventory_revision','document_change_batches','document_change_batch_actors','calendar_mail_state','calendar_mail_receipts','calendar_reminder_mail_receipts','database_row_source_links','database_task_capture_receipts','workspace_starter_applications','sayiir_workflow_snapshots','sayiir_workflow_snapshot_history','sayiir_workflow_tasks','sayiir_workflow_signals','sayiir_workflow_claims','sayiir_workflow_events','scheduling_schedules','scheduling_occurrences','scheduling_pause_intervals','task_recurrence_series','task_recurrence_members']) name WHERE to_regclass('public.' || name) IS NOT NULL",
   )
   .fetch_one(&mut *connection)
   .await
   .map_err(MigrationRunError::Database)?;
-  if required_relations != 40 {
+  if required_relations != 45 {
     return Err(MigrationRunError::SchemaInvariant {
       class: class.label(),
       highest: highest.to_owned(),

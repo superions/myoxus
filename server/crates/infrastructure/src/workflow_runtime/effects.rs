@@ -23,6 +23,26 @@ pub(crate) async fn lock_runtime_authority(
   workspace: uuid::Uuid,
   manager_only: bool,
 ) -> RepoResult<()> {
+  lock_runtime_authority_mode(tx, actor, workspace, manager_only, false).await
+}
+
+/// A completion source grants read authority only. Accepted External, Reader
+/// and Commenter memberships may read Tasks but cannot create the successor.
+pub(crate) async fn lock_runtime_read_authority(
+  tx: &mut PgConnection,
+  actor: uuid::Uuid,
+  workspace: uuid::Uuid,
+) -> RepoResult<()> {
+  lock_runtime_authority_mode(tx, actor, workspace, false, true).await
+}
+
+async fn lock_runtime_authority_mode(
+  tx: &mut PgConnection,
+  actor: uuid::Uuid,
+  workspace: uuid::Uuid,
+  manager_only: bool,
+  read_only: bool,
+) -> RepoResult<()> {
   // OU membership writers lock OU before user; workspace ownership/import
   // writers can lock workspace before OU. Never wait while acquiring these
   // authority locks in a competing order: contention fails this attempt closed.
@@ -36,8 +56,8 @@ pub(crate) async fn lock_runtime_authority(
   if workspace_row.is_none() {
     return Err(stale());
   }
-  let direct = sqlx::query("SELECT u.id FROM users u JOIN workspace_memberships m ON m.user_id=u.id WHERE u.id=$1 AND m.workspace_id=$2 AND u.status='active' AND m.status='Accepted' AND (m.role IN ('Owner','Admin','Manager') OR (NOT $3 AND m.role='Collaborator')) FOR SHARE OF u,m NOWAIT")
-    .bind(actor).bind(workspace).bind(manager_only).fetch_optional(&mut *tx).await.map_err(storage)?;
+  let direct = sqlx::query("SELECT u.id FROM users u JOIN workspace_memberships m ON m.user_id=u.id WHERE u.id=$1 AND m.workspace_id=$2 AND u.status='active' AND m.status='Accepted' AND ($4 OR m.role IN ('Owner','Admin','Manager') OR (NOT $3 AND m.role='Collaborator')) FOR SHARE OF u,m NOWAIT")
+    .bind(actor).bind(workspace).bind(manager_only).bind(read_only).fetch_optional(&mut *tx).await.map_err(storage)?;
   if direct.is_none() {
     // Match can_manage_ou_workspace: one active exact Manager membership,
     // the global Manager capability, and any relationship to this workspace.
@@ -192,6 +212,13 @@ pub(crate) async fn lock_runtime_execution(
     || run.try_get::<Value, _>("accepted_json").map_err(storage)? != serde_json::to_value(&accepted).map_err(storage)?
   {
     return Err(stale());
+  }
+  if accepted.recurring_task.is_some() {
+    if node_key != "action:0" {
+      return Err(stale());
+    }
+    crate::scheduling::lock_task_effect(tx, &accepted).await?;
+    return Ok(accepted);
   }
   if let Some(origin) = &accepted.workspace_setup {
     if accepted.automation_id.is_some()
@@ -538,6 +565,16 @@ pub async fn acknowledge_runtime_effect(
 ) -> RepoResult<()> {
   if lock_runtime_effect(tx, fence).await?.is_some() {
     return Ok(());
+  }
+  let task: Option<Value> =
+    sqlx::query_scalar("SELECT accepted_json->'recurringTask' FROM workspace_automation_runs WHERE id=$1")
+      .bind(fence.run_id)
+      .fetch_one(&mut *tx)
+      .await
+      .map_err(storage)?;
+  if let Some(task) = task {
+    let task = serde_json::from_value(task).map_err(|_| stale())?;
+    crate::recurrence::record_member_in(tx, &task, &result).await?;
   }
   let changed = sqlx::query("UPDATE workspace_automation_actions SET status='succeeded',result_json=$3 WHERE id=$1 AND run_id=$2 AND status='running'")
     .bind(fence.action_id).bind(fence.run_id).bind(result).execute(&mut *tx).await.map_err(storage)?;

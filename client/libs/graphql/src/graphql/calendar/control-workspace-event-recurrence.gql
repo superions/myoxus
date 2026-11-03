@@ -1,0 +1,35 @@
+mutation controlWorkspaceEventRecurrence(
+  $workspaceId: String!
+  $eventId: String!
+  $expectedRevision: Int!
+  $action: CalendarTimingAction!
+) {
+  controlWorkspaceEventRecurrence(
+    workspaceId: $workspaceId
+    eventId: $eventId
+    expectedRevision: $expectedRevision
+    action: $action
+  ) {
+    id
+    origin
+    workspaceId
+    title
+    startsAt
+    endsAt
+    allDay
+    allMembers
+    tagId
+    sourceExternalId
+    descriptionDelta
+    recurrenceParentId
+    recurrenceId
+    recurrence { ...CalendarRecurrenceFields }
+    reminders {
+      id
+      channel
+      minutesBefore
+      scheduledFor
+      deliveredAt
+    }
+  }
+}

@@ -148,6 +148,7 @@ pub struct WorkspaceAutomationObjectType {
 #[derive(Debug, Enum, Copy, Clone, Eq, PartialEq)]
 #[graphql(name = "WorkspaceAutomationRunOrigin", rename_items = "PascalCase")]
 pub enum WorkspaceAutomationRunOriginType {
+  RecurringTask,
   WorkspaceSetup,
   TaskMaintenance,
   TaskHandover,
@@ -474,6 +475,9 @@ pub(crate) fn map_run(run: domain::WorkspaceAutomationRun) -> WorkspaceAutomatio
     })
   });
   let (origin, request_id) = match &run.origin {
+    domain::WorkspaceAutomationRunOrigin::RecurringTask { .. } => {
+      (WorkspaceAutomationRunOriginType::RecurringTask, None)
+    }
     domain::WorkspaceAutomationRunOrigin::WorkspaceSetup { request_id, .. } => (
       WorkspaceAutomationRunOriginType::WorkspaceSetup,
       Some(ID(request_id.to_string())),
@@ -508,6 +512,7 @@ pub(crate) fn map_run(run: domain::WorkspaceAutomationRun) -> WorkspaceAutomatio
     // Confirmed requests retain their private input fingerprint internally;
     // callers correlate them through the already public request identity.
     idempotency_key: match run.origin {
+      domain::WorkspaceAutomationRunOrigin::RecurringTask { occurrence_id, .. } => occurrence_id.to_string(),
       domain::WorkspaceAutomationRunOrigin::Rule => run.idempotency_key,
       domain::WorkspaceAutomationRunOrigin::ConfirmedContextDocuments { request_id, .. }
       | domain::WorkspaceAutomationRunOrigin::WorkspaceSetup { request_id, .. }

@@ -18,6 +18,31 @@ use myoxus_domain::entities::{
 use myoxus_domain::repositories::{DocumentMetadataRepository, RepoResult, RepositoryError};
 
 pub mod initial_sync_audit;
+pub(crate) mod review;
+
+/// Fence introduction writes with the same document row lock as metadata
+/// patches. Native state survives binding changes; user copies have no marker.
+pub(crate) async fn reject_guide_content_write(
+  conn: &mut PgConnection,
+  doc_id: Uuid,
+) -> myoxus_application::auth::AuthResult<()> {
+  sqlx::query("SELECT id FROM docs WHERE id=$1 FOR UPDATE")
+    .bind(doc_id)
+    .execute(&mut *conn)
+    .await
+    .map_err(|error| myoxus_application::auth::AuthError::Storage(error.to_string()))?;
+  // Read after acquiring the row lock: a marker committed while waiting must
+  // be visible in this statement's snapshot.
+  let state: Option<String> = sqlx::query_scalar("SELECT state FROM document_template_state WHERE doc_id=$1")
+    .bind(doc_id)
+    .fetch_optional(conn)
+    .await
+    .map_err(|error| myoxus_application::auth::AuthError::Storage(error.to_string()))?;
+  if state.as_deref() == Some("guide") {
+    return Err(myoxus_application::auth::AuthError::ActionForbidden);
+  }
+  Ok(())
+}
 
 /// Shared positive predicate for native source discovery and Library inventory.
 /// Both queries bind `d` to workspace documents and `template` to their native marker.
@@ -946,6 +971,9 @@ impl DocumentMetadataRepository for PgDocumentMetadataRepository {
     let Some((current_revision, workspace_id)) = current_head else {
       return Err(RepositoryError::NotFound("document metadata"));
     };
+    reject_guide_content_write(&mut tx, doc_id)
+      .await
+      .map_err(|error| RepositoryError::Validation(error.to_string()))?;
     if let Some(expected_revision) = patch.expected_metadata_revision
       && current_revision != expected_revision
     {
@@ -1246,6 +1274,9 @@ impl DocumentMetadataRepository for PgDocumentMetadataRepository {
     .await
     .map_err(db_error)?;
 
+    if patch.review_due_at.is_some() || patch.valid_until.is_some() || patch.responsible_user_id.is_some() {
+      review::rearm_in(&mut tx, doc_id, workspace_id).await?;
+    }
     tx.commit().await.map_err(db_error)?;
     Ok(())
   }

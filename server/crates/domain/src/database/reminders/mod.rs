@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-//! Personal reminder scheduling, claims and dispatch persistence.
+//! Personal reminder commands and generation-fenced native delivery persistence.
 use crate::database::*;
 use crate::repositories::RepoResult;
 use async_trait::async_trait;
@@ -37,36 +37,20 @@ pub trait DatabaseReminderRepository: Send + Sync {
     cancelled_at: DateTime<Utc>,
   ) -> RepoResult<bool>;
 
-  /// Claim due reminders atomically. Concurrent workers use row locks with
-  /// `SKIP LOCKED`, so a reminder can be returned to only one caller.
-  async fn claim_due_database_row_reminders(
-    &self,
-    now: DateTime<Utc>,
-    claim_expires_at: DateTime<Utc>,
-    limit: i64,
-  ) -> RepoResult<Vec<DatabaseRowReminder>>;
-
-  async fn release_expired_database_row_reminder_claims(&self, now: DateTime<Utc>) -> RepoResult<u64>;
-
-  async fn release_database_row_reminder_claim(
-    &self,
-    reminder_id: Uuid,
-    schedule_revision: i64,
-    claim_token: Uuid,
-  ) -> RepoResult<bool>;
-
-  /// Mark notification enqueue success only for the exact claim generation.
-  async fn mark_database_row_reminder_enqueued(
-    &self,
-    reminder_id: Uuid,
-    schedule_revision: i64,
-    claim_token: Uuid,
-    fired_at: DateTime<Utc>,
-  ) -> RepoResult<bool>;
-
   /// Revalidate the dispatch envelope against the current target and
   /// membership immediately before notification persistence.
   async fn get_database_row_reminder_dispatch(
+    &self,
+    reminder_id: Uuid,
+    schedule_revision: i64,
+    trigger_at: DateTime<Utc>,
+    user_id: UserId,
+  ) -> RepoResult<Option<DatabaseRowReminderDispatch>>;
+
+  /// Read the same native target/ACL/Task facts before shared admission, while
+  /// the reminder is still scheduled or carries an interrupted legacy claim.
+  /// This is read-only and never makes an unadmitted envelope deliverable.
+  async fn prepare_database_row_reminder_dispatch(
     &self,
     reminder_id: Uuid,
     schedule_revision: i64,

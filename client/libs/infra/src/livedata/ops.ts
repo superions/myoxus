@@ -22,6 +22,7 @@ import {
   distinctUntilChanged,
   EMPTY,
   exhaustMap,
+  filter,
   merge,
   mergeMap,
   Observable,
@@ -32,6 +33,7 @@ import {
   pipe,
   retry,
   switchMap,
+  take,
   throwError,
   timer,
 } from "rxjs";
@@ -74,6 +76,18 @@ export function reserveAutomaticRetry(
   producer: AutomaticRetryProducer,
 ): boolean {
   return automaticRetryAdmission?.(producer) ?? true;
+}
+
+/**
+ * A temporary policy block pauses the retry, not its owning effect. Only the
+ * admission check repeats; no data request runs until a slot is reserved.
+ * RxJS teardown also cancels this wait when the effect is disposed.
+ */
+function waitForLiveDataRetryAdmission() {
+  return timer(0, 1_000).pipe(
+    filter(() => reserveAutomaticRetry("livedata")),
+    take(1),
+  );
 }
 
 /**
@@ -194,33 +208,11 @@ export function backoffRetry<T>({
           }
           const d = Math.pow(2, retryIndex - 1) * delay;
           return timer(Math.min(d, maxDelay)).pipe(
-            mergeMap(() =>
-              defer(() =>
-                reserveAutomaticRetry("livedata")
-                  ? of(undefined)
-                  : throwError(
-                      () =>
-                        new AutomaticRetryBlockedError(
-                          "livedata",
-                          "Automatic LiveData retry blocked by client update policy",
-                        ),
-                    ),
-              ),
-            ),
+            mergeMap(waitForLiveDataRetryAdmission),
           );
         },
       }),
     );
-}
-
-export class AutomaticRetryBlockedError extends Error {
-  constructor(
-    readonly producer: AutomaticRetryProducer,
-    message = "Automatic retry blocked by client update policy",
-  ) {
-    super(message);
-    this.name = "AutomaticRetryBlockedError";
-  }
 }
 
 /**
@@ -261,17 +253,7 @@ export function smartRetry<T>({
               maxDelay,
             );
             return timer(retryDelay).pipe(
-              mergeMap(() =>
-                reserveAutomaticRetry("livedata")
-                  ? of(undefined)
-                  : throwError(
-                      () =>
-                        new AutomaticRetryBlockedError(
-                          "livedata",
-                          "Automatic LiveData retry blocked by client update policy",
-                        ),
-                    ),
-              ),
+              mergeMap(waitForLiveDataRetryAdmission),
             );
           },
         }),

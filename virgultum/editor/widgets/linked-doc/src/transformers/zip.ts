@@ -129,7 +129,7 @@ async function importDocs(
   const snapshotsBlobs: Blob[] = [];
   let catalog: unknown = [];
 
-  for (const { path, content: blob } of unzip) {
+  for await (const { path, content: blob } of unzip) {
     if (path.includes("MACOSX") || path.includes("DS_Store")) {
       continue;
     }

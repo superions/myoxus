@@ -27,6 +27,7 @@ import { PublicStatusButton } from "@myoxus/core/editor/virgultum/doc-header/pub
 import { EditorModeSwitch } from "@myoxus/core/editor/virgultum/mode-switch";
 import { DocService } from "@myoxus/core/modules/doc";
 import { DocDisplayMetaService } from "@myoxus/core/modules/doc-display-meta";
+import { DocumentMetadataCacheService } from "@myoxus/core/modules/document-metadata/services/document-metadata-cache";
 import { EditorService } from "@myoxus/core/modules/editor";
 import {
   JOURNAL_DATE_FORMAT,
@@ -79,8 +80,14 @@ const TemplateMark = memo(function TemplateMark({
   const doc = useService(DocService).doc;
   const templateDocService = useService(TemplateDocService);
   const isTemplate = useLiveData(templateDocService.list.isTemplate$(doc.id));
+  const metadata = useService(DocumentMetadataCacheService);
+  const rows = useLiveData(metadata.watchIndexRows());
 
-  if (!isTemplate) return null;
+  if (
+    !isTemplate ||
+    rows.find((row) => row.externalId === doc.id)?.templateState === "guide"
+  )
+    return null;
 
   return (
     <Badge

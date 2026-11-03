@@ -21,7 +21,7 @@ export class TemplateOrderByProvider
       map((values) => {
         const docs = Array.from(values).map(([id, value]) => ({
           id,
-          isTemplate: value ? "true" : "false",
+          isTemplate: String(value) === "true" ? "true" : "false",
         }));
 
         if (params.desc) {

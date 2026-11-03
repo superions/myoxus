@@ -326,7 +326,6 @@ pub trait WorkspaceAutomationRepository: Send + Sync {
     request: uuid::Uuid,
   ) -> RepoResult<Option<WorkspaceAutomationRun>>;
   async fn task_handover_state(&self, run: WorkspaceAutomationRunId) -> RepoResult<TaskHandoverState>;
-  async fn accept_document_review(&self, accepted: AcceptedAutomationRun) -> RepoResult<WorkspaceAutomationRun>;
   async fn get_document_review_request(
     &self,
     actor: UserId,
@@ -666,12 +665,21 @@ pub trait CalendarMailDeliveryGuard: Send {
 /// steps finish before SMTP, and cancellation closes the session during acquisition too.
 #[async_trait]
 pub trait CalendarReminderDeliveryGuard: Send {
-  async fn begin_dispatch(&mut self, worker_job_id: Uuid, at: DateTime<Utc>) -> RepoResult<bool>;
+  async fn begin_dispatch(
+    &mut self,
+    worker_job_id: Uuid,
+    at: DateTime<Utc>,
+    admission: Option<&crate::entities::CalendarReminderAdmission>,
+  ) -> RepoResult<bool>;
   async fn contexts(&mut self) -> RepoResult<Vec<CalendarReminderContext>>;
+  /// Revalidate before starting each recipient effect. An already running SMTP
+  /// attempt may finish, but cannot acknowledge a replacement generation.
+  async fn is_current(&mut self) -> RepoResult<bool>;
   async fn email_completed(&mut self, user: UserId) -> RepoResult<bool>;
   async fn complete_email(&mut self, user: UserId) -> RepoResult<()>;
-  /// Atomically finalize the dispatch log and reminder delivery timestamp.
-  async fn complete(&mut self, at: DateTime<Utc>) -> RepoResult<()>;
+  /// Atomically finalize the dispatch log and delivery timestamp; false means a
+  /// native edit replaced this generation before whole-reminder completion.
+  async fn complete(&mut self, at: DateTime<Utc>) -> RepoResult<bool>;
   async fn release(self: Box<Self>) -> RepoResult<()>;
 }
 
@@ -689,6 +697,9 @@ pub struct CalendarMailDeliveryScope {
 /// dedicated DB columns. Use `description_delta` for rich-text content.
 #[derive(Debug, Clone)]
 pub struct NativeEventInput {
+  pub imported_recurrence: Option<crate::scheduling::calendar::ImportedCalendarSource>,
+  /// Only masters carry a confirmed native rule; overrides retain their key.
+  pub recurrence: Option<crate::scheduling::calendar::ConfirmedCalendarRecurrence>,
   pub workspace_id: WorkspaceId,
   pub title: Option<String>,
   pub description_delta: Option<Value>,
@@ -710,6 +721,9 @@ pub struct NativeEventInput {
 /// `None` fields are left unchanged.
 #[derive(Debug, Clone, Default)]
 pub struct NativeEventUpdate {
+  /// Absent preserves timing, explicit null removes it. Only a master All edit
+  /// may change the canonical rule; native RRULE fields are projections.
+  pub recurrence: Option<Option<crate::scheduling::calendar::ConfirmedCalendarRecurrence>>,
   pub title: Option<Option<String>>,
   pub description_delta: Option<Option<Value>>,
   pub starts_at: Option<DateTime<Utc>>,
@@ -735,10 +749,46 @@ pub struct NativeEventReminderInput {
   pub channel: String,
 }
 
-/// Persistence operations for calendar accounts, subscriptions, events, and
-/// reminder dispatch tracking.
+/// One revision-fenced split/truncate, including timing, exception associations,
+/// bounded cache reconciliation and scheduling intents in the same transaction.
+#[derive(Debug, Clone)]
+pub struct CalendarSplitWrite {
+  pub original: CalendarEvent,
+  pub tail: Option<CalendarEvent>,
+  /// Original occurrence key, never the tail's edited display start.
+  pub split_at: DateTime<Utc>,
+  pub expected_updated_at: DateTime<Utc>,
+  pub tail_ends_before: Option<DateTime<Utc>>,
+  pub native_rules: Option<CalendarNativeSplitRules>,
+  pub source_anchor: Option<Option<CalendarEventSourceAnchor>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct CalendarNativeSplitRules {
+  pub original: crate::scheduling::calendar::ConfirmedCalendarRecurrence,
+  pub tail: Option<crate::scheduling::calendar::ConfirmedCalendarRecurrence>,
+}
+
+/// Persistence operations for Calendar's existing sources and projections.
 #[async_trait]
 pub trait CalendarRepository: Send + Sync {
+  async fn control_calendar_timing(
+    &self,
+    _event_id: CalendarEventId,
+    _actor_id: UserId,
+    _expected_revision: i64,
+    _change: crate::scheduling::calendar::CalendarTimingChange,
+  ) -> RepoResult<CalendarEvent> {
+    Err(RepositoryError::Storage(
+      "Calendar lifecycle persistence unavailable".into(),
+    ))
+  }
+  async fn get_calendar_timing(
+    &self,
+    _event_id: CalendarEventId,
+  ) -> RepoResult<Option<crate::scheduling::calendar::CalendarTiming>> {
+    Ok(None)
+  }
   /// Insert or update a calendar account (OAuth credential set) for a user.
   async fn upsert_calendar_account(&self, account: &CalendarAccount) -> RepoResult<CalendarAccount>;
   /// Update mutable fields of an existing calendar account (e.g. refresh
@@ -796,9 +846,8 @@ pub trait CalendarRepository: Send + Sync {
   /// Split original/tail events and their mail intent in one transaction.
   async fn save_calendar_split(
     &self,
-    _original: &CalendarEvent,
-    _tail: &CalendarEvent,
-  ) -> RepoResult<(CalendarEvent, CalendarEvent)> {
+    _command: &CalendarSplitWrite,
+  ) -> RepoResult<(CalendarEvent, Option<CalendarEvent>)> {
     Err(RepositoryError::Storage(
       "Calendar split persistence unavailable".into(),
     ))
@@ -829,21 +878,34 @@ pub trait CalendarRepository: Send + Sync {
     delivered: bool,
     delivered_at: DateTime<Utc>,
   ) -> RepoResult<()>;
-  /// Return reminders whose trigger time is on or before `now` and that have
-  /// not yet been dispatched.
-  async fn list_due_calendar_reminders(&self, now: DateTime<Utc>, limit: i64) -> RepoResult<Vec<CalendarReminder>>;
   async fn acquire_reminder_delivery_guard(
     &self,
     reminder_id: CalendarReminderId,
   ) -> RepoResult<Box<dyn CalendarReminderDeliveryGuard>>;
-  /// Return all events within a workspace that overlap the `[from, to]`
-  /// time range.
+  /// Project events overlapping bounded `[from, to)`, preserving native/master
+  /// IDs plus the original recurrence key on each virtual event copy.
   async fn list_workspace_events(
     &self,
     workspace_id: WorkspaceId,
     from: DateTime<Utc>,
     to: DateTime<Utc>,
   ) -> RepoResult<Vec<CalendarEvent>>;
+  /// Authored sources for ICS export, not virtual occurrence copies. Import
+  /// fidelity must not depend on the calculator supporting a preserved source.
+  async fn list_workspace_event_sources(
+    &self,
+    workspace_id: WorkspaceId,
+    from: DateTime<Utc>,
+    to: DateTime<Utc>,
+  ) -> RepoResult<Vec<CalendarEvent>> {
+    self.list_workspace_events(workspace_id, from, to).await
+  }
+  /// Native series masters remain discoverable without a current occurrence,
+  /// including paused, ended, unsupported and exhausted sources. No projection.
+  async fn list_workspace_calendar_series(&self, _workspace_id: WorkspaceId) -> RepoResult<Vec<CalendarEvent>> {
+    Err(RepositoryError::Storage("Calendar series lookup unavailable".into()))
+  }
+
   /// Return all CalDAV calendar accounts across all users (for background sync).
   async fn list_caldav_accounts(&self) -> RepoResult<Vec<CalendarAccount>>;
   /// Return all Google Calendar accounts across all users (for background sync).
@@ -906,8 +968,8 @@ pub trait CalendarRepository: Send + Sync {
   /// fields are overwritten so that provider-side edits are reflected.
   async fn upsert_event_instance(&self, instance: &CalendarEventInstance) -> RepoResult<CalendarEventInstance>;
 
-  /// Return all non-cancelled instances for `event_id` whose `instance_start`
-  /// falls within `[from, to)`.
+  /// Project/read instances overlapping bounded `[from, to)`, including retained
+  /// cancellation receipts. Do not overwrite exceptions or unrelated windows.
   async fn list_event_instances(
     &self,
     event_id: CalendarEventId,
@@ -915,10 +977,8 @@ pub trait CalendarRepository: Send + Sync {
     to: DateTime<Utc>,
   ) -> RepoResult<Vec<CalendarEventInstance>>;
 
-  /// Return all instances (across all events in a workspace) whose
-  /// `instance_start` falls within `[from, to)`.  Cancelled instances are
-  /// excluded.  Callers should limit the horizon to at most a few months to
-  /// avoid runaway queries.
+  /// Project busy instances overlapping bounded `[from, to)` across a workspace,
+  /// excluding cancellations and applying effective override times.
   async fn list_instances_by_time_range(
     &self,
     workspace_id: WorkspaceId,
@@ -986,6 +1046,20 @@ pub trait CalendarRepository: Send + Sync {
 
   /// Fetch a single calendar event by its local ID.
   async fn get_calendar_event(&self, event_id: CalendarEventId) -> RepoResult<Option<CalendarEvent>>;
+  /// Provider source identity can predate the current deterministic-ID scheme.
+  /// Callers must retain the row returned by this exact account/source lookup.
+  async fn find_calendar_event_by_source(
+    &self,
+    _account_id: CalendarAccountId,
+    _remote_event_id: &str,
+  ) -> RepoResult<Option<CalendarEvent>> {
+    Err(RepositoryError::Storage("Calendar source lookup unavailable".into()))
+  }
+  /// Current standard export/writeback snapshot, including intentional timing
+  /// suppression; normal authored reads continue to expose the retained base.
+  async fn get_calendar_export_event(&self, event_id: CalendarEventId) -> RepoResult<Option<CalendarEvent>> {
+    self.get_calendar_event(event_id).await
+  }
 
   /// Delete a calendar event and all its related rows (FK cascade removes
   /// participants, reminders, and instances automatically).

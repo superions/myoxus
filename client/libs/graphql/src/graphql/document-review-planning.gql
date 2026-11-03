@@ -1,0 +1,16 @@
+fragment DocumentReviewPlanningFields on DocumentReviewPlanningType {
+  enabled metadataRevision responsibleId sourceDeadline nextStart processDeadline
+  zone leadDays ready blockedReason runId
+}
+
+query documentReviewPlanning($workspaceId: ID!, $docId: ID!) {
+  documentReviewPlanning(workspaceId: $workspaceId, docId: $docId) {
+    ...DocumentReviewPlanningFields
+  }
+}
+
+mutation configureDocumentReviewPlanning($workspaceId: ID!, $docId: ID!, $enabled: Boolean!, $expectedMetadataRevision: Int!) {
+  configureDocumentReviewPlanning(workspaceId: $workspaceId, docId: $docId, enabled: $enabled, expectedMetadataRevision: $expectedMetadataRevision) {
+    ...DocumentReviewPlanningFields
+  }
+}

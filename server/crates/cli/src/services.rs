@@ -229,7 +229,6 @@ impl CliRuntimeConfig {
       csv_max_rows: self.databases.csv_max_rows,
       csv_max_columns: self.databases.csv_max_columns,
       csv_sample_rows_for_type_inference: self.databases.csv_sample_rows_for_type_inference,
-      reminder_batch_size: self.databases.reminder_batch_size,
       max_reminders_per_user_per_cell: self.databases.max_reminders_per_user_per_cell,
       max_reminder_offset_minutes: self.databases.max_reminder_offset_minutes,
       ..DatabaseLimits::default()
@@ -424,7 +423,6 @@ struct CliDatabasesConfig {
   csv_max_rows: usize,
   csv_max_columns: usize,
   csv_sample_rows_for_type_inference: usize,
-  reminder_batch_size: i64,
   max_reminders_per_user_per_cell: usize,
   max_reminder_offset_minutes: i64,
 }
@@ -445,7 +443,6 @@ impl Default for CliDatabasesConfig {
       csv_max_rows: limits.csv_max_rows,
       csv_max_columns: limits.csv_max_columns,
       csv_sample_rows_for_type_inference: limits.csv_sample_rows_for_type_inference,
-      reminder_batch_size: limits.reminder_batch_size,
       max_reminders_per_user_per_cell: limits.max_reminders_per_user_per_cell,
       max_reminder_offset_minutes: limits.max_reminder_offset_minutes,
     }
@@ -1296,7 +1293,6 @@ impl WorkQueuePort for CliRedisQueueAdapter {
     let opts = myoxus_worker::job::JobOptions {
       delay_ms,
       max_attempts: max_attempts.unwrap_or(3) as i32,
-      repeat: None,
       ..Default::default()
     };
     self
@@ -1360,11 +1356,6 @@ fn load_database_limits(overrides: &HashMap<String, serde_json::Value>, mut limi
     overrides,
     "databases.csv_sample_rows_for_type_inference",
     &mut limits.csv_sample_rows_for_type_inference,
-  );
-  apply_i64_config(
-    overrides,
-    "databases.reminder_batch_size",
-    &mut limits.reminder_batch_size,
   );
   apply_usize_config(
     overrides,
@@ -1447,7 +1438,6 @@ mod tests {
     let defaults = DatabaseLimits::default();
 
     assert_eq!(projected.max_fields_per_database, 12);
-    assert_eq!(projected.reminder_batch_size, defaults.reminder_batch_size);
     assert_eq!(
       projected.max_reminders_per_user_per_cell,
       defaults.max_reminders_per_user_per_cell
@@ -1461,13 +1451,11 @@ mod tests {
   #[test]
   fn database_config_projection_preserves_explicit_operator_values() {
     let projected: CliDatabasesConfig = serde_json::from_value(serde_json::json!({
-      "reminder_batch_size": 25,
       "max_reminders_per_user_per_cell": 8,
       "max_reminder_offset_minutes": 10080
     }))
     .expect("explicit Database config values must remain valid");
 
-    assert_eq!(projected.reminder_batch_size, 25);
     assert_eq!(projected.max_reminders_per_user_per_cell, 8);
     assert_eq!(projected.max_reminder_offset_minutes, 10_080);
   }

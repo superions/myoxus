@@ -25,8 +25,6 @@
 pub mod ical_serializer;
 pub use ical_serializer::{calendar_event_to_vcalendar, events_to_vcalendar};
 
-pub mod rrule;
-
 pub mod sync;
 pub use sync::{CalDavSyncResult, CalDavSyncService, CredentialDecryptor, PlaintextCredentialDecryptor};
 
@@ -79,11 +77,14 @@ pub struct ParsedVEvent {
   pub location: Option<String>,
   /// `STATUS` property (e.g. `CONFIRMED`, `TENTATIVE`, `CANCELLED`).
   pub status: Option<String>,
-  /// `RRULE` raw string — kept opaque for V1 (callers store it in `payload`).
+  /// Preserved RRULE source for canonical imported timing, never a native editor.
   pub rrule: Option<String>,
+  /// Unfolded recurrence content lines, including exception TZID/value kinds.
+  /// Keep them even when the shared calculator cannot interpret their form.
+  pub recurrence_source: Vec<String>,
   /// `RECURRENCE-ID` value when this is an exception instance.
   pub recurrence_id: Option<String>,
-  /// `TZID` of the DTSTART value (for display purposes; dates are in UTC).
+  /// DTSTART's pinned source TZID; instants above are normalized to UTC.
   pub original_timezone: Option<String>,
   /// `true` if DTSTART was a DATE (not DATE-TIME) value.
   pub all_day: bool,
@@ -1207,6 +1208,7 @@ pub fn parse_ical_events(ical: &str) -> Vec<ParsedVEvent> {
   let mut location: Option<String> = None;
   let mut status: Option<String> = None;
   let mut rrule: Option<String> = None;
+  let mut recurrence_source = Vec::new();
   let mut recurrence_id: Option<String> = None;
   let mut organizer_email: Option<String> = None;
   let mut attendees: Vec<CalDavAttendee> = Vec::new();
@@ -1231,6 +1233,7 @@ pub fn parse_ical_events(ical: &str) -> Vec<ParsedVEvent> {
       location = None;
       status = None;
       rrule = None;
+      recurrence_source.clear();
       recurrence_id = None;
       organizer_email = None;
       attendees.clear();
@@ -1254,6 +1257,7 @@ pub fn parse_ical_events(ical: &str) -> Vec<ParsedVEvent> {
           location: location.take(),
           status: status.take(),
           rrule: rrule.take(),
+          recurrence_source: std::mem::take(&mut recurrence_source),
           recurrence_id: recurrence_id.take(),
           organizer_email: organizer_email.take(),
           attendees: std::mem::take(&mut attendees),
@@ -1290,8 +1294,15 @@ pub fn parse_ical_events(ical: &str) -> Vec<ParsedVEvent> {
       "DESCRIPTION" => description = Some(unescape_ical_text(value)),
       "LOCATION" => location = Some(unescape_ical_text(value)),
       "STATUS" => status = Some(value.to_string()),
-      "RRULE" => rrule = Some(value.to_string()),
-      "RECURRENCE-ID" => recurrence_id = Some(value.to_string()),
+      "RRULE" => {
+        rrule = Some(value.to_string());
+        recurrence_source.push(line.to_owned());
+      }
+      "EXDATE" | "RDATE" | "EXRULE" => recurrence_source.push(line.to_owned()),
+      "RECURRENCE-ID" => {
+        recurrence_id = Some(value.to_string());
+        recurrence_source.push(line.to_owned());
+      }
       "DTSTART" => {
         dtstart_tzid = extract_param(params, "TZID");
         dtstart_is_date = params.to_ascii_uppercase().contains("VALUE=DATE") && !value.contains('T');
@@ -1468,6 +1479,7 @@ struct RawVEventFields {
   location: Option<String>,
   status: Option<String>,
   rrule: Option<String>,
+  recurrence_source: Vec<String>,
   recurrence_id: Option<String>,
   organizer_email: Option<String>,
   attendees: Vec<CalDavAttendee>,
@@ -1485,11 +1497,30 @@ fn build_event(fields: RawVEventFields) -> Result<ParsedVEvent, String> {
     description,
     location,
     status,
-    rrule,
+    mut rrule,
+    recurrence_source,
     recurrence_id,
     organizer_email,
     attendees,
   } = fields;
+  if recurrence_source
+    .iter()
+    .filter(|line| {
+      line
+        .get(..6)
+        .is_some_and(|prefix| prefix.eq_ignore_ascii_case("RRULE:"))
+    })
+    .count()
+    > 1
+    || recurrence_source.iter().any(|line| {
+      line
+        .split([';', ':'])
+        .next()
+        .is_some_and(|name| name.eq_ignore_ascii_case("RDATE") || name.eq_ignore_ascii_case("EXRULE"))
+    })
+  {
+    rrule = Some(recurrence_source.join("\n"));
+  }
   let dtstart_str = dtstart.ok_or_else(|| format!("UID {uid}: missing DTSTART"))?;
   let tzid = dtstart_tzid.clone();
   let starts_at =
@@ -1515,6 +1546,7 @@ fn build_event(fields: RawVEventFields) -> Result<ParsedVEvent, String> {
     location,
     status,
     rrule,
+    recurrence_source,
     recurrence_id,
     original_timezone: dtstart_tzid,
     all_day: dtstart_is_date,
@@ -1743,6 +1775,8 @@ BEGIN:VEVENT\r\n\
 UID:tz@test\r\n\
 DTSTART;TZID=Europe/Berlin:20260315T100000\r\n\
 DTEND;TZID=Europe/Berlin:20260315T110000\r\n\
+RRULE:FREQ=WEEKLY;COUNT=4\r\n\
+EXDATE;TZID=Europe/Berlin:20260329T100000\r\n\
 SUMMARY:Berlin Meeting\r\n\
 END:VEVENT\r\n\
 END:VCALENDAR";
@@ -1754,6 +1788,10 @@ END:VCALENDAR";
     assert_eq!(ev.starts_at.format("%Y%m%dT%H%M%SZ").to_string(), "20260315T090000Z");
     assert_eq!(ev.ends_at.format("%Y%m%dT%H%M%SZ").to_string(), "20260315T100000Z");
     assert_eq!(ev.original_timezone.as_deref(), Some("Europe/Berlin"));
+    assert_eq!(
+      ev.recurrence_source,
+      vec!["RRULE:FREQ=WEEKLY;COUNT=4", "EXDATE;TZID=Europe/Berlin:20260329T100000"]
+    );
   }
 
   #[test]

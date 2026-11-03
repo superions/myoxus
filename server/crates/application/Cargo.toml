@@ -42,6 +42,9 @@ unicode-segmentation.workspace = true
 url = "2"
 urlencoding.workspace = true
 uuid.workspace = true
+wordcraft-doc.workspace = true
+wordcraft-docx.workspace = true
+wordcraft-geom.workspace = true
 yaml_serde.workspace = true
 zip.workspace = true
 # P-DB-29: Notion HTML import pipeline uses a streaming, no-allocation

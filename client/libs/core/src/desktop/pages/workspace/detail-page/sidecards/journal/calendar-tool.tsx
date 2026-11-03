@@ -93,97 +93,96 @@ export function JournalCalendarToolBody() {
       ) : null}
       {calendarLoading ? (
         <Loading data-testid="journal-calendar-loading" />
-      ) : (
-        <>
-          <SidebarControlStrip
-            data-myoxus-ui-role="calendar-view-switcher"
-            data-testid="calendar-view-switcher"
-          >
-            <ViewSwitcher<CalendarView>
-              layout="sidebar"
-              value={view}
-              aria-label={t["com.myoxus.integration.calendar.view.label"]()}
-              data-myoxus-ui-role="calendar-view-segmented-control"
-              items={[
-                {
-                  value: "month",
-                  label: t["com.myoxus.integration.calendar.view.month"](),
-                  testId: "calendar-view-month",
-                },
-                {
-                  value: "week",
-                  label: t["com.myoxus.integration.calendar.view.week"](),
-                  testId: "calendar-view-week",
-                },
-                {
-                  value: "day",
-                  label: t["com.myoxus.integration.calendar.view.day"](),
-                  testId: "calendar-view-day",
-                },
-              ]}
-              onChange={onViewChange}
-            />
-          </SidebarControlStrip>
-          {view === "month" ? (
-            <SidebarCalendarPanel data-myoxus-ui-role="calendar-panel">
-              <DatePicker
-                firstDayOfWeek={getFirstDayOfWeek()}
-                weekDays={t["com.myoxus.common.calendar.week-days"]()}
-                monthNames={t["com.myoxus.common.calendar.month-names"]()}
-                todayLabel={t["com.myoxus.common.calendar.today"]()}
-                showTodayLink={false}
-                customDayRenderer={customDayRenderer}
-                dayButtonProps={dayButtonProps}
-                value={selectedDate.format("YYYY-MM-DD")}
-                onChange={onDateSelect}
-                onCursorChange={onCalendarCursorChange}
-                selectionVariant={isJournal ? "filled" : "outline"}
-                showWeekNumbers={showWeekNumbers}
-              />
-            </SidebarCalendarPanel>
-          ) : null}
-          {view === "week" ? (
-            <SidebarCalendarPanel data-myoxus-ui-role="calendar-panel">
-              <MiniCalendar
-                value={selectedDate.format("YYYY-MM-DD")}
-                onChange={onDateSelect}
-                firstDayOfWeek={getFirstDayOfWeek()}
-                locale={t.language}
-                previousLabel={t["com.myoxus.lastWeek"]()}
-                nextLabel={t["com.myoxus.nextWeek"]()}
-                data-testid="calendar-week-picker"
-                dayTestId="calendar-week-day"
-                layout="sidebar"
-                numberOfDays={7}
-              />
-            </SidebarCalendarPanel>
-          ) : null}
-          {view === "day" ? (
-            <SidebarCalendarPanel
-              data-myoxus-ui-role="calendar-panel"
-              data-testid="calendar-day-stepper"
-            >
-              <MiniCalendar
-                value={selectedDate.format("YYYY-MM-DD")}
-                onChange={onDateSelect}
-                firstDayOfWeek={getFirstDayOfWeek()}
-                data-testid="calendar-day-picker"
-                dayTestId="calendar-day-label"
-                locale={t.language}
-                layout="sidebar"
-                monthLabelFormat="dddd"
-                nextLabel={t["com.myoxus.integration.calendar.view.next-day"]()}
-                nextTestId="calendar-day-next"
-                numberOfDays={1}
-                previousLabel={t[
-                  "com.myoxus.integration.calendar.view.previous-day"
-                ]()}
-                previousTestId="calendar-day-prev"
-              />
-            </SidebarCalendarPanel>
-          ) : null}
-        </>
-      )}
+      ) : null}
+      {/* Keep the calendar's native cursor mounted while its requested month
+          loads; remounting from selectedDate would cancel month navigation. */}
+      <SidebarControlStrip
+        data-myoxus-ui-role="calendar-view-switcher"
+        data-testid="calendar-view-switcher"
+      >
+        <ViewSwitcher<CalendarView>
+          layout="sidebar"
+          value={view}
+          aria-label={t["com.myoxus.integration.calendar.view.label"]()}
+          data-myoxus-ui-role="calendar-view-segmented-control"
+          items={[
+            {
+              value: "month",
+              label: t["com.myoxus.integration.calendar.view.month"](),
+              testId: "calendar-view-month",
+            },
+            {
+              value: "week",
+              label: t["com.myoxus.integration.calendar.view.week"](),
+              testId: "calendar-view-week",
+            },
+            {
+              value: "day",
+              label: t["com.myoxus.integration.calendar.view.day"](),
+              testId: "calendar-view-day",
+            },
+          ]}
+          onChange={onViewChange}
+        />
+      </SidebarControlStrip>
+      {view === "month" ? (
+        <SidebarCalendarPanel data-myoxus-ui-role="calendar-panel">
+          <DatePicker
+            firstDayOfWeek={getFirstDayOfWeek()}
+            weekDays={t["com.myoxus.common.calendar.week-days"]()}
+            monthNames={t["com.myoxus.common.calendar.month-names"]()}
+            todayLabel={t["com.myoxus.common.calendar.today"]()}
+            showTodayLink={false}
+            customDayRenderer={customDayRenderer}
+            dayButtonProps={dayButtonProps}
+            value={selectedDate.format("YYYY-MM-DD")}
+            onChange={onDateSelect}
+            onCursorChange={onCalendarCursorChange}
+            selectionVariant={isJournal ? "filled" : "outline"}
+            showWeekNumbers={showWeekNumbers}
+          />
+        </SidebarCalendarPanel>
+      ) : null}
+      {view === "week" ? (
+        <SidebarCalendarPanel data-myoxus-ui-role="calendar-panel">
+          <MiniCalendar
+            value={selectedDate.format("YYYY-MM-DD")}
+            onChange={onDateSelect}
+            firstDayOfWeek={getFirstDayOfWeek()}
+            locale={t.language}
+            previousLabel={t["com.myoxus.lastWeek"]()}
+            nextLabel={t["com.myoxus.nextWeek"]()}
+            data-testid="calendar-week-picker"
+            dayTestId="calendar-week-day"
+            layout="sidebar"
+            numberOfDays={7}
+          />
+        </SidebarCalendarPanel>
+      ) : null}
+      {view === "day" ? (
+        <SidebarCalendarPanel
+          data-myoxus-ui-role="calendar-panel"
+          data-testid="calendar-day-stepper"
+        >
+          <MiniCalendar
+            value={selectedDate.format("YYYY-MM-DD")}
+            onChange={onDateSelect}
+            firstDayOfWeek={getFirstDayOfWeek()}
+            data-testid="calendar-day-picker"
+            dayTestId="calendar-day-label"
+            locale={t.language}
+            layout="sidebar"
+            monthLabelFormat="dddd"
+            nextLabel={t["com.myoxus.integration.calendar.view.next-day"]()}
+            nextTestId="calendar-day-next"
+            numberOfDays={1}
+            previousLabel={t[
+              "com.myoxus.integration.calendar.view.previous-day"
+            ]()}
+            previousTestId="calendar-day-prev"
+          />
+        </SidebarCalendarPanel>
+      ) : null}
       <JournalSidebarFooter />
     </Stack>
   );

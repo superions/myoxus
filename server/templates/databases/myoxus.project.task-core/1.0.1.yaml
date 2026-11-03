@@ -1,0 +1,392 @@
+format_version: 1
+id: myoxus.project.task-core
+version: 1.0.1
+fields:
+  - config:
+      Direct:
+        kind: title
+    field_type: title
+    key: title
+    name: Task
+    required: true
+  - config:
+      Direct:
+        kind: rich_text
+        maxPlainTextBytes: null
+    field_type: rich_text
+    key: description
+    name: Description
+    required: true
+  - config:
+      Direct:
+        defaultOptionId: status.todo
+        kind: status
+        options:
+          - colorRole: database.status.todo
+            group: notStarted
+            id: status.todo
+            name: Todo
+            position: 0
+          - colorRole: database.status.inProgress
+            group: active
+            id: status.in_progress
+            name: In progress
+            position: 1
+          - colorRole: database.status.done
+            group: complete
+            id: status.done
+            name: Done
+            position: 2
+          - colorRole: database.status.archived
+            group: archived
+            id: status.archived
+            name: Archived
+            position: 3
+    field_type: status
+    key: status
+    name: Status
+    required: true
+  - config:
+      Direct:
+        kind: select
+        options:
+          - colorRole: database.priority.low
+            id: priority.low
+            name: Low
+            position: 0
+          - colorRole: database.priority.normal
+            id: priority.normal
+            name: Normal
+            position: 1
+          - colorRole: database.priority.high
+            id: priority.high
+            name: High
+            position: 2
+    field_type: select
+    key: priority
+    name: Priority
+    required: true
+  - config:
+      Direct:
+        kind: tags
+        maxCount: null
+    field_type: tags
+    key: tags
+    name: Tags
+    required: true
+  - config:
+      Direct:
+        kind: user
+    field_type: user
+    key: owner
+    name: Owner
+    required: true
+  - config:
+      Direct:
+        kind: users
+        maxCount: null
+        minCount: null
+    field_type: users
+    key: assignees
+    name: Assignees
+    required: true
+  - config:
+      Direct:
+        kind: user
+    field_type: user
+    key: assigned_by
+    name: Assigned by
+    required: true
+  - config:
+      Direct:
+        kind: percent
+        maxValue: 100.0
+        minValue: 0.0
+    field_type: percent
+    key: progress
+    name: Progress
+    required: true
+  - config:
+      Direct:
+        kind: unique_id
+        padding: 3
+        prefix: TASK-
+        startNumber: 1
+    field_type: unique_id
+    key: public_id
+    name: Task ID
+    required: false
+  - config:
+      Direct:
+        kind: select
+        options:
+          - colorRole: database.complexity.simple
+            id: complexity.simple
+            name: Simple
+            position: 0
+          - colorRole: database.complexity.moderate
+            id: complexity.moderate
+            name: Moderate
+            position: 1
+          - colorRole: database.complexity.complex
+            id: complexity.complex
+            name: Complex
+            position: 2
+    field_type: select
+    key: complexity
+    name: Complexity
+    required: false
+  - config:
+      Direct:
+        displayUnit: hours
+        kind: duration
+        maxMinutes: null
+        minMinutes: 0
+    field_type: duration
+    key: effort
+    name: Effort
+    required: false
+  - config:
+      Direct:
+        allowCurrencyOverride: true
+        defaultCurrency: EUR
+        kind: currency
+        maxValue: null
+        minValue: 0.0
+    field_type: currency
+    key: cost
+    name: Cost
+    required: false
+  - config:
+      Direct:
+        allowReminders: true
+        defaultTimeZone: null
+        kind: date_time
+    field_type: date_time
+    key: start
+    name: Start date
+    required: false
+  - config:
+      Direct:
+        allowReminders: true
+        defaultTimeZone: null
+        kind: date_time
+    field_type: date_time
+    key: due
+    name: Due date
+    required: false
+  - config:
+      Direct:
+        allowReminders: false
+        defaultTimeZone: null
+        kind: date_time
+    field_type: date_time
+    key: completed
+    name: Completed at
+    required: false
+  - config:
+      Direct:
+        allowedMimeCategories:
+          - any
+        kind: files
+        maxItemCount: null
+        maxItemSize: null
+        previewPolicy: auto
+    field_type: files
+    key: attachments
+    name: Attachments
+    required: false
+  - config:
+      Direct:
+        kind: document_link
+    field_type: document_link
+    key: linked_document
+    name: Linked document
+    required: false
+  - config:
+      SelfRelation:
+        allow_multiple: false
+        max_targets: 1
+    field_type: relation
+    key: parent
+    name: Parent
+    required: false
+  - config:
+      SelfRelation:
+        allow_multiple: true
+        max_targets: null
+    field_type: relation
+    key: dependencies
+    name: Dependencies
+    required: false
+  - config:
+      SelfRelation:
+        allow_multiple: true
+        max_targets: null
+    field_type: relation
+    key: blocked_by
+    name: Blocked by
+    required: false
+  - config:
+      Direct:
+        kind: users
+        maxCount: null
+        minCount: null
+    field_type: users
+    key: watchers
+    name: Watchers
+    required: false
+  - config:
+      Direct:
+        kind: rich_text
+        maxPlainTextBytes: null
+    field_type: rich_text
+    key: acceptance
+    name: Acceptance criteria
+    required: false
+roles:
+  - config: {}
+    field_key: title
+    managed_state: user_editable
+    required: true
+    role_key: task.title
+    row_kind_scope: task
+  - config: {}
+    field_key: description
+    managed_state: user_editable
+    required: true
+    role_key: task.description
+    row_kind_scope: task
+  - config:
+      completionPolicy: setCompletedAtAndProgress
+    field_key: status
+    managed_state: status_completion_policy
+    required: true
+    role_key: task.status
+    row_kind_scope: task
+  - config: {}
+    field_key: priority
+    managed_state: user_editable
+    required: true
+    role_key: task.priority
+    row_kind_scope: task
+  - config: {}
+    field_key: tags
+    managed_state: user_editable
+    required: true
+    role_key: task.tags
+    row_kind_scope: task
+  - config:
+      default: creator
+    field_key: owner
+    managed_state: creator_default
+    required: true
+    role_key: task.owner
+    row_kind_scope: task
+  - config:
+      default: []
+    field_key: assignees
+    managed_state: user_editable_default_empty
+    required: true
+    role_key: task.assignees
+    row_kind_scope: task
+  - config:
+      maintainedBy: assignmentMutation
+      manualEdit: false
+    field_key: assigned_by
+    managed_state: assignment_mutation
+    required: true
+    role_key: task.assignedBy
+    row_kind_scope: task
+  - config: {}
+    field_key: progress
+    managed_state: user_editable
+    required: true
+    role_key: task.progress
+    row_kind_scope: task
+  - config: {}
+    field_key: public_id
+    managed_state: user_editable
+    required: false
+    role_key: task.publicId
+    row_kind_scope: task
+  - config: {}
+    field_key: complexity
+    managed_state: user_editable
+    required: false
+    role_key: task.complexity
+    row_kind_scope: task
+  - config: {}
+    field_key: effort
+    managed_state: user_editable
+    required: false
+    role_key: task.effort
+    row_kind_scope: task
+  - config: {}
+    field_key: cost
+    managed_state: user_editable
+    required: false
+    role_key: task.cost
+    row_kind_scope: task
+  - config: {}
+    field_key: start
+    managed_state: user_editable
+    required: false
+    role_key: task.startDate
+    row_kind_scope: task
+  - config: {}
+    field_key: due
+    managed_state: user_editable
+    required: false
+    role_key: task.dueDate
+    row_kind_scope: task
+  - config:
+      maintainedBy: statusCompletionPolicy
+      manualEdit: false
+    field_key: completed
+    managed_state: status_completion_policy
+    required: false
+    role_key: task.completedAt
+    row_kind_scope: task
+  - config: {}
+    field_key: attachments
+    managed_state: user_editable
+    required: false
+    role_key: task.attachments
+    row_kind_scope: task
+  - config: {}
+    field_key: linked_document
+    managed_state: user_editable
+    required: false
+    role_key: task.document
+    row_kind_scope: task
+  - config: {}
+    field_key: parent
+    managed_state: user_editable
+    required: false
+    role_key: task.parent
+    row_kind_scope: task
+  - config: {}
+    field_key: dependencies
+    managed_state: user_editable
+    required: false
+    role_key: task.dependencies
+    row_kind_scope: task
+  - config: {}
+    field_key: blocked_by
+    managed_state: user_editable
+    required: false
+    role_key: task.blockedBy
+    row_kind_scope: task
+  - config: {}
+    field_key: watchers
+    managed_state: user_editable
+    required: false
+    role_key: task.watchers
+    row_kind_scope: task
+  - config: {}
+    field_key: acceptance
+    managed_state: user_editable
+    required: false
+    role_key: task.acceptanceCriteria
+    row_kind_scope: task

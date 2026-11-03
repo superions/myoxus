@@ -126,6 +126,8 @@ impl CalendarMailDeliveryGuard for PgCalendarMailDeliveryGuard {
 pub(super) struct PgCalendarReminderDeliveryGuard {
   session: CalendarDeliverySession,
   reminder_id: Uuid,
+  contexts: Option<Vec<CalendarReminderContext>>,
+  generation: Option<i64>,
 }
 
 impl PgCalendarReminderDeliveryGuard {
@@ -133,13 +135,22 @@ impl PgCalendarReminderDeliveryGuard {
     Ok(Box::new(Self {
       session: CalendarDeliverySession::acquire(pool, format!("calendar-reminder:{reminder_id}")).await?,
       reminder_id,
+      contexts: None,
+      generation: None,
     }))
   }
 }
 
 #[async_trait]
 impl CalendarReminderDeliveryGuard for PgCalendarReminderDeliveryGuard {
-  async fn begin_dispatch(&mut self, worker_job_id: Uuid, at: DateTime<Utc>) -> RepoResult<bool> {
+  async fn begin_dispatch(
+    &mut self,
+    worker_job_id: Uuid,
+    at: DateTime<Utc>,
+    admission: Option<&myoxus_domain::entities::CalendarReminderAdmission>,
+  ) -> RepoResult<bool> {
+    self.contexts = None;
+    self.generation = None;
     let reminder = self.reminder_id;
     let mut tx = self
       .session
@@ -149,13 +160,35 @@ impl CalendarReminderDeliveryGuard for PgCalendarReminderDeliveryGuard {
       .map_err(SqlxCalendarRepository::map_db_err)?;
     // The session guard is the exclusive owner. A stored pending claim is only
     // recovery bookkeeping; successful recipient receipts remain untouched.
-    let pending: Option<bool> =
-      sqlx::query_scalar("SELECT delivered_at IS NULL FROM calendar_reminders WHERE id=$1 FOR UPDATE")
-        .bind(reminder)
-        .fetch_optional(&mut *tx)
-        .await
-        .map_err(SqlxCalendarRepository::map_db_err)?;
-    if pending != Some(true) {
+    let source:Option<Uuid>=sqlx::query_scalar("SELECT COALESCE(e.recurrence_parent_id,e.id) FROM calendar_reminders r JOIN calendar_reminder_definitions d ON d.id=r.definition_id JOIN calendar_events e ON e.id=d.event_id WHERE r.id=$1")
+      .bind(reminder).fetch_optional(&mut *tx).await.map_err(SqlxCalendarRepository::map_db_err)?;
+    let Some(source) = source else {
+      tx.commit().await.map_err(SqlxCalendarRepository::map_db_err)?;
+      return Ok(false);
+    };
+    let source = sqlx::query("SELECT payload FROM calendar_events WHERE id=$1 FOR SHARE")
+      .bind(source)
+      .fetch_one(&mut *tx)
+      .await
+      .map_err(SqlxCalendarRepository::map_db_err)?;
+    if source.get::<serde_json::Value, _>("payload")["status"]
+      .as_str()
+      .is_some_and(|status| status.eq_ignore_ascii_case("CANCELLED"))
+    {
+      tx.commit().await.map_err(SqlxCalendarRepository::map_db_err)?;
+      return Ok(false);
+    }
+    let pending: Option<bool> = sqlx::query_scalar(
+      "SELECT r.delivered_at IS NULL AND NOT r.suppressed AND r.scheduled_for<=$4 AND r.scheduling_generation=s.generation AND s.lifecycle='active' AND NOT COALESCE(upper(e.payload->>'status')='CANCELLED',false) AND (($2::bigint IS NULL AND r.id=r.definition_id AND r.imported_delivery) OR ($2=r.scheduling_generation AND $3::uuid=r.definition_id AND EXISTS(SELECT 1 FROM scheduling_occurrences o WHERE o.schedule_id=$3 AND o.generation=$2 AND o.nominal_due_at=r.instance_start))) FROM calendar_reminders r JOIN scheduling_schedules s ON s.id=r.definition_id JOIN calendar_reminder_definitions d ON d.id=r.definition_id JOIN calendar_events e ON e.id=d.event_id WHERE r.id=$1 FOR UPDATE OF r",
+    )
+    .bind(reminder)
+    .bind(admission.map(|fence|fence.generation))
+    .bind(admission.map(|fence|fence.schedule_id))
+    .bind(at)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(SqlxCalendarRepository::map_db_err)?;
+    if pending != Some(true) || admission.is_some_and(|fence| fence.version != 1 || fence.generation < 1) {
       tx.commit().await.map_err(SqlxCalendarRepository::map_db_err)?;
       return Ok(false);
     }
@@ -169,13 +202,22 @@ impl CalendarReminderDeliveryGuard for PgCalendarReminderDeliveryGuard {
     .execute(&mut *tx)
     .await
     .map_err(SqlxCalendarRepository::map_db_err)?;
+    // Freeze the accepted generation's actual times and recipient view before
+    // releasing SQL locks. A concurrent edit must not retime this SMTP attempt.
+    self.contexts = Some(reminder_contexts(&mut *tx, reminder).await?);
+    self.generation = Some(
+      sqlx::query_scalar("SELECT scheduling_generation FROM calendar_reminders WHERE id=$1")
+        .bind(reminder)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(SqlxCalendarRepository::map_db_err)?,
+    );
     tx.commit().await.map_err(SqlxCalendarRepository::map_db_err)?;
     Ok(true)
   }
 
   async fn contexts(&mut self) -> RepoResult<Vec<CalendarReminderContext>> {
-    let reminder = self.reminder_id;
-    reminder_contexts(self.session.connection()?, reminder).await
+    Ok(self.contexts.clone().unwrap_or_default())
   }
 
   async fn email_completed(&mut self, user: Uuid) -> RepoResult<bool> {
@@ -188,6 +230,13 @@ impl CalendarReminderDeliveryGuard for PgCalendarReminderDeliveryGuard {
     .fetch_one(self.session.connection()?)
     .await
     .map_err(SqlxCalendarRepository::map_db_err)
+  }
+
+  async fn is_current(&mut self) -> RepoResult<bool> {
+    let reminder = self.reminder_id;
+    let generation = self.generation;
+    sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM calendar_reminders r JOIN scheduling_schedules s ON s.id=r.definition_id WHERE r.id=$1 AND r.scheduling_generation=$2 AND s.generation=$2 AND NOT r.suppressed AND r.delivered_at IS NULL AND s.lifecycle='active')")
+      .bind(reminder).bind(generation).fetch_one(self.session.connection()?).await.map_err(SqlxCalendarRepository::map_db_err)
   }
 
   async fn complete_email(&mut self, user: Uuid) -> RepoResult<()> {
@@ -203,8 +252,9 @@ impl CalendarReminderDeliveryGuard for PgCalendarReminderDeliveryGuard {
     Ok(())
   }
 
-  async fn complete(&mut self, at: DateTime<Utc>) -> RepoResult<()> {
+  async fn complete(&mut self, at: DateTime<Utc>) -> RepoResult<bool> {
     let reminder = self.reminder_id;
+    let generation = self.generation;
     let mut tx = self
       .session
       .connection()?
@@ -212,9 +262,10 @@ impl CalendarReminderDeliveryGuard for PgCalendarReminderDeliveryGuard {
       .await
       .map_err(SqlxCalendarRepository::map_db_err)?;
     let updated =
-      sqlx::query("UPDATE calendar_reminders SET delivered_at=$2,updated_at=$2 WHERE id=$1 AND delivered_at IS NULL")
-        .bind(reminder)
-        .bind(at)
+       sqlx::query("UPDATE calendar_reminders r SET delivered_at=$2,updated_at=$2 WHERE id=$1 AND delivered_at IS NULL AND scheduling_generation=$3 AND NOT suppressed AND EXISTS(SELECT 1 FROM scheduling_schedules s WHERE s.id=r.definition_id AND s.generation=$3 AND s.lifecycle='active')")
+         .bind(reminder)
+         .bind(at)
+         .bind(generation)
         .execute(&mut *tx)
         .await
         .map_err(SqlxCalendarRepository::map_db_err)?;
@@ -232,7 +283,7 @@ impl CalendarReminderDeliveryGuard for PgCalendarReminderDeliveryGuard {
       }
     }
     tx.commit().await.map_err(SqlxCalendarRepository::map_db_err)?;
-    Ok(())
+    Ok(updated.rows_affected() != 0)
   }
 
   async fn release(self: Box<Self>) -> RepoResult<()> {
@@ -255,8 +306,12 @@ pub(super) async fn reminder_contexts(
           r.delivered_at,
           r.created_at    AS r_created_at,
           r.updated_at    AS r_updated_at,
-          e.title         AS event_title,
-          e.starts_at,
+           COALESCE(r.override_title,e.title) AS event_title,
+           r.occurrence_start AS starts_at,
+           r.occurrence_end AS ends_at,
+           r.occurrence_all_day AS all_day,
+           e.workspace_id,
+           CASE WHEN jsonb_typeof(e.payload->'location')='string' THEN e.payload->>'location' END AS location,
           u.id AS user_id,
           u.email         AS user_email
       FROM calendar_reminders r
@@ -266,7 +321,7 @@ pub(super) async fn reminder_contexts(
       JOIN users u ON u.id = a.user_id OR (e.origin = 'native' AND (
         (e.all_members AND EXISTS (SELECT 1 FROM workspace_memberships m WHERE m.workspace_id=e.workspace_id AND m.user_id=u.id AND m.status='Accepted'))
         OR (NOT e.all_members AND (u.id=w.owner_user_id OR EXISTS (SELECT 1 FROM calendar_event_participants p WHERE p.event_id=e.id AND (p.user_id=u.id OR lower(p.email)=lower(u.email)))))))
-      WHERE r.id = $1 AND u.status = 'active' AND (w.id IS NULL OR w.deleted_at IS NULL)
+       WHERE r.id = $1 AND NOT r.suppressed AND u.status = 'active' AND (w.id IS NULL OR w.deleted_at IS NULL)
       ORDER BY u.id
       "#,
     )
@@ -295,6 +350,10 @@ pub(super) async fn reminder_contexts(
           user_email: row.get("user_email"),
           event_title: row.try_get("event_title").unwrap_or_default(),
           starts_at: row.get("starts_at"),
+          ends_at: row.get("ends_at"),
+          all_day: row.get("all_day"),
+          workspace_id: row.get("workspace_id"),
+          location: row.get("location"),
         }
       })
       .collect(),

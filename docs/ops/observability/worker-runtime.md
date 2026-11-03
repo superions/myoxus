@@ -103,8 +103,6 @@ worker:
   polling:
     doc_maintenance_interval_ms: 120000 # 2 minutes
     indexer_auto_index_interval_ms: 30000 # 30 seconds
-    calendar_reminder_interval_ms: 60000 # 1 minute
-    database_reminder_interval_ms: 60000 # 1 minute
     caldav_sync_interval_ms: 900000 # 15 minutes
     google_calendar_sync_interval_ms: 900000 # 15 minutes
   cron_tick_interval_seconds: 30
@@ -264,22 +262,22 @@ of all reminder consumers before reclaiming its retained pending claims. Let the
 normal polling/retry path recover them; do not fabricate mail jobs or edit receipts.
 SMTP acceptance before receipt persistence can still be redelivered after a crash.
 
-### `database` — personal database row reminders
+### Personal Database Row reminder admission and notification delivery
 
-`database.fireReminders` claims a bounded batch from
-`database_row_reminders` with `FOR UPDATE SKIP LOCKED`. A successful claim
-enqueues `notification.sendDatabaseRowReminder`; the notification worker then
+Shared SQL admission commits one occurrence, native fired receipt and outbox
+intent transactionally. The outbox hands off a stable-ID
+`notification.sendDatabaseRowReminder` job; the notification worker then
 revalidates the exact reminder revision, trigger, recipient membership and Row
 visibility before calling `NotificationService`. Rescheduled, cancelled,
 deleted or inaccessible targets are successful stale no-ops. The stable
 `database.row.reminder:{reminderId}:{triggerAtUnix}` idempotency key makes a
-crash between notification enqueue and fired-state persistence safe.
+replayed handoff idempotent without duplicating notifications.
 
-Monitor the existing `database` and `notification` queue depth/completed/failed
-counters. Logs include bounded identifiers, claim/enqueued/failed counts and
+Monitor shared scheduling/outbox blocked state and the existing `notification`
+queue depth/completed/failed counters. Logs include bounded identifiers and
 `database_reminder_stale_dispatch` reason labels, never Cell content. After a
-Redis outage, restore Redis and let scheduled records be claimed normally.
-Expired claims are released by the next run; notification failures use the
+Redis outage, restore Redis and let committed outbox intents hand off normally.
+There are no native due/expired-claim sweeps; notification failures use the
 existing queue retry/DLQ policy. Do not update reminder rows manually unless a
 verified backup-recovery procedure requires it.
 

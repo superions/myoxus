@@ -2469,7 +2469,6 @@
   "admin.performance.field.compaction-lock-ttl.desc": "TTL блокировки уплотнения (секунды). Тайм-аут безопасности на случай сбоя сервера во время сжатия.",
   "admin.performance.field.compaction-threshold-default.desc": "Количество ожидающих обновлений до срабатывания автоматического сжатия. По умолчанию: 500",
   "admin.performance.field.compaction-threshold-root-doc.desc": "Порог автоматического сжатия для корневых документов. По умолчанию: 50",
-  "admin.performance.field.cron-tick-interval.desc": "Интервал (в секундах) для тактового цикла планировщика cron. По умолчанию: 60 · Мин.: 5 · Для полного эффекта может потребоваться перезагрузка.",
   "admin.performance.field.daily-enabled.desc": "Включите ежедневный цикл автонастройки TTL.",
   "admin.performance.field.doc-metadata-cache-enabled.desc": "Включите кэш метаданных Redis. Уменьшает количество запросов к базе данных для поиска метаданных документа.",
   "admin.performance.field.doc-metadata-fixed-ttl.desc": "Исправлено переопределение TTL для кэша doc_metadata (секунды). 0 = использовать автонастройку.",

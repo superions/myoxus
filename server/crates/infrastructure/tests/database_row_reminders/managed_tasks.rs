@@ -91,6 +91,13 @@ impl Fixture {
     }
   }
   async fn cleanup(self) {
+    sqlx::query(
+      "DELETE FROM outbox_events WHERE event_type='database_reminder_due' AND payload->'dispatch'->>'workspaceId'=$1",
+    )
+    .bind(self.workspace.to_string())
+    .execute(&self.pool)
+    .await
+    .expect("reminder handoff cleanup");
     sqlx::query("DELETE FROM workspaces WHERE id=$1")
       .bind(self.workspace)
       .execute(&self.pool)
@@ -526,9 +533,7 @@ async fn move_keeps_row_identity_and_rejects_stale_forced_owner() {
     }
 
     let reminder = fixture.repo.upsert_database_row_reminder(super::reminder(fixture.workspace,source.database.id,row_id,due_field,fixture.owner,10,due.start-chrono::Duration::minutes(10))).await.expect("personal reminder");
-    let claim = Uuid::new_v4();
-    sqlx::query("UPDATE database_row_reminders SET status='claimed',claim_token=$2,claim_expires_at=now()+interval '5 minutes' WHERE id=$1")
-      .bind(reminder.id).bind(claim).execute(&fixture.pool).await.expect("held old-owner claim");
+    assert!(fixture.repo.prepare_database_row_reminder_dispatch(reminder.id,reminder.schedule_revision,reminder.trigger_at,fixture.owner).await.expect("old-owner preparation").is_some());
     use myoxus_domain::database_activity::{DatabaseActivityEvent,DatabaseActivityEventType,DatabaseActivityFilter,DatabaseActivityStore};
     let activity = myoxus_infrastructure::database_activity::PgDatabaseActivityStore::new(fixture.pool.clone());
     activity.record(DatabaseActivityEvent::new(fixture.workspace,source.database.id,DatabaseActivityEventType::RowCreated).with_row(row_id).with_actor(fixture.owner)).await.expect("historical activity");
@@ -603,8 +608,7 @@ async fn move_keeps_row_identity_and_rejects_stale_forced_owner() {
     assert_eq!(reminders[0].trigger_at,reminder.trigger_at);
     assert_eq!(reminders[0].status,DatabaseRowReminderStatus::Scheduled);
     assert_eq!(reminders[0].schedule_revision,reminder.schedule_revision+1);
-    assert_eq!(reminders[0].claim_token,None);
-    assert!(!fixture.repo.mark_database_row_reminder_enqueued(reminder.id,reminder.schedule_revision,claim,now).await.expect("old worker finish"),"old claim cannot fire after native rebind");
+    assert!(fixture.repo.prepare_database_row_reminder_dispatch(reminder.id,reminder.schedule_revision,reminder.trigger_at,fixture.owner).await.expect("old-owner admission fence").is_none(),"an old preparation cannot admit after native rebind");
     let history=activity.list(DatabaseActivityFilter{workspace_id:fixture.workspace,row_id:Some(row_id),..Default::default()},0,10).await.expect("current same-workspace history");
     assert_eq!(history.len(),1);
     assert_eq!(history[0].database_id,source.database.id,"history retains truthful former container");
@@ -651,7 +655,8 @@ async fn move_keeps_row_identity_and_rejects_stale_forced_owner() {
   }
 }
 
-/// A real immutable successor exists only in this disposable source fixture.
+/// Synthetic successors use a reserved fixture version range; shipping another
+/// native patch must not overwrite their definitions or update edges.
 fn successor_sources(incompatible_config: bool) -> tempfile::TempDir {
   use myoxus_contracts::config_document::{ConfigDocumentFormat, decode_config_document};
   use sha2::{Digest, Sha256};
@@ -672,17 +677,28 @@ fn successor_sources(incompatible_config: bool) -> tempfile::TempDir {
     temp.path(),
   );
   let id = "myoxus.project.simple_project";
-  let original = std::fs::read_to_string(temp.path().join(format!("{id}/1.0.1.yaml"))).expect("original source");
+  let catalog_text = std::fs::read_to_string(temp.path().join("catalog.yaml")).expect("catalog");
+  let catalog = decode_config_document(&catalog_text, ConfigDocumentFormat::Yaml).expect("catalog YAML");
+  let current = catalog["templates"]
+    .as_array()
+    .unwrap()
+    .iter()
+    .find(|entry| entry["id"] == id)
+    .unwrap()["current"]
+    .as_str()
+    .unwrap()
+    .to_owned();
+  let original = std::fs::read_to_string(temp.path().join(format!("{id}/{current}.yaml"))).expect("original source");
   let mut source = decode_config_document(&original, ConfigDocumentFormat::Yaml).expect("source YAML");
-  source["version"] = serde_json::json!("1.0.2");
+  source["version"] = serde_json::json!("1.99.0");
   for variant in source["variants"].as_array_mut().expect("variants") {
     variant["spec"]["views"][0]["name"] = serde_json::json!("Updated Tasks");
   }
   if incompatible_config {
-    let core_path = "myoxus.project.task-core/1.0.0.yaml";
+    let core_path = source["task_core"]["path"].as_str().expect("pinned Task core");
     let core = std::fs::read_to_string(temp.path().join(core_path)).expect("task core");
     let mut core = decode_config_document(&core, ConfigDocumentFormat::Yaml).expect("core YAML");
-    core["version"] = serde_json::json!("1.0.2");
+    core["version"] = serde_json::json!("1.99.0");
     let description = core["fields"]
       .as_array_mut()
       .expect("core fields")
@@ -691,16 +707,16 @@ fn successor_sources(incompatible_config: bool) -> tempfile::TempDir {
       .expect("description");
     description["config"]["Direct"]["maxPlainTextBytes"] = serde_json::json!(1024);
     let bytes = serde_json::to_vec(&core).expect("new core");
-    let path = "myoxus.project.task-core/1.0.2.yaml";
+    let path = "myoxus.project.task-core/1.99.0.yaml";
     std::fs::write(temp.path().join(path), &bytes).expect("fixture core");
-    source["task_core"]["version"] = serde_json::json!("1.0.2");
+    source["task_core"]["version"] = serde_json::json!("1.99.0");
     source["task_core"]["path"] = serde_json::json!(path);
     source["task_core"]["sha256"] = serde_json::json!(format!("{:x}", Sha256::digest(&bytes)));
   }
   // JSON is a YAML subset. The production confined loader still performs the
   // same typed decoding and pin checks as shipped sources.
   let bytes = serde_json::to_vec(&source).expect("successor source");
-  std::fs::write(temp.path().join(format!("{id}/1.0.2.yaml")), &bytes).expect("successor fixture");
+  std::fs::write(temp.path().join(format!("{id}/1.99.0.yaml")), &bytes).expect("successor fixture");
   let digest = format!("{:x}", Sha256::digest(&bytes));
   let original = std::fs::read_to_string(temp.path().join("catalog.yaml")).expect("catalog");
   let mut catalog = decode_config_document(&original, ConfigDocumentFormat::Yaml).expect("catalog YAML");
@@ -721,13 +737,13 @@ fn successor_sources(incompatible_config: bool) -> tempfile::TempDir {
     .as_array()
     .expect("versions")
     .iter()
-    .find(|reference| reference["version"] == "1.0.1")
+    .find(|reference| reference["version"] == current)
     .expect("exact source pin")["sha256"]
     .clone();
-  let update_path = format!("{id}/updates/1.0.1-to-1.0.2.yaml");
+  let update_path = format!("{id}/updates/{current}-to-1.99.0.yaml");
   let update = serde_json::json!({"format_version":1,"template_id":id,
-    "source":{"version":"1.0.1","sha256":source_digest},
-    "target":{"version":"1.0.2","sha256":digest},"operations":[]});
+    "source":{"version":current,"sha256":source_digest},
+    "target":{"version":"1.99.0","sha256":digest},"operations":[]});
   let update_bytes = serde_json::to_vec(&update).expect("exact native update source");
   std::fs::create_dir_all(temp.path().join(format!("{id}/updates"))).expect("update fixture directory");
   std::fs::write(temp.path().join(&update_path), &update_bytes).expect("native successor edge");
@@ -738,10 +754,10 @@ fn successor_sources(incompatible_config: bool) -> tempfile::TempDir {
     .as_array_mut()
     .expect("update references")
     .push(serde_json::json!({
-    "from":"1.0.1","to":"1.0.2","path":update_path,"sha256":format!("{:x}",Sha256::digest(&update_bytes))}));
-  entry["current"] = serde_json::json!("1.0.2");
+    "from":current,"to":"1.99.0","path":update_path,"sha256":format!("{:x}",Sha256::digest(&update_bytes))}));
+  entry["current"] = serde_json::json!("1.99.0");
   entry["definitions"].as_array_mut().expect("versions").push(
-    serde_json::json!({"version":"1.0.2","path":format!("{id}/1.0.2.yaml"),"sha256":digest,"selections":selections}),
+    serde_json::json!({"version":"1.99.0","path":format!("{id}/1.99.0.yaml"),"sha256":digest,"selections":selections}),
   );
   std::fs::write(
     temp.path().join("catalog.yaml"),
@@ -779,8 +795,7 @@ async fn forward_update_preserves_native_ids_mutable_rows_and_rejects_old_node_w
     let due=DatabaseDateTimeValue{start:chrono::Utc::now()+chrono::Duration::hours(2),end:None,all_day:false,time_zone:"Europe/Berlin".into()};
     fixture.repo.update_cell_value(row.row.id,due_field,DatabaseCellValueData::DateTime(due.clone()),fixture.owner,fixture.fence(original.database.id),None).await.expect("native reminder due Cell");
     let reminder=fixture.repo.upsert_database_row_reminder(super::reminder(fixture.workspace,original.database.id,row.row.id,due_field,fixture.owner,10,due.start-chrono::Duration::minutes(10))).await.expect("native reminder before upgrade");
-    let claim=Uuid::new_v4();
-    sqlx::query("UPDATE database_row_reminders SET status='claimed',claim_token=$2,claim_expires_at=now()+interval '5 minutes' WHERE id=$1").bind(reminder.id).bind(claim).execute(&fixture.pool).await.expect("pre-upgrade queued claim");
+    super::reminder_scheduler(&fixture.pool,fixture.repo.clone()).dispatch_due(reminder.trigger_at+chrono::Duration::seconds(1),50).await.expect("pre-upgrade shared admission");
     let (_sources, new_catalog) = successor_catalog(false);
     let new_repo = Arc::new(PgDatabaseRepository::new(fixture.pool.clone(), new_catalog.clone()));
     let changes = Arc::new(Changes::default());
@@ -791,7 +806,7 @@ async fn forward_update_preserves_native_ids_mutable_rows_and_rejects_old_node_w
       .await
       .expect("forward update");
     let installation = upgraded.database.managed_installation.as_ref().expect("installation");
-    assert_eq!(installation.template_version, "1.0.2");
+    assert_eq!(installation.template_version, "1.99.0");
     assert_eq!(installation.schema_revision, 2);
     assert_eq!(
       installation.field_bindings,
@@ -833,12 +848,15 @@ async fn forward_update_preserves_native_ids_mutable_rows_and_rejects_old_node_w
       2,
       "repeated recovery is not an upgrade"
     );
-    assert!(fixture.repo.upsert_database_row_reminder(reminder.clone()).await.is_err(),"old node cannot reinterpret newer reminder schema");
-    assert!(fixture.repo.get_database_row_reminder_dispatch(reminder.id,reminder.schedule_revision,reminder.trigger_at,fixture.owner).await.is_err(),"unknown local schema is not terminal denial/cancellation");
+    // A new request identity avoids an unrelated historical PK collision;
+    // rejection must depend on the old node's managed-admission guard.
+    let mut old_node_request=reminder.clone();old_node_request.id=Uuid::new_v4();old_node_request.trigger_at=due.start-chrono::Duration::minutes(10);
+    assert!(matches!(fixture.repo.upsert_database_row_reminder(old_node_request).await,Err(myoxus_domain::repositories::RepositoryError::Validation(message)) if message=="managed schema unavailable on this node"),"old node cannot reinterpret newer reminder schema");
+    assert!(matches!(fixture.repo.get_database_row_reminder_dispatch(reminder.id,reminder.schedule_revision,reminder.trigger_at,fixture.owner).await,Err(myoxus_domain::repositories::RepositoryError::Validation(message)) if message=="managed reminder schema unavailable on this node"),"unknown local schema is not terminal denial/cancellation");
     let dispatch=new_repo.get_database_row_reminder_dispatch(reminder.id,reminder.schedule_revision,reminder.trigger_at,fixture.owner).await.expect("current descriptor dispatch");
     assert!(dispatch.is_some(),"same current native intent remains eligible on admitted node");
-    let (status,generation,token):(String,i64,Option<Uuid>)=sqlx::query_as("SELECT status,schedule_revision,claim_token FROM database_row_reminders WHERE id=$1").bind(reminder.id).fetch_one(&fixture.pool).await.expect("unchanged pending intent");
-    assert_eq!((status,generation,token),("claimed".into(),reminder.schedule_revision,Some(claim)));
+    let (status,generation,slots):(String,i64,i64)=sqlx::query_as("SELECT r.status,s.generation,(SELECT count(*) FROM scheduling_occurrences o WHERE o.schedule_id=r.id) FROM database_row_reminders r JOIN scheduling_schedules s ON s.id=r.id WHERE r.id=$1").bind(reminder.id).fetch_one(&fixture.pool).await.expect("unchanged accepted intent");
+    assert_eq!((status,generation,slots),("fired".into(),reminder.schedule_revision,1));
     assert_eq!(changes.0.lock().expect("events after no-op").len(), 1);
     assert!(
       fixture
@@ -1380,7 +1398,7 @@ async fn competing_forward_initializers_return_the_same_ready_winner_once() {
       assert_eq!(record.database.id, original.database.id);
       let installed = record.database.managed_installation.as_ref().expect("current metadata");
       assert_eq!(installed.schema_revision, 2);
-      assert_eq!(installed.template_version, "1.0.2");
+      assert_eq!(installed.template_version, "1.99.0");
       assert_eq!(installed.readiness, DatabaseManagedSchemaReadiness::Ready);
       assert_eq!(
         record.database.edit_revision,
@@ -1413,7 +1431,7 @@ fn repin_fixture_update_targets(root: &std::path::Path) {
       continue;
     };
     for reference in references {
-      if reference["to"] != "1.0.2" && reference["to"] != "1.0.3" {
+      if reference["to"] != "1.99.0" && reference["to"] != "1.99.1" {
         continue;
       }
       let path = reference["path"].as_str().expect("update path");
@@ -1445,13 +1463,13 @@ fn chained_successor_catalog() -> (tempfile::TempDir, Arc<DatabaseStarterTemplat
   let (temp, _) = successor_catalog(false);
   let id = "myoxus.project.simple_project";
   let mut source: serde_json::Value =
-    serde_json::from_slice(&std::fs::read(temp.path().join(format!("{id}/1.0.2.yaml"))).expect("first successor"))
+    serde_json::from_slice(&std::fs::read(temp.path().join(format!("{id}/1.99.0.yaml"))).expect("first successor"))
       .expect("fixture JSON definition");
-  source["version"] = serde_json::json!("1.0.3");
+  source["version"] = serde_json::json!("1.99.1");
   for variant in source["variants"].as_array_mut().expect("variants") {
     variant["spec"]["views"][0]["name"] = serde_json::json!("Final Tasks");
   }
-  let path = format!("{id}/1.0.3.yaml");
+  let path = format!("{id}/1.99.1.yaml");
   let bytes = serde_json::to_vec(&source).expect("final definition");
   std::fs::write(temp.path().join(&path), &bytes).expect("final source");
   let mut catalog: serde_json::Value =
@@ -1467,23 +1485,22 @@ fn chained_successor_catalog() -> (tempfile::TempDir, Arc<DatabaseStarterTemplat
     .as_array()
     .expect("versions")
     .iter()
-    .find(|reference| reference["version"] == "1.0.2")
+    .find(|reference| reference["version"] == "1.99.0")
     .expect("middle pin")
     .clone();
   let digest = format!("{:x}", Sha256::digest(&bytes));
   entry["definitions"]
     .as_array_mut()
     .expect("versions")
-    .push(serde_json::json!({"version":"1.0.3","path":path,"sha256":digest,"selections":from["selections"]}));
-  let path = format!("{id}/updates/1.0.2-to-1.0.3.yaml");
-  let update = serde_json::json!({"format_version":1,"template_id":id,"source":{"version":"1.0.2","sha256":from["sha256"]},"target":{"version":"1.0.3","sha256":digest},"operations":[]});
+    .push(serde_json::json!({"version":"1.99.1","path":path,"sha256":digest,"selections":from["selections"]}));
+  let path = format!("{id}/updates/1.99.0-to-1.99.1.yaml");
+  let update = serde_json::json!({"format_version":1,"template_id":id,"source":{"version":"1.99.0","sha256":from["sha256"]},"target":{"version":"1.99.1","sha256":digest},"operations":[]});
   let bytes = serde_json::to_vec(&update).expect("second edge");
   std::fs::write(temp.path().join(&path), &bytes).expect("second edge source");
-  entry["updates"]
-    .as_array_mut()
-    .expect("edges")
-    .push(serde_json::json!({"from":"1.0.2","to":"1.0.3","path":path,"sha256":format!("{:x}",Sha256::digest(&bytes))}));
-  entry["current"] = serde_json::json!("1.0.3");
+  entry["updates"].as_array_mut().expect("edges").push(
+    serde_json::json!({"from":"1.99.0","to":"1.99.1","path":path,"sha256":format!("{:x}",Sha256::digest(&bytes))}),
+  );
+  entry["current"] = serde_json::json!("1.99.1");
   std::fs::write(
     temp.path().join("catalog.yaml"),
     serde_json::to_vec(&catalog).expect("catalog bytes"),
@@ -1591,7 +1608,7 @@ async fn chained_updates_invalidate_each_commit_and_resume_after_later_sql_failu
         .await
         .expect("committed middle installation");
     let middle: DatabaseManagedSchemaInstallation = serde_json::from_value(persisted).expect("native installation");
-    assert_eq!(middle.template_version, "1.0.2");
+    assert_eq!(middle.template_version, "1.99.0");
     assert_eq!(middle.schema_revision, 2);
     assert_eq!(middle.readiness, DatabaseManagedSchemaReadiness::Unavailable);
     assert_eq!(middle.reason_code.as_deref(), Some("MANAGED_UPDATE_INCOMPLETE"));
@@ -1623,7 +1640,7 @@ async fn chained_updates_invalidate_each_commit_and_resume_after_later_sql_failu
       .await
       .expect("resume at canonical committed edge");
     let installed = complete.database.managed_installation.as_ref().expect("final install");
-    assert_eq!(installed.template_version, "1.0.3");
+    assert_eq!(installed.template_version, "1.99.1");
     assert_eq!(installed.schema_revision, 3);
     assert_eq!(installed.readiness, DatabaseManagedSchemaReadiness::Ready);
     assert_eq!(installed.field_bindings, middle.field_bindings);
@@ -1673,7 +1690,7 @@ fn successor_catalog_with_formula() -> (tempfile::TempDir, Arc<DatabaseStarterTe
   use myoxus_contracts::config_document::{ConfigDocumentFormat, decode_config_document};
   use sha2::{Digest, Sha256};
   let (temp, _) = successor_catalog(false);
-  let path = "myoxus.project.simple_project/1.0.2.yaml";
+  let path = "myoxus.project.simple_project/1.99.0.yaml";
   let mut source: serde_json::Value =
     serde_json::from_slice(&std::fs::read(temp.path().join(path)).expect("future source")).expect("fixture JSON YAML");
   for variant in source["variants"].as_array_mut().expect("variants") {
@@ -1698,7 +1715,7 @@ fn successor_catalog_with_formula() -> (tempfile::TempDir, Arc<DatabaseStarterTe
     .as_array_mut()
     .expect("versions")
     .iter_mut()
-    .find(|entry| entry["version"] == "1.0.2")
+    .find(|entry| entry["version"] == "1.99.0")
     .expect("future reference");
   reference["sha256"] = serde_json::json!(format!("{:x}", Sha256::digest(&bytes)));
   std::fs::write(
@@ -1956,7 +1973,7 @@ fn select_conversion_catalogs() -> (
   let temp = successor_sources(false);
   let id = "myoxus.project.simple_project";
   let mut source: serde_json::Value =
-    serde_json::from_slice(&std::fs::read(temp.path().join(format!("{id}/1.0.2.yaml"))).expect("source definition"))
+    serde_json::from_slice(&std::fs::read(temp.path().join(format!("{id}/1.99.0.yaml"))).expect("source definition"))
       .expect("fixture JSON source");
   let options = |ids: &[&str]| {
     serde_json::Value::Array(ids.iter().enumerate().map(|(position,id)|serde_json::json!({"id":id,"name":format!("Option {id}"),"position":position,"colorRole":"neutral"})).collect())
@@ -1972,7 +1989,7 @@ fn select_conversion_catalogs() -> (
     }
   }
   let source_bytes = serde_json::to_vec(&source).expect("extended source bytes");
-  std::fs::write(temp.path().join(format!("{id}/1.0.2.yaml")), &source_bytes).expect("extended source");
+  std::fs::write(temp.path().join(format!("{id}/1.99.0.yaml")), &source_bytes).expect("extended source");
   let mut catalog: serde_json::Value =
     serde_json::from_slice(&std::fs::read(temp.path().join("catalog.yaml")).expect("catalog"))
       .expect("fixture catalog");
@@ -1986,7 +2003,7 @@ fn select_conversion_catalogs() -> (
     .as_array_mut()
     .expect("definitions")
     .iter_mut()
-    .find(|reference| reference["version"] == "1.0.2")
+    .find(|reference| reference["version"] == "1.99.0")
     .expect("source pin");
   reference["sha256"] = serde_json::json!(format!("{:x}", Sha256::digest(&source_bytes)));
   std::fs::write(
@@ -1996,7 +2013,7 @@ fn select_conversion_catalogs() -> (
   .expect("source catalog");
   repin_fixture_update_targets(temp.path());
   let before = Arc::new(load_database_template_catalog(temp.path()).expect("native source extension admitted"));
-  source["version"] = serde_json::json!("1.0.3");
+  source["version"] = serde_json::json!("1.99.1");
   for variant in source["variants"].as_array_mut().expect("variants") {
     for field in variant["spec"]["fields"].as_array_mut().expect("fields") {
       if field["key"] == "fixture_select" || field["key"] == "fixture_multi" {
@@ -2006,7 +2023,7 @@ fn select_conversion_catalogs() -> (
   }
   let bytes = serde_json::to_vec(&source).expect("target source");
   let digest = format!("{:x}", Sha256::digest(&bytes));
-  std::fs::write(temp.path().join(format!("{id}/1.0.3.yaml")), &bytes).expect("native target definition");
+  std::fs::write(temp.path().join(format!("{id}/1.99.1.yaml")), &bytes).expect("native target definition");
   let mut catalog: serde_json::Value =
     serde_json::from_slice(&std::fs::read(temp.path().join("catalog.yaml")).expect("source catalog")).expect("catalog");
   let entry = catalog["templates"]
@@ -2019,19 +2036,18 @@ fn select_conversion_catalogs() -> (
     .as_array()
     .expect("definitions")
     .iter()
-    .find(|reference| reference["version"] == "1.0.2")
+    .find(|reference| reference["version"] == "1.99.0")
     .expect("source reference")
     .clone();
-  entry["definitions"].as_array_mut().expect("definitions").push(serde_json::json!({"version":"1.0.3","path":format!("{id}/1.0.3.yaml"),"sha256":digest,"selections":from["selections"]}));
-  let path = format!("{id}/updates/1.0.2-to-1.0.3.yaml");
-  let update = serde_json::json!({"format_version":1,"template_id":id,"source":{"version":"1.0.2","sha256":from["sha256"]},"target":{"version":"1.0.3","sha256":digest},"operations":[{"kind":"map_select_options","field_key":"fixture_select","mapping":{"a":"b","b":"c"}},{"kind":"map_select_options","field_key":"fixture_multi","mapping":{"a":"b","b":"c"}}]});
+  entry["definitions"].as_array_mut().expect("definitions").push(serde_json::json!({"version":"1.99.1","path":format!("{id}/1.99.1.yaml"),"sha256":digest,"selections":from["selections"]}));
+  let path = format!("{id}/updates/1.99.0-to-1.99.1.yaml");
+  let update = serde_json::json!({"format_version":1,"template_id":id,"source":{"version":"1.99.0","sha256":from["sha256"]},"target":{"version":"1.99.1","sha256":digest},"operations":[{"kind":"map_select_options","field_key":"fixture_select","mapping":{"a":"b","b":"c"}},{"kind":"map_select_options","field_key":"fixture_multi","mapping":{"a":"b","b":"c"}}]});
   let bytes = serde_json::to_vec(&update).expect("typed Select edge");
   std::fs::write(temp.path().join(&path), &bytes).expect("native edge");
-  entry["updates"]
-    .as_array_mut()
-    .expect("edges")
-    .push(serde_json::json!({"from":"1.0.2","to":"1.0.3","path":path,"sha256":format!("{:x}",Sha256::digest(&bytes))}));
-  entry["current"] = serde_json::json!("1.0.3");
+  entry["updates"].as_array_mut().expect("edges").push(
+    serde_json::json!({"from":"1.99.0","to":"1.99.1","path":path,"sha256":format!("{:x}",Sha256::digest(&bytes))}),
+  );
+  entry["current"] = serde_json::json!("1.99.1");
   std::fs::write(
     temp.path().join("catalog.yaml"),
     serde_json::to_vec(&catalog).expect("target catalog bytes"),
@@ -2313,7 +2329,7 @@ async fn select_update_converts_native_content_and_personal_state_atomically_or_
       let current = result.expect("actual SQL conversion");
       assert_eq!(
         current.database.managed_installation.as_ref().unwrap().template_version,
-        "1.0.3"
+        "1.99.1"
       );
       assert_eq!(
         current.database.managed_installation.as_ref().unwrap().schema_revision,

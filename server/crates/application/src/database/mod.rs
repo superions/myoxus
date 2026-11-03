@@ -208,7 +208,6 @@ pub const JOB_REINDEX_SEARCH: &str = "database.reindexSearch";
 pub const JOB_BULK_IMPORT: &str = "database.bulkImport";
 /// P-DB-25: bulk CSV/JSON export job used when `count > sync_threshold`.
 pub const JOB_BULK_EXPORT: &str = "database.bulkExport";
-pub const JOB_FIRE_REMINDERS: &str = "database.fireReminders";
 
 #[derive(Debug, Clone)]
 pub struct DatabaseLimits {
@@ -235,7 +234,6 @@ pub struct DatabaseLimits {
   /// Notion export ZIP. The neutral parser enforces the same ceiling
   /// internally; this value is the public limit surfaced to the API.
   pub notion_max_bytes: usize,
-  pub reminder_batch_size: i64,
   pub max_reminders_per_user_per_cell: usize,
   pub max_reminder_offset_minutes: i64,
 }
@@ -260,7 +258,6 @@ impl Default for DatabaseLimits {
       // HTML page × a realistic 8 pages per archive) while staying
       // safely below the standard request size limit.
       notion_max_bytes: 67_108_864,
-      reminder_batch_size: 100,
       max_reminders_per_user_per_cell: 5,
       max_reminder_offset_minutes: 525_600,
     }
@@ -446,7 +443,7 @@ enum DatabaseServiceFailureKind {
 }
 
 impl DatabaseServiceError {
-  fn new(code: &'static str, message: impl Into<String>) -> Self {
+  pub(crate) fn new(code: &'static str, message: impl Into<String>) -> Self {
     Self {
       code,
       message: message.into(),
@@ -504,6 +501,7 @@ impl From<RepositoryError> for DatabaseServiceError {
         if matches!(
           message,
           "database reminder schedule revision"
+            | "task recurrence series revision"
             | "managed schema revision"
             | "managed schema source fence"
             | "managed schema structure fence"
@@ -890,14 +888,6 @@ pub struct DatabaseRowReminderDispatchEnvelope {
   pub user_id: UserId,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct DatabaseRowReminderDispatchOutcome {
-  pub claimed_count: usize,
-  pub enqueued_count: usize,
-  pub cancelled_count: usize,
-  pub failed_count: usize,
-}
-
 impl DatabaseServices {
   pub fn new<R>(
     repo: Arc<R>,
@@ -949,7 +939,6 @@ impl DatabaseServices {
       permission: permission.clone(),
       limits: limits.clone(),
       effects: dependencies.effects.clone(),
-      job_queue: dependencies.job_queue.clone(),
     });
     let rows = Arc::new(DatabaseEditingService {
       reminders: reminders.clone(),

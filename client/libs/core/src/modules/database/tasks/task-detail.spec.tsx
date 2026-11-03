@@ -41,6 +41,9 @@ import {
   databaseViewsQuery,
   databaseRowQuery,
   documentReviewForTaskQuery,
+  taskRecurrenceQuery,
+  recurrencePreviewQuery,
+  configureTaskRecurrenceMutation,
   databaseRowActivityQuery,
   bulkRestoreDatabaseRowsMutation,
   DatabaseProfileKind,
@@ -124,6 +127,14 @@ vi.mock("@myoxus/storage/cloud", async (original) => {
   };
 });
 vi.mock("./use-workspace-tasks", () => ({
+  useTaskDestinations: () => ({
+    readyDestinations: [
+      { id: "database-1", title: "Tasks", workspaceTasks: true },
+    ],
+    isLoading: false,
+    destinationError: false,
+    nextCursor: null,
+  }),
   useTaskIdentity: () => ({
     server: {
       gql: owner.gql,
@@ -582,6 +593,24 @@ function fixture(
     releasePresentation = resolve;
   });
   owner.gql.mockReset().mockImplementation(async ({ query, variables }) => {
+    if (query === taskRecurrenceQuery)
+      return { workspace: { id: "workspace-1", taskRecurrence: null } };
+    if (query === recurrencePreviewQuery)
+      return {
+        workspace: {
+          recurrencePreview: [
+            {
+              occurrence: {
+                nominal: { date: "2030-07-11", localDateTime: null },
+                dueAt: "2030-07-10T22:00:00Z",
+              },
+              completionReference: null,
+            },
+          ],
+        },
+      };
+    if (query === configureTaskRecurrenceMutation)
+      throw { extensions: { code: "MIX_DATABASE_CONFLICT" } };
     if (query === documentReviewForTaskQuery)
       return {
         currentUser: { id: account$.value.id },
@@ -1316,6 +1345,56 @@ function fixture(
 }
 
 describe("canonical Task detail consuming native Row editors", () => {
+  test("recurrence keeps the open draft and native edit basis across canonical delivery", async () => {
+    const f = fixture(false, false, undefined, false, false, undefined, {
+      allDay: true,
+    });
+    const originalRevision = f.canonical().row.editRevision;
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Repeat" }),
+    );
+    const dialog = await screen.findByRole("dialog", {
+      name: "Repeat",
+    });
+    const title = within(dialog).getByRole("textbox", {
+      name: "Title",
+    });
+    fireEvent.change(title, {
+      target: { value: "Deliberate future Task recipe" },
+    });
+    act(() => {
+      f.remoteTitle("Changed elsewhere");
+      f.setReminderTaskStatus("status.in_progress", 2);
+    });
+    await act(async () => {
+      await f.refresh();
+    });
+    expect(
+      within(dialog).getByRole<HTMLInputElement>("textbox", {
+        name: "Title",
+      }).value,
+    ).toBe("Deliberate future Task recipe");
+    const save = within(dialog).getByRole("button", {
+      name: "Save",
+    });
+    await waitFor(() =>
+      expect((save as HTMLButtonElement).disabled).toBe(false),
+    );
+    await userEvent.click(save);
+    await within(dialog).findByText(/Repetition could not be saved/);
+    const submitted = owner.gql.mock.calls.find(
+      ([request]) => request.query === configureTaskRecurrenceMutation,
+    )?.[0].variables.input;
+    expect(submitted).toMatchObject({
+      expectedRowRevision: originalRevision,
+      recipe: { title: "Deliberate future Task recipe" },
+    });
+    expect(
+      within(dialog).getByRole<HTMLInputElement>("textbox", {
+        name: "Title",
+      }).value,
+    ).toBe("Deliberate future Task recipe");
+  });
   test.each([true])(
     "Due focuses the canonical control and readonly Tasks retain personal reminder writes (allDay=%s)",
     async (allDay) => {

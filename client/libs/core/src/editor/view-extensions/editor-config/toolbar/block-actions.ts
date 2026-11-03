@@ -377,9 +377,20 @@ export function createToolbarMoreMenuConfigV2(
               if (!(createdAt in model.props)) return null;
               const createdBy = "meta:createdBy";
               if (!(createdBy in model.props)) return null;
-              const createdByUserId = model.props[createdBy] as string;
-              const createdAtTimestamp = model.props[createdAt] as number;
+              const createdByUserId = model.props[createdBy];
+              const createdAtTimestamp = model.props[createdAt];
+              // Imported/native blocks may lack authoring metadata. Generators
+              // can be evaluated before `when`; never invent a date or request
+              // an undefined user just because schema keys are present.
+              if (
+                typeof createdByUserId !== "string" ||
+                !createdByUserId ||
+                typeof createdAtTimestamp !== "number" ||
+                !Number.isFinite(createdAtTimestamp)
+              )
+                return null;
               const date = new Date(createdAtTimestamp);
+              if (!Number.isFinite(date.getTime())) return null;
               const userProvider = ctx.std.getOptional(UserProvider);
               if (!userProvider) return null;
               userProvider.revalidateUserInfo(createdByUserId);

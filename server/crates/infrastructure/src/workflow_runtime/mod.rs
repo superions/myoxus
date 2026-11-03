@@ -19,7 +19,9 @@ use glirulus_runtime::{
   ExternalTaskExecutor, ExternalWorkflow, LiveWorkflowIndex, PooledWorker, WorkerHandle, serialization::JsonCodec,
 };
 use myoxus_application::workspace_automation::runtime::*;
-use myoxus_domain::workspace_automation::{AutomationExecutionClaim, WorkspaceAutomationRunStatus};
+use myoxus_domain::workspace_automation::{
+  AutomationExecutionClaim, WorkspaceAutomationRun, WorkspaceAutomationRunStatus,
+};
 use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Row};
 use std::{
@@ -109,6 +111,7 @@ pub struct GlirulusWorkspaceAutomationRuntime {
   supervisor: Mutex<Option<tokio::task::JoinHandle<()>>>,
   stopped: AtomicBool,
   recovery_cursor: Mutex<Option<uuid::Uuid>>,
+  optional_automations_enabled: bool,
 }
 
 impl GlirulusWorkspaceAutomationRuntime {
@@ -127,7 +130,84 @@ impl GlirulusWorkspaceAutomationRuntime {
       supervisor: Mutex::new(None),
       stopped: AtomicBool::new(false),
       recovery_cursor: Mutex::new(None),
+      optional_automations_enabled: true,
     }
+  }
+  /// Native recurrence remains available without admitting or waking optional
+  /// Rule/assistant definitions. The two definition classes have disjoint hashes.
+  pub fn with_optional_automations_enabled(mut self, enabled: bool) -> Self {
+    self.optional_automations_enabled = enabled;
+    self
+  }
+
+  pub(crate) async fn create_recurring_task_snapshot_in(
+    &self,
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    run: &AcceptedAutomationRun,
+  ) -> RuntimeResult<()> {
+    myoxus_application::workspace_automation::recurring_task::validate(run)?;
+    self.create_initial_snapshot_in(tx, run).await.map(|_| ())
+  }
+
+  async fn create_initial_snapshot_in(
+    &self,
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    run: &AcceptedAutomationRun,
+  ) -> RuntimeResult<glirulus_core::DefinitionHash> {
+    let backend = self.backend.get().ok_or_else(unavailable)?;
+    let (hash, _) = Self::compile(&run.definition)?;
+    let input = Bytes::from(serde_json::to_vec(&RuntimeInput::for_run(run)).map_err(|_| unavailable())?);
+    let mut snapshot =
+      glirulus_core::snapshot::WorkflowSnapshot::with_initial_input(&run.run_id.to_string(), hash, input);
+    Self::initialize_position(&mut snapshot, run)?;
+    backend
+      .create_snapshot_if_absent_in(&mut snapshot, tx)
+      .await
+      .map_err(|_| unavailable())?;
+    Ok(hash)
+  }
+
+  /// Shared with scheduled Review admission; register/initialize the definition
+  /// before opening the caller's transaction, never through another connection here.
+  pub(crate) async fn accept_document_review_in(
+    &self,
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    proposed: &AcceptedAutomationRun,
+  ) -> RuntimeResult<WorkspaceAutomationRun> {
+    if !self.optional_automations_enabled || proposed.document_review.is_none() {
+      return Err(unavailable());
+    }
+    let review = proposed.document_review.as_ref().ok_or_else(unavailable)?;
+    let expected = myoxus_application::workspace_automation::review::compile_review_definition(
+      &review.plan,
+      proposed.definition.policy.clone(),
+    )?;
+    if expected.hash != proposed.definition.hash
+      || myoxus_application::workspace_automation::review::review_wait(&proposed.definition)?.0 != review.wait_id
+    {
+      return Err(unavailable());
+    }
+    let run = crate::workspace_automation::PgWorkspaceAutomationRepository::accept_document_review_in(tx, proposed)
+      .await
+      .map_err(myoxus_application::workspace_automation::WorkspaceAutomationServiceError::from)?;
+    if matches!(
+      run.status,
+      WorkspaceAutomationRunStatus::Queued | WorkspaceAutomationRunStatus::Running
+    ) {
+      let hash = self
+        .create_initial_snapshot_in(tx, run.accepted.as_ref().ok_or_else(unavailable)?)
+        .await?;
+      let stored: Vec<u8> =
+        sqlx::query_scalar("SELECT definition_hash FROM sayiir_workflow_snapshots WHERE instance_id=$1")
+          .bind(run.id.to_string())
+          .fetch_one(&mut **tx)
+          .await
+          .map_err(|_| unavailable())?;
+      if stored.as_slice() != hash.as_bytes().as_slice() {
+        return Err(unavailable());
+      }
+    }
+    Ok(run)
   }
   /// Supply the validated node catalog before readiness/start initializes waits.
   pub fn with_database_templates(
@@ -164,7 +244,8 @@ impl GlirulusWorkspaceAutomationRuntime {
     }
     sqlx::query("SELECT r.accepted_json,r.execution_generation,r.claim_owner,r.origin_kind,r.confirmed_actor_id,r.confirmed_request_id,r.review_wait_id,r.review_deadline_at,r.review_outcome_json,r.review_invalid_reason,r.review_expired_at,r.task_handover_state,r.task_correction_outcome_json,r.task_maintenance_invalid_reason,u.personal_config,u.execution_revision,p.automation_run_id,a.node_key,a.effect_key,a.input_fingerprint,a.reserved_id,a.expected_edit_revision,a.webhook_delivery_json,c.task_id,c.worker_id,c.expires_at,h.data,t.output,s.kind,e.signal_name,e.event_id,e.accepted_at,e.consumed_at,w.signal_name FROM workspace_automations u,workspace_automation_runs r,workspace_starter_applications p,workspace_automation_actions a,sayiir_workflow_claims c,sayiir_workflow_snapshot_history h,sayiir_workflow_tasks t,sayiir_workflow_signals s,sayiir_workflow_events e,sayiir_workflow_snapshots w LIMIT 0")
       .execute(&self.pool).await.map_err(|_| unavailable())?;
-    let rows = sqlx::query("SELECT id,accepted_json FROM workspace_automation_runs WHERE accepted_json IS NOT NULL AND status IN ('queued','running') AND (origin_kind<>'workspace_setup' OR EXISTS(SELECT 1 FROM workspace_starter_applications root WHERE root.automation_run_id=workspace_automation_runs.id AND root.assistance_saved_at IS NOT NULL))")
+    let rows = sqlx::query("SELECT id,accepted_json FROM workspace_automation_runs WHERE accepted_json IS NOT NULL AND status IN ('queued','running') AND ($1 OR origin_kind='recurring_task') AND (origin_kind<>'workspace_setup' OR EXISTS(SELECT 1 FROM workspace_starter_applications root WHERE root.automation_run_id=workspace_automation_runs.id AND root.assistance_saved_at IS NOT NULL))")
+      .bind(self.optional_automations_enabled)
       .fetch_all(&self.pool).await.map_err(|_| unavailable())?;
     for row in rows {
       let id = row.try_get("id").map_err(|_| unavailable())?;
@@ -222,6 +303,17 @@ impl GlirulusWorkspaceAutomationRuntime {
     {
       return Err(unavailable());
     }
+    let recurring = definition
+      .capability_versions
+      .contains_key(myoxus_application::workspace_automation::recurring_task::CAPABILITY);
+    if recurring
+      && (definition.workflow.is_some()
+        || !definition.actions.is_empty()
+        || definition.capability_versions.len() != 1
+        || definition.capability_versions.values().next() != Some(&1))
+    {
+      return Err(unavailable());
+    }
     if definition
       .workflow
       .as_ref()
@@ -230,7 +322,9 @@ impl GlirulusWorkspaceAutomationRuntime {
     {
       return Self::compile_source_workflow(definition);
     }
-    let count = if definition.capability_versions.contains_key("workspaceSetup") {
+    let count = if recurring {
+      1
+    } else if definition.capability_versions.contains_key("workspaceSetup") {
       myoxus_application::workspace_automation::setup::workspace_setup_stage_count(definition)?
     } else if definition.workflow.is_some() {
       myoxus_application::workspace_automation::workflows::context_stage_count(definition)?
@@ -534,8 +628,8 @@ impl GlirulusWorkspaceAutomationRuntime {
   }
   async fn recover(&self) -> RuntimeResult<()> {
     let mut cursor = self.recovery_cursor.lock().await;
-    let rows = sqlx::query("SELECT id,accepted_json FROM workspace_automation_runs WHERE status IN ('queued','running') AND (origin_kind<>'workspace_setup' OR EXISTS(SELECT 1 FROM workspace_starter_applications root WHERE root.automation_run_id=workspace_automation_runs.id AND root.assistance_saved_at IS NOT NULL)) AND ($1::uuid IS NULL OR id>$1) ORDER BY id LIMIT 100")
-      .bind(*cursor).fetch_all(&self.pool).await.map_err(|_| unavailable())?;
+    let rows = sqlx::query("SELECT id,accepted_json FROM workspace_automation_runs WHERE status IN ('queued','running') AND ($2 OR origin_kind='recurring_task') AND (origin_kind<>'workspace_setup' OR EXISTS(SELECT 1 FROM workspace_starter_applications root WHERE root.automation_run_id=workspace_automation_runs.id AND root.assistance_saved_at IS NOT NULL)) AND ($1::uuid IS NULL OR id>$1) ORDER BY id LIMIT 100")
+      .bind(*cursor).bind(self.optional_automations_enabled).fetch_all(&self.pool).await.map_err(|_| unavailable())?;
     if rows.is_empty() {
       *cursor = None;
     }
@@ -603,6 +697,14 @@ impl GlirulusWorkspaceAutomationRuntime {
 
 #[async_trait]
 impl WorkspaceAutomationRuntime for GlirulusWorkspaceAutomationRuntime {
+  #[tracing::instrument(skip_all, fields(run_id=%accepted.run_id,workspace_id=%accepted.workspace_id))]
+  async fn accept_document_review(&self, accepted: AcceptedAutomationRun) -> RuntimeResult<WorkspaceAutomationRun> {
+    self.register_definition(accepted.definition.clone()).await?;
+    let mut tx = self.pool.begin().await.map_err(|_| unavailable())?;
+    let run = self.accept_document_review_in(&mut tx, &accepted).await?;
+    tx.commit().await.map_err(|_| unavailable())?;
+    Ok(run)
+  }
   async fn signal(
     &self,
     signal: myoxus_domain::workspace_automation::WorkflowSignalEnvelope,
@@ -671,6 +773,13 @@ impl WorkspaceAutomationRuntime for GlirulusWorkspaceAutomationRuntime {
   }
 
   async fn register_definition(&self, definition: AcceptedAutomationDefinition) -> RuntimeResult<()> {
+    if !self.optional_automations_enabled
+      && !definition
+        .capability_versions
+        .contains_key(myoxus_application::workspace_automation::recurring_task::CAPABILITY)
+    {
+      return Err(unavailable());
+    }
     let (hash, workflow) = Self::compile(&definition)?;
     // Initialize the fallible backend before publishing a cached registration:
     // a failed first admission must not leave a definition permanently ineligible.

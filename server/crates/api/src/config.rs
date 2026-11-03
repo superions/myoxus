@@ -1901,16 +1901,8 @@ fn default_polling_database_projection_interval_ms() -> u64 {
   30_000
 }
 
-fn default_polling_database_reminder_interval_ms() -> u64 {
-  60_000
-}
-
 fn default_polling_workspace_automation_retry_interval_ms() -> u64 {
   30_000
-}
-
-fn default_polling_calendar_reminder_interval_ms() -> u64 {
-  60_000
 }
 
 fn default_polling_caldav_sync_interval_ms() -> u64 {
@@ -2398,7 +2390,7 @@ pub struct JobConfig {
   pub queues: JobQueuesConfig,
 }
 
-/// CronJob polling intervals for recurring background jobs.
+/// Startup-owned intervals for registered background-job schedules.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct WorkerPollingConfig {
   /// Interval (ms) for doc maintenance jobs (`recordPendingDocUpdatesCount`,
@@ -2417,15 +2409,9 @@ pub struct WorkerPollingConfig {
     alias = "database_projection_interval_ms"
   )]
   pub database_projection_interval_ms: u64,
-  /// Interval (ms) for `database.fireReminders`. Default: 60 000 ms.
-  #[serde(default = "default_polling_database_reminder_interval_ms")]
-  pub database_reminder_interval_ms: u64,
   /// Interval (ms) for retrying failed Workspace Automation runs. Default: 30 000 ms (30 s).
   #[serde(default = "default_polling_workspace_automation_retry_interval_ms")]
   pub workspace_automation_retry_interval_ms: u64,
-  /// Interval (ms) for `calendar.enqueueReminders`. Default: 60 000 ms (1 min).
-  #[serde(default = "default_polling_calendar_reminder_interval_ms")]
-  pub calendar_reminder_interval_ms: u64,
   /// Interval (ms) for `caldav.syncAll` pull-sync. Default: 900 000 ms (15 min).
   #[serde(default = "default_polling_caldav_sync_interval_ms")]
   pub caldav_sync_interval_ms: u64,
@@ -2441,9 +2427,7 @@ impl Default for WorkerPollingConfig {
       indexer_auto_index_interval_ms: default_polling_indexer_auto_index_interval_ms(),
       document_graph_reindex_interval_ms: default_polling_document_graph_reindex_interval_ms(),
       database_projection_interval_ms: default_polling_database_projection_interval_ms(),
-      database_reminder_interval_ms: default_polling_database_reminder_interval_ms(),
       workspace_automation_retry_interval_ms: default_polling_workspace_automation_retry_interval_ms(),
-      calendar_reminder_interval_ms: default_polling_calendar_reminder_interval_ms(),
       caldav_sync_interval_ms: default_polling_caldav_sync_interval_ms(),
       google_calendar_sync_interval_ms: default_polling_google_calendar_sync_interval_ms(),
     }
@@ -2458,7 +2442,7 @@ impl Default for WorkerPollingConfig {
 /// registration cannot be changed coherently in a running process.
 #[derive(Debug, Clone, Deserialize, Default, Serialize)]
 pub struct WorkerConfig {
-  /// CronJob polling intervals for recurring background jobs.
+  /// Startup-owned intervals for registered background-job schedules.
   #[serde(default)]
   pub polling: WorkerPollingConfig,
   /// Tick interval (seconds) for the cron scheduler loop. Default: 30.
@@ -3474,7 +3458,6 @@ pub struct DatabasesConfig {
   pub csv_sample_rows_for_type_inference: usize,
   /// Hard byte cap on Notion HTML/ZIP import payloads (P-DB-29).
   pub notion_max_bytes: usize,
-  pub reminder_batch_size: i64,
   pub max_reminders_per_user_per_cell: usize,
   pub max_reminder_offset_minutes: i64,
 }
@@ -3492,7 +3475,6 @@ impl Default for DatabasesConfig {
       csv_max_columns: 100,
       csv_sample_rows_for_type_inference: 100,
       notion_max_bytes: 67_108_864,
-      reminder_batch_size: 100,
       max_reminders_per_user_per_cell: 5,
       max_reminder_offset_minutes: 525_600,
     }
@@ -4769,19 +4751,6 @@ fn validate_tuning_parameters(cfg: &AppConfig) -> Result<(), ConfigError> {
     )));
   }
 
-  if !(1_000..=3_600_000).contains(&cfg.worker.polling.database_reminder_interval_ms) {
-    return Err(ConfigError::Message(format!(
-      "worker.polling.database_reminder_interval_ms must be between 1000 and 3600000, got {}",
-      cfg.worker.polling.database_reminder_interval_ms
-    )));
-  }
-
-  if !(1..=1_000).contains(&cfg.databases.reminder_batch_size) {
-    return Err(ConfigError::Message(format!(
-      "databases.reminder_batch_size must be between 1 and 1000, got {}",
-      cfg.databases.reminder_batch_size
-    )));
-  }
   if !(1..=20).contains(&cfg.databases.max_reminders_per_user_per_cell) {
     return Err(ConfigError::Message(format!(
       "databases.max_reminders_per_user_per_cell must be between 1 and 20, got {}",
@@ -4831,13 +4800,6 @@ fn validate_tuning_parameters(cfg: &AppConfig) -> Result<(), ConfigError> {
     return Err(ConfigError::Message(
       "workspace.import.max_asset_bytes must not exceed max_expanded_bytes".to_string(),
     ));
-  }
-
-  if cfg.worker.polling.calendar_reminder_interval_ms < 5000 {
-    return Err(ConfigError::Message(format!(
-      "worker.polling.calendar_reminder_interval_ms must be >= 5000 (5s minimum), got {}",
-      cfg.worker.polling.calendar_reminder_interval_ms
-    )));
   }
 
   if cfg.document_graph.max_graph_nodes == 0
@@ -6130,7 +6092,6 @@ features:
     doc_maint_ms: u64,
     indexer_ms: u64,
     database_projection_ms: u64,
-    calendar_ms: u64,
   ) -> AppConfig {
     // Parse the minimum valid YAML and then patch the tuning fields.
     let yaml = r#"
@@ -6165,67 +6126,59 @@ oauth:
     cfg.worker.polling.doc_maintenance_interval_ms = doc_maint_ms;
     cfg.worker.polling.indexer_auto_index_interval_ms = indexer_ms;
     cfg.worker.polling.database_projection_interval_ms = database_projection_ms;
-    cfg.worker.polling.calendar_reminder_interval_ms = calendar_ms;
     cfg
   }
 
   #[test]
   fn tuning_defaults_pass_validation() {
-    let cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 30_000, 60_000);
+    let cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 30_000);
     assert!(super::validate_tuning_parameters(&cfg).is_ok());
   }
 
   #[test]
   fn tuning_broadcast_capacity_below_16_rejected() {
-    let cfg = make_tuning_cfg(15, 15, 10, 120_000, 30_000, 30_000, 60_000);
+    let cfg = make_tuning_cfg(15, 15, 10, 120_000, 30_000, 30_000);
     let err = super::validate_tuning_parameters(&cfg).unwrap_err();
     assert!(err.to_string().contains("broadcast_channel_capacity"), "{err}");
   }
 
   #[test]
   fn tuning_broadcast_capacity_16_accepted() {
-    let cfg = make_tuning_cfg(16, 15, 10, 120_000, 30_000, 30_000, 60_000);
+    let cfg = make_tuning_cfg(16, 15, 10, 120_000, 30_000, 30_000);
     assert!(super::validate_tuning_parameters(&cfg).is_ok());
   }
 
   #[test]
   fn tuning_io_timeout_zero_rejected() {
-    let cfg = make_tuning_cfg(4096, 0, 10, 120_000, 30_000, 30_000, 60_000);
+    let cfg = make_tuning_cfg(4096, 0, 10, 120_000, 30_000, 30_000);
     let err = super::validate_tuning_parameters(&cfg).unwrap_err();
     assert!(err.to_string().contains("io_timeout_seconds"), "{err}");
   }
 
   #[test]
   fn tuning_proxy_timeout_zero_rejected() {
-    let cfg = make_tuning_cfg(4096, 15, 0, 120_000, 30_000, 30_000, 60_000);
+    let cfg = make_tuning_cfg(4096, 15, 0, 120_000, 30_000, 30_000);
     let err = super::validate_tuning_parameters(&cfg).unwrap_err();
     assert!(err.to_string().contains("proxy_timeout_seconds"), "{err}");
   }
 
   #[test]
   fn tuning_doc_maintenance_below_5s_rejected() {
-    let cfg = make_tuning_cfg(4096, 15, 10, 4999, 30_000, 30_000, 60_000);
+    let cfg = make_tuning_cfg(4096, 15, 10, 4999, 30_000, 30_000);
     let err = super::validate_tuning_parameters(&cfg).unwrap_err();
     assert!(err.to_string().contains("doc_maintenance_interval_ms"), "{err}");
   }
 
   #[test]
   fn tuning_indexer_interval_below_5s_rejected() {
-    let cfg = make_tuning_cfg(4096, 15, 10, 120_000, 4999, 30_000, 60_000);
+    let cfg = make_tuning_cfg(4096, 15, 10, 120_000, 4999, 30_000);
     let err = super::validate_tuning_parameters(&cfg).unwrap_err();
     assert!(err.to_string().contains("indexer_auto_index_interval_ms"), "{err}");
   }
 
   #[test]
-  fn tuning_calendar_interval_below_5s_rejected() {
-    let cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 30_000, 4999);
-    let err = super::validate_tuning_parameters(&cfg).unwrap_err();
-    assert!(err.to_string().contains("calendar_reminder_interval_ms"), "{err}");
-  }
-
-  #[test]
   fn tuning_database_projection_interval_below_5s_rejected() {
-    let cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 4999, 60_000);
+    let cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 4999);
     let err = super::validate_tuning_parameters(&cfg).unwrap_err();
     assert!(err.to_string().contains("database_projection_interval_ms"), "{err}");
   }
@@ -6233,7 +6186,7 @@ oauth:
   #[test]
   fn tuning_minimum_accepted_values() {
     // All fields at their absolute minimum accepted values
-    let cfg = make_tuning_cfg(16, 1, 1, 5000, 5000, 5000, 5000);
+    let cfg = make_tuning_cfg(16, 1, 1, 5000, 5000, 5000);
     assert!(super::validate_tuning_parameters(&cfg).is_ok());
   }
 
@@ -6378,7 +6331,7 @@ websocket:
       decode_typed_yaml_document("transports: [websocket]\n").expect("minimal WebSocket config");
     assert_eq!(parsed.max_connections_per_second_per_client, 10);
 
-    let mut cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 30_000, 60_000);
+    let mut cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 30_000);
     cfg.websocket.max_connections_per_second_per_client = 0;
     assert!(validate_tuning_parameters(&cfg).is_err());
     cfg.websocket.max_connections_per_second_per_client = 101;
@@ -6481,7 +6434,7 @@ git_sync:
 
   #[test]
   fn git_sync_validation_rejects_zero_network_timeout() {
-    let mut cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 30_000, 60_000);
+    let mut cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 30_000);
     cfg.git_sync = git_sync_with(|gs| gs.network_timeout_secs = 0);
     let result = validate_tuning_parameters(&cfg);
     assert!(result.is_err());
@@ -6490,7 +6443,7 @@ git_sync:
 
   #[test]
   fn git_sync_retention_rejects_an_off_mode_and_out_of_range_startup_values() {
-    let mut cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 30_000, 60_000);
+    let mut cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 30_000);
     for days in [0, 31] {
       cfg.git_sync.retention_days = days;
       assert!(
@@ -6509,7 +6462,7 @@ git_sync:
 
   #[test]
   fn git_sync_validation_rejects_insecure_https_without_allowed_host() {
-    let mut cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 30_000, 60_000);
+    let mut cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 30_000);
     cfg.git_sync = git_sync_with(|gs| {
       gs.https_certificate_policy = HttpsCertificatePolicy::InsecureNoVerify;
       gs.allowed_hosts.clear();
@@ -6520,7 +6473,7 @@ git_sync:
 
   #[test]
   fn git_sync_validation_accepts_insecure_https_for_explicit_allowed_host() {
-    let mut cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 30_000, 60_000);
+    let mut cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 30_000);
     cfg.git_sync = git_sync_with(|gs| {
       gs.https_certificate_policy = HttpsCertificatePolicy::InsecureNoVerify;
       gs.allowed_hosts = vec!["git.example.test".to_string()];
@@ -6708,7 +6661,7 @@ git_sync:
 
   #[test]
   fn git_sync_validation_rejects_zero_local_timeout() {
-    let mut cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 30_000, 60_000);
+    let mut cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 30_000);
     cfg.git_sync = git_sync_with(|gs| gs.local_timeout_secs = 0);
     let result = validate_tuning_parameters(&cfg);
     assert!(result.is_err());
@@ -6717,7 +6670,7 @@ git_sync:
 
   #[test]
   fn git_sync_validation_rejects_zero_clone_depth() {
-    let mut cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 30_000, 60_000);
+    let mut cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 30_000);
     cfg.git_sync = git_sync_with(|gs| gs.clone_depth = 0);
     let result = validate_tuning_parameters(&cfg);
     assert!(result.is_err());
@@ -6726,7 +6679,7 @@ git_sync:
 
   #[test]
   fn git_sync_validation_rejects_empty_author_name() {
-    let mut cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 30_000, 60_000);
+    let mut cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 30_000);
     cfg.git_sync = git_sync_with(|gs| gs.commit_author_name = "  ".to_string());
     let result = validate_tuning_parameters(&cfg);
     assert!(result.is_err());
@@ -6735,7 +6688,7 @@ git_sync:
 
   #[test]
   fn git_sync_validation_rejects_empty_author_email() {
-    let mut cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 30_000, 60_000);
+    let mut cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 30_000);
     cfg.git_sync = git_sync_with(|gs| gs.commit_author_email = String::new());
     let result = validate_tuning_parameters(&cfg);
     assert!(result.is_err());
@@ -6744,7 +6697,7 @@ git_sync:
 
   #[test]
   fn git_sync_validation_rejects_zero_parallel_threshold() {
-    let mut cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 30_000, 60_000);
+    let mut cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 30_000);
     cfg.git_sync = git_sync_with(|gs| gs.parallel_conversion_threshold = 0);
     let result = validate_tuning_parameters(&cfg);
     assert!(result.is_err());
@@ -6758,14 +6711,14 @@ git_sync:
 
   #[test]
   fn git_sync_validation_accepts_valid_defaults() {
-    let cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 30_000, 60_000);
+    let cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 30_000);
     let result = validate_tuning_parameters(&cfg);
     assert!(result.is_ok(), "default config must pass validation: {result:?}");
   }
 
   #[test]
   fn git_sync_validation_requires_secret_when_webhooks_are_enabled() {
-    let mut cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 30_000, 60_000);
+    let mut cfg = make_tuning_cfg(4096, 15, 10, 120_000, 30_000, 30_000);
     cfg.git_sync = git_sync_with(|gs| {
       gs.webhook_allowed = true;
       gs.webhook_secret = None;

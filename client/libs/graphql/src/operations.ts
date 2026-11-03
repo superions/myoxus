@@ -4332,6 +4332,32 @@ export interface CalendarEventQuery {
     sourceExternalId: string | null;
     descriptionDelta: any;
     recurrenceParentId: string | null;
+    recurrenceId: string | null;
+    recurrence: {
+      id: string;
+      revision: number;
+      zone: string;
+      lifecycle: Types.RecurrenceLifecycle;
+      endsBefore: string | null;
+      pausedAt: string | null;
+      readOnly: boolean;
+      unsupportedReason: string | null;
+      sourceRrule: string | null;
+      rule: {
+        mode: Types.RecurrenceMode;
+        zone: string;
+        interval: number;
+        frequency: Types.RecurrenceFrequency | null;
+        weekdays: Array<Types.RecurrenceWeekday>;
+        day: number | null;
+        lastDay: boolean;
+        month: number | null;
+        relativeUnit: Types.RecurrenceRelativeUnit | null;
+        dateOnly: boolean;
+        start: { date: string | null; localDateTime: string | null } | null;
+        end: { date: string | null; localDateTime: string | null } | null;
+      } | null;
+    } | null;
     reminders: Array<{
       id: string;
       channel: string;
@@ -4406,6 +4432,63 @@ export interface CalendarProvidersQuery {
   };
 }
 
+export type ControlWorkspaceEventRecurrenceMutationVariables = Exact<{
+  workspaceId: string;
+  eventId: string;
+  expectedRevision: number;
+  action: Types.CalendarTimingAction;
+}>;
+
+export interface ControlWorkspaceEventRecurrenceMutation {
+  controlWorkspaceEventRecurrence: {
+    id: string;
+    origin: Types.CalendarEventOrigin;
+    workspaceId: string | null;
+    title: string | null;
+    startsAt: string;
+    endsAt: string;
+    allDay: boolean;
+    allMembers: boolean;
+    tagId: string | null;
+    sourceExternalId: string | null;
+    descriptionDelta: any;
+    recurrenceParentId: string | null;
+    recurrenceId: string | null;
+    recurrence: {
+      id: string;
+      revision: number;
+      zone: string;
+      lifecycle: Types.RecurrenceLifecycle;
+      endsBefore: string | null;
+      pausedAt: string | null;
+      readOnly: boolean;
+      unsupportedReason: string | null;
+      sourceRrule: string | null;
+      rule: {
+        mode: Types.RecurrenceMode;
+        zone: string;
+        interval: number;
+        frequency: Types.RecurrenceFrequency | null;
+        weekdays: Array<Types.RecurrenceWeekday>;
+        day: number | null;
+        lastDay: boolean;
+        month: number | null;
+        relativeUnit: Types.RecurrenceRelativeUnit | null;
+        dateOnly: boolean;
+        start: { date: string | null; localDateTime: string | null } | null;
+        end: { date: string | null; localDateTime: string | null } | null;
+      } | null;
+    } | null;
+    reminders: Array<{
+      id: string;
+      channel: string;
+      minutesBefore: number;
+      scheduledFor: string;
+      deliveredAt: string | null;
+    }>;
+  };
+}
+
 export type CreateEventTagMutationVariables = Exact<{
   input: Types.CreateEventTagInput;
 }>;
@@ -4439,6 +4522,32 @@ export interface CreateWorkspaceEventMutation {
     sourceExternalId: string | null;
     descriptionDelta: any;
     recurrenceParentId: string | null;
+    recurrenceId: string | null;
+    recurrence: {
+      id: string;
+      revision: number;
+      zone: string;
+      lifecycle: Types.RecurrenceLifecycle;
+      endsBefore: string | null;
+      pausedAt: string | null;
+      readOnly: boolean;
+      unsupportedReason: string | null;
+      sourceRrule: string | null;
+      rule: {
+        mode: Types.RecurrenceMode;
+        zone: string;
+        interval: number;
+        frequency: Types.RecurrenceFrequency | null;
+        weekdays: Array<Types.RecurrenceWeekday>;
+        day: number | null;
+        lastDay: boolean;
+        month: number | null;
+        relativeUnit: Types.RecurrenceRelativeUnit | null;
+        dateOnly: boolean;
+        start: { date: string | null; localDateTime: string | null } | null;
+        end: { date: string | null; localDateTime: string | null } | null;
+      } | null;
+    } | null;
     reminders: Array<{
       id: string;
       channel: string;
@@ -4527,6 +4636,32 @@ export type LinkCalendarAccountMutationVariables = Exact<{
 export interface LinkCalendarAccountMutation {
   linkCalendarAccount: string;
 }
+
+export type CalendarRecurrenceFieldsFragment = {
+  id: string;
+  revision: number;
+  zone: string;
+  lifecycle: Types.RecurrenceLifecycle;
+  endsBefore: string | null;
+  pausedAt: string | null;
+  readOnly: boolean;
+  unsupportedReason: string | null;
+  sourceRrule: string | null;
+  rule: {
+    mode: Types.RecurrenceMode;
+    zone: string;
+    interval: number;
+    frequency: Types.RecurrenceFrequency | null;
+    weekdays: Array<Types.RecurrenceWeekday>;
+    day: number | null;
+    lastDay: boolean;
+    month: number | null;
+    relativeUnit: Types.RecurrenceRelativeUnit | null;
+    dateOnly: boolean;
+    start: { date: string | null; localDateTime: string | null } | null;
+    end: { date: string | null; localDateTime: string | null } | null;
+  } | null;
+};
 
 export type UnlinkCalendarAccountMutationVariables = Exact<{
   accountId: string;
@@ -4673,6 +4808,32 @@ export interface UpdateWorkspaceEventMutation {
     sourceExternalId: string | null;
     descriptionDelta: any;
     recurrenceParentId: string | null;
+    recurrenceId: string | null;
+    recurrence: {
+      id: string;
+      revision: number;
+      zone: string;
+      lifecycle: Types.RecurrenceLifecycle;
+      endsBefore: string | null;
+      pausedAt: string | null;
+      readOnly: boolean;
+      unsupportedReason: string | null;
+      sourceRrule: string | null;
+      rule: {
+        mode: Types.RecurrenceMode;
+        zone: string;
+        interval: number;
+        frequency: Types.RecurrenceFrequency | null;
+        weekdays: Array<Types.RecurrenceWeekday>;
+        day: number | null;
+        lastDay: boolean;
+        month: number | null;
+        relativeUnit: Types.RecurrenceRelativeUnit | null;
+        dateOnly: boolean;
+        start: { date: string | null; localDateTime: string | null } | null;
+        end: { date: string | null; localDateTime: string | null } | null;
+      } | null;
+    } | null;
     reminders: Array<{
       id: string;
       channel: string;
@@ -4713,6 +4874,44 @@ export interface UpsertCalendarEventMutation {
       deliveredAt: string | null;
     }>;
   };
+}
+
+export type WorkspaceCalendarSeriesQueryVariables = Exact<{
+  workspaceId: string;
+}>;
+
+export interface WorkspaceCalendarSeriesQuery {
+  workspaceCalendarSeries: Array<{
+    id: string;
+    title: string | null;
+    startsAt: string;
+    allDay: boolean;
+    recurrence: {
+      id: string;
+      revision: number;
+      zone: string;
+      lifecycle: Types.RecurrenceLifecycle;
+      endsBefore: string | null;
+      pausedAt: string | null;
+      readOnly: boolean;
+      unsupportedReason: string | null;
+      sourceRrule: string | null;
+      rule: {
+        mode: Types.RecurrenceMode;
+        zone: string;
+        interval: number;
+        frequency: Types.RecurrenceFrequency | null;
+        weekdays: Array<Types.RecurrenceWeekday>;
+        day: number | null;
+        lastDay: boolean;
+        month: number | null;
+        relativeUnit: Types.RecurrenceRelativeUnit | null;
+        dateOnly: boolean;
+        start: { date: string | null; localDateTime: string | null } | null;
+        end: { date: string | null; localDateTime: string | null } | null;
+      } | null;
+    } | null;
+  }>;
 }
 
 export type WorkspaceCalendarSettingsQueryVariables = Exact<{
@@ -34379,6 +34578,64 @@ export interface SetDocumentMetadataMutation {
   };
 }
 
+export type DocumentReviewPlanningFieldsFragment = {
+  enabled: boolean;
+  metadataRevision: number;
+  responsibleId: string | null;
+  sourceDeadline: string | null;
+  nextStart: string | null;
+  processDeadline: string | null;
+  zone: string;
+  leadDays: number;
+  ready: boolean;
+  blockedReason: string | null;
+  runId: string | null;
+};
+
+export type DocumentReviewPlanningQueryVariables = Exact<{
+  workspaceId: string;
+  docId: string;
+}>;
+
+export interface DocumentReviewPlanningQuery {
+  documentReviewPlanning: {
+    enabled: boolean;
+    metadataRevision: number;
+    responsibleId: string | null;
+    sourceDeadline: string | null;
+    nextStart: string | null;
+    processDeadline: string | null;
+    zone: string;
+    leadDays: number;
+    ready: boolean;
+    blockedReason: string | null;
+    runId: string | null;
+  };
+}
+
+export type ConfigureDocumentReviewPlanningMutationVariables = Exact<{
+  workspaceId: string;
+  docId: string;
+  enabled: boolean;
+  expectedMetadataRevision: number;
+}>;
+
+export interface ConfigureDocumentReviewPlanningMutation {
+  configureDocumentReviewPlanning: {
+    enabled: boolean;
+    metadataRevision: number;
+    responsibleId: string | null;
+    sourceDeadline: string | null;
+    nextStart: string | null;
+    processDeadline: string | null;
+    zone: string;
+    leadDays: number;
+    ready: boolean;
+    blockedReason: string | null;
+    runId: string | null;
+  };
+}
+
 export type PreparedDocumentReviewFragmentFragment = {
   locale: string;
   clientVersion: number;
@@ -42374,6 +42631,843 @@ export type RecoverDocMutationVariables = Exact<{
 
 export interface RecoverDocMutation {
   recoverDoc: string;
+}
+
+export type RecurrenceValueFieldsFragment = {
+  date: string | null;
+  localDateTime: string | null;
+};
+
+export type RecurrenceOccurrenceFieldsFragment = {
+  dueAt: string;
+  nominal: { date: string | null; localDateTime: string | null };
+};
+
+export type RecurrenceRuleFieldsFragment = {
+  mode: Types.RecurrenceMode;
+  zone: string;
+  interval: number;
+  frequency: Types.RecurrenceFrequency | null;
+  weekdays: Array<Types.RecurrenceWeekday>;
+  day: number | null;
+  lastDay: boolean;
+  month: number | null;
+  relativeUnit: Types.RecurrenceRelativeUnit | null;
+  dateOnly: boolean;
+  start: { date: string | null; localDateTime: string | null } | null;
+  end: { date: string | null; localDateTime: string | null } | null;
+};
+
+export type TaskRecurrenceMemberFieldsFragment = {
+  id: string;
+  occurrenceId: string | null;
+  rowId: string;
+  capturedDatabaseId: string;
+  advancedAt: string | null;
+  advanceKind: string | null;
+  successorOccurrenceId: string | null;
+  slot: {
+    dueAt: string;
+    nominal: { date: string | null; localDateTime: string | null };
+  } | null;
+};
+
+export type TaskRecurrenceFieldsFragment = {
+  id: string;
+  workspaceId: string;
+  actorId: string | null;
+  currentMemberId: string | null;
+  revision: number;
+  generation: number;
+  lifecycle: Types.RecurrenceLifecycle;
+  pausedAt: string | null;
+  blockedReason: string | null;
+  rule: {
+    mode: Types.RecurrenceMode;
+    zone: string;
+    interval: number;
+    frequency: Types.RecurrenceFrequency | null;
+    weekdays: Array<Types.RecurrenceWeekday>;
+    day: number | null;
+    lastDay: boolean;
+    month: number | null;
+    relativeUnit: Types.RecurrenceRelativeUnit | null;
+    dateOnly: boolean;
+    start: { date: string | null; localDateTime: string | null } | null;
+    end: { date: string | null; localDateTime: string | null } | null;
+  };
+  recipe: {
+    databaseId: string;
+    title: string;
+    assignees: Array<string>;
+    priority: string | null;
+    description: { plainText: string; document: any } | null;
+  };
+  next: {
+    dueAt: string;
+    nominal: { date: string | null; localDateTime: string | null };
+  } | null;
+  pending: {
+    dueAt: string;
+    nominal: { date: string | null; localDateTime: string | null };
+  } | null;
+  preservedNext: {
+    id: string;
+    occurrenceId: string | null;
+    rowId: string;
+    capturedDatabaseId: string;
+    advancedAt: string | null;
+    advanceKind: string | null;
+    successorOccurrenceId: string | null;
+    slot: {
+      dueAt: string;
+      nominal: { date: string | null; localDateTime: string | null };
+    } | null;
+  } | null;
+  effectiveAfter: {
+    id: string;
+    occurrenceId: string | null;
+    rowId: string;
+    capturedDatabaseId: string;
+    advancedAt: string | null;
+    advanceKind: string | null;
+    successorOccurrenceId: string | null;
+    slot: {
+      dueAt: string;
+      nominal: { date: string | null; localDateTime: string | null };
+    } | null;
+  } | null;
+  members: Array<{
+    id: string;
+    occurrenceId: string | null;
+    rowId: string;
+    capturedDatabaseId: string;
+    advancedAt: string | null;
+    advanceKind: string | null;
+    successorOccurrenceId: string | null;
+    slot: {
+      dueAt: string;
+      nominal: { date: string | null; localDateTime: string | null };
+    } | null;
+  }>;
+};
+
+export type TaskRecurrenceQueryVariables = Exact<{
+  workspaceId: string;
+  input: Types.TaskRecurrenceLookupInput;
+}>;
+
+export interface TaskRecurrenceQuery {
+  workspace: {
+    id: string;
+    taskRecurrence: {
+      id: string;
+      workspaceId: string;
+      actorId: string | null;
+      currentMemberId: string | null;
+      revision: number;
+      generation: number;
+      lifecycle: Types.RecurrenceLifecycle;
+      pausedAt: string | null;
+      blockedReason: string | null;
+      rule: {
+        mode: Types.RecurrenceMode;
+        zone: string;
+        interval: number;
+        frequency: Types.RecurrenceFrequency | null;
+        weekdays: Array<Types.RecurrenceWeekday>;
+        day: number | null;
+        lastDay: boolean;
+        month: number | null;
+        relativeUnit: Types.RecurrenceRelativeUnit | null;
+        dateOnly: boolean;
+        start: { date: string | null; localDateTime: string | null } | null;
+        end: { date: string | null; localDateTime: string | null } | null;
+      };
+      recipe: {
+        databaseId: string;
+        title: string;
+        assignees: Array<string>;
+        priority: string | null;
+        description: { plainText: string; document: any } | null;
+      };
+      next: {
+        dueAt: string;
+        nominal: { date: string | null; localDateTime: string | null };
+      } | null;
+      pending: {
+        dueAt: string;
+        nominal: { date: string | null; localDateTime: string | null };
+      } | null;
+      preservedNext: {
+        id: string;
+        occurrenceId: string | null;
+        rowId: string;
+        capturedDatabaseId: string;
+        advancedAt: string | null;
+        advanceKind: string | null;
+        successorOccurrenceId: string | null;
+        slot: {
+          dueAt: string;
+          nominal: { date: string | null; localDateTime: string | null };
+        } | null;
+      } | null;
+      effectiveAfter: {
+        id: string;
+        occurrenceId: string | null;
+        rowId: string;
+        capturedDatabaseId: string;
+        advancedAt: string | null;
+        advanceKind: string | null;
+        successorOccurrenceId: string | null;
+        slot: {
+          dueAt: string;
+          nominal: { date: string | null; localDateTime: string | null };
+        } | null;
+      } | null;
+      members: Array<{
+        id: string;
+        occurrenceId: string | null;
+        rowId: string;
+        capturedDatabaseId: string;
+        advancedAt: string | null;
+        advanceKind: string | null;
+        successorOccurrenceId: string | null;
+        slot: {
+          dueAt: string;
+          nominal: { date: string | null; localDateTime: string | null };
+        } | null;
+      }>;
+    } | null;
+  } | null;
+}
+
+export type TaskRecurrencesQueryVariables = Exact<{
+  workspaceId: string;
+  after?: string | null | undefined;
+  first?: number | null | undefined;
+}>;
+
+export interface TaskRecurrencesQuery {
+  workspace: {
+    id: string;
+    taskRecurrences: Array<{
+      id: string;
+      workspaceId: string;
+      actorId: string | null;
+      currentMemberId: string | null;
+      revision: number;
+      generation: number;
+      lifecycle: Types.RecurrenceLifecycle;
+      pausedAt: string | null;
+      blockedReason: string | null;
+      rule: {
+        mode: Types.RecurrenceMode;
+        zone: string;
+        interval: number;
+        frequency: Types.RecurrenceFrequency | null;
+        weekdays: Array<Types.RecurrenceWeekday>;
+        day: number | null;
+        lastDay: boolean;
+        month: number | null;
+        relativeUnit: Types.RecurrenceRelativeUnit | null;
+        dateOnly: boolean;
+        start: { date: string | null; localDateTime: string | null } | null;
+        end: { date: string | null; localDateTime: string | null } | null;
+      };
+      recipe: {
+        databaseId: string;
+        title: string;
+        assignees: Array<string>;
+        priority: string | null;
+        description: { plainText: string; document: any } | null;
+      };
+      next: {
+        dueAt: string;
+        nominal: { date: string | null; localDateTime: string | null };
+      } | null;
+      pending: {
+        dueAt: string;
+        nominal: { date: string | null; localDateTime: string | null };
+      } | null;
+      preservedNext: {
+        id: string;
+        occurrenceId: string | null;
+        rowId: string;
+        capturedDatabaseId: string;
+        advancedAt: string | null;
+        advanceKind: string | null;
+        successorOccurrenceId: string | null;
+        slot: {
+          dueAt: string;
+          nominal: { date: string | null; localDateTime: string | null };
+        } | null;
+      } | null;
+      effectiveAfter: {
+        id: string;
+        occurrenceId: string | null;
+        rowId: string;
+        capturedDatabaseId: string;
+        advancedAt: string | null;
+        advanceKind: string | null;
+        successorOccurrenceId: string | null;
+        slot: {
+          dueAt: string;
+          nominal: { date: string | null; localDateTime: string | null };
+        } | null;
+      } | null;
+      members: Array<{
+        id: string;
+        occurrenceId: string | null;
+        rowId: string;
+        capturedDatabaseId: string;
+        advancedAt: string | null;
+        advanceKind: string | null;
+        successorOccurrenceId: string | null;
+        slot: {
+          dueAt: string;
+          nominal: { date: string | null; localDateTime: string | null };
+        } | null;
+      }>;
+    }>;
+  } | null;
+}
+
+export type RecurrencePreviewQueryVariables = Exact<{
+  workspaceId: string;
+  input: Types.RecurrencePreviewInput;
+}>;
+
+export interface RecurrencePreviewQuery {
+  workspace: {
+    id: string;
+    recurrencePreview: Array<{
+      occurrence: {
+        dueAt: string;
+        nominal: { date: string | null; localDateTime: string | null };
+      };
+      completionReference: {
+        date: string | null;
+        localDateTime: string | null;
+      } | null;
+    }>;
+  } | null;
+}
+
+export type ConfigureTaskRecurrenceMutationVariables = Exact<{
+  input: Types.ConfigureTaskRecurrenceInput;
+}>;
+
+export interface ConfigureTaskRecurrenceMutation {
+  configureTaskRecurrence: {
+    id: string;
+    workspaceId: string;
+    actorId: string | null;
+    currentMemberId: string | null;
+    revision: number;
+    generation: number;
+    lifecycle: Types.RecurrenceLifecycle;
+    pausedAt: string | null;
+    blockedReason: string | null;
+    rule: {
+      mode: Types.RecurrenceMode;
+      zone: string;
+      interval: number;
+      frequency: Types.RecurrenceFrequency | null;
+      weekdays: Array<Types.RecurrenceWeekday>;
+      day: number | null;
+      lastDay: boolean;
+      month: number | null;
+      relativeUnit: Types.RecurrenceRelativeUnit | null;
+      dateOnly: boolean;
+      start: { date: string | null; localDateTime: string | null } | null;
+      end: { date: string | null; localDateTime: string | null } | null;
+    };
+    recipe: {
+      databaseId: string;
+      title: string;
+      assignees: Array<string>;
+      priority: string | null;
+      description: { plainText: string; document: any } | null;
+    };
+    next: {
+      dueAt: string;
+      nominal: { date: string | null; localDateTime: string | null };
+    } | null;
+    pending: {
+      dueAt: string;
+      nominal: { date: string | null; localDateTime: string | null };
+    } | null;
+    preservedNext: {
+      id: string;
+      occurrenceId: string | null;
+      rowId: string;
+      capturedDatabaseId: string;
+      advancedAt: string | null;
+      advanceKind: string | null;
+      successorOccurrenceId: string | null;
+      slot: {
+        dueAt: string;
+        nominal: { date: string | null; localDateTime: string | null };
+      } | null;
+    } | null;
+    effectiveAfter: {
+      id: string;
+      occurrenceId: string | null;
+      rowId: string;
+      capturedDatabaseId: string;
+      advancedAt: string | null;
+      advanceKind: string | null;
+      successorOccurrenceId: string | null;
+      slot: {
+        dueAt: string;
+        nominal: { date: string | null; localDateTime: string | null };
+      } | null;
+    } | null;
+    members: Array<{
+      id: string;
+      occurrenceId: string | null;
+      rowId: string;
+      capturedDatabaseId: string;
+      advancedAt: string | null;
+      advanceKind: string | null;
+      successorOccurrenceId: string | null;
+      slot: {
+        dueAt: string;
+        nominal: { date: string | null; localDateTime: string | null };
+      } | null;
+    }>;
+  };
+}
+
+export type UpdateTaskRecurrenceMutationVariables = Exact<{
+  input: Types.UpdateTaskRecurrenceInput;
+}>;
+
+export interface UpdateTaskRecurrenceMutation {
+  updateTaskRecurrence: {
+    id: string;
+    workspaceId: string;
+    actorId: string | null;
+    currentMemberId: string | null;
+    revision: number;
+    generation: number;
+    lifecycle: Types.RecurrenceLifecycle;
+    pausedAt: string | null;
+    blockedReason: string | null;
+    rule: {
+      mode: Types.RecurrenceMode;
+      zone: string;
+      interval: number;
+      frequency: Types.RecurrenceFrequency | null;
+      weekdays: Array<Types.RecurrenceWeekday>;
+      day: number | null;
+      lastDay: boolean;
+      month: number | null;
+      relativeUnit: Types.RecurrenceRelativeUnit | null;
+      dateOnly: boolean;
+      start: { date: string | null; localDateTime: string | null } | null;
+      end: { date: string | null; localDateTime: string | null } | null;
+    };
+    recipe: {
+      databaseId: string;
+      title: string;
+      assignees: Array<string>;
+      priority: string | null;
+      description: { plainText: string; document: any } | null;
+    };
+    next: {
+      dueAt: string;
+      nominal: { date: string | null; localDateTime: string | null };
+    } | null;
+    pending: {
+      dueAt: string;
+      nominal: { date: string | null; localDateTime: string | null };
+    } | null;
+    preservedNext: {
+      id: string;
+      occurrenceId: string | null;
+      rowId: string;
+      capturedDatabaseId: string;
+      advancedAt: string | null;
+      advanceKind: string | null;
+      successorOccurrenceId: string | null;
+      slot: {
+        dueAt: string;
+        nominal: { date: string | null; localDateTime: string | null };
+      } | null;
+    } | null;
+    effectiveAfter: {
+      id: string;
+      occurrenceId: string | null;
+      rowId: string;
+      capturedDatabaseId: string;
+      advancedAt: string | null;
+      advanceKind: string | null;
+      successorOccurrenceId: string | null;
+      slot: {
+        dueAt: string;
+        nominal: { date: string | null; localDateTime: string | null };
+      } | null;
+    } | null;
+    members: Array<{
+      id: string;
+      occurrenceId: string | null;
+      rowId: string;
+      capturedDatabaseId: string;
+      advancedAt: string | null;
+      advanceKind: string | null;
+      successorOccurrenceId: string | null;
+      slot: {
+        dueAt: string;
+        nominal: { date: string | null; localDateTime: string | null };
+      } | null;
+    }>;
+  };
+}
+
+export type SkipTaskRecurrenceMutationVariables = Exact<{
+  input: Types.SkipTaskRecurrenceInput;
+}>;
+
+export interface SkipTaskRecurrenceMutation {
+  skipTaskRecurrence: {
+    id: string;
+    workspaceId: string;
+    actorId: string | null;
+    currentMemberId: string | null;
+    revision: number;
+    generation: number;
+    lifecycle: Types.RecurrenceLifecycle;
+    pausedAt: string | null;
+    blockedReason: string | null;
+    rule: {
+      mode: Types.RecurrenceMode;
+      zone: string;
+      interval: number;
+      frequency: Types.RecurrenceFrequency | null;
+      weekdays: Array<Types.RecurrenceWeekday>;
+      day: number | null;
+      lastDay: boolean;
+      month: number | null;
+      relativeUnit: Types.RecurrenceRelativeUnit | null;
+      dateOnly: boolean;
+      start: { date: string | null; localDateTime: string | null } | null;
+      end: { date: string | null; localDateTime: string | null } | null;
+    };
+    recipe: {
+      databaseId: string;
+      title: string;
+      assignees: Array<string>;
+      priority: string | null;
+      description: { plainText: string; document: any } | null;
+    };
+    next: {
+      dueAt: string;
+      nominal: { date: string | null; localDateTime: string | null };
+    } | null;
+    pending: {
+      dueAt: string;
+      nominal: { date: string | null; localDateTime: string | null };
+    } | null;
+    preservedNext: {
+      id: string;
+      occurrenceId: string | null;
+      rowId: string;
+      capturedDatabaseId: string;
+      advancedAt: string | null;
+      advanceKind: string | null;
+      successorOccurrenceId: string | null;
+      slot: {
+        dueAt: string;
+        nominal: { date: string | null; localDateTime: string | null };
+      } | null;
+    } | null;
+    effectiveAfter: {
+      id: string;
+      occurrenceId: string | null;
+      rowId: string;
+      capturedDatabaseId: string;
+      advancedAt: string | null;
+      advanceKind: string | null;
+      successorOccurrenceId: string | null;
+      slot: {
+        dueAt: string;
+        nominal: { date: string | null; localDateTime: string | null };
+      } | null;
+    } | null;
+    members: Array<{
+      id: string;
+      occurrenceId: string | null;
+      rowId: string;
+      capturedDatabaseId: string;
+      advancedAt: string | null;
+      advanceKind: string | null;
+      successorOccurrenceId: string | null;
+      slot: {
+        dueAt: string;
+        nominal: { date: string | null; localDateTime: string | null };
+      } | null;
+    }>;
+  };
+}
+
+export type PauseTaskRecurrenceMutationVariables = Exact<{
+  input: Types.TaskRecurrenceControlInput;
+}>;
+
+export interface PauseTaskRecurrenceMutation {
+  pauseTaskRecurrence: {
+    id: string;
+    workspaceId: string;
+    actorId: string | null;
+    currentMemberId: string | null;
+    revision: number;
+    generation: number;
+    lifecycle: Types.RecurrenceLifecycle;
+    pausedAt: string | null;
+    blockedReason: string | null;
+    rule: {
+      mode: Types.RecurrenceMode;
+      zone: string;
+      interval: number;
+      frequency: Types.RecurrenceFrequency | null;
+      weekdays: Array<Types.RecurrenceWeekday>;
+      day: number | null;
+      lastDay: boolean;
+      month: number | null;
+      relativeUnit: Types.RecurrenceRelativeUnit | null;
+      dateOnly: boolean;
+      start: { date: string | null; localDateTime: string | null } | null;
+      end: { date: string | null; localDateTime: string | null } | null;
+    };
+    recipe: {
+      databaseId: string;
+      title: string;
+      assignees: Array<string>;
+      priority: string | null;
+      description: { plainText: string; document: any } | null;
+    };
+    next: {
+      dueAt: string;
+      nominal: { date: string | null; localDateTime: string | null };
+    } | null;
+    pending: {
+      dueAt: string;
+      nominal: { date: string | null; localDateTime: string | null };
+    } | null;
+    preservedNext: {
+      id: string;
+      occurrenceId: string | null;
+      rowId: string;
+      capturedDatabaseId: string;
+      advancedAt: string | null;
+      advanceKind: string | null;
+      successorOccurrenceId: string | null;
+      slot: {
+        dueAt: string;
+        nominal: { date: string | null; localDateTime: string | null };
+      } | null;
+    } | null;
+    effectiveAfter: {
+      id: string;
+      occurrenceId: string | null;
+      rowId: string;
+      capturedDatabaseId: string;
+      advancedAt: string | null;
+      advanceKind: string | null;
+      successorOccurrenceId: string | null;
+      slot: {
+        dueAt: string;
+        nominal: { date: string | null; localDateTime: string | null };
+      } | null;
+    } | null;
+    members: Array<{
+      id: string;
+      occurrenceId: string | null;
+      rowId: string;
+      capturedDatabaseId: string;
+      advancedAt: string | null;
+      advanceKind: string | null;
+      successorOccurrenceId: string | null;
+      slot: {
+        dueAt: string;
+        nominal: { date: string | null; localDateTime: string | null };
+      } | null;
+    }>;
+  };
+}
+
+export type ResumeTaskRecurrenceMutationVariables = Exact<{
+  input: Types.TaskRecurrenceControlInput;
+}>;
+
+export interface ResumeTaskRecurrenceMutation {
+  resumeTaskRecurrence: {
+    id: string;
+    workspaceId: string;
+    actorId: string | null;
+    currentMemberId: string | null;
+    revision: number;
+    generation: number;
+    lifecycle: Types.RecurrenceLifecycle;
+    pausedAt: string | null;
+    blockedReason: string | null;
+    rule: {
+      mode: Types.RecurrenceMode;
+      zone: string;
+      interval: number;
+      frequency: Types.RecurrenceFrequency | null;
+      weekdays: Array<Types.RecurrenceWeekday>;
+      day: number | null;
+      lastDay: boolean;
+      month: number | null;
+      relativeUnit: Types.RecurrenceRelativeUnit | null;
+      dateOnly: boolean;
+      start: { date: string | null; localDateTime: string | null } | null;
+      end: { date: string | null; localDateTime: string | null } | null;
+    };
+    recipe: {
+      databaseId: string;
+      title: string;
+      assignees: Array<string>;
+      priority: string | null;
+      description: { plainText: string; document: any } | null;
+    };
+    next: {
+      dueAt: string;
+      nominal: { date: string | null; localDateTime: string | null };
+    } | null;
+    pending: {
+      dueAt: string;
+      nominal: { date: string | null; localDateTime: string | null };
+    } | null;
+    preservedNext: {
+      id: string;
+      occurrenceId: string | null;
+      rowId: string;
+      capturedDatabaseId: string;
+      advancedAt: string | null;
+      advanceKind: string | null;
+      successorOccurrenceId: string | null;
+      slot: {
+        dueAt: string;
+        nominal: { date: string | null; localDateTime: string | null };
+      } | null;
+    } | null;
+    effectiveAfter: {
+      id: string;
+      occurrenceId: string | null;
+      rowId: string;
+      capturedDatabaseId: string;
+      advancedAt: string | null;
+      advanceKind: string | null;
+      successorOccurrenceId: string | null;
+      slot: {
+        dueAt: string;
+        nominal: { date: string | null; localDateTime: string | null };
+      } | null;
+    } | null;
+    members: Array<{
+      id: string;
+      occurrenceId: string | null;
+      rowId: string;
+      capturedDatabaseId: string;
+      advancedAt: string | null;
+      advanceKind: string | null;
+      successorOccurrenceId: string | null;
+      slot: {
+        dueAt: string;
+        nominal: { date: string | null; localDateTime: string | null };
+      } | null;
+    }>;
+  };
+}
+
+export type EndTaskRecurrenceMutationVariables = Exact<{
+  input: Types.TaskRecurrenceControlInput;
+}>;
+
+export interface EndTaskRecurrenceMutation {
+  endTaskRecurrence: {
+    id: string;
+    workspaceId: string;
+    actorId: string | null;
+    currentMemberId: string | null;
+    revision: number;
+    generation: number;
+    lifecycle: Types.RecurrenceLifecycle;
+    pausedAt: string | null;
+    blockedReason: string | null;
+    rule: {
+      mode: Types.RecurrenceMode;
+      zone: string;
+      interval: number;
+      frequency: Types.RecurrenceFrequency | null;
+      weekdays: Array<Types.RecurrenceWeekday>;
+      day: number | null;
+      lastDay: boolean;
+      month: number | null;
+      relativeUnit: Types.RecurrenceRelativeUnit | null;
+      dateOnly: boolean;
+      start: { date: string | null; localDateTime: string | null } | null;
+      end: { date: string | null; localDateTime: string | null } | null;
+    };
+    recipe: {
+      databaseId: string;
+      title: string;
+      assignees: Array<string>;
+      priority: string | null;
+      description: { plainText: string; document: any } | null;
+    };
+    next: {
+      dueAt: string;
+      nominal: { date: string | null; localDateTime: string | null };
+    } | null;
+    pending: {
+      dueAt: string;
+      nominal: { date: string | null; localDateTime: string | null };
+    } | null;
+    preservedNext: {
+      id: string;
+      occurrenceId: string | null;
+      rowId: string;
+      capturedDatabaseId: string;
+      advancedAt: string | null;
+      advanceKind: string | null;
+      successorOccurrenceId: string | null;
+      slot: {
+        dueAt: string;
+        nominal: { date: string | null; localDateTime: string | null };
+      } | null;
+    } | null;
+    effectiveAfter: {
+      id: string;
+      occurrenceId: string | null;
+      rowId: string;
+      capturedDatabaseId: string;
+      advancedAt: string | null;
+      advanceKind: string | null;
+      successorOccurrenceId: string | null;
+      slot: {
+        dueAt: string;
+        nominal: { date: string | null; localDateTime: string | null };
+      } | null;
+    } | null;
+    members: Array<{
+      id: string;
+      occurrenceId: string | null;
+      rowId: string;
+      capturedDatabaseId: string;
+      advancedAt: string | null;
+      advanceKind: string | null;
+      successorOccurrenceId: string | null;
+      slot: {
+        dueAt: string;
+        nominal: { date: string | null; localDateTime: string | null };
+      } | null;
+    }>;
+  };
 }
 
 export type RemoveAvatarMutationVariables = Exact<{ [key: string]: never }>;
@@ -68741,6 +69835,11 @@ export type Queries =
       response: ExportWorkspaceCalendarIcsQuery;
     }
   | {
+      name: "workspaceCalendarSeriesQuery";
+      variables: WorkspaceCalendarSeriesQueryVariables;
+      response: WorkspaceCalendarSeriesQuery;
+    }
+  | {
       name: "workspaceCalendarSettingsQuery";
       variables: WorkspaceCalendarSettingsQueryVariables;
       response: WorkspaceCalendarSettingsQuery;
@@ -69171,6 +70270,11 @@ export type Queries =
       response: DocumentMetadataValidationQuery;
     }
   | {
+      name: "documentReviewPlanningQuery";
+      variables: DocumentReviewPlanningQueryVariables;
+      response: DocumentReviewPlanningQuery;
+    }
+  | {
       name: "prepareDocumentReviewQuery";
       variables: PrepareDocumentReviewQueryVariables;
       response: PrepareDocumentReviewQuery;
@@ -69494,6 +70598,21 @@ export type Queries =
       name: "quotaQuery";
       variables: QuotaQueryVariables;
       response: QuotaQuery;
+    }
+  | {
+      name: "taskRecurrenceQuery";
+      variables: TaskRecurrenceQueryVariables;
+      response: TaskRecurrenceQuery;
+    }
+  | {
+      name: "taskRecurrencesQuery";
+      variables: TaskRecurrencesQueryVariables;
+      response: TaskRecurrencesQuery;
+    }
+  | {
+      name: "recurrencePreviewQuery";
+      variables: RecurrencePreviewQueryVariables;
+      response: RecurrencePreviewQuery;
     }
   | {
       name: "savedAssistantSetupsQuery";
@@ -70343,6 +71462,11 @@ export type Mutations =
       response: CreateBlobUploadMutation;
     }
   | {
+      name: "controlWorkspaceEventRecurrenceMutation";
+      variables: ControlWorkspaceEventRecurrenceMutationVariables;
+      response: ControlWorkspaceEventRecurrenceMutation;
+    }
+  | {
       name: "createEventTagMutation";
       variables: CreateEventTagMutationVariables;
       response: CreateEventTagMutation;
@@ -70953,6 +72077,11 @@ export type Mutations =
       response: SetDocumentMetadataMutation;
     }
   | {
+      name: "configureDocumentReviewPlanningMutation";
+      variables: ConfigureDocumentReviewPlanningMutationVariables;
+      response: ConfigureDocumentReviewPlanningMutation;
+    }
+  | {
       name: "startDocumentReviewMutation";
       variables: StartDocumentReviewMutationVariables;
       response: StartDocumentReviewMutation;
@@ -71116,6 +72245,36 @@ export type Mutations =
       name: "recoverDocMutation";
       variables: RecoverDocMutationVariables;
       response: RecoverDocMutation;
+    }
+  | {
+      name: "configureTaskRecurrenceMutation";
+      variables: ConfigureTaskRecurrenceMutationVariables;
+      response: ConfigureTaskRecurrenceMutation;
+    }
+  | {
+      name: "updateTaskRecurrenceMutation";
+      variables: UpdateTaskRecurrenceMutationVariables;
+      response: UpdateTaskRecurrenceMutation;
+    }
+  | {
+      name: "skipTaskRecurrenceMutation";
+      variables: SkipTaskRecurrenceMutationVariables;
+      response: SkipTaskRecurrenceMutation;
+    }
+  | {
+      name: "pauseTaskRecurrenceMutation";
+      variables: PauseTaskRecurrenceMutationVariables;
+      response: PauseTaskRecurrenceMutation;
+    }
+  | {
+      name: "resumeTaskRecurrenceMutation";
+      variables: ResumeTaskRecurrenceMutationVariables;
+      response: ResumeTaskRecurrenceMutation;
+    }
+  | {
+      name: "endTaskRecurrenceMutation";
+      variables: EndTaskRecurrenceMutationVariables;
+      response: EndTaskRecurrenceMutation;
     }
   | {
       name: "removeAvatarMutation";

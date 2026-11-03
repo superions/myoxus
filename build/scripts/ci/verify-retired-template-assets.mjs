@@ -4,7 +4,7 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import JSZip from "jszip";
+import { readZip } from "../zip-archive.mjs";
 
 export async function verifyRetiredTemplateAssets(repoRoot) {
   const forbiddenPaths = [
@@ -63,20 +63,9 @@ export async function verifyRetiredTemplateAssets(repoRoot) {
       bytes.readUInt16LE(0) !== 0x4b50
     )
       continue;
-    const archive = await JSZip.loadAsync(bytes);
-    let expanded = 0;
-    let declared = 0;
-    for (const entry of Object.values(archive.files)) {
-      if (entry.dir) continue;
-      // Bound repository-supplied archives before decompression as well as after.
-      declared += entry._data?.uncompressedSize ?? 0;
-      if (declared > 64 * 1024 * 1024)
-        throw new Error(`Asset archive exceeds scan limit: ${file}`);
-      const content = await entry.async("nodebuffer");
-      expanded += content.length;
-      if (expanded > 64 * 1024 * 1024)
-        throw new Error(`Asset archive exceeds scan limit: ${file}`);
-      check(`${file}#${entry.name}`, content);
+    const archive = await readZip(bytes, { maxBytes: 64 * 1024 * 1024 });
+    for (const [name, entry] of archive) {
+      if (!entry.directory) check(`${file}#${name}`, entry.data);
     }
   }
   if (failures.length)

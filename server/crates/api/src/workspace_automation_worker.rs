@@ -68,6 +68,36 @@ fn required_uuid(data: &serde_json::Value, key: &str) -> Result<Uuid, JobError> 
   }
 }
 
+/// SQL-owned Task completion uses the existing outbox, not the optional Rule
+/// queue. A bounded blocked attempt is acknowledged here; its pending schedule
+/// cursor remains authoritative for repair and ordinary retries.
+pub async fn dispatch_recurring_task_completion(
+  pool: &sqlx::PgPool,
+  scheduling: &myoxus_infrastructure::scheduling::PgSchedulingRepository,
+  event_id: Uuid,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+  let payload: Option<serde_json::Value> = sqlx::query_scalar(
+    "SELECT payload FROM outbox_events WHERE id=$1 AND event_type='task_recurrence_due' AND processed_at IS NULL",
+  )
+  .bind(event_id)
+  .fetch_optional(pool)
+  .await?;
+  if let Some(payload) = payload {
+    let wake: myoxus_domain::recurrence::TaskRecurrenceWake = serde_json::from_value(payload)?;
+    if event_id != Uuid::new_v5(&wake.member_id, b"completion-wake") {
+      return Err("Task recurrence wake correlation mismatch".into());
+    }
+    tokio::time::timeout(
+      std::time::Duration::from_millis(750),
+      scheduling.dispatch_completion(&wake, chrono::Utc::now()),
+    )
+    .await??;
+    sqlx::query("UPDATE outbox_events SET processed_at=now() WHERE id=$1 AND event_type='task_recurrence_due' AND processed_at IS NULL")
+      .bind(event_id).execute(pool).await?;
+  }
+  Ok(())
+}
+
 /// Dispatch one committed automation intent without acknowledging any other
 /// subscriber's event. Native admission deduplicates concurrent/lost handoffs.
 /// Do not hold an outbox connection across the service's calls into the same

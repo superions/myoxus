@@ -6,6 +6,47 @@ use myoxus_domain::entities::Notification;
 use myoxus_worker::JobError;
 use serde_json::Value;
 
+/// Handoff of an already committed shared intent. A lost enqueue ACK reuses the
+/// outbox ID and native envelope; recipient persistence remains with the normal
+/// notification consumer below. Redis is never called inside a SQL transaction.
+#[tracing::instrument(skip_all,fields(%event_id))]
+pub async fn enqueue_database_row_reminder_intent(
+  pool: &sqlx::PgPool,
+  queue: &myoxus_worker::RedisQueue,
+  event_id: uuid::Uuid,
+  payload: Value,
+) -> Result<(), JobError> {
+  let envelope: DatabaseRowReminderDispatchEnvelope = serde_json::from_value(
+    payload
+      .get("dispatch")
+      .cloned()
+      .ok_or_else(|| JobError::Permanent("database reminder dispatch missing".into()))?,
+  )
+  .map_err(|_| JobError::Permanent("database reminder dispatch invalid".into()))?;
+  if !myoxus_infrastructure::scheduling::database_reminders::delivery_is_current(pool, &envelope)
+    .await
+    .map_err(|_| JobError::Retryable("database reminder receipt unavailable".into()))?
+  {
+    return Ok(());
+  }
+  queue
+    .enqueue_idempotent(
+      "notification",
+      &event_id.to_string(),
+      "notification.sendDatabaseRowReminder",
+      payload,
+      myoxus_worker::JobOptions {
+        // None is the queue's immediate wait-list path; Some(0) still requires
+        // delayed-job promotion and would add another scheduling dependency.
+        max_attempts: 3,
+        ..Default::default()
+      },
+    )
+    .await
+    .map_err(|_| JobError::Retryable("database reminder queue handoff unavailable".into()))?;
+  Ok(())
+}
+
 /// Validate an internal Reminder dispatch immediately before persistence.
 ///
 /// Keeping the generation/access check and NotificationService handoff in one

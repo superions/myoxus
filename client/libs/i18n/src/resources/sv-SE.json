@@ -2469,7 +2469,6 @@
   "admin.performance.field.compaction-lock-ttl.desc": "Packningslås TTL (sekunder). Säkerhetstimeout om en server kraschar mitt i komprimeringen.",
   "admin.performance.field.compaction-threshold-default.desc": "Antal väntande uppdateringar innan automatisk komprimering utlöses. Standard: 500",
   "admin.performance.field.compaction-threshold-root-doc.desc": "Tröskel för automatisk komprimering för rotdokument. Standard: 50",
-  "admin.performance.field.cron-tick-interval.desc": "Intervall (sekunder) för cron schemaläggarens tick loop. Standard: 60 · Min: 5 · Kan kräva omstart för full effekt.",
   "admin.performance.field.daily-enabled.desc": "Aktivera daglig TTL-autojusteringscykel.",
   "admin.performance.field.doc-metadata-cache-enabled.desc": "Aktivera Redis metadatacache. Minskar DB-frågor för dokumentmetadatasökningar.",
   "admin.performance.field.doc-metadata-fixed-ttl.desc": "Fixad TTL-åsidosättning för doc_metadata-cache (sekunder). 0 = använd automatisk inställning.",

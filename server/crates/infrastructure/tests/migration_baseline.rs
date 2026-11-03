@@ -104,6 +104,25 @@ const EXTRACT_DISCONNECT_PROFILE_REPAIR: &str =
 const WORKSPACE_CONTENT_GIT_UNDO_RECEIPT: &str =
   include_str!("../migrations/1076_workspace_content_git_undo_receipt.sql");
 const GIT_SYNC_OPEN_CONFLICT_IDENTITY: &str = include_str!("../migrations/1077_git_sync_open_conflict_identity.sql");
+const SCHEDULING_ADMISSION: &str = include_str!("../migrations/1078_scheduling_admission.sql");
+const TASK_RECURRENCE_SERIES: &str = include_str!("../migrations/1079_task_recurrence_series.sql");
+const TASK_RECURRENCE_COMPLETION: &str = include_str!("../migrations/1080_task_recurrence_completion.sql");
+const GUIDE_TEMPLATE_STATE: &str = include_str!("../migrations/1081_guide_template_state.sql");
+const TASK_RECURRENCE_LIFECYCLE: &str = include_str!("../migrations/1082_task_recurrence_lifecycle.sql");
+const CALENDAR_TIMING_DEFINITIONS: &str = include_str!("../migrations/1083_calendar_timing_definitions.sql");
+const CALENDAR_SERIES_BOUNDARIES: &str = include_str!("../migrations/1084_calendar_series_boundaries.sql");
+const CALENDAR_PAUSE_INTERVALS: &str = include_str!("../migrations/1085_calendar_pause_intervals.sql");
+const CALENDAR_SOURCE_CONTEXT: &str = include_str!("../migrations/1086_calendar_source_context.sql");
+const DOCUMENT_REVIEW_PLANNING: &str = include_str!("../migrations/1087_document_review_planning.sql");
+const DOCUMENT_REVIEW_CYCLE_ADMISSION: &str = include_str!("../migrations/1088_document_review_cycle_admission.sql");
+const DOCUMENT_REVIEW_GENERATION: &str = include_str!("../migrations/1089_document_review_generation.sql");
+const CALENDAR_REMINDER_ADMISSION: &str = include_str!("../migrations/1090_calendar_reminder_admission.sql");
+const DATABASE_REMINDER_ADMISSION: &str = include_str!("../migrations/1091_database_reminder_admission.sql");
+const GIT_CRON_ADMISSION: &str = include_str!("../migrations/1092_git_cron_admission.sql");
+const GIT_POLLING_ADMISSION: &str = include_str!("../migrations/1093_git_polling_admission.sql");
+const GIT_ROTATION_ADMISSION: &str = include_str!("../migrations/1094_git_rotation_admission.sql");
+const REGISTERED_JOB_IMPORT: &str = include_str!("../migrations/1095_registered_job_import.sql");
+const REGISTERED_JOB_ADMISSION: &str = include_str!("../migrations/1096_registered_job_admission.sql");
 const AUTOMATION_EFFECT_CONSOLIDATION: &str = include_str!("../migrations/1058_automation_effect_consolidation.sql");
 const AUTOMATION_JOB_IDENTITY: &str = include_str!("../migrations/1037_workspace_automation_job_identity.sql");
 const AUDIO_JOB_ATTEMPTS: &str = include_str!("../migrations/1036_audio_job_attempts.sql");
@@ -744,6 +763,81 @@ fn expected_ledger() -> Vec<(i64, &'static str, Vec<u8>)> {
       "git sync open conflict identity",
       sha384(GIT_SYNC_OPEN_CONFLICT_IDENTITY.as_bytes()),
     ),
+    (1078, "scheduling admission", sha384(SCHEDULING_ADMISSION.as_bytes())),
+    (
+      1079,
+      "task recurrence series",
+      sha384(TASK_RECURRENCE_SERIES.as_bytes()),
+    ),
+    (
+      1080,
+      "task recurrence completion",
+      sha384(TASK_RECURRENCE_COMPLETION.as_bytes()),
+    ),
+    (1081, "guide template state", sha384(GUIDE_TEMPLATE_STATE.as_bytes())),
+    (
+      1082,
+      "task recurrence lifecycle",
+      sha384(TASK_RECURRENCE_LIFECYCLE.as_bytes()),
+    ),
+    (
+      1083,
+      "calendar timing definitions",
+      sha384(CALENDAR_TIMING_DEFINITIONS.as_bytes()),
+    ),
+    (
+      1084,
+      "calendar series boundaries",
+      sha384(CALENDAR_SERIES_BOUNDARIES.as_bytes()),
+    ),
+    (
+      1085,
+      "calendar pause intervals",
+      sha384(CALENDAR_PAUSE_INTERVALS.as_bytes()),
+    ),
+    (
+      1086,
+      "calendar source context",
+      sha384(CALENDAR_SOURCE_CONTEXT.as_bytes()),
+    ),
+    (
+      1087,
+      "document review planning",
+      sha384(DOCUMENT_REVIEW_PLANNING.as_bytes()),
+    ),
+    (
+      1088,
+      "document review cycle admission",
+      sha384(DOCUMENT_REVIEW_CYCLE_ADMISSION.as_bytes()),
+    ),
+    (
+      1089,
+      "document review generation",
+      sha384(DOCUMENT_REVIEW_GENERATION.as_bytes()),
+    ),
+    (
+      1090,
+      "calendar reminder admission",
+      sha384(CALENDAR_REMINDER_ADMISSION.as_bytes()),
+    ),
+    (
+      1091,
+      "database reminder admission",
+      sha384(DATABASE_REMINDER_ADMISSION.as_bytes()),
+    ),
+    (1092, "git cron admission", sha384(GIT_CRON_ADMISSION.as_bytes())),
+    (1093, "git polling admission", sha384(GIT_POLLING_ADMISSION.as_bytes())),
+    (
+      1094,
+      "git rotation admission",
+      sha384(GIT_ROTATION_ADMISSION.as_bytes()),
+    ),
+    (1095, "registered job import", sha384(REGISTERED_JOB_IMPORT.as_bytes())),
+    (
+      1096,
+      "registered job admission",
+      sha384(REGISTERED_JOB_ADMISSION.as_bytes()),
+    ),
   ]
 }
 
@@ -1059,6 +1153,37 @@ async fn baseline_1000_advances_through_regular_forward_migrations() {
     install_baseline_1000(&pool).await?;
     let stale_search_row_id = seed_stale_database_tag_search_payload(&pool).await?;
     let (legacy_user,legacy_key,legacy_pending)=seed_legacy_mcp_receipts(&pool).await?;
+    let guide_workspace = Uuid::new_v4();
+    sqlx::query("INSERT INTO workspaces(id,name) VALUES($1,'Guide classification fixture')").bind(guide_workspace).execute(&pool).await?;
+    let mut guide_cases = Vec::new();
+    for (legacy, purpose, existing_state, expected_state) in [(true,"guide",None,"guide"), (false,"guide",Some("managed"),"guide"), (false,"template",None,"managed"), (false,"template",Some("detached"),"detached")] {
+      let doc = Uuid::new_v4();
+      let template = Uuid::new_v4();
+      let revision = Uuid::new_v4();
+      let key = format!("guide-index-{doc}");
+      sqlx::query("INSERT INTO docs(id,workspace_id,external_id,title) VALUES($1,$2,$3,'Same arbitrary title')")
+        .bind(doc).bind(guide_workspace).bind(&key).execute(&pool).await?;
+      sqlx::query("INSERT INTO template_catalog_entries(id,slug,title,source,category) VALUES($1,$2,'Same arbitrary title','bundle',$3)")
+        .bind(template).bind(format!("guide-index-{template}")).bind(if legacy || purpose == "template" {"onboarding"} else {"arbitrary-category"}).execute(&pool).await?;
+      if !legacy {
+        sqlx::query("INSERT INTO template_revisions(id,template_id,version,manifest_json) VALUES($1,$2,'1.0.0',$3)")
+          .bind(revision).bind(template).bind(serde_json::json!({"purpose":purpose})).execute(&pool).await?;
+      }
+      sqlx::query("INSERT INTO workspace_template_instances(workspace_id,template_id,revision_id,workspace_doc_id,workspace_doc_key) VALUES($1,$2,$3,$4,$5)")
+        .bind(guide_workspace).bind(template).bind(if legacy {None} else {Some(revision)})
+        .bind(if legacy {None} else {Some(doc)}).bind(&key).execute(&pool).await?;
+      if let Some(state) = existing_state {
+        sqlx::query("INSERT INTO document_template_state(doc_id,state) VALUES($1,$2)").bind(doc).bind(state).execute(&pool).await?;
+      }
+      guide_cases.push((doc,Some(expected_state.to_string())));
+    }
+
+
+    let ordinary_doc = Uuid::new_v4();
+    sqlx::query("INSERT INTO docs(id,workspace_id,external_id,title) VALUES($1,$2,$1::text,'Same arbitrary title')")
+      .bind(ordinary_doc).bind(guide_workspace).execute(&pool).await?;
+    guide_cases.push((ordinary_doc,None));
+
     assert_eq!(ledger_snapshot(&pool).await.len(), 1);
 
     let before_inspection = ledger_snapshot(&pool).await;
@@ -1074,6 +1199,13 @@ async fn baseline_1000_advances_through_regular_forward_migrations() {
     assert_current_ledger(&pool).await;
     assert_forward_schema(&pool).await;
     assert_legacy_mcp_receipts_preserved(&pool,legacy_user,legacy_key,legacy_pending).await;
+    for (doc, expected_state) in guide_cases {
+      let (state,title): (Option<String>,String) = sqlx::query_as("SELECT native.state,d.title FROM docs d LEFT JOIN document_template_state native ON native.doc_id=d.id WHERE d.id=$1")
+        .bind(doc).fetch_one(&pool).await?;
+      assert_eq!(state,expected_state,"classify only delivery metadata; preserve existing custom source states");
+      assert_eq!(title,"Same arbitrary title");
+    }
+
     let (search_text, stale_tag_match, visible_text_match): (String, bool, bool) = sqlx::query_as(
       "SELECT search_text, tsv @@ plainto_tsquery('simple', 'RetiredTag'), tsv @@ plainto_tsquery('simple', 'Visible payload') FROM workspace_database_row_search WHERE row_id = $1",
     )
@@ -1114,6 +1246,44 @@ async fn baseline_1000_advances_through_regular_forward_migrations() {
     let migrated = ledger_snapshot(&released).await;
     myoxus_infrastructure::migrations::run(&released).await.expect("released1044 upgrade is idempotent");
     assert_eq!(ledger_snapshot(&released).await,migrated);
+
+    // Shared constraint extensions must preserve populated native rule shapes,
+    // not only accept a fresh database with no scheduling sources yet.
+    let scheduled=harness.create("scheduled1094").await?;
+    pools.push(scheduled.clone());
+    install_baseline_1000(&scheduled).await?;
+    for path in sql_files(&Path::new(env!("CARGO_MANIFEST_DIR")).join("migrations")){
+      let version=migration_version(&path);
+      if !(1001..=1094).contains(&version){continue;}
+      let source=std::fs::read_to_string(&path).expect("read native scheduling upgrade fixture");
+      sqlx::raw_sql(&source).execute(&scheduled).await?;
+      let (_,description,checksum)=expected.iter().find(|entry|entry.0==version).expect("known native scheduling ledger");
+      sqlx::query("INSERT INTO _sqlx_migrations(version,description,success,checksum,execution_time) VALUES($1,$2,true,$3,0)")
+        .bind(version).bind(description).bind(checksum).execute(&scheduled).await?;
+    }
+    use myoxus_domain::scheduling::{AdmissionZone,RecurrenceRule,RecurrenceSelector,RelativeInterval,RelativeUnit,ScheduleRule,ScheduleTarget,ScheduleValue,calendar::CalendarTimingRule};
+    let workspace=Uuid::new_v4();
+    sqlx::query("INSERT INTO workspaces(id,name) VALUES($1,'Existing native scheduling sources')").bind(workspace).execute(&scheduled).await?;
+    let zone=AdmissionZone::try_from("Europe/Berlin".to_owned()).unwrap();
+    let completion=Uuid::new_v4();
+    let fixed=Uuid::new_v4();
+    let imported=Uuid::new_v4();
+    let sources=[
+      (completion,serde_json::to_value(ScheduleTarget::RecurringTask{series_id:completion}).unwrap(),serde_json::to_value(ScheduleRule::AfterCompletion{interval:RelativeInterval{amount:std::num::NonZeroU32::new(1).unwrap(),unit:RelativeUnit::Days},date_only:true}).unwrap()),
+      (fixed,serde_json::to_value(ScheduleTarget::CalendarMaster{event_id:Uuid::new_v4()}).unwrap(),serde_json::to_value(CalendarTimingRule::Fixed{rule:RecurrenceRule{selector:RecurrenceSelector::Daily,interval:std::num::NonZeroU32::new(1).unwrap(),start:ScheduleValue::Date(chrono::NaiveDate::from_ymd_opt(2026,11,2).unwrap()),end:None,zone}}).unwrap()),
+      (imported,serde_json::to_value(ScheduleTarget::CalendarMaster{event_id:Uuid::new_v4()}).unwrap(),serde_json::to_value(CalendarTimingRule::ImportedCalendar{rrule:"FREQ=DAILY;COUNT=3".into(),starts_at:chrono::DateTime::parse_from_rfc3339("2026-11-02T09:00:00Z").unwrap().with_timezone(&chrono::Utc),all_day:false,zone}).unwrap()),
+    ];
+    for (id,target,rule) in sources{
+      sqlx::query("INSERT INTO scheduling_schedules(id,workspace_id,admission_zone,target_json,rule_json) VALUES($1,$2,'Europe/Berlin',$3,$4)")
+        .bind(id).bind(workspace).bind(target).bind(rule).execute(&scheduled).await?;
+    }
+    let before:serde_json::Value=sqlx::query_scalar("SELECT jsonb_agg(to_jsonb(s) ORDER BY id) FROM scheduling_schedules s WHERE workspace_id=$1")
+      .bind(workspace).fetch_one(&scheduled).await?;
+    myoxus_infrastructure::migrations::run(&scheduled).await.expect("existing native completion and Calendar rules must upgrade unchanged");
+    assert_current_ledger(&scheduled).await;
+    let after:serde_json::Value=sqlx::query_scalar("SELECT jsonb_agg(to_jsonb(s) ORDER BY id) FROM scheduling_schedules s WHERE workspace_id=$1")
+      .bind(workspace).fetch_one(&scheduled).await?;
+    assert_eq!(after,before,"a registered-worker cutover cannot rewrite existing Task/Calendar rule facts");
     Ok::<(), sqlx::Error>(())
   }).catch_unwind().await;
   let cleanup = harness.cleanup(pools).await;

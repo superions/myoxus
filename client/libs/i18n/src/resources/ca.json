@@ -2469,7 +2469,6 @@
   "admin.performance.field.compaction-lock-ttl.desc": "Bloqueig de compactació TTL (segons). Temps d'espera de seguretat en cas que un servidor es bloqueja a mitja compactació.",
   "admin.performance.field.compaction-threshold-default.desc": "Nombre d'actualitzacions pendents abans de l'activació de la compactació automàtica. Per defecte: 500",
   "admin.performance.field.compaction-threshold-root-doc.desc": "Llindar de compactació automàtica per a documents arrel. Per defecte: 50",
-  "admin.performance.field.cron-tick-interval.desc": "Interval (segons) per al bucle de tick del programador cron. Per defecte: 60 · Mínim: 5 · Pot ser que requereixi un reinici per obtenir un efecte total.",
   "admin.performance.field.daily-enabled.desc": "Activa el cicle d'ajust automàtic TTL diari.",
   "admin.performance.field.doc-metadata-cache-enabled.desc": "Activa la memòria cau de metadades de Redis. Redueix les consultes de base de dades per a les cerques de metadades de documents.",
   "admin.performance.field.doc-metadata-fixed-ttl.desc": "S'ha corregit la substitució de TTL per a la memòria cau doc_metadata (segons). 0 = utilitzar l'ajust automàtic.",

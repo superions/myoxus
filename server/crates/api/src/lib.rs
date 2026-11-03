@@ -187,6 +187,7 @@ use handlers::calendar::{
 use handlers::captcha_admin::captcha_status;
 use handlers::config::{check_production_readiness, export_config, import_config};
 use handlers::copilot::{copilot_blob_handler, copilot_chat_sse_handler, copilot_unsplash_photos_handler};
+use handlers::docx::{export_docx_handler, import_docx_handler};
 use handlers::fonts::{fonts_file_handler, fonts_list_handler};
 use handlers::git_sync::git_sync_webhook_handler;
 use handlers::health::{health, info_handler, live, ready};
@@ -531,6 +532,14 @@ fn build_router_with_options(
     )
     .route("/api/workspaces/{workspace_id}/docs/{guid}", get(workspace_doc_handler))
     .route(
+      "/api/workspaces/{workspace_id}/docs/import/docx",
+      post(import_docx_handler).layer(DefaultBodyLimit::max(104_858_624)),
+    )
+    .route(
+      "/api/workspaces/{workspace_id}/docs/{guid}/export/docx",
+      post(export_docx_handler),
+    )
+    .route(
       "/api/workspaces/{workspace_id}/docs/{guid}/preview",
       get(workspace_doc_preview_handler),
     )
@@ -783,6 +792,8 @@ fn build_cors_layer(state: &ApiState) -> CorsLayer {
     .expose_headers([
       axum::http::header::ETAG,
       axum::http::header::SET_COOKIE,
+      axum::http::header::CONTENT_DISPOSITION,
+      axum::http::HeaderName::from_static("x-myoxus-conversion-warnings"),
       axum::http::HeaderName::from_static("x-doc-revision"),
       axum::http::HeaderName::from_static("x-preview-width"),
       axum::http::HeaderName::from_static("x-preview-height"),

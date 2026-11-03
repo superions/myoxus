@@ -2,7 +2,10 @@
 
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import JSZip from "jszip";
+import {
+  readZip,
+  writeZip,
+} from "../../../../../../build/scripts/zip-archive.mjs";
 
 import {
   expect,
@@ -931,16 +934,19 @@ test.describe("Custom template lifecycle", () => {
     await ensureAdminUser(request);
     // A published native fixture exercises Registry guards without detaching or
     // editing another managed source. Its title input must never become a body field.
-    const bundle = await JSZip.loadAsync(
+    const bundle = await readZip(
       await readFile(
         resolve(__dirname, "../../fixtures/template-row-inputs.zip"),
       ),
     );
     const manifest = JSON.parse(
-      await bundle.file("manifest.json")!.async("string"),
+      bundle.get("manifest.json")!.data.toString("utf8"),
     );
     manifest.template_id = `tv10-row-body-${Date.now()}`;
-    bundle.file("manifest.json", JSON.stringify(manifest));
+    bundle.set("manifest.json", {
+      data: Buffer.from(JSON.stringify(manifest)),
+      directory: false,
+    });
     const uploaded = await page.request.post(`${frontend}/graphql`, {
       multipart: {
         operations: JSON.stringify({
@@ -951,7 +957,7 @@ test.describe("Custom template lifecycle", () => {
         "0": {
           name: "row-body.zip",
           mimeType: "application/zip",
-          buffer: await bundle.generateAsync({ type: "nodebuffer" }),
+          buffer: await writeZip(bundle),
         },
       },
     });

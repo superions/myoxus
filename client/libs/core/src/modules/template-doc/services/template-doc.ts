@@ -7,6 +7,7 @@ import {
   TemplateSuggestionSurface,
 } from "@myoxus/graphql";
 import { LiveData, Service } from "@myoxus/infra";
+import { DocumentMetadataCacheService } from "../../document-metadata/services/document-metadata-cache";
 
 import type { DocRecord } from "../../doc";
 import {
@@ -118,6 +119,7 @@ export class TemplateDocService extends Service {
     private readonly workspaceServerService: WorkspaceServerService,
     private readonly defaultServerService: DefaultServerService,
     private readonly builtinReconciler: BuiltinTemplateReconcilerService,
+    private readonly metadataCache: DocumentMetadataCacheService,
   ) {
     super();
   }
@@ -164,6 +166,8 @@ export class TemplateDocService extends Service {
       .getTemplateDocs()
       .filter(
         (doc) =>
+          this.metadataCache.getIndexRowByExternalId(doc.id)?.templateState !==
+            "guide" &&
           metadata[doc.id]?.purpose !== "guide" &&
           (!doc.templateAttribution$?.value?.templateId ||
             metadata[doc.id]?.source !== "custom"),
@@ -197,6 +201,7 @@ export class TemplateDocService extends Service {
   ) {
     const metadata$ = this.templateSourceMetadata$();
     return LiveData.computed((get) => {
+      get(this.metadataCache.watchIndexRows());
       if (
         this.workspaceService.workspace.flavour === "local" &&
         get(this.setting.loading$)
@@ -205,6 +210,8 @@ export class TemplateDocService extends Service {
       const metadata = get(metadata$);
       const docs = get(this.list.templateDocs$).filter(
         (doc) =>
+          this.metadataCache.getIndexRowByExternalId(doc.id)?.templateState !==
+            "guide" &&
           metadata[doc.id]?.purpose !== "guide" &&
           (!get(doc.templateAttribution$)?.templateId ||
             metadata[doc.id]?.source !== "custom"),

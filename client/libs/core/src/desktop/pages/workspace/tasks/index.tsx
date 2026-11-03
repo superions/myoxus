@@ -42,6 +42,7 @@ import {
   useTaskDetailNavigation,
 } from "@myoxus/core/modules/database/row-detail/task-navigation";
 import { TaskDetail } from "@myoxus/core/modules/database/tasks/task-detail";
+import { TaskRecurrenceManager } from "@myoxus/core/modules/recurrence/task-recurrence-manager";
 import { inferOpenMode } from "@myoxus/core/utils";
 import { useTaskStatusAction } from "@myoxus/core/modules/database/tasks/use-task-status-action";
 import { DatabaseConflictProvider } from "@myoxus/core/modules/database/presence";
@@ -1308,6 +1309,9 @@ function TasksPage() {
                   onOpenProject={(databaseId) =>
                     openProject(databaseId, selectedRowId)
                   }
+                  onOpenTask={(databaseId, rowId) =>
+                    openTask(databaseId, rowId)
+                  }
                 />
               </TaskDetailNavigationContext.Provider>
             </ViewContextSurface>
@@ -1537,11 +1541,23 @@ function TasksPage() {
                     </Notice>
                   ) : null}
                   {!descriptor ? (
-                    <Notice tone="warning">
-                      <Button onClick={() => void presentation.mutate()}>
-                        {t.Retry()}
-                      </Button>
-                    </Notice>
+                    <Stack>
+                      <FilterBar>
+                        <TaskRecurrenceManager
+                          onOpenTask={(databaseId, rowId) =>
+                            openTask(databaseId, rowId)
+                          }
+                          onChanged={async () => {
+                            await refresh();
+                          }}
+                        />
+                      </FilterBar>
+                      <Notice tone="warning">
+                        <Button onClick={() => void presentation.mutate()}>
+                          {t.Retry()}
+                        </Button>
+                      </Notice>
+                    </Stack>
                   ) : (
                     configured.groups.map((group) => (
                       <Stack key={group.id}>
@@ -1553,6 +1569,14 @@ function TasksPage() {
                         {group.role === AssistantGroupRole.Filters &&
                         availability.status === "available" ? (
                           <FilterBar data-testid="tasks-filter-bar">
+                            <TaskRecurrenceManager
+                              onOpenTask={(databaseId, rowId) =>
+                                openTask(databaseId, rowId)
+                              }
+                              onChanged={async () => {
+                                await refresh();
+                              }}
+                            />
                             {assistanceOwner.server &&
                             assistanceOwner.account &&
                             canCreate &&

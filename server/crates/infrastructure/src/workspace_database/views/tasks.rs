@@ -613,6 +613,9 @@ fn task_projection_ctes(projects_sql: &str, row_filter: &str) -> String {
 }
 
 fn task_projection_ctes_with_roles(projects_sql: &str, row_filter: &str, roles_parameter: Option<&str>) -> String {
+  // Only an absent Status Cell uses the native schema's default. An existing
+  // malformed/unbound value must remain unavailable rather than being repaired
+  // by a read or silently displayed as open work.
   // Field IDs may be shared by malformed aliases; validate each semantic role
   // independently instead of letting a valid Priority field authorize Status.
   let guard = |role: &str| {
@@ -631,7 +634,8 @@ fn task_projection_ctes_with_roles(projects_sql: &str, row_filter: &str, roles_p
       SELECT r.id, r.database_id, r.title, r.edit_revision, r.updated_at, r.deleted_at,
         p.workspace_id, p.title AS project_title, p.deleted_at AS project_deleted_at,
         NULLIF(left(btrim(description_cell.value_json->>'plainText'), 280), '') AS description_preview,
-        status_cell.value_json #>> '{{}}' AS status_id,
+        CASE WHEN status_cell.row_id IS NULL THEN status_field.config_json->>'defaultOptionId'
+          ELSE status_cell.value_json #>> '{{}}' END AS status_id,
         status_cell.value_json AS status_value,
         status_field.config_json AS status_config,
         assignee_role.field_id IS NOT NULL AS has_assignees,

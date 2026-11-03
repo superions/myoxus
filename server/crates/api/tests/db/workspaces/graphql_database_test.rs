@@ -132,13 +132,78 @@ async fn persist_legacy_database_document(
   document_id
 }
 
-struct FailingReminderQueue;
-
+struct NoReminderWorkflow;
 #[async_trait::async_trait]
-impl DatabaseJobEnqueuer for FailingReminderQueue {
-  async fn enqueue(&self, _queue: &str, _job_name: &str, _data: Value, _delay_ms: i64) -> Result<String, String> {
-    Err("notification queue unavailable".to_string())
+impl myoxus_application::workspace_automation::runtime::WorkspaceAutomationNativeExecutor for NoReminderWorkflow {
+  async fn synchronize_status(
+    &self,
+    _status: myoxus_application::workspace_automation::runtime::AutomationRuntimeStatus,
+  ) -> myoxus_application::workspace_automation::runtime::RuntimeResult<()> {
+    panic!("reminders cannot run workflows")
   }
+  async fn execute(
+    &self,
+    _invocation: myoxus_application::workspace_automation::runtime::AutomationEffectInvocation,
+  ) -> myoxus_application::workspace_automation::WorkspaceAutomationResult<
+    myoxus_application::workspace_automation::runtime::AutomationEffectResult,
+  > {
+    panic!("reminders cannot run workflows")
+  }
+}
+
+fn reminder_scheduler(
+  pool: &PgPool,
+  repo: Arc<PgDatabaseRepository>,
+) -> myoxus_infrastructure::scheduling::PgSchedulingRepository {
+  let runtime = Arc::new(
+    myoxus_infrastructure::workflow_runtime::GlirulusWorkspaceAutomationRuntime::new(
+      pool.clone(),
+      Arc::new(NoReminderWorkflow),
+    ),
+  );
+  myoxus_infrastructure::scheduling::PgSchedulingRepository::new(pool.clone(), runtime)
+    .with_database_reminders(repo, myoxus_application::database::DatabaseMutationEffects::disabled())
+}
+
+async fn handoff_reminders(pool: &PgPool, queue: &RedisQueue, workspace: Uuid) -> Result<usize, JobError> {
+  use myoxus_domain::repositories::OutboxRepository;
+  let outbox = myoxus_infrastructure::outbox::SqlxOutboxRepository::new(pool.clone());
+  let intents:Vec<(Uuid,Value)>=sqlx::query_as("SELECT id,payload FROM outbox_events WHERE event_type='database_reminder_due' AND processed_at IS NULL AND payload->'dispatch'->>'workspaceId'=$1 ORDER BY created_at,id")
+    .bind(workspace.to_string()).fetch_all(pool).await.expect("native committed reminder handoffs");
+  let count = intents.len();
+  for (id, payload) in intents {
+    // Exercise the production stable-ID handoff twice before acknowledging:
+    // an enqueue ACK can be lost independently of the SQL outbox receipt.
+    for _ in 0..2 {
+      myoxus_api::database_reminder_notification::enqueue_database_row_reminder_intent(
+        pool,
+        queue,
+        id,
+        payload.clone(),
+      )
+      .await?;
+    }
+    outbox
+      .mark_event_processed(id, Utc::now())
+      .await
+      .expect("native reminder outbox ACK");
+  }
+  Ok(count)
+}
+
+async fn admit_and_handoff_reminders(
+  scheduler: &myoxus_infrastructure::scheduling::PgSchedulingRepository,
+  pool: &PgPool,
+  queue: &RedisQueue,
+  workspace: Uuid,
+) -> usize {
+  scheduler
+    .dispatch_due(Utc::now(), 50)
+    .await
+    .expect("shared native reminder admission");
+  handoff_reminders(pool, queue, workspace)
+    .await
+    .expect("native reminder handoff")
 }
 
 #[async_trait::async_trait]
@@ -7342,6 +7407,7 @@ fn database_row_reminders_are_personal_and_follow_cell_lifecycle() {
     let (owner_id, owner_session) = helpers::seed_user(&pool, &auth_store, "database-reminder-owner").await;
     let (member_id, member_session) = helpers::seed_user(&pool, &auth_store, "database-reminder-member").await;
     let workspace_id = helpers::create_workspace(&pool, owner_id).await;
+    let body=AssertUnwindSafe(async{
     sqlx::query(
       "INSERT INTO workspace_memberships (workspace_id, user_id, role, status, joined_at) VALUES ($1, $2, 'Collaborator', 'Accepted', now())",
     )
@@ -7556,7 +7622,7 @@ fn database_row_reminders_are_personal_and_follow_cell_lifecycle() {
     );
 
     let revisions_before: Vec<(Uuid, i64, chrono::DateTime<Utc>)> = sqlx::query_as(
-      "SELECT id, schedule_revision, trigger_at FROM database_row_reminders WHERE row_id = $1 AND status IN ('scheduled', 'claimed') ORDER BY id",
+      "SELECT r.id,s.generation,s.next_due_at FROM database_row_reminders r JOIN scheduling_schedules s ON s.id=r.id WHERE r.row_id=$1 AND r.status IN('scheduled','claimed') ORDER BY r.id",
     )
     .bind(Uuid::parse_str(row_id).expect("row UUID"))
     .fetch_all(&pool)
@@ -7587,7 +7653,7 @@ fn database_row_reminders_are_personal_and_follow_cell_lifecycle() {
       "MIX_DATABASE_CELL_CONFLICT"
     );
     let revisions_after: Vec<(Uuid, i64, chrono::DateTime<Utc>)> = sqlx::query_as(
-      "SELECT id, schedule_revision, trigger_at FROM database_row_reminders WHERE row_id = $1 AND status IN ('scheduled', 'claimed') ORDER BY id",
+      "SELECT r.id,s.generation,s.next_due_at FROM database_row_reminders r JOIN scheduling_schedules s ON s.id=r.id WHERE r.row_id=$1 AND r.status IN('scheduled','claimed') ORDER BY r.id",
     )
     .bind(Uuid::parse_str(row_id).expect("row UUID"))
     .fetch_all(&pool)
@@ -7618,7 +7684,7 @@ fn database_row_reminders_are_personal_and_follow_cell_lifecycle() {
     .await;
     gql_data(&immediate_due, &["updateDatabaseCellValue"]);
     let due_count: i64 = sqlx::query_scalar(
-      "SELECT COUNT(*) FROM database_row_reminders WHERE row_id = $1 AND status = 'scheduled' AND trigger_at <= now()",
+      "SELECT COUNT(*) FROM database_row_reminders r JOIN scheduling_schedules s ON s.id=r.id WHERE r.row_id=$1 AND r.status='scheduled' AND s.next_due_at<=now()",
     )
     .bind(Uuid::parse_str(row_id).expect("row UUID"))
     .fetch_one(&pool)
@@ -7702,8 +7768,11 @@ fn database_row_reminders_are_personal_and_follow_cell_lifecycle() {
       live_after_disable, 0,
       "field disable cancels pending personal reminders transactionally"
     );
-
+    }).catch_unwind().await;
     helpers::cleanup_users(&pool, &[owner_id, member_id]).await;
+    if let Err(panic) = body {
+      resume_unwind(panic)
+    }
   });
 }
 
@@ -7801,6 +7870,7 @@ fn database_reminder_dispatch_uses_redis_and_rejects_stale_generations() {
 
     let repo = Arc::new(PgDatabaseRepository::new(pool.clone(), crate::helpers::database_starter_catalog()));
     let queue = RedisQueue::new(&redis_url, prefix.clone()).expect("isolated reminder Redis queue");
+    let scheduler=reminder_scheduler(&pool,repo.clone());
     let service = Arc::new(DatabaseServices::new(
       repo.clone(),
       DocService::new(Arc::new(SqlxDocStore::new(pool.clone()))),
@@ -7816,7 +7886,7 @@ fn database_reminder_dispatch_uses_redis_and_rejects_stale_generations() {
     let due_trigger = chrono::DateTime::parse_from_rfc3339("2000-01-01T00:00:00Z")
       .expect("fixed due trigger")
       .with_timezone(&Utc);
-    execute_catalog_pinned_content_fixture(&pool, sqlx::query("UPDATE database_row_reminders SET trigger_at = $2, updated_at = now() WHERE id = $1")
+    execute_catalog_pinned_content_fixture(&pool, sqlx::query("UPDATE scheduling_schedules SET next_due_at=$2,next_admission_at=$2,next_nominal=jsonb_build_object('kind','local_date_time','value',to_char($2::timestamptz AT TIME ZONE 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS.US')) WHERE id=$1")
       .bind(reminder.id)
       .bind(due_trigger)
       )
@@ -7824,13 +7894,7 @@ fn database_reminder_dispatch_uses_redis_and_rejects_stale_generations() {
       .expect("advance reminder to deterministic due instant");
     reminder.trigger_at = due_trigger;
 
-    let outcome = service
-      .reminders.fire_due_database_row_reminders(1)
-      .await
-      .expect("dispatch due reminder");
-    assert_eq!(outcome.claimed_count, 1);
-    assert_eq!(outcome.enqueued_count, 1);
-    assert_eq!(outcome.failed_count, 0);
+    assert_eq!(admit_and_handoff_reminders(&scheduler,&pool,&queue,workspace_id).await,1);
     let job = queue
       .dequeue("notification", 1)
       .await
@@ -7967,9 +8031,6 @@ fn database_reminder_dispatch_uses_redis_and_rejects_stale_generations() {
         trigger_at: due_trigger + chrono::Duration::minutes(1),
         status: DatabaseRowReminderStatus::Scheduled,
         schedule_revision: 1,
-        claim_token: None,
-        claim_expires_at: None,
-        claim_attempts: 0,
         fired_at: None,
         cancelled_at: None,
         created_at: Utc::now(),
@@ -7977,11 +8038,7 @@ fn database_reminder_dispatch_uses_redis_and_rejects_stale_generations() {
       })
       .await
       .expect("paused notification reminder fixture");
-    let paused_outcome = service
-      .reminders.fire_due_database_row_reminders(1)
-      .await
-      .expect("enqueue reminder while notification consumer is paused");
-    assert_eq!(paused_outcome.enqueued_count, 1);
+    assert_eq!(admit_and_handoff_reminders(&scheduler,&pool,&queue,workspace_id).await,1);
     let paused_job = queue
       .dequeue("notification", 1)
       .await
@@ -8054,9 +8111,6 @@ fn database_reminder_dispatch_uses_redis_and_rejects_stale_generations() {
         trigger_at: due_trigger + chrono::Duration::minutes(2),
         status: DatabaseRowReminderStatus::Scheduled,
         schedule_revision: 1,
-        claim_token: None,
-        claim_expires_at: None,
-        claim_attempts: 0,
         fired_at: None,
         cancelled_at: None,
         created_at: Utc::now(),
@@ -8064,28 +8118,21 @@ fn database_reminder_dispatch_uses_redis_and_rejects_stale_generations() {
       })
       .await
       .expect("retry reminder fixture");
-    let failing_service = DatabaseServices::new(
-      repo.clone(),
-      DocService::new(Arc::new(SqlxDocStore::new(pool.clone()))),
-      Arc::new(PermissionService::new(auth_store.clone())),
-      DatabaseLimits::default(), Arc::new(myoxus_infrastructure::workspace::SqlxWorkspaceStore::new(pool.clone(), crate::helpers::database_starter_catalog())), crate::helpers::database_starter_catalog(),
-      myoxus_application::database::DatabaseServiceDependencies::disabled()
-        .with_job_queue(Arc::new(FailingReminderQueue)),
-    );
-    let failed = failing_service
-      .reminders.fire_due_database_row_reminders(1)
-      .await
-      .expect("queue outage is a retryable batch outcome");
-    assert_eq!(failed.failed_count, 1);
+    scheduler.dispatch_due(Utc::now(),50).await.expect("admit during queue outage");
+    let unavailable_queue=RedisQueue::new("redis://127.0.0.1:1",format!("{prefix}-unavailable")).unwrap();
+    assert!(matches!(handoff_reminders(&pool,&unavailable_queue,workspace_id).await,Err(JobError::Retryable(_))),"queue failure retains a committed handoff");
     let retry_state: String = sqlx::query_scalar("SELECT status FROM database_row_reminders WHERE id = $1")
       .bind(retry.id)
       .fetch_one(&pool)
       .await
       .expect("retry reminder status");
-    assert_eq!(retry_state, "scheduled", "queue failure releases the claim for retry");
+    assert_eq!(retry_state,"fired","native receipt describes durable admission, not Redis availability");
+    assert_eq!(handoff_reminders(&pool,&queue,workspace_id).await.unwrap(),1,"retry hands off the same committed generation");
+    let retry_job=queue.dequeue("notification",1).await.unwrap().unwrap();
+    assert_eq!(retry_job.data["dispatch"]["reminderId"],json!(retry.id));
     assert!(
       repo
-        .cancel_database_row_reminder(database_id, retry.id, owner_id, Utc::now())
+        .cancel_database_row_reminder_generation(retry.id,retry.schedule_revision,Utc::now())
         .await
         .expect("cancel retry fixture")
     );
@@ -8102,9 +8149,6 @@ fn database_reminder_dispatch_uses_redis_and_rejects_stale_generations() {
         trigger_at: due_trigger + chrono::Duration::minutes(3),
         status: DatabaseRowReminderStatus::Scheduled,
         schedule_revision: 1,
-        claim_token: None,
-        claim_expires_at: None,
-        claim_attempts: 0,
         fired_at: None,
         cancelled_at: None,
         created_at: Utc::now(),
@@ -8113,11 +8157,7 @@ fn database_reminder_dispatch_uses_redis_and_rejects_stale_generations() {
       .await
       .expect("membership-loss reminder fixture");
     assert_eq!(
-      service
-        .reminders.fire_due_database_row_reminders(1)
-        .await
-        .expect("enqueue membership-loss reminder")
-        .enqueued_count,
+      admit_and_handoff_reminders(&scheduler,&pool,&queue,workspace_id).await,
       1
     );
     let inaccessible_job = queue
@@ -8162,9 +8202,6 @@ fn database_reminder_dispatch_uses_redis_and_rejects_stale_generations() {
         trigger_at: due_trigger + chrono::Duration::minutes(4),
         status: DatabaseRowReminderStatus::Scheduled,
         schedule_revision: 1,
-        claim_token: None,
-        claim_expires_at: None,
-        claim_attempts: 0,
         fired_at: None,
         cancelled_at: None,
         created_at: Utc::now(),
@@ -8173,11 +8210,7 @@ fn database_reminder_dispatch_uses_redis_and_rejects_stale_generations() {
       .await
       .expect("clear-after-enqueue reminder fixture");
     assert_eq!(
-      service
-        .reminders.fire_due_database_row_reminders(1)
-        .await
-        .expect("enqueue clear-after-enqueue reminder")
-        .enqueued_count,
+      admit_and_handoff_reminders(&scheduler,&pool,&queue,workspace_id).await,
       1
     );
     let clear_job = queue
@@ -8236,9 +8269,6 @@ fn database_reminder_dispatch_uses_redis_and_rejects_stale_generations() {
         trigger_at: due_trigger + chrono::Duration::minutes(5),
         status: DatabaseRowReminderStatus::Scheduled,
         schedule_revision: 1,
-        claim_token: None,
-        claim_expires_at: None,
-        claim_attempts: 0,
         fired_at: None,
         cancelled_at: None,
         created_at: Utc::now(),
@@ -8247,11 +8277,7 @@ fn database_reminder_dispatch_uses_redis_and_rejects_stale_generations() {
       .await
       .expect("delete-after-enqueue reminder fixture");
     assert_eq!(
-      service
-        .reminders.fire_due_database_row_reminders(1)
-        .await
-        .expect("enqueue delete-after-enqueue reminder")
-        .enqueued_count,
+      admit_and_handoff_reminders(&scheduler,&pool,&queue,workspace_id).await,
       1
     );
     let delete_job = queue
@@ -8359,8 +8385,10 @@ fn database_reminder_dispatch_uses_redis_and_rejects_stale_generations() {
 
     async fn queue_task_reminder(
       service: &DatabaseServices,
+      scheduler:&myoxus_infrastructure::scheduling::PgSchedulingRepository,
       pool: &PgPool,
       queue: &RedisQueue,
+      workspace:Uuid,
       owner: Uuid,
       database: Uuid,
       row: Uuid,
@@ -8371,18 +8399,13 @@ fn database_reminder_dispatch_uses_redis_and_rejects_stale_generations() {
         .set_database_row_reminder(owner, database, row, field, 10)
         .await
         .unwrap();
-      sqlx::query("UPDATE database_row_reminders SET trigger_at='2000-01-01T00:00:00Z' WHERE id=$1")
+      sqlx::query("UPDATE scheduling_schedules SET next_due_at='2000-01-01T00:00:00Z',next_admission_at='2000-01-01T00:00:00Z',next_nominal='{\"kind\":\"local_date_time\",\"value\":\"2000-01-01T00:00:00\"}'::jsonb WHERE id=$1")
         .bind(reminder.id)
         .execute(pool)
         .await
         .unwrap();
       assert_eq!(
-        service
-          .reminders
-          .fire_due_database_row_reminders(1)
-          .await
-          .unwrap()
-          .enqueued_count,
+        admit_and_handoff_reminders(scheduler,pool,queue,workspace).await,
         1
       );
       let job = queue.dequeue("notification", 1).await.unwrap().unwrap();
@@ -8395,14 +8418,14 @@ fn database_reminder_dispatch_uses_redis_and_rejects_stale_generations() {
       ("patch", complete.clone()),
       ("trash", open.clone()),
     ] {
-      let (reminder, job) = queue_task_reminder(&service, &pool, &queue, owner_id, task_database, task, custom).await;
+      let (reminder, job) = queue_task_reminder(&service,&scheduler, &pool, &queue,workspace_id, owner_id, task_database, task, custom).await;
       let pending = service
         .reminders
         .set_database_row_reminder(owner_id, task_database, task, custom, 20)
         .await
         .unwrap();
       let before: Value =
-        sqlx::query_scalar("SELECT to_jsonb(reminder) FROM database_row_reminders reminder WHERE id=$1")
+        sqlx::query_scalar("SELECT jsonb_build_object('native',to_jsonb(r),'timing',to_jsonb(s)) FROM database_row_reminders r JOIN scheduling_schedules s ON s.id=r.id WHERE r.id=$1")
           .bind(reminder.id)
           .fetch_one(&pool)
           .await
@@ -8430,7 +8453,7 @@ fn database_reminder_dispatch_uses_redis_and_rejects_stale_generations() {
           .is_err()
       );
       assert_eq!(
-        sqlx::query_scalar::<_, Value>("SELECT to_jsonb(reminder) FROM database_row_reminders reminder WHERE id=$1")
+        sqlx::query_scalar::<_, Value>("SELECT jsonb_build_object('native',to_jsonb(r),'timing',to_jsonb(s)) FROM database_row_reminders r JOIN scheduling_schedules s ON s.id=r.id WHERE r.id=$1")
           .bind(reminder.id)
           .fetch_one(&pool)
           .await
@@ -8523,7 +8546,7 @@ fn database_reminder_dispatch_uses_redis_and_rejects_stale_generations() {
         "Closed/Trash cancels pending and queued together"
       );
       let cancelled: (String, i64) =
-        sqlx::query_as("SELECT status,schedule_revision FROM database_row_reminders WHERE id=$1")
+        sqlx::query_as("SELECT r.status,s.generation FROM database_row_reminders r JOIN scheduling_schedules s ON s.id=r.id WHERE r.id=$1")
           .bind(reminder.id)
           .fetch_one(&pool)
           .await
@@ -8593,7 +8616,7 @@ fn database_reminder_dispatch_uses_redis_and_rejects_stale_generations() {
     // Root restore cannot revive a queued generation cancelled by Trash.
     {
       let lifecycle = "database-trash";
-      let (reminder, job) = queue_task_reminder(&service, &pool, &queue, owner_id, task_database, task, custom).await;
+      let (reminder, job) = queue_task_reminder(&service,&scheduler, &pool, &queue,workspace_id, owner_id, task_database, task, custom).await;
       {
         repo
           .trash_database(task_database, owner_id, Default::default())
@@ -8605,7 +8628,7 @@ fn database_reminder_dispatch_uses_redis_and_rejects_stale_generations() {
           .unwrap();
       }
       let cancelled: (String, i64) =
-        sqlx::query_as("SELECT status,schedule_revision FROM database_row_reminders WHERE id=$1")
+        sqlx::query_as("SELECT r.status,s.generation FROM database_row_reminders r JOIN scheduling_schedules s ON s.id=r.id WHERE r.id=$1")
           .bind(reminder.id)
           .fetch_one(&pool)
           .await
@@ -8640,7 +8663,7 @@ fn database_reminder_dispatch_uses_redis_and_rejects_stale_generations() {
         .unwrap();
     }
 
-    let (old, old_job) = queue_task_reminder(&service, &pool, &queue, owner_id, task_database, task, custom).await;
+     let (old, old_job) = queue_task_reminder(&service,&scheduler, &pool, &queue,workspace_id, owner_id, task_database, task, custom).await;
     let next_date = DatabaseDateTimeValue {
       start: all_day.start + chrono::Duration::days(1),
       ..all_day.clone()
@@ -8766,7 +8789,7 @@ fn database_reminder_dispatch_uses_redis_and_rejects_stale_generations() {
     // Simulate a queued generation created before the completion guard existed:
     // no mutation-side cancellation can substitute for dispatch authorization.
     let (_, legacy_closed_job) =
-      queue_task_reminder(&service, &pool, &queue, owner_id, task_database, task, custom).await;
+      queue_task_reminder(&service,&scheduler, &pool, &queue,workspace_id, owner_id, task_database, task, custom).await;
     execute_catalog_pinned_content_fixture(&pool, sqlx::query("UPDATE workspace_database_cell_values SET value_json=$2 WHERE row_id=$1 AND field_id=$3")
       .bind(task)
       .bind(json!(complete))
@@ -8798,7 +8821,7 @@ fn database_reminder_dispatch_uses_redis_and_rejects_stale_generations() {
       .await
       .unwrap();
 
-    let (_, disabled_job) = queue_task_reminder(&service, &pool, &queue, owner_id, task_database, task, custom).await;
+    let (_, disabled_job) = queue_task_reminder(&service,&scheduler, &pool, &queue,workspace_id, owner_id, task_database, task, custom).await;
     let owner_inbox_before = notification_service.unread_count(owner_id).await.unwrap();
     execute_catalog_pinned_content_fixture(&pool, sqlx::query("UPDATE users SET status='disabled' WHERE id=$1")
       .bind(owner_id)
@@ -8838,7 +8861,7 @@ fn database_reminder_dispatch_uses_redis_and_rejects_stale_generations() {
       owner_inbox_before
     );
     helpers::add_workspace_member(&pool, workspace_id, member_id).await;
-    let (_, revoked_job) = queue_task_reminder(&service, &pool, &queue, member_id, task_database, task, custom).await;
+    let (_, revoked_job) = queue_task_reminder(&service,&scheduler, &pool, &queue,workspace_id, member_id, task_database, task, custom).await;
     execute_catalog_pinned_content_fixture(&pool, sqlx::query("DELETE FROM workspace_memberships WHERE workspace_id=$1 AND user_id=$2")
       .bind(workspace_id)
       .bind(member_id)
@@ -8876,6 +8899,13 @@ fn database_reminder_dispatch_uses_redis_and_rejects_stale_generations() {
       let _: usize = redis.del(keys).await.expect("delete reminder Redis keys");
     }
 
+    sqlx::query(
+      "DELETE FROM outbox_events WHERE event_type='database_reminder_due' AND payload->'dispatch'->>'workspaceId'=$1",
+    )
+    .bind(workspace_id.to_string())
+    .execute(&pool)
+    .await
+    .expect("cleanup reminder handoffs");
     helpers::cleanup_users(&pool, &[owner_id, member_id]).await;
     if let Err(panic) = body {
       resume_unwind(panic);
@@ -18996,11 +19026,7 @@ fn pdb25_search_workers_retry_storage_failures_and_replay_partial_reindex() {
         crate::helpers::database_starter_catalog(),
         myoxus_application::database::DatabaseServiceDependencies::disabled(),
       );
-      DatabaseQueueHandler::new(
-        services.reminders.clone(),
-        services.projection.clone(),
-        services.import_export.clone(),
-      )
+      DatabaseQueueHandler::new(services.projection.clone(), services.import_export.clone())
     }
 
     fn job(name: &str, data: serde_json::Value) -> Job {
@@ -21751,7 +21777,6 @@ fn pdb26_idempotent_bulk_import_returns_existing_result_on_duplicate_key() {
         .expect("dequeue native CSV import")
         .expect("queued import envelope");
       let handler = myoxus_api::database_worker::DatabaseQueueHandler::new(
-        service.reminders.clone(),
         service.projection.clone(),
         service.import_export.clone(),
       );
@@ -25073,7 +25098,10 @@ fn database_workspace_tasks_page_native_projects_and_bind_cursor_identity() {
       assert_eq!(first["totalCount"],106);
       assert_eq!(first["projectCount"],2);
       assert_eq!(first["rows"].as_array().expect("page rows").len(),100);
-      assert!(first["rows"].as_array().expect("rows").iter().any(|r| r["status"].is_null()), "unset status remains open");
+      assert!(first["rows"].as_array().expect("rows").iter()
+        .filter(|row|!expected_options.iter().any(|(id,_,_)|row["rowId"]==*id))
+        .all(|row|row["status"]["id"]=="status.todo" && row["status"]["group"]=="NotStarted"),
+        "absent Status Cells project their native default consistently with Task detail");
       for (row_id,status,priority) in &expected_options {
         let row=first["rows"].as_array().expect("rows").iter().find(|r| r["rowId"] == *row_id).expect("native option Task in first page");
         assert_eq!(row["status"]["id"],status["id"]);assert_eq!(row["status"]["name"],status["name"]);assert_eq!(row["status"]["colorRole"],status["colorRole"]);assert_eq!(row["status"]["group"],"NotStarted");

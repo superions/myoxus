@@ -58,15 +58,22 @@ export function validatePublicSource(revision, source) {
     source.archive?.url,
     source.archive?.sha256,
   );
-  if ((!archive && !/^[0-9a-f]{40}$/.test(source.tree ?? "")) || archive?.url.includes(revision)) {
+  if (
+    (!archive && !/^[0-9a-f]{40}$/.test(source.tree ?? "")) ||
+    archive?.url.includes(revision)
+  ) {
     throw new Error(
       "Public source requires a qualified Git tree or a verified archive without the private build revision",
     );
   }
   if (source.tree !== undefined && !/^[0-9a-f]{40}$/.test(source.tree))
     throw new Error("Public source tree must be a full Git object ID");
-  return { repository: PUBLIC_REPOSITORY, commit: source.commit,
-    ...(source.tree ? { tree: source.tree } : {}), ...(archive ? { archive } : {}) };
+  return {
+    repository: PUBLIC_REPOSITORY,
+    commit: source.commit,
+    ...(source.tree ? { tree: source.tree } : {}),
+    ...(archive ? { archive } : {}),
+  };
 }
 
 /** Read the existing release provenance report, bound to the caller's build. */
@@ -79,7 +86,10 @@ export function readSourceProvenance(file, revision) {
     );
   }
   const source = validatePublicSource(revision, report.publicSource);
-  if (source.archive && report.sourceArchive?.sha256 !== source.archive.sha256) {
+  if (
+    source.archive &&
+    report.sourceArchive?.sha256 !== source.archive.sha256
+  ) {
     throw new Error(
       "Public source provenance archive digest disagrees with its verified source archive",
     );
@@ -93,8 +103,12 @@ export function publicSourceReferences(source) {
     { type: "vcs", url: `${source.repository}/tree/${source.commit}` },
     {
       type: "distribution",
-      url: source.archive?.url ?? `${source.repository}/archive/${source.commit}.tar.gz`,
-      ...(source.archive ? { hashes: [{ alg: "SHA-256", content: source.archive.sha256 }] } : {}),
+      url:
+        source.archive?.url ??
+        `${source.repository}/archive/${source.commit}.tar.gz`,
+      ...(source.archive
+        ? { hashes: [{ alg: "SHA-256", content: source.archive.sha256 }] }
+        : {}),
     },
   ];
 }
@@ -192,7 +206,10 @@ if (
       );
     }
     const source = validatePublicSource(report.revision, report.publicSource);
-    if (source.archive && report.sourceArchive?.sha256 !== source.archive.sha256) {
+    if (
+      source.archive &&
+      report.sourceArchive?.sha256 !== source.archive.sha256
+    ) {
       throw new Error("Downloaded provenance archive digest disagrees");
     }
     writeFileSync(output, contents, { mode: 0o600 });

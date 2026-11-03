@@ -12,6 +12,39 @@ use myoxus_infrastructure::workspace_database::PgDatabaseRepository;
 use sqlx::PgPool;
 use uuid::Uuid;
 
+struct NoReminderWorkflow;
+#[async_trait::async_trait]
+impl myoxus_application::workspace_automation::runtime::WorkspaceAutomationNativeExecutor for NoReminderWorkflow {
+  async fn synchronize_status(
+    &self,
+    _status: myoxus_application::workspace_automation::runtime::AutomationRuntimeStatus,
+  ) -> myoxus_application::workspace_automation::runtime::RuntimeResult<()> {
+    panic!("personal reminders do not execute workflows")
+  }
+  async fn execute(
+    &self,
+    _invocation: myoxus_application::workspace_automation::runtime::AutomationEffectInvocation,
+  ) -> myoxus_application::workspace_automation::WorkspaceAutomationResult<
+    myoxus_application::workspace_automation::runtime::AutomationEffectResult,
+  > {
+    panic!("personal reminders do not execute workflows")
+  }
+}
+
+fn reminder_scheduler(
+  pool: &PgPool,
+  repo: std::sync::Arc<PgDatabaseRepository>,
+) -> myoxus_infrastructure::scheduling::PgSchedulingRepository {
+  let runtime = std::sync::Arc::new(
+    myoxus_infrastructure::workflow_runtime::GlirulusWorkspaceAutomationRuntime::new(
+      pool.clone(),
+      std::sync::Arc::new(NoReminderWorkflow),
+    ),
+  );
+  myoxus_infrastructure::scheduling::PgSchedulingRepository::new(pool.clone(), runtime)
+    .with_database_reminders(repo, myoxus_application::database::DatabaseMutationEffects::disabled())
+}
+
 async fn setup_pool() -> PgPool {
   let database_url = std::env::var("TEST_DATABASE_URL")
     .or_else(|_| std::env::var("DATABASE_URL"))
@@ -46,9 +79,6 @@ fn reminder(
     trigger_at,
     status: DatabaseRowReminderStatus::Scheduled,
     schedule_revision: 1,
-    claim_token: None,
-    claim_expires_at: None,
-    claim_attempts: 0,
     fired_at: None,
     cancelled_at: None,
     created_at: now,
@@ -66,6 +96,7 @@ fn date_time_field_config() -> serde_json::Value {
 
 #[tokio::test]
 async fn personal_reminders_are_idempotent_private_and_claimed_once() {
+  use futures_util::FutureExt;
   let pool = setup_pool().await;
   let repo = PgDatabaseRepository::new(
     pool.clone(),
@@ -83,6 +114,8 @@ async fn personal_reminders_are_idempotent_private_and_claimed_once() {
   let row_id = Uuid::new_v4();
   let field_id = Uuid::new_v4();
   let text_field_id = Uuid::new_v4();
+  let wrong_workspace_id = Uuid::new_v4();
+  let outcome=std::panic::AssertUnwindSafe(async{
 
   for (user_id, label) in [(owner_id, "owner"), (second_user_id, "second")] {
     sqlx::query("INSERT INTO users (id, email, name, status) VALUES ($1, $2, $3, 'active')")
@@ -218,7 +251,6 @@ async fn personal_reminders_are_idempotent_private_and_claimed_once() {
       .expect("cross-user cancel query must be safe")
   );
 
-  let wrong_workspace_id = Uuid::new_v4();
   sqlx::query("INSERT INTO workspaces (id, owner_user_id, name) VALUES ($1, $2, 'Wrong reminder workspace')")
     .bind(wrong_workspace_id)
     .bind(owner_id)
@@ -378,40 +410,27 @@ async fn personal_reminders_are_idempotent_private_and_claimed_once() {
     ),
   );
   let now = Utc::now();
+  let first_claimer=reminder_scheduler(&pool,std::sync::Arc::new(first_claimer));
+  let second_claimer=reminder_scheduler(&pool,std::sync::Arc::new(second_claimer));
   let (left, right) = tokio::join!(
-    first_claimer.claim_due_database_row_reminders(now, now + Duration::minutes(5), 10),
-    second_claimer.claim_due_database_row_reminders(now, now + Duration::minutes(5), 10),
+    first_claimer.dispatch_due(now,10),
+    second_claimer.dispatch_due(now,10),
   );
-  let left = left.expect("first claimer");
-  let right = right.expect("second claimer");
-  let mut claimed_ids = left.iter().chain(&right).map(|value| value.id).collect::<Vec<_>>();
-  claimed_ids.sort_unstable();
-  claimed_ids.dedup();
-  assert_eq!(claimed_ids.len(), 2, "both due reminders are claimed exactly once");
-  assert_eq!(left.len() + right.len(), 2);
+  let _=(left.expect("first shared admission"),right.expect("second shared admission"));
+  let accepted:(i64,i64)=sqlx::query_as("SELECT (SELECT count(*) FROM scheduling_occurrences o JOIN database_row_reminders r ON r.id=o.schedule_id WHERE r.row_id=$1),(SELECT count(*) FROM outbox_events e JOIN database_row_reminders r ON r.id::text=e.aggregate_id WHERE r.row_id=$1 AND e.event_type='database_reminder_due')")
+    .bind(row_id).fetch_one(&pool).await.expect("durable native slots and handoffs");
+  assert_eq!(accepted,(2,2),"concurrent dispatch must commit exactly one slot/outbox per due reminder");
+  first_claimer.dispatch_due(now+Duration::seconds(31),10).await.expect("restart/ACK-loss replay");
+  let pending:i64=sqlx::query_scalar("SELECT count(*) FROM outbox_events e JOIN database_row_reminders r ON r.id::text=e.aggregate_id WHERE r.row_id=$1 AND e.event_type='database_reminder_due' AND e.processed_at IS NULL")
+    .bind(row_id).fetch_one(&pool).await.expect("handoffs survive before enqueue ACK");
+  assert_eq!(pending,2,"admission replay retains the two original handoffs without a claim expiry sweep");
 
-  sqlx::query("UPDATE database_row_reminders SET claim_expires_at = $2 WHERE row_id = $1 AND status = 'claimed'")
-    .bind(row_id)
-    .bind(now - Duration::seconds(1))
-    .execute(&pool)
-    .await
-    .expect("expire claimed reminders");
-  assert_eq!(
-    repo
-      .release_expired_database_row_reminder_claims(now)
-      .await
-      .expect("release expired claims"),
-    2
-  );
-  assert_eq!(
-    repo
-      .claim_due_database_row_reminders(now, now + Duration::minutes(5), 10)
-      .await
-      .expect("reclaim expired reminders")
-      .len(),
-    2,
-    "expired claims must become retryable"
-  );
+  // A new explicit request after enqueue is separate native work. Keep the
+  // existing pending-row cancellation journey below, without resurrecting the
+  // already accepted reminders or rewriting their completion history.
+  for (user,offset) in [(owner_id,10),(second_user_id,30)]{
+    repo.upsert_database_row_reminder(reminder(workspace_id,database_id,row_id,field_id,user,offset,now+Duration::hours(1))).await.expect("new pending reminder after enqueue");
+  }
 
   let wrong_database = Uuid::new_v4();
   let invalid = repo
@@ -447,6 +466,16 @@ async fn personal_reminders_are_idempotent_private_and_claimed_once() {
   assert_eq!(live_count, 0);
   assert_eq!(cancelled_count, 2, "Row deletion cancels every user's live reminder");
 
+  let queued:Vec<serde_json::Value>=sqlx::query_scalar("SELECT e.payload->'dispatch' FROM outbox_events e JOIN database_row_reminders r ON r.id::text=e.aggregate_id WHERE r.row_id=$1 AND e.event_type='database_reminder_due'")
+    .bind(row_id).fetch_all(&pool).await.expect("accepted queued envelopes");
+  for payload in queued{
+    let envelope:myoxus_application::database::DatabaseRowReminderDispatchEnvelope=serde_json::from_value(payload).expect("native delivery envelope");
+    assert!(repo.get_database_row_reminder_dispatch(envelope.reminder_id,envelope.schedule_revision,envelope.trigger_at,envelope.user_id).await.expect("queued deletion fence").is_none(),"an accepted but unstarted notification cannot expose a deleted row");
+  }
+  }).catch_unwind().await;
+
+  sqlx::query("DELETE FROM outbox_events e USING database_row_reminders r WHERE e.aggregate_id=r.id::text AND e.event_type='database_reminder_due' AND r.workspace_id=$1")
+    .bind(workspace_id).execute(&pool).await.expect("cleanup durable reminder handoffs");
   sqlx::query("DELETE FROM workspaces WHERE id = $1")
     .bind(workspace_id)
     .execute(&pool)
@@ -462,6 +491,9 @@ async fn personal_reminders_are_idempotent_private_and_claimed_once() {
     .execute(&pool)
     .await
     .expect("cleanup users");
+  if let Err(panic) = outcome {
+    std::panic::resume_unwind(panic)
+  }
 }
 
 #[path = "database_row_reminders/managed_tasks.rs"]

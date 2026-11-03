@@ -42,7 +42,9 @@ for pattern in "${FORBIDDEN[@]}"; do
   fi
 done
 
-if matches="$(rg -n --fixed-strings -- 'myoxus-theme' tests/client/webfrontend 2>/dev/null)"; then
+# Reject the removed storage key, while allowing the live projection's
+# data-myoxus-theme-source DOM attribute in consuming browser assertions.
+if matches="$(rg -n -- '(^|[^[:alnum:]_-])myoxus-theme([^[:alnum:]_-]|$)' tests/client/webfrontend 2>/dev/null)"; then
   printf 'Removed Web color-mode storage authority returned:\n%s\n' "$matches" >&2
   failed=1
 fi

@@ -2469,7 +2469,6 @@
   "admin.performance.field.compaction-lock-ttl.desc": "Zámek zhutnění TTL (sekundy). Safety timeout in case a server crashes mid-compaction.",
   "admin.performance.field.compaction-threshold-default.desc": "Počet nevyřízených aktualizací před spuštěním automatického komprimování. Výchozí: 500",
   "admin.performance.field.compaction-threshold-root-doc.desc": "Práh automatické komprimace pro kořenové dokumenty. Výchozí: 50",
-  "admin.performance.field.cron-tick-interval.desc": "Interval (seconds) for the cron scheduler tick loop. Default: 60 · Min: 5 · May require restart for full effect.",
   "admin.performance.field.daily-enabled.desc": "Povolit denní cyklus automatického ladění TTL.",
   "admin.performance.field.doc-metadata-cache-enabled.desc": "Povolit mezipaměť metadat Redis. Omezuje dotazy DB pro vyhledávání metadat dokumentu.",
   "admin.performance.field.doc-metadata-fixed-ttl.desc": "Fixed TTL override for doc_metadata cache (seconds). 0 = použít automatické ladění.",

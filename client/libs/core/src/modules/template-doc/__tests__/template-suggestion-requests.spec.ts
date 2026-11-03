@@ -76,6 +76,11 @@ function serviceWithGraphql(gql: ReturnType<typeof vi.fn>) {
       metadata: {},
       key: null,
     }),
+    metadataCache: {
+      getIndexRowByExternalId: (id: string) =>
+        id === "unbound-reader-copy" ? { templateState: "guide" } : undefined,
+      watchIndexRows: () => new LiveData([]),
+    },
     metadataGeneration: 0,
     metadataEpoch: 0,
     list: {
@@ -131,6 +136,7 @@ test.each(["cloud", "local"])(
     const docs = [
       { id: "section", category: "building-blocks" },
       { id: "ordinary", category: null },
+      { id: "unbound-reader-copy", category: null },
     ].map(({ id, category }) => ({
       id,
       meta$: new LiveData({ title: id }),

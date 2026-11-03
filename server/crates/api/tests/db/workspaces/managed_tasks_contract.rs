@@ -31,7 +31,8 @@ fn managed_default_public_guards_and_capture_move_keep_original_identity() {
       let default = destinations["defaultDestination"].clone();
       let default_id = default["databaseId"].as_str().expect("published default").to_string();
       assert_eq!(default["managedSchema"]["readiness"], "Ready");
-      assert_eq!(default["managedSchema"]["templateVersion"], "1.0.1");
+      assert_eq!(default["managedSchema"]["templateVersion"], helpers::database_starter_catalog()
+        .current_source("myoxus.project.simple_project").unwrap().0);
       for capability in ["canEditStructure","canEditMetadata","canManageLifecycle"] {
         assert_eq!(default["managedSchema"][capability], false);
       }

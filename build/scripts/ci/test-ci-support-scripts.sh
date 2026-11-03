@@ -159,6 +159,14 @@ mkdir -p "$policy_fixture/build/scripts/ci" "$policy_fixture/docs" \
   "$policy_fixture/server/crates/api/src"
 mkdir -p "$policy_fixture/build/scripts/release"
 cp build/scripts/release/check-archived-version.mjs build/scripts/release/archived-release-reservations.json "$policy_fixture/build/scripts/release/"
+cat >"$policy_fixture/build/scripts/release/refresh-source-inventories.mjs" <<'JS'
+import fs from 'node:fs';
+import path from 'node:path';
+for (const file of ['client/REUSE.toml', 'client/provenance/components.json', 'virgultum/provenance/sources.json', 'virgultum/provenance/licenses.json']) {
+  fs.mkdirSync(path.dirname(file), {recursive:true});
+  fs.writeFileSync(file, '{}\n');
+}
+JS
 cp build/scripts/ci/generate-security-policy.mjs "$policy_fixture/build/scripts/ci/"
 cp docs/security-policy.json "$policy_fixture/docs/"
 cp SECURITY.md "$policy_fixture/"

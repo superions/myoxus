@@ -21,7 +21,7 @@ export class TemplateGroupByProvider
       map((values) => {
         const result = new Map<string, Set<string>>();
         for (const [id, value] of values) {
-          const isTemplate = value ? "true" : "false";
+          const isTemplate = String(value) === "true" ? "true" : "false";
           if (!result.has(isTemplate)) {
             result.set(isTemplate, new Set([id]));
           } else {

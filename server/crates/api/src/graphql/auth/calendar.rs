@@ -171,12 +171,65 @@ pub struct CalendarEventType {
   pub tag_id: Option<ID>,
   pub description_delta: Option<Value>,
   pub recurrence_parent_id: Option<ID>,
+  pub recurrence_id: Option<DateTime<Utc>>,
   pub participants: Vec<CalendarEventParticipantType>,
   pub reminders: Vec<CalendarReminderType>,
 }
 
+#[derive(SimpleObject)]
+#[graphql(name = "CalendarRecurrence")]
+pub struct CalendarRecurrenceType {
+  pub id: ID,
+  pub revision: i64,
+  pub zone: String,
+  pub lifecycle: super::recurrence::RecurrenceLifecycle,
+  pub ends_before: Option<DateTime<Utc>>,
+  pub paused_at: Option<DateTime<Utc>>,
+  pub rule: Option<super::recurrence::RecurrenceRuleObject>,
+  pub read_only: bool,
+  pub unsupported_reason: Option<String>,
+  pub source_rrule: Option<String>,
+}
+
 #[Object(name = "CalendarEventType")]
 impl CalendarEventType {
+  /// Native masters reference one canonical timing definition. Imported source
+  /// remains inspectable but cannot be authored through the native rule form.
+  async fn recurrence(&self, ctx: &Context<'_>) -> Result<Option<CalendarRecurrenceType>> {
+    use myoxus_domain::scheduling::{ScheduleRule, calendar::CalendarTimingRule};
+    let (state, _session) = require_session(ctx).await?;
+    let calendar = state
+      .calendar()
+      .ok_or_else(|| map_gql_error(AuthError::Storage("calendar service not configured".into())))?;
+    let id = Uuid::parse_str(self.id.as_str())
+      .map_err(|_| map_gql_error(AuthError::InvalidInput("invalid event id".into())))?;
+    let Some(timing) = calendar.recurrence(id).await.map_err(map_gql_error)? else {
+      return Ok(None);
+    };
+    let (rule, source_rrule) = match timing.rule {
+      Some(CalendarTimingRule::Fixed { rule }) => (
+        Some(super::recurrence::RecurrenceRuleObject::from_rule(
+          ScheduleRule::Fixed { rule },
+          timing.zone,
+        )),
+        None,
+      ),
+      Some(CalendarTimingRule::ImportedCalendar { rrule, .. }) => (None, Some(rrule)),
+      None => (None, None),
+    };
+    Ok(Some(CalendarRecurrenceType {
+      id: timing.id.to_string().into(),
+      revision: timing.revision,
+      zone: timing.zone.into(),
+      lifecycle: timing.lifecycle.into(),
+      ends_before: timing.ends_before,
+      paused_at: timing.paused_at,
+      read_only: rule.is_none(),
+      rule,
+      source_rrule,
+      unsupported_reason: timing.blocked_reason,
+    }))
+  }
   async fn id(&self) -> &ID {
     &self.id
   }
@@ -223,6 +276,10 @@ impl CalendarEventType {
   }
   async fn recurrence_parent_id(&self) -> &Option<ID> {
     &self.recurrence_parent_id
+  }
+  /// Original exception key, independent of the displayed/moved start.
+  async fn recurrence_id(&self) -> Option<DateTime<Utc>> {
+    self.recurrence_id
   }
   async fn participants(&self) -> &[CalendarEventParticipantType] {
     &self.participants
@@ -500,7 +557,7 @@ pub struct NativeReminderInput {
   pub channel: Option<String>,
 }
 
-/// Scope for a recurring-event mutation (v1 supports All and This only).
+/// Scope for a native recurring-event mutation.
 #[derive(Debug, Enum, Copy, Clone, Eq, PartialEq, Serialize, Deserialize)]
 #[graphql(name = "NativeEventScope", rename_items = "PascalCase")]
 pub enum NativeEventScope {
@@ -508,12 +565,33 @@ pub enum NativeEventScope {
   All,
   /// Edit / delete only a single occurrence (creates an EXDATE + override row).
   This,
+  /// Split / truncate at the addressed original occurrence key.
+  ThisAndFuture,
+}
+
+#[derive(Debug, Enum, Copy, Clone, Eq, PartialEq)]
+#[graphql(rename_items = "PascalCase")]
+pub enum CalendarTimingAction {
+  Pause,
+  Resume,
+  End,
+}
+
+impl From<CalendarTimingAction> for myoxus_domain::scheduling::calendar::CalendarTimingChange {
+  fn from(value: CalendarTimingAction) -> Self {
+    match value {
+      CalendarTimingAction::Pause => Self::Pause,
+      CalendarTimingAction::Resume => Self::Resume,
+      CalendarTimingAction::End => Self::End,
+    }
+  }
 }
 
 /// Input for creating a workspace-native calendar event.
 #[derive(InputObject)]
 #[graphql(name = "CreateWorkspaceEventInput")]
 pub struct CreateWorkspaceEventInput {
+  pub recurrence: Option<super::recurrence::FixedRecurrenceInput>,
   pub workspace_id: String,
   pub title: Option<String>,
   pub description_delta: Option<Json<Value>>,
@@ -536,8 +614,10 @@ pub struct CreateWorkspaceEventInput {
 #[derive(InputObject)]
 #[graphql(name = "UpdateWorkspaceEventInput")]
 pub struct UpdateWorkspaceEventInput {
+  pub recurrence: MaybeUndefined<super::recurrence::FixedRecurrenceInput>,
   pub title: Option<String>,
-  pub description_delta: Option<Json<Value>>,
+  /// Omit to preserve content; an explicit null clears it.
+  pub description_delta: MaybeUndefined<Json<Value>>,
   pub starts_at: Option<DateTime<Utc>>,
   pub ends_at: Option<DateTime<Utc>>,
   pub all_day: Option<bool>,
@@ -766,6 +846,9 @@ pub(crate) fn map_calendar_event(
     tag_id: event.tag_id.map(|id| ID::from(id.to_string())),
     description_delta: event.description_delta,
     recurrence_parent_id: event.recurrence_parent_id.map(|id| ID::from(id.to_string())),
+    recurrence_id: event.payload["recurrenceId"]
+      .as_str()
+      .and_then(|raw| myoxus_application::calendar::projection::original_key(raw).ok()),
     participants: event
       .participants
       .into_iter()
@@ -871,13 +954,16 @@ pub(crate) fn map_workspace_calendar_settings(
 pub(crate) fn map_calendar_event_object(event: myoxus_domain::entities::CalendarEvent) -> CalendarEventObjectType {
   CalendarEventObjectType {
     id: event.id.to_string(),
-    subscription_id: event.account_id.map(|id| id.to_string()).unwrap_or_default(),
+    subscription_id: event
+      .account_id
+      .map(|id| id.to_string())
+      .unwrap_or_else(|| event.workspace_id.map(|id| format!("{id}:native")).unwrap_or_default()),
     external_event_id: event.remote_event_id.unwrap_or_default(),
-    recurrence_id: event
-      .payload
-      .get("recurrenceId")
-      .and_then(|v| v.as_str())
-      .map(ToString::to_string),
+    recurrence_id: event.payload.get("recurrenceId").and_then(|v| v.as_str()).map(|raw| {
+      myoxus_application::calendar::projection::original_key(raw)
+        .map(|key| key.to_rfc3339())
+        .unwrap_or_else(|_| raw.to_owned())
+    }),
     status: event
       .payload
       .get("status")

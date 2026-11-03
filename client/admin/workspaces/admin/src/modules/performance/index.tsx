@@ -281,21 +281,9 @@ const WORKERS_SECTION: PerfSection = {
           suffix: "ms",
         },
         {
-          key: "polling.database_reminder_interval_ms",
-          type: "Number",
-          desc: "admin.performance.field.worker-database-reminder.desc",
-          suffix: "ms",
-        },
-        {
           key: "polling.workspace_automation_retry_interval_ms",
           type: "Number",
           desc: "admin.performance.field.worker-workspace-automation-retry.desc",
-          suffix: "ms",
-        },
-        {
-          key: "polling.calendar_reminder_interval_ms",
-          type: "Number",
-          desc: "admin.performance.field.worker-calendar-reminder.desc",
           suffix: "ms",
         },
         {
@@ -453,11 +441,6 @@ const DATABASE_LIMITS_SECTION: PerfSection = {
     {
       module: "databases",
       fields: [
-        {
-          key: "reminder_batch_size",
-          type: "Number",
-          desc: "admin.performance.field.database-reminder-batch-size.desc",
-        },
         {
           key: "max_reminders_per_user_per_cell",
           type: "Number",

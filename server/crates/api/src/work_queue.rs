@@ -18,7 +18,6 @@ impl myoxus_application::worker::WorkQueuePort for RedisQueueAdapter {
     let opts = myoxus_worker::job::JobOptions {
       delay_ms,
       max_attempts: max_attempts.unwrap_or(3) as i32,
-      repeat: None,
       ..Default::default()
     };
     self

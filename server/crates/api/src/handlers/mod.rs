@@ -21,6 +21,7 @@ pub mod calendar;
 pub mod captcha_admin;
 pub mod config;
 pub mod copilot;
+pub mod docx;
 pub mod feature_assets;
 pub mod fonts;
 pub mod git_sync;

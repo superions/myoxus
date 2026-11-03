@@ -664,8 +664,6 @@ mod tests {
   #[test]
   fn database_reminder_config_contract_is_restart_required_and_bounded() {
     for (path, minimum, maximum) in [
-      ("worker.polling.database_reminder_interval_ms", 1_000, 3_600_000),
-      ("databases.reminder_batch_size", 1, 1_000),
       ("databases.max_reminders_per_user_per_cell", 1, 20),
       ("databases.max_reminder_offset_minutes", 0, 5_256_000),
     ] {

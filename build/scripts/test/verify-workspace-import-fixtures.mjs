@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
-import JSZip from "jszip";
+import { readZip } from "../zip-archive.mjs";
 import * as Y from "yjs";
 
 const repoRoot = path.resolve(import.meta.dirname, "../../..");
@@ -165,8 +165,8 @@ invariant(
   snapshotBytes.subarray(0, 4).equals(Buffer.from([0x50, 0x4b, 0x03, 0x04])),
   "valid snapshot fixture must use the ZIP content signature",
 );
-const archive = await JSZip.loadAsync(snapshotBytes);
-const names = Object.keys(archive.files).sort();
+const archive = await readZip(snapshotBytes);
+const names = [...archive.keys()].sort();
 invariant(
   names.every((name) => !name.includes("..") && !name.startsWith("/")),
   "valid ZIP contains unsafe paths",
@@ -184,7 +184,7 @@ invariant(
 const snapshotDatabaseIds = new Set();
 let snapshotReferences = 0;
 for (const name of snapshotNames) {
-  const value = JSON.parse(await archive.file(name).async("string"));
+  const value = JSON.parse(archive.get(name).data.toString("utf8"));
   for (const block of value.blocks) {
     if (
       block.flavour !== "affine:database" &&

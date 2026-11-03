@@ -40,6 +40,8 @@ function makeEvent(id: string, startAtUtc: string, endAtUtc: string) {
     endAtUtc,
     originalTimezone: null,
     allDay: false,
+    tagId: null,
+    reminders: [],
   };
 }
 
@@ -56,16 +58,22 @@ describe("CalendarIntegration", () => {
     integration = framework.provider().createEntity(CalendarIntegration);
   });
 
-  test("createEvent calls store and updates eventsByDateMap for the event range", async () => {
+  test("createEvent retains an accepted write when the follow-up view refresh fails", async () => {
     const wsCalendar = { id: "wscal-1" };
     integration.workspaceCalendars$.setValue([wsCalendar as any]);
-    const event = makeEvent(
-      "e1",
-      "2026-04-25T10:00:00Z",
-      "2026-04-25T11:00:00Z",
-    );
+    const event = {
+      id: "e1",
+      title: "Accepted series",
+      startsAt: "2026-04-25T10:00:00Z",
+      endsAt: "2026-04-25T11:00:00Z",
+      recurrence: { id: "series-1" },
+      recurrenceParentId: null,
+      reminders: [],
+    };
     vi.mocked(mockStore.createEvent).mockResolvedValue(event as any);
-    vi.mocked(mockStore.fetchEvents).mockResolvedValue([event] as any);
+    vi.mocked(mockStore.fetchEvents).mockRejectedValue(
+      new Error("isolated view unavailable"),
+    );
 
     const result = await integration.createEvent({
       title: "Test Event e1",
@@ -76,7 +84,9 @@ describe("CalendarIntegration", () => {
     expect(result.id).toBe("e1");
     expect(mockStore.createEvent).toHaveBeenCalledOnce();
     expect(mockStore.fetchEvents).toHaveBeenCalled();
-    expect(integration.eventsByDateMap$.value.has("2026-04-25")).toBe(true);
+    expect(integration.findEventDetails(event.id)).toEqual(event);
+    expect(integration.refreshFailed$.value).toBe(true);
+    expect([...integration.eventsByDateMap$.value.values()].flat()).toEqual([]);
   });
 
   test("resolves an event by id once and reuses the local details cache", async () => {
@@ -93,8 +103,23 @@ describe("CalendarIntegration", () => {
       sourceExternalId: "doc-1",
       descriptionDelta: null,
       recurrenceParentId: null,
+      recurrence: { id: "series-1" },
       reminders: [],
     };
+    const first = {
+      ...makeEvent(event.id, "2026-04-25T10:00:00Z", "2026-04-25T11:00:00Z"),
+      recurrenceId: "2026-04-25T10:00:00Z",
+    };
+    const second = {
+      ...makeEvent(event.id, "2026-04-26T10:00:00Z", "2026-04-26T11:00:00Z"),
+      recurrenceId: "2026-04-26T10:00:00Z",
+    };
+    integration.eventsByDateMap$.setValue(
+      new Map([
+        ["2026-04-25", [first as any]],
+        ["2026-04-26", [second as any]],
+      ]),
+    );
     vi.mocked(mockStore.fetchEvent).mockResolvedValue(event as any);
 
     await expect(integration.resolveEventDetails(event.id)).resolves.toEqual(
@@ -106,6 +131,15 @@ describe("CalendarIntegration", () => {
 
     expect(mockStore.fetchEvent).toHaveBeenCalledOnce();
     expect(integration.findEventDetails(event.id)).toEqual(event);
+    const dayjs = (await import("dayjs")).default;
+    const from = dayjs("2026-04-25T00:00:00Z");
+    const to = dayjs("2026-04-27T00:00:00Z");
+    expect(
+      integration
+        .eventsByDateRange$(from, to)
+        .value.map((event) => event.recurrenceId),
+    ).toEqual([first.recurrenceId, second.recurrenceId]);
+    expect(integration.checkConflicts(from, to)).toEqual([first, second]);
   });
 
   test("removes a deleted event from details and date caches on revalidation", async () => {
@@ -170,20 +204,42 @@ describe("CalendarIntegration", () => {
         title: event.title,
         startAtUtc: event.startsAt,
         endAtUtc: event.endsAt,
+        subscriptionId: "ws-1:native",
       }),
     );
   });
 
-  test("updateEvent calls store and triggers revalidation of affected date range", async () => {
+  test("series edits refresh the consuming window and fence a late pre-edit read", async () => {
+    const dayjs = (await import("dayjs")).default;
     const wsCalendar = { id: "wscal-1" };
     integration.workspaceCalendars$.setValue([wsCalendar as any]);
-    const event = makeEvent(
-      "e2",
-      "2026-04-25T12:00:00Z",
-      "2026-04-25T13:00:00Z",
+    const event = {
+      id: "e2",
+      title: "Updated",
+      startsAt: "2026-04-25T12:00:00Z",
+      endsAt: "2026-04-25T13:00:00Z",
+      recurrence: { id: "series-2" },
+      recurrenceParentId: null,
+      reminders: [],
+    };
+    const projected = {
+      ...makeEvent("e2", "2034-03-25T12:00:00Z", "2034-03-25T13:00:00Z"),
+      title: "Updated",
+    };
+    type EventWindow = Awaited<ReturnType<CalendarStore["fetchEvents"]>>;
+    let finishRead: (events: EventWindow) => void = () => {
+      throw new Error("stale request was not started");
+    };
+    const oldRead = new Promise<EventWindow>((resolve) => {
+      finishRead = resolve;
+    });
+    vi.mocked(mockStore.fetchEvents).mockReturnValueOnce(oldRead);
+    const stale = integration.revalidateEventsRange(
+      dayjs("2034-03-01"),
+      dayjs("2034-03-31"),
     );
     vi.mocked(mockStore.updateEvent).mockResolvedValue(event as any);
-    vi.mocked(mockStore.fetchEvents).mockResolvedValue([event] as any);
+    vi.mocked(mockStore.fetchEvents).mockResolvedValue([projected]);
 
     const result = await integration.updateEvent("e2", NativeEventScope.All, {
       title: "Updated",
@@ -199,7 +255,16 @@ describe("CalendarIntegration", () => {
       undefined,
     );
     expect(mockStore.fetchEvents).toHaveBeenCalled();
-    expect(integration.eventsByDateMap$.value.has("2026-04-25")).toBe(true);
+    const calls = vi.mocked(mockStore.fetchEvents).mock.calls;
+    expect(calls[calls.length - 1][1]).toContain("2034-03-01");
+    expect(integration.eventsByDateMap$.value.get("2034-03-25")).toEqual([
+      projected,
+    ]);
+    finishRead([{ ...projected, title: "Stale title" }]);
+    await stale;
+    expect(integration.eventsByDateMap$.value.get("2034-03-25")).toEqual([
+      projected,
+    ]);
   });
 
   test("updateEvent moves cached snapshot when workspace calendars are not loaded yet", async () => {

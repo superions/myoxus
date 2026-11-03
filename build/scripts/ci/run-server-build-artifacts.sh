@@ -31,6 +31,23 @@ server_version="$(
   cargo metadata --manifest-path server/Cargo.toml --format-version=1 --no-deps \
     | python3 -c 'import json,sys; data=json.load(sys.stdin); print(next(p["version"] for p in data["packages"] if p["name"] == "myoxus-api"))'
 )"
+# A metadata-only retry of the same version can consume the already accepted
+# packages. The existing reuse path below still verifies every checksum/input.
+if [ -z "${SERVER_REUSE_RUN:-}" ] && [ -n "${GITHUB_REPOSITORY:-}" ]; then
+  for accepted in "${CI_RUNNER_CACHE:-/var/cache/ci-runner}/artifacts/$GITHUB_REPOSITORY/server-release/"*; do
+    sbom="$accepted/bundle/$SERVER_BUNDLE_NAME/legal/sbom/server.cdx.json"
+    [ -f "$sbom" ] || continue
+    [ "$(jq -r '.metadata.component.version' "$sbom")" = "$server_version" ] || continue
+    accepted_revision="$(jq -r '.metadata.component.properties[] | select(.name == "myoxus:git-revision") | .value' "$sbom")"
+    [[ "$accepted_revision" =~ ^[0-9a-f]{40}$ ]] || continue
+    if git diff --quiet "$accepted_revision" HEAD -- server vendor .cargo rust-toolchain.toml LICENSE build/dependencies \
+      build/scripts/ci/collect-server-binaries.sh build/scripts/ci/collect-server-runtime-assets.sh \
+      docs/ops/deployment/systemd/myoxus-api.service docs/ops/deployment/systemd/myoxus.env.example; then
+      SERVER_REUSE_RUN="$(basename "$accepted")"; SERVER_REUSE_RUN="${SERVER_REUSE_RUN%%-*}"
+      break
+    fi
+  done
+fi
 if [ -n "${SERVER_REUSE_RUN:-}" ]; then
   [[ "$SERVER_REUSE_RUN" =~ ^[0-9]+$ ]] || { echo "Expected a native build run number" >&2; exit 2; }
   candidates=("${CI_RUNNER_CACHE:-/var/cache/ci-runner}/artifacts/${GITHUB_REPOSITORY:?}/server-build/$SERVER_REUSE_RUN-"*)

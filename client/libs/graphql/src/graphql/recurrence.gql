@@ -1,0 +1,108 @@
+fragment RecurrenceValueFields on RecurrenceValue {
+  date
+  localDateTime
+}
+
+fragment RecurrenceOccurrenceFields on RecurrenceOccurrence {
+  nominal { ...RecurrenceValueFields }
+  dueAt
+}
+
+fragment RecurrenceRuleFields on RecurrenceRule {
+  mode
+  zone
+  interval
+  frequency
+  start { ...RecurrenceValueFields }
+  end { ...RecurrenceValueFields }
+  weekdays
+  day
+  lastDay
+  month
+  relativeUnit
+  dateOnly
+}
+
+fragment TaskRecurrenceMemberFields on TaskRecurrenceMember {
+  id
+  occurrenceId
+  rowId
+  capturedDatabaseId
+  slot { ...RecurrenceOccurrenceFields }
+  advancedAt
+  advanceKind
+  successorOccurrenceId
+}
+
+fragment TaskRecurrenceFields on TaskRecurrence {
+  id
+  workspaceId
+  actorId
+  currentMemberId
+  revision
+  generation
+  lifecycle
+  rule { ...RecurrenceRuleFields }
+  recipe {
+    databaseId
+    title
+    description { plainText document }
+    assignees
+    priority
+  }
+  pausedAt
+  blockedReason
+  next { ...RecurrenceOccurrenceFields }
+  pending { ...RecurrenceOccurrenceFields }
+  preservedNext { ...TaskRecurrenceMemberFields }
+  effectiveAfter { ...TaskRecurrenceMemberFields }
+  members { ...TaskRecurrenceMemberFields }
+}
+
+query taskRecurrence($workspaceId: String!, $input: TaskRecurrenceLookupInput!) {
+  workspace(id: $workspaceId) {
+    id
+    taskRecurrence(input: $input) { ...TaskRecurrenceFields }
+  }
+}
+
+query taskRecurrences($workspaceId: String!, $after: ID, $first: Int) {
+  workspace(id: $workspaceId) {
+    id
+    taskRecurrences(after: $after, first: $first) { ...TaskRecurrenceFields }
+  }
+}
+
+query recurrencePreview($workspaceId: String!, $input: RecurrencePreviewInput!) {
+  workspace(id: $workspaceId) {
+    id
+    recurrencePreview(input: $input) {
+      occurrence { ...RecurrenceOccurrenceFields }
+      completionReference { ...RecurrenceValueFields }
+    }
+  }
+}
+
+mutation configureTaskRecurrence($input: ConfigureTaskRecurrenceInput!) {
+  configureTaskRecurrence(input: $input) { ...TaskRecurrenceFields }
+}
+
+mutation updateTaskRecurrence($input: UpdateTaskRecurrenceInput!) {
+  updateTaskRecurrence(input: $input) { ...TaskRecurrenceFields }
+}
+
+mutation skipTaskRecurrence($input: SkipTaskRecurrenceInput!) {
+  skipTaskRecurrence(input: $input) { ...TaskRecurrenceFields }
+}
+
+mutation pauseTaskRecurrence($input: TaskRecurrenceControlInput!) {
+  pauseTaskRecurrence(input: $input) { ...TaskRecurrenceFields }
+}
+
+mutation resumeTaskRecurrence($input: TaskRecurrenceControlInput!) {
+  resumeTaskRecurrence(input: $input) { ...TaskRecurrenceFields }
+}
+
+mutation endTaskRecurrence($input: TaskRecurrenceControlInput!) {
+  endTaskRecurrence(input: $input) { ...TaskRecurrenceFields }
+}

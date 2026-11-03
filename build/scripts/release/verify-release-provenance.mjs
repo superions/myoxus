@@ -358,21 +358,27 @@ function buildReport(repoRoot, publication = {}) {
       repository: "https://github.com/superions/myoxus",
       commit: publication.publicCommit,
       ...(publication.publicTree ? { tree: publication.publicTree } : {}),
-      ...(publication.archiveUrl || publication.archiveSha256 ? { archive: {
-        url: publication.archiveUrl,
-        sha256: publication.archiveSha256,
-      } } : {}),
+      ...(publication.archiveUrl || publication.archiveSha256
+        ? {
+            archive: {
+              url: publication.archiveUrl,
+              sha256: publication.archiveSha256,
+            },
+          }
+        : {}),
     });
     const archivePath = join(repoRoot, sourceArchive?.path ?? "");
-    if (publicSource.archive && (
-      !sourceArchive?.path ||
-      sha256OfFile(archivePath) !== publicSource.archive.sha256
-    )) {
+    if (
+      publicSource.archive &&
+      (!sourceArchive?.path ||
+        sha256OfFile(archivePath) !== publicSource.archive.sha256)
+    ) {
       throw new Error(
         "Public source mapping does not match the actual source archive",
       );
     }
-    if (publicSource.archive) sourceArchive = { ...sourceArchive, sha256: publicSource.archive.sha256 };
+    if (publicSource.archive)
+      sourceArchive = { ...sourceArchive, sha256: publicSource.archive.sha256 };
   }
   const boundaries = manifest.boundaries.map((b) =>
     classifyBoundary(repoRoot, b),

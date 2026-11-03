@@ -5,7 +5,7 @@
 ## Supported Versions
 
 Security fixes are provided for the current Myoxus release line. The current
-release is **0.41.38**.
+release is **0.41.40**.
 
 | Release line | Supported |
 | --- | --- |

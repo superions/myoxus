@@ -134,6 +134,8 @@ async fn cleanup(pool: &PgPool, ws_id: Uuid, user_id: Uuid) {
 
 fn base_input() -> NativeCreateInput {
   NativeCreateInput {
+    imported_recurrence: None,
+    recurrence: None,
     title: Some("Writeback test".into()),
     description_delta: None,
     starts_at: Utc::now() + chrono::Duration::hours(1),
@@ -143,7 +145,7 @@ fn base_input() -> NativeCreateInput {
     tag_id: None,
     source_doc_id: None,
     source_anchor: None,
-    reminders: vec![],
+    reminders: None,
   }
 }
 

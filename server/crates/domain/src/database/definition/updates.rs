@@ -95,8 +95,19 @@ pub fn validate_template_update(
       else {
         return Err(format!("unsupported native field conversion: {}", field.key));
       };
-      DatabaseSelectOptionMapping::new(before, after, mapping.cloned().unwrap_or_default())
-        .map_err(|error| format!("{}: {error}", field.key))?;
+      if let (
+        crate::database::DatabaseFieldConfig::Status(before),
+        crate::database::DatabaseFieldConfig::Status(after),
+      ) = (before, after)
+      {
+        if mapping.is_some() {
+          return Err("Status options cannot use Select mappings".into());
+        }
+        validate_status_option_append(before, after).map_err(|error| format!("{}: {error}", field.key))?;
+      } else {
+        DatabaseSelectOptionMapping::new(before, after, mapping.cloned().unwrap_or_default())
+          .map_err(|error| format!("{}: {error}", field.key))?;
+      }
     }
   }
   for role in &source.roles {
@@ -121,6 +132,19 @@ pub fn validate_template_update(
     .any(|view| !after.views.iter().any(|next| next.key == view.key))
   {
     return Err("structural update cannot remove a bound View".into());
+  }
+  Ok(())
+}
+
+/// Adding a lifecycle choice is metadata-only. Existing values, ordering,
+/// groups and the absent-Cell default must retain their exact interpretation.
+pub fn validate_status_option_append(
+  source: &crate::database::DatabaseStatusFieldConfig,
+  target: &crate::database::DatabaseStatusFieldConfig,
+) -> Result<(), String> {
+  crate::database::validate_database_status_field_config(target)?;
+  if source.default_option_id != target.default_option_id || !target.options.starts_with(&source.options) {
+    return Err("Status updates may only append options without changing existing semantics".into());
   }
   Ok(())
 }

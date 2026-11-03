@@ -195,6 +195,19 @@ impl PreviewRuntime {
     Ok((revision, Arc::new(context.context.clone())))
   }
 
+  /// Reuse revision-keyed theme/font materialization for full document figures;
+  /// the format adapter owns its figure admission and complete-page capture.
+  pub(crate) async fn document_figure_context(
+    &self,
+    state: &ApiState,
+    workspace: Uuid,
+  ) -> Result<(Arc<PreparedPreviewContext>, PreviewPolicy), PreviewOperationError> {
+    let policy = preview_policy(&state.config.preview);
+    let theme = resolve_theme_definition(state, workspace, None).await?;
+    let (_, context) = self.prepared_context(state, theme, &policy).await?;
+    Ok((context, policy))
+  }
+
   pub async fn render(
     &self,
     actor_id: Uuid,

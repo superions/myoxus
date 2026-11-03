@@ -12,6 +12,8 @@ mutation createWorkspaceEvent($input: CreateWorkspaceEventInput!) {
     sourceExternalId
     descriptionDelta
     recurrenceParentId
+    recurrenceId
+    recurrence { ...CalendarRecurrenceFields }
     reminders {
       id
       channel

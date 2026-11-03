@@ -1,0 +1,563 @@
+{
+  "type": "page",
+  "meta": {
+    "id": "dd34419e-7477-4aab-9039-06beaba625d3",
+    "title": "Tareas · Planificar y completar",
+    "createDate": 1792410155993,
+    "tags": []
+  },
+  "blocks": {
+    "type": "block",
+    "id": "mcp-block-4b08f9c657cd403bb5a141e2ef9fd04f-0000000000000001",
+    "flavour": "myoxus:page",
+    "version": 2,
+    "props": {
+      "title": {
+        "$virgultum:internal:text$": true,
+        "delta": [
+          {
+            "insert": "Tareas · Planificar y completar"
+          }
+        ]
+      }
+    },
+    "children": [
+      {
+        "type": "block",
+        "id": "mcp-block-4b08f9c657cd403bb5a141e2ef9fd04f-0000000000000002",
+        "flavour": "myoxus:surface",
+        "version": 6,
+        "props": {
+          "exportSnapshotBlobId": "",
+          "exportSnapshotWidth": 0,
+          "exportSnapshotHeight": 0,
+          "elements": {}
+        },
+        "children": []
+      },
+      {
+        "type": "block",
+        "id": "mcp-block-4b08f9c657cd403bb5a141e2ef9fd04f-0000000000000003",
+        "flavour": "myoxus:note",
+        "version": 1,
+        "props": {
+          "xywh": "[0,0,498,92]",
+          "background": {
+            "dark": "rgba(0, 0, 0, 1)",
+            "light": "rgba(255, 255, 255, 1)"
+          },
+          "index": "a0",
+          "lockedBySelf": false,
+          "hidden": false,
+          "displayMode": "both",
+          "edgeless": {
+            "style": {
+              "borderRadius": 8,
+              "borderSize": 4,
+              "borderStyle": "none",
+              "shadowType": "--myoxus-note-shadow-box"
+            }
+          }
+        },
+        "children": [
+          {
+            "type": "block",
+            "id": "mcp-block-7697cd8f62ba4ebc878ce21a750bba7e",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Anota qué hay que hacer, quién se encarga y para cuándo. La sección Tareas reúne las tareas del espacio de trabajo y de los proyectos a los que tienes acceso."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792410269594,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410269594,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-4c17139b4b7842fc98079433ef4346a9",
+            "flavour": "myoxus:image",
+            "version": 1,
+            "props": {
+              "sourceId": "assets/f51bd5c25790e05840581ddeafdf99bbc099ef549c42942dd490345c87618282",
+              "caption": "Myoxus te ayuda a tener tus tareas a la vista.",
+              "width": 390,
+              "height": 260,
+              "index": "a0",
+              "xywh": "[0,0,0,0]",
+              "lockedBySelf": false,
+              "rotate": 0,
+              "size": -1,
+              "meta:updatedAt": 1792410269594,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410269594,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-e752bf2278864bb98f52c1f83b99ac07",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "01 · Crear una tarea",
+                    "attributes": {
+                      "color": "var(--myoxus-text-highlight-foreground-teal)"
+                    }
+                  }
+                ]
+              },
+              "type": "h3",
+              "collapsed": false
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-5787ea9bad5c4476a178fc8417d611bd",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Haz clic en Tareas en la barra lateral izquierda y después en Nueva tarea. Pon un título que describa la acción, como «Revisar el presupuesto». En la descripción puedes indicar el resultado que necesitas o los documentos relacionados."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792410269595,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410269595,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-29c3ff3b68454d16b28c8ae81ca9d904",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "En Destino, elige Tareas del espacio de trabajo o un proyecto disponible. Puedes registrar una tarea suelta sin crear un proyecto. Pulsa Crear y después Abrir tarea para acceder a sus detalles."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792410269595,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410269595,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-74a78b76a8274ad2973ec99ee40fe012",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "02 · Asignar responsables y una fecha",
+                    "attributes": {
+                      "color": "var(--myoxus-text-highlight-foreground-teal)"
+                    }
+                  }
+                ]
+              },
+              "type": "h3",
+              "collapsed": false
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-c4aa7df7240f488899f45f2dc45a7be8",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Al crear la tarea, usa el icono de la persona para elegir quién se encarga. Con el icono del calendario puedes añadir una fecha de vencimiento si hace falta. Ambos datos se pueden cambiar en los detalles de la tarea; encontrarás más campos en Añadir detalles."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792410269596,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410269596,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-c04341913a0a4281ba8acedcfe3be0e4",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "03 · Mantener el estado al día",
+                    "attributes": {
+                      "color": "var(--myoxus-text-highlight-foreground-teal)"
+                    }
+                  }
+                ]
+              },
+              "type": "h3",
+              "collapsed": false
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-470725a73c994ae2836c318071a63f3b",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Pulsa el título de una tarea en la lista para abrir sus detalles. Usa Estado para indicar el progreso. Los estados disponibles dependen del destino elegido."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792410269596,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410269596,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-a834eed5298a45c7a22e5371a7c21f29",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Cuando termines el trabajo, pulsa Completo o marca la casilla junto al título en la lista. Para encontrarla más tarde, cambia de Tareas abiertas a Tareas cerradas. Desde allí puedes volver a abrirla si hace falta."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792410269596,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410269596,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-13a89209690e4b0cb4eaa3cba61200ff",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "04 · Vincular tareas y notas",
+                    "attributes": {
+                      "color": "var(--myoxus-text-highlight-foreground-teal)"
+                    }
+                  }
+                ]
+              },
+              "type": "h3",
+              "collapsed": false
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-0f0ee940b9524bc09ca2b8cc42697878",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Selecciona en un documento el texto de un asunto pendiente. Abre el menú de tres puntos de la barra de formato y elige Crear tarea a partir del texto. Revisa el título, la descripción y el destino antes de crearla. La tarea conserva una referencia al pasaje de origen."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792410269597,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410269597,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-2c3f6f4c151b4e11b5b17a2252debd27",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Después de crearla, pulsa Insertar referencia para añadir un enlace a la tarea en el documento. Si la tarea ya existe, elige Insertar una tarea existente en ese mismo menú. Así, las notas de una reunión también pueden apuntar a esa misma tarea."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792410269597,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410269597,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-cbbd98a4190f42efa8696ad128f39740",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "05 · Usar la vista general",
+                    "attributes": {
+                      "color": "var(--myoxus-text-highlight-foreground-teal)"
+                    }
+                  }
+                ]
+              },
+              "type": "h3",
+              "collapsed": false
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-1abcd70a6fb448a2b7f24947d517550b",
+            "flavour": "myoxus:table",
+            "version": 1,
+            "props": {
+              "columns": {
+                "col-0000": {
+                  "width": 185,
+                  "columnId": "col-0000",
+                  "order": "a0000000001"
+                },
+                "col-0001": {
+                  "columnId": "col-0001",
+                  "order": "a0000000011",
+                  "width": 615
+                }
+              },
+              "headerRows": 1,
+              "rows": {
+                "row-0000": {
+                  "rowId": "row-0000",
+                  "order": "a0000000001",
+                  "backgroundColor": "var(--myoxus-text-highlight-teal)"
+                },
+                "row-0001": {
+                  "rowId": "row-0001",
+                  "order": "a0000000011"
+                },
+                "row-0002": {
+                  "rowId": "row-0002",
+                  "order": "a0000000021"
+                },
+                "row-0003": {
+                  "rowId": "row-0003",
+                  "order": "a0000000031"
+                }
+              },
+              "cells": {
+                "row-0000:col-0000": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Vista",
+                        "attributes": {
+                          "bold": true
+                        }
+                      }
+                    ]
+                  }
+                },
+                "row-0000:col-0001": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Qué muestra",
+                        "attributes": {
+                          "bold": true
+                        }
+                      }
+                    ]
+                  }
+                },
+                "row-0001:col-0000": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Mis tareas"
+                      }
+                    ]
+                  }
+                },
+                "row-0001:col-0001": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Las tareas que tienes asignadas."
+                      }
+                    ]
+                  }
+                },
+                "row-0002:col-0000": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Seguidas"
+                      }
+                    ]
+                  }
+                },
+                "row-0002:col-0001": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Las tareas que sigues desde su menú."
+                      }
+                    ]
+                  }
+                },
+                "row-0003:col-0000": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Todas"
+                      }
+                    ]
+                  }
+                },
+                "row-0003:col-0001": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Todas las tareas a las que tienes acceso."
+                      }
+                    ]
+                  }
+                }
+              },
+              "appearance": "ruled",
+              "density": "compact"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-807468dad40b4925a925bf4b1d99d317",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "type": "text",
+              "collapsed": false,
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Busca tareas por su título y acota los resultados con los filtros. Quién puede leer una tarea depende de su destino; Mis tareas es una vista filtrada."
+                  }
+                ]
+              },
+              "meta:updatedAt": 1792410269597,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410269597,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-c4660ce5b44648528984e37761af1976",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "collapsed": false,
+              "meta:updatedAt": 1792410269597,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792410269597,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Una lista de casillas en el documento basta para marcar asuntos pequeños. Crea una tarea cuando quieras seguir sus responsables, fecha o progreso desde la sección Tareas.",
+                    "attributes": {
+                      "color": "var(--myoxus-text-highlight-foreground-teal)"
+                    }
+                  }
+                ]
+              },
+              "type": "quote"
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

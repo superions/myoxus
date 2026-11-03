@@ -27,6 +27,34 @@ use myoxus_infrastructure::{
   admin::SqlxAdminStore, git_sync::SqlxGitSyncStore, workspace_content_operation::PgWorkspaceContentOperationRepository,
 };
 
+async fn admit_shared_rotation(
+  pool: &sqlx::PgPool,
+  store: &SqlxGitSyncStore,
+  credential: Uuid,
+  now: chrono::DateTime<Utc>,
+) -> myoxus_application::git_sync::GitTokenRotationAdmission {
+  let (generation, revision): (i64, i64) =
+    sqlx::query_as("SELECT generation,revision FROM scheduling_schedules WHERE id=$1")
+      .bind(credential)
+      .fetch_one(pool)
+      .await
+      .expect("current native rotation clock");
+  let attempt = store
+    .admit_rotation_slot(
+      credential,
+      generation,
+      revision,
+      now,
+      &[GitTokenRotationProviderKind::GitLab],
+    )
+    .await
+    .expect("shared native rotation admission")
+    .expect("one eligible automatic attempt");
+  GitTokenRotationStore::admitted(store, attempt.profile_id, attempt.attempt_id)
+    .await
+    .expect("native fenced credential admission")
+}
+
 /// Helper: create a workspace + git sync profile directly in DB.
 async fn seed_profile(pool: &sqlx::PgPool, admin_id: Uuid) -> (Uuid, Uuid) {
   let ws_id = Uuid::new_v4();
@@ -365,305 +393,308 @@ async fn extracted_credential_survives_source_profile_and_workspace_deletion() {
 
 #[tokio::test]
 async fn shared_token_rotation_elects_an_accessible_steward_and_replaces_every_pointer_once() {
+  use futures_util::FutureExt;
   let (_, pool, auth_store) = helpers::setup_app().await;
   let (admin_id, _) = helpers::seed_admin(&pool, &auth_store).await;
   let (source_workspace, source_id) = seed_profile(&pool, admin_id).await;
   let (target_workspace, target_id) = seed_profile(&pool, admin_id).await;
-  let store = SqlxGitSyncStore::new(pool.clone());
-  let original_credential = seed_expiring_token(&pool, source_id).await;
-  let root = "content/projects/manual";
-  sqlx::query("UPDATE git_sync_profiles SET root_path = $2, manifest_path = $3 WHERE id = $1")
-    .bind(target_id)
-    .bind(root)
-    .bind(myoxus_application::git_sync::export::extracted_manifest_path(root).expect("child manifest"))
-    .execute(&pool)
-    .await
-    .expect("set child scope");
-  store
-    .add_scope_exclusion(source_id, root, true, Some(target_id), Uuid::new_v4(), 0)
-    .await
-    .expect("register child lineage");
-  GitTokenRotationStore::configure(&store, source_id, rotation_configuration(true))
-    .await
-    .expect("one configured rotation");
-  store
-    .inherit_extracted_credential(source_id, target_id)
-    .await
-    .expect("inherit token");
+  let body = std::panic::AssertUnwindSafe(async {
+    let store = SqlxGitSyncStore::new(pool.clone());
+    let original_credential = seed_expiring_token(&pool, source_id).await;
+    let root = "content/projects/manual";
+    sqlx::query("UPDATE git_sync_profiles SET root_path = $2, manifest_path = $3 WHERE id = $1")
+      .bind(target_id)
+      .bind(root)
+      .bind(myoxus_application::git_sync::export::extracted_manifest_path(root).expect("child manifest"))
+      .execute(&pool)
+      .await
+      .expect("set child scope");
+    store
+      .add_scope_exclusion(source_id, root, true, Some(target_id), Uuid::new_v4(), 0)
+      .await
+      .expect("register child lineage");
+    GitTokenRotationStore::configure(&store, source_id, rotation_configuration(true))
+      .await
+      .expect("one configured rotation");
+    store
+      .inherit_extracted_credential(source_id, target_id)
+      .await
+      .expect("inherit token");
 
-  let pending = store
-    .create_pending_run_if_absent(target_id, SyncDirection::Bidirectional, GitSyncRunSource::Manual)
-    .await
-    .expect("admit dependent run before rotation")
-    .0;
-  assert!(matches!(
-    GitTokenRotationStore::admit(&store, source_id, Utc::now(), true).await,
-    Err(GitTokenRotationStoreError::UnfinishedRun)
-  ));
-  sqlx::query("UPDATE git_sync_runs SET status='Cancelled', finished_at=now() WHERE id=$1")
-    .bind(pending.id)
-    .execute(&pool)
-    .await
-    .expect("finish dependent run");
-  let content_operations =
-    PgWorkspaceContentOperationRepository::new(pool.clone(), helpers::database_starter_catalog());
-  let now = Utc::now();
-  let blocked_operation = WorkspaceContentOperationRecord {
-    id: Uuid::new_v4(),
-    idempotency_id: Uuid::new_v4(),
-    actor_id: admin_id,
-    kind: WorkspaceContentOperationKind::Copy,
-    source_workspace_id: source_workspace,
-    target_workspace_id: Some(target_workspace),
-    status: WorkspaceContentOperationStatus::Draft,
-    preview_revision: None,
-    manifest_hash: "a".repeat(64),
-    error: None,
-    diagnostic_instance_id: None,
-    created_at: now,
-    updated_at: now,
-  };
-  content_operations
-    .create_or_get(blocked_operation.clone())
-    .await
-    .expect("admit handoff before rotation");
-  assert!(matches!(
-    GitTokenRotationStore::admit(&store, target_id, Utc::now(), true).await,
-    Err(GitTokenRotationStoreError::UnfinishedRun)
-  ));
-  sqlx::query("DELETE FROM workspace_content_operations WHERE id = $1")
-    .bind(blocked_operation.id)
-    .execute(&pool)
-    .await
-    .expect("finish handoff fixture");
-  sqlx::query("UPDATE git_sync_profiles SET enabled = false WHERE id = $1")
-    .bind(source_id)
-    .execute(&pool)
-    .await
-    .expect("disable old steward");
-  assert_eq!(
-    GitTokenRotationStore::due_profile_ids(&store, Utc::now(), 100)
-      .await
-      .expect("due candidates")
-      .into_iter()
-      .filter(|id| *id == target_id || *id == source_id)
-      .collect::<Vec<_>>(),
-    vec![target_id]
-  );
-  let admission = GitTokenRotationStore::admit(&store, target_id, Utc::now(), true)
-    .await
-    .expect("admit through child")
-    .expect("one eligible steward");
-  assert_eq!(admission.profile_id, target_id);
-  assert!(
-    store
-      .create_pending_run_if_absent(source_id, SyncDirection::Bidirectional, GitSyncRunSource::Manual)
-      .await
-      .is_err()
-  );
-  assert!(
-    store
+    let pending = store
       .create_pending_run_if_absent(target_id, SyncDirection::Bidirectional, GitSyncRunSource::Manual)
       .await
-      .is_err()
-  );
-  assert!(
-    GitSyncLifecycleStore::update_profile(
-      &store,
-      store.get_profile(source_id).await.expect("old steward"),
-      Some(EncryptedGitCredential {
-        label: "blocked".into(),
-        ciphertext: vec![6],
-        expires_at: None
-      }),
-    )
-    .await
-    .is_err()
-  );
-  assert!(
-    GitSyncLifecycleStore::update_profile(
-      &store,
-      store.get_profile(target_id).await.expect("rotating descendant"),
-      Some(EncryptedGitCredential {
-        label: "blocked child".into(),
-        ciphertext: vec![7],
-        expires_at: None,
-      }),
-    )
-    .await
-    .is_err(),
-    "a child cannot detach the credential while shared rotation is admitted"
-  );
-  assert!(
+      .expect("admit dependent run before rotation")
+      .0;
+    assert!(matches!(
+      GitTokenRotationStore::admit(&store, source_id, Utc::now(), true).await,
+      Err(GitTokenRotationStoreError::UnfinishedRun)
+    ));
+    sqlx::query("UPDATE git_sync_runs SET status='Cancelled', finished_at=now() WHERE id=$1")
+      .bind(pending.id)
+      .execute(&pool)
+      .await
+      .expect("finish dependent run");
+    let content_operations =
+      PgWorkspaceContentOperationRepository::new(pool.clone(), helpers::database_starter_catalog());
+    let now = Utc::now();
+    let blocked_operation = WorkspaceContentOperationRecord {
+      id: Uuid::new_v4(),
+      idempotency_id: Uuid::new_v4(),
+      actor_id: admin_id,
+      kind: WorkspaceContentOperationKind::Copy,
+      source_workspace_id: source_workspace,
+      target_workspace_id: Some(target_workspace),
+      status: WorkspaceContentOperationStatus::Draft,
+      preview_revision: None,
+      manifest_hash: "a".repeat(64),
+      error: None,
+      diagnostic_instance_id: None,
+      created_at: now,
+      updated_at: now,
+    };
     content_operations
       .create_or_get(blocked_operation.clone())
       .await
-      .expect_err("new handoff rejected")
-      .to_string()
-      .contains("admitted Git-Sync token rotation"),
-    "a new Workspace handoff cannot start while a dependent credential rotates"
-  );
-  let replaced = GitTokenRotationStore::install_replacement(
-    &store,
-    &admission,
-    &EncryptedGitCredential {
-      label: "one replacement".into(),
-      ciphertext: vec![8, 9],
-      expires_at: Some(Utc::now() + chrono::Duration::days(90)),
-    },
-    Utc::now(),
-  )
-  .await
-  .expect("replace every dependent pointer");
-  content_operations
-    .create_or_get(blocked_operation.clone())
-    .await
-    .expect("same valid handoff admits after rotation is reconciled");
-  sqlx::query("DELETE FROM workspace_content_operations WHERE id = $1")
-    .bind(blocked_operation.id)
-    .execute(&pool)
-    .await
-    .expect("remove test handoff before further rotation checks");
-  assert_eq!(replaced.state, GitTokenRotationState::Completed);
-  let source = store.get_profile(source_id).await.expect("source after rotation");
-  let target = store.get_profile(target_id).await.expect("target after rotation");
-  assert_eq!(source.credential_id, target.credential_id);
-  assert_ne!(source.credential_id, Some(original_credential));
-  assert!(store.get_credential(original_credential).await.is_err());
-  assert_eq!(
-    GitTokenRotationStore::completion_by_attempt(&store, source_id, admission.attempt_id)
+      .expect("admit handoff before rotation");
+    assert!(matches!(
+      GitTokenRotationStore::admit(&store, target_id, Utc::now(), true).await,
+      Err(GitTokenRotationStoreError::UnfinishedRun)
+    ));
+    sqlx::query("DELETE FROM workspace_content_operations WHERE id = $1")
+      .bind(blocked_operation.id)
+      .execute(&pool)
       .await
-      .expect("read one completed attempt")
-      .expect("completion retained")
-      .profile_id,
-    target_id
-  );
-  assert!(
-    GitTokenRotationStore::admitted(&store, target_id, admission.attempt_id)
+      .expect("finish handoff fixture");
+    sqlx::query("UPDATE git_sync_profiles SET enabled = false WHERE id = $1")
+      .bind(source_id)
+      .execute(&pool)
+      .await
+      .expect("disable old steward");
+    let admission = admit_shared_rotation(&pool, &store, original_credential, Utc::now()).await;
+    assert_eq!(admission.profile_id, target_id);
+    assert!(
+      store
+        .create_pending_run_if_absent(source_id, SyncDirection::Bidirectional, GitSyncRunSource::Manual)
+        .await
+        .is_err()
+    );
+    assert!(
+      store
+        .create_pending_run_if_absent(target_id, SyncDirection::Bidirectional, GitSyncRunSource::Manual)
+        .await
+        .is_err()
+    );
+    assert!(
+      GitSyncLifecycleStore::update_profile(
+        &store,
+        store.get_profile(source_id).await.expect("old steward"),
+        Some(EncryptedGitCredential {
+          label: "blocked".into(),
+          ciphertext: vec![6],
+          expires_at: None
+        }),
+      )
       .await
       .is_err()
-  );
-  assert!(
-    GitTokenRotationStore::install_replacement(
+    );
+    assert!(
+      GitSyncLifecycleStore::update_profile(
+        &store,
+        store.get_profile(target_id).await.expect("rotating descendant"),
+        Some(EncryptedGitCredential {
+          label: "blocked child".into(),
+          ciphertext: vec![7],
+          expires_at: None,
+        }),
+      )
+      .await
+      .is_err(),
+      "a child cannot detach the credential while shared rotation is admitted"
+    );
+    assert!(
+      content_operations
+        .create_or_get(blocked_operation.clone())
+        .await
+        .expect_err("new handoff rejected")
+        .to_string()
+        .contains("admitted Git-Sync token rotation"),
+      "a new Workspace handoff cannot start while a dependent credential rotates"
+    );
+    let replaced = GitTokenRotationStore::install_replacement(
       &store,
       &admission,
       &EncryptedGitCredential {
-        label: "replay".into(),
-        ciphertext: vec![2],
-        expires_at: None
+        label: "one replacement".into(),
+        ciphertext: vec![8, 9],
+        expires_at: Some(Utc::now() + chrono::Duration::days(90)),
       },
-      Utc::now()
+      Utc::now(),
     )
     .await
-    .is_err()
-  );
-  assert_eq!(
-    store
-      .get_profile(source_id)
+    .expect("replace every dependent pointer");
+    content_operations
+      .create_or_get(blocked_operation.clone())
       .await
-      .expect("source after replay")
-      .credential_id,
-    source.credential_id
-  );
+      .expect("same valid handoff admits after rotation is reconciled");
+    sqlx::query("DELETE FROM workspace_content_operations WHERE id = $1")
+      .bind(blocked_operation.id)
+      .execute(&pool)
+      .await
+      .expect("remove test handoff before further rotation checks");
+    assert_eq!(replaced.state, GitTokenRotationState::Completed);
+    let source = store.get_profile(source_id).await.expect("source after rotation");
+    let target = store.get_profile(target_id).await.expect("target after rotation");
+    assert_eq!(source.credential_id, target.credential_id);
+    assert_ne!(source.credential_id, Some(original_credential));
+    assert!(store.get_credential(original_credential).await.is_err());
+    assert_eq!(
+      GitTokenRotationStore::completion_by_attempt(&store, source_id, admission.attempt_id)
+        .await
+        .expect("read one completed attempt")
+        .expect("completion retained")
+        .profile_id,
+      target_id
+    );
+    assert!(
+      GitTokenRotationStore::admitted(&store, target_id, admission.attempt_id)
+        .await
+        .is_err()
+    );
+    assert!(
+      GitTokenRotationStore::install_replacement(
+        &store,
+        &admission,
+        &EncryptedGitCredential {
+          label: "replay".into(),
+          ciphertext: vec![2],
+          expires_at: None
+        },
+        Utc::now()
+      )
+      .await
+      .is_err()
+    );
+    assert_eq!(
+      store
+        .get_profile(source_id)
+        .await
+        .expect("source after replay")
+        .credential_id,
+      source.credential_id
+    );
 
-  let mut reenabled = store.get_profile(source_id).await.expect("source for reactivation");
-  reenabled.enabled = true;
-  GitSyncLifecycleStore::update_profile(&store, reenabled, None)
-    .await
-    .expect("reenable original consumer without resetting shared rotation");
-  sqlx::query("DELETE FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2")
+    let mut reenabled = store.get_profile(source_id).await.expect("source for reactivation");
+    reenabled.enabled = true;
+    GitSyncLifecycleStore::update_profile(&store, reenabled, None)
+      .await
+      .expect("reenable original consumer without resetting shared rotation");
+    sqlx::query("DELETE FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2")
+      .bind(target_workspace)
+      .bind(admin_id)
+      .execute(&pool)
+      .await
+      .expect("revoke former steward's Workspace access");
+    let later = Utc::now() + chrono::Duration::days(100);
+    let next = admit_shared_rotation(&pool, &store, source.credential_id.expect("shared replacement"), later).await;
+    assert_eq!(next.profile_id, source_id);
+    sqlx::query("DELETE FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2")
+      .bind(source_workspace)
+      .bind(admin_id)
+      .execute(&pool)
+      .await
+      .expect("revoke steward after admission, before provider request");
+    assert!(
+      GitTokenRotationStore::admitted(&store, source_id, next.attempt_id)
+        .await
+        .is_err(),
+      "a queued attempt must not load the secret after steward access is revoked"
+    );
+    GitTokenRotationStore::record_pre_request_failure(&store, source_id, next.attempt_id, "not sent", later)
+      .await
+      .expect("preserve failed attempt state on new steward");
+    assert_eq!(
+      GitTokenRotationStore::status(&store, source_id)
+        .await
+        .expect("shared status")
+        .expect("one rotation row")
+        .state,
+      GitTokenRotationState::Failed
+    );
+    assert!(
+      GitTokenRotationStore::completion_by_attempt(&store, target_id, admission.attempt_id)
+        .await
+        .expect("obsolete attempt lookup")
+        .is_none()
+    );
+
+    let admin = SqlxAdminStore::new(pool.clone());
+    admin
+      .delete_workspace(source_workspace)
+      .await
+      .expect("delete the current steward after a failed attempt");
+    assert_eq!(
+      GitTokenRotationStore::status(&store, target_id)
+        .await
+        .expect("read remaining configuration")
+        .expect("one rotation row after deletion")
+        .state,
+      GitTokenRotationState::Failed
+    );
+    sqlx::query(
+      "INSERT INTO workspace_memberships (workspace_id, user_id, role, status, joined_at)
+     VALUES ($1, $2, 'Owner', 'Accepted', now()) ON CONFLICT (workspace_id, user_id) DO NOTHING",
+    )
     .bind(target_workspace)
     .bind(admin_id)
     .execute(&pool)
     .await
-    .expect("revoke former steward's Workspace access");
-  let later = Utc::now() + chrono::Duration::days(100);
-  assert_eq!(
-    GitTokenRotationStore::due_profile_ids(&store, later, 100)
+    .expect("restore last consumer's access");
+    let next_day = later + chrono::Duration::days(1);
+    let surviving = admit_shared_rotation(
+      &pool,
+      &store,
+      source.credential_id.expect("surviving credential"),
+      next_day,
+    )
+    .await;
+    assert_eq!(surviving.profile_id, target_id);
+    GitTokenRotationStore::record_pre_request_failure(&store, target_id, surviving.attempt_id, "not sent", next_day)
       .await
-      .expect("eligible access candidates")
-      .into_iter()
-      .filter(|id| *id == target_id || *id == source_id)
-      .collect::<Vec<_>>(),
-    vec![source_id]
-  );
-  let next = GitTokenRotationStore::admit(&store, source_id, later, true)
-    .await
-    .expect("admit accessible descendant")
-    .expect("rehome same configuration");
-  assert_eq!(next.profile_id, source_id);
-  sqlx::query("DELETE FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2")
-    .bind(source_workspace)
-    .bind(admin_id)
+      .expect("close final attempt without provider I/O");
+    GitTokenRotationStore::configure(&store, target_id, rotation_configuration(true))
+      .await
+      .expect("explicit reconfiguration resets the pre-request Failed state");
+    let reconfigured = admit_shared_rotation(
+      &pool,
+      &store,
+      source.credential_id.expect("same expiry credential"),
+      next_day,
+    )
+    .await;
+    assert_ne!(
+      reconfigured.attempt_id, surviving.attempt_id,
+      "a newer definition can admit the same expiry slot without reusing a closed attempt"
+    );
+    GitTokenRotationStore::record_pre_request_failure(&store, target_id, reconfigured.attempt_id, "not sent", next_day)
+      .await
+      .expect("close reconfigured attempt without provider I/O");
+    admin
+      .delete_workspace(target_workspace)
+      .await
+      .expect("delete last consumer");
+  })
+  .catch_unwind()
+  .await;
+  sqlx::query("DELETE FROM outbox_events WHERE event_type='git_rotation_due' AND payload->>'profileId'=ANY($1)")
+    .bind(vec![source_id.to_string(), target_id.to_string()])
     .execute(&pool)
     .await
-    .expect("revoke steward after admission, before provider request");
-  assert!(
-    GitTokenRotationStore::admitted(&store, source_id, next.attempt_id)
-      .await
-      .is_err(),
-    "a queued attempt must not load the secret after steward access is revoked"
-  );
-  GitTokenRotationStore::record_pre_request_failure(&store, source_id, next.attempt_id, "not sent", later)
-    .await
-    .expect("preserve failed attempt state on new steward");
-  assert_eq!(
-    GitTokenRotationStore::status(&store, source_id)
-      .await
-      .expect("shared status")
-      .expect("one rotation row")
-      .state,
-    GitTokenRotationState::Failed
-  );
-  assert!(
-    GitTokenRotationStore::completion_by_attempt(&store, target_id, admission.attempt_id)
-      .await
-      .expect("obsolete attempt lookup")
-      .is_none()
-  );
-
-  let admin = SqlxAdminStore::new(pool.clone());
-  admin
-    .delete_workspace(source_workspace)
-    .await
-    .expect("delete the current steward after a failed attempt");
-  assert_eq!(
-    GitTokenRotationStore::status(&store, target_id)
-      .await
-      .expect("read remaining configuration")
-      .expect("one rotation row after deletion")
-      .state,
-    GitTokenRotationState::Failed
-  );
-  sqlx::query(
-    "INSERT INTO workspace_memberships (workspace_id, user_id, role, status, joined_at)
-     VALUES ($1, $2, 'Owner', 'Accepted', now()) ON CONFLICT (workspace_id, user_id) DO NOTHING",
-  )
-  .bind(target_workspace)
-  .bind(admin_id)
-  .execute(&pool)
-  .await
-  .expect("restore last consumer's access");
-  let next_day = later + chrono::Duration::days(1);
-  assert!(
-    GitTokenRotationStore::due_profile_ids(&store, next_day, 100)
-      .await
-      .expect("due after steward deletion")
-      .contains(&target_id)
-  );
-  let surviving = GitTokenRotationStore::admit(&store, target_id, next_day, true)
-    .await
-    .expect("admit after old steward deletion")
-    .expect("surviving eligible consumer");
-  assert_eq!(surviving.profile_id, target_id);
-  GitTokenRotationStore::record_pre_request_failure(&store, target_id, surviving.attempt_id, "not sent", next_day)
-    .await
-    .expect("close final attempt without provider I/O");
-  admin
-    .delete_workspace(target_workspace)
-    .await
-    .expect("delete last consumer");
+    .expect("cleanup owned native rotation handoffs");
   helpers::cleanup_users(&pool, &[admin_id]).await;
+  if let Err(panic) = body {
+    std::panic::resume_unwind(panic)
+  }
 }
 
 #[tokio::test]

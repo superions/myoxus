@@ -2469,7 +2469,6 @@
   "admin.performance.field.compaction-lock-ttl.desc": "Bloqueio de compactação TTL (segundos). Tempo limite de segurança caso um servidor trave no meio da compactação.",
   "admin.performance.field.compaction-threshold-default.desc": "Número de atualizações pendentes antes dos gatilhos de compactação automática. Padrão: 500",
   "admin.performance.field.compaction-threshold-root-doc.desc": "Limite de compactação automática para documentos raiz. Padrão: 50",
-  "admin.performance.field.cron-tick-interval.desc": "Intervalo (segundos) para o loop de tick do agendador cron. Padrão: 60 · Mín: 5 · Pode exigir reinicialização para efeito total.",
   "admin.performance.field.daily-enabled.desc": "Habilite o ciclo diário de autoajuste TTL.",
   "admin.performance.field.doc-metadata-cache-enabled.desc": "Habilite o cache de metadados do Redis. Reduz consultas de banco de dados para pesquisas de metadados de documentos.",
   "admin.performance.field.doc-metadata-fixed-ttl.desc": "Corrigida a substituição de TTL para cache doc_metadata (segundos). 0 = usar autoajuste.",

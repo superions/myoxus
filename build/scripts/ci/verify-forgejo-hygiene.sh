@@ -36,6 +36,7 @@ printf '%s\n' \
   server-build.yml \
   server-fast.yml \
   server-integration.yml \
+  sync-github-issues.yml \
   windows-release-contract.yml \
   >"$expected"
 

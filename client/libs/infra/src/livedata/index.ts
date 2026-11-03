@@ -14,7 +14,6 @@
 export { type Effect, effect } from "./effect";
 export { LiveData, PoisonedError } from "./livedata";
 export {
-  AutomaticRetryBlockedError,
   type AutomaticRetryProducer,
   backoffRetry,
   catchErrorInto,

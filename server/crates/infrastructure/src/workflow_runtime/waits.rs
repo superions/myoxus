@@ -200,8 +200,9 @@ impl WaitArbitrator for NativeWaitArbitrator {
       if now >= deadline {
         // The accepted native outcome was checked while holding the same Run;
         // delayed outbox delivery cannot convert an on-time acceptance to expiry.
-        sqlx::query("UPDATE workspace_automation_runs SET review_expired_at=COALESCE(review_expired_at,$2),error_code='MIX_AUTOMATION_RUN_NOT_RETRYABLE',execution_generation=execution_generation+1,claim_owner=NULL WHERE id=$1 AND review_expired_at IS NULL")
-          .bind(id).bind(now).execute(&mut *connection).await.map_err(|_|unavailable_wait())?;
+        crate::workspace_automation::PgWorkspaceAutomationRepository::expire_document_review_in(connection, id, now)
+          .await
+          .map_err(|_| unavailable_wait())?;
         return Ok(WaitResolution::Expired);
       }
       Ok(WaitResolution::Pending {

@@ -36,6 +36,7 @@ import {
   SelectionIndicator,
   SplitMenuButton,
   SwatchSelectTrigger,
+  Tooltip,
 } from "./index";
 import { MyoxusUIProvider } from "./provider";
 
@@ -148,7 +149,12 @@ describe("facade menu primitives", () => {
             <MenuItem>Open beside</MenuItem>
             <MenuItem>Open in new tab</MenuItem>
             <MenuItem>Favourite</MenuItem>
-            <MenuItem onSelect={handleMove}>Move to folder</MenuItem>
+            <Tooltip
+              content="Choose a destination folder"
+              events={{ focus: true, hover: true, touch: false }}
+            >
+              <MenuItem onSelect={handleMove}>Move to folder</MenuItem>
+            </Tooltip>
           </>
         }
       >
@@ -166,6 +172,9 @@ describe("facade menu primitives", () => {
     );
     expect(document.activeElement).toBe(
       screen.getByRole("menuitem", { name: "Move to folder" }),
+    );
+    expect((await screen.findByRole("tooltip")).textContent).toBe(
+      "Choose a destination folder",
     );
     await user.keyboard("{Enter}");
 

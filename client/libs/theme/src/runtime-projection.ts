@@ -6,6 +6,7 @@ import { appendDocumentForegroundVariables } from "./runtime-document-colors";
 
 export const BRANDING_STYLE_ID = "myoxus-branding-css";
 export const THEME_FALLBACK_PATH = "/style/theme-fallback.css";
+const PROJECTION_CHANGE_EVENT = "myoxus:theme-projection-changed";
 
 const WORKSPACE_ROUTE_MARKERS = new Set([
   "workspace",
@@ -77,6 +78,21 @@ function setProjectionSource(
   source: RuntimeThemeProjectionSource,
 ) {
   doc.documentElement.dataset.myoxusThemeSource = source;
+  doc.dispatchEvent(new Event(PROJECTION_CHANGE_EVENT));
+}
+
+export function getRuntimeThemeProjectionSource(doc: Document = document) {
+  return (doc.documentElement.dataset.myoxusThemeSource ??
+    "loading") as RuntimeThemeProjectionSource;
+}
+
+/** Observes the live projection, including failure and subsequent recovery. */
+export function subscribeRuntimeThemeProjection(
+  listener: () => void,
+  doc: Document = document,
+) {
+  doc.addEventListener(PROJECTION_CHANGE_EVENT, listener);
+  return () => doc.removeEventListener(PROJECTION_CHANGE_EVENT, listener);
 }
 
 export function ensureRuntimeThemeProjectionStyle(doc: Document = document) {

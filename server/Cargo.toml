@@ -22,7 +22,7 @@ resolver = "2"
   [workspace.package]
   edition = "2024"
   license = "AGPL-3.0-or-later"
-  version = "0.41.38"
+  version = "0.41.40"
 
   [workspace.dependencies]
   aes-gcm = "0.10"
@@ -211,6 +211,9 @@ resolver = "2"
   # P-PDF-TPL-09-08: SVG sanitization uses the AST round-trip. Each untrusted
   # consumer must explicitly disable non-data image resolution.
   usvg = { version = "0.47", default-features = false }
+  wordcraft-doc = { path = "../vendor/wordcraft/crates/doc" }
+  wordcraft-docx = { path = "../vendor/wordcraft/crates/docx" }
+  wordcraft-geom = { path = "../vendor/wordcraft/crates/geom" }
   x509-parser = "0.18"
   zip = { version = "9.0.5", default-features = false, features = [
     "deflate-flate2-zlib-rs",

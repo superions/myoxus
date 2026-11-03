@@ -17,6 +17,7 @@ import {
 import {
   getSmokeWorkspaceId,
   waitForWorkspaceReady,
+  waitForWorkspaceDocSync,
 } from "../../shared/workspace-helper";
 
 const FRONTEND =
@@ -830,5 +831,109 @@ test("native document metadata freshness reaches the running Web client without 
     if (cleanupError) {
       throw cleanupError;
     }
+  }
+});
+
+test("native template states stay out of ordinary inventories and introductions open read-only", async ({
+  context,
+  page,
+  request,
+}, testInfo) => {
+  const getErrors = collectFatalErrors(page);
+  const cookies = await signInViaApi(
+    request,
+    API,
+    DEFAULT_SMOKE_USER_EMAIL,
+    DEFAULT_SMOKE_USER_PASSWORD,
+  );
+  await injectCookies(context, cookies);
+  const workspaceId = await getSmokeWorkspaceId(request, GQL, cookies);
+  await requirePermanentDeleteCleanupSupport(request, cookies);
+  const title = `Native classification smoke ${Date.now()}`;
+  let docId: string | undefined;
+  const visit = async (route: "home" | "all") => {
+    const index = page.waitForResponse(
+      (response) =>
+        response.request().postData()?.includes("documentMetadataIndex") ===
+          true && response.status() === 200,
+    );
+    await page.goto(`${FRONTEND}/workspace/${workspaceId}/${route}`, {
+      waitUntil: "load",
+    });
+    const response = await (await index).json();
+    expect(response.errors ?? []).toEqual([]);
+    await waitForWorkspaceReady(page, { allDocs: route === "all" });
+    if (route === "home") {
+      await expect(
+        page.locator('[data-myoxus-ui-role="workspace-home-new-documents"]'),
+      ).toHaveAttribute("aria-busy", "false");
+    } else {
+      await expect(
+        page.getByTestId("all-pages-document-metadata-loading"),
+      ).toBeHidden();
+      await expect(
+        page.getByTestId("all-pages-document-metadata-error"),
+      ).toBeHidden();
+    }
+  };
+  try {
+    docId = await createDoc(page, workspaceId, title);
+    await waitForWorkspaceDocSync(page, docId);
+    for (const route of ["home", "all"] as const) {
+      await visit(route);
+      await expect(
+        page.locator(`[data-doc-id="${docId}"]`).first(),
+      ).toBeVisible();
+    }
+    for (const state of ["managed", "guide"]) {
+      await nativeGql(
+        request,
+        cookies,
+        `mutation Classification($workspaceId: ID!, $docId: ID!, $input: SetDocumentMetadataInput!) { setDocumentMetadata(workspaceId:$workspaceId,docId:$docId,input:$input) { metadata { docId template { state } } } }`,
+        { workspaceId, docId, input: { templateState: state } },
+      );
+      for (const route of ["home", "all"] as const) {
+        await visit(route);
+        await expect(
+          page.locator(
+            `[data-myoxus-ui-role="workspace-home-document-row"][data-doc-id="${docId}"], [data-testid="doc-list-item"][data-doc-id="${docId}"]`,
+          ),
+        ).toHaveCount(0);
+      }
+    }
+    await page.goto(`${FRONTEND}/workspace/${workspaceId}/${docId}`, {
+      waitUntil: "load",
+    });
+    await expect(page.locator("[data-myoxus-editor-container]")).toBeVisible();
+    const permissions = await nativeGql<{
+      workspace: {
+        doc: {
+          permissions: { Doc_Update: boolean; Doc_Properties_Update: boolean };
+        };
+      };
+    }>(
+      request,
+      cookies,
+      `query ReadonlyGuide($workspaceId:String!,$docId:String!) { workspace(id:$workspaceId) { doc(docId:$docId) { permissions { Doc_Update Doc_Properties_Update } } } }`,
+      { workspaceId, docId },
+    );
+    expect(permissions.workspace.doc.permissions).toEqual({
+      Doc_Update: false,
+      Doc_Properties_Update: false,
+    });
+    await expect(
+      page.locator('[data-myoxus-editor-container] [contenteditable="true"]'),
+    ).toHaveCount(0);
+    await expect(
+      page.locator('[data-myoxus-ui-role="workbench-document-template-badge"]'),
+    ).toHaveCount(0);
+    await testInfo.attach("native-introduction-readonly", {
+      body: await page.screenshot({ fullPage: true }),
+      contentType: "image/png",
+    });
+    expect(getErrors()).toEqual([]);
+  } finally {
+    if (docId) await cleanupDoc(request, workspaceId, cookies, docId, title);
+    await signOutViaApi(request, API, cookies);
   }
 });

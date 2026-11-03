@@ -24,9 +24,6 @@ impl PgDatabaseRepository {
       trigger_at: row.try_get("trigger_at").map_err(Self::map_sqlx_error)?,
       status,
       schedule_revision: row.try_get("schedule_revision").map_err(Self::map_sqlx_error)?,
-      claim_token: row.try_get("claim_token").map_err(Self::map_sqlx_error)?,
-      claim_expires_at: row.try_get("claim_expires_at").map_err(Self::map_sqlx_error)?,
-      claim_attempts: row.try_get("claim_attempts").map_err(Self::map_sqlx_error)?,
       fired_at: row.try_get("fired_at").map_err(Self::map_sqlx_error)?,
       cancelled_at: row.try_get("cancelled_at").map_err(Self::map_sqlx_error)?,
       created_at: row.try_get("created_at").map_err(Self::map_sqlx_error)?,
@@ -114,21 +111,14 @@ impl DatabaseReminderRepository for PgDatabaseRepository {
         )
         INSERT INTO database_row_reminders (
           id, workspace_id, database_id, row_id, field_id, user_id,
-          offset_minutes, trigger_at, status, schedule_revision,
-          claim_token, claim_expires_at, claim_attempts, fired_at,
-          cancelled_at, created_at, updated_at
+          offset_minutes, status, fired_at, cancelled_at, created_at, updated_at
         )
-        SELECT $5, $1, $2, $3, $4, $6, $7, $8, 'scheduled', 1,
-               NULL, NULL, 0, NULL, NULL, $9, $9
+        SELECT $5, $1, $2, $3, $4, $6, $7, 'scheduled', NULL, NULL, $8, $8
         FROM valid_target
         ON CONFLICT (user_id, row_id, field_id, offset_minutes)
           WHERE status IN ('scheduled', 'claimed')
         DO UPDATE SET
-          trigger_at = EXCLUDED.trigger_at,
           status = 'scheduled',
-          schedule_revision = database_row_reminders.schedule_revision + 1,
-          claim_token = NULL,
-          claim_expires_at = NULL,
           fired_at = NULL,
           cancelled_at = NULL,
           updated_at = EXCLUDED.updated_at
@@ -142,12 +132,23 @@ impl DatabaseReminderRepository for PgDatabaseRepository {
     .bind(reminder.id)
     .bind(reminder.user_id)
     .bind(reminder.offset_minutes)
-    .bind(reminder.trigger_at)
     .bind(reminder.updated_at)
     .fetch_optional(&mut *tx)
     .await
     .map_err(Self::map_sqlx_error)?
     .ok_or(RepositoryError::NotFound("database reminder target"))?;
+    let id: Uuid = row.try_get("id").map_err(Self::map_sqlx_error)?;
+    crate::scheduling::database_reminders::set_in(
+      &mut tx,
+      id,
+      reminder.workspace_id,
+      reminder.user_id,
+      reminder.trigger_at,
+      None,
+    )
+    .await?;
+    let row=sqlx::query("SELECT r.*,s.next_due_at AS trigger_at,s.generation AS schedule_revision FROM database_row_reminders r JOIN scheduling_schedules s ON s.id=r.id WHERE r.id=$1")
+      .bind(id).fetch_one(&mut *tx).await.map_err(Self::map_sqlx_error)?;
     tx.commit().await.map_err(Self::map_sqlx_error)?;
     Self::map_database_row_reminder(row)
   }
@@ -161,11 +162,11 @@ impl DatabaseReminderRepository for PgDatabaseRepository {
   ) -> RepoResult<Vec<DatabaseRowReminder>> {
     let rows = sqlx::query(
       r#"
-        SELECT *
-        FROM database_row_reminders
-        WHERE database_id = $1 AND row_id = $2 AND field_id = $3
-          AND user_id = $4 AND status IN ('scheduled', 'claimed')
-        ORDER BY trigger_at ASC, offset_minutes ASC, id ASC
+        SELECT r.*,s.next_due_at AS trigger_at,s.generation AS schedule_revision
+        FROM database_row_reminders r JOIN scheduling_schedules s ON s.id=r.id
+        WHERE r.database_id = $1 AND r.row_id = $2 AND r.field_id = $3
+          AND r.user_id = $4 AND r.status IN ('scheduled', 'claimed')
+        ORDER BY s.next_due_at ASC, r.offset_minutes ASC, r.id ASC
       "#,
     )
     .bind(database_id)
@@ -185,11 +186,11 @@ impl DatabaseReminderRepository for PgDatabaseRepository {
   ) -> RepoResult<Vec<DatabaseRowReminder>> {
     let rows = sqlx::query(
       r#"
-        SELECT *
-        FROM database_row_reminders
-        WHERE row_id = $1 AND field_id = $2
-          AND status IN ('scheduled', 'claimed')
-        ORDER BY id
+        SELECT r.*,s.next_due_at AS trigger_at,s.generation AS schedule_revision
+        FROM database_row_reminders r JOIN scheduling_schedules s ON s.id=r.id
+        WHERE r.row_id = $1 AND r.field_id = $2
+          AND r.status IN ('scheduled', 'claimed')
+        ORDER BY r.id
       "#,
     )
     .bind(row_id)
@@ -208,132 +209,28 @@ impl DatabaseReminderRepository for PgDatabaseRepository {
     user_id: UserId,
     cancelled_at: DateTime<Utc>,
   ) -> RepoResult<bool> {
-    let result = sqlx::query(
+    let mut tx = self.begin_write().await?;
+    let changed: Option<Uuid> = sqlx::query_scalar(
       r#"
         UPDATE database_row_reminders
-        SET status = 'cancelled', schedule_revision = schedule_revision + 1,
-            claim_token = NULL, claim_expires_at = NULL,
-            cancelled_at = $4, updated_at = $4
+        SET status = 'cancelled', cancelled_at = $4, updated_at = $4
         WHERE database_id = $1 AND id = $2 AND user_id = $3
           AND status IN ('scheduled', 'claimed')
+        RETURNING id
       "#,
     )
     .bind(database_id)
     .bind(reminder_id)
     .bind(user_id)
     .bind(cancelled_at)
-    .execute(&self.pool)
+    .fetch_optional(&mut *tx)
     .await
     .map_err(Self::map_sqlx_error)?;
-    Ok(result.rows_affected() == 1)
-  }
-
-  #[instrument(skip(self), fields(limit, claim_expires_at = %claim_expires_at))]
-  async fn claim_due_database_row_reminders(
-    &self,
-    now: DateTime<Utc>,
-    claim_expires_at: DateTime<Utc>,
-    limit: i64,
-  ) -> RepoResult<Vec<DatabaseRowReminder>> {
-    let mut tx = self.begin_write().await?;
-    let rows = sqlx::query(
-      r#"
-        WITH due AS (
-          SELECT reminder.id
-          FROM database_row_reminders reminder
-          JOIN workspace_databases database
-            ON database.id = reminder.database_id
-           AND database.deleted_at IS NULL
-          WHERE reminder.status = 'scheduled' AND reminder.trigger_at <= $1
-            AND NOT EXISTS(SELECT 1 FROM workspace_databases d JOIN database_profiles p ON p.database_id=d.id AND p.profile_kind='project'
-              WHERE d.id=reminder.database_id AND NOT myoxus_database_source_admitted(d.managed_installation))
-          ORDER BY reminder.trigger_at ASC, reminder.id ASC
-          FOR UPDATE OF reminder SKIP LOCKED
-          LIMIT $2
-        )
-        UPDATE database_row_reminders AS reminder
-        SET status = 'claimed', claim_token = gen_random_uuid(),
-            claim_expires_at = $3, claim_attempts = claim_attempts + 1,
-            updated_at = $1
-        FROM due
-        WHERE reminder.id = due.id
-        RETURNING reminder.*
-      "#,
-    )
-    .bind(now)
-    .bind(limit.clamp(1, 1_000))
-    .bind(claim_expires_at)
-    .fetch_all(&mut *tx)
-    .await
-    .map_err(Self::map_sqlx_error)?;
+    if let Some(id) = changed {
+      crate::scheduling::database_reminders::end_in(&mut tx, &[id], true).await?;
+    }
     tx.commit().await.map_err(Self::map_sqlx_error)?;
-    rows.into_iter().map(Self::map_database_row_reminder).collect()
-  }
-
-  async fn release_expired_database_row_reminder_claims(&self, now: DateTime<Utc>) -> RepoResult<u64> {
-    let result = sqlx::query(
-      r#"
-        UPDATE database_row_reminders
-        SET status = 'scheduled', claim_token = NULL, claim_expires_at = NULL,
-            updated_at = $1
-        WHERE status = 'claimed' AND claim_expires_at <= $1
-      "#,
-    )
-    .bind(now)
-    .execute(&self.pool)
-    .await
-    .map_err(Self::map_sqlx_error)?;
-    Ok(result.rows_affected())
-  }
-
-  async fn release_database_row_reminder_claim(
-    &self,
-    reminder_id: Uuid,
-    schedule_revision: i64,
-    claim_token: Uuid,
-  ) -> RepoResult<bool> {
-    let result = sqlx::query(
-      r#"
-        UPDATE database_row_reminders
-        SET status = 'scheduled', claim_token = NULL, claim_expires_at = NULL,
-            updated_at = now()
-        WHERE id = $1 AND schedule_revision = $2 AND claim_token = $3
-          AND status = 'claimed'
-      "#,
-    )
-    .bind(reminder_id)
-    .bind(schedule_revision)
-    .bind(claim_token)
-    .execute(&self.pool)
-    .await
-    .map_err(Self::map_sqlx_error)?;
-    Ok(result.rows_affected() == 1)
-  }
-
-  async fn mark_database_row_reminder_enqueued(
-    &self,
-    reminder_id: Uuid,
-    schedule_revision: i64,
-    claim_token: Uuid,
-    fired_at: DateTime<Utc>,
-  ) -> RepoResult<bool> {
-    let result = sqlx::query(
-      r#"
-        UPDATE database_row_reminders
-        SET status = 'fired', claim_token = NULL, claim_expires_at = NULL,
-            fired_at = $4, updated_at = $4
-        WHERE id = $1 AND schedule_revision = $2 AND claim_token = $3
-          AND status = 'claimed'
-      "#,
-    )
-    .bind(reminder_id)
-    .bind(schedule_revision)
-    .bind(claim_token)
-    .bind(fired_at)
-    .execute(&self.pool)
-    .await
-    .map_err(Self::map_sqlx_error)?;
-    Ok(result.rows_affected() == 1)
+    Ok(changed.is_some())
   }
 
   async fn get_database_row_reminder_dispatch(
@@ -343,6 +240,46 @@ impl DatabaseReminderRepository for PgDatabaseRepository {
     trigger_at: DateTime<Utc>,
     user_id: UserId,
   ) -> RepoResult<Option<DatabaseRowReminderDispatch>> {
+    self
+      .read_reminder_dispatch(reminder_id, schedule_revision, trigger_at, user_id, false)
+      .await
+  }
+
+  async fn prepare_database_row_reminder_dispatch(
+    &self,
+    reminder_id: Uuid,
+    schedule_revision: i64,
+    trigger_at: DateTime<Utc>,
+    user_id: UserId,
+  ) -> RepoResult<Option<DatabaseRowReminderDispatch>> {
+    self
+      .read_reminder_dispatch(reminder_id, schedule_revision, trigger_at, user_id, true)
+      .await
+  }
+
+  async fn cancel_database_row_reminder_generation(
+    &self,
+    reminder_id: Uuid,
+    schedule_revision: i64,
+    cancelled_at: DateTime<Utc>,
+  ) -> RepoResult<bool> {
+    self
+      .cancel_reminder_generation(reminder_id, schedule_revision, cancelled_at)
+      .await
+  }
+}
+
+impl PgDatabaseRepository {
+  /// Preparation and queued delivery share validation, but not eligibility:
+  /// scheduled work can be prepared without authorizing its premature delivery.
+  async fn read_reminder_dispatch(
+    &self,
+    reminder_id: Uuid,
+    schedule_revision: i64,
+    trigger_at: DateTime<Utc>,
+    user_id: UserId,
+    admission: bool,
+  ) -> RepoResult<Option<DatabaseRowReminderDispatch>> {
     let mut tx = self.pool.begin().await.map_err(Self::map_sqlx_error)?;
     sqlx::query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
       .execute(&mut *tx)
@@ -351,8 +288,8 @@ impl DatabaseReminderRepository for PgDatabaseRepository {
     self.capture_managed_admission(&mut tx).await?;
     // An unavailable local descriptor is not terminal target denial. Returning
     // an error preserves the generation instead of letting dispatch cancel it.
-    let unavailable: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM database_row_reminders reminder JOIN workspace_databases d ON d.id=reminder.database_id JOIN database_profiles p ON p.database_id=d.id AND p.profile_kind='project' WHERE reminder.id=$1 AND reminder.schedule_revision=$2 AND reminder.trigger_at=$3 AND reminder.user_id=$4 AND reminder.status IN('claimed','fired') AND NOT myoxus_database_source_admitted(d.managed_installation))")
-      .bind(reminder_id).bind(schedule_revision).bind(trigger_at).bind(user_id).fetch_one(&mut *tx).await.map_err(Self::map_sqlx_error)?;
+    let unavailable: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM database_row_reminders reminder JOIN scheduling_schedules schedule ON schedule.id=reminder.id JOIN workspace_databases d ON d.id=reminder.database_id JOIN database_profiles p ON p.database_id=d.id AND p.profile_kind='project' WHERE reminder.id=$1 AND schedule.generation=$2 AND schedule.next_due_at=$3 AND reminder.user_id=$4 AND (($5 AND reminder.status IN('scheduled','claimed')) OR (NOT $5 AND reminder.status IN('claimed','fired'))) AND NOT myoxus_database_source_admitted(d.managed_installation))")
+      .bind(reminder_id).bind(schedule_revision).bind(trigger_at).bind(user_id).bind(admission).fetch_one(&mut *tx).await.map_err(Self::map_sqlx_error)?;
     if unavailable {
       return Err(RepositoryError::Validation(
         "managed reminder schema unavailable on this node".into(),
@@ -360,10 +297,13 @@ impl DatabaseReminderRepository for PgDatabaseRepository {
     }
     let row = sqlx::query(
       r#"
-        SELECT reminder.*, target_row.title AS row_title,
+        SELECT reminder.*,schedule.next_due_at AS trigger_at,schedule.generation AS schedule_revision,
+               target_row.title AS row_title,
                field.name AS field_name,
                (cell.value_json ->> 'start')::timestamptz AS scheduled_for
         FROM database_row_reminders AS reminder
+        JOIN scheduling_schedules schedule ON schedule.id=reminder.id
+          AND schedule.target_json->>'kind'='database_reminder'
         JOIN workspace_databases AS database
           ON database.id = reminder.database_id
          AND database.deleted_at IS NULL
@@ -390,16 +330,18 @@ impl DatabaseReminderRepository for PgDatabaseRepository {
          AND membership.status = 'Accepted'
         JOIN users recipient ON recipient.id=reminder.user_id AND recipient.status='active'
         WHERE reminder.id = $1
-          AND reminder.schedule_revision = $2
-          AND reminder.trigger_at = $3
+          AND schedule.generation = $2
+          AND schedule.next_due_at = $3
           AND reminder.user_id = $4
-          AND reminder.status IN ('claimed', 'fired')
+          AND (($5 AND reminder.status IN ('scheduled','claimed'))
+            OR (NOT $5 AND reminder.status IN ('claimed','fired')))
       "#,
     )
     .bind(reminder_id)
     .bind(schedule_revision)
     .bind(trigger_at)
     .bind(user_id)
+    .bind(admission)
     .fetch_optional(&mut *tx)
     .await
     .map_err(Self::map_sqlx_error)?;
@@ -426,28 +368,54 @@ impl DatabaseReminderRepository for PgDatabaseRepository {
       .transpose()
   }
 
-  async fn cancel_database_row_reminder_generation(
+  async fn cancel_reminder_generation(
     &self,
     reminder_id: Uuid,
     schedule_revision: i64,
     cancelled_at: DateTime<Utc>,
   ) -> RepoResult<bool> {
-    let result = sqlx::query(
+    let mut tx = self.begin_write().await?;
+    let native: Option<Uuid> = sqlx::query_scalar(
+      "SELECT id FROM database_row_reminders WHERE id=$1 AND status IN('scheduled','claimed','fired') FOR UPDATE",
+    )
+    .bind(reminder_id)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(Self::map_sqlx_error)?;
+    if native.is_none() {
+      return Ok(false);
+    }
+    // Read the fence after native ownership, in the same order as admission
+    // and edits. A snapshot taken before waiting for a new edit cannot cancel it.
+    let generation: Option<i64> = sqlx::query_scalar(
+      "SELECT generation FROM scheduling_schedules WHERE id=$1 AND target_json->>'kind'='database_reminder' FOR UPDATE",
+    )
+    .bind(reminder_id)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(Self::map_sqlx_error)?;
+    if generation != Some(schedule_revision) {
+      return Ok(false);
+    }
+    let changed: Option<Uuid> = sqlx::query_scalar(
       r#"
-        UPDATE database_row_reminders
-        SET status = 'cancelled', schedule_revision = schedule_revision + 1,
-            claim_token = NULL, claim_expires_at = NULL,
-            cancelled_at = $3, updated_at = $3
-        WHERE id = $1 AND schedule_revision = $2
-          AND status IN ('scheduled', 'claimed', 'fired')
+        UPDATE database_row_reminders reminder
+        SET status = 'cancelled',
+            cancelled_at = $2, updated_at = $2
+        WHERE reminder.id = $1
+          AND reminder.status IN ('scheduled', 'claimed', 'fired')
+        RETURNING reminder.id
       "#,
     )
     .bind(reminder_id)
-    .bind(schedule_revision)
     .bind(cancelled_at)
-    .execute(&self.pool)
+    .fetch_optional(&mut *tx)
     .await
     .map_err(Self::map_sqlx_error)?;
-    Ok(result.rows_affected() == 1)
+    if let Some(id) = changed {
+      crate::scheduling::database_reminders::end_in(&mut tx, &[id], true).await?;
+    }
+    tx.commit().await.map_err(Self::map_sqlx_error)?;
+    Ok(changed.is_some())
   }
 }

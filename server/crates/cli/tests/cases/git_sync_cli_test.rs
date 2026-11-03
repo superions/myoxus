@@ -1248,15 +1248,17 @@ async fn inv_cli_gitsync05_cron_preview_status_and_manual_trigger_share_durable_
     .unwrap()
     .with_timezone(&chrono::Utc);
   sqlx::query(
-    "UPDATE git_sync_profiles
+    "WITH profile AS (UPDATE git_sync_profiles
      SET trigger_mode = 'Cron',
          polling_interval_secs = NULL,
          cron_expression = '0 * * * *',
          cron_timezone = 'UTC',
-         cron_misfire_policy = 'RunOnce',
-         cron_next_scheduled_at = $2,
-         cron_pending_misfire_scheduled_for = NULL
-     WHERE id = $1",
+          cron_misfire_policy = 'RunOnce'
+      WHERE id=$1 RETURNING id,workspace_id,owner_id)
+      INSERT INTO scheduling_schedules(id,workspace_id,actor_id,admission_zone,target_json,next_nominal,next_due_at,next_admission_at)
+      SELECT id,workspace_id,owner_id,'UTC',jsonb_build_object('kind','git_cron','profile_id',id),
+        jsonb_build_object('kind','local_date_time','value',to_char($2::timestamptz AT TIME ZONE 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS.US')),$2,$2
+      FROM profile",
   )
   .bind(seed.profile_id)
   .bind(next)
@@ -1315,7 +1317,7 @@ async fn inv_cli_gitsync05_cron_preview_status_and_manual_trigger_share_durable_
   assert_eq!(source, "Manual");
   assert!(scheduled_for.is_none());
   let next_after: chrono::DateTime<chrono::Utc> =
-    sqlx::query_scalar("SELECT cron_next_scheduled_at FROM git_sync_profiles WHERE id = $1")
+    sqlx::query_scalar("SELECT next_due_at FROM scheduling_schedules WHERE id=$1")
       .bind(seed.profile_id)
       .fetch_one(&pool)
       .await

@@ -125,6 +125,12 @@ read, reconnect/online read, or sparse active-state poll.
 
 - `limited` shows a non-blocking warning and applies the operation's retry
   budget independently in each Browser Web runtime.
+- A failed control read blocks data retries until an authoritative read
+  succeeds. Window and storage-worker runtimes retry the control read after
+  15 seconds, including when there is no online or socket wake-up.
+- LiveData effects wait locally for retry admission instead of terminating
+  with a program error. Waiting checks make no data requests and do not
+  replenish the operation's retry budget.
 - `suspended` and `failed` replace product routes with a global blocking
   surface. New Browser Web data sockets are rejected; native clients are not
   affected.

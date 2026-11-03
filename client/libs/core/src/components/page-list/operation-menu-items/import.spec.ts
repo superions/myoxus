@@ -22,6 +22,30 @@ const t = {
 afterEach(() => vi.restoreAllMocks());
 
 describe("document import result notification", () => {
+  test("does not duplicate the owned Word result with generic success", () => {
+    const success = vi
+      .spyOn(notify, "success")
+      .mockImplementation(() => "success");
+    const warning = vi
+      .spyOn(notify, "warning")
+      .mockImplementation(() => "warning");
+    notifyImportResult(t, {
+      docIds: ["created"],
+      docx: {
+        attemptId: "attempt",
+        status: "complete",
+        id: "created",
+        title: "Word title",
+        workspaceId: "origin",
+        workspaceName: "Origin",
+        origin: "/origin",
+        ready: true,
+        warnings: [{ code: "missing_image_omitted", count: 1 }],
+      },
+    });
+    expect(success).not.toHaveBeenCalled();
+    expect(warning).not.toHaveBeenCalled();
+  });
   test("warns with the aggregate Markdown diagnostic counts", () => {
     const warning = vi
       .spyOn(notify, "warning")

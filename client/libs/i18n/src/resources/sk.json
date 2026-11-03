@@ -1269,7 +1269,6 @@
   "admin.performance.field.compaction-lock-ttl.desc": "TTL zámku kompaktizácie (sekundy). Bezpečnostný timeout pre prípad zlyhania servera počas kompaktizácie.",
   "admin.performance.field.compaction-threshold-default.desc": "Počet čakajúcich aktualizácií pred spustením automatickej kompaktizácie. Predvolené: 500",
   "admin.performance.field.compaction-threshold-root-doc.desc": "Prah automatickej kompaktizácie pre koreňové dokumenty. Predvolené: 50",
-  "admin.performance.field.cron-tick-interval.desc": "Interval (sekundy) pre cron plánovač. Predvolené: 60 · Min: 5 · Môže vyžadovať reštart pre plný efekt.",
   "admin.performance.field.daily-enabled.desc": "Povoliť denný cyklus automatického ladenia TTL.",
   "admin.performance.field.doc-metadata-cache-enabled.desc": "Povoliť Redis cache metadát. Znižuje DB dotazy pre vyhľadávania metadát dokumentov.",
   "admin.performance.field.doc-metadata-fixed-ttl.desc": "Prepis pevného TTL pre cache doc_metadata (sekundy). 0 = použiť automatické ladenie.",

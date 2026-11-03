@@ -670,7 +670,7 @@ const Section = ({
           <Stack>
             {events.map((event) => (
               <EventRow
-                key={event.id}
+                key={`${event.id}:${event.recurrenceId ?? ""}`}
                 event={event}
                 showDayPrefix={showDayPrefix}
                 now={now}
@@ -779,15 +779,41 @@ const EventRow = ({
   const handleEdit = useCallback(
     (e: React.SyntheticEvent) => {
       e.stopPropagation();
-      workspaceDialogService.open("event-edit", { eventId: event.id });
+      workspaceDialogService.open("event-edit", {
+        eventId: event.id,
+        occurrence: event.recurrenceId
+          ? {
+              instanceStart: event.recurrenceId,
+              startsAt: event.startAt.toISOString(),
+              endsAt: event.endAt.toISOString(),
+              title: event.title,
+            }
+          : undefined,
+      });
     },
-    [workspaceDialogService, event.id],
+    [workspaceDialogService, event],
   );
 
-  const handleDeleteRequest = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    setPendingDelete(true);
-  }, []);
+  const handleDeleteRequest = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (event.recurrenceId) {
+        workspaceDialogService.open("event-edit", {
+          eventId: event.id,
+          occurrence: {
+            instanceStart: event.recurrenceId,
+            startsAt: event.startAt.toISOString(),
+            endsAt: event.endAt.toISOString(),
+            title: event.title,
+          },
+          intent: "delete",
+        });
+        return;
+      }
+      setPendingDelete(true);
+    },
+    [event, workspaceDialogService],
+  );
 
   const handleDeleteCancel = useCallback((e: React.SyntheticEvent) => {
     e.stopPropagation();
@@ -985,6 +1011,7 @@ const EventRow = ({
         <MyoxusText
           typographySlot="label-compact"
           tone="secondary"
+          component="div"
           data-myoxus-ui-role="event-row-caption"
         >
           <span>

@@ -115,6 +115,8 @@ async fn inv_cal_native01_insert_native_has_null_identity() {
   let input = NativeEventInput {
     workspace_id: ws_id,
     title: Some("Standup".to_string()),
+    imported_recurrence: None,
+    recurrence: None,
     description_delta: None,
     starts_at: Utc::now(),
     ends_at: Utc::now() + chrono::Duration::hours(1),
@@ -281,6 +283,8 @@ async fn inv_cal_all_members01_no_participants_row_when_all_members() {
   let input = NativeEventInput {
     workspace_id: ws_id,
     title: Some("Team All-Hands".to_string()),
+    imported_recurrence: None,
+    recurrence: None,
     description_delta: None,
     starts_at: Utc::now(),
     ends_at: Utc::now() + chrono::Duration::hours(1),
@@ -336,6 +340,8 @@ async fn authored_calendar_mail_has_stable_uid_sequence_and_atomic_cancellation(
   let start = "2026-10-12T09:00:00Z".parse().expect("date");
   let event = repo
     .insert_native_event(&NativeEventInput {
+      imported_recurrence: None,
+      recurrence: None,
       workspace_id: workspace,
       title: Some("Review".into()),
       description_delta: None,
@@ -470,6 +476,8 @@ async fn calendar_mail_worker_delivers_mime_and_suppresses_replay_and_opt_out(po
   let input = NativeEventInput {
     workspace_id: workspace,
     title: Some("Review".into()),
+    imported_recurrence: None,
+    recurrence: None,
     description_delta: None,
     starts_at: Utc::now(),
     ends_at: Utc::now() + chrono::Duration::hours(1),
@@ -637,6 +645,8 @@ async fn native_occurrence_save_is_atomic_and_suppresses_duplicate_mail(pool: sq
   let repo = SqlxCalendarRepository::new(pool.clone());
   let start = "2026-10-12T09:00:00Z".parse::<chrono::DateTime<Utc>>().unwrap();
   let mut input = NativeEventInput {
+    imported_recurrence: None,
+    recurrence: None,
     workspace_id: workspace,
     title: Some("Series review".into()),
     description_delta: None,
@@ -767,6 +777,8 @@ async fn scheduling_smtp_session_guard_releases_after_cancel_failure_and_complet
   let input = NativeEventInput {
     workspace_id: workspace,
     title: Some("Guard lifecycle".into()),
+    imported_recurrence: None,
+    recurrence: None,
     description_delta: None,
     starts_at: Utc::now(),
     ends_at: Utc::now() + chrono::Duration::hours(1),

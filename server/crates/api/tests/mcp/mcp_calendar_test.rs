@@ -29,6 +29,8 @@ async fn mcp(app: &axum::Router, token: &str, id: i64, method: &str, params: Val
       Request::builder()
         .method("POST")
         .uri("/mcp")
+        .header("host", "localhost")
+        .header("accept", "application/json, text/event-stream")
         .header("content-type", "application/json")
         .header("authorization", format!("Bearer {token}"))
         .body(Body::from(
@@ -38,8 +40,14 @@ async fn mcp(app: &axum::Router, token: &str, id: i64, method: &str, params: Val
     )
     .await
     .expect("MCP response");
-  assert_eq!(response.status(), StatusCode::OK);
+  let status = response.status();
   let bytes = response.into_body().collect().await.expect("MCP body").to_bytes();
+  assert_eq!(
+    status,
+    StatusCode::OK,
+    "MCP {method} response: {}",
+    String::from_utf8_lossy(&bytes)
+  );
   serde_json::from_slice(&bytes).expect("MCP JSON response")
 }
 
@@ -144,7 +152,7 @@ async fn inv_mcp_calendar_http_lifecycle_is_bounded_scoped_read_only_and_retryab
     &token,
     1,
     "initialize",
-    json!({ "protocolVersion": "2024-11-05", "clientInfo": { "name": "calendar-e2e", "version": "1" } }),
+    json!({ "protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": { "name": "calendar-e2e", "version": "1" } }),
   )
   .await;
   assert_eq!(initialized["result"]["serverInfo"]["name"], "myoxus");

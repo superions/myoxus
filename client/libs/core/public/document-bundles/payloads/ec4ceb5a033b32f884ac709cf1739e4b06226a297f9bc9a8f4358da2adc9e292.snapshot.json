@@ -1,0 +1,502 @@
+{
+  "type": "page",
+  "meta": {
+    "id": "590f3c72-b878-41f6-863f-766355afc0da",
+    "title": "Editor · Grundlagen",
+    "createDate": 1792404393175,
+    "tags": []
+  },
+  "blocks": {
+    "type": "block",
+    "id": "mcp-block-ba154a1c76654636a9d576b0646c84b2-0000000000000001",
+    "flavour": "myoxus:page",
+    "version": 2,
+    "props": {
+      "title": {
+        "$virgultum:internal:text$": true,
+        "delta": [
+          {
+            "insert": "Editor · Grundlagen"
+          }
+        ]
+      }
+    },
+    "children": [
+      {
+        "type": "block",
+        "id": "mcp-block-ba154a1c76654636a9d576b0646c84b2-0000000000000002",
+        "flavour": "myoxus:surface",
+        "version": 6,
+        "props": {
+          "elements": {},
+          "exportSnapshotBlobId": "",
+          "exportSnapshotWidth": 0,
+          "exportSnapshotHeight": 0
+        },
+        "children": []
+      },
+      {
+        "type": "block",
+        "id": "mcp-block-ba154a1c76654636a9d576b0646c84b2-0000000000000003",
+        "flavour": "myoxus:note",
+        "version": 1,
+        "props": {
+          "xywh": "[0,0,498,92]",
+          "background": {
+            "dark": "rgba(0, 0, 0, 1)",
+            "light": "rgba(255, 255, 255, 1)"
+          },
+          "index": "a0",
+          "lockedBySelf": false,
+          "hidden": false,
+          "displayMode": "both",
+          "edgeless": {
+            "style": {
+              "borderRadius": 8,
+              "borderSize": 4,
+              "borderStyle": "none",
+              "shadowType": "--myoxus-note-shadow-box"
+            }
+          }
+        },
+        "children": [
+          {
+            "type": "block",
+            "id": "mcp-block-3ac8eb4d43744c249da068b0220f83f9",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Schreibe eine Notiz, gliedere deinen Text und besprich eine Stelle mit anderen. Hier findest du die Bedienelemente für den Anfang."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792404400292,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792404400292,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-6f80fe4636bb4f2a80654ea5aa3ca88e",
+            "flavour": "myoxus:image",
+            "version": 1,
+            "props": {
+              "sourceId": "assets/7b7be73766160a104236cd458441de468296862b029157087bf5251807866c1e",
+              "caption": "Schritt für Schritt zu deinem ersten Dokument.",
+              "width": 394,
+              "height": 262.6640625,
+              "index": "a0",
+              "xywh": "[0,0,0,0]",
+              "lockedBySelf": false,
+              "rotate": 0,
+              "size": -1,
+              "meta:updatedAt": 1792404432732,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792404400292,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-dc6059ab2e5e4d3ea96c7bb807e145e6",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "01 · Ein Dokument beginnen"
+                  }
+                ]
+              },
+              "type": "h3",
+              "collapsed": false
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-37fd684778af4928ad201180ad51aab1",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Klicke links auf "
+                  },
+                  {
+                    "insert": "+ Neues Dokument",
+                    "attributes": {
+                      "bold": true
+                    }
+                  },
+                  {
+                    "insert": ". Klicke oben in das Titelfeld und gib deiner Notiz einen Namen. Drücke "
+                  },
+                  {
+                    "insert": "Enter",
+                    "attributes": {
+                      "bold": true
+                    }
+                  },
+                  {
+                    "insert": ": Der Cursor springt in den Textbereich darunter. Jetzt kannst du schreiben."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792404400293,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792404400293,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-9987f4d9424e47f9bae3590643f11c66",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Mit Enter beginnst du einen neuen Absatz. Mit Umschalt + Enter setzt du einen Zeilenumbruch innerhalb desselben Absatzes."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792404400293,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792404400293,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-1efdc971510641d5a7af0dc5f84b7894",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "02 · Text markieren und formatieren"
+                  }
+                ]
+              },
+              "type": "h3",
+              "collapsed": false
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-a3d99106a0444dea9c89a4d16363fb53",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Ziehe mit gedrückter Maustaste über die Wörter, die du gestalten möchtest. Ein Doppelklick markiert ein einzelnes Wort. Sobald Text markiert ist, erscheint direkt darüber eine kleine "
+                  },
+                  {
+                    "insert": "Formatierungsleiste",
+                    "attributes": {
+                      "bold": true
+                    }
+                  },
+                  {
+                    "insert": "."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792404400293,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792404400293,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-bc7d2c0ac3ea4c5ab7882449b5f5349d",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Klicke dort auf "
+                  },
+                  {
+                    "insert": "B für fett",
+                    "attributes": {
+                      "bold": true
+                    }
+                  },
+                  {
+                    "insert": " oder auf das schräg gestellte "
+                  },
+                  {
+                    "insert": "I für kursiv",
+                    "attributes": {
+                      "bold": true
+                    }
+                  },
+                  {
+                    "insert": ". Ein erneuter Klick schaltet die Formatierung wieder aus. Ohne Textauswahl wird die Leiste ausgeblendet."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792404400293,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792404400293,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-bf8fca1a10ae4c4b88a24492759ba1e4",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "03 · Überschriften einfügen"
+                  }
+                ]
+              },
+              "type": "h3",
+              "collapsed": false
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-3df06350017f453abb21f8763d54ff57",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Tippe am Anfang einer leeren Zeile / ein. Das Einfügemenü öffnet sich. Wähle "
+                  },
+                  {
+                    "insert": "Überschrift 1 (H1)",
+                    "attributes": {
+                      "bold": true
+                    }
+                  },
+                  {
+                    "insert": " für eine große Überschrift im Text oder "
+                  },
+                  {
+                    "insert": "Überschrift 2 (H2)",
+                    "attributes": {
+                      "bold": true
+                    }
+                  },
+                  {
+                    "insert": " für einen darunterliegenden Abschnitt. H steht für Heading, also Überschrift; die Zahl bezeichnet die Ebene."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792404400293,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792404400293,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-9b72bd7486c14c09aab9b4716caea1a6",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Schreibe die Überschrift und drücke Enter, um darunter mit normalem Text weiterzuschreiben. Der Dokumenttitel ganz oben ist davon unabhängig."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792404400293,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792404400293,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-57280becfc6b41848b3843f501598c9b",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "04 · Links und Kommentare"
+                  }
+                ]
+              },
+              "type": "h3",
+              "collapsed": false
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-77057219e0a64b02a0b6a3417db2d886",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Link: Markiere den gewünschten Text und klicke in der Formatierungsleiste auf das "
+                  },
+                  {
+                    "insert": "Kettensymbol",
+                    "attributes": {
+                      "bold": true
+                    }
+                  },
+                  {
+                    "insert": ". Gib die vollständige Webadresse ein und bestätige mit dem Häkchen oder Enter."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792404400293,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792404400293,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-1fedee60edb744a7bef89793af3dc962",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Kommentar: Markiere die Textstelle und klicke in derselben Leiste auf die "
+                  },
+                  {
+                    "insert": "Sprechblase",
+                    "attributes": {
+                      "bold": true
+                    }
+                  },
+                  {
+                    "insert": ". Rechts öffnet sich der Kommentarbereich. Schreibe deinen Kommentar und klicke auf den Pfeil zum Absenden."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792404400294,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792404400294,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-437a6d5229904bd78fde841dd98f9f63",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Zum Wiederfinden: Klicke links auf die Lupe und suche nach dem Dokumenttitel.",
+                    "attributes": {
+                      "color": "var(--myoxus-text-highlight-foreground-teal)"
+                    }
+                  }
+                ]
+              },
+              "type": "quote",
+              "collapsed": false,
+              "meta:updatedAt": 1792404400294,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792404400294,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-5afcba5b40bc4b71a4545f99d86be7af",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Für Listen, Tabellen, Bilder und das Umordnen von Abschnitten geht es im Leitfaden „Editor · Blöcke und Aufbau“ weiter. Bestehende Dateien behandelt „Inhalte importieren“."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792404400294,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792404400294,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

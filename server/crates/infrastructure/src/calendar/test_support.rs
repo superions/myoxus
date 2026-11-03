@@ -121,10 +121,6 @@ impl CalendarRepository for NullCalendarRepository {
     Ok(())
   }
 
-  async fn list_due_calendar_reminders(&self, _now: DateTime<Utc>, _limit: i64) -> RepoResult<Vec<CalendarReminder>> {
-    Ok(vec![])
-  }
-
   async fn acquire_reminder_delivery_guard(
     &self,
     _reminder_id: Uuid,

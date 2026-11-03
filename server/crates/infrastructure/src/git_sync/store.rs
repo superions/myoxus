@@ -9,6 +9,7 @@ use uuid::Uuid;
 
 mod conflict_observation;
 mod retention;
+mod rotation_admission;
 pub use retention::GitSyncHistoryCleanupBatch;
 
 use myoxus_application::git_sync::bootstrap::{
@@ -16,7 +17,6 @@ use myoxus_application::git_sync::bootstrap::{
 };
 use myoxus_application::git_sync::export::GitSyncWriterScope;
 use myoxus_application::git_sync::finalization::GitSyncPostPushPlan;
-use myoxus_application::git_sync::schedule::GitSyncCronSchedule;
 use myoxus_application::git_sync::{
   EncryptedGitCredential, GitSyncDeleteImpact, GitSyncLifecyclePolicy, GitSyncLifecycleStore,
   GitSyncLifecycleStoreError, GitSyncReconciliationInventory, GitSyncReconciliationPlan, GitSyncReconciliationStore,
@@ -25,19 +25,24 @@ use myoxus_application::git_sync::{
   GitTokenRotationState, GitTokenRotationStatus, GitTokenRotationStore, GitTokenRotationStoreError,
   ReconciliationDocument, git_token_rotation::requested_expiry,
 };
+use myoxus_application::scheduling::cron::CronSchedule;
 use myoxus_domain::git_sync::{
   AuthMethod, ConflictResolution, ConflictType, ErrorClass, GitCredentialRef, GitSyncBaseline, GitSyncBinding,
-  GitSyncConflict, GitSyncCronMisfirePolicy, GitSyncFileBaseline, GitSyncFileBinding, GitSyncFileConflict,
-  GitSyncPartialItem, GitSyncPartialSession, GitSyncProfile, GitSyncRun, GitSyncRunSource, GitSyncScopeExclusion,
-  GitSyncVersionLink, PartialItemKind, PartialItemStatus, PartialSessionStatus, RepoPath, RunStatus, SyncDirection,
-  TriggerMode,
+  GitSyncConflict, GitSyncFileBaseline, GitSyncFileBinding, GitSyncFileConflict, GitSyncPartialItem,
+  GitSyncPartialSession, GitSyncProfile, GitSyncRun, GitSyncRunSource, GitSyncScopeExclusion, GitSyncVersionLink,
+  PartialItemKind, PartialItemStatus, PartialSessionStatus, RepoPath, RunStatus, SyncDirection, TriggerMode,
 };
+use myoxus_domain::scheduling::CronMisfirePolicy;
 
 use crate::document_metadata::initial_sync_audit::{
   ImportedWorkspaceDocumentCreate, ensure_imported_workspace_document_at, workspace_document_first_create_lock_key,
 };
 
 use super::ssh_host_keys::{GitSyncSshHostKey, ObservedSshHostKey};
+
+// Profile timing projections retain their existing public names, not a second
+// native cursor or a compatibility view over the removed columns.
+const PROFILE_SELECT: &str = "SELECT p.id,p.workspace_id,p.owner_id,p.repo_url,p.branch,p.root_path,p.manifest_path,p.scope_revision,p.sync_direction,p.trigger_mode,p.polling_interval_secs,p.cron_expression,p.cron_timezone,p.cron_misfire_policy,cron.next_due_at AS cron_next_scheduled_at,cron.pending_due_at AS cron_pending_misfire_scheduled_for,p.auth_method,p.credential_id,p.enabled,p.max_mirror_storage_mb,p.created_at,p.updated_at FROM git_sync_profiles p LEFT JOIN scheduling_schedules cron ON cron.id=p.id AND cron.target_json->>'kind'='git_cron'";
 
 /// A grandchild has permission to run only when every intermediate configured
 /// profile still owns the next exact subtree. A missing intermediate leaves
@@ -267,18 +272,6 @@ pub struct GitSyncDocumentProjection {
   pub effective_updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-/// Raw polling state. The API scheduler applies the effective runtime policy;
-/// the store only owns durable candidate selection.
-#[derive(Debug, Clone)]
-pub struct GitSyncPollingProfile {
-  pub profile_id: Uuid,
-  pub sync_direction: String,
-  pub auth_method: String,
-  pub repo_url: String,
-  pub polling_interval_secs: i64,
-  pub last_activity_at: Option<chrono::DateTime<chrono::Utc>>,
-}
-
 #[derive(Debug, Clone)]
 pub struct GitSyncBlobPromotion {
   pub id: Uuid,
@@ -340,10 +333,10 @@ fn parse_run_source(s: &str) -> Result<GitSyncRunSource, GitSyncStoreError> {
   }
 }
 
-fn parse_cron_misfire_policy(s: &str) -> Result<GitSyncCronMisfirePolicy, GitSyncStoreError> {
+fn parse_cron_misfire_policy(s: &str) -> Result<CronMisfirePolicy, GitSyncStoreError> {
   match s {
-    "Skip" => Ok(GitSyncCronMisfirePolicy::Skip),
-    "RunOnce" => Ok(GitSyncCronMisfirePolicy::RunOnce),
+    "Skip" => Ok(CronMisfirePolicy::Skip),
+    "RunOnce" => Ok(CronMisfirePolicy::RunOnce),
     _ => Err(GitSyncStoreError::InvalidEnum {
       field: "cron_misfire_policy".into(),
       value: s.into(),
@@ -606,6 +599,9 @@ impl SqlxGitSyncStore {
     payload: &[u8],
   ) -> GitSyncResult<()> {
     let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
+    crate::document_metadata::reject_guide_content_write(&mut tx, doc_id)
+      .await
+      .map_err(|error| GitSyncStoreError::Validation(error.to_string()))?;
     let updated = sqlx::query(
       "UPDATE docs
        SET title = $3, updated_by = $4, updated_at = now(), deleted_at = NULL
@@ -637,48 +633,6 @@ impl SqlxGitSyncStore {
     .await
     .map_err(Self::map_db_err)?;
     tx.commit().await.map_err(Self::map_db_err)
-  }
-
-  /// Load enabled polling profiles together with their latest durable run
-  /// activity. Effective policy filtering remains outside persistence.
-  pub async fn list_polling_profiles(&self) -> GitSyncResult<Vec<GitSyncPollingProfile>> {
-    let rows = sqlx::query(
-      r#"
-      SELECT
-        p.id as profile_id,
-        p.sync_direction,
-        p.auth_method,
-        p.repo_url,
-        p.polling_interval_secs,
-        (
-          SELECT GREATEST(r.started_at, COALESCE(r.finished_at, r.started_at))
-          FROM git_sync_runs r
-          WHERE r.profile_id = p.id
-          ORDER BY GREATEST(r.started_at, COALESCE(r.finished_at, r.started_at)) DESC
-          LIMIT 1
-        ) as last_activity_at
-      FROM git_sync_profiles p
-      WHERE p.enabled = true
-        AND p.trigger_mode = 'Polling'
-        AND p.polling_interval_secs IS NOT NULL
-      "#,
-    )
-    .fetch_all(&self.pool)
-    .await
-    .map_err(Self::map_db_err)?;
-    Ok(
-      rows
-        .into_iter()
-        .map(|row| GitSyncPollingProfile {
-          profile_id: row.get("profile_id"),
-          sync_direction: row.get("sync_direction"),
-          auth_method: row.get("auth_method"),
-          repo_url: row.get("repo_url"),
-          polling_interval_secs: row.get("polling_interval_secs"),
-          last_activity_at: row.get("last_activity_at"),
-        })
-        .collect(),
-    )
   }
 
   /// Check the concrete active-workspace membership required before a Git-Sync
@@ -1139,6 +1093,41 @@ impl SqlxGitSyncStore {
     })
   }
 
+  pub(crate) async fn profile_in(conn: &mut sqlx::PgConnection, id: Uuid) -> GitSyncResult<GitSyncProfile> {
+    let row = sqlx::query(&format!("{PROFILE_SELECT} WHERE p.id=$1"))
+      .bind(id)
+      .fetch_optional(conn)
+      .await
+      .map_err(Self::map_db_err)?
+      .ok_or(GitSyncStoreError::NotFound)?;
+    Self::map_profile_row(row)
+  }
+
+  async fn locked_profile_in(conn: &mut sqlx::PgConnection, id: Uuid) -> GitSyncResult<GitSyncProfile> {
+    sqlx::query_scalar::<_, Uuid>("SELECT id FROM git_sync_profiles WHERE id=$1 FOR UPDATE")
+      .bind(id)
+      .fetch_optional(&mut *conn)
+      .await
+      .map_err(Self::map_db_err)?
+      .ok_or(GitSyncStoreError::NotFound)?;
+    // A second statement reads the cursor after waiting for the profile lock.
+    // An earlier joined snapshot could precede a concurrent admitted Git slot.
+    Self::profile_in(conn, id).await
+  }
+
+  pub(crate) async fn write_schedules_in(
+    conn: &mut sqlx::PgConnection,
+    previous: Option<&GitSyncProfile>,
+    updated: &GitSyncProfile,
+  ) -> GitSyncResult<()> {
+    crate::scheduling::git_cron::replace_in(conn, previous, updated)
+      .await
+      .map_err(|error| GitSyncStoreError::Validation(error.to_string()))?;
+    crate::scheduling::git_polling::replace_in(conn, previous, updated)
+      .await
+      .map_err(|error| GitSyncStoreError::Validation(error.to_string()))
+  }
+
   fn map_binding_row(row: sqlx::postgres::PgRow) -> GitSyncResult<GitSyncBinding> {
     Ok(GitSyncBinding {
       id: row.get("id"),
@@ -1565,7 +1554,7 @@ impl SqlxGitSyncStore {
       .execute(&mut *tx)
       .await
       .map_err(Self::map_db_err)?;
-    let profiles = sqlx::query("SELECT * FROM git_sync_profiles WHERE repo_url = $1 AND branch = $2")
+    let profiles = sqlx::query(&format!("{PROFILE_SELECT} WHERE p.repo_url=$1 AND p.branch=$2"))
       .bind(repository)
       .bind(branch)
       .fetch_all(&mut *tx)
@@ -1855,21 +1844,14 @@ impl SqlxGitSyncStore {
     }
     let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
     Self::admit_profile_scope(&mut tx, profile).await?;
-    let row = sqlx::query(
+    sqlx::query(
       r#"
             INSERT INTO git_sync_profiles
                 (id, workspace_id, owner_id, repo_url, branch, root_path,
                  sync_direction, trigger_mode, polling_interval_secs,
                  cron_expression, cron_timezone, cron_misfire_policy,
-                 cron_next_scheduled_at, cron_pending_misfire_scheduled_for,
                  auth_method, credential_id, enabled, max_mirror_storage_mb, manifest_path)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
-            RETURNING id, workspace_id, owner_id, repo_url, branch, root_path, manifest_path, scope_revision,
-                      sync_direction, trigger_mode, polling_interval_secs,
-                      cron_expression, cron_timezone, cron_misfire_policy,
-                      cron_next_scheduled_at, cron_pending_misfire_scheduled_for,
-                      auth_method, credential_id, enabled, max_mirror_storage_mb,
-                      created_at, updated_at
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
             "#,
     )
     .bind(profile.id)
@@ -1884,20 +1866,18 @@ impl SqlxGitSyncStore {
     .bind(&profile.cron_expression)
     .bind(&profile.cron_timezone)
     .bind(profile.cron_misfire_policy.map(|value| value.to_string()))
-    .bind(profile.cron_next_scheduled_at)
-    .bind(profile.cron_pending_misfire_scheduled_for)
     .bind(profile.auth_method.to_string())
     .bind(profile.credential_id)
     .bind(profile.enabled)
     .bind(profile.max_mirror_storage_mb)
     .bind(&profile.manifest_path)
-    .fetch_one(&mut *tx)
+    .execute(&mut *tx)
     .await
     .map_err(Self::map_db_err)?;
 
+    Self::write_schedules_in(&mut tx, None, profile).await?;
+    let result = Self::profile_in(&mut tx, profile.id).await?;
     tx.commit().await.map_err(Self::map_db_err)?;
-
-    let result = Self::map_profile_row(row)?;
     debug!(profile_id = %result.id, "git sync profile created");
     Ok(result)
   }
@@ -1968,6 +1948,11 @@ impl SqlxGitSyncStore {
     .await
     .map_err(Self::map_db_err)?;
 
+    let previous = if let Some(row) = existing.as_ref() {
+      Some(Self::profile_in(&mut tx, row.get("id")).await?)
+    } else {
+      None
+    };
     let (profile_id, owner_id, old_credential_id) = if let Some(row) = existing {
       if row.get::<String, _>("manifest_path") != profile.manifest_path {
         return Err(GitSyncStoreError::Validation(
@@ -2010,6 +1995,8 @@ impl SqlxGitSyncStore {
     }
     let mut admitted = profile.clone();
     admitted.id = profile_id;
+    admitted.owner_id = owner_id;
+    admitted.enabled = true;
     Self::admit_profile_scope(&mut tx, &admitted).await?;
 
     let existing_any = sqlx::query_scalar::<_, i32>("SELECT 1 FROM git_sync_profiles WHERE id = $1")
@@ -2033,10 +2020,8 @@ impl SqlxGitSyncStore {
                     cron_expression = $9,
                     cron_timezone = $10,
                     cron_misfire_policy = $11,
-                    cron_next_scheduled_at = $12,
-                    cron_pending_misfire_scheduled_for = $13,
-                    auth_method = $14,
-                    max_mirror_storage_mb = $15,
+                    auth_method = $12,
+                    max_mirror_storage_mb = $13,
                     enabled = true,
                     updated_at = now()
                 WHERE id = $1
@@ -2053,8 +2038,6 @@ impl SqlxGitSyncStore {
       .bind(&profile.cron_expression)
       .bind(&profile.cron_timezone)
       .bind(profile.cron_misfire_policy.map(|value| value.to_string()))
-      .bind(profile.cron_next_scheduled_at)
-      .bind(profile.cron_pending_misfire_scheduled_for)
       .bind(profile.auth_method.to_string())
       .bind(profile.max_mirror_storage_mb)
       .execute(&mut *tx)
@@ -2067,9 +2050,8 @@ impl SqlxGitSyncStore {
                     (id, workspace_id, owner_id, repo_url, branch, root_path,
                      sync_direction, trigger_mode, polling_interval_secs,
                      cron_expression, cron_timezone, cron_misfire_policy,
-                     cron_next_scheduled_at, cron_pending_misfire_scheduled_for,
-                      auth_method, credential_id, enabled, max_mirror_storage_mb, manifest_path)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NULL, true, $16, $17)
+                       auth_method, credential_id, enabled, max_mirror_storage_mb, manifest_path)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NULL, true, $14, $15)
                 "#,
       )
       .bind(profile_id)
@@ -2084,8 +2066,6 @@ impl SqlxGitSyncStore {
       .bind(&profile.cron_expression)
       .bind(&profile.cron_timezone)
       .bind(profile.cron_misfire_policy.map(|value| value.to_string()))
-      .bind(profile.cron_next_scheduled_at)
-      .bind(profile.cron_pending_misfire_scheduled_for)
       .bind(profile.auth_method.to_string())
       .bind(profile.max_mirror_storage_mb)
       .bind(&profile.manifest_path)
@@ -2116,23 +2096,17 @@ impl SqlxGitSyncStore {
         .await
         .map_err(Self::map_db_err)?;
     }
-    let row = sqlx::query(
+    sqlx::query(
       r#"
             UPDATE git_sync_profiles
             SET credential_id = $1,
                 updated_at = now()
             WHERE id = $2
-            RETURNING id, workspace_id, owner_id, repo_url, branch, root_path, manifest_path, scope_revision,
-                      sync_direction, trigger_mode, polling_interval_secs,
-                      cron_expression, cron_timezone, cron_misfire_policy,
-                      cron_next_scheduled_at, cron_pending_misfire_scheduled_for,
-                      auth_method, credential_id, enabled, max_mirror_storage_mb,
-                      created_at, updated_at
             "#,
     )
     .bind(new_credential_id)
     .bind(profile_id)
-    .fetch_one(&mut *tx)
+    .execute(&mut *tx)
     .await
     .map_err(Self::map_db_err)?;
 
@@ -2147,9 +2121,9 @@ impl SqlxGitSyncStore {
         .map_err(Self::map_db_err)?;
     }
 
+    Self::write_schedules_in(&mut tx, previous.as_ref(), &admitted).await?;
+    let result = Self::profile_in(&mut tx, profile_id).await?;
     tx.commit().await.map_err(Self::map_db_err)?;
-
-    let result = Self::map_profile_row(row)?;
     debug!(profile_id = %result.id, credential_id = %new_credential_id, "profile upserted with credential");
     Ok(result)
   }
@@ -2270,25 +2244,8 @@ impl SqlxGitSyncStore {
   /// Fetch a profile by its ID.
   #[instrument(skip(self))]
   pub async fn get_profile(&self, profile_id: Uuid) -> GitSyncResult<GitSyncProfile> {
-    let row = sqlx::query(
-      r#"
-            SELECT id, workspace_id, owner_id, repo_url, branch, root_path, manifest_path, scope_revision,
-                   sync_direction, trigger_mode, polling_interval_secs,
-                   cron_expression, cron_timezone, cron_misfire_policy,
-                   cron_next_scheduled_at, cron_pending_misfire_scheduled_for,
-                   auth_method, credential_id, enabled, max_mirror_storage_mb,
-                   created_at, updated_at
-            FROM git_sync_profiles
-            WHERE id = $1
-            "#,
-    )
-    .bind(profile_id)
-    .fetch_optional(&self.pool)
-    .await
-    .map_err(Self::map_db_err)?
-    .ok_or(GitSyncStoreError::NotFound)?;
-
-    let result = Self::map_profile_row(row)?;
+    let mut conn = self.pool.acquire().await.map_err(Self::map_db_err)?;
+    let result = Self::profile_in(&mut conn, profile_id).await?;
     trace!(profile_id = %result.id, "profile fetched by id");
     Ok(result)
   }
@@ -2296,22 +2253,11 @@ impl SqlxGitSyncStore {
   /// Fetch the (enabled) profile for a workspace.
   #[instrument(skip(self))]
   pub async fn get_profile_by_workspace(&self, workspace_id: Uuid) -> GitSyncResult<Option<GitSyncProfile>> {
-    let row = sqlx::query(
-      r#"
-            SELECT id, workspace_id, owner_id, repo_url, branch, root_path, manifest_path, scope_revision,
-                   sync_direction, trigger_mode, polling_interval_secs,
-                   cron_expression, cron_timezone, cron_misfire_policy,
-                   cron_next_scheduled_at, cron_pending_misfire_scheduled_for,
-                   auth_method, credential_id, enabled, max_mirror_storage_mb,
-                   created_at, updated_at
-            FROM git_sync_profiles
-            WHERE workspace_id = $1 AND enabled = true
-            "#,
-    )
-    .bind(workspace_id)
-    .fetch_optional(&self.pool)
-    .await
-    .map_err(Self::map_db_err)?;
+    let row = sqlx::query(&format!("{PROFILE_SELECT} WHERE p.workspace_id=$1 AND p.enabled=true"))
+      .bind(workspace_id)
+      .fetch_optional(&self.pool)
+      .await
+      .map_err(Self::map_db_err)?;
 
     let result = row.map(Self::map_profile_row).transpose()?;
     trace!(found = result.is_some(), "profile lookup by workspace");
@@ -2321,13 +2267,9 @@ impl SqlxGitSyncStore {
   /// Configuration/status reads include paused profiles. Display ordering is
   /// not run admission; collision checks still cover every configured scope.
   pub async fn get_configured_profile_by_workspace(&self, workspace_id: Uuid) -> GitSyncResult<Option<GitSyncProfile>> {
-    sqlx::query(
-      "SELECT id,workspace_id,owner_id,repo_url,branch,root_path,manifest_path,scope_revision,
-        sync_direction,trigger_mode,polling_interval_secs,cron_expression,cron_timezone,cron_misfire_policy,
-        cron_next_scheduled_at,cron_pending_misfire_scheduled_for,auth_method,credential_id,enabled,
-        max_mirror_storage_mb,created_at,updated_at
-       FROM git_sync_profiles WHERE workspace_id=$1 ORDER BY enabled DESC,created_at DESC,id DESC LIMIT 1",
-    )
+    sqlx::query(&format!(
+      "{PROFILE_SELECT} WHERE p.workspace_id=$1 ORDER BY p.enabled DESC,p.created_at DESC,p.id DESC LIMIT 1"
+    ))
     .bind(workspace_id)
     .fetch_optional(&self.pool)
     .await
@@ -2340,19 +2282,13 @@ impl SqlxGitSyncStore {
   #[instrument(skip(self))]
   pub async fn update_profile(&self, profile: &GitSyncProfile) -> GitSyncResult<GitSyncProfile> {
     let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
-    let current =
-      sqlx::query("SELECT repo_url, branch, root_path, manifest_path, credential_id FROM git_sync_profiles WHERE id = $1 FOR UPDATE")
-        .bind(profile.id)
-        .fetch_optional(&mut *tx)
-        .await
-        .map_err(Self::map_db_err)?
-        .ok_or(GitSyncStoreError::NotFound)?;
-    if current.get::<String, _>("manifest_path") != profile.manifest_path {
+    let current = Self::locked_profile_in(&mut tx, profile.id).await?;
+    if current.manifest_path != profile.manifest_path {
       return Err(GitSyncStoreError::Validation(
         "Git-Sync manifest address is immutable".into(),
       ));
     }
-    if current.get::<Option<Uuid>, _>("credential_id") != profile.credential_id {
+    if current.credential_id != profile.credential_id {
       return Err(GitSyncStoreError::Validation(
         "profile update cannot attach a credential".into(),
       ));
@@ -2371,30 +2307,22 @@ impl SqlxGitSyncStore {
         "credential rotation is in progress".into(),
       ));
     }
-    if current.get::<String, _>("repo_url") != profile.repo_url
-      || current.get::<String, _>("branch") != profile.branch
-      || current.get::<String, _>("root_path") != profile.root_path
+    if current.repo_url != profile.repo_url
+      || current.branch != profile.branch
+      || current.root_path != profile.root_path
     {
       Self::admit_profile_scope(&mut tx, profile).await?;
     }
-    let row = sqlx::query(
+    sqlx::query(
       r#"
             UPDATE git_sync_profiles
             SET repo_url = $2, branch = $3, root_path = $4,
                 sync_direction = $5, trigger_mode = $6,
                 polling_interval_secs = $7, cron_expression = $8,
                 cron_timezone = $9, cron_misfire_policy = $10,
-                cron_next_scheduled_at = $11,
-                cron_pending_misfire_scheduled_for = $12,
-                auth_method = $13, credential_id = $14, enabled = $15,
-                max_mirror_storage_mb = $16, updated_at = now()
+                auth_method = $11, credential_id = $12, enabled = $13,
+                max_mirror_storage_mb = $14, updated_at = now()
             WHERE id = $1
-            RETURNING id, workspace_id, owner_id, repo_url, branch, root_path, manifest_path, scope_revision,
-                      sync_direction, trigger_mode, polling_interval_secs,
-                      cron_expression, cron_timezone, cron_misfire_policy,
-                      cron_next_scheduled_at, cron_pending_misfire_scheduled_for,
-                      auth_method, credential_id, enabled, max_mirror_storage_mb,
-                      created_at, updated_at
             "#,
     )
     .bind(profile.id)
@@ -2407,20 +2335,17 @@ impl SqlxGitSyncStore {
     .bind(&profile.cron_expression)
     .bind(&profile.cron_timezone)
     .bind(profile.cron_misfire_policy.map(|value| value.to_string()))
-    .bind(profile.cron_next_scheduled_at)
-    .bind(profile.cron_pending_misfire_scheduled_for)
     .bind(profile.auth_method.to_string())
     .bind(profile.credential_id)
     .bind(profile.enabled)
     .bind(profile.max_mirror_storage_mb)
-    .fetch_optional(&mut *tx)
+    .execute(&mut *tx)
     .await
-    .map_err(Self::map_db_err)?
-    .ok_or(GitSyncStoreError::NotFound)?;
+    .map_err(Self::map_db_err)?;
 
+    Self::write_schedules_in(&mut tx, Some(&current), profile).await?;
+    let result = Self::profile_in(&mut tx, profile.id).await?;
     tx.commit().await.map_err(Self::map_db_err)?;
-
-    let result = Self::map_profile_row(row)?;
     debug!(profile_id = %result.id, "git sync profile updated");
     Ok(result)
   }
@@ -2690,6 +2615,11 @@ impl SqlxGitSyncStore {
     direction: SyncDirection,
     trigger_source: GitSyncRunSource,
   ) -> GitSyncResult<(GitSyncRun, bool)> {
+    if trigger_source == GitSyncRunSource::Polling {
+      return Err(GitSyncStoreError::Validation(
+        "Polling Run admission requires its shared schedule".into(),
+      ));
+    }
     let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
     // Profile lifecycle updates take the same row lock. A trigger can
     // therefore never admit work from configuration that is concurrently
@@ -2799,25 +2729,17 @@ impl SqlxGitSyncStore {
     lifecycle_policy: &GitSyncLifecyclePolicy,
   ) -> GitSyncResult<Option<GitSyncRun>> {
     let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
-    let profile_row = sqlx::query(
-      r#"SELECT id, workspace_id, owner_id, repo_url, branch, root_path, manifest_path, scope_revision,
-                sync_direction, trigger_mode, polling_interval_secs,
-                cron_expression, cron_timezone, cron_misfire_policy,
-                cron_next_scheduled_at, cron_pending_misfire_scheduled_for,
-                auth_method, credential_id, enabled, max_mirror_storage_mb,
-                created_at, updated_at, activation_generation
-         FROM git_sync_profiles WHERE id = $1 FOR UPDATE"#,
-    )
-    .bind(profile_id)
-    .fetch_optional(&mut *tx)
-    .await
-    .map_err(Self::map_db_err)?;
-    let Some(profile_row) = profile_row else {
+    let current_generation: Option<i64> =
+      sqlx::query_scalar("SELECT activation_generation FROM git_sync_profiles WHERE id=$1 FOR UPDATE")
+        .bind(profile_id)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(Self::map_db_err)?;
+    let Some(current_generation) = current_generation else {
       tx.commit().await.map_err(Self::map_db_err)?;
       return Ok(None);
     };
-    let current_generation: i64 = profile_row.get("activation_generation");
-    let profile = Self::map_profile_row(profile_row)?;
+    let profile = Self::profile_in(&mut tx, profile_id).await?;
 
     let receipt = sqlx::query(
       "SELECT assigned_run_id, discarded_at FROM git_sync_history_capture_receipts
@@ -2965,15 +2887,17 @@ impl SqlxGitSyncStore {
     Ok(runs)
   }
 
-  /// Atomically advance and, when eligible, admit one due Cron profile.
+  /// Atomically advance one shared due cursor and admit its native Cron Run.
   ///
   /// The profile row is the durable scheduling lock. Callers may invoke this
-  /// concurrently from duplicate Redis ticks or different server replicas;
-  /// only the transaction holding the row can mutate its cursor and create the
-  /// run for a UTC slot.
+  /// concurrently from shared scheduling replicas. Lock the profile before its
+  /// shared schedule so native lifecycle/credential writers keep their order.
   #[instrument(skip(self, lifecycle_policy), fields(%now))]
-  pub async fn admit_next_due_cron(
+  pub async fn admit_cron_slot(
     &self,
+    profile_id: Uuid,
+    generation: i64,
+    revision: i64,
     now: chrono::DateTime<chrono::Utc>,
     lifecycle_policy: &GitSyncLifecyclePolicy,
   ) -> GitSyncResult<Option<GitSyncCronAdmission>> {
@@ -2984,36 +2908,25 @@ impl SqlxGitSyncStore {
     let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
     let row = sqlx::query(
       r#"
-      SELECT id, workspace_id, owner_id, repo_url, branch, root_path, manifest_path, scope_revision,
-             sync_direction, trigger_mode, polling_interval_secs,
-             cron_expression, cron_timezone, cron_misfire_policy,
-             cron_next_scheduled_at, cron_pending_misfire_scheduled_for,
-             auth_method, credential_id, enabled, max_mirror_storage_mb,
-             created_at, updated_at
+      SELECT id
       FROM git_sync_profiles
-      WHERE enabled = true
+      WHERE id=$1 AND enabled = true
         AND trigger_mode = 'Cron'
-        AND LEAST(
-          cron_next_scheduled_at,
-          COALESCE(cron_pending_misfire_scheduled_for, cron_next_scheduled_at)
-        ) <= $1
-      ORDER BY LEAST(
-        cron_next_scheduled_at,
-        COALESCE(cron_pending_misfire_scheduled_for, cron_next_scheduled_at)
-      ), id
       FOR UPDATE SKIP LOCKED
-      LIMIT 1
       "#,
     )
-    .bind(now)
+    .bind(profile_id)
     .fetch_optional(&mut *tx)
     .await
     .map_err(Self::map_db_err)?;
-    let Some(row) = row else {
+    let Some(_row) = row else {
       tx.commit().await.map_err(Self::map_db_err)?;
       return Ok(None);
     };
-    let profile = Self::map_profile_row(row)?;
+    let profile = Self::profile_in(&mut tx, profile_id).await?;
+    let timing=sqlx::query("SELECT next_due_at,pending_due_at FROM scheduling_schedules WHERE id=$1 AND generation=$2 AND revision=$3 AND lifecycle='active' AND next_admission_at<=$4 AND target_json->>'kind'='git_cron' AND target_json->>'profile_id'=$1::text FOR UPDATE")
+      .bind(profile_id).bind(generation).bind(revision).bind(now).fetch_optional(&mut *tx).await.map_err(Self::map_db_err)?;
+    let Some(timing) = timing else { return Ok(None) };
     let expression = profile
       .cron_expression
       .as_deref()
@@ -3025,11 +2938,11 @@ impl SqlxGitSyncStore {
     let policy = profile
       .cron_misfire_policy
       .ok_or_else(|| GitSyncStoreError::Validation("Cron profile has no misfire policy".into()))?;
-    let next = profile
-      .cron_next_scheduled_at
+    let next = timing
+      .get::<Option<chrono::DateTime<chrono::Utc>>, _>("next_due_at")
       .ok_or_else(|| GitSyncStoreError::Validation("enabled Cron profile has no next occurrence".into()))?;
-    let schedule = GitSyncCronSchedule::parse(expression, timezone)
-      .map_err(|error| GitSyncStoreError::Validation(error.to_string()))?;
+    let schedule =
+      CronSchedule::parse(expression, timezone).map_err(|error| GitSyncStoreError::Validation(error.to_string()))?;
     let policy_denial = lifecycle_policy
       .validate_profile(&profile)
       .err()
@@ -3054,25 +2967,43 @@ impl SqlxGitSyncStore {
       .decide_due(
         now,
         next,
-        profile.cron_pending_misfire_scheduled_for,
+        timing.get("pending_due_at"),
         if policy_allowed {
           policy
         } else {
-          GitSyncCronMisfirePolicy::Skip
+          CronMisfirePolicy::Skip
         },
         unfinished,
       )
       .map_err(|error| GitSyncStoreError::Validation(error.to_string()))?;
 
+    // Retain an overdue RunOnce slot without letting a busy native Run pin the
+    // oldest shared batch. This is admission backoff, not a rewritten UTC slot.
+    let next_admission = if unfinished && decision.pending_misfire_scheduled_for.is_some_and(|slot| slot <= now) {
+      decision.next_scheduled_at.min(now + chrono::Duration::seconds(30))
+    } else {
+      decision
+        .pending_misfire_scheduled_for
+        .map_or(decision.next_scheduled_at, |pending| {
+          pending.min(decision.next_scheduled_at)
+        })
+    };
     sqlx::query(
-      "UPDATE git_sync_profiles
-       SET cron_next_scheduled_at = $2,
-           cron_pending_misfire_scheduled_for = $3
+      "UPDATE scheduling_schedules
+       SET next_due_at=$2,pending_due_at=$3,next_nominal=$4,next_admission_at=$5,
+           revision=revision+1,blocked_reason=NULL,updated_at=clock_timestamp()
        WHERE id = $1",
     )
     .bind(profile.id)
     .bind(decision.next_scheduled_at)
     .bind(decision.pending_misfire_scheduled_for)
+    .bind(
+      serde_json::to_value(myoxus_domain::scheduling::ScheduleValue::LocalDateTime(
+        decision.next_scheduled_at.naive_utc(),
+      ))
+      .map_err(|_| GitSyncStoreError::Validation("invalid Cron cursor".into()))?,
+    )
+    .bind(next_admission)
     .execute(&mut *tx)
     .await
     .map_err(Self::map_db_err)?;
@@ -3109,6 +3040,19 @@ impl SqlxGitSyncStore {
       None
     };
 
+    if let Some(run) = &run {
+      crate::scheduling::git_cron::record_run_in(
+        &mut tx,
+        profile_id,
+        generation,
+        run
+          .scheduled_for
+          .ok_or_else(|| GitSyncStoreError::Validation("Cron slot missing".into()))?,
+        run,
+      )
+      .await
+      .map_err(|error| GitSyncStoreError::Validation(error.to_string()))?;
+    }
     tx.commit().await.map_err(Self::map_db_err)?;
     Ok(Some(GitSyncCronAdmission {
       profile_id: profile.id,
@@ -3117,6 +3061,62 @@ impl SqlxGitSyncStore {
       pending_misfire_scheduled_for: decision.pending_misfire_scheduled_for,
       policy_denial,
     }))
+  }
+
+  /// Shared interval admission keeps native unfinished-Run and rotation
+  /// exclusion. The Run activity hook reanchors timing in this transaction;
+  /// receiver retries never create a second automatic Run.
+  #[instrument(skip_all,fields(%profile_id,%schedule_id))]
+  pub async fn admit_polling_slot(
+    &self,
+    schedule_id: Uuid,
+    profile_id: Uuid,
+    generation: i64,
+    revision: i64,
+    now: chrono::DateTime<chrono::Utc>,
+    policy: &GitSyncLifecyclePolicy,
+  ) -> GitSyncResult<Option<usize>> {
+    if !policy.enabled || !policy.auto_sync_allowed {
+      return Ok(None);
+    }
+    let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
+    let locked = sqlx::query_scalar::<_, Uuid>(
+      "SELECT id FROM git_sync_profiles WHERE id=$1 AND enabled AND trigger_mode='Polling' FOR UPDATE SKIP LOCKED",
+    )
+    .bind(profile_id)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(Self::map_db_err)?;
+    if locked.is_none() {
+      return Ok(None);
+    }
+    let profile = Self::profile_in(&mut tx, profile_id).await?;
+    policy
+      .validate_profile(&profile)
+      .map_err(|_| GitSyncStoreError::Validation("Polling policy denied".into()))?;
+    let due:Option<chrono::DateTime<chrono::Utc>>=sqlx::query_scalar("SELECT next_due_at FROM scheduling_schedules WHERE id=$1 AND target_json->>'kind'='git_polling' AND target_json->>'profile_id'=$2 AND generation=$3 AND revision=$4 AND lifecycle='active' AND next_admission_at<=$5 AND interval_seconds=$6 FOR UPDATE")
+      .bind(schedule_id).bind(profile_id.to_string()).bind(generation).bind(revision).bind(now).bind(profile.polling_interval_secs).fetch_optional(&mut *tx).await.map_err(Self::map_db_err)?;
+    let Some(due) = due else { return Ok(None) };
+    let busy:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM git_sync_runs WHERE profile_id=$1 AND status IN('Pending','Running')) OR EXISTS(SELECT 1 FROM git_token_rotation rotation JOIN git_sync_credentials credential ON credential.profile_id=rotation.profile_id JOIN git_sync_profiles consumer ON consumer.credential_id=credential.id WHERE consumer.id=$1 AND rotation.state='Rotating')")
+      .bind(profile_id).fetch_one(&mut *tx).await.map_err(Self::map_db_err)?;
+    if busy {
+      sqlx::query("UPDATE scheduling_schedules SET next_admission_at=$2,revision=revision+1 WHERE id=$1")
+        .bind(schedule_id)
+        .bind(now + chrono::Duration::seconds(30))
+        .execute(&mut *tx)
+        .await
+        .map_err(Self::map_db_err)?;
+      tx.commit().await.map_err(Self::map_db_err)?;
+      return Ok(Some(0));
+    }
+    let row=sqlx::query("INSERT INTO git_sync_runs(id,profile_id,direction,trigger_source,status,started_at) VALUES(gen_random_uuid(),$1,$2,'Polling','Pending',$3) RETURNING *")
+      .bind(profile_id).bind(profile.sync_direction.to_string()).bind(now).fetch_one(&mut *tx).await.map_err(Self::map_db_err)?;
+    let run = Self::map_run_row(row)?;
+    crate::scheduling::git_cron::record_run_in(&mut tx, schedule_id, generation, due, &run)
+      .await
+      .map_err(|error| GitSyncStoreError::Validation(error.to_string()))?;
+    tx.commit().await.map_err(Self::map_db_err)?;
+    Ok(Some(1))
   }
 
   #[instrument(skip(self), fields(run_id = %run_id, job_id))]
@@ -3227,7 +3227,10 @@ impl SqlxGitSyncStore {
           OR p.trigger_mode = r.trigger_source
         )
         AND (r.trigger_source <> 'Polling' OR p.polling_interval_secs > 0)
-        AND (r.trigger_source <> 'Cron' OR r.scheduled_for IS NOT NULL)
+        AND (r.trigger_source <> 'Cron' OR (r.scheduled_for IS NOT NULL
+          AND EXISTS(SELECT 1 FROM scheduling_occurrences slot
+            WHERE slot.schedule_id=r.profile_id AND slot.dispatch_id=r.id
+              AND slot.nominal_due_at=r.scheduled_for)))
       RETURNING r.id, r.profile_id, r.direction, r.trigger_source, r.status, r.started_at,
                 r.scheduled_for, r.finished_at, r.commit_before, r.commit_after,
                 r.observed_remote_oid, r.reconciliation_required,
@@ -3507,6 +3510,9 @@ impl SqlxGitSyncStore {
         }
         _ => {}
       }
+      crate::document_metadata::reject_guide_content_write(&mut tx, document.doc_id)
+        .await
+        .map_err(|error| GitSyncStoreError::Validation(error.to_string()))?;
       let snapshot_result = sqlx::query(
         "INSERT INTO doc_snapshots (doc_id, workspace_id, payload, last_sequence, updated_at)
          VALUES ($1, $2, $3, 1, $4)
@@ -5802,202 +5808,15 @@ impl GitTokenRotationStore for SqlxGitSyncStore {
       .transpose()
   }
 
-  async fn due_profile_ids(
-    &self,
-    now: chrono::DateTime<chrono::Utc>,
-    limit: usize,
-  ) -> Result<Vec<Uuid>, GitTokenRotationStoreError> {
-    if limit == 0 {
-      return Ok(Vec::new());
-    }
-    let limit = i64::try_from(limit)
-      .map_err(|_| GitTokenRotationStoreError::Storage("token rotation candidate limit is too large".into()))?;
-    sqlx::query_scalar(
-      "SELECT eligible.id
-       FROM git_token_rotation rotation
-       JOIN git_sync_profiles profile ON profile.id = rotation.profile_id
-       JOIN git_sync_credentials credential
-          ON credential.id = profile.credential_id
-         AND credential.profile_id = profile.id
-       JOIN LATERAL (
-         SELECT p.id FROM git_sync_profiles p
-         JOIN workspaces w ON w.id = p.workspace_id AND w.lifecycle_state = 'active' AND w.deleted_at IS NULL
-         JOIN workspace_memberships m ON m.workspace_id = w.id AND m.user_id = p.owner_id AND m.status = 'Accepted'
-         WHERE p.credential_id = credential.id AND p.enabled AND p.auth_method = 'HttpsToken'
-           AND p.repo_url ~* '^https://'
-         ORDER BY CASE WHEN p.id = rotation.profile_id THEN 0 ELSE 1 END, p.id LIMIT 1
-       ) eligible ON TRUE
-       WHERE rotation.enabled
-         AND credential.expires_at IS NOT NULL
-         AND credential.expires_at <= $1 + make_interval(days => rotation.renew_before_days)
-         AND (
-           rotation.state IN ('Configured', 'Completed')
-           OR (
-             rotation.state = 'Failed'
-             AND rotation.last_attempt_at IS NOT NULL
-             AND rotation.last_attempt_at::date < $1::date
-           )
-         )
-       ORDER BY credential.expires_at, eligible.id
-       LIMIT $2",
-    )
-    .bind(now)
-    .bind(limit)
-    .fetch_all(&self.pool)
-    .await
-    .map_err(map_token_rotation_db_error)
-  }
-
   async fn admit(
     &self,
     requested_profile_id: Uuid,
     now: chrono::DateTime<chrono::Utc>,
     force: bool,
   ) -> Result<Option<GitTokenRotationAdmission>, GitTokenRotationStoreError> {
-    let mut tx = self.pool.begin().await.map_err(map_token_rotation_db_error)?;
-    if !lock_credential_dependents(&mut tx, requested_profile_id)
+    self
+      .admit_rotation_owned(requested_profile_id, now, force, None, None)
       .await
-      .map_err(map_token_rotation_db_error)?
-    {
-      return Err(GitTokenRotationStoreError::Conflict);
-    }
-    let credential_id: Uuid =
-      sqlx::query_scalar::<_, Option<Uuid>>("SELECT credential_id FROM git_sync_profiles WHERE id = $1")
-        .bind(requested_profile_id)
-        .fetch_optional(&mut *tx)
-        .await
-        .map_err(map_token_rotation_db_error)?
-        .ok_or(GitTokenRotationStoreError::NotFound)?
-        .ok_or(GitTokenRotationStoreError::IncompatibleProfile)?;
-    let profile_id = rotation_steward_in_transaction(&mut tx, credential_id)
-      .await?
-      .ok_or(GitTokenRotationStoreError::IncompatibleProfile)?;
-    let profile = sqlx::query(
-      "SELECT workspace_id, repo_url, auth_method, credential_id, enabled
-       FROM git_sync_profiles WHERE id = $1 FOR UPDATE",
-    )
-    .bind(profile_id)
-    .fetch_optional(&mut *tx)
-    .await
-    .map_err(map_token_rotation_db_error)?
-    .ok_or(GitTokenRotationStoreError::NotFound)?;
-    let rotation = sqlx::query(
-      "SELECT provider, enabled, renew_before_days, requested_lifetime_days,
-              state, last_attempt_at
-       FROM git_token_rotation WHERE profile_id = $1 FOR UPDATE",
-    )
-    .bind(profile_id)
-    .fetch_optional(&mut *tx)
-    .await
-    .map_err(map_token_rotation_db_error)?
-    .ok_or(GitTokenRotationStoreError::NotFound)?;
-
-    if !rotation.get::<bool, _>("enabled") {
-      tx.commit().await.map_err(map_token_rotation_db_error)?;
-      return Ok(None);
-    }
-    let state = parse_token_rotation_state(rotation.get("state"))?;
-    if state == GitTokenRotationState::Rotating {
-      return Err(GitTokenRotationStoreError::RotationInProgress);
-    }
-    if state == GitTokenRotationState::ManualIntervention {
-      tx.commit().await.map_err(map_token_rotation_db_error)?;
-      return Ok(None);
-    }
-    let last_attempt_at = rotation.get::<Option<chrono::DateTime<chrono::Utc>>, _>("last_attempt_at");
-    if state == GitTokenRotationState::Failed
-      && last_attempt_at.is_some_and(|last_attempt| last_attempt.date_naive() >= now.date_naive())
-    {
-      tx.commit().await.map_err(map_token_rotation_db_error)?;
-      return Ok(None);
-    }
-
-    if profile.get::<Option<Uuid>, _>("credential_id") != Some(credential_id) {
-      return Err(GitTokenRotationStoreError::Conflict);
-    }
-    if !profile.get::<bool, _>("enabled")
-      || profile.get::<String, _>("auth_method") != "HttpsToken"
-      || !is_https_repository(&profile.get::<String, _>("repo_url"))
-    {
-      return Err(GitTokenRotationStoreError::IncompatibleProfile);
-    }
-    let credential = sqlx::query(
-      "SELECT label, encrypted_data, expires_at
-       FROM git_sync_credentials WHERE id = $1 AND profile_id = $2",
-    )
-    .bind(credential_id)
-    .bind(profile_id)
-    .fetch_optional(&mut *tx)
-    .await
-    .map_err(map_token_rotation_db_error)?
-    .ok_or(GitTokenRotationStoreError::IncompatibleProfile)?;
-    let expires_at = credential
-      .get::<Option<chrono::DateTime<chrono::Utc>>, _>("expires_at")
-      .ok_or(GitTokenRotationStoreError::IncompatibleProfile)?;
-    let renew_before_days = rotation.get::<i32, _>("renew_before_days");
-    let due_at = expires_at - chrono::Duration::days(i64::from(renew_before_days));
-    if !force && due_at > now {
-      tx.commit().await.map_err(map_token_rotation_db_error)?;
-      return Ok(None);
-    }
-
-    let unfinished = sqlx::query_scalar::<_, bool>(
-      "SELECT EXISTS(
-         SELECT 1 FROM git_sync_runs
-         WHERE profile_id IN (SELECT id FROM git_sync_profiles WHERE credential_id = $1)
-           AND status IN ('Pending', 'Running')
-       ) OR EXISTS(
-         SELECT 1 FROM workspace_content_operations o
-         WHERE (o.status NOT IN ('succeeded','cancelled','failed')
-           OR (o.status <> 'succeeded' AND (
-             EXISTS(SELECT 1 FROM workspace_content_operation_staging s
-               WHERE s.operation_id = o.id AND s.publication_status IN ('staged','cleanup_required'))
-             OR EXISTS(SELECT 1 FROM workspace_content_operation_compensations c
-               WHERE c.operation_id = o.id AND c.completed_at IS NULL)
-             OR EXISTS(SELECT 1 FROM workspace_content_extract_targets e
-               WHERE e.operation_id = o.id AND e.published_at IS NULL))))
-           AND (o.source_workspace_id IN (SELECT workspace_id FROM git_sync_profiles WHERE credential_id = $1)
-             OR o.target_workspace_id IN (SELECT workspace_id FROM git_sync_profiles WHERE credential_id = $1))
-       )",
-    )
-    .bind(credential_id)
-    .fetch_one(&mut *tx)
-    .await
-    .map_err(map_token_rotation_db_error)?;
-    if unfinished {
-      return Err(GitTokenRotationStoreError::UnfinishedRun);
-    }
-
-    let attempt_id = Uuid::new_v4();
-    sqlx::query(
-      "UPDATE git_token_rotation
-       SET state = 'Rotating', latest_attempt_id = $2,
-           admitted_credential_id = $3, last_attempt_at = $4,
-           diagnosis = NULL, updated_at = $4
-       WHERE profile_id = $1",
-    )
-    .bind(profile_id)
-    .bind(attempt_id)
-    .bind(credential_id)
-    .bind(now)
-    .execute(&mut *tx)
-    .await
-    .map_err(map_token_rotation_db_error)?;
-    tx.commit().await.map_err(map_token_rotation_db_error)?;
-
-    let requested_lifetime_days = u16::try_from(rotation.get::<i32, _>("requested_lifetime_days"))
-      .map_err(|_| GitTokenRotationStoreError::Storage("invalid persisted requested lifetime".into()))?;
-    Ok(Some(GitTokenRotationAdmission {
-      profile_id,
-      workspace_id: profile.get("workspace_id"),
-      repository_url: profile.get("repo_url"),
-      provider: parse_token_rotation_provider(rotation.get("provider"))?,
-      attempt_id,
-      credential_id,
-      credential_label: credential.get("label"),
-      encrypted_credential: credential.get("encrypted_data"),
-      requested_expires_at: requested_expiry(now, requested_lifetime_days)?,
-    }))
   }
 
   async fn admitted(
@@ -6287,9 +6106,8 @@ impl GitSyncLifecycleStore for SqlxGitSyncStore {
         (id, workspace_id, owner_id, repo_url, branch, root_path,
          sync_direction, trigger_mode, polling_interval_secs, auth_method,
          cron_expression, cron_timezone, cron_misfire_policy,
-         cron_next_scheduled_at, cron_pending_misfire_scheduled_for,
-          credential_id, enabled, max_mirror_storage_mb, manifest_path)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,NULL,$16,$17,$18)
+           credential_id, enabled, max_mirror_storage_mb, manifest_path)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,NULL,$14,$15,$16)
       "#,
     )
     .bind(profile.id)
@@ -6305,8 +6123,6 @@ impl GitSyncLifecycleStore for SqlxGitSyncStore {
     .bind(&profile.cron_expression)
     .bind(&profile.cron_timezone)
     .bind(profile.cron_misfire_policy.map(|value| value.to_string()))
-    .bind(profile.cron_next_scheduled_at)
-    .bind(profile.cron_pending_misfire_scheduled_for)
     .bind(profile.enabled)
     .bind(profile.max_mirror_storage_mb)
     .bind(&profile.manifest_path)
@@ -6331,24 +6147,23 @@ impl GitSyncLifecycleStore for SqlxGitSyncStore {
     .await
     .map_err(|error| GitSyncLifecycleStoreError::Storage(error.to_string()))?;
 
-    let row = sqlx::query(
+    sqlx::query(
       r#"
       UPDATE git_sync_profiles SET credential_id = $2, updated_at = now()
       WHERE id = $1
-      RETURNING id, workspace_id, owner_id, repo_url, branch, root_path, manifest_path, scope_revision,
-                sync_direction, trigger_mode, polling_interval_secs,
-                cron_expression, cron_timezone, cron_misfire_policy,
-                cron_next_scheduled_at, cron_pending_misfire_scheduled_for,
-                auth_method, credential_id, enabled, max_mirror_storage_mb,
-                created_at, updated_at
       "#,
     )
     .bind(profile.id)
     .bind(credential_id)
-    .fetch_one(&mut *tx)
+    .execute(&mut *tx)
     .await
     .map_err(|error| GitSyncLifecycleStoreError::Storage(error.to_string()))?;
-    let stored = Self::map_profile_row(row).map_err(map_lifecycle_store_error)?;
+    Self::write_schedules_in(&mut tx, None, &profile)
+      .await
+      .map_err(map_lifecycle_store_error)?;
+    let stored = Self::profile_in(&mut tx, profile.id)
+      .await
+      .map_err(map_lifecycle_store_error)?;
     tx.commit()
       .await
       .map_err(|error| GitSyncLifecycleStoreError::Storage(error.to_string()))?;
@@ -6373,23 +6188,9 @@ impl GitSyncLifecycleStore for SqlxGitSyncStore {
         "credential changed while locking dependents; retry".into(),
       ));
     }
-    let current = sqlx::query(
-      r#"
-      SELECT id, workspace_id, owner_id, repo_url, branch, root_path, manifest_path, scope_revision,
-             sync_direction, trigger_mode, polling_interval_secs,
-             cron_expression, cron_timezone, cron_misfire_policy,
-             cron_next_scheduled_at, cron_pending_misfire_scheduled_for,
-             auth_method, credential_id, enabled, max_mirror_storage_mb,
-             created_at, updated_at
-      FROM git_sync_profiles WHERE id = $1 FOR UPDATE
-      "#,
-    )
-    .bind(profile.id)
-    .fetch_optional(&mut *tx)
-    .await
-    .map_err(|error| GitSyncLifecycleStoreError::Storage(error.to_string()))?
-    .ok_or(GitSyncLifecycleStoreError::NotFound)?;
-    let current = Self::map_profile_row(current).map_err(map_lifecycle_store_error)?;
+    let current = Self::locked_profile_in(&mut tx, profile.id)
+      .await
+      .map_err(map_lifecycle_store_error)?;
     if current.updated_at != profile.updated_at {
       return Err(GitSyncLifecycleStoreError::Conflict(
         "profile changed while the remote probe was running; retry with current values".to_string(),
@@ -6515,26 +6316,18 @@ impl GitSyncLifecycleStore for SqlxGitSyncStore {
       }
     }
 
-    let row = sqlx::query(
+    sqlx::query(
       r#"
       UPDATE git_sync_profiles
       SET repo_url = $2, branch = $3, root_path = $4,
           sync_direction = $5, trigger_mode = $6,
           polling_interval_secs = $7, cron_expression = $8,
           cron_timezone = $9, cron_misfire_policy = $10,
-          cron_next_scheduled_at = $11,
-          cron_pending_misfire_scheduled_for = $12,
-          auth_method = $13, credential_id = $14, enabled = $15,
-          max_mirror_storage_mb = $16,
-          activation_generation = activation_generation + CASE WHEN $17 THEN 1 ELSE 0 END,
+          auth_method = $11, credential_id = $12, enabled = $13,
+          max_mirror_storage_mb = $14,
+          activation_generation = activation_generation + CASE WHEN $15 THEN 1 ELSE 0 END,
           updated_at = now()
       WHERE id = $1
-      RETURNING id, workspace_id, owner_id, repo_url, branch, root_path, manifest_path, scope_revision,
-                sync_direction, trigger_mode, polling_interval_secs,
-                cron_expression, cron_timezone, cron_misfire_policy,
-                cron_next_scheduled_at, cron_pending_misfire_scheduled_for,
-                auth_method, credential_id, enabled, max_mirror_storage_mb,
-                created_at, updated_at
       "#,
     )
     .bind(profile.id)
@@ -6547,14 +6340,12 @@ impl GitSyncLifecycleStore for SqlxGitSyncStore {
     .bind(&profile.cron_expression)
     .bind(&profile.cron_timezone)
     .bind(profile.cron_misfire_policy.map(|value| value.to_string()))
-    .bind(profile.cron_next_scheduled_at)
-    .bind(profile.cron_pending_misfire_scheduled_for)
     .bind(profile.auth_method.to_string())
     .bind(credential_id)
     .bind(profile.enabled)
     .bind(profile.max_mirror_storage_mb)
     .bind(history_activation_changed)
-    .fetch_one(&mut *tx)
+    .execute(&mut *tx)
     .await
     .map_err(|error| GitSyncLifecycleStoreError::Storage(error.to_string()))?;
 
@@ -6624,7 +6415,12 @@ impl GitSyncLifecycleStore for SqlxGitSyncStore {
     .execute(&mut *tx)
     .await
     .map_err(|error| GitSyncLifecycleStoreError::Storage(error.to_string()))?;
-    let stored = Self::map_profile_row(row).map_err(map_lifecycle_store_error)?;
+    Self::write_schedules_in(&mut tx, Some(&current), &profile)
+      .await
+      .map_err(map_lifecycle_store_error)?;
+    let stored = Self::profile_in(&mut tx, profile.id)
+      .await
+      .map_err(map_lifecycle_store_error)?;
     tx.commit()
       .await
       .map_err(|error| GitSyncLifecycleStoreError::Storage(error.to_string()))?;

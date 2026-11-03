@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import type { FetchService } from "@myoxus/core/modules/server";
-import { getDesktopBridge } from "@myoxus/desktop-api-contract/bridge";
 import { I18n } from "@myoxus/i18n";
-import { download } from "@virgultum/editor/widgets/linked-doc";
+import {
+  deliverExportBlob,
+  fetchExportBlob,
+} from "../file-export/deliver-file";
 
 /** Keep readable Unicode while reserving space for the extension on native filesystems. */
 export function pdfFilename(
@@ -38,19 +40,8 @@ export async function saveServerPdf(
   filename: string,
 ): Promise<boolean> {
   try {
-    const response = await fetchService.fetch(url, { credentials: "include" });
-    if (!response.ok) throw new Error("PDF download failed");
-    const blob = await response.blob();
-    if (BUILD_CONFIG.isElectron) {
-      const bridge = getDesktopBridge();
-      if (!bridge) throw new Error("Native PDF saving is unavailable");
-      return (
-        (await bridge.apis.ui.savePdf(filename, await blob.arrayBuffer()))
-          .status === "saved"
-      );
-    }
-    download(blob, filename);
-    return true;
+    const { blob } = await fetchExportBlob(fetchService, url);
+    return (await deliverExportBlob(blob, filename, "pdf")) !== "cancelled";
   } catch (cause) {
     // Native download and file errors share the existing localized UI message.
     if (!BUILD_CONFIG.isElectron) throw cause;

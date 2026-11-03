@@ -22,6 +22,21 @@ pub(super) async fn load_event(
   tx: &mut sqlx::Transaction<'_, Postgres>,
   id: Uuid,
 ) -> RepoResult<Option<CalendarEvent>> {
+  // Reminder admission owns master→detached-event lock order. Native child
+  // edits join the same order before holding their own event row lock.
+  let parent: Option<Uuid> = sqlx::query_scalar("SELECT recurrence_parent_id FROM calendar_events WHERE id=$1")
+    .bind(id)
+    .fetch_optional(&mut **tx)
+    .await
+    .map_err(SqlxCalendarRepository::map_db_err)?
+    .flatten();
+  if let Some(parent) = parent {
+    sqlx::query("SELECT id FROM calendar_events WHERE id=$1 FOR UPDATE")
+      .bind(parent)
+      .fetch_one(&mut **tx)
+      .await
+      .map_err(SqlxCalendarRepository::map_db_err)?;
+  }
   let row = sqlx::query("SELECT *, origin::text AS origin FROM calendar_events WHERE id = $1 FOR UPDATE")
     .bind(id)
     .fetch_optional(&mut **tx)
@@ -48,6 +63,7 @@ pub(super) async fn load_event(
       updated_at: row.get("updated_at"),
     })
     .collect();
+  event.reminders = super::reminders::definitions_in(&mut **tx, id).await?;
   Ok(Some(event))
 }
 
@@ -59,6 +75,9 @@ pub(super) async fn enqueue(
   kind: &str,
   instance_start: Option<DateTime<Utc>>,
 ) -> RepoResult<()> {
+  let mut event = event.clone();
+  super::projection::attach_timing_in(tx, &mut event).await?;
+  let event = &event;
   let previous = sqlx::query("SELECT * FROM calendar_mail_state WHERE event_id = $1 FOR UPDATE")
     .bind(event.id)
     .fetch_optional(&mut **tx)

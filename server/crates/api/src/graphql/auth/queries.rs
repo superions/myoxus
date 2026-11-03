@@ -729,6 +729,36 @@ impl QueryRoot {
     Ok(values.into_iter().map(map_workspace_calendar).collect())
   }
 
+  #[instrument(skip_all)]
+  pub(crate) async fn workspace_calendar_series(
+    &self,
+    ctx: &Context<'_>,
+    workspace_id: String,
+  ) -> Result<Vec<CalendarEventType>> {
+    let (state, snapshot) = require_session(ctx).await?;
+    let workspace = Uuid::parse_str(&workspace_id)
+      .map_err(|_| map_gql_error(AuthError::InvalidInput("invalid workspace id".into())))?;
+    state
+      .permission_service()
+      .assert(
+        &WorkspaceResource {
+          user_id: snapshot.user.id,
+          workspace_id: workspace,
+        },
+        WorkspaceAction::SettingsRead,
+      )
+      .await
+      .map_err(map_gql_error)?;
+    let calendar = state
+      .calendar()
+      .ok_or_else(|| map_gql_error(AuthError::Storage("calendar service unavailable".into())))?;
+    let events = calendar
+      .workspace_calendar_series(workspace)
+      .await
+      .map_err(map_gql_error)?;
+    map_calendar_events_for_workspace(&state, workspace, events).await
+  }
+
   /// Query free/busy information for workspace members within a time range
   /// (P90-CAL-H-07).
   ///
@@ -905,7 +935,7 @@ impl QueryRoot {
       .calendar()
       .ok_or_else(|| map_gql_error(AuthError::Storage("calendar service is not configured".to_string())))?;
     let events = calendar
-      .list_workspace_events(workspace_uuid, from, to)
+      .workspace_event_sources(workspace_uuid, from, to)
       .await
       .map_err(map_gql_error)?;
     let refs: Vec<&myoxus_domain::entities::CalendarEvent> = events.iter().collect();

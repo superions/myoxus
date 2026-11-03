@@ -75,6 +75,136 @@ impl PgWorkspaceAutomationRepository {
     RepositoryError::Storage(error.to_string())
   }
 
+  /// Native expiry also releases a changed metadata deadline when a retryable
+  /// Run failed before parking at the engine wait. Caller holds the native Run.
+  pub(crate) async fn expire_document_review_in(
+    conn: &mut sqlx::PgConnection,
+    run: Uuid,
+    now: chrono::DateTime<chrono::Utc>,
+  ) -> RepoResult<bool> {
+    let result=sqlx::query("UPDATE workspace_automation_runs SET review_expired_at=$2,error_code='MIX_AUTOMATION_RUN_NOT_RETRYABLE',execution_generation=execution_generation+1,claim_owner=NULL WHERE id=$1 AND origin_kind='document_review' AND review_outcome_json IS NULL AND review_invalid_reason IS NULL AND review_expired_at IS NULL AND status<>'skipped' AND review_deadline_at<=$2")
+      .bind(run).bind(now).execute(conn).await.map_err(Self::storage_error)?;
+    Ok(result.rows_affected() == 1)
+  }
+
+  /// Native acceptance participates in the caller's slot/Run/snapshot commit.
+  /// Replay returns the persisted frozen identity, never the losing proposal.
+  pub(crate) async fn accept_document_review_in(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    accepted: &myoxus_domain::workspace_automation::AcceptedAutomationRun,
+  ) -> RepoResult<WorkspaceAutomationRun> {
+    // Rejected accepted_json rows can include document content and answers.
+    // This boundary must not retain PostgreSQL DETAIL in errors or spans.
+    fn storage(error: impl std::error::Error + 'static) -> RepositoryError {
+      let error = &error as &dyn std::error::Error;
+      let metadata = match error.downcast_ref::<sqlx::Error>() {
+        Some(sqlx::Error::Database(error)) => format!(
+          "sqlstate={} constraint={}",
+          error.code().as_deref().unwrap_or("unknown"),
+          error.constraint().unwrap_or("none")
+        ),
+        Some(_) => "databaseTransport".into(),
+        None => "typedDecode".into(),
+      };
+      RepositoryError::Storage(format!("review admission: {metadata}"))
+    }
+    let review = accepted
+      .document_review
+      .as_ref()
+      .ok_or_else(|| RepositoryError::Validation("review acceptance missing".into()))?;
+    let actor = accepted
+      .actor_id
+      .ok_or_else(|| RepositoryError::Validation("review actor missing".into()))?;
+    if actor != review.plan.actor_id
+      || accepted.workspace_id != review.plan.workspace_id
+      || accepted.confirmed_request.is_some()
+      || accepted.automation_id.is_some()
+      || accepted.trigger.is_some()
+      || accepted.recurring_task.is_some()
+      || accepted.workspace_setup.is_some()
+      || accepted.task_handover.is_some()
+      || accepted.task_maintenance.is_some()
+      || accepted.personal_rule.is_some()
+    {
+      return Err(RepositoryError::Validation("review acceptance mismatch".into()));
+    }
+    crate::workflow_runtime::effects::lock_runtime_authority(tx, actor, accepted.workspace_id, false).await?;
+    sqlx::query("SELECT pg_advisory_xact_lock(hashtext($1)::bigint)")
+      .bind(format!(
+        "document-review:{actor}:{}:{}",
+        accepted.workspace_id, review.request_id
+      ))
+      .execute(&mut **tx)
+      .await
+      .map_err(storage)?;
+    if let Some(row)=sqlx::query("SELECT * FROM workspace_automation_runs WHERE review_actor_id=$1 AND workspace_id=$2 AND review_request_id=$3 FOR UPDATE").bind(actor).bind(accepted.workspace_id).bind(review.request_id).fetch_optional(&mut **tx).await.map_err(storage)?{
+      let run=Self::map_run(row)?;
+      if run.idempotency_key!=review.fingerprint{return Err(RepositoryError::Conflict("review request input"))}
+      return Ok(run);
+    }
+    let member: Option<bool> = sqlx::query_scalar(
+      "SELECT true FROM workspace_memberships WHERE workspace_id=$1 AND user_id=$2 AND status='Accepted' FOR SHARE",
+    )
+    .bind(accepted.workspace_id)
+    .bind(review.plan.reviewer_id)
+    .fetch_optional(&mut **tx)
+    .await
+    .map_err(storage)?;
+    if member != Some(true) || review.plan.deadline_at <= chrono::Utc::now() {
+      return Err(RepositoryError::Validation(
+        "review admission expired or reviewer unavailable".into(),
+      ));
+    }
+    let revision = crate::doc::SqlxDocStore::review_source_revision_in_tx(
+      tx,
+      accepted.workspace_id,
+      review.plan.source_document_id,
+      &review.plan.source_external_id,
+    )
+    .await
+    .map_err(|error| match error {
+      myoxus_application::auth::AuthError::Storage(_) => {
+        RepositoryError::Storage("review source storage unavailable".into())
+      }
+      _ => RepositoryError::Validation("review source unavailable".into()),
+    })?;
+    if revision != review.plan.source_revision {
+      return Err(RepositoryError::Validation("review source revision changed".into()));
+    }
+    let now: chrono::DateTime<chrono::Utc> = sqlx::query_scalar("SELECT clock_timestamp()")
+      .fetch_one(&mut **tx)
+      .await
+      .map_err(storage)?;
+    if now >= review.plan.deadline_at {
+      return Err(RepositoryError::Validation("review admission expired".into()));
+    }
+    let occurrence = review.plan.source_metadata_deadline.map(|deadline| {
+      myoxus_domain::scheduling::document_review_occurrence_id(review.plan.source_document_id, deadline)
+    });
+    if let (Some(occurrence), Some(deadline)) = (occurrence, review.plan.source_metadata_deadline) {
+      let valid:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM scheduling_occurrences o JOIN scheduling_schedules s ON s.id=o.schedule_id WHERE o.id=$1 AND o.nominal_due_at=$2 AND o.generation=s.generation AND s.workspace_id=$3 AND s.actor_id=$4 AND s.lifecycle='active' AND s.target_json->>'kind'='document_review' AND s.target_json->>'document_id'=$5 AND s.target_json->>'enabled'='true')")
+        .bind(occurrence).bind(deadline).bind(accepted.workspace_id).bind(actor).bind(review.plan.source_document_id.to_string()).fetch_one(&mut **tx).await.map_err(storage)?;
+      if !valid {
+        return Err(RepositoryError::Validation("review cycle receipt unavailable".into()));
+      }
+      let generation: Option<i64> = sqlx::query_scalar("SELECT generation FROM scheduling_occurrences WHERE id=$1")
+        .bind(occurrence)
+        .fetch_optional(&mut **tx)
+        .await
+        .map_err(storage)?;
+      if generation != review.scheduling_generation {
+        return Err(RepositoryError::Validation("review cycle generation mismatch".into()));
+      }
+    } else if review.scheduling_generation.is_some() {
+      return Err(RepositoryError::Validation(
+        "manual review carries a scheduling generation".into(),
+      ));
+    }
+    let row=sqlx::query("INSERT INTO workspace_automation_runs(id,workspace_id,origin_kind,review_actor_id,review_request_id,review_task_id,review_follow_up_id,review_wait_id,review_deadline_at,idempotency_key,status,accepted_json,scheduling_occurrence_id) VALUES($1,$2,'document_review',$3,$4,$5,$6,$7,$8,$9,'queued',$10,$11) RETURNING *")
+      .bind(accepted.run_id).bind(accepted.workspace_id).bind(actor).bind(review.request_id).bind(review.review_task_id).bind(review.follow_up_task_id).bind(&review.wait_id).bind(review.plan.deadline_at).bind(&review.fingerprint).bind(serde_json::to_value(accepted).map_err(storage)?).bind(occurrence).fetch_one(&mut **tx).await.map_err(storage)?;
+    Self::map_run(row)
+  }
+
   fn parse_enum<T: FromStr>(value: String, label: &'static str) -> RepoResult<T> {
     value
       .parse::<T>()
@@ -129,6 +259,25 @@ impl PgWorkspaceAutomationRepository {
         .as_str()
       {
         "rule" => myoxus_domain::workspace_automation::WorkspaceAutomationRunOrigin::Rule,
+        "recurring_task" => {
+          let task = accepted
+            .as_ref()
+            .and_then(|run| run.recurring_task.as_ref())
+            .ok_or_else(|| RepositoryError::Validation("recurring Task acceptance unavailable".into()))?;
+          if row
+            .try_get::<Option<Uuid>, _>("scheduling_occurrence_id")
+            .map_err(Self::storage_error)?
+            != Some(task.occurrence_id)
+            || accepted.as_ref().and_then(|run| run.actor_id)
+              != row.try_get("confirmed_actor_id").map_err(Self::storage_error)?
+          {
+            return Err(RepositoryError::Validation("recurring Task acceptance mismatch".into()));
+          }
+          myoxus_domain::workspace_automation::WorkspaceAutomationRunOrigin::RecurringTask {
+            schedule_id: task.schedule_id,
+            occurrence_id: task.occurrence_id,
+          }
+        }
         "task_maintenance" => {
           let request_id: Uuid = row.try_get("confirmed_request_id").map_err(Self::storage_error)?;
           let fingerprint: String = row.try_get("idempotency_key").map_err(Self::storage_error)?;
@@ -834,77 +983,6 @@ impl WorkspaceAutomationRepository for PgWorkspaceAutomationRepository {
     .map_err(Self::storage_error)?;
     serde_json::from_value(value).map_err(Self::storage_error)
   }
-  async fn accept_document_review(
-    &self,
-    accepted: myoxus_domain::workspace_automation::AcceptedAutomationRun,
-  ) -> RepoResult<WorkspaceAutomationRun> {
-    let review = accepted
-      .document_review
-      .as_ref()
-      .ok_or_else(|| RepositoryError::Validation("review acceptance missing".into()))?;
-    let actor = accepted
-      .actor_id
-      .ok_or_else(|| RepositoryError::Validation("review actor missing".into()))?;
-    if actor != review.plan.actor_id
-      || accepted.workspace_id != review.plan.workspace_id
-      || accepted.confirmed_request.is_some()
-      || accepted.automation_id.is_some()
-      || accepted.trigger.is_some()
-    {
-      return Err(RepositoryError::Validation("review acceptance mismatch".into()));
-    }
-    let mut tx = self.pool.begin().await.map_err(Self::storage_error)?;
-    crate::workflow_runtime::effects::lock_runtime_authority(&mut tx, actor, accepted.workspace_id, false).await?;
-    sqlx::query("SELECT pg_advisory_xact_lock(hashtext($1)::bigint)")
-      .bind(format!(
-        "document-review:{actor}:{}:{}",
-        accepted.workspace_id, review.request_id
-      ))
-      .execute(&mut *tx)
-      .await
-      .map_err(Self::storage_error)?;
-    if let Some(row)=sqlx::query("SELECT * FROM workspace_automation_runs WHERE review_actor_id=$1 AND workspace_id=$2 AND review_request_id=$3 FOR UPDATE").bind(actor).bind(accepted.workspace_id).bind(review.request_id).fetch_optional(&mut *tx).await.map_err(Self::storage_error)? {
-      let run=Self::map_run(row)?;if run.idempotency_key!=review.fingerprint{return Err(RepositoryError::Conflict("review request input"));}tx.commit().await.map_err(Self::storage_error)?;return Ok(run);
-    }
-    let member: Option<bool> = sqlx::query_scalar(
-      "SELECT true FROM workspace_memberships WHERE workspace_id=$1 AND user_id=$2 AND status='Accepted' FOR SHARE",
-    )
-    .bind(accepted.workspace_id)
-    .bind(review.plan.reviewer_id)
-    .fetch_optional(&mut *tx)
-    .await
-    .map_err(Self::storage_error)?;
-    if member != Some(true) || review.plan.deadline_at <= chrono::Utc::now() {
-      return Err(RepositoryError::Validation(
-        "review admission expired or reviewer unavailable".into(),
-      ));
-    }
-    let revision = crate::doc::SqlxDocStore::review_source_revision_in_tx(
-      &mut tx,
-      accepted.workspace_id,
-      review.plan.source_document_id,
-      &review.plan.source_external_id,
-    )
-    .await
-    .map_err(|error| match error {
-      myoxus_application::auth::AuthError::Storage(message) => RepositoryError::Storage(message),
-      _ => RepositoryError::Validation("review source unavailable".into()),
-    })?;
-    if revision != review.plan.source_revision {
-      return Err(RepositoryError::Validation("review source revision changed".into()));
-    }
-    let now: chrono::DateTime<chrono::Utc> = sqlx::query_scalar("SELECT clock_timestamp()")
-      .fetch_one(&mut *tx)
-      .await
-      .map_err(Self::storage_error)?;
-    if now >= review.plan.deadline_at {
-      return Err(RepositoryError::Validation("review admission expired".into()));
-    }
-    let row=sqlx::query("INSERT INTO workspace_automation_runs(id,workspace_id,origin_kind,review_actor_id,review_request_id,review_task_id,review_follow_up_id,review_wait_id,review_deadline_at,idempotency_key,status,accepted_json) VALUES($1,$2,'document_review',$3,$4,$5,$6,$7,$8,$9,'queued',$10) RETURNING *")
-      .bind(accepted.run_id).bind(accepted.workspace_id).bind(actor).bind(review.request_id).bind(review.review_task_id).bind(review.follow_up_task_id).bind(&review.wait_id).bind(review.plan.deadline_at).bind(&review.fingerprint).bind(serde_json::to_value(&accepted).map_err(Self::storage_error)?).fetch_one(&mut *tx).await.map_err(Self::storage_error)?;
-    tx.commit().await.map_err(Self::storage_error)?;
-    Self::map_run(row)
-  }
   async fn get_document_review_request(
     &self,
     actor: uuid::Uuid,
@@ -1159,7 +1237,13 @@ impl WorkspaceAutomationRepository for PgWorkspaceAutomationRepository {
     // The existing document action history also records the finite native
     // stages of that capability; the retained workflow identifies each stage.
     let mut reserved = uuid::Uuid::new_v4();
-    if accepted.task_maintenance.is_some() {
+    if let Some(task) = &accepted.recurring_task {
+      myoxus_application::workspace_automation::recurring_task::validate(&accepted).map_err(Self::storage_error)?;
+      if node_key != "action:0" {
+        return Err(RepositoryError::Validation("invalid recurring Task effect".into()));
+      }
+      reserved = task.row_id;
+    } else if accepted.task_maintenance.is_some() {
       myoxus_application::workspace_automation::maintenance::maintenance_effect_kind(&accepted.definition, node_key)
         .map_err(Self::storage_error)?;
     } else if let Some(handover) = &accepted.task_handover {

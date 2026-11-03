@@ -496,12 +496,15 @@ export function DocumentReviewTask({
   revision,
   onChanged,
   presentation,
+  showSource = true,
 }: {
   databaseId: string;
   rowId: string;
   revision: string;
   onChanged: DatabaseChangeHandler;
   presentation?: DocumentReviewTaskPresentation;
+  /** Embedded document metadata already exposes its source; Task hosts retain the link. */
+  showSource?: boolean;
 }) {
   const owner = useTaskIdentity();
   const identity = JSON.stringify([owner.identity, databaseId, rowId]);
@@ -519,6 +522,7 @@ export function DocumentReviewTask({
       revision={revision}
       onChanged={onChanged}
       presentation={presentation}
+      showSource={showSource}
     />
   );
 }
@@ -528,12 +532,14 @@ function DocumentReviewTaskOwner({
   revision,
   onChanged,
   presentation,
+  showSource,
 }: {
   databaseId: string;
   rowId: string;
   revision: string;
   onChanged: DatabaseChangeHandler;
   presentation?: DocumentReviewTaskPresentation;
+  showSource: boolean;
 }) {
   const owner = useTaskIdentity();
   const t = useI18n();
@@ -790,7 +796,11 @@ function DocumentReviewTaskOwner({
             })}
           </MyoxusText>
         ) : null}
-        <DocumentReviewResults view={view} current={current} />
+        <DocumentReviewResults
+          view={view}
+          current={current}
+          showSource={showSource}
+        />
         {view.decision ? (
           <Notice>
             {view.decision === DocumentReviewDecisionKind.Approve

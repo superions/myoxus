@@ -52,5 +52,8 @@ Follow the upgrade instructions for the installed format:
 - Native server package instructions provided with an accepted DEB/RPM release.
 - Desktop platform/package instructions provided with the selected desktop release.
 
+The [Electron patch cadence](./electron-update-cadence.md) covers security and
+dependency maintenance, packaging acceptance and native update limitations.
+
 A new source snapshot or a documentation update does not make an older binary a
 new release and does not require rebuilding unchanged binaries.

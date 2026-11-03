@@ -13,16 +13,15 @@ use myoxus_application::git_sync::bootstrap::{
   classify_bootstrap_resume, plan_bootstrap,
 };
 use myoxus_application::git_sync::remote_commit::{CommitTrailers, commit_and_push};
-use myoxus_application::git_sync::schedule::GitSyncCronSchedule;
 use myoxus_application::git_sync::{
   CreateGitSyncProfile, EncryptedGitCredential, GitAuth, GitRepositoryPort, GitSyncLifecycleError,
   GitSyncLifecycleService, GitSyncProfilePatch, GitSyncReconciliationError, GitSyncReconciliationService,
   GitSyncRepositoryCoordination, GitSyncRepositoryScope, GitTokenRotationConfiguration, GitTokenRotationProviderKind,
   GitTokenRotationService, GitTokenRotationStatus, UpdateGitSyncProfile,
 };
-use myoxus_domain::git_sync::{
-  AuthMethod, GitSyncCronMisfirePolicy, GitSyncRun, RunStatus, SyncDirection, TriggerMode,
-};
+use myoxus_application::scheduling::cron::CronSchedule;
+use myoxus_domain::git_sync::{AuthMethod, GitSyncRun, RunStatus, SyncDirection, TriggerMode};
+use myoxus_domain::scheduling::CronMisfirePolicy;
 use myoxus_infrastructure::git_sync::{
   Git2Adapter, GitLabTokenRotationAdapter, GitSyncNativeOwnership, GitSyncStoreError, GitSyncTokenCredentialCodec,
   PgGitSyncRepositoryCoordination, SqlxGitSyncStore,
@@ -1942,7 +1941,7 @@ async fn schedule(args: ScheduleArgs, services: &Services, json: bool) -> anyhow
     .cron_timezone
     .as_deref()
     .context("profile is not configured with a Cron timezone")?;
-  let cron_schedule = GitSyncCronSchedule::parse(expression, timezone)?;
+  let cron_schedule = CronSchedule::parse(expression, timezone)?;
   let count = validated_preview_count(args.count)?;
   let first = profile.cron_next_scheduled_at.unwrap_or_else(chrono::Utc::now);
   let rows = occurrence_rows(cron_schedule.occurrences_after(first - chrono::Duration::nanoseconds(1), count)?);
@@ -1977,7 +1976,7 @@ async fn schedule(args: ScheduleArgs, services: &Services, json: bool) -> anyhow
 }
 
 fn schedule_preview(args: SchedulePreviewArgs, json: bool) -> anyhow::Result<()> {
-  let schedule = GitSyncCronSchedule::parse(&args.cron, &args.cron_timezone)?;
+  let schedule = CronSchedule::parse(&args.cron, &args.cron_timezone)?;
   let rows = occurrence_rows(schedule.occurrences_after(chrono::Utc::now(), validated_preview_count(args.count)?)?);
   if json {
     print_json(&rows);
@@ -1987,9 +1986,7 @@ fn schedule_preview(args: SchedulePreviewArgs, json: bool) -> anyhow::Result<()>
   Ok(())
 }
 
-fn occurrence_rows(
-  values: Vec<myoxus_application::git_sync::schedule::GitSyncScheduleOccurrence>,
-) -> Vec<ScheduleOccurrenceRow> {
+fn occurrence_rows(values: Vec<myoxus_application::scheduling::cron::CronOccurrence>) -> Vec<ScheduleOccurrenceRow> {
   values
     .into_iter()
     .map(|value| ScheduleOccurrenceRow {
@@ -2083,10 +2080,10 @@ fn parse_trigger(raw: &str) -> anyhow::Result<TriggerMode> {
   }
 }
 
-fn parse_cron_misfire_policy(raw: &str) -> anyhow::Result<GitSyncCronMisfirePolicy> {
+fn parse_cron_misfire_policy(raw: &str) -> anyhow::Result<CronMisfirePolicy> {
   match raw.trim() {
-    "Skip" | "skip" => Ok(GitSyncCronMisfirePolicy::Skip),
-    "RunOnce" | "run-once" | "run_once" => Ok(GitSyncCronMisfirePolicy::RunOnce),
+    "Skip" | "skip" => Ok(CronMisfirePolicy::Skip),
+    "RunOnce" | "run-once" | "run_once" => Ok(CronMisfirePolicy::RunOnce),
     other => anyhow::bail!("Invalid Cron misfire policy '{other}'. Expected Skip or RunOnce."),
   }
 }

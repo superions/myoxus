@@ -30,6 +30,7 @@ import { RouterProvider } from "react-router/dom";
 
 import { configureClientUpdateCacheResetAdapter } from "./client-update/cache-reset";
 import { ClientUpdateSurface } from "./client-update/surface";
+import { RuntimeThemeSurface } from "./runtime-theme-surface";
 
 let storeManagerClient: StoreManagerClient;
 
@@ -143,7 +144,9 @@ export function App() {
         <I18nProvider>
           <MyoxusContext store={getCurrentStore()}>
             <ClientUpdateSurface>
-              <RouterProvider router={router} />
+              <RuntimeThemeSurface>
+                <RouterProvider router={router} />
+              </RuntimeThemeSurface>
             </ClientUpdateSurface>
           </MyoxusContext>
         </I18nProvider>

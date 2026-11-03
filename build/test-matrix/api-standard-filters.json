@@ -66,6 +66,7 @@
     "graphql_workspace_member_permission_test::accepted_member_pages_have_total_order_and_preserve_users_read"
   ],
   "documents": [
+    "document_metadata_graphql_test::metadata_deadline_rearms_one_native_review_without_duplicate_admission",
     "graphql_document_graph_identity_test::document_graph_reindex_resolves_workspace_external_keys_and_projects_them_to_graphql",
     "graphql_workspace_template_context_test::workspace_template_context_is_authorized_lazy_and_owner_bound",
     "graphql_workspace_tags_test::workspace_tags_share_one_acl_scoped_catalog_with_document_assignments_and_legacy_bootstrap",

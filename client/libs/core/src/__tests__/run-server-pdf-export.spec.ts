@@ -135,6 +135,9 @@ import {
   type ServerPdfExportResult,
 } from "../components/hooks/myoxus/use-export-page";
 import { PDF_EXPORT_COMPLETED_EVENT } from "../modules/pdf-export/events";
+import { runServerDocxExport } from "../modules/file-export/run-server-docx-export";
+import { DOCX_MIME } from "../modules/file-export/deliver-file";
+import { download } from "@virgultum/editor/widgets/linked-doc";
 
 type GqlServiceShape = {
   gql: (args: { query: unknown; variables?: unknown }) => Promise<unknown>;
@@ -603,6 +606,26 @@ describe("PDF export preflight — source sync barrier", () => {
       "doc-1",
       expect.any(AbortSignal),
     );
+    waitForSynced
+      .mockReset()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error("not synced"));
+    const fetch = vi.fn();
+    await expect(
+      runServerDocxExport(
+        {
+          page: makePage() as never,
+          pageMode: "page",
+          workspace: {
+            ...makeWorkspace(waitForSynced),
+            flavour: "myoxus",
+          } as never,
+          fetchService: { fetch },
+        },
+        () => {},
+      ),
+    ).rejects.toMatchObject({ reason: "sync" });
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   test("INV-PDF-EXPORT-SYNC-02: page-mode export may start only after workspace and doc are synced", async () => {
@@ -621,4 +644,77 @@ describe("PDF export preflight — source sync barrier", () => {
       "doc-1",
     ]);
   });
+});
+
+test("Word waits for the committed source before delivering its Unicode filename and observed notices", async () => {
+  const originalElectron = BUILD_CONFIG.isElectron;
+  BUILD_CONFIG.isElectron = false;
+  try {
+    let synced!: () => void;
+    const leaf = new Promise<void>((resolve) => {
+      synced = resolve;
+    });
+    const waitForSynced = vi
+      .fn()
+      .mockResolvedValueOnce(undefined)
+      .mockReturnValueOnce(leaf);
+    const bytes = Uint8Array.from([0x50, 0x4b, 0x03, 0x04, 1, 2]);
+    const fetch = vi.fn().mockResolvedValue(
+      new Response(bytes, {
+        headers: {
+          "content-type": DOCX_MIME,
+          "content-disposition":
+            "attachment; filename*=UTF-8''%C3%9Cberblick.docx",
+          "x-myoxus-conversion-warnings": JSON.stringify([
+            { code: "unavailable_image_omitted", count: 2 },
+          ]),
+        },
+      }),
+    );
+    const progress = vi.fn();
+    const pending = runServerDocxExport(
+      {
+        page: { id: "doc key", meta: { title: "Old title" } } as never,
+        pageMode: "page",
+        workspace: {
+          id: "workspace",
+          flavour: "myoxus",
+          engine: { doc: { waitForSynced } },
+        } as never,
+        fetchService: { fetch },
+      },
+      progress,
+    );
+    await Promise.resolve();
+    expect(fetch).not.toHaveBeenCalled();
+    synced();
+    const result = await pending;
+    expect(waitForSynced.mock.calls.map(([id]) => id)).toEqual([
+      "workspace",
+      "doc key",
+    ]);
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/workspaces/workspace/docs/doc%20key/export/docx",
+      {
+        method: "POST",
+        credentials: "include",
+        timeout: 130_000,
+        throwOnHttpError: false,
+      },
+    );
+    expect(result).toEqual({
+      filename: "Überblick.docx",
+      warnings: [{ code: "unavailable_image_omitted", count: 2 }],
+      outcome: "provided",
+    });
+    expect(progress.mock.calls.map(([phase]) => phase)).toEqual([
+      "sync",
+      "prepare",
+    ]);
+    const delivered = vi.mocked(download).mock.lastCall;
+    expect(delivered?.[1]).toBe("Überblick.docx");
+    expect(new Uint8Array(await delivered![0].arrayBuffer())).toEqual(bytes);
+  } finally {
+    BUILD_CONFIG.isElectron = originalElectron;
+  }
 });

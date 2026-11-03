@@ -3,7 +3,7 @@
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import JSZip from "jszip";
+import { readZipFixture } from "../../../__tests__/zip-fixture";
 import { SurfaceBlockSchemaExtension } from "@virgultum/editor/blocks/surface";
 import {
   nativeDocumentBundles,
@@ -592,21 +592,19 @@ function nativeCreationFixture() {
   return fixture;
 }
 
+const loadPrepared = async (asset: string) =>
+  new Uint8Array(
+    readFileSync(
+      resolve(process.cwd(), "client/libs/core/public/document-bundles", asset),
+    ),
+  );
+
 test("native artwork guide persists its image before publishing an editable reader", async () => {
   const fixture = nativeCreationFixture();
   const bundle = nativeDocumentBundles.find(
     (entry) => entry.template_id === "welcome-myoxus",
   )!;
-  const selected = await readNativeTemplateBundle(
-    readFileSync(
-      resolve(
-        process.cwd(),
-        "client/libs/core/public/document-bundles",
-        bundle.asset,
-      ),
-    ),
-    "de",
-  );
+  const selected = await readNativeTemplateBundle(bundle, "de", loadPrepared);
   const blobs = fixture.stores.get("source")!.workspace.blobSync;
   const upload = vi.spyOn(blobs, "upload").mockResolvedValue(true);
   const record = await fixture.service.importNativeTemplateDoc(
@@ -621,16 +619,26 @@ test("native artwork guide persists its image before publishing an editable read
   ) as YMap<unknown>;
   const key = image.get("prop:sourceId") as string;
   const persisted = await blobs.get(key);
-  const archive = await JSZip.loadAsync(selected.content);
-  const original = Object.values(archive.files).find(
-    (file) => !file.dir && file.name.startsWith("assets/"),
-  )!;
+  const sourceBundle = await readZipFixture(
+    readFileSync(
+      resolve(
+        process.cwd(),
+        "server/templates/documents",
+        bundle.template_id,
+        `${bundle.version}.zip`,
+      ),
+    ),
+  );
+  const archive = await readZipFixture(
+    sourceBundle.get("content.template.zip")!,
+  );
+  const original = [...archive].find(
+    ([name]) => name.startsWith("assets/") && !name.endsWith("/"),
+  )![1];
   // Compare every byte without Vitest traversing a megabyte-sized typed array
   // element by element; import completion and the byte invariant stay unchanged.
   expect(
-    Buffer.from(await persisted!.arrayBuffer()).equals(
-      Buffer.from(await original.async("uint8array")),
-    ),
+    Buffer.from(await persisted!.arrayBuffer()).equals(Buffer.from(original)),
   ).toBe(true);
   expect(upload).toHaveBeenCalledWith(key);
   expect(image.get("prop:caption")).toBeTruthy();
@@ -663,19 +671,17 @@ test.each(
     const protectedTarget = nativeBlockData(
       fixture.stores.get("target")!.spaceDoc,
     );
-    const bytes = readFileSync(
-      resolve(
-        __dirname,
-        "../../../../../../..",
-        "client/libs/core/public/document-bundles",
-        bundle.asset,
-      ),
+    const selected = await readNativeTemplateBundle(
+      bundle,
+      locale,
+      loadPrepared,
     );
-    const selected = await readNativeTemplateBundle(bytes, locale);
+    if (selected.content.kind !== "yjs")
+      throw new Error("Expected raw native Yjs content");
     // Both sides must materialize through the native schemas: sparse bundles
     // acquire defaults when opened, while authored props and rich text stay exact.
     const reference = fixture.createRecord("native-reference", true);
-    applyUpdate(reference.yDoc, selected.content);
+    applyUpdate(reference.yDoc, selected.content.bytes);
     const expectedBlocks = nativeBlockData(reference.yDoc);
     const record = await fixture.service.importNativeTemplateDoc(
       selected.content,
@@ -736,7 +742,7 @@ test.each(["persistence"] as const)(
       );
     await expect(
       fixture.service.importNativeTemplateDoc(
-        encodeStateAsUpdate(source),
+        { kind: "yjs", bytes: encodeStateAsUpdate(source) },
         "Captured",
         "template",
       ),

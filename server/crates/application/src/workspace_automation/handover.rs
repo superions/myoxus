@@ -246,6 +246,7 @@ impl WorkspaceAutomationService {
       self
         .repo
         .accept_task_handover(AcceptedAutomationRun {
+          recurring_task: None,
           workspace_setup: None,
           run_id: Uuid::new_v4(),
           automation_id: None,

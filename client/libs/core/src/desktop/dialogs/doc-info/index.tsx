@@ -13,10 +13,12 @@ import {
   UserFeatureService,
 } from "@myoxus/core/modules/server";
 import { useI18n } from "@myoxus/i18n";
+import { WorkbenchService } from "@myoxus/core/modules/workbench/services/workbench";
 import {
   FrameworkScope,
   useLiveData,
   useService,
+  useServiceOptional,
   useServices,
 } from "@myoxus/infra";
 import { Modal } from "@myoxus/ui-facade";
@@ -93,6 +95,24 @@ export const DocInfoDialog = ({
 
   const [doc, setDoc] = useState<Doc | null>(null);
   const [open, setOpen] = useState(true);
+  const [returnFocus, setReturnFocus] = useState(true);
+  const workbench = useServiceOptional(WorkbenchService)?.workbench;
+  useEffect(() => {
+    if (!workbench) return;
+    const origin = workbench.location$.value;
+    // Native Review links may activate a retained Workbench view. Close this
+    // document's outer information dialog without focusing its inactive opener.
+    const sub = workbench.location$.subscribe((location) => {
+      if (
+        location.pathname !== origin.pathname ||
+        location.search !== origin.search
+      ) {
+        setReturnFocus(false);
+        setOpen(false);
+      }
+    });
+    return () => sub.unsubscribe();
+  }, [workbench]);
   useEffect(() => {
     if (!docId) return;
     const docRef = docsService.open(docId);
@@ -115,9 +135,10 @@ export const DocInfoDialog = ({
         }}
         open={open}
         onOpenChange={setOpen}
-        // Release the document scope only after Mantine restores opener focus.
+        // Release scope after native exit; navigation keeps focus in its target.
         onExitTransitionEnd={close}
         returnFocusRef={returnFocusRef}
+        returnFocus={returnFocus}
         title={<DocInfoDialogTitle />}
         width="xl"
       >

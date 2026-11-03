@@ -681,17 +681,19 @@ pub fn map_trigger_mode_to_domain(t: GitSyncTriggerModeType) -> domain::TriggerM
   }
 }
 
-pub fn map_cron_misfire_policy(value: domain::GitSyncCronMisfirePolicy) -> GitSyncCronMisfirePolicyType {
+pub fn map_cron_misfire_policy(value: myoxus_domain::scheduling::CronMisfirePolicy) -> GitSyncCronMisfirePolicyType {
   match value {
-    domain::GitSyncCronMisfirePolicy::Skip => GitSyncCronMisfirePolicyType::Skip,
-    domain::GitSyncCronMisfirePolicy::RunOnce => GitSyncCronMisfirePolicyType::RunOnce,
+    myoxus_domain::scheduling::CronMisfirePolicy::Skip => GitSyncCronMisfirePolicyType::Skip,
+    myoxus_domain::scheduling::CronMisfirePolicy::RunOnce => GitSyncCronMisfirePolicyType::RunOnce,
   }
 }
 
-pub fn map_cron_misfire_policy_to_domain(value: GitSyncCronMisfirePolicyType) -> domain::GitSyncCronMisfirePolicy {
+pub fn map_cron_misfire_policy_to_domain(
+  value: GitSyncCronMisfirePolicyType,
+) -> myoxus_domain::scheduling::CronMisfirePolicy {
   match value {
-    GitSyncCronMisfirePolicyType::Skip => domain::GitSyncCronMisfirePolicy::Skip,
-    GitSyncCronMisfirePolicyType::RunOnce => domain::GitSyncCronMisfirePolicy::RunOnce,
+    GitSyncCronMisfirePolicyType::Skip => myoxus_domain::scheduling::CronMisfirePolicy::Skip,
+    GitSyncCronMisfirePolicyType::RunOnce => myoxus_domain::scheduling::CronMisfirePolicy::RunOnce,
   }
 }
 

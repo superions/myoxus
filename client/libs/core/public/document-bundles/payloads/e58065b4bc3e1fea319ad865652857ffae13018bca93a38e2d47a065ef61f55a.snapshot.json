@@ -1,0 +1,335 @@
+{
+  "type": "page",
+  "meta": {
+    "id": "8f50a68f-36d6-48e6-a81a-5683a9f66128",
+    "title": "Te damos la bienvenida a Myoxus",
+    "createDate": 1792405283194,
+    "tags": []
+  },
+  "blocks": {
+    "type": "block",
+    "id": "mcp-block-6fa55503756d4e798a6203da59b1d41f-0000000000000001",
+    "flavour": "myoxus:page",
+    "version": 2,
+    "props": {
+      "title": {
+        "$virgultum:internal:text$": true,
+        "delta": [
+          {
+            "insert": "Te damos la bienvenida a Myoxus"
+          }
+        ]
+      }
+    },
+    "children": [
+      {
+        "type": "block",
+        "id": "mcp-block-6fa55503756d4e798a6203da59b1d41f-0000000000000002",
+        "flavour": "myoxus:surface",
+        "version": 6,
+        "props": {
+          "elements": {},
+          "exportSnapshotBlobId": "",
+          "exportSnapshotWidth": 0,
+          "exportSnapshotHeight": 0
+        },
+        "children": []
+      },
+      {
+        "type": "block",
+        "id": "mcp-block-6fa55503756d4e798a6203da59b1d41f-0000000000000003",
+        "flavour": "myoxus:note",
+        "version": 1,
+        "props": {
+          "xywh": "[0,0,498,92]",
+          "background": {
+            "dark": "rgba(0, 0, 0, 1)",
+            "light": "rgba(255, 255, 255, 1)"
+          },
+          "index": "a0",
+          "lockedBySelf": false,
+          "hidden": false,
+          "displayMode": "both",
+          "edgeless": {
+            "style": {
+              "borderRadius": 8,
+              "borderSize": 4,
+              "borderStyle": "none",
+              "shadowType": "--myoxus-note-shadow-box"
+            }
+          }
+        },
+        "children": [
+          {
+            "type": "block",
+            "id": "mcp-block-59c7b0c4177f45c58b1cbd2fba1a5af6",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Un lugar para tus notas, planes y trabajo compartido. Empieza por lo que quieras dejar por escrito hoy."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:createdAt": 1792406416819,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:updatedAt": 1792406416819,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-bce3028d172b4e9a8f714ea6e66ea828",
+            "flavour": "myoxus:image",
+            "version": 1,
+            "props": {
+              "sourceId": "assets/2b2c3e3135a00f12e47244e4c4c4634894102615a704bb3476883f72dc41bd1b",
+              "caption": "Myoxus te ayuda con muchas cosas.",
+              "width": 394,
+              "height": 262.6640625,
+              "index": "a0",
+              "xywh": "[0,0,0,0]",
+              "lockedBySelf": false,
+              "rotate": 0,
+              "size": -1,
+              "meta:createdAt": 1792406416820,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:updatedAt": 1792406416820,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-762ddff08857449ab7b2e1d77b1db06f",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Tu primera nota: pulsa + Nuevo documento a la izquierda, ponle un título y pulsa Intro para escribir. « Editor · Lo esencial » explica los demás controles.",
+                    "attributes": {
+                      "color": "var(--myoxus-text-highlight-foreground-blue)"
+                    }
+                  }
+                ]
+              },
+              "type": "quote",
+              "collapsed": false,
+              "meta:createdAt": 1792406416820,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:updatedAt": 1792406416820,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-64f2406119c9493f8cc84e2b977aadab",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "¿Qué quieres organizar?"
+                  }
+                ]
+              },
+              "type": "h3",
+              "collapsed": false
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-aa791212deb349a3aaec11c47f06aeca",
+            "flavour": "myoxus:table",
+            "version": 1,
+            "props": {
+              "headerRows": 1,
+              "rows": {
+                "row-0000": {
+                  "rowId": "row-0000",
+                  "order": "a0000000001",
+                  "backgroundColor": "var(--myoxus-text-highlight-blue)"
+                },
+                "row-0001": {
+                  "rowId": "row-0001",
+                  "order": "a0000000011"
+                },
+                "row-0002": {
+                  "rowId": "row-0002",
+                  "order": "a0000000021"
+                },
+                "row-0003": {
+                  "rowId": "row-0003",
+                  "order": "a0000000031"
+                },
+                "row-0004": {
+                  "rowId": "row-0004",
+                  "order": "a0000000041"
+                }
+              },
+              "columns": {
+                "col-0000": {
+                  "columnId": "col-0000",
+                  "order": "a0000000001",
+                  "width": 310
+                },
+                "col-0001": {
+                  "columnId": "col-0001",
+                  "order": "a0000000011",
+                  "width": 490
+                }
+              },
+              "cells": {
+                "row-0000:col-0000": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Lo que quieres hacer",
+                        "attributes": {
+                          "bold": true
+                        }
+                      }
+                    ]
+                  }
+                },
+                "row-0000:col-0001": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Por dónde empezar",
+                        "attributes": {
+                          "bold": true
+                        }
+                      }
+                    ]
+                  }
+                },
+                "row-0001:col-0000": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Ideas, textos o notas de reuniones"
+                      }
+                    ]
+                  }
+                },
+                "row-0001:col-0001": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Documentos · escribir, dar estructura y colaborar"
+                      }
+                    ]
+                  }
+                },
+                "row-0002:col-0000": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Planificar el día o hacer balance"
+                      }
+                    ]
+                  }
+                },
+                "row-0002:col-0001": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Diario · planificación diaria y notas personales"
+                      }
+                    ]
+                  }
+                },
+                "row-0003:col-0000": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Seguir una colección que va creciendo"
+                      }
+                    ]
+                  }
+                },
+                "row-0003:col-0001": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Bases de datos · entradas, campos, filtros y vistas"
+                      }
+                    ]
+                  }
+                },
+                "row-0004:col-0000": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Volver a encontrar tus documentos"
+                      }
+                    ]
+                  }
+                },
+                "row-0004:col-0001": {
+                  "text": {
+                    "$virgultum:internal:text$": true,
+                    "delta": [
+                      {
+                        "insert": "Favoritos, carpetas, etiquetas y colecciones"
+                      }
+                    ]
+                  }
+                }
+              },
+              "appearance": "ruled",
+              "density": "compact"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-1079f9a4236341939923aac652ded97c",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Busca las demás guías por su título con la lupa: « Organizar y encontrar tus documentos », « Bases de datos · Saca más partido a tus listas », « Reuniones · Elige una plantilla » e « Importar contenido »."
+                  }
+                ]
+              },
+              "type": "text",
+              "collapsed": false,
+              "meta:createdAt": 1792406416820,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:updatedAt": 1792406416820,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

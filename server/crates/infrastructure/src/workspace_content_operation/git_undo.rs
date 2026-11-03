@@ -371,11 +371,19 @@ pub(super) async fn publish(
   let moving = plan.choice == WorkspaceContentGitSyncChoice::Move;
   let child = git_handoff::target_profile_id(undo.origin_operation_id);
   if moving {
+    let previous = SqlxGitSyncStore::profile_in(&mut **tx, child)
+      .await
+      .map_err(|_| AuthError::Storage("Git Cron target projection unavailable".into()))?;
+    let mut updated = previous.clone();
+    updated.enabled = false;
     sqlx::query("UPDATE git_sync_profiles SET enabled=false,updated_at=now() WHERE id=$1")
       .bind(child)
       .execute(&mut **tx)
       .await
       .map_err(PgWorkspaceContentOperationRepository::storage)?;
+    SqlxGitSyncStore::write_schedules_in(&mut **tx, Some(&previous), &updated)
+      .await
+      .map_err(|_| AuthError::Storage("Git Cron target suspension unavailable".into()))?;
   }
   for document in &plan.documents {
     let changed = sqlx::query(

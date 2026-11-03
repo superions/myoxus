@@ -221,6 +221,7 @@ export interface MenuItemProps extends Omit<
   ButtonHTMLAttributes<HTMLButtonElement>,
   "prefix" | "type" | "onSelect"
 > {
+  ref?: Ref<HTMLButtonElement>;
   type?: "default" | "warning" | "danger";
   active?: boolean;
   prefix?: ReactNode;
@@ -1519,7 +1520,21 @@ export function MenuItem({
       menuContext.close?.();
     }
   };
-  const domOptions = filterDomOptions(buttonOptions);
+  // Mantine overlays clone their target with a ref and focus/hover handlers.
+  // Keep those on the actual button instead of silently breaking composition.
+  const domOptions = {
+    ...filterDomOptions(buttonOptions),
+    ref: buttonOptions.ref,
+    onFocus: buttonOptions.onFocus,
+    onBlur: buttonOptions.onBlur,
+    onMouseEnter: buttonOptions.onMouseEnter,
+    onMouseLeave: buttonOptions.onMouseLeave,
+    onMouseMove: buttonOptions.onMouseMove,
+    onPointerEnter: buttonOptions.onPointerEnter,
+    onPointerLeave: buttonOptions.onPointerLeave,
+    onPointerDown: buttonOptions.onPointerDown,
+    onPointerMove: buttonOptions.onPointerMove,
+  };
 
   if (menuContext.kind === "dropdown") {
     return (

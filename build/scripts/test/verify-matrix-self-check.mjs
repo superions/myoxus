@@ -807,13 +807,13 @@ function verifyApiQuickCompileBoundary() {
     createHash("sha256")
       .update([...exactFilters].sort().join("\n"))
       .digest("hex") !==
-      "9bdc5104396bee75f71907380db3baa2aa615077cec374e6ece643407cc11317"
+      "da6b824a646fb299348436b925a0cd0cf239c7290abf08c01fe2ae03b338dd3d"
   ) {
     throw new Error(
       "API standard assignment lost, duplicated or replaced an existing test",
     );
   }
-  if (declaredTestModules.length !== 41 || exactFilters.length !== 86) {
+  if (declaredTestModules.length !== 42 || exactFilters.length !== 87) {
     throw new Error(
       `API quick compile boundary drifted: modules=${declaredTestModules.length}, filters=${exactFilters.length}`,
     );

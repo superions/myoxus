@@ -977,6 +977,7 @@ async fn terminal_account_repository_cleanup_guards_and_released_email_are_atomi
     ] {sqlx::query(&statement).execute(&pool).await.unwrap();}
     let history: i64=sqlx::query_scalar("INSERT INTO doc_histories(workspace_id,doc_id,snapshot,actor_id) VALUES($1,$2,$3,$4) RETURNING id").bind(ws).bind(doc).bind(vec![1u8,2,3]).bind(target).fetch_one(&pool).await.unwrap();
     sqlx::query("INSERT INTO document_version(doc_id,workspace_id,doc_history_id,label,created_by,version_no) VALUES($1,$2,$3,'retained',$4,1)").bind(doc).bind(ws).bind(history).bind(target).execute(&pool).await.unwrap();
+    let reminder_id=Uuid::new_v4();
     let statements=vec![
       ("sessions","user_id",format!("INSERT INTO sessions(id,user_id,expires_at,refresh_after) VALUES('{session}','{target}',now()+interval '1 hour',now())")),
       ("session_links","user_id",format!("INSERT INTO session_links(session_id,root_session_id,user_id) VALUES('{session}','{session}','{target}')")),
@@ -991,7 +992,7 @@ async fn terminal_account_repository_cleanup_guards_and_released_email_are_atomi
       ("organization_unit_member","user_id",format!("INSERT INTO organization_unit_member(unit_id,user_id,role) VALUES('{unit}','{target}','manager')")),
       ("doc_user_permissions","user_id",format!("INSERT INTO doc_user_permissions(doc_id,user_id,role) VALUES('{doc}','{target}','Owner')")),
       ("comment_thread_read_state","user_id",format!("INSERT INTO comment_thread_read_state(user_id,thread_comment_id,read_at) VALUES('{target}','{comment}',now())")),
-      ("database_row_reminders","user_id",format!("INSERT INTO database_row_reminders(workspace_id,database_id,row_id,field_id,user_id,offset_minutes,trigger_at) VALUES('{ws}','{database}','{row}','{field}','{target}',0,now()+interval '1 hour')")),
+      ("database_row_reminders","user_id",format!("WITH scheduled AS (INSERT INTO scheduling_schedules(id,workspace_id,actor_id,admission_zone,target_json,next_nominal,next_due_at,next_admission_at) VALUES('{reminder_id}','{ws}','{target}','UTC',jsonb_build_object('kind','database_reminder','reminder_id','{reminder_id}'),jsonb_build_object('kind','local_date_time','value',((now()+interval '1 hour') AT TIME ZONE 'UTC')),now()+interval '1 hour',now()+interval '1 hour') RETURNING id) INSERT INTO database_row_reminders(id,workspace_id,database_id,row_id,field_id,user_id,offset_minutes) SELECT id,'{ws}','{database}','{row}','{field}','{target}',0 FROM scheduled")),
       ("database_view_user_states","user_id",format!("INSERT INTO database_view_user_states(view_id,user_id) VALUES('{view}','{target}')")),
       ("notifications","user_id",format!("INSERT INTO notifications(user_id,notification_type) VALUES('{target}','owned')")),
       ("workspace_member_last_access","user_id",format!("INSERT INTO workspace_member_last_access(workspace_id,user_id,last_accessed_at) VALUES('{ws}','{target}',now())")),

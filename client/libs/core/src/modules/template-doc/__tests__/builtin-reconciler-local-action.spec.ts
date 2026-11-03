@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { WorkspaceInitialContentPolicy } from "@myoxus/graphql";
 import { nativeDocumentBundles } from "../services/source-metadata";
+import type { NativeTemplateContent } from "../services/native-bundle";
 
 import { LiveData } from "@myoxus/infra";
 import { expect, test, vi } from "vitest";
@@ -36,7 +37,7 @@ test("seeding creates readable onboarding documents and reusable meeting sources
     }),
   );
   const importNativeTemplateDoc = vi.fn(
-    async (_content: Uint8Array, _title: string, _purpose: string) =>
+    async (_content: NativeTemplateContent, _title: string, _purpose: string) =>
       createDoc(),
   );
   // Exercise the public seeding path with storage ports; no socket or locale

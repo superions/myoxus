@@ -7,9 +7,11 @@ import {
   PageIcon,
   PrinterIcon,
   WorkflowIcon,
+  FileIconDocxIcon,
+  InformationIcon,
 } from "@myoxus/icons/react";
 import { track } from "@myoxus/track";
-import { MenuItem, MenuSeparator, MenuSub } from "@myoxus/ui-facade";
+import { MenuItem, MenuSeparator, MenuSub, Tooltip } from "@myoxus/ui-facade";
 import { type ReactNode, useCallback } from "react";
 
 interface ExportMenuItemProps<T> {
@@ -20,12 +22,14 @@ interface ExportMenuItemProps<T> {
   label: string;
   disabled?: boolean;
   suffix?: ReactNode;
+  unavailableReason?: string;
 }
 
 interface ExportProps {
   exportHandler: (
     type:
       | "pdf"
+      | "docx"
       | "html"
       | "png"
       | "markdown"
@@ -39,6 +43,7 @@ interface ExportProps {
   pageMode?: "page" | "edgeless";
   className?: string;
   isMermaidDiagram?: boolean;
+  docxUnavailableReason?: string;
 }
 
 export function ExportMenuItem<T>({
@@ -49,19 +54,35 @@ export function ExportMenuItem<T>({
   label,
   disabled,
   suffix,
+  unavailableReason,
 }: ExportMenuItemProps<T>) {
-  return (
+  const item = (
     <MenuItem
       className={className}
       data-testid={`export-to-${type}`}
-      onSelect={onSelect}
+      onSelect={() => {
+        if (!unavailableReason) onSelect();
+      }}
+      aria-disabled={Boolean(unavailableReason) || disabled}
+      aria-description={unavailableReason}
+      closeMenuOnClick={!unavailableReason}
       block
       prefixIcon={icon}
       disabled={disabled}
-      suffix={suffix}
+      suffix={unavailableReason ? <InformationIcon /> : suffix}
     >
       {label}
     </MenuItem>
+  );
+  return unavailableReason ? (
+    <Tooltip
+      content={unavailableReason}
+      events={{ hover: true, focus: true, touch: false }}
+    >
+      {item}
+    </Tooltip>
+  ) : (
+    item
   );
 }
 
@@ -83,6 +104,7 @@ export const ExportMenuItems = ({
   className,
   pageMode = "page",
   isMermaidDiagram = false,
+  docxUnavailableReason,
 }: ExportProps) => {
   const t = useI18n();
 
@@ -151,6 +173,18 @@ export const ExportMenuItems = ({
         label={t["com.myoxus.export.pdf.menu-label"]()}
       />
       <ExportMenuItem
+        onSelect={() => exportHandler("docx")}
+        className={className}
+        type="docx"
+        icon={<FileIconDocxIcon />}
+        label={t["com.myoxus.import.docx"]()}
+        unavailableReason={
+          pageMode === "edgeless"
+            ? t["com.myoxus.export.word.mode"]()
+            : docxUnavailableReason
+        }
+      />
+      <ExportMenuItem
         onSelect={() => exportHandler("snapshot")}
         className={className}
         type="snapshot"
@@ -166,6 +200,7 @@ export const Export = ({
   className,
   pageMode,
   isMermaidDiagram = false,
+  docxUnavailableReason,
 }: ExportProps) => {
   const t = useI18n();
   const items = (
@@ -175,6 +210,7 @@ export const Export = ({
         className={className}
         pageMode={pageMode}
         isMermaidDiagram={isMermaidDiagram}
+        docxUnavailableReason={docxUnavailableReason}
       />
       {pageMode !== "edgeless" && (
         <>

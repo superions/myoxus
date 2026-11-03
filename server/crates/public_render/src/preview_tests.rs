@@ -455,6 +455,10 @@ fn svg_preview_blocks_local_files_and_preserves_embedded_images() {
       "fixture must exercise a readable local image"
     );
     let output = render(href.to_str().unwrap(), PreviewOutputFormat::Svg);
+    assert!(
+      context.rasterize_svg(control.as_bytes(), &render_policy()).is_err(),
+      "A figure made only of a blocked local image must not become a blank PNG"
+    );
     let svg = std::str::from_utf8(&output.bytes).unwrap();
     assert!(
       !svg.contains("<image"),
@@ -463,6 +467,29 @@ fn svg_preview_blocks_local_files_and_preserves_embedded_images() {
     assert!(!svg.contains(&encoded));
   }
   let href = format!("data:image/png;base64,{encoded}");
+  let mut small_output = render_policy();
+  small_output.max_png_pixels = 256;
+  let reduced=context.rasterize_svg(format!(r#"<svg xmlns="http://www.w3.org/2000/svg" width="48" height="32"><image href="{href}" width="48" height="32"/></svg>"#).as_bytes(),&small_output).unwrap();
+  let dimensions = image::ImageReader::new(Cursor::new(reduced))
+    .with_guessed_format()
+    .unwrap()
+    .into_dimensions()
+    .unwrap();
+  assert!(
+    u64::from(dimensions.0) * u64::from(dimensions.1) <= 256,
+    "Valid SVG scales to the existing output budget instead of being needlessly omitted"
+  );
+  let mut limited = render_policy();
+  limited.max_decoded_image_pixels = 1;
+  assert!(context.rasterize_svg(format!(r#"<svg xmlns="http://www.w3.org/2000/svg" width="48" height="32"><image href="{href}" width="48" height="32"/></svg>"#).as_bytes(),&limited).is_err(),"Embedded images must obey the decoder pixel budget before rendering");
+  let figure=context.rasterize_svg(format!(r#"<svg xmlns="http://www.w3.org/2000/svg" width="48" height="32"><image href="{href}" width="48" height="32"/></svg>"#).as_bytes(),&render_policy()).unwrap();
+  assert!(
+    image::load_from_memory(&figure)
+      .unwrap()
+      .to_rgba8()
+      .pixels()
+      .any(|pixel| pixel.0 == [125, 40, 65, 255])
+  );
   let output = render(&href, PreviewOutputFormat::Svg);
   assert!(std::str::from_utf8(&output.bytes).unwrap().contains(&encoded));
   let output = render(&href, PreviewOutputFormat::Png);

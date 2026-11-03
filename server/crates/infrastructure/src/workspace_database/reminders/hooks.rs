@@ -103,91 +103,88 @@ impl PgDatabaseRepository {
   pub(in crate::workspace_database) async fn cancel_database_task_reminders(
     tx: &mut Transaction<'_, Postgres>,
     database_id: DatabaseId,
-  ) -> RepoResult<sqlx::postgres::PgQueryResult> {
-    Ok(
-      sqlx::query(
-        "UPDATE database_row_reminders SET status='cancelled', schedule_revision=schedule_revision+1,
-         claim_token=NULL, claim_expires_at=NULL, cancelled_at=now(), updated_at=now()
-       WHERE database_id=$1 AND status IN ('scheduled','claimed','fired')
-         AND EXISTS (SELECT 1 FROM workspace_database_rows target
-           JOIN database_profiles profile ON profile.database_id=target.database_id AND profile.profile_kind='project'
-           WHERE target.id=database_row_reminders.row_id AND target.database_id=$1 AND target.row_kind='task')",
+  ) -> RepoResult<()> {
+    let ids:Vec<Uuid>=sqlx::query_scalar(
+        "UPDATE database_row_reminders SET status='cancelled', cancelled_at=now(), updated_at=now()
+        WHERE database_id=$1 AND status IN ('scheduled','claimed','fired')
+          AND EXISTS (SELECT 1 FROM workspace_database_rows target
+            JOIN database_profiles profile ON profile.database_id=target.database_id AND profile.profile_kind='project'
+            WHERE target.id=database_row_reminders.row_id AND target.database_id=$1 AND target.row_kind='task') RETURNING id",
       )
       .bind(database_id)
-      .execute(&mut **tx)
+       .fetch_all(&mut **tx)
       .await
-      .map_err(Self::map_sqlx_error)?,
-    )
+       .map_err(Self::map_sqlx_error)?;
+    crate::scheduling::database_reminders::end_in(&mut **tx, &ids, true).await
   }
 
   pub(in crate::workspace_database) async fn cancel_field_reminders(
     tx: &mut Transaction<'_, Postgres>,
     field_id: DatabaseFieldId,
-  ) -> RepoResult<sqlx::postgres::PgQueryResult> {
-    Ok(sqlx::query(
+  ) -> RepoResult<()> {
+    let ids:Vec<Uuid>=sqlx::query_scalar(
         r#"
           UPDATE database_row_reminders
-          SET status = 'cancelled', schedule_revision = schedule_revision + 1,
-              claim_token = NULL, claim_expires_at = NULL,
+          SET status = 'cancelled',
               cancelled_at = now(), updated_at = now()
           WHERE field_id = $1 AND (status IN ('scheduled', 'claimed') OR
             (status='fired' AND EXISTS (SELECT 1 FROM workspace_database_rows target
               JOIN database_profiles profile ON profile.database_id=target.database_id AND profile.profile_kind='project'
               WHERE target.id=database_row_reminders.row_id AND target.row_kind='task')))
+          RETURNING id
         "#,
       )
       .bind(field_id)
-      .execute(&mut **tx)
+      .fetch_all(&mut **tx)
       .await
-      .map_err(Self::map_sqlx_error)?)
+      .map_err(Self::map_sqlx_error)?;
+    crate::scheduling::database_reminders::end_in(&mut **tx, &ids, true).await
   }
 
   pub(in crate::workspace_database) async fn cancel_rows_reminders(
     tx: &mut Transaction<'_, Postgres>,
     row_ids: &[DatabaseRowId],
-  ) -> RepoResult<sqlx::postgres::PgQueryResult> {
-    Ok(
-      sqlx::query(
-        r#"
+  ) -> RepoResult<()> {
+    let ids: Vec<Uuid> = sqlx::query_scalar(
+      r#"
         UPDATE database_row_reminders
-        SET status = 'cancelled', schedule_revision = schedule_revision + 1,
-            claim_token = NULL, claim_expires_at = NULL,
+        SET status = 'cancelled',
             cancelled_at = now(), updated_at = now()
         WHERE row_id = ANY($1) AND (status IN ('scheduled', 'claimed') OR
           (status='fired' AND EXISTS (SELECT 1 FROM workspace_database_rows target
             JOIN database_profiles profile ON profile.database_id=target.database_id AND profile.profile_kind='project'
             WHERE target.id=database_row_reminders.row_id AND target.row_kind='task')))
+        RETURNING id
       "#,
-      )
-      .bind(row_ids)
-      .execute(&mut **tx)
-      .await
-      .map_err(Self::map_sqlx_error)?,
     )
+    .bind(row_ids)
+    .fetch_all(&mut **tx)
+    .await
+    .map_err(Self::map_sqlx_error)?;
+    crate::scheduling::database_reminders::end_in(&mut **tx, &ids, true).await
   }
 
   pub(in crate::workspace_database) async fn cancel_cell_reminders(
     tx: &mut Transaction<'_, Postgres>,
     row_ids: &[DatabaseRowId],
     field_id: DatabaseFieldId,
-  ) -> RepoResult<sqlx::postgres::PgQueryResult> {
-    Ok(
-      sqlx::query(
-        r#"
+  ) -> RepoResult<()> {
+    let ids: Vec<Uuid> = sqlx::query_scalar(
+      r#"
         UPDATE database_row_reminders
-        SET status = 'cancelled', schedule_revision = schedule_revision + 1,
-            claim_token = NULL, claim_expires_at = NULL,
+        SET status = 'cancelled',
             cancelled_at = now(), updated_at = now()
         WHERE row_id = ANY($1) AND field_id = $2
           AND status IN ('scheduled', 'claimed')
+        RETURNING id
       "#,
-      )
-      .bind(row_ids)
-      .bind(field_id)
-      .execute(&mut **tx)
-      .await
-      .map_err(Self::map_sqlx_error)?,
     )
+    .bind(row_ids)
+    .bind(field_id)
+    .fetch_all(&mut **tx)
+    .await
+    .map_err(Self::map_sqlx_error)?;
+    crate::scheduling::database_reminders::end_in(&mut **tx, &ids, true).await
   }
 
   pub(in crate::workspace_database) async fn lock_cell_reminder_generations(
@@ -198,11 +195,11 @@ impl PgDatabaseRepository {
     Ok(
       sqlx::query(
         r#"
-          SELECT id, schedule_revision
-          FROM database_row_reminders
-          WHERE row_id = $1 AND field_id = $2 AND status IN ('scheduled', 'claimed')
-          ORDER BY id
-          FOR UPDATE
+          SELECT r.id,s.generation AS schedule_revision
+          FROM database_row_reminders r JOIN scheduling_schedules s ON s.id=r.id
+          WHERE r.row_id = $1 AND r.field_id = $2 AND r.status IN ('scheduled', 'claimed')
+          ORDER BY r.id
+          FOR UPDATE OF r,s
         "#,
       )
       .bind(row_id)
@@ -217,46 +214,58 @@ impl PgDatabaseRepository {
     tx: &mut Transaction<'_, Postgres>,
     reschedule: &DatabaseRowReminderReschedule,
   ) -> RepoResult<sqlx::postgres::PgQueryResult> {
-    Ok(
-      sqlx::query(
+    let updated=sqlx::query(
         r#"
           UPDATE database_row_reminders
-          SET trigger_at = $3, status = 'scheduled',
-              schedule_revision = schedule_revision + 1,
-              claim_token = NULL, claim_expires_at = NULL,
+          SET status = 'scheduled',
               fired_at = NULL, cancelled_at = NULL, updated_at = now()
-          WHERE id = $1 AND schedule_revision = $2
+          WHERE id = $1 AND EXISTS(SELECT 1 FROM scheduling_schedules s WHERE s.id=database_row_reminders.id AND s.generation=$2)
             AND status IN ('scheduled', 'claimed')
         "#,
       )
       .bind(reschedule.reminder_id)
       .bind(reschedule.expected_schedule_revision)
-      .bind(reschedule.trigger_at)
       .execute(&mut **tx)
       .await
-      .map_err(Self::map_sqlx_error)?,
-    )
+      .map_err(Self::map_sqlx_error)?;
+    if updated.rows_affected() == 1 {
+      let source = sqlx::query("SELECT workspace_id,user_id FROM database_row_reminders WHERE id=$1")
+        .bind(reschedule.reminder_id)
+        .fetch_one(&mut **tx)
+        .await
+        .map_err(Self::map_sqlx_error)?;
+      crate::scheduling::database_reminders::set_in(
+        &mut **tx,
+        reschedule.reminder_id,
+        source.get("workspace_id"),
+        source.get("user_id"),
+        reschedule.trigger_at,
+        Some(reschedule.expected_schedule_revision),
+      )
+      .await?;
+    }
+    Ok(updated)
   }
 
   pub(in crate::workspace_database) async fn invalidate_fired_cell_reminders(
     tx: &mut Transaction<'_, Postgres>,
     row_id: DatabaseRowId,
     field_id: DatabaseFieldId,
-  ) -> RepoResult<sqlx::postgres::PgQueryResult> {
-    Ok(
-      sqlx::query(
-        r#"
+  ) -> RepoResult<()> {
+    let ids: Vec<Uuid> = sqlx::query_scalar(
+      r#"
           UPDATE database_row_reminders
-          SET schedule_revision = schedule_revision + 1, updated_at = now()
+          SET updated_at = now()
           WHERE row_id = $1 AND field_id = $2 AND status = 'fired'
+          RETURNING id
         "#,
-      )
-      .bind(row_id)
-      .bind(field_id)
-      .execute(&mut **tx)
-      .await
-      .map_err(Self::map_sqlx_error)?,
     )
+    .bind(row_id)
+    .bind(field_id)
+    .fetch_all(&mut **tx)
+    .await
+    .map_err(Self::map_sqlx_error)?;
+    crate::scheduling::database_reminders::invalidate_in(&mut **tx, &ids).await
   }
 
   pub(in crate::workspace_database) async fn remap_moved_reminders(
@@ -265,32 +274,37 @@ impl PgDatabaseRepository {
     target_fields: &[DatabaseFieldId],
     target_database_id: DatabaseId,
     row_ids: &[DatabaseRowId],
-  ) -> RepoResult<sqlx::postgres::PgQueryResult> {
-    Ok(sqlx::query("UPDATE database_row_reminders reminder SET database_id=$3,field_id=mapped.target,schedule_revision=CASE WHEN status IN('scheduled','claimed') THEN schedule_revision+1 ELSE schedule_revision END,status=CASE WHEN status='claimed' THEN 'scheduled' ELSE status END,claim_token=NULL,claim_expires_at=NULL,updated_at=now() FROM unnest($1::uuid[],$2::uuid[]) mapped(source,target) WHERE reminder.row_id=ANY($4) AND reminder.field_id=mapped.source")
-      .bind(source_fields).bind(target_fields).bind(target_database_id).bind(row_ids).execute(&mut **tx).await.map_err(Self::map_sqlx_error)?)
+  ) -> RepoResult<()> {
+    let rows=sqlx::query("UPDATE database_row_reminders reminder SET database_id=$3,field_id=mapped.target,status=CASE WHEN status='claimed' THEN 'scheduled' ELSE status END,updated_at=now() FROM unnest($1::uuid[],$2::uuid[]) mapped(source,target) WHERE reminder.row_id=ANY($4) AND reminder.field_id=mapped.source RETURNING reminder.id,reminder.status")
+      .bind(source_fields).bind(target_fields).bind(target_database_id).bind(row_ids).fetch_all(&mut **tx).await.map_err(Self::map_sqlx_error)?;
+    let pending = rows
+      .iter()
+      .filter(|row| row.get::<String, _>("status") == "scheduled")
+      .map(|row| row.get::<Uuid, _>("id"))
+      .collect::<Vec<_>>();
+    crate::scheduling::database_reminders::invalidate_in(&mut **tx, &pending).await
   }
 
   pub(in crate::workspace_database) async fn cancel_moved_closed_task_reminders(
     tx: &mut Transaction<'_, Postgres>,
     row_id: DatabaseRowId,
-  ) -> RepoResult<sqlx::postgres::PgQueryResult> {
-    Ok(sqlx::query("UPDATE database_row_reminders SET status='cancelled',cancelled_at=now(),updated_at=now() WHERE row_id=$1 AND status='scheduled'").bind(row_id).execute(&mut **tx).await.map_err(Self::map_sqlx_error)?)
+  ) -> RepoResult<()> {
+    let ids:Vec<Uuid>=sqlx::query_scalar("UPDATE database_row_reminders SET status='cancelled',cancelled_at=now(),updated_at=now() WHERE row_id=$1 AND status='scheduled' RETURNING id").bind(row_id).fetch_all(&mut **tx).await.map_err(Self::map_sqlx_error)?;
+    crate::scheduling::database_reminders::end_in(&mut **tx, &ids, false).await
   }
 
   pub(in crate::workspace_database) async fn cancel_closed_task_reminders(
     tx: &mut Transaction<'_, Postgres>,
     row_id: DatabaseRowId,
-  ) -> RepoResult<sqlx::postgres::PgQueryResult> {
-    Ok(
-      sqlx::query(
-        "UPDATE database_row_reminders SET status='cancelled', schedule_revision=schedule_revision+1,
-           claim_token=NULL, claim_expires_at=NULL, cancelled_at=now(), updated_at=now()
-         WHERE row_id=$1 AND status IN ('scheduled','claimed','fired')",
-      )
-      .bind(row_id)
-      .execute(&mut **tx)
-      .await
-      .map_err(Self::map_sqlx_error)?,
+  ) -> RepoResult<()> {
+    let ids: Vec<Uuid> = sqlx::query_scalar(
+      "UPDATE database_row_reminders SET status='cancelled', cancelled_at=now(), updated_at=now()
+         WHERE row_id=$1 AND status IN ('scheduled','claimed','fired') RETURNING id",
     )
+    .bind(row_id)
+    .fetch_all(&mut **tx)
+    .await
+    .map_err(Self::map_sqlx_error)?;
+    crate::scheduling::database_reminders::end_in(&mut **tx, &ids, true).await
   }
 }

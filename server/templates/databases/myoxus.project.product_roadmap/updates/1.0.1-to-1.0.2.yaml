@@ -1,0 +1,9 @@
+format_version: 1
+template_id: myoxus.project.product_roadmap
+source:
+  version: 1.0.1
+  sha256: bdf1d29e1ff2cec3cb08bdee5b9b85e4f68ae1a7d69a7200e307f04afcd33d57
+target:
+  version: 1.0.2
+  sha256: 09465771619a03282694f5b8b1f7327b0c6630b66fa80463967b85af075016f3
+operations: []

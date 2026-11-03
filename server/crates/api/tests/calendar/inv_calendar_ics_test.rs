@@ -14,6 +14,7 @@ use std::sync::Arc;
 use axum::{body::Body, http::Request};
 use http_body_util::BodyExt;
 use serde_json::{Value, json};
+use sqlx::Row;
 use tower::ServiceExt;
 use uuid::Uuid;
 
@@ -220,7 +221,7 @@ async fn inv_cal_ics01_export_contains_vevent() {
 // ── INV-CAL-ICS-02 + INV-CAL-ICS-03 ─────────────────────────────────────────
 
 /// INV-CAL-ICS-02/03: importWorkspaceCalendarIcs creates one event per VEVENT
-/// and the roundtrip (export → import) preserves the title in the target workspace.
+/// and the roundtrip retains title, rule, exception and source identity.
 #[tokio::test]
 async fn inv_cal_ics02_import_creates_native_events() {
   let pool = setup_pool().await;
@@ -244,7 +245,9 @@ async fn inv_cal_ics02_import_creates_native_events() {
           "workspaceId": ws_src.to_string(),
           "title": "Roundtrip Event",
           "startsAt": "2026-07-01T14:00:00Z",
-          "endsAt": "2026-07-01T15:00:00Z"
+          "endsAt": "2026-07-01T15:00:00Z",
+          "recurrence":{"frequency":"Weekly","interval":1,"zone":"UTC","weekdays":["Wednesday"],
+            "start":{"localDateTime":"2026-07-01T14:00:00"},"end":{"localDateTime":"2026-07-31T14:00:00"}}
         }
       }
     }),
@@ -254,6 +257,13 @@ async fn inv_cal_ics02_import_creates_native_events() {
     .as_str()
     .expect("source event must be created")
     .to_string();
+
+  let excluded=gql(&app,session_id,json!({"query":
+    "mutation($event:String!,$ws:String!){deleteWorkspaceEvent(eventId:$event,workspaceId:$ws,scope:This,instanceStart:\"2026-07-08T14:00:00Z\")}",
+    "variables":{"event":src_event_id,"ws":ws_src}})).await;
+  assert!(excluded.get("errors").is_none(), "{excluded:?}");
+  let exception=gql(&app,session_id,json!({"query":"mutation($event:String!,$ws:String!){updateWorkspaceEvent(eventId:$event,workspaceId:$ws,scope:This,instanceStart:\"2026-07-15T14:00:00Z\",input:{title:\"Imported exception\",startsAt:\"2026-07-16T16:00:00Z\",endsAt:\"2026-07-16T17:00:00Z\"}){id}}","variables":{"event":src_event_id,"ws":ws_src}})).await;
+  assert!(exception.get("errors").is_none(), "{exception}");
 
   // Export from source workspace.
   let export_resp = gql(
@@ -275,6 +285,22 @@ async fn inv_cal_ics02_import_creates_native_events() {
     .as_str()
     .expect("export must return a string")
     .to_string();
+
+  // Real files can put child components before their master. Keep that order
+  // here so the native import cannot accidentally depend on export ordering.
+  let components = ics
+    .split("BEGIN:VEVENT")
+    .skip(1)
+    .map(|part| part.split("END:VEVENT").next().unwrap())
+    .collect::<Vec<_>>();
+  let ics = format!(
+    "BEGIN:VCALENDAR\r\nVERSION:2.0\r\n{}END:VCALENDAR\r\n",
+    components
+      .iter()
+      .rev()
+      .map(|body| format!("BEGIN:VEVENT{body}END:VEVENT\r\n"))
+      .collect::<String>()
+  );
 
   // Import into destination workspace.
   let import_resp = gql(
@@ -298,8 +324,8 @@ async fn inv_cal_ics02_import_creates_native_events() {
 
   let result = &import_resp["data"]["importWorkspaceCalendarIcs"];
   assert_eq!(
-    result["importedCount"], 1,
-    "INV-CAL-ICS-02: importedCount must be 1, got: {import_resp}"
+    result["importedCount"], 2,
+    "INV-CAL-ICS-02: importedCount must include the master and exception, got: {import_resp}"
   );
   assert_eq!(
     result["skippedCount"], 0,
@@ -308,18 +334,114 @@ async fn inv_cal_ics02_import_creates_native_events() {
 
   // Verify the imported event exists in the destination workspace.
   let row = sqlx::query(
-    "SELECT title FROM calendar_events
-     WHERE workspace_id = $1 AND origin = 'native'",
+    "SELECT id,title,payload,recurrence_schedule_id FROM calendar_events
+     WHERE workspace_id = $1 AND origin = 'native' AND recurrence_parent_id IS NULL",
   )
   .bind(ws_dst)
   .fetch_optional(&pool)
   .await
   .expect("DB query must succeed");
 
-  assert!(
-    row.is_some(),
-    "INV-CAL-ICS-03: imported event must exist in target workspace"
+  let row = row.expect("imported event must exist in target workspace");
+  assert_eq!(
+    row.get::<Option<String>, _>("title").as_deref(),
+    Some("Roundtrip Event")
   );
+  let payload = row.get::<Value, _>("payload");
+  assert_eq!(payload["sourceUid"], src_event_id);
+  assert_eq!(
+    payload["rrule"],
+    "FREQ=WEEKLY;BYDAY=WE;INTERVAL=1;UNTIL=20260731T140000Z"
+  );
+  assert!(
+    payload["sourceRecurrence"].as_array().unwrap().iter().any(|line| line
+      .as_str()
+      .is_some_and(|line| line.starts_with("EXDATE") && line.contains("20260708T140000Z"))),
+    "the original exclusion must survive native ICS import"
+  );
+  assert!(row.get::<Option<Uuid>, _>("recurrence_schedule_id").is_some());
+  let parent: Uuid = row.get("id");
+  let child:(Uuid,serde_json::Value,chrono::DateTime<chrono::Utc>)=sqlx::query_as("SELECT recurrence_parent_id,payload,starts_at FROM calendar_events WHERE workspace_id=$1 AND recurrence_parent_id IS NOT NULL").bind(ws_dst).fetch_one(&pool).await.unwrap();
+  assert_eq!(
+    child.0, parent,
+    "the new native UID authority must link only this import's child/master"
+  );
+  assert_eq!(child.1["recurrenceId"], "20260715T140000Z");
+  let child_id: Uuid =
+    sqlx::query_scalar("SELECT id FROM calendar_events WHERE workspace_id=$1 AND recurrence_parent_id=$2")
+      .bind(ws_dst)
+      .bind(parent)
+      .fetch_one(&pool)
+      .await
+      .unwrap();
+  let original=gql(&app,session_id,json!({"query":"query($ws:String!,$event:String!){calendarEvent(workspaceId:$ws,eventId:$event){recurrenceId startsAt}}","variables":{"ws":ws_dst.to_string(),"event":child_id.to_string()}})).await;
+  assert_eq!(
+    original["data"]["calendarEvent"]["recurrenceId"], "2026-07-15T14:00:00+00:00",
+    "detail/edit transport must expose the original key, never the moved visible start"
+  );
+  assert_eq!(
+    child.2,
+    "2026-07-16T16:00:00Z".parse::<chrono::DateTime<chrono::Utc>>().unwrap()
+  );
+  let child_component = components
+    .iter()
+    .find(|body| body.contains("RECURRENCE-ID"))
+    .expect("export must retain the out-of-window child");
+  let orphan =
+    format!("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT{child_component}END:VEVENT\r\nEND:VCALENDAR\r\n");
+  let rejected=gql(&app,session_id,json!({"query":"mutation($ws:String!,$body:String!){importWorkspaceCalendarIcs(workspaceId:$ws,icsBody:$body){importedCount skippedCount}}","variables":{"ws":ws_dst.to_string(),"body":orphan}})).await;
+  assert_eq!(
+    rejected["data"]["importWorkspaceCalendarIcs"]["importedCount"], 0,
+    "never adopt a same-UID master from a preceding import"
+  );
+  assert_eq!(rejected["data"]["importWorkspaceCalendarIcs"]["skippedCount"], 1);
+
+  // Unsupported source sets/parameters must not become a smaller supported
+  // RRULE. Exercise the actual import/read/export boundary and property framing.
+  for (retain_rule, extra) in [
+    (true, "RDATE:20260805T140000Z"),
+    (false, "RDATE:20260805T140000Z"),
+    (true, "EXRULE:FREQ=YEARLY;BYMONTH=1"),
+    (true, "EXDATE;TZID=Invalid/Calendar:20260715T140000"),
+  ] {
+    let extra_uid = Uuid::new_v4().to_string();
+    let mut extended = ics
+      .replace(&format!("UID:{src_event_id}"), &format!("UID:{extra_uid}"))
+      .replace("END:VEVENT", &format!("{extra}\r\nEND:VEVENT"));
+    if !retain_rule {
+      extended = extended
+        .lines()
+        .filter(|line| !line.starts_with("RRULE:"))
+        .collect::<Vec<_>>()
+        .join("\r\n");
+    }
+    let extended_import=gql(&app,session_id,json!({"query":"mutation($ws:String!,$body:String!){importWorkspaceCalendarIcs(workspaceId:$ws,icsBody:$body){importedCount errors}}","variables":{"ws":ws_dst.to_string(),"body":extended}})).await;
+    assert_eq!(
+      extended_import["data"]["importWorkspaceCalendarIcs"]["importedCount"], 2,
+      "unsupported source must remain stored: {extended_import}"
+    );
+    let extended_id: Uuid =
+      sqlx::query_scalar("SELECT id FROM calendar_events WHERE workspace_id=$1 AND payload->>'sourceUid'=$2 AND recurrence_parent_id IS NULL")
+        .bind(ws_dst)
+        .bind(&extra_uid)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    let readiness=gql(&app,session_id,json!({"query":"query($ws:String!,$event:String!){calendarEvent(workspaceId:$ws,eventId:$event){recurrence{readOnly unsupportedReason}}}","variables":{"ws":ws_dst.to_string(),"event":extended_id.to_string()}})).await;
+    assert_eq!(
+      readiness["data"]["calendarEvent"]["recurrence"]["unsupportedReason"], "unsupportedCalendarRule",
+      "do not silently project only the RRULE portion: {readiness}"
+    );
+    assert_eq!(readiness["data"]["calendarEvent"]["recurrence"]["readOnly"], true);
+    let exported=gql(&app,session_id,json!({"query":"query($ws:String!){exportWorkspaceCalendarIcs(workspaceId:$ws,from:\"2026-07-01T00:00:00Z\",to:\"2026-07-02T00:00:00Z\")}","variables":{"ws":ws_dst.to_string()}})).await;
+    let exported = exported["data"]["exportWorkspaceCalendarIcs"]
+      .as_str()
+      .expect("unsupported source remains exportable");
+    assert!(
+      exported.split("\r\n").any(|line| line == extra),
+      "preserve the source as an actual RFC property, not a newline embedded in a fabricated RRULE: {extra}"
+    );
+  }
 
   // Cleanup.
   sqlx::query("DELETE FROM calendar_events WHERE workspace_id IN ($1, $2)")
@@ -327,17 +449,16 @@ async fn inv_cal_ics02_import_creates_native_events() {
     .bind(ws_dst)
     .execute(&pool)
     .await
-    .ok();
+    .expect("remove imported Calendar events and timing definitions");
   sqlx::query("DELETE FROM workspaces WHERE id IN ($1, $2)")
     .bind(ws_src)
     .bind(ws_dst)
     .execute(&pool)
     .await
-    .ok();
+    .expect("remove Calendar source/target workspaces");
   sqlx::query("DELETE FROM users WHERE id = $1")
     .bind(user_id)
     .execute(&pool)
     .await
-    .ok();
-  let _ = src_event_id; // used above for seeding, cleanup handled by workspace delete cascade
+    .expect("remove Calendar fixture user");
 }

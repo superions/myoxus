@@ -52,9 +52,12 @@ This page lists the compiled schema definitions for this section. Use the type l
 | `clearDatabaseCellValue`<br>[DatabaseCellRevisionType](./objects.md#databasecellrevisiontype)! | `input`: [ClearDatabaseCellValueInput](./inputs.md#cleardatabasecellvalueinput)! |
 | `completeBlobUpload`<br>`String`! | `key`: `String`!<br>`parts`: \[[BlobUploadPartInput](./inputs.md#blobuploadpartinput)!\]<br>`uploadId`: `String`<br>`workspaceId`: `String`! |
 | `completeWorkspaceImportUpload`<br>[WorkspaceImportType](./objects.md#workspaceimporttype)! | `sourceHash`: `String`!<br>`sourceSizeBytes`: `Int`!<br>`workspaceImportId`: `ID`! |
+| `configureDocumentReviewPlanning`<br>[DocumentReviewPlanningType](./objects.md#documentreviewplanningtype)! | `docId`: `ID`!<br>`enabled`: `Boolean`!<br>`expectedMetadataRevision`: `Int`!<br>`workspaceId`: `ID`! |
 | `configureTaskMaintenance`<br>[TaskPreparationConfiguration](./objects.md#taskpreparationconfiguration)! | `input`: [ConfigureTaskPreparationInput](./inputs.md#configuretaskpreparationinput)! |
 | `configureTaskPreparation`<br>[TaskPreparationConfiguration](./objects.md#taskpreparationconfiguration)! | `input`: [ConfigureTaskPreparationInput](./inputs.md#configuretaskpreparationinput)! |
+| `configureTaskRecurrence`<br>[TaskRecurrence](./objects.md#taskrecurrence)! | `input`: [ConfigureTaskRecurrenceInput](./inputs.md#configuretaskrecurrenceinput)! |
 | `confirmTaskCorrections`<br>[TaskMaintenance](./objects.md#taskmaintenance)! | `input`: [ConfirmTaskCorrectionsInput](./inputs.md#confirmtaskcorrectionsinput)! |
+| `controlWorkspaceEventRecurrence`<br>[CalendarEventType](./objects.md#calendareventtype)! | `action`: [CalendarTimingAction](./enums.md#calendartimingaction)!<br>`eventId`: `String`!<br>`expectedRevision`: `Int`!<br>`workspaceId`: `String`! |
 | `createApiKey`<br>[CreatedApiKeyType](./objects.md#createdapikeytype)! | `expiresInDays`: `Int`<br>`name`: `String`!<br>`scopes`: \[`String`!\]!<br><br>Create a new MCP API key (root-level alias). |
 | `createBlobUpload`<br>[BlobUploadInitType](./objects.md#blobuploadinittype)! | `key`: `String`!<br>`mime`: `String`!<br>`size`: `Int`!<br>`workspaceId`: `String`! |
 | `createCheckoutSession`<br>`String`! | `input`: [CreateCheckoutSessionInput](./inputs.md#createcheckoutsessioninput)! |
@@ -117,6 +120,7 @@ This page lists the compiled schema definitions for this section. Use the type l
 | `disableGitSyncSshHostKey`<br>`Boolean`! | `host`: `String`!<br>`keyType`: `String`!<br>`port`: `Int`!<br><br>Admin-only: disable a persisted Git-Sync SSH host key without deleting audit context. |
 | `disableWorkspaceAutomation`<br>[WorkspaceAutomationType](./objects.md#workspaceautomationtype)! | `input`: [DisableWorkspaceAutomationInput](./inputs.md#disableworkspaceautomationinput)! |
 | `emptyWorkspaceTrash`<br>[DeleteDocumentsPermanentlyPayload](./objects.md#deletedocumentspermanentlypayload)! | `input`: [EmptyWorkspaceTrashInput](./inputs.md#emptyworkspacetrashinput)! |
+| `endTaskRecurrence`<br>[TaskRecurrence](./objects.md#taskrecurrence)! | `input`: [TaskRecurrenceControlInput](./inputs.md#taskrecurrencecontrolinput)! |
 | `enrichAudioTranscription`<br>[TranscriptionEnrichmentType](./objects.md#transcriptionenrichmenttype)! | `actions`: `Boolean`!<br>`jobId`: `String`!<br>`summary`: `Boolean`!<br>`workspaceId`: `String`!<br><br>Explicit, independently gated generation; never submits or retries speech. |
 | `executeWorkspaceContentOperation`<br>[WorkspaceContentOperationType](./objects.md#workspacecontentoperationtype)! | `input`: [WorkspaceContentExecuteInput](./inputs.md#workspacecontentexecuteinput)!<br><br>Execute exactly the current XWS preflight revision. |
 | `exportCopilotMessage`<br>[CopilotGeneratedFileType](./objects.md#copilotgeneratedfiletype)! | `format`: [CopilotExportFormat](./enums.md#copilotexportformat)!<br>`messageId`: `ID`! |
@@ -146,6 +150,7 @@ This page lists the compiled schema definitions for this section. Use the type l
 | `mentionUser`<br>`ID`! | `input`: [MentionInput](./inputs.md#mentioninput)! |
 | `moveDatabaseTasks`<br>[DatabaseTaskMoveResult](./objects.md#databasetaskmoveresult)! | `input`: [DatabaseTaskMoveInput](./inputs.md#databasetaskmoveinput)! |
 | `nameDocumentHistoryState`<br>[DocumentVersionType](./objects.md#documentversiontype)! | `description`: `String`<br>`docId`: `ID`!<br>`expectedVersionIds`: \[`ID`!\]!<br>`historyId`: `ID`!<br>`name`: `String`!<br>`workspaceId`: `ID`!<br><br>Attach a name to an existing immutable document history state. |
+| `pauseTaskRecurrence`<br>[TaskRecurrence](./objects.md#taskrecurrence)! | `input`: [TaskRecurrenceControlInput](./inputs.md#taskrecurrencecontrolinput)! |
 | `pinDocumentVersion`<br>[DocumentVersionType](./objects.md#documentversiontype)! | `id`: `ID`!<br><br>Pin a named document version. |
 | `previewDatabaseCsvImport`<br>[DatabaseCsvPreview](./objects.md#databasecsvpreview)! | `file`: [Upload](./scalars.md#upload)!<br>`input`: [PreviewDatabaseCsvImportInput](./inputs.md#previewdatabasecsvimportinput)! |
 | `previewDatabaseJsonImport`<br>[DatabaseJsonPreview](./objects.md#databasejsonpreview)! | `file`: [Upload](./scalars.md#upload)!<br>`input`: [PreviewDatabaseJsonImportInput](./inputs.md#previewdatabasejsonimportinput)! |
@@ -183,6 +188,7 @@ This page lists the compiled schema definitions for this section. Use the type l
 | `restoreDocumentVersion`<br>[DocumentVersionType](./objects.md#documentversiontype)! | `expectedRevision`: `String`<br>`id`: `ID`!<br><br>Restore a named document version as a new document update and snapshot. |
 | `restoreWorkspaceTag`<br>[WorkspaceTag](./objects.md#workspacetag)! | `input`: [WorkspaceTagLifecycleInput](./inputs.md#workspacetaglifecycleinput)! |
 | `resumeSubscription`<br>[SubscriptionType](./objects.md#subscriptiontype)! | `idempotencyKey`: `String`<br>`plan`: [SubscriptionPlanType](./enums.md#subscriptionplantype)<br>`workspaceId`: `String` |
+| `resumeTaskRecurrence`<br>[TaskRecurrence](./objects.md#taskrecurrence)! | `input`: [TaskRecurrenceControlInput](./inputs.md#taskrecurrencecontrolinput)! |
 | `retryAudioTranscription`<br>[TranscriptionResultType](./objects.md#transcriptionresulttype)! | `jobId`: `String`!<br>`workspaceId`: `String`! |
 | `retryContextDocuments`<br>[ContextDocuments](./objects.md#contextdocuments)! | `input`: [RetryContextDocumentsInput](./inputs.md#retrycontextdocumentsinput)! |
 | `retryContextFile`<br>[CopilotContextFile](./objects.md#copilotcontextfile)! | `options`: [RemoveContextFileInput](./inputs.md#removecontextfileinput)! |
@@ -213,6 +219,7 @@ This page lists the compiled schema definitions for this section. Use the type l
 | `setDocumentMetadata`<br>[SetDocumentMetadataPayload](./objects.md#setdocumentmetadatapayload)! | `docId`: `ID`!<br>`input`: [SetDocumentMetadataInput](./inputs.md#setdocumentmetadatainput)!<br>`workspaceId`: `ID`! |
 | `setDocumentWorkspaceTags`<br>\[`ID`!\]! | `input`: [SetDocumentWorkspaceTagsInput](./inputs.md#setdocumentworkspacetagsinput)! |
 | `setPersonalWorkspaceTheme`<br>[PersonalWorkspaceThemeSelectionType](./objects.md#personalworkspacethemeselectiontype)! | `input`: [SetPersonalWorkspaceThemeInput](./inputs.md#setpersonalworkspacethemeinput)!<br><br>Select an existing server-owned theme for the canonical personal workspace. |
+| `skipTaskRecurrence`<br>[TaskRecurrence](./objects.md#taskrecurrence)! | `input`: [SkipTaskRecurrenceInput](./inputs.md#skiptaskrecurrenceinput)! |
 | `startDocumentReview`<br>[DocumentReview](./objects.md#documentreview)! | `input`: [StartDocumentReviewInput](./inputs.md#startdocumentreviewinput)! |
 | `startTaskHandover`<br>[TaskHandover](./objects.md#taskhandover)! | `input`: [StartTaskHandoverInput](./inputs.md#starttaskhandoverinput)! |
 | `startTaskMaintenance`<br>[TaskMaintenance](./objects.md#taskmaintenance)! | `input`: [StartTaskMaintenanceInput](./inputs.md#starttaskmaintenanceinput)! |
@@ -256,6 +263,7 @@ This page lists the compiled schema definitions for this section. Use the type l
 | `updateProfile`<br>[UserType](./objects.md#usertype)! | `input`: [UpdateUserInput](./inputs.md#updateuserinput)! |
 | `updateReply`<br>`Boolean`! | `input`: [ReplyUpdateInput](./inputs.md#replyupdateinput)! |
 | `updateSubscriptionRecurring`<br>[SubscriptionType](./objects.md#subscriptiontype)! | `idempotencyKey`: `String`<br>`plan`: [SubscriptionPlanType](./enums.md#subscriptionplantype)<br>`recurring`: [SubscriptionRecurringType](./enums.md#subscriptionrecurringtype)!<br>`workspaceId`: `String` |
+| `updateTaskRecurrence`<br>[TaskRecurrence](./objects.md#taskrecurrence)! | `input`: [UpdateTaskRecurrenceInput](./inputs.md#updatetaskrecurrenceinput)! |
 | `updateWorkspace`<br>[WorkspaceType](./objects.md#workspacetype)! | `input`: [UpdateWorkspaceInput](./inputs.md#updateworkspaceinput)! |
 | `updateWorkspaceCalendarSettings`<br>[WorkspaceCalendarSettingsType](./objects.md#workspacecalendarsettingstype)! | `input`: [UpdateWorkspaceCalendarSettingsInput](./inputs.md#updateworkspacecalendarsettingsinput)!<br><br>Update workspace-level calendar settings (writeback target + default reminder). |
 | `updateWorkspaceCalendars`<br>[WorkspaceCalendarObjectType](./objects.md#workspacecalendarobjecttype)! | `input`: [UpdateWorkspaceCalendarsInput](./inputs.md#updateworkspacecalendarsinput)! |

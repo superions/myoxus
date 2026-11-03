@@ -441,9 +441,16 @@ pub enum OutboxEventType {
   WorkspaceContentPublished,
   HistoryCaptured,
   CalendarMail,
+  CalendarReminderDue,
+  DatabaseReminderDue,
+  GitCronDue,
+  GitPollingDue,
+  GitRotationDue,
+  RegisteredJobDue,
   DatabaseTaskNotification,
   WorkspaceAutomationTrigger,
   WorkspaceAutomationSignal,
+  TaskRecurrenceDue,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -626,6 +633,20 @@ pub struct CalendarReminderContext {
   pub event_title: String,
   /// When the event starts.
   pub starts_at: DateTime<Utc>,
+  pub ends_at: DateTime<Utc>,
+  pub workspace_id: Option<WorkspaceId>,
+  pub all_day: bool,
+  pub location: Option<String>,
+}
+
+/// Versioned transport fence for a shared admission. Legacy first-delivery
+/// payloads omit it; recurring children must carry their committed generation.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CalendarReminderAdmission {
+  pub version: u8,
+  pub schedule_id: uuid::Uuid,
+  pub generation: i64,
 }
 
 /// A user-defined label that can be applied to native calendar events.

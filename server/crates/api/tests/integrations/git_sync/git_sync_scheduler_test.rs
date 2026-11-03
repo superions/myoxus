@@ -9,9 +9,6 @@ use uuid::Uuid;
 
 use myoxus_api::config::GitSyncPolicyConfig;
 use myoxus_api::git_sync_engine::policy::{EffectiveGitSyncPolicy, resolve_git_sync_policy};
-use myoxus_api::git_sync_engine::scheduler::{
-  admit_due_cron_profiles, admit_due_token_rotations, due_polling_profiles,
-};
 use myoxus_application::git_sync::{
   GitSyncLifecycleStore, GitTokenRotationConfiguration, GitTokenRotationProviderKind, GitTokenRotationService,
   GitTokenRotationState, GitTokenRotationStore,
@@ -21,6 +18,159 @@ use myoxus_infrastructure::git_sync::{GitLabTokenRotationAdapter, GitSyncTokenCr
 use myoxus_worker::RedisQueue;
 
 use crate::helpers;
+
+struct NoCronWorkflow;
+#[async_trait::async_trait]
+impl myoxus_application::workspace_automation::runtime::WorkspaceAutomationNativeExecutor for NoCronWorkflow {
+  async fn synchronize_status(
+    &self,
+    _status: myoxus_application::workspace_automation::runtime::AutomationRuntimeStatus,
+  ) -> myoxus_application::workspace_automation::runtime::RuntimeResult<()> {
+    panic!("Git Cron cannot execute a workspace workflow")
+  }
+  async fn execute(
+    &self,
+    _invocation: myoxus_application::workspace_automation::runtime::AutomationEffectInvocation,
+  ) -> myoxus_application::workspace_automation::WorkspaceAutomationResult<
+    myoxus_application::workspace_automation::runtime::AutomationEffectResult,
+  > {
+    panic!("Git Cron cannot execute a workspace workflow")
+  }
+}
+struct CronPolicy(myoxus_application::git_sync::GitSyncLifecyclePolicy);
+#[async_trait::async_trait]
+impl myoxus_application::scheduling::git::ScheduledGitPolicySource for CronPolicy {
+  async fn policy(&self) -> myoxus_application::auth::AuthResult<myoxus_application::git_sync::GitSyncLifecyclePolicy> {
+    Ok(self.0.clone())
+  }
+}
+
+async fn dispatch_cron(
+  pool: &sqlx::PgPool,
+  queue: &RedisQueue,
+  policy: &EffectiveGitSyncPolicy,
+  now: chrono::DateTime<Utc>,
+) -> usize {
+  use myoxus_domain::repositories::OutboxRepository;
+  let runtime = std::sync::Arc::new(
+    myoxus_infrastructure::workflow_runtime::GlirulusWorkspaceAutomationRuntime::new(
+      pool.clone(),
+      std::sync::Arc::new(NoCronWorkflow),
+    ),
+  );
+  let scheduler = myoxus_infrastructure::scheduling::PgSchedulingRepository::new(pool.clone(), runtime)
+    .with_git_policy(std::sync::Arc::new(CronPolicy(policy.lifecycle_policy())));
+  let report = scheduler.dispatch_due(now, 50).await.expect("shared Cron admission");
+  let intents:Vec<(Uuid,serde_json::Value)>=sqlx::query_as("SELECT id,payload FROM outbox_events WHERE event_type='git_cron_due' AND processed_at IS NULL ORDER BY created_at,id")
+    .fetch_all(pool).await.expect("committed Git Cron handoffs");
+  let outbox = myoxus_infrastructure::outbox::SqlxOutboxRepository::new(pool.clone());
+  for (id, payload) in intents {
+    let envelope = serde_json::from_value(payload).expect("closed Git Cron envelope");
+    // Re-enter the production handoff before its SQL ACK, as after an enqueue
+    // response loss. Native job identity and receiver claims must absorb it.
+    for _ in 0..2 {
+      myoxus_api::git_sync_engine::scheduler::dispatch_scheduled_intent(pool, queue, &envelope, GitSyncRunSource::Cron)
+        .await
+        .expect("native Cron handoff");
+    }
+    outbox
+      .mark_event_processed(id, now)
+      .await
+      .expect("Git Cron handoff ACK");
+  }
+  report.admitted
+}
+
+async fn admit_cron(
+  pool: &sqlx::PgPool,
+  store: &SqlxGitSyncStore,
+  profile: Uuid,
+  now: chrono::DateTime<Utc>,
+  policy: &myoxus_application::git_sync::GitSyncLifecyclePolicy,
+) -> myoxus_infrastructure::git_sync::GitSyncResult<Option<myoxus_infrastructure::git_sync::store::GitSyncCronAdmission>>
+{
+  let (generation, revision): (i64, i64) =
+    sqlx::query_as("SELECT generation,revision FROM scheduling_schedules WHERE id=$1")
+      .bind(profile)
+      .fetch_one(pool)
+      .await
+      .expect("current native-owned Cron fence");
+  store.admit_cron_slot(profile, generation, revision, now, policy).await
+}
+
+async fn cleanup_cron_handoffs(pool: &sqlx::PgPool, owner: Uuid) {
+  sqlx::query("DELETE FROM outbox_events e USING git_sync_profiles p WHERE e.aggregate_type='git_cron' AND e.aggregate_id=p.id::text AND p.owner_id=$1")
+    .bind(owner).execute(pool).await.expect("cleanup owned Cron handoffs");
+}
+
+async fn admit_polling_profiles(
+  pool: &sqlx::PgPool,
+  policy: &EffectiveGitSyncPolicy,
+  now: chrono::DateTime<Utc>,
+) -> Result<Vec<Uuid>, String> {
+  let before: Vec<Uuid> = sqlx::query_scalar("SELECT id FROM git_sync_runs WHERE trigger_source='Polling'")
+    .fetch_all(pool)
+    .await
+    .expect("existing native Polling identities");
+  let runtime = std::sync::Arc::new(
+    myoxus_infrastructure::workflow_runtime::GlirulusWorkspaceAutomationRuntime::new(
+      pool.clone(),
+      std::sync::Arc::new(NoCronWorkflow),
+    ),
+  );
+  let scheduler = myoxus_infrastructure::scheduling::PgSchedulingRepository::new(pool.clone(), runtime)
+    .with_git_policy(std::sync::Arc::new(CronPolicy(policy.lifecycle_policy())));
+  scheduler.dispatch_due(now, 50).await.map_err(|e| e.to_string())?;
+  sqlx::query_scalar(
+    "SELECT profile_id FROM git_sync_runs WHERE trigger_source='Polling' AND NOT(id=ANY($1)) ORDER BY profile_id",
+  )
+  .bind(before)
+  .fetch_all(pool)
+  .await
+  .map_err(|e| e.to_string())
+}
+
+async fn cleanup_polling_handoffs(pool: &sqlx::PgPool, owner: Uuid) {
+  sqlx::query("DELETE FROM outbox_events e USING git_sync_profiles p WHERE e.aggregate_type='git_polling' AND e.aggregate_id=p.id::text AND p.owner_id=$1")
+    .bind(owner).execute(pool).await.expect("cleanup native Polling handoffs");
+}
+
+async fn dispatch_rotations(
+  pool: &sqlx::PgPool,
+  queue: &RedisQueue,
+  service: &GitTokenRotationService,
+  now: chrono::DateTime<Utc>,
+) -> usize {
+  use myoxus_domain::repositories::OutboxRepository;
+  let runtime = std::sync::Arc::new(
+    myoxus_infrastructure::workflow_runtime::GlirulusWorkspaceAutomationRuntime::new(
+      pool.clone(),
+      std::sync::Arc::new(NoCronWorkflow),
+    ),
+  );
+  let scheduler = myoxus_infrastructure::scheduling::PgSchedulingRepository::new(pool.clone(), runtime)
+    .with_git_rotation_providers(service.available_providers());
+  let report = scheduler
+    .dispatch_due(now, 50)
+    .await
+    .expect("shared native rotation admission");
+  let intents:Vec<(Uuid,serde_json::Value)>=sqlx::query_as("SELECT id,payload FROM outbox_events WHERE event_type='git_rotation_due' AND processed_at IS NULL ORDER BY created_at,id")
+    .fetch_all(pool).await.expect("committed native rotation handoffs");
+  let outbox = myoxus_infrastructure::outbox::SqlxOutboxRepository::new(pool.clone());
+  for (id, payload) in intents {
+    let envelope = serde_json::from_value(payload).expect("identifier-only rotation intent");
+    for _ in 0..2 {
+      myoxus_api::git_sync_engine::scheduler::dispatch_rotation_intent(pool, queue, &envelope)
+        .await
+        .expect("native rotation outbox replay");
+    }
+    outbox
+      .mark_event_processed(id, now)
+      .await
+      .expect("native rotation handoff ACK");
+  }
+  report.admitted
+}
 
 fn history_capture_policy() -> myoxus_application::git_sync::GitSyncLifecyclePolicy {
   myoxus_application::git_sync::GitSyncLifecyclePolicy {
@@ -71,7 +221,7 @@ async fn cleanup_git_sync_policy(pool: &sqlx::PgPool) {
   sqlx::query("DELETE FROM app_configs WHERE id LIKE 'git_sync.%'")
     .execute(pool)
     .await
-    .ok();
+    .expect("cleanup Git policy fixture");
 }
 
 async fn effective_policy(pool: &sqlx::PgPool) -> EffectiveGitSyncPolicy {
@@ -110,6 +260,15 @@ async fn insert_polling_profile(
   .execute(pool)
   .await
   .expect("insert polling profile");
+  let store = SqlxGitSyncStore::new(pool.clone());
+  let profile = store
+    .get_profile(profile_id)
+    .await
+    .expect("native Polling fixture projection");
+  store
+    .update_profile(&profile)
+    .await
+    .expect("initialize shared native Polling definition");
   profile_id
 }
 
@@ -155,14 +314,18 @@ async fn insert_cron_profile(
   let profile_id = Uuid::new_v4();
   sqlx::query(
     r#"
-    INSERT INTO git_sync_profiles
+    WITH profile AS (INSERT INTO git_sync_profiles
       (id, workspace_id, owner_id, repo_url, branch, root_path, sync_direction,
        trigger_mode, polling_interval_secs, cron_expression, cron_timezone,
-       cron_misfire_policy, cron_next_scheduled_at, auth_method, enabled)
+       cron_misfire_policy, auth_method, enabled)
     VALUES
       ($1, $2, $3, 'https://scheduler-cron.test/acme/repo.git', 'main',
        'content/', 'Bidirectional', 'Cron', NULL, '0 * * * *', 'UTC',
-       $5, $4, 'HttpsToken', true)
+       $5, 'HttpsToken', true) RETURNING id)
+    INSERT INTO scheduling_schedules(id,workspace_id,actor_id,admission_zone,target_json,next_nominal,next_due_at,next_admission_at)
+    SELECT id,$2,$3,'UTC',jsonb_build_object('kind','git_cron','profile_id',id),
+      jsonb_build_object('kind','local_date_time','value',to_char($4::timestamptz AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US')),$4,$4
+    FROM profile
     "#,
   )
   .bind(profile_id)
@@ -226,86 +389,96 @@ async fn insert_rotation_profile(pool: &sqlx::PgPool, workspace_id: Uuid, owner_
 
 #[tokio::test]
 async fn duplicate_token_rotation_ticks_publish_one_identifier_only_job_and_defer_active_runs() {
+  use futures_util::FutureExt;
   let _guard = helpers::GIT_SYNC_LOCK
     .get_or_init(|| std::sync::Mutex::new(()))
     .lock()
     .unwrap_or_else(|error| error.into_inner());
   let (_app, pool, auth_store) = helpers::setup_app().await;
   let (owner_id, _) = helpers::seed_user(&pool, &auth_store, "git-sync-token-rotation-scheduler").await;
-  let due_workspace_id = helpers::create_workspace(&pool, owner_id).await;
-  let busy_workspace_id = helpers::create_workspace(&pool, owner_id).await;
-  let due_profile = insert_rotation_profile(&pool, due_workspace_id, owner_id, "due").await;
-  let busy_profile = insert_rotation_profile(&pool, busy_workspace_id, owner_id, "busy").await;
-  let store = SqlxGitSyncStore::new(pool.clone());
-  for profile_id in [due_profile, busy_profile] {
-    GitTokenRotationStore::configure(
-      &store,
-      profile_id,
-      GitTokenRotationConfiguration {
-        provider: GitTokenRotationProviderKind::GitLab,
-        enabled: true,
-        renew_before_days: 30,
-        requested_lifetime_days: 90,
-      },
-    )
-    .await
-    .expect("configure token rotation");
-  }
-  store
-    .create_pending_run_if_absent(busy_profile, SyncDirection::Bidirectional, GitSyncRunSource::Manual)
-    .await
-    .expect("admit active Git-Sync run");
-
-  let service = GitTokenRotationService::new(
-    std::sync::Arc::new(SqlxGitSyncStore::new(pool.clone())),
-    std::sync::Arc::new(GitSyncTokenCredentialCodec::new("scheduler-fixture-key")),
-    vec![std::sync::Arc::new(
-      GitLabTokenRotationAdapter::new(std::time::Duration::from_secs(5), None).expect("build GitLab adapter"),
-    )],
-  );
   let redis_url = std::env::var("TEST_REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6380".to_string());
   let queue = RedisQueue::new(
     &redis_url,
     format!("git-sync-token-rotation-{}", Uuid::new_v4().as_simple()),
   )
   .expect("isolated token-rotation Redis queue");
-  let now = Utc::now();
-  let (left, right) = tokio::join!(
-    admit_due_token_rotations(&queue, &service, now, 100),
-    admit_due_token_rotations(&queue, &service, now, 100),
-  );
-  assert_eq!(left.expect("first tick") + right.expect("second tick"), 1);
-  let status = GitTokenRotationStore::status(&store, due_profile)
-    .await
-    .expect("due rotation status")
-    .expect("due rotation row");
-  assert_eq!(status.state, GitTokenRotationState::Rotating);
-  let busy_status = GitTokenRotationStore::status(&store, busy_profile)
-    .await
-    .expect("busy rotation status")
-    .expect("busy rotation row");
-  assert_eq!(busy_status.state, GitTokenRotationState::Configured);
+  let body = std::panic::AssertUnwindSafe(async {
+    let due_workspace_id = helpers::create_workspace(&pool, owner_id).await;
+    let busy_workspace_id = helpers::create_workspace(&pool, owner_id).await;
+    let due_profile = insert_rotation_profile(&pool, due_workspace_id, owner_id, "due").await;
+    let busy_profile = insert_rotation_profile(&pool, busy_workspace_id, owner_id, "busy").await;
+    let store = SqlxGitSyncStore::new(pool.clone());
+    for profile_id in [due_profile, busy_profile] {
+      GitTokenRotationStore::configure(
+        &store,
+        profile_id,
+        GitTokenRotationConfiguration {
+          provider: GitTokenRotationProviderKind::GitLab,
+          enabled: true,
+          renew_before_days: 30,
+          requested_lifetime_days: 90,
+        },
+      )
+      .await
+      .expect("configure token rotation");
+    }
+    store
+      .create_pending_run_if_absent(busy_profile, SyncDirection::Bidirectional, GitSyncRunSource::Manual)
+      .await
+      .expect("admit active Git-Sync run");
 
-  let (jobs, total) = queue
-    .list_jobs("git-sync", "waiting", 0, 10)
-    .await
-    .expect("list token-rotation jobs");
-  assert_eq!(total, 1);
-  assert_eq!(jobs[0]["name"], "git-sync.tokenRotation");
-  let payload = jobs[0]["data"].clone();
-  assert_eq!(
-    payload.as_object().map(serde_json::Map::len),
-    Some(2),
-    "Redis receives identifiers only"
-  );
-  assert_eq!(payload["profileId"], due_profile.to_string());
-  assert_eq!(
-    payload["attemptId"],
-    status.latest_attempt_id.expect("admitted attempt").to_string()
-  );
+    let service = GitTokenRotationService::new(
+      std::sync::Arc::new(SqlxGitSyncStore::new(pool.clone())),
+      std::sync::Arc::new(GitSyncTokenCredentialCodec::new("scheduler-fixture-key")),
+      vec![std::sync::Arc::new(
+        GitLabTokenRotationAdapter::new(std::time::Duration::from_secs(5), None).expect("build GitLab adapter"),
+      )],
+    );
+    let now = Utc::now();
+    let (left, right) = tokio::join!(
+      dispatch_rotations(&pool, &queue, &service, now),
+      dispatch_rotations(&pool, &queue, &service, now),
+    );
+    assert_eq!(left + right, 1);
+    let status = GitTokenRotationStore::status(&store, due_profile)
+      .await
+      .expect("due rotation status")
+      .expect("due rotation row");
+    assert_eq!(status.state, GitTokenRotationState::Rotating);
+    let busy_status = GitTokenRotationStore::status(&store, busy_profile)
+      .await
+      .expect("busy rotation status")
+      .expect("busy rotation row");
+    assert_eq!(busy_status.state, GitTokenRotationState::Configured);
+
+    let (jobs, total) = queue
+      .list_jobs("git-sync", "waiting", 0, 10)
+      .await
+      .expect("list token-rotation jobs");
+    assert_eq!(total, 1);
+    assert_eq!(jobs[0]["name"], "git-sync.tokenRotation");
+    let payload = jobs[0]["data"].clone();
+    assert_eq!(
+      payload.as_object().map(serde_json::Map::len),
+      Some(2),
+      "Redis receives identifiers only"
+    );
+    assert_eq!(payload["profileId"], due_profile.to_string());
+    assert_eq!(
+      payload["attemptId"],
+      status.latest_attempt_id.expect("admitted attempt").to_string()
+    );
+  })
+  .catch_unwind()
+  .await;
 
   queue.empty_queue("git-sync").await.expect("clean rotation test queue");
+  sqlx::query("DELETE FROM outbox_events e USING git_sync_profiles p WHERE e.event_type='git_rotation_due' AND e.payload->>'profileId'=p.id::text AND p.owner_id=$1")
+    .bind(owner_id).execute(&pool).await.expect("cleanup native rotation handoffs");
   helpers::cleanup_users(&pool, &[owner_id]).await;
+  if let Err(panic) = body {
+    std::panic::resume_unwind(panic)
+  }
 }
 
 #[tokio::test]
@@ -341,16 +514,17 @@ async fn duplicate_cron_ticks_dispatch_one_durable_slot_and_manual_runs_preserve
   .expect("isolated Cron Redis queue");
   let first_queue = queue.clone();
   let second_queue = queue.clone();
+  let store = SqlxGitSyncStore::new(pool.clone());
+  let mut stale_profile = store
+    .get_profile(profile_id)
+    .await
+    .expect("profile snapshot before Cron admission");
   let policy = effective_policy(&pool).await;
   let (left, right) = tokio::join!(
-    admit_due_cron_profiles(&pool, &first_queue, &policy, now, 100),
-    admit_due_cron_profiles(&pool, &second_queue, &policy, now, 100)
+    dispatch_cron(&pool, &first_queue, &policy, now),
+    dispatch_cron(&pool, &second_queue, &policy, now)
   );
-  assert_eq!(
-    left.unwrap() + right.unwrap(),
-    1,
-    "two handlers must process one due profile"
-  );
+  assert_eq!(left + right, 1, "two handlers must process one due profile");
   let admitted = sqlx::query_as::<_, (Uuid, String, chrono::DateTime<Utc>)>(
     "SELECT id, trigger_source, scheduled_for
      FROM git_sync_runs
@@ -368,12 +542,11 @@ async fn duplicate_cron_ticks_dispatch_one_durable_slot_and_manual_runs_preserve
     .await
     .expect("list Cron dispatch jobs");
   assert_eq!(waiting, 1, "duplicate ticks must publish one stable run delivery");
-  let next: chrono::DateTime<Utc> =
-    sqlx::query_scalar("SELECT cron_next_scheduled_at FROM git_sync_profiles WHERE id = $1")
-      .bind(profile_id)
-      .fetch_one(&pool)
-      .await
-      .unwrap();
+  let next: chrono::DateTime<Utc> = sqlx::query_scalar("SELECT next_due_at FROM scheduling_schedules WHERE id=$1")
+    .bind(profile_id)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
   assert_eq!(next.to_rfc3339(), "2026-01-01T06:00:00+00:00");
 
   sqlx::query(
@@ -395,15 +568,24 @@ async fn duplicate_cron_ticks_dispatch_one_durable_slot_and_manual_runs_preserve
     .unwrap();
   assert!(inserted);
   assert_eq!(manual.trigger_source, GitSyncRunSource::Manual);
+  stale_profile.max_mirror_storage_mb = Some(stale_profile.max_mirror_storage_mb.unwrap_or(0) + 1);
+  store
+    .update_profile(&stale_profile)
+    .await
+    .expect("unrelated stale profile edit");
   let after_manual: chrono::DateTime<Utc> =
-    sqlx::query_scalar("SELECT cron_next_scheduled_at FROM git_sync_profiles WHERE id = $1")
+    sqlx::query_scalar("SELECT next_due_at FROM scheduling_schedules WHERE id=$1")
       .bind(profile_id)
       .fetch_one(&pool)
       .await
       .unwrap();
-  assert_eq!(after_manual, next, "manual ingress must not advance Cron state");
+  assert_eq!(
+    after_manual, next,
+    "manual ingress and unrelated stale edits must preserve current Cron state"
+  );
 
   queue.empty_queue("git-sync").await.expect("clean Cron test queue");
+  cleanup_cron_handoffs(&pool, owner_id).await;
   cleanup_git_sync_policy(&pool).await;
   helpers::cleanup_users(&pool, &[owner_id]).await;
 }
@@ -433,8 +615,7 @@ async fn cron_misfire_and_overlap_state_survive_until_the_profile_is_idle() {
     "Skip",
   )
   .await;
-  let skipped = store
-    .admit_next_due_cron(now, &policy)
+  let skipped = admit_cron(&pool, &store, skip_profile, now, &policy)
     .await
     .expect("admit skipped outage")
     .expect("due Skip profile");
@@ -450,8 +631,7 @@ async fn cron_misfire_and_overlap_state_survive_until_the_profile_is_idle() {
     "RunOnce",
   )
   .await;
-  let catch_up = store
-    .admit_next_due_cron(now, &policy)
+  let catch_up = admit_cron(&pool, &store, run_once_profile, now, &policy)
     .await
     .expect("admit RunOnce outage")
     .expect("due RunOnce profile");
@@ -484,8 +664,7 @@ async fn cron_misfire_and_overlap_state_survive_until_the_profile_is_idle() {
   )
   .await;
   let unfinished_id = insert_run(&pool, overlap_profile, "Pending", 0, None).await;
-  let overlap = store
-    .admit_next_due_cron(now, &policy)
+  let overlap = admit_cron(&pool, &store, overlap_profile, now, &policy)
     .await
     .expect("record overlap")
     .expect("due overlapping profile");
@@ -510,11 +689,10 @@ async fn cron_misfire_and_overlap_state_survive_until_the_profile_is_idle() {
   .execute(&pool)
   .await
   .unwrap();
-  let resumed = store
-    .admit_next_due_cron(now, &policy)
+  let resumed = admit_cron(&pool, &store, overlap_profile, now + Duration::seconds(31), &policy)
     .await
     .expect("admit retained overlap")
-    .expect("pending overlap must remain due");
+    .expect("pending overlap must remain recoverable after admission backoff");
   let resumed_run = resumed.run.expect("idle profile must admit the retained slot");
   assert_eq!(resumed_run.trigger_source, GitSyncRunSource::Cron);
   assert_eq!(
@@ -551,8 +729,8 @@ async fn cron_misfire_and_overlap_state_survive_until_the_profile_is_idle() {
   )
   .await;
   sqlx::query(
-    "UPDATE git_sync_profiles
-     SET cron_pending_misfire_scheduled_for = $2
+    "UPDATE scheduling_schedules
+     SET pending_due_at=$2,next_admission_at=LEAST(next_due_at,$2)
      WHERE id = $1",
   )
   .bind(future_profile)
@@ -561,10 +739,14 @@ async fn cron_misfire_and_overlap_state_survive_until_the_profile_is_idle() {
   .await
   .unwrap();
   assert!(
-    store.admit_next_due_cron(now, &policy).await.unwrap().is_none(),
+    admit_cron(&pool, &store, future_profile, now, &policy)
+      .await
+      .unwrap()
+      .is_none(),
     "a future pending slot must not be admitted early"
   );
 
+  cleanup_cron_handoffs(&pool, owner_id).await;
   helpers::cleanup_users(&pool, &[owner_id]).await;
 }
 
@@ -767,7 +949,8 @@ async fn polling_due_selection_respects_global_and_auto_policy() {
 
   upsert_app_config(&pool, "git_sync.enabled", json!(false)).await;
   upsert_app_config(&pool, "git_sync.allowed_hosts", json!(["scheduler-policy.test"])).await;
-  let disabled = due_polling_profiles(&pool, &effective_policy(&pool).await, Utc::now())
+  let now = Utc::now();
+  let disabled = admit_polling_profiles(&pool, &effective_policy(&pool).await, now)
     .await
     .expect("due selection");
   assert!(
@@ -777,7 +960,7 @@ async fn polling_due_selection_respects_global_and_auto_policy() {
 
   upsert_app_config(&pool, "git_sync.enabled", json!(true)).await;
   upsert_app_config(&pool, "git_sync.auto_sync_allowed", json!(false)).await;
-  let auto_disabled = due_polling_profiles(&pool, &effective_policy(&pool).await, Utc::now())
+  let auto_disabled = admit_polling_profiles(&pool, &effective_policy(&pool).await, now + Duration::seconds(31))
     .await
     .expect("due selection");
   assert!(
@@ -786,15 +969,23 @@ async fn polling_due_selection_respects_global_and_auto_policy() {
   );
 
   upsert_app_config(&pool, "git_sync.auto_sync_allowed", json!(true)).await;
-  let enabled = due_polling_profiles(&pool, &effective_policy(&pool).await, Utc::now())
+  let enabled = admit_polling_profiles(&pool, &effective_policy(&pool).await, now + Duration::seconds(62))
     .await
     .expect("due selection");
   assert_eq!(
-    enabled.iter().map(|c| c.profile_id).collect::<Vec<_>>(),
+    enabled,
     vec![profile_id],
-    "policy-enabled polling profile without prior runs must be due"
+    "policy-enabled polling profile without prior runs must admit its native Run"
+  );
+  assert!(
+    admit_polling_profiles(&pool, &effective_policy(&pool).await, now + Duration::seconds(63))
+      .await
+      .unwrap()
+      .is_empty(),
+    "duplicate wake cannot admit a second Polling Run"
   );
 
+  cleanup_polling_handoffs(&pool, owner_id).await;
   cleanup_git_sync_policy(&pool).await;
   helpers::cleanup_users(&pool, &[owner_id]).await;
 }
@@ -867,10 +1058,9 @@ async fn polling_due_selection_uses_latest_activity_for_every_run_status() {
   .await;
   insert_run(&pool, completed_old, "Completed", 180, Some(120)).await;
 
-  let due = due_polling_profiles(&pool, &effective_policy(&pool).await, Utc::now())
+  let due_ids = admit_polling_profiles(&pool, &effective_policy(&pool).await, Utc::now())
     .await
     .expect("due selection");
-  let due_ids = due.iter().map(|c| c.profile_id).collect::<Vec<_>>();
 
   assert!(
     !due_ids.contains(&completed_recent),
@@ -893,6 +1083,7 @@ async fn polling_due_selection_uses_latest_activity_for_every_run_status() {
     "profile must become due again after interval elapsed"
   );
 
+  cleanup_polling_handoffs(&pool, owner_id).await;
   cleanup_git_sync_policy(&pool).await;
   helpers::cleanup_users(&pool, &[owner_id]).await;
 }
@@ -952,10 +1143,9 @@ async fn polling_due_selection_rejects_missing_non_positive_and_not_yet_elapsed_
     );
   }
 
-  let due = due_polling_profiles(&pool, &effective_policy(&pool).await, Utc::now())
+  let due_ids = admit_polling_profiles(&pool, &effective_policy(&pool).await, Utc::now())
     .await
     .expect("due selection");
-  let due_ids = due.iter().map(|candidate| candidate.profile_id).collect::<Vec<_>>();
   assert!(!due_ids.contains(&missing), "a missing interval must never schedule");
   assert!(!due_ids.contains(&zero), "a non-positive interval must never schedule");
   assert!(
@@ -963,6 +1153,7 @@ async fn polling_due_selection_rejects_missing_non_positive_and_not_yet_elapsed_
     "a 300-second interval must not schedule after only 120 seconds"
   );
 
+  cleanup_polling_handoffs(&pool, owner_id).await;
   cleanup_git_sync_policy(&pool).await;
   helpers::cleanup_users(&pool, &[owner_id]).await;
 }

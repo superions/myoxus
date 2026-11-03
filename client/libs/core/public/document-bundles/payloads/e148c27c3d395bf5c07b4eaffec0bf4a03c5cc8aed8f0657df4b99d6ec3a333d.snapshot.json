@@ -1,0 +1,502 @@
+{
+  "type": "page",
+  "meta": {
+    "id": "a711be93-e4b5-4c76-be99-70b92607ba17",
+    "title": "Editor · The basics",
+    "createDate": 1792404456159,
+    "tags": []
+  },
+  "blocks": {
+    "type": "block",
+    "id": "mcp-block-2092e575c9ce4e50999306e26a980bf0-0000000000000001",
+    "flavour": "myoxus:page",
+    "version": 2,
+    "props": {
+      "title": {
+        "$virgultum:internal:text$": true,
+        "delta": [
+          {
+            "insert": "Editor · The basics"
+          }
+        ]
+      }
+    },
+    "children": [
+      {
+        "type": "block",
+        "id": "mcp-block-2092e575c9ce4e50999306e26a980bf0-0000000000000002",
+        "flavour": "myoxus:surface",
+        "version": 6,
+        "props": {
+          "elements": {},
+          "exportSnapshotBlobId": "",
+          "exportSnapshotWidth": 0,
+          "exportSnapshotHeight": 0
+        },
+        "children": []
+      },
+      {
+        "type": "block",
+        "id": "mcp-block-2092e575c9ce4e50999306e26a980bf0-0000000000000003",
+        "flavour": "myoxus:note",
+        "version": 1,
+        "props": {
+          "xywh": "[0,0,498,92]",
+          "background": {
+            "dark": "rgba(0, 0, 0, 1)",
+            "light": "rgba(255, 255, 255, 1)"
+          },
+          "index": "a0",
+          "lockedBySelf": false,
+          "hidden": false,
+          "displayMode": "both",
+          "edgeless": {
+            "style": {
+              "borderRadius": 8,
+              "borderSize": 4,
+              "borderStyle": "none",
+              "shadowType": "--myoxus-note-shadow-box"
+            }
+          }
+        },
+        "children": [
+          {
+            "type": "block",
+            "id": "mcp-block-1098cd0739374d56b2507780424de5e5",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "type": "text",
+              "collapsed": false,
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Write a note, organise your text and discuss a passage with others. These are the controls you need to get started."
+                  }
+                ]
+              },
+              "meta:updatedAt": 1792406369711,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792406369711,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-2822ab2119da4e90b42b75ddde0e2167",
+            "flavour": "myoxus:image",
+            "version": 1,
+            "props": {
+              "width": 394,
+              "height": 262.6640625,
+              "index": "a0",
+              "xywh": "[0,0,0,0]",
+              "lockedBySelf": false,
+              "rotate": 0,
+              "size": -1,
+              "sourceId": "assets/7b7be73766160a104236cd458441de468296862b029157087bf5251807866c1e",
+              "caption": "Step by step towards your first document.",
+              "meta:updatedAt": 1792406369712,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792406369712,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-49cc9011d0344e678071b659034cb026",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "01 · Start a document"
+                  }
+                ]
+              },
+              "type": "h3",
+              "collapsed": false
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-17549f47f0f44c3081638ee9ff262eff",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "type": "text",
+              "collapsed": false,
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Click "
+                  },
+                  {
+                    "insert": "+ New doc",
+                    "attributes": {
+                      "bold": true
+                    }
+                  },
+                  {
+                    "insert": " in the left sidebar. Click the title field at the top and name your note. Press "
+                  },
+                  {
+                    "insert": "Enter",
+                    "attributes": {
+                      "bold": true
+                    }
+                  },
+                  {
+                    "insert": " to move the cursor into the text area below. You can now start writing."
+                  }
+                ]
+              },
+              "meta:updatedAt": 1792406369715,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792406369715,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-7fd3acc67f7f41a3b18767ef6a97f480",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "type": "text",
+              "collapsed": false,
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Press Enter for a new paragraph. Shift + Enter inserts a line break within the same paragraph."
+                  }
+                ]
+              },
+              "meta:updatedAt": 1792406369716,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792406369716,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-b36b8a973fdc4432abe4cfe6786920e0",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "02 · Select and format text"
+                  }
+                ]
+              },
+              "type": "h3",
+              "collapsed": false
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-355690665f2642279c2e7ec8e6ca755e",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "type": "text",
+              "collapsed": false,
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Hold the mouse button and drag across the words you want to format. Double-click to select one word. A small "
+                  },
+                  {
+                    "insert": "formatting toolbar",
+                    "attributes": {
+                      "bold": true
+                    }
+                  },
+                  {
+                    "insert": " appears just above your selection."
+                  }
+                ]
+              },
+              "meta:updatedAt": 1792406369717,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792406369717,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-e5b51171c63b4929ad2dfa9963f17d65",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "type": "text",
+              "collapsed": false,
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Click "
+                  },
+                  {
+                    "insert": "B for bold",
+                    "attributes": {
+                      "bold": true
+                    }
+                  },
+                  {
+                    "insert": " or the slanted "
+                  },
+                  {
+                    "insert": "I for italic",
+                    "attributes": {
+                      "bold": true
+                    }
+                  },
+                  {
+                    "insert": ". Click again to turn that formatting off. The toolbar disappears when no text is selected."
+                  }
+                ]
+              },
+              "meta:updatedAt": 1792406369718,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792406369718,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-1b084ba541bf40888c59370cdb357d52",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "03 · Add headings"
+                  }
+                ]
+              },
+              "type": "h3",
+              "collapsed": false
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-f54bd4d13e674528928dd83bcbe9dd82",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "type": "text",
+              "collapsed": false,
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Type / at the start of an empty line to open the insert menu. Choose "
+                  },
+                  {
+                    "insert": "Heading 1 (H1)",
+                    "attributes": {
+                      "bold": true
+                    }
+                  },
+                  {
+                    "insert": " for a large heading in the text, or "
+                  },
+                  {
+                    "insert": "Heading 2 (H2)",
+                    "attributes": {
+                      "bold": true
+                    }
+                  },
+                  {
+                    "insert": " for a section below it. H means heading; the number indicates its level."
+                  }
+                ]
+              },
+              "meta:updatedAt": 1792406369719,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792406369719,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-3cac044027294903bdac1dbb4f67eeb7",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "type": "text",
+              "collapsed": false,
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Write the heading, then press Enter to continue with normal text below. The document title at the top is separate."
+                  }
+                ]
+              },
+              "meta:updatedAt": 1792406369719,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792406369719,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-d6a075f5066f46e5a7048821098833f4",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "04 · Add links and comments"
+                  }
+                ]
+              },
+              "type": "h3",
+              "collapsed": false
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-01fd8847ac354b54be96b23c12a1231c",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "type": "text",
+              "collapsed": false,
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Link: Select the text and click the "
+                  },
+                  {
+                    "insert": "chain icon",
+                    "attributes": {
+                      "bold": true
+                    }
+                  },
+                  {
+                    "insert": " in the formatting toolbar. Enter the full web address and confirm with the check mark or Enter."
+                  }
+                ]
+              },
+              "meta:updatedAt": 1792406369720,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792406369720,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-735f460d7a5449f7ad56956324e76457",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "type": "text",
+              "collapsed": false,
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "Comment: Select a passage and click the "
+                  },
+                  {
+                    "insert": "speech bubble",
+                    "attributes": {
+                      "bold": true
+                    }
+                  },
+                  {
+                    "insert": " in the same toolbar. The comment panel opens on the right. Write your comment and click the arrow to submit it."
+                  }
+                ]
+              },
+              "meta:updatedAt": 1792406369720,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792406369720,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-9c75e4bbc27c43c694b02a5bb45f35de",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "collapsed": false,
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "To find your note again, click the magnifying glass on the left and search for its title.",
+                    "attributes": {
+                      "color": "var(--myoxus-text-highlight-foreground-teal)"
+                    }
+                  }
+                ]
+              },
+              "type": "quote",
+              "meta:updatedAt": 1792406369721,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792406369721,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf"
+            },
+            "children": []
+          },
+          {
+            "type": "block",
+            "id": "mcp-block-a5b6a471b09d44a9b3edd004c2589569",
+            "flavour": "myoxus:paragraph",
+            "version": 1,
+            "props": {
+              "type": "text",
+              "collapsed": false,
+              "meta:updatedAt": 1792406369721,
+              "meta:updatedBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "meta:createdAt": 1792406369721,
+              "meta:createdBy": "fd7acd25-2184-46ca-8fe9-c1d2c70e7aaf",
+              "text": {
+                "$virgultum:internal:text$": true,
+                "delta": [
+                  {
+                    "insert": "For lists, tables, images and moving sections, continue with “Editor · Blocks and structure”. For existing files, see “Importing your content”."
+                  }
+                ]
+              }
+            },
+            "children": []
+          }
+        ]
+      }
+    ]
+  }
+}

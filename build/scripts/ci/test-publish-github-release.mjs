@@ -3,6 +3,7 @@
 
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -26,18 +27,10 @@ const response = (value, status = 200) =>
 function fixture(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "myoxus-github-copy-"));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
-  fs.writeFileSync(
-    path.join(root, "source.tar"),
-    "previously qualified source archive bytes",
-  );
-  const archive = fs.readFileSync(path.join(root, "source.tar"));
   const publicSource = {
     repository,
     commit,
-    archive: {
-      url: `${repository}/releases/download/v${version}/myoxus-source-${version}.tar`,
-      sha256: digest(archive),
-    },
+    tree: "3".repeat(40),
   };
   const input = {
     scope: "selfhost",
@@ -45,15 +38,7 @@ function fixture(t) {
     version,
     prerelease: true,
     notes: "Public self-hosting beta. Desktop packages are not included.",
-    assets: [
-      {
-        name: `myoxus-source-${version}.tar`,
-        path: "source.tar",
-        kind: "source-archive",
-        sha256: digest(archive),
-        size: archive.length,
-      },
-    ],
+    assets: [],
     containers: [],
   };
   const bodies = new Map();
@@ -75,7 +60,6 @@ function fixture(t) {
   const provenance = {
     schemaVersion: 1,
     revision,
-    sourceArchive: { sha256: digest(archive) },
     publicSource,
     summary: { inReleaseBlocked: [], inReleaseReady: ["server", "frontends"] },
   };
@@ -110,6 +94,8 @@ function fixture(t) {
     failNextUpload: false,
     tagCommit: undefined,
     sourcePublished: true,
+    nextAssetId: 1,
+    tree: publicSource.tree,
   };
   const fetchImpl = async (url, options = {}) => {
     const u = new URL(url),
@@ -118,7 +104,7 @@ function fixture(t) {
     if (bodies.has(url)) return response(bodies.get(url));
     if (u.pathname.endsWith(`/git/commits/${commit}`))
       return state.sourcePublished
-        ? response({ sha: commit })
+        ? response({ sha: commit, tree: { sha: state.tree } })
         : response({}, 404);
     if (u.pathname.includes("/git/ref/tags/"))
       return state.tagCommit
@@ -132,15 +118,23 @@ function fixture(t) {
       assert.equal(options.headers.Accept, "application/vnd.github+json");
       if (state.failNextUpload) {
         state.failNextUpload = false;
+        state.assets.push({
+          id: state.nextAssetId++,
+          name: u.searchParams.get("name"),
+          size: 0,
+          state: "starter",
+        });
         return response({}, 503);
       }
       assert.equal(options.headers.Authorization, `Bearer ${token}`);
       const bytes = Buffer.from(options.body);
       const item = {
-        id: state.assets.length + 1,
+        id: state.nextAssetId++,
         name: u.searchParams.get("name"),
         size: bytes.length,
         bytes,
+        digest: `sha256:${digest(bytes)}`,
+        state: "uploaded",
       };
       state.assets.push(item);
       return response({ id: item.id });
@@ -149,6 +143,12 @@ function fixture(t) {
       const item = state.assets.find(
         (a) => a.id === Number(u.pathname.split("/").at(-1)),
       );
+      if (method === "DELETE") {
+        assert.equal(state.release.draft, true);
+        assert.equal(item.state, "starter");
+        state.assets.splice(state.assets.indexOf(item), 1);
+        return new Response(null, { status: 204 });
+      }
       return response(item.bytes);
     }
     if (/\/releases\/\d+\/assets$/.test(u.pathname))
@@ -167,7 +167,7 @@ function fixture(t) {
     if (u.pathname.endsWith("/releases/41") && method === "PATCH") {
       assert.equal(
         state.assets.length,
-        input.assets.length + 1,
+        2,
         "an incomplete draft must never be published",
       );
       Object.assign(state.release, JSON.parse(options.body));
@@ -183,8 +183,8 @@ test("preparation copies qualified bytes and rejects changed source or desktop p
   const f = fixture(t);
   const nativeServerRoot = path.join(f.root, "server-release");
   const nativeRun = path.join(nativeServerRoot, `42-${revision}`);
-  const deb = `packages/deb/myoxus-server_${version}+git.${revision.slice(0, 12)}_amd64.deb`;
-  const rpm = `packages/rpm/myoxus-server-${version}+git.${revision.slice(0, 12)}-1.x86_64.rpm`;
+  const deb = `packages/deb/myoxus-server_${version}+git.${"4".repeat(12)}_amd64.deb`;
+  const rpm = `packages/rpm/myoxus-server-${version}+git.${"4".repeat(12)}-1.x86_64.rpm`;
   const files = [
     [deb, "qualified DEB bytes"],
     [rpm, "qualified RPM bytes"],
@@ -194,7 +194,9 @@ test("preparation copies qualified bytes and rejects changed source or desktop p
         metadata: {
           component: {
             version,
-            properties: [{ name: "myoxus:git-revision", value: revision }],
+            properties: [
+              { name: "myoxus:git-revision", value: "5".repeat(40) },
+            ],
           },
         },
       }),
@@ -219,7 +221,23 @@ test("preparation copies qualified bytes and rejects changed source or desktop p
     fetchImpl: f.fetchImpl,
     nativeServerRoot,
   });
-  assert.equal(prepared.plan.assets.length, f.input.assets.length + 4);
+  assert.equal(prepared.plan.assets.length, 4);
+  assert.deepEqual(
+    execFileSync("tar", [
+      "-xzOf",
+      path.join(
+        prepared.output,
+        "assets",
+        `myoxus-${version}-legal-provenance.tar.gz`,
+      ),
+      "server-legal.tar",
+    ]),
+    f.bodies.get(f.input.assets.find((a) => a.kind === "legal").url),
+  );
+  assert.equal(
+    prepared.plan.assets.some((a) => /source.*\.tar$/.test(a.name)),
+    false,
+  );
   assert.equal(
     fs.readFileSync(
       path.join(prepared.output, "assets", path.basename(deb)),
@@ -247,7 +265,10 @@ test("preparation copies qualified bytes and rejects changed source or desktop p
     /HTTP 404/,
   );
   assert.equal(f.state.writes.length, 0);
-  fs.writeFileSync(path.join(f.root, "source.tar"), "different source");
+  f.bodies.set(
+    f.input.assets.find((a) => a.kind === "legal").url,
+    Buffer.from("different legal bytes"),
+  );
   await assert.rejects(
     prepareRelease({
       inputFile: f.inputFile,
@@ -289,6 +310,13 @@ test("failed upload stays a draft; same-byte retry completes once and is idempot
   const writes = f.state.writes.length;
   assert.equal((await publishPreparedRelease(options)).alreadyPublished, true);
   assert.equal(f.state.writes.length, writes);
+  f.state.assets[0].digest = "sha256:" + "f".repeat(64);
+  await assert.rejects(
+    publishPreparedRelease(options),
+    /immutable asset has different bytes/,
+  );
+  delete f.state.assets[0].digest;
+  assert.equal((await publishPreparedRelease(options)).alreadyPublished, true);
   f.state.assets[0].bytes[0] ^= 1;
   await assert.rejects(
     publishPreparedRelease(options),

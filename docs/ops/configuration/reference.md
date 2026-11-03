@@ -141,19 +141,18 @@ Database product limits. These values are projected to the Admin UI as
 `workspaceDatabase.*` aliases remain compatibility inputs but must not be used
 in new deployments or documentation examples.
 
-| Field                                          | Default   | Type and description                                             |
-| ---------------------------------------------- | --------- | ---------------------------------------------------------------- |
-| `databases.max_fields_per_database`            | `100`     | **integer**. Maximum fields allowed in one database.             |
-| `databases.max_views_per_database`             | `25`      | **integer**. Maximum saved views allowed in one database.        |
-| `databases.max_rows_per_page`                  | `500`     | **integer**. Maximum rows returned by one GraphQL page.          |
-| `databases.max_cell_text_bytes`                | `16384`   | **integer**. Maximum UTF-8 text size for one cell value.         |
-| `databases.csv_max_bytes`                      | `5242880` | **integer**. Maximum uploaded CSV size in bytes.                 |
-| `databases.csv_max_rows`                       | `10000`   | **integer**. Maximum CSV data rows accepted by import.           |
-| `databases.csv_max_columns`                    | `100`     | **integer**. Maximum CSV columns accepted by import.             |
-| `databases.csv_sample_rows_for_type_inference` | `100`     | **integer**. Rows sampled for CSV field type inference.          |
-| `databases.reminder_batch_size`                | `100`     | **integer**. Maximum due Database Row reminders claimed per run. |
-| `databases.max_reminders_per_user_per_cell`    | `5`       | **integer**. Maximum personal reminders per user/DateTime Cell.  |
-| `databases.max_reminder_offset_minutes`        | `525600`  | **integer**. Maximum reminder lead time in minutes.              |
+| Field                                          | Default   | Type and description                                            |
+| ---------------------------------------------- | --------- | --------------------------------------------------------------- |
+| `databases.max_fields_per_database`            | `100`     | **integer**. Maximum fields allowed in one database.            |
+| `databases.max_views_per_database`             | `25`      | **integer**. Maximum saved views allowed in one database.       |
+| `databases.max_rows_per_page`                  | `500`     | **integer**. Maximum rows returned by one GraphQL page.         |
+| `databases.max_cell_text_bytes`                | `16384`   | **integer**. Maximum UTF-8 text size for one cell value.        |
+| `databases.csv_max_bytes`                      | `5242880` | **integer**. Maximum uploaded CSV size in bytes.                |
+| `databases.csv_max_rows`                       | `10000`   | **integer**. Maximum CSV data rows accepted by import.          |
+| `databases.csv_max_columns`                    | `100`     | **integer**. Maximum CSV columns accepted by import.            |
+| `databases.csv_sample_rows_for_type_inference` | `100`     | **integer**. Rows sampled for CSV field type inference.         |
+| `databases.max_reminders_per_user_per_cell`    | `5`       | **integer**. Maximum personal reminders per user/DateTime Cell. |
+| `databases.max_reminder_offset_minutes`        | `525600`  | **integer**. Maximum reminder lead time in minutes.             |
 
 Databases are server-authoritative. The Web client and the
 `myoxus:database` editor embed read/write through GraphQL; they do not keep an
@@ -611,29 +610,32 @@ The result is redacted to status flags, counts and warnings.
 
 ## `worker.*`
 
-Operational settings for background worker polling intervals and the cron scheduler tick rate.
+Startup-owned registered-job intervals and the shared SQL admission cadence.
 
 Job queue configuration (concurrency, retry policy, and queue ownership) is
 exclusively under `job.*`. The server rejects retired `worker.default_policy`,
 `worker.queues.*`, and `worker.runtime.*` paths instead of accepting an ignored
 parallel configuration.
 
-| Field                                             | Default           | Type and description                                                                                                                                                                                                        |
-| ------------------------------------------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `worker.cron_tick_interval_seconds`               | `30`              | **integer**. Tick interval for the cron scheduler loop. Controls how quickly scheduled jobs are dispatched after their scheduled time. Lower values increase scheduler responsiveness at the cost of more Redis operations. |
-| `worker.polling.doc_maintenance_interval_ms`      | `120000` (2 min)  | **integer**. How often to run doc maintenance (merge pending Yjs updates into the document snapshot). Lower values reduce memory pressure; higher values reduce write amplification.                                        |
-| `worker.polling.indexer_auto_index_interval_ms`   | `30000` (30 sec)  | **integer**. How often to trigger search auto-indexing for newly changed documents. Lower values make search results fresher but increase indexer load.                                                                     |
-| `worker.polling.calendar_reminder_interval_ms`    | `60000` (1 min)   | **integer**. How often to poll for upcoming calendar event reminders.                                                                                                                                                       |
-| `worker.polling.caldav_sync_interval_ms`          | `900000` (15 min) | **integer**. How often to trigger CalDAV calendar sync. Lower values increase freshness but increase load on the CalDAV server.                                                                                             |
-| `worker.polling.google_calendar_sync_interval_ms` | `900000` (15 min) | **integer**. How often to trigger Google Calendar sync.                                                                                                                                                                     |
-| `worker.polling.database_projection_interval_ms`  | `30000` (30 sec)  | **integer**. How often the API schedules Database projection catch-up jobs for stale, failed or missing Rollup/Formula projections. Lower values improve freshness; higher values reduce queue churn.                       |
-| `worker.polling.database_reminder_interval_ms`    | `60000` (1 min)   | **integer**. How often the API schedules bounded personal Database Row reminder claims.                                                                                                                                     |
+| Field                                             | Default           | Type and description                                                                                                                                                                                  |
+| ------------------------------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `worker.cron_tick_interval_seconds`               | `30`              | **integer**, minimum1. Shared SQL admission cadence inside the existing outbox loop. Requires API restart; it is not a Redis leader/repeat scheduler or a queue retry setting.                        |
+| `worker.polling.doc_maintenance_interval_ms`      | `120000` (2 min)  | **integer**. How often to run doc maintenance (merge pending Yjs updates into the document snapshot). Lower values reduce memory pressure; higher values reduce write amplification.                  |
+| `worker.polling.indexer_auto_index_interval_ms`   | `30000` (30 sec)  | **integer**. How often to trigger search auto-indexing for newly changed documents. Lower values make search results fresher but increase indexer load.                                               |
+| `worker.polling.caldav_sync_interval_ms`          | `900000` (15 min) | **integer**. How often to trigger CalDAV calendar sync. Lower values increase freshness but increase load on the CalDAV server.                                                                       |
+| `worker.polling.google_calendar_sync_interval_ms` | `900000` (15 min) | **integer**. How often to trigger Google Calendar sync.                                                                                                                                               |
+| `worker.polling.database_projection_interval_ms`  | `30000` (30 sec)  | **integer**. How often the API schedules Database projection catch-up jobs for stale, failed or missing Rollup/Formula projections. Lower values improve freshness; higher values reduce queue churn. |
 
-`worker.polling.database_reminder_interval_ms` and the three Database reminder
-limits are restart-required because cron registration and service limits are
-materialized at API startup. Admin exposes the interval under Performance / Server
-tuning and the limits under Performance / Limits; saving validates the values but
-does not alter the running scheduler until restart.
+Database reminder limits `databases.max_reminders_per_user_per_cell` and
+`databases.max_reminder_offset_minutes` are startup-materialized and
+restart-required. Admin exposes them under Performance / Limits. Shared
+`worker.cron_tick_interval_seconds` and its bounded dispatch budget own admission;
+there is no reminder-specific polling interval or claim-batch setting.
+
+Registered scheduling intervals and template drift-scan cadence are likewise
+restart-bound. Admin projects pending values as restart-required rather than
+promising a live timer update. Native queue attempts/backoff/retention remain
+under `job.*` and are not reconfigured by a schedule edit.
 
 ---
 

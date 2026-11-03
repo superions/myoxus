@@ -6,7 +6,7 @@ import {
   type Locator,
   type Page,
 } from "@playwright/test";
-import JSZip from "jszip";
+import { readZip } from "../../../../../build/scripts/zip-archive.mjs";
 import type { TableBlockModel } from "@virgultum/editor/model";
 
 import {
@@ -75,18 +75,17 @@ for (const [slug, tableCount] of [["meeting-register", 2]] as const) {
   test(`shipped ${slug} bundle supports table Tab navigation and undoable rows`, async ({
     page,
   }) => {
-    const archive = await JSZip.loadAsync(
+    const archive = await readZip(
       await readFile(
         new URL(
           `../../../../../server/templates/documents/${slug}/1.0.1.zip`,
           import.meta.url,
         ),
       ),
-      { checkCRC32: true },
     );
-    const content = archive.file("content.template.zip");
-    expect(content).not.toBeNull();
-    const bytes = Array.from(await content!.async("uint8array"));
+    const content = archive.get("content.template.zip");
+    expect(content).toBeDefined();
+    const bytes = Array.from(content!.data);
     await enterPlaygroundRoom(page);
     await page.evaluate((update) => window.applyNativeUpdate(update), bytes);
     const tables = page.locator("myoxus-table");

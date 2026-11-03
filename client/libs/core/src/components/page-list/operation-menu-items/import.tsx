@@ -23,6 +23,9 @@ export function notifyImportResult(
   t: ReturnType<typeof useI18n>,
   result: ImportResult,
 ) {
+  // DOCX owns one persistent, live result surface; never add generic success
+  // feedback or turn an uncertain creation into a second completion channel.
+  if (result.docx) return;
   if (
     result.markdownDiagnostics &&
     hasMarkdownImportDiagnostics(result.markdownDiagnostics)

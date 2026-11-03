@@ -17,6 +17,7 @@ import { useDashboardEditChrome } from "./dashboard-edit-context";
 
 export function DashboardSection({
   action,
+  busy,
   children,
   icon,
   scope,
@@ -24,6 +25,7 @@ export function DashboardSection({
   uiRole,
 }: {
   action?: { label: string; onClick: () => void; ref?: Ref<HTMLButtonElement> };
+  busy?: boolean;
   children: ReactNode;
   icon?: ReactNode;
   scope?: ReactNode;
@@ -38,6 +40,7 @@ export function DashboardSection({
       padding="none"
       withBorder
       data-myoxus-ui-role={uiRole}
+      aria-busy={busy}
     >
       <CardHeader>
         <Group align="flex-start" justify="space-between" wrap="nowrap">

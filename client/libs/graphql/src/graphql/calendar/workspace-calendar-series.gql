@@ -1,0 +1,9 @@
+query workspaceCalendarSeries($workspaceId: String!) {
+  workspaceCalendarSeries(workspaceId: $workspaceId) {
+    id
+    title
+    startsAt
+    allDay
+    recurrence { ...CalendarRecurrenceFields }
+  }
+}

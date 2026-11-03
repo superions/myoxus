@@ -87,6 +87,7 @@ COPY build/scripts/release/normalize-server-sbom.mjs ./build/scripts/release/nor
 COPY build/scripts/release/source-correspondence.mjs ./build/scripts/release/source-correspondence.mjs
 COPY server/Cargo.toml server/Cargo.lock ./server/
 COPY vendor/cargo ./vendor/cargo
+COPY vendor/wordcraft ./vendor/wordcraft
 COPY build/dependencies/paste-consumers-source.json build/dependencies/safer-bytes-license.txt ./build/dependencies/
 COPY server/crates ./server/crates
 # Additive label defaults compile from their sole authored locale sources.

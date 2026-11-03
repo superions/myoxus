@@ -200,6 +200,8 @@ pub enum PageLifecycleCommand {
     actor_user_id: Uuid,
     title: String,
     initial_leaf_update: Vec<u8>,
+    /// Registry source classification is committed before the page is discoverable.
+    source_purpose: Option<crate::template_registry::bundle::TemplatePurpose>,
     committed_at: DateTime<Utc>,
   },
   Rename {

@@ -10,9 +10,14 @@ import { type ClientHandler, clientHandlerChannelManifest } from "./handlers";
 
 export type DesktopBridge = {
   appInfo: AppInfo;
-  apis: ClientHandler;
+  apis: DesktopBridgeApis;
   events: ClientEvents;
   sharedStorage: SharedStorage;
+};
+
+type DesktopBridgeApis = Omit<ClientHandler, "ui"> & {
+  ui: Omit<ClientHandler["ui"], "saveExportFile"> &
+    Partial<Pick<ClientHandler["ui"], "saveExportFile">>;
 };
 
 export type SharedStorageArea = {
@@ -55,7 +60,7 @@ export class DesktopBridgeInitializationError extends Error {
 
 type DesktopGlobalScope = typeof globalThis & {
   __appInfo?: AppInfo;
-  __apis?: ClientHandler;
+  __apis?: DesktopBridgeApis;
   __events?: ClientEvents;
   __sharedStorage?: SharedStorage;
 };
@@ -147,13 +152,19 @@ function assertChannelSurface(
         `${label}.${namespace} must be an object`,
       );
     }
-    assertExactKeys(
-      namespaceValue,
-      Object.keys(namespaceManifest),
-      code,
-      `${label}.${namespace}`,
+    // Published native clients predate Word saving. Only this additive
+    // capability may be absent; existing channels and unknown keys stay strict.
+    const channels = Object.keys(namespaceManifest).filter(
+      (channel) =>
+        !(
+          code === "INVALID_APIS" &&
+          namespace === "ui" &&
+          channel === "saveExportFile" &&
+          !Object.hasOwn(namespaceValue, channel)
+        ),
     );
-    for (const channel of Object.keys(namespaceManifest)) {
+    assertExactKeys(namespaceValue, channels, code, `${label}.${namespace}`);
+    for (const channel of channels) {
       if (typeof Reflect.get(namespaceValue, channel) !== "function") {
         throw new DesktopBridgeInitializationError(
           code,

@@ -53,7 +53,8 @@ describe("browser Web runtime theme projection", () => {
     expect(document.documentElement.dataset.myoxusThemeSource).toBe("api");
   });
 
-  test("clears stale CSS and never requests the Electron fallback", async () => {
+  test("clears stale CSS and recovers automatically without the Electron fallback", async () => {
+    vi.useFakeTimers();
     vi.mocked(fetch)
       .mockResolvedValueOnce({
         ok: true,
@@ -66,23 +67,33 @@ describe("browser Web runtime theme projection", () => {
         text: () => Promise.resolve(""),
       } as Response);
 
-    const style = ensureRuntimeThemeProjection(document, "/myoxus");
-    await vi.waitFor(() => expect(style.textContent).toContain("stale"));
-    ensureRuntimeThemeProjection(document, "/myoxus");
+    const cleanup = startThemeAutoReload();
+    try {
+      const style = ensureRuntimeThemeProjection(document, "/myoxus");
+      await vi.waitFor(() => expect(style.textContent).toContain("stale"));
+      ensureRuntimeThemeProjection(document, "/myoxus");
 
-    await vi.waitFor(() => {
-      expect(style.dataset.myoxusBrandingSource).toBe("unavailable");
-    });
-    expect(style.textContent).toBe("");
-    expect(document.documentElement.dataset.myoxusThemeSource).toBe(
-      "unavailable",
-    );
-    expect(vi.mocked(fetch).mock.calls).toHaveLength(2);
-    expect(
-      vi
-        .mocked(fetch)
-        .mock.calls.some(([url]) => String(url).includes("theme-fallback")),
-    ).toBe(false);
+      await vi.waitFor(() => {
+        expect(style.dataset.myoxusBrandingSource).toBe("unavailable");
+      });
+      expect(style.textContent).toBe("");
+      expect(document.documentElement.dataset.myoxusThemeSource).toBe(
+        "unavailable",
+      );
+      expect(vi.mocked(fetch).mock.calls).toHaveLength(2);
+      expect(
+        vi
+          .mocked(fetch)
+          .mock.calls.some(([url]) => String(url).includes("theme-fallback")),
+      ).toBe(false);
+      await vi.advanceTimersByTimeAsync(15_000);
+      expect(document.documentElement.dataset.myoxusThemeSource).toBe("api");
+      expect(style.textContent).toContain("--myoxus-accent-primary");
+      expect(fetch).toHaveBeenCalledTimes(3);
+    } finally {
+      cleanup();
+      vi.useRealTimers();
+    }
   });
 
   test("re-evaluates workspace scope after SPA navigation", async () => {

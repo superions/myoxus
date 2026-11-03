@@ -299,6 +299,7 @@ impl SqlxWorkspaceStore {
     if let Some(run_id) = setup_run_id {
       use myoxus_domain::workspace_automation::*;
       let run = AcceptedAutomationRun {
+        recurring_task: None,
         workspace_setup: Some(AcceptedWorkspaceSetupRequest {
           request_id: receipt.request_id,
           fingerprint: receipt.fingerprint.clone(),

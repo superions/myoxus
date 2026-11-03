@@ -476,8 +476,26 @@ fn explicit_base_optional_and_retained_frames_have_distinct_native_selection() {
   );
   let sources = &current.assistants["assistants"];
   let optional_context = AssistantPackageContext::TaskContainerAssistance;
-  assert!(resolved.assistants.list(optional_context).is_empty());
-  assert!(resolved.assistants.default_descriptor(optional_context).is_none());
+  // A different native source may legitimately offer this context. Protect
+  // each disabled identity below rather than assuming the whole context empty.
+  assert_eq!(
+    resolved
+      .assistants
+      .list(optional_context)
+      .into_iter()
+      .map(|descriptor| descriptor.identity.id)
+      .collect::<Vec<_>>(),
+    vec!["myoxus.assistant.document-review"]
+  );
+  assert_eq!(
+    resolved
+      .assistants
+      .default_descriptor(optional_context)
+      .unwrap()
+      .identity
+      .id,
+    "myoxus.assistant.document-review"
+  );
   for entry in sources.catalog.packages.iter().filter(|entry| !entry.enabled) {
     let identity = AssistantPackageIdentity {
       id: entry.id.clone(),
@@ -496,9 +514,12 @@ fn explicit_base_optional_and_retained_frames_have_distinct_native_selection() {
       assert!(resolved.assistants.offered_source(&identity, *context).is_err());
     }
   }
-  // Feature exports preserve disabled selection; only catalog activation can
-  // restore this native context, which still requires an enabled default.
+  // Feature exports cannot activate a disabled source or replace the selected
+  // default. Reassignment remains an explicit native-catalog choice.
   let mut reactivated = sources.catalog.packages.clone();
+  for entry in reactivated.iter_mut().filter(|entry| entry.enabled) {
+    entry.default_for.retain(|context| *context != optional_context);
+  }
   let entry = reactivated
     .iter_mut()
     .find(|entry| !entry.enabled && entry.default_for.contains(&optional_context))

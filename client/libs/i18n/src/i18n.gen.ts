@@ -29,6 +29,48 @@ function createProxy<T extends object>(createValue: (key: string) => unknown): T
 }
 
 export interface MyoxusI18nFunctions {
+  /** The source document is unavailable. Check its access and location before planning a review. */
+  ["com.myoxus.document-review.planning.source-unavailable"](): string;
+  /** The responsible person cannot currently review this document. Check membership and editing permissions. */
+  ["com.myoxus.document-review.planning.reviewer-unavailable"](): string;
+  /** Formal document review is unavailable on this server. */
+  ["com.myoxus.document-review.planning.formal-unavailable"](): string;
+  /** The Task destination is unavailable. Repair its setup before starting a review. */
+  ["com.myoxus.document-review.planning.destination-unavailable"](): string;
+  /** Review planning */
+  ["com.myoxus.document-review.planning.title"](): string;
+  /** Plan automatic document reviews */
+  ["com.myoxus.document-review.planning.enable"](): string;
+  /** Source deadline */
+  ["com.myoxus.document-review.planning.source-deadline"](): string;
+  /** Process deadline */
+  ["com.myoxus.document-review.planning.process-deadline"](): string;
+  /** Lead time */
+  ["com.myoxus.document-review.planning.lead"](): string;
+  /** {{days}} days before the source deadline */
+  ["com.myoxus.document-review.planning.lead-days"](options: { readonly ["days"]: string; }): string;
+  /** Next start */
+  ["com.myoxus.document-review.planning.next-start"](): string;
+  /** Ready to start automatically. */
+  ["com.myoxus.document-review.planning.ready"](): string;
+  /** Automatic review planning is disabled. */
+  ["com.myoxus.document-review.planning.disabled"](): string;
+  /** Set Review due at or Valid until in the document metadata. */
+  ["com.myoxus.document-review.planning.missing-deadline"](): string;
+  /** Choose a responsible person in the document metadata. */
+  ["com.myoxus.document-review.planning.missing-responsible"](): string;
+  /** The review cannot start. Check the document, the responsible person’s access and review availability. */
+  ["com.myoxus.document-review.planning.unavailable"](): string;
+  /** The person who enabled planning can no longer start a review. */
+  ["com.myoxus.document-review.planning.actor-unavailable"](): string;
+  /** A previous review is still awaiting a decision. Decide, stop it or wait for its deadline. */
+  ["com.myoxus.document-review.planning.pending"](): string;
+  /** This deadline already has a review. Open it to see its status. */
+  ["com.myoxus.document-review.planning.accepted"](): string;
+  /** The change could not be confirmed. Refresh the planning before trying again. */
+  ["com.myoxus.document-review.planning.failed"](): string;
+  /** Save to apply the planning change. */
+  ["com.myoxus.document-review.planning.draft"](): string;
   /** Remove effective field: {{field}} */
   ["com.myoxus.editor.mermaid.requirement-property-remove"](options: { readonly ["field"]: string; }): string;
   /** The first value is effective. Removing this field removes all values below in this definition, so a shadowed value cannot become active. */
@@ -5951,7 +5993,7 @@ export interface MyoxusI18nFunctions {
   ["admin.performance.field.compaction-threshold-default.desc"](): string;
   /** Auto-compaction threshold for root documents. Default: 50 */
   ["admin.performance.field.compaction-threshold-root-doc.desc"](): string;
-  /** Interval (seconds) for the cron scheduler tick loop. Default: 60 · Min: 5 · May require restart for full effect. */
+  /** Admission interval for shared SQL scheduling, in seconds. Requires an API restart. */
   ["admin.performance.field.cron-tick-interval.desc"](): string;
   /** Enable daily TTL auto-tuning cycle. */
   ["admin.performance.field.daily-enabled.desc"](): string;
@@ -9371,6 +9413,8 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.common.reminder.before.30min"](): string;
   /** 5 minutes before */
   ["com.myoxus.common.reminder.before.5min"](): string;
+  /** {{duration}} before */
+  ["com.myoxus.common.reminder.before-duration"](options: { readonly ["duration"]: string; }): string;
   /** No default */
   ["com.myoxus.common.reminder.none"](): string;
   /** Timezone */
@@ -11845,8 +11889,86 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.import-template.dialog.errorImport"](): string;
   /** Failed to load template, please try again. */
   ["com.myoxus.import-template.dialog.errorLoad"](): string;
-  /** Docx */
+  /** Word (.docx) */
   ["com.myoxus.import.docx"](): string;
+  /** Word export failed */
+  ["com.myoxus.export.word.failed"](): string;
+  /** Waiting for document synchronization… */
+  ["com.myoxus.export.word.syncing"](): string;
+  /** Preparing Word file… */
+  ["com.myoxus.export.word.preparing"](): string;
+  /** Saving Word file… */
+  ["com.myoxus.export.word.saving"](): string;
+  /** Word file saved */
+  ["com.myoxus.export.word.saved"](): string;
+  /** Download provided */
+  ["com.myoxus.export.word.provided"](): string;
+  /** Word export requires a connection to this workspace's server. Local and offline workspaces are not supported. */
+  ["com.myoxus.export.word.unavailable"](): string;
+  /** Word export supports Page documents. Use PDF or image export for Edgeless. */
+  ["com.myoxus.export.word.mode"](): string;
+  /** The document could not finish synchronizing. No Word file was requested. Check your connection and retry. */
+  ["com.myoxus.export.word.sync-failed"](): string;
+  /** The workspace server could not deliver the Word file. Check your connection and retry. */
+  ["com.myoxus.export.word.connection"](): string;
+  /** The server could not prepare a readable Word file. Retry or ask an administrator to check the server. */
+  ["com.myoxus.export.word.conversion-failed"](): string;
+  /** This document has no content that can be exported to Word. No file was downloaded. */
+  ["com.myoxus.export.word.empty"](): string;
+  /** The document exceeds the server's export limits. Reduce its size or attachments before retrying. */
+  ["com.myoxus.export.word.size"](): string;
+  /** The file could not be saved. Check the selected location and retry the export. */
+  ["com.myoxus.export.word.save-failed"](): string;
+  /** Update the desktop application to save Word files. This client does not support the required native operation. */
+  ["com.myoxus.export.word.update-required"](): string;
+  /** Conversion details */
+  ["com.myoxus.conversion.details"](): string;
+  /** Completed with limitations */
+  ["com.myoxus.conversion.limited"](): string;
+  /** Unsupported Word content may be omitted. These details cover only changes the converter recognized, not every possible omission. */
+  ["com.myoxus.conversion.best-effort"](): string;
+  /** Changes ({{count}}): readable content was retained with different formatting or structure. */
+  ["com.myoxus.conversion.normalized"](options: { readonly ["count"]: string; }): string;
+  /** Omissions ({{count}}): this content was not included. */
+  ["com.myoxus.conversion.omitted"](options: { readonly ["count"]: string; }): string;
+  /** Additional conversion notices ({{count}}): some content changed or could not be included. */
+  ["com.myoxus.conversion.other"](options: { readonly ["count"]: string; }): string;
+  /** Text and formatting */
+  ["com.myoxus.conversion.feature.text"](): string;
+  /** Lists and tasks */
+  ["com.myoxus.conversion.feature.lists"](): string;
+  /** Tables */
+  ["com.myoxus.conversion.feature.tables"](): string;
+  /** Images and diagrams */
+  ["com.myoxus.conversion.feature.images"](): string;
+  /** Notes and review content */
+  ["com.myoxus.conversion.feature.notes"](): string;
+  /** Files and external content */
+  ["com.myoxus.conversion.feature.files"](): string;
+  /** Other content */
+  ["com.myoxus.conversion.feature.other"](): string;
+  /** Select one Word (.docx) file. */
+  ["com.myoxus.import.word.selecting"](): string;
+  /** The document is being imported. Closing this message does not undo creation. */
+  ["com.myoxus.import.word.pending"](): string;
+  /** Word import requires a connection to this workspace's server. Local workspaces are not supported. */
+  ["com.myoxus.import.word.unavailable"](): string;
+  /** You do not have permission to create documents in this workspace. */
+  ["com.myoxus.import.word.permission"](): string;
+  /** Select one readable Word (.docx) file. The selected file could not be imported. */
+  ["com.myoxus.import.word.format"](): string;
+  /** No usable content was found. No document was created. */
+  ["com.myoxus.import.word.empty"](): string;
+  /** This file exceeds the server's import limits. Choose a smaller document. */
+  ["com.myoxus.import.word.size"](): string;
+  /** The Word file could not be converted. Choose another file or check its contents in Word. */
+  ["com.myoxus.import.word.conversion"](): string;
+  /** The response was lost; the document may already exist. Check this workspace's contents before importing again. This request will not be retried automatically. */
+  ["com.myoxus.import.word.unknown"](): string;
+  /** Import outcome unknown */
+  ["com.myoxus.import.word.unknown-title"](): string;
+  /** The document was created, but its content is not ready in this view. Open the originating workspace's content list; do not import it again. */
+  ["com.myoxus.import.word.sync"](): string;
   /** Import your .docx file. */
   ["com.myoxus.import.docx.tooltip"](): string;
   /** HTML */
@@ -11993,6 +12115,44 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.integration.calendar.event-dialog.scope.all"](): string;
   /** Only this instance */
   ["com.myoxus.integration.calendar.event-dialog.scope.this"](): string;
+  /** This and future occurrences */
+  ["com.myoxus.integration.calendar.event-dialog.scope.future"](): string;
+  /** Discard your unsaved changes and load the selected scope? */
+  ["com.myoxus.integration.calendar.event-dialog.scope-change-confirm"](): string;
+  /** Save or cancel your changes before managing this series. */
+  ["com.myoxus.integration.calendar.event-dialog.unsaved-controls"](): string;
+  /** Imported recurrence rule */
+  ["com.myoxus.integration.calendar.event-dialog.rule-source"](): string;
+  /** Manage a saved series */
+  ["com.myoxus.integration.calendar.event-dialog.saved-series"](): string;
+  /** The imported recurrence rule is preserved read-only. */
+  ["com.myoxus.integration.calendar.event-dialog.rule-readonly"](): string;
+  /** This recurrence is not supported here. Its original source is preserved read-only. */
+  ["com.myoxus.integration.calendar.event-dialog.rule-unsupported"](): string;
+  /** View imported dates in the calendar; the source rule is not converted into a native plan. */
+  ["com.myoxus.integration.calendar.event-dialog.preview-imported"](): string;
+  /** Choose Entire series or This and future occurrences to edit repetition. */
+  ["com.myoxus.integration.calendar.event-dialog.rule-scope"](): string;
+  /** Skip this occurrence */
+  ["com.myoxus.integration.calendar.event-dialog.skip"](): string;
+  /** Skip this occurrence? Other occurrences and the series rule are kept. */
+  ["com.myoxus.integration.calendar.event-dialog.skip-confirm"](): string;
+  /** End this series now? Future occurrences and reminders stop; history and exceptions are kept. */
+  ["com.myoxus.integration.calendar.event-dialog.end-confirm"](): string;
+  /** Delete only this occurrence? The rest of the series is kept. */
+  ["com.myoxus.integration.calendar.event-dialog.delete-this-confirm"](): string;
+  /** Delete this and all future occurrences? Earlier occurrences and their exceptions are kept. */
+  ["com.myoxus.integration.calendar.event-dialog.delete-future-confirm"](): string;
+  /** Delete the entire event series and its exceptions? */
+  ["com.myoxus.integration.calendar.event-dialog.delete-all-confirm"](): string;
+  /** This local time does not exist in the selected time zone. Choose a valid time. */
+  ["com.myoxus.integration.calendar.event-dialog.time-invalid"](): string;
+  /** The event could not be saved. Your draft is kept. Close and reopen if the series changed. */
+  ["com.myoxus.integration.calendar.event-dialog.draft-failed"](): string;
+  /** This event is managed by its calendar provider and is read-only here. */
+  ["com.myoxus.integration.calendar.event-dialog.external-readonly"](): string;
+  /** Change saved. Reload the calendar to refresh the view. */
+  ["com.myoxus.integration.calendar.saved-refresh"](): string;
   /** From * */
   ["com.myoxus.integration.calendar.event-dialog.start"](): string;
   /** Tag */
@@ -21695,6 +21855,122 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.editor.text-marker.blue"](): string;
   /** Remove highlight */
   ["com.myoxus.editor.toolbar.remove-text-marker"](): string;
+  /** Appearance could not be loaded */
+  ["com.myoxus.theme.load-error.title"](): string;
+  /** Myoxus could not load the server appearance. The connection will be checked again automatically. */
+  ["com.myoxus.theme.load-error.description"](): string;
+  /** Repeat */
+  ["com.myoxus.recurrence.repeat"](): string;
+  /** Repeat mode */
+  ["com.myoxus.recurrence.mode"](): string;
+  /** Fixed schedule */
+  ["com.myoxus.recurrence.fixed"](): string;
+  /** After completion */
+  ["com.myoxus.recurrence.after-completion"](): string;
+  /** Every */
+  ["com.myoxus.recurrence.interval"](): string;
+  /** Frequency */
+  ["com.myoxus.recurrence.frequency"](): string;
+  /** Daily */
+  ["com.myoxus.recurrence.daily"](): string;
+  /** Weekly */
+  ["com.myoxus.recurrence.weekly"](): string;
+  /** Monthly */
+  ["com.myoxus.recurrence.monthly"](): string;
+  /** Yearly */
+  ["com.myoxus.recurrence.yearly"](): string;
+  /** Unit */
+  ["com.myoxus.recurrence.unit"](): string;
+  /** Days */
+  ["com.myoxus.recurrence.days"](): string;
+  /** Weeks */
+  ["com.myoxus.recurrence.weeks"](): string;
+  /** Months */
+  ["com.myoxus.recurrence.months"](): string;
+  /** On weekdays */
+  ["com.myoxus.recurrence.weekdays"](): string;
+  /** Last day of the month */
+  ["com.myoxus.recurrence.last-day"](): string;
+  /** Month */
+  ["com.myoxus.recurrence.month"](): string;
+  /** Day of the month */
+  ["com.myoxus.recurrence.month-day"](): string;
+  /** End date (inclusive, optional) */
+  ["com.myoxus.recurrence.end"](): string;
+  /** Assumed completion for preview */
+  ["com.myoxus.recurrence.completion-reference"](): string;
+  /** This time zone stays pinned to the series when your preferences change. */
+  ["com.myoxus.recurrence.zone-hint"](): string;
+  /** Next dates */
+  ["com.myoxus.recurrence.preview"](): string;
+  /** Each arrow assumes completion at the displayed reference. Later dates assume completion at the preceding Due date. */
+  ["com.myoxus.recurrence.conditional"](): string;
+  /** No preview available. Check the rule and connection. */
+  ["com.myoxus.recurrence.preview-failed"](): string;
+  /** No further dates in this rule. */
+  ["com.myoxus.recurrence.exhausted"](): string;
+  /** Complete the rule to see its dates. */
+  ["com.myoxus.recurrence.complete-rule"](): string;
+  /** The original Task is the first member. Future Tasks use the recipe below, without copying documents, relations or history. Changes to a Task stay local. */
+  ["com.myoxus.recurrence.task-hint"](): string;
+  /** Future Task recipe */
+  ["com.myoxus.recurrence.recipe"](): string;
+  /** Repetition is currently unavailable. */
+  ["com.myoxus.recurrence.unavailable"](): string;
+  /** Repetition could not be saved. Your draft is retained. If the Task changed, close and reopen to review the latest version. */
+  ["com.myoxus.recurrence.save-failed"](): string;
+  /** Repetition was saved. Reload the Task to see the latest data. */
+  ["com.myoxus.recurrence.saved-refresh"](): string;
+  /** Manage repetitions */
+  ["com.myoxus.recurrence.manage"](): string;
+  /** Series */
+  ["com.myoxus.recurrence.series"](): string;
+  /** No repetitions configured */
+  ["com.myoxus.recurrence.empty"](): string;
+  /** Active series */
+  ["com.myoxus.recurrence.active"](): string;
+  /** Paused series */
+  ["com.myoxus.recurrence.paused"](): string;
+  /** Ended series */
+  ["com.myoxus.recurrence.ended"](): string;
+  /** Edit this Task’s Due */
+  ["com.myoxus.recurrence.edit-occurrence"](): string;
+  /** Edit future Tasks */
+  ["com.myoxus.recurrence.edit-series"](): string;
+  /** Pause series */
+  ["com.myoxus.recurrence.pause"](): string;
+  /** Resume series */
+  ["com.myoxus.recurrence.resume"](): string;
+  /** End series */
+  ["com.myoxus.recurrence.end-series"](): string;
+  /** Stop future automatic work and Skip for this series? Already created Tasks and history remain available. */
+  ["com.myoxus.recurrence.end-confirm"](): string;
+  /** Skip this Task */
+  ["com.myoxus.recurrence.skip"](): string;
+  /** Archive this Task without marking it Complete? In completion mode, its one successor is created from Skip time. A pause remains in effect. */
+  ["com.myoxus.recurrence.skip-confirm"](): string;
+  /** Skipped and archived */
+  ["com.myoxus.recurrence.skipped"](): string;
+  /** Member Task */
+  ["com.myoxus.recurrence.member"](): string;
+  /** Preserved next Task */
+  ["com.myoxus.recurrence.preserved-next"](): string;
+  /** Changes after this original slot */
+  ["com.myoxus.recurrence.effective-after"](): string;
+  /** First affected Due: {{date}} */
+  ["com.myoxus.recurrence.first-affected"](options: { readonly ["date"]: string; }): string;
+  /** Next automatic Due: {{date}} */
+  ["com.myoxus.recurrence.next-due"](options: { readonly ["date"]: string; }): string;
+  /** The confirming person no longer has Task-editing rights. */
+  ["com.myoxus.recurrence.permission-unavailable"](): string;
+  /** The series destination is unavailable. Edit future Tasks to select an authorized destination. */
+  ["com.myoxus.recurrence.destination-unavailable"](): string;
+  /** The native source Task is unavailable. */
+  ["com.myoxus.recurrence.source-unavailable"](): string;
+  /** The series recipe is unavailable. Review the destination and fields. */
+  ["com.myoxus.recurrence.recipe-unavailable"](): string;
+  /** Automatic execution is temporarily unavailable. The pending date is retained. */
+  ["com.myoxus.recurrence.runtime-unavailable"](): string;
 }
 
 export function useMyoxusI18N(): MyoxusI18nFunctions {

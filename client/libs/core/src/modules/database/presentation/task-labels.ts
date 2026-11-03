@@ -48,6 +48,8 @@ const optionLabels: Readonly<Record<string, Readonly<Record<string, Label>>>> =
       "status.todo": (t) => t["com.myoxus.common.status.todo"](),
       "status.in_progress": (t) => t["com.myoxus.common.status.in-progress"](),
       "status.done": (t) => t["com.myoxus.common.status.completed"](),
+      "status.archived": (t) =>
+        t["com.myoxus.database.progress.group.archived"](),
     },
     "task.priority": {
       "priority.lowest": (t) => t["com.myoxus.common.priority.lowest"](),

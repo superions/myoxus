@@ -3615,6 +3615,7 @@ fn automation_run_json(run: WorkspaceAutomationRun) -> Value {
   let (code, summary) = myoxus_application::workspace_automation::safe_error_projection(&run);
   let (origin, request_id) = match &run.origin {
     WorkspaceAutomationRunOrigin::Rule => ("rule", None),
+    WorkspaceAutomationRunOrigin::RecurringTask { .. } => ("recurring_task", None),
     WorkspaceAutomationRunOrigin::WorkspaceSetup { request_id, .. } => ("workspace_setup", Some(*request_id)),
     WorkspaceAutomationRunOrigin::ConfirmedContextDocuments { request_id, .. } => {
       ("confirmed_request", Some(*request_id))

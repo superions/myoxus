@@ -413,7 +413,6 @@ worker:
     doc_maintenance_interval_ms: 120000
     indexer_auto_index_interval_ms: 30000
     database_projection_interval_ms: 30000
-    calendar_reminder_interval_ms: 60000
     caldav_sync_interval_ms: 900000
     google_calendar_sync_interval_ms: 900000
   cron_tick_interval_seconds: 30
@@ -510,7 +509,6 @@ databases:
   csv_max_columns: 100
   csv_sample_rows_for_type_inference: 100
   notion_max_bytes: 67108864
-  reminder_batch_size: 100
   max_reminders_per_user_per_cell: 5
   max_reminder_offset_minutes: 525600
 

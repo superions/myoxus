@@ -1,33 +1,26 @@
 //! Redis worker handler for Database background jobs.
 //!
 //! The handler validates queue payload shape and delegates recomputation to
-//! the native Reminder, Projection and Import/Export owners. It owns no SQL or
+//! the native Projection and Import/Export owners. It owns no SQL or
 //! aggregation logic.
 
 use std::sync::Arc;
 
 use myoxus_application::database::{
-  DATABASE_QUEUE, DatabaseImportExportService, DatabaseProjectionService, DatabaseReminderService, JOB_BULK_EXPORT,
-  JOB_BULK_IMPORT, JOB_FIRE_REMINDERS, JOB_INDEX_ROW, JOB_RECOMPUTE_FORMULAS, JOB_RECOMPUTE_ROLLUPS,
-  JOB_RECOMPUTE_STALE_PROJECTIONS, JOB_REINDEX_SEARCH,
+  DATABASE_QUEUE, DatabaseImportExportService, DatabaseProjectionService, JOB_BULK_EXPORT, JOB_BULK_IMPORT,
+  JOB_INDEX_ROW, JOB_RECOMPUTE_FORMULAS, JOB_RECOMPUTE_ROLLUPS, JOB_RECOMPUTE_STALE_PROJECTIONS, JOB_REINDEX_SEARCH,
 };
 use myoxus_worker::{Job, JobError, JobHandler};
 use uuid::Uuid;
 
 pub struct DatabaseQueueHandler {
-  reminders: Arc<DatabaseReminderService>,
   projection: Arc<DatabaseProjectionService>,
   import_export: Arc<DatabaseImportExportService>,
 }
 
 impl DatabaseQueueHandler {
-  pub fn new(
-    reminders: Arc<DatabaseReminderService>,
-    projection: Arc<DatabaseProjectionService>,
-    import_export: Arc<DatabaseImportExportService>,
-  ) -> Self {
+  pub fn new(projection: Arc<DatabaseProjectionService>, import_export: Arc<DatabaseImportExportService>) -> Self {
     Self {
-      reminders,
       projection,
       import_export,
     }
@@ -43,20 +36,6 @@ impl JobHandler for DatabaseQueueHandler {
   async fn process(&self, job: &Job) -> Result<Option<serde_json::Value>, JobError> {
     tracing::info!(job_id = %job.id, job_name = %job.name, queue = self.queue_name(), "processing database job");
     match job.name.as_str() {
-      JOB_FIRE_REMINDERS => {
-        let limit = optional_i64(&job.data, "limit").unwrap_or(100);
-        let outcome = self
-          .reminders
-          .fire_due_database_row_reminders(limit)
-          .await
-          .map_err(|error| JobError::Retryable(error.to_string()))?;
-        Ok(Some(serde_json::json!({
-          "claimed_count": outcome.claimed_count,
-          "enqueued_count": outcome.enqueued_count,
-          "cancelled_count": outcome.cancelled_count,
-          "failed_count": outcome.failed_count,
-        })))
-      }
       JOB_RECOMPUTE_ROLLUPS | JOB_RECOMPUTE_FORMULAS | JOB_RECOMPUTE_STALE_PROJECTIONS => {
         let limit = optional_i64(&job.data, "limit").unwrap_or(100);
         let database_limit = optional_i64(&job.data, "database_limit").unwrap_or(25);
@@ -355,8 +334,8 @@ fn optional_string<'a>(data: &'a serde_json::Value, key: &str) -> Option<&'a str
 mod tests {
   use super::classify_database_job_error;
   use myoxus_application::database::{
-    DATABASE_QUEUE, JOB_BULK_EXPORT, JOB_BULK_IMPORT, JOB_FIRE_REMINDERS, JOB_INDEX_ROW, JOB_RECOMPUTE_FORMULAS,
-    JOB_RECOMPUTE_ROLLUPS, JOB_RECOMPUTE_STALE_PROJECTIONS, JOB_REINDEX_SEARCH,
+    DATABASE_QUEUE, JOB_BULK_EXPORT, JOB_BULK_IMPORT, JOB_INDEX_ROW, JOB_RECOMPUTE_FORMULAS, JOB_RECOMPUTE_ROLLUPS,
+    JOB_RECOMPUTE_STALE_PROJECTIONS, JOB_REINDEX_SEARCH,
   };
   use myoxus_domain::repositories::RepositoryError;
   use myoxus_worker::JobError;
@@ -371,7 +350,6 @@ mod tests {
     assert_eq!(JOB_REINDEX_SEARCH, "database.reindexSearch");
     assert_eq!(JOB_BULK_IMPORT, "database.bulkImport");
     assert_eq!(JOB_BULK_EXPORT, "database.bulkExport");
-    assert_eq!(JOB_FIRE_REMINDERS, "database.fireReminders");
 
     for name in [
       DATABASE_QUEUE,
@@ -382,7 +360,6 @@ mod tests {
       JOB_REINDEX_SEARCH,
       JOB_BULK_IMPORT,
       JOB_BULK_EXPORT,
-      JOB_FIRE_REMINDERS,
     ] {
       assert!(
         !name.contains("workspace"),

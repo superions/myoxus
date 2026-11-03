@@ -168,6 +168,9 @@ export async function openFilesWith(
 
       return await Promise.all(handles.map((handle) => handle.getFile()));
     } catch (err) {
+      // Dismissing the native chooser is a neutral result, not a conversion or
+      // runtime failure. Import callers must not surface it as an error.
+      if (err instanceof Error && err.name === "AbortError") return null;
       console.error(err);
       return null;
     }
@@ -197,7 +200,10 @@ export async function openFilesWith(
       resolve(input.files ? Array.from(input.files) : null);
     });
     // The `cancel` event fires when the user cancels the dialog.
-    input.addEventListener("cancel", () => resolve(null));
+    input.addEventListener("cancel", () => {
+      input.remove();
+      resolve(null);
+    });
     // Show the picker.
     if ("showPicker" in HTMLInputElement.prototype) {
       input.showPicker();

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Personal reminder commands and native dispatch admission.
 use super::*;
-use std::time::Instant;
 
 #[derive(Clone)]
 pub struct DatabaseReminderService {
@@ -11,7 +10,40 @@ pub struct DatabaseReminderService {
   pub(super) permission: Arc<PermissionService>,
   pub(super) limits: DatabaseLimits,
   pub(super) effects: DatabaseMutationEffects,
-  pub(super) job_queue: DatabaseCapability<Arc<dyn DatabaseJobEnqueuer>>,
+}
+
+/// Build notification transport for one native reminder generation. Timing
+/// adapters must retain this identity/envelope; queue consumers replace the
+/// display body after current authorization checks.
+pub fn database_row_reminder_delivery_payload(dispatch: &DatabaseRowReminderDispatch) -> serde_json::Value {
+  let reminder = &dispatch.reminder;
+  let envelope = DatabaseRowReminderDispatchEnvelope {
+    reminder_id: reminder.id,
+    workspace_id: reminder.workspace_id,
+    database_id: reminder.database_id,
+    row_id: reminder.row_id,
+    field_id: reminder.field_id,
+    schedule_revision: reminder.schedule_revision,
+    trigger_at: reminder.trigger_at,
+    user_id: reminder.user_id,
+  };
+  serde_json::json!({
+    "userId":reminder.user_id,"notificationType":"database_row_reminder","level":"default",
+    "idempotencyKey":format!("database.row.reminder:{}:{}",reminder.id,reminder.trigger_at.timestamp()),
+    "dispatch":envelope,"payload":DatabaseReminderService::database_row_reminder_display_payload(dispatch),
+  })
+}
+
+/// Preserve the native fire audit after durable admission. Queue acceptance and
+/// eventual notification persistence remain separate facts.
+pub async fn record_database_reminder_admitted(
+  effects: &DatabaseMutationEffects,
+  dispatch: &DatabaseRowReminderDispatch,
+) {
+  let reminder = &dispatch.reminder;
+  effects.record_audit("database.row.reminder.fire",AuditCategory::Database,
+    Some(AuditTarget::entity("database_row",reminder.row_id,Some(dispatch.row_title.clone()))),reminder.user_id,None,
+    Some(serde_json::json!({"reminderId":reminder.id,"fieldId":reminder.field_id,"triggerAt":reminder.trigger_at,"scheduleRevision":reminder.schedule_revision}))).await;
 }
 
 impl DatabaseReminderService {
@@ -171,9 +203,6 @@ impl DatabaseReminderService {
         trigger_at,
         status: DatabaseRowReminderStatus::Scheduled,
         schedule_revision: 1,
-        claim_token: None,
-        claim_expires_at: None,
-        claim_attempts: 0,
         fired_at: None,
         cancelled_at: None,
         created_at: now,
@@ -280,166 +309,6 @@ impl DatabaseReminderService {
       "triggerAt": dispatch.reminder.trigger_at,
       "offsetMinutes": dispatch.reminder.offset_minutes,
     })
-  }
-
-  /// Claim due reminders and enqueue the existing notification queue. The
-  /// notification worker performs a second generation/ACL check immediately
-  /// before persistence, closing the race with a later Cell edit or deletion.
-  #[instrument(skip(self), fields(limit))]
-  pub async fn fire_due_database_row_reminders(
-    &self,
-    limit: i64,
-  ) -> DatabaseResult<DatabaseRowReminderDispatchOutcome> {
-    let started_at = Instant::now();
-    let now = Utc::now();
-    let released_expired = self
-      .reminder_repo
-      .release_expired_database_row_reminder_claims(now)
-      .await?;
-    let claims = self
-      .reminder_repo
-      .claim_due_database_row_reminders(
-        now,
-        now + Duration::minutes(5),
-        limit.clamp(1, self.limits.reminder_batch_size),
-      )
-      .await?;
-    let mut outcome = DatabaseRowReminderDispatchOutcome {
-      claimed_count: claims.len(),
-      ..Default::default()
-    };
-    let queue = self.job_queue.as_ref().cloned().ok_or_else(|| {
-      DatabaseServiceError::new(ERR_STORAGE, "database reminder notification queue is not configured")
-    })?;
-    for reminder in claims {
-      let Some(claim_token) = reminder.claim_token else {
-        outcome.failed_count += 1;
-        continue;
-      };
-      let dispatch = self
-        .reminder_repo
-        .get_database_row_reminder_dispatch(
-          reminder.id,
-          reminder.schedule_revision,
-          reminder.trigger_at,
-          reminder.user_id,
-        )
-        .await?;
-      let Some(dispatch) = dispatch else {
-        if self
-          .reminder_repo
-          .cancel_database_row_reminder_generation(reminder.id, reminder.schedule_revision, now)
-          .await?
-        {
-          outcome.cancelled_count += 1;
-        }
-        info!(
-          reminder_id = %reminder.id,
-          workspace_id = %reminder.workspace_id,
-          database_id = %reminder.database_id,
-          row_id = %reminder.row_id,
-          field_id = %reminder.field_id,
-          user_id = %reminder.user_id,
-          trigger_at = %reminder.trigger_at,
-          reason = "target_unavailable",
-          "database reminder dispatch cancelled"
-        );
-        continue;
-      };
-      let envelope = DatabaseRowReminderDispatchEnvelope {
-        reminder_id: reminder.id,
-        workspace_id: reminder.workspace_id,
-        database_id: reminder.database_id,
-        row_id: reminder.row_id,
-        field_id: reminder.field_id,
-        schedule_revision: reminder.schedule_revision,
-        trigger_at: reminder.trigger_at,
-        user_id: reminder.user_id,
-      };
-      let payload = serde_json::json!({
-        "userId": reminder.user_id,
-        "notificationType": "database_row_reminder",
-        "level": "default",
-        "idempotencyKey": format!(
-          "database.row.reminder:{}:{}",
-          reminder.id,
-          reminder.trigger_at.timestamp()
-        ),
-        "dispatch": envelope,
-        "payload": Self::database_row_reminder_display_payload(&dispatch),
-      });
-      if let Err(error) = queue
-        .enqueue("notification", "notification.sendDatabaseRowReminder", payload, 0)
-        .await
-      {
-        self
-          .reminder_repo
-          .release_database_row_reminder_claim(reminder.id, reminder.schedule_revision, claim_token)
-          .await?;
-        outcome.failed_count += 1;
-        warn!(
-          reminder_id = %reminder.id,
-          workspace_id = %reminder.workspace_id,
-          database_id = %reminder.database_id,
-          row_id = %reminder.row_id,
-          field_id = %reminder.field_id,
-          user_id = %reminder.user_id,
-          trigger_at = %reminder.trigger_at,
-          error_code = ERR_STORAGE,
-          error = %error,
-          "database reminder notification enqueue failed"
-        );
-        continue;
-      }
-      if self
-        .reminder_repo
-        .mark_database_row_reminder_enqueued(reminder.id, reminder.schedule_revision, claim_token, Utc::now())
-        .await?
-      {
-        outcome.enqueued_count += 1;
-        self
-          .effects
-          .record_audit(
-            "database.row.reminder.fire",
-            AuditCategory::Database,
-            Some(AuditTarget::entity(
-              "database_row",
-              reminder.row_id,
-              Some(dispatch.row_title.clone()),
-            )),
-            reminder.user_id,
-            None,
-            Some(serde_json::json!({
-              "reminderId": reminder.id,
-              "fieldId": reminder.field_id,
-              "triggerAt": reminder.trigger_at,
-              "scheduleRevision": reminder.schedule_revision,
-            })),
-          )
-          .await;
-        info!(
-          reminder_id = %reminder.id,
-          workspace_id = %reminder.workspace_id,
-          database_id = %reminder.database_id,
-          row_id = %reminder.row_id,
-          field_id = %reminder.field_id,
-          user_id = %reminder.user_id,
-          trigger_at = %reminder.trigger_at,
-          "database reminder notification enqueued"
-        );
-      }
-    }
-    info!(
-      claimed_count = outcome.claimed_count,
-      enqueued_count = outcome.enqueued_count,
-      fired_count = outcome.enqueued_count,
-      cancelled_count = outcome.cancelled_count,
-      failed_count = outcome.failed_count,
-      released_expired,
-      duration_ms = started_at.elapsed().as_millis() as u64,
-      "database reminder dispatch batch complete"
-    );
-    Ok(outcome)
   }
 
   pub async fn validate_database_row_reminder_dispatch(

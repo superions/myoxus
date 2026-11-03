@@ -324,8 +324,55 @@ pub struct SetDocumentMetadataPayload {
 
 pub struct DocumentMetadataQueryRoot;
 
+#[derive(SimpleObject)]
+pub struct DocumentReviewPlanningType {
+  pub enabled: bool,
+  pub metadata_revision: i64,
+  pub responsible_id: Option<ID>,
+  pub source_deadline: Option<DateTime<Utc>>,
+  pub next_start: Option<DateTime<Utc>>,
+  pub process_deadline: Option<DateTime<Utc>>,
+  pub zone: String,
+  pub lead_days: i32,
+  pub ready: bool,
+  pub blocked_reason: Option<String>,
+  pub run_id: Option<ID>,
+}
+impl From<myoxus_application::document_metadata::review::ReviewPlanningView> for DocumentReviewPlanningType {
+  fn from(view: myoxus_application::document_metadata::review::ReviewPlanningView) -> Self {
+    Self {
+      enabled: view.enabled,
+      metadata_revision: view.metadata_revision,
+      responsible_id: view.responsible_id.map(|id| ID(id.to_string())),
+      source_deadline: view.source_deadline,
+      next_start: view.next_start,
+      process_deadline: view.process_deadline,
+      zone: view.zone,
+      lead_days: myoxus_application::document_metadata::review::LEAD_DAYS as i32,
+      ready: view.ready,
+      blocked_reason: view.blocked_reason,
+      run_id: view.run_id.map(|id| ID(id.to_string())),
+    }
+  }
+}
+
 #[Object]
 impl DocumentMetadataQueryRoot {
+  /// Requested consent is distinct from current source/authority readiness.
+  pub async fn document_review_planning(
+    &self,
+    ctx: &Context<'_>,
+    workspace_id: ID,
+    doc_id: ID,
+  ) -> Result<DocumentReviewPlanningType> {
+    let doc = resolve_doc_id(ctx, &workspace_id, &doc_id).await?;
+    let (service, _, workspace) = require_doc_read(ctx, doc).await?;
+    service
+      .review_planning(doc, workspace)
+      .await
+      .map(Into::into)
+      .map_err(service_error)
+  }
   pub async fn document_metadata(
     &self,
     ctx: &Context<'_>,
@@ -380,6 +427,29 @@ pub struct DocumentMetadataMutationRoot;
 
 #[Object]
 impl DocumentMetadataMutationRoot {
+  pub async fn configure_document_review_planning(
+    &self,
+    ctx: &Context<'_>,
+    workspace_id: ID,
+    doc_id: ID,
+    enabled: bool,
+    expected_metadata_revision: i64,
+  ) -> Result<DocumentReviewPlanningType> {
+    let doc = resolve_doc_id(ctx, &workspace_id, &doc_id).await?;
+    let (service, actor, workspace) = require_doc_update(ctx, doc).await?;
+    resolve_projection_mode(ctx, Some(DocumentMetadataProjectionModeType::MyoxusNative))?;
+    if expected_metadata_revision < 0 {
+      return Err(validation_error(
+        "invalid metadata revision",
+        "expectedMetadataRevision",
+      ));
+    }
+    service
+      .configure_review_planning(doc, workspace, actor, expected_metadata_revision, enabled)
+      .await
+      .map(Into::into)
+      .map_err(service_error)
+  }
   pub async fn set_document_metadata(
     &self,
     ctx: &Context<'_>,

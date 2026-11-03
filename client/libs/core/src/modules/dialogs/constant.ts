@@ -146,6 +146,14 @@ export type WORKSPACE_DIALOG_SCHEMA = {
   "event-edit": (props: {
     /** Undefined = create mode; defined = edit mode. */
     eventId?: string;
+    /** The clicked original key stays separate from a moved display range. */
+    occurrence?: {
+      instanceStart: string;
+      startsAt: string;
+      endsAt: string;
+      title: string;
+    };
+    intent?: "delete";
     /** Pre-fill the start date in create mode (ISO date string). */
     defaultDate?: string;
     /** Link the created event to a journal or other doc. */

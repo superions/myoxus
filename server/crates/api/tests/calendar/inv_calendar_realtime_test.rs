@@ -93,6 +93,8 @@ async fn setup(
 
 fn make_event_input(_ws_id: Uuid) -> NativeCreateInput {
   NativeCreateInput {
+    imported_recurrence: None,
+    recurrence: None,
     title: Some("Broadcast test".to_string()),
     description_delta: None,
     starts_at: Utc::now() + chrono::Duration::hours(1),
@@ -102,7 +104,7 @@ fn make_event_input(_ws_id: Uuid) -> NativeCreateInput {
     tag_id: None,
     source_doc_id: None,
     source_anchor: None,
-    reminders: vec![],
+    reminders: None,
   }
 }
 

@@ -1,18 +1,79 @@
 /** @vitest-environment happy-dom */
 import { afterEach, expect, test, vi } from "vitest";
-const mocks = vi.hoisted(() => ({ save: vi.fn(), download: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  save: vi.fn(),
+  saveExport: vi.fn(),
+  modern: true,
+  download: vi.fn(),
+}));
 vi.mock("@myoxus/desktop-api-contract/bridge", () => ({
-  getDesktopBridge: () => ({ apis: { ui: { savePdf: mocks.save } } }),
+  getDesktopBridge: () => ({
+    apis: {
+      ui: {
+        savePdf: mocks.save,
+        saveExportFile: mocks.modern ? mocks.saveExport : undefined,
+      },
+    },
+  }),
 }));
 vi.mock("@virgultum/editor/widgets/linked-doc", () => ({
   download: mocks.download,
 }));
 import { saveServerPdf } from "../save-server-pdf";
+import {
+  DOCX_MIME,
+  deliverExportBlob,
+  NativeFileExportUnavailable,
+} from "../../file-export/deliver-file";
 import { I18n } from "@myoxus/i18n";
 const original = BUILD_CONFIG.isElectron;
 afterEach(() => {
   BUILD_CONFIG.isElectron = original;
   vi.clearAllMocks();
+  mocks.modern = true;
+});
+
+test("Word delivery checks MIME and package signature before any file action", async () => {
+  BUILD_CONFIG.isElectron = false;
+  const bytes = new Uint8Array([0x50, 0x4b, 0x03, 0x04, 1, 2]).buffer;
+  const blob = new Blob([bytes], { type: DOCX_MIME });
+  expect(await deliverExportBlob(blob, "Überblick.docx", "docx")).toBe(
+    "provided",
+  );
+  expect(mocks.download).toHaveBeenCalledWith(blob, "Überblick.docx");
+  mocks.download.mockClear();
+  await expect(
+    deliverExportBlob(
+      new Blob([bytes], { type: "text/html" }),
+      "bad.docx",
+      "docx",
+    ),
+  ).rejects.toThrow("MIME");
+  await expect(
+    deliverExportBlob(
+      new Blob(["<html>"], { type: DOCX_MIME }),
+      "bad.docx",
+      "docx",
+    ),
+  ).rejects.toThrow("signature");
+  expect(mocks.download).not.toHaveBeenCalled();
+  expect(mocks.saveExport).not.toHaveBeenCalled();
+});
+
+test("Word uses its closed native operation and never falls back to PDF on older clients", async () => {
+  BUILD_CONFIG.isElectron = true;
+  const bytes = new Uint8Array([0x50, 0x4b, 0x03, 0x04, 1, 2]).buffer;
+  const blob = new Blob([bytes], { type: DOCX_MIME });
+  mocks.saveExport.mockResolvedValue({ status: "cancelled" });
+  expect(await deliverExportBlob(blob, "東京.docx", "docx")).toBe("cancelled");
+  expect(mocks.saveExport).toHaveBeenCalledWith("docx", "東京.docx", bytes);
+  mocks.modern = false;
+  await expect(
+    deliverExportBlob(blob, "東京.docx", "docx"),
+  ).rejects.toBeInstanceOf(NativeFileExportUnavailable);
+  expect(mocks.saveExport).toHaveBeenCalledTimes(1);
+  expect(mocks.save).not.toHaveBeenCalled();
+  expect(mocks.download).not.toHaveBeenCalled();
 });
 
 test("uses the owning session and passes exact complete bytes to Main", async () => {

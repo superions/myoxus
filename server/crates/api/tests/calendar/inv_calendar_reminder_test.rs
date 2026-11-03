@@ -23,28 +23,77 @@ use myoxus_application::calendar::{CalendarReminderDispatcher, ReminderDispatche
 use myoxus_application::notification::{
   InMemoryNotificationStore, NotificationListFilter, NotificationListQuery, NotificationService, NotificationStore,
 };
-use myoxus_application::worker::WorkQueuePort;
 use myoxus_domain::ids::CalendarEventId;
 use myoxus_infrastructure::calendar::SqlxCalendarRepository;
 use myoxus_infrastructure::mail::TestMailAdapter;
 use sqlx::PgPool;
 
-// ── Null queue (tests never need to enqueue jobs) ───────────────────────────
-
-struct NullQueue;
-
+/// Reminder admission must never execute or create a workflow Run.
+struct NoWorkflow;
 #[async_trait]
-impl WorkQueuePort for NullQueue {
-  async fn add_job(
+impl myoxus_application::workspace_automation::runtime::WorkspaceAutomationNativeExecutor for NoWorkflow {
+  async fn synchronize_status(
     &self,
-    _queue: &str,
-    _job_name: &str,
-    _data: serde_json::Value,
-    _max_attempts: Option<u32>,
-    _delay_ms: Option<i64>,
-  ) -> AuthResult<String> {
-    Ok(Uuid::new_v4().to_string())
+    _status: myoxus_application::workspace_automation::runtime::AutomationRuntimeStatus,
+  ) -> myoxus_application::workspace_automation::runtime::RuntimeResult<()> {
+    panic!("reminders do not execute workflows")
   }
+  async fn execute(
+    &self,
+    _invocation: myoxus_application::workspace_automation::runtime::AutomationEffectInvocation,
+  ) -> myoxus_application::workspace_automation::WorkspaceAutomationResult<
+    myoxus_application::workspace_automation::runtime::AutomationEffectResult,
+  > {
+    panic!("reminders do not execute workflows")
+  }
+}
+
+async fn admit_reminders(pool: &PgPool) {
+  let runtime = Arc::new(
+    myoxus_infrastructure::workflow_runtime::GlirulusWorkspaceAutomationRuntime::new(
+      pool.clone(),
+      Arc::new(NoWorkflow),
+    ),
+  );
+  let scheduler = myoxus_infrastructure::scheduling::PgSchedulingRepository::new(pool.clone(), runtime);
+  scheduler
+    .dispatch_due(Utc::now(), 50)
+    .await
+    .expect("shared reminder admission");
+}
+
+async fn process(dispatcher: &CalendarReminderDispatcher, pool: &PgPool, id: Uuid) -> AuthResult<()> {
+  let payload:serde_json::Value=sqlx::query_scalar("SELECT payload FROM outbox_events WHERE aggregate_type='calendar_reminder' AND aggregate_id=$1 ORDER BY created_at DESC LIMIT 1")
+    .bind(id.to_string()).fetch_one(pool).await.expect("committed reminder outbox");
+  let payload: myoxus_application::calendar::ReminderDispatchPayload =
+    serde_json::from_value(payload).expect("versioned reminder payload");
+  dispatcher
+    .process_admitted_reminder(id, payload.admission.as_ref())
+    .await
+}
+
+async fn replace_reminder(pool: &PgPool, event: Uuid, id: Uuid, channel: &str, minutes: i32) {
+  use myoxus_domain::{entities::CalendarReminder, repositories::CalendarRepository};
+  let repo = SqlxCalendarRepository::new(pool.clone());
+  let event = repo.get_calendar_event(event).await.unwrap().unwrap();
+  let now = Utc::now();
+  repo
+    .replace_calendar_event_reminders(
+      event.id,
+      &[CalendarReminder {
+        id,
+        event_id: event.id,
+        channel: channel.into(),
+        minutes_before: minutes,
+        scheduled_for: event.starts_at - Duration::minutes(i64::from(minutes)),
+        delivered_at: None,
+        created_at: now,
+        updated_at: now,
+      }],
+    )
+    .await
+    .expect("native reminder definitions and timing");
+  admit_reminders(pool).await;
 }
 
 // ── Seed helpers ─────────────────────────────────────────────────────────────
@@ -84,31 +133,22 @@ async fn seed_reminder(pool: &PgPool, channel: &str) -> (Uuid, Uuid) {
   .bind(event_id)
   .bind(account_id)
   .bind(format!("evt-{}", event_id))
-  .bind(Utc::now() + Duration::hours(1))
-  .bind(Utc::now() + Duration::hours(2))
+  .bind(Utc::now() - Duration::days(2))
+  .bind(Utc::now() - Duration::days(2) + Duration::hours(1))
   .bind("Test Event")
   .execute(pool)
   .await
   .expect("seed calendar event");
 
-  sqlx::query(
-    "INSERT INTO calendar_reminders (id, event_id, channel, minutes_before, scheduled_for)
-     VALUES ($1, $2, $3, $4, $5)",
-  )
-  .bind(reminder_id)
-  .bind(event_id)
-  .bind(channel)
-  .bind(15_i32)
-  .bind(Utc::now() - Duration::minutes(1)) // already due
-  .execute(pool)
-  .await
-  .expect("seed calendar reminder");
+  replace_reminder(pool, event_id, reminder_id, channel, 15).await;
 
   (user_id, reminder_id)
 }
 
 /// Clean up all rows seeded by a test to keep the DB clean.
 async fn cleanup_reminder(pool: &PgPool, user_id: Uuid, reminder_id: Uuid) {
+  sqlx::query("DELETE FROM outbox_events WHERE aggregate_type='calendar_reminder' AND (aggregate_id=$1 OR payload->'admission'->>'schedule_id'=$1)")
+    .bind(reminder_id.to_string()).execute(pool).await.expect("cleanup reminder outbox");
   // Order: reminder_dispatch_log → reminder → event → account → user
   sqlx::query("DELETE FROM calendar_reminder_dispatch_log WHERE reminder_id = $1")
     .bind(reminder_id)
@@ -149,14 +189,12 @@ async fn inv_cal_r01_inapp_reminder_creates_notification() {
   let notif_store = Arc::new(InMemoryNotificationStore::default());
   let notif_svc = Arc::new(NotificationService::new(notif_store.clone()));
   let dispatcher = CalendarReminderDispatcher::new(
-    Arc::new(NullQueue),
     repo,
     Arc::new(myoxus_infrastructure::auth::SqlxAuthStore::from_pool(pool.clone())),
   )
   .with_notification_service(notif_svc);
 
-  dispatcher
-    .process_reminder(reminder_id)
+  process(&dispatcher, &pool, reminder_id)
     .await
     .expect("process_reminder must succeed");
 
@@ -203,14 +241,12 @@ async fn inv_cal_r02_email_reminder_sends_mail() {
   let mailer = Arc::new(TestMailAdapter::default());
   let mailer_port: Arc<dyn myoxus_application::ports::MailPort> = mailer.clone();
   let dispatcher = CalendarReminderDispatcher::new(
-    Arc::new(NullQueue),
     repo,
     Arc::new(myoxus_infrastructure::auth::SqlxAuthStore::from_pool(pool.clone())),
   )
   .with_mailer(mailer_port);
 
-  dispatcher
-    .process_reminder(reminder_id)
+  process(&dispatcher, &pool, reminder_id)
     .await
     .expect("process_reminder must succeed");
 
@@ -230,8 +266,11 @@ async fn inv_cal_r02_email_reminder_sends_mail() {
 /// INV-CAL-R-03: second dispatch of same reminder → completion prevents replay, no duplicate notification.
 #[tokio::test]
 async fn inv_cal_r03_duplicate_dispatch_idempotent() {
+  use futures_util::FutureExt;
+  use myoxus_domain::repositories::CalendarRepository;
   let pool = helpers::setup_pool().await;
   let (user_id, reminder_id) = seed_reminder(&pool, "in_app").await;
+  let result=std::panic::AssertUnwindSafe(async {
 
   let repo = Arc::new(SqlxCalendarRepository::new(pool.clone()));
   let notif_store = Arc::new(InMemoryNotificationStore::default());
@@ -240,22 +279,59 @@ async fn inv_cal_r03_duplicate_dispatch_idempotent() {
   let mailer_port: Arc<dyn myoxus_application::ports::MailPort> = mailer.clone();
 
   let dispatcher = CalendarReminderDispatcher::new(
-    Arc::new(NullQueue),
-    repo,
+    repo.clone(),
     Arc::new(myoxus_infrastructure::auth::SqlxAuthStore::from_pool(pool.clone())),
   )
   .with_notification_service(notif_svc.clone())
   .with_mailer(mailer_port);
 
-  // First dispatch — should create exactly one notification.
+  let old:serde_json::Value=sqlx::query_scalar("SELECT payload FROM outbox_events WHERE aggregate_type='calendar_reminder' AND aggregate_id=$1 ORDER BY created_at DESC LIMIT 1")
+    .bind(reminder_id.to_string()).fetch_one(&pool).await.unwrap();
+  let old: myoxus_application::calendar::ReminderDispatchPayload = serde_json::from_value(old).unwrap();
+  let event_id: Uuid = sqlx::query_scalar("SELECT event_id FROM calendar_reminder_definitions WHERE id=$1")
+    .bind(reminder_id)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+  let mut event = repo.get_calendar_event(event_id).await.unwrap().unwrap();
+  let first = event.starts_at;
+  event.payload["rrule"] = serde_json::json!("FREQ=DAILY;COUNT=2");
+  repo
+    .save_authored_calendar_event(&event, &event.participants, &event.reminders)
+    .await
+    .unwrap();
   dispatcher
-    .process_reminder(reminder_id)
+    .process_admitted_reminder(reminder_id, old.admission.as_ref())
+    .await
+    .unwrap();
+  assert!(
+    notif_store
+      .list_notifications(
+        user_id,
+        NotificationListQuery {
+          fetch_limit: 10,
+          offset: 0,
+          filter: NotificationListFilter {
+            include_read: true,
+            notification_types: None
+          },
+          after: None
+        }
+      )
+      .await
+      .unwrap()
+      .is_empty(),
+    "an old queued generation cannot notify after a source edit"
+  );
+  admit_reminders(&pool).await;
+
+  // First dispatch — should create exactly one notification.
+  process(&dispatcher, &pool, reminder_id)
     .await
     .expect("first dispatch must succeed");
 
   // Second dispatch — completed reminder returns without another notification.
-  dispatcher
-    .process_reminder(reminder_id)
+  process(&dispatcher, &pool, reminder_id)
     .await
     .expect("second dispatch must not error");
 
@@ -271,7 +347,69 @@ async fn inv_cal_r03_duplicate_dispatch_idempotent() {
     .expect("count");
   assert_eq!(count, 1, "duplicate dispatch must not create a second notification");
 
+  // A new repository/dispatcher process resumes from SQL, not the prior viewed
+  // window or an enqueue ACK. Only the next late delivery is admitted per tick.
+  admit_reminders(&pool).await;
+  let second: Uuid =
+    sqlx::query_scalar("SELECT id FROM calendar_reminders WHERE definition_id=$1 AND instance_start>$2")
+      .bind(reminder_id)
+      .bind(first)
+      .fetch_one(&pool)
+      .await
+      .unwrap();
+  let resumed = CalendarReminderDispatcher::new(
+    Arc::new(SqlxCalendarRepository::new(pool.clone())),
+    Arc::new(myoxus_infrastructure::auth::SqlxAuthStore::from_pool(pool.clone())),
+  )
+  .with_notification_service(notif_svc);
+  process(&resumed, &pool, second).await.unwrap();
+  process(&resumed, &pool, second).await.unwrap();
+  let notifications = notif_store
+    .list_notifications(
+      user_id,
+      NotificationListQuery {
+        fetch_limit: 10,
+        offset: 0,
+        filter: NotificationListFilter {
+          include_read: true,
+          notification_types: None,
+        },
+        after: None,
+      },
+    )
+    .await
+    .unwrap();
+  let second_start: chrono::DateTime<Utc> =
+    sqlx::query_scalar("SELECT occurrence_start FROM calendar_reminders WHERE id=$1")
+      .bind(second)
+      .fetch_one(&pool)
+      .await
+      .unwrap();
+  assert_eq!(
+    (notifications.len(), second, second_start),
+    (
+      2,
+      Uuid::new_v5(&reminder_id, (first + Duration::days(1)).to_rfc3339().as_bytes()),
+      first + Duration::days(1)
+    ),
+    "late recurring delivery retains its original-key identity and actual time"
+  );
+  assert_eq!(
+    repo
+      .get_calendar_event(event_id)
+      .await
+      .unwrap()
+      .unwrap()
+      .reminders
+      .len(),
+    1,
+    "settings never hydrate child delivery rows"
+  );
+  }).catch_unwind().await;
   cleanup_reminder(&pool, user_id, reminder_id).await;
+  if let Err(panic) = result {
+    std::panic::resume_unwind(panic)
+  }
 }
 
 // ── Recording socket port ──────────────────────────────────────────────────────
@@ -310,13 +448,11 @@ async fn inv_cal_reminder01_dispatch_marks_delivered_at() {
 
   let repo = Arc::new(SqlxCalendarRepository::new(pool.clone()));
   let dispatcher = CalendarReminderDispatcher::new(
-    Arc::new(NullQueue),
     repo,
     Arc::new(myoxus_infrastructure::auth::SqlxAuthStore::from_pool(pool.clone())),
   );
 
-  dispatcher
-    .process_reminder(reminder_id)
+  process(&dispatcher, &pool, reminder_id)
     .await
     .expect("process_reminder must succeed");
 
@@ -343,14 +479,12 @@ async fn inv_cal_reminder02_socket_port_called_after_dispatch() {
   let repo = Arc::new(SqlxCalendarRepository::new(pool.clone()));
   let (recording, calls) = RecordingReminderPort::new();
   let dispatcher = CalendarReminderDispatcher::new(
-    Arc::new(NullQueue),
     repo,
     Arc::new(myoxus_infrastructure::auth::SqlxAuthStore::from_pool(pool.clone())),
   )
   .with_socket_port(Arc::new(recording));
 
-  dispatcher
-    .process_reminder(reminder_id)
+  process(&dispatcher, &pool, reminder_id)
     .await
     .expect("process_reminder must succeed");
 
@@ -383,6 +517,8 @@ async fn interrupted_reminder_fanout_reclaims_pending_claim_and_preserves_receip
   let repo = Arc::new(SqlxCalendarRepository::new(pool.clone()));
   let event = repo
     .insert_native_event(&NativeEventInput {
+      imported_recurrence: None,
+      recurrence: None,
       workspace_id: workspace,
       title: Some("Interrupted fanout".into()),
       description_delta: None,
@@ -399,14 +535,7 @@ async fn interrupted_reminder_fanout_reclaims_pending_claim_and_preserves_receip
     .await
     .expect("authored event");
   let reminder = Uuid::new_v4();
-  sqlx::query(
-    "INSERT INTO calendar_reminders(id,event_id,channel,minutes_before,scheduled_for) VALUES($1,$2,'email',0,now())",
-  )
-  .bind(reminder)
-  .bind(event.id)
-  .execute(&pool)
-  .await
-  .expect("fanout reminder");
+  replace_reminder(&pool, event.id, reminder, "email", 0).await;
   let contexts = repo
     .get_calendar_reminder_contexts(reminder)
     .await
@@ -436,7 +565,6 @@ async fn interrupted_reminder_fanout_reclaims_pending_claim_and_preserves_receip
   .with_rendering_config("https://myoxus.example.test".into(), "en".into());
   let (socket, calls) = RecordingReminderPort::new();
   let dispatcher = CalendarReminderDispatcher::new(
-    Arc::new(NullQueue),
     repo.clone(),
     Arc::new(myoxus_infrastructure::auth::SqlxAuthStore::from_pool(pool.clone())),
   )
@@ -444,7 +572,8 @@ async fn interrupted_reminder_fanout_reclaims_pending_claim_and_preserves_receip
   .with_socket_port(Arc::new(socket));
   let mut workers = tokio::task::JoinSet::new();
   let first_dispatcher = dispatcher.clone();
-  let first = workers.spawn(async move { first_dispatcher.process_reminder(reminder).await });
+  let first_pool = pool.clone();
+  let first = workers.spawn(async move { process(&first_dispatcher, &first_pool, reminder).await });
   tokio::time::timeout(Wait::from_secs(10), sink.next_paused_delivery())
     .await
     .expect("A reaches SMTP")
@@ -474,7 +603,8 @@ async fn interrupted_reminder_fanout_reclaims_pending_claim_and_preserves_receip
   assert_eq!(state, "idle");
   assert!(transaction.is_none(), "fanout SMTP holds no SQL transaction");
   let retry_dispatcher = dispatcher.clone();
-  workers.spawn(async move { retry_dispatcher.process_reminder(reminder).await });
+  let retry_pool = pool.clone();
+  workers.spawn(async move { process(&retry_dispatcher, &retry_pool, reminder).await });
   wait_for_reminder_waiter(&pool, &lock_key).await;
   assert_eq!(sink.messages().await.len(), 2, "rival waits before SMTP");
   first.abort();
@@ -496,7 +626,8 @@ async fn interrupted_reminder_fanout_reclaims_pending_claim_and_preserves_receip
   );
   assert!(calls.lock().unwrap().is_empty(), "aborted reminder was not finalized");
   let competing_dispatcher = dispatcher.clone();
-  workers.spawn(async move { competing_dispatcher.process_reminder(reminder).await });
+  let competing_pool = pool.clone();
+  workers.spawn(async move { process(&competing_dispatcher, &competing_pool, reminder).await });
   wait_for_reminder_waiter(&pool, &lock_key).await;
   retry_b.send(false).expect("reject B with SMTP 550");
   assert!(
@@ -528,7 +659,8 @@ async fn interrupted_reminder_fanout_reclaims_pending_claim_and_preserves_receip
   );
   assert!(calls.lock().unwrap().is_empty());
   let completed_dispatcher = dispatcher.clone();
-  workers.spawn(async move { completed_dispatcher.process_reminder(reminder).await });
+  let completed_pool = pool.clone();
+  workers.spawn(async move { process(&completed_dispatcher, &completed_pool, reminder).await });
   wait_for_reminder_waiter(&pool, &lock_key).await;
   assert_eq!(sink.messages().await.len(), 4, "competing copy cannot reach SMTP");
   resumed_b.send(true).expect("accept resumed B");
@@ -555,7 +687,7 @@ async fn interrupted_reminder_fanout_reclaims_pending_claim_and_preserves_receip
     2,
     "socket fanout occurs once after completion"
   );
-  dispatcher.process_reminder(reminder).await.expect("completed replay");
+  process(&dispatcher, &pool, reminder).await.expect("completed replay");
   assert_eq!(sink.messages().await.len(), 4, "completed reminder cannot resend");
   assert_eq!(
     calls.lock().unwrap().len(),
@@ -568,7 +700,7 @@ async fn interrupted_reminder_fanout_reclaims_pending_claim_and_preserves_receip
     .expect("completed guard");
   assert!(
     !released
-      .begin_dispatch(Uuid::new_v4(), Utc::now())
+      .begin_dispatch(Uuid::new_v4(), Utc::now(), None)
       .await
       .expect("completed protected")
   );
@@ -580,15 +712,12 @@ async fn interrupted_reminder_fanout_reclaims_pending_claim_and_preserves_receip
     .await
     .expect("workspace removed");
   let empty = Uuid::new_v4();
-  sqlx::query(
-    "INSERT INTO calendar_reminders(id,event_id,channel,minutes_before,scheduled_for) VALUES($1,$2,'email',0,now())",
-  )
-  .bind(empty)
-  .bind(event.id)
-  .execute(&pool)
-  .await
-  .expect("empty reminder");
-  dispatcher.process_reminder(empty).await.expect("empty fanout finishes");
+  repo
+    .replace_calendar_event_reminders(event.id, &[])
+    .await
+    .expect("remove completed definition");
+  replace_reminder(&pool, event.id, empty, "email", 0).await;
+  process(&dispatcher, &pool, empty).await.expect("empty fanout finishes");
   let finished: bool = sqlx::query_scalar("SELECT delivered_at IS NOT NULL FROM calendar_reminders WHERE id=$1")
     .bind(empty)
     .fetch_one(&pool)

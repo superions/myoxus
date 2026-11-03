@@ -9,7 +9,7 @@ use myoxus_application::workspace::workspace_invite_url;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
-use async_graphql::{Context, ID, MaybeUndefined, Object, Result, Upload};
+use async_graphql::{Context, ErrorExtensions, ID, MaybeUndefined, Object, Result, Upload};
 use bytes::Bytes;
 use chrono::Utc;
 use tracing::{info, instrument, warn};
@@ -3808,6 +3808,55 @@ impl MutationRoot {
 
   // ── Native-event mutations (P-JCAL-SERVER-03-B) ───────────────────────────
 
+  #[instrument(skip_all)]
+  pub(crate) async fn control_workspace_event_recurrence(
+    &self,
+    ctx: &Context<'_>,
+    workspace_id: String,
+    event_id: String,
+    expected_revision: i64,
+    action: super::calendar::CalendarTimingAction,
+  ) -> Result<CalendarEventType> {
+    let (state, session) = require_session(ctx).await?;
+    let workspace_id = Uuid::parse_str(&workspace_id)
+      .map_err(|_| map_gql_error(AuthError::InvalidInput("invalid workspace ID".into())))?;
+    let event_id =
+      Uuid::parse_str(&event_id).map_err(|_| map_gql_error(AuthError::InvalidInput("invalid event ID".into())))?;
+    state
+      .permission_service()
+      .assert(
+        &WorkspaceResource {
+          user_id: session.user.id,
+          workspace_id,
+        },
+        WorkspaceAction::CreateDoc,
+      )
+      .await
+      .map_err(map_gql_error)?;
+    let native = state
+      .native_event_service()
+      .ok_or_else(|| map_gql_error(AuthError::Storage("native Calendar service unavailable".into())))?;
+    let event = native
+      .control_recurrence(
+        event_id,
+        workspace_id,
+        session.user.id,
+        expected_revision,
+        action.into(),
+      )
+      .await
+      .map_err(|error| match error {
+        myoxus_application::calendar::native::CalendarTimingControlError::Auth(error) => map_gql_error(error),
+        myoxus_application::calendar::native::CalendarTimingControlError::Conflict => async_graphql::Error::new(
+          "Calendar recurrence changed; reload before retrying",
+        )
+        .extend_with(|_, extensions| {
+          extensions.set("code", "MIX_RECURRENCE_CONFLICT");
+        }),
+      })?;
+    map_calendar_event_from_owner(&state, event).await
+  }
+
   /// Create a workspace-native calendar event.
   ///
   /// Enforces INV-CAL-NATIVE-03 (workspace write permission).
@@ -3863,16 +3912,21 @@ impl MutationRoot {
         "sourceExternalId is required when source anchor fields are provided".to_string(),
       )));
     }
-    let reminders: Vec<NativeSvcReminderInput> = input
-      .reminders
-      .unwrap_or_default()
-      .into_iter()
-      .map(|r| NativeSvcReminderInput {
-        minutes_before: r.minutes_before,
-        channel: r.channel.unwrap_or_else(|| "in_app".to_string()),
-      })
-      .collect();
+    let reminders = input.reminders.map(|values| {
+      values
+        .into_iter()
+        .map(|r| NativeSvcReminderInput {
+          minutes_before: r.minutes_before,
+          channel: r.channel.unwrap_or_else(|| "in_app".to_string()),
+        })
+        .collect()
+    });
     let svc_input = NativeCreateInput {
+      imported_recurrence: None,
+      recurrence: input
+        .recurrence
+        .map(|rule| super::recurrence::parse_calendar_rule(rule))
+        .transpose()?,
       title: input.title,
       description_delta: input.description_delta.map(|j| j.0),
       starts_at: input.starts_at,
@@ -3934,6 +3988,13 @@ impl MutationRoot {
         })?;
         UpdateScope::This { instance_start: is }
       }
+      NativeEventScope::ThisAndFuture => UpdateScope::ThisAndFuture {
+        instance_start: instance_start.ok_or_else(|| {
+          map_gql_error(AuthError::InvalidInput(
+            "instanceStart is required for scope=ThisAndFuture".into(),
+          ))
+        })?,
+      },
     };
     let tag_id = optional_uuid_patch(input.tag_id, "tagId")?;
     let source_external_id = source_external_id_input(input.source_external_id, input.source_doc_id)?;
@@ -3980,8 +4041,20 @@ impl MutationRoot {
       ),
     };
     let repo_update = NativeEventUpdate {
+      recurrence: match input.recurrence {
+        MaybeUndefined::Undefined => None,
+        MaybeUndefined::Null => Some(None),
+        MaybeUndefined::Value(rule) => Some(Some(myoxus_domain::scheduling::calendar::ConfirmedCalendarRecurrence {
+          rule: super::recurrence::parse_calendar_rule(rule)?,
+          actor_id: snapshot.user.id,
+        })),
+      },
       title: input.title.map(Some),
-      description_delta: input.description_delta.map(|j| Some(j.0)),
+      description_delta: match input.description_delta {
+        MaybeUndefined::Undefined => None,
+        MaybeUndefined::Null => Some(None),
+        MaybeUndefined::Value(value) => Some(Some(value.0)),
+      },
       starts_at: input.starts_at,
       ends_at: input.ends_at,
       all_day: input.all_day,
@@ -4030,6 +4103,13 @@ impl MutationRoot {
         })?;
         DeleteScope::This { instance_start: is }
       }
+      NativeEventScope::ThisAndFuture => DeleteScope::ThisAndFuture {
+        instance_start: instance_start.ok_or_else(|| {
+          map_gql_error(AuthError::InvalidInput(
+            "instanceStart is required for scope=ThisAndFuture".into(),
+          ))
+        })?,
+      },
     };
     native
       .delete(event_uuid, workspace_uuid, snapshot.user.id, delete_scope)
@@ -4217,6 +4297,7 @@ impl MutationRoot {
     let mut skipped_count = 0i32;
     let mut errors: Vec<String> = Vec::new();
 
+    let mut inputs = Vec::new();
     for vevent in parsed {
       if vevent.ends_at <= vevent.starts_at {
         skipped_count += 1;
@@ -4224,6 +4305,15 @@ impl MutationRoot {
         continue;
       }
       let create_input = NativeCreateInput {
+        imported_recurrence: Some(myoxus_domain::scheduling::calendar::ImportedCalendarSource {
+          uid: vevent.uid.clone(),
+          rrule: vevent.rrule,
+          original_timezone: vevent.original_timezone,
+          recurrence_id: vevent.recurrence_id,
+          lines: vevent.recurrence_source,
+          status: vevent.status,
+        }),
+        recurrence: None,
         title: vevent.summary,
         description_delta: None,
         starts_at: vevent.starts_at,
@@ -4233,13 +4323,20 @@ impl MutationRoot {
         tag_id: None,
         source_doc_id: None,
         source_anchor: None,
-        reminders: vec![],
+        reminders: Some(vec![]),
       };
-      match native.create(workspace_uuid, snapshot.user.id, create_input).await {
+      inputs.push(create_input);
+    }
+    for (uid, result) in native
+      .import_sources(workspace_uuid, snapshot.user.id, inputs)
+      .await
+      .map_err(map_gql_error)?
+    {
+      match result {
         Ok(_) => imported_count += 1,
         Err(e) => {
           skipped_count += 1;
-          errors.push(format!("UID {}: {e}", vevent.uid));
+          errors.push(format!("UID {uid}: {e}"));
         }
       }
     }
@@ -5089,6 +5186,54 @@ impl MutationRoot {
     input: workspace_automation::CreateWorkspaceAutomationInput,
   ) -> Result<workspace_automation::WorkspaceAutomationObjectType> {
     workspace_automation::create_workspace_automation(ctx, input).await
+  }
+
+  pub(crate) async fn configure_task_recurrence(
+    &self,
+    ctx: &Context<'_>,
+    input: super::recurrence::ConfigureTaskRecurrenceInput,
+  ) -> Result<super::recurrence::TaskRecurrenceObject> {
+    super::recurrence::configure(ctx, input).await
+  }
+
+  pub(crate) async fn update_task_recurrence(
+    &self,
+    ctx: &Context<'_>,
+    input: super::recurrence::UpdateTaskRecurrenceInput,
+  ) -> Result<super::recurrence::TaskRecurrenceObject> {
+    super::recurrence::update(ctx, input).await
+  }
+
+  pub(crate) async fn skip_task_recurrence(
+    &self,
+    ctx: &Context<'_>,
+    input: super::recurrence::SkipTaskRecurrenceInput,
+  ) -> Result<super::recurrence::TaskRecurrenceObject> {
+    super::recurrence::skip(ctx, input).await
+  }
+
+  pub(crate) async fn pause_task_recurrence(
+    &self,
+    ctx: &Context<'_>,
+    input: super::recurrence::TaskRecurrenceControlInput,
+  ) -> Result<super::recurrence::TaskRecurrenceObject> {
+    super::recurrence::control(ctx, input, myoxus_domain::recurrence::TaskRecurrenceChange::Pause).await
+  }
+
+  pub(crate) async fn resume_task_recurrence(
+    &self,
+    ctx: &Context<'_>,
+    input: super::recurrence::TaskRecurrenceControlInput,
+  ) -> Result<super::recurrence::TaskRecurrenceObject> {
+    super::recurrence::control(ctx, input, myoxus_domain::recurrence::TaskRecurrenceChange::Resume).await
+  }
+
+  pub(crate) async fn end_task_recurrence(
+    &self,
+    ctx: &Context<'_>,
+    input: super::recurrence::TaskRecurrenceControlInput,
+  ) -> Result<super::recurrence::TaskRecurrenceObject> {
+    super::recurrence::control(ctx, input, myoxus_domain::recurrence::TaskRecurrenceChange::End).await
   }
 
   pub(crate) async fn disable_workspace_automation(

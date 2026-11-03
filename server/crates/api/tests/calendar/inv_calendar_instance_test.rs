@@ -4,9 +4,8 @@
 //! Tests verify DB STATE after operations against calendar_event_instances.
 //! Naming convention: `inv_{code}_{description}`.
 //!
-//! These tests exercise the repository methods added in P90-CAL-C-02 via direct
-//! SQL, mirroring exactly what the infrastructure implementation does, to ensure
-//! the schema supports the upsert / cancel / delete invariants.
+//! The requested-window journey exercises the consuming CalendarService;
+//! remaining schema fixtures protect cancel/delete relationships.
 
 use crate::helpers;
 
@@ -14,6 +13,7 @@ use std::sync::Arc;
 
 use chrono::{Duration, Utc};
 use myoxus_application::calendar::{CalendarEventUpsert, CalendarService};
+use myoxus_domain::repositories::CalendarRepository;
 use myoxus_infrastructure::calendar::SqlxCalendarRepository;
 use sqlx::Row;
 use uuid::Uuid;
@@ -56,15 +56,12 @@ async fn teardown_account(pool: &sqlx::PgPool, account_id: Uuid) {
     .bind(account_id)
     .execute(pool)
     .await
-    .ok();
+    .expect("remove Calendar account/event/instance fixtures");
 }
 
 // ---------------------------------------------------------------------------
-// INV-CAL-INST01 — Upsert then list returns the instance
-//
-// Invariant: after upserting a calendar_event_instance, list_event_instances
-// for the same event_id and overlapping time range must return that instance
-// with the stored fields intact.
+// A later requested window must project a continuing source without replacing
+// existing identities/exceptions or erasing a previously requested window.
 // ---------------------------------------------------------------------------
 
 #[tokio::test]
@@ -72,54 +69,138 @@ async fn inv_cal_inst01_create_and_list_instance() {
   let pool = helpers::setup_pool().await;
   let (account_id, event_id) = setup_event(&pool, "inst01").await;
 
-  let now = Utc::now();
-  let instance_start = now;
-  let instance_end = now + Duration::hours(1);
-  let instance_id = Uuid::new_v4();
-
-  // Upsert an instance (mirrors what the RRULE expansion engine would produce).
-  sqlx::query(
-    "INSERT INTO calendar_event_instances
-         (id, event_id, starts_at, ends_at, instance_start, instance_end, is_override, is_cancelled, created_at)
-     VALUES ($1, $2, $3, $4, $3, $4, false, false, now())",
-  )
-  .bind(instance_id)
-  .bind(event_id)
-  .bind(instance_start)
-  .bind(instance_end)
-  .execute(&pool)
-  .await
-  .expect("upsert instance");
-
-  // List instances for a range that covers the instance.
-  let rows = sqlx::query(
-    "SELECT id, event_id, instance_start, instance_end, is_override, is_cancelled
-     FROM calendar_event_instances
-     WHERE event_id = $1
-       AND instance_start >= $2
-       AND instance_start < $3
-     ORDER BY instance_start ASC",
-  )
-  .bind(event_id)
-  .bind(now - Duration::minutes(1))
-  .bind(now + Duration::hours(2))
-  .fetch_all(&pool)
-  .await
-  .expect("list instances");
-
-  assert_eq!(rows.len(), 1, "INV-CAL-INST01: exactly one instance must be returned");
-  let row = &rows[0];
-  let stored_id: Uuid = row.get("id");
-  let stored_event_id: Uuid = row.get("event_id");
-  let stored_is_cancelled: bool = row.get("is_cancelled");
-  assert_eq!(stored_id, instance_id, "INV-CAL-INST01: instance id must round-trip");
-  assert_eq!(stored_event_id, event_id, "INV-CAL-INST01: event_id FK must be correct");
+  let repo = Arc::new(SqlxCalendarRepository::new(pool.clone()));
+  let user: Uuid = sqlx::query_scalar("SELECT user_id FROM calendar_accounts WHERE id=$1")
+    .bind(account_id)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+  let workspace = helpers::create_workspace(&pool, user).await;
+  let mut event = repo.get_calendar_event(event_id).await.unwrap().unwrap();
+  event.workspace_id = Some(workspace);
+  event.starts_at = "2025-03-02T08:00:00Z".parse().unwrap();
+  event.ends_at = event.starts_at + Duration::hours(1);
+  event.payload = serde_json::json!({"rrule":"FREQ=WEEKLY;COUNT=400","originalTimezone":"Europe/Berlin"});
+  repo.upsert_calendar_event(&event).await.unwrap();
+  let service = CalendarService::new(repo.clone());
+  let from = "2028-03-01T00:00:00Z".parse().unwrap();
+  let to = "2028-04-01T00:00:00Z".parse().unwrap();
+  let initial = service.list_event_instances(event_id, from, to).await.unwrap();
+  assert_eq!(initial.len(), 4, "continuing series remains visible beyond two years");
+  let mut preserved = initial[0].clone();
+  preserved.id = Uuid::new_v4();
+  // Simulate an already deployed random cache identity; conflict must retain it.
+  sqlx::query("UPDATE calendar_event_instances SET id=$2 WHERE id=$1")
+    .bind(initial[0].id)
+    .bind(preserved.id)
+    .execute(&pool)
+    .await
+    .unwrap();
+  service
+    .update_event_instance(
+      event_id,
+      initial[1].instance_start,
+      serde_json::json!({"title":"Local override"}),
+    )
+    .await
+    .unwrap();
+  service
+    .cancel_event_instance(event_id, initial[2].instance_start)
+    .await
+    .unwrap();
+  let earlier = service
+    .list_event_instances(event_id, event.starts_at, event.starts_at + Duration::days(14))
+    .await
+    .unwrap();
+  assert_eq!(earlier.len(), 2);
+  let final_instances = service.list_event_instances(event_id, from, to).await.unwrap();
+  assert_eq!(final_instances[0].id, preserved.id);
   assert!(
-    !stored_is_cancelled,
-    "INV-CAL-INST01: new instance must not be cancelled"
+    final_instances
+      .iter()
+      .any(|item| item.is_override && item.override_payload.as_ref().unwrap()["title"] == "Local override")
   );
-
+  assert!(
+    final_instances
+      .iter()
+      .any(|item| item.is_cancelled && item.instance_start == initial[2].instance_start)
+  );
+  service
+    .update_recurring_series(
+      event_id,
+      serde_json::json!({"ends_at":(event.ends_at+Duration::hours(1)).to_rfc3339()}),
+    )
+    .await
+    .unwrap();
+  let reprojected:bool=sqlx::query_scalar("SELECT bool_and(instance_end-instance_start=interval '2 hours') FROM calendar_event_instances WHERE event_id=$1 AND instance_start>=$2 AND instance_start<$3 AND NOT is_override AND NOT is_cancelled")
+    .bind(event_id).bind(from).bind(to).fetch_one(&pool).await.unwrap();
+  assert!(
+    reprojected,
+    "generic series writes must commit their projection without waiting for provider sync or a repairing API read"
+  );
+  let displayed = service.list_workspace_events(workspace, from, to).await.unwrap();
+  assert_eq!(
+    displayed.len(),
+    3,
+    "cancelled original is not resurrected by projection"
+  );
+  assert!(
+    displayed
+      .iter()
+      .any(|event| event.title.as_deref() == Some("Local override"))
+  );
+  let busy = service.free_busy(workspace, from, to).await.unwrap();
+  assert_eq!(
+    busy.len(),
+    3,
+    "free/busy uses the same projected, exception-aware window"
+  );
+  let sources = service
+    .workspace_event_sources(workspace, event.starts_at, event.starts_at + Duration::days(14))
+    .await
+    .unwrap();
+  let refs = sources.iter().collect::<Vec<_>>();
+  let parsed =
+    myoxus_infrastructure::caldav::parse_ical_events(&myoxus_infrastructure::caldav::events_to_vcalendar(&refs));
+  assert_eq!(
+    parsed.len(),
+    3,
+    "export retains one authored master and both protected exceptions outside the requested source window, not virtual ordinary instances"
+  );
+  assert!(
+    parsed
+      .iter()
+      .any(|source| source.summary.as_deref() == Some("Local override")
+        && source.recurrence_id.as_deref()
+          == Some(initial[1].instance_start.format("%Y%m%dT%H%M%SZ").to_string().as_str()))
+  );
+  assert!(parsed.iter().any(|source| source.status.as_deref() == Some("CANCELLED")
+    && source.recurrence_id.as_deref()
+      == Some(initial[2].instance_start.format("%Y%m%dT%H%M%SZ").to_string().as_str())));
+  assert_eq!(
+    service
+      .list_event_instances(event_id, event.starts_at, event.starts_at + Duration::days(14))
+      .await
+      .unwrap()
+      .iter()
+      .map(|item| item.id)
+      .collect::<Vec<_>>(),
+    earlier.iter().map(|item| item.id).collect::<Vec<_>>(),
+    "other windows keep their instance IDs"
+  );
+  let slots:i64=sqlx::query_scalar("SELECT count(*) FROM scheduling_occurrences o JOIN scheduling_schedules s ON s.id=o.schedule_id WHERE s.target_json->>'event_id'=$1").bind(event_id.to_string()).fetch_one(&pool).await.unwrap();
+  assert_eq!(slots, 0, "view projection cannot admit workflow execution");
   teardown_account(&pool, account_id).await;
+  sqlx::query("DELETE FROM workspaces WHERE id=$1")
+    .bind(workspace)
+    .execute(&pool)
+    .await
+    .unwrap();
+  sqlx::query("DELETE FROM users WHERE id=$1")
+    .bind(user)
+    .execute(&pool)
+    .await
+    .unwrap();
 }
 
 // ---------------------------------------------------------------------------

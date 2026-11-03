@@ -40,6 +40,7 @@ import { completeOnboarding } from "../windows-manager/onboarding-state";
 import { getBookmarkDataByLink } from "./bookmark-data";
 import { getChallengeResponse } from "./challenge";
 import { savePdf } from "./save-pdf";
+import { saveExportFile } from "./save-file-export";
 import { uiSubjects } from "./subject";
 
 const TraySettingsState = {
@@ -65,6 +66,8 @@ export const uiHandlers = {
     if (serverId) uiSubjects.onBrandingUpdated$.next({ serverId });
   },
   savePdf: (event, filename, bytes) => savePdf(event.sender, filename, bytes),
+  saveExportFile: (event, format, filename, bytes) =>
+    saveExportFile(event.sender, format, filename, bytes),
   isMaximized: async () => {
     const window = await getMainWindow();
     return window?.isMaximized();

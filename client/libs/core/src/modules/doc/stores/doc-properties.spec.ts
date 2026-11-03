@@ -23,12 +23,18 @@ function createStore() {
     doc.getMap("rows").set(row.id, row),
   );
   const saved = vi.fn(async (_id: string, _bytes: Uint8Array) => {});
+  const loaded = vi.fn(async () => {});
   const framework = new Framework();
   const testFramework = framework as any;
   testFramework.service(WorkspaceService, {
     workspace: {
       flavour: "local",
-      engine: { doc: { saveCapturedUpdateAndWaitForSaved: saved } },
+      engine: {
+        doc: {
+          saveCapturedUpdateAndWaitForSaved: saved,
+          waitForDocLoaded: loaded,
+        },
+      },
     },
   });
   testFramework.service(WorkspaceDBService, {
@@ -46,7 +52,7 @@ function createStore() {
     provider.dispose();
     doc.destroy();
   });
-  return { create, saved, store: provider.get(DocPropertiesStore) };
+  return { create, saved, loaded, store: provider.get(DocPropertiesStore) };
 }
 
 function createServerBackedStore() {
@@ -132,7 +138,14 @@ describe("DocPropertiesStore invariants", () => {
   });
 
   test("offline subsystem projection can acknowledge the actual property-table bytes", async () => {
-    const { create, saved, store } = createStore();
+    const { create, saved, loaded, store } = createStore();
+    let load!: () => void;
+    loaded.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          load = resolve;
+        }),
+    );
     let finish!: () => void;
     saved.mockImplementationOnce(
       () =>
@@ -161,6 +174,10 @@ describe("DocPropertiesStore invariants", () => {
     });
     await Promise.resolve();
     expect(completed).toBe(false);
+    expect(create).not.toHaveBeenCalled();
+    expect(saved).not.toHaveBeenCalled();
+    load();
+    await Promise.resolve();
     const persisted = new Y.Doc();
     try {
       expect(saved.mock.calls[0][0]).toBe("db$docProperties");

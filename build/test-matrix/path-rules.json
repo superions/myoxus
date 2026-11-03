@@ -1770,6 +1770,7 @@
   {
     "id": "api-domain-server-database-integration",
     "paths": [
+      "server/crates/api/tests/db/workspaces/recurring_tasks_contract.rs",
       "server/crates/infrastructure/tests/database_delete_test.rs",
       "server/crates/infrastructure/tests/database_document_references_test.rs",
       "server/crates/api/src/graphql/auth/database/mod.rs",

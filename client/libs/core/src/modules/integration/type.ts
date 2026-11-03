@@ -102,6 +102,8 @@ export interface ReadwiseConfig {
 // ===============================
 export type CalendarEvent = {
   id: string;
+  /** Original occurrence key; `id` remains the editable native/master identity. */
+  recurrenceId?: string | null;
   subscriptionId: string;
   title: string;
   startAt: Dayjs;

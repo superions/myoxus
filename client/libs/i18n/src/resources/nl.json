@@ -2469,7 +2469,6 @@
   "admin.performance.field.compaction-lock-ttl.desc": "Verdichtingsvergrendeling TTL (seconden). Veiligheidstime-out voor het geval een server tijdens het comprimeren crasht.",
   "admin.performance.field.compaction-threshold-default.desc": "Aantal openstaande updates voordat automatische verdichting wordt geactiveerd. Standaard: 500",
   "admin.performance.field.compaction-threshold-root-doc.desc": "Drempel voor automatische compactie voor hoofddocumenten. Standaard: 50",
-  "admin.performance.field.cron-tick-interval.desc": "Interval (seconden) voor de tick-loop van de cron-planner. Standaard: 60 · Min: 5 · Mogelijk moet opnieuw worden opgestart voor volledig effect.",
   "admin.performance.field.daily-enabled.desc": "Schakel de dagelijkse automatische TTL-afstemmingscyclus in.",
   "admin.performance.field.doc-metadata-cache-enabled.desc": "Schakel Redis-metagegevenscache in. Vermindert DB-query's voor het opzoeken van documentmetagegevens.",
   "admin.performance.field.doc-metadata-fixed-ttl.desc": "Vaste TTL-overschrijving voor doc_metadata cache (seconden). 0 = gebruik automatische afstemming.",

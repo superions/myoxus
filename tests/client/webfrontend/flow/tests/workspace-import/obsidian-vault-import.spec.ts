@@ -3,7 +3,10 @@
 import { expect, test } from "@playwright/test";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
-import JSZip from "jszip";
+import {
+  readZip,
+  writeZip,
+} from "../../../../../../build/scripts/zip-archive.mjs";
 
 import { injectSessionCookies } from "../../../../adminfrontend/e2e/fixtures/auth";
 import {
@@ -27,30 +30,30 @@ const FIXTURE_ROOT = path.join(
 );
 
 async function vaultZip(): Promise<Buffer> {
-  const archive = new JSZip();
+  const entries: [string, Buffer][] = [];
   const visit = async (directory: string) => {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       const absolute = path.join(directory, entry.name);
       if (entry.isDirectory()) {
         await visit(absolute);
       } else {
-        archive.file(
+        entries.push([
           path.relative(FIXTURE_ROOT, absolute).replaceAll(path.sep, "/"),
           await readFile(absolute),
-        );
+        ]);
       }
     }
   };
   await visit(FIXTURE_ROOT);
-  return archive.generateAsync({ type: "nodebuffer" });
+  return writeZip(entries);
 }
 
 async function expectVaultSemantics(archiveBytes: Buffer) {
-  const archive = await JSZip.loadAsync(archiveBytes);
-  expect(archive.file("myoxus-export-report.json")).not.toBeNull();
-  const note = archive.file("Projects/Shared.md");
-  expect(note).not.toBeNull();
-  const markdown = await note!.async("string");
+  const archive = await readZip(archiveBytes);
+  expect(archive.has("myoxus-export-report.json")).toBe(true);
+  const note = archive.get("Projects/Shared.md");
+  expect(note).toBeDefined();
+  const markdown = note!.data.toString("utf8");
   expect(markdown).toContain("status: active");
   expect(markdown).toContain("[the person](../People/Shared.md)");
   expect(
@@ -58,7 +61,7 @@ async function expectVaultSemantics(archiveBytes: Buffer) {
   ).toHaveLength(2);
   expect(markdown).toContain("==Highlighted==");
   expect(markdown).toContain("```mermaid\nflowchart LR\n  A --> B\n```");
-  expect(archive.file("media/pixel.svg")).not.toBeNull();
+  expect(archive.has("media/pixel.svg")).toBe(true);
 }
 
 test("imports an explicitly selected Obsidian vault through the durable dialog", async ({

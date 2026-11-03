@@ -200,6 +200,7 @@ fn run_row(run: WorkspaceAutomationRun, job_id: Option<String>) -> RunRow {
     .unwrap_or(serde_json::Value::Null);
   let (origin, request_id) = match &run.origin {
     WorkspaceAutomationRunOrigin::Rule => ("rule", String::new()),
+    WorkspaceAutomationRunOrigin::RecurringTask { .. } => ("recurring_task", String::new()),
     WorkspaceAutomationRunOrigin::WorkspaceSetup { request_id, .. } => ("workspace_setup", request_id.to_string()),
     WorkspaceAutomationRunOrigin::ConfirmedContextDocuments { request_id, .. } => {
       ("confirmed_request", request_id.to_string())

@@ -37,6 +37,7 @@ use tracing::{debug, error, info, instrument, trace, warn};
 use uuid::Uuid;
 
 use myoxus_application::ports::{PortResult, RedisPort};
+use myoxus_application::scheduling::rrule::validate_imported_rrule;
 
 /// How many days ahead to expand RRULE instances during a sync run.
 /// Default: 180 days (≈ 6 months).
@@ -46,9 +47,6 @@ const CALENDAR_SYNC_LEASE_TTL_SECONDS: u64 = 300;
 struct InstanceMaterialization<'a> {
   event_id: Uuid,
   rrule: &'a Option<String>,
-  recurrence_id: &'a Option<String>,
-  starts_at: DateTime<Utc>,
-  ends_at: DateTime<Utc>,
   now: DateTime<Utc>,
   horizon: DateTime<Utc>,
 }
@@ -64,8 +62,8 @@ use myoxus_domain::entities::{
   CalendarSubscription,
 };
 use myoxus_domain::repositories::CalendarRepository;
+use myoxus_domain::scheduling::{AdmissionZone, CalculationError};
 
-use super::rrule::expand_rrule;
 use super::{CalDavClient, CalDavCredential, ParsedVEvent, parse_ical_events};
 use crate::redis_lease::RedisLease;
 
@@ -380,14 +378,14 @@ impl CalDavSyncService {
     let mut upserted = 0u32;
     let mut skipped = 0u32;
     let mut instances_materialized = 0u32;
+    let mut first_expansion_error = None;
     let now = Utc::now();
     // Upper bound for instance expansion: now + horizon.
     let instance_horizon = now + Duration::days(INSTANCE_HORIZON_DAYS);
 
+    let mut sources = Vec::new();
     for item in &report_items {
       let ical = &item.ical;
-      let item_href = item.href.clone();
-      let item_etag = item.etag.clone();
       let parsed = parse_ical_events(ical);
       if parsed.is_empty() {
         // The iCal block contained no parseable VEVENTs — count as skipped.
@@ -399,148 +397,244 @@ impl CalDavSyncService {
         );
       }
       for pev in parsed {
-        // Destructure fields that are needed multiple times to avoid clones.
-        let ParsedVEvent {
-          uid,
-          summary,
-          starts_at,
-          ends_at,
-          description,
-          location,
-          status,
-          rrule,
-          recurrence_id,
-          original_timezone,
-          all_day,
-          organizer_email,
-          attendees,
-        } = pev;
+        sources.push((pev, item));
+      }
+    }
+    // A resource can list exceptions before its master, or use separate REPORT
+    // items. Import all masters first without changing their deployed UID key.
+    sources.sort_by_key(|(event, _)| event.recurrence_id.is_some());
+    for (pev, item) in sources {
+      let item_href = item.href.clone();
+      let item_etag = item.etag.clone();
+      // Destructure fields that are needed multiple times to avoid clones.
+      let ParsedVEvent {
+        uid,
+        summary,
+        starts_at,
+        ends_at,
+        description,
+        location,
+        status,
+        rrule,
+        recurrence_source,
+        recurrence_id,
+        original_timezone,
+        all_day,
+        organizer_email,
+        attendees,
+      } = pev;
 
-        // Derive a deterministic event UUID from (account_id, uid).
-        let event_id = Uuid::new_v5(
-          &Uuid::NAMESPACE_URL,
-          format!("caldav:{}:{}", account.id, uid).as_bytes(),
-        );
+      // Derive a deterministic event UUID from (account_id, uid).
+      let mut event_id = Uuid::new_v5(
+        &Uuid::NAMESPACE_URL,
+        format!("caldav:{}:{}", account.id, uid).as_bytes(),
+      );
 
-        let payload = serde_json::json!({
-          "provider": "caldav",
-          "description": description,
-          "location": location,
-          "status": status,
-          "rrule": rrule,
-          "recurrenceId": recurrence_id,
-          "originalTimezone": original_timezone,
-          "allDay": all_day,
+      if let Some(original) = recurrence_id.as_deref() {
+        let master = self
+          .repo
+          .find_calendar_event_by_source(account.id, &uid)
+          .await
+          .map_err(|_| myoxus_application::ports::PortError::Transport("Calendar master unavailable".into()))?
+          .ok_or_else(|| {
+            myoxus_application::ports::PortError::InvalidInput("Calendar exception has no source master".into())
+          })?;
+        event_id = master.id;
+        // A floating original key follows its master, never the override's
+        // potentially changed display zone. An explicit RID TZID wins below.
+        let zone = AdmissionZone::try_from(master.payload["originalTimezone"].as_str().unwrap_or("UTC").to_owned());
+        let key = zone.and_then(|zone| {
+          myoxus_application::calendar::projection::imported_original_key(original, &recurrence_source, zone)
         });
-
-        let bare_event = CalendarEvent {
-          id: event_id,
-          origin: CalendarEventOrigin::External,
-          account_id: Some(account.id),
-          // workspace_id is not set during background sync — events are
-          // associated to workspaces via WorkspaceCalendar records managed
-          // through the GraphQL layer.
-          workspace_id: None,
-          remote_event_id: Some(uid.clone()),
-          starts_at,
-          ends_at,
-          title: summary,
-          description: description.clone(),
-          description_delta: None,
-          location: location.clone(),
-          source_doc_id: None,
-          all_day: false,
-          all_members: false,
-          tag_id: None,
-          recurrence_parent_id: None,
-          participants: vec![],
-          reminders: vec![],
-          payload,
-          updated_at: now,
-          etag: None,
-          remote_href: None,
-        };
-
-        lease.ensure_owned()?;
-        match self.repo.upsert_calendar_event(&bare_event).await {
-          Ok(_) => {
-            // Persist ETag + href so write-back can use optimistic locking.
-            if let Some(ref etag) = item_etag {
-              lease.ensure_owned()?;
-              if let Err(e) = self.repo.update_event_etag(event_id, etag, &item_href).await {
-                warn!(uid = %uid, error = %e, "caldav_sync: failed to store ETag (non-fatal)");
-              } else {
-                trace!(uid = %uid, etag = %etag, href = %item_href, "caldav_sync: ETag persisted");
-              }
-            }
-          }
-          Err(e) => {
-            warn!(uid = %uid, error = %e, "caldav_sync: failed to upsert event, skipping");
+        let key = match key {
+          Ok(key) => key,
+          Err(error) => {
+            first_expansion_error.get_or_insert((event_id, error));
             continue;
           }
-        }
+        };
+        let instance = CalendarEventInstance {
+          id: Uuid::new_v5(&event_id, key.to_rfc3339().as_bytes()),
+          event_id,
+          instance_start: key,
+          instance_end: key + (ends_at - starts_at),
+          is_override: true,
+          is_cancelled: status
+            .as_deref()
+            .is_some_and(|value| value.eq_ignore_ascii_case("cancelled")),
+          override_payload: Some(
+            serde_json::json!({"title":summary,"starts_at":starts_at,"ends_at":ends_at,"description":description,"location":location,"status":status,"allDay":all_day,"sourceRecurrence":recurrence_source,"recurrenceId":recurrence_id,"originalTimezone":original_timezone}),
+          ),
+          created_at: now,
+        };
+        lease.ensure_owned()?;
+        self.repo.upsert_event_instance(&instance).await.map_err(|_| {
+          myoxus_application::ports::PortError::Transport("Calendar exception persistence unavailable".into())
+        })?;
+        // An exception is a protected original-key row on the master, never
+        // another upsert using (account,UID) that overwrites its DTSTART/rule.
+        upserted += 1;
+        instances_materialized += 1;
+        continue;
+      }
 
-        // Upsert participants.
-        let mut participants: Vec<CalendarEventParticipant> = Vec::new();
-        if let Some(org_email) = organizer_email {
-          participants.push(CalendarEventParticipant {
-            id: Uuid::new_v4(),
-            event_id,
-            user_id: None,
-            email: org_email,
-            display_name: None,
-            response_status: "accepted".to_string(),
-            is_organizer: true,
-            created_at: now,
-            updated_at: now,
-          });
-        }
-        for att in attendees {
-          participants.push(CalendarEventParticipant {
-            id: Uuid::new_v4(),
-            event_id,
-            user_id: None,
-            email: att.email,
-            display_name: att.display_name,
-            response_status: att.rsvp_status,
-            is_organizer: att.is_organizer,
-            created_at: now,
-            updated_at: now,
-          });
-        }
+      let payload = serde_json::json!({
+        "provider": "caldav",
+        "description": description,
+        "location": location,
+        "status": status,
+        "rrule": rrule,
+        "sourceRecurrence":recurrence_source,
+        "recurrenceId": recurrence_id,
+        "originalTimezone": original_timezone,
+        "allDay": all_day,
+      });
 
-        if !participants.is_empty() {
-          lease.ensure_owned()?;
-          if let Err(e) = self
-            .repo
-            .replace_calendar_event_participants(event_id, &participants)
-            .await
-          {
-            warn!(uid = %uid, error = %e, "caldav_sync: failed to replace participants (non-fatal)");
+      let bare_event = CalendarEvent {
+        id: event_id,
+        origin: CalendarEventOrigin::External,
+        account_id: Some(account.id),
+        // workspace_id is not set during background sync — events are
+        // associated to workspaces via WorkspaceCalendar records managed
+        // through the GraphQL layer.
+        workspace_id: None,
+        remote_event_id: Some(uid.clone()),
+        starts_at,
+        ends_at,
+        title: summary,
+        description: description.clone(),
+        description_delta: None,
+        location: location.clone(),
+        source_doc_id: None,
+        all_day: false,
+        all_members: false,
+        tag_id: None,
+        recurrence_parent_id: None,
+        participants: vec![],
+        reminders: vec![],
+        payload,
+        updated_at: now,
+        etag: None,
+        remote_href: None,
+      };
+
+      lease.ensure_owned()?;
+      match self.repo.upsert_calendar_event(&bare_event).await {
+        Ok(saved) => {
+          event_id = saved.id;
+          // Persist ETag + href so write-back can use optimistic locking.
+          if let Some(ref etag) = item_etag {
+            lease.ensure_owned()?;
+            if let Err(e) = self.repo.update_event_etag(event_id, etag, &item_href).await {
+              warn!(uid = %uid, error = %e, "caldav_sync: failed to store ETag (non-fatal)");
+            } else {
+              trace!(uid = %uid, etag = %etag, href = %item_href, "caldav_sync: ETag persisted");
+            }
           }
         }
-
-        upserted += 1;
-        trace!(uid = %uid, account_id = %account.id, "caldav_sync: event upserted");
-
-        // ── P90-CAL-C-04: Instance materialization ─────────────────────────
-        // Expand RRULE into concrete instances for the next INSTANCE_HORIZON_DAYS.
-        // For RECURRENCE-ID override events: create a single is_override instance.
-        instances_materialized += self
-          .materialize_instances(
-            InstanceMaterialization {
-              event_id,
-              rrule: &rrule,
-              recurrence_id: &recurrence_id,
-              starts_at,
-              ends_at,
-              now,
-              horizon: instance_horizon,
-            },
-            lease,
-          )
-          .await?;
+        Err(e) => {
+          warn!(uid = %uid, error = %e, "caldav_sync: failed to upsert event, skipping");
+          // Event and canonical timing are one durable import. Never advance
+          // the subscription token/ctag past a failed source transaction.
+          return Err(myoxus_application::ports::PortError::Transport(
+            "calendar persistence unavailable".into(),
+          ));
+        }
       }
+
+      // Upsert participants.
+      let mut participants: Vec<CalendarEventParticipant> = Vec::new();
+      if let Some(org_email) = organizer_email {
+        participants.push(CalendarEventParticipant {
+          id: Uuid::new_v4(),
+          event_id,
+          user_id: None,
+          email: org_email,
+          display_name: None,
+          response_status: "accepted".to_string(),
+          is_organizer: true,
+          created_at: now,
+          updated_at: now,
+        });
+      }
+      for att in attendees {
+        participants.push(CalendarEventParticipant {
+          id: Uuid::new_v4(),
+          event_id,
+          user_id: None,
+          email: att.email,
+          display_name: att.display_name,
+          response_status: att.rsvp_status,
+          is_organizer: att.is_organizer,
+          created_at: now,
+          updated_at: now,
+        });
+      }
+
+      if !participants.is_empty() {
+        lease.ensure_owned()?;
+        if let Err(e) = self
+          .repo
+          .replace_calendar_event_participants(event_id, &participants)
+          .await
+        {
+          warn!(uid = %uid, error = %e, "caldav_sync: failed to replace participants (non-fatal)");
+        }
+      }
+
+      upserted += 1;
+      trace!(uid = %uid, account_id = %account.id, "caldav_sync: event upserted");
+
+      // ── P90-CAL-C-04: Instance materialization ─────────────────────────
+      if recurrence_id.as_deref().is_none_or(str::is_empty) {
+        let source_check = AdmissionZone::try_from(
+          bare_event.payload["originalTimezone"]
+            .as_str()
+            .unwrap_or("UTC")
+            .to_owned(),
+        )
+        .and_then(|zone| {
+          if let Some(rule) = rrule.as_deref().filter(|rule| !rule.is_empty()) {
+            myoxus_application::calendar::projection::validate_imported_source(rule, &bare_event.payload, zone)
+          } else if myoxus_application::calendar::projection::unsupported_unruled_source(&bare_event.payload, zone) {
+            Err(CalculationError::UnsupportedRule)
+          } else {
+            Ok(())
+          }
+        });
+        if let Err(error) = source_check {
+          // A stored RDATE-only/extended source is not an empty successful
+          // series. Retain it and the old cache, without acknowledging sync.
+          first_expansion_error.get_or_insert((event_id, error));
+          continue;
+        }
+      }
+      // Expand RRULE into concrete instances for the next INSTANCE_HORIZON_DAYS.
+      // For RECURRENCE-ID override events: create a single is_override instance.
+      let expansion = self
+        .materialize_instances(
+          InstanceMaterialization {
+            event_id,
+            rrule: &rrule,
+            now,
+            horizon: instance_horizon,
+          },
+          lease,
+        )
+        .await?;
+      match expansion {
+        Ok(count) => instances_materialized += count,
+        Err(error) => {
+          // The source event/raw rule is already persisted. Keep processing
+          // other events, but do not cache this subscription as fully synced.
+          warn!(%event_id, %error, "caldav_sync: recurrence projection unavailable");
+          first_expansion_error.get_or_insert((event_id, error));
+        }
+      }
+    }
+
+    if let Some((event_id, error)) = first_expansion_error {
+      return Ok(Err(format!("event {event_id}: {error}")));
     }
 
     // Update sync_token with current timestamp to track last-successful-sync.
@@ -572,95 +666,44 @@ impl CalDavSyncService {
 
   /// Expand RRULE instances for a single event and upsert them.
   ///
-  /// For RECURRENCE-ID override events (`recurrence_id.is_some()`): create a
-  /// single `is_override = true` instance at the event's concrete start/end.
+  /// For master recurring events (`rrule.is_some()`): calculate the whole window,
+  /// then replace the existing projection through the repository.
   ///
-  /// For master recurring events (`rrule.is_some()`): delete existing non-override
-  /// instances for this event, then expand and upsert fresh instances.
-  ///
-  /// Returns the number of instances upserted.
+  /// Calculation failures preserve the raw rule and existing projection. They
+  /// are distinct from a successful empty window; lease failures still abort.
   #[instrument(skip(self, params, lease), fields(event_id = %params.event_id))]
-  async fn materialize_instances(&self, params: InstanceMaterialization<'_>, lease: &RedisLease) -> PortResult<u32> {
+  async fn materialize_instances(
+    &self,
+    params: InstanceMaterialization<'_>,
+    lease: &RedisLease,
+  ) -> PortResult<Result<u32, CalculationError>> {
     let InstanceMaterialization {
       event_id,
       rrule,
-      recurrence_id,
-      starts_at,
-      ends_at,
       now,
       horizon,
     } = params;
-    // Case 1: RECURRENCE-ID override (a specific occurrence was modified/cancelled).
-    if recurrence_id.is_some() {
-      let instance = CalendarEventInstance {
-        id: Uuid::new_v5(
-          &Uuid::NAMESPACE_URL,
-          format!("caldav-override:{}:{}", event_id, starts_at.timestamp()).as_bytes(),
-        ),
-        event_id,
-        instance_start: starts_at,
-        instance_end: ends_at,
-        is_override: true,
-        is_cancelled: false,
-        override_payload: None,
-        created_at: now,
-      };
-      lease.ensure_owned()?;
-      match self.repo.upsert_event_instance(&instance).await {
-        Ok(_) => {
-          trace!(event_id = %event_id, instance_start = %starts_at, "caldav_sync: override instance upserted");
-          return Ok(1);
-        }
-        Err(e) => {
-          warn!(event_id = %event_id, error = %e, "caldav_sync: failed to upsert override instance (non-fatal)");
-          return Ok(0);
-        }
-      }
-    }
-
-    // Case 2: Master recurring event with RRULE.
     let rrule_str = match rrule {
       Some(r) if !r.is_empty() => r.as_str(),
-      _ => return Ok(0), // no RRULE — non-recurring event, no instances to create
+      _ => return Ok(Ok(0)), // no RRULE — non-recurring event, no instances to create
     };
 
-    // Delete existing non-override instances before re-expanding.
+    // Complete calculation before touching the previous projection. Unsupported
+    // imports and budget exhaustion must not look like an empty/ended series.
+    if let Err(error) = validate_imported_rrule(rrule_str) {
+      return Ok(Err(error));
+    }
+    // The same canonical requested-window writer owns sync warm-up. Never
+    // delete unrelated windows, override rows or cancellations during a pull.
     lease.ensure_owned()?;
-    if let Err(e) = self.repo.delete_event_instances_by_event(event_id).await {
-      warn!(event_id = %event_id, error = %e, "caldav_sync: failed to delete old instances (non-fatal)");
-    }
-
-    let duration = ends_at - starts_at;
-    let occurrences = expand_rrule(rrule_str, starts_at, duration, now, horizon, &[]);
-
-    let mut count = 0u32;
-    for (occ_start, occ_end) in occurrences {
-      let instance = CalendarEventInstance {
-        id: Uuid::new_v5(
-          &Uuid::NAMESPACE_URL,
-          format!("caldav-instance:{}:{}", event_id, occ_start.timestamp()).as_bytes(),
-        ),
-        event_id,
-        instance_start: occ_start,
-        instance_end: occ_end,
-        is_override: false,
-        is_cancelled: false,
-        override_payload: None,
-        created_at: now,
-      };
-      lease.ensure_owned()?;
-      match self.repo.upsert_event_instance(&instance).await {
-        Ok(_) => {
-          count += 1;
-          trace!(event_id = %event_id, instance_start = %occ_start, "caldav_sync: instance upserted");
-        }
-        Err(e) => {
-          warn!(event_id = %event_id, instance_start = %occ_start, error = %e, "caldav_sync: failed to upsert instance (non-fatal)");
-        }
-      }
-    }
+    let count = self
+      .repo
+      .list_event_instances(event_id, now, horizon)
+      .await
+      .map_err(|_| myoxus_application::ports::PortError::Transport("calendar projection unavailable".into()))?
+      .len() as u32;
     debug!(event_id = %event_id, instances = count, "caldav_sync: instances materialized");
-    Ok(count)
+    Ok(Ok(count))
   }
 
   /// Build a [`CalDavCredential`] from a [`CalendarAccount`].

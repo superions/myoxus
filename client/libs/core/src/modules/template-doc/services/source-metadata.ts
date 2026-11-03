@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import index from "../generated/document-bundles.json";
-import type { NativeBundleManifest } from "./native-bundle";
+import type { PreparedNativeBundle } from "./native-bundle";
 
 export type TemplateTitlePolicy = "template" | "template-date" | "date";
 export interface TemplateSourceClassification {
@@ -25,10 +25,7 @@ export interface ResolvedTemplateSourceMetadata {
   purpose: "template" | "guide";
 }
 
-export interface NativeDocumentBundle extends NativeBundleManifest {
-  asset: string;
-  sha256: string;
-}
+export type NativeDocumentBundle = PreparedNativeBundle;
 
 export const nativeDocumentBundles = index.entries as NativeDocumentBundle[];
 export const onboardingDocumentSlugs: readonly string[] = index.onboarding;

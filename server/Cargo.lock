@@ -40,8 +40,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b169f7a6d4742236a0a00c541b845991d0ac43e546831af1249753ab4c3aa3a0"
 dependencies = [
  "cfg-if",
- "cipher",
+ "cipher 0.4.4",
  "cpufeatures 0.2.17",
+]
+
+[[package]]
+name = "aes"
+version = "0.9.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "35f0f96ce78e38c3dc6d8948aa8163d06385be74000f3c7a95bf1eef35d3ea32"
+dependencies = [
+ "cipher 0.5.2",
+ "cpubits",
+ "cpufeatures 0.3.0",
 ]
 
 [[package]]
@@ -51,8 +62,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "831010a0f742e1209b3bcea8fab6a8e149051ba6099432c8cb2cc117dec3ead1"
 dependencies = [
  "aead",
- "aes",
- "cipher",
+ "aes 0.8.4",
+ "cipher 0.4.4",
  "ctr",
  "ghash",
  "subtle",
@@ -859,7 +870,7 @@ version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "26b52a9543ae338f279b96b0b9fed9c8093744685043739079ce85cd58f289a6"
 dependencies = [
- "cipher",
+ "cipher 0.4.4",
 ]
 
 [[package]]
@@ -883,6 +894,17 @@ dependencies = [
  "byteorder",
  "fnv",
  "uuid",
+]
+
+[[package]]
+name = "cfb"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0f13298d9178622b7916ec5d01d470425c04273c8ed07e87b1c38b34c4f4612b"
+dependencies = [
+ "fnv",
+ "uuid",
+ "web-time",
 ]
 
 [[package]]
@@ -1012,7 +1034,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "773f3b9af64447d2ce9850330c473515014aa235e6a783b02db81ff39e4a3dad"
 dependencies = [
  "crypto-common 0.1.7",
- "inout",
+ "inout 0.1.4",
+]
+
+[[package]]
+name = "cipher"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e8cf2a2c93cd704877c0858356ed03480ff301ee950b43f1cbe4573b088bfa6c"
+dependencies = [
+ "crypto-common 0.2.2",
+ "inout 0.2.5",
 ]
 
 [[package]]
@@ -1258,6 +1290,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "cpubits"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "15b85f9c39137c3a891689859392b1bd49812121d0d61c9caf00d46ed5ce06ae"
+
+[[package]]
 name = "cpufeatures"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1468,7 +1506,7 @@ version = "0.9.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0369ee1ad671834580515889b80f2ea915f23b8be8d0daa4bbaf2ac5c7590835"
 dependencies = [
- "cipher",
+ "cipher 0.4.4",
 ]
 
 [[package]]
@@ -1771,7 +1809,7 @@ version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1a8bfa975b1aec2145850fcaa1c6fe269a16578c44705a532ae3edc92b8881c7"
 dependencies = [
- "cipher",
+ "cipher 0.4.4",
 ]
 
 [[package]]
@@ -1904,7 +1942,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -2353,9 +2391,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "899def5c37c4fd7b2664648c28120ecec138e4d395b459e5ca34f9cce2dd77fd"
 dependencies = [
  "cfg-if",
+ "js-sys",
  "libc",
  "r-efi 5.3.0",
  "wasip2",
+ "wasm-bindgen",
 ]
 
 [[package]]
@@ -3600,7 +3640,7 @@ version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a588916bfdfd92e71cacef98a63d9b1f0d74d6599980d11894290e7ddefffcf7"
 dependencies = [
- "cfb",
+ "cfb 0.7.3",
 ]
 
 [[package]]
@@ -3611,6 +3651,15 @@ checksum = "879f10e63c20629ecabbb64a8010319738c66a5cd0c29b02d63d272b03751d01"
 dependencies = [
  "block-padding",
  "generic-array",
+]
+
+[[package]]
+name = "inout"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b5cf4372d022092674a83b8febf5865f7a573cc0c5baec5e49c879b6a20978f"
+dependencies = [
+ "hybrid-array",
 ]
 
 [[package]]
@@ -4148,7 +4197,7 @@ version = "0.42.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "25aab26d99567469098e64a02f42679f8965c6401263eefa31d8f2dcc37a221c"
 dependencies = [
- "aes",
+ "aes 0.8.4",
  "bitflags 2.13.1",
  "cbc",
  "chrono",
@@ -4469,7 +4518,7 @@ checksum = "13d2233c9842d08cfe13f9eac96e207ca6a2ea10b80259ebe8ad0268be27d2af"
 
 [[package]]
 name = "myoxus-api"
-version = "0.41.38"
+version = "0.41.40"
 dependencies = [
  "altcha-lib-rs",
  "async-graphql",
@@ -4533,6 +4582,8 @@ dependencies = [
  "tracing-subscriber",
  "urlencoding",
  "uuid",
+ "wordcraft-doc",
+ "wordcraft-docx",
  "yaml_serde",
  "yjs",
  "zip",
@@ -4540,7 +4591,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-application"
-version = "0.41.38"
+version = "0.41.40"
 dependencies = [
  "altcha-lib-rs",
  "argon2",
@@ -4595,6 +4646,9 @@ dependencies = [
  "urlencoding",
  "usvg",
  "uuid",
+ "wordcraft-doc",
+ "wordcraft-docx",
+ "wordcraft-geom",
  "yaml_serde",
  "yjs",
  "zip",
@@ -4602,7 +4656,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-cli"
-version = "0.41.38"
+version = "0.41.40"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4638,7 +4692,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-contracts"
-version = "0.41.38"
+version = "0.41.40"
 dependencies = [
  "config",
  "serde",
@@ -4652,7 +4706,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-doc-pipeline"
-version = "0.41.38"
+version = "0.41.40"
 dependencies = [
  "html2text",
  "infer",
@@ -4681,7 +4735,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-domain"
-version = "0.41.38"
+version = "0.41.40"
 dependencies = [
  "async-trait",
  "chrono",
@@ -4697,7 +4751,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-infrastructure"
-version = "0.41.38"
+version = "0.41.40"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -4760,7 +4814,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-mcp"
-version = "0.41.38"
+version = "0.41.40"
 dependencies = [
  "async-trait",
  "axum",
@@ -4789,7 +4843,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-mermaid-render"
-version = "0.41.38"
+version = "0.41.40"
 dependencies = [
  "hex",
  "merman",
@@ -4800,7 +4854,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-pdf-export"
-version = "0.41.38"
+version = "0.41.40"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -4839,7 +4893,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-public-render"
-version = "0.41.38"
+version = "0.41.40"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -4867,7 +4921,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-tests"
-version = "0.41.38"
+version = "0.41.40"
 dependencies = [
  "myoxus-api",
  "myoxus-application",
@@ -4887,11 +4941,10 @@ dependencies = [
 
 [[package]]
 name = "myoxus-worker"
-version = "0.41.38"
+version = "0.41.40"
 dependencies = [
  "async-trait",
  "chrono",
- "cron",
  "myoxus-application",
  "myoxus-domain",
  "myoxus-infrastructure",
@@ -4911,7 +4964,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-workspace-import"
-version = "0.41.38"
+version = "0.41.40"
 dependencies = [
  "rusqlite",
  "serde",
@@ -5033,7 +5086,7 @@ version = "0.50.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7957b9740744892f114936ab4a57b3f487491bbeafaf8083688b16841a4240e5"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -6646,7 +6699,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -6703,7 +6756,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -7988,10 +8041,10 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "once_cell",
  "rustix",
- "windows-sys 0.52.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -9582,7 +9635,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -9852,6 +9905,48 @@ dependencies = [
  "four-cc",
  "safer-bytes",
  "thiserror 1.0.69",
+]
+
+[[package]]
+name = "wordcraft-doc"
+version = "0.13.2"
+dependencies = [
+ "base64 0.23.0",
+ "log",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "unicode-segmentation",
+ "wordcraft-geom",
+]
+
+[[package]]
+name = "wordcraft-docx"
+version = "0.13.2"
+dependencies = [
+ "aes 0.9.3",
+ "base64 0.23.0",
+ "cfb 0.15.0",
+ "chrono",
+ "getrandom 0.3.4",
+ "hmac 0.13.0",
+ "log",
+ "quick-xml",
+ "sha1 0.11.0",
+ "sha2 0.11.0",
+ "thiserror 2.0.21",
+ "unicode-bidi",
+ "wordcraft-doc",
+ "wordcraft-geom",
+ "zeroize",
+ "zip",
+]
+
+[[package]]
+name = "wordcraft-geom"
+version = "0.13.2"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

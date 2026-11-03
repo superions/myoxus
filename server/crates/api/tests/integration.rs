@@ -221,6 +221,8 @@ mod inv_workspace_type_test;
 mod nightly_cleanup_test;
 #[path = "db/workspaces/pdb29b_realtime_emission_test.rs"]
 mod pdb29b_realtime_emission_test;
+#[path = "db/workspaces/recurring_tasks_contract.rs"]
+mod recurring_tasks_contract;
 #[path = "db/workspaces/workspace_docs_rest_compat.rs"]
 mod workspace_docs_rest_compat;
 #[path = "db/workspaces/workspace_preview_test.rs"]

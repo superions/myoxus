@@ -79,13 +79,14 @@ pub fn scheduling_organizer(
 /// Returns a storage error for malformed persisted recipients/occurrence snapshots
 /// or an exhausted scheduling sequence.
 pub fn plan_scheduling(facts: CalendarSchedulingFacts<'_>) -> RepoResult<Option<CalendarSchedulingPlan>> {
-  let event = facts.event;
+  let mut projected = facts.event.clone();
+  projected.payload = crate::scheduling::calendar::export_payload(&projected.payload, projected.all_day);
+  let event = &projected;
   let kind = facts.kind;
   let instance_start = facts.instance_start;
   let previous = facts.previous;
   let parent = facts.parent;
-  // Recipient/start projection follows the event's state; sequence authority
-  // follows its recurring parent when both exist.
+  // Recipient/start projection follows the event's last authored state.
   let prior_delivery = previous.or(parent);
   let mut recipients = BTreeMap::new();
   let organizer = facts.organizer_email;
@@ -116,15 +117,22 @@ pub fn plan_scheduling(facts: CalendarSchedulingFacts<'_>) -> RepoResult<Option<
     .transpose()
     .map_err(|_| RepositoryError::Storage("Invalid calendar mail recipients".into()))?
     .unwrap_or_default();
-  if kind != "calendar-cancellation" && previous.as_ref().is_some_and(|row| row.fingerprint == fingerprint) {
+  if kind != "calendar-cancellation"
+    && previous.as_ref().is_some_and(|row| {
+      row.fingerprint == fingerprint && row.event_snapshot["recurrence_parent_id"] == json!(event.recurrence_parent_id)
+    })
+  {
     return Ok(None);
   }
+  // A retained override can move to a new split UID whose parent sequence is
+  // lower. Never reuse/decrease the child's authored delivery sequence.
   let sequence = parent
-    .as_ref()
-    .or(previous.as_ref())
-    .map(|row| {
-      row
-        .sequence
+    .iter()
+    .chain(previous.iter())
+    .map(|row| row.sequence)
+    .max()
+    .map(|sequence| {
+      sequence
         .checked_add(1)
         .ok_or_else(|| RepositoryError::Storage("Calendar mail sequence exhausted".into()))
     })
@@ -200,6 +208,9 @@ pub fn plan_scheduling(facts: CalendarSchedulingFacts<'_>) -> RepoResult<Option<
 fn scheduling_payload(payload: &Value) -> Value {
   let mut projection = json!({});
   for key in [
+    "originalTimezone",
+    "sourceRecurrence",
+    "status",
     "allDay",
     "rrule",
     "exdate",

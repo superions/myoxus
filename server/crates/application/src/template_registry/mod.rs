@@ -4208,7 +4208,17 @@ impl TemplateRegistryService {
     // page lifecycle. A ZIP is never a Yjs update and an empty starter page must
     // not be merged with the template's independently authored page root.
     let (doc, sync) = doc_service
-      .create_page_from_snapshot_with_sync_updates(workspace_id, created_by, title, content)
+      .create_page_from_snapshot_with_purpose(
+        workspace_id,
+        created_by,
+        title,
+        content,
+        Some(if revision_is_guide(revision) {
+          bundle::TemplatePurpose::Guide
+        } else {
+          bundle::TemplatePurpose::Template
+        }),
+      )
       .await?;
     let content_hash = compute_content_hash(&sync.document);
 

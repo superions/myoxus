@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-// Copy committed native bundles; this generator never authors document bodies.
+// Prepare committed native payloads; never author or rewrite document bodies.
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { glob, mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import JSZip from "jszip";
+import { readNativeArchive, readNativeBundle } from "./native-payload.mjs";
 import { parse } from "yaml";
 import semver from "semver";
 import { format, resolveConfig } from "prettier";
@@ -50,12 +50,8 @@ for (const component of base.components.filter(
     "Document component escapes native source root",
   );
   const bytes = await readFile(filename);
-  const zip = await JSZip.loadAsync(bytes, { checkCRC32: true });
-  assert(
-    zip.file("manifest.json") && zip.file("content.template.zip"),
-    "Incomplete document bundle",
-  );
-  const manifest = JSON.parse(await zip.file("manifest.json").async("string"));
+  const decoded = await readNativeBundle(bytes, checksum);
+  const { manifest } = decoded;
   assert(
     /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(manifest.template_id),
     "Unsafe bundle identity",
@@ -78,7 +74,7 @@ for (const component of base.components.filter(
   );
   bundles.set(manifest.template_id, {
     manifest,
-    bytes,
+    ...decoded,
     component: component.id,
   });
 }
@@ -94,15 +90,10 @@ const guides = base.exports.flatMap((entry) => {
     ? [bundle.manifest.template_id]
     : [];
 });
-const entries = [];
-for (const [slug, { manifest, bytes }] of [...bundles].sort(([a], [b]) =>
-  a.localeCompare(b, "en"),
-)) {
-  const asset = `${slug}/${manifest.version}.zip`;
+async function emit(asset, bytes) {
   const filename = path.join(destination, asset);
   const existing = await readFile(filename).catch((error) => {
     if (error.code !== "ENOENT") throw error;
-    return undefined;
   });
   if (existing)
     assert.equal(
@@ -115,7 +106,133 @@ for (const [slug, { manifest, bytes }] of [...bundles].sort(([a], [b]) =>
     await mkdir(path.dirname(filename), { recursive: true });
     await writeFile(filename, bytes);
   }
-  entries.push({ ...manifest, asset, sha256: checksum(bytes) });
+  return { asset, sha256: checksum(bytes) };
+}
+
+async function prepare(content) {
+  const signature = content.subarray(0, 4);
+  if (!signature.equals(Buffer.from([0x50, 0x4b, 0x03, 0x04]))) {
+    assert(
+      content[0] !== 0x50 || content[1] !== 0x4b,
+      "Invalid native package signature",
+    );
+    return {
+      kind: "yjs",
+      ...(await emit(`payloads/${checksum(content)}.yjs`, content)),
+    };
+  }
+  const files = await readNativeArchive(content);
+  const documents = [...files.keys()].filter((name) =>
+    name.endsWith(".snapshot.json"),
+  );
+  assert.equal(
+    documents.length,
+    1,
+    "A native template snapshot requires exactly one page",
+  );
+  let bytes = files.get(documents[0]);
+  const snapshot = JSON.parse(bytes.toString("utf8"));
+  assert(
+    Array.isArray(snapshot.blocks)
+      ? snapshot.blocks.filter((block) => block.flavour === "myoxus:page")
+          .length === 1
+      : snapshot.blocks?.flavour === "myoxus:page",
+    "Native snapshot requires one page",
+  );
+  if (Array.isArray(snapshot.blocks)) {
+    // Registry portable snapshots may be flat. Lower only their containers to
+    // the existing native Transformer tree; authored props/deltas stay exact.
+    const blocks = new Map(snapshot.blocks.map((block) => [block.id, block]));
+    assert.equal(
+      blocks.size,
+      snapshot.blocks.length,
+      "Duplicate native block identity",
+    );
+    const root = snapshot.blocks.find(
+      (block) => block.flavour === "myoxus:page",
+    );
+    const visited = new Set();
+    const tree = (id, depth = 0) => {
+      assert(
+        depth <= 256 && !visited.has(id) && blocks.has(id),
+        "Invalid native snapshot child graph",
+      );
+      visited.add(id);
+      const block = blocks.get(id);
+      return {
+        ...block,
+        type: "block",
+        children: (block.children ?? []).map((child) => tree(child, depth + 1)),
+      };
+    };
+    snapshot.blocks = tree(root.id);
+    assert.equal(
+      visited.size,
+      blocks.size,
+      "Unreachable native snapshot blocks",
+    );
+    snapshot.type = "page";
+    snapshot.meta = { createDate: 0, tags: [], ...snapshot.meta };
+    bytes = Buffer.from(JSON.stringify(snapshot));
+  }
+  const assets = [];
+  for (const [source, data] of files) {
+    if (!source.startsWith("assets/")) continue;
+    const extension = path.extname(source).slice(1).toLowerCase();
+    const mime =
+      {
+        webp: "image/webp",
+        png: "image/png",
+        jpg: "image/jpeg",
+        jpeg: "image/jpeg",
+        svg: "image/svg+xml",
+      }[extension] ?? "application/octet-stream";
+    assets.push({
+      source,
+      mime,
+      ...(await emit(`assets/${checksum(data)}.${extension || "bin"}`, data)),
+    });
+  }
+  return {
+    kind: "snapshot",
+    ...(await emit(`payloads/${checksum(bytes)}.snapshot.json`, bytes)),
+    assets,
+  };
+}
+
+const entries = [];
+for (const [, { manifest, content, variants }] of [...bundles].sort(
+  ([a], [b]) => a.localeCompare(b, "en"),
+)) {
+  const { localized_contents: _localizedContents, ...metadata } = manifest;
+  const defaultLocale = (manifest.locale ?? "und")
+    .replaceAll("_", "-")
+    .toLowerCase();
+  const contents = {
+    [defaultLocale]: {
+      ...(await prepare(content)),
+      title: manifest.title,
+      description: manifest.description,
+    },
+  };
+  for (const [locale, variant] of variants)
+    contents[locale] = {
+      ...(await prepare(variant.content)),
+      title: variant.title,
+      description: variant.description,
+    };
+  entries.push({ ...metadata, defaultLocale, contents });
+}
+// ZIPs remain immutable Registry sources, not offline runtime deliveries.
+// Remove only byte-identical generated copies; an unknown override fails closed.
+for await (const relative of glob("**/*.zip", { cwd: destination })) {
+  assert(!check, `Obsolete generated offline ZIP: ${relative}`);
+  assert.equal(
+    checksum(await readFile(path.join(destination, relative))),
+    checksum(await readFile(path.join(source, relative))),
+    "Generated ZIP differs from its retained source",
+  );
+  await unlink(path.join(destination, relative));
 }
 // Match the repository formatter so a successful pre-commit hook cannot make
 // the next generated-artifact check fail without a content change.

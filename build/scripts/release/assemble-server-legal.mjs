@@ -146,8 +146,8 @@ ${
   publicSource?.tree && !correspondingArchive
     ? `- Public source commit: <${publicSource.repository}/tree/${publicSource.commit}>\n- Public source tree: \`${publicSource.tree}\`\n- Source download: <${publicSource.repository}/archive/${publicSource.commit}.tar.gz>\n\nThe Git commit and tree identify the qualified source. GitHub-generated archive\ncompression may change; no permanent compressed-archive digest is claimed.`
     : correspondingArchive
-    ? `${publicSource ? `- Public source commit: <${publicSource.repository}/tree/${publicSource.commit}>\n` : ""}- Source archive: <${correspondingArchive.url}>\n- Source archive SHA-256: \`${correspondingArchive.sha256}\`\n\nVerify the downloaded archive against this digest. The release publisher is\nresponsible for verifying that it contains the corresponding source for this build.`
-    : `No public source archive is configured for this build. This document does not\nclaim public source availability. Before public distribution, the release\npublisher must provide and verify the corresponding source.`
+      ? `${publicSource ? `- Public source commit: <${publicSource.repository}/tree/${publicSource.commit}>\n` : ""}- Source archive: <${correspondingArchive.url}>\n- Source archive SHA-256: \`${correspondingArchive.sha256}\`\n\nVerify the downloaded archive against this digest. The release publisher is\nresponsible for verifying that it contains the corresponding source for this build.`
+      : `No public source archive is configured for this build. This document does not\nclaim public source availability. Before public distribution, the release\npublisher must provide and verify the corresponding source.`
 }
 `;
 

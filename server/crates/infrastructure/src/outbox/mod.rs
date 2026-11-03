@@ -49,6 +49,13 @@ impl SqlxOutboxRepository {
       "database_task_notification" => OutboxEventType::DatabaseTaskNotification,
       "workspace_automation_trigger" => OutboxEventType::WorkspaceAutomationTrigger,
       "workspace_automation_signal" => OutboxEventType::WorkspaceAutomationSignal,
+      "task_recurrence_due" => OutboxEventType::TaskRecurrenceDue,
+      "calendar_reminder_due" => OutboxEventType::CalendarReminderDue,
+      "database_reminder_due" => OutboxEventType::DatabaseReminderDue,
+      "git_cron_due" => OutboxEventType::GitCronDue,
+      "git_polling_due" => OutboxEventType::GitPollingDue,
+      "git_rotation_due" => OutboxEventType::GitRotationDue,
+      "registered_job_due" => OutboxEventType::RegisteredJobDue,
       _ => {
         return Err(RepositoryError::Validation(format!(
           "unknown outbox event type: {raw_event_type}"
@@ -316,6 +323,13 @@ impl OutboxRepository for SqlxOutboxRepository {
       OutboxEventType::DatabaseTaskNotification => "database_task_notification",
       OutboxEventType::WorkspaceAutomationTrigger => "workspace_automation_trigger",
       OutboxEventType::WorkspaceAutomationSignal => "workspace_automation_signal",
+      OutboxEventType::TaskRecurrenceDue => "task_recurrence_due",
+      OutboxEventType::CalendarReminderDue => "calendar_reminder_due",
+      OutboxEventType::DatabaseReminderDue => "database_reminder_due",
+      OutboxEventType::GitCronDue => "git_cron_due",
+      OutboxEventType::GitPollingDue => "git_polling_due",
+      OutboxEventType::GitRotationDue => "git_rotation_due",
+      OutboxEventType::RegisteredJobDue => "registered_job_due",
     };
     let row = sqlx::query(
       r#"

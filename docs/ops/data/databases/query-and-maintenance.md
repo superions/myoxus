@@ -113,17 +113,16 @@ The `database` queue owns the following job names:
 | `database.reindexSearch`             | workspace_id, database_id                                                      | Rebuilds both derived projections for every Row in one Database. Repository storage failures retry from the beginning; idempotent Row upserts make replay after a partial pass safe.                                                                                                                                             |
 | `database.bulkImport`                | import_job_id, workspace_id, actor_id, database_title, content_base64, options | Large CSV import. The job payload carries the `database_import_jobs` id; the worker short-circuits on `succeeded` / `cancelled`, marks `running`, dispatches to `import_csv_with_job`, then writes `succeeded` / `failed` / `cancelled`. See [Background import retry/cancel contract](#background-import-retrycancel-contract). |
 | `database.bulkExport`                | import_job_id, workspace_id, actor_id, database_id                             | Large CSV export. Same lifecycle as `database.bulkImport`; the job row records the resulting `bytes` / `file_name` in `result_json`.                                                                                                                                                                                             |
-| `database.fireReminders`             | limit                                                                          | Claims at most the configured bounded batch of due personal Row reminders and enqueues validated notification jobs. It uses the existing Database queue concurrency.                                                                                                                                                             |
 
-Reminder dispatch is startup-materialized. Configure
-`worker.polling.database_reminder_interval_ms`,
-`databases.reminder_batch_size`,
+Personal reminder limits are startup-materialized. Configure
 `databases.max_reminders_per_user_per_cell` and
 `databases.max_reminder_offset_minutes` through the normal config system or
-Admin Performance (`Server tuning` / `Limits`), then restart the API. The
-registry rejects values outside the documented bounds before restart. Queue
-execution continues to use `job.queues.database.concurrency`; do not create a
-Reminder-specific queue or concurrency setting.
+Admin Performance / Limits, then restart the API. The registry rejects values
+outside the documented bounds before restart. Shared SQL admission owns timing
+under its bounded global cadence; native `notification.sendDatabaseRowReminder`
+delivery uses `job.queues.notification.concurrency` and existing retry/backoff.
+There is no Reminder-specific queue or claim-expiry timer. See the
+[controlled cutover](../../runbooks/sync-and-workers.md#database-reminder-scheduling-cutover).
 
 All jobs are owned by the `database` queue. Row mutation jobs emit progress
 events through the audit + notification surface (`database.row.created` /

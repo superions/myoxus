@@ -144,6 +144,7 @@ const SOURCE_OWNED: &[&str] = &[
   "calendar_reminder_dispatch_log",
   "calendar_reminder_mail_receipts",
   "calendar_reminders",
+  "calendar_reminder_definitions",
   "copilot_context_items",
   "copilot_contexts",
   "copilot_jobs",
@@ -210,6 +211,13 @@ const SOURCE_OWNED: &[&str] = &[
   "sayiir_workflow_snapshot_history",
   "sayiir_workflow_snapshots",
   "sayiir_workflow_tasks",
+  // Timing consent and slot receipts stay with their native source; copies or
+  // workspace transfers must never inherit automatic work or delivery identity.
+  "scheduling_schedules",
+  "scheduling_occurrences",
+  "scheduling_pause_intervals",
+  "task_recurrence_series",
+  "task_recurrence_members",
   "search_reindex_runs",
   "template_import_jobs",
   "template_reconcile_jobs",

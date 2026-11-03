@@ -155,9 +155,6 @@
     },
     "max_views_per_database": {
       "desc": "admin.config.databases.maxViewsPerDatabase.desc"
-    },
-    "reminder_batch_size": {
-      "desc": "admin.performance.field.database-reminder-batch-size.desc"
     }
   },
   "doc": {

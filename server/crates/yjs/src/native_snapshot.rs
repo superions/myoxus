@@ -27,6 +27,17 @@ const SURFACE_MAP_MARKER: &str = "myoxus:surface:ymap";
 /// this is not the lossy display-text projection used by search or Markdown.
 #[instrument(skip_all)]
 pub fn document_to_snapshot(document_update: &[u8], document_id: &str, title: &str) -> Result<Value, String> {
+  capture_document(document_update, document_id, title, false)
+}
+
+/// Read-only format exports need attachment labels even when server imports
+/// encoded their technical byte size as BigInt. Normalize only that non-content
+/// property; the portable restoration API retains its strict lossless contract.
+pub fn document_to_export_snapshot(document_update: &[u8], document_id: &str, title: &str) -> Result<Value, String> {
+  capture_document(document_update, document_id, title, true)
+}
+
+fn capture_document(document_update: &[u8], document_id: &str, title: &str, export: bool) -> Result<Value, String> {
   if document_id.is_empty() || document_id.trim() != document_id {
     return Err("native snapshot requires a canonical document identity".into());
   }
@@ -111,20 +122,26 @@ pub fn document_to_snapshot(document_update: &[u8], document_id: &str, title: &s
       if crate::snapshot_property_is_rich_text(&flavour, key) && !matches!(&value, Out::YText(_)) {
         return Err("native snapshot text property must be shared rich text".into());
       }
-      let value = if crate::snapshot_property_is_opaque_reference(&flavour, key) {
-        let Out::Any(value) = value else {
-          return Err("native snapshot reserved reference must retain its raw representation".into());
+      let value =
+        if export && flavour == "myoxus:attachment" && key == "size" && matches!(&value, Out::Any(Any::BigInt(_))) {
+          let Out::Any(Any::BigInt(size)) = value else {
+            unreachable!()
+          };
+          Value::Number(size.into())
+        } else if crate::snapshot_property_is_opaque_reference(&flavour, key) {
+          let Out::Any(value) = value else {
+            return Err("native snapshot reserved reference must retain its raw representation".into());
+          };
+          json_value(&value, 0)?
+        } else if flavour == "myoxus:surface" && key == "elements" {
+          surface_elements(value, &txn)?
+        } else {
+          // Plain-object table fields are dotted leaves, never direct Y.Maps.
+          if flavour == "myoxus:table" && matches!(&value, Out::YMap(map) if !is_boxed(map, &txn)) {
+            return Err("native snapshot table contains an unrepresentable shared map".into());
+          }
+          native_value(value, &txn, 0)?
         };
-        json_value(&value, 0)?
-      } else if flavour == "myoxus:surface" && key == "elements" {
-        surface_elements(value, &txn)?
-      } else {
-        // Plain-object table fields are dotted leaves, never direct Y.Maps.
-        if flavour == "myoxus:table" && matches!(&value, Out::YMap(map) if !is_boxed(map, &txn)) {
-          return Err("native snapshot table contains an unrepresentable shared map".into());
-        }
-        native_value(value, &txn, 0)?
-      };
       if flavour == "myoxus:table" {
         insert_flat_property(&mut props, key, value, 0)?;
       } else {

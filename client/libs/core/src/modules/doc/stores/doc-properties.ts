@@ -67,15 +67,24 @@ export class DocPropertiesStore extends Store {
         "Offline document properties are only available in local workspaces",
       );
     }
-    const result = this.dbService.db.docProperties.create({
-      id,
-      ...projection,
-    });
-    if (!awaitPersistence) return result;
+    if (!awaitPersistence)
+      return this.dbService.db.docProperties.create({ id, ...projection });
+    return this.persistOfflineSubsystemProjection(id, projection);
+  }
+
+  private async persistOfflineSubsystemProjection(
+    id: string,
+    projection: SubsystemProjection,
+  ) {
     // This table has its own storage document, separate from both the leaf and
     // workspace root. Save its complete real state even when retry changed no value.
     const doc = this.dbService.getWorkspaceDbDoc("docProperties");
-    return this.workspaceService.workspace.engine.doc.saveCapturedUpdateAndWaitForSaved(
+    const frontend = this.workspaceService.workspace.engine.doc;
+    // connectDoc schedules its initial load. A freshly created table is not yet
+    // a valid captured-update target until that existing load has completed.
+    await frontend.waitForDocLoaded(doc.guid, AbortSignal.timeout(30_000));
+    this.dbService.db.docProperties.create({ id, ...projection });
+    return frontend.saveCapturedUpdateAndWaitForSaved(
       doc.guid,
       encodeStateAsUpdate(doc),
     );
