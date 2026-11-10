@@ -1,6 +1,40 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 use uuid::Uuid;
 
+/// Decode only server-authored render inputs. Historical captures require their
+/// own frozen text and never use a live plan, even if one accompanies the job.
+/// Field-free sources retain their exact bytes and need no context capability.
+pub fn document_field_snapshot(
+  snapshot: Vec<u8>,
+  workspace_id: Uuid,
+  doc_id: Uuid,
+  historical: bool,
+  render_inputs: &serde_json::Value,
+) -> Result<Vec<u8>, crate::document_fields::DocumentFieldError> {
+  use crate::document_fields::{
+    DocumentFieldError,
+    output::{PreparedFieldOutput, historical_snapshot},
+  };
+  if historical {
+    historical_snapshot(&snapshot)?;
+    return Ok(snapshot);
+  }
+  if yjs::document_field::content::inspect(&snapshot)
+    .map_err(|_| DocumentFieldError::InvalidField)?
+    .is_empty()
+  {
+    return Ok(snapshot);
+  }
+  let prepared: PreparedFieldOutput = serde_json::from_value(
+    render_inputs
+      .get("document_field_output")
+      .ok_or(DocumentFieldError::ContextUnavailable)?
+      .clone(),
+  )
+  .map_err(|_| DocumentFieldError::ContextUnavailable)?;
+  prepared.apply(&snapshot, workspace_id, doc_id)
+}
+
 /// Outcome of a sync-path attempt in the shared PDF create use case.
 ///
 /// The use case maps these directly:

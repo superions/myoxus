@@ -75,6 +75,8 @@ if ($currentNodeVersion -ne "v$nodeVersion") {
 
 New-Item -ItemType Directory -Force -Path $nodeTools,$corepackHome | Out-Null
 $env:Path = "$nodeCurrent;$nodeTools;$env:Path"
+& $nodeExecutable build/scripts/ci/verify-electron-updater-source.mjs --prepare
+if ($LASTEXITCODE -ne 0) { throw "Reviewed updater snapshot preparation failed" }
 $env:COREPACK_HOME = $corepackHome
 $currentCorepackVersion = if (
   Test-Path -LiteralPath $corepackExecutable -PathType Leaf

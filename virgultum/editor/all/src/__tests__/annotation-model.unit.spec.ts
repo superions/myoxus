@@ -15,7 +15,14 @@ import {
   pasteMiddleware,
 } from "@virgultum/shared/adapters";
 import { printToPdf } from "@virgultum/shared/utils";
-import { Text, type SliceSnapshot, type BlockSnapshot } from "@virgultum/store";
+import {
+  Text,
+  Slice,
+  toDraftModel,
+  SliceSnapshotSchema,
+  type SliceSnapshot,
+  type BlockSnapshot,
+} from "@virgultum/store";
 import { TestWorkspace } from "@virgultum/store/test";
 import { describe, expect, test, vi } from "vitest";
 import { html } from "lit";
@@ -25,12 +32,18 @@ import {
   type AnnotationBlockHostProps,
   type AnnotationInlineHostProps,
 } from "@virgultum/editor/blocks/annotation";
-import { TextSelection, type BlockStdScope } from "@virgultum/std";
+import {
+  BlockSelection,
+  TextSelection,
+  type BlockStdScope,
+} from "@virgultum/std";
 
 import {
   AnnotationInlineSpecExtension,
   InlineAnnotation,
+  InlineDocumentField,
 } from "@virgultum/editor/inlines/preset";
+import type { DocumentFieldInlineHostProps } from "@virgultum/shared/services";
 import { InlineEditor } from "@virgultum/std/inline";
 import type { MyoxusTextAttributes } from "@virgultum/shared/types";
 import { createJob } from "./utils/create-job";
@@ -39,6 +52,264 @@ import { testStoreExtensions } from "./utils/store";
 import syntaxFixtures from "../../../../../build/fixtures/contracts/annotation-syntax.json";
 import interchangeFixtures from "../../../../../build/fixtures/contracts/annotation-interchange.json";
 import { annotationsToLiteralSnapshot } from "../../../shared/src/adapters/markdown/annotation-deltas";
+import { builtinToolbarConfig } from "../../../blocks/root/src/configs/toolbar";
+import { TableCell } from "../../../blocks/table/src/table-cell";
+import { TableDataManager } from "../../../blocks/table/src/table-data-manager";
+import { SelectionController } from "../../../blocks/table/src/selection-controller";
+import { PageKeyboardManager } from "../../../blocks/root/src/keyboard/keyboard-manager";
+import { EdgelessCRUDExtension } from "../../../blocks/surface/src/extensions/crud-extension";
+import type { GfxModel } from "@virgultum/std/gfx";
+import { convertSelectedBlocksToLinkedDoc } from "@virgultum/block-embed";
+import type { TableBlockModel } from "@virgultum/model";
+import { mergeToCodeModel, transformModel } from "@virgultum/shared/utils";
+
+test("fixed native cells reject destructive table operations before changing free cells", () => {
+  const workspace = new TestWorkspace();
+  workspace.storeExtensions = testStoreExtensions;
+  workspace.meta.initialize();
+  const doc = workspace.createDoc("fixed-table");
+  doc.load();
+  const store = doc.getStore();
+  try {
+    const root = store.addBlock("myoxus:page");
+    const note = store.addBlock("myoxus:note", {}, root);
+    const id = store.addBlock(
+      "myoxus:table",
+      {
+        rows: {
+          a: { rowId: "a", order: "00000000" },
+          b: { rowId: "b", order: "00000001" },
+        },
+        columns: { c: { columnId: "c", order: "00000000" } },
+        cells: {
+          "a:c": { text: new Text("Definition"), textProtection: "fixed" },
+          "b:c": { text: new Text("Free answer") },
+        },
+      },
+      note,
+    );
+    const table = store.getModelById(id)! as TableBlockModel;
+    const manager = new TableDataManager(table);
+    const selectionController = new SelectionController({
+      dataManager: manager,
+      addController: () => {},
+    } as never);
+    selectionController.doPaste("Replaced", {
+      type: "area",
+      rowStartIndex: 0,
+      rowEndIndex: 1,
+      columnStartIndex: 0,
+      columnEndIndex: 0,
+    });
+    manager.clearCells([
+      { rowId: "b", columnId: "c" },
+      { rowId: "a", columnId: "c" },
+    ]);
+    manager.deleteRow("a");
+    manager.deleteColumn("c");
+    manager.addNRow(-2);
+    store.deleteBlock(store.getModelById(note)!);
+    expect(manager.rows$.value.map((row) => row.rowId)).toEqual(["a", "b"]);
+    expect(manager.getCell("a", "c")?.text.toString()).toBe("Definition");
+    expect(manager.getCell("b", "c")?.text.toString()).toBe("Free answer");
+    const inserted = manager.addRow(0);
+    expect(manager.rows$.value.map((row) => row.rowId)).toEqual([
+      "a",
+      inserted,
+      "b",
+    ]);
+    expect(manager.getCell("a", "c")?.textProtection).toBe("fixed");
+    manager.getCell("b", "c")!.text.insert(" edited", 11);
+    expect(manager.getCell("b", "c")?.text.toString()).toBe(
+      "Free answer edited",
+    );
+    store.readonly = true;
+    manager.clearRow("b");
+    manager.deleteRow("b");
+    expect(manager.getCell("b", "c")?.text.toString()).toBe(
+      "Free answer edited",
+    );
+    store.readonly = false;
+    manager.clearRow("b");
+    expect(manager.getCell("b", "c")?.text.toString()).toBe("");
+  } finally {
+    workspace.dispose();
+  }
+});
+
+test("native history skips fixed insertion without hiding older free edits", () => {
+  const workspace = new TestWorkspace();
+  workspace.storeExtensions = testStoreExtensions;
+  workspace.meta.initialize();
+  const doc = workspace.createDoc("fixed-history");
+  doc.load();
+  const store = doc.getStore();
+  try {
+    const root = store.addBlock("myoxus:page");
+    const note = store.addBlock("myoxus:note", {}, root);
+    const text = new Text("Free");
+    store.addBlock("myoxus:paragraph", { text }, note);
+    store.resetHistory();
+    text.insert(" first", text.length);
+    store.captureSync();
+    const fixed = store.addBlock(
+      "myoxus:paragraph",
+      {
+        text: new Text("Definition"),
+        textProtection: "fixed",
+      },
+      note,
+    );
+    store.captureSync();
+    text.insert(" second", text.length);
+    store.captureSync();
+    // Rich-text keyboard handlers use this same supplied manager directly.
+    store.history.undoManager.undo();
+    expect(text.toString()).toBe("Free first");
+    store.undo();
+    expect(text.toString()).toBe("Free");
+    expect(store.getModelById(fixed)?.text?.toString()).toBe("Definition");
+    store.redo();
+    store.history.undoManager.redo();
+    expect(text.toString()).toBe("Free first second");
+    expect(store.getModelById(fixed)?.text?.toString()).toBe("Definition");
+  } finally {
+    workspace.dispose();
+  }
+});
+
+test("compound page and canvas deletion reject fixed selections before deleting free neighbors", () => {
+  const workspace = new TestWorkspace();
+  workspace.storeExtensions = testStoreExtensions;
+  workspace.meta.initialize();
+  const doc = workspace.createDoc("fixed-keyboard");
+  doc.load();
+  const store = doc.getStore();
+  try {
+    const root = store.addBlock("myoxus:page");
+    const note = store.addBlock("myoxus:note", {}, root);
+    const free = store.addBlock(
+      "myoxus:paragraph",
+      { text: new Text("Free neighbor") },
+      note,
+    );
+    const fixed = store.addBlock(
+      "myoxus:paragraph",
+      { text: new Text("Definition"), textProtection: "fixed" },
+      note,
+    );
+    const selection = {
+      value: [
+        new BlockSelection({ blockId: free }),
+        new BlockSelection({ blockId: fixed }),
+      ],
+      clear: vi.fn(),
+    };
+    let remove!: (ctx: never) => void;
+    new PageKeyboardManager({
+      store,
+      host: { selection },
+      bindHotKey: (bindings: { Backspace: typeof remove }) => {
+        remove = bindings.Backspace;
+      },
+    } as never);
+    const event = new KeyboardEvent("keydown", {
+      key: "Backspace",
+      cancelable: true,
+    });
+    remove({ get: () => ({ event }) } as never);
+    expect(event.defaultPrevented).toBe(true);
+    expect(store.getModelById(free)?.text?.toString()).toBe("Free neighbor");
+    expect(store.getModelById(fixed)?.text?.toString()).toBe("Definition");
+    expect(selection.clear).not.toHaveBeenCalled();
+    const surface = store.addBlock("myoxus:surface", {}, root);
+    const freeNote = store.addBlock("myoxus:note", {}, root);
+    const canvas = new EdgelessCRUDExtension({
+      store,
+      get: () => ({ surface: store.getModelById(surface), doc: store }),
+    } as unknown as BlockStdScope);
+    canvas.deleteElements([
+      store.getModelById(freeNote)!,
+      store.getModelById(note)!,
+    ] as GfxModel[]);
+    expect(store.getModelById(freeNote)?.flavour).toBe("myoxus:note");
+  } finally {
+    workspace.dispose();
+  }
+});
+
+test("linked-document conversion rejects fixed owners before creating another document", async () => {
+  const workspace = new TestWorkspace();
+  workspace.storeExtensions = testStoreExtensions;
+  workspace.meta.initialize();
+  const doc = workspace.createDoc("fixed-linked-conversion");
+  doc.load();
+  const store = doc.getStore();
+  try {
+    const root = store.addBlock("myoxus:page");
+    const note = store.addBlock("myoxus:note", {}, root);
+    const free = store.addBlock(
+      "myoxus:paragraph",
+      { text: new Text("Free neighbor") },
+      note,
+    );
+    const fixed = store.addBlock(
+      "myoxus:paragraph",
+      { text: new Text("Definition"), textProtection: "fixed" },
+      note,
+    );
+    using transformer = store.getTransformer();
+    const std = {
+      clipboard: {
+        sliceToSnapshot: (slice: Slice) => transformer.sliceToSnapshot(slice),
+        pasteBlockSnapshots: async () => {},
+      },
+    } as unknown as BlockStdScope;
+    const count = workspace.blockCollections.size;
+    await expect(
+      convertSelectedBlocksToLinkedDoc(
+        std,
+        store,
+        [
+          toDraftModel(store.getModelById(free)!),
+          toDraftModel(store.getModelById(fixed)!),
+        ],
+        "Unchanged source",
+      ),
+    ).resolves.toBeUndefined();
+    expect(workspace.blockCollections.size).toBe(count);
+    expect(store.getModelById(free)?.text?.toString()).toBe("Free neighbor");
+    expect(store.getModelById(fixed)?.text?.toString()).toBe("Definition");
+  } finally {
+    workspace.dispose();
+  }
+});
+
+test("document-field and repeat actions respect document and source boundaries", () => {
+  const actions = builtinToolbarConfig.actions as unknown as readonly {
+    id: string;
+    when: (context: never) => boolean;
+  }[];
+  const available = (id: string, template: boolean, readonly: boolean) => {
+    const action = actions.find((item) => item.id === id);
+    if (!action) throw new Error(`Missing ${id} action`);
+    return action.when({
+      readonly,
+      std: {
+        getOptional: () => ({
+          isTemplateDocument: () => template,
+          openTemplateVariablePicker: () => {},
+        }),
+      },
+    } as never);
+  };
+  expect(available("d.template-variable", false, false)).toBe(true);
+  expect(available("d.template-repeat", false, false)).toBe(false);
+  expect(available("d.template-variable", true, false)).toBe(true);
+  expect(available("d.template-repeat", true, false)).toBe(true);
+  expect(available("d.template-variable", true, true)).toBe(false);
+  expect(available("d.template-repeat", true, true)).toBe(false);
+});
 
 function snapshotAnnotations(
   blocks: BlockSnapshot[],
@@ -264,6 +535,351 @@ describe("canonical annotations", () => {
       }
     },
   );
+  test("native paste keeps fields and the destination suffix after a trailing table", async () => {
+    const workspace = new TestWorkspace();
+    workspace.storeExtensions = testStoreExtensions;
+    workspace.meta.initialize();
+    const doc = workspace.createDoc("table-paste-suffix");
+    doc.load();
+    const store = doc.getStore();
+    const root = store.addBlock("myoxus:page");
+    const note = store.addBlock("myoxus:note", {}, root);
+    const id = store.addBlock(
+      "myoxus:paragraph",
+      { text: new Text("beforeafter") },
+      note,
+    );
+    const selection = new TextSelection({
+      from: { blockId: id, index: 6, length: 0 },
+      to: null,
+    });
+    const std = {
+      store,
+      view: { getBlock: (id: string) => ({ model: store.getModelById(id) }) },
+      selection: { find: () => selection },
+      getOptional: () => undefined,
+      host: { updateComplete: Promise.resolve(), querySelector: () => null },
+    } as unknown as BlockStdScope;
+    const job = createJob([pasteMiddleware(std)]);
+    try {
+      const markdown = new MixTextAdapter(job, getProvider());
+      const snapshot = await markdown.toSliceSnapshot({
+        file: "copied\n\n| Heading |\n| --- |\n| Cell |",
+        workspaceId: store.workspace.id,
+        pageId: store.id,
+      });
+      expect(snapshot).not.toBeNull();
+      const field = {
+        type: "input" as const,
+        id: "source-field",
+        definition: { kind: "text" as const, label: "Answer", required: false },
+        value: "saved answer",
+      };
+      const blocks =
+        snapshot!.content[0].flavour === "myoxus:note"
+          ? snapshot!.content[0].children
+          : snapshot!.content;
+      const text = blocks[0].props.text as {
+        delta: { insert: string; attributes?: Record<string, unknown> }[];
+      };
+      text.delta.push({ insert: " ", attributes: { documentField: field } });
+      const adapter = new ClipboardAdapter(job, getProvider());
+      const slice = await adapter.toSlice(
+        { file: JSON.stringify({ snapshot, blobs: {} }) },
+        store,
+        note,
+        1,
+      );
+      expect(slice).toBeDefined();
+      const children = store.getModelById(note)!.children;
+      expect(children.map((model) => model.flavour)).toEqual([
+        "myoxus:paragraph",
+        "myoxus:table",
+        "myoxus:paragraph",
+      ]);
+      expect(children[0].text!.toString()).toBe("beforecopied ");
+      const copiedField = children[0]
+        .text!.toDelta()
+        .find((run) => run.attributes?.documentField)
+        ?.attributes?.documentField;
+      expect(copiedField).toMatchObject({ value: "saved answer" });
+      expect(copiedField?.id).not.toBe(field.id);
+      expect(children[2].text!.toString()).toBe("after");
+    } finally {
+      job[Symbol.dispose]();
+      workspace.dispose();
+    }
+  });
+  test("table-cell native field clipboard preserves identities and fences stale writes", async () => {
+    const workspace = new TestWorkspace();
+    workspace.storeExtensions = testStoreExtensions;
+    workspace.meta.initialize();
+    const doc = workspace.createDoc("field-cell-copy");
+    doc.load();
+    const store = doc.getStore();
+    const root = store.addBlock("myoxus:page");
+    const note = store.addBlock("myoxus:note", {}, root);
+    const field = {
+      type: "input" as const,
+      id: "cell-answer",
+      definition: { kind: "text" as const, label: "Answer", required: false },
+      value: "  literal {{answer}}  ",
+    };
+    const text = new Text<MyoxusTextAttributes>([
+      { insert: "before" },
+      { insert: " ", attributes: { documentField: field } },
+      { insert: "after" },
+    ]);
+    store.addBlock("myoxus:paragraph", { text }, note);
+    if (!customElements.get("myoxus-test-table-cell"))
+      customElements.define("myoxus-test-table-cell", TableCell);
+    const cell = document.createElement("myoxus-test-table-cell") as TableCell;
+    const range = { index: 6, length: 1 };
+    const editor = {
+      getInlineRange: vi.fn(() => range),
+      deleteText: vi.fn(),
+      setInlineRange: vi.fn(),
+      syncInlineRange: vi.fn(),
+      yText: text.yText,
+      isReadonly: false,
+      embedDeltas: text.toDelta(),
+      isEmbed: () => false,
+      transact: (callback: () => void) => store.transact(callback),
+    };
+    cell.text = text;
+    cell.dataManager = { readonly$: { value: false } } as never;
+    cell.richText$.value = { inlineEditor: editor } as never;
+    const copySnapshot = vi.fn(async (_snapshot: SliceSnapshot) => {});
+    let copied!: SliceSnapshot;
+    let imported!: SliceSnapshot;
+    const prepared = {
+      get snapshot() {
+        return imported;
+      },
+      assertCurrent: vi.fn(),
+      dispose: vi.fn(),
+    };
+    const readFromClipboard = vi.fn(() => ({
+      "VIRGULTUM/SNAPSHOT": JSON.stringify({ snapshot: copied, blobs: {} }),
+    }));
+    const prepareNativeSlice = vi.fn(async () => prepared);
+    const std = {
+      clipboard: { copySnapshot, readFromClipboard, prepareNativeSlice },
+      getOptional: () => undefined,
+    };
+    const table = { store, std, host: { std } };
+    vi.spyOn(cell, "closest").mockReturnValue(table as never);
+    vi.spyOn(cell, "isConnected", "get").mockReturnValue(true);
+    const invoke = (type: "copy" | "cut") => {
+      const event = {
+        type,
+        clipboardData: {},
+        preventDefault: vi.fn(),
+        stopPropagation: vi.fn(),
+      };
+      (
+        cell as unknown as { copyNativeFields: (event: unknown) => void }
+      ).copyNativeFields(event);
+      return event;
+    };
+    try {
+      const copy = invoke("copy");
+      expect(copy.preventDefault).toHaveBeenCalledOnce();
+      expect(copySnapshot).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: [
+            expect.objectContaining({
+              flavour: "myoxus:paragraph",
+              props: expect.objectContaining({
+                text: expect.objectContaining({
+                  delta: [
+                    { insert: " ", attributes: { documentField: field } },
+                  ],
+                }),
+              }),
+            }),
+          ],
+        }),
+      );
+      copied = SliceSnapshotSchema.parse(copySnapshot.mock.calls[0][0]);
+      const job = createJob();
+      try {
+        const adapter = new ClipboardAdapter(job, getProvider());
+        imported = await adapter.toSliceSnapshot({
+          file: JSON.stringify({ snapshot: copied, blobs: {} }),
+          assets: job.assetsManager,
+        });
+        const importedDelta = imported.content[0].props.text as {
+          delta: { attributes?: { documentField?: typeof field } }[];
+        };
+        expect(importedDelta.delta[0].attributes?.documentField).toMatchObject({
+          value: field.value,
+        });
+        expect(importedDelta.delta[0].attributes?.documentField?.id).not.toBe(
+          field.id,
+        );
+      } finally {
+        job[Symbol.dispose]();
+      }
+      invoke("cut");
+      await vi.waitFor(() =>
+        expect(editor.deleteText).toHaveBeenCalledWith(range),
+      );
+      editor.deleteText.mockClear();
+      const error = vi.spyOn(console, "error").mockImplementation(() => {});
+      invoke("cut");
+      editor.getInlineRange.mockReturnValue({ index: 0, length: 1 });
+      await vi.waitFor(() => expect(error).toHaveBeenCalled());
+      expect(editor.deleteText).not.toHaveBeenCalled();
+      editor.getInlineRange.mockReturnValue({ index: 0, length: 0 });
+      const before = text.toDelta();
+      let release!: () => void;
+      prepareNativeSlice.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            release = () => resolve(prepared);
+          }),
+      );
+      const stalePaste = {
+        clipboardData: {
+          getData: () => '<div data-virgultum-snapshot="x"></div>',
+        },
+        preventDefault: vi.fn(),
+        stopPropagation: vi.fn(),
+      };
+      error.mockClear();
+      (
+        cell as unknown as { pasteNativeFields: (event: unknown) => void }
+      ).pasteNativeFields(stalePaste);
+      editor.getInlineRange.mockReturnValue({ index: 1, length: 0 });
+      release();
+      await vi.waitFor(() => expect(error).toHaveBeenCalled());
+      expect(text.toDelta()).toEqual(before);
+      expect(prepared.dispose).toHaveBeenCalledOnce();
+      prepared.dispose.mockClear();
+      error.mockRestore();
+      editor.getInlineRange.mockReturnValue({ index: 0, length: 0 });
+      const paste = {
+        clipboardData: {
+          getData: () => '<div data-virgultum-snapshot="x"></div>',
+        },
+        preventDefault: vi.fn(),
+        stopPropagation: vi.fn(),
+      };
+      (
+        cell as unknown as { pasteNativeFields: (event: unknown) => void }
+      ).pasteNativeFields(paste);
+      expect(paste.preventDefault).toHaveBeenCalledOnce();
+      await vi.waitFor(() => expect(prepared.dispose).toHaveBeenCalledOnce());
+      expect(prepared.assertCurrent).toHaveBeenCalledOnce();
+      const fields = text
+        .toDelta()
+        .flatMap((run) =>
+          run.attributes?.documentField ? [run.attributes.documentField] : [],
+        );
+      expect(fields).toHaveLength(2);
+      expect(fields[0]).toMatchObject({ value: field.value });
+      expect(fields[0].id).not.toBe(field.id);
+      expect(fields[1]).toEqual(field);
+      store.undo();
+      expect(text.toDelta()).toEqual(before);
+      imported = {
+        ...imported,
+        content: [...imported.content, structuredClone(imported.content[0])],
+      };
+      const unsupported = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+      (
+        cell as unknown as { pasteNativeFields: (event: unknown) => void }
+      ).pasteNativeFields(paste);
+      await vi.waitFor(() => expect(unsupported).toHaveBeenCalled());
+      expect(text.toDelta()).toEqual(before);
+      unsupported.mockRestore();
+      const malformed = structuredClone(copied);
+      const malformedText = malformed.content[0].props.text as {
+        delta: { attributes: { documentField: { id: string } } }[];
+      };
+      malformedText.delta[0].attributes.documentField.id = "";
+      copied = malformed;
+      const invalidError = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+      const invalidPaste = {
+        clipboardData: {
+          getData: () => '<div data-virgultum-snapshot="x"></div>',
+        },
+        preventDefault: vi.fn(),
+        stopPropagation: vi.fn(),
+      };
+      (
+        cell as unknown as { pasteNativeFields: (event: unknown) => void }
+      ).pasteNativeFields(invalidPaste);
+      expect(invalidPaste.preventDefault).toHaveBeenCalledOnce();
+      expect(invalidError).toHaveBeenCalledOnce();
+      expect(text.toDelta()).toEqual(before);
+      readFromClipboard.mockImplementationOnce(() => {
+        throw new Error("Corrupt clipboard envelope");
+      });
+      const corruptPaste = {
+        clipboardData: {
+          getData: () => '<div data-virgultum-snapshot="x"></div>',
+        },
+        preventDefault: vi.fn(),
+        stopPropagation: vi.fn(),
+      };
+      (
+        cell as unknown as { pasteNativeFields: (event: unknown) => void }
+      ).pasteNativeFields(corruptPaste);
+      expect(corruptPaste.preventDefault).toHaveBeenCalledOnce();
+      expect(text.toDelta()).toEqual(before);
+      invalidError.mockRestore();
+      const protection = vi
+        .spyOn(cell, "textProtection", "get")
+        .mockReturnValue("fixed");
+      editor.getInlineRange.mockReturnValue(range);
+      invoke("cut");
+      await vi.waitFor(() =>
+        expect(
+          copySnapshot.mock.lastCall?.[0].content[0].props.textProtection,
+        ).toBe("fixed"),
+      );
+      expect(editor.deleteText).not.toHaveBeenCalled();
+      copied = structuredClone(copySnapshot.mock.lastCall![0]);
+      imported = structuredClone(copied);
+      protection.mockRestore();
+      const destination: {
+        text: typeof text;
+        textProtection?: "source" | "fixed";
+      } = { text };
+      cell.row = { rowId: "r", order: "a0" };
+      cell.column = { columnId: "c", order: "a0" };
+      cell.dataManager = {
+        readonly$: { value: false },
+        getCell: () => destination,
+      } as never;
+      editor.getInlineRange.mockReturnValue({ index: 0, length: 0 });
+      const protectedPasteError = vi
+        .spyOn(console, "error")
+        .mockImplementation(() => {});
+      (
+        cell as unknown as { pasteNativeFields: (event: unknown) => void }
+      ).pasteNativeFields(paste);
+      await vi.waitFor(() => expect(protectedPasteError).toHaveBeenCalled());
+      expect(text.toDelta()).toEqual(before);
+      expect(destination.textProtection).toBeUndefined();
+      protectedPasteError.mockRestore();
+      prepared.dispose.mockClear();
+      editor.getInlineRange.mockReturnValue({ index: 0, length: text.length });
+      (
+        cell as unknown as { pasteNativeFields: (event: unknown) => void }
+      ).pasteNativeFields(paste);
+      await vi.waitFor(() => expect(prepared.dispose).toHaveBeenCalledOnce());
+      expect(destination.textProtection).toBe("fixed");
+    } finally {
+      workspace.dispose();
+    }
+  });
   test("code, indented code and Mermaid retain their literal source through registered import/export", async () => {
     const job = createJob();
     try {
@@ -593,6 +1209,233 @@ describe("canonical annotations", () => {
       store.deleteBlock(store.getModelById(id)!);
       expect(props.apply("resurrect", "changed\n🙂")).toBe(false);
       expect(props.remove("changed\n🙂")).toBe(false);
+    } finally {
+      owner.remove();
+      workspace.dispose();
+    }
+  });
+  test("inline field conversion preserves marks, adjacent atoms and native undo", async () => {
+    const workspace = new TestWorkspace();
+    workspace.storeExtensions = testStoreExtensions;
+    workspace.meta.initialize();
+    const doc = workspace.createDoc("field-inline-host");
+    doc.load();
+    const store = doc.getStore();
+    const owner = document.createElement("div");
+    try {
+      const root = store.addBlock("myoxus:page");
+      const note = store.addBlock("myoxus:note", {}, root);
+      const field = {
+        type: "input" as const,
+        id: "answer",
+        definition: { kind: "text" as const, label: "Answer", required: false },
+        value: "A {{literal}}",
+      };
+      const adjacent = {
+        type: "input" as const,
+        id: "adjacent",
+        definition: {
+          kind: "multi-select" as const,
+          label: "Choices",
+          required: false,
+          options: [
+            { id: "a", label: "A" },
+            { id: "b", label: "B" },
+          ],
+        },
+        value: ["a", "b"],
+      };
+      const text = new Text<MyoxusTextAttributes>([
+        { insert: "Before " },
+        { insert: " ", attributes: { documentField: field, bold: true } },
+        { insert: " ", attributes: { documentField: adjacent, italic: true } },
+        { insert: " after" },
+      ]);
+      const id = store.addBlock("myoxus:paragraph", { text }, note);
+      owner.dataset.blockId = id;
+      document.body.append(owner);
+      if (!customElements.get("myoxus-inline-document-field"))
+        customElements.define(
+          "myoxus-inline-document-field",
+          InlineDocumentField,
+        );
+      const component = document.createElement("myoxus-inline-document-field");
+      component.editor = new InlineEditor<MyoxusTextAttributes>(text.yText);
+      component.startOffset = 7;
+      component.delta = {
+        insert: " ",
+        attributes: { documentField: field, bold: true },
+      };
+      let props!: DocumentFieldInlineHostProps;
+      let isTemplate = true;
+      component.std = {
+        store,
+        getOptional: () => ({
+          isTemplateDocument: () => isTemplate,
+          renderInline: (value: DocumentFieldInlineHostProps) => {
+            props = value;
+            return html``;
+          },
+        }),
+      } as unknown as BlockStdScope;
+      owner.append(component);
+      await component.updateComplete;
+      const edited = {
+        ...field,
+        definition: { ...field.definition, label: "Edited" },
+      };
+      expect(props.updateDefinition({ ...field, value: "stale" }, edited)).toBe(
+        false,
+      );
+      expect(
+        props.updateDefinition(field, { ...edited, value: "changed answer" }),
+      ).toBe(false);
+      isTemplate = false;
+      expect(props.updateDefinition(field, edited)).toBe(false);
+      isTemplate = true;
+      expect(props.updateDefinition(field, edited)).toBe(true);
+      expect(text.toDelta()).toContainEqual({
+        insert: " ",
+        attributes: { documentField: edited, bold: true },
+      });
+      store.undo();
+      expect(text.toDelta()).toContainEqual({
+        insert: " ",
+        attributes: { documentField: field, bold: true },
+      });
+      component.startOffset = 8;
+      component.delta = {
+        insert: " ",
+        attributes: { documentField: adjacent, italic: true },
+      };
+      await component.updateComplete;
+      const reordered = {
+        ...adjacent,
+        definition: {
+          ...adjacent.definition,
+          options: [...adjacent.definition.options].reverse(),
+        },
+        value: ["b", "a"],
+      };
+      expect(
+        props.updateDefinition(adjacent, { ...reordered, value: ["a"] }),
+      ).toBe(false);
+      expect(props.updateDefinition(adjacent, reordered)).toBe(true);
+      expect(text.toDelta()).toContainEqual({
+        insert: " ",
+        attributes: { documentField: reordered, italic: true },
+      });
+      store.undo();
+      component.startOffset = 7;
+      component.delta = {
+        insert: " ",
+        attributes: { documentField: field, bold: true },
+      };
+      await component.updateComplete;
+      isTemplate = false;
+      const answered = { ...field, value: "  Literal {{answer}}  " };
+      expect(props.updateValue({ ...field, value: "stale" }, answered)).toBe(
+        false,
+      );
+      expect(props.updateValue(field, answered)).toBe(true);
+      expect(text.toDelta()).toContainEqual({
+        insert: " ",
+        attributes: { documentField: answered, bold: true },
+      });
+      store.undo();
+      expect(text.toDelta()).toContainEqual({
+        insert: " ",
+        attributes: { documentField: field, bold: true },
+      });
+      expect(props.convertToText({ ...field, value: "stale" }, "wrong")).toBe(
+        false,
+      );
+      const fieldOwner = store.getModelById(id)!;
+      fieldOwner.yBlock.set("prop:textProtection", "fixed");
+      isTemplate = true;
+      const protectedDelta = text.toDelta();
+      text.insert("forbidden", 0);
+      text.delete(0, text.length);
+      text.format(0, text.length, { italic: true });
+      expect(() => text.split(3)).toThrow("Cannot split fixed text");
+      store.updateBlock(fieldOwner, { text: new Text("forbidden") });
+      store.deleteBlock(store.getModelById(note)!);
+      expect(text.toDelta()).toEqual(protectedDelta);
+      expect(store.getModelById(id)).toBe(fieldOwner);
+      expect(store.getParent(fieldOwner)?.id).toBe(note);
+      expect(transformModel(fieldOwner, "myoxus:code")).toBeNull();
+      const freeId = store.addBlock(
+        "myoxus:paragraph",
+        { text: new Text("Free sibling") },
+        note,
+      );
+      const freeModel = store.getModelById(freeId)!;
+      freeModel.text!.join(text);
+      expect(mergeToCodeModel([freeModel, fieldOwner])).toBeNull();
+      expect(store.getModelById(freeId)?.text?.toString()).toBe("Free sibling");
+      const layoutNote = store.addBlock("myoxus:note", {}, root);
+      store.captureSync();
+      store.moveBlocks([fieldOwner], store.getModelById(layoutNote)!);
+      store.captureSync();
+      expect(store.getParent(fieldOwner)?.id).toBe(layoutNote);
+      expect(text.toDelta()).toEqual(protectedDelta);
+      store.undo();
+      expect(store.getParent(fieldOwner)?.id).toBe(note);
+      store.redo();
+      expect(store.getParent(fieldOwner)?.id).toBe(layoutNote);
+      component.editor.setReadonly(true);
+      expect(props.updateValue(field, answered)).toBe(true);
+      expect(props.convertToText(answered, "forbidden")).toBe(false);
+      store.readonly = true;
+      expect(props.updateValue(answered, field)).toBe(false);
+      store.readonly = false;
+      component.editor.setReadonly(false);
+      expect(props.convertToText(answered, "forbidden")).toBe(false);
+      store.undo();
+      expect(
+        text
+          .toDelta()
+          .find((run) => run.attributes?.documentField?.id === field.id)
+          ?.attributes?.documentField,
+      ).toEqual(field);
+      store.redo();
+      expect(
+        text
+          .toDelta()
+          .find((run) => run.attributes?.documentField?.id === field.id)
+          ?.attributes?.documentField,
+      ).toEqual(answered);
+      store.undo();
+      fieldOwner.yBlock.delete("prop:textProtection");
+      isTemplate = false;
+      const setRange = vi.spyOn(component.editor, "setInlineRange");
+      const capture = vi.spyOn(store, "captureSync");
+      expect(props.convertToText(field, "A {{literal}}")).toBe(true);
+      expect(setRange).toHaveBeenNthCalledWith(1, { index: 7, length: 0 });
+      expect(setRange.mock.invocationCallOrder[0]).toBeLessThan(
+        capture.mock.invocationCallOrder[0],
+      );
+      expect(text.toString()).toBe("Before A {{literal}}  after");
+      expect(text.toDelta()).toContainEqual({
+        insert: "A {{literal}}",
+        attributes: { bold: true },
+      });
+      expect(
+        text.toDelta().find((run) => run.attributes?.documentField)?.attributes
+          ?.documentField,
+      ).toEqual(adjacent);
+      store.undo();
+      expect(
+        text.toDelta().filter((run) => run.attributes?.documentField),
+      ).toHaveLength(2);
+      store.redo();
+      expect(text.toString()).toBe("Before A {{literal}}  after");
+      store.undo();
+      store.readonly = true;
+      expect(props.convertToText(field, "forbidden")).toBe(false);
+      store.readonly = false;
+      store.deleteBlock(store.getModelById(id)!);
+      expect(props.convertToText(field, "deleted")).toBe(false);
     } finally {
       owner.remove();
       workspace.dispose();

@@ -446,9 +446,16 @@ class PasteTr {
         this.pointState.text.length > 0)
     )
       snapshot.content.unshift(boundaryParagraph());
+    const lastText = findLast(snapshot);
+    const lastContent = findLastMatchingNode(snapshot.content, () => true);
+    // A trailing non-text block must remain before the destination suffix;
+    // attaching that suffix to an earlier text block silently changes order.
     if (
-      findLast(snapshot)?.flavour === "myoxus:annotation" &&
-      from.index + from.length < this.pointState.text.length
+      from.index + from.length < this.pointState.text.length &&
+      (lastText?.flavour === "myoxus:annotation" ||
+        (lastContent &&
+          !lastContent.props.text &&
+          !matchModels(this.pointState.model, [CodeBlockModel])))
     )
       snapshot.content.push(boundaryParagraph());
 

@@ -1,4 +1,4 @@
-import { LoadingIcon, OpenIcon } from "@virgultum/components/icons";
+import { CodeIcon, LoadingIcon, OpenIcon } from "@virgultum/components/icons";
 import type { EmbedGithubModel, EmbedGithubStyles } from "@virgultum/model";
 import { ImageProxyService } from "@virgultum/shared/adapters";
 import {
@@ -17,8 +17,13 @@ import { styleMap } from "lit/directives/style-map.js";
 
 import { EmbedBlockComponent } from "../common/embed-block-element.js";
 import { getEmbedCardIcons } from "../common/utils.js";
-import { githubUrlRegex } from "./embed-github-model.js";
 import type { EmbedGithubBlockService } from "./embed-github-service.js";
+import {
+  parseCardUrl,
+  parseGitForgeUrl,
+  resolveGitForgeFamily,
+  resolveGitForgeTargets,
+} from "./git-forge.js";
 import { GithubIcon, styles } from "./styles.js";
 import {
   getGithubStatusIcon,
@@ -62,7 +67,8 @@ export class EmbedGithubBlockComponent extends EmbedBlockComponent<
   };
 
   private _handleAssigneeClick(assignee: string) {
-    const link = `https://www.github.com/${assignee}`;
+    const targets = resolveGitForgeTargets(this.model.props.url);
+    const link = `${targets?.profileOrigin ?? "https://www.github.com"}/${assignee}`;
     window.open(link, "_blank");
   }
 
@@ -88,23 +94,12 @@ export class EmbedGithubBlockComponent extends EmbedBlockComponent<
     super.connectedCallback();
     this._cardStyle = this.model.props.style;
 
-    if (
-      !this.model.props.owner ||
-      !this.model.props.repo ||
-      !this.model.props.githubId
-    ) {
+    // The URL is the source of truth for the persisted identity; re-resolve
+    // it for every provider even when stale identity props exist (GFC-05F).
+    const identity = parseGitForgeUrl(this.model.props.url);
+    if (identity) {
       this.store.withoutTransact(() => {
-        const url = this.model.props.url;
-        const urlMatch = url.match(githubUrlRegex);
-        if (urlMatch) {
-          const [, owner, repo, githubType, githubId] = urlMatch;
-          this.store.updateBlock(this.model, {
-            owner,
-            repo,
-            githubType: githubType === "issue" ? "issue" : "pr",
-            githubId,
-          });
-        }
+        this.store.updateBlock(this.model, identity);
       });
     }
 
@@ -119,15 +114,50 @@ export class EmbedGithubBlockComponent extends EmbedBlockComponent<
     this.disposables.add(
       this.model.propsUpdated.subscribe(({ key }) => {
         if (key === "url") {
-          this.refreshData();
+          this._replaceResource();
         }
       }),
     );
   }
 
+  /**
+   * The card URL was replaced: re-resolve the identity for the new resource,
+   * clear the previous resource's metadata before loading the replacement so
+   * the old number/status/assignees are never retained (GFC-05F), then load.
+   * When the replacement URL has no recognized identity, the previous
+   * identity props are cleared as well so an unsupported URL keeps a usable
+   * original link without another resource's identity or metadata. Stale
+   * responses are additionally guarded in the refresh functions (GFC-05G).
+   */
+  private _replaceResource() {
+    const identity = parseGitForgeUrl(this.model.props.url);
+    this.store.withoutTransact(() => {
+      this.store.updateBlock(this.model, {
+        status: null,
+        statusReason: null,
+        createdAt: null,
+        assignees: null,
+        title: null,
+        description: null,
+        image: null,
+      });
+      if (identity) {
+        this.store.updateBlock(this.model, identity);
+      } else {
+        this.store.updateBlock(this.model, {
+          owner: "",
+          repo: "",
+          githubType: "issue",
+          githubId: "",
+        });
+      }
+    });
+    this.refreshData();
+  }
+
   override renderBlock() {
     const {
-      title = "GitHub",
+      title,
       githubType,
       status,
       statusReason,
@@ -141,10 +171,29 @@ export class EmbedGithubBlockComponent extends EmbedBlockComponent<
     } = this.model.props;
 
     const loading = this.loading;
+    const targets = resolveGitForgeTargets(this.model.props.url);
+    // GitHub keeps its icon; the new families reuse `CodeIcon`. A non-forge
+    // URL (fallback card) keeps the baseline GitHub icon.
+    const family = resolveGitForgeFamily(this.model.props.url);
+    // An unsupported URL keeps a usable original link: the actual URL host
+    // is the title/footer fallback instead of inventing a GitHub target,
+    // and a missing identity shows no repository at all.
+    const fallbackHost = parseCardUrl(this.model.props.url)?.host ?? null;
+    const fallbackTitle =
+      family === "GitHub" ? "GitHub" : (fallbackHost ?? "GitHub");
     const theme = this.std.get(ThemeProvider).theme;
     const imageProxyService = this.store.get(ImageProxyService);
     const { EmbedCardBannerIcon } = getEmbedCardIcons(theme);
-    const titleIcon = loading ? LoadingIcon() : GithubIcon;
+    const titleIcon = loading
+      ? LoadingIcon()
+      : family === "GitLab" || family === "Forgejo/Gitea"
+        ? CodeIcon
+        : GithubIcon;
+    // GitHub keeps its current behavior (assignees only for issues). The new
+    // families report assignees for both issues and merge/pull requests.
+    const isGitForgeFamily = family === "GitLab" || family === "Forgejo/Gitea";
+    const showAssignees =
+      assignees && (githubType === "issue" || isGitForgeFamily);
     const statusIcon = status
       ? getGithubStatusIcon(githubType, status, statusReason)
       : nothing;
@@ -165,7 +214,7 @@ export class EmbedGithubBlockComponent extends EmbedBlockComponent<
           : status;
     const titleText = loading
       ? this._text(editorMessage("com.myoxus.loading", "Loading"))
-      : title;
+      : (title ?? fallbackTitle);
     const descriptionText = loading ? "" : description;
     const bannerImage =
       !loading && image
@@ -241,7 +290,7 @@ export class EmbedGithubBlockComponent extends EmbedBlockComponent<
             </div>
 
             ${
-              githubType === "issue" && assignees
+              showAssignees
                 ? html`
                     <div class="myoxus-embed-github-content-assignees">
                       <div
@@ -279,10 +328,13 @@ export class EmbedGithubBlockComponent extends EmbedBlockComponent<
             }
 
             <div class="myoxus-embed-github-content-url" @click=${this.open}>
-              <span class="myoxus-embed-github-content-repo"
-                >${`${owner}/${repo} |`}</span
-              >
-
+              ${
+                owner || repo
+                  ? html`<span class="myoxus-embed-github-content-repo"
+                      >${`${owner}/${repo} |`}</span
+                    >`
+                  : nothing
+              }
               ${
                 createdAt
                   ? html`<span class="myoxus-embed-github-content-date"
@@ -290,7 +342,7 @@ export class EmbedGithubBlockComponent extends EmbedBlockComponent<
                     >`
                   : nothing
               }
-              <span>github.com</span>
+              <span>${targets?.host ?? fallbackHost ?? ""}</span>
 
               <div class="myoxus-embed-github-content-url-icon">
                 ${OpenIcon}

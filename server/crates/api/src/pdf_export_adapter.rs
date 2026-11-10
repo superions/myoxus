@@ -419,6 +419,7 @@ pub fn create_get_service(
   use myoxus_application::pdf_export::service::{PdfExportDefaults, PdfExportService};
   let config = &state.config.pdf_export;
   PdfExportService {
+    field_source: Some(state.clone()),
     permission: state.permission_service(),
     doc: state.doc().clone(),
     jobs: state.pdf_export_jobs(),

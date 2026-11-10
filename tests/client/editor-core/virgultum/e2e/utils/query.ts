@@ -108,7 +108,10 @@ export function getFormatBar(page: Page) {
 
 export function getEmbedCardToolbar(page: Page) {
   const embedCardToolbar = page.getByTestId("selection-toolbar");
-  const copyButton = embedCardToolbar.getByTestId("copy");
+  const copyButton = embedCardToolbar.getByRole("button", {
+    name: "Copy link",
+    exact: true,
+  });
   const editButton = embedCardToolbar.getByRole("button", {
     name: "Edit",
     exact: true,

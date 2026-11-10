@@ -12,6 +12,7 @@ export { I18n, I18nProvider, I18nService, type LanguageInfo };
 export {
   type DateInput,
   type DateFormatPreference,
+  formatRegionalCalendarDate,
   formatRegionalDate,
   formatRegionalDateTime,
   formatRegionalTime,

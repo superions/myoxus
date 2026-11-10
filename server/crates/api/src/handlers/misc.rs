@@ -16,7 +16,6 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::net::IpAddr;
 use tracing::{debug, instrument, warn};
 use uuid::Uuid;
 
@@ -455,41 +454,22 @@ pub(crate) fn parse_title(html: &str) -> Option<String> {
 }
 
 // ---------------------------------------------------------------------------
-// SSRF protection helpers (SEC-03)
+// Outbound URL validation (SEC-03)
 // ---------------------------------------------------------------------------
-
-/// Returns `true` when the IP address is a private/reserved range that must
-/// never be reached by the server-side proxy.  Covers RFC-1918 private ranges,
-/// loopback, link-local (including the AWS metadata endpoint `169.254.169.254`),
-/// broadcast, and the unspecified address.
-fn is_private_ip(addr: IpAddr) -> bool {
-  match addr {
-    IpAddr::V4(ip) => {
-      ip.is_loopback() || ip.is_private() || ip.is_link_local() || ip.is_broadcast() || ip.is_unspecified()
-    }
-    IpAddr::V6(ip) => {
-      // API-RV-02: Block IPv6 private/reserved ranges
-      ip.is_loopback()      // ::1
-                || ip.is_unspecified() // ::
-                // ULA (Unique Local Addresses) fc00::/7
-                || (ip.segments()[0] & 0xfe00) == 0xfc00
-                // Link-local fe80::/10
-                || (ip.segments()[0] & 0xffc0) == 0xfe80
-                // IPv4-mapped ::ffff:0:0/96 — check mapped IPv4 address
-                || ip.to_ipv4_mapped().is_some_and(|v4| {
-                    v4.is_loopback() || v4.is_private() || v4.is_link_local()
-                        || v4.is_broadcast() || v4.is_unspecified()
-                })
-    }
-  }
-}
 
 type ProxyError = (StatusCode, Json<serde_json::Value>);
 
-/// Validate `url` against SSRF risks:
+/// Validate `url` for the server-side proxy:
 /// 1. scheme must be http or https
-/// 2. if the host is a literal IP, reject private ranges immediately
-/// 3. otherwise pre-resolve the hostname and reject any private resolved address
+/// 2. the URL must carry a host
+/// 3. self-referencing URLs on the server's own port are rejected (proxy loop
+///    prevention)
+///
+/// Address class (public, private, loopback, link-local) is intentionally not
+/// a criterion: own Git forge instances are commonly reached through local
+/// addresses, private DNS names and IPv4/IPv6 literals, and they must receive
+/// the same treatment as public URLs. Authentication, bounded redirects, TLS
+/// verification and response-size bounds remain the protective layers.
 async fn validate_proxy_url(url: &reqwest::Url, server_port: u16) -> Result<(), ProxyError> {
   if url.scheme() != "http" && url.scheme() != "https" {
     return Err((
@@ -512,86 +492,14 @@ async fn validate_proxy_url(url: &reqwest::Url, server_port: u16) -> Result<(), 
       Json(json!({"name":"BAD_REQUEST","message":"Invalid URL"})),
     ));
   }
-  // Fast path: literal IP in URL
-  if let Ok(addr) = host.parse::<IpAddr>() {
-    if is_private_ip(addr) {
-      return Err((
-        StatusCode::BAD_REQUEST,
-        Json(json!({"name":"BAD_REQUEST","message":"Invalid URL"})),
-      ));
-    }
-    return Ok(());
-  }
-  // DNS pre-resolution: reject if any resolved address is private
-  let port = url.port_or_known_default().unwrap_or(80);
-  let addrs = tokio::net::lookup_host(format!("{host}:{port}")).await.map_err(|_| {
-    (
-      StatusCode::BAD_REQUEST,
-      Json(json!({"name":"BAD_REQUEST","message":"Error fetching URL"})),
-    )
-  })?;
-  for addr in addrs {
-    if is_private_ip(addr.ip()) {
-      // SECURITY: do not disclose internal IP in response
-      return Err((
-        StatusCode::BAD_REQUEST,
-        Json(json!({"name":"BAD_REQUEST","message":"Invalid URL"})),
-      ));
-    }
-  }
   Ok(())
 }
 
-/// API-RV-03: Post-fetch DNS rebinding guard.
+/// API-RV-01: Follow redirects manually with re-validation on each hop.
 ///
-/// After the HTTP request completes, re-resolve the final response URL and
-/// verify that none of the resolved addresses are private.  This defends
-/// against DNS rebinding attacks where the attacker's DNS server returns a
-/// public IP during the pre-check (`validate_proxy_url`) but a private IP
-/// during the actual `reqwest` connection.
-async fn validate_response_url(url: &reqwest::Url) -> Result<(), ProxyError> {
-  let host = url.host_str().ok_or_else(|| {
-    (
-      StatusCode::BAD_REQUEST,
-      Json(json!({"name":"BAD_REQUEST","message":"Invalid URL"})),
-    )
-  })?;
-
-  // Fast path: literal IP — check directly
-  if let Ok(addr) = host.parse::<IpAddr>() {
-    if is_private_ip(addr) {
-      return Err((
-        StatusCode::BAD_REQUEST,
-        Json(json!({"name":"BAD_REQUEST","message":"Invalid URL"})),
-      ));
-    }
-    return Ok(());
-  }
-
-  // Re-resolve the hostname and reject if any address is private.
-  // This is the second DNS lookup (post-fetch) that catches rebinding.
-  let port = url.port_or_known_default().unwrap_or(80);
-  let addrs = tokio::net::lookup_host(format!("{host}:{port}")).await.map_err(|_| {
-    (
-      StatusCode::BAD_REQUEST,
-      Json(json!({"name":"BAD_REQUEST","message":"Error fetching URL"})),
-    )
-  })?;
-  for addr in addrs {
-    if is_private_ip(addr.ip()) {
-      return Err((
-        StatusCode::BAD_REQUEST,
-        Json(json!({"name":"BAD_REQUEST","message":"Invalid URL"})),
-      ));
-    }
-  }
-  Ok(())
-}
-
-/// API-RV-01: Follow redirects manually with SSRF re-validation on each hop.
-///
-/// Automatic redirect following is disabled on the HTTP client to prevent
-/// an attacker-controlled redirect from bypassing the initial SSRF check.
+/// Automatic redirect following is disabled on the HTTP client so every hop
+/// passes through [`validate_proxy_url`] again (scheme, host, self-port loop
+/// protection). The hop count stays bounded by [`MAX_REDIRECTS`].
 const MAX_REDIRECTS: usize = 3;
 
 async fn fetch_with_validated_redirects(
@@ -631,7 +539,7 @@ async fn fetch_with_validated_redirects(
       )
     })?;
 
-    // Re-validate the redirect target against SSRF blocklist
+    // Re-validate the redirect target (scheme, host, self-port loop)
     validate_proxy_url(&url, server_port).await?;
   }
 
@@ -676,9 +584,11 @@ async fn require_proxy_auth(state: &crate::state::ApiState, headers: &HeaderMap)
 /// etc.) and the `<title>` element.  When `head: true` the handler issues a
 /// HEAD request and returns 204 on success, avoiding body download.
 ///
-/// Requires an authenticated session (SEC-03: prevents unauthenticated SSRF).
-/// Validates the target URL via DNS pre-resolution and rejects RFC-1918/loopback
-/// addresses (SEC-03 SSRF blocklist).
+/// Requires an authenticated session (SEC-03: prevents unauthenticated proxy
+/// use). Validates the target URL scheme and host, rejects self-referencing
+/// URLs on the server's own port, and follows bounded redirects with
+/// re-validation on each hop. Local and public addresses receive the same
+/// treatment; there is no address-class blocklist.
 /// Rejects non-HTTP/HTTPS schemes and responses larger than 2 MiB.
 #[instrument(skip_all)]
 pub(crate) async fn worker_link_preview_handler(
@@ -696,7 +606,6 @@ pub(crate) async fn worker_link_preview_handler(
     )
   })?;
 
-  // SEC-03: SSRF blocklist (DNS pre-resolution + private IP rejection)
   let server_port = state.config.server.port;
   validate_proxy_url(&target, server_port).await?;
 
@@ -707,10 +616,6 @@ pub(crate) async fn worker_link_preview_handler(
     reqwest::Method::GET
   };
   let response = fetch_with_validated_redirects(client, method, target.clone(), server_port).await?;
-
-  // API-RV-03: Post-fetch DNS rebinding guard — re-resolve the final URL
-  // to ensure the connection didn't land on a private IP via DNS rebinding.
-  validate_response_url(response.url()).await?;
 
   if req.head.unwrap_or(false) {
     if response.status().is_success() || response.status().is_redirection() {
@@ -779,9 +684,11 @@ pub(crate) async fn worker_link_preview_handler(
 /// header.  Rejects non-HTTP/HTTPS schemes, non-`image/*` content types,
 /// and responses larger than 10 MiB.
 ///
-/// Requires an authenticated session (SEC-03: prevents unauthenticated SSRF).
-/// Validates the target URL via DNS pre-resolution and rejects RFC-1918/loopback
-/// addresses (SEC-03 SSRF blocklist).
+/// Requires an authenticated session (SEC-03: prevents unauthenticated proxy
+/// use). Validates the target URL scheme and host, rejects self-referencing
+/// URLs on the server's own port, and follows bounded redirects with
+/// re-validation on each hop. Local and public addresses receive the same
+/// treatment; there is no address-class blocklist.
 #[instrument(skip_all)]
 pub(crate) async fn worker_image_proxy_handler(
   State(state): State<ApiState>,
@@ -798,15 +705,11 @@ pub(crate) async fn worker_image_proxy_handler(
     )
   })?;
 
-  // SEC-03: SSRF blocklist
   let server_port = state.config.server.port;
   validate_proxy_url(&target, server_port).await?;
 
   let client = state.http_client();
   let response = fetch_with_validated_redirects(client, reqwest::Method::GET, target, server_port).await?;
-
-  // API-RV-03: Post-fetch DNS rebinding guard
-  validate_response_url(response.url()).await?;
 
   if !response.status().is_success() {
     warn!(url = %query.url, status = %response.status(), "image proxy: upstream returned error");
@@ -996,31 +899,6 @@ mod tests {
     assert!(parse_title(html).is_none());
   }
 
-  /// API-RV-02: IPv6 private ranges must be blocked.
-  #[test]
-  fn is_private_blocks_ipv6_ula() {
-    assert!(is_private_ip("fc00::1".parse().unwrap()));
-    assert!(is_private_ip("fd12:3456::1".parse().unwrap()));
-  }
-
-  #[test]
-  fn is_private_blocks_ipv6_link_local() {
-    assert!(is_private_ip("fe80::1".parse().unwrap()));
-  }
-
-  #[test]
-  fn is_private_blocks_ipv4_mapped() {
-    // ::ffff:127.0.0.1
-    assert!(is_private_ip("::ffff:127.0.0.1".parse().unwrap()));
-    // ::ffff:10.0.0.1
-    assert!(is_private_ip("::ffff:10.0.0.1".parse().unwrap()));
-  }
-
-  #[test]
-  fn is_private_allows_public_ipv6() {
-    assert!(!is_private_ip("2001:db8::1".parse().unwrap()));
-  }
-
   /// API-RV-07: Self-proxy loop detection.
   #[tokio::test]
   async fn validate_rejects_localhost_3001() {
@@ -1041,73 +919,34 @@ mod tests {
     assert!(validate_proxy_url(&url, 9090).await.is_err());
   }
 
-  /// API-RV-07: Different port on localhost should not be blocked.
+  /// API-RV-07: Different port on localhost must pass — own instances are
+  /// commonly reached through loopback addresses on other ports.
   #[tokio::test]
   async fn validate_allows_localhost_different_port() {
     let url = reqwest::Url::parse("http://localhost:8080/api/health").unwrap();
-    // Port 8080 != server port 3001, so loop detection should not trigger.
-    // The request will still be rejected by the private-IP check below,
-    // but the loop-detection branch specifically should not fire.
-    // (is_private_ip catches 127.0.0.1 anyway, so the overall result is Err.)
-    assert!(validate_proxy_url(&url, 3001).await.is_err());
+    assert!(validate_proxy_url(&url, 3001).await.is_ok());
+  }
+
+  /// Private and link-local address classes receive the same treatment as
+  /// public ones; only scheme, host presence and the self-port loop are
+  /// rejected.
+  #[tokio::test]
+  async fn validate_allows_private_address_classes() {
+    for raw in [
+      "http://169.254.169.254/latest/meta-data/",
+      "http://[::1]:8080/",
+      "http://[fc00::1]:8080/",
+      "http://10.0.0.1/secret",
+    ] {
+      let url = reqwest::Url::parse(raw).unwrap();
+      assert!(validate_proxy_url(&url, 3001).await.is_ok(), "{raw} must be accepted");
+    }
   }
 
   #[tokio::test]
   async fn validate_allows_public_url() {
-    // This may fail in CI without DNS — skip gracefully
+    // No DNS lookup remains in validation; this must not panic or fail.
     let url = reqwest::Url::parse("https://example.com").unwrap();
-    // We only test that it doesn't panic; DNS may fail in test env
-    let _ = validate_proxy_url(&url, 3001).await;
-  }
-
-  /// API-RV-01c: Redirect to private address must be blocked.
-  #[tokio::test]
-  async fn validate_rejects_private_redirect_target() {
-    let url = reqwest::Url::parse("http://169.254.169.254/latest/meta-data/").unwrap();
-    assert!(validate_proxy_url(&url, 3001).await.is_err());
-  }
-
-  /// API-RV-02c: IPv6 literal in URL must be blocked.
-  #[tokio::test]
-  async fn validate_rejects_ipv6_literal_loopback() {
-    let url = reqwest::Url::parse("http://[::1]:8080/").unwrap();
-    assert!(validate_proxy_url(&url, 3001).await.is_err());
-  }
-
-  #[tokio::test]
-  async fn validate_rejects_ipv6_ula_literal() {
-    let url = reqwest::Url::parse("http://[fc00::1]:8080/").unwrap();
-    assert!(validate_proxy_url(&url, 3001).await.is_err());
-  }
-
-  /// API-RV-03: Post-fetch validation rejects private IP literals.
-  #[tokio::test]
-  async fn response_url_rejects_private_ip() {
-    let url = reqwest::Url::parse("http://10.0.0.1/secret").unwrap();
-    assert!(validate_response_url(&url).await.is_err());
-  }
-
-  #[tokio::test]
-  async fn response_url_rejects_loopback() {
-    let url = reqwest::Url::parse("http://127.0.0.1:8080/internal").unwrap();
-    assert!(validate_response_url(&url).await.is_err());
-  }
-
-  #[tokio::test]
-  async fn response_url_rejects_link_local() {
-    let url = reqwest::Url::parse("http://169.254.169.254/latest/meta-data/").unwrap();
-    assert!(validate_response_url(&url).await.is_err());
-  }
-
-  #[tokio::test]
-  async fn response_url_allows_public_ip() {
-    let url = reqwest::Url::parse("http://93.184.216.34/page").unwrap();
-    assert!(validate_response_url(&url).await.is_ok());
-  }
-
-  #[tokio::test]
-  async fn response_url_rejects_ipv6_loopback() {
-    let url = reqwest::Url::parse("http://[::1]:9090/").unwrap();
-    assert!(validate_response_url(&url).await.is_err());
+    assert!(validate_proxy_url(&url, 3001).await.is_ok());
   }
 }

@@ -290,7 +290,7 @@ export function DashboardTaskSection({
             (action) => action.action === AssistantActionKind.Refresh,
           ) && ready ? (
             <Button variant="secondary" onClick={retry}>
-              {t.Retry()}
+              {t["com.myoxus.sidebar.action.refresh"]()}
             </Button>
           ) : null}
           {available && failure !== "forbidden" && canCreate && allowsCreate ? (

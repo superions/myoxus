@@ -23,14 +23,14 @@ export const StreamObjectSchema = z.discriminatedUnion("type", [
     type: z.literal("tool-call"),
     toolCallId: z.string(),
     toolName: z.string(),
-    args: z.record(z.any()),
+    args: z.record(z.string(), z.any()),
   }),
   z.object({
     type: z.literal("tool-result"),
     toolCallId: z.string(),
     toolName: z.string(),
-    args: z.record(z.any()),
-    result: z.any(),
+    args: z.record(z.string(), z.any()),
+    result: z.any().optional(),
   }),
 ]);
 

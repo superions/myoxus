@@ -5,7 +5,7 @@ import { insertContent } from "@virgultum/rich-text";
 import { REFERENCE_NODE } from "@virgultum/shared/consts";
 import { createDefaultDoc } from "@virgultum/shared/utils";
 import { TextSelection } from "@virgultum/std";
-import type { InlineMarkdownMatch } from "@virgultum/std/inline";
+import type { InlineEditor, InlineMarkdownMatch } from "@virgultum/std/inline";
 import { Text } from "@virgultum/store";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
@@ -195,7 +195,7 @@ describe("markdown/list/paragraph/quote/code/link", () => {
     expect(quoteModel.props.type).toBe("quote");
   });
 
-  test("markdown code shortcut converts paragraph to code block with language", async () => {
+  test("markdown code shortcut retains the language and accepts text attributes without renderer markers", async () => {
     const { noteId, paragraphId } = await createParagraph();
     await triggerMarkdown(paragraphId, "```ts ", "code-block");
 
@@ -206,6 +206,15 @@ describe("markdown/list/paragraph/quote/code/link", () => {
     const model = note.children[0];
     expect(model.flavour).toBe("myoxus:code");
     expect((model as any).props.language).toBe("typescript");
+    const richText = getRichTextByBlockId(model.id);
+    (richText.inlineEditor as unknown as InlineEditor).insertText(
+      { index: 0, length: 0 },
+      "value",
+      { bold: true },
+    );
+    expect(richText.inlineEditor.getFormat({ index: 0, length: 5 })).toEqual({
+      bold: true,
+    });
   });
 
   test("inline markdown converts style and link attributes", async () => {

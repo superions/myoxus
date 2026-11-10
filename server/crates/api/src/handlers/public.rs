@@ -390,19 +390,56 @@ async fn load_public_document(
     .ok_or(StatusCode::NOT_FOUND)?;
   let public_mode = allow.public_mode.as_deref().unwrap_or("Page");
   let fallback_title = allow.title.as_deref().unwrap_or("Untitled public document");
-  let mut ir = document_from_yjs(workspace_id, doc_id, fallback_title, public_mode, &doc.payload).map_err(|err| {
+  myoxus_application::document_fields::validate_snapshot(&doc.payload).map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+  let fields = yjs::document_field::content::inspect(&doc.payload).map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+  let field_context = if fields.is_empty() {
+    None
+  } else {
+    Some(
+      state
+        .document_field_resolver()
+        .await
+        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?
+        .resolve_authorized(
+          workspace_id,
+          doc_id,
+          myoxus_application::doc::canonical_yjs_revision(&doc.payload).map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?,
+          &fields.into_iter().map(|field| field.run.descriptor).collect::<Vec<_>>(),
+          None,
+        )
+        .await
+        .map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?,
+    )
+  };
+  let projected = field_context
+    .as_ref()
+    .map(|context| myoxus_application::document_fields::output::current_snapshot(&doc.payload, context))
+    .transpose()
+    .map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+  let mut ir = document_from_yjs(
+    workspace_id,
+    doc_id,
+    fallback_title,
+    public_mode,
+    projected.as_deref().unwrap_or(&doc.payload),
+  )
+  .map_err(|err| {
     warn!(%workspace_id, %doc_id, error = %err, outcome = "error", "public doc IR extraction failed");
     StatusCode::INTERNAL_SERVER_ERROR
   })?;
-  let metadata_projection = state
-    .document_metadata_service()
-    .ok_or(StatusCode::SERVICE_UNAVAILABLE)?
-    .get_projection(doc_id, workspace_id, DocumentMetadataProjectionMode::MyoxusNative)
-    .await
-    .map_err(|err| {
-      warn!(%workspace_id, %doc_id, error = %err, "public document metadata projection failed");
-      StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+  let metadata_projection = if let Some(metadata) = field_context.as_ref().and_then(|context| context.metadata()) {
+    metadata.clone()
+  } else {
+    state
+      .document_metadata_service()
+      .ok_or(StatusCode::SERVICE_UNAVAILABLE)?
+      .get_projection(doc_id, workspace_id, DocumentMetadataProjectionMode::MyoxusNative)
+      .await
+      .map_err(|err| {
+        warn!(%workspace_id, %doc_id, error = %err, "public document metadata projection failed");
+        StatusCode::INTERNAL_SERVER_ERROR
+      })?
+  };
   let metadata_definitions = state
     .document_metadata_policy_repo()
     .ok_or(StatusCode::SERVICE_UNAVAILABLE)?
@@ -417,7 +454,16 @@ async fn load_public_document(
     warn!(%workspace_id, %doc_id, error = %err, "public document metadata serialization failed");
     StatusCode::INTERNAL_SERVER_ERROR
   })?;
-  let artifact_source_hash = source_hash(format!("{}\0{badge_projection}", allow.source_hash).as_bytes());
+  let field_inputs = field_context
+    .as_ref()
+    .map(|context| serde_json::to_string(context.freshness()))
+    .transpose()
+    .map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+  let artifact_input = match field_inputs {
+    Some(fields) => format!("{}\0{badge_projection}\0{fields}", allow.source_hash),
+    None => format!("{}\0{badge_projection}", allow.source_hash),
+  };
+  let artifact_source_hash = source_hash(artifact_input.as_bytes());
   let assets = materialize_public_assets(state, service, workspace_id, doc_id, &mut ir).await?;
   Ok(LoadedPublicDocument {
     ir,

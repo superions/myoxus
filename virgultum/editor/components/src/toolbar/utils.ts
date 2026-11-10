@@ -126,7 +126,7 @@ export function renderGroups<T extends MenuContext>(
 
 export function getMoreMenuConfig(std: BlockStdScope): ToolbarMoreMenuConfig {
   return {
-    configure: <T extends MenuContext>(groups: MenuItemGroup<T>[]) => groups,
+    actions: () => [],
     ...std.getOptional(ToolbarMoreMenuConfigExtension.identifier),
   };
 }

@@ -31,6 +31,23 @@ export const multiPlayersColor = new RandomPicker([
   "var(--myoxus-multi-players-orange)",
   "var(--myoxus-multi-players-green)",
   "var(--myoxus-multi-players-blue)",
-  "var(--myoxus-multi-players-brown)",
-  "var(--myoxus-multi-players-grey)",
+  "var(--myoxus-text-highlight-foreground-yellow)",
+  "var(--myoxus-text-highlight-foreground-teal)",
 ]);
+
+export function vividRemoteColor(color: string): string {
+  if (color === "var(--myoxus-multi-players-grey)")
+    return "var(--myoxus-text-highlight-foreground-teal)";
+  if (color === "var(--myoxus-multi-players-brown)")
+    return "var(--myoxus-text-highlight-foreground-yellow)";
+  return color;
+}
+
+/** Match the existing session hue to the editor's text-marker palette. */
+export function textMarkerColor(color: string): string {
+  if (color === "var(--myoxus-multi-players-magenta)") return color;
+  const tone = color.match(
+    /^var\(--myoxus-(?:multi-players|text-highlight-foreground)-(purple|red|orange|green|blue|yellow|teal)\)$/,
+  )?.[1];
+  return tone ? `var(--myoxus-text-highlight-foreground-${tone})` : color;
+}

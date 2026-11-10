@@ -1,7 +1,7 @@
 import { EditPropsStore } from "@virgultum/shared/services";
 import type { BlockStdScope } from "@virgultum/std";
 
-import { multiPlayersColor } from "./color-picker";
+import { multiPlayersColor, vividRemoteColor } from "./color-picker";
 
 export class RemoteColorManager {
   private get awarenessStore() {
@@ -9,9 +9,12 @@ export class RemoteColorManager {
   }
 
   constructor(readonly std: BlockStdScope) {
-    const sessionColor = this.std.get(EditPropsStore).getStorage("remoteColor");
+    const savedColor = this.std.get(EditPropsStore).getStorage("remoteColor");
+    const sessionColor = savedColor ? vividRemoteColor(savedColor) : null;
     if (sessionColor) {
       this.awarenessStore.awareness.setLocalStateField("color", sessionColor);
+      if (sessionColor !== savedColor)
+        this.std.get(EditPropsStore).setStorage("remoteColor", sessionColor);
       return;
     }
 
@@ -23,7 +26,7 @@ export class RemoteColorManager {
   get(id: number) {
     const awarenessColor = this.awarenessStore.getStates().get(id)?.color;
     if (awarenessColor) {
-      return awarenessColor;
+      return vividRemoteColor(awarenessColor);
     }
 
     if (id !== this.awarenessStore.awareness.clientID) return null;

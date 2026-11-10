@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { useI18n } from "@myoxus/i18n";
+import { isEqual } from "lodash-es";
 import {
   Button,
   Group,
@@ -79,7 +80,8 @@ export function DatabaseRichTextCell({
   // Imperative Apply and browser events share one flight before React commits.
   const savingRef = useRef(false);
   const [error, setError] = useState(false);
-  const dirty = JSON.stringify(draft) !== JSON.stringify(persisted);
+  // SQL JSON and Tiptap can order identical object keys differently.
+  const dirty = !isEqual(draft, persisted);
 
   useEffect(() => {
     if (!dirty) setDraft(persisted);

@@ -138,6 +138,7 @@ export interface MenuRootOptions {
   modal?: boolean;
   closeOnItemClick?: boolean;
   closeOnEscape?: boolean;
+  clickOutsideEvents?: MantineCoreMenuProps["clickOutsideEvents"];
   loop?: boolean;
   middlewares?: MantineCoreMenuProps["middlewares"];
   [key: string]: unknown;
@@ -1265,6 +1266,7 @@ export const Menu = forwardRef(function Menu(
     modal,
     closeOnItemClick = true,
     closeOnEscape = true,
+    clickOutsideEvents,
     loop = true,
     middlewares = menuFloatingMiddlewares,
   } = rootOptions;
@@ -1364,6 +1366,7 @@ export const Menu = forwardRef(function Menu(
         onChange={setMenuOpen}
         closeOnItemClick={closeOnItemClick}
         closeOnEscape={false}
+        clickOutsideEvents={clickOutsideEvents}
         loop={loop}
         trapFocus={modal ?? true}
         // Keep dialog menus in their owner's native stacking context. A body

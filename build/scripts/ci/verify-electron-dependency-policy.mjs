@@ -33,7 +33,7 @@ const builtins = new Set([
   "fs/promises",
 ]);
 const exactVersions = new Map([
-  ["electron", "44.5.0"],
+  ["electron", "44.10.2"],
   ["@electron/packager", "20.3.0"],
   ["@sentry/electron", "7.20.0"],
   ["@sentry/bundler-plugins", "10.75.0"],
@@ -41,7 +41,7 @@ const exactVersions = new Map([
   ["@vitest/browser-playwright", "4.1.11"],
   ["@vitest/coverage-istanbul", "4.1.11"],
   ["@vitest/ui", "4.1.11"],
-  ["vite", "8.3.1"],
+  ["vite", "8.3.6"],
   ["vite-plugin-wasm", "3.6.0"],
   ["typescript", "7.0.2"],
   ["lodash-es", "4.18.1"],
@@ -58,11 +58,11 @@ const prohibitedDirectDependencies = new Set([
   "@vitest/browser",
 ]);
 const exactRootResolutions = new Map([
-  ["dompurify@npm:^3.3.3", "npm:3.4.16"],
+  ["dompurify@npm:^3.3.3", "npm:3.4.17"],
   ["js-yaml@npm:^4.1.0", "npm:4.3.2"],
   ["js-yaml@npm:^4.2.0", "npm:4.3.2"],
   ["nanoid@npm:^3.3.16", "npm:3.3.18"],
-  ["vite@npm:^6.0.0 || ^7.0.0 || ^8.0.0", "npm:8.3.1"],
+  ["vite@npm:^6.0.0 || ^7.0.0 || ^8.0.0", "npm:8.3.6"],
 ]);
 const prohibitedPolicyKeys = new Set([
   "advisoryAllowlist",
@@ -473,7 +473,7 @@ function verifyToolchainLock(graph) {
     ["@vitest/coverage-istanbul", "4.1.11"],
     ["@vitest/ui", "4.1.11"],
     ["typescript", "7.0.2"],
-    ["vite", "8.3.1"],
+    ["vite", "8.3.6"],
     ["vitest", "4.1.11"],
   ]);
   const findings = [];
@@ -782,7 +782,7 @@ function runSelfTests() {
     expectManifestFixtureFailure(
       "vite-7",
       { vite: "7.3.6" },
-      /vite.*must be exactly 8\.3\.1/,
+      /vite.*must be exactly 8\.3\.6/,
     ),
     expectManifestFixtureFailure(
       "vitest-3",

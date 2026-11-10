@@ -2,8 +2,10 @@
 import { UrlService } from "@myoxus/core/modules/url";
 import type { UpdaterState } from "@myoxus/desktop-api-contract";
 import { getDesktopBridge } from "@myoxus/desktop-api-contract/bridge";
+import { useI18n } from "@myoxus/i18n";
 import { deviceSettingAtom, useService } from "@myoxus/infra";
 import { track } from "@myoxus/track";
+import { notify } from "@myoxus/ui-facade";
 import { atom, useAtom, useAtomValue } from "jotai";
 import { atomWithObservable, atomWithStorage } from "jotai/utils";
 import { useCallback, useState } from "react";
@@ -90,7 +92,12 @@ const currentChangelogUnreadAtom = atom(
 );
 
 export const useAppUpdater = () => {
+  const t = useI18n();
   const updaterState = useAtomValue(updaterStateAtom);
+  const nativeUpdatesEnabled = updaterState?.availability.state === "enabled";
+  const externalMacosInstall =
+    updaterState?.availability.state === "disabled" &&
+    updaterState.availability.reason === "external-macos-install";
   const [appQuitting, setAppQuitting] = useState(false);
   const updateReady = useAtomValue(updateReadyAtom);
   const urlService = useService(UrlService);
@@ -106,18 +113,25 @@ export const useAppUpdater = () => {
 
   const quitAndInstall = useCallback(() => {
     track.$.navigationPanel.bottomButtons.quitAndInstall();
-    if (updateReady) {
+    if (nativeUpdatesEnabled && updateReady && !appQuitting && apis) {
       setAppQuitting(true);
-      apis?.updater.quitAndInstall().catch((err) => {
-        // TODO(@Peng): add error toast here
-        console.error(err);
-      });
+      void apis.updater
+        .quitAndInstall()
+        .catch((err) => {
+          console.error(err);
+          notify.error({ title: t["com.myoxus.common.operation-failed"]() });
+        })
+        .finally(() => {
+          // Admission can be canceled and installers can fail without an exit.
+          // Keep restart/retry usable when Main returns control to this window.
+          setAppQuitting(false);
+        });
     }
-  }, [updateReady]);
+  }, [appQuitting, nativeUpdatesEnabled, t, updateReady]);
 
   const checkForUpdates = useCallback(async () => {
     track.$.settingsPanel.about.checkUpdates();
-    if (checkingForUpdates) {
+    if (!nativeUpdatesEnabled || checkingForUpdates) {
       return;
     }
     setCheckingForUpdates(true);
@@ -131,14 +145,19 @@ export const useAppUpdater = () => {
     } finally {
       setCheckingForUpdates(false);
     }
-  }, [checkingForUpdates, setCheckingForUpdates]);
+  }, [nativeUpdatesEnabled, checkingForUpdates, setCheckingForUpdates]);
 
   const downloadUpdate = useCallback(() => {
+    if (!nativeUpdatesEnabled) return;
     track.$.settingsPanel.about.downloadUpdate();
     apis?.updater.downloadUpdate().catch((err) => {
       console.error("Error downloading update:", err);
     });
-  }, []);
+  }, [nativeUpdatesEnabled]);
+
+  const openDownloadPage = useCallback(() => {
+    urlService.openExternal(BUILD_CONFIG.downloadUrl);
+  }, [urlService]);
 
   const toggleAutoDownload = useCallback(
     (enable: boolean) => {
@@ -179,6 +198,9 @@ export const useAppUpdater = () => {
 
   return {
     updaterState,
+    nativeUpdatesEnabled,
+    externalMacosInstall,
+    openDownloadPage,
     quitAndInstall,
     checkForUpdates,
     downloadUpdate,

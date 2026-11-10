@@ -17,12 +17,11 @@ import {
   MenuScrollableSection,
   MenuSection,
 } from "@myoxus/ui-facade";
-import { type MouseEvent, useEffect, useMemo } from "react";
+import { type MouseEvent, useEffect, useMemo, useRef } from "react";
 
 import { type DocRecord, DocsService } from "../../doc";
 import { DocDisplayMetaService } from "../../doc-display-meta";
 import { WorkbenchService } from "../../workbench/services/workbench";
-import { BuiltinTemplateReconcilerService } from "../services/builtin-reconciler";
 import {
   type LoadTemplateSuggestionsOptions,
   type TemplateCategoryFilter,
@@ -226,7 +225,6 @@ interface TemplateListMenuContentProps extends CommonProps {
     LoadTemplateSuggestionsOptions,
     "surface" | "locale" | "categoryFilter"
   >;
-  loadSuggestionsOnMount?: boolean;
 }
 export const TemplateListMenuContent = ({
   prefixItems,
@@ -234,11 +232,9 @@ export const TemplateListMenuContent = ({
   categoryFilter,
   suggestionInput,
   suggestionSurface,
-  loadSuggestionsOnMount = true,
   ...props
 }: TemplateListMenuContentProps) => {
   const templateDocService = useService(TemplateDocService);
-  const reconciler = useService(BuiltinTemplateReconcilerService);
   const t = useI18n();
   const suggestionRequest = useMemo(
     () =>
@@ -281,6 +277,19 @@ export const TemplateListMenuContent = ({
     () => (shouldUseSuggestions ? suggestions.items : []),
     [shouldUseSuggestions, suggestions.items],
   );
+  const hasContinuation = Boolean(
+    shouldUseSuggestions && suggestions.hasNextPage,
+  );
+  const rankedItems = hasContinuation
+    ? suggestionItems.filter(
+        (item) => item.origin === "builtin" || item.origin === "imported",
+      )
+    : suggestionItems;
+  const supplementalItems = hasContinuation
+    ? suggestionItems.filter(
+        (item) => item.origin !== "builtin" && item.origin !== "imported",
+      )
+    : [];
   const remainingTemplateDocs = useMemo(() => {
     // Row bindings require Registry identities/publication guards. Local document
     // IDs remain valid in ordinary document pickers, never as catalog IDs.
@@ -299,25 +308,36 @@ export const TemplateListMenuContent = ({
     return templateDocs.filter((doc) => !suggestedDocIds.has(doc.id));
   }, [suggestionItems, templateDocs, suggestionSurface]);
   useEffect(() => {
-    if (!suggestionSurface || !loadSuggestionsOnMount) return;
-    let mounted = true;
-    templateDocService.invalidateTemplateSuggestions();
-    void (async () => {
-      await reconciler.reconcile();
-      if (!mounted) return;
-      await templateDocService.loadTemplateSuggestions(suggestionRequest!);
-    })();
-    return () => {
-      mounted = false;
-    };
+    if (!suggestionSurface) return;
+    return templateDocService.openTemplateSuggestionMenu(suggestionRequest!);
   }, [
     categoryFilter,
-    loadSuggestionsOnMount,
-    reconciler,
     suggestionSurface,
     suggestionInput,
     suggestionRequest,
     t.language,
+    templateDocService,
+  ]);
+  useEffect(() => {
+    if (
+      !suggestionRequest ||
+      !shouldUseSuggestions ||
+      !suggestions.hasNextPage ||
+      suggestions.error
+    )
+      return;
+    const frame = requestAnimationFrame(() => {
+      void templateDocService.prepareTemplateSuggestionContinuation(
+        suggestionRequest,
+      );
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [
+    suggestionRequest,
+    shouldUseSuggestions,
+    suggestions.endCursor,
+    suggestions.hasNextPage,
+    suggestions.error,
     templateDocService,
   ]);
 
@@ -346,9 +366,54 @@ export const TemplateListMenuContent = ({
           </MenuItem>
         </>
       ) : null}
-      {suggestionItems.length || remainingTemplateDocs.length ? (
+      {suggestionItems.length ||
+      remainingTemplateDocs.length ||
+      hasContinuation ? (
         <>
-          {suggestionItems.map((item) => (
+          {rankedItems.map((item) => (
+            <SuggestionItem
+              key={item.templateId}
+              item={item}
+              suggestionRequest={suggestionRequest}
+              {...props}
+            />
+          ))}
+          {hasContinuation ? (
+            <MenuItem
+              closeMenuOnClick={false}
+              aria-busy={suggestions.loadingMore || undefined}
+              aria-disabled={suggestions.loadingMore || undefined}
+              data-testid="template-suggestions-more"
+              onClick={async (event) => {
+                if (!suggestionRequest || suggestions.loadingMore) return;
+                const control = event.currentTarget;
+                const menu = control.closest<HTMLElement>('[role="menu"]');
+                const result = await templateDocService.loadTemplateSuggestions(
+                  {
+                    ...suggestionRequest,
+                    after: suggestions.endCursor,
+                  },
+                );
+                if (result.status === "ready" && !result.hasNextPage)
+                  requestAnimationFrame(() => {
+                    // The last continuation removes its focused control. Restore
+                    // the still-open native menu only if focus was otherwise lost.
+                    if (
+                      !control.isConnected &&
+                      menu?.isConnected &&
+                      menu.dataset.myoxusUiOpen === "true" &&
+                      document.activeElement === document.body
+                    )
+                      menu.focus();
+                  });
+              }}
+            >
+              {suggestions.error
+                ? t.Retry()
+                : t["com.myoxus.history.confirm-restore-modal.load-more"]()}
+            </MenuItem>
+          ) : null}
+          {supplementalItems.map((item) => (
             <SuggestionItem
               key={item.templateId}
               item={item}
@@ -395,9 +460,10 @@ export const TemplateListMenu = ({
   rootOptions,
   ...otherProps
 }: TemplateListMenuProps) => {
-  const reconciler = useService(BuiltinTemplateReconcilerService);
   const templateDocService = useService(TemplateDocService);
   const t = useI18n();
+  const closeMenu = useRef<(() => void) | undefined>(undefined);
+  useEffect(() => () => closeMenu.current?.(), []);
   return (
     <Menu
       items={
@@ -411,7 +477,6 @@ export const TemplateListMenu = ({
           categoryFilter={categoryFilter}
           suggestionSurface={suggestionSurface}
           suggestionInput={suggestionInput}
-          loadSuggestionsOnMount={false}
         />
       }
       contentOptions={{
@@ -422,18 +487,26 @@ export const TemplateListMenu = ({
         ...rootOptions,
         onOpen: () => {
           rootOptions?.onOpen?.();
-          templateDocService.invalidateTemplateSuggestions();
-          void (async () => {
-            await reconciler.reconcile();
-            if (suggestionSurface) {
-              await templateDocService.loadTemplateSuggestions({
-                ...suggestionInput,
-                surface: suggestionSurface,
-                categoryFilter,
-                locale: t.language,
-              });
-            }
-          })();
+          closeMenu.current?.();
+          if (suggestionSurface)
+            closeMenu.current = templateDocService.openTemplateSuggestionMenu({
+              ...suggestionInput,
+              surface: suggestionSurface,
+              categoryFilter,
+              locale: t.language,
+            });
+        },
+        onClose: () => {
+          closeMenu.current?.();
+          if (suggestionSurface)
+            templateDocService.closeTemplateSuggestionMenu({
+              ...suggestionInput,
+              surface: suggestionSurface,
+              categoryFilter,
+              locale: t.language,
+            });
+          closeMenu.current = undefined;
+          rootOptions?.onClose?.();
         },
       }}
       {...otherProps}

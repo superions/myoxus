@@ -14,6 +14,15 @@ export type SharedStorageValueObject = {
   [key: string]: SharedStoragePersistedValue;
 };
 
+/** Main commits the current registry, not a renderer's stale array snapshot. */
+export type DesktopServerRegistryMutation =
+  | {
+      type: "add";
+      server: { id: string; baseUrl: string };
+      config: SharedStoragePersistedValue;
+    }
+  | { type: "remove"; id: string };
+
 export type WorkbenchPath = {
   pathname?: string;
   hash?: string;
@@ -132,6 +141,8 @@ export type UpdateMeta = {
 
 export type UpdaterUnavailableReason =
   | "development"
+  /** macOS replacement is external; this does not attest Homebrew ownership. */
+  | "external-macos-install"
   | "externally-managed"
   | "portable"
   | "missing-package-marker"

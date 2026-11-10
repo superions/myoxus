@@ -272,6 +272,7 @@ export function getCombinedTextAttributeState<
 
 export function isFormatSupported(chain: Chain<InitCommandCtx>) {
   return handleCurrentSelection(chain, (_type, inlineEditors) => {
+    if (inlineEditors.some((editor) => editor.isReadonly)) return false;
     if (inlineEditors.length === 1) {
       const inlineEditor = inlineEditors[0];
       const inlineRange = inlineEditor.getInlineRange();

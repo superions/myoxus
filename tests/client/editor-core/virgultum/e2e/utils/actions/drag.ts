@@ -207,29 +207,6 @@ export async function moveToImage(page: Page) {
   await page.locator("myoxus-image").hover({ timeout: 500 });
 }
 
-export async function popImageMoreMenu(page: Page) {
-  await moveToImage(page);
-  const toolbar = page.getByTestId("selection-toolbar");
-  const menu = toolbar.getByLabel("More menu");
-  await menu.click();
-
-  const turnIntoCardButton = menu.getByLabel("Turn into card view");
-
-  const copyButton = menu.getByLabel("Copy");
-
-  const duplicateButton = page.getByLabel("Duplicate");
-
-  const deleteButton = page.getByLabel("Delete");
-
-  return {
-    menu,
-    copyButton,
-    turnIntoCardButton,
-    duplicateButton,
-    deleteButton,
-  };
-}
-
 export async function clickBlockDragHandle(page: Page, blockId: string) {
   const blockBox = await page
     .locator(`[data-block-id="${blockId}"]`)

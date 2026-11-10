@@ -30,7 +30,7 @@ import {
 } from "@virgultum/model";
 import {
   focusTextModel,
-  getInlineEditorByModel,
+  openTemplateFieldPicker,
   textAlignConfigs,
   textConversionConfigs,
 } from "@virgultum/rich-text";
@@ -58,6 +58,7 @@ import {
   resolveEditorMessage,
   editorMessage,
   resolveLegacyEditorText,
+  textProtectionMessages,
   type ToolbarAction,
   type ToolbarActionGenerator,
   type ToolbarActionGroup,
@@ -481,7 +482,7 @@ const turnIntoLinkedDoc = {
     "Create Linked Doc",
   ),
   icon: "LinkedPageIcon",
-  when({ chain, std }) {
+  when({ chain, std, store }) {
     const supportFlavours = [
       EmbedLinkedDocBlockSchema,
       EmbedSyncedDocBlockSchema,
@@ -499,7 +500,12 @@ const turnIntoLinkedDoc = {
         mode: "flat",
       })
       .run();
-    return ok && Boolean(selectedModels?.length);
+    return (
+      ok &&
+      Boolean(selectedModels?.length) &&
+      !store.readonly &&
+      !selectedModels?.some((model) => store.hasFixedText(model))
+    );
   },
   run({ chain, store, selection, std, track }) {
     const [ok, { draftedModels, selectedModels }] = chain
@@ -510,6 +516,11 @@ const turnIntoLinkedDoc = {
       .pipe(draftSelectedModelsCommand)
       .run();
     if (!ok || !draftedModels || !selectedModels?.length) return;
+    if (
+      store.readonly ||
+      selectedModels.some((model) => store.hasFixedText(model))
+    )
+      return;
 
     selection.clear();
 
@@ -519,12 +530,13 @@ const turnIntoLinkedDoc = {
     promptDocTitle(std, autofill)
       .then(async (title) => {
         if (title === null) return;
-        await convertSelectedBlocksToLinkedDoc(
+        const created = await convertSelectedBlocksToLinkedDoc(
           std,
           store,
           draftedModels,
           title,
         );
+        if (!created) return;
         notifyDocCreated(std);
 
         track("DocCreated", {
@@ -561,6 +573,11 @@ const templateRepeatAction = {
       .run();
     if (!ok || selectedModels.length !== 1) return null;
     const model = selectedModels[0];
+    if (
+      "textProtection" in model.props &&
+      model.props.textProtection === "fixed"
+    )
+      return null;
     if (!["myoxus:paragraph", "myoxus:list"].includes(model.flavour))
       return null;
     const i18n = std.getOptional(EditorI18nProvider) ?? undefined;
@@ -612,8 +629,10 @@ const templateVariableAction = {
   id: "d.template-variable",
   when: ({ std, readonly }) =>
     !readonly &&
-    Boolean(std.getOptional(MyoxusHostServiceIdentifier)?.isTemplateDocument()),
-  generate({ chain, std, store }) {
+    Boolean(
+      std.getOptional(MyoxusHostServiceIdentifier)?.openTemplateVariablePicker,
+    ),
+  generate({ chain, std }) {
     const [ok, { selectedModels = [] }] = chain
       .pipe(getSelectedModelsCommand, {
         types: ["text", "block"],
@@ -623,47 +642,93 @@ const templateVariableAction = {
     if (!ok || selectedModels.length !== 1) return null;
     const model = selectedModels[0];
     if (
+      "textProtection" in model.props &&
+      model.props.textProtection === "fixed"
+    )
+      return null;
+    if (
       !model.text ||
       !["myoxus:paragraph", "myoxus:list"].includes(model.flavour)
     )
       return null;
     const host = std.getOptional(MyoxusHostServiceIdentifier);
-    const capabilities = host?.getTemplateVariableCapabilities() ?? [];
-    if (!capabilities.length || !host?.openTemplateVariablePicker) return null;
-    const i18n = std.getOptional(EditorI18nProvider) ?? undefined;
-    const open = (_anchor: HTMLElement) => {
-      const inlineEditor = getInlineEditorByModel(std, model);
-      const range = inlineEditor?.getInlineRange() ?? {
-        index: model.text?.length ?? 0,
-        length: 0,
-      };
-      let nextCaret = range.index;
-      host.openTemplateVariablePicker?.({
-        i18n,
-        canWrite: () =>
-          !store.readonly &&
-          Boolean(inlineEditor) &&
-          Boolean(
-            std.getOptional(MyoxusHostServiceIdentifier)?.isTemplateDocument(),
-          ) &&
-          store.getModelById(model.id) === model,
-        insert: (token) => {
-          store.captureSync();
-          inlineEditor?.insertText(range, token);
-          nextCaret = range.index + token.length;
-          store.captureSync();
-        },
-        onClose: () => {
-          if (store.getModelById(model.id))
-            focusTextModel(std, model.id, nextCaret);
-        },
-      });
-    };
+    if (!host?.openTemplateVariablePicker) return null;
     return {
-      label: templateVariableLabel,
+      label: host.isTemplateDocument()
+        ? templateVariableLabel
+        : editorMessage(
+            "com.myoxus.editor.field.document-fields",
+            "Document fields",
+          ),
       icon: "TextTypeIcon",
       run: (_ctx, anchor) => {
-        if (anchor) open(anchor);
+        if (anchor) openTemplateFieldPicker(std, model);
+      },
+    };
+  },
+} satisfies ToolbarActionGenerator;
+
+const textProtectionAction = {
+  id: "d.text-protection",
+  generate({ chain, std, store, readonly }) {
+    const [ok, { selectedModels = [] }] = chain
+      .pipe(getSelectedModelsCommand, {
+        types: ["text", "block"],
+        mode: "flat",
+      })
+      .run();
+    if (!ok || selectedModels.length !== 1) return null;
+    const model = selectedModels[0];
+    if (
+      !["myoxus:paragraph", "myoxus:list", "myoxus:callout"].includes(
+        model.flavour,
+      )
+    )
+      return null;
+    const mode =
+      "textProtection" in model.props ? model.props.textProtection : undefined;
+    if (mode !== undefined && mode !== "source" && mode !== "fixed")
+      return null;
+    const fixed = mode === "fixed";
+    if (
+      !fixed &&
+      (readonly ||
+        !std.getOptional(MyoxusHostServiceIdentifier)?.isTemplateDocument())
+    )
+      return null;
+    return {
+      label: fixed
+        ? textProtectionMessages.fixed
+        : mode === "source"
+          ? textProtectionMessages.unprotect
+          : textProtectionMessages.protect,
+      icon: "LockIcon",
+      tooltip: fixed
+        ? textProtectionMessages.fixedDescription
+        : textProtectionMessages.sourceDescription,
+      disabled: readonly || fixed,
+      active: mode === "source" || fixed,
+      run: () => {
+        const current =
+          "textProtection" in model.props
+            ? model.props.textProtection
+            : undefined;
+        if (
+          store.readonly ||
+          store.getModelById(model.id) !== model ||
+          current !== mode ||
+          current === "fixed" ||
+          !std.getOptional(MyoxusHostServiceIdentifier)?.isTemplateDocument()
+        )
+          return;
+        store.captureSync();
+        store.updateBlock(model, () => {
+          if (mode === "source")
+            Reflect.deleteProperty(model.props, "textProtection");
+          else Reflect.set(model.props, "textProtection", "source");
+        });
+        store.captureSync();
+        focusTextModel(std, model.id);
       },
     };
   },
@@ -678,6 +743,7 @@ export const builtinToolbarConfig = {
     labelToneAction,
     templateVariableAction,
     templateRepeatAction,
+    textProtectionAction,
     {
       placement: ActionPlacement.More,
       id: "b.building-block",
@@ -797,6 +863,18 @@ export const builtinToolbarConfig = {
         {
           id: "delete",
           label: editorMessage("Delete", "Delete"),
+          disabled: ({ chain, store }) => {
+            const [, { selectedModels = [] }] = chain
+              .pipe(getSelectedModelsCommand, {
+                types: ["text", "block", "image"],
+                mode: "highest",
+              })
+              .run();
+            return (
+              store.readonly ||
+              selectedModels.some((model) => store.hasFixedText(model))
+            );
+          },
           icon: "DeleteIcon",
           variant: "destructive",
           run({ chain }) {

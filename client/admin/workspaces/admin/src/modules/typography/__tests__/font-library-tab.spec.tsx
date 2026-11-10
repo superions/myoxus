@@ -34,6 +34,8 @@ const fontAddonApiMocks = vi.hoisted(() => ({
 
 vi.mock("@myoxus/i18n", () => ({
   useI18n: () => ({
+    "com.myoxus.peek-view-controls.close": () =>
+      en["com.myoxus.peek-view-controls.close"],
     t: (key: string): string => en[key] ?? key,
     language: "en",
   }),

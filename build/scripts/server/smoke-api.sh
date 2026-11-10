@@ -21,9 +21,19 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 . "$SCRIPT_DIR/lib-auth-smoke.sh"
+if [ -n "${MYOXUS_RUNTIME_PROFILE:-}" ]; then
+  source "$SCRIPT_DIR/require-runtime-profile.sh"
+fi
 
-API_URL="${API_URL:-http://localhost:3001}"
+API_CONTAINER="$(docker compose -f "$REPO_ROOT/build/server/docker-compose.selfhost.yml" ps --status running --quiet api)"
+if [ -z "$API_CONTAINER" ]; then
+  echo "[FAIL] No running API container in the selected Compose project."
+  exit 1
+fi
+
+API_URL="${API_URL:-http://localhost:${MYOXUS_PUBLIC_PORT:-3001}}"
 ADMIN_EMAIL="${E2E_ADMIN_EMAIL:-admin@myoxus.local}"
 ADMIN_PASSWORD="${E2E_ADMIN_PASSWORD:-AdminMyoxus2026}"
 
@@ -59,8 +69,8 @@ fi
 
 # 3. Container freshness — started after last git commit?
 echo "3. Container freshness"
-CONTAINER_START=$(docker inspect server-api-1 --format='{{.State.StartedAt}}' 2>/dev/null || echo "unknown")
-LAST_COMMIT=$(git log -1 --format='%cI' 2>/dev/null || echo "unknown")
+CONTAINER_START=$(docker inspect "$API_CONTAINER" --format='{{.State.StartedAt}}' 2>/dev/null || echo "unknown")
+LAST_COMMIT=$(git -C "$REPO_ROOT" log -1 --format='%cI' 2>/dev/null || echo "unknown")
 if [ "$CONTAINER_START" != "unknown" ] && [ "$LAST_COMMIT" != "unknown" ]; then
   CS=$(date -d "$CONTAINER_START" +%s 2>/dev/null || echo 0)
   LC=$(date -d "$LAST_COMMIT" +%s 2>/dev/null || echo 0)
@@ -72,23 +82,23 @@ if [ "$CONTAINER_START" != "unknown" ] && [ "$LAST_COMMIT" != "unknown" ]; then
     echo "    Last commit: $LAST_COMMIT"
   fi
 else
-  pass "freshness check skipped (no container or git info)"
+  fail "container freshness unavailable (missing container or git info)"
 fi
 
 # 4. Logging safety. A smoke test must not require a noisy operational level in
 # order to observe the service it tests. Docker stdout is a second log sink next
 # to the server-owned file writer, so it must always be bounded.
 echo "4. Logging safety"
-LOG_DRIVER=$(docker inspect server-api-1 --format='{{.HostConfig.LogConfig.Type}}' 2>/dev/null || echo "unknown")
-LOG_MAX_SIZE=$(docker inspect server-api-1 --format='{{with index .HostConfig.LogConfig.Config "max-size"}}{{.}}{{end}}' 2>/dev/null || true)
-LOG_MAX_FILES=$(docker inspect server-api-1 --format='{{with index .HostConfig.LogConfig.Config "max-file"}}{{.}}{{end}}' 2>/dev/null || true)
+LOG_DRIVER=$(docker inspect "$API_CONTAINER" --format='{{.HostConfig.LogConfig.Type}}' 2>/dev/null || echo "unknown")
+LOG_MAX_SIZE=$(docker inspect "$API_CONTAINER" --format='{{with index .HostConfig.LogConfig.Config "max-size"}}{{.}}{{end}}' 2>/dev/null || true)
+LOG_MAX_FILES=$(docker inspect "$API_CONTAINER" --format='{{with index .HostConfig.LogConfig.Config "max-file"}}{{.}}{{end}}' 2>/dev/null || true)
 if [ "$LOG_DRIVER" = "json-file" ] && [ -n "$LOG_MAX_SIZE" ] && [ -n "$LOG_MAX_FILES" ]; then
   pass "Docker logs bounded (max-size=$LOG_MAX_SIZE, max-file=$LOG_MAX_FILES)"
 else
   fail "Docker log rotation missing (driver=$LOG_DRIVER, max-size=${LOG_MAX_SIZE:-unset}, max-file=${LOG_MAX_FILES:-unset})"
 fi
 
-FORCED_TRACE=$(docker inspect server-api-1 --format='{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null \
+FORCED_TRACE=$(docker inspect "$API_CONTAINER" --format='{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null \
   | grep -Ei '^(MYOXUS__LOGGING__LEVEL|RUST_LOG)=trace($|,)' || true)
 if [ -n "$FORCED_TRACE" ] && [ "${SMOKE_ALLOW_TRACE_LOGGING:-0}" != "1" ]; then
   fail "global TRACE is forced by container environment; use a targeted runtime level with auto-revert"
@@ -103,7 +113,7 @@ echo "5. Auth sign-in"
 SIGN_IN_ERR="$(mktemp)"
 SESSION="$(smoke_admin_sign_in "$API_URL" "$ADMIN_EMAIL" "$ADMIN_PASSWORD" 2>"$SIGN_IN_ERR" || true)"
 if [ -n "$SESSION" ]; then
-  pass "sign-in successful (session=$SESSION)"
+  pass "sign-in successful"
   rm -f "$SIGN_IN_ERR"
 else
   fail "sign-in failed: $(cat "$SIGN_IN_ERR")"
@@ -155,12 +165,15 @@ fi
 
 # 9. No GraphQL errors in recent logs
 echo "9. Recent GraphQL errors"
-ERROR_COUNT=$(docker logs server-api-1 --since "60s" 2>&1 | grep -c "graphql error" || true)
-if [ "$ERROR_COUNT" -eq 0 ]; then
-  pass "no GraphQL errors in last 60s"
+if RECENT_LOGS=$(docker logs "$API_CONTAINER" --since "60s" 2>&1); then
+  ERROR_COUNT=$(printf '%s\n' "$RECENT_LOGS" | grep -c "graphql error" || true)
+  if [ "$ERROR_COUNT" -eq 0 ]; then
+    pass "no GraphQL errors in last 60s"
+  else
+    fail "$ERROR_COUNT GraphQL errors in last 60s"
+  fi
 else
-  fail "$ERROR_COUNT GraphQL errors in last 60s"
-  docker logs server-api-1 --since "60s" 2>&1 | grep "graphql error" | head -3
+  fail "could not read API logs"
 fi
 
 echo ""

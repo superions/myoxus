@@ -81,6 +81,14 @@ export function formatRegionalDate(
   }
 }
 
+/** Format a timezone-free YYYY-MM-DD calendar day without shifting its fields. */
+export function formatRegionalCalendarDate(
+  value: string,
+  preferences: RegionalFormatPreferences,
+): string {
+  return formatRegionalDate(value, { ...preferences, timezone: "UTC" });
+}
+
 export function formatRegionalTime(
   value: DateInput,
   preferences: RegionalFormatPreferences,

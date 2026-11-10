@@ -10,6 +10,11 @@
 /** Matches any page inside a workspace: `/workspace/:workspaceId/*`. */
 export const WORKSPACE_ROUTE_PATH = "/workspace/:workspaceId/*";
 
+/** Two segments keep the native Document key `search` available. */
+export function getSearchResultsPath(query: string) {
+  return `/search/results?${new URLSearchParams({ q: query })}`;
+}
+
 /**
  * Legacy share-page route kept for backwards-compatibility with old links.
  * The router redirects hits on this path to the canonical workspace-doc URL

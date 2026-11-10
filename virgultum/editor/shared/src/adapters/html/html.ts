@@ -1,4 +1,5 @@
 import type { ServiceProvider } from "@virgultum/global/di";
+import { projectDocumentFieldOutput } from "../utils/document-field-output";
 import { DefaultTheme, NoteDisplayMode } from "@virgultum/model";
 import {
   type AssetsManager,
@@ -309,6 +310,13 @@ export class HtmlAdapter extends BaseAdapter<Html> {
   override async fromBlockSnapshot(
     payload: FromBlockSnapshotPayload,
   ): Promise<FromBlockSnapshotResult<string>> {
+    payload = {
+      ...payload,
+      snapshot: await projectDocumentFieldOutput(
+        payload.snapshot,
+        this.scopeProvider,
+      ),
+    };
     prepareLocalFootnoteReading(
       [payload.snapshot],
       this.configs,
@@ -337,6 +345,14 @@ export class HtmlAdapter extends BaseAdapter<Html> {
   override async fromDocSnapshot(
     payload: FromDocSnapshotPayload,
   ): Promise<FromDocSnapshotResult<string>> {
+    payload = {
+      ...payload,
+      snapshot: await projectDocumentFieldOutput(
+        payload.snapshot,
+        this.scopeProvider,
+        payload.snapshot.meta.id,
+      ),
+    };
     const { file, assetsIds } = await this.fromBlockSnapshot({
       snapshot: payload.snapshot.blocks,
       assets: payload.assets,
@@ -353,6 +369,15 @@ export class HtmlAdapter extends BaseAdapter<Html> {
   override async fromSliceSnapshot(
     payload: FromSliceSnapshotPayload,
   ): Promise<FromSliceSnapshotResult<string>> {
+    payload = {
+      ...payload,
+      snapshot: await projectDocumentFieldOutput(
+        payload.snapshot,
+        this.scopeProvider,
+        payload.snapshot.pageId,
+        payload.snapshot.workspaceId,
+      ),
+    };
     prepareLocalFootnoteReading(
       payload.snapshot.content,
       this.configs,

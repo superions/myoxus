@@ -1,9 +1,4 @@
-import {
-  ImportIcon,
-  LinkedDocIcon,
-  LinkedEdgelessIcon,
-  NewDocIcon,
-} from "@virgultum/components/icons";
+import type { EditorDocumentPickerItem } from "@virgultum/shared/services";
 import { StoreExtensionManagerIdentifier } from "@virgultum/ext-loader";
 import { IS_MOBILE } from "@virgultum/global/env";
 import { insertLinkedNode } from "@virgultum/inline-reference";
@@ -29,7 +24,6 @@ import {
   type EditorHost,
 } from "@virgultum/std";
 import type { InlineRange } from "@virgultum/std/inline";
-import type { TemplateResult } from "lit";
 
 import { showImportModal } from "./import-doc/index.js";
 import type { LinkedDocViewExtensionOptions } from "./view";
@@ -39,12 +33,8 @@ export type LinkedWidgetConfig = Required<
 > &
   Pick<LinkedDocViewExtensionOptions, "autoFocusedItemKey">;
 
-export type LinkedMenuItem = {
+export type LinkedMenuItem = Omit<EditorDocumentPickerItem, "id"> & {
   key: string;
-  name: string | TemplateResult<1>;
-  icon: TemplateResult<1>;
-  suffix?: string | TemplateResult<1>;
-  // disabled?: boolean;
   action: LinkedMenuAction;
 };
 
@@ -54,7 +44,6 @@ export type LinkedMenuGroup = {
   name: string;
   emptyMessage?: string;
   items: LinkedMenuItem[] | Signal<LinkedMenuItem[]>;
-  styles?: string;
   // maximum quantity displayed by default
   maxDisplay?: number;
   // if the menu is loading
@@ -69,7 +58,6 @@ export type LinkedDocContext = {
   std: BlockStdScope;
   inlineEditor: MyoxusInlineEditor;
   startRange: InlineRange;
-  startNativeRange: Range;
   triggerKey: string;
   config: LinkedWidgetConfig;
   close: () => void;
@@ -83,7 +71,7 @@ export function createLinkedDocMenuGroup(
   abort: () => void,
   editorHost: EditorHost,
   inlineEditor: MyoxusInlineEditor,
-) {
+): LinkedMenuGroup {
   const doc = editorHost.store;
   const { docMetas } = doc.workspace.meta;
   const filteredDocList = docMetas
@@ -99,8 +87,8 @@ export function createLinkedDocMenuGroup(
       icon:
         editorHost.std.get(DocModeProvider).getPrimaryMode(doc.id) ===
         "edgeless"
-          ? LinkedEdgelessIcon
-          : LinkedDocIcon,
+          ? "EdgelessIcon"
+          : "LinkIcon",
       action: () => {
         abort();
         insertLinkedNode({
@@ -138,7 +126,7 @@ export function createNewDocMenuGroup(
     {
       key: "create",
       name: `Create "${displayDocName}" doc`,
-      icon: NewDocIcon,
+      icon: "NewXxxPageIcon",
       action: () => {
         abort();
         const docName = query;
@@ -169,7 +157,7 @@ export function createNewDocMenuGroup(
     items.push({
       key: "import",
       name: "Import",
-      icon: ImportIcon,
+      icon: "ImportIcon",
       action: () => {
         abort();
         const onSuccess = (

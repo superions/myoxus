@@ -16,7 +16,8 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { parse as parseYaml } from "yaml";
+import { loadSourceTool } from "./source-tools.mjs";
+const { parse: parseYaml } = loadSourceTool("yaml");
 
 import { validateProvenance as validateClientProvenance } from "./verify-client-source-provenance.mjs";
 import { verifyPublicUrlOwnership } from "./verify-public-url-ownership.mjs";

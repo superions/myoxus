@@ -19,9 +19,9 @@
   "dependencies": {
     "@myoxus/debug": "workspace:*",
     "dayjs": "^1.11.23",
-    "i18next": "^25.0.0",
+    "i18next": "^26.7.2",
     "react": "19.3.0",
-    "react-i18next": "^15.2.0"
+    "react-i18next": "^17.1.13"
   },
   "devDependencies": {
     "@myoxus-tools/cli": "workspace:*",

@@ -29,6 +29,10 @@ import {
   type ParagraphBlockModel,
 } from "@virgultum/model";
 import { Slice, Text, type Store } from "@virgultum/store";
+import {
+  DocumentFieldSchema,
+  type MyoxusTextAttributes,
+} from "@virgultum/shared/types";
 import type { BlockStdScope } from "@virgultum/std";
 import type { BuildingBlockTarget } from "../../../editor/virgultum/doc-editor/building-block-target";
 import { commitBuildingBlockSection } from "../../template-doc/services/template-section-insertion";
@@ -350,6 +354,26 @@ test("document duplication retains exact BPMN heads and rejects failed content c
   const fixture = setup("bpmn-document-copy");
   const source = fixture.stores.get("source")!;
   const note = source.root!.children[0];
+  const field = {
+    type: "input" as const,
+    id: "source-answer",
+    definition: { kind: "text" as const, label: "Answer", required: false },
+    value: "Literal {{answer}}",
+  };
+  const metadata = {
+    type: "metadata" as const,
+    id: "source-title",
+    key: "title" as const,
+    format: "text" as const,
+  };
+  source.updateBlock(fixture.paragraph("source"), {
+    text: new Text<MyoxusTextAttributes>([
+      { insert: "Answer: " },
+      { insert: " ", attributes: { documentField: field } },
+      { insert: "Title: " },
+      { insert: " ", attributes: { documentField: metadata } },
+    ]),
+  });
   const xml = "\ufeff" + createBlankBpmnSource().replaceAll("\n", "\r\n");
   const heads = {
     left: xml,
@@ -383,6 +407,25 @@ test("document duplication retains exact BPMN heads and rejects failed content c
   });
   const targetId = await fixture.service.duplicate("source");
   const target = fixture.stores.get(targetId)!;
+  const sourceText = (fixture.paragraph("source") as unknown as { text: Text })
+    .text;
+  const copiedText = (fixture.paragraph(targetId) as unknown as { text: Text })
+    .text;
+  const sourceField = sourceText
+    .toDelta()
+    .find((run) => run.attributes?.documentField)?.attributes?.documentField;
+  const copiedField = copiedText
+    .toDelta()
+    .find((run) => run.attributes?.documentField)?.attributes?.documentField;
+  expect(sourceField).toEqual(field);
+  expect(copiedField).toMatchObject({ ...field, id: expect.any(String) });
+  expect(copiedField?.id).not.toBe(field.id);
+  const copiedMetadata = copiedText
+    .toDelta()
+    .find((run) => run.attributes?.documentField?.type === "metadata")
+    ?.attributes?.documentField;
+  expect(copiedMetadata).toMatchObject({ ...metadata, id: expect.any(String) });
+  expect(copiedMetadata?.id).not.toBe(metadata.id);
   const copy = target.getBlocksByFlavour("myoxus:bpmn")[0].model;
   expect(copy.id).not.toBe(id);
   expect(
@@ -937,6 +980,25 @@ function repeatSource(f: ReturnType<typeof setup>) {
 test("native repeats preserve order, pairing, marks and fresh identities from one preflight inventory", async () => {
   const f = setup();
   const source = repeatSource(f);
+  const prototype = source
+    .getAllModels()
+    .find((model) => model.flavour === "myoxus:table") as TableBlockModel;
+  const answer = prototype.props.cells["r:name"].text;
+  source.updateBlock(f.paragraph("source"), { textProtection: "source" });
+  prototype.props.cells["r:name"].textProtection = "source";
+  answer.insert(" ", answer.length, {
+    documentField: DocumentFieldSchema.parse({
+      type: "input",
+      id: "prototype-answer",
+      definition: {
+        kind: "text",
+        label: "Answer",
+        required: false,
+        default: "Initial {{literal}}",
+      },
+      value: "Preview answer",
+    }),
+  });
   const before = encodeStateAsUpdate(source.spaceDoc);
   f.facts["creator.name"] = "Ada {{literal}}";
   f.facts["workspace.members"] = [
@@ -963,6 +1025,11 @@ test("native repeats preserve order, pairing, marks and fresh identities from on
     "ada@example.test",
     "bea@example.test",
   ]);
+  expect(
+    units
+      .slice(0, 2)
+      .map((model) => (model as ParagraphBlockModel).props.textProtection),
+  ).toEqual(["fixed", "fixed"]);
   expect(
     units
       .slice(2, 4)
@@ -1004,9 +1071,22 @@ test("native repeats preserve order, pairing, marks and fresh identities from on
     ),
   ).toEqual([
     ["Name", "Email"],
-    ["Ada {{literal}}", "ada@example.test"],
-    ["Bea", "bea@example.test"],
+    ["Ada {{literal}} ", "ada@example.test"],
+    ["Bea ", "bea@example.test"],
   ]);
+  const fields = rows
+    .slice(1)
+    .map((row) =>
+      DocumentFieldSchema.parse(
+        table.props.cells[`${row.rowId}:name`].text.toDelta().at(-1)?.attributes
+          ?.documentField,
+      ),
+    );
+  expect(new Set(fields.map((field) => field.id)).size).toBe(2);
+  fields.forEach((field) => {
+    expect(field.id).not.toBe("prototype-answer");
+    expect(field).toMatchObject({ value: "Initial {{literal}}" });
+  });
   expect(
     table.props.cells[`${rows[1].rowId}:name`].text.toDelta()[0].attributes,
   ).toEqual({ italic: true });
@@ -1019,6 +1099,9 @@ test("native repeats preserve order, pairing, marks and fresh identities from on
     "--myoxus-sem-status-error-paper",
   ]);
   expect(table.props.headerRows).toBe(1);
+  expect(
+    rows.map((row) => table.props.cells[`${row.rowId}:name`].textProtection),
+  ).toEqual([undefined, "fixed", "fixed"]);
   expect(f.preflight).toHaveBeenCalledOnce();
   expect(f.creationFacts).toHaveBeenCalledOnce();
 
@@ -1160,6 +1243,23 @@ test("native body/table/title use authoritative creator/time, preserve split-tok
       { insert: "{{creator.", attributes: { bold: true } },
       { insert: "name}}", attributes: { italic: true } },
       { insert: " after", attributes: { italic: true } },
+      {
+        insert: " ",
+        attributes: {
+          bold: true,
+          documentField: DocumentFieldSchema.parse({
+            type: "input",
+            id: "body-answer",
+            definition: {
+              kind: "text",
+              label: "Answer",
+              required: true,
+              default: "Default {{literal}}",
+            },
+            value: "Source preview answer",
+          }),
+        },
+      },
     ]),
   });
   source.addBlock(
@@ -1179,13 +1279,30 @@ test("native body/table/title use authoritative creator/time, preserve split-tok
   );
   const before = encodeStateAsUpdate(source.spaceDoc);
   await f.apply("{{workspace.name}} {{document.created_at.datetime}}");
-  expect(f.body()).toBe("Before Creator after");
+  expect(f.body()).toBe("Before Creator after ");
   expect(
     (f.paragraph("target") as unknown as { text: Text }).text.toDelta(),
   ).toEqual([
     { insert: "Before ", attributes: { italic: true } },
     { insert: "Creator", attributes: { bold: true } },
     { insert: " after", attributes: { italic: true } },
+    {
+      insert: " ",
+      attributes: {
+        bold: true,
+        documentField: DocumentFieldSchema.parse({
+          type: "input",
+          id: "body-answer",
+          definition: {
+            kind: "text",
+            label: "Answer",
+            required: true,
+            default: "Default {{literal}}",
+          },
+          value: "Default {{literal}}",
+        }),
+      },
+    },
   ]);
   const table = f.stores
     .get("target")!
@@ -1853,6 +1970,9 @@ test("a failed new target is trashed rather than exposed as a successful applica
 
 test("late title failure restores title, properties and native content; failed compensation remains distinguishable", async () => {
   const f = setup();
+  f.stores
+    .get("source")!
+    .updateBlock(f.paragraph("source"), { textProtection: "source" });
   f.target.changeDocTitle.mockImplementationOnce((title) => {
     f.target.meta$.setValue({ ...f.target.meta$.value, title });
     throw new Error("write failed");
@@ -1929,6 +2049,34 @@ test("check consumes native title, text and cell diagnostics without any writes,
     },
     store.root!.children[0],
   );
+  const fieldText = f.paragraph("source").text!;
+  fieldText.insert(" ", fieldText.length, {
+    documentField: DocumentFieldSchema.parse({
+      type: "input",
+      id: "unfinished",
+      definition: { kind: "text", label: "Question", required: true },
+      value: null,
+    }),
+  });
+  fieldText.insert(" ", fieldText.length, {
+    documentField: DocumentFieldSchema.parse({
+      type: "metadata",
+      id: "target-metadata",
+      key: "responsible",
+      format: "name",
+    }),
+  });
+  const cell = (store.getModelById(tableId) as TableBlockModel).props.cells[
+    "row:column"
+  ].text;
+  cell.insert(" ", cell.length, {
+    documentField: DocumentFieldSchema.parse({
+      type: "input",
+      id: "invalid-date",
+      definition: { kind: "date", label: "Deadline", required: false },
+      value: "2026-02-30",
+    }),
+  });
   store.readonly = true;
   const before = encodeStateAsUpdate(store.spaceDoc);
   const ids = [...f.stores.keys()];
@@ -1966,6 +2114,23 @@ test("check consumes native title, text and cell diagnostics without any writes,
     reason: "folder-absent",
   });
   expect(find("workspace.name").status).toBe("available");
+  expect(
+    result.nativeFields.map((field) => [
+      field.field?.id,
+      field.state,
+      field.complete,
+    ]),
+  ).toEqual([
+    ["unfinished", "input-unset", false],
+    ["target-metadata", "metadata", true],
+    ["invalid-date", "invalid", false],
+  ]);
+  expect(result.nativeFields[2]).toMatchObject({
+    blockId: tableId,
+    kind: "cell",
+    rowId: "row",
+    columnId: "column",
+  });
   expect(encodeStateAsUpdate(store.spaceDoc)).toEqual(before);
   expect([...f.stores.keys()]).toEqual(ids);
   expect(f.setDocTemplateStateSetting).not.toHaveBeenCalled();
@@ -2062,9 +2227,9 @@ test("native template application regenerates editor IDs and retains the same Ta
 test("manual inputs use one captured source, literal answers and a human-safe deadline", async () => {
   vi.useFakeTimers();
   const f = setup();
-  f.source.changeDocTitle("Brief {{input.project}}");
+  f.source.changeDocTitle("Brief {{input.project}} · {{input.date.meeting}}");
   f.setSource(
-    "{{input.project}} / {{input.reference}} / {{input.project}} / {{date}}",
+    "{{input.project}} / {{input.reference}} / {{input.project}} / {{date}} / {{input.datetime.next_meeting}}",
   );
   let respond!: (values: Readonly<Record<string, string>>) => void;
   const requestInputs = vi.fn(
@@ -2083,16 +2248,24 @@ test("manual inputs use one captured source, literal answers and a human-safe de
   });
   await vi.waitFor(() => expect(requestInputs).toHaveBeenCalledOnce());
   expect(requestInputs.mock.calls[0][0]).toEqual([
+    "input.datetime.next_meeting",
     "input.project",
     "input.reference",
+    "input.date.meeting",
   ]);
   expect(f.body()).not.toContain("Brief");
   // An edit while the form is open cannot change which source receives answers.
   f.setSource("Changed source {{input.different}}");
-  respond({ "input.project": "  Atlas {{date}}  ", "input.reference": "R-1" });
+  respond({
+    "input.project": "  Atlas {{date}}  ",
+    "input.reference": "R-1",
+    "input.date.meeting": "2026-12-31",
+    "input.datetime.next_meeting": "2026-12-31 23:45:00",
+  });
   await pending;
-  expect(f.target.title$.value).toBe("Brief Atlas {{date}}");
+  expect(f.target.title$.value).toBe("Brief Atlas {{date}} · 31.12.2026");
   expect(f.body()).toContain("Atlas {{date}} / R-1 / Atlas {{date}}");
+  expect(f.body()).toContain("31.12.2026, 23:45");
   expect(f.body("source")).toBe("Changed source {{input.different}}");
   vi.useRealTimers();
 });

@@ -183,8 +183,8 @@ describe("P-VIRG-ARCH-H-01 import-boundary guard", () => {
       expect(violations[0]?.rule).toBe("WIDGETS-CANNOT-IMPORT-WIDGETS");
     });
 
-    test("blocks importing data-view is allowed (no rule matches)", () => {
-      const src = `import { foo } from "@virgultum/editor/data-view";\n`;
+    test("blocks importing model is allowed (no rule matches)", () => {
+      const src = `import { foo } from "@virgultum/editor/model";\n`;
       const violations = runCheckOnSource(
         src,
         "virgultum/editor/blocks/note/src/x.ts",
@@ -193,8 +193,8 @@ describe("P-VIRG-ARCH-H-01 import-boundary guard", () => {
       expect(violations).toHaveLength(0);
     });
 
-    test("widgets importing data-view is allowed", () => {
-      const src = `import { foo } from "@virgultum/editor/data-view";\n`;
+    test("widgets importing model is allowed", () => {
+      const src = `import { foo } from "@virgultum/editor/model";\n`;
       const violations = runCheckOnSource(
         src,
         "virgultum/editor/widgets/slash-menu/src/x.ts",
@@ -215,7 +215,7 @@ describe("P-VIRG-ARCH-H-01 import-boundary guard", () => {
 
     test("clean source produces zero violations", () => {
       const src = [
-        `import { foo } from "@virgultum/editor/data-view";`,
+        `import { foo } from "@virgultum/editor/model";`,
         `import { bar } from "@virgultum/std/gfx";`,
         `import lodash from "lodash-es";`,
       ].join("\n");

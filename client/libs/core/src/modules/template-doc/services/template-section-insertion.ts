@@ -30,9 +30,13 @@ import {
   TemplateInstantiationError,
   waitForTemplateOperation,
 } from "./template-instantiation-error";
-import { templateInputLabel } from "./template-inputs";
+import {
+  templateInputLabel,
+  initializeTemplateDocumentFields,
+} from "./template-inputs";
 import { applyNativeTemplateValues } from "./template-preparation";
 import { captureTemplateSource } from "./template-source-capture";
+import { prepareTemplateTextProtection } from "./template-text-protection";
 
 export class TemplateSectionInsertionService extends Service {
   constructor(
@@ -125,6 +129,8 @@ export class TemplateSectionInsertionService extends Service {
       if (!body?.content.length)
         throw new TemplateInstantiationError("source-unavailable");
       removeUnboundTemplateReferences(body);
+      initializeTemplateDocumentFields(body);
+      prepareTemplateTextProtection(body, true);
       const placement = resolveBuildingBlockTarget(target);
       const prepared = await target.std.clipboard.prepareNativeSlice(
         body,

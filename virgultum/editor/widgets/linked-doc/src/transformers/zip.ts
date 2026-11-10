@@ -3,6 +3,7 @@ import {
   replaceIdMiddleware,
   titleMiddleware,
 } from "@virgultum/shared/adapters";
+import { remapDocumentFieldIdentities } from "@virgultum/shared/types";
 import {
   type DocSnapshot,
   extMimeMap,
@@ -166,6 +167,11 @@ async function importDocs(
   };
   // Remote authority validates the complete metadata before any docCRUD.create.
   await hooks?.validateLabels(labels);
+  // Snapshot archives preserve captured fields verbatim. Their destination is
+  // a new editable document, so rebind occurrences before any doc is created.
+  snapshots.forEach((snapshot) =>
+    remapDocumentFieldIdentities(snapshot, collection.idGenerator),
+  );
   if (hooks)
     snapshots.forEach((snapshot) => {
       snapshot.meta.tags = [];

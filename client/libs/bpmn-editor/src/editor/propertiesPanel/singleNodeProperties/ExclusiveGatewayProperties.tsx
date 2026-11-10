@@ -50,7 +50,7 @@ export function ExclusiveGatewayProperties({
           {exclusiveGateway["@_name"] ||
             i18n.singleNodeProperties.exclusiveGateway}
         </AccordionControl>
-        <AccordionPanel>
+        <AccordionPanel keepMounted keepMountedMode="display-none">
           <NameDocumentationAndId element={exclusiveGateway} />
 
           <GatewayPropertiesFields gateway={exclusiveGateway} />

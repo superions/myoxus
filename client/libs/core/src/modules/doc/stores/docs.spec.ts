@@ -944,6 +944,9 @@ describe("DocsStore native subsystem metadata writes", () => {
       firstValueFrom(store.watchDocCreatedBySetting("doc-1")),
     ).resolves.toBe("local-creator");
     await expect(
+      firstValueFrom(store.watchDocTemplateStateSetting("ordinary-local-doc")),
+    ).resolves.toBe(false);
+    await expect(
       firstValueFrom(store.watchDocUpdatedBySetting("doc-1")),
     ).resolves.toBe("local-updater");
     await expect(

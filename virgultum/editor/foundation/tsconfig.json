@@ -10,7 +10,6 @@
   "references": [
     { "path": "../../../client/libs/icons" },
     { "path": "../components" },
-    { "path": "../data-view" },
     { "path": "../ext-loader" },
     { "path": "../../framework/global" },
     { "path": "../rich-text" },

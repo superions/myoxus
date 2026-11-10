@@ -12,4 +12,5 @@ export {
   selectTextModel,
 } from "./dom";
 export { RichText } from "./rich-text";
+export { openTemplateFieldPicker } from "./template-field-picker";
 export * from "./utils";

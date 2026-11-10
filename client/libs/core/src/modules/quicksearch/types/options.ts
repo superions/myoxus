@@ -4,4 +4,5 @@ export interface QuickSearchOptions {
   label?: I18nString;
   placeholder?: I18nString;
   defaultQuery?: string;
+  onOpenPage?: (query: string) => void;
 }

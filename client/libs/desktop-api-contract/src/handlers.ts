@@ -10,6 +10,7 @@ import type {
   DocClock,
   DocIndexedClock,
   DocRecord,
+  DesktopServerRegistryMutation,
   FakeDialogResult,
   FindInPageOptions,
   FindInPageResult,
@@ -28,6 +29,7 @@ import type {
   SaveDBFileResult,
   SelectDBFileLocationResult,
   SharedStorageSnapshot,
+  SharedStorageChanges,
   SharedStorageValue,
   TabAction,
   TabStatus,
@@ -157,6 +159,10 @@ export type MainClientHandlers = {
     clear: DesktopHandler<[], void>;
   };
   sharedStorage: {
+    mutateServerRegistry: DesktopHandler<
+      [mutation: DesktopServerRegistryMutation],
+      SharedStorageChanges
+    >;
     getAllGlobalState: DesktopHandler<[], SharedStorageSnapshot>;
     getAllGlobalCache: DesktopHandler<[], SharedStorageSnapshot>;
     setGlobalState: DesktopHandler<
@@ -438,6 +444,7 @@ export const mainHandlerChannelManifest = {
   },
   findInPage: { find: true, clear: true },
   sharedStorage: {
+    mutateServerRegistry: true,
     getAllGlobalState: true,
     getAllGlobalCache: true,
     setGlobalState: true,

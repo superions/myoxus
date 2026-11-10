@@ -1,6 +1,8 @@
 import type { Annotation, FootNote, ReferenceInfo } from "@virgultum/model";
 import type { InlineEditor } from "@virgultum/std/inline";
 import type { BlockModel } from "@virgultum/store";
+import type { DocumentField } from "./document-field";
+export * from "./document-field";
 export * from "./uni-component";
 
 export type NoteChildrenFlavour =
@@ -10,7 +12,6 @@ export type NoteChildrenFlavour =
   | "myoxus:code"
   | "myoxus:divider"
   | "myoxus:database"
-  | "myoxus:data-view"
   | "myoxus:image"
   | "myoxus:bookmark"
   | "myoxus:attachment"
@@ -51,6 +52,9 @@ export type MyoxusLabelTone =
   "neutral" | "info" | "positive" | "warning" | "danger" | "accent";
 
 export type MyoxusTextAttributes = MyoxusTextStyleAttributes & {
+  documentField?: DocumentField | null;
+  /** Capture-only readable text; never authority for current metadata. */
+  documentFieldCaptured?: true | null;
   annotation?: Annotation | null;
   link?: string | null;
   reference?:

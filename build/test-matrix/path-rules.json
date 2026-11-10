@@ -91,6 +91,8 @@
       "client/libs/bpmn-editor/src/modeller.tsx",
       "client/libs/bpmn-editor/src/xyflow/**",
       "client/libs/bpmn-editor/src/editor/**",
+      "client/libs/bpmn-editor/src/preview.ts",
+      "virgultum/integration-test/src/__tests__/bpmn-sanitize.spec.ts",
       "client/libs/bpmn-editor/tsconfig.json",
       "client/libs/bpmn-editor/tsconfig.tools.json",
       "client/libs/bpmn-editor/vitest.editor.config.ts",
@@ -1354,15 +1356,6 @@
     "reason": "Store changes have package-local build and Vitest gates; do not run the root Virgultum name-filter command or unrelated representative package build smoke by default."
   },
   {
-    "id": "virgultum-data-view",
-    "paths": ["virgultum/editor/data-view/**"],
-    "select_suites": [
-      "virgultum.data-view.build",
-      "virgultum.data-view.vitest"
-    ],
-    "reason": "Data-View changes have package-local build and Vitest gates; do not run the root Virgultum name-filter command or unrelated representative package build smoke by default."
-  },
-  {
     "id": "virgultum-mermaid",
     "paths": ["virgultum/editor/blocks/mermaid/**"],
     "select_suites": ["virgultum.mermaid.build", "virgultum.mermaid.vitest"],
@@ -1377,7 +1370,6 @@
     ],
     "exclude_paths": [
       "virgultum/provenance/**",
-      "virgultum/editor/data-view/**",
       "virgultum/editor/blocks/mermaid/**",
       "virgultum/framework/store/**",
       "virgultum/framework/std/**"

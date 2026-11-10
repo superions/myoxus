@@ -194,6 +194,9 @@ impl McpIdempotencyRepository for InMemoryMcpIdempotencyRepository {
 /// Document operations consumed by MCP after transport authorization.
 #[async_trait]
 pub trait McpDocumentOperations: Send + Sync {
+  fn field_context_source(&self) -> Option<Arc<dyn crate::document_fields::context::DocumentFieldContextSource>> {
+    None
+  }
   async fn projection(&self, doc_id: Uuid, workspace_id: Uuid) -> McpCapabilityResult<DocumentMetadataProjection>;
   async fn policy(&self, doc_id: Uuid, workspace_id: Uuid) -> McpCapabilityResult<DocumentMetadataEffectivePolicy>;
   async fn resolve_status_in_schema(&self, from_status_id: Uuid, target: &str) -> McpCapabilityResult<Option<Uuid>>;
@@ -223,6 +226,7 @@ pub trait McpDocumentOperations: Send + Sync {
 
 /// Composition of the canonical document services for MCP consumers.
 pub struct ApplicationMcpDocumentOperations {
+  field_context: Option<Arc<dyn crate::document_fields::context::DocumentFieldContextSource>>,
   metadata: DocumentMetadataService,
   policy: DocumentMetadataPolicyService,
   transition: DocumentStatusTransitionService,
@@ -248,6 +252,7 @@ impl ApplicationMcpDocumentOperations {
     let version_restore = DocumentVersionRestoreService::new(Arc::clone(&history), Arc::clone(&versions));
     let version_create = DocumentVersionCreateService::new(history, Arc::clone(&versions));
     Self {
+      field_context: None,
       metadata,
       policy,
       transition,
@@ -256,10 +261,21 @@ impl ApplicationMcpDocumentOperations {
       version_restore,
     }
   }
+
+  pub fn with_field_context_source(
+    mut self,
+    source: Arc<dyn crate::document_fields::context::DocumentFieldContextSource>,
+  ) -> Self {
+    self.field_context = Some(source);
+    self
+  }
 }
 
 #[async_trait]
 impl McpDocumentOperations for ApplicationMcpDocumentOperations {
+  fn field_context_source(&self) -> Option<Arc<dyn crate::document_fields::context::DocumentFieldContextSource>> {
+    self.field_context.clone()
+  }
   #[tracing::instrument(skip_all)]
   async fn restore_version(
     &self,

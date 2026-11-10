@@ -16,6 +16,10 @@ use yrs::{Any, Array, GetString, Map, ReadTxn, Text, Transact, Update};
 /// and image source IDs directly.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PublicDocIr {
+  /// Only runs visited by extraction; bounded previews never scan omitted content.
+  /// Application owns semantic validation before this IR reaches a renderer.
+  #[serde(skip)]
+  pub native_fields: Vec<Result<yjs::document_field::DocumentField, ()>>,
   pub document: Document,
   pub diagnostics: Vec<RenderDiagnostic>,
   /// Source runs are populated only for private structured editing reads.
@@ -320,6 +324,10 @@ pub struct PublicListItem {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InlineText {
+  /// Only bounded previews carry unresolved descriptors through extraction to
+  /// their authorized Application resolver. Never serialized or public data.
+  #[serde(skip)]
+  pub preview_field: Option<yjs::document_field::DocumentField>,
   pub text: String,
   pub bold: bool,
   pub italic: bool,
@@ -361,6 +369,7 @@ pub struct LocalFootnoteMarker {
 impl InlineText {
   pub fn plain(text: impl Into<String>) -> Self {
     Self {
+      preview_field: None,
       text: text.into(),
       bold: false,
       italic: false,
@@ -479,6 +488,7 @@ fn document_from_yjs_internal(
     });
   }
   Ok(PublicDocIr {
+    native_fields: Vec::new(),
     document: Document {
       workspace_id,
       doc_id,
@@ -591,6 +601,7 @@ pub fn document_excerpt_from_yjs(
     text_chars: 0,
     visuals: 0,
     stopped: false,
+    native_fields: Vec::new(),
   };
   project_preview_block(&root_id, 0, &mut ctx);
 
@@ -615,6 +626,7 @@ pub fn document_excerpt_from_yjs(
     "projected preview excerpt"
   );
   Ok(PublicDocIr {
+    native_fields: ctx.native_fields,
     document: Document {
       workspace_id,
       doc_id,
@@ -641,6 +653,7 @@ struct PreviewBlockSource {
 }
 
 struct PreviewProjectionContext<'a, 'doc> {
+  native_fields: Vec<Result<yjs::document_field::DocumentField, ()>>,
   sources: &'a std::collections::HashMap<String, PreviewBlockSource>,
   txn: &'a yrs::TransactionMut<'doc>,
   limits: &'a PreviewProjectionLimits,
@@ -797,7 +810,7 @@ fn project_preview_block(id: &str, depth: usize, ctx: &mut PreviewProjectionCont
       let title = if let Some(kind) = get_prop_string(&source.map, ctx.txn, "type").filter(|kind| !kind.is_empty()) {
         let remaining = ctx.limits.max_text_chars.saturating_sub(ctx.text_chars);
         let (parts, truncated) = prop_value(&source.map, ctx.txn, "title")
-          .map(|value| value_to_inline_with_limit(&value, ctx.txn, remaining))
+          .map(|value| value_to_inline_with_limit(&value, ctx.txn, remaining, &mut ctx.native_fields))
           .unwrap_or_default();
         let mut title = plain_inline(&parts);
         if title.is_empty() && !kind.eq_ignore_ascii_case("note") {
@@ -918,13 +931,18 @@ fn project_preview_block(id: &str, depth: usize, ctx: &mut PreviewProjectionCont
       return;
     }
     "myoxus:table" | "myoxus:database" => {
+      let first_field = ctx.native_fields.len();
       let (rows, table_truncated) = extract_flat_table_rows_bounded(
         &source.map,
         ctx.txn,
         ctx.limits.max_table_rows,
         ctx.limits.max_table_columns,
         ctx.limits.max_text_chars.saturating_sub(ctx.text_chars),
+        &mut ctx.native_fields,
       );
+      if ctx.native_fields.len() > first_field && yjs::resolve_flavour(&source.flavour) != "myoxus:table" {
+        ctx.native_fields[first_field] = Err(());
+      }
       let table_chars = rows
         .iter()
         .flatten()
@@ -1015,12 +1033,19 @@ fn preview_block_text(
     return None;
   }
   let value = prop_value(&source.map, ctx.txn, "text")
-    .or_else(|| source.map.get(ctx.txn, "text"))
-    .or_else(|| prop_value(&source.map, ctx.txn, "title"));
-  let Some(value) = value else {
+    .map(|value| ("prop:text", value))
+    .or_else(|| source.map.get(ctx.txn, "text").map(|value| ("text", value)))
+    .or_else(|| prop_value(&source.map, ctx.txn, "title").map(|value| ("prop:title", value)));
+  let Some((property, value)) = value else {
     return Some(Vec::new());
   };
-  let (text, truncated) = value_to_inline_with_limit(&value, ctx.txn, remaining);
+  let first_field = ctx.native_fields.len();
+  let (text, truncated) = value_to_inline_with_limit(&value, ctx.txn, remaining, &mut ctx.native_fields);
+  if ctx.native_fields.len() > first_field
+    && !yjs::document_field::content::supports_position(yjs::resolve_flavour(&source.flavour), property)
+  {
+    ctx.native_fields[first_field] = Err(());
+  }
   ctx.text_chars = ctx
     .text_chars
     .saturating_add(text.iter().map(|part| part.text.chars().count()).sum::<usize>());
@@ -1032,9 +1057,10 @@ fn value_to_inline_with_limit(
   value: &yrs::Out,
   txn: &yrs::TransactionMut<'_>,
   remaining: usize,
+  native_fields: &mut Vec<Result<yjs::document_field::DocumentField, ()>>,
 ) -> (Vec<InlineText>, bool) {
   match value {
-    yrs::Out::YText(text) => extract_rich_text_with_limit(text, txn, Some(remaining)),
+    yrs::Out::YText(text) => extract_rich_text_with_limit(text, txn, Some(remaining), Some(native_fields)),
     yrs::Out::Any(Any::String(text)) => {
       let (prefix, truncated) = text_prefix(text, remaining);
       (vec![InlineText::plain(prefix.to_string())], truncated)
@@ -1913,6 +1939,7 @@ fn extract_flat_table_rows_bounded(
   max_rows: usize,
   max_columns: usize,
   max_text_chars: usize,
+  native_fields: &mut Vec<Result<yjs::document_field::DocumentField, ()>>,
 ) -> (Vec<Vec<Vec<InlineText>>>, bool) {
   if max_rows == 0 || max_columns == 0 || max_text_chars == 0 {
     return (Vec::new(), true);
@@ -1987,7 +2014,7 @@ fn extract_flat_table_rows_bounded(
           let Some(value) = block_map.get(txn, &format!("prop:cells.{}:{}.text", row.id, column.id)) else {
             return Vec::new();
           };
-          let (text, clipped) = value_to_inline_with_limit(&value, txn, remaining);
+          let (text, clipped) = value_to_inline_with_limit(&value, txn, remaining, native_fields);
           consumed_chars += text.iter().map(|part| part.text.chars().count()).sum::<usize>();
           truncated |= clipped;
           text
@@ -2019,13 +2046,14 @@ fn value_to_string(value: &yrs::Out, txn: &yrs::TransactionMut<'_>) -> Option<St
 }
 
 fn extract_rich_text<T: ReadTxn>(text_ref: &yrs::TextRef, txn: &T) -> Vec<InlineText> {
-  extract_rich_text_with_limit(text_ref, txn, None).0
+  extract_rich_text_with_limit(text_ref, txn, None, None).0
 }
 
 fn extract_rich_text_with_limit<T: ReadTxn>(
   text_ref: &yrs::TextRef,
   txn: &T,
   max_chars: Option<usize>,
+  mut native_fields: Option<&mut Vec<Result<yjs::document_field::DocumentField, ()>>>,
 ) -> (Vec<InlineText>, bool) {
   // Yrs exposes formatted text as a per-value diff, not a range iterator. For
   // previews, that temporary allocation is bounded by the enforced source-byte
@@ -2035,8 +2063,36 @@ fn extract_rich_text_with_limit<T: ReadTxn>(
   let mut spans = Vec::new();
   let mut remaining = max_chars;
   let mut truncated = false;
+  let mut previous_field = None;
 
   for diff in &diffs {
+    if remaining == Some(0) {
+      truncated = true;
+      break;
+    }
+    if let Some(fields) = native_fields.as_mut()
+      && let Some(attributes) = diff.attributes.as_deref()
+      && (attributes.contains_key(yjs::document_field::FIELD_ATTRIBUTE)
+        || attributes.contains_key(yjs::document_field::CAPTURE_ATTRIBUTE))
+    {
+      let field = match &diff.insert {
+        yrs::Out::Any(Any::String(text)) => yjs::document_field::FieldRun::decode(text, attributes)
+          .map_err(|_| ())
+          .and_then(|run| run.ok_or(())),
+        _ => Err(()),
+      };
+      // Formatting can split one archival occurrence into adjacent runs. Keep
+      // one identity for that occurrence; duplicates elsewhere remain invalid.
+      if !field
+        .as_ref()
+        .is_ok_and(|run| run.captured && previous_field.as_ref() == Some(&run.descriptor))
+      {
+        fields.push(field.as_ref().map(|run| run.descriptor.clone()).map_err(|_| ()));
+      }
+      previous_field = field.ok().filter(|run| run.captured).map(|run| run.descriptor);
+    } else {
+      previous_field = None;
+    }
     if yjs::annotation::annotation_id(diff.attributes.as_deref()).is_some() {
       continue;
     }
@@ -2125,6 +2181,17 @@ fn extract_rich_text_with_limit<T: ReadTxn>(
       break;
     }
     spans.push(InlineText {
+      preview_field: if native_fields.is_some() {
+        match (&diff.insert, attrs) {
+          (yrs::Out::Any(Any::String(source)), Some(attrs)) => yjs::document_field::FieldRun::decode(source, attrs)
+            .ok()
+            .flatten()
+            .map(|run| run.descriptor),
+          _ => None,
+        }
+      } else {
+        None
+      },
       text: text.to_string(),
       bold: attr_enabled(attrs, "bold"),
       italic: attr_enabled(attrs, "italic"),
@@ -2275,7 +2342,7 @@ fn plain_inline(parts: &[InlineText]) -> String {
 fn inline_has_content(parts: &[InlineText]) -> bool {
   parts
     .iter()
-    .any(|part| part.reference.is_some() || part.legacy_footnote)
+    .any(|part| part.reference.is_some() || part.legacy_footnote || part.preview_field.is_some())
     || !plain_inline(parts).trim().is_empty()
 }
 

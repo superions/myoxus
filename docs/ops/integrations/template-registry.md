@@ -260,10 +260,11 @@ Existing guide bindings remain seed-once, including suppression for deleted
 copies. Explicit fresh copies use the selected current revision and preserve
 previous reader documents.
 
-Base activation does not execute the historical released-builtin instance
-transition. Genuine revision-bound instances keep their bindings and content.
-Unbound legacy instances require that existing explicit native transition and
-otherwise fail with a diagnostic. Back up database and blobs before coordinated
+The historical released-builtin identity-adoption path was removed after both
+production migrations completed. Genuine revision-bound instances keep their
+bindings and content. Current selection and `templates recover-release` reject
+unsupported NULL-revision bindings instead of adopting them. Fresh empty seed
+entries use normal trusted staging/current selection. Back up database and blobs before coordinated
 updates; preserve the append-only migration ledger and retained source history.
 
 ## Publishing templates
@@ -404,25 +405,40 @@ projection; it does not enqueue reconcile jobs and does not copy template
 content. Actual creation still happens through the existing document duplicate
 flow after a user selects an available template.
 
+Menus show the first ranked page immediately (eight choices by default, at most
+twenty), without waiting for passive cloud reconciliation or the whole catalog.
+After that page is rendered, an open menu may prepare exactly one next metadata
+page. **Load more** consumes it without closing the menu or changing selection;
+only then may the following page be prepared. Sources and preview bodies are not
+preloaded. A failed continuation keeps the current choices and offers **Retry**.
+Closing the menu or changing its account, Workspace or creation context discards
+unconsumed continuation data. Native-local initialization remains offline-owned.
+
+Guide/default-preference maintenance retains its existing Workspace/locale
+lifecycle and explicit repair path. A ready menu response can also supply the
+existing compare-and-set default replacements without another discovery request.
+None of these reads reapplies a template to an existing document copy.
+
 Use the [API discovery query and variables](../../api/server/template-registry.md#discover-available-templates)
 to inspect the suggestion projection.
 
 Important states:
 
-| State                                   | Meaning                                                                       | Operator action                                                                              |
-| --------------------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `available: true`, `InstanceOk`         | The template has a usable workspace document instance.                        | No action required.                                                                          |
-| `available: false`, `ReconcileRequired` | The catalog or policy exists, but a workspace instance is missing or retired. | Open the client menu once or trigger the existing template reconcile path for the workspace. |
-| `InstanceError`                         | The last materialization failed.                                              | Inspect template registry jobs/audit entries for the template and workspace.                 |
-| `Detached`                              | The user-edited instance is intentionally protected.                          | Do not overwrite unless an explicit user/admin action reattaches it.                         |
-| `hasNextPage: true`                     | More ACL-filtered suggestions follow this page.                               | Pass `endCursor` as the next request's `after` value.                                        |
-| `stale: true`                           | The projection may no longer be current.                                      | Retry discovery and inspect assignment/reconcile state; do not treat it as pagination.       |
+| State                                   | Meaning                                                                       | Operator action                                                                                    |
+| --------------------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `available: true`, `InstanceOk`         | The template has a usable workspace document instance.                        | No action required.                                                                                |
+| `available: false`, `ReconcileRequired` | The catalog or policy exists, but a workspace instance is missing or retired. | Inspect delivery state or trigger the existing explicit template reconcile path for the workspace. |
+| `InstanceError`                         | The last materialization failed.                                              | Inspect template registry jobs/audit entries for the template and workspace.                       |
+| `Detached`                              | The user-edited instance is intentionally protected.                          | Do not overwrite unless an explicit user/admin action reattaches it.                               |
+| `hasNextPage: true`                     | More ACL-filtered suggestions follow this page.                               | Pass `endCursor` as the next request's `after` value.                                              |
+| `stale: true`                           | The projection may no longer be current.                                      | Retry discovery and inspect assignment/reconcile state; do not treat it as pagination.             |
 
 Default policies are consumed when a workspace is created. Later discovery
 uses that workspace's assignments, so a current default cannot override an
-explicit disable or silently enroll an existing workspace. Sources the caller
-cannot read are omitted before pagination; their title and identifiers are not
-returned as disabled rows. Invalid or no-longer-present cursors return
+explicit disable or silently enroll an existing workspace. Internal Workspace
+readers share centrally admitted template offerings without per-source grants;
+External members cannot enter the catalog. Ordinary guide deliveries retain
+their normal document ACL. Invalid or no-longer-present cursors return
 `MIX_TEMPLATE_SUGGESTIONS_INPUT_INVALID` and should restart discovery from the
 first page.
 
@@ -438,9 +454,9 @@ resolver before `templateSuggestions` runs and therefore use the existing global
 GraphQL `FORBIDDEN` error. Verify workspace membership first when the response
 has no `workspace.templateSuggestions` path.
 
-Useful log fields for the suggestion service are `workspace_id`, `user_id`,
-`surface`, `document_type_id`, `status_id`, `classification_id`,
-`candidate_count`, `returned_count`, `reconcile_required` and `duration_ms`.
+Suggestion spans carry `workspace_id`, `user_id`, `surface`, `document_type_id`,
+`status_id` and `classification_id`; the bounded Store page span also carries
+`limit`. Discovery does not log native bodies or resolved field values.
 
 ### Import job fails immediately
 

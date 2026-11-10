@@ -10,7 +10,7 @@
   "author": "Myoxus Contributors",
   "license": "AGPL-3.0-or-later AND MIT",
   "dependencies": {
-    "@preact/signals-core": "^1.8.0",
+    "@preact/signals-core": "^1.14.5",
     "@types/lodash-es": "^4.17.12",
     "@virgultum/global": "workspace:*",
     "@virgultum/sync": "workspace:*",
@@ -22,7 +22,7 @@
     "rxjs": "^7.8.2",
     "y-protocols": "^1.0.7",
     "yjs": "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch",
-    "zod": "^3.25.76"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "vitest": "4.1.11"

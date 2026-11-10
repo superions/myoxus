@@ -22,6 +22,7 @@ export const splitParagraphCommand: Command<
 
   const model = store.getBlock(blockId)?.model;
   if (!model || !matchModels(model, [ParagraphBlockModel])) return;
+  if (store.readonly || store.hasFixedText(model)) return;
 
   const inlineEditor = getInlineEditorByModel(std, model);
   const range = inlineEditor?.getInlineRange();

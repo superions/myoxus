@@ -57,7 +57,7 @@ const TraySettingsState = {
 };
 
 export const uiHandlers = {
-  invalidateBranding: (event) => {
+  invalidateBranding: async (event) => {
     // Main resolves the source tab; renderers cannot invalidate another server.
     const id = WebContentViewsManager.instance.getWorkbenchIdFromWebContentsId(
       event.sender.id,

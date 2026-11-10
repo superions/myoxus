@@ -1,5 +1,7 @@
 import { i18nTime, isI18nString, useI18n } from "@myoxus/i18n";
 import {
+  Button,
+  DialogFooter,
   CommandPaletteEmpty,
   CommandPaletteError,
   CommandPaletteGroup,
@@ -43,14 +45,22 @@ type Groups = {
   state?: QuickSearchSourceState;
 }[];
 
+const EMPTY_GROUPS: Groups = [];
+
 function enabledItems(groups: Groups) {
   return groups.flatMap(({ items }) => items.filter((item) => !item.disabled));
+}
+
+function firstSearchResult(groups: Groups) {
+  // Creating from query text requires a deliberate selection, including while
+  // asynchronous search sources have not returned their first result yet.
+  return enabledItems(groups).find((item) => item.source !== "creation");
 }
 
 export const CMDK = ({
   className,
   query,
-  groups: newGroups = [],
+  groups: newGroups = EMPTY_GROUPS,
   error,
   inputLabel,
   wrapLabels = false,
@@ -58,6 +68,7 @@ export const CMDK = ({
   loading: newLoading = false,
   onQueryChange,
   onSubmit,
+  onOpenPage,
 }: React.PropsWithChildren<{
   className?: string;
   query: string;
@@ -68,6 +79,7 @@ export const CMDK = ({
   loading?: boolean;
   groups?: Groups;
   onSubmit?: (item: QuickSearchItem) => void;
+  onOpenPage?: (query: string) => void;
   onQueryChange?: (query: string) => void;
 }>) => {
   const i18n = useI18n();
@@ -95,8 +107,7 @@ export const CMDK = ({
         };
       }
       if (action.type === "reset-select") {
-        // reset selected item to the first item
-        const firstItem = state.groups.at(0)?.items.at(0)?.id;
+        const firstItem = firstSearchResult(state.groups)?.id;
         return {
           ...state,
           selectedValue: firstItem ?? "",
@@ -106,8 +117,8 @@ export const CMDK = ({
         const prevGroups = state.groups;
         const prevSelectedValue = state.selectedValue;
 
-        const prevFirstItem = prevGroups.at(0)?.items.at(0)?.id;
-        const newFirstItem = action.payload.at(0)?.items.at(0)?.id;
+        const prevFirstItem = firstSearchResult(prevGroups)?.id ?? "";
+        const newFirstItem = firstSearchResult(action.payload)?.id ?? "";
         const isSelectingFirstItem = prevSelectedValue === prevFirstItem;
         // if previous selected item is the first item, select the new first item
         if (isSelectingFirstItem) {
@@ -213,12 +224,15 @@ export const CMDK = ({
     // Never submit a result that is absent from the current search results.
     const items = enabledItems(newGroups);
     const selected =
-      items.find((item) => item.id === selectedValue) ?? items[0];
+      items.find((item) => item.id === selectedValue) ??
+      firstSearchResult(newGroups);
     if (selected) onSubmit?.(selected);
   }, [newGroups, onSubmit, selectedValue]);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
+      // Footer and source-retry buttons retain native Tab/Enter activation.
+      if ((event.target as Element).closest("button")) return;
       switch (event.key) {
         case "ArrowDown":
           event.preventDefault();
@@ -335,6 +349,13 @@ export const CMDK = ({
           );
         })}
       </CommandPaletteList>
+      {onOpenPage && query.trim() ? (
+        <DialogFooter>
+          <Button onClick={() => onOpenPage(query)}>
+            {i18n["com.myoxus.search.results.open"]()}
+          </Button>
+        </DialogFooter>
+      ) : null}
     </CommandPaletteRoot>
   );
 };

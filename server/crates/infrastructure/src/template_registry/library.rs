@@ -16,6 +16,39 @@ use tracing::instrument;
 use super::SqlxTemplateRegistryStore;
 use crate::document_metadata::NATIVE_TEMPLATE_SOURCE_PREDICATE;
 
+// Exact external keys win, including UUID-shaped keys. Only a missing exact
+// key permits the canonical internal-ID fallback. Both joins use existing keys,
+// rather than a correlated external_id OR id::text scan of ordinary documents.
+pub(super) const SOURCE_BINDINGS_SQL: &str = r#"
+  SELECT i.*, COALESCE(external_doc.id, internal_doc.id) AS resolved_doc_id
+  FROM workspace_template_instances i
+  LEFT JOIN LATERAL (
+    SELECT id FROM docs
+    WHERE i.workspace_doc_key IS NOT NULL AND workspace_id=i.workspace_id
+      AND external_id=i.workspace_doc_key
+    LIMIT 1
+  ) external_doc ON TRUE
+  LEFT JOIN docs internal_doc ON external_doc.id IS NULL
+    AND internal_doc.workspace_id=i.workspace_id
+    AND internal_doc.id=CASE
+      WHEN i.workspace_doc_key IS NULL THEN i.workspace_doc_id
+      WHEN i.workspace_doc_key ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+        THEN i.workspace_doc_key::uuid
+      ELSE NULL END
+  WHERE i.workspace_id=$1
+"#;
+
+pub(super) const SOURCE_REVISIONS_SQL: &str = r#"
+  LEFT JOIN template_revisions applied ON applied.id=i.revision_id AND applied.template_id=c.id
+  LEFT JOIN LATERAL (
+    SELECT r.id,r.state,r.manifest_json AS manifest FROM template_revisions r
+    WHERE r.template_id=c.id AND (
+      (p.selection_mode='pinned_revision' AND r.id=p.selected_revision_id AND r.state IN ('published','deprecated'))
+      OR (p.selection_mode='published' AND r.state='published'))
+    ORDER BY r.published_at DESC NULLS LAST,r.created_at DESC,r.id DESC LIMIT 1
+  ) target ON c.source='bundle'
+"#;
+
 impl SqlxTemplateRegistryStore {
   #[instrument(skip_all, fields(workspace_id = %query.workspace_id, limit = query.limit))]
   pub(super) async fn read_library_sources(
@@ -67,6 +100,8 @@ impl SqlxTemplateRegistryStore {
       r#"
       WITH page_cursor AS (
         SELECT $7::text AS cursor_title, $8::timestamptz AS cursor_updated_at, $9::text AS cursor_key
+      ), bindings AS MATERIALIZED (
+        {SOURCE_BINDINGS_SQL}
       ), assigned AS (
         SELECT 'registry:' || p.id::text AS key, c.id::text AS template_id,
           CASE WHEN {NATIVE_TEMPLATE_SOURCE_PREDICATE}
@@ -82,26 +117,11 @@ impl SqlxTemplateRegistryStore {
           i.locale_hash
         FROM workspace_template_policies p
         JOIN template_catalog_entries c ON c.id=p.template_id AND c.status='active'
-        LEFT JOIN workspace_template_instances i ON i.workspace_id=p.workspace_id AND i.template_id=c.id
+        LEFT JOIN bindings i ON i.workspace_id=p.workspace_id AND i.template_id=c.id
         LEFT JOIN docs exact_doc ON $2::text IS NOT NULL AND exact_doc.workspace_id=$1 AND exact_doc.external_id=$2
-        LEFT JOIN LATERAL (
-          SELECT source.id, source.external_id, source.updated_at, source.deleted_at, source.blocked, source.is_workspace_root
-          FROM docs source
-          WHERE source.workspace_id=p.workspace_id AND (
-            (i.workspace_doc_key IS NOT NULL AND (source.external_id=i.workspace_doc_key OR source.id::text=i.workspace_doc_key))
-            OR (i.workspace_doc_key IS NULL AND source.id=i.workspace_doc_id))
-          ORDER BY (source.external_id=i.workspace_doc_key) DESC NULLS LAST, source.id
-          LIMIT 1
-        ) d ON TRUE
+        LEFT JOIN docs d ON d.workspace_id=p.workspace_id AND d.id=i.resolved_doc_id
         LEFT JOIN document_template_state template ON template.doc_id=d.id
-        LEFT JOIN template_revisions applied ON applied.id=i.revision_id AND applied.template_id=c.id
-        LEFT JOIN LATERAL (
-          SELECT r.id,r.state,r.manifest_json AS manifest FROM template_revisions r
-          WHERE r.template_id=c.id AND (
-            (p.selection_mode='pinned_revision' AND r.id=p.selected_revision_id AND r.state IN ('published','deprecated'))
-            OR (p.selection_mode='published' AND r.state='published'))
-          ORDER BY r.published_at DESC NULLS LAST,r.created_at DESC,r.id DESC LIMIT 1
-        ) target ON c.source='bundle'
+        {SOURCE_REVISIONS_SQL}
         WHERE p.workspace_id=$1 AND p.is_enabled
           AND (i.id IS NULL OR (i.state<>'retired' AND i.retired_at IS NULL))
           AND (c.source='builtin' OR target.id IS NOT NULL)
@@ -109,6 +129,21 @@ impl SqlxTemplateRegistryStore {
           AND COALESCE(target.manifest->>'purpose','template')<>'guide'
           AND COALESCE(applied.manifest_json->>'purpose','template')<>'guide'
           AND ($2::text IS NULL OR i.workspace_doc_key=$2 OR i.workspace_doc_id=exact_doc.id OR i.workspace_doc_key=exact_doc.id::text)
+      ), source_candidates AS (
+        SELECT * FROM assigned
+        UNION ALL
+        SELECT 'document:' || d.id::text,d.external_id,d.external_id,d.external_id,d.external_id,d.title,NULL,
+          CASE WHEN template.metadata->>'origin'='custom' THEN 'custom' ELSE 'unknown' END,
+          GREATEST(d.updated_at,template.updated_at),template.metadata->>'category',
+          ARRAY(SELECT jsonb_array_elements_text(CASE WHEN jsonb_typeof(template.metadata->'tags')='array' THEN template.metadata->'tags' ELSE '[]'::jsonb END)),
+          NULL::text,0,FALSE,NULL::uuid,NULL::jsonb,NULL::text
+        FROM docs d JOIN document_template_state template ON template.doc_id=d.id
+        WHERE d.workspace_id=$1 AND {NATIVE_TEMPLATE_SOURCE_PREDICATE}
+          AND ($2::text IS NULL OR d.external_id=$2)
+          AND NOT EXISTS (SELECT 1 FROM bindings bound WHERE bound.resolved_doc_id=d.id)
+      ), unique_sources AS (
+        SELECT DISTINCT ON (COALESCE(lookup_key,key)) * FROM source_candidates
+        ORDER BY COALESCE(lookup_key,key),key
       ), inventory AS (
         SELECT key,template_id,document_key,lookup_key,slug,
           COALESCE(manifest->'localized_contents'->source_locale.locale->>'title',manifest->>'title',catalog_title) AS title,
@@ -117,7 +152,7 @@ impl SqlxTemplateRegistryStore {
             ELSE COALESCE(manifest->>'description',catalog_description) END AS description,
           source,updated_at,category,tags,instance_state,min_client_version,protected_source,revision_id,
           COALESCE(manifest->>'title_policy','template') AS title_policy
-        FROM assigned
+        FROM unique_sources
         LEFT JOIN LATERAL (
           SELECT candidate.locale FROM (
             SELECT key AS locale,0 AS kind FROM jsonb_object_keys(
@@ -133,27 +168,10 @@ impl SqlxTemplateRegistryStore {
             WHEN lower(replace(candidate.locale,'_','-'))=split_part(lower(replace(locale_hash,'_','-')),'-',1) THEN 1
             ELSE 2 END,candidate.kind,candidate.locale LIMIT 1
         ) source_locale ON TRUE
-        UNION ALL
-        SELECT 'document:' || d.id::text,d.external_id,d.external_id,d.external_id,d.external_id,d.title,NULL,
-          CASE WHEN template.metadata->>'origin'='custom' THEN 'custom' ELSE 'unknown' END,
-          GREATEST(d.updated_at,template.updated_at),template.metadata->>'category',
-          ARRAY(SELECT jsonb_array_elements_text(CASE WHEN jsonb_typeof(template.metadata->'tags')='array' THEN template.metadata->'tags' ELSE '[]'::jsonb END)),
-          NULL::text,0,FALSE,NULL::uuid,'template'
-        FROM docs d JOIN document_template_state template ON template.doc_id=d.id
-        WHERE d.workspace_id=$1 AND {NATIVE_TEMPLATE_SOURCE_PREDICATE}
-          AND ($2::text IS NULL OR d.external_id=$2)
-          AND NOT EXISTS (
-            SELECT 1 FROM workspace_template_instances bound
-            WHERE bound.workspace_id=$1 AND ((bound.workspace_doc_key IS NULL AND bound.workspace_doc_id=d.id) OR bound.workspace_doc_key=d.external_id
-              OR (bound.workspace_doc_key=d.id::text AND NOT EXISTS (
-                SELECT 1 FROM docs preferred WHERE preferred.workspace_id=$1 AND preferred.external_id=bound.workspace_doc_key))))
-      ), unique_sources AS (
-        SELECT DISTINCT ON (COALESCE(lookup_key,key)) * FROM inventory
-        ORDER BY COALESCE(lookup_key,key),key
       )
       SELECT key,template_id,document_key,slug,title,description,source,updated_at,category,tags,
         instance_state,min_client_version,protected_source,revision_id,title_policy
-      FROM unique_sources CROSS JOIN page_cursor
+      FROM inventory CROSS JOIN page_cursor
       WHERE ($2::text IS NULL OR lookup_key=$2)
         AND ($3::text IS NULL OR (($3='building-block') = (category IS NOT DISTINCT FROM 'building-blocks')))
         AND ($4::text IS NULL OR position(lower($4) in lower(title || E'\n' || COALESCE(description,''))) > 0)

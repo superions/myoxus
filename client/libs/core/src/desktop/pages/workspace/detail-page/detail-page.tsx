@@ -3,6 +3,7 @@
  * the editable document and readonly URL-addressed history. Each subview mounts
  * its own Workbench islands; only document mode binds editing commands and tools.
  */
+import { DocumentActivePeopleTool } from "@myoxus/core/modules/content-presence/document-active-people-tool";
 import { NavigateContext } from "@myoxus/core/components/hooks/use-navigate-helper";
 import { WorkspaceContentOperationService } from "@myoxus/core/modules/workspace-content-operation";
 import { ViewService } from "@myoxus/core/modules/workbench/services/view";
@@ -246,6 +247,10 @@ const DocumentEditorView = () => {
         </DetailPageMainFrame>
       </ViewBody>
 
+      <DocumentActivePeopleTool
+        key={doc.id}
+        awareness={doc.virgultumDoc.awarenessStore.awareness}
+      />
       <AiChatSidecard editor={editorContainer} />
 
       {!isJournal ? (

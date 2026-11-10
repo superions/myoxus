@@ -41,6 +41,7 @@ export const workbenchToolIds = [
   "database-settings",
   "task-details",
   "graph-details",
+  "presence",
 ] as const satisfies readonly WorkbenchToolId[];
 
 export function isWorkbenchToolId(value: string): value is WorkbenchToolId {

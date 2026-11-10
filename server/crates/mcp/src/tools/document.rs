@@ -304,6 +304,7 @@ pub(super) async fn version_read(
     Arc::<[u8]>::from(key.finalize().to_vec()),
   )
   .with_html_catalog(state.html_catalog.clone())
+  .with_historical_fields()
   .with_max_output_bytes(state.document_export_max_bytes);
   let projection = service
     .project_payload(
@@ -507,6 +508,7 @@ pub(crate) async fn project_authorized_document(
     state.document_cursor_signing_key.clone(),
   )
   .with_html_catalog(state.html_catalog.clone())
+  .with_field_source(state.document_services.field_context_source(), Some(auth.user_id))
   .with_max_output_bytes(state.document_export_max_bytes);
   if let Some(references) = references {
     service = service.with_markdown_references(references);

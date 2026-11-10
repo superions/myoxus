@@ -38,7 +38,7 @@ export const EdgelessTextZodSchema = z
     fontWeight: FontWeightSchema,
     textAlign: TextAlignSchema,
   })
-  .default({
+  .prefault({
     color: DefaultTheme.textColor,
     fontFamily: FontFamily.Inter,
     fontStyle: FontStyle.Normal,

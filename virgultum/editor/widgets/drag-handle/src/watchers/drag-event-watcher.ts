@@ -732,6 +732,9 @@ export class DragEventWatcher {
     const id = first.id;
 
     const std = this.std;
+    // This drop unwraps a note by copying its children and deleting the owner;
+    // it is not an intact layout move of the original protected subtree.
+    if (std.store.readonly || std.store.hasFixedText(id)) return;
     const job = this._getJob();
     const snapshotWithoutNote = {
       ...snapshot,

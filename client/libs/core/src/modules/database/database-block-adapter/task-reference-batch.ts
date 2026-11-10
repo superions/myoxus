@@ -155,8 +155,9 @@ export class TaskReferenceBatch {
       AbortSignal.timeout(10_000),
     ]);
     this.running = running;
-    this.clear(loading);
-    const generation = this.generation;
+    // Same-actor refreshes must retain mounted native editors and their drafts.
+    // Actor changes, disconnects and rejected reads still clear private state.
+    const generation = ++this.generation;
     const entries = [...this.entries.entries()];
     try {
       for (let offset = 0; offset < entries.length; offset += 500) {

@@ -11,7 +11,11 @@ import {
   BLOCK_CHILDREN_CONTAINER_PADDING_LEFT,
   EDGELESS_TOP_CONTENTEDITABLE_SELECTOR,
 } from "@virgultum/shared/consts";
-import { DocModeProvider } from "@virgultum/shared/services";
+import {
+  DocModeProvider,
+  EditorI18nProvider,
+  textProtectionHint,
+} from "@virgultum/shared/services";
 import { getViewportElement } from "@virgultum/shared/utils";
 import {
   type BlockComponent,
@@ -205,7 +209,8 @@ export class ListBlockComponent extends CaptionedBlockComponent<ListBlockModel> 
             .attributesSchema=${this.attributesSchema}
             .markdownMatches=${this.inlineManager?.markdownMatches}
             .embedChecker=${this.embedChecker}
-            .readonly=${this.store.readonly}
+            .readonly=${this.store.readonly || this.model.props.textProtection === "fixed"}
+            title=${textProtectionHint(this.model.props.textProtection, this.std.getOptional(EditorI18nProvider) ?? undefined)}
             .inlineRangeProvider=${this._inlineRangeProvider}
             .enableClipboard=${false}
             .enableUndoRedo=${false}

@@ -6,7 +6,11 @@ import { encodeStateAsUpdate } from "yjs";
 import type { Doc } from "../../doc/entities/doc";
 import { removeUnboundTemplateReferences } from "../../doc/services/native-template-references";
 import { inspectTemplateSnapshot } from "../../doc/services/template-repeat";
-import { templateInputNames } from "./template-inputs";
+import {
+  templateInputNames,
+  validateTemplateDocumentFields,
+} from "./template-inputs";
+import { prepareTemplateTextProtection } from "./template-text-protection";
 
 export interface TemplateSourceCapture {
   readonly sourceDocId: string;
@@ -40,6 +44,8 @@ export function captureTemplateSource(
   );
   if (!body) throw new Error(`Failed to snapshot document: ${doc.id}`);
   removeUnboundTemplateReferences(body);
+  validateTemplateDocumentFields(body);
+  prepareTemplateTextProtection(body);
   const sourceTitle = doc.title$.value;
   const title =
     typeof titleInput === "function" ? titleInput(sourceTitle) : titleInput;

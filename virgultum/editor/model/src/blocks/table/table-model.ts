@@ -7,10 +7,15 @@ import {
 } from "@virgultum/store";
 
 import { TextAlign } from "../../consts";
-import type { BlockMeta, TemplateRepeatBinding } from "../../utils/types";
+import type {
+  BlockMeta,
+  TemplateRepeatBinding,
+  TextProtection,
+} from "../../utils/types";
 
 export type TableCell = {
   text: Text;
+  textProtection?: TextProtection;
   /** Absence inherits column, row or header paint without rewriting old cells. */
   backgroundColor?: string;
 };
@@ -50,6 +55,7 @@ export interface TableBlockProps extends BlockMeta {
 }
 
 export interface TableCellSerialized {
+  textProtection?: TextProtection;
   text: {
     delta: DeltaInsert[];
   };

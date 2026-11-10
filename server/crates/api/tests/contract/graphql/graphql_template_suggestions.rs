@@ -26,6 +26,7 @@ const TEMPLATE_SUGGESTIONS_QUERY: &str = r#"
           templateDocId
            slug
            title
+           description
            source
            sourceRevisionId
            category
@@ -353,6 +354,52 @@ async fn inv_template_suggestions_graphql_filters_candidates_and_maps_states() {
     reader.to_string().contains(&hidden_slug),
     "internal Reader sees sources without grants"
   );
+
+  // Exercise the actual SQL page, not the former per-entry in-memory mapper:
+  // a newer publication must not relabel the applied/pinned source language.
+  let pinned: Uuid =
+    sqlx::query_scalar("SELECT revision_id FROM workspace_template_instances WHERE workspace_id=$1 AND template_id=$2")
+      .bind(workspace_id)
+      .bind(usable)
+      .fetch_one(&pool)
+      .await
+      .unwrap();
+  sqlx::query("UPDATE template_revisions SET state='deprecated',manifest_json=$2 WHERE id=$1")
+    .bind(pinned).bind(json!({
+      "template_id":usable_slug,"version":"1.0.0","title":"Angeheftete Quelle","description":"Ursprünglicher Inhalt","locale":"de",
+      "localized_contents":{"fr":{"path":"localized/fr.template.zip","sha256":"fixture","title":"Source épinglée","description":"Contenu de la révision épinglée"}}
+    })).execute(&pool).await.unwrap();
+  sqlx::query("INSERT INTO template_revisions(template_id,version,state,manifest_json,published_at) VALUES($1,'2.0.0','published',$2,now())")
+    .bind(usable).bind(json!({"template_id":usable_slug,"version":"2.0.0","title":"New successor"})).execute(&pool).await.unwrap();
+  sqlx::query("UPDATE workspace_template_policies SET selection_mode='pinned_revision',selected_revision_id=$3 WHERE workspace_id=$1 AND template_id=$2")
+    .bind(workspace_id).bind(usable).bind(pinned).execute(&pool).await.unwrap();
+  sqlx::query("UPDATE workspace_template_instances SET locale_hash='fr' WHERE workspace_id=$1 AND template_id=$2")
+    .bind(workspace_id)
+    .bind(usable)
+    .execute(&pool)
+    .await
+    .unwrap();
+  let pinned_result = helpers::gql(
+    &app,
+    owner_session,
+    suggestion_payload(
+      workspace_id,
+      json!({
+        "surface":"AllPagesNewPage","locale":"en","clientVersion":1,"first":10
+      }),
+    ),
+  )
+  .await;
+  assert_no_errors(&pinned_result);
+  let pinned_item = pinned_result["data"]["workspace"]["templateSuggestions"]["items"]
+    .as_array()
+    .unwrap()
+    .iter()
+    .find(|item| item["templateId"] == usable.to_string())
+    .expect("applied pinned source remains eligible");
+  assert_eq!(pinned_item["title"], "Source épinglée");
+  assert_eq!(pinned_item["description"], "Contenu de la révision épinglée");
+  assert_eq!(pinned_item["sourceRevisionId"], pinned.to_string());
   helpers::cleanup_users(&pool, &[owner_id, external_id]).await;
   sqlx::query("DELETE FROM template_catalog_entries WHERE slug LIKE $1")
     .bind(format!("{slug_prefix}%"))
@@ -554,6 +601,84 @@ async fn inv_template_library_graphql_pages_native_sources_and_preserves_missing
     withdrawn["data"]["workspace"]["templateSuggestions"]["items"],
     json!([])
   );
+
+  // A UUID-shaped external key is still an external key. Its exact match wins
+  // over the different document whose internal UUID has the same spelling.
+  let legacy_doc = helpers::create_doc(&pool, workspace, owner).await;
+  let preferred_doc = helpers::create_doc(&pool, workspace, owner).await;
+  let legacy_key = format!("{prefix}-legacy-native");
+  sqlx::query(
+    "UPDATE docs SET external_id=CASE WHEN id=$1 THEN $3 ELSE $1::text END WHERE workspace_id=$4 AND id IN ($1,$2)",
+  )
+  .bind(legacy_doc)
+  .bind(preferred_doc)
+  .bind(&legacy_key)
+  .bind(workspace)
+  .execute(&pool)
+  .await
+  .unwrap();
+  sqlx::query("INSERT INTO document_template_state(doc_id,state,source,updated_by) SELECT id,'managed','document',$3 FROM docs WHERE workspace_id=$4 AND id IN ($1,$2)")
+    .bind(legacy_doc).bind(preferred_doc).bind(owner).bind(workspace).execute(&pool).await.unwrap();
+  let bound = seed_template(
+    &store,
+    TemplateSeed {
+      workspace_id: workspace,
+      slug: &format!("{prefix}-identity"),
+      title: "Identity precedence",
+      status: TemplateStatus::Active,
+      revision_state: RevisionState::Published,
+      policy_enabled: true,
+      instance_doc_id: Some(legacy_doc),
+    },
+  )
+  .await;
+  for (key, clear_key) in [
+    (legacy_doc.to_string(), false),
+    (legacy_key.clone(), false),
+    (legacy_key.clone(), true),
+  ] {
+    if key == legacy_key && !clear_key {
+      sqlx::query("UPDATE docs SET external_id=$2 WHERE id=$1")
+        .bind(preferred_doc)
+        .bind(format!("{prefix}-no-longer-preferred"))
+        .execute(&pool)
+        .await
+        .unwrap();
+    }
+    if clear_key {
+      sqlx::query(
+        "UPDATE workspace_template_instances SET workspace_doc_key=NULL WHERE workspace_id=$1 AND template_id=$2",
+      )
+      .bind(workspace)
+      .bind(bound)
+      .execute(&pool)
+      .await
+      .unwrap();
+    }
+    let exact = helpers::gql(
+      &app,
+      session,
+      suggestion_payload(
+        workspace,
+        json!({
+          "surface":"Library","locale":"en","clientVersion":1,"library":{"sourceDocId":key}
+        }),
+      ),
+    )
+    .await;
+    assert_no_errors(&exact);
+    let items = exact["data"]["workspace"]["templateSuggestions"]["items"]
+      .as_array()
+      .unwrap();
+    assert_eq!(
+      items.len(),
+      1,
+      "exact key, absent-key UUID fallback and NULL-key binding must each resolve once"
+    );
+    assert_eq!(items[0]["templateId"], bound.to_string());
+    assert_eq!(items[0]["templateDocId"], key);
+    assert_eq!(items[0]["available"], true);
+  }
   helpers::cleanup_users(&pool, &[owner]).await;
   sqlx::query("DELETE FROM template_catalog_entries WHERE slug LIKE $1")
     .bind(format!("{prefix}%"))

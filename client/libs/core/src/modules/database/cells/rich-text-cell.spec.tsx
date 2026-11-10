@@ -34,8 +34,8 @@ const value = {
         type: "paragraph",
         content: [
           {
-            type: "text",
             text: "Bold project brief",
+            type: "text",
             marks: [{ type: "bold" }],
           },
         ],
@@ -79,7 +79,7 @@ describe("DatabaseRichTextCell", () => {
     await waitFor(() => expect(document.activeElement).toBe(trigger));
   });
 
-  test("uses the same expanded editor owner in Side Peek mode", () => {
+  test("uses the same expanded editor owner in Side Peek mode", async () => {
     render(
       <MyoxusUIProvider env="test">
         <DatabaseRichTextCell
@@ -93,6 +93,12 @@ describe("DatabaseRichTextCell", () => {
 
     expect(screen.queryByTestId("database-rich-text-open")).toBeNull();
     expect(screen.getByLabelText("Acceptance criteria")).not.toBeNull();
+    const editor = await waitFor(() => {
+      const element = document.querySelector<HTMLElement>(".ProseMirror");
+      expect(element).not.toBeNull();
+      return element!;
+    });
+    await userEvent.setup().click(editor);
     expect(
       screen.getByRole<HTMLButtonElement>("button", { name: "Save" }).disabled,
     ).toBe(true);

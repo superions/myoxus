@@ -134,7 +134,9 @@ describe("server-backed database slash menu", () => {
     });
     const { framework } = createFramework({ open });
     const { addSiblingBlocks, context } = createSlashContext();
-    const [embedExisting] = createServerDatabaseSlashMenuItems(framework);
+    const embedExisting = createServerDatabaseSlashMenuItems(framework).find(
+      (item) => item.id === "server-database-embed-existing",
+    );
 
     actionItem(embedExisting).action(context);
     callback?.({ databaseId: "database-existing", viewId: "view-existing" });
@@ -181,7 +183,9 @@ describe("server-backed database slash menu", () => {
     });
     const { framework, invalidate } = createFramework({ gql });
     const { addSiblingBlocks, context } = createSlashContext();
-    const [, newTable] = createServerDatabaseSlashMenuItems(framework);
+    const newTable = createServerDatabaseSlashMenuItems(framework).find(
+      (item) => item.id === "server-database-create-table",
+    );
 
     actionItem(newTable).action(context);
 
@@ -227,7 +231,9 @@ describe("server-backed database slash menu", () => {
     });
     const { framework, invalidate } = createFramework({ gql });
     const { addSiblingBlocks, context } = createSlashContext();
-    const [, , newProject] = createServerDatabaseSlashMenuItems(framework);
+    const newProject = createServerDatabaseSlashMenuItems(framework).find(
+      (item) => item.id === "server-database-create-project",
+    );
 
     actionItem(newProject).action(context);
 

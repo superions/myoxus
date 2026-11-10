@@ -22,10 +22,19 @@ import { findProcessIoItem } from "../../mutations/process-io-context";
 import { setProcessIoDetails } from "../../mutations/process-io";
 import { ItemDefinitionRefSelector } from "../itemDefinitionRefSelector/ItemDefinitionRefSelector";
 import { DataObjectIcon } from "../../diagram/nodes/NodeIcons";
+import { useContext } from "react";
+import { TechnicalPropertiesContext } from "../nameDocumentationAndId/NameDocumentationAndId";
 
 /** These fields mutate the process interface item, never a flow-element copy.
  * Bracketed state is notation; the name field and inline rename edit only name. */
-export function ProcessIoProperties({ id }: { id: string }) {
+export function ProcessIoProperties({
+  id,
+  primaryOnly = false,
+}: {
+  id: string;
+  primaryOnly?: boolean;
+}) {
+  const technicalOnly = useContext(TechnicalPropertiesContext);
   const t = useI18n(),
     store = useBpmnEditorStoreApi(),
     definitions = useBpmnEditorStore((state) => state.bpmn.model.definitions),
@@ -47,6 +56,23 @@ export function ProcessIoProperties({ id }: { id: string }) {
         onCommandError(error);
       }
     };
+  const primary = (
+    <Stack>
+      <MyoxusTextInput
+        label={t["com.myoxus.common.name"]()}
+        value={item["@_name"] ?? ""}
+        disabled={readOnly}
+        onChange={(name) => change({ name })}
+      />
+      <MyoxusTextarea
+        label={t["com.myoxus.editor.bpmn.documentation"]()}
+        value={item.documentation?.[0]?.__$$text ?? ""}
+        disabled={readOnly}
+        onChange={(documentation) => change({ documentation })}
+      />
+    </Stack>
+  );
+  if (primaryOnly) return primary;
   return (
     <Accordion defaultValue="properties">
       <AccordionItem value="properties">
@@ -56,20 +82,9 @@ export function ProcessIoProperties({ id }: { id: string }) {
               ? t["com.myoxus.editor.bpmn.data-input"]()
               : t["com.myoxus.editor.bpmn.data-output"]())}
         </AccordionControl>
-        <AccordionPanel>
+        <AccordionPanel keepMounted keepMountedMode="display-none">
           <Stack>
-            <MyoxusTextInput
-              label={t["com.myoxus.common.name"]()}
-              value={item["@_name"] ?? ""}
-              disabled={readOnly}
-              onChange={(name) => change({ name })}
-            />
-            <MyoxusTextarea
-              label={t["com.myoxus.editor.bpmn.documentation"]()}
-              value={item.documentation?.[0]?.__$$text ?? ""}
-              disabled={readOnly}
-              onChange={(documentation) => change({ documentation })}
-            />
+            {!technicalOnly && primary}
             <MyoxusTextInput
               label={t["com.myoxus.editor.bpmn.element-id"]()}
               value={id}

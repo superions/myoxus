@@ -19,7 +19,6 @@
     { "path": "../../blocks/surface-ref" },
     { "path": "../../blocks/table" },
     { "path": "../../components" },
-    { "path": "../../data-view" },
     { "path": "../../ext-loader" },
     { "path": "../../fragments/doc-title" },
     { "path": "../../../framework/global" },

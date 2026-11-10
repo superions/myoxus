@@ -85,7 +85,7 @@ services:
       - "127.0.0.1::3001"
 
   gateway:
-    image: nginx:1.27-alpine
+    image: nginx:stable-alpine
     depends_on:
       api-1:
         condition: service_healthy

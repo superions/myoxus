@@ -42,6 +42,12 @@ export type BlockMeta = {
   "meta:updatedBy"?: string;
 };
 
+/** Whole native text-owner mode. Absence is ordinary editable content.
+ * Sources remain authorable; application turns `source` into immutable `fixed`
+ * structure while embedded input values retain their independent write path.
+ */
+export type TextProtection = "source" | "fixed";
+
 /** Native template prototype metadata, removed when the unit is instantiated.
  * Keep persisted unknown values representable: authoring can remove them and
  * instantiation must reject them rather than silently discard their meaning.

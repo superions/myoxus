@@ -255,6 +255,12 @@ test("awareness", async () => {
     foo: "bar",
   });
 
+  const readerClock = awarenessC.meta.get(1)!.clock;
+  awarenessA.setLocalState(awarenessA.getLocalState());
+  await vitest.waitFor(() => {
+    expect(awarenessC.meta.get(1)!.clock).toBeGreaterThan(readerClock);
+  });
+
   await vitest.waitFor(() => {
     expect(awarenessA.getStates().get(2)).toEqual({
       foo: "bar",

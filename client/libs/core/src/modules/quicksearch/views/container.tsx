@@ -109,6 +109,7 @@ export const QuickSearchContainer = () => {
         loading={loading}
         onQueryChange={handleChangeQuery}
         onSubmit={handleSubmit}
+        onOpenPage={options?.onOpenPage}
         inputLabel={options?.label && i18n.t(options.label)}
         placeholder={options?.placeholder && i18n.t(options.placeholder)}
       />

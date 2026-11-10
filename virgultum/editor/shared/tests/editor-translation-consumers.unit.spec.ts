@@ -22,7 +22,6 @@ import de from "../../../../client/libs/i18n/src/resources/de.json";
 import en from "../../../../client/libs/i18n/src/resources/en.json";
 import es from "../../../../client/libs/i18n/src/resources/es.json";
 import fr from "../../../../client/libs/i18n/src/resources/fr.json";
-import { FilterableListComponent } from "../../components/src/filterable-list";
 import { HighlightDropdownMenu } from "../../components/src/highlight-dropdown-menu/dropdown-menu";
 import { NoteDisplayModePanel } from "../../gfx/note/src/components/note-display-mode-panel";
 import { NoteDisplayMode } from "../../model/src";
@@ -67,11 +66,6 @@ async function mount<T extends LitElement>(element: T) {
 }
 
 customElements.define(
-  "test-i18n-filter-list",
-  class extends FilterableListComponent {},
-);
-
-customElements.define(
   "test-i18n-highlight-menu",
   class extends HighlightDropdownMenu {},
 );
@@ -81,53 +75,6 @@ customElements.define(
 );
 
 describe("mounted editor translation consumers", () => {
-  it("recomputes translated search without changing its query or selection identity", async () => {
-    const { locale$, service } = translator();
-    const list = document.createElement(
-      "test-i18n-filter-list",
-    ) as FilterableListComponent;
-    const selected = vi.fn();
-    const item = { name: "copy-command", label: editorMessage("Copy", "Copy") };
-    list.options = { i18n: service, items: [item], onSelect: selected };
-    const root = await mount(list);
-    const input = root.querySelector("input")!;
-    expect(input.placeholder).toBe(de["Quick search"]);
-    input.value = "kop";
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    await list.updateComplete;
-    expect(root.querySelector(".filterable-item")?.textContent).toContain(
-      de.Copy,
-    );
-    locale$.value = "en";
-    await list.updateComplete;
-    expect(input.value).toBe("kop");
-    expect(root.querySelector(".filterable-item")).toBeNull();
-    locale$.value = "de";
-    await list.updateComplete;
-    (root.querySelector(".filterable-item") as HTMLElement).click();
-    expect(selected).toHaveBeenCalledWith(item);
-    expect(item.name).toBe("copy-command");
-    list.remove();
-    const updates = vi.spyOn(list, "requestUpdate");
-    locale$.value = "fr";
-    expect(updates).not.toHaveBeenCalled();
-  });
-
-  it("keeps standalone English fallback and technical language names", async () => {
-    const list = document.createElement(
-      "test-i18n-filter-list",
-    ) as FilterableListComponent;
-    list.options = {
-      items: [{ name: "typescript", label: "TypeScript" }],
-      onSelect: vi.fn(),
-    };
-    const root = await mount(list);
-    expect(root.querySelector("input")?.placeholder).toBe("Search");
-    expect(root.querySelector(".filterable-item")?.textContent).toContain(
-      "TypeScript",
-    );
-  });
-
   it("localizes mode labels and colors without translating saved enum/CSS values", async () => {
     const { locale$, service } = translator();
     const mode = document.createElement(

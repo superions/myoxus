@@ -94,6 +94,7 @@ export interface State extends BpmnXyFlowDiagramState {
   };
   propertiesPanel: {
     isOpen: boolean;
+    isFurtherOpen: boolean;
   };
   diagram: {
     overlaysPanel: {
@@ -117,7 +118,8 @@ export const getDefaultStaticState = (): Omit<
     isReadOnly: false,
   },
   propertiesPanel: {
-    isOpen: true,
+    isOpen: false,
+    isFurtherOpen: false,
   },
   diagram: {
     overlaysPanel: {

@@ -19,7 +19,16 @@ export const autoUpdater =
 
 export const quitAndInstall = async () => {
   if (getUpdaterState().ready && autoUpdater)
-    await quitAfterAdmission(() => autoUpdater.quitAndInstall());
+    await quitAfterAdmission(() => {
+      // The user already chose restart and renderer admission succeeded. NSIS
+      // must activate without a second wizard, then relaunch the new version.
+      if (
+        updaterSelection.state === "enabled" &&
+        updaterSelection.target.platform === "win32"
+      )
+        autoUpdater.quitAndInstall(true, true);
+      else autoUpdater.quitAndInstall();
+    });
 };
 
 let downloading = false;

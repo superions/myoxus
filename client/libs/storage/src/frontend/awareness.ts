@@ -40,7 +40,9 @@ export class AwarenessFrontend {
         });
     };
 
-    awareness.on("change", handleAwarenessUpdate);
+    // Yjs emits unchanged-state heartbeats only through `update`. Forward them
+    // too so readers do not expire while their cursor stays still.
+    awareness.on("update", handleAwarenessUpdate);
     const handleSyncUpdate = (update: AwarenessRecord, origin?: string) => {
       if (origin === uniqueId) {
         // skip self update
@@ -62,12 +64,12 @@ export class AwarenessFrontend {
     );
 
     awareness.once("destroy", () => {
-      awareness.off("change", handleAwarenessUpdate);
+      awareness.off("update", handleAwarenessUpdate);
       unsubscribe();
     });
 
     return () => {
-      awareness.off("change", handleAwarenessUpdate);
+      awareness.off("update", handleAwarenessUpdate);
       unsubscribe();
     };
   }

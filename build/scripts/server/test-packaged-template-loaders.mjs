@@ -318,8 +318,9 @@ const entries = definitions.map((definition) => {
   delete entry.updates;
   return entry;
 });
-// Retain the fixture Project's actual native predecessor and exact structural
-// edge. Only the identity-bearing YAML nodes change; sample f64 bytes survive.
+// Clone the predecessor's structure under fixture ownership. Both fixture
+// revisions consume the publicly exported current Task core; the platform's
+// private historical core is not an optional-bundle dependency. Preserve f64 bytes.
 const projectHistory = await nativeDefinition({
   ...projectEntry,
   current: "1.0.0",
@@ -327,6 +328,8 @@ const projectHistory = await nativeDefinition({
 const projectHistoryDocument = nativeDefinitionDocuments.get(projectHistory);
 projectHistoryDocument.set("id", extraProject.id);
 projectHistoryDocument.delete("supported_predecessors");
+projectHistoryDocument.set("task_core", extraProject.task_core);
+projectHistory.task_core = extraProject.task_core;
 projectHistory.variants.forEach((variant, index) => {
   projectHistoryDocument.setIn(
     ["variants", index, "spec", "id"],
@@ -526,14 +529,18 @@ writeFileSync(
   join(fixtureSource, "document.zip"),
   await writeZip(documentArchive),
 );
-const taskCoreExport = baseManifest.exports.find(
-  (entry) =>
-    entry.source.export ===
-    `${extraProject.task_core.id}@${extraProject.task_core.version}`,
-);
-assert(
-  taskCoreExport,
-  "external Project pins an actual platform Task core export",
+const taskCoreExports = new Map(
+  [extraProject, projectHistory].map((definition) => {
+    const core = definition.task_core;
+    const exported = baseManifest.exports.find(
+      (entry) => entry.source.export === `${core.id}@${core.version}`,
+    );
+    assert(
+      exported,
+      "each Project revision pins its actual platform Task core",
+    );
+    return [definition.version, exported];
+  }),
 );
 const linkedDocumentExport = baseManifest.exports.find(
   (entry) => entry.document && !entry.document.newWorkspaceDefault,
@@ -656,7 +663,11 @@ const featureSource = {
         component: "databases",
         export: `${extraProject.id}@${version}`,
       },
-      to: { scope: "platform", bundle: basePin, export: taskCoreExport.id },
+      to: {
+        scope: "platform",
+        bundle: basePin,
+        export: taskCoreExports.get(version).id,
+      },
     })),
     {
       kind: "artwork",

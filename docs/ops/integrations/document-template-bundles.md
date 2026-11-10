@@ -3,9 +3,11 @@
 [Documentation](../../README.md) / [Operations](../README.md) / [Integrations](./README.md)
 
 Use versioned native document bundles with the central Template Registry.
-The maintained regular meeting offering contains Agenda, Daily, Retro and 1:1.
-Fokus and Register remain immutable history for existing pins and contextual
-consumers; they are not fresh regular offerings or release-managed defaults.
+The maintained meeting offering includes Agenda, Daily, Retro, 1:1, Daily/Weekly,
+Fokus and Register. Basis 1.0.36 selects their native-field revisions and enables
+Daily/Weekly, Fokus and Register as managed defaults in eligible Workspaces.
+Explicit empty-workspace choices remain empty. Historical revisions and genuine
+contextual pins keep their exact versions.
 Release selection preserves operator publications and explicit policies.
 Release-owned reusable-source defaults use `managed_until_local_edit`, so normal
 reconciliation can apply a later native revision to an unchanged source without
@@ -16,25 +18,32 @@ corrected only with positive publication/default ownership and native binding
 evidence; unknown ownership, pins, manual updates and disabled policies remain
 protected.
 
-| Bundle                                                                 | Current version | Native content SHA-256                                             |
-| ---------------------------------------------------------------------- | --------------- | ------------------------------------------------------------------ |
-| [Agenda](../../../server/templates/documents/meeting-agenda/1.4.0.zip) | 1.4.0           | `92e7f203ac32d5960df59b4198a851a8fede2e75386e60d089e3731136cc0ae5` |
-| [Daily](../../../server/templates/documents/agile-standup/1.4.0.zip)   | 1.4.0           | `c06a4dda7c5ead5f67f75e2c956506e57c06abf99beade9baad392c88d2b485f` |
-| [Retro](../../../server/templates/documents/agile-retro/1.4.0.zip)     | 1.4.0           | `29dca422ebb276082f30aaafdc6c66c02b48a0a1f3bab423fabe125638f20db0` |
+The Basis manifest owns current revisions and default policies; each selected
+bundle manifest owns its native locale checksums. Use those contracts rather than
+a second manually maintained version inventory.
 
 Each ZIP contains the canonical registry `manifest.json`, native
 `content.template.zip` and its declared localized payloads. The native payload
 contains a supported Yjs update or a single-document native Snapshot ZIP with its
 assets. Its extension alone does not identify the inner encoding.
-Editable tables, column geometry, emphasis, variables and manually unchecked
-attendance remain native content. These meeting bundles have no external assets.
+Editable tables, column geometry, emphasis, variables and attendance remain native
+content. These meeting bundles have no external assets. The reviewed Daily/Weekly
+source repeats one native table row per accepted workspace member and separates
+shared topics from individual updates. Fokus provides twelve topic rows; Register
+provides ten rows with content as its widest column. The three sources offer
+EN/DE/FR/ES content. Meeting dates and structured answers are native inline inputs;
+workspace/author capture context still uses existing substitutions. Free notes and
+unprotected guidance remain normal editable text.
+See [template inputs](template-variables.md) for explicit date/date-time admission.
 
 ## Export an authored workspace template
 
 Author the source in the normal native editor under **Library → Templates**.
-Leave `{{input.*}}` values open when the recipient should answer them later.
-For building blocks, use automatic variables and ordinary editable text instead;
-block insertion does not open a question form. Their sources use the existing
+Use native input fields when the recipient should answer directly in the document.
+Retain explicit `{{input.*}}` only for an intentional creation prompt or an existing
+caller-owned substitution. Building blocks use native fields, automatic variables
+and ordinary editable text; insertion does not open a question form. Protect only
+explicitly assigned fixed boilerplate, not all template-derived prose. Their sources use the existing
 `category: building-blocks` and work-area `tags`, with the same native ZIP format.
 Embedded native images travel with the source; the export retains their exact
 referenced bytes. It does not resolve inputs or alter the source document.
@@ -276,8 +285,9 @@ MYOXUS__TEMPLATES__ROOT_DIR=/path/to/candidate/templates \
   myoxus-cli --json templates recover-release --all-workspaces --apply
 ```
 
-Apply runs the canonical forward migrations and frozen-baseline adoption before
-current selection and native reconciliation. Unsupported or altered ledgers fail
+Apply runs the canonical forward migrations, current selection and native
+reconciliation. Completed frozen-baseline adoption is no longer present;
+unsupported NULL-revision bindings and unsupported or altered ledgers fail
 closed. Real pins, disables, manual policies, opt-outs, edited sources and ordinary
 guide/working copies remain protected. Empty suppresses implicit defaults only.
 Use the same reviewed scope on retry: a materialization/deletion failure is not

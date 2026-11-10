@@ -79,11 +79,11 @@ export class ServersService extends Service {
   });
 
   addServer(metadata: ServerMetadata, config: ServerConfig) {
-    this.serverListStore.addServer(metadata, config);
+    return this.serverListStore.addServer(metadata, config);
   }
 
   removeServer(id: string) {
-    this.serverListStore.removeServer(id);
+    return this.serverListStore.removeServer(id);
   }
 
   readonly selectedServerId$ = LiveData.from(
@@ -102,7 +102,7 @@ export class ServersService extends Service {
     }
     const config = await this.serverConfigStore.fetchServerConfig(baseUrl);
     const id = nanoid();
-    this.serverListStore.addServer(
+    await this.serverListStore.addServer(
       { id, baseUrl },
       {
         credentialsRequirement: config.credentialsRequirement,

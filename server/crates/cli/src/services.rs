@@ -715,7 +715,11 @@ impl Services {
     let auth_store = Arc::new(SqlxAuthStore::from_pool(pool.clone()));
     let workspace_store = Arc::new(SqlxWorkspaceStore::new(pool.clone(), database_starter_catalog.clone()));
     let admin_store = Arc::new(SqlxAdminStore::new(pool.clone()));
-    let doc_store = Arc::new(SqlxDocStore::new(pool.clone()).with_database_templates(database_starter_catalog.clone()));
+    let doc_store = Arc::new(
+      SqlxDocStore::new(pool.clone())
+        .with_field_capture_default_locale(runtime.i18n.default_locale.clone())
+        .with_database_templates(database_starter_catalog.clone()),
+    );
 
     let mailer = Arc::new(LogMailAdapter);
     let auth_storage =

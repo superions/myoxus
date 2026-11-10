@@ -7,7 +7,35 @@ use crate::{
 use image::{DynamicImage, ImageFormat, Rgba, RgbaImage};
 use uuid::Uuid;
 use yjs::{YjsDocumentBuilder, YjsTextSegment};
-use yrs::{Array, Map, Text, Transact};
+use yrs::{Array, Map, ReadTxn, Text, Transact};
+
+fn mark_invalid_field(payload: &[u8], prefix: &str) -> Vec<u8> {
+  mark_field(
+    payload,
+    prefix,
+    yrs::types::Attrs::from([("documentField".into(), yrs::Any::Bool(false))]),
+  )
+}
+
+fn mark_field(payload: &[u8], prefix: &str, attributes: yrs::types::Attrs) -> Vec<u8> {
+  use yrs::{GetString, updates::decoder::Decode};
+  let doc = yrs::Doc::new();
+  let blocks = doc.get_or_insert_map("blocks");
+  let mut txn = doc.transact_mut();
+  txn.apply_update(yrs::Update::decode_v1(payload).unwrap()).unwrap();
+  let text = blocks
+    .iter(&txn)
+    .find_map(|(_, block)| {
+      let yrs::Out::YMap(block) = block else { return None };
+      block.iter(&txn).find_map(|(_, value)| match value {
+        yrs::Out::YText(text) if text.get_string(&txn).starts_with(prefix) => Some(text),
+        _ => None,
+      })
+    })
+    .expect("field fixture text owner");
+  text.format(&mut txn, 0, 1, attributes);
+  txn.encode_state_as_update_v1(&Default::default())
+}
 
 const INTER: &[u8] = include_bytes!("../../../static/fonts/inter-vf.ttf");
 
@@ -892,7 +920,7 @@ fn long_paragraph_keeps_its_unicode_prefix_and_rich_text_at_the_budget() {
   marked.bold = true;
   builder.push_paragraph(&[marked, YjsTextSegment::plain("x".repeat(10_000))]);
   builder.push_paragraph(&[YjsTextSegment::plain("This later block must not enter the excerpt")]);
-  let payload = builder.encode();
+  let payload = mark_invalid_field(&builder.encode(), "This later block");
   let source = format!("{first}{}", "x".repeat(10_000));
   for budget in [7, 64, 4_000] {
     let mut limits = projection_limits();
@@ -900,6 +928,10 @@ fn long_paragraph_keeps_its_unicode_prefix_and_rich_text_at_the_budget() {
     let ir = document_excerpt_from_yjs(Uuid::nil(), Uuid::nil(), "", "Page", &payload, &limits)
       .expect("a long first paragraph still has a useful bounded prefix");
     assert_eq!(ir.document.blocks.len(), 1);
+    assert!(
+      ir.native_fields.is_empty(),
+      "omitted blocks must not enter field admission"
+    );
     let Block::Paragraph { text, .. } = &ir.document.blocks[0] else {
       panic!("the admitted paragraph must not disappear");
     };
@@ -915,6 +947,14 @@ fn long_paragraph_keeps_its_unicode_prefix_and_rich_text_at_the_budget() {
         .any(|item| item.code == "preview_excerpt_truncated")
     );
   }
+  let mut limits = projection_limits();
+  limits.max_text_chars = 20_000;
+  let ir = document_excerpt_from_yjs(Uuid::nil(), Uuid::nil(), "", "Page", &payload, &limits).unwrap();
+  assert_eq!(
+    ir.native_fields,
+    vec![Err(())],
+    "admitted malformed runs must reach Application validation"
+  );
 }
 
 #[test]
@@ -927,14 +967,55 @@ fn table_projection_reports_dimension_truncation_without_losing_the_excerpt() {
   let mut limits = projection_limits();
   limits.max_table_rows = 1;
   limits.max_table_columns = 1;
-  let ir = document_excerpt_from_yjs(Uuid::nil(), Uuid::nil(), "Fallback", "Page", &builder.encode(), &limits)
+  let source = builder.encode();
+  let payload = mark_invalid_field(&source, "B2");
+  let ir = document_excerpt_from_yjs(Uuid::nil(), Uuid::nil(), "Fallback", "Page", &payload, &limits)
     .expect("bounded table projection");
   let Block::Table { rows, .. } = &ir.document.blocks[0] else {
     panic!("the admitted table must remain a semantic table");
   };
   assert_eq!((rows.len(), rows[0].len()), (1, 1));
   assert_eq!(rows[0][0][0].text, "A1");
+  assert!(ir.native_fields.is_empty(), "out-of-excerpt cells are not inspected");
   assert!(ir.diagnostics.iter().any(|item| item.code == "preview_table_truncated"));
+  limits.max_table_rows = 2;
+  limits.max_table_columns = 2;
+  let ir = document_excerpt_from_yjs(Uuid::nil(), Uuid::nil(), "Fallback", "Page", &payload, &limits).unwrap();
+  assert_eq!(ir.native_fields, vec![Err(())]);
+
+  let descriptor = serde_json::json!({"type":"metadata","id":"field","key":"title","format":"text"});
+  let payload = mark_field(
+    &source,
+    "B2",
+    yrs::types::Attrs::from([
+      (
+        "documentField".into(),
+        yrs::Any::from_json(&descriptor.to_string()).unwrap(),
+      ),
+      ("documentFieldCaptured".into(), yrs::Any::Bool(true)),
+    ]),
+  );
+  let ir = document_excerpt_from_yjs(Uuid::nil(), Uuid::nil(), "Fallback", "Page", &payload, &limits).unwrap();
+  assert_eq!(ir.native_fields, vec![Ok(serde_json::from_value(descriptor).unwrap())]);
+  let legacy = yrs::Doc::new();
+  let blocks = legacy.get_or_insert_map("blocks");
+  let payload = {
+    use yrs::updates::decoder::Decode;
+    let mut txn = legacy.transact_mut();
+    txn.apply_update(yrs::Update::decode_v1(&payload).unwrap()).unwrap();
+    let table = blocks.iter(&txn).find_map(|(_, value)| {
+      let yrs::Out::YMap(block) = value else { return None };
+      matches!(block.get(&txn, "sys:flavour"), Some(yrs::Out::Any(yrs::Any::String(value))) if yjs::resolve_flavour(&value) == "myoxus:table").then_some(block)
+    }).unwrap();
+    table.insert(&mut txn, "sys:flavour", "myoxus:database");
+    txn.encode_state_as_update_v1(&Default::default())
+  };
+  let ir = document_excerpt_from_yjs(Uuid::nil(), Uuid::nil(), "Fallback", "Page", &payload, &limits).unwrap();
+  assert_eq!(
+    ir.native_fields,
+    vec![Err(())],
+    "shared cell extraction cannot admit new fields on retained Database blocks"
+  );
 
   let mut builder = YjsDocumentBuilder::new("Cell");
   builder.push_table(&[vec![

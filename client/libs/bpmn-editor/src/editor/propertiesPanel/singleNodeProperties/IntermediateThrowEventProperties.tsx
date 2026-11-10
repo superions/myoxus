@@ -60,7 +60,7 @@ export function IntermediateThrowEventProperties({
             {intermediateThrowEvent["@_name"] ||
               i18n.singleNodeProperties.intermediateThrowEvent}
           </AccordionControl>
-          <AccordionPanel>
+          <AccordionPanel keepMounted keepMountedMode="display-none">
             <NameDocumentationAndId element={intermediateThrowEvent} />
 
             <Divider />

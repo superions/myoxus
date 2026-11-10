@@ -14,8 +14,8 @@ import {
   render,
   screen,
   waitFor,
-  within,
 } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import {
@@ -425,51 +425,64 @@ describe("facade date picker semantics", () => {
     expect(dateTimeInput.textContent).not.toBe("2026-06-20T14:30");
   });
 
-  test("keeps date-time selection, confirmation and Escape inside the containing modal", async () => {
+  test("keeps date-time selection and Escape with its modal while escaping the content scroller", async () => {
+    const user = userEvent.setup();
     const onChange = vi.fn();
     const onOpenChange = vi.fn();
     render(
-      <MyoxusUIProvider env="test">
-        <Modal open title="Project schedule" onOpenChange={onOpenChange}>
+      <MyoxusUIProvider>
+        <Modal
+          open
+          scrollable
+          title="Project schedule"
+          onOpenChange={onOpenChange}
+        >
           <LocalizedDateTimeInput
             label="Meeting time"
             locale="en"
             defaultValue="2026-06-20 14:30:00"
             onChange={onChange}
+            // Happy DOM has no layout. Keep the real portal enabled without
+            // treating its zero-sized anchor as a detached browser element.
+            popoverProps={{
+              hideDetached: false,
+              transitionProps: { duration: 0 },
+            }}
           />
         </Modal>
       </MyoxusUIProvider>,
     );
 
-    const input = screen.getByLabelText("Meeting time");
-    fireEvent.click(input);
+    const input = await screen.findByLabelText("Meeting time");
+    await user.click(input);
     const dialog = screen.getByRole("dialog", { name: "Project schedule" });
-    fireEvent.click(
-      await within(dialog).findByRole("button", { name: "21 June 2026" }),
-    );
-    expect(onChange).toHaveBeenLastCalledWith("2026-06-21 14:30:00");
-    fireEvent.click(
-      await within(dialog).findByRole("button", { name: "Confirm" }),
-    );
-    await waitFor(() =>
-      expect(
-        within(dialog).queryByRole("button", { name: "21 June 2026" }),
-      ).toBeNull(),
-    );
-    fireEvent.click(input);
-    const day = await within(dialog).findByRole("button", {
+    const selectedDay = await screen.findByRole("button", {
       name: "21 June 2026",
     });
-    fireEvent.keyDown(day, { key: "Escape" });
+    expect(selectedDay.closest("[data-myoxus-modal-portal]")).toBe(
+      dialog.closest("[data-myoxus-modal-portal]"),
+    );
+    expect(dialog.contains(selectedDay)).toBe(false);
+    await user.click(selectedDay);
+    expect(onChange).toHaveBeenLastCalledWith("2026-06-21 14:30:00");
+    await user.click(await screen.findByRole("button", { name: "Confirm" }));
     await waitFor(() =>
-      expect(
-        within(dialog).queryByRole("button", { name: "21 June 2026" }),
-      ).toBeNull(),
+      expect(screen.queryByRole("button", { name: "21 June 2026" })).toBeNull(),
+    );
+    await user.click(input);
+    const hours = await screen.findByRole("spinbutton", {
+      name: "common.time.hour",
+    });
+    await user.click(hours);
+    await user.keyboard("{Escape}");
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "21 June 2026" })).toBeNull(),
     );
     expect(onOpenChange).not.toHaveBeenCalled();
     expect(screen.getByRole("dialog", { name: "Project schedule" })).toBe(
       dialog,
     );
+    await waitFor(() => expect(document.activeElement).toBe(input));
   });
 
   test("supports locale-aware compact formats for dense data cells", () => {

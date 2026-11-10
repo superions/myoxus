@@ -1101,6 +1101,36 @@ impl ApiQueryRoot {
       .await
   }
 
+  async fn document_field_catalog(&self, ctx: &Context<'_>) -> Result<document_metadata::DocumentFieldCatalogType> {
+    document_metadata::DocumentMetadataQueryRoot
+      .document_field_catalog(ctx)
+      .await
+  }
+
+  async fn document_field_output(
+    &self,
+    ctx: &Context<'_>,
+    workspace_id: ID,
+    doc_id: ID,
+    fields: async_graphql::Json<serde_json::Value>,
+  ) -> Result<Vec<String>> {
+    document_metadata::DocumentMetadataQueryRoot
+      .document_field_output(ctx, workspace_id, doc_id, fields)
+      .await
+  }
+
+  async fn document_field_presentations(
+    &self,
+    ctx: &Context<'_>,
+    workspace_id: ID,
+    doc_id: ID,
+    fields: async_graphql::Json<serde_json::Value>,
+  ) -> Result<Vec<document_metadata::DocumentFieldPresentationType>> {
+    document_metadata::DocumentMetadataQueryRoot
+      .document_field_presentations(ctx, workspace_id, doc_id, fields)
+      .await
+  }
+
   async fn document_metadata(
     &self,
     ctx: &Context<'_>,

@@ -41,7 +41,7 @@ import {
 import { MyoxusUIProvider } from "./provider";
 
 function renderWithProvider(ui: ReactElement) {
-  return render(<MyoxusUIProvider>{ui}</MyoxusUIProvider>);
+  return render(<MyoxusUIProvider env="test">{ui}</MyoxusUIProvider>);
 }
 
 describe("facade menu primitives", () => {

@@ -4,6 +4,7 @@
 import { useCurrentServerService } from "@myoxus/core/components/providers/current-server-scope";
 import {
   type DateInput,
+  formatRegionalCalendarDate,
   formatRegionalDate,
   formatRegionalDateTime,
   formatRegionalTime,
@@ -84,6 +85,8 @@ export function useRegionalFormatters() {
 
   return useMemo(
     () => ({
+      formatCalendarDate: (value: string) =>
+        formatRegionalCalendarDate(value, preferences),
       formatDate: (value: DateInput) => formatRegionalDate(value, preferences),
       formatDateTime: (value: DateInput) =>
         formatRegionalDateTime(value, preferences),

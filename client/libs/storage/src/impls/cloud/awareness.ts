@@ -115,6 +115,9 @@ export class CloudAwarenessStorage extends AwarenessStorageBase {
             : "Awareness join denied",
         );
       }
+      // Readers may never change their selection. Announce the current local
+      // state on join too, using the same fenced collection/upload path.
+      handleCollectAwareness(scope);
       socket.emit("space:load-awarenesses", scope);
     };
 

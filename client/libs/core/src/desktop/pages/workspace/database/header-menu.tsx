@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import { WorkbenchToolsMenuSub } from "@myoxus/core/components/workbench-tools-menu";
 import type { UserPreferencesService } from "@myoxus/core/modules/server/services/user-preferences";
 import { AssistancePreference } from "@myoxus/core/modules/server/views/assistance-preference";
 import { DatabaseImportMenuSub } from "@myoxus/core/modules/database";
@@ -97,6 +98,7 @@ export const DatabaseHeaderMenuButton = forwardRef<
       onOpenChange={onOpenChange}
       items={
         <MenuPanel>
+          <WorkbenchToolsMenuSub />
           {contextualAssistance}
           {canEditMetadata ? (
             <>

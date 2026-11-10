@@ -130,6 +130,17 @@ impl DocumentFragmentDiagnostics {
 pub fn document_fragment_from_yjs_with_diagnostics(
   yjs_binary: &[u8],
 ) -> AuthResult<(DocumentFragment, DocumentFragmentDiagnostics)> {
+  crate::document_fields::validate_snapshot(yjs_binary)?;
+  if !yjs::document_field::content::inspect(yjs_binary)
+    .map_err(|_| AuthError::InvalidInput("MIX_DOCUMENT_FIELD_INVALID".into()))?
+    .is_empty()
+  {
+    // This existing fragment schema cannot express native fields. Native copy
+    // owners preserve them; a lossy reading-IR conversion must not erase them.
+    return Err(AuthError::InvalidInput(
+      "MIX_DOCUMENT_MUTATION_UNSUPPORTED_NATIVE_FIELDS".into(),
+    ));
+  }
   let ir = myoxus_public_render::document_from_yjs(Uuid::nil(), Uuid::nil(), "Fragment", "Private", yjs_binary)
     .map_err(|_| AuthError::InvalidInput("MIX_DOCUMENT_MUTATION_MARKDOWN_INVALID".to_string()))?;
   let mut findings = DocumentFragmentDiagnostics::default();

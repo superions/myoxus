@@ -129,6 +129,7 @@ export {
   ShellBrandWordmark,
 } from "./shell/sidebar-frame";
 export { VisuallyHidden } from "@mantine/core";
+export { popoverViewportMiddlewares } from "./popover";
 export {
   Alert,
   AspectRatio,
@@ -138,7 +139,9 @@ export {
   Grid,
   Group,
   Image,
+  InputBase,
   NavLink,
+  Paper,
   SimpleGrid,
   Stack,
   ThemeIcon,

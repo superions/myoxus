@@ -19,7 +19,7 @@ const pendingPopoverLimits = new WeakMap<
   HTMLElement,
   { height: number; width: number }
 >();
-const popoverViewportMiddlewares = {
+export const popoverViewportMiddlewares = {
   flip: true,
   inline: false,
   shift: true,
@@ -61,6 +61,7 @@ export function Popover({
   open,
   onChange,
   onOpenChange,
+  onExitTransitionEnd,
   width,
   contentMeasure,
   position = "bottom",
@@ -80,6 +81,8 @@ export function Popover({
   floatingStrategy?: MantineCorePopoverProps["floatingStrategy"];
   onChange?: (opened: boolean) => void;
   onOpenChange?: (opened: boolean) => void;
+  /** Run after the native dropdown releases its focus trap. */
+  onExitTransitionEnd?: () => void;
   width?: number | string;
   /** Literal document text uses half the themed document column; native size middleware still clips it. */
   contentMeasure?: "reading";
@@ -124,6 +127,7 @@ export function Popover({
         onChange?.(nextOpened);
         onOpenChange?.(nextOpened);
       }}
+      onExitTransitionEnd={onExitTransitionEnd}
       width={
         width ??
         (contentMeasure === "reading"

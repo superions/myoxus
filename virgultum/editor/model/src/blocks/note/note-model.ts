@@ -39,7 +39,7 @@ export const NoteZodSchema = z
       }),
     }),
   })
-  .default({
+  .prefault({
     background: DefaultTheme.noteBackgrounColor,
     displayMode: NoteDisplayMode.EdgelessOnly,
     edgeless: {
@@ -75,12 +75,7 @@ export const NoteBlockSchema = defineBlockSchema({
     version: 1,
     role: "hub",
     parent: ["@root"],
-    children: [
-      "@content",
-      "myoxus:database",
-      "myoxus:data-view",
-      "myoxus:callout",
-    ],
+    children: ["@content", "myoxus:database", "myoxus:callout"],
   },
   toModel: () => {
     return new NoteBlockModel();

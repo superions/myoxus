@@ -195,7 +195,9 @@ export function prepareBpmnPreviewSvg(
         "line-through",
         "underline line-through",
       ],
-      "paint-order": ["normal", "stroke fill", "fill stroke"],
+      // Browsers serialize the renderer's "stroke fill" glyph mask as "stroke".
+      // Dropping that canonical form paints the halo over, not behind, the text.
+      "paint-order": ["normal", "stroke", "stroke fill", "fill stroke"],
       "stroke-linejoin": ["miter", "round", "bevel"],
       "stroke-linecap": ["butt", "round", "square"],
       "white-space": ["normal", "pre", "pre-wrap"],

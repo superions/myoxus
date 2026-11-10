@@ -38,11 +38,12 @@ impl Default for SplitConfig {
   }
 }
 
-/// Resolve a tiktoken [`CoreBPE`] instance for the given model.
-fn get_bpe(model: &TokenizerModel) -> tiktoken_rs::CoreBPE {
+/// Reuse each model's process-local vocabulary. Sizing and counting retain
+/// their existing ordinary/special-token encoding modes.
+fn get_bpe(model: &TokenizerModel) -> &'static tiktoken_rs::CoreBPE {
   match model {
-    TokenizerModel::Cl100kBase => tiktoken_rs::cl100k_base().expect("cl100k_base init"),
-    TokenizerModel::O200kBase => tiktoken_rs::o200k_base().expect("o200k_base init"),
+    TokenizerModel::Cl100kBase => tiktoken_rs::cl100k_base_singleton(),
+    TokenizerModel::O200kBase => tiktoken_rs::o200k_base_singleton(),
   }
 }
 

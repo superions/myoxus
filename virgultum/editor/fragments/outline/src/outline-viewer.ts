@@ -1,4 +1,3 @@
-import { provide } from "@lit/context";
 import { TocIcon } from "@myoxus/icons/lit";
 import { signal } from "@preact/signals-core";
 import { SignalWatcher, WithDisposable } from "@virgultum/global/lit";
@@ -7,6 +6,7 @@ import {
   DocModeProvider,
   EditorI18nProvider,
   resolveLegacyEditorText,
+  EditorChromeHostIdentifier,
 } from "@virgultum/shared/services";
 import { scrollbarStyle } from "@virgultum/shared/styles";
 import {
@@ -15,7 +15,7 @@ import {
   requiredProperties,
   ShadowlessElement,
 } from "@virgultum/std";
-import { css, html, nothing, type PropertyValues } from "lit";
+import { css, html, nothing } from "lit";
 import { property, query, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { repeat } from "lit/directives/repeat.js";
@@ -23,9 +23,8 @@ import { repeat } from "lit/directives/repeat.js";
 import {
   defaultOutlinePanelLabels,
   type OutlinePanelLabels,
-  type TocContext,
-  tocContext,
 } from "./config.js";
+import { describeOutlineBlock } from "./document-outline-controller";
 import { getHeadingBlocksFromDoc } from "./utils/query.js";
 import {
   observeActiveHeadingDuringScroll,
@@ -187,17 +186,6 @@ export class OutlineViewer extends SignalWatcher(
     }
   }
 
-  private _setContext() {
-    this._context = {
-      compactWindowRadius$: signal<number>(0),
-      editor$: signal(this.editor),
-      showIcons$: signal<boolean>(false),
-      enableSorting$: signal<boolean>(false),
-      fitPadding$: signal<number[]>([]),
-      labels$: signal(this.labels),
-    };
-  }
-
   override connectedCallback() {
     super.connectedCallback();
 
@@ -217,17 +205,6 @@ export class OutlineViewer extends SignalWatcher(
         this.requestUpdate();
       }),
     );
-
-    this._setContext();
-  }
-
-  override willUpdate(changedProperties: PropertyValues<this>): void {
-    if (changedProperties.has("editor")) {
-      this._context.editor$.value = this.editor;
-    }
-    if (changedProperties.has("labels")) {
-      this._context.labels$.value = this.labels;
-    }
   }
 
   override disconnectedCallback() {
@@ -302,16 +279,21 @@ export class OutlineViewer extends SignalWatcher(
                   active: this._activeHeadingId$.value === block.id,
                 })}
               >
-                <myoxus-outline-block-preview
-                  class=${classMap({
-                    active: this._activeHeadingId$.value === block.id,
-                  })}
-                  .block=${block}
-                  @click=${() => {
-                    this._scrollToBlock(block.id).catch(console.error);
-                  }}
-                >
-                </myoxus-outline-block-preview>
+                ${(() => {
+                  const entry = describeOutlineBlock(block, this.editor.std);
+                  return entry
+                    ? this.editor.std
+                        .getOptional(EditorChromeHostIdentifier)
+                        ?.renderOutlineEntry({
+                          entry,
+                          active: this._activeHeadingId$.value === block.id,
+                          showIcon: false,
+                          activate: () => {
+                            this._scrollToBlock(block.id).catch(console.error);
+                          },
+                        })
+                    : nothing;
+                })()}
               </div>`;
             },
           )}
@@ -319,9 +301,6 @@ export class OutlineViewer extends SignalWatcher(
       </div>
     `;
   }
-
-  @provide({ context: tocContext })
-  private accessor _context!: TocContext;
 
   @query(".outline-viewer-item.active")
   private accessor _activeItem: HTMLElement | null = null;

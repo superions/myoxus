@@ -1,0 +1,3 @@
+query documentFieldOutput($workspaceId: ID!, $docId: ID!, $fields: JSON!) {
+  documentFieldOutput(workspaceId: $workspaceId, docId: $docId, fields: $fields)
+}

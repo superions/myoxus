@@ -20,6 +20,8 @@ import { z } from "zod";
 import { patchForAudioEmbedView } from "./audio/audio-view";
 import { buildDocDisplayMetaExtension } from "./display-meta";
 import { patchDocEmbedService } from "./doc-embed";
+import { patchDocumentFieldOutput } from "./document-field-output";
+import { patchDocumentFieldHost } from "./document-field";
 import { patchDocModeService } from "./doc-mode-service";
 import { patchDocUrlExtensions } from "./doc-url";
 import { patchFileSizeLimitExtension } from "./file-size-limit";
@@ -44,12 +46,15 @@ const optionsSchema = z.object({
   // react renderer
   reactToLit: z
     .function()
-    .args(z.custom<ElementOrFactory>(), z.boolean().optional())
-    .returns(z.custom<TemplateResult>()),
+    .input([z.custom<ElementOrFactory>(), z.boolean().optional()], z.unknown())
+    .output(z.custom<TemplateResult>()),
   confirmModal: z.object({
     openConfirmModal: z
       .function()
-      .args(z.custom<ConfirmModalProps>().optional(), z.any().optional()),
+      .input(
+        [z.custom<ConfirmModalProps>().optional(), z.any().optional()],
+        z.unknown(),
+      ),
     closeConfirmModal: z.function(),
   }),
 
@@ -125,6 +130,8 @@ export class MyoxusEditorViewExtension extends ViewExtensionProvider<MyoxusEdito
         patchFileSizeLimitExtension(framework),
         buildDocDisplayMetaExtension(framework),
         patchDocEmbedService(framework),
+        patchDocumentFieldOutput(framework),
+        patchDocumentFieldHost(reactToLit),
         patchForAudioEmbedView(reactToLit),
         patchMermaidFamilyReactHost(reactToLit),
         patchBpmnBlockPresentation(

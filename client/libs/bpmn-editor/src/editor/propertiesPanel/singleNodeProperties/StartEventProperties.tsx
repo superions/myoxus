@@ -74,7 +74,7 @@ export function StartEventProperties({
           >
             {startEvent["@_name"] || i18n.singleNodeProperties.startEvent}
           </AccordionControl>
-          <AccordionPanel>
+          <AccordionPanel keepMounted keepMountedMode="display-none">
             <NameDocumentationAndId element={startEvent} />
 
             {interruption.applicable && (

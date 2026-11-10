@@ -630,6 +630,25 @@ impl myoxus_application::document_template::DocumentTemplateAccount for ApiState
   }
 }
 
+#[async_trait]
+impl myoxus_application::document_fields::context::DocumentFieldContextSource for ApiState {
+  async fn resolve_authorized(
+    &self,
+    workspace_id: uuid::Uuid,
+    doc_id: uuid::Uuid,
+    content_revision: String,
+    fields: &[yjs::document_field::DocumentField],
+    actor_id: Option<uuid::Uuid>,
+  ) -> myoxus_application::auth::AuthResult<myoxus_application::document_fields::context::DocumentFieldContext> {
+    self
+      .document_field_resolver()
+      .await
+      .ok_or_else(|| myoxus_application::auth::AuthError::Storage("document field context unavailable".into()))?
+      .resolve_authorized(workspace_id, doc_id, content_revision, fields, actor_id)
+      .await
+  }
+}
+
 impl ApiState {
   /// Construct an `ApiState` backed entirely by in-memory adapters.
   ///
@@ -2413,6 +2432,22 @@ impl ApiState {
 
   pub fn document_metadata_service(&self) -> Option<myoxus_application::document_metadata::DocumentMetadataService> {
     self.services.document_metadata_service.clone()
+  }
+
+  /// Built from existing service owners and live formatting defaults. Callers
+  /// must authorize their exact document before resolving its field context.
+  pub async fn document_field_resolver(
+    &self,
+  ) -> Option<myoxus_application::document_fields::context::DocumentFieldResolver> {
+    Some(
+      myoxus_application::document_fields::context::DocumentFieldResolver::new(
+        self.document_metadata_service()?,
+        self.document_version_repo()?,
+        self.auth().store.clone(),
+        self.doc().clone(),
+        self.user_preference_defaults().await,
+      ),
+    )
   }
 
   /// Replace the no-op audit recorder with a real `PgAuditLogStore`-backed one.

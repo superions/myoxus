@@ -95,7 +95,7 @@ export function databaseTableFieldTypeLabel(
     case DatabaseFieldKind.Date:
       return t["com.myoxus.database.field.type.date"]();
     case DatabaseFieldKind.DateTime:
-      return t["com.myoxus.database.field.type.date-time"]();
+      return t["com.myoxus.common.date-time"]();
     case DatabaseFieldKind.Files:
       return t["com.myoxus.database.field.type.files"]();
     case DatabaseFieldKind.RichText:

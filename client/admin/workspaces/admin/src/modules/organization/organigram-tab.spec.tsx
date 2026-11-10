@@ -12,6 +12,8 @@ const en: Record<string, string> = enJson;
 
 vi.mock("@myoxus/i18n", () => ({
   useI18n: () => ({
+    "com.myoxus.peek-view-controls.close": () =>
+      en["com.myoxus.peek-view-controls.close"],
     t: (key: string, options?: Record<string, unknown>): string => {
       let text = en[key] ?? key;
       if (options) {

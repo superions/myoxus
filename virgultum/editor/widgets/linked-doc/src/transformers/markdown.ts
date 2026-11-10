@@ -34,7 +34,10 @@ import {
   type TransformerMiddleware,
   type Workspace,
 } from "@virgultum/store";
-import { DocEmbedProvider } from "@virgultum/shared/services";
+import {
+  DocEmbedProvider,
+  DocumentFieldOutputProvider,
+} from "@virgultum/shared/services";
 
 import type { AssetMap, ImportedFileEntry, PathBlobIdMap } from "./type.js";
 import { createAssetsArchive, download, parseMatter, Unzip } from "./utils.js";
@@ -426,7 +429,11 @@ function addDiagnostics(
  * @param doc The doc to export
  * @returns A Promise that resolves when the export is complete
  */
-async function exportDoc(doc: Store, access?: DocEmbedProvider) {
+async function exportDoc(
+  doc: Store,
+  access?: DocEmbedProvider,
+  fields?: DocumentFieldOutputProvider,
+) {
   const prepared = await prepareMarkdownDocumentExport(doc, access);
   const provider = doc.provider;
   using job = doc.getTransformer([
@@ -440,6 +447,7 @@ async function exportDoc(doc: Store, access?: DocEmbedProvider) {
 
   const exportServices = new Container();
   if (access) exportServices.addImpl(DocEmbedProvider, () => access);
+  if (fields) exportServices.addImpl(DocumentFieldOutputProvider, () => fields);
   const adapter = new MarkdownAdapter(
     job,
     provider,

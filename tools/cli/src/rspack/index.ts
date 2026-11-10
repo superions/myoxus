@@ -349,15 +349,6 @@ export function createHTMLTargetConfig(
             { test: /\.txt$/, type: "asset/source" },
             { test: /\.inline\.svg$/, type: "asset/inline" },
             {
-              test: /fonts\.css$/,
-              include: /client[\\/]libs[\\/]theme[\\/]src[\\/]fonts\.css$/,
-              // This generated catalog contains only server-owned `/api/fonts`
-              // URLs. They must remain browser requests, unlike relative CSS
-              // assets, which the following native rule resolves and emits.
-              type: "css",
-              parser: { url: false, resolveImport: true },
-            },
-            {
               test: /\.css$/,
               // `css` is Rspack's global stylesheet module type. URL handling
               // emits relative assets while root-relative server URLs such as

@@ -1273,8 +1273,8 @@ mod tests {
         },
       )
       .unwrap();
-    let num = document.numbering.add_list(ListKind::Numbered);
-    document.numbering.abstracts[0].levels[0].start = 4;
+    let num = Arc::make_mut(&mut document.numbering).add_list(ListKind::Numbered);
+    Arc::make_mut(&mut document.numbering).abstracts[0].levels[0].start = 4;
     let mut item = Paragraph::with_text("Nested entry", CharProps::default());
     item.props.numbering = Some(NumRef { num, level: 0 });
     document.body = vec![para_block(heading), para_block(item)];
@@ -1368,7 +1368,7 @@ mod tests {
       ..Default::default()
     });
     table.grid = vec![200.0];
-    let note_list = document.numbering.add_list(ListKind::Bullet);
+    let note_list = Arc::make_mut(&mut document.numbering).add_list(ListKind::Bullet);
     let mut first_item = Paragraph::with_text("First note list item", CharProps::default());
     first_item.props.numbering = Some(NumRef {
       num: note_list,
@@ -1660,7 +1660,7 @@ mod tests {
         .count(),
       2
     );
-    word.styles.styles.push(wordcraft_doc::Style {
+    Arc::make_mut(&mut word.styles).styles.push(wordcraft_doc::Style {
       id: "ForeignCode".into(),
       name: "Foreign code style".into(),
       based_on: Some("MyoxusCode".into()),
@@ -2207,6 +2207,7 @@ mod tests {
           alt: "sample figure".into(),
           float: Default::default(),
           crop: [0.0; 4],
+          fx: Default::default(),
           ole: None,
         },
         &CharProps::default(),
@@ -2222,6 +2223,7 @@ mod tests {
           alt: "repeated figure".into(),
           float: Default::default(),
           crop: [0.0; 4],
+          fx: Default::default(),
           ole: None,
         },
         &CharProps::default(),
@@ -2273,6 +2275,7 @@ mod tests {
           alt: "cell figure".into(),
           float: Default::default(),
           crop: [0.0; 4],
+          fx: Default::default(),
           ole: None,
         },
         &CharProps::default(),

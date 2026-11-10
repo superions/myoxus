@@ -6,7 +6,7 @@ import {
   type Text,
 } from "@virgultum/store";
 
-import type { BlockMeta } from "../../utils/types";
+import type { BlockMeta, TextProtection } from "../../utils/types";
 
 export type CalloutAppearance = "soft" | "accent" | "outline";
 
@@ -62,6 +62,7 @@ export type CalloutProps = {
   defaultOpen?: boolean;
   icon?: IconData;
   text: Text;
+  textProtection?: TextProtection;
   backgroundColorName?: string;
   /** Absent values retain the original soft callout presentation. */
   appearance?: CalloutAppearance;
@@ -80,6 +81,7 @@ export const CalloutBlockSchema = defineBlockSchema({
   props: (internal): CalloutProps => ({
     icon: { type: "emoji", unicode: "💡" } as IconData,
     text: internal.Text(),
+    textProtection: undefined,
     backgroundColorName: "grey",
     appearance: undefined,
     markdownAnchor: undefined,

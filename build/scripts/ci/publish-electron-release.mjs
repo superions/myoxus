@@ -7,7 +7,12 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 
-import { publishDesktopDistributionOverview } from "./publish-distribution-overview.mjs";
+import {
+  publishDesktopDistributionOverview,
+  readDistributionFile,
+  writeDistributionFile,
+} from "./publish-distribution-overview.mjs";
+import { renderHomebrewCask } from "./write-homebrew-cask.mjs";
 import { verifyReleaseMetadata } from "./verify-desktop-release-metadata.mjs";
 
 const API_ORIGIN = "https://git.blume29.de";
@@ -515,6 +520,80 @@ async function verifyPublicRelease({ bundle, fetchImpl, origin }) {
   });
 }
 
+function compareCaskVersions(left, right) {
+  const parse = (version) => {
+    const match = version.match(/^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/);
+    if (!match) throw new Error("Unrecognized existing Homebrew version");
+    return { core: match.slice(1, 4).map(BigInt), pre: match[4]?.split(".") };
+  };
+  const a = parse(left),
+    b = parse(right);
+  for (let i = 0; i < 3; i++)
+    if (a.core[i] !== b.core[i]) return a.core[i] < b.core[i] ? -1 : 1;
+  if (!a.pre || !b.pre) return a.pre ? -1 : b.pre ? 1 : 0;
+  for (let i = 0; i < Math.max(a.pre.length, b.pre.length); i++) {
+    const x = a.pre[i],
+      y = b.pre[i];
+    if (x === y) continue;
+    if (x === undefined || y === undefined) return x === undefined ? -1 : 1;
+    const nx = /^\d+$/.test(x),
+      ny = /^\d+$/.test(y);
+    if (nx && ny) return BigInt(x) < BigInt(y) ? -1 : 1;
+    if (nx !== ny) return nx ? -1 : 1;
+    return x < y ? -1 : 1;
+  }
+  return 0;
+}
+
+/** Run only after anonymous package verification; failure is a build-free retry. */
+async function publishHomebrewCask({ manifest, fetchImpl, token }) {
+  if (!["macos", "full"].includes(manifest.scope))
+    return { changed: false, reason: "no macOS set" };
+  const cask = renderHomebrewCask(manifest);
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const remote = await readDistributionFile({
+      fetchImpl,
+      token,
+      filePath: cask.path,
+    });
+    if (remote.source !== null) {
+      if (!remote.source.startsWith(`cask "${cask.token}" do\n`))
+        throw new Error("Foreign Homebrew Cask content");
+      const version = remote.source.match(/^  version "([^"]+)"$/m)?.[1];
+      if (!version)
+        throw new Error("Existing Homebrew Cask has no exact version");
+      const order = compareCaskVersions(version, cask.version);
+      if (order > 0) return { changed: false, reason: "newer Cask preserved" };
+      if (order === 0) {
+        if (remote.source !== cask.source)
+          throw new Error("Homebrew same-version content/digest conflict");
+        return { changed: false, reason: "identical Cask already published" };
+      }
+    }
+    const outcome = await writeDistributionFile({
+      fetchImpl,
+      token,
+      filePath: cask.path,
+      source: cask.source,
+      sha: remote.sha,
+      message: `chore(release): update ${cask.token} to ${cask.version}`,
+    });
+    if (outcome === "retry") continue;
+    const publicFile = await readDistributionFile({
+      fetchImpl,
+      filePath: cask.path,
+    });
+    if (publicFile.source !== cask.source)
+      throw new Error(
+        "Anonymous Homebrew Cask readback differs; retry the verified release",
+      );
+    return { changed: true, reason: "verified Cask published" };
+  }
+  throw new Error(
+    "Homebrew Cask changed concurrently too often; retry without rebuilding",
+  );
+}
+
 export async function publishBundle({
   bundle,
   fetchImpl = fetch,
@@ -543,7 +622,12 @@ export async function publishBundle({
     });
     if (!release.draft) {
       await verifyPublicRelease({ bundle, fetchImpl, origin });
-      return { release, reused: true };
+      const cask = await publishHomebrewCask({
+        manifest: bundle.manifest,
+        fetchImpl,
+        token,
+      });
+      return { release, reused: true, cask };
     }
     release.existingNames = existingNames;
   } else {
@@ -618,7 +702,12 @@ export async function publishBundle({
     throw new Error("Forgejo release remained a draft after publication");
   }
   await verifyPublicRelease({ bundle, fetchImpl, origin });
-  return { release: published, reused: false };
+  const cask = await publishHomebrewCask({
+    manifest: bundle.manifest,
+    fetchImpl,
+    token,
+  });
+  return { release: published, reused: false, cask };
 }
 
 async function main() {
@@ -659,6 +748,9 @@ async function main() {
       `${result.reused ? "Verified existing" : "Published"} ${bundle.tag} to ${OWNER}/${REPOSITORY}.\n`,
     );
     process.stdout.write(`Distribution overview: ${overview.reason}.\n`);
+    if (["macos", "full"].includes(bundle.manifest.scope)) {
+      process.stdout.write(`Homebrew: ${result.cask.reason}.\n`);
+    }
   } finally {
     if (temporaryDirectory) {
       fs.rmSync(temporaryDirectory, { recursive: true, force: true });

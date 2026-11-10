@@ -18,6 +18,13 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { CommentEditor } from "./index";
 
 vi.mock("@myoxus/core/editor/editors", () => ({ LitDocEditor: () => <div /> }));
+// The attachment lifecycle uses a stub editor, not its full chrome/services.
+vi.mock(
+  "@myoxus/core/editor/view-extensions/editor-view/editor-chrome",
+  () => ({
+    patchEditorChromeHost: () => ({}),
+  }),
+);
 vi.mock("@myoxus/core/modules/comment/services/snapshot-helper", () => ({
   SnapshotHelper: class {},
 }));

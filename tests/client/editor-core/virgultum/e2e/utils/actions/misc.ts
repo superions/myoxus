@@ -188,7 +188,7 @@ export async function enterPlaygroundRoom(
   });
 
   const locator = page.locator("myoxus-editor-container");
-  await locator.isVisible();
+  await locator.waitFor({ state: "visible" });
   await page.evaluate(async () => {
     const dom = document.querySelector<TestMyoxusEditorContainer>(
       "myoxus-editor-container",

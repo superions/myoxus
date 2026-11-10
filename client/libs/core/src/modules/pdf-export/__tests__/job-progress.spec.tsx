@@ -14,6 +14,9 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   gql: vi.fn(),
   runServerPdfExport: vi.fn(),
+  hydrateMetadata: vi.fn().mockResolvedValue({}),
+  invalidateIndex: vi.fn(),
+  markStale: vi.fn(),
 }));
 
 vi.mock("@myoxus/core/modules/server", () => ({
@@ -24,8 +27,20 @@ vi.mock("@myoxus/core/modules/server", () => ({
 
 vi.mock("@myoxus/infra", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@myoxus/infra")>()),
-  useService: () => ({ gql: mocks.gql }),
+  useService: () => ({
+    gql: mocks.gql,
+    hydrateMetadata: mocks.hydrateMetadata,
+    invalidateIndex: mocks.invalidateIndex,
+    markStale: mocks.markStale,
+  }),
 }));
+
+vi.mock(
+  "@myoxus/core/modules/document-metadata/services/document-metadata-cache",
+  () => ({
+    DocumentMetadataCacheService: class DocumentMetadataCacheService {},
+  }),
+);
 
 vi.mock("@myoxus/core/components/hooks/myoxus/use-user-preferences", () => ({
   useRegionalFormatters: () => ({

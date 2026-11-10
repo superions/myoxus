@@ -64,6 +64,18 @@ export type GLOBAL_DIALOG_SCHEMA = {
 };
 
 export type WORKSPACE_DIALOG_SCHEMA = {
+  "task-card-create": (props: {
+    openingOwnerIdentity: string;
+    source: TaskReferenceSource;
+    anchor: HTMLElement;
+    isCurrent: () => boolean;
+    onInsertReference: (
+      requestId: string,
+      target: TaskReferenceTarget,
+      source: TaskReferenceSource,
+    ) => Promise<TaskReferenceInsertionState>;
+    onInserted: (requestId: string) => void;
+  }) => void;
   "bpmn-editor": (props: {
     session: import("../bpmn-editor/session").BpmnEditorSession;
   }) => import("@virgultum/shared/services").MyoxusBpmnEditorCloseResult;
@@ -108,6 +120,8 @@ export type WORKSPACE_DIALOG_SCHEMA = {
   "doc-info": (props: {
     docId: string;
     returnFocusRef?: RefObject<HTMLElement | null>;
+    /** Narrow the existing permission checks for read-only editor contexts. */
+    readonly?: boolean;
   }) => void;
   "doc-selector": (props: {
     init: string[];

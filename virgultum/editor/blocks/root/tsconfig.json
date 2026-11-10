@@ -18,7 +18,6 @@
     { "path": "../paragraph" },
     { "path": "../surface" },
     { "path": "../../components" },
-    { "path": "../../data-view" },
     { "path": "../../ext-loader" },
     { "path": "../../gfx/brush" },
     { "path": "../../gfx/connector" },

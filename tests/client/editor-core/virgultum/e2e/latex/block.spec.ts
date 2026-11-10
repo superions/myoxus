@@ -23,6 +23,19 @@ test("add latex block using slash menu", async ({ page }, testInfo) => {
   expect(await getTextOperationSnapshot(page)).toMatchSnapshot(
     `${testInfo.title}_finial.json`,
   );
+
+  await page
+    .locator("latex-source-editor [contenteditable=true]")
+    .press("Enter");
+  await page.locator("myoxus-latex").dblclick();
+  const source = page.locator("latex-source-editor [contenteditable=true]");
+  await source.press("ControlOrMeta+A");
+  await source.pressSequentially("E=mc^2");
+  await source.press("Enter");
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(page.locator("myoxus-latex annotation")).toHaveText("aaa");
+  await page.keyboard.press("ControlOrMeta+Shift+z");
+  await expect(page.locator("myoxus-latex annotation")).toHaveText("E=mc^2");
 });
 
 test("add latex block using markdown shortcut with space", async ({

@@ -26,6 +26,23 @@ const configSchema = z.object({
 
 export type RegisteredDesktopServer = z.infer<typeof metadataSchema>;
 
+/** Validate the existing persisted handshake shape without dropping its fields. */
+export function validateDesktopServerRegistration(
+  server: unknown,
+  config: unknown,
+) {
+  const metadata = metadataSchema.safeParse(server);
+  if (
+    !metadata.success ||
+    !configSchema.safeParse(config).success ||
+    !isAllowedDesktopServerOrigin(metadata.data.baseUrl) ||
+    normalizeServerBaseUrl(metadata.data.baseUrl) !== metadata.data.baseUrl
+  ) {
+    throw new TypeError("Invalid configured server registration");
+  }
+  return metadata.data;
+}
+
 /** Read the authoritative shared storage each time, including on redirects.
  * No cache or second registry can outlive removal of a configured server. */
 export function registeredDesktopServers(): RegisteredDesktopServer[] {

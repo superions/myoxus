@@ -43,6 +43,13 @@ printf '<svg/>\n' >"$TMP_DIR/frontends/canonical-style/logo.svg"
 printf '<svg/>\n' >"$TMP_DIR/frontends/canonical-style/product-mark.svg"
 printf 'qa-artifact\n' >"$TMP_DIR/qa/probe.txt"
 
+node --input-type=module - "$TMP_DIR/frontends" <<'JS'
+import { writeFileSync } from 'node:fs';
+const root = process.argv[2];
+writeFileSync(`${root}/web/assets/compression.js`, 'export const message = "Myoxus static asset";\n'.repeat(128));
+writeFileSync(`${root}/admin/assets/compression.css`, ':root { --myoxus-compression-test: 1; }\n'.repeat(128));
+JS
+
 default_heartbeat="$(node --input-type=module - "$ROOT_DIR/server/config/default.yaml" <<'JS'
 import {readFileSync} from 'node:fs';
 const yaml=readFileSync(process.argv[2],'utf8');
@@ -137,6 +144,25 @@ assert_content_type() {
   }
 }
 
+assert_compressed_asset() {
+  local url="$1" source="$2"
+  curl -fsS -H 'Accept-Encoding: gzip' -D "$TMP_DIR/compression.headers" \
+    -o "$TMP_DIR/compression.gz" "$url"
+  node --input-type=module - "$TMP_DIR/compression.headers" "$TMP_DIR/compression.gz" "$source" <<'JS'
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { gunzipSync } from 'node:zlib';
+const [headersFile, compressedFile, sourceFile] = process.argv.slice(2);
+const headers = readFileSync(headersFile, 'utf8');
+const compressed = readFileSync(compressedFile);
+const source = readFileSync(sourceFile);
+assert.match(headers, /^Content-Encoding: gzip\r?$/mi);
+assert.match(headers, /^Vary: .*Accept-Encoding/mi);
+assert.deepEqual(gunzipSync(compressed), source);
+assert(compressed.length < source.length, 'static transfer must shrink');
+JS
+}
+
 assert_socket_budget() {
   local name="$1" url="$2" base_path="$3" read="$4" send="$5"
   docker exec "$name" nginx -T >"$TMP_DIR/loaded.conf" 2>"$TMP_DIR/nginx-test.log"
@@ -185,6 +211,8 @@ assert_body "<html>admin-shell</html>" "$FRONTEND_URL/adminfrontend/"
 assert_body "<html>admin-shell</html>" "$FRONTEND_URL/adminfrontend/organization"
 assert_body "admin-asset" "$FRONTEND_URL/adminfrontend/assets/admin.js"
 assert_body "admin-style" "$FRONTEND_URL/adminfrontend/assets/admin.css"
+assert_compressed_asset "$FRONTEND_URL/assets/compression.js" "$TMP_DIR/frontends/web/assets/compression.js"
+assert_compressed_asset "$FRONTEND_URL/adminfrontend/assets/compression.css" "$TMP_DIR/frontends/admin/assets/compression.css"
 assert_content_type "application/javascript" "$FRONTEND_URL/adminfrontend/assets/pdf.worker.mjs"
 assert_content_type "text/css" "$FRONTEND_URL/adminfrontend/assets/admin.css"
 assert_status 404 "$FRONTEND_URL/assets/missing.js"
@@ -248,6 +276,8 @@ assert_body "<html>admin-shell</html>" "$BASEPATH_URL/myoxus/adminfrontend/"
 assert_body "<html>admin-shell</html>" "$BASEPATH_URL/myoxus/adminfrontend/organization"
 assert_body "admin-asset" "$BASEPATH_URL/myoxus/adminfrontend/assets/admin.js"
 assert_body "admin-style" "$BASEPATH_URL/myoxus/adminfrontend/assets/admin.css"
+assert_compressed_asset "$BASEPATH_URL/myoxus/assets/compression.js" "$TMP_DIR/frontends/web/assets/compression.js"
+assert_compressed_asset "$BASEPATH_URL/myoxus/adminfrontend/assets/compression.css" "$TMP_DIR/frontends/admin/assets/compression.css"
 assert_content_type "application/javascript" "$BASEPATH_URL/myoxus/adminfrontend/assets/pdf.worker.mjs"
 assert_status 404 "$BASEPATH_URL/myoxus/assets/missing.js"
 assert_status 404 "$BASEPATH_URL/myoxus/assets/missing.css"

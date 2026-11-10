@@ -2,8 +2,10 @@ import { signal } from "@preact/signals-core";
 import { IS_MOBILE } from "@virgultum/global/env";
 import type { RootBlockModel } from "@virgultum/model";
 import { hasPendingAnnotationInput } from "@virgultum/shared/adapters";
-import { getRangeRects, type SelectionRect } from "@virgultum/shared/commands";
-import { FeatureFlagService } from "@virgultum/shared/services";
+import {
+  EditorChromeHostIdentifier,
+  FeatureFlagService,
+} from "@virgultum/shared/services";
 import { getViewportElement } from "@virgultum/shared/utils";
 import {
   BLOCK_ID_ATTR,
@@ -11,16 +13,12 @@ import {
   WidgetComponent,
   WidgetViewExtension,
 } from "@virgultum/std";
-import { GfxControllerIdentifier } from "@virgultum/std/gfx";
 import {
   INLINE_ROOT_ATTR,
   type InlineEditor,
   type InlineRootElement,
 } from "@virgultum/std/inline";
 import { html, nothing } from "lit";
-import { choose } from "lit/directives/choose.js";
-import { repeat } from "lit/directives/repeat.js";
-import { styleMap } from "lit/directives/style-map.js";
 import { literal, unsafeStatic } from "lit/static-html.js";
 
 import {
@@ -30,14 +28,12 @@ import {
   LinkedWidgetConfigExtension,
   MYOXUS_LINKED_DOC_WIDGET,
 } from "./config.js";
-import { linkedDocWidgetStyles } from "./styles.js";
+import { highlightDocumentQuery } from "./document-picker-highlight";
+import { DocumentPickerSession } from "./document-picker-session";
 
 export class MyoxusLinkedDocWidget extends WidgetComponent<RootBlockModel> {
-  static override styles = linkedDocWidgetStyles;
-
   private _context: LinkedDocContext | null = null;
-
-  private readonly _inputRects$ = signal<SelectionRect[]>([]);
+  private session?: DocumentPickerSession;
 
   private readonly _mode$ = signal<"desktop" | "mobile" | "none">("none");
 
@@ -52,70 +48,6 @@ export class MyoxusLinkedDocWidget extends WidgetComponent<RootBlockModel> {
       index: inlineRange.index + triggerKey.length,
       length: 0,
     });
-  }
-
-  private _updateInputRects() {
-    if (!this._context) return;
-    const { inlineEditor, startRange, triggerKey } = this._context;
-
-    const currentInlineRange = inlineEditor.getInlineRange();
-    if (!currentInlineRange) return;
-
-    const startIndex = startRange.index - triggerKey.length;
-    const range = inlineEditor.toDomRange({
-      index: startIndex,
-      length: currentInlineRange.index - startIndex,
-    });
-    if (!range) return;
-
-    this._inputRects$.value = getRangeRects(
-      range,
-      getViewportElement(this.host),
-    );
-  }
-
-  private get _isCursorAtEnd() {
-    if (!this._context) return false;
-    const { inlineEditor } = this._context;
-    const currentInlineRange = inlineEditor.getInlineRange();
-    if (!currentInlineRange) return false;
-    return currentInlineRange.index === inlineEditor.yTextLength;
-  }
-
-  private readonly _renderLinkedDocMenu = () => {
-    if (!this.block?.rootComponent) return nothing;
-
-    return html`<myoxus-mobile-linked-doc-menu
-      .context=${this._context}
-      .rootComponent=${this.block.rootComponent}
-    ></myoxus-mobile-linked-doc-menu>`;
-  };
-
-  private readonly _renderLinkedDocPopover = () => {
-    return html`<myoxus-linked-doc-popover
-      .context=${this._context}
-    ></myoxus-linked-doc-popover>`;
-  };
-
-  private _renderInputMask() {
-    return html`${repeat(
-      this._inputRects$.value,
-      ({ top, left, width, height }, index) => {
-        const last =
-          index === this._inputRects$.value.length - 1 && this._isCursorAtEnd;
-
-        const padding = 2;
-        return html`<div
-          class="input-mask"
-          style=${styleMap({
-            top: `${top - padding}px`,
-            left: `${left}px`,
-            width: `${width + (last ? 10 : 0)}px`,
-            height: `${height + 2 * padding}px`,
-          })}
-        ></div>`;
-      },
-    )}`;
   }
 
   private _watchInput() {
@@ -203,15 +135,6 @@ export class MyoxusLinkedDocWidget extends WidgetComponent<RootBlockModel> {
     });
   }
 
-  private _watchViewportChange() {
-    const gfx = this.std.get(GfxControllerIdentifier);
-    this.disposables.add(
-      gfx.viewport.viewportUpdated.subscribe(() => {
-        this._updateInputRects();
-      }),
-    );
-  }
-
   get config(): LinkedWidgetConfig {
     return {
       triggerKeys: ["@", "[[", "【【"],
@@ -232,7 +155,6 @@ export class MyoxusLinkedDocWidget extends WidgetComponent<RootBlockModel> {
     super.connectedCallback();
 
     this._watchInput();
-    this._watchViewportChange();
   }
 
   show(props?: {
@@ -241,6 +163,7 @@ export class MyoxusLinkedDocWidget extends WidgetComponent<RootBlockModel> {
     mode?: "desktop" | "mobile";
     addTriggerKey?: boolean;
   }) {
+    this.session?.cancel();
     const host = this.host;
     const {
       primaryTriggerKey = "@",
@@ -267,7 +190,7 @@ export class MyoxusLinkedDocWidget extends WidgetComponent<RootBlockModel> {
 
     if (addTriggerKey) {
       this._addTriggerKey(inlineEditor, primaryTriggerKey);
-      // we need to wait the range sync to get the correct startNativeRange
+      // Wait for the inserted trigger's inline range before starting the session.
       const subscription = inlineEditor.slots.inlineRangeSync.subscribe(() => {
         this.show({ ...props, addTriggerKey: false });
         subscription.unsubscribe();
@@ -278,50 +201,61 @@ export class MyoxusLinkedDocWidget extends WidgetComponent<RootBlockModel> {
     const startRange = inlineEditor.getInlineRange();
     if (!startRange) return;
 
-    const startNativeRange = inlineEditor.getNativeRange();
-    if (!startNativeRange) return;
-
-    const disposable = inlineEditor.slots.renderComplete.subscribe(() => {
-      this._updateInputRects();
-    });
+    let stopHighlight = () => {};
     this._context = {
       std: this.std,
       inlineEditor,
       startRange,
-      startNativeRange,
       triggerKey: primaryTriggerKey,
       config: this.config,
       close: () => {
-        disposable.unsubscribe();
-        this._inputRects$.value = [];
+        this.session?.cancel();
+        this.session = undefined;
+        stopHighlight();
         this._mode$.value = "none";
         this._context = null;
       },
     };
 
-    this._updateInputRects();
+    stopHighlight = highlightDocumentQuery(this._context);
 
     const enableMobile = this.store
       .get(FeatureFlagService)
       .getFlag("enable_mobile_linked_doc_menu");
     this._mode$.value = enableMobile ? mode : "desktop";
+    if (this._mode$.value === "desktop") {
+      if (!inlineEditor.eventSource) {
+        this._context.close();
+        return;
+      }
+      this.session = new DocumentPickerSession(this._context);
+    }
+  }
+
+  override disconnectedCallback() {
+    this.session?.cancel();
+    this._context?.close();
+    super.disconnectedCallback();
   }
 
   override render() {
     if (this._mode$.value === "none") return nothing;
-
-    return html`${this._renderInputMask()}
-      <virgultum-portal
-        .shadowDom=${false}
-        .template=${choose(
-          this._mode$.value,
-          [
-            ["desktop", this._renderLinkedDocPopover],
-            ["mobile", this._renderLinkedDocMenu],
-          ],
-          () => html`${nothing}`,
-        )}
-      ></virgultum-portal>`;
+    const template =
+      this._mode$.value === "desktop"
+        ? this.session
+          ? (this.std
+              .getOptional(EditorChromeHostIdentifier)
+              ?.renderDocumentPicker(this.session) ?? nothing)
+          : nothing
+        : this.block?.rootComponent
+          ? html`<myoxus-mobile-linked-doc-menu
+              .context=${this._context}
+            ></myoxus-mobile-linked-doc-menu>`
+          : nothing;
+    return html`<virgultum-portal
+      .shadowDom=${false}
+      .template=${template}
+    ></virgultum-portal>`;
   }
 }
 

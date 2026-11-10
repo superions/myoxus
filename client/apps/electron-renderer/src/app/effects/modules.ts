@@ -19,6 +19,8 @@ import {
 import { configureDesktopWorkbenchModule } from "@myoxus/core/modules/workbench";
 import { configureBrowserWorkspaceFlavours } from "@myoxus/core/modules/workspace-engine";
 import { Framework } from "@myoxus/infra";
+import { I18n } from "@myoxus/i18n";
+import { notify } from "@myoxus/ui-facade";
 
 export function setupModules() {
   const framework = new Framework();
@@ -37,8 +39,11 @@ export function setupModules() {
     const apis = p.get(DesktopApiService).api;
     return {
       open: (url: string) => {
-        apis.handler.ui.openExternal(url).catch((e) => {
-          console.error("Failed to open external URL", e);
+        apis.handler.ui.openExternal(url).catch(() => {
+          notify.error({
+            title: I18n.t("com.myoxus.common.operation-failed"),
+            message: I18n.t("com.myoxus.link.open-failed"),
+          });
         });
       },
     };

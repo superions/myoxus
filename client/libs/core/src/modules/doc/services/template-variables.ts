@@ -424,10 +424,16 @@ export const templateVariableCapabilities = [
 ] as const satisfies readonly MyoxusTemplateVariableCapability[];
 
 /** Embedded delta values occupy one native offset even without printable text. */
-export const templateDeltaText = (deltas: readonly { insert?: unknown }[]) =>
+export const templateDeltaText = (
+  deltas: readonly { insert?: unknown; attributes?: Record<string, unknown> }[],
+) =>
   deltas
     .map((delta) =>
-      typeof delta.insert === "string" ? delta.insert : "\uFFFC",
+      typeof delta.insert === "string"
+        ? delta.attributes && "documentField" in delta.attributes
+          ? " ".repeat(delta.insert.length)
+          : delta.insert
+        : "\uFFFC",
     )
     .join("");
 

@@ -108,6 +108,15 @@ modified in place.
 Keep `/mcp`, `/graphql`, `/api/`, `/public/`, `/public-assets/`, `/share/` and
 `/socket.io/` before the Web SPA fallback.
 
+The shipped template enables gzip for static Web/Admin assets, including
+JavaScript and CSS, at the root and under the configured base path. It emits
+`Vary: Accept-Encoding`; hashed asset caching remains unchanged. Compression
+is disabled for proxied API and streaming routes. Compose and Swarm both mount
+the config and startup renderer from the materialized Web release artifact, so
+update that deployment bundle together with the frontend assets. The templates
+use the floating `nginx:stable-alpine` default; no exact Nginx version or digest
+is pinned.
+
 ## Socket.IO heartbeat budget and activation
 
 The API defaults are `websocket.eio_ping_interval_seconds = 60` and

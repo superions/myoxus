@@ -18,13 +18,16 @@ import type { DocsPropertiesMeta } from "@virgultum/editor/store";
 import { z } from "zod";
 
 /** Zod schema for a recursive literal value (number, string, boolean, array, or record). */
-export const literalValueSchema: z.ZodType<LiteralValue, z.ZodTypeDef> =
+export const literalValueSchema: z.ZodType<LiteralValue, LiteralValue> =
   z.union([
     z.number(),
     z.string(),
     z.boolean(),
     z.array(z.lazy(() => literalValueSchema)),
-    z.record(z.lazy(() => literalValueSchema)),
+    z.record(
+      z.string(),
+      z.lazy(() => literalValueSchema),
+    ),
   ]);
 
 /**
@@ -40,7 +43,7 @@ export type LiteralValue =
     }
   | Array<LiteralValue>;
 
-export const refSchema: z.ZodType<Ref, z.ZodTypeDef> = z.object({
+export const refSchema: z.ZodType<Ref, Ref> = z.object({
   type: z.literal("ref"),
   name: z.never(),
 });

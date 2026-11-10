@@ -102,9 +102,9 @@ for (const file of scanRoots.flatMap(walk)) {
 const pkg = JSON.parse(
   fs.readFileSync(path.join(packageDir, "package.json"), "utf8"),
 );
-if (pkg.license !== "AGPL-3.0-or-later") {
+if (pkg.license !== "AGPL-3.0-or-later AND MIT") {
   failures.push(
-    "virgultum/icons/package.json: icon package must stay AGPL-3.0-or-later",
+    "virgultum/icons/package.json: preserve AGPL code and reviewed MIT glyph licensing",
   );
 }
 

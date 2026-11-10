@@ -348,12 +348,12 @@ export class BuiltinTemplateReconcilerService extends Service {
     }
 
     this.bindings$.next(this.projectBindings(entries));
-    await this.applyPageDefaultReplacements(locale);
+    await this.refreshPageDefaultReplacements(locale);
     // Retained builtin transport can still describe pre-cutover bindings, but
     // current clients never build, replace or report cloud document content.
   }
 
-  private async applyPageDefaultReplacements(locale: string) {
+  private async refreshPageDefaultReplacements(locale: string) {
     try {
       const result = await this.workspaceServerService.server!.gql({
         query: templateSuggestionsQuery,
@@ -367,15 +367,36 @@ export class BuiltinTemplateReconcilerService extends Service {
           },
         },
       });
+      await this.applyPageDefaultReplacements(
+        result.workspace?.templateSuggestions.pageDefaultReplacements ?? [],
+      );
+    } catch (error) {
+      logger.warn("Failed to read replaced page-template preferences", error);
+    }
+  }
+
+  /** Consume a ready contextual response without issuing another suggestion read.
+   * Only existing compare-and-set preference migration belongs here, never copies.
+   */
+  public async applyPageDefaultReplacements(
+    replacements: readonly {
+      retiredSourceDocId: string;
+      replacementSourceDocId?: string | null;
+    }[],
+    isCurrent: () => boolean = () => true,
+  ) {
+    if (!replacements.length) return;
+    try {
       await firstValueFrom(
         this.setting.loading$.pipe(filter((loading) => !loading)),
       );
-      for (const replacement of result.workspace?.templateSuggestions
-        .pageDefaultReplacements ?? []) {
+      for (const replacement of replacements) {
+        if (!isCurrent()) return;
         await this.setting.replacePageTemplateDocId(
           replacement.retiredSourceDocId,
           replacement.replacementSourceDocId ?? undefined,
         );
+        if (!isCurrent()) return;
         await this.setting.replaceJournalTemplateDocId(
           replacement.retiredSourceDocId,
           replacement.replacementSourceDocId ?? undefined,

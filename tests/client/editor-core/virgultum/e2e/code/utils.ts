@@ -16,27 +16,29 @@ export function getCodeBlock(page: Page) {
     await languageButton.click({ delay: 50 });
   };
 
-  const langList = page.locator("myoxus-filterable-list");
-  const langFilterInput = langList.locator("#filter-input");
+  const langList = page.getByRole("listbox");
+  const langFilterInput = languageButton;
 
-  const codeToolbar = page.locator("myoxus-code-toolbar");
+  const codeToolbar = page.getByTestId("code-toolbar");
 
   const copyButton = codeToolbar.getByRole("button", { name: "Copy code" });
   const captionButton = codeToolbar.getByRole("button", { name: "Caption" });
   const moreButton = codeToolbar.getByRole("button", { name: "More" });
 
-  const menu = page.locator(".more-popup-menu");
+  const menu = page.getByRole("menu");
 
   const openMore = async () => {
     await moreButton.click();
 
-    const wrapButton = menu.getByRole("button", { name: "Wrap" });
-    const cancelWrapButton = menu.getByRole("button", { name: "Cancel wrap" });
-    const duplicateButton = menu.getByRole("button", { name: "Duplicate" });
-    const deleteButton = menu.getByRole("button", { name: "Delete" });
-    const lineNumberButton = menu.getByRole("button", { name: "Line number" });
-    const cancelLineNumberButton = menu.getByRole("button", {
-      name: "Cancel line number",
+    const wrapButton = menu.getByRole("menuitem", { name: "Wrap lines" });
+    const cancelWrapButton = menu.getByRole("menuitem", { name: "Wrap lines" });
+    const duplicateButton = menu.getByRole("menuitem", { name: "Duplicate" });
+    const deleteButton = menu.getByRole("menuitem", { name: "Delete" });
+    const lineNumberButton = menu.getByRole("menuitem", {
+      name: "Line numbers",
+    });
+    const cancelLineNumberButton = menu.getByRole("menuitem", {
+      name: "Line numbers",
     });
 
     return {

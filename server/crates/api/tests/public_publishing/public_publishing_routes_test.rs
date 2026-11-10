@@ -15,7 +15,10 @@ use std::path::Path;
 use std::sync::Arc;
 use tower::ServiceExt;
 use uuid::Uuid;
-use yrs::{Array, Doc, Map, Text, Transact, updates::encoder::Encode};
+use yrs::{
+  Array, Doc, Map, ReadTxn, Text, Transact,
+  updates::{decoder::Decode, encoder::Encode},
+};
 
 async fn public_doc_fixture(pool: &sqlx::PgPool, owner_id: Uuid, title: &str, markdown: &str) -> (Uuid, Uuid) {
   let workspace_id = helpers::create_workspace(pool, owner_id).await;
@@ -235,10 +238,59 @@ async fn public_routes_render_anonymous_html_and_keep_raw_doc_private() {
   // projection directly; Markdown import deliberately rejects raw HTML.
   let (initial, body_update) = active_web_doc_updates("Public <Title>", "Visible <script>alert(1)</script> text.");
   let literal_payload = yrs::merge_updates_v1([initial.as_slice(), body_update.as_slice()]).unwrap();
+  let native = Doc::new();
+  let blocks = native.get_or_insert_map("blocks");
+  let literal_payload = {
+    let mut txn = native.transact_mut();
+    txn
+      .apply_update(yrs::Update::decode_v1(&literal_payload).unwrap())
+      .unwrap();
+    let yrs::Out::YMap(note) = blocks.get(&txn, "note-block").unwrap() else {
+      panic!("note")
+    };
+    let yrs::Out::YArray(children) = note.get(&txn, "sys:children").unwrap() else {
+      panic!("children")
+    };
+    let field_block = blocks.insert(&mut txn, "fields", yrs::MapPrelim::default());
+    field_block.insert(&mut txn, "sys:id", "fields");
+    field_block.insert(&mut txn, "sys:flavour", "myoxus:paragraph");
+    field_block.insert(&mut txn, "sys:children", yrs::ArrayPrelim::default());
+    let text = field_block.insert(&mut txn, "prop:text", yrs::TextPrelim::new("Number: "));
+    let number =
+      yrs::Any::from_json(r#"{"type":"metadata","id":"number","key":"documentNumber","format":"text"}"#).unwrap();
+    let author = yrs::Any::from_json(r#"{"type":"metadata","id":"author","key":"createdBy","format":"name"}"#).unwrap();
+    let end = text.len(&txn);
+    text.insert_with_attributes(
+      &mut txn,
+      end,
+      " ",
+      yrs::types::Attrs::from([("documentField".into(), number)]),
+    );
+    text.insert_with_attributes(&mut txn, end + 1, " Author: ", Default::default());
+    let end = text.len(&txn);
+    text.insert_with_attributes(
+      &mut txn,
+      end,
+      " ",
+      yrs::types::Attrs::from([("documentField".into(), author)]),
+    );
+    children.push_back(&mut txn, "fields");
+    txn.encode_state_as_update_v1(&Default::default())
+  };
   sqlx::query("UPDATE doc_snapshots SET payload=$3 WHERE workspace_id=$1 AND doc_id=$2")
     .bind(workspace_id)
     .bind(doc_id)
-    .bind(literal_payload)
+    .bind(&literal_payload)
+    .execute(&pool)
+    .await
+    .unwrap();
+  sqlx::query("UPDATE docs SET document_number='PUB-001', metadata_revision=metadata_revision+1 WHERE id=$1")
+    .bind(doc_id)
+    .execute(&pool)
+    .await
+    .unwrap();
+  sqlx::query("UPDATE users SET name='Public actual author' WHERE id=$1")
+    .bind(owner_id)
     .execute(&pool)
     .await
     .unwrap();
@@ -276,6 +328,38 @@ async fn public_routes_render_anonymous_html_and_keep_raw_doc_private() {
     !body.contains("<script>alert(1)</script>"),
     "raw script must not pass through: {body}"
   );
+  assert!(
+    body.contains("<p>Number: PUB-001 Author: Public actual author</p>"),
+    "anonymous output uses the document's canonical fields, not a member inventory: {body}"
+  );
+  sqlx::query("UPDATE docs SET document_number='PUB-002', metadata_revision=metadata_revision+1 WHERE id=$1")
+    .bind(doc_id)
+    .execute(&pool)
+    .await
+    .unwrap();
+  sqlx::query("UPDATE users SET name='Renamed actual author' WHERE id=$1")
+    .bind(owner_id)
+    .execute(&pool)
+    .await
+    .unwrap();
+  let (updated_status, updated_body, _) = get(&app, format!("/public/{workspace_id}/{doc_id}")).await;
+  assert_eq!(updated_status, http::StatusCode::OK);
+  assert!(
+    updated_body.contains("<p>Number: PUB-002 Author: Renamed actual author</p>"),
+    "metadata and identity changes must reach body output without a content write: {updated_body}"
+  );
+  let (payload, writes): (Vec<u8>, i64) = sqlx::query_as(
+    "SELECT payload, (SELECT count(*) FROM doc_updates WHERE doc_id=$1) FROM doc_snapshots WHERE doc_id=$1",
+  )
+  .bind(doc_id)
+  .fetch_one(&pool)
+  .await
+  .unwrap();
+  assert_eq!(
+    payload, literal_payload,
+    "rendering cannot write resolved text into the native source"
+  );
+  assert_eq!(writes, 0);
 
   let (theme_status, theme_body, theme_headers) = get(&app, workspace_theme_href).await;
   assert_eq!(

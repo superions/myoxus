@@ -8,7 +8,7 @@ import {
   LatexEditorUnitSpecExtension,
   LatexInlineSpecExtension,
 } from "./inline-spec";
-import { LatexEditorInlineManagerExtension } from "./latex-node/latex-editor-menu";
+import { LatexEditorInlineManagerExtension } from "./latex-node/latex-source-editor";
 
 export class LatexViewExtension extends ViewExtensionProvider {
   override name = "myoxus-latex-inline";

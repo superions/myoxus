@@ -22,6 +22,7 @@ its source changes later.
 - [Authoring syntax and supported positions](#authoring-syntax-and-supported-positions)
 - [Check a source without applying it](#check-a-source-without-applying-it)
 - [Manual text inputs](#manual-text-inputs)
+- [Native input data](#native-input-data)
 - [Automatic values in Web/core](#automatic-values-in-webcore)
 - [MCP automatic and caller-authored values](#mcp-automatic-and-caller-authored-values)
 - [Native repetition for workspace members](#native-repetition-for-workspace-members)
@@ -101,9 +102,21 @@ Only the body is inserted. The source title and document properties do not
 replace the target's metadata. Automatic values use the actual target and the
 applying account/time; an existing target keeps its own creator and creation
 date. The preview remains unresolved until insertion. There is no fill-in form:
-author ordinary editable placeholder text or supported automatic variables.
+author native input fields for structured answers, ordinary editable text for free
+notes, and supported automatic variables for capture context. Fill native inputs
+directly in the inserted paragraph or cell. Each insertion has independent answer
+identities; entering a value does not change the source or another inserted copy.
 Older `input.*` tokens in a block become ordinary bracketed text for editing
 after insertion. Document templates retain the manual-input flow below.
+That older syntax is not needed for native inputs. A source containing only native
+inputs can be applied with its required answers still unfinished; required status
+is shown at the actual inline field, not as a mandatory creation questionnaire.
+
+Caller-owned configured content remains a separate use of substitutions. For
+example, the Task preparation Agenda retains `{{input.notes}}` for the existing
+assistant's literal personal notes; its remaining Agenda answers use native fields.
+Do not turn those configured notes into a guessed field answer or evaluate template
+syntax inside a native field's literal default.
 
 **New building block** creates a workspace source using the selected work area.
 **Make own copy** retains the complete unresolved source and classification
@@ -193,18 +206,34 @@ A check is point-in-time feedback. Application still checks current permissions,
 context, source content and target facts through its normal owner. A successful
 check neither reserves a target nor guarantees a later application will succeed.
 
-## Manual text inputs
+## Manual inputs
 
 Use `{{input.project_name}}` for a required, manually entered text value. The
 name after `input.` is one identifier segment: start with an ASCII letter, then
-use letters, digits, underscores or hyphens. Nested paths and typed fields are
-not supported. In **Insert variable**, type the complete `input.name` to insert
-a custom input through the existing keyboard-operated chooser.
+use letters, digits, underscores or hyphens. In **Insert variable**, type the
+complete `input.name`, then choose **Text**, **Date** or **Date and time** in
+the existing keyboard-operated chooser. The explicit namespace declares the
+input type; field names never imply one:
+
+| Source token                      | Input control             | Canonical MCP answer                          |
+| --------------------------------- | ------------------------- | --------------------------------------------- |
+| `{{input.topic}}`                 | Text                      | Any nonempty literal string                   |
+| `{{input.date.meeting_date}}`     | Date picker or typed date | `2026-11-04` (`YYYY-MM-DD`)                   |
+| `{{input.datetime.next_meeting}}` | Date and time picker      | `2026-11-04 09:30:00` (`YYYY-MM-DD HH:mm:ss`) |
+
+Only these two typed namespaces extend `input.name`; other nested paths remain
+unsupported. Every identifier and the complete name retain the existing bounds.
+Dates and date/time answers are the calendar day and clock time deliberately
+chosen in the form. They are not zoned instants and never shift when the
+account or browser timezone differs. Invalid dates and clock times fail before
+a target is written. The existing regional date/time formatters project the
+admitted answer once, using the applying account's display preferences.
 
 Application scans one captured effective title, body and native table content.
 Each name appears once in a Mantine/Facade dialog, in a stable order, with a
 readable label and its exact token. Every answer is trimmed and must contain
-nonempty text of at most 8 KiB. Names are limited to 128 bytes and the existing
+a nonempty string of at most 8 KiB; temporal strings must have the canonical
+format above. Names are limited to 128 bytes and the existing
 100-variable bound applies. Values are literal, including any braces inside
 answers. The source keeps its tokens; answers belong only to this operation.
 
@@ -212,7 +241,9 @@ For a project brief, combine `{{input.project_name}}`, `{{input.reference}}` and
 `{{input.scope}}` with `{{workspace.name}}`. For a handover, use
 `{{input.recipient}}`, `{{input.open_issues}}` and `{{input.deadline}}`. For an
 incident report, use `{{input.affected_service}}` and `{{input.impact}}`.
-A deadline or meeting location is ordinary text, not an inferred field type.
+`input.deadline` remains ordinary text. Use `input.date.deadline` when an
+explicit calendar date is required. After application, answers are ordinary
+editable text; the source retains its typed tokens.
 
 Cancel creates or writes nothing. Submit is single-flight. On a recoverable
 failure, the dialog retains the answers and waits for an explicit retry; it
@@ -226,6 +257,101 @@ empty, structured or incorrectly named `input.*` values fail before a document
 is published. Unrelated deployed explicit MCP variable names retain their
 existing contract. This does not introduce a form schema, answer history or
 cross-workspace input cache. Existing shipped templates gain no mandatory inputs.
+
+## Native input data
+
+Native input descriptors are separate from `input.*` substitutions. They store
+one occurrence's own value and copied definition, not an answer map indexed by
+name. Definition validation admits `text`, `date`, `datetime`, `single-select`
+and `multi-select`. Scalar unset is `null`; multiple-selection unset is `[]`.
+Required native fields may remain unfinished in a draft. Text is literal and
+untrimmed, including braces; ordinary manual creation answers keep their existing
+trimmed, required-before-creation behavior.
+
+Saved history retains the field's readable value as it was captured, including
+selection labels and formatting. Historical reading output uses that text rather
+than resolving today's metadata. HTML, Markdown and plain-text projections are
+reading formats: they contain ordinary text, not an editable field definition or
+its independent stored answer. Native archival snapshots retain the descriptor
+and captured text. A historical field whose original value was never captured
+is unavailable; today's values cannot reconstruct it.
+When native field content is copied into an editable document, each copied
+occurrence becomes an independent live field with its stored input definition
+and answer; metadata fields refer to the destination document.
+The same distinction applies when materializing a native snapshot as a new
+editable document: the archival source is not rewritten.
+
+Existing live fields are visible in the editor. On an editable, unprotected
+occurrence, **Convert to text** replaces the field with its displayed value in
+one undoable edit; the result is ordinary text and stays literal across later
+copies and restores. An unanswered input converts to empty text, not its label.
+For metadata, conversion rechecks the current authorized value and refuses a
+value that is unavailable or has changed. An unset metadata value converts to
+the displayed dash. Historical snapshots remain unchanged.
+
+Applying a template or inserting a building block initializes each live input
+from its explicit default, or leaves it unset. A filled source/preview answer is
+not that default. Ordinary native copy/paste and document duplication retain the
+filled answers. Repeated rows and inserted fragments have independent native
+occurrence identities even when their labels match. Stored input values and
+frozen text containing braces are never processed as template expressions.
+
+Calendar values must describe a real day/clock using `YYYY-MM-DD` or floating
+`YYYY-MM-DD HH:mm:ss`, with years 0001–9999 and no timezone conversion. Selections
+use option IDs, never labels; definitions have at most 100 unique, nonempty IDs
+and nonempty labels. Multiple answers are deduplicated in authored option order.
+Unknown IDs, invalid calendar values and invalid defaults are rejected. Defaults
+are validated without filling an unanswered occurrence. Presentation uses stored
+values and authored labels, never the latest source definition or viewer-locale
+translations of those labels. Input-only validation/presentation needs no source
+permissions, document metadata lookup or capability-discovery request.
+
+These data contracts do not add brace syntax or silently convert existing
+sources. In writable template body text and native table cells, the existing
+field/variable chooser can insert native input definitions with their label,
+kind, optional description, required flag, options and default. The same chooser
+offers document metadata fields in writable ordinary and template bodies and
+table cells; document titles support only the existing static variables. The
+source checker lists native fields and links to their source positions. Editing
+an existing input definition is available from that field in a writable source;
+its occurrence identity, answer and option identities are preserved. A changed
+field must be reopened before saving.
+
+In a created document, activate the field where it occurs to fill or revisit its
+own value. Text and multiple selection use a local draft with **Apply** and
+**Cancel**; **Escape** discards that draft. Multiple-selection **Clear** clears
+the draft, which is saved with **Apply**. Dates and single selections commit
+the accepted choice directly; date/time commits with the native **Confirm**
+control. Scalar **Clear** writes the unset value, including for required fields.
+Invalid unfinished values remain local. A field changed while its draft was open
+must be reopened rather than overwritten. Confirmed answers are native undoable
+edits, not replacement text. Readonly views expose no filling controls.
+
+**Open metadata** uses the existing document-info dialog and its access checks;
+readonly editors may open viewing only. **Remove** deletes just the occurrence.
+Native-only sources do not introduce a pre-creation form. A mixed source still
+asks for its deliberate `input.*` substitutions before creation, leaving native
+fields for direct editing afterward.
+
+### Selectively fixed native text
+
+In an editable template source, select one paragraph, list item or callout and use
+**Protect text when used** in the editor toolbar. A single table cell exposes the
+same action in its context menu. **Keep text editable when used** removes this
+source setting. The source remains editable, including its field definitions;
+source changes affect subsequent uses, not existing copies.
+
+Application stores the selected owner's mode as `fixed` in the resulting native
+document. Literal text, formatting, field definitions and removal of that owner
+are blocked locally. Input answers remain fillable and undoable. Checklist state
+and intact layout moves remain usable; unmarked neighbors stay ordinary editable
+content. A fixed owner has no unlock action, even if the target is subsequently
+classified as a template source. The text tooltip explains the mode.
+
+Native copies retain this mode. Pasting a protected text fragment into a table
+cell requires replacing the whole cell, rather than extending protection over
+unrelated text. HTML, Markdown and plain-text reading exports do not enforce
+native editor protection.
 
 ## Automatic values in Web/core
 

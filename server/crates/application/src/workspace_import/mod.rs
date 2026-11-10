@@ -965,6 +965,18 @@ impl WorkspaceImportService {
       ));
     }
 
+    // Reject malformed native inputs before creating any target workspace,
+    // assets or documents. Import-job progress remains owned by this operation.
+    for document in &decoded.documents {
+      let snapshot = match &document.content {
+        myoxus_workspace_import::DecodedDocumentContent::YjsV1(snapshot) => snapshot.clone(),
+        myoxus_workspace_import::DecodedDocumentContent::SnapshotBlocks(blocks) => {
+          yjs::snapshot_blocks_to_yjs(blocks).map_err(AuthError::InvalidInput)?
+        }
+        myoxus_workspace_import::DecodedDocumentContent::MarkdownUtf8(_) => continue,
+      };
+      self.documents.prepare_editable_document_copy(snapshot).await?;
+    }
     let mappings = build_id_mappings(record.id, &decoded, &database_plan, &preview.target_plan);
     self.repository.upsert_id_mappings(&mappings).await?;
     let workspace_id = preview.target_plan.workspace_id;
@@ -1267,13 +1279,17 @@ impl WorkspaceImportService {
           "workspace import retained an editor-local Database payload".to_string(),
         ));
       }
+      let initial = self
+        .documents
+        .prepare_editable_document_copy(rewritten.full_state)
+        .await?;
       self
         .documents
         .create_imported_doc(workspace_id, document_id, document_title.clone(), record.actor_id)
         .await?;
       self
         .documents
-        .push_update_raw(workspace_id, document_id, rewritten.full_state, DocSpaceKind::Workspace)
+        .push_update_raw(workspace_id, document_id, initial, DocSpaceKind::Workspace)
         .await?;
       let metadata = planned_vault_document.map_or_else(
         || {

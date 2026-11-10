@@ -21,6 +21,11 @@
 
 .myoxus-bpmn-diagram .xyflow-react-kie-diagram--round-svg-container {
   pointer-events: none;
+}
+.myoxus-bpmn-diagram
+  .xyflow-react-kie-diagram--round-svg-container:not(
+    [data-palette-notation="true"]
+  ) {
   width: 100%;
   height: 100%;
 }

@@ -34,7 +34,6 @@ export const NoteBlockSchema = defineBlockSchema({
       "myoxus:code",
       "myoxus:divider",
       "myoxus:database",
-      "myoxus:data-view",
       "myoxus:image",
       "myoxus:note-block-*",
       "myoxus:bookmark",

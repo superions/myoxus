@@ -30,6 +30,9 @@ async function retrySnapshotRequest(revalidate: () => Promise<unknown>) {
   }
 }
 
+/** The stored history cannot safely supply its original field values. */
+export class HistorySnapshotUnavailableError extends Error {}
+
 const snapshotFetcher = async ([fetch, workspaceId, pageDocId, snapshotId]: [
   FetchService["fetch"],
   workspaceId: string,
@@ -38,8 +41,14 @@ const snapshotFetcher = async ([fetch, workspaceId, pageDocId, snapshotId]: [
 ]) => {
   const res = await fetch(
     `/api/workspaces/${encodeURIComponent(workspaceId)}/docs/${encodeURIComponent(pageDocId)}/histories/by-id/${encodeURIComponent(snapshotId)}`,
+    // This endpoint owns 422 as an immutable, unavailable history state.
+    // FetchService otherwise converts it into a generic notification first.
+    { throwOnHttpError: false },
   );
 
+  if (res.status === 422) {
+    throw new HistorySnapshotUnavailableError();
+  }
   if (!res.ok) {
     throw new Error("Failed to fetch snapshot");
   }
@@ -63,22 +72,25 @@ export const usePageHistory = (
   // Stored history is immutable; its workspace reference projection changes
   // after Move/Undo. Revalidate every selection and hide cached projections
   // until their current lineage has been fetched.
+  const options = {
+    fetcher: snapshotFetcher,
+    // SWR's structural comparison treats distinct ArrayBuffers as equal.
+    // Every response owns a new projection even for the same history ID.
+    compare: Object.is,
+    revalidateOnMount: true,
+    dedupingInterval: 0,
+    revalidateOnFocus: visible,
+    suspense: false,
+    keepPreviousData: false,
+    shouldRetryOnError: false,
+    // HistoryPreviewContent owns both unavailable and retryable read errors.
+    suppressErrorNotification: true,
+  } as const;
   const { data, error, mutate, isLoading, isValidating } = useSWR<ArrayBuffer>(
     snapshotId
       ? [fetchService.fetch, workspaceId, pageDocId, snapshotId]
       : null,
-    {
-      fetcher: snapshotFetcher,
-      // SWR's structural comparison treats distinct ArrayBuffers as equal.
-      // Every response owns a new projection even for the same history ID.
-      compare: Object.is,
-      revalidateOnMount: true,
-      dedupingInterval: 0,
-      revalidateOnFocus: visible,
-      suspense: false,
-      keepPreviousData: false,
-      shouldRetryOnError: false,
-    },
+    options,
   );
   const wasVisible = useRef(visible);
   useEffect(() => {

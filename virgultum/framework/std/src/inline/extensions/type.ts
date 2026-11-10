@@ -5,19 +5,13 @@ import type {
 } from "@virgultum/std/inline";
 import type { BaseTextAttributes, DeltaInsert } from "@virgultum/store";
 import type * as Y from "yjs";
-import type { AnyZodObject, KeySchema, ZodEffects, ZodRecord } from "zod";
+import type { ZodType } from "zod";
 
 export type InlineSpecs<
   TextAttributes extends BaseTextAttributes = BaseTextAttributes,
 > = {
   name: keyof TextAttributes | string;
-  schema:
-    | AnyZodObject
-    | ZodEffects<
-        ZodRecord<KeySchema>,
-        Partial<Record<string, unknown>>,
-        unknown
-      >;
+  schema: ZodType<Partial<Record<string, unknown>>>;
   match: (delta: DeltaInsert<TextAttributes>) => boolean;
   renderer: AttributeRenderer<TextAttributes>;
   /** A string key groups adjacent attributed text into one atomic range embed. */

@@ -18,6 +18,7 @@ export const splitListCommand: Command<{
   const doc = host.store;
 
   const model = doc.getBlock(blockId)?.model;
+  if (doc.readonly || (model && doc.hasFixedText(model))) return;
   if (!model || !matchModels(model, [ListBlockModel])) {
     console.error(`block ${blockId} is not a list block`);
     return;

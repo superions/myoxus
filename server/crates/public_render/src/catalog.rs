@@ -282,6 +282,7 @@ mod tests {
   fn external_shell_escapes_user_fields_once_and_keeps_trusted_markup() {
     let renderer = test_renderer();
     let ir = PublicDocIr {
+      native_fields: Vec::new(),
       document: Document {
         workspace_id: uuid::Uuid::nil(),
         doc_id: uuid::Uuid::nil(),

@@ -256,7 +256,7 @@ describe("CalendarIntegration", () => {
     );
     expect(mockStore.fetchEvents).toHaveBeenCalled();
     const calls = vi.mocked(mockStore.fetchEvents).mock.calls;
-    expect(calls[calls.length - 1][1]).toContain("2034-03-01");
+    expect(calls[calls.length - 1][1]).toBe(dayjs("2034-03-01").toISOString());
     expect(integration.eventsByDateMap$.value.get("2034-03-25")).toEqual([
       projected,
     ]);

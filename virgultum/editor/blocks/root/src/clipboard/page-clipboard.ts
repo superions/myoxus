@@ -112,6 +112,7 @@ export class PageClipboard extends ReadOnlyClipboard {
       if (
         captured.some(
           ({ model, parent, content }) =>
+            this.std.store.hasFixedText(model) ||
             this.std.store.getModelById(model.id) !== model ||
             this.std.store.getParent(model)?.id !== parent ||
             JSON.stringify(current.blockToSnapshot(model)) !== content,
@@ -168,6 +169,12 @@ export class PageClipboard extends ReadOnlyClipboard {
   }
 
   private _preparePasteTarget() {
+    const [, { selectedModels = [] }] = this.std.command.exec(
+      getSelectedModelsCommand,
+      { types: ["block", "text", "image"] },
+    );
+    if (selectedModels.some((model) => this.std.store.hasFixedText(model)))
+      return false;
     // Selection deletion is synchronous and only follows successful adapter
     // preparation. Target loads must not erase content or paste at a stale caret.
     this.std.store.captureSync();

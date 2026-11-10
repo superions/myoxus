@@ -18,15 +18,18 @@ const optionsSchema = z.object({
   getMenus: z.optional(
     z
       .function()
-      .args(
-        z.string(),
-        z.function().returns(z.void()),
-        z.custom<EditorHost>(),
-        z.custom<MyoxusInlineEditor>(),
-        z.instanceof(AbortSignal),
-        z.string().optional(),
+      .input(
+        [
+          z.string(),
+          z.function().output(z.void()),
+          z.custom<EditorHost>(),
+          z.custom<MyoxusInlineEditor>(),
+          z.instanceof(AbortSignal),
+          z.string().optional(),
+        ],
+        z.unknown(),
       )
-      .returns(
+      .output(
         z.union([
           z.promise(z.array(z.custom<LinkedMenuGroup>())),
           z.array(z.custom<LinkedMenuGroup>()),
@@ -37,14 +40,17 @@ const optionsSchema = z.object({
   autoFocusedItemKey: z.optional(
     z
       .function()
-      .args(
-        z.array(z.custom<LinkedMenuGroup>()),
-        z.string(),
-        z.string().nullable(),
-        z.custom<EditorHost>(),
-        z.custom<MyoxusInlineEditor>(),
+      .input(
+        [
+          z.array(z.custom<LinkedMenuGroup>()),
+          z.string(),
+          z.string().nullable(),
+          z.custom<EditorHost>(),
+          z.custom<MyoxusInlineEditor>(),
+        ],
+        z.unknown(),
       )
-      .returns(z.string().nullable()),
+      .output(z.string().nullable()),
   ),
 
   mobile: z
@@ -53,7 +59,7 @@ const optionsSchema = z.object({
         z.union([z.string(), z.instanceof(HTMLElement), z.custom<Window>()]),
       ),
       scrollTopOffset: z.optional(
-        z.union([z.number(), z.function().returns(z.number())]),
+        z.union([z.number(), z.function().output(z.number())]),
       ),
     })
     .optional(),

@@ -13,6 +13,7 @@ import {
   BoldInlineSpecExtension,
   CodeInlineSpecExtension,
   ColorInlineSpecExtension,
+  DocumentFieldInlineSpecExtension,
   ItalicInlineSpecExtension,
   LabelToneInlineSpecExtension,
   StrikeInlineSpecExtension,
@@ -38,5 +39,6 @@ export const DefaultInlineManagerExtension =
       MentionInlineSpecExtension.identifier,
       CommentInlineSpecExtension.identifier,
       AnnotationInlineSpecExtension.identifier,
+      DocumentFieldInlineSpecExtension.identifier,
     ],
   });

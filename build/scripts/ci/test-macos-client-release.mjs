@@ -8,6 +8,7 @@ import { test } from "node:test";
 import { parse as parseYaml } from "yaml";
 import { writeReleaseMetadata } from "./write-desktop-release-metadata.mjs";
 import { verifyReleaseMetadata } from "./verify-desktop-release-metadata.mjs";
+import { writeHomebrewCask } from "./write-homebrew-cask.mjs";
 import {
   expectedAssets,
   platformsForScope,
@@ -79,6 +80,19 @@ test("macOS publication binds four artifacts and two exact updater ZIPs", (t) =>
     "myoxus-1.2.3-stable-macos-arm64.zip",
     "myoxus-1.2.3-stable-macos-x64.zip",
   ]);
+  const cask = writeHomebrewCask(
+    options.releaseDir,
+    path.join(path.dirname(options.releaseDir), "tap-preview"),
+  );
+  assert.equal(cask.path, "Casks/myoxus.rb");
+  for (const artifact of checked.artifacts.filter((a) => a.format === "dmg")) {
+    assert.ok(cask.source.includes(artifact.sha256));
+  }
+  assert.match(
+    cask.source,
+    /macos-client-v1\.2\.3\/myoxus-1\.2\.3-stable-macos-#\{arch\}\.dmg/,
+  );
+  assert.match(cask.source, /app "Myoxus\.app"/);
 });
 
 test("missing architecture, wrong signatures and changed package bytes cannot publish", (t) => {

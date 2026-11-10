@@ -1,5 +1,4 @@
 import "@myoxus/theme/style.css";
-import "@myoxus/theme/fonts.css";
 
 import * as note from "@virgultum/editor/blocks/note";
 import * as globalUtils from "@virgultum/editor/global/utils";
@@ -123,7 +122,11 @@ async function createEditor(
   app.style.overflowY = "auto";
 
   document.body.append(app);
+  // The React chrome installs an editor extension asynchronously. Waiting for
+  // it prevents tests from retaining the initial host after it is replaced.
+  await editor.chromeReady;
   await editor.updateComplete;
+  await editor.host?.updateComplete;
   window.host = editor.host;
   return app;
 }

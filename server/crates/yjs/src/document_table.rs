@@ -301,6 +301,7 @@ pub(super) fn edit_axis(
       block.insert(txn, format!("{prefix}{}", axis.identity()), new_id.as_str());
       block.insert(txn, format!("{prefix}order"), order);
       let mut annotations = HashMap::new();
+      let mut fields = HashMap::new();
       for other in &others {
         let key = cell_key(axis, &new_id, &other.id);
         if matches!(change, DocumentTableAxisChange::Duplicate { .. }) {
@@ -319,6 +320,7 @@ pub(super) fn edit_axis(
           let prelim = text.as_prelim(txn);
           let copied = block.insert(txn, key.as_str(), prelim);
           crate::annotation::remap_copied_text(&copied, txn, &mut annotations);
+          crate::document_field::content::remap_copied_text(&copied, txn, &mut fields).map_err(|_| invalid())?;
           let old_fill_key = format!("{}.backgroundColor", old_key.trim_end_matches(".text"));
           if let Some(fill) = block.get(txn, &old_fill_key) {
             let fill = fill.as_prelim(txn);
@@ -605,9 +607,21 @@ mod tests {
 
   #[test]
   fn incremental_axes_keep_native_text_identities_headers_and_creation_orders() {
-    let state = fixture();
+    let mut state = fixture();
     let (rows, cols) = axes(&state);
     let (doc, blocks, id) = load(&state);
+    {
+      let mut txn = doc.transact_mut();
+      let block = structure::native_block(&blocks, &txn, &id).unwrap();
+      let Some(yrs::Out::YText(text)) = block.get(&txn, &cell_key(DocumentTableAxis::Row, &rows[0], &cols[0])) else {
+        panic!("cell")
+      };
+      let end = text.len(&txn);
+      text.insert_with_attributes(&mut txn, end, " ", yrs::types::Attrs::from([(
+        "documentField".into(), Any::from_json(r#"{"type":"input","id":"source-answer","definition":{"kind":"text","label":"Answer","required":false},"value":"Filled"}"#).unwrap(),
+      )]));
+      state = txn.encode_state_as_update_v1(&Default::default());
+    }
     let txn = doc.transact();
     let block = structure::native_block(&blocks, &txn, &id).unwrap();
     assert!(
@@ -646,6 +660,11 @@ mod tests {
     )
     .unwrap();
     let (new_rows, new_cols) = axes(&duplicated.state);
+    let fields = crate::document_field::content::inspect(&duplicated.state).unwrap();
+    assert_eq!(fields.len(), 2);
+    assert_ne!(fields[0].run.descriptor.id(), fields[1].run.descriptor.id());
+    assert!(fields.iter().all(|field| matches!(&field.run.descriptor,
+      crate::document_field::DocumentField::Input { value: crate::document_field::InputValue::Scalar(Some(value)), .. } if value == "Filled")));
     assert_eq!(new_cols, cols);
     assert_eq!(new_rows.len(), 4);
     assert_eq!(new_rows[0], rows[0]);

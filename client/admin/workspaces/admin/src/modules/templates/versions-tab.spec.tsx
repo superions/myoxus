@@ -181,18 +181,18 @@ describe("VersionsTab", () => {
         headers: new Headers({
           "content-type": "application/zip",
           "content-disposition":
-            'attachment; filename="template-weekly-standup-1.0.0.zip"',
+            'attachment; filename="template-weekly-standup-0.9.0.zip"',
         }),
       }),
     );
 
     renderWithFacade(<VersionsTab />);
     await selectDefaultTemplate();
-    fireEvent.click(screen.getAllByText("Export")[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Export" })[1]);
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
-        "/api/admin/templates/export/rev-1",
+        "/api/admin/templates/export/rev-2",
         expect.objectContaining({
           credentials: "include",
           headers: expect.any(Headers),
@@ -203,7 +203,7 @@ describe("VersionsTab", () => {
       expect(createObjectURLSpy).toHaveBeenCalledTimes(1);
       expect(clickedDownloads).toEqual([
         {
-          download: "template-weekly-standup-1.0.0.zip",
+          download: "template-weekly-standup-0.9.0.zip",
           href: "blob:test-download",
         },
       ]);
@@ -221,18 +221,18 @@ describe("VersionsTab", () => {
         headers: new Headers({
           "content-type": "application/zip",
           "content-disposition":
-            'attachment; filename="template-weekly-standup-1.0.0.zip"',
+            'attachment; filename="template-weekly-standup-0.9.0.zip"',
         }),
       }),
     );
 
     renderWithFacade(<VersionsTab />);
     await selectDefaultTemplate();
-    fireEvent.click(screen.getAllByText("Export")[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Export" })[1]);
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
-        "/adminfrontend/api/admin/templates/export/rev-1",
+        "/adminfrontend/api/admin/templates/export/rev-2",
         expect.objectContaining({
           credentials: "include",
           headers: expect.any(Headers),

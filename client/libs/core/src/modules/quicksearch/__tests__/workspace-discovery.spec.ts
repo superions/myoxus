@@ -18,6 +18,7 @@ import { WorkspaceServerService } from "../../server";
 import { TagService } from "../../tag";
 import { WorkspaceService } from "../../workspace";
 import { DatabaseRowsQuickSearchSession } from "../impls/database-rows";
+import { findDatabases, findDatabaseRows } from "../impls/database-discovery";
 import { DatabasesQuickSearchSession } from "../impls/databases";
 import { FavoritesQuickSearchSession } from "../impls/favorites";
 import { RecentTargetsQuickSearchSession } from "../impls/recent-targets";
@@ -78,6 +79,51 @@ function createDatabaseRowsSession(gql: ReturnType<typeof vi.fn>) {
 }
 
 describe("workspace Database discovery", () => {
+  test("forwards independent offsets without changing preview defaults", async () => {
+    const gql = vi.fn(async () => ({
+      workspace: { databases: [], databaseSearch: [] },
+    }));
+    const signal = new AbortController().signal;
+    await findDatabases({ gql } as any, "workspace", {
+      first: 50,
+      offset: 50,
+      search: "project",
+      signal,
+    });
+    await findDatabaseRows(
+      { gql } as any,
+      "workspace",
+      "project",
+      50,
+      signal,
+      500,
+    );
+    expect(gql).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        query: databasesQuery,
+        variables: {
+          workspaceId: "workspace",
+          first: 50,
+          offset: 50,
+          search: "project",
+          databaseIds: undefined,
+        },
+        context: { signal },
+      }),
+    );
+    expect(gql).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        query: databaseSearchQuery,
+        variables: {
+          workspaceId: "workspace",
+          filter: { first: 50, query: "project", offset: 500 },
+        },
+        context: { signal },
+      }),
+    );
+  });
   test("does not query for empty input and maps server-ordered Database routes", async () => {
     const gql = vi.fn(async () => ({
       workspace: {

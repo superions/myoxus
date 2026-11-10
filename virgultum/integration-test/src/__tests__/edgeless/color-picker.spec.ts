@@ -14,6 +14,19 @@ describe("theme service", () => {
   let edgeless!: EdgelessRootBlockComponent;
 
   beforeEach(async () => {
+    // Exercise both runtime theme scopes without depending on a server palette.
+    const projection = document.createElement("style");
+    projection.textContent = `
+      [data-theme="light"] {
+        --myoxus-hover-color: rgba(0, 0, 0, 0.04) !important;
+        --myoxus-tooltip: rgba(0, 0, 0, 1) !important;
+      }
+      [data-theme="dark"] {
+        --myoxus-hover-color: rgba(255, 255, 255, 0.1) !important;
+        --myoxus-tooltip: rgba(234, 234, 234, 1) !important;
+      }
+    `;
+    document.head.append(projection);
     const cleanup = await setupEditor("edgeless");
 
     edgeless = getDocRootBlock(doc, editor, "edgeless");
@@ -23,7 +36,10 @@ describe("theme service", () => {
     const themeService = edgeless.gfx.std.get(ThemeProvider);
     themeService.theme$.value = ColorScheme.Light;
 
-    return cleanup;
+    return () => {
+      projection.remove();
+      cleanup();
+    };
   });
 
   test("switches theme", () => {

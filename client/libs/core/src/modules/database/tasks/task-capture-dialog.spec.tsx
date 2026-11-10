@@ -95,6 +95,7 @@ vi.mock("@myoxus/i18n", async (importOriginal) => {
   return { ...actual, ...createDatabaseTestI18nModule() };
 });
 import { TaskCaptureDialog } from "./task-capture-dialog";
+import { TaskCardCreate } from "./task-card-create";
 
 afterEach(cleanup);
 beforeEach(() => {
@@ -196,6 +197,29 @@ it.each([null])(
     );
   },
 );
+
+it("retains the inline card's capture identity after uncertain insertion dismissal", async () => {
+  committed();
+  const anchor = render(<div />).container.firstElementChild as HTMLElement;
+  render(
+    <MyoxusUIProvider env="test">
+      <TaskCardCreate
+        anchor={anchor}
+        source={fixture.capture.retained!.input}
+        openingOwnerIdentity={fixture.identity}
+        isCurrent={() => true}
+        close={fixture.close}
+        onInsertReference={vi.fn().mockResolvedValue("uncertain")}
+        onInserted={vi.fn()}
+      />
+    </MyoxusUIProvider>,
+  );
+  await screen.findByRole("button", { name: "Insert reference" });
+  fireEvent.click(screen.getByRole("button", { name: "Close" }));
+  await waitFor(() => expect(fixture.close).toHaveBeenCalledOnce());
+  expect(fixture.capture.retainForReferenceRecovery).toHaveBeenCalledOnce();
+  expect(fixture.capture.release).not.toHaveBeenCalled();
+});
 
 it("keeps committed capture recovery on failed insertion dismissal and offers only Task/copy after readonly capture", async () => {
   committed();

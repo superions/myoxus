@@ -1,4 +1,5 @@
 import { DocEmbedProvider } from "../../services/doc-embed-service";
+import { projectDocumentFieldOutput } from "../utils/document-field-output";
 import { assertQualifiedNativeExportReadable } from "../middlewares/document-reference";
 import type { ServiceProvider } from "@virgultum/global/di";
 import { DefaultTheme, NoteDisplayMode } from "@virgultum/model";
@@ -131,6 +132,7 @@ export class PlainTextAdapter extends BaseAdapter<PlainText> {
   async fromBlockSnapshot({
     snapshot,
   }: FromBlockSnapshotPayload): Promise<FromBlockSnapshotResult<PlainText>> {
+    snapshot = await projectDocumentFieldOutput(snapshot, this.scopeProvider);
     prepareLocalFootnoteReading(
       [snapshot],
       this.configs,
@@ -147,6 +149,11 @@ export class PlainTextAdapter extends BaseAdapter<PlainText> {
     snapshot,
     assets,
   }: FromDocSnapshotPayload): Promise<FromDocSnapshotResult<PlainText>> {
+    snapshot = await projectDocumentFieldOutput(
+      snapshot,
+      this.scopeProvider,
+      snapshot.meta.id,
+    );
     let buffer = "";
     if (snapshot.meta.title) {
       buffer += `${snapshot.meta.title}\n\n`;
@@ -165,6 +172,12 @@ export class PlainTextAdapter extends BaseAdapter<PlainText> {
   async fromSliceSnapshot({
     snapshot,
   }: FromSliceSnapshotPayload): Promise<FromSliceSnapshotResult<PlainText>> {
+    snapshot = await projectDocumentFieldOutput(
+      snapshot,
+      this.scopeProvider,
+      snapshot.pageId,
+      snapshot.workspaceId,
+    );
     prepareLocalFootnoteReading(
       snapshot.content,
       this.configs,

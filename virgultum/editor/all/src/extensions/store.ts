@@ -6,7 +6,6 @@ import { BookmarkStoreExtension } from "@virgultum/block-bookmark/store";
 import { BpmnStoreExtension } from "@virgultum/block-bpmn/store";
 import { CalloutStoreExtension } from "@virgultum/block-callout/store";
 import { CodeStoreExtension } from "@virgultum/block-code/store";
-import { DataViewStoreExtension } from "@virgultum/block-data-view/store";
 import { DatabaseReferenceStoreExtension } from "@virgultum/block-database/reference-store";
 import { DividerStoreExtension } from "@virgultum/block-divider/store";
 import { EdgelessTextStoreExtension } from "@virgultum/block-edgeless-text/store";
@@ -58,7 +57,6 @@ export const internalStoreExtensionsByFeature: ReadonlyMap<
   [featureManifestId("bookmark"), BookmarkStoreExtension],
   [featureManifestId("callout"), CalloutStoreExtension],
   [featureManifestId("code"), CodeStoreExtension],
-  [featureManifestId("data-view"), DataViewStoreExtension],
   [featureManifestId("database"), DatabaseReferenceStoreExtension],
   [featureManifestId("divider"), DividerStoreExtension],
   [featureManifestId("event"), EventStoreExtension],

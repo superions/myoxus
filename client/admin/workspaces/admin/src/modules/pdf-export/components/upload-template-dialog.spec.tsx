@@ -23,7 +23,11 @@ const notifyMock = vi.hoisted(() => ({
 }));
 
 vi.mock("@myoxus/i18n", () => ({
-  useI18n: () => ({ t: (key: string) => en[key] ?? key }),
+  useI18n: () => ({
+    t: (key: string) => en[key] ?? key,
+    "com.myoxus.peek-view-controls.close": () =>
+      en["com.myoxus.peek-view-controls.close"],
+  }),
 }));
 
 vi.mock("@myoxus/ui-facade", async (importOriginal) => {

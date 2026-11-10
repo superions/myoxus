@@ -393,13 +393,11 @@ describe("public updater backend selection", () => {
   const updater = {} as AppUpdater;
   const factories = {
     deb: vi.fn(() => updater),
-    macos: vi.fn(() => updater),
     nsis: vi.fn(() => updater),
     rpm: vi.fn(() => updater),
   };
 
   it.each([
-    ["darwin", null, {}, false, "macos"],
     ["win32", "nsis", {}, false, "nsis"],
     ["linux", "deb", {}, false, "deb"],
     ["linux", "rpm", {}, false, "rpm"],
@@ -424,6 +422,7 @@ describe("public updater backend selection", () => {
   );
 
   it.each([
+    ["darwin", null, {}, false, "external-macos-install"],
     ["win32", null, {}, false, "portable"],
     ["linux", null, {}, false, "missing-package-marker"],
     [

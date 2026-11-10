@@ -257,7 +257,11 @@ describe("Myoxus Mantine provider theme bridge", () => {
     expect(menuStyles.itemLabel.textOverflow).toBe("ellipsis");
     expect(menuStyles.itemSection.color).toBe("currentColor");
 
-    const avatarStyles = mergedTheme.components.Avatar.styles;
+    const avatarStyles = mergedTheme.components.Avatar.styles(
+      mergedTheme,
+      {},
+      {},
+    );
     expect(avatarStyles.placeholder.background).toContain(
       "--myoxus-primary-color",
     );

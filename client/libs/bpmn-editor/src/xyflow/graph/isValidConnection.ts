@@ -21,6 +21,7 @@
 
 import * as RF from "@xyflow/react";
 import { type GraphStructure } from "../graph/graphStructure";
+import { sourceHandleParts } from "../store/State";
 
 export function checkIsValidConnection<
   N extends string,
@@ -43,7 +44,8 @@ export function checkIsValidConnection<
     graphStructure,
     sourceNode,
     targetNode,
-    ongoingConnectionEdgeType ?? edgeOrConnection.sourceHandle,
+    ongoingConnectionEdgeType ??
+      sourceHandleParts(edgeOrConnection.sourceHandle).type,
   );
 }
 

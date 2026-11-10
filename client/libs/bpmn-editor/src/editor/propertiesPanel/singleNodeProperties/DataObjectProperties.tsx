@@ -81,7 +81,7 @@ export function DataObjectProperties({
               ? t["com.myoxus.editor.bpmn.data-object-reference"]()
               : i18n.bpmnPalette.dataObject)}
         </AccordionControl>
-        <AccordionPanel>
+        <AccordionPanel keepMounted keepMountedMode="display-none">
           <DataObjectFields id={initial["@_id"]} />
         </AccordionPanel>
       </AccordionItem>
@@ -90,7 +90,7 @@ export function DataObjectProperties({
           <AccordionControl>
             {t["com.myoxus.editor.bpmn.referenced-data-object"]()}
           </AccordionControl>
-          <AccordionPanel>
+          <AccordionPanel keepMounted keepMountedMode="display-none">
             <DataObjectFields id={backing["@_id"]} />
           </AccordionPanel>
         </AccordionItem>

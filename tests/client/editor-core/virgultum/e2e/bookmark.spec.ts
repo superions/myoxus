@@ -47,6 +47,36 @@ const YOUTUBE_URL = "https://www.youtube.com/watch?v=fakeid";
 
 const FIGMA_URL = "https://www.figma.com/design/JuXs6uOAICwf4I4tps0xKZ123";
 
+test("cancelling card creation preserves the source paragraph and typing focus", async ({
+  page,
+}) => {
+  await enterPlaygroundRoom(page);
+  await initEmptyParagraphState(page);
+  await focusRichText(page);
+  await type(page, "/git");
+  await page
+    .getByRole("option", { name: "Git Issues & Pull Requests", exact: true })
+    .click();
+  await page.getByRole("dialog").getByRole("textbox").press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.locator("myoxus-paragraph")).toHaveCount(1);
+  await expect
+    .poll(() =>
+      page
+        .locator("myoxus-paragraph")
+        .evaluate((element) =>
+          element.contains(
+            element.ownerDocument.getSelection()?.anchorNode ?? null,
+          ),
+        ),
+    )
+    .toBe(true);
+  await type(page, "Continue editing");
+  await expect(page.locator("myoxus-paragraph")).toContainText(
+    "Continue editing",
+  );
+});
+
 type BookmarkSnapshotBlock = BlockSnapshot & {
   props: {
     url: string;
@@ -175,8 +205,8 @@ test(scoped`covert bookmark block to link text`, async ({ page }) => {
   const bookmark = page.locator("myoxus-bookmark");
   await bookmark.click();
   await page.waitForTimeout(100);
-  await page.getByRole("button", { name: "Switch view" }).click();
-  await page.getByRole("button", { name: "Inline view" }).click();
+  await page.getByRole("combobox", { name: "Switch view" }).click();
+  await page.getByRole("option", { name: "Inline view" }).click();
   await expect(bookmark).toHaveCount(0);
   await expect(page.locator("myoxus-paragraph myoxus-link a")).toHaveAttribute(
     "href",
@@ -427,7 +457,7 @@ test("bookmark card should show banner in edgeless mode", async ({ page }) => {
   const url = "https://github.com/example/project/pull/11796";
 
   await page.locator("edgeless-link-tool-button").click();
-  await page.locator(".embed-card-modal-input").fill(url);
+  await page.getByRole("dialog").getByRole("textbox").fill(url);
   await pressEnter(page);
 
   const banner = page.locator(".myoxus-bookmark-banner");
@@ -458,9 +488,9 @@ for (const { provider, url, iframe } of [
     );
     await embed.click();
     await page
-      .getByRole("button", { name: "Switch view", exact: true })
+      .getByRole("combobox", { name: "Switch view", exact: true })
       .click();
-    await page.getByRole("button", { name: "Card view", exact: true }).click();
+    await page.getByRole("option", { name: "Card view", exact: true }).click();
     await expect(embed).toHaveCount(0);
     await assertBookmark(page, url);
     const bookmark = page.locator("myoxus-bookmark");
@@ -471,9 +501,9 @@ for (const { provider, url, iframe } of [
     ).toBe(parent);
     await bookmark.click();
     await page
-      .getByRole("button", { name: "Switch view", exact: true })
+      .getByRole("combobox", { name: "Switch view", exact: true })
       .click();
-    await page.getByRole("button", { name: "Embed view", exact: true }).click();
+    await page.getByRole("option", { name: "Embed view", exact: true }).click();
     await expect(bookmark).toHaveCount(0);
     await expect(embed).toBeVisible();
     await expect(embed.locator("iframe")).toHaveAttribute("src", iframe);
@@ -515,7 +545,7 @@ test("drag a card from canvas to note should not change the style of the card", 
   const targetNote = page.locator("myoxus-edgeless-note").last();
   await expect(targetNote).toBeVisible();
   await page.locator("edgeless-link-tool-button").click();
-  await page.locator(".embed-card-modal-input").fill(url);
+  await page.getByRole("dialog").getByRole("textbox").fill(url);
   await pressEnter(page);
 
   const edgelessBookmark = page.locator("myoxus-edgeless-bookmark");

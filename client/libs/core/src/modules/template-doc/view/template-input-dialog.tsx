@@ -6,6 +6,8 @@ import {
   Button,
   Group,
   Input,
+  LocalizedDateInput,
+  LocalizedDateTimeInput,
   Modal,
   MyoxusText,
   Notice,
@@ -16,6 +18,7 @@ import type { DialogComponentProps } from "../../dialogs/types";
 import type { WORKSPACE_DIALOG_SCHEMA } from "../../dialogs/constant";
 import {
   normalizeTemplateInputs,
+  templateInputKind,
   templateInputLabel,
 } from "../services/template-inputs";
 
@@ -54,20 +57,51 @@ export function TemplateInputDialog({
           <MyoxusText>
             {t["com.myoxus.template-input.description"]()}
           </MyoxusText>
-          {state.names.map((name) => (
-            <Input
-              key={name}
-              label={templateInputLabel(name)}
-              description={`{{${name}}}`}
-              value={values[name] ?? ""}
-              required
-              disabled={state.busy || state.blocked}
-              onChange={(value) =>
-                setValues((previous) => ({ ...previous, [name]: value }))
-              }
-              autoComplete="off"
-            />
-          ))}
+          {state.names.map((name) => {
+            const props = {
+              label: templateInputLabel(name),
+              description: `{{${name}}}`,
+              required: true,
+              disabled: state.busy || state.blocked,
+            };
+            const onChange = (value: string | null) =>
+              setValues((previous) => ({ ...previous, [name]: value ?? "" }));
+            switch (templateInputKind(name)) {
+              case "date":
+                return (
+                  <LocalizedDateInput
+                    key={name}
+                    {...props}
+                    locale={t.language}
+                    value={values[name] || null}
+                    onChange={onChange}
+                    clearable
+                    allowDeselect
+                  />
+                );
+              case "datetime":
+                return (
+                  <LocalizedDateTimeInput
+                    key={name}
+                    {...props}
+                    locale={t.language}
+                    value={values[name] || null}
+                    onChange={onChange}
+                    clearable
+                  />
+                );
+              default:
+                return (
+                  <Input
+                    key={name}
+                    {...props}
+                    value={values[name] ?? ""}
+                    onChange={onChange}
+                    autoComplete="off"
+                  />
+                );
+            }
+          })}
           {state.error ? <Notice tone="error">{state.error}</Notice> : null}
           <Group justify="end">
             <Button disabled={state.busy} onClick={() => close()}>

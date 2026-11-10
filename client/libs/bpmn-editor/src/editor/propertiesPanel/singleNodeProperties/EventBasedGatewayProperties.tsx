@@ -54,7 +54,7 @@ export function EventBasedGatewayProperties({
           {eventBasedGateway["@_name"] ||
             i18n.singleNodeProperties.eventBasedGateway}
         </AccordionControl>
-        <AccordionPanel>
+        <AccordionPanel keepMounted keepMountedMode="display-none">
           <NameDocumentationAndId element={eventBasedGateway} />
           <GatewayPropertiesFields gateway={eventBasedGateway} />
         </AccordionPanel>

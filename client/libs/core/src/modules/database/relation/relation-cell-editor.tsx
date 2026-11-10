@@ -120,6 +120,7 @@ export function DatabaseRelationCellEditor({
   const [loadedRows, setLoadedRows] = useState<DatabaseRowRecord[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [opened, setOpened] = useState(false);
 
   useEffect(() => {
     setLoaded(false);
@@ -168,6 +169,7 @@ export function DatabaseRelationCellEditor({
 
   return (
     <MultiSelect
+      fitViewport
       data={getRelationTargetOptions({
         field,
         record,
@@ -180,14 +182,23 @@ export function DatabaseRelationCellEditor({
         },
       })}
       value={value}
-      onChange={onChange}
+      onChange={(next) => {
+        // Finish the native picker before a committed Cell refresh can replace it.
+        setOpened(false);
+        onChange(next);
+      }}
       placeholder={
         loading
           ? t["com.myoxus.database.relation.loading"]()
           : t["com.myoxus.database.cell.empty"]()
       }
       nothingFoundMessage={t["com.myoxus.database.relation.empty"]()}
-      onDropdownOpen={() => void loadRelationTargets()}
+      dropdownOpened={opened}
+      onDropdownOpen={() => {
+        setOpened(true);
+        void loadRelationTargets();
+      }}
+      onDropdownClose={() => setOpened(false)}
       maxValues={maxValues}
       clearable
       searchable

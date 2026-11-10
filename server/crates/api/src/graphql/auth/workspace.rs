@@ -2078,7 +2078,7 @@ impl WorkspaceType {
         self.id.to_string(),
         input.keyword,
         None,
-        Some(0),
+        Some(input.offset.unwrap_or(0).max(0)),
         Some(input.limit.unwrap_or(20).clamp(1, 100)),
         Some(SearchSortByType::Relevance),
         Some(SortDirectionType::Desc),
@@ -2087,11 +2087,7 @@ impl WorkspaceType {
       .await?;
     let doc_ids = docs.iter().map(|doc| doc.doc_id).collect::<Vec<_>>();
     let state = ctx.data::<Arc<ApiState>>().map_err(|_| "ApiState missing")?;
-    let mut external_ids = state
-      .doc()
-      .resolve_external_doc_ids(self.id, &doc_ids)
-      .await
-      .map_err(map_gql_error)?;
+    let metadata = state.doc().get_metadata_batch(&doc_ids).await.map_err(map_gql_error)?;
     let mut database_contexts = HashMap::<Uuid, Vec<DatabaseDocumentReferenceObjectType>>::new();
     if let Some(database_service) = state.database_services() {
       let references = database_service
@@ -2112,27 +2108,30 @@ impl WorkspaceType {
         }
       }
     }
-    Ok(
-      docs
-        .into_iter()
-        .map(|doc| {
-          let doc_id = doc.doc_id;
-          let external_id = external_ids.remove(&doc_id).unwrap_or_else(|| doc_id.to_string());
-          SearchDocObjectType {
-            doc_id,
-            external_id,
-            title: doc.title.clone(),
-            block_id: doc.doc_id.to_string(),
-            highlight: doc.plain_text,
-            created_at: doc.updated_at,
-            updated_at: doc.updated_at,
-            created_by_user: None,
-            updated_by_user: None,
-            database_contexts: database_contexts.remove(&doc_id).unwrap_or_default(),
-          }
+    docs
+      .into_iter()
+      .map(|doc| {
+        let doc_id = doc.doc_id;
+        // Index refreshes must not become content creation/modification dates.
+        // Fail a stale page rather than dropping hits and truncating pagination.
+        let metadata = metadata
+          .get(&doc_id)
+          .filter(|metadata| metadata.workspace_id == Some(self.id))
+          .ok_or_else(|| async_graphql::Error::new("Document metadata is unavailable"))?;
+        Ok(SearchDocObjectType {
+          doc_id,
+          external_id: metadata.external_id.clone(),
+          title: doc.title.clone(),
+          block_id: doc.doc_id.to_string(),
+          highlight: doc.plain_text,
+          created_at: metadata.created_at,
+          updated_at: metadata.updated_at,
+          created_by_user: None,
+          updated_by_user: None,
+          database_contexts: database_contexts.remove(&doc_id).unwrap_or_default(),
         })
-        .collect(),
-    )
+      })
+      .collect()
   }
 
   #[instrument(skip(self, ctx, input))]
@@ -2486,6 +2485,7 @@ impl WorkspaceType {
     snapshot_id: ID,
   ) -> Result<crate::graphql::document_version::DocumentHistoryDiffType> {
     let (state, doc_id) = authorize_history_document(ctx, self.id, &guid).await?;
+    let (_, viewer) = require_session(ctx).await?;
     let history_id = snapshot_id
       .as_str()
       .parse::<i64>()
@@ -2494,7 +2494,13 @@ impl WorkspaceType {
       .ok_or_else(|| async_graphql::Error::new("Invalid snapshot ID"))?;
     let diff = state
       .doc()
-      .history_diff(self.id, doc_id, history_id)
+      .history_diff_with_fields(
+        self.id,
+        doc_id,
+        history_id,
+        state.document_field_resolver().await.as_ref(),
+        Some(viewer.user.id),
+      )
       .await
       .map_err(map_gql_error)?;
     Ok(diff.into())

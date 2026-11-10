@@ -176,10 +176,56 @@ async function openColumnMenu(page: Page, table: Locator, index: number) {
   await expect(handle).toBeVisible();
   await handle.click();
 
-  const menu = page.locator("myoxus-menu");
+  const menu = page.getByRole("menu", { name: "Table", exact: true });
   await expect(menu).toBeVisible();
   return menu;
 }
+
+test("cell context menu preserves the dragged area through native focus and undo", async ({
+  page,
+}) => {
+  const table = await createTable(page);
+  const cells = table.locator("[data-table-cell]");
+  const first = (await cells.first().boundingBox())!;
+  const last = (await cells.last().boundingBox())!;
+  await page.mouse.move(first.x + first.width - 4, first.y + first.height - 4);
+  await page.mouse.down();
+  await page.mouse.move(last.x + last.width - 4, last.y + last.height - 4, {
+    steps: 12,
+  });
+  await page.mouse.up();
+  const selected = () =>
+    table.evaluate(
+      (element) => (element as any).selectionController.selected$.value,
+    );
+  const area = {
+    type: "area",
+    rowStartIndex: 0,
+    rowEndIndex: 1,
+    columnStartIndex: 0,
+    columnEndIndex: 1,
+  };
+  await expect.poll(selected).toEqual(area);
+  await cells.last().click({ button: "right" });
+  const menu = page.getByRole("menu", { name: "Table", exact: true });
+  await expect
+    .poll(() =>
+      menu.evaluate((element) => element.contains(document.activeElement)),
+    )
+    .toBe(true);
+  await expect.poll(selected).toEqual(area);
+  await page
+    .getByRole("menuitem", { name: "Clear contents", exact: true })
+    .click();
+  for (let index = 0; index < 4; index++)
+    await expect(await getCellText(table, index)).toHaveText("");
+  await expect(table.locator('[contenteditable="true"]').last()).toBeFocused();
+  await page.keyboard.press(`${SHORT_KEY}+z`);
+  for (let index = 0; index < 4; index++)
+    await expect(await getCellText(table, index)).toHaveText(
+      `Cell${index + 1}`,
+    );
+});
 
 test("Tab and column insertion preserve imported ordinal tables and their history", async ({
   page,
@@ -234,33 +280,32 @@ async function setColumnAlignment(
   keyboard = false,
 ) {
   await openColumnMenu(page, table, columnIndex);
-  await page
-    .locator("myoxus-menu-sub-menu")
-    .filter({ hasText: "Alignment" })
-    .click();
-  const option = page
-    .locator("myoxus-menu-button")
-    .filter({ hasText: alignment })
-    .last();
+  const trigger = page.getByRole("menuitem", {
+    name: "Alignment",
+    exact: true,
+  });
+  const option = page.getByRole("menuitem", { name: alignment, exact: true });
   if (keyboard) {
-    await expect(page.locator("myoxus-menu input").last()).toBeFocused();
-    await page.keyboard.type(alignment);
-    await expect(page.locator("myoxus-menu input").last()).toHaveValue(
-      alignment,
-    );
+    await trigger.focus();
+    await page.keyboard.press("ArrowRight");
     await expect(
-      page.locator("myoxus-menu").last().locator("myoxus-menu-button"),
-    ).toHaveCount(1);
-    await page.keyboard.press("ArrowDown");
+      page.getByRole("menuitem", { name: "Default", exact: true }),
+    ).toBeFocused();
+    for (
+      let index = 0;
+      index < ["Default", "Left", "Center", "Right"].indexOf(alignment);
+      index++
+    )
+      await page.keyboard.press("ArrowDown");
+    await expect(option).toBeFocused();
     await page.keyboard.press("Enter");
-    if (await page.locator("myoxus-menu").count()) {
-      await page.keyboard.press("Escape");
-      await page.keyboard.press("Escape");
-    }
   } else {
+    await trigger.click();
     await option.click();
   }
-  await expect(page.locator("myoxus-menu")).toHaveCount(0);
+  await expect(
+    page.getByRole("menu", { name: "Table", exact: true }),
+  ).toHaveCount(0);
 }
 
 async function getNativeTableState(table: Locator) {
@@ -495,8 +540,7 @@ test("template row repeat is keyboard-authorable, uses document history and stay
       .nth(1)
       .click();
     await page
-      .locator("myoxus-menu-button")
-      .filter({ hasText: "Repeat for" })
+      .getByRole("menuitem", { name: "Repeat for", exact: true })
       .click();
     await expect(page.locator("myoxus-menu input")).toBeFocused();
   };
@@ -527,20 +571,20 @@ test("template row repeat is keyboard-authorable, uses document history and stay
   await page.keyboard.press("Escape");
   await expect(await getCellText(table, 2)).toHaveText("{{member.name}}");
   await expect(await getCellText(table, 3)).toHaveText("{{member.email}}");
-  await page.setViewportSize({ width: 390, height: 844 });
   await table
     .getByRole("button", { name: "Row options", exact: true })
     .nth(1)
     .click();
-  const bounds = await page.locator("myoxus-menu").boundingBox();
+  const bounds = await page
+    .getByRole("menu", { name: "Table", exact: true })
+    .boundingBox();
   const owner = await page.locator("editor-host").boundingBox();
   expect(bounds!.y).toBeGreaterThanOrEqual(Math.max(0, owner!.y));
   expect(bounds!.x).toBeGreaterThanOrEqual(0);
-  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390);
-  await page
-    .locator("myoxus-menu-button")
-    .filter({ hasText: "Repeat for" })
-    .click();
+  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(
+    page.viewportSize()!.width,
+  );
+  await page.getByRole("menuitem", { name: "Repeat for", exact: true }).click();
   await page.keyboard.press("Escape");
   await page.evaluate(() => {
     window.doc.readonly = true;
@@ -557,32 +601,25 @@ test("table settings author explicit semantic header rows and restore keyboard f
   const openSettings = async (handle: Locator) => {
     await handle.click();
     await page
-      .locator("myoxus-menu-sub-menu")
-      .filter({ hasText: "Table settings" })
+      .getByRole("menuitem", { name: "Table settings", exact: true })
       .click();
   };
 
   await openSettings(
     table.getByRole("button", { name: "Column options", exact: true }).first(),
   );
-  await page
-    .locator("myoxus-menu-button")
-    .filter({ hasText: "First row" })
-    .click();
+  await page.getByRole("menuitem", { name: "First row", exact: true }).click();
   await expect(table.locator("thead th")).toHaveCount(2);
   await expect(table.locator("tbody td")).toHaveCount(2);
 
   await openSettings(
     table.getByRole("button", { name: "Column options", exact: true }).first(),
   );
-  await page.locator("myoxus-menu-button").filter({ hasText: "Ruled" }).click();
+  await page.getByRole("menuitem", { name: "Ruled", exact: true }).click();
   await openSettings(
     table.getByRole("button", { name: "Column options", exact: true }).first(),
   );
-  await page
-    .locator("myoxus-menu-button")
-    .filter({ hasText: "Compact" })
-    .click();
+  await page.getByRole("menuitem", { name: "Compact", exact: true }).click();
   const presentation = table.locator(
     '[data-table-appearance="ruled"][data-table-density="compact"]',
   );
@@ -616,8 +653,7 @@ test("table settings author explicit semantic header rows and restore keyboard f
     table.getByRole("button", { name: "Row options", exact: true }).nth(1),
   );
   await page
-    .locator("myoxus-menu-button")
-    .filter({ hasText: "Header through this row" })
+    .getByRole("menuitem", { name: "Header through this row", exact: true })
     .click();
   await expect(table.locator("thead th")).toHaveCount(4);
   await expect(table.locator("tbody td")).toHaveCount(0);
@@ -631,7 +667,7 @@ test("table settings author explicit semantic header rows and restore keyboard f
   await lastCell.click();
   await page.keyboard.press("Shift+F10");
   await expect(
-    page.locator("myoxus-menu-sub-menu").filter({ hasText: "Table settings" }),
+    page.getByRole("menuitem", { name: "Table settings", exact: true }),
   ).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(lastCell.locator('[contenteditable="true"]')).toBeFocused();

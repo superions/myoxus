@@ -46,10 +46,22 @@ vi.mock("@myoxus/infra", async (importOriginal) => ({
   },
 }));
 vi.mock("../../../editor/virgultum/doc-editor", () => ({
-  VirgultumEditor: ({ page }: { page: Store }) => {
+  VirgultumEditor: ({
+    page,
+    snapshot,
+    readonly,
+    templateSourcePreview,
+  }: {
+    page: Store;
+    snapshot?: boolean;
+    readonly?: boolean;
+    templateSourcePreview?: boolean;
+  }) => {
     // Native view extensions require both scopes even in an isolated snapshot.
     if (useContext(PreviewScopes).length !== 2)
       throw new Error("Missing native host scopes");
+    if (!snapshot || !readonly || !templateSourcePreview)
+      throw new Error("Source preview must remain isolated and unresolved");
     return (
       <section aria-label="Native preview">
         {page

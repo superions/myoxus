@@ -1,4 +1,5 @@
 import type {
+  DesktopServerRegistryMutation,
   SharedStorageChanges,
   SharedStorageSnapshot,
   SharedStorageValue,
@@ -30,7 +31,10 @@ function createSharedStorageApi(
     clear: string;
     set: string;
   },
-): SharedStorageArea {
+): {
+  area: SharedStorageArea;
+  applyUpdates: (updates: SharedStorageChanges) => void;
+} {
   const memory = new MemoryMemento();
   const revisions = new Map<string, number>();
   const updateQueue: SharedStorageChanges[] = [];
@@ -99,47 +103,68 @@ function createSharedStorageApi(
   })();
 
   return {
-    ready: initPromise,
-    del(key: string) {
-      memory.del(key);
-      invokeWithCatch(`sharedStorage:${api.del}`, key, CLIENT_ID);
-    },
-    clear() {
-      memory.clear();
-      revisions.clear();
-      invokeWithCatch(`sharedStorage:${api.clear}`, CLIENT_ID);
-    },
-    get<Value extends SharedStorageValue>(key: string): Value | undefined {
-      return memory.get<Value>(key);
-    },
-    keys() {
-      return memory.keys();
-    },
-    set<Value extends SharedStorageValue>(key: string, value: Value) {
-      memory.set(key, value);
-      invokeWithCatch(`sharedStorage:${api.set}`, key, value, CLIENT_ID);
-    },
-    watch<Value extends SharedStorageValue>(
-      key: string,
-      cb: (value: Value | undefined) => void,
-    ): () => void {
-      const subscription = memory.watch<Value>(key).subscribe(cb);
-      return () => subscription.unsubscribe();
+    applyUpdates,
+    area: {
+      ready: initPromise,
+      del(key: string) {
+        memory.del(key);
+        invokeWithCatch(`sharedStorage:${api.del}`, key, CLIENT_ID);
+      },
+      clear() {
+        memory.clear();
+        revisions.clear();
+        invokeWithCatch(`sharedStorage:${api.clear}`, CLIENT_ID);
+      },
+      get<Value extends SharedStorageValue>(key: string): Value | undefined {
+        return memory.get<Value>(key);
+      },
+      keys() {
+        return memory.keys();
+      },
+      set<Value extends SharedStorageValue>(key: string, value: Value) {
+        memory.set(key, value);
+        invokeWithCatch(`sharedStorage:${api.set}`, key, value, CLIENT_ID);
+      },
+      watch<Value extends SharedStorageValue>(
+        key: string,
+        cb: (value: Value | undefined) => void,
+      ): () => void {
+        const subscription = memory.watch<Value>(key).subscribe(cb);
+        return () => subscription.unsubscribe();
+      },
     },
   };
 }
 
-export const globalState = createSharedStorageApi({}, "onGlobalStateChanged", {
+const stateStorage = createSharedStorageApi({}, "onGlobalStateChanged", {
   clear: "clearGlobalState",
   del: "delGlobalState",
   set: "setGlobalState",
 });
 
-export const globalCache = createSharedStorageApi({}, "onGlobalCacheChanged", {
+const cacheStorage = createSharedStorageApi({}, "onGlobalCacheChanged", {
   clear: "clearGlobalCache",
   del: "delGlobalCache",
   set: "setGlobalCache",
 });
+
+export const globalState = stateStorage.area;
+export const globalCache = cacheStorage.area;
+
+/** Main's broadcast can arrive after its IPC reply. Publish the confirmed
+ * revisions before resolving, without overwriting newer cross-window events. */
+export async function mutateServerRegistry(
+  mutation: DesktopServerRegistryMutation,
+): Promise<SharedStorageChanges> {
+  await globalState.ready;
+  const changes: SharedStorageChanges = await ipcRenderer.invoke(
+    MYOXUS_API_CHANNEL_NAME,
+    "sharedStorage:mutateServerRegistry",
+    mutation,
+  );
+  stateStorage.applyUpdates(changes);
+  return changes;
+}
 
 export const sharedStorage = {
   globalState,

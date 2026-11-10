@@ -1,4 +1,5 @@
 import { UserFriendlyError } from "@myoxus/error";
+import { getSearchResultsPath } from "@myoxus/core/desktop/route-paths";
 import { I18n } from "@myoxus/i18n";
 import { Service } from "@myoxus/infra";
 import { track } from "@myoxus/track";
@@ -6,6 +7,7 @@ import { notify } from "@myoxus/ui-facade";
 
 import type { DocsService } from "../../doc";
 import type { WorkbenchService } from "../../workbench";
+import type { WorkspaceService } from "../../workspace";
 import { CollectionsQuickSearchSession } from "../impls/collections";
 import { CommandsQuickSearchSession } from "../impls/commands";
 import { CreationQuickSearchSession } from "../impls/creation";
@@ -22,6 +24,7 @@ export class CMDKQuickSearchService extends Service {
     private readonly quickSearchService: QuickSearchService,
     private readonly workbenchService: WorkbenchService,
     private readonly docsService: DocsService,
+    private readonly workspaceService: WorkspaceService,
   ) {
     super();
   }
@@ -155,6 +158,14 @@ export class CMDKQuickSearchService extends Service {
           }
         },
         {
+          onOpenPage:
+            this.workspaceService.workspace.flavour === "local"
+              ? undefined
+              : (query) => {
+                  const route = getSearchResultsPath(query);
+                  this.quickSearchService.quickSearch.hide();
+                  this.workbenchService.workbench.open(route, { at: "active" });
+                },
           placeholder: {
             i18nKey: "com.myoxus.cmdk.placeholder",
           },

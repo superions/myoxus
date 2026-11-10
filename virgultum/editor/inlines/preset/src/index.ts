@@ -9,3 +9,4 @@ export * from "./inline-spec";
 export * from "./keymap";
 export * from "./markdown";
 export * from "./nodes/annotation";
+export * from "./nodes/document-field";

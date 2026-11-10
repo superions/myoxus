@@ -2,7 +2,6 @@ import { type Signal, signal } from "@preact/signals-core";
 import { type Store, StoreExtension } from "@virgultum/store";
 
 export interface VirgultumFlags {
-  enable_block_query: boolean;
   enable_ai_chat_block: boolean;
   enable_mermaid_block: boolean;
   enable_advanced_block_visibility: boolean;
@@ -20,7 +19,6 @@ export class FeatureFlagService extends StoreExtension {
   static override key = "feature-flag-server";
 
   private readonly _flags: Signal<VirgultumFlags> = signal({
-    enable_block_query: false,
     enable_ai_chat_block: true,
     enable_mermaid_block: false,
     enable_advanced_block_visibility: false,

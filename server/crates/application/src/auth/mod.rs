@@ -399,6 +399,7 @@ pub enum WorkbenchToolId {
   DatabaseSettings,
   TaskDetails,
   GraphDetails,
+  Presence,
 }
 
 impl WorkbenchViewFamily {
@@ -407,14 +408,17 @@ impl WorkbenchViewFamily {
     match self {
       Self::DocumentPage => matches!(
         tool,
-        Outline | Tags | DocumentInfo | Calendar | Agenda | Activity | Comment | Chat | Export | Analytics
+        Outline | Tags | DocumentInfo | Calendar | Agenda | Activity | Comment | Chat | Export | Analytics | Presence
       ),
       Self::DocumentEdgeless => matches!(
         tool,
-        Frame | DocumentInfo | Calendar | Agenda | Activity | Comment | Chat | Export | Analytics
+        Frame | DocumentInfo | Calendar | Agenda | Activity | Comment | Chat | Export | Analytics | Presence
       ),
-      Self::Journal => matches!(tool, Calendar | Agenda | Activity | Comment | Chat | Export | Analytics),
-      Self::Database => matches!(tool, DatabaseSettings | TaskDetails),
+      Self::Journal => matches!(
+        tool,
+        Calendar | Agenda | Activity | Comment | Chat | Export | Analytics | Presence
+      ),
+      Self::Database => matches!(tool, DatabaseSettings | TaskDetails | Presence),
       Self::Graph => tool == GraphDetails,
     }
   }
@@ -5176,6 +5180,7 @@ mod tests {
           Chat,
           Export,
           Analytics,
+          Presence,
         ],
         vec![],
         vec![],
@@ -5193,6 +5198,7 @@ mod tests {
           Chat,
           Export,
           Analytics,
+          Presence,
         ],
         vec![],
         vec![],
@@ -5200,14 +5206,14 @@ mod tests {
       workbench_layout(
         workspace_id,
         WorkbenchViewFamily::Journal,
-        vec![Calendar, Agenda, Activity, Comment, Chat, Export, Analytics],
+        vec![Calendar, Agenda, Activity, Comment, Chat, Export, Analytics, Presence],
         vec![],
         vec![],
       ),
       workbench_layout(
         workspace_id,
         WorkbenchViewFamily::Database,
-        vec![DatabaseSettings],
+        vec![DatabaseSettings, Presence],
         vec![DatabaseSettings],
         vec![],
       ),

@@ -1,3 +1,4 @@
+import type { DeepPartial } from "@virgultum/global/utils";
 import {
   ColorSchema,
   ConnectorMode,
@@ -26,14 +27,7 @@ import {
   TextAlignSchema,
   TextVerticalAlign,
 } from "@virgultum/model";
-import {
-  z,
-  ZodDefault,
-  ZodIntersection,
-  ZodObject,
-  type ZodTypeAny,
-  ZodUnion,
-} from "zod";
+import { z, ZodDefault, ZodIntersection, ZodObject, ZodPrefault } from "zod";
 
 const ConnectorEndpointSchema = z.nativeEnum(PointStyle);
 const LineWidthSchema = z.nativeEnum(LineWidth);
@@ -49,6 +43,7 @@ const MindmapStyleSchema = z.union([
   z.literal(4),
 ]);
 
+// Parse object defaults so callers receive independent, validated preference trees.
 export const ConnectorSchema = z
   .object({
     frontEndpointStyle: ConnectorEndpointSchema,
@@ -67,7 +62,7 @@ export const ConnectorSchema = z
       textAlign: TextAlignSchema,
     }),
   })
-  .default({
+  .prefault({
     frontEndpointStyle: DEFAULT_FRONT_ENDPOINT_STYLE,
     rearEndpointStyle: DEFAULT_REAR_ENDPOINT_STYLE,
     stroke: DefaultTheme.connectorColor,
@@ -90,7 +85,7 @@ export const BrushSchema = z
     color: ColorSchema,
     lineWidth: LineWidthSchema,
   })
-  .default({
+  .prefault({
     color: DefaultTheme.black,
     lineWidth: LineWidth.Four,
   });
@@ -103,7 +98,7 @@ export const HighlighterSchema = z
       .int()
       .refine((value) => HIGHLIGHTER_LINE_WIDTHS.includes(value)),
   })
-  .default({
+  .prefault({
     color: DefaultTheme.hightlighterColor,
     lineWidth: DEFAULT_HIGHLIGHTER_LINE_WIDTH,
   });
@@ -144,11 +139,11 @@ const ShapeObject = {
   roughness: z.number(),
 };
 
-export const ShapeSchema = z.object(ShapeObject).default(DEFAULT_SHAPE);
+export const ShapeSchema = z.object(ShapeObject).prefault(DEFAULT_SHAPE);
 
 export const RoundedShapeSchema = z
   .object(ShapeObject)
-  .default({ ...DEFAULT_SHAPE, radius: 0.1 });
+  .prefault({ ...DEFAULT_SHAPE, radius: 0.1 });
 
 export const TextSchema = z
   .object({
@@ -159,7 +154,7 @@ export const TextSchema = z
     fontStyle: FontStyleSchema,
     textAlign: TextAlignSchema,
   })
-  .default({
+  .prefault({
     color: DefaultTheme.textColor,
     fontSize: 24,
     fontFamily: FontFamily.Inter,
@@ -173,7 +168,7 @@ export const MindmapSchema = z
     layoutType: LayoutTypeSchema,
     style: MindmapStyleSchema,
   })
-  .default({
+  .prefault({
     layoutType: 0,
     style: 1,
   });
@@ -246,24 +241,28 @@ export const NodePropsSchema = z.object({
 
 export type NodeProps = z.infer<typeof NodePropsSchema>;
 
-export function makeDeepOptional(schema: ZodTypeAny): ZodTypeAny {
-  if (schema instanceof ZodDefault) {
-    return makeDeepOptional(schema._def.innerType);
+/** Build a sparse preference patch schema without injecting default values. */
+export function makeDeepOptional<T extends z.ZodType>(
+  schema: T,
+): z.ZodType<DeepPartial<z.output<T>> | undefined>;
+export function makeDeepOptional(schema: z.ZodType): z.ZodType {
+  // Overrides must not acquire defaults: an omitted property preserves the
+  // existing preference rather than resetting it while the patch is parsed.
+  if (schema instanceof ZodDefault || schema instanceof ZodPrefault) {
+    return makeDeepOptional(schema.unwrap() as z.ZodType);
   }
   if (schema instanceof ZodObject) {
     const shape = schema.shape;
     const deepOptionalShape = Object.fromEntries(
       Object.entries(shape).map(([key, value]) => {
-        return [key, makeDeepOptional(value as ZodTypeAny)];
+        return [key, makeDeepOptional(value as z.ZodType)];
       }),
     );
     return z.object(deepOptionalShape).optional();
-  } else if (schema instanceof ZodUnion) {
-    return schema.or(z.undefined());
   } else if (schema instanceof ZodIntersection) {
     return z.intersection(
-      makeDeepOptional(schema._def.left),
-      makeDeepOptional(schema._def.right),
+      makeDeepOptional(schema.def.left as z.ZodType),
+      makeDeepOptional(schema.def.right as z.ZodType),
     );
   } else {
     return schema.optional();

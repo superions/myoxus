@@ -245,6 +245,7 @@ export function BuildingBlockPreview({
             page={current.page}
             readonly
             snapshot
+            templateSourcePreview
             contentOnly
             onEditorError={rendererFailed}
           />

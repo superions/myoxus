@@ -51,7 +51,7 @@ import {
   getPointForHandle,
   getDistance,
 } from "../../xyflow/maths/DcMaths";
-import type { DC__Point } from "../../xyflow/maths/model";
+import type { DC__Point, DC__Bounds } from "../../xyflow/maths/model";
 import { PositionalNodeHandleId } from "../../xyflow/nodes/PositionalNodeHandles";
 import { type Draft } from "immer";
 import * as React from "react";
@@ -70,6 +70,7 @@ import {
   type DiagramActionRequest,
 } from "../../xyflow/diagram/DiagramActionContext";
 import { useI18n } from "@myoxus/i18n";
+import { snapPoint } from "../../xyflow/snapgrid/SnapGrid";
 import * as RF from "@xyflow/react";
 import { useBpmnEditor } from "../BpmnEditorContext";
 import { addConnectedNode } from "../mutations/addConnectedNode";
@@ -175,6 +176,134 @@ function outgoingActions(type: BpmnNodeType) {
     })),
   ];
 }
+/** Deterministic rightward append in the retained absolute diagram coordinates.
+ * Ancestor containers bound placement; sibling containers remain obstacles. */
+function nextElementPosition(
+  state: State,
+  source: RF.Node<BpmnDiagramNodeData, BpmnNodeType>,
+  type: BpmnNodeType,
+  renderer:
+    | RF.ReactFlowInstance<
+        RF.Node<BpmnDiagramNodeData, BpmnNodeType>,
+        RF.Edge<BpmnDiagramEdgeData>
+      >
+    | undefined,
+  root: HTMLElement | null,
+) {
+  const grid = state.xyFlowReactKieDiagram.snapGrid;
+  const size = DEFAULT_NODE_SIZES[type]({ snapGrid: grid });
+  const bounds = source.data.shape["dc:Bounds"];
+  const ancestors = new Set<string>();
+  let container: typeof source | undefined;
+  for (
+    let parent = source.data.parentXyFlowNode;
+    parent;
+    parent = parent.data.parentXyFlowNode
+  ) {
+    if (
+      parent.type === NODE_TYPES.lane ||
+      parent.type === NODE_TYPES.subProcess
+    ) {
+      ancestors.add(parent.id);
+      container ??= parent as typeof source;
+    }
+  }
+  const limit = container?.data.shape["dc:Bounds"];
+  const occupied: DC__Bounds[] = [];
+  for (const node of state
+    .computed(state)
+    .getDiagramData()
+    .nodesById.values()) {
+    if (node.hidden) continue;
+    if (!ancestors.has(node.id) && node.type !== NODE_TYPES.group)
+      occupied.push(node.data.shape["dc:Bounds"]);
+    const label = node.data.shape["bpmndi:BPMNLabel"]?.["dc:Bounds"];
+    if (label) occupied.push(label);
+  }
+  for (const edge of state
+    .computed(state)
+    .getDiagramData()
+    .edgesById.values()) {
+    const label = edge.data?.bpmnEdge?.["bpmndi:BPMNLabel"]?.["dc:Bounds"];
+    if (!edge.hidden && label) occupied.push(label);
+  }
+  // Default captions need no invented DI. Their painted bounds use the native
+  // viewport conversion; imported explicit label bounds remain reserved above.
+  if (renderer)
+    for (const label of root?.querySelectorAll<HTMLElement>(
+      ".xyflow-react-kie-diagram--editable-node-name-input span",
+    ) ?? []) {
+      const rect = label.getBoundingClientRect();
+      if (!rect.width || !rect.height) continue;
+      const a = renderer.screenToFlowPosition(
+        { x: rect.left, y: rect.top },
+        { snapToGrid: false },
+      );
+      const b = renderer.screenToFlowPosition(
+        { x: rect.right, y: rect.bottom },
+        { snapToGrid: false },
+      );
+      occupied.push({
+        "@_x": a.x,
+        "@_y": a.y,
+        "@_width": b.x - a.x,
+        "@_height": b.y - a.y,
+      });
+    }
+  const gap = grid.x * 2;
+  const start = snapPoint(
+    grid,
+    {
+      "@_x": bounds["@_x"] + bounds["@_width"] + gap,
+      "@_y": bounds["@_y"] + (bounds["@_height"] - size["@_height"]) / 2,
+    },
+    "ceil",
+  );
+  // Vertical centering rounds to the nearest grid position, not upward.
+  const y = snapPoint(grid, {
+    "@_x": 0,
+    "@_y": bounds["@_y"] + (bounds["@_height"] - size["@_height"]) / 2,
+  })["@_y"];
+  let x = start["@_x"];
+  for (let remaining = occupied.length + 1; remaining > 0; remaining--) {
+    if (
+      limit &&
+      (x < limit["@_x"] ||
+        x + size["@_width"] > limit["@_x"] + limit["@_width"] ||
+        y < limit["@_y"] ||
+        y + size["@_height"] > limit["@_y"] + limit["@_height"])
+    )
+      break;
+    const collisions = occupied.filter(
+      (b) =>
+        x < b["@_x"] + b["@_width"] &&
+        x + size["@_width"] > b["@_x"] &&
+        y < b["@_y"] + b["@_height"] &&
+        y + size["@_height"] > b["@_y"],
+    );
+    if (!collisions.length)
+      return {
+        x,
+        y,
+        laneId: container?.type === NODE_TYPES.lane ? container.id : undefined,
+      };
+    // Jump past blocking bounds rather than iterating across an imported
+    // diagram's potentially huge empty coordinate ranges.
+    x = snapPoint(
+      grid,
+      {
+        "@_x": Math.max(
+          x + grid.x,
+          ...collisions.map((b) => b["@_x"] + b["@_width"] + gap),
+        ),
+        "@_y": y,
+      },
+      "ceil",
+    )["@_x"];
+  }
+  throw new Error("BPMN_ACTIVITY_SCOPE");
+}
+
 export function BpmnDiagram({
   container,
   diagramRef,
@@ -275,14 +404,25 @@ export function BpmnDiagram({
   const onNodeAdded = useCallback<
     OnNodeAdded<State, BpmnNodeType, BpmnDiagramNodeData, BpmnDiagramEdgeData>
   >(({ state, type, element, dropPoint, data }) => {
+    // Attachment docks to the actual host contour after grid rounding. Do not
+    // round that final border point again when imported hosts are off-grid.
+    const point = {
+      "@_x": dropPoint.x,
+      "@_y": dropPoint.y,
+    };
+    const position =
+      state.xyFlowReactKieDiagram.dropTarget?.containmentMode ===
+      ContainmentMode.BORDER
+        ? point
+        : snapPoint(state.xyFlowReactKieDiagram.snapGrid, point);
     const { id } = addStandaloneNode({
       definitions: state.bpmn.model.definitions,
       __readonly_element: element as keyof typeof elementToNodeType,
       __readonly_newNode: {
         type,
         bounds: {
-          "@_x": dropPoint.x,
-          "@_y": dropPoint.y,
+          "@_x": position["@_x"],
+          "@_y": position["@_y"],
           "@_width": DEFAULT_NODE_SIZES[type]({
             snapGrid: state.xyFlowReactKieDiagram.snapGrid,
           })["@_width"],
@@ -306,6 +446,10 @@ export function BpmnDiagram({
       BpmnDiagramEdgeData
     >
   >(({ state, sourceNode, newNodeType, dropPoint }) => {
+    const position = snapPoint(state.xyFlowReactKieDiagram.snapGrid, {
+      "@_x": dropPoint.x,
+      "@_y": dropPoint.y,
+    });
     const { id } = addConnectedNode({
       definitions: state.bpmn.model.definitions,
       __readonly_sourceNode: {
@@ -317,8 +461,8 @@ export function BpmnDiagram({
       __readonly_newNode: {
         type: newNodeType,
         bounds: {
-          "@_x": dropPoint.x,
-          "@_y": dropPoint.y,
+          "@_x": position["@_x"],
+          "@_y": position["@_y"],
           "@_width": DEFAULT_NODE_SIZES[newNodeType]({
             snapGrid: state.xyFlowReactKieDiagram.snapGrid,
           })["@_width"],
@@ -592,32 +736,42 @@ export function BpmnDiagram({
       BpmnDiagramNodeData,
       BpmnDiagramEdgeData
     >
-  >(({ state, edgeType, sourceNode, targetNode, targetHandle }) => {
-    addEdge({
-      definitions: state.bpmn.model.definitions,
-      __readonly_edge: {
-        type: edgeType as BpmnEdgeType,
-        targetHandle: targetHandle,
-        sourceHandle: PositionalNodeHandleId.Center,
-        autoPositionedEdgeMarker: undefined,
-        name: undefined,
-        documentation: undefined,
-      },
-      __readonly_sourceNode: {
-        type: sourceNode.type as BpmnNodeType,
-        href: sourceNode.id,
-        bounds: sourceNode.data.shape["dc:Bounds"],
-        shapeId: sourceNode.data.shape["@_id"],
-      },
-      __readonly_targetNode: {
-        type: targetNode.type as BpmnNodeType,
-        href: targetNode.id,
-        bounds: targetNode.data.shape["dc:Bounds"],
-        shapeId: targetNode.data.shape["@_id"],
-      },
-      __readonly_keepWaypoints: false,
-    });
-  }, []);
+  >(
+    ({
+      state,
+      edgeType,
+      sourceNode,
+      targetNode,
+      targetHandle,
+      sourceHandle,
+    }) => {
+      addEdge({
+        definitions: state.bpmn.model.definitions,
+        __readonly_edge: {
+          type: edgeType as BpmnEdgeType,
+          targetHandle: targetHandle,
+          sourceHandle,
+          autoPositionedEdgeMarker: undefined,
+          name: undefined,
+          documentation: undefined,
+        },
+        __readonly_sourceNode: {
+          type: sourceNode.type as BpmnNodeType,
+          href: sourceNode.id,
+          bounds: sourceNode.data.shape["dc:Bounds"],
+          shapeId: sourceNode.data.shape["@_id"],
+        },
+        __readonly_targetNode: {
+          type: targetNode.type as BpmnNodeType,
+          href: targetNode.id,
+          bounds: targetNode.data.shape["dc:Bounds"],
+          shapeId: targetNode.data.shape["@_id"],
+        },
+        __readonly_keepWaypoints: false,
+      });
+    },
+    [],
+  );
   const onEdgeUpdated = useCallback<
     OnEdgeUpdated<
       State,
@@ -804,6 +958,13 @@ export function BpmnDiagram({
     (request: DiagramActionRequest) => {
       const state = bpmnEditorStoreApi.getState();
       if (state.settings.isReadOnly) return;
+      if (state.xyFlowReactKieDiagram.placementElement)
+        bpmnEditorStoreApi.setState((draft) => {
+          draft.xyFlowReactKieDiagram.placementElement = undefined;
+          draft.xyFlowReactKieDiagram.placementModel = undefined;
+          draft.xyFlowReactKieDiagram.newNodeProjection = undefined;
+          draft.xyFlowReactKieDiagram.dropTarget = undefined;
+        });
       const diagram = state.computed(state).getDiagramData();
       const edge =
         "edgeId" in request ? diagram.edgesById.get(request.edgeId) : undefined;
@@ -844,6 +1005,80 @@ export function BpmnDiagram({
       }
       const bounds = source.data.shape["dc:Bounds"],
         grid = state.xyFlowReactKieDiagram.snapGrid;
+      const renderer = diagramRef.current?.getReactFlowInstance();
+      if (
+        "nodeId" in request &&
+        request.placement === "next" &&
+        choice.kind === "node"
+      ) {
+        try {
+          const position = nextElementPosition(
+            state,
+            source,
+            choice.type,
+            renderer,
+            container.current,
+          );
+          let created: string | undefined;
+          bpmnEditorStoreApi.setState((draft) => {
+            const { newNodeId } = onConnectedNodeAdded({
+              state: draft,
+              sourceNode: source,
+              newNodeType: choice.type,
+              edgeType: getDefaultEdgeTypeBetween(
+                BPMN_GRAPH_STRUCTURE,
+                source.type!,
+                choice.type,
+              )!,
+              dropPoint: position,
+            });
+            if (position.laneId && choice.type !== NODE_TYPES.textAnnotation)
+              moveNodesInsideLane({
+                definitions: draft.bpmn.model.definitions,
+                __readonly_laneId: position.laneId,
+                __readonly_nodeIds: [newNodeId],
+              });
+            draft.xyFlowReactKieDiagram._selectedNodes = [newNodeId];
+            draft.xyFlowReactKieDiagram._selectedEdges = [];
+            draft.xyFlowReactKieDiagram.newNodeProjection = undefined;
+            draft.xyFlowReactKieDiagram.placementElement = undefined;
+            draft.xyFlowReactKieDiagram.placementModel = undefined;
+            created = newNodeId;
+          });
+          const current = bpmnEditorStoreApi.getState();
+          const target = created
+            ? current.computed(current).getDiagramData().nodesById.get(created)
+                ?.data.shape["dc:Bounds"]
+            : undefined;
+          if (target && renderer)
+            void renderer.setCenter(
+              target["@_x"] + target["@_width"] / 2,
+              target["@_y"] + target["@_height"] / 2,
+              { zoom: renderer.getZoom(), duration: 200 },
+            );
+        } catch (error) {
+          onDiagramError(error);
+        }
+        return;
+      }
+      let defaults: { x: number; y: number } = {
+        x: bounds["@_x"] + bounds["@_width"] + grid.x * 2,
+        y: bounds["@_y"],
+      };
+      if (choice.kind === "node") {
+        try {
+          defaults = nextElementPosition(
+            state,
+            source,
+            choice.type,
+            renderer,
+            container.current,
+          );
+        } catch (error) {
+          onDiagramError(error);
+          return;
+        }
+      }
       // These are authored diagram units, not screen pixels or toolbar sizing.
       // The same connected-node owner validates containment as for a canvas drop.
       setNodeAction({
@@ -852,8 +1087,8 @@ export function BpmnDiagram({
         choice: choice.value,
         target: edge?.target ?? null,
         edge,
-        x: bounds["@_x"] + bounds["@_width"] + grid.x * 2,
-        y: bounds["@_y"],
+        x: defaults.x,
+        y: defaults.y,
         width: bounds["@_width"],
         height: bounds["@_height"],
         // Reuse the renderer's actual capability, including applicability and
@@ -865,7 +1100,13 @@ export function BpmnDiagram({
             ?.querySelector(".react-flow__resize-control"),
       });
     },
-    [bpmnEditorStoreApi, container],
+    [
+      bpmnEditorStoreApi,
+      container,
+      diagramRef,
+      onConnectedNodeAdded,
+      onDiagramError,
+    ],
   );
   const actionChoices = nodeAction?.source.type
     ? outgoingActions(nodeAction.source.type)
@@ -1054,7 +1295,31 @@ export function BpmnDiagram({
                     }
                     value={nodeAction.choice}
                     onChange={(choice) => {
-                      if (choice)
+                      if (!choice) return;
+                      const selected = actionChoices.find(
+                        (action) => action.value === choice,
+                      );
+                      if (selected?.kind === "node") {
+                        try {
+                          const position = nextElementPosition(
+                            bpmnEditorStoreApi.getState(),
+                            nodeAction.source,
+                            selected.type,
+                            diagramRef.current?.getReactFlowInstance(),
+                            container.current,
+                          );
+                          setNodeAction({
+                            ...nodeAction,
+                            choice,
+                            target: null,
+                            x: position.x,
+                            y: position.y,
+                          });
+                        } catch (error) {
+                          setNodeAction(undefined);
+                          onDiagramError(error);
+                        }
+                      } else
                         setNodeAction({ ...nodeAction, choice, target: null });
                     }}
                   />

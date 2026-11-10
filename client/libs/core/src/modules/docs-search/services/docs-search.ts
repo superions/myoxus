@@ -54,9 +54,11 @@ export class DocsSearchService extends Service {
       );
   }
 
+  /** Remote pages follow the server's source order; native indexer paging is unchanged. */
   search$(
     query: string,
     prefer: IndexerPreferOptions = "remote",
+    remotePage?: { offset?: number; limit?: number },
   ): Observable<
     {
       docId: string;
@@ -64,6 +66,7 @@ export class DocsSearchService extends Service {
       score: number;
       blockId?: string;
       blockContent?: string;
+      updatedAt?: string;
     }[]
   > {
     if (prefer === "remote") {
@@ -84,7 +87,10 @@ export class DocsSearchService extends Service {
             id: this.workspaceService.workspace.id,
             input: {
               keyword,
-              limit: 50,
+              limit: remotePage?.limit ?? 50,
+              ...(remotePage?.offset === undefined
+                ? {}
+                : { offset: Math.max(0, remotePage.offset) }),
               useSemanticSearch: false,
             },
           },
@@ -97,6 +103,7 @@ export class DocsSearchService extends Service {
         return documents.map((document, index) => ({
           docId: document.externalId,
           title: document.title,
+          updatedAt: document.updatedAt,
           score: documents.length - index,
           blockId:
             document.blockId && document.blockId !== document.docId

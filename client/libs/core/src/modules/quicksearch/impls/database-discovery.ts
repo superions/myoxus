@@ -27,11 +27,13 @@ export async function findDatabases(
   {
     databaseIds,
     first,
+    offset,
     search,
     signal,
   }: {
     databaseIds?: string[];
     first: number;
+    offset?: number;
     search?: string;
     signal: AbortSignal;
   },
@@ -41,6 +43,7 @@ export async function findDatabases(
     variables: {
       workspaceId,
       first,
+      ...(offset === undefined ? {} : { offset }),
       search,
       databaseIds,
     },
@@ -59,12 +62,13 @@ export async function findDatabaseRows(
   query: string,
   first: number,
   signal: AbortSignal,
+  offset?: number,
 ): Promise<DatabaseSearchHit[]> {
   const response = await graphqlService.gql({
     query: databaseSearchQuery,
     variables: {
       workspaceId,
-      filter: { first, query },
+      filter: { first, query, ...(offset === undefined ? {} : { offset }) },
     },
     context: { signal },
   });

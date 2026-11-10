@@ -13,6 +13,7 @@ import {
 } from "@myoxus/ui-facade";
 import { type RefObject, useEffect, useRef, useState } from "react";
 import { configureEditorI18n } from "../../../editor/virgultum/editor-i18n";
+import { documentFieldLabels } from "../../../editor/virgultum/doc-editor/document-field-labels";
 import type {
   TemplateCheckDiagnostic,
   TemplateCheckResult,
@@ -40,11 +41,18 @@ function CheckResults({
     context: t["com.myoxus.template-check.context"](),
     error: t["com.myoxus.template-check.error"](),
   };
+  const fieldLabels = documentFieldLabels(t);
+  const fieldStates = {
+    invalid: t["com.myoxus.template-check.field-invalid"](),
+    "input-unset": t["com.myoxus.template-check.field-unset"](),
+    "input-filled": t["com.myoxus.template-check.field-filled"](),
+    metadata: t["com.myoxus.template-check.field-metadata"](),
+  };
   return (
     <Stack>
       <MyoxusText data-testid="template-check-summary">
         {t["com.myoxus.template-check.summary"]({
-          count: String(result.diagnostics.length),
+          count: String(result.diagnostics.length + result.nativeFields.length),
         })}
         {Object.entries(labels).map(([status, label]) => {
           const count = result.diagnostics.filter(
@@ -54,7 +62,7 @@ function CheckResults({
         })}
       </MyoxusText>
       {stale ? <Alert title={t["com.myoxus.template-check.stale"]()} /> : null}
-      {!result.diagnostics.length ? (
+      {!result.diagnostics.length && !result.nativeFields.length ? (
         <MyoxusText>{t["com.myoxus.template-check.empty"]()}</MyoxusText>
       ) : null}
       {result.diagnostics.map((diagnostic, index) => {
@@ -105,6 +113,51 @@ function CheckResults({
                 {i18n.translate(capability.availability)}
               </MyoxusText>
             ) : null}
+          </Stack>
+        );
+      })}
+      {result.nativeFields.map((occurrence, index) => {
+        const field = occurrence.field;
+        // A source answer is not the applied value: initialization uses only
+        // the authored default, even when the source occurrence was filled.
+        const defaultValue =
+          field?.type === "input" ? field.definition.default : undefined;
+        const hasDefault = defaultValue != null && defaultValue.length > 0;
+        const stateMessage =
+          occurrence.state === "input-unset" && hasDefault
+            ? t["com.myoxus.template-check.field-default"]()
+            : fieldStates[occurrence.state];
+        const name =
+          field?.type === "input"
+            ? field.definition.label
+            : field?.type === "metadata"
+              ? fieldLabels[field.key]
+              : labels.error;
+        return (
+          <Stack
+            key={`field-${index}`}
+            gap="xs"
+            data-testid="template-check-field"
+            data-status={occurrence.state}
+          >
+            <Group justify="space-between">
+              <MyoxusText>{name}</MyoxusText>
+              <Button
+                variant="secondary"
+                disabled={stale}
+                onClick={() =>
+                  locate({
+                    ...occurrence,
+                    status:
+                      occurrence.state === "invalid" ? "error" : "available",
+                  })
+                }
+                data-testid="template-check-locate"
+              >
+                {t["com.myoxus.template-check.locate"]()}
+              </Button>
+            </Group>
+            <MyoxusText>{stateMessage}</MyoxusText>
           </Stack>
         );
       })}

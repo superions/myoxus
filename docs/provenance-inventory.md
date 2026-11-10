@@ -87,8 +87,8 @@ independently of package labels. Unclassified or changed source requires review;
 regeneration alone does not classify it. Package declarations describe the
 resulting distribution and never choose a file's license.
 
-Technical inventory checkpoint: **31 October 2026** — 4,913 exact client paths,
-3,791 Virgultum paths (3,783 in the public projection), 74 editor packages and
+Client/editor inventory checkpoint: **8 November 2026** — 5,476 exact client paths,
+3,798 Virgultum paths (3,788 in the public projection), 74 editor packages and
 nine embedded editor components. The Server inventory retains the reviewed
 fonts/ICC/vendor evidence, including 494 parsed font files. This baseline covers
 the recorded paths and retained evidence under the file-level policy above.

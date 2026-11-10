@@ -17,6 +17,9 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   gql: vi.fn(),
   runServerPdfExport: vi.fn(),
+  hydrateMetadata: vi.fn().mockResolvedValue({}),
+  invalidateIndex: vi.fn(),
+  markStale: vi.fn(),
 }));
 
 vi.mock("@myoxus/core/modules/server", () => ({
@@ -27,8 +30,20 @@ vi.mock("@myoxus/core/modules/server", () => ({
 
 vi.mock("@myoxus/infra", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@myoxus/infra")>()),
-  useService: () => ({ gql: mocks.gql }),
+  useService: () => ({
+    gql: mocks.gql,
+    hydrateMetadata: mocks.hydrateMetadata,
+    invalidateIndex: mocks.invalidateIndex,
+    markStale: mocks.markStale,
+  }),
 }));
+
+vi.mock(
+  "@myoxus/core/modules/document-metadata/services/document-metadata-cache",
+  () => ({
+    DocumentMetadataCacheService: class DocumentMetadataCacheService {},
+  }),
+);
 
 vi.mock("@myoxus/core/components/hooks/myoxus/use-user-preferences", () => ({
   useRegionalFormatters: () => ({
@@ -108,6 +123,12 @@ describe("PDF export dialog", () => {
         complianceProfile: "pdfa-2u",
       }),
     );
+    await waitFor(() =>
+      expect(mocks.hydrateMetadata).toHaveBeenCalledWith("doc-1", undefined, {
+        refresh: true,
+      }),
+    );
+    expect(mocks.invalidateIndex).toHaveBeenCalledWith("pdf-export-attempt");
   });
 
   test("preserves explicit Tagged PDF selection through failure and retry", async () => {
@@ -132,8 +153,20 @@ describe("PDF export dialog", () => {
         errorClass: "PdfaValidationFailed",
       }),
     );
+    mocks.hydrateMetadata.mockRejectedValueOnce(
+      new Error("metadata unavailable"),
+    );
     await user.click(screen.getByRole("button", { name: "Start export" }));
     await screen.findByTestId("pdf-export-error");
+    expect(mocks.hydrateMetadata).toHaveBeenCalledWith("doc-1", undefined, {
+      refresh: true,
+    });
+    await waitFor(() =>
+      expect(mocks.markStale).toHaveBeenCalledWith(
+        "doc-1",
+        "pdf-export-refresh-failed",
+      ),
+    );
     await user.click(screen.getByRole("button", { name: /retry/i }));
     expect(
       screen.getByRole("combobox", { name: "PDF profile" }),

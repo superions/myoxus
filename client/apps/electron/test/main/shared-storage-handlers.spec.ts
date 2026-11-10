@@ -6,6 +6,7 @@ const storage = vi.hoisted(() => {
   return {
     values,
     all: () => Object.fromEntries(values),
+    get: (key: string) => values.get(key),
     set: (key: string, value: unknown) => values.set(key, value),
     del: (key: string) => values.delete(key),
     clear: () => values.clear(),
@@ -112,6 +113,97 @@ test("failed state replacement and clear preserve their previous values without 
     });
     expect(updates).toEqual([]);
   } finally {
+    subscription.unsubscribe();
+  }
+});
+
+test("server registration publishes confirmed authority and serializes concurrent registry changes", async () => {
+  const config = {
+    type: "Standalone",
+    serverName: "Owned",
+    features: [],
+    oauthProviders: [],
+    credentialsRequirement: { password: { minLength: 8, maxLength: 128 } },
+    version: "0.41.36",
+  };
+  const alpha = { id: "alpha", baseUrl: "http://127.0.0.1:3101" };
+  const beta = { id: "beta", baseUrl: "http://127.0.0.1:3102" };
+  const updates: unknown[] = [];
+  const subscription = globalStateUpdates$.subscribe((change) =>
+    updates.push(change),
+  );
+  const flush = Promise.withResolvers<void>();
+  const pending: Promise<unknown>[] = [];
+  try {
+    storage.flush.mockImplementationOnce(() => flush.promise);
+    const first = sharedStorageHandlers.mutateServerRegistry(
+      undefined as never,
+      { type: "add", server: alpha, config },
+    );
+    pending.push(first);
+    await vi.waitFor(() => expect(storage.flush).toHaveBeenCalledOnce());
+    const second = sharedStorageHandlers.mutateServerRegistry(
+      undefined as never,
+      { type: "add", server: beta, config },
+    );
+    pending.push(second);
+    expect(updates).toEqual([]);
+    flush.resolve();
+    await Promise.all([first, second]);
+    expect(storage.get("serverList")).toEqual([alpha, beta]);
+    expect(updates).toEqual([
+      expect.objectContaining({
+        "serverConfig:alpha": expect.objectContaining({ v: config }),
+        serverList: expect.objectContaining({ v: [alpha] }),
+        selectedServerId: expect.objectContaining({ v: "alpha" }),
+      }),
+      expect.objectContaining({
+        serverList: expect.objectContaining({ v: [alpha, beta] }),
+      }),
+    ]);
+    await expect(
+      sharedStorageHandlers.mutateServerRegistry(undefined as never, {
+        type: "add",
+        server: { id: "duplicate", baseUrl: alpha.baseUrl },
+        config,
+      }),
+    ).rejects.toThrow("already exists");
+    await Promise.all([
+      sharedStorageHandlers.mutateServerRegistry(undefined as never, {
+        type: "remove",
+        id: "alpha",
+      }),
+      sharedStorageHandlers.mutateServerRegistry(undefined as never, {
+        type: "add",
+        server: { id: "gamma", baseUrl: "http://127.0.0.1:3103" },
+        config,
+      }),
+    ]);
+    expect(storage.get("serverList")).toEqual([
+      beta,
+      { id: "gamma", baseUrl: "http://127.0.0.1:3103" },
+    ]);
+    const before = storage.all();
+    const count = updates.length;
+    storage.flush.mockRejectedValueOnce(new Error("disk full"));
+    await expect(
+      sharedStorageHandlers.mutateServerRegistry(undefined as never, {
+        type: "remove",
+        id: "gamma",
+      }),
+    ).rejects.toThrow("disk full");
+    expect(storage.all()).toEqual(before);
+    expect(updates).toHaveLength(count);
+    await expect(
+      sharedStorageHandlers.mutateServerRegistry(undefined as never, {
+        type: "add",
+        server: { id: "unsafe", baseUrl: "http://public.example" },
+        config,
+      }),
+    ).rejects.toThrow("Invalid configured server");
+  } finally {
+    flush.resolve();
+    await Promise.allSettled(pending);
     subscription.unsubscribe();
   }
 });

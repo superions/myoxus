@@ -49,7 +49,7 @@ export const PageCustomPropertyMetaSchema = PagePropertyMetaBaseSchema.extend({
 export const PageInfoItemSchema = z.object({
   id: z.string(), // property id. Maps to PagePropertyMetaSchema.id
   visibility: z.enum(["visible", "hide", "hide-if-empty"]),
-  value: z.any(), // corresponds to PagePropertyMetaSchema.type
+  value: z.any().optional(), // Legacy entries may omit a value entirely.
 });
 
 export const PageInfoJournalItemSchema = PageInfoItemSchema.extend({
@@ -76,7 +76,7 @@ export type WorkspaceFavoriteItem = z.infer<typeof WorkspaceFavoriteItemSchema>;
 
 const LegacyWorkspacePropertyDefinitionsSchema = z.object({
   pageProperties: z.object({
-    custom: z.record(PageCustomPropertyMetaSchema),
+    custom: z.record(z.string(), PageCustomPropertyMetaSchema),
     system: z.object({
       [PageSystemPropertyId.Journal]: PageSystemPropertyMetaBaseSchema.extend({
         id: z.literal(PageSystemPropertyId.Journal),
@@ -96,7 +96,7 @@ const PageInfoCustomPropertyItemSchema = PageInfoItemSchema.extend({
 });
 
 const WorkspacePagePropertiesSchema = z.object({
-  custom: z.record(PageInfoCustomPropertyItemSchema),
+  custom: z.record(z.string(), PageInfoCustomPropertyItemSchema),
   system: z.object({
     [PageSystemPropertyId.Journal]: PageInfoJournalItemSchema,
     [PageSystemPropertyId.Tags]: PageInfoTagsItemSchema,
@@ -105,8 +105,10 @@ const WorkspacePagePropertiesSchema = z.object({
 
 export const LegacyWorkspacePropertiesSchema = z.object({
   schema: LegacyWorkspacePropertyDefinitionsSchema.optional(),
-  favorites: z.record(WorkspaceFavoriteItemSchema).optional(),
-  pageProperties: z.record(WorkspacePagePropertiesSchema).optional(),
+  favorites: z.record(z.string(), WorkspaceFavoriteItemSchema).optional(),
+  pageProperties: z
+    .record(z.string(), WorkspacePagePropertiesSchema)
+    .optional(),
   favoritesMigrated: z.boolean().optional(),
 });
 

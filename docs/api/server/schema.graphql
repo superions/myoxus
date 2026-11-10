@@ -2847,6 +2847,13 @@ type ApiQueryRoot {
   Members-only.
   """
   documentBrandingProfile(workspaceId: ID!): DocumentBrandingProfile!
+  documentFieldCatalog: DocumentFieldCatalogType!
+  documentFieldOutput(docId: ID!, fields: JSON!, workspaceId: ID!): [String!]!
+  documentFieldPresentations(
+    docId: ID!
+    fields: JSON!
+    workspaceId: ID!
+  ): [DocumentFieldPresentationType!]!
   """
   Read the committed content revision used to confirm a history restore.
   """
@@ -6784,6 +6791,7 @@ input DatabaseScheduleWindowInput {
 input DatabaseSearchFilterInput {
   databaseId: ID
   first: Int
+  offset: Int
   query: String!
 }
 
@@ -7869,6 +7877,41 @@ enum DocumentComparisonNoticeKindType {
 type DocumentComparisonNoticeType {
   blockId: String
   kind: DocumentComparisonNoticeKindType!
+}
+
+"""
+Editor discovery only. Existing native fields can be filled without fetching
+this catalog; it contains no document values, identities or authored options.
+"""
+type DocumentFieldCatalogType {
+  inputKinds: [DocumentFieldInputDescriptorType!]!
+  maxIdBytes: Int!
+  maxOptions: Int!
+  maxStringBytes: Int!
+  metadata: [DocumentFieldMetadataDescriptorType!]!
+}
+
+type DocumentFieldInputDescriptorType {
+  hasOptions: Boolean!
+  kind: String!
+  multiple: Boolean!
+}
+
+type DocumentFieldMetadataDescriptorType {
+  formats: [String!]!
+  key: String!
+}
+
+enum DocumentFieldPresentationState {
+  UNAVAILABLE
+  UNSET
+  VALUE
+}
+
+type DocumentFieldPresentationType {
+  complete: Boolean!
+  state: DocumentFieldPresentationState!
+  text: String
 }
 
 enum DocumentGraphDirection {
@@ -12256,6 +12299,10 @@ type SearchDocType {
 input SearchDocsInput {
   keyword: String!
   limit: Int
+  """
+  Offset in this source's returned order; omitted or negative values start at zero.
+  """
+  offset: Int
   useSemanticSearch: Boolean
 }
 
@@ -14320,6 +14367,7 @@ enum WorkbenchToolId {
   Frame
   GraphDetails
   Outline
+  Presence
   Tags
   TaskDetails
 }

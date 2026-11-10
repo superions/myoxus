@@ -121,6 +121,8 @@ storageState.json
 *.tsbuildinfo
 client/**/dist/
 virgultum/**/dist/
+# The icon backend is committed generator output consumed directly by bundles.
+!virgultum/icons/dist/
 tools/**/dist/
 
 # Note: tsc --build output goes to dist/ via declarationDir setting.

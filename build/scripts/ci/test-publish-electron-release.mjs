@@ -20,7 +20,6 @@ const token = "fixture-release-token";
 const sourceCommit = "a".repeat(40);
 const releaseTarget = "main";
 const version = "0.40.0";
-const channel = "stable";
 const fullMatrix = [
   ["linux", "x64", "deb"],
   ["linux", "x64", "flatpak"],
@@ -44,7 +43,10 @@ function createBundleFixture(
   scope = "full",
   checksumMarker = " ",
   archived = false,
+  identity = {},
 ) {
+  const version = identity.version ?? "0.40.0";
+  const channel = identity.channel ?? "stable";
   if (![" ", "*"].includes(checksumMarker)) {
     throw new Error("Fixture checksum marker must be text or binary");
   }
@@ -154,6 +156,7 @@ function json(value, status = 200) {
 function createForgejoFixture({
   failPublishOnce = false,
   failUploadOnce = false,
+  failCaskOnce = false,
   tag,
 }) {
   if (!tag) throw new Error("Forgejo fixture tag is required");
@@ -162,11 +165,45 @@ function createForgejoFixture({
   let publishFailed = false;
   let uploadFailed = false;
   let uploadCount = 0;
+  let caskFailed = false;
+  const casks = new Map();
+  let caskWrites = 0;
   const fetchImpl = async (input, init = {}) => {
     const url = new URL(input);
     const method = init.method ?? "GET";
     const authenticated = init.headers?.Authorization === `Bearer ${token}`;
     const releaseRoot = "/api/v1/repos/myoxus/packages/releases";
+    const caskPrefix = "/api/v1/repos/myoxus/packages/contents/Casks/";
+    if (url.pathname.startsWith(caskPrefix)) {
+      const file = url.pathname.slice(caskPrefix.length);
+      const source = casks.get(file);
+      if (method === "GET")
+        return source === undefined
+          ? new Response("missing", { status: 404 })
+          : json({
+              sha: digest(source),
+              encoding: "base64",
+              content: Buffer.from(source).toString("base64"),
+            });
+      if (!authenticated || !release || release.draft)
+        throw new Error("Casks cannot precede verified publication");
+      if (failCaskOnce && !caskFailed) {
+        caskFailed = true;
+        return new Response("injected Cask failure", { status: 500 });
+      }
+      const body = JSON.parse(init.body);
+      if (
+        method !== (source === undefined ? "POST" : "PUT") ||
+        (source !== undefined && body.sha !== digest(source))
+      )
+        return new Response("conflict", { status: 409 });
+      casks.set(file, Buffer.from(body.content, "base64").toString("utf8"));
+      caskWrites++;
+      return json(
+        { content: { sha: digest(casks.get(file)) } },
+        source === undefined ? 201 : 200,
+      );
+    }
     if (url.pathname.startsWith(releaseRoot) && !authenticated) {
       if (url.pathname !== releaseRoot || url.search !== "?page=1&limit=50") {
         return new Response("unauthorized", { status: 401 });
@@ -235,6 +272,10 @@ function createForgejoFixture({
   };
   return {
     fetchImpl,
+    casks,
+    get caskWrites() {
+      return caskWrites;
+    },
     corruptReleaseBody() {
       release.body = "foreign release";
     },
@@ -290,8 +331,72 @@ try {
     origin,
     token,
   });
-  if (!retry.reused || forgejo.uploadCount !== afterPublicationUploads) {
+  if (
+    !retry.reused ||
+    forgejo.uploadCount !== afterPublicationUploads ||
+    forgejo.caskWrites !== 1
+  ) {
     throw new Error("Published retry was not an idempotent verification");
+  }
+  // The existing publisher fixture owns repeated-release safety. Include Cask
+  // failures here so public channel pins cannot drift or force a package rebuild.
+  for (const caskChannel of ["beta", "internal"]) {
+    const caskVersion = `0.40.0-${caskChannel}.2`;
+    const caskRoot = path.join(root, `cask-${caskChannel}`);
+    try {
+      const caskBundle = createBundleFixture(caskRoot, "macos", " ", false, {
+        channel: caskChannel,
+        version: caskVersion,
+      });
+      const remote = createForgejoFixture({
+        tag: caskBundle.tag,
+        failCaskOnce: true,
+      });
+      const publish = () =>
+        publishBundle({
+          bundle: caskBundle,
+          fetchImpl: remote.fetchImpl,
+          origin,
+          token,
+        });
+      await expectFailure(
+        "retryable Cask write",
+        publish,
+        /injected Cask failure/,
+      );
+      const retainedUploads = remote.uploadCount;
+      const recovered = await publish();
+      const caskName = `myoxus-${caskChannel}.rb`;
+      const source = remote.casks.get(caskName);
+      if (
+        !recovered.reused ||
+        !source ||
+        remote.uploadCount !== retainedUploads ||
+        remote.caskWrites !== 1
+      )
+        throw new Error("Cask retry rebuilt or reuploaded release assets");
+      await publish();
+      if (remote.caskWrites !== 1 || remote.casks.size !== 1)
+        throw new Error("Cask retry is not channel-isolated/idempotent");
+      remote.casks.set(
+        caskName,
+        source.replaceAll(caskVersion, `0.40.0-${caskChannel}.10`),
+      );
+      await publish();
+      if (remote.caskWrites !== 1)
+        throw new Error("Publisher downgraded a newer Cask");
+      const dmgHash = caskBundle.manifest.artifacts.find(
+        (a) => a.format === "dmg",
+      ).sha256;
+      remote.casks.set(caskName, source.replace(dmgHash, "0".repeat(64)));
+      await expectFailure(
+        "immutable same-version Cask",
+        publish,
+        /same-version content\/digest conflict/,
+      );
+    } finally {
+      fs.rmSync(caskRoot, { recursive: true, force: true });
+    }
   }
   if (uploadCountBeforeRetry !== 1) {
     throw new Error("Interrupted fixture did not retain one verified asset");

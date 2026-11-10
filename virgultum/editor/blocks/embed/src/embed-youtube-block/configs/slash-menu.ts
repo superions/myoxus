@@ -39,11 +39,11 @@ export const embedYoutubeSlashMenuConfig: SlashMenuConfig = {
             return;
           }
           const index = parentModel.children.indexOf(model) + 1;
-          await toggleEmbedCardCreateModal(
+          const inserted = await toggleEmbedCardCreateModal(
             host,
             "YouTube",
             "The added YouTube video link will be displayed as an embed view.",
-            { mode: "page", parentModel, index },
+            { mode: "page", parentModel, index, sourceBlockId: model.id },
             ({ mode }) => {
               if (mode === "edgeless") {
                 const gfx = std.get(GfxControllerIdentifier);
@@ -51,7 +51,8 @@ export const embedYoutubeSlashMenuConfig: SlashMenuConfig = {
               }
             },
           );
-          if (model.text?.length === 0) std.store.deleteBlock(model);
+          if (inserted && model.text?.length === 0)
+            std.store.deleteBlock(model);
         })().catch(console.error);
       },
     },

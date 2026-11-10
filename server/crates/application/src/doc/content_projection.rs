@@ -31,6 +31,7 @@ pub(crate) fn project_snapshot_for_export(
   title: &str,
   snapshot: &[u8],
 ) -> Result<PublicDocIr, DocumentProjectionError> {
+  crate::document_fields::validate_snapshot(snapshot).map_err(|_| DocumentProjectionError::Projection)?;
   let mut ir = myoxus_public_render::document_from_yjs_for_editing(workspace_id, doc_id, title, "Private", snapshot)
     .map_err(|_| DocumentProjectionError::Projection)?;
   restore_native_text_targets(&mut ir);
@@ -87,6 +88,7 @@ pub fn project_yjs_plain_text(
   fallback_title: &str,
   yjs: &[u8],
 ) -> Result<DocumentPlainTextProjection, DocumentProjectionError> {
+  crate::document_fields::validate_snapshot(yjs).map_err(|_| DocumentProjectionError::Projection)?;
   let ir = document_from_yjs(workspace_id, doc_id, fallback_title, "Private", yjs)
     .map_err(|_| DocumentProjectionError::Projection)?;
   Ok(DocumentPlainTextProjection {
@@ -341,6 +343,10 @@ struct CursorPayload {
 
 #[derive(Clone)]
 pub struct DocumentContentProjectionService {
+  field_context: Option<Arc<crate::document_fields::context::DocumentFieldContext>>,
+  field_source: Option<Arc<dyn crate::document_fields::context::DocumentFieldContextSource>>,
+  field_actor: Option<Uuid>,
+  historical_fields: bool,
   html_catalog: Option<Arc<dyn myoxus_public_render::HtmlRendererProvider>>,
   load: Arc<DocLoadService>,
   cursor_key: Arc<[u8]>,
@@ -376,6 +382,9 @@ impl DocumentContentProjectionService {
         requires_blob_read: false,
         native_text: Default::default(),
       };
+    }
+    if crate::document_fields::validate_snapshot(&committed.state).is_err() {
+      return DocumentMutationReadback::unavailable(Reason::ProjectionFailed);
     }
     let Ok(mut ir) = myoxus_public_render::document_from_yjs_for_editing(
       workspace_id,
@@ -432,6 +441,10 @@ impl DocumentContentProjectionService {
   /// still re-evaluated before every projection call.
   pub fn new(load: Arc<DocLoadService>, cursor_key: impl Into<Arc<[u8]>>) -> Self {
     Self {
+      field_context: None,
+      field_source: None,
+      field_actor: None,
+      historical_fields: false,
       load,
       html_catalog: None,
       cursor_key: cursor_key.into(),
@@ -464,16 +477,67 @@ impl DocumentContentProjectionService {
     self
   }
 
+  /// A caller-owned context for the same authorized capture as project_payload.
+  /// Raw Yjs/native edit coordinates always retain their original source bytes.
+  pub fn with_field_context(mut self, context: Arc<crate::document_fields::context::DocumentFieldContext>) -> Self {
+    self.field_context = Some(context);
+    self
+  }
+
+  pub fn with_field_source(
+    mut self,
+    source: Option<Arc<dyn crate::document_fields::context::DocumentFieldContextSource>>,
+    actor: Option<Uuid>,
+  ) -> Self {
+    self.field_source = source;
+    self.field_actor = actor;
+    self
+  }
+
+  /// Trusted named/history snapshot adapters only. This disables live resolution
+  /// and accepts frozen fields as-is, never today's metadata/identity values.
+  pub fn with_historical_fields(mut self) -> Self {
+    self.historical_fields = true;
+    self
+  }
+
   pub async fn project(
     &self,
     request: DocumentProjectionRequest,
   ) -> Result<DocumentContentProjection, DocumentProjectionError> {
+    if self.historical_fields {
+      return Err(DocumentProjectionError::Projection);
+    }
     let state = self
       .load
       .load_full_doc_with_revision(request.workspace_id, request.doc_id)
       .await
       .map_err(|_| DocumentProjectionError::Load)?;
-    self.project_payload(request, &state.payload, state.revision)
+    let fields = if request.representation == DocumentRepresentation::RawYjs {
+      Vec::new()
+    } else {
+      yjs::document_field::content::inspect(&state.payload).map_err(|_| DocumentProjectionError::Projection)?
+    };
+    if fields.is_empty() || self.field_context.is_some() {
+      return self.project_payload(request, &state.payload, state.revision);
+    }
+    let context = self
+      .field_source
+      .as_ref()
+      .ok_or(DocumentProjectionError::Projection)?
+      .resolve_authorized(
+        request.workspace_id,
+        request.doc_id,
+        super::canonical_yjs_revision(&state.payload).map_err(|_| DocumentProjectionError::Projection)?,
+        &fields.into_iter().map(|field| field.run.descriptor).collect::<Vec<_>>(),
+        self.field_actor,
+      )
+      .await
+      .map_err(|_| DocumentProjectionError::Projection)?;
+    self
+      .clone()
+      .with_field_context(Arc::new(context))
+      .project_payload(request, &state.payload, state.revision)
   }
 
   /// Project a caller-owned materialization and its matching committed sequence.
@@ -528,6 +592,23 @@ impl DocumentContentProjectionService {
       });
     }
 
+    crate::document_fields::validate_snapshot(yjs).map_err(|_| DocumentProjectionError::Projection)?;
+    let fields = yjs::document_field::content::inspect(yjs).map_err(|_| DocumentProjectionError::Projection)?;
+    let output = if self.historical_fields {
+      crate::document_fields::output::historical_snapshot(yjs).map_err(|_| DocumentProjectionError::Projection)?;
+      None
+    } else if fields.is_empty() {
+      None
+    } else {
+      let context = self.field_context.as_ref().ok_or(DocumentProjectionError::Projection)?;
+      if context.freshness().workspace_id != request.workspace_id || context.freshness().doc_id != request.doc_id {
+        return Err(DocumentProjectionError::Projection);
+      }
+      Some(
+        crate::document_fields::output::current_snapshot(yjs, context)
+          .map_err(|_| DocumentProjectionError::Projection)?,
+      )
+    };
     let project = if request.representation == DocumentRepresentation::Structured {
       myoxus_public_render::document_from_yjs_for_editing
     } else {
@@ -538,9 +619,25 @@ impl DocumentContentProjectionService {
       request.doc_id,
       &request.fallback_title,
       "Private",
-      yjs,
+      output.as_deref().unwrap_or(yjs),
     )
     .map_err(|_| DocumentProjectionError::Projection)?;
+    if output.is_some() && request.representation == DocumentRepresentation::Structured {
+      // Display labels must never become edit offsets. Retain the exact native
+      // descriptor/value spans and native ownership graph from the raw capture.
+      let native = myoxus_public_render::document_from_yjs_for_editing(
+        request.workspace_id,
+        request.doc_id,
+        &request.fallback_title,
+        "Private",
+        yjs,
+      )
+      .map_err(|_| DocumentProjectionError::Projection)?;
+      ir.native_text = native.native_text;
+      ir.native_children = native.native_children;
+      ir.native_tables = native.native_tables;
+      ir.native_citations = native.native_citations;
+    }
     ir.document.metadata_badges = request.metadata_badges;
     let renderer_diagnostic_count = ir.diagnostics.len();
     reject_insecure_private_assets(&mut ir);
@@ -800,6 +897,11 @@ impl DocumentContentProjectionService {
     let mut source = Sha256::new();
     source.update(revision.to_le_bytes());
     source.update(ordered_blocks);
+    if let Some(context) = &self.field_context
+      && !self.historical_fields
+    {
+      source.update(serde_json::to_vec(context.freshness()).map_err(|_| DocumentProjectionError::Projection)?);
+    }
     if let Some(selector) = &selector {
       // Bind continuations to the selection as well as the committed state.
       // Legacy unselected cursors retain their original hash and signature.

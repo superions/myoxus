@@ -22,7 +22,13 @@ export const AboutMyoxus = () => {
   const t = useI18n();
   const { deviceSettings } = useDeviceSettingHelper();
   const { effectivePreferences, updatePreferences } = useUserPreferences();
-  const { toggleAutoCheck, toggleAutoDownload } = useAppUpdater();
+  const {
+    toggleAutoCheck,
+    toggleAutoDownload,
+    updaterState,
+    externalMacosInstall,
+    currentVersion,
+  } = useAppUpdater();
   const urlService = useService(UrlService);
   const channel = BUILD_CONFIG.appBuildType;
   const appName = appNames[channel];
@@ -55,7 +61,10 @@ export const AboutMyoxus = () => {
       testId="settings-page-about"
     >
       <SettingsSection title={t["com.myoxus.aboutMyoxus.version.title"]()}>
-        <SettingsRow name={appName} desc={BUILD_CONFIG.appVersion}>
+        <SettingsRow
+          name={appName}
+          desc={currentVersion ?? BUILD_CONFIG.appVersion}
+        >
           <SettingsControlGroup>
             <img
               src={AboutMyoxusLogo}
@@ -74,26 +83,32 @@ export const AboutMyoxus = () => {
         {BUILD_CONFIG.isElectron ? (
           <>
             <UpdateCheckSection />
-            <SettingsRow
-              name={t["com.myoxus.aboutMyoxus.autoCheckUpdate.title"]()}
-              desc={t["com.myoxus.aboutMyoxus.autoCheckUpdate.description"]()}
-            >
-              <MyoxusSwitch
-                checked={deviceSettings.autoCheckUpdate}
-                onChange={onSwitchAutoCheck}
-              />
-            </SettingsRow>
-            <SettingsRow
-              name={t["com.myoxus.aboutMyoxus.autoDownloadUpdate.title"]()}
-              desc={t[
-                "com.myoxus.aboutMyoxus.autoDownloadUpdate.description"
-              ]()}
-            >
-              <MyoxusSwitch
-                checked={deviceSettings.autoDownloadUpdate}
-                onChange={onSwitchAutoDownload}
-              />
-            </SettingsRow>
+            {updaterState && !externalMacosInstall ? (
+              <>
+                <SettingsRow
+                  name={t["com.myoxus.aboutMyoxus.autoCheckUpdate.title"]()}
+                  desc={t[
+                    "com.myoxus.aboutMyoxus.autoCheckUpdate.description"
+                  ]()}
+                >
+                  <MyoxusSwitch
+                    checked={deviceSettings.autoCheckUpdate}
+                    onChange={onSwitchAutoCheck}
+                  />
+                </SettingsRow>
+                <SettingsRow
+                  name={t["com.myoxus.aboutMyoxus.autoDownloadUpdate.title"]()}
+                  desc={t[
+                    "com.myoxus.aboutMyoxus.autoDownloadUpdate.description"
+                  ]()}
+                >
+                  <MyoxusSwitch
+                    checked={deviceSettings.autoDownloadUpdate}
+                    onChange={onSwitchAutoDownload}
+                  />
+                </SettingsRow>
+              </>
+            ) : null}
             <SettingsRow
               name={t["com.myoxus.aboutMyoxus.changelog.title"]()}
               desc={t["com.myoxus.aboutMyoxus.changelog.description"]()}

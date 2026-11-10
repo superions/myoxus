@@ -29,7 +29,7 @@ import {
   Scrollable,
   WorkbenchContextScrollRoot,
 } from "@myoxus/ui-facade";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import useSWR, { SWRConfig } from "swr";
 
 import {
@@ -51,6 +51,7 @@ import type { DatabaseRecord, DatabaseRowRecord } from "../types";
 import { inflateDatabaseViewSummary } from "../model";
 import { useTaskIdentity } from "./use-workspace-tasks";
 import { useTaskFreshness } from "./use-task-freshness";
+import type { EmbeddedTaskFieldProps } from "./embedded-task-fields";
 
 /** Load the canonical Row independently of inventory membership. The host keys
  * this boundary by server/account/workspace/Database/Row, so selected drafts
@@ -65,11 +66,15 @@ export function TaskDetail({
   onOpenTask,
   focusDue,
   onDueFocused,
+  embedded,
+  readonly = false,
 }: {
   databaseId: string;
   rowId: string;
   focusDue?: number;
   onDueFocused?: (request: number) => void;
+  embedded?: (props: EmbeddedTaskFieldProps) => ReactNode;
+  readonly?: boolean;
   onChanged: DatabaseChangeHandler;
   onOpenDoc: (docId: string) => void;
   onOpenProject: (databaseId: string) => void;
@@ -209,62 +214,64 @@ export function TaskDetail({
     input.focus();
     onDueFocused?.(focusDue);
   }, [focusDue, valid, read.isLoading, record, onDueFocused]);
+  const body =
+    read.isLoading || (!currentRead.admitted && !currentRead.error) ? (
+      <Loading />
+    ) : !valid ? (
+      <EmptyState
+        title={
+          record && !databaseManagedCapabilities(record).ready
+            ? managedTaskUnavailableLabel(t, record.managedSchema?.reasonCode)
+            : currentRead.error &&
+                classifyDatabaseError(currentRead.error) === "forbidden"
+              ? t["com.myoxus.database.row_detail.forbidden"]()
+              : currentRead.error
+                ? t["com.myoxus.database.row_detail.unavailable"]()
+                : t["com.myoxus.database.row_detail.missing"]()
+        }
+        cta={
+          currentRead.error || record ? (
+            <Button onClick={() => void currentRead.reload()}>
+              {t.Retry()}
+            </Button>
+          ) : undefined
+        }
+      />
+    ) : (
+      <SWRConfig value={nativeQueries}>
+        <DatabaseConflictProvider>
+          {currentRead.error ? (
+            <Notice
+              tone="warning"
+              title={t["com.myoxus.database.row_detail.unavailable"]()}
+            >
+              <Button onClick={() => void currentRead.reload()}>
+                {t.Retry()}
+              </Button>
+            </Notice>
+          ) : null}
+          <ResolvedTaskDetail
+            databaseId={record!.database.id}
+            record={record!}
+            row={row!}
+            workspaceId={workspace.id}
+            onChanged={refresh}
+            onOpenDoc={onOpenDoc}
+            onOpenProject={onOpenProject}
+            onOpenTask={onOpenTask}
+            onPresentationReady={focusDueEditor}
+            focusDue={focusDue}
+            embedded={embedded}
+            readonly={readonly}
+          />
+        </DatabaseConflictProvider>
+      </SWRConfig>
+    );
+  if (embedded) return body;
   return (
     <WorkbenchContextScrollRoot>
       <Scrollable.Viewport ref={viewport} scrollbars="y">
-        {read.isLoading || (!currentRead.admitted && !currentRead.error) ? (
-          <Loading />
-        ) : !valid ? (
-          <EmptyState
-            title={
-              record && !databaseManagedCapabilities(record).ready
-                ? managedTaskUnavailableLabel(
-                    t,
-                    record.managedSchema?.reasonCode,
-                  )
-                : currentRead.error &&
-                    classifyDatabaseError(currentRead.error) === "forbidden"
-                  ? t["com.myoxus.database.row_detail.forbidden"]()
-                  : currentRead.error
-                    ? t["com.myoxus.database.row_detail.unavailable"]()
-                    : t["com.myoxus.database.row_detail.missing"]()
-            }
-            cta={
-              currentRead.error || record ? (
-                <Button onClick={() => void currentRead.reload()}>
-                  {t.Retry()}
-                </Button>
-              ) : undefined
-            }
-          />
-        ) : (
-          <SWRConfig value={nativeQueries}>
-            <DatabaseConflictProvider>
-              {currentRead.error ? (
-                <Notice
-                  tone="warning"
-                  title={t["com.myoxus.database.row_detail.unavailable"]()}
-                >
-                  <Button onClick={() => void currentRead.reload()}>
-                    {t.Retry()}
-                  </Button>
-                </Notice>
-              ) : null}
-              <ResolvedTaskDetail
-                databaseId={record!.database.id}
-                record={record!}
-                row={row!}
-                workspaceId={workspace.id}
-                onChanged={refresh}
-                onOpenDoc={onOpenDoc}
-                onOpenProject={onOpenProject}
-                onOpenTask={onOpenTask}
-                onPresentationReady={focusDueEditor}
-                focusDue={focusDue}
-              />
-            </DatabaseConflictProvider>
-          </SWRConfig>
-        )}
+        {body}
       </Scrollable.Viewport>
       <Scrollable.Scrollbar />
     </WorkbenchContextScrollRoot>
@@ -282,6 +289,8 @@ function ResolvedTaskDetail({
   onOpenTask,
   onPresentationReady,
   focusDue,
+  embedded,
+  readonly,
 }: {
   databaseId: string;
   record: DatabaseRecord;
@@ -293,6 +302,8 @@ function ResolvedTaskDetail({
   onOpenTask?: (databaseId: string, rowId: string) => void;
   onPresentationReady: () => void;
   focusDue?: number;
+  embedded?: (props: EmbeddedTaskFieldProps) => ReactNode;
+  readonly: boolean;
 }) {
   const t = useI18n();
   const { server } = useTaskIdentity();
@@ -413,7 +424,7 @@ function ResolvedTaskDetail({
     }
   };
   const viewId = record.views[0]?.id ?? "";
-  const canEdit = Boolean(canWrite && !row.row.deletedAt);
+  const canEdit = Boolean(canWrite && !readonly && !row.row.deletedAt);
   return (
     <DatabasePresenceProvider value={presence}>
       {actionFailed ? (
@@ -422,48 +433,52 @@ function ResolvedTaskDetail({
           title={t["com.myoxus.common.operation-failed"]()}
         />
       ) : null}
-      <DatabaseResolvedRowDetailPeekBody
-        onOpenTask={onOpenTask}
-        headerActions={
-          <DatabaseRowActionMenu
-            row={row}
-            record={record}
-            onChanged={changed}
-            canEdit={canEdit}
-            showOpenDetails={false}
-            onDelete={canEdit ? () => void trashRow() : undefined}
-            additionalItems={
-              !databaseManagedCapabilities(record).workspaceTasks ? (
-                <MenuItem onSelect={() => onOpenProject(record.database.id)}>
-                  {t["com.myoxus.database.tasks.open-project"]()}
-                </MenuItem>
-              ) : null
-            }
-          />
-        }
-        restoreAction={
-          canWrite && row.row.deletedAt ? (
-            <Button
-              variant="primary"
-              disabled={restorePending}
-              onClick={() => void restoreRow()}
-            >
-              {t["com.myoxus.database.bulk.action.restore"]()}
-            </Button>
-          ) : null
-        }
-        canEdit={canEdit}
-        databaseId={databaseId}
-        onChanged={changed}
-        onOpenDoc={onOpenDoc}
-        onPresentationReady={onPresentationReady}
-        focusDue={focusDue}
-        record={record}
-        row={row}
-        rows={[row]}
-        viewId={viewId}
-        workspaceId={workspaceId}
-      />
+      {embedded ? (
+        embedded({ record, row, canEdit, onChanged: changed })
+      ) : (
+        <DatabaseResolvedRowDetailPeekBody
+          onOpenTask={onOpenTask}
+          headerActions={
+            <DatabaseRowActionMenu
+              row={row}
+              record={record}
+              onChanged={changed}
+              canEdit={canEdit}
+              showOpenDetails={false}
+              onDelete={canEdit ? () => void trashRow() : undefined}
+              additionalItems={
+                !databaseManagedCapabilities(record).workspaceTasks ? (
+                  <MenuItem onSelect={() => onOpenProject(record.database.id)}>
+                    {t["com.myoxus.database.tasks.open-project"]()}
+                  </MenuItem>
+                ) : null
+              }
+            />
+          }
+          restoreAction={
+            canWrite && row.row.deletedAt ? (
+              <Button
+                variant="primary"
+                disabled={restorePending}
+                onClick={() => void restoreRow()}
+              >
+                {t["com.myoxus.database.bulk.action.restore"]()}
+              </Button>
+            ) : null
+          }
+          canEdit={canEdit}
+          databaseId={databaseId}
+          onChanged={changed}
+          onOpenDoc={onOpenDoc}
+          onPresentationReady={onPresentationReady}
+          focusDue={focusDue}
+          record={record}
+          row={row}
+          rows={[row]}
+          viewId={viewId}
+          workspaceId={workspaceId}
+        />
+      )}
     </DatabasePresenceProvider>
   );
 }

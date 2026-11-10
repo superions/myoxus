@@ -106,11 +106,13 @@ app
   .whenReady()
   .then(initializeDesktopState)
   .then(registerProtocol)
+  // app-update.yml cannot encode the custom provider constructor. Configure
+  // it before any renderer can invoke the updater through IPC while loading.
+  .then(registerUpdater)
   .then(registerHandlers)
   .then(registerEvents)
   .then(launch)
   .then(createApplicationMenu)
-  .then(registerUpdater)
   .then(() => setupRecordingFeature())
   .then(setupTrayState)
   .then(() => {

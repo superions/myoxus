@@ -10,11 +10,19 @@ import { ServersService } from "../services/servers";
 import { ServerConfigStore } from "./server-config";
 import { ServerListStore } from "./server-list";
 
+const native = vi.hoisted(() => ({ mutate: vi.fn() }));
+vi.mock("@myoxus/desktop-api-contract/bridge", () => ({
+  getDesktopBridge: () => ({
+    apis: { sharedStorage: { mutateServerRegistry: native.mutate } },
+  }),
+}));
+
 const originalBuiltIns = [...BUILD_IN_SERVERS];
 beforeEach(() => {
   BUILD_IN_SERVERS.splice(0);
 });
 afterEach(() => {
+  vi.unstubAllGlobals();
   BUILD_IN_SERVERS.splice(0, BUILD_IN_SERVERS.length, ...originalBuiltIns);
 });
 
@@ -46,6 +54,42 @@ function setup(state = new MemoryMemento()) {
 }
 
 describe("configured desktop server identity", () => {
+  test("native publication waits for the Main-owned registry mutation", async () => {
+    vi.stubGlobal("BUILD_CONFIG", { ...BUILD_CONFIG, isElectron: true });
+    const { state, store } = setup();
+    const ack = Promise.withResolvers<void>();
+    const server = { id: "native", baseUrl: "http://127.0.0.1:3101" };
+    const config = {
+      serverName: "Native",
+      type: ServerDeploymentType.Standalone,
+      features: [],
+      oauthProviders: [],
+      credentialsRequirement: { password: { minLength: 8, maxLength: 128 } },
+    };
+    native.mutate.mockImplementationOnce(async () => {
+      await ack.promise;
+      state.set(`serverConfig:${server.id}`, config);
+      state.set("serverList", [server]);
+      state.set("selectedServerId", server.id);
+    });
+    const pending = store.addServer(server, config);
+    try {
+      await vi.waitFor(() =>
+        expect(native.mutate).toHaveBeenCalledWith({
+          type: "add",
+          server,
+          config,
+        }),
+      );
+      expect(store.getServerList()).toEqual([]);
+      ack.resolve();
+      await pending;
+      expect(store.getServerList()).toEqual([server]);
+    } finally {
+      ack.resolve();
+      await pending;
+    }
+  });
   test("empty startup and failed handshake do not persist a server", async () => {
     const { store, servers, fetchServerConfig } = setup();
     const selected: (string | undefined)[] = [];
@@ -88,12 +132,12 @@ describe("configured desktop server identity", () => {
     expect(selected.at(-1)).toBe(first.id);
     restarted.store.selectServer(second.id);
     expect(selected.at(-1)).toBe(second.id);
-    restarted.store.removeServer(second.id);
+    await restarted.store.removeServer(second.id);
     expect(selected.at(-1)).toBe(first.id);
     expect(() => restarted.store.selectServer(second.id)).toThrow(
       "unregistered",
     );
-    restarted.store.removeServer(first.id);
+    await restarted.store.removeServer(first.id);
     expect(selected.at(-1)).toBeUndefined();
     sub.unsubscribe();
   });

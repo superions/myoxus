@@ -1,0 +1,124 @@
+{
+  "valid": [
+    {
+      "type": "input",
+      "id": "text-a",
+      "definition": {
+        "kind": "text",
+        "label": "Thema",
+        "required": true,
+        "default": "  {{literal}}  "
+      },
+      "value": null
+    },
+    {
+      "type": "input",
+      "id": "date-a",
+      "definition": { "kind": "date", "label": "Frist", "required": false },
+      "value": null
+    },
+    {
+      "type": "input",
+      "id": "datetime-a",
+      "definition": {
+        "kind": "datetime",
+        "label": "Termin",
+        "required": false,
+        "default": null
+      },
+      "value": "2026-11-05 13:45:00"
+    },
+    {
+      "type": "input",
+      "id": "single-a",
+      "definition": {
+        "kind": "single-select",
+        "label": "Art",
+        "required": false,
+        "options": [
+          { "id": "information", "label": "Information" },
+          { "id": "decision", "label": "Beschluss" }
+        ]
+      },
+      "value": null
+    },
+    {
+      "type": "input",
+      "id": "multi-a",
+      "definition": {
+        "kind": "multi-select",
+        "label": "Rollen",
+        "description": "Mehrere Rollen möglich",
+        "required": true,
+        "options": [
+          { "id": "r", "label": "R" },
+          { "id": "a", "label": "A" }
+        ],
+        "default": []
+      },
+      "value": ["r", "a"]
+    },
+    { "type": "metadata", "id": "status-a", "key": "status", "format": "text" },
+    {
+      "type": "metadata",
+      "id": "created-a",
+      "key": "createdAt",
+      "format": "datetime"
+    },
+    {
+      "type": "metadata",
+      "id": "responsible-a",
+      "key": "responsible",
+      "format": "email"
+    }
+  ],
+  "invalid": [
+    { "type": "metadata", "id": "x", "key": "status", "format": "date" },
+    {
+      "type": "metadata",
+      "id": "x",
+      "key": "title",
+      "format": "text",
+      "documentId": "other"
+    },
+    { "type": "metadata", "id": "x", "key": "unknown", "format": "text" },
+    {
+      "type": "input",
+      "id": "x",
+      "definition": { "kind": "text", "label": "Text", "required": false },
+      "value": []
+    },
+    {
+      "type": "input",
+      "id": "x",
+      "definition": {
+        "kind": "multi-select",
+        "label": "Auswahl",
+        "required": false,
+        "options": [{ "id": "a", "label": "A" }]
+      },
+      "value": null
+    },
+    {
+      "type": "input",
+      "id": "x",
+      "definition": {
+        "kind": "single-select",
+        "label": "Auswahl",
+        "required": false
+      },
+      "value": null
+    },
+    {
+      "type": "input",
+      "id": "x",
+      "definition": {
+        "kind": "text",
+        "label": "Text",
+        "required": false,
+        "options": []
+      },
+      "value": null
+    }
+  ]
+}

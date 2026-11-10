@@ -11,7 +11,7 @@
 pub mod bundle;
 mod content;
 mod released_builtin;
-pub use released_builtin::{ReleasedBuiltinAdoption, ReleasedBuiltinInstance, released_system_baseline_version};
+pub use released_builtin::ReleasedBuiltinInstance;
 pub mod source_export;
 pub mod suggestions;
 
@@ -156,6 +156,30 @@ pub struct ShippedTemplateSelectionReport {
 /// a concrete implementation (e.g. backed by SQLx/PostgreSQL).
 #[async_trait]
 pub trait TemplateRegistryStore: Send + Sync {
+  /// Resolve/rank/deduplicate metadata in sets; return at most query.limit rows.
+  /// Cursor validation occurs against the same ranked set, without body reads.
+  async fn contextual_template_page(
+    &self,
+    _query: &suggestions::ContextualTemplateQuery,
+  ) -> AuthResult<suggestions::ContextualTemplatePage> {
+    Err(AuthError::Storage(
+      "contextual template projection is unavailable".into(),
+    ))
+  }
+  async fn contextual_guide_deliveries(
+    &self,
+    _workspace: WorkspaceId,
+  ) -> AuthResult<Vec<suggestions::ContextualGuideDelivery>> {
+    Err(AuthError::Storage("guide delivery projection is unavailable".into()))
+  }
+  async fn contextual_page_default_replacements(
+    &self,
+    _workspace: WorkspaceId,
+  ) -> AuthResult<Vec<TemplatePageDefaultReplacement>> {
+    Err(AuthError::Storage(
+      "default replacement projection is unavailable".into(),
+    ))
+  }
   /// One scoped SQL inventory page, already filtered and keyset-paged. Implementors
   /// must not fetch document bodies or perform per-entry repository round-trips.
   async fn library_sources(
@@ -189,7 +213,7 @@ pub trait TemplateRegistryStore: Send + Sync {
   /// Update a catalog entry (full replace).
   async fn update_catalog_entry(&self, entry: &TemplateCatalogEntry) -> AuthResult<()>;
 
-  /// Legacy rows are read only by the private validated-release transition.
+  /// Raw attribution supports native retirement without inventing revision IDs.
   async fn list_released_builtin_instances(
     &self,
     _id: TemplateCatalogEntryId,
@@ -211,31 +235,6 @@ pub trait TemplateRegistryStore: Send + Sync {
         .into_iter()
         .find(|row| row.workspace_id == workspace),
     )
-  }
-
-  /// A bounded restartable batch of still-null legacy revisions. Already adopted
-  /// native bindings are excluded, including after an interrupted owner cutover.
-  async fn pending_released_builtin_instances(
-    &self,
-    _id: TemplateCatalogEntryId,
-    _limit: usize,
-  ) -> AuthResult<Vec<ReleasedBuiltinInstance>> {
-    Err(AuthError::Storage(
-      "bounded released builtin discovery is unavailable".into(),
-    ))
-  }
-
-  /// Lock/fence one observed batch and attach real revisions without body writes.
-  /// Finalization switches the owner only when no NULL-revision binding remains.
-  async fn commit_released_builtin_transition(
-    &self,
-    _id: TemplateCatalogEntryId,
-    _revision: TemplateRevisionId,
-    _purpose: bundle::TemplatePurpose,
-    _adoptions: &[ReleasedBuiltinAdoption],
-    _finalize: bool,
-  ) -> AuthResult<()> {
-    Err(AuthError::Storage("released builtin transition is unavailable".into()))
   }
 
   /// Relinquish only this central source binding, retaining its document as a
@@ -619,6 +618,15 @@ fn compute_content_hash(data: &[u8]) -> String {
   let mut hasher = Sha256::new();
   hasher.update(data);
   format!("{:x}", hasher.finalize())
+}
+
+/// Live source drift retains the existing field-free hash and immutable bundle
+/// hashes stay byte-based. Native fields need stable JSON-format comparison;
+/// this read-only input is never a replacement update or persisted snapshot.
+fn compute_live_content_hash(data: &[u8]) -> AuthResult<String> {
+  let fingerprint = yjs::document_field::content::fingerprint_input(data)
+    .map_err(|_| AuthError::Storage("template native fingerprint unavailable".into()))?;
+  Ok(compute_content_hash(fingerprint.as_deref().unwrap_or(data)))
 }
 
 /// Reuse one immutable identity check for single imports and package preflight.
@@ -4220,7 +4228,7 @@ impl TemplateRegistryService {
         }),
       )
       .await?;
-    let content_hash = compute_content_hash(&sync.document);
+    let content_hash = compute_live_content_hash(&sync.document)?;
 
     if let Err(error) = self
       .store
@@ -4305,16 +4313,26 @@ impl TemplateRegistryService {
       .last_applied_hash
       .as_ref()
       .ok_or_else(|| AuthError::InvalidInput("template instance has no applied content hash".to_string()))?;
-    if compute_content_hash(&current) != *expected_hash {
+    if compute_live_content_hash(&current)? != *expected_hash {
       return Ok(false);
     }
     let expected_revision = canonical_yjs_revision(&current)
       .map_err(|error| AuthError::Storage(format!("template source revision is invalid: {error}")))?;
-    let update = yjs::restore_document_snapshot(&current, &content)
+    let mut update = yjs::restore_document_snapshot(&current, &content)
       .map_err(|error| AuthError::InvalidInput(format!("template revision cannot replace live document: {error}")))?;
-    let applied = yjs::merge_updates(vec![current, update.clone()])
+    let applied = yjs::merge_updates(vec![current.clone(), update.clone()])
       .map_err(|error| AuthError::Storage(format!("template replacement state is invalid: {error}")))?;
-    let new_hash = compute_content_hash(&applied);
+    let normalized = doc_service.prepare_captured_document_fields(applied).await?;
+    if let Some(delta) = normalized.delta {
+      update = yjs::merge_updates(vec![update, delta])
+        .map_err(|_| AuthError::InvalidInput("MIX_DOCUMENT_FIELD_INVALID".into()))?;
+    }
+    if !yjs::preserves_fixed_text(&current, &normalized.state)
+      .map_err(|_| AuthError::InvalidInput("MIX_DOCUMENT_TEXT_PROTECTED".into()))?
+    {
+      return Err(AuthError::InvalidInput("MIX_DOCUMENT_TEXT_PROTECTED".into()));
+    }
+    let new_hash = compute_live_content_hash(&normalized.state)?;
     match doc_service
       .push_revision_checked_update(workspace_id, doc_id, &expected_revision, update)
       .await?
@@ -4555,7 +4573,7 @@ impl TemplateRegistryService {
       .store()
       .preview_source_identity(instance.workspace_id, doc_id)
       .await?;
-    Ok(before == after && compute_content_hash(&content) == *applied_hash)
+    Ok(before == after && compute_live_content_hash(&content)? == *applied_hash)
   }
 
   /// Check whether a template instance has drifted by loading the current
@@ -4573,7 +4591,7 @@ impl TemplateRegistryService {
     // Load the current doc snapshot (P102-UNIFY-03: pass workspace_id for scoped DB access)
     match doc_service.load_full_doc(instance.workspace_id, doc_id).await {
       Ok(doc_bytes) => {
-        let current_hash = compute_content_hash(&doc_bytes);
+        let current_hash = compute_live_content_hash(&doc_bytes)?;
         let drifted = &current_hash != applied_hash;
         if drifted {
           debug!(
@@ -5134,10 +5152,6 @@ impl TemplateRegistryService {
         )));
       }
     };
-    let parsed = bundle::parse_bundle_with_filename_and_limits(data, filename, self.bundle_zip_limits())?;
-    self
-      .transition_released_builtin(&outcome.entry, &revision, &parsed)
-      .await?;
     let entry = self
       .store
       .get_catalog_entry(outcome.entry.id)
@@ -5155,7 +5169,7 @@ impl TemplateRegistryService {
     self.import_from_bundle_owned(data, filename, created_by, false).await
   }
 
-  // Only committed startup delivery may stage a real revision under a listed
+  // Only committed startup delivery may stage a real revision under a seeded
   // builtin owner. Source ownership changes later in one guarded transaction.
   async fn import_from_bundle_owned(
     &self,
@@ -5476,26 +5490,6 @@ impl TemplateRegistryService {
       return Err(AuthError::InvalidInput(e.message));
     }
 
-    if system_release
-      && let Some(existing) = self
-        .store
-        .get_catalog_entry_by_slug(&parsed.manifest.template_id)
-        .await?
-      && existing.source == TemplateSource::Builtin
-      && released_builtin::is_released_system_slug(&existing.slug)
-    {
-      if let Err(error) = released_builtin::validate_released_system_manifest(&parsed.manifest) {
-        import_job
-          .fail(
-            "validate",
-            template_operation_error_summary_from_auth_error(TemplateRegistryOperation::Import, "validate", &error),
-            Vec::new(),
-          )
-          .await;
-        return Err(error);
-      }
-    }
-
     // S-06: Reject bundle import if the slug is already owned by a builtin entry.
     // Builtin slugs are managed server-side; overwriting them via bundle upload would
     // break the reconcile protocol (expected_hash, builder_version invariants).
@@ -5504,7 +5498,7 @@ impl TemplateRegistryService {
       .get_catalog_entry_by_slug(&parsed.manifest.template_id)
       .await?
       && existing.source == TemplateSource::Builtin
-      && !(system_release && created_by.is_none() && released_builtin::is_released_system_slug(&existing.slug))
+      && !(system_release && created_by.is_none())
     {
       let conflict_msg = format!(
         "slug '{}' is already registered as a builtin template and cannot be overwritten via bundle import",

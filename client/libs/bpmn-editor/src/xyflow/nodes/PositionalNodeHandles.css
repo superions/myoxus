@@ -19,10 +19,9 @@
 /* SPDX-License-Identifier: Apache-2.0
  * Modified by Myoxus: scoped renderer geometry and semantic theme roles; see provenance.json. */
 
-/*  To make sure connection lines are steadly glued to the 
-handles, we make their indicators be ::before elements. The handle 
-itself is a 0px by 0px div, as connection lines can move freely when
-the cursor is inside it. By making it adimensional, that never happens.  */
+/* Source and target hit regions share border-centered geometry. A zero-size
+   target beside a measured source can lose native nearest-handle selection to
+   floating-point rounding at zoom. Indicators do not move the docking center. */
 .myoxus-bpmn-diagram .xyflow-react-kie-diagram--node-handle.connecting::before {
   content: "";
   position: absolute;
@@ -32,8 +31,9 @@ the cursor is inside it. By making it adimensional, that never happens.  */
   pointer-events: none;
   width: 20px;
   height: 20px;
-  top: -10px;
-  left: -10px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 .myoxus-bpmn-diagram
   .xyflow-react-kie-diagram--node-handle:not(.connecting)::before {
@@ -45,15 +45,16 @@ the cursor is inside it. By making it adimensional, that never happens.  */
   pointer-events: none;
   width: 14px;
   height: 14px;
-  top: -7px;
-  left: -7px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 .myoxus-bpmn-diagram .xyflow-react-kie-diagram--node-handle {
-  /* These 0px are is by design. See explanation above. */
-  width: 0px;
-  min-width: 0px;
-  height: 0px;
-  min-height: 0px;
+  width: 18px;
+  min-width: 18px;
+  height: 18px;
+  min-height: 18px;
+  background: transparent;
   border: 0;
   z-index: 20;
 }
@@ -76,4 +77,39 @@ the cursor is inside it. By making it adimensional, that never happens.  */
 .myoxus-bpmn-diagram .xyflow-react-kie-diagram--node-handle.center {
   top: 50%;
   left: 50%;
+}
+.myoxus-bpmn-diagram .xyflow-react-kie-diagram--node-handle.center::before {
+  display: none;
+}
+
+/* Measured border hit regions stay mounted throughout pointer travel. These
+   renderer dimensions do not change node DI or native resize controls. */
+.myoxus-bpmn-diagram .xyflow-react-kie-diagram--source-handle {
+  width: 18px;
+  height: 18px;
+  border: 0;
+  background: transparent;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 20000;
+}
+.myoxus-bpmn-diagram
+  .xyflow-react-kie-diagram--source-handle[data-active-source="true"],
+.myoxus-bpmn-diagram
+  .react-flow__node:hover
+  .xyflow-react-kie-diagram--source-handle[data-discoverable="true"],
+.myoxus-bpmn-diagram
+  .react-flow__node.selected
+  .xyflow-react-kie-diagram--source-handle[data-discoverable="true"] {
+  opacity: 1;
+  pointer-events: all;
+}
+.myoxus-bpmn-diagram .xyflow-react-kie-diagram--source-handle::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  border: 2px solid var(--mantine-primary-color-filled);
+  background: var(--mantine-color-body);
+  pointer-events: none;
 }

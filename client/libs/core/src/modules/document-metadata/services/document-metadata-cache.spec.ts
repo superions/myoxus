@@ -315,6 +315,31 @@ describe("DocumentMetadataCacheStore runtime ownership", () => {
 });
 
 describe("DocumentMetadataCacheService hydration", () => {
+  test("field metadata waits for creation and stops waiting when cancelled", async () => {
+    const { calls, lifecycle, service } = createService();
+    lifecycle.beginCreating("doc-1");
+    const attempt = new AbortController();
+    const pending = service.hydrateMetadataWhenAvailable(
+      "doc-1",
+      attempt.signal,
+    );
+    await Promise.resolve();
+    expect(count(calls, "documentMetadata")).toBe(0);
+    lifecycle.beginAvailableLifecycle("doc-1", "created");
+    expect((await pending).docId).toBe("doc-1");
+    expect(count(calls, "documentMetadata")).toBe(1);
+
+    lifecycle.beginCreating("doc-2");
+    const cancelled = new AbortController();
+    const waiting = service.hydrateMetadataWhenAvailable(
+      "doc-2",
+      cancelled.signal,
+    );
+    cancelled.abort();
+    await expect(waiting).rejects.toThrow();
+    expect(count(calls, "documentMetadata")).toBe(1);
+  });
+
   test("shares one workspace index request across concurrent list consumers", async () => {
     const { calls, primeIndexedDocPermissions, primeInventory, service } =
       createService();
@@ -347,6 +372,38 @@ describe("DocumentMetadataCacheService hydration", () => {
     ).rejects.toBe(failure);
     expect(count(calls, "documentMetadata")).toBe(2);
     expect(calls.every((call) => call.op === "documentMetadata")).toBe(true);
+  });
+
+  test("notifies a lightweight metadata observer without requiring the editor lookup model", async () => {
+    const { calls, service } = createService((op) => {
+      if (op === "documentMetadata")
+        return { documentMetadata: metadata("canonical-doc") };
+      return responseFor(op);
+    });
+    await service.hydrateMetadata("editor-doc");
+    const changed = vi.fn();
+    const subscription = service
+      .watchMetadataChanges("editor-doc")
+      .subscribe(changed);
+    service.writeMetadata(
+      metadata("canonical-doc", 2) as never,
+      "setDocumentMetadata",
+      "editor-doc",
+    );
+    expect(changed).toHaveBeenCalledTimes(1);
+    service.writeMetadata(
+      metadata("canonical-doc", 2) as never,
+      "setDocumentMetadata",
+      "editor-doc",
+    );
+    service.writeMetadata(
+      metadata("other-doc", 3) as never,
+      "setDocumentMetadata",
+      "other-doc",
+    );
+    expect(changed).toHaveBeenCalledTimes(1);
+    expect(calls.every((call) => call.op === "documentMetadata")).toBe(true);
+    subscription.unsubscribe();
   });
 
   test("keeps colliding editor route and SQL identities distinct through updates and deletion", async () => {

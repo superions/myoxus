@@ -16,6 +16,8 @@ export type ContextSurfaceDescriptor = {
   sequence?: number;
   viewFamilies?: readonly WorkbenchViewFamily[];
   retainBodyWhenCollapsed?: boolean;
+  /** Shrink the tool body to the rail; the body owns its internal scrolling. */
+  boundedBody?: boolean;
   /** Continue only after the surface has resolved its own unsaved native edit. */
   beforeClose?: (next: () => void) => void;
 };
@@ -50,5 +52,9 @@ export class ContextSurface extends Entity<ContextSurfaceDescriptor> {
 
   get retainBodyWhenCollapsed() {
     return this.props.retainBodyWhenCollapsed ?? false;
+  }
+
+  get boundedBody() {
+    return this.props.boundedBody ?? false;
   }
 }

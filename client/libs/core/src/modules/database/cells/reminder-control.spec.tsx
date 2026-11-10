@@ -451,7 +451,7 @@ describe("DatabaseReminderControl", () => {
   test("removes the trigger tooltip while the Reminder Menu is open", async () => {
     const user = userEvent.setup();
     render(
-      <MyoxusUIProvider>
+      <MyoxusUIProvider env="test">
         <DatabaseReminderControl
           field={dateTimeField}
           record={dateTimeRecord}

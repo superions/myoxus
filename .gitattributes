@@ -1,3 +1,8 @@
+# Builds hash generated text resources; checkouts must not change their bytes
+# merely because the Windows runner enables core.autocrlf.
+* text=auto eol=lf
+*.bat text eol=crlf
+
 todo export-ignore
 todo/** export-ignore
 learnings export-ignore
@@ -44,6 +49,9 @@ virgultum/icons/dist/** export-ignore
 *.afdesign binary
 *.sh text eol=lf
 .yarn/patches/*.patch whitespace=-blank-at-eol
+# Reviewed dependency snapshots are hashed as bytes; never apply autocrlf.
+.yarn/vendor/electron-updater/** -text
+.yarn/vendor/electron-updater.tgz binary
 
 .private export-ignore
 .private/** export-ignore
@@ -55,7 +63,9 @@ virgultum/icons/dist/** export-ignore
 *.yjs binary
 
 # Whitespace is semantic data in this cross-writer Markdown fixture.
-build/fixtures/markdown/roundtrip-line-breaks.md whitespace=-blank-at-eol
+build/fixtures/markdown/roundtrip-line-breaks.md -text whitespace=-blank-at-eol
 
 # Official OMG inputs retain their original bytes (including BOM/CRLF/spacing).
 client/libs/bpmn-editor/src/schemas/bpmn-2_0/*.xsd -text -whitespace
+# Content-addressed deliveries must stay byte-identical to their native source.
+client/libs/core/public/document-bundles/** -text

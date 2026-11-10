@@ -312,8 +312,16 @@ export function HistoryView() {
                       />
                     ) : null}
                   </Stack>
-                  {unavailable || model.selectionState.error ? null : navigation
-                      .state.mode === "changes" ? (
+                  {unavailable || model.selectionState.error ? null : model
+                      .snapshotState.error ? (
+                    <HistoryPreviewContent
+                      mode={previewMode}
+                      error={model.snapshotState.error}
+                      onRetry={() => void model.snapshotState.retry()}
+                    />
+                  ) : model.snapshotState.isLoading ? (
+                    <Loading />
+                  ) : navigation.state.mode === "changes" ? (
                     model.selectedTimestamp ? (
                       <Scrollable.Root flex="1 1 auto" minHeight={0}>
                         <Scrollable.Viewport fill>

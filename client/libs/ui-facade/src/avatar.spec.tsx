@@ -50,6 +50,7 @@ describe("facade avatar primitive", () => {
     renderWithProvider(
       <Avatar
         data-testid="compact-avatar"
+        color="var(--myoxus-text-highlight-foreground-green)"
         kind="user"
         name="Alice Beta"
         size="xs"
@@ -60,6 +61,12 @@ describe("facade avatar primitive", () => {
     expect(avatar.dataset.myoxusUiRole).toBe("avatar:user");
     expect(screen.getByText("A")).not.toBeNull();
     expect(screen.queryByText("AB")).toBeNull();
+    const placeholder = screen.getByText("A");
+    expect(placeholder.style.background).toBe("");
+    expect(placeholder.style.color).toBe("");
+    expect(avatar.style.getPropertyValue("--avatar-color")).toContain(
+      "--myoxus-text-highlight-foreground-green",
+    );
   });
 
   test("uses image sources instead of falling back to generated initials", () => {

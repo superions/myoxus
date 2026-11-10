@@ -2,7 +2,7 @@ import { LinkPreviewDataSchema } from "@virgultum/model";
 import { z } from "zod";
 
 const _StorageSchema = z.object({
-  data: z.record(LinkPreviewDataSchema.partial()),
+  data: z.record(z.string(), LinkPreviewDataSchema.partial()),
   expires: z.number().optional(),
 });
 

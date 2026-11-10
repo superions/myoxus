@@ -104,12 +104,16 @@ export class DocDisplayMetaService extends Service {
     options?: DocDisplayIconOptions<T>,
   ) {
     const iconSet = icons[options?.type ?? "rc"];
+    return iconSet[this.getJournalIconName(journalDate)];
+  }
+
+  getJournalIconName(journalDate: string | Dayjs) {
     const day = dayjs(journalDate);
     return day.isBefore(dayjs(), "day")
-      ? iconSet.YesterdayIcon
+      ? "YesterdayIcon"
       : day.isAfter(dayjs(), "day")
-        ? iconSet.TomorrowIcon
-        : iconSet.TodayIcon;
+        ? "TomorrowIcon"
+        : "TodayIcon";
   }
 
   icon$<T extends IconType = "rc">(

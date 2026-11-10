@@ -6,12 +6,26 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
-import { NavigationLink } from "./index";
+import { InlineActionButton, NavigationLink } from "./index";
 import { MyoxusUIProvider } from "./provider";
 
 afterEach(cleanup);
 
 describe("NavigationLink", () => {
+  test("embedded text actions inherit text while ordinary inline actions retain link styling", () => {
+    render(
+      <MyoxusUIProvider>
+        <InlineActionButton appearance="text">Field</InlineActionButton>
+        <InlineActionButton>Link action</InlineActionButton>
+      </MyoxusUIProvider>,
+    );
+    const field = screen.getByRole("button", { name: "Field" });
+    const link = screen.getByRole("button", { name: "Link action" });
+    expect(field.style.color).toBe("inherit");
+    expect(field.style.textDecoration).toBe("inherit");
+    expect(link.style.color).not.toBe("inherit");
+    expect(link.style.textDecoration).not.toBe("inherit");
+  });
   test("blocks disabled button actions instead of applying visual state only", () => {
     const onClick = vi.fn();
     render(

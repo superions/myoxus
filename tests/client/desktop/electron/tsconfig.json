@@ -9,6 +9,7 @@
     "e2e/product-flow.spec.ts",
     "e2e/quit-lifecycle.spec.ts",
     "e2e/release-smoke.spec.ts",
+    "e2e/update-lifecycle.spec.ts",
     "e2e/window-lifecycle.spec.ts",
     "fixtures/packaged-runtime.ts",
     "fixtures/product-flow.ts",

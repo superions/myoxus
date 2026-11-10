@@ -9,13 +9,13 @@ use sqlx::{PgPool, Postgres, QueryBuilder, Row, Transaction, types::Json};
 use tracing::{debug, error, instrument, trace};
 use uuid::Uuid;
 
+mod contextual;
 mod library;
 
 use myoxus_application::auth::{AuthError, AuthResult};
 use myoxus_application::template_registry::{
-  ReleasedBuiltinAdoption, ReleasedBuiltinInstance, RetiringTemplateSource, ShippedTemplateSelection,
-  ShippedTemplateSelectionReport, TemplateRegistryAuditEventFilter, TemplateRegistryStore,
-  shipped_default_provisioning_mode,
+  ReleasedBuiltinInstance, RetiringTemplateSource, ShippedTemplateSelection, ShippedTemplateSelectionReport,
+  TemplateRegistryAuditEventFilter, TemplateRegistryStore, shipped_default_provisioning_mode,
 };
 use myoxus_domain::entities::DocumentMetadataPatch;
 use myoxus_domain::ids::{DocId, UserId, WorkspaceId};
@@ -266,41 +266,12 @@ impl SqlxTemplateRegistryStore {
       .bind(after).bind(limit.clamp(1,100) as i64).fetch_all(connection).await.map_err(Self::map_db_err)
   }
 
-  /// Bounded legacy observations in the recovery planner's read-only snapshot.
-  /// Native/adopted bindings are excluded exactly as in the mutating cutover.
-  pub async fn pending_released_builtin_workspace_page_in(
-    connection: &mut sqlx::PgConnection,
-    template: Uuid,
-    workspace: Uuid,
-    after: Option<Uuid>,
-  ) -> AuthResult<Vec<ReleasedBuiltinInstance>> {
-    let ids: Vec<Uuid> = sqlx::query_scalar("SELECT id FROM workspace_template_instances WHERE template_id=$1 AND workspace_id=$2 AND revision_id IS NULL AND ($3::uuid IS NULL OR id>$3) ORDER BY id LIMIT 100")
-      .bind(template).bind(workspace).bind(after).fetch_all(&mut *connection).await.map_err(Self::map_db_err)?;
-    Self::released_builtin_rows(connection, template, false, Some(&ids), None).await
-  }
-
-  /// Share the normal native revision mapping with pre-bootstrap inspection.
-  pub async fn published_revisions_in(
-    connection: &mut sqlx::PgConnection,
-    template: Uuid,
-  ) -> AuthResult<Vec<TemplateRevision>> {
-    sqlx::query("SELECT * FROM template_revisions WHERE template_id=$1 AND state='published' ORDER BY id")
-      .bind(template)
-      .fetch_all(connection)
-      .await
-      .map_err(Self::map_db_err)?
-      .into_iter()
-      .map(Self::map_revision_row)
-      .collect()
-  }
   async fn released_builtin_rows(
     connection: &mut sqlx::PgConnection,
     template_id: Uuid,
-    lock: bool,
     selected: Option<&[Uuid]>,
-    pending_limit: Option<usize>,
   ) -> AuthResult<Vec<ReleasedBuiltinInstance>> {
-    let query = format!(
+    let query =
       "SELECT i.id, i.workspace_id, i.workspace_doc_id, i.workspace_doc_key,
       i.state, i.revision_id, i.last_applied_hash, i.expected_hash, i.locale_hash,
       d.id AS resolved_doc_id, COALESCE(d.external_id,d.id::text) AS resolved_doc_key,
@@ -317,15 +288,10 @@ impl SqlxTemplateRegistryStore {
         ORDER BY (candidate.external_id=i.workspace_doc_key) DESC NULLS LAST LIMIT 1
       ) d ON TRUE
       LEFT JOIN document_template_state n ON n.doc_id=d.id
-       WHERE i.template_id=$1 AND ($2::uuid[] IS NULL OR i.id=ANY($2))
-         AND (NOT $3 OR i.revision_id IS NULL) ORDER BY i.id LIMIT $4 {}",
-      if lock { "FOR UPDATE OF i" } else { "" }
-    );
-    sqlx::query(&query)
+        WHERE i.template_id=$1 AND ($2::uuid[] IS NULL OR i.id=ANY($2)) ORDER BY i.id";
+    sqlx::query(query)
       .bind(template_id)
       .bind(selected)
-      .bind(pending_limit.is_some())
-      .bind(pending_limit.map(|limit| limit.clamp(1, 100) as i64))
       .fetch_all(connection)
       .await
       .map_err(Self::map_db_err)?
@@ -652,6 +618,24 @@ impl SqlxTemplateRegistryStore {
 
 #[async_trait]
 impl TemplateRegistryStore for SqlxTemplateRegistryStore {
+  async fn contextual_template_page(
+    &self,
+    query: &myoxus_application::template_registry::suggestions::ContextualTemplateQuery,
+  ) -> AuthResult<myoxus_application::template_registry::suggestions::ContextualTemplatePage> {
+    self.read_contextual_template_page(query).await
+  }
+  async fn contextual_guide_deliveries(
+    &self,
+    workspace: WorkspaceId,
+  ) -> AuthResult<Vec<myoxus_application::template_registry::suggestions::ContextualGuideDelivery>> {
+    self.read_contextual_guide_deliveries(workspace).await
+  }
+  async fn contextual_page_default_replacements(
+    &self,
+    workspace: WorkspaceId,
+  ) -> AuthResult<Vec<myoxus_application::template_registry::TemplatePageDefaultReplacement>> {
+    self.read_contextual_page_default_replacements(workspace).await
+  }
   async fn library_sources(
     &self,
     query: &myoxus_application::template_registry::suggestions::TemplateLibraryQuery,
@@ -818,7 +802,8 @@ impl TemplateRegistryStore for SqlxTemplateRegistryStore {
         .map_err(Self::map_db_err)?;
         if bound {
           return Err(AuthError::InvalidInput(
-            "legacy builtin instances without revision bindings require explicit native release transition".into(),
+            "unsupported unmigrated NULL-revision source binding; current selection cannot adopt legacy identities"
+              .into(),
           ));
         }
         sqlx::query(
@@ -1004,29 +989,7 @@ impl TemplateRegistryStore for SqlxTemplateRegistryStore {
     &self,
     id: TemplateCatalogEntryId,
   ) -> AuthResult<Vec<ReleasedBuiltinInstance>> {
-    Self::released_builtin_rows(
-      &mut *self.pool.acquire().await.map_err(Self::map_db_err)?,
-      id,
-      false,
-      None,
-      None,
-    )
-    .await
-  }
-
-  async fn pending_released_builtin_instances(
-    &self,
-    id: TemplateCatalogEntryId,
-    limit: usize,
-  ) -> AuthResult<Vec<ReleasedBuiltinInstance>> {
-    Self::released_builtin_rows(
-      &mut *self.pool.acquire().await.map_err(Self::map_db_err)?,
-      id,
-      false,
-      None,
-      Some(limit),
-    )
-    .await
+    Self::released_builtin_rows(&mut *self.pool.acquire().await.map_err(Self::map_db_err)?, id, None).await
   }
 
   async fn source_attribution(
@@ -1046,7 +1009,7 @@ impl TemplateRegistryStore for SqlxTemplateRegistryStore {
       return Ok(None);
     };
     Ok(
-      Self::released_builtin_rows(&mut connection, template, false, Some(&[id]), None)
+      Self::released_builtin_rows(&mut connection, template, Some(&[id]))
         .await?
         .into_iter()
         .next(),
@@ -1130,218 +1093,6 @@ impl TemplateRegistryStore for SqlxTemplateRegistryStore {
     .fetch_all(&self.pool)
     .await
     .map_err(Self::map_db_err)
-  }
-
-  #[instrument(skip_all, fields(template_id = %id, revision_id = %revision_id))]
-  async fn commit_released_builtin_transition(
-    &self,
-    id: TemplateCatalogEntryId,
-    revision_id: TemplateRevisionId,
-    purpose: myoxus_application::template_registry::bundle::TemplatePurpose,
-    adoptions: &[ReleasedBuiltinAdoption],
-    finalize: bool,
-  ) -> AuthResult<()> {
-    use myoxus_application::template_registry::bundle::TemplatePurpose;
-    if adoptions.len() > 100 {
-      return Err(AuthError::InvalidInput(
-        "release adoption batch exceeds 100 bindings".into(),
-      ));
-    }
-    let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
-    let source: Option<String> =
-      sqlx::query_scalar("SELECT source FROM template_catalog_entries WHERE id=$1 FOR NO KEY UPDATE")
-        .bind(id)
-        .fetch_optional(&mut *tx)
-        .await
-        .map_err(Self::map_db_err)?;
-    if !matches!(source.as_deref(), Some("builtin" | "bundle")) {
-      return Err(AuthError::InvalidInput("release catalog owner changed".into()));
-    }
-    let selected: Vec<_> = adoptions.iter().map(|adoption| adoption.observed.id).collect();
-    if !selected.is_empty() {
-      let pending: bool = sqlx::query_scalar(
-        "SELECT EXISTS(SELECT 1 FROM workspace_template_instances WHERE id=ANY($1) AND revision_id IS NULL)",
-      )
-      .bind(&selected)
-      .fetch_one(&mut *tx)
-      .await
-      .map_err(Self::map_db_err)?;
-      // Another recovering process may have committed this exact batch. Never
-      // overwrite its now-native bindings using our stale legacy observation.
-      if !pending {
-        return Ok(());
-      }
-    }
-    let genuine: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM template_revisions WHERE id=$1 AND template_id=$2 AND created_by IS NULL AND state IN ('validated','published','deprecated') AND bundle_blob_id IS NOT NULL AND checksum IS NOT NULL)")
-      .bind(revision_id).bind(id).fetch_one(&mut *tx).await.map_err(Self::map_db_err)?;
-    if !genuine {
-      return Err(AuthError::InvalidInput(
-        "release needs a genuine validated content revision".into(),
-      ));
-    }
-    // Admit the genuine frozen revision as history without changing publication
-    // authority. A later current-selection transaction owns active delivery.
-    sqlx::query("UPDATE template_revisions SET state='deprecated',published_at=COALESCE(published_at,now()) WHERE id=$1 AND state='validated'")
-      .bind(revision_id)
-      .execute(&mut *tx)
-      .await
-      .map_err(Self::map_db_err)?;
-
-    for applied_revision in adoptions
-      .iter()
-      .map(|adoption| adoption.revision_id)
-      .collect::<std::collections::BTreeSet<_>>()
-    {
-      let genuine: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM template_revisions WHERE id=$1 AND template_id=$2 AND state IN ('published','deprecated') AND bundle_blob_id IS NOT NULL AND checksum IS NOT NULL)")
-        .bind(applied_revision).bind(id).fetch_one(&mut *tx).await.map_err(Self::map_db_err)?;
-      if !genuine {
-        return Err(AuthError::InvalidInput(
-          "release adoption needs a genuine content revision".into(),
-        ));
-      }
-    }
-
-    // Use the normal document write locks, in stable order. The content sequence
-    // fence binds application-level comparison to the actual committed bytes.
-    let docs: std::collections::BTreeSet<_> = adoptions
-      .iter()
-      .filter_map(|adoption| {
-        adoption
-          .observed
-          .resolved_doc_id
-          .map(|doc| (adoption.observed.workspace_id, doc))
-      })
-      .collect();
-    for (workspace, doc) in docs {
-      sqlx::query("SELECT pg_advisory_xact_lock(hashtext($1)::bigint)")
-        .bind(crate::document_version::edit_capture_state::lock_key(workspace, doc))
-        .execute(&mut *tx)
-        .await
-        .map_err(Self::map_db_err)?;
-      // Metadata patches and Registry attribution use this same row lock.
-      sqlx::query("SELECT id FROM docs WHERE workspace_id=$1 AND id=$2 FOR UPDATE")
-        .bind(workspace)
-        .bind(doc)
-        .fetch_optional(&mut *tx)
-        .await
-        .map_err(Self::map_db_err)?;
-    }
-    sqlx::query("SELECT p.id FROM workspace_template_policies p JOIN workspace_template_instances i ON i.workspace_id=p.workspace_id AND i.template_id=p.template_id WHERE i.id=ANY($1) ORDER BY p.id FOR UPDATE OF p")
-      .bind(&selected).fetch_all(&mut *tx).await.map_err(Self::map_db_err)?;
-    let current = Self::released_builtin_rows(&mut tx, id, true, Some(&selected), None).await?;
-    if current.len() != adoptions.len()
-      || current
-        .iter()
-        .zip(adoptions)
-        .any(|(row, adoption)| row != &adoption.observed)
-    {
-      return Err(AuthError::InvalidInput(
-        "release bindings changed; retry startup".into(),
-      ));
-    }
-    for adoption in adoptions {
-      let observed = &adoption.observed;
-      if let Some(expected) = adoption.content_revision {
-        let actual: i64 = sqlx::query_scalar("SELECT GREATEST(COALESCE((SELECT MAX(sequence) FROM doc_updates WHERE workspace_id=$1 AND doc_id=$2),0),COALESCE((SELECT last_sequence FROM doc_snapshots WHERE workspace_id=$1 AND doc_id=$2),0))")
-          .bind(observed.workspace_id).bind(observed.resolved_doc_id).fetch_one(&mut *tx).await.map_err(Self::map_db_err)?;
-        if actual != expected {
-          return Err(AuthError::InvalidInput("release content changed; retry startup".into()));
-        }
-      }
-      let state = adoption.state_after_cutover(purpose);
-      let managed = state == InstanceState::Ok && purpose == TemplatePurpose::Template;
-      let retains_binding = adoption.retains_source_binding(purpose);
-      let applied = if managed || purpose == TemplatePurpose::Guide {
-        adoption.current_hash.as_deref()
-      } else {
-        None
-      };
-      sqlx::query(
-        "UPDATE workspace_template_instances SET revision_id=$2,state=$3,
-        last_applied_hash=$4,current_hash=$5,expected_hash=NULL,
-        detached_at=CASE WHEN $3='detached' THEN COALESCE(detached_at,now()) ELSE detached_at END,
-        retired_at=CASE WHEN $3='retired' THEN COALESCE(retired_at,now()) ELSE retired_at END,
-        workspace_doc_id=CASE WHEN $8 THEN COALESCE(workspace_doc_id,$6) ELSE NULL END,
-        workspace_doc_key=CASE WHEN $8 THEN COALESCE($7,workspace_doc_key) ELSE NULL END,
-        updated_at=now() WHERE id=$1",
-      )
-      .bind(observed.id)
-      .bind(adoption.revision_id)
-      .bind(instance_state_to_db(state))
-      .bind(applied)
-      .bind(adoption.current_hash.as_deref())
-      .bind(observed.resolved_doc_id)
-      .bind(observed.resolved_doc_key.as_deref())
-      .bind(retains_binding)
-      .execute(&mut *tx)
-      .await
-      .map_err(Self::map_db_err)?;
-      if !retains_binding && observed.resolved_doc_id.is_some() {
-        sqlx::query("INSERT INTO template_registry_audit_events(action,event_type,workspace_id,template_id,instance_id,payload_json) VALUES('detached','template.instance.detached',$1,$2,$3,$4)")
-          .bind(observed.workspace_id).bind(id).bind(observed.id)
-          .bind(serde_json::json!({"source_binding_relinquished":true,"document_id":observed.resolved_doc_id}))
-          .execute(&mut *tx).await.map_err(Self::map_db_err)?;
-      }
-      // Trash and later reinstalls retain reader copies. Their existing native
-      // state distinguishes introductions from reusable sources and ordinary pages.
-      if observed.source_available || (purpose == TemplatePurpose::Guide && observed.resolved_doc_id.is_some()) {
-        if purpose == TemplatePurpose::Guide {
-          sqlx::query("INSERT INTO document_template_state(doc_id,state,source) VALUES($1,'guide','workspace') ON CONFLICT(doc_id) DO UPDATE SET state='guide' WHERE (document_template_state.template_id IS NULL OR document_template_state.template_id=$2) AND (document_template_state.instance_id IS NULL OR document_template_state.instance_id=$3)")
-            .bind(observed.resolved_doc_id).bind(id).bind(observed.id).execute(&mut *tx).await.map_err(Self::map_db_err)?;
-        } else {
-          sqlx::query("UPDATE document_template_state SET state=$4,template_id=$5,instance_id=$6,revision_id=$7,source=$8,updated_at=now() WHERE doc_id=$1 AND (template_id IS NULL OR template_id=$2) AND (instance_id IS NULL OR instance_id=$3)")
-            .bind(observed.resolved_doc_id).bind(id).bind(observed.id)
-            .bind(if managed { "managed" } else { "seeded" })
-            .bind(if managed { Some(id) } else { None }).bind(if managed { Some(observed.id) } else { None })
-            .bind(if managed { Some(adoption.revision_id) } else { None }).bind(if managed { "workspace" } else { "document" })
-            .execute(&mut *tx).await.map_err(Self::map_db_err)?;
-        }
-      }
-    }
-    if adoptions
-      .iter()
-      .any(|adoption| adoption.unchanged && adoption.revision_id == revision_id)
-    {
-      // A partially native owner still needs the attested old revision's
-      // provenance for the existing seed-once-to-managed policy correction.
-      sqlx::query("UPDATE template_revisions SET release_managed_publication=true WHERE id=$1")
-        .bind(revision_id)
-        .execute(&mut *tx)
-        .await
-        .map_err(Self::map_db_err)?;
-    }
-    // Catalog, policy identities, pins/default choices and document bytes are
-    // retained. All nullable legacy revisions have been resolved before readers
-    // can observe the normal Bundle owner.
-    if finalize {
-      let pending: bool = sqlx::query_scalar(
-        "SELECT EXISTS(SELECT 1 FROM workspace_template_instances WHERE template_id=$1 AND revision_id IS NULL)",
-      )
-      .bind(id)
-      .fetch_one(&mut *tx)
-      .await
-      .map_err(Self::map_db_err)?;
-      if pending {
-        return Err(AuthError::InvalidInput(
-          "release adoption still has pending legacy bindings; retry recovery".into(),
-        ));
-      }
-      if source.as_deref() == Some("builtin") {
-        // The validated frozen identity, not NULL authorship, attests this old
-        // builtin owner's history and purpose-correct default-policy transfer.
-        // No other published revision is acquired by this transition.
-        sqlx::query("UPDATE template_revisions SET release_managed_publication=true WHERE id=$1")
-          .bind(revision_id)
-          .execute(&mut *tx)
-          .await
-          .map_err(Self::map_db_err)?;
-        sqlx::query("UPDATE template_default_policies SET release_managed=true WHERE template_id=$1 AND apply_to_new_workspaces AND selection_mode='published' AND provisioning_mode IN ('seed_once','managed_until_local_edit')")
-          .bind(id).execute(&mut *tx).await.map_err(Self::map_db_err)?;
-      }
-      sqlx::query("UPDATE template_catalog_entries SET source='bundle',builder_version=NULL,updated_at=now() WHERE id=$1 AND source='builtin'")
-        .bind(id).execute(&mut *tx).await.map_err(Self::map_db_err)?;
-    }
-    tx.commit().await.map_err(Self::map_db_err)
   }
 
   // ── Catalog Entries ──────────────────────────────────────────────────

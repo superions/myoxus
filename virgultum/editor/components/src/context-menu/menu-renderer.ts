@@ -396,8 +396,7 @@ declare global {
 }
 
 export const getDefaultModalRoot = (ele: HTMLElement) => {
-  const host: HTMLElement | null =
-    ele.closest("editor-host") ?? ele.closest(".data-view-popup-container");
+  const host = ele.closest<HTMLElement>("editor-host");
   if (host) {
     return host;
   }
@@ -428,6 +427,7 @@ export const popupTargetFromElement = (element: HTMLElement): PopupTarget => {
   let isActive = false;
   return {
     targetRect: {
+      contextElement: element,
       getBoundingClientRect: () => {
         if (element.isConnected) {
           return (rect = element.getBoundingClientRect());

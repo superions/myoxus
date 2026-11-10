@@ -6,6 +6,7 @@ export function transformModel(
   props?: Parameters<Store["addBlock"]>[1],
 ) {
   const doc = model.store;
+  if (doc.readonly || doc.hasFixedText(model)) return null;
   const parent = doc.getParent(model);
   if (!parent) {
     return null;

@@ -117,15 +117,22 @@ describe("Workbench state idempotency", () => {
     });
     const persist = vi.fn();
     const openToolHost = vi.fn();
+    const closeToolHost = vi.fn();
     view.addContextSurface({ id: "outline", order: 10 });
     view.addContextSurface({ id: "activity", order: 20 });
     view.bindToolLayout({
       workspaceId: "workspace-a",
       viewFamily: "document-page",
-      override: null,
+      override: {
+        workspaceId: "workspace-a",
+        viewFamily: "document-page",
+        orderedToolIds: ["outline", "activity", "graph-details"],
+        visibleToolIds: ["outline", "graph-details"],
+        collapsedToolIds: [],
+      },
       persist,
       openToolHost,
-      closeToolHost: vi.fn(),
+      closeToolHost,
     });
 
     view.showTool("activity");
@@ -136,10 +143,13 @@ describe("Workbench state idempotency", () => {
     expect(openToolHost).toHaveBeenCalledTimes(2);
     expect(persist).toHaveBeenCalledTimes(3);
     expect(persist.mock.lastCall?.[0]).toMatchObject({
-      orderedToolIds: ["outline", "activity"],
-      visibleToolIds: ["outline"],
+      orderedToolIds: ["outline", "activity", "graph-details"],
+      visibleToolIds: ["outline", "graph-details"],
       collapsedToolIds: [],
     });
+    expect(view.toolHeaderFocusRequest$.value?.id).toBe("outline");
+    view.hideTool("outline");
+    expect(closeToolHost).toHaveBeenCalledOnce();
   });
 
   test("opens a product default without overriding an explicit hidden layout", () => {

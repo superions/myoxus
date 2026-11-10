@@ -123,6 +123,7 @@ const GIT_POLLING_ADMISSION: &str = include_str!("../migrations/1093_git_polling
 const GIT_ROTATION_ADMISSION: &str = include_str!("../migrations/1094_git_rotation_admission.sql");
 const REGISTERED_JOB_IMPORT: &str = include_str!("../migrations/1095_registered_job_import.sql");
 const REGISTERED_JOB_ADMISSION: &str = include_str!("../migrations/1096_registered_job_admission.sql");
+const DOCUMENT_FIELD_SEARCH_REFRESH: &str = include_str!("../migrations/1097_document_field_search_refresh.sql");
 const AUTOMATION_EFFECT_CONSOLIDATION: &str = include_str!("../migrations/1058_automation_effect_consolidation.sql");
 const AUTOMATION_JOB_IDENTITY: &str = include_str!("../migrations/1037_workspace_automation_job_identity.sql");
 const AUDIO_JOB_ATTEMPTS: &str = include_str!("../migrations/1036_audio_job_attempts.sql");
@@ -837,6 +838,11 @@ fn expected_ledger() -> Vec<(i64, &'static str, Vec<u8>)> {
       1096,
       "registered job admission",
       sha384(REGISTERED_JOB_ADMISSION.as_bytes()),
+    ),
+    (
+      1097,
+      "document field search refresh",
+      sha384(DOCUMENT_FIELD_SEARCH_REFRESH.as_bytes()),
     ),
   ]
 }

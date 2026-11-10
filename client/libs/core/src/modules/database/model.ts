@@ -836,7 +836,12 @@ export function getCellPrimitiveValue(
     return row.row.title;
   }
   const value = getCellValue(row, field.id)?.value;
-  if (!value) return null;
+  // Match the server projection: only an absent Status Cell uses the schema
+  // default. Existing empty or malformed Cells retain their actual value.
+  if (!value)
+    return field.fieldType === DatabaseFieldKind.Status
+      ? (field.config.status?.defaultOptionId ?? null)
+      : null;
   switch (field.fieldType) {
     case DatabaseFieldKind.Checkbox:
       return value.checkbox ?? false;

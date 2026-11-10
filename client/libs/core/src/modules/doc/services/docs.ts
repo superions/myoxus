@@ -10,7 +10,10 @@ import { DebugLogger } from "@myoxus/debug";
 import { Unreachable } from "@myoxus/env/constant";
 import { LiveData, ObjectPool, Service } from "@myoxus/infra";
 import { replaceIdMiddleware } from "@virgultum/editor/shared/adapters";
-import type { MyoxusTextAttributes } from "@virgultum/editor/shared/types";
+import {
+  remapDocumentFieldIdentities,
+  type MyoxusTextAttributes,
+} from "@virgultum/editor/shared/types";
 import {
   type DeltaInsert,
   Slice,
@@ -24,6 +27,7 @@ import {
   applyUpdate,
   Doc as YDoc,
   Map as YMap,
+  Array as YArray,
   encodeStateAsUpdate,
   type Transaction,
 } from "yjs";
@@ -91,10 +95,14 @@ export type TemplateCheckResult = Awaited<
 
 import {
   normalizeTemplateInputs,
+  initializeTemplateDocumentFields,
   templateInputNames,
   type RequestTemplateInputs,
   type TemplateInputValues,
 } from "../../template-doc/services/template-inputs";
+import { prepareTemplateTextProtection } from "../../template-doc/services/template-text-protection";
+import { createReadonlySnapshotWorkspace } from "./readonly-snapshot-workspace";
+import { removeUnboundTemplateReferences } from "./native-template-references";
 
 interface ApplyTemplateOptions {
   inputValues?: TemplateInputValues;
@@ -984,14 +992,45 @@ export class DocsService extends Service {
     docId: string,
     snapshot: DocSliceSnapshot,
     transformer: Transformer,
-    operation?: { write: (write: () => void) => void },
+    operation?: { write: (write: () => void) => void; rollback?: true },
   ) {
     const doc = this.store.getVirgultumDoc(docId);
     if (!doc) throw new Error(`Document content not found: ${docId}`);
-    const remove = () =>
-      [...(doc.root?.children ?? [])].forEach((child) =>
-        doc.deleteBlock(child),
-      );
+    const remove = () => {
+      if (operation?.rollback) {
+        // The existing captured-operation fence owns this compensation. Its
+        // newly inserted fixed owners must be removable without an editor unlock.
+        const blocks = doc.spaceDoc.getMap<YMap<unknown>>("blocks");
+        const children = doc.root?.yBlock.get("sys:children");
+        if (!(children instanceof YArray))
+          throw new TemplateInstantiationError("rollback-failed");
+        const pending = children
+          .toArray()
+          .filter((id): id is string => typeof id === "string");
+        const removed = new Set<string>();
+        while (pending.length) {
+          const id = pending.pop()!;
+          if (removed.has(id)) continue;
+          removed.add(id);
+          const nested = blocks.get(id)?.get("sys:children");
+          if (nested instanceof YArray)
+            pending.push(
+              ...nested
+                .toArray()
+                .filter((id): id is string => typeof id === "string"),
+            );
+        }
+        doc.transact(() => {
+          children.delete(0, children.length);
+          removed.forEach((id) => blocks.delete(id));
+        });
+        return;
+      }
+      const children = [...(doc.root?.children ?? [])];
+      if (children.some((child) => doc.hasFixedText(child)))
+        throw new TemplateInstantiationError("application-failed");
+      children.forEach((child) => doc.deleteBlock(child));
+    };
     if (operation) operation.write(remove);
     else remove();
     const result = await transformer.snapshotToSlice(
@@ -1002,15 +1041,6 @@ export class DocsService extends Service {
       operation,
     );
     if (!result) throw new TemplateInstantiationError("application-failed");
-  }
-
-  private resolveTemplateVariables(
-    docId: string,
-    variables: TemplateVariables,
-  ): string[] {
-    const doc = this.store.getVirgultumDoc(docId);
-    if (!doc) throw new Error(`Document content not found: ${docId}`);
-    return applyNativeTemplateValues(doc, variables);
   }
 
   async duplicate(sourceDocId: string, _targetDocId?: string) {
@@ -1037,6 +1067,9 @@ export class DocsService extends Service {
       // assets. A target ID is not success if content conversion failed.
       using transformer = this.createDocTransformer();
       const snapshot = this.snapshotDocContent(sourceDocId, transformer);
+      // Only the detached destination copy receives new occurrence identities;
+      // the source and its stored input answers remain untouched.
+      remapDocumentFieldIdentities(snapshot, nanoid);
       await this.replaceDocContent(targetDocId, snapshot, transformer);
 
       // Remote duplication retains SQL identities and archived references through
@@ -1129,6 +1162,7 @@ export class DocsService extends Service {
         sourceDocId,
         this.createDocTransformer(),
       );
+      prepareTemplateTextProtection(snapshot);
       const title =
         (
           native.root?.props as { title?: Text } | undefined
@@ -1286,6 +1320,7 @@ export class DocsService extends Service {
         sourceDocId,
         revision,
         diagnostics,
+        nativeFields: inspection.nativeFields,
         stale$,
         release,
         isCurrent: () => {
@@ -1416,7 +1451,6 @@ export class DocsService extends Service {
           : titleInput,
       );
       const {
-        body: sourceSnapshot,
         title,
         inspection: { required: requested, repeats },
         inputNames: names,
@@ -1479,8 +1513,14 @@ export class DocsService extends Service {
       if (!targetRef || !targetDocId)
         throw new TemplateInstantiationError("source-unavailable");
       const targetDoc = targetRef.doc;
-      const materializedId = targetDocId;
       targetSnapshot = this.snapshotDocContent(targetDocId, transformer);
+      const targetNative = targetDoc.virgultumDoc;
+      if (
+        targetNative.root?.children.some((child) =>
+          targetNative.hasFixedText(child),
+        )
+      )
+        throw new TemplateInstantiationError("application-failed");
       targetTitle = targetDoc.title$.value;
       targetProperties = { ...targetDoc.getProperties() };
       let expectedTitle = targetTitle;
@@ -1514,12 +1554,6 @@ export class DocsService extends Service {
         );
       targetDoc.yDoc.on("afterTransaction", onChange);
       observing = true;
-      await waitForTemplateOperation(
-        this.replaceDocContent(targetDocId, sourceSnapshot, transformer, {
-          write,
-        }),
-        signal,
-      );
       Object.assign(
         resolved,
         await this.resolveAutomaticTemplateVariables(
@@ -1532,10 +1566,31 @@ export class DocsService extends Service {
       signal.throwIfAborted();
       assertUnchanged();
 
-      let unresolved: string[] = [];
-      write(() => {
-        unresolved = this.resolveTemplateVariables(materializedId, resolved);
-      });
+      // Resolve repeats and substitutions off-document. Sealing must precede
+      // the first target write, without preventing prototype removal in staging.
+      const stage = createReadonlySnapshotWorkspace(
+        this.store.getVirgultumCollection().id,
+      );
+      let templateBody: DocSliceSnapshot;
+      let unresolved: string[];
+      try {
+        const detached = stage.loadSnapshot(sourceDocId, source.revision, {
+          readonly: false,
+        });
+        unresolved = applyNativeTemplateValues(detached, resolved);
+        using stagingTransformer = detached.getTransformer();
+        const prepared = stagingTransformer.sliceToSnapshot(
+          Slice.fromModels(detached, [...(detached.root?.children ?? [])]),
+        );
+        if (!prepared)
+          throw new TemplateInstantiationError("application-failed");
+        templateBody = prepared;
+        removeUnboundTemplateReferences(templateBody);
+        initializeTemplateDocumentFields(templateBody);
+        prepareTemplateTextProtection(templateBody, true);
+      } finally {
+        stage.dispose();
+      }
       const resolvedTitle =
         title === undefined
           ? undefined
@@ -1544,6 +1599,12 @@ export class DocsService extends Service {
       if (unresolvedUnique.length > 0) {
         throw new TemplateInstantiationError("unresolved-variable");
       }
+      await waitForTemplateOperation(
+        this.replaceDocContent(targetDocId, templateBody, transformer, {
+          write,
+        }),
+        signal,
+      );
       let propertyWrite: unknown;
       expectedProperties = { ...targetProperties, ...properties };
       write(() => {
@@ -1610,6 +1671,7 @@ export class DocsService extends Service {
               rollbackTransformer,
               {
                 write: rollbackWrite,
+                rollback: true,
               },
             ),
             rollbackSignal,

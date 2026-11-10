@@ -51,6 +51,7 @@ pub mod db;
 pub mod disk;
 pub mod doc;
 pub mod doc_cache;
+mod document_field_capture;
 pub mod document_graph;
 pub mod document_metadata;
 pub mod document_metadata_policy;

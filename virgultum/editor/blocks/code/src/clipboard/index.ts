@@ -21,6 +21,7 @@ import {
   type UIEventHandler,
 } from "@virgultum/std";
 import type { ExtensionType } from "@virgultum/store";
+import type { CodeBlockComponent } from "../code-block";
 
 export const CodeClipboardAdapterConfigIdentifier =
   createIdentifier<ClipboardAdapterConfig>("code-clipboard-adapter-config");
@@ -102,6 +103,7 @@ export class CodeBlockClipboardController extends LifeCycleWatcher {
   onPaste: UIEventHandler = (ctx) => {
     const e = ctx.get("clipboardState").raw;
     e.preventDefault();
+    if (this.std.store.readonly) return true;
 
     this.std.store.captureSync();
     this.std.command
@@ -151,7 +153,10 @@ export class CodeBlockClipboardController extends LifeCycleWatcher {
         if (type !== "block" || view.model.flavour !== "myoxus:code") return;
 
         if (method === "add") {
-          view.handleEvent("paste", this.onPaste);
+          view.handleEvent("paste", (ctx) => {
+            (view as CodeBlockComponent).syncClipboardRange();
+            return this.onPaste(ctx);
+          });
         }
       },
     );

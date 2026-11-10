@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-//! Read-only content comparison for the bounded released-builtin cutover.
+//! Read-only native value comparison, reused by fixed-owner admission.
+//! Complete graph comparison protects native source replacement and retirement.
 //! CRDT clocks, generated block IDs and fractional table ordering keys differ
 //! between captures. Native properties, rich-text attributes and visible order
 //! must still agree; registration metadata is outside the document body.
@@ -19,7 +20,7 @@ pub fn native_documents_have_same_content(left: &[u8], right: &[u8]) -> Result<b
   Ok(canonical_content(left)? == canonical_content(right)?)
 }
 
-fn value<T: ReadTxn>(out: Out, txn: &T, depth: usize) -> Result<Value, String> {
+pub(crate) fn value<T: ReadTxn>(out: Out, txn: &T, depth: usize) -> Result<Value, String> {
   if depth > 256 {
     return Err("native value nesting limit exceeded".into());
   }

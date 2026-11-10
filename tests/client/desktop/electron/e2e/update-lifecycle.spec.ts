@@ -1,17 +1,31 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import type { UpdateInfo, UpdaterState } from "@myoxus/desktop-api-contract";
+import type {
+  ClientHandler,
+  UpdateInfo,
+  UpdaterState,
+} from "@myoxus/desktop-api-contract";
 import { expect, test } from "@playwright/test";
-import { _electron as electron, type ElectronApplication } from "playwright";
+import {
+  _electron as electron,
+  type ElectronApplication,
+  type Page,
+} from "playwright";
 
 import { startRealUpdateFeedServer } from "../fixtures/update-feed-server";
 
-type Backend = "deb" | "flatpak" | "macos" | "nsis" | "rpm" | "zip";
-type Phase = "external-after" | "external-before" | "update" | "verify";
+type Backend = "deb" | "flatpak" | "homebrew" | "nsis" | "rpm" | "zip";
+type Phase =
+  | "external-after"
+  | "external-before"
+  | "external-adopted"
+  | "update"
+  | "verify";
 
 const required = (name: string): string => {
   const value = process.env[name]?.trim();
@@ -37,8 +51,14 @@ const expectedFlatpakId = {
 }[channel];
 
 if (
-  !["deb", "flatpak", "macos", "nsis", "rpm", "zip"].includes(backend) ||
-  !["external-after", "external-before", "update", "verify"].includes(phase) ||
+  !["deb", "flatpak", "homebrew", "nsis", "rpm", "zip"].includes(backend) ||
+  ![
+    "external-after",
+    "external-before",
+    "external-adopted",
+    "update",
+    "verify",
+  ].includes(phase) ||
   !["beta", "internal", "stable"].includes(channel)
 ) {
   throw new Error("Invalid Electron update E2E environment contract");
@@ -59,12 +79,21 @@ type UpdateApi = {
 
 async function launch(
   certificateSpkiSha256?: string,
-): Promise<{ app: ElectronApplication; api: UpdateApi }> {
-  const environment = { ...process.env };
+): Promise<{ app: ElectronApplication; api: UpdateApi; page: Page }> {
+  const environment = Object.fromEntries(
+    Object.entries(process.env).filter(
+      (entry): entry is [string, string] => entry[1] !== undefined,
+    ),
+  );
   delete environment.ELECTRON_E2E;
   delete environment.ELECTRON_E2E_PACKAGE_TYPE;
   delete environment.ELECTRON_E2E_UPDATE_FEED;
+  // The CI workflow may build several channels under a stable host default.
+  // Exercise the packaged channel and explicit fixture profile, not that default.
+  delete environment.BUILD_TYPE;
+  environment.NODE_ENV = "production";
   const app = await electron.launch({
+    chromiumSandbox: process.platform === "linux",
     args: [
       `--user-data-dir=${profile}`,
       "--no-first-run",
@@ -78,6 +107,13 @@ async function launch(
     locale: "en-US",
     timeout: 60_000,
   });
+  // Keep Main/updater failures visible even if activation never reaches the
+  // final evidence write. This process uses only the task-owned fixture profile.
+  for (const output of [app.process().stdout, app.process().stderr]) {
+    output?.on("data", (chunk) =>
+      process.stdout.write(`[electron ${backend}/${phase}] ${chunk}`),
+    );
+  }
   const page = await app.firstWindow({ timeout: 60_000 });
   const api = await page.evaluate(() => {
     const desktopWindow = globalThis as typeof globalThis & {
@@ -91,6 +127,7 @@ async function launch(
   expect(api).toBe(true);
   return {
     app,
+    page,
     api: {
       checkForUpdates: () =>
         page.evaluate(() =>
@@ -197,16 +234,49 @@ async function writeEvidence(value: unknown): Promise<void> {
   );
 }
 
+async function assertProfileMarker(page: Page, initialize = false) {
+  const marker = `${channel}:${sourceVersion}->${targetVersion}`;
+  const actual = await page.evaluate(
+    async ({ marker, initialize }) => {
+      const api = (window as unknown as Window & { __apis: ClientHandler })
+        .__apis.sharedStorage;
+      if (initialize)
+        await api.setGlobalState(
+          "updateLifecycleProbe",
+          marker,
+          "update-lifecycle",
+        );
+      return (await api.getAllGlobalState()).updateLifecycleProbe;
+    },
+    { marker, initialize },
+  );
+  expect(
+    actual,
+    "Native upgrade/handover must retain the actual persisted profile",
+  ).toBe(marker);
+}
+
 test("real two-version desktop update lifecycle", async () => {
   test.setTimeout(120_000);
 
-  if (phase === "verify" || phase === "external-after") {
-    const { app, api } = await launch();
+  if (
+    phase === "verify" ||
+    phase === "external-after" ||
+    phase === "external-adopted"
+  ) {
+    const { app, api, page } = await launch();
     try {
       const version = await api.currentVersion();
-      expect(version).toBe(targetVersion);
+      expect(version).toBe(
+        phase === "external-adopted" ? sourceVersion : targetVersion,
+      );
+      await assertProfileMarker(page);
+      if (backend === "homebrew")
+        expect(await api.getState()).toMatchObject({
+          availability: { state: "disabled", reason: "external-macos-install" },
+        });
       const flatpak =
-        phase === "external-after"
+        backend === "flatpak" && phase === "external-after"
           ? await app.evaluate(() => {
               const runtimeProcess = (
                 globalThis as typeof globalThis & { process: NodeJS.Process }
@@ -224,7 +294,14 @@ test("real two-version desktop update lifecycle", async () => {
           infoExists: true,
         });
       }
-      await writeEvidence({ backend, channel, flatpak, phase, version });
+      await writeEvidence({
+        backend,
+        channel,
+        flatpak,
+        phase,
+        version,
+        profileRetained: true,
+      });
     } finally {
       await app.close();
     }
@@ -232,37 +309,46 @@ test("real two-version desktop update lifecycle", async () => {
   }
 
   if (phase === "external-before") {
-    const { app, api } = await launch();
+    const { app, api, page } = await launch();
     try {
       expect(await api.currentVersion()).toBe(sourceVersion);
+      await assertProfileMarker(page, true);
+      const reason =
+        backend === "homebrew"
+          ? "external-macos-install"
+          : "externally-managed";
       expect(await api.getState()).toMatchObject({
-        availability: { state: "disabled", reason: "externally-managed" },
+        availability: { state: "disabled", reason },
         progress: null,
       });
       expect(await api.checkForUpdates()).toEqual({
         state: "unavailable",
-        reason: "externally-managed",
+        reason,
       });
-      const flatpak = await app.evaluate(() => {
-        const runtimeProcess = (
-          globalThis as typeof globalThis & { process: NodeJS.Process }
-        ).process;
-        const fs = runtimeProcess.getBuiltinModule("node:fs");
-        return {
-          flatpakId: runtimeProcess.env.FLATPAK_ID ?? null,
-          infoExists: fs.existsSync("/.flatpak-info"),
-        };
-      });
-      expect(flatpak).toEqual({
-        flatpakId: expectedFlatpakId,
-        infoExists: true,
-      });
+      const flatpak =
+        backend === "flatpak"
+          ? await app.evaluate(() => {
+              const runtimeProcess = (
+                globalThis as typeof globalThis & { process: NodeJS.Process }
+              ).process;
+              const fs = runtimeProcess.getBuiltinModule("node:fs");
+              return {
+                flatpakId: runtimeProcess.env.FLATPAK_ID ?? null,
+                infoExists: fs.existsSync("/.flatpak-info"),
+              };
+            })
+          : null;
+      if (flatpak)
+        expect(flatpak).toEqual({
+          flatpakId: expectedFlatpakId,
+          infoExists: true,
+        });
       await writeEvidence({
         backend,
         channel,
         flatpak,
         phase,
-        updaterState: "externally-managed",
+        updaterState: reason,
         version: sourceVersion,
       });
     } finally {
@@ -282,9 +368,10 @@ test("real two-version desktop update lifecycle", async () => {
     port: feedPort,
     version: targetVersion,
   });
-  const { app, api } = await launch(fixture.certificateSpkiSha256);
+  const { app, api, page } = await launch(fixture.certificateSpkiSha256);
   try {
     expect(await api.currentVersion()).toBe(sourceVersion);
+    await assertProfileMarker(page, true);
 
     if (backend === "zip") {
       expect(await api.getState()).toMatchObject({
@@ -324,14 +411,9 @@ test("real two-version desktop update lifecycle", async () => {
       version: targetVersion,
     });
     expect(lifecycle.progress.at(0)).toBe(0);
-    const progressMode =
-      backend === "macos" ? "indeterminate-native-mac" : "percent";
-    if (progressMode === "percent") {
-      expect(lifecycle.progress.some((value) => value > 0)).toBe(true);
-      expect(lifecycle.progress.at(-1)).toBeCloseTo(100, 3);
-    } else {
-      expect(lifecycle.progress.every(Number.isFinite)).toBe(true);
-    }
+    const progressMode = "percent";
+    expect(lifecycle.progress.some((value) => value > 0)).toBe(true);
+    expect(lifecycle.progress.at(-1)).toBeCloseTo(100, 3);
     expect(lifecycle.ready.at(-1)).toEqual({
       allowAutoUpdate: true,
       version: targetVersion,
@@ -341,11 +423,10 @@ test("real two-version desktop update lifecycle", async () => {
     expect(server.manifestRequests).toBeGreaterThanOrEqual(1);
     expect(server.artifactRequests).toBeGreaterThanOrEqual(1);
     expect(server.bytesServed).toBeGreaterThanOrEqual(fixture.artifactSize);
-    expect(
-      createHash("sha512")
-        .update(await readFile(artifactPath))
-        .digest("base64"),
-    ).toBe(fixture.artifactSha512);
+    const artifactHash = createHash("sha512");
+    for await (const chunk of createReadStream(artifactPath))
+      artifactHash.update(chunk);
+    expect(artifactHash.digest("base64")).toBe(fixture.artifactSha512);
 
     await writeEvidence({
       artifact: {
@@ -379,12 +460,26 @@ test("real two-version desktop update lifecycle", async () => {
         resolve();
       });
     });
-    await api.quitAndInstall();
-    await exited;
+    await Promise.all([
+      api.quitAndInstall().catch(async (error) => {
+        // Successful activation can close the renderer before the triggering
+        // IPC reply arrives. Accept only that specific error after a real exit;
+        // the wrapper still verifies installed bytes, version and profile.
+        if (
+          !(error instanceof Error) ||
+          !error.message.includes(
+            "Target page, context or browser has been closed",
+          )
+        )
+          throw error;
+        await exited;
+      }),
+      exited,
+    ]);
   } finally {
-    if (app.process().exitCode === null && app.process().signalCode === null) {
-      await app.close();
-    }
+    // Release Playwright's inspector/context even when the updater already
+    // exited Main; process exit alone does not dispose the automation owner.
+    await app.close();
     await fixture.close();
   }
 });

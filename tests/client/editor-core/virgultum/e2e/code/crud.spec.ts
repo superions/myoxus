@@ -107,7 +107,7 @@ test("support ```[lang] to add code block with language", async ({ page }) => {
 
   const languageButton = codeBlockController.languageButton;
   await expect(languageButton).toBeVisible();
-  await expect(languageButton).toHaveText("TypeScript");
+  await expect(languageButton).toHaveValue("TypeScript");
 });
 
 test("use more than three backticks can not create code block", async ({
@@ -150,25 +150,43 @@ test("change code language can work", async ({ page }) => {
   await expect(locator).toBeVisible();
 
   await type(page, "rust");
-  await page.click(
-    ".myoxus-filterable-list > .items-container > icon-button:nth-child(1)",
-  );
+  await page.getByRole("option", { name: "Rust", exact: true }).click();
   await expect(locator).toBeHidden();
 
   await codeBlockController.codeBlock.hover();
-  await expect(codeBlockController.languageButton).toHaveText("Rust");
+  await expect(codeBlockController.languageButton).toHaveValue("Rust");
+
+  const preference = await page.evaluate(() => {
+    const block = document.querySelector("myoxus-code")!;
+    const saved = JSON.parse(
+      localStorage.getItem("virgultum:code-block:lang-list")!,
+    );
+    return {
+      available: block.langs.map(({ id, name }) => [id, name]).sort(),
+      saved: saved
+        .map(({ name, label }: { name: string; label: string }) => [
+          name,
+          label,
+        ])
+        .sort(),
+    };
+  });
+  expect(preference.saved).toEqual(preference.available);
 
   expect(await codeState(page)).toMatchObject([{ language: "rust" }]);
   await undoByKeyboard(page);
   expect(await codeState(page)).toMatchObject([{ language: null }]);
-  await expect(codeBlockController.languageButton).toHaveText("Plain Text");
+  await expect(codeBlockController.languageButton).toHaveAttribute(
+    "placeholder",
+    "Plain Text",
+  );
 
   // Can switch to another language
   await codeBlockController.clickLanguageButton();
   await type(page, "ty");
   await pressEnter(page);
   await expect(locator).toBeHidden();
-  await expect(codeBlockController.languageButton).toHaveText("TypeScript");
+  await expect(codeBlockController.languageButton).toHaveValue("TypeScript");
   expect(await codeState(page)).toMatchObject([{ language: "typescript" }]);
 });
 
@@ -184,9 +202,7 @@ test("duplicate code block", async ({ page }) => {
   const langLocator = codeBlockController.langList;
   await expect(langLocator).toBeVisible();
   await type(page, "rust");
-  await page.click(
-    ".myoxus-filterable-list > .items-container > icon-button:nth-child(1)",
-  );
+  await page.getByRole("option", { name: "Rust", exact: true }).click();
 
   // add text
   await focusRichText(page);
@@ -306,6 +322,14 @@ test("caption Enter hands input to the following paragraph", async ({
   await codeBlockController.codeBlock.hover();
   await codeBlockController.captionButton.click();
   await type(page, "Virgultum");
+  const caption = page.locator("block-caption-editor textarea");
+  const presentation = await caption.evaluate((input) => ({
+    height: input.getBoundingClientRect().height,
+    lineHeight: parseFloat(getComputedStyle(input).lineHeight),
+    align: getComputedStyle(input).textAlign,
+  }));
+  expect(presentation.align).toBe("center");
+  expect(presentation.height).toBeLessThanOrEqual(presentation.lineHeight + 1);
   await page.keyboard.press("ArrowLeft");
   await pressEnter(page);
   await type(page, "Next ");
@@ -379,7 +403,7 @@ test("should code block lang input supports alias", async ({ page }) => {
   await expect(codeBlockController.langList).toBeVisible();
   await type(page, "文言");
   await pressEnter(page);
-  await expect(codeBlockController.languageButton).toHaveText("Wenyan");
+  await expect(codeBlockController.languageButton).toHaveValue("Wenyan");
 });
 
 test("multi-line indent", async ({ page }) => {
@@ -539,7 +563,7 @@ test("language selection list should not change when hovering over its elements"
   await waitNextFrame(page, 100);
 
   const langListLocator = codeBlockController.langList;
-  const langItemsLocator = langListLocator.locator("icon-button");
+  const langItemsLocator = langListLocator.getByRole("option");
 
   // checking first 4 language list items
   for (let i = 0; i < 3; i++) {

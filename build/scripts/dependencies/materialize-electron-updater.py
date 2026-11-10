@@ -4,6 +4,7 @@
 
 import argparse
 import base64
+import gzip
 import hashlib
 import io
 import json
@@ -14,6 +15,7 @@ import urllib.request
 
 ROOT = Path(__file__).resolve().parents[3]
 DESTINATION = ROOT / ".yarn/vendor/electron-updater"
+PACKAGE_ARCHIVE = ROOT / ".yarn/vendor/electron-updater.tgz"
 PROVENANCE = ROOT / "build/dependencies/electron-updater-source.json"
 URL = "https://registry.npmjs.org/electron-updater/-/electron-updater-6.8.9.tgz"
 INTEGRITY = "sha512-ZhVxM9iGONUpZGI1FxdMRgJjUFXi7AYGVa5PwKlO1tV1/4zDxQmfKpXOHVztKrd6L9rLcFjERvi1Mf2vxyTkig=="
@@ -24,7 +26,7 @@ def require(condition, message):
         raise ValueError(message)
 
 
-def materialize(check):
+def materialize(check, archive_only=False):
     with urllib.request.urlopen(URL, timeout=30) as response:
         archive_bytes = response.read(2 * 1024 * 1024)
     digest = "sha512-" + base64.b64encode(hashlib.sha512(archive_bytes).digest()).decode()
@@ -56,18 +58,42 @@ def materialize(check):
     files["out/DownloadedUpdateHelper.js"] = helper.encode()
     del files["out/DownloadedUpdateHelper.js.map"]
     hashes = {path: hashlib.sha256(data).hexdigest() for path, data in sorted(files.items())}
+    # Directory file: identities include platform-specific stat mode bits.
+    # Fixed archive bytes give Windows and POSIX hosts the same Yarn identity.
+    output = io.BytesIO()
+    with gzip.GzipFile(fileobj=output, mode="wb", filename="", mtime=0) as compressed:
+        with tarfile.open(fileobj=compressed, mode="w", format=tarfile.USTAR_FORMAT) as archive:
+            for path, data in sorted(files.items()):
+                entry = tarfile.TarInfo("package/" + path)
+                entry.size = len(data)
+                entry.mode = 0o644
+                entry.mtime = 0
+                archive.addfile(entry, io.BytesIO(data))
+    package_bytes = output.getvalue()
     provenance = {
         "upstream": {"name": "electron-updater", "version": "6.8.9", "url": URL, "integrity": INTEGRITY},
         "upstreamFiles": upstream_hashes,
         "files": hashes,
+        "archive": {
+            "path": ".yarn/vendor/electron-updater.tgz",
+            "sha256": hashlib.sha256(package_bytes).hexdigest(),
+        },
     }
     provenance_bytes = (json.dumps(provenance, indent=2) + "\n").encode()
-    if check:
-        require(PROVENANCE.read_bytes() == provenance_bytes, "provenance drift")
+    if check or archive_only:
+        recorded = json.loads(PROVENANCE.read_bytes())
+        for key in ("upstream", "upstreamFiles", "files"):
+            require(recorded[key] == provenance[key], "provenance drift")
         actual = {str(path.relative_to(DESTINATION)) for path in DESTINATION.rglob("*") if path.is_file()}
         require(actual == set(files), "vendored file inventory drift")
         for path, data in files.items():
             require((DESTINATION / path).read_bytes() == data, f"source drift: {path}")
+        if archive_only:
+            PACKAGE_ARCHIVE.write_bytes(package_bytes)
+            PROVENANCE.write_bytes(provenance_bytes)
+        else:
+            require(PROVENANCE.read_bytes() == provenance_bytes, "archive provenance drift")
+            require(PACKAGE_ARCHIVE.read_bytes() == package_bytes, "package archive drift")
     else:
         if DESTINATION.exists() or PROVENANCE.exists():
             raise ValueError("Refusing to overwrite an existing snapshot; use --check")
@@ -77,10 +103,14 @@ def materialize(check):
             target.write_bytes(data)
         PROVENANCE.parent.mkdir(parents=True, exist_ok=True)
         PROVENANCE.write_bytes(provenance_bytes)
+        PACKAGE_ARCHIVE.write_bytes(package_bytes)
     print(f"Verified electron-updater 6.8.9: {len(files)} files, native metadata equality, no Lodash edge")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true")
-    materialize(parser.parse_args().check)
+    parser.add_argument("--archive", action="store_true", help="Validate the existing snapshot and materialize only its portable package archive")
+    args = parser.parse_args()
+    require(not (args.check and args.archive), "Choose --check or --archive")
+    materialize(args.check, args.archive)

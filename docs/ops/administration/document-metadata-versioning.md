@@ -112,10 +112,23 @@ orphan capture. Existing version numbers and historical gaps remain unchanged.
 System-created unnamed snapshots remain unnamed and do not move the current
 named-version pointer.
 
+New snapshots retain the resolved text of native document fields at capture time.
+Named snapshots include their committed version label and number; later metadata,
+profile or version-name changes do not rewrite the captured body. If a required
+field fact is unavailable, capture fails instead of saving a guessed value. A
+previously stored snapshot containing unresolved live fields cannot be repaired
+by substituting today's metadata; validated historical output rejects it.
+Restoring captured native fields returns them to editable fields with their
+captured input answers; document metadata continues to reflect the current
+document. A state with uncaptured historical fields cannot be restored safely.
+HTML, Markdown and plain-text reading projections flatten native fields to their
+captured readable text. They do not preserve editable field definitions or answers
+for re-import; use native archival content when those descriptors are required.
+
 Existing trigger settings continue to control Publish, PDF and Daily creation.
 Status transitions retain their existing checkpoint policy. Daily skips content
-identical to the latest named snapshot, including concurrent runs; it does not
-enforce a separate calendar-day limit. PDF export of `latest` with automatic
+and field values unchanged from the latest named snapshot, including concurrent
+runs; it does not enforce a separate calendar-day limit. PDF export of `latest` with automatic
 versioning enabled creates one version and exports exactly that snapshot.
 Exporting an explicit existing version creates no additional version.
 

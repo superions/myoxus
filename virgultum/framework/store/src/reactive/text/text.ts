@@ -3,6 +3,7 @@ import { ErrorCode, VirgultumError } from "@virgultum/global/exceptions";
 import * as Y from "yjs";
 
 import type { BaseTextAttributes } from "./attributes";
+import { hasFixedTextOwner } from "./text-protection";
 import type { DeltaInsert, DeltaOperation, OnTextChange } from "./types";
 
 /**
@@ -77,8 +78,10 @@ export class Text<
       this._yText = new Y.Text();
     }
 
-    this._length$ = signal(length);
-    this._deltas$ = signal(this._yText.doc ? this._yText.toDelta() : []);
+    this._length$ = signal(length, { name: "editor.text.length" });
+    this._deltas$ = signal(this._yText.doc ? this._yText.toDelta() : [], {
+      name: "editor.text.deltas",
+    });
     this._yText.observe((event) => {
       const isLocal =
         !event.transaction.origin ||
@@ -94,6 +97,9 @@ export class Text<
   }
 
   private _transact(callback: () => void) {
+    // Native field answers use their separately validated atom writer. General
+    // text APIs must not rewrite fixed prose or its marks, even without a DOM.
+    if (hasFixedTextOwner(this._yText)) return;
     const doc = this._yText.doc;
     if (!doc) {
       throw new VirgultumError(
@@ -260,6 +266,7 @@ export class Text<
     if (!other || !other.toDelta().length) {
       return;
     }
+    if (hasFixedTextOwner(other._yText)) return;
     this._transact(() => {
       const yOther = other._yText;
       const delta: DeltaOperation[] = yOther.toDelta();
@@ -401,6 +408,11 @@ export class Text<
    * ```
    */
   split(index: number, length = 0): Text {
+    if (hasFixedTextOwner(this._yText))
+      throw new VirgultumError(
+        ErrorCode.ReactiveProxyError,
+        "Cannot split fixed text",
+      );
     if (index < 0 || length < 0 || index + length > this._yText.length) {
       throw new VirgultumError(
         ErrorCode.ReactiveProxyError,

@@ -5,6 +5,7 @@ import {
 } from "@virgultum/shared/services";
 import {
   prepareQualifiedNativeExportSnapshot,
+  projectDocumentFieldOutput,
   BlockPlainTextAdapterExtension,
   type BlockPlainTextAdapterMatcher,
 } from "@virgultum/shared/adapters";
@@ -95,7 +96,13 @@ export const embedSyncedDocBlockPlainTextAdapterMatcher: BlockPlainTextAdapterMa
                   : captured;
               if (!syncedSnapshot)
                 throw new Error("Plain-text embed snapshot missing");
-              await walker.walkONode(syncedSnapshot.blocks);
+              const output = await projectDocumentFieldOutput(
+                syncedSnapshot,
+                context.scopeProvider,
+                syncedDocId,
+                syncedDoc.workspace.id,
+              );
+              await walker.walkONode(output.blocks);
             } else {
               buffer = syncedDoc.meta?.title ?? "";
               if (buffer) {

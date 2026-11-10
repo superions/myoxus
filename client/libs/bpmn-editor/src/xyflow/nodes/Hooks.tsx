@@ -26,6 +26,7 @@ import { ContainmentMode } from "../graph/graphStructure";
 import { type DC__Shape } from "../maths/model";
 import { useXyFlowReactKieDiagramStore } from "../store/Store";
 import { type NodeSizes } from "./NodeSizes";
+import { sourceHandleParts } from "../store/State";
 
 // CSS always last
 import "./Hooks.css";
@@ -155,7 +156,7 @@ export function useConnection(nodeId: string) {
     () => ({
       source: connectionHandleType === "source" ? (source ?? "") : target,
       target: connectionHandleType === "source" ? target : (source ?? ""),
-      sourceHandle,
+      sourceHandle: sourceHandleParts(sourceHandle).type,
       targetHandle: null, // We don't use targetHandles, as target handles are only different in position, not in semantic.
     }),
     [connectionHandleType, source, sourceHandle, target],

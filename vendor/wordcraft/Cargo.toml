@@ -3,7 +3,7 @@ resolver = "3"
 members = ["crates/geom", "crates/doc", "crates/docx"]
 
 [workspace.package]
-version = "0.13.2"
+version = "0.16.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 rust-version = "1.95"

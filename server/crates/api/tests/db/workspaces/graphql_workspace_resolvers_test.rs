@@ -74,7 +74,15 @@ fn contextual_document_api_preserves_native_identity_context_and_current_access(
       // native flow remains available when the delivered catalog changes.
       let catalog_path = "assistants/catalog.yaml";
       let mut selection: AssistantPackageCatalogSource = yaml_serde::from_slice(&captured.files[catalog_path]).unwrap();
-      selection.packages.iter_mut().find(|entry| entry.id == "myoxus.assistant.context.meeting").unwrap().enabled = true;
+      // The shipped catalog can move this default to another offered package.
+      // Isolate the fixture's context selection as well as its native identity;
+      // complete catalog admission must still reject duplicate live defaults.
+      for entry in selection.packages.iter_mut().filter(|entry| entry.enabled) {
+        entry.default_for.retain(|context| *context != AssistantPackageContext::TaskContainerAssistance);
+      }
+      let contextual = selection.packages.iter_mut().find(|entry| entry.id == "myoxus.assistant.context.meeting").unwrap();
+      contextual.enabled = true;
+      contextual.default_for = vec![AssistantPackageContext::TaskContainerAssistance];
       let selection_bytes = yaml_serde::to_string(&selection).unwrap().into_bytes();
       let selection_digest = format!("{:x}", Sha256::digest(&selection_bytes));
       captured.manifest.files.insert(catalog_path.into(), selection_digest.clone());
@@ -136,7 +144,9 @@ fn contextual_document_api_preserves_native_identity_context_and_current_access(
       assert_eq!(database_count,2);
       let listed = helpers::gql(&withdrawn_app, session, json!({"query":"query($w:String!){workspace(id:$w){assistantPackages(context:TaskContainerAssistance){identity{id}}}}","variables":{"w":workspace}})).await;
       assert!(listed.get("errors").is_none(), "{listed}");
-      assert_eq!(listed["data"]["workspace"]["assistantPackages"], json!([]));
+      assert!(listed["data"]["workspace"]["assistantPackages"].as_array().unwrap().iter()
+        .all(|package| package["identity"]["id"] != descriptor.identity.id),
+        "the withdrawn contextual package is never offered; other current packages retain their own admission");
       const PREPARE:&str = "query($w:String!,$input:PrepareContextDocumentsInput!){workspace(id:$w){prepareContextDocuments(input:$input){plan{planDigest documents{title} executionAvailable} assistance{mode source} context{containerTitle taskTitle}}}}";
       const APPLY:&str = "mutation($input:ApplyContextDocumentsInput!){applyContextDocuments(input:$input){requestId status folderId placementComplete documents{componentId reservedDocumentId externalId created placed}}}";
       const READ:&str = "query($w:String!,$request:ID!){workspace(id:$w){contextDocuments(requestId:$request){requestId status folderId placementComplete documents{componentId reservedDocumentId externalId created placed}}}}";

@@ -12,6 +12,8 @@ import {
   BlockElementCommentManager,
   CitationProvider,
   DocModeProvider,
+  EditorI18nProvider,
+  textProtectionHint,
 } from "@virgultum/shared/services";
 import {
   calculateCollapsedSiblings,
@@ -348,7 +350,8 @@ export class ParagraphBlockComponent extends CaptionedBlockComponent<ParagraphBl
             .attributeRenderer=${this.attributeRenderer}
             .markdownMatches=${this.inlineManager?.markdownMatches}
             .embedChecker=${this.embedChecker}
-            .readonly=${this.store.readonly}
+            .readonly=${this.store.readonly || this.model.props.textProtection === "fixed"}
+            title=${textProtectionHint(this.model.props.textProtection, this.std.getOptional(EditorI18nProvider) ?? undefined)}
             .inlineRangeProvider=${this._inlineRangeProvider}
             .enableClipboard=${false}
             .enableUndoRedo=${false}

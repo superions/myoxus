@@ -153,8 +153,8 @@ impl CopilotSelectedContext {
       || self.selected_snapshot.as_ref().is_some_and(|value| !value.is_null())
   }
 
-  /// Source IDs identify provenance only. An implicit current document never
-  /// substitutes its whole body for an explicitly selected fragment.
+  /// The ingress resolves whole-document context separately from selected
+  /// fragments. The current document never replaces an explicit fragment.
   pub fn quoted_prompt(
     &self,
     documents: Vec<CopilotPromptDocument>,

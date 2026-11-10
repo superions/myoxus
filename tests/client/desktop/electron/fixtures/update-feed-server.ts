@@ -2,10 +2,12 @@
 
 import { execFile } from "node:child_process";
 import { createHash, X509Certificate } from "node:crypto";
+import { createReadStream } from "node:fs";
 import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { createServer, type Server } from "node:https";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { pipeline } from "node:stream";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
@@ -133,6 +135,9 @@ async function createCertificateAuthority(directory: string): Promise<{
 async function closeServer(server: Server): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     server.close((error) => (error ? reject(error) : resolve()));
+    // A failed updater may leave its download connection open. Fixture cleanup
+    // must not wait indefinitely for a client that is already being stopped.
+    server.closeAllConnections();
   });
 }
 
@@ -164,9 +169,11 @@ export async function startRealUpdateFeedServer(
   }
   const artifactSize = (await stat(options.artifactPath)).size;
   if (artifactSize <= 0) throw new Error("Update artifact must not be empty");
-  const artifactSha512 = createHash("sha512")
-    .update(await readFile(options.artifactPath))
-    .digest("base64");
+  // Native packages can be larger than the installation VM's free memory.
+  const hash = createHash("sha512");
+  for await (const chunk of createReadStream(options.artifactPath))
+    hash.update(chunk);
+  const artifactSha512 = hash.digest("base64");
   const directory = await mkdtemp(
     path.join(tmpdir(), "myoxus-electron-real-update-"),
   );
@@ -268,42 +275,46 @@ export async function startRealUpdateFeedServer(
           `/myoxus/packages/releases/download/${tag}/${encodeURIComponent(artifactName)}`
         ) {
           evidence.artifactRequests += 1;
-          const artifact = await readFile(options.artifactPath);
           const range = request.headers.range?.match(
             /^bytes=(\d+)(?:-(\d*))?$/,
           );
           const start = range ? Number(range[1]) : 0;
-          const requestedEnd = range?.[2]
-            ? Number(range[2])
-            : artifact.length - 1;
-          const end = Math.min(requestedEnd, artifact.length - 1);
+          const requestedEnd = range?.[2] ? Number(range[2]) : artifactSize - 1;
+          const end = Math.min(requestedEnd, artifactSize - 1);
           if (
             !Number.isSafeInteger(start) ||
             !Number.isSafeInteger(end) ||
             start < 0 ||
             start > end ||
-            start >= artifact.length
+            start >= artifactSize
           ) {
             response.writeHead(416, {
-              "content-range": `bytes */${artifact.length}`,
+              "content-range": `bytes */${artifactSize}`,
             });
             response.end();
             return;
           }
           if (range) evidence.rangeRequests += 1;
-          const body = artifact.subarray(start, end + 1);
-          evidence.bytesServed += body.length;
+          const length = end - start + 1;
           response.writeHead(range ? 206 : 200, {
             "accept-ranges": "bytes",
-            "content-length": body.length,
+            "content-length": length,
             "content-type": artifactContentType(artifactName),
             ...(range
               ? {
-                  "content-range": `bytes ${start}-${end}/${artifact.length}`,
+                  "content-range": `bytes ${start}-${end}/${artifactSize}`,
                 }
               : {}),
           });
-          response.end(body);
+          const body = createReadStream(options.artifactPath, { start, end });
+          body.on("data", (chunk) => {
+            evidence.bytesServed += chunk.length;
+          });
+          // Pipeline supplies backpressure and turns an I/O failure into a
+          // failed client download rather than an unhandled async rejection.
+          pipeline(body, response, (error) => {
+            if (error) response.destroy(error);
+          });
           return;
         }
         response.writeHead(404, { "content-type": "text/plain" });

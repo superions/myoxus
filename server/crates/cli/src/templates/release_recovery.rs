@@ -10,11 +10,7 @@ use anyhow::{Context, bail, ensure};
 use clap::Args;
 use myoxus_application::{
   doc::{PermanentDeleteMode, PermanentDeleteRequest},
-  template_registry::{
-    ReleasedBuiltinAdoption, attest_shipped_revision,
-    bundle::{self, ParsedBundle},
-    released_system_baseline_version,
-  },
+  template_registry::bundle::{self, ParsedBundle},
 };
 use myoxus_domain::{
   feature_bundle::FeatureComponentKind,
@@ -63,12 +59,6 @@ struct ReleaseSource {
   default: bool,
   guide: bool,
   revisions: BTreeMap<String, ParsedBundle>,
-}
-
-impl ReleaseSource {
-  fn baseline(&self, slug: &str) -> Option<&ParsedBundle> {
-    released_system_baseline_version(slug).and_then(|version| self.revisions.get(version))
-  }
 }
 
 #[derive(FromRow)]
@@ -155,8 +145,6 @@ struct RecoveryPlan {
   orphans: BTreeMap<String, String>,
   output: Vec<RecoveryRow>,
   unresolved: usize,
-  attested_publications: Vec<Uuid>,
-  attested_defaults: Vec<Uuid>,
   source_deletions: Vec<CapturedSourceDeletion>,
 }
 
@@ -453,13 +441,24 @@ async fn inspect(
     source_deletions.extend(captured);
   }
 
+  // Current selection is global even for a scoped repair. Never describe an
+  // unsupported historical binding as an automatically migrated native source.
+  let catalog_ids: Vec<_> = catalog.iter().map(|entry| entry.id).collect();
+  let unmigrated: bool = sqlx::query_scalar(
+    "SELECT EXISTS(SELECT 1 FROM workspace_template_instances WHERE template_id=ANY($1) AND revision_id IS NULL)",
+  )
+  .bind(&catalog_ids)
+  .fetch_one(&mut *connection)
+  .await?;
+  ensure!(
+    !unmigrated,
+    "unsupported unmigrated NULL-revision source binding; recovery cannot adopt legacy identities"
+  );
   let mut desired = BTreeSet::new();
   let mut replacements = Vec::new();
   let mut replaced_keys = Vec::new();
   let mut output = Vec::new();
   let mut unresolved = 0;
-  let mut attested_publications = Vec::new();
-  let mut attested_defaults = Vec::new();
   for (slug, source) in &release {
     if !catalog.iter().any(|entry| entry.slug == *slug) {
       output.push(RecoveryRow {
@@ -479,69 +478,10 @@ async fn inspect(
   for entry in &catalog {
     let source = &release[&entry.slug];
     let assignment = assignments.iter().find(|assignment| assignment.template_id == entry.id);
-    let legacy_binding = assignment.is_some_and(|assignment| assignment.state.is_some() && !assignment.has_revision);
     let lost_unknown = assignment
       .is_some_and(|assignment| assignment.state.as_deref() == Some("detached") && !assignment.document_exists)
       && !assignment.is_some_and(|assignment| assignment.preserved_source)
       && !orphans.contains_key(&entry.slug);
-    let mut legacy_preserved = false;
-    let mut legacy_resolved = false;
-    if legacy_binding && let Some(baseline) = source.baseline(&entry.slug) {
-      let mut after = None;
-      loop {
-        let workspace = workspace.context("legacy source requires a Workspace")?;
-        let rows =
-          SqlxTemplateRegistryStore::pending_released_builtin_workspace_page_in(connection, entry.id, workspace, after)
-            .await?;
-        if rows.is_empty() {
-          break;
-        }
-        for observed in rows {
-          after = Some(observed.id);
-          let mut adoption = ReleasedBuiltinAdoption {
-            observed,
-            revision_id: Uuid::nil(),
-            content_revision: None,
-            current_hash: None,
-            unchanged: false,
-          };
-          if adoption.observed.source_available {
-            let body = myoxus_infrastructure::doc::SqlxDocStore::load_full_doc_bounded_in_snapshot(
-              connection,
-              workspace,
-              adoption
-                .observed
-                .resolved_doc_id
-                .context("live legacy source has no document identity")?,
-              myoxus_application::template_registry::TemplateRegistryZipLimits::default()
-                .max_total_uncompressed_size_mb
-                .saturating_mul(1024 * 1024) as usize,
-            )
-            .await?;
-            adoption.attest_baseline(entry.id, baseline, &body)?;
-          }
-          let purpose = baseline.manifest.purpose.context("frozen baseline has no purpose")?;
-          legacy_preserved |= !adoption.retains_source_binding(purpose);
-          legacy_resolved = true;
-        }
-      }
-    }
-    let mut frozen_publication = false;
-    if let Some(baseline) = source.baseline(&entry.slug) {
-      let published = SqlxTemplateRegistryStore::published_revisions_in(connection, entry.id).await?;
-      frozen_publication = !published.is_empty()
-        && published
-          .iter()
-          .all(|revision| attest_shipped_revision(revision, baseline).is_ok());
-      if frozen_publication {
-        attested_publications.extend(published.iter().map(|revision| revision.id));
-      }
-    }
-    let frozen_owner = source.baseline(&entry.slug).is_some() && entry.source == "builtin" && !entry.operator_current;
-    let default_attested = (frozen_owner && !unknown.contains(&entry.id)) || frozen_publication;
-    if default_attested {
-      attested_defaults.push(entry.id);
-    }
     let current = source.version.is_some() && entry.status == "active";
     let mut native_edited = false;
     if let Some(assignment) = assignment.filter(|assignment| {
@@ -594,7 +534,6 @@ async fn inspect(
     let preserved = entry.operator_current
       || (assignment.is_none() && opted_out.contains(&entry.id) && !orphans.contains_key(&entry.slug))
       || native_edited
-      || legacy_preserved
       || assignment.is_some_and(|assignment| {
         !assignment.is_enabled
           || assignment.selection_mode != "published"
@@ -609,27 +548,15 @@ async fn inspect(
     let ownership_operation = if entry.operator_current {
       if entry.source == "builtin" {
         unresolved += 1;
-        Some("unresolved-frozen-builtin-operator-current")
+        Some("unresolved-builtin-operator-current")
       } else {
         Some("preserve-operator-publication")
       }
-    } else if frozen_owner {
-      if unknown.contains(&entry.id) && !frozen_publication && !args.confirm_unmodified_system_documents {
-        unresolved += 1;
-        Some("unresolved-publication-ownership")
-      } else {
-        Some("frozen-ownership-transfer")
-      }
-    } else if entry.source == "builtin" {
-      unresolved += 1;
-      Some("unresolved-frozen-builtin")
-    } else if entry.source != "bundle" {
+    } else if entry.source != "bundle" && entry.source != "builtin" {
       unresolved += 1;
       Some("unresolved-catalog-owner")
     } else if unknown.contains(&entry.id) {
-      if frozen_publication {
-        Some("attested-publication-transfer")
-      } else if args.confirm_unmodified_system_documents {
+      if args.confirm_unmodified_system_documents {
         Some("ownership-transfer")
       } else {
         unresolved += 1;
@@ -648,7 +575,7 @@ async fn inspect(
       });
     }
     if unknown_defaults.contains(&entry.id) && !entry.operator_current {
-      if !args.confirm_unmodified_system_documents && !default_attested {
+      if !args.confirm_unmodified_system_documents {
         unresolved += 1;
       }
       output.push(RecoveryRow {
@@ -656,9 +583,7 @@ async fn inspect(
         scope: "default".into(),
         source: entry.slug.clone(),
         target_version: source.version.clone().unwrap_or_else(|| "withdrawn".into()),
-        operation: if default_attested {
-          "attested-default-transfer"
-        } else if args.confirm_unmodified_system_documents {
+        operation: if args.confirm_unmodified_system_documents {
           "ownership-transfer"
         } else {
           "unresolved-default-ownership"
@@ -666,7 +591,7 @@ async fn inspect(
         .into(),
       });
     }
-    if (legacy_binding && !legacy_resolved) || (lost_unknown && !preserved) {
+    if lost_unknown && !preserved {
       unresolved += 1;
     }
     if preserved {
@@ -679,19 +604,11 @@ async fn inspect(
     {
       desired.insert(entry.id);
     }
-    let operation = if legacy_binding && !legacy_resolved {
-      "unresolved-native-legacy-binding"
-    } else if legacy_preserved || native_edited {
+    let operation = if native_edited {
       if native_edited && !current {
         replacements.push(assignment.expect("native edit belongs to an assignment").clone());
       }
       "preserve-edited-source"
-    } else if legacy_binding {
-      if source.guide {
-        "adopt-reader-copy"
-      } else {
-        "adopt-native-source"
-      }
     } else if lost_unknown && !preserved {
       "unresolved-source-identity"
     } else if preserved {
@@ -776,8 +693,6 @@ async fn inspect(
     orphans,
     output,
     unresolved,
-    attested_publications,
-    attested_defaults,
     source_deletions,
   })
 }
@@ -811,7 +726,7 @@ pub async fn run(args: RecoveryArgs, svc: &Services, json: bool) -> anyhow::Resu
   result
 }
 
-/// History admission and frozen adoption precede current selection, even with
+/// Immutable history admission precedes current selection, even with
 /// no active Workspaces. Global ownership is never inferred from an empty page.
 async fn prepare_release(args: &RecoveryArgs, svc: &Services, output: &mut RecoveryOutput) -> anyhow::Result<()> {
   ensure!(args.apply, "preview must be dispatched before CLI service bootstrap");
@@ -831,26 +746,6 @@ async fn prepare_release(args: &RecoveryArgs, svc: &Services, output: &mut Recov
     &svc.feature_sources.resolved.active,
   )
   .await?;
-  let mut adopted = BTreeSet::new();
-  for bundle in &svc.feature_sources.bundles {
-    for component in &bundle.manifest.components {
-      if component.kind != FeatureComponentKind::DocumentTemplate {
-        continue;
-      }
-      let identity = component
-        .native_identity
-        .as_ref()
-        .context("missing native document identity")?;
-      if released_system_baseline_version(&identity.id) == Some(identity.version.as_str())
-        && adopted.insert(identity.id.clone())
-      {
-        svc
-          .template_registry
-          .adopt_released_builtin_baseline(&bundle.files[&component.path], &component.path)
-          .await?;
-      }
-    }
-  }
   let ids: Vec<_> = plan
     .catalog
     .iter()
@@ -859,7 +754,7 @@ async fn prepare_release(args: &RecoveryArgs, svc: &Services, output: &mut Recov
     .collect();
   let mut tx = svc.pool.begin().await?;
   // Recheck authority under the same catalog lock used by publication. Only
-  // exact attested revisions (or explicit operator confirmation) can be acquired.
+  // explicitly confirmed unknown system ownership can be acquired.
   sqlx::query("SELECT id FROM template_catalog_entries WHERE id=ANY($1) ORDER BY id FOR NO KEY UPDATE")
     .bind(&ids)
     .fetch_all(&mut *tx)
@@ -867,16 +762,16 @@ async fn prepare_release(args: &RecoveryArgs, svc: &Services, output: &mut Recov
   let authored: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM template_revisions WHERE template_id=ANY($1) AND state='published' AND created_by IS NOT NULL)")
     .bind(&ids).fetch_one(&mut *tx).await?;
   ensure!(!authored, "publication changed after recovery inspection");
-  let unknown: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM template_revisions WHERE template_id=ANY($1) AND state='published' AND NOT release_managed_publication AND NOT(id=ANY($2)))")
-    .bind(&ids).bind(&plan.attested_publications).fetch_one(&mut *tx).await?;
+  let unknown: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM template_revisions WHERE template_id=ANY($1) AND state='published' AND NOT release_managed_publication)")
+    .bind(&ids).fetch_one(&mut *tx).await?;
   ensure!(
     args.confirm_unmodified_system_documents || !unknown,
     "publication authority changed after inspection"
   );
-  sqlx::query("UPDATE template_revisions SET release_managed_publication=true WHERE template_id=ANY($1) AND state='published' AND created_by IS NULL AND ($2 OR id=ANY($3))")
-    .bind(&ids).bind(args.confirm_unmodified_system_documents).bind(&plan.attested_publications).execute(&mut *tx).await?;
-  sqlx::query("UPDATE template_default_policies SET release_managed=true WHERE template_id=ANY($1) AND apply_to_new_workspaces AND selection_mode='published' AND provisioning_mode IN ('seed_once','managed_until_local_edit') AND ($2 OR template_id=ANY($3))")
-    .bind(&ids).bind(args.confirm_unmodified_system_documents).bind(&plan.attested_defaults).execute(&mut *tx).await?;
+  sqlx::query("UPDATE template_revisions SET release_managed_publication=true WHERE template_id=ANY($1) AND state='published' AND created_by IS NULL AND $2")
+    .bind(&ids).bind(args.confirm_unmodified_system_documents).execute(&mut *tx).await?;
+  sqlx::query("UPDATE template_default_policies SET release_managed=true WHERE template_id=ANY($1) AND apply_to_new_workspaces AND selection_mode='published' AND provisioning_mode IN ('seed_once','managed_until_local_edit') AND $2")
+    .bind(&ids).bind(args.confirm_unmodified_system_documents).execute(&mut *tx).await?;
   sqlx::query("INSERT INTO template_registry_audit_events(action,event_type,workspace_id,payload_json) VALUES('updated','template.release.recovery',$1,$2)")
     .bind(args.workspace_id).bind(serde_json::json!({"release":svc.feature_sources.release.base,"all_workspaces":args.all_workspaces,"orphan_source_keys":args.orphan_sources,"unknown_source_keys":args.unknown_sources}))
     .execute(&mut *tx).await?;
@@ -942,8 +837,6 @@ async fn run_workspace(
     orphans,
     output: _,
     unresolved: _,
-    attested_publications: _,
-    attested_defaults: _,
     source_deletions,
   } = plan;
   for assignment in replacements {

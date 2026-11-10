@@ -1,0 +1,188 @@
+{
+  "ar": {
+    "unset": "Not set",
+    "noVersion": "No version",
+    "unversionedChanges": "Unversioned changes",
+    "changedSuffix": "changed"
+  },
+  "ca": {
+    "unset": "No definit",
+    "noVersion": "Sense versió",
+    "unversionedChanges": "Canvis sense versió",
+    "changedSuffix": "canviat"
+  },
+  "cs": {
+    "unset": "Nenastaveno",
+    "noVersion": "Žádná verze",
+    "unversionedChanges": "Nezverzované změny",
+    "changedSuffix": "změněno"
+  },
+  "da": {
+    "unset": "Not set",
+    "noVersion": "No version",
+    "unversionedChanges": "Unversioned changes",
+    "changedSuffix": "changed"
+  },
+  "de": {
+    "unset": "Nicht gesetzt",
+    "noVersion": "Keine Version",
+    "unversionedChanges": "Nicht versionierte Änderungen",
+    "changedSuffix": "geändert"
+  },
+  "el-GR": {
+    "unset": "Δεν έχει οριστεί",
+    "noVersion": "Καμία έκδοση",
+    "unversionedChanges": "Αλλαγές χωρίς έκδοση",
+    "changedSuffix": "άλλαξε"
+  },
+  "en": {
+    "unset": "Not set",
+    "noVersion": "No version",
+    "unversionedChanges": "Unversioned changes",
+    "changedSuffix": "changed"
+  },
+  "es-AR": {
+    "unset": "Sin definir",
+    "noVersion": "Sin versión",
+    "unversionedChanges": "Cambios pendientes de versión",
+    "changedSuffix": "modificado"
+  },
+  "es-CL": {
+    "unset": "Sin definir",
+    "noVersion": "Sin versión",
+    "unversionedChanges": "Cambios pendientes de versión",
+    "changedSuffix": "modificado"
+  },
+  "es": {
+    "unset": "Sin definir",
+    "noVersion": "Sin versión",
+    "unversionedChanges": "Cambios pendientes de versión",
+    "changedSuffix": "modificado"
+  },
+  "fa": {
+    "unset": "Not set",
+    "noVersion": "No version",
+    "unversionedChanges": "Unversioned changes",
+    "changedSuffix": "changed"
+  },
+  "fr": {
+    "unset": "Non défini",
+    "noVersion": "Aucune version",
+    "unversionedChanges": "Modifications non versionnées",
+    "changedSuffix": "modifié"
+  },
+  "hi": {
+    "unset": "Not set",
+    "noVersion": "No version",
+    "unversionedChanges": "Unversioned changes",
+    "changedSuffix": "changed"
+  },
+  "hr": {
+    "unset": "Nije postavljeno",
+    "noVersion": "Nema verzije",
+    "unversionedChanges": "Promjene bez verzije",
+    "changedSuffix": "promijenjeno"
+  },
+  "hu": {
+    "unset": "Nincs beállítva",
+    "noVersion": "Nincs verzió",
+    "unversionedChanges": "Verzió nélküli módosítások",
+    "changedSuffix": "módosítva"
+  },
+  "it": {
+    "unset": "Non impostato",
+    "noVersion": "Nessuna versione",
+    "unversionedChanges": "Modifiche non versionate",
+    "changedSuffix": "modificato"
+  },
+  "ja": {
+    "unset": "Not set",
+    "noVersion": "No version",
+    "unversionedChanges": "Unversioned changes",
+    "changedSuffix": "changed"
+  },
+  "ko": {
+    "unset": "Not set",
+    "noVersion": "No version",
+    "unversionedChanges": "Unversioned changes",
+    "changedSuffix": "changed"
+  },
+  "nb-NO": {
+    "unset": "Ikke satt",
+    "noVersion": "Ingen versjon",
+    "unversionedChanges": "Uversjonerte endringer",
+    "changedSuffix": "endret"
+  },
+  "nl": {
+    "unset": "Niet ingesteld",
+    "noVersion": "Geen versie",
+    "unversionedChanges": "Niet-geversioneerde wijzigingen",
+    "changedSuffix": "gewijzigd"
+  },
+  "pl": {
+    "unset": "Nie ustawiono",
+    "noVersion": "Brak wersji",
+    "unversionedChanges": "Niewersjonowane zmiany",
+    "changedSuffix": "zmieniono"
+  },
+  "pt-BR": {
+    "unset": "Não definido",
+    "noVersion": "Sem versão",
+    "unversionedChanges": "Alterações sem versão",
+    "changedSuffix": "alterado"
+  },
+  "ro": {
+    "unset": "Nesetat",
+    "noVersion": "Fără versiune",
+    "unversionedChanges": "Modificări fără versiune",
+    "changedSuffix": "modificat"
+  },
+  "ru": {
+    "unset": "Не задано",
+    "noVersion": "Нет версии",
+    "unversionedChanges": "Неверсионированные изменения",
+    "changedSuffix": "изменено"
+  },
+  "sk": {
+    "unset": "Nenastavené",
+    "noVersion": "Bez verzie",
+    "unversionedChanges": "Neverzované zmeny",
+    "changedSuffix": "zmenené"
+  },
+  "sr": {
+    "unset": "Nije podešeno",
+    "noVersion": "Nema verzije",
+    "unversionedChanges": "Promene bez verzije",
+    "changedSuffix": "promenjeno"
+  },
+  "sv-SE": {
+    "unset": "Inte angivet",
+    "noVersion": "Ingen version",
+    "unversionedChanges": "Oversionerade ändringar",
+    "changedSuffix": "ändrat"
+  },
+  "uk": {
+    "unset": "Не задано",
+    "noVersion": "Без версії",
+    "unversionedChanges": "Неверсійовані зміни",
+    "changedSuffix": "змінено"
+  },
+  "ur": {
+    "unset": "Not set",
+    "noVersion": "No version",
+    "unversionedChanges": "Unversioned changes",
+    "changedSuffix": "changed"
+  },
+  "zh-Hans": {
+    "unset": "Not set",
+    "noVersion": "No version",
+    "unversionedChanges": "Unversioned changes",
+    "changedSuffix": "changed"
+  },
+  "zh-Hant": {
+    "unset": "Not set",
+    "noVersion": "No version",
+    "unversionedChanges": "Unversioned changes",
+    "changedSuffix": "changed"
+  }
+}

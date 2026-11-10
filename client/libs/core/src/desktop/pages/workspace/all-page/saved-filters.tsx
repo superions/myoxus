@@ -73,7 +73,7 @@ export const SavedFilterItem = ({
       </FilterChipTrigger>
       {isActive && (
         <IconButton
-          aria-label={t["com.myoxus.icon-picker.remove"]()}
+          aria-label={t["com.myoxus.common.remove"]()}
           onClick={(e) => {
             e.stopPropagation();
             onClickRemove();

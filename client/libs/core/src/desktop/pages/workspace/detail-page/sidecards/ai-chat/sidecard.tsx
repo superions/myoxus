@@ -67,6 +67,7 @@ export function AiChatSidecard({
       icon={<AiIcon />}
       viewFamilies={DOCUMENT_VIEW_FAMILIES}
       retainBodyWhenCollapsed
+      boundedBody
     >
       <EditorChatPanel editor={editor} />
     </ViewContextSurface>

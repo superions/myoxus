@@ -352,6 +352,7 @@ fn active_editor_unsupported_payload() -> Vec<u8> {
 #[test]
 fn public_html_escapes_text_and_raw_html() {
   let ir = PublicDocIr {
+    native_fields: Vec::new(),
     native_children: Default::default(),
     native_tables: Default::default(),
     mutation_partial: false,
@@ -635,6 +636,7 @@ fn public_css_uses_server_theme_projection_tokens() {
 #[test]
 fn public_html_rejects_javascript_links_and_keeps_external_rel() {
   let ir = PublicDocIr {
+    native_fields: Vec::new(),
     native_children: Default::default(),
     native_tables: Default::default(),
     mutation_partial: false,
@@ -670,6 +672,7 @@ fn public_html_rejects_javascript_links_and_keeps_external_rel() {
 #[test]
 fn public_html_uses_public_asset_urls() {
   let ir = PublicDocIr {
+    native_fields: Vec::new(),
     native_children: Default::default(),
     native_tables: Default::default(),
     mutation_partial: false,
@@ -811,6 +814,7 @@ fn public_html_renders_toc_breadcrumbs_and_copyable_highlighted_code() {
     },
   ];
   let ir = PublicDocIr {
+    native_fields: Vec::new(),
     native_children: Default::default(),
     native_tables: Default::default(),
     mutation_partial: false,
@@ -856,6 +860,7 @@ fn public_html_renders_toc_breadcrumbs_and_copyable_highlighted_code() {
 #[test]
 fn public_html_unknown_code_language_falls_back_to_escaped_plain_code() {
   let ir = PublicDocIr {
+    native_fields: Vec::new(),
     native_children: Default::default(),
     native_tables: Default::default(),
     mutation_partial: false,
@@ -889,6 +894,7 @@ fn public_html_loads_pagefind_as_module_when_search_bundle_is_configured() {
   let mut options = options();
   options.site_shell.search_bundle_url = Some("/public-search/pagefind/pagefind.js".to_string());
   let ir = PublicDocIr {
+    native_fields: Vec::new(),
     native_children: Default::default(),
     native_tables: Default::default(),
     mutation_partial: false,

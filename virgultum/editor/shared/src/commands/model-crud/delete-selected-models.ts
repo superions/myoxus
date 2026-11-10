@@ -16,6 +16,7 @@ export const deleteSelectedModelsCommand: Command<{
   }
 
   const blockedFlavours = getCompoundMutationBlockedFlavours(models);
+  if (models.some((model) => ctx.std.store.hasFixedText(model))) return;
   if (blockedFlavours.length) {
     console.warn(
       `[model-crud] generic delete blocked for compound block(s): ${blockedFlavours.join(", ")}. Use the block-specific command so owned data is handled atomically.`,

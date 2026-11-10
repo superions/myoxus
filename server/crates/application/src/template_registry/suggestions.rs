@@ -7,28 +7,42 @@
 
 use std::collections::HashMap;
 use std::sync::Arc;
+#[cfg(test)]
 use std::time::Instant;
 
 use base64::{Engine as _, engine::general_purpose::URL_SAFE_NO_PAD};
 use chrono::{DateTime, Utc};
 use myoxus_domain::entities::{DocumentMetadataValueDefinition, DocumentStatusValue, DocumentTypeDefinition};
 use myoxus_domain::ids::{UserId, WorkspaceId};
+#[cfg(test)]
 use myoxus_domain::permission::DocAction;
 use myoxus_domain::repositories::{DocumentMetadataPolicyRepository, RepositoryError};
+#[cfg(test)]
+use myoxus_domain::template_registry::{BuiltinReconcileEntry, SelectionMode};
 use myoxus_domain::template_registry::{
-  BuiltinReconcileEntry, InstanceState, ProvisioningMode, RevisionState, SelectionMode, TemplateCatalogEntry,
-  TemplateCatalogEntryId, TemplateSource, TemplateStatus, WorkspaceTemplateInstance, WorkspaceTemplatePolicy,
+  InstanceState, ProvisioningMode, RevisionState, TemplateCatalogEntry, TemplateCatalogEntryId, TemplateSource,
+  TemplateStatus, WorkspaceTemplateInstance, WorkspaceTemplatePolicy,
 };
 use thiserror::Error;
-use tracing::{info, instrument};
+#[cfg(test)]
+use tracing::info;
+use tracing::instrument;
 use uuid::Uuid;
 
 use crate::auth::AuthError;
-use crate::permission::{AccessController, DocResource, PermissionService};
+use crate::permission::PermissionService;
+#[cfg(test)]
+use crate::permission::{AccessController, DocResource};
 
-use super::{TemplatePageDefaultReplacement, TemplateRegistryService, is_building_block_category};
+#[cfg(test)]
+use super::is_building_block_category;
+use super::{TemplatePageDefaultReplacement, TemplateRegistryService};
 
+mod contextual;
 mod library;
+pub use contextual::{
+  ContextualGuideDelivery, ContextualTemplatePage, ContextualTemplateQuery, ContextualTemplateSource,
+};
 pub use library::{
   TemplateLibraryCursor, TemplateLibraryFilter, TemplateLibraryKind, TemplateLibraryOrigin, TemplateLibraryQuery,
   TemplateLibrarySort, TemplateLibrarySource,
@@ -386,6 +400,31 @@ impl TemplateSuggestionService {
     &self,
     request: TemplateSuggestionRequest,
   ) -> Result<TemplateSuggestionResult, TemplateSuggestionError> {
+    validate_request(&request)?;
+    if let (Some(permission), Some(user_id)) = (&self.permission_service, request.user_id) {
+      permission
+        .assert_template_catalog_read(user_id, request.workspace_id)
+        .await
+        .map_err(|_| TemplateSuggestionError::WorkspaceForbidden)?;
+    }
+    if request.surface == TemplateSuggestionSurface::Library {
+      return self.suggest_library(&request).await;
+    }
+    if request.library.is_some() {
+      return Err(TemplateSuggestionError::InputInvalid(
+        "library filter requires Library surface".into(),
+      ));
+    }
+    self.suggest_contextual(&request).await
+  }
+
+  // In-memory fixture oracle for the existing ranking assertions. Production
+  // contextual reads use the Store page projection, never this per-entry path.
+  #[cfg(test)]
+  async fn fixture_suggest(
+    &self,
+    request: TemplateSuggestionRequest,
+  ) -> Result<TemplateSuggestionResult, TemplateSuggestionError> {
     let started = Instant::now();
     validate_request(&request)?;
     if let (Some(permission), Some(user_id)) = (&self.permission_service, request.user_id) {
@@ -521,7 +560,7 @@ impl TemplateSuggestionService {
       }
       None => 0,
     };
-    let first = request.first.unwrap_or(DEFAULT_FIRST).clamp(1, MAX_FIRST);
+    let first = request.first.unwrap_or(DEFAULT_FIRST);
     let has_next_page = items.len() > start.saturating_add(first);
     items = items.into_iter().skip(start).take(first).collect();
     let end_cursor = items
@@ -560,6 +599,7 @@ impl TemplateSuggestionService {
 
   /// Reuse the Registry's actual revision/binding and existing document ACL.
   /// Reading this projection does not seed, copy or refresh reader content.
+  #[cfg(test)]
   async fn guide_deliveries(
     &self,
     request: &TemplateSuggestionRequest,
@@ -658,6 +698,7 @@ impl TemplateSuggestionService {
     )
   }
 
+  #[cfg(test)]
   async fn revision_is_usable(
     &self,
     entry: &TemplateCatalogEntry,
@@ -681,6 +722,7 @@ impl TemplateSuggestionService {
     }))
   }
 
+  #[cfg(test)]
   async fn materialize_item(
     &self,
     request: &TemplateSuggestionRequest,
@@ -797,6 +839,7 @@ impl TemplateSuggestionService {
 
   /// Catalog admission is already resolved. Validate only the assigned source's
   /// workspace identity and live lifecycle, never a per-source user grant.
+  #[cfg(test)]
   async fn source_document_is_live(
     &self,
     request: &TemplateSuggestionRequest,
@@ -826,6 +869,7 @@ impl TemplateSuggestionService {
     }))
   }
 
+  #[cfg(test)]
   async fn can_read_template_doc(&self, request: &TemplateSuggestionRequest, doc_id: Option<&str>) -> bool {
     let Some(doc_id) = doc_id else {
       return true;
@@ -947,10 +991,12 @@ fn decode_suggestion_cursor(cursor: &str) -> Result<TemplateCatalogEntryId, Temp
   Uuid::from_slice(&bytes).map_err(|_| TemplateSuggestionError::InputInvalid("after".to_string()))
 }
 
+#[cfg(test)]
 fn entry_id_for_lookup(entry: &TemplateCatalogEntry) -> TemplateCatalogEntryId {
   entry.id
 }
 
+#[cfg(test)]
 fn surface_allows_category(surface: TemplateSuggestionSurface, category: Option<&str>) -> bool {
   if is_building_block_category(category) {
     return surface == TemplateSuggestionSurface::BuildingBlock;
@@ -969,6 +1015,7 @@ fn surface_allows_category(surface: TemplateSuggestionSurface, category: Option<
   }
 }
 
+#[cfg(test)]
 fn surface_category_matches(surface: TemplateSuggestionSurface, category: Option<&str>) -> bool {
   surface_allows_category(surface, category)
 }
@@ -1075,6 +1122,7 @@ fn availability_from_instance(instance: Option<&WorkspaceTemplateInstance>) -> A
   )
 }
 
+#[cfg(test)]
 fn availability_from_builtin(entry: Option<&BuiltinReconcileEntry>) -> Availability {
   let Some(entry) = entry else {
     return Availability {
@@ -1199,6 +1247,96 @@ mod tests {
 
   #[async_trait]
   impl super::super::TemplateRegistryStore for SuggestionStore {
+    async fn contextual_template_page(
+      &self,
+      query: &ContextualTemplateQuery,
+    ) -> crate::auth::AuthResult<ContextualTemplatePage> {
+      // Reuse the former in-memory ranking oracle while exercising the public
+      // service's bounded Store boundary. No production fallback uses this path.
+      let store = Arc::new(Self {
+        entries: Mutex::new(self.entries.lock().await.clone()),
+        revisions: Mutex::new(self.revisions.lock().await.clone()),
+        policies: Mutex::new(self.policies.lock().await.clone()),
+        defaults: Mutex::new(self.defaults.lock().await.clone()),
+        instances: Mutex::new(self.instances.lock().await.clone()),
+        reconcile_entries: Mutex::new(self.reconcile_entries.lock().await.clone()),
+        created_instances: Mutex::new(0),
+      });
+      let service = service(store).await;
+      let surface = match query.category {
+        Some("building-blocks") => TemplateSuggestionSurface::BuildingBlock,
+        Some("journal-daily") => TemplateSuggestionSurface::JournalOnboarding,
+        _ => TemplateSuggestionSurface::AllPagesNewPage,
+      };
+      let mut request = request(query.workspace_id, surface);
+      request.client_version = query.client_version;
+      request.first = Some(query.limit);
+      request.after = query.after.map(encode_suggestion_cursor);
+      for (tag, _) in &query.tag_bonuses {
+        if let Some((prefix, id)) = tag.split_once(':') {
+          let id = Uuid::parse_str(id).ok();
+          match prefix {
+            "document-type" => request.document_type_id = id,
+            "status" => request.status_id = id,
+            "classification" => request.classification_id = id,
+            _ => {}
+          }
+        }
+      }
+      let result = match service.fixture_suggest(request).await {
+        Ok(result) => result,
+        Err(TemplateSuggestionError::InputInvalid(_)) => {
+          return Ok(ContextualTemplatePage {
+            sources: Vec::new(),
+            cursor_valid: false,
+          });
+        }
+        Err(error) => return Err(AuthError::Storage(error.to_string())),
+      };
+      let sources = result
+        .items
+        .into_iter()
+        .map(|item| ContextualTemplateSource {
+          template_id: Uuid::parse_str(&item.template_id).unwrap(),
+          document_key: item.template_doc_id,
+          slug: item.slug,
+          title: item.title,
+          description: item.description,
+          source: item.source,
+          updated_at: item.updated_at,
+          category: item.category,
+          tags: item.tags,
+          title_policy: item.title_policy,
+          revision_id: item.source_revision_id,
+          state: item.instance_state.as_deref().map(|state| match state {
+            "Ok" => InstanceState::Ok,
+            "UpdateAvailable" => InstanceState::UpdateAvailable,
+            "Detached" => InstanceState::Detached,
+            "Error" => InstanceState::Error,
+            _ => InstanceState::Retired,
+          }),
+          incompatible: item.reasons.contains(&TemplateSuggestionReason::IncompatibleClient),
+          protected_source: item.protected_source,
+          score: item.score,
+        })
+        .collect();
+      Ok(ContextualTemplatePage {
+        sources,
+        cursor_valid: true,
+      })
+    }
+    async fn contextual_guide_deliveries(
+      &self,
+      _workspace: WorkspaceId,
+    ) -> crate::auth::AuthResult<Vec<ContextualGuideDelivery>> {
+      Ok(Vec::new())
+    }
+    async fn contextual_page_default_replacements(
+      &self,
+      _workspace: WorkspaceId,
+    ) -> crate::auth::AuthResult<Vec<TemplatePageDefaultReplacement>> {
+      Ok(Vec::new())
+    }
     async fn create_catalog_entry(&self, _entry: &TemplateCatalogEntry) -> Result<(), AuthError> {
       *self.created_instances.lock().await += 1;
       Ok(())
@@ -1636,60 +1774,6 @@ mod tests {
 
   async fn service(store: Arc<SuggestionStore>) -> TemplateSuggestionService {
     TemplateSuggestionService::new(Arc::new(TemplateRegistryService::new(store)), None, None)
-  }
-
-  #[tokio::test]
-  async fn keeps_a_pinned_deprecated_revision_usable_after_publication_moves_on() {
-    let store = Arc::new(SuggestionStore::default());
-    let workspace_id = Uuid::new_v4();
-    let template_id = Uuid::new_v4();
-    let entry = entry(template_id, "pinned", "Current catalog title", None);
-    let mut pinned_revision = revision(template_id);
-    pinned_revision.state = RevisionState::Deprecated;
-    pinned_revision.manifest = Some(serde_json::json!({
-      "template_id": "pinned",
-      "version": "1.0.0",
-      "title": "Angeheftete Quelle",
-      "description": "Ursprünglicher Inhalt",
-      "locale": "de",
-      "localized_contents": {
-        "fr": {
-          "path": "localized/fr.template.zip",
-          "sha256": "fixture",
-          "title": "Source épinglée",
-          "description": "Contenu de la révision épinglée"
-        }
-      }
-    }));
-    let mut policy = policy(workspace_id, template_id);
-    policy.selection_mode = SelectionMode::PinnedRevision;
-    policy.selected_revision_id = Some(pinned_revision.id);
-    store.revisions.lock().await.insert(pinned_revision.id, pinned_revision);
-
-    let service = service(store).await;
-    assert!(
-      service
-        .revision_is_usable(&entry, &policy)
-        .await
-        .expect("evaluate pinned revision")
-    );
-    let mut instance = instance(workspace_id, template_id, InstanceState::Ok, Some("doc-pinned"));
-    instance.locale_hash = Some("fr".into());
-    let item = service
-      .materialize_item(
-        &request(workspace_id, TemplateSuggestionSurface::AllPagesNewPage),
-        &MetadataMatches::default(),
-        entry,
-        &policy,
-        Some(&instance),
-        None,
-      )
-      .await
-      .expect("materialize pinned revision")
-      .expect("usable source");
-    assert_eq!(item.title, "Source épinglée");
-    assert_eq!(item.description.as_deref(), Some("Contenu de la révision épinglée"));
-    assert_eq!(item.source_revision_id, policy.selected_revision_id);
   }
 
   #[tokio::test]

@@ -191,6 +191,8 @@ services:
     # This is an operator-selected upstream Nginx image, not a Myoxus image.
     # Materialize the Web/Admin OCI artifacts into the version-bound directory
     # before deploying the stack; the Web artifact supplies this Nginx config.
+    # Materialize each release's deployment config too: it owns static asset
+    # compression for Web/Admin at the root and under the configured base path.
     image: ${MYOXUS_NGINX_IMAGE:-nginx:stable-alpine}
     environment:
       MYOXUS_FRONTEND_BASE_PATH: ${MYOXUS_FRONTEND_BASE_PATH:-}

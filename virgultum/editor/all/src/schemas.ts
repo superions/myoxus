@@ -1,5 +1,4 @@
 // Import models only, the bundled file should not include anything else.
-import { DataViewBlockSchema } from "@virgultum/block-data-view/model";
 import { SurfaceBlockSchema } from "@virgultum/block-surface/model";
 import {
   AnnotationBlockSchema,
@@ -53,7 +52,6 @@ export const MyoxusSchemas: z.infer<typeof BlockSchema>[] = [
   FrameBlockSchema,
   DatabaseBlockSchema,
   SurfaceRefBlockSchema,
-  DataViewBlockSchema,
   AttachmentBlockSchema,
   EmbedYoutubeBlockSchema,
   EmbedFigmaBlockSchema,

@@ -1,22 +1,23 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
-import { autoUpdate } from "@floating-ui/dom";
+import { autoUpdate, type ReferenceElement } from "@floating-ui/dom";
 import type { BlockStdScope } from "@virgultum/std";
 import { render, nothing, type TemplateResult } from "lit";
 import type { EditorInlinePopupControls } from "./editor-chrome-host";
 
 const activePopups = new WeakMap<Document, AbortController>();
 
-/** Mount in the existing React tree; only the selection anchor uses renderer geometry. */
+/** Mount in the existing React tree; range/block anchors retain renderer geometry. */
 export function mountInlinePopup(
   std: BlockStdScope,
-  getRange: () => Range | null,
+  getTarget: () => Range | ReferenceElement | null,
   view: (controls: EditorInlinePopupControls) => TemplateResult,
   abort: AbortController,
   restoreFocus: () => void,
 ) {
-  if (abort.signal.aborted || !getRange()) return;
+  const initialTarget = getTarget();
+  if (abort.signal.aborted || !initialTarget) return;
   const doc = std.host.ownerDocument;
   activePopups.get(doc)?.abort();
   activePopups.set(doc, abort);
@@ -26,7 +27,9 @@ export function mountInlinePopup(
   // Native range highlighting keeps the edited text visible while a form owns focus.
   // This is document-selection paint, not popup chrome.
   const rangeHighlight =
-    typeof Highlight === "undefined" ? null : new Highlight();
+    initialTarget instanceof Range && typeof Highlight !== "undefined"
+      ? new Highlight()
+      : null;
   const highlightStyle = doc.createElement("style");
   highlightStyle.textContent =
     "::highlight(myoxus-inline-popup) { background-color: color-mix(in srgb, var(--myoxus-primary-color) 25%, transparent); }";
@@ -64,20 +67,20 @@ export function mountInlinePopup(
         const reference = {
           contextElement: std.host,
           getBoundingClientRect: () =>
-            getRange()?.getBoundingClientRect() ?? new DOMRect(),
+            getTarget()?.getBoundingClientRect() ?? new DOMRect(),
         };
         stopPositioning = autoUpdate(
           reference,
           anchor,
           () => {
-            const range = getRange();
-            if (!range || !std.host.isConnected || std.store.readonly) {
+            const target = getTarget();
+            if (!target || !std.host.isConnected || std.store.readonly) {
               abort.abort();
               return;
             }
-            const rect = range.getBoundingClientRect();
+            const rect = target.getBoundingClientRect();
             rangeHighlight?.clear();
-            rangeHighlight?.add(range);
+            if (target instanceof Range) rangeHighlight?.add(target);
             // Viewport coordinates also work when the edited text is inside a zoomed Note.
             Object.assign(anchor.style, {
               position: "fixed",

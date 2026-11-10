@@ -22,7 +22,8 @@ export const CodeBlockUnitSpecExtension =
   InlineSpecExtension<MyoxusTextAttributes>({
     name: "code-block-unit",
     schema: z.object({
-      "code-block-uint": z.undefined(),
+      // This renderer marker is not a persisted text attribute.
+      "code-block-uint": z.undefined().optional(),
     }),
     match: () => true,
     renderer: ({ delta }) => {

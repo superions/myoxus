@@ -33,7 +33,8 @@ pub struct NativeTextSpan {
   pub color: Option<String>,
   pub background: Option<String>,
   pub label_tone: Option<String>,
-  /// Semantic content retains its source width even before its authoring API exists.
+  /// Atomic editing span, not fixed surrounding text or a restriction on typed
+  /// input-value writes. Its source width remains independent of display text.
   pub protected: bool,
   /// Canonical identity only; the body and offsets remain in this native span.
   #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -56,6 +57,12 @@ pub struct NativeTextSpan {
   /// native space.
   #[serde(default, skip_serializing_if = "Option::is_none")]
   pub footnote: Option<NativeFootnote>,
+  /// Native descriptor/answer only, never resolved current metadata. The capture
+  /// marker describes archived text, not authority over the containing document.
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub document_field: Option<crate::document_field::DocumentField>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub document_field_captured: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -100,10 +107,28 @@ fn field(text: &yrs::TextRef, txn: &impl ReadTxn, name: &str) -> NativeTextField
       position += source.as_ref().map_or(1, |text| text.len() as u32);
       let protected = source.is_none()
         || attrs.is_some_and(|attrs| {
-          ["latex", "reference", "mention", "footnote", "annotation"]
-            .iter()
-            .any(|name| attrs.contains_key(*name))
+          [
+            "latex",
+            "reference",
+            "mention",
+            "footnote",
+            "annotation",
+            "documentField",
+            "documentFieldCaptured",
+          ]
+          .iter()
+          .any(|name| attrs.contains_key(*name))
         });
+      // The Application read boundary validates the capture first. Unsupported
+      // native runs still remain protected rather than becoming plain edit text.
+      let native_field = match (source.as_deref(), attrs) {
+        (Some(source), Some(attrs)) => match crate::document_field::FieldRun::decode(source, attrs) {
+          Ok(Some(run)) => Some(run),
+          _ => None,
+        },
+        _ => None,
+      };
+      let document_field_captured = native_field.as_ref().filter(|run| run.captured).map(|_| true);
       NativeTextSpan {
         start,
         end: position,
@@ -118,6 +143,8 @@ fn field(text: &yrs::TextRef, txn: &impl ReadTxn, name: &str) -> NativeTextField
         background: string("background"),
         label_tone: string("labelTone"),
         protected,
+        document_field: native_field.map(|run| run.descriptor),
+        document_field_captured,
         annotation_id: crate::annotation::annotation_id(attrs).map(str::to_string),
         mention: attrs.and_then(|attrs| match attrs.get("mention")? {
           Any::Map(value) => match value.get("member")? {
@@ -262,6 +289,8 @@ pub fn native_block_text(block: &yrs::MapRef, txn: &impl ReadTxn) -> Option<Nati
           mention: None,
           latex: None,
           footnote: None,
+          document_field: None,
+          document_field_captured: None,
         }],
       });
     }

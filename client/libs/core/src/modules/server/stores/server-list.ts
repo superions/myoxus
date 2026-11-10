@@ -1,4 +1,9 @@
 import { Store } from "@myoxus/infra";
+import { getDesktopBridge } from "@myoxus/desktop-api-contract/bridge";
+import type {
+  DesktopServerRegistryMutation,
+  SharedStoragePersistedValue,
+} from "@myoxus/desktop-api-contract";
 import { ServerDeploymentType } from "@myoxus/graphql";
 import { combineLatest, map } from "rxjs";
 
@@ -81,7 +86,14 @@ export class ServerListStore extends Store {
     });
   }
 
-  addServer(server: ServerMetadata, serverConfig: ServerConfig) {
+  private async mutateNativeRegistry(mutation: DesktopServerRegistryMutation) {
+    await this.globalStateService.globalState.ready;
+    const api = getDesktopBridge()?.apis.sharedStorage;
+    if (!api) throw new Error("Native server registry is unavailable");
+    await api.mutateServerRegistry(mutation);
+  }
+
+  async addServer(server: ServerMetadata, serverConfig: ServerConfig) {
     server = { ...server, baseUrl: normalizeServerBaseUrl(server.baseUrl) };
     if (
       !server.id ||
@@ -90,6 +102,16 @@ export class ServerListStore extends Store {
       )
     ) {
       throw new Error("Invalid configured server");
+    }
+    if (BUILD_CONFIG.isElectron) {
+      await this.mutateNativeRegistry({
+        type: "add",
+        server,
+        config: structuredClone(
+          serverConfig,
+        ) as unknown as SharedStoragePersistedValue,
+      });
+      return;
     }
     const oldServers =
       this.globalStateService.globalState.get<ServerMetadata[]>("serverList") ??
@@ -113,7 +135,11 @@ export class ServerListStore extends Store {
     this.selectServer(server.id);
   }
 
-  removeServer(serverId: string) {
+  async removeServer(serverId: string) {
+    if (BUILD_CONFIG.isElectron) {
+      await this.mutateNativeRegistry({ type: "remove", id: serverId });
+      return;
+    }
     const oldServers =
       this.globalStateService.globalState.get<ServerMetadata[]>("serverList") ??
       [];

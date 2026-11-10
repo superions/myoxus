@@ -4,6 +4,8 @@
 
 import { type Entity, Framework, LiveData, MemoryMemento } from "@myoxus/infra";
 import { notify } from "@myoxus/ui-facade";
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { useSource } from "../../../desktop/pages/workspace/search/use-search-results";
 import { Observable, of, throwError } from "rxjs";
 import { describe, expect, type Mock, test, vi } from "vitest";
 
@@ -35,6 +37,7 @@ import { CMDKQuickSearchService } from "../services/cmdk";
 import { QuickSearchService } from "../services/quick-search";
 import { RecentWorkspaceItemsService } from "../services/recent-workspace-items";
 import type { QuickSearchItem } from "../types/item";
+import type { QuickSearchOptions } from "../types/options";
 
 function createSession(items: QuickSearchItem[]): QuickSearchSession<
   "test",
@@ -63,6 +66,89 @@ function createEntity<T extends Entity>(entity: new (...args: any[]) => T): T {
   framework.entity(entity as any);
   return framework.provider().get(entity as any) as T;
 }
+
+describe("results page source ownership", () => {
+  const identity = (hit: { id: number }) => String(hit.id);
+  test("appends beyond 500 by raw offset, retries failures and exhausts only on a short raw page", async () => {
+    let fail = true;
+    const read = vi.fn(async (_signal: AbortSignal, offset: number) => {
+      if (offset === 50 && fail) {
+        fail = false;
+        throw new Error("temporary append failure");
+      }
+      if (offset === 550) return [];
+      return Array.from({ length: 50 }, (_, index) => ({
+        id: offset === 50 ? 49 + index : offset + index,
+      }));
+    });
+    const { result, unmount } = renderHook(() => useSource(read, identity));
+    try {
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      expect(result.current.items).toHaveLength(50);
+      act(() => {
+        result.current.loadMore();
+        result.current.loadMore();
+      });
+      await waitFor(() => expect(result.current.error).toBe(true));
+      expect(result.current.items).toHaveLength(50);
+      expect(read.mock.calls.map((call) => call[1])).toEqual([0, 50]);
+      act(() => {
+        result.current.retry();
+        result.current.retry();
+      });
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      expect(result.current.items).toHaveLength(99);
+      for (let offset = 100; offset <= 500; offset += 50) {
+        expect(result.current.hasMore).toBe(true);
+        act(() => result.current.loadMore());
+        await waitFor(() => expect(result.current.loading).toBe(false));
+        expect(read.mock.calls.at(-1)?.[1]).toBe(offset);
+      }
+      expect(result.current.items).toHaveLength(549);
+      expect(result.current.hasMore).toBe(true);
+      act(() => result.current.loadMore());
+      await waitFor(() => expect(result.current.hasMore).toBe(false));
+      expect(read.mock.calls.map((call) => call[1])).toEqual([
+        0, 50, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550,
+      ]);
+      expect(new Set(result.current.items.map(identity)).size).toBe(549);
+      act(() => result.current.loadMore());
+      expect(read).toHaveBeenCalledTimes(13);
+    } finally {
+      unmount();
+    }
+  });
+  test("aborts replaced owners and rejects late replies even when transport ignores abort", async () => {
+    let resolveOld!: (items: { id: number }[]) => void;
+    const oldRead = vi.fn(
+      (_signal: AbortSignal, _offset: number) =>
+        new Promise<{ id: number }[]>((resolve) => {
+          resolveOld = resolve;
+        }),
+    );
+    const newRead = vi.fn(async (_signal: AbortSignal, _offset: number) => [
+      { id: 2 },
+    ]);
+    const { result, rerender, unmount } = renderHook(
+      ({ read }) => useSource(read, identity),
+      { initialProps: { read: oldRead } },
+    );
+    try {
+      await waitFor(() => expect(oldRead).toHaveBeenCalledOnce());
+      rerender({ read: newRead });
+      expect(oldRead.mock.calls[0][0].aborted).toBe(true);
+      expect(result.current.items).toEqual([]);
+      await waitFor(() => expect(result.current.items).toEqual([{ id: 2 }]));
+      await act(async () => {
+        resolveOld([{ id: 1 }]);
+        await Promise.resolve();
+      });
+      expect(result.current.items).toEqual([{ id: 2 }]);
+    } finally {
+      unmount();
+    }
+  });
+});
 
 describe("QuickSearch entity", () => {
   test("opens sessions with the default query and aggregates their items", () => {
@@ -727,13 +813,20 @@ describe("ExternalLinksQuickSearchSession", () => {
 
 describe("CMDKQuickSearchService", () => {
   test("opens document search hits with block anchors for editor highlight consumers", () => {
+    let options: QuickSearchOptions | undefined;
     let submitResult: ((result: QuickSearchItem | null) => void) | undefined;
     const show$ = new LiveData(false);
-    const show = vi.fn((_sessions, callback) => {
-      submitResult = callback;
-      show$.next(true);
-    });
+    const show = vi.fn(
+      (_sessions, callback, nextOptions: QuickSearchOptions) => {
+        options = nextOptions;
+        submitResult = callback;
+        show$.next(true);
+      },
+    );
     const openDoc = vi.fn();
+    const open = vi.fn();
+    const hide = vi.fn();
+    const workspace = { flavour: "cloud" };
     const framework = new Framework();
     for (const session of [
       RecentTargetsQuickSearchSession,
@@ -751,7 +844,7 @@ describe("CMDKQuickSearchService", () => {
     framework
       .service(QuickSearchService, {
         quickSearch: {
-          hide: vi.fn(),
+          hide,
           show,
           show$,
         },
@@ -760,14 +853,17 @@ describe("CMDKQuickSearchService", () => {
         workbench: {
           openCollection: vi.fn(),
           openDoc,
+          open,
           openTag: vi.fn(),
         },
       } as any)
       .service(DocsService, { createDoc: vi.fn() } as any)
+      .service(WorkspaceService, { workspace } as any)
       .service(CMDKQuickSearchService, [
         QuickSearchService,
         WorkbenchService,
         DocsService,
+        WorkspaceService,
       ]);
     const service = framework.provider().get(CMDKQuickSearchService);
 
@@ -783,6 +879,19 @@ describe("CMDKQuickSearchService", () => {
       docId: "doc-1",
       blockIds: ["block-1"],
     });
+    options?.onOpenPage?.("needle + spaces");
+    expect(hide).toHaveBeenCalledOnce();
+    expect(open).toHaveBeenCalledExactlyOnceWith(
+      "/search/results?q=needle+%2B+spaces",
+      { at: "active" },
+    );
+    expect(hide.mock.invocationCallOrder[0]).toBeLessThan(
+      open.mock.invocationCallOrder[0],
+    );
+    show$.next(false);
+    workspace.flavour = "local";
+    service.toggle();
+    expect(options?.onOpenPage).toBeUndefined();
   });
 
   test("contains rejected async commands and reports the failure", async () => {
@@ -816,10 +925,12 @@ describe("CMDKQuickSearchService", () => {
       } as any)
       .service(WorkbenchService, { workbench: {} } as any)
       .service(DocsService, { createDoc: vi.fn() } as any)
+      .service(WorkspaceService, { workspace: { flavour: "cloud" } } as any)
       .service(CMDKQuickSearchService, [
         QuickSearchService,
         WorkbenchService,
         DocsService,
+        WorkspaceService,
       ]);
     const notifyError = vi
       .spyOn(notify, "error")

@@ -4052,6 +4052,9 @@ export interface ApiQueryRoot {
    * Members-only.
    */
   documentBrandingProfile: DocumentBrandingProfile;
+  documentFieldCatalog: DocumentFieldCatalogType;
+  documentFieldOutput: Array<Scalars["String"]["output"]>;
+  documentFieldPresentations: Array<DocumentFieldPresentationType>;
   /** Read the committed content revision used to confirm a history restore. */
   documentHistoryRevision: Scalars["String"]["output"];
   documentMetadata: DocumentMetadataType;
@@ -4241,6 +4244,18 @@ export interface ApiQueryRootCommentThreadsArgs {
 }
 
 export interface ApiQueryRootDocumentBrandingProfileArgs {
+  workspaceId: Scalars["ID"]["input"];
+}
+
+export interface ApiQueryRootDocumentFieldOutputArgs {
+  docId: Scalars["ID"]["input"];
+  fields: Scalars["JSON"]["input"];
+  workspaceId: Scalars["ID"]["input"];
+}
+
+export interface ApiQueryRootDocumentFieldPresentationsArgs {
+  docId: Scalars["ID"]["input"];
+  fields: Scalars["JSON"]["input"];
   workspaceId: Scalars["ID"]["input"];
 }
 
@@ -8530,6 +8545,7 @@ export interface DatabaseScheduleWindowInput {
 export interface DatabaseSearchFilterInput {
   databaseId?: InputMaybe<Scalars["ID"]["input"]>;
   first?: InputMaybe<Scalars["Int"]["input"]>;
+  offset?: InputMaybe<Scalars["Int"]["input"]>;
   query: Scalars["String"]["input"];
 }
 
@@ -9645,6 +9661,45 @@ export interface DocumentComparisonNoticeType {
   __typename?: "DocumentComparisonNoticeType";
   blockId: Maybe<Scalars["String"]["output"]>;
   kind: DocumentComparisonNoticeKindType;
+}
+
+/**
+ * Editor discovery only. Existing native fields can be filled without fetching
+ * this catalog; it contains no document values, identities or authored options.
+ */
+export interface DocumentFieldCatalogType {
+  __typename?: "DocumentFieldCatalogType";
+  inputKinds: Array<DocumentFieldInputDescriptorType>;
+  maxIdBytes: Scalars["Int"]["output"];
+  maxOptions: Scalars["Int"]["output"];
+  maxStringBytes: Scalars["Int"]["output"];
+  metadata: Array<DocumentFieldMetadataDescriptorType>;
+}
+
+export interface DocumentFieldInputDescriptorType {
+  __typename?: "DocumentFieldInputDescriptorType";
+  hasOptions: Scalars["Boolean"]["output"];
+  kind: Scalars["String"]["output"];
+  multiple: Scalars["Boolean"]["output"];
+}
+
+export interface DocumentFieldMetadataDescriptorType {
+  __typename?: "DocumentFieldMetadataDescriptorType";
+  formats: Array<Scalars["String"]["output"]>;
+  key: Scalars["String"]["output"];
+}
+
+export enum DocumentFieldPresentationState {
+  UNAVAILABLE = "UNAVAILABLE",
+  UNSET = "UNSET",
+  VALUE = "VALUE",
+}
+
+export interface DocumentFieldPresentationType {
+  __typename?: "DocumentFieldPresentationType";
+  complete: Scalars["Boolean"]["output"];
+  state: DocumentFieldPresentationState;
+  text: Maybe<Scalars["String"]["output"]>;
 }
 
 export enum DocumentGraphDirection {
@@ -14581,6 +14636,8 @@ export interface SearchDocType {
 export interface SearchDocsInput {
   keyword: Scalars["String"]["input"];
   limit?: InputMaybe<Scalars["Int"]["input"]>;
+  /** Offset in this source's returned order; omitted or negative values start at zero. */
+  offset?: InputMaybe<Scalars["Int"]["input"]>;
   useSemanticSearch?: InputMaybe<Scalars["Boolean"]["input"]>;
 }
 
@@ -16506,6 +16563,7 @@ export enum WorkbenchToolId {
   Frame = "Frame",
   GraphDetails = "GraphDetails",
   Outline = "Outline",
+  Presence = "Presence",
   Tags = "Tags",
   TaskDetails = "TaskDetails",
 }

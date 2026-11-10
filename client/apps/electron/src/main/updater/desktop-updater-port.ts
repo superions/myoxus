@@ -6,7 +6,6 @@ import path from "node:path";
 import {
   type AppUpdater,
   DebUpdater,
-  MacUpdater,
   NsisUpdater,
   RpmUpdater,
 } from "electron-updater";
@@ -22,6 +21,7 @@ export type DesktopUpdaterSelection =
   | {
       state: "disabled";
       reason:
+        | "external-macos-install"
         | "externally-managed"
         | "missing-package-marker"
         | "portable"
@@ -54,12 +54,10 @@ export function resolveDesktopUpdater(
   input: DesktopEnvironment,
   factories: {
     deb: () => AppUpdater;
-    macos: () => AppUpdater;
     nsis: () => AppUpdater;
     rpm: () => AppUpdater;
   } = {
     deb: () => new DebUpdater(),
-    macos: () => new MacUpdater(),
     nsis: () => new NsisUpdater(),
     rpm: () => new RpmUpdater(),
   },
@@ -69,11 +67,9 @@ export function resolveDesktopUpdater(
   }
 
   if (input.platform === "darwin") {
-    return {
-      state: "enabled",
-      updater: factories.macos(),
-      target: { platform: "darwin", arch: input.arch, backend: "macos" },
-    };
+    // Regular ad-hoc apps are replaced externally. The package does not prove
+    // Homebrew ownership, and must never start a native MacUpdater lifecycle.
+    return { state: "disabled", reason: "external-macos-install" };
   }
 
   if (input.platform === "win32") {

@@ -3,7 +3,7 @@
 
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFileSync, readdirSync } from "node:fs";
+import { lstatSync, readFileSync, readdirSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -46,21 +46,38 @@ assert.deepEqual(
   ),
   ["out/DownloadedUpdateHelper.js.map"],
 );
+assert(
+  lstatSync(snapshot).isDirectory(),
+  "Expected a real updater snapshot directory",
+);
 assert.deepEqual(fileInventory(snapshot).sort(), Object.keys(provenance.files));
-const installed = dirname(require.resolve("electron-updater/package.json"));
 for (const [path, expected] of Object.entries(provenance.files)) {
   assert.equal(sha256(readFileSync(join(snapshot, path))), expected, path);
+}
+const rootManifest = JSON.parse(readFileSync(join(root, "package.json")));
+assert.equal(
+  rootManifest.resolutions["electron-updater@npm:6.8.9"],
+  "file:./.yarn/vendor/electron-updater.tgz",
+);
+assert.equal(provenance.archive.path, ".yarn/vendor/electron-updater.tgz");
+assert.equal(
+  sha256(readFileSync(join(root, provenance.archive.path))),
+  provenance.archive.sha256,
+  "Reviewed updater archive drift; regenerate through materialize-electron-updater.py --archive",
+);
+if (process.argv.includes("--prepare")) {
+  // Yarn consumes fixed archive bytes, not host-specific directory mode bits.
+  console.log("Reviewed Electron updater source and archive verified");
+  process.exit(0);
+}
+const installed = dirname(require.resolve("electron-updater/package.json"));
+for (const [path, expected] of Object.entries(provenance.files)) {
   assert.equal(
     sha256(readFileSync(join(installed, path))),
     expected,
     `Installed updater source drift: ${path}`,
   );
 }
-const rootManifest = JSON.parse(readFileSync(join(root, "package.json")));
-assert.equal(
-  rootManifest.resolutions["electron-updater@npm:6.8.9"],
-  "file:./.yarn/vendor/electron-updater",
-);
 const manifest = JSON.parse(readFileSync(join(installed, "package.json")));
 assert.equal(manifest.private, true);
 assert(!Object.hasOwn(manifest.dependencies, "lodash.isequal"));

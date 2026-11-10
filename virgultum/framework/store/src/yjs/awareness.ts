@@ -10,6 +10,8 @@ type UserSelection = Array<Record<string, unknown>>;
 export type RawAwarenessState = {
   user?: UserInfo;
   color?: string;
+  /** Transient text-edit cue; the awareness client identifies its editor. */
+  recentTextChanges?: { sequence: number; blocks: string[] };
   selectionV2: Record<string, UserSelection>;
 };
 

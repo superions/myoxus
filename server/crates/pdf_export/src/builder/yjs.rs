@@ -618,6 +618,17 @@ impl<R: AssetResolver> YjsIrBuilder<R> {
     options: ExportOptions,
   ) -> Result<IrDocument, IrBuildError> {
     self.diagnostics.clear();
+    // Application materializes current fields before reaching this format-only
+    // builder. An unresolved atom must fail, not disappear as a native space.
+    if yjs::document_field::content::inspect(binary)
+      .map_err(|_| IrBuildError::YjsDecode("invalid native document field".into()))?
+      .iter()
+      .any(|field| !field.run.captured)
+    {
+      return Err(IrBuildError::YjsDecode(
+        "native document field output unavailable".into(),
+      ));
+    }
     let doc = Doc::new();
     let blocks_map = doc.get_or_insert_map("blocks");
 

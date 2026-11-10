@@ -48,11 +48,16 @@ import {
   visitProcessLanes,
 } from "../../mutations/element-visitor";
 import { addOrGetProcessAndDiagramElements } from "../../mutations/addOrGetProcessAndDiagramElements";
-import { useCallback } from "react";
+import { createContext, useCallback, useContext } from "react";
 import { useBpmnEditorI18n } from "../../i18n";
+// Concrete inspectors retain their technical owners below Further properties;
+// the consuming inspector projects the same common prose fields above it once.
+export const TechnicalPropertiesContext = createContext(false);
 export function NameDocumentationAndId({
   element,
+  primaryOnly = false,
 }: {
+  primaryOnly?: boolean;
   element: Normalized<
     | Unpacked<NonNullable<BPMN20__tProcess["flowElement"]>>
     | (BPMN20__tLane & {
@@ -73,6 +78,7 @@ export function NameDocumentationAndId({
   const bpmnEditorStoreApi = useBpmnEditorStoreApi();
   const t = useI18n();
   const settings = useBpmnEditorStore((s) => s.settings);
+  const technicalOnly = useContext(TechnicalPropertiesContext);
   const onNameChanged = useCallback(
     (newName: string = "") => {
       bpmnEditorStoreApi.setState((s) => {
@@ -146,49 +152,56 @@ export function NameDocumentationAndId({
   );
   return (
     <Stack>
-      {element.__$$element !== "association" &&
-        element.__$$element !== "group" &&
-        element.__$$element !== "textAnnotation" && (
-          <MyoxusTextInput
+      {!technicalOnly && (
+        <>
+          {element.__$$element !== "association" &&
+            element.__$$element !== "group" &&
+            element.__$$element !== "textAnnotation" && (
+              <MyoxusTextInput
+                disabled={settings.isReadOnly}
+                id={element["@_id"]}
+                name={element["@_name"]}
+                value={element["@_name"] || ""}
+                placeholder={i18n.propertiesPanel.enterNamePlaceholder}
+                onChange={onNameChanged}
+                label={i18n.propertiesPanel.name}
+              />
+            )}
+
+          <MyoxusTextarea
             disabled={settings.isReadOnly}
-            id={element["@_id"]}
-            name={element["@_name"]}
-            value={element["@_name"] || ""}
-            placeholder={i18n.propertiesPanel.enterNamePlaceholder}
-            onChange={onNameChanged}
-            label={i18n.propertiesPanel.name}
+            value={element.documentation?.[0]?.__$$text ?? ""}
+            onChange={onDocumentationChanged}
+            placeholder={i18n.propertiesPanel.documentationPlaceholder}
+            rows={3}
+            label={i18n.propertiesPanel.documentation}
           />
-        )}
-
-      <MyoxusTextarea
-        disabled={settings.isReadOnly}
-        value={element.documentation?.[0]?.__$$text ?? ""}
-        onChange={onDocumentationChanged}
-        placeholder={i18n.propertiesPanel.documentationPlaceholder}
-        rows={3}
-        label={i18n.propertiesPanel.documentation}
-      />
-
-      <MyoxusTextInput
-        label={i18n.propertiesPanel.id}
-        readOnly
-        value={element["@_id"]}
-        endFix={
-          <IconButton
-            tooltip={i18n.propertiesPanel.copy}
-            onClick={async () => {
-              try {
-                await navigator.clipboard.writeText(element["@_id"]);
-              } catch {
-                notify.error(t["com.myoxus.common.operation-failed"]());
-              }
-            }}
-          >
-            <CopyIcon />
-          </IconButton>
-        }
-      />
-      <FlowCategories id={element["@_id"]} />
+        </>
+      )}
+      {!primaryOnly && (
+        <>
+          <MyoxusTextInput
+            label={i18n.propertiesPanel.id}
+            readOnly
+            value={element["@_id"]}
+            endFix={
+              <IconButton
+                tooltip={i18n.propertiesPanel.copy}
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(element["@_id"]);
+                  } catch {
+                    notify.error(t["com.myoxus.common.operation-failed"]());
+                  }
+                }}
+              >
+                <CopyIcon />
+              </IconButton>
+            }
+          />
+          <FlowCategories id={element["@_id"]} />
+        </>
+      )}
     </Stack>
   );
 }

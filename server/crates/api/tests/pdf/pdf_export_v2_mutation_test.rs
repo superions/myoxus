@@ -302,7 +302,9 @@ async fn insert_named_version(pool: &PgPool, workspace_id: Uuid, doc_id: Uuid, a
     sqlx::query_scalar("INSERT INTO doc_histories (doc_id, workspace_id, snapshot) VALUES ($1, $2, $3) RETURNING id")
       .bind(doc_id)
       .bind(workspace_id)
-      .bind(vec![9_u8, 8, 7])
+      .bind(
+        yjs::markdown_to_yjs("Named version content", "PDF Version Bridge Doc").expect("native named-version fixture"),
+      )
       .fetch_one(pool)
       .await
       .expect("insert doc history");

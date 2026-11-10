@@ -120,7 +120,8 @@ test("measured inventory grid moves the next row after a card grows without moun
         ) as HTMLElement
       )?.style.top ?? "NaN",
     );
-  await waitFor(() => expect(rowTop()).toBeGreaterThan(260));
+  // Wait for the measured first row, not its initial width-based estimate.
+  await waitFor(() => expect(rowTop()).toBeCloseTo(270 + 24));
   const before = rowTop();
   heights.set("all:all-0", 420);
   const first = document.querySelector('[data-masonry-item-id="all:all-0"]');

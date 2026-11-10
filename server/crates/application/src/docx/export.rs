@@ -135,18 +135,20 @@ pub fn encode_export(source: ExportSource, fonts: ExportFonts) -> Result<Exporte
   };
   encoder.document.body.clear();
   encoder.document.core.title = encoder.source.document.title.clone();
-  encoder.document.styles.default_chr.font = Some(encoder.fonts.body.clone());
+  Arc::make_mut(&mut encoder.document.styles).default_chr.font = Some(encoder.fonts.body.clone());
   // Native local notes number each placement independently in first-anchor
   // order. Word's default endnote Roman glyphs are not that native numbering.
   encoder.document.settings.endnote_format = wordcraft_doc::section::NumFormat::Decimal;
   if encoder.document.styles.get("Caption").is_none() {
-    encoder.document.styles.styles.push(wordcraft_doc::Style {
-      id: "Caption".into(),
-      name: "Caption".into(),
-      kind: wordcraft_doc::StyleKind::Paragraph,
-      based_on: Some("Normal".into()),
-      ..Default::default()
-    });
+    Arc::make_mut(&mut encoder.document.styles)
+      .styles
+      .push(wordcraft_doc::Style {
+        id: "Caption".into(),
+        name: "Caption".into(),
+        kind: wordcraft_doc::StyleKind::Paragraph,
+        based_on: Some("Normal".into()),
+        ..Default::default()
+      });
   }
   // Writer otherwise applies its Roman endnote default despite the document's
   // decimal setting. The section must state the same effective native format.
@@ -155,20 +157,22 @@ pub fn encode_export(source: ExportSource, fonts: ExportFonts) -> Result<Exporte
     ("MyoxusCode", &encoder.fonts.mono),
     ("MyoxusCallout", &encoder.fonts.body),
   ] {
-    encoder.document.styles.styles.push(wordcraft_doc::Style {
-      id: id.into(),
-      name: id.into(),
-      kind: wordcraft_doc::StyleKind::Paragraph,
-      based_on: Some("Normal".into()),
-      chr: CharProps {
-        font: Some(font.clone()),
+    Arc::make_mut(&mut encoder.document.styles)
+      .styles
+      .push(wordcraft_doc::Style {
+        id: id.into(),
+        name: id.into(),
+        kind: wordcraft_doc::StyleKind::Paragraph,
+        based_on: Some("Normal".into()),
+        chr: CharProps {
+          font: Some(font.clone()),
+          ..Default::default()
+        },
         ..Default::default()
-      },
-      ..Default::default()
-    });
+      });
   }
   for level in 1..=6 {
-    if let Some(style) = encoder.document.styles.get_mut(&format!("Heading{level}")) {
+    if let Some(style) = Arc::make_mut(&mut encoder.document.styles).get_mut(&format!("Heading{level}")) {
       style.chr.font = Some(encoder.fonts.heading.clone());
     }
   }
@@ -186,9 +190,9 @@ pub fn encode_export(source: ExportSource, fonts: ExportFonts) -> Result<Exporte
       ..Default::default()
     };
     if id == "Normal" {
-      encoder.document.styles.default_chr = chr.clone();
+      Arc::make_mut(&mut encoder.document.styles).default_chr = chr.clone();
     }
-    if let Some(target) = encoder.document.styles.get_mut(id) {
+    if let Some(target) = Arc::make_mut(&mut encoder.document.styles).get_mut(id) {
       target.chr = chr;
       target.para.line_spacing = Some(wordcraft_doc::props::LineSpacing::Multiple(style.line_height as f32));
       target.para.space_after = Some(style.size_px as f32 * 0.75 * 0.5);
@@ -198,19 +202,21 @@ pub fn encode_export(source: ExportSource, fonts: ExportFonts) -> Result<Exporte
   }
   // Cells inherit body typography without prose spacing or keep-with-next
   // rules that would inflate every row or bind a whole table together.
-  encoder.document.styles.styles.push(wordcraft_doc::Style {
-    id: "MyoxusTable".into(),
-    name: "Myoxus Table".into(),
-    kind: wordcraft_doc::StyleKind::Paragraph,
-    based_on: Some("Normal".into()),
-    para: wordcraft_doc::ParaProps {
-      space_before: Some(0.0),
-      space_after: Some(0.0),
-      keep_next: Some(false),
+  Arc::make_mut(&mut encoder.document.styles)
+    .styles
+    .push(wordcraft_doc::Style {
+      id: "MyoxusTable".into(),
+      name: "Myoxus Table".into(),
+      kind: wordcraft_doc::StyleKind::Paragraph,
+      based_on: Some("Normal".into()),
+      para: wordcraft_doc::ParaProps {
+        space_before: Some(0.0),
+        space_after: Some(0.0),
+        keep_next: Some(false),
+        ..Default::default()
+      },
       ..Default::default()
-    },
-    ..Default::default()
-  });
+    });
   // Explicit unsupported blocks are counted by the encoder below. Other
   // projection diagnostics describe readable fallbacks or missing source units;
   // never send the renderer's text/identities in conversion headers.
@@ -774,14 +780,13 @@ impl Encoder {
         }
         Block::List { list, .. } => {
           let numbered = list.kind == PublicListKind::Numbered;
-          let number = self
-            .document
-            .numbering
-            .add_list(if numbered { ListKind::Numbered } else { ListKind::Bullet });
+          let number = Arc::make_mut(&mut self.document.numbering).add_list(if numbered {
+            ListKind::Numbered
+          } else {
+            ListKind::Bullet
+          });
           if numbered {
-            let definition = self
-              .document
-              .numbering
+            let definition = Arc::make_mut(&mut self.document.numbering)
               .abstracts
               .last_mut()
               .ok_or(ImportError::Conversion)?;
@@ -842,14 +847,14 @@ impl Encoder {
                 .map(|n| n as u64)
                 .unwrap_or(expected);
               if numbered && order != expected {
-                current = self.document.numbering.restart(number).ok_or(ImportError::Conversion)?;
+                current = Arc::make_mut(&mut self.document.numbering)
+                  .restart(number)
+                  .ok_or(ImportError::Conversion)?;
                 let value = u32::try_from(order).unwrap_or_else(|_| {
                   self.warn("numbering_value_normalized");
                   u32::MAX
                 });
-                self
-                  .document
-                  .numbering
+                Arc::make_mut(&mut self.document.numbering)
                   .nums
                   .last_mut()
                   .ok_or(ImportError::Conversion)?
@@ -1262,6 +1267,7 @@ impl Encoder {
           alt: alt.to_string(),
           float: Default::default(),
           crop: [0.0; 4],
+          fx: Default::default(),
           ole: None,
         },
         &CharProps::default(),

@@ -224,9 +224,7 @@
   stroke-width: 2px;
   cursor: grab;
 }
-.myoxus-bpmn-diagram
-  .react-flow__edge:not(.selected:hover)
-  .react-flow__edgeupdater,
+.myoxus-bpmn-diagram .react-flow__edge:not(.selected) .react-flow__edgeupdater,
 .myoxus-bpmn-diagram .react-flow__edgeupdater.hidden {
   opacity: 0;
   pointer-events: none;

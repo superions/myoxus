@@ -2,6 +2,7 @@
 //! Native document metadata GraphQL projection backed by the canonical `docs`
 //! metadata head.
 
+use crate::graphql::utils::map_gql_error;
 use async_graphql::{Context, Enum, ID, InputObject, MaybeUndefined, Object, Result, SimpleObject};
 use chrono::{DateTime, NaiveDate, Utc};
 use uuid::Uuid;
@@ -324,6 +325,62 @@ pub struct SetDocumentMetadataPayload {
 
 pub struct DocumentMetadataQueryRoot;
 
+/// Editor discovery only. Existing native fields can be filled without fetching
+/// this catalog; it contains no document values, identities or authored options.
+#[derive(SimpleObject)]
+pub struct DocumentFieldCatalogType {
+  pub metadata: Vec<DocumentFieldMetadataDescriptorType>,
+  pub input_kinds: Vec<DocumentFieldInputDescriptorType>,
+  pub max_options: i32,
+  pub max_string_bytes: i32,
+  pub max_id_bytes: i32,
+}
+
+#[derive(SimpleObject)]
+pub struct DocumentFieldMetadataDescriptorType {
+  pub key: String,
+  pub formats: Vec<String>,
+}
+
+#[derive(SimpleObject)]
+pub struct DocumentFieldInputDescriptorType {
+  pub kind: String,
+  pub multiple: bool,
+  pub has_options: bool,
+}
+
+fn field_catalog() -> DocumentFieldCatalogType {
+  use yjs::document_field::{InputKind, MAX_ID_BYTES, MAX_OPTIONS, MAX_STRING_BYTES, MetadataKey};
+  // Serialize the decoder's own wire enums rather than maintaining API aliases.
+  fn wire(value: impl serde::Serialize) -> String {
+    serde_json::to_value(value)
+      .expect("field wire enum serializes")
+      .as_str()
+      .expect("field wire enum is a string")
+      .into()
+  }
+  DocumentFieldCatalogType {
+    metadata: MetadataKey::ALL
+      .into_iter()
+      .map(|key| DocumentFieldMetadataDescriptorType {
+        key: wire(key),
+        formats: key.formats().iter().map(wire).collect(),
+      })
+      .collect(),
+    input_kinds: InputKind::ALL
+      .into_iter()
+      .map(|kind| DocumentFieldInputDescriptorType {
+        kind: wire(kind),
+        multiple: kind.multiple(),
+        has_options: kind.has_options(),
+      })
+      .collect(),
+    max_options: MAX_OPTIONS as i32,
+    max_string_bytes: MAX_STRING_BYTES as i32,
+    max_id_bytes: MAX_ID_BYTES as i32,
+  }
+}
+
 #[derive(SimpleObject)]
 pub struct DocumentReviewPlanningType {
   pub enabled: bool,
@@ -356,8 +413,122 @@ impl From<myoxus_application::document_metadata::review::ReviewPlanningView> for
   }
 }
 
+#[derive(Enum, Copy, Clone, Eq, PartialEq)]
+pub enum DocumentFieldPresentationState {
+  Value,
+  Unset,
+  Unavailable,
+}
+
+#[derive(SimpleObject)]
+pub struct DocumentFieldPresentationType {
+  pub state: DocumentFieldPresentationState,
+  pub text: Option<String>,
+  pub complete: bool,
+}
+
+/// Both reading exports and inline presentation resolve the same authorized
+/// capture. The latter retains the server's unset/unavailable distinction.
+#[tracing::instrument(skip_all)]
+async fn present_document_fields(
+  ctx: &Context<'_>,
+  workspace_id: ID,
+  doc_id: ID,
+  fields: async_graphql::Json<serde_json::Value>,
+) -> Result<Vec<myoxus_application::document_fields::context::FieldPresentation>> {
+  use myoxus_application::document_fields::DocumentFieldError;
+  use sha2::{Digest, Sha256};
+  let invalid_input = || map_gql_error(DocumentFieldError::InvalidField.into());
+  let doc_id = resolve_doc_id(ctx, &workspace_id, &doc_id).await?;
+  let (_, actor, authorized_workspace) = require_doc_read(ctx, doc_id).await?;
+  let bytes = serde_json::to_vec(&fields.0).map_err(|_| invalid_input())?;
+  if bytes.len() > 256 * 1024 {
+    return Err(invalid_input());
+  }
+  let fields: Vec<yjs::document_field::DocumentField> =
+    serde_json::from_value(fields.0).map_err(|_| invalid_input())?;
+  if fields.len() > 2048 {
+    return Err(invalid_input());
+  }
+  for field in &fields {
+    myoxus_application::document_fields::validate(field).map_err(|_| invalid_input())?;
+  }
+  if fields.is_empty() {
+    return Ok(Vec::new());
+  }
+  let state = ctx.data::<std::sync::Arc<ApiState>>()?;
+  let resolver = state
+    .document_field_resolver()
+    .await
+    .ok_or_else(|| map_gql_error(DocumentFieldError::ContextUnavailable.into()))?;
+  // This fingerprint describes only the supplied transient excerpt. It is
+  // never a native document revision, a history source or a reusable cache key.
+  let revision = format!("native-output:{:x}", Sha256::digest(&bytes));
+  let context = resolver
+    .resolve_authorized(authorized_workspace, doc_id, revision, &fields, Some(actor))
+    .await
+    .map_err(map_gql_error)?;
+  fields
+    .iter()
+    .map(|field| context.present(field).map_err(|error| map_gql_error(error.into())))
+    .collect()
+}
+
 #[Object]
 impl DocumentMetadataQueryRoot {
+  /// Present one captured native excerpt for output, never canonical answers.
+  /// The caller may have unsynchronized input edits; metadata always belongs to
+  /// the authorized target document, not a supplied source or identity catalog.
+  pub async fn document_field_output(
+    &self,
+    ctx: &Context<'_>,
+    workspace_id: ID,
+    doc_id: ID,
+    fields: async_graphql::Json<serde_json::Value>,
+  ) -> Result<Vec<String>> {
+    use myoxus_application::document_fields::DocumentFieldError;
+    present_document_fields(ctx, workspace_id, doc_id, fields)
+      .await?
+      .into_iter()
+      .map(|value| {
+        value
+          .text
+          .ok_or_else(|| map_gql_error(DocumentFieldError::ContextUnavailable.into()))
+      })
+      .collect()
+  }
+
+  /// Return per-occurrence display states without persisting presentation text.
+  pub async fn document_field_presentations(
+    &self,
+    ctx: &Context<'_>,
+    workspace_id: ID,
+    doc_id: ID,
+    fields: async_graphql::Json<serde_json::Value>,
+  ) -> Result<Vec<DocumentFieldPresentationType>> {
+    use myoxus_application::document_fields::context::FieldValueState;
+    Ok(
+      present_document_fields(ctx, workspace_id, doc_id, fields)
+        .await?
+        .into_iter()
+        .map(|value| DocumentFieldPresentationType {
+          state: match value.state {
+            FieldValueState::Value => DocumentFieldPresentationState::Value,
+            FieldValueState::Unset => DocumentFieldPresentationState::Unset,
+            FieldValueState::Unavailable => DocumentFieldPresentationState::Unavailable,
+          },
+          text: value.text,
+          complete: value.complete,
+        })
+        .collect(),
+    )
+  }
+
+  pub async fn document_field_catalog(&self, ctx: &Context<'_>) -> Result<DocumentFieldCatalogType> {
+    let state = ctx.data::<std::sync::Arc<ApiState>>()?;
+    super::ensure_authenticated_snapshot(ctx, state).await?;
+    Ok(field_catalog())
+  }
   /// Requested consent is distinct from current source/authority readiness.
   pub async fn document_review_planning(
     &self,

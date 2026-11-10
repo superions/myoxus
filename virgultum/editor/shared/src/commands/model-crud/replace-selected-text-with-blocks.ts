@@ -206,6 +206,12 @@ export const replaceSelectedTextWithBlocksCommand: Command<{
 }> = (ctx, next) => {
   const { textSelection, blocks, std } = ctx;
   const doc = std.host.store;
+  if (
+    getSelectedBlocks(doc, textSelection)?.some((model) =>
+      doc.hasFixedText(model),
+    )
+  )
+    return;
 
   // Delete selected text and get startOffset
   const result = deleteSelectedText(doc, textSelection);

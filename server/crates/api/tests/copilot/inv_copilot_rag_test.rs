@@ -230,6 +230,28 @@ async fn inv_rag_01_context_injected_when_embeddings_exist() {
       assert!(!payload.contains(excluded), "{payload}");
     }
   }
+  let current_only = helpers::gql(&app, auth, json!({
+    "query": "mutation($o:CreateChatMessageInput!){createCopilotMessage(options:$o)}",
+    "variables": {"o": {"sessionId": session_id, "content": "What stands out in this journal?", "params": {"currentDocId": selected}}}
+  })).await;
+  assert!(current_only.get("errors").is_none(), "{current_only}");
+  for search in [false, true] {
+    let options = urlencoding::encode(&json!({"searchWorkspace":search}).to_string()).into_owned();
+    let response = app.clone().oneshot(Request::builder()
+      .uri(format!("/api/copilot/chat/{session_id}/stream-object?toolsConfig={options}"))
+      .header("cookie", format!("affine_session={auth}"))
+      .body(Body::empty()).unwrap()).await.unwrap();
+    let wire = String::from_utf8(response.into_body().collect().await.unwrap().to_bytes().to_vec()).unwrap();
+    assert!(wire.contains("event: done"), "{wire}");
+    let captured = requests.lock().unwrap().last().unwrap().clone();
+    let chat = captured["messages"].as_array().unwrap();
+    assert!(chat.iter().any(|message| message["role"] == "user"
+      && message["content"].as_str().is_some_and(|text| text.contains("Quoted selected context")
+        && text.contains("the observatory is called Copper Finch."))),
+      "the open journal must reach the provider even with workspace search disabled: {captured}");
+    assert_eq!(captured.to_string().contains("UNSELECTED_CONTEXT"), search,
+      "the current journal must not restrict optional workspace search: {captured}");
+  }
    let selection_only=helpers::gql(&app,auth,json!({"query":"mutation($o:CreateChatMessageInput!){createCopilotMessage(options:$o)}","variables":{"o":{"sessionId":session_id,"content":"Use my fragment with workspace search","params":{"currentDocId":selected,"selectedMarkdown":"ONLY_SELECTED_FRAGMENT"}}}})).await;
   assert!(selection_only.get("errors").is_none(),"{selection_only}");
    let options=urlencoding::encode(r#"{"searchWorkspace":true}"#);
@@ -253,8 +275,8 @@ async fn inv_rag_01_context_injected_when_embeddings_exist() {
     .unwrap();
   let wire = String::from_utf8(response.into_body().collect().await.unwrap().to_bytes().to_vec()).unwrap();
   assert!(wire.contains("COPILOT_ACCESS_DENIED"), "{wire}");
-   assert_eq!(embedding_calls.load(Ordering::SeqCst), 2);
-  assert_eq!(requests.lock().unwrap().len(), 3);
+   assert_eq!(embedding_calls.load(Ordering::SeqCst), 3);
+  assert_eq!(requests.lock().unwrap().len(), 5);
   sqlx::query("UPDATE doc_snapshots SET payload=$2 WHERE doc_id=$1").bind(selected).bind(vec![255_u8]).execute(&pool).await.unwrap();
   let status=helpers::gql(&app,auth,json!({"query":"query($w:String!,$c:String!){currentUser{copilot(workspaceId:$w){contexts(contextId:$c){docs{id status}}}}}","variables":{"w":workspace_id,"c":context_id}})).await;
   assert!(status.get("errors").is_none(),"{status}");
@@ -267,7 +289,7 @@ async fn inv_rag_01_context_injected_when_embeddings_exist() {
   assert!(wire.contains("COPILOT_SESSION_INVALID_INPUT")&&!wire.contains("event: done"),"{wire}");
   let failed:String=sqlx::query_scalar("SELECT token_usage->>'streamStatus' FROM copilot_messages WHERE session_id=$1 AND role='assistant' AND token_usage->>'requestId'='invalid-source-context'").bind(Uuid::parse_str(session_id).unwrap()).fetch_one(&pool).await.unwrap();
   assert_eq!(failed,"failed","explicit context preparation errors cannot become user cancellation");
-  assert_eq!(requests.lock().unwrap().len(),3,"failed context cannot reach generation");
+  assert_eq!(requests.lock().unwrap().len(),5,"failed context cannot reach generation");
   // Revalidate source membership/status on each generation, even when the same
   // workspace person can read the blob and previously used its extracted text.
   for invalid_source in ["other-session", "pending", "failed", "deleted", "removed"] {
@@ -289,7 +311,7 @@ async fn inv_rag_01_context_injected_when_embeddings_exist() {
     let response=app.clone().oneshot(Request::builder().uri(format!("/api/copilot/chat/{session_id}/stream-object?toolsConfig={options}")).header("cookie",format!("affine_session={auth}")).body(Body::empty()).unwrap()).await.unwrap();
     let wire=String::from_utf8(response.into_body().collect().await.unwrap().to_bytes().to_vec()).unwrap();
     assert!(wire.contains("COPILOT_SESSION_INVALID_INPUT")&&!wire.contains("event: done"),"{invalid_source}: {wire}");
-    assert_eq!(requests.lock().unwrap().len(),3,"{invalid_source} file reached generation");
+    assert_eq!(requests.lock().unwrap().len(),5,"{invalid_source} file reached generation");
   }
   sqlx::query("UPDATE copilot_sessions SET deleted_at=now() WHERE id=$1").bind(Uuid::parse_str(session_id).unwrap()).execute(&pool).await.unwrap();
   let denied_context=helpers::gql(&app,auth,json!({"query":"query($w:String!,$c:String!){currentUser{copilot(workspaceId:$w){contexts(contextId:$c){id}}}}","variables":{"w":workspace_id,"c":context_id}})).await;

@@ -51,6 +51,10 @@ import {
 } from "react";
 
 import { VirgultumDocEditor, VirgultumEdgelessEditor } from "./lit-adaper";
+import {
+  DocumentFieldPresentationProvider,
+  DocumentFieldSourcePreviewProvider,
+} from "./document-field-presentation";
 
 export interface MyoxusEditorContainer extends HTMLElement {
   page: Store;
@@ -80,6 +84,8 @@ export interface EditorProps extends HTMLAttributes<HTMLDivElement> {
   readonly?: boolean;
   /** Immutable, isolated content: never attach live-document loading or metadata chrome. */
   snapshot?: boolean;
+  /** An isolated template source shows field definitions, not live metadata. */
+  templateSourcePreview?: boolean;
   /** Render native body content without the surrounding document-page chrome. */
   contentOnly?: boolean;
   // on Editor ready
@@ -166,6 +172,7 @@ const VirgultumEditorImpl = ({
   shared,
   readonly,
   snapshot,
+  templateSourcePreview,
   contentOnly,
   onEditorReady,
   onEditorError,
@@ -612,7 +619,7 @@ const VirgultumEditorImpl = ({
     t,
   ]);
 
-  return (
+  const editor = (
     <DocumentEditorRoot
       {...props}
       data-testid={`editor-${page.id}`}
@@ -642,6 +649,19 @@ const VirgultumEditorImpl = ({
         />
       )}
     </DocumentEditorRoot>
+  );
+  // Historical views render captured runs directly and never initialize a
+  // live metadata or regional-presentation subscription.
+  return snapshot && templateSourcePreview ? (
+    <DocumentFieldSourcePreviewProvider>
+      {editor}
+    </DocumentFieldSourcePreviewProvider>
+  ) : snapshot ? (
+    editor
+  ) : (
+    <DocumentFieldPresentationProvider key={page.id} page={page}>
+      {editor}
+    </DocumentFieldPresentationProvider>
   );
 };
 

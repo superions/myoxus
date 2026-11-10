@@ -1,5 +1,5 @@
 import { type BaseTextAttributes, baseTextAttributes } from "@virgultum/store";
-import type { z, ZodTypeDef } from "zod";
+import type { z } from "zod";
 
 import type { InlineEditor } from "../inline-editor.js";
 import type { AttributeRenderer, InlineRange } from "../types.js";
@@ -9,7 +9,7 @@ export class AttributeService<TextAttributes extends BaseTextAttributes> {
   private _attributeRenderer: AttributeRenderer<TextAttributes> =
     getDefaultAttributeRenderer<TextAttributes>();
 
-  private _attributeSchema: z.ZodSchema<TextAttributes, ZodTypeDef, unknown> =
+  private _attributeSchema: z.ZodType<TextAttributes> =
     baseTextAttributes as never;
 
   private _marks: TextAttributes | null = null;
@@ -84,9 +84,7 @@ export class AttributeService<TextAttributes extends BaseTextAttributes> {
     this._attributeRenderer = renderer;
   };
 
-  setAttributeSchema = (
-    schema: z.ZodSchema<TextAttributes, ZodTypeDef, unknown>,
-  ) => {
+  setAttributeSchema = (schema: z.ZodType<TextAttributes>) => {
     this._attributeSchema = schema;
   };
 

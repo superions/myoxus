@@ -1047,6 +1047,19 @@ async fn inv_mcp_document_template_instantiate_preserves_native_content_and_comp
   let pool = helpers::setup_pool().await;
   let auth_store = Arc::new(SqlxAuthStore::from_pool(pool.clone()));
   let (owner_id, _) = helpers::seed_user(&pool, &auth_store, "mcp-template-instantiate-owner").await;
+  auth_store
+    .patch_user_preferences(
+      owner_id,
+      myoxus_application::auth::UserPreferencesPatch {
+        locale: Some(Some("en".into())),
+        timezone: Some(Some("Pacific/Kiritimati".into())),
+        date_format: Some(Some("year-month-day".into())),
+        time_format: Some(Some("24-hour".into())),
+        ..Default::default()
+      },
+    )
+    .await
+    .expect("explicit calendar presentation preferences");
   let (reader_id, _) = helpers::seed_user(&pool, &auth_store, "mcp-template-instantiate-reader").await;
   let workspace_id = helpers::create_workspace(&pool, owner_id).await;
   let (mut state, docs) = build_tool_state(&pool);
@@ -1095,7 +1108,7 @@ async fn inv_mcp_document_template_instantiate_preserves_native_content_and_comp
     workspace_id,
     owner_id,
     "Brief {{ project }}",
-    &format!("Owner {{{{ owner }}}} / {{{{ input.reference }}}} / {{{{ input.reference }}}}\n\n- {{{{ steps }}}}\n\n![Native asset]({asset_key})"),
+    &format!("Owner {{{{ owner }}}} / {{{{ input.reference }}}} / {{{{ input.reference }}}}\n\nCalendar {{{{input.date.day}}}} / {{{{input.datetime.meeting}}}}\n\n- {{{{ steps }}}}\n\n![Native asset]({asset_key})"),
     "managed",
     "document",
   )
@@ -1128,6 +1141,7 @@ async fn inv_mcp_document_template_instantiate_preserves_native_content_and_comp
         )),
       )
       .with_instantiation_assets(blob_service.clone())
+      .with_account(Arc::new(TemplateAccountPreferences(auth_store.clone())))
       .with_organization_context(Some(Arc::new(
         myoxus_application::organization::OrganizationTemplateContextService::new(
           Arc::new(SqlxWorkspaceStore::new(
@@ -1153,6 +1167,8 @@ async fn inv_mcp_document_template_instantiate_preserves_native_content_and_comp
     "variables": {
       "project": "Atlas",
       "input.reference": "  R-1 {{project}}  ",
+      "input.date.day": "2026-11-12",
+      "input.datetime.meeting": "2026-11-13 09:30:00",
       "owner": "Ada",
       "steps": ["Discover", "Deliver"]
     },
@@ -1165,13 +1181,19 @@ async fn inv_mcp_document_template_instantiate_preserves_native_content_and_comp
     .fetch_one(&pool)
     .await
     .unwrap();
-  for value in [serde_json::Value::Null, json!("   "), json!(["R-1"])] {
+  for (name, value) in [
+    ("input.reference", serde_json::Value::Null),
+    ("input.reference", json!("   ")),
+    ("input.reference", json!(["R-1"])),
+    ("input.date.day", json!("2026-02-30")),
+    ("input.datetime.meeting", json!("2026-11-13T09:30:00Z")),
+  ] {
     let mut invalid = params.clone();
     invalid["idempotency_key"] = json!(format!("invalid-manual-{}", Uuid::new_v4()));
     if value.is_null() {
-      invalid["variables"].as_object_mut().unwrap().remove("input.reference");
+      invalid["variables"].as_object_mut().unwrap().remove(name);
     } else {
-      invalid["variables"]["input.reference"] = value;
+      invalid["variables"][name] = value;
     }
     assert!(
       dispatch_tool("document_template_instantiate", &invalid, &owner_write, &state)
@@ -1268,6 +1290,7 @@ async fn inv_mcp_document_template_instantiate_preserves_native_content_and_comp
       .contains("Owner Ada / R-1 {{project}} / R-1 {{project}}")
   );
   assert!(extracted.markdown.contains("Discover"));
+  assert!(extracted.markdown.contains("Calendar 2026-11-12 / 2026-11-13, 09:30"));
   assert!(extracted.markdown.contains("Deliver"));
   assert_eq!(
     yjs::extract_portable_asset_references(&snapshot)

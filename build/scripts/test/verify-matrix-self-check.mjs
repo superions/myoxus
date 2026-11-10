@@ -663,7 +663,6 @@ async function verifyFastTierSelection() {
     "core.i18n-quality.vitest",
     "core.database.vitest",
     "web.vitest",
-    "virgultum.data-view.vitest",
     "virgultum.store.vitest",
     "virgultum.std.vitest",
     "virgultum.mermaid.vitest",

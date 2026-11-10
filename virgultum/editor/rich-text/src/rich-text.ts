@@ -453,7 +453,8 @@ export class RichText extends WithDisposable(ShadowlessElement) {
   accessor attributeRenderer: AttributeRenderer | undefined = undefined;
 
   @property({ attribute: false })
-  accessor attributesSchema: z.ZodSchema | undefined = undefined;
+  accessor attributesSchema: z.ZodType<MyoxusTextAttributes> | undefined =
+    undefined;
 
   @property({ attribute: false })
   accessor embedChecker: <

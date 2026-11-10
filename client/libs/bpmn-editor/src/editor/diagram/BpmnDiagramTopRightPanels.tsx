@@ -27,9 +27,8 @@ import {
   PopoverTarget,
   PopoverContent,
 } from "@myoxus/ui-facade";
-import { InfoIcon } from "@myoxus/icons/react";
 import { MonitorIcon as VirtualMachineIcon } from "@myoxus/icons/react";
-import { useCallback } from "react";
+import { useCallback, useLayoutEffect, useRef } from "react";
 import * as RF from "@xyflow/react";
 import { OverlaysPanel } from "../overlaysPanel/OverlaysPanel";
 import {
@@ -54,8 +53,31 @@ export function TopRightCornerPanels() {
   const propertiesPanel = useBpmnEditorStore((s) => s.propertiesPanel);
   const bpmnEditorStoreApi = useBpmnEditorStoreApi();
   const { propertiesPanelFocusRef } = useBpmnEditor();
+  const invokerRef = useRef<HTMLButtonElement | null>(null);
+  // Capture before DOM removal: a settled field commit may replace the canvas
+  // after Close has already handed focus back to its invoker.
+  useLayoutEffect(() => {
+    if (
+      propertiesPanelFocusRef.current === "invoker" &&
+      document.activeElement === document.body &&
+      invokerRef.current
+    ) {
+      invokerRef.current.focus();
+      propertiesPanelFocusRef.current = null;
+    }
+    return () => {
+      if (
+        !propertiesPanel.isOpen &&
+        propertiesPanelFocusRef.current !== "panel" &&
+        invokerRef.current &&
+        document.activeElement === invokerRef.current
+      )
+        propertiesPanelFocusRef.current = "invoker";
+    };
+  });
   const propertiesInvoker = useCallback(
     (button: HTMLButtonElement | null) => {
+      invokerRef.current = button;
       if (button && propertiesPanelFocusRef.current === "invoker") {
         propertiesPanelFocusRef.current = null;
         button.focus();
@@ -152,14 +174,14 @@ export function TopRightCornerPanels() {
           </PopoverContent>
         </Popover>
         {!propertiesPanel.isOpen && (
-          <IconButton
+          <Button
             ref={propertiesInvoker}
-            tooltip={i18n.bpmnTopRightPanels.propertiesPanel}
+            aria-label={i18n.bpmnTopRightPanels.propertiesPanel}
             aria-expanded={false}
             onClick={togglePropertiesPanel}
           >
-            <InfoIcon />
-          </IconButton>
+            {i18n.bpmnTopRightPanels.propertiesPanel}
+          </Button>
         )}
       </Group>
     </RF.Panel>

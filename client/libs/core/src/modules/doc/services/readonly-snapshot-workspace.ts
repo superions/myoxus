@@ -12,7 +12,7 @@ import { applyUpdate, Doc as YDoc } from "yjs";
  */
 export function createReadonlySnapshotWorkspace(
   workspaceId: string,
-  featureFlagService: FeatureFlagService,
+  featureFlagService?: FeatureFlagService,
   flavourProvider?: WorkspaceFlavourProvider,
 ) {
   let disposed = false;

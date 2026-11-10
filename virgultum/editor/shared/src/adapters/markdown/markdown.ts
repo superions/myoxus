@@ -1,4 +1,5 @@
 import type { ServiceProvider } from "@virgultum/global/di";
+import { projectDocumentFieldOutput } from "../utils/document-field-output";
 import {
   DefaultTheme,
   NoteDisplayMode,
@@ -812,6 +813,7 @@ export class MarkdownAdapter extends BaseAdapter<Markdown> {
     snapshot,
     assets,
   }: FromBlockSnapshotPayload): Promise<FromBlockSnapshotResult<Markdown>> {
+    snapshot = await projectDocumentFieldOutput(snapshot, this.scopeProvider);
     this._clearFootnoteConfigs();
     this._exportDiagnostics = emptyMarkdownImportDiagnostics();
     this.deltaConverter.exportDiagnostics = this._exportDiagnostics;
@@ -834,6 +836,11 @@ export class MarkdownAdapter extends BaseAdapter<Markdown> {
     snapshot,
     assets,
   }: FromDocSnapshotPayload): Promise<FromDocSnapshotResult<Markdown>> {
+    snapshot = await projectDocumentFieldOutput(
+      snapshot,
+      this.scopeProvider,
+      snapshot.meta.id,
+    );
     let buffer = "";
     const { file, assetsIds } = await this.fromBlockSnapshot({
       snapshot: snapshot.blocks,
@@ -853,6 +860,12 @@ export class MarkdownAdapter extends BaseAdapter<Markdown> {
   }: FromSliceSnapshotPayload & {
     inlineFootnoteAssets?: boolean;
   }): Promise<FromSliceSnapshotResult<Markdown>> {
+    snapshot = await projectDocumentFieldOutput(
+      snapshot,
+      this.scopeProvider,
+      snapshot.pageId,
+      snapshot.workspaceId,
+    );
     this._clearFootnoteConfigs();
     this._exportDiagnostics = emptyMarkdownImportDiagnostics();
     this.deltaConverter.exportDiagnostics = this._exportDiagnostics;

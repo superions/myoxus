@@ -35,6 +35,7 @@ import { pointsToPath } from "../maths/DcMaths";
 import { useXyFlowReactKieDiagramStore } from "../store/Store";
 import { snapPoint } from "../snapgrid/SnapGrid";
 import { type NodeSizes } from "../nodes/NodeSizes";
+import { sourceHandleParts } from "../store/State";
 
 export type NodeComponent = React.ComponentType<{
   x: number;
@@ -58,6 +59,8 @@ export function ConnectionLine<N extends string, E extends string>({
   toY,
   fromNode,
   fromHandle,
+  fromX: handleX,
+  fromY: handleY,
   defaultNodeSizes,
   graphStructure,
   nodeComponentsMapping,
@@ -82,19 +85,17 @@ export function ConnectionLine<N extends string, E extends string>({
       : undefined,
   );
 
-  // This works because nodes are configured with:
-  // - Source handles with ids matching EDGE_TYPES or NODE_TYPES
-  // - Target handles with ids matching TargetHandleId
-  //
   // When editing an existing edge from its first waypoint (i.e., source handle) the edge is rendered
   // in reverse. So the connection line's "from" properties are actually "to" properties.
-  const isUpdatingFromSourceHandle = Object.keys(PositionalNodeHandleId).some(
-    (k) => (PositionalNodeHandleId as any)[k] === fromHandle?.id,
-  );
+  const isUpdatingFromSourceHandle =
+    !!edgeBeingUpdated &&
+    Object.keys(PositionalNodeHandleId).some(
+      (k) => (PositionalNodeHandleId as any)[k] === fromHandle?.id,
+    );
 
   const handleId = isUpdatingFromSourceHandle
     ? edgeBeingUpdated?.type
-    : (edgeBeingUpdated?.type ?? fromHandle?.id);
+    : (edgeBeingUpdated?.type ?? sourceHandleParts(fromHandle?.id).type);
 
   const kieEdgePath = usePathForEdgeWithWaypoints(
     edgeBeingUpdated?.data,
@@ -125,7 +126,7 @@ export function ConnectionLine<N extends string, E extends string>({
             ...kieEdgePath.points.slice(0, -1),
             { "@_x": toX, "@_y": toY },
           ]) // Last point is being dragged
-      : `M${fromX},${fromY} L${toX},${toY}`;
+      : `M${handleX ?? fromX},${handleY ?? fromY} L${toX},${toY}`;
 
   // Edges
   const EdgeConnectionLine = edgeComponentsMapping[

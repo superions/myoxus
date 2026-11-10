@@ -65,7 +65,7 @@ export function DataStoreProperties({ id }: { id: string }) {
         <AccordionControl icon={<DataStoreIcon />}>
           {element["@_name"] || t["com.myoxus.editor.shape.bpmn.data-store"]()}
         </AccordionControl>
-        <AccordionPanel>
+        <AccordionPanel keepMounted keepMountedMode="display-none">
           <Stack>
             <NameDocumentationAndId element={element} />
             <Select
@@ -121,7 +121,7 @@ export function DataStoreProperties({ id }: { id: string }) {
           <AccordionControl>
             {t["com.myoxus.editor.bpmn.referenced-data-store"]()}
           </AccordionControl>
-          <AccordionPanel>
+          <AccordionPanel keepMounted keepMountedMode="display-none">
             <Stack>
               <MyoxusTextInput
                 label={t["com.myoxus.common.name"]()}

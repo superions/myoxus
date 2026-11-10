@@ -32690,6 +32690,54 @@ export const getDocRolePermissionsQuery = {
 }`,
 };
 
+export const documentFieldCatalogQuery = {
+  id: "documentFieldCatalogQuery" as const,
+  op: "documentFieldCatalog",
+  kind: "query" as const,
+  query: `query documentFieldCatalog {
+  documentFieldCatalog {
+    metadata {
+      key
+      formats
+    }
+    inputKinds {
+      kind
+      multiple
+      hasOptions
+    }
+    maxOptions
+    maxStringBytes
+    maxIdBytes
+  }
+}`,
+};
+
+export const documentFieldOutputQuery = {
+  id: "documentFieldOutputQuery" as const,
+  op: "documentFieldOutput",
+  kind: "query" as const,
+  query: `query documentFieldOutput($workspaceId: ID!, $docId: ID!, $fields: JSON!) {
+  documentFieldOutput(workspaceId: $workspaceId, docId: $docId, fields: $fields)
+}`,
+};
+
+export const documentFieldPresentationsQuery = {
+  id: "documentFieldPresentationsQuery" as const,
+  op: "documentFieldPresentations",
+  kind: "query" as const,
+  query: `query documentFieldPresentations($workspaceId: ID!, $docId: ID!, $fields: JSON!) {
+  documentFieldPresentations(
+    workspaceId: $workspaceId
+    docId: $docId
+    fields: $fields
+  ) {
+    state
+    text
+    complete
+  }
+}`,
+};
+
 export const documentGraphQuery = {
   id: "documentGraphQuery" as const,
   op: "documentGraph",

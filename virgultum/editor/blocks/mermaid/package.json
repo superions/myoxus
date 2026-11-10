@@ -28,7 +28,7 @@
     "@virgultum/widget-edgeless-toolbar": "workspace:*",
     "@virgultum/widget-slash-menu": "workspace:*",
     "dayjs": "^1.11.23",
-    "dompurify": "3.4.16",
+    "dompurify": "3.4.17",
     "lit": "^3.3.3",
     "marked": "^16.3.0",
     "mermaid": "patch:mermaid@npm%3A11.17.2#~/.yarn/patches/mermaid-npm-11.17.2-97875ab19c.patch",

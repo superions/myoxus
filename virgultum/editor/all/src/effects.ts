@@ -4,7 +4,6 @@ import { type effects as componentColorPickerEffects } from "@virgultum/componen
 import { type effects as componentContextMenuEffects } from "@virgultum/components/context-menu";
 import { type effects as componentDatePickerEffects } from "@virgultum/components/date-picker";
 import { type effects as componentDropIndicatorEffects } from "@virgultum/components/drop-indicator";
-import { type effects as componentEmbedCardModalEffects } from "@virgultum/components/embed-card-modal";
 import { type effects as componentHighlightDropdownMenuEffects } from "@virgultum/components/highlight-dropdown-menu";
 import { type effects as componentLinkPreviewEffects } from "@virgultum/components/link-preview";
 import { type effects as componentLinkedDocTitleEffects } from "@virgultum/components/linked-doc-title";
@@ -22,7 +21,6 @@ export declare const _GLOBAL_:
   | typeof componentContextMenuEffects
   | typeof componentDatePickerEffects
   | typeof componentDropIndicatorEffects
-  | typeof componentEmbedCardModalEffects
   | typeof componentHighlightDropdownMenuEffects
   | typeof componentLinkPreviewEffects
   | typeof componentLinkedDocTitleEffects

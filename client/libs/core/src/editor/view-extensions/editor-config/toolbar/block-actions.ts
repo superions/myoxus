@@ -14,7 +14,7 @@ import { EditorService } from "@myoxus/core/modules/editor";
 import { WorkspaceServerService } from "@myoxus/core/modules/server";
 import { copyLinkToBlockStdScopeClipboard } from "@myoxus/core/utils/clipboard";
 import { I18n, i18nTime } from "@myoxus/i18n";
-import { CopyIcon, LinkIcon } from "@myoxus/icons/lit";
+import { LinkIcon } from "@myoxus/icons/lit";
 import type { FrameworkProvider } from "@myoxus/infra";
 import { track } from "@myoxus/track";
 import { notify } from "@myoxus/ui-facade";
@@ -34,7 +34,7 @@ import { toggleEmbedCardEditModal } from "@virgultum/editor/components/embed-car
 import { notifyLinkedDocClearedAliases } from "@virgultum/editor/components/notification";
 import {
   type MenuContext,
-  type MenuItemGroup,
+  type AdvancedMenuItem,
 } from "@virgultum/editor/components/toolbar";
 import {
   BookmarkBlockModel,
@@ -46,6 +46,9 @@ import { getSelectedModelsCommand } from "@virgultum/editor/shared/commands";
 import { ImageSelection } from "@virgultum/editor/shared/selection";
 import {
   editorMessage,
+  EditorI18nProvider,
+  resolveEditorText,
+  type SelectionAction,
   ActionPlacement,
   CitationProvider,
   GenerateDocUrlProvider,
@@ -69,59 +72,65 @@ import {
 } from "./task-template-actions";
 export function createToolbarMoreMenuConfig(framework: FrameworkProvider) {
   return {
-    configure: <T extends MenuContext>(groups: MenuItemGroup<T>[]) => {
-      const clipboardGroup = groups.find((group) => group.type === "clipboard");
-
-      if (clipboardGroup) {
-        let copyIndex = clipboardGroup.items.findIndex(
-          (item) => item.type === "copy",
-        );
-        if (copyIndex === -1) {
-          copyIndex = clipboardGroup.items.findIndex(
-            (item) => item.type === "duplicate",
-          );
-          if (copyIndex !== -1) {
-            copyIndex -= 1;
-          }
-        }
-
-        // after `copy` or before `duplicate`
-        clipboardGroup.items.splice(
-          copyIndex + 1,
-          0,
-          createCopyLinkToBlockMenuItem(framework),
-          {
-            type: "capture-as-task",
-            label: editorMessage(
-              "com.myoxus.database.tasks.capture",
-              "Capture as Task",
-            ),
-            icon: CopyIcon(),
-            when: (ctx: MenuContext) =>
-              Boolean(
-                snapshotTaskCaptureSelection(
-                  ctx.std,
-                  taskCaptureModels(ctx.std),
-                ),
+    actions: (ctx: MenuContext): SelectionAction[] => {
+      const items: [AdvancedMenuItem<MenuContext>, SelectionAction["icon"]][] =
+        [
+          [createCopyAsPngMenuItem(framework), "CopyAsImgaeIcon"],
+          [createCopyLinkToBlockMenuItem(framework), "LinkIcon"],
+          [
+            {
+              type: "capture-as-task",
+              label: editorMessage(
+                "com.myoxus.database.tasks.capture",
+                "Capture as Task",
               ),
-            action: (ctx: MenuContext) => {
-              const selectedModels = taskCaptureModels(ctx.std);
-              if (!snapshotTaskCaptureSelection(ctx.std, selectedModels))
-                return;
-              void openTaskCapture(framework, ctx.std, selectedModels);
-              ctx.close();
+              when: () =>
+                !ctx.doc.readonly &&
+                Boolean(
+                  snapshotTaskCaptureSelection(
+                    ctx.std,
+                    ctx.selectedBlockModels,
+                  ),
+                ),
+              action: () => {
+                if (
+                  ctx.doc.readonly ||
+                  !snapshotTaskCaptureSelection(
+                    ctx.std,
+                    ctx.selectedBlockModels,
+                  )
+                )
+                  return;
+                void openTaskCapture(
+                  framework,
+                  ctx.std,
+                  ctx.selectedBlockModels,
+                );
+                ctx.close();
+              },
             },
-          },
-        );
-
-        clipboardGroup.items.splice(
-          copyIndex + 1,
-          0,
-          createCopyAsPngMenuItem(framework),
-        );
-      }
-
-      return groups;
+            "CopyIcon",
+          ],
+        ];
+      return items.flatMap(([item, icon]) =>
+        item.when && !item.when(ctx)
+          ? []
+          : [
+              {
+                id: item.type,
+                label:
+                  resolveEditorText(
+                    item.label,
+                    ctx.std.getOptional(EditorI18nProvider) ?? undefined,
+                  ) ?? item.type,
+                icon,
+                disabled: false,
+                run: () => {
+                  void item.action?.(ctx);
+                },
+              },
+            ],
+      );
     },
   };
 }

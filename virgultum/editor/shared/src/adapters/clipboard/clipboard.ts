@@ -1,5 +1,6 @@
 import { ErrorCode, VirgultumError } from "@virgultum/global/exceptions";
 import { remapAnnotationIdentities } from "@virgultum/model";
+import { remapDocumentFieldIdentities } from "../../types";
 import {
   BaseAdapter,
   nanoid,
@@ -140,6 +141,7 @@ export class ClipboardAdapter extends BaseAdapter<string> {
     const json = JSON.parse(payload.file);
     const { blobs, snapshot } = json;
     remapAnnotationIdentities(snapshot, nanoid);
+    remapDocumentFieldIdentities(snapshot, nanoid);
     const map = payload.assets?.getAssets();
     decodeClipboardBlobs(blobs, map);
     return Promise.resolve(snapshot);

@@ -2331,8 +2331,10 @@ fn inv_pdfexp22b_documentation_customization_survives_worker_dispatch() {
       let (queued_app, _, _) = helpers::setup_app_with_pdf_sync_threshold(0).await;
       let _guard = pdf_theme_config_guard().await;
       let owner_id = helpers::create_user(&pool, "pdfexp22-doc", false).await;
+      let responsible_id = helpers::create_user(&pool, "pdfexp22-responsible", false).await;
       let session_id = helpers::create_session(&auth, owner_id).await;
       let ws_id = helpers::create_workspace(&pool, owner_id).await;
+      helpers::add_workspace_member(&pool, ws_id, responsible_id).await;
       let doc_id = helpers::create_doc(&pool, ws_id, owner_id).await;
       let lifetime_template_id = Uuid::new_v4();
       let mut lifetime_blobs = Vec::new();
@@ -2343,11 +2345,41 @@ fn inv_pdfexp22b_documentation_customization_survives_worker_dispatch() {
         // Pagination stress remains in PDFEXP-22 and the renderer's long fixture.
         // This bounded source isolates dispatch/snapshot fidelity in both paths.
         let paragraphs: Vec<_> = long_pdf_architecture_doc_paragraphs().into_iter().take(8).collect();
+        let plain = build_pdf_doc_yjs_from_paragraphs("PDF Export V2 Architecture", &paragraphs);
+        use yrs::{Map, ReadTxn, Text, Transact, updates::decoder::Decode};
+        let native = yrs::Doc::new();
+        let native_source = {
+          let blocks = native.get_or_insert_map("blocks");
+          let mut txn = native.transact_mut();
+          txn.apply_update(yrs::Update::decode_v1(&plain).unwrap()).unwrap();
+          let text = blocks.iter(&txn).find_map(|(_, value)| {
+            let yrs::Out::YMap(block) = value else { return None };
+            let Some(yrs::Out::Any(yrs::Any::String(flavour))) = block.get(&txn, "sys:flavour") else { return None };
+            if yjs::resolve_flavour(&flavour) != "myoxus:paragraph" { return None; }
+            match block.get(&txn, "prop:text") { Some(yrs::Out::YText(text)) => Some(text), _ => None }
+          }).unwrap();
+          for descriptor in [
+            json!({"type":"metadata","id":"pdf-number","key":"documentNumber","format":"text"}),
+            json!({"type":"metadata","id":"pdf-responsible","key":"responsible","format":"name"}),
+            json!({"type":"input","id":"pdf-input","definition":{"kind":"text","label":"Topic","required":true,"default":"Not the answer"},"value":"Literal {{native-value}}"}),
+            json!({"type":"input","id":"pdf-selection","definition":{"kind":"single-select","label":"Decision","required":false,"options":[{"id":"kept","label":"Authored decision label"}]},"value":"kept"}),
+          ] {
+            let end = text.len(&txn);
+            text.insert_with_attributes(&mut txn, end, " Native field: ", Default::default());
+            let end = text.len(&txn);
+            text.insert_with_attributes(&mut txn, end, " ", yrs::types::Attrs::from([
+              ("documentField".into(), yrs::Any::from_json(&descriptor.to_string()).unwrap()), ("bold".into(), yrs::Any::Bool(true)),
+            ]));
+          }
+          txn.encode_state_as_update_v1(&Default::default())
+        };
+        sqlx::query("UPDATE docs SET document_number='NATIVE-PDF-01', responsible_user_id=$2, metadata_revision=metadata_revision+1 WHERE id=$1")
+          .bind(doc_id).bind(responsible_id).execute(&pool).await.unwrap();
         insert_doc_snapshot(
           &pool,
           ws_id,
           doc_id,
-          build_pdf_doc_yjs_from_paragraphs("PDF Export V2 Architecture", &paragraphs),
+          native_source.clone(),
         )
         .await;
 
@@ -2465,6 +2497,10 @@ fn inv_pdfexp22b_documentation_customization_survives_worker_dispatch() {
         );
 
         assert!(pdf_text.contains("2026-09-19"), "typed date reaches the cover");
+        for value in ["NATIVE-PDF-01", "pdfexp22-responsible", "Literal{{native-value}}", "Authoreddecisionlabel"] {
+          assert!(normalized_text.contains(value), "actual PDF body must contain the canonical native field value: {value}; {complete_text}");
+        }
+        assert!(!normalized_text.contains("Nottheanswer"), "rendering must not initialize a source default");
         assert!(
           pdf_text.contains("pdfexp22-doc"),
           "document attribution reaches the cover"
@@ -2531,7 +2567,7 @@ fn inv_pdfexp22b_documentation_customization_survives_worker_dispatch() {
           .execute(&pool)
           .await
           .expect("remove sync job without touching the source");
-        let queued = helpers::gql(&queued_app, session_id, request).await;
+        let queued = helpers::gql(&queued_app, session_id, request.clone()).await;
         assert!(queued.get("errors").is_none(), "queued dispatch: {queued}");
         assert_eq!(queued["data"]["exportPdf"]["status"], "queued");
         let queued_id: Uuid = queued["data"]["exportPdf"]["id"].as_str().unwrap().parse().unwrap();
@@ -2549,9 +2585,27 @@ fn inv_pdfexp22b_documentation_customization_survives_worker_dispatch() {
           "theme_fonts",
           "theme_typography",
           "document_branding",
+          "document_field_output",
         ] {
           assert_eq!(queued_inputs[key], render_inputs[key], "same selected {key}");
         }
+        // The queued render retains its dispatch facts, while a new request must
+        // not reuse those pixels after a metadata-only change.
+        sqlx::query("UPDATE users SET name='PDF responsible renamed' WHERE id=$1")
+          .bind(responsible_id).execute(&pool).await.unwrap();
+        let profile = helpers::gql(&queued_app, session_id, request.clone()).await;
+        assert!(profile.get("errors").is_none(), "profile field refresh: {profile}");
+        assert_ne!(profile["data"]["exportPdf"]["id"], queued["data"]["exportPdf"]["id"],
+          "a responsible profile absent from PDF header metadata must invalidate field output without a metadata/content write");
+        sqlx::query("UPDATE docs SET document_number='NATIVE-PDF-02', metadata_revision=metadata_revision+1 WHERE id=$1")
+          .bind(doc_id).execute(&pool).await.unwrap();
+        let refreshed = helpers::gql(&queued_app, session_id, request).await;
+        assert!(refreshed.get("errors").is_none(), "metadata field refresh: {refreshed}");
+        assert_ne!(refreshed["data"]["exportPdf"]["id"], queued["data"]["exportPdf"]["id"], "changed field output invalidates the previous queued job");
+        let refreshed_id:Uuid = refreshed["data"]["exportPdf"]["id"].as_str().unwrap().parse().unwrap();
+        let refreshed_inputs:Value = sqlx::query_scalar("SELECT render_inputs FROM pdf_export_jobs WHERE id=$1")
+          .bind(refreshed_id).fetch_one(&pool).await.unwrap();
+        assert_eq!(refreshed_inputs["document_field_output"]["values"]["pdf-number"], "NATIVE-PDF-02");
         let blobs = Arc::new(myoxus_application::ports::blob_service::BlobService::new(
           Arc::new(myoxus_infrastructure::blob::SqlxBlobStore::new(pool.clone())),
           storage.clone(),
@@ -2644,6 +2698,9 @@ fn inv_pdfexp22b_documentation_customization_survives_worker_dispatch() {
           queued_text, pdf_text,
           "sync and worker must render identical content and selected inputs"
         );
+        let retained:Vec<u8> = sqlx::query_scalar("SELECT payload FROM doc_snapshots WHERE workspace_id=$1 AND doc_id=$2")
+          .bind(ws_id).bind(doc_id).fetch_one(&pool).await.unwrap();
+        assert_eq!(retained, native_source, "PDF projection and metadata changes never persist display text into Yjs");
         // A private persisted revision reaches the real handler without weakening
         // upload validation, which correctly rejects this finite expensive work.
         use myoxus_domain::repositories::PdfTemplateRepository;
@@ -2758,7 +2815,7 @@ fn inv_pdfexp22b_documentation_customization_survives_worker_dispatch() {
           .expect("remove private source blob");
       }
       clear_pdf_export_theme_config(&pool, Some(ws_id)).await;
-      helpers::cleanup_users(&pool, &[owner_id]).await;
+      helpers::cleanup_users(&pool, &[owner_id, responsible_id]).await;
       if let Err(panic) = outcome {
         std::panic::resume_unwind(panic);
       }
@@ -3280,8 +3337,11 @@ mod mcp_export {
         Request::builder()
           .method("POST")
           .uri("/mcp")
+          .header("host", "localhost")
           .header("authorization", format!("Bearer {key}"))
           .header("content-type", "application/json")
+          .header("accept", "application/json, text/event-stream")
+          .header("mcp-protocol-version", "2025-11-25")
           .body(Body::from(
             json!({"jsonrpc":"2.0", "id":1, "method":"tools/call",
         "params":{"name":tool,"arguments":args}})
@@ -3291,8 +3351,15 @@ mod mcp_export {
       )
       .await
       .unwrap();
-    assert_eq!(response.status(), 200);
-    serde_json::from_slice(&response.into_body().collect().await.unwrap().to_bytes()).unwrap()
+    let status = response.status();
+    let bytes = response.into_body().collect().await.unwrap().to_bytes();
+    assert_eq!(
+      status,
+      200,
+      "MCP PDF transport rejected the request: {}",
+      String::from_utf8_lossy(&bytes)
+    );
+    serde_json::from_slice(&bytes).unwrap()
   }
 
   fn success(value: &Value) -> Value {

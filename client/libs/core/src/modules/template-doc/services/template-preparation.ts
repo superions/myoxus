@@ -29,6 +29,7 @@ import {
 } from "../../doc/services/template-repeat";
 import {
   TEMPLATE_INPUT_MAX_BYTES,
+  formatTemplateInputs,
   type TemplateInputValues,
 } from "./template-inputs";
 import {
@@ -98,7 +99,7 @@ export async function prepareTemplateValues(
     ...optionalProjectTemplateVariables(),
     ...optionalPreparationTemplateVariables(),
     ...variables,
-    ...inputs,
+    ...formatTemplateInputs(inputs, regionalPreferences),
   };
   const workspace = owner.store.templateWorkspaceContext;
   const parentId = creationContext.parentDocId;

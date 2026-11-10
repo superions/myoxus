@@ -61,7 +61,7 @@ export function CallActivityProperties({
         <AccordionControl icon={<CallActivityIcon />}>
           {callActivity["@_name"] || i18n.singleNodeProperties.callActivity}
         </AccordionControl>
-        <AccordionPanel>
+        <AccordionPanel keepMounted keepMountedMode="display-none">
           <Stack>
             <NameDocumentationAndId element={callActivity} />
 
@@ -75,7 +75,7 @@ export function CallActivityProperties({
       </AccordionItem>
       <AccordionItem value="activity">
         <AccordionControl>{i18n.propertiesPanel.activity}</AccordionControl>
-        <AccordionPanel>
+        <AccordionPanel keepMounted keepMountedMode="display-none">
           <Stack>
             <MultiInstanceCheckbox element={callActivity} />
             <MultiInstanceProperties element={callActivity} />

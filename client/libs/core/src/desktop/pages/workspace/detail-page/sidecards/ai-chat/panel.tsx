@@ -489,6 +489,7 @@ export const EditorChatPanel = ({ editor, onLoad }: EditorChatPanelProps) => {
       content = new AIChatContent();
     }
     content.host = host;
+    content.boundedMode = true;
     content.reactToLit = reactToLit;
     content.session = session;
     content.createSession = createSession;
@@ -621,7 +622,11 @@ export const EditorChatPanel = ({ editor, onLoad }: EditorChatPanelProps) => {
   const [done, total] = embeddingProgress;
   const isInitialized = session !== undefined;
   return (
-    <Stack data-myoxus-ui-role="chat-panel-root">
+    <Stack
+      mih={0}
+      style={{ flex: "1 1 auto" }}
+      data-myoxus-ui-role="chat-panel-root"
+    >
       {portals.map(({ id, portal }) => (
         <Fragment key={id}>{portal}</Fragment>
       ))}
@@ -643,7 +648,11 @@ export const EditorChatPanel = ({ editor, onLoad }: EditorChatPanelProps) => {
         )
       ) : (
         <>
-          <Group justify="flex-end" data-myoxus-ui-role="chat-panel-actions">
+          <Group
+            justify="flex-end"
+            style={{ flexShrink: 0 }}
+            data-myoxus-ui-role="chat-panel-actions"
+          >
             {isEmbedding ? (
               <MyoxusText
                 component="span"
@@ -688,6 +697,9 @@ export const EditorChatPanel = ({ editor, onLoad }: EditorChatPanelProps) => {
           </Group>
           <Box
             ref={onChatContainerRef}
+            display="flex"
+            mih={0}
+            style={{ flex: "1 1 auto" }}
             data-myoxus-ui-role="chat-panel-content-host"
           />
         </>

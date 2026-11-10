@@ -33,7 +33,7 @@ import { Stack, Box, Group, SegmentedControl } from "@mantine/core";
 import { ArrowRightSmallIcon, ArrowLeftSmallIcon } from "@myoxus/icons/react";
 import { useI18n } from "@myoxus/i18n";
 import { Button, IconButton } from "./button";
-import { useIsInsideModal } from "./modal";
+import { useModalPortalTarget } from "./modal";
 
 dayjs.extend(localeData);
 
@@ -245,6 +245,20 @@ function defaultDateTimeInputFormat(): string {
   return `${defaultDateInputFormat()} HH:mm`;
 }
 
+function datePopoverProps(
+  target: string | undefined,
+  props: LocalizedDateInputProps["popoverProps"],
+) {
+  // Share Select's ModalStack portal boundary: calendars escape the content
+  // scroller while retaining their owning modal's layer and theme inheritance.
+  return {
+    ...(target
+      ? { portalProps: { target }, zIndex: "var(--mb-z-index)" }
+      : undefined),
+    ...props,
+  };
+}
+
 export function LocalizedDateInput({
   locale,
   valueFormat,
@@ -254,7 +268,7 @@ export function LocalizedDateInput({
 }: LocalizedDateInputProps & { "data-myoxus-ui-role"?: string }) {
   const mantineLocale = normalizeDayjsLocale(locale);
   const t = useI18n();
-  const insideModal = useIsInsideModal();
+  const modalTarget = useModalPortalTarget();
   const [calendarOpened, setCalendarOpened] = useState(
     popoverProps?.opened ?? false,
   );
@@ -263,18 +277,21 @@ export function LocalizedDateInput({
     <MantineDateInput
       {...props}
       allowDeselect={props.allowDeselect ?? false}
+      clearButtonProps={{
+        "aria-label": t["com.myoxus.common.clear-selection"](),
+        ...props.clearButtonProps,
+      }}
       data-myoxus-ui-role={uiRole}
       // Modal checks this marker before DateInput handles Escape itself.
       // Calendar days prevent focus; leaving the input closes it via native blur.
       data-mantine-stop-propagation={
-        (insideModal && calendarOpened) || undefined
+        (modalTarget !== undefined && calendarOpened) || undefined
       }
       locale={mantineLocale}
       previousLabel={props.previousLabel ?? t["common.previous"]()}
       nextLabel={props.nextLabel ?? t["common.next"]()}
       popoverProps={{
-        withinPortal: !insideModal,
-        ...popoverProps,
+        ...datePopoverProps(modalTarget, popoverProps),
         onOpen: () => {
           setCalendarOpened(true);
           popoverProps?.onOpen?.();
@@ -300,13 +317,20 @@ export function LocalizedDateTimeInput({
 }: LocalizedDateTimeInputProps & { "data-myoxus-ui-role"?: string }) {
   const mantineLocale = normalizeDayjsLocale(locale);
   const t = useI18n();
-  const insideModal = useIsInsideModal();
+  const modalTarget = useModalPortalTarget();
+  const modalEscapeBoundary = modalTarget
+    ? { "data-mantine-stop-propagation": true }
+    : undefined;
 
   return (
     <MantineDateTimePicker
       {...props}
       data-myoxus-ui-role={uiRole}
       dropdownType="popover"
+      clearButtonProps={{
+        "aria-label": t["com.myoxus.common.clear-selection"](),
+        ...props.clearButtonProps,
+      }}
       locale={mantineLocale}
       previousLabel={props.previousLabel ?? t["common.previous"]()}
       nextLabel={props.nextLabel ?? t["common.next"]()}
@@ -315,14 +339,33 @@ export function LocalizedDateTimeInput({
         minutesInputLabel: t["common.time.minute"](),
         secondsInputLabel: t["common.time.second"](),
         ...props.timePickerProps,
+        // Mantine Modal checks the event target, not its ancestors. Time
+        // fields need the same Escape boundary as native calendar day buttons.
+        hoursInputProps: {
+          ...modalEscapeBoundary,
+          ...props.timePickerProps?.hoursInputProps,
+        },
+        minutesInputProps: {
+          ...modalEscapeBoundary,
+          ...props.timePickerProps?.minutesInputProps,
+        },
+        secondsInputProps: {
+          ...modalEscapeBoundary,
+          ...props.timePickerProps?.secondsInputProps,
+        },
+        amPmSelectProps: {
+          ...modalEscapeBoundary,
+          ...props.timePickerProps?.amPmSelectProps,
+        },
       }}
       submitButtonProps={{
         "aria-label": t["Confirm"](),
+        ...modalEscapeBoundary,
         ...props.submitButtonProps,
       }}
       popoverProps={{
-        withinPortal: !insideModal,
-        ...popoverProps,
+        returnFocus: modalTarget !== undefined,
+        ...datePopoverProps(modalTarget, popoverProps),
       }}
       size="sm"
       valueFormat={valueFormat ?? defaultDateTimeInputFormat()}

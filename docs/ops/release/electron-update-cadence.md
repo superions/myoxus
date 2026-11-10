@@ -3,7 +3,7 @@
 [Documentation](../../README.md) / [Operations](../README.md) / [Release operations](./README.md)
 
 This runbook separates urgent Electron security maintenance from normal
-dependency maintenance. The current runtime is Electron `44.5.0`; a future
+dependency maintenance. The current runtime is Electron `44.10.2`; a future
 major cutover is a reviewed migration with its own compatibility and packaging
 evidence.
 
@@ -103,8 +103,14 @@ the owning parent through a reviewed migration or remove the vulnerable path.
 
 Stable, Beta and Internal use identical automatic-check/download defaults and
 honour device preferences. Internal has no channel-specific disablement in normal
-released builds. Development, external Flatpak management and portable Windows
-packages remain unavailable to the native updater. About and menu controls show
+released Linux DEB/RPM and Windows NSIS builds. Development, macOS external
+replacement, external Flatpak management and portable Windows packages remain
+unavailable to the native updater. macOS About shows the running version,
+external replacement instructions and the existing download page, without
+automatic-update controls or an inferred Homebrew installation. Its menu and
+sidebar offer the download page, including before a workspace is open from the
+native menu. Preferences are retained.
+No unpublished Cask is advertised. About and menu controls show
 that availability; sidebar retry depends on active download progress rather than
 the automatic-download preference. A failed download is idle with an error and
 can be retried; newly opened consumers read the current Main snapshot.
@@ -113,5 +119,7 @@ The current `release-desktop.yml` N/N+1 jobs run only for `scope=full`.
 Its macOS update wrapper requires the Apple signing/notarization environment,
 while regular macOS publication deliberately emits ad-hoc packages without it.
 A successful regular package publication therefore does not establish a working
-macOS native update. Keep packaging, signature state and actual installation
+macOS native update. The regular macOS backend is now explicitly disabled;
+the old signed native-update harness is not acceptance for external replacement.
+Keep packaging, signature state and actual installation
 evidence separate; a downloaded artifact is not the running application version.

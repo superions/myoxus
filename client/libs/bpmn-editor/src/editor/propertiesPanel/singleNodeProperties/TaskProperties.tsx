@@ -65,7 +65,12 @@ export function TaskProperties({
     receiveTask: t["com.myoxus.editor.shape.bpmn.receive-task"](),
   };
   return (
-    <Accordion multiple defaultValue={["properties"]}>
+    <Accordion
+      multiple
+      defaultValue={["properties"]}
+      keepMounted
+      keepMountedMode="display-none"
+    >
       <AccordionItem value="properties">
         <AccordionControl
           icon={

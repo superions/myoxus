@@ -20,6 +20,7 @@ const MAX_INTERVAL_MS: i64 = 86_400_000;
 #[derive(Clone)]
 pub struct PgDocumentEditCaptureRepository {
   pool: PgPool,
+  field_capture_default_locale: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -31,7 +32,16 @@ enum CaptureOutcome {
 
 impl PgDocumentEditCaptureRepository {
   pub fn new(pool: PgPool) -> Self {
-    Self { pool }
+    Self {
+      pool,
+      field_capture_default_locale: "en".into(),
+    }
+  }
+
+  /// Match the API's configured fallback; transactional DB overrides remain live.
+  pub fn with_field_capture_default_locale(mut self, locale: String) -> Self {
+    self.field_capture_default_locale = locale;
+    self
   }
 
   fn storage(error: sqlx::Error) -> RepositoryError {
@@ -106,6 +116,10 @@ impl PgDocumentEditCaptureRepository {
     now: DateTime<Utc>,
   ) -> RepoResult<CaptureOutcome> {
     let mut tx = self.pool.begin().await.map_err(Self::storage)?;
+    sqlx::query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
+      .execute(&mut *tx)
+      .await
+      .map_err(Self::storage)?;
     if edit_capture_state::try_lock_current_owner(&mut tx, doc_id)
       .await
       .map_err(Self::storage)?
@@ -169,13 +183,29 @@ impl PgDocumentEditCaptureRepository {
     let prior_hash = state.get::<Option<Vec<u8>>, _>("last_captured_content_hash");
     let changed = prior_hash.as_deref() != Some(hash.as_slice());
     if changed {
+      let frozen = match crate::document_field_capture::FieldCapture::load(
+        &mut tx,
+        workspace_id,
+        doc_id,
+        None,
+        &self.field_capture_default_locale,
+        &snapshot,
+      )
+      .await
+      .map_err(|_| RepositoryError::Storage("document field capture context unavailable".into()))?
+      {
+        Some(capture) => capture
+          .freeze(&snapshot, None)
+          .map_err(|_| RepositoryError::Storage("document field capture context unavailable".into()))?,
+        None => snapshot.clone(),
+      };
       let history_id = sqlx::query_scalar::<_, i64>(
         "INSERT INTO doc_histories (doc_id, workspace_id, snapshot, created_at, origin, actor_id, reference_workspace_id)
          VALUES ($1, $2, $3, $4, 'automatic', NULL, $2) RETURNING id",
       )
       .bind(doc_id)
       .bind(workspace_id)
-      .bind(&snapshot)
+      .bind(&frozen)
       .bind(now)
       .fetch_one(&mut *tx)
       .await

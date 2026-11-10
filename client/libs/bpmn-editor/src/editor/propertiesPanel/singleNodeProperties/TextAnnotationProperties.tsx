@@ -54,7 +54,7 @@ export function TextAnnotationProperties({
         <AccordionControl icon={<TextAnnotationIcon />}>
           {i18n.singleNodeProperties.textAnnotation}
         </AccordionControl>
-        <AccordionPanel>
+        <AccordionPanel keepMounted keepMountedMode="display-none">
           <Stack>
             <MyoxusTextInput
               label={i18n.singleNodeProperties.format}

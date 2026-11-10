@@ -26,14 +26,13 @@
     "@myoxus/ui-facade": "workspace:*",
     "@myriaddreamin/typst-ts-renderer": "0.7.0",
     "@myriaddreamin/typst-ts-web-compiler": "0.7.0",
-    "@preact/signals-core": "^1.8.0",
+    "@preact/signals-core": "^1.14.5",
     "@sentry/react": "10.75.0",
     "@virgultum/block-bpmn": "workspace:*",
     "@virgultum/block-database": "workspace:*",
     "@virgultum/block-mermaid": "workspace:*",
     "@virgultum/block-root": "workspace:*",
     "@virgultum/components": "workspace:*",
-    "@virgultum/data-view": "workspace:*",
     "@virgultum/editor": "workspace:*",
     "@virgultum/global": "workspace:*",
     "@virgultum/model": "workspace:*",
@@ -60,7 +59,7 @@
     "react-error-boundary": "^6.0.0",
     "react-is": "19.3.0",
     "react-router": "7.18.4",
-    "react-virtuoso": "^4.12.3",
+    "react-virtuoso": "4.18.20",
     "recharts": "3.10.1",
     "rxjs": "^7.8.2",
     "semver": "^7.7.3",
@@ -68,7 +67,7 @@
     "swr": "^2.4.1",
     "y-protocols": "^1.0.7",
     "yjs": "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch",
-    "zod": "^3.25.76"
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.0",
@@ -82,7 +81,7 @@
     "@virgultum/store": "workspace:*",
     "@zip.js/zip.js": "2.24.0",
     "fake-indexeddb": "^6.0.0",
-    "happy-dom": "20.11.1",
+    "happy-dom": "21.0.4",
     "lodash-es": "4.18.1",
     "vitest": "4.1.11",
     "yaml": "2.9.1"

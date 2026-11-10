@@ -19,9 +19,10 @@ import type {
   SlashMenuContext,
   SlashMenuItem,
 } from "@virgultum/editor/widgets/slash-menu";
-import { editorMessage } from "@virgultum/shared/services";
+import { editorMessage, DocModeProvider } from "@virgultum/shared/services";
 
 import { getPrimaryView } from "../model";
+import { openTaskCardCreation } from "../tasks/create-task-card";
 
 const databaseGroup = (itemOrder: number) => ({
   id: "database",
@@ -189,6 +190,24 @@ export function createServerDatabaseSlashMenuItems(
   }
 
   return [
+    {
+      id: "task-card-create",
+      when: ({ std }) =>
+        !std.store.readonly &&
+        (std.getOptional(DocModeProvider)?.getEditorMode() ?? "page") ===
+          "page",
+      label: editorMessage("com.myoxus.database.tasks.new", "New task"),
+      description: editorMessage(
+        "com.myoxus.database.tasks.embed-description",
+        "Create and edit a task here.",
+      ),
+      icon: "CheckBoxCheckSolidIcon",
+      group: databaseGroup(1),
+      searchAlias: ["task", "aufgabe", "tâche", "tarea"],
+      action: (context) => {
+        void openTaskCardCreation(framework, context);
+      },
+    },
     {
       id: "server-database-embed-existing",
       label: editorMessage(

@@ -10,7 +10,7 @@ import { getAIPanelWidget } from "../utils/ai-widgets";
 
 /** Present the existing AI catalogue; handlers remain the only command authority. */
 export function aiToolbarActions(
-  context: ToolbarContext,
+  context: Pick<ToolbarContext, "chain" | "editorMode" | "host">,
   groups: AIItemGroupConfig[],
   restoreSelection = false,
 ): ToolbarActions {

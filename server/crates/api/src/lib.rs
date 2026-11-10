@@ -256,18 +256,21 @@ struct RequiredMcpCapabilities {
 }
 
 fn production_mcp_capabilities(state: &ApiState) -> RequiredMcpCapabilities {
-  let document_services = Arc::new(myoxus_application::mcp::ApplicationMcpDocumentOperations::new(
-    state
-      .document_metadata_service()
-      .expect("MCP router requires the canonical document metadata service"),
-    state
-      .document_metadata_policy_repo()
-      .expect("MCP router requires the canonical document metadata policy repository"),
-    state
-      .document_version_repo()
-      .expect("MCP router requires the canonical document version repository"),
-    Arc::new(state.doc().clone()),
-  ));
+  let document_services = Arc::new(
+    myoxus_application::mcp::ApplicationMcpDocumentOperations::new(
+      state
+        .document_metadata_service()
+        .expect("MCP router requires the canonical document metadata service"),
+      state
+        .document_metadata_policy_repo()
+        .expect("MCP router requires the canonical document metadata policy repository"),
+      state
+        .document_version_repo()
+        .expect("MCP router requires the canonical document version repository"),
+      Arc::new(state.doc().clone()),
+    )
+    .with_field_context_source(Arc::new(state.clone())),
+  );
   let pool = state
     .metrics_pool()
     .expect("MCP router requires PostgreSQL idempotency storage");

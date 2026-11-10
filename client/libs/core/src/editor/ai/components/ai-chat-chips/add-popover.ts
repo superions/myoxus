@@ -18,6 +18,12 @@ import type { DocMeta } from "@virgultum/editor/store";
 import { nothing, type TemplateResult } from "lit";
 import { property, state } from "lit/decorators.js";
 import { createElement } from "react";
+import type { MyoxusIconExportName } from "@myoxus/icons/names";
+import type { LinkedMenuItem } from "@virgultum/editor/widgets/linked-doc";
+import {
+  DocumentPickerIcon,
+  DocumentPickerLabel,
+} from "../../../view-extensions/editor-view/editor-chrome/document-picker-item";
 
 import type { SearchMenuConfig } from "../ai-chat-add-context";
 import { chatI18n } from "../chat-i18n";
@@ -38,10 +44,13 @@ export type MenuGroup = {
   divider?: () => TemplateResult<1>;
   noResult?: () => TemplateResult<1>;
 };
-export type MenuItem = {
+export type MenuItem = Pick<
+  LinkedMenuItem,
+  "avatar" | "highlights" | "color"
+> & {
   key: string;
   name: string | TemplateResult<1>;
-  icon: TemplateResult<1>;
+  icon: TemplateResult<1> | MyoxusIconExportName;
   action: MenuAction;
   suffix?: string | TemplateResult<1>;
   testId?: string;
@@ -168,9 +177,23 @@ export class ChatPanelAddPopover extends SignalWatcher(
           id: `context-${groupIndex}-${index}`,
           value: item.key,
           title:
-            typeof item.name === "string" ? item.name : toReactNode(item.name),
+            typeof item.name === "string"
+              ? createElement(DocumentPickerLabel, {
+                  item: { name: item.name, highlights: item.highlights },
+                })
+              : toReactNode(item.name),
           group: group.name,
-          leading: toReactNode(item.icon),
+          leading:
+            typeof item.icon === "string"
+              ? createElement(DocumentPickerIcon, {
+                  item: {
+                    name: typeof item.name === "string" ? item.name : "",
+                    icon: item.icon,
+                    avatar: item.avatar,
+                    color: item.color,
+                  },
+                })
+              : toReactNode(item.icon),
           testId: item.testId,
           disabled: !!resolveSignal(item.disabled),
           action: () => this.run(item.action),

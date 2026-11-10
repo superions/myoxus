@@ -1,9 +1,7 @@
 import type { TagMeta } from "@myoxus/core/components/page-list";
 import { UserFriendlyError } from "@myoxus/error";
 import { I18n } from "@myoxus/i18n";
-import { CollectionsIcon, WarningIcon } from "@myoxus/icons/lit";
 import { Service } from "@myoxus/infra";
-import { cssVar } from "@myoxus/theme";
 import { computed, signal } from "@preact/signals-core";
 import { createSignalFromObservable } from "@virgultum/editor/shared/utils";
 import type { DocMeta } from "@virgultum/editor/store";
@@ -11,9 +9,8 @@ import type {
   LinkedMenuGroup,
   LinkedMenuItem,
 } from "@virgultum/editor/widgets/linked-doc";
-import Fuse, { type FuseResultMatch } from "fuse.js";
-import { html } from "lit";
-import { unsafeHTML } from "lit/directives/unsafe-html.js";
+import Fuse from "fuse.js";
+import { decodeMenuHighlight } from "./menu-highlight";
 import { catchError, map, of } from "rxjs";
 
 import { normalizeSearchText } from "../../../utils/normalize-search-text";
@@ -21,7 +18,6 @@ import type { CollectionMeta, CollectionService } from "../../collection";
 import type { DocDisplayMetaService } from "../../doc-display-meta";
 import type { DocsSearchService } from "../../docs-search";
 import { type RecentWorkspaceItemsService } from "../../quicksearch";
-import { highlighter } from "../../quicksearch/utils/highlighter";
 import type { TagService } from "../../tag";
 import type { WorkspaceService } from "../../workspace";
 
@@ -119,14 +115,12 @@ export class SearchMenuService extends Service {
             const userFriendlyError = UserFriendlyError.fromAny(err);
             return of([
               {
-                name: html`<span style="color: ${cssVar("errorColor")}"
-                  >${I18n.t(
-                    `error.${userFriendlyError.name}`,
-                    userFriendlyError.data,
-                  )}</span
-                >`,
+                name: I18n.t(
+                  `error.${userFriendlyError.name}`,
+                  userFriendlyError.data,
+                ),
                 key: "error",
-                icon: WarningIcon(),
+                icon: "WarningIcon" as const,
                 disabled: true,
                 action: () => {},
               },
@@ -173,8 +167,8 @@ export class SearchMenuService extends Service {
           highlights: [
             {
               field: "title",
-              before: `<span style="color: ${cssVar("textEmphasisColor")}">`,
-              end: "</span>",
+              before: "\uE000",
+              end: "\uE001",
             },
           ],
         },
@@ -215,44 +209,15 @@ export class SearchMenuService extends Service {
     }
 
     return {
-      name: meta.highlights ? html`${unsafeHTML(meta.highlights)}` : title,
+      ...(meta.highlights
+        ? decodeMenuHighlight(meta.highlights)
+        : { name: title }),
       key: meta.id,
-      icon: this.docDisplayMetaService
-        .icon$(meta.id, {
-          type: "lit",
-          reference: true,
-        })
-        .value(),
+      icon: "LinkIcon",
       action: async () => {
         await action(meta);
       },
     };
-  }
-
-  private highlightFuseTitle(
-    matches: readonly FuseResultMatch[] | undefined,
-    title: string,
-    key: string,
-  ): string {
-    if (!matches) {
-      return title;
-    }
-    const normalizedRange = ([start, end]: [number, number]) =>
-      [
-        start,
-        end + 1 /* in fuse, the `end` is different from the `substring` */,
-      ] as [number, number];
-    const titleMatches = matches
-      ?.filter((match) => match.key === key)
-      .flatMap((match) => match.indices.map(normalizedRange));
-    return (
-      highlighter(
-        title,
-        `<span style="color: ${cssVar("textEmphasisColor")}">`,
-        "</span>",
-        titleMatches ?? [],
-      ) ?? title
-    );
   }
 
   getTagMenuGroup(
@@ -283,14 +248,12 @@ export class SearchMenuService extends Service {
       name: I18n.t("com.myoxus.editor.at-menu.link-to-doc", {
         query,
       }),
-      items: result.map((item) => {
-        const name = this.highlightFuseTitle(
-          item.matches,
-          item.item.name,
-          "name",
-        );
-        return this.toTagMenuItem({ ...item.item, name }, action);
-      }),
+      items: result.map(({ item, matches }) => ({
+        ...this.toTagMenuItem(item, action),
+        highlights: matches?.flatMap((match) =>
+          match.indices.map(([start, end]) => [start, end + 1] as const),
+        ),
+      })),
     };
   }
 
@@ -298,17 +261,11 @@ export class SearchMenuService extends Service {
     tag: TagMeta,
     action: SearchTagMenuAction,
   ): LinkedMenuItem {
-    const tagIcon = html`
-      <div style="display: flex; align-items: center; justify-content: center;">
-        <div
-          style="border-radius: 50%; height: 8px; width: 8px; margin: 4px; background-color: ${tag.color};"
-        ></div>
-      </div>
-    `;
     return {
       key: tag.id,
-      name: html`${unsafeHTML(tag.name)}`,
-      icon: tagIcon,
+      name: tag.name,
+      icon: "TagsIcon",
+      color: tag.color,
       action: async () => {
         await action(tag);
       },
@@ -351,14 +308,12 @@ export class SearchMenuService extends Service {
       name: I18n.t("com.myoxus.editor.at-menu.link-to-doc", {
         query,
       }),
-      items: result.map((item) => {
-        const title = this.highlightFuseTitle(
-          item.matches,
-          item.item.name,
-          "name",
-        );
-        return this.toCollectionMenuItem({ ...item.item, title }, action);
-      }),
+      items: result.map(({ item, matches }) => ({
+        ...this.toCollectionMenuItem({ ...item, title: item.name }, action),
+        highlights: matches?.flatMap((match) =>
+          match.indices.map(([start, end]) => [start, end + 1] as const),
+        ),
+      })),
     };
   }
 
@@ -368,8 +323,8 @@ export class SearchMenuService extends Service {
   ): LinkedMenuItem {
     return {
       key: collection.id,
-      name: html`${unsafeHTML(collection.title)}`,
-      icon: CollectionsIcon(),
+      name: collection.title,
+      icon: "CollectionsIcon",
       action: async () => {
         await action(collection);
       },

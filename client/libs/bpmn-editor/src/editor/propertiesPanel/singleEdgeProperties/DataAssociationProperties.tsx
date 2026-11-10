@@ -13,6 +13,8 @@ import {
   Select,
 } from "@myoxus/ui-facade";
 import { useI18n } from "@myoxus/i18n";
+import { useContext } from "react";
+import { TechnicalPropertiesContext } from "../nameDocumentationAndId/NameDocumentationAndId";
 import {
   useBpmnEditorStore,
   useBpmnEditorStoreApi,
@@ -34,7 +36,14 @@ import {
   dataAssociationTargetItems,
 } from "../../mutations/data-association-context";
 
-export function DataAssociationProperties({ id }: { id: string }) {
+export function DataAssociationProperties({
+  id,
+  primaryOnly = false,
+}: {
+  id: string;
+  primaryOnly?: boolean;
+}) {
+  const technicalOnly = useContext(TechnicalPropertiesContext);
   const t = useI18n(),
     store = useBpmnEditorStoreApi(),
     definitions = useBpmnEditorStore((state) => state.bpmn.model.definitions),
@@ -53,8 +62,20 @@ export function DataAssociationProperties({ id }: { id: string }) {
         onCommandError(error);
       }
     };
+  const primary = (
+    <MyoxusTextarea
+      label={t["com.myoxus.editor.bpmn.documentation"]()}
+      value={association.documentation?.[0]?.__$$text ?? ""}
+      disabled={readOnly}
+      onChange={(text) =>
+        command((model) => setDataAssociationDocumentation(model, id, text))
+      }
+    />
+  );
+  if (primaryOnly) return primary;
   return (
     <Stack>
+      {!technicalOnly && primary}
       <MyoxusTextInput
         label={t["com.myoxus.editor.bpmn.element-id"]()}
         value={id}
@@ -99,14 +120,6 @@ export function DataAssociationProperties({ id }: { id: string }) {
       >
         {t["com.myoxus.editor.bpmn.reverse-data-association"]()}
       </Button>
-      <MyoxusTextarea
-        label={t["com.myoxus.editor.bpmn.documentation"]()}
-        value={association.documentation?.[0]?.__$$text ?? ""}
-        disabled={readOnly}
-        onChange={(text) =>
-          command((model) => setDataAssociationDocumentation(model, id, text))
-        }
-      />
       <MyoxusTextarea
         label={t["com.myoxus.editor.bpmn.transformation"]()}
         value={association.transformation?.__$$text ?? ""}

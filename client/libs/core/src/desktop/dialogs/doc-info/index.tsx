@@ -24,7 +24,13 @@ import {
 import { Modal } from "@myoxus/ui-facade";
 import { useCallback, useEffect, useState } from "react";
 
-function DocInfoDialogContent({ docId }: { docId: string }) {
+function DocInfoDialogContent({
+  docId,
+  readonly,
+}: {
+  docId: string;
+  readonly?: boolean;
+}) {
   const {
     documentMetadataCacheService: metadataCache,
     graphQLService,
@@ -63,15 +69,17 @@ function DocInfoDialogContent({ docId }: { docId: string }) {
   }, [serverService.server.baseUrl]);
   return (
     <DocumentMetadataEditorView
-      canConfigureWorkspaceDefaults={canConfigureWorkspaceDocumentSettings}
-      canOpenGlobalPolicy={Boolean(isMyoxusAdmin)}
+      canConfigureWorkspaceDefaults={
+        !readonly && canConfigureWorkspaceDocumentSettings
+      }
+      canOpenGlobalPolicy={!readonly && Boolean(isMyoxusAdmin)}
       detailsLayout="dialog"
       docId={docId}
       graphqlService={graphQLService}
       metadataCache={metadataCache}
       onConfigureWorkspaceDefaults={onConfigureWorkspaceDocumentSettings}
       onOpenGlobalPolicy={onOpenGlobalDocumentPolicy}
-      readonly={!canEditDocument}
+      readonly={readonly || !canEditDocument}
       showSummary={false}
     />
   );
@@ -89,6 +97,7 @@ export const DocInfoDialog = ({
   close,
   docId,
   returnFocusRef,
+  readonly,
 }: DialogComponentProps<WORKSPACE_DIALOG_SCHEMA["doc-info"]>) => {
   const docsService = useService(DocsService);
   const t = useI18n();
@@ -142,7 +151,7 @@ export const DocInfoDialog = ({
         title={<DocInfoDialogTitle />}
         width="xl"
       >
-        <DocInfoDialogContent docId={docId} />
+        <DocInfoDialogContent docId={docId} readonly={readonly} />
       </Modal>
     </FrameworkScope>
   );

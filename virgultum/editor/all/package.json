@@ -18,7 +18,6 @@
     "@virgultum/block-bpmn": "workspace:*",
     "@virgultum/block-callout": "workspace:*",
     "@virgultum/block-code": "workspace:*",
-    "@virgultum/block-data-view": "workspace:*",
     "@virgultum/block-database": "workspace:*",
     "@virgultum/block-divider": "workspace:*",
     "@virgultum/block-edgeless-text": "workspace:*",
@@ -37,7 +36,6 @@
     "@virgultum/block-surface-ref": "workspace:*",
     "@virgultum/block-table": "workspace:*",
     "@virgultum/components": "workspace:*",
-    "@virgultum/data-view": "workspace:*",
     "@virgultum/ext-loader": "workspace:*",
     "@virgultum/foundation": "workspace:*",
     "@virgultum/fragment-doc-title": "workspace:*",
@@ -126,9 +124,6 @@
     "./blocks/code": "./src/blocks/code/index.ts",
     "./blocks/code/store": "./src/blocks/code/store.ts",
     "./blocks/code/view": "./src/blocks/code/view.ts",
-    "./blocks/data-view": "./src/blocks/data-view/index.ts",
-    "./blocks/data-view/store": "./src/blocks/data-view/store.ts",
-    "./blocks/data-view/view": "./src/blocks/data-view/view.ts",
     "./blocks/database": "./src/blocks/database/index.ts",
     "./blocks/database/reference-view": "./src/blocks/database/reference-view.ts",
     "./blocks/divider": "./src/blocks/divider/index.ts",
@@ -176,8 +171,6 @@
     "./blocks/table": "./src/blocks/table/index.ts",
     "./blocks/table/store": "./src/blocks/table/store.ts",
     "./blocks/table/view": "./src/blocks/table/view.ts",
-    "./data-view": "./src/data-view/index.ts",
-    "./data-view/effects": "./src/data-view/effects.ts",
     "./inlines/link": "./src/inlines/link/index.ts",
     "./inlines/link/store": "./src/inlines/link/store.ts",
     "./inlines/link/view": "./src/inlines/link/view.ts",
@@ -261,7 +254,6 @@
     "./components/date-picker": "./src/components/date-picker.ts",
     "./components/drop-indicator": "./src/components/drop-indicator.ts",
     "./components/embed-card-modal": "./src/components/embed-card-modal.ts",
-    "./components/filterable-list": "./src/components/filterable-list.ts",
     "./components/highlight-dropdown-menu": "./src/components/highlight-dropdown-menu.ts",
     "./components/hover": "./src/components/hover.ts",
     "./components/icon-button": "./src/components/icon-button.ts",
@@ -312,7 +304,7 @@
   ],
   "version": "0.41.5",
   "devDependencies": {
-    "vite": "8.3.1",
+    "vite": "8.3.6",
     "vitest": "4.1.11"
   }
 }

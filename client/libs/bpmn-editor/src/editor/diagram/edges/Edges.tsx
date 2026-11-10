@@ -47,6 +47,7 @@ import { updateFlowElement } from "../../mutations/renameNode";
 import { sequenceFlowNotation } from "../../mutations/connection";
 import "./Edges.css";
 import { useBpmnEditorI18n } from "../../i18n";
+import { SELECTED_EDGE_LAYER } from "../../../xyflow/nodes/Hooks";
 const interactionStrokeProps: Partial<React.SVGAttributes<SVGPathElement>> = {
   strokeOpacity: 1,
   markerEnd: undefined,
@@ -96,6 +97,7 @@ export const SequenceFlowEdge = React.memo(
         transform: `translate(${labelPosition["@_x"]}px,${labelPosition["@_y"]}px)`,
         width: labelPosition["@_width"],
         height: labelPosition["@_height"],
+        zIndex: SELECTED_EDGE_LAYER + 1,
       };
     }, [labelPosition]);
     const bpmnEditorStoreApi = useBpmnEditorStoreApi();
@@ -158,6 +160,13 @@ export const SequenceFlowEdge = React.memo(
             <RF.EdgeLabelRenderer>
               <div
                 style={labelStyle}
+                onClick={() =>
+                  bpmnEditorStoreApi.setState((state) => {
+                    state.xyFlowReactKieDiagram._selectedNodes = [];
+                    state.xyFlowReactKieDiagram._selectedEdges = [id];
+                  })
+                }
+                onDoubleClick={triggerEditingLabel}
                 className={`kie-bpmn-editor--floating-edge-label edge-label-renderer__custom-edge nodrag nopan ${props.selected ? "selected" : ""}`}
               >
                 <EditableNodeLabel

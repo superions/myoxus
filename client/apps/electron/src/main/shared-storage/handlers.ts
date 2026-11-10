@@ -1,4 +1,5 @@
 import type {
+  DesktopServerRegistryMutation,
   SharedStorageChanges,
   SharedStorageValue,
 } from "@myoxus/desktop-api-contract";
@@ -6,6 +7,10 @@ import { Subject } from "rxjs";
 import { isEqual } from "lodash-es";
 
 import type { MainHandlerImplementations } from "../type";
+import {
+  registeredDesktopServers,
+  validateDesktopServerRegistration,
+} from "../server-routing";
 import { globalCacheStorage, globalStateStorage } from "./storage";
 
 // Subjects used by shared-storage/events.ts to broadcast updates to all renderer processes
@@ -68,6 +73,84 @@ function confirmStateMutation(mutate: () => void, publish: () => void) {
 }
 
 export const sharedStorageHandlers = {
+  mutateServerRegistry: async (_e, mutation: DesktopServerRegistryMutation) => {
+    if (!mutation || (mutation.type !== "add" && mutation.type !== "remove")) {
+      throw new TypeError("Invalid server registry mutation");
+    }
+    const server =
+      mutation.type === "add"
+        ? validateDesktopServerRegistration(mutation.server, mutation.config)
+        : undefined;
+    if (
+      mutation.type === "remove" &&
+      (typeof mutation.id !== "string" || !/^[\w-]+$/.test(mutation.id))
+    ) {
+      throw new TypeError("Invalid server identity");
+    }
+    const changed = new Set<string>();
+    let confirmation: SharedStorageChanges = {};
+    await confirmStateMutation(
+      () => {
+        const list = globalStateStorage.get<unknown>("serverList") ?? [];
+        if (!Array.isArray(list))
+          throw new TypeError("Invalid persisted server registry");
+        if (mutation.type === "add" && server) {
+          if (
+            list.some(
+              (record) =>
+                record &&
+                typeof record === "object" &&
+                (record.id === server.id || record.baseUrl === server.baseUrl),
+            )
+          ) {
+            throw new Error(
+              "A server with this identity or origin already exists",
+            );
+          }
+          // One Main-owned transaction makes config, list and selection durable
+          // before any frame can react and issue a scoped proxy request.
+          const key = `serverConfig:${server.id}`;
+          globalStateStorage.set(key, mutation.config);
+          globalStateStorage.set("serverList", [...list, server]);
+          globalStateStorage.set("selectedServerId", server.id);
+          changed.add(key);
+          changed.add("serverList");
+          changed.add("selectedServerId");
+        } else if (mutation.type === "remove") {
+          globalStateStorage.set(
+            "serverList",
+            list.filter(
+              (record) =>
+                !record ||
+                typeof record !== "object" ||
+                record.id !== mutation.id,
+            ),
+          );
+          changed.add("serverList");
+          if (globalStateStorage.get("selectedServerId") === mutation.id) {
+            globalStateStorage.set(
+              "selectedServerId",
+              registeredDesktopServers()[0]?.id,
+            );
+            changed.add("selectedServerId");
+          }
+        }
+      },
+      () => {
+        confirmation = Object.fromEntries(
+          [...changed].map((key) => [
+            key,
+            {
+              v: globalStateStorage.get<SharedStorageValue>(key),
+              r: nextRev(globalStateRevisions, key),
+            },
+          ]),
+        );
+        globalStateUpdates$.next(confirmation);
+      },
+    );
+    return confirmation;
+  },
   getAllGlobalState: async () => {
     await stateWrite;
     return globalStateStorage.all();

@@ -8,6 +8,7 @@ import {
 } from "@virgultum/model";
 import {
   prepareQualifiedNativeExportSnapshot,
+  projectDocumentFieldOutput,
   BlockMarkdownAdapterExtension,
   type BlockMarkdownAdapterMatcher,
   configuredDocumentReferenceTitle,
@@ -216,7 +217,13 @@ export const embedSyncedDocBlockMarkdownAdapterMatcher: BlockMarkdownAdapterMatc
                     )
                   : captured;
               if (syncedSnapshot) {
-                await walker.walkONode(syncedSnapshot.blocks);
+                const output = await projectDocumentFieldOutput(
+                  syncedSnapshot,
+                  context.scopeProvider,
+                  syncedDocId,
+                  syncedDoc.workspace.id,
+                );
+                await walker.walkONode(output.blocks);
               }
             } else {
               // TODO(@L-Sun) may be use the nested content

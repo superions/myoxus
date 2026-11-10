@@ -144,7 +144,7 @@ async fn graphql_and_rest_search_apply_acl_paging_and_sorting() {
   )
   .execute(&pool)
   .await
-  .ok();
+  .expect("clean stale search content");
   sqlx::query(
     "DELETE FROM docs WHERE workspace_id IN (
        SELECT w.id FROM workspaces w
@@ -154,7 +154,7 @@ async fn graphql_and_rest_search_apply_acl_paging_and_sorting() {
   )
   .execute(&pool)
   .await
-  .ok();
+  .expect("clean stale documents");
   sqlx::query(
     "DELETE FROM workspaces WHERE owner_user_id IN (
        SELECT id FROM users WHERE lower(email) IN ('owner-search@example.com', 'outsider-search@example.com')
@@ -162,11 +162,11 @@ async fn graphql_and_rest_search_apply_acl_paging_and_sorting() {
   )
   .execute(&pool)
   .await
-  .ok();
+  .expect("clean stale workspaces");
   sqlx::query("DELETE FROM users WHERE lower(email) IN ('owner-search@example.com', 'outsider-search@example.com')")
     .execute(&pool)
     .await
-    .ok();
+    .expect("clean stale users");
 
   let (app, state, auth_store, search_repo) = setup_test_app(pool.clone()).await;
 
@@ -196,13 +196,17 @@ async fn graphql_and_rest_search_apply_acl_paging_and_sorting() {
     .execute(&pool)
     .await
     .expect("seed pg workspace");
+  let created_at = "2026-01-02T10:00:00Z".parse::<chrono::DateTime<chrono::Utc>>().unwrap();
+  let updated_at = "2026-03-04T11:30:00Z".parse::<chrono::DateTime<chrono::Utc>>().unwrap();
   for (doc_id, external_id) in [(doc_a, "external-alpha"), (doc_b, "external-beta")] {
-    sqlx::query("INSERT INTO docs (id, workspace_id, external_id, title, is_workspace_root, created_by, updated_by) VALUES ($1, $2, $3, $4, false, $5, $5)")
+    sqlx::query("INSERT INTO docs (id, workspace_id, external_id, title, is_workspace_root, created_by, updated_by, created_at, updated_at) VALUES ($1, $2, $3, $4, false, $5, $5, $6, $7)")
             .bind(doc_id)
             .bind(workspace.id)
             .bind(external_id)
             .bind(format!("Doc {doc_id}"))
             .bind(owner_id)
+            .bind(created_at)
+            .bind(updated_at)
             .execute(&pool)
             .await
             .expect("seed pg doc");
@@ -322,6 +326,42 @@ async fn graphql_and_rest_search_apply_acl_paging_and_sorting() {
       (doc_b.to_string(), "external-beta".to_owned()),
     ])
   );
+  for doc in indexer_docs["data"]["workspace"]["searchDocs"].as_array().unwrap() {
+    assert_eq!(
+      doc["createdAt"],
+      created_at.to_rfc3339(),
+      "use document creation, not index time"
+    );
+    assert_eq!(
+      doc["updatedAt"],
+      updated_at.to_rfc3339(),
+      "use document modification, not index time"
+    );
+  }
+
+  let nested_page = |offset| {
+    json!({
+      "query":"query($id:String!,$input:SearchDocsInput!){workspace(id:$id){searchDocs(input:$input){externalId}}}",
+      "variables":{"id":workspace.id.to_string(),"input":{"keyword":"rust","limit":1,"offset":offset}}
+    })
+  };
+  let first = graphql(&app, owner_session, nested_page(-1)).await;
+  let later = graphql(&app, owner_session, nested_page(1)).await;
+  assert!(first.get("errors").is_none(), "{first}");
+  assert!(later.get("errors").is_none(), "{later}");
+  let paged_ids = [
+    first["data"]["workspace"]["searchDocs"][0]["externalId"]
+      .as_str()
+      .unwrap(),
+    later["data"]["workspace"]["searchDocs"][0]["externalId"]
+      .as_str()
+      .unwrap(),
+  ];
+  assert_eq!(
+    paged_ids.into_iter().collect::<std::collections::HashSet<_>>(),
+    std::collections::HashSet::from(["external-alpha", "external-beta"]),
+    "nested offsets must reach distinct authorized external identities"
+  );
 
   let indexer_aggregate = graphql(
         &app,
@@ -420,26 +460,77 @@ async fn graphql_and_rest_search_apply_acl_paging_and_sorting() {
     "outsider must not search foreign workspace"
   );
 
+  // Exercise the actual UI boundary with a separate term, without changing the
+  // relevance/ACL fixtures above. External keys must survive the second page.
+  for index in 0..51 {
+    let id = Uuid::new_v4();
+    sqlx::query(
+      "INSERT INTO docs (id, workspace_id, external_id, title, created_by, updated_by) VALUES ($1,$2,$3,$4,$5,$5)",
+    )
+    .bind(id)
+    .bind(workspace.id)
+    .bind(format!("paged-{index}"))
+    .bind(format!("Paged {index}"))
+    .bind(owner_id)
+    .execute(&pool)
+    .await
+    .expect("seed paging document");
+    SearchRepository::upsert_search_doc(
+      search_repo.as_ref(),
+      &SearchDocument {
+        workspace_id: workspace.id,
+        doc_id: id,
+        title: format!("Paged {index}"),
+        plain_text: "pagingboundary".to_string(),
+        workspace_tags: Vec::new(),
+        search_vector: None,
+        updated_at: chrono::Utc::now(),
+      },
+    )
+    .await
+    .expect("index paging document");
+  }
+  let boundary_page = |offset| {
+    json!({
+      "query":"query($id:String!,$input:SearchDocsInput!){workspace(id:$id){searchDocs(input:$input){externalId}}}",
+      "variables":{"id":workspace.id.to_string(),"input":{"keyword":"pagingboundary","limit":50,"offset":offset}}
+    })
+  };
+  let first = graphql(&app, owner_session, boundary_page(0)).await;
+  let later = graphql(&app, owner_session, boundary_page(50)).await;
+  assert!(first.get("errors").is_none(), "{first}");
+  assert!(later.get("errors").is_none(), "{later}");
+  let first = first["data"]["workspace"]["searchDocs"].as_array().unwrap();
+  let later = later["data"]["workspace"]["searchDocs"].as_array().unwrap();
+  assert_eq!((first.len(), later.len()), (50, 1));
+  let identities = first
+    .iter()
+    .chain(later)
+    .map(|hit| hit["externalId"].as_str().unwrap())
+    .collect::<std::collections::HashSet<_>>();
+  assert_eq!(identities.len(), 51);
+  assert!(identities.iter().all(|key| key.starts_with("paged-")));
+
   // ── Cleanup ────────────────────────────────────────────────────────────────
   sqlx::query("DELETE FROM search_content WHERE workspace_id = $1")
     .bind(workspace.id)
     .execute(&pool)
     .await
-    .ok();
+    .expect("remove search content");
   sqlx::query("DELETE FROM docs WHERE workspace_id = $1")
     .bind(workspace.id)
     .execute(&pool)
     .await
-    .ok();
+    .expect("remove documents");
   sqlx::query("DELETE FROM workspaces WHERE id = $1")
     .bind(workspace.id)
     .execute(&pool)
     .await
-    .ok();
+    .expect("remove workspace");
   sqlx::query("DELETE FROM users WHERE lower(email) IN ('owner-search@example.com', 'outsider-search@example.com')")
     .execute(&pool)
     .await
-    .ok();
+    .expect("remove search users");
 }
 
 // ---------------------------------------------------------------------------

@@ -680,8 +680,7 @@ test("linked doc can be dragged from note to surface top level block", async ({
   await assertParentBlockFlavour(page, linkedDocId!, "myoxus:surface");
 });
 
-// TODO(@fundon): should move to affine
-// Aliases
+// Document aliases
 test.describe("Customize linked doc title and description", () => {
   // Inline View
   test("should set a custom title for inline link", async ({ page }) => {
@@ -717,7 +716,7 @@ test.describe("Customize linked doc title and description", () => {
     await editButton.click();
 
     await waitNextFrame(page, 200);
-    const popup = page.locator("reference-popup .popover-container");
+    const popup = page.getByRole("dialog");
     await expect(popup).toBeVisible();
 
     const input = popup.locator("input");
@@ -739,7 +738,10 @@ test.describe("Customize linked doc title and description", () => {
     await expect(toolbar).toBeVisible();
 
     // original title button
-    const docTitle = toolbar.getByRole("button", { name: "Doc title" });
+    const docTitle = toolbar.getByRole("button", {
+      name: "title0",
+      exact: true,
+    });
     await expect(docTitle).toHaveText("title0", { useInnerText: true });
 
     // reedit
@@ -799,14 +801,16 @@ test.describe("Customize linked doc title and description", () => {
     await page0Alias.hover();
 
     await waitNextFrame(page, 200);
-    const switchButton = toolbar.getByRole("combobox", {
-      name: "Switch view",
+    const switchButton = toolbar.getByRole("button", {
+      name: "Inline view",
+      exact: true,
     });
     await switchButton.click();
 
     // switches to card view
-    const toCardButton = toolbar.getByRole("option", {
+    const toCardButton = page.getByRole("menuitem", {
       name: "Card view",
+      exact: true,
     });
     await toCardButton.click();
 
@@ -823,15 +827,22 @@ test.describe("Customize linked doc title and description", () => {
 
     await waitNextFrame(page, 200);
     const docTitleButton = toolbar.getByRole("button", {
-      name: "Doc title",
+      name: "title0",
+      exact: true,
     });
     await expect(docTitleButton).toBeVisible();
 
-    editButton = toolbar.getByRole("button", { name: "Edit" });
+    editButton = toolbar.getByRole("button", {
+      name: "Edit",
+      exact: true,
+    });
     await editButton.click();
 
     await waitNextFrame(page, 200);
-    const editModal = page.locator("embed-card-edit-modal");
+    const editModal = page.getByRole("dialog", {
+      name: "Edit Description",
+      exact: true,
+    });
     const resetButton = editModal.getByRole("button", { name: "Reset" });
     const saveButton = editModal.getByRole("button", { name: "Save" });
 
@@ -904,14 +915,16 @@ test.describe("Customize linked doc title and description", () => {
     await page0Alias.hover();
 
     await waitNextFrame(page, 200);
-    let switchButton = toolbar.getByRole("combobox", {
-      name: "Switch view",
+    let switchButton = toolbar.getByRole("button", {
+      name: "Inline view",
+      exact: true,
     });
     await switchButton.click();
 
     // switches to card view
-    const toCardButton = toolbar.getByRole("option", {
+    const toCardButton = page.getByRole("menuitem", {
       name: "Card view",
+      exact: true,
     });
     await toCardButton.click();
 
@@ -929,8 +942,9 @@ test.describe("Customize linked doc title and description", () => {
     await waitNextFrame(page, 200);
 
     // switches to embed view
-    const toEmbedButton = cardToolbar.getByRole("option", {
+    const toEmbedButton = page.getByRole("option", {
       name: "Embed view",
+      exact: true,
     });
     await toEmbedButton.click();
 
@@ -948,11 +962,17 @@ test.describe("Customize linked doc title and description", () => {
     await syncedDocBlock.click();
 
     await waitNextFrame(page, 200);
-    editButton = cardToolbar.getByRole("button", { name: "Edit" });
+    editButton = cardToolbar.getByRole("button", {
+      name: "Edit",
+      exact: true,
+    });
     await editButton.click();
 
     await waitNextFrame(page, 200);
-    const editModal = page.locator("embed-card-edit-modal");
+    const editModal = page.getByRole("dialog", {
+      name: "Edit Description",
+      exact: true,
+    });
     const cancelButton = editModal.getByRole("button", { name: "Cancel" });
     const saveButton = editModal.getByRole("button", { name: "Save" });
 

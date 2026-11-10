@@ -5,7 +5,7 @@ import { expect, type Page } from "@playwright/test";
 import { ProjectRoot } from "@myoxus-test/kit/playwright";
 import type { BlockSnapshot } from "@virgultum/editor/store";
 
-import { dragBlockToPoint, popImageMoreMenu } from "./utils/actions/drag.js";
+import { dragBlockToPoint } from "./utils/actions/drag.js";
 import { switchEditorMode } from "./utils/actions/edgeless.js";
 import {
   pressArrowUp,
@@ -90,7 +90,9 @@ function getAttachment(page: Page) {
     name: "Switch view",
   });
   const renameBtn = toolbar.getByRole("button", { name: "Rename" });
-  const renameInput = page.locator(".myoxus-attachment-rename-container input");
+  const renameInput = page
+    .getByRole("dialog", { name: "Rename", exact: true })
+    .getByRole("textbox", { name: "Rename", exact: true });
 
   const forceFileChooserFallback = async () => {
     await page.evaluate(() => {
@@ -103,15 +105,16 @@ function getAttachment(page: Page) {
   const insertAttachment = async (filePath = FILE_PATH) => {
     await forceFileChooserFallback();
 
-    const slashMenu = page.locator(`.slash-menu`);
+    const slashMenu = page.getByRole("listbox", { name: "Actions" });
     await waitNextFrame(page);
     await type(page, "/");
     await resetHistory(page);
     await expect(slashMenu).toBeVisible();
     await type(page, "attachment", 100);
-    const item = slashMenu.getByTestId(
-      "slash-menu-item-block-attachment-insert",
-    );
+    const item = slashMenu.getByRole("option", {
+      name: "Attachment",
+      exact: true,
+    });
     await expect(item).toBeVisible();
     const [fileChooser] = await Promise.all([
       page.waitForEvent("filechooser"),
@@ -178,8 +181,14 @@ function getAttachment(page: Page) {
 
     // external
     turnImageToCard: async () => {
-      const { turnIntoCardButton } = await popImageMoreMenu(page);
-      await turnIntoCardButton.click();
+      await page.locator("myoxus-image").click();
+      await expect(
+        toolbar.getByRole("button", { name: "Align left", exact: true }),
+      ).toBeVisible();
+      await toolbar.getByRole("button", { name: "More", exact: true }).click();
+      await page
+        .getByRole("menuitem", { name: "Turn into card view", exact: true })
+        .click();
       await expect(attachment).toBeVisible();
     },
   };
@@ -345,7 +354,9 @@ test("falls back to card view when replacing embedded attachment with unsupporte
   expect(await getName()).toBe("lorem-ipsum.pdf");
 
   await attachment.click();
-  await page.getByLabel("Switch view").click();
+  await page
+    .getByRole("combobox", { name: "Switch view", exact: true })
+    .click();
   await page.getByRole("option", { name: "Embed view" }).click();
   await expect(attachment.locator("iframe")).toBeVisible();
 

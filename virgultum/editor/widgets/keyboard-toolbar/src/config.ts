@@ -15,7 +15,6 @@ import {
   EmbedIcon,
   FontIcon,
   FrameIcon,
-  GithubIcon,
   GroupIcon,
   ImageIcon,
   ItalicIcon,
@@ -445,11 +444,11 @@ const contentMediaToolGroup: KeyboardToolPanelGroup = {
         if (!parentModel) return;
 
         const index = parentModel.children.indexOf(model) + 1;
-        await toggleEmbedCardCreateModal(
+        const inserted = await toggleEmbedCardCreateModal(
           std.host,
           "Links",
           "The added link will be displayed as a card view.",
-          { mode: "page", parentModel, index },
+          { mode: "page", parentModel, index, sourceBlockId: model.id },
           ({ mode }) => {
             if (mode === "edgeless") {
               const gfx = std.get(GfxControllerIdentifier);
@@ -457,7 +456,7 @@ const contentMediaToolGroup: KeyboardToolPanelGroup = {
             }
           },
         );
-        if (model.text?.length === 0) {
+        if (inserted && model.text?.length === 0) {
           std.store.deleteBlock(model);
         }
       },
@@ -544,11 +543,11 @@ const embedToolGroup: KeyboardToolPanelGroup = {
         if (!parentModel) return;
 
         const index = parentModel.children.indexOf(model) + 1;
-        await toggleEmbedCardCreateModal(
+        const inserted = await toggleEmbedCardCreateModal(
           std.host,
           "YouTube",
           "The added YouTube video link will be displayed as an embed view.",
-          { mode: "page", parentModel, index },
+          { mode: "page", parentModel, index, sourceBlockId: model.id },
           ({ mode }) => {
             if (mode === "edgeless") {
               const gfx = std.get(GfxControllerIdentifier);
@@ -556,14 +555,14 @@ const embedToolGroup: KeyboardToolPanelGroup = {
             }
           },
         );
-        if (model.text?.length === 0) {
+        if (inserted && model.text?.length === 0) {
           std.store.deleteBlock(model);
         }
       },
     },
     {
       name: "Github",
-      icon: GithubIcon({ style: `color: black` }),
+      icon: CodeIcon({ style: `color: black` }),
       showWhen: ({ std }) =>
         std.store.schema.flavourSchemaMap.has("myoxus:embed-github"),
       action: async ({ std }) => {
@@ -577,11 +576,11 @@ const embedToolGroup: KeyboardToolPanelGroup = {
         if (!parentModel) return;
 
         const index = parentModel.children.indexOf(model) + 1;
-        await toggleEmbedCardCreateModal(
+        const inserted = await toggleEmbedCardCreateModal(
           std.host,
-          "GitHub",
-          "The added GitHub issue or pull request link will be displayed as a card view.",
-          { mode: "page", parentModel, index },
+          "Git Issues & Pull Requests",
+          "The added GitHub, GitLab or Forgejo/Gitea issue or pull/merge request link will be displayed as a card view.",
+          { mode: "page", parentModel, index, sourceBlockId: model.id },
           ({ mode }) => {
             if (mode === "edgeless") {
               const gfx = std.get(GfxControllerIdentifier);
@@ -589,7 +588,7 @@ const embedToolGroup: KeyboardToolPanelGroup = {
             }
           },
         );
-        if (model.text?.length === 0) {
+        if (inserted && model.text?.length === 0) {
           std.store.deleteBlock(model);
         }
       },
@@ -611,11 +610,11 @@ const embedToolGroup: KeyboardToolPanelGroup = {
           return;
         }
         const index = parentModel.children.indexOf(model) + 1;
-        await toggleEmbedCardCreateModal(
+        const inserted = await toggleEmbedCardCreateModal(
           std.host,
           "Figma",
           "The added Figma link will be displayed as an embed view.",
-          { mode: "page", parentModel, index },
+          { mode: "page", parentModel, index, sourceBlockId: model.id },
           ({ mode }) => {
             if (mode === "edgeless") {
               const gfx = std.get(GfxControllerIdentifier);
@@ -623,7 +622,7 @@ const embedToolGroup: KeyboardToolPanelGroup = {
             }
           },
         );
-        if (model.text?.length === 0) {
+        if (inserted && model.text?.length === 0) {
           std.store.deleteBlock(model);
         }
       },
@@ -644,11 +643,11 @@ const embedToolGroup: KeyboardToolPanelGroup = {
         if (!parentModel) return;
 
         const index = parentModel.children.indexOf(model) + 1;
-        await toggleEmbedCardCreateModal(
+        const inserted = await toggleEmbedCardCreateModal(
           std.host,
           "Loom",
           "The added Loom video link will be displayed as an embed view.",
-          { mode: "page", parentModel, index },
+          { mode: "page", parentModel, index, sourceBlockId: model.id },
           ({ mode }) => {
             if (mode === "edgeless") {
               const gfx = std.get(GfxControllerIdentifier);
@@ -656,7 +655,7 @@ const embedToolGroup: KeyboardToolPanelGroup = {
             }
           },
         );
-        if (model.text?.length === 0) {
+        if (inserted && model.text?.length === 0) {
           std.store.deleteBlock(model);
         }
       },

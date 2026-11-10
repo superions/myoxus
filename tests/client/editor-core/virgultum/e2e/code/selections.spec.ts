@@ -36,9 +36,10 @@ test("click outside should close language list", async ({ page }) => {
   const locator = codeBlock.langList;
   await expect(locator).toBeVisible();
 
-  const rect = await page.locator("myoxus-filterable-list").boundingBox();
-  if (!rect) throw new Error("Failed to get bounding box of code block.");
-  await page.mouse.click(rect.x - 10, rect.y - 10);
+  const viewport = page.viewportSize();
+  if (!viewport) throw new Error("Desktop viewport is unavailable.");
+  // Click blank document space, avoiding the native viewport scrollbar.
+  await page.mouse.click(viewport.width - 100, viewport.height - 100);
 
   await expect(locator).toBeHidden();
 });

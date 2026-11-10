@@ -38,6 +38,7 @@ import { classMap } from "lit-html/directives/class-map.js";
 import { ref } from "lit-html/directives/ref.js";
 
 import type { FootNoteNodeConfigProvider } from "./footnote-config";
+import { renderCitationPreview } from "./citation-preview-session";
 
 // Virtual padding for the footnote popup overflow detection offsets.
 const POPUP_SHIFT_PADDING = 8;
@@ -246,15 +247,18 @@ export class MyoxusFootnoteNode extends WithDisposable(ShadowlessElement) {
     footnote: FootNote,
     abortController: AbortController,
   ) => {
+    if (footnote.definitionId !== undefined) return html``;
     return this.customPopupRenderer
       ? this.customPopupRenderer(footnote, this.std, abortController)
-      : html`<footnote-popup
-          .footnote=${footnote}
-          .std=${this.std}
-          .abortController=${abortController}
-          .onPopupClick=${this.onPopupClick ?? this.onFootnoteClick}
-          .updateFootnoteAttributes=${this._updateFootnoteAttributes}
-        ></footnote-popup>`;
+      : renderCitationPreview(
+          this.std,
+          this,
+          footnote,
+          () => this.footnote,
+          abortController,
+          this.onPopupClick ?? this.onFootnoteClick,
+          this._updateFootnoteAttributes,
+        );
   };
 
   private readonly _whenHover: HoverController = new HoverController(
@@ -291,6 +295,8 @@ export class MyoxusFootnoteNode extends WithDisposable(ShadowlessElement) {
 
       return {
         template: this._FootNotePopup(footnote, abortController),
+        // Native Facade styles live in the document; custom renderers keep their existing shadow root.
+        shadowDom: !!this.customPopupRenderer,
         container: this.std.host,
         computePosition: {
           referenceElement: this,

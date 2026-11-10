@@ -21,7 +21,9 @@ import {
   defer,
   EMPTY,
   filter,
+  map,
   Observable,
+  Subject,
   switchMap,
   type Subscription,
 } from "rxjs";
@@ -503,6 +505,7 @@ export class DocumentMetadataCacheService extends Service {
   >();
   private referenceData: DocumentMetadataReferenceData | null = null;
   private readonly pendingMetadata = new Map<string, DocumentMetadata>();
+  private readonly metadataChanges = new Subject<string | null>();
   private referenceHydration: Promise<DocumentMetadataReferenceData> | null =
     null;
   private indexHydration: Promise<DocumentMetadataIndexRow[]> | null = null;
@@ -527,6 +530,7 @@ export class DocumentMetadataCacheService extends Service {
         this.store.clearModel(docId);
         const canonicalId = this.store.canonicalIdForRoute(docId);
         if (canonicalId) this.pendingMetadata.delete(canonicalId);
+        this.metadataChanges.next(canonicalId ?? docId);
         this.modelHydrations.delete(docId);
         // Invalidating an unloaded index emits its generation without loading
         // it, so bounded consumers can also fence a terminal lifecycle change.
@@ -677,8 +681,41 @@ export class DocumentMetadataCacheService extends Service {
     }
   }
 
+  /** Consumers mounted during creation must wait for the existing lifecycle
+   * owner, not convert its deliberate pre-sync abort into a permanent error.
+   */
+  async hydrateMetadataWhenAvailable(docId: string, signal: AbortSignal) {
+    for (;;) {
+      await this.documentLifecycle.waitUntilAvailable(docId, signal);
+      try {
+        return await this.hydrateMetadata(docId, signal);
+      } catch (error) {
+        if (
+          signal.aborted ||
+          this.documentLifecycle.state(docId) !== "creating"
+        )
+          throw error;
+      }
+    }
+  }
+
   watchModel(docId: string) {
     return this.store.watchModel(docId);
+  }
+
+  /** Invalidate document-scoped projections even when only the lightweight
+   * metadata cache has been hydrated and no editor lookup model exists yet.
+   * This stream owns no second copy of the projection.
+   */
+  watchMetadataChanges(docId: string): Observable<void> {
+    return this.metadataChanges.pipe(
+      filter(
+        (id) =>
+          id === null ||
+          id === (this.store.canonicalIdForRoute(docId) ?? docId),
+      ),
+      map(() => undefined),
+    );
   }
 
   writeModel(
@@ -689,8 +726,14 @@ export class DocumentMetadataCacheService extends Service {
     if (!this.documentLifecycle.isAvailable(docId)) {
       return false;
     }
+    const previous =
+      this.store.getCanonicalModel(model.metadata.docId)?.metadata ??
+      this.pendingMetadata.get(model.metadata.docId);
     this.pendingMetadata.delete(model.metadata.docId);
-    return this.store.writeModel(model, source);
+    const accepted = this.store.writeModel(model, source);
+    if (accepted && JSON.stringify(previous) !== JSON.stringify(model.metadata))
+      this.metadataChanges.next(model.metadata.docId);
+    return accepted;
   }
 
   writeMetadata(
@@ -703,7 +746,11 @@ export class DocumentMetadataCacheService extends Service {
     }
     const current = this.store.getCanonicalModel(metadata.docId);
     if (!current) {
+      const previous = this.pendingMetadata.get(metadata.docId);
       this.rememberPendingMetadata(metadata.docId, metadata);
+      const accepted = this.pendingMetadata.get(metadata.docId);
+      if (JSON.stringify(previous) !== JSON.stringify(accepted))
+        this.metadataChanges.next(metadata.docId);
       return null;
     }
     const next = {
@@ -712,7 +759,13 @@ export class DocumentMetadataCacheService extends Service {
       state: stateFromMetadata(metadata),
     };
     this.pendingMetadata.delete(metadata.docId);
-    return this.store.writeModel(next, source) ? next : current;
+    const accepted = this.store.writeModel(next, source);
+    if (
+      accepted &&
+      JSON.stringify(current.metadata) !== JSON.stringify(next.metadata)
+    )
+      this.metadataChanges.next(metadata.docId);
+    return accepted ? next : current;
   }
 
   async writeMetadataForDocument(
@@ -726,9 +779,18 @@ export class DocumentMetadataCacheService extends Service {
       return this.writeMetadata(metadata, source, docId);
     }
 
-    this.rememberPendingMetadata(metadata.docId, metadata);
+    // Notify lightweight projection observers as soon as the acknowledged
+    // metadata is retained, even if full editor-model hydration later fails.
+    this.writeMetadata(metadata, source, docId);
     const model = await this.hydrateModel(docId, { refresh: true });
-    this.store.writeModel(model, source);
+    const previous = this.store.getCanonicalModel(
+      model.metadata.docId,
+    )?.metadata;
+    if (
+      this.store.writeModel(model, source) &&
+      JSON.stringify(previous) !== JSON.stringify(model.metadata)
+    )
+      this.metadataChanges.next(model.metadata.docId);
     return model;
   }
 
@@ -817,7 +879,14 @@ export class DocumentMetadataCacheService extends Service {
     const model = buildDocumentMetadataModel(effectiveDocument, references);
     if (generation === this.lifecycleGeneration) {
       this.store.registerAlias(docId, model.metadata.docId);
-      this.store.writeModel(model, "documentMetadata");
+      const previous = this.store.getCanonicalModel(
+        model.metadata.docId,
+      )?.metadata;
+      if (
+        this.store.writeModel(model, "documentMetadata") &&
+        JSON.stringify(previous) !== JSON.stringify(model.metadata)
+      )
+        this.metadataChanges.next(model.metadata.docId);
       const canonicalId = this.store.canonicalIdForRoute(docId);
       if (canonicalId) this.pendingMetadata.delete(canonicalId);
       this.pendingMetadata.delete(model.metadata.docId);
@@ -1111,6 +1180,7 @@ export class DocumentMetadataCacheService extends Service {
     }
     this.modelHydrations.clear();
     this.pendingMetadata.clear();
+    this.metadataChanges.next(null);
     this.referenceData = null;
     this.referenceHydration = null;
     this.indexHydration = null;
@@ -1126,6 +1196,7 @@ export class DocumentMetadataCacheService extends Service {
     this.lifecycleSubscription.unsubscribe();
     for (const dispose of this.revalidationDisposers) dispose();
     this.clearWorkspace();
+    this.metadataChanges.complete();
     super.dispose();
   }
 

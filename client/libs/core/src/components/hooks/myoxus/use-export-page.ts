@@ -4,6 +4,7 @@ import { exportWorkspaceLabels } from "@myoxus/core/modules/tag/export";
 import { WorkspaceDialogService } from "@myoxus/core/modules/dialogs";
 import { EditorService } from "@myoxus/core/modules/editor";
 import { CoreDocEmbedProvider, DocsService } from "@myoxus/core/modules/doc";
+import { CoreDocumentFieldOutputProvider } from "@myoxus/core/modules/doc/services/document-field-output";
 import { GuardService } from "@myoxus/core/modules/permissions";
 import {
   GraphQLService,
@@ -47,6 +48,7 @@ import {
 } from "@virgultum/editor/shared/adapters";
 import { printToPdf } from "@virgultum/editor/shared/utils";
 import { DocEmbedProvider } from "@virgultum/editor/shared/services";
+import { DocumentFieldOutputProvider } from "@virgultum/editor/shared/services";
 import type { EmbedSyncedDocModel } from "@virgultum/editor/model";
 import type { BlockStdScope } from "@virgultum/editor/std";
 import { type Store, Transformer } from "@virgultum/editor/store";
@@ -322,6 +324,7 @@ async function exportDoc(
   std: BlockStdScope | undefined,
   config: AdapterConfig,
   embedProvider = std?.getOptional(DocEmbedProvider),
+  fieldProvider = std?.getOptional(DocumentFieldOutputProvider),
 ) {
   const referenceProjection =
     config.identifier === MarkdownAdapterFactoryIdentifier ||
@@ -412,6 +415,8 @@ async function exportDoc(
   const exportServices = new Container();
   if (embedProvider)
     exportServices.addImpl(DocEmbedProvider, () => embedProvider);
+  if (fieldProvider)
+    exportServices.addImpl(DocumentFieldOutputProvider, () => fieldProvider);
   const adapter = adapterFactory.get(
     transformer,
     exportServices.provider(undefined, std?.provider ?? doc.provider),
@@ -466,6 +471,7 @@ async function exportToHtml(
   doc: Store,
   std?: BlockStdScope,
   access?: DocEmbedProvider,
+  fields?: DocumentFieldOutputProvider,
 ) {
   await exportDoc(
     doc,
@@ -477,6 +483,7 @@ async function exportToHtml(
       indexFileName: "index.html",
     },
     access ?? std?.getOptional(DocEmbedProvider),
+    fields,
   );
 }
 
@@ -484,11 +491,12 @@ async function exportToMarkdown(
   doc: Store,
   std?: BlockStdScope,
   access?: DocEmbedProvider,
+  fields?: DocumentFieldOutputProvider,
 ) {
   const referenceAccess =
     access ?? std?.getOptional(DocEmbedProvider) ?? undefined;
   if (!std) {
-    return (await MarkdownTransformer.exportDoc(doc, referenceAccess))
+    return (await MarkdownTransformer.exportDoc(doc, referenceAccess, fields))
       ?.diagnostics;
   } else {
     return exportDoc(
@@ -501,6 +509,7 @@ async function exportToMarkdown(
         indexFileName: "index.md",
       },
       referenceAccess,
+      fields,
     );
   }
 }
@@ -580,7 +589,16 @@ async function exportHandler({
         workspace,
       );
       try {
-        await exportToHtml(page, editorRoot?.std, access);
+        await exportToHtml(
+          page,
+          editorRoot?.std,
+          access,
+          new CoreDocumentFieldOutputProvider(
+            graphqlService,
+            workspace.id,
+            page.id,
+          ),
+        );
       } finally {
         access.dispose();
       }
@@ -598,6 +616,11 @@ async function exportHandler({
             page,
             editorRoot?.std,
             access,
+            new CoreDocumentFieldOutputProvider(
+              graphqlService,
+              workspace.id,
+              page.id,
+            ),
           ),
         };
       } finally {

@@ -19,7 +19,7 @@ import type { z } from "zod";
  *                         function (beyond the validated input).
  */
 export type Action<
-  InputSchema extends z.ZodObject<any, any, any, any>,
+  InputSchema extends z.ZodObject,
   Args extends readonly any[],
 > = {
   id: string;

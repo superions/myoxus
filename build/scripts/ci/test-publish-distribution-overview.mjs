@@ -78,7 +78,7 @@ function forgejoContentsFixture() {
           content: Buffer.from(source).toString("base64"),
         });
       }
-      assert.equal(options.method, "PUT");
+      assert.equal(options.method, source ? "PUT" : "POST");
       if (conflictOnce) {
         conflictOnce = false;
         return new Response("conflict", { status: 409 });

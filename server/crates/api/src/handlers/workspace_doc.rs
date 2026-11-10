@@ -206,7 +206,7 @@ async fn workspace_doc_preview(
   }
   state
     .preview_runtime
-    .validate_delivery(&state, workspace_id, &cache_key, &preview, color_scheme)
+    .validate_delivery(&state, workspace_id, &cache_key, &preview, actor_id, color_scheme)
     .await
     .map_err(preview_operation_http_error)?;
   if preview.empty {
@@ -490,8 +490,8 @@ pub(crate) async fn workspace_doc_handler(
 /// `GET /api/workspaces/{workspace_id}/docs/{guid}/histories/{timestamp}` — fetch a historical snapshot.
 ///
 /// Returns the most recent `doc_histories` entry at or before `timestamp`
-/// (accepted as Unix milliseconds or RFC 3339).  The payload is served
-/// with `Cache-Control: immutable` because history entries are never mutated.
+/// (accepted as Unix milliseconds or RFC 3339). Stored history is immutable,
+/// but its reference projection can change, so the response is not cached.
 #[instrument(skip_all)]
 pub(crate) async fn workspace_doc_history_handler(
   State(state): State<ApiState>,
@@ -558,6 +558,17 @@ async fn read_history_snapshot(
     })?;
   if entry.doc_id != doc_uuid || entry.workspace_id != workspace_uuid {
     return Err(StatusCode::NOT_FOUND);
+  }
+  // Legacy history containing live field atoms cannot be interpreted with
+  // today's facts. Preserve field-free native bytes and valid frozen snapshots;
+  // never replace this immutable record or silently render its spaces as values.
+  if entry
+    .snapshot
+    .windows(yjs::document_field::FIELD_ATTRIBUTE.len())
+    .any(|bytes| bytes == yjs::document_field::FIELD_ATTRIBUTE.as_bytes())
+    && myoxus_application::document_fields::output::historical_snapshot(&entry.snapshot).is_err()
+  {
+    return Err(StatusCode::UNPROCESSABLE_ENTITY);
   }
   let mut response = entry.snapshot.into_response();
   response.headers_mut().insert(

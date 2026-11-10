@@ -8,16 +8,19 @@ export const embedGithubSlashMenuConfig: SlashMenuConfig = {
   items: [
     {
       id: "block-embed-github",
-      label: editorMessage("com.myoxus.editor.slash.github", "GitHub"),
+      label: editorMessage(
+        "com.myoxus.editor.slash.github",
+        "Git Issues & Pull Requests",
+      ),
       description: editorMessage(
         "com.myoxus.editor.slash.github-description",
-        "Link to a GitHub repository.",
+        "Link to a GitHub, GitLab or Forgejo/Gitea issue or pull/merge request.",
       ),
-      icon: "GithubDuotoneIcon",
+      icon: "CodeIcon",
       tooltip: {
         caption: editorMessage(
           "com.myoxus.editor.slash.github-repo",
-          "GitHub Repo",
+          "Git Issue / Pull Request",
         ),
       },
       group: {
@@ -39,11 +42,11 @@ export const embedGithubSlashMenuConfig: SlashMenuConfig = {
             return;
           }
           const index = parentModel.children.indexOf(model) + 1;
-          await toggleEmbedCardCreateModal(
+          const inserted = await toggleEmbedCardCreateModal(
             host,
-            "GitHub",
-            "The added GitHub issue or pull request link will be displayed as a card view.",
-            { mode: "page", parentModel, index },
+            "Git Issues & Pull Requests",
+            "The added GitHub, GitLab or Forgejo/Gitea issue or pull/merge request link will be displayed as a card view.",
+            { mode: "page", parentModel, index, sourceBlockId: model.id },
             ({ mode }) => {
               if (mode === "edgeless") {
                 const gfx = std.get(GfxControllerIdentifier);
@@ -51,7 +54,8 @@ export const embedGithubSlashMenuConfig: SlashMenuConfig = {
               }
             },
           );
-          if (model.text?.length === 0) std.store.deleteBlock(model);
+          if (inserted && model.text?.length === 0)
+            std.store.deleteBlock(model);
         })().catch(console.error);
       },
     },

@@ -130,6 +130,61 @@ fn error_code(body: &Value) -> Option<&str> {
 }
 
 #[tokio::test]
+async fn native_field_output_is_authorized_bounded_and_never_initializes_or_persists_answers() {
+  use futures_util::FutureExt;
+  let (app, pool, auth) = crate::helpers::setup_app().await;
+  let (owner, session) = crate::helpers::seed_user(&pool, &auth, "field-output-owner").await;
+  let (outsider, outsider_session) = crate::helpers::seed_user(&pool, &auth, "field-output-outsider").await;
+  let workspace = crate::helpers::create_workspace(&pool, owner).await;
+  let doc = crate::helpers::create_doc(&pool, workspace, owner).await;
+  let result=std::panic::AssertUnwindSafe(async {
+    sqlx::query("UPDATE docs SET document_number='OUTPUT-01' WHERE id=$1").bind(doc).execute(&pool).await.unwrap();
+    let fields=json!([
+      {"type":"input","id":"literal","definition":{"kind":"text","label":"Answer","required":true,"default":"Wrong default"},"value":"Literal {{answer}}"},
+      {"type":"input","id":"empty","definition":{"kind":"date","label":"Date","required":true,"default":"2026-01-01"},"value":null},
+      {"type":"metadata","id":"number","key":"documentNumber","format":"text"},
+      {"type":"metadata","id":"author","key":"createdBy","format":"name"}
+    ]);
+    let request=|fields:Value|json!({"query":"query($workspace:ID!,$doc:ID!,$fields:JSON!){documentFieldOutput(workspaceId:$workspace,docId:$doc,fields:$fields)}","variables":{"workspace":workspace,"doc":doc,"fields":fields}});
+    let initial:(i64,i64,Value)=sqlx::query_as("SELECT (SELECT count(*) FROM doc_updates WHERE doc_id=$1),(SELECT count(*) FROM doc_histories WHERE doc_id=$1),meta FROM docs WHERE id=$1")
+      .bind(doc).fetch_one(&pool).await.unwrap();
+    let body=crate::helpers::gql(&app,session,request(fields.clone())).await;
+    assert!(body.get("errors").is_none(),"{body}");
+    assert_eq!(body["data"]["documentFieldOutput"],json!(["Literal {{answer}}","Not set","OUTPUT-01","field-output-owner"]));
+    sqlx::query("UPDATE docs SET document_number='OUTPUT-02' WHERE id=$1").bind(doc).execute(&pool).await.unwrap();
+    sqlx::query("UPDATE users SET name='Output author renamed' WHERE id=$1").bind(owner).execute(&pool).await.unwrap();
+    let body=crate::helpers::gql(&app,session,request(fields.clone())).await;
+    assert_eq!(body["data"]["documentFieldOutput"],json!(["Literal {{answer}}","Not set","OUTPUT-02","Output author renamed"]),"{body}");
+    let presentations=|fields:Value|json!({"query":"query($workspace:ID!,$doc:ID!,$fields:JSON!){documentFieldPresentations(workspaceId:$workspace,docId:$doc,fields:$fields){state text complete}}","variables":{"workspace":workspace,"doc":doc,"fields":fields}});
+    sqlx::query("UPDATE users SET name='' WHERE id=$1").bind(owner).execute(&pool).await.unwrap();
+    let states=crate::helpers::gql(&app,session,presentations(fields.clone())).await;
+    assert!(states.get("errors").is_none(),"a missing identity must not hide other fields: {states}");
+    assert_eq!(states["data"]["documentFieldPresentations"],json!([
+      {"state":"VALUE","text":"Literal {{answer}}","complete":true},
+      {"state":"UNSET","text":"Not set","complete":false},
+      {"state":"VALUE","text":"OUTPUT-02","complete":true},
+      {"state":"UNAVAILABLE","text":null,"complete":false}
+    ]));
+    let denied_states=crate::helpers::gql(&app,outsider_session,presentations(fields.clone())).await;
+    assert!(denied_states.get("errors").is_some()&&denied_states["data"].is_null(),"unreadable document must not disclose field states: {denied_states}");
+    let denied=crate::helpers::gql(&app,outsider_session,request(fields)).await;
+    assert!(denied.get("errors").is_some()&&denied["data"].is_null(),"unreadable document must not disclose current fields: {denied}");
+    for invalid in [json!([{"type":"metadata","id":"unknown","key":"secret","format":"text"}]),json!(vec![json!({"type":"metadata","id":"number","key":"documentNumber","format":"text"});2049])] {
+      let body=crate::helpers::gql(&app,session,request(invalid)).await;
+      assert!(body.get("errors").is_some(),"invalid/unbounded descriptors must fail: {body}");
+    }
+    let retained:(i64,i64,Value)=sqlx::query_as("SELECT (SELECT count(*) FROM doc_updates WHERE doc_id=$1),(SELECT count(*) FROM doc_histories WHERE doc_id=$1),meta FROM docs WHERE id=$1")
+      .bind(doc).fetch_one(&pool).await.unwrap();
+    assert_eq!(retained,initial,"output does not initialize defaults, write Yjs or create history");
+  }).catch_unwind().await;
+  crate::helpers::cleanup_workspaces(&pool, &[workspace]).await;
+  crate::helpers::cleanup_users(&pool, &[owner, outsider]).await;
+  if let Err(panic) = result {
+    std::panic::resume_unwind(panic);
+  }
+}
+
+#[tokio::test]
 async fn inv_docmeta_gql01_native_projection_requires_native_client_header() {
   let (app, pool, auth_store) = crate::helpers::setup_app().await;
   let (owner_id, owner_session) = crate::helpers::seed_user(&pool, &auth_store, "docmeta-owner-gql01").await;

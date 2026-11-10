@@ -28,31 +28,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@asamuzakjp/css-color@npm:^7.1.3":
-  version: 7.1.7
-  resolution: "@asamuzakjp/css-color@npm:7.1.7"
-  dependencies:
-    "@csstools/css-calc": "npm:^3.4.3"
-    "@csstools/css-color-parser": "npm:^4.2.6"
-    "@csstools/css-parser-algorithms": "npm:^4.0.2"
-    "@csstools/css-tokenizer": "npm:^4.0.2"
-    lru-cache: "npm:^11.5.3"
-  checksum: 10/1620c0a9b584cfd8679db06466951c67fc6cc4c381a7d29fcf2953edab79e4132231fb80fa92e645ba8321aa85cf705163eff45fbc687ab9916860ff51964416
-  languageName: node
-  linkType: hard
-
-"@asamuzakjp/dom-selector@npm:^10.0.3":
-  version: 10.0.5
-  resolution: "@asamuzakjp/dom-selector@npm:10.0.5"
-  dependencies:
-    bidi-js: "npm:^1.1.0"
-    css-tree: "npm:^3.2.1"
-    is-potential-custom-element-name: "npm:^1.0.1"
-    lru-cache: "npm:^11.5.3"
-  checksum: 10/86d568ad394446403a7f5ba9a6ac5f45e7bf269f3edbf4694f509a2f2ed3d44362ef58bab70521139d7fabc3f697a761417e923fe38f307a0a0d3de923a59946
-  languageName: node
-  linkType: hard
-
 "@atlaskit/pragmatic-drag-and-drop-auto-scroll@npm:^2.1.2":
   version: 2.1.2
   resolution: "@atlaskit/pragmatic-drag-and-drop-auto-scroll@npm:2.1.2"
@@ -245,10 +220,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@babel/runtime@npm:^7.0.0, @babel/runtime@npm:^7.12.5, @babel/runtime@npm:^7.25.0, @babel/runtime@npm:^7.27.1, @babel/runtime@npm:^7.5.5, @babel/runtime@npm:^7.8.7":
-  version: 7.29.2
-  resolution: "@babel/runtime@npm:7.29.2"
-  checksum: 10/f55ba4052aa0255055b34371a145fbe69c29b37b49eaea14805b095bfb4153701486416e89392fd27ec8abafa53868be86e960b9f8f959fff91f2c8ac2a14b02
+"@babel/runtime@npm:^7.0.0, @babel/runtime@npm:^7.12.5, @babel/runtime@npm:^7.29.7, @babel/runtime@npm:^7.5.5, @babel/runtime@npm:^7.8.7":
+  version: 7.29.13
+  resolution: "@babel/runtime@npm:7.29.13"
+  checksum: 10/874e520d41a28eb873eb0278d303fc506271d59b0f41d0708298dd7d04701b2f4b97eb7d402322488b0fc5cecd55b396338db5aa4b1d4a1d4b84d973a58d70b6
   languageName: node
   linkType: hard
 
@@ -313,17 +288,6 @@ __metadata:
   version: 7.1.2
   resolution: "@braintree/sanitize-url@npm:7.1.2"
   checksum: 10/d9626ff8f8eb5e192cd055e6e743449c21102c76bb59e405b7028fe56230fa080bfcc80dfb1e21850a6876e75adda9f7b3c888cf0685942bb74da4d2866d6ec3
-  languageName: node
-  linkType: hard
-
-"@bramus/specificity@npm:^2.4.2":
-  version: 2.4.3
-  resolution: "@bramus/specificity@npm:2.4.3"
-  dependencies:
-    css-tree: "npm:^3.2.1"
-  bin:
-    specificity: bin/cli.js
-  checksum: 10/f100c0a1659cf9655e248f38e8614e4b0acf21d9a53cd2913d2c5701633ac4e193f9a3398ad4cc4697b7e71b4f1bf079b2e4f0d640a3b5e65c7b82ef0c0d5808
   languageName: node
   linkType: hard
 
@@ -441,64 +405,6 @@ __metadata:
   version: 11.1.2
   resolution: "@chevrotain/types@npm:11.1.2"
   checksum: 10/ad39d7651a20b05ead9b4374f98afc39915118dda29678c2b623571aa3da3018a0f3fb799d1809605cafcae59cba637d640855ea0f97b9b01d0900d77d6781fe
-  languageName: node
-  linkType: hard
-
-"@csstools/color-helpers@npm:^6.1.2":
-  version: 6.1.2
-  resolution: "@csstools/color-helpers@npm:6.1.2"
-  checksum: 10/344d8638d853e8a31f059d8c647b5a45c90c05482c1e9d390b03041152747f8df7464f0c3eb3bf7bf2ac34338eca7807bf5971f5a8dd07299f56bdf2071df0fa
-  languageName: node
-  linkType: hard
-
-"@csstools/css-calc@npm:^3.4.3":
-  version: 3.4.3
-  resolution: "@csstools/css-calc@npm:3.4.3"
-  peerDependencies:
-    "@csstools/css-parser-algorithms": ^4.0.2
-    "@csstools/css-tokenizer": ^4.0.2
-  checksum: 10/2047e7e79a5863ee2205e6a41ea375648d0af7455befc16cd9f4e4a0b7e89c0584249cd8bafb070e959e100a4310973b05b7908d508756bb5fe7893d71fcea97
-  languageName: node
-  linkType: hard
-
-"@csstools/css-color-parser@npm:^4.2.6":
-  version: 4.2.6
-  resolution: "@csstools/css-color-parser@npm:4.2.6"
-  dependencies:
-    "@csstools/color-helpers": "npm:^6.1.2"
-    "@csstools/css-calc": "npm:^3.4.3"
-  peerDependencies:
-    "@csstools/css-parser-algorithms": ^4.0.2
-    "@csstools/css-tokenizer": ^4.0.2
-  checksum: 10/cfa89151997ca60fa50f1035c327d55f1c988b7bf4f72d19e974ad5d53da63c5ba193b0a84bdc1f20840d363ac736953b67bb8706cf64680ecd4d7daee2a13b1
-  languageName: node
-  linkType: hard
-
-"@csstools/css-parser-algorithms@npm:^4.0.2":
-  version: 4.0.2
-  resolution: "@csstools/css-parser-algorithms@npm:4.0.2"
-  peerDependencies:
-    "@csstools/css-tokenizer": ^4.0.2
-  checksum: 10/10ece52dea89581cd3f9cc2406c2d4a6c90e7cfbd59d0dad7160aaaffb880d44dce20df2097e7d500d619b97a7db726d0dd90d33ba92b18eeb41a67c985ed60e
-  languageName: node
-  linkType: hard
-
-"@csstools/css-syntax-patches-for-csstree@npm:^1.1.15":
-  version: 1.1.15
-  resolution: "@csstools/css-syntax-patches-for-csstree@npm:1.1.15"
-  peerDependencies:
-    css-tree: ^3.2.1
-  peerDependenciesMeta:
-    css-tree:
-      optional: true
-  checksum: 10/c955c7072c9e6be6ca0836c582f9a233b8445ccc14b1459c87ff24e5604665e99e40994e8e32640b7ea6cccc3b75162d847b4fac864565b729070b7cd02536cf
-  languageName: node
-  linkType: hard
-
-"@csstools/css-tokenizer@npm:^4.0.2":
-  version: 4.0.2
-  resolution: "@csstools/css-tokenizer@npm:4.0.2"
-  checksum: 10/d01ac3d39fc699b61221237f11b281f3fe0e1c029581aa6733c894754eef2f6c4b077584acacdd37853ac4573e69d53ecd76db2db4898ed0da2466ae27758923
   languageName: node
   linkType: hard
 
@@ -855,18 +761,6 @@ __metadata:
   version: 0.28.2
   resolution: "@esbuild/win32-x64@npm:0.28.2"
   conditions: os=win32 & cpu=x64
-  languageName: node
-  linkType: hard
-
-"@exodus/bytes@npm:^1.15.1, @exodus/bytes@npm:^1.16.0":
-  version: 1.16.0
-  resolution: "@exodus/bytes@npm:1.16.0"
-  peerDependencies:
-    "@noble/hashes": ^1.8.0 || ^2.0.0
-  peerDependenciesMeta:
-    "@noble/hashes":
-      optional: true
-  checksum: 10/6106d0ae523614c81152d791a6ea2a8a323c0c193d8e9d14dd4da22148a6c31c4fc15705655d5a3d66cbc2fb0e640c0650f776eeef7d5bbab3027cc726bc6f50
   languageName: node
   linkType: hard
 
@@ -1543,110 +1437,110 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@mantine/charts@npm:9.6.3":
-  version: 9.6.3
-  resolution: "@mantine/charts@npm:9.6.3"
+"@mantine/charts@npm:9.7.5":
+  version: 9.7.5
+  resolution: "@mantine/charts@npm:9.7.5"
   peerDependencies:
-    "@mantine/core": 9.6.3
-    "@mantine/hooks": 9.6.3
+    "@mantine/core": 9.7.5
+    "@mantine/hooks": 9.7.5
     react: ^19.2.0
     react-dom: ^19.2.0
     recharts: ">=3.2.1"
-  checksum: 10/60dce976afe506da8ff0bc545c425cc3df593fc5f6f3a3ed2a93b520fec8655de0c370b0483b058e02411b920b3250f8c4f2096210390f2e7a37682482935feb
+  checksum: 10/160713264d4f61ead78eafb02734f3a01334b88842f5e2740f65000f7cf49861ef6352ea2a49239df303c1bdeb1c28044ec969d46487444eeaf016c3a6830c8d
   languageName: node
   linkType: hard
 
-"@mantine/core@npm:9.6.3":
-  version: 9.6.3
-  resolution: "@mantine/core@npm:9.6.3"
+"@mantine/core@npm:9.7.5":
+  version: 9.7.5
+  resolution: "@mantine/core@npm:9.7.5"
   dependencies:
     "@floating-ui/react": "npm:^0.27.20"
     clsx: "npm:^2.1.1"
     react-number-format: "npm:^5.4.5"
     react-remove-scroll: "npm:^2.7.2"
-    type-fest: "npm:^5.8.0"
+    type-fest: "npm:^5.10.0"
   peerDependencies:
-    "@mantine/hooks": 9.6.3
+    "@mantine/hooks": 9.7.5
     react: ^19.2.0
     react-dom: ^19.2.0
-  checksum: 10/29b2b963229752d2730100a3060c4677ce0eb30437f12553ef923bc0decd4a29d487d59699586a99dc33d1367afb5dd8c95e468f70497fc939d38f58b1710ab3
+  checksum: 10/79316e96078dcb7d4f12f7c38bcc82402d62fcf3e651f7a2b707a4bca407197484e710029ffd88b0791532fb0f11883f8df1c833a62e5138f9a8a97064f69aa3
   languageName: node
   linkType: hard
 
-"@mantine/dates@npm:9.6.3":
-  version: 9.6.3
-  resolution: "@mantine/dates@npm:9.6.3"
+"@mantine/dates@npm:9.7.5":
+  version: 9.7.5
+  resolution: "@mantine/dates@npm:9.7.5"
   dependencies:
     clsx: "npm:^2.1.1"
   peerDependencies:
-    "@mantine/core": 9.6.3
-    "@mantine/hooks": 9.6.3
+    "@mantine/core": 9.7.5
+    "@mantine/hooks": 9.7.5
     dayjs: ">=1.0.0"
     react: ^19.2.0
     react-dom: ^19.2.0
-  checksum: 10/99c0dbc3bbe46d720c96f24f58998abc334e0b720e6dd9fb74a80bbf64b1a9498b89b9dcd5a978dd2a940585c8e22e2d95a456777f134ec08ca0d30dd5da5c6c
+  checksum: 10/a0e0426e7a497f8d4a7bda5b6787504bed3c1f666d625b460f0ac5c1f2ee049e77e6bb22b0504de70e3a7dbe06ff9df9b9514ef938547ef9da812c25a052e534
   languageName: node
   linkType: hard
 
-"@mantine/hooks@npm:9.6.3":
-  version: 9.6.3
-  resolution: "@mantine/hooks@npm:9.6.3"
+"@mantine/hooks@npm:9.7.5":
+  version: 9.7.5
+  resolution: "@mantine/hooks@npm:9.7.5"
   peerDependencies:
     react: ^19.2.0
-  checksum: 10/f2d8bfb88961f3c9cc82c69e5492187dc1c051cb63b2bd9ff79be3df90d898c03cf8e95a2aed3fb8b583e236b91e6083f6a07830a6b4c21a20140c54e0c6ba8a
+  checksum: 10/b572f3d729e6f9ed47b06a1b80529fa8ea3962e6feba028410eb5883fd271ae344f4fc4e1411d3694831a9c8714c7ea4a7869462c198d02b0a9df02b06bd723a
   languageName: node
   linkType: hard
 
-"@mantine/notifications@npm:9.6.3":
-  version: 9.6.3
-  resolution: "@mantine/notifications@npm:9.6.3"
+"@mantine/notifications@npm:9.7.5":
+  version: 9.7.5
+  resolution: "@mantine/notifications@npm:9.7.5"
   dependencies:
-    "@mantine/store": "npm:9.6.3"
+    "@mantine/store": "npm:9.7.5"
     react-transition-group: "npm:4.4.5"
   peerDependencies:
-    "@mantine/core": 9.6.3
-    "@mantine/hooks": 9.6.3
+    "@mantine/core": 9.7.5
+    "@mantine/hooks": 9.7.5
     react: ^19.2.0
     react-dom: ^19.2.0
-  checksum: 10/e460979ea117cc7f72ac5d15cd46b993b5b5336019d45dd7400f1a631d179da1ea432d08b40be6bc9fbafbd6c2a844fd45c561b5b9786426d0540ec8848f57db
+  checksum: 10/8df64c443f3855d868994e1e366c946e2c4f5cb38d9606597d209d2ceb3b7fd70c242491721369bdc2d5f59fc63d40c295587769ad723833bdd23194f3014867
   languageName: node
   linkType: hard
 
-"@mantine/schedule@npm:9.6.3":
-  version: 9.6.3
-  resolution: "@mantine/schedule@npm:9.6.3"
+"@mantine/schedule@npm:9.7.5":
+  version: 9.7.5
+  resolution: "@mantine/schedule@npm:9.7.5"
   dependencies:
     rrule: "npm:^2.8.1"
   peerDependencies:
-    "@mantine/core": 9.6.3
-    "@mantine/dates": 9.6.3
-    "@mantine/hooks": 9.6.3
+    "@mantine/core": 9.7.5
+    "@mantine/dates": 9.7.5
+    "@mantine/hooks": 9.7.5
     react: ^19.2.0
     react-dom: ^19.2.0
-  checksum: 10/4a484f658b00416f64fff7d158e7fa21e8b65cf13242aadbd36c392158eb40f8caff7ca8a1a4b0e837c86e348aa16f91f644f2d400fb3442a566c5cbfb8b1e8a
+  checksum: 10/1e5f479a8c1afe464267ce01347397fc9f268f851f73bce7eb3677956690a6e54d5464c0df5e10ca51ece671e5cce831aac6f773744dc4753d5738136a786043
   languageName: node
   linkType: hard
 
-"@mantine/store@npm:9.6.3":
-  version: 9.6.3
-  resolution: "@mantine/store@npm:9.6.3"
+"@mantine/store@npm:9.7.5":
+  version: 9.7.5
+  resolution: "@mantine/store@npm:9.7.5"
   peerDependencies:
     react: ^19.2.0
-  checksum: 10/e5fddade1606ba7dc333ac62eb3c9e54da5198beb9cc9312c02387cd0239e846d3d1250ee81b5156cdc9c285ad5c68fb0ccaa3e47b423f66d66562208960bec2
+  checksum: 10/ec83fb1317daa76399313fdd9cc86e5289f1be3ddfad0b6b50f9887de31656bc782a3f02a38c92ae1240313c6c2345ce72177acce4ec8d41952850a9cc90e027
   languageName: node
   linkType: hard
 
-"@mantine/tiptap@npm:9.6.3":
-  version: 9.6.3
-  resolution: "@mantine/tiptap@npm:9.6.3"
+"@mantine/tiptap@npm:9.7.5":
+  version: 9.7.5
+  resolution: "@mantine/tiptap@npm:9.7.5"
   peerDependencies:
-    "@mantine/core": 9.6.3
-    "@mantine/hooks": 9.6.3
+    "@mantine/core": 9.7.5
+    "@mantine/hooks": 9.7.5
     "@tiptap/extension-link": ">=3.3.0"
     "@tiptap/react": ">=3.3.0"
     react: ^19.2.0
     react-dom: ^19.2.0
-  checksum: 10/8f21e4faf9372a3e9d7b45cd0d056973ea173724230c221686feee57511c0d26593e209a48d986420b245a0b4446708db320f6c3cc1e947c4b26c11308026b78
+  checksum: 10/54c42d5cd9670276d189cf77bcf8b909757f52903f3ddae93089966804fec62498bad2b067d84e11111497d50687a67e4f8c4700fe4f133fe1f63001f6bae4f2
   languageName: node
   linkType: hard
 
@@ -1799,7 +1693,7 @@ __metadata:
     recharts: "npm:3.10.1"
     swr: "npm:^2.4.1"
     vitest: "npm:4.1.11"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -1854,9 +1748,8 @@ __metadata:
     "@xyflow/react": "npm:12.11.1"
     d3-drag: "npm:^3.0.0"
     d3-selection: "npm:^3.0.0"
-    dompurify: "npm:3.4.16"
+    dompurify: "npm:3.4.17"
     immer: "npm:^11.1.8"
-    jsdom: "npm:^30.1.3"
     lodash-es: "npm:4.18.1"
     prettier: "npm:3.9.9"
     react: "npm:19.3.0"
@@ -1902,7 +1795,7 @@ __metadata:
     "@myoxus/ui-facade": "workspace:*"
     "@myriaddreamin/typst-ts-renderer": "npm:0.7.0"
     "@myriaddreamin/typst-ts-web-compiler": "npm:0.7.0"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@sentry/react": "npm:10.75.0"
     "@testing-library/dom": "npm:^10.4.0"
     "@testing-library/react": "npm:^16.1.0"
@@ -1915,7 +1808,6 @@ __metadata:
     "@virgultum/block-root": "workspace:*"
     "@virgultum/block-table": "workspace:*"
     "@virgultum/components": "workspace:*"
-    "@virgultum/data-view": "workspace:*"
     "@virgultum/editor": "workspace:*"
     "@virgultum/ext-loader": "workspace:*"
     "@virgultum/gfx-pointer": "workspace:*"
@@ -1933,7 +1825,7 @@ __metadata:
     file-type: "npm:22.1.1"
     fuse.js: "npm:^7.0.0"
     graphql: "npm:^16.14.2"
-    happy-dom: "npm:20.11.1"
+    happy-dom: "npm:21.0.4"
     hash-wasm: "npm:^4.12.0"
     idb: "npm:^8.0.0"
     jotai: "npm:^2.10.3"
@@ -1948,7 +1840,7 @@ __metadata:
     react-error-boundary: "npm:^6.0.0"
     react-is: "npm:19.3.0"
     react-router: "npm:7.18.4"
-    react-virtuoso: "npm:^4.12.3"
+    react-virtuoso: "npm:4.18.20"
     recharts: "npm:3.10.1"
     rxjs: "npm:^7.8.2"
     semver: "npm:^7.7.3"
@@ -1958,7 +1850,7 @@ __metadata:
     y-protocols: "npm:^1.0.7"
     yaml: "npm:2.9.1"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -2039,7 +1931,7 @@ __metadata:
     async-call-rpc: "npm:^6.4.2"
     builder-util-runtime: "npm:9.7.0"
     cross-env: "npm:^10.1.0"
-    electron: "npm:44.5.0"
+    electron: "npm:44.10.2"
     electron-log: "npm:5.4.4"
     electron-updater: "npm:6.8.9"
     esbuild: "npm:0.28.2"
@@ -2052,7 +1944,7 @@ __metadata:
     vitest: "npm:4.1.11"
     yaml: "npm:2.9.1"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -2061,7 +1953,7 @@ __metadata:
   resolution: "@myoxus/env@workspace:client/libs/env"
   dependencies:
     "@virgultum/editor": "workspace:*"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -2111,9 +2003,9 @@ __metadata:
     "@myoxus-tools/utils": "workspace:*"
     "@myoxus/debug": "workspace:*"
     dayjs: "npm:^1.11.23"
-    i18next: "npm:^25.0.0"
+    i18next: "npm:^26.7.2"
     react: "npm:19.3.0"
-    react-i18next: "npm:^15.2.0"
+    react-i18next: "npm:^17.1.13"
     typescript: "npm:7.0.2"
     vitest: "npm:4.1.11"
   languageName: unknown
@@ -2143,7 +2035,7 @@ __metadata:
     "@myoxus/desktop-api-contract": "workspace:*"
     "@myoxus/env": "workspace:*"
     "@myoxus/error": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     fractional-indexing: "npm:^3.2.0"
     jotai: "npm:^2.10.3"
     jotai-effect: "npm:^2.0.0"
@@ -2152,7 +2044,7 @@ __metadata:
     react: "npm:19.3.0"
     rxjs: "npm:^7.8.2"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -2283,7 +2175,7 @@ __metadata:
     "@zip.js/zip.js": "npm:2.24.0"
     cross-env: "npm:^10.1.0"
     eslint-plugin-react-hooks: "npm:7.1.1"
-    happy-dom: "npm:20.11.1"
+    happy-dom: "npm:21.0.4"
     husky: "npm:^9.1.7"
     lint-staged: "npm:^17.6.0"
     oxlint: "npm:^1.47.0"
@@ -2296,7 +2188,7 @@ __metadata:
     semver: "npm:^7.7.3"
     socket.io-client: "npm:^4.8.4"
     typescript: "npm:7.0.2"
-    vite: "npm:8.3.1"
+    vite: "npm:8.3.6"
     vitest: "npm:4.1.11"
     y-protocols: "npm:^1.0.7"
     yaml: "npm:2.9.1"
@@ -2400,13 +2292,13 @@ __metadata:
   dependencies:
     "@atlaskit/pragmatic-drag-and-drop": "npm:^1.4.0"
     "@atlaskit/pragmatic-drag-and-drop-hitbox": "npm:^1.1.0"
-    "@mantine/charts": "npm:9.6.3"
-    "@mantine/core": "npm:9.6.3"
-    "@mantine/dates": "npm:9.6.3"
-    "@mantine/hooks": "npm:9.6.3"
-    "@mantine/notifications": "npm:9.6.3"
-    "@mantine/schedule": "npm:9.6.3"
-    "@mantine/tiptap": "npm:9.6.3"
+    "@mantine/charts": "npm:9.7.5"
+    "@mantine/core": "npm:9.7.5"
+    "@mantine/dates": "npm:9.7.5"
+    "@mantine/hooks": "npm:9.7.5"
+    "@mantine/notifications": "npm:9.7.5"
+    "@mantine/schedule": "npm:9.7.5"
+    "@mantine/tiptap": "npm:9.7.5"
     "@myoxus/dialogs": "workspace:*"
     "@myoxus/i18n": "workspace:*"
     "@myoxus/icons": "workspace:*"
@@ -3400,10 +3292,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@oxc-project/types@npm:=0.151.0":
-  version: 0.151.0
-  resolution: "@oxc-project/types@npm:0.151.0"
-  checksum: 10/3c337e500aab16a8aa395ad2caae1323f44ece5d995c70f79f06c634f5d2d0edb8cbc832842852fc9b58a10852f5d1fe52a7f9f1cc8da99dc97f29ce1663f654
+"@oxc-project/types@npm:=0.156.0":
+  version: 0.156.0
+  resolution: "@oxc-project/types@npm:0.156.0"
+  checksum: 10/282e357299cd6c5a2c0c55d57fcb6edb4ac67df1bec1a6e4613f146721f584377071bce61453093a8cf179fc934095ffdf269ea327dd4df250272ac8ab04e159
   languageName: node
   linkType: hard
 
@@ -3600,10 +3492,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@preact/signals-core@npm:^1.8.0":
-  version: 1.8.0
-  resolution: "@preact/signals-core@npm:1.8.0"
-  checksum: 10/480c1aaf1bce6f8bd5544eec9fd92a70ccdfffa24c23d99aa8e3c13783cc6b06ec0a3d90578c5fd368d06121cbe0f8fbe81368aa45ddba11d8a28af15410a9dc
+"@preact/signals-core@npm:^1.14.5":
+  version: 1.14.5
+  resolution: "@preact/signals-core@npm:1.14.5"
+  checksum: 10/3e54c57a5aa8e16d2da15956c9c811f9594fe7fd83d07be8855a1e32a02bd3c61d16fcbb7f65d2c2bd819f5f7cf53fb71eea2b08f23f759ffbec79f0b4e0aff2
   languageName: node
   linkType: hard
 
@@ -3629,107 +3521,107 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@rolldown/binding-android-arm-eabi@npm:1.2.11":
-  version: 1.2.11
-  resolution: "@rolldown/binding-android-arm-eabi@npm:1.2.11"
+"@rolldown/binding-android-arm-eabi@npm:1.2.16":
+  version: 1.2.16
+  resolution: "@rolldown/binding-android-arm-eabi@npm:1.2.16"
   conditions: os=android & cpu=arm
   languageName: node
   linkType: hard
 
-"@rolldown/binding-android-arm64@npm:1.2.11":
-  version: 1.2.11
-  resolution: "@rolldown/binding-android-arm64@npm:1.2.11"
+"@rolldown/binding-android-arm64@npm:1.2.16":
+  version: 1.2.16
+  resolution: "@rolldown/binding-android-arm64@npm:1.2.16"
   conditions: os=android & cpu=arm64
   languageName: node
   linkType: hard
 
-"@rolldown/binding-darwin-arm64@npm:1.2.11":
-  version: 1.2.11
-  resolution: "@rolldown/binding-darwin-arm64@npm:1.2.11"
+"@rolldown/binding-darwin-arm64@npm:1.2.16":
+  version: 1.2.16
+  resolution: "@rolldown/binding-darwin-arm64@npm:1.2.16"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"@rolldown/binding-darwin-x64@npm:1.2.11":
-  version: 1.2.11
-  resolution: "@rolldown/binding-darwin-x64@npm:1.2.11"
+"@rolldown/binding-darwin-x64@npm:1.2.16":
+  version: 1.2.16
+  resolution: "@rolldown/binding-darwin-x64@npm:1.2.16"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"@rolldown/binding-freebsd-x64@npm:1.2.11":
-  version: 1.2.11
-  resolution: "@rolldown/binding-freebsd-x64@npm:1.2.11"
+"@rolldown/binding-freebsd-x64@npm:1.2.16":
+  version: 1.2.16
+  resolution: "@rolldown/binding-freebsd-x64@npm:1.2.16"
   conditions: os=freebsd & cpu=x64
   languageName: node
   linkType: hard
 
-"@rolldown/binding-linux-arm-gnueabihf@npm:1.2.11":
-  version: 1.2.11
-  resolution: "@rolldown/binding-linux-arm-gnueabihf@npm:1.2.11"
+"@rolldown/binding-linux-arm-gnueabihf@npm:1.2.16":
+  version: 1.2.16
+  resolution: "@rolldown/binding-linux-arm-gnueabihf@npm:1.2.16"
   conditions: os=linux & cpu=arm
   languageName: node
   linkType: hard
 
-"@rolldown/binding-linux-arm64-gnu@npm:1.2.11":
-  version: 1.2.11
-  resolution: "@rolldown/binding-linux-arm64-gnu@npm:1.2.11"
+"@rolldown/binding-linux-arm64-gnu@npm:1.2.16":
+  version: 1.2.16
+  resolution: "@rolldown/binding-linux-arm64-gnu@npm:1.2.16"
   conditions: os=linux & cpu=arm64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@rolldown/binding-linux-arm64-musl@npm:1.2.11":
-  version: 1.2.11
-  resolution: "@rolldown/binding-linux-arm64-musl@npm:1.2.11"
+"@rolldown/binding-linux-arm64-musl@npm:1.2.16":
+  version: 1.2.16
+  resolution: "@rolldown/binding-linux-arm64-musl@npm:1.2.16"
   conditions: os=linux & cpu=arm64 & libc=musl
   languageName: node
   linkType: hard
 
-"@rolldown/binding-linux-ppc64-gnu@npm:1.2.11":
-  version: 1.2.11
-  resolution: "@rolldown/binding-linux-ppc64-gnu@npm:1.2.11"
+"@rolldown/binding-linux-ppc64-gnu@npm:1.2.16":
+  version: 1.2.16
+  resolution: "@rolldown/binding-linux-ppc64-gnu@npm:1.2.16"
   conditions: os=linux & cpu=ppc64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@rolldown/binding-linux-s390x-gnu@npm:1.2.11":
-  version: 1.2.11
-  resolution: "@rolldown/binding-linux-s390x-gnu@npm:1.2.11"
+"@rolldown/binding-linux-s390x-gnu@npm:1.2.16":
+  version: 1.2.16
+  resolution: "@rolldown/binding-linux-s390x-gnu@npm:1.2.16"
   conditions: os=linux & cpu=s390x & libc=glibc
   languageName: node
   linkType: hard
 
-"@rolldown/binding-linux-x64-gnu@npm:1.2.11":
-  version: 1.2.11
-  resolution: "@rolldown/binding-linux-x64-gnu@npm:1.2.11"
+"@rolldown/binding-linux-x64-gnu@npm:1.2.16":
+  version: 1.2.16
+  resolution: "@rolldown/binding-linux-x64-gnu@npm:1.2.16"
   conditions: os=linux & cpu=x64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@rolldown/binding-linux-x64-musl@npm:1.2.11":
-  version: 1.2.11
-  resolution: "@rolldown/binding-linux-x64-musl@npm:1.2.11"
+"@rolldown/binding-linux-x64-musl@npm:1.2.16":
+  version: 1.2.16
+  resolution: "@rolldown/binding-linux-x64-musl@npm:1.2.16"
   conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
 
-"@rolldown/binding-openharmony-arm64@npm:1.2.11":
-  version: 1.2.11
-  resolution: "@rolldown/binding-openharmony-arm64@npm:1.2.11"
+"@rolldown/binding-openharmony-arm64@npm:1.2.16":
+  version: 1.2.16
+  resolution: "@rolldown/binding-openharmony-arm64@npm:1.2.16"
   conditions: os=openharmony & cpu=arm64
   languageName: node
   linkType: hard
 
-"@rolldown/binding-win32-arm64-msvc@npm:1.2.11":
-  version: 1.2.11
-  resolution: "@rolldown/binding-win32-arm64-msvc@npm:1.2.11"
+"@rolldown/binding-win32-arm64-msvc@npm:1.2.16":
+  version: 1.2.16
+  resolution: "@rolldown/binding-win32-arm64-msvc@npm:1.2.16"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"@rolldown/binding-win32-x64-msvc@npm:1.2.11":
-  version: 1.2.11
-  resolution: "@rolldown/binding-win32-x64-msvc@npm:1.2.11"
+"@rolldown/binding-win32-x64-msvc@npm:1.2.16":
+  version: 1.2.16
+  resolution: "@rolldown/binding-win32-x64-msvc@npm:1.2.16"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
@@ -5456,7 +5348,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@virgultum/block-surface": "workspace:*"
     "@virgultum/components": "workspace:*"
     "@virgultum/ext-loader": "workspace:*"
@@ -5469,7 +5361,7 @@ __metadata:
     file-type: "npm:22.1.1"
     lit: "npm:^3.3.3"
     rxjs: "npm:^7.8.2"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -5480,7 +5372,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@virgultum/block-embed": "workspace:*"
     "@virgultum/block-embed-doc": "workspace:*"
     "@virgultum/block-surface": "workspace:*"
@@ -5496,7 +5388,7 @@ __metadata:
     rxjs: "npm:^7.8.2"
     vitest: "npm:4.1.11"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -5530,7 +5422,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/mdast": "npm:^4.0.4"
     "@virgultum/components": "workspace:*"
     "@virgultum/ext-loader": "workspace:*"
@@ -5544,7 +5436,7 @@ __metadata:
     "@virgultum/widget-slash-menu": "workspace:*"
     lit: "npm:^3.3.3"
     rxjs: "npm:^7.8.2"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -5556,7 +5448,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/mdast": "npm:^4.0.4"
     "@virgultum/components": "workspace:*"
     "@virgultum/ext-loader": "workspace:*"
@@ -5574,32 +5466,7 @@ __metadata:
     "@virgultum/widget-slash-menu": "workspace:*"
     lit: "npm:^3.3.3"
     rxjs: "npm:^7.8.2"
-    zod: "npm:^3.25.76"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/block-data-view@workspace:*, @virgultum/block-data-view@workspace:virgultum/editor/blocks/data-view":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/block-data-view@workspace:virgultum/editor/blocks/data-view"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
-    "@types/mdast": "npm:^4.0.4"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/data-view": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-slash-menu": "workspace:*"
-    lit: "npm:^3.3.3"
-    rxjs: "npm:^7.8.2"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -5615,7 +5482,7 @@ __metadata:
     "@virgultum/store": "workspace:*"
     "@virgultum/widget-slash-menu": "workspace:*"
     lit: "npm:^3.3.3"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -5626,7 +5493,7 @@ __metadata:
     "@floating-ui/dom": "npm:^1.6.13"
     "@lit/context": "npm:^1.1.6"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/mdast": "npm:^4.0.4"
     "@virgultum/components": "workspace:*"
     "@virgultum/ext-loader": "workspace:*"
@@ -5638,7 +5505,7 @@ __metadata:
     "@virgultum/store": "workspace:*"
     lit: "npm:^3.3.3"
     rxjs: "npm:^7.8.2"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -5650,7 +5517,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@virgultum/block-surface": "workspace:*"
     "@virgultum/components": "workspace:*"
     "@virgultum/ext-loader": "workspace:*"
@@ -5665,7 +5532,7 @@ __metadata:
     "@virgultum/widget-edgeless-toolbar": "workspace:*"
     lit: "npm:^3.3.3"
     rxjs: "npm:^7.8.2"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -5677,7 +5544,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/block-embed": "workspace:*"
     "@virgultum/block-surface": "workspace:*"
@@ -5696,7 +5563,7 @@ __metadata:
     rxjs: "npm:^7.8.2"
     vitest: "npm:4.1.11"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -5708,7 +5575,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/block-surface": "workspace:*"
     "@virgultum/components": "workspace:*"
@@ -5727,7 +5594,7 @@ __metadata:
     rxjs: "npm:^7.8.2"
     vitest: "npm:4.1.11"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -5736,7 +5603,7 @@ __metadata:
   resolution: "@virgultum/block-event@workspace:virgultum/editor/blocks/event"
   dependencies:
     "@myoxus/icons": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@virgultum/ext-loader": "workspace:*"
     "@virgultum/global": "workspace:*"
     "@virgultum/model": "workspace:*"
@@ -5756,7 +5623,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/mdast": "npm:^4.0.4"
     "@virgultum/block-surface": "workspace:*"
     "@virgultum/components": "workspace:*"
@@ -5772,7 +5639,7 @@ __metadata:
     lit: "npm:^3.3.3"
     rxjs: "npm:^7.8.2"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -5784,7 +5651,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@virgultum/block-note": "workspace:*"
     "@virgultum/block-surface": "workspace:*"
     "@virgultum/components": "workspace:*"
@@ -5799,7 +5666,7 @@ __metadata:
     file-type: "npm:22.1.1"
     lit: "npm:^3.3.3"
     rxjs: "npm:^7.8.2"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -5811,7 +5678,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/mdast": "npm:^4.0.4"
     "@virgultum/block-note": "workspace:*"
     "@virgultum/components": "workspace:*"
@@ -5828,7 +5695,7 @@ __metadata:
     lit: "npm:^3.3.3"
     remark-math: "npm:^6.0.0"
     rxjs: "npm:^7.8.2"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -5840,7 +5707,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/mdast": "npm:^4.0.4"
     "@virgultum/components": "workspace:*"
     "@virgultum/ext-loader": "workspace:*"
@@ -5855,7 +5722,7 @@ __metadata:
     lit: "npm:^3.3.3"
     rxjs: "npm:^7.8.2"
     vitest: "npm:4.1.11"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -5881,7 +5748,7 @@ __metadata:
     "@virgultum/widget-edgeless-toolbar": "workspace:*"
     "@virgultum/widget-slash-menu": "workspace:*"
     dayjs: "npm:^1.11.23"
-    dompurify: "npm:3.4.16"
+    dompurify: "npm:3.4.17"
     lit: "npm:^3.3.3"
     marked: "npm:^16.3.0"
     mermaid: "patch:mermaid@npm%3A11.17.2#~/.yarn/patches/mermaid-npm-11.17.2-97875ab19c.patch"
@@ -5897,7 +5764,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@types/mdast": "npm:^4.0.4"
     "@virgultum/block-embed": "workspace:*"
@@ -5917,7 +5784,7 @@ __metadata:
     lit: "npm:^3.3.3"
     lodash-es: "npm:4.18.1"
     rxjs: "npm:^7.8.2"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -5928,7 +5795,7 @@ __metadata:
     "@floating-ui/dom": "npm:^1.6.13"
     "@lit/context": "npm:^1.1.6"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/mdast": "npm:^4.0.4"
     "@virgultum/components": "workspace:*"
     "@virgultum/ext-loader": "workspace:*"
@@ -5942,7 +5809,7 @@ __metadata:
     "@virgultum/store": "workspace:*"
     lit: "npm:^3.3.3"
     rxjs: "npm:^7.8.2"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -5954,7 +5821,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/block-attachment": "workspace:*"
     "@virgultum/block-bookmark": "workspace:*"
@@ -5966,7 +5833,6 @@ __metadata:
     "@virgultum/block-paragraph": "workspace:*"
     "@virgultum/block-surface": "workspace:*"
     "@virgultum/components": "workspace:*"
-    "@virgultum/data-view": "workspace:*"
     "@virgultum/ext-loader": "workspace:*"
     "@virgultum/gfx-brush": "workspace:*"
     "@virgultum/gfx-connector": "workspace:*"
@@ -5984,13 +5850,13 @@ __metadata:
     "@virgultum/store": "workspace:*"
     "@virgultum/widget-edgeless-selected-rect": "workspace:*"
     "@virgultum/widget-edgeless-toolbar": "workspace:*"
-    dompurify: "npm:3.4.16"
+    dompurify: "npm:3.4.17"
     html2canvas: "npm:^1.4.1"
     lit: "npm:^3.3.3"
     lodash-es: "npm:4.18.1"
     rxjs: "npm:^7.8.2"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6002,7 +5868,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/block-frame": "workspace:*"
     "@virgultum/block-surface": "workspace:*"
@@ -6020,7 +5886,7 @@ __metadata:
     lodash-es: "npm:4.18.1"
     nanoid: "npm:6.0.1"
     rxjs: "npm:^7.8.2"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6030,7 +5896,7 @@ __metadata:
   dependencies:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/components": "workspace:*"
     "@virgultum/ext-loader": "workspace:*"
@@ -6048,7 +5914,7 @@ __metadata:
     rxjs: "npm:^7.8.2"
     vitest: "npm:4.1.11"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6060,9 +5926,8 @@ __metadata:
     "@floating-ui/dom": "npm:^1.6.13"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@virgultum/components": "workspace:*"
-    "@virgultum/data-view": "workspace:*"
     "@virgultum/ext-loader": "workspace:*"
     "@virgultum/global": "workspace:*"
     "@virgultum/inline-preset": "workspace:*"
@@ -6075,7 +5940,7 @@ __metadata:
     lit: "npm:^3.3.3"
     rxjs: "npm:^7.8.2"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6087,7 +5952,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@shikijs/core": "npm:3.23.0"
     "@shikijs/engine-oniguruma": "npm:3.23.0"
     "@shikijs/langs": "npm:3.23.0"
@@ -6112,32 +5977,7 @@ __metadata:
     rxjs: "npm:^7.8.2"
     vitest: "npm:4.1.11"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/data-view@workspace:*, @virgultum/data-view@workspace:virgultum/editor/data-view":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/data-view@workspace:virgultum/editor/data-view"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    dayjs: "npm:^1.11.23"
-    lit: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-    vitest: "npm:4.1.11"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6151,7 +5991,6 @@ __metadata:
     "@virgultum/block-bpmn": "workspace:*"
     "@virgultum/block-callout": "workspace:*"
     "@virgultum/block-code": "workspace:*"
-    "@virgultum/block-data-view": "workspace:*"
     "@virgultum/block-database": "workspace:*"
     "@virgultum/block-divider": "workspace:*"
     "@virgultum/block-edgeless-text": "workspace:*"
@@ -6170,7 +6009,6 @@ __metadata:
     "@virgultum/block-surface-ref": "workspace:*"
     "@virgultum/block-table": "workspace:*"
     "@virgultum/components": "workspace:*"
-    "@virgultum/data-view": "workspace:*"
     "@virgultum/ext-loader": "workspace:*"
     "@virgultum/foundation": "workspace:*"
     "@virgultum/fragment-doc-title": "workspace:*"
@@ -6217,7 +6055,7 @@ __metadata:
     "@virgultum/widget-toolbar": "workspace:*"
     "@virgultum/widget-viewport-overlay": "workspace:*"
     rxjs: "npm:^7.8.2"
-    vite: "npm:8.3.1"
+    vite: "npm:8.3.6"
     vitest: "npm:4.1.11"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
   languageName: unknown
@@ -6230,7 +6068,7 @@ __metadata:
     "@virgultum/global": "workspace:*"
     "@virgultum/store": "workspace:*"
     vitest: "npm:4.1.11"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6242,10 +6080,9 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/components": "workspace:*"
-    "@virgultum/data-view": "workspace:*"
     "@virgultum/ext-loader": "workspace:*"
     "@virgultum/global": "workspace:*"
     "@virgultum/rich-text": "workspace:*"
@@ -6256,7 +6093,7 @@ __metadata:
     lodash-es: "npm:4.18.1"
     rxjs: "npm:^7.8.2"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6268,7 +6105,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@virgultum/block-frame": "workspace:*"
     "@virgultum/block-surface": "workspace:*"
     "@virgultum/components": "workspace:*"
@@ -6281,7 +6118,7 @@ __metadata:
     "@virgultum/store": "workspace:*"
     lit: "npm:^3.3.3"
     rxjs: "npm:^7.8.2"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6293,7 +6130,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/block-frame": "workspace:*"
     "@virgultum/block-surface": "workspace:*"
@@ -6308,7 +6145,7 @@ __metadata:
     lit: "npm:^3.3.3"
     lodash-es: "npm:4.18.1"
     rxjs: "npm:^7.8.2"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6320,7 +6157,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@virgultum/block-note": "workspace:*"
     "@virgultum/components": "workspace:*"
     "@virgultum/ext-loader": "workspace:*"
@@ -6333,7 +6170,7 @@ __metadata:
     "@virgultum/store": "workspace:*"
     lit: "npm:^3.3.3"
     rxjs: "npm:^7.8.2"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6344,7 +6181,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/block-surface": "workspace:*"
     "@virgultum/components": "workspace:*"
@@ -6360,7 +6197,7 @@ __metadata:
     lodash-es: "npm:4.18.1"
     rxjs: "npm:^7.8.2"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6371,7 +6208,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/block-surface": "workspace:*"
     "@virgultum/components": "workspace:*"
@@ -6388,7 +6225,7 @@ __metadata:
     lodash-es: "npm:4.18.1"
     rxjs: "npm:^7.8.2"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6399,7 +6236,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/block-surface": "workspace:*"
     "@virgultum/components": "workspace:*"
@@ -6418,7 +6255,7 @@ __metadata:
     rxjs: "npm:^7.8.2"
     vitest: "npm:4.1.11"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6429,7 +6266,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/block-bookmark": "workspace:*"
     "@virgultum/block-embed": "workspace:*"
@@ -6448,7 +6285,7 @@ __metadata:
     lodash-es: "npm:4.18.1"
     rxjs: "npm:^7.8.2"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6459,7 +6296,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/block-attachment": "workspace:*"
     "@virgultum/block-bookmark": "workspace:*"
@@ -6478,7 +6315,7 @@ __metadata:
     lodash-es: "npm:4.18.1"
     rxjs: "npm:^7.8.2"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6489,7 +6326,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/block-surface": "workspace:*"
     "@virgultum/components": "workspace:*"
@@ -6506,7 +6343,7 @@ __metadata:
     rxjs: "npm:^7.8.2"
     vitest: "npm:4.1.11"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6517,7 +6354,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/block-surface": "workspace:*"
     "@virgultum/components": "workspace:*"
@@ -6534,7 +6371,7 @@ __metadata:
     lodash-es: "npm:4.18.1"
     rxjs: "npm:^7.8.2"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6546,7 +6383,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/block-surface": "workspace:*"
     "@virgultum/components": "workspace:*"
@@ -6563,7 +6400,7 @@ __metadata:
     lodash-es: "npm:4.18.1"
     rxjs: "npm:^7.8.2"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6574,7 +6411,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/block-surface": "workspace:*"
     "@virgultum/components": "workspace:*"
@@ -6590,7 +6427,7 @@ __metadata:
     lodash-es: "npm:4.18.1"
     rxjs: "npm:^7.8.2"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6609,12 +6446,12 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@virgultum/global@workspace:virgultum/framework/global"
   dependencies:
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     lib0: "npm:^0.2.119"
     lit: "npm:^3.3.3"
     rxjs: "npm:^7.8.2"
     vitest: "npm:4.1.11"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6643,7 +6480,7 @@ __metadata:
   dependencies:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/ext-loader": "workspace:*"
     "@virgultum/global": "workspace:*"
@@ -6658,7 +6495,7 @@ __metadata:
     rxjs: "npm:^7.8.2"
     vitest: "npm:4.1.11"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6670,7 +6507,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/components": "workspace:*"
     "@virgultum/ext-loader": "workspace:*"
@@ -6687,7 +6524,7 @@ __metadata:
     rxjs: "npm:^7.8.2"
     vitest: "npm:4.1.11"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6699,7 +6536,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/hast": "npm:^3.0.4"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/components": "workspace:*"
@@ -6719,7 +6556,7 @@ __metadata:
     remark-math: "npm:^6.0.0"
     rxjs: "npm:^7.8.2"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6731,7 +6568,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/components": "workspace:*"
     "@virgultum/ext-loader": "workspace:*"
@@ -6747,7 +6584,7 @@ __metadata:
     lodash-es: "npm:4.18.1"
     rxjs: "npm:^7.8.2"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6759,7 +6596,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/components": "workspace:*"
     "@virgultum/ext-loader": "workspace:*"
@@ -6774,7 +6611,7 @@ __metadata:
     lodash-es: "npm:4.18.1"
     rxjs: "npm:^7.8.2"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6786,7 +6623,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/hast": "npm:^3.0.4"
     "@types/lodash-es": "npm:^4.17.12"
     "@types/mdast": "npm:^4.0.4"
@@ -6813,7 +6650,7 @@ __metadata:
     remark-math: "npm:^6.0.0"
     rxjs: "npm:^7.8.2"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6825,7 +6662,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/components": "workspace:*"
     "@virgultum/ext-loader": "workspace:*"
@@ -6840,7 +6677,7 @@ __metadata:
     lodash-es: "npm:4.18.1"
     rxjs: "npm:^7.8.2"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6850,6 +6687,7 @@ __metadata:
   dependencies:
     "@floating-ui/dom": "npm:^1.6.13"
     "@lit/context": "npm:^1.1.6"
+    "@myoxus/bpmn-editor": "workspace:*"
     "@myoxus/core": "workspace:*"
     "@myoxus/env": "workspace:*"
     "@myoxus/i18n": "workspace:*"
@@ -6857,17 +6695,17 @@ __metadata:
     "@myoxus/lit-react": "workspace:*"
     "@myoxus/theme": "workspace:*"
     "@myoxus/ui-facade": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@virgultum/editor": "workspace:*"
     lit: "npm:^3.3.3"
     react: "npm:19.3.0"
     react-dom: "npm:19.3.0"
     rxjs: "npm:^7.8.2"
-    vite: "npm:8.3.1"
+    vite: "npm:8.3.6"
     vite-plugin-wasm: "npm:3.6.0"
     vitest: "npm:4.1.11"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6884,7 +6722,7 @@ __metadata:
     lodash-es: "npm:4.18.1"
     rxjs: "npm:^7.8.2"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6896,7 +6734,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/components": "workspace:*"
     "@virgultum/global": "workspace:*"
@@ -6910,7 +6748,7 @@ __metadata:
     lodash-es: "npm:4.18.1"
     rxjs: "npm:^7.8.2"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6922,7 +6760,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/hast": "npm:^3.0.4"
     "@types/lodash-es": "npm:^4.17.12"
     "@types/mdast": "npm:^4.0.4"
@@ -6930,7 +6768,7 @@ __metadata:
     "@virgultum/model": "workspace:*"
     "@virgultum/std": "workspace:*"
     "@virgultum/store": "workspace:*"
-    dompurify: "npm:3.4.16"
+    dompurify: "npm:3.4.17"
     fractional-indexing: "npm:^3.2.0"
     lit: "npm:^3.3.3"
     lodash-es: "npm:4.18.1"
@@ -6958,7 +6796,7 @@ __metadata:
     unist-util-visit: "npm:^5.0.0"
     vitest: "npm:4.1.11"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6970,12 +6808,12 @@ __metadata:
     "@atlaskit/pragmatic-drag-and-drop-auto-scroll": "npm:^2.1.2"
     "@atlaskit/pragmatic-drag-and-drop-hitbox": "npm:^1.1.0"
     "@lit/context": "npm:^1.1.6"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/hast": "npm:^3.0.4"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/global": "workspace:*"
     "@virgultum/store": "workspace:*"
-    dompurify: "npm:3.4.16"
+    dompurify: "npm:3.4.17"
     fractional-indexing: "npm:^3.2.0"
     lib0: "npm:^0.2.119"
     lit: "npm:^3.3.3"
@@ -6987,7 +6825,7 @@ __metadata:
     vitest: "npm:4.1.11"
     w3c-keyname: "npm:^2.2.8"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6995,7 +6833,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@virgultum/store@workspace:virgultum/framework/store"
   dependencies:
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/global": "workspace:*"
     "@virgultum/sync": "workspace:*"
@@ -7008,7 +6846,7 @@ __metadata:
     vitest: "npm:4.1.11"
     y-protocols: "npm:^1.0.7"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -7036,7 +6874,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/block-callout": "workspace:*"
     "@virgultum/block-embed": "workspace:*"
@@ -7054,7 +6892,7 @@ __metadata:
     lit: "npm:^3.3.3"
     lodash-es: "npm:4.18.1"
     rxjs: "npm:^7.8.2"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -7064,7 +6902,7 @@ __metadata:
   dependencies:
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@virgultum/block-note": "workspace:*"
     "@virgultum/block-surface": "workspace:*"
     "@virgultum/components": "workspace:*"
@@ -7085,7 +6923,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@virgultum/block-note": "workspace:*"
     "@virgultum/block-surface": "workspace:*"
     "@virgultum/components": "workspace:*"
@@ -7107,7 +6945,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@virgultum/block-frame": "workspace:*"
     "@virgultum/block-note": "workspace:*"
     "@virgultum/block-surface": "workspace:*"
@@ -7134,7 +6972,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/block-surface": "workspace:*"
     "@virgultum/components": "workspace:*"
@@ -7154,7 +6992,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@virgultum/widget-edgeless-zoom-toolbar@workspace:virgultum/editor/widgets/edgeless-zoom-toolbar"
   dependencies:
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@virgultum/block-surface": "workspace:*"
     "@virgultum/ext-loader": "workspace:*"
     "@virgultum/global": "workspace:*"
@@ -7171,7 +7009,7 @@ __metadata:
   dependencies:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@virgultum/block-surface": "workspace:*"
     "@virgultum/components": "workspace:*"
     "@virgultum/ext-loader": "workspace:*"
@@ -7192,7 +7030,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/block-attachment": "workspace:*"
     "@virgultum/block-embed": "workspace:*"
@@ -7205,7 +7043,6 @@ __metadata:
     "@virgultum/block-surface-ref": "workspace:*"
     "@virgultum/block-table": "workspace:*"
     "@virgultum/components": "workspace:*"
-    "@virgultum/data-view": "workspace:*"
     "@virgultum/ext-loader": "workspace:*"
     "@virgultum/fragment-doc-title": "workspace:*"
     "@virgultum/global": "workspace:*"
@@ -7229,11 +7066,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@virgultum/widget-linked-doc@workspace:virgultum/editor/widgets/linked-doc"
   dependencies:
-    "@lit/context": "npm:^1.1.6"
+    "@floating-ui/dom": "npm:^1.6.13"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
-    "@types/lodash-es": "npm:^4.17.12"
+    "@preact/signals-core": "npm:^1.14.5"
     "@virgultum/block-image": "workspace:*"
     "@virgultum/components": "workspace:*"
     "@virgultum/ext-loader": "workspace:*"
@@ -7246,12 +7082,11 @@ __metadata:
     "@virgultum/store": "workspace:*"
     "@zip.js/zip.js": "npm:2.24.0"
     lit: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
     rxjs: "npm:^7.8.2"
     typescript: "npm:7.0.2"
     vitest: "npm:4.1.11"
     yaml: "npm:2.9.1"
-    zod: "npm:^3.25.76"
+    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -7262,7 +7097,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@virgultum/block-note": "workspace:*"
     "@virgultum/block-surface": "workspace:*"
     "@virgultum/components": "workspace:*"
@@ -7285,7 +7120,7 @@ __metadata:
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/components": "workspace:*"
     "@virgultum/ext-loader": "workspace:*"
@@ -7307,7 +7142,7 @@ __metadata:
   dependencies:
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/block-surface": "workspace:*"
     "@virgultum/components": "workspace:*"
@@ -7316,6 +7151,7 @@ __metadata:
     "@virgultum/model": "workspace:*"
     "@virgultum/shared": "workspace:*"
     "@virgultum/std": "workspace:*"
+    "@virgultum/store": "workspace:*"
     lit: "npm:^3.3.3"
     lodash-es: "npm:4.18.1"
     rxjs: "npm:^7.8.2"
@@ -7327,7 +7163,7 @@ __metadata:
   resolution: "@virgultum/widget-scroll-anchoring@workspace:virgultum/editor/widgets/scroll-anchoring"
   dependencies:
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@virgultum/ext-loader": "workspace:*"
     "@virgultum/global": "workspace:*"
     "@virgultum/model": "workspace:*"
@@ -7343,7 +7179,7 @@ __metadata:
   resolution: "@virgultum/widget-slash-menu@workspace:virgultum/editor/widgets/slash-menu"
   dependencies:
     "@myoxus/icons": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@virgultum/ext-loader": "workspace:*"
     "@virgultum/global": "workspace:*"
     "@virgultum/rich-text": "workspace:*"
@@ -7361,9 +7197,8 @@ __metadata:
     "@floating-ui/dom": "npm:^1.6.13"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/block-data-view": "workspace:*"
     "@virgultum/block-surface": "workspace:*"
     "@virgultum/block-table": "workspace:*"
     "@virgultum/components": "workspace:*"
@@ -7385,7 +7220,7 @@ __metadata:
     "@floating-ui/dom": "npm:^1.6.13"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.8.0"
+    "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/components": "workspace:*"
     "@virgultum/ext-loader": "workspace:*"
@@ -7770,15 +7605,6 @@ __metadata:
   version: 4.0.0
   resolution: "before-after-hook@npm:4.0.0"
   checksum: 10/9fd52bc0c3cca0fb115e04dacbeeaacff38fa23e1af725d62392254c31ef433b15da60efcba61552e44d64e26f25ea259f72dba005115924389e88d2fd56e19f
-  languageName: node
-  linkType: hard
-
-"bidi-js@npm:^1.1.0":
-  version: 1.1.0
-  resolution: "bidi-js@npm:1.1.0"
-  dependencies:
-    require-from-string: "npm:^2.0.2"
-  checksum: 10/e370f6a0c83c509fab7006958a1ea00e681123fe63b3c7cf0bc6e65e0b9b2818ef42ee642e4828035582356d1b7e98ef1585cb6aa2b75be153213106232c0873
   languageName: node
   linkType: hard
 
@@ -8168,16 +7994,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"css-tree@npm:^3.2.1":
-  version: 3.2.1
-  resolution: "css-tree@npm:3.2.1"
-  dependencies:
-    mdn-data: "npm:2.27.1"
-    source-map-js: "npm:^1.2.1"
-  checksum: 10/9945b387bdec756738c34d64b8287f05ca6645f51d1c8abaaa5822ec3e74533604103aaad164b8100afd8495e92120be7c1c6afbe5be89f867acc5b456ddd79c
-  languageName: node
-  linkType: hard
-
 "csstype@npm:^3.0.2, csstype@npm:^3.2.2":
   version: 3.2.3
   resolution: "csstype@npm:3.2.3"
@@ -8552,16 +8368,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"data-urls@npm:^8.0.0":
-  version: 8.0.0
-  resolution: "data-urls@npm:8.0.0"
-  dependencies:
-    whatwg-mimetype: "npm:^5.0.0"
-    whatwg-url: "npm:^17.1.2"
-  checksum: 10/c3ff7e719fa218546bac31b06540369f2205d9406dd9c77d36b77c696b8f6ab8762b92118beab91cf66929df50e587255405f92efd61c18137e931381c44ea97
-  languageName: node
-  linkType: hard
-
 "dayjs@npm:^1.11.21, dayjs@npm:^1.11.23":
   version: 1.11.23
   resolution: "dayjs@npm:1.11.23"
@@ -8585,13 +8391,6 @@ __metadata:
   version: 2.5.1
   resolution: "decimal.js-light@npm:2.5.1"
   checksum: 10/6360911e31221a9b8b90e23020aa969d104e182c5c6518589cdfedc3ced31bf1f19cf931e265bd451ae6ee3a35ee15e81f5456a86813606fda96f8374616688f
-  languageName: node
-  linkType: hard
-
-"decimal.js@npm:^10.6.0":
-  version: 10.6.0
-  resolution: "decimal.js@npm:10.6.0"
-  checksum: 10/c0d45842d47c311d11b38ce7ccc911121953d4df3ebb1465d92b31970eb4f6738a065426a06094af59bee4b0d64e42e7c8984abd57b6767c64ea90cf90bb4a69
   languageName: node
   linkType: hard
 
@@ -8683,15 +8482,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dompurify@npm:3.4.16":
-  version: 3.4.16
-  resolution: "dompurify@npm:3.4.16"
+"dompurify@npm:3.4.17":
+  version: 3.4.17
+  resolution: "dompurify@npm:3.4.17"
   dependencies:
     "@types/trusted-types": "npm:^2.0.7"
   dependenciesMeta:
     "@types/trusted-types":
       optional: true
-  checksum: 10/a571d0e2bede4f739666afd640398a86854abd27c71ce0724910249e2fd2ca7ddb8098a9ab579d3a5b39058419af694421f8fe859a81fd6d8acda16019a8ab9d
+  checksum: 10/ae03c068bd351d1201a24a9667cb302c65939f45a0c357edec8b84133108e19ac74f355c2d8b0f30baadadd7f0be2db300d269aa80d3ee15872712ca9ff4e1a8
   languageName: node
   linkType: hard
 
@@ -8716,9 +8515,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"electron-updater@file:./.yarn/vendor/electron-updater::locator=%40myoxus%2Fmonorepo%40workspace%3A.":
+"electron-updater@file:./.yarn/vendor/electron-updater.tgz::locator=%40myoxus%2Fmonorepo%40workspace%3A.":
   version: 6.8.9
-  resolution: "electron-updater@file:./.yarn/vendor/electron-updater#./.yarn/vendor/electron-updater::hash=7d48bf&locator=%40myoxus%2Fmonorepo%40workspace%3A."
+  resolution: "electron-updater@file:./.yarn/vendor/electron-updater.tgz#./.yarn/vendor/electron-updater.tgz::hash=c0af3c&locator=%40myoxus%2Fmonorepo%40workspace%3A."
   dependencies:
     builder-util-runtime: "npm:9.7.0"
     fs-extra: "npm:^10.1.0"
@@ -8731,9 +8530,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"electron@npm:44.5.0":
-  version: 44.5.0
-  resolution: "electron@npm:44.5.0"
+"electron@npm:44.10.2":
+  version: 44.10.2
+  resolution: "electron@npm:44.10.2"
   dependencies:
     "@electron-internal/extract-zip": "npm:^1.0.1"
     "@electron/get": "npm:^5.0.0"
@@ -8741,7 +8540,7 @@ __metadata:
   bin:
     electron: cli.js
     install-electron: install.js
-  checksum: 10/c66b3f9724b5a76b1ba5b2c26ddd1f3a26e6f724974d44dbe66a880c7b15ede4aadad813b0838a95f42bde46277e09d3c8a33c460757c3e7ec6b6ee5491726d5
+  checksum: 10/4c099a01a5fc52eca39fabfef58a77e14224217a965f0367f5df4145802ef4432af8ee177fec80fd7a7832ca831c2bec37d9ddaab33fe14029df436b984786da
   languageName: node
   linkType: hard
 
@@ -8804,13 +8603,6 @@ __metadata:
   version: 7.0.1
   resolution: "entities@npm:7.0.1"
   checksum: 10/3c0c58d869c45148463e96d21dee2d1b801bd3fe4cf47aa470cd26dfe81d59e9e0a9be92ae083fa02fa441283c883a471486e94538dcfb8544428aa80a55271b
-  languageName: node
-  linkType: hard
-
-"entities@npm:^8.0.0":
-  version: 8.1.0
-  resolution: "entities@npm:8.1.0"
-  checksum: 10/bd2fadbcabcf2cbd5de6b8155289acec9394d004fc095b9c7b3fdb4135468d8823a6de12275b07085e5dc077a142ede24e71098ffeb064000312d2a6960330a2
   languageName: node
   linkType: hard
 
@@ -9266,9 +9058,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"happy-dom@npm:20.11.1":
-  version: 20.11.1
-  resolution: "happy-dom@npm:20.11.1"
+"happy-dom@npm:21.0.4":
+  version: 21.0.4
+  resolution: "happy-dom@npm:21.0.4"
   dependencies:
     "@types/node": "npm:>=20.0.0"
     "@types/whatwg-mimetype": "npm:^3.0.2"
@@ -9277,7 +9069,7 @@ __metadata:
     entities: "npm:^7.0.1"
     whatwg-mimetype: "npm:^3.0.0"
     ws: "npm:^8.21.0"
-  checksum: 10/a07d892f1fefe843cf3fcb0ed4ecb782fd1014c1ac27048f27f874f5d6b91ec0c25a777532145d0c041f524fd851d8ce5bf9779fc6f1ba0fed8b67d7ab96095f
+  checksum: 10/708a07432283cab0a29a10571b06cf27c0e30a933bf5f7fe948e18f78ce3875127b09fbed9aa7c6c5d23b06f4dad824eb73bc7a0cbe356febf5f66efb36aabce
   languageName: node
   linkType: hard
 
@@ -9391,15 +9183,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"html-encoding-sniffer@npm:^7.0.0":
-  version: 7.0.0
-  resolution: "html-encoding-sniffer@npm:7.0.0"
-  dependencies:
-    "@exodus/bytes": "npm:^1.15.1"
-  checksum: 10/03681bc40d5e22c8380bee314e899ceedd6d9900b62a592a0d33fab8303646c32f3efcf857fca3d39e40d6561f3efa178bdf1decf750ac4247b34cd6f592cc54
-  languageName: node
-  linkType: hard
-
 "html-escaper@npm:^2.0.0":
   version: 2.0.2
   resolution: "html-escaper@npm:2.0.2"
@@ -9407,12 +9190,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"html-parse-stringify@npm:^3.0.1":
-  version: 3.0.1
-  resolution: "html-parse-stringify@npm:3.0.1"
-  dependencies:
-    void-elements: "npm:3.1.0"
-  checksum: 10/8743b76cc50e46d1956c1ad879d18eb9613b0d2d81e24686d633f9f69bb26b84676f64a926973de793cca479997017a63219278476d617b6c42d68246d7c07fe
+"html-parse-stringify@npm:^4.0.1":
+  version: 4.0.1
+  resolution: "html-parse-stringify@npm:4.0.1"
+  checksum: 10/c30ce1fbc81c32c87808d8a527519a7524c73499b223cf2002e9fddd49ecf98626ee8c13bb011a3cc283803831d67fdb75ae9f566666d05c915e460d5b5016cc
   languageName: node
   linkType: hard
 
@@ -9452,17 +9233,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"i18next@npm:^25.0.0":
-  version: 25.2.0
-  resolution: "i18next@npm:25.2.0"
-  dependencies:
-    "@babel/runtime": "npm:^7.27.1"
+"i18next@npm:^26.7.2":
+  version: 26.7.2
+  resolution: "i18next@npm:26.7.2"
   peerDependencies:
-    typescript: ^5
+    typescript: ^5 || ^6 || ^7
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10/76961aadcafe301c475e801df914827ea7470987f9b7cf552596bab60117165efaaffcbb69d937af943db5e4eb46cb7798f79042b657ade10dc8983f63c28753
+  checksum: 10/43bc0c79b4590108c81887dcf0cf583107bf6052fb7d658281fdabb5a8e7304a1869031acab7dd3cfeb267bb445dfa6f967643a39098666fcfdfcb1d9a494b82
   languageName: node
   linkType: hard
 
@@ -9601,13 +9380,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"is-potential-custom-element-name@npm:^1.0.1":
-  version: 1.0.1
-  resolution: "is-potential-custom-element-name@npm:1.0.1"
-  checksum: 10/ced7bbbb6433a5b684af581872afe0e1767e2d1146b2207ca0068a648fb5cab9d898495d1ac0583524faaf24ca98176a7d9876363097c2d14fee6dd324f3a1ab
-  languageName: node
-  linkType: hard
-
 "is-relative@npm:^1.0.0":
   version: 1.0.0
   resolution: "is-relative@npm:1.0.0"
@@ -9737,39 +9509,6 @@ __metadata:
   bin:
     js-yaml: bin/js-yaml.js
   checksum: 10/05c44b9c73e4901d92703b155e76518df64bf01ac62e4c036b47de4b391e19b72e32656e8954d51b436307f08cc9d0c0d4ec617d061cf2f65fffee9f3114bee7
-  languageName: node
-  linkType: hard
-
-"jsdom@npm:^30.1.3":
-  version: 30.1.3
-  resolution: "jsdom@npm:30.1.3"
-  dependencies:
-    "@asamuzakjp/css-color": "npm:^7.1.3"
-    "@asamuzakjp/dom-selector": "npm:^10.0.3"
-    "@bramus/specificity": "npm:^2.4.2"
-    "@csstools/css-syntax-patches-for-csstree": "npm:^1.1.15"
-    "@exodus/bytes": "npm:^1.16.0"
-    css-tree: "npm:^3.2.1"
-    data-urls: "npm:^8.0.0"
-    decimal.js: "npm:^10.6.0"
-    html-encoding-sniffer: "npm:^7.0.0"
-    is-potential-custom-element-name: "npm:^1.0.1"
-    lru-cache: "npm:^11.5.3"
-    parse5: "npm:^8.0.1"
-    saxes: "npm:^6.0.0"
-    tough-cookie: "npm:^6.0.2"
-    undici: "npm:^8.12.1"
-    w3c-xmlserializer: "npm:^6.0.0"
-    webidl-conversions: "npm:^8.0.1"
-    whatwg-mimetype: "npm:^5.0.0"
-    whatwg-url: "npm:^17.2.0"
-    xml-name-validator: "npm:^5.0.0"
-  peerDependencies:
-    canvas: ^3.2.3
-  peerDependenciesMeta:
-    canvas:
-      optional: true
-  checksum: 10/7721063de9bffdf1b721c6bffc70ce83e77c50c145322d788d26bea84f7ef1f355f29a92d43cec935a79406d82507bddab64b5dc94d248e7f98a2cf8059232cd
   languageName: node
   linkType: hard
 
@@ -10114,13 +9853,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lru-cache@npm:^11.5.3":
-  version: 11.5.3
-  resolution: "lru-cache@npm:11.5.3"
-  checksum: 10/824394f43827de37e961e9e344d4f0d2afb0347106ddafae620d0035c36337bc64e64cddbc17f6c630a73c9db34cf3f81211e3d43699a32e9f3641f391415b82
-  languageName: node
-  linkType: hard
-
 "lru-cache@npm:^5.1.1":
   version: 5.1.1
   resolution: "lru-cache@npm:5.1.1"
@@ -10352,13 +10084,6 @@ __metadata:
   dependencies:
     "@types/mdast": "npm:^4.0.0"
   checksum: 10/f4a5dbb9ea03521d7d3e26a9ba5652a1d6fbd55706dddd2155427517085688830e0ecd3f12418cfd40892640886eb39a4034c3c967d85e01e2fa64cfb53cff05
-  languageName: node
-  linkType: hard
-
-"mdn-data@npm:2.27.1":
-  version: 2.27.1
-  resolution: "mdn-data@npm:2.27.1"
-  checksum: 10/5046dc83a961b8ea82a5d6d8331d07df6b15faec61519ce2f83e49766702358e7e6af96413be977ff89080534be6762c1d5963b5dd1180c208a47c0a663226b2
   languageName: node
   linkType: hard
 
@@ -10838,6 +10563,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"nanoid@npm:^3.3.20":
+  version: 3.3.20
+  resolution: "nanoid@npm:3.3.20"
+  bin:
+    nanoid: bin/nanoid.cjs
+  checksum: 10/b19641487fc25325189175226a4b9fcc8da39989c6a39fd35921802158d6b1725d59d8454a4e30643d2bb4837382cac11ee129417282678a67f8394b31c228d9
+  languageName: node
+  linkType: hard
+
 "native-run@npm:^2.0.3":
   version: 2.0.3
   resolution: "native-run@npm:2.0.3"
@@ -11097,15 +10831,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"parse5@npm:^8.0.1":
-  version: 8.0.1
-  resolution: "parse5@npm:8.0.1"
-  dependencies:
-    entities: "npm:^8.0.0"
-  checksum: 10/671dedfe7cbf4714414317bc8c6b2a14c61ef44f8fd90c983b5b1870653af5aa2e3b4e25e38e9538a7120ea2b688c50908830da2bd0930d8fd4bce34aed024eb
-  languageName: node
-  linkType: hard
-
 "path-data-parser@npm:0.1.0, path-data-parser@npm:^0.1.0":
   version: 0.1.0
   resolution: "path-data-parser@npm:0.1.0"
@@ -11255,7 +10980,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"postcss@npm:^8.4.49, postcss@npm:^8.5.28":
+"postcss@npm:^8.4.49":
   version: 8.5.28
   resolution: "postcss@npm:8.5.28"
   dependencies:
@@ -11263,6 +10988,17 @@ __metadata:
     picocolors: "npm:^1.1.1"
     source-map-js: "npm:^1.2.1"
   checksum: 10/c34814c1da499f370cd3b02a085a2d866989a966629b7bd4025f4a2a10d538a2ec83dc3181e1008550edb4cf44e49a0c40ec82332b08d9600877e6841240ad05
+  languageName: node
+  linkType: hard
+
+"postcss@npm:^8.5.32":
+  version: 8.5.32
+  resolution: "postcss@npm:8.5.32"
+  dependencies:
+    nanoid: "npm:^3.3.20"
+    picocolors: "npm:^1.1.1"
+    source-map-js: "npm:^1.2.2"
+  checksum: 10/c86fd279d9f29d34bbec6482e01f54effe00eaf8f4dadbe17f8345d11eac68439da45d642b04bfb5d704886f665d2c31f9a0904f2a3f1b9f8098ee0894f76cea
   languageName: node
   linkType: hard
 
@@ -11495,13 +11231,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"punycode@npm:^2.3.1":
-  version: 2.3.1
-  resolution: "punycode@npm:2.3.1"
-  checksum: 10/febdc4362bead22f9e2608ff0171713230b57aff9dddc1c273aa2a651fbd366f94b7d6a71d78342a7c0819906750351ca7f2edd26ea41b626d87d6a13d1bd059
-  languageName: node
-  linkType: hard
-
 "raf-schd@npm:^4.0.3":
   version: 4.0.3
   resolution: "raf-schd@npm:4.0.3"
@@ -11531,16 +11260,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-i18next@npm:^15.2.0":
-  version: 15.5.1
-  resolution: "react-i18next@npm:15.5.1"
+"react-i18next@npm:^17.1.13":
+  version: 17.1.13
+  resolution: "react-i18next@npm:17.1.13"
   dependencies:
-    "@babel/runtime": "npm:^7.25.0"
-    html-parse-stringify: "npm:^3.0.1"
+    "@babel/runtime": "npm:^7.29.7"
+    html-parse-stringify: "npm:^4.0.1"
+    use-sync-external-store: "npm:^1.6.0"
   peerDependencies:
-    i18next: ">= 23.2.3"
+    i18next: ">= 26.2.0"
     react: ">= 16.8.0"
-    typescript: ^5
+    typescript: ^5 || ^6 || ^7
   peerDependenciesMeta:
     react-dom:
       optional: true
@@ -11548,7 +11278,7 @@ __metadata:
       optional: true
     typescript:
       optional: true
-  checksum: 10/19b9ecb1df2eb611c79a27c0f0e9ba7b93933ff7f3c2413507df5f514057b1f860df676157a3eafd5bd76726eb820c1f2ddb8f6be42c39152f2d585864344f01
+  checksum: 10/335ed1351bb01b12b70e9d85c56a6b05ae236ee2813b3062b64f2e7c36c80fc2d304002d642174bc3295de4d3391160a2f8c2c23b356f4f26104cc684b4bac41
   languageName: node
   linkType: hard
 
@@ -11684,13 +11414,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-virtuoso@npm:^4.12.3":
-  version: 4.12.7
-  resolution: "react-virtuoso@npm:4.12.7"
+"react-virtuoso@npm:4.18.20":
+  version: 4.18.20
+  resolution: "react-virtuoso@npm:4.18.20"
   peerDependencies:
     react: ">=16 || >=17 || >= 18 || >= 19"
     react-dom: ">=16 || >=17 || >= 18 || >=19"
-  checksum: 10/9c6eeaa351d2ec2b489764065d47a0cc92867ed77f354c9364cabcb74001b13528fdf5dd4efa41ef94157cc8a13b924ed04d2626b90e819dbd3301e65758faee
+  checksum: 10/71fcf9619b61051ebb70441a58e4aa5791ba83a9109037c60a87ad3492f2d9b493ae99761175ae8331945b72e2639fcbd53ea56eda9e4a7479bb7364963c07a2
   languageName: node
   linkType: hard
 
@@ -11808,13 +11538,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"require-from-string@npm:^2.0.2":
-  version: 2.0.2
-  resolution: "require-from-string@npm:2.0.2"
-  checksum: 10/839a3a890102a658f4cb3e7b2aa13a1f80a3a976b512020c3d1efc418491c48a886b6e481ea56afc6c4cb5eef678f23b2a4e70575e7534eccadf5e30ed2e56eb
-  languageName: node
-  linkType: hard
-
 "require-in-the-middle@npm:^8.0.0":
   version: 8.0.1
   resolution: "require-in-the-middle@npm:8.0.1"
@@ -11867,26 +11590,26 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rolldown@npm:~1.2.9":
-  version: 1.2.11
-  resolution: "rolldown@npm:1.2.11"
+"rolldown@npm:~1.2.16":
+  version: 1.2.16
+  resolution: "rolldown@npm:1.2.16"
   dependencies:
-    "@oxc-project/types": "npm:=0.151.0"
-    "@rolldown/binding-android-arm-eabi": "npm:1.2.11"
-    "@rolldown/binding-android-arm64": "npm:1.2.11"
-    "@rolldown/binding-darwin-arm64": "npm:1.2.11"
-    "@rolldown/binding-darwin-x64": "npm:1.2.11"
-    "@rolldown/binding-freebsd-x64": "npm:1.2.11"
-    "@rolldown/binding-linux-arm-gnueabihf": "npm:1.2.11"
-    "@rolldown/binding-linux-arm64-gnu": "npm:1.2.11"
-    "@rolldown/binding-linux-arm64-musl": "npm:1.2.11"
-    "@rolldown/binding-linux-ppc64-gnu": "npm:1.2.11"
-    "@rolldown/binding-linux-s390x-gnu": "npm:1.2.11"
-    "@rolldown/binding-linux-x64-gnu": "npm:1.2.11"
-    "@rolldown/binding-linux-x64-musl": "npm:1.2.11"
-    "@rolldown/binding-openharmony-arm64": "npm:1.2.11"
-    "@rolldown/binding-win32-arm64-msvc": "npm:1.2.11"
-    "@rolldown/binding-win32-x64-msvc": "npm:1.2.11"
+    "@oxc-project/types": "npm:=0.156.0"
+    "@rolldown/binding-android-arm-eabi": "npm:1.2.16"
+    "@rolldown/binding-android-arm64": "npm:1.2.16"
+    "@rolldown/binding-darwin-arm64": "npm:1.2.16"
+    "@rolldown/binding-darwin-x64": "npm:1.2.16"
+    "@rolldown/binding-freebsd-x64": "npm:1.2.16"
+    "@rolldown/binding-linux-arm-gnueabihf": "npm:1.2.16"
+    "@rolldown/binding-linux-arm64-gnu": "npm:1.2.16"
+    "@rolldown/binding-linux-arm64-musl": "npm:1.2.16"
+    "@rolldown/binding-linux-ppc64-gnu": "npm:1.2.16"
+    "@rolldown/binding-linux-s390x-gnu": "npm:1.2.16"
+    "@rolldown/binding-linux-x64-gnu": "npm:1.2.16"
+    "@rolldown/binding-linux-x64-musl": "npm:1.2.16"
+    "@rolldown/binding-openharmony-arm64": "npm:1.2.16"
+    "@rolldown/binding-win32-arm64-msvc": "npm:1.2.16"
+    "@rolldown/binding-win32-x64-msvc": "npm:1.2.16"
     "@rolldown/pluginutils": "npm:^1.0.0"
   dependenciesMeta:
     "@rolldown/binding-android-arm-eabi":
@@ -11921,7 +11644,7 @@ __metadata:
       optional: true
   bin:
     rolldown: ./bin/cli.mjs
-  checksum: 10/7e1acfa303cbf97980e9865b77843ab7aebc75ce724aa256975ade18db5b80e96ed27cf7f7a078cf7a4b849d9d1cc3423a853bdf210215cf9b7969b760b5275f
+  checksum: 10/dabf82dbd79a45b393e275dce0d0633c5e15b3ed75762ae7ae72bd1a8f782cc379c9b204a5268aa241db9dfe585e79500f54129f9da4db1e12964a186868d7de
   languageName: node
   linkType: hard
 
@@ -12001,15 +11724,6 @@ __metadata:
   version: 1.6.1
   resolution: "sax@npm:1.6.1"
   checksum: 10/bf7e7f8293903548bd663d71e9300b20ee04df178399b8f54029b6559225de422235c8fb0a63ba088fcb90c1dbaf9b475f57c7f32c901bfb78d0196dceb3cc7f
-  languageName: node
-  linkType: hard
-
-"saxes@npm:^6.0.0":
-  version: 6.0.0
-  resolution: "saxes@npm:6.0.0"
-  dependencies:
-    xmlchars: "npm:^2.2.0"
-  checksum: 10/97b50daf6ca3a153e89842efa18a862e446248296622b7473c169c84c823ee8a16e4a43bac2f73f11fc8cb9168c73fbb0d73340f26552bac17970e9052367aa9
   languageName: node
   linkType: hard
 
@@ -12167,7 +11881,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"source-map-js@npm:^1.2.1":
+"source-map-js@npm:^1.2.1, source-map-js@npm:^1.2.2":
   version: 1.2.2
   resolution: "source-map-js@npm:1.2.2"
   checksum: 10/4807c894bb6280c8b84886159b96080e3996f42c6e8015e647881edfd4f955f6024ceebb8bb40d33ce8b106e24b2e29c133575e1c60c01c8aae57a05fdf17761
@@ -12421,24 +12135,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tldts-core@npm:^7.4.19":
-  version: 7.4.19
-  resolution: "tldts-core@npm:7.4.19"
-  checksum: 10/e7dc46f973718410b57c9f3d3b8985715339c0ab79f4f9a1cce3ead1c952c7f5beb0cca246551052eddc4554f46526bc734da78701390fda1e3e4dde51b6e1a8
-  languageName: node
-  linkType: hard
-
-"tldts@npm:^7.0.5":
-  version: 7.4.19
-  resolution: "tldts@npm:7.4.19"
-  dependencies:
-    tldts-core: "npm:^7.4.19"
-  bin:
-    tldts: bin/cli.js
-  checksum: 10/48b997b2084a521ccfa5887d13afa76aff27ecfde6c7b3e212306384645a7c358515152de214d28debeabbf689823bac3a3fc06de9a5e38eb6fd11071178bae5
-  languageName: node
-  linkType: hard
-
 "token-types@npm:^6.1.1, token-types@npm:^6.1.2":
   version: 6.1.2
   resolution: "token-types@npm:6.1.2"
@@ -12454,24 +12150,6 @@ __metadata:
   version: 3.0.1
   resolution: "totalist@npm:3.0.1"
   checksum: 10/5132d562cf88ff93fd710770a92f31dbe67cc19b5c6ccae2efc0da327f0954d211bbfd9456389655d726c624f284b4a23112f56d1da931ca7cfabbe1f45e778a
-  languageName: node
-  linkType: hard
-
-"tough-cookie@npm:^6.0.2":
-  version: 6.0.2
-  resolution: "tough-cookie@npm:6.0.2"
-  dependencies:
-    tldts: "npm:^7.0.5"
-  checksum: 10/b231eb744709ce2369ea063f7a3d3816c0c7801a22ccd30a7ab46e90a5bbc531fcbbcc26520f79cfd8516de4340eb9f3568616beb93302548fc989ccb6a974b8
-  languageName: node
-  linkType: hard
-
-"tr46@npm:^7.0.0":
-  version: 7.0.0
-  resolution: "tr46@npm:7.0.0"
-  dependencies:
-    punycode: "npm:^2.3.1"
-  checksum: 10/fb910fcab8a3dae4f6b5c908e8e5a034815fd96cf0f82fcb71aa9f503c3b17ba0854cc802daa129ee40fb2c6d75a8653082e43ccdf53abdfded22e4ec4b10eac
   languageName: node
   linkType: hard
 
@@ -12541,12 +12219,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"type-fest@npm:^5.8.0":
-  version: 5.8.0
-  resolution: "type-fest@npm:5.8.0"
+"type-fest@npm:^5.10.0":
+  version: 5.10.0
+  resolution: "type-fest@npm:5.10.0"
   dependencies:
     tagged-tag: "npm:^1.0.0"
-  checksum: 10/4dbe4c78ac6933d3d165b01f9d552991a84d63e5352110e01bebb5c46499fb1f44d199fc88835b18ee5662ee44c73926621f59525e46f7faa031086ac00b2686
+  checksum: 10/299a575a3d2bbc74f70da508629c448806dd5c51cbd2c5adf05b1755636f9f3b12c803b2c52c0eac561d4472ddc5e8ab42b88954cb238b101c9d4595906aea7f
   languageName: node
   linkType: hard
 
@@ -12714,23 +12392,16 @@ __metadata:
   linkType: hard
 
 "undici@npm:^6.25.0":
-  version: 6.29.0
-  resolution: "undici@npm:6.29.0"
-  checksum: 10/fd4969cfc846cb4da7f7b1b225536d629e17b17b4a1913287f1264f30c855b9eb65a6da6cde46ba1ddfe42f113a3969ab2697029c2b920401be2b7b3b40abef8
+  version: 6.29.1
+  resolution: "undici@npm:6.29.1"
+  checksum: 10/92acb64ec190fe3499dec69830fdfc48e28f6f19627bad7563cfd57c37b4e95379c12b8ac15a2e6a8739eaac358f17503a229c160d3dc8774141b1e270d8aa57
   languageName: node
   linkType: hard
 
 "undici@npm:^7.24.4":
-  version: 7.30.0
-  resolution: "undici@npm:7.30.0"
-  checksum: 10/eb9e4bb5f1b4c35cb934c0d04fe676b62c3be06fb3be4a256ff73699bd77abc3d41f262597a4debd41f334c95ca3ea6e763268c3768882c3fc88a5d33234b8f6
-  languageName: node
-  linkType: hard
-
-"undici@npm:^8.12.1":
-  version: 8.12.3
-  resolution: "undici@npm:8.12.3"
-  checksum: 10/8a238fd928ec1791b76b6b1df512eb6b77bdf51eb609d5b2248c3d8545100e2bdeb4d1695cf1594456dd9d085a6a51069ed42be231e56b270f3ee2191bc6517a
+  version: 7.30.2
+  resolution: "undici@npm:7.30.2"
+  checksum: 10/9e88f3950386de4f99ee3255825eafb798ee92061a26aee66f40b78586b6d1508e8fd77dbe495d771626ef83ea1fa8b72444b05f071d418f48fff3a86dc9bfb1
   languageName: node
   linkType: hard
 
@@ -12986,19 +12657,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vite@npm:8.3.1":
-  version: 8.3.1
-  resolution: "vite@npm:8.3.1"
+"vite@npm:8.3.6":
+  version: 8.3.6
+  resolution: "vite@npm:8.3.6"
   dependencies:
     fsevents: "npm:~2.3.3"
     lightningcss: "npm:^1.33.0"
     picomatch: "npm:^4.0.7"
-    postcss: "npm:^8.5.28"
-    rolldown: "npm:~1.2.9"
+    postcss: "npm:^8.5.32"
+    rolldown: "npm:~1.2.16"
     tinyglobby: "npm:^0.2.17"
   peerDependencies:
     "@types/node": ^20.19.0 || >=22.12.0
-    "@vitejs/devtools": ^0.7.1
+    "@vitejs/devtools": ^0.7.1 || ^0.8.0
     esbuild: ^0.27.0 || ^0.28.0
     jiti: ">=1.21.0"
     less: ^4.0.0
@@ -13039,7 +12710,7 @@ __metadata:
       optional: true
   bin:
     vite: bin/vite.js
-  checksum: 10/bdeacfa4336ee75596916a8feb3ffaffd46b568832ffe3d886d6dd0e5dd001beb2f8e2e7875ca6ba16e3e60bf7f6eeed59ec8c0871559758e7e4aafb9a83a3cf
+  checksum: 10/94d44b037ede5510d7f9732a9f1748df6994d1530b8a0160ecbdd555fb5e2181dd4d9a702c6143da67abfc816d87b27f507062e030fa0be166bc21232455ad1f
   languageName: node
   linkType: hard
 
@@ -13111,26 +12782,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"void-elements@npm:3.1.0":
-  version: 3.1.0
-  resolution: "void-elements@npm:3.1.0"
-  checksum: 10/0390f818107fa8fce55bb0a5c3f661056001c1d5a2a48c28d582d4d847347c2ab5b7f8272314cac58acf62345126b6b09bea623a185935f6b1c3bbce0dfd7f7f
-  languageName: node
-  linkType: hard
-
 "w3c-keyname@npm:^2.2.0, w3c-keyname@npm:^2.2.8":
   version: 2.2.8
   resolution: "w3c-keyname@npm:2.2.8"
   checksum: 10/95bafa4c04fa2f685a86ca1000069c1ec43ace1f8776c10f226a73296caeddd83f893db885c2c220ebeb6c52d424e3b54d7c0c1e963bbf204038ff1a944fbb07
-  languageName: node
-  linkType: hard
-
-"w3c-xmlserializer@npm:^6.0.0":
-  version: 6.0.0
-  resolution: "w3c-xmlserializer@npm:6.0.0"
-  dependencies:
-    xml-name-validator: "npm:^5.0.0"
-  checksum: 10/0a61cfbfc2b042a5422f4e3f853973ce9019cee88a18d13ad4d8522ce928b474aee9c682f30e2d1004aa117f36e66ae7d97861f39b1745aa0084420b72c91505
   languageName: node
   linkType: hard
 
@@ -13148,35 +12803,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"webidl-conversions@npm:^8.0.1":
-  version: 8.0.1
-  resolution: "webidl-conversions@npm:8.0.1"
-  checksum: 10/0f7007311f1fc257a8e406dd236f13b61fb57cf0fddb476aec33457d2d0add2d012d6df0eeb00934399238e3f3b9dad30f59dc6ac83024ae0ebd5a518bf365e8
-  languageName: node
-  linkType: hard
-
 "whatwg-mimetype@npm:^3.0.0":
   version: 3.0.0
   resolution: "whatwg-mimetype@npm:3.0.0"
   checksum: 10/96f9f628c663c2ae05412c185ca81b3df54bcb921ab52fe9ebc0081c1720f25d770665401eb2338ab7f48c71568133845638e18a81ed52ab5d4dcef7d22b40ef
-  languageName: node
-  linkType: hard
-
-"whatwg-mimetype@npm:^5.0.0":
-  version: 5.0.0
-  resolution: "whatwg-mimetype@npm:5.0.0"
-  checksum: 10/a2d5da445f671ed34010b45283ffb9ba3c68c695b8ec91f7400cfc9149c35eb2bc47bd2c39bbe8e026786b955ace03402ba2e5cfde4955434a3ec3c511a85d0a
-  languageName: node
-  linkType: hard
-
-"whatwg-url@npm:^17.1.2, whatwg-url@npm:^17.2.0":
-  version: 17.3.0
-  resolution: "whatwg-url@npm:17.3.0"
-  dependencies:
-    "@exodus/bytes": "npm:^1.16.0"
-    tr46: "npm:^7.0.0"
-    webidl-conversions: "npm:^8.0.1"
-  checksum: 10/dbbd7b43d02e091628d1f14b3d34017b66d78ee3ec15d08318f1e1504c6586b610430d6913f2ccdf7f9efb5b3d48df7aa8b8c318fc4dc389ad3a8c7e9011538c
   languageName: node
   linkType: hard
 
@@ -13260,13 +12890,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"xml-name-validator@npm:^5.0.0":
-  version: 5.0.0
-  resolution: "xml-name-validator@npm:5.0.0"
-  checksum: 10/43f30f3f6786e406dd665acf08cd742d5f8a46486bd72517edb04b27d1bcd1599664c2a4a99fc3f1e56a3194bff588b12f178b7972bc45c8047bdc4c3ac8d4a1
-  languageName: node
-  linkType: hard
-
 "xml2js@npm:^0.6.2":
   version: 0.6.2
   resolution: "xml2js@npm:0.6.2"
@@ -13288,13 +12911,6 @@ __metadata:
   version: 11.0.1
   resolution: "xmlbuilder@npm:11.0.1"
   checksum: 10/c8c3d208783718db5b285101a736cd8e6b69a5c265199a0739abaa93d1a1b7de5489fd16df4e776e18b2c98cb91f421a7349e99fd8c1ebeb44ecfed72a25091a
-  languageName: node
-  linkType: hard
-
-"xmlchars@npm:^2.2.0":
-  version: 2.2.0
-  resolution: "xmlchars@npm:2.2.0"
-  checksum: 10/4ad5924974efd004a47cce6acf5c0269aee0e62f9a805a426db3337af7bcbd331099df174b024ace4fb18971b8a56de386d2e73a1c4b020e3abd63a4a9b917f1
   languageName: node
   linkType: hard
 
@@ -13390,10 +13006,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:^3.25.76":
-  version: 3.25.76
-  resolution: "zod@npm:3.25.76"
-  checksum: 10/f0c963ec40cd96858451d1690404d603d36507c1fc9682f2dae59ab38b578687d542708a7fdbf645f77926f78c9ed558f57c3d3aa226c285f798df0c4da16995
+"zod@npm:4.6.7":
+  version: 4.6.7
+  resolution: "zod@npm:4.6.7"
+  checksum: 10/3ca8b8d6bb401538e59504c543db629ea7beaa775e504c3f22269b406fdffbf1431c856d59a597bf66d8487e4d2be12b03a55d76fc2c63d9f046eae1ca173bca
   languageName: node
   linkType: hard
 

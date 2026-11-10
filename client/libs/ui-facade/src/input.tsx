@@ -395,14 +395,36 @@ export type MyoxusTextareaProps = Omit<TextareaProps, "onChange"> & {
   onChange?: (value: string) => void;
   inputStyle?: CSSProperties;
   mono?: boolean;
+  presentation?: "caption";
+};
+
+// Authored captions keep their document placement, rather than form-control chrome.
+const captionInputStyle: CSSProperties = {
+  background: "transparent",
+  border: 0,
+  borderRadius: 0,
+  padding: 0,
+  minHeight: 0,
+  textAlign: "center",
+  color: cssVar("iconColor"),
+  fontFamily: "inherit",
+  fontSize: "var(--myoxus-font-sm)",
+  lineHeight: "inherit",
 };
 
 export const Textarea = forwardRef(function Textarea(
-  { onChange, inputStyle, mono = false, ...props }: MyoxusTextareaProps,
+  {
+    onChange,
+    inputStyle,
+    mono = false,
+    presentation,
+    ...props
+  }: MyoxusTextareaProps,
   ref: ForwardedRef<HTMLTextAreaElement>,
 ) {
   return (
     <MantineTextarea
+      mt={presentation === "caption" ? "xs" : undefined}
       {...props}
       ref={ref}
       data-myoxus-ui-role={mono ? "form-textarea:mono" : "form-textarea"}
@@ -411,6 +433,7 @@ export const Textarea = forwardRef(function Textarea(
         input: {
           color: cssVar("textPrimaryColor"),
           fontFamily: mono ? "var(--mantine-font-family-monospace)" : undefined,
+          ...(presentation === "caption" ? captionInputStyle : {}),
           ...inputStyle,
         },
       }}

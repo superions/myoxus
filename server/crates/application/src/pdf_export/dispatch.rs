@@ -269,6 +269,7 @@ pub(crate) fn safe_sync_error_summary(class: &str) -> &'static str {
     "AssetError" => "pdf export failed: a required asset is unavailable",
     "TemplateError" => "pdf export failed: template configuration is invalid",
     "StorageError" => "pdf export failed while persisting the result",
+    "DocumentFieldUnavailable" => "pdf export failed: document field context is unavailable",
     "UnsupportedComplianceProfile" => "pdf export rejected: compliance profile is unsupported",
     "PdfaValidationFailed" => "pdf export failed PDF-A validation",
     "PdfuaValidationFailed" => "pdf export failed PDF-UA validation",

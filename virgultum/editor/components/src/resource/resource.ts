@@ -30,39 +30,47 @@ export type ResolvedStateInfoPart = {
 export type ResolvedStateInfo = StateInfo & ResolvedStateInfoPart;
 
 export class ResourceController implements Disposable {
-  readonly blobUrl$ = signal<string | null>(null);
+  readonly blobUrl$ = signal<string | null>(null, {
+    name: "editor.resource.url",
+  });
 
   // TODO(@fundon): default `loading` status.
-  readonly state$ = signal<Partial<BlobState>>({});
+  readonly state$ = signal<Partial<BlobState>>(
+    {},
+    { name: "editor.resource.state" },
+  );
 
-  readonly resolvedState$ = computed<ResolvedStateInfoPart>(() => {
-    const url = this.blobUrl$.value;
-    const {
-      needUpload = false,
-      uploading = false,
-      downloading = false,
-      overSize = false,
-      errorMessage,
-    } = this.state$.value;
-    const hasExceeded = overSize;
-    const hasError = hasExceeded || Boolean(errorMessage);
-    const state = this.determineState(
-      hasExceeded,
-      hasError,
-      uploading,
-      downloading,
-    );
+  readonly resolvedState$ = computed<ResolvedStateInfoPart>(
+    () => {
+      const url = this.blobUrl$.value;
+      const {
+        needUpload = false,
+        uploading = false,
+        downloading = false,
+        overSize = false,
+        errorMessage,
+      } = this.state$.value;
+      const hasExceeded = overSize;
+      const hasError = hasExceeded || Boolean(errorMessage);
+      const state = this.determineState(
+        hasExceeded,
+        hasError,
+        uploading,
+        downloading,
+      );
 
-    const loading = state === "uploading" || state === "loading";
+      const loading = state === "uploading" || state === "loading";
 
-    return {
-      error: hasError,
-      needUpload,
-      loading,
-      state,
-      url,
-    };
-  });
+      return {
+        error: hasError,
+        needUpload,
+        loading,
+        state,
+        url,
+      };
+    },
+    { name: "editor.resource.resolvedState" },
+  );
 
   private engine?: BlobEngine;
 
@@ -126,28 +134,31 @@ export class ResourceController implements Disposable {
     this.state$.value = { ...this.state$.value, ...state };
   }
 
-  subscribe() {
-    return effect(() => {
-      const blobId = this.blobId$.value;
-      if (!blobId) return;
+  subscribe(): () => void {
+    return effect(
+      () => {
+        const blobId = this.blobId$.value;
+        if (!blobId) return;
 
-      const blobState$ = this.engine?.blobState$(blobId);
-      if (!blobState$) return;
+        const blobState$ = this.engine?.blobState$(blobId);
+        if (!blobState$) return;
 
-      const subscription = blobState$.subscribe((state) => {
-        let { uploading, downloading, errorMessage } = state;
-        if (state.overSize) {
-          uploading = false;
-          downloading = false;
-        } else if ((uploading || downloading) && errorMessage) {
-          errorMessage = null;
-        }
+        const subscription = blobState$.subscribe((state) => {
+          let { uploading, downloading, errorMessage } = state;
+          if (state.overSize) {
+            uploading = false;
+            downloading = false;
+          } else if ((uploading || downloading) && errorMessage) {
+            errorMessage = null;
+          }
 
-        this.updateState({ ...state, uploading, downloading, errorMessage });
-      });
+          this.updateState({ ...state, uploading, downloading, errorMessage });
+        });
 
-      return () => subscription.unsubscribe();
-    });
+        return () => subscription.unsubscribe();
+      },
+      { name: "editor.resource.subscribe" },
+    );
   }
 
   async blob() {

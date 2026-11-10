@@ -145,7 +145,6 @@ export const PackageList = [
       "virgultum/editor/blocks/mermaid",
       "virgultum/editor/blocks/root",
       "virgultum/editor/components",
-      "virgultum/editor/data-view",
       "virgultum/editor/all",
       "virgultum/framework/global",
       "virgultum/editor/model",
@@ -379,7 +378,6 @@ export const PackageList = [
       "virgultum/editor/blocks/bpmn",
       "virgultum/editor/blocks/callout",
       "virgultum/editor/blocks/code",
-      "virgultum/editor/blocks/data-view",
       "virgultum/editor/blocks/database",
       "virgultum/editor/blocks/divider",
       "virgultum/editor/blocks/edgeless-text",
@@ -398,7 +396,6 @@ export const PackageList = [
       "virgultum/editor/blocks/surface-ref",
       "virgultum/editor/blocks/table",
       "virgultum/editor/components",
-      "virgultum/editor/data-view",
       "virgultum/editor/ext-loader",
       "virgultum/editor/foundation",
       "virgultum/editor/fragments/doc-title",
@@ -550,23 +547,6 @@ export const PackageList = [
       "virgultum/editor/inlines/preset",
       "virgultum/editor/model",
       "virgultum/editor/rich-text",
-      "virgultum/editor/shared",
-      "virgultum/framework/std",
-      "virgultum/framework/store",
-      "virgultum/editor/widgets/slash-menu"
-    ]
-  },
-  {
-    "location": "virgultum/editor/blocks/data-view",
-    "name": "@virgultum/block-data-view",
-    "workspaceDependencies": [
-      "client/libs/icons",
-      "client/libs/theme",
-      "virgultum/editor/components",
-      "virgultum/editor/data-view",
-      "virgultum/editor/ext-loader",
-      "virgultum/framework/global",
-      "virgultum/editor/model",
       "virgultum/editor/shared",
       "virgultum/framework/std",
       "virgultum/framework/store",
@@ -828,7 +808,6 @@ export const PackageList = [
       "virgultum/editor/blocks/paragraph",
       "virgultum/editor/blocks/surface",
       "virgultum/editor/components",
-      "virgultum/editor/data-view",
       "virgultum/editor/ext-loader",
       "virgultum/editor/gfx/brush",
       "virgultum/editor/gfx/connector",
@@ -889,7 +868,6 @@ export const PackageList = [
       "client/libs/icons",
       "client/libs/theme",
       "virgultum/editor/components",
-      "virgultum/editor/data-view",
       "virgultum/editor/ext-loader",
       "virgultum/framework/global",
       "virgultum/editor/inlines/preset",
@@ -916,19 +894,6 @@ export const PackageList = [
     ]
   },
   {
-    "location": "virgultum/editor/data-view",
-    "name": "@virgultum/data-view",
-    "workspaceDependencies": [
-      "client/libs/icons",
-      "client/libs/theme",
-      "virgultum/editor/components",
-      "virgultum/framework/global",
-      "virgultum/editor/shared",
-      "virgultum/framework/std",
-      "virgultum/framework/store"
-    ]
-  },
-  {
     "location": "virgultum/editor/ext-loader",
     "name": "@virgultum/ext-loader",
     "workspaceDependencies": [
@@ -943,7 +908,6 @@ export const PackageList = [
       "client/libs/icons",
       "client/libs/theme",
       "virgultum/editor/components",
-      "virgultum/editor/data-view",
       "virgultum/editor/ext-loader",
       "virgultum/framework/global",
       "virgultum/editor/rich-text",
@@ -1472,7 +1436,6 @@ export const PackageList = [
       "virgultum/editor/blocks/surface-ref",
       "virgultum/editor/blocks/table",
       "virgultum/editor/components",
-      "virgultum/editor/data-view",
       "virgultum/editor/ext-loader",
       "virgultum/editor/fragments/doc-title",
       "virgultum/framework/global",
@@ -1549,7 +1512,8 @@ export const PackageList = [
       "virgultum/framework/global",
       "virgultum/editor/model",
       "virgultum/editor/shared",
-      "virgultum/framework/std"
+      "virgultum/framework/std",
+      "virgultum/framework/store"
     ]
   },
   {
@@ -1583,7 +1547,6 @@ export const PackageList = [
     "workspaceDependencies": [
       "client/libs/icons",
       "client/libs/theme",
-      "virgultum/editor/blocks/data-view",
       "virgultum/editor/blocks/surface",
       "virgultum/editor/blocks/table",
       "virgultum/editor/components",
@@ -1643,6 +1606,7 @@ export const PackageList = [
     "location": "virgultum/integration-test",
     "name": "@virgultum/integration-test",
     "workspaceDependencies": [
+      "client/libs/bpmn-editor",
       "client/libs/core",
       "client/libs/env",
       "client/libs/i18n",
@@ -1705,7 +1669,6 @@ export type PackageName =
   | "@virgultum/block-bpmn"
   | "@virgultum/block-callout"
   | "@virgultum/block-code"
-  | "@virgultum/block-data-view"
   | "@virgultum/block-database"
   | "@virgultum/block-divider"
   | "@virgultum/block-edgeless-text"
@@ -1724,7 +1687,6 @@ export type PackageName =
   | "@virgultum/block-surface-ref"
   | "@virgultum/block-table"
   | "@virgultum/components"
-  | "@virgultum/data-view"
   | "@virgultum/ext-loader"
   | "@virgultum/foundation"
   | "@virgultum/fragment-doc-title"

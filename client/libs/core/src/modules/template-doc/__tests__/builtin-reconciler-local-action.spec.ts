@@ -3,7 +3,10 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { WorkspaceInitialContentPolicy } from "@myoxus/graphql";
-import { nativeDocumentBundles } from "../services/source-metadata";
+import {
+  nativeDocumentBundles,
+  retiredDocumentSlugs,
+} from "../services/source-metadata";
 import type { NativeTemplateContent } from "../services/native-bundle";
 
 import { LiveData } from "@myoxus/infra";
@@ -206,7 +209,9 @@ test("seeding does not publish a template source before durable creation complet
   }
 });
 
-test("retired Meeting Focus cannot be provisioned offline or erase an existing custom source", async () => {
+test("retired delivery cannot be provisioned offline or erase an existing custom source", async () => {
+  const retiredSlug = retiredDocumentSlugs[0];
+  if (!retiredSlug) throw new Error("Retired delivery fixture required");
   const source = {
     id: "retained",
     trash$: new LiveData(false),
@@ -235,15 +240,15 @@ test("retired Meeting Focus cannot be provisioned offline or erase an existing c
       setting: {
         loading$: new LiveData(false),
         builtinTemplateInstanceDocIds$: new LiveData({
-          "meeting-focus": "retained",
+          [retiredSlug]: "retained",
         }),
         setBuiltinTemplateInstanceDocIds: vi.fn(),
       },
     },
   ) as BuiltinTemplateReconcilerService;
-  expect(
-    await reconciler.ensureBuiltinTemplatesSeeded(["meeting-focus"]),
-  ).toEqual({});
+  expect(await reconciler.ensureBuiltinTemplatesSeeded([retiredSlug])).toEqual(
+    {},
+  );
   expect(createTemplateDoc).not.toHaveBeenCalled();
   expect(importNativeTemplateDoc).not.toHaveBeenCalled();
   expect(source.moveToTrash).not.toHaveBeenCalled();

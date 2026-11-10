@@ -10,10 +10,12 @@ const repoRoot = path.resolve(
   fileURLToPath(new URL("../../..", import.meta.url)),
 );
 const sourceFontsDir = path.join(repoRoot, "server", "static", "fonts");
-const cssSources = [
-  path.join(repoRoot, "client", "libs", "theme", "src", "fonts.css"),
-  path.join(repoRoot, "client", "branding", "theme-fallback.css"),
-];
+const cssSource = path.join(
+  repoRoot,
+  "client",
+  "branding",
+  "theme-fallback.css",
+);
 
 function usage() {
   console.error(`Usage:
@@ -38,11 +40,9 @@ async function requiredFontFiles() {
   const urlPattern =
     /url\(\s*['"]?\/api\/fonts\/([^'")?#]+)(?:\?[^'")]*)?['"]?\s*\)/g;
 
-  for (const cssPath of cssSources) {
-    const css = await readFile(cssPath, "utf8");
-    for (const match of css.matchAll(urlPattern)) {
-      files.add(decodeURIComponent(match[1]));
-    }
+  const css = await readFile(cssSource, "utf8");
+  for (const match of css.matchAll(urlPattern)) {
+    files.add(decodeURIComponent(match[1]));
   }
 
   return [...files].sort();

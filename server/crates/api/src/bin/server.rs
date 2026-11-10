@@ -592,6 +592,7 @@ async fn run(
   let default_ws_quota_mb = config.storage.default_workspace_quota_mb;
 
   let doc_store_inner = SqlxDocStore::new(pool.clone())
+    .with_field_capture_default_locale(config.i18n.default_locale.clone())
     .with_database_templates(database_starter_catalog.clone())
     .with_quota_config(default_ws_quota_mb);
   // Finish references left by permanent deletions in older releases. This is
@@ -878,6 +879,7 @@ async fn run(
     config.server.origin.clone(),
   ));
   let search_repository = Arc::new(SqlxSearchRepository::new(pool.clone()));
+  search_repository.enqueue_field_refresh().await?;
   let calendar_repository = Arc::new(SqlxCalendarRepository::new(pool.clone()));
   let calendar_service = Arc::new(CalendarService::new(calendar_repository.clone()));
   let calendar_mail_dispatcher = myoxus_application::calendar::mail::CalendarSchedulingMailDispatcher::new(
@@ -1260,13 +1262,6 @@ async fn run(
     .with_workspace_content_control_service(workspace_content_control_service)
     .with_workspace_content_redirect_service(workspace_content_redirect_service);
 
-  let doc_service_for_search = state.doc().clone();
-  let search_indexer = Arc::new(SearchIndexerService::new(
-    redis_queue_adapter.clone(),
-    search_repository,
-    Arc::new(doc_service_for_search),
-  ));
-
   // PDF-Export V2: wire the ICC profile repository, font library repository
   // and a typed PDF blob store on top of the same opendal backend used by
   // general blob storage. All are mandatory for the admin `pdfIccProfiles*`
@@ -1324,7 +1319,8 @@ async fn run(
         .with_config_values_reader(document_version_config_reader.clone()),
     );
   let document_edit_capture_service = myoxus_application::document_version::DocumentEditCaptureService::new(Arc::new(
-    myoxus_infrastructure::document_version::PgDocumentEditCaptureRepository::new(pool.clone()),
+    myoxus_infrastructure::document_version::PgDocumentEditCaptureRepository::new(pool.clone())
+      .with_field_capture_default_locale(config.i18n.default_locale.clone()),
   ));
   let document_metadata_policy_repo: Arc<dyn myoxus_domain::repositories::DocumentMetadataPolicyRepository> =
     Arc::new(myoxus_infrastructure::document_metadata_policy::PgDocumentMetadataPolicyRepository::new(pool.clone()));
@@ -1533,7 +1529,6 @@ async fn run(
   workspace_import_service.set_metrics_service(state.metrics_arc());
 
   let state = state
-    .with_search_indexer(search_indexer.clone())
     .with_redis_queue(redis_worker_queue.clone())
     .with_pdf_icc_repo(pdf_icc_repo.clone())
     .with_pdf_font_repo(pdf_font_repo.clone())
@@ -1551,6 +1546,18 @@ async fn run(
     .with_workspace_import_service(workspace_import_service.clone())
     .with_workspace_export_service(workspace_export_service)
     .with_document_metadata_service(document_metadata_service);
+
+  // Capture the fully wired field owners without an indexer self-reference.
+  // The cloned state still shares live formatting overrides and repositories.
+  let search_indexer = Arc::new(
+    SearchIndexerService::new(
+      redis_queue_adapter.clone(),
+      search_repository,
+      Arc::new(state.doc().clone()),
+    )
+    .with_field_source(Arc::new(state.clone())),
+  );
+  let state = state.with_search_indexer(search_indexer.clone());
 
   if let Err(error) = state.validate_production_composition() {
     error!(

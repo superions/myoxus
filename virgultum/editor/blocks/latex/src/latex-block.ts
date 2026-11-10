@@ -4,11 +4,10 @@ import {
   resolveEditorMessage,
   type EditorI18nMessage,
 } from "@virgultum/shared/services";
-import type { Placement } from "@floating-ui/dom";
 import { effect } from "@preact/signals-core";
 import { selectBlock } from "@virgultum/block-note";
 import { CaptionedBlockComponent } from "@virgultum/components/caption";
-import { createLitPortal } from "@virgultum/components/portal";
+import { openEquationEditor } from "@virgultum/inline-latex";
 import type { LatexBlockModel } from "@virgultum/model";
 import { BlockSelection } from "@virgultum/std";
 import katex from "katex";
@@ -29,15 +28,10 @@ export class LatexBlockComponent extends CaptionedBlockComponent<LatexBlockModel
 
   private _editorAbortController: AbortController | null = null;
 
-  get editorPlacement(): Placement {
-    return "bottom";
-  }
-
   get isBlockSelected() {
-    const blockSelection = this.selection.filter(BlockSelection);
-    return blockSelection.some(
-      (selection) => selection.blockId === this.model.id,
-    );
+    return this.selection
+      .filter(BlockSelection)
+      .some((selection) => selection.blockId === this.model.id);
   }
 
   override firstUpdated(props: Map<string, unknown>) {
@@ -45,8 +39,6 @@ export class LatexBlockComponent extends CaptionedBlockComponent<LatexBlockModel
 
     const { disposables } = this;
 
-    this._editorAbortController?.abort();
-    this._editorAbortController = new AbortController();
     disposables.add(() => {
       this._editorAbortController?.abort();
     });
@@ -100,10 +92,6 @@ export class LatexBlockComponent extends CaptionedBlockComponent<LatexBlockModel
     }
   }
 
-  removeEditor(portal: HTMLDivElement) {
-    portal.remove();
-  }
-
   override renderBlock() {
     return html`
       <div
@@ -130,35 +118,21 @@ export class LatexBlockComponent extends CaptionedBlockComponent<LatexBlockModel
     this._editorAbortController = new AbortController();
 
     this.selection.setGroup("note", []);
-
-    const { portal } = createLitPortal({
-      template: html`<latex-editor-menu
-        .std=${this.std}
-        .latexSignal=${this.model.props.latex$}
-        .abortController=${this._editorAbortController}
-      ></latex-editor-menu>`,
-      container: this.host,
-      computePosition: {
-        referenceElement: this,
-        placement: this.editorPlacement,
-        autoUpdate: {
-          animationFrame: true,
-        },
-      },
-      closeOnClickAway: true,
-      abortController: this._editorAbortController,
-      shadowDom: false,
-      portalStyles: {
-        zIndex: "var(--myoxus-z-index-popover)",
-      },
-    });
-
+    this.store.captureSync();
     this._editorAbortController.signal.addEventListener(
       "abort",
-      () => {
-        this.removeEditor(portal);
-      },
+      () => this.store.captureSync(),
       { once: true },
+    );
+
+    openEquationEditor(
+      this.std,
+      this,
+      this.model.props.latex$,
+      this._editorAbortController,
+      "bottom",
+      // Model signals project values; document commands supply the tracked history origin.
+      (latex) => this.store.updateBlock(this.model, { latex }),
     );
   }
 

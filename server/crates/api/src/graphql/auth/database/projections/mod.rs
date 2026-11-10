@@ -88,6 +88,7 @@ pub struct DatabaseSearchFilterInput {
   pub database_id: Option<ID>,
   pub query: String,
   pub first: Option<i32>,
+  pub offset: Option<i32>,
 }
 
 pub(crate) async fn database_search(
@@ -128,6 +129,7 @@ pub(crate) async fn database_search(
     database_id,
     query: trimmed,
     first: Some(first),
+    offset: Some(i64::from(filter.offset.unwrap_or(0).max(0))),
     after: None,
   };
   let services = state

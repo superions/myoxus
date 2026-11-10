@@ -33596,6 +33596,44 @@ export interface GetDocRolePermissionsQuery {
   } | null;
 }
 
+export type DocumentFieldCatalogQueryVariables = Exact<{
+  [key: string]: never;
+}>;
+
+export interface DocumentFieldCatalogQuery {
+  documentFieldCatalog: {
+    maxOptions: number;
+    maxStringBytes: number;
+    maxIdBytes: number;
+    metadata: Array<{ key: string; formats: Array<string> }>;
+    inputKinds: Array<{ kind: string; multiple: boolean; hasOptions: boolean }>;
+  };
+}
+
+export type DocumentFieldOutputQueryVariables = Exact<{
+  workspaceId: string;
+  docId: string;
+  fields: any;
+}>;
+
+export interface DocumentFieldOutputQuery {
+  documentFieldOutput: Array<string>;
+}
+
+export type DocumentFieldPresentationsQueryVariables = Exact<{
+  workspaceId: string;
+  docId: string;
+  fields: any;
+}>;
+
+export interface DocumentFieldPresentationsQuery {
+  documentFieldPresentations: Array<{
+    state: Types.DocumentFieldPresentationState;
+    text: string | null;
+    complete: boolean;
+  }>;
+}
+
 export type DocumentGraphNodeFieldsFragment = {
   workspaceId: string;
   docId: string | null;
@@ -70198,6 +70236,21 @@ export type Queries =
       name: "getDocRolePermissionsQuery";
       variables: GetDocRolePermissionsQueryVariables;
       response: GetDocRolePermissionsQuery;
+    }
+  | {
+      name: "documentFieldCatalogQuery";
+      variables: DocumentFieldCatalogQueryVariables;
+      response: DocumentFieldCatalogQuery;
+    }
+  | {
+      name: "documentFieldOutputQuery";
+      variables: DocumentFieldOutputQueryVariables;
+      response: DocumentFieldOutputQuery;
+    }
+  | {
+      name: "documentFieldPresentationsQuery";
+      variables: DocumentFieldPresentationsQueryVariables;
+      response: DocumentFieldPresentationsQuery;
     }
   | {
       name: "documentGraphQuery";

@@ -3,6 +3,8 @@ import type {
   TableAppearance,
   TableBlockModel,
   TableCell,
+  TableRow,
+  TableColumn,
   TableDensity,
   TextAlign,
   TemplateRepeatBinding,
@@ -13,13 +15,27 @@ import {
   normalizeTableHeaderRows,
 } from "@virgultum/model";
 import { generateFractionalIndexingKeyBetween } from "@virgultum/shared/utils";
-import { nanoid, Text } from "@virgultum/store";
+import { cloneTextWithDocumentFieldIdentities } from "@virgultum/shared/types";
+import { nanoid, Text, canChangeFixedTextProperty } from "@virgultum/store";
 
 import type { TableAreaSelection } from "./selection-schema";
 import { compareTableOrder } from "./utils";
 
 export class TableDataManager {
   constructor(private readonly model: TableBlockModel) {}
+
+  hasFixedRow(rowId: string) {
+    return this.columns$.value.some(
+      ({ columnId }) =>
+        this.getCell(rowId, columnId)?.textProtection === "fixed",
+    );
+  }
+
+  hasFixedColumn(columnId: string) {
+    return this.rows$.value.some(
+      ({ rowId }) => this.getCell(rowId, columnId)?.textProtection === "fixed",
+    );
+  }
   readonly readonly$: ReadonlySignal<boolean> = computed(() => {
     return this.model.store.readonly;
   });
@@ -213,6 +229,12 @@ export class TableDataManager {
     } else {
       const rows = this.rows$.value;
       const rowCount = rows.length;
+      if (
+        rows
+          .slice(rowCount + count, rowCount)
+          .some((row) => this.hasFixedRow(row.rowId))
+      )
+        return;
       this.model.store.transact(() => {
         rows.slice(rowCount + count, rowCount).forEach((row) => {
           this.deleteRow(row.rowId);
@@ -234,6 +256,12 @@ export class TableDataManager {
     } else {
       const columns = this.columns$.value;
       const columnCount = columns.length;
+      if (
+        columns
+          .slice(columnCount + count, columnCount)
+          .some((column) => this.hasFixedColumn(column.columnId))
+      )
+        return;
       this.model.store.transact(() => {
         columns.slice(columnCount + count, columnCount).forEach((column) => {
           this.deleteColumn(column.columnId);
@@ -242,16 +270,30 @@ export class TableDataManager {
     }
   }
 
-  private getOrder<T extends { order: string }>(array: T[], after?: number) {
+  private getOrder(array: (TableRow | TableColumn)[], after?: number) {
     if (array.some((entry) => /^\d{8}$/.test(entry.order))) {
       // Deployed server imports used eight-digit ordinal keys. On the first
       // structural edit, deterministically convert the already sorted axis;
       // retain IDs, cells, header positions and the document's undo history.
+      const normalized = array.map((entry, index) => ({
+        ...entry,
+        order: `a0${String(index).padStart(8, "0")}1`,
+      }));
+      const axis = "rowId" in array[0]! ? "rows" : "columns";
+      const next = Object.fromEntries(
+        normalized.map((entry) => [
+          "rowId" in entry ? entry.rowId : entry.columnId,
+          entry,
+        ]),
+      );
+      if (!canChangeFixedTextProperty(this.model.yBlock, `prop:${axis}`, next))
+        throw new Error("Cannot relocate fixed table text");
       this.model.store.transact(() => {
-        array.forEach((entry, index) => {
-          entry.order = `a0${String(index).padStart(8, "0")}1`;
-        });
+        if (axis === "rows")
+          this.model.props.rows = next as Record<string, TableRow>;
+        else this.model.props.columns = next as Record<string, TableColumn>;
       });
+      array = normalized;
     }
     after = after != null ? (after < 0 ? undefined : after) : undefined;
     const prevOrder = after == null ? null : array[after]?.order;
@@ -281,6 +323,7 @@ export class TableDataManager {
   }
 
   deleteRow(rowId: string) {
+    if (this.readonly$.value || this.hasFixedRow(rowId)) return;
     const rowIndex = this.rows$.value.findIndex((row) => row.rowId === rowId);
     const headerRows = this.headerRows$.value;
     this.model.store.transact(() => {
@@ -290,7 +333,7 @@ export class TableDataManager {
         }
       });
       Object.keys(this.model.props.cells).forEach((id) => {
-        if (id.startsWith(rowId)) {
+        if (id.startsWith(`${rowId}:`)) {
           delete this.model.props.cells[id];
         }
       });
@@ -301,6 +344,7 @@ export class TableDataManager {
   }
 
   deleteColumn(columnId: string) {
+    if (this.readonly$.value || this.hasFixedColumn(columnId)) return;
     this.model.store.transact(() => {
       Object.keys(this.model.props.columns).forEach((id) => {
         if (id === columnId) {
@@ -316,6 +360,16 @@ export class TableDataManager {
   }
 
   updateRowOrder(rowId: string, newOrder: string) {
+    if (this.readonly$.value) return false;
+    const current = this.model.props.rows[rowId];
+    if (
+      !current ||
+      !canChangeFixedTextProperty(this.model.yBlock, "prop:rows", {
+        ...this.model.props.rows,
+        [rowId]: { ...current, order: newOrder },
+      })
+    )
+      return false;
     const headerRows = this.headerRows$.value;
     if (headerRows !== undefined) {
       const rows = this.rows$.value
@@ -334,6 +388,16 @@ export class TableDataManager {
   }
 
   updateColumnOrder(columnId: string, newOrder: string) {
+    if (this.readonly$.value) return;
+    const current = this.model.props.columns[columnId];
+    if (
+      !current ||
+      !canChangeFixedTextProperty(this.model.yBlock, "prop:columns", {
+        ...this.model.props.columns,
+        [columnId]: { ...current, order: newOrder },
+      })
+    )
+      return;
     this.model.store.transact(() => {
       if (this.model.props.columns[columnId]) {
         this.model.props.columns[columnId].order = newOrder;
@@ -342,6 +406,7 @@ export class TableDataManager {
   }
 
   setRowBackgroundColor(rowId: string, color?: string) {
+    if (this.readonly$.value || this.hasFixedRow(rowId)) return;
     this.model.store.transact(() => {
       if (this.model.props.rows[rowId]) {
         this.model.props.rows[rowId].backgroundColor = color;
@@ -350,6 +415,7 @@ export class TableDataManager {
   }
 
   setColumnBackgroundColor(columnId: string, color?: string) {
+    if (this.readonly$.value || this.hasFixedColumn(columnId)) return;
     this.model.store.transact(() => {
       if (this.model.props.columns[columnId]) {
         this.model.props.columns[columnId].backgroundColor = color;
@@ -374,6 +440,12 @@ export class TableDataManager {
 
   setCellsBackgroundColor(selection: TableAreaSelection, color?: string) {
     if (this.readonly$.value) return;
+    if (
+      this.getCellsBySelection(selection).some(
+        (cell) => cell.textProtection === "fixed",
+      )
+    )
+      return;
     const cells = this.getCellsBySelection(selection).filter(
       (cell) => cell.backgroundColor !== color,
     );
@@ -389,6 +461,7 @@ export class TableDataManager {
   }
 
   setColumnTextAlign(columnId: string, textAlign?: TextAlign) {
+    if (this.readonly$.value || this.hasFixedColumn(columnId)) return;
     const column = this.model.props.columns[columnId];
     if (this.readonly$.value || !column || column.textAlign === textAlign)
       return;
@@ -412,31 +485,19 @@ export class TableDataManager {
   }
 
   clearRow(rowId: string) {
-    this.model.store.transact(() => {
-      Object.keys(this.model.props.cells).forEach((id) => {
-        if (id.startsWith(rowId)) {
-          this.model.props.cells[id]?.text.replace(
-            0,
-            this.model.props.cells[id]?.text.length,
-            "",
-          );
-        }
-      });
-    });
+    this.clearCells(
+      Object.keys(this.model.props.cells)
+        .filter((id) => id.startsWith(`${rowId}:`))
+        .map((id) => ({ rowId, columnId: id.slice(rowId.length + 1) })),
+    );
   }
 
   clearColumn(columnId: string) {
-    this.model.store.transact(() => {
-      Object.keys(this.model.props.cells).forEach((id) => {
-        if (id.endsWith(`:${columnId}`)) {
-          this.model.props.cells[id]?.text.replace(
-            0,
-            this.model.props.cells[id]?.text.length,
-            "",
-          );
-        }
-      });
-    });
+    this.clearCells(
+      Object.keys(this.model.props.cells)
+        .filter((id) => id.endsWith(`:${columnId}`))
+        .map((id) => ({ rowId: id.slice(0, -columnId.length - 1), columnId })),
+    );
   }
 
   clearCellsBySelection(selection: TableAreaSelection) {
@@ -464,6 +525,15 @@ export class TableDataManager {
   }
 
   clearCells(cells: { rowId: string; columnId: string }[]) {
+    if (this.readonly$.value) return;
+    if (
+      cells.some(
+        ({ rowId, columnId }) =>
+          this.getCell(rowId, columnId)?.textProtection === "fixed",
+      )
+    )
+      return;
+    this.model.store.captureSync();
     this.model.store.transact(() => {
       cells.forEach(({ rowId, columnId }) => {
         const text = this.model.props.cells[`${rowId}:${columnId}`]?.text;
@@ -472,6 +542,7 @@ export class TableDataManager {
         }
       });
     });
+    this.model.store.captureSync();
   }
 
   insertColumn(after?: number) {
@@ -483,19 +554,16 @@ export class TableDataManager {
   }
 
   moveColumn(from: number, after?: number) {
+    if (this.readonly$.value) return;
     const columns = this.columns$.value;
     const column = columns[from];
     if (!column) return;
     const order = this.getOrder(columns, after);
-    this.model.store.transact(() => {
-      const realColumn = this.model.props.columns[column.columnId];
-      if (realColumn) {
-        realColumn.order = order;
-      }
-    });
+    this.updateColumnOrder(column.columnId, order);
   }
 
   moveRow(from: number, after?: number) {
+    if (this.readonly$.value) return false;
     const rows = this.rows$.value;
     const row = rows[from];
     if (!row) return;
@@ -508,6 +576,7 @@ export class TableDataManager {
     if (!oldColumn) return;
     const order = this.getOrder(this.columns$.value, index);
     const newColumnId = nanoid();
+    const fields = new Map<string, string>();
     this.model.store.transact(() => {
       this.model.props.columns[newColumnId] = {
         ...oldColumn,
@@ -519,7 +588,9 @@ export class TableDataManager {
           this.model.props.cells[`${row.rowId}:${oldColumn.columnId}`];
         this.model.props.cells[`${row.rowId}:${newColumnId}`] = {
           ...cell,
-          text: cell?.text.clone() ?? new Text(),
+          text: cell
+            ? cloneTextWithDocumentFieldIdentities(cell.text, nanoid, fields)
+            : new Text(),
         };
       });
     });
@@ -533,6 +604,7 @@ export class TableDataManager {
     const headerRows = this.headerRows$.value;
     const insertionIndex = index + 1;
     const newRowId = nanoid();
+    const fields = new Map<string, string>();
     this.model.store.transact(() => {
       this.model.props.rows[newRowId] = {
         ...oldRow,
@@ -544,7 +616,9 @@ export class TableDataManager {
           this.model.props.cells[`${oldRow.rowId}:${column.columnId}`];
         this.model.props.cells[`${newRowId}:${column.columnId}`] = {
           ...cell,
-          text: cell?.text.clone() ?? new Text(),
+          text: cell
+            ? cloneTextWithDocumentFieldIdentities(cell.text, nanoid, fields)
+            : new Text(),
         };
       });
       if (headerRows !== undefined && insertionIndex < headerRows) {

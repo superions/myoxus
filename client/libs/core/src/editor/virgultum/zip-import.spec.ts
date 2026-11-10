@@ -300,7 +300,16 @@ test("ZIP admission rejects unsafe paths, changed payload CRC and oversized entr
   }
 });
 
-async function labelSnapshotArchive() {
+async function labelSnapshotArchive(
+  withNativeFields = false,
+  duplicateField = false,
+) {
+  const field = {
+    type: "input",
+    id: "archive-answer",
+    definition: { kind: "text", label: "Answer", required: false },
+    value: "Original {{answer}}",
+  };
   const entries: [string, string][] = [
     [
       "info.json",
@@ -330,7 +339,69 @@ async function labelSnapshotArchive() {
           id: "source-page",
           flavour: "myoxus:page",
           props: {},
-          children: [],
+          children: withNativeFields
+            ? [
+                {
+                  type: "block",
+                  id: "source-note",
+                  flavour: "myoxus:note",
+                  props: {},
+                  children: [
+                    {
+                      type: "block",
+                      id: "source-paragraph",
+                      flavour: "myoxus:paragraph",
+                      props: {
+                        type: "text",
+                        text: {
+                          "$virgultum:internal:text$": true,
+                          delta: [
+                            {
+                              insert: "Captured ",
+                              attributes: {
+                                bold: true,
+                                documentField: field,
+                                documentFieldCaptured: true,
+                              },
+                            },
+                            {
+                              insert: "answer",
+                              attributes: {
+                                italic: true,
+                                documentField: field,
+                                documentFieldCaptured: true,
+                              },
+                            },
+                            { insert: " / " },
+                            {
+                              insert: " ",
+                              attributes: {
+                                documentField: {
+                                  type: "metadata",
+                                  id: "archive-number",
+                                  key: "documentNumber",
+                                  format: "text",
+                                },
+                              },
+                            },
+                            ...(duplicateField
+                              ? [
+                                  { insert: " / " },
+                                  {
+                                    insert: " ",
+                                    attributes: { documentField: field },
+                                  },
+                                ]
+                              : []),
+                          ],
+                        },
+                      },
+                      children: [],
+                    },
+                  ],
+                },
+              ]
+            : [],
         },
       }),
     ],
@@ -339,7 +410,7 @@ async function labelSnapshotArchive() {
 }
 
 test("snapshot label preflight, canonical transfer and compensation own the real importer", async () => {
-  const file = await labelSnapshotArchive();
+  const file = await labelSnapshotArchive(true);
   const original = await file.text();
   const waitForSynced = vi.fn(async () => undefined);
   const workspace = {
@@ -401,12 +472,44 @@ test("snapshot label preflight, canonical transfer and compensation own the real
     "Portable document",
   );
   expect(collection.meta.getDocMeta(imported[0].id)?.tags).toBeUndefined();
+  const paragraph = imported[0].getBlocksByFlavour("myoxus:paragraph")[0]
+    .model as ParagraphBlockModel;
+  const copied = paragraph.props.text
+    .toDelta()
+    .filter((run) => run.attributes?.documentField);
+  expect(copied).toHaveLength(2);
+  expect(
+    copied.every(
+      (run) => run.insert === " " && !run.attributes?.documentFieldCaptured,
+    ),
+  ).toBe(true);
+  expect(copied[0].attributes?.documentField).toMatchObject({
+    type: "input",
+    value: "Original {{answer}}",
+  });
+  expect(copied[0].attributes?.documentField.id).not.toBe("archive-answer");
+  expect(copied[1].attributes?.documentField).toMatchObject({
+    type: "metadata",
+    key: "documentNumber",
+  });
+  expect(copied[1].attributes?.documentField.id).not.toBe("archive-number");
   expect(collection.meta.properties.tags?.options ?? []).toEqual([]);
   expect(gql).toHaveBeenCalledTimes(2);
   expect(await file.text()).toBe(original);
   expect(moveManyToTrash).not.toHaveBeenCalled();
 
   collection.removeDoc(imported[0].id);
+  const invalid = await labelSnapshotArchive(true, true);
+  const invalidHooks = await snapshotLabelImportHooks(
+    workspace,
+    docs,
+    graphql,
+    invalid,
+  );
+  await expect(
+    ZipTransformer.importDocs(collection, schema, invalid, invalidHooks),
+  ).rejects.toThrow("Duplicate native field occurrence");
+  expect(collection.docs.size).toBe(0);
   gql.mockRejectedValueOnce(new Error("Unknown portable label"));
   await expect(
     ZipTransformer.importDocs(collection, schema, file, hooks),

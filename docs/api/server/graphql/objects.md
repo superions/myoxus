@@ -4043,6 +4043,45 @@ Admin projection of document-visible branding including the audit fields (\`upda
 | `blockId`<br>`String` |  |
 | `kind`<br>[DocumentComparisonNoticeKindType](./enums.md#documentcomparisonnoticekindtype)! |  |
 
+## DocumentFieldCatalogType
+
+Editor discovery only. Existing native fields can be filled without fetching this catalog; it contains no document values, identities or authored options.
+
+<!-- prettier-ignore -->
+| Field and return type | Arguments and description |
+| --- | --- |
+| `inputKinds`<br>\[[DocumentFieldInputDescriptorType](./objects.md#documentfieldinputdescriptortype)!\]! |  |
+| `maxIdBytes`<br>`Int`! |  |
+| `maxOptions`<br>`Int`! |  |
+| `maxStringBytes`<br>`Int`! |  |
+| `metadata`<br>\[[DocumentFieldMetadataDescriptorType](./objects.md#documentfieldmetadatadescriptortype)!\]! |  |
+
+## DocumentFieldInputDescriptorType
+
+<!-- prettier-ignore -->
+| Field and return type | Arguments and description |
+| --- | --- |
+| `hasOptions`<br>`Boolean`! |  |
+| `kind`<br>`String`! |  |
+| `multiple`<br>`Boolean`! |  |
+
+## DocumentFieldMetadataDescriptorType
+
+<!-- prettier-ignore -->
+| Field and return type | Arguments and description |
+| --- | --- |
+| `formats`<br>\[`String`!\]! |  |
+| `key`<br>`String`! |  |
+
+## DocumentFieldPresentationType
+
+<!-- prettier-ignore -->
+| Field and return type | Arguments and description |
+| --- | --- |
+| `complete`<br>`Boolean`! |  |
+| `state`<br>[DocumentFieldPresentationState](./enums.md#documentfieldpresentationstate)! |  |
+| `text`<br>`String` |  |
+
 ## DocumentGraphEdgeType
 
 <!-- prettier-ignore -->

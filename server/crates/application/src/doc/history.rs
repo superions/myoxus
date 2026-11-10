@@ -220,13 +220,15 @@ pub struct DocHistoryService {
 impl DocHistoryService {
   /// Fixed direction: selected historical content to current persisted content.
   /// The existing decoder permit bounds both read buffers and blocking diff work.
-  #[instrument(skip(self), fields(%workspace_id, %doc_id, history_id))]
+  #[instrument(skip(self, field_resolver), fields(%workspace_id, %doc_id, history_id))]
   pub async fn compare_current(
     &self,
     workspace_id: Uuid,
     doc_id: Uuid,
     history_id: i64,
     max_input_bytes: usize,
+    field_resolver: Option<&crate::document_fields::context::DocumentFieldResolver>,
+    actor_id: Option<Uuid>,
   ) -> AuthResult<DocHistoryComparison> {
     let permit = self
       .load
@@ -239,15 +241,55 @@ impl DocHistoryService {
       .store
       .read_history_comparison(workspace_id, doc_id, history_id, max_input_bytes)
       .await?;
+    // Comparing an old live atom as a blank would falsely claim a meaningful
+    // historical value. Field-free legacy bytes retain the prior diff path.
+    if read
+      .history_snapshot
+      .windows(yjs::document_field::FIELD_ATTRIBUTE.len())
+      .any(|bytes| bytes == yjs::document_field::FIELD_ATTRIBUTE.as_bytes())
+    {
+      crate::document_fields::output::historical_snapshot(&read.history_snapshot)
+        .map_err(|_| AuthError::InvalidInput("historical field values unavailable".into()))?;
+    }
+    let may_have_fields = read
+      .current_snapshot
+      .windows(yjs::document_field::FIELD_ATTRIBUTE.len())
+      .any(|bytes| bytes == yjs::document_field::FIELD_ATTRIBUTE.as_bytes());
+    let has_fields = if may_have_fields {
+      !yjs::document_field::content::inspect(&read.current_snapshot)
+        .map_err(|_| AuthError::Storage("current document field state is invalid".into()))?
+        .is_empty()
+    } else {
+      false
+    };
+    let current_reading = if has_fields {
+      let resolver = field_resolver.ok_or_else(|| AuthError::Storage("document field context unavailable".into()))?;
+      let revision = crate::doc::canonical_yjs_revision(&read.current_snapshot)
+        .map_err(|_| AuthError::Storage("current document revision unavailable".into()))?;
+      resolver
+        .project_authorized(workspace_id, doc_id, revision, &read.current_snapshot, actor_id)
+        .await?
+        .0
+    } else {
+      read.current_snapshot.clone()
+    };
+    if current_reading.len() > max_input_bytes {
+      return Err(AuthError::DocSyncPayloadTooLarge {
+        max_bytes: max_input_bytes,
+      });
+    }
     let diff = tokio::task::spawn_blocking(move || {
       let _permit = permit;
-      crate::document_version::diff_snapshots(&read.history_snapshot, &read.current_snapshot).map(|diff| {
-        DocHistoryComparison {
-          history_id: read.history_id,
-          current_revision: read.current_revision,
-          read_at: read.read_at,
-          diff,
-        }
+      crate::document_version::diff::diff_snapshots_with_current_reading(
+        &read.history_snapshot,
+        &read.current_snapshot,
+        &current_reading,
+      )
+      .map(|diff| DocHistoryComparison {
+        history_id: read.history_id,
+        current_revision: read.current_revision,
+        read_at: read.read_at,
+        diff,
       })
     })
     .await

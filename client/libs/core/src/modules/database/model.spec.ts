@@ -1237,6 +1237,26 @@ describe("database model helpers", () => {
     expect(formatCellValue(databaseRow, workflowStatusField, "en-US")).toBe(
       "Doing",
     );
+    expect(
+      formatCellValue(
+        { ...databaseRow, cells: [] },
+        workflowStatusField,
+        "en-US",
+      ),
+    ).toBe("Todo");
+    expect(
+      formatCellValue(
+        {
+          ...databaseRow,
+          cells: databaseRow.cells.map((cell) => ({
+            ...cell,
+            value: { ...cell.value, status: null },
+          })),
+        },
+        workflowStatusField,
+        "en-US",
+      ),
+    ).toBe("");
   });
 
   test("date-time cells keep personal reminders outside shared Cell values", () => {

@@ -1,4 +1,5 @@
 import { AnnotationSchema } from "@virgultum/model";
+import { DocumentFieldSchema } from "@virgultum/shared/types";
 import type { MyoxusTextAttributes } from "@virgultum/shared/types";
 import {
   type InlineRootElement,
@@ -10,6 +11,27 @@ import { html } from "lit";
 import { z } from "zod";
 
 export type MyoxusInlineRootElement = InlineRootElement<MyoxusTextAttributes>;
+
+// Captured runs use ordinary typography rather than live interactive embeds.
+export const DocumentFieldInlineSpecExtension =
+  InlineSpecExtension<MyoxusTextAttributes>("document-field", (provider) => ({
+    name: "document-field",
+    schema: z.object({
+      documentField: DocumentFieldSchema.optional().nullable(),
+      documentFieldCaptured: z.literal(true).optional().nullable(),
+    }),
+    match: (delta) =>
+      !!delta.attributes?.documentField &&
+      !delta.attributes.documentFieldCaptured,
+    embed: true,
+    renderer: ({ delta, editor, startOffset }) =>
+      html`<myoxus-inline-document-field
+        .delta=${delta}
+        .editor=${editor}
+        .startOffset=${startOffset}
+        .std=${provider.get(StdIdentifier)}
+      ></myoxus-inline-document-field>`,
+  }));
 
 export const AnnotationInlineSpecExtension =
   InlineSpecExtension<MyoxusTextAttributes>("annotation", (provider) => ({
@@ -146,6 +168,7 @@ export const LabelToneInlineSpecExtension =
   });
 
 export const InlineSpecExtensions: ExtensionType[] = [
+  DocumentFieldInlineSpecExtension,
   AnnotationInlineSpecExtension,
   BoldInlineSpecExtension,
   ItalicInlineSpecExtension,

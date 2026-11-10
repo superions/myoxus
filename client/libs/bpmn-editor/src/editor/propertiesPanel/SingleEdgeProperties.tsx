@@ -32,11 +32,19 @@ import * as RF from "@xyflow/react";
 import { type BpmnDiagramEdgeData } from "../diagram/BpmnDiagramDomain";
 import { AssociationPath, SequenceFlowPath } from "../diagram/edges/EdgeSvgs";
 import { UnknownNodeIcon } from "../diagram/nodes/NodeIcons";
-import { useBpmnEditorStore } from "../store/StoreContext";
+import {
+  useBpmnEditorStore,
+  useBpmnEditorStoreApi,
+} from "../store/StoreContext";
 import { assertUnreachable } from "../ts-ext/assertUnreachable";
 import { AssociationProperties } from "./singleEdgeProperties/AssociationProperties";
 import { SequenceFlowProperties } from "./singleEdgeProperties/SequenceFlowProperties";
 import { useBpmnEditorI18n } from "../i18n";
+import {
+  NameDocumentationAndId,
+  TechnicalPropertiesContext,
+} from "./nameDocumentationAndId/NameDocumentationAndId";
+import { Fragment } from "react";
 const edgeSvgViewboxSize = 25;
 const nodeSvgProps = {
   width: 100,
@@ -48,6 +56,10 @@ const nodeSvgProps = {
 export function SingleEdgeProperties() {
   const { i18n } = useBpmnEditorI18n();
   const t = useI18n();
+  const store = useBpmnEditorStoreApi();
+  const furtherOpen = useBpmnEditorStore(
+    (s) => s.propertiesPanel.isFurtherOpen,
+  );
   const selectedEdge = useBpmnEditorStore(
     (s) =>
       [...s.computed(s).getDiagramData().selectedEdgesById.values()][0] as
@@ -122,12 +134,42 @@ export function SingleEdgeProperties() {
         assertUnreachable(e);
     }
   })();
+  const host = selectedEdge?.data?.bpmnElement;
   return (
-    <Accordion key={selectedEdge?.id} defaultValue="properties">
-      <AccordionItem value="properties">
-        <AccordionControl icon={icon}>{title}</AccordionControl>
-        <AccordionPanel>{properties}</AccordionPanel>
-      </AccordionItem>
-    </Accordion>
+    <Fragment key={selectedEdge?.id}>
+      {host &&
+        (host.__$$element === "sequenceFlow" ||
+        host.__$$element === "association" ? (
+          <NameDocumentationAndId element={host} primaryOnly />
+        ) : (
+          <DataAssociationProperties id={host["@_id"]} primaryOnly />
+        ))}
+      <Accordion
+        value={furtherOpen ? "further" : null}
+        onChange={(value) =>
+          store.setState((s) => {
+            s.propertiesPanel.isFurtherOpen = value === "further";
+          })
+        }
+      >
+        <AccordionItem value="further">
+          <AccordionControl>
+            {t["com.myoxus.editor.bpmn.further-properties"]()}
+          </AccordionControl>
+          <AccordionPanel keepMounted keepMountedMode="display-none">
+            <TechnicalPropertiesContext.Provider value={true}>
+              <Accordion defaultValue="properties">
+                <AccordionItem value="properties">
+                  <AccordionControl icon={icon}>{title}</AccordionControl>
+                  <AccordionPanel keepMounted keepMountedMode="display-none">
+                    {properties}
+                  </AccordionPanel>
+                </AccordionItem>
+              </Accordion>
+            </TechnicalPropertiesContext.Provider>
+          </AccordionPanel>
+        </AccordionItem>
+      </Accordion>
+    </Fragment>
   );
 }

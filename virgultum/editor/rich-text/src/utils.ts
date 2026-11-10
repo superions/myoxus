@@ -31,26 +31,28 @@ export function insertContent(
   });
 }
 
-// When the user selects a range, check if it matches the previous selection.
-// If it does, apply the marks from the previous selection.
-// If it does not, remove the marks from the previous selection.
+/** Clear pending formatting marks when the caret leaves the current typing sequence. */
 export function clearMarksOnDiscontinuousInput(
   inlineEditor: InlineEditor,
 ): void {
   let inlineRange = inlineEditor.getInlineRange();
-  const dispose = effect(() => {
-    const r = inlineEditor.inlineRange$.value;
-    if (
-      inlineRange &&
-      r &&
-      (inlineRange.index === r.index || inlineRange.index === r.index + 1)
-    ) {
-      inlineRange = r;
-    } else {
-      inlineEditor.resetMarks();
-      dispose();
-    }
-  });
+  // An effect can stop during its first synchronous run, before its disposer returns.
+  effect(
+    function () {
+      const r = inlineEditor.inlineRange$.value;
+      if (
+        inlineRange &&
+        r &&
+        (inlineRange.index === r.index || inlineRange.index === r.index + 1)
+      ) {
+        inlineRange = r;
+      } else {
+        inlineEditor.resetMarks();
+        this.dispose();
+      }
+    },
+    { name: "editor.richText.clearMarks" },
+  );
 }
 
 export function getPrefixText(inlineEditor: InlineEditor) {

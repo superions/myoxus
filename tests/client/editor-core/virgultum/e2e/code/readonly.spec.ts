@@ -30,7 +30,7 @@ test("should code block widget be disabled in read only mode", async ({
   const codeBlockController = getCodeBlock(page);
   const codeBlock = codeBlockController.codeBlock;
   await codeBlock.hover();
-  await codeBlockController.clickLanguageButton();
+  await expect(codeBlockController.langFilterInput).toBeDisabled();
   await expect(codeBlockController.langList).toBeHidden();
 
   await codeBlock.hover();

@@ -28,6 +28,16 @@ import { CloseIcon } from "@myoxus/icons/react";
 
 type AvatarKind = "document" | "generic" | "user" | "workspace";
 
+const initialsColors = [
+  "var(--myoxus-text-highlight-foreground-red)",
+  "var(--myoxus-text-highlight-foreground-orange)",
+  "var(--myoxus-text-highlight-foreground-yellow)",
+  "var(--myoxus-text-highlight-foreground-green)",
+  "var(--myoxus-text-highlight-foreground-teal)",
+  "var(--myoxus-text-highlight-foreground-blue)",
+  "var(--myoxus-text-highlight-foreground-purple)",
+];
+
 type AvatarImageSource =
   Blob | File | HTMLImageElement | ImageBitmap | string | null | undefined;
 
@@ -217,6 +227,7 @@ export function Avatar({
       {...domProps}
       src={resolvedSource}
       name={name}
+      allowedInitialsColors={initialsColors}
       alt={name ?? ""}
       size={size}
       radius={radius}

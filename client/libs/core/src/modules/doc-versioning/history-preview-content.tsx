@@ -14,6 +14,7 @@ import {
 } from "@myoxus/ui-facade";
 import type { DocMode } from "@virgultum/editor/model";
 import type { Store } from "@virgultum/editor/store";
+import { HistorySnapshotUnavailableError } from "./history-preview";
 
 /** Render only the isolated snapshot. Missing historical canvas stays Page-only. */
 export function HistoryPreviewContent({
@@ -28,6 +29,12 @@ export function HistoryPreviewContent({
   onRetry: () => void;
 }) {
   const t = useI18n();
+  if (error instanceof HistorySnapshotUnavailableError)
+    return (
+      <SettingsNotice tone="error">
+        {t["com.myoxus.history.snapshot-fields-unavailable"]()}
+      </SettingsNotice>
+    );
   if (error)
     return (
       <SettingsNotice tone="error">

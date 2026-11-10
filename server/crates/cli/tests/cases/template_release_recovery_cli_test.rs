@@ -156,7 +156,7 @@ async fn journey(pool: &PgPool, url: &str, storage: &Path) {
   let pending = recovery_output(url, storage, workspace, false, true);
   assert!(
     pending.status.success(),
-    "known frozen owners can be planned before migrations: {}",
+    "empty native owners can be planned before migrations: {}",
     String::from_utf8_lossy(&pending.stderr)
   );
   let pending: Value = serde_json::from_slice(&pending.stdout).expect("pre-migration recovery plan");
@@ -202,7 +202,19 @@ async fn journey(pool: &PgPool, url: &str, storage: &Path) {
   let mut ids = Vec::new();
   for slug in ["business-daily", "hybrid-day-sprint"] {
     let bytes = std::fs::read(templates.join(slug).join("1.0.0.zip")).unwrap();
-    let (entry, revision) = registry.register_shipped_bundle(&bytes, "legacy.zip").await.unwrap();
+    let (entry, revision) = registry
+      .stage_shipped_catalog_bundle(&bytes, "history.zip")
+      .await
+      .unwrap();
+    registry
+      .commit_shipped_catalog_selection(&[myoxus_application::template_registry::ShippedTemplateSelection {
+        template_id: entry.id,
+        current_revision_id: Some(revision.id),
+        history_revision_ids: vec![],
+        new_workspace_default: false,
+      }])
+      .await
+      .unwrap();
     ids.push(entry.id);
     sqlx::query("INSERT INTO template_default_policies(template_id,apply_to_new_workspaces) VALUES($1,true) ON CONFLICT(template_id) DO UPDATE SET apply_to_new_workspaces=true,release_managed=false")
       .bind(entry.id).execute(pool).await.unwrap();
@@ -312,6 +324,15 @@ async fn journey(pool: &PgPool, url: &str, storage: &Path) {
         .execute(pool)
         .await
         .unwrap();
+      let rejected = recovery_output(url, storage, workspace, false, true);
+      assert!(!rejected.status.success(), "recovery must not adopt a NULL binding");
+      assert!(String::from_utf8_lossy(&rejected.stderr).contains("unsupported unmigrated NULL-revision"));
+      sqlx::query("UPDATE workspace_template_instances SET revision_id=$2 WHERE id=$1")
+        .bind(source.id)
+        .bind(source.revision_id)
+        .execute(pool)
+        .await
+        .unwrap();
     }
     if !edited && !legacy {
       // A real native binding can retain the old positive marker after its
@@ -342,8 +363,8 @@ async fn journey(pool: &PgPool, url: &str, storage: &Path) {
     .execute(pool)
     .await
     .unwrap();
-  // Exact frozen history is attested automatically, but a newer unknown current
-  // still requires operator confirmation rather than absent-author inference.
+  // Unknown current publication requires explicit operator confirmation,
+  // regardless of retained historical bytes or absent authorship.
   sqlx::query("UPDATE template_revisions SET state='deprecated' WHERE template_id=$1 AND state='published'")
     .bind(ids[0])
     .execute(pool)
@@ -398,7 +419,7 @@ async fn journey(pool: &PgPool, url: &str, storage: &Path) {
     .unwrap();
   assert_eq!(
     imports_after, imports_before,
-    "an invalid Workspace must fail before global release staging/adoption"
+    "an invalid Workspace must fail before global release staging"
   );
   // A confirmed key is not permission to delete a later collaborative edit.
   // Inject a genuine native body when the replacement becomes durable, after
@@ -686,10 +707,45 @@ async fn journey(pool: &PgPool, url: &str, storage: &Path) {
       Some(myoxus_application::template_registry::bundle::parse_bundle(&bundle.files[&component.path]).unwrap())
     })
     .unwrap();
+  let actual_fields = yjs::document_field::content::inspect(&actual).unwrap();
   assert!(
     std::iter::once(expected.content_bytes.as_slice())
       .chain(expected.localized_contents.values().map(Vec::as_slice))
-      .any(|body| yjs::native_documents_have_same_content(&actual, body).unwrap()),
+      .any(|body| {
+        // Materialization copies field identities. Align only those identities
+        // at their unchanged native positions before comparing the entire graph;
+        // definitions, answers, attributes and row/cell content remain exact.
+        let fields = yjs::document_field::content::inspect(body).unwrap();
+        if fields.len() != actual_fields.len() {
+          return false;
+        }
+        let mut identities = std::collections::HashMap::new();
+        for field in fields {
+          let Some(actual_field) = actual_fields.iter().find(|actual_field| {
+            actual_field.block_id == field.block_id
+              && actual_field.property == field.property
+              && actual_field.start == field.start
+              && actual_field.length == field.length
+          }) else {
+            return false;
+          };
+          identities.insert(
+            field.run.descriptor.id().to_owned(),
+            actual_field.run.descriptor.id().to_owned(),
+          );
+        }
+        if identities.values().collect::<std::collections::HashSet<_>>().len() != identities.len() {
+          return false;
+        }
+        let aligned = yjs::document_field::content::map(body, |run| {
+          let id = identities
+            .get(run.descriptor.id())
+            .ok_or("missing copied field position")?;
+          run.with_descriptor(run.descriptor.clone_occurrence(id.clone())?)
+        })
+        .unwrap();
+        yjs::native_documents_have_same_content(&actual, &aligned.state).unwrap()
+      }),
     "the explicit Empty source must contain the actual admitted native body"
   );
   all(true);

@@ -33,6 +33,34 @@ Reciprocal Rank Fusion (RRF).
 
 ## Verify health
 
+Native document fields use the normal indexer. Supported metadata/profile/catalog
+writes enqueue `doc_updated` outbox work; native content remains unchanged.
+Default-locale writes and API startup also request refresh through this owner.
+No additional field scheduler or cache needs operations. `has_document_fields`
+and `field_source_revision` on `search_content` are derived dependencies, not
+editable source facts. A known field-free row at its current native revision is
+excluded; an unindexed or stale source is conservatively eligible.
+
+For an affected document, inspect dependencies and pending work without dumping
+its body:
+
+```sql
+SELECT doc_id, has_document_fields, field_source_revision, updated_at
+FROM search_content
+WHERE workspace_id = '<workspace-uuid>' AND doc_id = '<document-uuid>';
+
+SELECT id, created_at, processed_at
+FROM outbox_events
+WHERE event_type = 'doc_updated'
+  AND payload->>'docId' = '<document-uuid>'
+ORDER BY created_at DESC
+LIMIT 20;
+```
+
+Search remains asynchronous. A failed field-context read fails the indexing job
+and retains the previous dated index; use authoritative document output to check
+current values rather than treating an old search excerpt as a current fact.
+
 Compare active documents with canonical search rows:
 
 ```sql
@@ -84,12 +112,6 @@ mutation {
     triggerFullReindex
   }
 }
-```
-
-The CLI can enqueue the established workspace job:
-
-```bash
-myoxus-cli search reindex --workspace <workspace-uuid>
 ```
 
 ## Monitor reindex runs

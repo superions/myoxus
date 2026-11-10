@@ -21,7 +21,6 @@ const TARGET_OWNER = "myoxus";
 const TARGET_REPOSITORY = "packages";
 const TARGET_BRANCH = "main";
 const TARGET_PATH = "DISTRIBUTION.md";
-const CONTENTS_API = `/api/v1/repos/${TARGET_OWNER}/${TARGET_REPOSITORY}/contents/${TARGET_PATH}`;
 const SCHEMA = "myoxus.distribution-overview.v1";
 const STATE_MARKER = "myoxus-distribution-state";
 const SHA = /^[0-9a-f]{40}$/;
@@ -414,19 +413,35 @@ function authHeaders(token, json = false) {
   };
 }
 
-async function readRemoteOverview({ fetchImpl, token = null }) {
+function distributionContentsApi(filePath) {
+  if (
+    !/^(?:DISTRIBUTION\.md|Casks\/myoxus(?:-beta|-internal)?\.rb)$/.test(
+      filePath,
+    )
+  ) {
+    throw new Error("Unsupported distribution content path");
+  }
+  return `/api/v1/repos/${TARGET_OWNER}/${TARGET_REPOSITORY}/contents/${filePath}`;
+}
+
+/** Read one allowed distribution file; callers own its content contract. */
+export async function readDistributionFile({
+  fetchImpl,
+  token = null,
+  filePath = TARGET_PATH,
+}) {
   const response = await fetchImpl(
-    `${FORGEJO_ORIGIN}${CONTENTS_API}?ref=${TARGET_BRANCH}`,
+    `${FORGEJO_ORIGIN}${distributionContentsApi(filePath)}?ref=${TARGET_BRANCH}`,
     {
       headers: token ? authHeaders(token) : { Accept: "application/json" },
       redirect: "manual",
       signal: AbortSignal.timeout(30_000),
     },
   );
-  if (response.status === 404) return { sha: null, state: emptyState() };
+  if (response.status === 404) return { sha: null, source: null };
   if (response.status !== 200) {
     throw new Error(
-      `Public distribution overview lookup failed with HTTP ${response.status}`,
+      `Public distribution file ${filePath} lookup failed with HTTP ${response.status}`,
     );
   }
   const document = await response.json();
@@ -435,38 +450,61 @@ async function readRemoteOverview({ fetchImpl, token = null }) {
     document.encoding !== "base64" ||
     typeof document.content !== "string"
   ) {
-    throw new Error("Forgejo returned malformed distribution overview content");
+    throw new Error(
+      `Forgejo returned malformed distribution content: ${filePath}`,
+    );
   }
   return {
     sha: document.sha,
-    state: parseDistributionOverview(
-      Buffer.from(document.content.replaceAll("\n", ""), "base64").toString(
-        "utf8",
-      ),
-    ),
+    source: Buffer.from(
+      document.content.replaceAll("\n", ""),
+      "base64",
+    ).toString("utf8"),
   };
 }
 
-async function writeRemoteOverview({ fetchImpl, sha, source, token }) {
-  const response = await fetchImpl(`${FORGEJO_ORIGIN}${CONTENTS_API}`, {
-    method: "PUT",
-    headers: authHeaders(token, true),
-    redirect: "manual",
-    signal: AbortSignal.timeout(30_000),
-    body: JSON.stringify({
-      branch: TARGET_BRANCH,
-      content: Buffer.from(source).toString("base64"),
-      message: "chore(release): update distribution overview",
-      ...(sha ? { sha } : {}),
-    }),
-  });
+async function readRemoteOverview(options) {
+  const remote = await readDistributionFile(options);
+  return {
+    sha: remote.sha,
+    state:
+      remote.source === null
+        ? emptyState()
+        : parseDistributionOverview(remote.source),
+  };
+}
+
+/** Compare-and-swap one file without replacing the tap's other contents. */
+export async function writeDistributionFile({
+  fetchImpl,
+  sha,
+  source,
+  token,
+  filePath = TARGET_PATH,
+  message = "chore(release): update distribution overview",
+}) {
+  const response = await fetchImpl(
+    `${FORGEJO_ORIGIN}${distributionContentsApi(filePath)}`,
+    {
+      method: sha ? "PUT" : "POST",
+      headers: authHeaders(token, true),
+      redirect: "manual",
+      signal: AbortSignal.timeout(30_000),
+      body: JSON.stringify({
+        branch: TARGET_BRANCH,
+        content: Buffer.from(source).toString("base64"),
+        message,
+        ...(sha ? { sha } : {}),
+      }),
+    },
+  );
   if ([200, 201].includes(response.status)) return "written";
   if (response.status === 409) return "retry";
   const detail = (await response.text()).slice(0, 300);
   if (response.status === 422 && /sha|conflict|match/i.test(detail))
     return "retry";
   throw new Error(
-    `Public distribution overview update failed with HTTP ${response.status}: ${detail}`,
+    `Public distribution file ${filePath} update failed with HTTP ${response.status}: ${detail}`,
   );
 }
 
@@ -487,7 +525,7 @@ async function publishUpdate({
     const timestamp = now().toISOString();
     const result = update(state, timestamp);
     if (!result.changed) return result;
-    const outcome = await writeRemoteOverview({
+    const outcome = await writeDistributionFile({
       fetchImpl,
       sha: remote.sha,
       source: renderDistributionOverview(state),

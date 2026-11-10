@@ -28,6 +28,7 @@ import {
   createTheme,
   type CSSVariablesResolver,
   defaultCssVariablesResolver,
+  getDefaultZIndex,
   Divider,
   Drawer,
   MantineProvider,
@@ -735,14 +736,15 @@ export const myoxusMantineTheme = createTheme({
         placeholder: "myoxus-mantine-avatar-placeholder",
         root: "myoxus-mantine-avatar",
       },
-      styles: {
+      styles: (_theme, props) => ({
         placeholder: {
-          background: MYOXUS_PRIMARY_SOFT_BG,
-          color: MYOXUS_TEXT_LINK,
+          ...(!props.color
+            ? { background: MYOXUS_PRIMARY_SOFT_BG, color: MYOXUS_TEXT_LINK }
+            : null),
           fontFamily: labelCompactTypography.fontFamily,
           fontWeight: labelCompactTypography.fontWeight,
         },
-      },
+      }),
     }),
     Badge: Badge.extend({
       defaultProps: {
@@ -1417,6 +1419,8 @@ export function MyoxusUIProvider({
             actions/details reachable without product-specific size props. */}
         {!hasNotificationHost && (
           <Notifications
+            // Modal's shared layer exceeds Mantine's default notification layer.
+            zIndex={getDefaultZIndex("max")}
             position="bottom-center"
             limit={5}
             notificationMaxHeight="calc(100dvh - var(--mantine-spacing-xl) * 2)"

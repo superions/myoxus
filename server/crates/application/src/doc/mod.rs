@@ -68,7 +68,10 @@ pub const ASSIGNED_TEMPLATE_SOURCE_PROTECTED: &str = "MIX_ASSIGNED_TEMPLATE_SOUR
 /// helper so revision comparison cannot drift into transport-specific logic.
 pub fn canonical_yjs_revision(payload: &[u8]) -> Result<String, String> {
   let canonical = yjs::merge_updates(vec![payload.to_vec()])?;
-  Ok(hex::encode(Sha256::digest(canonical)))
+  let fingerprint = yjs::document_field::content::fingerprint_input(&canonical).map_err(str::to_owned)?;
+  Ok(hex::encode(Sha256::digest(
+    fingerprint.as_deref().unwrap_or(&canonical),
+  )))
 }
 
 // ── P102-CACHE: Doc cache port trait ─────────────────────────────────────────
@@ -1381,6 +1384,39 @@ impl DocService {
     Ok((doc, sync_updates))
   }
 
+  /// Admit an explicit complete content capture, not an incremental sync update.
+  /// Normalization uses only that capture and retains the existing wire bounds.
+  #[instrument(skip_all)]
+  pub(crate) async fn prepare_captured_document_fields(
+    &self,
+    snapshot: Vec<u8>,
+  ) -> AuthResult<yjs::document_field::content::FieldContentUpdate> {
+    let (snapshot, _) = self.write.validate_snapshot_ingress(snapshot).await?;
+    let mut normalized = crate::document_fields::normalize_snapshot(&snapshot)?;
+    if normalized.delta.is_some() {
+      normalized.state = self.write.validate_snapshot_ingress(normalized.state).await?.0;
+    }
+    Ok(normalized)
+  }
+
+  /// A complete snapshot used to create a new editable document is a copy,
+  /// not an archive read. Rebind field identities and reactivate captured text
+  /// only here; generic capture admission and synchronization remain unchanged.
+  #[instrument(skip_all)]
+  pub(crate) async fn prepare_editable_document_copy(&self, snapshot: Vec<u8>) -> AuthResult<Vec<u8>> {
+    let normalized = self.prepare_captured_document_fields(snapshot).await?;
+    let copy = yjs::document_field::content::copy_for_editable_document(&normalized.state)
+      .map_err(|_| AuthError::InvalidInput("MIX_DOCUMENT_FIELD_INVALID".into()))?;
+    if copy.delta.is_some() {
+      return self
+        .write
+        .validate_snapshot_ingress(copy.state)
+        .await
+        .map(|(snapshot, _)| snapshot);
+    }
+    Ok(copy.state)
+  }
+
   /// Create a normal workspace page whose initial leaf state is a trusted,
   /// complete Yjs snapshot, returning the exact committed sync deltas.
   ///
@@ -1409,10 +1445,41 @@ impl DocService {
     source_snapshot: Vec<u8>,
     source_purpose: Option<crate::template_registry::bundle::TemplatePurpose>,
   ) -> AuthResult<(Doc, CreatedPageSyncUpdates)> {
-    let (source_snapshot, _) = self.write.validate_snapshot_ingress(source_snapshot).await?;
+    self
+      .create_page_from_snapshot_at(
+        workspace_id,
+        created_by,
+        title,
+        source_snapshot,
+        source_purpose,
+        chrono::Utc::now(),
+      )
+      .await
+  }
+
+  /// Publish already prepared content with the same authoritative creation time
+  /// used for its point-in-time substitutions. There is no provisional source leaf.
+  #[instrument(skip_all)]
+  pub(crate) async fn create_page_from_snapshot_at(
+    &self,
+    workspace_id: Uuid,
+    created_by: Uuid,
+    title: Option<String>,
+    source_snapshot: Vec<u8>,
+    source_purpose: Option<crate::template_registry::bundle::TemplatePurpose>,
+    committed_at: chrono::DateTime<chrono::Utc>,
+  ) -> AuthResult<(Doc, CreatedPageSyncUpdates)> {
+    let source_snapshot = self.prepare_editable_document_copy(source_snapshot).await?;
     let committed = self
       .page_lifecycle
-      .create_from_snapshot(workspace_id, created_by, title, source_snapshot, source_purpose)
+      .create_from_snapshot(
+        workspace_id,
+        created_by,
+        title,
+        source_snapshot,
+        source_purpose,
+        committed_at,
+      )
       .await?;
     let leaf = committed
       .leaf
@@ -1444,7 +1511,7 @@ impl DocService {
     committed_at: chrono::DateTime<chrono::Utc>,
     ack: crate::workspace::ProjectDocumentAck,
   ) -> AuthResult<PageLifecycleCommit> {
-    let (snapshot, _) = self.write.validate_snapshot_ingress(snapshot).await?;
+    let snapshot = self.prepare_editable_document_copy(snapshot).await?;
     let commit = self
       .page_lifecycle
       .create_project_from_snapshot(workspace, actor, reserved, title, snapshot, committed_at, ack)
@@ -1471,11 +1538,7 @@ impl DocService {
     fence: myoxus_domain::workspace_automation::AutomationEffectFence,
   ) -> AuthResult<Doc> {
     let content = if let Some(mut content) = content {
-      content.initial_leaf_update = self
-        .write
-        .validate_snapshot_ingress(content.initial_leaf_update)
-        .await?
-        .0;
+      content.initial_leaf_update = self.prepare_editable_document_copy(content.initial_leaf_update).await?;
       Some(content)
     } else {
       None
@@ -1794,12 +1857,29 @@ impl DocService {
     history_id: i64,
   ) -> AuthResult<history::DocHistoryComparison> {
     self
+      .history_diff_with_fields(workspace_id, doc_id, history_id, None, None)
+      .await
+  }
+
+  /// The transport authorizes this document before supplying its current field
+  /// resolver and actor. Field-free callers need neither metadata nor identity.
+  pub async fn history_diff_with_fields(
+    &self,
+    workspace_id: Uuid,
+    doc_id: Uuid,
+    history_id: i64,
+    field_resolver: Option<&crate::document_fields::context::DocumentFieldResolver>,
+    actor_id: Option<Uuid>,
+  ) -> AuthResult<history::DocHistoryComparison> {
+    self
       .history
       .compare_current(
         workspace_id,
         doc_id,
         history_id,
         self.external_update_ingress_policy.max_update_bytes,
+        field_resolver,
+        actor_id,
       )
       .await
   }
@@ -2302,6 +2382,17 @@ mod ingress_tests {
     )
     .expect("valid nested organizer object");
     map.insert(&mut doc.transact_mut(), "folder", object);
+    let text = doc.get_or_insert_text("body");
+    use yrs::Text;
+    text.insert_with_attributes(
+      &mut doc.transact_mut(),
+      0,
+      " ",
+      yrs::types::Attrs::from([(
+        "documentField".into(),
+        Any::from_json(r#"{"type":"metadata","id":"status","key":"status","format":"text"}"#).unwrap(),
+      )]),
+    );
     let payload = doc.transact().encode_state_as_update_v1(&StateVector::default());
     let expected = super::canonical_yjs_revision(&payload).expect("first canonical revision");
     for _ in 0..32 {

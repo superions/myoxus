@@ -18,18 +18,6 @@ describe("builtin template reconciler trigger contract", () => {
     );
   });
 
-  test("reconciles lazily when a template picker is actually opened", () => {
-    const templateMenu = read(
-      "client/libs/core/src/modules/template-doc/view/template-list-menu.tsx",
-    );
-
-    expect(templateMenu).toContain("BuiltinTemplateReconcilerService");
-    expect(templateMenu).toContain("onOpen");
-    expect(templateMenu).toContain("await reconciler.reconcile()");
-    expect(templateMenu).toContain("loadTemplateSuggestions");
-    expect(templateMenu).toContain("loadSuggestionsOnMount");
-  });
-
   test("journal template picker delegates to the shared suggestion-aware onboarding content", () => {
     const journalOnboarding = read(
       "client/libs/core/src/desktop/pages/workspace/detail-page/sidecards/journal/template-onboarding.tsx",

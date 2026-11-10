@@ -142,7 +142,7 @@ export class InlineEditor<
     return this._inlineRangeProviderOverride;
   }
   readonly inlineRangeProvider: InlineRangeProvider = {
-    inlineRange$: signal(null),
+    inlineRange$: signal(null, { name: "editor.text.range" }),
     setInlineRange: (inlineRange) => {
       this.inlineRange$.value = inlineRange;
     },

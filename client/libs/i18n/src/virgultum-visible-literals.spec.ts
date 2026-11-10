@@ -17,7 +17,7 @@ const migratedFiles = [
   "virgultum/editor/blocks/callout/src/configs/toolbar.ts",
   "virgultum/editor/widgets/keyboard-toolbar/src/config.ts",
   "virgultum/editor/blocks/attachment/src/configs/toolbar.ts",
-  "virgultum/editor/blocks/code/src/code-toolbar/components/code-toolbar.ts",
+  "virgultum/editor/blocks/code/src/code-toolbar/controller.ts",
   "virgultum/editor/blocks/embed-doc/src/embed-linked-doc-block/configs/toolbar.ts",
   "virgultum/editor/blocks/embed-doc/src/embed-synced-doc-block/configs/toolbar.ts",
   "virgultum/editor/fragments/outline/src/outline-viewer.ts",

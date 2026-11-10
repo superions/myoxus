@@ -1,5 +1,6 @@
 import type { DialogComponentProps } from "@myoxus/core/modules/dialogs";
 import { WorkspaceDialogService } from "@myoxus/core/modules/dialogs";
+import { DocumentMetadataCacheService } from "@myoxus/core/modules/document-metadata/services/document-metadata-cache";
 import type { WORKSPACE_DIALOG_SCHEMA } from "@myoxus/core/modules/dialogs/constant";
 import {
   EventSourceService,
@@ -220,6 +221,7 @@ export function PdfExportDialog({
   const graphqlService = useService(GraphQLService);
   const eventSourceService = useService(EventSourceService);
   const fetchService = useService(FetchService);
+  const documentMetadataCache = useService(DocumentMetadataCacheService);
   const hasTemplateChoice = options.bootstrap.availablePdfTemplates.length > 1;
   const [selectedTemplate, setSelectedTemplate] = useState(() =>
     selectInitialTemplate(options),
@@ -282,6 +284,9 @@ export function PdfExportDialog({
         setStage("options");
         return;
       }
+      // The server may commit an automatic version even when PDF rendering
+      // subsequently fails. Refresh the existing canonical cache on either
+      // outcome; a failed refresh must not disguise a successful download.
       const result = await runServerPdfExport(
         options.workspaceId,
         options.docId,
@@ -298,7 +303,17 @@ export function PdfExportDialog({
           eventSourceService,
           onProgress: updateProgress,
         },
-      );
+      ).finally(() => {
+        documentMetadataCache.invalidateIndex("pdf-export-attempt");
+        void documentMetadataCache
+          .hydrateMetadata(options.docId, undefined, { refresh: true })
+          .catch(() => {
+            documentMetadataCache.markStale(
+              options.docId,
+              "pdf-export-refresh-failed",
+            );
+          });
+      });
       close(result);
     } catch (err) {
       setRenderError(

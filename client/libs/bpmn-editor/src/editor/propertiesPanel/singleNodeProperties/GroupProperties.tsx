@@ -83,7 +83,7 @@ export function GroupProperties({
         <AccordionControl icon={<GroupIcon />}>
           {t["com.myoxus.editor.shape.bpmn.group"]()}
         </AccordionControl>
-        <AccordionPanel>
+        <AccordionPanel keepMounted keepMountedMode="display-none">
           <Stack>
             <Select
               label={t["com.myoxus.editor.bpmn.definition-reference"]()}

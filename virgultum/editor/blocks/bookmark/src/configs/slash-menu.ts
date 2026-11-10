@@ -44,7 +44,7 @@ const bookmarkSlashMenuConfig: SlashMenuConfig = {
           host,
           "Links",
           "The added link will be displayed as a card view.",
-          { mode: "page", parentModel, index },
+          { mode: "page", parentModel, index, sourceBlockId: model.id },
           ({ mode }) => {
             if (mode === "edgeless") {
               const gfx = std.get(GfxControllerIdentifier);
@@ -52,8 +52,8 @@ const bookmarkSlashMenuConfig: SlashMenuConfig = {
             }
           },
         )
-          .then(() => {
-            if (model.text?.length === 0) {
+          .then((inserted) => {
+            if (inserted && model.text?.length === 0) {
               model.store.deleteBlock(model);
             }
           })

@@ -7,9 +7,7 @@ import {
   ToolbarModuleExtension,
   editorMessage,
 } from "@virgultum/shared/services";
-import { flip, offset } from "@floating-ui/dom";
 import { computed } from "@preact/signals-core";
-import { createLitPortal } from "@virgultum/components/portal";
 import { Bound } from "@virgultum/global/gfx";
 import {
   AttachmentBlockModel,
@@ -22,7 +20,7 @@ import { BlockFlavourIdentifier } from "@virgultum/std";
 import type { ExtensionType } from "@virgultum/store";
 
 import { AttachmentBlockComponent } from "../attachment-block";
-import { RenameModal } from "../components/rename-model";
+import { openAttachmentRename } from "../rename-session";
 import { AttachmentEmbedProvider } from "../embed";
 
 const trackBaseProps = {
@@ -195,19 +193,7 @@ const builtinToolbarConfig = {
         const abortController = new AbortController();
         abortController.signal.onabort = () => ctx.show();
         ctx.hide();
-        createLitPortal({
-          template: RenameModal({
-            model: block.model,
-            editorHost: ctx.host,
-            abortController,
-          }),
-          computePosition: {
-            referenceElement: block,
-            placement: "top-start",
-            middleware: [flip(), offset(4)],
-          },
-          abortController,
-        });
+        openAttachmentRename(block, abortController);
       },
     },
     attachmentViewDropdownMenu,

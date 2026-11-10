@@ -385,7 +385,7 @@ pub fn init_with_options(state: Arc<ApiState>, options: RuntimeOptions) -> (Sock
 
   io.ns(
     "/",
-    (|socket: SocketRef, SioState(state): SioState<Arc<ApiState>>| {
+    (|socket: SocketRef, SioState(state): SioState<Arc<ApiState>>| async move {
       on_connect(socket, state);
     })
     .with(auth_middleware),

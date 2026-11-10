@@ -43,7 +43,6 @@ import {
   sortByPosition,
 } from "../model";
 import {
-  type DatabasePresenceRecord,
   useDatabaseConflictController,
   useDatabasePresenceContext,
 } from "../presence";
@@ -205,20 +204,6 @@ export function useDatabaseViewHostController(
         ),
       ]
     : serverOrderedViews;
-
-  const collaboratorRecordMetaLabel = useCallback(
-    (presenceRecord: DatabasePresenceRecord) => {
-      const viewName =
-        record.views.find((candidate) => candidate.id === presenceRecord.viewId)
-          ?.name ?? activeView.name;
-      const lastActive = new Date(presenceRecord.lastActiveAt);
-      if (Number.isNaN(lastActive.getTime())) return viewName;
-      return `${viewName} · ${new Intl.DateTimeFormat(t.language, {
-        timeStyle: "short",
-      }).format(lastActive)}`;
-    },
-    [activeView.name, record.views, t.language],
-  );
 
   const windowDetailRow = rows.find(
     (candidate) => candidate.row.id === detailRowId,
@@ -1379,7 +1364,6 @@ export function useDatabaseViewHostController(
     changeScheduleZoom,
     closeRowDetail,
     taskNavigation,
-    collaboratorRecordMetaLabel,
     configuredField,
     conflicts,
     copyViewLink,

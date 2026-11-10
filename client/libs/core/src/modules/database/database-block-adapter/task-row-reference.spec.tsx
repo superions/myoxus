@@ -18,6 +18,28 @@ vi.mock("../tasks/use-workspace-tasks", () => ({
 vi.mock("../tasks/use-task-freshness", () => ({
   subscribeTaskFreshness: () => () => {},
 }));
+vi.mock("../tasks/task-detail", async () => {
+  const { record, rows } = await import("../test-fixtures");
+  return {
+    TaskDetail: ({
+      embedded,
+    }: import("react").ComponentProps<
+      typeof import("../tasks/task-detail").TaskDetail
+    >) =>
+      embedded?.({
+        record,
+        row: rows[0]!,
+        canEdit: false,
+        onChanged: async () => {},
+      }),
+  };
+});
+vi.mock("../row-detail/task-navigation", async (original) => ({
+  ...(await original<typeof import("../row-detail/task-navigation")>()),
+  useTaskDetailNavigation: () => ({
+    navigation: { requestLeave: (next: () => void) => next() },
+  }),
+}));
 vi.mock("@myoxus/core/components/hooks/myoxus/use-user-preferences", () => ({
   useRegionalPreferences: () => ({ timezone: "UTC" }),
 }));
@@ -46,7 +68,7 @@ function projection(): DatabaseTaskReferenceFragment {
       updatedAt: "2026-10-15T00:00:00Z",
       deletedAt: null,
       status: {
-        id: "complete",
+        id: "status.done",
         name: "Done",
         position: 1,
         colorRole: "tag.green",
@@ -111,7 +133,7 @@ test("changing actor cannot reuse a cached reference title", async () => {
       <TaskRowReference framework={f.framework} target={target} />
     </MyoxusUIProvider>,
   );
-  await screen.findByRole("button", { name: "Current canonical Task" });
+  await screen.findByText("Current canonical Task");
   f.server.account$.value.id = "actor-b";
   fixture.owner = {
     ...f.owner,
@@ -138,9 +160,7 @@ test("changing actor cannot reuse a cached reference title", async () => {
       <TaskRowReference framework={f.framework} target={target} />
     </MyoxusUIProvider>,
   );
-  expect(
-    screen.queryByRole("button", { name: "Current canonical Task" }),
-  ).toBeNull();
+  expect(screen.queryByText("Current canonical Task")).toBeNull();
   await waitFor(() =>
     expect(screen.getByRole("button", { name: "Retry" }).textContent).toBe(
       "Retry",
@@ -161,16 +181,16 @@ test("a stored reference opens the same Row in its current owner and loses priva
   f.gql.mockResolvedValue({ workspace: { databaseTaskReferences: [moved] } });
   render(
     <MyoxusUIProvider env="test">
-      <TaskRowReference framework={f.framework} target={target} />
+      <div contentEditable suppressContentEditableWarning>
+        <TaskRowReference framework={f.framework} target={target} />
+      </div>
     </MyoxusUIProvider>,
   );
   await userEvent
     .setup()
-    .click(
-      await screen.findByRole("button", { name: "Current canonical Task" }),
-    );
+    .dblClick(await screen.findByText("Current canonical Task"));
   expect(f.open).toHaveBeenCalledWith(
-    "/databases/current-project?rowId=canonical-row",
+    "/tasks?view=kanban&scope=All&lifecycle=Closed&databaseId=current-project&rowId=canonical-row&projectId=current-project",
     { at: "active" },
   );
   f.gql.mockResolvedValue({
@@ -188,5 +208,4 @@ test("a stored reference opens the same Row in its current owner and loses priva
     await taskReferenceBatch(f.framework).refresh();
   });
   expect(screen.queryByText("Current canonical Task")).toBeNull();
-  expect(screen.queryByText("Current owner")).toBeNull();
 });

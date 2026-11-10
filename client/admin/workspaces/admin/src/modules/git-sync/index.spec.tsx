@@ -45,6 +45,8 @@ const tMock = vi.fn((key: string, options?: Record<string, any>): string => {
 
 vi.mock("@myoxus/i18n", () => ({
   useI18n: () => ({
+    "com.myoxus.peek-view-controls.close": () =>
+      en["com.myoxus.peek-view-controls.close"],
     t: tMock,
     exists: (key: string) => key in en,
     language: "en",

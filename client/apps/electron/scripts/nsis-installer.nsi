@@ -42,7 +42,9 @@ SilentInstall silent
 !else
 OutFile "${ARTIFACT}"
 !endif
-SetCompressor /SOLID lzma
+; Keep the real release and fixture path identical. LZMA exceeded the bounded
+; compiler window for this payload; zlib trades some size for bounded packaging.
+SetCompressor /SOLID zlib
 InstallDir "$LOCALAPPDATA\Programs\${PRODUCT_NAME}"
 !define MUI_ICON "${ICON}"
 !define MUI_UNICON "${ICON}"

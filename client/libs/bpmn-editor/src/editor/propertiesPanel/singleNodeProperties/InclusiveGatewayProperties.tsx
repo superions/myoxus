@@ -50,7 +50,7 @@ export function InclusiveGatewayProperties({
           {inclusiveGateway["@_name"] ||
             i18n.singleNodeProperties.inclusiveGateway}
         </AccordionControl>
-        <AccordionPanel>
+        <AccordionPanel keepMounted keepMountedMode="display-none">
           <NameDocumentationAndId element={inclusiveGateway} />
 
           <GatewayPropertiesFields gateway={inclusiveGateway} />

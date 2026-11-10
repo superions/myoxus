@@ -14,7 +14,11 @@ export const UpdateCheckSection = () => {
     checkForUpdates,
     downloadUpdate,
     quitAndInstall,
+    externalMacosInstall,
+    openDownloadPage,
   } = useAppUpdater();
+  // An initial null snapshot cannot establish whether native controls exist.
+  if (!state) return null;
   const unavailable =
     state?.availability.state === "disabled" ? state.availability.reason : null;
   const active = state?.phase === "checking" || state?.phase === "downloading";
@@ -25,15 +29,16 @@ export const UpdateCheckSection = () => {
       : state?.phase === "error" || state?.phase === "latest"
         ? t["com.myoxus.aboutMyoxus.checkUpdate.button.retry"]()
         : t["com.myoxus.aboutMyoxus.checkUpdate.button.check"]();
-  const subtitle =
-    unavailable === "externally-managed"
+  const subtitle = externalMacosInstall
+    ? t["com.myoxus.aboutMyoxus.checkUpdate.subtitle.external-macos-install"]()
+    : unavailable === "externally-managed"
       ? t["com.myoxus.aboutMyoxus.checkUpdate.subtitle.externally-managed"]()
       : unavailable === "portable"
         ? t["com.myoxus.aboutMyoxus.checkUpdate.subtitle.portable"]()
         : unavailable
           ? t["com.myoxus.aboutMyoxus.checkUpdate.subtitle.disabled"]()
           : state?.phase === "error"
-            ? t["com.myoxus.aboutMyoxus.checkUpdate.subtitle.error"]()
+            ? t["com.myoxus.common.operation-failed"]()
             : state?.ready
               ? t["com.myoxus.aboutMyoxus.checkUpdate.subtitle.restart"]()
               : state?.phase === "checking"
@@ -60,7 +65,13 @@ export const UpdateCheckSection = () => {
   };
   return (
     <SettingsRow
-      name={t["com.myoxus.aboutMyoxus.checkUpdate.title"]()}
+      name={
+        externalMacosInstall
+          ? t[
+              "com.myoxus.aboutMyoxus.checkUpdate.title.external-macos-install"
+            ]()
+          : t["com.myoxus.aboutMyoxus.checkUpdate.title"]()
+      }
       desc={
         <SettingsStatusText tone={state?.phase === "error" ? "error" : "muted"}>
           {active ? <MyoxusLoader /> : null}
@@ -68,13 +79,19 @@ export const UpdateCheckSection = () => {
         </SettingsStatusText>
       }
     >
-      <MyoxusButton
-        data-testid="check-update-button"
-        onClick={handleClick}
-        disabled={!state || Boolean(unavailable) || active}
-      >
-        {buttonLabel}
-      </MyoxusButton>
+      {externalMacosInstall ? (
+        <MyoxusButton onClick={openDownloadPage}>
+          {t["com.myoxus.appUpdater.openDownloadPage"]()}
+        </MyoxusButton>
+      ) : (
+        <MyoxusButton
+          data-testid="check-update-button"
+          onClick={handleClick}
+          disabled={Boolean(unavailable) || active}
+        >
+          {buttonLabel}
+        </MyoxusButton>
+      )}
     </SettingsRow>
   );
 };

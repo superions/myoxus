@@ -1,18 +1,20 @@
-import { limitShift, shift, size } from "@floating-ui/dom";
+import { limitShift, offset, shift, size } from "@floating-ui/dom";
 import { HoverController } from "@virgultum/components/hover";
+import { signal } from "@preact/signals-core";
 import {
-  type AdvancedMenuItem,
-  cloneGroups,
-  getMoreMenuConfig,
-  type MenuItemGroup,
-} from "@virgultum/components/toolbar";
+  DocModeProvider,
+  EditorChromeHostIdentifier,
+} from "@virgultum/shared/services";
 import type { CodeBlockModel } from "@virgultum/model";
 import { BlockSelection, TextSelection, WidgetComponent } from "@virgultum/std";
 import { html } from "lit";
 
 import type { CodeBlockComponent } from "../code-block.js";
-import { MORE_GROUPS, PRIMARY_GROUPS } from "./config.js";
 import { CodeBlockToolbarContext } from "./context.js";
+import {
+  createCodeToolbarControls,
+  type CodeToolbarActions,
+} from "./controller";
 
 export const MYOXUS_CODE_TOOLBAR_WIDGET = "myoxus-code-toolbar-widget";
 export class MyoxusCodeToolbarWidget extends WidgetComponent<
@@ -29,11 +31,14 @@ export class MyoxusCodeToolbarWidget extends WidgetComponent<
       this,
       ({ abortController }) => {
         const codeBlock = this.block;
-        if (!codeBlock) {
+        const chrome = this.std.getOptional(EditorChromeHostIdentifier);
+        if (!codeBlock || !chrome) {
           return null;
         }
 
         const selection = this.host.selection;
+        const edgeless =
+          this.std.get(DocModeProvider).getEditorMode() === "edgeless";
 
         const textSelection = selection.find(TextSelection);
         if (
@@ -66,13 +71,12 @@ export class MyoxusCodeToolbarWidget extends WidgetComponent<
         );
 
         return {
-          template: html`<myoxus-code-toolbar
-            .context=${context}
-            .primaryGroups=${this.primaryGroups}
-            .moreGroups=${this.moreGroups}
-            .onActiveStatusChange=${setActive}
-          ></myoxus-code-toolbar>`,
-          container: this.block,
+          shadowDom: false,
+          template: html`${chrome.renderCodeToolbar(
+            createCodeToolbarControls(context, () => this.primaryActions.value),
+          )}`,
+          // Native controls must not participate in the document's caret tree.
+          container: this.host,
           // stacking-context(editor-host)
           portalStyles: {
             zIndex: "var(--myoxus-z-index-popover)",
@@ -81,9 +85,13 @@ export class MyoxusCodeToolbarWidget extends WidgetComponent<
             referenceElement: codeBlock,
             placement: "top",
             middleware: [
+              // Canvas content scales; native chrome stays above it at normal UI density.
+              offset(({ rects }) => (edgeless ? 0 : -rects.floating.height)),
               size({
                 apply({ rects, elements }) {
-                  elements.floating.style.width = `${rects.reference.width}px`;
+                  elements.floating.style.width = edgeless
+                    ? "max-content"
+                    : `${rects.reference.width}px`;
                 },
               }),
               shift({
@@ -95,7 +103,7 @@ export class MyoxusCodeToolbarWidget extends WidgetComponent<
                 limiter: limitShift(),
               }),
             ],
-            autoUpdate: true,
+            autoUpdate: { animationFrame: true },
           },
         };
       },
@@ -115,53 +123,13 @@ export class MyoxusCodeToolbarWidget extends WidgetComponent<
     };
   };
 
-  addMoretems = (
-    items: AdvancedMenuItem<CodeBlockToolbarContext>[],
-    index?: number,
-    type?: string,
-  ) => {
-    let group;
-    if (type) {
-      group = this.moreGroups.find((g) => g.type === type);
-    }
-    if (!group) {
-      group = this.moreGroups[0];
-    }
+  private readonly primaryActions = signal<CodeToolbarActions[]>([]);
 
-    if (index === undefined) {
-      group.items.push(...items);
-      return this;
-    }
-
-    group.items.splice(index, 0, ...items);
-    return this;
-  };
-
-  addPrimaryItems = (
-    items: AdvancedMenuItem<CodeBlockToolbarContext>[],
-    index?: number,
-  ) => {
-    if (index === undefined) {
-      this.primaryGroups[0].items.push(...items);
-      return this;
-    }
-
-    this.primaryGroups[0].items.splice(index, 0, ...items);
-    return this;
-  };
-
-  /*
-   * Caches the more menu items.
-   * Currently only supports configuring more menu.
-   */
-  protected moreGroups: MenuItemGroup<CodeBlockToolbarContext>[] =
-    cloneGroups(MORE_GROUPS);
-
-  protected primaryGroups: MenuItemGroup<CodeBlockToolbarContext>[] =
-    cloneGroups(PRIMARY_GROUPS);
+  addPrimaryActions(factory: CodeToolbarActions) {
+    this.primaryActions.value = [...this.primaryActions.value, factory];
+  }
 
   override firstUpdated() {
-    this.moreGroups = getMoreMenuConfig(this.std).configure(this.moreGroups);
     this._setHoverController();
   }
 }

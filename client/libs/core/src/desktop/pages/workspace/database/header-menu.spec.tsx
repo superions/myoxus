@@ -15,6 +15,12 @@ import {
 import { useState } from "react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
+// Shared tool membership has its own Workbench harness; these tests own the
+// Database commands independently of the current route's registered tools.
+vi.mock("@myoxus/core/components/workbench-tools-menu", () => ({
+  WorkbenchToolsMenuSub: () => null,
+}));
+
 vi.mock("@myoxus/i18n", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@myoxus/i18n")>()),
   useI18n: () =>

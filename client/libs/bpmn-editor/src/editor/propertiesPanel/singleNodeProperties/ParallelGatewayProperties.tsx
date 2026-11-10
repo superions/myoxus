@@ -50,7 +50,7 @@ export function ParallelGatewayProperties({
           {parallelGateway["@_name"] ||
             i18n.singleNodeProperties.parallelGateway}
         </AccordionControl>
-        <AccordionPanel>
+        <AccordionPanel keepMounted keepMountedMode="display-none">
           <NameDocumentationAndId element={parallelGateway} />
           <GatewayPropertiesFields gateway={parallelGateway} />
         </AccordionPanel>

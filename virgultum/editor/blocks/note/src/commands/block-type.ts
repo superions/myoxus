@@ -67,6 +67,8 @@ export const updateBlockType: Command<
   if (!selectedBlocks || selectedBlocks.length === 0) return false;
 
   const blockModels = selectedBlocks.map((ele) => ele.model);
+  if (doc.readonly || blockModels.some((model) => doc.hasFixedText(model)))
+    return false;
 
   const hasSameDoc = selectedBlocks.every((block) => block.store === doc);
   if (!hasSameDoc) {

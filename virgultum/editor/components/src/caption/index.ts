@@ -1,5 +1,5 @@
-import { BlockCaptionEditor } from "./block-caption.js";
-export { BlockCaptionEditor, type BlockCaptionProps } from "./block-caption.js";
+import { BlockCaptionEditor } from "./caption-session.js";
+export { BlockCaptionEditor } from "./caption-session.js";
 export {
   CaptionedBlockComponent,
   SelectedStyle,

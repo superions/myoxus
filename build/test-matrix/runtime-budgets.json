@@ -249,26 +249,6 @@
       "notes": "Successful owner run covered 13 files and 67 tests. Exact selection, rather than a noisy single-run percentage, proves the common-path reduction."
     },
     {
-      "suite_id": "virgultum.data-view.build",
-      "baseline_ms": 1427,
-      "warn_budget_ms": 5000,
-      "strict_budget_ms": 10000,
-      "cost_center": "Focused @virgultum/data-view TypeScript package build",
-      "decision": "use this package build for Data-View changed paths instead of unrelated representative Virgultum package builds",
-      "source_artifact": "output/test-runs/matrix-run-2026-07-04T11-38-55-787Z.json",
-      "notes": "P-TCI-C-04 measured three passing runs at 1856/1427/1384 ms; median 1427 ms."
-    },
-    {
-      "suite_id": "virgultum.data-view.vitest",
-      "baseline_ms": 4992,
-      "warn_budget_ms": 9000,
-      "strict_budget_ms": 20000,
-      "cost_center": "Focused @virgultum/data-view package-local Vitest run",
-      "decision": "use this package-local Vitest gate for Data-View changed paths instead of the root Virgultum name-filter command",
-      "source_artifact": "output/test-runs/matrix-run-2026-07-04T11-38-36-853Z.json",
-      "notes": "P-TCI-C-04 measured three passing runs at 4992/5130/4992 ms after consolidating nonEmptyCards duplicate tests; median 4992 ms."
-    },
-    {
       "suite_id": "virgultum.store.build",
       "baseline_ms": 1500,
       "warn_budget_ms": 5000,

@@ -431,7 +431,8 @@ async fn workspace_overviews_preserve_other_scopes_and_reject_stale_or_denied_se
       assert!(response.get("errors").is_none(), "bounded register failed: {response}");
       let page = &response["data"]["workspace"]["overview"];
       assert_eq!(page["documentCount"],count);
-      assert_eq!(page["documents"],json!([]),"paging and an introduction must not change direct membership");
+      assert_eq!(page["documents"], if count == 0 { json!([]) } else { register["documents"].clone() },
+        "an obsolete page offset returns the first page without changing direct membership; a folder introduction adds no members");
       assert_eq!(page["hasMore"],false);
     }
 

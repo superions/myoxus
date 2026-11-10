@@ -16,9 +16,9 @@ This reference describes the compiled server schema. A trailing `!` means non-nu
 | [Query root](./queries.md) | 1 |
 | [Mutation root](./mutations.md) | 1 |
 | [Subscription root](./subscriptions.md) | 0 |
-| [Objects](./objects.md) | 648 |
+| [Objects](./objects.md) | 652 |
 | [Input objects](./inputs.md) | 324 |
-| [Enums](./enums.md) | 207 |
+| [Enums](./enums.md) | 208 |
 | [Unions](./unions.md) | 3 |
 | [Interfaces](./interfaces.md) | 0 |
 | [Scalars](./scalars.md) | 5 |
@@ -602,6 +602,11 @@ This reference describes the compiled server schema. A trailing `!` means non-nu
 | [DocumentComparisonBlockType](./objects.md#documentcomparisonblocktype) | Objects |
 | [DocumentComparisonNoticeKindType](./enums.md#documentcomparisonnoticekindtype) | Enums |
 | [DocumentComparisonNoticeType](./objects.md#documentcomparisonnoticetype) | Objects |
+| [DocumentFieldCatalogType](./objects.md#documentfieldcatalogtype) | Objects |
+| [DocumentFieldInputDescriptorType](./objects.md#documentfieldinputdescriptortype) | Objects |
+| [DocumentFieldMetadataDescriptorType](./objects.md#documentfieldmetadatadescriptortype) | Objects |
+| [DocumentFieldPresentationState](./enums.md#documentfieldpresentationstate) | Enums |
+| [DocumentFieldPresentationType](./objects.md#documentfieldpresentationtype) | Objects |
 | [DocumentGraphDirection](./enums.md#documentgraphdirection) | Enums |
 | [DocumentGraphEdgeType](./objects.md#documentgraphedgetype) | Objects |
 | [DocumentGraphIndexStatusType](./objects.md#documentgraphindexstatustype) | Objects |

@@ -14,7 +14,7 @@ export function selectionStyle(
     top: `${rect.top}px`,
     left: `${rect.left}px`,
     backgroundColor: rect.transparent ? "transparent" : color,
-    pointerEvent: "none",
+    pointerEvents: "none",
     opacity: "20%",
     borderRadius: "3px",
   });
@@ -31,6 +31,7 @@ export function cursorStyle(
     top: `${rect.top}px`,
     left: `${rect.left}px`,
     backgroundColor: color,
-    pointerEvent: "none",
+    pointerEvents: "none",
+    boxShadow: "0 0 0 1px var(--myoxus-background-primary-color)",
   });
 }

@@ -47,6 +47,9 @@ impl From<CachedPreviewFormat> for PreviewOutputFormat {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PreviewCacheKey {
+  /// Locale, timezone, date format, time format. Same-presentation actors share
+  /// artifacts; profile/reference facts are separately revalidated at delivery.
+  pub field_format: [String; 4],
   pub workspace_id: Uuid,
   pub doc_id: Uuid,
   pub revision: i64,
@@ -60,6 +63,10 @@ pub struct PreviewCacheKey {
 
 #[derive(Debug, Clone)]
 pub struct CachedPreview {
+  /// Only descriptors admitted into the original bounded excerpt, for final
+  /// freshness validation. No additional native source traversal on delivery.
+  pub fields: Vec<yjs::document_field::DocumentField>,
+  pub field_freshness: Option<myoxus_application::document_fields::context::FieldFreshness>,
   pub output: PreviewOutput,
   /// Includes absent/incomplete images so upload completion invalidates warm output.
   pub asset_revisions: Vec<(String, Option<String>)>,
@@ -92,6 +99,8 @@ impl PreviewRuntime {
           .saturating_add(key.public_mode.len())
           .saturating_add(key.theme_revision.len())
           .saturating_add(key.policy_revision.len())
+          .saturating_add(key.field_format.iter().map(String::len).sum::<usize>())
+          .saturating_add(serde_json::to_vec(&value.fields).map_or(0, |fields| fields.len()))
           .saturating_add(
             value
               .asset_revisions
@@ -221,7 +230,20 @@ impl PreviewRuntime {
   ) -> Result<(Arc<CachedPreview>, bool, PreviewCacheKey), PreviewOperationError> {
     let policy = preview_policy(&config);
     let theme = resolve_theme_definition(&state, workspace_id, color_scheme).await?;
+    let preferences = state
+      .auth()
+      .get_user_preferences(actor_id)
+      .await
+      .map_err(|_| PreviewOperationError::Unavailable("preview formatting unavailable".into()))?
+      .values
+      .resolve(&state.user_preference_defaults().await);
     let key = PreviewCacheKey {
+      field_format: [
+        preferences.locale,
+        preferences.timezone,
+        preferences.date_format,
+        preferences.time_format,
+      ],
       workspace_id,
       doc_id,
       revision: identity.revision,
@@ -233,13 +255,13 @@ impl PreviewRuntime {
       format,
     };
     let runtime = self.clone();
-    let loader_key = key.clone();
     let render_state = state.clone();
     if let Some(failure) = self.failures.get(&key).await {
       return Err(failure);
     }
     if let Some(result) = self.output.get(&key).await {
       self.validate_cached_assets(&state, workspace_id, &key, &result).await?;
+      self.validate_cached_fields(&state, &key, &result, actor_id).await?;
       return Ok((result, true, key));
     }
     let result = self
@@ -251,12 +273,13 @@ impl PreviewRuntime {
         let admitted_at = Instant::now();
         let (_theme_revision, context) = runtime.prepared_context(&render_state, theme, &policy).await?;
         let prepared_at = Instant::now();
-        let service = DocumentPreviewSourceService::new(render_state.doc().load.clone(), render_state.blob_service());
+        let service = DocumentPreviewSourceService::new(render_state.doc().load.clone(), render_state.blob_service())
+          .with_field_source(Arc::new(render_state.clone()), actor_id);
         let source = service
           .prepare(PreviewSourceRequest {
-            workspace_id: loader_key.workspace_id,
-            doc_id: loader_key.doc_id,
-            identity: identity.clone(),
+            workspace_id,
+            doc_id,
+            identity,
             limits: policy.projection,
             max_media_bytes: policy.max_media_bytes,
             max_svg_input_bytes: policy.max_svg_input_bytes,
@@ -276,6 +299,8 @@ impl PreviewRuntime {
           })
           .collect();
         let empty = source.empty;
+        let fields = source.fields.clone();
+        let field_freshness = source.field_freshness.clone();
         let include_png = format == CachedPreviewFormat::Png;
         let mut render = tokio::task::spawn_blocking(move || {
           let _permits = (global_permit, actor_permit);
@@ -312,6 +337,8 @@ impl PreviewRuntime {
         // compares the underlying representation across content codings.
         let etag = format!("W/\"{}\"", hex::encode(Sha256::digest(&output.bytes)));
         Ok(Arc::new(CachedPreview {
+          fields,
+          field_freshness,
           etag,
           output,
           asset_revisions,
@@ -329,13 +356,18 @@ impl PreviewRuntime {
         // Admission pressure belongs to the current actor/request, not to the
         // document cache key. Caching it defeats Retry-After even after permits
         // are free, and can deny another authorized actor the same document.
-        if !matches!(error, PreviewOperationError::Stale | PreviewOperationError::Busy) {
+        // Likewise, unavailable field facts can recover without a content write.
+        if !matches!(
+          error,
+          PreviewOperationError::Stale | PreviewOperationError::Busy | PreviewOperationError::Unavailable(_)
+        ) {
           self.failures.insert(key.clone(), error.clone()).await;
         }
         return Err(error);
       }
     };
     self.validate_cached_assets(&state, workspace_id, &key, &result).await?;
+    self.validate_cached_fields(&state, &key, &result, actor_id).await?;
     Ok((result, cache_hit, key))
   }
 
@@ -349,13 +381,42 @@ impl PreviewRuntime {
     workspace_id: Uuid,
     key: &PreviewCacheKey,
     result: &CachedPreview,
+    actor_id: Uuid,
     color_scheme: Option<PreviewColorScheme>,
   ) -> Result<(), PreviewOperationError> {
     self.validate_cached_assets(state, workspace_id, key, result).await?;
+    self.validate_cached_fields(state, key, result, actor_id).await?;
     let theme = resolve_theme_definition(state, workspace_id, color_scheme).await?;
     if theme.revision != key.theme_revision {
       self.output.invalidate(key).await;
       return Err(PreviewOperationError::Stale);
+    }
+    Ok(())
+  }
+
+  async fn validate_cached_fields(
+    &self,
+    state: &ApiState,
+    key: &PreviewCacheKey,
+    result: &CachedPreview,
+    actor_id: Uuid,
+  ) -> Result<(), PreviewOperationError> {
+    if !result.fields.is_empty() {
+      use myoxus_application::document_fields::context::DocumentFieldContextSource;
+      let context = state
+        .resolve_authorized(
+          key.workspace_id,
+          key.doc_id,
+          key.revision.to_string(),
+          &result.fields,
+          Some(actor_id),
+        )
+        .await
+        .map_err(|_| PreviewOperationError::Unavailable("field context unavailable".into()))?;
+      if result.field_freshness.as_ref() != Some(context.freshness()) {
+        self.output.invalidate(key).await;
+        return Err(PreviewOperationError::Stale);
+      }
     }
     Ok(())
   }

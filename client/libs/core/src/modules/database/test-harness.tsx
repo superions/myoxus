@@ -147,6 +147,7 @@ export function renderDatabaseViewHost(
     onExportCsvRows?: DatabaseViewHostProps["onExportCsvRows"];
     onRemoteChange?: DatabaseViewHostProps["onRemoteChange"];
     onRowDetailChange?: DatabaseViewHostProps["onRowDetailChange"];
+    onScheduleDateChange?: DatabaseViewHostProps["onScheduleDateChange"];
     onSearchChange?: DatabaseViewHostProps["onSearchChange"];
     renderPageHeader?: DatabaseViewHostProps["renderPageHeader"];
     rowTemplates?: DatabaseRowTemplateBinding[];
@@ -476,6 +477,7 @@ export function renderDatabaseViewHost(
                   onOpenDoc={onOpenDoc}
                   onRemoteChange={options.onRemoteChange}
                   onRowDetailChange={options.onRowDetailChange}
+                  onScheduleDateChange={options.onScheduleDateChange}
                   onSearchChange={options.onSearchChange}
                   renderPageHeader={options.renderPageHeader}
                   record={nextRecord}

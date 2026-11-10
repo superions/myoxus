@@ -73,7 +73,7 @@ export function BoundaryEventProperties({
           >
             {boundaryEvent["@_name"] || i18n.singleNodeProperties.boundaryEvent}
           </AccordionControl>
-          <AccordionPanel>
+          <AccordionPanel keepMounted keepMountedMode="display-none">
             <NameDocumentationAndId element={boundaryEvent} />
 
             <Divider />

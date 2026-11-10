@@ -192,6 +192,16 @@ export async function convertSelectedBlocksToLinkedDoc(
   docTitle?: string,
 ) {
   const models = await selectedModels;
+  const owners = models.map((model) => doc.getModelById(model.id));
+  const canReplace = () =>
+    !doc.readonly &&
+    models.every(
+      (model, index) =>
+        owners[index] &&
+        doc.getModelById(model.id) === owners[index] &&
+        !doc.hasFixedText(model.id),
+    );
+  if (!canReplace()) return;
   const slice = std.clipboard.sliceToSnapshot(Slice.fromModels(doc, models));
   if (!slice) {
     return;
@@ -208,6 +218,10 @@ export async function convertSelectedBlocksToLinkedDoc(
     slice.content,
     title,
   );
+  if (!canReplace()) {
+    doc.workspace.removeDoc(linkedDoc.id);
+    return;
+  }
   // insert linked doc card
   doc.addSiblingBlocks(
     doc.getBlock(firstBlock.id)!.model,

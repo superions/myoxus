@@ -1,4 +1,5 @@
 import type { BaseTextAttributes, DeltaInsert } from "@virgultum/store";
+import { hasFixedTextOwner } from "@virgultum/store";
 
 import type { InlineEditor } from "../inline-editor.js";
 import type { InlineRange } from "../types.js";
@@ -134,7 +135,10 @@ export class InlineTextService<TextAttributes extends BaseTextAttributes> {
     });
   };
 
-  readonly transact = this.editor.transact;
+  readonly transact = (fn: () => void, withoutTransact = false) => {
+    if (hasFixedTextOwner(this.yText)) return;
+    this.editor.transact(fn, withoutTransact);
+  };
 
   get yText() {
     return this.editor.yText;

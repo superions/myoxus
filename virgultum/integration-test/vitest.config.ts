@@ -2,16 +2,28 @@ import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 
 import { createDecoratorTransform } from "../../build/scripts/test/vite-decorator-transform.mjs";
+import { getBuildConfig } from "../../tools/utils/src/build-config";
+import { Workspace } from "../../tools/utils/src/workspace";
 
 export default defineConfig((_configEnv) =>
   defineConfig({
+    // Editor dependencies consume the same build flags as the Vite harness.
+    define: {
+      BUILD_CONFIG: JSON.stringify({
+        ...getBuildConfig(new Workspace().getPackage("@myoxus/web"), {
+          mode: "development",
+          channel: "stable",
+        }),
+        debug: false,
+      }),
+    },
     plugins: [createDecoratorTransform()],
     oxc: {
       jsx: { runtime: "automatic" },
       target: "es2022",
     },
     optimizeDeps: {
-      force: true,
+      // Per-file processes share this graph; Vite invalidates it when its inputs change.
       rolldownOptions: {
         transform: {
           // Keep top-level await available in browser fixtures and workers.

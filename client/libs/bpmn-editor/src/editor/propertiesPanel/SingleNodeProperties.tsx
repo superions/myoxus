@@ -19,7 +19,13 @@
 // SPDX-License-Identifier: Apache-2.0
 // Modified by Myoxus; see provenance.json for retained source and patches.
 
-import { Text } from "@myoxus/ui-facade";
+import {
+  Text,
+  AccordionControl,
+  AccordionItem,
+  AccordionPanel,
+} from "@myoxus/ui-facade";
+import { useI18n } from "@myoxus/i18n";
 import { Fragment } from "react";
 import { useMemo } from "react";
 import * as RF from "@xyflow/react";
@@ -27,7 +33,10 @@ import {
   type BpmnDiagramNodeData,
   type BpmnNodeType,
 } from "../diagram/BpmnDiagramDomain";
-import { useBpmnEditorStore } from "../store/StoreContext";
+import {
+  useBpmnEditorStore,
+  useBpmnEditorStoreApi,
+} from "../store/StoreContext";
 import { assertUnreachable } from "../ts-ext/assertUnreachable";
 import { AdHocSubProcessProperties } from "./singleNodeProperties/AdHocSubProcessProperties";
 import { BoundaryEventProperties } from "./singleNodeProperties/BoundaryEventProperties";
@@ -61,7 +70,16 @@ import { acceptsDataAssociation } from "../mutations/data-association-context";
 import { ProcessIoProperties } from "./singleNodeProperties/ProcessIoProperties";
 import { isPropertyOwner } from "../mutations/addVariable";
 import { VariablesFormSection } from "./variables/VariablesFormSection";
+import {
+  NameDocumentationAndId,
+  TechnicalPropertiesContext,
+} from "./nameDocumentationAndId/NameDocumentationAndId";
 export function SingleNodeProperties() {
+  const t = useI18n();
+  const store = useBpmnEditorStoreApi();
+  const furtherOpen = useBpmnEditorStore(
+    (s) => s.propertiesPanel.isFurtherOpen,
+  );
   const { i18n } = useBpmnEditorI18n();
   const selectedNode = useBpmnEditorStore(
     (s) =>
@@ -229,15 +247,42 @@ export function SingleNodeProperties() {
   const host = selectedNode?.data.bpmnElement;
   return (
     <Fragment key={selectedNode?.id}>
-      {properties}
-      {host && isPropertyOwner(host) && <VariablesFormSection p={host} />}
       {host &&
-        (acceptsDataAssociation(host, "input") ||
-          acceptsDataAssociation(host, "output")) && (
-          <Accordion>
-            <InputOutputSets ownerId={host["@_id"]} />
-          </Accordion>
-        )}
+        (host.__$$element === "dataInput" ||
+        host.__$$element === "dataOutput" ? (
+          <ProcessIoProperties id={host["@_id"]} primaryOnly />
+        ) : (
+          <NameDocumentationAndId element={host} primaryOnly />
+        ))}
+      <Accordion
+        value={furtherOpen ? "further" : null}
+        onChange={(value) =>
+          store.setState((s) => {
+            s.propertiesPanel.isFurtherOpen = value === "further";
+          })
+        }
+      >
+        <AccordionItem value="further">
+          <AccordionControl>
+            {t["com.myoxus.editor.bpmn.further-properties"]()}
+          </AccordionControl>
+          <AccordionPanel keepMounted keepMountedMode="display-none">
+            <TechnicalPropertiesContext.Provider value={true}>
+              {properties}
+              {host && isPropertyOwner(host) && (
+                <VariablesFormSection p={host} />
+              )}
+              {host &&
+                (acceptsDataAssociation(host, "input") ||
+                  acceptsDataAssociation(host, "output")) && (
+                  <Accordion>
+                    <InputOutputSets ownerId={host["@_id"]} />
+                  </Accordion>
+                )}
+            </TechnicalPropertiesContext.Provider>
+          </AccordionPanel>
+        </AccordionItem>
+      </Accordion>
     </Fragment>
   );
 }

@@ -31,15 +31,37 @@ export const nodeSvgProps = {
 };
 
 /** Glyph geometry lives in its viewBox; native controls own the rendered icon size. */
+export const PaletteNotationContext = React.createContext(false);
+
 export function RoundSvg({ children }: React.PropsWithChildren) {
   const nodeSvgViewboxSize = nodeSvgProps.width + 2 * nodeSvgProps.strokeWidth;
+  const palette = React.useContext(PaletteNotationContext);
+  const ref = React.useRef<SVGSVGElement>(null);
+  const [fittedViewBox, setFittedViewBox] = React.useState<string>();
+  React.useLayoutEffect(() => {
+    if (!palette || !ref.current?.getBBox) return;
+    const bounds = ref.current.getBBox();
+    if (!bounds.width || !bounds.height) return;
+    // Fit only the palette miniature to its painted notation. Canvas/export
+    // geometry and the shared icon defaults remain untouched.
+    const margin = nodeSvgProps.strokeWidth;
+    setFittedViewBox(
+      `${bounds.x - margin} ${bounds.y - margin} ${bounds.width + 2 * margin} ${bounds.height + 2 * margin}`,
+    );
+  }, [palette, children]);
 
   return (
     <svg
+      ref={ref}
+      data-palette-notation={palette}
       className={"xyflow-react-kie-diagram--round-svg-container"}
-      viewBox={`0 0 ${nodeSvgViewboxSize} ${nodeSvgViewboxSize}`}
-      width="1em"
-      height="1em"
+      viewBox={
+        palette && fittedViewBox
+          ? fittedViewBox
+          : `0 0 ${nodeSvgViewboxSize} ${nodeSvgViewboxSize}`
+      }
+      width={palette ? 32 : "1em"}
+      height={palette ? 32 : "1em"}
     >
       {children}
     </svg>

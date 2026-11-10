@@ -15,6 +15,7 @@
  * | `/chat`                           | AI chat workspace view      |
  * | `/home`                           | Workspace dashboard         |
  * | `/overview`                       | Workspace overview          |
+ * | `/search/results`                 | Workspace search results    |
  * | `/all`                            | All docs browser            |
  * | `/collection`                     | All collections list        |
  * | `/tags`                           | Workspace tag catalog       |
@@ -49,6 +50,10 @@ export const workbenchRoutes = [
   {
     path: "/chat",
     lazy: () => import("./pages/workspace/chat/index"),
+  },
+  {
+    path: "/search/results",
+    lazy: () => import("./pages/workspace/search"),
   },
   {
     path: "/all",

@@ -1,14 +1,7 @@
 import { UserFriendlyError } from "@myoxus/error";
 import { DocRole, ErrorNames } from "@myoxus/graphql";
 import { I18n, i18nTime } from "@myoxus/i18n";
-import {
-  DateTimeIcon,
-  NewXxxEdgelessIcon,
-  NewXxxPageIcon,
-  UserIcon,
-} from "@myoxus/icons/lit";
 import { Service } from "@myoxus/infra";
-import { cssVar } from "@myoxus/theme";
 import track from "@myoxus/track";
 import { notify } from "@myoxus/ui-facade";
 import { computed, Signal } from "@preact/signals-core";
@@ -27,10 +20,7 @@ import {
   type LinkedWidgetConfig,
   LinkedWidgetUtils,
 } from "@virgultum/editor/widgets/linked-doc";
-import Fuse, { type FuseResultMatch } from "fuse.js";
-import { html } from "lit";
-import { styleMap } from "lit/directives/style-map.js";
-import { unsafeHTML } from "lit/directives/unsafe-html.js";
+import Fuse from "fuse.js";
 import {
   createAbsolutePositionFromRelativePosition,
   createRelativePositionFromTypeIndex,
@@ -43,7 +33,6 @@ import { type JournalService, suggestJournalDate } from "../../journal";
 import { NotificationService } from "../../notification";
 import type { GuardService, MemberSearchService } from "../../permissions";
 import type { DocGrantedUsersService } from "../../permissions/services/doc-granted-users";
-import { highlighter } from "../../quicksearch/utils/highlighter";
 import type { SearchMenuService } from "../../search-menu/services";
 import { AuthService, type WorkspaceServerService } from "../../server";
 
@@ -151,7 +140,7 @@ export class AtMenuConfigService extends Service {
     const customNewDocItems: LinkedMenuItem[] = [
       {
         key: RESERVED_ITEM_KEYS.createPage,
-        icon: NewXxxPageIcon(),
+        icon: "NewXxxPageIcon",
         name: I18n.t("com.myoxus.editor.at-menu.create-page", {
           name: query || I18n.t("Untitled"),
         }),
@@ -166,7 +155,7 @@ export class AtMenuConfigService extends Service {
       },
       {
         key: RESERVED_ITEM_KEYS.createEdgeless,
-        icon: NewXxxEdgelessIcon(),
+        icon: "NewXxxEdgelessIcon",
         name: I18n.t("com.myoxus.editor.at-menu.create-edgeless", {
           name: query || I18n.t("Untitled"),
         }),
@@ -222,7 +211,7 @@ export class AtMenuConfigService extends Service {
 
     const items: LinkedMenuItem[] = [
       {
-        icon: DateTimeIcon(),
+        icon: "DateTimeIcon",
         key: RESERVED_ITEM_KEYS.datePicker,
         name: I18n.t("com.myoxus.editor.at-menu.date-picker"),
         action: () => {
@@ -272,19 +261,10 @@ export class AtMenuConfigService extends Service {
         absolute: { accuracy: "day" },
       });
 
-      const icon = this.docDisplayMetaService.getJournalIcon(dateString, {
-        type: "lit",
-      });
-
       items.unshift({
-        icon: icon(),
+        icon: this.docDisplayMetaService.getJournalIconName(dateString),
         key: RESERVED_ITEM_KEYS.datePicker + ":" + dateString,
-        name: alias
-          ? html`${alias},
-              <span style="color: ${cssVar("textSecondaryColor")}"
-                >${dateDisplay}</span
-              >`
-          : dateDisplay,
+        name: alias ? `${alias}, ${dateDisplay}` : dateDisplay,
         action: () => {
           track.doc.editor.atMenu.linkDoc({
             journal: true,
@@ -330,32 +310,6 @@ export class AtMenuConfigService extends Service {
     return result;
   }
 
-  private highlightFuseTitle(
-    matches: readonly FuseResultMatch[] | undefined,
-    title: string,
-    key: string,
-  ): string {
-    if (!matches) {
-      return title;
-    }
-    const normalizedRange = ([start, end]: [number, number]) =>
-      [
-        start,
-        end + 1 /* in fuse, the `end` is different from the `substring` */,
-      ] as [number, number];
-    const titleMatches = matches
-      ?.filter((match) => match.key === key)
-      .flatMap((match) => match.indices.map(normalizedRange));
-    return (
-      highlighter(
-        title,
-        `<span style="color: ${cssVar("textEmphasisColor")}">`,
-        "</span>",
-        titleMatches ?? [],
-      ) ?? title
-    );
-  }
-
   private memberGroup(
     query: string,
     close: () => void,
@@ -368,22 +322,11 @@ export class AtMenuConfigService extends Service {
       avatar?: string | null,
       sendNotification: boolean = true,
     ): LinkedMenuItem => {
-      const avatarStyle = styleMap({
-        borderRadius: "50%",
-        border: `1px solid ${cssVar("backgroundOverlayPanelColor")}`,
-        width: "20px",
-        height: "20px",
-        boxSizing: "border-box",
-      });
-      const icon = avatar
-        ? html`<img style=${avatarStyle} src="${avatar}" />`
-        : UserIcon();
-
-      let displayName = name ?? "Unknown";
       return {
         key: id,
-        name: html`${unsafeHTML(displayName)}`,
-        icon,
+        name: name ?? "Unknown",
+        icon: "UserIcon",
+        avatar: avatar ?? undefined,
         action: () => {
           const root = inlineEditor.rootElement;
           const block = root?.closest<BlockComponent>(`[${BLOCK_ID_ATTR}]`);
@@ -486,7 +429,7 @@ export class AtMenuConfigService extends Service {
                     actions: [
                       {
                         key: "invite",
-                        label: "Invite",
+                        label: I18n.t("Invite"),
                         onClick: async () => {
                           track.$.sharePanel.$.inviteUserDocRole({
                             control: "member list",
@@ -552,8 +495,8 @@ export class AtMenuConfigService extends Service {
 
     const inviteItem: LinkedMenuItem = {
       key: "invite",
-      name: "Invite...",
-      icon: UserIcon(),
+      name: I18n.t("Invite Members"),
+      icon: "UserIcon",
       action: () => {
         close();
 
@@ -610,11 +553,6 @@ export class AtMenuConfigService extends Service {
       return [
         ...searchResults.map((result) => {
           const member = result.item;
-          const displayName = this.highlightFuseTitle(
-            result.matches,
-            member.name ?? "Unknown",
-            "name",
-          );
           return {
             ...getMenuItem(
               member.id,
@@ -622,7 +560,9 @@ export class AtMenuConfigService extends Service {
               member.avatarUrl,
               member.id !== currentUser?.id,
             ),
-            name: html`${unsafeHTML(displayName)}`,
+            highlights: result.matches?.flatMap((match) =>
+              match.indices.map(([start, end]) => [start, end + 1] as const),
+            ),
           };
         }),
         ...(canUserManage ? [inviteItem] : []),

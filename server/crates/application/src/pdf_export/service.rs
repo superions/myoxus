@@ -85,6 +85,7 @@ pub struct PdfExportRenderRequest {
 
 #[derive(Clone)]
 pub struct PdfExportService {
+  pub field_source: Option<Arc<dyn crate::document_fields::context::DocumentFieldContextSource>>,
   pub permission: Arc<PermissionService>,
   pub doc: DocService,
   pub jobs: Arc<dyn PdfExportJobStore>,
@@ -843,16 +844,29 @@ impl PdfExportService {
     .await?;
     input.document_metadata_snapshot = Some(metadata_snapshot);
     input.metadata_validation = Some(metadata_validation);
+    let original_history = input.doc_history_id;
+    let (mut field_output, field_latest_key) = self
+      .prepare_document_fields(workspace_uuid, doc_uuid, actor_user_id, original_history)
+      .await?;
 
     // Hash the validated user request before resolving `latest` into a
     // freshly created auto-version. Otherwise double-clicks would create a
     // different label and bypass the existing 60-second idempotency window.
     // Reuse is qualified by the already validated bundle snapshot, so both
     // regular and latest-selector retries observe same-version file changes.
-    input.latest_idempotency_key = stable_latest_idempotency_key(&input, &theme_context)
-      .map(|key| stable_hash_value(&serde_json::json!([key, &template_digest])));
+    input.latest_idempotency_key = stable_latest_idempotency_key(&input, &theme_context).map(|key| {
+      if let Some(fields) = &field_latest_key {
+        stable_hash_value(&serde_json::json!([key, &template_digest, fields]))
+      } else {
+        stable_hash_value(&serde_json::json!([key, &template_digest]))
+      }
+    });
     let mut idempotency_inputs = build_render_inputs(&input, &theme_context);
     idempotency_inputs["template_content_sha256"] = serde_json::json!(&template_digest);
+    if let Some(fields) = &field_output {
+      idempotency_inputs["document_field_output"] =
+        serde_json::to_value(fields).map_err(|_| PdfExportError::new("PDF document field output unavailable"))?;
+    }
     let options_hash = compute_render_inputs_hash(&doc_uuid, &template_id, &idempotency_inputs);
 
     // Idempotency check: recent non-failed job for same doc + options *by the
@@ -882,7 +896,19 @@ impl PdfExportService {
           .await
           .map_err(|e| PdfExportError::new(e.to_string()))?;
 
-        if let Some(job) = existing_latest {
+        if let Some(job) = existing_latest
+          && (field_output.is_none()
+            || job.render_inputs["documentMetadata"]["version"]
+              == input
+                .document_metadata_snapshot
+                .as_ref()
+                .and_then(|snapshot| snapshot.get("version"))
+                .cloned()
+                .unwrap_or(serde_json::Value::Null))
+          && self
+            .latest_field_output_matches(workspace_uuid, doc_uuid, &job, field_output.as_ref())
+            .await?
+        {
           debug!(
             workspace_id = %workspace_uuid,
             doc_id = %doc_uuid,
@@ -991,8 +1017,20 @@ impl PdfExportService {
         .ok_or_else(|| validation_error("selected PDF source is no longer available", "document_version_id"))?;
       source_digest = Some(hex::encode(Sha256::digest(&history.snapshot)));
     }
+    if input.doc_history_id != original_history {
+      // A named/replayable capture is now the authoritative source. Its frozen
+      // text must stand on its own; never reuse a pre-capture live field plan.
+      field_output = self
+        .prepare_document_fields(workspace_uuid, doc_uuid, actor_user_id, input.doc_history_id)
+        .await?
+        .0;
+    }
     let mut render_inputs = build_render_inputs(&input, &theme_context);
     render_inputs["template_content_sha256"] = serde_json::json!(&template_digest);
+    if let Some(fields) = field_output {
+      render_inputs["document_field_output"] =
+        serde_json::to_value(fields).map_err(|_| PdfExportError::new("PDF document field output unavailable"))?;
+    }
     if let Some(digest) = source_digest {
       render_inputs["source_content_sha256"] = serde_json::json!(digest);
     }
@@ -1299,6 +1337,106 @@ impl PdfExportService {
 }
 
 impl PdfExportService {
+  async fn latest_field_output_matches(
+    &self,
+    workspace_id: Uuid,
+    doc_id: Uuid,
+    job: &PdfExportJob,
+    current: Option<&crate::document_fields::output::PreparedFieldOutput>,
+  ) -> Result<bool> {
+    let Some(current) = current else {
+      return Ok(true);
+    };
+    let Some(history_id) = job
+      .render_inputs
+      .get("doc_history_id")
+      .and_then(serde_json::Value::as_i64)
+    else {
+      return Ok(false);
+    };
+    let Some(history) = self
+      .doc
+      .history_entry(history_id)
+      .await
+      .map_err(|_| PdfExportError::new("PDF historical field output unavailable"))?
+      .filter(|entry| entry.workspace_id == workspace_id && entry.doc_id == doc_id)
+    else {
+      return Ok(false);
+    };
+    current
+      .matches_frozen(&history.snapshot)
+      .map_err(|_| PdfExportError::new("PDF historical field output unavailable"))
+  }
+
+  /// Current render plans and their retry comparison use the exact authorized
+  /// native capture. Historical selection bypasses today's context entirely.
+  #[tracing::instrument(skip_all)]
+  async fn prepare_document_fields(
+    &self,
+    workspace_id: Uuid,
+    doc_id: Uuid,
+    actor: Uuid,
+    history: Option<i64>,
+  ) -> Result<(
+    Option<crate::document_fields::output::PreparedFieldOutput>,
+    Option<String>,
+  )> {
+    use crate::document_fields::{
+      DocumentFieldError,
+      output::{PreparedFieldOutput, historical_snapshot},
+    };
+    fn unavailable<E>(_: E) -> PdfExportError {
+      PdfExportError::new("PDF document field context unavailable")
+    }
+    if let Some(history) = history {
+      let entry = self
+        .doc
+        .history_entry(history)
+        .await
+        .map_err(unavailable)?
+        .filter(|entry| entry.workspace_id == workspace_id && entry.doc_id == doc_id)
+        .ok_or_else(|| PdfExportError::new("PDF historical source unavailable"))?;
+      historical_snapshot(&entry.snapshot).map_err(unavailable)?;
+      return Ok((None, None));
+    }
+    let captured = self
+      .doc
+      .load
+      .load_full_doc_with_revision(workspace_id, doc_id)
+      .await
+      .map_err(unavailable)?;
+    // A registered document without a native snapshot/tail has no fields. Keep
+    // the existing queue admission for that empty source, without decoding it.
+    if !captured.has_real_content {
+      return Ok((None, None));
+    }
+    let fields = yjs::document_field::content::inspect(&captured.payload)
+      .map_err(|_| PdfExportError::new("PDF native document fields invalid"))?
+      .into_iter()
+      .map(|field| field.run.descriptor)
+      .collect::<Vec<_>>();
+    if fields.is_empty() {
+      return Ok((None, None));
+    }
+    crate::document_fields::validate_snapshot(&captured.payload).map_err(unavailable)?;
+    let context = self
+      .field_source
+      .as_ref()
+      .ok_or_else(|| unavailable(DocumentFieldError::ContextUnavailable))?
+      .resolve_authorized(
+        workspace_id,
+        doc_id,
+        crate::doc::canonical_yjs_revision(&captured.payload).map_err(unavailable)?,
+        &fields,
+        Some(actor),
+      )
+      .await
+      .map_err(unavailable)?;
+    let prepared = PreparedFieldOutput::prepare(&context, &fields).map_err(unavailable)?;
+    let latest = prepared.latest_comparison(&fields).map_err(unavailable)?;
+    Ok((Some(prepared), Some(latest)))
+  }
+
   /// Capture default assignment, template bytes and theme before rendering an
   /// ephemeral source. The identity is not a persisted document/history row.
   pub async fn prepare_snapshot_render(

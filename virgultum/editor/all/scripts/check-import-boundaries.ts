@@ -9,24 +9,21 @@
  *
  *   framework  →  editor/{components, inlines, fragments, ...}
  *     ↑                ↓
- *   editor/{blocks, data-view, model, store, widgets, all}
+ *   editor/{blocks, model, store, widgets, all}
  *     ↑                ↓
  *   tests/, client/libs/
  *
  * Konkret:
  *   1. **blocks** duerfen NUR von framework, model, store,
- *      components, inlines, fragments, data-view importieren.
+ *      components, inlines, fragments importieren.
  *      Sie duerfen NICHT von `@virgultum/editor/all` oder
  *      `@virgultum/editor/widgets/*` importieren (Blocks sind
  *      UI-Container, nicht UI-Widget-Inhaber).
  *   2. **widgets** duerfen NUR von framework, model, store,
- *      components, inlines, fragments, data-view importieren.
+ *      components, inlines, fragments importieren.
  *      Sie duerfen NICHT von `@virgultum/editor/all` oder
  *      anderen `@virgultum/editor/widgets/*` importieren
  *      (Widgets sind leaves, kein Widget-zu-Widget-Pfad).
- *   3. **data-view** darf von `editor/blocks/*` importieren
- *      (Data-View konsumiert Block-Props). Andere Richtungen
- *      bleiben offen.
  *
  * Diese Regeln werden ueber statische Source-Analyse
  * (Regex auf `from "@virgultum/..."`-Statements) gepflegt.
@@ -67,7 +64,7 @@ const RULES: ReadonlyArray<PackageRule> = [
         reason:
           "blocks are leaves; they cannot import from the " +
           "@virgultum/editor/all aggregate (use the specific " +
-          "feature-manifest path or @virgultum/editor/data-view)",
+          "feature-manifest path or @virgultum/editor/model)",
       },
       {
         pattern: /@virgultum\/editor\/widgets\//,
@@ -88,7 +85,7 @@ const RULES: ReadonlyArray<PackageRule> = [
         reason:
           "widgets are leaves; they cannot import from the " +
           "@virgultum/editor/all aggregate (use the specific " +
-          "feature-manifest path or @virgultum/editor/data-view)",
+          "feature-manifest path or @virgultum/editor/model)",
       },
       {
         pattern: /@virgultum\/editor\/widgets\//,

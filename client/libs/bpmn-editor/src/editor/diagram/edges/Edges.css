@@ -27,4 +27,6 @@
 .myoxus-bpmn-diagram .kie-bpmn-editor--floating-edge-label span {
   /* Mask only text, not the full DI box which can overlap a flow marker. */
   background: var(--mantine-color-body);
+  /* Only the painted caption intercepts paths; its authored DI box stays inert. */
+  pointer-events: all;
 }

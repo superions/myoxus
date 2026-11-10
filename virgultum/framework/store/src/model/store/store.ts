@@ -31,6 +31,10 @@ import { DocCRUD } from "./crud.js";
 import { StoreIdentifier } from "./identifier.js";
 import { type Query, runQuery } from "./query.js";
 import { syncBlockProps } from "./utils.js";
+import {
+  canChangeFixedTextProperty,
+  hasFixedBlockText,
+} from "../../reactive/text/text-protection.js";
 
 export type StoreOptions = {
   doc: Doc;
@@ -878,7 +882,23 @@ export class Store {
       );
     }
 
+    if (
+      isCallback
+        ? hasFixedBlockText(model.yBlock)
+        : Object.entries(callBackOrProps).some(
+            ([key, value]) =>
+              key !== "children" &&
+              !canChangeFixedTextProperty(model.yBlock, `prop:${key}`, value),
+          )
+    )
+      return;
+
     if (!isCallback) {
+      if (
+        callBackOrProps.children &&
+        !this.canUpdateChildren(model, callBackOrProps.children)
+      )
+        return;
       const parent = this.getParent(model);
       this.schema.validate(
         model.flavour,
@@ -948,6 +968,8 @@ export class Store {
       return;
     }
 
+    if (this.hasFixedText(model)) return;
+
     const opts = (
       options && options.bringChildrenTo
         ? {
@@ -977,6 +999,45 @@ export class Store {
    */
   getBlock(id: string): Block | undefined {
     return this._blocks.peek()[id];
+  }
+
+  /** Structural edits must preflight the entire native subtree before writing,
+   * including fixed cells in tables and descendants outside a filtered view.
+   * This reads existing state only; it never hydrates a missing mode.
+   */
+  hasFixedText(model: BlockModel | string): boolean {
+    const pending = [typeof model === "string" ? model : model.id];
+    const visited = new Set<string>();
+    while (pending.length) {
+      const id = pending.pop()!;
+      if (visited.has(id)) continue;
+      visited.add(id);
+      const block = this._yBlocks.get(id);
+      if (!block) continue;
+      if (hasFixedBlockText(block)) return true;
+      const children = block.get("sys:children");
+      if (children instanceof Y.Array)
+        pending.push(
+          ...children
+            .toArray()
+            .filter((child): child is string => typeof child === "string"),
+        );
+    }
+    return false;
+  }
+
+  private canUpdateChildren(
+    model: BlockModel,
+    children: BlockModel[],
+  ): boolean {
+    const previous =
+      this._yBlocks.get(model.id)?.get("sys:children").toArray() ?? [];
+    const next = children.map((child) => child.id);
+    return previous.every(
+      (id) =>
+        !this.hasFixedText(id) ||
+        next.filter((child) => child === id).length === 1,
+    );
   }
 
   /**

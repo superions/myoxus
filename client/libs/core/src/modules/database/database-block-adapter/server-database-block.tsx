@@ -936,6 +936,7 @@ class DatabaseEmbedElement extends HTMLElement {
       "workspace-id",
       "row-id",
       "reference-mode",
+      "readonly",
     ];
   }
 
@@ -995,6 +996,7 @@ class DatabaseEmbedElement extends HTMLElement {
           this.frameworkValue ? (
             <TaskRowReference
               framework={this.frameworkValue}
+              readonly={this.hasAttribute("readonly")}
               target={{
                 workspaceId: this.getAttribute("workspace-id") ?? "",
                 databaseId: this.getAttribute("database-id") ?? "",
@@ -1081,6 +1083,7 @@ export function renderServerDatabaseBlock(
   const scope = resolveTaskReferenceScope(model.props, workspaceId);
   return html`<myoxus-database-embed
     .framework=${framework}
+    ?readonly=${model.store.readonly}
     database-id=${model.props.serverDatabaseId ?? ""}
     reference-mode=${scope.kind}
     row-id=${scope.kind === "task" ? scope.rowId : ""}

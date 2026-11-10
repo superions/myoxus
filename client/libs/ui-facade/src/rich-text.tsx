@@ -85,7 +85,25 @@ export function RichTextInput({
       // block/list extensions that this field deliberately does not support.
       Bold,
       Code,
-      Document,
+      Document.extend({
+        addKeyboardShortcuts() {
+          // Browser document navigation escapes nested editable roots in Page.
+          return {
+            "Mod-Home": () => this.editor.commands.focus("start"),
+            "Mod-End": () => this.editor.commands.focus("end"),
+            "Mod-Shift-Home": () =>
+              this.editor.commands.setTextSelection({
+                from: this.editor.state.selection.anchor,
+                to: 0,
+              }),
+            "Mod-Shift-End": () =>
+              this.editor.commands.setTextSelection({
+                from: this.editor.state.selection.anchor,
+                to: this.editor.state.doc.content.size,
+              }),
+          };
+        },
+      }),
       HardBreak,
       UndoRedo,
       Italic,

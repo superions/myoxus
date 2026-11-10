@@ -29,6 +29,16 @@ import {
 } from "../graph/graph";
 import { ContainmentMode } from "../graph/graphStructure";
 
+/** UI-only source identity. Never persist this composite as a BPMN identity. */
+export function sourceHandleId(edgeType: string, side: string): string {
+  return `${edgeType}::${side}`;
+}
+
+export function sourceHandleParts(handleId: string | null | undefined) {
+  const [type, side] = (handleId ?? "").split("::");
+  return { type, side };
+}
+
 export type XyFlowReactKieDiagramNodeData<
   N extends string,
   NData extends XyFlowReactKieDiagramNodeData<N, NData>,
@@ -110,5 +120,9 @@ export interface XyFlowDiagramState<
       undefined | { node: RF.Node<NData, N>; containmentMode: ContainmentMode };
     ongoingConnection: RF.OnConnectStartParams | undefined;
     newNodeProjection: undefined | RF.Node<NData, N>;
+    /** Click-placement input for the existing transient node projection. */
+    placementElement?: string;
+    /** Immutable source identity captured when click placement is chosen. */
+    placementModel?: unknown;
   };
 }

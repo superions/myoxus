@@ -153,6 +153,7 @@ impl PageLifecycleService {
     title: Option<String>,
     source_snapshot: Vec<u8>,
     source_purpose: Option<crate::template_registry::bundle::TemplatePurpose>,
+    committed_at: chrono::DateTime<Utc>,
   ) -> AuthResult<PageLifecycleCommit> {
     let title = normalize_title(title.as_deref().unwrap_or("Untitled"))?;
     let title_delta = yjs::update_document_title(&source_snapshot, &title)
@@ -168,7 +169,7 @@ impl PageLifecycleService {
         title,
         initial_leaf_update,
         source_purpose,
-        committed_at: Utc::now(),
+        committed_at,
       })
       .await
   }

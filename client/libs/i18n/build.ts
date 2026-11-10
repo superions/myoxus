@@ -169,11 +169,68 @@ function generateTypes() {
   writeFileSync(generatedPath, generateI18nSource(readResource("en")));
 }
 
+/** Server-owned native field output reuses product copy without bundling every
+ * UI message. This finite projection is generated, never a second translation
+ * source. Main languages are required; optional locales use normal EN fallback.
+ */
+function generateDocumentFieldMessages() {
+  const keys = {
+    unset: "com.myoxus.document-metadata.value.not-set",
+    noVersion: "com.myoxus.document-metadata.value.no-version",
+    unversionedChanges:
+      "com.myoxus.document-metadata.value.unversioned-changes",
+    changedSuffix: "com.myoxus.document-metadata.value.changed",
+  } as const;
+  const base = readResource("en");
+  const files = readdirSync(resourcesDir)
+    .filter((file) => file.endsWith(".json"))
+    .sort();
+  const messages = Object.fromEntries(
+    files.map((file) => {
+      const locale = parse(file).name;
+      const own = readResource(locale);
+      const parentLocale = locale.split("-")[0];
+      const parent =
+        parentLocale !== locale && files.includes(`${parentLocale}.json`)
+          ? readResource(parentLocale)
+          : {};
+      return [
+        locale,
+        Object.fromEntries(
+          Object.entries(keys).map(([name, key]) => {
+            if (
+              ["en", "de", "fr", "es"].includes(locale) &&
+              !own[key]?.trim()
+            ) {
+              throw new Error(
+                `Missing required document-field translation: ${locale}/${key}`,
+              );
+            }
+            return [name, own[key] ?? parent[key] ?? base[key]];
+          }),
+        ),
+      ];
+    }),
+  );
+  writeFileSync(
+    ProjectRoot.join(
+      "server",
+      "crates",
+      "application",
+      "src",
+      "document_fields",
+      "messages.generated.json",
+    ).toString(),
+    JSON.stringify(messages, null, 2) + "\n",
+  );
+}
+
 if (shouldCleanup) {
   await cleanupResources();
 }
 generateTypes();
 calcCompletenesses();
+generateDocumentFieldMessages();
 
 if (isDev) {
   let rebuildTimer: ReturnType<typeof setTimeout> | undefined;
@@ -183,6 +240,7 @@ if (isDev) {
     rebuildTimer = setTimeout(() => {
       generateTypes();
       calcCompletenesses();
+      generateDocumentFieldMessages();
     }, 50);
   });
 }

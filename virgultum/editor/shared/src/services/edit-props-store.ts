@@ -183,11 +183,10 @@ export class EditPropsStore extends LifeCycleWatcher {
   }
 
   recordLastProps(key: LastPropsKey, props: Partial<LastProps[LastPropsKey]>) {
-    const schema = OptionalPropsSchema._def.innerType.shape[key];
-    if (!schema) return;
+    const schema = makeDeepOptional(NodePropsSchema.shape[key]);
 
     const overrideProps = schema.parse(props);
-    if (Object.keys(overrideProps).length === 0) return;
+    if (!overrideProps || Object.keys(overrideProps).length === 0) return;
 
     const innerProps = this.innerProps$.value;
     const nextProps = mergeWith(
@@ -195,7 +194,7 @@ export class EditPropsStore extends LifeCycleWatcher {
       { [key]: overrideProps },
       customizer,
     );
-    this.innerProps$.value = OptionalPropsSchema.parse(nextProps);
+    this.innerProps$.value = OptionalPropsSchema.parse(nextProps) ?? {};
   }
 
   setStorage<T extends StoragePropsKey>(key: T, value: StorageProps[T]) {

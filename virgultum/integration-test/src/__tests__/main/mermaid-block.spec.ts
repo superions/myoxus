@@ -316,9 +316,18 @@ describe("Mermaid single-owner integration", () => {
     expect(nativeIds.map(modelBound)).toEqual(nativeBounds);
 
     writeMermaidSourceModelState(native, lastValidSource ?? FLOWCHART_SOURCE);
+    // Source parsing starts with fresh layout coordinates. Restore the live
+    // owner's geometry before applying it, as the source reconciliation does.
     const [restoreOk, restoreContext] = getHost().std.command.exec(
       applyMermaidVisualModelCommand,
-      { model: native, visualModel: parsed.model },
+      {
+        model: native,
+        visualModel: preserveMermaidProjectionOwnerGeometry(
+          doc,
+          native,
+          parsed.model,
+        ),
+      },
     );
     expect(restoreOk).toBe(true);
     expect(restoreContext.applied).toBe(true);

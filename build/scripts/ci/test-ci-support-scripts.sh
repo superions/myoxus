@@ -1194,7 +1194,7 @@ if (
   !windowsRuns.includes("--scope windows") ||
   !windowsRuns.includes("--require-publishable") ||
   !windowsRuns.includes("publish-electron-release.mjs") ||
-  !windowsRuns.includes("Windows NSIS install failed")
+  !windowsRuns.includes("verify-windows-client-install.ps1")
 ) {
   throw new Error("Windows client release lacks its single build, install, metadata, or publisher path");
 }
@@ -1202,6 +1202,44 @@ const packagingWorkflow = parse(readFileSync(
   ".forgejo/workflows/electron-packaging.yml",
   "utf8",
 ));
+if (packagingWorkflow.on.workflow_dispatch.inputs.verify_updates.default !== false) {
+  throw new Error("Ordinary packaging must not implicitly run N/N+1 updates");
+}
+for (const workflow of [desktopWorkflow, packagingWorkflow]) {
+  const linux = workflow.jobs["linux-update-e2e"];
+  const windows = workflow.jobs["windows-update-e2e"];
+  const nativeRunner = "${{ matrix.backend == 'deb' && 'electron-ubuntu-24.04-x64' || matrix.backend == 'rpm' && 'electron-fedora-44-x64' || 'ci-build' }}";
+  if (linux["runs-on"].at(-1) !== nativeRunner) {
+    throw new Error("Native update backends must use their owning installation OS");
+  }
+  const install = linux.steps.find(step => /Install (?:JavaScript )?dependencies/.test(step.name ?? ""));
+  const receive = linux.steps.find(step => step.name === "Receive exact native N/N+1 and Playwright runtime");
+  const fixture = workflow.jobs["linux-update-fixtures"];
+  if (install?.if !== "${{ matrix.backend == 'flatpak' }}" ||
+      !String(receive?.if).includes("matrix.backend != 'flatpak'") ||
+      !fixture?.["runs-on"].includes("ci-build") ||
+      !fixture.steps.some(step => String(step.run ?? "").includes("-- --build-only")) ||
+      !linux.needs.includes("linux-update-fixtures")) {
+    throw new Error("Native install owners must consume the shared built fixtures without installing the workspace");
+  }
+  const windowsChannels = workflow === packagingWorkflow
+    ? "${{ (!inputs.update_channel || inputs.update_channel == 'all') && fromJSON('[\"stable\",\"beta\",\"internal\"]') || fromJSON(format('[\"{0}\"]', inputs.update_channel)) }}"
+    : ["stable","beta","internal"];
+  const windowsBackends = workflow === packagingWorkflow
+    ? "${{ inputs.windows_update_backend == 'nsis' && fromJSON('[\"nsis\"]') || inputs.windows_update_backend == 'zip' && fromJSON('[\"zip\"]') || fromJSON('[\"nsis\",\"zip\"]') }}"
+    : ["nsis","zip"];
+  if (JSON.stringify(windows.strategy.matrix.channel) !== JSON.stringify(windowsChannels) || JSON.stringify(windows.strategy.matrix.backend) !== JSON.stringify(windowsBackends)) {
+    throw new Error("Windows update coverage must retain both formats across every channel");
+  }
+  const mac = workflow.jobs["macos-update-e2e"];
+  const update = mac.steps.find(step=>step.env?.MYOXUS_UPDATE_E2E_BACKEND);
+  if (update?.env.MYOXUS_UPDATE_E2E_BACKEND !== "homebrew" || Object.keys(update.env).some(key=>key.startsWith("APPLE_"))) {
+    throw new Error("Regular macOS upgrade verification is external and must not require Apple credentials");
+  }
+}
+if (packagingWorkflow.on.workflow_dispatch.inputs.windows_update_backend.default !== "all" || packagingWorkflow.on.workflow_dispatch.inputs.update_channel.default !== "all") {
+  throw new Error("Windows update retries must retain both backends and all channels by default");
+}
 const macLabels = ["self-hosted", "macos", "x64", "electron-macos-x64"];
 if (packagingWorkflow.concurrency?.["cancel-in-progress"] !== false ||
     packagingWorkflow.concurrency?.group !== "${{ github.workflow }}-${{ github.ref }}") {
@@ -1339,6 +1377,89 @@ if (immutableInstalls.length !== 1) {
   throw new Error(
     `Linux package wrapper must install exactly once; got ${immutableInstalls.length}`,
   );
+}
+NODE
+
+section "Windows update installation ownership"
+node --input-type=module <<'NODE'
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import vm from "node:vm";
+const source = readFileSync("build/scripts/ci/run-electron-update-e2e.mjs", "utf8");
+const start = source.indexOf("async function preflightWindowsFixture(");
+const end = source.indexOf("\nasync function extractWindowsZip(", start);
+assert.ok(start >= 0 && end > start);
+for (const refuse of [true, false]) {
+  const events = [], cleanup = [];
+  const install = vm.runInNewContext(`${source.slice(start,end)}\ninstallWindowsNsis`, {
+    Error, path, repoRoot: "/repo", sourceVersion: "9000.0.0", channel: "stable",
+    productName: "Myoxus", evidenceDirectory: "/evidence",
+    mkdir: async () => { events.push("mkdir"); },
+    allFiles: async () => ["/owned/installed/Uninstall.exe"],
+    run: async (command, args) => {
+      assert.equal(command, "powershell");
+      assert.ok(args.includes("-PreflightOnly"));
+      assert.ok(args.includes("/repo/build/scripts/ci/verify-windows-client-install.ps1"));
+      events.push("preflight");
+      if (refuse) throw new Error("Foreign installation/registration exists");
+    },
+    runProcess: async ({command,args,timeoutMs}) => {
+      assert.ok(timeoutMs > 0 && timeoutMs <= 180000);
+      assert.ok(args.includes("/CurrentUser"));
+      if (command.endsWith("Uninstall.exe")) {
+        assert.ok(args.includes("_?=/owned/installed"));
+        events.push("uninstall");
+      } else events.push("install");
+    },
+  });
+  if (refuse) {
+    await assert.rejects(install("/fixture.exe", "/owned", cleanup), /Foreign installation/);
+    assert.deepEqual(events, ["preflight"]);
+    assert.equal(cleanup.length, 0);
+  } else {
+    const installed = await install("/fixture.exe", "/owned", cleanup);
+    assert.equal(installed.executable, "/owned/installed/Myoxus.exe");
+    assert.deepEqual(events, ["preflight","mkdir","install"]);
+    assert.equal(cleanup.length, 1);
+    await cleanup[0]();
+    assert.deepEqual(events, ["preflight","mkdir","install","uninstall"]);
+  }
+}
+const helper = source.slice(start, source.indexOf("async function installWindowsNsis(", start));
+const portable = source.slice(end, source.indexOf("\nasync function removeKnownNativePredecessor(", end));
+for (const refuse of [true, false]) {
+  const events = [], cleanup = [];
+  const extract = vm.runInNewContext(`${helper}\n${portable}\nextractWindowsZip`, {
+    Error, path, process: {env:{}}, repoRoot: "/repo", sourceVersion: "9000.0.0", channel: "stable",
+    productName: "Myoxus", evidenceDirectory: "/evidence",
+    mkdir: async () => { events.push("mkdir"); },
+    allFiles: async () => ["/owned/portable/Myoxus.exe"],
+    run: async (command, args, options) => {
+      assert.equal(command, "powershell");
+      if (args.includes("-PreflightOnly")) {
+        events.push("preflight");
+        if (refuse) throw new Error("Foreign registration");
+      } else if (args.includes("-RemoveOwnedProtocol")) {
+        assert.equal(args[args.indexOf("-OwnedRoot") + 1], "/owned/portable");
+        events.push("protocol-cleanup");
+      } else {
+        assert.equal(options.env.MYOXUS_UPDATE_ZIP, "/fixture.zip");
+        events.push("extract");
+      }
+    },
+  });
+  if (refuse) {
+    await assert.rejects(extract("/fixture.zip", "/owned", cleanup), /Foreign registration/);
+    assert.deepEqual(events, ["preflight"]);
+    assert.equal(cleanup.length, 0);
+  } else {
+    await extract("/fixture.zip", "/owned", cleanup);
+    assert.deepEqual(events, ["preflight","mkdir","extract"]);
+    assert.equal(cleanup.length, 1);
+    await cleanup[0]();
+    assert.deepEqual(events, ["preflight","mkdir","extract","protocol-cleanup"]);
+  }
 }
 NODE
 

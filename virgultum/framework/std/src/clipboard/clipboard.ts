@@ -305,9 +305,9 @@ export class Clipboard extends LifeCycleWatcher {
     return this.copySlice(slice);
   };
 
-  /** Freeze the ordinary native copy, including selected text and authorized
-   * dependencies, without publishing anything to the operating-system clipboard. */
-  prepareCopySlice = async (slice: Slice) => {
+  private readonly _prepareCopy = async (
+    capture: (job: Transformer) => SliceSnapshot | null | undefined,
+  ) => {
     const generation = this._generation;
     const job = this._getJob();
     this._pendingPasteJobs.add(job);
@@ -318,7 +318,7 @@ export class Clipboard extends LifeCycleWatcher {
     try {
       // All formats share one frozen selection and one authorized inventory.
       // Do not re-read a moved caret after asynchronous target/blob loading.
-      const snapshot = job.sliceToSnapshot(slice);
+      const snapshot = capture(job);
       if (!snapshot) throw new Error("Clipboard selection unavailable");
       wrapFakeNote(snapshot);
       const assertPrepared = await this._copyPreparation?.(snapshot, job);
@@ -339,9 +339,28 @@ export class Clipboard extends LifeCycleWatcher {
     }
   };
 
+  /** Freeze the ordinary native copy, including selected text and authorized
+   * dependencies, without publishing anything to the operating-system clipboard. */
+  prepareCopySlice = (slice: Slice) =>
+    this._prepareCopy((job) => job.sliceToSnapshot(slice));
+
+  /** Copy an already detached native selection through the same access fence and adapters. */
+  copySnapshot = async (snapshot: SliceSnapshot) => {
+    using captured = await this._prepareCopy(() =>
+      SliceSnapshotSchema.parse(structuredClone(snapshot)),
+    );
+    return this._writePreparedCopy(captured);
+  };
+
   // Gated by https://developer.mozilla.org/en-US/docs/Glossary/Transient_activation
   copySlice = async (slice: Slice) => {
     using captured = await this.prepareCopySlice(slice);
+    return this._writePreparedCopy(captured);
+  };
+
+  private readonly _writePreparedCopy = async (
+    captured: Awaited<ReturnType<Clipboard["prepareCopySlice"]>>,
+  ) => {
     const { snapshot, job, assertCurrent } = captured;
     const adapterKeys = this._adapters.map((adapter) => adapter.mimeType);
 

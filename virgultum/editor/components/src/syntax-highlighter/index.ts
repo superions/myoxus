@@ -6,7 +6,6 @@ import {
   type HighlighterCoreOptions,
 } from "@shikijs/core";
 import { createOnigurumaEngine } from "@shikijs/engine-oniguruma";
-import getWasm from "@shikijs/engine-oniguruma/wasm-inlined";
 
 import { bundledLanguagesInfo } from "./languages.gen.js";
 
@@ -21,7 +20,12 @@ export type {
 
 // Engine selection is shared; the code-block service still owns its reference-
 // counted instance, while inline LaTeX keeps Shiki's native singleton lifetime.
-const createEngine = () => createOnigurumaEngine(() => getWasm);
+// Keep the embedded WASM behind first use rather than the client vendor chunk.
+const createEngine = () =>
+  createOnigurumaEngine(
+    async () =>
+      (await import("@shikijs/engine-oniguruma/wasm-inlined")).default,
+  );
 
 export function createEditorHighlighterCore(
   options: Omit<HighlighterCoreOptions, "engine"> = {},

@@ -12,6 +12,7 @@ import {
   WorkbenchService,
   ViewService,
 } from "@myoxus/core/modules/workbench";
+import { useIsActiveView } from "@myoxus/core/modules/workbench/view/use-is-active-view";
 import { inferOpenMode } from "@myoxus/core/utils";
 import { useI18n } from "@myoxus/i18n";
 import {
@@ -204,6 +205,8 @@ export function useTemplateCatalogInventory(state: TemplateCatalogRouteState) {
     [templateDocService, workspace.flavour, request],
   );
   const suggestions = useLiveData(inventory$);
+  const location = useLiveData(useService(ViewService).view.location$);
+  const active = useIsActiveView();
 
   const refresh = useCallback(async () => {
     await templateDocService.loadTemplateSuggestions(request, true);
@@ -212,6 +215,13 @@ export function useTemplateCatalogInventory(state: TemplateCatalogRouteState) {
   useEffect(() => {
     void templateDocService.loadTemplateSuggestions(request);
   }, [request, templateDocService]);
+
+  useEffect(() => {
+    if (!active || !location.pathname.endsWith("/templates")) return;
+    // Returning from source editing must refresh the server inventory even
+    // when this Library filter already has a cached result.
+    void templateDocService.loadTemplateSuggestions(request, true);
+  }, [request, templateDocService, active, location.key, location.pathname]);
 
   useEffect(() => {
     if (observedBindings.current === bindings) return;

@@ -4,7 +4,6 @@ import {
   type SideObject,
 } from "@floating-ui/dom";
 import { batch, effect, signal } from "@preact/signals-core";
-import { DataViewBlockSelection } from "@virgultum/block-data-view/selection";
 import { EdgelessLegacySlotIdentifier } from "@virgultum/block-surface";
 import { TableSelection } from "@virgultum/block-table";
 import {
@@ -318,16 +317,6 @@ export class SelectionToolbarController {
     };
 
     const isNativeTextSelection = () => {
-      const dataViewSelection = std.selection.find(DataViewBlockSelection);
-      const dbViewSel = dataViewSelection?.viewSelection;
-      if (
-        dbViewSel &&
-        ((dbViewSel.selectionType === "area" && dbViewSel.isEditing) ||
-          (dbViewSel.selectionType === "cell" && dbViewSel.isEditing))
-      ) {
-        return true;
-      }
-
       const tableViewSelection = std.selection.find(TableSelection)?.data;
       return tableViewSelection?.type === "area";
     };

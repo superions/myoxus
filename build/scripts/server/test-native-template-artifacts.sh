@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Qualify native file packages from an existing image; never compile or install.
 set -euo pipefail
+trap 'printf "[FAIL] native template artifact check at line %s (exit %s)\n" "$LINENO" "$?" >&2' ERR
 if [ "$#" -ne 2 ]; then
   echo "Usage: $0 <already-built-server-image> <owned-fixture-parent>" >&2
   exit 2
@@ -88,10 +89,9 @@ bash "$REPO_ROOT/build/scripts/ci/create-server-bundle-archive.sh" \
   "$build_dir/bundle" "$bundle_name" "$build_dir/archives"
 bash "$REPO_ROOT/build/scripts/ci/package-server-deb.sh" \
   "$bundle" "$build_dir/packages/deb" "$version+git.${revision:0:12}" "$architecture"
-GITHUB_SHA="$revision" bash "$REPO_ROOT/build/scripts/ci/write-server-build-summary.sh" "$build_dir"
-bash "$REPO_ROOT/build/scripts/ci/write-artifact-manifest.sh" "$build_dir"
-bash "$REPO_ROOT/build/scripts/ci/write-sha256sums.sh" "$build_dir"
-(cd "$REPO_ROOT" && GITHUB_SHA="$revision" bash build/scripts/ci/verify-server-build-artifacts.sh "$build_dir")
+# This fixture owns archive/DEB native payloads, not the full release's RPM and
+# publication manifests. Their exact binaries, descriptors and legal bytes are
+# verified below; the full release artifact gate retains its separate contract.
 
 mkdir "$work/archive" "$work/deb"
 archives=("$build_dir/archives/"*.tar.*)

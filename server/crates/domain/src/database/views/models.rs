@@ -892,6 +892,9 @@ pub struct DatabaseSearchFilter {
   pub query: String,
   #[serde(default)]
   pub first: Option<i64>,
+  /// Offset in ranked source order, independent of the unused cursor field.
+  #[serde(default)]
+  pub offset: Option<i64>,
   #[serde(default)]
   pub after: Option<DatabaseRowCursor>,
 }

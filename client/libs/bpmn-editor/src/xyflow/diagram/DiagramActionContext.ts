@@ -7,6 +7,7 @@ export type DiagramActionRequest =
   | {
       nodeId: string;
       action?: { kind: "edge" | "node"; type: string };
+      placement?: "next";
     }
   | { edgeId: string };
 export const DiagramActionContext = createContext<

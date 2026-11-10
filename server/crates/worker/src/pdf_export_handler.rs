@@ -414,6 +414,29 @@ impl JobHandler for PdfExportJobHandler {
       }
     };
 
+    let yjs_binary = match myoxus_application::pdf_export::render::document_field_snapshot(
+      yjs_binary,
+      workspace_uuid,
+      doc_uuid,
+      doc_history_id.is_some(),
+      &render_inputs_val,
+    ) {
+      Ok(snapshot) => snapshot,
+      Err(error) => {
+        let class = pdf_pipeline::document_field_error_class(error);
+        self
+          .mark_failed(job_uuid, class, "PDF document field context unavailable")
+          .await;
+        self.metrics.record_render(
+          PdfExportOutcome::IrError,
+          &template_id,
+          started_at.elapsed(),
+          Some(class),
+        );
+        return Err(JobError::Permanent("PDF document field context unavailable".into()));
+      }
+    };
+
     // --- 4. Build IR (shared pipeline drives the !Send YjsIrBuilder via
     //    block_in_place).
     let mut metadata = DocumentMetadata {

@@ -25,6 +25,7 @@ const fixture = vi.hoisted(() => ({
   synchronize: vi.fn(async () => undefined),
   prepared: [] as unknown[],
   previewError: undefined as Error | undefined,
+  mode: "preview" as "preview" | "changes",
   invalid: false,
   permissions: new Map<string, boolean>(),
 }));
@@ -97,6 +98,7 @@ vi.mock("../history-preview", async (original) => {
 });
 
 import { HistoryView } from "@myoxus/core/desktop/pages/workspace/detail-page/history-view";
+import { HistorySnapshotUnavailableError } from "../history-preview";
 import { DocService } from "@myoxus/core/modules/doc";
 import { DocDisplayMetaService } from "@myoxus/core/modules/doc-display-meta";
 import { useState, type PropsWithChildren } from "react";
@@ -141,7 +143,7 @@ vi.mock("../history-navigation", () => ({
         open: true,
         invalid: fixture.invalid,
         selection,
-        mode: "preview",
+        mode: fixture.mode,
       },
       select,
       close: vi.fn(),
@@ -197,6 +199,7 @@ beforeEach(() => {
   fixture.synchronize.mockClear();
   fixture.prepared.length = 0;
   fixture.previewError = undefined;
+  fixture.mode = "preview";
   fixture.invalid = false;
   fixture.permissions.clear();
   gql = vi.fn(async ({ query, variables }) => {
@@ -311,6 +314,17 @@ describe("history manager selection consumer", () => {
       ),
     ).toBe(false);
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    fixture.previewError = new HistorySnapshotUnavailableError();
+    fixture.mode = "changes";
+    view.refresh();
+    expect(
+      screen.getByText(
+        "This saved state is unavailable because its original field values were not captured.",
+      ),
+    ).toBeDefined();
+    expect(
+      gql.mock.calls.some(([request]) => request.query.op === "historyDiff"),
+    ).toBe(false);
   });
 
   test("out-of-page references retain exact capture time; clearing and cancel never restore or recapture", async () => {

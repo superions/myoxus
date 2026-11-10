@@ -84,7 +84,7 @@ export function SubProcessProperties({
                   ? i18n.singleNodeProperties.eventSubprocess
                   : i18n.singleNodeProperties.subprocess)}
         </AccordionControl>
-        <AccordionPanel>
+        <AccordionPanel keepMounted keepMountedMode="display-none">
           <Stack>
             <NameDocumentationAndId element={subProcess} />
             {children}
@@ -118,7 +118,7 @@ export function SubProcessProperties({
       {!subProcess["@_triggeredByEvent"] && (
         <AccordionItem value="activity">
           <AccordionControl>{i18n.propertiesPanel.activity}</AccordionControl>
-          <AccordionPanel>
+          <AccordionPanel keepMounted keepMountedMode="display-none">
             <Stack>
               <MultiInstanceCheckbox element={subProcess} />
               <MultiInstanceProperties element={subProcess} />

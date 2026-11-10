@@ -42,7 +42,7 @@ export const workbenchMetaSchema = z.object({
 
 export const tabViewsMetaSchema = z.object({
   activeWorkbenchId: z.string().optional(),
-  workbenches: z.array(workbenchMetaSchema).default([]),
+  workbenches: z.array(workbenchMetaSchema).prefault([]),
 });
 
 export const TabViewsMetaKey = "tabViewsMetaSchema";

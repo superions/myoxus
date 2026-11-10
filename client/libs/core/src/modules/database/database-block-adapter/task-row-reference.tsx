@@ -2,7 +2,6 @@
 
 import { useRegionalPreferences } from "@myoxus/core/components/hooks/myoxus/use-user-preferences";
 import { isWorkspaceTagColorRole } from "@myoxus/core/modules/tag";
-import { WorkbenchService } from "@myoxus/core/modules/workbench/services/workbench";
 import {
   DatabaseTaskReferenceState,
   type DatabaseTaskSummaryFragment,
@@ -23,6 +22,7 @@ import { presentTaskDue } from "../tasks/due";
 import { useTaskIdentity } from "../tasks/use-workspace-tasks";
 import type { TaskReferenceTarget } from "../tasks/task-reference-insertion";
 import { taskReferenceBatch } from "./task-reference-batch";
+import { EmbeddedTaskCard } from "./embedded-task-card";
 
 export function TaskReferenceSummary({
   task,
@@ -96,10 +96,12 @@ export function TaskRowReference({
   framework,
   target: suppliedTarget,
   onOpen,
+  readonly = false,
 }: {
   framework: FrameworkProvider;
   target: TaskReferenceTarget;
   onOpen?: (target: TaskReferenceTarget) => void;
+  readonly?: boolean;
 }) {
   const owner = useTaskIdentity();
   const t = useI18n();
@@ -137,26 +139,17 @@ export function TaskRowReference({
       </Stack>
     );
   return (
-    <TaskReferenceSummary
+    <EmbeddedTaskCard
+      key={JSON.stringify([
+        owner.identity,
+        read.reference.task.databaseId,
+        read.reference.task.rowId,
+      ])}
+      framework={framework}
+      readonly={readonly}
       task={read.reference.task}
       trashed={read.reference.state === DatabaseTaskReferenceState.Trashed}
-      onOpen={() => {
-        const task = read.reference.task!;
-        if (onOpen) {
-          onOpen({
-            workspaceId: task.workspaceId,
-            databaseId: task.databaseId,
-            rowId: task.rowId,
-          });
-          return;
-        }
-        framework
-          .get(WorkbenchService)
-          .workbench.open(
-            `/databases/${read.reference.task!.databaseId}?${new URLSearchParams({ rowId: target.rowId })}`,
-            { at: "active" },
-          );
-      }}
+      onOpen={onOpen}
     />
   );
 }

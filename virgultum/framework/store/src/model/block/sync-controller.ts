@@ -156,20 +156,24 @@ export class SyncController {
     model.schema = schema;
     const signalWithProps = Object.entries(props).reduce(
       (acc, [key, value]) => {
-        const data = signal(value);
-        const dispose = effect(() => {
-          const value = data.value;
-          if (!this.model) return;
-          if (
-            projectedSignalValues.has(key) &&
-            Object.is(value, projectedSignalValues.get(key))
-          )
-            return;
-          _mutex(() => {
-            // @ts-expect-error allow magic props
-            this.model.props[key] = value;
-          });
-        });
+        const signalName = `editor.block.${this.id}.${key}`;
+        const data = signal(value, { name: signalName });
+        const dispose = effect(
+          () => {
+            const value = data.value;
+            if (!this.model) return;
+            if (
+              projectedSignalValues.has(key) &&
+              Object.is(value, projectedSignalValues.get(key))
+            )
+              return;
+            _mutex(() => {
+              // @ts-expect-error allow magic props
+              this.model.props[key] = value;
+            });
+          },
+          { name: `${signalName}.writeBack` },
+        );
         const subscription = model.deleted.subscribe(() => {
           subscription.unsubscribe();
           dispose();

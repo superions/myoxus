@@ -41,6 +41,7 @@ import type { BlockModel, Text } from "@virgultum/store";
  */
 export function mergeWithPrev(editorHost: EditorHost, model: BlockModel) {
   const doc = model.store;
+  if (doc.readonly || doc.hasFixedText(model)) return false;
   const parent = doc.getParent(model);
   if (!parent) return false;
 
@@ -61,6 +62,7 @@ export function mergeWithPrev(editorHost: EditorHost, model: BlockModel) {
   }
 
   if (matchModels(prevBlock, [ParagraphBlockModel, ListBlockModel])) {
+    if (doc.hasFixedText(prevBlock)) return false;
     if (
       (modelIndex === -1 || modelIndex === parent.children.length - 1) &&
       parent.role === "content"

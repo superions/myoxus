@@ -137,7 +137,7 @@ export class SurfaceBlockModel extends BlockModel<SurfaceBlockProps> {
     oldValues: Record<string, unknown>;
   }>();
 
-  private readonly _isEmpty$ = signal(false);
+  private readonly _isEmpty$ = signal(false, { name: "editor.surface.empty" });
 
   get elementModels() {
     const models: GfxPrimitiveElementModel[] = [];

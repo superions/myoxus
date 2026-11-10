@@ -31,16 +31,23 @@ export const BlockSchema = z.object({
     children: ContentSchema,
     isFlatData: z.boolean().optional(),
     props: z
-      .function()
-      .args(z.custom<InternalPrimitives>())
-      .returns(z.record(z.any()))
+      .function({
+        input: z.tuple([z.custom<InternalPrimitives>()]).rest(z.unknown()),
+        output: z.record(z.string(), z.any()),
+      })
       .optional(),
-    toModel: z.function().args().returns(z.custom<BlockModel>()).optional(),
+    toModel: z
+      .function({
+        input: z.tuple([]).rest(z.unknown()),
+        output: z.custom<BlockModel>(),
+      })
+      .optional(),
   }),
   transformer: z
-    .function()
-    .args(z.custom<Map<string, unknown>>())
-    .returns(z.custom<BaseBlockTransformer>())
+    .function({
+      input: z.tuple([z.custom<Map<string, unknown>>()]).rest(z.unknown()),
+      output: z.custom<BaseBlockTransformer>(),
+    })
     .optional(),
 });
 

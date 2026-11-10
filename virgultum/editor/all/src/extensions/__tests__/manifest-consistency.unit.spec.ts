@@ -38,8 +38,6 @@ import { CalloutStoreExtension } from "@virgultum/block-callout/store";
 import { CalloutViewExtension } from "@virgultum/block-callout/view";
 import { CodeStoreExtension } from "@virgultum/block-code/store";
 import { CodeBlockViewExtension } from "@virgultum/block-code/view";
-import { DataViewStoreExtension } from "@virgultum/block-data-view/store";
-import { DataViewViewExtension } from "@virgultum/block-data-view/view";
 import { DatabaseReferenceStoreExtension } from "@virgultum/block-database/reference-store";
 import { DatabaseReferenceViewExtension } from "@virgultum/block-database/reference-view";
 import { DividerStoreExtension } from "@virgultum/block-divider/store";
@@ -151,7 +149,6 @@ const LEGACY_STORE = [
   BookmarkStoreExtension,
   CalloutStoreExtension,
   CodeStoreExtension,
-  DataViewStoreExtension,
   DatabaseReferenceStoreExtension,
   DividerStoreExtension,
   EventStoreExtension,
@@ -199,7 +196,6 @@ const LEGACY_VIEW = [
   BookmarkViewExtension,
   CalloutViewExtension,
   CodeBlockViewExtension,
-  DataViewViewExtension,
   DatabaseReferenceViewExtension,
   DividerViewExtension,
   EdgelessTextViewExtension,

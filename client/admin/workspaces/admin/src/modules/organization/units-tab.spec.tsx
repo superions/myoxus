@@ -26,6 +26,8 @@ vi.mock("@myoxus/i18n", () => ({
     { get: (_target, key) => () => en[String(key)] ?? String(key) },
   ),
   useI18n: () => ({
+    "com.myoxus.peek-view-controls.close": () =>
+      en["com.myoxus.peek-view-controls.close"],
     t: (key: string, options?: Record<string, unknown>): string => {
       let text = en[key] ?? key;
       if (options) {

@@ -29,6 +29,44 @@ function createProxy<T extends object>(createValue: (key: string) => unknown): T
 }
 
 export interface MyoxusI18nFunctions {
+  /** Search */
+  ["com.myoxus.common.search"](): string;
+  /** Database name */
+  ["com.myoxus.search.results.parent-name"](): string;
+  /** Sort loaded results */
+  ["com.myoxus.search.results.sort-loaded"](): string;
+  /** Sorting applies to the loaded results in each group. */
+  ["com.myoxus.search.results.sort-loaded-hint"](): string;
+  /** Default order */
+  ["com.myoxus.search.results.source-order"](): string;
+  /** Open search results */
+  ["com.myoxus.search.results.open"](): string;
+  /** Search results */
+  ["com.myoxus.search.results.title"](): string;
+  /** Enter a query to search this workspace. */
+  ["com.myoxus.search.results.empty-query"](): string;
+  /** {{loaded}} loaded */
+  ["com.myoxus.search.results.loaded"](options: { readonly ["loaded"]: string; }): string;
+  /** Next element */
+  ["com.myoxus.editor.bpmn.next-element"](): string;
+  /** Further properties */
+  ["com.myoxus.editor.bpmn.further-properties"](): string;
+  /** Click the canvas to place the element. */
+  ["com.myoxus.editor.bpmn.place-element"](): string;
+  /** Events */
+  ["com.myoxus.editor.bpmn.palette-events"](): string;
+  /** Tasks */
+  ["com.myoxus.editor.bpmn.palette-tasks"](): string;
+  /** Containers */
+  ["com.myoxus.editor.bpmn.palette-containers"](): string;
+  /** Data and annotations */
+  ["com.myoxus.editor.bpmn.palette-data"](): string;
+  /** Search elements */
+  ["com.myoxus.editor.bpmn.search-elements"](): string;
+  /** Process data */
+  ["com.myoxus.editor.bpmn.process-data"](): string;
+  /** Drag to a connection point and release. Release over empty space to cancel. */
+  ["com.myoxus.editor.bpmn.drag-connection"](): string;
   /** The source document is unavailable. Check its access and location before planning a review. */
   ["com.myoxus.document-review.planning.source-unavailable"](): string;
   /** The responsible person cannot currently review this document. Check membership and editing permissions. */
@@ -9403,6 +9441,8 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.common.open-menu"](): string;
   /** Operation failed */
   ["com.myoxus.common.operation-failed"](): string;
+  /** The system could not open the link. Check your default browser and try again. */
+  ["com.myoxus.link.open-failed"](): string;
   /** 15 minutes before */
   ["com.myoxus.common.reminder.before.15min"](): string;
   /** 1 day before */
@@ -10419,6 +10459,8 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.document-metadata.action.refresh"](): string;
   /** Edit the canonical metadata used by workflows, PDF export and governance checks. The values are stored on the server. */
   ["com.myoxus.document-metadata.description"](): string;
+  /** Open metadata */
+  ["com.myoxus.document-metadata.open"](): string;
   /** Metadata */
   ["com.myoxus.document-metadata.eyebrow"](): string;
   /** Audience */
@@ -11801,6 +11843,8 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.history.filter.all"](): string;
   /** History filter */
   ["com.myoxus.history.filter.label"](): string;
+  /** This saved state is unavailable because its original field values were not captured. */
+  ["com.myoxus.history.snapshot-fields-unavailable"](): string;
   /** Named versions */
   ["com.myoxus.history.filter.named"](): string;
   /** No states match this filter. */
@@ -11876,7 +11920,7 @@ export interface MyoxusI18nFunctions {
   /** Recent */
   ["com.myoxus.icon-picker.recent"](): string;
   /** Remove */
-  ["com.myoxus.icon-picker.remove"](): string;
+  ["com.myoxus.common.remove"](): string;
   /** Select icon */
   ["com.myoxus.icon-picker.select-icon"](): string;
   /** Create into a New Workspace */
@@ -16440,7 +16484,7 @@ export interface MyoxusI18nFunctions {
   /** Default ISO-4217 currency used by new Database currency fields and project cost templates. */
   ["admin.config.i18n.defaultCurrency.desc"](): string;
   /** Date and time */
-  ["com.myoxus.database.field.type.date-time"](): string;
+  ["com.myoxus.common.date-time"](): string;
   /** Files */
   ["com.myoxus.database.field.type.files"](): string;
   /** Unique ID */
@@ -16579,14 +16623,6 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.database.conflict.reload"](): string;
   /** Overwrite with my value */
   ["com.myoxus.database.conflict.overwrite"](): string;
-  /** Only you */
-  ["com.myoxus.database.presence.only-you"](): string;
-  /** {{displayName}} is here */
-  ["com.myoxus.database.presence.one-online"](options: { readonly ["displayName"]: string; }): string;
-  /** {{count}} collaborators online */
-  ["com.myoxus.database.presence.many-online"](options: { readonly ["count"]: string; }): string;
-  /** {{count}} more collaborators */
-  ["com.myoxus.database.presence.more"](options: { readonly ["count"]: string; }): string;
   /** Previous */
   ["common.previous"](): string;
   /** $t(com.myoxus.page.display.grouping) + */
@@ -17461,11 +17497,11 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.editor.slash.figma"](): string;
   /** Embed a Figma document. */
   ["com.myoxus.editor.slash.figma-description"](): string;
-  /** GitHub */
+  /** Git Issues & Pull Requests */
   ["com.myoxus.editor.slash.github"](): string;
-  /** Link to a GitHub repository. */
+  /** Link to a GitHub, GitLab or Forgejo/Gitea issue or pull/merge request. */
   ["com.myoxus.editor.slash.github-description"](): string;
-  /** GitHub Repo */
+  /** Git Issue / Pull Request */
   ["com.myoxus.editor.slash.github-repo"](): string;
   /** Loom */
   ["com.myoxus.editor.slash.loom"](): string;
@@ -18691,6 +18727,80 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.editor.footnote"](): string;
   /** New footnote */
   ["com.myoxus.editor.footnote.new"](): string;
+  /** {{label}}: required, not set */
+  ["com.myoxus.editor.field.required-unset"](options: { readonly ["label"]: string; }): string;
+  /** {{label}}: optional, not set */
+  ["com.myoxus.editor.field.optional-unset"](options: { readonly ["label"]: string; }): string;
+  /** {{label}}: not set */
+  ["com.myoxus.editor.field.metadata-unset"](options: { readonly ["label"]: string; }): string;
+  /** {{label}}: access denied */
+  ["com.myoxus.editor.field.denied"](options: { readonly ["label"]: string; }): string;
+  /** {{label}}: value unavailable */
+  ["com.myoxus.editor.field.unavailable"](options: { readonly ["label"]: string; }): string;
+  /** {{label}}: value unavailable offline */
+  ["com.myoxus.editor.field.offline"](options: { readonly ["label"]: string; }): string;
+  /** {{label}}: value from the created document */
+  ["com.myoxus.editor.field.target-document"](options: { readonly ["label"]: string; }): string;
+  /** Convert to text */
+  ["com.myoxus.editor.field.convert"](): string;
+  /** Version number */
+  ["com.myoxus.editor.field.version-number"](): string;
+  /** The field changed or its value could not be verified. Reopen it and try again. */
+  ["com.myoxus.editor.field.convert-stale"](): string;
+  /** Document fields */
+  ["com.myoxus.editor.field.document-fields"](): string;
+  /** Protect text when used */
+  ["com.myoxus.editor.text-protection.protect"](): string;
+  /** Keep text editable when used */
+  ["com.myoxus.editor.text-protection.unprotect"](): string;
+  /** Fixed text */
+  ["com.myoxus.editor.text-protection.fixed"](): string;
+  /** This text is fixed. You can still fill its input fields. */
+  ["com.myoxus.editor.text-protection.fixed-description"](): string;
+  /** This source stays editable. New uses protect this text while keeping input fields fillable. */
+  ["com.myoxus.editor.text-protection.source-description"](): string;
+  /** Search document fields */
+  ["com.myoxus.editor.field.search"](): string;
+  /** Insert field or variable */
+  ["com.myoxus.editor.field.insert-mixed"](): string;
+  /** Search fields or variables */
+  ["com.myoxus.editor.field.search-mixed"](): string;
+  /** Input fields */
+  ["com.myoxus.editor.field.input-fields"](): string;
+  /** Input field definition */
+  ["com.myoxus.editor.field.definition"](): string;
+  /** Edit definition */
+  ["com.myoxus.editor.field.edit-definition"](): string;
+  /** The field changed. Cancel and reopen it to edit the current definition. */
+  ["com.myoxus.editor.field.definition-stale"](): string;
+  /** Clear */
+  ["com.myoxus.editor.field.clear"](): string;
+  /** Enter a valid field value. */
+  ["com.myoxus.editor.field.invalid-value"](): string;
+  /** The field changed. Cancel and reopen it to edit the current value. */
+  ["com.myoxus.editor.field.value-stale"](): string;
+  /** Field label */
+  ["com.myoxus.editor.field.label"](): string;
+  /** Set a default value */
+  ["com.myoxus.editor.field.use-default"](): string;
+  /** Default value */
+  ["com.myoxus.editor.field.default-value"](): string;
+  /** Single selection */
+  ["com.myoxus.editor.field.single-select"](): string;
+  /** Multiple selection */
+  ["com.myoxus.editor.field.multi-select"](): string;
+  /** Option {{number}} */
+  ["com.myoxus.editor.field.option-label"](options: { readonly ["number"]: string; }): string;
+  /** Add option */
+  ["com.myoxus.editor.field.add-option"](): string;
+  /** Remove option {{number}} */
+  ["com.myoxus.editor.field.remove-option"](options: { readonly ["number"]: string; }): string;
+  /** Move option {{number}} up */
+  ["com.myoxus.editor.field.option-up"](options: { readonly ["number"]: string; }): string;
+  /** Move option {{number}} down */
+  ["com.myoxus.editor.field.option-down"](options: { readonly ["number"]: string; }): string;
+  /** Check the field label, options and default value. Option labels must be distinct. */
+  ["com.myoxus.editor.field.invalid-definition"](): string;
   /** Footnote {{label}} */
   ["com.myoxus.editor.footnote.reference"](options: { readonly ["label"]: string; }): string;
   /** Return to reference */
@@ -18887,6 +18997,8 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.editor.link.info-failed"](): string;
   /** Copy failed. Please try again. */
   ["com.myoxus.editor.clipboard.copy-failed"](): string;
+  /** Could not paste this field selection into the cell. */
+  ["com.myoxus.editor.clipboard.paste-failed"](): string;
   /** No copied diagram branch was found. Copy a branch first. */
   ["com.myoxus.editor.clipboard.paste-unavailable"](): string;
   /** Diagram templates */
@@ -19297,6 +19409,16 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.template-check.context"](): string;
   /** Checked occurrences: {{count}} */
   ["com.myoxus.template-check.summary"](options: { readonly ["count"]: string; }): string;
+  /** Invalid field definition or value */
+  ["com.myoxus.template-check.field-invalid"](): string;
+  /** No default; the input can be filled in the target document */
+  ["com.myoxus.template-check.field-unset"](): string;
+  /** The configured default is applied to the target document */
+  ["com.myoxus.template-check.field-default"](): string;
+  /** The source answer is not copied; the target uses the configured default, if any */
+  ["com.myoxus.template-check.field-filled"](): string;
+  /** Value comes from the target document */
+  ["com.myoxus.template-check.field-metadata"](): string;
   /** Engine.IO ping interval. Seconds between protocol pings. Default: 60 s. Requires an API restart. */
   ["admin.config.websocket.eioPingIntervalSeconds.desc"](): string;
   /** Engine.IO pong timeout. Seconds to await pong before disconnecting. Default: 120 s. Requires an API restart. */
@@ -20189,6 +20311,10 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.desktop.state-load-error.description"](options: { readonly ["storage"]: string; readonly ["path"]: string; }): string;
   /** Updates are managed by your package manager. */
   ["com.myoxus.aboutMyoxus.checkUpdate.subtitle.externally-managed"](): string;
+  /** Updates managed externally */
+  ["com.myoxus.aboutMyoxus.checkUpdate.title.external-macos-install"](): string;
+  /** macOS updates are installed outside Myoxus. Open the download page and replace the application, keeping your existing profile data. */
+  ["com.myoxus.aboutMyoxus.checkUpdate.subtitle.external-macos-install"](): string;
   /** This portable app has no automatic update backend. */
   ["com.myoxus.aboutMyoxus.checkUpdate.subtitle.portable"](): string;
   /** Automatic updates are unavailable for this build. */
@@ -20374,7 +20500,7 @@ export interface MyoxusI18nFunctions {
   /** Reorder statements */
   ["com.myoxus.editor.mermaid.git-graph-reorder"](): string;
   /** Summary */
-  ["com.myoxus.audio.enrichment.summary"](): string;
+  ["com.myoxus.common.summary"](): string;
   /** Generate summary */
   ["com.myoxus.audio.enrichment.generate-summary"](): string;
   /** Generate action items */
@@ -20659,12 +20785,10 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.editor.mermaid.mindmap-unquoted"](): string;
   /** Fill in template */
   ["com.myoxus.template-input.title"](): string;
-  /** These values apply only to this document. Enter text for every field (up to 8 KiB each). */
+  /** These values apply only to this document. Fill in every field. */
   ["com.myoxus.template-input.description"](): string;
   /** Custom input name */
   ["com.myoxus.template-input.custom-name"](): string;
-  /** Insert input */
-  ["com.myoxus.template-input.insert"](): string;
   /** Journal defaults cannot require manual input. Select a template without input fields. */
   ["com.myoxus.template-input.journal-restriction"](): string;
   /** Search variables or type input.name */
@@ -21323,7 +21447,7 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.ai.chat-panel.scroll-latest"](): string;
   /** You */
   ["com.myoxus.common.you"](): string;
-  /** Drag an element from the palette or click it to add it. */
+  /** Choose an element, then click the canvas to place it. You can also drag it from the palette. */
   ["com.myoxus.editor.bpmn.empty-help"](): string;
   /** Data properties */
   ["com.myoxus.editor.bpmn.data-properties"](): string;
@@ -21971,6 +22095,20 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.recurrence.recipe-unavailable"](): string;
   /** Automatic execution is temporarily unavailable. The pending date is retained. */
   ["com.myoxus.recurrence.runtime-unavailable"](): string;
+  /** Wrap lines */
+  ["com.myoxus.editor.code.wrap"](): string;
+  /** Line numbers */
+  ["com.myoxus.editor.code.line-numbers"](): string;
+  /** Create and edit a task here. */
+  ["com.myoxus.database.tasks.embed-description"](): string;
+  /** Open in Kanban */
+  ["com.myoxus.database.tasks.open-kanban"](): string;
+  /** Active people */
+  ["com.myoxus.presence.title"](): string;
+  /** Presence is currently unavailable */
+  ["com.myoxus.presence.unavailable"](): string;
+  /** Only you are here */
+  ["com.myoxus.presence.only-you"](): string;
 }
 
 export function useMyoxusI18N(): MyoxusI18nFunctions {

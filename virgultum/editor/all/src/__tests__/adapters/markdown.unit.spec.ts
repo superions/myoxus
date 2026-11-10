@@ -27,12 +27,14 @@ import {
   embedSyncedDocMiddleware,
   MarkdownAdapter,
   MixTextAdapter,
+  PlainTextAdapter,
 } from "@virgultum/shared/adapters";
 import {
   NotificationExtension,
   type NotificationService,
   ThemeProvider,
   ThemeService,
+  DocumentFieldOutputProvider,
 } from "@virgultum/shared/services";
 import type { BlockStdScope } from "@virgultum/std";
 import {
@@ -59,6 +61,219 @@ import { Zip } from "../../../../widgets/linked-doc/src/transformers/utils.js";
 const provider = getProvider();
 
 describe("snapshot to markdown", () => {
+  test.each([MarkdownAdapter, HtmlAdapter, PlainTextAdapter])(
+    "%s exports native fields through authorized presentation without changing source",
+    async (Adapter) => {
+      using job = createJob();
+      const snapshot = await new MarkdownAdapter(job, provider).toDocSnapshot({
+        file: "# Field capture\n\nBefore field after.",
+      });
+      const find = (block: BlockSnapshot): BlockSnapshot | undefined =>
+        block.flavour === "myoxus:paragraph" && block.props.type === "text"
+          ? block
+          : block.children.map(find).find(Boolean);
+      const paragraph = find(snapshot.blocks)!;
+      const descriptor = {
+        type: "input",
+        id: "answer",
+        definition: {
+          kind: "text",
+          label: "Answer",
+          required: true,
+          default: "Never initialized",
+        },
+        value: "Literal {{answer}}",
+      };
+      paragraph.props.text = {
+        "$virgultum:internal:text$": true,
+        delta: [
+          { insert: "Before " },
+          {
+            insert: " ",
+            attributes: { bold: true, documentField: descriptor },
+          },
+          { insert: " after. " },
+          {
+            insert: " ",
+            attributes: {
+              documentField: {
+                type: "metadata",
+                id: "number",
+                key: "documentNumber",
+                format: "text",
+              },
+            },
+          },
+        ],
+      };
+      const unchanged = structuredClone(snapshot);
+      const resolve = vi.fn(
+        async (
+          _workspace: string,
+          _doc: string,
+          _fields: readonly unknown[],
+        ) => ["Literal {{answer}}", "CURRENT-01"],
+      );
+      const services = new Container();
+      services.addImpl(DocumentFieldOutputProvider, () => ({
+        workspaceId: "workspace",
+        docId: snapshot.meta.id,
+        resolve,
+      }));
+      const adapter = new Adapter(job, provider, services.provider());
+      const first = await adapter.fromDocSnapshot({ snapshot });
+      expect(resolve).toHaveBeenLastCalledWith("workspace", snapshot.meta.id, [
+        descriptor,
+        {
+          type: "metadata",
+          id: "number",
+          key: "documentNumber",
+          format: "text",
+        },
+      ]);
+      // Inspect normalized consumer text: Markdown escapes literal braces, HTML
+      // uses an element, and plain text intentionally drops formatting marks.
+      const reading =
+        Adapter === HtmlAdapter
+          ? new DOMParser().parseFromString(first.file, "text/html").body
+              .textContent!
+          : first.file.replaceAll("\\", "");
+      expect(reading).toContain("Before ");
+      expect(reading).toContain("Literal {{answer}}");
+      expect(reading).toContain(" after. CURRENT-01");
+      expect(first.file).not.toContain("Never initialized");
+      if (Adapter === HtmlAdapter)
+        expect(first.file).toMatch(/<(?:strong|b)>Literal/);
+      if (Adapter === MarkdownAdapter)
+        expect(first.file).toContain("**Literal");
+      resolve.mockResolvedValueOnce(["Literal {{answer}}", "CURRENT-02"]);
+      const next = await adapter.fromSliceSnapshot({
+        snapshot: {
+          type: "slice",
+          pageId: snapshot.meta.id,
+          workspaceId: "other-workspace",
+          content: [paragraph],
+        },
+      });
+      expect(next.file).toContain("CURRENT-02");
+      expect(next.file).not.toContain("CURRENT-01");
+      expect(resolve.mock.lastCall?.[0]).toBe("other-workspace");
+      expect(snapshot).toEqual(unchanged);
+      await expect(
+        new Adapter(job, provider, new Container().provider()).fromDocSnapshot({
+          snapshot,
+        }),
+      ).rejects.toThrow("context unavailable");
+      resolve.mockRejectedValueOnce(new Error("context unavailable"));
+      await expect(adapter.fromDocSnapshot({ snapshot })).rejects.toThrow(
+        "context unavailable",
+      );
+      expect(snapshot).toEqual(unchanged);
+
+      // A saved version's formatting runs are already authoritative text. They
+      // must not call today's resolver, even when one is available and stale.
+      paragraph.props.text = {
+        "$virgultum:internal:text$": true,
+        delta: [
+          { insert: "Before " },
+          {
+            insert: "Old ",
+            attributes: {
+              bold: true,
+              documentField: descriptor,
+              documentFieldCaptured: true,
+            },
+          },
+          {
+            insert: "answer",
+            attributes: {
+              italic: true,
+              documentField: descriptor,
+              documentFieldCaptured: true,
+            },
+          },
+        ],
+      };
+      const frozen = structuredClone(snapshot);
+      resolve.mockClear();
+      const historical = await adapter.fromDocSnapshot({ snapshot });
+      const historicalText =
+        Adapter === HtmlAdapter
+          ? new DOMParser().parseFromString(historical.file, "text/html").body
+              .textContent!
+          : historical.file.replaceAll(/[*_\\]/g, "").replaceAll("&#x20;", " ");
+      expect(historicalText).toContain("Before Old answer");
+      expect(resolve).not.toHaveBeenCalled();
+      expect(snapshot).toEqual(frozen);
+      const withoutProvider = await new Adapter(
+        job,
+        provider,
+        new Container().provider(),
+      ).fromDocSnapshot({ snapshot });
+      expect(withoutProvider.file).toEqual(historical.file);
+      if (Adapter === HtmlAdapter) {
+        expect(historical.file).toMatch(/<(?:strong|b)>Old /);
+        expect(historical.file).toMatch(/<(?:em|i)>answer/);
+      }
+      if (Adapter === HtmlAdapter || Adapter === MarkdownAdapter) {
+        const imported = await adapter.toDocSnapshot({ file: historical.file });
+        const serialized = JSON.stringify(imported);
+        expect(serialized).toContain("Old ");
+        expect(serialized).toContain("answer");
+        expect(serialized).not.toContain("documentField");
+      }
+      if (Adapter === MarkdownAdapter) {
+        const clipboard = new ClipboardAdapter(job, provider);
+        const copied = await clipboard.fromSliceSnapshot({
+          snapshot: {
+            type: "slice",
+            pageId: snapshot.meta.id,
+            workspaceId: "workspace",
+            content: [paragraph],
+          },
+          assets: job.assetsManager,
+        });
+        const pasted = await clipboard.toSliceSnapshot({ file: copied.file });
+        const text = pasted.content[0].props.text as {
+          delta: Array<{
+            insert: string;
+            attributes?: {
+              documentField?: { id: string; value?: unknown };
+              documentFieldCaptured?: boolean;
+            };
+          }>;
+        };
+        const runs = text.delta.filter((run) => run.attributes?.documentField);
+        expect(runs).toHaveLength(1);
+        expect(runs[0].insert).toBe(" ");
+        expect(runs[0].attributes?.documentField).toMatchObject({
+          value: "Literal {{answer}}",
+        });
+        expect(runs[0].attributes?.documentField?.id).not.toBe(descriptor.id);
+        expect(runs[0].attributes?.documentFieldCaptured).toBeUndefined();
+        expect(snapshot).toEqual(frozen);
+      }
+      const text = paragraph.props.text as {
+        delta: Array<{ insert: string; attributes?: Record<string, unknown> }>;
+      };
+      text.delta.push({
+        insert: " ",
+        attributes: {
+          documentField: {
+            type: "metadata",
+            id: "live-number",
+            key: "documentNumber",
+            format: "text",
+          },
+        },
+      });
+      await expect(adapter.fromDocSnapshot({ snapshot })).rejects.toThrow(
+        "Mixed live and captured",
+      );
+      expect(resolve).not.toHaveBeenCalled();
+    },
+  );
+
   test("client Markdown imports retain forward and local native navigation targets", async () => {
     const collection = new TestWorkspace();
     collection.storeExtensions = testStoreExtensions;
@@ -5262,7 +5477,33 @@ bbb
       separators((await restoredAdapter.fromDoc(restored!))!.file),
     ).toEqual(["---", "---", ":---:", "---:", ":---", "---"]);
 
+    const sourceAnswer = manager.getCell(
+      firstRow.rowId,
+      columns[0].columnId,
+    )!.text;
+    const descriptor = {
+      type: "input",
+      id: "cell-answer",
+      definition: {
+        kind: "text",
+        label: "Answer",
+        required: false,
+      },
+      value: "Filled {{literal}}",
+    };
+    sourceAnswer.insert(" ", sourceAnswer.length, {
+      documentField: descriptor,
+    });
     const duplicateRowId = manager.duplicateRow(0)!;
+    const copiedField = manager
+      .getCell(duplicateRowId, columns[0].columnId)!
+      .text.toDelta()
+      .at(-1)!.attributes!.documentField;
+    expect(copiedField).toEqual({ ...descriptor, id: expect.any(String) });
+    expect(copiedField.id).not.toBe(descriptor.id);
+    expect(sourceAnswer.toDelta().at(-1)!.attributes!.documentField).toEqual(
+      descriptor,
+    );
     for (const column of manager.columns$.value) {
       expect(
         manager.getCell(duplicateRowId, column.columnId)?.backgroundColor,

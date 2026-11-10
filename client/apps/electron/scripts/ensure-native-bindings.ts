@@ -126,7 +126,28 @@ function runWorkspaceBuild(workspace: string, target: NativeTarget): void {
     TARGET: tripleForTarget(target),
     CARGO_BUILD_TARGET: tripleForTarget(target),
   };
-  const yarn = yarnInvocation(repoRootDir, ["workspace", workspace, "build"]);
+  // Packaging consumes the checked-in declarations, not a host-specific NAPI
+  // regeneration. Keep build-only declarations outside the immutable sources.
+  const declarations = path.join(
+    repoRootDir,
+    "target",
+    "electron-native-types",
+  );
+  mkdirSync(declarations, { recursive: true });
+  const yarn = yarnInvocation(repoRootDir, [
+    "workspace",
+    workspace,
+    "build",
+    "--dts",
+    path.join(
+      "..",
+      "..",
+      "..",
+      "target",
+      "electron-native-types",
+      `${workspace.split("/").at(-1)}-${target.arch}.d.ts`,
+    ),
+  ]);
   const result = spawnSync(yarn.command, yarn.args, {
     cwd: repoRootDir,
     env: buildEnv,

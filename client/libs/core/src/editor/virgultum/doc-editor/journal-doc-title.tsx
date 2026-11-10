@@ -1,7 +1,7 @@
 import { JournalService } from "@myoxus/core/modules/journal";
 import { i18nTime } from "@myoxus/i18n";
 import { useLiveData, useService } from "@myoxus/infra";
-import { JournalDocumentDayTag } from "@myoxus/ui-facade";
+import { Group, JournalDocumentDayTag } from "@myoxus/ui-facade";
 import type { Store } from "@virgultum/editor/store";
 import dayjs from "dayjs";
 
@@ -34,12 +34,14 @@ export const VirgultumEditorJournalDocTitleUI = ({
   const isToday = date.isSame(today, "day");
 
   return (
-    <div
+    <Group
       className={overrideClassName ?? "doc-title-container"}
       data-testid="journal-title"
+      gap="xs"
+      wrap="nowrap"
     >
       <span data-testid="date">{localizedJournalDate}</span>
       {!isToday ? <JournalDocumentDayTag>{day}</JournalDocumentDayTag> : null}
-    </div>
+    </Group>
   );
 };

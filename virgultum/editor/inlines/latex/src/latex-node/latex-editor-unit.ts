@@ -8,7 +8,7 @@ import { styleMap } from "lit/directives/style-map.js";
 
 export class LatexEditorUnit extends ShadowlessElement {
   get latexMenu() {
-    return this.closest("latex-editor-menu");
+    return this.closest("latex-source-editor");
   }
 
   get vElement() {

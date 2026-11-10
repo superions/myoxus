@@ -88,7 +88,11 @@ function serviceWithGraphql(gql: ReturnType<typeof vi.fn>) {
       templateDocs$: new LiveData([]),
       templateOrigins$: new LiveData(new Map()),
     },
-    builtinReconciler: { bindings$: new LiveData({}) },
+    builtinReconciler: {
+      bindings$: new LiveData({}),
+      reconcile: vi.fn(async () => {}),
+      applyPageDefaultReplacements: vi.fn(async () => {}),
+    },
     workspaceService: { workspace: { id: "workspace", flavour: "cloud" } },
     workspaceServerService: {
       server: {
@@ -110,7 +114,10 @@ test("a source materialized after an empty Registry read acquires its file categ
       getTemplateDocs: () => [{ id: "doc-new-source" }, { id: "custom" }],
       templateOrigins$: new LiveData(new Map()),
     },
-    builtinReconciler: { bindings$: new LiveData({}) },
+    builtinReconciler: {
+      bindings$: new LiveData({}),
+      applyPageDefaultReplacements: vi.fn(async () => {}),
+    },
   });
   expect(service.getTemplateDocs({ include: ["journal-daily"] })).toEqual([]);
   await service.loadTemplateSuggestions({
@@ -131,7 +138,9 @@ test.each(["cloud", "local"])(
   async (flavour) => {
     const empty = response("unused");
     empty.workspace.templateSuggestions.items = [];
-    const service = serviceWithGraphql(vi.fn(async () => empty));
+    const gql = vi.fn(async () => empty);
+    const service = serviceWithGraphql(gql);
+    const reconcile = vi.fn(async () => {});
     const loading$ = new LiveData(flavour === "local");
     const docs = [
       { id: "section", category: "building-blocks" },
@@ -152,6 +161,11 @@ test.each(["cloud", "local"])(
         templateOrigins$: new LiveData(new Map()),
       },
       setting: { loading$, builtinTemplateInstanceDocIds$: new LiveData({}) },
+      builtinReconciler: {
+        bindings$: new LiveData({}),
+        reconcile,
+        applyPageDefaultReplacements: vi.fn(async () => {}),
+      },
     });
     const sections = service.templateDocs$(
       undefined,
@@ -170,9 +184,15 @@ test.each(["cloud", "local"])(
         .getTemplateDocs(undefined, TemplateSuggestionSurface.StarterBar)
         .map((doc) => doc.id),
     ).toEqual(["ordinary"]);
-    const ordinary = await service.loadTemplateSuggestions({
+    const close = service.openTemplateSuggestionMenu({
       surface: TemplateSuggestionSurface.StarterBar,
     });
+    const ordinary = await service.templateSuggestions$.waitFor(
+      (state) => state.status === "ready",
+    );
+    expect(reconcile).toHaveBeenCalledTimes(flavour === "local" ? 1 : 0);
+    expect(gql).toHaveBeenCalledTimes(flavour === "local" ? 0 : 1);
+    close();
     expect(
       ordinary.items.map((item) => [item.templateDocId, item.origin]),
     ).toEqual([["ordinary", flavour === "cloud" ? "unknown" : "custom"]]);
@@ -182,6 +202,10 @@ test.each(["cloud", "local"])(
     expect(
       blocks.items.map((item) => [item.templateDocId, item.origin]),
     ).toEqual([["section", flavour === "cloud" ? "unknown" : "custom"]]);
+    const rows = await service.loadTemplateSuggestions({
+      surface: TemplateSuggestionSurface.DatabaseRowTemplate,
+    });
+    expect(rows.items).toEqual([]);
   },
 );
 
@@ -203,7 +227,10 @@ test("an older selected-source read cannot overwrite a newer picker source polic
     });
   const service = serviceWithGraphql(gql);
   Object.assign(service, {
-    builtinReconciler: { bindings$: new LiveData({}) },
+    builtinReconciler: {
+      bindings$: new LiveData({}),
+      applyPageDefaultReplacements: vi.fn(async () => {}),
+    },
   });
   const pending = service.resolveSourceMetadataForDoc("doc-same-source");
   await service.loadTemplateSuggestions({
@@ -223,6 +250,129 @@ test("an older selected-source read cannot overwrite a newer picker source polic
 });
 
 describe("Template suggestion request ownership", () => {
+  test("a menu publishes page one, shares exactly one unpublished continuation with More and retains usable rows after prefetch failure", async () => {
+    const continuation = deferred<ReturnType<typeof response>>();
+    const first = response("first");
+    first.workspace.templateSuggestions.hasNextPage = true;
+    first.workspace.templateSuggestions.endCursor = "page-2";
+    const next = response("second");
+    next.workspace.templateSuggestions.items.unshift(
+      first.workspace.templateSuggestions.items[0],
+    );
+    next.workspace.templateSuggestions.hasNextPage = true;
+    next.workspace.templateSuggestions.endCursor = "page-3";
+    const gql = vi
+      .fn()
+      .mockResolvedValueOnce(first)
+      .mockImplementationOnce(() => continuation.promise)
+      .mockRejectedValueOnce(new Error("prefetch offline"))
+      .mockResolvedValueOnce(response("last"));
+    const service = serviceWithGraphql(gql);
+    const options = {
+      surface: TemplateSuggestionSurface.AllPagesNewPage,
+      locale: "de",
+      first: 1,
+    };
+    const close = service.openTemplateSuggestionMenu(options);
+    await service.loadTemplateSuggestions(options);
+    expect(gql).toHaveBeenCalledTimes(1);
+    expect(
+      service.templateSuggestions$.value.items.map((item) => item.templateId),
+    ).toEqual(["first"]);
+    const prefetch = service.prepareTemplateSuggestionContinuation(options);
+    expect(service.prepareTemplateSuggestionContinuation(options)).toBe(
+      prefetch,
+    );
+    expect(
+      service.templateSourceMetadata$().value["doc-second"],
+    ).toBeUndefined();
+    const more = service.loadTemplateSuggestions({
+      ...options,
+      after: "page-2",
+    });
+    expect(gql).toHaveBeenCalledTimes(2);
+    continuation.resolve(next);
+    await more;
+    expect(
+      service.templateSuggestions$.value.items.map((item) => item.templateId),
+    ).toEqual(["first", "second"]);
+    expect(service.templateSourceMetadata$().value["doc-second"]).toMatchObject(
+      { source: "bundle" },
+    );
+    expect(gql).toHaveBeenCalledTimes(2);
+    await service.prepareTemplateSuggestionContinuation(options);
+    expect(service.templateSuggestions$.value).toMatchObject({
+      status: "ready",
+      hasNextPage: true,
+      error: expect.any(Error),
+    });
+    expect(
+      service.templateSuggestions$.value.items.map((item) => item.templateId),
+    ).toEqual(["first", "second"]);
+    await service.loadTemplateSuggestions({ ...options, after: "page-3" });
+    expect(gql).toHaveBeenCalledTimes(4);
+    expect(
+      service.templateSuggestions$.value.items.map((item) => item.templateId),
+    ).toEqual(["first", "second", "last"]);
+    close();
+  });
+
+  test("closing, context changes and an observed account switch discard buffered metadata and late rows", async () => {
+    const stale = deferred<ReturnType<typeof response>>();
+    const first = response("first");
+    first.workspace.templateSuggestions.hasNextPage = true;
+    first.workspace.templateSuggestions.endCursor = "page-2";
+    const gql = vi
+      .fn()
+      .mockResolvedValueOnce(first)
+      .mockImplementationOnce(() => stale.promise)
+      .mockResolvedValueOnce(response("new-context"))
+      .mockImplementationOnce(() => stale.promise);
+    const service = serviceWithGraphql(gql);
+    const options = {
+      surface: TemplateSuggestionSurface.AllPagesNewPage,
+      locale: "en",
+      currentDocId: "original",
+    };
+    const close = service.openTemplateSuggestionMenu(options);
+    await service.loadTemplateSuggestions(options);
+    const pending = service.prepareTemplateSuggestionContinuation(options);
+    const next = { ...options, currentDocId: "different" };
+    service.openTemplateSuggestionMenu(next);
+    await service.loadTemplateSuggestions(next);
+    close(); // An old menu cleanup cannot close the new request owner.
+    stale.resolve(response("private-old"));
+    await pending;
+    expect(
+      service.templateSuggestions$.value.items.map((item) => item.templateId),
+    ).toEqual(["new-context"]);
+    expect(
+      service.templateSourceMetadata$().value["doc-private-old"],
+    ).toBeUndefined();
+    const late = service.loadTemplateSuggestions(next, true);
+    service.closeTemplateSuggestionMenu(next);
+    await late;
+    expect(service.templateSuggestions$.value.status).toBe("idle");
+    const account$ = (
+      service as unknown as {
+        workspaceServerService: {
+          server: { account$: LiveData<{ id: string } | null> };
+        };
+      }
+    ).workspaceServerService.server.account$;
+    const actorPending = deferred<ReturnType<typeof response>>();
+    gql.mockImplementationOnce(() => actorPending.promise);
+    service.openTemplateSuggestionMenu(options);
+    const actorRead = service.loadTemplateSuggestions(options);
+    account$.setValue({ id: "another-actor" });
+    account$.setValue({ id: "actor" });
+    actorPending.resolve(response("not-for-returned-actor"));
+    await actorRead;
+    expect(service.templateSuggestions$.value).toMatchObject({
+      status: "idle",
+      items: [],
+    });
+  });
   test("Library publishes one page with metadata, then appends only on explicit continuation", async () => {
     const pending = deferred<ReturnType<typeof response>>();
     const first = response("same");

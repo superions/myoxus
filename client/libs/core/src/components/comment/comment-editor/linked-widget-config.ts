@@ -1,9 +1,6 @@
 import { MemberSearchService } from "@myoxus/core/modules/permissions";
-import { highlighter } from "@myoxus/core/modules/quicksearch/utils/highlighter";
 import { I18n } from "@myoxus/i18n";
-import { UserIcon } from "@myoxus/icons/lit";
 import type { FrameworkProvider } from "@myoxus/infra";
-import { cssVar } from "@myoxus/theme";
 import track from "@myoxus/track";
 import { computed } from "@preact/signals-core";
 import type { MyoxusInlineEditor } from "@virgultum/editor/shared/types";
@@ -12,10 +9,7 @@ import type {
   LinkedWidgetConfig,
 } from "@virgultum/editor/widgets/linked-doc";
 import { BLOCK_ID_ATTR, type BlockComponent } from "@virgultum/std";
-import Fuse, { type FuseResultMatch } from "fuse.js";
-import { html } from "lit";
-import { styleMap } from "lit/directives/style-map.js";
-import { unsafeHTML } from "lit/directives/unsafe-html.js";
+import Fuse from "fuse.js";
 
 export const createCommentLinkedWidgetConfig = (
   framework: FrameworkProvider,
@@ -32,24 +26,11 @@ export const createCommentLinkedWidgetConfig = (
       name?: string | null,
       avatar?: string | null,
     ): LinkedMenuItem => {
-      const avatarStyle = styleMap({
-        borderRadius: "var(--mantine-radius-xl)",
-        border: `calc(var(--mantine-scale) * 1px) solid ${cssVar(
-          "backgroundOverlayPanelColor",
-        )}`,
-        width: "calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))",
-        height: "calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))",
-        boxSizing: "border-box",
-      });
-      const icon = avatar
-        ? html`<img style=${avatarStyle} src="${avatar}" />`
-        : UserIcon();
-
-      let displayName = name ?? "Unknown";
       return {
         key: id,
-        name: html`${unsafeHTML(displayName)}`,
-        icon,
+        name: name ?? "Unknown",
+        icon: "UserIcon",
+        avatar: avatar ?? undefined,
         action: () => {
           const root = inlineEditor.rootElement;
           const block = root?.closest<BlockComponent>(`[${BLOCK_ID_ATTR}]`);
@@ -76,32 +57,6 @@ export const createCommentLinkedWidgetConfig = (
         },
       };
     };
-    const highlightFuseTitle = (
-      matches: readonly FuseResultMatch[] | undefined,
-      title: string,
-      key: string,
-    ): string => {
-      if (!matches) {
-        return title;
-      }
-      const normalizedRange = ([start, end]: [number, number]) =>
-        [
-          start,
-          end + 1 /* in fuse, the `end` is different from the `substring` */,
-        ] as [number, number];
-      const titleMatches = matches
-        ?.filter((match) => match.key === key)
-        .flatMap((match) => match.indices.map(normalizedRange));
-      return (
-        highlighter(
-          title,
-          `<span style="color: ${cssVar("textEmphasisColor")}">`,
-          "</span>",
-          titleMatches ?? [],
-        ) ?? title
-      );
-    };
-
     memberSearchService.search(query);
 
     const items = computed<LinkedMenuItem[]>(() => {
@@ -127,14 +82,11 @@ export const createCommentLinkedWidgetConfig = (
 
       return searchResults.map((result) => {
         const member = result.item;
-        const displayName = highlightFuseTitle(
-          result.matches,
-          member.name ?? "Unknown",
-          "name",
-        );
         return {
           ...getMenuItem(member.id, member.name, member.avatarUrl),
-          name: html`${unsafeHTML(displayName)}`,
+          highlights: result.matches?.flatMap((match) =>
+            match.indices.map(([start, end]) => [start, end + 1] as const),
+          ),
         };
       });
     });

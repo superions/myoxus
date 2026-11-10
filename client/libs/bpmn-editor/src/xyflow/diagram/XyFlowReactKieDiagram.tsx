@@ -35,7 +35,7 @@ import {
   getDiBoundsCenterPoint,
 } from "../maths/DcMaths";
 import { type DC__Point } from "../maths/model";
-import { snapShapeDimensions } from "../snapgrid/SnapGrid";
+import { snapShapeDimensions, snapPoint } from "../snapgrid/SnapGrid";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   useXyFlowReactKieDiagramStore,
@@ -45,11 +45,13 @@ import { type NodeSizes } from "../nodes/NodeSizes";
 import { SelectionStatusLabel } from "./SelectionStatusLabel";
 import {
   type XyFlowDiagramState,
+  sourceHandleParts,
   type XyFlowReactKieDiagramEdgeData,
   type XyFlowReactKieDiagramNodeData,
 } from "../store/State";
 import { castDraft, type Draft } from "immer";
 import { PositionalNodeHandleId } from "../nodes/PositionalNodeHandles";
+import { NODE_LAYERS } from "../nodes/Hooks";
 import { DiagramActionContext } from "./DiagramActionContext";
 import {
   WaypointActionsContextProvider,
@@ -71,6 +73,9 @@ import {
 import {
   IconButton,
   IconButtonGroup,
+  Alert,
+  Button,
+  Group,
   useResolvedDomTheme,
 } from "@myoxus/ui-facade";
 import "@xyflow/react/dist/style.css";
@@ -373,6 +378,11 @@ export function XyFlowReactKieDiagram<
   const requestDiagramAction = React.useContext(DiagramActionContext);
   const colorMode = useResolvedDomTheme();
   const [interactive, setInteractive] = useState(true);
+  const [alignmentGuides, setAlignmentGuides] = useState<
+    Array<{ x1: number; y1: number; x2: number; y2: number }>
+  >([]);
+  const editingAllowed = useRef(false);
+  editingAllowed.current = !readOnly && interactive;
   // XYFlow's reachable accessibility defaults are UI copy, not XML vocabulary.
   // Keep the live locale explicit: the shared i18n wrapper retains its identity.
   const ariaLabelConfig = useMemo<Partial<RF.AriaLabelConfig>>(() => {
@@ -421,6 +431,7 @@ export function XyFlowReactKieDiagram<
   );
 
   const nodeIdBeingDraggedRef = useRef<string | null>(null);
+  const reconnectingEndpoint = useRef<RF.HandleType | undefined>(undefined);
   const waypointKeyboardFocus = useRef<WaypointKeyboardFocus | undefined>(
     undefined,
   );
@@ -441,8 +452,55 @@ export function XyFlowReactKieDiagram<
 
   // Callbacks
 
+  const clearConnection = useCallback(() => {
+    reconnectingEndpoint.current = undefined;
+    xyFlowReactKieDiagramStoreApi.setState((state) => {
+      state.xyFlowReactKieDiagram.ongoingConnection = undefined;
+      state.xyFlowReactKieDiagram.edgeIdBeingUpdated = undefined;
+    });
+  }, [xyFlowReactKieDiagramStoreApi]);
+  const clearPlacement = useCallback(() => {
+    xyFlowReactKieDiagramStoreApi.setState((state) => {
+      state.xyFlowReactKieDiagram.placementElement = undefined;
+      state.xyFlowReactKieDiagram.placementModel = undefined;
+      state.xyFlowReactKieDiagram.newNodeProjection = undefined;
+      state.xyFlowReactKieDiagram.dropTarget = undefined;
+    });
+  }, [xyFlowReactKieDiagramStoreApi]);
+  React.useLayoutEffect(() => {
+    // Source replacement and access changes invalidate the gesture, not XML or
+    // history. Settle this before the next pointer action can choose a new tool.
+    clearConnection();
+    const placement =
+      xyFlowReactKieDiagramStoreApi.getState().xyFlowReactKieDiagram;
+    // A newly chosen tool may already belong to this model before React has
+    // projected it. Do not let the preceding command's delayed render cancel it.
+    if (readOnly || !interactive || placement.placementModel !== model)
+      clearPlacement();
+    if (readOnly || !interactive || !placement.draggingNodes.length)
+      setAlignmentGuides([]);
+  }, [
+    model,
+    readOnly,
+    interactive,
+    clearConnection,
+    clearPlacement,
+    xyFlowReactKieDiagramStoreApi,
+  ]);
+  useEffect(() => {
+    window.addEventListener("blur", clearConnection);
+    window.addEventListener("pointercancel", clearConnection);
+    return () => {
+      window.removeEventListener("blur", clearConnection);
+      window.removeEventListener("pointercancel", clearConnection);
+      clearConnection();
+      clearPlacement();
+    };
+  }, [clearConnection, clearPlacement]);
+
   const onConnect = useCallback<RF.OnConnect>(
     ({ source, target, sourceHandle, targetHandle }) => {
+      if (!editingAllowed.current) return;
       const state = xyFlowReactKieDiagramStoreApi.getState();
       const sourceNode = state
         .computed(state)
@@ -470,9 +528,10 @@ export function XyFlowReactKieDiagram<
             state,
             sourceNode,
             targetNode,
-            edgeType: sourceHandle as E,
+            edgeType: sourceHandleParts(sourceHandle).type as E,
             targetHandle: targetHandle as PositionalNodeHandleId,
-            sourceHandle: sourceHandle as PositionalNodeHandleId,
+            sourceHandle: (sourceHandleParts(sourceHandle).side ??
+              PositionalNodeHandleId.Center) as PositionalNodeHandleId,
           });
         });
       } catch (error) {
@@ -502,16 +561,19 @@ export function XyFlowReactKieDiagram<
 
   const onConnectStart = useCallback<RF.OnConnectStart>(
     (_e, newConnection) => {
+      if (!editingAllowed.current) return;
+      clearPlacement();
       xyFlowReactKieDiagramStoreApi.setState((state) => {
         state.xyFlowReactKieDiagram.ongoingConnection = newConnection;
       });
     },
-    [xyFlowReactKieDiagramStoreApi],
+    [xyFlowReactKieDiagramStoreApi, clearPlacement],
   );
 
   const onConnectEnd = useCallback<RF.OnConnectEnd>(
     (e) => {
-      if (!(e instanceof MouseEvent)) {
+      if (!editingAllowed.current || !(e instanceof MouseEvent)) {
+        clearConnection();
         return;
       }
 
@@ -529,10 +591,13 @@ export function XyFlowReactKieDiagram<
             return;
           }
 
-          const dropPoint = reactFlowInstance.screenToFlowPosition({
-            x: e.clientX,
-            y: e.clientY,
-          });
+          const dropPoint = reactFlowInstance.screenToFlowPosition(
+            {
+              x: e.clientX,
+              y: e.clientY,
+            },
+            { snapToGrid: false },
+          );
 
           // only try to create node if source handle is compatible
           if (
@@ -610,11 +675,13 @@ export function XyFlowReactKieDiagram<
       graphStructure,
       onConnectedNodeAdded,
       onError,
+      clearConnection,
     ],
   );
 
   const isValidConnection = useCallback<RF.IsValidConnection>(
     (edgeOrConnection) => {
+      if (!editingAllowed.current) return false;
       const state = xyFlowReactKieDiagramStoreApi.getState();
       const edgeId = state.xyFlowReactKieDiagram.edgeIdBeingUpdated;
       const edgeType = edgeId
@@ -977,8 +1044,83 @@ export function XyFlowReactKieDiagram<
   const onNodeDrag = useCallback<RF.OnNodeDrag<RF.Node<NData, N>>>(
     (_e, nodeBeingDragged) => {
       nodeIdBeingDraggedRef.current = nodeBeingDragged.id;
+      const state = xyFlowReactKieDiagramStoreApi.getState();
+      const data = state.computed(state).getDiagramData();
+      const current = data.nodesById.get(nodeBeingDragged.id);
+      if (!current) {
+        setAlignmentGuides([]);
+        return;
+      }
+      const point = snapPoint(state.xyFlowReactKieDiagram.snapGrid, {
+        "@_x": nodeBeingDragged.position.x,
+        "@_y": nodeBeingDragged.position.y,
+      });
+      const bounds = current.data.shape["dc:Bounds"];
+      const x = point["@_x"],
+        y = point["@_y"],
+        width = bounds["@_width"],
+        height = bounds["@_height"];
+      const neighbors = data.nodes
+        .filter(
+          (node) =>
+            node.id !== current.id &&
+            !node.hidden &&
+            !node.selected &&
+            node.data.parentXyFlowNode?.id ===
+              current.data.parentXyFlowNode?.id,
+        )
+        .map((node) => node.data.shape["dc:Bounds"])
+        .sort(
+          (a, b) =>
+            Math.abs(a["@_x"] - x) +
+            Math.abs(a["@_y"] - y) -
+            Math.abs(b["@_x"] - x) -
+            Math.abs(b["@_y"] - y),
+        );
+      const guides: typeof alignmentGuides = [];
+      // Guides compare like centers/edges at the grid candidate; they never
+      // magnetize coordinates or mutate neighboring shapes/DI.
+      for (const axis of ["x", "y"] as const) {
+        for (const fraction of [0.5, 0, 1]) {
+          const coordinate =
+            axis === "x" ? x + width * fraction : y + height * fraction;
+          const neighbor = neighbors.find(
+            (b) =>
+              Math.abs(
+                coordinate -
+                  (axis === "x"
+                    ? b["@_x"] + b["@_width"] * fraction
+                    : b["@_y"] + b["@_height"] * fraction),
+              ) < 0.000001,
+          );
+          if (!neighbor) continue;
+          guides.push(
+            axis === "x"
+              ? {
+                  x1: coordinate,
+                  x2: coordinate,
+                  y1: Math.min(y, neighbor["@_y"]),
+                  y2: Math.max(
+                    y + height,
+                    neighbor["@_y"] + neighbor["@_height"],
+                  ),
+                }
+              : {
+                  y1: coordinate,
+                  y2: coordinate,
+                  x1: Math.min(x, neighbor["@_x"]),
+                  x2: Math.max(
+                    x + width,
+                    neighbor["@_x"] + neighbor["@_width"],
+                  ),
+                },
+          );
+          break;
+        }
+      }
+      setAlignmentGuides(guides);
     },
-    [],
+    [xyFlowReactKieDiagramStoreApi],
   );
 
   const onNodeDragStart = useCallback<RF.OnNodeDrag<RF.Node<NData, N>>>(
@@ -995,6 +1137,7 @@ export function XyFlowReactKieDiagram<
   );
 
   const onNodeDragStop = useCallback<RF.OnNodeDrag<RF.Node<NData, N>>>(() => {
+    setAlignmentGuides([]);
     try {
       xyFlowReactKieDiagramStoreApi.setState((state) => {
         const nodeBeingDragged = state
@@ -1131,6 +1274,7 @@ export function XyFlowReactKieDiagram<
 
   const onEdgeUpdate = useCallback<RF.OnReconnect<RF.Edge<EData>>>(
     (oldEdge, newConnection) => {
+      if (!editingAllowed.current) return;
       try {
         xyFlowReactKieDiagramStoreApi.setState((state) => {
           const sourceNode = state
@@ -1166,8 +1310,17 @@ export function XyFlowReactKieDiagram<
             state,
             sourceNode,
             targetNode,
-            sourceHandle: newConnection.sourceHandle as PositionalNodeHandleId,
-            targetHandle: newConnection.targetHandle as PositionalNodeHandleId,
+            // Only the changed endpoint has new docking intent. The retained
+            // source rendering handle must not reinterpret the untouched route.
+            sourceHandle:
+              reconnectingEndpoint.current === "source"
+                ? ((sourceHandleParts(newConnection.sourceHandle).side ??
+                    newConnection.sourceHandle) as PositionalNodeHandleId)
+                : undefined,
+            targetHandle:
+              reconnectingEndpoint.current === "target"
+                ? (newConnection.targetHandle as PositionalNodeHandleId)
+                : undefined,
             lastWaypoint,
             firstWaypoint,
             edge: oldEdge,
@@ -1192,7 +1345,14 @@ export function XyFlowReactKieDiagram<
   );
 
   const onEdgeUpdateStart = useCallback(
-    (_e: React.MouseEvent | React.TouchEvent, edge: RF.Edge) => {
+    (
+      _e: React.MouseEvent | React.TouchEvent,
+      edge: RF.Edge,
+      fixedHandleType: RF.HandleType,
+    ) => {
+      if (!editingAllowed.current) return;
+      reconnectingEndpoint.current =
+        fixedHandleType === "source" ? "target" : "source";
       xyFlowReactKieDiagramStoreApi.setState((state) => {
         state.xyFlowReactKieDiagram.edgeIdBeingUpdated = edge.id;
       });
@@ -1201,6 +1361,7 @@ export function XyFlowReactKieDiagram<
   );
 
   const onEdgeUpdateEnd = useCallback(() => {
+    reconnectingEndpoint.current = undefined;
     // Needed for when the edge update operation doesn't change anything.
     xyFlowReactKieDiagramStoreApi.setState((state) => {
       state.xyFlowReactKieDiagram.ongoingConnection = undefined;
@@ -1263,10 +1424,19 @@ export function XyFlowReactKieDiagram<
       e.dataTransfer.dropEffect = "move";
 
       if (reactFlowInstance) {
-        const position = reactFlowInstance.screenToFlowPosition({
-          x: e.clientX,
-          y: e.clientY,
-        });
+        const point = reactFlowInstance.screenToFlowPosition(
+          {
+            x: e.clientX,
+            y: e.clientY,
+          },
+          { snapToGrid: false },
+        );
+        const rounded = snapPoint(
+          xyFlowReactKieDiagramStoreApi.getState().xyFlowReactKieDiagram
+            .snapGrid,
+          { "@_x": point.x, "@_y": point.y },
+        );
+        const position = { x: rounded["@_x"], y: rounded["@_y"] };
 
         if (
           position.x ===
@@ -1316,9 +1486,132 @@ export function XyFlowReactKieDiagram<
     ],
   );
 
+  const placementElement = useXyFlowReactKieDiagramStore(
+    (s) => s.xyFlowReactKieDiagram.placementElement,
+  );
+  const updatePlacement = useCallback(
+    (event: React.MouseEvent) => {
+      const state = xyFlowReactKieDiagramStoreApi.getState();
+      const projection = state.xyFlowReactKieDiagram.newNodeProjection;
+      if (
+        !editingAllowed.current ||
+        !state.xyFlowReactKieDiagram.placementElement ||
+        !projection ||
+        !reactFlowInstance
+      )
+        return;
+      const point = reactFlowInstance.screenToFlowPosition(
+        { x: event.clientX, y: event.clientY },
+        { snapToGrid: false },
+      );
+      const snapped = snapPoint(state.xyFlowReactKieDiagram.snapGrid, {
+        "@_x": point.x,
+        "@_y": point.y,
+      });
+      if (nodeIdBeingDraggedRef.current !== projection.id)
+        onNodeDragStart(event.nativeEvent, projection, []);
+      xyFlowReactKieDiagramStoreApi.setState((s) => {
+        if (s.xyFlowReactKieDiagram.newNodeProjection)
+          s.xyFlowReactKieDiagram.newNodeProjection.hidden = false;
+      });
+      onNodesChange([
+        {
+          type: "position",
+          id: projection.id,
+          positionAbsolute: { x: snapped["@_x"], y: snapped["@_y"] },
+        },
+      ]);
+    },
+    [
+      reactFlowInstance,
+      onNodeDragStart,
+      onNodesChange,
+      xyFlowReactKieDiagramStoreApi,
+    ],
+  );
+
+  const commitPlacement = useCallback(
+    (event: React.MouseEvent) => {
+      updatePlacement(event);
+      if (!editingAllowed.current) return;
+      try {
+        // Creation and semantic containment share one model transaction. A
+        // rejected container must not leave a node or an extra history entry.
+        xyFlowReactKieDiagramStoreApi.setState((state) => {
+          const projection = state.xyFlowReactKieDiagram.newNodeProjection;
+          const element = state.xyFlowReactKieDiagram.placementElement;
+          if (!projection || !element || projection.hidden) return;
+          const dropTarget = state.xyFlowReactKieDiagram.dropTarget;
+          if (
+            dropTarget &&
+            containmentMap.has(dropTarget.node.type as N) &&
+            (dropTarget.containmentMode === ContainmentMode.INVALID_INSIDE ||
+              dropTarget.containmentMode ===
+                ContainmentMode.INVALID_NON_INSIDE_CONTAINER)
+          )
+            throw new Error("BPMN_ACTIVITY_SCOPE");
+          const { newNodeId } = onNodeAdded({
+            state,
+            type: projection.type as N,
+            element,
+            dropPoint: projection.position,
+            data: projection.data as NData,
+          });
+          const node = state
+            .computed(state)
+            .getDiagramData()
+            .nodesById.get(newNodeId);
+          if (!node) throw new Error("BPMN_MISSING_NODE");
+          if (
+            dropTarget?.node.type &&
+            containmentMap.has(dropTarget.node.type as N)
+          )
+            onNodeParented({
+              state,
+              parentNode: dropTarget.node as RF.Node<NData, N>,
+              activeNode: node,
+              selectedNodes: [node],
+              containmentMode: dropTarget.containmentMode,
+            });
+          state.xyFlowReactKieDiagram._selectedNodes = [newNodeId];
+          state.xyFlowReactKieDiagram._selectedEdges = [];
+          state.xyFlowReactKieDiagram.newNodeProjection = undefined;
+          state.xyFlowReactKieDiagram.placementElement = undefined;
+          state.xyFlowReactKieDiagram.placementModel = undefined;
+          state.xyFlowReactKieDiagram.dropTarget = undefined;
+        });
+      } catch (error) {
+        if (onError) onError(error);
+        else throw error;
+      } finally {
+        nodeIdBeingDraggedRef.current = null;
+        clearPlacement();
+      }
+    },
+    [
+      updatePlacement,
+      onNodeAdded,
+      onNodeParented,
+      containmentMap,
+      onError,
+      clearPlacement,
+      xyFlowReactKieDiagramStoreApi,
+    ],
+  );
+
   // Override Reactflow's behavior by intercepting the keydown event using its `capture` variant.
   const handleRfKeyDownCapture = useCallback(
     (e: React.KeyboardEvent) => {
+      if (
+        e.key === "Escape" &&
+        xyFlowReactKieDiagramStoreApi.getState().xyFlowReactKieDiagram
+          .placementElement
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+        clearPlacement();
+        return;
+      }
       if (
         interactive &&
         !e.ctrlKey &&
@@ -1487,6 +1780,7 @@ export function XyFlowReactKieDiagram<
       onResetToBeforeEditingBegan,
       onEscPressed,
       readOnly,
+      clearPlacement,
       requestDiagramAction,
       interactive,
       onWaypointAdded,
@@ -1534,6 +1828,22 @@ export function XyFlowReactKieDiagram<
   return (
     <WaypointActionsContextProvider value={waypointActionsContextValue}>
       <RF.ReactFlow<RF.Node<NData, N>, RF.Edge<EData>>
+        onMouseMoveCapture={(event) => {
+          if (!(event.target as Element).closest(".react-flow__panel"))
+            updatePlacement(event);
+        }}
+        onClickCapture={(event) => {
+          if (
+            !placementElement ||
+            (event.target as Element).closest(
+              ".react-flow__panel,button,input,textarea,select",
+            )
+          )
+            return;
+          event.preventDefault();
+          event.stopPropagation();
+          commitPlacement(event);
+        }}
         proOptions={{ hideAttribution: true }}
         aria-label={t["com.myoxus.editor.bpmn.default-title"]()}
         tabIndex={0}
@@ -1650,6 +1960,48 @@ export function XyFlowReactKieDiagram<
         // (end)
       >
         {children}
+        {!!alignmentGuides.length && (
+          <RF.ViewportPortal>
+            <svg
+              aria-hidden="true"
+              width={1}
+              height={1}
+              style={{
+                position: "absolute",
+                overflow: "visible",
+                pointerEvents: "none",
+                zIndex: NODE_LAYERS.GROUP_NODES + 1,
+              }}
+            >
+              {alignmentGuides.map((guide, index) => (
+                <line
+                  key={index}
+                  {...guide}
+                  data-bpmn-alignment-guide="true"
+                  stroke="var(--mantine-primary-color-filled)"
+                  strokeWidth={1}
+                  strokeDasharray="4 4"
+                  vectorEffect="non-scaling-stroke"
+                />
+              ))}
+            </svg>
+          </RF.ViewportPortal>
+        )}
+        {placementElement && (
+          <RF.Panel position="top-center">
+            <Alert>
+              <Group>
+                {t["com.myoxus.editor.bpmn.place-element"]()}
+                <Button onClick={clearPlacement}>{t.Cancel()}</Button>
+              </Group>
+            </Alert>
+          </RF.Panel>
+        )}
+        {ongoingConnection && (
+          <RF.Panel position="top-center">
+            <Alert>{t["com.myoxus.editor.bpmn.drag-connection"]()}</Alert>
+          </RF.Panel>
+        )}
         <SelectionStatusLabel />
         <RF.Background />
         <RF.Panel position="bottom-right">

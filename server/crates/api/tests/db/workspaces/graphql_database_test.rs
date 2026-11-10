@@ -12355,6 +12355,7 @@ fn p9h_database_row_templates_bind_apply_and_enforce_acl() {
     let (owner_id, owner_session) = helpers::seed_user(&pool, &auth_store, "p9h-row-template-owner").await;
     let (outsider_id, outsider_session) = helpers::seed_user(&pool, &auth_store, "p9h-row-template-outsider").await;
     let workspace_id = helpers::create_workspace(&pool, owner_id).await;
+    let result = AssertUnwindSafe(async {
     helpers::create_workspace_root_doc(&pool, workspace_id, owner_id).await;
     let template_doc_id = helpers::create_doc(&pool, workspace_id, owner_id).await;
     let doc_service = DocService::new(Arc::new(SqlxDocStore::new(pool.clone())));
@@ -12778,9 +12779,13 @@ fn p9h_database_row_templates_bind_apply_and_enforce_acl() {
     let input_source_id = helpers::create_doc(&pool, workspace_id, owner_id).await;
     let input_blocks: Vec<yjs::PortableSnapshotBlock> = serde_json::from_value(json!([
       {"id":"page","flavour":"myoxus:page","children":["note"],"props":{"title":"Ignored {{input.title_only}}"}},
-      {"id":"note","flavour":"myoxus:note","children":["body","repeat"]},
+      {"id":"note","flavour":"myoxus:note","children":["body","repeat","native-fields"]},
       {"id":"body","flavour":"myoxus:paragraph","props":{"text":"{{input.project}} | {{workspace.name}} | {{creator.email}} | {{document.created_at.date}}"}},
-      {"id":"repeat","flavour":"myoxus:list","props":{"type":"todo","checked":false,"text":"{{member.email}} / {{input.project}}","repeat":{"source":"workspace.members","alias":"member"}}}
+      {"id":"repeat","flavour":"myoxus:list","props":{"type":"todo","checked":false,"text":"{{member.email}} / {{input.project}}","repeat":{"source":"workspace.members","alias":"member"}}},
+      {"id":"native-fields","flavour":"myoxus:paragraph","props":{"textProtection":"source","text":{"$virgultum:internal:text$":true,"delta":[
+        {"insert":" ","attributes":{"documentField":{"type":"input","id":"row-answer","definition":{"kind":"text","label":"Row answer","required":false,"default":"Default {{literal}}"},"value":"Source-only answer"}}},
+        {"insert":" ","attributes":{"documentField":{"type":"input","id":"row-deadline","definition":{"kind":"date","label":"Row deadline","required":true},"value":null}}}
+      ]}}}
     ])).unwrap();
     let input_snapshot = yjs::snapshot_blocks_to_yjs(&input_blocks).unwrap();
     doc_service
@@ -12879,6 +12884,36 @@ fn p9h_database_row_templates_bind_apply_and_enforce_acl() {
       .await
       .unwrap()
       .unwrap();
+    let native_fields = yjs::document_field::content::inspect(&expanded_snapshot).unwrap();
+    let first_write: Vec<u8> = sqlx::query_scalar("SELECT payload FROM doc_updates WHERE workspace_id=$1 AND doc_id=$2 ORDER BY sequence LIMIT 1")
+      .bind(workspace_id).bind(content_id).fetch_one(&pool).await.unwrap();
+    {
+      use yrs::{Map, Transact, updates::decoder::Decode};
+      let native = yrs::Doc::new();
+      let blocks = native.get_or_insert_map("blocks");
+      native.transact_mut().apply_update(yrs::Update::decode_v1(&first_write).unwrap()).unwrap();
+      let txn = native.transact();
+      let Some(yrs::Out::YMap(block)) = blocks.get(&txn, &native_fields[0].block_id) else { panic!("initial field owner") };
+      assert_eq!(block.get(&txn, "prop:textProtection"), Some(yrs::Out::Any(yrs::Any::from("fixed"))),
+        "the first published fragment must already be sealed");
+    }
+    let native_answers: std::collections::BTreeMap<_, _> = native_fields
+      .iter()
+      .map(|field| {
+        let descriptor = serde_json::to_value(&field.run.descriptor).unwrap();
+        (
+          descriptor["definition"]["label"].as_str().unwrap().to_owned(),
+          descriptor["value"].clone(),
+        )
+      })
+      .collect();
+    assert_eq!(
+      native_answers,
+      std::collections::BTreeMap::from([
+        ("Row answer".to_owned(), json!("Default {{literal}}")),
+        ("Row deadline".to_owned(), Value::Null),
+      ])
+    );
     let text = yjs::extract_blocks_from_yjs(&expanded_snapshot)
       .unwrap()
       .blocks
@@ -12923,13 +12958,15 @@ fn p9h_database_row_templates_bind_apply_and_enforce_acl() {
         .any(|name| name == "workspace.members"),
       "successful bodies must retain no active repeat binding"
     );
-    assert_eq!(
-      doc_service
-        .get_snapshot(workspace_id, input_source_id)
-        .await
-        .unwrap()
-        .unwrap(),
-      input_snapshot,
+    let source_after = doc_service
+      .get_snapshot(workspace_id, input_source_id)
+      .await
+      .unwrap()
+      .unwrap();
+    // Descriptor attribute maps may encode in a different key order after a
+    // native readback. Compare actual native content, including source answers.
+    assert!(
+      yjs::native_documents_have_same_content(&source_after, &input_snapshot).unwrap(),
       "applying inputs must preserve their source"
     );
     sqlx::query("UPDATE docs SET blocked=true WHERE id=$1")
@@ -13063,7 +13100,20 @@ fn p9h_database_row_templates_bind_apply_and_enforce_acl() {
       "P9H row-template apply must reuse workspace database ACLs"
     );
 
+    }).catch_unwind().await;
     helpers::cleanup_users(&pool, &[owner_id, outsider_id]).await;
+    let remaining: i64 = sqlx::query_scalar("SELECT count(*) FROM workspaces WHERE owner_user_id=$1")
+      .bind(owner_id)
+      .fetch_one(&pool)
+      .await
+      .unwrap();
+    assert_eq!(
+      remaining, 0,
+      "Row template fixtures must be removed after success or failure"
+    );
+    if let Err(error) = result {
+      resume_unwind(error);
+    }
   });
 }
 
@@ -19365,13 +19415,25 @@ async fn database_search_hits(app: &axum::Router, session: Uuid, workspace_id: U
 
 #[test]
 fn pdb25_database_search_filter_clamped_to_first_limit() {
-  // P-DB-25: the first/cursor contract on databaseSearch must clamp the
-  // requested page size to the documented maximum (500) and respect the
-  // documented default (100).
+  // The per-request cap is not a total cap. Equal rank/date fixtures also
+  // require Row-ID ordering for repeatable offset pages on an unchanged set.
   helpers::block_on_large_stack("pdb25-search-clamp", || async {
     let (app, pool, auth_store) = helpers::setup_app().await;
     let (owner_id, owner_session) = helpers::seed_user(&pool, &auth_store, "pdb25-clamp-owner").await;
     let workspace_id = helpers::create_workspace(&pool, owner_id).await;
+
+    let database_id = Uuid::new_v4();
+    sqlx::query(
+      "INSERT INTO workspace_databases (id,workspace_id,title,created_by,updated_by) VALUES ($1,$2,'Paging',$3,$3)",
+    )
+    .bind(database_id)
+    .bind(workspace_id)
+    .bind(owner_id)
+    .execute(&pool)
+    .await
+    .expect("seed paging Database");
+    sqlx::query("WITH inserted AS (INSERT INTO workspace_database_rows (database_id,position,title,updated_at) SELECT $1,n,'anything','2026-03-04T11:30:00Z'::timestamptz FROM generate_series(0,500) n RETURNING id) INSERT INTO workspace_database_row_search (workspace_id,database_id,row_id,title) SELECT $2,$1,id,'anything' FROM inserted")
+      .bind(database_id).bind(workspace_id).execute(&pool).await.expect("seed tied Row search hits");
 
     let resp = helpers::gql(
       &app,
@@ -19382,6 +19444,7 @@ fn pdb25_database_search_filter_clamped_to_first_limit() {
           workspace(id: $workspaceId) {
             databaseSearch(filter: { query: "anything", first: 99999 }) {
               rowId
+              updatedAt
             }
           }
         }
@@ -19395,6 +19458,40 @@ fn pdb25_database_search_filter_clamped_to_first_limit() {
     assert!(
       resp.get("errors").is_none(),
       "databaseSearch must not error on oversize first: {resp:#}"
+    );
+    assert_eq!(
+      gql_data(&resp, &["workspace", "databaseSearch"])
+        .as_array()
+        .unwrap()
+        .len(),
+      500
+    );
+    for hit in gql_data(&resp, &["workspace", "databaseSearch"]).as_array().unwrap() {
+      assert_eq!(
+        hit["updatedAt"], "2026-03-04T11:30:00+00:00",
+        "search must show the Row modification time, not the newer projection refresh"
+      );
+    }
+
+    let mut ids = Vec::new();
+    for offset in (0..=500).step_by(50) {
+      let page = helpers::gql(&app,owner_session,json!({
+        "query":"query($workspaceId:String!,$filter:DatabaseSearchFilterInput!){workspace(id:$workspaceId){databaseSearch(filter:$filter){rowId}}}",
+        "variables":{"workspaceId":workspace_id.to_string(),"filter":{"query":"anything","first":50,"offset":offset}}
+      })).await;
+      assert!(page.get("errors").is_none(), "{page}");
+      let hits = gql_data(&page, &["workspace", "databaseSearch"]).as_array().unwrap();
+      assert_eq!(hits.len(), if offset == 500 { 1 } else { 50 });
+      ids.extend(
+        hits
+          .iter()
+          .map(|hit| Uuid::parse_str(hit["rowId"].as_str().unwrap()).unwrap()),
+      );
+    }
+    assert_eq!(ids.len(), 501);
+    assert!(
+      ids.windows(2).all(|pair| pair[0] < pair[1]),
+      "tied ranks/dates must page by Row ID without overlap"
     );
 
     let resp = helpers::gql(

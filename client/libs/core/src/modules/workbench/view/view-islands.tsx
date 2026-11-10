@@ -178,6 +178,7 @@ export const ViewContextSurface = ({
   order,
   viewFamilies,
   retainBodyWhenCollapsed = false,
+  boundedBody = false,
   beforeClose,
 }: React.PropsWithChildren<{
   surfaceId: WorkbenchToolId;
@@ -188,6 +189,7 @@ export const ViewContextSurface = ({
   viewFamilies?: readonly WorkbenchViewFamily[];
   /** Preserve a streaming connection or unsaved editor through Collapse. */
   retainBodyWhenCollapsed?: boolean;
+  boundedBody?: boolean;
   beforeClose?: (next: () => void) => void;
 }>) => {
   const view = useService(ViewService).view;
@@ -205,6 +207,7 @@ export const ViewContextSurface = ({
       order,
       viewFamilies,
       retainBodyWhenCollapsed,
+      boundedBody,
       beforeClose,
     });
     return () => {
@@ -212,6 +215,7 @@ export const ViewContextSurface = ({
     };
   }, [
     beforeClose,
+    boundedBody,
     label,
     order,
     retainBodyWhenCollapsed,

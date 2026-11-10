@@ -66,6 +66,11 @@ async fn seed_document(pool: &sqlx::PgPool, prefix: &str) -> (Uuid, Uuid, Uuid) 
 }
 
 async fn cleanup_document(pool: &sqlx::PgPool, user_id: Uuid, workspace_id: Uuid) {
+  sqlx::query("DELETE FROM outbox_events WHERE event_type='doc_updated' AND payload->>'workspaceId'=$1")
+    .bind(workspace_id.to_string())
+    .execute(pool)
+    .await
+    .expect("clean owned search invalidations");
   sqlx::query("DELETE FROM search_reindex_runs WHERE workspace_id = $1")
     .bind(workspace_id)
     .execute(pool)
@@ -243,22 +248,67 @@ async fn inv_document_snippet_batch_is_bounded_and_normalized() {
 /// content rather than merely refreshing document metadata.
 #[tokio::test]
 async fn inv_deferred_snapshot_extracts_current_yjs_body() {
-  let pool = helpers::setup_pool().await;
+  let (_, pool, _, state) = helpers::setup_app_with_state().await;
   let (user_id, workspace_id, doc_id) = seed_document(&pool, "deferred-search").await;
-
+  use futures_util::FutureExt;
+  let outcome = std::panic::AssertUnwindSafe(async {
   let mut builder = yjs::YjsDocumentBuilder::new("Deferred snapshot title");
   builder.push_paragraph(&[yjs::YjsTextSegment::plain(
     "cobalt meadow lantern appears only in the current document body",
   )]);
+  use yrs::{Map, ReadTxn, Text, Transact, updates::decoder::Decode};
+  let native = yrs::Doc::new();
+  let payload = {
+    let blocks = native.get_or_insert_map("blocks");
+    let mut txn = native.transact_mut();
+    txn
+      .apply_update(yrs::Update::decode_v1(&builder.encode()).unwrap())
+      .unwrap();
+    let text = blocks
+      .iter(&txn)
+      .find_map(|(_, value)| {
+        let yrs::Out::YMap(block) = value else { return None };
+        match block.get(&txn, "prop:text") {
+          Some(yrs::Out::YText(text)) => Some(text),
+          _ => None,
+        }
+      })
+      .unwrap();
+    for descriptor in [
+      serde_json::json!({"type":"metadata","id":"author","key":"createdBy","format":"name"}),
+      serde_json::json!({"type":"metadata","id":"number","key":"documentNumber","format":"text"}),
+      serde_json::json!({"type":"input","id":"input","definition":{"kind":"text","label":"Answer","required":true,"default":"Unwanted default"},"value":"Literal {{native-answer}}"}),
+      serde_json::json!({"type":"input","id":"selection","definition":{"kind":"single-select","label":"Decision","required":false,"options":[{"id":"kept","label":"Retained decision"}]},"value":"kept"}),
+    ] {
+      let at = text.len(&txn);
+      text.insert_with_attributes(&mut txn, at, " ", Default::default());
+      text.insert_with_attributes(
+        &mut txn,
+        at + 1,
+        " ",
+        yrs::types::Attrs::from([(
+          "documentField".into(),
+          yrs::Any::from_json(&descriptor.to_string()).unwrap(),
+        )]),
+      );
+    }
+    txn.encode_state_as_update_v1(&Default::default())
+  };
+  sqlx::query("UPDATE docs SET document_number='SEARCH-FIELD-01', metadata_revision=metadata_revision+1 WHERE id=$1")
+    .bind(doc_id)
+    .execute(&pool)
+    .await
+    .unwrap();
   sqlx::query("INSERT INTO doc_updates (doc_id, workspace_id, payload, sequence) VALUES ($1, $2, $3, 1)")
     .bind(doc_id)
     .bind(workspace_id)
-    .bind(builder.encode())
+    .bind(&payload)
     .execute(&pool)
     .await
     .expect("seed deferred-search Yjs update");
 
-  indexer(&pool)
+  let indexer = indexer(&pool).with_field_source(Arc::new(state));
+  indexer
     .process_payload(SearchIndexJobPayload::DeferredSnapshot { workspace_id, doc_id })
     .await
     .expect("deferred snapshot indexing must succeed");
@@ -279,8 +329,69 @@ async fn inv_deferred_snapshot_extracts_current_yjs_body() {
     indexed.1
   );
   assert!(indexed.2);
-
+  for text in [
+    "deferred-search user",
+    "SEARCH-FIELD-01",
+    "Literal {{native-answer}}",
+    "Retained decision",
+  ] {
+    assert!(
+      indexed.1.contains(text),
+      "indexed field text is missing {text}: {}",
+      indexed.1
+    );
+  }
+  assert!(!indexed.1.contains("Unwanted default"));
+  // A missing context cannot replace a useful index with native atom spaces.
+  assert!(
+    self::indexer(&pool)
+      .process_payload(SearchIndexJobPayload::DeferredSnapshot { workspace_id, doc_id })
+      .await
+      .is_err()
+  );
+  let retained: String = sqlx::query_scalar("SELECT plain_text FROM search_content WHERE doc_id=$1")
+    .bind(doc_id)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+  assert_eq!(retained, indexed.1);
+  sqlx::query("UPDATE users SET name='Search author renamed' WHERE id=$1")
+    .bind(user_id)
+    .execute(&pool)
+    .await
+    .unwrap();
+  sqlx::query("UPDATE docs SET document_number='SEARCH-FIELD-02', metadata_revision=metadata_revision+1 WHERE id=$1")
+    .bind(doc_id)
+    .execute(&pool)
+    .await
+    .unwrap();
+  indexer
+    .process_payload(SearchIndexJobPayload::DeferredSnapshot { workspace_id, doc_id })
+    .await
+    .unwrap();
+  let refreshed: (String, bool) = sqlx::query_as(
+    "SELECT plain_text, search_vector @@ plainto_tsquery('simple', 'renamed') FROM search_content WHERE doc_id=$1",
+  )
+  .bind(doc_id)
+  .fetch_one(&pool)
+  .await
+  .unwrap();
+  assert!(refreshed.0.contains("Search author renamed") && refreshed.0.contains("SEARCH-FIELD-02") && refreshed.1);
+  assert!(!refreshed.0.contains("SEARCH-FIELD-01") && !refreshed.0.contains("deferred-search user"));
+  let stored: Vec<u8> = sqlx::query_scalar("SELECT payload FROM doc_updates WHERE doc_id=$1")
+    .bind(doc_id)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+  assert_eq!(
+    stored, payload,
+    "indexing must not persist display text into the live source"
+  );
+  }).catch_unwind().await;
   cleanup_document(&pool, user_id, workspace_id).await;
+  if let Err(panic) = outcome {
+    std::panic::resume_unwind(panic);
+  }
 }
 
 /// Incremental reindex must use the paired current Yjs materialization, even
@@ -456,21 +567,41 @@ async fn inv_native_document_search_outbox_retries_without_opening_a_page() {
       Ok(Uuid::new_v4().to_string())
     }
   }
-  let pool = helpers::setup_pool().await;
+  let (_, pool, _, state) = helpers::setup_app_with_state().await;
   let (user, workspace, doc) = seed_document(&pool, "native-search-outbox").await;
+  let schema_id = Uuid::new_v4();
+  let status_id = Uuid::new_v4();
   let queue = Arc::new(Queue::default());
   let repository = myoxus_infrastructure::outbox::SqlxOutboxRepository::new(pool.clone());
   let indexer = SearchIndexerService::new(
     queue.clone(),
     Arc::new(SqlxSearchRepository::new(pool.clone())),
     Arc::new(DocService::new(Arc::new(SqlxDocStore::new(pool.clone())))),
-  );
+  )
+  .with_field_source(Arc::new(state));
   let mut events = Vec::new();
   let result = std::panic::AssertUnwindSafe(async {
-    let mut builder = yjs::YjsDocumentBuilder::new("Unopened native working copy");
-    builder.push_paragraph(&[yjs::YjsTextSegment::plain("durable cobalt body before any editor opens")]);
+    sqlx::query("INSERT INTO document_status_schema(id,key,label,complexity) VALUES($1,$2,'Search fixture','custom')")
+      .bind(schema_id).bind(format!("search-{schema_id}")).execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO document_status_value(id,schema_id,key,label) VALUES($1,$2,'initial','Original search status')")
+      .bind(status_id).bind(schema_id).execute(&pool).await.unwrap();
+    sqlx::query("UPDATE docs SET status_id=$2, document_number='OUTBOX-01', metadata_updated_at=now() WHERE id=$1")
+      .bind(doc).bind(status_id).execute(&pool).await.unwrap();
+    let blocks:Vec<yjs::PortableSnapshotBlock> = serde_json::from_value(serde_json::json!([
+      {"id":"page","flavour":"myoxus:page","children":["note"],"props":{"title":"Unopened native working copy"}},
+      {"id":"note","flavour":"myoxus:note","children":["p"]},
+      {"id":"p","flavour":"myoxus:paragraph","props":{"text":{"$virgultum:internal:text$":true,"delta":[
+        {"insert":"durable cobalt body before any editor opens; "},
+        {"insert":" ","attributes":{"documentField":{"type":"metadata","id":"author","key":"createdBy","format":"name"}}},
+        {"insert":" / "},
+        {"insert":" ","attributes":{"documentField":{"type":"metadata","id":"number","key":"documentNumber","format":"text"}}},
+        {"insert":" / "},
+        {"insert":" ","attributes":{"documentField":{"type":"metadata","id":"status","key":"status","format":"text"}}}
+      ]}}}
+    ])).unwrap();
+    let source=yjs::snapshot_blocks_to_yjs(&blocks).unwrap();
     sqlx::query("INSERT INTO doc_updates(doc_id,workspace_id,payload,sequence) VALUES($1,$2,$3,1)")
-      .bind(doc).bind(workspace).bind(builder.encode()).execute(&pool).await.unwrap();
+      .bind(doc).bind(workspace).bind(&source).execute(&pool).await.unwrap();
     let event = Uuid::new_v4();
     events.push(event);
     sqlx::query("INSERT INTO outbox_events(id,aggregate_type,aggregate_id,event_type,payload) VALUES($1,'doc',$2,'doc_updated',$3)")
@@ -491,6 +622,90 @@ async fn inv_native_document_search_outbox_retries_without_opening_a_page() {
     let indexed: (i64,bool) = sqlx::query_as("SELECT COUNT(*),bool_and(search_vector @@ plainto_tsquery('simple','durable cobalt')) FROM search_content WHERE workspace_id=$1 AND doc_id=$2")
       .bind(workspace).bind(doc).fetch_one(&pool).await.unwrap();
     assert_eq!(indexed,(1,true), "replay must index one complete unopened working copy");
+
+    let marked:bool=sqlx::query_scalar("SELECT has_document_fields FROM search_content WHERE doc_id=$1")
+      .bind(doc).fetch_one(&pool).await.unwrap();
+    assert!(marked, "only a successful complete native projection establishes field dependencies");
+    // All three dependency owners enqueue the same durable native-search event,
+    // without Yjs writes or opening a page. Startup reuses this path too.
+    sqlx::query("UPDATE users SET name='Outbox author renamed' WHERE id=$1").bind(user).execute(&pool).await.unwrap();
+    sqlx::query("UPDATE docs SET document_number='OUTBOX-02', metadata_updated_at=now() WHERE id=$1")
+      .bind(doc).execute(&pool).await.unwrap();
+    sqlx::query("UPDATE document_status_value SET label='Current search status' WHERE id=$1")
+      .bind(status_id).execute(&pool).await.unwrap();
+    assert!(SqlxSearchRepository::new(pool.clone()).enqueue_field_refresh().await.unwrap()>=1);
+    let generated:Vec<Uuid>=sqlx::query_scalar("SELECT id FROM outbox_events WHERE event_type='doc_updated' AND payload->>'docId'=$1 AND payload->>'fieldContextChanged'='true' AND processed_at IS NULL")
+      .bind(doc.to_string()).fetch_all(&pool).await.unwrap();
+    assert!(generated.len()>=4, "metadata, profile, catalog and startup must each retain a committed refresh intent");
+    for event in &generated { repository.process_document_search_update(*event,&indexer).await.unwrap(); }
+    events.extend(generated);
+    let payloads=queue.payloads.lock().unwrap().clone();
+    for _ in &payloads[2..] {
+      indexer.process_payload(SearchIndexJobPayload::DeferredSnapshot{workspace_id:workspace,doc_id:doc}).await.unwrap();
+    }
+    let refreshed:String=sqlx::query_scalar("SELECT plain_text FROM search_content WHERE doc_id=$1")
+      .bind(doc).fetch_one(&pool).await.unwrap();
+    for value in ["Outbox author renamed","OUTBOX-02","Current search status"] {
+      assert!(refreshed.contains(value),"outbox-driven output is missing {value}: {refreshed}");
+    }
+    let retained:Vec<u8>=sqlx::query_scalar("SELECT payload FROM doc_updates WHERE doc_id=$1")
+      .bind(doc).fetch_one(&pool).await.unwrap();
+    assert_eq!(retained,source,"dependency refresh cannot write display values into native content");
+    // Persisted formatting overrides use the same event owner, but a rolled-back
+    // change cannot leave refresh intent outside its business transaction.
+    let mut transaction=pool.begin().await.unwrap();
+    sqlx::query("INSERT INTO app_configs(id,value) VALUES('i18n.default_locale','\"fr\"'::jsonb) ON CONFLICT(id) DO UPDATE SET value=CASE WHEN app_configs.value='\"fr\"'::jsonb THEN '\"en\"'::jsonb ELSE EXCLUDED.value END")
+      .execute(&mut *transaction).await.unwrap();
+    let formatting:i64=sqlx::query_scalar("SELECT count(*) FROM outbox_events WHERE event_type='doc_updated' AND payload->>'docId'=$1 AND processed_at IS NULL")
+      .bind(doc.to_string()).fetch_one(&mut *transaction).await.unwrap();
+    assert!(formatting>0);
+    transaction.rollback().await.unwrap();
+    let pending:i64=sqlx::query_scalar("SELECT count(*) FROM outbox_events WHERE event_type='doc_updated' AND payload->>'docId'=$1 AND processed_at IS NULL")
+      .bind(doc.to_string()).fetch_one(&pool).await.unwrap();
+    assert_eq!(pending,0,"a formatting rollback leaves no refresh intent");
+    use yrs::{Map,ReadTxn,Text,Transact,updates::decoder::Decode};
+    let native=yrs::Doc::new();
+    let blocks=native.get_or_insert_map("blocks");
+    let removed={
+      let mut txn=native.transact_mut();
+      txn.apply_update(yrs::Update::decode_v1(&source).unwrap()).unwrap();
+      let before=txn.state_vector();
+      let yrs::Out::YMap(block)=blocks.get(&txn,"p").unwrap() else {panic!("paragraph")};
+      let yrs::Out::YText(text)=block.get(&txn,"prop:text").unwrap() else {panic!("native text")};
+      let length=text.len(&txn);
+      text.format(&mut txn,0,length,yrs::types::Attrs::from([("documentField".into(),yrs::Any::Null)]));
+      txn.encode_state_as_update_v1(&before)
+    };
+    sqlx::query("INSERT INTO doc_updates(doc_id,workspace_id,payload,sequence) VALUES($1,$2,$3,2)")
+      .bind(doc).bind(workspace).bind(removed).execute(&pool).await.unwrap();
+    indexer.process_payload(SearchIndexJobPayload::DeferredSnapshot{workspace_id:workspace,doc_id:doc}).await.unwrap();
+    sqlx::query("UPDATE users SET name='Field-free author' WHERE id=$1").bind(user).execute(&pool).await.unwrap();
+    let dependencies:(bool,i64)=sqlx::query_as("SELECT has_document_fields,(SELECT count(*) FROM outbox_events WHERE event_type='doc_updated' AND payload->>'docId'=$1 AND processed_at IS NULL) FROM search_content WHERE doc_id=$2")
+      .bind(doc.to_string()).bind(doc).fetch_one(&pool).await.unwrap();
+    assert_eq!(dependencies,(false,0),"current field removal ends dependency refresh without a field registry");
+    let added={
+      let mut txn=native.transact_mut();
+      let before=txn.state_vector();
+      let yrs::Out::YMap(block)=blocks.get(&txn,"p").unwrap() else {panic!("paragraph")};
+      let yrs::Out::YText(text)=block.get(&txn,"prop:text").unwrap() else {panic!("native text")};
+      let at=text.len(&txn);
+      let field=serde_json::json!({"type":"metadata","id":"new-author","key":"createdBy","format":"name"});
+      text.insert_with_attributes(&mut txn,at," ",yrs::types::Attrs::from([("documentField".into(),yrs::Any::from_json(&field.to_string()).unwrap())]));
+      txn.encode_state_as_update_v1(&before)
+    };
+    sqlx::query("INSERT INTO doc_updates(doc_id,workspace_id,payload,sequence) VALUES($1,$2,$3,3)")
+      .bind(doc).bind(workspace).bind(added).execute(&pool).await.unwrap();
+    sqlx::query("UPDATE users SET name='First-field race repaired' WHERE id=$1").bind(user).execute(&pool).await.unwrap();
+    let raced:Vec<Uuid>=sqlx::query_scalar("SELECT id FROM outbox_events WHERE event_type='doc_updated' AND payload->>'docId'=$1 AND processed_at IS NULL")
+      .bind(doc.to_string()).fetch_all(&pool).await.unwrap();
+    assert!(!raced.is_empty(),"a field-free bit at an older source revision cannot suppress a first-field invalidation");
+    for event in &raced {repository.process_document_search_update(*event,&indexer).await.unwrap();}
+    events.extend(raced);
+    indexer.process_payload(SearchIndexJobPayload::DeferredSnapshot{workspace_id:workspace,doc_id:doc}).await.unwrap();
+    let repaired:(bool,Option<i64>,String)=sqlx::query_as("SELECT has_document_fields,field_source_revision,plain_text FROM search_content WHERE doc_id=$1")
+      .bind(doc).fetch_one(&pool).await.unwrap();
+    assert!(repaired.0 && repaired.1==Some(3) && repaired.2.contains("First-field race repaired"));
+    let delivered=queue.payloads.lock().unwrap().len();
     for key in [format!("db${workspace}$folders"),format!("userdata${user}"),format!("external-{doc}")] {
       sqlx::query("UPDATE docs SET external_id=$2 WHERE id=$1").bind(doc).bind(&key).execute(&pool).await.unwrap();
       let event = Uuid::new_v4(); events.push(event);
@@ -503,7 +718,7 @@ async fn inv_native_document_search_outbox_retries_without_opening_a_page() {
       let processed: bool = sqlx::query_scalar("SELECT processed_at IS NOT NULL FROM outbox_events WHERE id=$1")
         .bind(event).fetch_one(&pool).await.unwrap();
       assert!(processed);
-      assert_eq!(queue.payloads.lock().unwrap().len(),2,"technical or stale events must not enqueue");
+      assert_eq!(queue.payloads.lock().unwrap().len(),delivered,"technical or stale events must not enqueue");
     }
   }).catch_unwind().await;
   sqlx::query("DELETE FROM outbox_events WHERE id=ANY($1)")
@@ -512,6 +727,16 @@ async fn inv_native_document_search_outbox_retries_without_opening_a_page() {
     .await
     .expect("clean owned search events");
   cleanup_document(&pool, user, workspace).await;
+  sqlx::query("DELETE FROM document_status_value WHERE id=$1")
+    .bind(status_id)
+    .execute(&pool)
+    .await
+    .unwrap();
+  sqlx::query("DELETE FROM document_status_schema WHERE id=$1")
+    .bind(schema_id)
+    .execute(&pool)
+    .await
+    .unwrap();
   if let Err(panic) = result {
     std::panic::resume_unwind(panic);
   }

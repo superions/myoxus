@@ -15,10 +15,10 @@ import { cleanup, fireEvent, render } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import {
-  DatabaseCollaboratorHeader,
   DatabasePresenceDot,
   DatabasePresenceIndicator,
 } from "./collaborator-header";
+import { ActivePeopleTool } from "../../content-presence/active-people-tool";
 import type { DatabasePresenceRecord } from "./service";
 
 function makeRecord(
@@ -139,80 +139,51 @@ describe("DatabasePresenceIndicator", () => {
   });
 });
 
-describe("DatabaseCollaboratorHeader", () => {
-  const labels = {
-    label: "Collaborators",
-    onlyYouLabel: "Only you",
-    oneCollaboratorLabel: (name: string) => `${name} is here`,
-    manyCollaboratorsLabel: (count: number) => `${count} collaborators online`,
-    moreLabel: (count: number) => `${count} more`,
-    recordMetaLabel: (record: DatabasePresenceRecord) =>
-      `${record.viewId ?? "Table"} · 12:00 AM`,
-  };
+vi.mock("@myoxus/core/modules/workbench", () => ({
+  ViewContextSurface: ({ children }: { children: import("react").ReactNode }) =>
+    children,
+}));
 
-  test("hides the local user from the list", () => {
+describe("ActivePeopleTool", () => {
+  test("shows the local session and remote readers", () => {
     const { container } = render(
       <MyoxusUIProvider>
-        <DatabaseCollaboratorHeader
-          records={[
-            makeRecord({ socketId: "me" }),
-            makeRecord({ socketId: "them", userId: "u2", displayName: "Bob" }),
+        <ActivePeopleTool
+          connected
+          people={[
+            { key: "me", name: "Alice", local: true },
+            { key: "them", name: "Bob", local: false },
           ]}
-          localSocketId="me"
-          {...labels}
         />
       </MyoxusUIProvider>,
     );
-    expect(container.textContent).not.toContain("Alice is here");
-    expect(container.textContent).toContain("Bob is here");
-    expect(container.textContent).toContain("Table · 12:00 AM");
+    expect(container.textContent).toContain("Alice");
+    expect(container.textContent).toContain("Bob");
+    expect(container.textContent).toContain("com.myoxus.common.you");
   });
-
-  test("renders the empty-state copy when nobody else is here", () => {
+  test("shows only-you copy when no other session is present", () => {
     const { container } = render(
       <MyoxusUIProvider>
-        <DatabaseCollaboratorHeader
-          records={[makeRecord({ socketId: "me" })]}
-          localSocketId="me"
-          {...labels}
+        <ActivePeopleTool
+          connected
+          people={[{ key: "me", name: "Alice", local: true }]}
         />
       </MyoxusUIProvider>,
     );
-    // The header renders a MyoxusText "Only you" — search the rendered
-    // tree for that exact string.
-    const allText = container.querySelectorAll("[class]");
-    let found = false;
-    allText.forEach((node) => {
-      if (node.textContent === "Only you") found = true;
-    });
-    expect(found).toBe(true);
-    expect(container.textContent).toContain("Table · 12:00 AM");
+    expect(container.textContent).toContain("com.myoxus.presence.only-you");
   });
-
-  test("collapses overflow avatars into a +N badge", () => {
-    const records = Array.from({ length: 7 }, (_, index) =>
-      makeRecord({
-        socketId: `s${index}`,
-        userId: `u${index}`,
-        displayName: `User ${index}`,
-      }),
-    );
-    const { container } = render(
+  test("keeps distinct sessions with equal display names", () => {
+    const { getAllByText } = render(
       <MyoxusUIProvider>
-        <DatabaseCollaboratorHeader
-          records={records}
-          maxAvatars={3}
-          {...labels}
+        <ActivePeopleTool
+          connected
+          people={[
+            { key: "first", name: "Alice", local: false },
+            { key: "second", name: "Alice", local: false },
+          ]}
         />
       </MyoxusUIProvider>,
     );
-    const dots = container.querySelectorAll(
-      "[data-myoxus-database-presence-dot='true']",
-    );
-    expect(dots.length).toBe(3); // only first 3 rendered
-    const badges = Array.from(container.querySelectorAll("[aria-label]")).find(
-      (node) => node.getAttribute("aria-label")?.endsWith("more"),
-    );
-    expect(badges).not.toBeUndefined();
+    expect(getAllByText("Alice")).toHaveLength(2);
   });
 });

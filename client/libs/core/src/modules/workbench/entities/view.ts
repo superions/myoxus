@@ -401,10 +401,20 @@ export class View extends Entity<{
       // Resolve current layout after an asynchronous decision, never a stale copy.
       const current = this.toolLayout$.value;
       if (!current.visibleToolIds.includes(id)) return;
-      const visibleIndex = current.visibleToolIds.indexOf(id);
+      // Retain unavailable IDs in preferences, but never focus an absent card.
+      const focusableIds = current.orderedToolIds.filter(
+        (candidate) =>
+          current.visibleToolIds.includes(candidate) &&
+          this.contextSurfaces$.value.some(
+            (surface) =>
+              surface.id === candidate &&
+              (surface.viewFamilies.length === 0 ||
+                surface.viewFamilies.includes(this.toolViewFamily$.value)),
+          ),
+      );
+      const visibleIndex = focusableIds.indexOf(id);
       const nextFocusId =
-        current.visibleToolIds[visibleIndex + 1] ??
-        current.visibleToolIds[visibleIndex - 1];
+        focusableIds[visibleIndex + 1] ?? focusableIds[visibleIndex - 1];
       this.persistToolLayout({
         ...current,
         visibleToolIds: current.visibleToolIds.filter(

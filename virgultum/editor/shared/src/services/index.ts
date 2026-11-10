@@ -4,6 +4,8 @@ export * from "./citation-service";
 export * from "./comment-service";
 export * from "./doc-display-meta-service";
 export * from "./doc-embed-service";
+export * from "./document-field-output";
+export * from "./document-field-host";
 export * from "./doc-mode-service";
 export * from "./drag-handle-config";
 export * from "./edit-props-store";
@@ -37,3 +39,4 @@ export * from "./footnote-react-host";
 
 export * from "./editor-chrome-host";
 export * from "./inline-popup";
+export * from "./text-protection-labels";

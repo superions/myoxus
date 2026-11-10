@@ -38,6 +38,7 @@ vi.mock("../../use-mutation", () => ({
 
 vi.mock("@myoxus/i18n", () => ({
   useI18n: () => ({
+    "com.myoxus.peek-view-controls.close": () => "Close",
     t: (key: string, options?: Record<string, unknown>) => {
       const map: Record<string, string> = {
         "admin.workspaces.git-sync-filter.all": "Show All",

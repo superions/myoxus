@@ -336,6 +336,8 @@ pub fn build_ir_with_diagnostics(
   block_limit: usize,
   asset_reader: Option<&Arc<dyn PdfAssetReader>>,
 ) -> Result<(IrDocument, serde_json::Value), IrBuildError> {
+  myoxus_application::document_fields::validate_snapshot(&yjs_binary)
+    .map_err(|_| IrBuildError::YjsDecode("native document fields unavailable".into()))?;
   let workspace_id = metadata.workspace_id;
   tokio::task::block_in_place(|| {
     let rt = tokio::runtime::Handle::current();
@@ -684,6 +686,17 @@ pub async fn try_sync_render(inputs: SyncRenderInputs<'_>) -> SyncRenderOutcome 
   }
 }
 
+pub(crate) fn document_field_error_class(
+  error: myoxus_application::document_fields::DocumentFieldError,
+) -> &'static str {
+  // Existing malformed native sources remain decode failures. The new class is
+  // reserved for a missing/stale output context, not every Yjs parsing failure.
+  match error {
+    myoxus_application::document_fields::DocumentFieldError::InvalidField => "DecodeError",
+    _ => "DocumentFieldUnavailable",
+  }
+}
+
 /// The canonical byte-snapshot stage. It neither loads a document nor publishes
 /// a job/blob. Limits, font pinning, isolated compilation and validation are shared.
 pub async fn render_snapshot(
@@ -693,6 +706,27 @@ pub async fn render_snapshot(
   let started_at = std::time::Instant::now();
   let template_id = inputs.template_id.clone();
   let metrics = inputs.metrics.clone();
+  let yjs_binary = myoxus_application::pdf_export::render::document_field_snapshot(
+    yjs_binary,
+    inputs.workspace_id,
+    inputs.doc_id,
+    inputs.doc_history_id.is_some(),
+    &inputs.render_inputs,
+  )
+  .map_err(|error| {
+    let class = document_field_error_class(error);
+    metrics.record_render(
+      PdfExportOutcome::IrError,
+      &template_id,
+      started_at.elapsed(),
+      Some(class),
+    );
+    SyncRenderOutcome::Failed {
+      class,
+      detail: "PDF document field context unavailable".into(),
+      renderer_diagnostics: None,
+    }
+  })?;
   // 2. Build IR with sync threshold (NOT max_input_blocks). Block-limit
   //    error → fall back to async path; any other error → propagate.
   let mut metadata = DocumentMetadata {

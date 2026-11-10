@@ -78,6 +78,24 @@ describe("DocsSearchService remote full-text search", () => {
         blockContent: "The release needle is in the document body.",
       },
     ]);
+    await firstValueFrom(
+      service.search$("release needle", "remote", { offset: 50, limit: 50 }),
+    );
+    expect(gql.mock.calls[1]).toEqual([
+      {
+        query: indexerSearchDocsQuery,
+        variables: {
+          id: "workspace-1",
+          input: {
+            keyword: "release needle",
+            limit: 50,
+            offset: 50,
+            useSemanticSearch: false,
+          },
+        },
+        context: { signal: expect.any(AbortSignal) },
+      },
+    ]);
   });
 
   test("aborts only the unsubscribed remote request", async () => {

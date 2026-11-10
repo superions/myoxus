@@ -65,3 +65,6 @@ command -v hdiutil
 command -v lipo
 NODE_MAJOR=26 YARN_VERSION=4.18.0 bash build/scripts/ci/verify-runner-toolchain.sh --node --rust
 rustup target add "$target"
+
+# A private checkout umask must not change Yarn's reviewed file-package hash.
+node build/scripts/ci/verify-electron-updater-source.mjs --prepare

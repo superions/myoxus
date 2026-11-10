@@ -39,6 +39,7 @@ pub mod adapter;
 pub mod annotation;
 pub mod awareness;
 pub mod codec;
+pub mod document_field;
 pub mod document_mutation;
 mod document_properties;
 pub mod document_restore;
@@ -60,7 +61,9 @@ pub use markdown::{
 pub use page_registration::extract_page_title as extract_structural_document_title;
 mod native_document_comparison;
 mod native_template_repeat;
+mod native_text_protection;
 pub use native_document_comparison::native_documents_have_same_content;
+pub use native_text_protection::preserves_fixed_text;
 pub mod page_registration;
 pub mod store;
 
@@ -108,17 +111,55 @@ pub struct NativeTemplateDiagnostic {
   pub reason: String,
 }
 
+/// Coordinates belong to the native text owner, not formatted display output.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NativeTemplateFieldInspection {
+  pub block_id: String,
+  pub property: String,
+  pub start: u32,
+  pub length: u32,
+  pub range_unit: DocumentTextRangeUnit,
+  pub field: document_field::DocumentField,
+  pub captured: bool,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NativeTemplateInspection {
   /// Inventory only; diagnostics retain the actual occurrence and syntax evidence.
   pub required_variables: Vec<String>,
   pub diagnostics: Vec<NativeTemplateDiagnostic>,
+  /// Structural field data, separate from legacy caller-supplied answers.
+  /// Application owns calendar/option validation; no metadata is resolved here.
+  pub native_fields: Vec<NativeTemplateFieldInspection>,
 }
 
 /// Inspect the captured source without substitution, expansion or persistence.
 #[instrument(skip_all)]
 pub fn inspect_native_template(document_update: &[u8]) -> Result<NativeTemplateInspection, String> {
   native_template_references::inspect_native_template_references(document_update)?;
+  let mut native_fields: Vec<NativeTemplateFieldInspection> = Vec::new();
+  for occurrence in document_field::content::inspect(document_update).map_err(str::to_owned)? {
+    if let Some(previous) = native_fields.last_mut()
+      && previous.captured
+      && occurrence.run.captured
+      && previous.block_id == occurrence.block_id
+      && previous.property == occurrence.property
+      && previous.field == occurrence.run.descriptor
+      && previous.start + previous.length == occurrence.start
+    {
+      previous.length += occurrence.length;
+      continue;
+    }
+    native_fields.push(NativeTemplateFieldInspection {
+      block_id: occurrence.block_id,
+      property: occurrence.property,
+      start: occurrence.start,
+      length: occurrence.length,
+      range_unit: DocumentTextRangeUnit::Utf8Bytes,
+      field: occurrence.run.descriptor,
+      captured: occurrence.run.captured,
+    });
+  }
   let doc = Doc::new();
   let blocks = doc.get_or_insert_map("blocks");
   {
@@ -151,8 +192,22 @@ pub fn inspect_native_template(document_update: &[u8]) -> Result<NativeTemplateI
       } else {
         continue;
       };
+      let chunks = text
+        .diff(&txn, YChange::identity)
+        .into_iter()
+        .filter_map(|chunk| {
+          let yrs::Out::Any(Any::String(value)) = chunk.insert else {
+            return None;
+          };
+          Some((
+            value.to_string(),
+            chunk.attributes.map(|attrs| *attrs).unwrap_or_default(),
+          ))
+        })
+        .collect::<Vec<_>>();
+      let discoverable = native_template_discovery_text(&chunks);
       let text = text.get_string(&txn);
-      for (start, end, name, valid) in native_template_tokens(&text) {
+      for (start, end, name, valid) in native_template_tokens(&discoverable) {
         // Keep the deployed caller-variable inventory separate from authoring
         // diagnostics. Unsupported native blocks retain literal text.
         let flavour = block_string(&block, &txn, "flavour")
@@ -206,6 +261,7 @@ pub fn inspect_native_template(document_update: &[u8]) -> Result<NativeTemplateI
     ))
   });
   Ok(NativeTemplateInspection {
+    native_fields,
     required_variables: required.into_iter().collect(),
     diagnostics,
   })
@@ -1527,6 +1583,15 @@ pub fn instantiate_native_template(
   variables: &HashMap<String, NativeTemplateVariable>,
 ) -> Result<NativeTemplateInstantiation, String> {
   inspect_native_template_references(document_update)?;
+  let initialized = document_field::content::map(document_update, |run| {
+    if run.captured {
+      Ok(run.clone())
+    } else {
+      run.with_descriptor(run.descriptor.initialize_for_template())
+    }
+  })
+  .map_err(str::to_owned)?;
+  let document_update = initialized.state.as_slice();
   let doc = Doc::new();
   let blocks = doc.get_or_insert_map("blocks");
   {
@@ -1538,6 +1603,7 @@ pub fn instantiate_native_template(
       .map_err(|error| format!("native template apply failed: {error}"))?;
   }
 
+  native_text_protection::freeze(&doc, &blocks)?;
   let mut unresolved = BTreeSet::new();
   let handled = native_template_repeat::expand(&doc, &blocks, variables, &mut unresolved)?;
   let block_maps = {
@@ -1736,7 +1802,8 @@ fn rewrite_native_template_chunks(
   }
   let mut output = Vec::new();
   let mut consumed = 0usize;
-  for (start, placeholder_end, key, valid) in native_template_tokens(&text) {
+  let discoverable = native_template_discovery_text(chunks);
+  for (start, placeholder_end, key, valid) in native_template_tokens(&discoverable) {
     append_template_literal(&text, consumed, start, &ranges, &mut output);
     if key == "workspace.members"
       || (key.starts_with("member.") && (!scoped || !matches!(key, "member.name" | "member.email")))
@@ -1774,10 +1841,32 @@ fn rewrite_native_template_chunks(
   Ok(output)
 }
 
+/// Native field values are owned data, including frozen literal brace text.
+/// Mask their UTF-8 width only for token discovery; rewrite coordinates and all
+/// unchanged chunks still refer to the original native text and marks.
+fn native_template_discovery_text(chunks: &[(String, Attrs)]) -> String {
+  chunks
+    .iter()
+    .map(|(value, attrs)| {
+      if attrs.contains_key(document_field::FIELD_ATTRIBUTE) {
+        " ".repeat(value.len())
+      } else {
+        value.clone()
+      }
+    })
+    .collect()
+}
+
 fn exact_native_template_list_values(
   chunks: &[(String, Attrs)],
   variables: &HashMap<String, NativeTemplateVariable>,
 ) -> Option<Vec<String>> {
+  if chunks
+    .iter()
+    .any(|(_, attrs)| attrs.contains_key(document_field::FIELD_ATTRIBUTE))
+  {
+    return None;
+  }
   let text = chunks.iter().map(|(value, _)| value.as_str()).collect::<String>();
   let trimmed = text.trim();
   let key = trimmed.strip_prefix("{{")?.strip_suffix("}}")?.trim();
@@ -3458,6 +3547,7 @@ fn snapshot_text_chunks(value: &serde_json::Value) -> Result<Vec<(String, Attrs)
         })
         .transpose()?
         .unwrap_or_default();
+      crate::document_field::FieldRun::decode(insert, &attributes)?;
       Ok((insert.to_string(), attributes))
     })
     .collect()
@@ -3693,6 +3783,7 @@ pub fn snapshot_blocks_to_yjs(source_blocks: &[PortableSnapshotBlock]) -> Result
         }
       }
     }
+    native_text_protection::validate(&target_blocks, &txn)?;
   }
   Ok(doc.transact().encode_state_as_update_v1(&StateVector::default()))
 }

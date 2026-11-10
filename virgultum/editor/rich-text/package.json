@@ -14,7 +14,7 @@
     "@lit/context": "^1.1.6",
     "@myoxus/icons": "workspace:*",
     "@myoxus/theme": "workspace:*",
-    "@preact/signals-core": "^1.8.0",
+    "@preact/signals-core": "^1.14.5",
     "@types/lodash-es": "^4.17.12",
     "@virgultum/components": "workspace:*",
     "@virgultum/global": "workspace:*",
@@ -28,7 +28,7 @@
     "lodash-es": "4.18.1",
     "rxjs": "^7.8.2",
     "yjs": "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch",
-    "zod": "^3.25.76"
+    "zod": "4.6.7"
   },
   "exports": {
     ".": "./src/index.ts",

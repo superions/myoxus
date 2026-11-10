@@ -73,6 +73,33 @@ export class AIChatContent extends SignalWatcher(
       display: flex;
       flex-direction: column;
     }
+    /* The Workbench's native flex card supplies the bound. Preserve it through
+       retained Lit hosts so only messages scroll and the composer stays visible. */
+    ai-chat-content[bounded-mode],
+    ai-chat-content[bounded-mode] chat-panel-split-view,
+    ai-chat-content[bounded-mode] .ai-chat-panel-split-view-left,
+    ai-chat-content[bounded-mode] .chat-panel-main {
+      display: flex;
+      flex-direction: column;
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+    ai-chat-content[bounded-mode] ai-chat-messages {
+      /* Bound the retained renderer independently of its transcript. Keep a
+         small reading viewport when other tools overflow the shared rail. */
+      contain: size;
+      flex: 1 1 auto;
+      min-height: 8lh;
+      overflow-y: auto;
+      overscroll-behavior-y: contain;
+    }
+    ai-chat-content[bounded-mode] .ai-chat-panel-split-view {
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+    ai-chat-content[bounded-mode] ai-chat-composer {
+      flex-shrink: 0;
+    }
     ai-chat-content[independent-mode] {
       justify-content: center;
       height: 100%;
@@ -126,11 +153,14 @@ export class AIChatContent extends SignalWatcher(
   `;
 
   /**
-   * Only standalone chat owns a bounded height and message scroller. Sidebar
-   * content stays intrinsic inside the Workbench context scroll root.
+   * Standalone chat fills its route. Sidebar sizing is supplied separately by
+   * the bounded Workbench tool body and must not enable standalone centering.
    */
   @property({ type: Boolean, attribute: "independent-mode", reflect: true })
   accessor independentMode: boolean | undefined;
+
+  @property({ type: Boolean, attribute: "bounded-mode", reflect: true })
+  accessor boundedMode: boolean = false;
 
   @property({ attribute: false })
   accessor host: EditorHost | null | undefined;

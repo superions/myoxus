@@ -1,10 +1,11 @@
 import { I18n } from "@myoxus/i18n";
-import { app, Menu, webContents } from "electron";
+import { app, dialog, Menu, webContents } from "electron";
 import { PUBLIC_PROJECT_URLS } from "@myoxus-tools/utils/public-urls";
 
 import { isMacOS } from "../../shared/utils";
 import { beforeAppQuit } from "../cleanup";
 import { logger, revealLogFile } from "../logger";
+import { openExternalSafely } from "../security/open-external";
 import { uiSubjects } from "../ui/subject";
 import { checkForUpdates, getUpdaterState } from "../updater";
 import {
@@ -27,14 +28,33 @@ import {
 } from "./doc-versions";
 import { applicationMenuSubjects } from "./subject";
 
+async function openMenuLink(url: string) {
+  try {
+    await openExternalSafely(url);
+  } catch {
+    // This menu also operates before a workspace/renderer notification host exists.
+    void dialog
+      .showMessageBox({
+        type: "error",
+        message: I18n.t("com.myoxus.common.operation-failed"),
+        detail: I18n.t("com.myoxus.link.open-failed"),
+      })
+      .catch(() => logger.error("Could not display the external-link failure"));
+  }
+}
+
 // Unique id for menuitems
 const MENUITEM_NEW_PAGE = "myoxus:new-page";
 
 export function createApplicationMenu() {
   const isMac = isMacOS();
   const availability = getUpdaterState().availability;
-  const updateLabel =
-    availability.state === "enabled"
+  const externalMacosInstall =
+    availability.state === "disabled" &&
+    availability.reason === "external-macos-install";
+  const updateLabel = externalMacosInstall
+    ? I18n.t("com.myoxus.aboutMyoxus.checkUpdate.title.external-macos-install")
+    : availability.state === "enabled"
       ? I18n.t("com.myoxus.aboutMyoxus.checkUpdate.button.check")
       : availability.reason === "externally-managed"
         ? I18n.t(
@@ -295,9 +315,7 @@ export function createApplicationMenu() {
         {
           label: "Learn More",
           click: async () => {
-            // oxlint-disable-next-line no-var-requires
-            const { shell } = require("electron");
-            await shell.openExternal(PUBLIC_PROJECT_URLS.repository);
+            await openMenuLink(PUBLIC_PROJECT_URLS.repository);
           },
         },
         {
@@ -308,8 +326,13 @@ export function createApplicationMenu() {
         },
         {
           label: updateLabel,
-          enabled: availability.state === "enabled",
+          enabled: externalMacosInstall || availability.state === "enabled",
           click: async () => {
+            if (externalMacosInstall) {
+              // External replacement must also work before a workspace is open.
+              await openMenuLink(PUBLIC_PROJECT_URLS.downloads);
+              return;
+            }
             await initAndShowMainWindow();
             await checkForUpdates();
           },
@@ -317,9 +340,7 @@ export function createApplicationMenu() {
         {
           label: "Documentation",
           click: async () => {
-            // oxlint-disable-next-line no-var-requires
-            const { shell } = require("electron");
-            await shell.openExternal(PUBLIC_PROJECT_URLS.documentation);
+            await openMenuLink(PUBLIC_PROJECT_URLS.documentation);
           },
         },
       ],

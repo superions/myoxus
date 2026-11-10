@@ -1,27 +1,46 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { EventEmitter } from "node:events";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-const runtime = vi.hoisted(() => ({ updater: null as any, disabled: false }));
+const runtime = vi.hoisted(() => ({
+  updater: null as any,
+  disabled: false,
+  reason: "externally-managed",
+  platform: "linux",
+  admitted: true,
+}));
 vi.mock("electron", () => ({
   app: { on: vi.fn(), getVersion: () => "0.41.19" },
 }));
 vi.mock("../../src/main/logger", () => ({
   logger: { info: vi.fn(), error: vi.fn() },
 }));
+vi.mock("../../src/main/cleanup", () => ({
+  quitAfterAdmission: vi.fn(async (action: () => void) => {
+    if (runtime.admitted) action();
+    return runtime.admitted;
+  }),
+}));
 vi.mock("../../src/main/updater/desktop-updater-port", () => ({
   selectDesktopUpdater: () =>
     runtime.disabled
-      ? { state: "disabled", reason: "externally-managed" }
+      ? { state: "disabled", reason: runtime.reason }
       : {
           state: "enabled",
           updater: runtime.updater,
-          target: { platform: "linux", arch: "x64", backend: "deb" },
+          target: {
+            platform: runtime.platform,
+            arch: "x64",
+            backend: runtime.platform === "win32" ? "nsis" : "deb",
+          },
         },
 }));
 
 beforeEach(() => {
   vi.resetModules();
   runtime.disabled = false;
+  runtime.reason = "externally-managed";
+  runtime.platform = "linux";
+  runtime.admitted = true;
   process.env.NODE_ENV = "production";
   runtime.updater = Object.assign(new EventEmitter(), {
     setFeedURL: vi.fn(),
@@ -85,17 +104,40 @@ describe("normal released channel policy and truthful update state", () => {
     });
     expect(runtime.updater.downloadUpdate).toHaveBeenCalledTimes(2);
   });
-  it("does not check or download for external package management", async () => {
-    process.env.BUILD_TYPE = "internal";
-    runtime.disabled = true;
-    const updater = await import("../../src/main/updater/electron-updater");
-    await updater.registerUpdater();
-    await expect(updater.checkForUpdates()).resolves.toEqual({
-      state: "unavailable",
-      reason: "externally-managed",
-    });
-    await updater.downloadUpdate();
-    expect(runtime.updater.checkForUpdates).not.toHaveBeenCalled();
-    expect(runtime.updater.downloadUpdate).not.toHaveBeenCalled();
-  });
+  it.each(["externally-managed", "external-macos-install"])(
+    "does not check or download for %s",
+    async (reason) => {
+      process.env.BUILD_TYPE = "internal";
+      runtime.disabled = true;
+      runtime.reason = reason;
+      const updater = await import("../../src/main/updater/electron-updater");
+      await updater.registerUpdater();
+      await expect(updater.checkForUpdates()).resolves.toEqual({
+        state: "unavailable",
+        reason,
+      });
+      await updater.downloadUpdate();
+      expect(runtime.updater.checkForUpdates).not.toHaveBeenCalled();
+      expect(runtime.updater.downloadUpdate).not.toHaveBeenCalled();
+    },
+  );
+  it.each(["win32", "linux"])(
+    "activates %s only after admission, with silent NSIS restart",
+    async (platform) => {
+      runtime.platform = platform;
+      const updater = await import("../../src/main/updater/electron-updater");
+      await updater.registerUpdater();
+      await updater.quitAndInstall();
+      expect(runtime.updater.quitAndInstall).not.toHaveBeenCalled();
+      runtime.updater.emit("update-downloaded", { version: "0.42.0" });
+      runtime.admitted = false;
+      await updater.quitAndInstall();
+      expect(runtime.updater.quitAndInstall).not.toHaveBeenCalled();
+      runtime.admitted = true;
+      await updater.quitAndInstall();
+      expect(runtime.updater.quitAndInstall.mock.calls).toEqual([
+        platform === "win32" ? [true, true] : [],
+      ]);
+    },
+  );
 });

@@ -205,6 +205,11 @@ export class EdgelessClipboardController extends PageClipboard {
     const elements = getSortedCloneElements(
       this.selectionManager.selectedElements,
     );
+    if (
+      this.doc.readonly ||
+      elements.some((element) => this.doc.hasFixedText(element.id))
+    )
+      return;
     this.doc.transact(() => {
       this.crud.deleteElements(elements);
     });

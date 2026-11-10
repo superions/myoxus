@@ -18,9 +18,10 @@ impl DatabaseProjectionRepository for PgDatabaseRepository {
     if query.is_empty() {
       return Ok(Vec::new());
     }
+    // Projection refresh time still breaks rank ties; display the canonical Row's modification time.
     let rows = sqlx::query(
       r#"
-        SELECT s.row_id, s.database_id, r.title, r.doc_id IS NOT NULL AS has_content_document, s.updated_at,
+        SELECT s.row_id, s.database_id, r.title, r.doc_id IS NOT NULL AS has_content_document, r.updated_at,
                ts_headline('simple', r.title || ' ' || s.tsv::text, websearch_to_tsquery('simple', $2),
                  'MaxFragments=1, MinWords=3, MaxWords=12') AS snippet
           FROM workspace_database_row_search s
@@ -29,14 +30,15 @@ impl DatabaseProjectionRepository for PgDatabaseRepository {
          WHERE s.workspace_id = $1
            AND ($3::uuid IS NULL OR s.database_id = $3)
            AND s.tsv @@ websearch_to_tsquery('simple', $2)
-         ORDER BY ts_rank(s.tsv, websearch_to_tsquery('simple', $2)) DESC, s.updated_at DESC
-         LIMIT $4
+         ORDER BY ts_rank(s.tsv, websearch_to_tsquery('simple', $2)) DESC, s.updated_at DESC, s.row_id
+         LIMIT $4 OFFSET $5
       "#,
     )
     .bind(filter.workspace_id)
     .bind(query)
     .bind(filter.database_id)
     .bind(limit)
+    .bind(filter.offset.unwrap_or(0).max(0))
     .fetch_all(&self.pool)
     .await
     .map_err(Self::map_sqlx_error)?;

@@ -73,6 +73,7 @@ export interface TemplateSuggestionMenuState {
   hasNextPage: boolean;
   endCursor: string | null;
   error: Error | null;
+  loadingMore?: boolean;
 }
 
 export interface LoadTemplateSuggestionsOptions extends Omit<
@@ -85,7 +86,15 @@ export interface LoadTemplateSuggestionsOptions extends Omit<
 
 const DEFAULT_TEMPLATE_SUGGESTION_LIMIT = 8;
 export const TEMPLATE_SUGGESTION_CLIENT_VERSION = 1;
-const MAX_TEMPLATE_SUGGESTION_PAGES = 100;
+type SuggestionPage = NonNullable<
+  Parameters<typeof mapTemplateSuggestionResult>[1]
+> & {
+  pageDefaultReplacements?: readonly {
+    retiredSourceDocId: string;
+    replacementSourceDocId?: string | null;
+  }[];
+};
+type ContinuationResult = { result: SuggestionPage } | { error: Error };
 
 const emptySuggestionState = (): TemplateSuggestionMenuState => ({
   status: "idle",
@@ -113,6 +122,130 @@ export class TemplateDocService extends Service {
   private suggestionGeneration = 0;
   private activeSuggestionRequest:
     { key: string; promise: Promise<TemplateSuggestionMenuState> } | undefined;
+  private contextualKey?: string;
+  private contextualRows: TemplateSuggestionItemFieldsFragment[] = [];
+  private continuation?: {
+    key: string;
+    cursor: string;
+    failed: boolean;
+    promise: Promise<ContinuationResult>;
+  };
+  private menuLease?: { key: string; dispose: () => void };
+
+  private contextualRequestKey(options: LoadTemplateSuggestionsOptions) {
+    const server = this.serverService;
+    return JSON.stringify([
+      server?.id,
+      server?.baseUrl,
+      server?.account$.value?.id,
+      this.workspaceService.workspace.id,
+      suggestionRequestKey(options),
+    ]);
+  }
+
+  /** Opening owns one request scope. Cloud discovery never waits for repair;
+   * native-local sources must finish their established offline initialization.
+   */
+  public openTemplateSuggestionMenu(options: LoadTemplateSuggestionsOptions) {
+    const existing = this.menuLease;
+    if (existing?.key === this.contextualRequestKey(options))
+      return () => {
+        if (this.menuLease === existing) this.closeTemplateSuggestionMenu();
+      };
+    this.closeTemplateSuggestionMenu();
+    const server = this.serverService;
+    const actor = server?.account$.value?.id;
+    const subscription = server?.account$.subscribe((account) => {
+      if (account?.id !== actor) this.invalidateTemplateSuggestions();
+    });
+    const lease = {
+      key: this.contextualRequestKey(options),
+      dispose: () => subscription?.unsubscribe(),
+    };
+    this.menuLease = lease;
+    void (async () => {
+      if (this.workspaceService.workspace.flavour === "local")
+        await this.builtinReconciler.reconcile();
+      if (this.menuLease === lease) await this.loadTemplateSuggestions(options);
+    })().catch((cause) => {
+      if (this.menuLease === lease)
+        this.templateSuggestions$.setValue({
+          ...emptySuggestionState(),
+          status: "error",
+          surface: options.surface,
+          error: cause instanceof Error ? cause : new Error(String(cause)),
+        });
+    });
+    return () => {
+      if (this.menuLease === lease) this.closeTemplateSuggestionMenu();
+    };
+  }
+
+  public closeTemplateSuggestionMenu(options?: LoadTemplateSuggestionsOptions) {
+    if (options && this.menuLease?.key !== this.contextualRequestKey(options))
+      return;
+    this.menuLease?.dispose();
+    this.menuLease = undefined;
+    this.suggestionGeneration++;
+    this.activeSuggestionRequest = undefined;
+    this.continuation = undefined;
+    this.contextualKey = undefined;
+    this.contextualRows = [];
+    this.templateSuggestions$.setValue(emptySuggestionState());
+  }
+
+  /** Called by mounted menu content only after the ready page has rendered.
+   * One promise is the entire unpublished buffer; More joins it if still pending.
+   */
+  public prepareTemplateSuggestionContinuation(
+    options: LoadTemplateSuggestionsOptions,
+  ): Promise<ContinuationResult> | undefined {
+    const key = this.contextualRequestKey(options);
+    const current = this.templateSuggestions$.value;
+    if (
+      this.menuLease?.key !== key ||
+      this.contextualKey !== key ||
+      current.status !== "ready" ||
+      !current.hasNextPage ||
+      !current.endCursor
+    )
+      return;
+    if (
+      this.continuation?.key === key &&
+      this.continuation.cursor === current.endCursor
+    )
+      return this.continuation.promise;
+    const cursor = current.endCursor;
+    const generation = this.suggestionGeneration;
+    const buffer = {
+      key,
+      cursor,
+      failed: false,
+      promise: undefined as unknown as Promise<ContinuationResult>,
+    };
+    buffer.promise = this.readSuggestionPage({
+      ...options,
+      after: cursor,
+    }).then(
+      (result) => ({ result }),
+      (cause) => {
+        const error = cause instanceof Error ? cause : new Error(String(cause));
+        buffer.failed = true;
+        if (
+          generation === this.suggestionGeneration &&
+          this.contextualKey === key &&
+          this.contextualRequestKey(options) === key
+        )
+          this.templateSuggestions$.setValue({
+            ...this.templateSuggestions$.value,
+            error,
+          });
+        return { error };
+      },
+    );
+    this.continuation = buffer;
+    return buffer.promise;
+  }
 
   constructor(
     private readonly workspaceService: WorkspaceService,
@@ -448,11 +581,26 @@ export class TemplateDocService extends Service {
       this.workspaceService.workspace.flavour !== "local"
     )
       return this.loadLibraryInventory(options, force);
-    const key = suggestionRequestKey(options);
+    const scope = this.contextualRequestKey(options);
+    const key = JSON.stringify([scope, options.after]);
     if (this.activeSuggestionRequest?.key === key) {
       return this.activeSuggestionRequest.promise;
     }
-    const generation = ++this.suggestionGeneration;
+    const append = Boolean(options.after);
+    if (
+      append &&
+      (this.contextualKey !== scope ||
+        this.templateSuggestions$.value.endCursor !== options.after)
+    )
+      return Promise.resolve(this.templateSuggestions$.value);
+    const generation = append
+      ? this.suggestionGeneration
+      : ++this.suggestionGeneration;
+    if (!append) {
+      this.contextualKey = scope;
+      this.contextualRows = [];
+      this.continuation = undefined;
+    }
     const promise = this.fetchTemplateSuggestions(options, generation).finally(
       () => {
         if (this.activeSuggestionRequest?.promise === promise) {
@@ -469,17 +617,17 @@ export class TemplateDocService extends Service {
     generation: number,
   ): Promise<TemplateSuggestionMenuState> {
     const current = this.templateSuggestions$.value;
+    const append = Boolean(options.after);
     this.templateSuggestions$.setValue({
       ...current,
-      status: "loading",
+      status: append ? "ready" : "loading",
       surface: options.surface,
       error: null,
+      loadingMore: append,
     });
 
-    const graphqlService = this.graphqlService;
     if (this.workspaceService.workspace.flavour === "local") {
-      if (this.workspaceService.workspace.flavour === "local")
-        await this.setting.loading$.waitFor((loading) => !loading);
+      await this.setting.loading$.waitFor((loading) => !loading);
       const fallback = this.localSuggestionState(options);
       if (generation === this.suggestionGeneration) {
         this.templateSuggestions$.setValue(fallback);
@@ -488,68 +636,51 @@ export class TemplateDocService extends Service {
     }
 
     try {
-      if (!graphqlService) throw new Error("Template Registry is unavailable");
-      const items: TemplateSuggestionItemFieldsFragment[] = [];
-      let after: string | undefined;
-      let finalResult:
-        | {
-            emptyDocumentAllowed: boolean;
-            reconcileRequired: boolean;
-            stale: boolean;
-            hasNextPage: boolean;
-            endCursor: string | null;
-          }
-        | undefined;
-      for (let page = 0; page < MAX_TEMPLATE_SUGGESTION_PAGES; page++) {
-        const response = await graphqlService.gql({
-          query: templateSuggestionsQuery,
-          variables: {
-            workspaceId: this.workspaceService.workspace.id,
-            input: {
-              surface: options.surface,
-              documentTypeId: options.documentTypeId,
-              statusId: options.statusId,
-              classificationId: options.classificationId,
-              mode: options.mode,
-              collectionId: options.collectionId,
-              currentDocId: options.currentDocId,
-              first: options.first ?? DEFAULT_TEMPLATE_SUGGESTION_LIMIT,
-              after,
-              locale: options.locale ?? "en",
-              clientVersion: TEMPLATE_SUGGESTION_CLIENT_VERSION,
-            },
-          },
-        });
-        if (generation !== this.suggestionGeneration) {
-          return this.templateSuggestions$.value;
-        }
-        const result = response.workspace?.templateSuggestions;
-        if (!result) break;
-        items.push(...result.items);
-        finalResult = {
-          ...result,
-          reconcileRequired:
-            (finalResult?.reconcileRequired ?? false) ||
-            result.reconcileRequired,
-          stale: (finalResult?.stale ?? false) || result.stale,
-        };
-        if (!result.hasNextPage) break;
-        if (!result.endCursor || result.endCursor === after) {
-          throw new Error("Template suggestion continuation did not advance");
-        }
-        after = result.endCursor;
-        if (page === MAX_TEMPLATE_SUGGESTION_PAGES - 1) {
-          throw new Error(
-            "Template suggestion continuation exceeded its bound",
-          );
-        }
-      }
-      const state = mapTemplateSuggestionResult(
-        options.surface,
-        finalResult ? { ...finalResult, items } : null,
-      );
+      const scope = this.contextualRequestKey(options);
+      let result: SuggestionPage;
+      if (append && this.continuation?.failed) this.continuation = undefined;
+      const continuation = append
+        ? this.prepareTemplateSuggestionContinuation(options)
+        : undefined;
+      if (continuation) {
+        const outcome = await continuation;
+        if ("error" in outcome) throw outcome.error;
+        result = outcome.result;
+      } else result = await this.readSuggestionPage(options);
+      if (
+        generation !== this.suggestionGeneration ||
+        this.contextualKey !== scope ||
+        this.contextualRequestKey(options) !== scope
+      )
+        return this.templateSuggestions$.value;
+      if (
+        result.hasNextPage &&
+        (!result.endCursor || result.endCursor === options.after)
+      )
+        throw new Error("Template suggestion continuation did not advance");
+      if (append) this.continuation = undefined;
+      const seen = new Set<string>();
+      const items = [
+        ...(append ? (this.contextualRows ?? []) : []),
+        ...result.items,
+      ].filter((item) => {
+        const key = item.templateDocId
+          ? `document:${item.templateDocId}`
+          : `registry:${item.templateId}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      this.contextualRows = items;
+      const state = mapTemplateSuggestionResult(options.surface, {
+        ...result,
+        items,
+        reconcileRequired:
+          result.reconcileRequired || (append && current.reconcileRequired),
+        stale: result.stale || (append && current.stale),
+      });
       if (generation === this.suggestionGeneration) {
-        if (finalResult) {
+        {
           const metadata: Record<string, ResolvedTemplateSourceMetadata> =
             Object.fromEntries(
               Object.entries(this.sourceMetadata$.value.metadata).filter(
@@ -585,27 +716,87 @@ export class TemplateDocService extends Service {
           ),
         );
         this.templateSuggestions$.setValue(state);
+        void this.builtinReconciler.applyPageDefaultReplacements(
+          result.pageDefaultReplacements ?? [],
+          () =>
+            generation === this.suggestionGeneration &&
+            this.contextualRequestKey(options) === scope,
+        );
       }
       return state;
     } catch (cause) {
       if (generation !== this.suggestionGeneration) {
         return this.templateSuggestions$.value;
       }
-      const state: TemplateSuggestionMenuState = {
-        status: "error",
-        surface: options.surface,
-        items: [],
-        emptyDocumentAllowed: true,
-        reconcileRequired: false,
-        stale: false,
-        hasNextPage: false,
-        endCursor: null,
-        error: cause instanceof Error ? cause : new Error(String(cause)),
-      };
+      const state: TemplateSuggestionMenuState = append
+        ? {
+            ...this.templateSuggestions$.value,
+            status: "ready",
+            loadingMore: false,
+            error: cause instanceof Error ? cause : new Error(String(cause)),
+          }
+        : {
+            status: "error",
+            surface: options.surface,
+            items: [],
+            emptyDocumentAllowed: true,
+            reconcileRequired: false,
+            stale: false,
+            hasNextPage: false,
+            endCursor: null,
+            error: cause instanceof Error ? cause : new Error(String(cause)),
+          };
       if (generation === this.suggestionGeneration) {
         this.templateSuggestions$.setValue(state);
       }
       return state;
+    }
+  }
+
+  private async readSuggestionPage(
+    options: LoadTemplateSuggestionsOptions,
+  ): Promise<SuggestionPage> {
+    const server = this.serverService;
+    const workspace = this.workspaceService.workspace;
+    const graphql = this.graphqlService;
+    if (!graphql) throw new Error("Template Registry is unavailable");
+    const actor = server?.account$.value?.id;
+    let changed = false;
+    const subscription = server?.account$.subscribe((account) => {
+      if (account?.id !== actor) changed = true;
+    });
+    try {
+      const response = await graphql.gql({
+        query: templateSuggestionsQuery,
+        variables: {
+          workspaceId: workspace.id,
+          input: {
+            surface: options.surface,
+            documentTypeId: options.documentTypeId,
+            statusId: options.statusId,
+            classificationId: options.classificationId,
+            mode: options.mode,
+            collectionId: options.collectionId,
+            currentDocId: options.currentDocId,
+            first: options.first ?? DEFAULT_TEMPLATE_SUGGESTION_LIMIT,
+            after: options.after,
+            locale: options.locale ?? "en",
+            clientVersion: TEMPLATE_SUGGESTION_CLIENT_VERSION,
+          },
+        },
+      });
+      if (
+        changed ||
+        this.serverService !== server ||
+        this.workspaceService.workspace !== workspace ||
+        server?.account$.value?.id !== actor
+      )
+        throw new Error("Template suggestion owner changed");
+      const result = response.workspace?.templateSuggestions;
+      if (!result) throw new Error("Template Registry is unavailable");
+      return result;
+    } finally {
+      subscription?.unsubscribe();
     }
   }
 
@@ -727,6 +918,7 @@ export class TemplateDocService extends Service {
   }
 
   public invalidateTemplateSuggestions(): void {
+    this.closeTemplateSuggestionMenu();
     this.metadataGeneration++;
     this.metadataRequest = undefined;
     this.sourceMetadata$.setValue({
@@ -759,6 +951,10 @@ export class TemplateDocService extends Service {
     options: LoadTemplateSuggestionsOptions,
     customOnly = false,
   ) {
+    // Row bindings consume Registry catalog IDs, not native document keys.
+    // Keep the supplemental local list consistent with the Row picker's guard.
+    if (options.surface === TemplateSuggestionSurface.DatabaseRowTemplate)
+      return [];
     const metadata = this.resolvedSourceMetadata();
     return this.getTemplateDocs(options.categoryFilter, options.surface)
       .filter(

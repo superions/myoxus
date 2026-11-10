@@ -290,6 +290,7 @@ async fn export_public_into_staging(
         doc.workspace_id
       );
     }
+    myoxus_application::document_fields::validate_snapshot(&loaded.payload)?;
     let mut ir = document_from_yjs(
       doc.workspace_id,
       doc.doc_id,

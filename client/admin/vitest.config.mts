@@ -47,10 +47,6 @@ export default defineConfig({
         repoRoot,
         "client/libs/theme/src/client.css",
       ),
-      "@myoxus/theme/fonts.css": resolve(
-        repoRoot,
-        "client/libs/theme/src/fonts.css",
-      ),
     },
   },
   test: {

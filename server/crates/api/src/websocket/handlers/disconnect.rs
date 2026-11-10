@@ -27,7 +27,7 @@ pub(in crate::websocket) fn register(socket: &socketioxide::extract::SocketRef, 
   let sid_for_cleanup = socket.id.to_string();
   let disconnect_adapter = state.redis_ws_adapter().cloned();
   let socket_io = state.socket_io.clone();
-  socket.on_disconnect(move |reason: DisconnectReason| {
+  socket.on_disconnect(move |reason: DisconnectReason| async move {
     let io = socket_io.read().unwrap_or_else(|error| error.into_inner()).clone();
     handle_disconnect(sid_for_cleanup, reason, disconnect_adapter.clone(), io);
   });

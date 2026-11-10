@@ -30,6 +30,9 @@ fi
 if [ ! -f "$report" ]; then
   parent="$(git ls-remote https://github.com/superions/myoxus.git refs/heads/main | cut -f1)"
   if [ ! -f "$candidate/candidate-identities.txt" ]; then
+    if [ -d "$candidate" ]; then
+      mv "$candidate" "$(mktemp -d "$root/.incomplete-$revision.XXXXXX")/preparation"
+    fi
     build/scripts/release/publish-github-mirror.sh prepare \
       --revision "$revision" --expected-parent "$parent" --workdir "$candidate"
   fi
@@ -54,7 +57,7 @@ fi
 url="https://git.blume29.de/api/packages/myoxus/generic/myoxus-source/$version-$revision/source-correspondence.json"
 sha="$(sha256sum "$report" | cut -d' ' -f1)"
 if ! curl --fail --silent --show-error --max-time 30 "$url" -o "$candidate/published-correspondence.json"; then
-  printf 'header = "Authorization: token %s"\n' "${FORGEJO_PACKAGE_TOKEN:?}" |
+  node -e 'const e=process.env; const auth=e.FORGEJO_PACKAGE_USER && e.FORGEJO_PACKAGE_PASSWORD ? "Basic "+Buffer.from(e.FORGEJO_PACKAGE_USER+":"+e.FORGEJO_PACKAGE_PASSWORD).toString("base64") : "token "+e.FORGEJO_PACKAGE_TOKEN; process.stdout.write("header = \"Authorization: "+auth+"\"\n")' |
     curl --config - --fail --silent --show-error --max-time 60 --upload-file "$report" "$url"
   curl --fail --silent --show-error --max-time 30 "$url" -o "$candidate/published-correspondence.json"
 fi

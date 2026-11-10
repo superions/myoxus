@@ -20,6 +20,8 @@ import {
   type IconData,
   IconPickerServiceIdentifier,
   IconType,
+  EditorI18nProvider,
+  textProtectionHint,
 } from "@virgultum/shared/services";
 import type { UniComponent } from "@virgultum/shared/types";
 import type { BlockComponent } from "@virgultum/std";
@@ -329,6 +331,7 @@ export class CalloutBlockComponent extends CaptionedBlockComponent<CalloutBlockM
                       applySettings: (value) => {
                         if (
                           this.store.readonly ||
+                          this.model.props.textProtection === "fixed" ||
                           this.store.getModelById(this.model.id) !==
                             this.model ||
                           this.model.props.type !== type ||
@@ -363,7 +366,9 @@ export class CalloutBlockComponent extends CaptionedBlockComponent<CalloutBlockM
                         return true;
                       },
                       title: titleValue,
-                      readonly: this.store.readonly$.value,
+                      readonly:
+                        this.store.readonly$.value ||
+                        this.model.props.textProtection === "fixed",
                       focusEditor: async () => {
                         if (this.store.readonly) return;
                         if (!expanded) {
@@ -396,6 +401,7 @@ export class CalloutBlockComponent extends CaptionedBlockComponent<CalloutBlockM
                       apply: (value, expectedTitle) => {
                         if (
                           this.store.readonly ||
+                          this.model.props.textProtection === "fixed" ||
                           this.store.getModelById(this.model.id) !==
                             this.model ||
                           /[\r\n]/.test(value)
@@ -432,7 +438,8 @@ export class CalloutBlockComponent extends CaptionedBlockComponent<CalloutBlockM
                     .attributeRenderer=${this.attributeRenderer}
                     .markdownMatches=${this.inlineManager.markdownMatches}
                     .embedChecker=${this.embedChecker}
-                    .readonly=${this.store.readonly}
+                    .readonly=${this.store.readonly || this.model.props.textProtection === "fixed"}
+                    title=${textProtectionHint(this.model.props.textProtection, this.std.getOptional(EditorI18nProvider) ?? undefined)}
                     .enableClipboard=${false}
                     .enableUndoRedo=${false}
                   ></rich-text>`

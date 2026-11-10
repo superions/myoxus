@@ -1,0 +1,7 @@
+query documentFieldPresentations($workspaceId: ID!, $docId: ID!, $fields: JSON!) {
+  documentFieldPresentations(workspaceId: $workspaceId, docId: $docId, fields: $fields) {
+    state
+    text
+    complete
+  }
+}

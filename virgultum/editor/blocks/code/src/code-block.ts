@@ -92,6 +92,32 @@ export class CodeBlockComponent extends CaptionedBlockComponent<CodeBlockModel> 
     return this.std.get(CodeBlockInlineManagerExtension.identifier);
   }
 
+  /** A key event can precede selectionchange; indentation must use the live range. */
+  private get keyboardRange() {
+    const editor = this.inlineEditor;
+    const native = editor?.getNativeRange();
+    return native ? editor?.toInlineRange(native) : editor?.getInlineRange();
+  }
+
+  /** Clipboard events can precede selectionchange; preserve object/multi-block selections. */
+  syncClipboardRange() {
+    const selection = this.host.selection;
+    const native = this.inlineEditor?.getNativeRange();
+    if (
+      !selection.find(TextSelection) ||
+      !native ||
+      !this.host.contains(native.commonAncestorContainer) ||
+      this.host.range.binding?.isComposing
+    )
+      return;
+    const live = this.host.range.rangeToTextSelection(native);
+    if (
+      live?.from.blockId === this.blockId &&
+      (!live.to || live.to.blockId === this.blockId)
+    )
+      selection.setGroup("note", [live]);
+  }
+
   get notificationService() {
     return this.std.getOptional(NotificationProvider);
   }
@@ -190,6 +216,8 @@ export class CodeBlockComponent extends CaptionedBlockComponent<CodeBlockModel> 
     );
 
     const selectionManager = this.host.selection;
+    for (const event of ["copy", "cut"] as const)
+      this.handleEvent(event, () => this.syncClipboardRange());
     const INDENT_SYMBOL = "  ";
     const LINE_BREAK_SYMBOL = "\n";
     const allIndexOf = (
@@ -260,7 +288,7 @@ export class CodeBlockComponent extends CaptionedBlockComponent<CodeBlockModel> 
         const event = state.raw;
         const inlineEditor = this.inlineEditor;
         if (!inlineEditor) return;
-        const inlineRange = inlineEditor.getInlineRange();
+        const inlineRange = this.keyboardRange;
         if (inlineRange) {
           event.stopPropagation();
           event.preventDefault();
@@ -305,11 +333,12 @@ export class CodeBlockComponent extends CaptionedBlockComponent<CodeBlockModel> 
         return;
       },
       "Shift-Tab": (ctx) => {
+        if (this.store.readonly) return;
         const state = ctx.get("keyboardState");
         const event = state.raw;
         const inlineEditor = this.inlineEditor;
         if (!inlineEditor) return;
-        const inlineRange = inlineEditor.getInlineRange();
+        const inlineRange = this.keyboardRange;
         if (inlineRange) {
           event.stopPropagation();
           event.preventDefault();

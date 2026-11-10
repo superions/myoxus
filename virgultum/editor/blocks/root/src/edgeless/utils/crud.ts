@@ -13,6 +13,11 @@ export function deleteElements(
   edgeless: EdgelessRootBlockComponent,
   elements: GfxModel[],
 ) {
+  if (
+    edgeless.store.readonly ||
+    elements.some((element) => edgeless.store.hasFixedText(element.id))
+  )
+    return;
   const set = new Set(elements);
   const { service } = edgeless;
 

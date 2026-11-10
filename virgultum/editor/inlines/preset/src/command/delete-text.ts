@@ -20,6 +20,13 @@ export const deleteTextCommand: Command<{
   );
 
   const { from, to } = textSelection;
+  if (
+    ctx.std.store.readonly ||
+    selectedElements.some((element) =>
+      ctx.std.store.hasFixedText(element.model),
+    )
+  )
+    return;
 
   const fromElement = selectedElements.find(
     (el) => from.blockId === el.blockId,

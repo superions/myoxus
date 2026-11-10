@@ -14,6 +14,10 @@ import {
 type WorkspaceDialogComponent = ComponentType<any>;
 
 const WORKSPACE_DIALOGS = {
+  "task-card-create": lazy(async () => ({
+    default: (await import("../../modules/database/tasks/task-card-create"))
+      .TaskCardCreate,
+  })),
   // Only an active open request crosses this boundary. Source/preview consumers
   // stay on their non-UI subpaths; bundler CSS grouping must retain it as well.
   "bpmn-editor": lazy(async () => ({

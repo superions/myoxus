@@ -68,11 +68,24 @@ export function ContextSurfaceHost() {
     .filter((surface): surface is ContextSurface => Boolean(surface));
 
   return (
-    <Stack gap="sm" data-myoxus-ui-role="workbench-tool-stack">
+    <Stack
+      gap="sm"
+      h={
+        visibleSurfaces.some(
+          (surface) =>
+            surface.boundedBody &&
+            !layout.collapsedToolIds.includes(surface.id),
+        )
+          ? "calc(100cqh - var(--mantine-spacing-xs) * 2)"
+          : undefined
+      }
+      data-myoxus-ui-role="workbench-tool-stack"
+    >
       {visibleSurfaces.map((surface, index) => (
         <WorkbenchToolCard
           key={surface.id}
           index={index}
+          lastVisible={visibleSurfaces.length === 1}
           surface={surface}
           viewId={view.id}
         />
@@ -83,10 +96,12 @@ export function ContextSurfaceHost() {
 
 function WorkbenchToolCard({
   index,
+  lastVisible,
   surface,
   viewId,
 }: {
   index: number;
+  lastVisible: boolean;
   surface: ContextSurface;
   viewId: string;
 }) {
@@ -184,7 +199,6 @@ function WorkbenchToolCard({
   );
 
   const hideTool = useCallback(() => {
-    const lastVisible = layout.visibleToolIds.length === 1;
     view.hideTool(surface.id);
     if (lastVisible) {
       requestAnimationFrame(() => {
@@ -195,19 +209,36 @@ function WorkbenchToolCard({
           ?.focus();
       });
     }
-  }, [layout.visibleToolIds.length, surface.id, view]);
+  }, [lastVisible, surface.id, view]);
 
   return (
-    <Box ref={cardRef} data-myoxus-ui-role="workbench-tool-dnd-target">
+    <Box
+      ref={cardRef}
+      display="flex"
+      style={{
+        flexDirection: "column",
+        flex: surface.boundedBody && !collapsed ? "1 0 auto" : "0 0 auto",
+      }}
+      data-myoxus-ui-role="workbench-tool-dnd-target"
+    >
       <Card
         padding="sm"
         withBorder
+        display="flex"
+        flexDirection="column"
+        minHeight={0}
+        style={{ flex: "1 1 auto" }}
         data-dragging={dragging || undefined}
         data-testid={`context-surface-${surface.id}`}
         data-myoxus-ui-role="workbench-tool-card"
       >
         {closestEdge ? <DropIndicator edge={closestEdge} /> : null}
-        <Group gap="xs" justify="space-between" wrap="nowrap">
+        <Group
+          gap="xs"
+          justify="space-between"
+          wrap="nowrap"
+          style={{ flexShrink: 0 }}
+        >
           <Group gap="xs" wrap="nowrap">
             <Menu
               rootOptions={{
@@ -263,19 +294,36 @@ function WorkbenchToolCard({
             />
           </Group>
         </Group>
-        <Collapse
-          expanded={!collapsed}
-          // Activity hiding reconnects retained portal targets and resets drafts.
-          keepMountedMode={
-            surface.retainBodyWhenCollapsed ? "display-none" : "activity"
-          }
-        >
+        {surface.boundedBody ? (
           <ViewContextSurfaceBodyTarget
             surfaceId={surface.id}
             viewId={viewId}
             data-myoxus-ui-role="workbench-context-surface"
+            // The retained portal must shrink with the card, without Collapse's
+            // measured content height overriding the available flex space.
+            style={{
+              display: collapsed ? "none" : "flex",
+              flexDirection: "column",
+              flex: "1 1 auto",
+              minHeight: 0,
+              overflow: "hidden",
+            }}
           />
-        </Collapse>
+        ) : (
+          <Collapse
+            expanded={!collapsed}
+            // Activity hiding reconnects retained portal targets and resets drafts.
+            keepMountedMode={
+              surface.retainBodyWhenCollapsed ? "display-none" : "activity"
+            }
+          >
+            <ViewContextSurfaceBodyTarget
+              surfaceId={surface.id}
+              viewId={viewId}
+              data-myoxus-ui-role="workbench-context-surface"
+            />
+          </Collapse>
+        )}
         <VisuallyHidden aria-live="polite">{announcement}</VisuallyHidden>
       </Card>
     </Box>

@@ -64,7 +64,7 @@ describe("NotificationButton", () => {
   test("removes the trigger tooltip when the compact Menu opens", async () => {
     const user = userEvent.setup();
     render(
-      <MyoxusUIProvider>
+      <MyoxusUIProvider env="test">
         <NotificationButton compact />
       </MyoxusUIProvider>,
     );

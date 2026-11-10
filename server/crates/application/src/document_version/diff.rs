@@ -142,15 +142,27 @@ pub fn diff_snapshots(
   from_snapshot: &[u8],
   to_snapshot: &[u8],
 ) -> Result<DocumentVersionDiff, DocumentVersionDiffError> {
+  diff_snapshots_with_current_reading(from_snapshot, to_snapshot, to_snapshot)
+}
+
+/// Compare displayed current text without treating its transient projection as
+/// synchronized Yjs state. State-vector hashes always describe the raw inputs.
+#[instrument(skip(from_snapshot, to_snapshot, current_reading), level = "debug")]
+pub(crate) fn diff_snapshots_with_current_reading(
+  from_snapshot: &[u8],
+  to_snapshot: &[u8],
+  current_reading: &[u8],
+) -> Result<DocumentVersionDiff, DocumentVersionDiffError> {
   if from_snapshot.len() > crate::doc::write::DEFAULT_EXTERNAL_UPDATE_MAX_BYTES
     || to_snapshot.len() > crate::doc::write::DEFAULT_EXTERNAL_UPDATE_MAX_BYTES
+    || current_reading.len() > crate::doc::write::DEFAULT_EXTERNAL_UPDATE_MAX_BYTES
   {
     return Err(DocumentVersionDiffError::Limit("materialization bytes"));
   }
   let from_state_vector = yjs::get_state_vector(from_snapshot).map_err(DocumentVersionDiffError::Yjs)?;
   let to_state_vector = yjs::get_state_vector(to_snapshot).map_err(DocumentVersionDiffError::Yjs)?;
   let from_blocks = yjs::extract_blocks_from_yjs(from_snapshot).map_err(DocumentVersionDiffError::Yjs)?;
-  let to_blocks = yjs::extract_blocks_from_yjs(to_snapshot).map_err(DocumentVersionDiffError::Yjs)?;
+  let to_blocks = yjs::extract_blocks_from_yjs(current_reading).map_err(DocumentVersionDiffError::Yjs)?;
 
   let from_by_id: BTreeMap<String, yjs::YjsBlockInfo> = from_blocks
     .blocks

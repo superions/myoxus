@@ -207,8 +207,7 @@ function severityFor({ group, specifier, path }) {
   }
   if (
     group === "admin-product-path" &&
-    specifier.startsWith("@myoxus/component/") &&
-    !specifier.includes("/theme/fonts.css")
+    specifier.startsWith("@myoxus/component/")
   ) {
     return "fatal";
   }

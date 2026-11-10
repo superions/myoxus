@@ -1463,6 +1463,7 @@ Quote strategy applied to CSV export. \`MINIMAL\` (default) only quotes fields t
 | --- | --- | --- | --- |
 | `databaseId` | `ID` |  |  |
 | `first` | `Int` |  |  |
+| `offset` | `Int` |  |  |
 | `query` | `String`! |  |  |
 
 ## DatabaseSelectFieldConfigInput
@@ -2552,6 +2553,7 @@ Input for resolving a non-Markdown Git Sync file conflict. File conflicts are bi
 | --- | --- | --- | --- |
 | `keyword` | `String`! |  |  |
 | `limit` | `Int` |  |  |
+| `offset` | `Int` |  | Offset in this source's returned order; omitted or negative values start at zero. |
 | `useSemanticSearch` | `Boolean` |  |  |
 
 ## SearchHighlightInputType

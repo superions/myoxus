@@ -21,6 +21,7 @@ export const splitCalloutCommand: Command<{
   }
 
   const currentModel = doc.getBlock(currentBlockId)?.model;
+  if (currentModel && doc.hasFixedText(currentModel)) return;
   if (!currentModel) {
     console.error(`current block ${currentBlockId} not found`);
     return;

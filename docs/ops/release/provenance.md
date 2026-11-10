@@ -218,6 +218,15 @@ must be checked before public artifact advertising.
 
 ### Automated GitHub release copy
 
+For a normal, explicitly authorized publication, dispatch the existing
+`publish-github-release.yml` in `mode: release`, supplying the accepted `version`
+and public `notes`. It assembles its allowlist from matching immutable component
+tags, sealed CI evidence, promotion receipts and the qualified public-source
+cache; extracts original legal files without running the server; and uses the
+existing prepare/publish functions. It never builds, regenerates an SBOM or
+repackages binaries. Missing accepted OCI/native artifacts stop the copy.
+The separate `prepare`/`publish` modes below retain optional exact-plan review.
+
 Dispatch `.forgejo/workflows/publish-github-release.yml` with the Forgejo URL of
 the publication input JSON. It contains the version/tag, `prerelease`, inline
 `notes`, the qualified OCI digest references in `containers`, and the explicit

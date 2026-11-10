@@ -33,6 +33,7 @@ import * as React from "react";
 import { useCallback, useImperativeHandle, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { createRoot } from "react-dom/client";
+import { getViewportForBounds } from "@xyflow/react";
 import { ErrorBoundary } from "react-error-boundary";
 import { BpmnEditorContextProvider, useBpmnEditor } from "./BpmnEditorContext";
 import { BpmnEditorErrorFallback } from "./BpmnEditorErrorFallback";
@@ -114,6 +115,9 @@ export const BpmnEditorInternal = ({
   const isPropertiesPanelOpen = useBpmnEditorStore(
     (s) => s.propertiesPanel.isOpen,
   );
+  const isFurtherPropertiesOpen = useBpmnEditorStore(
+    (s) => s.propertiesPanel.isFurtherOpen,
+  );
   // Native collapse keeps the inspector's field owners mounted; controlled
   // sizes restore the user's open-panel ratio without remounting either pane.
   const [splitSizes, setSplitSizes] = useState<SplitterPaneSize[]>([
@@ -140,16 +144,19 @@ export const BpmnEditorInternal = ({
   const invalidFieldFocus = useRef<(() => void) | null>(null);
   React.useLayoutEffect(() => {
     pendingEdits.revealInvalid = (focus) => {
-      if (bpmnEditorStoreApi.getState().propertiesPanel.isOpen) focus();
+      const panel = bpmnEditorStoreApi.getState().propertiesPanel;
+      if (panel.isOpen && panel.isFurtherOpen) focus();
       else {
         invalidFieldFocus.current = focus;
         bpmnEditorStoreApi.setState((state) => {
           state.propertiesPanel.isOpen = true;
+          state.propertiesPanel.isFurtherOpen = true;
         });
       }
     };
     // Hidden inspector fields retain their owners. Reveal the same pane before
-    // invoking its field/section focus, after the native hidden/inert flags clear.
+    // invoking its field/section focus, after the native hidden/inert flags and
+    // Further properties' display-none retention have cleared.
     if (isPropertiesPanelOpen && invalidFieldFocus.current) {
       const focus = invalidFieldFocus.current;
       invalidFieldFocus.current = null;
@@ -158,7 +165,12 @@ export const BpmnEditorInternal = ({
     return () => {
       pendingEdits.revealInvalid = undefined;
     };
-  }, [bpmnEditorStoreApi, isPropertiesPanelOpen, pendingEdits]);
+  }, [
+    bpmnEditorStoreApi,
+    isPropertiesPanelOpen,
+    isFurtherPropertiesOpen,
+    pendingEdits,
+  ]);
   const callbacks = useRef({ onModelChange, onWorkingStateChange });
   callbacks.current = { onModelChange, onWorkingStateChange };
   const emitCurrent = useCallback(() => {
@@ -342,14 +354,37 @@ export const BpmnEditorInternal = ({
   );
   const fitToContent = useCallback(async () => {
     const projection = await projectDiagram();
+    const canvas =
+      bpmnEditorRootElementRef.current?.querySelector<HTMLElement>(
+        ".react-flow",
+      );
     if (
-      projection &&
-      projection.model === bpmnEditorStoreApi.getState().bpmn.model
+      !projection ||
+      projection.model !== bpmnEditorStoreApi.getState().bpmn.model ||
+      !canvas
     )
-      await diagramRef.current
-        ?.getReactFlowInstance()
-        ?.fitBounds(projection.bounds);
-  }, [bpmnEditorStoreApi, projectDiagram]);
+      return;
+    const bounds = canvas.getBoundingClientRect();
+    const palette = canvas
+      .querySelector<HTMLElement>("[data-bpmn-palette]")
+      ?.getBoundingClientRect();
+    // Native viewport fitting reserves the actually painted palette, not a
+    // second responsive threshold or a changed diagram/label coordinate system.
+    const viewport = getViewportForBounds(
+      projection.bounds,
+      bounds.width,
+      bounds.height,
+      0.1,
+      1,
+      {
+        left: `${Math.max(0, (palette?.right ?? bounds.left) - bounds.left) + SVG_PADDING}px`,
+        right: `${SVG_PADDING}px`,
+        top: `${SVG_PADDING}px`,
+        bottom: `${SVG_PADDING}px`,
+      },
+    );
+    await diagramRef.current?.getReactFlowInstance()?.setViewport(viewport);
+  }, [bpmnEditorRootElementRef, bpmnEditorStoreApi, projectDiagram]);
   useImperativeHandle(
     forwardRef,
     () => ({

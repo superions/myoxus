@@ -1,27 +1,5 @@
-import {
-  ArrowDownBigIcon,
-  ArrowLeftBigIcon,
-  ArrowRightBigIcon,
-  ArrowUpBigIcon,
-  CloseIcon,
-  ColorPickerIcon,
-  CopyIcon,
-  DeleteIcon,
-  DuplicateIcon,
-  InsertAboveIcon,
-  InsertBelowIcon,
-  InsertLeftIcon,
-  InsertRightIcon,
-  PasteIcon,
-  RefreshCwIcon,
-  SettingsIcon,
-  TextAlignCenterIcon,
-  TextAlignLeftIcon,
-  TextAlignRightIcon,
-} from "@myoxus/icons/lit";
 import { computed, effect, signal } from "@preact/signals-core";
 import {
-  menu,
   popMenu,
   type PopupTarget,
   popupTargetFromElement,
@@ -29,42 +7,50 @@ import {
   templateRepeatLabel,
   templateVariableLabel,
 } from "@virgultum/components/context-menu";
-import { TextBackgroundDuotoneIcon } from "@virgultum/components/icons";
 import { IS_MAC } from "@virgultum/global/env";
 import { SignalWatcher, WithDisposable } from "@virgultum/global/lit";
 import { DefaultInlineManagerExtension } from "@virgultum/inline-preset";
 import {
-  type TableAppearance,
   type TableColumn,
-  type TableDensity,
   type TableRow,
   normalizeTableColumnTextAlign,
-  TextAlign,
 } from "@virgultum/model";
 
 import { RichText } from "@virgultum/rich-text";
 import {
   EditorI18nProvider,
+  type SelectionAction,
   type EditorI18nMessage,
   MyoxusHostServiceIdentifier,
-  NotificationProvider,
   ThemeProvider,
   editorMessage,
   resolveEditorMessage,
+  textProtectionMessages,
+  textProtectionHint,
 } from "@virgultum/shared/services";
 import { cssVar } from "@virgultum/shared/theme";
-import { getViewportElement } from "@virgultum/shared/utils";
+import { visitDocumentFieldRuns } from "@virgultum/shared/types";
+import { editorToast, getViewportElement } from "@virgultum/shared/utils";
 import { ShadowlessElement } from "@virgultum/std";
-import type { Text } from "@virgultum/store";
+import { expandRangeEmbeds } from "@virgultum/std/inline";
+import {
+  nanoid,
+  SliceSnapshotSchema,
+  toJSON,
+  type DeltaOperation,
+  type SliceSnapshot,
+  type Text,
+} from "@virgultum/store";
 import { html, nothing } from "lit";
-import { property, query } from "lit/decorators.js";
+import { eventOptions, property, query } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { ifDefined } from "lit/directives/if-defined.js";
 import { ref } from "lit/directives/ref.js";
 import { styleMap } from "lit/directives/style-map.js";
 import { html as staticHtml, literal } from "lit/static-html.js";
 
-import { cellColorList, colorList, resolveTableColors } from "./color";
+import { resolveTableColors } from "./color";
+import { openTableMenu } from "./table-menu";
 import { ColumnMaxWidth, DefaultColumnWidth } from "./consts";
 import type { SelectionController } from "./selection-controller";
 import {
@@ -86,29 +72,6 @@ import {
   threePointerIconStyle,
 } from "./table-cell-css";
 import type { TableDataManager } from "./table-data-manager";
-// Finite display choices keep resource keys discoverable; stored style/color
-// identities remain independent of translated captions.
-const appearanceMessages = {
-  grid: editorMessage("com.myoxus.editor.table.appearance.grid", "Grid"),
-  ruled: editorMessage("com.myoxus.editor.table.appearance.ruled", "Ruled"),
-  plain: editorMessage("com.myoxus.editor.table.appearance.plain", "Plain"),
-} satisfies Record<TableAppearance, EditorI18nMessage>;
-const densityMessages = {
-  normal: editorMessage("com.myoxus.editor.table.density.normal", "Normal"),
-  compact: editorMessage("com.myoxus.editor.table.density.compact", "Compact"),
-} satisfies Record<TableDensity, EditorI18nMessage>;
-const colorMessages: Readonly<Record<string, EditorI18nMessage>> = {
-  Default: editorMessage("com.myoxus.editor.table.color.default", "Default"),
-  Blue: editorMessage("com.myoxus.editor.table.color.blue", "Blue"),
-  Green: editorMessage("com.myoxus.editor.table.color.green", "Green"),
-  Grey: editorMessage("com.myoxus.editor.table.color.grey", "Grey"),
-  Orange: editorMessage("com.myoxus.editor.table.color.orange", "Orange"),
-  Purple: editorMessage("com.myoxus.editor.table.color.purple", "Purple"),
-  Red: editorMessage("com.myoxus.editor.table.color.red", "Red"),
-  Teal: editorMessage("com.myoxus.editor.table.color.teal", "Teal"),
-  Yellow: editorMessage("com.myoxus.editor.table.color.yellow", "Yellow"),
-};
-
 export const TableCellComponentName = "myoxus-table-cell";
 export class TableCell extends SignalWatcher(
   WithDisposable(ShadowlessElement),
@@ -118,6 +81,17 @@ export class TableCell extends SignalWatcher(
 
   get readonly() {
     return this.dataManager.readonly$.value;
+  }
+
+  get textProtection() {
+    return this.row && this.column
+      ? this.dataManager.getCell(this.row.rowId, this.column.columnId)
+          ?.textProtection
+      : undefined;
+  }
+
+  get textProtected() {
+    return this.textProtection === "fixed";
   }
 
   @property({ attribute: false })
@@ -143,6 +117,9 @@ export class TableCell extends SignalWatcher(
 
   @property({ attribute: false })
   accessor selectionController!: SelectionController;
+
+  // The session owns table selection until its native menu releases focus.
+  menuSession?: AbortSignal;
 
   @property({ attribute: false })
   accessor height: number | undefined;
@@ -176,7 +153,7 @@ export class TableCell extends SignalWatcher(
     return resolveEditorMessage(message, this.i18n);
   }
 
-  private restoreCellFocus(index?: number) {
+  restoreCellFocus(index?: number) {
     if (!this.isConnected) return;
     if (index === undefined) this.inlineEditor?.focusEnd();
     else this.inlineEditor?.setInlineRange({ index, length: 0 });
@@ -185,668 +162,443 @@ export class TableCell extends SignalWatcher(
     this.inlineEditor?.syncInlineRange();
   }
 
-  private notifyHeaderRepeatConflict() {
-    this.closest<TableBlockComponent>("myoxus-table")
-      ?.std.getOptional(NotificationProvider)
-      ?.toast(
-        this.message(
+  @eventOptions({ capture: true })
+  private copyNativeFields(event: ClipboardEvent) {
+    const table = this.closest<TableBlockComponent>("myoxus-table");
+    const editor = this.inlineEditor;
+    const text = this.text;
+    const range = editor?.getInlineRange();
+    if (!table || !editor || !text || !range?.length || !event.clipboardData)
+      return;
+    const selectedRange = { index: range.index, length: range.length };
+    const selectedDelta = () =>
+      text
+        .sliceToDelta(
+          selectedRange.index,
+          selectedRange.index + selectedRange.length,
+        )
+        .filter((run) => run.insert !== "");
+    const delta = selectedDelta();
+    const textProtection = this.textProtection;
+    if (!textProtection && !delta.some((run) => run.attributes?.documentField))
+      return;
+    const textSnapshot = toJSON(text) as { delta: typeof delta };
+    textSnapshot.delta = structuredClone(delta);
+    const snapshot: SliceSnapshot = {
+      type: "slice",
+      workspaceId: table.store.workspace.id,
+      pageId: table.store.id,
+      content: [
+        {
+          type: "block",
+          id: nanoid(),
+          flavour: "myoxus:paragraph",
+          props: {
+            type: "text",
+            text: textSnapshot,
+            ...(textProtection ? { textProtection } : {}),
+          },
+          children: [],
+        },
+      ],
+    };
+    event.preventDefault();
+    event.stopPropagation();
+    const isCut = event.type === "cut";
+    const captured = JSON.stringify(delta);
+    void table.std.clipboard
+      .copySnapshot(snapshot)
+      .then(() => {
+        if (!isCut || this.textProtected) return;
+        const currentRange = editor.getInlineRange();
+        // Copy preparation can be asynchronous. Never delete a later selection
+        // or content changed while authorizing the captured clipboard snapshot.
+        if (
+          !this.isConnected ||
+          this.readonly ||
+          this.inlineEditor !== editor ||
+          this.text !== text ||
+          currentRange?.index !== selectedRange.index ||
+          currentRange.length !== selectedRange.length ||
+          JSON.stringify(selectedDelta()) !== captured
+        )
+          throw new Error("Clipboard selection changed during cut");
+        table.store.captureSync();
+        editor.deleteText(selectedRange);
+        table.store.captureSync();
+        this.restoreCellFocus(selectedRange.index);
+      })
+      .catch((error: unknown) => {
+        editorToast(
+          table.host,
           editorMessage(
-            "com.myoxus.editor.table.header-repeat-conflict",
-            "Header rows cannot contain repeated template rows.",
+            "com.myoxus.editor.clipboard.copy-failed",
+            "Copy failed. Please try again.",
           ),
+        );
+        console.error(error);
+      });
+  }
+
+  @eventOptions({ capture: true })
+  private pasteNativeFields(event: ClipboardEvent) {
+    const table = this.closest<TableBlockComponent>("myoxus-table");
+    const editor = this.inlineEditor;
+    const text = this.text;
+    const range = editor?.getInlineRange();
+    if (!table || !editor || !text || !range || !event.clipboardData) return;
+    const html = event.clipboardData.getData("text/html");
+    const hasNativeSnapshot = !!new DOMParser()
+      .parseFromString(html, "text/html")
+      .querySelector("[data-virgultum-snapshot]");
+    if (!hasNativeSnapshot) return;
+    let snapshot: SliceSnapshot;
+    try {
+      const native = table.std.clipboard.readFromClipboard(event.clipboardData)[
+        "VIRGULTUM/SNAPSHOT"
+      ];
+      if (typeof native !== "string")
+        throw new Error("Missing native snapshot");
+      snapshot = SliceSnapshotSchema.parse(JSON.parse(native).snapshot);
+    } catch (error) {
+      // Never degrade a recognized but corrupt native selection to plain text.
+      event.preventDefault();
+      event.stopPropagation();
+      this.notifyNativePasteFailure(table, error);
+      return;
+    }
+    try {
+      let fields = 0;
+      visitDocumentFieldRuns(snapshot, () => fields++);
+      const hasProtection = (blocks: SliceSnapshot["content"]): boolean =>
+        blocks.some(
+          (block) =>
+            block.props.textProtection !== undefined ||
+            hasProtection(block.children),
+        );
+      if (!fields && !hasProtection(snapshot.content)) return;
+    } catch (error) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.notifyNativePasteFailure(table, error);
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    const initialRange = { index: range.index, length: range.length };
+    const selectedRange = expandRangeEmbeds(editor, initialRange);
+    const captured = JSON.stringify(text.toDelta());
+    void table.std.clipboard
+      .prepareNativeSlice(snapshot, table.store, table.blockId)
+      .then((prepared) => {
+        try {
+          const blocks =
+            prepared.snapshot.content.length === 1 &&
+            prepared.snapshot.content[0]?.flavour === "myoxus:note"
+              ? prepared.snapshot.content[0].children
+              : prepared.snapshot.content;
+          const block = blocks[0];
+          if (
+            blocks.length !== 1 ||
+            !block ||
+            block.flavour !== "myoxus:paragraph" ||
+            block.children.length !== 0
+          )
+            throw new Error("Native field paste requires one text paragraph");
+          const value = block.props.text as { delta?: DeltaOperation[] };
+          const textProtection = block.props.textProtection;
+          const destinationCell =
+            this.row && this.column
+              ? this.dataManager.getCell(this.row.rowId, this.column.columnId)
+              : undefined;
+          if (
+            textProtection !== undefined &&
+            textProtection !== "source" &&
+            textProtection !== "fixed"
+          )
+            throw new Error("Invalid native text protection");
+          // A whole-owner mode cannot be pasted onto a subset of free cell text.
+          if (
+            textProtection &&
+            (selectedRange.index !== 0 ||
+              selectedRange.length !== text.length ||
+              destinationCell?.text !== text)
+          )
+            throw new Error(
+              "Protected native text requires a whole-cell replacement",
+            );
+          const delta = value?.delta;
+          if (
+            !Array.isArray(delta) ||
+            delta.some((run) => typeof run.insert !== "string")
+          )
+            throw new Error("Invalid native field paste text");
+          const currentRange = editor.getInlineRange();
+          if (
+            !this.isConnected ||
+            this.readonly ||
+            this.textProtected ||
+            editor.isReadonly ||
+            this.inlineEditor !== editor ||
+            this.text !== text ||
+            currentRange?.index !== initialRange.index ||
+            currentRange.length !== initialRange.length ||
+            JSON.stringify(text.toDelta()) !== captured
+          )
+            throw new Error("Clipboard destination changed during paste");
+          prepared.assertCurrent();
+          table.store.captureSync();
+          let index = selectedRange.index;
+          editor.transact(() => {
+            editor.yText.delete(index, selectedRange.length);
+            for (const run of delta) {
+              const value = run.insert!;
+              if (!value) continue;
+              editor.yText.insert(index, value, run.attributes ?? {});
+              index += value.length;
+            }
+            if (textProtection && destinationCell)
+              destinationCell.textProtection = textProtection;
+          });
+          table.store.captureSync();
+          this.restoreCellFocus(index);
+        } finally {
+          prepared.dispose();
+        }
+      })
+      .catch((error: unknown) => this.notifyNativePasteFailure(table, error));
+  }
+
+  notifyNativePasteFailure(table: TableBlockComponent, error: unknown) {
+    editorToast(
+      table.host,
+      editorMessage(
+        "com.myoxus.editor.clipboard.paste-failed",
+        "Could not paste this field selection into the cell.",
+      ),
+    );
+    console.error(error);
+  }
+
+  notifyHeaderRepeatConflict() {
+    const table = this.closest<TableBlockComponent>("myoxus-table");
+    if (table)
+      editorToast(
+        table.host,
+        editorMessage(
+          "com.myoxus.editor.table.header-repeat-conflict",
+          "Header rows cannot contain repeated template rows.",
         ),
       );
   }
 
-  private tableSettingsMenu(rowIndex?: number) {
-    const currentHeaderRows = this.dataManager.headerRows$.value ?? 0;
-    const currentAppearance = this.dataManager.appearance$.value ?? "grid";
-    const currentDensity = this.dataManager.density$.value ?? "normal";
-    const select = (headerRows: number) => {
-      if (!this.dataManager.setHeaderRows(headerRows)) {
-        this.notifyHeaderRepeatConflict();
-      }
-      this.restoreCellFocus();
-    };
-    return menu.subMenu({
-      name: this.message(
-        editorMessage("com.myoxus.editor.table.settings", "Table settings"),
-      ),
-      prefix: SettingsIcon(),
-      options: {
-        i18n: this.i18n,
-        items: [
-          menu.group({
-            items: [
-              menu.action({
-                name: this.message(
-                  editorMessage(
-                    "com.myoxus.editor.table.header.none",
-                    "No header",
-                  ),
-                ),
-                isSelected: currentHeaderRows === 0,
-                select: () => select(0),
-              }),
-              menu.action({
-                name: this.message(
-                  editorMessage(
-                    "com.myoxus.editor.table.header.first-row",
-                    "First row",
-                  ),
-                ),
-                isSelected: currentHeaderRows === 1,
-                select: () => select(1),
-              }),
-              ...(rowIndex !== undefined && rowIndex > 0
-                ? [
-                    menu.action({
-                      name: this.message(
-                        editorMessage(
-                          "com.myoxus.editor.table.header.through-row",
-                          "Header through this row",
-                        ),
-                      ),
-                      isSelected: currentHeaderRows === rowIndex + 1,
-                      select: () => select(rowIndex + 1),
-                    }),
-                  ]
-                : []),
-            ],
-          }),
-          menu.group({
-            items: (["grid", "ruled", "plain"] as TableAppearance[]).map(
-              (appearance) =>
-                menu.action({
-                  name: this.message(appearanceMessages[appearance]),
-                  isSelected: currentAppearance === appearance,
-                  select: () => {
-                    this.dataManager.setAppearance(appearance);
-                    this.restoreCellFocus();
-                  },
-                }),
-            ),
-          }),
-          menu.group({
-            items: (["normal", "compact"] as TableDensity[]).map((density) =>
-              menu.action({
-                name: this.message(densityMessages[density]),
-                isSelected: currentDensity === density,
-                select: () => {
-                  this.dataManager.setDensity(density);
-                  this.restoreCellFocus();
-                },
-              }),
-            ),
-          }),
-        ],
-      },
-    });
+  openColumnOptions(target: PopupTarget, column: TableColumn) {
+    openTableMenu(this, target, { kind: "column", id: column.columnId });
   }
 
-  private colorName(name: string) {
-    const message = colorMessages[name];
-    return message ? this.message(message) : name;
-  }
-
-  openColumnOptions(
-    target: PopupTarget,
-    column: TableColumn,
-    columnIndex: number,
-  ) {
-    if (this.readonly) return;
-    const currentTextAlign = normalizeTableColumnTextAlign(column.textAlign);
-    this.selectionController.setSelected({
-      type: "column",
-      columnId: column.columnId,
-    });
-    popMenu(target, {
-      options: {
-        i18n: this.i18n,
-        onClose: () => {
-          this.selectionController.setSelected(undefined);
-          this.restoreCellFocus();
-        },
-        items: [
-          this.tableSettingsMenu(),
-          menu.group({
-            items: [
-              menu.subMenu({
-                name: this.message(
-                  editorMessage(
-                    "com.myoxus.editor.table.background-color",
-                    "Background color",
-                  ),
-                ),
-                prefix: ColorPickerIcon(),
-                options: {
-                  i18n: this.i18n,
-                  items: [
-                    { name: "Default", color: undefined },
-                    ...colorList,
-                  ].map((item) =>
-                    menu.action({
-                      prefix: html`<div
-                        style="color: ${
-                          item.color ?? cssVar("backgroundPrimaryColor")
-                        };display: flex;align-items: center;justify-content: center;"
-                      >
-                        ${TextBackgroundDuotoneIcon}
-                      </div>`,
-                      name: this.colorName(item.name),
-                      isSelected: column.backgroundColor === item.color,
-                      select: () => {
-                        this.dataManager.setColumnBackgroundColor(
-                          column.columnId,
-                          item.color,
-                        );
-                      },
-                    }),
-                  ),
-                },
-              }),
-              menu.subMenu({
-                name: this.message(
-                  editorMessage(
-                    "com.myoxus.editor.toolbar.alignment",
-                    "Alignment",
-                  ),
-                ),
-                prefix: TextAlignLeftIcon(),
-                options: {
-                  i18n: this.i18n,
-                  items: [
-                    {
-                      value: undefined,
-                      name: this.colorName("Default"),
-                      icon: TextAlignLeftIcon,
-                    },
-                    {
-                      value: TextAlign.Left,
-                      name: this.message(
-                        editorMessage("com.myoxus.editor.menu.left", "Left"),
-                      ),
-                      icon: TextAlignLeftIcon,
-                    },
-                    {
-                      value: TextAlign.Center,
-                      name: this.message(
-                        editorMessage(
-                          "com.myoxus.editor.menu.center",
-                          "Center",
-                        ),
-                      ),
-                      icon: TextAlignCenterIcon,
-                    },
-                    {
-                      value: TextAlign.Right,
-                      name: this.message(
-                        editorMessage("com.myoxus.editor.menu.right", "Right"),
-                      ),
-                      icon: TextAlignRightIcon,
-                    },
-                  ].map((item) =>
-                    menu.action({
-                      prefix: item.icon(),
-                      name: item.name,
-                      isSelected: currentTextAlign === item.value,
-                      select: () => {
-                        this.dataManager.setColumnTextAlign(
-                          column.columnId,
-                          item.value,
-                        );
-                      },
-                    }),
-                  ),
-                },
-              }),
-              ...(column.backgroundColor
-                ? [
-                    menu.action({
-                      name: this.message(
-                        editorMessage(
-                          "com.myoxus.editor.table.clear-column-style",
-                          "Clear column style",
-                        ),
-                      ),
-                      prefix: CloseIcon(),
-                      select: () => {
-                        this.dataManager.setColumnBackgroundColor(
-                          column.columnId,
-                          undefined,
-                        );
-                      },
-                    }),
-                  ]
-                : []),
-            ],
-          }),
-          menu.group({
-            items: [
-              menu.action({
-                name: this.message(
-                  editorMessage(
-                    "com.myoxus.editor.table.insert-left",
-                    "Insert left",
-                  ),
-                ),
-                prefix: InsertLeftIcon(),
-                select: () => {
-                  this.dataManager.insertColumn(
-                    columnIndex > 0 ? columnIndex - 1 : undefined,
-                  );
-                },
-              }),
-              menu.action({
-                name: this.message(
-                  editorMessage(
-                    "com.myoxus.editor.table.insert-right",
-                    "Insert right",
-                  ),
-                ),
-                prefix: InsertRightIcon(),
-                select: () => {
-                  this.dataManager.insertColumn(columnIndex);
-                },
-              }),
-              menu.action({
-                name: this.message(
-                  editorMessage(
-                    "com.myoxus.editor.table.move-left",
-                    "Move left",
-                  ),
-                ),
-                prefix: ArrowLeftBigIcon(),
-                select: () => {
-                  this.dataManager.moveColumn(columnIndex, columnIndex - 2);
-                },
-              }),
-              menu.action({
-                name: this.message(
-                  editorMessage(
-                    "com.myoxus.editor.table.move-right",
-                    "Move right",
-                  ),
-                ),
-                prefix: ArrowRightBigIcon(),
-                select: () => {
-                  this.dataManager.moveColumn(columnIndex, columnIndex + 1);
-                },
-              }),
-            ],
-          }),
-          menu.group({
-            items: [
-              menu.action({
-                name: this.message(
-                  editorMessage(
-                    "com.myoxus.editor.table.duplicate",
-                    "Duplicate",
-                  ),
-                ),
-                prefix: DuplicateIcon(),
-                select: () => {
-                  this.dataManager.duplicateColumn(columnIndex);
-                },
-              }),
-
-              menu.action({
-                name: this.message(
-                  editorMessage(
-                    "com.myoxus.editor.table.clear-column-contents",
-                    "Clear column contents",
-                  ),
-                ),
-                prefix: CloseIcon(),
-                select: () => {
-                  this.dataManager.clearColumn(column.columnId);
-                },
-              }),
-
-              menu.action({
-                name: this.message(editorMessage("Delete", "Delete")),
-                class: {
-                  "delete-item": true,
-                },
-                prefix: DeleteIcon(),
-                select: () => {
-                  this.dataManager.deleteColumn(column.columnId);
-                },
-              }),
-            ],
-          }),
-        ],
-      },
-    });
-  }
-
-  private templateVariableActions() {
+  templateVariableActions(handoff: () => void): SelectionAction[] {
     const block = this.closest<TableBlockComponent>("myoxus-table");
     const host = block?.std.getOptional(MyoxusHostServiceIdentifier);
+    const editor = this.inlineEditor;
+    const text = this.text;
+    const manager = this.dataManager;
+    const rowId = this.row?.rowId,
+      columnId = this.column?.columnId;
     if (
       this.readonly ||
-      !host?.isTemplateDocument() ||
-      !host.openTemplateVariablePicker ||
-      !host.getTemplateVariableCapabilities().length
+      this.textProtected ||
+      !host?.openTemplateVariablePicker ||
+      !editor ||
+      !text ||
+      !rowId ||
+      !columnId
     )
       return [];
-    const range = this.inlineEditor?.getInlineRange() ?? {
-      index: this.text?.length ?? 0,
-      length: 0,
-    };
+    const range = editor.getInlineRange() ?? { index: text.length, length: 0 };
+    const canWrite = () =>
+      !this.readonly &&
+      this.isConnected &&
+      !this.textProtected &&
+      this.dataManager === manager &&
+      this.row?.rowId === rowId &&
+      this.column?.columnId === columnId &&
+      this.inlineEditor === editor &&
+      !editor.isReadonly &&
+      editor.isValidInlineRange(range) &&
+      manager.getCell(rowId, columnId)?.text === text &&
+      Boolean(
+        block?.isConnected &&
+        block.store.getBlock(block.model.id)?.model === block.model,
+      );
     let nextCaret = range.index;
     return [
-      menu.action({
-        name: resolveEditorMessage(templateVariableLabel, this.i18n),
-        select: () =>
+      {
+        id: "document-fields",
+        label: resolveEditorMessage(
+          host.isTemplateDocument()
+            ? templateVariableLabel
+            : editorMessage(
+                "com.myoxus.editor.field.document-fields",
+                "Document fields",
+              ),
+          this.i18n,
+        ),
+        icon: "TextIcon",
+        disabled: false,
+        run: () => {
+          if (!canWrite()) return;
+          handoff();
           host.openTemplateVariablePicker?.({
             i18n: this.i18n,
-            canWrite: () =>
-              !this.readonly &&
-              host.isTemplateDocument() &&
-              this.isConnected &&
-              Boolean(this.inlineEditor),
+            templateSource: host.isTemplateDocument(),
+            canWrite,
             insert: (token) => {
+              if (!canWrite() || !host.isTemplateDocument()) return;
               block?.store.captureSync();
-              this.inlineEditor?.insertText(range, token);
+              editor.insertText(range, token);
               nextCaret = range.index + token.length;
               block?.store.captureSync();
             },
+            insertField: (field) => {
+              if (
+                !canWrite() ||
+                (field.type === "input" && !host.isTemplateDocument())
+              )
+                return;
+              block?.store.captureSync();
+              editor.insertText(range, " ", { documentField: field });
+              nextCaret = range.index + 1;
+              block?.store.captureSync();
+            },
             onClose: () => this.restoreCellFocus(nextCaret),
-          }),
-      }),
+          });
+        },
+      },
+    ];
+  }
+
+  textProtectionActions(selection: TableAreaSelection): SelectionAction[] {
+    if (
+      selection.rowStartIndex !== selection.rowEndIndex ||
+      selection.columnStartIndex !== selection.columnEndIndex ||
+      selection.rowStartIndex !== this.rowIndex ||
+      selection.columnStartIndex !== this.columnIndex
+    )
+      return [];
+    const table = this.closest<TableBlockComponent>("myoxus-table");
+    const host = table?.std.getOptional(MyoxusHostServiceIdentifier);
+    const rowId = this.row?.rowId;
+    const columnId = this.column?.columnId;
+    if (!table || !rowId || !columnId) return [];
+    const cell = this.dataManager.getCell(rowId, columnId);
+    if (!cell) return [];
+    const mode = cell.textProtection;
+    if (mode !== undefined && mode !== "source" && mode !== "fixed") return [];
+    const fixed = mode === "fixed";
+    if (!fixed && (this.readonly || !host?.isTemplateDocument())) return [];
+    return [
+      {
+        id: "text-protection",
+        label: this.message(
+          fixed
+            ? textProtectionMessages.fixed
+            : mode === "source"
+              ? textProtectionMessages.unprotect
+              : textProtectionMessages.protect,
+        ),
+        icon: "LockIcon",
+        disabled: this.readonly || fixed,
+        active: mode === "source" || fixed,
+        run: () => {
+          const current = this.dataManager.getCell(rowId, columnId);
+          if (
+            !this.isConnected ||
+            this.readonly ||
+            !host?.isTemplateDocument() ||
+            current !== cell ||
+            current.textProtection !== mode ||
+            mode === "fixed"
+          )
+            return false;
+          table.store.captureSync();
+          table.store.transact(() => {
+            if (mode === "source") delete cell.textProtection;
+            else cell.textProtection = "source";
+          });
+          table.store.captureSync();
+          this.restoreCellFocus();
+          return;
+        },
+      },
     ];
   }
 
   openRowOptions(
     target: PopupTarget,
     row: TableRow,
-    rowIndex: number,
-    cellSelection?: TableAreaSelection,
+    area?: TableAreaSelection,
   ) {
-    if (this.readonly) return;
+    openTableMenu(this, target, { kind: "row", id: row.rowId, area });
+  }
+
+  rowRepeatActions(
+    target: PopupTarget,
+    rowId: string,
+    handoff: () => void,
+  ): SelectionAction[] {
     const block = this.closest<TableBlockComponent>("myoxus-table");
     const host = block?.std.getOptional(MyoxusHostServiceIdentifier);
+    if (!host?.isTemplateDocument()) return [];
+    const manager = this.dataManager;
     const i18n = this.i18n;
-    const range = this.inlineEditor?.getInlineRange() ?? {
-      index: this.text?.length ?? 0,
-      length: 0,
-    };
-    const nextCaret = range.index;
-    this.selectionController.setSelected({
-      type: "row",
-      rowId: row.rowId,
-    });
-    const { menu: rowMenu } = popMenu(target, {
-      options: {
-        i18n: this.i18n,
-        onClose: () => {
-          this.selectionController.setSelected(undefined);
-          this.restoreCellFocus(nextCaret);
+    const canWrite = () =>
+      !this.readonly &&
+      this.isConnected &&
+      this.dataManager === manager &&
+      Boolean(
+        block?.isConnected &&
+        block.store.getBlock(block.model.id)?.model === block.model,
+      ) &&
+      Boolean(host.isTemplateDocument()) &&
+      manager.canSetRowRepeat(rowId);
+    return [
+      {
+        id: "row-repeat",
+        label: resolveEditorMessage(templateRepeatLabel, i18n),
+        icon: "RefreshCwIcon",
+        disabled: !canWrite(),
+        run: () => {
+          if (!canWrite()) return;
+          // The shared repeat picker owns its own lifetime and final caret return.
+          handoff();
+          this.selectionController.setSelected({ type: "row", rowId });
+          popMenu(target, {
+            options: templateRepeatMenuOptions({
+              i18n,
+              unit: () => ({
+                binding: manager.rows$.value.find((row) => row.rowId === rowId)
+                  ?.repeat,
+                texts: manager.columns$.value.map(
+                  (column) =>
+                    manager.getCell(rowId, column.columnId)?.text.toString() ??
+                    "",
+                ),
+                leaf: block?.model.children.length === 0,
+              }),
+              canWrite,
+              change: (repeat) => {
+                if (!manager.setRowRepeat(rowId, repeat))
+                  this.notifyHeaderRepeatConflict();
+              },
+              onClose: () => {
+                this.selectionController.setSelected(undefined);
+                this.restoreCellFocus();
+              },
+            }),
+          });
         },
-        items: [
-          ...this.templateVariableActions(),
-          ...(host?.isTemplateDocument()
-            ? [
-                menu.action({
-                  name: resolveEditorMessage(templateRepeatLabel, i18n),
-                  prefix: RefreshCwIcon(),
-                  select: () => {
-                    // Hand off the same row selection to the shared repeat
-                    // menu. A hover submenu must not own focus restoration.
-                    rowMenu.close();
-                    this.selectionController.setSelected({
-                      type: "row",
-                      rowId: row.rowId,
-                    });
-                    popMenu(target, {
-                      options: templateRepeatMenuOptions({
-                        i18n,
-                        unit: () => ({
-                          binding: this.dataManager.rows$.value.find(
-                            (current) => current.rowId === row.rowId,
-                          )?.repeat,
-                          texts: this.dataManager.columns$.value.map(
-                            (column) =>
-                              this.dataManager
-                                .getCell(row.rowId, column.columnId)
-                                ?.text.toString() ?? "",
-                          ),
-                          leaf: block?.model.children.length === 0,
-                        }),
-                        canWrite: () =>
-                          !this.readonly &&
-                          Boolean(host?.isTemplateDocument()) &&
-                          this.dataManager.canSetRowRepeat(row.rowId) &&
-                          this.dataManager.rows$.value.some(
-                            (current) => current.rowId === row.rowId,
-                          ),
-                        change: (repeat) => {
-                          if (
-                            !this.dataManager.setRowRepeat(row.rowId, repeat)
-                          ) {
-                            this.notifyHeaderRepeatConflict();
-                          }
-                        },
-                        onClose: () => {
-                          this.selectionController.setSelected(undefined);
-                          this.restoreCellFocus();
-                        },
-                      }),
-                    });
-                  },
-                }),
-              ]
-            : []),
-          this.tableSettingsMenu(rowIndex),
-          ...(cellSelection ? [this.cellColorPickerMenu(cellSelection)] : []),
-          menu.group({
-            items: [
-              menu.subMenu({
-                name: this.message(
-                  editorMessage(
-                    "com.myoxus.editor.table.background-color",
-                    "Background color",
-                  ),
-                ),
-                prefix: ColorPickerIcon(),
-                options: {
-                  i18n: this.i18n,
-                  items: [
-                    { name: "Default", color: undefined },
-                    ...colorList,
-                  ].map((item) =>
-                    menu.action({
-                      prefix: html`<div
-                        style="color: ${
-                          item.color ?? cssVar("backgroundPrimaryColor")
-                        };display: flex;align-items: center;justify-content: center;"
-                      >
-                        ${TextBackgroundDuotoneIcon}
-                      </div>`,
-                      name: this.colorName(item.name),
-                      isSelected: row.backgroundColor === item.color,
-                      select: () => {
-                        this.dataManager.setRowBackgroundColor(
-                          row.rowId,
-                          item.color,
-                        );
-                      },
-                    }),
-                  ),
-                },
-              }),
-              ...(row.backgroundColor
-                ? [
-                    menu.action({
-                      name: this.message(
-                        editorMessage(
-                          "com.myoxus.editor.table.clear-row-style",
-                          "Clear row style",
-                        ),
-                      ),
-                      prefix: CloseIcon(),
-                      select: () => {
-                        this.dataManager.setRowBackgroundColor(
-                          row.rowId,
-                          undefined,
-                        );
-                      },
-                    }),
-                  ]
-                : []),
-            ],
-          }),
-          menu.group({
-            items: [
-              menu.action({
-                name: this.message(
-                  editorMessage(
-                    "com.myoxus.editor.table.insert-above",
-                    "Insert above",
-                  ),
-                ),
-                prefix: InsertAboveIcon(),
-                select: () => {
-                  this.dataManager.insertRow(
-                    rowIndex > 0 ? rowIndex - 1 : undefined,
-                  );
-                },
-              }),
-              menu.action({
-                name: this.message(
-                  editorMessage(
-                    "com.myoxus.editor.table.insert-below",
-                    "Insert below",
-                  ),
-                ),
-                prefix: InsertBelowIcon(),
-                select: () => {
-                  this.dataManager.insertRow(rowIndex);
-                },
-              }),
-              menu.action({
-                name: this.message(
-                  editorMessage("com.myoxus.editor.table.move-up", "Move up"),
-                ),
-                prefix: ArrowUpBigIcon(),
-                select: () => {
-                  if (!this.dataManager.moveRow(rowIndex, rowIndex - 1)) {
-                    this.notifyHeaderRepeatConflict();
-                  }
-                },
-              }),
-              menu.action({
-                name: this.message(
-                  editorMessage(
-                    "com.myoxus.editor.table.move-down",
-                    "Move down",
-                  ),
-                ),
-                prefix: ArrowDownBigIcon(),
-                select: () => {
-                  if (!this.dataManager.moveRow(rowIndex, rowIndex + 1)) {
-                    this.notifyHeaderRepeatConflict();
-                  }
-                },
-              }),
-            ],
-          }),
-          menu.group({
-            items: [
-              menu.action({
-                name: this.message(
-                  editorMessage(
-                    "com.myoxus.editor.table.duplicate",
-                    "Duplicate",
-                  ),
-                ),
-                prefix: DuplicateIcon(),
-                select: () => {
-                  this.dataManager.duplicateRow(rowIndex);
-                },
-              }),
-              menu.action({
-                name: this.message(
-                  editorMessage(
-                    "com.myoxus.editor.table.clear-row-contents",
-                    "Clear row contents",
-                  ),
-                ),
-                prefix: CloseIcon(),
-                select: () => {
-                  this.dataManager.clearRow(row.rowId);
-                },
-              }),
-              menu.action({
-                name: this.message(editorMessage("Delete", "Delete")),
-                class: {
-                  "delete-item": true,
-                },
-                prefix: DeleteIcon(),
-                select: () => {
-                  this.dataManager.deleteRow(row.rowId);
-                },
-              }),
-            ],
-          }),
-        ],
       },
-    });
-  }
-
-  /** Undefined is inherited paint; null is mixed paint with no checked swatch. */
-  createColorPickerMenu(
-    currentColor: string | null | undefined,
-    select: (color?: string) => void,
-    colors = colorList,
-  ) {
-    return menu.subMenu({
-      name: this.message(
-        editorMessage(
-          "com.myoxus.editor.table.cell-background-color",
-          "Cell background color",
-        ),
-      ),
-      prefix: ColorPickerIcon(),
-      options: {
-        i18n: this.i18n,
-        items: [{ name: "Default", color: undefined }, ...colors].map((item) =>
-          menu.action({
-            prefix: html`<div
-              style="color: ${
-                item.color?.startsWith("--")
-                  ? cssVar(item.color)
-                  : (item.color ?? cssVar("backgroundPrimaryColor"))
-              };display: flex;align-items: center;justify-content: center;"
-            >
-              ${TextBackgroundDuotoneIcon}
-            </div>`,
-            name: this.colorName(item.name),
-            isSelected: currentColor === item.color,
-            select: () => {
-              select(item.color);
-            },
-          }),
-        ),
-      },
-    });
-  }
-
-  private cellColorPickerMenu(selection: TableAreaSelection) {
-    const cells = this.dataManager.getCellsBySelection(selection);
-    const first = cells[0]?.backgroundColor;
-    const current = cells.every((cell) => cell.backgroundColor === first)
-      ? first
-      : null;
-    return this.createColorPickerMenu(
-      current,
-      (color) => {
-        this.dataManager.setCellsBackgroundColor(selection, color);
-        this.restoreCellFocus();
-      },
-      cellColorList,
-    );
+    ];
   }
 
   onContextMenu(e: Event) {
@@ -870,56 +622,11 @@ export class TableCell extends SignalWatcher(
           };
     if (selected !== current)
       this.selectionController.setSelected(selected, false);
-    if (selected.type === "area" && e.currentTarget instanceof HTMLElement) {
-      const target = popupTargetFromElement(e.currentTarget);
-      popMenu(target, {
-        options: {
-          i18n: this.i18n,
-          items: [
-            ...this.templateVariableActions(),
-            ...(!this.readonly ? [this.cellColorPickerMenu(selected)] : []),
-            menu.group({
-              items: [
-                menu.action({
-                  name: this.message(editorMessage("Copy", "Copy")),
-                  prefix: CopyIcon(),
-                  select: () => {
-                    this.selectionController.doCopyOrCut(selected, false);
-                  },
-                }),
-                menu.action({
-                  name: this.message(
-                    editorMessage("com.myoxus.editor.table.paste", "Paste"),
-                  ),
-                  prefix: PasteIcon(),
-                  select: () => {
-                    navigator.clipboard.readText().then((text) => {
-                      this.selectionController.doPaste(text, selected);
-                    });
-                  },
-                }),
-              ],
-            }),
-            menu.group({
-              items: [
-                menu.action({
-                  name: this.message(
-                    editorMessage(
-                      "com.myoxus.editor.table.clear-contents",
-                      "Clear contents",
-                    ),
-                  ),
-                  prefix: CloseIcon(),
-                  select: () => {
-                    this.dataManager.clearCellsBySelection(selected);
-                  },
-                }),
-              ],
-            }),
-          ],
-        },
+    if (e.currentTarget instanceof HTMLElement)
+      openTableMenu(this, popupTargetFromElement(e.currentTarget), {
+        kind: "cell",
+        area: selected,
       });
-    }
   }
 
   renderColumnOptions(column: TableColumn, columnIndex: number) {
@@ -927,11 +634,7 @@ export class TableCell extends SignalWatcher(
       e.stopPropagation();
       const element = e.currentTarget;
       if (element instanceof HTMLElement) {
-        this.openColumnOptions(
-          popupTargetFromElement(element),
-          column,
-          columnIndex,
-        );
+        this.openColumnOptions(popupTargetFromElement(element), column);
       }
     };
     return html`<div class=${columnOptionsCellStyle}>
@@ -970,7 +673,7 @@ export class TableCell extends SignalWatcher(
       e.stopPropagation();
       const element = e.currentTarget;
       if (element instanceof HTMLElement) {
-        this.openRowOptions(popupTargetFromElement(element), row, rowIndex);
+        this.openRowOptions(popupTargetFromElement(element), row);
       }
     };
     return html`<div class=${rowOptionsCellStyle}>
@@ -1237,7 +940,6 @@ export class TableCell extends SignalWatcher(
         this.openRowOptions(
           popupTargetFromElement(cell),
           this.row,
-          this.rowIndex,
           selected?.type === "area"
             ? selected
             : {
@@ -1353,6 +1055,7 @@ export class TableCell extends SignalWatcher(
             const currentSelection = this.selectionController.selected$.peek();
             if (
               inlineRange &&
+              (!this.menuSession || this.menuSession.aborted) &&
               !TableSelectionData.equals(targetSelection, currentSelection)
             ) {
               this.selectionController.setSelected(targetSelection, false);
@@ -1395,6 +1098,9 @@ export class TableCell extends SignalWatcher(
           this.tdMouseLeave();
         }}
         @contextmenu=${this.onContextMenu}
+        @copy=${this.copyNativeFields}
+        @cut=${this.copyNativeFields}
+        @paste=${this.pasteNativeFields}
         class=${cellContainerStyle}
         style=${this.tdStyle()}
       >
@@ -1417,7 +1123,8 @@ export class TableCell extends SignalWatcher(
           .attributeRenderer="${this.inlineManager?.getRenderer()}"
           .embedChecker="${this.inlineManager?.embedChecker}"
           .markdownMatches="${this.inlineManager?.markdownMatches}"
-          .readonly="${this.readonly}"
+          .readonly="${this.readonly || this.textProtected}"
+          title=${textProtectionHint(this.textProtection, this.i18n)}
           .enableClipboard="${true}"
           .verticalScrollContainerGetter="${() =>
             this.topContenteditableElement?.host

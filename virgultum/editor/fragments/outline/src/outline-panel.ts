@@ -1,7 +1,4 @@
-import { provide } from "@lit/context";
-import { effect, signal } from "@preact/signals-core";
-import { SignalWatcher, WithDisposable } from "@virgultum/global/lit";
-import { DocModeProvider } from "@virgultum/shared/services";
+import { EditorChromeHostIdentifier } from "@virgultum/shared/services";
 import {
   type EditorHost,
   PropTypes,
@@ -10,195 +7,92 @@ import {
 } from "@virgultum/std";
 import { html, type PropertyValues } from "lit";
 import { property } from "lit/decorators.js";
-
-import {
-  defaultOutlinePanelLabels,
-  type OutlinePanelLabels,
-  outlineSettingsKey,
-  type TocContext,
-  tocContext,
-} from "./config.js";
-import * as styles from "./outline-panel.styles";
+import { defaultOutlinePanelLabels, type OutlinePanelLabels } from "./config";
+import { DocumentOutlineController } from "./document-outline-controller";
 
 export const MYOXUS_OUTLINE_PANEL = "myoxus-outline-panel";
-
-const trackSignalDependencies = (...values: readonly unknown[]) =>
-  values.length;
-
 export type OutlinePanelSettings = {
   enableSorting: boolean;
   isEdgelessMode: boolean;
   showIcons: boolean;
 };
 
-@requiredProperties({
-  editor: PropTypes.object,
-})
-export class OutlinePanel extends SignalWatcher(
-  WithDisposable(ShadowlessElement),
-) {
-  private _getEditorMode(host: EditorHost) {
-    const docModeService = host.std.get(DocModeProvider);
-    const mode = docModeService.getEditorMode();
-    return mode;
-  }
+/** Imperative editor mounts adapt the same native controller consumed directly by Core. */
+@requiredProperties({ editor: PropTypes.object })
+export class OutlinePanel extends ShadowlessElement {
+  private controller?: DocumentOutlineController;
+  private stopSettings?: () => void;
+  private settingsIdentity = "";
 
-  private _emitSettingsChange() {
-    this.dispatchEvent(
-      new CustomEvent<OutlinePanelSettings>("myoxus-outline-settings-change", {
-        bubbles: true,
-        composed: true,
-        detail: this.getSettings(),
-      }),
-    );
-  }
-
-  private _setContext() {
-    this._context = {
-      compactWindowRadius$: signal<number>(this.compactWindowRadius),
-      editor$: signal(this.editor),
-      showIcons$: signal<boolean>(false),
-      enableSorting$: signal<boolean>(false),
-      fitPadding$: signal<number[]>(this.fitPadding),
-      labels$: signal<OutlinePanelLabels>(this.labels),
-    };
-
-    this.disposables.add(
-      effect(() => {
-        const settingsString = localStorage.getItem(outlineSettingsKey);
-        const settings = settingsString ? JSON.parse(settingsString) : null;
-
-        if (settings) {
-          this._context.showIcons$.value = settings.showIcons;
+  override willUpdate(changed: PropertyValues<this>) {
+    if (
+      !this.controller ||
+      [
+        "editor",
+        "labels",
+        "compactWindowRadius",
+        "fitPadding",
+        "hideHeader",
+      ].some((key) => changed.has(key as keyof OutlinePanel))
+    ) {
+      this.stopSettings?.();
+      this.controller = this.editor
+        ? new DocumentOutlineController(this.editor, {
+            labels: this.labels,
+            compactWindowRadius: this.compactWindowRadius,
+            hideHeader: this.hideHeader,
+            fitPadding: this.fitPadding,
+          })
+        : undefined;
+      this.stopSettings = this.controller?.subscribe(() => {
+        const detail = this.getSettings(),
+          identity = JSON.stringify(detail);
+        if (identity !== this.settingsIdentity) {
+          this.settingsIdentity = identity;
+          this.dispatchEvent(
+            new CustomEvent("myoxus-outline-settings-change", {
+              detail,
+              bubbles: true,
+              composed: true,
+            }),
+          );
         }
-
-        const editor = this._context.editor$.value;
-        if (this._getEditorMode(editor) === "edgeless") {
-          this._context.enableSorting$.value = true;
-        } else if (settings) {
-          this._context.enableSorting$.value = settings.enableSorting;
-        }
-      }),
-    );
-
-    this.disposables.add(
-      effect(() => {
-        trackSignalDependencies(
-          this._context.showIcons$.value,
-          this._context.enableSorting$.value,
-          this._context.editor$.value,
-        );
-        this._emitSettingsChange();
-      }),
-    );
+      });
+    }
   }
-
-  private _watchSettingsChange() {
-    this.disposables.add(
-      effect(() => {
-        if (this._getEditorMode(this._context.editor$.value) === "edgeless")
-          return;
-
-        const showPreviewIcon = this._context.showIcons$.value;
-        const enableNotesSorting = this._context.enableSorting$.value;
-        localStorage.setItem(
-          outlineSettingsKey,
-          JSON.stringify({
-            showIcons: showPreviewIcon,
-            enableSorting: enableNotesSorting,
-          }),
-        );
-      }),
-    );
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+    this.stopSettings?.();
+    this.stopSettings = undefined;
+    this.controller = undefined;
   }
-
-  override connectedCallback() {
-    super.connectedCallback();
-    this.classList.add(styles.outlinePanel);
-
-    this._setContext();
-    this._watchSettingsChange();
-  }
-
   getSettings(): OutlinePanelSettings {
-    if (!this._context || !this.editor) {
-      return {
-        enableSorting: false,
-        isEdgelessMode: false,
-        showIcons: false,
-      };
-    }
-
-    const isEdgelessMode =
-      this._getEditorMode(this._context.editor$.value) === "edgeless";
-
+    const state = this.controller?.getSnapshot();
     return {
-      enableSorting: this._context.enableSorting$.value,
-      isEdgelessMode: !!isEdgelessMode,
-      showIcons: this._context.showIcons$.value,
+      enableSorting: state?.sorting ?? false,
+      isEdgelessMode: state?.edgeless ?? false,
+      showIcons: state?.showIcons ?? false,
     };
   }
-
-  setEnableSorting(enableSorting: boolean) {
-    if (!this._context) return;
-    if (this._getEditorMode(this._context.editor$.value) === "edgeless") {
-      this._context.enableSorting$.value = true;
-      return;
-    }
-    this._context.enableSorting$.value = enableSorting;
+  setEnableSorting(value: boolean) {
+    if (this.controller && this.getSettings().enableSorting !== value)
+      this.controller.toggleSorting();
   }
-
-  setShowIcons(showIcons: boolean) {
-    if (!this._context) return;
-    this._context.showIcons$.value = showIcons;
+  setShowIcons(value: boolean) {
+    if (this.controller && this.getSettings().showIcons !== value)
+      this.controller.toggleIcons();
   }
-
-  override willUpdate(changedProperties: PropertyValues<this>): void {
-    if (changedProperties.has("editor")) {
-      this._context.editor$.value = this.editor;
-    }
-    if (changedProperties.has("compactWindowRadius")) {
-      this._context.compactWindowRadius$.value = this.compactWindowRadius;
-    }
-    if (changedProperties.has("fitPadding")) {
-      this._context.fitPadding$.value = this.fitPadding;
-    }
-    if (changedProperties.has("labels")) {
-      this._context.labels$.value = this.labels;
-    }
-  }
-
   override render() {
-    if (!this.editor) return;
-
-    return html`
-      ${
-        this.hideHeader
-          ? null
-          : html`<myoxus-outline-panel-header></myoxus-outline-panel-header>`
-      }
-      <myoxus-outline-panel-body> </myoxus-outline-panel-body>
-      <myoxus-outline-notice></myoxus-outline-notice>
-    `;
+    return this.controller
+      ? html`${this.editor.std.getOptional(EditorChromeHostIdentifier)?.renderDocumentOutline(this.controller)}`
+      : html``;
   }
-
-  @provide({ context: tocContext })
-  private accessor _context!: TocContext;
-
-  @property({ attribute: false })
-  accessor compactWindowRadius = 0;
-
-  @property({ attribute: false })
-  accessor editor!: EditorHost;
-
-  @property({ attribute: false })
-  accessor fitPadding!: number[];
-
-  @property({ attribute: false })
-  accessor hideHeader = false;
-
-  @property({ attribute: false })
-  accessor labels: OutlinePanelLabels = defaultOutlinePanelLabels;
+  @property({ attribute: false }) accessor compactWindowRadius = 0;
+  @property({ attribute: false }) accessor editor!: EditorHost;
+  @property({ attribute: false }) accessor fitPadding: number[] = [];
+  @property({ attribute: false }) accessor hideHeader = false;
+  @property({ attribute: false }) accessor labels: OutlinePanelLabels =
+    defaultOutlinePanelLabels;
 }
 
 declare global {

@@ -29,7 +29,6 @@ const expectedBrowserConfigs = new Set([
 ]);
 const expectedDecoratorConfigs = new Set([
   "client/admin/vitest.config.mts",
-  "virgultum/editor/data-view/vitest.config.ts",
   "vitest.config.mts",
   ...expectedBrowserConfigs,
 ]);

@@ -8,7 +8,6 @@
 //
 //     import {
 //       useDatabasePresence,
-//       DatabaseCollaboratorHeader,
 //       DatabasePresenceIndicator,
 //       DatabasePresenceDot,
 //       DatabaseConflictModal,
@@ -18,8 +17,6 @@
 //     } from "@myoxus/core/modules/database/presence";
 
 export {
-  DatabaseCollaboratorHeader,
-  type DatabaseCollaboratorHeaderProps,
   DatabasePresenceDot,
   DatabasePresenceIndicator,
   type DatabasePresenceIndicatorProps,

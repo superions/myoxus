@@ -297,6 +297,11 @@ pub(crate) async fn copilot_chat_sse_handler(
   // Validate explicit references before any embedding or generation request.
   // Ignore client docContent/title; the application materializes current content.
   let mut explicit_docs = Vec::new();
+  let mut prompt_docs = Vec::new();
+  // A document-sidebar question without a deliberate selection refers to the
+  // open document. Materialize it directly, without narrowing workspace search.
+  let include_current_doc = !selected_context.has_selection()
+    && selected_context.docs.as_ref().is_none_or(|docs| docs.is_empty());
   {
     let refs = selected_context
       .docs
@@ -332,10 +337,16 @@ pub(crate) async fn copilot_chat_sse_handler(
       if selected_context.docs.iter().flatten().any(|doc| doc.doc_id == doc_ref) && !explicit_docs.contains(&id) {
         explicit_docs.push(id);
       }
+      if (explicit_docs.contains(&id)
+        || (include_current_doc && selected_context.current_doc_id.as_deref() == Some(doc_ref)))
+        && !prompt_docs.contains(&id)
+      {
+        prompt_docs.push(id);
+      }
     }
   }
 
-  let preparation_timeout_ms = if explicit_docs.is_empty()
+  let preparation_timeout_ms = if prompt_docs.is_empty()
     && !selected_context.has_selection()
     && selected_context.files.as_ref().is_none_or(|files| files.is_empty())
     && messages.iter().all(|message| message.attachment_refs.is_empty())
@@ -431,7 +442,7 @@ pub(crate) async fn copilot_chat_sse_handler(
             permissions: &state.permission_service(),
             session: &session,
           },
-          &explicit_docs,
+          &prompt_docs,
           state.config.mcp.document_export_max_bytes,
         )
         .await?;

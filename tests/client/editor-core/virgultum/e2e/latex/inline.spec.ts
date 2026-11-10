@@ -24,6 +24,7 @@ import {
 } from "../utils/asserts.js";
 import { ZERO_WIDTH_FOR_EMPTY_LINE } from "../utils/inline-editor.js";
 import { test } from "../utils/playwright.js";
+import { switchReadonly } from "../utils/actions/click.js";
 
 async function assertRenderedEquation(element: Locator, source: string) {
   // Own the editor-to-renderer handoff, not KaTeX's formatted implementation HTML.
@@ -37,7 +38,7 @@ test("add inline latex at the start of line", async ({ page }) => {
   await initEmptyParagraphState(page);
   await focusRichText(page);
 
-  const latexEditorLine = page.locator("latex-editor-menu v-line div");
+  const latexEditorLine = page.locator("latex-source-editor v-line div");
   const latexElement = page.locator(
     "myoxus-paragraph rich-text myoxus-latex-node",
   );
@@ -65,7 +66,7 @@ test("add inline latex in the middle of text", async ({ page }) => {
   await initEmptyParagraphState(page);
   await focusRichText(page);
 
-  const latexEditorLine = page.locator("latex-editor-menu v-line div");
+  const latexEditorLine = page.locator("latex-source-editor v-line div");
   const latexElement = page.locator(
     "myoxus-paragraph rich-text myoxus-latex-node",
   );
@@ -96,7 +97,7 @@ test("update inline latex by clicking the node", async ({ page }) => {
   await initEmptyParagraphState(page);
   await focusRichText(page);
 
-  const latexEditorLine = page.locator("latex-editor-menu v-line div");
+  const latexEditorLine = page.locator("latex-source-editor v-line div");
   const latexElement = page.locator(
     "myoxus-paragraph rich-text myoxus-latex-node",
   );
@@ -124,18 +125,34 @@ test("update inline latex by clicking the node", async ({ page }) => {
   await pressShiftEnter(page);
   await type(page, String.raw`\end{array}`);
 
-  await assertRenderedEquation(
-    latexElement,
-    String.raw`\def\arraystretch{1.5}
+  const editedSource = String.raw`\def\arraystretch{1.5}
 \begin{array}{c:c:c}
 a & b & c \\ \\ hline
 d & e & f \\
 \hdashline
 g & h & i
-\end{array}`,
-  );
+\end{array}`;
+  await assertRenderedEquation(latexElement, editedSource);
 
-  // click outside to hide the editor
+  await page.keyboard.press("Escape");
+  await undoByKeyboard(page);
+  await assertRenderedEquation(latexElement, "E=mc^2");
+  await latexElement.click();
+  expect(await latexEditorLine.innerText()).toBe("E=mc^2");
+  await page.keyboard.press("Escape");
+  await redoByKeyboard(page);
+  await assertRenderedEquation(latexElement, editedSource);
+  await latexElement.click();
+  await page.locator("latex-source-editor [contenteditable=true]").click();
+  await selectAllByKeyboard(page);
+  await type(page, String.raw`\notACommand`);
+  await switchReadonly(page);
+  await expect(latexEditorLine).not.toBeVisible();
+  await assertRenderedEquation(latexElement, editedSource);
+  await switchReadonly(page, false);
+  await latexElement.click();
+  await page.locator("latex-source-editor").waitFor();
+  // Keep click-away separate: clicking blank Page space also appends a paragraph.
   await page.click("myoxus-editor-container");
   expect(await latexEditorLine.isVisible()).not.toBeTruthy();
 });
@@ -145,7 +162,7 @@ test("latex editor", async ({ page }) => {
   await initEmptyParagraphState(page);
   await focusRichText(page);
 
-  const latexEditorLine = page.locator("latex-editor-menu v-line div");
+  const latexEditorLine = page.locator("latex-source-editor v-line div");
   const latexElement = page.locator(
     "myoxus-paragraph rich-text myoxus-latex-node",
   );
@@ -161,7 +178,7 @@ test("latex editor", async ({ page }) => {
   );
   // click outside to hide the editor
   expect(await latexEditorLine.isVisible()).toBeTruthy();
-  await page.mouse.click(130, 130);
+  await page.locator("myoxus-editor-container").click();
   expect(await latexEditorLine.isVisible()).not.toBeTruthy();
   await latexElement.click();
   expect(await latexEditorLine.isVisible()).toBeTruthy();
@@ -185,6 +202,23 @@ test("latex editor", async ({ page }) => {
   await selectAllByKeyboard(page);
   await pressBackspace(page);
   expect(await latexEditorLine.innerText()).toBe(ZERO_WIDTH_FOR_EMPTY_LINE);
+  await type(page, "old");
+  await page
+    .locator("latex-source-editor [contenteditable=true]")
+    .evaluate((element) => {
+      // Native selection can change before the queued selectionchange projection.
+      element.ownerDocument.getSelection()!.selectAllChildren(element);
+      const clipboardData = new DataTransfer();
+      clipboardData.setData("text/plain", "E=mc^2");
+      element.dispatchEvent(
+        new ClipboardEvent("paste", {
+          bubbles: true,
+          cancelable: true,
+          clipboardData,
+        }),
+      );
+    });
+  expect(await latexEditorLine.innerText()).toBe("E=mc^2");
 });
 
 test("add inline latex using slash menu", async ({ page }) => {
@@ -192,7 +226,7 @@ test("add inline latex using slash menu", async ({ page }) => {
   await initEmptyParagraphState(page);
   await focusRichText(page);
 
-  const latexEditorLine = page.locator("latex-editor-menu v-line div");
+  const latexEditorLine = page.locator("latex-source-editor v-line div");
   const latexElement = page.locator(
     "myoxus-paragraph rich-text myoxus-latex-node",
   );

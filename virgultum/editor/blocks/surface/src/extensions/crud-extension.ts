@@ -37,6 +37,11 @@ export class EdgelessCRUDExtension extends Extension {
   }
 
   deleteElements = (elements: GfxModel[]) => {
+    if (
+      this.std.store.readonly ||
+      elements.some((element) => this.std.store.hasFixedText(element.id))
+    )
+      return;
     const surface = this._surface;
     if (!surface) {
       console.error("surface is not initialized");

@@ -22,7 +22,7 @@ resolver = "2"
   [workspace.package]
   edition = "2024"
   license = "AGPL-3.0-or-later"
-  version = "0.41.40"
+  version = "0.42.1"
 
   [workspace.dependencies]
   aes-gcm = "0.10"
@@ -125,7 +125,7 @@ resolver = "2"
   serde_path_to_error = "0.1.20"
   sha2 = "0.10"
   similar = { version = "2.7", features = ["unicode"] }
-  socketioxide = { version = "0.16", features = ["state"] }
+  socketioxide = { version = "0.18.9", features = ["state"] }
   sqlx = { version = "0.8", default-features = false, features = [
     "postgres",
     "runtime-tokio-rustls",

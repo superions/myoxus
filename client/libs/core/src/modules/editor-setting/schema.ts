@@ -20,7 +20,7 @@ const MyoxusEditorSettingSchema = z.object({
   fullWidthLayout: z.boolean().default(false),
   documentMetadataHeaderVisibility: z
     .record(z.string(), z.record(z.string(), z.boolean()))
-    .default({}),
+    .prefault({}),
   edgelessDefaultTheme: z
     .enum(["specified", "dark", "light", "auto"])
     .default("specified"),

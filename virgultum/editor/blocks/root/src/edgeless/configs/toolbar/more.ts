@@ -220,6 +220,11 @@ export const moreActions = [
     actions: [
       {
         id: "a.turn-into-linked-doc",
+        disabled: (ctx) =>
+          ctx.store.readonly ||
+          ctx
+            .getSurfaceModels()
+            .some((model) => ctx.store.hasFixedText(model.id)),
         label: editorMessage(
           "com.myoxus.editor.toolbar.turn-into-linked-doc",
           "Turn into linked doc",
@@ -233,6 +238,7 @@ export const moreActions = [
         run(ctx) {
           const model = ctx.getCurrentModelByType(NoteBlockModel);
           if (!model) return;
+          if (ctx.store.readonly || ctx.store.hasFixedText(model)) return;
 
           let placeholder = "";
           for (const child of model.children) {
@@ -247,6 +253,12 @@ export const moreActions = [
           const create = async () => {
             const title = await promptDocTitle(ctx.std, placeholder);
             if (title === null) return;
+            if (
+              ctx.store.readonly ||
+              ctx.store.getModelById(model.id) !== model ||
+              ctx.store.hasFixedText(model)
+            )
+              return;
 
             const edgeless = getEdgelessWith(ctx);
             if (!edgeless) return;
@@ -300,6 +312,11 @@ export const moreActions = [
       },
       {
         id: "b.create-linked-doc",
+        disabled: (ctx) =>
+          ctx.store.readonly ||
+          ctx
+            .getSurfaceModels()
+            .some((model) => ctx.store.hasFixedText(model.id)),
         label: editorMessage(
           "com.myoxus.editor.toolbar.create-linked-doc",
           "Create linked doc",
@@ -320,6 +337,11 @@ export const moreActions = [
         run(ctx) {
           const models = ctx.getSurfaceModels();
           if (!models.length) return;
+          if (
+            ctx.store.readonly ||
+            models.some((model) => ctx.store.hasFixedText(model.id))
+          )
+            return;
 
           const create = async () => {
             const edgeless = getEdgelessWith(ctx);
@@ -330,6 +352,11 @@ export const moreActions = [
 
             const title = await promptDocTitle(ctx.std);
             if (title === null) return;
+            if (
+              ctx.store.readonly ||
+              models.some((model) => ctx.store.hasFixedText(model.id))
+            )
+              return;
 
             const clonedModels = getSortedCloneElements(models);
             const linkedDoc = createLinkedDocFromEdgelessElements(

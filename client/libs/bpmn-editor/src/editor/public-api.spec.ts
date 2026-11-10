@@ -64,6 +64,16 @@ const { EventDefinitionProperties } =
   await import("./propertiesPanel/eventDefinition/EventDefinitionProperties");
 const { eventById } = await import("./mutations/event");
 const { BpmnEditorContextProvider } = await import("./BpmnEditorContext");
+
+async function completePalettePlacement(container: HTMLElement) {
+  await act(async () => {
+    container
+      .querySelector(".react-flow__pane")!
+      .dispatchEvent(
+        new MouseEvent("click", { bubbles: true, clientX: 1200, clientY: 900 }),
+      );
+  });
+}
 it("edits the selected data-route inspector without losing semantic slots or expression identities", async () => {
   const xml = await readFile(
       "client/libs/bpmn-editor/src/fixtures/data-associations-standard.bpmn",
@@ -451,6 +461,7 @@ it("edits graphical process I/O through the mounted canvas without turning inter
         )!
         .click(),
     );
+    await completePalettePlacement(container);
     await act(async () => {
       snapshot = ref.current!.flush();
     });
@@ -1501,15 +1512,15 @@ it("keeps event-subprocess triggers, context guards and hidden contents coherent
     await choose("Trigger");
     const before = await snapshot();
     const selected = node("Trigger");
-    const actions = selected.querySelector<HTMLButtonElement>(
-      'button[aria-label="Actions"]',
+    const actions = container.querySelector<HTMLButtonElement>(
+      '.react-flow__node-toolbar[data-id="Trigger"] button[aria-label="Next element"]',
     )!;
     await act(async () => {
       actions.focus();
       actions.click();
     });
     expect(
-      selected.querySelector('[data-testid="Trigger-add-edge_sequenceFlow"]'),
+      document.querySelector('[data-testid="Trigger-add-node_task"]'),
     ).not.toBeNull();
     const keyboardOwner = selected.querySelector<HTMLElement>(
       '[data-nodehref="Trigger"]',
@@ -1638,6 +1649,7 @@ it("keeps event-subprocess triggers, context guards and hidden contents coherent
       (button) => button.getAttribute("aria-label") === "Event subprocess",
     )!;
     await act(async () => palette.click());
+    await completePalettePlacement(container);
     const created = getMarshaller((await snapshot()).xml).parser.parse();
     const createdProcess = created.definitions.rootElement!.find(
       (root) => root.__$$element === "process",
@@ -2346,11 +2358,12 @@ it("authors ad-hoc controls and morphs the mounted subprocess without losing com
   };
   const choose = async (name: string, value: string) => {
     await act(async () => field(name).click());
+    const list = document.getElementById(
+      field(name).getAttribute("aria-controls")!,
+    )!;
     const option = [
-      ...document.querySelectorAll<HTMLElement>('[role="option"]'),
-    ]
-      .filter((option) => option.textContent === value)
-      .at(-1)!;
+      ...list.querySelectorAll<HTMLElement>('[role="option"]'),
+    ].find((option) => option.textContent === value)!;
     await act(async () => option.click());
   };
   const snapshot = async () => {
@@ -2384,6 +2397,7 @@ it("authors ad-hoc controls and morphs the mounted subprocess without losing com
       ),
     );
     await act(async () => button("Ad-hoc subprocess").click());
+    await completePalettePlacement(container);
     const before = await snapshot();
     const process = before.definitions.rootElement!.find(
       (root) => root.__$$element === "process",
@@ -2402,6 +2416,8 @@ it("authors ad-hoc controls and morphs the mounted subprocess without losing com
         'svg.xyflow-react-kie-diagram--node-shape svg[viewBox="0 0 110.000000 44.000000"] path',
       );
     expect(glyph()).not.toBeNull();
+    await act(async () => button("Properties").click());
+    await act(async () => button("Further properties").click());
     await choose("Activity ordering", "Sequential");
     await act(async () =>
       (field("Cancel remaining instances") as HTMLInputElement).click(),
@@ -2522,6 +2538,7 @@ it.each(taskVariants)(
       ].find((value) => value.getAttribute("aria-label") === label);
       if (!palette) throw new Error(`Missing task choice: ${label}`);
       await act(async () => palette.click());
+      await completePalettePlacement(container);
       let snapshot!: BpmnSnapshot;
       await act(async () => {
         snapshot = ref.current!.flush();
@@ -2541,7 +2558,11 @@ it.each(taskVariants)(
       if (kind !== "task") {
         // Check the rendered symbol, not only an attribute repeating the type.
         expect(
-          node().parentElement!.querySelector("svg svg, svg path, svg line"),
+          node().parentElement!.querySelector(
+            kind === "businessRuleTask"
+              ? "svg g[transform] rect"
+              : "svg svg, svg path, svg line",
+          ),
         ).not.toBeNull();
       }
       await act(async () => type(field("Name"), ""));
@@ -3824,21 +3845,21 @@ it("flushes the actual mounted command before debounce, preserves history on ACK
       "BPMN Task",
       "BPMN User Task",
       "BPMN Manual Task",
-      "BPMN Business Rule Task",
       "BPMN Service Task",
+      "BPMN Business Rule Task",
       "BPMN Script Task",
       "BPMN Send Task",
       "BPMN Receive Task",
+      "BPMN Exclusive Gateway (XOR)",
+      "BPMN Parallel Gateway (AND)",
+      "BPMN Inclusive Gateway (OR)",
+      "BPMN Event-Based Gateway",
+      "BPMN Complex Gateway",
       "BPMN Call Activity",
       "BPMN Sub-Process",
       "Ad-hoc subprocess",
       "Transaction",
       "Event subprocess",
-      "Gateways",
-      "BPMN Inclusive Gateway (OR)",
-      "BPMN Parallel Gateway (AND)",
-      "BPMN Event-Based Gateway",
-      "BPMN Complex Gateway",
       "BPMN Lane",
       "BPMN Data Object",
       "Data object reference",
@@ -3851,6 +3872,11 @@ it("flushes the actual mounted command before debounce, preserves history on ACK
     expect(state?.dirty).toBe(false);
     // Definitions are a real palette command, not a detached inspector-only
     // capability. Opening its native modal and changing tabs must be source-free.
+    await act(async () =>
+      [...container.querySelectorAll("button")]
+        .find((button) => button.textContent === "Process data")!
+        .click(),
+    );
     await act(async () =>
       container
         .querySelector<HTMLButtonElement>('button[aria-label="Definitions"]')!
@@ -3875,6 +3901,7 @@ it("flushes the actual mounted command before debounce, preserves history on ACK
     );
     expect(state?.dirty).toBe(false);
     await act(async () => button("BPMN Task").click());
+    await completePalettePlacement(container);
     expect(state?.dirty).toBe(true);
     expect(emissions).toHaveLength(0);
     const nodeDescription = () =>
@@ -3955,6 +3982,11 @@ it("flushes the actual mounted command before debounce, preserves history on ACK
     expect(ref.current!.flush().xml).toBe(importedXml);
     // The process ID is a draft-owning field. Invalid input must not turn Save
     // into a successful export of the previous accepted ID.
+    await act(async () =>
+      container
+        .querySelector<HTMLButtonElement>('button[aria-label="Properties"]')!
+        .click(),
+    );
     const labels = [...container.querySelectorAll("label")];
     const idLabel = labels.find((label) => label.textContent === "Element ID");
     const idInput = document.getElementById(
@@ -4001,6 +4033,7 @@ it("flushes the actual mounted command before debounce, preserves history on ACK
     readOnly = false;
     await act(async () => render());
     await act(async () => button("BPMN Task").click());
+    await completePalettePlacement(container);
     let before!: string;
     let candidate!: BpmnSnapshot;
     await act(async () => {
@@ -4077,6 +4110,7 @@ it("flushes the actual mounted command before debounce, preserves history on ACK
     readOnly = false;
     await act(async () => render());
     await act(async () => button("BPMN Task").click());
+    await completePalettePlacement(container);
     const recoverable = ref.current!.flush();
     source = recoverable;
     await act(async () => render());

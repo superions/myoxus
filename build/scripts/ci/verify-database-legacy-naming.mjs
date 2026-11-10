@@ -113,6 +113,10 @@ const allowedStorageSnakeSymbols = new Map([
     new Set(["workspace_databases", "workspace_database_fields"]),
   ],
   [
+    "server/crates/infrastructure/src/scheduling/review.rs",
+    new Set(["workspace_databases"]),
+  ],
+  [
     "server/crates/infrastructure/src/workspace_automation/task_events.rs",
     new Set([
       "workspace_database",

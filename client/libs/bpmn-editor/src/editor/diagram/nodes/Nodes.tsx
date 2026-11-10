@@ -50,7 +50,7 @@ import {
 } from "../../../xyflow/nodes/Hooks";
 import { InfoNodePanel } from "../../../xyflow/nodes/InfoNodePanel";
 import { OutgoingStuffNodePanel } from "../../../xyflow/nodes/OutgoingStuffNodePanel";
-import { PositionalNodeHandles } from "../../../xyflow/nodes/PositionalNodeHandles";
+import { PositionalNodeHandles as BorderHandles } from "../../../xyflow/nodes/PositionalNodeHandles";
 import { useIsHovered } from "../../../xyflow/reactExt/useIsHovered";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -115,6 +115,27 @@ import {
 import { globalTaskMarker } from "./NodeSvgs";
 import { useSubProcessNodeMorphingActions } from "./morphing/useSubProcessNodeMorphingActions";
 import { useKeyboardShortcutsForMorphingActions } from "./morphing/useKeyboardShortcutsForMorphingActions";
+
+function PositionalNodeHandles(props: { nodeId: string; isTargeted: boolean }) {
+  const node = RF.useInternalNode(props.nodeId);
+  const edges =
+    node?.type && node.type in BPMN_OUTGOING_STRUCTURE
+      ? BPMN_OUTGOING_STRUCTURE[
+          node.type as keyof typeof BPMN_OUTGOING_STRUCTURE
+        ].edges
+      : undefined;
+  return (
+    <BorderHandles
+      {...props}
+      sourceEdgeType={
+        edges?.includes(EDGE_TYPES.sequenceFlow)
+          ? EDGE_TYPES.sequenceFlow
+          : edges?.[0]
+      }
+    />
+  );
+}
+
 export const StartEventNode = React.memo(
   ({
     data: { bpmnElement: startEvent, shape },

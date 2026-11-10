@@ -26,7 +26,8 @@ vi.mock("@myoxus/core/components/hooks/myoxus/use-user-preferences", () => ({
   }),
 }));
 
-vi.mock("@myoxus/i18n", () => ({
+vi.mock("@myoxus/i18n", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@myoxus/i18n")>()),
   useI18n: () =>
     ({
       language: "en",

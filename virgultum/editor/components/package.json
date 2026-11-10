@@ -15,7 +15,7 @@
     "@lit/context": "^1.1.6",
     "@myoxus/icons": "workspace:*",
     "@myoxus/theme": "workspace:*",
-    "@preact/signals-core": "^1.8.0",
+    "@preact/signals-core": "^1.14.5",
     "@shikijs/core": "3.23.0",
     "@shikijs/engine-oniguruma": "3.23.0",
     "@shikijs/langs": "3.23.0",
@@ -38,7 +38,7 @@
     "remark-math": "^6.0.0",
     "rxjs": "^7.8.2",
     "yjs": "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch",
-    "zod": "^3.25.76"
+    "zod": "4.6.7"
   },
   "exports": {
     ".": "./src/index.ts",
@@ -56,7 +56,6 @@
     "./context-menu": "./src/context-menu/index.ts",
     "./date-picker": "./src/date-picker/index.ts",
     "./drop-indicator": "./src/drop-indicator/index.ts",
-    "./filterable-list": "./src/filterable-list/index.ts",
     "./toggle-button": "./src/toggle-button/index.ts",
     "./toggle-switch": "./src/toggle-switch/index.ts",
     "./notification": "./src/notification/index.ts",

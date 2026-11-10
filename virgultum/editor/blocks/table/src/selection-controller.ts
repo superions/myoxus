@@ -401,6 +401,13 @@ export class SelectionController implements ReactiveController {
     return true;
   };
   doPaste = (plainText: string, selection: TableAreaSelection) => {
+    if (
+      this.dataManager.readonly$.value ||
+      this.dataManager
+        .getCellsBySelection(selection)
+        .some((cell) => cell.textProtection === "fixed")
+    )
+      return;
     try {
       const rowTextLists = plainText
         .split(/\r?\n/)

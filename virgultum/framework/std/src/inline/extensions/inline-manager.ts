@@ -56,11 +56,12 @@ export class InlineManager<TextAttributes extends BaseTextAttributes> {
     return renderer;
   };
 
-  getSchema = (): z.ZodSchema => {
+  getSchema = (): z.ZodType<TextAttributes> => {
     const schema = this.specs.reduce<z.ZodSchema>((acc, cur) => {
       return z.intersection(acc, cur.schema);
     }, baseTextAttributes);
-    return schema;
+    // The registered inline specs collectively own this editor's attribute type.
+    return schema as z.ZodType<TextAttributes>;
   };
 
   get markdownMatches(): InlineMarkdownMatch<TextAttributes>[] {

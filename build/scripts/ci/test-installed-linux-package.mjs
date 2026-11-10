@@ -26,6 +26,87 @@ test("RPM probes replace equal versions and install the exact changed artifact",
   );
 });
 
+test("owned native recovery proves version, bytes and inactivity before removal", async () => {
+  const source = fs.readFileSync(
+    new URL("./run-electron-update-e2e.mjs", import.meta.url),
+    "utf8",
+  );
+  const start = source.indexOf("async function removeKnownNativePredecessor(");
+  const end = source.indexOf("\nasync function installLinuxPackage(", start);
+  assert.ok(start >= 0 && end > start);
+  // The CLI module performs host operations at top level. Isolate its actual
+  // ownership guard, not the package manager, inside the existing VM fixture.
+  async function exercise(backend, overrides = {}) {
+    const fixture = {
+      version: backend === "deb" ? "9000.0.0~beta.1" : "9000.0.0-0.beta.1",
+      hash: "a".repeat(64),
+      running: 1,
+      query: 0,
+      alias: false,
+      ...overrides,
+    };
+    let removed = false;
+    const writes = [];
+    const cleanup = vm.runInNewContext(
+      `${source.slice(start, end)}\nremoveKnownNativePredecessor`,
+      {
+        path: path.posix,
+        productName: "Myoxus-beta",
+        backend,
+        realpath: async (file) => (fixture.alias ? `${file}.foreign` : file),
+        sha256: async () => fixture.hash,
+        runStatus: async (command) =>
+          command === "pgrep" ? fixture.running : removed ? 1 : fixture.query,
+        capture: async (command, args) => ({
+          stdout:
+            command === "bash"
+              ? `${"a".repeat(64)}  -\n`
+              : command === "dpkg-deb" ||
+                  (command === "rpm" && args[0] === "-qp")
+                ? backend === "deb"
+                  ? "9000.0.0~beta.1"
+                  : "9000.0.0-0.beta.1"
+                : fixture.version,
+        }),
+        run: async (command, args) => {
+          writes.push([command, ...args]);
+          removed = true;
+        },
+      },
+    );
+    return { result: cleanup("/owned/fixture.deb"), writes };
+  }
+  for (const backend of ["deb", "rpm"]) {
+    for (const foreign of [
+      { version: "0.41.23" },
+      { hash: "b".repeat(64) },
+      { running: 0 },
+      { running: 2 },
+      { query: 2 },
+      { alias: true },
+    ]) {
+      const { result, writes } = await exercise(backend, foreign);
+      await assert.rejects(result, /Refusing|Could not/);
+      assert.deepEqual(writes, []);
+    }
+    const owned = await exercise(backend);
+    assert.equal(await owned.result, "removed");
+    assert.deepEqual(
+      owned.writes.map((row) => Array.from(row)),
+      [
+        [
+          "sudo",
+          "-n",
+          backend === "deb" ? "apt-get" : "dnf",
+          backend === "deb" ? "purge" : "remove",
+          "-y",
+          "myoxus-beta",
+        ],
+      ],
+    );
+  }
+});
+
 test("blank compositor frames never qualify as screenshot evidence", () => {
   function png(pixels) {
     const header = Buffer.alloc(33);

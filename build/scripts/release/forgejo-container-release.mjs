@@ -10,14 +10,29 @@ const failed = new Set(["failure", "cancelled"]);
 // Rerunning a prerequisite also reruns its dependants. Select only the earliest
 // failed tier; never rerun successful sibling images or separately queue the
 // acceptance job that Forgejo will already restart as a dependant.
-export function selectRetryJobs(jobs) {
+export function selectRetryJobs(jobs, component) {
   const candidates = jobs.filter((job) => failed.has(job.status));
   const preflight = candidates.filter(
     (job) => job.name === "Container preflight",
   );
   if (preflight.length) return preflight;
-  const images = candidates.filter((job) =>
-    /^(Server image|Frontend images)(?:$|[- (])/.test(job.name),
+  const ownsImage = (job) =>
+    component === "server"
+      ? job.name === "Server image"
+      : component === "frontends"
+        ? /^Frontend images(?:$|[- (])/.test(job.name)
+        : /^(Server image|Frontend images)(?:$|[- (])/.test(job.name);
+  // Forgejo can resume only the first dependent matrix child after a failed
+  // prerequisite. A selected, still-skipped sibling needs its own native retry.
+  const images = jobs.filter(
+    (job) =>
+      ownsImage(job) &&
+      (failed.has(job.status) ||
+        (component &&
+          job.status === "skipped" &&
+          jobs.some(
+            (p) => p.name === "Container preflight" && p.status === "success",
+          ))),
   );
   if (images.length) return images;
   return candidates.filter(
@@ -118,7 +133,7 @@ export async function runContainerOperation(args, request) {
       `No matching OCI run for ${tag} at ${revision}; no tags changed.`,
     );
   const jobs = await showRun(run);
-  const selected = selectRetryJobs(jobs);
+  const selected = selectRetryJobs(jobs, component);
   if (!selected.length)
     throw new Error(
       "No failed release job to resume; use verify for published images or publish-only for upload recovery.",

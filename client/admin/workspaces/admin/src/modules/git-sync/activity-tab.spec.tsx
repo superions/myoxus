@@ -36,6 +36,8 @@ vi.mock("@myoxus/i18n", async (importOriginal) => {
   return {
     ...actual,
     useI18n: () => ({
+      "com.myoxus.peek-view-controls.close": () =>
+        en["com.myoxus.peek-view-controls.close"],
       t: translate,
       exists: (key: string) => key in en,
       language: "en",

@@ -12,6 +12,7 @@ use std::sync::{Arc, Barrier};
 use std::thread;
 
 use anyhow::{Context, Result, ensure};
+use myoxus_application::ports::RedisPort;
 use serde_json::Value;
 use sqlx::{PgPool, Row, postgres::PgPoolOptions};
 use support::database_url;
@@ -108,6 +109,23 @@ async fn cleanup(pool: &PgPool, emails: &[String], unit_ids: &[Uuid]) -> Result<
     .bind(&user_ids)
     .execute(pool)
     .await?;
+  Ok(())
+}
+
+async fn cleanup_redis_namespace(namespace: &str) -> Result<()> {
+  // This namespace includes the test's random UUID; never scan or flush another
+  // test's keys. CLI session invalidation creates entries outside SQL cleanup.
+  let redis = myoxus_infrastructure::redis::RedisAdapter::new(redis_url(), namespace)
+    .map_err(|error| anyhow::anyhow!("connect test Redis namespace: {error}"))?;
+  redis
+    .delete_by_pattern("*")
+    .await
+    .map_err(|error| anyhow::anyhow!("clean test Redis namespace: {error}"))?;
+  let remaining = redis
+    .delete_by_pattern("*")
+    .await
+    .map_err(|error| anyhow::anyhow!("verify test Redis namespace: {error}"))?;
+  ensure!(remaining == 0, "test Redis namespace retained keys after cleanup");
   Ok(())
 }
 
@@ -587,7 +605,8 @@ async fn workspace_cli_preserves_complete_user_and_ou_lifecycle() -> Result<()> 
 
   let emails = users.into_iter().map(|(email, _)| email.clone()).collect::<Vec<_>>();
   let cleanup_result = cleanup(&pool, &emails, &unit_ids).await;
-  result.and(cleanup_result)
+  let redis_cleanup_result = cleanup_redis_namespace(&namespace).await;
+  result.and(cleanup_result).and(redis_cleanup_result)
 }
 
 /// Drives the actual CLI wire/file contract. A forced audit failure proves that

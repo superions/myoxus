@@ -1165,6 +1165,15 @@ A single history snapshot entry.
 | `structure_changed` |  |
 | `unsupported_content` |  |
 
+## DocumentFieldPresentationState
+
+<!-- prettier-ignore -->
+| Value | Description |
+| --- | --- |
+| `UNAVAILABLE` |  |
+| `UNSET` |  |
+| `VALUE` |  |
+
 ## DocumentGraphDirection
 
 <!-- prettier-ignore -->
@@ -2216,6 +2225,7 @@ Stable product tool identifiers. Arbitrary client-defined IDs are rejected by th
 | `Frame` |  |
 | `GraphDetails` |  |
 | `Outline` |  |
+| `Presence` |  |
 | `Tags` |  |
 | `TaskDetails` |  |
 

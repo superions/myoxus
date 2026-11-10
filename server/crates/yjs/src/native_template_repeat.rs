@@ -440,6 +440,7 @@ pub(super) fn expand(
   for unit in units {
     let mut new_rows = Vec::new();
     for record in records.unwrap_or_default() {
+      let mut field_ids = HashMap::new();
       // Do not clone the entire member collection once per member. Only
       // ordinary substitution values participate in this unit's scope.
       let mut scoped = variables
@@ -508,7 +509,11 @@ pub(super) fn expand(
         write(
           &text,
           &mut txn,
-          rewrite_native_template_chunks(chunks, "myoxus:paragraph", &scoped, unresolved, true)?,
+          crate::document_field::content::remap_chunks(
+            &rewrite_native_template_chunks(chunks, "myoxus:paragraph", &scoped, unresolved, true)?,
+            &mut field_ids,
+          )
+          .map_err(str::to_owned)?,
         );
         handled.insert((
           if unit.row.is_some() {
@@ -596,7 +601,24 @@ mod tests {
 
   #[test]
   fn native_snapshot_import_repeat_expansion_preserves_order_pairing_marks_and_identities() {
-    let snapshot = snapshot_blocks_to_yjs(&source()).expect("import same native snapshot as registry");
+    let mut source = source();
+    source[2].props.insert("textProtection".into(), json!("source"));
+    source[4].props["cells"]["r:name"]["textProtection"] = json!("source");
+    let field = |id: &str| {
+      json!({"insert":" ", "attributes":{"bold":true, "documentField":{
+        "type":"input", "id":id, "definition":{"kind":"text", "label":"Independent answer", "required":false,
+        "default":"Initial {{literal}}"}, "value":"Source preview answer"
+      }}})
+    };
+    source[2].props["text"]["delta"]
+      .as_array_mut()
+      .unwrap()
+      .push(field("todo-field"));
+    source[4].props["cells"]["r:name"]["text"]["delta"]
+      .as_array_mut()
+      .unwrap()
+      .push(field("cell-field"));
+    let snapshot = snapshot_blocks_to_yjs(&source).expect("import same native snapshot as registry");
     let before = snapshot.clone();
     assert_eq!(
       instantiate_native_template(&snapshot, &HashMap::new())
@@ -607,6 +629,26 @@ mod tests {
     let result = instantiate_native_template(&snapshot, &variables()).expect("instantiate records");
     assert!(result.unresolved_variables.is_empty());
     assert_eq!(snapshot, before);
+    let fields = crate::document_field::content::inspect(&result.snapshot).unwrap();
+    assert_eq!(fields.len(), 4);
+    assert_eq!(
+      fields
+        .iter()
+        .map(|field| field.run.descriptor.id())
+        .collect::<HashSet<_>>()
+        .len(),
+      4
+    );
+    for field in &fields {
+      let crate::document_field::DocumentField::Input { id, value, .. } = &field.run.descriptor else {
+        panic!("input")
+      };
+      assert!(!["todo-field", "cell-field"].contains(&id.as_str()));
+      assert_eq!(
+        value,
+        &crate::document_field::InputValue::Scalar(Some("Initial {{literal}}".into()))
+      );
+    }
     let doc = Doc::new();
     doc
       .transact_mut()
@@ -645,6 +687,10 @@ mod tests {
         if index < 2 { "todo" } else { "bulleted" }
       );
       if index < 2 {
+        assert_eq!(
+          block.get(&txn, "prop:textProtection"),
+          Some(yrs::Out::Any(Any::from("fixed")))
+        );
         assert!(matches!(
           block.get(&txn, "prop:checked"),
           Some(yrs::Out::Any(Any::Bool(false)))
@@ -653,7 +699,10 @@ mod tests {
       let Some(yrs::Out::YText(text)) = block.get(&txn, "prop:text") else {
         panic!("native text")
       };
-      assert_eq!(text.get_string(&txn), *value);
+      assert_eq!(
+        text.get_string(&txn),
+        format!("{value}{}", if index < 2 { " " } else { "" })
+      );
       assert!(text.diff(&txn, YChange::identity).iter().all(|chunk| {
         chunk
           .attributes
@@ -697,6 +746,10 @@ mod tests {
         (index > 0).then(|| yrs::Out::Any(Any::from("--myoxus-sem-status-error-paper")))
       );
       assert_eq!(
+        table.get(&txn, &format!("prop:cells.{row}:name.textProtection")),
+        (index > 0).then(|| yrs::Out::Any(Any::from("fixed")))
+      );
+      assert_eq!(
         table
           .get(&txn, &format!("prop:rows.{row}.rowId"))
           .unwrap()
@@ -707,7 +760,10 @@ mod tests {
         let Some(yrs::Out::YText(text)) = table.get(&txn, &format!("prop:cells.{row}:{column}.text")) else {
           panic!("native paired cell")
         };
-        assert_eq!(text.get_string(&txn), *value);
+        assert_eq!(
+          text.get_string(&txn),
+          format!("{value}{}", if index > 0 && *column == "name" { " " } else { "" })
+        );
         assert_eq!(
           text.diff(&txn, YChange::identity)[0]
             .attributes

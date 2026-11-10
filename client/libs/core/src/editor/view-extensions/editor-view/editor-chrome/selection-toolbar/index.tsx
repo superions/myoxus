@@ -20,7 +20,7 @@ import { SelectionActions } from "./block-actions";
 import { TextFormatControl } from "./text-format";
 import { SurfacePropertyControl } from "./surface-property";
 
-function renderControl(action: SelectionAction, menu: boolean) {
+export function renderControl(action: SelectionAction, menu: boolean) {
   return action.control?.type === "choice" ||
     action.control?.type === "toggle" ? (
     <TextFormatControl action={action} labelled={menu} />

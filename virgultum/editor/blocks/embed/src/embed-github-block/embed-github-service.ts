@@ -9,7 +9,7 @@ import {
 } from "@virgultum/shared/services";
 import { BlockService } from "@virgultum/std";
 
-import { githubUrlRegex } from "./embed-github-model.js";
+import { gitForgeUrlRegex } from "./embed-github-model.js";
 import { queryEmbedGithubApiData, queryEmbedGithubData } from "./utils.js";
 
 export class EmbedGithubBlockService extends BlockService {
@@ -30,7 +30,7 @@ export class EmbedGithubBlockService extends BlockService {
 
 export const EmbedGithubBlockOptionConfig = EmbedOptionConfig({
   flavour: EmbedGithubBlockSchema.model.flavour,
-  urlRegex: githubUrlRegex,
+  urlRegex: gitForgeUrlRegex,
   styles: EmbedGithubStyles,
   viewType: "card",
 });

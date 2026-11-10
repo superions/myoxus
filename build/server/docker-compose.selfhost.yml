@@ -173,6 +173,8 @@ services:
     # The operator owns the Nginx runtime and can update it independently of
     # Myoxus. Web/Admin release images are static OCI artifacts materialized
     # into MYOXUS_FRONTEND_ASSET_ROOT; they are never started as containers.
+    # Materialize each release's deployment config too: it owns static asset
+    # compression for Web/Admin at the root and under the configured base path.
     image: ${MYOXUS_NGINX_IMAGE:-nginx:stable-alpine}
     depends_on:
       api:

@@ -61,6 +61,7 @@ fn docx_import_creates_one_populated_page_and_denies_readonly_creation() {
           alt: "Source figure".into(),
           float: Default::default(),
           crop: [0.0; 4],
+          fx: Default::default(),
           ole: None,
         },
         &wordcraft_doc::CharProps::default(),

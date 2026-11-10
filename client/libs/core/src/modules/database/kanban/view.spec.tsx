@@ -395,9 +395,7 @@ describe("Database Kanban view", () => {
       ),
     ).toBeNull();
     const contextToolbar = screen.getByTestId("database-view-context-toolbar");
-    expect(within(contextToolbar).getByText("Only you")).toBeInstanceOf(
-      HTMLParagraphElement,
-    );
+    expect(within(contextToolbar).queryByText("Only you")).toBeNull();
     expect(
       within(contextToolbar).queryByRole("button", { name: "View actions" }),
     ).toBeNull();

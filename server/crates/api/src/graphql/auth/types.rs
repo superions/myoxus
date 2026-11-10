@@ -721,6 +721,7 @@ pub enum WorkbenchToolIdType {
   DatabaseSettings,
   TaskDetails,
   GraphDetails,
+  Presence,
 }
 
 impl From<WorkbenchToolId> for WorkbenchToolIdType {
@@ -740,6 +741,7 @@ impl From<WorkbenchToolId> for WorkbenchToolIdType {
       WorkbenchToolId::DatabaseSettings => Self::DatabaseSettings,
       WorkbenchToolId::TaskDetails => Self::TaskDetails,
       WorkbenchToolId::GraphDetails => Self::GraphDetails,
+      WorkbenchToolId::Presence => Self::Presence,
     }
   }
 }
@@ -761,6 +763,7 @@ impl From<WorkbenchToolIdType> for WorkbenchToolId {
       WorkbenchToolIdType::DatabaseSettings => Self::DatabaseSettings,
       WorkbenchToolIdType::TaskDetails => Self::TaskDetails,
       WorkbenchToolIdType::GraphDetails => Self::GraphDetails,
+      WorkbenchToolIdType::Presence => Self::Presence,
     }
   }
 }
@@ -2876,6 +2879,8 @@ pub struct SearchInputType {
 pub struct SearchDocsInputType {
   pub keyword: String,
   pub limit: Option<i32>,
+  /// Offset in this source's returned order; omitted or negative values start at zero.
+  pub offset: Option<i32>,
   #[graphql(name = "useSemanticSearch")]
   pub use_semantic_search: Option<bool>,
 }

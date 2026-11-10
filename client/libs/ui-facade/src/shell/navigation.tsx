@@ -222,8 +222,12 @@ export function InlineActionButton({
   className,
   style,
   type = "button",
+  appearance = "link",
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement>) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+  /** Inline controls embedded in authored text must inherit its presentation. */
+  appearance?: "link" | "text";
+}) {
   return (
     <MantineUnstyledButton
       {...props}
@@ -232,12 +236,15 @@ export function InlineActionButton({
       className={className}
       data-myoxus-ui-role="settings-inline-action"
       style={{
-        color: cssVar("linkColor"),
+        color: appearance === "text" ? "inherit" : cssVar("linkColor"),
         cursor: "pointer",
         display: "inline",
         fontSize: "inherit",
         padding: 0,
-        textDecoration: cssTypographyVar("link", "decoration", "none"),
+        textDecoration:
+          appearance === "text"
+            ? "inherit"
+            : cssTypographyVar("link", "decoration", "none"),
         ...style,
       }}
     >

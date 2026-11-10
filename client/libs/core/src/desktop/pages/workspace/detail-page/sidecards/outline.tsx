@@ -1,17 +1,16 @@
 import { useI18n } from "@myoxus/i18n";
-import { Box } from "@myoxus/ui-facade";
-import { OutlinePanel } from "@virgultum/editor/fragments/outline";
+import { EditorDocumentOutline } from "@myoxus/core/editor/view-extensions/editor-view/editor-chrome/document-outline";
+import { DocumentOutlineController } from "@virgultum/editor/fragments/outline";
 import type { EditorHost } from "@virgultum/editor/std";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
 
-/** Mounts the Virgultum outline without a second tool header inside Context. */
+/** Shares the editor-owned outline controller without a second sidebar title. */
 export const EditorOutlinePanel = ({
   editor,
 }: {
   editor: EditorHost | null;
 }) => {
   const t = useI18n();
-  const outlinePanelRef = useRef<OutlinePanel | null>(null);
   const labels = useMemo(
     () => ({
       title: t["com.myoxus.sidebar.outline.title"](),
@@ -36,31 +35,16 @@ export const EditorOutlinePanel = ({
     [t],
   );
 
-  const onRefChange = useCallback(
-    (container: HTMLDivElement | null) => {
-      if (!container || !editor || container.children.length > 0) return;
-      const outline = new OutlinePanel();
-      outline.compactWindowRadius = 4;
-      outline.editor = editor;
-      outline.hideHeader = true;
-      outline.labels = labels;
-      outlinePanelRef.current = outline;
-      container.append(outline);
-    },
+  const controller = useMemo(
+    () =>
+      editor
+        ? new DocumentOutlineController(editor, {
+            labels,
+            compactWindowRadius: 4,
+            hideHeader: true,
+          })
+        : null,
     [editor, labels],
   );
-
-  useEffect(() => {
-    if (!outlinePanelRef.current || !editor) return;
-    outlinePanelRef.current.editor = editor;
-    outlinePanelRef.current.labels = labels;
-  }, [editor, labels]);
-
-  return (
-    <Box
-      ref={onRefChange}
-      w="100%"
-      data-myoxus-ui-role="editor-outline-panel-mount"
-    />
-  );
+  return controller ? <EditorDocumentOutline controls={controller} /> : null;
 };

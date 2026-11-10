@@ -2,6 +2,7 @@
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
 import { Box, Popover, PopoverContent, PopoverTarget } from "@myoxus/ui-facade";
+import type { ComponentProps } from "react";
 import type { EditorInlinePopupControls } from "@virgultum/editor/shared/services";
 import type { PropsWithChildren } from "react";
 
@@ -10,11 +11,15 @@ export function EditorInlinePopup({
   controls,
   label,
   onSubmit,
+  position = "bottom-start",
+  contentMeasure,
   children,
 }: PropsWithChildren<{
   controls: EditorInlinePopupControls;
   label: string;
   onSubmit: () => void;
+  position?: ComponentProps<typeof Popover>["position"];
+  contentMeasure?: ComponentProps<typeof Popover>["contentMeasure"];
 }>) {
   return (
     <Popover
@@ -22,7 +27,8 @@ export function EditorInlinePopup({
       onChange={(open) => {
         if (!open) controls.close();
       }}
-      position="bottom-start"
+      position={position}
+      contentMeasure={contentMeasure}
       floatingStrategy="fixed"
       fitViewport
       trapFocus

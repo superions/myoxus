@@ -153,13 +153,13 @@ const CloudWorkSpaceList = ({
     globalContextService.globalContext.workspaceFlavour.$,
   );
 
-  const handleDeleteServer = useCallback(() => {
+  const handleDeleteServer = useAsyncCallback(async () => {
     // The section's `workspaces` contains only this server. Resolve the next
     // workspace from the shared list before removing the current authority.
     const otherWorkspace = workspacesService.list.workspaces$.value.find(
       (workspace) => workspace.flavour !== server.id,
     );
-    serversService.removeServer(server.id);
+    await serversService.removeServer(server.id);
 
     if (currentWorkspaceFlavour === server.id) {
       if (otherWorkspace) {

@@ -85,6 +85,49 @@ impl SqlxSearchRepository {
       _ => SearchReindexStatus::Running,
     }
   }
+
+  /// Reuse the durable native-search outbox on startup as well as metadata
+  /// invalidation. This covers changed YAML defaults without a polling service;
+  /// proven field-free documents at their current revision acquire no work.
+  #[instrument(skip(self))]
+  pub async fn enqueue_field_refresh(&self) -> RepoResult<i64> {
+    sqlx::query_scalar("SELECT enqueue_document_field_search_refresh(NULL, NULL, NULL)")
+      .fetch_one(&self.pool)
+      .await
+      .map_err(Self::map_db_err)
+  }
+
+  async fn write_search_doc(&self, doc: &SearchDocument, native: Option<(bool, i64)>) -> RepoResult<()> {
+    let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
+    sqlx::query(
+      r#"INSERT INTO search_content
+          (workspace_id, doc_id, title, plain_text, workspace_tags, search_vector, updated_at, has_document_fields, field_source_revision)
+        VALUES ($1, $2, $3, $4, $5, to_tsvector('simple', $3 || ' ' || $4 || ' ' || $5::text), $6, COALESCE($7,false), $8)
+        ON CONFLICT (workspace_id, doc_id) DO UPDATE SET
+          title=EXCLUDED.title, plain_text=EXCLUDED.plain_text, workspace_tags=EXCLUDED.workspace_tags,
+          search_vector=EXCLUDED.search_vector, updated_at=EXCLUDED.updated_at,
+          has_document_fields=COALESCE($7,search_content.has_document_fields), field_source_revision=$8"#,
+    )
+    .bind(doc.workspace_id).bind(doc.doc_id).bind(&doc.title).bind(&doc.plain_text)
+    .bind(serde_json::to_value(&doc.workspace_tags).map_err(|error| RepositoryError::Validation(error.to_string()))?)
+    .bind(doc.updated_at).bind(native.map(|value| value.0)).bind(native.map(|value| value.1))
+    .execute(&mut *tx).await.map_err(Self::map_db_err)?;
+    let updated = sqlx::query(
+      "UPDATE docs SET meta=COALESCE(meta,'{}'::jsonb)||jsonb_build_object('plain_text',$3::text)
+       WHERE workspace_id=$1 AND id=$2 AND deleted_at IS NULL",
+    )
+    .bind(doc.workspace_id)
+    .bind(doc.doc_id)
+    .bind(&doc.plain_text)
+    .execute(&mut *tx)
+    .await
+    .map_err(Self::map_db_err)?;
+    if updated.rows_affected() != 1 {
+      return Err(RepositoryError::NotFound("document"));
+    }
+    tx.commit().await.map_err(Self::map_db_err)?;
+    Ok(())
+  }
 }
 
 #[async_trait]
@@ -110,47 +153,7 @@ impl SearchRepository for SqlxSearchRepository {
   /// clients cannot observe divergent successful writes.
   #[instrument(skip(self, doc))]
   async fn upsert_search_doc(&self, doc: &SearchDocument) -> RepoResult<()> {
-    let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
-    sqlx::query(
-      r#"
-            INSERT INTO search_content
-              (workspace_id, doc_id, title, plain_text, workspace_tags, search_vector, updated_at)
-            VALUES ($1, $2, $3, $4, $5,
-                    to_tsvector('simple', $3 || ' ' || $4 || ' ' || $5::text), $6)
-            ON CONFLICT (workspace_id, doc_id)
-            DO UPDATE SET
-                title = EXCLUDED.title,
-                plain_text = EXCLUDED.plain_text,
-                workspace_tags = EXCLUDED.workspace_tags,
-                search_vector = EXCLUDED.search_vector,
-                updated_at = EXCLUDED.updated_at
-            "#,
-    )
-    .bind(doc.workspace_id)
-    .bind(doc.doc_id)
-    .bind(&doc.title)
-    .bind(&doc.plain_text)
-    .bind(serde_json::to_value(&doc.workspace_tags).map_err(|error| RepositoryError::Validation(error.to_string()))?)
-    .bind(doc.updated_at)
-    .execute(&mut *tx)
-    .await
-    .map_err(Self::map_db_err)?;
-    let updated = sqlx::query(
-      "UPDATE docs
-          SET meta = COALESCE(meta, '{}'::jsonb) || jsonb_build_object('plain_text', $3::text)
-        WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL",
-    )
-    .bind(doc.workspace_id)
-    .bind(doc.doc_id)
-    .bind(&doc.plain_text)
-    .execute(&mut *tx)
-    .await
-    .map_err(Self::map_db_err)?;
-    if updated.rows_affected() != 1 {
-      return Err(RepositoryError::NotFound("document"));
-    }
-    tx.commit().await.map_err(Self::map_db_err)?;
-    Ok(())
+    self.write_search_doc(doc, None).await
   }
 
   /// Delete a single search document identified by workspace and document ID.
@@ -440,6 +443,19 @@ impl ApplicationSearchStore for SqlxSearchRepository {
     SearchRepository::upsert_search_doc(self, &doc)
       .await
       .map_err(|e| AuthError::Storage(e.to_string()))
+  }
+
+  #[instrument(skip(self, doc))]
+  async fn upsert_current_search_doc(
+    &self,
+    doc: SearchDocument,
+    has_fields: bool,
+    source_revision: i64,
+  ) -> AuthResult<()> {
+    self
+      .write_search_doc(&doc, Some((has_fields, source_revision)))
+      .await
+      .map_err(|error| AuthError::Storage(error.to_string()))
   }
 
   #[instrument(skip(self))]

@@ -849,7 +849,7 @@ export class DocsStore extends Store {
   watchDocTemplateStateSetting(id: string) {
     return this.watchDocNativeMetadataSetting(
       id,
-      (properties) => properties.isTemplate,
+      (properties) => properties.isTemplate ?? false,
       (model) => {
         const state = model?.metadata.template?.state;
         return state != null && state !== "none";

@@ -22,13 +22,20 @@
 import {
   Button,
   EmptyState,
-  IconButton,
   Popover,
   PopoverTarget,
   PopoverContent,
   Modal,
   Scrollable,
   Stack,
+  Group,
+  Accordion,
+  AccordionItem,
+  AccordionControl,
+  AccordionPanel,
+  MyoxusTextInput,
+  Text,
+  Card,
 } from "@myoxus/ui-facade";
 import * as React from "react";
 import { useI18n } from "@myoxus/i18n";
@@ -75,51 +82,68 @@ import { snapShapeDimensions } from "../../xyflow/snapgrid/SnapGrid";
 import { generateUuid } from "../../xyflow/uuid/uuid";
 import { NODE_LAYERS } from "../../xyflow/nodes/Hooks";
 import { getNewNodeDefaultName } from "../mutations/addStandaloneNode";
-import { addStandaloneNode } from "../mutations/addStandaloneNode";
-import { setSubProcessKind } from "../mutations/activity";
 import { PropertiesManager } from "../propertiesPanel/propertiesManager/PropertiesManager";
 import { useBpmnEditorI18n } from "../i18n";
 import { bpmnConstructState } from "../../source-profile";
+import { PaletteNotationContext } from "../../xyflow/nodes/NodeIcons";
 export const MIME_TYPE_FOR_BPMN_EDITOR_NEW_NODE_FROM_PALETTE =
   "application/myoxus-bpmn-editor--new-node-from-palette";
 export function BpmnPalette({ pulse: _pulse }: { pulse: boolean }) {
   const t = useI18n();
+  const [query, setQuery] = React.useState("");
+  const [openGroups, setOpenGroups] = React.useState<string[]>([
+    "events",
+    "tasks",
+    "gateways",
+  ]);
   const bpmnEditorStoreApi = useBpmnEditorStoreApi();
-  const readOnly = useBpmnEditorStore((s) => s.settings.isReadOnly);
-  const flow = RF.useReactFlow();
-  const width = RF.useStore((s) => s.width);
-  const height = RF.useStore((s) => s.height);
-  const onDragStart = useCallback(
+  const denied = useBpmnEditorStore((s) => s.settings.isReadOnly);
+  const flowStore = RF.useStoreApi();
+  const interactive = RF.useStore((s) => s.nodesDraggable);
+  const readOnly = denied || !interactive;
+  const beginNodeProjection = useCallback(
     <T extends BpmnNodeType>(
-      event: React.DragEvent,
+      event: React.DragEvent | undefined,
       nodeType: T,
       element: keyof typeof elementToNodeType,
       bpmnElement?: BpmnNodeElement,
     ) => {
-      if (readOnly) {
-        event.preventDefault();
+      if (
+        bpmnEditorStoreApi.getState().settings.isReadOnly ||
+        !flowStore.getState().nodesDraggable
+      ) {
+        event?.preventDefault();
         return;
       }
-      event.dataTransfer.setData(
-        MIME_TYPE_FOR_BPMN_EDITOR_NEW_NODE_FROM_PALETTE,
-        JSON.stringify({
-          nodeType,
-          element,
-        }),
-      );
-      event.dataTransfer.effectAllowed = "move";
+      if (event) {
+        event.dataTransfer.setData(
+          MIME_TYPE_FOR_BPMN_EDITOR_NEW_NODE_FROM_PALETTE,
+          JSON.stringify({
+            nodeType,
+            element,
+          }),
+        );
+        event.dataTransfer.effectAllowed = "move";
 
-      // Remove default effect of dragging elements.
-      const transparentDiv = document.createElement("div");
-      transparentDiv.style.width = "1px";
-      transparentDiv.style.height = "1px";
-      transparentDiv.style.opacity = "0";
-      document.body.append(transparentDiv);
-      event.dataTransfer.setDragImage(transparentDiv, 0, 0);
-      setTimeout(() => {
-        transparentDiv.remove();
-      }, 0);
+        // Remove default effect of dragging elements.
+        const transparentDiv = document.createElement("div");
+        transparentDiv.style.width = "1px";
+        transparentDiv.style.height = "1px";
+        transparentDiv.style.opacity = "0";
+        document.body.append(transparentDiv);
+        event.dataTransfer.setDragImage(transparentDiv, 0, 0);
+        setTimeout(() => {
+          transparentDiv.remove();
+        }, 0);
+      }
+      const placementModel = bpmnEditorStoreApi.getState().bpmn.model;
       bpmnEditorStoreApi.setState((s) => {
+        s.xyFlowReactKieDiagram.placementElement = event ? undefined : element;
+        s.xyFlowReactKieDiagram.placementModel = event
+          ? undefined
+          : placementModel;
+        s.xyFlowReactKieDiagram.ongoingConnection = undefined;
+        s.xyFlowReactKieDiagram.edgeIdBeingUpdated = undefined;
         const snapGrid = s.xyFlowReactKieDiagram.snapGrid;
         const bpmnShape = {
           "@_id": generateUuid(),
@@ -146,6 +170,9 @@ export function BpmnPalette({ pulse: _pulse }: { pulse: boolean }) {
           id: generateUuid(),
           type: nodeType,
           hidden: true,
+          draggable: false,
+          selectable: false,
+          connectable: false,
           position,
           width: dimensions.width,
           height: dimensions.height,
@@ -164,6 +191,8 @@ export function BpmnPalette({ pulse: _pulse }: { pulse: boolean }) {
           },
           zIndex: NODE_LAYERS.ATTACHED_NODES,
           style: {
+            pointerEvents: "none",
+            opacity: 0.5,
             width: dimensions.width,
             height: dimensions.height,
             zIndex: NODE_LAYERS.ATTACHED_NODES,
@@ -171,13 +200,15 @@ export function BpmnPalette({ pulse: _pulse }: { pulse: boolean }) {
         };
       });
     },
-    [bpmnEditorStoreApi, readOnly],
+    [bpmnEditorStoreApi, flowStore],
   );
   const onDragEnd = useCallback(() => {
     // Makes sure there's no leftovers even when user pressed Esc during drag.
-    bpmnEditorStoreApi.setState(
-      (s) => (s.xyFlowReactKieDiagram.newNodeProjection = undefined),
-    );
+    bpmnEditorStoreApi.setState((s) => {
+      s.xyFlowReactKieDiagram.newNodeProjection = undefined;
+      s.xyFlowReactKieDiagram.placementElement = undefined;
+      s.xyFlowReactKieDiagram.placementModel = undefined;
+    });
   }, [bpmnEditorStoreApi]);
   const openLhsPanel = useBpmnEditorStore((s) => s.diagram.openLhsPanel);
   const process = useBpmnEditorStore(
@@ -245,11 +276,11 @@ export function BpmnPalette({ pulse: _pulse }: { pulse: boolean }) {
       [
         ["userTask", t["com.myoxus.editor.shape.bpmn.user-task"]()],
         ["manualTask", t["com.myoxus.editor.shape.bpmn.manual-task"]()],
+        ["serviceTask", t["com.myoxus.editor.shape.bpmn.service-task"]()],
         [
           "businessRuleTask",
           t["com.myoxus.editor.shape.bpmn.business-rule-task"](),
         ],
-        ["serviceTask", t["com.myoxus.editor.shape.bpmn.service-task"]()],
         ["scriptTask", t["com.myoxus.editor.shape.bpmn.script-task"]()],
         ["sendTask", t["com.myoxus.editor.shape.bpmn.send-task"]()],
         ["receiveTask", t["com.myoxus.editor.shape.bpmn.receive-task"]()],
@@ -294,18 +325,18 @@ export function BpmnPalette({ pulse: _pulse }: { pulse: boolean }) {
     {
       type: NODE_TYPES.gateway,
       element: "exclusiveGateway",
-      label: i18n.bpmnPalette.gateways,
+      label: t["com.myoxus.editor.shape.bpmn.exclusive-gateway-xor"](),
       Icon: () => <GatewayIcon variant="exclusiveGateway" palette />,
     },
     ...(
       [
         [
-          "inclusiveGateway",
-          t["com.myoxus.editor.shape.bpmn.inclusive-gateway-or"](),
-        ],
-        [
           "parallelGateway",
           t["com.myoxus.editor.shape.bpmn.parallel-gateway-and"](),
+        ],
+        [
+          "inclusiveGateway",
+          t["com.myoxus.editor.shape.bpmn.inclusive-gateway-or"](),
         ],
         [
           "eventBasedGateway",
@@ -368,153 +399,249 @@ export function BpmnPalette({ pulse: _pulse }: { pulse: boolean }) {
       Icon: TextAnnotationIcon,
     },
   ] as const;
+  const groups = [
+    { id: "events", label: t["com.myoxus.editor.bpmn.palette-events"]() },
+    { id: "tasks", label: t["com.myoxus.editor.bpmn.palette-tasks"]() },
+    { id: "gateways", label: i18n.bpmnPalette.gateways },
+    {
+      id: "containers",
+      label: t["com.myoxus.editor.bpmn.palette-containers"](),
+    },
+    { id: "data", label: t["com.myoxus.editor.bpmn.palette-data"]() },
+  ];
+  const groupFor = (item: (typeof palette)[number]) => {
+    if (
+      item.element === "callActivity" ||
+      item.type === NODE_TYPES.subProcess ||
+      item.type === NODE_TYPES.lane
+    )
+      return "containers";
+    if (item.type === NODE_TYPES.task) return "tasks";
+    if (item.type === NODE_TYPES.gateway) return "gateways";
+    if (
+      [
+        NODE_TYPES.startEvent,
+        NODE_TYPES.endEvent,
+        NODE_TYPES.intermediateCatchEvent,
+        NODE_TYPES.intermediateThrowEvent,
+      ].some((type) => type === item.type)
+    )
+      return "events";
+    return "data";
+  };
+  const entries = palette.filter(
+    (item) =>
+      bpmnConstructState(item.element) === "editable" &&
+      item.label
+        .toLocaleLowerCase(t.language)
+        .includes(query.trim().toLocaleLowerCase(t.language)),
+  );
+  const renderEntry = (item: (typeof palette)[number]) => {
+    const { type, element, label, Icon } = item;
+    const eventMode = "eventMode" in item && item.eventMode;
+    return (
+      <Button
+        key={eventMode ? "eventSubProcess" : element}
+        aria-label={label}
+        size="large"
+        disabled={readOnly}
+        draggable={!readOnly}
+        onDragStart={(event) =>
+          beginNodeProjection(
+            event,
+            type,
+            element,
+            eventMode
+              ? {
+                  "@_id": generateUuid(),
+                  __$$element: "subProcess",
+                  "@_triggeredByEvent": true,
+                }
+              : undefined,
+          )
+        }
+        onDragEnd={onDragEnd}
+        onClick={() =>
+          beginNodeProjection(
+            undefined,
+            type,
+            element,
+            eventMode
+              ? {
+                  "@_id": generateUuid(),
+                  __$$element: "subProcess",
+                  "@_triggeredByEvent": true,
+                }
+              : undefined,
+          )
+        }
+      >
+        <Group wrap="nowrap">
+          <PaletteNotationContext.Provider value={true}>
+            <Icon />
+          </PaletteNotationContext.Provider>
+          {label}
+        </Group>
+      </Button>
+    );
+  };
   return (
     // Bound the floating panel to both canvas edges so Mantine owns overflow;
     // top-only anchoring otherwise clips commands below the canvas viewport.
     <RF.Panel position="top-left" style={{ bottom: 0 }}>
       <Scrollable.Viewport
+        data-bpmn-palette
         scrollbars="y"
         offsetScrollbars="y"
         tabIndex={-1}
         aria-label={t["com.myoxus.actions"]()}
       >
         {/* Keep native focus outlines inside the scroll viewport's clip edge. */}
-        <Stack p="xs">
-          {panels
-            // Definitions management is not a graphical palette capability. Its
-            // focused fields preserve the rest of each standard declaration.
-            .filter(
-              (panel) =>
-                panel.value === BpmnDiagramLhsPanel.PROPERTIES_MANAGEMENT ||
-                bpmnConstructState(panel.construct) === "editable",
-            )
-            .map(({ value, label, Icon, content }) =>
-              value === BpmnDiagramLhsPanel.PROPERTIES_MANAGEMENT ||
-              value === BpmnDiagramLhsPanel.VARIABLES ? (
-                // Definition/property tables are forms, not anchored canvas menus.
-                // A native modal owns their scroll/focus outside canvas transforms.
-                <React.Fragment key={value}>
-                  <IconButton
-                    tooltip={label}
-                    aria-expanded={openLhsPanel === value}
-                    onClick={() =>
-                      bpmnEditorStoreApi.setState((state) => {
-                        state.diagram.openLhsPanel = value;
-                      })
-                    }
-                  >
-                    <Icon />
-                  </IconButton>
-                  <Modal
-                    open={openLhsPanel === value}
-                    title={label}
-                    onOpenChange={(open) =>
-                      bpmnEditorStoreApi.setState((state) => {
-                        state.diagram.openLhsPanel = open
-                          ? value
-                          : BpmnDiagramLhsPanel.NONE;
-                      })
-                    }
-                  >
-                    {content}
-                  </Modal>
-                </React.Fragment>
-              ) : (
-                <Popover
-                  key={value}
-                  open={openLhsPanel === value}
-                  position="right"
-                  onOpenChange={(open) =>
-                    bpmnEditorStoreApi.setState((s) => {
-                      s.diagram.openLhsPanel = open
-                        ? value
-                        : BpmnDiagramLhsPanel.NONE;
-                    })
-                  }
-                >
-                  <PopoverTarget>
-                    <IconButton
-                      tooltip={label}
-                      aria-expanded={openLhsPanel === value}
-                      onClick={() =>
-                        bpmnEditorStoreApi.setState((s) => {
-                          s.diagram.openLhsPanel =
-                            s.diagram.openLhsPanel === value
-                              ? BpmnDiagramLhsPanel.NONE
-                              : value;
-                        })
-                      }
-                    >
-                      <Icon />
-                    </IconButton>
-                  </PopoverTarget>
-                  <PopoverContent>{content}</PopoverContent>
-                </Popover>
-              ),
+        <Card>
+          <Stack>
+            <MyoxusTextInput
+              label={t["com.myoxus.editor.bpmn.search-elements"]()}
+              value={query}
+              onChange={setQuery}
+            />
+            {query && (
+              <Button onClick={() => setQuery("")}>
+                {t["com.myoxus.editor.field.clear"]()}
+              </Button>
             )}
-          {palette
-            .filter((item) => bpmnConstructState(item.element) === "editable")
-            .map((item) => {
-              const { type, element, label, Icon } = item;
-              const eventMode = "eventMode" in item && item.eventMode;
-              return (
-                <IconButton
-                  key={eventMode ? "eventSubProcess" : element}
-                  tooltip={label}
-                  disabled={readOnly}
-                  draggable={!readOnly}
-                  onDragStart={(event) =>
-                    onDragStart(
-                      event,
-                      type,
-                      element,
-                      eventMode
-                        ? {
-                            "@_id": generateUuid(),
-                            __$$element: "subProcess",
-                            "@_triggeredByEvent": true,
-                          }
-                        : undefined,
-                    )
-                  }
-                  onDragEnd={onDragEnd}
-                  onClick={() => {
-                    if (readOnly) return;
-                    const viewport = flow.getViewport();
-                    const bounds = {
-                      ...DEFAULT_NODE_SIZES[type]({
-                        snapGrid:
-                          bpmnEditorStoreApi.getState().xyFlowReactKieDiagram
-                            .snapGrid,
-                      }),
-                      "@_x": (width / 2 - viewport.x) / viewport.zoom,
-                      "@_y": (height / 2 - viewport.y) / viewport.zoom,
-                    };
-                    bpmnEditorStoreApi.setState((s) => {
-                      const { id } = addStandaloneNode({
-                        definitions: s.bpmn.model.definitions,
-                        __readonly_element: element,
-                        __readonly_newNode: {
-                          type,
-                          bounds,
-                          data: undefined,
-                        },
-                      });
-                      if (eventMode)
-                        setSubProcessKind(
-                          s.bpmn.model.definitions,
-                          id,
-                          "event",
-                        );
-                      s.xyFlowReactKieDiagram._selectedNodes = [id];
-                    });
-                  }}
-                >
-                  <Icon />
-                </IconButton>
-              );
-            })}
-        </Stack>
+            {entries.length === 0 && (
+              <Text>{t["com.myoxus.cmdk.no-results"]()}</Text>
+            )}
+            <Accordion
+              multiple
+              value={
+                query.trim() ? groups.map((group) => group.id) : openGroups
+              }
+              onChange={(value) => setOpenGroups(value as string[])}
+            >
+              {groups.map((group) => {
+                const items = entries.filter(
+                  (item) => groupFor(item) === group.id,
+                );
+                const primaryCount = query.trim()
+                  ? items.length
+                  : group.id === "tasks"
+                    ? 4
+                    : group.id === "gateways"
+                      ? 3
+                      : items.length;
+                return (
+                  <AccordionItem key={group.id} value={group.id}>
+                    <AccordionControl>{group.label}</AccordionControl>
+                    <AccordionPanel keepMounted>
+                      <Stack>
+                        {items.slice(0, primaryCount).map(renderEntry)}
+                        {items.length > primaryCount && (
+                          <Accordion>
+                            <AccordionItem value="more">
+                              <AccordionControl>
+                                {t["com.myoxus.editor.toolbar.more"]()}
+                              </AccordionControl>
+                              <AccordionPanel keepMounted>
+                                <Stack>
+                                  {items.slice(primaryCount).map(renderEntry)}
+                                </Stack>
+                              </AccordionPanel>
+                            </AccordionItem>
+                          </Accordion>
+                        )}
+                      </Stack>
+                    </AccordionPanel>
+                  </AccordionItem>
+                );
+              })}
+              <AccordionItem value="process-data">
+                <AccordionControl>
+                  {t["com.myoxus.editor.bpmn.process-data"]()}
+                </AccordionControl>
+                <AccordionPanel keepMounted>
+                  <Stack>
+                    {panels
+                      // Definitions management is not a graphical palette capability. Its
+                      // focused fields preserve the rest of each standard declaration.
+                      .filter(
+                        (panel) =>
+                          panel.value ===
+                            BpmnDiagramLhsPanel.PROPERTIES_MANAGEMENT ||
+                          bpmnConstructState(panel.construct) === "editable",
+                      )
+                      .map(({ value, label, Icon, content }) =>
+                        value === BpmnDiagramLhsPanel.PROPERTIES_MANAGEMENT ||
+                        value === BpmnDiagramLhsPanel.VARIABLES ? (
+                          // Definition/property tables are forms, not anchored canvas menus.
+                          // A native modal owns their scroll/focus outside canvas transforms.
+                          <React.Fragment key={value}>
+                            <Button
+                              prefix={<Icon />}
+                              aria-label={label}
+                              aria-expanded={openLhsPanel === value}
+                              onClick={() =>
+                                bpmnEditorStoreApi.setState((state) => {
+                                  state.diagram.openLhsPanel = value;
+                                })
+                              }
+                            >
+                              {label}
+                            </Button>
+                            <Modal
+                              open={openLhsPanel === value}
+                              title={label}
+                              onOpenChange={(open) =>
+                                bpmnEditorStoreApi.setState((state) => {
+                                  state.diagram.openLhsPanel = open
+                                    ? value
+                                    : BpmnDiagramLhsPanel.NONE;
+                                })
+                              }
+                            >
+                              {content}
+                            </Modal>
+                          </React.Fragment>
+                        ) : (
+                          <Popover
+                            key={value}
+                            open={openLhsPanel === value}
+                            position="right"
+                            onOpenChange={(open) =>
+                              bpmnEditorStoreApi.setState((s) => {
+                                s.diagram.openLhsPanel = open
+                                  ? value
+                                  : BpmnDiagramLhsPanel.NONE;
+                              })
+                            }
+                          >
+                            <PopoverTarget>
+                              <Button
+                                prefix={<Icon />}
+                                aria-label={label}
+                                aria-expanded={openLhsPanel === value}
+                                onClick={() =>
+                                  bpmnEditorStoreApi.setState((s) => {
+                                    s.diagram.openLhsPanel =
+                                      s.diagram.openLhsPanel === value
+                                        ? BpmnDiagramLhsPanel.NONE
+                                        : value;
+                                  })
+                                }
+                              >
+                                {label}
+                              </Button>
+                            </PopoverTarget>
+                            <PopoverContent>{content}</PopoverContent>
+                          </Popover>
+                        ),
+                      )}
+                  </Stack>
+                </AccordionPanel>
+              </AccordionItem>
+            </Accordion>
+          </Stack>
+        </Card>
       </Scrollable.Viewport>
     </RF.Panel>
   );

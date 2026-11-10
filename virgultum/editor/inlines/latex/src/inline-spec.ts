@@ -31,7 +31,8 @@ export const LatexEditorUnitSpecExtension =
   InlineSpecExtension<MyoxusTextAttributes>({
     name: "latex-editor-unit",
     schema: z.object({
-      "latex-editor-unit": z.undefined(),
+      // This renderer marker is not a persisted text attribute.
+      "latex-editor-unit": z.undefined().optional(),
     }),
     match: () => true,
     renderer: ({ delta }) => {

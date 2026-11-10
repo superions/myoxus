@@ -51,7 +51,8 @@ export type WorkbenchToolId =
   | "analytics"
   | "database-settings"
   | "task-details"
-  | "graph-details";
+  | "graph-details"
+  | "presence";
 
 export interface WorkbenchToolLayout {
   readonly workspaceId: string;
@@ -135,6 +136,7 @@ const toolIdFromGraphQL: Record<GraphQLWorkbenchToolId, WorkbenchToolId> = {
   DatabaseSettings: "database-settings",
   TaskDetails: "task-details",
   GraphDetails: "graph-details",
+  Presence: "presence",
 };
 
 const toolIdToGraphQL: Record<WorkbenchToolId, GraphQLWorkbenchToolId> = {
@@ -152,6 +154,7 @@ const toolIdToGraphQL: Record<WorkbenchToolId, GraphQLWorkbenchToolId> = {
   "database-settings": graphQLToolId("DatabaseSettings"),
   "task-details": graphQLToolId("TaskDetails"),
   "graph-details": graphQLToolId("GraphDetails"),
+  presence: graphQLToolId("Presence"),
 };
 
 type GraphQLWorkbenchToolLayout = NonNullable<

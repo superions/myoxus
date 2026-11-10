@@ -60,7 +60,7 @@ export function EndEventProperties({
           >
             {endEvent["@_name"] || i18n.propertiesPanel.endEvent}
           </AccordionControl>
-          <AccordionPanel>
+          <AccordionPanel keepMounted keepMountedMode="display-none">
             <NameDocumentationAndId element={endEvent} />
 
             <Divider />

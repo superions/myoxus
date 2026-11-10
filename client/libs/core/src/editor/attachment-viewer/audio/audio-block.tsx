@@ -313,9 +313,7 @@ const AttachmentAudioPlayer = ({ block }: { block: AudioAttachmentBlock }) => {
           )}
           {enrichment?.summary && (
             <Stack>
-              <MyoxusText>
-                {t["com.myoxus.audio.enrichment.summary"]()}
-              </MyoxusText>
+              <MyoxusText>{t["com.myoxus.common.summary"]()}</MyoxusText>
               {enrichment.summary
                 .split("\n")
                 .filter(Boolean)

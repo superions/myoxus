@@ -297,6 +297,15 @@ fn project_content_document_to_notion_body(
       return None;
     }
   };
+  if crate::document_fields::validate_snapshot(&update).is_err() {
+    diagnostics.push(NotionDiagnostic::new(
+      NotionDiagnosticCode::PageBodyUnsupported,
+      NotionDiagnosticSeverity::Warning,
+      format!("$.databases[0].rows[{row_index}].contentDocument"),
+      "Row content was omitted because its native document fields are unavailable",
+    ));
+    return None;
+  }
   let projected = match document_from_yjs(
     uuid::Uuid::nil(),
     uuid::Uuid::nil(),

@@ -927,6 +927,7 @@ pub(crate) fn validate_catalog(renderer: &HtmlRenderer) -> Result<(), String> {
         options.site_shell.footer_note = Some("<Footer & note>".into());
       }
       let ir = PublicDocIr {
+        native_fields: Vec::new(),
         document: Document {
           workspace_id: Uuid::nil(),
           doc_id: Uuid::nil(),

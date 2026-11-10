@@ -402,6 +402,100 @@ fn page_preview_is_authorized_revision_fresh_cached_and_format_safe() {
       "update-only edits must change the preview artifact"
     );
 
+    // Native fields are ordinary content, while their current output is not.
+    // Exercise warm invalidation for profiles and canonical metadata separately
+    // from the source revision; glyph paths alone cannot expose a token leak.
+    let native = yrs::Doc::new();
+    use yrs::{Map, ReadTxn, Text, Transact, updates::decoder::Decode};
+    let blocks = native.get_or_insert_map("blocks");
+    let field_update = {
+      let merged = yjs::merge_updates(vec![first_update.clone(), tail.state.clone()]).unwrap();
+      let mut txn = native.transact_mut();
+      txn.apply_update(yrs::Update::decode_v1(&merged).unwrap()).unwrap();
+      let before = txn.state_vector();
+      let text = blocks
+        .iter(&txn)
+        .find_map(|(_, value)| {
+          let yrs::Out::YMap(block) = value else { return None };
+          let Some(yrs::Out::YText(text)) = block.get(&txn, "prop:text") else {
+            return None;
+          };
+          Some(text)
+        })
+        .unwrap();
+      let length = text.len(&txn);
+      text.remove_range(&mut txn, 0, length);
+      for (index, key) in ["createdBy", "documentNumber"].iter().enumerate() {
+        let descriptor = serde_json::json!({"type":"metadata","id":format!("field-{index}"),"key":key,
+          "format":if *key == "createdBy" { "name" } else { "text" }});
+        let at = text.len(&txn);
+        text.insert_with_attributes(
+          &mut txn,
+          at,
+          " ",
+          yrs::types::Attrs::from([(
+            "documentField".into(),
+            yrs::Any::from_json(&descriptor.to_string()).unwrap(),
+          )]),
+        );
+        text.insert_with_attributes(&mut txn, at + 1, " · ", Default::default());
+      }
+      txn.encode_state_as_update_v1(&before)
+    };
+    sqlx::query("INSERT INTO doc_updates (doc_id, workspace_id, payload, sequence) VALUES ($1, $2, $3, 3)")
+      .bind(doc_id)
+      .bind(workspace_id)
+      .bind(&field_update)
+      .execute(&pool)
+      .await
+      .unwrap();
+    let (field_status, field_headers, field_svg) = request(&app, &uri, Some(reader_session)).await;
+    assert_eq!(field_status, StatusCode::OK);
+    assert_eq!(field_headers["x-doc-revision"], "3");
+    sqlx::query("UPDATE users SET name='Actual preview author renamed' WHERE id=$1")
+      .bind(owner_id)
+      .execute(&pool)
+      .await
+      .unwrap();
+    let (profile_status, profile_headers, profile_svg) = conditional_request(
+      &app,
+      &uri,
+      Some(reader_session),
+      Some(field_headers["etag"].to_str().unwrap()),
+    )
+    .await;
+    assert_eq!(profile_status, StatusCode::OK);
+    assert_eq!(profile_headers["x-preview-cache"], "miss");
+    assert_ne!(
+      profile_svg, field_svg,
+      "renamed profiles must invalidate warm glyph output without a metadata/content change"
+    );
+    sqlx::query("UPDATE docs SET document_number='PREVIEW-0042', metadata_revision=metadata_revision+1 WHERE id=$1")
+      .bind(doc_id)
+      .execute(&pool)
+      .await
+      .unwrap();
+    let (metadata_status, metadata_headers, metadata_svg) = conditional_request(
+      &app,
+      &uri,
+      Some(reader_session),
+      Some(profile_headers["etag"].to_str().unwrap()),
+    )
+    .await;
+    assert_eq!(metadata_status, StatusCode::OK);
+    assert_ne!(metadata_svg, profile_svg);
+    let (warm_status, warm_headers, warm_svg) = request(&app, &uri, Some(owner_session)).await;
+    assert_eq!(warm_status, StatusCode::OK);
+    assert_eq!(warm_headers["x-preview-cache"], "hit");
+    assert_eq!(warm_svg, metadata_svg);
+    assert_eq!(warm_headers["etag"], metadata_headers["etag"]);
+    let (writes, last): (i64, i64) = sqlx::query_as("SELECT count(*), max(sequence) FROM doc_updates WHERE doc_id=$1")
+      .bind(doc_id)
+      .fetch_one(&pool)
+      .await
+      .unwrap();
+    assert_eq!((writes, last), (3, 3), "current field output must never write Yjs");
+
     let (png_status, png_headers, png) = request(&app, &format!("{uri}?format=png"), Some(reader_session)).await;
     assert_eq!(png_status, StatusCode::OK);
     assert_eq!(png_headers["content-type"], "image/png");

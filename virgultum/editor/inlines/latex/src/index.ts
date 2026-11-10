@@ -7,3 +7,5 @@ export * from "./inline-spec";
 export * from "./markdown";
 
 declare type _GLOBAL_ = typeof RichTextEffects | typeof RemarkMath;
+
+export { openEquationEditor } from "./latex-node/equation-session";

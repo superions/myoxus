@@ -25,6 +25,8 @@ import {
 } from "@myoxus/core/modules/workspace";
 import { FeatureFlagService } from "@myoxus/core/modules/feature-flag";
 import { DocumentMetadataCacheService } from "@myoxus/core/modules/document-metadata/services/document-metadata-cache";
+import { SWRConfigProvider } from "@myoxus/core/components/providers/swr-config-provider";
+import { notify } from "@myoxus/ui-facade";
 import { toArrayBuffer } from "@myoxus/core/utils/array-buffer";
 import {
   getInitialPageHistorySnapshotId,
@@ -43,7 +45,11 @@ vi.mock("@myoxus/infra", async (importOriginal) => ({
   },
 }));
 
-import { useRestorePage, useSnapshotPage } from "../history-preview";
+import {
+  HistorySnapshotUnavailableError,
+  useRestorePage,
+  useSnapshotPage,
+} from "../history-preview";
 
 const workspaces: WorkspaceImpl[] = [];
 function workspace(title: string) {
@@ -91,6 +97,7 @@ afterEach(() => {
     collection.doc.destroy();
   }
   services.clear();
+  vi.restoreAllMocks();
 });
 
 describe("history snapshot reads", () => {
@@ -198,6 +205,7 @@ describe("history snapshot reads", () => {
     await waitFor(() => expect(title(result.current.page)).toBe("Snapshot A"));
     expect(fetch).toHaveBeenCalledWith(
       "/api/workspaces/workspace-1/docs/doc-1/histories/by-id/9007199254740993",
+      { throwOnHttpError: false },
     );
     expect(result.current.page?.workspace).not.toBe(live.collection);
     expect(result.current.page?.id).toBe("doc-1");
@@ -265,12 +273,16 @@ describe("history snapshot reads", () => {
   });
 
   test("snapshot and named-version failures remain errors and recover through retry", async () => {
+    const notification = vi
+      .spyOn(notify, "error")
+      .mockImplementation(() => "history-test");
     const live = workspace("Live");
     const bytes = encodeStateAsUpdate(
       workspace("Recovered snapshot").store.spaceDoc,
     );
     const fetch = vi
       .fn()
+      .mockResolvedValueOnce(new Response(null, { status: 422 }))
       .mockResolvedValueOnce(new Response(null, { status: 503 }))
       .mockResolvedValueOnce(new Response(toArrayBuffer(bytes)));
     const gql = vi
@@ -281,7 +293,18 @@ describe("history snapshot reads", () => {
     services.set(GraphQLService, { gql });
     const snapshot = renderHook(
       () => useSnapshotPage(live.collection, "doc-1", "11"),
-      { wrapper },
+      {
+        wrapper: ({ children }: PropsWithChildren) =>
+          createElement(
+            SWRConfigProvider,
+            null,
+            createElement(
+              SWRConfig,
+              { value: { provider: () => new Map(), dedupingInterval: 0 } },
+              children,
+            ),
+          ),
+      },
     );
     const versions = renderHook(
       () =>
@@ -293,13 +316,30 @@ describe("history snapshot reads", () => {
       { wrapper },
     );
     await waitFor(() =>
-      expect(snapshot.result.current.error).toBeInstanceOf(Error),
+      expect(snapshot.result.current.error).toBeInstanceOf(
+        HistorySnapshotUnavailableError,
+      ),
     );
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/workspaces/workspace-1/docs/doc-1/histories/by-id/11",
+      { throwOnHttpError: false },
+    );
+    expect(notification).not.toHaveBeenCalled();
     await waitFor(() =>
       expect(versions.result.current[2].error).toBeInstanceOf(Error),
     );
     expect(versions.result.current[1]).toBe(false);
     expect(snapshot.result.current.page).toBeUndefined();
+    await act(async () => {
+      await snapshot.result.current.retry();
+    });
+    await waitFor(() =>
+      expect(snapshot.result.current.error).toBeInstanceOf(Error),
+    );
+    expect(snapshot.result.current.error).not.toBeInstanceOf(
+      HistorySnapshotUnavailableError,
+    );
+    expect(notification).not.toHaveBeenCalled();
     await act(async () => {
       await snapshot.result.current.retry();
       await versions.result.current[2].retry();

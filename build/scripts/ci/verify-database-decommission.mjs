@@ -70,6 +70,25 @@ function unexpectedFiles(hits, allowedFiles) {
 const specPattern = /\.(?:spec|test)\.tsx?$/;
 const policies = [
   {
+    id: "removed_editor_data_view_runtime",
+    roots: ["client", "virgultum"],
+    patterns: [
+      /@virgultum\/(?:block-data-view|data-view)(?:[/"'])/,
+      /@virgultum\/editor\/(?:blocks\/)?data-view(?:[/"'])/,
+      /DataView(?:BlockSchema|StoreExtension|ViewExtension|BlockSelection)/,
+      /enable_block_query/,
+    ],
+    forbiddenPaths: [
+      "virgultum/editor/data-view/src",
+      "virgultum/editor/data-view/package.json",
+      "virgultum/editor/blocks/data-view/src",
+      "virgultum/editor/blocks/data-view/package.json",
+      "virgultum/editor/all/src/data-view",
+      "virgultum/editor/all/src/blocks/data-view",
+    ],
+    allowed: [],
+  },
+  {
     id: "document_import_notion",
     roots: ["client/libs/core/src/desktop/dialogs/import/index.tsx"],
     patterns: [

@@ -12,6 +12,7 @@
  */
 
 import type { EditorI18nMessage, EditorI18nService } from "../i18n-service.js";
+import type { DocumentField } from "../../types/document-field.js";
 
 /**
  * Capabilities that a `MyoxusHostService` may expose. The service
@@ -57,6 +58,9 @@ export type MyoxusTemplateVariableRequest = {
   i18n?: EditorI18nService;
   canWrite: () => boolean;
   insert: (token: string) => void;
+  /** Omitted for titles, which accept static tokens but not native fields. */
+  insertField?: (field: DocumentField) => void;
+  templateSource?: boolean;
   /** Restore the source selection after the chooser has released focus. */
   onClose: () => void;
 };

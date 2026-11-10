@@ -13,7 +13,6 @@ import { BookmarkViewExtension } from "@virgultum/block-bookmark/view";
 import { BpmnViewExtension } from "@virgultum/block-bpmn/view";
 import { CalloutViewExtension } from "@virgultum/block-callout/view";
 import { CodeBlockViewExtension } from "@virgultum/block-code/view";
-import { DataViewViewExtension } from "@virgultum/block-data-view/view";
 import { DatabaseReferenceViewExtension } from "@virgultum/block-database/reference-view";
 import { dividerManifest } from "@virgultum/block-divider/manifest";
 import { EdgelessTextViewExtension } from "@virgultum/block-edgeless-text/view";
@@ -125,10 +124,6 @@ const INTERNAL_MANIFESTS: ReadonlyArray<FeatureManifest> = [
   {
     id: featureManifestId("code"),
     view: [CodeBlockViewExtension],
-  },
-  {
-    id: featureManifestId("data-view"),
-    view: [DataViewViewExtension],
   },
   {
     id: featureManifestId("database"),
@@ -358,7 +353,6 @@ const INTERNAL_VIEW_ORDER: ReadonlyArray<FeatureManifestId> = [
   featureManifestId("bookmark"),
   featureManifestId("callout"),
   featureManifestId("code"),
-  featureManifestId("data-view"),
   featureManifestId("database"),
   featureManifestId("divider"),
   featureManifestId("edgeless-text"),

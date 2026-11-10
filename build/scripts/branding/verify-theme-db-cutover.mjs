@@ -26,6 +26,8 @@ const activeRoots = [
   "client/apps/electron-renderer/src",
   "client/libs/core/src",
   "client/libs/graphql/src/graphql",
+  "client/libs/theme/src",
+  "client/libs/ui-facade/src",
 ];
 
 const skippedDirectories = new Set([
@@ -37,6 +39,7 @@ const skippedDirectories = new Set([
 ]);
 
 const scannedExtensions = new Set([
+  ".css",
   ".gql",
   ".graphql",
   ".js",
@@ -57,6 +60,11 @@ const skippedFilePatterns = [
 ];
 
 const forbiddenPatterns = [
+  {
+    id: "client-authored-font-face",
+    re: /@font-face\s*\{/,
+    extensions: new Set([".css"]),
+  },
   {
     id: "retired-app-config-branding-schema",
     re: /\bbranding\.schema\b/,
@@ -82,11 +90,15 @@ const forbiddenPatterns = [
     id: "retired-workspace-body-font-column",
     re: /\bbody_font_family\b/,
     // PreviewTheme consumes the server-resolved font; this is not the retired
-    // persisted column. Keep the exception limited to this initializer.
+    // persisted column. Keep exceptions limited to these initializers.
     allowLines: new Map([
       [
         "server/crates/api/src/preview.rs",
         /^\s*body_font_family: families\[0\]\.clone\(\),$/,
+      ],
+      [
+        "server/crates/application/src/docx/export.rs",
+        /^\s*body_font_family: "Inter"\.into\(\),$/,
       ],
     ]),
   },

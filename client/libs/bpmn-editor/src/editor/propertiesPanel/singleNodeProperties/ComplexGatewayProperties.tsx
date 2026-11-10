@@ -47,7 +47,7 @@ export function ComplexGatewayProperties({
         >
           {complexGateway["@_name"] || i18n.singleNodeProperties.complexGateway}
         </AccordionControl>
-        <AccordionPanel>
+        <AccordionPanel keepMounted keepMountedMode="display-none">
           <NameDocumentationAndId element={complexGateway} />
           <GatewayPropertiesFields gateway={complexGateway} />
         </AccordionPanel>

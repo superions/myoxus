@@ -465,6 +465,13 @@ export class EdgelessPageKeyboardManager extends PageKeyboardManager {
     }
 
     const selectedElements = edgeless.service.selection.selectedElements;
+    if (
+      edgeless.store.readonly ||
+      selectedElements.some((element) =>
+        edgeless.store.hasFixedText(element.id),
+      )
+    )
+      return;
     if (selectedElements.some((e) => e.isLocked())) return;
 
     deleteElements(edgeless, selectedElements);

@@ -19,6 +19,7 @@ import { useI18n } from "@myoxus/i18n";
 import {
   AllDocsIcon,
   DatabaseIcon,
+  HomeIcon,
   ListChecksIcon,
   TodayIcon,
   WorkflowIcon,
@@ -137,9 +138,20 @@ function DiagramsLink() {
 }
 
 export function PrimaryNavigation() {
+  const t = useI18n();
+  const workbench = useService(WorkbenchService).workbench;
+  const location = useLiveData(workbench.location$);
   return (
     <SidebarNavSection data-myoxus-ui-role="sidebar-primary-navigation">
       <AddPageButton />
+      <MenuLinkItem
+        active={location.pathname === "/home"}
+        icon={<HomeIcon />}
+        to="/home"
+        data-testid="workspace-home-sidebar-link"
+      >
+        {t["com.myoxus.workspace-home.title"]()}
+      </MenuLinkItem>
       <AllPagesLink />
     </SidebarNavSection>
   );

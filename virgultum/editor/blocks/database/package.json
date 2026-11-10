@@ -18,7 +18,7 @@
     "@virgultum/store": "workspace:*",
     "@virgultum/widget-slash-menu": "workspace:*",
     "lit": "^3.3.3",
-    "zod": "^3.25.76"
+    "zod": "4.6.7"
   },
   "exports": {
     ".": "./src/index.ts",

@@ -28,7 +28,7 @@ use uuid::Uuid;
 
 use crate::{
   auth::{AuthError, EffectiveUserPreferences},
-  doc::{DocRevisionCheckedUpdateOutcome, DocService, DocSpaceKind, DocumentFragment, canonical_yjs_revision},
+  doc::{DocService, DocSpaceKind, DocumentFragment},
   document_metadata::{DocumentMetadataService, DocumentMetadataServiceError},
   organization::OrganizationTemplateContextService,
   organizer::{
@@ -42,6 +42,7 @@ use crate::{
 };
 
 mod capture;
+mod inputs;
 mod regional;
 mod sources;
 
@@ -1753,9 +1754,9 @@ impl DocumentTemplateService {
     Ok(())
   }
 
-  /// Resolve creation-only facts before publication, shared by reserved setup
-  /// documents and native Task content. Literal Row titles are never templates.
-  async fn finalize_reserved_content(
+  /// Resolve creation-only facts before publication for ordinary/reserved pages
+  /// and native Task content. Literal Row titles are never templates.
+  async fn finalize_creation_content(
     &self,
     actor_id: Uuid,
     workspace_id: Uuid,
@@ -1830,7 +1831,7 @@ impl DocumentTemplateService {
   ) -> Result<(Uuid, String, i64, i64), DocumentTemplateError> {
     let committed_at = chrono::Utc::now();
     let (title, snapshot) = self
-      .finalize_reserved_content(actor_id, workspace_id, prepared, committed_at, None)
+      .finalize_creation_content(actor_id, workspace_id, prepared, committed_at, None)
       .await?;
     let committed = self
       .docs
@@ -2032,6 +2033,12 @@ impl DocumentTemplateService {
     body_only: bool,
   ) -> Result<PreparedDocumentTemplateContent, DocumentTemplateError> {
     validate_template_variables(variables)?;
+    let source_snapshot = self
+      .docs
+      .prepare_captured_document_fields(source_snapshot)
+      .await
+      .map_err(|_| DocumentTemplateError::InvalidVariables)?
+      .state;
     let explicit_title = final_title
       .map(str::trim)
       .map(|title| {
@@ -2087,9 +2094,16 @@ impl DocumentTemplateService {
       .cloned()
       .collect::<BTreeSet<_>>();
     let application_instant = chrono::Utc::now();
-    let regional = if automatic
-      .iter()
-      .any(|name| regional::is_date_value(name) || name.starts_with("document.created_at."))
+    let temporal_inputs = variables.keys().any(|name| {
+      matches!(
+        inputs::kind(name),
+        Some(inputs::InputKind::Date | inputs::InputKind::DateTime)
+      )
+    });
+    let regional = if temporal_inputs
+      || automatic
+        .iter()
+        .any(|name| regional::is_date_value(name) || name.starts_with("document.created_at."))
     {
       Some(
         self
@@ -2121,6 +2135,17 @@ impl DocumentTemplateService {
       .await?;
     extend_native_variables(&mut native_variables, facts);
     if let Some(preferences) = &regional {
+      for (name, value) in variables {
+        if let Some(kind @ (inputs::InputKind::Date | inputs::InputKind::DateTime)) = inputs::kind(name) {
+          let DocumentTemplateVariable::String(value) = value else {
+            return Err(DocumentTemplateError::InvalidVariables);
+          };
+          native_variables.insert(
+            name.clone(),
+            yjs::NativeTemplateVariable::String(regional::input_value(kind, value.trim(), preferences)?),
+          );
+        }
+      }
       for name in automatic.iter().filter(|name| regional::is_date_value(name)) {
         native_variables.insert(
           name.clone(),
@@ -2159,17 +2184,17 @@ impl DocumentTemplateService {
     if !pending_creation.is_subset(&allowed_pending) {
       return Err(DocumentTemplateError::UnresolvedVariables);
     }
-    let (validated_snapshot, _) = self
+    let validated_snapshot = self
       .docs
-      .write
-      .validate_snapshot_ingress(instantiated.snapshot)
+      .prepare_captured_document_fields(instantiated.snapshot)
       .await
-      .map_err(|_| DocumentTemplateError::InvalidVariables)?;
+      .map_err(|_| DocumentTemplateError::InvalidVariables)?
+      .state;
     // Explicit titles were installed before substitution; take the resolved
     // native title rather than reintroducing the caller's unresolved tokens.
     // When creation facts are pending, keep the original capture. Re-expanding
     // a partial result would evaluate inserted literal braces and generate
-    // competing repeat copies. Transform exactly once after the leaf commits.
+    // competing repeat copies. Transform exactly once before publication.
     let snapshot = if pending_creation.is_empty() {
       validated_snapshot
     } else {
@@ -2275,7 +2300,7 @@ impl DocumentTemplateService {
       .prepare_row_body(actor, workspace, captured.revision_id, captured.snapshot, variables)
       .await?;
     self
-      .finalize_reserved_content(actor, workspace, content, chrono::Utc::now(), Some(&title))
+      .finalize_creation_content(actor, workspace, content, chrono::Utc::now(), Some(&title))
       .await?;
     Ok(myoxus_domain::workspace_automation::AutomationDocumentSourceSetup {
       source: source.clone(),
@@ -2333,7 +2358,7 @@ impl DocumentTemplateService {
     });
     let committed_at = chrono::Utc::now();
     let (title, initial_leaf_update) = self
-      .finalize_reserved_content(actor, workspace, content, committed_at, Some(&title))
+      .finalize_creation_content(actor, workspace, content, committed_at, Some(&title))
       .await?;
     self
       .docs
@@ -2356,7 +2381,7 @@ impl DocumentTemplateService {
       })
   }
 
-  /// Complete late facts against the real newly created Row page. The caller
+  /// Complete creation facts before publishing the native Row page. The caller
   /// retains Row attachment/compensation; no Organizer placement is invented.
   #[instrument(skip_all)]
   pub(crate) async fn create_row_body(
@@ -2367,30 +2392,15 @@ impl DocumentTemplateService {
     content: PreparedDocumentTemplateContent,
   ) -> Result<myoxus_domain::entities::Doc, DocumentTemplateError> {
     self.assert_workspace_create(actor_id, workspace_id).await?;
-    let (doc, updates) = self
+    let committed_at = chrono::Utc::now();
+    let (title, snapshot) = self
+      .finalize_creation_content(actor_id, workspace_id, content, committed_at, Some(&title))
+      .await?;
+    let (doc, _) = self
       .docs
-      .create_page_from_snapshot_with_sync_updates(workspace_id, actor_id, Some(title.clone()), content.snapshot)
+      .create_page_from_snapshot_at(workspace_id, actor_id, Some(title), snapshot, None, committed_at)
       .await
       .map_err(|_| DocumentTemplateError::Lifecycle)?;
-    if !content.pending_creation.is_empty() {
-      if self
-        .finish_creation_values(
-          actor_id,
-          workspace_id,
-          doc.id,
-          &doc.external_id,
-          &updates.document,
-          &content.pending_creation,
-          content.variables,
-          content.regional.as_ref(),
-          Some(&title),
-        )
-        .await
-        .is_err()
-      {
-        return Err(self.compensate_created_page(workspace_id, actor_id, doc.id).await);
-      }
-    }
     Ok(doc)
   }
 
@@ -2438,53 +2448,18 @@ impl DocumentTemplateService {
         .publish_reserved_instantiation(actor_id, workspace_id, prepared.content, reserved)
         .await?
     } else {
+      let committed_at = chrono::Utc::now();
+      let (title, snapshot) = self
+        .finalize_creation_content(actor_id, workspace_id, prepared.content, committed_at, None)
+        .await?;
       let committed = self
         .docs
-        .create_page_from_snapshot_with_sync_updates(
-          workspace_id,
-          actor_id,
-          Some(prepared.content.title),
-          prepared.content.snapshot,
-        )
+        .create_page_from_snapshot_at(workspace_id, actor_id, Some(title), snapshot, None, committed_at)
         .await
         .map_err(|_| DocumentTemplateError::Lifecycle)?;
       let doc_id = committed.0.id;
       let external_id = committed.0.external_id.clone();
-      let (document_revision, root_revision) = if prepared.content.pending_creation.is_empty() {
-        (committed.1.document_sequence, committed.1.workspace_root_sequence)
-      } else {
-        let result = self
-          .finish_creation_values(
-            actor_id,
-            workspace_id,
-            doc_id,
-            &external_id,
-            &committed.1.document,
-            &prepared.content.pending_creation,
-            prepared.content.variables,
-            prepared.content.regional.as_ref(),
-            None,
-          )
-          .await;
-        match result {
-          Ok(revisions) => revisions,
-          Err(error) => {
-            return Err(
-              self
-                .compensate_instantiation(
-                  actor_id,
-                  workspace_id,
-                  doc_id,
-                  None,
-                  metadata.as_ref(),
-                  placement.as_ref(),
-                  error,
-                )
-                .await,
-            );
-          }
-        }
-      };
+      let (document_revision, root_revision) = (committed.1.document_sequence, committed.1.workspace_root_sequence);
 
       (doc_id, external_id, document_revision, root_revision)
     };
@@ -2568,72 +2543,6 @@ impl DocumentTemplateService {
       .filter(|title| !title.trim().is_empty() && title.chars().count() <= 1024)
       .ok_or(DocumentTemplateError::InvalidVariables)?;
     Ok(completed_snapshot)
-  }
-
-  #[instrument(skip_all)]
-  async fn finish_creation_values(
-    &self,
-    actor_id: Uuid,
-    workspace_id: Uuid,
-    doc_id: Uuid,
-    external_id: &str,
-    captured_leaf: &[u8],
-    requested: &BTreeSet<String>,
-    mut variables: HashMap<String, yjs::NativeTemplateVariable>,
-    preferences: Option<&EffectiveUserPreferences>,
-    literal_title: Option<&str>,
-  ) -> Result<(i64, i64), DocumentTemplateError> {
-    let mut facts = self
-      .resolve_requested_values(actor_id, workspace_id, requested, Some(external_id), None, None, false)
-      .await?;
-    for (name, value) in &mut facts {
-      if name.starts_with("document.created_at.") {
-        let DocumentTemplateVariable::String(value) = value else {
-          return Err(DocumentTemplateError::CreationUnavailable);
-        };
-        *value = regional::creation_value(
-          name,
-          value,
-          preferences.ok_or(DocumentTemplateError::CreationUnavailable)?,
-        )?;
-      }
-    }
-    extend_native_variables(&mut variables, facts);
-    let body_source = literal_title
-      .map(|_| template_body_without_title(captured_leaf))
-      .transpose()?;
-    let completed_snapshot = Self::render_creation_snapshot(
-      body_source.as_deref().unwrap_or(captured_leaf),
-      &variables,
-      literal_title,
-    )?;
-    let revision = canonical_yjs_revision(captured_leaf).map_err(|_| DocumentTemplateError::Content)?;
-    // Late values can grow the capture. Reuse the normal bounded ingress
-    // validator before the trusted checked append; it is not an ingress bypass.
-    let (snapshot, _) = self
-      .docs
-      .write
-      .validate_snapshot_ingress(completed_snapshot)
-      .await
-      .map_err(|_| DocumentTemplateError::InvalidVariables)?;
-    // The captured creation leaf is the only valid expansion input. A concurrent
-    // edit must fail/compensate, never be replaced by a late captured-source write.
-    let outcome = self
-      .docs
-      .push_revision_checked_update(workspace_id, doc_id, &revision, snapshot)
-      .await
-      .map_err(|_| DocumentTemplateError::Lifecycle)?;
-    let DocRevisionCheckedUpdateOutcome::Appended { sequence } = outcome else {
-      return Err(DocumentTemplateError::Lifecycle);
-    };
-    // The checked append also owns SQL/root title projection and broadcast.
-    let root = self
-      .docs
-      .store()
-      .page_projection_root_sequence(workspace_id)
-      .await
-      .map_err(|_| DocumentTemplateError::Lifecycle)?;
-    Ok((sequence, root))
   }
 
   async fn compensate_instantiation(
@@ -2912,15 +2821,16 @@ fn validate_template_variables(
     if !valid_template_variable_name(key) {
       return Err(DocumentTemplateError::InvalidVariables);
     }
-    if let Some(name) = key.strip_prefix("input.") {
-      let mut chars = name.chars();
-      let valid_name = chars.next().is_some_and(|first| first.is_ascii_alphabetic())
-        && chars.all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '_' | '-'));
-      if !valid_name
-        || !matches!(value, DocumentTemplateVariable::String(text)
-        if !text.trim().is_empty() && text.trim().len() <= MAX_TEMPLATE_VARIABLE_VALUE_BYTES)
-      {
+    if key.starts_with("input.") {
+      let kind = inputs::kind(key).ok_or(DocumentTemplateError::InvalidVariables)?;
+      let DocumentTemplateVariable::String(text) = value else {
         return Err(DocumentTemplateError::InvalidVariables);
+      };
+      if text.trim().is_empty() || text.trim().len() > MAX_TEMPLATE_VARIABLE_VALUE_BYTES {
+        return Err(DocumentTemplateError::InvalidVariables);
+      }
+      if kind != inputs::InputKind::Text {
+        inputs::calendar_value(kind, text.trim())?;
       }
     }
     let valid_value = match value {

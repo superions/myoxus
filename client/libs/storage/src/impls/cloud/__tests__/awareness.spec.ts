@@ -70,6 +70,10 @@ test("reconnect owns exactly one listener and only consumes the subscribed scope
   const collect = vi.fn(async () => record);
   const off = storage.subscribeUpdate(scope.docId, update, collect);
   await flush();
+  expect(socket.emit).toHaveBeenCalledWith(
+    "space:update-awareness",
+    expect.objectContaining({ ...scope, awarenessUpdate: "AQID" }),
+  );
   for (let i = 0; i < 3; i++) {
     changeStatus("error");
     expect(socket.count("space:collect-awareness")).toBe(0);
@@ -78,6 +82,7 @@ test("reconnect owns exactly one listener and only consumes the subscribed scope
   }
   expect(socket.count("space:collect-awareness")).toBe(1);
   expect(socket.count("space:broadcast-awareness-update")).toBe(1);
+  collect.mockClear();
   const payload = { ...scope, awarenessUpdate: "AQID" };
   for (const wrong of [
     { ...payload, spaceType: "workspace" },
@@ -140,13 +145,13 @@ test("a disposed subscription cannot collect after a late join ACK", async () =>
 
 test("collection finishing after disconnect does not upload on the new socket", async () => {
   let finish!: (value: typeof record) => void;
-  const off = storage.subscribeUpdate(
-    scope.docId,
-    vi.fn(),
-    () =>
-      new Promise((resolve) => {
-        finish = resolve;
-      }),
+  let collections = 0;
+  const off = storage.subscribeUpdate(scope.docId, vi.fn(), () =>
+    ++collections === 2
+      ? new Promise((resolve) => {
+          finish = resolve;
+        })
+      : Promise.resolve(null),
   );
   await flush();
   const old = socket;

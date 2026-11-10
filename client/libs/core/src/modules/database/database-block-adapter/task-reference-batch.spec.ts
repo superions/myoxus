@@ -184,6 +184,34 @@ test("actor changes hide old titles and fence delayed completions", async () => 
   releaseNew();
 });
 
+test("same-actor refresh preserves the ready editor boundary until the new projection arrives", async () => {
+  let finish!: (value: unknown) => void;
+  const current = {
+    workspace: { databaseTaskReferences: [projection(target(1))] },
+  };
+  const f = fixture(
+    vi
+      .fn()
+      .mockResolvedValueOnce(current)
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            finish = resolve;
+          }),
+      ),
+  );
+  const release = f.batch.attach(f.owner, target(1), vi.fn());
+  await waitFor(() =>
+    expect(f.batch.snapshot(f.owner, target(1)).status).toBe("ready"),
+  );
+  const before = f.batch.snapshot(f.owner, target(1));
+  const refresh = f.batch.refresh();
+  expect(f.batch.snapshot(f.owner, target(1))).toBe(before);
+  finish(current);
+  await refresh;
+  release();
+});
+
 test("disconnect aborts a hanging read and reconnect can publish fresh summary before the old response returns", async () => {
   let resolveOld!: (value: unknown) => void;
   const f = fixture(

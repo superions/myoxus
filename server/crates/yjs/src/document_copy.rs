@@ -25,6 +25,17 @@ fn check_text_anchors(value: yrs::Out, txn: &impl ReadTxn, depth: usize) -> Resu
   }
   match value {
     yrs::Out::YText(text) => {
+      for chunk in text.diff(txn, |_| ()) {
+        let Some(attrs) = chunk.attributes.as_deref() else {
+          continue;
+        };
+        let source = match &chunk.insert {
+          yrs::Out::Any(Any::String(value)) => value.as_ref(),
+          _ => "",
+        };
+        crate::document_field::FieldRun::decode(source, attrs)
+          .map_err(|_| DocumentMutationError::InvalidBlockProperties)?;
+      }
       if text.diff(txn, |_| ()).iter().any(|run| {
         run
           .attributes
@@ -49,26 +60,36 @@ fn check_text_anchors(value: yrs::Out, txn: &impl ReadTxn, depth: usize) -> Resu
   Ok(())
 }
 
-fn remap_annotations(value: yrs::Out, txn: &mut yrs::TransactionMut<'_>, identities: &mut HashMap<String, String>) {
+fn remap_copied_inlines(
+  value: yrs::Out,
+  txn: &mut yrs::TransactionMut<'_>,
+  identities: &mut HashMap<String, String>,
+  fields: &mut HashMap<String, String>,
+) -> Result<(), DocumentMutationError> {
   match value {
-    yrs::Out::YText(text) => crate::annotation::remap_copied_text(&text, txn, identities),
+    yrs::Out::YText(text) => {
+      crate::annotation::remap_copied_text(&text, txn, identities);
+      crate::document_field::content::remap_copied_text(&text, txn, fields)
+        .map_err(|_| DocumentMutationError::InvalidBlockProperties)?;
+    }
     yrs::Out::YMap(map) => {
       let values = map.iter(txn).map(|(_, value)| value).collect::<Vec<_>>();
       for value in values {
-        remap_annotations(value, txn, identities);
+        remap_copied_inlines(value, txn, identities, fields)?;
       }
     }
     yrs::Out::YArray(array) => {
       let values = array.iter(txn).collect::<Vec<_>>();
       for value in values {
-        remap_annotations(value, txn, identities);
+        remap_copied_inlines(value, txn, identities, fields)?;
       }
     }
     _ => {}
   }
+  Ok(())
 }
 
-/// Original units and references stay in place. Only new block/annotation
+/// Original units and references stay in place. Only new block/annotation/field
 /// identities and copied child links are rebound; local footnotes keep their
 /// existing external definition target. Managed GFX/table copies are excluded.
 pub(crate) fn duplicate_text_subtree(
@@ -123,6 +144,7 @@ pub(crate) fn duplicate_text_subtree(
     .map(|(id, _)| (id.clone(), Uuid::new_v4().to_string()))
     .collect::<HashMap<_, _>>();
   let mut annotations = HashMap::new();
+  let mut fields = HashMap::new();
   for (id, _) in ordered {
     let original = native_block(blocks, txn, &id)?;
     let new_id = &ids[&id];
@@ -137,7 +159,7 @@ pub(crate) fn duplicate_text_subtree(
       .collect::<Vec<_>>();
     children.remove_range(txn, 0, children.len(txn));
     insert_ids(&children, txn, 0, &rewritten);
-    remap_annotations(yrs::Out::YMap(copied), txn, &mut annotations);
+    remap_copied_inlines(yrs::Out::YMap(copied), txn, &mut annotations, &mut fields)?;
     inserted.push(new_id.clone());
   }
   siblings.insert(txn, index + 1, ids[id].as_str());
@@ -165,6 +187,39 @@ mod tests {
   }
   fn duplicate(state: &[u8], id: &str) -> Result<DocumentMutationOutput, DocumentMutationError> {
     apply_document_mutation(state, &DocumentMutation::DuplicateBlock { block_id: id.into() })
+  }
+
+  #[test]
+  fn native_copy_keeps_filled_values_marks_and_independent_field_identities() {
+    let state = crate::markdown_to_yjs("Copy", "Source\n\nNeighbor").unwrap();
+    let (doc, blocks) = decode(&state);
+    let (source_id, state) = {
+      let mut txn = doc.transact_mut();
+      let source_id = array_string_values(&find_content_root(&blocks, &txn).unwrap(), &txn)[0].clone();
+      let source = native_block(&blocks, &txn, &source_id).unwrap();
+      let text = text(&source, &txn);
+      let end = text.len(&txn);
+      text.insert_with_attributes(&mut txn, end, " ", Attrs::from([
+        ("bold".into(), Any::Bool(true)),
+        ("documentField".into(), Any::from_json(r#"{"type":"input","id":"original-field","definition":{"kind":"text","label":"Answer","required":true,"default":"Default"},"value":"Filled {{literal}}"}"#).unwrap()),
+      ]));
+      (source_id, txn.encode_state_as_update_v1(&Default::default()))
+    };
+    let copied = duplicate(&state, &source_id).unwrap();
+    let fields = crate::document_field::content::inspect(&copied.state).unwrap();
+    assert_eq!(fields.len(), 2);
+    assert_ne!(fields[0].run.descriptor.id(), fields[1].run.descriptor.id());
+    assert!(fields.iter().any(|field| field.run.descriptor.id() == "original-field"));
+    for field in fields {
+      let crate::document_field::DocumentField::Input { value, .. } = field.run.descriptor else {
+        panic!("input")
+      };
+      assert_eq!(
+        value,
+        crate::document_field::InputValue::Scalar(Some("Filled {{literal}}".into()))
+      );
+      assert_eq!(field.run.attributes.get("bold"), Some(&Any::Bool(true)));
+    }
   }
 
   #[test]

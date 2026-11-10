@@ -6,7 +6,11 @@ import {
 } from "@virgultum/store";
 
 import type { TextAlign } from "../../consts";
-import type { BlockMeta, TemplateRepeatBinding } from "../../utils/types";
+import type {
+  BlockMeta,
+  TemplateRepeatBinding,
+  TextProtection,
+} from "../../utils/types";
 
 export type ParagraphType =
   "text" | "quote" | "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
@@ -18,6 +22,7 @@ export type ParagraphProps = {
   presentation?: ParagraphPresentation;
   textAlign?: TextAlign;
   text: Text;
+  textProtection?: TextProtection;
   collapsed: boolean;
   comments?: Record<string, boolean>;
   repeat?: TemplateRepeatBinding;
@@ -31,6 +36,7 @@ export const ParagraphBlockSchema = defineBlockSchema({
     type: "text",
     presentation: undefined,
     text: internal.Text(),
+    textProtection: undefined,
     textAlign: undefined,
     collapsed: false,
     comments: undefined,

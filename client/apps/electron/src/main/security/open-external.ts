@@ -24,8 +24,7 @@ export const isAllowedExternalUrl = (
     }
 
     return false;
-  } catch (error) {
-    console.warn("[security] Failed to parse external URL", rawUrl, error);
+  } catch {
     return false;
   }
 };
@@ -37,14 +36,15 @@ export const openExternalSafely = async (
   const { additionalProtocols = [] } = options;
 
   if (!isAllowedExternalUrl(rawUrl, additionalProtocols)) {
-    console.warn("[security] Blocked attempt to open external URL:", rawUrl);
-    return;
+    throw new TypeError("External URL is not allowed");
   }
 
   try {
     await shell.openExternal(rawUrl);
-  } catch (error) {
-    console.error("[security] Failed to open external URL:", rawUrl, error);
+  } catch {
+    // IPC callers must see failure, without retaining credential-bearing URLs
+    // or platform errors in logs or user-visible diagnostics.
+    throw new Error("The system could not open the external URL");
   }
 };
 export const ALLOWED_EXTERNAL_PROTOCOLS: ReadonlySet<string> = new Set(

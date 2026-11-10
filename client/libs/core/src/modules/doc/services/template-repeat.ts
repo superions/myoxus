@@ -2,6 +2,15 @@
 
 import { nanoid, type Store, type Transformer } from "@virgultum/store";
 import {
+  cloneTextWithDocumentFieldIdentities,
+  DocumentFieldSchema,
+  validateDocumentFieldRun,
+  type DocumentField,
+  type MyoxusTextAttributes,
+} from "@virgultum/shared/types";
+import type { DeltaInsert } from "@virgultum/store";
+import { normalizeDocumentField } from "../../template-doc/services/template-inputs";
+import {
   normalizeTableHeaderRows,
   type TableBlockModel,
   type TableRow,
@@ -111,6 +120,16 @@ export type TemplateNativeDiagnostic = TemplateTextLocation & {
   length: number;
 };
 
+/** Inspection data only; metadata has no source answer or required-input prompt. */
+export type TemplateNativeFieldInspection = TemplateTextLocation & {
+  start: number;
+  length: number;
+  field?: DocumentField;
+  captured: boolean;
+  state: "invalid" | "input-unset" | "input-filled" | "metadata";
+  complete: boolean;
+};
+
 /** Inspection and application share one native traversal and repeat validation.
  * Collecting mode reports invalid units without expanding or mutating them.
  */
@@ -124,6 +143,84 @@ export function inspectTemplateSnapshot(
   const repeats: Set<string>[] = [];
   const units: TemplateTextUnit[] = [];
   const diagnostics: TemplateNativeDiagnostic[] = [];
+  const nativeFields: TemplateNativeFieldInspection[] = [];
+  const fieldIds = new Set<string>();
+  const fieldsOf = (
+    value: unknown,
+    location: TemplateTextLocation,
+    allowed: boolean,
+  ) => {
+    if (
+      !value ||
+      typeof value !== "object" ||
+      !("delta" in value) ||
+      !Array.isArray(value.delta)
+    )
+      return;
+    let start = 0;
+    let previous: TemplateNativeFieldInspection | undefined;
+    for (const run of value.delta as DeltaInsert<MyoxusTextAttributes>[]) {
+      const length = typeof run.insert === "string" ? run.insert.length : 1;
+      if (
+        run.attributes &&
+        ("documentField" in run.attributes ||
+          "documentFieldCaptured" in run.attributes)
+      ) {
+        let field: DocumentField | undefined;
+        let valid = allowed;
+        try {
+          validateDocumentFieldRun(run);
+          field = DocumentFieldSchema.parse(run.attributes.documentField);
+          field = normalizeDocumentField(field);
+        } catch {
+          valid = false;
+        }
+        const captured = run.attributes.documentFieldCaptured === true;
+        if (
+          valid &&
+          field &&
+          captured &&
+          previous?.captured &&
+          JSON.stringify(previous.field) === JSON.stringify(field) &&
+          previous.start + previous.length === start
+        ) {
+          previous.length += length;
+          start += length;
+          continue;
+        }
+        if (field && fieldIds.has(field.id)) valid = false;
+        if (field) fieldIds.add(field.id);
+        const unset =
+          field?.type === "input" &&
+          (field.value === null || field.value.length === 0);
+        const inspection: TemplateNativeFieldInspection = {
+          blockId: location.blockId,
+          kind: location.kind,
+          rowId: location.rowId,
+          columnId: location.columnId,
+          start,
+          length,
+          field,
+          captured,
+          state: !valid
+            ? "invalid"
+            : field?.type === "metadata"
+              ? "metadata"
+              : unset
+                ? "input-unset"
+                : "input-filled",
+          complete:
+            valid &&
+            (field?.type !== "input" || !field.definition.required || !unset),
+        };
+        nativeFields.push(inspection);
+        previous = inspection;
+        if (!valid && !collect)
+          throw new TemplateInstantiationError("invalid-syntax");
+      } else previous = undefined;
+      start += length;
+    }
+  };
   const textOf = (value: unknown): string => {
     if (
       !value ||
@@ -202,6 +299,21 @@ export function inspectTemplateSnapshot(
         text: textOf(block.props.text),
       };
       const binding = block.props.repeat;
+      fieldsOf(
+        block.props.text,
+        location,
+        [
+          "myoxus:paragraph",
+          "myoxus:list",
+          "myoxus:callout",
+          "myoxus:footnote-definition",
+        ].includes(block.flavour),
+      );
+      fieldsOf(
+        block.props.title,
+        { blockId: block.id, kind: "title" },
+        block.flavour === "myoxus:callout",
+      );
       if (
         binding !== undefined &&
         (!parent ||
@@ -236,6 +348,8 @@ export function inspectTemplateSnapshot(
             columnId: column,
             text: textOf(cells[`${id}:${column}`]?.text),
           }));
+          for (const location of locations)
+            fieldsOf(cells[`${id}:${location.columnId}`]?.text, location, true);
           const anchor = locations[0] ?? { ...location, rowId: id };
           if (
             row.repeat !== undefined &&
@@ -261,6 +375,12 @@ export function inspectTemplateSnapshot(
         for (const [key, cell] of Object.entries(cells)) {
           const [rowId, columnId, extra] = key.split(":");
           if (!rows[rowId] || !columns[columnId] || extra !== undefined)
+            fieldsOf(
+              cell.text,
+              { blockId: block.id, kind: "cell", rowId, columnId },
+              false,
+            );
+          if (!rows[rowId] || !columns[columnId] || extra !== undefined)
             read({
               blockId: block.id,
               kind: "cell",
@@ -277,7 +397,7 @@ export function inspectTemplateSnapshot(
   walk(snapshot.content, "myoxus:page");
   if (title !== undefined)
     read({ blockId: titleBlockId, kind: "title", text: title, scoped: false });
-  return { required, repeats, units, diagnostics };
+  return { required, repeats, units, diagnostics, nativeFields };
 }
 
 export function validateTemplateRepeats(
@@ -354,7 +474,7 @@ export function expandAndApplyTemplateUnits(
           model.keys.map((key) => [key, modelProps[key]]),
         );
         delete props.repeat;
-        props.text = model.text!.clone();
+        props.text = cloneTextWithDocumentFieldIdentities(model.text!, nanoid);
         const id = doc.addBlock(model.flavour, props, parent!, index++);
         apply(doc.getModelById(id)!.text, values);
       }
@@ -389,6 +509,7 @@ export function expandAndApplyTemplateUnits(
             ),
           );
           for (const values of scopes()) {
+            const fieldIds = new Map<string, string>();
             const rowId = nanoid();
             const clone: TableRow = { ...row, rowId };
             delete clone.repeat;
@@ -398,7 +519,14 @@ export function expandAndApplyTemplateUnits(
               const source = table.props.cells[`${row.rowId}:${column}`];
               if (!source) invalid();
               const key = `${rowId}:${column}`;
-              table.props.cells[key] = { ...source, text: source.text.clone() };
+              table.props.cells[key] = {
+                ...source,
+                text: cloneTextWithDocumentFieldIdentities(
+                  source.text,
+                  nanoid,
+                  fieldIds,
+                ),
+              };
               handled.add(key);
               apply(table.props.cells[key].text, values);
             }

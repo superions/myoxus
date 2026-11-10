@@ -5,6 +5,7 @@ import {
 import { EmbedSyncedDocBlockSchema } from "@virgultum/model";
 import {
   prepareQualifiedNativeExportSnapshot,
+  projectDocumentFieldOutput,
   BlockHtmlAdapterExtension,
   type BlockHtmlAdapterMatcher,
   HastUtils,
@@ -120,7 +121,13 @@ export const embedSyncedDocBlockHtmlAdapterMatcher: BlockHtmlAdapterMatcher = {
                   )
                 : captured;
             if (syncedSnapshot) {
-              await walker.walkONode(syncedSnapshot.blocks);
+              const output = await projectDocumentFieldOutput(
+                syncedSnapshot,
+                context.scopeProvider,
+                syncedDocId,
+                syncedDoc.workspace.id,
+              );
+              await walker.walkONode(output.blocks);
             }
           } else {
             walkerContext

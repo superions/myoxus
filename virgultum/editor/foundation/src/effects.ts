@@ -7,8 +7,6 @@ import { effects as componentContextMenuEffects } from "@virgultum/components/co
 import { effects as componentDatePickerEffects } from "@virgultum/components/date-picker";
 import { effects as componentDropIndicatorEffects } from "@virgultum/components/drop-indicator";
 import { effects as componentEdgelessLineWidthEffects } from "@virgultum/components/edgeless-line-width-panel";
-import { effects as componentEmbedCardModalEffects } from "@virgultum/components/embed-card-modal";
-import { FilterableListComponent } from "@virgultum/components/filterable-list";
 import { effects as componentHighlightDropdownMenuEffects } from "@virgultum/components/highlight-dropdown-menu";
 import { IconButton } from "@virgultum/components/icon-button";
 import { effects as componentLinkPreviewEffects } from "@virgultum/components/link-preview";
@@ -21,14 +19,12 @@ import { effects as componentToggleButtonEffects } from "@virgultum/components/t
 import { ToggleSwitch } from "@virgultum/components/toggle-switch";
 import { effects as componentToolbarEffects } from "@virgultum/components/toolbar";
 import { effects as componentTooltipContentWithShortcutEffects } from "@virgultum/components/tooltip-content-with-shortcut";
-import { effects as dataViewEffects } from "@virgultum/data-view/effects";
 import { effects as richTextEffects } from "@virgultum/rich-text/effects";
 import { effects as stdEffects } from "@virgultum/std/effects";
 
 export function effects() {
   stdEffects();
 
-  dataViewEffects();
   richTextEffects();
 
   componentCaptionEffects();
@@ -39,7 +35,6 @@ export function effects() {
   componentDropIndicatorEffects();
   componentToggleButtonEffects();
   componentColorPickerEffects();
-  componentEmbedCardModalEffects();
   componentLinkPreviewEffects();
   componentLinkedDocTitleEffects();
   componentCitationEffects();
@@ -52,7 +47,6 @@ export function effects() {
   customElements.define("icon-button", IconButton);
   customElements.define("smooth-corner", SmoothCorner);
   customElements.define("toggle-switch", ToggleSwitch);
-  customElements.define("myoxus-filterable-list", FilterableListComponent);
   customElements.define("block-zero-width", BlockZeroWidth);
   customElements.define("myoxus-block-selection", BlockSelection);
 }

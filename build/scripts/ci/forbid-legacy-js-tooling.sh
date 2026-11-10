@@ -465,7 +465,6 @@ check_secondary "@sentry/browser" "10.40." "Sentry 10.40/10.47 mix"
 # Electron Packager and app-builder retain their independently supported
 # signer/downloader majors; retired Forge unification resolutions are forbidden.
 # typescript: root resolution forces 7.0.2 across the workspace.
-# zod: root resolution forces ^3.25.76 — queuedash needs ^3.x so unifying at 3 is correct.
 
 # ── Report ────────────────────────────────────────────────────────────────────
 if [[ "$JSON_OUT" == true ]]; then

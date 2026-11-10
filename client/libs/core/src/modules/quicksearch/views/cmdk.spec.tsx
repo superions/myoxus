@@ -23,6 +23,7 @@ vi.mock("@myoxus/i18n", async (importActual) => {
         "com.myoxus.common.operation-failed",
       "com.myoxus.error.retry": () => "com.myoxus.error.retry",
       "com.myoxus.loading": () => "com.myoxus.loading",
+      "com.myoxus.search.results.open": () => "Open search results",
       t: (value: unknown) => {
         if (typeof value === "object" && value !== null && "i18nKey" in value) {
           return String((value as { i18nKey: string }).i18nKey);
@@ -44,6 +45,24 @@ function renderQuickSearch(ui: ReactNode) {
 }
 
 describe("CMDK quicksearch listbox", () => {
+  test("offers the optional page action outside the empty listbox without intercepting native button Enter", () => {
+    const openPage = vi.fn();
+    const submit = vi.fn();
+    const { unmount } = renderQuickSearch(
+      <CMDK query="missing needle" onOpenPage={openPage} onSubmit={submit} />,
+    );
+    const button = screen.getByRole("button", { name: "Open search results" });
+    expect(screen.getByRole("listbox").contains(button)).toBe(false);
+    expect(fireEvent.keyDown(button, { key: "Enter" })).toBe(true);
+    expect(submit).not.toHaveBeenCalled();
+    fireEvent.click(button);
+    expect(openPage).toHaveBeenCalledExactlyOnceWith("missing needle");
+    unmount();
+    renderQuickSearch(<CMDK query="missing needle" />);
+    expect(
+      screen.queryByRole("button", { name: "Open search results" }),
+    ).toBeNull();
+  });
   beforeEach(() => {
     (globalThis as any).environment = { isMacOs: false };
   });
@@ -174,6 +193,53 @@ describe("CMDK quicksearch listbox", () => {
       key: "Enter",
     });
     expect(onSubmit).toHaveBeenCalledExactlyOnceWith(items[0]);
+  });
+
+  test("waits for a search result instead of defaulting to creation", () => {
+    const onSubmit = vi.fn();
+    const creation = {
+      id: "creation:create-page",
+      source: "creation",
+      label: 'Create "roadmap"',
+    };
+    const docs = { id: "docs", label: "Documents" };
+    const search = (ready: boolean) => (
+      <MyoxusUIProvider>
+        <CMDK
+          query="roadmap"
+          placeholder="Search commands"
+          loading={!ready}
+          groups={[
+            {
+              group: docs,
+              items: ready ? [items[0]] : [],
+              state: ready
+                ? undefined
+                : { group: docs, loading: true, error: null },
+            },
+            { group: { id: "creation", label: "Create" }, items: [creation] },
+          ]}
+          onSubmit={onSubmit}
+        />
+      </MyoxusUIProvider>
+    );
+    const view = render(search(false));
+    const root = screen.getByTestId("cmdk-quick-search");
+    expect(
+      screen
+        .getByRole("option", { name: /Create/ })
+        .getAttribute("aria-selected"),
+    ).toBe("false");
+    fireEvent.keyDown(root, { key: "Enter" });
+    expect(onSubmit).not.toHaveBeenCalled();
+
+    view.rerender(search(true));
+    fireEvent.keyDown(root, { key: "Enter" });
+    expect(onSubmit).toHaveBeenCalledExactlyOnceWith(items[0]);
+
+    fireEvent.keyDown(root, { key: "End" });
+    fireEvent.keyDown(root, { key: "Enter" });
+    expect(onSubmit).toHaveBeenLastCalledWith(creation);
   });
 
   test("announces a localized empty result after all sources settle", () => {

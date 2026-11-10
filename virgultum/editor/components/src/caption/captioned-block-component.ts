@@ -1,12 +1,10 @@
-import { ThemeProvider } from "@virgultum/shared/services";
 import { BlockComponent, type BlockService } from "@virgultum/std";
 import type { BlockModel } from "@virgultum/store";
 import { html, nothing } from "lit";
 import { classMap } from "lit/directives/class-map.js";
-import { createRef, type Ref, ref } from "lit/directives/ref.js";
 import { type StyleInfo, styleMap } from "lit/directives/style-map.js";
 
-import type { BlockCaptionEditor } from "./block-caption.js";
+import type { BlockCaptionEditor } from "./caption-session.js";
 import { styles } from "./styles.js";
 
 export enum SelectedStyle {
@@ -22,12 +20,11 @@ export class CaptionedBlockComponent<
   static override styles = styles;
 
   get captionEditor() {
-    if (!this.useCaptionEditor || !this._captionEditorRef.value) {
-      console.error(
-        "Oops! Please enable useCaptionEditor before accessing captionEditor",
-      );
-    }
-    return this._captionEditorRef.value;
+    // Block wrappers differ; the consumed model identifies the owning caption,
+    // including when a synced-document preview contains other captions.
+    return [
+      ...this.querySelectorAll<BlockCaptionEditor>("block-caption-editor"),
+    ].find((caption) => caption.model === this.model);
   }
 
   constructor() {
@@ -40,23 +37,18 @@ export class CaptionedBlockComponent<
       position: "relative",
       ...this.blockContainerStyles,
     });
-    const theme = this.std.get(ThemeProvider).theme;
-    const isBorder = this.selectedStyle === SelectedStyle.Border;
 
     return html`<div
       style=${style}
       class=${classMap({
         "myoxus-block-component": true,
-        [theme]: true,
-        border: isBorder,
+        border: this.selectedStyle === SelectedStyle.Border,
       })}
     >
       ${content}
       ${
         this.useCaptionEditor
-          ? html`<block-caption-editor
-              ${ref(this._captionEditorRef)}
-            ></block-caption-editor>`
+          ? html`<block-caption-editor></block-caption-editor>`
           : nothing
       }
       ${
@@ -73,10 +65,6 @@ export class CaptionedBlockComponent<
       }
     </div>`;
   }
-
-  // There may be multiple block-caption-editors in a nested structure.
-  private accessor _captionEditorRef: Ref<BlockCaptionEditor> =
-    createRef<BlockCaptionEditor>();
 
   protected accessor blockContainerStyles: StyleInfo | undefined = undefined;
 

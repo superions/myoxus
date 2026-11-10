@@ -38,6 +38,26 @@ mod registration;
 
 use crate::document_version::edit_capture_state::{self, lock_key as workspace_document_lock_key};
 
+const HISTORY_SERIALIZATION_CONFLICT: &str = "document history capture serialization conflict";
+
+fn history_capture_lock_error(error: sqlx::Error) -> myoxus_application::doc::history::HistoryCaptureError {
+  if is_history_serialization(&error) {
+    return myoxus_domain::repositories::RepositoryError::Conflict(HISTORY_SERIALIZATION_CONFLICT).into();
+  }
+  SqlxDocStore::map_db_err(error).into()
+}
+
+fn is_history_serialization(error: &sqlx::Error) -> bool {
+  error.as_database_error().and_then(|error| error.code()).as_deref() == Some("40001")
+}
+
+fn mutation_capture_lock_error(error: sqlx::Error) -> AuthError {
+  if error.as_database_error().and_then(|error| error.code()).as_deref() == Some("40001") {
+    return AuthError::InvalidInput("MIX_DOCUMENT_MUTATION_CONFLICT: document changed during capture".into());
+  }
+  SqlxDocStore::map_db_err(error)
+}
+
 fn map_history_metadata(row: &PgRow) -> AuthResult<DocHistoryMetadataEntry> {
   let origin = row
     .get::<Option<String>, _>("origin")
@@ -84,6 +104,7 @@ pub struct SqlxDocStore {
   quota_cache: Option<std::sync::Arc<crate::quota_cache::QuotaCache>>,
   /// Default workspace storage quota in MB. 0 = unlimited.
   default_workspace_quota_mb: u64,
+  field_capture_default_locale: String,
 }
 
 enum ContentChange<'a> {
@@ -331,7 +352,7 @@ impl SqlxDocStore {
     workspace_id: Uuid,
     doc_id: Uuid,
     snapshot: &[u8],
-  ) -> AuthResult<()> {
+  ) -> Result<(), myoxus_application::doc::history::HistoryCaptureError> {
     let revision: i64 = sqlx::query_scalar(
       "SELECT GREATEST(
       COALESCE((SELECT MAX(sequence) FROM doc_updates WHERE workspace_id=$1 AND doc_id=$2),0),
@@ -341,7 +362,7 @@ impl SqlxDocStore {
     .bind(doc_id)
     .fetch_one(&mut **tx)
     .await
-    .map_err(Self::map_db_err)?;
+    .map_err(history_capture_lock_error)?;
     edit_capture_state::acknowledge(
       tx,
       workspace_id,
@@ -352,7 +373,7 @@ impl SqlxDocStore {
       chrono::Utc::now(),
     )
     .await
-    .map_err(Self::map_db_err)
+    .map_err(history_capture_lock_error)
   }
   async fn capture_history_in_tx(
     &self,
@@ -380,33 +401,102 @@ impl SqlxDocStore {
     .bind(workspace_id)
     .fetch_optional(&mut **tx)
     .await
-    .map_err(Self::map_db_err)?
+    .map_err(history_capture_lock_error)?
     .ok_or_else(|| AuthError::NotFound("document".into()))?;
 
     let snapshot = Self::load_full_doc_in_tx(tx, workspace_id, doc_id).await?;
+    let field_capture = crate::document_field_capture::FieldCapture::load(
+      tx,
+      workspace_id,
+      doc_id,
+      provenance.actor_id,
+      &self.field_capture_default_locale,
+      &snapshot,
+    )
+    .await?;
+    let comparison = field_capture.as_ref().map(|capture| capture.comparison()).transpose()?;
     if named.as_ref().is_some_and(|request| request.skip_unchanged) {
-      let latest: Option<Vec<u8>> = sqlx::query_scalar(
-        "SELECT h.snapshot FROM document_version v JOIN doc_histories h ON h.id = v.doc_history_id
+      let latest: Option<(Vec<u8>, serde_json::Value, Uuid)> = sqlx::query_as(
+        "SELECT h.snapshot,v.metadata,v.id FROM document_version v JOIN doc_histories h ON h.id = v.doc_history_id
          WHERE v.doc_id = $1 ORDER BY v.created_at DESC, h.id DESC LIMIT 1",
       )
       .bind(doc_id)
       .fetch_optional(&mut **tx)
       .await
       .map_err(Self::map_db_err)?;
-      if latest.is_some_and(|latest| Sha256::digest(&latest) == Sha256::digest(&snapshot)) {
+      let unchanged = if let Some((latest, metadata, version_id)) = latest {
+        match (&comparison, &field_capture) {
+          (Some(comparison), Some(fields)) => {
+            metadata
+              .get("nativeFieldComparison")
+              .and_then(serde_json::Value::as_str)
+              == Some(comparison)
+              && fields.version_matches_frozen(&latest, version_id)?
+          }
+          _ => Sha256::digest(&latest) == Sha256::digest(&snapshot),
+        }
+      } else {
+        false
+      };
+      if unchanged {
         Self::acknowledge_edit_capture_in_tx(tx, workspace_id, doc_id, &snapshot).await?;
         return Ok(HistoryCapture::Unchanged);
       }
     }
 
     let captured_at = chrono::Utc::now();
+    // Reserve the actual label and numeric version exactly once, before the
+    // immutable body is materialized. Both reservations roll back with capture.
+    let mut pending_version = if let Some(request) = named {
+      let counter = match &request.label.counter_key {
+        Some(key) => Some(PgDocumentVersionRepository::next_counter_in_tx(tx, doc_id, key).await?),
+        None => None,
+      };
+      let label = request.label.render(counter)?;
+      let version_no = if label.counter_key.as_deref() == Some("seq") {
+        label
+          .counter_value
+          .ok_or_else(|| AuthError::Storage("version counter unavailable".into()))?
+      } else {
+        PgDocumentVersionRepository::next_counter_in_tx(tx, doc_id, "seq").await?
+      };
+      let mut version = DocumentVersion::new_for_create(DocumentVersionCreateInput {
+        id: Uuid::new_v4(),
+        doc_id,
+        workspace_id,
+        doc_history_id: 0,
+        label: label.label,
+        description: request.description,
+        event: request.event,
+        kind: request.kind,
+        created_by: request.actor_id,
+        created_at: captured_at,
+        is_pinned: false,
+        is_protected: false,
+        policy_id: label.policy_id,
+        policy_snapshot: serde_json::json!({}),
+        content_hash: None,
+        metadata: comparison.as_ref().map_or_else(
+          || serde_json::json!({}),
+          |value| serde_json::json!({"nativeFieldComparison":value}),
+        ),
+      });
+      version.version_no = Some(version_no);
+      Some(version)
+    } else {
+      None
+    };
+    let frozen = match &field_capture {
+      Some(capture) => capture.freeze(&snapshot, pending_version.as_ref())?,
+      None => snapshot.clone(),
+    };
     let history_id: i64 = sqlx::query_scalar(
       "INSERT INTO doc_histories (doc_id, workspace_id, snapshot, created_at, origin, actor_id, reference_workspace_id)
        VALUES ($1, $2, $3, $4, $5, $6, $2) RETURNING id",
     )
     .bind(doc_id)
     .bind(workspace_id)
-    .bind(&snapshot)
+    .bind(&frozen)
     .bind(captured_at)
     .bind(provenance.origin.as_str())
     .bind(provenance.actor_id)
@@ -420,37 +510,11 @@ impl SqlxDocStore {
 
     Self::acknowledge_edit_capture_in_tx(tx, workspace_id, doc_id, &snapshot).await?;
 
-    let result = if let Some(request) = named {
-      let counter = match &request.label.counter_key {
-        Some(key) => Some(PgDocumentVersionRepository::next_counter_in_tx(tx, doc_id, key).await?),
-        None => None,
-      };
-      let label = request.label.render(counter)?;
-      let mut version = DocumentVersion::new_for_create(DocumentVersionCreateInput {
-        id: Uuid::new_v4(),
-        doc_id,
-        workspace_id,
-        doc_history_id: history_id,
-        label: label.label,
-        description: request.description,
-        event: request.event,
-        kind: request.kind,
-        created_by: request.actor_id,
-        created_at: captured_at,
-        is_pinned: false,
-        is_protected: false,
-        policy_id: label.policy_id,
-        policy_snapshot: serde_json::json!({}),
-        content_hash: Some(hex::encode(Sha256::digest(&snapshot))),
-        metadata: serde_json::json!({}),
-      });
-      // Simple-counter labels and version_no share the existing `seq` counter.
-      // Supplying the reserved number prevents the INSERT trigger consuming it twice.
-      if label.counter_key.as_deref() == Some("seq") {
-        version.version_no = label.counter_value;
-      }
+    let result = if let Some(mut version) = pending_version.take() {
+      version.doc_history_id = history_id;
+      version.content_hash = Some(hex::encode(Sha256::digest(&frozen)));
       let version = PgDocumentVersionRepository::create_in_tx(tx, &version).await?;
-      PgDocumentMetadataRepository::mark_current_version_in_tx(tx, doc_id, version.id, captured_at, request.actor_id)
+      PgDocumentMetadataRepository::mark_current_version_in_tx(tx, doc_id, version.id, captured_at, version.created_by)
         .await?;
       HistoryCapture::Version(version)
     } else {
@@ -510,15 +574,17 @@ impl SqlxDocStore {
       .await
       .map_err(Self::map_db_err)?;
 
-    let exists: bool = sqlx::query_scalar(
-      "SELECT EXISTS(SELECT 1 FROM docs WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL)",
+    // Under the capture snapshot a writer that committed while the advisory
+    // lock was awaited must conflict, not be overwritten using an older leaf.
+    let exists = sqlx::query_scalar::<_, i32>(
+      "SELECT 1 FROM docs WHERE workspace_id = $1 AND id = $2 AND deleted_at IS NULL FOR UPDATE",
     )
     .bind(workspace_id)
     .bind(doc_id)
-    .fetch_one(&mut **tx)
+    .fetch_optional(&mut **tx)
     .await
-    .map_err(Self::map_db_err)?;
-    if !exists {
+    .map_err(mutation_capture_lock_error)?;
+    if exists.is_none() {
       return Err(AuthError::NotFound("document".to_string()));
     }
 
@@ -566,7 +632,7 @@ impl SqlxDocStore {
     // current; only the change-window producer is suppressed in that case.
     let unchanged_restore = matches!(&mutation, ContentChange::Snapshot(snapshot) if *snapshot == current.as_slice());
     // Validate and derive the entire delta before the first history/data write.
-    let applied = match mutation {
+    let mut applied = match mutation {
       ContentChange::Snapshot(snapshot) => {
         let delta = yjs::restore_document_snapshot(&current, snapshot)
           .map_err(|error| AuthError::InvalidInput(error.to_string()))?;
@@ -584,14 +650,40 @@ impl SqlxDocStore {
         yjs::apply_document_mutation(&current, mutation).map_err(Self::map_document_mutation_error)?
       }
     };
+    // Only this explicit materialized content operation performs field admission.
+    // Raw synchronization and leaf persistence retain their existing fast path.
+    let normalized = myoxus_application::document_fields::normalize_snapshot(&applied.state)?;
+    if let Some(delta) = normalized.delta {
+      applied.delta = yjs::merge_updates(vec![applied.delta, delta])
+        .map_err(|_| AuthError::InvalidInput("MIX_DOCUMENT_FIELD_INVALID".into()))?;
+      applied.state = normalized.state;
+    }
+    if !yjs::preserves_fixed_text(&current, &applied.state)
+      .map_err(|_| AuthError::InvalidInput("MIX_DOCUMENT_TEXT_PROTECTED".into()))?
+    {
+      return Err(AuthError::InvalidInput("MIX_DOCUMENT_TEXT_PROTECTED".into()));
+    }
     let recovery_history_id = if capture_recovery_history {
+      let frozen = match crate::document_field_capture::FieldCapture::load(
+        tx,
+        workspace_id,
+        doc_id,
+        actor_user_id,
+        &self.field_capture_default_locale,
+        &current,
+      )
+      .await?
+      {
+        Some(capture) => capture.freeze(&current, None)?,
+        None => current.clone(),
+      };
       let history_id = sqlx::query_scalar::<_, i64>(
         "INSERT INTO doc_histories (doc_id, workspace_id, snapshot, origin, actor_id, reference_workspace_id)
            VALUES ($1, $2, $3, 'recovery', $4, $2) RETURNING id",
       )
       .bind(doc_id)
       .bind(workspace_id)
-      .bind(&current)
+      .bind(&frozen)
       .bind(actor_user_id)
       .fetch_one(&mut **tx)
       .await
@@ -689,7 +781,15 @@ impl SqlxDocStore {
       database_templates: None,
       quota_cache: None,
       default_workspace_quota_mb: 0,
+      field_capture_default_locale: "en".into(),
     }
+  }
+
+  /// YAML fallback only; a committed `i18n.default_locale` override is read in
+  /// the capture's transaction alongside user preferences and metadata facts.
+  pub fn with_field_capture_default_locale(mut self, locale: String) -> Self {
+    self.field_capture_default_locale = locale;
+    self
   }
 
   /// Share the node's validated catalog with atomic Task-content association.
@@ -3230,6 +3330,10 @@ impl DocUpdateStore for SqlxDocStore {
     tx.rollback().await.map_err(Self::map_db_err)?;
 
     let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
+    sqlx::query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
+      .execute(&mut *tx)
+      .await
+      .map_err(Self::map_db_err)?;
     for locked_doc_id in locked_docs.iter().copied() {
       sqlx::query("SELECT pg_advisory_xact_lock(hashtext($1)::bigint)")
         .bind(workspace_document_lock_key(workspace_id, locked_doc_id))
@@ -3923,6 +4027,10 @@ impl DocHistoryStore for SqlxDocStore {
     use myoxus_application::doc::history::{HistoryCapture, HistoryRestoreCommit};
     use myoxus_domain::audit::{AuditCategory, AuditEvent, AuditTarget};
     let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
+    sqlx::query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
+      .execute(&mut *tx)
+      .await
+      .map_err(Self::map_db_err)?;
     Self::lock_page_lifecycle_documents(&mut tx, request.workspace_id, request.doc_id).await?;
     let snapshot: Vec<u8> = sqlx::query_scalar(
       "SELECT snapshot FROM doc_histories WHERE id = $1 AND doc_id = $2 AND workspace_id = $3 FOR SHARE",
@@ -3942,6 +4050,21 @@ impl DocHistoryStore for SqlxDocStore {
       &snapshot,
     )
     .await?;
+    // History is immutable; only the detached restore target is reactivated.
+    // Never substitute today's facts for an older uncaptured field.
+    let snapshot = if snapshot
+      .windows(yjs::document_field::FIELD_ATTRIBUTE.len())
+      .any(|bytes| bytes == yjs::document_field::FIELD_ATTRIBUTE.as_bytes())
+    {
+      myoxus_application::document_fields::validate_snapshot(&snapshot).map_err(AuthError::from)?;
+      myoxus_application::document_fields::output::historical_snapshot(&snapshot)
+        .map_err(|_| AuthError::InvalidInput("historical field values unavailable".into()))?;
+      yjs::document_field::content::reactivate_capture(&snapshot)
+        .map_err(|_| AuthError::InvalidInput("historical field values unavailable".into()))?
+        .state
+    } else {
+      snapshot
+    };
     let source_audit = if let Some((source_id, _)) = &request.named {
       let row = sqlx::query(
         "SELECT label, description, created_by, created_at, is_pinned FROM document_version WHERE id = $1 AND doc_id = $2 AND workspace_id = $3 AND doc_history_id = $4 FOR SHARE",
@@ -4070,81 +4193,128 @@ impl DocHistoryStore for SqlxDocStore {
     if request.provenance.actor_id != Some(request.idempotency.actor_id) {
       return Err(AuthError::InvalidInput("history capture actor mismatch".into()).into());
     }
-    let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
-    sqlx::query("SELECT pg_advisory_xact_lock(hashtext($1)::bigint)")
-      .bind(workspace_document_lock_key(request.workspace_id, request.doc_id))
-      .execute(&mut *tx)
-      .await
-      .map_err(Self::map_db_err)?;
-    let existing = sqlx::query(
-      "SELECT request_fingerprint, history_id, version_id
+    // A repeatable-read snapshot can predate a competing document lock holder.
+    // Retry the complete transaction, including replay admission, not the read
+    // inside the stale snapshot; reservations and history roll back together.
+    for attempt in 0..3 {
+      let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
+      sqlx::query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
+        .execute(&mut *tx)
+        .await
+        .map_err(Self::map_db_err)?;
+      sqlx::query("SELECT pg_advisory_xact_lock(hashtext($1)::bigint)")
+        .bind(workspace_document_lock_key(request.workspace_id, request.doc_id))
+        .execute(&mut *tx)
+        .await
+        .map_err(Self::map_db_err)?;
+      let existing = sqlx::query(
+        "SELECT request_fingerprint, history_id, version_id
        FROM document_history_capture_request
        WHERE actor_id = $1 AND workspace_id = $2 AND doc_id = $3 AND request_key = $4
        FOR UPDATE",
-    )
-    .bind(request.idempotency.actor_id)
-    .bind(request.workspace_id)
-    .bind(request.doc_id)
-    .bind(request.idempotency.request_key)
-    .fetch_optional(&mut *tx)
-    .await
-    .map_err(Self::map_db_err)?;
-    if let Some(row) = existing {
-      if row.get::<Vec<u8>, _>("request_fingerprint") != request.idempotency.fingerprint {
-        return Err(HistoryCaptureError::IdempotencyConflict);
-      }
-      let history_id = row.get::<i64, _>("history_id");
-      let capture = if let Some(version_id) = row.get::<Option<Uuid>, _>("version_id") {
-        let version = PgDocumentVersionRepository::get_in_tx(&mut tx, version_id)
-          .await?
-          .ok_or(HistoryCaptureError::StaleEntry)?;
-        HistoryCapture::Version(version)
-      } else {
-        HistoryCapture::Snapshot(history_id)
-      };
-      tx.commit().await.map_err(Self::map_db_err)?;
-      return Ok(HistorySaveCommit {
-        capture,
-        replayed: true,
-      });
-    }
-
-    let capture = self
-      .capture_history_in_tx(
-        &mut tx,
-        request.workspace_id,
-        request.doc_id,
-        request.provenance,
-        request.named,
       )
-      .await?;
-    let (history_id, version_id) = match &capture {
-      HistoryCapture::Snapshot(history_id) => (*history_id, None),
-      HistoryCapture::Version(version) => (version.doc_history_id, Some(version.id)),
-      HistoryCapture::Unchanged => {
-        return Err(AuthError::Storage("explicit history save unexpectedly skipped".into()).into());
+      .bind(request.idempotency.actor_id)
+      .bind(request.workspace_id)
+      .bind(request.doc_id)
+      .bind(request.idempotency.request_key)
+      .fetch_optional(&mut *tx)
+      .await;
+      let existing = match existing {
+        Err(error) if attempt < 2 && is_history_serialization(&error) => {
+          tx.rollback().await.map_err(Self::map_db_err)?;
+          continue;
+        }
+        result => result.map_err(history_capture_lock_error)?,
+      };
+      if let Some(row) = existing {
+        if row.get::<Vec<u8>, _>("request_fingerprint") != request.idempotency.fingerprint {
+          return Err(HistoryCaptureError::IdempotencyConflict);
+        }
+        let history_id = row.get::<i64, _>("history_id");
+        let capture = if let Some(version_id) = row.get::<Option<Uuid>, _>("version_id") {
+          let version = PgDocumentVersionRepository::get_in_tx(&mut tx, version_id)
+            .await?
+            .ok_or(HistoryCaptureError::StaleEntry)?;
+          HistoryCapture::Version(version)
+        } else {
+          HistoryCapture::Snapshot(history_id)
+        };
+        if let Err(error) = tx.commit().await {
+          if attempt < 2 && is_history_serialization(&error) {
+            continue;
+          }
+          return Err(history_capture_lock_error(error));
+        }
+        return Ok(HistorySaveCommit {
+          capture,
+          replayed: true,
+        });
       }
-    };
-    sqlx::query(
-      "INSERT INTO document_history_capture_request
+
+      let capture = match self
+        .capture_history_in_tx(
+          &mut tx,
+          request.workspace_id,
+          request.doc_id,
+          request.provenance,
+          request.named.clone(),
+        )
+        .await
+      {
+        Err(HistoryCaptureError::Repository(myoxus_domain::repositories::RepositoryError::Conflict(
+          HISTORY_SERIALIZATION_CONFLICT,
+        )))
+          if attempt < 2 =>
+        {
+          tx.rollback().await.map_err(Self::map_db_err)?;
+          continue;
+        }
+        result => result?,
+      };
+      let (history_id, version_id) = match &capture {
+        HistoryCapture::Snapshot(history_id) => (*history_id, None),
+        HistoryCapture::Version(version) => (version.doc_history_id, Some(version.id)),
+        HistoryCapture::Unchanged => {
+          return Err(AuthError::Storage("explicit history save unexpectedly skipped".into()).into());
+        }
+      };
+      let inserted = sqlx::query(
+        "INSERT INTO document_history_capture_request
          (actor_id, workspace_id, doc_id, request_key, request_fingerprint, history_id, version_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7)",
-    )
-    .bind(request.idempotency.actor_id)
-    .bind(request.workspace_id)
-    .bind(request.doc_id)
-    .bind(request.idempotency.request_key)
-    .bind(&request.idempotency.fingerprint)
-    .bind(history_id)
-    .bind(version_id)
-    .execute(&mut *tx)
-    .await
-    .map_err(Self::map_db_err)?;
-    tx.commit().await.map_err(Self::map_db_err)?;
-    Ok(HistorySaveCommit {
-      capture,
-      replayed: false,
-    })
+      )
+      .bind(request.idempotency.actor_id)
+      .bind(request.workspace_id)
+      .bind(request.doc_id)
+      .bind(request.idempotency.request_key)
+      .bind(&request.idempotency.fingerprint)
+      .bind(history_id)
+      .bind(version_id)
+      .execute(&mut *tx)
+      .await;
+      if let Err(error) = inserted {
+        let code = error.as_database_error().and_then(|error| error.code());
+        if attempt < 2 && matches!(code.as_deref(), Some("40001" | "23505")) {
+          tx.rollback().await.map_err(Self::map_db_err)?;
+          continue;
+        }
+        if matches!(code.as_deref(), Some("23505")) {
+          return Err(myoxus_domain::repositories::RepositoryError::Conflict(HISTORY_SERIALIZATION_CONFLICT).into());
+        }
+        return Err(history_capture_lock_error(error));
+      }
+      if let Err(error) = tx.commit().await {
+        if attempt < 2 && is_history_serialization(&error) {
+          continue;
+        }
+        return Err(history_capture_lock_error(error));
+      }
+      return Ok(HistorySaveCommit {
+        capture,
+        replayed: false,
+      });
+    }
+    unreachable!("the last history attempt returns its result")
   }
 
   #[instrument(skip(self, request), fields(workspace_id = %request.workspace_id, doc_id = %request.doc_id, history_id = request.history_id))]
@@ -4274,12 +4444,33 @@ impl DocHistoryStore for SqlxDocStore {
     named: Option<myoxus_application::doc::history::NamedHistoryCapture>,
   ) -> Result<myoxus_application::doc::history::HistoryCapture, myoxus_application::doc::history::HistoryCaptureError>
   {
-    let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
-    let result = self
-      .capture_history_in_tx(&mut tx, workspace_id, doc_id, provenance, named)
-      .await?;
-    tx.commit().await.map_err(Self::map_db_err)?;
-    Ok(result)
+    for attempt in 0..3 {
+      let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
+      sqlx::query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
+        .execute(&mut *tx)
+        .await
+        .map_err(Self::map_db_err)?;
+      let result = match self
+        .capture_history_in_tx(&mut tx, workspace_id, doc_id, provenance, named.clone())
+        .await
+      {
+        Err(myoxus_application::doc::history::HistoryCaptureError::Repository(
+          myoxus_domain::repositories::RepositoryError::Conflict(HISTORY_SERIALIZATION_CONFLICT),
+        )) if attempt < 2 => {
+          tx.rollback().await.map_err(Self::map_db_err)?;
+          continue;
+        }
+        result => result?,
+      };
+      if let Err(error) = tx.commit().await {
+        if attempt < 2 && is_history_serialization(&error) {
+          continue;
+        }
+        return Err(history_capture_lock_error(error));
+      }
+      return Ok(result);
+    }
+    unreachable!("the last history attempt returns its result")
   }
 
   async fn list_history_before(

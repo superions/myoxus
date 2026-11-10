@@ -316,6 +316,9 @@ fn text_value<T: ReadTxn>(text: &yrs::TextRef, txn: &T, marker: &str, depth: usi
       let Out::Any(Any::String(insert)) = chunk.insert else {
         return Err("native snapshot rich text contains an unsupported embedded value".to_string());
       };
+      if let Some(attributes) = chunk.attributes.as_deref() {
+        crate::document_field::FieldRun::decode(&insert, attributes)?;
+      }
       let attributes = chunk
         .attributes
         .unwrap_or_default()
@@ -333,7 +336,7 @@ fn text_value<T: ReadTxn>(text: &yrs::TextRef, txn: &T, marker: &str, depth: usi
   Ok(json!({ marker: true, "delta": delta }))
 }
 
-fn json_value(value: &Any, depth: usize) -> Result<Value, String> {
+pub(crate) fn json_value(value: &Any, depth: usize) -> Result<Value, String> {
   check_depth(depth)?;
   Ok(match value {
     Any::Null => Value::Null,

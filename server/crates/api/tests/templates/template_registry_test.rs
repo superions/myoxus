@@ -50,7 +50,7 @@ use tower::ServiceExt;
 use uuid::Uuid;
 
 /// Load guide fixtures from the same native configuration as release delivery.
-/// The cutover cases select retained initial revisions to model old readers;
+/// Replay cases select one retained component per identity to model old readers;
 /// current seeding uses only configured new-workspace exports.
 fn guide_bundle_fixtures(current: bool) -> Vec<Vec<u8>> {
   use myoxus_application::template_registry::bundle::{self, TemplatePurpose};
@@ -60,6 +60,7 @@ fn guide_bundle_fixtures(current: bool) -> Vec<Vec<u8>> {
   ))
   .unwrap();
   let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../templates");
+  let mut seen = std::collections::BTreeSet::new();
   base
     .components
     .iter()
@@ -80,10 +81,7 @@ fn guide_bundle_fixtures(current: bool) -> Vec<Vec<u8>> {
       if parsed.manifest.purpose != Some(TemplatePurpose::Guide) {
         return None;
       }
-      if !current
-        && myoxus_application::template_registry::released_system_baseline_version(&parsed.manifest.template_id)
-          != Some(parsed.manifest.version.as_str())
-      {
+      if !seen.insert(parsed.manifest.template_id) {
         return None;
       }
       Some(bytes)
@@ -1185,7 +1183,7 @@ async fn inv_builtin_completion_cannot_race_the_released_catalog_owner(pool: PgP
 }
 
 #[sqlx::test(migrations = false)]
-async fn inv_released_builtin_cutover_preserves_real_content_policies_pins_and_restart(pool: PgPool) {
+async fn inv_native_release_selection_preserves_content_policies_pins_and_restart(pool: PgPool) {
   use myoxus_application::template_registry::bundle::{self, TemplatePurpose};
   use myoxus_domain::template_registry::{InstanceState, ProvisioningMode, SelectionMode};
   myoxus_infrastructure::migrations::run(&pool)
@@ -1213,8 +1211,8 @@ async fn inv_released_builtin_cutover_preserves_real_content_policies_pins_and_r
       .contains("builtin")
   );
 
-  // A genuine earlier release staged before an interrupted cutover can already
-  // be pinned. Its content and blob are real; the migration must preserve it.
+  // Existing installations retain genuine earlier pins. Replaying current
+  // selection must preserve their content and independent Workspace policy.
   let mut old_manifest = parsed.manifest.clone();
   old_manifest.version = "0.9.0".into();
   let old_bytes =
@@ -1232,6 +1230,17 @@ async fn inv_released_builtin_cutover_preserves_real_content_policies_pins_and_r
   sqlx::query("INSERT INTO template_revisions(id,template_id,version,state,bundle_blob_id,checksum,manifest_json,published_at,release_managed_publication) VALUES($1,$2,'0.9.0','published',$3,$4,$5,now(),true)")
     .bind(pinned_revision).bind(original.id).bind(old_key).bind(&parsed.content_checksum)
     .bind(serde_json::to_value(&old_manifest).unwrap()).execute(&pool).await.unwrap();
+
+  let (_, native_revision) = registry.stage_shipped_catalog_bundle(asset, "daily.zip").await.unwrap();
+  registry
+    .commit_shipped_catalog_selection(&[myoxus_application::template_registry::ShippedTemplateSelection {
+      template_id: original.id,
+      current_revision_id: Some(native_revision.id),
+      history_revision_ids: vec![pinned_revision],
+      new_workspace_default: false,
+    }])
+    .await
+    .expect("trusted fresh seed selection needs no identity adoption");
 
   let mut sources = Vec::new();
   let mut protected = Vec::new();
@@ -1269,27 +1278,26 @@ async fn inv_released_builtin_cutover_preserves_real_content_policies_pins_and_r
       .attribute_materialized_document(source.id, user, locale, TemplatePurpose::Template)
       .await
       .unwrap();
-    let synthetic = compute_builtin_expected_hash(&original.slug, original.builder_version.unwrap(), locale);
-    registry
-      .store()
-      .upsert_builtin_instance_applied(
-        workspace,
-        &original.slug,
-        &synthetic,
-        locale,
-        Some(&source.id.to_string()),
-      )
-      .await
-      .unwrap();
+    let applied_revision = if index == 3 {
+      pinned_revision
+    } else {
+      native_revision.id
+    };
+    let instance_id = Uuid::new_v4();
+    let actual = format!(
+      "{:x}",
+      Sha256::digest(documents.load_full_doc_consistent(workspace, source.id).await.unwrap())
+    );
+    sqlx::query("INSERT INTO workspace_template_instances(id,workspace_id,template_id,revision_id,workspace_doc_id,workspace_doc_key,state,current_hash,last_applied_hash,locale_hash) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)")
+      .bind(instance_id).bind(workspace).bind(original.id).bind(applied_revision)
+      .bind((index!=1).then_some(source.id)).bind((index!=1).then_some(source.external_id.as_str()))
+      .bind(if index==1 {"detached"}else{"ok"}).bind(&actual).bind((index!=1).then_some(actual.as_str())).bind(locale)
+      .execute(&pool).await.unwrap();
+    sqlx::query("UPDATE document_template_state SET state=$2,template_id=$3,revision_id=$4,instance_id=$5,source=$6 WHERE doc_id=$1")
+      .bind(source.id).bind(if index==1 {"seeded"}else{"managed"})
+      .bind((index!=1).then_some(original.id)).bind((index!=1).then_some(applied_revision)).bind((index!=1).then_some(instance_id))
+      .bind(if index==1 {"document"}else{"workspace"}).execute(&pool).await.unwrap();
     if index == 2 {
-      sqlx::query(
-        "UPDATE workspace_template_instances SET workspace_doc_id=NULL WHERE workspace_id=$1 AND template_id=$2",
-      )
-      .bind(workspace)
-      .bind(original.id)
-      .execute(&pool)
-      .await
-      .unwrap();
       sqlx::query("UPDATE workspace_template_policies SET is_enabled=false WHERE id=$1")
         .bind(policy.id)
         .execute(&pool)
@@ -1319,14 +1327,70 @@ async fn inv_released_builtin_cutover_preserves_real_content_policies_pins_and_r
       ));
     }
     let before_policy = registry.store().get_policy(policy.id).await.unwrap().unwrap();
-    sources.push((workspace, source.id, before_policy, index, synthetic));
+    sources.push((workspace, source.id, before_policy, index));
   }
-  let (first, concurrent) = tokio::join!(
-    registry.adopt_released_builtin_baseline(asset, "daily.zip"),
-    registry.adopt_released_builtin_baseline(asset, "daily.zip")
+  // An unsupported unmigrated installation must fail before changing ownership
+  // or pretending that the missing applied revision has been reconstructed.
+  sqlx::query("UPDATE template_catalog_entries SET source='builtin',builder_version=1 WHERE id=$1")
+    .bind(original.id)
+    .execute(&pool)
+    .await
+    .unwrap();
+  sqlx::query("UPDATE workspace_template_instances SET revision_id=NULL WHERE workspace_id=$1 AND template_id=$2")
+    .bind(sources[0].0)
+    .bind(original.id)
+    .execute(&pool)
+    .await
+    .unwrap();
+  let rejected = registry
+    .commit_shipped_catalog_selection(&[myoxus_application::template_registry::ShippedTemplateSelection {
+      template_id: original.id,
+      current_revision_id: Some(native_revision.id),
+      history_revision_ids: vec![pinned_revision],
+      new_workspace_default: false,
+    }])
+    .await
+    .expect_err("selection cannot adopt a NULL-revision binding");
+  assert!(rejected.to_string().contains("unsupported unmigrated NULL-revision"));
+  assert_eq!(
+    registry
+      .store()
+      .get_catalog_entry(original.id)
+      .await
+      .unwrap()
+      .unwrap()
+      .source,
+    TemplateSource::Builtin
   );
-  first.expect("first validated cutover");
-  concurrent.expect("concurrent validated cutover");
+  let unsupported: Option<Uuid> =
+    sqlx::query_scalar("SELECT revision_id FROM workspace_template_instances WHERE workspace_id=$1 AND template_id=$2")
+      .bind(sources[0].0)
+      .bind(original.id)
+      .fetch_one(&pool)
+      .await
+      .unwrap();
+  assert!(
+    unsupported.is_none(),
+    "failed selection must not manufacture a revision"
+  );
+  sqlx::query("UPDATE workspace_template_instances SET revision_id=$3 WHERE workspace_id=$1 AND template_id=$2")
+    .bind(sources[0].0)
+    .bind(original.id)
+    .bind(native_revision.id)
+    .execute(&pool)
+    .await
+    .unwrap();
+  sqlx::query("UPDATE template_catalog_entries SET source='bundle',builder_version=NULL WHERE id=$1")
+    .bind(original.id)
+    .execute(&pool)
+    .await
+    .unwrap();
+  let (first, concurrent) = tokio::join!(
+    registry.stage_shipped_catalog_bundle(asset, "daily.zip"),
+    registry.stage_shipped_catalog_bundle(asset, "daily.zip")
+  );
+  first.expect("first validated native replay");
+  concurrent.expect("concurrent validated native replay");
   let entry = registry.store().get_catalog_entry(original.id).await.unwrap().unwrap();
   let revision = registry
     .store()
@@ -1338,7 +1402,7 @@ async fn inv_released_builtin_cutover_preserves_real_content_policies_pins_and_r
     .unwrap();
   assert_eq!(
     revision.state,
-    myoxus_domain::template_registry::RevisionState::Deprecated
+    myoxus_domain::template_registry::RevisionState::Published
   );
   assert_eq!(
     registry
@@ -1348,21 +1412,9 @@ async fn inv_released_builtin_cutover_preserves_real_content_policies_pins_and_r
       .unwrap()
       .unwrap()
       .id,
-    pinned_revision,
-    "adoption stages frozen history without taking publication authority"
+    native_revision.id,
+    "staging native history cannot move current publication"
   );
-  // Recover a partial native state too, without reprocessing already adopted
-  // bindings or changing their content. Subsequent current selection is separate.
-  sqlx::query("UPDATE workspace_template_instances SET revision_id=NULL WHERE workspace_id=$1 AND template_id=$2")
-    .bind(sources[0].0)
-    .bind(entry.id)
-    .execute(&pool)
-    .await
-    .unwrap();
-  registry
-    .adopt_released_builtin_baseline(asset, "daily.zip")
-    .await
-    .unwrap();
   registry
     .commit_shipped_catalog_selection(&[myoxus_application::template_registry::ShippedTemplateSelection {
       template_id: entry.id,
@@ -1375,7 +1427,7 @@ async fn inv_released_builtin_cutover_preserves_real_content_policies_pins_and_r
   assert_eq!(entry.id, original.id);
   assert_eq!(entry.source, TemplateSource::Bundle);
   assert_eq!(entry.builder_version, None);
-  for (workspace, source, old_policy, index, synthetic) in &sources {
+  for (workspace, source, old_policy, index) in &sources {
     let instance = registry
       .store()
       .list_instances_for_workspace(*workspace)
@@ -1404,7 +1456,6 @@ async fn inv_released_builtin_cutover_preserves_real_content_policies_pins_and_r
     );
     let bytes = documents.load_full_doc_consistent(*workspace, *source).await.unwrap();
     let actual = format!("{:x}", Sha256::digest(&bytes));
-    assert_ne!(&actual, synthetic);
     assert_eq!(instance.current_hash.as_deref(), Some(actual.as_str()));
     assert_eq!(
       instance.last_applied_hash.as_deref(),
@@ -1439,22 +1490,22 @@ async fn inv_released_builtin_cutover_preserves_real_content_policies_pins_and_r
   let restarted = build_materializing_service(&pool, storage);
   let (_, repeated) = restarted.register_shipped_bundle(asset, "daily.zip").await.unwrap();
   assert_eq!(repeated.id, revision.id);
-  for (workspace, _, policy, _, _) in &sources {
+  for (workspace, _, policy, _) in &sources {
     if policy.is_enabled {
       restarted
         .reconcile_workspace_templates(*workspace)
         .await
-        .expect("normal worker after cutover");
+        .expect("normal worker after native replay");
     }
   }
   for (workspace, doc, before) in protected {
     assert_eq!(
       documents.load_full_doc_consistent(workspace, doc).await.unwrap(),
       before,
-      "cutover must never rewrite a source, root or ordinary working document"
+      "native replay must never rewrite a source, root or ordinary working document"
     );
   }
-  let (workspace, source, _, _, _) = &sources[1];
+  let (workspace, source, _, _) = &sources[1];
   assert!(!restarted.is_managed_source(*workspace, *source).await.unwrap());
   documents
     .trash_page(*workspace, *source, user)
@@ -1464,22 +1515,27 @@ async fn inv_released_builtin_cutover_preserves_real_content_policies_pins_and_r
 }
 
 #[sqlx::test(migrations = false)]
-async fn inv_released_trashed_guide_restores_as_ordinary_content_without_reseeding(pool: PgPool) {
-  use myoxus_application::template_registry::bundle::{self, TemplatePurpose};
+async fn inv_native_trashed_guide_restores_as_ordinary_content_without_reseeding(pool: PgPool) {
   use myoxus_domain::template_registry::{InstanceState, ProvisioningMode, SelectionMode};
   myoxus_infrastructure::migrations::run(&pool).await.unwrap();
   let asset = include_bytes!("../../../../templates/documents/getting-started-myoxus/1.0.0.zip");
-  let parsed = bundle::parse_bundle(asset).unwrap();
   let registry = build_materializing_service(&pool, Arc::new(TestBlobStorage::default()));
   let documents = DocService::new(Arc::new(SqlxDocStore::new(pool.clone())));
   let user = helpers::create_user(&pool, "trashed-guide-cutover-owner", true).await;
   let workspace = helpers::create_workspace(&pool, user).await;
   helpers::create_workspace_root_doc(&pool, workspace, user).await;
-  let entry = registry
-    .store()
-    .get_catalog_entry_by_slug("getting-started-myoxus")
+  let (entry, revision) = registry
+    .stage_shipped_catalog_bundle(asset, "getting-started.zip")
     .await
-    .unwrap()
+    .unwrap();
+  registry
+    .commit_shipped_catalog_selection(&[myoxus_application::template_registry::ShippedTemplateSelection {
+      template_id: entry.id,
+      current_revision_id: Some(revision.id),
+      history_revision_ids: vec![],
+      new_workspace_default: false,
+    }])
+    .await
     .unwrap();
   registry
     .assign_template_to_workspace(
@@ -1491,22 +1547,11 @@ async fn inv_released_trashed_guide_restores_as_ordinary_content_without_reseedi
     )
     .await
     .unwrap();
-  let (reader, _) = documents
-    .create_page_from_snapshot_with_sync_updates(workspace, user, Some(parsed.manifest.title), parsed.content_bytes)
+  let delivered = registry.reconcile_workspace_templates(workspace).await.unwrap();
+  let reader = documents
+    .get_metadata(delivered[0].workspace_doc_id.unwrap())
     .await
-    .unwrap();
-  // Earlier clients incorrectly classified their ordinary reader guide as a
-  // template. Trash keeps the document and that attribution available to restore.
-  registry
-    .store()
-    .attribute_materialized_document(reader.id, user, "de", TemplatePurpose::Template)
-    .await
-    .unwrap();
-  let hash = compute_builtin_expected_hash(&entry.slug, entry.builder_version.unwrap(), "de");
-  registry
-    .store()
-    .upsert_builtin_instance_applied(workspace, &entry.slug, &hash, "de", Some(&reader.id.to_string()))
-    .await
+    .unwrap()
     .unwrap();
   let original_binding: Uuid =
     sqlx::query_scalar("SELECT id FROM workspace_template_instances WHERE workspace_id=$1 AND template_id=$2")
@@ -1529,8 +1574,15 @@ async fn inv_released_trashed_guide_restores_as_ordinary_content_without_reseedi
   let upgraded = registry.store().list_instances_for_workspace(workspace).await.unwrap();
   assert_eq!(upgraded.len(), 1);
   assert_eq!(upgraded[0].id, original_binding);
-  assert_eq!(upgraded[0].state, InstanceState::Retired);
-  assert_eq!(upgraded[0].workspace_doc_id, Some(reader.id));
+  registry.reconcile_workspace_templates(workspace).await.unwrap();
+  let retired = registry
+    .store()
+    .find_instance(workspace, entry.id)
+    .await
+    .unwrap()
+    .unwrap();
+  assert_eq!(retired.state, InstanceState::Retired);
+  assert_eq!(retired.workspace_doc_id, None);
   let flags: i64 =
     sqlx::query_scalar("SELECT COUNT(*) FROM document_template_state WHERE doc_id=$1 AND state <> 'guide'")
       .bind(reader.id)
@@ -1564,7 +1616,8 @@ async fn inv_released_trashed_guide_restores_as_ordinary_content_without_reseedi
   registry.reconcile_workspace_templates(workspace).await.unwrap();
   let restored = registry.store().list_instances_for_workspace(workspace).await.unwrap();
   assert_eq!(restored[0].id, original_binding);
-  assert_eq!(restored[0].workspace_doc_id, Some(reader.id));
+  assert_eq!(restored[0].workspace_doc_id, None);
+  assert_eq!(restored[0].state, InstanceState::Retired);
   let flags: i64 =
     sqlx::query_scalar("SELECT COUNT(*) FROM document_template_state WHERE doc_id=$1 AND state <> 'guide'")
       .bind(reader.id)
@@ -1579,27 +1632,40 @@ async fn inv_released_trashed_guide_restores_as_ordinary_content_without_reseedi
 }
 
 #[sqlx::test(migrations = false)]
-async fn inv_released_guide_cutover_preserves_readers_deletions_copies_and_failed_creation_attribution(pool: PgPool) {
-  use myoxus_application::template_registry::bundle::{self, TemplatePurpose};
+async fn inv_native_guide_replay_preserves_readers_deletions_copies_and_failed_creation_attribution(pool: PgPool) {
+  use myoxus_application::template_registry::bundle;
   use myoxus_domain::template_registry::{InstanceState, ProvisioningMode, SelectionMode};
   myoxus_infrastructure::migrations::run(&pool)
     .await
     .expect("isolated reader upgrade");
   let storage = Arc::new(TestBlobStorage::default());
-  let registry = build_materializing_service(&pool, storage.clone());
-  let mut assets = Vec::new();
-  for bytes in guide_bundle_fixtures(false) {
-    let parsed = bundle::parse_bundle(&bytes).unwrap();
-    if registry
-      .store()
-      .get_catalog_entry_by_slug(&parsed.manifest.template_id)
-      .await
-      .unwrap()
-      .is_some_and(|entry| entry.source == TemplateSource::Builtin)
-    {
-      assets.push(bytes);
-    }
+  let registry =
+    build_materializing_service(&pool, storage.clone()).with_asset_materialization(Arc::new(BlobService::new(
+      Arc::new(SqlxBlobStore::new(pool.clone())),
+      storage.clone(),
+      "test-key".into(),
+    )));
+  let assets = guide_bundle_fixtures(false);
+  let mut staged = Vec::new();
+  for bytes in &assets {
+    staged.push(registry.stage_shipped_catalog_bundle(bytes, "guide.zip").await.unwrap());
   }
+  registry
+    .commit_shipped_catalog_selection(
+      &staged
+        .iter()
+        .map(
+          |(entry, revision)| myoxus_application::template_registry::ShippedTemplateSelection {
+            template_id: entry.id,
+            current_revision_id: Some(revision.id),
+            history_revision_ids: vec![],
+            new_workspace_default: false,
+          },
+        )
+        .collect::<Vec<_>>(),
+    )
+    .await
+    .unwrap();
   let documents = DocService::new(Arc::new(SqlxDocStore::new(pool.clone())));
   let user = helpers::create_user(&pool, "released-guide-owner", true).await;
   let workspace = helpers::create_workspace(&pool, user).await;
@@ -1623,44 +1689,51 @@ async fn inv_released_guide_cutover_preserves_readers_deletions_copies_and_faile
       )
       .await
       .unwrap();
-    let title = if index == 0 {
-      "Reader-owned English learning notes".into()
+    let doc = if index == 0 {
+      // Model a retained, already-edited reader before applying its introduction
+      // marker. Current guide writes are intentionally forbidden; replay must
+      // still preserve historical reader content with a genuine revision.
+      let (doc, _) = documents
+        .create_page_from_snapshot_with_sync_updates(
+          workspace,
+          user,
+          Some("Reader-owned English learning notes".into()),
+          yjs::markdown_to_yjs(
+            "Reader-owned English learning notes",
+            "My retained observations and independent learning notes.",
+          )
+          .unwrap(),
+        )
+        .await
+        .unwrap();
+      registry
+        .store()
+        .attribute_materialized_document(doc.id, user, "en", bundle::TemplatePurpose::Guide)
+        .await
+        .unwrap();
+      let revision = staged
+        .iter()
+        .find(|(candidate, _)| candidate.id == entry.id)
+        .unwrap()
+        .1
+        .id;
+      let actual = sha256_hex(&documents.load_full_doc_consistent(workspace, doc.id).await.unwrap());
+      sqlx::query("INSERT INTO workspace_template_instances(workspace_id,template_id,revision_id,workspace_doc_id,workspace_doc_key,state,current_hash,last_applied_hash,locale_hash) VALUES($1,$2,$3,$4,$5,'ok',$6,$6,'en')")
+        .bind(workspace).bind(entry.id).bind(revision).bind(doc.id).bind(&doc.external_id).bind(actual)
+        .execute(&pool).await.unwrap();
+      doc
     } else {
-      parsed.manifest.localized_contents["en"].title.clone()
+      let delivered = registry.reconcile_workspace_templates(workspace).await.unwrap();
+      let doc_id = delivered
+        .iter()
+        .find(|instance| instance.template_id == entry.id)
+        .and_then(|instance| instance.workspace_doc_id)
+        .unwrap_or_else(|| panic!("guide {} did not materialize: {delivered:?}", entry.slug));
+      documents.get_metadata(doc_id).await.unwrap().unwrap()
     };
-    let (doc, _) = documents
-      .create_page_from_snapshot_with_sync_updates(
-        workspace,
-        user,
-        Some(title),
-        parsed.content_for_locale("en").to_vec(),
-      )
-      .await
-      .unwrap();
-    // One reader retains an old positive builtin flag. The cutover must remove
-    // that misclassification, without replacing its edited native page.
-    registry
-      .store()
-      .attribute_materialized_document(
-        doc.id,
-        user,
-        "en",
-        if index == 0 {
-          TemplatePurpose::Template
-        } else {
-          TemplatePurpose::Guide
-        },
-      )
-      .await
-      .unwrap();
-    let synthetic = compute_builtin_expected_hash(&entry.slug, entry.builder_version.unwrap(), "en");
-    registry
-      .store()
-      .upsert_builtin_instance_applied(workspace, &entry.slug, &synthetic, "en", Some(&doc.id.to_string()))
-      .await
-      .unwrap();
     if index == 1 {
       documents.delete_doc(workspace, doc.id).await.unwrap();
+      registry.reconcile_workspace_templates(workspace).await.unwrap();
     }
     let body = if index == 1 {
       None
@@ -1786,7 +1859,7 @@ async fn inv_released_guide_cutover_preserves_readers_deletions_copies_and_faile
   );
   assert_eq!(
     projection.guide_deliveries.len(),
-    5,
+    readers.len(),
     "guide delivery is independent of picker pagination"
   );
   assert!(!projection.reconcile_required);
@@ -5842,11 +5915,28 @@ async fn inv_configured_guides_seed_once_and_preserve_reader_copies(pool: PgPool
     .unwrap();
   let mut registered = Vec::new();
   for bytes in &assets {
-    let (entry, revision) = restarted.register_shipped_bundle(bytes, "guide.zip").await.unwrap();
-    // A preserved policy is valid too; the return value only reports insertion.
-    restarted.ensure_shipped_default_policy(&entry.slug).await.unwrap();
+    let (entry, revision) = restarted
+      .stage_shipped_catalog_bundle(bytes, "guide.zip")
+      .await
+      .unwrap();
     registered.push((entry, revision));
   }
+  restarted
+    .commit_shipped_catalog_selection(
+      &registered
+        .iter()
+        .map(
+          |(entry, revision)| myoxus_application::template_registry::ShippedTemplateSelection {
+            template_id: entry.id,
+            current_revision_id: Some(revision.id),
+            history_revision_ids: vec![],
+            new_workspace_default: true,
+          },
+        )
+        .collect::<Vec<_>>(),
+    )
+    .await
+    .unwrap();
 
   sqlx::query("UPDATE app_configs SET value = '\"fr\"'::jsonb WHERE id = 'i18n.default_locale'")
     .execute(&pool)
@@ -6222,6 +6312,35 @@ async fn inv_meeting_notes_retirement_preserves_choices_custom_sources_and_worki
     )
     .await
     .unwrap();
+  let (_, baseline) = registry
+    .stage_shipped_catalog_bundle(asset, "meeting-notes.zip")
+    .await
+    .unwrap();
+  registry
+    .commit_shipped_catalog_selection(&[
+      myoxus_application::template_registry::ShippedTemplateSelection {
+        template_id: original.id,
+        current_revision_id: Some(baseline.id),
+        history_revision_ids: vec![],
+        new_workspace_default: false,
+      },
+      myoxus_application::template_registry::ShippedTemplateSelection {
+        template_id: focus.id,
+        current_revision_id: Some(
+          registry
+            .store()
+            .get_latest_published_revision(focus.id)
+            .await
+            .unwrap()
+            .unwrap()
+            .id,
+        ),
+        history_revision_ids: vec![],
+        new_workspace_default: false,
+      },
+    ])
+    .await
+    .unwrap();
   let mut sources = Vec::new();
   for index in 0..5 {
     let workspace = helpers::create_workspace(&pool, user).await;
@@ -6253,17 +6372,16 @@ async fn inv_meeting_notes_retirement_preserves_choices_custom_sources_and_worki
       .attribute_materialized_document(source.id, user, "de", TemplatePurpose::Template)
       .await
       .unwrap();
-    registry
-      .store()
-      .upsert_builtin_instance_applied(
-        workspace,
-        "meeting-notes",
-        &compute_builtin_expected_hash("meeting-notes", original.builder_version.unwrap(), "de"),
-        "de",
-        Some(&source.id.to_string()),
-      )
-      .await
-      .unwrap();
+    let instance_id = Uuid::new_v4();
+    let hash = format!(
+      "{:x}",
+      Sha256::digest(documents.load_full_doc_consistent(workspace, source.id).await.unwrap())
+    );
+    sqlx::query("INSERT INTO workspace_template_instances(id,workspace_id,template_id,revision_id,workspace_doc_id,workspace_doc_key,state,current_hash,last_applied_hash,locale_hash) VALUES($1,$2,$3,$4,$5,$6,'ok',$7,$7,'de')")
+      .bind(instance_id).bind(workspace).bind(original.id).bind(baseline.id).bind(source.id).bind(&source.external_id).bind(hash)
+      .execute(&pool).await.unwrap();
+    sqlx::query("UPDATE document_template_state SET state='managed',template_id=$2,instance_id=$3,revision_id=$4,source='workspace' WHERE doc_id=$1")
+      .bind(source.id).bind(original.id).bind(instance_id).bind(baseline.id).execute(&pool).await.unwrap();
     if index == 2 {
       sqlx::query("UPDATE workspace_template_policies SET is_enabled=false WHERE id=$1")
         .bind(policy.id)
@@ -6468,12 +6586,32 @@ async fn inv_meeting_notes_replacement_fences_an_edit_during_focus_delivery(pool
   let workspace = helpers::create_workspace(&pool, user).await;
   helpers::create_workspace_root_doc(&pool, workspace, user).await;
   let baseline = include_bytes!("../../../../templates/documents/meeting-notes/1.0.0.zip");
-  let (source_entry, _) = registry.register_shipped_bundle(baseline, "notes.zip").await.unwrap();
-  let (_, focus_revision) = registry
-    .register_shipped_bundle(
+  let (source_entry, source_revision) = registry
+    .stage_shipped_catalog_bundle(baseline, "notes.zip")
+    .await
+    .unwrap();
+  let (focus_entry, focus_revision) = registry
+    .stage_shipped_catalog_bundle(
       include_bytes!("../../../../templates/documents/meeting-focus/1.1.1.zip"),
       "focus.zip",
     )
+    .await
+    .unwrap();
+  registry
+    .commit_shipped_catalog_selection(&[
+      myoxus_application::template_registry::ShippedTemplateSelection {
+        template_id: source_entry.id,
+        current_revision_id: Some(source_revision.id),
+        history_revision_ids: vec![],
+        new_workspace_default: false,
+      },
+      myoxus_application::template_registry::ShippedTemplateSelection {
+        template_id: focus_entry.id,
+        current_revision_id: Some(focus_revision.id),
+        history_revision_ids: vec![],
+        new_workspace_default: false,
+      },
+    ])
     .await
     .unwrap();
   registry

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import { ActivePeopleTool } from "../../content-presence/active-people-tool";
+
 import { ContextDocumentAssistance } from "../assistance/context-documents";
 import { databaseManagedCapabilities } from "../managed";
 import { managedTaskUnavailableLabel } from "../tasks/managed-feedback";
@@ -61,7 +63,6 @@ import {
   getViewGroupRules,
 } from "../model";
 import {
-  DatabaseCollaboratorHeader,
   DatabaseConflictProvider,
   DatabasePresenceProvider,
   useDatabasePresence,
@@ -144,7 +145,6 @@ function DatabaseViewHostLayout(props: DatabaseViewHostProps) {
     changeScheduleZoom,
     closeRowDetail,
     taskNavigation,
-    collaboratorRecordMetaLabel,
     configuredField,
     copyViewLink,
     deleteDatabaseView,
@@ -576,28 +576,6 @@ function DatabaseViewHostLayout(props: DatabaseViewHostProps) {
                   ) ? (
                     <Loading />
                   ) : null}
-                  <DatabaseCollaboratorHeader
-                    records={presence.collaborators}
-                    localSocketId={presence.localSocketId ?? undefined}
-                    label={t["Collaborator"]()}
-                    onlyYouLabel={t["com.myoxus.database.presence.only-you"]()}
-                    oneCollaboratorLabel={(displayName) =>
-                      t["com.myoxus.database.presence.one-online"]({
-                        displayName,
-                      })
-                    }
-                    manyCollaboratorsLabel={(count) =>
-                      t["com.myoxus.database.presence.many-online"]({
-                        count: String(count),
-                      })
-                    }
-                    moreLabel={(count) =>
-                      t["com.myoxus.database.presence.more"]({
-                        count: String(count),
-                      })
-                    }
-                    recordMetaLabel={collaboratorRecordMetaLabel}
-                  />
                   {pagination}
                 </Group>
               </Group>
@@ -1003,40 +981,50 @@ function DatabaseViewHostLayout(props: DatabaseViewHostProps) {
             )}
           </Tabs>
           {layout === "page" ? (
-            <DatabasePageWorkbenchContextBridge
-              ref={databaseContextRef}
-              assistance={content}
-              taskAssistanceAvailable={available}
-              activeView={activeView}
-              databaseId={databaseId}
-              effectiveState={effectiveState}
-              canManageContent={Boolean(
-                effectiveStateQuery.data.workspace?.databaseEffectiveViewState
-                  ?.canEditShared,
-              )}
-              editScope={viewEditScope}
-              hasPersonalChanges={hasPersonalChanges}
-              hasPersonalQueryChanges={hasPersonalQueryChanges}
-              onChanged={onChanged}
-              onConfigureField={(field, trigger) => {
-                fieldSettingsReturnFocusRef.current = trigger;
-                setConfiguredField(field);
-              }}
-              onCopyViewLink={() => void copyViewLink(activeView.id)}
-              onEditScopeChange={setViewEditScope}
-              onEffectiveStateChanged={async () => {
-                await effectiveStateQuery.mutate();
-              }}
-              onRenameView={(name) => renameView(activeView, name)}
-              onResetForMe={resetForMe}
-              onSaveForView={saveForView}
-              record={record}
-              resettingPersonalState={resetPersonalState.isMutating}
-              rowTemplates={rowTemplates}
-              rows={rows}
-              savingPersonalState={savePersonalState.isMutating}
-              workspaceId={workspaceId}
-            />
+            <>
+              <ActivePeopleTool
+                connected={presence.connected}
+                people={presence.collaborators.map((person) => ({
+                  key: person.socketId,
+                  name: person.displayName,
+                  local: person.socketId === presence.localSocketId,
+                }))}
+              />
+              <DatabasePageWorkbenchContextBridge
+                ref={databaseContextRef}
+                assistance={content}
+                taskAssistanceAvailable={available}
+                activeView={activeView}
+                databaseId={databaseId}
+                effectiveState={effectiveState}
+                canManageContent={Boolean(
+                  effectiveStateQuery.data.workspace?.databaseEffectiveViewState
+                    ?.canEditShared,
+                )}
+                editScope={viewEditScope}
+                hasPersonalChanges={hasPersonalChanges}
+                hasPersonalQueryChanges={hasPersonalQueryChanges}
+                onChanged={onChanged}
+                onConfigureField={(field, trigger) => {
+                  fieldSettingsReturnFocusRef.current = trigger;
+                  setConfiguredField(field);
+                }}
+                onCopyViewLink={() => void copyViewLink(activeView.id)}
+                onEditScopeChange={setViewEditScope}
+                onEffectiveStateChanged={async () => {
+                  await effectiveStateQuery.mutate();
+                }}
+                onRenameView={(name) => renameView(activeView, name)}
+                onResetForMe={resetForMe}
+                onSaveForView={saveForView}
+                record={record}
+                resettingPersonalState={resetPersonalState.isMutating}
+                rowTemplates={rowTemplates}
+                rows={rows}
+                savingPersonalState={savePersonalState.isMutating}
+                workspaceId={workspaceId}
+              />
+            </>
           ) : null}
           <TaskDetailNavigationContext.Provider value={taskNavigation}>
             <DatabaseRowDetailPeek

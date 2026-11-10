@@ -353,6 +353,8 @@ location = ${BASE_PATH}/adminfrontend/ {
 }
 
 location ${BASE_PATH}/adminfrontend/ {
+  gzip on;
+
   location ~* \.(?:avif|br|cjs|css|gif|gz|html|ico|jpe?g|js|json|map|mjs|mp4|otf|pdf|png|svg|ttf|txt|wasm|webmanifest|webm|webp|woff2?|xml|zip)\$ {
     rewrite ^${BASE_PATH}/adminfrontend/(.*)\$ /\$1 break;
     root /usr/share/nginx/frontends/admin;
@@ -380,6 +382,8 @@ location ~ ^${BASE_PATH}/workspace/.+ {
 }
 
 location ${BASE_PATH}/ {
+  gzip on;
+
   location ~* \.(?:avif|br|cjs|css|gif|gz|html|ico|jpe?g|js|json|map|mjs|mp4|otf|pdf|png|svg|ttf|txt|wasm|webmanifest|webm|webp|woff2?|xml|zip)\$ {
     rewrite ^${BASE_PATH}/(.*)\$ /\$1 break;
     root /usr/share/nginx/frontends/web;

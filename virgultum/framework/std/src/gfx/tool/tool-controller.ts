@@ -89,13 +89,20 @@ export class ToolController extends GfxExtension {
 
   private readonly _disposableGroup = new DisposableGroup();
 
-  private readonly _toolOption$ = new Signal<ToolOptionWithType>({});
+  private readonly _toolOption$ = new Signal<ToolOptionWithType>(
+    {},
+    { name: "editor.tool.options" },
+  );
 
   private readonly _tools = new Map<string, BaseTool>();
 
-  readonly currentToolName$ = new Signal<string>();
+  readonly currentToolName$ = new Signal<string>(undefined, {
+    name: "editor.tool.current",
+  });
 
-  readonly dragging$ = new Signal<boolean>(false);
+  readonly dragging$ = new Signal<boolean>(false, {
+    name: "editor.tool.dragging",
+  });
 
   /**
    * The dragging area in browser coordinates space.
@@ -103,31 +110,34 @@ export class ToolController extends GfxExtension {
    * This is similar to `draggingViewArea$`, but if the viewport is changed during dragging,
    * it will be reflected in this area.
    */
-  readonly draggingViewportArea$ = computed(() => {
-    const compute = (modelArea: AreaBound) => {
-      const [viewStartX, viewStartY] = this.gfx.viewport.toViewCoord(
-        modelArea.x,
-        modelArea.y,
-      );
-      const [viewEndX, viewEndY] = this.gfx.viewport.toViewCoord(
-        modelArea.x + modelArea.w,
-        modelArea.y + modelArea.h,
-      );
+  readonly draggingViewportArea$ = computed(
+    () => {
+      const compute = (modelArea: AreaBound) => {
+        const [viewStartX, viewStartY] = this.gfx.viewport.toViewCoord(
+          modelArea.x,
+          modelArea.y,
+        );
+        const [viewEndX, viewEndY] = this.gfx.viewport.toViewCoord(
+          modelArea.x + modelArea.w,
+          modelArea.y + modelArea.h,
+        );
 
-      return {
-        startX: viewStartX,
-        startY: viewStartY,
-        endX: viewEndX,
-        endY: viewEndY,
-        x: Math.min(viewStartX, viewEndX),
-        y: Math.min(viewStartY, viewEndY),
-        w: Math.abs(viewStartX - viewEndX),
-        h: Math.abs(viewStartY - viewEndY),
+        return {
+          startX: viewStartX,
+          startY: viewStartY,
+          endX: viewEndX,
+          endY: viewEndY,
+          x: Math.min(viewStartX, viewEndX),
+          y: Math.min(viewStartY, viewEndY),
+          w: Math.abs(viewStartX - viewEndX),
+          h: Math.abs(viewStartY - viewEndY),
+        };
       };
-    };
 
-    return compute(this.draggingArea$.value);
-  });
+      return compute(this.draggingArea$.value);
+    },
+    { name: "editor.drag.viewportArea" },
+  );
 
   /**
    * The dragging area in browser coordinates space.
@@ -139,39 +149,48 @@ export class ToolController extends GfxExtension {
       endX: number;
       endY: number;
     }
-  >({
-    startX: 0,
-    startY: 0,
-    x: 0,
-    y: 0,
-    w: 0,
-    h: 0,
-    endX: 0,
-    endY: 0,
-  });
+  >(
+    {
+      startX: 0,
+      startY: 0,
+      x: 0,
+      y: 0,
+      w: 0,
+      h: 0,
+      endX: 0,
+      endY: 0,
+    },
+    { name: "editor.drag.viewArea" },
+  );
 
   /**
    * The last mouse move position in browser coordinates space.
    */
-  readonly lastMouseViewPos$ = new Signal<IPoint>({
-    x: 0,
-    y: 0,
-  });
+  readonly lastMouseViewPos$ = new Signal<IPoint>(
+    {
+      x: 0,
+      y: 0,
+    },
+    { name: "editor.pointer.viewPosition" },
+  );
 
   /**
    * The last mouse position in model coordinates space.
    */
-  readonly lastMousePos$ = computed(() => {
-    const [x, y] = this.gfx.viewport.toModelCoord(
-      this.lastMouseViewPos$.value.x,
-      this.lastMouseViewPos$.value.y,
-    );
+  readonly lastMousePos$ = computed(
+    () => {
+      const [x, y] = this.gfx.viewport.toModelCoord(
+        this.lastMouseViewPos$.value.x,
+        this.lastMouseViewPos$.value.y,
+      );
 
-    return {
-      x,
-      y,
-    };
-  });
+      return {
+        x,
+        y,
+      };
+    },
+    { name: "editor.pointer.modelPosition" },
+  );
 
   get currentTool$() {
     // oxlint-disable-next-line typescript/no-this-alias
@@ -213,16 +232,19 @@ export class ToolController extends GfxExtension {
       endX: number;
       endY: number;
     }
-  >({
-    startX: 0,
-    startY: 0,
-    endX: 0,
-    endY: 0,
-    x: 0,
-    y: 0,
-    w: 0,
-    h: 0,
-  });
+  >(
+    {
+      startX: 0,
+      startY: 0,
+      endX: 0,
+      endY: 0,
+      x: 0,
+      y: 0,
+      w: 0,
+      h: 0,
+    },
+    { name: "editor.drag.modelArea" },
+  );
 
   static override extendGfx(gfx: GfxController) {
     Object.defineProperty(gfx, "tool", {

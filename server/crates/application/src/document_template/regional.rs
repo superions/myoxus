@@ -3,15 +3,12 @@
 //! Chrono retains instant/timezone and ISO calendar ownership; ICU supplies the
 //! same BCP-47/CLDR presentation family as the clients' native Intl formatters.
 
-use chrono::{DateTime, Datelike, Timelike, Utc};
+use chrono::{DateTime, Datelike, Utc};
 use icu_datetime::{
-  DateTimeFormatter, DateTimeFormatterPreferences, NoCalendarFormatter,
-  fieldsets::{E, T, YM, YMD},
-  input::{Date, Time},
-  options::Alignment,
-  preferences::HourCycle,
+  DateTimeFormatter, DateTimeFormatterPreferences,
+  fieldsets::{E, YM, YMD},
+  input::Date,
 };
-use icu_decimal::{DecimalFormatter, options::GroupingStrategy};
 use icu_locale::Locale;
 
 use super::DocumentTemplateError;
@@ -69,32 +66,7 @@ pub(super) fn application_value(
 }
 
 fn date_value(instant: DateTime<Utc>, preferences: &EffectiveUserPreferences) -> Result<String, DocumentTemplateError> {
-  let zone = preferences.timezone.parse::<chrono_tz::Tz>().map_err(unavailable)?;
-  let local = instant.with_timezone(&zone);
-  let date = Date::try_new_iso(local.year(), local.month() as u8, local.day() as u8).map_err(unavailable)?;
-  let locale = preferences.locale.parse::<Locale>().map_err(unavailable)?;
-  let formatter = DateTimeFormatter::try_new((&locale).into(), YMD::medium()).map_err(unavailable)?;
-  if preferences.date_format == "locale" {
-    return Ok(formatter.format(&date).to_string());
-  }
-  // Explicit numeric layouts still use the locale's calendar and digits,
-  // matching the central Core regional helper rather than forcing Latin/Gregorian.
-  let calendar_date = date.to_calendar(formatter.calendar());
-  let decimal = DecimalFormatter::try_new(locale.into(), GroupingStrategy::Never.into()).map_err(unavailable)?;
-  let number = |value: i32, width| {
-    let mut value = fixed_decimal::Decimal::from(value);
-    value.pad_start(width);
-    decimal.format(&value).to_string()
-  };
-  let day = number(calendar_date.day_of_month().0 as i32, 2);
-  let month = number(calendar_date.month().ordinal as i32, 2);
-  let year = number(calendar_date.year().extended_year(), 4);
-  Ok(match preferences.date_format.as_str() {
-    "day-month-year" => format!("{day}.{month}.{year}"),
-    "month-day-year" => format!("{month}/{day}/{year}"),
-    "year-month-day" => format!("{year}-{month}-{day}"),
-    _ => return Err(DocumentTemplateError::CreationUnavailable),
-  })
+  crate::regional::date_value(instant, preferences).map_err(unavailable)
 }
 
 pub(super) fn creation_value(
@@ -105,36 +77,38 @@ pub(super) fn creation_value(
   let instant = DateTime::parse_from_rfc3339(value)
     .map_err(|_| DocumentTemplateError::CreationUnavailable)?
     .with_timezone(&Utc);
-  if name == "document.created_at.date" {
-    return date_value(instant, preferences);
-  }
-  let zone = preferences
-    .timezone
-    .parse::<chrono_tz::Tz>()
-    .map_err(|_| DocumentTemplateError::CreationUnavailable)?;
-  let local = instant.with_timezone(&zone);
-  let locale = preferences
-    .locale
-    .parse::<Locale>()
-    .map_err(|_| DocumentTemplateError::CreationUnavailable)?;
-  let mut prefs: DateTimeFormatterPreferences = locale.into();
-  prefs.hour_cycle = match preferences.time_format.as_str() {
-    "locale" => prefs.hour_cycle,
-    "12-hour" => Some(HourCycle::H12),
-    "24-hour" => Some(HourCycle::H23),
-    _ => return Err(DocumentTemplateError::CreationUnavailable),
-  };
-  let time = Time::try_new(local.hour() as u8, local.minute() as u8, 0, 0)
-    .map_err(|_| DocumentTemplateError::CreationUnavailable)?;
-  let time = NoCalendarFormatter::try_new(prefs, T::hm().with_alignment(Alignment::Column))
-    .map_err(|_| DocumentTemplateError::CreationUnavailable)?
-    .format(&time)
-    .to_string();
   match name {
-    "document.created_at.time" => Ok(time),
-    "document.created_at.datetime" => Ok(format!("{}, {time}", date_value(instant, preferences)?)),
+    "document.created_at.date" => date_value(instant, preferences),
+    "document.created_at.time" => time_value(instant, preferences),
+    "document.created_at.datetime" => Ok(format!(
+      "{}, {}",
+      date_value(instant, preferences)?,
+      time_value(instant, preferences)?
+    )),
     _ => Err(DocumentTemplateError::UnresolvedVariables),
   }
+}
+
+/// Calendar inputs already contain the chosen day and clock time. Reuse the
+/// regional formatters in UTC without interpreting that answer as a zoned instant.
+pub(super) fn input_value(
+  kind: super::inputs::InputKind,
+  value: &str,
+  preferences: &EffectiveUserPreferences,
+) -> Result<String, DocumentTemplateError> {
+  let instant = super::inputs::calendar_value(kind, value)?.and_utc();
+  let mut calendar_preferences = preferences.clone();
+  calendar_preferences.timezone = "UTC".to_string();
+  let date = date_value(instant, &calendar_preferences)?;
+  match kind {
+    super::inputs::InputKind::Date => Ok(date),
+    super::inputs::InputKind::DateTime => Ok(format!("{date}, {}", time_value(instant, &calendar_preferences)?)),
+    super::inputs::InputKind::Text => Err(DocumentTemplateError::InvalidVariables),
+  }
+}
+
+fn time_value(instant: DateTime<Utc>, preferences: &EffectiveUserPreferences) -> Result<String, DocumentTemplateError> {
+  crate::regional::time_value(instant, preferences).map_err(unavailable)
 }
 
 #[cfg(test)]
@@ -213,5 +187,47 @@ mod tests {
       application_value("date", instant, &prefs),
       Err(DocumentTemplateError::CreationUnavailable)
     ));
+  }
+
+  #[test]
+  fn manual_calendar_inputs_are_typed_and_do_not_shift_with_account_timezone() {
+    use super::super::{DocumentTemplateVariable, inputs::InputKind, validate_template_variables};
+    for zone in ["Pacific/Kiritimati", "America/Los_Angeles"] {
+      let mut prefs = preferences("de-DE");
+      prefs.timezone = zone.into();
+      assert_eq!(
+        input_value(InputKind::Date, "2026-12-31", &prefs).unwrap(),
+        "2026-12-31"
+      );
+      assert_eq!(
+        input_value(InputKind::DateTime, "2026-12-31 23:45:00", &prefs).unwrap(),
+        "2026-12-31, 23:45"
+      );
+    }
+    for (name, value) in [
+      ("input.date.meeting", "2026-02-30"),
+      ("input.date.meeting", "0000-01-01"),
+      ("input.datetime.meeting", "2026-12-31 24:00:00"),
+      ("input.datetime.meeting", "2026-12-31 23:59:60"),
+      ("input.date.nested.name", "2026-12-31"),
+    ] {
+      let values = std::collections::HashMap::from([(name.into(), DocumentTemplateVariable::String(value.into()))]);
+      assert!(validate_template_variables(&values).is_err(), "{name}/{value}");
+    }
+    validate_template_variables(&std::collections::HashMap::from([
+      (
+        "input.deadline".into(),
+        DocumentTemplateVariable::String("next Thursday {{date}}".into()),
+      ),
+      (
+        "input.date.meeting".into(),
+        DocumentTemplateVariable::String("2028-02-29".into()),
+      ),
+      (
+        "input.datetime.meeting".into(),
+        DocumentTemplateVariable::String("2026-12-31 23:45:00".into()),
+      ),
+    ]))
+    .unwrap();
   }
 }

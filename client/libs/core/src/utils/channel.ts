@@ -32,7 +32,8 @@ export const appNames = {
 } satisfies Record<Channel, string>;
 
 export const appSchemaUrl = z.custom<string>(
-  (url: string) => {
+  (url) => {
+    if (typeof url !== "string") return false;
     try {
       return appSchemes.safeParse(new URL(url).protocol.replace(":", ""))
         .success;

@@ -9,9 +9,9 @@ import type { QuickSearchItem } from "../types/item";
 import { isCommandAvailable } from "./commands";
 
 const group = {
-  id: "commands",
-  label: { i18nKey: "com.myoxus.command-center.commands" },
-  score: 30,
+  id: "creation",
+  label: { i18nKey: "Create" },
+  score: -1,
 } as QuickSearchGroup;
 
 export class CreationQuickSearchSession

@@ -12,8 +12,11 @@ const optionsSchema = z.object({
   reactToLit: z.optional(
     z
       .function()
-      .args(z.custom<ElementOrFactory>(), z.boolean().optional())
-      .returns(z.custom<TemplateResult>()),
+      .input(
+        [z.custom<ElementOrFactory>(), z.boolean().optional()],
+        z.unknown(),
+      )
+      .output(z.custom<TemplateResult>()),
   ),
 });
 

@@ -13,7 +13,7 @@ use serde_json::{Value, json};
 use sqlx::{PgPool, Row};
 use uuid::Uuid;
 use yrs::{Any, Array as _, Doc, Map as _, MapPrelim, ReadTxn as _, Transact as _};
-use yrs::{Text as _, updates::decoder::Decode as _};
+use yrs::{GetString as _, Text as _, updates::decoder::Decode as _};
 
 use myoxus_application::doc::DocService;
 use myoxus_application::document_version::{
@@ -80,7 +80,10 @@ async fn setup_app() -> (axum::Router, PgPool, Arc<myoxus_infrastructure::auth::
   )
   .with_metrics_pool(pool.clone())
   .with_document_version_repo(version_repo)
-  .with_document_version_settings_repo(settings_repo);
+  .with_document_version_settings_repo(settings_repo)
+  .with_document_metadata_service(myoxus_application::document_metadata::DocumentMetadataService::new(
+    Arc::new(myoxus_infrastructure::document_metadata::PgDocumentMetadataRepository::new(pool.clone())),
+  ));
 
   (build_router(state), pool, auth_store)
 }
@@ -337,6 +340,318 @@ async fn inv_docver_pdf_capture_binds_nonempty_snapshot_and_canonical_head() {
     (0, 0),
     "capture/export fixtures must not retain their actor or workspace"
   );
+}
+
+/// Field capture crosses the same atomic history owner used by PDF, ordinary
+/// versions, automatic capture and recovery. Field-free checks cannot detect a
+/// historical body changing when its current metadata or identity is renamed.
+#[tokio::test]
+async fn native_fields_freeze_actual_version_and_transaction_facts_without_history_loops() {
+  use axum::{
+    body::Body,
+    http::{Request, header::COOKIE},
+  };
+  use futures_util::FutureExt;
+  use http_body_util::BodyExt;
+  use myoxus_application::document_version::{
+    DocumentEditCaptureRepository, DocumentHistorySaveRequest, DocumentVersionCreateRequest,
+    DocumentVersionCreateService, GlobalEditCaptureSettings,
+  };
+  use std::{collections::BTreeMap, panic::AssertUnwindSafe};
+  use tower::ServiceExt;
+  let (app, pool, auth) = setup_app().await;
+  let (actor, session) = helpers::seed_user(&pool, &auth, "native-field-history").await;
+  let ws = helpers::create_workspace(&pool, actor).await;
+  helpers::create_workspace_root_doc(&pool, ws, actor).await;
+  let doc = helpers::create_doc(&pool, ws, actor).await;
+  let documents = Arc::new(DocService::new(Arc::new(SqlxDocStore::new(pool.clone()))));
+  let versions = DocumentVersionCreateService::new(
+    documents.clone(),
+    Arc::new(PgDocumentVersionRepository::new(pool.clone())),
+  );
+  let result = AssertUnwindSafe(async {
+    sqlx::query("UPDATE docs SET document_number='SNAP-A', status_id=(SELECT v.id FROM document_status_value v JOIN document_status_schema s ON s.id=v.schema_id WHERE s.key='simple' AND v.key='in_progress'), status_source='document', document_type_id=(SELECT id FROM document_type_definition WHERE key='documentation'), document_type_source='document' WHERE id=$1")
+      .bind(doc).execute(&pool).await.unwrap();
+    let mut builder = yjs::YjsDocumentBuilder::new("Native field history");
+    let paragraph_id = builder.push_paragraph_under(&[yjs::YjsTextSegment::plain("Ordinary content; converted literal remains text. ")], None);
+    let original = builder.encode();
+    let source = {
+      let native = Doc::new();
+      let blocks = native.get_or_insert_map("blocks");
+      let mut txn = native.transact_mut();
+      txn.apply_update(yrs::Update::decode_v1(&original).unwrap()).unwrap();
+      let yrs::Out::YMap(block) = blocks.get(&txn, paragraph_id.as_str()).unwrap() else { panic!("paragraph") };
+      let yrs::Out::YText(text) = block.get(&txn, "prop:text").unwrap() else { panic!("text") };
+      for field in [
+        json!({"type":"metadata","id":"label","key":"versionLabel","format":"text"}),
+        json!({"type":"metadata","id":"number","key":"versionNumber","format":"text"}),
+        json!({"type":"metadata","id":"docno","key":"documentNumber","format":"text"}),
+        json!({"type":"metadata","id":"type","key":"documentType","format":"text"}),
+        json!({"type":"metadata","id":"status","key":"status","format":"text"}),
+        json!({"type":"metadata","id":"author","key":"createdBy","format":"name"}),
+        json!({"type":"input","id":"topic","definition":{"kind":"text","label":"Topic","required":true,"default":"Wrong default"},"value":"Literal {{answer}}"}),
+        json!({"type":"input","id":"choice","definition":{"kind":"single-select","label":"Decision","required":false,"options":[{"id":"yes","label":"Recorded"}]},"value":"yes"}),
+        json!({"type":"input","id":"date","definition":{"kind":"date","label":"Date","required":false},"value":null}),
+      ] {
+        let at = text.len(&txn);
+        text.insert_with_attributes(&mut txn, at, " / ", yrs::types::Attrs::from([
+          ("documentField".into(), Any::Null), ("bold".into(), Any::Null),
+        ]));
+        text.insert_with_attributes(&mut txn, at + 3, " ", yrs::types::Attrs::from([
+          ("documentField".into(), Any::from_json(&field.to_string()).unwrap()),
+          ("bold".into(), Any::Bool(true)),
+        ]));
+      }
+      txn.encode_state_as_update_v1(&Default::default())
+    };
+    let admitted = yjs::document_field::content::inspect(&source).expect("fixture must contain valid native fields");
+    assert_eq!(admitted.len(), 9);
+    documents.push_update(ws, doc, source.clone(), 1, myoxus_application::doc::DocSpaceKind::Workspace)
+      .await.expect("persist native field source");
+    let before = documents.load_full_doc(ws, doc).await.unwrap();
+    let before_revision = myoxus_application::doc::canonical_yjs_revision(&before).unwrap();
+    let values = |snapshot: &[u8]| -> BTreeMap<String, String> {
+      let mut result = BTreeMap::<String, String>::new();
+      for occurrence in yjs::document_field::content::inspect(snapshot).unwrap() {
+        assert!(occurrence.run.captured, "historical occurrence must be frozen");
+        result.entry(occurrence.run.descriptor.id().to_string()).or_default().push_str(&occurrence.run.text);
+      }
+      result
+    };
+    let load_history = |id: i64| {
+      let pool = pool.clone();
+      async move { sqlx::query_scalar::<_, Vec<u8>>("SELECT snapshot FROM doc_histories WHERE id=$1")
+        .bind(id).fetch_one(&pool).await.unwrap() }
+    };
+    let unnamed = versions.save_current(DocumentHistorySaveRequest {
+      doc_id: doc, workspace_id: ws, actor_id: actor, request_key: Uuid::new_v4(), name: None, description: None,
+    }).await.unwrap();
+    let unversioned = load_history(unnamed.history_id).await;
+    let first = values(&unversioned);
+    assert_eq!(first["label"], "No version");
+    assert_eq!(first["number"], "Not set");
+    assert_eq!(first["docno"], "SNAP-A");
+    assert_eq!(first["type"], "Dokumentation");
+    assert_eq!(first["status"], "In Arbeit");
+    assert_eq!(first["author"], "native-field-history");
+    assert_eq!(first["topic"], "Literal {{answer}}");
+    assert_eq!(first["choice"], "Recorded");
+    assert_eq!(first["date"], "Not set");
+    let replay_request=DocumentHistorySaveRequest {
+      doc_id:doc,workspace_id:ws,actor_id:actor,request_key:Uuid::new_v4(),name:None,description:None,
+    };
+    let (first_replay,second_replay)=tokio::join!(versions.save_current(replay_request.clone()),versions.save_current(replay_request));
+    let first_replay=first_replay.expect("first concurrent save");
+    let second_replay=second_replay.expect("concurrent replay");
+    assert_eq!(first_replay.history_id,second_replay.history_id);
+    assert_ne!(first_replay.replayed,second_replay.replayed,"concurrent retries commit exactly one history");
+    let request = |label: &str| DocumentVersionCreateRequest::manual(doc, ws, actor, Some(label.into()), None);
+    let named = versions.capture(request("Release-A"), true).await.unwrap().expect("named version");
+    let frozen_a = load_history(named.doc_history_id).await;
+    let fields_a = values(&frozen_a);
+    assert_eq!(named.version_no, Some(1));
+    assert_eq!(fields_a["label"], named.label);
+    assert_eq!(fields_a["number"], "1");
+    assert_eq!(fields_a["docno"], "SNAP-A");
+    assert_eq!(fields_a["type"], "Dokumentation");
+    assert_eq!(fields_a["status"], "In Arbeit");
+    assert!(versions.capture(request("Unused-if-unchanged"), true).await.unwrap().is_none(),
+      "capture-created head changes must not create another version");
+    sqlx::query("UPDATE docs SET document_number='SNAP-B', status_id=(SELECT v.id FROM document_status_value v JOIN document_status_schema s ON s.id=v.schema_id WHERE s.key='simple' AND v.key='current'), document_type_id=(SELECT id FROM document_type_definition WHERE key='decision_record') WHERE id=$1").bind(doc).execute(&pool).await.unwrap();
+    sqlx::query("UPDATE users SET name='Author B' WHERE id=$1").bind(actor).execute(&pool).await.unwrap();
+    let named_b = versions.capture(request("Release-B"), true).await.unwrap().expect("changed facts");
+    let fields_b = values(&load_history(named_b.doc_history_id).await);
+    assert_eq!(named_b.version_no, Some(2));
+    assert_eq!(fields_b["label"], named_b.label);
+    assert_eq!(fields_b["number"], "2");
+    assert_eq!(fields_b["docno"], "SNAP-B");
+    assert_eq!(fields_b["type"], "Entscheidungsprotokoll");
+    assert_eq!(fields_b["status"], "Aktuell");
+    assert_eq!(fields_b["author"], "Author B");
+    assert_eq!(values(&load_history(named.doc_history_id).await), fields_a,
+      "changing current metadata and identity must not reinterpret historical text");
+    assert!(versions.capture(request("Still-unchanged"), true).await.unwrap().is_none());
+    assert_eq!(before_revision, myoxus_application::doc::canonical_yjs_revision(&documents.load_full_doc(ws, doc).await.unwrap()).unwrap(),
+      "capture and metadata changes cannot write display text to the native source");
+
+    let comparison = helpers::gql(&app,session,json!({
+      "query":"query($w:String!,$d:String!,$s:ID!){workspace(id:$w){historyDiff(guid:$d,snapshotId:$s){comparisonBlocks{runs{kind text}}}}}",
+      "variables":{"w":ws.to_string(),"d":doc.to_string(),"s":named.doc_history_id.to_string()}
+    })).await;
+    assert!(comparison.get("errors").is_none(),"field comparison failed: {comparison}");
+    let runs=comparison["data"]["workspace"]["historyDiff"]["comparisonBlocks"].as_array().unwrap()
+      .iter().flat_map(|block|block["runs"].as_array().unwrap()).collect::<Vec<_>>();
+    let collect = |kinds:&[&str]| runs.iter().filter(|run|kinds.contains(&run["kind"].as_str().unwrap()))
+      .map(|run|run["text"].as_str().unwrap()).collect::<String>();
+    let old_text=collect(&["unchanged","removed"]);
+    let current_text=collect(&["unchanged","added"]);
+    assert!(old_text.contains("SNAP-A") && current_text.contains("SNAP-B"),"metadata changes must compare as displayed facts: {comparison}");
+    assert!(old_text.contains("Literal {{answer}}") && current_text.contains("Literal {{answer}}"),
+      "unchanged input cannot appear as a deletion: {comparison}");
+
+    let renamed=helpers::gql(&app,session,json!({"query":"mutation($id:ID!){updateDocumentVersion(id:$id,label:\"Renamed-B\"){id label}}","variables":{"id":named_b.id}})).await;
+    assert!(renamed.get("errors").is_none(),"version rename failed: {renamed}");
+    assert_eq!(values(&load_history(named_b.doc_history_id).await),fields_b,
+      "renaming a version cannot rewrite its immutable historical body");
+    let named_c=versions.capture(request("Release-C"),true).await.unwrap().expect("changed displayed version label");
+    let fields_c=values(&load_history(named_c.doc_history_id).await);
+    assert_eq!(fields_c["label"],named_c.label);
+    assert_eq!(fields_c["number"],"3");
+    assert!(versions.capture(request("No-rename-loop"),true).await.unwrap().is_none());
+
+    let before_failure: (i64, i64, i64, Uuid) = sqlx::query_as(
+      "SELECT (SELECT count(*) FROM doc_histories WHERE doc_id=$1), (SELECT count(*) FROM document_version WHERE doc_id=$1), (SELECT next_value FROM document_version_label_counter WHERE doc_id=$1 AND counter_key='seq'), current_version_id FROM docs WHERE id=$1",
+    ).bind(doc).fetch_one(&pool).await.unwrap();
+    sqlx::query("UPDATE users SET name='' WHERE id=$1").bind(actor).execute(&pool).await.unwrap();
+    assert!(versions.capture(request("Must-rollback"), false).await.is_err(), "unavailable identity must fail capture");
+    let after_failure: (i64, i64, i64, Uuid) = sqlx::query_as(
+      "SELECT (SELECT count(*) FROM doc_histories WHERE doc_id=$1), (SELECT count(*) FROM document_version WHERE doc_id=$1), (SELECT next_value FROM document_version_label_counter WHERE doc_id=$1 AND counter_key='seq'), current_version_id FROM docs WHERE id=$1",
+    ).bind(doc).fetch_one(&pool).await.unwrap();
+    assert_eq!(before_failure, after_failure, "failed field resolution rolls back histories, versions, counters and head");
+
+    sqlx::query("UPDATE users SET name='Author B' WHERE id=$1").bind(actor).execute(&pool).await.unwrap();
+    let change = {
+      let native = Doc::new();
+      let blocks = native.get_or_insert_map("blocks");
+      let mut txn = native.transact_mut();
+      txn.apply_update(yrs::Update::decode_v1(&source).unwrap()).unwrap();
+      let before = txn.state_vector();
+      let yrs::Out::YMap(block) = blocks.get(&txn,paragraph_id.as_str()).unwrap() else {panic!("paragraph")};
+      let yrs::Out::YText(text) = block.get(&txn,"prop:text").unwrap() else {panic!("text")};
+      text.insert(&mut txn,0,"Changed working copy. ");
+      txn.encode_state_as_update_v1(&before)
+    };
+    documents.push_update(ws,doc,change,2,myoxus_application::doc::DocSpaceKind::Workspace).await.unwrap();
+    let automatic = myoxus_infrastructure::document_version::PgDocumentEditCaptureRepository::new(pool.clone());
+    let settings = GlobalEditCaptureSettings { interval_ms: 15 * 60 * 1000, ..Default::default() };
+    let now = chrono::Utc::now();
+    automatic.reconcile(&settings,now,100).await.unwrap();
+    automatic.capture_due(&settings,now+chrono::Duration::minutes(16),100).await.unwrap();
+    let auto_id:i64=sqlx::query_scalar("SELECT id FROM doc_histories WHERE doc_id=$1 AND origin='automatic' ORDER BY id DESC LIMIT 1")
+      .bind(doc).fetch_one(&pool).await.expect("automatic history capture");
+    let auto_fields=values(&load_history(auto_id).await);
+    assert!(auto_fields["label"].starts_with(&named_c.label));
+    assert_eq!(auto_fields["number"],"3");
+    assert_eq!(auto_fields["docno"],"SNAP-B");
+    assert_eq!(auto_fields["author"],"Author B");
+    assert_eq!(auto_fields["choice"],"Recorded");
+    let fragment=myoxus_application::doc::document_fragment_from_markdown("Replacement after recovery capture: ordinary documentField text.").unwrap();
+    let committed=documents.mutate_content(ws,doc,Some(actor),
+      yjs::DocumentMutation::ReplaceAll{fragment},true,Some(2)).await.unwrap();
+    let recovery_id=committed.recovery_history_id.expect("replace creates recovery history");
+    let recovery=values(&load_history(recovery_id).await);
+    assert_eq!(recovery,auto_fields,"recovery and automatic writers freeze the same current facts");
+
+    // Earlier snapshots may contain live atoms but never their original
+    // presentation. The authorized raw history route must reject those rather
+    // than show blank fields, while preserving valid frozen bytes exactly.
+    let uncaptured_id: i64 = sqlx::query_scalar("INSERT INTO doc_histories (doc_id, workspace_id, snapshot, created_at) VALUES ($1,$2,$3,now()) RETURNING id")
+      .bind(doc).bind(ws).bind(&source).fetch_one(&pool).await.unwrap();
+    assert!(documents.history_diff(ws,doc,uncaptured_id).await.is_err(),
+      "uncaptured historical fields cannot become a misleading comparison");
+    documents.history_diff(ws,doc,named.doc_history_id).await.expect("frozen history remains comparable");
+    for (history_id, expected) in [(uncaptured_id, 422), (named.doc_history_id, 200)] {
+      let response = app.clone().oneshot(Request::builder()
+        .uri(format!("/api/workspaces/{ws}/docs/{doc}/histories/by-id/{history_id}"))
+        .header(COOKIE,format!("affine_session={session}"))
+        .body(Body::empty()).unwrap()).await.unwrap();
+      assert_eq!(response.status(),expected);
+      if expected == 200 {
+        assert_eq!(response.into_body().collect().await.unwrap().to_bytes().as_ref(),frozen_a.as_slice());
+      }
+    }
+    let request_restore = |history_id| myoxus_application::doc::history::HistoryRestoreRequest {
+      workspace_id: ws, doc_id: doc, history_id, expected_sequence: None,
+      actor: myoxus_domain::audit::AuditActor::user(actor, None), named: None,
+    };
+    let before_restore = documents.load_full_doc(ws, doc).await.unwrap();
+    let count_before: i64 = sqlx::query_scalar("SELECT count(*) FROM doc_histories WHERE doc_id=$1")
+      .bind(doc).fetch_one(&pool).await.unwrap();
+    assert!(documents.history.restore(request_restore(uncaptured_id)).await.is_err(),
+      "uncaptured historical fields cannot be restored");
+    assert_eq!(documents.load_full_doc(ws, doc).await.unwrap(), before_restore);
+    assert_eq!(sqlx::query_scalar::<_,i64>("SELECT count(*) FROM doc_histories WHERE doc_id=$1")
+      .bind(doc).fetch_one(&pool).await.unwrap(), count_before,
+      "rejected restore must not create recovery history");
+    let restore = documents.history.restore(request_restore(named.doc_history_id)).await.expect("restore frozen history");
+    assert!(restore.recovery_history_id > 0);
+    let restored = documents.load_full_doc(ws, doc).await.unwrap();
+    let restored_fields = yjs::document_field::content::inspect(&restored).unwrap();
+    assert_eq!(restored_fields.len(), admitted.len());
+    for field in &restored_fields {
+      assert!(!field.run.captured && field.run.text == " ", "restore must produce live atoms");
+      let original = admitted.iter().find(|source| source.run.descriptor.id() == field.run.descriptor.id()).unwrap();
+      assert_eq!(field.run.descriptor, original.run.descriptor, "restore preserves captured canonical answer and definition");
+    }
+    let current_number: Option<String> = sqlx::query_scalar("SELECT document_number FROM docs WHERE id=$1")
+      .bind(doc).fetch_one(&pool).await.unwrap();
+    assert_eq!(current_number.as_deref(), Some("SNAP-B"), "restore must not restore business metadata");
+    let current_facts: (String, String) = sqlx::query_as("SELECT t.key, v.key FROM docs d JOIN document_type_definition t ON t.id=d.document_type_id JOIN document_status_value v ON v.id=d.status_id WHERE d.id=$1")
+      .bind(doc).fetch_one(&pool).await.unwrap();
+    assert_eq!(current_facts, ("decision_record".into(), "current".into()), "restore must not revert current type or status");
+    let restored_doc = Doc::new();
+    restored_doc.transact_mut().apply_update(yrs::Update::decode_v1(&restored).unwrap()).unwrap();
+    let txn = restored_doc.transact();
+    let yrs::Out::YMap(paragraph) = txn.get_map("blocks").unwrap().get(&txn, paragraph_id.as_str()).unwrap() else { panic!("paragraph") };
+    let yrs::Out::YText(text) = paragraph.get(&txn, "prop:text").unwrap() else { panic!("text") };
+    assert!(text.get_string(&txn).contains("converted literal remains text."), "literal content must survive restore without becoming a field");
+    assert_eq!(load_history(named.doc_history_id).await, frozen_a, "restore cannot modify immutable history");
+    let (copied, _) = documents.create_page_from_snapshot_with_sync_updates(
+      ws, actor, Some("Copied history".into()), frozen_a.clone(),
+    ).await.expect("create an editable page from native history");
+    let copied_snapshot = documents.load_full_doc(ws, copied.id).await.unwrap();
+    let copied_fields = yjs::document_field::content::inspect(&copied_snapshot).unwrap();
+    assert_eq!(copied_fields.len(), admitted.len());
+    for (copied, original) in copied_fields.iter().zip(&admitted) {
+      assert!(!copied.run.captured && copied.run.text == " ");
+      assert_ne!(copied.run.descriptor.id(), original.run.descriptor.id());
+      assert_eq!(copied.run.descriptor,
+        original.run.descriptor.clone_occurrence(copied.run.descriptor.id().into()).unwrap(),
+        "a copied field must preserve its definition and canonical value");
+    }
+    assert_eq!(load_history(named.doc_history_id).await, frozen_a, "copy cannot modify archival history");
+    let fixed_delta = {
+      let native = Doc::new();
+      let blocks = native.get_or_insert_map("blocks");
+      let mut txn = native.transact_mut();
+      txn.apply_update(yrs::Update::decode_v1(&restored).unwrap()).unwrap();
+      let before = txn.state_vector();
+      let yrs::Out::YMap(paragraph) = blocks.get(&txn, paragraph_id.as_str()).unwrap() else { panic!("paragraph") };
+      paragraph.insert(&mut txn, "prop:textProtection", "fixed");
+      txn.encode_state_as_update_v1(&before)
+    };
+    documents.push_update(ws, doc, fixed_delta, 3, myoxus_application::doc::DocSpaceKind::Workspace).await.unwrap();
+    let fixed_before = documents.load_full_doc(ws, doc).await.unwrap();
+    let histories_before: i64 = sqlx::query_scalar("SELECT count(*) FROM doc_histories WHERE doc_id=$1")
+      .bind(doc).fetch_one(&pool).await.unwrap();
+    let fragment = myoxus_application::doc::document_fragment_from_markdown("Cannot replace fixed text").unwrap();
+    let error = documents.mutate_content(ws, doc, Some(actor),
+      yjs::DocumentMutation::ReplaceAll { fragment }, true, None).await.unwrap_err();
+    assert!(error.to_string().contains("MIX_DOCUMENT_TEXT_PROTECTED"));
+    assert!(documents.history.restore(request_restore(named.doc_history_id)).await.is_err(),
+      "an older snapshot without the current fixed mode cannot unlock it");
+    assert!(yjs::native_documents_have_same_content(&documents.load_full_doc(ws, doc).await.unwrap(), &fixed_before).unwrap());
+    assert_eq!(sqlx::query_scalar::<_,i64>("SELECT count(*) FROM doc_histories WHERE doc_id=$1")
+      .bind(doc).fetch_one(&pool).await.unwrap(), histories_before,
+      "rejected fixed-content operations must not create recovery history");
+  }).catch_unwind().await;
+  helpers::cleanup_workspaces(&pool, &[ws]).await;
+  helpers::cleanup_users(&pool, &[actor]).await;
+  let remaining: (i64, i64) =
+    sqlx::query_as("SELECT (SELECT count(*) FROM users WHERE id=$1),(SELECT count(*) FROM workspaces WHERE id=$2)")
+      .bind(actor)
+      .bind(ws)
+      .fetch_one(&pool)
+      .await
+      .expect("verify field history fixture cleanup");
+  assert_eq!(
+    remaining,
+    (0, 0),
+    "field history test must clean up even after a failure"
+  );
+  if let Err(panic) = result {
+    std::panic::resume_unwind(panic);
+  }
 }
 
 async fn enable_pdf_auto_versioning(pool: &PgPool, doc_id: Uuid) {
@@ -1788,101 +2103,121 @@ async fn inv_docver_gql09_publish_trigger_creates_version_before_publish() {
 
 #[tokio::test]
 async fn inv_docver_gql10_daily_trigger_skips_unchanged_doc() {
+  use futures_util::FutureExt;
+  use std::panic::AssertUnwindSafe;
   let (_app, pool, auth_store) = setup_app().await;
   let (alice_id, _alice_session) = helpers::seed_user(&pool, &auth_store, "alice-docver-gql10").await;
   let workspace_id = helpers::create_workspace(&pool, alice_id).await;
   let doc_id = helpers::create_doc(&pool, workspace_id, alice_id).await;
-  enable_auto_versioning(&pool, doc_id, &["daily"]).await;
+  let result = AssertUnwindSafe(async {
+    enable_auto_versioning(&pool, doc_id, &["daily"]).await;
 
-  let version_repo = Arc::new(PgDocumentVersionRepository::new(pool.clone()));
-  let settings_repo = Arc::new(PgDocumentVersioningSettingsRepository::new(pool.clone()));
-  let doc_service = Arc::new(DocService::new(Arc::new(SqlxDocStore::new(pool.clone()))));
-  doc_service
-    .push_update(
-      workspace_id,
+    let version_repo = Arc::new(PgDocumentVersionRepository::new(pool.clone()));
+    let settings_repo = Arc::new(PgDocumentVersioningSettingsRepository::new(pool.clone()));
+    let doc_service = Arc::new(DocService::new(Arc::new(SqlxDocStore::new(pool.clone()))));
+    doc_service
+      .push_update(
+        workspace_id,
+        doc_id,
+        build_doc_version_yjs(&[("daily", "Daily nonempty content")]),
+        1,
+        myoxus_application::doc::DocSpaceKind::Workspace,
+      )
+      .await
+      .expect("persist daily content");
+    let expected = doc_service
+      .load_full_doc(workspace_id, doc_id)
+      .await
+      .expect("daily server content");
+    let service = DocumentVersionAutoTriggerService::new(doc_service, version_repo.clone(), settings_repo.clone());
+
+    let request = || DocumentVersionAutoTriggerRequest {
       doc_id,
-      build_doc_version_yjs(&[("daily", "Daily nonempty content")]),
-      1,
-      myoxus_application::doc::DocSpaceKind::Workspace,
-    )
-    .await
-    .expect("persist daily content");
-  let expected = doc_service
-    .load_full_doc(workspace_id, doc_id)
-    .await
-    .expect("daily server content");
-  let service = DocumentVersionAutoTriggerService::new(doc_service, version_repo.clone(), settings_repo.clone());
+      workspace_id,
+      actor_id: alice_id,
+      trigger: AutoVersionTrigger::Daily,
+      description: Some("test daily".to_string()),
+      skip_unchanged: true,
+    };
+    let (first, competing) = tokio::join!(
+      service.create_for_trigger(request()),
+      service.create_for_trigger(request())
+    );
+    let outcomes = [
+      first.expect("first daily capture"),
+      competing.expect("competing daily capture"),
+    ];
+    assert_eq!(
+      outcomes
+        .iter()
+        .filter(|outcome| matches!(outcome, AutoVersionOutcome::Created(_)))
+        .count(),
+      1
+    );
+    assert_eq!(
+      outcomes
+        .iter()
+        .filter(|outcome| matches!(
+          outcome,
+          AutoVersionOutcome::Skipped(myoxus_application::document_version::AutoVersionSkipReason::Unchanged)
+        ))
+        .count(),
+      1
+    );
 
-  let request = || DocumentVersionAutoTriggerRequest {
-    doc_id,
-    workspace_id,
-    actor_id: alice_id,
-    trigger: AutoVersionTrigger::Daily,
-    description: Some("test daily".to_string()),
-    skip_unchanged: true,
-  };
-  let (first, competing) = tokio::join!(
-    service.create_for_trigger(request()),
-    service.create_for_trigger(request())
-  );
-  let outcomes = [
-    first.expect("first daily capture"),
-    competing.expect("competing daily capture"),
-  ];
-  assert_eq!(
-    outcomes
-      .iter()
-      .filter(|outcome| matches!(outcome, AutoVersionOutcome::Created(_)))
-      .count(),
-    1
-  );
-  assert_eq!(
-    outcomes
-      .iter()
-      .filter(|outcome| matches!(
-        outcome,
-        AutoVersionOutcome::Skipped(myoxus_application::document_version::AutoVersionSkipReason::Unchanged)
-      ))
-      .count(),
-    1
-  );
+    let second = service.run_daily().await.expect("second daily auto-version scan");
+    assert_eq!(
+      second.created, 0,
+      "INV-DOCVER-GQL-10: unchanged daily scan must not create another version"
+    );
+    assert_eq!(
+      second.skipped_unchanged, 1,
+      "INV-DOCVER-GQL-10: unchanged doc must be counted as skipped_unchanged"
+    );
 
-  let second = service.run_daily().await.expect("second daily auto-version scan");
-  assert_eq!(
-    second.created, 0,
-    "INV-DOCVER-GQL-10: unchanged daily scan must not create another version"
-  );
-  assert_eq!(
-    second.skipped_unchanged, 1,
-    "INV-DOCVER-GQL-10: unchanged doc must be counted as skipped_unchanged"
-  );
-
-  let version_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM document_version WHERE doc_id = $1")
-    .bind(doc_id)
-    .fetch_one(&pool)
-    .await
-    .expect("count daily versions");
-  let history_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM doc_histories WHERE doc_id = $1")
-    .bind(doc_id)
-    .fetch_one(&pool)
-    .await
-    .expect("count daily histories");
-  assert_eq!(version_count, 1);
-  assert_eq!(
-    history_count, 1,
-    "INV-DOCVER-GQL-10: unchanged daily scan must not capture a second history snapshot"
-  );
-  let captured: Vec<u8> = sqlx::query_scalar(
-    "SELECT h.snapshot FROM docs d JOIN document_version v ON v.id=d.current_version_id
+    let version_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM document_version WHERE doc_id = $1")
+      .bind(doc_id)
+      .fetch_one(&pool)
+      .await
+      .expect("count daily versions");
+    let history_count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM doc_histories WHERE doc_id = $1")
+      .bind(doc_id)
+      .fetch_one(&pool)
+      .await
+      .expect("count daily histories");
+    assert_eq!(version_count, 1);
+    assert_eq!(
+      history_count, 1,
+      "INV-DOCVER-GQL-10: unchanged daily scan must not capture a second history snapshot"
+    );
+    let captured: Vec<u8> = sqlx::query_scalar(
+      "SELECT h.snapshot FROM docs d JOIN document_version v ON v.id=d.current_version_id
      JOIN doc_histories h ON h.id=v.doc_history_id WHERE d.id=$1 AND NOT d.dirty_since_current_version",
-  )
-  .bind(doc_id)
-  .fetch_one(&pool)
-  .await
-  .expect("daily canonical head");
-  assert_eq!(captured, expected);
-
+    )
+    .bind(doc_id)
+    .fetch_one(&pool)
+    .await
+    .expect("daily canonical head");
+    assert_eq!(captured, expected);
+  })
+  .catch_unwind()
+  .await;
   helpers::cleanup_users(&pool, &[alice_id]).await;
+  let remaining: (i64, i64) =
+    sqlx::query_as("SELECT (SELECT count(*) FROM users WHERE id=$1),(SELECT count(*) FROM workspaces WHERE id=$2)")
+      .bind(alice_id)
+      .bind(workspace_id)
+      .fetch_one(&pool)
+      .await
+      .expect("verify daily fixture cleanup");
+  assert_eq!(
+    remaining,
+    (0, 0),
+    "daily capture test must clean up even after a failure"
+  );
+  if let Err(panic) = result {
+    std::panic::resume_unwind(panic);
+  }
 }
 
 #[tokio::test]

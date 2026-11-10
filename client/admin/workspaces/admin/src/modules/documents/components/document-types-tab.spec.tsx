@@ -17,6 +17,8 @@ import enJson from "../../../../../../../libs/i18n/src/resources/en.json";
 const en: Record<string, string> = enJson;
 vi.mock("@myoxus/i18n", () => ({
   useI18n: () => ({
+    "com.myoxus.peek-view-controls.close": () =>
+      en["com.myoxus.peek-view-controls.close"],
     t: (key: string) => en[key] ?? key,
     exists: (key: string) => key in en,
     language: "en",

@@ -25,12 +25,12 @@ import { toDraftModel } from "@virgultum/store";
 export class PageKeyboardManager {
   private readonly _handleDelete: UIEventHandler = (ctx) => {
     const event = ctx.get("defaultState").event;
-    if (hasMyoxusEditorLocalKeyboardTarget(event)) return;
+    if (hasMyoxusEditorLocalKeyboardTarget(event)) return undefined;
     const blockSelections = this._currentSelection.filter((sel) =>
       sel.is(BlockSelection),
     );
     if (blockSelections.length === 0) {
-      return;
+      return undefined;
     }
 
     event.preventDefault();
@@ -61,6 +61,14 @@ export class PageKeyboardManager {
       }
     });
 
+    // Include collapsed siblings in this preflight. Per-block refusal alone
+    // would still delete free neighbors and clear the original selection.
+    if (
+      this._doc.readonly ||
+      deletedBlocks.some((id) => this._doc.hasFixedText(id))
+    )
+      return true;
+
     this._doc.transact(() => {
       deletedBlocks.forEach((id) => {
         const block = this._doc.getBlock(id);
@@ -71,6 +79,7 @@ export class PageKeyboardManager {
 
       this._selection.clear(["block", "text"]);
     });
+    return undefined;
   };
 
   private get _currentSelection() {
@@ -140,6 +149,7 @@ export class PageKeyboardManager {
 
   private _createEmbedBlock() {
     const rootComponent = this.rootComponent;
+    const doc = rootComponent.host.store;
     const [_, ctx] = this.rootComponent.std.command
       .chain()
       .pipe(getSelectedModelsCommand, {
@@ -158,21 +168,21 @@ export class PageKeyboardManager {
     if (!selectedModels?.length || !draftedModels) {
       return;
     }
-
-    const doc = rootComponent.host.store;
+    if (doc.readonly || selectedModels.some((model) => doc.hasFixedText(model)))
+      return;
     const autofill = getTitleFromSelectedModels(
       selectedModels.map(toDraftModel),
     );
     promptDocTitle(rootComponent.std, autofill)
-      .then((title) => {
+      .then(async (title) => {
         if (title === null) return;
-        convertSelectedBlocksToLinkedDoc(
+        const created = await convertSelectedBlocksToLinkedDoc(
           this.rootComponent.std,
           doc,
           draftedModels,
           title,
-        ).catch(console.error);
-        notifyDocCreated(rootComponent.std);
+        );
+        if (created) notifyDocCreated(rootComponent.std);
       })
       .catch(console.error);
   }

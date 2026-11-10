@@ -369,6 +369,17 @@ pub trait SearchStore: Send + Sync {
   async fn list_search_docs_by_ids(&self, workspace_id: Uuid, doc_ids: &[Uuid]) -> AuthResult<Vec<SearchDocument>>;
   /// Insert or replace the search index entry for a document.
   async fn upsert_search_doc(&self, doc: SearchDocument) -> AuthResult<()>;
+  /// Publish a complete native projection and its derived field-dependency bit
+  /// atomically. Only current native extraction can clear that bit; plain-text
+  /// jobs cannot assert that a live document no longer contains native fields.
+  /// The paired snapshot/tail revision makes field-free suppression safe even
+  /// when a first/new field races a metadata invalidation and an index write.
+  async fn upsert_current_search_doc(
+    &self,
+    doc: SearchDocument,
+    has_fields: bool,
+    source_revision: i64,
+  ) -> AuthResult<()>;
   /// Resolve canonical document tags for the search payload, including
   /// archived references that must remain discoverable.
   async fn list_document_workspace_tags(
@@ -425,6 +436,7 @@ pub struct SearchIndexerService {
   queue: Arc<dyn WorkQueuePort>,
   store: Arc<dyn SearchStore>,
   doc_service: Arc<DocService>,
+  field_source: Option<Arc<dyn crate::document_fields::context::DocumentFieldContextSource>>,
 }
 
 /// List-safe text projection with the search index's own freshness marker.
@@ -468,7 +480,19 @@ impl SearchIndexerService {
       queue,
       store,
       doc_service,
+      field_source: None,
     }
+  }
+
+  /// Internal indexing is already admitted by its workspace/document owner.
+  /// Resolve fields actorlessly with configured defaults, never worker identity
+  /// or the last editor's preferences. Field-free indexing needs no capability.
+  pub fn with_field_source(
+    mut self,
+    source: Arc<dyn crate::document_fields::context::DocumentFieldContextSource>,
+  ) -> Self {
+    self.field_source = Some(source);
+    self
   }
 
   /// Read normalized snippets without loading source documents or scheduling indexing.
@@ -502,20 +526,44 @@ impl SearchIndexerService {
     self.store.list_document_workspace_tags(workspace_id, doc_id).await
   }
 
-  async fn current_text_projection(&self, source: &SearchSourceDoc) -> AuthResult<(String, String)> {
+  async fn current_text_projection(&self, source: &SearchSourceDoc) -> AuthResult<(String, String, bool, i64)> {
     let current = self
       .doc_service
       .load
       .load_full_doc_with_revision(source.workspace_id, source.doc_id)
       .await?;
-    let projected = project_yjs_plain_text(source.workspace_id, source.doc_id, &source.title, &current.payload)
-      .map_err(|error| {
+    let fields = yjs::document_field::content::inspect(&current.payload)
+      .map_err(|_| crate::document_fields::DocumentFieldError::InvalidField)?
+      .into_iter()
+      .map(|field| field.run.descriptor)
+      .collect::<Vec<_>>();
+    let has_fields = !fields.is_empty();
+    let snapshot = if !has_fields {
+      current.payload
+    } else {
+      let context = self
+        .field_source
+        .as_ref()
+        .ok_or(crate::document_fields::DocumentFieldError::ContextUnavailable)?
+        .resolve_authorized(
+          source.workspace_id,
+          source.doc_id,
+          crate::doc::canonical_yjs_revision(&current.payload)
+            .map_err(|_| crate::document_fields::DocumentFieldError::InvalidField)?,
+          &fields,
+          None,
+        )
+        .await?;
+      crate::document_fields::output::current_snapshot(&current.payload, &context)?
+    };
+    let projected =
+      project_yjs_plain_text(source.workspace_id, source.doc_id, &source.title, &snapshot).map_err(|error| {
         AuthError::Storage(format!(
           "failed to project current search content for document {}: {error}",
           source.doc_id
         ))
       })?;
-    Ok((projected.title, projected.plain_text))
+    Ok((projected.title, projected.plain_text, has_fields, current.revision))
   }
 
   /// Enqueue a full document snapshot indexing job.  Returns the job ID string.
@@ -689,30 +737,31 @@ impl SearchIndexerService {
               )));
             }
 
-            let current = self
-              .doc_service
-              .load
-              .load_full_doc_with_revision(workspace_id, doc_id)
+            let (title, plain_text, has_fields, source_revision) = self
+              .current_text_projection(&SearchSourceDoc {
+                workspace_id,
+                doc_id,
+                title: meta.title,
+                updated_at: meta.updated_at,
+              })
               .await?;
-            let projected =
-              project_yjs_plain_text(workspace_id, doc_id, &meta.title, &current.payload).map_err(|error| {
-                AuthError::Storage(format!(
-                  "failed to project search content for document {doc_id}: {error}"
-                ))
-              })?;
             let workspace_tags = self.canonical_document_tags(workspace_id, doc_id).await?;
 
             self
               .store
-              .upsert_search_doc(SearchDocument {
-                workspace_id,
-                doc_id,
-                title: projected.title,
-                plain_text: projected.plain_text,
-                workspace_tags,
-                search_vector: None,
-                updated_at: Utc::now(),
-              })
+              .upsert_current_search_doc(
+                SearchDocument {
+                  workspace_id,
+                  doc_id,
+                  title,
+                  plain_text,
+                  workspace_tags,
+                  search_vector: None,
+                  updated_at: Utc::now(),
+                },
+                has_fields,
+                source_revision,
+              )
               .await
           }
           Ok(None) => {
@@ -817,19 +866,23 @@ impl SearchIndexerService {
 
     let mut indexed_count = 0_i64;
     for doc in &docs {
-      let (title, plain_text) = self.current_text_projection(doc).await?;
+      let (title, plain_text, has_fields, source_revision) = self.current_text_projection(doc).await?;
       let workspace_tags = self.canonical_document_tags(doc.workspace_id, doc.doc_id).await?;
       self
         .store
-        .upsert_search_doc(SearchDocument {
-          workspace_id: doc.workspace_id,
-          doc_id: doc.doc_id,
-          title,
-          plain_text,
-          workspace_tags,
-          search_vector: None,
-          updated_at: doc.updated_at,
-        })
+        .upsert_current_search_doc(
+          SearchDocument {
+            workspace_id: doc.workspace_id,
+            doc_id: doc.doc_id,
+            title,
+            plain_text,
+            workspace_tags,
+            search_vector: None,
+            updated_at: doc.updated_at,
+          },
+          has_fields,
+          source_revision,
+        )
         .await?;
       indexed_count += 1;
     }

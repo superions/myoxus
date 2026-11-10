@@ -95,7 +95,7 @@ export function LaneProperties({
         <AccordionControl icon={<LaneIcon />}>
           {lane["@_name"] || i18n.singleNodeProperties.lane}
         </AccordionControl>
-        <AccordionPanel>
+        <AccordionPanel keepMounted keepMountedMode="display-none">
           <Stack>
             <NameDocumentationAndId element={lane} />
             <SearchCombobox {...choice} />

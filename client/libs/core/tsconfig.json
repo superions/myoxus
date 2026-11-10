@@ -28,7 +28,6 @@
     { "path": "../../../virgultum/editor/blocks/mermaid" },
     { "path": "../../../virgultum/editor/blocks/root" },
     { "path": "../../../virgultum/editor/components" },
-    { "path": "../../../virgultum/editor/data-view" },
     { "path": "../../../virgultum/editor/all" },
     { "path": "../../../virgultum/framework/global" },
     { "path": "../../../virgultum/editor/model" },

@@ -305,6 +305,11 @@ export function addStandaloneNode({
     __$$element: "bpmndi:BPMNShape",
     "@_id": shapeId,
     "@_bpmnElement": newBpmnElementId,
+    // New Exclusive Gateways match their palette notation; imported DI keeps
+    // its authored (including omitted) marker visibility.
+    ...(__readonly_element === "exclusiveGateway"
+      ? { "@_isMarkerVisible": true }
+      : {}),
     ...(__readonly_newNode.type === NODE_TYPES.subProcess
       ? { "@_isExpanded": true }
       : {}),

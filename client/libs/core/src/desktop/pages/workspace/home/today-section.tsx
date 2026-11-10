@@ -3,6 +3,7 @@
 import { useRegionalFormatters } from "@myoxus/core/components/hooks/myoxus/use-user-preferences";
 import { useJournalRouteHelper } from "@myoxus/core/components/hooks/use-journal";
 import { IntegrationService } from "@myoxus/core/modules/integration";
+import { JOURNAL_DATE_FORMAT } from "@myoxus/core/modules/journal";
 import { WorkspaceService } from "@myoxus/core/modules/workspace";
 import { UserFriendlyError } from "@myoxus/error";
 import { useI18n } from "@myoxus/i18n";
@@ -27,21 +28,45 @@ type CalendarState = "error" | "loading" | "ready" | "unavailable";
 
 export const TodaySection = () => {
   const t = useI18n();
-  const { formatDate, formatTime } = useRegionalFormatters();
+  const { formatCalendarDate, formatDate, formatTime } =
+    useRegionalFormatters();
   const workspace = useService(WorkspaceService).workspace;
   const calendar = useService(IntegrationService).calendar;
-  const { openToday } = useJournalRouteHelper();
+  const { openJournal } = useJournalRouteHelper();
   const [calendarState, setCalendarState] = useState<CalendarState>(
     workspace.flavour === "local" ? "unavailable" : "loading",
   );
   const [calendarError, setCalendarError] = useState<string | null>(null);
   const [calendarReload, setCalendarReload] = useState(0);
   const calendarRequestGeneration = useRef(0);
-  const today = useMemo(() => dayjs().startOf("day"), []);
+  const [todayDate, setTodayDate] = useState(() =>
+    dayjs().format(JOURNAL_DATE_FORMAT),
+  );
+  const today = useMemo(() => dayjs(todayDate), [todayDate]);
   const rangeEnd = useMemo(() => today.add(6, "day"), [today]);
   const upcoming = useLiveData(
     useMemo(() => calendar.upcomingEvents$(3), [calendar]),
   );
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const refreshDay = () => {
+      const now = dayjs();
+      // Journals use local calendar days, not instants in the account timezone.
+      setTodayDate(now.format(JOURNAL_DATE_FORMAT));
+      clearTimeout(timer);
+      timer = setTimeout(
+        refreshDay,
+        now.add(1, "day").startOf("day").diff(now),
+      );
+    };
+    refreshDay();
+    window.addEventListener("focus", refreshDay);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("focus", refreshDay);
+    };
+  }, []);
 
   const loadCalendar = useCallback(
     async (signal: AbortSignal, generation: number) => {
@@ -102,7 +127,7 @@ export const TodaySection = () => {
   return (
     <DashboardSection
       icon={<TodayIcon aria-hidden />}
-      scope={formatDate(today.toDate())}
+      scope={formatCalendarDate(todayDate)}
       title={t["com.myoxus.today"]()}
       uiRole="workspace-home-today"
     >
@@ -112,9 +137,9 @@ export const TodaySection = () => {
             component="button"
             type="button"
             label={t["com.myoxus.command-center.today-journal"]()}
-            description={formatDate(today.toDate())}
+            description={formatCalendarDate(todayDate)}
             leftSection={<JournalIcon />}
-            onClick={() => openToday({ at: "active" })}
+            onClick={() => openJournal(todayDate, { at: "active" })}
             data-myoxus-ui-role="workspace-home-today-journal"
           />
         </Grid.Col>

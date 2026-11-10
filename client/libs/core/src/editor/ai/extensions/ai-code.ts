@@ -1,7 +1,7 @@
 import { MyoxusCodeToolbarWidget } from "@virgultum/editor/blocks/code";
 import { LifeCycleWatcher } from "@virgultum/editor/std";
 
-import { setupCodeToolbarAIEntry } from "../entries/code-toolbar/setup-code-toolbar";
+import { setupCodeToolbarAIEntry } from "../entries/code-toolbar/code-toolbar-actions";
 
 export class AICodeBlockWatcher extends LifeCycleWatcher {
   static override key = "ai-code-block-watcher";

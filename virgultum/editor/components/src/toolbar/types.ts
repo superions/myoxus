@@ -1,4 +1,7 @@
-import type { EditorI18nMessage } from "@virgultum/shared/services";
+import type {
+  EditorI18nMessage,
+  SelectionAction,
+} from "@virgultum/shared/services";
 import type { nothing, TemplateResult } from "lit";
 
 import type { MenuContext } from "./menu-context.js";
@@ -34,7 +37,5 @@ export type MenuItemGroup<T> = {
 export type FatMenuItems = (MenuItem | typeof nothing)[][];
 
 export interface ToolbarMoreMenuConfig {
-  configure: <T extends MenuContext>(
-    groups: MenuItemGroup<T>[],
-  ) => MenuItemGroup<T>[];
+  actions: (context: MenuContext) => SelectionAction[];
 }

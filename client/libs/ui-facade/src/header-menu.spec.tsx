@@ -18,7 +18,7 @@ import { HeaderMenuButton, MenuItem, MenuPanel, Modal } from "./index";
 import { MyoxusUIProvider } from "./provider";
 
 function renderWithProvider(node: React.ReactNode) {
-  return render(<MyoxusUIProvider>{node}</MyoxusUIProvider>);
+  return render(<MyoxusUIProvider env="test">{node}</MyoxusUIProvider>);
 }
 
 afterEach(cleanup);

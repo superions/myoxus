@@ -5,6 +5,8 @@ export function mergeToCodeModel(models: BlockModel[]) {
     return null;
   }
   const doc = models[0].store;
+  if (doc.readonly || models.some((model) => doc.hasFixedText(model)))
+    return null;
 
   const parent = doc.getParent(models[0]);
   if (!parent) {

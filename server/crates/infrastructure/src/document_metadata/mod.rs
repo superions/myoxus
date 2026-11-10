@@ -717,29 +717,15 @@ async fn load_projection_version(
   }))
 }
 
-#[async_trait]
-impl DocumentMetadataRepository for PgDocumentMetadataRepository {
-  #[instrument(skip(self), fields(%doc_id), err)]
-  async fn workspace_id_for_document(&self, doc_id: Uuid) -> RepoResult<Option<Uuid>> {
-    let row = sqlx::query("SELECT workspace_id FROM docs WHERE id = $1 AND deleted_at IS NULL")
-      .bind(doc_id)
-      .fetch_optional(&self.pool)
-      .await
-      .map_err(db_error)?;
-    Ok(row.and_then(|row| row.get::<Option<Uuid>, _>("workspace_id")))
-  }
-
-  #[instrument(skip(self), fields(%doc_id, %workspace_id), err)]
-  async fn get_projection_versioned(
-    &self,
+impl PgDocumentMetadataRepository {
+  /// Read the same effective metadata projection inside the caller's existing
+  /// snapshot. Capture owners must not perform a separate cached/live read.
+  #[instrument(skip(conn), fields(%doc_id, %workspace_id), err)]
+  pub(crate) async fn get_projection_versioned_in_tx(
+    conn: &mut sqlx::PgConnection,
     doc_id: Uuid,
     workspace_id: Uuid,
   ) -> RepoResult<Option<(String, DocumentMetadataProjection)>> {
-    let mut tx = self.pool.begin().await.map_err(db_error)?;
-    sqlx::query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
-      .execute(&mut *tx)
-      .await
-      .map_err(db_error)?;
     let row = sqlx::query(
       r#"
       SELECT d.id, d.workspace_id, d.created_at, d.updated_at, d.created_by, d.updated_by,
@@ -777,7 +763,7 @@ impl DocumentMetadataRepository for PgDocumentMetadataRepository {
     )
     .bind(doc_id)
     .bind(workspace_id)
-    .fetch_optional(&mut *tx)
+    .fetch_optional(&mut *conn)
     .await
     .map_err(db_error)?;
 
@@ -882,9 +868,9 @@ impl DocumentMetadataRepository for PgDocumentMetadataRepository {
         instance_id: row.get("instance_id"),
       });
 
-    let audience = load_audience(&mut *tx, doc_id).await?;
-    let policy = load_policy(&mut *tx, workspace_id).await?;
-    let Some(projection_version) = load_projection_version(&mut *tx, doc_id, workspace_id).await? else {
+    let audience = load_audience(&mut *conn, doc_id).await?;
+    let policy = load_policy(&mut *conn, workspace_id).await?;
+    let Some(projection_version) = load_projection_version(&mut *conn, doc_id, workspace_id).await? else {
       return Ok(None);
     };
     let projection = DocumentMetadataProjection {
@@ -927,8 +913,36 @@ impl DocumentMetadataRepository for PgDocumentMetadataRepository {
         }),
       policy,
     };
-    tx.commit().await.map_err(db_error)?;
     Ok(Some((projection_version, projection)))
+  }
+}
+
+#[async_trait]
+impl DocumentMetadataRepository for PgDocumentMetadataRepository {
+  #[instrument(skip(self), fields(%doc_id), err)]
+  async fn workspace_id_for_document(&self, doc_id: Uuid) -> RepoResult<Option<Uuid>> {
+    let row = sqlx::query("SELECT workspace_id FROM docs WHERE id = $1 AND deleted_at IS NULL")
+      .bind(doc_id)
+      .fetch_optional(&self.pool)
+      .await
+      .map_err(db_error)?;
+    Ok(row.and_then(|row| row.get::<Option<Uuid>, _>("workspace_id")))
+  }
+
+  #[instrument(skip(self), fields(%doc_id, %workspace_id), err)]
+  async fn get_projection_versioned(
+    &self,
+    doc_id: Uuid,
+    workspace_id: Uuid,
+  ) -> RepoResult<Option<(String, DocumentMetadataProjection)>> {
+    let mut tx = self.pool.begin().await.map_err(db_error)?;
+    sqlx::query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY")
+      .execute(&mut *tx)
+      .await
+      .map_err(db_error)?;
+    let projection = Self::get_projection_versioned_in_tx(&mut tx, doc_id, workspace_id).await?;
+    tx.commit().await.map_err(db_error)?;
+    Ok(projection)
   }
 
   #[instrument(skip(self), fields(%doc_id, %workspace_id), err)]

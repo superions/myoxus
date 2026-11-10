@@ -1,6 +1,6 @@
 formatVersion: 1
 id: myoxus.features.base
-version: 1.0.34
+version: 1.0.36
 capabilities:
   artwork: 1
   assistant: 1
@@ -127,6 +127,15 @@ components:
   - id: document.meeting-register.1.1.0
     kind: documentTemplate
     path: documents/meeting-register/1.1.0.zip
+  - id: document.meeting-focus.1.3.0
+    kind: documentTemplate
+    path: documents/meeting-focus/1.3.0.zip
+  - id: document.meeting-register.1.2.0
+    kind: documentTemplate
+    path: documents/meeting-register/1.2.0.zip
+  - id: document.daily-weekly.1.0.0
+    kind: documentTemplate
+    path: documents/daily-weekly/1.0.0.zip
   - id: artwork.context.preparation
     kind: artwork
     path: features/artwork/context-preparation.svg
@@ -587,6 +596,249 @@ components:
   - id: document.block-technical-acceptance.1.0.1
     kind: documentTemplate
     path: documents/block-technical-acceptance/1.0.1.zip
+  - id: document.agile-retro.1.5.0
+    kind: documentTemplate
+    path: documents/agile-retro/1.5.0.zip
+  - id: document.daily-weekly.1.1.0
+    kind: documentTemplate
+    path: documents/daily-weekly/1.1.0.zip
+  - id: document.meeting-focus.1.4.0
+    kind: documentTemplate
+    path: documents/meeting-focus/1.4.0.zip
+  - id: document.meeting-register.1.3.0
+    kind: documentTemplate
+    path: documents/meeting-register/1.3.0.zip
+  - id: document.agile-standup.1.5.0
+    kind: documentTemplate
+    path: documents/agile-standup/1.5.0.zip
+  - id: document.business-daily.1.4.0
+    kind: documentTemplate
+    path: documents/business-daily/1.4.0.zip
+  - id: document.eisenhower.1.4.1
+    kind: documentTemplate
+    path: documents/eisenhower/1.4.1.zip
+  - id: document.gtd-weekly-review.1.4.0
+    kind: documentTemplate
+    path: documents/gtd-weekly-review/1.4.0.zip
+  - id: document.meeting-agenda.1.5.0
+    kind: documentTemplate
+    path: documents/meeting-agenda/1.5.0.zip
+  - id: document.personal-journal.1.4.0
+    kind: documentTemplate
+    path: documents/personal-journal/1.4.0.zip
+  - id: document.time-blocking.1.4.0
+    kind: documentTemplate
+    path: documents/time-blocking/1.4.0.zip
+  - id: document.task-content-agenda.1.1.1
+    kind: documentTemplate
+    path: documents/task-content-agenda/1.1.1.zip
+  - id: document.handover.1.3.0
+    kind: documentTemplate
+    path: documents/handover/1.3.0.zip
+  - id: document.project-status.1.3.0
+    kind: documentTemplate
+    path: documents/project-status/1.3.0.zip
+  - id: document.incident-report.1.3.1
+    kind: documentTemplate
+    path: documents/incident-report/1.3.1.zip
+  - id: document.rollout-rollback.1.3.1
+    kind: documentTemplate
+    path: documents/rollout-rollback/1.3.1.zip
+  - id: document.architecture-decision.1.3.1
+    kind: documentTemplate
+    path: documents/architecture-decision/1.3.1.zip
+  - id: document.one-on-one.1.3.0
+    kind: documentTemplate
+    path: documents/one-on-one/1.3.0.zip
+  - id: document.meeting-templates-myoxus.1.5.0
+    kind: documentTemplate
+    path: documents/meeting-templates-myoxus/1.5.0.zip
+  - id: document.block-checklist.1.1.0
+    kind: documentTemplate
+    path: documents/block-checklist/1.1.0.zip
+  - id: document.block-conversation-note.1.1.0
+    kind: documentTemplate
+    path: documents/block-conversation-note/1.1.0.zip
+  - id: document.block-daci.1.1.0
+    kind: documentTemplate
+    path: documents/block-daci/1.1.0.zip
+  - id: document.block-madr-rationale.1.1.0
+    kind: documentTemplate
+    path: documents/block-madr-rationale/1.1.0.zip
+  - id: document.block-options-comparison.1.1.0
+    kind: documentTemplate
+    path: documents/block-options-comparison/1.1.0.zip
+  - id: document.block-raci-customer-service.1.1.0
+    kind: documentTemplate
+    path: documents/block-raci-customer-service/1.1.0.zip
+  - id: document.block-risk-matrix.1.1.0
+    kind: documentTemplate
+    path: documents/block-risk-matrix/1.1.0.zip
+  - id: document.block-work-package.1.1.0
+    kind: documentTemplate
+    path: documents/block-work-package/1.1.0.zip
+  - id: document.block-phone-note.1.1.0
+    kind: documentTemplate
+    path: documents/block-phone-note/1.1.0.zip
+  - id: document.block-callback.1.1.0
+    kind: documentTemplate
+    path: documents/block-callback/1.1.0.zip
+  - id: document.block-short-message.1.1.0
+    kind: documentTemplate
+    path: documents/block-short-message/1.1.0.zip
+  - id: document.block-follow-up-question.1.1.0
+    kind: documentTemplate
+    path: documents/block-follow-up-question/1.1.0.zip
+  - id: document.block-confirmation.1.1.0
+    kind: documentTemplate
+    path: documents/block-confirmation/1.1.0.zip
+  - id: document.block-agenda-item.1.1.0
+    kind: documentTemplate
+    path: documents/block-agenda-item/1.1.0.zip
+  - id: document.block-minutes-item.1.1.0
+    kind: documentTemplate
+    path: documents/block-minutes-item/1.1.0.zip
+  - id: document.block-meeting-close.1.1.0
+    kind: documentTemplate
+    path: documents/block-meeting-close/1.1.0.zip
+  - id: document.block-next-meeting.1.1.0
+    kind: documentTemplate
+    path: documents/block-next-meeting/1.1.0.zip
+  - id: document.block-standup.1.1.0
+    kind: documentTemplate
+    path: documents/block-standup/1.1.0.zip
+  - id: document.block-retro-prompt.1.1.0
+    kind: documentTemplate
+    path: documents/block-retro-prompt/1.1.0.zip
+  - id: document.block-decision.1.1.0
+    kind: documentTemplate
+    path: documents/block-decision/1.1.0.zip
+  - id: document.block-decision-brief.1.1.0
+    kind: documentTemplate
+    path: documents/block-decision-brief/1.1.0.zip
+  - id: document.block-selection-must.1.1.0
+    kind: documentTemplate
+    path: documents/block-selection-must/1.1.0.zip
+  - id: document.block-selection-weighted.1.1.0
+    kind: documentTemplate
+    path: documents/block-selection-weighted/1.1.0.zip
+  - id: document.block-selection-pairwise.1.1.0
+    kind: documentTemplate
+    path: documents/block-selection-pairwise/1.1.0.zip
+  - id: document.block-risk.1.1.0
+    kind: documentTemplate
+    path: documents/block-risk/1.1.0.zip
+  - id: document.block-assumption.1.1.0
+    kind: documentTemplate
+    path: documents/block-assumption/1.1.0.zip
+  - id: document.block-open-question.1.1.0
+    kind: documentTemplate
+    path: documents/block-open-question/1.1.0.zip
+  - id: document.block-project-brief.1.1.0
+    kind: documentTemplate
+    path: documents/block-project-brief/1.1.0.zip
+  - id: document.block-milestone.1.1.0
+    kind: documentTemplate
+    path: documents/block-milestone/1.1.0.zip
+  - id: document.block-status-update.1.1.0
+    kind: documentTemplate
+    path: documents/block-status-update/1.1.0.zip
+  - id: document.block-change-request.1.1.0
+    kind: documentTemplate
+    path: documents/block-change-request/1.1.0.zip
+  - id: document.block-dependency.1.1.0
+    kind: documentTemplate
+    path: documents/block-dependency/1.1.0.zip
+  - id: document.block-check-record.1.1.0
+    kind: documentTemplate
+    path: documents/block-check-record/1.1.0.zip
+  - id: document.block-deviation.1.1.0
+    kind: documentTemplate
+    path: documents/block-deviation/1.1.0.zip
+  - id: document.block-corrective-action.1.1.0
+    kind: documentTemplate
+    path: documents/block-corrective-action/1.1.0.zip
+  - id: document.block-approval-record.1.1.0
+    kind: documentTemplate
+    path: documents/block-approval-record/1.1.0.zip
+  - id: document.block-peer-check.1.1.0
+    kind: documentTemplate
+    path: documents/block-peer-check/1.1.0.zip
+  - id: document.block-incident.1.1.0
+    kind: documentTemplate
+    path: documents/block-incident/1.1.0.zip
+  - id: document.block-event-log.1.1.0
+    kind: documentTemplate
+    path: documents/block-event-log/1.1.0.zip
+  - id: document.block-immediate-action.1.1.0
+    kind: documentTemplate
+    path: documents/block-immediate-action/1.1.0.zip
+  - id: document.block-cause-analysis.1.1.0
+    kind: documentTemplate
+    path: documents/block-cause-analysis/1.1.0.zip
+  - id: document.block-recovery-check.1.1.0
+    kind: documentTemplate
+    path: documents/block-recovery-check/1.1.0.zip
+  - id: document.block-post-incident-review.1.1.0
+    kind: documentTemplate
+    path: documents/block-post-incident-review/1.1.0.zip
+  - id: document.block-how-to.1.1.0
+    kind: documentTemplate
+    path: documents/block-how-to/1.1.0.zip
+  - id: document.block-process-step.1.1.0
+    kind: documentTemplate
+    path: documents/block-process-step/1.1.0.zip
+  - id: document.block-definition.1.1.0
+    kind: documentTemplate
+    path: documents/block-definition/1.1.0.zip
+  - id: document.block-faq.1.1.0
+    kind: documentTemplate
+    path: documents/block-faq/1.1.0.zip
+  - id: document.block-source-note.1.1.0
+    kind: documentTemplate
+    path: documents/block-source-note/1.1.0.zip
+  - id: document.block-change-note.1.1.0
+    kind: documentTemplate
+    path: documents/block-change-note/1.1.0.zip
+  - id: document.block-daily-focus.1.1.0
+    kind: documentTemplate
+    path: documents/block-daily-focus/1.1.0.zip
+  - id: document.block-weekly-review.1.1.0
+    kind: documentTemplate
+    path: documents/block-weekly-review/1.1.0.zip
+  - id: document.block-handover.1.1.0
+    kind: documentTemplate
+    path: documents/block-handover/1.1.0.zip
+  - id: document.block-follow-up.1.1.0
+    kind: documentTemplate
+    path: documents/block-follow-up/1.1.0.zip
+  - id: document.block-conversation-prep.1.1.0
+    kind: documentTemplate
+    path: documents/block-conversation-prep/1.1.0.zip
+  - id: document.block-note-close.1.1.0
+    kind: documentTemplate
+    path: documents/block-note-close/1.1.0.zip
+  - id: document.block-raci.1.1.0
+    kind: documentTemplate
+    path: documents/block-raci/1.1.0.zip
+  - id: document.block-technical-profile.1.1.0
+    kind: documentTemplate
+    path: documents/block-technical-profile/1.1.0.zip
+  - id: document.block-architecture-comparison.1.1.0
+    kind: documentTemplate
+    path: documents/block-architecture-comparison/1.1.0.zip
+  - id: document.block-interface-contract.1.1.0
+    kind: documentTemplate
+    path: documents/block-interface-contract/1.1.0.zip
+  - id: document.block-rollout-steps.1.1.0
+    kind: documentTemplate
+    path: documents/block-rollout-steps/1.1.0.zip
+  - id: document.block-rollback-steps.1.1.0
+    kind: documentTemplate
+    path: documents/block-rollback-steps/1.1.0.zip
+  - id: document.block-technical-acceptance.1.1.0
+    kind: documentTemplate
+    path: documents/block-technical-acceptance/1.1.0.zip
 links:
   - kind: taskCore
     from:
@@ -1224,8 +1476,8 @@ links:
     to:
       scope: local
       reference:
-        component: document.task-content-agenda.1.0.0
-        export: task-content-agenda@1.0.0
+        component: document.task-content-agenda.1.1.1
+        export: task-content-agenda@1.1.1
   - kind: input
     from:
       component: assistants
@@ -2587,44 +2839,62 @@ exports:
       export: myoxus.project.task-core@1.0.1
   - id: document.agile-retro
     source:
-      component: document.agile-retro.1.4.0
-      export: agile-retro@1.4.0
+      component: document.agile-retro.1.5.0
+      export: agile-retro@1.5.0
     document:
       newWorkspaceDefault: false
+  - id: document.daily-weekly
+    source:
+      component: document.daily-weekly.1.1.0
+      export: daily-weekly@1.1.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.meeting-focus
+    source:
+      component: document.meeting-focus.1.4.0
+      export: meeting-focus@1.4.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.meeting-register
+    source:
+      component: document.meeting-register.1.3.0
+      export: meeting-register@1.3.0
+    document:
+      newWorkspaceDefault: true
   - id: document.agile-standup
     source:
-      component: document.agile-standup.1.4.0
-      export: agile-standup@1.4.0
+      component: document.agile-standup.1.5.0
+      export: agile-standup@1.5.0
     document:
       newWorkspaceDefault: false
   - id: document.business-daily
     source:
-      component: document.business-daily.1.3.0
-      export: business-daily@1.3.0
+      component: document.business-daily.1.4.0
+      export: business-daily@1.4.0
     document:
       newWorkspaceDefault: true
   - id: document.eisenhower
     source:
-      component: document.eisenhower.1.3.0
-      export: eisenhower@1.3.0
+      component: document.eisenhower.1.4.1
+      export: eisenhower@1.4.1
     document:
       newWorkspaceDefault: false
   - id: document.gtd-weekly-review
     source:
-      component: document.gtd-weekly-review.1.3.0
-      export: gtd-weekly-review@1.3.0
+      component: document.gtd-weekly-review.1.4.0
+      export: gtd-weekly-review@1.4.0
     document:
       newWorkspaceDefault: false
   - id: document.meeting-agenda
     source:
-      component: document.meeting-agenda.1.4.0
-      export: meeting-agenda@1.4.0
+      component: document.meeting-agenda.1.5.0
+      export: meeting-agenda@1.5.0
     document:
       newWorkspaceDefault: true
   - id: document.personal-journal
     source:
-      component: document.personal-journal.1.3.0
-      export: personal-journal@1.3.0
+      component: document.personal-journal.1.4.0
+      export: personal-journal@1.4.0
     document:
       newWorkspaceDefault: false
   - id: document.project-brief
@@ -2635,8 +2905,8 @@ exports:
       newWorkspaceDefault: false
   - id: document.time-blocking
     source:
-      component: document.time-blocking.1.3.0
-      export: time-blocking@1.3.0
+      component: document.time-blocking.1.4.0
+      export: time-blocking@1.4.0
     document:
       newWorkspaceDefault: false
   - id: artwork.project.simple-project
@@ -2735,8 +3005,8 @@ exports:
       export: artwork.task-content-preparation
   - id: document.task-content-agenda
     source:
-      component: document.task-content-agenda.1.0.0
-      export: task-content-agenda@1.0.0
+      component: document.task-content-agenda.1.1.1
+      export: task-content-agenda@1.1.1
     document:
       newWorkspaceDefault: false
   - id: artwork.assistant-fresh-start
@@ -2815,38 +3085,38 @@ exports:
       export: myoxus.workflow.workspace_team_wiki@1.0.0
   - id: document.handover
     source:
-      component: document.handover.1.2.0
-      export: handover@1.2.0
+      component: document.handover.1.3.0
+      export: handover@1.3.0
     document:
       newWorkspaceDefault: false
   - id: document.project-status
     source:
-      component: document.project-status.1.2.0
-      export: project-status@1.2.0
+      component: document.project-status.1.3.0
+      export: project-status@1.3.0
     document:
       newWorkspaceDefault: false
   - id: document.incident-report
     source:
-      component: document.incident-report.1.2.0
-      export: incident-report@1.2.0
+      component: document.incident-report.1.3.1
+      export: incident-report@1.3.1
     document:
       newWorkspaceDefault: false
   - id: document.rollout-rollback
     source:
-      component: document.rollout-rollback.1.2.0
-      export: rollout-rollback@1.2.0
+      component: document.rollout-rollback.1.3.1
+      export: rollout-rollback@1.3.1
     document:
       newWorkspaceDefault: false
   - id: document.architecture-decision
     source:
-      component: document.architecture-decision.1.2.0
-      export: architecture-decision@1.2.0
+      component: document.architecture-decision.1.3.1
+      export: architecture-decision@1.3.1
     document:
       newWorkspaceDefault: false
   - id: document.one-on-one
     source:
-      component: document.one-on-one.1.2.0
-      export: one-on-one@1.2.0
+      component: document.one-on-one.1.3.0
+      export: one-on-one@1.3.0
     document:
       newWorkspaceDefault: false
   - id: document.welcome-myoxus
@@ -2881,8 +3151,8 @@ exports:
       newWorkspaceDefault: true
   - id: document.meeting-templates-myoxus
     source:
-      component: document.meeting-templates-myoxus.1.4.0
-      export: meeting-templates-myoxus@1.4.0
+      component: document.meeting-templates-myoxus.1.5.0
+      export: meeting-templates-myoxus@1.5.0
     document:
       newWorkspaceDefault: true
   - id: document.databases-guide-myoxus
@@ -2899,373 +3169,373 @@ exports:
       newWorkspaceDefault: true
   - id: document.block-checklist
     source:
-      component: document.block-checklist.1.0.1
-      export: block-checklist@1.0.1
+      component: document.block-checklist.1.1.0
+      export: block-checklist@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-conversation-note
     source:
-      component: document.block-conversation-note.1.0.0
-      export: block-conversation-note@1.0.0
+      component: document.block-conversation-note.1.1.0
+      export: block-conversation-note@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-daci
     source:
-      component: document.block-daci.1.0.0
-      export: block-daci@1.0.0
+      component: document.block-daci.1.1.0
+      export: block-daci@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-madr-rationale
     source:
-      component: document.block-madr-rationale.1.0.1
-      export: block-madr-rationale@1.0.1
+      component: document.block-madr-rationale.1.1.0
+      export: block-madr-rationale@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-options-comparison
     source:
-      component: document.block-options-comparison.1.0.0
-      export: block-options-comparison@1.0.0
+      component: document.block-options-comparison.1.1.0
+      export: block-options-comparison@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-raci-customer-service
     source:
-      component: document.block-raci-customer-service.1.0.0
-      export: block-raci-customer-service@1.0.0
+      component: document.block-raci-customer-service.1.1.0
+      export: block-raci-customer-service@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-risk-matrix
     source:
-      component: document.block-risk-matrix.1.0.0
-      export: block-risk-matrix@1.0.0
+      component: document.block-risk-matrix.1.1.0
+      export: block-risk-matrix@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-work-package
     source:
-      component: document.block-work-package.1.0.1
-      export: block-work-package@1.0.1
+      component: document.block-work-package.1.1.0
+      export: block-work-package@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-phone-note
     source:
-      component: document.block-phone-note.1.0.0
-      export: block-phone-note@1.0.0
+      component: document.block-phone-note.1.1.0
+      export: block-phone-note@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-callback
     source:
-      component: document.block-callback.1.0.0
-      export: block-callback@1.0.0
+      component: document.block-callback.1.1.0
+      export: block-callback@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-short-message
     source:
-      component: document.block-short-message.1.0.1
-      export: block-short-message@1.0.1
+      component: document.block-short-message.1.1.0
+      export: block-short-message@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-follow-up-question
     source:
-      component: document.block-follow-up-question.1.0.1
-      export: block-follow-up-question@1.0.1
+      component: document.block-follow-up-question.1.1.0
+      export: block-follow-up-question@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-confirmation
     source:
-      component: document.block-confirmation.1.0.1
-      export: block-confirmation@1.0.1
+      component: document.block-confirmation.1.1.0
+      export: block-confirmation@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-agenda-item
     source:
-      component: document.block-agenda-item.1.0.0
-      export: block-agenda-item@1.0.0
+      component: document.block-agenda-item.1.1.0
+      export: block-agenda-item@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-minutes-item
     source:
-      component: document.block-minutes-item.1.0.0
-      export: block-minutes-item@1.0.0
+      component: document.block-minutes-item.1.1.0
+      export: block-minutes-item@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-meeting-close
     source:
-      component: document.block-meeting-close.1.0.0
-      export: block-meeting-close@1.0.0
+      component: document.block-meeting-close.1.1.0
+      export: block-meeting-close@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-next-meeting
     source:
-      component: document.block-next-meeting.1.0.0
-      export: block-next-meeting@1.0.0
+      component: document.block-next-meeting.1.1.0
+      export: block-next-meeting@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-standup
     source:
-      component: document.block-standup.1.0.0
-      export: block-standup@1.0.0
+      component: document.block-standup.1.1.0
+      export: block-standup@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-retro-prompt
     source:
-      component: document.block-retro-prompt.1.0.0
-      export: block-retro-prompt@1.0.0
+      component: document.block-retro-prompt.1.1.0
+      export: block-retro-prompt@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-decision
     source:
-      component: document.block-decision.1.0.2
-      export: block-decision@1.0.2
+      component: document.block-decision.1.1.0
+      export: block-decision@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-decision-brief
     source:
-      component: document.block-decision-brief.1.0.1
-      export: block-decision-brief@1.0.1
+      component: document.block-decision-brief.1.1.0
+      export: block-decision-brief@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-selection-must
     source:
-      component: document.block-selection-must.1.0.0
-      export: block-selection-must@1.0.0
+      component: document.block-selection-must.1.1.0
+      export: block-selection-must@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-selection-weighted
     source:
-      component: document.block-selection-weighted.1.0.0
-      export: block-selection-weighted@1.0.0
+      component: document.block-selection-weighted.1.1.0
+      export: block-selection-weighted@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-selection-pairwise
     source:
-      component: document.block-selection-pairwise.1.0.0
-      export: block-selection-pairwise@1.0.0
+      component: document.block-selection-pairwise.1.1.0
+      export: block-selection-pairwise@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-risk
     source:
-      component: document.block-risk.1.0.0
-      export: block-risk@1.0.0
+      component: document.block-risk.1.1.0
+      export: block-risk@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-assumption
     source:
-      component: document.block-assumption.1.0.0
-      export: block-assumption@1.0.0
+      component: document.block-assumption.1.1.0
+      export: block-assumption@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-open-question
     source:
-      component: document.block-open-question.1.0.1
-      export: block-open-question@1.0.1
+      component: document.block-open-question.1.1.0
+      export: block-open-question@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-project-brief
     source:
-      component: document.block-project-brief.1.0.0
-      export: block-project-brief@1.0.0
+      component: document.block-project-brief.1.1.0
+      export: block-project-brief@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-milestone
     source:
-      component: document.block-milestone.1.0.0
-      export: block-milestone@1.0.0
+      component: document.block-milestone.1.1.0
+      export: block-milestone@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-status-update
     source:
-      component: document.block-status-update.1.0.0
-      export: block-status-update@1.0.0
+      component: document.block-status-update.1.1.0
+      export: block-status-update@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-change-request
     source:
-      component: document.block-change-request.1.0.0
-      export: block-change-request@1.0.0
+      component: document.block-change-request.1.1.0
+      export: block-change-request@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-dependency
     source:
-      component: document.block-dependency.1.0.0
-      export: block-dependency@1.0.0
+      component: document.block-dependency.1.1.0
+      export: block-dependency@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-check-record
     source:
-      component: document.block-check-record.1.0.0
-      export: block-check-record@1.0.0
+      component: document.block-check-record.1.1.0
+      export: block-check-record@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-deviation
     source:
-      component: document.block-deviation.1.0.0
-      export: block-deviation@1.0.0
+      component: document.block-deviation.1.1.0
+      export: block-deviation@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-corrective-action
     source:
-      component: document.block-corrective-action.1.0.0
-      export: block-corrective-action@1.0.0
+      component: document.block-corrective-action.1.1.0
+      export: block-corrective-action@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-approval-record
     source:
-      component: document.block-approval-record.1.0.0
-      export: block-approval-record@1.0.0
+      component: document.block-approval-record.1.1.0
+      export: block-approval-record@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-peer-check
     source:
-      component: document.block-peer-check.1.0.0
-      export: block-peer-check@1.0.0
+      component: document.block-peer-check.1.1.0
+      export: block-peer-check@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-incident
     source:
-      component: document.block-incident.1.0.1
-      export: block-incident@1.0.1
+      component: document.block-incident.1.1.0
+      export: block-incident@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-event-log
     source:
-      component: document.block-event-log.1.0.0
-      export: block-event-log@1.0.0
+      component: document.block-event-log.1.1.0
+      export: block-event-log@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-immediate-action
     source:
-      component: document.block-immediate-action.1.0.1
-      export: block-immediate-action@1.0.1
+      component: document.block-immediate-action.1.1.0
+      export: block-immediate-action@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-cause-analysis
     source:
-      component: document.block-cause-analysis.1.0.0
-      export: block-cause-analysis@1.0.0
+      component: document.block-cause-analysis.1.1.0
+      export: block-cause-analysis@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-recovery-check
     source:
-      component: document.block-recovery-check.1.0.1
-      export: block-recovery-check@1.0.1
+      component: document.block-recovery-check.1.1.0
+      export: block-recovery-check@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-post-incident-review
     source:
-      component: document.block-post-incident-review.1.0.1
-      export: block-post-incident-review@1.0.1
+      component: document.block-post-incident-review.1.1.0
+      export: block-post-incident-review@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-how-to
     source:
-      component: document.block-how-to.1.0.1
-      export: block-how-to@1.0.1
+      component: document.block-how-to.1.1.0
+      export: block-how-to@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-process-step
     source:
-      component: document.block-process-step.1.0.0
-      export: block-process-step@1.0.0
+      component: document.block-process-step.1.1.0
+      export: block-process-step@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-definition
     source:
-      component: document.block-definition.1.0.1
-      export: block-definition@1.0.1
+      component: document.block-definition.1.1.0
+      export: block-definition@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-faq
     source:
-      component: document.block-faq.1.0.1
-      export: block-faq@1.0.1
+      component: document.block-faq.1.1.0
+      export: block-faq@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-source-note
     source:
-      component: document.block-source-note.1.0.0
-      export: block-source-note@1.0.0
+      component: document.block-source-note.1.1.0
+      export: block-source-note@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-change-note
     source:
-      component: document.block-change-note.1.0.0
-      export: block-change-note@1.0.0
+      component: document.block-change-note.1.1.0
+      export: block-change-note@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-daily-focus
     source:
-      component: document.block-daily-focus.1.0.1
-      export: block-daily-focus@1.0.1
+      component: document.block-daily-focus.1.1.0
+      export: block-daily-focus@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-weekly-review
     source:
-      component: document.block-weekly-review.1.0.0
-      export: block-weekly-review@1.0.0
+      component: document.block-weekly-review.1.1.0
+      export: block-weekly-review@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-handover
     source:
-      component: document.block-handover.1.0.1
-      export: block-handover@1.0.1
+      component: document.block-handover.1.1.0
+      export: block-handover@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-follow-up
     source:
-      component: document.block-follow-up.1.0.1
-      export: block-follow-up@1.0.1
+      component: document.block-follow-up.1.1.0
+      export: block-follow-up@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-conversation-prep
     source:
-      component: document.block-conversation-prep.1.0.1
-      export: block-conversation-prep@1.0.1
+      component: document.block-conversation-prep.1.1.0
+      export: block-conversation-prep@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-note-close
     source:
-      component: document.block-note-close.1.0.1
-      export: block-note-close@1.0.1
+      component: document.block-note-close.1.1.0
+      export: block-note-close@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-raci
     source:
-      component: document.block-raci.1.0.0
-      export: block-raci@1.0.0
+      component: document.block-raci.1.1.0
+      export: block-raci@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-technical-profile
     source:
-      component: document.block-technical-profile.1.0.0
-      export: block-technical-profile@1.0.0
+      component: document.block-technical-profile.1.1.0
+      export: block-technical-profile@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-architecture-comparison
     source:
-      component: document.block-architecture-comparison.1.0.2
-      export: block-architecture-comparison@1.0.2
+      component: document.block-architecture-comparison.1.1.0
+      export: block-architecture-comparison@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-interface-contract
     source:
-      component: document.block-interface-contract.1.0.0
-      export: block-interface-contract@1.0.0
+      component: document.block-interface-contract.1.1.0
+      export: block-interface-contract@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-rollout-steps
     source:
-      component: document.block-rollout-steps.1.0.1
-      export: block-rollout-steps@1.0.1
+      component: document.block-rollout-steps.1.1.0
+      export: block-rollout-steps@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-rollback-steps
     source:
-      component: document.block-rollback-steps.1.0.1
-      export: block-rollback-steps@1.0.1
+      component: document.block-rollback-steps.1.1.0
+      export: block-rollback-steps@1.1.0
     document:
       newWorkspaceDefault: true
   - id: document.block-technical-acceptance
     source:
-      component: document.block-technical-acceptance.1.0.1
-      export: block-technical-acceptance@1.0.1
+      component: document.block-technical-acceptance.1.1.0
+      export: block-technical-acceptance@1.1.0
     document:
       newWorkspaceDefault: true

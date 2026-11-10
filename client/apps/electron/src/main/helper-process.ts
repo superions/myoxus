@@ -73,7 +73,11 @@ class HelperProcessManager {
           HelperProcessManager._instance = null;
         reject(error);
       };
-      helperProcess.once("error", fail);
+      // UtilityProcess emits a fatal-error type, not a Node child-process Error.
+      // Do not retain its diagnostic report, which can contain process secrets.
+      helperProcess.once("error", (type) =>
+        fail(new Error(`Helper failed before startup (${type})`)),
+      );
       helperProcess.once("exit", (code) =>
         fail(new Error(`Helper exited before startup (${code})`)),
       );

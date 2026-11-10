@@ -29,7 +29,7 @@ export const FrameZodSchema = z
   .object({
     background: ColorSchema,
   })
-  .default({
+  .prefault({
     background: DefaultTheme.transparent,
   });
 

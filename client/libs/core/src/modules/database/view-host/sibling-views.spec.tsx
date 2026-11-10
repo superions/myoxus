@@ -315,9 +315,11 @@ describe("Database sibling view dispatch", () => {
   });
 
   test("Calendar renders only dated rows as Mantine schedule events and opens the shared Detail Peek", async () => {
+    const onScheduleDateChange = vi.fn();
     renderDatabaseViewHost({
       activeViewId: calendarView.id,
       layout: "page",
+      onScheduleDateChange,
       record: { ...p9gRecord, views: [calendarView] },
       rows: p9gRows,
       scheduleDate: "2026-07-11",
@@ -326,6 +328,8 @@ describe("Database sibling view dispatch", () => {
     expect(surface.getByTestId("database-calendar-schedule")).not.toBeNull();
     const event = surface.getByRole("button", { name: "Initial task" });
     expect(surface.queryByText("Restricted task")).toBeNull();
+    fireEvent.click(surface.getByRole("button", { name: "Next" }));
+    expect(onScheduleDateChange).toHaveBeenCalledWith("2026-08-01");
     fireEvent.click(event);
     expect(
       await screen.findByTestId("database-row-detail-peek"),

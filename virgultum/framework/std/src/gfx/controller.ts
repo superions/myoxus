@@ -35,7 +35,9 @@ export class GfxController extends LifeCycleWatcher {
 
   private readonly _disposables: DisposableGroup = new DisposableGroup();
 
-  private readonly _surface$ = new Signal<SurfaceBlockModel | null>(null);
+  private readonly _surface$ = new Signal<SurfaceBlockModel | null>(null, {
+    name: "editor.surface.current",
+  });
 
   /**
    * Resolver that returns the current editor mode
@@ -56,7 +58,9 @@ export class GfxController extends LifeCycleWatcher {
   private _modeResolver: (() => "page" | "edgeless" | null | undefined) | null =
     null;
 
-  readonly cursor$ = new Signal<CursorType>();
+  readonly cursor$ = new Signal<CursorType>(undefined, {
+    name: "editor.cursor",
+  });
 
   readonly keyboard: KeyboardController;
 

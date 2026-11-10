@@ -6,7 +6,11 @@ import {
 } from "@virgultum/store";
 
 import type { TextAlign } from "../../consts";
-import type { BlockMeta, TemplateRepeatBinding } from "../../utils/types";
+import type {
+  BlockMeta,
+  TemplateRepeatBinding,
+  TextProtection,
+} from "../../utils/types";
 
 // `toggle` type has been deprecated, do not use it
 export type ListType = "bulleted" | "numbered" | "todo" | "toggle";
@@ -14,6 +18,7 @@ export type ListType = "bulleted" | "numbered" | "todo" | "toggle";
 export type ListProps = {
   type: ListType;
   text: Text;
+  textProtection?: TextProtection;
   textAlign?: TextAlign;
   checked: boolean;
   collapsed: boolean;
@@ -30,6 +35,7 @@ export const ListBlockSchema = defineBlockSchema({
     ({
       type: "bulleted",
       text: internal.Text(),
+      textProtection: undefined,
       textAlign: undefined,
       checked: false,
       collapsed: false,

@@ -170,7 +170,11 @@ export function SelectionActions({
             <Menu
               key={action.id}
               noPortal
-              rootOptions={{ onOpen: c.onOpen, onClose: c.onClose }}
+              rootOptions={{
+                onOpen: c.onOpen,
+                onClose: c.onClose,
+                clickOutsideEvents: ["click"],
+              }}
               items={
                 <>
                   <MenuSectionLabel>{action.label}</MenuSectionLabel>

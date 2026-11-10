@@ -37,13 +37,16 @@ export class BlockComponent<
   @consume({ context: stdContext })
   accessor std!: BlockStdScope;
 
-  selected$ = computed(() => {
-    const selection = this.std.selection.value.find(
-      (selection) => selection.blockId === this.model?.id,
-    );
-    if (!selection) return false;
-    return selection.is(BlockSelection);
-  });
+  selected$ = computed(
+    () => {
+      const selection = this.std.selection.value.find(
+        (selection) => selection.blockId === this.model?.id,
+      );
+      if (!selection) return false;
+      return selection.is(BlockSelection);
+    },
+    { name: "editor.block.selected" },
+  );
 
   [blockComponentSymbol] = true;
 

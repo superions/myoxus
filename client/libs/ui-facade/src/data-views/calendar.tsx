@@ -46,6 +46,7 @@ export interface DatabaseCalendarViewProps {
   events: DatabaseScheduleEvent[];
   labels?: ScheduleLabelsOverride;
   locale?: string;
+  /** Reports the selected local calendar day as YYYY-MM-DD. */
   onDateChange?: (date: string) => void;
   onEventSelect?: (event: DatabaseScheduleEvent) => void;
   onViewChange?: (view: ScheduleViewLevel) => void;
@@ -111,7 +112,11 @@ export function DatabaseCalendarView({
         mobileMonthViewProps={{ firstDayOfWeek }}
         mode={onEventSelect ? "default" : "static"}
         monthViewProps={{ firstDayOfWeek }}
-        onDateChange={onDateChange}
+        onDateChange={
+          onDateChange
+            ? (nextDate) => onDateChange(nextDate.slice(0, 10))
+            : undefined
+        }
         onEventClick={(event) => {
           const payload = event.payload as DatabaseScheduleEvent | undefined;
           if (payload) onEventSelect?.(payload);

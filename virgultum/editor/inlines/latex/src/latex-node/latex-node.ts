@@ -5,7 +5,7 @@ import {
   type EditorI18nMessage,
 } from "@virgultum/shared/services";
 import { signal } from "@preact/signals-core";
-import { createLitPortal } from "@virgultum/components/portal";
+import { openEquationEditor } from "./equation-session";
 import { SignalWatcher, WithDisposable } from "@virgultum/global/lit";
 import { unsafeCSSVar } from "@virgultum/shared/theme";
 import type { MyoxusTextAttributes } from "@virgultum/shared/types";
@@ -21,7 +21,7 @@ import {
 } from "@virgultum/std/inline";
 import type { DeltaInsert } from "@virgultum/store";
 import katex from "katex";
-import { css, html, render } from "lit";
+import { css, html, render, type PropertyValues } from "lit";
 import { property } from "lit/decorators.js";
 
 export class MyoxusLatexNode extends SignalWatcher(
@@ -98,43 +98,17 @@ export class MyoxusLatexNode extends SignalWatcher(
 
   private _editorAbortController: AbortController | null = null;
 
-  readonly latex$ = signal("");
-
   readonly latexEditorSignal = signal("");
 
   get deltaLatex() {
-    return this.delta.attributes?.latex as string;
-  }
-
-  get latexContainer() {
-    return this.querySelector<HTMLElement>(".latex-container");
+    return this.delta.attributes?.latex ?? "";
   }
 
   override connectedCallback() {
     const result = super.connectedCallback();
 
-    this.latex$.value = this.deltaLatex;
     this.latexEditorSignal.value = this.deltaLatex;
 
-    this.disposables.add(
-      this.latex$.subscribe((latex) => {
-        this.latexEditorSignal.value = latex;
-        if (latex !== this.deltaLatex) {
-          this.editor.formatText(
-            {
-              index: this.startOffset,
-              length: this.endOffset - this.startOffset,
-            },
-            {
-              latex,
-            },
-          );
-        }
-      }),
-    );
-
-    this._editorAbortController?.abort();
-    this._editorAbortController = new AbortController();
     this.disposables.add(() => {
       this._editorAbortController?.abort();
     });
@@ -151,8 +125,20 @@ export class MyoxusLatexNode extends SignalWatcher(
     return result;
   }
 
+  override willUpdate(changed: PropertyValues<this>) {
+    super.willUpdate(changed);
+    if (
+      changed.has("delta") &&
+      changed.get("delta")?.attributes?.latex !== this.deltaLatex
+    ) {
+      // Undo and remote edits replace the committed source, never write an obsolete draft back.
+      this._editorAbortController?.abort();
+      this.latexEditorSignal.value = this.deltaLatex;
+    }
+  }
+
   override updated() {
-    const latexContainer = this.latexContainer;
+    const latexContainer = this.querySelector<HTMLElement>(".latex-container");
     if (!latexContainer) return;
     const latex = this.latexEditorSignal.value;
     latexContainer.replaceChildren();
@@ -195,53 +181,40 @@ export class MyoxusLatexNode extends SignalWatcher(
 
     this._editorAbortController?.abort();
     this._editorAbortController = new AbortController();
+    const originalLatex = this.deltaLatex;
 
     blockComponent.selection.setGroup("note", []);
 
-    const { portal } = createLitPortal({
-      template: html`<latex-editor-menu
-        .std=${this.std}
-        .latexSignal=${this.latexEditorSignal}
-        .abortController=${this._editorAbortController}
-      ></latex-editor-menu>`,
-      container: blockComponent.host,
-      computePosition: {
-        referenceElement: this,
-        placement: "bottom-start",
-        autoUpdate: {
-          animationFrame: true,
-        },
-      },
-      closeOnClickAway: true,
-      abortController: this._editorAbortController,
-      shadowDom: false,
-      portalStyles: {
-        zIndex: "var(--myoxus-z-index-popover)",
-      },
-    });
+    openEquationEditor(
+      this.std,
+      this,
+      this.latexEditorSignal,
+      this._editorAbortController,
+    );
 
     this._editorAbortController.signal.addEventListener(
       "abort",
       () => {
-        portal.remove();
+        if (
+          !this.isConnected ||
+          this.readonly ||
+          this.deltaLatex !== originalLatex
+        ) {
+          this.latexEditorSignal.value = this.deltaLatex;
+          return;
+        }
         const latex = this.latexEditorSignal.peek();
-        this.latex$.value = latex;
-
         if (latex !== this.deltaLatex) {
           this.editor.formatText(
             {
               index: this.startOffset,
               length: this.endOffset - this.startOffset,
             },
-            {
-              latex,
-            },
+            { latex },
           );
-          this.editor.setInlineRange({
-            index: this.endOffset,
-            length: 0,
-          });
         }
+        this.std.store.captureSync();
+        this.editor.setInlineRange({ index: this.endOffset, length: 0 });
       },
       { once: true },
     );

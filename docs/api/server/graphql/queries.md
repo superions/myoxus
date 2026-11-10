@@ -32,6 +32,9 @@ This page lists the compiled schema definitions for this section. Use the type l
 | `commentThreads`<br>\[[CommentType](./objects.md#commenttype)!\]! | `docId`: `String`!<br>`filter`: [CommentThreadFilter](./enums.md#commentthreadfilter)<br>`skip`: `Int`<br>`take`: `Int`<br>`workspaceId`: `String`! |
 | `currentUser`<br>[UserType](./objects.md#usertype) |  |
 | `documentBrandingProfile`<br>[DocumentBrandingProfile](./objects.md#documentbrandingprofile)! | `workspaceId`: `ID`!<br><br>Workspace document-branding profile (audit fields stripped). Members-only. |
+| `documentFieldCatalog`<br>[DocumentFieldCatalogType](./objects.md#documentfieldcatalogtype)! |  |
+| `documentFieldOutput`<br>\[`String`!\]! | `docId`: `ID`!<br>`fields`: [JSON](./scalars.md#json)!<br>`workspaceId`: `ID`! |
+| `documentFieldPresentations`<br>\[[DocumentFieldPresentationType](./objects.md#documentfieldpresentationtype)!\]! | `docId`: `ID`!<br>`fields`: [JSON](./scalars.md#json)!<br>`workspaceId`: `ID`! |
 | `documentHistoryRevision`<br>`String`! | `docId`: `ID`!<br>`workspaceId`: `ID`!<br><br>Read the committed content revision used to confirm a history restore. |
 | `documentMetadata`<br>[DocumentMetadataType](./objects.md#documentmetadatatype)! | `docId`: `ID`!<br>`requestedProjectionMode`: [DocumentMetadataProjectionModeType](./enums.md#documentmetadataprojectionmodetype)<br>`workspaceId`: `ID`! |
 | `documentMetadataFieldDefinitions`<br>\[[DocumentMetadataFieldDefinitionType](./objects.md#documentmetadatafielddefinitiontype)!\]! |  |

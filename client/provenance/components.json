@@ -14,6 +14,9 @@
       "client/libs/graphql/src/graphql/calendar/control-workspace-event-recurrence.gql",
       "client/libs/graphql/src/graphql/calendar/recurrence.gql",
       "client/libs/graphql/src/graphql/calendar/workspace-calendar-series.gql",
+      "client/libs/graphql/src/graphql/document-field-catalog.gql",
+      "client/libs/graphql/src/graphql/document-field-output.gql",
+      "client/libs/graphql/src/graphql/document-field-presentations.gql",
       "client/libs/graphql/src/graphql/document-review-planning.gql",
       "client/libs/graphql/src/graphql/recurrence.gql",
       "client/web/workspaces/web/src/runtime-theme-surface.spec.tsx"
@@ -37,8 +40,8 @@
         "client/apps/electron",
         "client/apps/electron-renderer"
       ],
-      "pathCount": 5141,
-      "pathSha256": "7e23565cb728106f14c5bbf5505388dc06abdf223a00cd31700f7986144f3af9"
+      "pathCount": 5487,
+      "pathSha256": "e31011c030bcd5de926481ecc08d17d1a45fc9098096746d4972c60a9959aaef"
     },
     "bundledAssets": {
       "extensions": [
@@ -2304,8 +2307,8 @@
         "client/apps/electron/src/main/server-routing.ts",
         "client/apps/electron/src/main/type.ts",
         "client/apps/electron/src/main/ui/bookmark-data.ts",
-        "client/apps/electron/src/main/ui/save-pdf.ts",
         "client/apps/electron/src/main/ui/save-file-export.ts",
+        "client/apps/electron/src/main/ui/save-pdf.ts",
         "client/apps/electron/src/main/updater/desktop-updater-port.ts",
         "client/apps/electron/src/main/updater/myoxus-update-provider.ts",
         "client/apps/electron/src/main/updater/update-manifest.ts",
@@ -2330,6 +2333,7 @@
         "client/apps/electron/test/main/native-bindings.spec.ts",
         "client/apps/electron/test/main/no-private-updater-imports.spec.ts",
         "client/apps/electron/test/main/onboarding-state.spec.ts",
+        "client/apps/electron/test/main/open-external.spec.ts",
         "client/apps/electron/test/main/protocol-fonts.spec.ts",
         "client/apps/electron/test/main/redirect-proxy.spec.ts",
         "client/apps/electron/test/main/renderer-arguments.spec.ts",

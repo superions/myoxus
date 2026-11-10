@@ -8,7 +8,7 @@ use myoxus_contracts::config_document::encode_config_yaml;
 use myoxus_domain::{assistant_package::AssistantLocalizedText, feature_bundle::*};
 use sha2::{Digest, Sha256};
 use std::{
-  collections::BTreeMap,
+  collections::{BTreeMap, BTreeSet},
   io::{Cursor, Write},
   path::Path,
 };
@@ -250,32 +250,47 @@ fn source_capture_rejects_symlink_and_parent_escape_without_reading_outside_its_
     assert!(capture_feature_source(root.path(), "feature.yaml").is_err());
   }
 }
-fn platform_fixture() -> (tempfile::TempDir, CapturedFeatureBundle) {
+fn platform_fixture(versions: &BTreeSet<String>) -> (tempfile::TempDir, CapturedFeatureBundle) {
   let root = tempfile::tempdir().unwrap();
-  let path = "myoxus.project.task-core/1.0.0.yaml";
-  std::fs::copy(shipped().join("databases").join(path), root.path().join("core.yaml")).unwrap();
-  let mut authored = source(vec![component("core", FeatureComponentKind::TaskCore, "core.yaml")]);
-  authored.exports.push(FeatureExport {
-    id: "task-core".into(),
-    source: FeatureNativeReference {
-      component: "core".into(),
-      export: "myoxus.project.task-core@1.0.0".into(),
-      key: None,
-    },
-    contexts: vec![],
-    document: None,
-  });
+  let mut authored = source(Vec::new());
+  for version in versions {
+    let path = format!("core-{version}.yaml");
+    let id = format!("core-{}", version.replace('.', "-"));
+    std::fs::copy(
+      shipped().join(format!("databases/myoxus.project.task-core/{version}.yaml")),
+      root.path().join(&path),
+    )
+    .unwrap();
+    authored
+      .components
+      .push(component(&id, FeatureComponentKind::TaskCore, &path));
+    authored.exports.push(FeatureExport {
+      id: format!("task-core-{}", version.replace('.', "-")),
+      source: FeatureNativeReference {
+        component: id,
+        export: format!("myoxus.project.task-core@{version}"),
+        key: None,
+      },
+      contexts: vec![],
+      document: None,
+    });
+  }
   write_source(root.path(), &authored);
   let captured = capture_feature_source(root.path(), "feature.yaml").unwrap();
   (root, captured)
 }
 #[test]
 fn explicit_pinned_platform_task_core_is_decoder_only_and_never_copied_as_local_ownership() {
-  let (_platform_root, platform) = platform_fixture();
   let root = tempfile::tempdir().unwrap();
   copy_tree(&shipped().join("databases"), &root.path().join("db"));
   let files = crate::database_templates::capture_database_template_files(&root.path().join("db")).unwrap();
   let (_, definitions, _) = crate::database_templates::decode_database_template_sources(&files).unwrap();
+  let versions = definitions
+    .iter()
+    .filter_map(|definition| definition.task_core.as_ref())
+    .map(|core| core.version.clone())
+    .collect::<BTreeSet<_>>();
+  let (_platform_root, platform) = platform_fixture(&versions);
   let mut authored = source(vec![component(
     "database",
     FeatureComponentKind::DatabaseCatalog,
@@ -290,18 +305,28 @@ fn explicit_pinned_platform_task_core_is_decoder_only_and_never_copied_as_local_
       },
       to: FeatureReference::Platform {
         bundle: platform.pin(),
-        export: "task-core".into(),
+        export: format!(
+          "task-core-{}",
+          definition.task_core.as_ref().unwrap().version.replace('.', "-")
+        ),
       },
     });
   }
-  let core_path = "db/myoxus.project.task-core/1.0.0.yaml";
-  std::fs::remove_file(root.path().join(core_path)).unwrap();
+  let core_paths = versions
+    .iter()
+    .map(|version| format!("db/myoxus.project.task-core/{version}.yaml"))
+    .collect::<Vec<_>>();
+  for path in &core_paths {
+    std::fs::remove_file(root.path().join(path)).unwrap();
+  }
   write_source(root.path(), &authored);
   assert!(capture_feature_source(root.path(), "feature.yaml").is_err());
   let capture =
     capture_feature_source_with_platform(root.path(), "feature.yaml", std::slice::from_ref(&platform)).unwrap();
-  assert!(!capture.files.contains_key(core_path));
-  assert!(!capture.manifest.files.contains_key(core_path));
+  for path in &core_paths {
+    assert!(!capture.files.contains_key(path));
+    assert!(!capture.manifest.files.contains_key(path));
+  }
   assert_eq!(
     serde_json::to_value(&capture.databases["database"].definitions).unwrap(),
     serde_json::to_value(&definitions).unwrap()
@@ -317,7 +342,7 @@ fn explicit_pinned_platform_task_core_is_decoder_only_and_never_copied_as_local_
   let mut wrong = platform.clone();
   wrong.archive_sha256 = "f".repeat(64);
   assert!(read_feature_bundle_with_platform(&capture.archive_bytes, &[wrong]).is_err());
-  std::fs::write(root.path().join(core_path), b"different local core").unwrap();
+  std::fs::write(root.path().join(&core_paths[0]), b"different local core").unwrap();
   assert!(
     capture_feature_source_with_platform(root.path(), "feature.yaml", &[platform])
       .unwrap_err()

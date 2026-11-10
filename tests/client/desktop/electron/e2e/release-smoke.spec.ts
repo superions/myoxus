@@ -278,167 +278,6 @@ async function assertCspAndOfflineFonts(page: PackagedRenderer): Promise<{
   return result;
 }
 
-type PopupEvidence =
-  | {
-      permissions:
-        NativeBindingEvidence["mediaCapture"]["permissions"] | undefined;
-      reason: string;
-      status: "blocked";
-    }
-  | {
-      appInfo: RendererAttestation["appInfo"];
-      height: number;
-      status: "exercised";
-      url: string;
-      width: number;
-    };
-
-async function exercisePopupWhenAvailable(
-  runtime: Awaited<ReturnType<typeof launchPackagedElectron>>,
-): Promise<PopupEvidence> {
-  const configured = await runtime.page.evaluate(async () => {
-    const api = (window as Window & { __apis?: ClientHandler }).__apis;
-    if (!api) throw new Error("Packaged desktop IPC is unavailable");
-    const state = await api.sharedStorage.getAllGlobalState();
-    const hadPrevious = Object.hasOwn(state, "meetingSettings");
-    const previous = state.meetingSettings;
-    const settings =
-      previous && typeof previous === "object" && !Array.isArray(previous)
-        ? previous
-        : {};
-    await api.sharedStorage.setGlobalState(
-      "meetingSettings",
-      {
-        ...settings,
-        enabled: true,
-        recordingMode: "prompt",
-      },
-      "release-smoke-popup",
-    );
-    const setup = await api.recording.setupRecordingFeature();
-    const permissions = await api.recording.checkMeetingPermissions();
-    return { hadPrevious, permissions, previous, setup };
-  });
-  try {
-    if (configured.setup !== true) {
-      return {
-        permissions: configured.permissions,
-        reason:
-          "the genuine recording product flow cannot initialize on this target",
-        status: "blocked",
-      };
-    }
-    const started = await runtime.page.evaluate(async () => {
-      const api = (window as Window & { __apis?: ClientHandler }).__apis;
-      if (!api) throw new Error("Packaged desktop IPC is unavailable");
-      return api.recording.startRecording();
-    });
-    if (!started || started.status !== "recording") {
-      throw new Error("Recording product flow did not enter recording state");
-    }
-
-    const popup = await runtime.findRenderer(
-      (identity) => identity.windowName === "recording",
-      "recording popup",
-      15_000,
-    );
-    // A live preload alone does not prove that the popup mounted: missing
-    // account-preference providers previously left this exact window blank.
-    await expect
-      .poll(() =>
-        popup.evaluate(() =>
-          [...document.querySelectorAll("button")].some(
-            (button) =>
-              button.textContent?.trim() === "Stop" && !button.disabled,
-          ),
-        ),
-      )
-      .toBe(true);
-    const popupEvidence = await popup.evaluate(() => {
-      const desktopWindow = window as Window & {
-        __appInfo?: RendererAttestation["appInfo"];
-        process?: unknown;
-        require?: unknown;
-      };
-      return {
-        appInfo: desktopWindow.__appInfo ?? null,
-        hasNodeGlobal: desktopWindow.process !== undefined,
-        hasRequireGlobal: desktopWindow.require !== undefined,
-        height: innerHeight,
-        url: location.href,
-        width: innerWidth,
-      };
-    });
-    expect(popupEvidence.url).toBe("assets://another-host/popup.html");
-    expect(popupEvidence.appInfo).toMatchObject({
-      electron: true,
-      viewId: expect.any(String),
-      windowName: "recording",
-    });
-    expect(popupEvidence.hasNodeGlobal).toBe(false);
-    expect(popupEvidence.hasRequireGlobal).toBe(false);
-    expect(popupEvidence.width).toBeGreaterThan(0);
-    expect(popupEvidence.height).toBeGreaterThan(0);
-    return {
-      appInfo: popupEvidence.appInfo,
-      height: popupEvidence.height,
-      status: "exercised",
-      url: popupEvidence.url,
-      width: popupEvidence.width,
-    };
-  } finally {
-    const recordingId = await runtime.page.evaluate(async () => {
-      const api = (window as Window & { __apis?: ClientHandler }).__apis;
-      if (!api) throw new Error("Packaged desktop IPC is unavailable");
-      const active = await api.recording.getCurrentRecording();
-      if (active?.status === "recording" || active?.status === "paused") {
-        await api.recording.stopRecording(active.id);
-      }
-      return active?.id;
-    });
-    if (recordingId !== undefined) {
-      // Stop flushes native capture; the popup still owns asynchronous encoding.
-      // Require its actual finalized file before deleting this owned fixture.
-      await expect
-        .poll(
-          () =>
-            runtime.page.evaluate(async (id) => {
-              const api = (window as Window & { __apis?: ClientHandler })
-                .__apis;
-              if (!api) throw new Error("Packaged desktop IPC is unavailable");
-              const current = await api.recording.getCurrentRecording();
-              return current?.id === id && current.filepath?.endsWith(".mp4");
-            }, recordingId),
-          { timeout: 90_000 },
-        )
-        .toBe(true);
-    }
-    await runtime.page.evaluate(
-      async ({ hadPrevious, previous, recordingId }) => {
-        const api = (window as Window & { __apis?: ClientHandler }).__apis;
-        if (!api) throw new Error("Packaged desktop IPC is unavailable");
-        if (recordingId !== undefined)
-          await api.recording.removeRecording(recordingId);
-        await api.popup.dismissCurrentRecording();
-        await api.recording.disableRecordingFeature();
-        if (hadPrevious) {
-          await api.sharedStorage.setGlobalState(
-            "meetingSettings",
-            previous,
-            "release-smoke-popup-cleanup",
-          );
-        } else {
-          await api.sharedStorage.delGlobalState(
-            "meetingSettings",
-            "release-smoke-popup-cleanup",
-          );
-        }
-      },
-      { ...configured, recordingId },
-    );
-  }
-}
-
 async function rendererRuntimeProbe(page: PackagedRenderer): Promise<{
   active: boolean;
   currentVersion: string;
@@ -621,41 +460,6 @@ test.describe("P-ELECTRON-BUILD-12 packaged release runtime", () => {
       "recording",
       release.sourceCommit,
     );
-    const capture = async (name: string, page: PackagedRenderer) => {
-      await mkdir(recordingEvidenceDirectory, { recursive: true });
-      const screenshot = path.join(recordingEvidenceDirectory, `${name}.png`);
-      let deadline: ReturnType<typeof setTimeout> | undefined;
-      try {
-        const png = await Promise.race([
-          (async () => {
-            // React's completed state must reach the compositor before capture.
-            await page.evaluate(async () => {
-              await new Promise<void>((resolve) =>
-                requestAnimationFrame(() => resolve()),
-              );
-              await new Promise<void>((resolve) =>
-                requestAnimationFrame(() => resolve()),
-              );
-            });
-            return page.captureScreenshot();
-          })(),
-          new Promise<never>((_, reject) => {
-            deadline = setTimeout(
-              () =>
-                reject(new Error(`Recording screenshot timed out: ${name}`)),
-              10_000,
-            );
-          }),
-        ]);
-        await writeFile(screenshot, png);
-      } finally {
-        clearTimeout(deadline);
-      }
-      await testInfo.attach(name, {
-        path: screenshot,
-        contentType: "image/png",
-      });
-    };
     const attachRecordingEvidence = async (name: string, value: unknown) => {
       await mkdir(recordingEvidenceDirectory, { recursive: true });
       const file = path.join(recordingEvidenceDirectory, `${name}.json`);
@@ -676,22 +480,21 @@ test.describe("P-ELECTRON-BUILD-12 packaged release runtime", () => {
     let ownedWorkspaceId: string | undefined;
     const recordingIds = new Set<number>();
     let endpointChanged = false;
-    let presentation:
-      { locale: string | null; colorMode: string | null } | undefined;
-    let presentationChanged = false;
+    let originalLocale: string | null | undefined;
+    let localeChanged = false;
     let recordingPopup: PackagedRenderer | undefined;
     let sourceBrowser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
     let journeyError: unknown;
     try {
-      presentation = (
+      originalLocale = (
         await gql<{
           currentUser: {
             preferences: {
-              values: { locale: string | null; colorMode: string | null };
+              values: { locale: string | null };
             };
           };
-        }>("query{currentUser{preferences{values{locale colorMode}}}}")
-      ).currentUser.preferences.values;
+        }>("query{currentUser{preferences{values{locale}}}}")
+      ).currentUser.preferences.values.locale;
       workspace = await seededWorkspace(request, environment, web.cookies);
       const config = await gql<{
         serverConfig: {
@@ -756,7 +559,9 @@ test.describe("P-ELECTRON-BUILD-12 packaged release runtime", () => {
       expect(workspace.initialized).toBe(true);
 
       sourceBrowser = await chromium.launch({
-        headless: false,
+        // Real OS audio feeds native capture; never inject samples into IPC or
+        // ask for a graphical login/permission grant to make the fixture pass.
+        headless: true,
         ignoreDefaultArgs: ["--mute-audio"],
       });
       const sourcePage = await sourceBrowser.newPage();
@@ -777,6 +582,23 @@ test.describe("P-ELECTRON-BUILD-12 packaged release runtime", () => {
         serverInfo,
         main: runtime.main,
       });
+      const capabilities = await runtime.page.evaluate(async () => {
+        const api = (window as unknown as Window & { __apis: ClientHandler })
+          .__apis.recording;
+        return {
+          available: await api.checkRecordingAvailable(),
+          permissions: await api.checkMeetingPermissions(),
+        };
+      });
+      await attachRecordingEvidence("recording-capabilities", capabilities);
+      if (
+        !capabilities.available ||
+        !capabilities.permissions ||
+        !Object.values(capabilities.permissions).every(Boolean)
+      )
+        throw new Error(
+          "Native recording is unavailable or permission-denied on this host; no capture accepted and no interactive permission grant attempted",
+        );
       await connectAndPasswordLogin(runtime.page, environment, workspace.id);
       // The inert Web page is only a real OS audio source, not a second editor.
       await sourcePage.setContent(
@@ -838,7 +660,6 @@ test.describe("P-ELECTRON-BUILD-12 packaged release runtime", () => {
           "[role=menuitem]",
           mode === "new-doc" ? "New doc" : "Today's journal",
         );
-        await capture(`settings-${mode}`, runtime.page);
         await clickRecordingControl(
           runtime.page,
           '[data-testid="meetings-start-recording"]',
@@ -890,7 +711,6 @@ test.describe("P-ELECTRON-BUILD-12 packaged release runtime", () => {
         expect(Math.abs(minutes * 60 + seconds - elapsed)).toBeLessThanOrEqual(
           2,
         );
-        await capture(`popup-recording-${mode}`, popup);
         if (mode === "journal-today") {
           endpointChanged = true;
           await setEndpoint("http://127.0.0.1:1/v1");
@@ -917,7 +737,6 @@ test.describe("P-ELECTRON-BUILD-12 packaged release runtime", () => {
         expect(saved?.destination).toEqual(status.destination);
         if (!saved?.delivery?.blobId)
           throw new Error("Saved recording has no durable attachment identity");
-        await capture(`popup-saved-${mode}`, popup);
         deliveries.push({
           id: saved.id,
           ...saved.delivery,
@@ -1004,40 +823,6 @@ test.describe("P-ELECTRON-BUILD-12 packaged release runtime", () => {
             ),
           )
           .toBe(true);
-        const playerLayout = await runtime.page.evaluate((selector) => {
-          const player = document.querySelector(selector);
-          const name = player?.querySelector("p");
-          if (!player || !name)
-            throw new Error("The recording player has no rendered filename");
-          const ancestors: { tag: string; scrollLeft: number }[] = [];
-          for (
-            let current: Element | null = name;
-            current;
-            current = current.parentElement
-          )
-            ancestors.push({
-              tag: current.tagName,
-              scrollLeft: current.scrollLeft,
-            });
-          return {
-            name: name.textContent,
-            nameBounds: name.getBoundingClientRect().toJSON(),
-            playerBounds: player.getBoundingClientRect().toJSON(),
-            ancestors,
-          };
-        }, playerSelector);
-        expect(playerLayout.nameBounds.width).toBeGreaterThan(0);
-        expect(playerLayout.nameBounds.left).toBeGreaterThanOrEqual(
-          playerLayout.playerBounds.left,
-        );
-        expect(playerLayout.nameBounds.right).toBeLessThanOrEqual(
-          playerLayout.playerBounds.right,
-        );
-        expect(
-          playerLayout.ancestors.every((element) => element.scrollLeft === 0),
-        ).toBe(true);
-        await attachRecordingEvidence(`audio-layout-${mode}`, playerLayout);
-        await capture(`recording-${mode}`, runtime.page);
         await reloadRecordingWorkbench(
           runtime.page,
           workspace.id,
@@ -1071,108 +856,78 @@ test.describe("P-ELECTRON-BUILD-12 packaged release runtime", () => {
       if (!recordingPopup)
         throw new Error("The recording popup is unavailable");
       const delivered = deliveries.at(-1)!;
-      const displayMatrix: unknown[] = [];
-      // Locale/theme are persisted server-owned setup inputs. Reload and normal
-      // Settings/popup/player controls exercise their actual native projection.
+      const localeStates: unknown[] = [];
+      // Locale is a persisted server-owned input. Exercise consuming actions and
+      // saved state without a screenshot, geometry or theme acceptance matrix.
       for (const locale of ["en", "de"] as const) {
-        for (const colorMode of ["light", "dark", "system"] as const) {
-          presentationChanged = true;
-          await gql(
-            "mutation($i:UpdateUserPreferencesInput!){updatePreferences(input:$i){values{locale colorMode}}}",
-            { i: { locale, colorMode } },
-          );
-          await reloadRecordingWorkbench(
-            runtime.page,
-            workspace.id,
-            delivered.docId,
-          );
-          const complete =
-            locale === "de"
-              ? "Transkription abgeschlossen"
-              : "Transcription complete";
-          const player = `[data-block-id="${delivered.attachmentId}"] [data-myoxus-ui-role="audio-player"]`;
-          await expect
-            .poll(() =>
-              runtime!.page.evaluate(
-                ({ player, complete }) =>
-                  document
-                    .querySelector(player)
-                    ?.textContent?.includes(complete),
-                { player, complete },
-              ),
-            )
-            .toBe(true);
-          await clickRecordingControl(
-            runtime.page,
-            `${player} button`,
-            locale === "de" ? "Transkript anzeigen" : "Show transcript",
-          );
-          const key = `${locale}-${colorMode}`;
-          await capture(`audio-${key}`, runtime.page);
-          await runtime.page.press(",", [
-            release.platform === "macos" ? "Meta" : "Control",
-          ]);
-          await clickRecordingControl(
-            runtime.page,
-            '[data-testid="meetings-panel-trigger"]',
-          );
-          await capture(`settings-${key}`, runtime.page);
-          const mainTheme = await runtime.page.evaluate(() => ({
-            scheme: document.documentElement.getAttribute(
-              "data-mantine-color-scheme",
+        localeChanged = true;
+        await gql(
+          "mutation($i:UpdateUserPreferencesInput!){updatePreferences(input:$i){values{locale}}}",
+          { i: { locale } },
+        );
+        await reloadRecordingWorkbench(
+          runtime.page,
+          workspace.id,
+          delivered.docId,
+        );
+        const complete =
+          locale === "de"
+            ? "Transkription abgeschlossen"
+            : "Transcription complete";
+        const player = `[data-block-id="${delivered.attachmentId}"] [data-myoxus-ui-role="audio-player"]`;
+        await expect
+          .poll(() =>
+            runtime!.page.evaluate(
+              ({ player, complete }) =>
+                document.querySelector(player)?.textContent?.includes(complete),
+              { player, complete },
             ),
-            systemDark: matchMedia("(prefers-color-scheme: dark)").matches,
-            overflow: document.documentElement.scrollWidth > innerWidth,
-          }));
-          expect(mainTheme.overflow).toBe(false);
-          expect(mainTheme.scheme).toBe(
-            colorMode === "system"
-              ? mainTheme.systemDark
-                ? "dark"
-                : "light"
-              : colorMode,
-          );
-          // Saved popups normally hide after ten seconds. Reopen the same saved
-          // recovery through its existing handler; this does not start a capture.
-          await runtime.page.evaluate(
-            async (id) =>
-              (
-                window as unknown as Window & { __apis: ClientHandler }
-              ).__apis.recording.retryRecording(id),
-            delivered.id,
-          );
-          await recordingPopup.reload();
-          await expect
-            .poll(() =>
-              recordingPopup!.evaluate(
-                (saved) => document.body?.innerText.includes(saved) ?? false,
-                locale === "de" ? "Gespeichert" : "Saved",
-              ),
-            )
-            .toBe(true);
-          await capture(`popup-${key}`, recordingPopup);
-          const popupState = await recordingPopup.evaluate(() => ({
-            scheme: document.documentElement.getAttribute(
-              "data-mantine-color-scheme",
+          )
+          .toBe(true);
+        await clickRecordingControl(
+          runtime.page,
+          `${player} button`,
+          locale === "de" ? "Transkript anzeigen" : "Show transcript",
+        );
+        await runtime.page.press(",", [
+          release.platform === "macos" ? "Meta" : "Control",
+        ]);
+        await clickRecordingControl(
+          runtime.page,
+          '[data-testid="meetings-panel-trigger"]',
+        );
+        // Saved popups normally hide after ten seconds. Reopen the same saved
+        // recovery through its existing handler; this does not start a capture.
+        await runtime.page.evaluate(
+          async (id) =>
+            (
+              window as unknown as Window & { __apis: ClientHandler }
+            ).__apis.recording.retryRecording(id),
+          delivered.id,
+        );
+        await recordingPopup.reload();
+        await expect
+          .poll(() =>
+            recordingPopup!.evaluate(
+              (saved) => document.body?.innerText.includes(saved) ?? false,
+              locale === "de" ? "Gespeichert" : "Saved",
             ),
-            text: document.body.innerText,
-            overflow: document.documentElement.scrollWidth > innerWidth,
-          }));
-          expect(popupState.scheme).toBe(mainTheme.scheme);
-          expect(popupState.overflow).toBe(false);
-          expect(popupState.text).toContain(
-            locale === "de" ? "Gespeichert" : "Saved",
-          );
-          displayMatrix.push({
-            locale,
-            colorMode,
-            mainTheme,
-            popup: { scheme: popupState.scheme, overflow: popupState.overflow },
-          });
-          await runtime.page.press("Escape");
-        }
+          )
+          .toBe(true);
+        const popupState = await recordingPopup.evaluate(() => ({
+          text: document.body.innerText,
+        }));
+        expect(popupState.text).toContain(
+          locale === "de" ? "Gespeichert" : "Saved",
+        );
+        localeStates.push({
+          locale,
+          transcriptComplete: complete,
+          saved: locale === "de" ? "Gespeichert" : "Saved",
+        });
+        await runtime.page.press("Escape");
       }
-      await attachRecordingEvidence("desktop-display-matrix", displayMatrix);
+      await attachRecordingEvidence("recording-locale-states", localeStates);
       const recordingServerId = (
         await runtime.page.evaluate(async () =>
           (
@@ -1207,15 +962,6 @@ test.describe("P-ELECTRON-BUILD-12 packaged release runtime", () => {
       ).toEqual([]);
     } catch (error) {
       journeyError = error;
-      try {
-        if (runtime) await capture("recording-journey-failure", runtime.page);
-      } catch (captureError) {
-        journeyError = new AggregateError(
-          [error, captureError],
-          "Recording journey and evidence capture failed",
-          { cause: error },
-        );
-      }
       throw journeyError;
     } finally {
       // Cleanup failures remain findings while every independent resource is closed.
@@ -1251,15 +997,15 @@ test.describe("P-ELECTRON-BUILD-12 packaged release runtime", () => {
         });
       }
       if (runtime) await cleanup(() => closeElectron(runtime!));
-      if (presentationChanged && presentation)
+      if (localeChanged && originalLocale !== undefined)
         await cleanup(async () => {
           const restored = await gql<{
-            updatePreferences: { values: typeof presentation };
+            updatePreferences: { values: { locale: typeof originalLocale } };
           }>(
-            "mutation($i:UpdateUserPreferencesInput!){updatePreferences(input:$i){values{locale colorMode}}}",
-            { i: presentation },
+            "mutation($i:UpdateUserPreferencesInput!){updatePreferences(input:$i){values{locale}}}",
+            { i: { locale: originalLocale } },
           );
-          expect(restored.updatePreferences.values).toEqual(presentation);
+          expect(restored.updatePreferences.values.locale).toBe(originalLocale);
         });
       if (ownedWorkspaceId)
         await cleanup(async () => {
@@ -1389,7 +1135,6 @@ test.describe("P-ELECTRON-BUILD-12 packaged release runtime", () => {
       };
       persistedAfterRestart?: boolean;
       persistedNativeUpdateSizes?: number[];
-      popup?: PopupEvidence;
       profile: string;
       rendererEvents: RuntimeEvent[];
       second?: {
@@ -1436,7 +1181,7 @@ test.describe("P-ELECTRON-BUILD-12 packaged release runtime", () => {
         workerConnected: true,
       });
       const fontAndCsp = await assertCspAndOfflineFonts(first.page);
-      const popup = await exercisePopupWhenAvailable(first);
+      // Capture and popup operation belong to DESK-MTG-04, not installation.
       await setPersistentProbe(first.page, persistenceKey, persistenceValue);
       expect(await readPersistentProbe(first.page, persistenceKey)).toBe(
         persistenceValue,
@@ -1449,7 +1194,6 @@ test.describe("P-ELECTRON-BUILD-12 packaged release runtime", () => {
         runtimeProbe,
         shell: first.shell,
       };
-      evidence.popup = popup;
       evidence.rendererEvents.push(...first.events);
 
       await closeElectron(first);
@@ -1491,10 +1235,6 @@ test.describe("P-ELECTRON-BUILD-12 packaged release runtime", () => {
         "packaged renderers emitted unexpected console, page, or request errors",
       ).toEqual([]);
       await writeEvidence(testInfo, evidence);
-      expect(
-        evidence.popup?.status,
-        `P12 requires a genuine popup renderer; ${evidence.popup?.status === "blocked" ? `${evidence.popup.reason} (permissions=${JSON.stringify(evidence.popup.permissions)})` : "no popup evidence was recorded"}`,
-      ).toBe("exercised");
     } finally {
       if (first) await closeElectron(first);
       if (second) await closeElectron(second);

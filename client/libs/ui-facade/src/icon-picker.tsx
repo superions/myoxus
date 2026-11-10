@@ -510,7 +510,7 @@ export const IconPicker = ({
               size="sm"
               onClick={() => onSelect?.()}
             >
-              {t.t("com.myoxus.icon-picker.remove")}
+              {t.t("com.myoxus.common.remove")}
             </MantineButton>
           </Group>
           <Divider />

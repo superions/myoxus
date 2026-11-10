@@ -1,6 +1,6 @@
 import { slashMenuToolTips } from "./help";
 import type { ListBlockModel, ParagraphBlockModel } from "@virgultum/model";
-import { insertContent } from "@virgultum/rich-text";
+import { insertContent, openTemplateFieldPicker } from "@virgultum/rich-text";
 import {
   editorMessage,
   MyoxusHostServiceIdentifier,
@@ -34,6 +34,23 @@ export const defaultSlashMenuConfig: SlashMenuConfig = {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     return [
+      {
+        id: "action-insert-document-field",
+        label: editorMessage(
+          "com.myoxus.editor.field.document-fields",
+          "Document fields",
+        ),
+        icon: "TextTypeIcon",
+        group: actionGroup(4),
+        when: ({ std, model }) =>
+          !std.store.readonly &&
+          ["myoxus:paragraph", "myoxus:list"].includes(model.flavour) &&
+          Boolean(
+            std.getOptional(MyoxusHostServiceIdentifier)
+              ?.openTemplateVariablePicker,
+          ),
+        action: ({ std, model }) => openTemplateFieldPicker(std, model),
+      },
       {
         id: "action-insert-building-block",
         label: editorMessage(

@@ -27,7 +27,11 @@ import {
 import { useI18n } from "@myoxus/i18n";
 import { useModalPortalTarget } from "./modal";
 
-function useSelectComboboxProps(props?: SelectProps["comboboxProps"]) {
+// Combobox forwards this native Popover option, but omits it from its narrowed type.
+type SelectComboboxProps = NonNullable<SelectProps["comboboxProps"]> &
+  Pick<PopoverProps, "clickOutsideEvents">;
+
+function useSelectComboboxProps(props?: SelectComboboxProps) {
   const target = useModalPortalTarget();
   // Escape the content scroller while inheriting the owning ModalStack layer.
   return {
@@ -40,8 +44,9 @@ function useSelectComboboxProps(props?: SelectProps["comboboxProps"]) {
 
 export type MyoxusSelectProps = Omit<
   SelectProps,
-  "onChange" | "data" | "onClear"
+  "onChange" | "data" | "onClear" | "comboboxProps"
 > & {
+  comboboxProps?: SelectComboboxProps;
   data: ComboboxItem[];
   onChange: (value: string) => void;
   onClear?: () => void;

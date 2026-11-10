@@ -99,6 +99,12 @@ export class TestMyoxusEditorContainer extends SignalWatcher(
 
   private readonly chromeExtensions = signal<ExtensionType[]>([]);
 
+  private readonly chromeReadyState = Promise.withResolvers<void>();
+
+  get chromeReady() {
+    return this.chromeReadyState.promise;
+  }
+
   private readonly _std = computed(() => {
     return new BlockStdScope({
       store: this.doc,
@@ -163,6 +169,7 @@ export class TestMyoxusEditorContainer extends SignalWatcher(
     this._disposables.add(
       mountEditorChrome(this, (extension) => {
         this.chromeExtensions.value = [extension];
+        this.chromeReadyState.resolve();
       }),
     );
 
