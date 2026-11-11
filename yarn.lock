@@ -5370,8 +5370,6 @@ __metadata:
   resolution: "@virgultum/block-bookmark@workspace:virgultum/editor/blocks/bookmark"
   dependencies:
     "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
     "@preact/signals-core": "npm:^1.14.5"
     "@virgultum/block-embed": "workspace:*"
     "@virgultum/block-embed-doc": "workspace:*"

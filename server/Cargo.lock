@@ -4531,7 +4531,7 @@ checksum = "13d2233c9842d08cfe13f9eac96e207ca6a2ea10b80259ebe8ad0268be27d2af"
 
 [[package]]
 name = "myoxus-api"
-version = "0.42.3"
+version = "0.42.4"
 dependencies = [
  "altcha-lib-rs",
  "async-graphql",
@@ -4604,7 +4604,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-application"
-version = "0.42.3"
+version = "0.42.4"
 dependencies = [
  "altcha-lib-rs",
  "argon2",
@@ -4669,7 +4669,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-cli"
-version = "0.42.3"
+version = "0.42.4"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4705,7 +4705,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-contracts"
-version = "0.42.3"
+version = "0.42.4"
 dependencies = [
  "config",
  "serde",
@@ -4719,7 +4719,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-doc-pipeline"
-version = "0.42.3"
+version = "0.42.4"
 dependencies = [
  "html2text",
  "infer",
@@ -4748,7 +4748,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-domain"
-version = "0.42.3"
+version = "0.42.4"
 dependencies = [
  "async-trait",
  "chrono",
@@ -4764,7 +4764,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-infrastructure"
-version = "0.42.3"
+version = "0.42.4"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -4827,7 +4827,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-mcp"
-version = "0.42.3"
+version = "0.42.4"
 dependencies = [
  "async-trait",
  "axum",
@@ -4856,7 +4856,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-mermaid-render"
-version = "0.42.3"
+version = "0.42.4"
 dependencies = [
  "hex",
  "merman",
@@ -4867,7 +4867,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-pdf-export"
-version = "0.42.3"
+version = "0.42.4"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
@@ -4906,7 +4906,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-public-render"
-version = "0.42.3"
+version = "0.42.4"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -4935,7 +4935,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-tests"
-version = "0.42.3"
+version = "0.42.4"
 dependencies = [
  "myoxus-api",
  "myoxus-application",
@@ -4955,7 +4955,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-worker"
-version = "0.42.3"
+version = "0.42.4"
 dependencies = [
  "async-trait",
  "chrono",
@@ -4978,7 +4978,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-workspace-import"
-version = "0.42.3"
+version = "0.42.4"
 dependencies = [
  "rusqlite",
  "serde",
