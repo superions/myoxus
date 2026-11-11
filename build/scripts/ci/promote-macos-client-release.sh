@@ -62,11 +62,12 @@ fs.mkdirSync(root);
 const names = asar.listPackage(archive).filter(p => p === '/THIRD_PARTY_NOTICES.md' || p.startsWith('/THIRD_PARTY_LICENSES/'));
 if (!names.includes('/THIRD_PARTY_NOTICES.md')) throw new Error('Packaged legal notices are missing');
 for (const name of names) {
-  if (asar.statFile(archive,name).files) continue;
+  const relative = name.slice(1);
+  if (asar.statFile(archive,relative).files) continue;
   if (name.split('/').includes('..')) throw new Error('Noncanonical notice path');
   const target = path.join(root,name.slice(1));
   fs.mkdirSync(path.dirname(target),{recursive:true});
-  fs.writeFileSync(target,asar.extractFile(archive,name));
+  fs.writeFileSync(target,asar.extractFile(archive,relative));
 }
 JS
 cp "$source_root/LICENSE" dist/reviewed-macos/legal/LICENSE

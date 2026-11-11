@@ -376,6 +376,11 @@ function emitThemeProjection(lines, indent, theme, mode) {
   const tokens = theme.colors[mode] ?? {};
   projection.push(`${indent}--myoxus-theme-slug: "${cssEscape(theme.slug)}";`);
   emitThemeColorTokens(projection, indent, tokens);
+  for (const [reference, value] of Object.entries(
+    sourceCatalog.contentColors[mode],
+  )) {
+    projection.push(`${indent}${reference}: ${value};`);
+  }
   emitTypographyStyleVars(projection, indent, theme.typographyStyles);
 
   const emitted = new Set();
@@ -465,12 +470,13 @@ function buildFallbackCss(sourceCatalog) {
     lines.push("");
   }
 
-  lines.push(
-    readFileSync(
-      resolve(repoRoot, "server/static/branding/text-marker.css"),
-      "utf8",
-    ),
-  );
+  lines.push(":root {");
+  for (const [reference, value] of Object.entries(
+    sourceCatalog.contentColors.fixed,
+  )) {
+    lines.push(`  ${reference}: ${value};`);
+  }
+  lines.push("}");
   return lines.join("\n");
 }
 
@@ -528,6 +534,47 @@ function checkFile(path, expected) {
 }
 
 const sourceCatalog = JSON.parse(readFileSync(sourcePath, "utf8"));
+
+// Preserve the existing client API and stylesheet, but author their content
+// swatches only in the server configuration. These sections remain generated.
+function materializeContentColors(
+  file,
+  pattern,
+  darkBoundary,
+  referenceForKey,
+) {
+  const original = readFileSync(file, "utf8");
+  const darkStart = original.indexOf(darkBoundary);
+  if (darkStart < 0)
+    throw new Error(`Missing dark content-color section: ${file}`);
+  const generated = original.replace(pattern, (match, key, offset) => {
+    const mode = offset < darkStart ? "light" : "dark";
+    const color = sourceCatalog.contentColors[mode][referenceForKey(key)];
+    if (!color) throw new Error(`Missing configured content color: ${key}`);
+    const channels = color
+      .slice(1)
+      .match(/../g)
+      .map((hex) => parseInt(hex, 16));
+    return match.replace(/rgba\([^)]*\)/, `rgba(${channels.join(", ")}, 1)`);
+  });
+  if (checkOnly) return checkFile(file, generated);
+  if (original !== generated) writeFileSync(file, generated);
+  return true;
+}
+const contentArtifactsOk = [
+  materializeContentColors(
+    resolve(repoRoot, "client/libs/theme/src/index.ts"),
+    /(textHighlight[A-Za-z]+):\s*"rgba\([^)]*\)"/g,
+    "const darkThemeOverrides =",
+    (key) => `--myoxus-${kebab(key)}`,
+  ),
+  materializeContentColors(
+    resolve(repoRoot, "client/libs/theme/src/style.css"),
+    /(--myoxus-text-highlight(?:-foreground)?-[a-z]+):\s*rgba\([^)]*\);/g,
+    '[data-theme="dark"]',
+    (key) => key,
+  ),
+].every(Boolean);
 const css = await prettier.format(buildFallbackCss(sourceCatalog), {
   parser: "css",
 });
@@ -535,7 +582,7 @@ assertFullCatalogFallback(css, sourceCatalog);
 
 if (checkOnly) {
   const cssOk = checkFile(cssOutPath, css);
-  if (!cssOk) {
+  if (!cssOk || !contentArtifactsOk) {
     console.error("Run `yarn branding:theme-fallback` and commit the result.");
     process.exit(1);
   }

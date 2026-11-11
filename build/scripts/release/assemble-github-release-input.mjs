@@ -71,6 +71,13 @@ if (process.env.DESKTOP_RELEASE_TAG) {
       sha256: match[1],
     });
   }
+  assets.push({
+    name: "SHA256SUMS",
+    kind: "checksums",
+    url: `${base}/SHA256SUMS`,
+    sha256: sha(sums),
+    size: Buffer.byteLength(sums),
+  });
   fs.mkdirSync(path.dirname(output), { recursive: true });
   fs.writeFileSync(
     output,
@@ -112,8 +119,29 @@ run("git", [
   `refs/tags/frontends-v${version}:refs/tags/frontends-v${version}`,
 ]);
 const revision = run("git", ["rev-parse", `server-v${version}^{}`]).trim();
-if (run("git", ["rev-parse", `frontends-v${version}^{}`]).trim() !== revision)
-  throw new Error("Select a matching Server/Web/Admin source set");
+const frontendRevision = run("git", [
+  "rev-parse",
+  `frontends-v${version}^{}`,
+]).trim();
+if (frontendRevision !== revision) {
+  // A server-recipe repair must not rebuild or relabel accepted frontends.
+  // Fail closed if anything outside that recipe differs between the sources.
+  try {
+    run("git", [
+      "diff",
+      "--quiet",
+      frontendRevision,
+      revision,
+      "--",
+      ".",
+      ":(exclude)build/server/Dockerfile",
+    ]);
+  } catch {
+    throw new Error(
+      "Server/frontend sources differ outside the server build recipe",
+    );
+  }
+}
 // The existing acceptance/registry verifier owns publication. This copy only
 // consumes its result; no compilation, packaging or new qualification suite.
 const verifiedRegistry = run("bash", [
@@ -130,22 +158,33 @@ const root = path.join(
 const sourceRoot = path.join(root, "public-source", revision);
 const sourceReport = path.join(sourceRoot, "source-correspondence.json");
 const publicSource = readSourceProvenance(sourceReport, revision);
-const select = (kind, required) => {
+const frontendPublicSource = readSourceProvenance(
+  path.join(
+    root,
+    "public-source",
+    frontendRevision,
+    "source-correspondence.json",
+  ),
+  frontendRevision,
+);
+const select = (kind, required, sourceRevision = revision) => {
   const dir = path.join(root, kind);
   const names = fs
     .readdirSync(dir)
-    .filter((n) => n.endsWith(`-${revision}`))
+    .filter((n) => n.endsWith(`-${sourceRevision}`))
     .sort((a, b) => Number(b.split("-")[0]) - Number(a.split("-")[0]));
   const selected = names
     .map((n) => path.join(dir, n))
     .find((d) => fs.existsSync(path.join(d, required)));
-  if (!selected) throw new Error(`Missing accepted ${kind} for ${revision}`);
+  if (!selected)
+    throw new Error(`Missing accepted ${kind} for ${sourceRevision}`);
   return selected;
 };
 const registry = select("container-registry", "server-promoted.json");
 const frontendRegistry = select(
   "container-registry",
   "frontends-promoted.json",
+  frontendRevision,
 );
 const receipts = [
   json(path.join(registry, "server-promoted.json")),
@@ -157,9 +196,11 @@ for (const [role, image, kind] of [
   ["web", "myoxus-web-frontend", "web-frontend"],
   ["admin", "myoxus-admin-frontend", "admin-frontend"],
 ]) {
+  const sourceRevision = role === "server" ? revision : frontendRevision;
   const dir = select(
     `${kind}-container-provenance`,
     `${role}-image-inspect.json`,
+    sourceRevision,
   );
   run("bash", ["build/scripts/ci/verify-sha256sums.sh", dir], {
     stdio: "inherit",
@@ -173,7 +214,7 @@ for (const [role, image, kind] of [
       "--role",
       role,
       "--revision",
-      revision,
+      sourceRevision,
       "--version",
       version,
       "--publish-mode",
@@ -280,6 +321,13 @@ fs.writeFileSync(
       schemaVersion: 1,
       revision,
       publicSource,
+      componentSources: {
+        server: { revision, publicSource },
+        frontends: {
+          revision: frontendRevision,
+          publicSource: frontendPublicSource,
+        },
+      },
       sourceQualification: {
         producer: "publish-github-mirror.sh",
         archiveSha256: identities.archive_sha256,

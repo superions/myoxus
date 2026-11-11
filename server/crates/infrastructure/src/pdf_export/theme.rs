@@ -8,6 +8,29 @@ use myoxus_pdf_export::ir::{
 use std::{collections::BTreeMap, sync::Arc};
 use tracing::{debug, warn};
 use uuid::Uuid;
+
+/// Resolve editable document colours from the same configuration as the clients.
+/// Legacy inline swatches retain their light/print values; theme tokens retain
+/// the selected profile and fixed fluorescent markers do not depend on UI mode.
+pub fn document_color_values(tokens: &BTreeMap<String, String>, mode: &str) -> BTreeMap<String, String> {
+  let configured = crate::branding::content_colors();
+  let mut values = configured.light.clone();
+  for (token, color) in tokens {
+    values.insert(token.clone(), color.clone());
+    values.insert(format!("--myoxus-sem-{token}"), color.clone());
+    for reference in crate::branding::p_ar_theme_css_vars(token) {
+      values.insert((*reference).into(), color.clone());
+    }
+  }
+  for (reference, color) in crate::branding::native_table_color_values(tokens, mode) {
+    if let Some(color) = color {
+      values.insert(reference.into(), color.into());
+    }
+  }
+  values.extend(configured.fixed.clone());
+  values
+}
+
 fn pdf_font_config_error(role: &'static str, source: &'static str, requested: Option<&str>) -> PdfExportError {
   let requested = requested.unwrap_or("<missing>");
   let mut err = PdfExportError::new(format!(

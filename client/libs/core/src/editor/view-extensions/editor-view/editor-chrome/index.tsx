@@ -3,6 +3,7 @@
 
 import { EditorDocumentCard } from "./document-card";
 import { EditorAttachmentCard } from "./attachment-card";
+import { EditorBookmarkCard } from "./bookmark-card";
 
 import { EditorSelectionToolbar } from "./selection-toolbar";
 
@@ -35,6 +36,8 @@ export function patchEditorChromeHost(reactToLit: ReactToLit) {
       reactToLit(<EditorDocumentCard controls={controls} />, true),
     renderAttachmentCard: (controls) =>
       reactToLit(<EditorAttachmentCard controls={controls} />, true),
+    renderBookmarkCard: (controls) =>
+      reactToLit(<EditorBookmarkCard controls={controls} />, true),
     renderDocumentOutline: (controls) =>
       reactToLit(<EditorDocumentOutline controls={controls} />, true),
     renderOutlineEntry: (controls) =>

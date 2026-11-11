@@ -134,9 +134,25 @@ if [[ "$MODE" == prepare ]]; then
   [[ "$(git -C "$SNAPSHOT" remote)" == github-mirror ]] || fail "unexpected scratch remote"
   git -C "$SNAPSHOT" checkout -q "$BRANCH"
   [[ "$(git -C "$SNAPSHOT" rev-parse HEAD)" == "$PARENT" ]] || fail "fetched parent changed"
+  # Published Casks belong to independent client releases, not a server source
+  # snapshot. Preserve only these fixed distribution paths from the public parent.
+  mkdir "$WORKDIR/published-casks"
+  for token in myoxus myoxus-beta myoxus-internal; do
+    cask_path="Casks/$token.rb"
+    if git -C "$SNAPSHOT" cat-file -e "$PARENT:$cask_path" 2>/dev/null; then
+      git -C "$SNAPSHOT" show "$PARENT:$cask_path" > "$WORKDIR/published-casks/$token.rb"
+    fi
+  done
   git -C "$SNAPSHOT" rm -rq --ignore-unmatch .
   cp -R "$EXTRACT"/. "$SNAPSHOT"/
-  # The verified export is the complete public tree. Force-staging is required
+  for token in myoxus myoxus-beta myoxus-internal; do
+    if [ -f "$WORKDIR/published-casks/$token.rb" ]; then
+      mkdir -p "$SNAPSHOT/Casks"
+      rm -f "$SNAPSHOT/Casks/$token.rb"
+      cp "$WORKDIR/published-casks/$token.rb" "$SNAPSHOT/Casks/$token.rb"
+    fi
+  done
+  # Force-staging the verified source and retained publication metadata is required
   # because private-checkout ignore rules intentionally match public root
   # policies such as README.md and SECURITY.md.
   git -C "$SNAPSHOT" add --force --all

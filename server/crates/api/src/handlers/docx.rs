@@ -118,7 +118,7 @@ async fn export_fonts(state: &ApiState, workspace: Uuid) -> Result<docx::ExportF
     table_fill,
     table_ink,
     table_rule,
-    colors: myoxus_infrastructure::branding::document_color_values(colors, mode),
+    colors: myoxus_infrastructure::pdf_export::theme::document_color_values(colors, mode),
     visuals: state
       .preview_runtime
       .document_figure_context(state, workspace)

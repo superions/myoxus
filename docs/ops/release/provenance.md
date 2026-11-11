@@ -227,6 +227,13 @@ existing prepare/publish functions. It never builds, regenerates an SBOM or
 repackages binaries. Missing accepted OCI/native artifacts stop the copy.
 The separate `prepare`/`publish` modes below retain optional exact-plan review.
 
+A server-Dockerfile-only repair can retain the accepted frontend tag and images.
+The assembler verifies that the component sources differ only in
+`build/server/Dockerfile`, validates each producer against its own immutable
+revision, and records both qualified source mappings in `componentSources`.
+Any other source difference still stops publication; original image and SBOM
+identities are never relabelled.
+
 Dispatch `.forgejo/workflows/publish-github-release.yml` with the Forgejo URL of
 the publication input JSON. It contains the version/tag, `prerelease`, inline
 `notes`, the qualified OCI digest references in `containers`, and the explicit

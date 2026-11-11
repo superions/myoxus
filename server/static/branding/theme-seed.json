@@ -1,5 +1,53 @@
 {
   "schemaVersion": 1,
+  "contentColors": {
+    "light": {
+      "--myoxus-text-highlight-foreground-red": "#c62222",
+      "--myoxus-text-highlight-foreground-orange": "#d34f0b",
+      "--myoxus-text-highlight-foreground-yellow": "#b67c04",
+      "--myoxus-text-highlight-foreground-green": "#149343",
+      "--myoxus-text-highlight-foreground-teal": "#0782a0",
+      "--myoxus-text-highlight-foreground-blue": "#2159d3",
+      "--myoxus-text-highlight-foreground-purple": "#842ed3",
+      "--myoxus-text-highlight-foreground-grey": "#7a7a7a",
+      "--myoxus-text-highlight-pink": "#ffcece",
+      "--myoxus-text-highlight-red": "#fed5d5",
+      "--myoxus-text-highlight-orange": "#fedfbb",
+      "--myoxus-text-highlight-yellow": "#fef3a1",
+      "--myoxus-text-highlight-green": "#e1fab1",
+      "--myoxus-text-highlight-teal": "#adf8e9",
+      "--myoxus-text-highlight-blue": "#cce2fe",
+      "--myoxus-text-highlight-purple": "#edddff",
+      "--myoxus-text-highlight-grey": "#eaecef"
+    },
+    "dark": {
+      "--myoxus-text-highlight-foreground-red": "#f98d8d",
+      "--myoxus-text-highlight-foreground-orange": "#fca863",
+      "--myoxus-text-highlight-foreground-yellow": "#fbd644",
+      "--myoxus-text-highlight-foreground-green": "#6ee599",
+      "--myoxus-text-highlight-foreground-teal": "#57ddcc",
+      "--myoxus-text-highlight-foreground-blue": "#80b7fb",
+      "--myoxus-text-highlight-foreground-purple": "#cd9dfd",
+      "--myoxus-text-highlight-foreground-grey": "#565656",
+      "--myoxus-text-highlight-pink": "#7f5d5d",
+      "--myoxus-text-highlight-red": "#6c2727",
+      "--myoxus-text-highlight-orange": "#703a15",
+      "--myoxus-text-highlight-yellow": "#6a540f",
+      "--myoxus-text-highlight-green": "#1a5b32",
+      "--myoxus-text-highlight-teal": "#0e5561",
+      "--myoxus-text-highlight-blue": "#384b7a",
+      "--myoxus-text-highlight-purple": "#502e6f",
+      "--myoxus-text-highlight-grey": "#40434a"
+    },
+    "fixed": {
+      "--myoxus-sem-text-marker-yellow": "#f5ff00",
+      "--myoxus-sem-text-marker-green": "#63ff00",
+      "--myoxus-sem-text-marker-pink": "#ff4fd8",
+      "--myoxus-sem-text-marker-orange": "#ff9d00",
+      "--myoxus-sem-text-marker-blue": "#00dfff",
+      "--myoxus-sem-text-marker-ink": "#1f2330"
+    }
+  },
   "requiredColorKeys": [
     "paper",
     "paper-deep",

@@ -39,6 +39,9 @@ mkdir "$SCAFFOLD"; git -C "$SCAFFOLD" init -q --initial-branch=main
 git -C "$SCAFFOLD" config user.name Fixture
 git -C "$SCAFFOLD" config user.email fixture@example.invalid
 printf 'scaffold\n' >"$SCAFFOLD/README.md"
+mkdir "$SCAFFOLD/Casks"
+printf 'published client cask\n' >"$SCAFFOLD/Casks/myoxus.rb"
+printf 'obsolete scaffold\n' >"$SCAFFOLD/obsolete.txt"
 git -C "$SCAFFOLD" add .; git -C "$SCAFFOLD" commit -q -m scaffold
 SCAFFOLD_SHA="$(git -C "$SCAFFOLD" rev-parse HEAD)"
 git clone -q --bare "$SCAFFOLD" "$PUBLIC"
@@ -68,6 +71,10 @@ test "$(git -C "$TMP/first/snapshot" rev-parse "$FIRST^")" = "$SCAFFOLD_SHA"
 test "$(git -C "$TMP/first/snapshot" rev-list --count "$SCAFFOLD_SHA..$FIRST")" = 1
 git -C "$TMP/first/snapshot" cat-file -e "$FIRST:README.md"
 git -C "$TMP/first/snapshot" cat-file -e "$FIRST:SECURITY.md"
+test "$(git -C "$TMP/first/snapshot" show "$FIRST:Casks/myoxus.rb")" = 'published client cask'
+if git -C "$TMP/first/snapshot" cat-file -e "$FIRST:obsolete.txt" 2>/dev/null; then
+  echo 'unmanaged public scaffold was retained' >&2; exit 1
+fi
 publish "$TMP/first"
 test "$(git --git-dir="$PUBLIC" rev-parse main)" = "$FIRST"
 
@@ -77,6 +84,7 @@ SOURCE_TWO="$(git -C "$SOURCE" rev-parse HEAD)"
 prepare "$TMP/second" "$SOURCE_TWO" "$FIRST"
 SECOND="$(identity "$TMP/second" candidate_commit)"
 test "$(git -C "$TMP/second/snapshot" rev-parse "$SECOND^")" = "$FIRST"
+test "$(git -C "$TMP/second/snapshot" show "$SECOND:Casks/myoxus.rb")" = 'published client cask'
 publish "$TMP/second"
 test "$(git --git-dir="$PUBLIC" rev-parse main)" = "$SECOND"
 

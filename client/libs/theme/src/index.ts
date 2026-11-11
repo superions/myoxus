@@ -383,6 +383,7 @@ const lightThemeOverrides = {
   cardBackgroundGreen: "linear-gradient(180deg, #F3F9FD 0%, #FCFCFD 100%)",
   cardBackgroundGrey: "linear-gradient(180deg, #F1F1F1 0%, #FCFCFD 100%)",
   windowsCloseButton: "#C42B1C",
+  // Content swatches below are generated from the server theme configuration.
   // text highlight (background)
   /** @deprecated */
   textHighlightPink: "rgba(255, 206, 206, 1)",
@@ -535,6 +536,7 @@ const darkThemeOverrides = {
   cardBackgroundGreen: "linear-gradient(180deg, #192023 0%, #202020 100%)",
   cardBackgroundGrey: "linear-gradient(180deg, #313131 0%, #202020 100%)",
   windowsCloseButton: "#C42B1C",
+  // Content swatches below are generated from the server theme configuration.
   // text highlight (background)
   /** @deprecated */
   textHighlightPink: "rgba(127, 93, 93, 1)",

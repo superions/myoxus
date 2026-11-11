@@ -332,6 +332,7 @@ validateSeed(families);
 
 const catalogWithoutHash = {
   schemaVersion: themeSeed.schemaVersion,
+  contentColors: themeSeed.contentColors,
   generatedFrom: [
     "server/static/branding/theme-seed.json",
     "server/static/fonts/manifest.json",

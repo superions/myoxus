@@ -394,6 +394,7 @@ test("desktop copy preserves producer bytes, binds separate public source and pu
       fetchImpl: f.fetchImpl,
     });
   const prepared = await prepare("prepared-desktop");
+  assert.equal(prepared.plan.name, "Myoxus macOS Client 1.2.3");
   f.state.expectedAssets = prepared.plan.assets.length;
   assert.match(
     prepared.plan.homebrew.source,

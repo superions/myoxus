@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later */
 /* Shared technical, renderer and authored-content variables. */
 /* Server-projected UI colors and typography do not belong in this file. */
+/* Text-highlight values are materialized by branding:theme-fallback from the server configuration. */
 
 /* ============================================================================
    :root — base theme variables (not affected by data-theme, applied globally)

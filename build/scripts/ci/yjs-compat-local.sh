@@ -123,8 +123,10 @@ for (const lockPath of ["Cargo.lock", "server/Cargo.lock"]) {
     fail(`${lockPath}: yrs must be ${yrsTarget}, got ${version ?? "missing"}`);
   }
 }
-if (cargoPackageVersion("server/Cargo.lock", "socketioxide") !== "0.16.3") {
-  fail("server socketioxide must remain exactly 0.16.3 in this protocol cutover");
+// Transport version follows the qualified 2026-11-08 cutover; the CRDT
+// byte/runtime checks below remain independent of the transport upgrade.
+if (cargoPackageVersion("server/Cargo.lock", "socketioxide") !== "0.18.9") {
+  fail("server socketioxide must remain exactly 0.18.9 in the reviewed protocol set");
 }
 
 for (const manifestPath of ["Cargo.toml", "server/Cargo.toml"]) {

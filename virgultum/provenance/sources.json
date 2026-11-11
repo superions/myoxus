@@ -1279,7 +1279,7 @@
         },
         {
           "path": "virgultum/editor/blocks/bookmark/package.json",
-          "sha256": "06d0e3a22facdd03500510c8d2b5951db3c9de092cbcebdc09ed3aa25a684814",
+          "sha256": "787ebb9668d28ddbb721fc8cbca8178fdfb105a5171ee647890029e4915f1111",
           "originalPath": "blocksuite/affine/blocks/bookmark/package.json",
           "originalGitBlob": "b213714cfcd19a6f92db6610909f3262b2134eed"
         },
@@ -1321,7 +1321,7 @@
         },
         {
           "path": "virgultum/editor/blocks/bookmark/src/bookmark-block.ts",
-          "sha256": "39e57a805d0ccbe410c90e5205e4395a6f6fa2704f5af9c34b9d7eb1dad9d0f7",
+          "sha256": "e445093c5f53982ff9eb22daae7151b42837066f32ed000afee5bb94fe34900a",
           "originalPath": "blocksuite/affine/blocks/bookmark/src/bookmark-block.ts",
           "originalGitBlob": "8d944a1050bf16dc1ae117dc78a302eb2d975a9f"
         },
@@ -1344,12 +1344,6 @@
           "originalGitBlob": "27174bcd054e8b26b4467722121a4eef1a67eba1"
         },
         {
-          "path": "virgultum/editor/blocks/bookmark/src/components/bookmark-card.ts",
-          "sha256": "f3a191e843ea24baf107de69f818e01f5286a04ad2263c26bfddb459d40efd1d",
-          "originalPath": "blocksuite/affine/blocks/bookmark/src/components/bookmark-card.ts",
-          "originalGitBlob": "af47694fa8f5a8ca822b407edce31a9d41939679"
-        },
-        {
           "path": "virgultum/editor/blocks/bookmark/src/configs/slash-menu.ts",
           "sha256": "54e321dbb8fb9ac49503583efffbf25c84782dd793cb1ffdf8a2dd5cbe5b5c47",
           "originalPath": "blocksuite/affine/blocks/bookmark/src/configs/slash-menu.ts",
@@ -1369,7 +1363,7 @@
         },
         {
           "path": "virgultum/editor/blocks/bookmark/src/effects.ts",
-          "sha256": "692f4404013620a88decbe570a844c46f662a2d9087b13f68b43cad0267fc30f",
+          "sha256": "0cf43204269ff7da23f6e1a4efbe07c5630509467aea7de119332c04c00e572d",
           "originalPath": "blocksuite/affine/blocks/bookmark/src/effects.ts",
           "originalGitBlob": "34d5fca9b214b2d58d222a433acf29aacd3c9bf1"
         },
@@ -1378,12 +1372,6 @@
           "sha256": "224840f1246f73da14f0ad6e7ed21a7faad2f128965324bc0125d8354f2819d5",
           "originalPath": "blocksuite/affine/blocks/bookmark/src/store.ts",
           "originalGitBlob": "24083ecddf1aa339f2fc205b6c3f6eefb4041db2"
-        },
-        {
-          "path": "virgultum/editor/blocks/bookmark/src/styles.ts",
-          "sha256": "4f5ce7b41b93fa81736a50130c0fd6d03ffffd3a918c0676f801bd50a23fa371",
-          "originalPath": "blocksuite/affine/blocks/bookmark/src/styles.ts",
-          "originalGitBlob": "03b5e3f12661616fed80e550f149e2082831ddcf"
         },
         {
           "path": "virgultum/editor/blocks/bookmark/src/utils.ts",
@@ -14404,7 +14392,7 @@
         },
         {
           "path": "virgultum/editor/shared/src/services/editor-chrome-host.ts",
-          "sha256": "f64fae953582f233b750f714376426142cd2fd87a6ddf8c7bf9dba2f5aff3901"
+          "sha256": "0f6e536563373fb9a795a20d0c8bebf4ddafba2f784b5985229f19e4408bbf58"
         },
         {
           "path": "virgultum/editor/shared/src/services/footnote-react-host.ts",
@@ -14948,14 +14936,8 @@
           "originalGitBlob": "ccf842c89b1fb6321a29300fcc4bdd71f7aeecde"
         },
         {
-          "path": "virgultum/editor/blocks/bookmark/src/components/index.ts",
-          "sha256": "e1698e3a6c8901028a4d3e7625e15cff6ca40a2a8156816bef45a8c94d323b61",
-          "originalPath": "blocksuite/affine/blocks/bookmark/src/components/index.ts",
-          "originalGitBlob": "774cd990e0bcc9b861d2599d3a011f5d26a8d775"
-        },
-        {
           "path": "virgultum/editor/blocks/bookmark/src/index.ts",
-          "sha256": "e9e55c6f8055a96b4415668a15c4bcd39c5bd299c64a91ca2aeedf8878582a95",
+          "sha256": "125c6e11cd91108edbd6820ee1bb57d4f7d66f94bc442c80d2be44fe69cc181f",
           "originalPath": "blocksuite/affine/blocks/bookmark/src/index.ts",
           "originalGitBlob": "5013ebfff585ba1457b7f31832189b2f5dba82d0"
         },

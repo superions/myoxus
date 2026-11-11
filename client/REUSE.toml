@@ -5822,3 +5822,11 @@ path = [
   "libs/core/src/editor/view-extensions/editor-view/editor-chrome/image-fallback.tsx",
   "libs/core/src/editor/view-extensions/editor-view/text-attachment.tsx",
 ]
+
+[[annotations]]
+SPDX-FileCopyrightText = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+X-Myoxus-Origin = "M0"
+path = [
+  "libs/core/src/editor/view-extensions/editor-view/editor-chrome/bookmark-card.tsx",
+]

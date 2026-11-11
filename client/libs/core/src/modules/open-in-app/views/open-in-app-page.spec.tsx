@@ -173,18 +173,44 @@ describe("OpenInAppPage branding assets", () => {
     ).toBe("1em");
   });
 
-  test("does not launch a custom protocol without active user interaction", () => {
+  test("keeps document handoff explicit without active user interaction", () => {
     const hrefBeforeRender = window.location.href;
     vi.stubGlobal("navigator", {
       ...window.navigator,
       userActivation: { hasBeenActive: false, isActive: false },
     });
 
-    render(<OpenInAppPage urlToOpen="myoxus://open?action=phase07" />);
+    render(
+      <OpenInAppPage
+        mode="open-doc"
+        urlToOpen="myoxus://open?action=phase07"
+      />,
+    );
 
     expect(window.location.href).toBe(hrefBeforeRender);
     expect(
       screen.getByRole("link", { name: "Try again" }).getAttribute("href"),
     ).toBe("myoxus://open?action=phase07");
+  });
+
+  test("immediately hands authentication back after an external provider redirect", () => {
+    const callback =
+      "myoxus://authentication?method=oauth&payload=short-lived-code";
+    const previousHref = window.location.href;
+    vi.stubGlobal("navigator", {
+      ...window.navigator,
+      userActivation: { hasBeenActive: false, isActive: false },
+    });
+
+    try {
+      render(<OpenInAppPage urlToOpen={callback} />);
+
+      expect(window.location.href).toBe(callback);
+      const retry = screen.getByRole("link", { name: "Try again" });
+      expect(retry.getAttribute("href")).toBe(callback);
+      expect(retry.getAttribute("target")).toBeNull();
+    } finally {
+      window.location.href = previousHref;
+    }
   });
 });

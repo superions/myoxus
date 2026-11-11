@@ -3,6 +3,7 @@
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import { request as httpsRequest } from "node:https";
 import path from "node:path";
@@ -339,6 +340,7 @@ export async function prepareRelease({
   let revision = report.revision;
   let source;
   let homebrew;
+  let desktopName;
   if (input.scope === "desktop") {
     const [{ verifyReleaseMetadata }, { renderHomebrewCask }] =
       await Promise.all([
@@ -396,6 +398,13 @@ export async function prepareRelease({
         );
       if (["macos", "full"].includes(checked.scope))
         homebrew = renderHomebrewCask(checked, { github: true });
+      const label = {
+        macos: "macOS Client",
+        linux: "Linux Client",
+        windows: "Windows Client",
+        full: "Desktop",
+      }[checked.scope];
+      desktopName = `Myoxus ${label} ${input.version}`;
     } finally {
       fs.rmSync(validation, { recursive: true, force: true });
     }
@@ -532,6 +541,7 @@ export async function prepareRelease({
       `\nLegal, SBOM and provenance: https://github.com/${REPOSITORY}/releases/download/${input.tag}/${bundle.name}\n`,
     assets,
     ...(homebrew ? { homebrew } : {}),
+    ...(desktopName ? { name: desktopName } : {}),
   };
   const bytes = Buffer.from(`${JSON.stringify(plan, null, 2)}\n`);
   fs.writeFileSync(path.join(output, "github-release-plan.json"), bytes, {
@@ -677,6 +687,24 @@ async function verifyAnonymousDownloads(plan, fetchImpl) {
 
 async function publishHomebrewCask(plan, fetchImpl, token) {
   if (!plan.homebrew) return;
+  const lockFile = process.env.GITHUB_PUBLICATION_LOCK;
+  if (lockFile) fs.mkdirSync(path.dirname(lockFile), { recursive: true });
+  const descriptor = lockFile ? fs.openSync(lockFile, "a", 0o600) : undefined;
+  try {
+    // flock's inherited open-file description remains locked through the parent
+    // descriptor. Only the public-main mutation waits; asset transfers stay independent.
+    if (descriptor !== undefined)
+      execFileSync("flock", ["-x", "3"], {
+        stdio: ["ignore", "ignore", "inherit", descriptor],
+        timeout: 900000,
+      });
+    await writePublicHomebrewCask(plan, fetchImpl, token);
+  } finally {
+    if (descriptor !== undefined) fs.closeSync(descriptor);
+  }
+}
+
+async function writePublicHomebrewCask(plan, fetchImpl, token) {
   const { compareCaskVersions } =
     await import("../ci/publish-electron-release.mjs");
   const cask = plan.homebrew;
@@ -753,6 +781,7 @@ export async function publishPreparedRelease({
   if (
     release &&
     (release.target_commitish !== plan.source.commit ||
+      (plan.name && release.name !== plan.name) ||
       release.body !== plan.body ||
       release.prerelease !== plan.prerelease)
   )
@@ -766,7 +795,7 @@ export async function publishPreparedRelease({
       body: {
         tag_name: plan.tag,
         target_commitish: plan.source.commit,
-        name: `Myoxus ${plan.version}`,
+        name: plan.name ?? `Myoxus ${plan.version}`,
         body: plan.body,
         prerelease: plan.prerelease,
         draft: true,

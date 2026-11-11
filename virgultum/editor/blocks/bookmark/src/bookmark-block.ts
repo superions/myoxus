@@ -9,12 +9,13 @@ import {
   BlockElementCommentManager,
   CitationProvider,
   DocModeProvider,
+  EditorChromeHostIdentifier,
   LinkPreviewServiceIdentifier,
 } from "@virgultum/shared/services";
 import { normalizeUrl } from "@virgultum/shared/utils";
-import { BlockSelection } from "@virgultum/std";
+import { BlockSelection, isGfxBlockComponent } from "@virgultum/std";
 import { html } from "lit";
-import { property, query } from "lit/decorators.js";
+import { property } from "lit/decorators.js";
 import { type ClassInfo, classMap } from "lit/directives/class-map.js";
 import { type StyleInfo, styleMap } from "lit/directives/style-map.js";
 import { filter } from "rxjs/operators";
@@ -170,11 +171,38 @@ export class BookmarkBlockComponent extends CaptionedBlockComponent<BookmarkBloc
   };
 
   private readonly _renderCardView = () => {
-    return html`<bookmark-card
-      .bookmark=${this}
-      .loading=${this.loading}
-      .error=${this.error}
-    ></bookmark-card>`;
+    // Read every signal here so the block re-renders (and re-projects the
+    // plain snapshot) on preview, selection and style changes.
+    const preview = this.linkPreview$.value;
+    const style = this.model.props.style$.value;
+    const { url } = this.model.props;
+    return this.std.get(EditorChromeHostIdentifier).renderBookmarkCard({
+      inSurface: isGfxBlockComponent(this),
+      selected: this.selected$.value,
+      commentHighlighted: this.isCommentHighlighted,
+      style:
+        style === "vertical" || style === "list" || style === "cube"
+          ? style
+          : "horizontal",
+      url,
+      title: preview.title,
+      description: preview.description,
+      icon: preview.icon ? this.imageProxyService.buildUrl(preview.icon) : null,
+      image: preview.image
+        ? this.imageProxyService.buildUrl(preview.image)
+        : null,
+      loading: this.loading,
+      error: this.error,
+      open: () => this.open(),
+      select: () => {
+        if (
+          this.model.parent?.flavour !== "myoxus:surface" &&
+          !this.store.readonly
+        ) {
+          this.selectBlock();
+        }
+      },
+    });
   };
 
   private readonly _trackCitationDeleteEvent = () => {
@@ -266,9 +294,6 @@ export class BookmarkBlockComponent extends CaptionedBlockComponent<BookmarkBloc
   protected override accessor blockContainerStyles: StyleInfo = {
     margin: "18px 0",
   };
-
-  @query("bookmark-card")
-  accessor bookmarkCard!: HTMLElement;
 
   @property({ attribute: false })
   accessor error = false;

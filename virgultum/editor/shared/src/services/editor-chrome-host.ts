@@ -140,6 +140,30 @@ export type EditorAttachmentCardControls = Readonly<{
   action?: Readonly<{ kind: "retry" | "reload" | "limit"; run: () => void }>;
 }>;
 
+/**
+ * Plain snapshot of the block's preview state and guarded commands. The Lit
+ * block re-evaluates this on every reactive render; the React view is stateless.
+ */
+export type EditorBookmarkCardControls = Readonly<{
+  inSurface: boolean;
+  selected: boolean;
+  commentHighlighted: boolean;
+  style: "horizontal" | "list" | "vertical" | "cube";
+  url: string;
+  title: string | null;
+  description: string | null;
+  /** Image-proxy URL for the site icon, or null when unavailable. */
+  icon: string | null;
+  /** Image-proxy URL for the banner image, or null when unavailable. */
+  image: string | null;
+  loading: boolean;
+  error: boolean;
+  /** Opens the normalized URL in a new tab; no-op without a valid link. */
+  open: () => void;
+  /** Selects the block when the parent and readonly state allow it. */
+  select: () => void;
+}>;
+
 /** The editor owns preview DOM and its renderer; React only mounts the stable container. */
 export type EditorDocumentCardControls = Readonly<{
   kind?: "linked" | "synced";
@@ -171,6 +195,7 @@ export type EditorChromeHost = {
   renderAttachmentCard: (
     controls: EditorAttachmentCardControls,
   ) => TemplateResult;
+  renderBookmarkCard: (controls: EditorBookmarkCardControls) => TemplateResult;
   renderDocumentOutline: (controls: EditorOutlineControls) => TemplateResult;
   renderOutlineEntry: (controls: EditorOutlineEntryControls) => TemplateResult;
   renderCitationPreview: (controls: EditorCitationControls) => TemplateResult;

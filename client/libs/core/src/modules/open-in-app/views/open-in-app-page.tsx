@@ -53,17 +53,17 @@ export const OpenInAppPage = ({
     if (
       !urlToOpen ||
       lastOpened === urlToOpen ||
-      !navigator.userActivation?.isActive
+      (mode === "open-doc" && !navigator.userActivation?.isActive)
     ) {
       return;
     }
 
-    // Custom protocols may only be launched while the browser still retains
-    // the user activation that opened this route. Direct/deferred deep links
-    // keep the explicit retry action instead of producing a console error.
+    // An external identity-provider redirect no longer has transient activation.
+    // Attempt its short-lived authentication handoff immediately; the browser
+    // owns protocol consent, and the explicit link remains available as fallback.
     lastOpened = urlToOpen;
     location.href = urlToOpen;
-  }, [urlToOpen]);
+  }, [mode, urlToOpen]);
 
   if (!urlToOpen) {
     return null;
@@ -112,7 +112,7 @@ export const OpenInAppPage = ({
                   {t["com.myoxus.auth.open.myoxus.doc.open-here"]()}
                 </InlineActionButton>
               ) : null}
-              <InlineLink href={urlToOpen} target="_blank" rel="noreferrer">
+              <InlineLink href={urlToOpen}>
                 {t["com.myoxus.auth.open.myoxus.try-again"]()}
               </InlineLink>
             </Group>

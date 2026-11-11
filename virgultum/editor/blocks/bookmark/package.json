@@ -11,8 +11,6 @@
   "license": "AGPL-3.0-or-later AND MIT",
   "dependencies": {
     "@lit/context": "^1.1.6",
-    "@myoxus/icons": "workspace:*",
-    "@myoxus/theme": "workspace:*",
     "@preact/signals-core": "^1.14.5",
     "@virgultum/block-embed": "workspace:*",
     "@virgultum/block-embed-doc": "workspace:*",

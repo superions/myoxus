@@ -408,7 +408,11 @@ pub fn build_runtime_theme_css_with_font_urls(
   emit_theme_color_tokens(&mut css, "  ", dark_tokens, "dark");
   emit_typography_style_vars(&mut css, "  ", &profile.theme.typography_styles);
   css.push_str("}\n");
-  css.push_str(include_str!("../../../../static/branding/text-marker.css"));
+  css.push_str(":root {\n");
+  for (reference, value) in &content_colors().fixed {
+    css.push_str(&format!("  {reference}: {value};\n"));
+  }
+  css.push_str("}\n");
   css
 }
 
@@ -491,36 +495,6 @@ pub(crate) fn native_table_color_values<'a>(
   values
 }
 
-/// Resolve native document colour references through the same server projection
-/// as runtime CSS. Format adapters consume concrete colours, never CSS markup.
-pub fn document_color_values(tokens: &BTreeMap<String, String>, mode: &str) -> BTreeMap<String, String> {
-  // Persisted legacy inline swatches use their established print colours.
-  let mut values: BTreeMap<String, String> =
-    serde_json::from_str(include_str!("../../../../static/branding/inline-colors.json"))
-      .expect("bundled inline colour palette");
-  for (token, color) in tokens {
-    values.insert(token.clone(), color.clone());
-    values.insert(format!("--myoxus-sem-{token}"), color.clone());
-    for reference in p_ar_theme_css_vars(token) {
-      values.insert((*reference).into(), color.clone());
-    }
-  }
-  for (reference, color) in native_table_color_values(tokens, mode) {
-    if let Some(color) = color {
-      values.insert(reference.into(), color.into());
-    }
-  }
-  // This bundled file contains only concrete document-marker declarations.
-  for line in include_str!("../../../../static/branding/text-marker.css").lines() {
-    if let Some((key, value)) = line.trim().strip_suffix(';').and_then(|line| line.split_once(':')) {
-      if key.starts_with("--myoxus-") && value.trim().starts_with('#') {
-        values.insert(key.into(), value.trim().into());
-      }
-    }
-  }
-  values
-}
-
 fn emit_theme_color_tokens(css: &mut String, indent: &str, tokens: &BTreeMap<String, String>, mode: &str) {
   let primary = tokens.get("accent-primary").map(String::as_str).unwrap_or("#1e96eb");
   let secondary = tokens.get("accent-secondary").map(String::as_str).unwrap_or("#44b931");
@@ -537,6 +511,11 @@ fn emit_theme_color_tokens(css: &mut String, indent: &str, tokens: &BTreeMap<Str
     if let Some(value) = value {
       emit_projection_variable(css, indent, reference, value, &mut emitted);
     }
+  }
+  let content = content_colors();
+  let colors = if mode == "dark" { &content.dark } else { &content.light };
+  for (reference, value) in colors {
+    emit_projection_variable(css, indent, reference, value, &mut emitted);
   }
   if !tokens.contains_key("accent-primary") {
     emit_theme_color_token(css, indent, "accent-primary", primary, &mut emitted);
@@ -734,7 +713,7 @@ fn format_css_number(value: f64) -> String {
   }
 }
 
-fn p_ar_theme_css_vars(token: &str) -> &'static [&'static str] {
+pub(crate) fn p_ar_theme_css_vars(token: &str) -> &'static [&'static str] {
   match token {
     "paper" => &["--myoxus-background-primary-color", "--myoxus-sem-surface-page"],
     "paper-deep" => &[
@@ -830,9 +809,23 @@ fn to_kebab_case(input: &str) -> String {
 struct ThemeCatalog {
   catalog_hash: String,
   schema_version: i32,
+  content_colors: ContentColors,
   required_color_keys: Vec<String>,
   font_families: Vec<FontFamilySeed>,
   themes: Vec<ThemeSeed>,
+}
+
+#[derive(Debug, Deserialize)]
+pub(crate) struct ContentColors {
+  pub light: BTreeMap<String, String>,
+  pub dark: BTreeMap<String, String>,
+  pub fixed: BTreeMap<String, String>,
+}
+
+/// Shared content colours come from the existing catalog, not export-owned assets.
+pub(crate) fn content_colors() -> &'static ContentColors {
+  static COLORS: std::sync::OnceLock<ContentColors> = std::sync::OnceLock::new();
+  COLORS.get_or_init(|| catalog().expect("bundled theme catalog").content_colors)
 }
 
 #[derive(Debug, Deserialize)]
