@@ -9,8 +9,9 @@ Electron rich client when desktop integration and limited offline work matter.**
 Both use the same authoritative server for shared product capabilities.
 
 The self-hosting beta entry is Server, Browser Web and Admin. Desktop releases
-are independent; [downloads](./downloads.md) distinguishes existing Forgejo
-packages from the public GitHub source/beta release status.
+are independent; [downloads](./downloads.md) lists published platforms and their
+installation and update routes. macOS 0.42.1 is available on GitHub for Intel
+and Apple Silicon, with a checksum-pinned Homebrew Cask.
 
 | Question                                         | Browser Web                                    | Electron desktop rich client                                                             |
 | ------------------------------------------------ | ---------------------------------------------- | ---------------------------------------------------------------------------------------- |
@@ -115,6 +116,8 @@ signed; these states are stated in the release metadata. For macOS, follow the
 documented external installation/upgrade route. A native macOS automatic updater
 is not a requirement or promise of regular distribution. Use Homebrew only when
 the release actually supplies a checksum-pinned Cask and its installation guide.
+The published macOS Cask uses GitHub for installation and subsequent external
+upgrades; follow [macOS installation and updates](./downloads.md#macos-installation-and-updates).
 
 ## One client model across deployment sizes
 
