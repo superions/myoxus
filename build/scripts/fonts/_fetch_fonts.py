@@ -678,6 +678,9 @@ def main() -> int:
         }
         if preview_fonts:
             manifest["typst_preview_fonts"] = preview_fonts
+        # Keep Office static faces in the same approved asset inventory.
+        import runpy
+        runpy.run_path(str(Path(__file__).with_name("materialize-docx-fonts.py")))["materialize"](manifest)
         MANIFEST_PATH.write_text(json.dumps(manifest, indent=2) + "\n")
         print(color(use_color, "green", f"wrote {MANIFEST_PATH.relative_to(REPO_ROOT)}"))
 

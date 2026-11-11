@@ -31,6 +31,107 @@ pub struct EmbeddedFont {
     pub data: Vec<u8>,
 }
 
+/// A complete static font face to embed. The caller validates the font and its
+/// embedding rights; this codec only packages and obfuscates its bytes.
+#[derive(Clone, Debug)]
+pub struct FontToEmbed {
+    pub name: String,
+    pub bold: bool,
+    pub italic: bool,
+    pub data: std::sync::Arc<Vec<u8>>,
+}
+
+/// Replace the font table with full editable faces, using the same part writer
+/// as imported fonts. Existing unrelated embedded parts are retained.
+pub fn embed_fonts(doc: &mut Document, fonts: &[FontToEmbed]) -> Result<(), crate::DocxError> {
+    use crate::package::{EmbeddedPart, FONT_TABLE_PART, Rel};
+    use sha2::{Digest, Sha256};
+    use std::{collections::BTreeMap, sync::Arc};
+
+    if fonts.is_empty() {
+        return Ok(());
+    }
+    if fonts.len() > MAX_FONTS || fonts.iter().map(|f| f.data.len() as u64).sum::<u64>() > MAX_FONT_BYTES {
+        return Err(crate::DocxError::Limit("embedded fonts".into()));
+    }
+    let mut manifest = doc
+        .passthrough
+        .get(EMBEDDED_PARTS)
+        .map(|m| EmbeddedManifest::parse(m))
+        .unwrap_or_default();
+    let mut part = EmbeddedPart {
+        content_type: "application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml".into(),
+        rels: Vec::new(),
+    };
+    let mut table = crate::xml::W::new();
+    table.open(
+        "w:fonts",
+        &[
+            ("xmlns:w", "http://schemas.openxmlformats.org/wordprocessingml/2006/main"),
+            ("xmlns:r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships"),
+        ],
+    );
+    let mut families: BTreeMap<&str, Vec<&FontToEmbed>> = BTreeMap::new();
+    for font in fonts {
+        families.entry(&font.name).or_default().push(font);
+    }
+    for (family, faces) in families {
+        table.open("w:font", &[("w:name", family)]);
+        for font in faces {
+            if font.data.len() < 32 {
+                return Err(crate::DocxError::Limit("embedded font is too short".into()));
+            }
+            // Obfuscation is OOXML packaging, not encryption. A content key also
+            // deduplicates faces shared by more than one font-table entry.
+            let digest = Sha256::digest(&*font.data);
+            let hex: String = digest.iter().map(|b| format!("{b:02X}")).collect();
+            let key = format!(
+                "{{{}-{}-{}-{}-{}}}",
+                &hex[..8],
+                &hex[8..12],
+                &hex[12..16],
+                &hex[16..20],
+                &hex[20..32]
+            );
+            let target = format!("word/fonts/{hex}.odttf");
+            let id = format!("rId{}", part.rels.len() + 1);
+            let mut data = font.data.as_ref().clone();
+            for (i, byte) in data.iter_mut().take(32).enumerate() {
+                *byte ^= digest[15 - i % 16];
+            }
+            doc.passthrough.insert(target.clone(), Arc::new(data));
+            manifest.parts.insert(
+                target.clone(),
+                EmbeddedPart {
+                    content_type: "application/vnd.openxmlformats-officedocument.obfuscatedFont".into(),
+                    rels: Vec::new(),
+                },
+            );
+            part.rels.push(Rel {
+                id: id.clone(),
+                kind: "http://schemas.openxmlformats.org/officeDocument/2006/relationships/font".into(),
+                target,
+                external: false,
+            });
+            let tag = match (font.bold, font.italic) {
+                (false, false) => EMBEDS[0],
+                (true, false) => EMBEDS[1],
+                (false, true) => EMBEDS[2],
+                (true, true) => EMBEDS[3],
+            };
+            table.empty(tag, &[("r:id", &id), ("w:fontKey", &key), ("w:subsetted", "0")]);
+        }
+        table.close("w:font");
+    }
+    table.close("w:fonts");
+    manifest.parts.insert(FONT_TABLE_PART.into(), part);
+    doc.passthrough.insert(FONT_TABLE_PART.into(), Arc::new(table.s.into_bytes()));
+    doc.passthrough.insert(EMBEDDED_PARTS.into(), Arc::new(manifest.to_bytes()));
+    doc.settings.embed_fonts = true;
+    doc.settings.save_subset_fonts = false;
+    Ok(())
+}
+
 /// The font files `doc`'s font table embeds, de-obfuscated, in table order. Not checked to be
 /// fonts: that is up to the font database. Empty for a document read from anything but a package
 /// with a font table.

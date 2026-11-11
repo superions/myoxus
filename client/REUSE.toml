@@ -3636,18 +3636,14 @@ path = [
 precedence = "override"
 
 [[annotations]]
-SPDX-FileCopyrightText = "2018 Google LLC"
+SPDX-FileCopyrightText  = "2018 Google LLC"
 SPDX-License-Identifier = "BSD-3-Clause"
-X-Myoxus-Origin = "T1"
-path = [
-  "libs/lit-react/src/create-component.ts",
-]
-precedence = "override"
+X-Myoxus-Origin         = "T1"
+path                    = ["libs/lit-react/src/create-component.ts"]
+precedence              = "override"
 
 [[annotations]]
-SPDX-FileCopyrightText = [
-  "2026-present Daniel Scharf and Myoxus contributors",
-]
+SPDX-FileCopyrightText = ["2026-present Daniel Scharf and Myoxus contributors"]
 SPDX-License-Identifier = "AGPL-3.0-or-later"
 X-Myoxus-Origin = "M0"
 path = [
@@ -4206,9 +4202,7 @@ path = [
 precedence = "override"
 
 [[annotations]]
-SPDX-FileCopyrightText = [
-  "2026-present Daniel Scharf and Myoxus contributors",
-]
+SPDX-FileCopyrightText = ["2026-present Daniel Scharf and Myoxus contributors"]
 SPDX-License-Identifier = "AGPL-3.0-or-later"
 X-Myoxus-Origin = "M0"
 path = [
@@ -4350,9 +4344,7 @@ path = [
 precedence = "override"
 
 [[annotations]]
-SPDX-FileCopyrightText = [
-  "2023-2026 The Apache Software Foundation",
-]
+SPDX-FileCopyrightText = ["2023-2026 The Apache Software Foundation"]
 SPDX-License-Identifier = "Apache-2.0"
 X-Myoxus-Origin = "T1"
 path = [
@@ -4576,9 +4568,7 @@ path = [
 precedence = "override"
 
 [[annotations]]
-SPDX-FileCopyrightText = [
-  "2026-present Daniel Scharf and Myoxus contributors",
-]
+SPDX-FileCopyrightText = ["2026-present Daniel Scharf and Myoxus contributors"]
 SPDX-License-Identifier = "AGPL-3.0-or-later"
 X-Myoxus-Origin = "M0"
 path = [
@@ -4725,15 +4715,11 @@ SPDX-FileCopyrightText = [
 ]
 SPDX-License-Identifier = "LicenseRef-OMG-BPMN AND W3C-20150513"
 X-Myoxus-Origin = "T1"
-path = [
-  "libs/bpmn-editor/THIRD-PARTY-NOTICES",
-]
+path = ["libs/bpmn-editor/THIRD-PARTY-NOTICES"]
 precedence = "override"
 
 [[annotations]]
-SPDX-FileCopyrightText = [
-  "2026-present Daniel Scharf and Myoxus contributors",
-]
+SPDX-FileCopyrightText = ["2026-present Daniel Scharf and Myoxus contributors"]
 SPDX-License-Identifier = "AGPL-3.0-or-later"
 X-Myoxus-Origin = "M0"
 path = [
@@ -4981,9 +4967,7 @@ X-Myoxus-LicenseException = "component-declared"
 X-Myoxus-Origin = "F1"
 X-Myoxus-UpstreamCutoff = "e31cca33540af2737dc9e520b70acac170c0709e"
 X-Myoxus-UpstreamCutoffDate = "2026-03-04"
-path = [
-  "apps/electron/resources/templates/linux.metainfo.xml",
-]
+path = ["apps/electron/resources/templates/linux.metainfo.xml"]
 precedence = "override"
 
 [[annotations]]
@@ -4994,19 +4978,15 @@ SPDX-License-Identifier = "MIT"
 X-Myoxus-Origin = "F1"
 X-Myoxus-UpstreamCutoff = "e31cca33540af2737dc9e520b70acac170c0709e"
 X-Myoxus-UpstreamCutoffDate = "2026-03-04"
-path = [
-  "apps/electron/scripts/package.json",
-]
+path = ["apps/electron/scripts/package.json"]
 precedence = "override"
 
 [[annotations]]
-SPDX-FileCopyrightText = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-FileCopyrightText  = "2026-present Daniel Scharf and Myoxus contributors"
 SPDX-License-Identifier = "AGPL-3.0-or-later"
-X-Myoxus-Origin = "M0"
-path = [
-  "libs/notifications/src/index.ts",
-]
-precedence = "override"
+X-Myoxus-Origin         = "M0"
+path                    = ["libs/notifications/src/index.ts"]
+precedence              = "override"
 
 [[annotations]]
 SPDX-FileCopyrightText = "2026-present Daniel Scharf and Myoxus contributors"
@@ -5794,9 +5774,7 @@ path = [
 ]
 
 [[annotations]]
-SPDX-FileCopyrightText = [
-  "2026-present Daniel Scharf and Myoxus contributors",
-]
+SPDX-FileCopyrightText = ["2026-present Daniel Scharf and Myoxus contributors"]
 SPDX-License-Identifier = "AGPL-3.0-or-later"
 X-Myoxus-Origin = "M0"
 path = [

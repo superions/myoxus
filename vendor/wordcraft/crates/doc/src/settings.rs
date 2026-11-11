@@ -72,6 +72,9 @@ pub struct CoreProps {
 #[serde(default, rename_all = "camelCase")]
 pub struct Settings {
     pub track_changes: bool,
+    /// Keep full embedded faces when Office saves the editable document.
+    pub embed_fonts: bool,
+    pub save_subset_fonts: bool,
     /// Record a tracked cut and paste of a sentence or paragraph as a move (Track moves); off
     /// when the file has `w:doNotTrackMoves` (ECMA-376 §17.15.1.29), and then it is an
     /// ordinary deletion and insertion.
@@ -292,6 +295,8 @@ impl Default for Settings {
     fn default() -> Self {
         Settings {
             track_changes: false,
+            embed_fonts: false,
+            save_subset_fonts: false,
             track_moves: true,
             default_tab: 36.0,
             even_odd_headers: false,

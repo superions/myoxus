@@ -7,9 +7,9 @@
       "origin": "T1",
       "licenseExpression": "OFL-1.1",
       "upstreamUrl": "https://github.com/google/fonts",
-      "upstreamRevision": "sha256-manifest:0e45cee4697e86f3886eda785f64a7f1e300998a64d097d8a4e49ffb19ea51f0",
+      "upstreamRevision": "sha256-manifest:16595b25317e21d04bc1c8da9df8a52b416ff699a745a1aa56556e6b1eb6decc",
       "sha256": [
-        "0e45cee4697e86f3886eda785f64a7f1e300998a64d097d8a4e49ffb19ea51f0"
+        "16595b25317e21d04bc1c8da9df8a52b416ff699a745a1aa56556e6b1eb6decc"
       ],
       "noticePaths": ["docs/ops/configuration/font-provenance.md"]
     },

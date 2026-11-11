@@ -1,6 +1,5 @@
 import * as icons from "@myoxus/icons/lit";
 import { cssVar } from "@myoxus/theme";
-import { type Signal } from "@preact/signals-core";
 import { CaptionedBlockComponent } from "@virgultum/components/caption";
 import {
   createPopup,
@@ -23,7 +22,6 @@ import {
   EditorI18nProvider,
   textProtectionHint,
 } from "@virgultum/shared/services";
-import type { UniComponent } from "@virgultum/shared/types";
 import type { BlockComponent } from "@virgultum/std";
 import { Text } from "@virgultum/store";
 import { html, type TemplateResult } from "lit";
@@ -38,23 +36,6 @@ import {
 } from "./callout-block-styles.js";
 import { IconPickerWrapper } from "./icon-picker-wrapper.js";
 import { CalloutTitleHostIdentifier } from "./react-host";
-// Copy of renderUniLit and UniLit from myoxus-data-view
-export const renderUniLit = <Props, Expose extends NonNullable<unknown>>(
-  uni: UniComponent<Props, Expose> | undefined,
-  props?: Props,
-  options?: {
-    ref?: Signal<Expose | undefined>;
-    style?: Readonly<StyleInfo>;
-    class?: string;
-  },
-): TemplateResult => {
-  return html` <uni-lit
-    .uni="${uni}"
-    .props="${props}"
-    .ref="${options?.ref}"
-    style=${options?.style ? styleMap(options?.style) : ""}
-  ></uni-lit>`;
-};
 const getIcon = (icon?: IconData) => {
   if (!icon) {
     return null;
@@ -78,6 +59,11 @@ export class CalloutBlockComponent extends CaptionedBlockComponent<CalloutBlockM
   override connectedCallback() {
     super.connectedCallback();
     this.classList.add(calloutHostStyles);
+  }
+
+  override disconnectedCallback() {
+    this._closeIconPicker();
+    super.disconnectedCallback();
   }
 
   private _getEmojiMarginTop(): string {
@@ -141,7 +127,11 @@ export class CalloutBlockComponent extends CaptionedBlockComponent<CalloutBlockM
           this._closeIconPicker();
           return;
         }
-        this.model.props.icon$.value = iconData;
+        this.store.captureSync();
+        this.store.updateBlock(this.model, () => {
+          this.model.props.icon = iconData;
+        });
+        this.store.captureSync();
         this._closeIconPicker(); // Close the picker after selection
       },
       onClose: () => {

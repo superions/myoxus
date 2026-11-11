@@ -41,7 +41,40 @@
             }
           ]
         },
-        "static": []
+        "static": [
+          {
+            "file": "inter-word-400.ttf",
+            "sha256": "1b6b15afdc933231bf8cecb74b4f9ec0566f35c0c6dbd54c48eb52384c8026b9",
+            "size": 341540,
+            "weight": 400,
+            "style": "normal",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/inter/Inter%5Bopsz,wght%5D.ttf"
+          },
+          {
+            "file": "inter-word-700.ttf",
+            "sha256": "55e02e1cf32ea4e03d3c94c3177d3182286283434967825fc7fdd5d9f4fb638b",
+            "size": 343200,
+            "weight": 700,
+            "style": "normal",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/inter/Inter%5Bopsz,wght%5D.ttf"
+          },
+          {
+            "file": "inter-italic-word-400.ttf",
+            "sha256": "3c686f356b140335c50f2f8c481eadfeefc47920aa32c1024c2ba84b2e0abefb",
+            "size": 344960,
+            "weight": 400,
+            "style": "italic",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/inter/Inter-Italic%5Bopsz,wght%5D.ttf"
+          },
+          {
+            "file": "inter-italic-word-700.ttf",
+            "sha256": "50d819d863fbf726dbdab15b77f5af464018d6ce8bd7f30220288573d24f0900",
+            "size": 346884,
+            "weight": 700,
+            "style": "italic",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/inter/Inter-Italic%5Bopsz,wght%5D.ttf"
+          }
+        ]
       },
       "woff2_subsets": [
         {
@@ -409,7 +442,40 @@
             }
           ]
         },
-        "static": []
+        "static": [
+          {
+            "file": "roboto-word-400.ttf",
+            "sha256": "1e8a87842cead0418e10b1eb5cefb294fb537fe96214845337b47d14d651ed07",
+            "size": 157816,
+            "weight": 400,
+            "style": "normal",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/roboto/Roboto%5Bwdth,wght%5D.ttf"
+          },
+          {
+            "file": "roboto-word-700.ttf",
+            "sha256": "2511ba22c8f5176f10e5e67fe3cf9e93fb38ba9daed846a9d1238aa42dccff4f",
+            "size": 158508,
+            "weight": 700,
+            "style": "normal",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/roboto/Roboto%5Bwdth,wght%5D.ttf"
+          },
+          {
+            "file": "roboto-italic-word-400.ttf",
+            "sha256": "691dae3964ef864592e69b699ae5eddc039a155296b3c487b692e565b456e40b",
+            "size": 163440,
+            "weight": 400,
+            "style": "italic",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/roboto/Roboto-Italic%5Bwdth,wght%5D.ttf"
+          },
+          {
+            "file": "roboto-italic-word-700.ttf",
+            "sha256": "f74b97e2fc30c03dcd3700348f2072f7a9599e92cc3827cb34ba8213ee1fe40e",
+            "size": 164404,
+            "weight": 700,
+            "style": "italic",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/roboto/Roboto-Italic%5Bwdth,wght%5D.ttf"
+          }
+        ]
       },
       "woff2_subsets": [
         {
@@ -777,7 +843,40 @@
             }
           ]
         },
-        "static": []
+        "static": [
+          {
+            "file": "open-sans-word-400.ttf",
+            "sha256": "8b2b3c3b0cd4ee2fe4a93cacfeb1da5c3648061a16c33b1710a63e9d2fdd774f",
+            "size": 130688,
+            "weight": 400,
+            "style": "normal",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/opensans/OpenSans%5Bwdth,wght%5D.ttf"
+          },
+          {
+            "file": "open-sans-word-700.ttf",
+            "sha256": "eec10b6b1384517cb78a30894cbd02fa0dea07587aca4751e94de8254e8bdfdc",
+            "size": 130664,
+            "weight": 700,
+            "style": "normal",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/opensans/OpenSans%5Bwdth,wght%5D.ttf"
+          },
+          {
+            "file": "open-sans-italic-word-400.ttf",
+            "sha256": "e379105e461becd265b6bc5344e3ecebec0d17497454e33af8afd3f78ddd1975",
+            "size": 136224,
+            "weight": 400,
+            "style": "italic",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/opensans/OpenSans-Italic%5Bwdth,wght%5D.ttf"
+          },
+          {
+            "file": "open-sans-italic-word-700.ttf",
+            "sha256": "031386592341b60fd6eada043773c10837e015aaffa48c95df203f57625c4c86",
+            "size": 135968,
+            "weight": 700,
+            "style": "italic",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/opensans/OpenSans-Italic%5Bwdth,wght%5D.ttf"
+          }
+        ]
       },
       "woff2_subsets": [
         {
@@ -1281,7 +1380,40 @@
             }
           ]
         },
-        "static": []
+        "static": [
+          {
+            "file": "montserrat-word-400.ttf",
+            "sha256": "d67f90040564f37e14b1b8ad0aec0c6680d92cba3dba775671120750524f86dc",
+            "size": 374692,
+            "weight": 400,
+            "style": "normal",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/Montserrat%5Bwght%5D.ttf"
+          },
+          {
+            "file": "montserrat-word-700.ttf",
+            "sha256": "8780b13ec541eb7fddf87d27094b24d2561910acee5aa8369004ea3fa10304c0",
+            "size": 374788,
+            "weight": 700,
+            "style": "normal",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/Montserrat%5Bwght%5D.ttf"
+          },
+          {
+            "file": "montserrat-italic-word-400.ttf",
+            "sha256": "7a9737f251161b76be1db01489aa6af597a1f230cbcc7927aa2ad0e3ebb52384",
+            "size": 384712,
+            "weight": 400,
+            "style": "italic",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/Montserrat-Italic%5Bwght%5D.ttf"
+          },
+          {
+            "file": "montserrat-italic-word-700.ttf",
+            "sha256": "88f3e1cc8f50d27ab01b891bec158d6688c8a602aafdc59c1c314e03f6026915",
+            "size": 384964,
+            "weight": 700,
+            "style": "italic",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/montserrat/Montserrat-Italic%5Bwght%5D.ttf"
+          }
+        ]
       },
       "woff2_subsets": [
         {
@@ -1541,7 +1673,40 @@
             }
           ]
         },
-        "static": []
+        "static": [
+          {
+            "file": "source-sans-3-word-400.ttf",
+            "sha256": "24d3eea963d404c1a10c76ee353432549616be6428cf448037ee714c20726c39",
+            "size": 379784,
+            "weight": 400,
+            "style": "normal",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/sourcesans3/SourceSans3%5Bwght%5D.ttf"
+          },
+          {
+            "file": "source-sans-3-word-700.ttf",
+            "sha256": "34863e25156b5f865475ef89e04885f5851c5752cbd72dcbc60338b17166ac2f",
+            "size": 379644,
+            "weight": 700,
+            "style": "normal",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/sourcesans3/SourceSans3%5Bwght%5D.ttf"
+          },
+          {
+            "file": "source-sans-3-italic-word-400.ttf",
+            "sha256": "040b6068faf1f4ca0bbc398df1644635ea0271615111cbbc2d975ca4d25364b0",
+            "size": 240600,
+            "weight": 400,
+            "style": "italic",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/sourcesans3/SourceSans3-Italic%5Bwght%5D.ttf"
+          },
+          {
+            "file": "source-sans-3-italic-word-700.ttf",
+            "sha256": "0cba8339680f25e912efb22b95004a1bad5753b008a9f65fdf3a23cc75be3234",
+            "size": 240608,
+            "weight": 700,
+            "style": "italic",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/sourcesans3/SourceSans3-Italic%5Bwght%5D.ttf"
+          }
+        ]
       },
       "woff2_subsets": [
         {
@@ -1907,7 +2072,40 @@
             }
           ]
         },
-        "static": []
+        "static": [
+          {
+            "file": "nunito-word-400.ttf",
+            "sha256": "b66ceac659f2e3e1d7cfba2027da1d7dbeea0f0f1124c2a3cef0ced7110cfcd8",
+            "size": 132508,
+            "weight": 400,
+            "style": "normal",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/nunito/Nunito%5Bwght%5D.ttf"
+          },
+          {
+            "file": "nunito-word-700.ttf",
+            "sha256": "7f4e85d3696626f71528cb0f5e857240e42ccb50aa2ebafea3ea4c3de3838f77",
+            "size": 132436,
+            "weight": 700,
+            "style": "normal",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/nunito/Nunito%5Bwght%5D.ttf"
+          },
+          {
+            "file": "nunito-italic-word-400.ttf",
+            "sha256": "b8c522a9ac1d8564201de6f6b6cd9f756fd4fdd240e1146e6c7cf1cefb794f37",
+            "size": 135440,
+            "weight": 400,
+            "style": "italic",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/nunito/Nunito-Italic%5Bwght%5D.ttf"
+          },
+          {
+            "file": "nunito-italic-word-700.ttf",
+            "sha256": "cd11c7f94628d90c5d49e3cbe48eeef6d8ef035c9d22c9341e3b0814860ac734",
+            "size": 135344,
+            "weight": 700,
+            "style": "italic",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/nunito/Nunito-Italic%5Bwght%5D.ttf"
+          }
+        ]
       },
       "woff2_subsets": [
         {
@@ -2339,7 +2537,40 @@
             }
           ]
         },
-        "static": []
+        "static": [
+          {
+            "file": "merriweather-word-400.ttf",
+            "sha256": "d33db6fbae919e745ab0177c289be816bbc96149098bad1421211d56df47078e",
+            "size": 1075480,
+            "weight": 400,
+            "style": "normal",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/merriweather/Merriweather%5Bopsz,wdth,wght%5D.ttf"
+          },
+          {
+            "file": "merriweather-word-700.ttf",
+            "sha256": "3867d9413a6fa4836d8c16bfbfd87ef5e910df82e86070efbab7370ae02ab36e",
+            "size": 1075732,
+            "weight": 700,
+            "style": "normal",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/merriweather/Merriweather%5Bopsz,wdth,wght%5D.ttf"
+          },
+          {
+            "file": "merriweather-italic-word-400.ttf",
+            "sha256": "7a33d5a9ffe4e945fcc435c163d3b99da3ccbcf58ec3f8cb094f0183f802aac6",
+            "size": 1077712,
+            "weight": 400,
+            "style": "italic",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/merriweather/Merriweather-Italic%5Bopsz,wdth,wght%5D.ttf"
+          },
+          {
+            "file": "merriweather-italic-word-700.ttf",
+            "sha256": "56b83faab1f6c37808eef780816757cf9e62bd45aac8ce6e7f511b7ad39ef9fd",
+            "size": 1077904,
+            "weight": 700,
+            "style": "italic",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/merriweather/Merriweather-Italic%5Bopsz,wdth,wght%5D.ttf"
+          }
+        ]
       },
       "woff2_subsets": [
         {
@@ -2597,7 +2828,40 @@
             }
           ]
         },
-        "static": []
+        "static": [
+          {
+            "file": "lora-word-400.ttf",
+            "sha256": "8db540569838a89440dfda9e58001600ea3d4e8d18173f3f04d309c9f9f3653f",
+            "size": 135624,
+            "weight": 400,
+            "style": "normal",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/lora/Lora%5Bwght%5D.ttf"
+          },
+          {
+            "file": "lora-word-700.ttf",
+            "sha256": "24da0c9a6302a7ea72dca69dfb706371f3753cdf2b67857ddababf53e75f5711",
+            "size": 135264,
+            "weight": 700,
+            "style": "normal",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/lora/Lora%5Bwght%5D.ttf"
+          },
+          {
+            "file": "lora-italic-word-400.ttf",
+            "sha256": "c6e42629a88e3391e88e1e72a9123fb69f629914146d3361b40d29317d734c8e",
+            "size": 141212,
+            "weight": 400,
+            "style": "italic",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/lora/Lora-Italic%5Bwght%5D.ttf"
+          },
+          {
+            "file": "lora-italic-word-700.ttf",
+            "sha256": "012723fd09672ed6820e05dd1d30b73f57bf2cb606ebcac854101ba43dc55d95",
+            "size": 141928,
+            "weight": 700,
+            "style": "italic",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/lora/Lora-Italic%5Bwght%5D.ttf"
+          }
+        ]
       },
       "woff2_subsets": [
         {
@@ -2856,7 +3120,40 @@
             }
           ]
         },
-        "static": []
+        "static": [
+          {
+            "file": "source-serif-4-word-400.ttf",
+            "sha256": "fa5df8993c0011a5233cf80b8148d141b06d83ebc9ccaa78fa23763153b51216",
+            "size": 330520,
+            "weight": 400,
+            "style": "normal",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/sourceserif4/SourceSerif4%5Bopsz,wght%5D.ttf"
+          },
+          {
+            "file": "source-serif-4-word-700.ttf",
+            "sha256": "01ce7b279303746eb86164d1e831476febe18c55f42a7aadc3ce101cb4dc8148",
+            "size": 330616,
+            "weight": 700,
+            "style": "normal",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/sourceserif4/SourceSerif4%5Bopsz,wght%5D.ttf"
+          },
+          {
+            "file": "source-serif-4-italic-word-400.ttf",
+            "sha256": "163b5b59d5e0e6a937f1980ee3b6cd6a74dbb97469e7fa6a6e71c6965c839543",
+            "size": 207772,
+            "weight": 400,
+            "style": "italic",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/sourceserif4/SourceSerif4-Italic%5Bopsz,wght%5D.ttf"
+          },
+          {
+            "file": "source-serif-4-italic-word-700.ttf",
+            "sha256": "439a5cff1415d23b08118d7fc9d4501718c484266829fb2d1c8ab13b40ebe5e4",
+            "size": 207872,
+            "weight": 700,
+            "style": "italic",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/sourceserif4/SourceSerif4-Italic%5Bopsz,wght%5D.ttf"
+          }
+        ]
       },
       "woff2_subsets": [
         {
@@ -3365,7 +3662,40 @@
             }
           ]
         },
-        "static": []
+        "static": [
+          {
+            "file": "jetbrains-mono-word-400.ttf",
+            "sha256": "29e462e8f202bb088e7324a66ce4a0950bca94eb0f0594960e965e33d6405968",
+            "size": 115376,
+            "weight": 400,
+            "style": "normal",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/jetbrainsmono/JetBrainsMono%5Bwght%5D.ttf"
+          },
+          {
+            "file": "jetbrains-mono-word-700.ttf",
+            "sha256": "aa9ddd3db4d86721aa27be98c0295757ee96e3a3130ca2b5a780d7cd71148804",
+            "size": 115288,
+            "weight": 700,
+            "style": "normal",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/jetbrainsmono/JetBrainsMono%5Bwght%5D.ttf"
+          },
+          {
+            "file": "jetbrains-mono-italic-word-400.ttf",
+            "sha256": "4ae2ace4a9e9ce55827dc4cfa199d9fff668b9b4bcad05e081c4e492729ee4af",
+            "size": 118184,
+            "weight": 400,
+            "style": "italic",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/jetbrainsmono/JetBrainsMono-Italic%5Bwght%5D.ttf"
+          },
+          {
+            "file": "jetbrains-mono-italic-word-700.ttf",
+            "sha256": "e9f83bea651d1f76de1b1dbf11ffaf9cb5178031b60d47e7e5cbbefb63e74c3b",
+            "size": 118204,
+            "weight": 700,
+            "style": "italic",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/jetbrainsmono/JetBrainsMono-Italic%5Bwght%5D.ttf"
+          }
+        ]
       },
       "woff2_subsets": [
         {
@@ -3671,7 +4001,24 @@
             }
           ]
         },
-        "static": []
+        "static": [
+          {
+            "file": "fira-code-word-400.ttf",
+            "sha256": "562f67df1ee9ad7d513bfd0ce92f04be4dfaf27e83ff5df6d474c6eb483127e0",
+            "size": 188996,
+            "weight": 400,
+            "style": "normal",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/firacode/FiraCode%5Bwght%5D.ttf"
+          },
+          {
+            "file": "fira-code-word-700.ttf",
+            "sha256": "0a309674f95b0e906d5a0aad122b1e0af61f73c317ff4e5bbcf8b9d2a338e7ff",
+            "size": 189604,
+            "weight": 700,
+            "style": "normal",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/firacode/FiraCode%5Bwght%5D.ttf"
+          }
+        ]
       },
       "woff2_subsets": [
         {
@@ -3877,7 +4224,40 @@
             }
           ]
         },
-        "static": []
+        "static": [
+          {
+            "file": "source-code-pro-word-400.ttf",
+            "sha256": "8128f681393b2d0bdd90e7080af50642d257814dbd5a2881bb4d29b6e1847b55",
+            "size": 135956,
+            "weight": 400,
+            "style": "normal",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/sourcecodepro/SourceCodePro%5Bwght%5D.ttf"
+          },
+          {
+            "file": "source-code-pro-word-700.ttf",
+            "sha256": "bd7669a8486a8820946c7b8f279b03187db92fd725d5f59a7edb2b001e184daa",
+            "size": 135812,
+            "weight": 700,
+            "style": "normal",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/sourcecodepro/SourceCodePro%5Bwght%5D.ttf"
+          },
+          {
+            "file": "source-code-pro-italic-word-400.ttf",
+            "sha256": "14e94f15b9918a7fd3fbb7158877add4ed1a0d78b5b09b1f0e202b4a3bb68396",
+            "size": 113096,
+            "weight": 400,
+            "style": "italic",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/sourcecodepro/SourceCodePro-Italic%5Bwght%5D.ttf"
+          },
+          {
+            "file": "source-code-pro-italic-word-700.ttf",
+            "sha256": "bdd67410c00c5a93d185999f01acc783146d71aeddf4abdfc28dc7fd443ed364",
+            "size": 113060,
+            "weight": 700,
+            "style": "italic",
+            "upstream": "https://raw.githubusercontent.com/google/fonts/main/ofl/sourcecodepro/SourceCodePro-Italic%5Bwght%5D.ttf"
+          }
+        ]
       },
       "woff2_subsets": [
         {

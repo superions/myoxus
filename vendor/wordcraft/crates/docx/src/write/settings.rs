@@ -47,6 +47,10 @@ pub(super) fn settings_xml(doc: &Document, footnotes: bool, endnotes: bool, temp
     if s.page_color.is_some() || s.page_picture.is_some() {
         w.empty("w:displayBackgroundShape", &[]);
     }
+    if s.embed_fonts {
+        w.empty("w:embedTrueTypeFonts", &[]);
+        w.empty("w:saveSubsetFonts", &[("w:val", if s.save_subset_fonts { "1" } else { "0" })]);
+    }
     if s.mirror_margins {
         w.empty("w:mirrorMargins", &[]);
     }

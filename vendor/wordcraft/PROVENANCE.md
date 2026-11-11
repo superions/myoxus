@@ -15,3 +15,8 @@ Local source modification: `crates/docx/src/package.rs` uses the fallible ZIP
 manifest selects ZIP 9.0.5 with the same deflate feature used by the server.
 The DOCX integration test helpers likewise unwrap the fallible `name()` and
 `file_names()` results for their generated fixtures; their assertions are unchanged.
+
+Myoxus also exposes a small font-table authoring helper using the existing
+embedded-part writer, including OOXML font obfuscation and full-font save
+settings. Font selection, validation and embedding permissions remain with the
+server adapter; no WordCraft font assets or layout code are included.

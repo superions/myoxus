@@ -115,6 +115,40 @@ export function refreshClientInventories(root) {
   );
 }
 
+/** Refresh publication-only inventories over an older, unchanged product tree. */
+export function refreshPublicClientInventories(root, reviewedPolicy) {
+  const file = path.join(root, "client/provenance/components.json");
+  const manifest = JSON.parse(fs.readFileSync(file, "utf8"));
+  const files = collectScopedFiles(root, manifest.policy.scopedFiles.roots);
+  for (const name of files) {
+    if (
+      manifest.components.some((c) => c.paths.some((p) => pathMatches(name, p)))
+    )
+      continue;
+    // Only a path-exact, reviewed Myoxus grant can repair a missing component.
+    // Existing attribution and third-party components are never replaced.
+    const grant = reviewedPolicy.components.find(
+      (c) =>
+        c.paths.includes(name) &&
+        c.origin === "M0" &&
+        c.licenseExpression === "AGPL-3.0-or-later" &&
+        JSON.stringify(c.copyrightNotices) ===
+          JSON.stringify([manifest.policy.canonicalMyoxusCopyright]),
+    );
+    const original =
+      grant && manifest.components.find((c) => c.id === grant.id);
+    const identity = (c) => JSON.stringify({ ...c, paths: undefined });
+    if (!original || identity(original) !== identity(grant))
+      throw new Error(
+        `No identical path-exact reviewed publication grant for ${name}`,
+      );
+    original.paths.push(name);
+    original.paths.sort();
+  }
+  fs.writeFileSync(file, JSON.stringify(manifest, null, 2) + "\n");
+  refreshClientInventories(root);
+}
+
 export async function refreshSourceInventories(root) {
   refreshClientInventories(root);
   const sourcesPath = path.join(root, "virgultum/provenance/sources.json");

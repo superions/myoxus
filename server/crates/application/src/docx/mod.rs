@@ -3,6 +3,8 @@
 
 //! Bounded Word conversion through the normal editable page, projection and blob owners.
 
+pub use wordcraft_docx::FontToEmbed;
+
 mod export;
 pub use export::{ExportFonts, ExportTypography, ExportedDocx, encode_export, resolve_export_assets};
 

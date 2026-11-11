@@ -21,6 +21,8 @@ impl Reader<'_> {
                         .map(|r| r.target.trim().to_string())
                         .filter(|t| !t.is_empty() && t.len() <= MAX_TEMPLATE_PATH);
                 }
+                "w:saveSubsetFonts" => s.save_subset_fonts = on_off(k),
+                "w:embedTrueTypeFonts" => s.embed_fonts = on_off(k),
                 "w:linkStyles" => s.link_styles = on_off(k),
                 "w:removePersonalInformation" => s.remove_personal_info = on_off(k),
                 "w:removeDateAndTime" => s.remove_date_time = on_off(k),

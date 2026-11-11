@@ -114,9 +114,7 @@
   "components": [
     {
       "id": "client-web-forkline",
-      "paths": [
-        "client/web/**"
-      ],
+      "paths": ["client/web/**"],
       "origin": "F1/F2/M0",
       "licenseExpression": "MIT AND AGPL-3.0-or-later",
       "copyrightNotices": [
@@ -135,17 +133,13 @@
     },
     {
       "id": "client-admin-forkline",
-      "paths": [
-        "client/admin/**"
-      ],
+      "paths": ["client/admin/**"],
       "origin": "M0",
       "licenseExpression": "AGPL-3.0-or-later",
       "copyrightNotices": [
         "2026-present Daniel Scharf and Myoxus contributors"
       ],
-      "noticePaths": [
-        "client/REUSE.toml"
-      ],
+      "noticePaths": ["client/REUSE.toml"],
       "rationale": "The Admin frontend is independently implemented Myoxus source; path-exact REUSE evidence contains no retained AFFiNE expression."
     },
     {
@@ -389,39 +383,29 @@
     },
     {
       "id": "client-libs-crypto",
-      "paths": [
-        "client/libs/crypto/**"
-      ],
+      "paths": ["client/libs/crypto/**"],
       "origin": "M0",
       "licenseExpression": "AGPL-3.0-or-later",
       "copyrightNotices": [
         "2026-present Daniel Scharf and Myoxus contributors"
       ],
-      "noticePaths": [
-        "client/REUSE.toml"
-      ],
+      "noticePaths": ["client/REUSE.toml"],
       "rationale": "Myoxus clean-room Rust and N-API implementation."
     },
     {
       "id": "client-libs-doc-indexer",
-      "paths": [
-        "client/libs/doc-indexer/**"
-      ],
+      "paths": ["client/libs/doc-indexer/**"],
       "origin": "M0/C0",
       "licenseExpression": "AGPL-3.0-or-later",
       "copyrightNotices": [
         "2026-present Daniel Scharf and Myoxus contributors"
       ],
-      "noticePaths": [
-        "client/REUSE.toml"
-      ],
+      "noticePaths": ["client/REUSE.toml"],
       "rationale": "Myoxus clean-room parser; persisted affine-prefixed identifiers are compatibility markers and do not create upstream copyright."
     },
     {
       "id": "client-libs-local-store",
-      "paths": [
-        "client/libs/local-store/**"
-      ],
+      "paths": ["client/libs/local-store/**"],
       "origin": "F1/F2/M0",
       "licenseExpression": "MIT AND AGPL-3.0-or-later",
       "copyrightNotices": [
@@ -440,9 +424,7 @@
     },
     {
       "id": "client-libs-media-capture-inner",
-      "paths": [
-        "client/libs/media-capture/media_capture/**"
-      ],
+      "paths": ["client/libs/media-capture/media_capture/**"],
       "origin": "F1/F2/M0",
       "licenseExpression": "MIT AND AGPL-3.0-or-later",
       "copyrightNotices": [
@@ -483,18 +465,13 @@
     },
     {
       "id": "client-libs-icons-facade",
-      "paths": [
-        "client/libs/icons/**"
-      ],
+      "paths": ["client/libs/icons/**"],
       "origin": "M0",
       "licenseExpression": "AGPL-3.0-or-later",
       "copyrightNotices": [
         "2026-present Daniel Scharf and Myoxus contributors"
       ],
-      "noticePaths": [
-        "client/REUSE.toml",
-        "client/libs/icons/PROVENANCE.md"
-      ],
+      "noticePaths": ["client/REUSE.toml", "client/libs/icons/PROVENANCE.md"],
       "rationale": "Myoxus facade and native assets. Tabler geometry is owned and attributed in the separate Virgultum icon source, not falsely assigned to this facade."
     },
     {
@@ -516,22 +493,15 @@
         ],
         "deterministic": true
       },
-      "noticePaths": [
-        "client/REUSE.toml",
-        "client/libs/icons/PROVENANCE.md"
-      ],
+      "noticePaths": ["client/REUSE.toml", "client/libs/icons/PROVENANCE.md"],
       "rationale": "Deterministic indices generated from the checked-in Myoxus-owned SVG asset set."
     },
     {
       "id": "client-libs-lit-react-google",
-      "paths": [
-        "client/libs/lit-react/src/create-component.ts"
-      ],
+      "paths": ["client/libs/lit-react/src/create-component.ts"],
       "origin": "T1",
       "licenseExpression": "BSD-3-Clause",
-      "copyrightNotices": [
-        "2018 Google LLC"
-      ],
+      "copyrightNotices": ["2018 Google LLC"],
       "upstreamUrl": "https://github.com/lit/lit",
       "noticePaths": [
         "client/libs/lit-react/src/create-component.ts",
@@ -541,9 +511,7 @@
     },
     {
       "id": "client-libs-lit-react-wrapper",
-      "paths": [
-        "client/libs/lit-react/**"
-      ],
+      "paths": ["client/libs/lit-react/**"],
       "origin": "F1/F2/M0/T1",
       "licenseExpression": "BSD-3-Clause AND MIT AND AGPL-3.0-or-later",
       "copyrightNotices": [
@@ -564,17 +532,13 @@
     },
     {
       "id": "client-branding-runtime",
-      "paths": [
-        "client/branding/**"
-      ],
+      "paths": ["client/branding/**"],
       "origin": "M0",
       "licenseExpression": "AGPL-3.0-or-later",
       "copyrightNotices": [
         "2026-present Daniel Scharf and Myoxus contributors"
       ],
-      "noticePaths": [
-        "client/REUSE.toml"
-      ],
+      "noticePaths": ["client/REUSE.toml"],
       "rationale": "Myoxus runtime branding, generated fallbacks and their focused tests."
     },
     {
@@ -1074,9 +1038,7 @@
     },
     {
       "id": "client-bpmn-third-party-notices",
-      "paths": [
-        "client/libs/bpmn-editor/THIRD-PARTY-NOTICES"
-      ],
+      "paths": ["client/libs/bpmn-editor/THIRD-PARTY-NOTICES"],
       "origin": "T1",
       "licenseExpression": "LicenseRef-OMG-BPMN AND W3C-20150513",
       "copyrightNotices": [
@@ -2408,9 +2370,7 @@
     },
     {
       "id": "client-electron-appstream",
-      "paths": [
-        "client/apps/electron/resources/templates/linux.metainfo.xml"
-      ],
+      "paths": ["client/apps/electron/resources/templates/linux.metainfo.xml"],
       "origin": "F1",
       "licenseExpression": "CC0-1.0",
       "copyrightNotices": [

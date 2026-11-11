@@ -302,6 +302,7 @@ export async function prepareRelease({
   fetchImpl = fetch,
   forgejoToken,
   nativeServerRoot,
+  sourceProvenanceFile,
 }) {
   const input = json(inputFile);
   validateInput(input);
@@ -335,15 +336,91 @@ export async function prepareRelease({
   const provenance = input.assets.find((a) => a.kind === "provenance");
   const provenanceFile = path.join(output, "assets", provenance.name);
   const report = json(provenanceFile);
-  const source = readSourceProvenance(provenanceFile, report.revision);
-  if (report.summary?.inReleaseBlocked?.length !== 0)
-    throw new Error("Release provenance is not qualified");
+  let revision = report.revision;
+  let source;
+  let homebrew;
+  if (input.scope === "desktop") {
+    const [{ verifyReleaseMetadata }, { renderHomebrewCask }] =
+      await Promise.all([
+        import("../ci/verify-desktop-release-metadata.mjs"),
+        import("../ci/write-homebrew-cask.mjs"),
+      ]);
+    if (report.schema !== "myoxus.desktop-provenance.v1")
+      throw new Error("Desktop provenance schema is invalid");
+    revision = report.source?.commit;
+    source = readSourceProvenance(sourceProvenanceFile, revision);
+    if (!source)
+      throw new Error("Desktop copy requires separate source provenance");
+    const manifest = json(path.join(output, "assets/desktop-release.json"));
+    const validation = fs.mkdtempSync(path.join(output, ".desktop-"));
+    try {
+      // Reconstruct the producer's paths using the already digest-checked bytes.
+      // The original metadata remains untouched in the publication bundle.
+      const files = [
+        ["desktop-release.json", "desktop-release.json"],
+        [manifest.provenance.path, provenance.name],
+        [manifest.updateMetadata.path, "latest.yml"],
+        ...manifest.artifacts.flatMap((a) => [
+          [a.path, a.name],
+          [a.sbom.path, path.basename(a.sbom.path)],
+        ]),
+      ];
+      for (const [relative, name] of files) {
+        if (
+          typeof relative !== "string" ||
+          path.isAbsolute(relative) ||
+          relative.split(/[\\/]/).includes("..")
+        )
+          throw new Error("Desktop producer path escapes its inventory");
+        const target = path.join(validation, relative);
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        if (!fs.existsSync(target))
+          fs.linkSync(localFile(output, `assets/${name}`), target);
+      }
+      const checked = verifyReleaseMetadata(validation, true);
+      const expectedTag = `${checked.scope === "full" ? "desktop" : `${checked.scope}-client`}-v${checked.version}`;
+      const packages = input.assets
+        .filter((a) => /\.(dmg|zip|exe|deb|rpm|flatpak)$/.test(a.name))
+        .map((a) => a.name)
+        .sort();
+      if (
+        checked.sourceCommit !== revision ||
+        checked.version !== input.version ||
+        input.tag !== expectedTag ||
+        input.prerelease !== (checked.channel !== "stable") ||
+        JSON.stringify(packages) !==
+          JSON.stringify(checked.artifacts.map((a) => a.name).sort())
+      )
+        throw new Error(
+          "Desktop copy differs from its qualified source/channel/inventory",
+        );
+      if (["macos", "full"].includes(checked.scope))
+        homebrew = renderHomebrewCask(checked, { github: true });
+    } finally {
+      fs.rmSync(validation, { recursive: true, force: true });
+    }
+    const bytes = fs.readFileSync(sourceProvenanceFile);
+    fs.writeFileSync(
+      path.join(output, "assets/source-correspondence.json"),
+      bytes,
+      { flag: "wx" },
+    );
+    assets.push({
+      name: "source-correspondence.json",
+      size: bytes.length,
+      sha256: hash(bytes),
+    });
+  } else {
+    source = readSourceProvenance(provenanceFile, revision);
+    if (report.summary?.inReleaseBlocked?.length !== 0)
+      throw new Error("Release provenance is not qualified");
+  }
   if (!source.tree)
     throw new Error(
       "New publications require a qualified public Git tree; historical archive reports remain readable",
     );
   const identity = {
-    revision: report.revision,
+    revision,
     commit: source.commit,
     ...(source.tree ? { tree: source.tree } : {}),
   };
@@ -354,7 +431,7 @@ export async function prepareRelease({
   if (includeNative) {
     for (const { bytes, ...asset } of nativeServerAssets(
       nativeServerRoot,
-      report.revision,
+      revision,
       input.version,
     )) {
       if (assets.some((a) => a.name === asset.name))
@@ -395,7 +472,7 @@ export async function prepareRelease({
     : "";
   const sourceNotes = `Source tree: \`${source.tree}\`\nSource download: ${source.repository}/archive/${source.commit}.tar.gz`;
   const body = `${notes.trim()}${nativeNotes}\n\nSource: ${source.repository}/tree/${source.commit}\n${sourceNotes}\n${containers.map((c) => `\n- ${c.role}: \`${c.coordinate}\``).join("")}\n`;
-  if (body.includes(`github.com/${REPOSITORY}/commit/${report.revision}`))
+  if (body.includes(`github.com/${REPOSITORY}/commit/${revision}`))
     throw new Error("Private build revisions are not GitHub commit URLs");
   const metadataNames = new Set(
     input.assets
@@ -411,6 +488,8 @@ export async function prepareRelease({
       )
       .map((a) => a.name),
   );
+  if (input.scope === "desktop")
+    metadataNames.add("source-correspondence.json");
   if (includeNative)
     metadataNames.add(`myoxus-${input.version}-native-server.cdx.json`);
   const originals = assets.filter((a) => metadataNames.has(a.name));
@@ -452,6 +531,7 @@ export async function prepareRelease({
       body +
       `\nLegal, SBOM and provenance: https://github.com/${REPOSITORY}/releases/download/${input.tag}/${bundle.name}\n`,
     assets,
+    ...(homebrew ? { homebrew } : {}),
   };
   const bytes = Buffer.from(`${JSON.stringify(plan, null, 2)}\n`);
   fs.writeFileSync(path.join(output, "github-release-plan.json"), bytes, {
@@ -567,6 +647,84 @@ async function findRelease(tag, fetchImpl, token) {
   throw new Error("Release draft discovery exceeds its bounded inventory");
 }
 
+async function verifyAnonymousDownloads(plan, fetchImpl) {
+  for (const asset of plan.assets) {
+    const url = `https://github.com/${REPOSITORY}/releases/download/${encodeURIComponent(plan.tag)}/${encodeURIComponent(asset.name)}`;
+    const response = await fetchImpl(url, {
+      signal: AbortSignal.timeout(900000),
+      redirect: "follow",
+    });
+    if (!response.ok)
+      throw new Error(
+        `Anonymous download failed: ${asset.name} HTTP ${response.status}`,
+      );
+    const sha = createHash("sha256");
+    let size = 0;
+    for await (const bytes of response.body) {
+      size += bytes.length;
+      if (size > asset.size)
+        throw new Error(
+          `Anonymous download exceeds reviewed size: ${asset.name}`,
+        );
+      sha.update(bytes);
+    }
+    if (size !== asset.size || sha.digest("hex") !== asset.sha256)
+      throw new Error(
+        `Anonymous download differs from reviewed bytes: ${asset.name}`,
+      );
+  }
+}
+
+async function publishHomebrewCask(plan, fetchImpl, token) {
+  if (!plan.homebrew) return;
+  const { compareCaskVersions } =
+    await import("../ci/publish-electron-release.mjs");
+  const cask = plan.homebrew;
+  if (
+    !/^myoxus(?:-beta|-internal)?$/.test(cask.token) ||
+    cask.path !== `Casks/${cask.token}.rb` ||
+    cask.version !== plan.version ||
+    !cask.source.includes(
+      `https://github.com/${REPOSITORY}/releases/download/${plan.tag}/`,
+    )
+  )
+    throw new Error("Invalid reviewed Homebrew destination");
+  const url = `${API}/contents/${cask.path}`;
+  const current = await request(fetchImpl, `${url}?ref=main`, {
+    token,
+    missing: true,
+  });
+  if (current) {
+    const source = Buffer.from(current.content, "base64").toString("utf8");
+    if (source === cask.source) return;
+    const previous = source.match(/\bversion "([^"]+)"/)?.[1];
+    if (!previous) throw new Error("Existing Homebrew cask has no version");
+    const order = compareCaskVersions(previous, cask.version);
+    if (order === 0)
+      throw new Error(
+        "Existing immutable Homebrew version has different bytes",
+      );
+    if (order > 0) return;
+  }
+  // Only advertise the Cask after every public release asset has been verified.
+  // Contents API SHA provides compare-and-swap protection against concurrent updates.
+  await request(fetchImpl, url, {
+    method: "PUT",
+    token,
+    body: {
+      message: `Update ${cask.token} Homebrew cask to ${cask.version}`,
+      branch: "main",
+      content: Buffer.from(cask.source).toString("base64"),
+      ...(current ? { sha: current.sha } : {}),
+    },
+  });
+  const checked = await request(fetchImpl, `${url}?ref=main`, { token });
+  if (Buffer.from(checked.content, "base64").toString("utf8") !== cask.source)
+    throw new Error(
+      "Published Homebrew cask differs from the verified candidate",
+    );
+}
+
 export async function publishPreparedRelease({
   planFile,
   expectedSha256,
@@ -621,7 +779,11 @@ export async function publishPreparedRelease({
     token,
     !release.draft,
   );
-  if (!release.draft) return { id: release.id, alreadyPublished: true };
+  if (!release.draft) {
+    await verifyAnonymousDownloads(plan, fetchImpl);
+    await publishHomebrewCask(plan, fetchImpl, token);
+    return { id: release.id, alreadyPublished: true };
+  }
   const missing = plan.assets.filter((a) => !existing.has(a.name));
   for (let index = 0; index < missing.length; index += 3) {
     await Promise.all(
@@ -652,6 +814,8 @@ export async function publishPreparedRelease({
     throw new Error("GitHub kept the reviewed release as a draft");
   await verifyTag(plan, fetchImpl, token);
   await verifyRemoteAssets(plan, release.id, fetchImpl, token, true);
+  await verifyAnonymousDownloads(plan, fetchImpl);
+  await publishHomebrewCask(plan, fetchImpl, token);
   return { id: release.id, alreadyPublished: false };
 }
 
@@ -668,6 +832,7 @@ if (
       output: { type: "string" },
       plan: { type: "string" },
       "expected-plan-sha256": { type: "string" },
+      "source-provenance": { type: "string" },
     },
   });
   if (mode === "prepare" && values.input && values.output) {
@@ -676,6 +841,7 @@ if (
       outputDir: values.output,
       forgejoToken: process.env.FORGEJO_RELEASE_READ_TOKEN,
       nativeServerRoot: process.env.NATIVE_SERVER_RELEASE_ROOT,
+      sourceProvenanceFile: values["source-provenance"],
     });
     console.log(
       `Prepared ${result.plan.assets.length} exact assets; plan SHA-256 ${result.sha256}. No GitHub write was made.`,

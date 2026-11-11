@@ -51,7 +51,8 @@ import {validatePublicSource} from './build/scripts/release/source-correspondenc
 const [dir, revision] = process.argv.slice(2);
 const ids = Object.fromEntries(fs.readFileSync(`${dir}/candidate-identities.txt`, 'utf8').trim().split('\n').map(l => l.split('=')));
 const publicSource = validatePublicSource(revision, {repository:'https://github.com/superions/myoxus', commit:ids.candidate_commit, tree:ids.candidate_tree});
-fs.writeFileSync(`${dir}/source-correspondence.json`, JSON.stringify({schemaVersion:1,revision,publicSource},null,2)+'\n');
+const inventoryPolicyRevision = process.env.MYOXUS_SOURCE_INVENTORY_POLICY_REVISION;
+fs.writeFileSync(`${dir}/source-correspondence.json`, JSON.stringify({schemaVersion:1,revision,publicSource,...(inventoryPolicyRevision ? {inventoryPolicyRevision} : {})},null,2)+'\n');
 JS
 fi
 url="https://git.blume29.de/api/packages/myoxus/generic/myoxus-source/$version-$revision/source-correspondence.json"

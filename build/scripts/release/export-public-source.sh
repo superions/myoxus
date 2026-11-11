@@ -113,6 +113,36 @@ COMMIT_TIMESTAMP="$(git show -s --format=%ct "$RESOLVED_SHA")"
 git archive --format=tar --prefix="" --mtime="@$COMMIT_TIMESTAMP" \
   --add-file="$PUBLIC_CARGO_MANIFEST" "$RESOLVED_SHA" > "$ARCHIVE"
 
+# Older accepted binaries may predate refreshed publication-only inventories.
+# A separately identified policy commit can classify missing exact paths; only
+# these two metadata files are replaced, never executable inputs or old grants.
+if [ -n "${MYOXUS_SOURCE_INVENTORY_POLICY_REVISION:-}" ]; then
+  [[ "$MYOXUS_SOURCE_INVENTORY_POLICY_REVISION" =~ ^[a-f0-9]{40}$ ]]
+  inventory_root="$EXPORT_WORK_DIR/inventory"
+  mkdir "$inventory_root"
+  tar -xf "$ARCHIVE" -C "$inventory_root"
+  git show "$MYOXUS_SOURCE_INVENTORY_POLICY_REVISION:client/provenance/components.json" > "$EXPORT_WORK_DIR/reviewed-policy.json"
+  node --input-type=module - "$inventory_root" "$EXPORT_WORK_DIR/reviewed-policy.json" <<'JS'
+import fs from 'node:fs';
+import {refreshPublicClientInventories} from './build/scripts/release/refresh-source-inventories.mjs';
+refreshPublicClientInventories(process.argv[2],JSON.parse(fs.readFileSync(process.argv[3],'utf8')));
+JS
+  "${MYOXUS_EXPORT_PYTHON:-python3}" - "$ARCHIVE" "$inventory_root" <<'PY'
+import io, os, sys, tarfile
+archive, root = sys.argv[1:]
+metadata = {'client/REUSE.toml', 'client/provenance/components.json'}
+with tarfile.open(archive, 'r|') as source, tarfile.open(archive+'.inventory', 'w|', format=tarfile.PAX_FORMAT) as target:
+    for entry in source:
+        if entry.name in metadata:
+            content = open(os.path.join(root, entry.name), 'rb').read()
+            entry.size = len(content)
+            target.addfile(entry, io.BytesIO(content))
+        else:
+            target.addfile(entry, source.extractfile(entry) if entry.isfile() else None)
+os.replace(archive+'.inventory', archive)
+PY
+fi
+
 # Hash the archive's regular files directly. Consumers still verify/extract
 # the real archive; manifest generation does not need another full source tree.
 "${MYOXUS_EXPORT_PYTHON:-python3}" - "$ARCHIVE" "$MANIFEST" "$RESOLVED_SHA" <<'PY'

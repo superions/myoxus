@@ -3,6 +3,7 @@
 # blocking hosted-build/AFFiNE CI regressions.
 
 set -euo pipefail
+export LC_ALL=C
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 

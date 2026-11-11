@@ -201,7 +201,7 @@ impl Encoder {
         .unwrap()
         .levels[0]
         .chr
-        .font = Some(WORD_CODE_FONT.into());
+        .font = Some(self.fonts.mono.clone());
       let mut first = true;
       loop {
         let tail = if let Some(at) = paragraph.text.find('\n') {

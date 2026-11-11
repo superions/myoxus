@@ -27,12 +27,10 @@ use crate::ports::{
 mod formatting;
 pub(super) use formatting::enrich_presentation;
 
-// DOCX does not embed the server's web fonts. Use an Office mono family in
-// both the block style and its runs to keep the portable mono request consistent.
-const WORD_CODE_FONT: &str = "Courier New";
-
 /// Font family names resolved from the effective server theme, not client presets.
 pub struct ExportFonts {
+  /// Full static faces captured from the same approved catalog as the family names.
+  pub assets: Vec<wordcraft_docx::FontToEmbed>,
   pub body: String,
   pub heading: String,
   pub mono: String,
@@ -143,6 +141,8 @@ pub fn encode_export(source: ExportSource, fonts: ExportFonts) -> Result<Exporte
     list_level: 0,
   };
   encoder.document.body.clear();
+  encoder.document.settings.major_font = encoder.fonts.heading.clone();
+  encoder.document.settings.minor_font = encoder.fonts.body.clone();
   encoder.document.core.title = encoder.source.document.title.clone();
   Arc::make_mut(&mut encoder.document.styles).default_chr.font = Some(encoder.fonts.body.clone());
   // Native local notes number each placement independently in first-anchor
@@ -213,7 +213,7 @@ pub fn encode_export(source: ExportSource, fonts: ExportFonts) -> Result<Exporte
   let code_style = Arc::make_mut(&mut encoder.document.styles)
     .get_mut("MyoxusCode")
     .unwrap();
-  code_style.chr.font = Some(WORD_CODE_FONT.into());
+  code_style.chr.font = Some(encoder.fonts.mono.clone());
   code_style.chr.color = encoder
     .fonts
     .table_ink
@@ -332,6 +332,7 @@ pub fn encode_export(source: ExportSource, fonts: ExportFonts) -> Result<Exporte
   if encoder.usable == 0 {
     return Err(ImportError::Empty);
   }
+  embed_theme_fonts(&mut encoder.document, &encoder.fonts.assets)?;
   let bytes = wordcraft_docx::write(&encoder.document).map_err(|_| ImportError::Conversion)?;
   if bytes.len() as u64 > myoxus_workspace_import::WorkspaceImportLimits::default().max_document_bytes {
     return Err(ImportError::TooLarge);
@@ -345,6 +346,40 @@ pub fn encode_export(source: ExportSource, fonts: ExportFonts) -> Result<Exporte
       .map(|(code, count)| ConversionWarning { code, count })
       .collect(),
   })
+}
+
+fn embed_theme_fonts(document: &mut Document, assets: &[wordcraft_docx::FontToEmbed]) -> Result<(), ImportError> {
+  let mut used = BTreeSet::new();
+  for story in document.shown_stories() {
+    for path in document.para_paths(story) {
+      if let Some(paragraph) = document.para(story, &path) {
+        let style = paragraph.props.style.as_deref();
+        used.insert(document.styles.resolve_char(style, &paragraph.mark).font);
+        for run in &paragraph.runs {
+          used.insert(document.styles.resolve_char(style, &run.props).font);
+        }
+      }
+    }
+  }
+  let fonts: Vec<_> = assets
+    .iter()
+    .filter(|font| used.contains(&font.name))
+    .cloned()
+    .collect();
+  for font in &fonts {
+    let face = ttf_parser::Face::parse(&font.data, 0).map_err(|_| ImportError::Conversion)?;
+    // Preview/print-only, restricted and bitmap-only fonts cannot be shipped as
+    // editable outline fonts. Full faces respect the no-subsetting flag.
+    let os2 = face
+      .raw_face()
+      .table(ttf_parser::Tag::from_bytes(b"OS/2"))
+      .ok_or(ImportError::Conversion)?;
+    let flags = os2.get(8..10).ok_or(ImportError::Conversion)?;
+    if face.is_variable() || u16::from_be_bytes([flags[0], flags[1]]) & 0x0206 != 0 {
+      return Err(ImportError::Conversion);
+    }
+  }
+  wordcraft_docx::embed_fonts(document, &fonts).map_err(|_| ImportError::Conversion)
 }
 
 struct Encoder {
@@ -429,7 +464,7 @@ impl Encoder {
       italic: span.italic.then_some(true),
       strike: span.strike.then_some(true),
       underline: (span.underline || link.is_some()).then_some(Underline::Single),
-      font: span.code.then(|| WORD_CODE_FONT.into()),
+      font: span.code.then(|| self.fonts.mono.clone()),
       color: span
         .color
         .as_deref()
@@ -484,7 +519,7 @@ impl Encoder {
             bold: Some(run.bold),
             italic: Some(run.italic),
             strike: Some(run.strike),
-            font: run.code.then(|| WORD_CODE_FONT.into()),
+            font: run.code.then(|| self.fonts.mono.clone()),
             link,
             ..Default::default()
           },
@@ -1202,7 +1237,7 @@ impl Encoder {
           }
           let mut paragraph = Paragraph::new().styled("MyoxusCode");
           let props = CharProps {
-            font: Some(WORD_CODE_FONT.into()),
+            font: Some(self.fonts.mono.clone()),
             ..Default::default()
           };
           let dark_background = self
@@ -1553,7 +1588,7 @@ mod figure_tests {
     *appearance = Some(myoxus_public_render::ir::TableAppearance::Ruled);
     *density = Some(myoxus_public_render::ir::TableDensity::Compact);
     let style = |size, weight| ExportTypography {
-      family: "Server Font".into(),
+      family: "Inter".into(),
       style: myoxus_pdf_export::ir::ThemeTypographyStyle {
         font_weight: weight,
         font_style: "normal".into(),
@@ -1572,14 +1607,34 @@ mod figure_tests {
         references: Default::default(),
       },
       ExportFonts {
-        body: "Server Font".into(),
-        heading: "Server Font".into(),
-        mono: "Server Mono".into(),
+        assets: vec![
+          wordcraft_docx::FontToEmbed {
+            name: "Inter".into(),
+            bold: false,
+            italic: false,
+            data: Arc::new(include_bytes!("../../../../static/fonts/inter-word-400.ttf").to_vec()),
+          },
+          wordcraft_docx::FontToEmbed {
+            name: "JetBrains Mono".into(),
+            bold: false,
+            italic: false,
+            data: Arc::new(include_bytes!("../../../../static/fonts/jetbrains-mono-word-400.ttf").to_vec()),
+          },
+        ],
+        body: "Inter".into(),
+        heading: "Inter".into(),
+        mono: "JetBrains Mono".into(),
         visuals: None,
         typography: BTreeMap::from([
           ("Normal".into(), style(16.0, 400)),
           ("Heading1".into(), style(32.0, 700)),
-          ("MyoxusCode".into(), style(13.0, 400)),
+          (
+            "MyoxusCode".into(),
+            ExportTypography {
+              family: "JetBrains Mono".into(),
+              ..style(13.0, 400)
+            },
+          ),
         ]),
         table_fill: Some("#112233".into()),
         table_ink: Some("#ffffff".into()),
@@ -1589,8 +1644,18 @@ mod figure_tests {
     )
     .unwrap();
     let word = wordcraft_docx::read(&output.bytes).unwrap();
+    let embedded = wordcraft_docx::embedded_fonts(&word);
+    assert_eq!(embedded.len(), 2, "Theme faces must survive the actual DOCX package");
+    assert!(
+      embedded
+        .iter()
+        .any(|f| f.name == "Inter" && f.data == include_bytes!("../../../../static/fonts/inter-word-400.ttf"))
+    );
+    assert!(embedded.iter().any(|f| f.name == "JetBrains Mono"
+      && f.data == include_bytes!("../../../../static/fonts/jetbrains-mono-word-400.ttf")));
+    assert!(word.settings.embed_fonts);
     let heading = word.styles.get("Heading1").unwrap();
-    assert_eq!(heading.chr.font.as_deref(), Some("Server Font"));
+    assert_eq!(heading.chr.font.as_deref(), Some("Inter"));
     assert_eq!(heading.chr.size, Some(24.0));
     assert_eq!(heading.chr.bold, Some(true));
     let wordcraft_doc::Block::Para(paragraph) = &*word.body[0] else {
@@ -1617,7 +1682,7 @@ mod figure_tests {
       wordcraft_doc::props::Rgb::parse("#112233")
     );
     let code_style = word.styles.get("MyoxusCode").unwrap();
-    assert_eq!(code_style.chr.font.as_deref(), Some("Courier New"));
+    assert_eq!(code_style.chr.font.as_deref(), Some("JetBrains Mono"));
     assert_eq!(code_style.para.shading, Rgb::parse("#112233"));
     assert!(code_style.para.space_before.unwrap() > 0.0 && code_style.para.space_after.unwrap() > 0.0);
     assert!(code_style.para.borders.unwrap().top.unwrap().is_visible());
@@ -1637,7 +1702,7 @@ mod figure_tests {
           .styles
           .resolve_char(paragraph.props.style.as_deref(), &run.props)
           .font
-          == "Courier New"
+          == "JetBrains Mono"
       }));
       let colors: std::collections::HashSet<_> = paragraph.runs.iter().filter_map(|run| run.props.color).collect();
       assert_eq!(
@@ -1725,6 +1790,7 @@ mod figure_tests {
         references: Default::default(),
       },
       ExportFonts {
+        assets: Vec::new(),
         body: "Inter".into(),
         heading: "Inter".into(),
         mono: "Inter".into(),
@@ -1829,6 +1895,7 @@ pub(super) fn encode_test_snapshot_with_references(
       references,
     },
     ExportFonts {
+      assets: Vec::new(),
       body: "Test Body".into(),
       heading: "Test Heading".into(),
       mono: "Test Mono".into(),

@@ -5,7 +5,7 @@ import { pathToFileURL } from "node:url";
 import { verifyReleaseMetadata } from "./verify-desktop-release-metadata.mjs";
 
 /** Render only verified regular Mac metadata; generation never publishes a tap. */
-export function renderHomebrewCask(manifest) {
+export function renderHomebrewCask(manifest, { github = false } = {}) {
   if (!manifest.publishable || !["macos", "full"].includes(manifest.scope)) {
     throw new Error(
       "Homebrew requires a complete publishable macOS platform set",
@@ -39,6 +39,9 @@ export function renderHomebrewCask(manifest) {
   };
   const arm = dmg("arm64"),
     intel = dmg("x64");
+  const downloads = github
+    ? "https://github.com/superions/myoxus"
+    : "https://git.blume29.de/myoxus/packages";
   return {
     token,
     version,
@@ -51,7 +54,7 @@ export function renderHomebrewCask(manifest) {
       `  sha256 arm: "${arm.sha256}",`,
       `         intel: "${intel.sha256}"`,
       "",
-      `  url "https://git.blume29.de/myoxus/packages/releases/download/${tag}/myoxus-${version}-${channel}-macos-#{arch}.dmg"`,
+      `  url "${downloads}/releases/download/${tag}/myoxus-${version}-${channel}-macos-#{arch}.dmg"`,
       `  name "${app}"`,
       '  desc "Collaborative workspace"',
       '  homepage "https://github.com/superions/myoxus"',

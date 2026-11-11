@@ -622,6 +622,7 @@ recovery_environment=(
   PUBLISH_CONTAINERS=true CONTAINER_EVIDENCE_DIR="$recovery_fixture_evidence"
   CI_RUNNER_CACHE="$recovery_fixture_cache" CI_BUILDKIT_CACHE_MIN_FREE_GIB=0
   GITHUB_STEP_SUMMARY="$recovery_fixture_summary"
+  FORGEJO_STEP_SUMMARY="$recovery_fixture_summary"
   FAKE_DOCKER_LOG="$tmpdir/upload-recovery-docker.log"
   FAKE_PRODUCT_VERSION="$fixture_product_version" FAKE_VALID_REVISION="$fixture_build_revision"
 )
@@ -2122,6 +2123,7 @@ bash build/scripts/ci/write-artifact-manifest.sh "$tmpdir/server-build"
 bash build/scripts/ci/write-sha256sums.sh "$tmpdir/server-build"
 if $verify_native_server_artifacts; then
   (
+    mkdir -p "$REPO_ROOT/output"
     relative_root=$(mktemp -d "$REPO_ROOT/output/native-server-fixture.XXXXXX")
     trap 'rm -rf "$relative_root"' EXIT
     ln -s "$tmpdir/server-build" "$relative_root/server-build"

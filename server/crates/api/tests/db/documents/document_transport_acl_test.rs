@@ -215,6 +215,12 @@ fn docx_import_creates_one_populated_page_and_denies_readonly_creation() {
       word.media.values().any(|bytes| bytes.as_ref() == &png),
       "HTTP export must include original private image bytes"
     );
+    assert!(
+      wordcraft_docx::embedded_fonts(&word)
+        .iter()
+        .any(|font| font.name == "Inter" && !font.data.is_empty()),
+      "The HTTP download must carry its resolved theme font bytes"
+    );
     assert_eq!(word.core.title, "Imported Word title");
     assert!(word.body.iter().any(|block| matches!(&**block, wordcraft_doc::Block::Para(paragraph) if paragraph.plain_text().contains("This content must survive the import"))));
     // Target authorization is independent of permission to export the source.

@@ -14,6 +14,96 @@ const run = (cmd, args, options = {}) =>
   execFileSync(cmd, args, { encoding: "utf8", ...options });
 const sha = (b) => createHash("sha256").update(b).digest("hex");
 const json = (p) => JSON.parse(fs.readFileSync(p, "utf8"));
+if (process.env.RELEASE_SCOPE === "desktop" && !process.env.DESKTOP_RELEASE_TAG)
+  throw new Error(
+    "Desktop publication requires its explicit existing platform tag",
+  );
+if (process.env.RELEASE_SCOPE === "release" && process.env.DESKTOP_RELEASE_TAG)
+  throw new Error("Container publication must not select a desktop tag");
+if (process.env.DESKTOP_RELEASE_TAG) {
+  // Desktop publication consumes its own immutable platform release. It never
+  // invokes container verification, tags, builds or source selection below.
+  const tag = process.env.DESKTOP_RELEASE_TAG;
+  if (
+    !new RegExp(
+      `^(?:macos-client|linux-client|windows-client|desktop)-v${version.replaceAll(".", "\\.")}$`,
+    ).test(tag)
+  )
+    throw new Error("Desktop tag must match the selected platform/version");
+  const base =
+    "https://git.blume29.de/myoxus/packages/releases/download/" + tag;
+  const read = async (name) => {
+    const response = await fetch(`${base}/${name}`, {
+      signal: AbortSignal.timeout(30000),
+    });
+    if (!response.ok)
+      throw new Error(`Published desktop metadata HTTP ${response.status}`);
+    return response.text();
+  };
+  const manifest = JSON.parse(await read("desktop-release.json"));
+  if (manifest.version !== version || !manifest.publishable)
+    throw new Error("Desktop release is not admitted");
+  const sums = await read("SHA256SUMS");
+  const assets = [];
+  const names = new Set();
+  for (const line of sums.trim().split(/\r?\n/)) {
+    const match = line.match(/^([a-f0-9]{64}) [ *](.+)$/);
+    if (!match) throw new Error("Malformed desktop checksums");
+    const name = path.basename(match[2]);
+    if (names.has(name)) throw new Error("Duplicate desktop asset basename");
+    names.add(name);
+    const kind =
+      name === "desktop-provenance.json"
+        ? "provenance"
+        : name.endsWith(".cdx.json")
+          ? "sbom"
+          : name === "legal-notices.tar.gz"
+            ? "legal"
+            : /\.(dmg|zip|exe|deb|rpm|flatpak)$/.test(name)
+              ? "desktop-package"
+              : name === "latest.yml"
+                ? "update-metadata"
+                : "notice";
+    assets.push({
+      name,
+      kind,
+      url: `${base}/${encodeURIComponent(name)}`,
+      sha256: match[1],
+    });
+  }
+  fs.mkdirSync(path.dirname(output), { recursive: true });
+  fs.writeFileSync(
+    output,
+    JSON.stringify(
+      {
+        scope: "desktop",
+        version,
+        tag,
+        prerelease: manifest.channel !== "stable",
+        notes,
+        assets,
+      },
+      null,
+      2,
+    ) + "\n",
+  );
+  const correspondence = `https://git.blume29.de/api/packages/myoxus/generic/myoxus-source/${version}-${manifest.sourceCommit}/source-correspondence.json`;
+  const response = await fetch(correspondence, {
+    signal: AbortSignal.timeout(30000),
+  });
+  if (!response.ok)
+    throw new Error(`Desktop source correspondence HTTP ${response.status}`);
+  const sourceFile = path.join(
+    path.dirname(output),
+    "source-correspondence.json",
+  );
+  fs.writeFileSync(sourceFile, await response.text());
+  readSourceProvenance(sourceFile, manifest.sourceCommit);
+  console.log(
+    `Prepared desktop allowlist from ${tag}; no container operation or product build`,
+  );
+  process.exit(0);
+}
 run("git", [
   "fetch",
   "--depth=1",

@@ -11,6 +11,7 @@
  */
 
 import { execFileSync } from "node:child_process";
+import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import {
   existsSync,
@@ -1008,9 +1009,37 @@ async function selfTest() {
     mutateJson(positive, MANIFEST_PATH, (manifest) => {
       manifest.components[4].copyrightNotices = [thirdPartyNotice];
     });
-    const { refreshClientInventories } =
+    const { refreshClientInventories, refreshPublicClientInventories } =
       await import("../release/refresh-source-inventories.mjs");
     refreshClientInventories(positive);
+    const added = "client/libs/example/publication.ts";
+    const product =
+      "// SPDX-License-Identifier: AGPL-3.0-or-later\nexport const accepted = true;\n";
+    writeFixture(positive, added, product);
+    const policy = JSON.parse(
+      readFileSync(join(positive, MANIFEST_PATH), "utf8"),
+    );
+    assert.throws(
+      () => refreshPublicClientInventories(positive, policy),
+      /No identical path-exact reviewed publication grant/,
+    );
+    policy.components.find((c) => c.id === "fixture-myoxus").paths.push(added);
+    const foreign = structuredClone(policy);
+    foreign.components.find(
+      (c) => c.id === "fixture-myoxus",
+    ).licenseExpression = "MIT";
+    assert.throws(
+      () => refreshPublicClientInventories(positive, foreign),
+      /No identical path-exact reviewed publication grant/,
+    );
+    refreshPublicClientInventories(positive, policy);
+    assert.equal(readFileSync(join(positive, added), "utf8"), product);
+    assert.equal(
+      loadReuseAnnotations(positive).find((a) =>
+        a.path.includes("libs/example/upstream.ts"),
+      )["SPDX-License-Identifier"],
+      "MIT",
+    );
     const findings = validateProvenance(positive);
     if (findings.length > 0) {
       throw new Error(`positive fixture failed: ${findings.join("; ")}`);

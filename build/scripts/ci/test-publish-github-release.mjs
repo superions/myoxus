@@ -8,6 +8,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { writeReleaseMetadata } from "./write-desktop-release-metadata.mjs";
 import {
   prepareRelease,
   publishPreparedRelease,
@@ -44,7 +45,9 @@ function fixture(t) {
   const bodies = new Map();
   function asset(name, kind, value, role) {
     const bytes = Buffer.from(
-      typeof value === "string" ? value : JSON.stringify(value),
+      typeof value === "string" || Buffer.isBuffer(value)
+        ? value
+        : JSON.stringify(value),
     );
     const url = `https://git.blume29.de/api/packages/myoxus/generic/reviewed/${version}/${name}`;
     bodies.set(url, bytes);
@@ -96,12 +99,42 @@ function fixture(t) {
     sourcePublished: true,
     nextAssetId: 1,
     tree: publicSource.tree,
+    expectedAssets: 2,
+    cask: undefined,
   };
   const fetchImpl = async (url, options = {}) => {
     const u = new URL(url),
       method = options.method ?? "GET";
     if (method !== "GET") state.writes.push(`${method} ${u.pathname}`);
     if (bodies.has(url)) return response(bodies.get(url));
+    if (
+      u.hostname === "github.com" &&
+      u.pathname.includes("/releases/download/")
+    ) {
+      assert.equal(
+        options.headers?.Authorization,
+        undefined,
+        "Public readback must be anonymous",
+      );
+      assert.equal(state.release.draft, false);
+      const item = state.assets.find(
+        (a) => a.name === decodeURIComponent(u.pathname.split("/").at(-1)),
+      );
+      return response(item?.bytes ?? Buffer.alloc(0), item ? 200 : 404);
+    }
+    if (u.pathname.endsWith("/contents/Casks/myoxus.rb")) {
+      if (method === "GET")
+        return state.cask ? response(state.cask) : response({}, 404);
+      assert.equal(
+        state.release.draft,
+        false,
+        "Cask must never advertise an incomplete release",
+      );
+      const body = JSON.parse(options.body);
+      assert.equal(body.sha, state.cask?.sha);
+      state.cask = { sha: "fixture-content-sha", content: body.content };
+      return response(state.cask);
+    }
     if (u.pathname.endsWith(`/git/commits/${commit}`))
       return state.sourcePublished
         ? response({ sha: commit, tree: { sha: state.tree } })
@@ -167,7 +200,7 @@ function fixture(t) {
     if (u.pathname.endsWith("/releases/41") && method === "PATCH") {
       assert.equal(
         state.assets.length,
-        2,
+        state.expectedAssets,
         "an incomplete draft must never be published",
       );
       Object.assign(state.release, JSON.parse(options.body));
@@ -287,6 +320,123 @@ test("preparation copies qualified bytes and rejects changed source or desktop p
     }),
     /must not contain desktop/,
   );
+});
+
+test("desktop copy preserves producer bytes, binds separate public source and publishes a recoverable GitHub Cask", async (t) => {
+  const f = fixture(t);
+  Object.assign(f.input, {
+    scope: "desktop",
+    tag: `macos-client-v${version}`,
+    prerelease: false,
+    containers: [],
+    assets: [],
+  });
+  const releaseDir = path.join(f.root, "desktop");
+  fs.mkdirSync(path.join(releaseDir, "macos"), { recursive: true });
+  const evidence = {};
+  for (const arch of ["arm64", "x64"])
+    for (const ext of ["dmg", "zip"]) {
+      const name = `myoxus-${version}-stable-macos-${arch}.${ext}`;
+      const bytes = Buffer.from(`original producer ${name}`);
+      fs.writeFileSync(path.join(releaseDir, "macos", name), bytes);
+      evidence[name] = {
+        status: "ad-hoc",
+        verifier: "codesign",
+        sha256: digest(bytes),
+      };
+      f.asset(name, "desktop-package", bytes);
+    }
+  const sbom = path.join(releaseDir, "desktop.cdx.json");
+  fs.writeFileSync(
+    sbom,
+    JSON.stringify({
+      bomFormat: "CycloneDX",
+      specVersion: "1.5",
+      metadata: { component: { version } },
+      components: [{ name: "electron" }, { name: "mediabunny" }],
+    }),
+  );
+  const signatures = path.join(f.root, "signatures.json");
+  fs.writeFileSync(signatures, JSON.stringify(evidence));
+  process.env.SOURCE_DATE_EPOCH = "0";
+  writeReleaseMetadata({
+    releaseDir,
+    version,
+    channel: "stable",
+    scope: "macos",
+    sourceCommit: revision,
+    sourceRepository: "myoxus/myoxus",
+    builderId: "https://git.blume29.de/myoxus/myoxus/actions/runs/42",
+    runId: "42",
+    sbom,
+    signatureEvidence: signatures,
+  });
+  for (const [name, kind] of [
+    ["desktop-release.json", "notice"],
+    ["desktop-provenance.json", "provenance"],
+    ["latest.yml", "update-metadata"],
+    ["desktop.cdx.json", "sbom"],
+  ])
+    f.asset(name, kind, fs.readFileSync(path.join(releaseDir, name)));
+  f.save();
+  const sourceProvenanceFile = path.join(f.root, "correspondence.json");
+  const correspondence = {
+    schemaVersion: 1,
+    revision,
+    publicSource: { repository, commit, tree: "3".repeat(40) },
+  };
+  fs.writeFileSync(sourceProvenanceFile, JSON.stringify(correspondence));
+  const prepare = (output) =>
+    prepareRelease({
+      inputFile: f.inputFile,
+      outputDir: path.join(f.root, output),
+      sourceProvenanceFile,
+      fetchImpl: f.fetchImpl,
+    });
+  const prepared = await prepare("prepared-desktop");
+  f.state.expectedAssets = prepared.plan.assets.length;
+  assert.match(
+    prepared.plan.homebrew.source,
+    /https:\/\/github.com\/superions\/myoxus\/releases\/download\/macos-client-v1.2.3/,
+  );
+  const bundle = path.join(
+    prepared.output,
+    "assets",
+    `myoxus-${version}-legal-provenance.tar.gz`,
+  );
+  assert.deepEqual(
+    execFileSync("tar", ["-xzOf", bundle, "desktop-provenance.json"]),
+    fs.readFileSync(path.join(releaseDir, "desktop-provenance.json")),
+  );
+  const options = {
+    planFile: path.join(prepared.output, "github-release-plan.json"),
+    expectedSha256: prepared.sha256,
+    token,
+    fetchImpl: f.fetchImpl,
+  };
+  await publishPreparedRelease(options);
+  assert.equal(
+    Buffer.from(f.state.cask.content, "base64").toString(),
+    prepared.plan.homebrew.source,
+  );
+  f.state.cask = undefined;
+  assert.equal((await publishPreparedRelease(options)).alreadyPublished, true);
+  assert.ok(
+    f.state.cask,
+    "same-byte retry repairs missing Cask without rebuilding",
+  );
+  fs.writeFileSync(
+    sourceProvenanceFile,
+    JSON.stringify({ ...correspondence, revision: "9".repeat(40) }),
+  );
+  await assert.rejects(
+    prepare("wrong-desktop-source"),
+    /does not match the build revision/,
+  );
+  fs.writeFileSync(sourceProvenanceFile, JSON.stringify(correspondence));
+  const item = f.input.assets.find((a) => a.name.endsWith("arm64.dmg"));
+  f.bodies.set(item.url, Buffer.from("tampered product"));
+  await assert.rejects(prepare("wrong-desktop-bytes"), /bytes differ/);
 });
 
 test("failed upload stays a draft; same-byte retry completes once and is idempotent", async (t) => {

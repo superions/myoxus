@@ -20,6 +20,8 @@ const OWNED: &[&str] = &[
     "w:mirrorMargins",
     "w:attachedTemplate",
     "w:linkStyles",
+    "w:embedTrueTypeFonts",
+    "w:saveSubsetFonts",
     "w:trackRevisions",
     "w:doNotTrackMoves",
     "w:documentProtection",

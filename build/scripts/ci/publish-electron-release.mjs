@@ -111,6 +111,8 @@ export function readPublishableBundle(releaseDirectory) {
     ...manifest.artifacts.map((artifact) => artifact.path),
     ...manifest.artifacts.map((artifact) => artifact.sbom.path),
   ]);
+  if (fs.existsSync(path.join(releaseDir, "legal-notices.tar.gz")))
+    expectedPaths.add("legal-notices.tar.gz");
   const actualPaths = walkFiles(releaseDir).map((file) =>
     canonicalRelative(releaseDir, file),
   );
@@ -520,7 +522,7 @@ async function verifyPublicRelease({ bundle, fetchImpl, origin }) {
   });
 }
 
-function compareCaskVersions(left, right) {
+export function compareCaskVersions(left, right) {
   const parse = (version) => {
     const match = version.match(/^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/);
     if (!match) throw new Error("Unrecognized existing Homebrew version");

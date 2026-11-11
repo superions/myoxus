@@ -371,3 +371,102 @@ describe("registered native note callout codec", () => {
     }
   });
 });
+
+describe("callout presentation controls", () => {
+  test("the registered appearance control can return to soft and undo the change", async () => {
+    const { createBuiltinToolbarConfigExtension } =
+      await import("../../../blocks/callout/src/configs/toolbar");
+    const { ToolbarContext, ToolbarModuleIdentifier } =
+      await import("@virgultum/shared/services");
+    const workspace = new TestWorkspace();
+    workspace.storeExtensions = testStoreExtensions;
+    workspace.meta.initialize();
+    const doc = workspace.createDoc("callout-appearance-control");
+    doc.load();
+    const store = doc.getStore();
+    try {
+      const root = store.addBlock("myoxus:page");
+      const note = store.addBlock("myoxus:note", {}, root);
+      const id = store.addBlock("myoxus:callout", {}, note);
+      const model = store.getModelById(id)! as CalloutBlockModel;
+      const std = new BlockStdScope({
+        store,
+        extensions: [
+          ...testStoreExtensions,
+          ...createBuiltinToolbarConfigExtension("myoxus:callout"),
+        ],
+      });
+      const ctx = new ToolbarContext(std);
+      vi.spyOn(ctx, "getCurrentModel").mockReturnValue(model);
+      const module = std.provider
+        .getAll(ToolbarModuleIdentifier)
+        .get("myoxus:callout")!;
+      const group = module.config.actions.find(
+        (action) => action.id === "style",
+      )!;
+      if (!("actions" in group)) throw new Error("style group missing");
+      const action = group.actions.find(
+        (action) => action.id === "appearance",
+      )!;
+      if (!("control" in action) || typeof action.control !== "function")
+        throw new Error("appearance control missing");
+      for (const value of ["accent", "soft", "outline", "soft"]) {
+        const control = action.control(ctx);
+        if (control?.type !== "choice")
+          throw new Error("appearance choice missing");
+        control.change(value);
+        expect(model.props.appearance).toBe(value);
+      }
+      store.undo();
+      expect(model.props.appearance).toBe("outline");
+      store.redo();
+      expect(model.props.appearance).toBe("soft");
+    } finally {
+      workspace.dispose();
+    }
+  });
+
+  test("the popup mounts its picker and releases it when closed, including reopen", async () => {
+    const { IconPickerWrapper } =
+      await import("../../../blocks/callout/src/icon-picker-wrapper");
+    const { PropertySymbol } = await import("happy-dom");
+    // The shared setup mocks the global registry; use this document's native one.
+    const registry = (document as unknown as Record<symbol, Window>)[
+      PropertySymbol.defaultView
+    ].customElements;
+    if (!registry.get("icon-picker-wrapper"))
+      registry.define("icon-picker-wrapper", IconPickerWrapper);
+    const popup = document.createElement("icon-picker-wrapper");
+    const select = vi.fn();
+    const unmount = vi.fn();
+    popup.props = { onSelect: select };
+    popup.iconPickerComponent = (element, props) => {
+      const button = document.createElement("button");
+      button.textContent = "🚀";
+      button.onclick = () => props.onSelect?.({ type: "emoji", unicode: "🚀" });
+      element.append(button);
+      return {
+        update: vi.fn(),
+        unmount: () => {
+          button.remove();
+          unmount();
+        },
+      };
+    };
+    try {
+      document.body.append(popup);
+      await popup.updateComplete;
+      popup.querySelector("button")!.click();
+      expect(select).toHaveBeenCalledWith({ type: "emoji", unicode: "🚀" });
+      popup.remove();
+      expect(unmount).toHaveBeenCalledTimes(1);
+      document.body.append(popup);
+      await popup.updateComplete;
+      expect(popup.querySelectorAll("button")).toHaveLength(1);
+      popup.remove();
+      expect(unmount).toHaveBeenCalledTimes(2);
+    } finally {
+      popup.remove();
+    }
+  });
+});

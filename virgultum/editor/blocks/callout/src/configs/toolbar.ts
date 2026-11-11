@@ -155,8 +155,8 @@ const appearanceAction = {
         if (value === current) return;
         ctx.store.captureSync();
         ctx.store.updateBlock(model, {
-          appearance:
-            value === "soft" ? undefined : (value as CalloutAppearance),
+          // updateBlock ignores undefined properties; persist the explicit default.
+          appearance: value as CalloutAppearance,
         });
       },
     };
@@ -186,8 +186,12 @@ const iconPickerAction = {
 
     const props = {
       onSelect: (iconData?: IconData) => {
-        // When iconData is undefined (delete icon), set icon to undefined
-        ctx.store.updateBlock(model, { icon: iconData });
+        ctx.store.captureSync();
+        // The callback form also applies removal; property patches skip undefined.
+        ctx.store.updateBlock(model, () => {
+          model.props.icon = iconData;
+        });
+        ctx.store.captureSync();
         closeHandler(); // Close the picker after selection
       },
       onClose: () => {

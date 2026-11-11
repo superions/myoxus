@@ -18,6 +18,7 @@ use myoxus_application::{
 };
 use myoxus_domain::permission::{DocAction, WorkspaceAction};
 use serde::Serialize;
+use sha2::{Digest, Sha256};
 use tokio::sync::Semaphore;
 use uuid::Uuid;
 
@@ -91,7 +92,25 @@ async fn export_fonts(state: &ApiState, workspace: Uuid) -> Result<docx::ExportF
     .map(myoxus_domain::color::adaptive_foreground)
     .map(str::to_owned);
   let table_rule = colors.get("rule").cloned();
+  let mut requested: std::collections::BTreeSet<_> = families.iter().cloned().collect();
+  requested.extend(
+    typography
+      .values()
+      .map(|style: &docx::ExportTypography| style.family.clone()),
+  );
+  let (assets, aliases) = export_font_assets(state, &pool, &requested).await?;
+  for family in &mut families {
+    if let Some(alias) = aliases.get(family) {
+      *family = alias.clone();
+    }
+  }
+  for style in typography.values_mut() {
+    if let Some(alias) = aliases.get(&style.family) {
+      style.family = alias.clone();
+    }
+  }
   Ok(docx::ExportFonts {
+    assets,
     body: families[0].clone(),
     heading: families[1].clone(),
     mono: families[2].clone(),
@@ -106,6 +125,97 @@ async fn export_fonts(state: &ApiState, workspace: Uuid) -> Result<docx::ExportF
       .await
       .ok(),
   })
+}
+
+/// Resolve static full faces from the existing approved catalog. The encoder
+/// subsequently drops families used only by unused style definitions.
+async fn export_font_assets(
+  state: &ApiState,
+  pool: &sqlx::PgPool,
+  requested: &std::collections::BTreeSet<String>,
+) -> Result<(Vec<docx::FontToEmbed>, std::collections::BTreeMap<String, String>), ImportError> {
+  let catalog = myoxus_infrastructure::branding::list_font_families(pool, true)
+    .await
+    .map_err(|_| ImportError::Conversion)?;
+  let mut fonts = Vec::new();
+  let mut aliases = std::collections::BTreeMap::new();
+  let mut loaded = std::collections::BTreeMap::<String, Arc<Vec<u8>>>::new();
+  let mut total = 0usize;
+  for name in requested {
+    let family = catalog
+      .iter()
+      .find(|f| (&f.display_name == name || &f.css_family == name) && f.license_status == "approved")
+      .ok_or(ImportError::Conversion)?;
+    for italic in [false, true] {
+      for bold in [false, true] {
+        let weight: i32 = if bold { 700 } else { 400 };
+        let asset = family
+          .assets
+          .iter()
+          .filter(|a| a.usage == "pdf" && matches!(a.format.as_str(), "ttf" | "otf") && (a.style != "normal") == italic)
+          .min_by_key(|a| ((a.weight_default - weight).abs(), a.asset_key.as_str()));
+        let Some(asset) = asset else {
+          if !italic {
+            return Err(ImportError::Conversion);
+          }
+          // A family without an italic face keeps Office's normal synthesis.
+          continue;
+        };
+        let data = if let Some(bytes) = loaded.get(&asset.sha256) {
+          bytes.clone()
+        } else {
+          let bytes = if family.source == "bundled" {
+            // Catalog keys are filenames; never interpret one as a filesystem path.
+            if asset.asset_key.contains(['/', '\\']) || asset.asset_key.contains("..") {
+              return Err(ImportError::Conversion);
+            }
+            tokio::fs::read(super::fonts::bundled_fonts_dir().join(&asset.asset_key))
+              .await
+              .map_err(|_| ImportError::Conversion)?
+          } else {
+            state
+              .pdf_blob_store()
+              .ok_or(ImportError::Conversion)?
+              .get_template_file(&asset.asset_key)
+              .await
+              .map_err(|_| ImportError::Conversion)?
+          };
+          total = total.checked_add(bytes.len()).ok_or(ImportError::TooLarge)?;
+          if total as u64 > myoxus_workspace_import::WorkspaceImportLimits::default().max_document_bytes {
+            return Err(ImportError::TooLarge);
+          }
+          if hex::encode(Sha256::digest(&bytes)) != asset.sha256 {
+            return Err(ImportError::Conversion);
+          }
+          let bytes = Arc::new(bytes);
+          loaded.insert(asset.sha256.clone(), bytes.clone());
+          bytes
+        };
+        let metadata = myoxus_application::pdf_export::font_validator::validate_font_bytes(&data)
+          .map_err(|_| ImportError::Conversion)?;
+        // Do not advertise an upright-only decorative face as a supplied bold
+        // face: omitting that entry lets the reader synthesize its normal bold.
+        if bold && metadata.weight < 600 {
+          continue;
+        }
+        // RFN-protected static derivatives carry a different legal family name.
+        // Use their actual SFNT family in both Word's styles and its font table.
+        if aliases
+          .insert(name.clone(), metadata.family_name.clone())
+          .is_some_and(|old| old != metadata.family_name)
+        {
+          return Err(ImportError::Conversion);
+        }
+        fonts.push(docx::FontToEmbed {
+          name: metadata.family_name,
+          bold,
+          italic,
+          data,
+        });
+      }
+    }
+  }
+  Ok((fonts, aliases))
 }
 
 #[tracing::instrument(skip_all)]
