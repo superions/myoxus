@@ -97,6 +97,7 @@ COPY client/libs/core/public/favicon.ico ./client/libs/core/public/favicon.ico
 COPY server/provenance ./server/provenance
 COPY server/static/branding/theme-catalog.json ./server/static/branding/theme-catalog.json
 COPY server/static/branding/text-marker.css ./server/static/branding/text-marker.css
+COPY server/static/branding/inline-colors.json ./server/static/branding/inline-colors.json
 COPY server/static/icc ./server/static/icc
 
 ARG MYOXUS_SERVER_VERSION
