@@ -3,7 +3,7 @@
 [Documentation](../../README.md) / [Operations](../README.md) / [Release operations](./README.md)
 
 This runbook separates urgent Electron security maintenance from normal
-dependency maintenance. The current runtime is Electron `44.10.2`; a future
+dependency maintenance. The macOS 0.42.1 runtime is Electron `45.3.0`; a future
 major cutover is a reviewed migration with its own compatibility and packaging
 evidence.
 
