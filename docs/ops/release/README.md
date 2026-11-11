@@ -21,14 +21,21 @@ using that set. Web/Admin images contain static files and the deployment bundle;
 the operator's Nginx serves them.
 
 Native server DEB/APT and RPM packages are a separate installation route for the
-same application. Package preparation and installation acceptance are still
-being completed. Use only packages and distribution versions explicitly listed
+same application. Use only packages and distribution versions explicitly listed
 in a published GitHub release. Desktop DEB/RPM packages install the Electron
 client and cannot substitute for a server package.
 
+The [macOS 0.42.1 client](https://github.com/superions/myoxus/releases/tag/macos-client-v0.42.1)
+is released independently of those server/container packages. It supplies both
+architectures as DMG/ZIP with original build provenance, SBOM and legal notices.
+Its [Homebrew installation and update route](../../user/downloads.md#macos-installation-and-updates)
+downloads checksum-pinned GitHub assets. No native macOS updater, Developer ID
+signature or notarization is claimed.
+
 ## Source, checksums and legal material
 
-The release includes its corresponding source archive, checksums, license and
+The release links its corresponding public source commit and source download,
+and includes checksums, license and
 notice material, SBOMs and source correspondence. Download assets from the
 selected GitHub release and compare their SHA-256 values with its checksum file.
 The exact build source remains identifiable even when the latest README or
