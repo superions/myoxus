@@ -59,6 +59,7 @@ export interface DocSync {
     abort?: AbortSignal,
   ): Promise<void>;
   addPriority(id: string, priority: number): () => void;
+  retryDoc(docId: string): Promise<void>;
   resetSync(): Promise<void>;
 }
 
@@ -232,6 +233,10 @@ export class DocSyncImpl implements DocSync {
       for (const peer of this.peers) peer.retryDeletion(docId, error);
       throw error;
     }
+  }
+
+  async retryDoc(docId: string) {
+    await Promise.all(this.peers.map((peer) => peer.retryDoc(docId)));
   }
 
   async resetSync() {

@@ -7,6 +7,8 @@ import {
   type ButtonHTMLAttributes,
   type Ref,
   type CSSProperties,
+  useEffect,
+  useRef,
 } from "react";
 import { joinClassName } from "../helpers/class-name";
 import {
@@ -199,9 +201,12 @@ export const AppTabStripList = forwardRef(function AppTabStripList(
       type="auto"
       styles={{ content: { height: "100%" } }}
     >
+      {/* Reserve the half-gap insertion markers at both scroll boundaries. */}
       <Group
         className={APP_TAB_STRIP_CLASS_NAMES.listContent}
         gap="xs"
+        px="xs"
+        w="max-content"
         wrap="nowrap"
       >
         {children}
@@ -263,9 +268,28 @@ export function AppTabStripTab({
     viewCount?: number;
   }
 >) {
+  const tabRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const tab = tabRef.current;
+    if (!active || !tab) return;
+    const reveal = () =>
+      tab.scrollIntoView({ block: "nearest", inline: "nearest" });
+    reveal();
+
+    // Sidebar transitions and native window resizing change the rail without
+    // changing tab selection. Observe its geometry to keep the whole active
+    // tab, including the close control and insertion gutter, in view.
+    const rail = tab.closest('[data-myoxus-ui-role="app-tab-strip-list"]');
+    if (!rail) return;
+    const observer = new ResizeObserver(reveal);
+    observer.observe(rail);
+    return () => observer.disconnect();
+  }, [active, pinned, viewCount]);
+
   return (
     <Box
       {...props}
+      ref={tabRef}
       className={joinClassName(APP_TAB_STRIP_CLASS_NAMES.tab, className)}
       data-active={active ? "true" : "false"}
       data-pinned={pinned ? "true" : undefined}
@@ -304,6 +328,7 @@ export const AppTabStripViewButton = forwardRef(function AppTabStripViewButton(
       component="button"
       type={type}
       className={joinClassName(APP_TAB_STRIP_CLASS_NAMES.viewButton, className)}
+      px="sm"
       data-active={active ? "true" : "false"}
       data-myoxus-ui-role="app-tab-strip-view-button"
     >

@@ -2,7 +2,7 @@ import type { EmbedIframeBlockProps } from "@virgultum/model";
 import type { Command } from "@virgultum/std";
 import type { BlockModel } from "@virgultum/store";
 
-import type { EmbedLinkInputPopupOptions } from "../components/embed-iframe-link-input-popup";
+import type { EmbedLinkInputPopupOptions } from "../components/iframe-link-session";
 import { EmbedIframeBlockComponent } from "../embed-iframe-block";
 
 export const insertEmptyEmbedIframeCommand: Command<

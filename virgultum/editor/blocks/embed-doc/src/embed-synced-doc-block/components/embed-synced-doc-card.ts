@@ -1,21 +1,16 @@
-import { ResetIcon } from "@myoxus/icons/lit";
 import { RENDER_CARD_THROTTLE_MS } from "@virgultum/block-embed";
-import { LoadingIcon } from "@virgultum/components/icons";
 import { WithDisposable } from "@virgultum/global/lit";
 import {
-  ThemeProvider,
-  editorMessage,
+  EditorChromeHostIdentifier,
   EditorI18nProvider,
-  resolveEditorMessage,
-  type EditorI18nMessage,
 } from "@virgultum/shared/services";
 import {
   BlockSelection,
   isGfxBlockComponent,
   ShadowlessElement,
 } from "@virgultum/std";
-import { html, nothing } from "lit";
-import { property, queryAsync } from "lit/decorators.js";
+import { html } from "lit";
+import { property } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import throttle from "lodash-es/throttle";
 import type { ObservedValueOf } from "rxjs";
@@ -23,16 +18,8 @@ import type { ObservedValueOf } from "rxjs";
 import { renderLinkedDocInCard } from "../../common/render-linked-doc";
 import type { EmbedSyncedDocBlockComponent } from "../embed-synced-doc-block.js";
 import { cardStyles } from "../styles.js";
-import { getSyncedDocIcons } from "../utils.js";
 
 export class EmbedSyncedDocCard extends WithDisposable(ShadowlessElement) {
-  private _text(message: EditorI18nMessage) {
-    return resolveEditorMessage(
-      message,
-      this.std.getOptional(EditorI18nProvider) ?? undefined,
-    );
-  }
-
   static override styles = cardStyles;
 
   private _dragging = false;
@@ -92,19 +79,16 @@ export class EmbedSyncedDocCard extends WithDisposable(ShadowlessElement) {
   override connectedCallback() {
     super.connectedCallback();
 
-    this.block.handleEvent(
-      "dragStart",
-      () => {
+    // The card can unmount while its parent block continues as the full editor.
+    this.disposables.add(
+      this.std.event.add("dragStart", () => {
         this._dragging = true;
-      },
-      { global: true },
+      }),
     );
-    this.block.handleEvent(
-      "dragEnd",
-      () => {
+    this.disposables.add(
+      this.std.event.add("dragEnd", () => {
         this._dragging = false;
-      },
-      { global: true },
+      }),
     );
 
     const { isCycle } = this.block.blockState;
@@ -148,130 +132,65 @@ export class EmbedSyncedDocCard extends WithDisposable(ShadowlessElement) {
     }
   }
 
+  // Preview writes may precede a concurrent React commit; keep both renderer targets stable.
+  private readonly _noteElement = Object.assign(document.createElement("div"), {
+    className: "myoxus-embed-synced-doc-content-note render",
+  });
+  private readonly _bannerElement = Object.assign(
+    document.createElement("div"),
+    {
+      className: "myoxus-embed-synced-doc-card-banner render",
+    },
+  );
+  private readonly _mountPreview = (container: HTMLDivElement | null) => {
+    if (container && this._noteElement.parentElement !== container)
+      container.replaceChildren(this._noteElement);
+  };
+  private readonly _mountBanner = (container: HTMLDivElement | null) => {
+    if (container && this._bannerElement.parentElement !== container)
+      container.replaceChildren(this._bannerElement);
+  };
+
   override render() {
     const { isLoading, isDeleted, isError, isCycle } = this.blockState;
     const error = this.isError || isError;
-
-    const isEmpty = this._isDocEmpty() && this.isBannerEmpty;
-
-    const cardClassMap = classMap({
-      loading: isLoading,
-      error,
-      deleted: isDeleted,
-      cycle: isCycle,
-      surface: isGfxBlockComponent(this.block),
-      empty: isEmpty,
-      "banner-empty": this.isBannerEmpty,
-      "note-empty": this.isNoteContentEmpty,
-    });
-
-    const theme = this.std.get(ThemeProvider).theme;
-    const {
-      SyncedDocErrorIcon,
-      SyncedDocEmptyBanner,
-      SyncedDocErrorBanner,
-      SyncedDocDeletedBanner,
-    } = getSyncedDocIcons(theme, this.editorMode);
-
-    const icon = error
-      ? SyncedDocErrorIcon
-      : isLoading
-        ? LoadingIcon()
-        : this.block.icon$.value;
-    const title = isLoading ? "Loading..." : this.block.title$;
-
-    const showDefaultNoteContent = isLoading || error || isDeleted || isEmpty;
-    const defaultNoteContent = error
-      ? "This linked doc failed to load."
-      : isLoading
-        ? ""
-        : isDeleted
-          ? "This linked doc is deleted."
-          : isEmpty
-            ? "Preview of the page will be displayed here."
-            : "";
-
-    const dateText = this.block.docUpdatedAt?.toLocaleString() ?? "";
-
-    const showDefaultBanner = isLoading || error || isDeleted || isEmpty;
-
-    const defaultBanner = isLoading
-      ? SyncedDocEmptyBanner
-      : error
-        ? SyncedDocErrorBanner
-        : isDeleted
-          ? SyncedDocDeletedBanner
-          : SyncedDocEmptyBanner;
-
-    return html`
-      <div
-        class="myoxus-embed-synced-doc-card ${cardClassMap}"
-        @click=${this._handleClick}
-      >
-        <div class="myoxus-embed-synced-doc-card-content">
-          <div class="myoxus-embed-synced-doc-card-content-title">
-            <div class="myoxus-embed-synced-doc-card-content-title-icon">
-              ${icon}
-            </div>
-
-            <div class="myoxus-embed-synced-doc-card-content-title-text">
-              ${title}
-            </div>
-          </div>
-
-          ${
-            showDefaultNoteContent
-              ? html`<div class="myoxus-embed-synced-doc-content-note default">
-                  ${defaultNoteContent}
-                </div>`
-              : nothing
-          }
-          <div class="myoxus-embed-synced-doc-content-note render"></div>
-
-          ${
-            error
-              ? html`
-                  <div class="myoxus-embed-synced-doc-card-content-reload">
-                    <div
-                      class="myoxus-embed-synced-doc-card-content-reload-button"
-                      @click=${() => this.block.refreshData()}
-                    >
-                      ${ResetIcon()}
-                      <span
-                        >${this._text(editorMessage("com.myoxus.editor.toolbar.reload", "Reload"))}</span
-                      >
-                    </div>
-                  </div>
-                `
-              : html`
-                  <div class="myoxus-embed-synced-doc-card-content-date">
-                    <span
-                      >${this._text(editorMessage("Updated", "Updated"))}</span
-                    >
-
-                    <span>${dateText}</span>
-                  </div>
-                `
-          }
-        </div>
-
-        <div class="myoxus-embed-synced-doc-card-banner render"></div>
-
-        ${
-          showDefaultBanner
-            ? html`
-                <div class="myoxus-embed-synced-doc-card-banner default">
-                  ${defaultBanner}
-                </div>
-              `
-            : nothing
-        }
-      </div>
-    `;
+    const inSurface = isGfxBlockComponent(this.block);
+    const locale = this.std.getOptional(EditorI18nProvider)?.locale$.value;
+    return html`<div
+      class=${classMap({ "myoxus-embed-synced-doc-card": true, surface: inSurface })}
+      @click=${this._handleClick}
+    >
+      ${this.std.get(EditorChromeHostIdentifier).renderDocumentCard({
+        kind: "synced",
+        title: this.block.title$.value ?? "",
+        description: "",
+        updated:
+          !isLoading && !isDeleted && !error
+            ? (this.block.docUpdatedAt?.toLocaleString(locale) ?? null)
+            : null,
+        loading: isLoading,
+        error,
+        unavailable: isDeleted,
+        deleted: isDeleted,
+        empty: this._isDocEmpty() && this.isBannerEmpty,
+        nodeReference: false,
+        selected: this.block.selected$.value || this.block.isCommentHighlighted,
+        inSurface,
+        variant: "horizontal",
+        height: this.block._cardHeight,
+        width: this.block._cardWidth,
+        mountPreview: this._mountPreview,
+        mountBanner: this._mountBanner,
+        showBanner:
+          isCycle && !isLoading && !isDeleted && !error && !this.isBannerEmpty,
+        reload: () => this.block.refreshData(),
+      })}
+    </div>`;
   }
 
-  @queryAsync(".myoxus-embed-synced-doc-card-banner.render")
-  accessor bannerContainer!: Promise<HTMLDivElement>;
+  get bannerContainer(): Promise<HTMLDivElement> {
+    return this.updateComplete.then(() => this._bannerElement);
+  }
 
   @property({ attribute: false })
   accessor block!: EmbedSyncedDocBlockComponent;
@@ -285,6 +204,7 @@ export class EmbedSyncedDocCard extends WithDisposable(ShadowlessElement) {
   @property({ attribute: false })
   accessor isNoteContentEmpty = false;
 
-  @queryAsync(".myoxus-embed-synced-doc-content-note.render")
-  accessor noteContainer!: Promise<HTMLDivElement>;
+  get noteContainer(): Promise<HTMLDivElement> {
+    return this.updateComplete.then(() => this._noteElement);
+  }
 }

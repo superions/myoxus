@@ -11103,5 +11103,12 @@
   "com.myoxus.database.tasks.open-kanban": "Abrir en Kanban",
   "com.myoxus.presence.title": "Personas presentes",
   "com.myoxus.presence.unavailable": "La presencia no está disponible en este momento",
-  "com.myoxus.presence.only-you": "Solo tú estás aquí"
+  "com.myoxus.presence.only-you": "Solo tú estás aquí",
+  "com.myoxus.multi-tab.pin": "Fijar pestaña",
+  "com.myoxus.multi-tab.unpin": "Desfijar pestaña",
+  "com.myoxus.multi-tab.refresh": "Recargar pestaña",
+  "com.myoxus.multi-tab.duplicate": "Duplicar pestaña",
+  "com.myoxus.multi-tab.separate": "Separar pestañas",
+  "com.myoxus.multi-tab.close": "Cerrar pestaña",
+  "com.myoxus.multi-tab.close-others": "Cerrar las otras pestañas"
 }

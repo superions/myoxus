@@ -657,3 +657,58 @@ test("qualified embed scopes use the existing pool, isolate same-key metadata an
   }
   expect(release).toHaveBeenCalledTimes(3);
 });
+
+test.each(["root", "abort"])(
+  "embed loading retains its lease until remote materialization or cancellation (%s)",
+  async (outcome) => {
+    const workspace = new TestWorkspace({ id: "embed-load-readiness" });
+    workspace.storeExtensions = getStoreManager()
+      .config.init()
+      .value.get("store");
+    workspace.meta.initialize();
+    const doc = workspace.createDoc("target");
+    doc.load();
+    const store = doc.getStore();
+    const reference = {
+      doc: { virgultumDoc: store, waitForSyncReady: vi.fn(async () => {}) },
+      release: vi.fn(),
+    };
+    const guard = {
+      can: vi.fn(async () => true),
+      can$: () => new LiveData(true),
+    };
+    const host = new CoreDocEmbedProvider(
+      guard as unknown as GuardService,
+      { open: () => reference } as unknown as DocsService,
+      { id: workspace.id } as never,
+    );
+    const abort = new AbortController();
+    try {
+      const waiting = host.waitForLoaded("target", abort.signal);
+      await waitFor(() =>
+        expect(reference.doc.waitForSyncReady).toHaveBeenCalledOnce(),
+      );
+      expect(
+        await Promise.race([
+          waiting.then(() => "loaded"),
+          new Promise((resolve) => setTimeout(() => resolve("pending"), 0)),
+        ]),
+      ).toBe("pending");
+      expect(reference.release).not.toHaveBeenCalled();
+      if (outcome === "root") {
+        store.addBlock("myoxus:page", {
+          title: new Text("Loaded remote root"),
+        });
+        await waiting;
+      } else {
+        abort.abort();
+        await expect(waiting).rejects.toThrow();
+      }
+      expect(reference.release).toHaveBeenCalledOnce();
+    } finally {
+      abort.abort();
+      host.dispose();
+      workspace.dispose();
+    }
+  },
+);

@@ -293,6 +293,7 @@ class StoreConsumer {
           origin,
           ctx.signal,
         ),
+      "docSync.retryDoc": (docId) => this.docSync.retryDoc(docId),
       "docSync.resetSync": () => this.docSync.resetSync(),
       "blobSync.state": () => this.blobSync.state$,
       "blobSync.blobState": (blobId) => this.blobSync.blobState$(blobId),

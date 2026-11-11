@@ -13,3 +13,4 @@ export * from "./footnotes.js";
 export * from "./local-footnote-import.js";
 
 export * from "./table-html.js";
+export * from "./preview.js";

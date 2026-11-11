@@ -1,4 +1,4 @@
-import { join } from "node:path";
+import { join, posix } from "node:path";
 
 import { I18n } from "@myoxus/i18n";
 import {
@@ -438,7 +438,7 @@ export class WebContentViewsManager {
 
     option.basename ??= activeWorkbench?.basename ?? "/";
     option.view ??= {
-      title: "New Tab",
+      title: I18n.t("com.myoxus.multi-tab.new-tab"),
       path: option.basename?.startsWith("/workspace")
         ? {
             pathname: "/all",
@@ -498,7 +498,8 @@ export class WebContentViewsManager {
     const viewMeta = workbench?.views[workbench.activeViewIndex];
     if (workbench && viewMeta) {
       const url = new URL(
-        workbench.basename + (viewMeta.path?.pathname ?? ""),
+        // A root basename plus "/all" must stay a path, not the host "all".
+        posix.join(workbench.basename, viewMeta.path?.pathname ?? ""),
         mainWindowOrigin,
       );
       url.hash = viewMeta.path?.hash ?? "";
@@ -663,6 +664,15 @@ export class WebContentViewsManager {
         const id = getViewId(view);
         return id ? this.appTabsUIReady.has(id) : false;
       };
+
+      // Electron 45 hit-tests drag regions from every visible child view,
+      // including covered ones. Keep only the displayed tab or loading shell
+      // visible so background chrome cannot swallow foreground controls.
+      const displayedView =
+        activeView && isViewReady(activeView) ? activeView : this.shellView;
+      for (const view of this.tabViewsMap.values()) {
+        view.setVisible(view === displayedView);
+      }
 
       // 2: active view (ready)
       // 1: shell

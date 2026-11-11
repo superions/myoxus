@@ -221,6 +221,34 @@ async function deleteNativeWorkspace(
   }, universalId);
 }
 
+async function assertBundledLogo(page: PackagedRenderer): Promise<string> {
+  const logoUrl = await page.evaluate(async () => {
+    const response = await fetch("/style/brand-identity-fallback.json");
+    if (!response.ok)
+      throw new Error("Packaged branding identity is unavailable");
+    const identity = await response.json();
+    return new URL(identity.appServerBranding.logo.publicUrl, location.href)
+      .href;
+  });
+  expect(logoUrl).toMatch(/^assets:\/\/\.\/style\/logo\.svg\?v=[\da-f]+$/);
+  await expect
+    .poll(() =>
+      page.evaluate(
+        (url) =>
+          [...document.images].some(
+            (image) =>
+              image.currentSrc === url &&
+              image.complete &&
+              image.naturalWidth > 0 &&
+              image.naturalHeight > 0,
+          ),
+        logoUrl,
+      ),
+    )
+    .toBe(true);
+  return logoUrl;
+}
+
 async function assertCspAndOfflineFonts(page: PackagedRenderer): Promise<{
   csp: string;
   fontBytes: number;
@@ -1118,6 +1146,28 @@ test.describe("P-ELECTRON-BUILD-12 packaged release runtime", () => {
     document.getText("content").insert(0, "Persisted native release smoke");
     const nativeUpdate = Y.encodeStateAsUpdate(document);
     await removeDirectory(profile);
+    await mkdir(profile, { recursive: true });
+    // Exercise a persisted root route on both launches; concatenating its two
+    // slashes would navigate to assets://sign-in and leave the app tab blank.
+    const restoredTabId = `app-${randomUUID()}`;
+    await writeFile(
+      path.join(profile, "global-state.json"),
+      JSON.stringify({
+        onboardingState: { completed: true },
+        tabViewsMetaSchema: {
+          activeWorkbenchId: restoredTabId,
+          workbenches: [
+            {
+              id: restoredTabId,
+              basename: "/",
+              activeViewIndex: 0,
+              pinned: false,
+              views: [{ id: randomUUID(), path: { pathname: "/sign-in" } }],
+            },
+          ],
+        },
+      }),
+    );
 
     let first: Awaited<ReturnType<typeof launchPackagedElectron>> | undefined;
     let second: Awaited<ReturnType<typeof launchPackagedElectron>> | undefined;
@@ -1126,6 +1176,7 @@ test.describe("P-ELECTRON-BUILD-12 packaged release runtime", () => {
         csp: string;
         fontBytes: number;
         fontFamilies: string[];
+        logoUrl: string;
         remoteFailure: string;
         main: MainProcessAttestation;
         nativeBindings: NativeBindingEvidence;
@@ -1135,10 +1186,12 @@ test.describe("P-ELECTRON-BUILD-12 packaged release runtime", () => {
       };
       persistedAfterRestart?: boolean;
       persistedNativeUpdateSizes?: number[];
+      expectedBrandingAborts?: RuntimeEvent[];
       profile: string;
       rendererEvents: RuntimeEvent[];
       second?: {
         main: MainProcessAttestation;
+        logoUrl: string;
         renderer: RendererAttestation;
         shell: RendererAttestation;
       };
@@ -1181,6 +1234,7 @@ test.describe("P-ELECTRON-BUILD-12 packaged release runtime", () => {
         workerConnected: true,
       });
       const fontAndCsp = await assertCspAndOfflineFonts(first.page);
+      const firstLogoUrl = await assertBundledLogo(first.page);
       // Capture and popup operation belong to DESK-MTG-04, not installation.
       await setPersistentProbe(first.page, persistenceKey, persistenceValue);
       expect(await readPersistentProbe(first.page, persistenceKey)).toBe(
@@ -1188,6 +1242,7 @@ test.describe("P-ELECTRON-BUILD-12 packaged release runtime", () => {
       );
       evidence.first = {
         ...fontAndCsp,
+        logoUrl: firstLogoUrl,
         main: first.main,
         nativeBindings,
         renderer: first.renderer,
@@ -1218,6 +1273,7 @@ test.describe("P-ELECTRON-BUILD-12 packaged release runtime", () => {
       evidence.persistedAfterRestart = true;
       evidence.persistedNativeUpdateSizes = persistedUpdateSizes;
       evidence.second = {
+        logoUrl: await assertBundledLogo(second.page),
         main: second.main,
         renderer: second.renderer,
         shell: second.shell,
@@ -1230,8 +1286,20 @@ test.describe("P-ELECTRON-BUILD-12 packaged release runtime", () => {
       evidence.rendererEvents.push(...second.events);
 
       const classifiedEvents = classifyRuntimeEvents(evidence.rendererEvents);
+      // Both launches decoded the manifest-selected logo. Chromium may cancel
+      // the initial unversioned image when branding resolves to that asset.
+      const expectedBrandingAborts = classifiedEvents.unexpected.filter(
+        (event) =>
+          event.source === "requestfailed" &&
+          event.method === "GET" &&
+          event.text === "net::ERR_ABORTED" &&
+          event.url === "assets://./style/logo.svg",
+      );
+      evidence.expectedBrandingAborts = expectedBrandingAborts;
       expect(
-        classifiedEvents.unexpected,
+        classifiedEvents.unexpected.filter(
+          (event) => !expectedBrandingAborts.includes(event),
+        ),
         "packaged renderers emitted unexpected console, page, or request errors",
       ).toEqual([]);
       await writeEvidence(testInfo, evidence);

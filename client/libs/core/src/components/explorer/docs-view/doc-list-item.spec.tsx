@@ -56,8 +56,11 @@ vi.mock("./more-menu", () => ({
   MoreMenuContent: () => null,
 }));
 vi.mock("../../page-list/page-content-preview", () => ({
-  PagePreview: (props: { fallback?: React.ReactNode }) => {
-    return props.fallback;
+  PagePreview: (props: {
+    emptyFallback?: React.ReactNode;
+    fallback?: React.ReactNode;
+  }) => {
+    return props.emptyFallback ?? props.fallback;
   },
 }));
 vi.mock("../quick-actions.constants", () => {
@@ -84,6 +87,25 @@ vi.mock("../quick-actions.constants", () => {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+});
+
+test("a list row without a preview has no invisible subtitle", () => {
+  const context = createDocExplorerContext({
+    showDocIcon: false,
+    showDocPreview: true,
+    showDragHandle: false,
+  });
+  const { container } = render(
+    <MyoxusUIProvider>
+      <DocExplorerContext.Provider value={context}>
+        <ListViewDoc docId="page" groupId="all" />
+      </DocExplorerContext.Provider>
+    </MyoxusUIProvider>,
+  );
+  expect(screen.getByTestId("doc-list-item-title").textContent).toBe(
+    "Persisted page",
+  );
+  expect(container.textContent).not.toContain("\u00a0");
 });
 
 test.each([ListViewDoc, CardViewDoc])(

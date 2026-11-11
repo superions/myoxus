@@ -1,3 +1,4 @@
+import { I18n } from "@myoxus/i18n";
 import { Menu } from "electron";
 
 import { logger } from "../logger";
@@ -24,25 +25,25 @@ export const showTabContextMenu = async (
   const template: Parameters<typeof Menu.buildFromTemplate>[0] = [
     tabMeta.pinned
       ? {
-          label: "Unpin tab",
+          label: I18n.t("com.myoxus.multi-tab.unpin"),
           click: () => {
             WebContentViewsManager.instance.pinTab(tabId, false);
           },
         }
       : {
-          label: "Pin tab",
+          label: I18n.t("com.myoxus.multi-tab.pin"),
           click: () => {
             WebContentViewsManager.instance.pinTab(tabId, true);
           },
         },
     {
-      label: "Refresh tab",
+      label: I18n.t("com.myoxus.multi-tab.refresh"),
       click: () => {
         reloadView().catch((err) => logger.error(err));
       },
     },
     {
-      label: "Duplicate tab",
+      label: I18n.t("com.myoxus.multi-tab.duplicate"),
       click: () => {
         addTab({
           basename: tabMeta.basename,
@@ -56,13 +57,13 @@ export const showTabContextMenu = async (
 
     tabMeta.views.length > 1
       ? {
-          label: "Separate tabs",
+          label: I18n.t("com.myoxus.multi-tab.separate"),
           click: () => {
             WebContentViewsManager.instance.separateView(tabId, viewIndex);
           },
         }
       : {
-          label: "Open in split view",
+          label: I18n.t("com.myoxus.workbench.split-view.page-menu-open"),
           click: () => {
             WebContentViewsManager.instance.openInSplitView({ tabId });
           },
@@ -72,13 +73,13 @@ export const showTabContextMenu = async (
       ? ([
           { type: "separator" },
           {
-            label: "Close tab",
+            label: I18n.t("com.myoxus.multi-tab.close"),
             click: () => {
               closeTab(tabId).catch((err) => logger.error(err));
             },
           },
           {
-            label: "Close other tabs",
+            label: I18n.t("com.myoxus.multi-tab.close-others"),
             click: () => {
               const tabsToRetain =
                 WebContentViewsManager.instance.tabViewsMeta.workbenches.filter(

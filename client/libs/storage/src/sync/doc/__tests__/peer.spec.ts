@@ -281,6 +281,54 @@ afterEach(() => {
 });
 
 describe("DocSyncPeer bounded reconciliation", () => {
+  test("explicit restore revalidates only its denied leaf", async () => {
+    const target = createRecord("restored-target", "retained restored content");
+    const sibling = createRecord("still-denied", "private sibling");
+    const local = new MemoryDocStorage(false);
+    const remote = new MemoryDocStorage(
+      true,
+      new Map([
+        [target.docId, target],
+        [sibling.docId, sibling],
+      ]),
+    );
+    const denied = new Set([target.docId, sibling.docId]);
+    const get = remote.getDocDiff.bind(remote);
+    const calls = vi
+      .spyOn(remote, "getDocDiff")
+      .mockImplementation(async (...args) => {
+        if (denied.has(args[0]))
+          throw new DocSyncProtocolError("ACCESS_DENIED", "trashed", false);
+        return get(...args);
+      });
+    const running = startPeer(local, remote);
+    try {
+      for (const id of denied)
+        await waitForState(
+          running.peer.docState$(id),
+          (state) => state.degraded,
+        );
+      const siblingCalls = calls.mock.calls.filter(
+        ([id]) => id === sibling.docId,
+      ).length;
+      denied.delete(target.docId);
+      await running.peer.retryDoc(target.docId);
+      await waitForState(
+        running.peer.docState$(target.docId),
+        (state) => state.synced,
+      );
+      expect(readValue(local, target.docId)).toBe("retained restored content");
+      expect(
+        calls.mock.calls.filter(([id]) => id === sibling.docId),
+      ).toHaveLength(siblingCalls);
+      expect(
+        (await firstValueFrom(running.peer.docState$(sibling.docId))).degraded,
+      ).toBe(true);
+    } finally {
+      await stopPeer(running.abort, running.loop);
+    }
+  });
+
   test.each([
     { kind: "reopened legacy cache", registration: "unresolved" as const },
     {
@@ -1307,6 +1355,7 @@ describe("permanent deletion reconciliation", () => {
         await vi.waitFor(() =>
           expect(local.records.has(record.docId)).toBe(false),
         );
+        await running.peer.retryDoc(record.docId);
         const state = await firstValueFrom(running.peer.peerState$);
         expect(state.unregisteredDocs).not.toContain(record.docId);
         expect(state.total).toBe(0);

@@ -1201,7 +1201,7 @@
         },
         {
           "path": "virgultum/editor/blocks/attachment/src/attachment-block.ts",
-          "sha256": "2f1b2587eef02693f2295984541901c671189c184d4bcc6032ee15dc28446e31",
+          "sha256": "c7b64297e2bad49fc2dcade73fb31ea9d54d3c25a124df5c11b5a5c11feecdcf",
           "originalPath": "blocksuite/affine/blocks/attachment/src/attachment-block.ts",
           "originalGitBlob": "36005d6f09b4ce35e2d85d60a41058c6f582cd69"
         },
@@ -1255,7 +1255,7 @@
         },
         {
           "path": "virgultum/editor/blocks/attachment/src/styles.ts",
-          "sha256": "cbbdda364043d1d18727d14b4f41f1fad675049396596289dff205deba77ef0d",
+          "sha256": "796f44a96fcb4196fa338b8caf44624def4411e253b29478fdb14c0f38137c00",
           "originalPath": "blocksuite/affine/blocks/attachment/src/styles.ts",
           "originalGitBlob": "95cc751f8f72e3c0d74db90f5c3cadae8163668d"
         },
@@ -1843,7 +1843,7 @@
         },
         {
           "path": "virgultum/editor/blocks/embed-doc/src/embed-linked-doc-block/embed-linked-doc-block.ts",
-          "sha256": "b7b6bc32d5e5ce70986d79a5f745ffb864d769bccd40b9e05e8d862aeaf22c81",
+          "sha256": "c9ff6bc1e6a722aec34a009b241a25c37b6524d45fc4f5b54ef611397c7f1948",
           "originalPath": "blocksuite/affine/blocks/embed-doc/src/embed-linked-doc-block/embed-linked-doc-block.ts",
           "originalGitBlob": "a50dcdae0d5a28c762643ee3ab2653c167306535"
         },
@@ -1855,7 +1855,7 @@
         },
         {
           "path": "virgultum/editor/blocks/embed-doc/src/embed-linked-doc-block/styles.ts",
-          "sha256": "a37f822bcc29afb50b87e0fbecf9e63b20078944bb89224549d992922c87e2f5",
+          "sha256": "8851104b8f0fa55b6b205ba19b7007d747cb50301805d3f09df6e9ba18a9546b",
           "originalPath": "blocksuite/affine/blocks/embed-doc/src/embed-linked-doc-block/styles.ts",
           "originalGitBlob": "f40dab5f053dbc56d3ce4116c84e55e9c7fdab23"
         },
@@ -1891,7 +1891,7 @@
         },
         {
           "path": "virgultum/editor/blocks/embed-doc/src/embed-synced-doc-block/components/embed-synced-doc-card.ts",
-          "sha256": "2924bacdf46422303ac831e0a0b8ce6ab7701cd542a8c45ff75da66774e4e40f",
+          "sha256": "5ec0fdefca8a027093a32905aedec3358e836c75f128563fbcc69e0ae933d2bb",
           "originalPath": "blocksuite/affine/blocks/embed-doc/src/embed-synced-doc-block/components/embed-synced-doc-card.ts",
           "originalGitBlob": "41260e1c2e4528279ce64f1347f780b005fd2045"
         },
@@ -1927,7 +1927,7 @@
         },
         {
           "path": "virgultum/editor/blocks/embed-doc/src/embed-synced-doc-block/embed-synced-doc-block.ts",
-          "sha256": "055eef4bed33d2e10523ef5067f4456aab2a4cef6457ad96f54c2d053b61d859",
+          "sha256": "cea91505da59a4aacbad7f615909544caea275ff3f88bd2c74b92e3d00fc5b3c",
           "originalPath": "blocksuite/affine/blocks/embed-doc/src/embed-synced-doc-block/embed-synced-doc-block.ts",
           "originalGitBlob": "7b759429b882de5ff592d1310a0ac72dd55f1a92"
         },
@@ -1951,13 +1951,13 @@
         },
         {
           "path": "virgultum/editor/blocks/embed-doc/src/embed-synced-doc-block/styles.ts",
-          "sha256": "6fd4a481c16619d4241fe78cd73aa1625e1cfb547b320b1b0a9abfd2d63ca161",
+          "sha256": "4a075aa5077efdbdb2f3b907fb661323569c5dec2e67a76b837410b4ba60db9d",
           "originalPath": "blocksuite/affine/blocks/embed-doc/src/embed-synced-doc-block/styles.ts",
           "originalGitBlob": "b870d712ee43fa59409278d7bf9f420549ef403e"
         },
         {
           "path": "virgultum/editor/blocks/embed-doc/src/embed-synced-doc-block/utils.ts",
-          "sha256": "a985613f48f0294240a9878e430eaca86053b7c2dcdfdf1496d3235124092cd6",
+          "sha256": "4f3e234f90fd8b7de70d547e56ce9b3e71437bdb85bb532c7508ae865b288910",
           "originalPath": "blocksuite/affine/blocks/embed-doc/src/embed-synced-doc-block/utils.ts",
           "originalGitBlob": "8c622a34bf32db7cecf62873f33cd3286fe2e49c"
         },
@@ -2011,7 +2011,7 @@
         },
         {
           "path": "virgultum/editor/blocks/embed/src/common/embed-block-element.ts",
-          "sha256": "787359ca7b56f57d01d173c855da1108a1f213fa2249a1087636ea57802b7552",
+          "sha256": "feef58234f4f6438bbde365feb3ce10f4734ca2bb9653229171d124693461c2a",
           "originalPath": "blocksuite/affine/blocks/embed/src/common/embed-block-element.ts",
           "originalGitBlob": "d0d31165984c5edc2f7f0593021b75c94b98173c"
         },
@@ -2047,7 +2047,7 @@
         },
         {
           "path": "virgultum/editor/blocks/embed/src/effects.ts",
-          "sha256": "fefba816f8eb15165d3ff2c2b976ebb68f635d11df104433f74e33461bc70417",
+          "sha256": "8ef3ba104b87858cb48d0eb1cd9e63b1e5bc346874224b1fd28a5db3edd8c10f",
           "originalPath": "blocksuite/affine/blocks/embed/src/effects.ts",
           "originalGitBlob": "0610f31de6560f5583ba46ef8e3805e48e413204"
         },
@@ -2257,45 +2257,21 @@
         },
         {
           "path": "virgultum/editor/blocks/embed/src/embed-iframe-block/commands/insert-empty-embed-iframe.ts",
-          "sha256": "1b45d0df43cf87dd8b7d097aafec7e897572401c1fe0f365ab08313877c79d3b",
+          "sha256": "55a375677112d4954eeea342f3e20ea44b5f456bdfd4dc3b728601e2f21862fc",
           "originalPath": "blocksuite/affine/blocks/embed/src/embed-iframe-block/commands/insert-empty-embed-iframe.ts",
           "originalGitBlob": "9f49873cb1bd41bda5e38b0528a8b7338fc814c8"
         },
         {
           "path": "virgultum/editor/blocks/embed/src/embed-iframe-block/components/embed-iframe-error-card.ts",
-          "sha256": "868ab97f166552a86ca98a78fd92990f83139568b900881039f2a2dda8e96fb4",
+          "sha256": "ab1a0480d4bff67b46632ec4cd516eb004e5eb3082d0792ae91cb7ca9b17a9c8",
           "originalPath": "blocksuite/affine/blocks/embed/src/embed-iframe-block/components/embed-iframe-error-card.ts",
           "originalGitBlob": "c02c8890640e84c7b64eac2282c0b41f81fa49b3"
         },
         {
-          "path": "virgultum/editor/blocks/embed/src/embed-iframe-block/components/embed-iframe-idle-card.ts",
-          "sha256": "85a877226f94098fe94f79e0bd9387291fee68922ca19b250e92fbd961406292",
-          "originalPath": "blocksuite/affine/blocks/embed/src/embed-iframe-block/components/embed-iframe-idle-card.ts",
-          "originalGitBlob": "c3ac974c5834874a5114988cdb9fa86029cda43d"
-        },
-        {
-          "path": "virgultum/editor/blocks/embed/src/embed-iframe-block/components/embed-iframe-link-edit-popup.ts",
-          "sha256": "6b713e2a8686d0ed23b96c8f2b0a0e3eaa18593563c58f737fdbf4cb68fb8217",
-          "originalPath": "blocksuite/affine/blocks/embed/src/embed-iframe-block/components/embed-iframe-link-edit-popup.ts",
-          "originalGitBlob": "248ff96e6152059c37b9379a54603e020c081f26"
-        },
-        {
           "path": "virgultum/editor/blocks/embed/src/embed-iframe-block/components/embed-iframe-link-input-base.ts",
-          "sha256": "2481b87e105436bee840fc9983dbe2168446e21cf2b27b6a454890fe4b0c6e93",
+          "sha256": "7c80e5ef1c59d029fd2b7b0dae1d7fe6eb48f92ff47d317b6acd27095a670588",
           "originalPath": "blocksuite/affine/blocks/embed/src/embed-iframe-block/components/embed-iframe-link-input-base.ts",
           "originalGitBlob": "570cb39fd43b7e4caad828cd4eef0e8253822f42"
-        },
-        {
-          "path": "virgultum/editor/blocks/embed/src/embed-iframe-block/components/embed-iframe-link-input-popup.ts",
-          "sha256": "89e6c2bafa122d661dbe1a66ee112b4802771aa93561c250a69e2901015b870e",
-          "originalPath": "blocksuite/affine/blocks/embed/src/embed-iframe-block/components/embed-iframe-link-input-popup.ts",
-          "originalGitBlob": "9a453b0c674a20cb822019aabcdd6da4dbc4eb79"
-        },
-        {
-          "path": "virgultum/editor/blocks/embed/src/embed-iframe-block/components/embed-iframe-loading-card.ts",
-          "sha256": "5a47737f9865d12c42dbb51a74903c6d05d3fdb7ce767a4f8f064673ad48ea32",
-          "originalPath": "blocksuite/affine/blocks/embed/src/embed-iframe-block/components/embed-iframe-loading-card.ts",
-          "originalGitBlob": "1618575b96653276f45963fb413e596c51263322"
         },
         {
           "path": "virgultum/editor/blocks/embed/src/embed-iframe-block/configs/providers/bilibili.ts",
@@ -2365,7 +2341,7 @@
         },
         {
           "path": "virgultum/editor/blocks/embed/src/embed-iframe-block/embed-iframe-block.ts",
-          "sha256": "8045375831515b4f5d394bef4b3262021d2b29c769e004730629825d4205d9b2",
+          "sha256": "9174c807ad2d3f60e51d2d1c769a61fb01bcdb45bbe4fc3a57fe029dc0c08af4",
           "originalPath": "blocksuite/affine/blocks/embed/src/embed-iframe-block/embed-iframe-block.ts",
           "originalGitBlob": "826733ca9b58bf17463c966c4506ced9f67269cd"
         },
@@ -2718,12 +2694,6 @@
           "originalGitBlob": "65645034a5b6901a03ba0476ae370405d4a689b8"
         },
         {
-          "path": "virgultum/editor/blocks/image/src/components/image-block-fallback.ts",
-          "sha256": "cdb9c48d2858028be82a9d12f1272f0b669d5903cf130fba80a4c0d18b9b719d",
-          "originalPath": "blocksuite/affine/blocks/image/src/components/image-block-fallback.ts",
-          "originalGitBlob": "15dda854bf8856d29b97828364d2ccc260ab62b9"
-        },
-        {
           "path": "virgultum/editor/blocks/image/src/components/image-selected-rect.ts",
           "sha256": "c46d37e4ed1854be369bee129d7b60ffd06706fdbd1552d7ba955d6d4e509d06",
           "originalPath": "blocksuite/affine/blocks/image/src/components/image-selected-rect.ts",
@@ -2755,19 +2725,19 @@
         },
         {
           "path": "virgultum/editor/blocks/image/src/effects.ts",
-          "sha256": "d0026b12a49eb5d3343d49bc0b55b78551ce602135ece9698aee02e26e63a6b3",
+          "sha256": "9c92b8354ae48c84495385e0d2b0934313d802c4f2e3b61ca5a15a91f2ba3c64",
           "originalPath": "blocksuite/affine/blocks/image/src/effects.ts",
           "originalGitBlob": "0ba3bbd9b32b4b93c0e025f7dd9c344f35cde5db"
         },
         {
           "path": "virgultum/editor/blocks/image/src/image-block.ts",
-          "sha256": "39d6caa0f59a6e93bee7f03f3378950cb3d3c3597ab4bea6dad70458943b1add",
+          "sha256": "18f1c52a7299797ec14cd9ce6ce4f6100d727015f1c5ba389e7e30a422bdc0fa",
           "originalPath": "blocksuite/affine/blocks/image/src/image-block.ts",
           "originalGitBlob": "670475340124e4c08abe0e13dfdcb7b61ec49ae6"
         },
         {
           "path": "virgultum/editor/blocks/image/src/image-edgeless-block.ts",
-          "sha256": "c1c6461bb14a5a8dd3fbdf3ea41088d9168b09a98a48132cf1ed2c7288304938",
+          "sha256": "1d61455c4d9af5d7bb5bfe72603350c95c158b113ba99317488ff7cecef172dc",
           "originalPath": "blocksuite/affine/blocks/image/src/image-edgeless-block.ts",
           "originalGitBlob": "74cdfc0016607376f526f8555f0b61d4505a2b36"
         },
@@ -2827,7 +2797,7 @@
         },
         {
           "path": "virgultum/editor/blocks/image/src/utils.ts",
-          "sha256": "5a4bcbd09eb0635636f23bf9526b09619898434166e5a8c4bce7734f243a12cf",
+          "sha256": "0a624dc70fc353b39efd6e756627578276116379dc854195b28cc921e855be1a",
           "originalPath": "blocksuite/affine/blocks/image/src/utils.ts",
           "originalGitBlob": "e2c78667191fc26ca9bd50e5fcfec754f99e2526"
         },
@@ -6991,7 +6961,7 @@
         },
         {
           "path": "virgultum/editor/shared/src/adapters/index.ts",
-          "sha256": "77a5ea12639f409961740cd01ede831116346f8eb91c20060a6c8cb9367f5fce",
+          "sha256": "7fa8b52d6394e4ead93fea843d4b5ebb5ccc16b5bc7de61c86dbc1e671605a80",
           "originalPath": "blocksuite/affine/shared/src/adapters/index.ts",
           "originalGitBlob": "1c9333a2d5ddab1c44cfef6e3e3578154484fe96"
         },
@@ -7009,7 +6979,7 @@
         },
         {
           "path": "virgultum/editor/shared/src/adapters/markdown/index.ts",
-          "sha256": "c755308691dacefcc538d9b67e0eddd193af19e71e0f2fb236f2ea119615ee0e",
+          "sha256": "ed7e130380bffbb472bd76b8d6ec695c05ea06274183e7064ee34e7820ec7bb9",
           "originalPath": "blocksuite/affine/shared/src/adapters/markdown/index.ts",
           "originalGitBlob": "07cd5127c9407a3069aae09f0ec849f8b883c1c0"
         },
@@ -14434,7 +14404,7 @@
         },
         {
           "path": "virgultum/editor/shared/src/services/editor-chrome-host.ts",
-          "sha256": "39e1da212593a69a63cdca702890d764e89c17c3036a5685eacc46f3e791c1fa"
+          "sha256": "f64fae953582f233b750f714376426142cd2fd87a6ddf8c7bf9dba2f5aff3901"
         },
         {
           "path": "virgultum/editor/shared/src/services/footnote-react-host.ts",
@@ -14807,6 +14777,22 @@
         {
           "path": "virgultum/editor/fragments/outline/src/__tests__/document-outline-controller.unit.spec.ts",
           "sha256": "9ab5bfbceea70675a09436a1967cbc0318421f8702b1d8d52683d291310824c4"
+        },
+        {
+          "path": "virgultum/editor/blocks/embed/src/embed-iframe-block/components/iframe-link-session.ts",
+          "sha256": "a798bd07257dc5e60d458c69481dc125b5a67929f2dad02582477cc798a065ac"
+        },
+        {
+          "path": "virgultum/editor/blocks/embed/src/embed-iframe-block/components/iframe-status-card.ts",
+          "sha256": "15c88e015c2d4f27a8b985dca6e6eb257116db357f41ea52c8ffcadf43c6cda5"
+        },
+        {
+          "path": "virgultum/editor/blocks/image/src/components/image-fallback.ts",
+          "sha256": "7d41234f7aa8d2c76be817542b3ec164b1035940b2f5055984b981b43374c8e4"
+        },
+        {
+          "path": "virgultum/editor/shared/src/adapters/markdown/preview.ts",
+          "sha256": "76f981c26e4a84fba0d4b0fb16add0161ea916d0a181d71b07943b1e43517fcb"
         }
       ]
     },
@@ -15185,7 +15171,7 @@
         },
         {
           "path": "virgultum/editor/blocks/embed/src/embed-iframe-block/consts.ts",
-          "sha256": "166bc1d3e1ef5ad26d464bab9a06b206ff346f130638ea2e64dba1e2e0172183",
+          "sha256": "8b4cb0d38718df418ac2bed816519c1381eada369458ba2d370b4653be2de79a",
           "originalPath": "blocksuite/affine/blocks/embed/src/embed-iframe-block/consts.ts",
           "originalGitBlob": "e0d0a03c28a407fa157a27f49cbf7d86df448e90"
         },
@@ -15200,12 +15186,6 @@
           "sha256": "1cd3f6cb8a99552978d5fd2743ddc3156dfe383ce88ff2fe6b868714568ff71e",
           "originalPath": "blocksuite/affine/blocks/embed/src/embed-iframe-block/style.ts",
           "originalGitBlob": "8065d9fad533c10c262b28b7c18c3323a8774557"
-        },
-        {
-          "path": "virgultum/editor/blocks/embed/src/embed-iframe-block/types.ts",
-          "sha256": "6bb2760d32a22fbb96863f1f6ab72c4279c5d58d910b6c2893201f83b6df63a7",
-          "originalPath": "blocksuite/affine/blocks/embed/src/embed-iframe-block/types.ts",
-          "originalGitBlob": "119b01c942a5e4d34032b2021d5e8e8c6b0851cb"
         },
         {
           "path": "virgultum/editor/blocks/embed/src/embed-loom-block/adapters/extension.ts",

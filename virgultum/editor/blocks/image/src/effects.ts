@@ -1,4 +1,4 @@
-import { ImageBlockFallbackCard } from "./components/image-block-fallback.js";
+import { ImageBlockFallbackCard } from "./components/image-fallback.js";
 import { ImageBlockPageComponent } from "./components/page-image-block.js";
 import { ImageBlockComponent } from "./image-block.js";
 import { ImageEdgelessBlockComponent } from "./image-edgeless-block.js";

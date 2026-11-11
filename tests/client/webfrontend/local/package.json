@@ -10,6 +10,6 @@
     "@myoxus-test/kit": "workspace:*",
     "@myoxus-tools/cli": "workspace:*",
     "@myoxus-tools/utils": "workspace:*",
-    "@playwright/test": "=1.63.0"
+    "@playwright/test": "=1.65.0"
   }
 }

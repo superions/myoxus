@@ -336,6 +336,8 @@ export class ImageEdgelessBlockComponent extends GfxBlockComponent<ImageBlockMod
           `,
           () =>
             html`<myoxus-image-fallback-card
+              .std=${this.std}
+              .inSurface=${true}
               .state=${resovledState}
             ></myoxus-image-fallback-card>`,
         )}

@@ -8,7 +8,7 @@
   "dependencies": {
     "@myoxus-test/kit": "workspace:*",
     "@myoxus/theme": "workspace:*",
-    "@playwright/test": "=1.63.0",
+    "@playwright/test": "1.65.0",
     "@virgultum/editor": "workspace:*",
     "@virgultum/integration-test": "workspace:*",
     "json-stable-stringify": "^1.2.1",

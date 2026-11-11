@@ -69,7 +69,11 @@ export class EmbedBlockComponent<
     );
   }
 
-  renderEmbed = (content: () => TemplateResult) => {
+  // Native host cards paint selection themselves; keep the outer renderer box unpainted.
+  renderEmbed = (
+    content: () => TemplateResult,
+    selection: "editor" | "native" = "editor",
+  ) => {
     if (
       this._cardStyle === "horizontal" ||
       this._cardStyle === "horizontalThin" ||
@@ -95,7 +99,7 @@ export class EmbedBlockComponent<
         draggable="${this.blockDraggable ? "true" : "false"}"
         class=${classMap({
           "embed-block-container": true,
-          ...this.selectedStyle$?.value,
+          ...(selection === "editor" ? this.selectedStyle$?.value : {}),
         })}
         style=${styleMap({
           height: `${this._cardHeight}px`,

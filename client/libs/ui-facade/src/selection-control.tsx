@@ -165,7 +165,7 @@ export type CheckboxProps = {
   ) => void;
   disabled?: boolean;
   indeterminate?: boolean;
-  label?: string;
+  label?: ReactNode;
   className?: string;
   style?: CSSProperties;
   name?: string;
@@ -199,12 +199,14 @@ export function Checkbox({
       indeterminate={indeterminate}
       label={label}
       data-testid={dataTestId}
-      aria-label={ariaLabel ?? label ?? name ?? dataTestId}
+      aria-label={ariaLabel ?? (reactNodeText(label) || name || dataTestId)}
       size={size}
       data-myoxus-ui-role="settings-checkbox"
       onClick={onClick}
       onChange={(event) => onChange?.(event, event.currentTarget.checked)}
       styles={{
+        // Typography's descendant margin reset must not displace the native checkbox glyph.
+        icon: { margin: "auto" },
         label: {
           color: cssVar("textPrimaryColor"),
         },

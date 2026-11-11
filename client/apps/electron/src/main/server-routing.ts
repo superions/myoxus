@@ -126,9 +126,11 @@ export function desktopServerSession(server: RegisteredDesktopServer) {
   if (registeredDesktopServer(server.id)?.baseUrl !== server.baseUrl)
     throw new Error("Server was removed or replaced");
   const originKey = createHash("sha256").update(server.baseUrl).digest("hex");
-  return session.fromPartition(
-    `persist:myoxus-server-${server.id}-${originKey}`,
-  );
+  // Do not reinterpret deployed Keychain-encrypted macOS cookie databases as
+  // plaintext. This stable partition changes once, then survives every update.
+  const owner =
+    process.platform === "darwin" ? "myoxus-profile-server" : "myoxus-server";
+  return session.fromPartition(`persist:${owner}-${server.id}-${originKey}`);
 }
 
 export async function persistDesktopServerCookies(

@@ -60,6 +60,9 @@ async fn export_fonts(state: &ApiState, workspace: Uuid) -> Result<docx::ExportF
     ("Heading3", "heading.h3"),
     ("Heading4", "heading.h4"),
     ("Heading5", "heading.h5"),
+    ("Heading6", "heading.h5"),
+    ("MyoxusEyebrow", "label.compact"),
+    ("Quote", "quote.block"),
     ("MyoxusCode", "code.block"),
     ("Caption", "body.small"),
   ] {
@@ -96,6 +99,7 @@ async fn export_fonts(state: &ApiState, workspace: Uuid) -> Result<docx::ExportF
     table_fill,
     table_ink,
     table_rule,
+    colors: myoxus_infrastructure::branding::document_color_values(colors, mode),
     visuals: state
       .preview_runtime
       .document_figure_context(state, workspace)

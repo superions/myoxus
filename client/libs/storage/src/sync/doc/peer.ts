@@ -1007,6 +1007,28 @@ export class DocSyncPeer {
     }
   }
 
+  /** An acknowledged restore may renew a denied pull, never a retired identity. */
+  async retryDoc(docId: string) {
+    const pending = this.inFlight.get(docId);
+    // Let the old attempt record its failure before renewing this generation.
+    if (pending) await Promise.allSettled([pending]);
+    if (!this.shouldSyncDoc(docId)) return;
+    const existing = this.status.reconciles.get(docId);
+    if (
+      existing?.pageRegistration === "deleted" ||
+      existing?.pageRegistration === "moved"
+    )
+      return;
+    this.addDoc(docId);
+    const state = this.ensureReconcile(docId);
+    this.clearDocFailure(docId);
+    state.generation += 1;
+    state.confirmedServerStateVector = null;
+    state.needsPull = true;
+    this.status.connectedDocs.delete(docId);
+    this.queueReconcile(docId);
+  }
+
   addPriority(id: string, priority: number) {
     const oldPriority = this.prioritySettings.get(id) ?? 0;
     const nextPriority = oldPriority + priority;

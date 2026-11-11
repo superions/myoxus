@@ -1,3 +1,4 @@
+import { DocsService } from "@myoxus/core/modules/doc/services/docs";
 /**
  * @vitest-environment happy-dom
  */
@@ -69,6 +70,7 @@ function makeWorkspace(flavour = "cloud") {
           },
         ),
         waitForSynced: vi.fn(async () => undefined),
+        retryDoc: vi.fn(async () => undefined),
       },
     },
     docCollection: {
@@ -115,6 +117,14 @@ describe("useDocumentOperations", () => {
         docsMap$: { value: new Map() },
         doc$: vi.fn(() => ({ value: null })),
       },
+      restoreFromTrash: (id: string) =>
+        DocsService.prototype.restoreFromTrash.call(
+          {
+            list: mocks.docsService.list,
+            framework: { get: () => ({ workspace: mocks.workspace }) },
+          } as never,
+          id,
+        ),
       duplicate: vi.fn(async () => "duplicated-doc"),
       moveManyToTrash: vi.fn(),
       removeManyFromRootMeta: vi.fn(),
@@ -137,42 +147,62 @@ describe("useDocumentOperations", () => {
     };
   });
 
-  test("move and restore use one local root-meta mutation without sync polling", async () => {
-    const docA = { id: "doc-a", restoreFromTrash: vi.fn() };
-    const docB = { id: "doc-b", restoreFromTrash: vi.fn() };
-    mocks.docsService.list.docsMap$.value = new Map([
-      [docA.id, docA],
-      [docB.id, docB],
-    ]);
-    mocks.docsService.list.doc$ = vi.fn((id: string) => ({
-      value: id === docA.id ? docA : docB,
-    }));
-    const { result } = renderHook(() => useDocumentOperations());
-
-    await act(async () => {
-      await result.current.moveToTrash(docA as any);
-      await result.current.moveManyToTrash([
-        docA as any,
-        docB as any,
-        docA as any,
+  test.each(["cloud", "local"])(
+    "restore waits for server acknowledgement before renewing its leaf (%s)",
+    async (flavour) => {
+      mocks.workspace = makeWorkspace(flavour);
+      const docA = { id: "doc-a", restoreFromTrash: vi.fn() };
+      const docB = { id: "doc-b", restoreFromTrash: vi.fn() };
+      mocks.docsService.list.docsMap$.value = new Map([
+        [docA.id, docA],
+        [docB.id, docB],
       ]);
-      await result.current.restoreFromTrash(docA.id);
-    });
+      mocks.docsService.list.doc$ = vi.fn((id: string) => ({
+        value: id === docA.id ? docA : docB,
+      }));
+      const { result } = renderHook(() => useDocumentOperations());
 
-    expect(mocks.docsService.moveManyToTrash).toHaveBeenNthCalledWith(1, [
-      "doc-a",
-    ]);
-    expect(mocks.docsService.moveManyToTrash).toHaveBeenNthCalledWith(2, [
-      "doc-a",
-      "doc-b",
-    ]);
-    expect(docA.restoreFromTrash).toHaveBeenCalledOnce();
-    expect(
-      mocks.workspace.engine.doc.updateAndWaitForSaved,
-    ).toHaveBeenCalledTimes(3);
-    expect(mocks.workspace.engine.doc.waitForSynced).not.toHaveBeenCalled();
-    expect(mocks.graphqlService.gql).not.toHaveBeenCalled();
-  });
+      await act(async () => {
+        await result.current.moveToTrash(docA as any);
+        await result.current.moveManyToTrash([
+          docA as any,
+          docB as any,
+          docA as any,
+        ]);
+        let acknowledge!: () => void;
+        const ack = new Promise<void>((resolve) => {
+          acknowledge = resolve;
+        });
+        mocks.workspace.engine.doc.waitForSynced.mockReturnValueOnce(ack);
+        const restoring = result.current.restoreFromTrash(docA.id);
+        await Promise.resolve();
+        expect(mocks.workspace.engine.doc.retryDoc).not.toHaveBeenCalled();
+        acknowledge();
+        await restoring;
+      });
+
+      expect(mocks.docsService.moveManyToTrash).toHaveBeenNthCalledWith(1, [
+        "doc-a",
+      ]);
+      expect(mocks.docsService.moveManyToTrash).toHaveBeenNthCalledWith(2, [
+        "doc-a",
+        "doc-b",
+      ]);
+      expect(docA.restoreFromTrash).toHaveBeenCalledOnce();
+      expect(
+        mocks.workspace.engine.doc.updateAndWaitForSaved,
+      ).toHaveBeenCalledTimes(3);
+      expect(mocks.workspace.engine.doc.waitForSynced).toHaveBeenCalledTimes(
+        flavour === "cloud" ? 1 : 0,
+      );
+      if (flavour === "cloud")
+        expect(
+          mocks.workspace.engine.doc.retryDoc,
+        ).toHaveBeenCalledExactlyOnceWith(docA.id);
+      else expect(mocks.workspace.engine.doc.retryDoc).not.toHaveBeenCalled();
+      expect(mocks.graphqlService.gql).not.toHaveBeenCalled();
+    },
+  );
 
   test("move to trash rejects a missing document before mutating root metadata", async () => {
     const { result } = renderHook(() => useDocumentOperations());

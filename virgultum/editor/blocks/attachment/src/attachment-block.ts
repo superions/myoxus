@@ -2,17 +2,13 @@ import {
   editorMessage,
   BlockElementCommentManager,
   CitationProvider,
+  EditorChromeHostIdentifier,
   DocModeProvider,
   FileSizeLimitProvider,
   TelemetryProvider,
   EditorI18nProvider,
 } from "@virgultum/shared/services";
-import {
-  AttachmentIcon,
-  ResetIcon,
-  UpgradeIcon,
-  WarningIcon,
-} from "@myoxus/icons/lit";
+import { AttachmentIcon, WarningIcon } from "@myoxus/icons/lit";
 import { batch, computed, signal } from "@preact/signals-core";
 import {
   CaptionedBlockComponent,
@@ -23,10 +19,7 @@ import {
   LoadingIcon,
 } from "@virgultum/components/icons";
 import { Peekable } from "@virgultum/components/peek";
-import {
-  type ResolvedStateInfo,
-  ResourceController,
-} from "@virgultum/components/resource";
+import { ResourceController } from "@virgultum/components/resource";
 import {
   type AttachmentBlockModel,
   AttachmentBlockStyles,
@@ -38,11 +31,10 @@ import {
   openSingleFileWith,
 } from "@virgultum/shared/utils";
 
-import { BlockSelection } from "@virgultum/std";
+import { BlockSelection, isGfxBlockComponent } from "@virgultum/std";
 import { nanoid, Slice } from "@virgultum/store";
-import { html, type TemplateResult } from "lit";
-import { choose } from "lit/directives/choose.js";
-import { type ClassInfo, classMap } from "lit/directives/class-map.js";
+import { html } from "lit";
+import { classMap } from "lit/directives/class-map.js";
 import { guard } from "lit/directives/guard.js";
 import { styleMap } from "lit/directives/style-map.js";
 import { when } from "lit/directives/when.js";
@@ -51,10 +43,6 @@ import { filter } from "rxjs/operators";
 import { AttachmentEmbedProvider } from "./embed";
 import { styles } from "./styles";
 import { downloadAttachmentBlob, getFileType, refreshData } from "./utils";
-
-type AttachmentResolvedStateInfo = ResolvedStateInfo & {
-  kind?: TemplateResult;
-};
 
 @Peekable({
   enableOn: ({ model }: AttachmentBlockComponent) => {
@@ -273,162 +261,9 @@ export class AttachmentBlockComponent extends CaptionedBlockComponent<Attachment
     }
   }
 
-  protected renderUpgradeButton = () => {
-    if (this.std.store.readonly) return null;
-
-    const onOverFileSize = this.std.get(FileSizeLimitProvider).onOverFileSize;
-
-    return when(
-      onOverFileSize,
-      () => html`
-        <button
-          class="myoxus-attachment-content-button"
-          @click=${(event: MouseEvent) => {
-            event.stopPropagation();
-            onOverFileSize?.();
-
-            {
-              const mode =
-                this.std.get(DocModeProvider).getEditorMode() ?? "page";
-              const segment = mode === "page" ? "doc" : "whiteboard";
-              this.std
-                .getOptional(TelemetryProvider)
-                ?.track("AttachmentUpgradedEvent", {
-                  segment,
-                  page: `${segment} editor`,
-                  module: "attachment",
-                  control: "upgrade",
-                  category: "card",
-                  type: this.model.props.name.split(".").pop() ?? "",
-                });
-            }
-          }}
-        >
-          ${UpgradeIcon()} Upgrade
-        </button>
-      `,
-    );
-  };
-
-  protected renderNormalButton = (needUpload: boolean) => {
-    const label = needUpload ? "retry" : "reload";
-    const run = async () => {
-      if (needUpload) {
-        await this.resourceController.upload();
-        return;
-      }
-
-      this.refreshData();
-    };
-
-    return html`
-      <button
-        class="myoxus-attachment-content-button"
-        @click=${(event: MouseEvent) => {
-          event.stopPropagation();
-          run().catch(console.error);
-
-          {
-            const mode =
-              this.std.get(DocModeProvider).getEditorMode() ?? "page";
-            const segment = mode === "page" ? "doc" : "whiteboard";
-            this.std
-              .getOptional(TelemetryProvider)
-              ?.track("AttachmentReloadedEvent", {
-                segment,
-                page: `${segment} editor`,
-                module: "attachment",
-                control: label,
-                category: "card",
-                type: this.filetype,
-              });
-          }
-        }}
-      >
-        ${ResetIcon()} ${label}
-      </button>
-    `;
-  };
-
-  protected renderWithHorizontal(
-    classInfo: ClassInfo,
-    {
-      icon,
-      title,
-      description,
-      kind,
-      state,
-      needUpload,
-    }: AttachmentResolvedStateInfo,
-  ) {
-    return html`
-      <div class=${classMap(classInfo)}>
-        <div class="myoxus-attachment-content">
-          <div class="myoxus-attachment-content-title">
-            <div class="myoxus-attachment-content-title-icon">${icon}</div>
-            <div class="myoxus-attachment-content-title-text truncate">
-              ${title}
-            </div>
-          </div>
-
-          <div class="myoxus-attachment-content-description">
-            <div class="myoxus-attachment-content-info truncate">
-              ${description}
-            </div>
-            ${choose(state, [
-              ["error", () => this.renderNormalButton(needUpload)],
-              ["error:oversize", this.renderUpgradeButton],
-            ])}
-          </div>
-        </div>
-
-        <div class="myoxus-attachment-banner">${kind}</div>
-      </div>
-    `;
-  }
-
-  protected renderWithVertical(
-    classInfo: ClassInfo,
-    {
-      icon,
-      title,
-      description,
-      kind,
-      state,
-      needUpload,
-    }: AttachmentResolvedStateInfo,
-  ) {
-    return html`
-      <div class=${classMap(classInfo)}>
-        <div class="myoxus-attachment-content">
-          <div class="myoxus-attachment-content-title">
-            <div class="myoxus-attachment-content-title-icon">${icon}</div>
-            <div class="myoxus-attachment-content-title-text truncate">
-              ${title}
-            </div>
-          </div>
-
-          <div class="myoxus-attachment-content-info truncate">
-            ${description}
-          </div>
-        </div>
-
-        <div class="myoxus-attachment-banner">
-          ${kind}
-          ${choose(state, [
-            ["error", () => this.renderNormalButton(needUpload)],
-            ["error:oversize", this.renderUpgradeButton],
-          ])}
-        </div>
-      </div>
-    `;
-  }
-
-  protected resolvedState$ = computed<AttachmentResolvedStateInfo>(() => {
+  protected resolvedState$ = computed(() => {
     const size = this.model.props.size;
     const name = this.model.props.name$.value;
-    const kind = getAttachmentFileIcon(this.filetype);
-
     const resolvedState = this.resourceController.resolveStateWith({
       loadingIcon: LoadingIcon(),
       errorIcon: WarningIcon(),
@@ -437,25 +272,56 @@ export class AttachmentBlockComponent extends CaptionedBlockComponent<Attachment
       description: formatSize(size),
     });
 
-    return { ...resolvedState, kind };
+    return resolvedState;
   });
 
   protected renderCardView = () => {
     const resolvedState = this.resolvedState$.value;
     const cardStyle = this.model.props.style$.value ?? AttachmentBlockStyles[1];
 
-    const classInfo = {
-      "myoxus-attachment-card": true,
-      [cardStyle]: true,
-      loading: resolvedState.loading,
-      error: resolvedState.error,
-    };
-
-    return when(
-      cardStyle === "cubeThick",
-      () => this.renderWithVertical(classInfo, resolvedState),
-      () => this.renderWithHorizontal(classInfo, resolvedState),
-    );
+    const { title, description, loading, error, state, needUpload } =
+      resolvedState;
+    const overSize = this.std.get(FileSizeLimitProvider).onOverFileSize;
+    const action =
+      state === "error:oversize"
+        ? !this.store.readonly && overSize
+          ? { kind: "limit" as const, run: overSize }
+          : undefined
+        : state === "error"
+          ? {
+              kind: needUpload ? ("retry" as const) : ("reload" as const),
+              run: () => {
+                if (!this.isConnected) return;
+                if (needUpload)
+                  this.resourceController.upload().catch(console.error);
+                else this.refreshData();
+                const mode =
+                  this.std.get(DocModeProvider).getEditorMode() ?? "page";
+                const segment = mode === "page" ? "doc" : "whiteboard";
+                this.std
+                  .getOptional(TelemetryProvider)
+                  ?.track("AttachmentReloadedEvent", {
+                    segment,
+                    page: `${segment} editor`,
+                    module: "attachment",
+                    control: needUpload ? "retry" : "reload",
+                    category: "card",
+                    type: this.filetype,
+                  });
+              },
+            }
+          : undefined;
+    return this.std.get(EditorChromeHostIdentifier).renderAttachmentCard({
+      inSurface: isGfxBlockComponent(this),
+      selected: this.selected$.value,
+      title: title ?? "",
+      description: description ?? "",
+      fileType: this.filetype,
+      loading,
+      error,
+      vertical: cardStyle === "cubeThick",
+      action,
+    });
   };
 
   protected renderEmbedView = () => {
@@ -515,7 +381,6 @@ export class AttachmentBlockComponent extends CaptionedBlockComponent<Attachment
       <div
         class=${classMap({
           "myoxus-attachment-container": true,
-          focused: this.selected$.value,
           "comment-highlighted": this.isCommentHighlighted,
         })}
         style=${this.containerStyleMap}

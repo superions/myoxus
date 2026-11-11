@@ -5,8 +5,10 @@ import os from "node:os";
 import path from "node:path";
 
 import { expect, test, vi } from "vitest";
+import { FuseV1Options } from "@electron/fuses";
 
 import { applePackagingOptions } from "../../scripts/lib/application-packager";
+import { fuseOptions } from "../../scripts/lib/package-postprocess";
 
 import { createBuildContext } from "../../scripts/lib/build-context";
 import { buildLinuxPackage } from "../../scripts/lib/linux-native-packager";
@@ -16,6 +18,16 @@ import {
   windowsInstallerGuid,
   writeInstallerTranslations,
 } from "../../scripts/lib/windows-native-packager";
+
+test("uses profile cookies only on macOS while preserving other platform encryption", () => {
+  for (const targetPlatform of ["darwin", "linux", "win32"] as const) {
+    expect(
+      fuseOptions({ targetPlatform, resetAdHocDarwinSignature: false })[
+        FuseV1Options.EnableCookieEncryption
+      ],
+    ).toBe(targetPlatform !== "darwin");
+  }
+});
 
 test.each(["stable"])(
   "Flatpak %s metadata uses the unchanged stage raster without an optional SVG loader",

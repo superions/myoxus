@@ -150,7 +150,7 @@ export class Doc extends Entity {
   }
 
   restoreFromTrash() {
-    return this.record.restoreFromTrash();
+    return this.workspace.docs.restoreFromTrash(this.id);
   }
 
   waitForSyncReady(signal?: AbortSignal) {

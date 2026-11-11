@@ -129,15 +129,21 @@ export async function trimElectronLocales(
   );
 }
 
-function fuseOptions({
+export function fuseOptions({
   resetAdHocDarwinSignature,
+  targetPlatform,
 }: {
   resetAdHocDarwinSignature: boolean;
+  targetPlatform: PackagerTargetPlatform;
 }) {
   return {
     version: FuseVersion.V1,
     [FuseV1Options.RunAsNode]: false,
-    [FuseV1Options.EnableCookieEncryption]: true,
+    // Ad-hoc macOS builds change Keychain identity on every update. Native
+    // server cookies instead persist in the owner-only macOS profile.
+    [FuseV1Options.EnableCookieEncryption]: !["darwin", "mas"].includes(
+      targetPlatform,
+    ),
     [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
     [FuseV1Options.EnableNodeCliInspectArguments]:
       process.env.ELECTRON_E2E === "1",
@@ -167,6 +173,7 @@ export async function applyElectronFusesToBuildPath({
   await flipFuses(
     executable,
     fuseOptions({
+      targetPlatform,
       resetAdHocDarwinSignature:
         !hasOsxSignConfig && applePlatform && targetArch === "arm64",
     }),

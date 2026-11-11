@@ -483,10 +483,6 @@ const DocPreview = memo(function DocPreview({
     );
   }
 
-  // Keep the native description line while an optional snippet loads, including
-  // empty documents, so its arrival does not move the surrounding list rows.
-  const reservedLine = kind === "description" ? "\u00a0" : undefined;
-
   return (
     <SurfaceListText
       kind={kind}
@@ -497,9 +493,9 @@ const DocPreview = memo(function DocPreview({
       <RawDocPreview
         edgelessFallback={edgelessFallback}
         enableLocalTextFallback={enableLocalTextFallback}
-        emptyFallback={emptyFallback ?? reservedLine}
+        emptyFallback={emptyFallback}
         id={id}
-        loading={loading ?? reservedLine}
+        loading={loading}
         visibleListSnippet={cloudPreview && kind === "description"}
       />
     </SurfaceListText>

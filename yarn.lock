@@ -1560,7 +1560,7 @@ __metadata:
     "@myoxus-tools/utils": "workspace:*"
     "@myoxus/desktop-api-contract": "workspace:*"
     "@myoxus/infra": "workspace:*"
-    "@playwright/test": "npm:=1.63.0"
+    "@playwright/test": "npm:=1.65.0"
     "@virgultum/editor": "workspace:*"
     fs-extra: "npm:11.3.4"
   peerDependencies:
@@ -1574,10 +1574,10 @@ __metadata:
   dependencies:
     "@myoxus-test/kit": "workspace:*"
     "@myoxus/desktop-api-contract": "workspace:*"
-    "@playwright/test": "npm:=1.63.0"
+    "@playwright/test": "npm:=1.65.0"
     "@types/fs-extra": "npm:^11.0.4"
     fs-extra: "npm:^11.2.0"
-    playwright: "npm:=1.63.0"
+    playwright: "npm:=1.65.0"
   languageName: unknown
   linkType: soft
 
@@ -1588,7 +1588,7 @@ __metadata:
     "@myoxus-test/kit": "workspace:*"
     "@myoxus-tools/cli": "workspace:*"
     "@myoxus-tools/utils": "workspace:*"
-    "@playwright/test": "npm:=1.63.0"
+    "@playwright/test": "npm:=1.65.0"
   languageName: unknown
   linkType: soft
 
@@ -1597,7 +1597,7 @@ __metadata:
   resolution: "@myoxus-test/myoxus-mobile@workspace:tests/client/mobile/app"
   dependencies:
     "@myoxus-test/kit": "workspace:*"
-    "@playwright/test": "npm:=1.63.0"
+    "@playwright/test": "npm:=1.65.0"
   languageName: unknown
   linkType: soft
 
@@ -1607,7 +1607,7 @@ __metadata:
   dependencies:
     "@myoxus-test/kit": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@playwright/test": "npm:=1.63.0"
+    "@playwright/test": "npm:1.65.0"
     "@virgultum/editor": "workspace:*"
     "@virgultum/integration-test": "workspace:*"
     json-stable-stringify: "npm:^1.2.1"
@@ -1931,7 +1931,7 @@ __metadata:
     async-call-rpc: "npm:^6.4.2"
     builder-util-runtime: "npm:9.7.0"
     cross-env: "npm:^10.1.0"
-    electron: "npm:44.10.2"
+    electron: "npm:45.3.0"
     electron-log: "npm:5.4.4"
     electron-updater: "npm:6.8.9"
     esbuild: "npm:0.28.2"
@@ -2163,7 +2163,7 @@ __metadata:
     "@cyclonedx/yarn-plugin-cyclonedx": "npm:3.3.2"
     "@myoxus-tools/cli": "workspace:*"
     "@myoxus/infra": "workspace:*"
-    "@playwright/test": "npm:=1.63.0"
+    "@playwright/test": "npm:=1.65.0"
     "@rollup/plugin-swc": "npm:0.4.1"
     "@swc/core": "npm:1.16.12"
     "@tabler/icons-react": "npm:3.45.0"
@@ -2180,8 +2180,8 @@ __metadata:
     lint-staged: "npm:^17.6.0"
     oxlint: "npm:^1.47.0"
     oxlint-tsgolint: "npm:7.0.2001"
-    playwright: "npm:=1.63.0"
-    playwright-core: "npm:=1.63.0"
+    playwright: "npm:=1.65.0"
+    playwright-core: "npm:=1.65.0"
     prettier: "npm:3.9.9"
     react: "npm:19.3.0"
     react-dom: "npm:19.3.0"
@@ -3474,14 +3474,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@playwright/test@npm:=1.63.0":
-  version: 1.63.0
-  resolution: "@playwright/test@npm:1.63.0"
+"@playwright/test@npm:1.65.0, @playwright/test@npm:=1.65.0":
+  version: 1.65.0
+  resolution: "@playwright/test@npm:1.65.0"
   dependencies:
-    playwright: "npm:1.63.0"
+    playwright: "npm:1.65.0"
   bin:
     playwright: cli.js
-  checksum: 10/b5e561b8f11488b8062b98c5cf975740f48ae7e9b455fb7152e0fb90d8e13f20c3c3ae6a15833655364246b99f5a46f6601daa5a9eef01de5004c8be7e2b3af3
+  checksum: 10/12837b3c866d27b5aeed0f8f581fccba805377f581e97bcfe0cb2fe1d77236c6e7d52dd23c7607235e8e346d1b97821c38959b5c0dd0eab576596a13e1efe2cc
   languageName: node
   linkType: hard
 
@@ -8530,9 +8530,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"electron@npm:44.10.2":
-  version: 44.10.2
-  resolution: "electron@npm:44.10.2"
+"electron@npm:45.3.0":
+  version: 45.3.0
+  resolution: "electron@npm:45.3.0"
   dependencies:
     "@electron-internal/extract-zip": "npm:^1.0.1"
     "@electron/get": "npm:^5.0.0"
@@ -8540,7 +8540,7 @@ __metadata:
   bin:
     electron: cli.js
     install-electron: install.js
-  checksum: 10/4c099a01a5fc52eca39fabfef58a77e14224217a965f0367f5df4145802ef4432af8ee177fec80fd7a7832ca831c2bec37d9ddaab33fe14029df436b984786da
+  checksum: 10/425c56f3df6d9402b1b563d0b4f307a7f035ebc098ab2f04690d5788a2dcd0d4dd9a9e2e940b8bf49ebc6fcba12d3dfb3b09ae4af84a70c55e6044edc99d4316
   languageName: node
   linkType: hard
 
@@ -10925,23 +10925,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"playwright-core@npm:1.63.0, playwright-core@npm:=1.63.0":
-  version: 1.63.0
-  resolution: "playwright-core@npm:1.63.0"
+"playwright-core@npm:1.65.0, playwright-core@npm:=1.65.0":
+  version: 1.65.0
+  resolution: "playwright-core@npm:1.65.0"
   bin:
     playwright-core: cli.js
-  checksum: 10/d0f7c70786f5e08aa7553a77ba28c07427086e323ae8c4126a647debd8181966dc11d6f8fe1462f2a776ad60c95451b08f01fbee17b11e69a5bd9a2070fe75a6
+  checksum: 10/77c76725d9c60a8fc67439e9fcb1ef075268aaf81dd5edc5321da777eb0f2103e8569f9efa55dd0adbd9c8c41ef97c956dd7263dc91c4233f29388cfa451dee3
   languageName: node
   linkType: hard
 
-"playwright@npm:1.63.0, playwright@npm:=1.63.0":
-  version: 1.63.0
-  resolution: "playwright@npm:1.63.0"
+"playwright@npm:1.65.0, playwright@npm:=1.65.0":
+  version: 1.65.0
+  resolution: "playwright@npm:1.65.0"
   dependencies:
-    playwright-core: "npm:1.63.0"
+    playwright-core: "npm:1.65.0"
   bin:
     playwright: cli.js
-  checksum: 10/ec87c22888148603a8955bc2a092f416455af931fe53925b9143ce333b83e42a6d8c159c00a4f2d232b27100cf3eadd93cec8a6e5c4e12c1c00663d2034dd515
+  checksum: 10/bda489bad0809f61a874407244f0de7c38cefb8864148c6094f0f9dc2f808bbcbf4a8074cf7366d90890ff7e88786fc93965614dd63de3ab4594e5a6b0a39abd
   languageName: node
   linkType: hard
 

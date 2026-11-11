@@ -1205,6 +1205,37 @@ const packagingWorkflow = parse(readFileSync(
 if (packagingWorkflow.on.workflow_dispatch.inputs.verify_updates.default !== false) {
   throw new Error("Ordinary packaging must not implicitly run N/N+1 updates");
 }
+// Forgejo's server-side job planner receives dispatch booleans as strings;
+// the runner can expose typed booleans. Both must select exactly one journey.
+for (const verifyUpdates of [false, "false", true, "true"]) {
+  const updates = verifyUpdates === true || verifyUpdates === "true";
+  for (const platform of ["linux", "macos", "windows"]) {
+    const inputs = {
+      verify_updates: verifyUpdates,
+      platform,
+      update_artifact_run: "",
+      linux_update_backends: "all",
+    };
+    const needs = {
+      "source-contract": { result: "success" },
+      "linux-update-fixtures": { result: "success" },
+    };
+    const selected = (job) => {
+      const expression = String(packagingWorkflow.jobs[job].if)
+        .replace(/^\$\{\{\s*|\s*\}\}$/g, "")
+        .replace(/\bneeds\.([\w-]+)/g, "needs['$1']");
+      return Boolean(Function("inputs", "needs", "cancelled", `return (${expression});`)(inputs, needs, () => false));
+    };
+    for (const owner of ["linux", "macos", "windows"]) {
+      if (selected(`${owner}-package`) !== (!updates && owner === platform)) {
+        throw new Error(`Packaging routing failed for ${platform}, verify_updates=${JSON.stringify(verifyUpdates)}, owner=${owner}`);
+      }
+    }
+    if (selected(`${platform}-update-e2e`) !== updates) {
+      throw new Error(`Update routing failed for ${platform}, verify_updates=${JSON.stringify(verifyUpdates)}`);
+    }
+  }
+}
 for (const workflow of [desktopWorkflow, packagingWorkflow]) {
   const linux = workflow.jobs["linux-update-e2e"];
   const windows = workflow.jobs["windows-update-e2e"];

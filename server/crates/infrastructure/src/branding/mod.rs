@@ -491,6 +491,36 @@ pub(crate) fn native_table_color_values<'a>(
   values
 }
 
+/// Resolve native document colour references through the same server projection
+/// as runtime CSS. Format adapters consume concrete colours, never CSS markup.
+pub fn document_color_values(tokens: &BTreeMap<String, String>, mode: &str) -> BTreeMap<String, String> {
+  // Persisted legacy inline swatches use their established print colours.
+  let mut values: BTreeMap<String, String> =
+    serde_json::from_str(include_str!("../../../../static/branding/inline-colors.json"))
+      .expect("bundled inline colour palette");
+  for (token, color) in tokens {
+    values.insert(token.clone(), color.clone());
+    values.insert(format!("--myoxus-sem-{token}"), color.clone());
+    for reference in p_ar_theme_css_vars(token) {
+      values.insert((*reference).into(), color.clone());
+    }
+  }
+  for (reference, color) in native_table_color_values(tokens, mode) {
+    if let Some(color) = color {
+      values.insert(reference.into(), color.into());
+    }
+  }
+  // This bundled file contains only concrete document-marker declarations.
+  for line in include_str!("../../../../static/branding/text-marker.css").lines() {
+    if let Some((key, value)) = line.trim().strip_suffix(';').and_then(|line| line.split_once(':')) {
+      if key.starts_with("--myoxus-") && value.trim().starts_with('#') {
+        values.insert(key.into(), value.trim().into());
+      }
+    }
+  }
+  values
+}
+
 fn emit_theme_color_tokens(css: &mut String, indent: &str, tokens: &BTreeMap<String, String>, mode: &str) {
   let primary = tokens.get("accent-primary").map(String::as_str).unwrap_or("#1e96eb");
   let secondary = tokens.get("accent-secondary").map(String::as_str).unwrap_or("#44b931");

@@ -1,12 +1,10 @@
 import { DisposableGroup } from "@virgultum/global/disposable";
-import { ResetIcon } from "@myoxus/icons/lit";
 import { effect, computed } from "@preact/signals-core";
 import {
   EmbedBlockComponent,
   RENDER_CARD_THROTTLE_MS,
 } from "@virgultum/block-embed";
 import { SurfaceBlockModel } from "@virgultum/block-surface";
-import { LoadingIcon } from "@virgultum/components/icons";
 import { isPeekable, Peekable } from "@virgultum/components/peek";
 import { Bound } from "@virgultum/global/gfx";
 import { RefNodeSlotsProvider } from "@virgultum/inline-reference";
@@ -28,7 +26,7 @@ import {
   DocModeProvider,
   OpenDocExtensionIdentifier,
   type OpenDocMode,
-  ThemeProvider,
+  EditorChromeHostIdentifier,
   editorMessage,
   EditorI18nProvider,
   resolveEditorMessage,
@@ -45,19 +43,15 @@ import {
 import { BlockSelection } from "@virgultum/std";
 import { Text } from "@virgultum/store";
 import { html, nothing } from "lit";
-import { property, queryAsync, state } from "lit/decorators.js";
+import { property, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
-import { repeat } from "lit/directives/repeat.js";
 import { styleMap } from "lit/directives/style-map.js";
-import { when } from "lit/directives/when.js";
 import throttle from "lodash-es/throttle";
 import { filter } from "rxjs/operators";
 import * as Y from "yjs";
 
 import { renderLinkedDocInCard } from "../common/render-linked-doc";
-import { SyncedDocErrorIcon } from "../embed-synced-doc-block/styles.js";
 import { styles } from "./styles.js";
-import { getEmbedLinkedDocIcons } from "./utils.js";
 
 @Peekable({
   enableOn: ({ store }: EmbedLinkedDocBlockComponent) => !store.readonly,
@@ -430,159 +424,58 @@ export class EmbedLinkedDocBlockComponent extends EmbedBlockComponent<EmbedLinke
     </div> `;
   };
 
+  // Keep preview identity stable across React commits and resource/alias updates.
+  private readonly _noteElement = Object.assign(document.createElement("div"), {
+    className: "myoxus-embed-linked-doc-content-note render",
+  });
+
+  private readonly _mountPreview = (container: HTMLDivElement | null) => {
+    if (container && this._noteElement.parentElement !== container)
+      container.replaceChildren(this._noteElement);
+  };
+
   private readonly _renderEmbedView = () => {
     const linkedDoc = this.linkedDoc;
-    const trash = linkedDoc?.meta?.trash;
-    const isDeleted = trash || !linkedDoc;
-    const isLoading = this._loading;
-    const isError = this.isError;
-    const isEmpty = this._isDocEmpty() && this.isBannerEmpty;
-    const inCanvas = matchModels(this.model.parent, [SurfaceBlockModel]);
-
-    const cardClassMap = classMap({
-      loading: isLoading,
-      error: isError,
-      deleted: isDeleted,
-      empty: isEmpty,
-      "banner-empty": this.isBannerEmpty,
-      "note-empty": this.isNoteContentEmpty,
-      "in-canvas": inCanvas,
-      [this._cardStyle]: true,
-      "comment-highlighted": this.isCommentHighlighted,
-    });
-
-    const theme = this.std.get(ThemeProvider).theme;
-    const {
-      LinkedDocDeletedBanner,
-      LinkedDocEmptyBanner,
-      SyncedDocErrorBanner,
-    } = getEmbedLinkedDocIcons(theme, this._linkedDocMode, this._cardStyle);
-
-    const icon = isError
-      ? SyncedDocErrorIcon
-      : isLoading
-        ? LoadingIcon()
-        : this.icon$.value;
-    const title = isLoading
-      ? this._text(editorMessage("com.myoxus.loading", "Loading"))
-      : this.title$;
-    const description = this.model.props.description$;
-
-    const showDefaultNoteContent = isError || isLoading || isDeleted || isEmpty;
-    const defaultNoteContent = isError
-      ? "This linked doc failed to load."
-      : isLoading
-        ? ""
-        : isDeleted
-          ? "This linked doc is deleted."
-          : isEmpty
-            ? "Preview of the doc will be displayed here."
-            : "";
-
-    const dateText =
-      this.targetContext?.access?.readable(this.targetDocId).value === true &&
-      this._docUpdatedAt
-        ? this._cardStyle === "cube"
-          ? this._docUpdatedAt.toLocaleTimeString(
-              this.std.getOptional(EditorI18nProvider)?.locale$.value,
-            )
-          : this._docUpdatedAt.toLocaleString()
+    const inSurface = matchModels(this.model.parent, [SurfaceBlockModel]);
+    const updated =
+      this.targetContext?.access?.readable(this.targetDocId).value === true
+        ? this._docUpdatedAt
         : null;
-
-    const showDefaultBanner = isError || isLoading || isDeleted || isEmpty;
-
-    const defaultBanner = isError
-      ? SyncedDocErrorBanner
-      : isLoading
-        ? LinkedDocEmptyBanner
-        : isDeleted
-          ? LinkedDocDeletedBanner
-          : LinkedDocEmptyBanner;
-
-    const hasDescriptionAlias = Boolean(description.value);
-
     return this.renderEmbed(
-      () => html`
-        <div
-          class="myoxus-embed-linked-doc-block ${cardClassMap}"
+      () =>
+        html`<div
+          class=${classMap({ "myoxus-embed-linked-doc-block": true, [this._cardStyle]: true })}
           @click=${this._handleClick}
           @dblclick=${this._handleDoubleClick}
         >
-          <div class="myoxus-embed-linked-doc-content">
-            <div class="myoxus-embed-linked-doc-content-title">
-              <div class="myoxus-embed-linked-doc-content-title-icon">
-                ${icon}
-              </div>
-
-              <div class="myoxus-embed-linked-doc-content-title-text">
-                ${title}
-              </div>
-            </div>
-
-            ${when(
-              hasDescriptionAlias,
-              () =>
-                html`<div class="myoxus-embed-linked-doc-content-note alias">
-                  ${repeat(
-                    (description.value ?? "").split("\n"),
-                    (text) => html`<p>${text}</p>`,
-                  )}
-                </div>`,
-              () =>
-                when(
-                  showDefaultNoteContent,
-                  () => html`
-                    <div class="myoxus-embed-linked-doc-content-note default">
-                      ${defaultNoteContent}
-                    </div>
-                  `,
-                  () => html`
-                    <div
-                      class="myoxus-embed-linked-doc-content-note render"
-                    ></div>
-                  `,
-                ),
-            )}
-            ${
-              isError
-                ? html`
-                    <div class="myoxus-embed-linked-doc-card-content-reload">
-                      <div
-                        class="myoxus-embed-linked-doc-card-content-reload-button"
-                        @click=${this.refreshData}
-                      >
-                        ${ResetIcon()}
-                        <span
-                          >${this._text(editorMessage("com.myoxus.editor.toolbar.reload", "Reload"))}</span
-                        >
-                      </div>
-                    </div>
-                  `
-                : dateText
-                  ? html`
-                      <div class="myoxus-embed-linked-doc-content-date">
-                        <span
-                          >${this._text(editorMessage("Updated", "Updated"))}</span
-                        >
-
-                        <span>${dateText}</span>
-                      </div>
-                    `
-                  : nothing
-            }
-          </div>
-
-          ${
-            showDefaultBanner
-              ? html`
-                  <div class="myoxus-embed-linked-doc-banner default">
-                    ${defaultBanner}
-                  </div>
-                `
-              : nothing
-          }
-        </div>
-      `,
+          ${this.std.get(EditorChromeHostIdentifier).renderDocumentCard({
+            title: this.title$.value ?? "",
+            description: this.model.props.description$.value ?? "",
+            updated: updated
+              ? this._cardStyle === "cube"
+                ? updated.toLocaleTimeString(
+                    this.std.getOptional(EditorI18nProvider)?.locale$.value,
+                  )
+                : updated.toLocaleString(
+                    this.std.getOptional(EditorI18nProvider)?.locale$.value,
+                  )
+              : null,
+            loading: this._loading,
+            error: this.isError,
+            unavailable: !!linkedDoc?.meta?.trash || !linkedDoc,
+            deleted: !!linkedDoc?.meta?.trash,
+            empty: this._isDocEmpty() && this.isBannerEmpty,
+            nodeReference: this._referenceToNode,
+            selected: this.selected$.value || this.isCommentHighlighted,
+            inSurface,
+            variant: this._cardStyle,
+            height: this._cardHeight,
+            width: this._cardWidth,
+            mountPreview: this._mountPreview,
+            reload: this.refreshData,
+          })}
+        </div>`,
+      "native",
     );
   };
 
@@ -784,6 +677,7 @@ export class EmbedLinkedDocBlockComponent extends EmbedBlockComponent<EmbedLinke
   @property({ attribute: false })
   accessor isNoteContentEmpty = false;
 
-  @queryAsync(".myoxus-embed-linked-doc-content-note.render")
-  accessor noteContainer!: Promise<HTMLDivElement | null>;
+  get noteContainer(): Promise<HTMLDivElement | null> {
+    return this.updateComplete.then(() => this._noteElement);
+  }
 }

@@ -33,7 +33,7 @@ const builtins = new Set([
   "fs/promises",
 ]);
 const exactVersions = new Map([
-  ["electron", "44.10.2"],
+  ["electron", "45.3.0"],
   ["@electron/packager", "20.3.0"],
   ["@sentry/electron", "7.20.0"],
   ["@sentry/bundler-plugins", "10.75.0"],

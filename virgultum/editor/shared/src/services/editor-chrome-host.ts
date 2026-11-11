@@ -128,7 +128,49 @@ export type EditorEquationControls = EditorInlinePopupControls & {
   mountSource: (container: HTMLDivElement | null) => void;
 };
 
+export type EditorAttachmentCardControls = Readonly<{
+  inSurface: boolean;
+  selected: boolean;
+  title: string;
+  description: string;
+  fileType: string;
+  loading: boolean;
+  error: boolean;
+  vertical: boolean;
+  action?: Readonly<{ kind: "retry" | "reload" | "limit"; run: () => void }>;
+}>;
+
+/** The editor owns preview DOM and its renderer; React only mounts the stable container. */
+export type EditorDocumentCardControls = Readonly<{
+  kind?: "linked" | "synced";
+  mountBanner?: (container: HTMLDivElement | null) => void;
+  deleted?: boolean;
+  showBanner?: boolean;
+  title: string;
+  description: string;
+  updated: string | null;
+  loading: boolean;
+  error: boolean;
+  unavailable: boolean;
+  empty: boolean;
+  nodeReference: boolean;
+  selected: boolean;
+  inSurface: boolean;
+  variant: string;
+  height: number;
+  width: number;
+  mountPreview: (container: HTMLDivElement | null) => void;
+  reload: () => void;
+}>;
+
 export type EditorChromeHost = {
+  renderImageFallback: (
+    controls: EditorImageFallbackControls,
+  ) => TemplateResult;
+  renderDocumentCard: (controls: EditorDocumentCardControls) => TemplateResult;
+  renderAttachmentCard: (
+    controls: EditorAttachmentCardControls,
+  ) => TemplateResult;
   renderDocumentOutline: (controls: EditorOutlineControls) => TemplateResult;
   renderOutlineEntry: (controls: EditorOutlineEntryControls) => TemplateResult;
   renderCitationPreview: (controls: EditorCitationControls) => TemplateResult;
@@ -147,6 +189,12 @@ export type EditorChromeHost = {
   renderCodeToolbar: (controls: EditorCodeToolbarControls) => TemplateResult;
   renderDocumentPicker: (
     controls: EditorDocumentPickerControls,
+  ) => TemplateResult;
+  renderIframeStatusCard: (
+    controls: EditorIframeStatusCardControls,
+  ) => TemplateResult;
+  renderIframeLinkEditor: (
+    controls: EditorIframeLinkEditorControls,
   ) => TemplateResult;
   renderLinkEditor: (controls: EditorLinkEditorControls) => TemplateResult;
   renderReferenceEditor: (
@@ -314,3 +362,29 @@ export function EditorChromeHostExtension(
 ): ExtensionType {
   return { setup: (di) => di.addImpl(EditorChromeHostIdentifier, () => host) };
 }
+
+export type EditorIframeLinkEditorControls = EditorInlinePopupControls & {
+  editing: boolean;
+  title?: string;
+  description?: string;
+  placeholder?: string;
+  showCloseButton: boolean;
+  confirm: (url: string) => Promise<void>;
+};
+
+export type EditorIframeStatusCardControls = {
+  status: "idle" | "loading" | "error";
+  message: string;
+  inSurface: boolean;
+  selected: boolean;
+  readonly: boolean;
+  edit: (anchor: HTMLElement) => void;
+  retry: () => Promise<void>;
+};
+
+export type EditorImageFallbackControls = Readonly<{
+  loading: boolean;
+  error: boolean;
+  description: string;
+  inSurface: boolean;
+}>;

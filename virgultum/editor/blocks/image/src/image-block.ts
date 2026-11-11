@@ -175,6 +175,8 @@ export class ImageBlockComponent extends CaptionedBlockComponent<ImageBlockModel
             ></myoxus-page-image>`,
           () =>
             html`<myoxus-image-fallback-card
+              .std=${this.std}
+              .inSurface=${false}
               .state=${resovledState}
             ></myoxus-image-fallback-card>`,
         )}

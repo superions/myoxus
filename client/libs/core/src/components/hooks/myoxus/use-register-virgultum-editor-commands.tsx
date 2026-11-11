@@ -328,7 +328,7 @@ export function useRegisterVirgultumEditorCommands(
           }
           track.$.cmdk.editor.restoreDoc();
 
-          doc.restoreFromTrash();
+          await doc.restoreFromTrash();
         },
       }),
     );

@@ -18,6 +18,7 @@ import type { TemplateResult } from "lit";
 import { z } from "zod";
 
 import { patchForAudioEmbedView } from "./audio/audio-view";
+import { patchTextAttachmentPreview } from "./text-attachment";
 import { buildDocDisplayMetaExtension } from "./display-meta";
 import { patchDocEmbedService } from "./doc-embed";
 import { patchDocumentFieldOutput } from "./document-field-output";
@@ -133,6 +134,7 @@ export class MyoxusEditorViewExtension extends ViewExtensionProvider<MyoxusEdito
         patchDocumentFieldOutput(framework),
         patchDocumentFieldHost(reactToLit),
         patchForAudioEmbedView(reactToLit),
+        patchTextAttachmentPreview(reactToLit),
         patchMermaidFamilyReactHost(reactToLit),
         patchBpmnBlockPresentation(
           reactToLit,

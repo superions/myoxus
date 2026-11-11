@@ -248,6 +248,28 @@ export class CoreDocEmbedProvider implements DocEmbedProvider {
       signal.throwIfAborted();
       if (!(await this.canRead(docId)))
         throw new Error("Document embed access denied");
+      const page = reference.doc.virgultumDoc;
+      // The frontend can finish an empty local-cache load before the remote root arrives.
+      if (!page.root && !page.meta?.trash) {
+        await new Promise<void>((resolve, reject) => {
+          const finish = (error?: unknown) => {
+            subscription.unsubscribe();
+            signal.removeEventListener("abort", onAbort);
+            if (error) reject(error);
+            else resolve();
+          };
+          const onAbort = () => finish(signal.reason);
+          const subscription = page.slots.rootAdded.subscribe(() => {
+            if (page.root) finish();
+          });
+          signal.addEventListener("abort", onAbort, { once: true });
+          if (signal.aborted) onAbort();
+          else if (page.root) finish();
+        });
+        signal.throwIfAborted();
+        if (!(await this.canRead(docId)))
+          throw new Error("Document embed access denied");
+      }
     } finally {
       reference.release();
     }

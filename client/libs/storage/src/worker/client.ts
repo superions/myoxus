@@ -385,6 +385,10 @@ class WorkerDocSync implements DocSync {
     };
   }
 
+  retryDoc(docId: string): Promise<void> {
+    return this.client.call("docSync.retryDoc", docId);
+  }
+
   resetSync(): Promise<void> {
     return this.client.call("docSync.resetSync");
   }

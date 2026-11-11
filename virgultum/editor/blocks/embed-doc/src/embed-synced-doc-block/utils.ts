@@ -1,53 +1,5 @@
-import { EmbedEdgelessIcon, EmbedPageIcon } from "@virgultum/components/icons";
-import { ColorScheme } from "@virgultum/model";
 import type { BlockComponent } from "@virgultum/std";
-import type { TemplateResult } from "lit";
-
 import { EmbedEdgelessSyncedDocBlockComponent } from "./embed-edgeless-synced-doc-block.js";
-import {
-  DarkSyncedDocDeletedBanner,
-  DarkSyncedDocEmptyBanner,
-  DarkSyncedDocErrorBanner,
-  LightSyncedDocDeletedBanner,
-  LightSyncedDocEmptyBanner,
-  LightSyncedDocErrorBanner,
-  SyncedDocDeletedIcon,
-  SyncedDocErrorIcon,
-} from "./styles.js";
-
-type SyncedCardImages = {
-  SyncedDocIcon: TemplateResult<1>;
-  SyncedDocErrorIcon: TemplateResult<1>;
-  SyncedDocDeletedIcon: TemplateResult<1>;
-  SyncedDocEmptyBanner: TemplateResult<1>;
-  SyncedDocErrorBanner: TemplateResult<1>;
-  SyncedDocDeletedBanner: TemplateResult<1>;
-};
-
-export function getSyncedDocIcons(
-  theme: ColorScheme,
-  editorMode: "page" | "edgeless",
-): SyncedCardImages {
-  if (theme === ColorScheme.Light) {
-    return {
-      SyncedDocIcon: editorMode === "page" ? EmbedPageIcon : EmbedEdgelessIcon,
-      SyncedDocErrorIcon,
-      SyncedDocDeletedIcon,
-      SyncedDocEmptyBanner: LightSyncedDocEmptyBanner,
-      SyncedDocErrorBanner: LightSyncedDocErrorBanner,
-      SyncedDocDeletedBanner: LightSyncedDocDeletedBanner,
-    };
-  } else {
-    return {
-      SyncedDocIcon: editorMode === "page" ? EmbedPageIcon : EmbedEdgelessIcon,
-      SyncedDocErrorIcon,
-      SyncedDocDeletedIcon,
-      SyncedDocEmptyBanner: DarkSyncedDocEmptyBanner,
-      SyncedDocErrorBanner: DarkSyncedDocErrorBanner,
-      SyncedDocDeletedBanner: DarkSyncedDocDeletedBanner,
-    };
-  }
-}
 
 /**
  * This function will return the height of the synced doc block

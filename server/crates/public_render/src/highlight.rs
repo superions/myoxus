@@ -8,6 +8,34 @@ use syntect::{
   util::LinesWithEndings,
 };
 
+/// A literal source slice and its syntax colour, independent of HTML markup.
+pub struct CodeSpan<'a> {
+  pub text: &'a str,
+  pub color: [u8; 3],
+}
+
+/// Highlight editable exports without an HTML roundtrip. Unknown languages or
+/// parser failures return `None`; callers must retain the complete plain source.
+pub fn highlight_code<'a>(language: Option<&str>, text: &'a str, dark_background: bool) -> Option<Vec<CodeSpan<'a>>> {
+  let syntax = find_syntax(language)?;
+  let theme = theme_set().themes.get(if dark_background {
+    "base16-ocean.dark"
+  } else {
+    "InspiredGitHub"
+  })?;
+  let mut highlighter = HighlightLines::new(syntax, theme);
+  let mut spans = Vec::new();
+  for line in LinesWithEndings::from(text) {
+    for (style, text) in highlighter.highlight_line(line, syntax_set()).ok()? {
+      spans.push(CodeSpan {
+        text,
+        color: [style.foreground.r, style.foreground.g, style.foreground.b],
+      });
+    }
+  }
+  Some(spans)
+}
+
 /// Render a public code block.
 ///
 /// Highlighting is best-effort: unknown languages and syntect failures fall
@@ -58,7 +86,7 @@ fn find_syntax(language: Option<&str>) -> Option<&'static SyntaxReference> {
 
 fn syntax_set() -> &'static SyntaxSet {
   static SYNTAX_SET: OnceLock<SyntaxSet> = OnceLock::new();
-  SYNTAX_SET.get_or_init(SyntaxSet::load_defaults_newlines)
+  SYNTAX_SET.get_or_init(two_face::syntax::extra_newlines)
 }
 
 fn theme_set() -> &'static ThemeSet {

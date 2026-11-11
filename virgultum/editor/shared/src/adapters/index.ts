@@ -50,6 +50,8 @@ export {
   MarkdownASTToDeltaMatcherIdentifier,
   MarkdownDeltaConverter,
   parseMarkdownTableHtml,
+  parseMarkdownPreview,
+  type MarkdownPreviewNode,
   markdownHtmlTableNode,
   markdownTableHtml,
   markdownTableCellAlignment,

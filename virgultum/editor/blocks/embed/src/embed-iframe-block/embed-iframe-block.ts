@@ -1,4 +1,3 @@
-import { flip, offset, shift } from "@floating-ui/dom";
 import {
   computed,
   effect,
@@ -10,7 +9,6 @@ import {
   CaptionedBlockComponent,
   SelectedStyle,
 } from "@virgultum/components/caption";
-import { createLitPortal } from "@virgultum/components/portal";
 import { ErrorCode, VirgultumError } from "@virgultum/global/exceptions";
 import type { EmbedIframeBlockModel } from "@virgultum/model";
 import {
@@ -19,7 +17,6 @@ import {
   type IframeOptions,
   LinkPreviewServiceIdentifier,
   NotificationProvider,
-  VirtualKeyboardProvider,
   editorMessage,
   EditorI18nProvider,
   resolveEditorMessage,
@@ -33,18 +30,16 @@ import { type ClassInfo, classMap } from "lit/directives/class-map.js";
 import { ifDefined } from "lit/directives/if-defined.js";
 import { styleMap } from "lit/directives/style-map.js";
 
-import type { EmbedLinkInputPopupOptions } from "./components/embed-iframe-link-input-popup.js";
+import {
+  openIframeLinkEditor,
+  type EmbedLinkInputPopupOptions,
+} from "./components/iframe-link-session.js";
 import {
   DEFAULT_IFRAME_HEIGHT,
   DEFAULT_IFRAME_WIDTH,
   EMBED_IFRAME_DEFAULT_CONTAINER_BORDER_RADIUS,
-  ERROR_CARD_DEFAULT_HEIGHT,
-  IDLE_CARD_DEFAULT_HEIGHT,
-  LINK_CREATE_POPUP_OFFSET,
-  LOADING_CARD_DEFAULT_HEIGHT,
 } from "./consts.js";
 import { embedIframeBlockStyles } from "./style.js";
-import type { EmbedIframeStatusCardOptions } from "./types.js";
 import { safeGetIframeSrc } from "./utils.js";
 
 export type EmbedIframeStatus = "idle" | "loading" | "success" | "error";
@@ -63,7 +58,7 @@ export class EmbedIframeBlockComponent extends CaptionedBlockComponent<EmbedIfra
 
   selectedStyle$: ReadonlySignal<ClassInfo> | null = computed<ClassInfo>(
     () => ({
-      "selected-style": this.selected$.value,
+      "selected-style": this.selected$.value && this.isSuccess$.value,
     }),
   );
 
@@ -120,25 +115,6 @@ export class EmbedIframeBlockComponent extends CaptionedBlockComponent<EmbedIfra
 
   get inSurface() {
     return matchModels(this.model.parent, [SurfaceBlockModel]);
-  }
-
-  get _horizontalCardHeight(): number {
-    switch (this.status$.value) {
-      case "idle":
-        return IDLE_CARD_DEFAULT_HEIGHT;
-      case "loading":
-        return LOADING_CARD_DEFAULT_HEIGHT;
-      case "error":
-        return ERROR_CARD_DEFAULT_HEIGHT;
-      default:
-        return LOADING_CARD_DEFAULT_HEIGHT;
-    }
-  }
-
-  get _statusCardOptions(): EmbedIframeStatusCardOptions {
-    return this.inSurface
-      ? { layout: "vertical" }
-      : { layout: "horizontal", height: this._horizontalCardHeight };
   }
 
   open = () => {
@@ -237,54 +213,16 @@ export class EmbedIframeBlockComponent extends CaptionedBlockComponent<EmbedIfra
       this._linkInputAbortController.abort();
     }
 
-    const keyboard = this.host.std.getOptional(VirtualKeyboardProvider);
-    const computePosition = keyboard
-      ? {
-          referenceElement: document.body,
-          placement: "top" as const,
-          middleware: [
-            offset(({ rects }) => ({
-              mainAxis:
-                -rects.floating.height -
-                (window.innerHeight -
-                  rects.floating.height -
-                  keyboard.height$.value) /
-                  2,
-            })),
-          ],
-          autoUpdate: { animationFrame: true },
-        }
-      : {
-          referenceElement: this._blockContainer,
-          placement: "bottom" as const,
-          middleware: [flip(), offset(LINK_CREATE_POPUP_OFFSET), shift()],
-          autoUpdate: { animationFrame: true },
-        };
-
     this._linkInputAbortController = new AbortController();
-
-    const { update } = createLitPortal({
-      template: html`<embed-iframe-link-input-popup
-        .model=${this.model}
-        .abortController=${this._linkInputAbortController}
-        .std=${this.std}
-        .inSurface=${this.inSurface}
-        .options=${options}
-      ></embed-iframe-link-input-popup>`,
-      container: document.body,
-      computePosition,
-      abortController: this._linkInputAbortController,
-      closeOnClickAway: true,
-    });
-
-    if (keyboard) {
-      this._linkInputAbortController.signal.addEventListener(
-        "abort",
-        keyboard.height$.subscribe(() => {
-          update();
-        }),
-      );
-    }
+    openIframeLinkEditor(
+      this.std,
+      this.model,
+      this._blockContainer,
+      this._linkInputAbortController,
+      this.inSurface,
+      false,
+      options,
+    );
   };
 
   /**
@@ -400,29 +338,16 @@ export class EmbedIframeBlockComponent extends CaptionedBlockComponent<EmbedIfra
   };
 
   private readonly _renderContent = () => {
-    if (this.isIdle$.value) {
-      return html`<embed-iframe-idle-card
-        .i18n=${this.std.getOptional(EditorI18nProvider) ?? undefined}
-        .options=${this._statusCardOptions}
-      ></embed-iframe-idle-card>`;
-    }
-
-    if (this.isLoading$.value) {
-      return html`<embed-iframe-loading-card
+    if (!this.isSuccess$.value) {
+      return html`<myoxus-embed-iframe-status-card
         .std=${this.std}
-        .options=${this._statusCardOptions}
-      ></embed-iframe-loading-card>`;
-    }
-
-    if (this.hasError$.value) {
-      return html`<embed-iframe-error-card
-        .error=${this.error$.value}
         .model=${this.model}
+        .status=${this.status$.value}
+        .error=${this.error$.value}
         .onRetry=${this._handleRetry}
-        .std=${this.std}
         .inSurface=${this.inSurface}
-        .options=${this._statusCardOptions}
-      ></embed-iframe-error-card>`;
+        .selected=${this.selected$.value}
+      ></myoxus-embed-iframe-status-card>`;
     }
 
     return this._renderIframe();

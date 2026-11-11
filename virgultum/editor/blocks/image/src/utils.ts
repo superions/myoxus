@@ -30,7 +30,7 @@ import type { BlockModel } from "@virgultum/store";
 import {
   SURFACE_IMAGE_CARD_HEIGHT,
   SURFACE_IMAGE_CARD_WIDTH,
-} from "./components/image-block-fallback";
+} from "./components/image-fallback";
 import type { ImageBlockComponent } from "./image-block";
 import type { ImageEdgelessBlockComponent } from "./image-edgeless-block";
 

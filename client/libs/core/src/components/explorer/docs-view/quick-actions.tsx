@@ -330,9 +330,9 @@ export const QuickRestore = memo(function QuickRestore({
       e.preventDefault();
       guardService
         .can("Doc_Delete", doc.id)
-        .then((can) => {
+        .then(async (can) => {
           if (can) {
-            restoreFromTrash(doc.id);
+            await restoreFromTrash(doc.id);
             notify({
               title: t["com.myoxus.toastMessage.restored"]({
                 title: doc.title$.value || "Untitled",

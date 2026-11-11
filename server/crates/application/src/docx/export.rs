@@ -13,7 +13,7 @@ use wordcraft_doc::{
   Cell, CharProps, Document, InlineObject, Paragraph, Row, Table,
   numbering::ListKind,
   para_block,
-  props::{Border, Borders, NumRef, Underline},
+  props::{Border, Borders, NumRef, Rgb, TextColor, Underline},
 };
 use yjs::native_text::{NativeTextField, NativeTextSpan};
 
@@ -22,6 +22,14 @@ use crate::ports::{
   blob::{BlobKey, BlobStatus},
   blob_service::BlobService,
 };
+
+#[path = "formatting.rs"]
+mod formatting;
+pub(super) use formatting::enrich_presentation;
+
+// DOCX does not embed the server's web fonts. Use an Office mono family in
+// both the block style and its runs to keep the portable mono request consistent.
+const WORD_CODE_FONT: &str = "Courier New";
 
 /// Font family names resolved from the effective server theme, not client presets.
 pub struct ExportFonts {
@@ -36,6 +44,7 @@ pub struct ExportFonts {
   pub table_fill: Option<String>,
   pub table_ink: Option<String>,
   pub table_rule: Option<String>,
+  pub colors: BTreeMap<String, String>,
 }
 
 /// Server-validated typography in CSS pixels; Word converts to points once.
@@ -156,6 +165,7 @@ pub fn encode_export(source: ExportSource, fonts: ExportFonts) -> Result<Exporte
   for (id, font) in [
     ("MyoxusCode", &encoder.fonts.mono),
     ("MyoxusCallout", &encoder.fonts.body),
+    ("MyoxusEyebrow", &encoder.fonts.body),
   ] {
     Arc::make_mut(&mut encoder.document.styles)
       .styles
@@ -200,6 +210,33 @@ pub fn encode_export(source: ExportSource, fonts: ExportFonts) -> Result<Exporte
       target.para.widow_control = Some(true);
     }
   }
+  let code_style = Arc::make_mut(&mut encoder.document.styles)
+    .get_mut("MyoxusCode")
+    .unwrap();
+  code_style.chr.font = Some(WORD_CODE_FONT.into());
+  code_style.chr.color = encoder
+    .fonts
+    .table_ink
+    .as_deref()
+    .and_then(Rgb::parse)
+    .map(TextColor::Rgb);
+  code_style.chr.no_proof = Some(true);
+  let code_size = code_style.chr.size.unwrap_or(10.0);
+  code_style.para.space_before = Some(code_size * 0.5);
+  code_style.para.space_after = Some(code_size * 0.5);
+  code_style
+    .para
+    .line_spacing
+    .get_or_insert(wordcraft_doc::props::LineSpacing::Multiple(1.2));
+  code_style.para.keep_next = Some(false);
+  code_style.para.keep_lines = Some(false);
+  code_style.para.shading = encoder.fonts.table_fill.as_deref().and_then(Rgb::parse);
+  code_style.para.borders = Some(Borders::box_(Border {
+    color: encoder.fonts.table_rule.as_deref().and_then(Rgb::parse),
+    space: code_size * 0.5,
+    ..Border::single(0.5)
+  }));
+  encoder.format_document_styles();
   // Cells inherit body typography without prose spacing or keep-with-next
   // rules that would inflate every row or bind a whole table together.
   Arc::make_mut(&mut encoder.document.styles)
@@ -391,8 +428,20 @@ impl Encoder {
       bold: span.bold.then_some(true),
       italic: span.italic.then_some(true),
       strike: span.strike.then_some(true),
-      underline: span.underline.then_some(Underline::Single),
-      font: span.code.then(|| self.fonts.mono.clone()),
+      underline: (span.underline || link.is_some()).then_some(Underline::Single),
+      font: span.code.then(|| WORD_CODE_FONT.into()),
+      color: span
+        .color
+        .as_deref()
+        .and_then(|color| self.color(color))
+        .map(TextColor::Rgb)
+        .or_else(|| {
+          link
+            .as_ref()
+            .and_then(|_| self.color("link-default"))
+            .map(TextColor::Rgb)
+        }),
+      shading: span.background.as_deref().and_then(|color| self.color(color)),
       link,
       ..Default::default()
     }
@@ -435,13 +484,14 @@ impl Encoder {
             bold: Some(run.bold),
             italic: Some(run.italic),
             strike: Some(run.strike),
-            font: run.code.then(|| self.fonts.mono.clone()),
+            font: run.code.then(|| WORD_CODE_FONT.into()),
             link,
             ..Default::default()
           },
         )?;
       }
     }
+    self.paragraph_presentation(&mut para, id);
     self.bookmarked(para, id)
   }
 
@@ -561,7 +611,12 @@ impl Encoder {
       } else {
         None
       };
-      if span.color.is_some() || span.background.is_some() || span.label_tone.is_some() {
+      if span.color.as_deref().is_some_and(|value| self.color(value).is_none())
+        || span
+          .background
+          .as_deref()
+          .is_some_and(|value| self.color(value).is_none())
+      {
         self.warn("text_style_normalized");
       }
       let text = if span.mention.is_some() {
@@ -632,7 +687,19 @@ impl Encoder {
         }
         span.text.clone().unwrap_or_default()
       };
-      Self::append(para, &text, self.span_props(span, link))?;
+      let mut props = self.span_props(span, link);
+      if props.link.is_some() {
+        props.underline.get_or_insert(Underline::Single);
+      }
+      if span.code {
+        props.shading = props
+          .shading
+          .or_else(|| self.fonts.table_fill.as_deref().and_then(Rgb::parse));
+      }
+      if let Some(tone) = &span.label_tone {
+        self.label_tone(&mut props, tone);
+      }
+      Self::append(para, &text, props)?;
     }
     Ok(())
   }
@@ -678,7 +745,7 @@ impl Encoder {
 
   fn push(&mut self, paragraph: Paragraph) {
     let mut paragraph = paragraph;
-    if self.indent > 0.0 || self.list_level > 0 {
+    if (self.indent > 0.0 || self.list_level > 0) && paragraph.props.numbering.is_none() {
       paragraph.props.indent_left = Some(self.indent + self.list_level as f32 * super::CONTENT_INDENT);
     }
     if !paragraph.text.trim().is_empty() {
@@ -861,6 +928,8 @@ impl Encoder {
                   .start_overrides = vec![(self.list_level.min(8) as u8, value)];
               }
               expected = order.saturating_add(1);
+              paragraph.props.indent_left = Some(self.indent + (self.list_level + 1) as f32 * 36.0);
+              paragraph.props.indent_first = Some(-18.0);
               paragraph.props.numbering = Some(NumRef {
                 num: current,
                 level: self.list_level.min(8) as u8,
@@ -1007,6 +1076,30 @@ impl Encoder {
               } else {
                 paragraph = self.paragraph("", cell)?;
               }
+              let mut authored_fill = None;
+              let coordinate = identity
+                .as_ref()
+                .and_then(|identity| Some((identity.row_ids.get(row_index)?, identity.column_ids.get(column_index)?)));
+              if let Some((row_id, column_id)) = coordinate {
+                paragraph.props.align = properties
+                  .get("columns")
+                  .and_then(|v| v.get(column_id))
+                  .and_then(|v| v.get("textAlign"))
+                  .and_then(serde_json::Value::as_str)
+                  .and_then(formatting::alignment);
+                let fill = properties
+                  .get("cells")
+                  .and_then(|v| v.get(format!("{row_id}:{column_id}")))
+                  .and_then(|v| v.get("backgroundColor"))
+                  .or_else(|| properties.get("columns")?.get(column_id)?.get("backgroundColor"))
+                  .or_else(|| properties.get("rows")?.get(row_id)?.get("backgroundColor"))
+                  .and_then(serde_json::Value::as_str);
+                // Native precedence is cell > column > row; headers supply
+                // only a default, never erase an authored fill.
+                if let Some(fill) = fill {
+                  authored_fill = self.color(fill);
+                }
+              }
               if !paragraph.text.trim().is_empty() {
                 self.usable += 1;
               }
@@ -1014,21 +1107,25 @@ impl Encoder {
                 paragraph = self.bookmarked(paragraph, block_id)?;
               }
               let mut cell = Cell::empty();
+              cell.props.shading = authored_fill;
               cell.props.width = table.grid.get(column_index).copied();
               paragraph.props.style = Some("MyoxusTable".into());
               if output.props.header {
-                cell.props.shading = self
-                  .fonts
-                  .table_fill
-                  .as_deref()
-                  .and_then(wordcraft_doc::props::Rgb::parse);
+                cell.props.shading = cell.props.shading.or_else(|| {
+                  self
+                    .fonts
+                    .table_fill
+                    .as_deref()
+                    .and_then(wordcraft_doc::props::Rgb::parse)
+                });
                 for run in &mut paragraph.runs {
                   run.props.bold = Some(true);
-                  run.props.color = self
-                    .fonts
-                    .table_ink
-                    .as_deref()
-                    .and_then(wordcraft_doc::props::TextColor::parse);
+                }
+              }
+              if let Some(fill) = cell.props.shading {
+                let foreground = myoxus_domain::color::adaptive_foreground(&format!("#{}", fill.hex()));
+                for run in &mut paragraph.runs {
+                  run.props.color.get_or_insert(TextColor::parse(foreground).unwrap());
                 }
               }
               cell.blocks = vec![para_block(paragraph)];
@@ -1038,8 +1135,9 @@ impl Encoder {
           }
           self.document.body.push(Arc::new(wordcraft_doc::Block::Table(table)));
         }
-        Block::Image { asset, .. } => {
+        Block::Image { block_id, asset, .. } => {
           if let Some((name, width, height)) = self.figures.get(&asset.source).cloned() {
+            let (width, height) = self.image_dimensions(block_id, width, height);
             self.figure(name, width, height, &asset.alt)?;
             continue;
           }
@@ -1061,6 +1159,7 @@ impl Encoder {
             let height = width * pixel_height as f32 / pixel_width.max(1) as f32;
             self.document.media.insert(name.clone(), Arc::new(bytes));
             self.figures.insert(asset.source.clone(), (name.clone(), width, height));
+            let (width, height) = self.image_dimensions(block_id, width, height);
             self.figure(name, width, height, &asset.alt)?;
           } else {
             self.image_fallback("unavailable_image_omitted", &asset.alt);
@@ -1101,18 +1200,35 @@ impl Encoder {
           {
             self.warn("code_language_normalized");
           }
-          let paragraph = self.bookmarked(
-            Paragraph::with_text(
-              text,
-              CharProps {
-                font: Some(self.fonts.mono.clone()),
-                ..Default::default()
-              },
-            )
-            .styled("MyoxusCode"),
-            block_id,
-          )?;
-          self.push(paragraph);
+          let mut paragraph = Paragraph::new().styled("MyoxusCode");
+          let props = CharProps {
+            font: Some(WORD_CODE_FONT.into()),
+            ..Default::default()
+          };
+          let dark_background = self
+            .fonts
+            .table_fill
+            .as_deref()
+            .is_some_and(|fill| myoxus_domain::color::adaptive_foreground(fill) == "#ffffff");
+          if let Some(spans) =
+            myoxus_public_render::highlight::highlight_code(language.as_deref(), text, dark_background)
+          {
+            for span in spans {
+              let part = Paragraph::with_text(
+                span.text,
+                CharProps {
+                  color: Some(TextColor::Rgb(Rgb(span.color[0], span.color[1], span.color[2]))),
+                  ..props.clone()
+                },
+              );
+              // Build once instead of repeatedly normalizing the growing block.
+              paragraph.text.push_str(&part.text);
+              paragraph.runs.extend(part.runs);
+            }
+          } else {
+            Self::append(&mut paragraph, text, props)?;
+          }
+          self.push_code(paragraph, block_id)?;
         }
         Block::Mermaid {
           block_id,
@@ -1168,6 +1284,7 @@ impl Encoder {
             self.warn("callout_variant_normalized");
           }
           let mut paragraph = self.paragraph(block_id, text)?.styled("MyoxusCallout");
+          self.callout_presentation(&mut paragraph, block_id);
           if let Some(title) = native_callout.title.as_ref().filter(|t| !t.is_empty()) {
             self.warn("callout_title_normalized");
             let label = if paragraph.text.is_empty() {
@@ -1186,11 +1303,45 @@ impl Encoder {
               )
               .map_err(|_| ImportError::Conversion)?;
           }
+          if let Some(icon) = self
+            .source
+            .native_text
+            .get(block_id)
+            .and_then(|native| native.properties.get("icon"))
+            .and_then(|icon| icon.get("unicode"))
+            .and_then(serde_json::Value::as_str)
+          {
+            paragraph
+              .insert_text(0, &format!("{icon} "), &CharProps::default())
+              .map_err(|_| ImportError::Conversion)?;
+          }
+          let fill = paragraph.props.shading;
+          let border = paragraph.props.borders;
+          let frame_indent = self.indent + self.list_level as f32 * super::CONTENT_INDENT;
           self.push(paragraph);
+          let child_start = self.document.body.len();
           let (indent, list_level) = (self.indent, self.list_level);
           self.indent += (self.list_level + 1) as f32 * super::CONTENT_INDENT;
           self.list_level = 0;
           self.blocks(children, depth + 1)?;
+          for block in &mut self.document.body[child_start..] {
+            if let wordcraft_doc::Block::Para(p) = Arc::make_mut(block) {
+              if p.props.style.is_none() {
+                p.props.shading = fill;
+                p.props.borders = border;
+                if let Some(left) = p.props.borders.as_mut().and_then(|b| b.left.as_mut()) {
+                  left.space += (p.props.indent_left.unwrap_or(frame_indent) - frame_indent).max(0.0);
+                }
+                if let Some(fill) = fill {
+                  let ink =
+                    TextColor::parse(myoxus_domain::color::adaptive_foreground(&format!("#{}", fill.hex()))).unwrap();
+                  for run in &mut p.runs {
+                    run.props.color.get_or_insert(ink);
+                  }
+                }
+              }
+            }
+          }
           (self.indent, self.list_level) = (indent, list_level);
         }
         Block::FootnoteDefinition {
@@ -1236,6 +1387,8 @@ impl Encoder {
             Paragraph::with_text(
               title,
               CharProps {
+                underline: Some(Underline::Single),
+                color: self.color("link-default").map(TextColor::Rgb),
                 link,
                 ..Default::default()
               },
@@ -1367,6 +1520,7 @@ mod figure_tests {
   #[test]
   fn theme_typography_and_compact_ruled_tables_keep_content_and_word_layout_contracts() {
     let mut builder = yjs::YjsDocumentBuilder::new("Styled content");
+    let code = "fn main() {\n\tlet greeting = \"Grüße <&>\";\n\n    println!(\"{greeting}\");\n}\n";
     builder.push_heading(1, &[yjs::YjsTextSegment::plain("Server heading")]);
     builder.push_table_with_header_rows(
       &[
@@ -1381,6 +1535,8 @@ mod figure_tests {
       ],
       1,
     );
+    builder.push_code("rust", code);
+    builder.push_code("unknown-language", code);
     let mut ir = crate::doc::content_projection::project_snapshot_for_export(
       uuid::Uuid::nil(),
       uuid::Uuid::new_v4(),
@@ -1423,10 +1579,12 @@ mod figure_tests {
         typography: BTreeMap::from([
           ("Normal".into(), style(16.0, 400)),
           ("Heading1".into(), style(32.0, 700)),
+          ("MyoxusCode".into(), style(13.0, 400)),
         ]),
         table_fill: Some("#112233".into()),
         table_ink: Some("#ffffff".into()),
         table_rule: Some("#556677".into()),
+        colors: BTreeMap::new(),
       },
     )
     .unwrap();
@@ -1458,6 +1616,36 @@ mod figure_tests {
       table.rows[0].cells[0].props.shading,
       wordcraft_doc::props::Rgb::parse("#112233")
     );
+    let code_style = word.styles.get("MyoxusCode").unwrap();
+    assert_eq!(code_style.chr.font.as_deref(), Some("Courier New"));
+    assert_eq!(code_style.para.shading, Rgb::parse("#112233"));
+    assert!(code_style.para.space_before.unwrap() > 0.0 && code_style.para.space_after.unwrap() > 0.0);
+    assert!(code_style.para.borders.unwrap().top.unwrap().is_visible());
+    let code_paragraphs = word
+      .body
+      .iter()
+      .filter_map(|b| match &**b {
+        wordcraft_doc::Block::Para(p) if p.props.style.as_deref() == Some("MyoxusCode") => Some(p),
+        _ => None,
+      })
+      .collect::<Vec<_>>();
+    for (paragraph, highlighted) in code_paragraphs.into_iter().zip([true, false]) {
+      assert_eq!(paragraph.final_text(), code);
+      assert_eq!(paragraph.props.style.as_deref(), Some("MyoxusCode"));
+      assert!(paragraph.runs.iter().all(|run| {
+        word
+          .styles
+          .resolve_char(paragraph.props.style.as_deref(), &run.props)
+          .font
+          == "Courier New"
+      }));
+      let colors: std::collections::HashSet<_> = paragraph.runs.iter().filter_map(|run| run.props.color).collect();
+      assert_eq!(
+        colors.len() > 1,
+        highlighted,
+        "Unknown languages retain uncoloured, complete source"
+      );
+    }
     let imported = super::super::prepare_docx(&output.bytes, "styled.docx").unwrap();
     let text = yjs::extract_text_from_yjs(&imported.snapshot).unwrap().markdown;
     for expected in [
@@ -1545,6 +1733,7 @@ mod figure_tests {
         table_fill: None,
         table_ink: None,
         table_rule: None,
+        colors: BTreeMap::new(),
       },
     )
     .unwrap();
@@ -1620,13 +1809,15 @@ pub(super) fn encode_test_snapshot_with_references(
   assets: &[super::Asset],
   references: super::ExportReferencePresentation,
 ) -> ExportedDocx {
-  let ir = crate::doc::content_projection::project_snapshot_for_export(
+  let mut ir = crate::doc::content_projection::project_snapshot_for_export(
     uuid::Uuid::new_v4(),
     uuid::Uuid::new_v4(),
     "Fallback",
     snapshot,
   )
   .unwrap();
+  let native = yjs::native_snapshot::document_to_export_snapshot(snapshot, "test", "Fallback").unwrap();
+  enrich_presentation(&mut ir, Some(&native));
   encode_export(
     ExportSource {
       ir,
@@ -1646,6 +1837,7 @@ pub(super) fn encode_test_snapshot_with_references(
       table_fill: None,
       table_ink: None,
       table_rule: None,
+      colors: BTreeMap::new(),
     },
   )
   .unwrap()

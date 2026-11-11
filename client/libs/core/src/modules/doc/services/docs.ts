@@ -541,6 +541,24 @@ export class DocsService extends Service {
     return { doc: obj, release };
   }
 
+  /** Restore root metadata durably before revalidating this leaf's denied pull. */
+  async restoreFromTrash(docId: string) {
+    const record = this.list.doc$(docId).value;
+    if (!record) return;
+    const workspace = this.framework.get(WorkspaceService).workspace;
+    await workspace.engine.doc.updateAndWaitForSaved(workspace.id, () =>
+      record.restoreFromTrash(),
+    );
+    if (workspace.flavour !== "local") {
+      // Local persistence alone cannot authorize a server pull of a trashed leaf.
+      await workspace.engine.doc.waitForSynced(
+        workspace.id,
+        AbortSignal.timeout(30_000),
+      );
+      await workspace.engine.doc.retryDoc(docId);
+    }
+  }
+
   createDoc(options: DocCreateOptions = {}) {
     for (const middleware of this.docCreateMiddlewares) {
       options = middleware.beforeCreate

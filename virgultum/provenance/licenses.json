@@ -4,14 +4,14 @@
     "generator": "build/scripts/ci/generate-virgultum-source-provenance.mjs",
     "sourceInventory": {
       "path": "virgultum/provenance/sources.json",
-      "sha256": "4fd4962e9d398f4f0872f5648d949b0c73abe534c73827a203d851f72455c731"
+      "sha256": "a5bba287667a533266a98fc5eab1497632076809d6f757fc984cb8598d8a6dd8"
     },
-    "trackedPathCount": 3439,
-    "trackedPathSha256": "228d391102c6ed1f9a11e23840d519a39551017afdc1fb160775695fbe90daea",
+    "trackedPathCount": 3437,
+    "trackedPathSha256": "527d32f3a9d79f0974b68a07ee1702650b3b4ebaa9196f341f40dcd9e53c2a47",
     "publicExport": {
       "excludedPaths": ["virgultum/icons/dist/**"],
-      "trackedPathCount": 3429,
-      "trackedPathSha256": "63d7bc4a23a085e72d68c09b403b713d8b5a85a6d63984b6d7c0b2525c1cab04"
+      "trackedPathCount": 3427,
+      "trackedPathSha256": "787261c433540803918fa470c73f7109b2cb431d8bce8b23dc9eca27af180c31"
     },
     "packageManifestCount": 72,
     "packageLicenseCounts": {

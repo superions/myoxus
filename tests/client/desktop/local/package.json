@@ -8,9 +8,9 @@
   "devDependencies": {
     "@myoxus-test/kit": "workspace:*",
     "@myoxus/desktop-api-contract": "workspace:*",
-    "@playwright/test": "=1.63.0",
+    "@playwright/test": "=1.65.0",
     "@types/fs-extra": "^11.0.4",
     "fs-extra": "^11.2.0",
-    "playwright": "=1.63.0"
+    "playwright": "=1.65.0"
   }
 }

@@ -1,32 +1,44 @@
-import { SignalWatcher, WithDisposable } from "@virgultum/global/lit";
-import { noop } from "@virgultum/global/utils";
 import type { EmbedIframeBlockModel } from "@virgultum/model";
 import {
+  DocModeProvider,
+  TelemetryProvider,
   EditorI18nProvider,
   EmbedIframeService,
   NotificationProvider,
   resolveLegacyEditorText,
 } from "@virgultum/shared/services";
-import { isValidUrl, stopPropagation } from "@virgultum/shared/utils";
+import { isValidUrl } from "@virgultum/shared/utils";
 import {
   BlockSelection,
   type BlockStdScope,
   SurfaceSelection,
 } from "@virgultum/std";
-import { LitElement } from "lit";
-import { property, query, state } from "lit/decorators.js";
 
-export class EmbedIframeLinkInputBase extends SignalWatcher(
-  WithDisposable(LitElement),
-) {
-  // this method is used to track the event when the user inputs the link
-  // it should be overridden by the subclass
+/** Retained editor mutation and telemetry; the native form owns input and focus. */
+export class EmbedIframeLinkInputBase {
+  constructor(
+    readonly std: BlockStdScope,
+    readonly model: EmbedIframeBlockModel,
+    readonly abortController: AbortController,
+    readonly inSurface: boolean,
+    readonly editing: boolean,
+    readonly telemetrySegment = "editor",
+  ) {}
+
   protected track(status: "success" | "failure") {
-    noop(status);
-  }
-
-  protected isInputEmpty() {
-    return this._linkInputValue.trim() === "";
+    this.std
+      .getOptional(TelemetryProvider)
+      ?.track(this.editing ? "EditLink" : "CreateEmbedBlock", {
+        type: "embed iframe block",
+        page:
+          this.std.get(DocModeProvider).getEditorMode() === "edgeless"
+            ? "whiteboard editor"
+            : "doc editor",
+        segment: this.telemetrySegment,
+        module: "embed block",
+        control: this.editing ? "edit button" : "confirm embed link",
+        result: status,
+      });
   }
 
   protected tryToAddBookmark(url: string) {
@@ -70,8 +82,13 @@ export class EmbedIframeLinkInputBase extends SignalWatcher(
     this.abortController?.abort();
   }
 
-  protected async onConfirm() {
-    if (this.isInputEmpty()) {
+  async confirm(url: string) {
+    if (
+      !url.trim() ||
+      this.abortController.signal.aborted ||
+      this.store.readonly ||
+      this.store.getBlock(this.model.id)?.model !== this.model
+    ) {
       return;
     }
 
@@ -83,7 +100,6 @@ export class EmbedIframeLinkInputBase extends SignalWatcher(
         return;
       }
 
-      const url = this._linkInputValue;
       const canEmbed = embedIframeService.canEmbed(url);
 
       if (!canEmbed) {
@@ -93,7 +109,7 @@ export class EmbedIframeLinkInputBase extends SignalWatcher(
       }
 
       this.store.updateBlock(this.model, {
-        url: this._linkInputValue,
+        url,
         iframeUrl: "",
         title: "",
         description: "",
@@ -116,56 +132,10 @@ export class EmbedIframeLinkInputBase extends SignalWatcher(
     }
   }
 
-  protected handleInput = (e: InputEvent) => {
-    const target = e.target as HTMLInputElement;
-    this._linkInputValue = target.value;
-  };
-
-  protected handleKeyDown = async (e: KeyboardEvent) => {
-    e.stopPropagation();
-    if (e.key === "Enter" && !e.isComposing) {
-      await this.onConfirm();
-    }
-  };
-
-  override connectedCallback() {
-    super.connectedCallback();
-    this.updateComplete
-      .then(() => {
-        requestAnimationFrame(() => {
-          this.input.focus();
-        });
-      })
-      .catch(console.error);
-    this.disposables.addFromEvent(this, "cut", stopPropagation);
-    this.disposables.addFromEvent(this, "copy", stopPropagation);
-    this.disposables.addFromEvent(this, "paste", stopPropagation);
-    this.disposables.addFromEvent(this, "pointerdown", stopPropagation);
-  }
-
   get store() {
     return this.model.store;
   }
-
   get notificationService() {
     return this.std.getOptional(NotificationProvider);
   }
-
-  @state()
-  protected accessor _linkInputValue = "";
-
-  @query("input")
-  accessor input!: HTMLInputElement;
-
-  @property({ attribute: false })
-  accessor model!: EmbedIframeBlockModel;
-
-  @property({ attribute: false })
-  accessor std!: BlockStdScope;
-
-  @property({ attribute: false })
-  accessor abortController: AbortController | undefined = undefined;
-
-  @property({ attribute: false })
-  accessor inSurface = false;
 }

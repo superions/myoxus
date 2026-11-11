@@ -763,6 +763,7 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
             .block=${this}
           ></myoxus-embed-synced-doc-card>
         `,
+        "native",
       );
     }
 

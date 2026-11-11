@@ -89,6 +89,7 @@ interface GroupedWorkerOps {
       void,
     ];
     addPriority: [{ docId: string; priority: number }, boolean];
+    retryDoc: [string, void];
     resetSync: [void, void];
   };
 

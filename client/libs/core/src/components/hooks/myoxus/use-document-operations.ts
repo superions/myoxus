@@ -176,15 +176,8 @@ export function useDocumentOperations() {
   );
 
   const restoreFromTrash = useCallback(
-    async (docId: string) => {
-      const docRecord = docRecordList.doc$(docId).value;
-      if (docRecord) {
-        await workspace.engine.doc.updateAndWaitForSaved(workspace.id, () => {
-          docRecord.restoreFromTrash();
-        });
-      }
-    },
-    [docRecordList, workspace],
+    (docId: string) => docsService.restoreFromTrash(docId),
+    [docsService],
   );
 
   const permanentlyDeletePages = useCallback(

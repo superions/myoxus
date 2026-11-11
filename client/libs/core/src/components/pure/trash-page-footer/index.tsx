@@ -1,3 +1,4 @@
+import { useAsyncCallback } from "../../hooks/myoxus-async-hooks";
 import { DocService } from "@myoxus/core/modules/doc";
 import { useI18n } from "@myoxus/i18n";
 import { ArchiveRestoreIcon, DeleteIcon } from "@myoxus/icons/react";
@@ -24,8 +25,8 @@ export const TrashPageFooter = () => {
   const [open, setOpen] = useState(false);
   const hintText = t["com.myoxus.cmdk.editor.trash-footer-hint"]();
 
-  const onRestore = useCallback(() => {
-    restoreFromTrash(doc.id);
+  const onRestore = useAsyncCallback(async () => {
+    await restoreFromTrash(doc.id);
     notify({
       title: t["com.myoxus.toastMessage.restored"]({
         title: doc.meta$.value.title || "Untitled",

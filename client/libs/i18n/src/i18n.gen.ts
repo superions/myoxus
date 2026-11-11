@@ -22109,6 +22109,20 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.presence.unavailable"](): string;
   /** Only you are here */
   ["com.myoxus.presence.only-you"](): string;
+  /** Pin tab */
+  ["com.myoxus.multi-tab.pin"](): string;
+  /** Unpin tab */
+  ["com.myoxus.multi-tab.unpin"](): string;
+  /** Refresh tab */
+  ["com.myoxus.multi-tab.refresh"](): string;
+  /** Duplicate tab */
+  ["com.myoxus.multi-tab.duplicate"](): string;
+  /** Separate tabs */
+  ["com.myoxus.multi-tab.separate"](): string;
+  /** Close tab */
+  ["com.myoxus.multi-tab.close"](): string;
+  /** Close other tabs */
+  ["com.myoxus.multi-tab.close-others"](): string;
 }
 
 export function useMyoxusI18N(): MyoxusI18nFunctions {

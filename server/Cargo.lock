@@ -4925,6 +4925,7 @@ dependencies = [
  "tiny-skia",
  "tracing",
  "ttf-parser",
+ "two-face",
  "url",
  "usvg",
  "uuid",

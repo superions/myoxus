@@ -13,7 +13,7 @@
     "@myoxus-tools/utils": "workspace:*",
     "@myoxus/desktop-api-contract": "workspace:*",
     "@myoxus/infra": "workspace:*",
-    "@playwright/test": "=1.63.0",
+    "@playwright/test": "=1.65.0",
     "@virgultum/editor": "workspace:*",
     "fs-extra": "11.3.4"
   },

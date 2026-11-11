@@ -10,6 +10,7 @@ import { app, dialog, protocol } from "electron";
 import { createApplicationMenu } from "./application-menu/create";
 import { initializeDesktopState, isAppQuitInProgress } from "./cleanup";
 import { buildType, isDev, overrideSession } from "./config";
+import { prepareDesktopCookieStorage } from "./cookie-storage";
 import { setupDeepLink } from "./deep-link";
 import { registerEvents } from "./events";
 import { registerHandlers } from "./handlers";
@@ -105,6 +106,7 @@ setupDeepLink(app);
 app
   .whenReady()
   .then(initializeDesktopState)
+  .then(() => prepareDesktopCookieStorage())
   .then(registerProtocol)
   // app-update.yml cannot encode the custom provider constructor. Configure
   // it before any renderer can invoke the updater through IPC while loading.

@@ -1397,7 +1397,7 @@ test.each(["override", "append"] as const)(
       },
       open: vi.fn((id: string) => ({
         doc: {
-          virgultumDoc: workspace.getDoc(id)!,
+          virgultumDoc: id === targetDoc.id ? targetStore : store,
           waitForSyncReady: async () => {
             if (id === targetDoc.id) {
               if (failLoad) throw new Error("Target sync failed");

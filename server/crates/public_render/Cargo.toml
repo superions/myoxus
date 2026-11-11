@@ -20,6 +20,7 @@ thiserror.workspace    = true
 tiny-skia.workspace    = true
 tracing.workspace      = true
 ttf-parser             = "0.25"
+two-face               = "0.4.5"
 url.workspace          = true
 usvg.workspace         = true
 uuid.workspace         = true

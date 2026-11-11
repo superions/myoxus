@@ -109,10 +109,11 @@ pub async fn capture_export_source(
   let id = document.id;
   let title = document.title.clone();
   tokio::task::spawn_blocking(move || {
-    let ir = crate::doc::content_projection::project_snapshot_for_export(workspace, id, &title, &captured.payload)
+    let mut ir = crate::doc::content_projection::project_snapshot_for_export(workspace, id, &title, &captured.payload)
       .map_err(|_| ImportError::Conversion)?;
     let native_snapshot =
       yjs::native_snapshot::document_to_export_snapshot(&captured.payload, &id.to_string(), &title).ok();
+    export::enrich_presentation(&mut ir, native_snapshot.as_ref());
     Ok(CapturedDocx { ir, native_snapshot })
   })
   .await
@@ -560,7 +561,35 @@ impl<'a> Mapper<'a> {
               text.push_str(&segment.text);
             }
           }
-          let level = self.relative_depth(indent);
+          let mut end = index + 1;
+          if let Some(numbering) = &paragraph.props.numbering {
+            // A numbered code block uses one Word paragraph per source line.
+            // Join only this numbering instance, never neighbouring code blocks.
+            while let Some(next) = blocks.get(end).and_then(|block| match &**block {
+              Block::Para(p)
+                if p.props.style.as_deref() == Some("MyoxusCode") && p.props.numbering.as_ref() == Some(numbering) =>
+              {
+                Some(p)
+              }
+              _ => None,
+            }) {
+              let (segments, images) = self.segments(next)?;
+              if !images.is_empty() {
+                break;
+              }
+              text.push('\n');
+              for segment in segments {
+                text.push_str(&segment.text);
+              }
+              end += 1;
+            }
+          }
+          let content_indent = if paragraph.props.numbering.is_some() {
+            (indent - CONTENT_INDENT).max(0.0)
+          } else {
+            indent
+          };
+          let level = self.relative_depth(content_indent);
           if level == 0 {
             self.builder.push_code("plaintext", &text);
           } else {
@@ -571,7 +600,7 @@ impl<'a> Mapper<'a> {
           if let Some(id) = self.builder.last_created_block_id() {
             self.record_bookmarks(block, &id);
           }
-          index += 1;
+          index = end;
           continue;
         }
       }
@@ -1623,6 +1652,7 @@ mod tests {
     builder.push_paragraph(&[rich_child]);
     let code = "let x = 1;\nprintln!(\"{x}\");\n";
     builder.push_code("rust", code);
+    let code_id = builder.last_created_block_id().unwrap();
     let nested = builder.push_callout_under("note", "", false, true, None);
     builder.set_container_body(&nested, &[YjsTextSegment::plain("Nested note")]);
     let nested_context = builder.enter_content_parent(nested);
@@ -1633,7 +1663,18 @@ mod tests {
     builder.push_paragraph(&[YjsTextSegment::plain("Last child")]);
     builder.restore_content_parent(context);
     builder.push_paragraph(&[YjsTextSegment::plain("After callout")]);
-    let exported = super::export::encode_test_snapshot(&builder.encode(), &[]);
+    let source = YDoc::new();
+    let snapshot = {
+      let mut txn = source.transact_mut();
+      txn.apply_update(Update::decode_v1(&builder.encode()).unwrap()).unwrap();
+      let blocks = txn.get_map("blocks").unwrap();
+      let Some(yrs::Out::YMap(block)) = blocks.get(&txn, &code_id) else {
+        panic!("Native code block")
+      };
+      block.insert(&mut txn, "prop:lineNumber", true);
+      txn.encode_state_as_update_v1(&yrs::StateVector::default())
+    };
+    let exported = super::export::encode_test_snapshot(&snapshot, &[]);
     assert!(
       exported
         .warnings
@@ -1649,9 +1690,19 @@ mod tests {
     let mut word = wordcraft_docx::read(&exported.bytes).unwrap();
     assert_eq!(word.body.iter().filter_map(|block| match &**block { Block::Para(p) => Some(p), _ => None })
       .flat_map(|p| &p.objects).filter(|object| matches!(object, InlineObject::ControlStart { control } if matches!(control.kind, wordcraft_doc::ControlKind::CheckBox { .. }))).count(), 4);
-    assert!(word.body.iter().any(
-      |block| matches!(&**block, Block::Para(p) if p.props.style.as_deref() == Some("MyoxusCode") && p.final_text() == code)
-    ));
+    let code_lines = word
+      .body
+      .iter()
+      .filter_map(|b| match &**b {
+        Block::Para(p) if p.props.style.as_deref() == Some("MyoxusCode") => Some(p),
+        _ => None,
+      })
+      .collect::<Vec<_>>();
+    assert!(code_lines.iter().all(|p| p.props.numbering.is_some()));
+    assert_eq!(
+      code_lines.iter().map(|p| p.final_text()).collect::<Vec<_>>().join("\n"),
+      code
+    );
     assert_eq!(
       word
         .body

@@ -11103,5 +11103,12 @@
   "com.myoxus.database.tasks.open-kanban": "In Kanban öffnen",
   "com.myoxus.presence.title": "Aktive Personen",
   "com.myoxus.presence.unavailable": "Präsenz derzeit nicht verfügbar",
-  "com.myoxus.presence.only-you": "Nur du bist hier"
+  "com.myoxus.presence.only-you": "Nur du bist hier",
+  "com.myoxus.multi-tab.pin": "Tab anheften",
+  "com.myoxus.multi-tab.unpin": "Tab lösen",
+  "com.myoxus.multi-tab.refresh": "Tab neu laden",
+  "com.myoxus.multi-tab.duplicate": "Tab duplizieren",
+  "com.myoxus.multi-tab.separate": "Tabs trennen",
+  "com.myoxus.multi-tab.close": "Tab schließen",
+  "com.myoxus.multi-tab.close-others": "Andere Tabs schließen"
 }
