@@ -1,4 +1,4 @@
-import { StoreExtensionManager } from "@virgultum/ext-loader";
+import { StoreExtensionManager } from "@virgultum/core/extensions";
 
 import { getInternalStoreExtensions } from "../../extensions/store";
 

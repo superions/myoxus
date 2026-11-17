@@ -1,6 +1,6 @@
 import { WidgetComponent, WidgetViewExtension } from "@virgultum/editor/std";
-import { ThemeProvider } from "@virgultum/shared/services";
-import { unsafeCSSValue, unsafeCSSVar } from "@virgultum/shared/theme";
+import { ThemeProvider } from "@virgultum/core/services";
+import { unsafeCSSValue, unsafeCSSVar } from "@virgultum/core/theme";
 import { css, html, nothing, type TemplateResult } from "lit";
 import { repeat } from "lit/directives/repeat.js";
 import { literal, unsafeStatic } from "lit/static-html.js";
@@ -13,8 +13,12 @@ export const MYOXUS_BLOCK_DIFF_WIDGET_FOR_BLOCK =
   "myoxus-block-diff-widget-for-block";
 
 export class MyoxusBlockDiffWidgetForBlock extends WidgetComponent {
+  override createRenderRoot() {
+    return this;
+  }
+
   static override styles = css`
-    .ai-block-diff {
+    myoxus-block-diff-widget-for-block .ai-block-diff {
       position: relative;
       margin-top: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
       margin-bottom: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
@@ -24,7 +28,7 @@ export class MyoxusBlockDiffWidgetForBlock extends WidgetComponent {
       border-radius: ${unsafeCSSValue("var(--mantine-radius-sm)")};
     }
 
-    .ai-block-diff.delete {
+    myoxus-block-diff-widget-for-block .ai-block-diff.delete {
       position: absolute;
       top: calc(${unsafeCSSValue("var(--mantine-spacing-sm)")} * -1);
       left: ${unsafeCSSValue("var(--mantine-spacing-xs)")};
@@ -33,19 +37,25 @@ export class MyoxusBlockDiffWidgetForBlock extends WidgetComponent {
       margin: 0;
       background: transparent;
     }
-    .ai-block-diff,
-    .ai-block-diff.delete,
-    .ai-block-diff.update,
-    .ai-block-diff.insert {
+    myoxus-block-diff-widget-for-block .ai-block-diff,
+    myoxus-block-diff-widget-for-block .ai-block-diff.delete,
+    myoxus-block-diff-widget-for-block .ai-block-diff.update,
+    myoxus-block-diff-widget-for-block .ai-block-diff.insert {
       pointer-events: auto;
     }
-    .diff-options {
+    myoxus-block-diff-widget-for-block .diff-options {
       visibility: hidden;
     }
-    .ai-block-diff:hover .diff-options,
-    .ai-block-diff.delete:hover .diff-options,
-    .ai-block-diff.update:hover .diff-options,
-    .ai-block-diff.insert:hover .diff-options {
+    myoxus-block-diff-widget-for-block .ai-block-diff:hover .diff-options,
+    myoxus-block-diff-widget-for-block
+      .ai-block-diff.delete:hover
+      .diff-options,
+    myoxus-block-diff-widget-for-block
+      .ai-block-diff.update:hover
+      .diff-options,
+    myoxus-block-diff-widget-for-block
+      .ai-block-diff.insert:hover
+      .diff-options {
       visibility: visible;
     }
   `;
@@ -79,6 +89,7 @@ export class MyoxusBlockDiffWidgetForBlock extends WidgetComponent {
 
     return html`<div class="ai-block-diff delete" data-diff-id=${diffId}>
       <ai-block-diff-options
+        .host=${this.host}
         class="diff-options"
         .onAccept=${() =>
           this.diffService.accept(
@@ -107,6 +118,7 @@ export class MyoxusBlockDiffWidgetForBlock extends WidgetComponent {
                 .theme=${this.host.std.get(ThemeProvider).app$}
               ></chat-content-rich-text>
               <ai-block-diff-options
+                .host=${this.host}
                 class="diff-options"
                 .onAccept=${() =>
                   this.diffService.accept(
@@ -141,6 +153,7 @@ export class MyoxusBlockDiffWidgetForBlock extends WidgetComponent {
           .theme=${this.host.std.get(ThemeProvider).app$}
         ></chat-content-rich-text>
         <ai-block-diff-options
+          .host=${this.host}
           class="diff-options"
           .onAccept=${() =>
             this.diffService.accept(
@@ -212,7 +225,9 @@ export class MyoxusBlockDiffWidgetForBlock extends WidgetComponent {
       insertDiff = this._renderInsert(attached, blocks);
     }
 
-    return html`${deleteDiff} ${updateDiff} ${insertDiff}`;
+    return html`<style>
+        ${MyoxusBlockDiffWidgetForBlock.styles}</style
+      >${deleteDiff} ${updateDiff} ${insertDiff}`;
   }
 
   override connectedCallback() {

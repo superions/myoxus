@@ -3,7 +3,7 @@ import type {
   PageRootBlockComponent,
 } from "@virgultum/editor/blocks/root";
 import type { SurfaceBlockComponent } from "@virgultum/editor/blocks/surface";
-import type { Store } from "@virgultum/store";
+import type { Store } from "@virgultum/editor/store";
 
 import type { TestMyoxusEditorContainer } from "../../index.js";
 

@@ -4213,6 +4213,21 @@ fn flatten_json(prefix: &str, value: &Value, output: &mut BTreeMap<String, Value
 /// baselines and pending database mutations. This keeps CLI, REST and GraphQL
 /// writes from accepting a state that another transport would reject.
 pub fn validate_config_candidate(values: &BTreeMap<String, Value>) -> Result<(), String> {
+  // This value generates authentication and document URLs. Validate at the
+  // shared write boundary, including Admin imports, before persisting it.
+  if let Some(origin) = values.get("server.origin").and_then(Value::as_str)
+    && !origin.is_empty()
+    && !url::Url::parse(origin).is_ok_and(|url| {
+      matches!(url.scheme(), "http" | "https")
+        && url.has_host()
+        && url.username().is_empty()
+        && url.password().is_none()
+        && url.query().is_none()
+        && url.fragment().is_none()
+    })
+  {
+    return Err("server.origin must be a valid HTTP(S) base URL without credentials, query or fragment".into());
+  }
   if let Some(providers) = values.get("copilot.providers") {
     crate::copilot::validate_model_options(providers)?;
   }
@@ -4496,6 +4511,21 @@ mod tests {
       ("workspace.import.max_expanded_bytes".to_string(), serde_json::json!(4)),
     ]);
     validate_config_candidate(&values).expect("valid candidate");
+    for origin in ["https://example.test/myoxus", "http://localhost:3010"] {
+      values.insert("server.origin".into(), serde_json::json!(origin));
+      validate_config_candidate(&values).expect("valid server base URL");
+    }
+    for origin in [
+      "not-a-url",
+      "javascript:alert(1)",
+      "https://user:secret@example.test",
+      "https://example.test?token=hidden",
+      "https://example.test#fragment",
+    ] {
+      values.insert("server.origin".into(), serde_json::json!(origin));
+      assert!(validate_config_candidate(&values).is_err(), "invalid origin accepted");
+    }
+    values.remove("server.origin");
 
     values.insert(
       "git_sync.https_certificate_policy".to_string(),

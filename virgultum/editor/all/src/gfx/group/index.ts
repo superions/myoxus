@@ -1,1 +1,15 @@
-export * from "@virgultum/gfx-group";
+export {
+  groupToMarkdownAdapterMatcher,
+  groupToPlainTextAdapterMatcher,
+  createGroupCommand,
+  createGroupFromSelectedCommand,
+  ungroupCommand,
+  GroupElementView,
+  GroupInteraction,
+  GroupDomRendererExtension,
+  group,
+  GroupElementRendererExtension,
+  mountGroupTitleEditor,
+  groupToolbarConfig,
+  groupToolbarExtension,
+} from "@virgultum/canvas/gfx";

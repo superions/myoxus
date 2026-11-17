@@ -1495,6 +1495,7 @@ mod tests {
         let source = &mut options.overview.as_mut().unwrap().source;
         source.settings.folders.clear();
         source.settings.register_presentation = Some(OverviewRegisterPresentation {
+          selection: Default::default(),
           display_properties: vec!["system:title".into()],
           order_by: OverviewOrderBy {
             property_type: "system".into(),

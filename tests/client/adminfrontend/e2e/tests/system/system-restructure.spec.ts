@@ -65,7 +65,10 @@ test.describe("P-AR-3 — Admin system restructure", () => {
       waitUntil: "networkidle",
     });
     await expect(page.locator("#audit-target-type")).toBeVisible();
-    await page.locator("#audit-target-type").selectOption("workspace");
+    await page.locator("#audit-target-type").click();
+    await page
+      .getByRole("option", { name: /^(Workspace|Arbeitsbereich)$/i })
+      .click();
     await page.locator("#audit-target-id").fill("workspace-smoke-id");
     await page.locator("#audit-event-key").fill("admin.");
     await page.getByRole("button", { name: /Reset|Zurücksetzen/i }).click();
@@ -83,6 +86,8 @@ test.describe("P-AR-3 — Admin system restructure", () => {
     // Live audit rows may represent create-only changes, so old/new labels are
     // locale- and event-shape-dependent. The diff surface itself is the stable
     // inspection contract.
-    await expect(page.getByTestId("audit-json-diff")).toBeVisible();
+    await expect(
+      page.locator('[data-myoxus-ui-role="audit-json-diff-grid"]'),
+    ).toBeVisible();
   });
 });

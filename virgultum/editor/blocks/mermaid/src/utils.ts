@@ -3,7 +3,7 @@ export { hashMermaidSource } from "./engine/source-hash.js";
 import {
   DEFAULT_MERMAID_BLOCK_TITLE,
   type MermaidBlockModel,
-} from "@virgultum/model";
+} from "@virgultum/core/models";
 
 import { MERMAID_PRODUCT_DIAGRAM_SPECS } from "./engine/product-types.js";
 import { localizeMermaidDiagramTypeLabel, mermaidMessages } from "./i18n.js";

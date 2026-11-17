@@ -16,7 +16,7 @@ import {
   BpmnBlockPresentationIdentifier,
   type BpmnBlockPresentationProps,
 } from "@virgultum/block-bpmn";
-import { Container } from "@virgultum/global/di";
+import { Container } from "@virgultum/core/primitives/di";
 import { render as renderLit } from "lit";
 import { patchBpmnBlockPresentation } from "./bpmn-block-presentation";
 import { materializeDiagramExportSvg } from "../../../components/hooks/myoxus/diagram-export-svg";

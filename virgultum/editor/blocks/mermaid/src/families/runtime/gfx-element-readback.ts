@@ -1,13 +1,13 @@
 import { getMermaidGfxTitleBandHeight } from "./gfx-element-projection.js";
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { Bound } from "@virgultum/global/gfx";
+import { Bound } from "@virgultum/core/primitives/gfx";
 import {
   ConnectorMode,
   LineWidth,
   ShapeType,
   StrokeStyle,
-} from "@virgultum/model";
+} from "@virgultum/core/models";
 
 import { allowsEmptyMermaidVisualModel } from "../../engine/diagram-types.js";
 import { parseMermaidVisualFamilyData } from "./gfx-family-data.js";

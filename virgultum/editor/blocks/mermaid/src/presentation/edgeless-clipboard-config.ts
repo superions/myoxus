@@ -5,8 +5,8 @@ import { prepareMermaidOwnerCopy } from "../commands/copy-identities.js";
 import {
   type ClipboardConfigCreationContext,
   EdgelessClipboardConfig,
-} from "@virgultum/block-surface";
-import { type BlockSnapshot } from "@virgultum/store";
+} from "@virgultum/canvas-runtime/surface";
+import { type BlockSnapshot } from "@virgultum/core/store";
 
 import { assignGfxProps, createMermaidBlockInsertProps } from "../commands.js";
 import { resolveMermaidFamilyRuntime } from "../families/runtime/registry.js";

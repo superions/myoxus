@@ -3,6 +3,7 @@
 
 import { useI18n } from "@myoxus/i18n";
 import {
+  Card,
   CommandCombobox,
   Group,
   MyoxusLoader,
@@ -121,6 +122,76 @@ export function EditorDocumentPicker({
     [controls, store, syncActive],
   );
 
+  const options = (
+    <Scrollable.Viewport
+      autosize={controls.presentation !== "docked"}
+      maxHeight={controls.presentation === "docked" ? undefined : "floating"}
+      scrollbars="y"
+      tabIndex={-1}
+    >
+      <CommandCombobox.Options
+        ref={selectPreferred}
+        id={listId}
+        aria-label={
+          snapshot.query
+            ? t["com.myoxus.editor.at-menu.link-to-doc"]({
+                query: snapshot.query,
+              })
+            : t["com.myoxus.editor.at-menu.recent-docs"]()
+        }
+        data-testid="document-picker"
+      >
+        {snapshot.groups.map((group) => (
+          <CommandCombobox.Group
+            key={group.id}
+            label={
+              <Group wrap="nowrap">
+                {group.name}
+                {group.loading ? <MyoxusLoader /> : null}
+              </Group>
+            }
+          >
+            {!group.items.length && group.emptyMessage && !group.loading ? (
+              <CommandCombobox.Empty>
+                {group.emptyMessage}
+              </CommandCombobox.Empty>
+            ) : null}
+            {group.items.map((item) => (
+              <Tooltip key={item.id} content={item.name} side="right">
+                <CommandCombobox.Option
+                  value={item.id}
+                  id={listId + item.id}
+                  disabled={item.disabled}
+                  aria-label={item.name}
+                  onMouseMove={() => {
+                    store.selectOption(items.indexOf(item));
+                    syncActive();
+                  }}
+                >
+                  <Group wrap="nowrap">
+                    <DocumentPickerIcon item={item} />
+                    <Text span inherit truncate c="inherit">
+                      <DocumentPickerLabel item={item} />
+                    </Text>
+                  </Group>
+                </CommandCombobox.Option>
+              </Tooltip>
+            ))}
+          </CommandCombobox.Group>
+        ))}
+      </CommandCombobox.Options>
+    </Scrollable.Viewport>
+  );
+
+  if (controls.presentation === "docked")
+    return (
+      <CommandCombobox store={store} onOptionSubmit={controls.choose}>
+        <Card withBorder fullHeight>
+          {options}
+        </Card>
+      </CommandCombobox>
+    );
+
   return (
     <CommandCombobox
       store={store}
@@ -142,64 +213,7 @@ export function EditorDocumentPicker({
         onPointerDown={(event) => event.preventDefault()}
         onMouseDown={(event) => event.preventDefault()}
       >
-        <Scrollable.Viewport
-          autosize
-          maxHeight="floating"
-          scrollbars="y"
-          tabIndex={-1}
-        >
-          <CommandCombobox.Options
-            ref={selectPreferred}
-            id={listId}
-            aria-label={
-              snapshot.query
-                ? t["com.myoxus.editor.at-menu.link-to-doc"]({
-                    query: snapshot.query,
-                  })
-                : t["com.myoxus.editor.at-menu.recent-docs"]()
-            }
-            data-testid="document-picker"
-          >
-            {snapshot.groups.map((group) => (
-              <CommandCombobox.Group
-                key={group.id}
-                label={
-                  <Group wrap="nowrap">
-                    {group.name}
-                    {group.loading ? <MyoxusLoader /> : null}
-                  </Group>
-                }
-              >
-                {!group.items.length && group.emptyMessage && !group.loading ? (
-                  <CommandCombobox.Empty>
-                    {group.emptyMessage}
-                  </CommandCombobox.Empty>
-                ) : null}
-                {group.items.map((item) => (
-                  <Tooltip key={item.id} content={item.name} side="right">
-                    <CommandCombobox.Option
-                      value={item.id}
-                      id={listId + item.id}
-                      disabled={item.disabled}
-                      aria-label={item.name}
-                      onMouseMove={() => {
-                        store.selectOption(items.indexOf(item));
-                        syncActive();
-                      }}
-                    >
-                      <Group wrap="nowrap">
-                        <DocumentPickerIcon item={item} />
-                        <Text span inherit truncate c="inherit">
-                          <DocumentPickerLabel item={item} />
-                        </Text>
-                      </Group>
-                    </CommandCombobox.Option>
-                  </Tooltip>
-                ))}
-              </CommandCombobox.Group>
-            ))}
-          </CommandCombobox.Options>
-        </Scrollable.Viewport>
+        {options}
       </CommandCombobox.Dropdown>
     </CommandCombobox>
   );

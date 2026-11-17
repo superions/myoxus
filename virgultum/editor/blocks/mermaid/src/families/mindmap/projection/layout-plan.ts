@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { MindmapLayoutType as LayoutType } from "./types.js";
 
-import { Bound, type SerializedXYWH } from "@virgultum/global/gfx";
+import { Bound, type SerializedXYWH } from "@virgultum/core/primitives/gfx";
 
 export const NODE_VERTICAL_SPACING = 45;
 export const NODE_HORIZONTAL_SPACING = 110;

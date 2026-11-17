@@ -546,7 +546,7 @@ impl TranscriptionPipeline {
       .ok_or_else(|| AuthError::InvalidInput("missing audio workspace binding".into()))?;
     for input in payload_inputs(&attempt.job.payload, "temporaryInputs")? {
       Self::owned_input(attempt.job.id, &input)?;
-      if attempt.job.payload["blobId"].as_str() == Some(&input.key) {
+      if attempt.job.payload["blobId"].as_str() == Some(input.key.as_str()) {
         return Err(AuthError::InvalidInput(
           "temporary audio input is the original attachment".into(),
         ));

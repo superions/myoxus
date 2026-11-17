@@ -86,16 +86,16 @@ test.describe("presentation", () => {
   }) => {
     await edgelessCommonSetup(page);
 
-    await createFrame(page, [100, 100], [100, 200]);
-    await createFrame(page, [200, 100], [300, 200]);
-    await createFrame(page, [300, 100], [400, 200]);
-    await createFrame(page, [400, 100], [500, 200]);
+    await createFrame(page, [100, 300], [200, 400]);
+    await createFrame(page, [200, 300], [300, 400]);
+    await createFrame(page, [300, 300], [400, 400]);
+    await createFrame(page, [400, 300], [500, 400]);
 
     await enterPresentationMode(page);
 
     await page.locator(".edgeless-frame-order-button").click();
     const frameItems = page.locator(
-      "edgeless-frame-order-menu .item.draggable",
+      '[data-testid="presentation-frame-order-list"] [data-frame-order-id][draggable="true"]',
     );
 
     await expect(frameItems).toHaveCount(4);
@@ -143,10 +143,10 @@ test.describe("presentation", () => {
   }) => {
     await edgelessCommonSetup(page);
 
-    await createFrame(page, [100, 100], [100, 200]);
-    await createFrame(page, [200, 100], [300, 200]);
-    await createFrame(page, [300, 100], [400, 200]);
-    await createFrame(page, [400, 100], [500, 200]);
+    await createFrame(page, [100, 300], [200, 400]);
+    await createFrame(page, [200, 300], [300, 400]);
+    await createFrame(page, [300, 300], [400, 400]);
+    await createFrame(page, [400, 300], [500, 400]);
 
     await selectAllBlocksByKeyboard(page);
     await copyByKeyboard(page);
@@ -155,7 +155,7 @@ test.describe("presentation", () => {
     await enterPresentationMode(page);
     await page.locator(".edgeless-frame-order-button").click();
     const frameItems = page.locator(
-      "edgeless-frame-order-menu .item.draggable",
+      '[data-testid="presentation-frame-order-list"] [data-frame-order-id][draggable="true"]',
     );
 
     await expect(frameItems).toHaveCount(8);

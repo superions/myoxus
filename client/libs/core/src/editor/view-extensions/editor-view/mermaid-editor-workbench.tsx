@@ -43,7 +43,7 @@ import {
   type MermaidSelectionActionModel,
   type MermaidShellNoticeReactHostProps,
 } from "@virgultum/block-mermaid";
-import { isTouchPadPinchEvent } from "@virgultum/shared/utils";
+import { isTouchPadPinchEvent } from "@virgultum/core/utils";
 import {
   type CompositionEvent,
   type KeyboardEvent,

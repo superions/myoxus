@@ -1,1 +1,1 @@
-export * from "@virgultum/inline-latex/view";
+export { InlineLatexViewExtension as LatexViewExtension } from "@virgultum/content/view";

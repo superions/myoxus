@@ -67,6 +67,7 @@ export const configureTemplateDocModule = (framework: Framework) => {
       WorkspaceService,
       FeatureFlagService,
       WorkspacesService,
+      BuiltinTemplateReconcilerService,
     ])
     .service(TemplateInputPromptService, [WorkspaceDialogService])
     .service(TemplateApplicationService, [

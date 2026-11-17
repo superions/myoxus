@@ -239,13 +239,11 @@ describe("SecurityPage", () => {
     tlsFetchMock.mockReset().mockResolvedValue(tlsSnapshot);
     window.history.replaceState({}, "", "/adminfrontend/security");
     savedOidc = undefined;
-    configFetcherMock
-      .mockReset()
-      .mockImplementation(() =>
-        Promise.resolve({
-          admin: { adminConfigValues: directoryConfigSnapshot() },
-        }),
-      );
+    configFetcherMock.mockReset().mockImplementation(() =>
+      Promise.resolve({
+        admin: { adminConfigValues: directoryConfigSnapshot() },
+      }),
+    );
     oauthMutationMock.mockReset().mockResolvedValue({});
     organizationUnitsMock
       .mockReset()

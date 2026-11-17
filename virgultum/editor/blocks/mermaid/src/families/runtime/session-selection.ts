@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import type { MermaidBlockModel } from "@virgultum/model";
-import type { Store } from "@virgultum/store";
-import type { GfxController } from "@virgultum/std/gfx";
+import type { MermaidBlockModel } from "@virgultum/core/models";
+import type { Store } from "@virgultum/core/store";
+import type { GfxController } from "@virgultum/core/runtime/gfx";
 import type { MermaidPageSelectionItem } from "../../mermaid-page-selection-controller.js";
 import { readMermaidGfxMeta } from "../../mermaid-gfx-metadata.js";
 import { getMermaidGfxFamilyHooksForDiagramType } from "./gfx-family-hooks-registry.js";

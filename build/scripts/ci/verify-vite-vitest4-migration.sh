@@ -11,15 +11,15 @@ node build/scripts/ci/verify-vite-vitest4-config.mjs
 node build/scripts/ci/verify-vite8-integration.mjs
 bash build/scripts/ci/verify-vitest4-coverage.sh
 
-for package_root in \
-  virgultum/framework/std \
-  virgultum/editor/blocks/bookmark \
-  virgultum/editor/inlines/footnote \
-  virgultum/editor/shared
+for config in \
+  virgultum/core/vitest.runtime.config.ts \
+  virgultum/embeds/vitest.config.ts \
+  virgultum/content/vitest.footnote.config.ts \
+  virgultum/core/vitest.services.config.ts
 do
   yarn vitest run \
-    --config "$REPO_ROOT/$package_root/vitest.config.ts" \
-    --root "$REPO_ROOT/$package_root"
+    --config "$REPO_ROOT/$config" \
+    --root "$REPO_ROOT/$(dirname "$config")"
 done
 
 # Vitest 4 imports all files of a non-isolated browser project into one module

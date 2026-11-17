@@ -42,26 +42,21 @@ test("shortcut", async ({ page }) => {
   await switchEditorMode(page);
   await page.mouse.click(100, 100);
 
-  // text is removed temporarily
-  // await page.keyboard.press('t');
-  // const textButton = await locatorEdgelessToolButton(page, 'text');
-  // await expect(textButton).toHaveAttribute('active', '');
-
   await page.keyboard.press("s");
   const shapeButton = await locatorEdgelessToolButton(page, "shape");
-  await expect(shapeButton).toHaveAttribute("active", "");
+  await expect(shapeButton).toHaveAttribute("aria-pressed", "true");
 
   await page.keyboard.press("p");
   const penButton = await locatorEdgelessToolButton(page, "pen");
-  await expect(penButton).toHaveAttribute("active", "");
+  await expect(penButton).toHaveAttribute("aria-pressed", "true");
 
   await page.keyboard.press("h");
   const panButton = await locatorEdgelessToolButton(page, "pan");
-  await expect(panButton).toHaveAttribute("active", "");
+  await expect(panButton).toHaveAccessibleName("Hand");
 
   await page.keyboard.press("c");
   const connectorButton = await locatorEdgelessToolButton(page, "connector");
-  await expect(connectorButton).toHaveAttribute("active", "");
+  await expect(connectorButton).toHaveAttribute("aria-pressed", "true");
 });
 
 test("toggle shapes shortcut", async ({ page }) => {
@@ -179,8 +174,7 @@ test.describe("zooming", () => {
 
     await zoomResetByKeyboard(page);
 
-    zoom = await getZoomLevel(page);
-    expect(zoom).toBe(100);
+    await expect.poll(() => getZoomLevel(page)).toBe(100);
   });
   test("zoom in", async ({ page }) => {
     await enterPlaygroundRoom(page);

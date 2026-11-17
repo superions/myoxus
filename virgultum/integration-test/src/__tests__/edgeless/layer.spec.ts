@@ -9,8 +9,8 @@ import type {
   NoteBlockModel,
 } from "@virgultum/editor/model";
 import { generateKeyBetween } from "@virgultum/editor/std/gfx";
-import type { BlockComponent } from "@virgultum/std";
-import type { BlockModel, Store } from "@virgultum/store";
+import type { BlockComponent } from "@virgultum/editor/std";
+import type { BlockModel, Store } from "@virgultum/editor/store";
 import { beforeEach, describe, expect, test } from "vitest";
 import * as Y from "yjs";
 

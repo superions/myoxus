@@ -14,7 +14,7 @@ import {
   LifeCycleWatcher,
   StdIdentifier,
 } from "@virgultum/editor/std";
-import type { Container } from "@virgultum/global/di";
+import type { Container } from "@virgultum/core/primitives/di";
 import type { Observable } from "rxjs";
 
 export function getPreviewThemeExtension(framework: FrameworkProvider) {

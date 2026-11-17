@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { DisposableGroup } from "@virgultum/global/disposable";
-import type { MermaidBlockModel } from "@virgultum/model";
-import { LifeCycleWatcher } from "@virgultum/std";
-import { GfxControllerIdentifier } from "@virgultum/std/gfx";
-import type { Store } from "@virgultum/store";
+import { DisposableGroup } from "@virgultum/core/primitives/disposable";
+import type { MermaidBlockModel } from "@virgultum/core/models";
+import { LifeCycleWatcher } from "@virgultum/core/runtime";
+import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
+import type { Store } from "@virgultum/core/store";
 
 import { resolveMermaidLegacyLinkedOwner } from "./legacy-linked-owner.js";
 

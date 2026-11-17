@@ -1363,9 +1363,22 @@ describe("database model helpers", () => {
         defaultTimeZone: "Europe/Berlin",
       },
     });
-    expect(formatCellValue(databaseRow, startsAtField, "en-US")).toContain(
-      "Jul 6, 2026",
+    const storedWallTime = new Intl.DateTimeFormat("en-US", {
+      dateStyle: "medium",
+      timeStyle: "short",
+      timeZone: "Europe/Berlin",
+    }).format(new Date("2026-07-06T09:00:00Z"));
+    expect(formatCellValue(databaseRow, startsAtField, "en-US")).toBe(
+      storedWallTime,
     );
+    expect(
+      formatCellValue(databaseRow, startsAtField, "en-US", undefined, {
+        locale: "en-US",
+        timezone: "America/Los_Angeles",
+        dateFormat: "locale",
+        timeFormat: "locale",
+      }),
+    ).toBe(storedWallTime);
   });
 
   test("files cells use server blob references without local binary payloads", () => {

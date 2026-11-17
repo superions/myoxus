@@ -136,6 +136,8 @@ export interface MenuRootOptions {
    * surface such as an externally owned popover.
    */
   modal?: boolean;
+  /** An editor-owned close callback can retain its live caret instead. */
+  returnFocus?: boolean;
   closeOnItemClick?: boolean;
   closeOnEscape?: boolean;
   clickOutsideEvents?: MantineCoreMenuProps["clickOutsideEvents"];
@@ -179,6 +181,8 @@ export interface MenuProps {
   portalOptions?: MenuPortalOptions;
   rootOptions?: MenuRootOptions;
   contentOptions?: MenuContentOptions;
+  /** Native dropdown ownership for editor caret/focus handoff. */
+  contentRef?: Ref<HTMLDivElement>;
   contentWrapperStyle?: CSSProperties;
   noPortal?: boolean;
 }
@@ -1251,6 +1255,7 @@ export const Menu = forwardRef(function Menu(
     title: menuTitle,
     rootOptions = {},
     contentOptions = {},
+    contentRef,
     contentWrapperStyle,
     noPortal,
   }: MenuProps,
@@ -1264,6 +1269,7 @@ export const Menu = forwardRef(function Menu(
     onOpenChange,
     onClose,
     modal,
+    returnFocus = true,
     closeOnItemClick = true,
     closeOnEscape = true,
     clickOutsideEvents,
@@ -1369,6 +1375,7 @@ export const Menu = forwardRef(function Menu(
         clickOutsideEvents={clickOutsideEvents}
         loop={loop}
         trapFocus={modal ?? true}
+        returnFocus={returnFocus}
         // Keep dialog menus in their owner's native stacking context. A body
         // portal at the popover role can sit beneath Mantine's modal stack.
         withinPortal={!noPortal && !insideModal}
@@ -1381,6 +1388,9 @@ export const Menu = forwardRef(function Menu(
       >
         <MantineMenu.Target>{target}</MantineMenu.Target>
         <MantineMenu.Dropdown
+          ref={contentRef}
+          onPointerDown={contentOptions.onPointerDown}
+          onClick={contentOptions.onClick}
           className={className}
           style={mergeStyles(
             contentWrapperStyle,
@@ -1407,6 +1417,9 @@ export const Menu = forwardRef(function Menu(
     </MenuRuntimeContext.Provider>
   );
 });
+
+/** Native menu search registers with Mantine so its focus placeholder yields to the input. */
+export const MenuSearch = MantineMenu.Search;
 
 export const HeaderMenuButton = createHeaderMenuButton({ IconButton, Menu });
 
@@ -1838,7 +1851,7 @@ export function MenuSub({
     block,
     disabled,
     type = "default",
-    closeMenuOnClick: _closeMenuOnClick,
+    closeMenuOnClick,
     ...triggerDomOptions
   } = triggerOptions;
   const {
@@ -1991,6 +2004,12 @@ export function MenuSub({
             disabled={disabled}
             leftSection={leftSection}
             rightSection={rightSection}
+            closeMenuOnClick={closeMenuOnClick}
+            onClick={(event) => {
+              // Invoke a parent command once before Mantine closes its menu.
+              triggerDomOptions.onClick?.(event);
+              if (!event.defaultPrevented) triggerDomOptions.onSelect?.(event);
+            }}
             data-myoxus-ui-role="menu-sub-trigger"
           >
             {children}

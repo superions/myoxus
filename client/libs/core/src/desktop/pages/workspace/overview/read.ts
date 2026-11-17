@@ -5,9 +5,11 @@ import type { Workspace } from "@myoxus/core/modules/workspace";
 import {
   workspaceOverviewQuery,
   workspaceOverviewSettingsQuery,
+  type WorkspaceOverviewSettingsQuery,
 } from "@myoxus/graphql";
-import { useEffect, useReducer, useRef } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import useSWR from "swr";
+import type { OverviewRegisterPresentation } from "./presentation";
 import type { Doc } from "yjs";
 
 const unavailableOverview = new Error("Workspace overview is unavailable");
@@ -24,6 +26,10 @@ export function useWorkspaceOverviewRead({
   tagRevision,
   visibilityKey,
   onResetPage,
+  registerPresentation,
+  sourceWorkspaceId = workspace.id,
+  enabled = true,
+  permissionChanges,
 }: {
   server: WorkspaceServerService["server"] | undefined;
   accountId: string | undefined;
@@ -35,10 +41,16 @@ export function useWorkspaceOverviewRead({
   tagRevision: number;
   visibilityKey: string;
   onResetPage: () => void;
+  registerPresentation?: OverviewRegisterPresentation;
+  sourceWorkspaceId?: string;
+  enabled?: boolean;
+  permissionChanges?: {
+    subscribe: (callback: () => void) => { unsubscribe: () => void };
+  };
 }) {
   const identity =
     server && accountId
-      ? [server.id, server.baseUrl, accountId, workspace.id]
+      ? [server.id, server.baseUrl, accountId, sourceWorkspaceId]
       : null;
   const options = {
     suspense: false,
@@ -49,15 +61,14 @@ export function useWorkspaceOverviewRead({
     suppressErrorNotification: true,
   } as const;
   // This is the configuration dialog's existing cache key and native contract.
-  const settings = useSWR(
+  // Observe the existing settings cache, populated only by its authorized dialog.
+  // Reading an overview must not require permission to edit workspace settings.
+  const settings = useSWR<WorkspaceOverviewSettingsQuery>(
     identity ? [workspaceOverviewSettingsQuery.id, ...identity] : null,
-    () =>
-      server!.gql({
-        query: workspaceOverviewSettingsQuery,
-        variables: { id: workspace.id },
-      }),
+    null,
     options,
   );
+  const [online, setOnline] = useState(navigator.onLine);
   const [organizerGeneration, advanceOrganizer] = useReducer(
     (value: number) => value + 1,
     0,
@@ -66,16 +77,29 @@ export function useWorkspaceOverviewRead({
     const refresh = () => advanceOrganizer();
     folders.on("update", refresh);
     workspace.rootYDoc.on("update", refresh);
+    const subscription = permissionChanges?.subscribe(refresh);
+    const network = () => {
+      setOnline(navigator.onLine);
+      refresh();
+    };
+    window.addEventListener("online", network);
+    window.addEventListener("offline", network);
     return () => {
+      subscription?.unsubscribe();
+      window.removeEventListener("online", network);
+      window.removeEventListener("offline", network);
       folders.off("update", refresh);
       workspace.rootYDoc.off("update", refresh);
     };
-  }, [folders, workspace]);
+  }, [folders, workspace, permissionChanges]);
   const configuration = settings.data?.workspace?.overviewSettings;
   const scope = JSON.stringify([
     identity,
     folderId,
-    configuration,
+    configuration?.revision,
+    registerPresentation,
+    online,
+    enabled,
     organizerGeneration,
     metadataGeneration,
     tagRevision,
@@ -86,14 +110,14 @@ export function useWorkspaceOverviewRead({
     previousScope.current !== undefined && previousScope.current !== scope;
   const effectiveOffset = changed ? 0 : offset;
   useEffect(() => {
-    if (!configuration || settings.error) return;
+    if (!server || !accountId) return;
     const changed =
       previousScope.current !== undefined && previousScope.current !== scope;
     previousScope.current = scope;
     if (changed && offset) onResetPage();
-  }, [scope, configuration, settings.error, offset, onResetPage]);
+  }, [scope, offset, onResetPage, server, accountId]);
   const read = useSWR(
-    identity && configuration && !settings.error
+    identity && online && enabled
       ? [workspaceOverviewQuery.id, scope, effectiveOffset]
       : null,
     async () => {
@@ -106,22 +130,27 @@ export function useWorkspaceOverviewRead({
       );
       return server!.gql({
         query: workspaceOverviewQuery,
-        variables: { id: workspace.id, folderId, offset: effectiveOffset },
+        variables: {
+          id: sourceWorkspaceId,
+          folderId,
+          registerPresentation,
+          offset: effectiveOffset,
+        },
       });
     },
     options,
   );
   return {
     ...read,
-    error:
-      settings.error ??
-      read.error ??
-      ((settings.data && !configuration) ||
-      (read.data && !read.data.workspace?.overview)
-        ? unavailableOverview
-        : undefined),
-    isLoading: settings.isLoading || read.isLoading,
-    isValidating: settings.isValidating || read.isValidating,
-    refresh: () => (settings.error ? settings.mutate() : read.mutate()),
+    error: !online
+      ? unavailableOverview
+      : (read.error ??
+        (read.data && !read.data.workspace?.overview
+          ? unavailableOverview
+          : undefined)),
+    isLoading: read.isLoading,
+    offline: !online,
+    isValidating: read.isValidating,
+    refresh: () => read.mutate(),
   };
 }

@@ -31,10 +31,10 @@ describe("host-service migration contract", () => {
   describe("B-02: DOM CustomEvents replaced by MyoxusHostService", () => {
     test("event block no longer dispatches host-bound myoxus-event-block-*", () => {
       const eventBlock = readRepoFile(
-        "virgultum/editor/blocks/event/src/event-block.ts",
+        "virgultum/embeds/src/event/event-block.ts",
       );
       const eventSlashMenu = readRepoFile(
-        "virgultum/editor/blocks/event/src/slash-menu.ts",
+        "virgultum/embeds/src/event/slash-menu.ts",
       );
 
       for (const source of [eventBlock, eventSlashMenu]) {
@@ -72,7 +72,7 @@ describe("host-service migration contract", () => {
 
     test("event block and BPMN session dispatcher consume MyoxusHostServiceIdentifier", () => {
       const eventBlock = readRepoFile(
-        "virgultum/editor/blocks/event/src/event-block.ts",
+        "virgultum/embeds/src/event/event-block.ts",
       );
       const bpmnBlock = readRepoFile(
         "virgultum/editor/blocks/bpmn/src/session-request.ts",
@@ -161,16 +161,14 @@ describe("host-service migration contract", () => {
 
   describe("B-01: MyoxusHostService surface is the single boundary", () => {
     test("shared services barrel re-exports the host module", () => {
-      const source = readRepoFile(
-        "virgultum/editor/shared/src/services/index.ts",
-      );
+      const source = readRepoFile("virgultum/core/src/services/index.ts");
 
       expect(source).toContain('export * from "./host"');
     });
 
     test("host module exports the identifier, the extension, and the null binding", () => {
       const hostIndex = readRepoFile(
-        "virgultum/editor/shared/src/services/host/index.ts",
+        "virgultum/core/src/services/host/index.ts",
       );
 
       expect(hostIndex).toContain("./types");

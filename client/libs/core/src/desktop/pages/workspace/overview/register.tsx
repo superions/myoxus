@@ -4,9 +4,8 @@ import { useRegionalPreferences } from "@myoxus/core/components/hooks/myoxus/use
 import { useNavigateHelper } from "@myoxus/core/components/hooks/use-navigate-helper";
 import { isSupportedSystemPropertyType } from "@myoxus/core/components/system-property-types";
 import { OrderByName } from "@myoxus/core/components/explorer/display-menu/order";
-import { metadataIndexDisplayValue } from "@myoxus/core/components/system-property-types/document-metadata";
+import { metadataIndexDisplayValue } from "@myoxus/core/modules/document-metadata/utils";
 import { TagItem } from "@myoxus/core/components/tags/tag";
-import type { DocumentMetadataIndexLookups } from "@myoxus/core/modules/document-metadata/services/document-metadata-cache";
 import type { CanonicalMetadataKey } from "@myoxus/core/modules/document-metadata/types";
 import { formatRegionalDateTime } from "@myoxus/core/modules/i18n";
 import { isWorkspaceTagColorRole } from "@myoxus/core/modules/tag/color-role";
@@ -29,7 +28,10 @@ import {
   Text,
 } from "@myoxus/ui-facade";
 import { useMemo } from "react";
-import { defaultOverviewRegisterPresentation } from "./presentation";
+import {
+  defaultOverviewRegisterPresentation,
+  registerMetadataLookups,
+} from "./presentation";
 
 type Page = NonNullable<
   NonNullable<WorkspaceOverviewQuery["workspace"]>["overview"]
@@ -42,48 +44,26 @@ type Document = Page["documents"][number];
 export function WorkspaceOverviewRegister({
   page,
   workspaceId,
+  displayProperties,
 }: {
-  page: Page;
+  page: Pick<Page, "documents"> & Partial<Pick<Page, "registerPresentation">>;
+  displayProperties?: string[];
   workspaceId: string;
 }) {
   const t = useI18n();
   const regionalPreferences = useRegionalPreferences();
   const { jumpToWorkspaceResource } = useNavigateHelper();
   const columns = (
-    page.registerPresentation ?? defaultOverviewRegisterPresentation
-  ).displayProperties
+    displayProperties ??
+    (page.registerPresentation ?? defaultOverviewRegisterPresentation)
+      .displayProperties
+  )
     .map((key) => key.slice("system:".length))
     .filter(isSupportedSystemPropertyType);
-  const lookups = useMemo<DocumentMetadataIndexLookups>(() => {
-    const result: DocumentMetadataIndexLookups = {
-      statusLabels: {},
-      documentTypeLabels: {},
-      versionLabels: {},
-      classificationLabels: {},
-      hydratedKeys: {
-        status: true,
-        documentType: true,
-        version: true,
-        classification: true,
-      },
-    };
-    for (const document of page.documents) {
-      const row = document.metadata,
-        labels = document.metadataLabels;
-      if (!row || !labels) continue;
-      if (row.statusId && labels.statusLabel)
-        result.statusLabels[row.statusId] = labels.statusLabel;
-      if (row.documentTypeId && labels.documentTypeLabel)
-        result.documentTypeLabels[row.documentTypeId] =
-          labels.documentTypeLabel;
-      if (row.currentVersionId && labels.versionLabel)
-        result.versionLabels[row.currentVersionId] = labels.versionLabel;
-      if (row.classificationId && labels.classificationLabel)
-        result.classificationLabels[row.classificationId] =
-          labels.classificationLabel;
-    }
-    return result;
-  }, [page.documents]);
+  const lookups = useMemo(
+    () => registerMetadataLookups(page.documents),
+    [page.documents],
+  );
   const messages = {
     loading: t["com.myoxus.document-metadata.loading"](),
     notSet: t["com.myoxus.document-metadata.value.not-set"](),

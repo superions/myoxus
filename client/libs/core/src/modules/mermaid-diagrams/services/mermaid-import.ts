@@ -4,7 +4,7 @@ import {
   isKnownMermaidSource,
   writeMermaidSourceModelState,
 } from "@virgultum/block-mermaid";
-import type { MermaidBlockModel } from "@virgultum/model";
+import type { MermaidBlockModel } from "@virgultum/core/models";
 import type { Workspace } from "@virgultum/editor/store";
 import { MarkdownTransformer } from "@virgultum/editor/widgets/linked-doc";
 

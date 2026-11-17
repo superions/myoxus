@@ -689,6 +689,9 @@ async function openPdfExportDialog(page: Page): Promise<void> {
   if (await continueButton.isVisible({ timeout: 1_000 }).catch(() => false)) {
     await continueButton.click();
   }
+  await page
+    .getByRole("button", { name: "Advanced options", exact: true })
+    .click();
   await expect(
     page.getByRole("combobox", { name: "Document version", exact: true }),
   ).toBeVisible({

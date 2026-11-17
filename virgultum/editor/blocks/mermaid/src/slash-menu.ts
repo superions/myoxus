@@ -1,9 +1,9 @@
-import { MermaidBlockSchema } from "@virgultum/model";
-import { FeatureFlagService, editorMessage } from "@virgultum/shared/services";
+import { MermaidBlockSchema } from "@virgultum/core/models";
+import { FeatureFlagService, editorMessage } from "@virgultum/core/services";
 import type {
   SlashMenuConfig,
   SlashMenuContext,
-} from "@virgultum/widget-slash-menu";
+} from "@virgultum/core/slash-menu";
 
 import { insertMermaidBlockCommand } from "./commands.js";
 import { MERMAID_PRODUCT_TEMPLATES } from "./engine/product-types.js";

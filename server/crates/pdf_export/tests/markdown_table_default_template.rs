@@ -46,6 +46,7 @@ fn export_options() -> ExportOptions {
       body: Some("New Computer Modern".into()),
       mono: Some("New Computer Modern".into()),
       symbol: Some("New Computer Modern".into()),
+      eyebrow: None,
     },
     ..ExportOptions::default()
   }

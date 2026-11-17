@@ -261,6 +261,7 @@ async fn inv_doc_cache_19_real_redis_pattern_flush_is_namespace_scoped() {
 
 fn metadata_index_row(doc_id: Uuid, external_id: &str) -> DocumentMetadataIndexRow {
   DocumentMetadataIndexRow {
+    responsible_user_id: None,
     doc_id,
     external_id: external_id.to_string(),
     created_by: None,

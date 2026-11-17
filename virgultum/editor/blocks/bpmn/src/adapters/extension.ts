@@ -1,4 +1,4 @@
-import type { ExtensionType } from "@virgultum/store";
+import type { ExtensionType } from "@virgultum/core/store";
 
 import { BpmnBlockHtmlAdapterExtension } from "./html.js";
 import { BpmnBlockMarkdownAdapterExtension } from "./markdown.js";

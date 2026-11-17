@@ -1,1 +1,1 @@
-export * from "@virgultum/components/toggle-button";
+export * from "@virgultum/content/disclosure";

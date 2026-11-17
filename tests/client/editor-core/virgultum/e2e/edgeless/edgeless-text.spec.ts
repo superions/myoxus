@@ -47,7 +47,11 @@ import { getFormatBar } from "../utils/query.js";
 async function getEdgelessTextModelRect(page: Page) {
   const xywh = await page
     .locator("myoxus-edgeless-text")
-    .evaluate((block) => block.model.xywh);
+    .evaluate(
+      (
+        block: import("@virgultum/editor/blocks/edgeless-text").EdgelessTextBlockComponent,
+      ) => block.model.xywh,
+    );
   return Bound.deserialize(xywh);
 }
 
@@ -161,44 +165,31 @@ test.describe("edgeless text block", () => {
 
     const text = page.locator("myoxus-edgeless-text");
     await expect(text).toBeVisible();
-    await page.mouse.click(130, 140);
+    await selectTextBlock();
     await waitNextFrame(page);
+
+    async function selectTextBlock() {
+      const bounds = (await text.boundingBox())!;
+      await page.mouse.click(bounds.x + 1, bounds.y + 1);
+    }
 
     const colorButton = page.getByRole("button", { name: "Text color" });
-    const activeColorButton = page.locator("edgeless-color-button[active]");
-    const getRenderedTextColor = () =>
-      text
-        .locator(".myoxus-block-children-container")
-        .first()
-        .evaluate((element) =>
-          (element as HTMLElement).style.getPropertyValue(
-            "--edgeless-text-color",
-          ),
-        );
-
+    const colorDialog = page.getByRole("dialog", {
+      name: "Text color",
+      exact: true,
+    });
+    const textSpan = text.locator('span[data-v-text="true"]').first();
     await colorButton.click();
-    await expect(activeColorButton.getByLabel("Black")).toHaveCount(1);
-    await expect
-      .poll(async () => activeColorButton.locator("svg").getAttribute("fill"))
-      .toBe(await getRenderedTextColor());
-    await expect(activeColorButton.locator("svg")).toHaveCSS(
-      "fill",
-      "rgb(0, 0, 0)",
-    );
+
+    await expect(colorDialog).toBeVisible();
+    await expect(textSpan).toHaveCSS("color", "rgb(0, 0, 0)");
 
     await pressEscape(page);
+    await expect(colorDialog).toBeHidden();
     await switchEdgelessTheme(page, "dark");
-    await page.mouse.click(130, 140);
-    await waitNextFrame(page);
-    await colorButton.click({ force: true });
-
-    await expect
-      .poll(async () => activeColorButton.locator("svg").getAttribute("fill"))
-      .toBe(await getRenderedTextColor());
-    await expect(activeColorButton.locator("svg")).toHaveCSS(
-      "fill",
-      "rgb(255, 255, 255)",
-    );
+    await colorButton.click();
+    await expect(colorDialog).toBeVisible();
+    await expect(textSpan).toHaveCSS("color", "rgb(255, 255, 255)");
   });
 
   test("edgeless text width auto-adjusting", async ({ page }) => {
@@ -273,6 +264,7 @@ test.describe("edgeless text block", () => {
     await pressArrowUp(page);
     await pressArrowRight(page);
     await page.keyboard.up("Shift");
+
     await pressBackspace(page);
     await assertBlockTextContent(page, 5, "ab");
     await type(page, "sss\n");
@@ -312,8 +304,12 @@ test.describe("edgeless text block", () => {
     await autoFit(page);
 
     await page.locator("myoxus-reference").hover();
-    await page.getByLabel("Switch view").click();
-    await page.getByTestId("link-to-card").click();
+    await page
+      .getByRole("button", { name: "Inline view", exact: true })
+      .click();
+    await page
+      .getByRole("menuitem", { name: "Card view", exact: true })
+      .click();
     await autoFit(page);
 
     await waitNextFrame(page);
@@ -387,10 +383,12 @@ test.describe("edgeless text block", () => {
     await edgelessText.click();
     await expect
       .poll(() =>
-        page.locator("myoxus-edgeless-root").evaluate((root) => ({
-          editing: root.gfx.selection.editing,
-          ids: root.gfx.selection.selectedElements.map((e) => e.id),
-        })),
+        page
+          .locator("myoxus-edgeless-root")
+          .evaluate((root: HTMLElementTagNameMap["myoxus-edgeless-root"]) => ({
+            editing: root.gfx.selection.editing,
+            ids: root.gfx.selection.selectedElements.map((e) => e.id),
+          })),
       )
       .toEqual({
         editing: false,
@@ -428,8 +426,8 @@ test.describe("edgeless text block", () => {
     await page.locator("myoxus-latex-node").click();
     await waitNextFrame(page);
     await type(page, "ccc");
-    const menu = page.locator("latex-editor-menu");
-    const confirm = menu.locator(".latex-editor-confirm");
+    const menu = page.getByRole("dialog", { name: "Equation", exact: true });
+    const confirm = menu.getByRole("button", { name: "Confirm", exact: true });
     await confirm.click();
     await assertRichTextInlineDeltas(
       page,
@@ -445,21 +443,7 @@ test.describe("edgeless text block", () => {
     );
 
     await page.locator("myoxus-latex-node").click();
-    await page.locator(".latex-editor-hint").click();
-    await type(page, "sss");
-    await assertRichTextInlineDeltas(
-      page,
-      [
-        {
-          insert: " ",
-          attributes: {
-            latex: "bbbccc",
-          },
-        },
-      ],
-      1,
-    );
-    await page.locator("latex-editor-unit").click();
+    await menu.locator('[contenteditable="true"]').click();
     await selectAllByKeyboard(page);
     await type(page, "sss");
     await confirm.click();
@@ -527,6 +511,7 @@ test.describe("edgeless text block", () => {
 
 test("undo/redo should work when changing text color", async ({ page }) => {
   await edgelessCommonSetup(page);
+  await setViewportCenter(page, [100, 100]);
   await dblclickView(page, [100, 100]);
   await type(page, "abc");
   await pressEscape(page, 3);
@@ -540,14 +525,33 @@ test("undo/redo should work when changing text color", async ({ page }) => {
       return getComputedStyle(el).color;
     });
   };
-  const colorPanel = page.locator("edgeless-color-picker-button");
+  const colorPanel = page.getByRole("button", {
+    name: "Text color",
+    exact: true,
+  });
+  const colorDialog = page.getByRole("dialog", {
+    name: "Text color",
+    exact: true,
+  });
 
   let prevTextColor = await getTextColor();
 
   // preset color
   {
     await colorPanel.click();
-    await colorPanel.getByLabel("LightRed").click();
+    const preset = await page.evaluate(() => {
+      const { DefaultTheme, ColorScheme, resolveColor } =
+        window.$virgultum.editorModel;
+      return resolveColor(
+        DefaultTheme.Palettes.find((x) => x.key === "LightRed")!.value,
+        ColorScheme.Light,
+      );
+    });
+    await colorDialog
+      .getByRole("button", { name: preset, exact: true })
+      .first()
+      .click();
+    await pressEscape(page);
     expect(await getTextColor()).not.toBe(prevTextColor);
 
     await undoByKeyboard(page);
@@ -566,13 +570,12 @@ test("undo/redo should work when changing text color", async ({ page }) => {
     await pressEscape(page);
     await edgelessText.click();
     await colorPanel.click();
-    await colorPanel.locator("edgeless-color-custom-button").click();
-    await page.locator(".color-palette").click({
-      position: {
-        x: 100,
-        y: 100,
-      },
+    const input = colorDialog.getByRole("textbox", {
+      name: "Text color",
+      exact: true,
     });
+    await input.fill("#7a3dd6");
+    await input.press("Tab");
     await pressEscape(page);
 
     expect(await getTextColor()).not.toBe(prevTextColor);

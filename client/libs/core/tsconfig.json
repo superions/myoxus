@@ -24,18 +24,9 @@
     { "path": "../track" },
     { "path": "../ui-facade" },
     { "path": "../../../virgultum/editor/blocks/bpmn" },
-    { "path": "../../../virgultum/editor/blocks/database" },
     { "path": "../../../virgultum/editor/blocks/mermaid" },
-    { "path": "../../../virgultum/editor/blocks/root" },
-    { "path": "../../../virgultum/editor/components" },
-    { "path": "../../../virgultum/editor/all" },
-    { "path": "../../../virgultum/framework/global" },
-    { "path": "../../../virgultum/editor/model" },
-    { "path": "../../../virgultum/editor/shared" },
-    { "path": "../../../virgultum/framework/std" },
-    { "path": "../../../virgultum/editor/blocks/table" },
-    { "path": "../../../virgultum/editor/ext-loader" },
-    { "path": "../../../virgultum/editor/gfx/pointer" },
-    { "path": "../../../virgultum/framework/store" }
+    { "path": "../../../virgultum/content" },
+    { "path": "../../../virgultum/core" },
+    { "path": "../../../virgultum/editor/all" }
   ]
 }

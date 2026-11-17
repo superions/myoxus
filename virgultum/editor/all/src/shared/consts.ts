@@ -1,1 +1,1 @@
-export * from "@virgultum/shared/consts";
+export * from "@virgultum/core/consts";

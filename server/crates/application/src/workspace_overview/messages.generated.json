@@ -1,0 +1,126 @@
+{
+  "ar": {
+    "empty": "No readable documents in this register.",
+    "untitled": "بدون عنوان"
+  },
+  "ca": {
+    "empty": "No readable documents in this register.",
+    "untitled": "Sense títol"
+  },
+  "cs": {
+    "empty": "No readable documents in this register.",
+    "untitled": "Bez názvu"
+  },
+  "da": {
+    "empty": "No readable documents in this register.",
+    "untitled": "Uden titel"
+  },
+  "de": {
+    "empty": "Keine lesbaren Dokumente in diesem Register.",
+    "untitled": "Unbenannt"
+  },
+  "el-GR": {
+    "empty": "No readable documents in this register.",
+    "untitled": "Χωρίς τίτλο"
+  },
+  "en": {
+    "empty": "No readable documents in this register.",
+    "untitled": "Untitled"
+  },
+  "es-AR": {
+    "empty": "No hay documentos accesibles en este registro.",
+    "untitled": "Sin título"
+  },
+  "es-CL": {
+    "empty": "No hay documentos accesibles en este registro.",
+    "untitled": "Sin título"
+  },
+  "es": {
+    "empty": "No hay documentos accesibles en este registro.",
+    "untitled": "Sin título"
+  },
+  "fa": {
+    "empty": "No readable documents in this register.",
+    "untitled": "بدون عنوان"
+  },
+  "fr": {
+    "empty": "Aucun document accessible dans ce registre.",
+    "untitled": "Sans titre"
+  },
+  "hi": {
+    "empty": "No readable documents in this register.",
+    "untitled": "शीर्षकहीन"
+  },
+  "hr": {
+    "empty": "No readable documents in this register.",
+    "untitled": "Bez naziva"
+  },
+  "hu": {
+    "empty": "No readable documents in this register.",
+    "untitled": "Névtelen"
+  },
+  "it": {
+    "empty": "No readable documents in this register.",
+    "untitled": "Senza titolo"
+  },
+  "ja": {
+    "empty": "No readable documents in this register.",
+    "untitled": "無題"
+  },
+  "ko": {
+    "empty": "No readable documents in this register.",
+    "untitled": "제목 없음"
+  },
+  "nb-NO": {
+    "empty": "No readable documents in this register.",
+    "untitled": "Uten navn"
+  },
+  "nl": {
+    "empty": "No readable documents in this register.",
+    "untitled": "Naamloos"
+  },
+  "pl": {
+    "empty": "No readable documents in this register.",
+    "untitled": "Bez tytułu"
+  },
+  "pt-BR": {
+    "empty": "No readable documents in this register.",
+    "untitled": "Sem título"
+  },
+  "ro": {
+    "empty": "No readable documents in this register.",
+    "untitled": "Fără titlu"
+  },
+  "ru": {
+    "empty": "No readable documents in this register.",
+    "untitled": "Без названия"
+  },
+  "sk": {
+    "empty": "No readable documents in this register.",
+    "untitled": "Bez názvu"
+  },
+  "sr": {
+    "empty": "No readable documents in this register.",
+    "untitled": "Bez naslova"
+  },
+  "sv-SE": {
+    "empty": "No readable documents in this register.",
+    "untitled": "Utan titel"
+  },
+  "uk": {
+    "empty": "No readable documents in this register.",
+    "untitled": "Без назви"
+  },
+  "ur": {
+    "empty": "No readable documents in this register.",
+    "untitled": "بلا عنوان"
+  },
+  "zh-Hans": {
+    "empty": "No readable documents in this register.",
+    "untitled": "未命名"
+  },
+  "zh-Hant": {
+    "empty": "No readable documents in this register.",
+    "untitled": "未命名"
+  }
+}

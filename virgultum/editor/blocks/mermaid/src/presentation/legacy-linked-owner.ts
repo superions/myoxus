@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import type { FrameBlockModel, MermaidBlockModel } from "@virgultum/model";
-import { isGfxGroupCompatibleModel, type GfxModel } from "@virgultum/std/gfx";
+import type {
+  FrameBlockModel,
+  MermaidBlockModel,
+} from "@virgultum/core/models";
+import {
+  isGfxGroupCompatibleModel,
+  type GfxModel,
+} from "@virgultum/core/runtime/gfx";
 
 export type MermaidLegacyLinkedOwner = {
   readonly childElementIds: readonly string[];

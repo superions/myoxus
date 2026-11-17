@@ -5,8 +5,8 @@ import { pressEnter, type } from "./keyboard.js";
 export function getLinkedDocPopover(page: Page) {
   const REFERENCE_NODE = " " as const;
   const refNode = page.locator("myoxus-reference");
-  const linkedDocPopover = page.locator(".linked-doc-popover");
-  const pageBtn = linkedDocPopover.locator(".group > icon-button");
+  const linkedDocPopover = page.getByTestId("document-picker");
+  const pageBtn = linkedDocPopover.getByRole("option");
 
   const findRefNode = async (title: string) => {
     const refNode = page.locator(`myoxus-reference`, {
@@ -46,9 +46,15 @@ export function getLinkedDocPopover(page: Page) {
 
   const assertActivePageIdx = async (idx: number) => {
     if (idx !== 0) {
-      await expect(pageBtn.nth(0)).toHaveAttribute("hover", "false");
+      await expect(pageBtn.nth(0)).not.toHaveAttribute(
+        "data-combobox-selected",
+        "true",
+      );
     }
-    await expect(pageBtn.nth(idx)).toHaveAttribute("hover", "true");
+    await expect(pageBtn.nth(idx)).toHaveAttribute(
+      "data-combobox-selected",
+      "true",
+    );
   };
 
   return {

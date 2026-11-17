@@ -155,8 +155,12 @@ function readExpectedExports(
 ): ReadonlySet<string> {
   const pkgPath = resolve(
     repoRoot,
-    "virgultum/editor/blocks",
-    blockId,
+    blockId === "event"
+      ? "virgultum/embeds"
+      : blockId === "divider" || blockId === "latex"
+        ? "virgultum/content"
+        : "virgultum/editor/blocks",
+    ["divider", "latex", "event"].includes(blockId) ? "" : blockId,
     "package.json",
   );
   if (!existsSync(pkgPath)) {
@@ -220,9 +224,15 @@ function extractManifest(
 } {
   const srcPath = resolve(
     repoRoot,
-    "virgultum/editor/blocks",
+    blockId === "event"
+      ? "virgultum/embeds/src"
+      : blockId === "divider" || blockId === "latex"
+        ? "virgultum/content/src/blocks"
+        : "virgultum/editor/blocks",
     blockId,
-    "src/manifest.ts",
+    ["divider", "latex", "event"].includes(blockId)
+      ? "manifest.ts"
+      : "src/manifest.ts",
   );
   if (!existsSync(srcPath)) {
     throw new Error(
@@ -307,7 +317,12 @@ async function main(): Promise<void> {
   const entries: GuardEntry[] = [];
 
   for (const blockId of MIGRATED_BLOCKS) {
-    const packageName = `@virgultum/block-${blockId}`;
+    const packageName =
+      blockId === "event"
+        ? "@virgultum/embeds"
+        : blockId === "divider" || blockId === "latex"
+          ? "@virgultum/content"
+          : `@virgultum/block-${blockId}`;
     const expectedExports = readExpectedExports(repoRoot, blockId);
     const { publicExports, store, view } = extractManifest(repoRoot, blockId);
     if (process.env["DEBUG_GUARD"] === "1") {

@@ -167,29 +167,41 @@ pub async fn resolve_effective_pdf_theme_context(
   let (body, body_asset) = resolve_pdf_font_role(font_repository.as_ref(), "body", body_style).await?;
   let (mono, mono_asset) = resolve_pdf_font_role(font_repository.as_ref(), "mono", mono_style).await?;
   let (symbol, symbol_asset) = resolve_pdf_font_role(font_repository.as_ref(), "symbol", symbol_style).await?;
+  let eyebrow_style = profile
+    .theme
+    .typography_styles
+    .iter()
+    .find(|style| style.style_key == "label.compact")
+    .or(body_style);
+  let (eyebrow, eyebrow_asset) = resolve_pdf_font_role(font_repository.as_ref(), "eyebrow", eyebrow_style).await?;
   let typography = ThemeTypographySelection {
     heading: Some(resolve_pdf_typography_role("heading", heading_style)?),
     body: Some(resolve_pdf_typography_role("body", body_style)?),
     mono: Some(resolve_pdf_typography_role("mono", mono_style)?),
     symbol: Some(resolve_pdf_typography_role("symbol", symbol_style)?),
+    eyebrow: Some(resolve_pdf_typography_role("eyebrow", eyebrow_style)?),
   };
 
-  let color_mode = if profile.theme_mode == "dark" { "dark" } else { "light" };
-  let branding = effective_document_branding(&brand, &profile.theme.colors, color_mode);
-  let native_table_palette = resolve_native_table_palette(
-    profile
-      .theme
-      .colors
-      .get(color_mode)
-      .ok_or_else(|| PdfExportError::new("effective PDF theme colours are unavailable"))?,
-    color_mode,
-  )?;
+  let colors = pdf_document_colors(&profile)?;
+  let branding = effective_document_branding(&brand, colors);
+  let mut native_table_palette = resolve_native_table_palette(colors, "light")?;
+  let content = crate::branding::content_colors();
+  for (reference, fill) in content.light.iter().chain(content.fixed.iter()) {
+    native_table_palette.insert(
+      reference.clone(),
+      NativeTablePaint {
+        fill: fill.clone(),
+        foreground: crate::branding::adaptive_foreground(fill).to_owned(),
+      },
+    );
+  }
 
   let mut font_assets = BTreeMap::new();
   font_assets.insert("heading".to_owned(), heading_asset);
   font_assets.insert("body".to_owned(), body_asset);
   font_assets.insert("mono".to_owned(), mono_asset);
   font_assets.insert("symbol".to_owned(), symbol_asset);
+  font_assets.insert("eyebrow".to_owned(), eyebrow_asset);
 
   debug!(
     heading = %heading,
@@ -198,7 +210,6 @@ pub async fn resolve_effective_pdf_theme_context(
     symbol = %symbol,
     theme_slug = %profile.theme.slug,
     scope = %profile.scope,
-    color_mode,
     default_color_profile = brand.default_color_profile.as_deref().unwrap_or("sRGB"),
     ligatures_enabled = brand.ligatures_enabled,
     "pdf export: resolved effective document colors and font roles from server models"
@@ -210,6 +221,7 @@ pub async fn resolve_effective_pdf_theme_context(
       body: Some(body),
       mono: Some(mono),
       symbol: Some(symbol),
+      eyebrow: Some(eyebrow),
     },
     typography,
     native_table_palette: Some(native_table_palette),
@@ -244,23 +256,24 @@ fn resolve_native_table_palette(tokens: &BTreeMap<String, String>, mode: &str) -
     })
     .collect()
 }
+/// PDF document paint always uses the print palette. Client display mode must
+/// not select dark text, surfaces or table colours for an exported document.
+fn pdf_document_colors(profile: &crate::branding::ThemeProfileProjection) -> Result<&BTreeMap<String, String>> {
+  profile
+    .theme
+    .colors
+    .get("light")
+    .ok_or_else(|| PdfExportError::new("effective PDF light theme colours are unavailable"))
+}
+
 fn effective_document_branding(
   brand: &myoxus_domain::entities::PdfWorkspaceBrandAsset,
-  theme_colors: &BTreeMap<String, BTreeMap<String, String>>,
-  color_mode: &str,
+  colors: &BTreeMap<String, String>,
 ) -> Branding {
-  let fallback_colors = theme_colors.get(color_mode);
-  let fallback_primary = fallback_colors.and_then(|values| values.get("accent-primary")).cloned();
-  let fallback_text = fallback_colors.and_then(|values| values.get("ink")).cloned();
-  let fallback_background = fallback_colors.and_then(|values| values.get("paper")).cloned();
-  // Document palettes are print-oriented and are seeded from the light theme
-  // mode. Keep their code surface on that same palette instead of mixing a
-  // dark application surface into an otherwise light PDF.
-  let fallback_code_background = theme_colors
-    .get("light")
-    .or(fallback_colors)
-    .and_then(|values| values.get("background-code-block"))
-    .cloned();
+  let fallback_primary = colors.get("accent-primary").cloned();
+  let fallback_text = colors.get("ink").cloned();
+  let fallback_background = colors.get("paper").cloned();
+  let fallback_code_background = colors.get("background-code-block").cloned();
 
   Branding {
     organization_name: brand.company_name.clone(),
@@ -285,7 +298,7 @@ fn effective_document_branding(
 #[cfg(test)]
 mod tests {
   #[test]
-  fn native_table_palette_matches_runtime_theme_css_in_both_modes() {
+  fn pdf_palette_stays_light_for_both_client_display_modes() {
     use crate::branding::{ThemeProfileProjection, ThemeProjection};
     use std::collections::BTreeMap;
 
@@ -312,18 +325,25 @@ mod tests {
         is_default: true,
         color_schema_slug: "palette-test".into(),
         typography_slug: "palette-test".into(),
-        colors: BTreeMap::from([("light".into(), tokens.clone()), ("dark".into(), tokens.clone())]),
+        colors: BTreeMap::from([
+          ("light".into(), tokens.clone()),
+          ("dark".into(), BTreeMap::from([("paper-deep".into(), "#101010".into())])),
+        ]),
         typography_styles: vec![],
       },
     };
-    for (mode, blue) in [("light", "#e1eeff"), ("dark", "#084388")] {
+    for mode in ["light", "dark"] {
       profile.theme_mode = mode.into();
-      let palette = super::resolve_native_table_palette(&tokens, mode).expect("valid palette");
+      let colors = super::pdf_document_colors(&profile).expect("print colours");
+      assert_eq!(colors, &tokens);
+      let palette = super::resolve_native_table_palette(colors, "light").expect("valid palette");
       assert_eq!(palette.len(), 12);
       assert_eq!(palette["--myoxus-background-secondary-color"].fill, "#e5dfd3");
-      assert_eq!(palette["--myoxus-tag-blue"].fill, blue);
+      assert_eq!(palette["--myoxus-tag-blue"].fill, "#e1eeff");
       assert_eq!(palette["--myoxus-sem-status-success-paper"].fill, "#c7e5d2");
-      let css = crate::branding::build_runtime_theme_css(&profile, &[]);
+      let mut print_profile = profile.clone();
+      print_profile.theme_mode = "light".into();
+      let css = crate::branding::build_runtime_theme_css(&print_profile, &[]);
       let root = css.split("}\n").next().unwrap();
       for (reference, paint) in palette {
         assert!(root.contains(&format!("{reference}: {};", paint.fill)));

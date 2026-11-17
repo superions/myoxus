@@ -9,7 +9,7 @@ import {
   type BlockSelection,
 } from "@virgultum/editor/std";
 import type { ImageSelection } from "@virgultum/editor/shared/selection";
-import type { NotificationService } from "@virgultum/shared/services";
+import type { NotificationService } from "@virgultum/core/services";
 import { nothing } from "lit";
 import { property, state } from "lit/decorators.js";
 import { createElement } from "react";

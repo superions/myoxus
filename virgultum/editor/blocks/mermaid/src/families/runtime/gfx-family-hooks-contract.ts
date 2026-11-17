@@ -7,7 +7,7 @@ import type {
   ShapeElementModel,
   ShapeLabelProjection,
   StrokeStyle,
-} from "@virgultum/model";
+} from "@virgultum/core/models";
 
 import type {
   MermaidVisualModel,
@@ -170,7 +170,7 @@ export type MermaidGfxFamilyHooks = {
   readonly prepareInsertProjection?: (
     source: string,
     visual: MermaidVisualModel,
-    provider: import("@virgultum/global/di").ServiceProvider,
+    provider: import("@virgultum/core/primitives/di").ServiceProvider,
   ) => MermaidVisualModel;
 
   readonly semanticClipboard?: boolean;

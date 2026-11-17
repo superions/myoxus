@@ -1,11 +1,11 @@
-import { DefaultTheme, NoteDisplayMode } from "@virgultum/model";
-import { NotionHtmlAdapter } from "@virgultum/shared/adapters";
-import { DEFAULT_IMAGE_PROXY_ENDPOINT } from "@virgultum/shared/consts";
+import { DefaultTheme, NoteDisplayMode } from "@virgultum/core/models";
+import { NotionHtmlAdapter } from "@virgultum/core/adapters";
+import { DEFAULT_IMAGE_PROXY_ENDPOINT } from "@virgultum/core/consts";
 import {
   AssetsManager,
   type BlockSnapshot,
   MemoryBlobCRUD,
-} from "@virgultum/store";
+} from "@virgultum/core/store";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 import { createJob } from "../utils/create-job.js";

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { Bound } from "@virgultum/global/gfx";
+import { Bound } from "@virgultum/core/primitives/gfx";
 import {
   ConnectorElementModel,
   ShapeElementModel,
   type MermaidBlockModel,
-} from "@virgultum/model";
+} from "@virgultum/core/models";
 import { getGfxMeta } from "../../commands/materialization.js";
 import { resolveMermaidGfxProjectionOwner } from "../../presentation/gfx-projection-owner.js";
 import { getMermaidBlockSource } from "../../utils.js";

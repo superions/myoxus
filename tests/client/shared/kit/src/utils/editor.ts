@@ -1,10 +1,10 @@
 import "@virgultum/editor/effects";
 
 import { expect, type Locator, type Page } from "@playwright/test";
-import type { CodeBlockComponent } from "@virgultum/block-code";
-import type { ParagraphBlockComponent } from "@virgultum/block-paragraph";
+import type { CodeBlockComponent } from "@virgultum/content/blocks";
+import type { ParagraphBlockComponent } from "@virgultum/content/blocks";
 import type { IVec, XYWH } from "@virgultum/editor/global/gfx";
-import type { BlockComponent } from "@virgultum/std";
+import type { BlockComponent } from "@virgultum/core/runtime";
 
 import { dblclickLocatorByRatio } from "./utils";
 

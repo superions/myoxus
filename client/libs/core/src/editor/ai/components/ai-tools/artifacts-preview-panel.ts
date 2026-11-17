@@ -1,154 +1,83 @@
-import { EmptyIcon } from "@myoxus/icons/lit";
+import { type ReactToLit, toReactNode } from "@myoxus/lit-react";
 import { WithDisposable } from "@virgultum/editor/global/lit";
-import { fontWebStyle } from "@virgultum/editor/shared/styles";
-import { unsafeCSSValue, unsafeCSSVar } from "@virgultum/editor/shared/theme";
 import { ShadowlessElement } from "@virgultum/editor/std";
-import { css, html, nothing, type TemplateResult } from "lit";
+import { html, type TemplateResult } from "lit";
 import { property } from "lit/decorators.js";
+import { createElement, type ReactNode } from "react";
 
 import type { AIChatContent } from "../ai-chat-content";
+import { ArtifactPreviewView } from "./artifact-view";
 
 function getChatPanel(target: HTMLElement) {
-  return target.closest("ai-chat-content") as AIChatContent;
+  return target.closest<AIChatContent>("ai-chat-content");
 }
 
+// Multiple historical artifacts share one panel. An older producer must not
+// replace the selected preview when its stream changes or it disconnects.
+const owners = new WeakMap<AIChatContent, HTMLElement>();
+
+export const hasPreviewPanel = (target: HTMLElement) => !!getChatPanel(target);
+
 export const isPreviewPanelOpen = (target: HTMLElement) => {
-  const chatPanel = getChatPanel(target);
-  return chatPanel?.isPreviewPanelOpen ?? false;
+  const panel = getChatPanel(target);
+  return !!panel?.isPreviewPanelOpen && owners.get(panel) === target;
 };
 
-export const renderPreviewPanel = (
+interface PreviewPanelData {
+  reactToLit: ReactToLit;
+  title: string;
+  icon: ReactNode;
+  content: TemplateResult;
+  controls?: ReactNode;
+}
+
+export function renderPreviewPanel(
   target: HTMLElement,
-  content: TemplateResult<1>,
-  controls?: TemplateResult<1>,
-) => {
-  const chatPanel = getChatPanel(target);
+  data: PreviewPanelData,
+) {
+  const panel = getChatPanel(target);
+  if (!panel) return;
+  owners.set(panel, target);
+  producerPanels.set(target, panel);
+  panel.openPreviewPanel(
+    html`<artifact-preview-panel .data=${data}></artifact-preview-panel>`,
+  );
+}
 
-  if (!chatPanel) {
-    console.error("chat-panel not found");
-    return;
+export function closePreviewPanel(target: HTMLElement) {
+  const panel = getChatPanel(target);
+  panel?.closePreviewPanel(true);
+  if (panel) owners.delete(panel);
+}
+
+export function releasePreviewPanel(target: HTMLElement) {
+  // disconnectedCallback runs after removal, when closest() can no longer find
+  // the panel. The producer's retained owner is resolved at open time instead.
+  const panel = producerPanels.get(target);
+  producerPanels.delete(target);
+  if (panel && owners.get(panel) === target) {
+    owners.delete(panel);
+    panel.closePreviewPanel(true);
   }
+}
 
-  const preview = html`<artifact-preview-panel
-    .content=${content}
-    .controls=${controls ?? nothing}
-  ></artifact-preview-panel>`;
-  chatPanel.openPreviewPanel(preview);
-};
+const producerPanels = new WeakMap<HTMLElement, AIChatContent>();
 
-export const closePreviewPanel = (target: HTMLElement) => {
-  const chatPanel = getChatPanel(target);
-
-  if (!chatPanel) {
-    console.error("chat-panel not found");
-    return;
-  }
-
-  chatPanel.closePreviewPanel();
-};
-
+/** Thin mounting boundary for the existing conversation's TemplateResult slot. */
 export class ArtifactPreviewPanel extends WithDisposable(ShadowlessElement) {
-  static override styles = css`
-    .artifact-panel-preview-root {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      padding: ${unsafeCSSValue("var(--mantine-spacing-lg)")};
-    }
+  @property({ attribute: false }) accessor data!: PreviewPanelData;
 
-    .artifact-preview-panel {
-      border-radius: ${unsafeCSSValue("var(--mantine-radius-xl)")};
-      background-color: ${unsafeCSSVar("backgroundOverlayPanelColor")};
-      box-shadow: ${unsafeCSSVar("overlayPanelShadow")};
-      height: 100%;
-      overflow: hidden;
-    }
-
-    .artifact-panel-header {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      padding: 0 ${unsafeCSSValue("var(--mantine-spacing-md)")};
-      height: ${unsafeCSSValue(
-        "calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-lg) + var(--mantine-spacing-xs))",
-      )};
-      background: ${unsafeCSSVar("backgroundOverlayPanelColor")};
-    }
-
-    .artifact-panel-title {
-      color: ${unsafeCSSVar("textPrimaryColor")};
-    }
-
-    ${fontWebStyle(".artifact-panel-title", "card-title")}
-
-    .artifact-panel-actions {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      gap: ${unsafeCSSValue("var(--mantine-spacing-xs)")};
-      flex: 1;
-    }
-
-    .artifact-panel-close {
-      margin-left: ${unsafeCSSValue("var(--mantine-spacing-xs)")};
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: ${unsafeCSSValue("var(--mantine-spacing-xl)")};
-      height: ${unsafeCSSValue("var(--mantine-spacing-xl)")};
-      border-radius: 50%;
-      cursor: pointer;
-      transition: background-color ${unsafeCSSValue("200ms")} ease-in-out;
-      color: ${unsafeCSSVar("iconSecondary")};
-    }
-
-    .artifact-panel-content {
-      overflow-y: auto;
-      height: calc(
-        100% -
-          ${unsafeCSSValue(
-            "calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-lg) + var(--mantine-spacing-xs))",
-          )}
-      );
-      position: relative;
-    }
-
-    .artifact-panel-close:hover {
-      background-color: ${unsafeCSSVar("backgroundTertiaryColor")};
-    }
-  `;
-
-  @property({ attribute: false })
-  accessor content: TemplateResult<1> | null = null;
-
-  @property({ attribute: false })
-  accessor controls: TemplateResult<1> | null = null;
-
-  private readonly _handleClose = () => {
-    closePreviewPanel(this);
-  };
+  private readonly handleClose = () => closePreviewPanel(this);
 
   protected override render() {
-    return html`<div class="artifact-panel-preview-root">
-      <div class="artifact-preview-panel">
-        <div class="artifact-panel-header">
-          <div class="artifact-panel-actions">
-            ${this.controls ?? nothing}
-            <icon-button
-              class="artifact-panel-close"
-              @click=${this._handleClose}
-            >
-              ${EmptyIcon({
-                width: "var(--mantine-spacing-xl)",
-                height: "var(--mantine-spacing-xl)",
-              })}
-            </icon-button>
-          </div>
-        </div>
-        <div class="artifact-panel-content">${this.content}</div>
-      </div>
-    </div>`;
+    const { reactToLit, content, ...props } = this.data;
+    return reactToLit(
+      createElement(
+        ArtifactPreviewView,
+        { ...props, close: this.handleClose },
+        toReactNode(content),
+      ),
+      true,
+    );
   }
 }

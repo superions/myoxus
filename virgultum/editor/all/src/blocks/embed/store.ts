@@ -1,1 +1,1 @@
-export * from "@virgultum/block-embed/store";
+export { EmbedStoreExtension } from "@virgultum/embeds/store";

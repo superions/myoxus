@@ -17,6 +17,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, instrument, warn};
 use typst::foundations::{Bytes, Smart};
+use typst::{World, WorldExt};
 use typst_layout::PagedDocument;
 use typst_pdf::{PdfStandard, PdfStandards};
 
@@ -24,6 +25,7 @@ use crate::error::RenderError;
 use crate::ir::{IrDocument, block::AssetData, block::EdgelessSnapshotLimits};
 
 pub mod ir_to_typst;
+mod latex;
 pub mod world;
 
 use world::TypstWorld;
@@ -240,18 +242,35 @@ pub fn render_to_pdf_v2_with_snapshot_limits(
     | ir_to_typst::SourceV2Error::InvalidThemeTypographyRole(_, _) => {
       RenderError::Compilation(format!("configuration error: {e}"))
     }
+    ir_to_typst::SourceV2Error::Latex { index, reason } => crate::error::LatexDiagnostic { index, reason }.into(),
     e => RenderError::Compilation(format!("V2 source generation failed: {e}")),
   })?;
 
-  let mut blobs: HashMap<String, Bytes> = doc
-    .assets
-    .iter()
-    .map(|(id, asset)| (id.clone(), Bytes::new(asset.bytes.clone())))
-    .collect();
+  let monochrome = doc.options.color_variant.as_deref() == Some("mono");
+  let media_bytes = |bytes: &[u8]| -> Result<Bytes, RenderError> {
+    let bytes = if monochrome {
+      crate::render_v2::image_pipeline::grayscale(
+        bytes,
+        extra_font_dirs,
+        doc.options.theme_fonts.body.as_deref().unwrap_or_default(),
+      )
+      .map_err(|e| RenderError::Compilation(format!("grayscale media conversion failed: {e}")))?
+    } else {
+      bytes.to_vec()
+    };
+    Ok(Bytes::new(bytes))
+  };
+  let mut blobs: HashMap<String, Bytes> = HashMap::new();
+  // IR assets are resolved document images, snapshots and logos. Native blob
+  // records may lack a MIME type, so it must not control grayscale treatment.
+  for (id, asset) in &doc.assets {
+    blobs.insert(id.clone(), media_bytes(&asset.bytes)?);
+  }
   for (key, bytes) in generated.inline_assets {
-    blobs.insert(key, Bytes::new(bytes));
+    blobs.insert(key, media_bytes(&bytes)?);
   }
 
+  let formula_ranges = generated.formula_ranges;
   let world = TypstWorld::new(generated.source, blobs, extra_font_dirs)
     .with_bundle_files(template_files)
     .map_err(|e| RenderError::Compilation(format!("invalid template bundle: {e}")))?;
@@ -261,6 +280,15 @@ pub fn render_to_pdf_v2_with_snapshot_limits(
     ("body", doc.options.theme_fonts.body.as_deref()),
     ("mono", doc.options.theme_fonts.mono.as_deref()),
     ("symbol", doc.options.theme_fonts.symbol.as_deref()),
+    (
+      "eyebrow",
+      doc
+        .options
+        .theme_fonts
+        .eyebrow
+        .as_deref()
+        .or(doc.options.theme_fonts.body.as_deref()),
+    ),
   ];
   let mut missing_font_families: Vec<String> = Vec::new();
   for (role, family) in requested_roles {
@@ -280,10 +308,19 @@ pub fn render_to_pdf_v2_with_snapshot_limits(
 
   let compiled = typst::compile::<PagedDocument>(&world);
   for w in &compiled.warnings {
-    warn!(message = %w.message, "typst warning (V2)");
+    warn!(message = %formula_diagnostic_message(&world, w, &formula_ranges), "typst warning (V2)");
   }
   let document = compiled.output.map_err(|diagnostics| {
-    let messages: Vec<String> = diagnostics.iter().map(|d| d.message.as_str().to_owned()).collect();
+    if let Some(formula) = diagnostics
+      .iter()
+      .find_map(|d| formula_diagnostic(&world, d, &formula_ranges))
+    {
+      return RenderError::Latex(formula);
+    }
+    let messages: Vec<String> = diagnostics
+      .iter()
+      .map(|d| formula_diagnostic_message(&world, d, &formula_ranges))
+      .collect();
     RenderError::Compilation(messages.join("; "))
   })?;
 
@@ -312,7 +349,16 @@ pub fn render_to_pdf_v2_with_snapshot_limits(
     ..Default::default()
   };
   let pdf_bytes = typst_pdf::pdf(&document, &pdf_options).map_err(|diagnostics| {
-    let messages: Vec<String> = diagnostics.iter().map(|d| d.message.as_str().to_owned()).collect();
+    if let Some(formula) = diagnostics
+      .iter()
+      .find_map(|d| formula_diagnostic(&world, d, &formula_ranges))
+    {
+      return RenderError::Latex(formula);
+    }
+    let messages: Vec<String> = diagnostics
+      .iter()
+      .map(|d| formula_diagnostic_message(&world, d, &formula_ranges))
+      .collect();
     compliance.map_pdf_error(messages.join("; "))
   })?;
 
@@ -331,4 +377,36 @@ pub fn render_to_pdf_v2_with_snapshot_limits(
 
 pub fn asset_to_bytes(asset: &AssetData) -> Bytes {
   Bytes::new(asset.bytes.clone())
+}
+
+/// eval diagnostics may echo private formula fragments. Attribute via the
+/// generated call-site range, then retain only the safe occurrence number.
+fn formula_diagnostic_message(
+  world: &TypstWorld,
+  diagnostic: &typst::diag::SourceDiagnostic,
+  formula_ranges: &[(std::ops::Range<usize>, usize)],
+) -> String {
+  formula_diagnostic(world, diagnostic, formula_ranges)
+    .map_or_else(|| diagnostic.message.as_str().to_owned(), |formula| formula.to_string())
+}
+
+fn formula_diagnostic(
+  world: &TypstWorld,
+  diagnostic: &typst::diag::SourceDiagnostic,
+  formula_ranges: &[(std::ops::Range<usize>, usize)],
+) -> Option<crate::error::LatexDiagnostic> {
+  let formula = std::iter::once(diagnostic.span)
+    .chain(diagnostic.trace.iter().map(|trace| trace.span.into()))
+    .filter(|span| span.id() == Some(world.main()))
+    .filter_map(|span| world.range(span))
+    .find_map(|range| {
+      formula_ranges
+        .iter()
+        .find(|(formula, _)| formula.contains(&range.start))
+        .map(|(_, index)| index)
+    });
+  formula.map(|index| crate::error::LatexDiagnostic {
+    index: *index,
+    reason: crate::error::LatexErrorReason::InvalidArguments,
+  })
 }

@@ -19,6 +19,9 @@
  *   - Admin user exists (ensured in beforeAll via /api/setup/create-admin-user)
  */
 
+import type { APIRequestContext } from "@playwright/test";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import {
   ADMIN_FRONTEND_BASE,
   API_BASE,
@@ -27,12 +30,53 @@ import {
 } from "../../fixtures/auth";
 import { expect, test } from "../../fixtures/index";
 
+async function restartProfileApi() {
+  // The runtime-profile guard resolves the exact authorized development stack.
+  // A health request cannot substitute for the restart this contract asserts.
+  await promisify(execFile)(
+    "bash",
+    [
+      "-lc",
+      `set -euo pipefail
+REPO_ROOT="$PWD"
+source build/scripts/server/require-runtime-profile.sh verify
+docker compose -f build/server/docker-compose.selfhost.yml restart api`,
+    ],
+    { timeout: 30_000 },
+  );
+}
+
+async function waitForRestart(request: APIRequestContext) {
+  await expect
+    .poll(
+      async () => {
+        try {
+          return (await request.get(`${API_BASE}/ready`)).status();
+        } catch (error) {
+          // A real restart closes the listening socket before readiness returns.
+          if (
+            error instanceof Error &&
+            /ECONNRESET|ECONNREFUSED|socket hang up/.test(error.message)
+          )
+            return 0;
+          throw error;
+        }
+      },
+      { timeout: 30_000 },
+    )
+    .toBe(200);
+}
+
 test.describe("Config roundtrip — admin UI changes persist", () => {
-  const originalServerName = "Myoxus";
+  let originalServerName: string | undefined;
   const testServerName = `E2E-Test-${Date.now().toString(36)}`;
 
   test.beforeAll(async ({ request }) => {
     await ensureAdminUser(request);
+    const response = await request.get(`${API_BASE}/api/admin/config/export`);
+    expect(response.ok()).toBe(true);
+    originalServerName = (await response.json())["server.name"];
+    expect(typeof originalServerName).toBe("string");
   });
 
   test("change server.name in admin UI and verify persistence through reload", async ({
@@ -43,20 +87,14 @@ test.describe("Config roundtrip — admin UI changes persist", () => {
     await loginAsAdmin(page);
 
     // Navigate to Settings → System
-    await page.goto(`${ADMIN_FRONTEND_BASE}/settings`);
-    await page.waitForURL(`**settings**`, { timeout: 10_000 });
-
-    // Find system settings section (tab or menu item)
-    const systemTab = page
-      .locator("button, a", { hasText: /^System$/i })
-      .first();
-    await expect(systemTab).toBeVisible({ timeout: 3_000 });
-    await systemTab.click();
+    await page.goto(`${ADMIN_FRONTEND_BASE}/system`);
+    await page.waitForURL(`**system**`, { timeout: 10_000 });
 
     // Read current server.name value
-    const serverNameInput = page
-      .locator('input[name="serverName"], input[placeholder*="server name" i]')
-      .first();
+    const serverNameInput = page.getByRole("textbox", {
+      name: "Server name",
+      exact: true,
+    });
     await serverNameInput.waitFor({ state: "visible", timeout: 8_000 });
     // Change server.name
     await serverNameInput.fill(testServerName);
@@ -75,9 +113,10 @@ test.describe("Config roundtrip — admin UI changes persist", () => {
     await page.reload({ waitUntil: "networkidle" });
 
     // Verify server.name is still the new value
-    const reloadedInput = page
-      .locator('input[name="serverName"], input[placeholder*="server name" i]')
-      .first();
+    const reloadedInput = page.getByRole("textbox", {
+      name: "Server name",
+      exact: true,
+    });
     await reloadedInput.waitFor({ state: "visible", timeout: 8_000 });
     const reloadedValue = await reloadedInput.inputValue();
 
@@ -105,52 +144,38 @@ test.describe("Config roundtrip — admin UI changes persist", () => {
     );
   });
 
-  test("verify server.name persists after full stack restart", async ({
+  test("verify server.name persists after API restart", async ({
     page,
     adminRequest,
   }) => {
-    // Restart API container (simulates production restart)
-    // Note: This assumes build/scripts/server/stack-rebuild-api.sh can be called
-    // For this test, we'll restart via Docker if available
-    try {
-      const restartCmd = await adminRequest.get(`${API_BASE}/health`);
-      if (!restartCmd.ok()) {
-        console.log("could not verify API health before restart");
-      }
-    } catch {
-      console.log("API health check skipped");
-    }
+    await restartProfileApi();
+    await waitForRestart(adminRequest);
 
     // Re-login after potential restart
     await page.goto(`${ADMIN_FRONTEND_BASE}`);
     await loginAsAdmin(page);
 
     // Navigate to Settings → System again
-    await page.goto(`${ADMIN_FRONTEND_BASE}/settings`);
-    await page.waitForURL(`**settings**`, { timeout: 10_000 });
-
-    // Click system tab
-    const systemTab = page
-      .locator("button, a", { hasText: /^System$/i })
-      .first();
-    await expect(systemTab).toBeVisible({ timeout: 3_000 });
-    await systemTab.click();
+    await page.goto(`${ADMIN_FRONTEND_BASE}/system`);
+    await page.waitForURL(`**system**`, { timeout: 10_000 });
 
     // Verify server.name is still the new value
-    const serverNameInput = page
-      .locator('input[name="serverName"], input[placeholder*="server name" i]')
-      .first();
+    const serverNameInput = page.getByRole("textbox", {
+      name: "Server name",
+      exact: true,
+    });
     await serverNameInput.waitFor({ state: "visible", timeout: 8_000 });
     const persistedValue = await serverNameInput.inputValue();
 
     expect(persistedValue).toBe(
       testServerName,
-      "INV-CFG-RT03: server.name should persist after full restart",
+      "INV-CFG-RT03: server.name should persist after API restart",
     );
   });
 
   test.afterAll(async ({ adminRequest }) => {
-    // Cleanup: Reset server.name to original value
+    if (originalServerName === undefined) return;
+    // Restore the original database value and its restart-required runtime.
     const importRes = await adminRequest.post(
       `${API_BASE}/api/admin/config/import`,
       {
@@ -163,5 +188,7 @@ test.describe("Config roundtrip — admin UI changes persist", () => {
       },
     );
     expect(importRes.ok()).toBe(true);
+    await restartProfileApi();
+    await waitForRestart(adminRequest);
   });
 });

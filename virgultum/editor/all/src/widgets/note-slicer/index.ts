@@ -1,1 +1,5 @@
-export * from "@virgultum/widget-note-slicer";
+export {
+  NOTE_SLICER_WIDGET,
+  NoteSlicer,
+  noteSlicerWidget,
+} from "@virgultum/canvas/widgets";

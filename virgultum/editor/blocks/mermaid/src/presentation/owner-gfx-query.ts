@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import type { Query } from "@virgultum/store";
+import type { Query } from "@virgultum/core/store";
 
 import type { MermaidGfxProjection } from "./gfx-projection-owner.js";
 

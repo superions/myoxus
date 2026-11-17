@@ -24,19 +24,19 @@ const ROOT_FILES = [
 ];
 const PUBLIC_EXPORT_EXCLUDED_PATHS = ["virgultum/icons/dist/**"];
 const EMBEDDED_LICENSES = new Map([
-  ["virgultum/editor/blocks/surface/src/utils/path-data-parser/LICENSE", "MIT"],
-  ["virgultum/editor/blocks/surface/src/utils/points-on-curve/LICENSE", "MIT"],
-  ["virgultum/editor/blocks/surface/src/utils/points-on-path/LICENSE", "MIT"],
-  ["virgultum/editor/blocks/surface/src/utils/rough/LICENSE", "MIT"],
-  ["virgultum/framework/global/src/gfx/perfect-freehand/LICENSE", "MIT"],
+  ["virgultum/canvas-runtime/src/utils/path-data-parser/LICENSE", "MIT"],
+  ["virgultum/canvas-runtime/src/utils/points-on-curve/LICENSE", "MIT"],
+  ["virgultum/canvas-runtime/src/utils/points-on-path/LICENSE", "MIT"],
+  ["virgultum/canvas-runtime/src/utils/rough/LICENSE", "MIT"],
+  ["virgultum/core/src/primitives/gfx/perfect-freehand/LICENSE", "MIT"],
   ["virgultum/icons/THIRD_PARTY_LICENSES.md", "MIT"],
   ["virgultum/provenance/LICENSE-LIT-BSD-3-Clause.txt", "BSD-3-Clause"],
   ["virgultum/provenance/LICENSE-FIGMA-SQUIRCLE-MIT.txt", "MIT"],
   ["virgultum/provenance/LICENSE-GFM-AUTOLINK-MIT.txt", "MIT"],
 ]);
 const LIT_SOURCES = [
-  "virgultum/framework/global/src/lit/signal-watcher.ts",
-  "virgultum/framework/global/src/lit/watch.ts",
+  "virgultum/core/src/primitives/lit/signal-watcher.ts",
+  "virgultum/core/src/primitives/lit/watch.ts",
 ];
 
 function isPublicExportExcluded(path) {
@@ -171,14 +171,14 @@ export function generateVirgultumProvenance(repoRoot = REPO_ROOT) {
     {
       license: "virgultum/provenance/LICENSE-FIGMA-SQUIRCLE-MIT.txt",
       paths: ["distribute.ts", "draw.ts", "index.ts"].map(
-        (name) => `virgultum/editor/shared/src/utils/figma-squircle/${name}`,
+        (name) => `virgultum/core/src/utils/figma-squircle/${name}`,
       ),
       upstreamUrl:
         "https://github.com/phamfoo/figma-squircle/blob/7239f0aca50ba236d05f3779e89cea4d4b32d8bf/LICENSE",
     },
     {
       license: "virgultum/provenance/LICENSE-GFM-AUTOLINK-MIT.txt",
-      paths: ["virgultum/editor/shared/src/adapters/markdown/gfm.ts"],
+      paths: ["virgultum/core/src/adapters/markdown/gfm.ts"],
       upstreamUrl:
         "https://github.com/syntax-tree/mdast-util-gfm-autolink-literal/blob/182000e93a49c259d362e6d3f474b13d35b6472d/license",
     },

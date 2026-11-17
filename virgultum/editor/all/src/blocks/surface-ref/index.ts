@@ -1,1 +1,5 @@
-export * from "@virgultum/block-surface-ref";
+export {
+  insertSurfaceRefBlockCommand,
+  SurfaceRefBlockComponent,
+  EdgelessSurfaceRefBlockComponent,
+} from "@virgultum/canvas/blocks";

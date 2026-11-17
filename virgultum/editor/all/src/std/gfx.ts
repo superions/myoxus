@@ -1,1 +1,1 @@
-export * from "@virgultum/std/gfx";
+export * from "@virgultum/core/runtime/gfx";

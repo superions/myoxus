@@ -1,1 +1,1 @@
-export * from "@virgultum/components/notification";
+export * from "@virgultum/content/reference-notification";

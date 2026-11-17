@@ -1,1 +1,6 @@
-export * from "@virgultum/components/context-menu";
+export {
+  templateRepeatLabel,
+  templateVariableLabel,
+  templateVariableGroupOrder,
+  templateVariableGroupMessages,
+} from "@virgultum/core/services";

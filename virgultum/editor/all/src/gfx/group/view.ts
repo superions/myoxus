@@ -1,1 +1,1 @@
-export * from "@virgultum/gfx-group/view";
+export { GroupViewExtension } from "@virgultum/canvas/view";

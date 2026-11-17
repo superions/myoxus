@@ -1,1 +1,1 @@
-export * from "@virgultum/components/highlight-dropdown-menu";
+export type { HighlightType } from "@virgultum/core/types";

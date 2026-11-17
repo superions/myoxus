@@ -1,1 +1,1 @@
-export * from "@virgultum/gfx-pointer";
+export * from "@virgultum/canvas-runtime/tools";

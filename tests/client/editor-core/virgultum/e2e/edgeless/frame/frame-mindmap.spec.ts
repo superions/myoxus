@@ -33,7 +33,9 @@ test("dragging a Source mindmap owner reparents the whole map without detaching 
     const root = document.querySelector("myoxus-edgeless-root");
     const map = root?.gfx.getElementById(id);
     if (!map || !("childIds" in map)) throw new Error("Mindmap missing");
-    return [...map.childIds];
+    return [
+      ...(map as import("@virgultum/core/models").MermaidBlockModel).childIds,
+    ];
   }, mindmapId);
   expect(children.length).toBeGreaterThan(1);
   await autoFit(page);
@@ -51,7 +53,10 @@ test("dragging a Source mindmap owner reparents the whole map without detaching 
       const owner = root.store.getBlock(id)!.model;
       if (!("elementBound" in owner))
         throw new Error("Source owner has no bounds");
-      const bound = root.gfx.viewport.toViewBound(owner.elementBound);
+      const bound = root.gfx.viewport.toViewBound(
+        (owner as import("@virgultum/core/models").MermaidBlockModel)
+          .elementBound,
+      );
       return { x: bound.x + 10, y: bound.y + bound.h - 10 };
     }, mindmapId);
   await dragBetweenCoords(page, await ownerPoint(), {

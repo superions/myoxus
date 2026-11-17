@@ -1,4 +1,4 @@
-import type { Store } from "@virgultum/store";
+import type { Store } from "@virgultum/core/store";
 import type { EditorHost } from "@virgultum/editor/std";
 
 import { insertFromMarkdown, replaceFromMarkdown } from "../../../utils";

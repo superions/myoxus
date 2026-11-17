@@ -12,6 +12,9 @@ import {
   selectAllByKeyboard,
   setViewportCenter,
   Shape,
+  setEdgelessTool,
+  locatorEdgelessToolButton,
+  pressEscape,
   toViewCoord,
   triggerComponentToolbarAction,
   waitNextFrame,
@@ -24,6 +27,10 @@ async function commonSetup(page: Page) {
   // The paste targets intentionally have negative world Y, but must remain
   // inside the editor viewport for the clipboard event to reach its owner.
   await setViewportCenter(page, [200, 150]);
+  await setEdgelessTool(page, "connector");
+  await page.getByRole("button", { name: "Elbowed", exact: true }).click();
+  const tool = await locatorEdgelessToolButton(page, "connector");
+  if ((await tool.getAttribute("aria-expanded")) === "true") await tool.click();
 }
 
 test.describe("connector clipboard", () => {
@@ -34,8 +41,10 @@ test.describe("connector clipboard", () => {
     await createConnectorElement(page, [0, 0], [200, 100]);
     await waitNextFrame(page);
     await copyByKeyboard(page);
+    await pressEscape(page);
     const move = await toViewCoord(page, [100, -50]);
     await page.mouse.click(move[0], move[1]);
+
     await pasteByKeyboard(page, false);
     await waitNextFrame(page);
     await assertConnectorPath(
@@ -60,8 +69,10 @@ test.describe("connector clipboard", () => {
 
     await selectAllByKeyboard(page);
     await copyByKeyboard(page);
+    await pressEscape(page);
     const move = await toViewCoord(page, [150, -50]);
     await page.mouse.click(move[0], move[1]);
+
     await pasteByKeyboard(page, false);
     await waitNextFrame(page);
     await assertConnectorPath(
@@ -83,8 +94,10 @@ test.describe("connector clipboard", () => {
     await createConnectorElement(page, [70, 50], [230, 50]);
 
     await copyByKeyboard(page);
+    await pressEscape(page);
     const move = await toViewCoord(page, [150, -50]);
     await page.mouse.move(move[0], move[1]);
+
     await pasteByKeyboard(page, false);
     await waitNextFrame(page);
     await assertConnectorPath(
@@ -106,8 +119,10 @@ test.describe("connector clipboard", () => {
 
     await selectAllByKeyboard(page);
     await copyByKeyboard(page);
+    await pressEscape(page);
     const move = await toViewCoord(page, [100, -50]);
     await page.mouse.click(move[0], move[1]);
+
     await pasteByKeyboard(page, false);
     await assertConnectorPath(
       page,
@@ -129,6 +144,7 @@ test.describe("connector clipboard", () => {
     await selectAllByKeyboard(page);
     await triggerComponentToolbarAction(page, "addGroup");
     await copyByKeyboard(page);
+    await pressEscape(page);
     const move = await toViewCoord(page, [250, 250]);
     await page.mouse.move(move[0], move[1]);
     await page.mouse.click(move[0], move[1]);

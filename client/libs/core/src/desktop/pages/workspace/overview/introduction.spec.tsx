@@ -28,9 +28,9 @@ import {
   ParagraphBlockSchemaExtension,
   type ParagraphBlockModel,
   RootBlockSchemaExtension,
-} from "@virgultum/model";
-import type { Store, YBlock } from "@virgultum/store";
-import { TestWorkspace } from "@virgultum/store/test";
+} from "@virgultum/core/models";
+import type { Store, YBlock } from "@virgultum/core/store";
+import { TestWorkspace } from "@virgultum/core/store/test";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import * as Y from "yjs";

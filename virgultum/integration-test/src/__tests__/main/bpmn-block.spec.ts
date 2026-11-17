@@ -5,17 +5,17 @@ import {
   insertBpmnBlockCommand,
   readBpmnSourceRevisions,
 } from "@virgultum/editor/blocks/bpmn";
-import type { BpmnBlockModel, NoteBlockModel } from "@virgultum/model";
-import { GfxControllerIdentifier } from "@virgultum/std/gfx";
+import type { BpmnBlockModel, NoteBlockModel } from "@virgultum/editor/model";
+import { GfxControllerIdentifier } from "@virgultum/editor/std/gfx";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import * as Y from "yjs";
 import {
   duplicateSelectedModelsCommand,
   deleteSelectedModelsCommand,
-} from "@virgultum/shared/commands";
+} from "@virgultum/editor/shared/commands";
 import { html } from "lit";
 import { signal } from "@preact/signals-core";
-import { DocEmbedProvider } from "@virgultum/shared/services";
+import { DocEmbedProvider } from "@virgultum/editor/shared/services";
 import { addNote } from "../utils/edgeless.js";
 import { setupEditor } from "../utils/setup.js";
 import { wait } from "../utils/common.js";

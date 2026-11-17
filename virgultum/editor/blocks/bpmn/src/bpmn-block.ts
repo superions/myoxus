@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { inspectBpmnSource } from "@myoxus/bpmn-editor/source";
-import type { BpmnBlockModel } from "@virgultum/model";
-import { EditorI18nProvider } from "@virgultum/shared/services";
-import { downloadBlob } from "@virgultum/shared/utils";
-import { BlockComponent } from "@virgultum/std";
+import type { BpmnBlockModel } from "@virgultum/core/models";
+import { EditorI18nProvider } from "@virgultum/core/services";
+import { downloadBlob } from "@virgultum/core/utils";
+import { BlockComponent } from "@virgultum/core/runtime";
 import { css } from "lit";
 import * as Y from "yjs";
 import {

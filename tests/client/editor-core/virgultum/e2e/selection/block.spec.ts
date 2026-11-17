@@ -804,12 +804,14 @@ test("click bottom of page and if the last is embed block, editor should insert 
   await activeEmbed(page);
   await dragEmbedResizeByTopLeft(page);
   const image = page.locator("myoxus-image");
-  const imageBefore = await image.evaluate((e) => ({
-    id: e.model.id,
-    sourceId: e.model.props.sourceId,
-    width: e.model.props.width,
-    height: e.model.props.height,
-  }));
+  const imageBefore = await image.evaluate(
+    (e: import("@virgultum/editor/blocks/image").ImageBlockComponent) => ({
+      id: e.model.id,
+      sourceId: e.model.props.sourceId,
+      width: e.model.props.width,
+      height: e.model.props.height,
+    }),
+  );
   await expect(page.locator("myoxus-paragraph")).toHaveCount(0);
 
   const hostRect = await page.evaluate(() => {
@@ -826,12 +828,14 @@ test("click bottom of page and if the last is embed block, editor should insert 
   await type(page, "Following image");
   await assertRichTexts(page, ["Following image"]);
   expect(
-    await image.evaluate((e) => ({
-      id: e.model.id,
-      sourceId: e.model.props.sourceId,
-      width: e.model.props.width,
-      height: e.model.props.height,
-    })),
+    await image.evaluate(
+      (e: import("@virgultum/editor/blocks/image").ImageBlockComponent) => ({
+        id: e.model.id,
+        sourceId: e.model.props.sourceId,
+        width: e.model.props.width,
+        height: e.model.props.height,
+      }),
+    ),
   ).toEqual(imageBefore);
 });
 
@@ -903,7 +907,7 @@ test("verify cursor position after changing block type", async ({ page }) => {
   expect(anchorOffset).toBe(5);
 
   await type(page, "/");
-  const slashMenu = page.locator(`.slash-menu`);
+  const slashMenu = page.getByTestId("slash-menu");
   await expect(slashMenu).toBeVisible();
 
   const todayBlock = page.getByTestId("slash-menu-item-block-paragraph-h1");

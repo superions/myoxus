@@ -17,15 +17,15 @@ import * as blockStd from "@virgultum/editor/std";
 import {
   type ViewportTurboRendererExtension,
   ViewportTurboRendererIdentifier,
-} from "@virgultum/gfx-turbo-renderer";
-import * as model from "@virgultum/model";
-import type { ExtensionType, Store } from "@virgultum/store";
-import * as store from "@virgultum/store";
-import { Schema, Text, Transformer } from "@virgultum/store";
+} from "@virgultum/editor/gfx/turbo-renderer";
+import * as model from "@virgultum/editor/model";
+import type { ExtensionType, Store } from "@virgultum/editor/store";
+import * as store from "@virgultum/editor/store";
+import { Schema, Text, Transformer } from "@virgultum/editor/store";
 import {
   createAutoIncrementIdGenerator,
   TestWorkspace,
-} from "@virgultum/store/test";
+} from "@virgultum/editor/store/test";
 import { Subscription } from "rxjs";
 import { applyUpdate } from "yjs";
 
@@ -33,10 +33,8 @@ import { effects } from "../../effects.js";
 import * as editorModule from "../../index.js";
 import { TestMyoxusEditorContainer } from "../../index.js";
 import { getTestStoreManager } from "../../store.js";
-import { getTestViewManager } from "../../view.js";
 
 const storeManager = getTestStoreManager();
-const viewManager = getTestViewManager();
 effects();
 
 const storeExtensions = storeManager.get("store");
@@ -100,13 +98,13 @@ async function createEditor(
   const hostService = createTestMyoxusHostService();
   const hostExtension = MyoxusHostExtension(hostService);
   editor.pageSpecs = [
-    ...viewManager.get("page"),
+    ...editor.viewManager.get("page"),
     docModeExtension,
     hostExtension,
     ...extensions,
   ];
   editor.edgelessSpecs = [
-    ...viewManager.get("edgeless"),
+    ...editor.viewManager.get("edgeless"),
     docModeExtension,
     hostExtension,
     ...extensions,

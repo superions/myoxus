@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { planMindmapIndicator } from "./indicator-plan.js";
 import { type MindmapInsertPosition } from "./drop-plan.js";
-import { StrokeStyle } from "@virgultum/model";
+import { StrokeStyle } from "@virgultum/core/models";
 import { resolveMermaidGfxProjectionTheme } from "../../../mermaid-gfx-theme.js";
 import type { MermaidGfxPreview } from "../../runtime/gfx-preview.js";
-import { Bound } from "@virgultum/global/gfx";
+import { Bound } from "@virgultum/core/primitives/gfx";
 import type {
   MermaidVisualModel,
   MermaidVisualNode,

@@ -80,6 +80,7 @@ fn test_export_options() -> ExportOptions {
       body: Some("Inter".into()),
       mono: Some("JetBrains Mono".into()),
       symbol: Some("JetBrains Mono".into()),
+      eyebrow: None,
     },
     ..ExportOptions::default()
   }

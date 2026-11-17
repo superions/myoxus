@@ -5,7 +5,7 @@ import {
   DatabaseReferenceBlockModel,
   DatabaseReferenceBlockSchema,
   DatabaseReferenceStoreExtension,
-} from "@virgultum/block-database/reference-store";
+} from "@virgultum/editor/blocks/database/reference-store";
 import {
   DatabaseReferenceBlockComponent,
   DatabaseReferenceConfigExtension,

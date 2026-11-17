@@ -722,8 +722,8 @@ test("should slash menu can trigger linked doc popover", async ({ page }) => {
 
   await type(page, "/linked");
   await pressEnter(page);
-  await expect(page.locator(".linked-doc-popover")).toBeVisible();
-  await assertRichTexts(page, ["@"]);
+  await expect(page.getByTestId("document-picker")).toBeVisible();
+  await assertRichTexts(page, ["[["]);
 
   await type(page, "doc");
   await pressEnter(page);

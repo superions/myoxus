@@ -13,7 +13,7 @@
                 "collapsed": false,
                 "order": null,
                 "text": {
-                  "$blocksuite:internal:text$": true,
+                  "$virgultum:internal:text$": true,
                   "delta": [
                     {
                       "insert": "bbb"
@@ -33,7 +33,7 @@
             "collapsed": false,
             "order": null,
             "text": {
-              "$blocksuite:internal:text$": true,
+              "$virgultum:internal:text$": true,
               "delta": [
                 {
                   "insert": "aaa"
@@ -71,7 +71,7 @@
   "id": "0",
   "props": {
     "title": {
-      "$blocksuite:internal:text$": true,
+      "$virgultum:internal:text$": true,
       "delta": []
     }
   },

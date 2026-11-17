@@ -1,3 +1,5 @@
+import { PaletteIcon, PrinterIcon } from "@myoxus/icons/react";
+import { cssVar } from "@myoxus/theme";
 import { type I18nFuncs, useI18n } from "@myoxus/i18n";
 import {
   Accordion,
@@ -5,6 +7,13 @@ import {
   AccordionItem,
   AccordionPanel,
   Checkbox,
+  ColorSwatch,
+  Group,
+  MyoxusSegmentedControl,
+  RadioCard,
+  RadioCardGroup,
+  RadioCardIndicator,
+  SelectionCardGrid,
   ErrorMessage,
   FormSelect,
   MyoxusText,
@@ -168,7 +177,12 @@ export function createDefaultPdfExportFormValue(
 ): PdfExportDialogFormValue {
   const capabilities = template.capabilities ?? {};
   const value: PdfExportDialogFormValue = {
-    paperSize: settings.defaultPaperSize ?? "A4",
+    paperSize: (capabilities.paperSize?.values ?? PAPER_SIZES).includes(
+      settings.defaultPaperSize ?? "A4",
+    )
+      ? (settings.defaultPaperSize ?? "A4")
+      : ((capabilities.paperSize?.default as string | undefined) ??
+        capabilities.paperSize?.values?.[0]),
     orientation: "portrait",
     imageQuality: settings.defaultImageQuality ?? "high",
     complianceProfile: "pdfa-2u",
@@ -526,12 +540,24 @@ export function PdfCapabilityForm({
   };
 
   const standardFields = fields.filter((field) => field.kind !== "json");
+  const primaryKeys = new Set(["colorVariant", "paperSize", "orientation"]);
+  const primaryFields = ["colorVariant", "paperSize", "orientation"].flatMap(
+    (key) => standardFields.filter((field) => field.key === key),
+  );
+  const detailFields = standardFields.filter(
+    (field) =>
+      !primaryKeys.has(field.key) ||
+      (field.key === "colorVariant" && field.values(ctx).includes("accent")),
+  );
   const advancedField = fields.find((field) => field.kind === "json");
   const renderTypedInputs = () => {
     if (!advancedField) return null;
     const validationError = validationErrors.typedInputs;
     return (
-      <Accordion variant="contained">
+      <Accordion
+        variant="default"
+        defaultValue={validationError ? "typed-inputs" : undefined}
+      >
         <AccordionItem value="typed-inputs">
           <AccordionControl>{t.t(advancedField.labelKey)}</AccordionControl>
           <AccordionPanel>
@@ -583,7 +609,6 @@ export function PdfCapabilityForm({
       gap="lg"
       aria-label={t.t("com.myoxus.pdf-export.dialog.options.aria-label")}
     >
-      <MyoxusText typographySlot="section">{template.name}</MyoxusText>
       {hiddenValidationErrors.length > 0 ? (
         <SettingsNotice
           role="alert"
@@ -597,42 +622,89 @@ export function PdfCapabilityForm({
           ))}
         </SettingsNotice>
       ) : null}
-      {beforeFields}
       <SettingsFieldGroup>
-        {standardFields.map((field) => {
-          const current = value[field.key];
+        {primaryFields.map((field) => {
+          const available = field.values(ctx);
+          const choices =
+            field.key === "colorVariant" &&
+            available.some((choice) => choice === "brand" || choice === "mono")
+              ? available.filter((choice) => choice !== "accent")
+              : available;
+          const current = String(value[field.key] ?? "");
           const validationError = validationErrors[field.key];
+          if (field.key === "colorVariant") {
+            return (
+              <RadioCardGroup
+                key={field.key}
+                label={t.t(field.labelKey)}
+                error={
+                  validationError
+                    ? formatPdfExportFormValidationError(t, validationError)
+                    : undefined
+                }
+                value={current}
+                onChange={(next) => setField(field.key, next)}
+              >
+                <SelectionCardGrid columns={choices.length === 3 ? 3 : 2}>
+                  {["brand", "mono", "accent"]
+                    .filter((choice) => choices.includes(choice))
+                    .map((choice) => (
+                      <RadioCard
+                        key={choice}
+                        value={choice}
+                        selected={current === choice}
+                      >
+                        <Group justify="space-between" wrap="nowrap">
+                          <Group gap="sm" wrap="nowrap">
+                            {choice === "mono" ? (
+                              <PrinterIcon aria-hidden />
+                            ) : (
+                              <PaletteIcon aria-hidden />
+                            )}
+                            <MyoxusText>
+                              {optionLabel(field, choice)}
+                            </MyoxusText>
+                          </Group>
+                          <Group gap="xs" aria-hidden>
+                            {(choice === "mono"
+                              ? [
+                                  cssVar("textPrimaryColor"),
+                                  cssVar("textSecondaryColor"),
+                                  cssVar("borderColor"),
+                                ]
+                              : [
+                                  cssVar("textHighlightForegroundRed"),
+                                  cssVar("textHighlightForegroundGreen"),
+                                  cssVar("textHighlightForegroundBlue"),
+                                ]
+                            ).map((color) => (
+                              <ColorSwatch
+                                key={color}
+                                color={color}
+                                size="1em"
+                              />
+                            ))}
+                          </Group>
+                          <RadioCardIndicator />
+                        </Group>
+                      </RadioCard>
+                    ))}
+                </SelectionCardGrid>
+              </RadioCardGroup>
+            );
+          }
           return (
-            <SettingsField
-              description={t.t(field.helpKey)}
-              key={field.key}
-              label={t.t(field.labelKey)}
-            >
-              {field.kind === "select" ? (
-                <FormSelect
-                  aria-label={t.t(field.labelKey)}
-                  data={[
-                    {
-                      value: "",
-                      label: t.t(
-                        "com.myoxus.pdf-export.dialog.option.use-default",
-                      ),
-                    },
-                    ...field.values(ctx).map((option) => ({
-                      value: option,
-                      label: optionLabel(field, option),
-                    })),
-                  ]}
-                  value={(current as string | undefined) ?? ""}
-                  onChange={(next) => setField(field.key, next || undefined)}
-                />
-              ) : (
-                <Checkbox
-                  aria-label={t.t(field.labelKey)}
-                  checked={current === true}
-                  onChange={(_event, checked) => setField(field.key, checked)}
-                />
-              )}
+            <SettingsField key={field.key} label={t.t(field.labelKey)}>
+              <MyoxusSegmentedControl
+                aria-label={t.t(field.labelKey)}
+                layout="fluid"
+                data={choices.map((choice) => ({
+                  value: choice,
+                  label: optionLabel(field, choice),
+                }))}
+                value={current}
+                onChange={(next) => setField(field.key, next)}
+              />
               {validationError ? (
                 <ErrorMessage>
                   {formatPdfExportFormValidationError(t, validationError)}
@@ -642,7 +714,81 @@ export function PdfCapabilityForm({
           );
         })}
       </SettingsFieldGroup>
-      {renderTypedInputs()}
+      <Accordion
+        variant="default"
+        defaultValue={
+          Object.keys(validationErrors).some((key) => !primaryKeys.has(key))
+            ? "advanced"
+            : undefined
+        }
+      >
+        <AccordionItem value="advanced">
+          <AccordionControl>
+            {t.t("com.myoxus.pdf-export.dialog.options.advanced")}
+          </AccordionControl>
+          <AccordionPanel>
+            <Stack gap="md">
+              {beforeFields}
+              <SettingsFieldGroup>
+                {detailFields.map((field) => {
+                  const current = value[field.key];
+                  const validationError = validationErrors[field.key];
+                  return (
+                    <SettingsField
+                      description={
+                        field.key === "complianceProfile"
+                          ? t.t(field.helpKey)
+                          : undefined
+                      }
+                      key={field.key}
+                      label={t.t(field.labelKey)}
+                    >
+                      {field.kind === "select" ? (
+                        <FormSelect
+                          aria-label={t.t(field.labelKey)}
+                          data={[
+                            {
+                              value: "",
+                              label: t.t(
+                                "com.myoxus.pdf-export.dialog.option.use-default",
+                              ),
+                            },
+                            ...field.values(ctx).map((option) => ({
+                              value: option,
+                              label: optionLabel(field, option),
+                            })),
+                          ]}
+                          value={(current as string | undefined) ?? ""}
+                          onChange={(next) =>
+                            setField(field.key, next || undefined)
+                          }
+                        />
+                      ) : (
+                        <Checkbox
+                          aria-label={t.t(field.labelKey)}
+                          checked={current === true}
+                          onChange={(_event, checked) =>
+                            setField(field.key, checked)
+                          }
+                        />
+                      )}
+                      {validationError ? (
+                        <ErrorMessage>
+                          {formatPdfExportFormValidationError(
+                            t,
+                            validationError,
+                          )}
+                        </ErrorMessage>
+                      ) : null}
+                    </SettingsField>
+                  );
+                })}
+              </SettingsFieldGroup>
+              {renderTypedInputs()}
+            </Stack>
+          </AccordionPanel>
+        </AccordionItem>
+      </Accordion>
     </Stack>
   );
 }

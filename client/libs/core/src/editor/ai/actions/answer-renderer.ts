@@ -1,6 +1,6 @@
 import { sourceMindmapSelection } from "./mindmap-source";
 import type { EditorHost } from "@virgultum/editor/std";
-import { ThemeProvider } from "@virgultum/shared/services";
+import { ThemeProvider } from "@virgultum/core/services";
 
 import { createAIScrollableTextRenderer } from "../components/ai-scrollable-text-renderer";
 import {

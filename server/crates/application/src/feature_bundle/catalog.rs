@@ -822,7 +822,7 @@ fn validate_active_native_links(
             FeatureLink::Schema { from, to }
               if from.component == *component
                 && from.export == native_export
-                && from.key.as_deref() == Some(&format!("component/{}", action.id)) =>
+                && from.key.as_deref() == Some(format!("component/{}", action.id).as_str()) =>
             {
               Some(to)
             }

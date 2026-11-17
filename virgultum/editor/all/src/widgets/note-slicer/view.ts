@@ -1,1 +1,1 @@
-export * from "@virgultum/widget-note-slicer/view";
+export { NoteSlicerViewExtension } from "@virgultum/canvas/view";

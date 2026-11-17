@@ -1,19 +1,25 @@
-import { LinkExtension } from "@virgultum/inline-link";
-import { textKeymap } from "@virgultum/inline-preset";
-import type { ListBlockModel, ParagraphBlockModel } from "@virgultum/model";
-import { insertContent } from "@virgultum/rich-text";
-import { REFERENCE_NODE } from "@virgultum/shared/consts";
-import { createDefaultDoc } from "@virgultum/shared/utils";
-import { TextSelection } from "@virgultum/std";
-import type { InlineEditor, InlineMarkdownMatch } from "@virgultum/std/inline";
-import { Text } from "@virgultum/store";
+import { LinkExtension } from "@virgultum/editor/inlines/link";
+import { textKeymap } from "@virgultum/editor/inlines/preset";
+import type {
+  ListBlockModel,
+  ParagraphBlockModel,
+} from "@virgultum/editor/model";
+import { insertContent } from "@virgultum/editor/rich-text";
+import { REFERENCE_NODE } from "@virgultum/editor/shared/consts";
+import { createDefaultDoc } from "@virgultum/editor/shared/utils";
+import { TextSelection } from "@virgultum/editor/std";
+import type {
+  InlineEditor,
+  InlineMarkdownMatch,
+} from "@virgultum/editor/std/inline";
+import { Text } from "@virgultum/editor/store";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
-import { defaultSlashMenuConfig } from "../../../../editor/widgets/slash-menu/src/config.js";
+import { defaultSlashMenuConfig } from "../../../../editor/all/src/widgets/slash-menu/config.js";
 import type {
   SlashMenuActionItem,
   SlashMenuItem,
-} from "../../../../editor/widgets/slash-menu/src/types.js";
+} from "@virgultum/editor/widgets/slash-menu";
 import { wait } from "../utils/common.js";
 import { addNote } from "../utils/edgeless.js";
 import { setupEditor } from "../utils/setup.js";

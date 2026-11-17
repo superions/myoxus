@@ -23,19 +23,16 @@ test.describe("embed-synced-doc toolbar", () => {
     const linkedDoc = await createLinkedDoc("page1");
     await linkedDoc.hover();
 
-    const toolbar = page
-      .getByTestId("selection-toolbar")
-      .filter({ has: page.getByRole("combobox", { name: "Switch view" }) });
+    const toolbar = page.getByTestId("selection-toolbar");
     await expect(toolbar).toBeVisible();
-
-    const switchButton = toolbar.getByRole("combobox", { name: "Switch view" });
-    await switchButton.click();
-
-    const embedSyncedDocBtn = toolbar.getByRole("option", {
+    await toolbar
+      .getByRole("button", { name: "Inline view", exact: true })
+      .click();
+    const embedSyncedDocBtn = page.getByRole("menuitem", {
       name: "Embed view",
+      exact: true,
     });
     await expect(embedSyncedDocBtn).toBeVisible();
-
     await embedSyncedDocBtn.click();
     await waitNextFrame(page, 200);
 

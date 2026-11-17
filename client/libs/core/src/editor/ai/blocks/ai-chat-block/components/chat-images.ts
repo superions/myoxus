@@ -19,8 +19,8 @@ export class ChatImage extends LitElement {
       width: 70%;
       max-width: calc(
         ${unsafeCSSValue(
-          "calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm))",
-        )} *
+            "calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm))",
+          )} *
           5
       );
       max-height: calc(

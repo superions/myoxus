@@ -60,7 +60,7 @@ export function ChatInputView(props: ChatInputViewProps) {
     if (props.retrievalUnavailable) notify.warning({ title: retrievalMessage });
   }, [props.retrievalUnavailable, retrievalMessage]);
   return (
-    <Stack data-myoxus-ui-role="chat-composer-input">
+    <Stack gap="xs" data-myoxus-ui-role="chat-composer-input">
       {props.images}
       {props.imageInputUnsupported ? (
         <Alert
@@ -89,6 +89,7 @@ export function ChatInputView(props: ChatInputViewProps) {
         </Blockquote>
       ) : null}
       <Textarea
+        variant="unstyled"
         autosize
         minRows={2}
         maxRows={8}

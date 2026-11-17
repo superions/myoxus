@@ -1,7 +1,7 @@
-query workspaceOverview($id: String!, $folderId: String, $first: Int = 50, $offset: Int = 0) {
+query workspaceOverview($id: String!, $folderId: String, $first: Int = 50, $offset: Int = 0, $registerPresentation: WorkspaceOverviewRegisterPresentationInput) {
   workspace(id: $id) {
     id
-    overview(folderId: $folderId, first: $first, offset: $offset) {
+    overview(folderId: $folderId, first: $first, offset: $offset, registerPresentation: $registerPresentation) {
       registerPresentation { ...workspaceOverviewRegisterPresentationFields }
       documentCount
       limit
@@ -17,17 +17,7 @@ query workspaceOverview($id: String!, $folderId: String, $first: Int = 50, $offs
         canEdit
       }
       introductionUnavailable
-      documents {
-        metadata { ...DocumentMetadataIndexFields }
-        metadataLabels { statusLabel documentTypeLabel versionLabel classificationLabel }
-        createdAt
-        createdByName
-        tags { ...WorkspaceTagFields }
-        resource { workspaceId kind id }
-        title
-        updatedAt
-        canEdit
-      }
+      documents { ...WorkspaceRegisterDocumentFields }
     }
   }
 }
@@ -47,6 +37,7 @@ fragment workspaceOverviewSettingsFields on WorkspaceOverviewSettingsType {
 fragment workspaceOverviewRegisterPresentationFields on WorkspaceOverviewRegisterPresentationType {
   displayProperties
   orderBy { type key desc }
+  selection { subtree tagIds matchAllTags filters { key method value } }
 }
 
 query workspaceOverviewSettings($id: String!) {
@@ -61,4 +52,16 @@ mutation updateWorkspaceOverview($input: UpdateWorkspaceInput!) {
     id
     overviewSettings { ...workspaceOverviewSettingsFields }
   }
+}
+
+fragment WorkspaceRegisterDocumentFields on WorkspaceOverviewDocumentType {
+        metadata { ...DocumentMetadataIndexFields }
+        metadataLabels { statusLabel documentTypeLabel versionLabel classificationLabel }
+        createdAt
+        createdByName
+        tags { ...WorkspaceTagFields }
+        resource { workspaceId kind id }
+        title
+        updatedAt
+        canEdit
 }

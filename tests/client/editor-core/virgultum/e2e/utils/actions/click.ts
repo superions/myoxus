@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
-import type { IPoint } from "@virgultum/global/gfx";
-import type { Store } from "@virgultum/store";
+import type { IPoint } from "@virgultum/core/primitives/gfx";
+import type { Store } from "@virgultum/core/store";
 
 async function toViewCoord(page: Page, point: number[]) {
   return page.evaluate((point) => {

@@ -11,6 +11,8 @@ export function mindmapIntentFromObjectEdit(
   intent: MermaidGfxObjectEditIntent,
 ): MindmapEditIntent | null {
   if (intent.kind !== "node" || intent.action === "select") return null;
+  if (intent.action === "edit" && intent.initialText !== undefined)
+    return { type: "rename", key: intent.id, initialText: intent.initialText };
   if (intent.action === "duplicate")
     return { type: "duplicate", keys: [intent.id] };
   if (intent.action === "delete") return { type: "delete", keys: [intent.id] };
@@ -71,6 +73,8 @@ export function mindmapNodeKeyboardIntent(
   )
     return intent("toggle-collapse");
   if (pressed === "F2") return intent("edit");
+  if (pressed.length === 1 && pressed !== " ")
+    return { ...intent("edit"), initialText: pressed };
   if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(pressed))
     return null;
   let branch = current;

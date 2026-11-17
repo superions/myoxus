@@ -246,12 +246,8 @@ test(scoped`pasting internal url`, async ({ page }) => {
   await page.evaluate((docId) => {
     window.collection.meta.setDocMeta(docId, { title: "test page" });
   }, docId);
-  await mockParseDocUrlService(page, {
-    "http://workspace/doc-id": docId,
-  });
-  await pasteContent(page, {
-    "text/plain": "http://workspace/doc-id",
-  });
+  await mockParseDocUrlService(page, { "http://workspace/doc-id": docId });
+  await pasteContent(page, { "text/plain": "http://workspace/doc-id" });
   await expect(page.locator("myoxus-reference")).toContainText("test page");
 });
 
@@ -308,12 +304,8 @@ test(
     await setSelection(page, 1, 6, 1, 11);
 
     const docId = await getCurrentEditorDocId(page);
-    await mockParseDocUrlService(page, {
-      "http://workspace/doc-id": docId,
-    });
-    await pasteContent(page, {
-      "text/plain": "http://workspace/doc-id",
-    });
+    await mockParseDocUrlService(page, { "http://workspace/doc-id": docId });
+    await pasteContent(page, { "text/plain": "http://workspace/doc-id" });
     await expect(page.locator("myoxus-reference")).toContainText("alias");
   },
 );

@@ -126,10 +126,7 @@ function extractEditorMessageKeys() {
   // The retained finite legacy bridge constructs descriptors from its map.
   // Its literal resources need the same coverage as direct editorMessage calls.
   const legacySource = readFileSync(
-    join(
-      repoRoot,
-      "virgultum/editor/shared/src/services/legacy-editor-text.ts",
-    ),
+    join(repoRoot, "virgultum/core/src/services/legacy-editor-text.ts"),
     "utf8",
   );
   for (const match of legacySource.matchAll(/"(com\.myoxus\.[^"]+|Delete)"/g)) {

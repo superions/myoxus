@@ -29,6 +29,11 @@ tokio       = { workspace = true, features = ["rt-multi-thread", "macros", "time
 yjs = { path = "../yjs" }
 yrs = { workspace = true }
 
+# Native, pinned LaTeX math conversion; never expand author macros or run a TeX process.
+mitex = "=0.2.4"
+mitex-parser = "=0.2.4"
+mitex-spec-gen = { version = "=0.2.4", features = ["prebuilt"] }
+
 # Typst PDF rendering. The "fonts" feature on typst-assets embeds the
 # upstream baseline (Linux Libertine, NewCM, DejaVu Mono) so the
 # FontBook always has a usable fallback even when no extra dirs are
@@ -43,8 +48,11 @@ typst-pdf    = "0.15.1"
 
 # P-PDF-TPL-IMG-01: image decode/resize/encode for the V2 render image
 # compression pipeline.
+comemo                = "0.5.1"
 image                 = { workspace = true }
 myoxus-mermaid-render = { path = "../mermaid_render" }
+quick-xml             = { workspace = true }
+resvg                 = { workspace = true }
 
 # Logging
 tracing = { workspace = true }

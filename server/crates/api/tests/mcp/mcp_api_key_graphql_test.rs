@@ -430,7 +430,7 @@ fn assert_scope_set(value: &Value, expected: &[&str]) {
   let scopes = value["scopes"].as_array().expect("scopes must be an array");
   for scope in expected {
     assert!(
-      scopes.iter().any(|actual| actual.as_str() == Some(scope)),
+      scopes.iter().any(|actual| actual.as_str() == Some(*scope)),
       "scope {scope} missing from {value}"
     );
   }

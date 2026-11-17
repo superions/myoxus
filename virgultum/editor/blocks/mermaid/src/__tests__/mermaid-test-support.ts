@@ -1,18 +1,18 @@
 import { serializeMermaidVisualFamilyData } from "../families/runtime/gfx-family-data.js";
 import { existsSync, readFileSync } from "node:fs";
 
-import { codeBlockMarkdownAdapterMatcher } from "@virgultum/block-code";
-import { Bound } from "@virgultum/global/gfx";
+import { codeBlockMarkdownAdapterMatcher } from "@virgultum/content/blocks";
+import { Bound } from "@virgultum/core/primitives/gfx";
 import {
   ConnectorLabelOffsetAnchor,
   ConnectorMode,
   type MermaidBlockModel,
   MermaidBlockSchema,
-} from "@virgultum/model";
-import { FeatureFlagService } from "@virgultum/shared/services";
-import type { BlockStdScope } from "@virgultum/std";
-import { internalPrimitives } from "@virgultum/store";
-import type { SlashMenuContext } from "@virgultum/widget-slash-menu";
+} from "@virgultum/core/models";
+import { FeatureFlagService } from "@virgultum/core/services";
+import type { BlockStdScope } from "@virgultum/core/runtime";
+import { internalPrimitives } from "@virgultum/core/store";
+import type { SlashMenuContext } from "@virgultum/core/slash-menu";
 import { html, render } from "lit";
 import { describe, expect, onTestFinished, test, vi } from "vitest";
 

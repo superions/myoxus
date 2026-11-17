@@ -1,1 +1,1 @@
-export * from "@virgultum/gfx-brush/store";
+export { BrushStoreExtension } from "@virgultum/canvas/store";

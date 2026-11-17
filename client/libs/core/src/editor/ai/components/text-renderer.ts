@@ -171,6 +171,10 @@ export class TextRenderer extends SignalWatcher(
 
   private _doc: Store | null = null;
 
+  private _releaseDoc: (() => void) | null = null;
+
+  private _renderRevision = 0;
+
   private _host: EditorHost | null = null;
 
   private readonly _query: Query = {
@@ -228,24 +232,30 @@ export class TextRenderer extends SignalWatcher(
           codeBlockWrapMiddleware(true),
           ...(this.options.additionalMiddlewares ?? []),
         ];
+        const revision = ++this._renderRevision;
         markDownToDoc(
           latestAnswer,
           middlewares,
           this.options.myoxusFeatureFlagService,
         )
           .then((doc) => {
+            // Frame reparenting can disconnect and reconnect while conversion
+            // is pending. Only the current connected render may install a store.
+            if (!this.isConnected || revision !== this._renderRevision) return;
             this.disposeDoc();
             this._doc = doc.doc.getStore({
               query: this._query,
             });
+            const store = this._doc;
+            this._releaseDoc = () => {
+              store.dispose();
+              doc.doc.removeStore({ query: this._query });
+            };
             this._host = new BlockStdScope({
               store: this._doc,
               extensions:
                 this.options.extensions ?? getCustomPageEditorBlockSpecs(),
             }).render();
-            this.disposables.add(() => {
-              doc.doc.removeStore({ query: this._query });
-            });
             this._doc.readonly = true;
             this.requestUpdate();
             if (this.state !== "generating") {
@@ -277,10 +287,17 @@ export class TextRenderer extends SignalWatcher(
   }
 
   private disposeDoc() {
-    this._doc?.dispose();
+    // Registry removal does not dispose the store. A single lease owns both
+    // operations, and clearing it first makes repeated lifecycle cleanup inert.
+    const release = this._releaseDoc;
+    this._releaseDoc = null;
+    this._doc = null;
+    this._host = null;
+    release?.();
   }
 
   override disconnectedCallback() {
+    this._renderRevision++;
     super.disconnectedCallback();
     this._clearTimer();
     this.disposeDoc();

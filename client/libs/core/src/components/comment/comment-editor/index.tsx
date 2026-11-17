@@ -28,8 +28,8 @@ import { type RichText, selectTextModel } from "@virgultum/editor/rich-text";
 import { ViewportElementExtension } from "@virgultum/editor/shared/services";
 import { openFilesWith } from "@virgultum/editor/shared/utils";
 import { type DocSnapshot, nanoid, Store } from "@virgultum/editor/store";
-import type { TextSelection } from "@virgultum/std";
-import { formatByteSize } from "@virgultum/global/utils";
+import type { TextSelection } from "@virgultum/core/runtime";
+import { formatByteSize } from "@virgultum/core/primitives/utils";
 import {
   forwardRef,
   Fragment,

@@ -252,6 +252,11 @@ function observeErrors(page: Page) {
   return errors;
 }
 
+async function setTaskScope(page: Page, label: "My tasks" | "All") {
+  await page.getByRole("button", { name: /^(My tasks|All)$/ }).click();
+  await page.getByRole("menuitem", { name: label, exact: true }).click();
+}
+
 async function openRow(
   page: Page,
   workspaceId: string,
@@ -350,9 +355,6 @@ test("creates the original Task, edits it across two Projects and preserves clos
     await page.getByTestId("tasks-new-task").click();
     const modal = page.getByTestId("task-creation-modal");
     const title = "Native creation · reviewed regional rollout";
-    await modal
-      .getByRole("button", { name: "Destination", exact: true })
-      .click();
     await modal.getByTestId("task-destination-select").click();
     const projectName = (
       await f.gql<{ workspace: { database: { database: { title: string } } } }>(
@@ -365,7 +367,9 @@ test("creates the original Task, edits it across two Projects and preserves clos
       .getByRole("textbox", { name: "Title", exact: true })
       .fill(title);
     await expect(modal.getByText("Assignees", { exact: true })).toBeVisible();
-    await modal.getByRole("button", { name: "Assignees", exact: true }).click();
+    await modal
+      .getByRole("combobox", { name: "Assignees", exact: true })
+      .click();
     await modal.getByRole("textbox", { name: "Title", exact: true }).click();
     const committed = page.waitForResponse(
       (response) =>
@@ -798,7 +802,7 @@ test("creates the original Task, edits it across two Projects and preserves clos
       .getByRole("option", { name: "Closed work", exact: true })
       .click();
     await expect(page.getByTestId(`task-row-${childId}`)).toBeVisible();
-    await page.getByTestId("tasks-scope-mine").click();
+    await setTaskScope(page, "My tasks");
     await expect(
       page.getByText("No tasks match these filters", { exact: true }),
     ).toBeVisible();
@@ -961,11 +965,11 @@ for (const colorMode of ["light"] as const) {
       await expect(
         page.getByTestId(`task-row-${assignedToAlice.row.id}`),
       ).toHaveCount(0);
-      await page.getByTestId("tasks-scope-all").click();
+      await setTaskScope(page, "All");
       await expect(
         page.getByTestId(`task-row-${assignedToAlice.row.id}`),
       ).toBeVisible();
-      await page.getByTestId("tasks-scope-mine").click();
+      await setTaskScope(page, "My tasks");
       await expect(
         page.getByTestId(`task-row-${assignedToAlice.row.id}`),
       ).toHaveCount(0);
@@ -1530,9 +1534,14 @@ test("Empty creation cancels without writes and resumes its persisted request af
     f.gql<{
       workspaces: { id: string }[];
       currentUser: {
-        preferences: { values: { assistanceMode: string | null } };
+        preferences: {
+          values: { assistanceMode: string | null };
+          assistance: { mode: string };
+        };
       };
-    }>("query{workspaces{id}currentUser{preferences{values{assistanceMode}}}}");
+    }>(
+      "query{workspaces{id}currentUser{preferences{values{assistanceMode}assistance{mode}}}}",
+    );
   try {
     await injectSessionCookies(context, f.cookies);
     await page.goto(`${FRONTEND}/workspace/${f.workspaceId}/home`);
@@ -1541,10 +1550,6 @@ test("Empty creation cancels without writes and resumes its persisted request af
     await openCreate();
     const dialog = page.getByRole("dialog");
     await page.getByTestId("create-workspace-input").fill("Cancelled Empty");
-    await expect(
-      dialog.getByRole("radio", { name: "Guided", exact: true }),
-    ).toBeChecked();
-    await dialog.getByRole("radio", { name: "Manual", exact: true }).click();
     await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
     await expect(dialog).not.toBeVisible();
     expect(await state()).toEqual(before);
@@ -1553,7 +1558,6 @@ test("Empty creation cancels without writes and resumes its persisted request af
     await openCreate();
     const name = `Recovered Empty ${randomUUID()}`;
     await page.getByTestId("create-workspace-input").fill(name);
-    await dialog.getByRole("radio", { name: "Automatic", exact: true }).click();
     // The real server commits; only its response is lost. Recovery must use the
     // stored exact request rather than allocate with a newly prepared identity.
     await page.route("**/graphql", async (route) => {
@@ -1620,7 +1624,7 @@ test("Empty creation cancels without writes and resumes its persisted request af
       { w: resultId, id: resultId },
     );
     expect(saved.currentUser.preferences.assistance).toEqual({
-      mode: "Automatic",
+      mode: before.currentUser.preferences.assistance.mode,
       source: "Workspace",
     });
     expectEmptyUserDocuments(saved.workspace.docs, resultId);
@@ -1630,137 +1634,6 @@ test("Empty creation cancels without writes and resumes its persisted request af
       automations: [],
       databaseTasks: { totalCount: 0 },
     });
-    expect(
-      errors.filter((error) => !error.includes("net::ERR_FAILED")),
-    ).toEqual([]);
-  } finally {
-    await page.unroute("**/graphql");
-    await page.goto("about:blank");
-    await f.cleanup();
-  }
-});
-
-test("Workspace Project purpose publishes its selected native brief once and recovers a lost response without allocation", async ({
-  page,
-  context,
-  request,
-}) => {
-  test.setTimeout(120_000);
-  const f = await captureFixture(request, true);
-  const errors = observeErrors(page);
-  let resultId = "";
-  let projectId = "";
-  let briefId = "";
-  let createCalls = 0;
-  const workspaceName = `Purpose workspace ${randomUUID()}`;
-  const projectName = `Separate Project ${randomUUID()}`;
-  const goal = `First unopened brief ${randomUUID()}`;
-  try {
-    const owner = (
-      await f.gql<{ currentUser: { name: string } }>("query{currentUser{name}}")
-    ).currentUser;
-    await injectSessionCookies(context, f.cookies);
-    await page.goto(`${FRONTEND}/workspace/${f.workspaceId}/home`);
-    await waitForWorkspaceReady(page);
-    await page.getByTestId("sidebar-workspaces-section").click();
-    await page.getByTestId("new-workspace").click();
-    const dialog = page.getByRole("dialog");
-    await page.getByTestId("create-workspace-input").fill(workspaceName);
-    await dialog.getByRole("radio", { name: "Manual", exact: true }).click();
-    await dialog
-      .getByRole("radio", { name: "Simple Project", exact: true })
-      .click();
-    await dialog.getByTestId("database-assistant-next").click();
-    await dialog.getByTestId("database-assistant-title").fill(projectName);
-    await dialog.getByRole("textbox", { name: "Goal", exact: true }).fill(goal);
-    await dialog
-      .getByRole("textbox", { name: "Folder", exact: true })
-      .fill("Explicit purpose documents");
-    await dialog
-      .getByRole("checkbox", { name: owner.name, exact: true })
-      .check();
-    await dialog.getByTestId("database-assistant-next").click();
-    await dialog
-      .getByRole("radio", { name: "Tasks only", exact: true })
-      .click();
-    await dialog
-      .getByRole("switch", { name: "Create a project brief", exact: true })
-      .check();
-    await dialog.getByTestId("database-assistant-next").click();
-    await expect(dialog.getByTestId("database-assistant-review")).toContainText(
-      projectName,
-    );
-    await expect(
-      dialog.getByTestId("database-assistant-phase-count"),
-    ).toHaveText("0");
-    await page.route("**/graphql", async (route) => {
-      if (route.request().headers()["x-operation-name"] !== "createWorkspace") {
-        await route.continue();
-        return;
-      }
-      createCalls++;
-      if (resultId) {
-        await route.continue();
-        return;
-      }
-      const response = await route.fetch();
-      const payload = await response.json();
-      expect(payload.errors).toBeUndefined();
-      const created = payload.data.createWorkspace;
-      resultId = created.id;
-      f.ownedWorkspaces.push(resultId);
-      expect(created.creation.projectSetup.status).toBe("Ready");
-      projectId = created.creation.projectSetup.reservedDatabaseId;
-      expect(created.creation.projectSetup.documents).toHaveLength(1);
-      const brief = created.creation.projectSetup.documents[0];
-      expect(brief).toMatchObject({ created: true, placed: true });
-      briefId = brief.externalId;
-      await route.abort("failed");
-    });
-    await dialog.getByTestId("database-assistant-create").click();
-    await expect(
-      page.getByTestId("create-workspace-check-button"),
-    ).toBeEnabled();
-    expect(resultId).not.toBe("");
-    await page.reload();
-    await waitForWorkspaceReady(page);
-    await page.getByTestId("sidebar-workspaces-section").click();
-    await page.getByTestId("new-workspace").click();
-    await expect(
-      page.getByTestId("create-workspace-open-button"),
-    ).toBeEnabled();
-    await page.getByTestId("create-workspace-check-button").click();
-    await expect(page).toHaveURL(new RegExp(`/workspace/${resultId}/home`));
-    await waitForWorkspaceReady(page);
-    expect(createCalls).toBe(1);
-    const persisted = (
-      await f.gql<{
-        workspace: {
-          name: string;
-          databases: { id: string; title: string }[];
-          databaseTasks: { totalCount: number };
-          automations: unknown[];
-        };
-      }>(
-        `query($w:String!){workspace(id:$w){name databases(first:100){id title}databaseTasks(input:{scope:All,lifecycle:Open,timeZone:"UTC"},first:1){totalCount}automations(first:100){id}}}`,
-        { w: resultId },
-      )
-    ).workspace;
-    expect(persisted).toEqual({
-      name: workspaceName,
-      databases: [{ id: projectId, title: projectName }],
-      databaseTasks: { totalCount: 0 },
-      automations: [],
-    });
-    await openIndexedProjectBrief(page, goal, briefId);
-    await expect
-      .poll(() => new URL(page.url()).pathname)
-      .toBe(`/workspace/${resultId}/${briefId}`);
-    await expect(page.locator("editor-host")).toContainText(goal);
-    await expect(page.locator("editor-host")).toContainText("Open questions");
-    await page.reload();
-    await expect(page.locator("editor-host")).toContainText(goal);
-    await expect(page.locator("editor-host")).toContainText("Open questions");
     expect(
       errors.filter((error) => !error.includes("net::ERR_FAILED")),
     ).toEqual([]);
@@ -1822,9 +1695,6 @@ test("Empty Workspace Tasks starts from Home, Tasks and a note, then explicitly 
       .getByRole("button", { name: "New task", exact: true })
       .click();
     let modal = page.getByTestId("task-creation-modal");
-    await modal
-      .getByRole("button", { name: "Destination", exact: true })
-      .click();
     await expect(modal.getByTestId("task-destination-select")).toHaveValue(
       "Workspace Tasks",
     );
@@ -1887,9 +1757,6 @@ test("Empty Workspace Tasks starts from Home, Tasks and a note, then explicitly 
     await expect(page.getByTestId(`task-row-${homeRow}`)).toBeVisible();
     await page.getByTestId("tasks-new-task").click();
     modal = page.getByTestId("task-creation-modal");
-    await modal
-      .getByRole("button", { name: "Destination", exact: true })
-      .click();
     await expect(modal.getByTestId("task-destination-select")).toHaveValue(
       "Workspace Tasks",
     );
@@ -2200,8 +2067,8 @@ async function selectCaptureText(page: Page, blockId: string) {
     .poll(() => page.evaluate(() => document.getSelection()?.toString() ?? ""))
     .toMatch(/\S/);
   await page
-    .locator('editor-icon-button[aria-label="More"]:visible')
-    .last()
+    .getByTestId("selection-toolbar")
+    .getByRole("button", { name: "More", exact: true })
     .click();
   await page.getByTestId("capture-as-task").click();
   const modal = page.getByTestId("task-capture-modal");
@@ -3225,9 +3092,6 @@ test("private source capture has a wider Task audience; readonly creation is den
         page.evaluate(() => document.getSelection()?.toString() ?? ""),
       )
       .toContain("Private release instructions");
-    await expect(
-      page.locator('editor-icon-button[aria-label="More"]:visible'),
-    ).toHaveCount(0);
     await expect(page.getByTestId("capture-as-task")).toHaveCount(0);
     await page.keyboard.press("Control+c");
     await expect

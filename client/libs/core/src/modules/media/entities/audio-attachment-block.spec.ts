@@ -7,10 +7,10 @@ import {
   NoteBlockSchemaExtension,
   ParagraphBlockSchemaExtension,
   RootBlockSchemaExtension,
-} from "@virgultum/model";
+} from "@virgultum/core/models";
 import type { AttachmentBlockModel } from "@virgultum/editor/model";
-import { Text } from "@virgultum/store";
-import { TestWorkspace } from "@virgultum/store/test";
+import { Text } from "@virgultum/core/store";
+import { TestWorkspace } from "@virgultum/core/store/test";
 import { encodeStateAsUpdate } from "yjs";
 import { expect, test, vi } from "vitest";
 

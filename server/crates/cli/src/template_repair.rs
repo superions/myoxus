@@ -221,7 +221,7 @@ async fn inspect_instance(
   let mut actions = Vec::new();
   let mut unresolved_detail = None;
   if instance.workspace_doc_id != Some(resolved.id)
-    || instance.workspace_doc_key.as_deref() != Some(&resolved.external_id)
+    || instance.workspace_doc_key.as_deref() != Some(resolved.external_id.as_str())
   {
     actions.push("binding");
   }

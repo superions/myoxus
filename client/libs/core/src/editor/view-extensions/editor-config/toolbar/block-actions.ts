@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
-import { copyTextToClipboard } from "@virgultum/global/utils";
+import { copyTextToClipboard } from "@virgultum/core/primitives/utils";
 import { createOpenDocActions } from "./text-actions";
 
 import { snapshotTaskCaptureSelection } from "./task-capture-selection";
@@ -63,7 +63,7 @@ import {
   GfxBlockElementModel,
   GfxPrimitiveElementModel,
 } from "@virgultum/editor/std/gfx";
-import { editorToast } from "@virgultum/shared/utils";
+import { editorToast } from "@virgultum/core/utils";
 import { copyAsImage, createCopyAsPngMenuItem } from "./copy-as-image";
 import {
   createTaskToolbarActions,

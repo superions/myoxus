@@ -3,6 +3,7 @@ import { expect } from "@playwright/test";
 import {
   createNote,
   createShapeElement,
+  createFrameElement,
   decreaseZoomLevel,
   deleteAll,
   getAllSortedIds,
@@ -25,6 +26,8 @@ import {
   selectAllByKeyboard,
   type,
   waitNextFrame,
+  pressEscape,
+  setViewportCenter,
 } from "../utils/actions/index.js";
 import { assertRichImage } from "../utils/asserts.js";
 import { test } from "../utils/playwright.js";
@@ -80,6 +83,7 @@ test.describe("mime", () => {
 test.describe("frame clipboard", () => {
   test("copy and paste frame with group elements inside", async ({ page }) => {
     await commonSetup(page);
+    await setViewportCenter(page, [300, 200]);
     await createShapeElement(page, [0, 0], [100, 100], Shape.Square);
     await createNote(page, [100, 200]);
     await page.mouse.click(10, 50);
@@ -87,17 +91,15 @@ test.describe("frame clipboard", () => {
     await triggerComponentToolbarAction(page, "addGroup");
 
     await createShapeElement(page, [200, 0], [300, 100], Shape.Square);
-    // The current single-selection frame action is the canvas shortcut;
-    // the former "Frame Section" More-menu item no longer exists.
-    await page.keyboard.press("f");
+    await createFrameElement(page, [-30, -30], [650, 400]);
     const originIds = await getAllSortedIds(page);
     expect(originIds.length).toBe(5);
 
     await selectAllByKeyboard(page);
     await copyByKeyboard(page);
+    await pressEscape(page);
     const move = await toViewCoord(page, [250, 250]);
     await page.mouse.move(move[0], move[1]);
-    await page.mouse.click(move[0], move[1]);
     await pasteByKeyboard(page, true);
     await waitNextFrame(page, 500);
     const sortedIds = await getAllSortedIds(page);
@@ -173,7 +175,7 @@ test.describe("pasting URLs", () => {
     ).toBeVisible();
 
     await expect(
-      page.locator(".myoxus-embed-linked-doc-content-title"),
+      page.getByTestId("editor-document-card").locator('[data-slot="title"]'),
     ).toHaveText("doc title");
   });
 
@@ -193,6 +195,6 @@ test.describe("pasting URLs", () => {
       "text/plain": "https://example.com",
     });
 
-    await expect(page.locator("bookmark-card")).toBeVisible();
+    await expect(page.getByTestId("editor-bookmark-card")).toBeVisible();
   });
 });

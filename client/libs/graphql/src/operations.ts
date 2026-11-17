@@ -33952,6 +33952,8 @@ export type DocumentMetadataIndexQueryVariables = Exact<{
 
 export interface DocumentMetadataIndexQuery {
   documentMetadataIndex: Array<{
+    responsibleUserId: string | null;
+    responsibleName: string | null;
     docId: string;
     externalId: string | null;
     createdBy: string | null;
@@ -34301,6 +34303,8 @@ export interface UpdateWorkspaceDocumentSettingsMutation {
 }
 
 export type DocumentMetadataIndexFieldsFragment = {
+  responsibleUserId: string | null;
+  responsibleName: string | null;
   docId: string;
   externalId: string | null;
   createdBy: string | null;
@@ -68803,6 +68807,8 @@ export type WorkspaceOverviewQueryVariables = Exact<{
   folderId?: string | null | undefined;
   first?: number | null | undefined;
   offset?: number | null | undefined;
+  registerPresentation?:
+    Types.WorkspaceOverviewRegisterPresentationInput | null | undefined;
 }>;
 
 export interface WorkspaceOverviewQuery {
@@ -68817,6 +68823,12 @@ export interface WorkspaceOverviewQuery {
       registerPresentation: {
         displayProperties: Array<string>;
         orderBy: { type: string; key: string; desc: boolean };
+        selection: {
+          subtree: boolean;
+          tagIds: Array<string>;
+          matchAllTags: boolean;
+          filters: Array<{ key: string; method: string; value: string | null }>;
+        };
       } | null;
       folder: { id: string; name: string } | null;
       breadcrumbs: Array<{ id: string; name: string }>;
@@ -68838,6 +68850,8 @@ export interface WorkspaceOverviewQuery {
         updatedAt: string;
         canEdit: boolean;
         metadata: {
+          responsibleUserId: string | null;
+          responsibleName: string | null;
           docId: string;
           externalId: string | null;
           createdBy: string | null;
@@ -68901,6 +68915,12 @@ export type WorkspaceOverviewSettingsFieldsFragment = {
   registerPresentation: {
     displayProperties: Array<string>;
     orderBy: { type: string; key: string; desc: boolean };
+    selection: {
+      subtree: boolean;
+      tagIds: Array<string>;
+      matchAllTags: boolean;
+      filters: Array<{ key: string; method: string; value: string | null }>;
+    };
   } | null;
   folders: Array<{
     folderId: string;
@@ -68912,6 +68932,12 @@ export type WorkspaceOverviewSettingsFieldsFragment = {
     registerPresentation: {
       displayProperties: Array<string>;
       orderBy: { type: string; key: string; desc: boolean };
+      selection: {
+        subtree: boolean;
+        tagIds: Array<string>;
+        matchAllTags: boolean;
+        filters: Array<{ key: string; method: string; value: string | null }>;
+      };
     } | null;
   }>;
 };
@@ -68919,6 +68945,12 @@ export type WorkspaceOverviewSettingsFieldsFragment = {
 export type WorkspaceOverviewRegisterPresentationFieldsFragment = {
   displayProperties: Array<string>;
   orderBy: { type: string; key: string; desc: boolean };
+  selection: {
+    subtree: boolean;
+    tagIds: Array<string>;
+    matchAllTags: boolean;
+    filters: Array<{ key: string; method: string; value: string | null }>;
+  };
 };
 
 export type WorkspaceOverviewSettingsQueryVariables = Exact<{
@@ -68939,6 +68971,12 @@ export interface WorkspaceOverviewSettingsQuery {
       registerPresentation: {
         displayProperties: Array<string>;
         orderBy: { type: string; key: string; desc: boolean };
+        selection: {
+          subtree: boolean;
+          tagIds: Array<string>;
+          matchAllTags: boolean;
+          filters: Array<{ key: string; method: string; value: string | null }>;
+        };
       } | null;
       folders: Array<{
         folderId: string;
@@ -68950,6 +68988,16 @@ export interface WorkspaceOverviewSettingsQuery {
         registerPresentation: {
           displayProperties: Array<string>;
           orderBy: { type: string; key: string; desc: boolean };
+          selection: {
+            subtree: boolean;
+            tagIds: Array<string>;
+            matchAllTags: boolean;
+            filters: Array<{
+              key: string;
+              method: string;
+              value: string | null;
+            }>;
+          };
         } | null;
       }>;
     };
@@ -68974,6 +69022,12 @@ export interface UpdateWorkspaceOverviewMutation {
       registerPresentation: {
         displayProperties: Array<string>;
         orderBy: { type: string; key: string; desc: boolean };
+        selection: {
+          subtree: boolean;
+          tagIds: Array<string>;
+          matchAllTags: boolean;
+          filters: Array<{ key: string; method: string; value: string | null }>;
+        };
       } | null;
       folders: Array<{
         folderId: string;
@@ -68985,11 +69039,79 @@ export interface UpdateWorkspaceOverviewMutation {
         registerPresentation: {
           displayProperties: Array<string>;
           orderBy: { type: string; key: string; desc: boolean };
+          selection: {
+            subtree: boolean;
+            tagIds: Array<string>;
+            matchAllTags: boolean;
+            filters: Array<{
+              key: string;
+              method: string;
+              value: string | null;
+            }>;
+          };
         } | null;
       }>;
     };
   };
 }
+
+export type WorkspaceRegisterDocumentFieldsFragment = {
+  createdAt: string | null;
+  createdByName: string | null;
+  title: string;
+  updatedAt: string;
+  canEdit: boolean;
+  metadata: {
+    responsibleUserId: string | null;
+    responsibleName: string | null;
+    docId: string;
+    externalId: string | null;
+    createdBy: string | null;
+    updatedBy: string | null;
+    journalDate: unknown;
+    isTemplate: boolean;
+    templateState: string | null;
+    templateOrigin: string | null;
+    templateCategory: string | null;
+    templateTags: Array<string> | null;
+    primaryMode: string | null;
+    pageWidth: string | null;
+    edgelessColorTheme: string | null;
+    integrationType: string | null;
+    canPublish: boolean;
+    statusId: string | null;
+    documentTypeId: string | null;
+    currentVersionId: string | null;
+    dirtySinceCurrentVersion: boolean;
+    reviewDueAt: string | null;
+    validUntil: string | null;
+    classificationId: string | null;
+    tagIds: Array<string>;
+  } | null;
+  metadataLabels: {
+    statusLabel: string | null;
+    documentTypeLabel: string | null;
+    versionLabel: string | null;
+    classificationLabel: string | null;
+  } | null;
+  tags: Array<{
+    id: string;
+    workspaceId: string;
+    name: string;
+    slug: string;
+    colorRole: string;
+    description: string | null;
+    archived: boolean;
+    archivedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+  resource: {
+    workspaceId: string;
+    kind: Types.WorkspaceContentResourceKindType;
+    id: string;
+  };
+};
 
 export type WorkspaceQuotaQueryVariables = Exact<{
   id: string;

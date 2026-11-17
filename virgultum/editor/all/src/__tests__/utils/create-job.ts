@@ -1,10 +1,10 @@
-import { defaultImageProxyMiddleware } from "@virgultum/shared/adapters";
+import { defaultImageProxyMiddleware } from "@virgultum/core/adapters";
 import {
   Schema,
   Transformer,
   type TransformerMiddleware,
-} from "@virgultum/store";
-import { TestWorkspace } from "@virgultum/store/test";
+} from "@virgultum/core/store";
+import { TestWorkspace } from "@virgultum/core/store/test";
 
 import { MyoxusSchemas } from "../../schemas.js";
 import { testStoreExtensions } from "./store.js";

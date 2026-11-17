@@ -9,6 +9,7 @@ import {
 import { AIModelService } from "@myoxus/core/modules/ai-button/services/models";
 import { WorkspaceDialogService } from "@myoxus/core/modules/dialogs";
 import { FeatureFlagService } from "@myoxus/core/modules/feature-flag";
+import { PeekViewService } from "@myoxus/core/modules/peek-view";
 import { ServerService } from "@myoxus/core/modules/server";
 import { useFramework } from "@myoxus/infra";
 import { toReactNode, useLitPortalFactory } from "@myoxus/lit-react";
@@ -37,6 +38,7 @@ export const AIChatBlockPeekView = ({
   const aiDraftService = framework.get(AIDraftService);
   const aiToolsConfigService = framework.get(AIToolsConfigService);
   const aiModelService = framework.get(AIModelService);
+  const peekViewService = framework.get(PeekViewService);
 
   const content = useMemo(() => {
     const template = AIChatBlockPeekViewTemplate(
@@ -52,6 +54,7 @@ export const AIChatBlockPeekView = ({
       aiToolsConfigService,
       aiModelService,
       reactToLit,
+      peekViewService,
     );
     return toReactNode(template);
   }, [
@@ -67,6 +70,7 @@ export const AIChatBlockPeekView = ({
     aiToolsConfigService,
     aiModelService,
     reactToLit,
+    peekViewService,
   ]);
   return (
     <>

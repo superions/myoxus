@@ -29,7 +29,7 @@ import {
   type KanbanCommand,
   type MermaidKanbanNode,
 } from "@virgultum/block-mermaid";
-import { isTouchPadPinchEvent } from "@virgultum/shared/utils";
+import { isTouchPadPinchEvent } from "@virgultum/core/utils";
 import { CommentIcon } from "@myoxus/icons";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { renderSafeMarkdownLabel } from "../mermaid-markdown-label";

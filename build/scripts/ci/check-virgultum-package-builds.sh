@@ -9,8 +9,8 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cd "$REPO_ROOT"
 
 packages=(
-  "@virgultum/block-bookmark"
-  "@virgultum/widget-slash-menu"
+  "@virgultum/embeds"
+  "@virgultum/editor"
 )
 
 for package in "${packages[@]}"; do

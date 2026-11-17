@@ -29,7 +29,7 @@ export const useAISpecs = () => {
     const manager = getViewManager()
       .config.init()
       .foundation(framework)
-      .ai(enableAI, framework)
+      .ai(enableAI, framework, reactToLit)
       .editorConfig(framework)
       .editorView({
         framework,

@@ -1,1 +1,1 @@
-export * from "@virgultum/block-frame/view";
+export { FrameViewExtension } from "@virgultum/canvas/view";

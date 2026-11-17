@@ -6,9 +6,9 @@ import {
   CanvasRenderer,
   getSurfaceBlock,
 } from "@virgultum/editor/blocks/surface";
-import { Bound, getCommonBound } from "@virgultum/global/gfx";
-import { GfxControllerIdentifier, Viewport } from "@virgultum/std/gfx";
-import { ThemeProvider } from "@virgultum/shared/services";
+import { Bound, getCommonBound } from "@virgultum/core/primitives/gfx";
+import { GfxControllerIdentifier, Viewport } from "@virgultum/core/runtime/gfx";
+import { ThemeProvider } from "@virgultum/core/services";
 import {
   MindmapDesign,
   projectMindmapTree,

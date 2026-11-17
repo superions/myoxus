@@ -1,5 +1,5 @@
 import { ObjectPool, Service } from "@myoxus/infra";
-import type { BlockStdScope } from "@virgultum/std";
+import type { BlockStdScope } from "@virgultum/core/runtime";
 
 import { DocCommentEntity } from "../entities/doc-comment";
 

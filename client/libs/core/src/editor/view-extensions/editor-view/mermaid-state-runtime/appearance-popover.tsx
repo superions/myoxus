@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useState } from "react";
-import { isValidUrl, normalizeUrl } from "@virgultum/shared/utils";
+import { isValidUrl, normalizeUrl } from "@virgultum/core/utils";
 import { useI18n } from "@myoxus/i18n";
 import {
   Accordion,

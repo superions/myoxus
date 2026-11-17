@@ -1,1 +1,1 @@
-export * from "@virgultum/inline-link/store";
+export { LinkStoreExtension } from "@virgultum/content/store";

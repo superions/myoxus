@@ -13,7 +13,7 @@
                 "collapsed": false,
                 "order": null,
                 "text": {
-                  "$blocksuite:internal:text$": true,
+                  "$virgultum:internal:text$": true,
                   "delta": [
                     {
                       "insert": "todo item"
@@ -31,7 +31,7 @@
           "props": {
             "collapsed": false,
             "text": {
-              "$blocksuite:internal:text$": true,
+              "$virgultum:internal:text$": true,
               "delta": [
                 {
                   "insert": "text1"
@@ -69,7 +69,7 @@
   "id": "0",
   "props": {
     "title": {
-      "$blocksuite:internal:text$": true,
+      "$virgultum:internal:text$": true,
       "delta": []
     }
   },

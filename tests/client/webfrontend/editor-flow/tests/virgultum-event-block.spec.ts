@@ -644,7 +644,7 @@ test.describe("Virgultum event block", () => {
       // (previous test runs may have left unreferenced event blocks in the doc).
       await expect(
         page
-          .locator("myoxus-event .event-title")
+          .locator('myoxus-event [data-testid="editor-event-card-title"]')
           .filter({ hasText: uniqueTitle }),
       ).toBeVisible({ timeout: 10_000 });
     } finally {

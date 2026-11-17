@@ -43,7 +43,7 @@ const RAW_TO_STYLE_FIELDS: Record<string, string> = {
 describe("server theme seed schema", () => {
   it("inv_theme_seed_schema_contract", () => {
     expect(themeSeed.schemaVersion).toBe(1);
-    expect(themeSeed.requiredColorKeys).toHaveLength(18);
+    expect(themeSeed.requiredColorKeys).toHaveLength(24);
     expect(themeSeed.requiredTypographyFields).toEqual([
       "family",
       "weight",

@@ -1,1 +1,1 @@
-export * from "@virgultum/block-image/view";
+export { ImageViewExtension } from "@virgultum/embeds/view";

@@ -3,19 +3,22 @@ import {
   HtmlAdapter,
   MarkdownAdapter,
   configureMarkdownReferenceMetas,
-} from "@virgultum/shared/adapters";
-import type { BlockSnapshot } from "@virgultum/store";
-import { Text } from "@virgultum/store";
-import { TestWorkspace } from "@virgultum/store/test";
-import { BlockStdScope, type EditorHost } from "@virgultum/std";
-import { calloutPresentation, type CalloutBlockModel } from "@virgultum/model";
-import { describe, expect, test, vi } from "vitest";
+} from "@virgultum/core/adapters";
+import type { BlockSnapshot } from "@virgultum/core/store";
+import { Text } from "@virgultum/core/store";
+import { TestWorkspace } from "@virgultum/core/store/test";
+import { BlockStdScope, type EditorHost } from "@virgultum/core/runtime";
+import {
+  calloutPresentation,
+  type CalloutBlockModel,
+} from "@virgultum/core/models";
+import { beforeAll, describe, expect, test, vi } from "vitest";
 import fixtures from "../../../../../build/fixtures/contracts/note-callouts.json";
 import { createJob } from "./utils/create-job";
 import { getProvider } from "./utils/get-provider";
 import { testStoreExtensions } from "./utils/store";
-import { splitCalloutCommand } from "../../../blocks/callout/src/commands/split-callout";
-import { calloutToParagraphCommand } from "../../../blocks/callout/src/commands/callout-to-paragraph";
+import { splitCalloutCommand } from "../../../../content/src/blocks/callout/commands/split-callout";
+import { calloutToParagraphCommand } from "../../../../content/src/blocks/callout/commands/callout-to-paragraph";
 
 const callouts = (blocks: BlockSnapshot[]): BlockSnapshot[] =>
   blocks.flatMap((block) => [
@@ -28,6 +31,12 @@ const text = (value: unknown) =>
     .join("") ?? "";
 
 describe("registered native note callout codec", () => {
+  beforeAll(async () => {
+    // This suite checks conversion semantics, not cold bundler transforms.
+    // Store registration is data-only; prepare its existing Mermaid source
+    // owner before timed cases, as the former eager graph did during import.
+    await import("@virgultum/block-mermaid");
+  });
   test.each([false, true])(
     "unsupported children retain complete source and a diagnosis (typed=%s)",
     async (typed) => {
@@ -375,9 +384,9 @@ describe("registered native note callout codec", () => {
 describe("callout presentation controls", () => {
   test("the registered appearance control can return to soft and undo the change", async () => {
     const { createBuiltinToolbarConfigExtension } =
-      await import("../../../blocks/callout/src/configs/toolbar");
+      await import("../../../../content/src/blocks/callout/configs/toolbar");
     const { ToolbarContext, ToolbarModuleIdentifier } =
-      await import("@virgultum/shared/services");
+      await import("@virgultum/core/services");
     const workspace = new TestWorkspace();
     workspace.storeExtensions = testStoreExtensions;
     workspace.meta.initialize();
@@ -428,7 +437,7 @@ describe("callout presentation controls", () => {
 
   test("the popup mounts its picker and releases it when closed, including reopen", async () => {
     const { IconPickerWrapper } =
-      await import("../../../blocks/callout/src/icon-picker-wrapper");
+      await import("../../../../content/src/blocks/callout/icon-picker-wrapper");
     const { PropertySymbol } = await import("happy-dom");
     // The shared setup mocks the global registry; use this document's native one.
     const registry = (document as unknown as Record<symbol, Window>)[
@@ -469,4 +478,88 @@ describe("callout presentation controls", () => {
       popup.remove();
     }
   });
+});
+
+test("callout presets insert semantic types and change existing types without losing authored content", async () => {
+  const { calloutSlashMenuConfig } =
+    await import("../../../../content/src/blocks/callout/configs/slash-menu");
+  const { createBuiltinToolbarConfigExtension } =
+    await import("../../../../content/src/blocks/callout/configs/toolbar");
+  const { ToolbarContext, ToolbarModuleIdentifier } =
+    await import("@virgultum/core/services");
+  const workspace = new TestWorkspace();
+  workspace.storeExtensions = testStoreExtensions;
+  workspace.meta.initialize();
+  const doc = workspace.createDoc("callout-preset-insertion");
+  doc.load();
+  const store = doc.getStore();
+  try {
+    const root = store.addBlock("myoxus:page");
+    const note = store.addBlock("myoxus:note", {}, root);
+    const paragraph = store.addBlock("myoxus:paragraph", {}, note);
+    const std = new BlockStdScope({
+      store,
+      extensions: [
+        ...testStoreExtensions,
+        ...createBuiltinToolbarConfigExtension("myoxus:callout"),
+      ],
+    });
+    vi.spyOn(std, "host", "get").mockReturnValue({
+      store,
+      updateComplete: Promise.resolve(),
+    } as unknown as EditorHost);
+    const items = calloutSlashMenuConfig.items;
+    if (typeof items === "function") throw new Error("expected static presets");
+    const warning = items.find(
+      (item) => item.id === "block-callout-warning-insert",
+    );
+    if (!warning || !("action" in warning))
+      throw new Error("warning preset missing");
+    warning.action({ model: store.getModelById(paragraph)!, std });
+    await Promise.resolve();
+    const model = store
+      .getModelById(note)!
+      .children.find(
+        (child) => child.flavour === "myoxus:callout",
+      )! as CalloutBlockModel;
+    expect(model.props.type).toBe("warning");
+    expect(model.props.icon).toEqual({ type: "emoji", unicode: "⚠️" });
+    expect(model.props.backgroundColorName).toBe("yellow");
+    const body = model.children[0];
+    store.updateBlock(body, { text: new Text("Keep the body") });
+    store.updateBlock(model, {
+      title: new Text("Keep the title"),
+      foldable: true,
+      defaultOpen: false,
+    });
+    const ctx = new ToolbarContext(std);
+    vi.spyOn(ctx, "getCurrentModel").mockReturnValue(model);
+    const group = std.provider
+      .getAll(ToolbarModuleIdentifier)
+      .get("myoxus:callout")!
+      .config.actions.find((action) => action.id === "style")!;
+    if (!("actions" in group)) throw new Error("style group missing");
+    const action = group.actions.find(
+      (action) => action.id === "callout-type",
+    )!;
+    if (!("control" in action) || typeof action.control !== "function")
+      throw new Error("type control missing");
+    const control = action.control(ctx);
+    if (control?.type !== "choice") throw new Error("type choice missing");
+    control.change("tip");
+    expect(model.props.type).toBe("tip");
+    expect(model.props.icon).toEqual({ type: "emoji", unicode: "💡" });
+    expect(model.props.backgroundColorName).toBe("green");
+    expect(model.props.title?.toString()).toBe("Keep the title");
+    expect(model.children[0]).toBe(body);
+    expect(body.text?.toString()).toBe("Keep the body");
+    expect([model.props.foldable, model.props.defaultOpen]).toEqual([
+      true,
+      false,
+    ]);
+    store.undo();
+    expect(model.props.type).toBe("warning");
+  } finally {
+    workspace.dispose();
+  }
 });

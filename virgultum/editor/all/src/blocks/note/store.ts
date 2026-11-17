@@ -1,1 +1,4 @@
-export * from "@virgultum/block-note/store";
+export {
+  NoteStoreExtension,
+  FootnoteDefinitionStoreExtension,
+} from "@virgultum/embeds/store";

@@ -1,8 +1,8 @@
 import { mermaidRuntimePreservesSourceBytes } from "../families/runtime/factory.js";
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import type { MermaidBlockModel } from "@virgultum/model";
-import type { ToolbarContext } from "@virgultum/shared/services";
+import type { MermaidBlockModel } from "@virgultum/core/models";
+import type { ToolbarContext } from "@virgultum/core/services";
 
 import { detectMermaidDiagramType } from "../engine/diagram-types.js";
 import { isMermaidProductDiagramType } from "../engine/product-types.js";

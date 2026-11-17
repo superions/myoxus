@@ -484,6 +484,7 @@ export function ColorsTab({
                 return (
                   <SettingsField
                     key={token}
+                    labelFor={inputId}
                     label={i18n.t(TOKEN_LABEL_KEYS[token])}
                     data-testid={`colors-tab-row-${token}`}
                   >

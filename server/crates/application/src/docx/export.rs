@@ -13,7 +13,7 @@ use wordcraft_doc::{
   Cell, CharProps, Document, InlineObject, Paragraph, Row, Table,
   numbering::ListKind,
   para_block,
-  props::{Border, Borders, NumRef, Rgb, TextColor, Underline},
+  props::{Border, Borders, Highlight, NumRef, Rgb, TextColor, Underline},
 };
 use yjs::native_text::{NativeTextField, NativeTextSpan};
 
@@ -49,6 +49,17 @@ pub struct ExportFonts {
 pub struct ExportTypography {
   pub family: String,
   pub style: myoxus_pdf_export::ir::ThemeTypographyStyle,
+}
+
+const CALLOUT_PADDING_PT: f32 = 6.0;
+
+// Project CSS pixels once onto Word's conventional point grid: whole points
+// for small text, two-point steps from 12 pt up. Theme families/weights survive
+// without incidental 9.75/10.5 pt text or uncommon 22.5/23 pt headings.
+fn word_font_size(size_px: f64) -> f32 {
+  let points = size_px * 0.75;
+  let step = if points < 12.0 { 1.0 } else { 2.0 };
+  ((points / step).round() * step) as f32
 }
 
 pub struct ExportedDocx {
@@ -139,6 +150,7 @@ pub fn encode_export(source: ExportSource, fonts: ExportFonts) -> Result<Exporte
     note_numbers: [0; 2],
     indent: 0.0,
     list_level: 0,
+    frame_inset: 0.0,
   };
   encoder.document.body.clear();
   encoder.document.settings.major_font = encoder.fonts.heading.clone();
@@ -188,15 +200,16 @@ pub fn encode_export(source: ExportSource, fonts: ExportFonts) -> Result<Exporte
   }
   for (id, typography) in &encoder.fonts.typography {
     let style = &typography.style;
+    let size = word_font_size(style.size_px);
     let chr = CharProps {
       font: Some(typography.family.clone()),
-      size: Some(style.size_px as f32 * 0.75),
+      size: Some(size),
       bold: Some(style.font_weight >= 600),
       italic: Some(style.font_style != "normal"),
       caps: Some(style.text_transform == "uppercase"),
       underline: (style.decoration == "underline").then_some(Underline::Single),
       strike: (style.decoration == "line-through").then_some(true),
-      spacing: Some((style.letter_spacing_em * style.size_px * 0.75) as f32),
+      spacing: Some(style.letter_spacing_em as f32 * size),
       ..Default::default()
     };
     if id == "Normal" {
@@ -205,7 +218,7 @@ pub fn encode_export(source: ExportSource, fonts: ExportFonts) -> Result<Exporte
     if let Some(target) = Arc::make_mut(&mut encoder.document.styles).get_mut(id) {
       target.chr = chr;
       target.para.line_spacing = Some(wordcraft_doc::props::LineSpacing::Multiple(style.line_height as f32));
-      target.para.space_after = Some(style.size_px as f32 * 0.75 * 0.5);
+      target.para.space_after = Some(size * 0.5);
       target.para.keep_next = Some(id.starts_with("Heading"));
       target.para.widow_control = Some(true);
     }
@@ -224,13 +237,17 @@ pub fn encode_export(source: ExportSource, fonts: ExportFonts) -> Result<Exporte
   let code_size = code_style.chr.size.unwrap_or(10.0);
   code_style.para.space_before = Some(code_size * 0.5);
   code_style.para.space_after = Some(code_size * 0.5);
-  code_style
-    .para
-    .line_spacing
-    .get_or_insert(wordcraft_doc::props::LineSpacing::Multiple(1.2));
+  // Word's single spacing already includes the font's ascent/descent. Applying
+  // the CSS code line-height again makes both manual and numbered lines too loose.
+  code_style.para.line_spacing = Some(wordcraft_doc::props::LineSpacing::Multiple(1.0));
   code_style.para.keep_next = Some(false);
   code_style.para.keep_lines = Some(false);
   code_style.para.shading = encoder.fonts.table_fill.as_deref().and_then(Rgb::parse);
+  code_style.chr.color = encoder
+    .fonts
+    .table_fill
+    .as_deref()
+    .and_then(|fill| TextColor::parse(myoxus_domain::color::adaptive_foreground(fill)));
   code_style.para.borders = Some(Borders::box_(Border {
     color: encoder.fonts.table_rule.as_deref().and_then(Rgb::parse),
     space: code_size * 0.5,
@@ -252,6 +269,14 @@ pub fn encode_export(source: ExportSource, fonts: ExportFonts) -> Result<Exporte
         keep_next: Some(false),
         ..Default::default()
       },
+      ..Default::default()
+    });
+  Arc::make_mut(&mut encoder.document.styles)
+    .styles
+    .push(wordcraft_doc::Style {
+      id: super::CALLOUT_FRAME_STYLE.into(),
+      name: "Myoxus Callout Frame".into(),
+      kind: wordcraft_doc::StyleKind::Table,
       ..Default::default()
     });
   // Explicit unsupported blocks are counted by the encoder below. Other
@@ -332,6 +357,19 @@ pub fn encode_export(source: ExportSource, fonts: ExportFonts) -> Result<Exporte
   if encoder.usable == 0 {
     return Err(ImportError::Empty);
   }
+  // Word requires a final paragraph after a table; a Normal-sized synthetic
+  // mark can spill onto an otherwise empty page. Keep this structural mark tiny.
+  if matches!(
+    encoder.document.body.last().map(|b| &**b),
+    Some(wordcraft_doc::Block::Table(_))
+  ) {
+    let mut end = Paragraph::new();
+    end.props.space_before = Some(0.0);
+    end.props.space_after = Some(0.0);
+    end.props.line_spacing = Some(wordcraft_doc::props::LineSpacing::Exactly(1.0));
+    end.mark.size = Some(1.0);
+    encoder.document.body.push(para_block(end));
+  }
   embed_theme_fonts(&mut encoder.document, &encoder.fonts.assets)?;
   let bytes = wordcraft_docx::write(&encoder.document).map_err(|_| ImportError::Conversion)?;
   if bytes.len() as u64 > myoxus_workspace_import::WorkspaceImportLimits::default().max_document_bytes {
@@ -398,6 +436,7 @@ struct Encoder {
   in_note: bool,
   indent: f32,
   list_level: usize,
+  frame_inset: f32,
 }
 
 impl Encoder {
@@ -459,6 +498,15 @@ impl Encoder {
   }
 
   fn span_props(&self, span: &NativeTextSpan, link: Option<String>) -> CharProps {
+    // Native markers normalize to Word's fixed highlighter palette. Ordinary
+    // authored backgrounds retain their exact colour as character shading.
+    let highlight = match span.background.as_deref().map(str::trim) {
+      Some("var(--myoxus-sem-text-marker-yellow)" | "var(--myoxus-sem-text-marker-orange)") => Some(Highlight::Yellow),
+      Some("var(--myoxus-sem-text-marker-green)") => Some(Highlight::BrightGreen),
+      Some("var(--myoxus-sem-text-marker-pink)") => Some(Highlight::Pink),
+      Some("var(--myoxus-sem-text-marker-blue)") => Some(Highlight::Turquoise),
+      _ => None,
+    };
     CharProps {
       bold: span.bold.then_some(true),
       italic: span.italic.then_some(true),
@@ -476,7 +524,12 @@ impl Encoder {
             .and_then(|_| self.color("link-default"))
             .map(TextColor::Rgb)
         }),
-      shading: span.background.as_deref().and_then(|color| self.color(color)),
+      highlight,
+      shading: span
+        .background
+        .as_deref()
+        .filter(|_| highlight.is_none())
+        .and_then(|color| self.color(color)),
       link,
       ..Default::default()
     }
@@ -780,6 +833,14 @@ impl Encoder {
 
   fn push(&mut self, paragraph: Paragraph) {
     let mut paragraph = paragraph;
+    if self
+      .document
+      .body
+      .last()
+      .is_some_and(|block| matches!(&**block, wordcraft_doc::Block::Table(_)))
+    {
+      paragraph.props.space_before = Some(paragraph.props.space_before.unwrap_or_default().max(CALLOUT_PADDING_PT));
+    }
     if (self.indent > 0.0 || self.list_level > 0) && paragraph.props.numbering.is_none() {
       paragraph.props.indent_left = Some(self.indent + self.list_level as f32 * super::CONTENT_INDENT);
     }
@@ -860,7 +921,7 @@ impl Encoder {
         continue;
       }
       match block {
-        Block::Paragraph { block_id, text }
+        Block::Paragraph { block_id, text, .. }
         | Block::Quote { block_id, text }
         | Block::Heading { block_id, text, .. } => {
           let mut paragraph = self.paragraph(block_id, text)?;
@@ -1044,7 +1105,7 @@ impl Encoder {
             .fonts
             .typography
             .get("Normal")
-            .map_or(11.0, |typography| typography.style.size_px as f32 * 0.75);
+            .map_or(11.0, |typography| word_font_size(typography.style.size_px));
           let inset = font_size
             * if *density == Some(myoxus_public_render::ir::TableDensity::Compact) {
               0.25
@@ -1193,6 +1254,16 @@ impl Encoder {
             let width = (pixel_width as f32 * 0.75).min(468.0);
             let height = width * pixel_height as f32 / pixel_width.max(1) as f32;
             self.document.media.insert(name.clone(), Arc::new(bytes));
+            let name = if image::guess_format(source).is_err() {
+              let (context, policy) = self.fonts.visuals.as_ref().ok_or(ImportError::Conversion)?;
+              let svg = context
+                .outline_svg(source, policy)
+                .map_err(|_| ImportError::Conversion)?;
+              let vector = self.document.add_media(svg, "svg");
+              self.document.pair_svg(name, vector)
+            } else {
+              name
+            };
             self.figures.insert(asset.source.clone(), (name.clone(), width, height));
             let (width, height) = self.image_dimensions(block_id, width, height);
             self.figure(name, width, height, &asset.alt)?;
@@ -1249,10 +1320,19 @@ impl Encoder {
             myoxus_public_render::highlight::highlight_code(language.as_deref(), text, dark_background)
           {
             for span in spans {
+              let mut color = Rgb(span.color[0], span.color[1], span.color[2]);
+              // Syntax palettes assume their own background. Retain their hues
+              // only where they remain readable on the actual theme code fill.
+              if let Some(fill) = self.fonts.table_fill.as_deref()
+                && myoxus_domain::color::contrast_ratio(&format!("#{}", color.hex()), fill)
+                  .is_some_and(|ratio| ratio < 4.5)
+              {
+                color = Rgb::parse(myoxus_domain::color::adaptive_foreground(fill)).unwrap();
+              }
               let part = Paragraph::with_text(
                 span.text,
                 CharProps {
-                  color: Some(TextColor::Rgb(Rgb(span.color[0], span.color[1], span.color[2]))),
+                  color: Some(TextColor::Rgb(color)),
                   ..props.clone()
                 },
               );
@@ -1272,24 +1352,29 @@ impl Encoder {
           caption,
         } => {
           use myoxus_pdf_export::mermaid::{MermaidExportRenderer, MermanSvgRenderer};
-          let png = self.fonts.visuals.as_ref().and_then(|(context, policy)| {
+          let figure = self.fonts.visuals.as_ref().and_then(|(context, policy)| {
             if source.len() > policy.max_mermaid_source_bytes {
               return None;
             }
             let svg = MermanSvgRenderer.render_svg(source, block_id).ok()?;
-            context.rasterize_svg(svg.as_bytes(), policy).ok()
+            Some((
+              context.rasterize_svg(svg.as_bytes(), policy).ok()?,
+              context.outline_svg(svg.as_bytes(), policy).ok()?,
+            ))
           });
           let label = [title.as_str(), caption.as_str()]
             .into_iter()
             .filter(|label| !label.is_empty())
             .collect::<Vec<_>>()
             .join("\n");
-          if let Some(png) = png {
+          if let Some((png, svg)) = figure {
             let image = image::load_from_memory(&png).map_err(|_| ImportError::Conversion)?;
             let width = (image.width() as f32 * 0.75).min(468.0);
             let height = width * image.height() as f32 / image.width().max(1) as f32;
             let name = format!("diagram-{}.png", self.document.media.len());
             self.document.media.insert(name.clone(), Arc::new(png));
+            let vector = self.document.add_media(svg, "svg");
+            let name = self.document.pair_svg(name, vector);
             self.figure(name, width, height, &label)?;
             self.warn("diagram_normalized");
             continue;
@@ -1318,15 +1403,18 @@ impl Encoder {
           {
             self.warn("callout_variant_normalized");
           }
+          let frame_start = self.document.body.len();
+          let frame_width = self.text_width();
+          let frame_inset = self.frame_inset;
+          self.frame_inset += 2.0 * CALLOUT_PADDING_PT;
           let mut paragraph = self.paragraph(block_id, text)?.styled("MyoxusCallout");
-          self.callout_presentation(&mut paragraph, block_id);
+          let has_body = !paragraph.final_text().is_empty();
+          let mut header_end = None;
+          let (fill, rule) = self.callout_colors(block_id);
           if let Some(title) = native_callout.title.as_ref().filter(|t| !t.is_empty()) {
             self.warn("callout_title_normalized");
-            let label = if paragraph.text.is_empty() {
-              title.clone()
-            } else {
-              format!("{title}\n")
-            };
+            let label = if !has_body { title.clone() } else { format!("{title}\n") };
+            header_end = has_body.then_some(label.len());
             paragraph
               .insert_text(
                 0,
@@ -1338,46 +1426,39 @@ impl Encoder {
               )
               .map_err(|_| ImportError::Conversion)?;
           }
-          if let Some(icon) = self
-            .source
-            .native_text
-            .get(block_id)
-            .and_then(|native| native.properties.get("icon"))
-            .and_then(|icon| icon.get("unicode"))
-            .and_then(serde_json::Value::as_str)
-          {
-            paragraph
-              .insert_text(0, &format!("{icon} "), &CharProps::default())
-              .map_err(|_| ImportError::Conversion)?;
-          }
-          let fill = paragraph.props.shading;
-          let border = paragraph.props.borders;
+          let icon_len = self.callout_icon(
+            &mut paragraph,
+            block_id,
+            fill,
+            native_callout.title.as_ref().is_some_and(|title| !title.is_empty()),
+          )?;
+          header_end = header_end.map(|end| end + icon_len);
+
           let frame_indent = self.indent + self.list_level as f32 * super::CONTENT_INDENT;
-          self.push(paragraph);
-          let child_start = self.document.body.len();
+          if let Some(end) = header_end {
+            // A real header paragraph can stay with the first body line without
+            // forcing a long callout onto a new page as an unsplittable table row.
+            let body = paragraph.split_off(end).map_err(|_| ImportError::Conversion)?;
+            paragraph.delete(end - 1, end).map_err(|_| ImportError::Conversion)?;
+            paragraph.props.keep_next = Some(true);
+            paragraph.props.keep_lines = Some(true);
+            paragraph.props.space_after = Some(self.document.styles.default_chr.size.unwrap_or(11.0) * 0.35);
+            self.push(paragraph);
+            self.push(body);
+          } else {
+            if native_callout.title.as_ref().is_some_and(|title| !title.is_empty()) && !children.is_empty() {
+              paragraph.props.keep_next = Some(true);
+              paragraph.props.keep_lines = Some(true);
+            }
+            self.push(paragraph);
+          }
           let (indent, list_level) = (self.indent, self.list_level);
           self.indent += (self.list_level + 1) as f32 * super::CONTENT_INDENT;
           self.list_level = 0;
           self.blocks(children, depth + 1)?;
-          for block in &mut self.document.body[child_start..] {
-            if let wordcraft_doc::Block::Para(p) = Arc::make_mut(block) {
-              if p.props.style.is_none() {
-                p.props.shading = fill;
-                p.props.borders = border;
-                if let Some(left) = p.props.borders.as_mut().and_then(|b| b.left.as_mut()) {
-                  left.space += (p.props.indent_left.unwrap_or(frame_indent) - frame_indent).max(0.0);
-                }
-                if let Some(fill) = fill {
-                  let ink =
-                    TextColor::parse(myoxus_domain::color::adaptive_foreground(&format!("#{}", fill.hex()))).unwrap();
-                  for run in &mut p.runs {
-                    run.props.color.get_or_insert(ink);
-                  }
-                }
-              }
-            }
-          }
           (self.indent, self.list_level) = (indent, list_level);
+          self.frame_inset = frame_inset;
+          self.finish_callout_frame(frame_start, frame_indent, frame_width, fill, rule);
         }
         Block::FootnoteDefinition {
           block_id,
@@ -1391,13 +1472,13 @@ impl Encoder {
             // Use the same block encoder and asset/numbering owners in the note
             // story, retaining rich bodies without duplicating main-body text.
             let outer = std::mem::take(&mut self.document.body);
-            let (indent, list_level) = (self.indent, self.list_level);
-            (self.indent, self.list_level) = (0.0, 0);
+            let (indent, list_level, frame_inset) = (self.indent, self.list_level, self.frame_inset);
+            (self.indent, self.list_level, self.frame_inset) = (0.0, 0, 0.0);
             self.in_note = true;
             self.blocks(children, depth + 1)?;
             let body = std::mem::replace(&mut self.document.body, outer);
             self.in_note = false;
-            (self.indent, self.list_level) = (indent, list_level);
+            (self.indent, self.list_level, self.frame_inset) = (indent, list_level, frame_inset);
             self.document.parts.get_mut(&id).ok_or(ImportError::Conversion)?.blocks = body;
           } else {
             self.warn("footnote_body_normalized");
@@ -1506,7 +1587,8 @@ impl Encoder {
       - section.margin_left
       - section.margin_right
       - self.indent
-      - self.list_level as f32 * super::CONTENT_INDENT)
+      - self.list_level as f32 * super::CONTENT_INDENT
+      - self.frame_inset)
       .max(36.0)
   }
 
@@ -1555,7 +1637,8 @@ mod figure_tests {
   #[test]
   fn theme_typography_and_compact_ruled_tables_keep_content_and_word_layout_contracts() {
     let mut builder = yjs::YjsDocumentBuilder::new("Styled content");
-    let code = "fn main() {\n\tlet greeting = \"Grüße <&>\";\n\n    println!(\"{greeting}\");\n}\n";
+    let code =
+      "// Readable syntax comment\nfn main() {\n\tlet greeting = \"Grüße <&>\";\n\n    println!(\"{greeting}\");\n}\n";
     builder.push_heading(1, &[yjs::YjsTextSegment::plain("Server heading")]);
     builder.push_table_with_header_rows(
       &[
@@ -1572,6 +1655,14 @@ mod figure_tests {
     );
     builder.push_code("rust", code);
     builder.push_code("unknown-language", code);
+    for name in ["yellow", "green", "pink", "orange", "blue"] {
+      let mut marker = yjs::YjsTextSegment::plain(format!("Marker {name}"));
+      marker.background = Some(format!("var(--myoxus-sem-text-marker-{name})"));
+      builder.push_paragraph(&[marker]);
+    }
+    let mut background = yjs::YjsTextSegment::plain("Ordinary background");
+    background.background = Some("#123456".into());
+    builder.push_paragraph(&[background]);
     let mut ir = crate::doc::content_projection::project_snapshot_for_export(
       uuid::Uuid::nil(),
       uuid::Uuid::new_v4(),
@@ -1626,8 +1717,8 @@ mod figure_tests {
         mono: "JetBrains Mono".into(),
         visuals: None,
         typography: BTreeMap::from([
-          ("Normal".into(), style(16.0, 400)),
-          ("Heading1".into(), style(32.0, 700)),
+          ("Normal".into(), style(14.0, 400)),
+          ("Heading1".into(), style(30.0, 700)),
           (
             "MyoxusCode".into(),
             ExportTypography {
@@ -1654,9 +1745,10 @@ mod figure_tests {
     assert!(embedded.iter().any(|f| f.name == "JetBrains Mono"
       && f.data == include_bytes!("../../../../static/fonts/jetbrains-mono-word-400.ttf")));
     assert!(word.settings.embed_fonts);
+    assert_eq!(word.styles.default_chr.size, Some(11.0));
     let heading = word.styles.get("Heading1").unwrap();
     assert_eq!(heading.chr.font.as_deref(), Some("Inter"));
-    assert_eq!(heading.chr.size, Some(24.0));
+    assert_eq!(heading.chr.size, Some(22.0));
     assert_eq!(heading.chr.bold, Some(true));
     let wordcraft_doc::Block::Para(paragraph) = &*word.body[0] else {
       panic!("Heading paragraph");
@@ -1674,7 +1766,7 @@ mod figure_tests {
       table.rows.iter().all(|row| row.props.cant_split),
       "Normal rows must not start continuation pages with detached value text"
     );
-    assert_eq!(table.props.cell_margins, Some([3.0; 4]));
+    assert_eq!(table.props.cell_margins, Some([2.75; 4]));
     assert!(table.props.borders.unwrap().between.unwrap().is_visible());
     assert!(!table.props.borders.unwrap().inside_v.unwrap().is_visible());
     assert_eq!(
@@ -1683,9 +1775,50 @@ mod figure_tests {
     );
     let code_style = word.styles.get("MyoxusCode").unwrap();
     assert_eq!(code_style.chr.font.as_deref(), Some("JetBrains Mono"));
+    assert_eq!(code_style.chr.size, Some(10.0));
+    assert_eq!(
+      code_style.para.line_spacing,
+      Some(wordcraft_doc::props::LineSpacing::Multiple(1.0))
+    );
     assert_eq!(code_style.para.shading, Rgb::parse("#112233"));
     assert!(code_style.para.space_before.unwrap() > 0.0 && code_style.para.space_after.unwrap() > 0.0);
     assert!(code_style.para.borders.unwrap().top.unwrap().is_visible());
+    let marker_paragraphs = word
+      .body
+      .iter()
+      .filter_map(|b| match &**b {
+        wordcraft_doc::Block::Para(p) if p.final_text().starts_with("Marker ") => Some(p),
+        _ => None,
+      })
+      .collect::<Vec<_>>();
+    assert_eq!(marker_paragraphs.len(), 5);
+    for (p, expected) in marker_paragraphs.iter().zip([
+      Highlight::Yellow,
+      Highlight::BrightGreen,
+      Highlight::Pink,
+      Highlight::Yellow,
+      Highlight::Turquoise,
+    ]) {
+      assert!(
+        p.run_ranges()
+          .filter(|(range, _)| p.text[range.clone()].chars().any(|c| c != '\u{fffc}'))
+          .all(|(_, props)| props.highlight == Some(expected) && props.shading.is_none())
+      );
+    }
+    let background = word
+      .body
+      .iter()
+      .find_map(|b| match &**b {
+        wordcraft_doc::Block::Para(p) if p.final_text() == "Ordinary background" => Some(p),
+        _ => None,
+      })
+      .unwrap();
+    assert!(
+      background
+        .run_ranges()
+        .filter(|(range, _)| background.text[range.clone()].chars().any(|c| c != '\u{fffc}'))
+        .all(|(_, props)| props.highlight.is_none() && props.shading == Rgb::parse("#123456"))
+    );
     let code_paragraphs = word
       .body
       .iter()
@@ -1705,6 +1838,13 @@ mod figure_tests {
           == "JetBrains Mono"
       }));
       let colors: std::collections::HashSet<_> = paragraph.runs.iter().filter_map(|run| run.props.color).collect();
+      assert!(colors.iter().all(|color| {
+        match color {
+          TextColor::Rgb(color) => myoxus_domain::color::contrast_ratio(&format!("#{}", color.hex()), "#112233")
+            .is_some_and(|ratio| ratio >= 4.5),
+          _ => false,
+        }
+      }));
       assert_eq!(
         colors.len() > 1,
         highlighted,
@@ -1712,6 +1852,26 @@ mod figure_tests {
       );
     }
     let imported = super::super::prepare_docx(&output.bytes, "styled.docx").unwrap();
+    let imported_ir = crate::doc::content_projection::project_snapshot_for_export(
+      uuid::Uuid::nil(),
+      uuid::Uuid::new_v4(),
+      "Styled content",
+      &imported.snapshot,
+    )
+    .unwrap();
+    let markers = imported_ir
+      .native_text
+      .values()
+      .flat_map(|b| &b.fields)
+      .flat_map(|f| &f.spans)
+      .filter(|s| s.text.as_deref().is_some_and(|t| t.starts_with("Marker ")))
+      .collect::<Vec<_>>();
+    assert_eq!(markers.len(), 5);
+    assert!(markers.iter().all(|s| {
+      s.background
+        .as_deref()
+        .is_some_and(|b| b.starts_with("var(--myoxus-sem-text-marker-"))
+    }));
     let text = yjs::extract_text_from_yjs(&imported.snapshot).unwrap().markdown;
     for expected in [
       "Server heading",
@@ -1818,7 +1978,19 @@ mod figure_tests {
       })
       .collect::<Vec<_>>();
     assert_eq!(images.len(), 2);
+    assert_eq!(
+      word.svg_images.len(),
+      2,
+      "both the diagram and authored SVG keep vectors"
+    );
     for (media, w, h, alt) in images {
+      let vector = &word.media[&word.svg_images[media]];
+      let vector = std::str::from_utf8(vector).unwrap();
+      assert!(vector.contains("<path"), "canonical vector geometry");
+      assert!(
+        !vector.contains("<text") && !vector.contains("<script"),
+        "outlined, inert Office SVG"
+      );
       let pixels = image::load_from_memory(&word.media[media]).unwrap().to_rgba8();
       assert!(pixels.pixels().any(|pixel| pixel.0[3] > 0));
       assert!((w / h - pixels.width() as f32 / pixels.height() as f32).abs() < 0.02);

@@ -9,7 +9,6 @@ import {
   edgelessCommonSetup,
   getConnectorPath,
   getConnectorPathWithInOut,
-  locatorComponentToolbar,
   rotateElementByHandle,
   selectElementInEdgeless,
   setEdgelessTool,
@@ -33,6 +32,9 @@ test("path #1, the upper line is parallel with the lower line of antoher, and an
   page,
 }) => {
   await commonSetup(page);
+  await setEdgelessTool(page, "connector");
+  await page.getByRole("button", { name: "Elbowed", exact: true }).click();
+  await setEdgelessTool(page, "default");
 
   await createShapeElement(page, [0, 0], [100, 100], Shape.Square);
   await createShapeElement(page, [200, -100], [300, 0], Shape.Square);
@@ -53,6 +55,10 @@ test("path #2, the top-right point is overlapped with the bottom-left point of a
   page,
 }) => {
   await commonSetup(page);
+  await setEdgelessTool(page, "connector");
+  await page.getByRole("button", { name: "Elbowed", exact: true }).click();
+  await setEdgelessTool(page, "default");
+
   await createShapeElement(page, [0, 0], [100, 100], Shape.Square);
   await createShapeElement(page, [100, -100], [200, 0], Shape.Square);
   await createConnectorElement(page, [50, 0], [150, 0]);
@@ -71,6 +77,9 @@ test("path #3, the two shape are parallel in x axis, the anchor from the right t
   page,
 }) => {
   await commonSetup(page);
+  await setEdgelessTool(page, "connector");
+  await page.getByRole("button", { name: "Elbowed", exact: true }).click();
+  await setEdgelessTool(page, "default");
 
   await createShapeElement(page, [0, 0], [100, 100], Shape.Square);
   await createShapeElement(page, [200, 0], [300, 100], Shape.Square);
@@ -109,6 +118,10 @@ test("connector connects diamond shape", async ({ page }) => {
 
 test("connector connects rotated Square shape", async ({ page }) => {
   await commonSetup(page);
+  await setEdgelessTool(page, "connector");
+  await page.getByRole("button", { name: "Elbowed", exact: true }).click();
+  await setEdgelessTool(page, "default");
+
   await createShapeElement(page, [0, 0], [100, 100], Shape.Square);
   await createConnectorElement(page, [50, 0], [50, -100]);
   await dragBetweenViewCoords(page, [-10, 50], [60, 60]);
@@ -145,7 +158,7 @@ test("should record previous connector mode", async ({ page }) => {
   await setEdgelessTool(page, "default");
   await clickView(page, [150, 150]);
   await triggerComponentToolbarAction(page, "changeConnectorShape");
-  await locatorComponentToolbar(page).getByLabel("Curve").click();
+  await page.getByRole("option", { name: "Curve", exact: true }).click();
 
   await page.keyboard.press("c");
   await assertEdgelessConnectorToolMode(page, ConnectorMode.Curve);
@@ -230,6 +243,7 @@ test.describe("quick connect", () => {
     endpoint = await toModelCoord(page, point);
     await page.mouse.move(...point);
     await waitNextFrame(page);
+
     await assertConnectorPath(page, [[50, 0], endpoint]);
 
     // at left
@@ -291,7 +305,9 @@ test.describe("quick connect", () => {
         .gfx.surface!.elementModels.find(
           (model) => model.type === "connector",
         )!;
-      return { source: connector.source.id, target: connector.target.id };
+      const endpoints =
+        connector as import("@virgultum/core/models").ConnectorElementModel;
+      return { source: endpoints.source.id, target: endpoints.target.id };
     });
     expect(endpoints).toEqual({ source: shape1Id, target: shape2Id });
 

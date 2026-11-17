@@ -26,7 +26,7 @@ import { DebugLogger } from "@myoxus/debug";
 import type { FrameworkProvider } from "@myoxus/infra";
 import type { ReactToLit } from "@myoxus/lit-react";
 import { tracker } from "@myoxus/track";
-import { DatabaseReferenceViewExtension } from "@virgultum/block-database/reference-view";
+import { DatabaseReferenceViewExtension } from "@virgultum/editor/blocks/database/reference-view";
 import { ParagraphViewExtension } from "@virgultum/editor/blocks/paragraph/view";
 import type {
   PeekOptions,
@@ -64,7 +64,11 @@ type Configure = {
   turboRenderer: (enableTurboRenderer?: boolean) => Configure;
   pdf: (reactToLit?: ReactToLit) => Configure;
   mobile: (framework?: FrameworkProvider) => Configure;
-  ai: (enable?: boolean, framework?: FrameworkProvider) => Configure;
+  ai: (
+    enable?: boolean,
+    framework?: FrameworkProvider,
+    reactToLit?: ReactToLit,
+  ) => Configure;
   electron: (framework?: FrameworkProvider) => Configure;
   linkPreview: (framework?: FrameworkProvider) => Configure;
   codeBlockPreview: (framework?: FrameworkProvider) => Configure;
@@ -362,8 +366,9 @@ class ViewProvider {
   private readonly _configureAI = (
     enable?: boolean,
     framework?: FrameworkProvider,
+    reactToLit?: ReactToLit,
   ) => {
-    this._manager.configure(AIViewExtension, { framework, enable });
+    this._manager.configure(AIViewExtension, { framework, enable, reactToLit });
     return this.config;
   };
 

@@ -1,4 +1,4 @@
-import { Bound } from "@virgultum/global/gfx";
+import { Bound } from "@virgultum/core/primitives/gfx";
 
 import type { MermaidGfxArrowDirection } from "./mermaid-gfx-node-selection.js";
 

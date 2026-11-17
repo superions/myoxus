@@ -13,7 +13,7 @@
                   "props": {
                     "collapsed": false,
                     "text": {
-                      "$blocksuite:internal:text$": true,
+                      "$virgultum:internal:text$": true,
                       "delta": [
                         {
                           "insert": "hij"
@@ -31,7 +31,7 @@
               "props": {
                 "collapsed": false,
                 "text": {
-                  "$blocksuite:internal:text$": true,
+                  "$virgultum:internal:text$": true,
                   "delta": [
                     {
                       "insert": "efg"
@@ -50,7 +50,7 @@
               "props": {
                 "collapsed": false,
                 "text": {
-                  "$blocksuite:internal:text$": true,
+                  "$virgultum:internal:text$": true,
                   "delta": [
                     {
                       "insert": "klm"
@@ -69,7 +69,7 @@
               "props": {
                 "collapsed": false,
                 "text": {
-                  "$blocksuite:internal:text$": true,
+                  "$virgultum:internal:text$": true,
                   "delta": [
                     {
                       "insert": "nop"
@@ -87,7 +87,7 @@
           "props": {
             "collapsed": false,
             "text": {
-              "$blocksuite:internal:text$": true,
+              "$virgultum:internal:text$": true,
               "delta": [
                 {
                   "insert": "abc"
@@ -125,7 +125,7 @@
   "id": "0",
   "props": {
     "title": {
-      "$blocksuite:internal:text$": true,
+      "$virgultum:internal:text$": true,
       "delta": []
     }
   },

@@ -20,7 +20,8 @@ import {
 import type { FrameworkProvider } from "@myoxus/infra";
 import {
   Badge,
-  Card,
+  ReferenceCard,
+  Box,
   Grid,
   Group,
   IconButton,
@@ -98,7 +99,7 @@ export function EmbeddedTaskCard({
   };
   return (
     <TaskDetailNavigationContext.Provider value={navigation}>
-      <Grid>
+      <Grid gap={0}>
         <Grid.Col span={6}>
           <TaskDetail
             databaseId={task.databaseId}
@@ -119,9 +120,80 @@ export function EmbeddedTaskCard({
                 : [];
               // Native SQL fields own their caret independently of the document's Yjs range.
               return (
-                <Card
-                  withBorder
-                  padding="default"
+                <ReferenceCard
+                  size="large"
+                  contained
+                  title={task.title}
+                  status={
+                    <Group gap="xs">
+                      {trashed ? <Badge>{t.Trash()}</Badge> : null}
+                      {task.status ? (
+                        <Badge
+                          tagColorRole={
+                            isWorkspaceTagColorRole(task.status.colorRole)
+                              ? task.status.colorRole
+                              : undefined
+                          }
+                        >
+                          {taskOptionDisplayName(
+                            t,
+                            "task.status",
+                            task.status.id,
+                          )}
+                        </Badge>
+                      ) : null}
+                    </Group>
+                  }
+                  actions={
+                    <>
+                      <IconButton
+                        icon={
+                          expanded ? (
+                            <CloseIcon />
+                          ) : readonly || !task.canEdit || trashed ? (
+                            <ChevronDownIcon />
+                          ) : (
+                            <EditIcon />
+                          )
+                        }
+                        tooltip={
+                          expanded
+                            ? t["com.myoxus.peek-view-controls.close"]()
+                            : readonly || !task.canEdit || trashed
+                              ? t["com.myoxus.database.row.open-details"]()
+                              : t.Edit()
+                        }
+                        aria-expanded={expanded}
+                        onClick={() =>
+                          navigation.requestLeave?.(() =>
+                            setExpanded(!expanded),
+                          )
+                        }
+                      />
+                      <IconButton
+                        icon={<OpenInNewIcon />}
+                        tooltip={t["com.myoxus.database.tasks.open-kanban"]()}
+                        onClick={open}
+                      />
+                    </>
+                  }
+                  description={
+                    task.descriptionPreview && !expanded
+                      ? task.descriptionPreview
+                      : undefined
+                  }
+                  onDoubleClick={(event) => {
+                    // The surrounding Page editable root is not a card control.
+                    // Expanded fields suppress this navigation gesture at their own root.
+                    if (
+                      !event.currentTarget.contains(
+                        (event.target as Element).closest(
+                          'button,input,textarea,[contenteditable="true"]',
+                        ),
+                      )
+                    )
+                      open();
+                  }}
                   data-testid="embedded-task-card"
                   data-range-sync-exclude="true"
                   onKeyDown={(event) => {
@@ -134,148 +206,77 @@ export function EmbeddedTaskCard({
                   data-database-id={task.databaseId}
                 >
                   <Stack>
-                    <Stack
-                      onDoubleClick={(event) => {
-                        // The Page's outer editable root is not a header control.
-                        if (
-                          !event.currentTarget.contains(
-                            (event.target as Element).closest(
-                              'button,input,textarea,[contenteditable="true"]',
-                            ),
-                          )
-                        )
-                          open();
-                      }}
-                    >
-                      <Group justify="space-between" wrap="nowrap">
-                        <Group>
-                          {trashed ? <Badge>{t.Trash()}</Badge> : null}
-                          {task.status ? (
-                            <Badge
-                              tagColorRole={
-                                isWorkspaceTagColorRole(task.status.colorRole)
-                                  ? task.status.colorRole
-                                  : undefined
-                              }
-                            >
-                              {taskOptionDisplayName(
-                                t,
-                                "task.status",
-                                task.status.id,
-                              )}
-                            </Badge>
-                          ) : null}
-                        </Group>
-                        <Group wrap="nowrap">
-                          <IconButton
-                            icon={
-                              expanded ? (
-                                <CloseIcon />
-                              ) : readonly || !task.canEdit || trashed ? (
-                                <ChevronDownIcon />
-                              ) : (
-                                <EditIcon />
-                              )
-                            }
-                            tooltip={
-                              expanded
-                                ? t["com.myoxus.peek-view-controls.close"]()
-                                : readonly || !task.canEdit || trashed
-                                  ? t["com.myoxus.database.row.open-details"]()
-                                  : t.Edit()
-                            }
-                            aria-expanded={expanded}
-                            onClick={() =>
-                              navigation.requestLeave?.(() =>
-                                setExpanded(!expanded),
-                              )
-                            }
-                          />
-                          <IconButton
-                            icon={<OpenInNewIcon />}
-                            tooltip={t[
-                              "com.myoxus.database.tasks.open-kanban"
-                            ]()}
-                            onClick={open}
-                          />
-                        </Group>
+                    <Group>
+                      <Group
+                        gap="xs"
+                        aria-label={t[
+                          "com.myoxus.database.property.assignees"
+                        ]()}
+                      >
+                        <UserIcon aria-hidden />
+                        <MyoxusText
+                          tone="secondary"
+                          typographySlot="body-small"
+                        >
+                          {task.assignees
+                            .map((actor) => actor.name)
+                            .join(", ") ||
+                            t["com.myoxus.database.kanban.unassigned"]()}
+                        </MyoxusText>
                       </Group>
-                      <MyoxusText typographySlot="card-title">
-                        {task.title}
-                      </MyoxusText>
-                      {task.descriptionPreview && !expanded ? (
-                        <MyoxusText tone="secondary" lineClamp={2}>
-                          {task.descriptionPreview}
+                      {task.hasDue && due ? (
+                        <MyoxusText
+                          tone="secondary"
+                          typographySlot="body-small"
+                        >
+                          {due.label}
                         </MyoxusText>
                       ) : null}
-                      <Group>
-                        <Group
-                          gap="xs"
-                          aria-label={t[
-                            "com.myoxus.database.property.assignees"
-                          ]()}
+                      {task.hasPriority && task.priority ? (
+                        <Badge>
+                          {taskOptionDisplayName(
+                            t,
+                            "task.priority",
+                            task.priority.id,
+                          )}
+                        </Badge>
+                      ) : null}
+                    </Group>
+                    {dependencies.length ? (
+                      <Group
+                        gap="xs"
+                        aria-label={t["com.myoxus.common.dependencies"]()}
+                      >
+                        <LinkIcon aria-hidden />
+                        <MyoxusText
+                          tone="secondary"
+                          typographySlot="body-small"
+                          lineClamp={2}
                         >
-                          <UserIcon aria-hidden />
-                          <MyoxusText
-                            tone="secondary"
-                            typographySlot="body-small"
-                          >
-                            {task.assignees
-                              .map((actor) => actor.name)
-                              .join(", ") ||
-                              t["com.myoxus.database.kanban.unassigned"]()}
-                          </MyoxusText>
-                        </Group>
-                        {task.hasDue && due ? (
-                          <MyoxusText
-                            tone="secondary"
-                            typographySlot="body-small"
-                          >
-                            {due.label}
-                          </MyoxusText>
-                        ) : null}
-                        {task.hasPriority && task.priority ? (
-                          <Badge>
-                            {taskOptionDisplayName(
-                              t,
-                              "task.priority",
-                              task.priority.id,
-                            )}
-                          </Badge>
-                        ) : null}
+                          {dependencies
+                            .map((target) =>
+                              target.redacted || target.deleted
+                                ? t["com.myoxus.template-list.unavailable"]()
+                                : target.title,
+                            )
+                            .join(", ")}
+                        </MyoxusText>
                       </Group>
-                      {dependencies.length ? (
-                        <Group
-                          gap="xs"
-                          aria-label={t["com.myoxus.common.dependencies"]()}
-                        >
-                          <LinkIcon aria-hidden />
-                          <MyoxusText
-                            tone="secondary"
-                            typographySlot="body-small"
-                            lineClamp={2}
-                          >
-                            {dependencies
-                              .map((target) =>
-                                target.redacted || target.deleted
-                                  ? t["com.myoxus.template-list.unavailable"]()
-                                  : target.title,
-                              )
-                              .join(", ")}
-                          </MyoxusText>
-                        </Group>
-                      ) : null}
-                      {bindings?.get("task.blockedBy") ? (
-                        <TaskCardBlockers
-                          record={fields.record}
-                          row={fields.row}
-                          onOpen={open}
-                        />
-                      ) : null}
-                    </Stack>
-                    {expanded ? <EmbeddedTaskFields {...fields} /> : null}
+                    ) : null}
+                    {bindings?.get("task.blockedBy") ? (
+                      <TaskCardBlockers
+                        record={fields.record}
+                        row={fields.row}
+                        onOpen={open}
+                      />
+                    ) : null}
                   </Stack>
-                </Card>
+                  {expanded ? (
+                    <Box onDoubleClick={(event) => event.stopPropagation()}>
+                      <EmbeddedTaskFields {...fields} />
+                    </Box>
+                  ) : null}
+                </ReferenceCard>
               );
             }}
           />

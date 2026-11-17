@@ -21,6 +21,7 @@ import {
   FileMenuItem,
   IconButton,
   Menu,
+  MenuSearch,
   MenuItem,
   MenuOptionButton,
   MenuOptionGroup,
@@ -47,6 +48,26 @@ function renderWithProvider(ui: ReactElement) {
 describe("facade menu primitives", () => {
   afterEach(() => {
     cleanup();
+  });
+
+  test("native menu search receives opening focus instead of the menu placeholder", async () => {
+    renderWithProvider(
+      <Menu
+        items={
+          <>
+            <MenuSearch aria-label="Find command" />
+            <MenuItem>Insert</MenuItem>
+          </>
+        }
+      >
+        <MenuTrigger>Commands</MenuTrigger>
+      </Menu>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Commands" }));
+    const search = await screen.findByRole("searchbox", {
+      name: "Find command",
+    });
+    await waitFor(() => expect(document.activeElement).toBe(search));
   });
 
   test("a dialog menu stays in its owning modal and can select without dismissing the dialog", async () => {
@@ -88,10 +109,15 @@ describe("facade menu primitives", () => {
 
   test("renders dropdown menus through the Myoxus facade instead of old component barrels", async () => {
     const handleSelect = vi.fn();
+    const contentRef = vi.fn();
+    const onPointerDown = vi.fn();
+    const onClick = vi.fn();
 
     renderWithProvider(
       <Menu
         title="Actions"
+        contentRef={contentRef}
+        contentOptions={{ onPointerDown, onClick }}
         items={
           <>
             <MenuItem
@@ -120,6 +146,12 @@ describe("facade menu primitives", () => {
       name: /primary action/i,
       hidden: true,
     });
+    const dropdown = screen.getByRole("menu", { hidden: true });
+    expect(contentRef).toHaveBeenCalledWith(dropdown);
+    fireEvent.pointerDown(dropdown);
+    fireEvent.click(dropdown);
+    expect(onPointerDown).toHaveBeenCalledOnce();
+    expect(onClick).toHaveBeenCalledOnce();
     expect(item.dataset.myoxusUiRole).toBe("menu-item");
     expect(item.getAttribute("style")).toContain("--mantine-font-family-nav");
     expect(item.getAttribute("style")).not.toContain(
@@ -485,6 +517,34 @@ describe("facade menu primitives", () => {
 
     await waitFor(() => {
       expect(screen.queryByRole("textbox", { name: "Link value" })).toBeNull();
+    });
+  });
+
+  test("runs a submenu parent command once and honors its close-on-click contract", async () => {
+    const activate = vi.fn();
+    renderWithProvider(
+      <Menu
+        items={
+          <MenuSub
+            triggerOptions={{ onClick: activate, closeMenuOnClick: true }}
+            items={<MenuItem>Frame preset</MenuItem>}
+          >
+            Frame
+          </MenuSub>
+        }
+      >
+        <MenuTrigger>More tools</MenuTrigger>
+      </Menu>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "More tools" }));
+    const frame = await screen.findByRole("menuitem", { name: "Frame" });
+    fireEvent.mouseDown(frame);
+    fireEvent.click(frame);
+
+    expect(activate).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(screen.queryByRole("menuitem", { name: "Frame" })).toBeNull();
     });
   });
 

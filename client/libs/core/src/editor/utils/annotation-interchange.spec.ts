@@ -2390,7 +2390,7 @@ test.each(["file", "zip"] as const)(
       }),
     };
     const base = `${window.location.origin}/workspace/${workspace.id}/${target.id}`;
-    const source = `# Source\n\n[heading](${base}#%C3%9Cber%20Gr%C3%B6%C3%9Fe) [instruction](${base}#%5Einstruction) [native instruction](${base}?mode=page&blockIds=${paragraph})\n\nLocal decision. ^local\n\n[[#^local|local]]\n\n\`[[Target#^instruction]]\`\n\n%%[[Target#^instruction]]%%`;
+    const source = `# Source\n\n[heading](${base}#%C3%9Cber%20Gr%C3%B6%C3%9Fe) [instruction](${base}#%5Einstruction) [native instruction](${base}?mode=page&blockIds=${paragraph})\n\n![[Target#%C3%9Cber%20Gr%C3%B6%C3%9Fe|Section alias]]\n\n![[Target#^instruction|Block alias]]\n\nLocal decision. ^local\n\n[[#^local|local]]\n\n\`[[Target#^instruction]]\`\n\n%%[[Target#^instruction]]%%`;
     const run = async (capability: DocEmbedProvider | undefined = access) => {
       const options = {
         collection: workspace,
@@ -2449,6 +2449,22 @@ test.each(["file", "zip"] as const)(
         { pageId: target.id, blockIds: [paragraph] },
       ]);
       const importedStore = workspace.getDoc(result.docId)!.getStore();
+      expect(
+        importedStore
+          .getModelsByFlavour("myoxus:embed-synced-doc")
+          .map((model) => model.props),
+      ).toMatchObject([
+        {
+          pageId: target.id,
+          title: "Section alias",
+          params: { blockIds: [heading], blockSelection: "section" },
+        },
+        {
+          pageId: target.id,
+          title: "Block alias",
+          params: { blockIds: [paragraph], blockSelection: "subtree" },
+        },
+      ]);
       const local = importedStore
         .getBlocksByFlavour("myoxus:paragraph")
         .map(({ model }) => model as ParagraphBlockModel)
@@ -2481,7 +2497,7 @@ test.each(["file", "zip"] as const)(
       workspace.meta.setDocMeta(target.id, { title: "CACHED PRIVATE TITLE" });
       vi.mocked(access.waitForLoaded).mockClear();
       const denied = await run();
-      expect(denied.diagnostics.unresolvedReferences).toBe(3);
+      expect(denied.diagnostics.unresolvedReferences).toBe(5);
       expect(
         references(denied.docId).some(({ pageId }) => pageId === target.id),
       ).toBe(false);
@@ -2498,9 +2514,11 @@ test.each(["file", "zip"] as const)(
           .join(" "),
       ).not.toContain("CACHED PRIVATE TITLE");
       readable = true;
+      // A fresh source names the current authorized document before loading.
+      workspace.meta.setDocMeta(target.id, { title: "Target" });
       targetStore.deleteBlock(targetStore.getModelById(paragraph)!);
       const deleted = await run();
-      expect(deleted.diagnostics.unresolvedReferences).toBe(2);
+      expect(deleted.diagnostics.unresolvedReferences).toBe(3);
       expect(
         references(deleted.docId).some(({ params }) =>
           params?.blockIds?.includes(paragraph),
@@ -2884,6 +2902,9 @@ test.each(
       "nested-denied",
       "missing",
       "asset-revoked",
+      "selected-section",
+      "selected-subtree",
+      "selected-missing",
     ].map((access) => ({ mounted, access })),
   ),
 )(
@@ -2908,7 +2929,63 @@ test.each(
         { text: new Text("Hidden target annotation") },
         targetNote,
       );
-      store.addBlock("myoxus:embed-synced-doc", { pageId: target.id }, note);
+      const selected = access.startsWith("selected-");
+      const heading = selected
+        ? targetStore.addBlock(
+            "myoxus:paragraph",
+            {
+              type: "h2",
+              text: new Text("Selected instructions"),
+            },
+            targetNote,
+            0,
+          )
+        : undefined;
+      if (selected) {
+        targetStore.addBlock(
+          "myoxus:paragraph",
+          { type: "h3", text: new Text("Nested instructions") },
+          targetNote,
+        );
+        targetStore.addBlock(
+          "myoxus:paragraph",
+          { text: new Text("Included section detail") },
+          targetNote,
+        );
+        targetStore.addBlock(
+          "myoxus:paragraph",
+          { type: "h2", text: new Text("Unselected next section") },
+          targetNote,
+        );
+        targetStore.addBlock(
+          "myoxus:paragraph",
+          { text: new Text("Unselected body sentinel") },
+          targetNote,
+        );
+      }
+      store.addBlock(
+        "myoxus:embed-synced-doc",
+        {
+          pageId: target.id,
+          ...(selected
+            ? {
+                params: {
+                  mode: "page",
+                  blockIds: [
+                    access === "selected-missing"
+                      ? "deleted-instruction"
+                      : access === "selected-subtree"
+                        ? targetParagraph
+                        : heading!,
+                  ],
+                  blockSelection:
+                    access === "selected-subtree" ? "subtree" : "section",
+                },
+              }
+            : {}),
+        },
+        note,
+      );
       store.addBlock(
         "myoxus:callout",
         {
@@ -3030,13 +3107,22 @@ test.each(
       vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(
         () => {},
       );
-      if (access === "allowed") {
+      if (access === "allowed" || (selected && access !== "selected-missing")) {
         await exportActions.exportToHtml(store, std, embedProvider);
         expect(files).toHaveLength(1);
         const html = await files[0].text();
         expect(html).toContain("Current target approval");
         expect(html).not.toContain("Stale cached approval");
-        expect(html).toContain("Nested approval");
+        if (selected) {
+          expect(html).not.toContain("Unselected next section");
+          expect(html).not.toContain("Unselected body sentinel");
+          expect(html.includes("Included section detail")).toBe(
+            access === "selected-section",
+          );
+          expect(html.includes("Selected instructions")).toBe(
+            access === "selected-section",
+          );
+        } else expect(html).toContain("Nested approval");
         expect(html).not.toContain("Nested private body");
         expect(html).toContain("Visible checklist");
         expect(html).toContain("Visible note body");
@@ -3057,7 +3143,9 @@ test.each(
         await expect(
           exportActions.exportToHtml(store, std, embedProvider),
         ).rejects.toThrow(
-          access === "missing" ? "target missing" : "access denied",
+          access === "missing" || access === "selected-missing"
+            ? "target missing"
+            : "access denied",
         );
         expect(files).toEqual([]);
       }

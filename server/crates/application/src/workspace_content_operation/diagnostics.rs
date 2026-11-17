@@ -317,6 +317,9 @@ mod tests {
       .with_writer(move || writer.clone())
       .finish();
     tracing::subscriber::with_default(subscriber, || {
+      // Parallel tests may have initialized these callsites without a subscriber.
+      // Recompute interest for this scoped capture before exercising redaction.
+      tracing::callsite::rebuild_interest_cache();
       for code in [
         WorkspaceContentErrorCode::OrganizerMalformedRow,
         WorkspaceContentErrorCode::TagAssignmentConstraint,
@@ -363,7 +366,7 @@ mod tests {
     );
     assert!(log.contains("blob_staging"));
     assert!(log.contains("storage"));
-    assert!(log.contains("transport"));
+    assert!(log.contains("transport"), "missing port error classification: {log}");
     assert!(log.contains("XWS_ORGANIZER_MALFORMED_ROW"));
     assert!(log.contains("XWS_TAG_ASSIGNMENT_CONSTRAINT"));
     assert!(!log.contains("secret-token-and-document-content"));

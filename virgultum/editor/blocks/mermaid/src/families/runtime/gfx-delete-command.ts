@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { EdgelessCRUDIdentifier } from "@virgultum/block-surface";
-import type { MermaidBlockModel } from "@virgultum/model";
-import type { Command } from "@virgultum/std";
-import type { GfxModel } from "@virgultum/std/gfx";
+import { EdgelessCRUDIdentifier } from "@virgultum/canvas-runtime/surface";
+import type { MermaidBlockModel } from "@virgultum/core/models";
+import type { Command } from "@virgultum/core/runtime";
+import type { GfxModel } from "@virgultum/core/runtime/gfx";
 
 import {
   finishMermaidGfxMutation,

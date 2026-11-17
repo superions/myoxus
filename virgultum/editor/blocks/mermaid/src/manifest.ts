@@ -65,7 +65,10 @@
  *      (P-VIRG-ARCH-I-01 inventory)
  */
 
-import { type FeatureManifest, featureManifestId } from "@virgultum/ext-loader";
+import {
+  type FeatureManifest,
+  featureManifestId,
+} from "@virgultum/core/extensions";
 
 import { MermaidStoreExtension } from "./store.js";
 import { MermaidViewExtension } from "./view.js";

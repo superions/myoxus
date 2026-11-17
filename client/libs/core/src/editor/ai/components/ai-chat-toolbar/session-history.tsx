@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useI18n } from "@myoxus/i18n";
-import { DeleteIcon, OpenInNewIcon } from "@myoxus/icons/react";
+import {
+  DeleteIcon,
+  MoreHorizontalIcon,
+  OpenInNewIcon,
+} from "@myoxus/icons/react";
 import { toReactNode } from "@myoxus/lit-react";
 import {
   Button,
@@ -8,6 +12,9 @@ import {
   IconButton,
   MyoxusLoader,
   MyoxusText,
+  Menu,
+  MenuItem,
+  MenuPanel,
   NavLink,
   Scrollable,
   Stack,
@@ -34,6 +41,7 @@ function SessionHistoryEntry({
   session,
   selected,
   disabled,
+  timestamp,
   docDisplayConfig,
   onSelect,
   onOpenDoc,
@@ -41,7 +49,7 @@ function SessionHistoryEntry({
 }: Pick<
   ChatSessionHistoryProps,
   "disabled" | "docDisplayConfig" | "onSelect" | "onOpenDoc" | "onDelete"
-> & { session: RecentSession; selected: boolean }) {
+> & { session: RecentSession; selected: boolean; timestamp: string }) {
   const t = useI18n();
   const [docTitle, setDocTitle] = useState(
     session.docId ? docDisplayConfig.getTitle(session.docId) : "",
@@ -56,45 +64,77 @@ function SessionHistoryEntry({
     };
   }, [docDisplayConfig, session.docId]);
   const icon = session.docId ? docDisplayConfig.getIcon(session.docId) : null;
+  const title =
+    session.title || docTitle || t["com.myoxus.ai.chat-panel.new-chat"]();
   return (
-    <Group wrap="nowrap" data-session-id={session.sessionId}>
+    <Group gap={0} wrap="nowrap" data-session-id={session.sessionId}>
       <NavLink
         component="button"
         type="button"
+        flex={1}
+        // Let the native label shrink without clipping the sibling action menu.
+        miw={0}
         active={selected}
         disabled={disabled}
-        label={session.title || t["com.myoxus.ai.chat-panel.new-chat"]()}
+        label={title}
+        noWrap
+        title={title}
+        rightSection={
+          <MyoxusText
+            component="time"
+            typographySlot="caption"
+            tone="secondary"
+            dateTime={session.updatedAt}
+          >
+            {timestamp}
+          </MyoxusText>
+        }
         description={
-          docTitle ||
-          new Intl.DateTimeFormat(t.language, {
-            hour: "2-digit",
-            minute: "2-digit",
-          }).format(new Date(session.updatedAt))
+          session.title && docTitle && session.title !== docTitle
+            ? docTitle
+            : undefined
         }
         onClick={() => onSelect(session.sessionId)}
       />
-      {session.docId ? (
-        <IconButton
-          aria-label={t["com.myoxus.database.document_link.open"]()}
-          tooltip={docTitle}
-          disabled={disabled}
-          onClick={() => onOpenDoc(session.docId!, session.sessionId)}
-        >
-          {icon ? (
-            toReactNode(typeof icon === "function" ? icon() : icon)
-          ) : (
-            <OpenInNewIcon />
-          )}
-        </IconButton>
-      ) : null}
-      <IconButton
-        aria-label={t["Delete"]()}
-        tooltip={t["Delete"]()}
-        disabled={disabled}
-        onClick={() => onDelete(session)}
+      <Menu
+        noPortal
+        items={
+          <>
+            {session.docId ? (
+              <MenuItem
+                prefixIcon={
+                  icon ? (
+                    toReactNode(typeof icon === "function" ? icon() : icon)
+                  ) : (
+                    <OpenInNewIcon />
+                  )
+                }
+                disabled={disabled}
+                onSelect={() => onOpenDoc(session.docId!, session.sessionId)}
+              >
+                {t["com.myoxus.database.document_link.open"]()}
+              </MenuItem>
+            ) : null}
+            <MenuItem
+              type="danger"
+              prefixIcon={<DeleteIcon />}
+              disabled={disabled}
+              onSelect={() => void onDelete(session)}
+            >
+              {t["Delete"]()}
+            </MenuItem>
+          </>
+        }
       >
-        <DeleteIcon />
-      </IconButton>
+        <IconButton
+          size="small"
+          aria-label={t["com.myoxus.common.open-menu"]()}
+          tooltip={t["com.myoxus.common.open-menu"]()}
+          disabled={disabled}
+        >
+          <MoreHorizontalIcon />
+        </IconButton>
+      </Menu>
     </Group>
   );
 }
@@ -147,6 +187,16 @@ export function ChatSessionHistory({
     };
   }, [workspaceId, offset, retry]);
 
+  const timeFormat = new Intl.DateTimeFormat(t.language, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const dateTimeFormat = new Intl.DateTimeFormat(t.language, {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const sevenDays = new Date(today);
@@ -174,69 +224,86 @@ export function ChatSessionHistory({
   ];
 
   return (
-    <Scrollable.Root>
-      <Scrollable.Viewport
-        autosize
-        maxHeight="floating"
-        scrollbars="y"
-        aria-label={t["com.myoxus.ai.chat-panel.history"]()}
-        onScroll={(event) => {
-          if (loading || failed || !hasMore) return;
-          const viewport = event.currentTarget;
-          if (
-            viewport.scrollTop + viewport.clientHeight >=
-            viewport.scrollHeight - viewport.clientHeight * 0.15
-          )
-            setOffset(sessions.length);
-        }}
-      >
-        <Stack data-myoxus-ui-role="chat-session-history">
-          <MyoxusText>{t["com.myoxus.ai.chat-panel.history"]()}</MyoxusText>
-          {grouped.map((group, index) =>
-            group.length ? (
-              <Stack key={index}>
-                <MyoxusText typographySlot="caption" tone="secondary">
-                  {labels[index]}
-                </MyoxusText>
-                {group.map((session) => (
-                  <SessionHistoryEntry
-                    key={session.sessionId}
-                    session={session}
-                    selected={sessionId === session.sessionId}
-                    disabled={disabled || loading}
-                    docDisplayConfig={docDisplayConfig}
-                    onSelect={onSelect}
-                    onOpenDoc={onOpenDoc}
-                    onDelete={async (session) => {
-                      await onDelete(session);
-                      // Requery the authoritative first page after the dialog/RPC;
-                      // cancellation/failure must not optimistically hide a row.
-                      setOffset(0);
-                      setRetry((value) => value + 1);
-                    }}
-                  />
-                ))}
-              </Stack>
-            ) : null,
-          )}
-          {loading ? <MyoxusLoader /> : null}
-          {!loading && !failed && sessions.length === 0 ? (
-            <MyoxusText tone="secondary">
-              {t["com.myoxus.ai.chat-panel.history-empty"]()}
-            </MyoxusText>
-          ) : null}
-          {failed ? (
-            <Stack role="alert">
-              <MyoxusText>
-                {t["com.myoxus.ai.chat-panel.history-error"]()}
-              </MyoxusText>
-              <Button onClick={() => setRetry((value) => value + 1)}>
-                {t["Retry"]()}
+    <MenuPanel panelWidth="display">
+      <Scrollable.Root>
+        <Scrollable.Viewport
+          autosize
+          maxHeight="floating"
+          scrollbars="y"
+          offsetScrollbars="y"
+          aria-label={t["com.myoxus.ai.chat-panel.history"]()}
+          onScroll={(event) => {
+            if (loading || failed || !hasMore) return;
+            const viewport = event.currentTarget;
+            if (
+              viewport.scrollTop + viewport.clientHeight >=
+              viewport.scrollHeight - viewport.clientHeight * 0.15
+            )
+              setOffset(sessions.length);
+          }}
+        >
+          <Stack gap="xs" data-myoxus-ui-role="chat-session-history">
+            <MyoxusText>{t["com.myoxus.ai.chat-panel.history"]()}</MyoxusText>
+            {grouped.map((group, index) =>
+              group.length ? (
+                <Stack key={index} gap={0}>
+                  <MyoxusText typographySlot="caption" tone="secondary">
+                    {labels[index]}
+                  </MyoxusText>
+                  {group.map((session) => (
+                    <SessionHistoryEntry
+                      key={session.sessionId}
+                      session={session}
+                      timestamp={(index === 0
+                        ? timeFormat
+                        : dateTimeFormat
+                      ).format(new Date(session.updatedAt))}
+                      selected={sessionId === session.sessionId}
+                      disabled={disabled || loading}
+                      docDisplayConfig={docDisplayConfig}
+                      onSelect={onSelect}
+                      onOpenDoc={onOpenDoc}
+                      onDelete={async (session) => {
+                        await onDelete(session);
+                        // Requery the authoritative first page after the dialog/RPC;
+                        // cancellation/failure must not optimistically hide a row.
+                        setOffset(0);
+                        setRetry((value) => value + 1);
+                      }}
+                    />
+                  ))}
+                </Stack>
+              ) : null,
+            )}
+            {/* Compact first pages may fit without a scrollbar; keep older chats reachable. */}
+            {!loading && !failed && hasMore ? (
+              <Button
+                variant="plain"
+                disabled={disabled}
+                onClick={() => setOffset(sessions.length)}
+              >
+                {t["com.myoxus.history.confirm-restore-modal.load-more"]()}
               </Button>
-            </Stack>
-          ) : null}
-        </Stack>
-      </Scrollable.Viewport>
-    </Scrollable.Root>
+            ) : null}
+            {loading ? <MyoxusLoader /> : null}
+            {!loading && !failed && sessions.length === 0 ? (
+              <MyoxusText tone="secondary">
+                {t["com.myoxus.ai.chat-panel.history-empty"]()}
+              </MyoxusText>
+            ) : null}
+            {failed ? (
+              <Stack role="alert">
+                <MyoxusText>
+                  {t["com.myoxus.ai.chat-panel.history-error"]()}
+                </MyoxusText>
+                <Button onClick={() => setRetry((value) => value + 1)}>
+                  {t["Retry"]()}
+                </Button>
+              </Stack>
+            ) : null}
+          </Stack>
+        </Scrollable.Viewport>
+      </Scrollable.Root>
+    </MenuPanel>
   );
 }

@@ -8,7 +8,7 @@
     "./*": "./src/*"
   },
   "dependencies": {
-    "@virgultum/shared": "workspace:*",
+    "@virgultum/core": "workspace:*",
     "lit": "^3.3.3",
     "nanoid": "6.0.1",
     "react": "19.3.0",

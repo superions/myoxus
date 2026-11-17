@@ -1,1 +1,1 @@
-export * from "@virgultum/inline-mention/view";
+export { MentionViewExtension } from "@virgultum/content/view";

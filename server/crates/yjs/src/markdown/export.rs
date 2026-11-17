@@ -1357,16 +1357,29 @@ pub fn extract_text_from_yjs_with_references_and_images(
         });
       }
       let embed_source = (canonical_flavour == "myoxus:embed-synced-doc").then(|| {
-        let reference = MarkdownDocumentReference {
+        let mut reference = MarkdownDocumentReference {
           page_id: get_prop_string(&block_map, &txn, "pageId").unwrap_or_default(),
           title: get_prop_string(&block_map, &txn, "title"),
           description: get_prop_string(&block_map, &txn, "description"),
           params: block_prop_json(&block_map, &txn, "params"),
         };
+        if matches!(super::markdown_block_selection(reference.params.as_ref()), Ok(Some(_))) {
+          // Legacy exact embeds mean subtree; a heading fragment would otherwise
+          // reimport as a section. This changes only the export projection.
+          reference
+            .params
+            .as_mut()
+            .and_then(serde_json::Value::as_object_mut)
+            .unwrap()
+            .entry("blockSelection")
+            .or_insert(serde_json::json!("subtree"));
+        }
         let resolved = resolve_reference(&reference);
         if resolved.is_none() || reference.page_id.is_empty() {
           unresolved_references += 1;
         }
+        let native_selection_fallback = resolved.as_ref().is_some_and(|target| target.url.contains('?'))
+          && matches!(super::markdown_block_selection(reference.params.as_ref()), Ok(Some(_)));
         let target = resolved.map_or(reference.page_id, |target| target.url);
         let target = target
           .replace('|', "%7C")
@@ -1377,14 +1390,8 @@ pub fn extract_text_from_yjs_with_references_and_images(
         let title = reference.title.unwrap_or_default();
         if title.contains(['\r', '\n', '|'])
           || title.contains("]]")
-          || reference.params.as_ref().is_some_and(|params| {
-            ["blockIds", "elementIds"].iter().any(|key| {
-              params
-                .get(key)
-                .and_then(serde_json::Value::as_array)
-                .is_some_and(|ids| !ids.is_empty())
-            })
-          })
+          || super::markdown_block_selection(reference.params.as_ref()).is_err()
+          || native_selection_fallback
         {
           callout_diagnostics.push(MarkdownDiagnostic {
             code: MarkdownDiagnosticCode::UnsupportedDocumentReference,
@@ -1887,6 +1894,14 @@ pub fn extract_text_from_yjs_with_references_and_images(
             .extend(source.split('\n').map(|line| format!("{prefix}{line}")));
           ctx.lines.push(String::new());
         }
+      }
+      "myoxus:document-index" => {
+        ctx
+          .lines
+          .push(format!("{prefix}> Page directory (dynamic results unavailable)"));
+        ctx.lines.push(String::new());
+        *ctx.partial = true;
+        *ctx.unsupported_native_content += 1;
       }
       "myoxus:bpmn" => {
         // XML heads and stored SVG are private source/derived artifacts. Generic

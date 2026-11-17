@@ -21,8 +21,14 @@ import {
   forwardRef,
   type ButtonHTMLAttributes,
   type ReactNode,
+  type PointerEvent,
 } from "react";
 import { editorGlyph as selectionGlyph } from "../glyphs";
+
+/** Mouse commands retain the editor caret/dispatcher; keyboard focus stays native. */
+export function preserveEditorCommandFocus(event: PointerEvent<HTMLElement>) {
+  if (event.button === 0) event.preventDefault();
+}
 
 export const ActionButton = forwardRef<
   HTMLButtonElement,
@@ -61,6 +67,7 @@ export const ActionButton = forwardRef<
               : "plain"
         }
         prefix={icon}
+        onPointerDown={preserveEditorCommandFocus}
         onClick={click}
       />
     );
@@ -81,6 +88,7 @@ export const ActionButton = forwardRef<
       }
       disabled={action.disabled}
       aria-pressed={action.active}
+      onPointerDown={preserveEditorCommandFocus}
       onClick={click}
     />
   ) : (
@@ -92,6 +100,7 @@ export const ActionButton = forwardRef<
         data-testid={action.id}
         disabled={action.disabled}
         aria-pressed={action.active || undefined}
+        onPointerDown={preserveEditorCommandFocus}
         onClick={click}
       >
         {action.label}
@@ -103,11 +112,13 @@ export const ActionButton = forwardRef<
 type ActionsProps = {
   actions: SelectionAction[];
   menu?: boolean;
+  afterAction?: () => void;
   renderControl: (action: SelectionAction, menu: boolean) => ReactNode;
 };
 export function SelectionActions({
   actions,
   menu = false,
+  afterAction,
   renderControl,
 }: ActionsProps) {
   return (
@@ -130,12 +141,14 @@ export function SelectionActions({
                 <SelectionActions
                   actions={action.actions}
                   menu
+                  afterAction={afterAction}
                   renderControl={renderControl}
                 />
               ) : (
                 <ActionsGroup>
                   <SelectionActions
                     actions={action.actions}
+                    afterAction={afterAction}
                     renderControl={renderControl}
                   />
                 </ActionsGroup>
@@ -149,6 +162,9 @@ export function SelectionActions({
             <SelectionActions
               actions={c.items}
               menu
+              // A domain menu can own a native range (for example table cells).
+              // Its close handler restores that range; generic focus would clear it.
+              afterAction={c.onClose ? undefined : afterAction}
               renderControl={renderControl}
             />
           );
@@ -158,6 +174,12 @@ export function SelectionActions({
               triggerOptions={{
                 disabled: action.disabled,
                 prefix: selectionGlyph(action.icon),
+                // Some tool submenus also have a direct parent command.
+                onClick: action.run
+                  ? (event) =>
+                      action.run?.(event.currentTarget, event.nativeEvent)
+                  : undefined,
+                closeMenuOnClick: Boolean(action.run),
               }}
               subOptions={{
                 onOpenChange: (open) => (open ? c.onOpen?.() : c.onClose?.()),
@@ -172,7 +194,10 @@ export function SelectionActions({
               noPortal
               rootOptions={{
                 onOpen: c.onOpen,
-                onClose: c.onClose,
+                // Restore the editor after Mantine has released its focus trap.
+                onClose: () =>
+                  requestAnimationFrame(() => (c.onClose ?? afterAction)?.()),
+                returnFocus: !c.onClose && !afterAction,
                 clickOutsideEvents: ["click"],
               }}
               items={
@@ -205,9 +230,12 @@ export function SelectionActions({
             disabled={action.disabled}
             selected={action.active}
             type={action.variant === "destructive" ? "danger" : undefined}
-            onSelect={(event) =>
-              action.run?.(event.currentTarget, event.nativeEvent)
-            }
+            onSelect={(event) => {
+              action.run?.(event.currentTarget, event.nativeEvent);
+              // Retained editor commands may prevent the native event. Their
+              // selection handling must not cancel the owning menu's dismissal.
+              afterAction?.();
+            }}
           >
             {action.label}
           </MenuItem>

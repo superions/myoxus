@@ -1,1 +1,19 @@
-export * from "@virgultum/block-bookmark";
+export {
+  bookmarkBlockHtmlAdapterMatcher,
+  BookmarkBlockHtmlAdapterExtension,
+  bookmarkBlockMarkdownAdapterMatcher,
+  BookmarkBlockMarkdownAdapterExtension,
+  footnoteUrlPreprocessor,
+  BookmarkBlockMarkdownPreprocessorExtension,
+  BookmarkBlockMarkdownAdapterExtensions,
+  bookmarkBlockNotionHtmlAdapterMatcher,
+  BookmarkBlockNotionHtmlAdapterExtension,
+  bookmarkBlockPlainTextAdapterMatcher,
+  BookmarkBlockPlainTextAdapterExtension,
+  BOOKMARK_MIN_WIDTH,
+  BookmarkBlockComponent,
+  insertBookmarkCommand,
+  insertLinkByQuickSearchCommand,
+  BookmarkSlashMenuConfigIdentifier,
+  EdgelessClipboardBookmarkConfig,
+} from "@virgultum/embeds/blocks";

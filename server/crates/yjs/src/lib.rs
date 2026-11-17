@@ -39,7 +39,9 @@ pub mod adapter;
 pub mod annotation;
 pub mod awareness;
 pub mod codec;
+pub mod document_embed;
 pub mod document_field;
+pub mod document_index;
 pub mod document_mutation;
 mod document_properties;
 pub mod document_restore;
@@ -7905,7 +7907,7 @@ mod tests {
 
   #[test]
   fn snapshot_block_import_preserves_rich_text_versions_and_surface_storage() {
-    let source = vec![
+    let mut source = vec![
       PortableSnapshotBlock {
         id: "page".into(),
         flavour: "myoxus:page".into(),
@@ -7982,6 +7984,16 @@ mod tests {
         children: Vec::new(),
       },
     ];
+    source
+      .iter_mut()
+      .find(|block| block.id == "note")
+      .unwrap()
+      .children
+      .push("directory".into());
+    source.push(PortableSnapshotBlock {
+      id: "directory".into(), flavour: "myoxus:document-index".into(), version: Some(1),
+      props: serde_json::json!({ "title": "Knowledge pages", "view": "table", "displayProperties": ["system:title", "system:responsible"], "query": { "folderId": "services", "subtree": true, "tagIds": [], "matchAllTags": false, "filters": [] } }).as_object().unwrap().clone(), children: Vec::new(),
+    });
     let canonical_update = snapshot_blocks_to_yjs(&source).expect("encode canonical snapshot blocks");
     let doc = Doc::new();
     let blocks = doc.get_or_insert_map("blocks");
@@ -8078,6 +8090,30 @@ mod tests {
       exported_again, exported,
       "all logical values and text/native markers survive editable collection normalization"
     );
+    let definitions = document_index::inspect(&reimported).unwrap();
+    assert_eq!(definitions.len(), 1);
+    assert_eq!(definitions[0].query["folderId"], "services");
+    assert_eq!(definitions[0].view.as_deref(), Some("table"));
+    let output = document_index::project(
+      &reimported,
+      &[(
+        definitions[0].clone(),
+        document_index::Output::Table {
+          headers: vec!["Title".into(), "Responsible".into()],
+          rows: vec![vec![
+            ("Resolved <page>".into(), Some("/workspace/source/target".into())),
+            ("Current owner".into(), None),
+          ]],
+        },
+      )],
+    )
+    .unwrap();
+    assert!(document_index::inspect(&output).unwrap().is_empty());
+    let reading = extract_text_from_yjs(&output).unwrap();
+    assert!(reading.markdown.contains(r"Resolved \<page>"), "{}", reading.markdown);
+    assert!(reading.markdown.contains("/workspace/source/target"));
+    assert!(reading.markdown.contains("Responsible") && reading.markdown.contains("Current owner"));
+    assert_eq!(document_index::inspect(&reimported).unwrap(), definitions);
   }
 
   #[test]

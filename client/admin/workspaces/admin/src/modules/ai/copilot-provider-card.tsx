@@ -44,7 +44,11 @@ type ReasoningControl =
   | { type: "reasoning_effort"; on: string; off: string };
 type ModelOptions = Record<
   string,
-  { reasoning_control?: ReasoningControl; supports_vision?: boolean }
+  {
+    reasoning_control?: ReasoningControl;
+    supports_vision?: boolean;
+    supports_tools?: boolean;
+  }
 >;
 const REASONING_EFFORTS = ["none", "minimal", "low", "medium", "high", "xhigh"];
 
@@ -171,7 +175,8 @@ export function CopilotProviderCard({
   ) => {
     const next = { ...modelOptions };
     const entry = { ...next[model], reasoning_control: control };
-    if (control || entry.supports_vision) next[model] = entry;
+    if (control || entry.supports_vision || entry.supports_tools)
+      next[model] = entry;
     else delete next[model];
     updateProvider({ model_options: next });
   };
@@ -446,7 +451,11 @@ export function CopilotProviderCard({
                     onChange={(supports_vision) => {
                       const next = { ...modelOptions };
                       const entry = { ...next[model], supports_vision };
-                      if (supports_vision || entry.reasoning_control)
+                      if (
+                        supports_vision ||
+                        entry.reasoning_control ||
+                        entry.supports_tools
+                      )
                         next[model] = entry;
                       else delete next[model];
                       updateProvider({ model_options: next });

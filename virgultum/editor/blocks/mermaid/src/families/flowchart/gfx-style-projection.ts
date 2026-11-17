@@ -5,8 +5,8 @@ import {
   FontWeight,
   LineWidth,
   StrokeStyle,
-} from "@virgultum/model";
-import { Bound } from "@virgultum/global/gfx";
+} from "@virgultum/core/models";
+import { Bound } from "@virgultum/core/primitives/gfx";
 
 import {
   mermaidGfxThemeProperties,

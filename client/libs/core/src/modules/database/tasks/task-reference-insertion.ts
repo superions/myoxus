@@ -6,7 +6,7 @@ import { DocumentMetadataCacheService } from "@myoxus/core/modules/document-meta
 import { GuardService } from "@myoxus/core/modules/permissions";
 import { WorkspaceServerService } from "@myoxus/core/modules/server";
 import { WorkspaceService } from "@myoxus/core/modules/workspace";
-import { DatabaseReferenceBlockModel } from "@virgultum/block-database/reference-store";
+import { DatabaseReferenceBlockModel } from "@virgultum/editor/blocks/database/reference-store";
 import type { FrameworkProvider } from "@myoxus/infra";
 import { TextSelection, type BlockStdScope } from "@virgultum/editor/std";
 import { addNoteAtPoint } from "@virgultum/editor/gfx/note";

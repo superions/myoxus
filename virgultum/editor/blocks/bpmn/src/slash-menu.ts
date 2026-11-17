@@ -1,14 +1,14 @@
-import { BpmnBlockSchema } from "@virgultum/model";
+import { BpmnBlockSchema } from "@virgultum/core/models";
 import {
   editorMessage,
   EditorI18nProvider,
   NotificationProvider,
   resolveEditorMessage,
-} from "@virgultum/shared/services";
+} from "@virgultum/core/services";
 import type {
   SlashMenuConfig,
   SlashMenuContext,
-} from "@virgultum/widget-slash-menu";
+} from "@virgultum/core/slash-menu";
 
 import { insertBpmnBlockCommand } from "./commands.js";
 import { requestBpmnEditor } from "./session-request.js";

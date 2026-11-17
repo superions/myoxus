@@ -5,21 +5,32 @@ import {
   createShapeElement,
   deleteAllConnectors,
   dragBetweenViewCoords,
-  edgelessCommonSetup as commonSetup,
+  edgelessCommonSetup,
+  setViewportCenter,
   redoByKeyboard,
   setEdgelessTool,
   Shape,
   undoByKeyboard,
 } from "../../utils/actions/index.js";
 import { assertConnectorPath } from "../../utils/asserts.js";
+import type { Page } from "@playwright/test";
+
 import { test } from "../../utils/playwright.js";
+
+async function commonSetup(page: Page) {
+  await edgelessCommonSetup(page);
+  await setViewportCenter(page, [200, 150]);
+  await setEdgelessTool(page, "connector");
+  await page.getByRole("button", { name: "Elbowed", exact: true }).click();
+  await setEdgelessTool(page, "default");
+}
 
 test("elbow connector without node and width greater than height", async ({
   page,
 }) => {
   await commonSetup(page);
   await setEdgelessTool(page, "connector");
-  await assertEdgelessConnectorToolMode(page, ConnectorMode.Curve);
+  await assertEdgelessConnectorToolMode(page, ConnectorMode.Orthogonal);
   await dragBetweenViewCoords(page, [0, 0], [200, 100]);
   await assertConnectorPath(page, [
     [0, 0],
@@ -61,7 +72,8 @@ test("elbow connector one side attached element another side free", async ({
 
   await assertConnectorPath(page, [
     [50, 0],
-    [125, 50],
+    [50, -20],
+    [125, -20],
     [125, 0],
   ]);
 });
@@ -75,6 +87,9 @@ test("elbow connector both side attatched element", async ({ page }) => {
 
   await assertConnectorPath(page, [
     [50, 0],
+    [50, -20],
+    [150, -20],
+    [150, 50],
     [200, 50],
   ]);
 
@@ -83,7 +98,8 @@ test("elbow connector both side attatched element", async ({ page }) => {
   await dragBetweenViewCoords(page, [250, 50], [250, 0]);
   await assertConnectorPath(page, [
     [50, 0],
-    [150, 50],
+    [50, -20],
+    [150, -20],
     [150, 0],
     [200, 0],
   ]);
@@ -98,9 +114,8 @@ test("elbow connector both side attatched element", async ({ page }) => {
   await dragBetweenViewCoords(page, [150, -50], [150, -150]);
   await assertConnectorPath(page, [
     [50, 0],
-    [50, -50],
-    [150, -50],
-    [150, -100],
+    [50, -150],
+    [100, -150],
   ]);
 
   await undoByKeyboard(page);
@@ -112,19 +127,24 @@ test("elbow connector both side attatched element", async ({ page }) => {
   await undoByKeyboard(page);
   await assertConnectorPath(page, [
     [50, 0],
-    [150, 50],
+    [50, -20],
+    [150, -20],
     [150, 0],
     [200, 0],
   ]);
   await undoByKeyboard(page);
   await assertConnectorPath(page, [
     [50, 0],
+    [50, -20],
+    [150, -20],
+    [150, 50],
     [200, 50],
   ]);
   await redoByKeyboard(page);
   await assertConnectorPath(page, [
     [50, 0],
-    [150, 50],
+    [50, -20],
+    [150, -20],
     [150, 0],
     [200, 0],
   ]);
@@ -137,9 +157,8 @@ test("elbow connector both side attatched element", async ({ page }) => {
   await redoByKeyboard(page);
   await assertConnectorPath(page, [
     [50, 0],
-    [50, -50],
-    [150, -50],
-    [150, -100],
+    [50, -150],
+    [100, -150],
   ]);
 });
 
@@ -150,7 +169,8 @@ test("elbow connector both side attached element with one attach element and oth
 
   await createShapeElement(page, [0, 0], [100, 100], Shape.Square);
   await createShapeElement(page, [200, 0], [300, 100], Shape.Square);
-  await createConnectorElement(page, [50, 0], [250, 50]);
+  // Select the left attachment unambiguously rather than the center tie.
+  await createConnectorElement(page, [50, 0], [249, 50]);
 
   await assertConnectorPath(page, [
     [50, 0],
@@ -182,9 +202,8 @@ test("elbow connector both side attached element with one attach element and oth
   await dragBetweenViewCoords(page, [250, -20], [150, -150]);
   await assertConnectorPath(page, [
     [50, 0],
-    [50, -50],
-    [150, -50],
-    [150, -100],
+    [50, -150],
+    [100, -150],
   ]);
 });
 

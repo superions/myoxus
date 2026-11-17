@@ -129,6 +129,11 @@ export {
   ShellBrandWordmark,
 } from "./shell/sidebar-frame";
 export { VisuallyHidden } from "@mantine/core";
+export {
+  ReferenceCard,
+  type ReferenceCardProps,
+  type ReferenceCardSize,
+} from "./reference-card";
 export { popoverViewportMiddlewares } from "./popover";
 export {
   Alert,
@@ -140,6 +145,7 @@ export {
   Group,
   Image,
   InputBase,
+  List,
   NavLink,
   Paper,
   SimpleGrid,
@@ -688,6 +694,7 @@ export {
   MenuOptionGroup,
   MenuOptionButton,
   Menu,
+  MenuSearch,
   HeaderMenuButton,
   FileMenuItem,
   MenuItem,

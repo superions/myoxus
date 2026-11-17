@@ -5,7 +5,7 @@
 //! multiple providers, adds per-provider circuit-breaker state, and routes
 //! completions through a configurable fallback chain.
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::pin::Pin;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -42,6 +42,12 @@ pub struct LlmMessage {
   pub name: Option<String>,
   /// Tool call ID this message is a response to (for `Tool` role messages).
   pub tool_call_id: Option<String>,
+  /// Assistant invocations belong to this turn; tool messages correlate by opaque ID.
+  #[serde(default, skip_serializing_if = "Vec::is_empty")]
+  pub tool_calls: Vec<LlmToolCall>,
+  /// Some reasoning providers require this alongside the assistant's tool calls.
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub reasoning: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -109,6 +115,97 @@ pub struct LlmToolCall {
   pub name: String,
   /// Arguments as a JSON object matching the tool's `input_schema`.
   pub arguments: Value,
+}
+
+/// Provider fragments are correlated by index until their complete argument object exists.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LlmToolCallDelta {
+  pub index: u32,
+  pub id: Option<String>,
+  pub name: Option<String>,
+  pub arguments: String,
+}
+
+#[derive(Default)]
+struct PendingToolCall {
+  id: String,
+  name: String,
+  arguments: String,
+}
+
+/// Bound incomplete provider data before any executor sees it. IDs are never UUID-coerced.
+pub struct LlmToolCallBuffer {
+  calls: BTreeMap<u32, PendingToolCall>,
+  max_argument_bytes: usize,
+}
+
+impl LlmToolCallBuffer {
+  pub fn new(max_argument_bytes: usize) -> Self {
+    Self {
+      calls: BTreeMap::new(),
+      max_argument_bytes,
+    }
+  }
+
+  pub fn push(&mut self, delta: LlmToolCallDelta) -> Result<(), LlmProviderError> {
+    if !self.calls.contains_key(&delta.index) && self.calls.len() >= 8 {
+      return Err(LlmProviderError::InvalidRequest(
+        "too many tool calls in one round".into(),
+      ));
+    }
+    let call = self.calls.entry(delta.index).or_default();
+    if let Some(id) = delta.id {
+      if !call.id.is_empty() && call.id != id {
+        return Err(LlmProviderError::InvalidRequest(
+          "provider changed a tool call identity".into(),
+        ));
+      }
+      call.id = id;
+    }
+    if let Some(name) = delta.name {
+      call.name.push_str(&name);
+    }
+    call.arguments.push_str(&delta.arguments);
+    if call
+      .id
+      .len()
+      .saturating_add(call.name.len())
+      .saturating_add(call.arguments.len())
+      > self.max_argument_bytes
+    {
+      return Err(LlmProviderError::InvalidRequest(
+        "tool arguments exceed the configured output bound".into(),
+      ));
+    }
+    Ok(())
+  }
+
+  pub fn finish(self) -> Result<Vec<LlmToolCall>, LlmProviderError> {
+    let mut ids = HashSet::new();
+    self
+      .calls
+      .into_values()
+      .map(|call| {
+        if call.id.is_empty() || call.name.is_empty() || !ids.insert(call.id.clone()) {
+          return Err(LlmProviderError::InvalidRequest(
+            "incomplete or ambiguous tool call identity".into(),
+          ));
+        }
+        let arguments: Value = serde_json::from_str(&call.arguments)
+          .map_err(|_| LlmProviderError::InvalidRequest("tool arguments are not valid JSON".into()))?;
+        if !arguments.is_object() {
+          return Err(LlmProviderError::InvalidRequest(
+            "tool arguments must be an object".into(),
+          ));
+        }
+        Ok(LlmToolCall {
+          id: call.id,
+          name: call.name,
+          arguments,
+        })
+      })
+      .collect()
+  }
 }
 
 /// Token usage statistics returned by the provider.
@@ -286,8 +383,7 @@ impl LlmFinishReason {
     }
   }
 
-  /// Until chat has a tool continuation owner, non-stop outcomes cannot become
-  /// successful empty replies. Transport callers map these bounded errors.
+  /// Text-only consumers reject tool outcomes; the chat continuation owner handles them explicitly.
   pub fn require_complete(self) -> Result<(), LlmProviderError> {
     match self {
       Self::Stop => Ok(()),
@@ -309,6 +405,7 @@ impl LlmFinishReason {
 pub enum LlmStreamEvent {
   Text(String),
   Reasoning(String),
+  ToolCall(LlmToolCallDelta),
   Finish(LlmFinishReason),
 }
 
@@ -323,6 +420,9 @@ pub trait LlmProvider: Send + Sync {
   /// Every adapter must explicitly preserve image input before it is eligible
   /// for a multimodal fallback attempt. Text-only defaults fail closed.
   fn supports_vision(&self, _model: &str) -> bool {
+    false
+  }
+  fn supports_tools(&self, _model: &str) -> bool {
     false
   }
   /// A unique identifier for this provider (e.g. `"openai"`).
@@ -354,6 +454,14 @@ pub trait LlmProvider: Send + Sync {
     }
     if !response.output_text.is_empty() {
       events.push(Ok(LlmStreamEvent::Text(response.output_text)));
+    }
+    for (index, call) in response.tool_calls.into_iter().enumerate() {
+      events.push(Ok(LlmStreamEvent::ToolCall(LlmToolCallDelta {
+        index: index as u32,
+        id: Some(call.id),
+        name: Some(call.name),
+        arguments: call.arguments.to_string(),
+      })));
     }
     events.push(Ok(LlmStreamEvent::Finish(finish)));
     Ok(Box::pin(futures_util::stream::iter(events)))
@@ -436,6 +544,8 @@ pub async fn execute_tool_calls(executor: &dyn LlmToolExecutor, tool_calls: &[Ll
           role: LlmRole::Tool,
           content: result.to_string().into(),
           name: Some(call.name.clone()),
+          tool_calls: Vec::new(),
+          reasoning: None,
           tool_call_id: Some(call.id.clone()),
         });
       }
@@ -444,6 +554,8 @@ pub async fn execute_tool_calls(executor: &dyn LlmToolExecutor, tool_calls: &[Ll
           role: LlmRole::Tool,
           content: serde_json::json!({ "error": err }).to_string().into(),
           name: Some(call.name.clone()),
+          tool_calls: Vec::new(),
+          reasoning: None,
           tool_call_id: Some(call.id.clone()),
         });
       }
@@ -486,6 +598,13 @@ impl LlmProviderRegistry {
   /// replaced.
   pub fn register(&mut self, provider: Arc<dyn LlmProvider>) {
     self.providers.insert(provider.provider_id().to_string(), provider);
+  }
+
+  pub fn supports_tools(&self, provider: &str, model: &str) -> bool {
+    self
+      .providers
+      .get(provider)
+      .is_some_and(|provider| provider.supports_tools(model))
   }
 
   /// Return the IDs of all registered providers, sorted alphabetically.
@@ -552,6 +671,12 @@ impl LlmProviderRegistry {
       {
         last_err = Some(LlmProviderError::InvalidRequest(
           "selected model does not support image input".into(),
+        ));
+        continue;
+      }
+      if !request.tools.is_empty() && !provider.supports_tools(&request.model) {
+        last_err = Some(LlmProviderError::InvalidRequest(
+          "selected model does not support tools".into(),
         ));
         continue;
       }
@@ -646,6 +771,12 @@ impl LlmProviderRegistry {
       {
         last_err = Some(LlmProviderError::InvalidRequest(
           "selected model does not support image input".into(),
+        ));
+        continue;
+      }
+      if !request.tools.is_empty() && !provider.supports_tools(&request.model) {
+        last_err = Some(LlmProviderError::InvalidRequest(
+          "selected model does not support tools".into(),
         ));
         continue;
       }
@@ -837,6 +968,8 @@ mod tests {
         role: LlmRole::User,
         content: "hello".into(),
         name: None,
+        tool_calls: Vec::new(),
+        reasoning: None,
         tool_call_id: None,
       }],
       temperature: Some(0.2),

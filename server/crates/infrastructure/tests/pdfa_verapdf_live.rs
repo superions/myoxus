@@ -87,6 +87,7 @@ fn simple_document(title: &str) -> IrDocument {
         body: Some("New Computer Modern".into()),
         mono: Some("New Computer Modern".into()),
         symbol: Some("New Computer Modern".into()),
+        eyebrow: None,
       },
       ..ExportOptions::default()
     },
@@ -144,6 +145,8 @@ fn simple_document(title: &str) -> IrDocument {
             },
           }],
           children: vec![],
+          alignment: None,
+          eyebrow: false,
         },
         Block::Heading {
           level: HeadingLevel::H1,
@@ -155,6 +158,8 @@ fn simple_document(title: &str) -> IrDocument {
             "This document is rendered through the production Myoxus PDF export template and validated by the optional veraPDF service.",
           )],
           children: vec![],
+          alignment: None,
+          eyebrow: false,
         },
       ],
     },

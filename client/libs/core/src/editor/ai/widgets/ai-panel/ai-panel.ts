@@ -1,3 +1,7 @@
+import { popoverViewportMiddlewares } from "@myoxus/ui-facade";
+import { createElement } from "react";
+import { AIWidgetUI } from "../native-ui";
+import { AIPanelView } from "./view";
 import {
   autoPlacement,
   autoUpdate,
@@ -7,6 +11,7 @@ import {
   offset,
   type Rect,
   shift,
+  size,
 } from "@floating-ui/dom";
 import { ColorScheme } from "@virgultum/editor/model";
 import {
@@ -16,7 +21,6 @@ import {
   ToolbarFlag,
   ToolbarRegistryIdentifier,
 } from "@virgultum/editor/shared/services";
-import { unsafeCSSValue, unsafeCSSVar } from "@virgultum/editor/shared/theme";
 import {
   getPageRootByElement,
   stopPropagation,
@@ -29,14 +33,12 @@ import {
   MYOXUS_VIEWPORT_OVERLAY_WIDGET,
   type MyoxusViewportOverlayWidget,
 } from "@virgultum/editor/widgets/viewport-overlay";
-import { css, html, nothing, type PropertyValues } from "lit";
-import { property, query } from "lit/decorators.js";
-import { choose } from "lit/directives/choose.js";
+import { nothing, type PropertyValues } from "lit";
+import { property } from "lit/decorators.js";
 import { literal, unsafeStatic } from "lit/static-html.js";
 
 import { mantineLengthPx } from "../../_common/mantine-length";
 import { type AIError } from "../../provider";
-import type { AIPanelGenerating } from "./components/index.js";
 import type {
   MyoxusAIPanelState,
   AIActionAnswer,
@@ -46,52 +48,17 @@ import { mergeAIActionAnswer } from "./utils";
 export const MYOXUS_AI_PANEL_WIDGET = "myoxus-ai-panel-widget";
 
 export class MyoxusAIPanelWidget extends WidgetComponent {
-  static override styles = css`
-    :host {
-      display: flex;
-      outline: none;
-      border-radius: ${unsafeCSSValue("var(--mantine-radius-sm)")};
-      border: ${unsafeCSSValue("calc(var(--mantine-scale) * 1px)")} solid;
-      border-color: ${unsafeCSSVar("--myoxus-border-color")};
-      background: ${unsafeCSSVar("backgroundOverlayPanelColor")};
-      box-shadow: ${unsafeCSSVar("overlayShadow")};
-
-      position: absolute;
-      width: max-content;
-      height: auto;
-      top: 0;
-      left: 0;
-      overflow-y: auto;
-      scrollbar-width: none !important;
-      z-index: var(--myoxus-z-index-popover);
-    }
-
-    .ai-panel-container {
-      display: flex;
-      flex-direction: column;
-      box-sizing: border-box;
-      width: 100%;
-      height: fit-content;
-      padding: ${unsafeCSSValue(
-        "calc(var(--mantine-spacing-sm) + var(--mantine-spacing-2xs))",
-      )}
-        0;
-    }
-
-    .ai-panel-container:not(:has(ai-panel-generating)) {
-      gap: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
-    }
-
-    .ai-panel-container:has(ai-panel-answer),
-    .ai-panel-container:has(ai-panel-error),
-    .ai-panel-container:has(ai-panel-generating:has(generating-placeholder)) {
-      padding: ${unsafeCSSValue("var(--mantine-spacing-md)")} 0;
-    }
-
-    :host([data-state="hidden"]) {
-      display: none;
-    }
-  `;
+  protected override createRenderRoot() {
+    return this;
+  }
+  inputElement: HTMLTextAreaElement | null = null;
+  private loadingProgress = 1;
+  readonly generatingElement = {
+    updateLoadingProgress: (progress: number) => {
+      this.loadingProgress = progress;
+      this.requestUpdate();
+    },
+  };
 
   private _abortController = new AbortController();
 
@@ -197,6 +164,7 @@ export class MyoxusAIPanelWidget extends WidgetComponent {
    * You can evaluate this method multiple times to regenerate the answer.
    */
   generate = () => {
+    this.loadingProgress = 1;
     this.restoreSelection();
 
     const text = this._inputText;
@@ -370,10 +338,6 @@ export class MyoxusAIPanelWidget extends WidgetComponent {
         .then(({ x, y }) => {
           this.style.left = `${x}px`;
           this.style.top = `${y}px`;
-          setTimeout(() => {
-            const input = this.shadowRoot?.querySelector("ai-panel-input");
-            input?.textarea?.focus();
-          }, 0);
         })
         .catch(console.error);
     });
@@ -418,11 +382,18 @@ export class MyoxusAIPanelWidget extends WidgetComponent {
       rootBoundary: rootBoundary,
     };
 
+    // The shared size contract defers ResizeObserver writes and retains the
+    // owning editor's document/canvas boundary for native scrolling.
+    const constrain = size({
+      ...popoverViewportMiddlewares.size,
+      ...overflowOptions,
+    });
+
     // block element in page editor
     if (getPageRootByElement(reference)) {
       return {
         placement: "bottom-start",
-        middleware: [offset(panelOffset), shift(overflowOptions)],
+        middleware: [offset(panelOffset), shift(overflowOptions), constrain],
       };
     }
     // block element in doc in edgeless editor
@@ -435,6 +406,7 @@ export class MyoxusAIPanelWidget extends WidgetComponent {
             ...overflowOptions,
             allowedPlacements: ["top-start", "bottom-start"],
           }),
+          constrain,
         ],
       };
     }
@@ -454,6 +426,7 @@ export class MyoxusAIPanelWidget extends WidgetComponent {
             crossAxis: true,
             ...overflowOptions,
           }),
+          constrain,
         ],
       };
     }
@@ -470,6 +443,9 @@ export class MyoxusAIPanelWidget extends WidgetComponent {
     );
 
     this.tabIndex = -1;
+    // Floating-UI owns document/canvas anchoring; native chrome owns all visible styling.
+    this.style.position = "absolute";
+    this.style.zIndex = "var(--myoxus-z-index-popover)";
     // No need to synchronize the contents of the input into the editor.
     this.setAttribute(RANGE_SYNC_EXCLUDE_ATTR, "true");
     this.disposables.addFromEvent(
@@ -507,82 +483,24 @@ export class MyoxusAIPanelWidget extends WidgetComponent {
   }
 
   override render() {
-    if (this.state === "hidden") {
-      return nothing;
-    }
-
-    if (!this.config) return nothing;
-    const config = this.config;
-
-    const mainTemplate = choose(this.state, [
-      [
-        "input",
-        () =>
-          html`<ai-panel-input
-            .onBlur=${this._discardWithConfirmation}
-            .onFinish=${this._inputFinish}
-            .onInput=${this.onInput}
-          ></ai-panel-input>`,
-      ],
-      [
-        "generating",
-        () => html`
-          ${
-            this.answer
-              ? html`
-                  <ai-panel-answer
-                    .finish=${false}
-                    .config=${config.finishStateConfig}
-                    .host=${this.host}
-                  >
-                    ${
-                      this.answer &&
-                      config.answerRenderer(this.answer, this.state)
-                    }
-                  </ai-panel-answer>
-                `
-              : nothing
-          }
-          <ai-panel-generating
-            .config=${config.generatingStateConfig}
-            .stopGenerating=${this.stopGenerating}
-            .withAnswer=${!!this.answer}
-          ></ai-panel-generating>
-        `,
-      ],
-      [
-        "finished",
-        () => html`
-          <ai-panel-answer
-            .config=${config.finishStateConfig}
-            .copy=${config.copy}
-            .host=${this.host}
-          >
-            ${this.answer && config.answerRenderer(this.answer, this.state)}
-          </ai-panel-answer>
-        `,
-      ],
-      [
-        "error",
-        () => html`
-          <ai-panel-error
-            .config=${config.errorStateConfig}
-            .copy=${config.copy}
-            .withAnswer=${!!this.answer}
-            .host=${this.host}
-          >
-            ${this.answer && config.answerRenderer(this.answer, this.state)}
-          </ai-panel-error>
-        `,
-      ],
-    ]);
-
-    return html`<div
-      class="ai-panel-container"
-      data-testid="ai-panel-container"
-    >
-      ${mainTemplate}
-    </div>`;
+    if (this.state === "hidden" || !this.config) return nothing;
+    return (
+      this.std.getOptional(AIWidgetUI)?.(
+        createElement(AIPanelView, {
+          state: this.state,
+          config: this.config,
+          host: this.host,
+          answer: this.answer,
+          progress: this.loadingProgress,
+          onInput: this.onInput,
+          onFinish: this._inputFinish,
+          onStop: this.stopGenerating,
+          setInput: (element: HTMLTextAreaElement | null) => {
+            this.inputElement = element;
+          },
+        }),
+      ) ?? nothing
+    );
   }
 
   protected override willUpdate(changed: PropertyValues): void {
@@ -599,7 +517,10 @@ export class MyoxusAIPanelWidget extends WidgetComponent {
       // tell toolbar to show or hide
       this.std
         .get(ToolbarRegistryIdentifier)
-        .flags.toggle(ToolbarFlag.Hiding, shouldBeHidden);
+        .flags.toggle(
+          ToolbarFlag.Hiding,
+          this.state !== "hidden" && this.state !== "input",
+        );
     }
 
     if (this.state === "hidden") {
@@ -609,13 +530,11 @@ export class MyoxusAIPanelWidget extends WidgetComponent {
     }
 
     this.dataset.state = this.state;
+    this.hidden = this.state === "hidden";
   }
 
   @property({ attribute: false })
   accessor config: MyoxusAIPanelWidgetConfig | null = null;
-
-  @query("ai-panel-generating")
-  accessor generatingElement: AIPanelGenerating | null = null;
 
   @property()
   accessor state: MyoxusAIPanelState = "hidden";

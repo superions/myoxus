@@ -20,7 +20,7 @@ import {
   resolveMermaidGfxProjectionTheme,
 } from "../../mermaid-gfx-theme.js";
 import { mermaidVisualFamilyPayload } from "../runtime/gfx-family-data.js";
-import { createConnectorEndpointMarker } from "@virgultum/gfx-connector";
+import { createConnectorEndpointMarker } from "@virgultum/canvas/gfx";
 import { projectMermaidSourceStyle } from "../runtime/source-style-projection.js";
 import { measuredMermaidEdgeRouting } from "../runtime/graph-ports.js";
 const markers: Record<ErCardinality, MermaidVisualEndpointMarker> = {

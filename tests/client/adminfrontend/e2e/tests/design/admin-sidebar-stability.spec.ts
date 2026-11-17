@@ -93,10 +93,16 @@ async function openDashboard(page: Page) {
   await page.goto(`${ADMIN_FRONTEND_BASE}/dashboard`, {
     waitUntil: "load",
   });
-  await expect(page.locator(".admin-sidebar--expanded")).toBeVisible({
+  await expect(
+    page.locator(
+      "[data-myoxus-ui-role='sidebar-nav-root']:not([data-collapsed])",
+    ),
+  ).toBeVisible({
     timeout: 15_000,
   });
-  await expect(page.locator(".admin-nav-item--expanded").first()).toBeVisible({
+  await expect(
+    page.locator("[data-myoxus-ui-role='navigation-link']").first(),
+  ).toBeVisible({
     timeout: 15_000,
   });
 }
@@ -192,22 +198,29 @@ test.describe("Admin sidebar stability", () => {
 
         const hoverTarget = page
           .locator(
-            ".admin-sidebar--expanded .admin-nav-item--expanded:not([data-active])",
+            "[data-myoxus-ui-role='sidebar-nav-root']:not([data-collapsed]) [data-myoxus-ui-role='navigation-link']:not([data-active])",
           )
           .first();
         await expect(hoverTarget).toBeVisible({ timeout: 10_000 });
 
-        await page.locator(".admin-sidebar").screenshot({
-          path: path.join(QA_DIR, `${EVIDENCE_PHASE}-${themeMode}-normal.png`),
-        });
+        await page
+          .locator("[data-myoxus-ui-role='shell-sidebar-panel']")
+          .screenshot({
+            path: path.join(
+              QA_DIR,
+              `${EVIDENCE_PHASE}-${themeMode}-normal.png`,
+            ),
+          });
 
         const before = (await hoverTarget.boundingBox()) as Rect | null;
         expect(before).not.toBeNull();
         await hoverTarget.hover();
         await expect(hoverTarget).toBeVisible();
-        await page.locator(".admin-sidebar").screenshot({
-          path: path.join(QA_DIR, `${EVIDENCE_PHASE}-${themeMode}-hover.png`),
-        });
+        await page
+          .locator("[data-myoxus-ui-role='shell-sidebar-panel']")
+          .screenshot({
+            path: path.join(QA_DIR, `${EVIDENCE_PHASE}-${themeMode}-hover.png`),
+          });
 
         const after = (await hoverTarget.boundingBox()) as Rect | null;
         expect(after).not.toBeNull();

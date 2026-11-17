@@ -1,20 +1,20 @@
+import { createElement } from "react";
 import {
-  CloseIcon,
-  CopyIcon,
-  DoneIcon,
-  ExpandCloseIcon,
-  ExpandFullIcon,
-  PenIcon as EditIcon,
-  PenIcon,
-} from "@myoxus/icons/lit";
+  PenIcon as NativeEditIcon,
+  CopyIcon as NativeCopyIcon,
+  ExpandCloseIcon as NativeExpandCloseIcon,
+  ExpandFullIcon as NativeExpandFullIcon,
+} from "@myoxus/icons/react";
+import { useI18n } from "@myoxus/i18n";
+import { Group, IconButton } from "@myoxus/ui-facade";
+import { renderToolCallCard, renderToolFailedCard } from "./tool-cards";
 import track from "@myoxus/track";
-import type { ReactToLit } from "@myoxus/lit-react";
-import { LoadingIcon } from "@virgultum/components/icons";
+import { type ReactToLit, toReactNode } from "@myoxus/lit-react";
 import { WithDisposable } from "@virgultum/editor/global/lit";
-import { fontSMStyle, fontXSStyle } from "@virgultum/editor/shared/styles";
+import { fontXSStyle } from "@virgultum/editor/shared/styles";
 import { unsafeCSSValue, unsafeCSSVar } from "@virgultum/editor/shared/theme";
 import { type EditorHost, ShadowlessElement } from "@virgultum/editor/std";
-import type { NotificationService } from "@virgultum/shared/services";
+import type { NotificationService } from "@virgultum/core/services";
 import { css, html, nothing } from "lit";
 import { property, state } from "lit/decorators.js";
 import { repeat } from "lit/directives/repeat.js";
@@ -24,6 +24,7 @@ import { BlockDiffProvider } from "../../services/block-diff";
 import { diffMarkdown } from "../../utils/apply-model/markdown-diff";
 import { copyText } from "../../utils/editor-actions";
 import type { ToolError } from "./type";
+import { DocEditResultView } from "./doc-edit-result-view";
 
 interface DocEditToolCall {
   type: "tool-call";
@@ -53,6 +54,38 @@ interface DocEditToolResult {
     | null;
 }
 
+// Stable React identity keeps mounted action focus while the existing locale provider updates labels.
+function DocEditResultActions({
+  collapsed,
+  toggleCollapse,
+  copy,
+}: {
+  collapsed: boolean;
+  toggleCollapse: () => void;
+  copy: () => void;
+}) {
+  const t = useI18n();
+  const collapseLabel = collapsed ? t.Expand() : t.Collapse();
+  return createElement(
+    Group,
+    null,
+    createElement(IconButton, {
+      icon: createElement(
+        collapsed ? NativeExpandFullIcon : NativeExpandCloseIcon,
+      ),
+      tooltip: collapseLabel,
+      "aria-label": collapseLabel,
+      onClick: toggleCollapse,
+    }),
+    createElement(IconButton, {
+      icon: createElement(NativeCopyIcon),
+      tooltip: t.Copy(),
+      "aria-label": t.Copy(),
+      onClick: copy,
+    }),
+  );
+}
+
 function removeMarkdownComments(markdown: string): string {
   return markdown.replace(/<!--[\s\S]*?-->/g, "");
 }
@@ -60,185 +93,40 @@ function removeMarkdownComments(markdown: string): string {
 export class DocEditTool extends WithDisposable(ShadowlessElement) {
   @property({ attribute: false }) accessor reactToLit: ReactToLit | undefined;
   static override styles = css`
-    :host {
-      display: block;
+    /* Technical diff content keeps its existing rendering and semantic colors. */
+    .doc-edit-tool-result-card-diff {
+      border-radius: ${unsafeCSSValue("var(--mantine-radius-sm)")};
+      padding: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
+      width: 100%;
     }
 
-    .doc-edit-tool-result-wrapper {
+    .doc-edit-tool-result-card-diff-replace {
       display: flex;
       flex-direction: column;
       align-items: flex-start;
-      padding: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
+      margin-bottom: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
+      gap: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
 
-      svg {
-        width: ${unsafeCSSValue(
-          "calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))",
-        )};
-        height: ${unsafeCSSValue(
-          "calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))",
-        )};
+      .doc-edit-tool-result-card-diff.original {
+        background: ${unsafeCSSVar("backgroundErrorColor")};
+      }
+
+      .doc-edit-tool-result-card-diff.modified {
+        background: ${unsafeCSSVar("backgroundProcessingColor")};
       }
     }
 
-    .doc-edit-tool-result-title {
-      color: ${unsafeCSSVar("textPrimaryColor")};
-      padding: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
+    .doc-edit-tool-result-card-diff.deleted {
+      background: ${unsafeCSSVar("backgroundErrorColor")};
       margin-bottom: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
     }
 
-    ${fontSMStyle(".doc-edit-tool-result-title")}
-
-    .doc-edit-tool-result-card {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      background: ${unsafeCSSVar("backgroundPrimaryColor")};
-      box-shadow: ${unsafeCSSValue("var(--mantine-shadow-sm)")};
-      border-radius: ${unsafeCSSValue("var(--mantine-radius-lg)")};
-      width: 100%;
-
-      .doc-edit-tool-result-card-header {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        padding: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
-
-        width: 100%;
-        justify-content: space-between;
-
-        .doc-edit-tool-result-card-header-title {
-          display: flex;
-          flex-direction: row;
-          align-items: center;
-          gap: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
-          color: ${unsafeCSSVar("textPrimaryColor")};
-          text-overflow: ellipsis;
-          overflow: hidden;
-          white-space: nowrap;
-        }
-
-        ${fontSMStyle(".doc-edit-tool-result-card-header-title")}
-
-        .doc-edit-tool-result-card-header-title svg {
-          color: ${unsafeCSSVar("primaryColor")};
-        }
-
-        .doc-edit-tool-result-card-header-operations {
-          display: flex;
-          flex-direction: row;
-          align-items: center;
-          gap: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
-          cursor: pointer;
-          padding-right: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
-          color: ${unsafeCSSVar("textSecondaryColor")};
-
-          button {
-            cursor: pointer;
-            padding: ${unsafeCSSValue("var(--mantine-spacing-2xs)")};
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: ${unsafeCSSValue("var(--mantine-radius-sm)")};
-            gap: ${unsafeCSSValue("var(--mantine-spacing-2xs)")};
-          }
-
-          ${fontXSStyle(".doc-edit-tool-result-card-header-operations button")}
-
-          button:hover {
-            background: ${unsafeCSSVar("hoverColor")};
-          }
-
-          button:disabled {
-            cursor: default;
-            opacity: 0.6;
-            pointer-events: none;
-          }
-        }
-      }
-
-      .doc-edit-tool-result-card-content {
-        padding: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
-        width: 100%;
-        border-top: ${unsafeCSSValue("calc(var(--mantine-scale) * 1px)")} solid
-          ${unsafeCSSVar("borderColor")};
-      }
-
-      .doc-edit-tool-result-card-footer {
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-        gap: ${unsafeCSSValue("var(--mantine-spacing-xs)")};
-        width: 100%;
-        cursor: pointer;
-
-        button {
-          display: flex;
-          align-items: center;
-          gap: ${unsafeCSSValue("var(--mantine-spacing-xs)")};
-          padding: ${unsafeCSSValue("var(--mantine-spacing-xs)")};
-          border-radius: ${unsafeCSSValue("var(--mantine-radius-sm)")};
-        }
-
-        ${fontXSStyle(".doc-edit-tool-result-card-footer button")}
-
-        button:hover {
-          background: ${unsafeCSSVar("hoverColor")};
-        }
-
-        button:disabled {
-          cursor: default;
-          opacity: 0.6;
-          pointer-events: none;
-        }
-
-        .doc-edit-tool-result-reject svg {
-          color: ${unsafeCSSVar("iconSecondary")};
-        }
-
-        .doc-edit-tool-result-accept svg {
-          color: ${unsafeCSSVar("primaryColor")};
-        }
-      }
-
-      &.collapsed .doc-edit-tool-result-card-content,
-      &.collapsed .doc-edit-tool-result-card-footer {
-        display: none;
-      }
-
-      .doc-edit-tool-result-card-diff {
-        border-radius: ${unsafeCSSValue("var(--mantine-radius-sm)")};
-        padding: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
-        width: 100%;
-      }
-
-      .doc-edit-tool-result-card-diff-replace {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        margin-bottom: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
-        gap: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
-
-        .doc-edit-tool-result-card-diff.original {
-          background: ${unsafeCSSVar("backgroundErrorColor")};
-        }
-
-        .doc-edit-tool-result-card-diff.modified {
-          background: ${unsafeCSSVar("backgroundProcessingColor")};
-        }
-      }
-
-      .doc-edit-tool-result-card-diff.deleted {
-        background: ${unsafeCSSVar("backgroundErrorColor")};
-        margin-bottom: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
-      }
-
-      .doc-edit-tool-result-card-diff.insert {
-        background: ${unsafeCSSVar("backgroundProcessingColor")};
-        margin-bottom: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
-      }
-
-      ${fontXSStyle(".doc-edit-tool-result-card-diff-title")}
+    .doc-edit-tool-result-card-diff.insert {
+      background: ${unsafeCSSVar("backgroundProcessingColor")};
+      margin-bottom: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
     }
+
+    ${fontXSStyle(".doc-edit-tool-result-card-diff-title")}
   `;
 
   @property({ attribute: false })
@@ -380,13 +268,10 @@ export class DocEditTool extends WithDisposable(ShadowlessElement) {
   }
 
   renderToolCall() {
-    return html`
-      <tool-call-card
-        .reactToLit=${this.reactToLit}
-        .name=${"Editing the document"}
-        .icon=${EditIcon()}
-      ></tool-call-card>
-    `;
+    return renderToolCallCard(this.reactToLit, {
+      name: "Editing the document",
+      icon: createElement(NativeEditIcon),
+    });
   }
 
   renderSantizedText(text: string) {
@@ -456,78 +341,39 @@ export class DocEditTool extends WithDisposable(ShadowlessElement) {
         (change) => change.op,
         ({ op, updates, originalContent, changedContent }) => {
           const diffs = diffMarkdown(originalContent, changedContent);
-          return html`
-            <div class="doc-edit-tool-result-wrapper">
-              <div class="doc-edit-tool-result-title">${op}</div>
-              <div
-                class="doc-edit-tool-result-card ${
-                  this.isCollapsed ? "collapsed" : ""
-                }"
-              >
-                <div class="doc-edit-tool-result-card-header">
-                  <div class="doc-edit-tool-result-card-header-title">
-                    ${PenIcon()} ${docId}
-                  </div>
-                  <div class="doc-edit-tool-result-card-header-operations">
-                    <button @click=${() => this._toggleCollapse()}>
-                      ${this.isCollapsed ? ExpandFullIcon() : ExpandCloseIcon()}
-                      <myoxus-tooltip>
-                        ${this.isCollapsed ? "Expand" : "Collapse"}
-                      </myoxus-tooltip>
-                    </button>
-                    <button @click=${() => this._handleCopy(changedContent)}>
-                      ${CopyIcon()}
-                      <myoxus-tooltip>Copy</myoxus-tooltip>
-                    </button>
-                    <button
-                      @click=${() => this._handleApply(op, updates)}
-                      ?disabled=${this.isBusyForOp(op)}
-                    >
-                      ${
-                        this.applyingMap[op]
-                          ? html`${LoadingIcon()} Applying`
-                          : "Apply"
-                      }
-                    </button>
-                  </div>
-                </div>
-                <div class="doc-edit-tool-result-card-content">
-                  ${this.renderBlockDiffs(diffs)}
-                  <div class="doc-edit-tool-result-card-footer">
-                    <button
-                      class="doc-edit-tool-result-reject"
-                      @click=${() => this._handleReject(op)}
-                    >
-                      ${CloseIcon()} Reject
-                    </button>
-                    <button
-                      class="doc-edit-tool-result-accept"
-                      @click=${() => this._handleAccept(op, updates)}
-                      ?disabled=${this.isBusyForOp(op)}
-                    >
-                      ${
-                        this.acceptingMap[op]
-                          ? html`${LoadingIcon()}`
-                          : DoneIcon()
-                      }
-                      ${this.acceptingMap[op] ? "Accepting..." : "Accept"}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          `;
+          // Keep the existing operation-keyed producer and portal through updates.
+          return (
+            this.reactToLit?.(
+              createElement(
+                DocEditResultView,
+                {
+                  docId,
+                  operation: op,
+                  collapsed: this.isCollapsed,
+                  applying: !!this.applyingMap[op],
+                  accepting: !!this.acceptingMap[op],
+                  actions: createElement(DocEditResultActions, {
+                    collapsed: this.isCollapsed,
+                    toggleCollapse: () => this._toggleCollapse(),
+                    copy: () => this._handleCopy(changedContent),
+                  }),
+                  apply: () => this._handleApply(op, updates),
+                  reject: () => this._handleReject(op),
+                  accept: () => this._handleAccept(op, updates),
+                },
+                toReactNode(this.renderBlockDiffs(diffs)),
+              ),
+              true,
+            ) ?? html`${op}: ${docId}${this.renderBlockDiffs(diffs)}`
+          );
         },
       );
     }
 
-    return html`
-      <tool-call-failed
-        .reactToLit=${this.reactToLit}
-        .name=${"Document editing failed"}
-        .icon=${EditIcon()}
-      ></tool-call-failed>
-    `;
+    return renderToolFailedCard(this.reactToLit, {
+      name: "Document editing failed",
+      icon: createElement(NativeEditIcon),
+    });
   }
 
   protected override render() {

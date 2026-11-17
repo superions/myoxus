@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { IS_MAC } from "@virgultum/global/env";
+import { IS_MAC } from "@virgultum/core/primitives/env";
 
 import type { MermaidVisualNodeShape } from "./families/runtime/gfx-model.js";
 import {

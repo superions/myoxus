@@ -26,8 +26,8 @@ import {
 import { batch } from "@preact/signals-core";
 import { EmbedSyncedDocBlockComponent } from "@virgultum/editor/blocks/embed-doc";
 import { isPeekable, peek } from "@virgultum/editor/components/peek";
-import type { EmbedSyncedDocModel } from "@virgultum/model";
-import type { BlockStdScope } from "@virgultum/std";
+import type { EmbedSyncedDocModel } from "@virgultum/core/models";
+import type { BlockStdScope } from "@virgultum/core/runtime";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { CopyLinkButton, DocInfoButton } from "./common";

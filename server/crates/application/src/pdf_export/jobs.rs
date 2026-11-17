@@ -133,6 +133,10 @@ pub struct PdfExportDownload {
 #[async_trait]
 pub trait PdfExportJobStore: Send + Sync {
   async fn get(&self, id: Uuid) -> RepoResult<Option<PdfExportJob>>;
+  /// Resolve the existing generated blob to its dependency-bound job.
+  async fn find_output(&self, _workspace_id: Uuid, _blob_id: Uuid) -> RepoResult<Option<PdfExportJob>> {
+    Ok(None)
+  }
   async fn get_download(&self, id: Uuid) -> RepoResult<Option<PdfExportDownload>>;
   async fn list_admin(&self, filter: &PdfExportAdminJobFilter) -> RepoResult<Vec<PdfExportAdminJob>>;
   async fn list_document(&self, doc_id: Uuid, limit: i64) -> RepoResult<Vec<PdfExportJob>>;

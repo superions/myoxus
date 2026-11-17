@@ -467,6 +467,8 @@ mod tests {
         marks,
       }],
       children: vec![],
+      alignment: None,
+      eyebrow: false,
     }]));
     let findings = pdfa_preflight(&PdfaPreflightInputs {
       doc: &d,

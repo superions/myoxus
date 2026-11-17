@@ -19,10 +19,7 @@ import {
   MultiSelect,
   Stack,
 } from "@myoxus/ui-facade";
-import {
-  DocumentFieldSchema,
-  type DocumentField,
-} from "@virgultum/shared/types";
+import { DocumentFieldSchema, type DocumentField } from "@virgultum/core/types";
 import { useState } from "react";
 import { normalizeDocumentField } from "../../../modules/template-doc/services/template-inputs";
 

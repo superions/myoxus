@@ -2,8 +2,8 @@
 import type {
   LocalShapeElementModel,
   ShapeElementModel,
-} from "@virgultum/model";
-import type { ShapeTextEditDraft } from "@virgultum/gfx-shape";
+} from "@virgultum/core/models";
+import type { ShapeTextEditDraft } from "@virgultum/canvas/gfx";
 import type { MermaidGfxPreview } from "./gfx-preview.js";
 
 import type {
@@ -137,6 +137,8 @@ export function structuredEditorProjection(
 }
 
 export type MermaidGfxObjectEditIntent = {
+  /** A printable-key rename starts with this text rather than losing its first key. */
+  readonly initialText?: string;
   readonly action?:
     | "select"
     | "edit"

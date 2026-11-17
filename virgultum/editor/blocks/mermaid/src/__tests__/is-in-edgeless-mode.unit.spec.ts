@@ -84,7 +84,7 @@
  *      (P-VIRG-ARCH-I-03)
  */
 
-import { GfxControllerIdentifier } from "@virgultum/std/gfx";
+import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
 import { describe, expect, test } from "vitest";
 
 /**

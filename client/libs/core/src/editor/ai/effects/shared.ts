@@ -1,6 +1,3 @@
-import { effects as tooltipEffects } from "@virgultum/components/tooltip";
-
-import { ArtifactSkeleton } from "../components/ai-artifact-skeleton";
 import { ChatContentImages } from "../components/ai-message-content/images";
 import { ChatContentPureText } from "../components/ai-message-content/pure-text";
 import { ChatContentRichText } from "../components/ai-message-content/rich-text";
@@ -17,9 +14,6 @@ import { DocReadResult } from "../components/ai-tools/doc-read-result";
 import { DocSemanticSearchResult } from "../components/ai-tools/doc-semantic-search-result";
 import { DocWriteTool } from "../components/ai-tools/doc-write";
 import { SectionEditTool } from "../components/ai-tools/section-edit";
-import { ToolCallCard } from "../components/ai-tools/tool-call-card";
-import { ToolFailedCard } from "../components/ai-tools/tool-failed-card";
-import { ToolResultCard } from "../components/ai-tools/tool-result-card";
 import { WebCrawlTool } from "../components/ai-tools/web-crawl";
 import { WebSearchTool } from "../components/ai-tools/web-search";
 import { TextRenderer } from "../components/text-renderer";
@@ -42,9 +36,6 @@ const sharedElements = {
   "chat-content-rich-text": ChatContentRichText,
   "chat-content-stream-objects": ChatContentStreamObjects,
   "text-renderer": TextRenderer,
-  "tool-call-card": ToolCallCard,
-  "tool-result-card": ToolResultCard,
-  "tool-call-failed": ToolFailedCard,
   "doc-semantic-search-result": DocSemanticSearchResult,
   "doc-keyword-search-result": DocKeywordSearchResult,
   "doc-read-result": DocReadResult,
@@ -57,7 +48,6 @@ const sharedElements = {
   "code-highlighter": CodeHighlighter,
   "artifact-preview-panel": ArtifactPreviewPanel,
   "doc-edit-tool": DocEditTool,
-  "artifact-skeleton": ArtifactSkeleton,
 } satisfies Record<SharedEffectElementTag, CustomElementConstructor>;
 
 export function registerAISharedEffects() {
@@ -66,7 +56,6 @@ export function registerAISharedEffects() {
   sharedRegistries.add(registry);
 
   registerMiniMindmapBlocks();
-  tooltipEffects();
 
   for (const tag of sharedEffectElementTags) {
     customElements.define(tag, sharedElements[tag]);

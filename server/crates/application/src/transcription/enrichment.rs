@@ -154,8 +154,8 @@ impl TranscriptionEnrichmentService {
       ] {
         if !selected { continue; }
         let request = LlmRequest { reasoning: None, model: provider.model.into(), messages: vec![
-          LlmMessage { role: LlmRole::System, content: instruction.into(), name: None, tool_call_id: None },
-          LlmMessage { role: LlmRole::User, content: transcript.response.text.clone().into(), name: None, tool_call_id: None }
+          LlmMessage { role: LlmRole::System, content: instruction.into(), name: None, tool_calls: Vec::new(), reasoning: None, tool_call_id: None },
+          LlmMessage { role: LlmRole::User, content: transcript.response.text.clone().into(), name: None, tool_calls: Vec::new(), reasoning: None, tool_call_id: None }
         ], temperature: None, max_tokens: Some(4096), tools: vec![], metadata: json!({}) };
         let (_, response) = provider.registry.complete_with_fallback(&request, provider.provider, provider.fallback).await.map_err(|_| ())?;
         if response.output_text.trim().is_empty() || response.output_text.len() > 64 * 1024 { return Err(()); }

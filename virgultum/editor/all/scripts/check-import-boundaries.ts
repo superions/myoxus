@@ -2,46 +2,16 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 /**
- * `check-import-boundaries.ts` — P-VIRG-ARCH-H-01 runtime guard.
+ * P-VIRG-ARCH-H-01 source guard for block and widget assembly boundaries.
  *
- * Virgultum-Packages haben eine gerichtete Abhaengigkeits-
- * Hierarchie:
+ * Keep the original block checks for the separate Mermaid/BPMN owners and
+ * apply them to root blocks inside Editor. Widgets now live in the same Editor
+ * package; they still must not consume the public aggregate or widget barrels.
+ * Private relative imports connect the assembly's implementation directly.
  *
- *   framework  →  editor/{components, inlines, fragments, ...}
- *     ↑                ↓
- *   editor/{blocks, model, store, widgets, all}
- *     ↑                ↓
- *   tests/, client/libs/
- *
- * Konkret:
- *   1. **blocks** duerfen NUR von framework, model, store,
- *      components, inlines, fragments importieren.
- *      Sie duerfen NICHT von `@virgultum/editor/all` oder
- *      `@virgultum/editor/widgets/*` importieren (Blocks sind
- *      UI-Container, nicht UI-Widget-Inhaber).
- *   2. **widgets** duerfen NUR von framework, model, store,
- *      components, inlines, fragments importieren.
- *      Sie duerfen NICHT von `@virgultum/editor/all` oder
- *      anderen `@virgultum/editor/widgets/*` importieren
- *      (Widgets sind leaves, kein Widget-zu-Widget-Pfad).
- *
- * Diese Regeln werden ueber statische Source-Analyse
- * (Regex auf `from "@virgultum/..."`-Statements) gepflegt.
- * Kein Modul-Import, kein TS-Compiler — das Script ist
- * ein zero-build CI-Hook (siehe `check-manifest-guard.ts`
- * fuer die Begruendung).
- *
- * Die Pure-Logic (Regel-Anwendung + Regex-Extraktion) ist
- * in `../src/extensions/import-boundary-guard.ts` extrahiert,
- * damit sie ohne Subprocess-Start unit-getestet werden kann
- * (siehe `../src/extensions/__tests__/import-boundary-guard.unit.spec.ts`).
- *
- * **Ergebnis-Format:** exit 0 = clean, exit 1 = boundary
- * violation, exit 2 = setup error. Jede Violation wird mit
- * Datei:Zeile, Import-Pfad und Regel-ID ausgegeben, damit
- * der Fix-Pfad offensichtlich ist.
- *
- * @see docs/dev/virgultum/refactor-roadmap.md §H (P-VIRG-ARCH-H-01)
+ * This zero-build check scans static `from` imports. Its pure matching logic is
+ * shared with import-boundary-guard.unit.spec.ts; it is not a transitive graph
+ * audit. Exit codes: 0 clean, 1 violation, 2 setup error.
  */
 
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
@@ -77,7 +47,7 @@ const RULES: ReadonlyArray<PackageRule> = [
   },
   {
     name: "widgets",
-    pathPrefix: "virgultum/editor/widgets",
+    pathPrefix: "virgultum/editor/all/src/widgets",
     forbiddenImportPatterns: [
       {
         pattern: /@virgultum\/editor\/all\b/,
@@ -96,7 +66,11 @@ const RULES: ReadonlyArray<PackageRule> = [
       },
     ],
   },
-];
+].flatMap((rule) =>
+  rule.name === "blocks"
+    ? [rule, { ...rule, pathPrefix: "virgultum/editor/all/src/blocks" }]
+    : [rule],
+);
 
 /**
  * Walk the repo to find the root (yarn.lock + .git/ marker).

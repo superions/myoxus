@@ -1,4 +1,4 @@
-import { Container } from "@virgultum/global/di";
+import { Container } from "@virgultum/core/primitives/di";
 
 import { testStoreExtensions } from "./store";
 

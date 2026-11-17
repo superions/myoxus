@@ -2,7 +2,7 @@ import {
   type EdgelessRootBlockComponent,
   EdgelessRootService,
 } from "@virgultum/editor/blocks/root";
-import type { DocSnapshot } from "@virgultum/store";
+import type { DocSnapshot } from "@virgultum/editor/store";
 import { beforeEach, describe, expect, test } from "vitest";
 
 import { wait } from "../utils/common.js";

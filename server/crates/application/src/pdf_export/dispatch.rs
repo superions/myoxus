@@ -250,6 +250,7 @@ pub(crate) fn effective_pdf_render_appearance_hash(theme: &PdfThemeContext) -> S
   // reproducible snapshot of every appearance input that can change pixels
   // without mixing in PDF export policy such as paper size or ICC profile.
   stable_hash_value(&serde_json::json!({
+    "renderer_contract": myoxus_pdf_export::PDF_RENDER_CONTRACT_KEY,
     "theme_slug": theme.theme_slug,
     "theme_profile_scope": theme.profile_scope,
     "document_branding": theme.branding,
@@ -299,6 +300,10 @@ pub(crate) fn compute_render_inputs_hash(
 
 pub(crate) fn build_render_inputs(input: &PdfExportDispatchInput, theme: &PdfThemeContext) -> serde_json::Value {
   let mut out = serde_json::Map::new();
+  out.insert(
+    "renderer_contract".into(),
+    serde_json::json!(myoxus_pdf_export::PDF_RENDER_CONTRACT_KEY),
+  );
   out.insert(
     "locale".into(),
     serde_json::Value::String(input.locale.as_deref().unwrap_or("en").to_string()),
@@ -813,6 +818,7 @@ mod tests {
         body: Some("Inter".into()),
         mono: Some("JetBrains Mono".into()),
         symbol: Some("Inter".into()),
+        eyebrow: None,
       },
       typography: ThemeTypographySelection {
         heading: Some(ThemeTypographyStyle {
@@ -851,6 +857,7 @@ mod tests {
           text_transform: "none".into(),
           decoration: "none".into(),
         }),
+        eyebrow: None,
       },
       font_assets,
       branding: Branding {

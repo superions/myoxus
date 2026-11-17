@@ -5,7 +5,7 @@ import { LiveData } from "@myoxus/infra";
 import {
   createMyoxusHostService,
   NullMyoxusHostService,
-} from "@virgultum/shared/services";
+} from "@virgultum/core/services";
 import { expect, test, vi } from "vitest";
 
 import {

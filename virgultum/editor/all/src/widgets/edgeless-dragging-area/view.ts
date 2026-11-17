@@ -1,1 +1,1 @@
-export * from "@virgultum/widget-edgeless-dragging-area/view";
+export { EdgelessDraggingAreaViewExtension } from "@virgultum/canvas/view";

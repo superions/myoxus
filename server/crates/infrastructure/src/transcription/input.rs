@@ -63,9 +63,9 @@ fn invalid() -> ProviderError {
 }
 
 fn container(audio: &[u8]) -> Result<(&'static str, &'static str), ProviderError> {
-  if audio.starts_with(b"RIFF") && audio.get(8..12) == Some(b"WAVE") {
+  if audio.starts_with(b"RIFF") && audio.get(8..12) == Some(b"WAVE".as_slice()) {
     Ok(("wav", "audio/wav"))
-  } else if audio.get(4..8) == Some(b"ftyp") {
+  } else if audio.get(4..8) == Some(b"ftyp".as_slice()) {
     Ok(("mp4", "audio/mp4"))
   } else if audio.starts_with(b"OggS") {
     Ok(("ogg", "audio/ogg"))

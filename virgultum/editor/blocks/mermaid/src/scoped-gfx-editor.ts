@@ -1,14 +1,18 @@
 import {
   EdgelessCRUDIdentifier,
   normalizeWheelDeltaY,
-} from "@virgultum/block-surface";
-import { DisposableGroup } from "@virgultum/global/disposable";
-import { Bound, Point, type SerializedXYWH } from "@virgultum/global/gfx";
-import { EditorSettingProvider } from "@virgultum/shared/services";
-import { isTouchPadPinchEvent } from "@virgultum/shared/utils";
-import { LifeCycleWatcher, SurfaceSelection } from "@virgultum/std";
-import { GfxControllerIdentifier } from "@virgultum/std/gfx";
-import type { ExtensionType } from "@virgultum/store";
+} from "@virgultum/canvas-runtime/surface";
+import { DisposableGroup } from "@virgultum/core/primitives/disposable";
+import {
+  Bound,
+  Point,
+  type SerializedXYWH,
+} from "@virgultum/core/primitives/gfx";
+import { EditorSettingProvider } from "@virgultum/core/services";
+import { isTouchPadPinchEvent } from "@virgultum/core/utils";
+import { LifeCycleWatcher, SurfaceSelection } from "@virgultum/core/runtime";
+import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
+import type { ExtensionType } from "@virgultum/core/store";
 import * as Y from "yjs";
 
 import { toMermaidShapeElementProps } from "./families/runtime/gfx-element-projection.js";

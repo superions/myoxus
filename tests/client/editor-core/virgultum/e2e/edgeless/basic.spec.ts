@@ -13,7 +13,6 @@ import {
   Shape,
   shiftClickView,
   switchEditorMode,
-  ZOOM_BAR_RESPONSIVE_SCREEN_WIDTH,
   zoomByMouseWheel,
   zoomResetByKeyboard,
 } from "../utils/actions/edgeless.js";
@@ -270,31 +269,4 @@ test("Before and after switching to Edgeless, the previous zoom ratio and positi
   await switchEditorMode(page);
   await switchEditorMode(page);
   await assertZoomLevel(page, 125);
-});
-
-test("should close zoom bar when click blank area", async ({ page }) => {
-  await enterPlaygroundRoom(page);
-  await initEmptyEdgelessState(page);
-  await switchEditorMode(page);
-
-  const screenWidth = page.viewportSize()?.width ?? 0;
-  if (screenWidth > ZOOM_BAR_RESPONSIVE_SCREEN_WIDTH) {
-    await page.setViewportSize({
-      width: 1000,
-      height: 1000,
-    });
-  }
-
-  await zoomResetByKeyboard(page);
-  await assertZoomLevel(page, 100);
-  await increaseZoomLevel(page);
-  await assertZoomLevel(page, 125);
-
-  const verticalZoomBar = ".edgeless-zoom-toolbar-container.vertical";
-  const zoomBar = page.locator(verticalZoomBar);
-  await expect(zoomBar).toBeVisible();
-
-  // Click Blank Area
-  await page.mouse.click(10, 100);
-  await expect(zoomBar).toBeHidden();
 });

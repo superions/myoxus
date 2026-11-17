@@ -1,7 +1,7 @@
 import { ImageBlockModel } from "@virgultum/editor/model";
 import { FetchUtils } from "@virgultum/editor/shared/adapters";
 import type { BlockModel } from "@virgultum/editor/store";
-import type { GfxModel } from "@virgultum/std/gfx";
+import type { GfxModel } from "@virgultum/core/runtime/gfx";
 
 export async function fetchImageToFile(
   url: string,

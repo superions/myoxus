@@ -67,6 +67,8 @@ fn ir_page_roundtrip() {
     children: vec![Block::Paragraph {
       content: vec![plain("Hello")],
       children: vec![],
+      alignment: None,
+      eyebrow: false,
     }],
   });
   let out = roundtrip(&doc);
@@ -112,6 +114,7 @@ fn ir_list_types_roundtrip() {
       content: vec![plain("item")],
       checked: lt == ListType::Todo,
       children: vec![],
+      start: None,
     });
     let out = roundtrip(&doc);
     let Block::List { list_type, .. } = &out.root else {
@@ -127,6 +130,7 @@ fn ir_code_block_roundtrip() {
     language: Some("rust".into()),
     code: "fn main() {}".into(),
     caption: None,
+    line_numbers: false,
   }));
   let out = roundtrip(&doc);
   let Block::Code(cb) = &out.root else {
@@ -154,6 +158,7 @@ fn ir_callout_variants_roundtrip() {
     let doc = make_doc(Block::Callout {
       variant,
       emoji: Some("💡".into()),
+      paint: None,
       content: vec![plain("callout text")],
       children: vec![],
     });
@@ -455,6 +460,8 @@ fn ir_inline_spans_roundtrip() {
   let doc = make_doc(Block::Paragraph {
     content: spans,
     children: vec![],
+    alignment: None,
+    eyebrow: false,
   });
   let out = roundtrip(&doc);
   let Block::Paragraph { content, .. } = &out.root else {
@@ -509,6 +516,8 @@ fn ir_count_all_blocks() {
         Block::Paragraph {
           content: vec![],
           children: vec![],
+          alignment: None,
+          eyebrow: false,
         },
         Block::Divider,
       ],

@@ -46,6 +46,7 @@ pub struct TemplateLibraryFilter {
   pub work_area_tag: Option<String>,
   pub sort: TemplateLibrarySort,
   pub source_doc_id: Option<String>,
+  pub source_slug: Option<String>,
 }
 
 /// A cursor carries only the last SQL order tuple and its query scope. It never
@@ -108,14 +109,21 @@ impl TemplateSuggestionService {
         "library filter is too long".into(),
       ));
     }
+    let exact = filter.source_doc_id.is_some() || filter.source_slug.is_some();
+    if filter
+      .source_slug
+      .as_ref()
+      .is_some_and(|slug| slug.is_empty() || slug.len() > 256)
+      || (filter.source_doc_id.is_some() && filter.source_slug.is_some())
+      || (exact && request.after.is_some())
+    {
+      return Err(TemplateSuggestionError::InputInvalid(
+        "invalid exact source lookup".into(),
+      ));
+    }
     if let Some(key) = &filter.source_doc_id {
       myoxus_domain::document_key::DocumentKey::parse(key.clone())
         .map_err(|_| TemplateSuggestionError::InputInvalid("sourceDocId".into()))?;
-      if request.after.is_some() {
-        return Err(TemplateSuggestionError::InputInvalid(
-          "exact source lookup has no continuation".into(),
-        ));
-      }
     }
     let after = request
       .after
@@ -134,7 +142,7 @@ impl TemplateSuggestionService {
         Ok(cursor)
       })
       .transpose()?;
-    let first = if filter.source_doc_id.is_some() {
+    let first = if exact {
       1
     } else {
       request.first.unwrap_or(200).clamp(1, 200)
@@ -147,7 +155,7 @@ impl TemplateSuggestionService {
         filter: filter.clone(),
         locale: request.locale.clone(),
         after,
-        limit: if filter.source_doc_id.is_some() { 1 } else { first + 1 },
+        limit: if exact { 1 } else { first + 1 },
       })
       .await?;
     let has_next_page = sources.len() > first;

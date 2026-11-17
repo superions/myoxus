@@ -15,6 +15,7 @@ import {
   PopoverTarget,
   Stack,
   MyoxusText,
+  MenuPanel,
 } from "@myoxus/ui-facade";
 import type {
   SelectionAction,
@@ -54,7 +55,13 @@ function ColorControl({
   };
   if (compact)
     return (
-      <Popover opened={opened} onChange={open} withinPortal={false} returnFocus>
+      <Popover
+        opened={opened}
+        onChange={open}
+        withinPortal={false}
+        trapFocus
+        returnFocus
+      >
         <PopoverTarget>
           <IconButton
             aria-label={action.label}
@@ -285,12 +292,21 @@ export function SurfacePropertyControl({
       return <TextControl action={action} control={c} />;
     case "native":
       return c.node as ReactNode;
-    case "notice":
-      return (
+    case "notice": {
+      const notice = (
         <MyoxusText role="status">
-          {String(c.title)}: {String(c.message)}
+          {c.title ? `${String(c.title)}: ` : null}
+          {String(c.message)}
         </MyoxusText>
       );
+      // Native menu labels already name the action; the shared panel keeps
+      // explanatory text wrapped without a product-owned width or stylesheet.
+      return compact ? (
+        notice
+      ) : (
+        <MenuPanel panelWidth="display">{notice}</MenuPanel>
+      );
+    }
     default:
       return null;
   }

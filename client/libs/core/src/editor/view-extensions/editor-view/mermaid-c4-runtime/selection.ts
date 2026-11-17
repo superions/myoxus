@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   hasOpenMyoxusUiOverlay,
   hasMyoxusEditorLocalKeyboardTarget,
-} from "@virgultum/shared/utils";
+} from "@virgultum/core/utils";
 import type {
   C4EditorReactHostProps,
   C4Selection,

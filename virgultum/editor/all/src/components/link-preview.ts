@@ -1,1 +1,1 @@
-export * from "@virgultum/components/link-preview";
+export * from "@virgultum/content/link-preview";

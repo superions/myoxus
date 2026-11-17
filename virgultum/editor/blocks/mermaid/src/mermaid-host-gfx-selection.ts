@@ -3,10 +3,13 @@ import {
   readMermaidSelectionBookmark,
   rememberMermaidSelection,
 } from "./families/runtime/session-selection.js";
-import type { SurfaceBlockModel } from "@virgultum/block-surface";
-import { Bound } from "@virgultum/global/gfx";
-import { ConnectorElementModel, ShapeElementModel } from "@virgultum/model";
-import { BlockComponent } from "@virgultum/std";
+import type { SurfaceBlockModel } from "@virgultum/canvas-runtime/surface";
+import { Bound } from "@virgultum/core/primitives/gfx";
+import {
+  ConnectorElementModel,
+  ShapeElementModel,
+} from "@virgultum/core/models";
+import { BlockComponent } from "@virgultum/core/runtime";
 
 import {
   applyMermaidVisualModelCommand,

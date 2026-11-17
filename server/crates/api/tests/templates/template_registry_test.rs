@@ -1817,7 +1817,7 @@ async fn inv_native_guide_replay_preserves_readers_deletions_copies_and_failed_c
     upgraded
       .iter()
       .map(|instance| (instance.id, instance.workspace_doc_id))
-      .collect()
+      .collect::<std::collections::BTreeSet<_>>()
   );
   let live_before: i64 = sqlx::query_scalar(
     "SELECT COUNT(*) FROM docs WHERE workspace_id=$1 AND NOT is_workspace_root AND deleted_at IS NULL",
@@ -5976,7 +5976,7 @@ async fn inv_configured_guides_seed_once_and_preserve_reader_copies(pool: PgPool
     first
       .iter()
       .map(|instance| instance.workspace_doc_id.unwrap())
-      .collect(),
+      .collect::<std::collections::HashSet<_>>(),
     "server-created ordinary guides must become searchable without a reader edit"
   );
   let documents = DocService::new(Arc::new(SqlxDocStore::new(pool.clone())));
@@ -6067,7 +6067,10 @@ async fn inv_configured_guides_seed_once_and_preserve_reader_copies(pool: PgPool
       .iter()
       .map(|instance| instance.workspace_doc_id)
       .collect::<std::collections::HashSet<_>>(),
-    first.iter().map(|instance| instance.workspace_doc_id).collect()
+    first
+      .iter()
+      .map(|instance| instance.workspace_doc_id)
+      .collect::<std::collections::HashSet<_>>()
   );
   assert_eq!(
     documents.load_full_doc(workspace_id, old_doc_id).await.unwrap(),

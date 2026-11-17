@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { getFontString, wrapText } from "@virgultum/gfx-text";
+import { getFontString, wrapText } from "@virgultum/canvas/gfx";
 import {
   measureMermaidGfxText,
   measureMermaidGfxTextInk,

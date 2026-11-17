@@ -1,5 +1,4 @@
 import { chatI18n } from "../chat-i18n";
-import "./ai-chat-composer-tip";
 
 import type {
   AIDraftService,
@@ -18,15 +17,15 @@ import type {
 } from "@myoxus/graphql";
 import { SignalWatcher, WithDisposable } from "@virgultum/editor/global/lit";
 import { type ReactToLit, toReactNode } from "@myoxus/lit-react";
-import { Stack } from "@myoxus/ui-facade";
+import { Card, Stack } from "@myoxus/ui-facade";
 import { createElement } from "react";
-import { ChatScrollToLatest } from "../message-chrome";
+import { ChatDisclaimer, ChatScrollToLatest } from "../message-chrome";
 import { type EditorHost, ShadowlessElement } from "@virgultum/editor/std";
 import { uuidv4 } from "@virgultum/editor/store";
 import type {
   FeatureFlagService,
   NotificationService,
-} from "@virgultum/shared/services";
+} from "@virgultum/core/services";
 import { html, nothing, type PropertyValues } from "lit";
 import { property, state } from "lit/decorators.js";
 
@@ -157,68 +156,75 @@ export class AIChatComposer extends SignalWatcher(
     return this.reactToLit(
       createElement(
         Stack,
-        null,
+        { gap: "xs" },
         this.onScrollToLatest
           ? createElement(ChatScrollToLatest, {
               onClick: this.onScrollToLatest,
             })
           : null,
-        toReactNode(html`
-          <chat-panel-chips
-            .reactToLit=${this.reactToLit}
-            .chips=${this.chips}
-            .isCollapsed=${this.isChipsCollapsed}
-            .independentMode=${this.independentMode}
-            .addChip=${this.addChip}
-            .updateChip=${this.updateChip}
-            .removeChip=${this.removeChip}
-            .retryFileChip=${this.retryFileChip}
-            .retryAttachmentChip=${this.retryAttachmentChip}
-            .toggleCollapse=${this.toggleChipsCollapse}
-            .docDisplayConfig=${this.docDisplayConfig}
-            .portalContainer=${this.portalContainer}
-            .addImages=${this.addImages}
-          ></chat-panel-chips>
-        `),
-        toReactNode(html`
-          <ai-chat-input
-            .reactToLit=${this.reactToLit}
-            .independentMode=${this.independentMode}
-            .host=${this.host}
-            .workspaceId=${this.workspaceId}
-            .docId=${this.docId}
-            .session=${this.session}
-            .chips=${this.chips}
-            .addChip=${this.addChip}
-            .addImages=${this.addImages}
-            .createSession=${this.createSession}
-            .chatContextValue=${this.chatContextValue}
-            .updateContext=${this.updateContext}
-            .reasoningConfig=${this.reasoningConfig}
-            .docDisplayConfig=${this.docDisplayConfig}
-            .searchMenuConfig=${this.searchMenuConfig}
-            .serverService=${this.serverService}
-            .myoxusFeatureFlagService=${this.myoxusFeatureFlagService}
-            .aiDraftService=${this.aiDraftService}
-            .aiToolsConfigService=${this.aiToolsConfigService}
-            .notificationService=${this.notificationService}
-            .aiModelService=${this.aiModelService}
-            .portalContainer=${this.portalContainer}
-            .onChatSuccess=${this.onChatSuccess}
-            .trackOptions=${this.trackOptions}
-            .isContextProcessing=${this.isContextProcessing}
-          ></ai-chat-input>
-        `),
-        toReactNode(html`
-          <ai-chat-composer-tip
-            .reactToLit=${this.reactToLit}
-            .tips=${[
-              html`<span
-                >${chatI18n()["com.myoxus.ai.chat-panel.disclaimer"]()}</span
-              >`,
-            ].filter(Boolean)}
-          ></ai-chat-composer-tip>
-        `),
+        createElement(
+          Card,
+          {
+            withBorder: true,
+            padding: "sm",
+            "data-myoxus-ui-role": "chat-composer",
+          },
+          createElement(
+            Stack,
+            { gap: "xs" },
+            toReactNode(html`
+              <chat-panel-chips
+                .reactToLit=${this.reactToLit}
+                .chips=${this.chips}
+                .isCollapsed=${this.isChipsCollapsed}
+                .independentMode=${this.independentMode}
+                .addChip=${this.addChip}
+                .updateChip=${this.updateChip}
+                .removeChip=${this.removeChip}
+                .retryFileChip=${this.retryFileChip}
+                .retryAttachmentChip=${this.retryAttachmentChip}
+                .toggleCollapse=${this.toggleChipsCollapse}
+                .docDisplayConfig=${this.docDisplayConfig}
+                .portalContainer=${this.portalContainer}
+                .addImages=${this.addImages}
+              ></chat-panel-chips>
+            `),
+            toReactNode(html`
+              <ai-chat-input
+                .reactToLit=${this.reactToLit}
+                .independentMode=${this.independentMode}
+                .host=${this.host}
+                .workspaceId=${this.workspaceId}
+                .docId=${this.docId}
+                .session=${this.session}
+                .chips=${this.chips}
+                .addChip=${this.addChip}
+                .addImages=${this.addImages}
+                .createSession=${this.createSession}
+                .chatContextValue=${this.chatContextValue}
+                .updateContext=${this.updateContext}
+                .reasoningConfig=${this.reasoningConfig}
+                .docDisplayConfig=${this.docDisplayConfig}
+                .searchMenuConfig=${this.searchMenuConfig}
+                .serverService=${this.serverService}
+                .myoxusFeatureFlagService=${this.myoxusFeatureFlagService}
+                .aiDraftService=${this.aiDraftService}
+                .aiToolsConfigService=${this.aiToolsConfigService}
+                .notificationService=${this.notificationService}
+                .aiModelService=${this.aiModelService}
+                .portalContainer=${this.portalContainer}
+                .onChatSuccess=${this.onChatSuccess}
+                .trackOptions=${this.trackOptions}
+                .isContextProcessing=${this.isContextProcessing}
+              ></ai-chat-input>
+            `),
+          ),
+        ),
+        createElement(
+          ChatDisclaimer,
+          null,
+          chatI18n()["com.myoxus.ai.chat-panel.disclaimer"](),
+        ),
       ),
       true,
     );

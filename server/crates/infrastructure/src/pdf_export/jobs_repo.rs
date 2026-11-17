@@ -73,6 +73,21 @@ impl PdfExportJobStore for PgPdfExportJobStore {
   }
 
   #[instrument(skip(self), err)]
+  async fn find_output(&self, workspace_id: Uuid, blob_id: Uuid) -> RepoResult<Option<PdfExportJob>> {
+    let sql = format!(
+      "SELECT {} FROM pdf_export_jobs WHERE workspace_id=$1 AND output_blob_id=$2",
+      Self::JOB_COLUMNS
+    );
+    let row = sqlx::query(&sql)
+      .bind(workspace_id)
+      .bind(blob_id)
+      .fetch_optional(&self.pool)
+      .await
+      .map_err(Self::map_error)?;
+    Ok(row.as_ref().map(Self::map_job))
+  }
+
+  #[instrument(skip(self), err)]
   async fn get_download(&self, id: Uuid) -> RepoResult<Option<PdfExportDownload>> {
     let row = sqlx::query(
       "SELECT j.id, j.workspace_id, j.doc_id, j.requested_by, j.template_id, \

@@ -966,6 +966,7 @@ function DocumentVersioningWorkspaceOverrides() {
                     </TableCell>
                     <TableCell>
                       <FormSelect
+                        aria-label={`${row.workspaceName ?? row.workspaceId}: ${i18n.t("admin.pdf-settings.doc-versioning.default-enabled")}`}
                         value={draft.enabled}
                         onChange={(value) =>
                           updateDraft(
@@ -979,6 +980,7 @@ function DocumentVersioningWorkspaceOverrides() {
                     </TableCell>
                     <TableCell>
                       <FormSelect
+                        aria-label={`${row.workspaceName ?? row.workspaceId}: ${i18n.t("admin.pdf-settings.doc-versioning.default-pdf")}`}
                         value={draft.autoPdf}
                         onChange={(value) =>
                           updateDraft(
@@ -992,6 +994,7 @@ function DocumentVersioningWorkspaceOverrides() {
                     </TableCell>
                     <TableCell>
                       <NumberInput
+                        aria-label={`${row.workspaceName ?? row.workspaceId}: ${i18n.t("admin.pdf-settings.doc-versioning.default-retention")}`}
                         clampBehavior="none"
                         min={1}
                         max={50}

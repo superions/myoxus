@@ -1,1 +1,1 @@
-export * from "@virgultum/shared/adapters";
+export * from "@virgultum/core/adapters";

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { Bound } from "@virgultum/global/gfx";
+import { Bound } from "@virgultum/core/primitives/gfx";
 import { createMermaidClipboardPort } from "../../clipboard.js";
-import type { ToolbarContext } from "@virgultum/shared/services";
+import type { ToolbarContext } from "@virgultum/core/services";
 import { mermaidMessages as m } from "../../i18n.js";
 import type {
   MermaidFamilyHostAdapter,

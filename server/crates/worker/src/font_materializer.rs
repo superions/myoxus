@@ -78,7 +78,7 @@ fn parse_pinned_theme_font_assets(render_inputs: &serde_json::Value) -> Result<V
     }
   }
   for role in assets.keys() {
-    if !REQUIRED_ROLES.contains(&role.as_str()) {
+    if !REQUIRED_ROLES.contains(&role.as_str()) && role != "eyebrow" {
       return Err(format!(
         "render_inputs.theme_font_assets.{role} is not a supported PDF font role"
       ));

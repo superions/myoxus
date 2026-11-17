@@ -20,6 +20,9 @@ RUN --mount=type=cache,id=myoxus-admin-yarn-cache,target=/usr/local/share/.cache
     YARN_CACHE_FOLDER=/usr/local/share/.cache/yarn \
     node .yarn/releases/yarn-4.18.0.cjs workspaces focus @myoxus/admin @myoxus-tools/cli
 RUN rm -rf client/admin/workspaces/admin/dist client/libs/i18n/dist
+COPY build/scripts/icons/document-icons.mjs build/scripts/icons/document-icons.mjs
+COPY server/static/icons/document-icons.json server/static/icons/document-icons.json
+COPY server/static/branding/theme-catalog.json server/static/branding/theme-catalog.json
 RUN node .yarn/releases/yarn-4.18.0.cjs workspace @virgultum/icons build
 # Release metadata must not invalidate dependency installation or icon generation.
 ARG GITHUB_SHA=localdev

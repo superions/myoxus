@@ -532,6 +532,7 @@ impl Services {
       )),
       self.workspace_tags(),
       self.auth.clone(),
+      Some(self.html_catalog.clone()),
     )
   }
 

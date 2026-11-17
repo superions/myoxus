@@ -25,6 +25,7 @@ test.describe("pasting blocks", () => {
     await pressEnter(page);
     // Image
     await pasteTestImage(page);
+    await expect(page.locator("myoxus-image .resizable-img")).toBeVisible();
     await pressEnter(page);
     // Text
     await type(page, "world");
@@ -60,9 +61,14 @@ test.describe("pasting blocks", () => {
     const blocks = newNote.locator("[data-block-id]");
     await expect(blocks.nth(0)).toContainText("hello");
     await expect(blocks.nth(1).locator(".resizable-img")).toBeAttached();
-    expect(await blocks.nth(1).evaluate((block) => block.model.flavour)).toBe(
-      "myoxus:image",
-    );
+    expect(
+      await blocks
+        .nth(1)
+        .evaluate(
+          (block: import("@virgultum/editor/std").BlockComponent) =>
+            block.model.flavour,
+        ),
+    ).toBe("myoxus:image");
     await expect(blocks.nth(2)).toContainText("world");
     await expect(blocks.nth(3)).toContainText("code");
   });

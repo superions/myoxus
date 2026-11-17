@@ -35,13 +35,17 @@ import {
   assertEdgelessSelectedModelRect,
 } from "../utils/asserts.js";
 import { test } from "../utils/playwright.js";
+import { getMindMapNode } from "../utils/mindmap.js";
 
 test.describe("lock", () => {
   const getButtons = (page: Page) => {
     const toolbar = page.getByTestId("selection-toolbar");
     return {
-      lock: toolbar.getByTestId("lock"),
-      unlock: toolbar.getByTestId("unlock"),
+      lock: toolbar.getByRole("button", { name: "Lock", exact: true }),
+      unlock: toolbar.getByRole("button", {
+        name: "Click to unlock",
+        exact: true,
+      }),
     };
   };
 
@@ -55,7 +59,7 @@ test.describe("lock", () => {
     await getButtons(page).lock.click();
     expect(await getSelectedIds(page)).toHaveLength(1);
     await pressEscape(page);
-    expect(await getSelectedIds(page)).toHaveLength(0);
+    await expect.poll(() => getSelectedIds(page)).toHaveLength(0);
     await selectAllByKeyboard(page);
     expect(await getSelectedIds(page)).toHaveLength(1);
 
@@ -76,7 +80,7 @@ test.describe("lock", () => {
     await lock.click();
     await pressEscape(page);
     await dragBetweenViewCoords(page, [90, 90], [160, 160]);
-    expect(await getSelectedIds(page)).toHaveLength(0);
+    await expect.poll(() => getSelectedIds(page)).toHaveLength(0);
 
     await clickView(page, [125, 125]);
     await unlock.click();
@@ -150,22 +154,27 @@ test.describe("lock", () => {
     // mindmap
     await createMindmap(page, [100, 100]);
     const bound = await getSelectedBound(page);
-    const rootNodePos: [number, number] = [
-      bound[0] + 10,
-      bound[1] + 0.5 * bound[3],
-    ];
-
-    await clickView(page, rootNodePos);
+    const [ownerId] = await getSelectedIds(page);
+    const clickRoot = async () => {
+      const rootNode = await getMindMapNode(page, ownerId, [0]);
+      await page.mouse.click(
+        rootNode.rect.x + rootNode.rect.w / 2,
+        rootNode.rect.y + rootNode.rect.h / 2,
+      );
+    };
+    await clickRoot();
     const rootNodeBound = await getSelectedBound(page);
+    // Source children cannot be locked independently of their diagram owner.
+    await selectElementInEdgeless(page, [ownerId]);
 
     await lock.click();
     await assertEdgelessSelectedModelRect(page, bound);
-    await clickView(page, rootNodePos);
+    await clickRoot();
     await assertEdgelessSelectedModelRect(page, bound);
 
     await unlock.click();
     await assertEdgelessSelectedModelRect(page, bound);
-    await clickView(page, rootNodePos);
+    await clickRoot();
     await assertEdgelessSelectedModelRect(page, rootNodeBound);
   });
 
@@ -266,7 +275,11 @@ test.describe("lock", () => {
     const isLocked = () =>
       page.evaluate((id) => {
         const root = document.querySelector("myoxus-edgeless-root");
-        return root?.gfx.getElementById(id)?.lockedBySelf ?? false;
+        const model = root?.gfx.getElementById(id);
+        return (
+          (model && "lockedBySelf" in model ? model.lockedBySelf : undefined) ??
+          false
+        );
       }, shapeId);
 
     await lock.click();

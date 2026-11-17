@@ -188,9 +188,7 @@ export class AISlidesRenderer extends WithDisposable(LitElement) {
               images: res.images,
             });
             // refresh loading menu item
-            getAIPanelWidget(this.host)
-              .shadowRoot?.querySelector("ai-panel-answer")
-              ?.requestUpdate();
+            getAIPanelWidget(this.host).requestUpdate();
           }
         })
         .catch(console.error);

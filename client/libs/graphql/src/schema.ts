@@ -9930,6 +9930,8 @@ export interface DocumentMetadataIndexRowType {
   journalDate: Maybe<Scalars["NaiveDate"]["output"]>;
   pageWidth: Maybe<Scalars["String"]["output"]>;
   primaryMode: Maybe<Scalars["String"]["output"]>;
+  responsibleName: Maybe<Scalars["String"]["output"]>;
+  responsibleUserId: Maybe<Scalars["ID"]["output"]>;
   reviewDueAt: Maybe<Scalars["DateTime"]["output"]>;
   statusId: Maybe<Scalars["ID"]["output"]>;
   /** Current ordered labels, joined after the shared index's visibility filter. */
@@ -15560,6 +15562,8 @@ export interface TemplateLibraryFilterInput {
   sort?: InputMaybe<TemplateLibrarySort>;
   /** Exact workspace-local source key; returns at most one item, without list traversal. */
   sourceDocId?: InputMaybe<Scalars["ID"]["input"]>;
+  /** Exact Registry source slug; uses current workspace assignment and read access. */
+  sourceSlug?: InputMaybe<Scalars["String"]["input"]>;
   workAreaTag?: InputMaybe<Scalars["String"]["input"]>;
 }
 
@@ -17541,10 +17545,6 @@ export interface WorkspaceOverviewOrderByType {
   type: Scalars["String"]["output"];
 }
 
-/**
- * Authorized page facts only. The workspace row and its private bindings stay
- * with the native settings owner rather than becoming a generic JSON payload.
- */
 export interface WorkspaceOverviewPageType {
   __typename?: "WorkspaceOverviewPageType";
   breadcrumbs: Array<WorkspaceOverviewFolderType>;
@@ -17560,15 +17560,45 @@ export interface WorkspaceOverviewPageType {
   registerPresentation: Maybe<WorkspaceOverviewRegisterPresentationType>;
 }
 
+export interface WorkspaceOverviewRegisterFilterInput {
+  key: Scalars["String"]["input"];
+  method: Scalars["String"]["input"];
+  value?: InputMaybe<Scalars["String"]["input"]>;
+}
+
+export interface WorkspaceOverviewRegisterFilterType {
+  __typename?: "WorkspaceOverviewRegisterFilterType";
+  key: Scalars["String"]["output"];
+  method: Scalars["String"]["output"];
+  value: Maybe<Scalars["String"]["output"]>;
+}
+
 export interface WorkspaceOverviewRegisterPresentationInput {
   displayProperties: Array<Scalars["String"]["input"]>;
   orderBy: WorkspaceOverviewOrderByInput;
+  selection?: InputMaybe<WorkspaceOverviewRegisterSelectionInput>;
 }
 
 export interface WorkspaceOverviewRegisterPresentationType {
   __typename?: "WorkspaceOverviewRegisterPresentationType";
   displayProperties: Array<Scalars["String"]["output"]>;
   orderBy: WorkspaceOverviewOrderByType;
+  selection: WorkspaceOverviewRegisterSelectionType;
+}
+
+export interface WorkspaceOverviewRegisterSelectionInput {
+  filters?: Array<WorkspaceOverviewRegisterFilterInput>;
+  matchAllTags?: Scalars["Boolean"]["input"];
+  subtree?: Scalars["Boolean"]["input"];
+  tagIds?: Array<Scalars["UUID"]["input"]>;
+}
+
+export interface WorkspaceOverviewRegisterSelectionType {
+  __typename?: "WorkspaceOverviewRegisterSelectionType";
+  filters: Array<WorkspaceOverviewRegisterFilterType>;
+  matchAllTags: Scalars["Boolean"]["output"];
+  subtree: Scalars["Boolean"]["output"];
+  tagIds: Array<Scalars["UUID"]["output"]>;
 }
 
 /** Existing workspace settings update, scoped to its root or one Organizer folder. */
@@ -18468,6 +18498,7 @@ export interface WorkspaceTypeOverviewArgs {
   first?: Scalars["Int"]["input"];
   folderId?: InputMaybe<Scalars["String"]["input"]>;
   offset?: Scalars["Int"]["input"];
+  registerPresentation?: InputMaybe<WorkspaceOverviewRegisterPresentationInput>;
 }
 
 export interface WorkspaceTypePageMetaArgs {

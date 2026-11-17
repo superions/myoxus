@@ -7,7 +7,7 @@ import { GuardService } from "@myoxus/core/modules/permissions";
 import { WorkspaceServerService } from "@myoxus/core/modules/server";
 import { WorkspaceService } from "@myoxus/core/modules/workspace";
 import type { FrameworkProvider } from "@myoxus/infra";
-import { DatabaseReferenceBlockModel } from "@virgultum/block-database/reference-store";
+import { DatabaseReferenceBlockModel } from "@virgultum/editor/blocks/database/reference-store";
 import type { BlockStdScope } from "@virgultum/editor/std";
 import { Text, type BlockModel } from "@virgultum/editor/store";
 import { TestWorkspace } from "@virgultum/editor/store/test";

@@ -75,6 +75,7 @@ mod block;
 mod compare;
 mod document;
 mod error;
+mod missing;
 mod parts;
 mod position;
 mod settings;
@@ -84,6 +85,7 @@ pub use block::{Block, Blocks, BoxBudget, MAX_TEXT_BOX_DEPTH};
 pub use compare::para_block;
 use document::MediaIndex;
 pub use error::{DocError, Result};
+pub use missing::{MAX_MISSING_PICTURES, MissingPicture, MissingPictureReason, MissingPictures, picture_hash};
 pub use parts::{MAX_LINKED_BOXES, MAX_TEXT_BOX_INSET, NoteSeparators, Part, PartKind, PermRange, TEXT_BOX_INSET, TextBody, free_id};
 pub use position::{Path, Pos, StoryRef};
 pub use settings::{
@@ -124,6 +126,10 @@ pub struct Document {
     /// Embedded media (images) by key. Native JSON writes each as base64 (`byte_store.rs`).
     #[serde(skip_serializing_if = "BTreeMap::is_empty", with = "byte_store")]
     pub media: BTreeMap<String, Arc<Vec<u8>>>,
+    /// Raster media key → SVG media key. The raster stays the picture's usable
+    /// fallback; DOCX writes the vector as Office's svgBlip extension.
+    #[serde(skip_serializing_if = "BTreeMap::is_empty")]
+    pub svg_images: BTreeMap<String, String>,
     /// Source-format parts we keep verbatim for round-trip (e.g. custom XML), by part name.
     #[serde(skip_serializing_if = "BTreeMap::is_empty", with = "byte_store")]
     pub passthrough: BTreeMap<String, Arc<Vec<u8>>>,
@@ -138,6 +144,10 @@ pub struct Document {
     /// [`kept`]); never saved, ignored by `==`.
     #[serde(skip)]
     pub kept: kept::Kept,
+    /// Pictures a reader dropped because their target is missing, external or link-only (strict
+    /// export reports them); never saved, never drawn, ignored by `==`.
+    #[serde(skip)]
+    pub missing_pictures: MissingPictures,
 }
 
 #[cfg(test)]

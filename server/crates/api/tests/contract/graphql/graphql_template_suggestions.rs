@@ -560,6 +560,32 @@ async fn inv_template_library_graphql_pages_native_sources_and_preserves_missing
     false
   );
 
+  // Named insert commands resolve the assigned Registry source, never a
+  // similarly named custom document or a page of search results.
+  for (slug, expected) in [
+    (format!("{prefix}-missing"), Some(missing.to_string())),
+    ("native-204".into(), None),
+  ] {
+    let exact = helpers::gql(
+      &app,
+      session,
+      suggestion_payload(
+        workspace,
+        json!({
+          "surface":"Library","locale":"en","clientVersion":1,"library":{"sourceSlug":slug}
+        }),
+      ),
+    )
+    .await;
+    assert_no_errors(&exact);
+    let items = exact["data"]["workspace"]["templateSuggestions"]["items"]
+      .as_array()
+      .unwrap();
+    assert_eq!(items.len(), usize::from(expected.is_some()));
+    if let Some(expected) = expected {
+      assert_eq!(items[0]["templateId"], expected);
+    }
+  }
   let ordinary = helpers::create_doc(&pool, workspace, owner).await;
   for (key, count) in [("native-204".to_string(), 1), (ordinary.to_string(), 0)] {
     let exact = helpers::gql(

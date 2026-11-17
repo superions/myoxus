@@ -1,1 +1,1 @@
-export * from "@virgultum/block-table/view";
+export { TableViewExtension } from "@virgultum/content/view";

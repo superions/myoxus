@@ -254,6 +254,7 @@ pub(super) fn convert_text_block(
           | "myoxus:attachment"
           | "myoxus:surface-ref"
           | "myoxus:event"
+          | "myoxus:document-index"
           | "myoxus:annotation"
           | "myoxus:bpmn"
       ) {
@@ -467,6 +468,7 @@ pub(super) fn native_parent_allows(parent: &str, child: &str) -> bool {
             | "myoxus:divider"
             | "myoxus:surface-ref"
             | "myoxus:event"
+            | "myoxus:document-index"
             | "myoxus:bpmn"
             | "myoxus:footnote-definition"
             | "myoxus:database"
@@ -480,7 +482,7 @@ pub(super) fn native_parent_allows(parent: &str, child: &str) -> bool {
         || embed
         || matches!(
           child,
-          "myoxus:divider" | "myoxus:surface-ref" | "myoxus:event" | "myoxus:bpmn"
+          "myoxus:divider" | "myoxus:surface-ref" | "myoxus:event" | "myoxus:document-index" | "myoxus:bpmn"
         )
         || parent == "myoxus:paragraph" && child == "myoxus:table"
     }

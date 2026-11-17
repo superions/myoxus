@@ -28,7 +28,7 @@ import {
   type MermaidPacketReactHostProps,
   type PacketCommentAnchor,
 } from "@virgultum/block-mermaid";
-import { isTouchPadPinchEvent } from "@virgultum/shared/utils";
+import { isTouchPadPinchEvent } from "@virgultum/core/utils";
 import { useEffect, useRef, type ReactNode } from "react";
 import { MermaidEmbeddedActions } from "../mermaid-embedded-actions";
 import {

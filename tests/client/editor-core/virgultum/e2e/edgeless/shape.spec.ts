@@ -347,46 +347,39 @@ test("keeps shape text pure color selections across edgeless theme changes", asy
   await pressEscape(page);
 
   const textColorButton = page.getByRole("button", { name: "Text color" });
-  const activeBlackButton = page
-    .locator("edgeless-color-button[active]")
-    .getByLabel("Black");
-
-  await expect(textColorButton).toBeVisible();
-  await textColorButton.click({ force: true });
-  await expect(activeBlackButton).toHaveCount(1);
-  await expect(activeBlackButton.locator("svg")).toHaveCSS(
-    "fill",
-    "rgb(0, 0, 0)",
+  const dialog = page.getByRole("dialog", { name: "Text color", exact: true });
+  const swatch = textColorButton.locator(
+    '[data-myoxus-ui-role="color-swatch"]',
   );
 
+  await textColorButton.click();
+  await expect(dialog).toBeVisible();
+  await expect(swatch).toHaveCSS("background-color", "rgb(0, 0, 0)");
   await pressEscape(page);
   await switchEdgelessTheme(page, "dark");
-  await page.mouse.click(150, 350);
-  await textColorButton.click({ force: true });
-  await expect(activeBlackButton).toHaveCount(1);
-  await expect(activeBlackButton.locator("svg")).toHaveCSS(
-    "fill",
-    "rgb(0, 0, 0)",
-  );
+  await page.mouse.click(105, 305);
+  await textColorButton.click();
+  await expect(dialog).toBeVisible();
+  await expect(swatch).toHaveCSS("background-color", "rgb(0, 0, 0)");
 
   await pressEscape(page);
   await switchEdgelessTheme(page, "light");
-  await page.mouse.click(150, 350);
-  await textColorButton.click({ force: true });
-  const whiteButton = page.getByRole("listbox").last().getByLabel("White");
-  await whiteButton.click();
-  await expect(textColorButton.locator("svg rect")).toHaveCSS(
-    "fill",
-    "rgb(255, 255, 255)",
-  );
-
+  await page.mouse.click(105, 305);
+  await textColorButton.click();
+  const white = await page.evaluate(() => {
+    const { DefaultTheme, resolveColor, ColorScheme } =
+      window.$virgultum.editorModel;
+    return resolveColor(
+      DefaultTheme.ShapeTextColorPalettes.find((x) => x.key === "White")!.value,
+      ColorScheme.Light,
+    );
+  });
+  await dialog.getByRole("button", { name: white, exact: true }).click();
+  await expect(swatch).toHaveCSS("background-color", "rgb(255, 255, 255)");
   await pressEscape(page);
   await switchEdgelessTheme(page, "dark");
-  await page.mouse.click(150, 350);
-  await expect(textColorButton.locator("svg rect")).toHaveCSS(
-    "fill",
-    "rgb(255, 255, 255)",
-  );
+  await page.mouse.click(105, 305);
+  await expect(swatch).toHaveCSS("background-color", "rgb(255, 255, 255)");
 });
 
 test("auto wrap text in shape", async ({ page }) => {
@@ -582,15 +575,12 @@ test.describe("shape hit test", () => {
     await pressEscape(page);
     await waitNextFrame(page);
 
-    const alignmentMenu =
-      locatorComponentToolbar(page).getByLabel("alignment-menu");
-
-    const textAlignBtn = alignmentMenu.getByRole("button", {
-      name: "Alignment",
-    });
-    await textAlignBtn.click();
-
-    await alignmentMenu.getByRole("button", { name: "Left" }).click();
+    await locatorComponentToolbar(page)
+      .getByRole("button", {
+        name: "Align left",
+        exact: true,
+      })
+      .click();
 
     // Close the alignment menu before creating a separate text block on free canvas.
     await pressEscape(page);

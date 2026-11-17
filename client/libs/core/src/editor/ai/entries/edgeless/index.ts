@@ -78,7 +78,7 @@ export function edgelessToolbarAIEntryConfig(): ToolbarModuleConfig {
               };
               aiPanel.config.inputCallback = (text) => {
                 const copilotWidget = getEdgelessCopilotWidget(host);
-                const panel = copilotWidget.shadowRoot?.querySelector(
+                const panel = copilotWidget.querySelector(
                   "edgeless-copilot-panel",
                 );
                 if (panel instanceof HTMLElement) {

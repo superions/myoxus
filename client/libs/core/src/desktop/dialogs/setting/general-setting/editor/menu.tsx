@@ -44,7 +44,7 @@ export const EditorRadioGroup = (props: ComponentProps<typeof RadioGroup>) => {
 
 export const EditorSlider = (props: ComponentProps<typeof Slider>) => {
   return (
-    <SettingsControlGroup>
+    <SettingsControlGroup stretch>
       <Slider {...props} block />
     </SettingsControlGroup>
   );

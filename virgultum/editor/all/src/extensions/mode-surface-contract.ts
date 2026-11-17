@@ -23,4 +23,4 @@ export {
   MODE_SURFACE_CONTRACT,
   type ModeSurfaceContractEntry,
   validateManifestAgainstContract,
-} from "@virgultum/ext-loader/mode-surface-contract";
+} from "@virgultum/core/extensions/mode-surface-contract";

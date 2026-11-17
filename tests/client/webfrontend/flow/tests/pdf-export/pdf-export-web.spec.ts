@@ -37,6 +37,7 @@ import {
 } from "../../../../adminfrontend/e2e/fixtures/auth";
 import { deleteWorkspace } from "../../../../adminfrontend/e2e/fixtures/workspaces";
 import { openDocumentTool } from "../../helpers/workbench-helper";
+import { waitForWorkspaceDocSync } from "../../../shared/workspace-helper";
 
 const execFileAsync = promisify(execFile);
 
@@ -365,6 +366,9 @@ async function openPdfExportInputs(page: Page): Promise<void> {
     timeout: 15_000,
   });
   await page
+    .getByRole("button", { name: "Advanced options", exact: true })
+    .click();
+  await page
     .getByRole("button", { name: "Advanced typed inputs", exact: true })
     .click();
 }
@@ -423,8 +427,30 @@ test.describe.serial("PDF export web E2E", () => {
     const suffix = Date.now().toString(36);
     const title = `PDF Export Web E2E ${suffix}`;
     const paragraph = `Rendered PDF source paragraph ${suffix} äöü ÄÖÜ ß € # []`;
-    await createWorkspacePage(page, workspaceId, title);
+    const docId = await createWorkspacePage(page, workspaceId, title);
     await appendEditorText(page, paragraph);
+    // Protect the real editor -> capture -> compiler -> browser-download boundary.
+    await page.context().grantPermissions(["clipboard-write"]);
+    await page.keyboard.press("Control+End");
+    await page.keyboard.press("Enter");
+    await page.evaluate(() =>
+      navigator.clipboard
+        .writeText(String.raw`Inline $E=mc^2$ and $\frac{a}{b}$ after.
+
+$$
+\sqrt{x}+\sum_{i=1}^{n}i+\int_0^1x\,dx
+$$
+
+$$
+\begin{matrix}a&b\\c&d\end{matrix}
+$$`),
+    );
+    await page.keyboard.press("Control+V");
+    await expect(page.locator("myoxus-latex")).toHaveCount(2);
+    await expect(page.locator("myoxus-latex-node")).toHaveCount(2);
+    // Export a persisted document, not an editor whose initial writes are in flight.
+    await waitForWorkspaceDocSync(page, docId);
+    await page.reload({ waitUntil: "load" });
     await openPdfExportDialog(page);
     await openPdfExportInputs(page);
 
@@ -472,6 +498,11 @@ test.describe.serial("PDF export web E2E", () => {
     const pdfText = await extractPdfText(downloadPath!);
     expect(pdfText).toContain(`Rendered PDF source paragraph ${suffix}`);
     expect(pdfText).toContain("äöü ÄÖÜ ß €");
+    for (const symbol of ["𝑚", "𝑐", "𝑎", "𝑏", "∑", "∫", "√"]) {
+      expect(pdfText).toContain(symbol);
+    }
+    expect(pdfText).not.toMatch(/\\(?:frac|sqrt|begin)/);
+
     expect(pdfText).not.toContain("Canvas snapshot not available");
     await expect(
       page.getByText("PDF exported successfully.").first(),
@@ -481,12 +512,51 @@ test.describe.serial("PDF export web E2E", () => {
 
     await openPdfExportHistorySidebar(page);
     const history = page.getByTestId("pdf-export-history-panel");
-    await expect(history.getByText("invalid doc_id")).toHaveCount(0);
-    await expect(history.getByText("Recent exports")).toBeVisible({
-      timeout: 10_000,
-    });
     await expect(history.getByText("Done").first()).toBeVisible({
       timeout: 10_000,
+    });
+
+    // Native auto-version metadata must retain retry reuse; actual source edits must not.
+    await openPdfExportDialog(page);
+    await openPdfExportInputs(page);
+    const retryResponse = page.waitForResponse(
+      (response) => response.url() === downloadResponse.url(),
+      { timeout: 30_000 },
+    );
+    const retryDownload = page.waitForEvent("download", { timeout: 30_000 });
+    await page
+      .getByRole("button", { name: "Start export", exact: true })
+      .click();
+    const [reusedResponse, reusedDownload] = await Promise.all([
+      retryResponse,
+      retryDownload,
+    ]);
+    expect(reusedResponse.status()).toBe(200);
+    expect(await reusedDownload.failure()).toBeNull();
+    await expect(page.getByRole("dialog")).toBeHidden();
+
+    // The same normal export must retain safe formula diagnostics across service redaction.
+    await page.locator("myoxus-latex").first().dblclick();
+    await page
+      .locator('[aria-label="Equation"] .inline-editor')
+      .fill(String.raw`\privateCustomerSecret{account}`);
+    await page.getByRole("button", { name: "Confirm", exact: true }).click();
+    await waitForWorkspaceDocSync(page, docId);
+    await openPdfExportDialog(page);
+    await openPdfExportInputs(page);
+    await page
+      .getByRole("button", { name: "Start export", exact: true })
+      .click();
+    const error = page.getByTestId("pdf-export-error");
+    await expect(error).toContainText("LaTeX formula 3: unsupported command", {
+      timeout: 30_000,
+    });
+    await expect(error).toContainText("Edit the reported formula");
+    await expect(error).not.toContainText("privateCustomerSecret");
+    await expect(error).not.toContainText("account");
+    await testInfo.attach("pdf-export-formula-error-desktop", {
+      body: await page.screenshot({ fullPage: true }),
+      contentType: "image/png",
     });
   });
 
@@ -524,6 +594,9 @@ test.describe.serial("PDF export web E2E", () => {
     await createWorkspacePage(page, workspaceId, title);
     await openPdfExportDialog(page);
 
+    await page
+      .getByRole("button", { name: nextDefault.name, exact: true })
+      .click();
     await expect(
       page.getByRole("radio", {
         name: new RegExp(escapeRegExp(nextDefault.name)),

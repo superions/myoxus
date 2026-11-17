@@ -1,1 +1,1 @@
-export * from "@virgultum/block-edgeless-text/store";
+export { EdgelessTextStoreExtension } from "@virgultum/canvas/store";

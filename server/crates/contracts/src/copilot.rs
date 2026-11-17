@@ -16,6 +16,8 @@ pub struct CopilotModelOptions {
   /// Explicit operator declaration; never inferred from a model ID.
   #[serde(default, skip_serializing_if = "is_false")]
   pub supports_vision: bool,
+  #[serde(default, skip_serializing_if = "is_false")]
+  pub supports_tools: bool,
 }
 
 fn is_false(value: &bool) -> bool {

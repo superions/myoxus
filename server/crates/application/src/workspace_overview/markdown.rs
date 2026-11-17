@@ -34,6 +34,7 @@ fn label(key: &str) -> &'static str {
     "createdAt" => "Created",
     "updatedAt" => "Updated",
     "createdBy" => "Created by",
+    "responsible" => "Responsible",
     "status" => "Status",
     "documentType" => "Document type",
     "classification" => "Classification",
@@ -143,11 +144,6 @@ pub fn render_git_overview(
   for document in &page.documents {
     let path = paths.documents.get(&document.doc_id).ok_or_else(missing)?;
     let mut values = public_register_values(document, page);
-    if columns.iter().any(|key| key == "createdBy") {
-      if let Some(name) = document.register.as_ref().and_then(|row| row.created_by_name.clone()) {
-        values.insert("createdBy".into(), WorkspaceRegisterValue::Text(name));
-      }
-    }
     let document_link = link(&document.title, &relative(path.as_str())?);
     let cells = columns
       .iter()
@@ -193,6 +189,7 @@ mod tests {
         metadata: serde_json::from_value(serde_json::json!({"doc_id":doc_id, "external_id":"doc", "is_template":false,"dirty_since_current_version":false})).unwrap(),
         labels: myoxus_domain::entities::DocumentMetadataIndexLabels {status_label:Some("Open | [value]\nnext".into()),..Default::default()},
         created_at: timestamp, created_by_name: Some("Person | <name>".into()),tag_ids:vec![],tags:vec![],can_publish:false,
+            responsible_name: None,
       }),
     };
     let folder = OverviewFolder {

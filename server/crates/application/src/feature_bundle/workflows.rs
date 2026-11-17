@@ -127,7 +127,7 @@ pub fn validate_assistant_workflow_source(source: &AssistantWorkflowSource) -> R
       .capabilities
       .into_iter()
       .map(|capability| (capability, 1))
-      .collect()
+      .collect::<BTreeMap<_, _>>()
   {
     return Err("native workflow capabilities differ from executable nodes".into());
   }
@@ -332,7 +332,7 @@ pub(super) fn validate_package_workflow(
       _ => None,
     })
     .collect::<BTreeSet<_>>();
-  if declared != inventory.components.keys().cloned().collect() {
+  if declared != inventory.components.keys().cloned().collect::<BTreeSet<_>>() {
     return Err("workflow nodes differ from native child components".into());
   }
   package_nodes(&source.nodes, package, &mut BTreeSet::new())?;

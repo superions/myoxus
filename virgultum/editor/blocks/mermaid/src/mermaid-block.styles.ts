@@ -64,7 +64,7 @@
  *      (P-VIRG-ARCH-I-04b closeout)
  */
 
-import { unsafeCSSVar } from "@virgultum/shared/theme";
+import { unsafeCSSVar } from "@virgultum/core/theme";
 import { css } from "lit";
 
 /**
@@ -576,45 +576,6 @@ export const mermaidBlockStyles = css`
   .myoxus-mermaid-gfx-subgraph-resize-handle:focus-visible {
     outline: calc(var(--mantine-scale) * 2px) solid var(--myoxus-primary-color);
     outline-offset: calc(var(--mantine-scale) * 2px);
-  }
-
-  .myoxus-mermaid-gfx-context-menu {
-    position: absolute;
-    z-index: 30;
-    min-width: 24ch;
-    max-width: min(36ch, calc(100% - var(--mantine-spacing-xl)));
-    border: 1px solid ${unsafeCSSVar("borderColor")};
-    border-radius: var(--mantine-radius-md);
-    background: ${unsafeCSSVar("backgroundPrimaryColor")};
-    box-shadow: var(--mantine-shadow-md);
-    color: ${unsafeCSSVar("textPrimaryColor")};
-    padding: var(--mantine-spacing-2xs);
-    transform: translate(0, 0);
-  }
-
-  .myoxus-mermaid-gfx-context-menu button {
-    display: block;
-    width: 100%;
-    border: 0;
-    border-radius: var(--mantine-radius-sm);
-    background: transparent;
-    color: inherit;
-    cursor: pointer;
-    font: inherit;
-    font-family: var(--myoxus-typography-body-small-family);
-    font-size: var(--myoxus-typography-body-small-size);
-    font-style: var(--myoxus-typography-body-small-font-style);
-    font-weight: var(--myoxus-typography-body-small-weight);
-    letter-spacing: var(--myoxus-typography-body-small-letter-spacing);
-    line-height: var(--myoxus-typography-body-small-line-height);
-    padding: var(--mantine-spacing-2xs) var(--mantine-spacing-xs);
-    text-align: left;
-  }
-
-  .myoxus-mermaid-gfx-context-menu button:hover,
-  .myoxus-mermaid-gfx-context-menu button:focus-visible {
-    background: ${unsafeCSSVar("backgroundSecondaryColor")};
-    outline: none;
   }
 
   .myoxus-mermaid-visual-canvas text {

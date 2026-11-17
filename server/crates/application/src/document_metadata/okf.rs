@@ -254,8 +254,8 @@ pub fn project(context: &OkfReadContext, description: Option<String>, citations:
       output.diagnostic("citation_target_unavailable");
       continue;
     };
-    if let Some(existing) = sources.iter().find(|source| source["id"].as_str() == Some(label)) {
-      if existing["resource"].as_str() != Some(&resource) {
+    if let Some(existing) = sources.iter().find(|source| source["id"].as_str() == Some(label.as_str())) {
+      if existing["resource"].as_str() != Some(resource.as_str()) {
         output.diagnostic("source_declaration_conflict");
       }
       continue;

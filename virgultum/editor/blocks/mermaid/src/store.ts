@@ -1,8 +1,8 @@
 import {
   type StoreExtensionContext,
   StoreExtensionProvider,
-} from "@virgultum/ext-loader";
-import { MermaidBlockSchemaExtension } from "@virgultum/model";
+} from "@virgultum/core/extensions";
+import { MermaidBlockSchemaExtension } from "@virgultum/core/models";
 
 import { MermaidBlockAdapterExtensions } from "./adapters/extension.js";
 import { MermaidOwnerMigrationExtension } from "./presentation/mermaid-owner-migration-extension.js";

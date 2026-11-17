@@ -46,7 +46,7 @@ impl AssistantPackageService {
     if workflow.source.trigger != Some(AssistantWorkflowTrigger::TaskCreated)
       || workflow.source.nodes.len() != 1
       || !matches!(&workflow.source.nodes[0].action,AssistantWorkflowAction::CreateLinkedDocument{component} if component==&source.components[1].id)
-      || workflow.source.capability_versions != [(AssistantWorkflowCapability::CreateLinkedDocument, 1)].into()
+      || workflow.source.capability_versions != BTreeMap::from([(AssistantWorkflowCapability::CreateLinkedDocument, 1)])
     {
       return Err(invalid(
         "personal preparation requires its native Task-created capability",

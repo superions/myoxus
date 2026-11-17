@@ -147,8 +147,13 @@ test("should auto panning when selection rectangle reaches viewport edges", asyn
       .poll(() =>
         page
           .locator("myoxus-edgeless-root")
-          .evaluate((root) =>
-            root.gfx.selection.selectedElements.map((e) => e.type),
+          .evaluate((root: HTMLElementTagNameMap["myoxus-edgeless-root"]) =>
+            root.gfx.selection.selectedElements.map(
+              (e) =>
+                (
+                  e as import("@virgultum/editor/std/gfx").GfxPrimitiveElementModel
+                ).type,
+            ),
           ),
       )
       .toEqual(["shape"]);
@@ -276,8 +281,8 @@ test("should the selected rect be below the edgeless element toolbar", async ({
     if (!element) {
       throw new Error("element not found");
     }
-    return element.tagName;
+    return !!element.closest(".edgeless-toolbar-container");
   }, brHandleCenter);
 
-  expect(topElement).toBe("EDGELESS-TOOLBAR-WIDGET");
+  expect(topElement).toBe(true);
 });

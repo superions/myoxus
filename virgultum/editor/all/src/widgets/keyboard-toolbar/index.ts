@@ -1,1 +1,2 @@
-export * from "@virgultum/widget-keyboard-toolbar";
+export * from "./config.js";
+export * from "./widget.js";

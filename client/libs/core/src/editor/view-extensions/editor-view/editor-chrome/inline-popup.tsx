@@ -30,7 +30,8 @@ export function EditorInlinePopup({
       position={position}
       contentMeasure={contentMeasure}
       floatingStrategy="fixed"
-      fitViewport
+      // Reading areas may scroll; forms keep intrinsic height so native flip can place every action.
+      fitViewport={contentMeasure === "reading"}
       trapFocus
       returnFocus={false}
       closeOnEscape={false}

@@ -1,5 +1,4 @@
 import { expect, type Page } from "@playwright/test";
-import { selectElementInEdgeless } from "./actions/edgeless.js";
 
 export async function createMindMap(page: Page, _coords: [number, number]) {
   const ids = await page.evaluate(() =>
@@ -20,7 +19,13 @@ export async function createMindMap(page: Page, _coords: [number, number]) {
             .find((block) => !ids.includes(block.model.id))?.model.id,
         ids,
       );
-      return id;
+      if (!id) return undefined;
+      return await page.evaluate((id) => {
+        const model = window.doc.getBlock(id)?.model;
+        return model && "childIds" in model && model.childIds.length > 0
+          ? id
+          : undefined;
+      }, id);
     })
     .toBeTruthy();
   return id!;
@@ -39,14 +44,16 @@ export async function getMindMapNode(
       const owner = root.store.getBlock(mindmapId)?.model;
       if (!owner || !("childIds" in owner))
         throw new Error(`Mindmap missing: ${mindmapId}`);
-      const nodes = owner.childIds.flatMap((id) => {
+      const nodes = (
+        owner as import("@virgultum/core/models").MermaidBlockModel
+      ).childIds.flatMap((id) => {
         const shape = root.gfx.getElementById(id);
         if (!shape || !("yMap" in shape)) return [];
         const raw = shape.yMap.get("mermaidNodeFamilyData");
         if (typeof raw !== "string" || !raw) return [];
         const family = JSON.parse(raw);
         return family.family === "mindmap"
-          ? [{ shape, ...family.payload }]
+          ? [{ ...family.payload, model: shape }]
           : [];
       });
       let node = nodes.find((node) => node.parentKey === null);
@@ -58,15 +65,15 @@ export async function getMindMapNode(
             .sort((a, b) => a.order - b.order)[index];
       } else
         node = nodes.find(
-          (node) => node.shape.id === pathOrId || node.sourceKey === pathOrId,
+          (node) => node.model.id === pathOrId || node.sourceKey === pathOrId,
         );
       if (!node) throw new Error(`Mindmap node missing: ${pathOrId}`);
-      const rect = root.gfx.viewport.toViewBound(node.shape.elementBound);
+      const rect = root.gfx.viewport.toViewBound(node.model.elementBound);
       return {
         path,
-        id: node.shape.id as string,
+        id: node.model.id as string,
         key: node.sourceKey as string,
-        text: String(node.shape.yMap.get("mermaidNodeLabel")),
+        text: String(node.model.yMap.get("mermaidNodeLabel")),
         rect: { x: rect.x, y: rect.y, w: rect.w, h: rect.h },
         children: nodes.filter((child) => child.parentKey === node.sourceKey)
           .length,
@@ -84,7 +91,10 @@ export async function addMindmapNodes(
   newNode: NewNodeInfo,
 ): Promise<string> {
   const parent = await getMindMapNode(page, mindmapId, path);
-  await selectElementInEdgeless(page, [parent.id]);
+  await page.mouse.click(
+    parent.rect.x + parent.rect.w / 2,
+    parent.rect.y + parent.rect.h / 2,
+  );
   await page.keyboard.press("Tab");
   await page.keyboard.type(newNode.text);
   await page.keyboard.press("Enter");

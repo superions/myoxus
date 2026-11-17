@@ -1,1 +1,1 @@
-export * from "@virgultum/inline-footnote/store";
+export { FootnoteStoreExtension } from "@virgultum/content/store";

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { StrokeStyle } from "@virgultum/model";
+import { StrokeStyle } from "@virgultum/core/models";
 import type { MermaidSequenceModel } from "../../engine/sequence/index.js";
 import type {
   MermaidVisualNode,

@@ -323,9 +323,7 @@ test.describe("P-AR-2-12 — Admin Workspaces redesign", () => {
       const row = page.getByTestId(`workspace-soft-row-${workspaceId}`);
       await expect(row).toBeVisible({ timeout: 15_000 });
       await row.click();
-      await expect(
-        page.getByText(/Details bearbeiten|Edit details/i),
-      ).toBeVisible();
+      await expect(page.getByText(/Stammdaten|Master data/i)).toBeVisible();
 
       for (const tab of [
         "basics",
@@ -352,7 +350,8 @@ test.describe("P-AR-2-12 — Admin Workspaces redesign", () => {
       const roleSelect = page.getByTestId(`member-role-select-${user.id}`);
       await expect(roleSelect).toBeVisible({ timeout: 15_000 });
       await expect(roleSelect).toHaveValue("Collaborator");
-      await roleSelect.selectOption("Reader");
+      await roleSelect.click();
+      await page.getByRole("option", { name: /^(Reader|Leser)$/i }).click();
       await expect
         .poll(
           () => workspaceMemberRole(adminRequest, workspaceId, user.email),
@@ -374,14 +373,14 @@ test.describe("P-AR-2-12 — Admin Workspaces redesign", () => {
         .getByRole("combobox")
         .fill(unit!.slug);
       await page.getByTestId("ou-picker-option-0").click();
-      await page
-        .getByTestId("workspace-ou-relationship-select")
-        .selectOption("LINKED");
+      await page.getByTestId("workspace-ou-relationship-select").click();
+      await page.getByRole("option", { name: /^(Linked|Verknüpft)$/i }).click();
       await page.getByTestId("workspace-ou-assign-btn").click();
       ouRelationshipAssigned = true;
       const linkRow = page
         .getByTestId("workspace-drawer-panel-ou-link")
-        .locator("div", { hasText: unit!.slug })
+        .getByRole("row")
+        .filter({ hasText: unit!.slug })
         .filter({ hasText: unit!.name })
         .first();
       await expect(linkRow).toBeVisible({ timeout: 15_000 });

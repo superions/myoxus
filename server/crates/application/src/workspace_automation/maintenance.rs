@@ -40,13 +40,12 @@ pub fn compile_maintenance_definition(
     || policy.max_actions_per_run < 2
     || source.source.nodes.len() != 3
     || source.source.capability_versions
-      != [
+      != BTreeMap::from([
         (AssistantWorkflowCapability::InspectTaskContent, 1),
         (AssistantWorkflowCapability::AwaitCorrectionConfirmation, 1),
         (AssistantWorkflowCapability::Branch, 1),
         (AssistantWorkflowCapability::ApplyTaskCorrections, 1),
-      ]
-      .into()
+      ])
   {
     return Err(invalid());
   }

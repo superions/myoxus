@@ -456,6 +456,7 @@ export function Slider({
   max,
   step,
   nodes,
+  restrictToMarks,
   disabled,
   className,
   style,
@@ -471,6 +472,7 @@ export function Slider({
   max?: number;
   step?: number;
   nodes?: number[];
+  restrictToMarks?: boolean;
   disabled?: boolean;
   className?: string;
   style?: CSSProperties;
@@ -491,6 +493,7 @@ export function Slider({
       max={max}
       step={step}
       marks={nodes?.map((node) => ({ value: node }))}
+      restrictToMarks={restrictToMarks}
       disabled={disabled}
       className={className}
       style={{

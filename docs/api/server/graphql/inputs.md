@@ -2862,6 +2862,7 @@ Input for \`setWorkspaceTemplateOverride\`.
 | `search` | `String` |  |  |
 | `sort` | [TemplateLibrarySort](./enums.md#templatelibrarysort) |  |  |
 | `sourceDocId` | `ID` |  | Exact workspace-local source key; returns at most one item, without list traversal. |
+| `sourceSlug` | `String` |  | Exact Registry source slug; uses current workspace assignment and read access. |
 | `workAreaTag` | `String` |  |  |
 
 ## TemplateSuggestionInput
@@ -3561,6 +3562,15 @@ Input for the \`updateWorkspace\` mutation.
 | `key` | `String`! |  |  |
 | `type` | `String`! |  |  |
 
+## WorkspaceOverviewRegisterFilterInput
+
+<!-- prettier-ignore -->
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `key` | `String`! |  |  |
+| `method` | `String`! |  |  |
+| `value` | `String` |  |  |
+
 ## WorkspaceOverviewRegisterPresentationInput
 
 <!-- prettier-ignore -->
@@ -3568,6 +3578,17 @@ Input for the \`updateWorkspace\` mutation.
 | --- | --- | --- | --- |
 | `displayProperties` | \[`String`!\]! |  |  |
 | `orderBy` | [WorkspaceOverviewOrderByInput](./inputs.md#workspaceovervieworderbyinput)! |  |  |
+| `selection` | [WorkspaceOverviewRegisterSelectionInput](./inputs.md#workspaceoverviewregisterselectioninput) |  |  |
+
+## WorkspaceOverviewRegisterSelectionInput
+
+<!-- prettier-ignore -->
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `filters` | \[[WorkspaceOverviewRegisterFilterInput](./inputs.md#workspaceoverviewregisterfilterinput)!\]! |  = \[\] |  |
+| `matchAllTags` | `Boolean`! |  = false |  |
+| `subtree` | `Boolean`! |  = false |  |
+| `tagIds` | \[[UUID](./scalars.md#uuid)!\]! |  = \[\] |  |
 
 ## WorkspaceOverviewSettingsInput
 

@@ -1,7 +1,8 @@
 /**
  * @vitest-environment happy-dom
  */
-import { beforeEach, describe, expect, test, vi } from "vitest";
+import { Window } from "happy-dom";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 
 const sendTelemetryEvent = vi.fn().mockResolvedValue({ queued: true });
 const setTelemetryContext = vi.fn();
@@ -20,7 +21,13 @@ const buildConfig = {
   distribution: "test",
 };
 
+afterEach(() => vi.unstubAllGlobals());
+
 beforeEach(() => {
+  // Node 26 storage accessors can shadow the browser environment globals.
+  const storageWindow = new Window();
+  vi.stubGlobal("localStorage", storageWindow.localStorage);
+  vi.stubGlobal("sessionStorage", storageWindow.sessionStorage);
   (globalThis as any).BUILD_CONFIG = buildConfig;
   localStorage.clear();
   sessionStorage.clear();

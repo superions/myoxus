@@ -414,7 +414,7 @@ impl JobHandler for PdfExportJobHandler {
       }
     };
 
-    let yjs_binary = match myoxus_application::pdf_export::render::document_field_snapshot(
+    let yjs_binary = match myoxus_application::pdf_export::render::document_output_snapshot(
       yjs_binary,
       workspace_uuid,
       doc_uuid,
@@ -786,6 +786,7 @@ fn theme_fonts_from_render_inputs(render_inputs: &serde_json::Value) -> ThemeFon
     body: get("body"),
     mono: get("mono"),
     symbol: get("symbol"),
+    eyebrow: get("eyebrow"),
   }
 }
 
@@ -872,6 +873,7 @@ pub fn render_error_to_class(err: &RenderError) -> (&'static str, String) {
     ),
     RenderError::PdfaValidationFailed(detail) => ("PdfaValidationFailed", detail.clone()),
     RenderError::PdfuaValidationFailed(detail) => ("PdfuaValidationFailed", detail.clone()),
+    RenderError::Latex(diagnostic) => ("InvalidFormula", diagnostic.to_string()),
     RenderError::Compilation(msg) => ("RenderError", msg.clone()),
   }
 }
@@ -1040,6 +1042,7 @@ mod tests {
   #[test]
   fn inv_error_classes_stay_in_canonical_worker_set() {
     const CANONICAL: &[&str] = &[
+      "InvalidFormula",
       "TooLarge",
       "Timeout",
       "RenderError",
@@ -1085,6 +1088,10 @@ mod tests {
       },
       RenderError::PdfaValidationFailed("x".into()),
       RenderError::PdfuaValidationFailed("x".into()),
+      RenderError::Latex(myoxus_pdf_export::error::LatexDiagnostic {
+        index: 2,
+        reason: myoxus_pdf_export::error::LatexErrorReason::UnsupportedCommand,
+      }),
       RenderError::Compilation("x".into()),
     ];
     for case in render_cases {

@@ -14,7 +14,7 @@
  *
  * Invariants:
  *   INV-PDF-ADM-E2E-00  Admin can reach /adminfrontend/pdf-export.
- *   INV-PDF-ADM-E2E-01  All seven PDF Export sub-pages are reachable.
+ *   INV-PDF-ADM-E2E-01  All six PDF Export sub-pages are reachable.
  *   INV-PDF-ADM-E2E-02  Template upload workflow blocks invalid bundles.
  *   INV-PDF-ADM-E2E-03  Font approval workflow exposes license-gated controls.
  *   INV-PDF-ADM-E2E-04  Brand edit workflow renders with admin workspace data.
@@ -59,7 +59,7 @@ async function openPdfExport(page: Page): Promise<void> {
 async function openTab(page: Page, testId: string): Promise<void> {
   const tab = page.getByTestId(testId);
   await tab.click();
-  await expect(tab).toHaveAttribute("data-state", "active");
+  await expect(tab).toHaveAttribute("aria-selected", "true");
 }
 
 async function assertA11yBudget(page: Page, label: string): Promise<void> {
@@ -101,6 +101,12 @@ async function createInvalidTemplateBundle(): Promise<string> {
         version: "0.0.1",
         entry: "main.typ",
         assets: ["main.typ", "missing.typ"],
+        provenance: {
+          license_spdx: "AGPL-3.0-or-later",
+          copyright_notice: "Copyright 2026 Myoxus contributors",
+          source_url: "https://example.test/e2e-invalid-template",
+          source_revision: "0.0.1",
+        },
       },
       null,
       2,
@@ -121,11 +127,10 @@ test.describe("PDF Export admin module", () => {
     await openPdfExport(page);
 
     const tabs = page.locator('[data-testid^="pdf-export-tab-"]');
-    await expect(tabs).toHaveCount(7);
+    await expect(tabs).toHaveCount(6);
     await expect(page.getByTestId("pdf-export-tab-templates")).toBeVisible();
     await expect(page.getByTestId("pdf-export-tab-workspaces")).toBeVisible();
     await expect(page.getByTestId("pdf-export-tab-brand")).toBeVisible();
-    await expect(page.getByTestId("pdf-export-tab-fonts")).toBeVisible();
     await expect(page.getByTestId("pdf-export-tab-icc")).toBeVisible();
     await expect(page.getByTestId("pdf-export-tab-jobs")).toBeVisible();
     await expect(page.getByTestId("pdf-export-tab-settings")).toBeVisible();
@@ -136,37 +141,31 @@ test.describe("PDF Export admin module", () => {
 
     await openTab(page, "pdf-export-tab-workspaces");
     await expect(page.getByTestId("pdf-export-tab-workspaces")).toHaveAttribute(
-      "data-state",
-      "active",
+      "aria-selected",
+      "true",
     );
 
     await openTab(page, "pdf-export-tab-brand");
     await expect(page.getByTestId("pdf-export-tab-brand")).toHaveAttribute(
-      "data-state",
-      "active",
-    );
-
-    await openTab(page, "pdf-export-tab-fonts");
-    await expect(page.getByTestId("pdf-export-tab-fonts")).toHaveAttribute(
-      "data-state",
-      "active",
+      "aria-selected",
+      "true",
     );
 
     await openTab(page, "pdf-export-tab-icc");
-    await expect(page.locator("table").first()).toBeVisible({
+    await expect(page.getByRole("tabpanel").getByRole("table")).toBeVisible({
       timeout: 10_000,
     });
 
     await openTab(page, "pdf-export-tab-jobs");
     await expect(page.getByTestId("pdf-export-tab-jobs")).toHaveAttribute(
-      "data-state",
-      "active",
+      "aria-selected",
+      "true",
     );
 
     await openTab(page, "pdf-export-tab-settings");
     await expect(page.getByTestId("pdf-export-tab-settings")).toHaveAttribute(
-      "data-state",
-      "active",
+      "aria-selected",
+      "true",
     );
   });
 
@@ -182,7 +181,12 @@ test.describe("PDF Export admin module", () => {
         page.getByRole("dialog", { name: /upload pdf export template/i }),
       ).toBeVisible();
 
-      await page.locator("input#pdf-tpl-upload-files").setInputFiles(bundleDir);
+      const picked = page.waitForEvent("filechooser");
+      await page
+        .getByTestId("pdf-template-upload-target")
+        .getByRole("button")
+        .click();
+      await (await picked).setFiles(bundleDir);
       await expect(page.getByRole("alert")).toContainText(/missing\.typ/i);
       await expect(
         page.getByRole("button", { name: /^upload template$/i }).last(),
@@ -197,23 +201,20 @@ test.describe("PDF Export admin module", () => {
   }) => {
     await openPdfExport(page);
 
-    await openTab(page, "pdf-export-tab-fonts");
-    await expect(page.getByTestId("pdf-export-tab-fonts")).toHaveAttribute(
-      "data-state",
-      "active",
-    );
-
-    const firstFont = page.getByRole("row").nth(1);
-    if (await firstFont.isVisible({ timeout: 2_000 }).catch(() => false)) {
-      await firstFont.getByRole("button").first().click();
-      await expect(page.getByRole("menuitem").first()).toBeVisible();
-      await page.keyboard.press("Escape");
-    }
+    // Font licensing/assets now have one owner in Typography, shared with PDF.
+    await page.goto(`${ADMIN_FRONTEND_BASE}/typography`);
+    const catalog = page.getByRole("table").first();
+    await expect(
+      catalog.getByRole("columnheader", { name: "License", exact: true }),
+    ).toBeVisible();
+    await expect(catalog.getByRole("row").nth(1)).toContainText("Approved");
+    await expect(catalog.getByRole("row").nth(1)).toContainText("Ready");
+    await openPdfExport(page);
 
     await openTab(page, "pdf-export-tab-brand");
     await expect(page.getByTestId("pdf-export-tab-brand")).toHaveAttribute(
-      "data-state",
-      "active",
+      "aria-selected",
+      "true",
     );
     await expect(page.locator("body")).toBeVisible();
   });
@@ -227,7 +228,6 @@ test.describe("PDF Export admin module", () => {
     for (const [label, tab] of [
       ["workspaces tab", "pdf-export-tab-workspaces"],
       ["brand assets tab", "pdf-export-tab-brand"],
-      ["fonts tab", "pdf-export-tab-fonts"],
       ["icc profiles tab", "pdf-export-tab-icc"],
       ["render jobs tab", "pdf-export-tab-jobs"],
       ["settings tab", "pdf-export-tab-settings"],

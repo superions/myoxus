@@ -595,6 +595,11 @@ impl DocumentGraphService {
       let source = self
         .readable_node_cached(user_id, workspace_id, edge.source_doc_id, &mut readable_nodes)
         .await?;
+      // Trash can precede asynchronous index cleanup. A cached occurrence is
+      // not an active source and must never reach external identity projection.
+      if source.deleted {
+        continue;
+      }
       nodes.insert((source.workspace_id, source.raw_doc_id.clone()), source.clone());
       let original_target_scope = edge.target_workspace_id;
       // Persisted occurrence qualification remains the original native address.

@@ -982,8 +982,7 @@ export async function assertEdgelessColorSameWithHexColor(
 }
 
 export async function assertZoomLevel(page: Page, zoom: number) {
-  const z = await getZoomLevel(page);
-  expect(z).toBe(Math.ceil(zoom));
+  await expect.poll(() => getZoomLevel(page)).toBe(Math.ceil(zoom));
 }
 
 export async function assertConnectorPath(
@@ -991,8 +990,13 @@ export async function assertConnectorPath(
   path: number[][],
   index = 0,
 ) {
-  const actualPath = await getConnectorPath(page, index);
-  actualPath.every((p, i) => assertPointAlmostEqual(p, path[i], 0.1));
+  // Clipboard and pointer updates can finish on the next rendering frame.
+  // Keep the same geometric tolerance and reject missing/extra points as well.
+  await expect(async () => {
+    const actualPath = await getConnectorPath(page, index);
+    expect(actualPath).toHaveLength(path.length);
+    actualPath.forEach((p, i) => assertPointAlmostEqual(p, path[i], 0.1));
+  }).toPass({ timeout: 5_000 });
 }
 
 export function assertRectExist(
@@ -1142,7 +1146,9 @@ export async function assertNotHasClass(locator: Locator, className: string) {
 }
 
 export async function assertNoteSequence(page: Page, expected: string) {
-  const actual = await page.locator(".page-visible-index-label").innerText();
+  const actual = await page
+    .getByRole("button", { name: /^Page mode index/ })
+    .innerText();
   expect(expected).toBe(actual);
 }
 
@@ -1205,7 +1211,7 @@ export async function assertConnectorStrokeColor(page: Page, color: string) {
     if (!connector) throw new Error("Selected connector not found");
     return window.$virgultum.editorModel.resolveColor(
       connector.stroke,
-      "light",
+      window.$virgultum.editorModel.ColorScheme.Light,
     );
   });
   expect(toHex(stroke)).toBe(toHex(color));

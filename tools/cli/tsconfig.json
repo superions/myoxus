@@ -9,6 +9,6 @@
   "references": [
     { "path": "../utils" },
     { "path": "../s3-compat" },
-    { "path": "../../virgultum/editor/components" }
+    { "path": "../../virgultum/content" }
   ]
 }

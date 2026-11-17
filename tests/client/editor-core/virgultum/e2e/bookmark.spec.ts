@@ -2,7 +2,7 @@ import "./utils/declare-test-window.js";
 
 import { expect, type Page } from "@playwright/test";
 import type { BookmarkBlockComponent } from "@virgultum/editor/blocks/bookmark";
-import type { BlockSnapshot } from "@virgultum/store";
+import type { BlockSnapshot } from "@virgultum/core/store";
 
 import {
   activeNoteInEdgeless,
@@ -241,7 +241,7 @@ test(scoped`copy url to create bookmark in edgeless mode`, async ({ page }) => {
 
   await switchEditorMode(page);
 
-  await setEdgelessTool(page, { type: "default" });
+  await setEdgelessTool(page, "default");
   await activeNoteInEdgeless(page, ids.noteId);
   await waitForInlineEditorStateUpdated(page);
   await focusRichText(page);
@@ -449,7 +449,9 @@ test("indent bookmark block to list", async ({ page }) => {
   await assertBlockChildrenIds(page, "1", ["3", bookmarkId]);
 });
 
-test("bookmark card should show banner in edgeless mode", async ({ page }) => {
+test("bookmark card uses the shared preview template in edgeless mode", async ({
+  page,
+}) => {
   await enterPlaygroundRoom(page);
   await initEmptyEdgelessState(page);
   await switchEditorMode(page);
@@ -460,8 +462,9 @@ test("bookmark card should show banner in edgeless mode", async ({ page }) => {
   await page.getByRole("dialog").getByRole("textbox").fill(url);
   await pressEnter(page);
 
-  const banner = page.locator(".myoxus-bookmark-banner");
-  await expect(banner).toBeVisible();
+  const card = page.getByTestId("editor-bookmark-card");
+  await expect(card).toBeVisible();
+  await expect(card).toHaveAttribute("data-card-size", "preview");
 });
 
 for (const { provider, url, iframe } of [
@@ -517,7 +520,7 @@ for (const { provider, url, iframe } of [
 }
 
 test.describe("embed github card", () => {
-  test("github embed card should show banner in edgeless mode", async ({
+  test("github embed card uses the shared preview template in edgeless mode", async ({
     page,
   }) => {
     await enterPlaygroundRoom(page);
@@ -530,8 +533,9 @@ test.describe("embed github card", () => {
       "text/plain": url,
     });
 
-    const banner = page.locator(".myoxus-embed-github-banner");
-    await expect(banner).toBeVisible();
+    const card = page.getByTestId("editor-github-card");
+    await expect(card).toBeVisible();
+    await expect(card).toHaveAttribute("data-card-size", "preview");
   });
 });
 

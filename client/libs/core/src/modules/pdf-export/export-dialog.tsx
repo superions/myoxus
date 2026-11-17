@@ -22,8 +22,10 @@ import {
   Progress,
   SettingsNotice,
   Stack,
-  Stepper,
-  StepperStep,
+  Accordion,
+  AccordionControl,
+  AccordionItem,
+  AccordionPanel,
 } from "@myoxus/ui-facade";
 import { type RefObject, useCallback, useMemo, useRef, useState } from "react";
 
@@ -41,6 +43,7 @@ import {
   type ServerPdfExportProgress,
   type ServerPdfExportResult,
 } from "./run-server-export";
+import { PdfTemplatePreviewThumbnail } from "./template-preview-thumbnail";
 import { PdfTemplatePicker } from "./template-picker";
 import type {
   PdfExportDialogBootstrap,
@@ -52,7 +55,7 @@ import {
   PdfDocumentVersionPicker,
 } from "./version-picker";
 
-type PdfExportDialogStage = "template" | "options" | "progress";
+type PdfExportDialogStage = "options" | "progress";
 
 export interface OpenPdfExportDialogOptions {
   workspaceId: string;
@@ -202,7 +205,11 @@ function initialFormValue(
       options.docTitle,
       webLanguage,
     ),
-    ...options.initialFormValue,
+    ...Object.fromEntries(
+      Object.entries(options.initialFormValue ?? {}).filter(
+        ([, value]) => value !== undefined,
+      ),
+    ),
   };
 }
 
@@ -232,9 +239,7 @@ export function PdfExportDialog({
   const [selectedDocumentVersion, setSelectedDocumentVersion] = useState(
     LATEST_DOCUMENT_VERSION,
   );
-  const [stage, setStage] = useState<PdfExportDialogStage>(
-    hasTemplateChoice ? "template" : "options",
-  );
+  const [stage, setStage] = useState<PdfExportDialogStage>("options");
   const [progress, setProgress] = useState<ServerPdfExportProgress | null>(
     null,
   );
@@ -363,7 +368,6 @@ export function PdfExportDialog({
     }
   };
 
-  const stageIndex = stage === "template" ? 0 : stage === "options" ? 1 : 2;
   const title = t["com.myoxus.export.pdf.menu-label"]();
 
   return (
@@ -379,88 +383,105 @@ export function PdfExportDialog({
       contentOptions={{ "data-testid": "pdf-export-dialog" }}
     >
       <Stack gap="lg" data-myoxus-ui-role="pdf-export-dialog-content">
-        <Stepper
-          active={stageIndex}
-          interactive={!busy}
-          onStepChange={(index) => {
-            if (busy || index > 1 || (index === 0 && !hasTemplateChoice))
-              return;
-            setRenderError(null);
-            setTransportError(null);
-            setStage(index === 0 ? "template" : "options");
-          }}
-          ariaLabel={title}
-          uiRole="pdf-export-stepper"
-        >
-          <StepperStep
-            disabled={!hasTemplateChoice}
-            label={t.t("com.myoxus.pdf-export.dialog.templates.eyebrow")}
-          />
-          <StepperStep
-            label={t.t("com.myoxus.pdf-export.dialog.inputs.eyebrow")}
-          />
-          <StepperStep
-            disabled
-            label={
-              renderError
-                ? t.t("com.myoxus.pdf-export.dialog.progress.failed")
-                : progressLabel(progress, t)
-            }
-          />
-        </Stepper>
-
-        {stage === "template" ? (
-          <PdfTemplatePicker
-            templates={options.bootstrap.availablePdfTemplates}
-            selectedTemplateId={selectedTemplate.id}
-            loadPreviewPdf={loadTemplatePreviewPdf}
-            onSelect={(template) => {
-              setSelectedTemplate(template);
-              setFormValue((current) => ({
-                ...initialFormValue(options, template, t.language),
-                paperSize: current.paperSize,
-                orientation: current.orientation,
-                complianceProfile: current.complianceProfile,
-              }));
-            }}
-          />
+        {stage === "options" ? (
+          <>
+            <Group align="flex-start" wrap="nowrap">
+              <PdfTemplatePreviewThumbnail
+                key={selectedTemplate.id}
+                templateId={selectedTemplate.id}
+                templateName={selectedTemplate.name}
+                loadPreviewPdf={() => loadTemplatePreviewPdf(selectedTemplate)}
+              />
+              <Stack flex={1} gap="xs">
+                <MyoxusText typographySlot="section">
+                  {options.docTitle}
+                </MyoxusText>
+                <MyoxusText tone="secondary">
+                  {selectedTemplate.name}
+                </MyoxusText>
+              </Stack>
+            </Group>
+            {hasTemplateChoice ? (
+              <Accordion variant="default">
+                <AccordionItem value="template">
+                  <AccordionControl>{selectedTemplate.name}</AccordionControl>
+                  <AccordionPanel>
+                    <PdfTemplatePicker
+                      templates={options.bootstrap.availablePdfTemplates}
+                      selectedTemplateId={selectedTemplate.id}
+                      loadPreviewPdf={loadTemplatePreviewPdf}
+                      onSelect={(template) => {
+                        const defaults = createDefaultPdfExportFormValue(
+                          template,
+                          options.bootstrap.pdfExportSettings,
+                          options.bootstrap.documentBrandingProfile,
+                        );
+                        setSelectedTemplate(template);
+                        setFormValue((current) => ({
+                          ...initialFormValue(options, template, t.language),
+                          paperSize: (
+                            template.capabilities.paperSize?.values ?? [
+                              "A4",
+                              "Letter",
+                              "A3",
+                              "A5",
+                            ]
+                          ).includes(current.paperSize ?? "")
+                            ? current.paperSize
+                            : defaults.paperSize,
+                          orientation: current.orientation,
+                          complianceProfile: current.complianceProfile,
+                          colorVariant:
+                            template.capabilities.colorVariant?.values?.includes(
+                              current.colorVariant ?? "",
+                            )
+                              ? current.colorVariant
+                              : defaults.colorVariant,
+                        }));
+                      }}
+                    />
+                  </AccordionPanel>
+                </AccordionItem>
+              </Accordion>
+            ) : null}
+          </>
         ) : null}
 
         {stage === "options" ? (
-          <PdfCapabilityForm
-            template={selectedTemplate}
-            settings={options.bootstrap.pdfExportSettings}
-            brandingProfile={options.bootstrap.documentBrandingProfile}
-            value={formValue}
-            onChange={setFormValue}
-            validationErrors={validationErrors}
-            beforeFields={
-              <>
-                {documentMetadataIssues.length > 0 ? (
-                  <SettingsNotice
-                    role={exportBlockedByDocumentMetadata ? "alert" : "note"}
-                    tone={exportBlockedByDocumentMetadata ? "error" : "warning"}
-                    title={
-                      exportBlockedByDocumentMetadata
-                        ? t.t(
-                            "com.myoxus.pdf-export.dialog.document-metadata.blocked",
-                          )
-                        : t.t(
-                            "com.myoxus.pdf-export.dialog.document-metadata.warnings",
-                          )
-                    }
-                  >
-                    <Stack gap="xs">
-                      {documentMetadataIssues.map((issue) => (
-                        <MyoxusText
-                          key={`${issue.code}-${issue.key ?? "document"}`}
-                        >
-                          {issue.message}
-                        </MyoxusText>
-                      ))}
-                    </Stack>
-                  </SettingsNotice>
-                ) : null}
+          <>
+            {documentMetadataIssues.length > 0 ? (
+              <SettingsNotice
+                role={exportBlockedByDocumentMetadata ? "alert" : "note"}
+                tone={exportBlockedByDocumentMetadata ? "error" : "warning"}
+                title={
+                  exportBlockedByDocumentMetadata
+                    ? t.t(
+                        "com.myoxus.pdf-export.dialog.document-metadata.blocked",
+                      )
+                    : t.t(
+                        "com.myoxus.pdf-export.dialog.document-metadata.warnings",
+                      )
+                }
+              >
+                <Stack gap="xs">
+                  {documentMetadataIssues.map((issue) => (
+                    <MyoxusText
+                      key={`${issue.code}-${issue.key ?? "document"}`}
+                    >
+                      {issue.message}
+                    </MyoxusText>
+                  ))}
+                </Stack>
+              </SettingsNotice>
+            ) : null}
+            <PdfCapabilityForm
+              template={selectedTemplate}
+              settings={options.bootstrap.pdfExportSettings}
+              brandingProfile={options.bootstrap.documentBrandingProfile}
+              value={formValue}
+              onChange={setFormValue}
+              validationErrors={validationErrors}
+              beforeFields={
                 <PdfDocumentVersionPicker
                   documentMetadata={options.bootstrap.documentMetadata}
                   settings={options.bootstrap.documentVersioningSettings}
@@ -468,9 +489,9 @@ export function PdfExportDialog({
                   value={selectedDocumentVersion}
                   onChange={setSelectedDocumentVersion}
                 />
-              </>
-            }
-          />
+              }
+            />
+          </>
         ) : null}
 
         {stage === "progress" ? (
@@ -504,62 +525,41 @@ export function PdfExportDialog({
           </Stack>
         ) : null}
 
-        <Group justify="space-between" wrap="wrap">
-          <MyoxusText tone="secondary">{selectedTemplate.name}</MyoxusText>
-          <Group justify="flex-end" wrap="wrap">
-            {stage === "template" ? (
-              <>
-                <Button variant="secondary" onClick={() => close(null)}>
-                  {t.t("com.myoxus.pdf-export.dialog.button.cancel")}
-                </Button>
-                <Button variant="primary" onClick={() => setStage("options")}>
-                  {t["common.continue"]()}
-                </Button>
-              </>
-            ) : null}
-            {stage === "options" ? (
-              <>
-                {hasTemplateChoice ? (
-                  <Button
-                    variant="secondary"
-                    onClick={() => setStage("template")}
-                  >
-                    {t["common.back"]()}
-                  </Button>
-                ) : null}
-                <Button variant="secondary" onClick={() => close(null)}>
-                  {t.t("com.myoxus.pdf-export.dialog.button.cancel")}
-                </Button>
-                <Button disabled={!canStart} variant="primary" onClick={start}>
-                  {t.t("com.myoxus.pdf-export.dialog.button.start")}
-                </Button>
-              </>
-            ) : null}
-            {stage === "progress" ? (
-              renderError ? (
-                <Button
-                  variant="primary"
-                  onClick={() => {
-                    setRenderError(null);
-                    setTransportError(null);
-                    setStage("options");
-                  }}
-                >
-                  {t["com.myoxus.export.pdf.retry"]()}
-                </Button>
-              ) : (
-                <Button
-                  disabled={!canCancel}
-                  variant="secondary"
-                  onClick={cancel}
-                >
-                  {cancelling
-                    ? t.t("com.myoxus.pdf-export.dialog.button.cancelling")
-                    : t.t("com.myoxus.pdf-export.dialog.button.cancel")}
-                </Button>
-              )
-            ) : null}
-          </Group>
+        <Group justify="flex-end" wrap="wrap">
+          {stage === "options" ? (
+            <>
+              <Button variant="secondary" onClick={() => close(null)}>
+                {t.t("com.myoxus.pdf-export.dialog.button.cancel")}
+              </Button>
+              <Button disabled={!canStart} variant="primary" onClick={start}>
+                {t.t("com.myoxus.pdf-export.dialog.button.start")}
+              </Button>
+            </>
+          ) : null}
+          {stage === "progress" ? (
+            renderError ? (
+              <Button
+                variant="primary"
+                onClick={() => {
+                  setRenderError(null);
+                  setTransportError(null);
+                  setStage("options");
+                }}
+              >
+                {t["com.myoxus.export.pdf.retry"]()}
+              </Button>
+            ) : (
+              <Button
+                disabled={!canCancel}
+                variant="secondary"
+                onClick={cancel}
+              >
+                {cancelling
+                  ? t.t("com.myoxus.pdf-export.dialog.button.cancelling")
+                  : t.t("com.myoxus.pdf-export.dialog.button.cancel")}
+              </Button>
+            )
+          ) : null}
         </Group>
       </Stack>
     </Modal>

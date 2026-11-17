@@ -25,7 +25,7 @@
   },
   {
     "name": "code escaped and annotation bodies stay literal",
-    "source": "`![[Target]]`\n\n\\![[Target]]\n\n\\[[Target]]\n\n~~~md\n![[Target]]\n~~~\n\n    ![[Target]]\n\n%%Review ![[Target]] later%%\n",
+    "source": "`![[Target]]`\n\n\\![[Target]]\n\n\\[[Target]]\n\n~~~md\n![[Target]]\n~~~\n\n    ![[Target]]\n\n%%Review ![[Target]] later%%\n\n`![[Target#Heading]]`\n\n\\![[Target#^block]]\n",
     "embeds": 0,
     "links": 0,
     "unresolved": 0,
@@ -57,11 +57,11 @@
     "unsupported": 0
   },
   {
-    "name": "selected notes and attachments are not whole documents",
+    "name": "selected sections and blocks retain their ranges",
     "source": "![[Target#Heading]]\n\n![[Target#^block]]\n\n![[photo.png]]\n",
-    "embeds": 0,
+    "embeds": 2,
     "links": 0,
     "unresolved": 1,
-    "unsupported": 2
+    "unsupported": 0
   }
 ]

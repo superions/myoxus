@@ -1,3 +1,8 @@
+import {
+  CoreDocumentIndexProvider,
+  documentIndexRegionalPreferences,
+} from "@myoxus/core/modules/doc/services/document-index";
+import { DocumentIndexOutputProvider } from "@virgultum/editor/shared/services";
 import { Container } from "@virgultum/editor/global/di";
 import type { RefObject } from "react";
 import { exportWorkspaceLabels } from "@myoxus/core/modules/tag/export";
@@ -325,6 +330,7 @@ async function exportDoc(
   config: AdapterConfig,
   embedProvider = std?.getOptional(DocEmbedProvider),
   fieldProvider = std?.getOptional(DocumentFieldOutputProvider),
+  directoryProvider = std?.getOptional(DocumentIndexOutputProvider),
 ) {
   const referenceProjection =
     config.identifier === MarkdownAdapterFactoryIdentifier ||
@@ -417,6 +423,11 @@ async function exportDoc(
     exportServices.addImpl(DocEmbedProvider, () => embedProvider);
   if (fieldProvider)
     exportServices.addImpl(DocumentFieldOutputProvider, () => fieldProvider);
+  if (directoryProvider)
+    exportServices.addImpl(
+      DocumentIndexOutputProvider,
+      () => directoryProvider,
+    );
   const adapter = adapterFactory.get(
     transformer,
     exportServices.provider(undefined, std?.provider ?? doc.provider),
@@ -472,6 +483,7 @@ async function exportToHtml(
   std?: BlockStdScope,
   access?: DocEmbedProvider,
   fields?: DocumentFieldOutputProvider,
+  directories?: DocumentIndexOutputProvider,
 ) {
   await exportDoc(
     doc,
@@ -484,6 +496,7 @@ async function exportToHtml(
     },
     access ?? std?.getOptional(DocEmbedProvider),
     fields,
+    directories,
   );
 }
 
@@ -492,12 +505,19 @@ async function exportToMarkdown(
   std?: BlockStdScope,
   access?: DocEmbedProvider,
   fields?: DocumentFieldOutputProvider,
+  directories?: DocumentIndexOutputProvider,
 ) {
   const referenceAccess =
     access ?? std?.getOptional(DocEmbedProvider) ?? undefined;
   if (!std) {
-    return (await MarkdownTransformer.exportDoc(doc, referenceAccess, fields))
-      ?.diagnostics;
+    return (
+      await MarkdownTransformer.exportDoc(
+        doc,
+        referenceAccess,
+        fields,
+        directories,
+      )
+    )?.diagnostics;
   } else {
     return exportDoc(
       doc,
@@ -510,6 +530,7 @@ async function exportToMarkdown(
       },
       referenceAccess,
       fields,
+      directories,
     );
   }
 }
@@ -598,6 +619,15 @@ async function exportHandler({
             workspace.id,
             page.id,
           ),
+          new CoreDocumentIndexProvider(
+            graphqlService,
+            workspace.id,
+            workspace.scope.get(WorkspaceServerService).server?.baseUrl,
+            () =>
+              documentIndexRegionalPreferences(
+                workspace.scope.get(WorkspaceServerService).server,
+              ),
+          ),
         );
       } finally {
         access.dispose();
@@ -620,6 +650,15 @@ async function exportHandler({
               graphqlService,
               workspace.id,
               page.id,
+            ),
+            new CoreDocumentIndexProvider(
+              graphqlService,
+              workspace.id,
+              workspace.scope.get(WorkspaceServerService).server?.baseUrl,
+              () =>
+                documentIndexRegionalPreferences(
+                  workspace.scope.get(WorkspaceServerService).server,
+                ),
             ),
           ),
         };

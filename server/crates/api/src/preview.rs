@@ -212,7 +212,7 @@ impl PreviewRuntime {
     workspace: Uuid,
   ) -> Result<(Arc<PreparedPreviewContext>, PreviewPolicy), PreviewOperationError> {
     let policy = preview_policy(&state.config.preview);
-    let theme = resolve_theme_definition(state, workspace, None).await?;
+    let theme = resolve_theme_definition(state, workspace, Some(PreviewColorScheme::Light)).await?;
     let (_, context) = self.prepared_context(state, theme, &policy).await?;
     Ok((context, policy))
   }

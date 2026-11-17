@@ -80,8 +80,11 @@ test.describe("frame selection", () => {
     const getButtons = (page: Page) => {
       const toolbar = page.getByTestId("selection-toolbar");
       return {
-        lock: toolbar.getByTestId("lock"),
-        unlock: toolbar.getByTestId("unlock"),
+        lock: toolbar.getByRole("button", { name: "Lock", exact: true }),
+        unlock: toolbar.getByRole("button", {
+          name: "Click to unlock",
+          exact: true,
+        }),
       };
     };
 

@@ -297,19 +297,26 @@ function e2eCleanupWindow(): { from: string; to: string } {
 
 async function cleanupSmokeEvents(request: APIRequestContext): Promise<void> {
   const { from, to } = e2eCleanupWindow();
-  const data = (await gql(request, cookies, CALENDAR_EVENTS, {
-    workspaceId,
-    from,
-    to,
-  })) as {
-    workspace?: {
-      calendars?: Array<{ events?: Array<{ id: string; title?: string }> }>;
+  const events = new Map<string, { id: string; title?: string }>();
+  // The projection accepts at most 366 days per request; retain the complete
+  // cleanup horizon and deduplicate recurring events across window boundaries.
+  for (let cursor = Date.parse(from); cursor < Date.parse(to);) {
+    const end = Math.min(cursor + 366 * 24 * 60 * 60 * 1000, Date.parse(to));
+    const data = (await gql(request, cookies, CALENDAR_EVENTS, {
+      workspaceId,
+      from: new Date(cursor).toISOString(),
+      to: new Date(end).toISOString(),
+    })) as {
+      workspace?: {
+        calendars?: Array<{ events?: Array<{ id: string; title?: string }> }>;
+      };
     };
-  };
-  const events =
-    data.workspace?.calendars?.flatMap((calendar) => calendar.events ?? []) ??
-    [];
-  const cleanupEvents = events.filter((event) =>
+    for (const calendar of data.workspace?.calendars ?? []) {
+      for (const event of calendar.events ?? []) events.set(event.id, event);
+    }
+    cursor = end;
+  }
+  const cleanupEvents = [...events.values()].filter((event) =>
     /^E2E (Test Event|Edit Test|Delete Test|Block Test) \d+/.test(
       event.title ?? "",
     ),

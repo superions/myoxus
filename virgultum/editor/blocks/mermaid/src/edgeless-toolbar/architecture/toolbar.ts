@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { type ToolbarContext } from "@virgultum/shared/services";
+import { type ToolbarContext } from "@virgultum/core/services";
 
 import {
   getMermaidGfxConnector,

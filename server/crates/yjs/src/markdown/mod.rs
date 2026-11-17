@@ -15,8 +15,9 @@ const MAX_BLOCK_DEPTH: usize = 100;
 pub use annotation_syntax::markdown_annotation_ranges;
 pub use import::markdown_callout_support;
 pub use targets::{
-  MarkdownNativeTarget, MarkdownTargetError, markdown_native_targets, markdown_native_targets_with_references,
-  resolve_markdown_target, valid_markdown_anchor, with_markdown_export_anchors,
+  MarkdownNativeTarget, MarkdownTargetError, markdown_block_selection, markdown_native_targets,
+  markdown_native_targets_with_references, resolve_markdown_target, selected_document_snapshot, valid_markdown_anchor,
+  with_markdown_export_anchors,
 };
 
 pub(crate) use export::extract_formatted_text;

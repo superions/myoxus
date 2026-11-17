@@ -113,11 +113,13 @@ test.describe("frame copy and paste", () => {
 
     await selectFrameByTitle(page, originalFrame);
 
-    const moreMenu = page.getByLabel("More menu");
+    const moreMenu = page
+      .getByTestId("selection-toolbar")
+      .getByRole("button", { name: "More", exact: true });
 
     await moreMenu.click();
-    await moreMenu
-      .locator("editor-menu-action", { hasText: "Duplicate" })
+    await page
+      .getByRole("menuitem", { name: "Duplicate", exact: true })
       .click();
     await pressEscape(page);
 

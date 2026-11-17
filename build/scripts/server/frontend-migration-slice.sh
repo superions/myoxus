@@ -567,11 +567,12 @@ set_slice() {
         "client/admin/workspaces/admin/src/app.tsx"
         "client/libs/core/src/desktop/pages/root/index.tsx"
         "client/libs/core/src/mobile/pages/root/index.tsx"
-        "virgultum/editor/components/src/notification"
-        "virgultum/editor/shared/src/utils/editor-toast.ts"
-        "virgultum/editor/shared/src/utils/index.ts"
+        "virgultum/content/src/reference-notification"
+        "virgultum/core/src/utils/editor-toast.ts"
+        "virgultum/core/src/utils/index.ts"
+        "virgultum/content/package.json"
         "virgultum/editor/components/package.json"
-        "virgultum/editor/components/src/embed-card-modal"
+        "virgultum/embeds/src/card-session"
       )
       CHECK_ARGS=(--preset notifications)
       VISUAL_ARGS=(

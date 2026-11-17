@@ -1,1 +1,1 @@
-export * from "@virgultum/gfx-brush/view";
+export { BrushViewExtension } from "@virgultum/canvas/view";

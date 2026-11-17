@@ -228,6 +228,7 @@ impl From<myoxus_application::workspace_overview::OverviewDocument> for Workspac
     let metadata = document.register.map(|row| {
       let mut metadata =
         crate::graphql::document_metadata_policy::DocumentMetadataIndexRowType::from_row(row.metadata, row.can_publish);
+      metadata.responsible_name = row.responsible_name;
       metadata.tag_ids = row.tag_ids.into_iter().map(|id| ID(id.to_string())).collect();
       metadata
     });
@@ -245,8 +246,7 @@ impl From<myoxus_application::workspace_overview::OverviewDocument> for Workspac
   }
 }
 
-/// Authorized page facts only. The workspace row and its private bindings stay
-/// with the native settings owner rather than becoming a generic JSON payload.
+// Project admitted facts only; private settings stay with their native owner.
 #[derive(SimpleObject)]
 pub struct WorkspaceOverviewPageType {
   folder: Option<WorkspaceOverviewFolderType>,
@@ -303,6 +303,7 @@ pub struct WorkspaceOverviewFolderSettingsType {
 pub struct WorkspaceOverviewRegisterPresentationType {
   display_properties: Vec<String>,
   order_by: WorkspaceOverviewOrderByType,
+  selection: WorkspaceOverviewRegisterSelectionType,
 }
 
 #[derive(SimpleObject)]
@@ -319,6 +320,7 @@ impl From<myoxus_domain::workspace_overview::OverviewRegisterPresentation>
   fn from(value: myoxus_domain::workspace_overview::OverviewRegisterPresentation) -> Self {
     Self {
       display_properties: value.display_properties,
+      selection: value.selection.into(),
       order_by: WorkspaceOverviewOrderByType {
         property_type: value.order_by.property_type,
         key: value.order_by.key,
@@ -379,6 +381,7 @@ impl WorkspaceType {
     folder_id: Option<String>,
     #[graphql(default = 50)] first: i32,
     #[graphql(default = 0)] offset: i32,
+    register_presentation: Option<super::types::WorkspaceOverviewRegisterPresentationInput>,
   ) -> Result<WorkspaceOverviewPageType> {
     let (state, session) = require_session(ctx).await?;
     let reader = state
@@ -394,6 +397,7 @@ impl WorkspaceType {
           limit: first.into(),
           offset: offset.into(),
         },
+        register_presentation.map(Into::into),
       )
       .await
       .map_err(map_gql_error)?;
@@ -3224,5 +3228,37 @@ pub(crate) fn map_workspace_starter_error(
         extensions.set("code", "XWS_WORKSPACE_STARTER_GONE");
         extensions.set("workspaceId", workspace_id.to_string());
       }),
+  }
+}
+
+#[derive(SimpleObject)]
+pub struct WorkspaceOverviewRegisterSelectionType {
+  subtree: bool,
+  tag_ids: Vec<Uuid>,
+  match_all_tags: bool,
+  filters: Vec<WorkspaceOverviewRegisterFilterType>,
+}
+#[derive(SimpleObject)]
+pub struct WorkspaceOverviewRegisterFilterType {
+  key: String,
+  method: String,
+  value: Option<String>,
+}
+impl From<myoxus_domain::workspace_overview::OverviewRegisterSelection> for WorkspaceOverviewRegisterSelectionType {
+  fn from(value: myoxus_domain::workspace_overview::OverviewRegisterSelection) -> Self {
+    Self {
+      subtree: value.subtree,
+      tag_ids: value.tag_ids,
+      match_all_tags: value.match_all_tags,
+      filters: value
+        .filters
+        .into_iter()
+        .map(|f| WorkspaceOverviewRegisterFilterType {
+          key: f.key,
+          method: f.method,
+          value: f.value,
+        })
+        .collect(),
+    }
   }
 }

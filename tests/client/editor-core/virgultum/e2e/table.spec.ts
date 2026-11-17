@@ -354,12 +354,13 @@ async function waitForPersistedWorkspace(page: Page, synced = false) {
   // A navigation load event does not establish that native readiness boundary.
   await page.waitForFunction(() =>
     Boolean(
-      (window as Window & { currentWorkspace?: unknown }).currentWorkspace,
+      (window as unknown as Window & { currentWorkspace?: unknown })
+        .currentWorkspace,
     ),
   );
   await page.evaluate(async (synced) => {
     const workspace = (
-      window as Window & {
+      window as unknown as Window & {
         currentWorkspace: {
           id: string;
           engine: {
@@ -542,31 +543,42 @@ test("template row repeat is keyboard-authorable, uses document history and stay
     await page
       .getByRole("menuitem", { name: "Repeat for", exact: true })
       .click();
-    await expect(page.locator("myoxus-menu input")).toBeFocused();
+    await expect(
+      page.getByRole("menuitem", { name: "Workspace members", exact: true }),
+    ).toBeVisible();
   };
-  await openRepeat();
+  await table
+    .getByRole("button", { name: "Row options", exact: true })
+    .nth(1)
+    .click();
   await page.keyboard.press("ArrowDown");
+  await expect(
+    page.getByRole("menuitem", { name: "Repeat for", exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press("ArrowRight");
+  await expect(
+    page.getByRole("menuitem", { name: "Workspace members", exact: true }),
+  ).toBeFocused();
   await page.keyboard.press("Enter");
-  await expect(page.locator("myoxus-menu")).toHaveCount(0);
+  await expect(page.getByRole("menu")).toHaveCount(0);
   await expect(table.locator('[contenteditable="true"]').nth(2)).toBeFocused();
   await expect(await getCellText(table, 2)).toHaveText("{{member.name}}");
   await openRepeat();
   await page
-    .locator("myoxus-menu-button")
-    .filter({ hasText: "Remove repeat" })
+    .getByRole("menuitem", { name: "Remove repeat", exact: true })
     .click();
   await expect(table.locator('[contenteditable="true"]').nth(2)).toBeFocused();
   await page.keyboard.press(`${SHORT_KEY}+z`);
   await openRepeat();
   await expect(
-    page.locator("myoxus-menu-button").filter({ hasText: "Remove repeat" }),
+    page.getByRole("menuitem", { name: "Remove repeat", exact: true }),
   ).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(table.locator('[contenteditable="true"]').nth(2)).toBeFocused();
   await page.keyboard.press(`${SHORT_KEY}+Shift+z`);
   await openRepeat();
   await expect(
-    page.locator("myoxus-menu-button").filter({ hasText: "Remove repeat" }),
+    page.getByRole("menuitem", { name: "Remove repeat", exact: true }),
   ).toHaveCount(0);
   await page.keyboard.press("Escape");
   await expect(await getCellText(table, 2)).toHaveText("{{member.name}}");

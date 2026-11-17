@@ -129,6 +129,15 @@ test("configuration preserves drafts through refresh and failed saves, and advan
   };
   fixture.services = {
     workspaceService,
+    tagService: { tagList: { catalogState$: new LiveData({ tags: [] }) } },
+    documentMetadataCacheService: {
+      watchIndexLookups: () =>
+        new LiveData({ statusLabels: {}, documentTypeLabels: {} }),
+      hydrateIndexLookups: async () => ({
+        statusLabels: {},
+        documentTypeLabels: {},
+      }),
+    },
     workspaceServerService: { server$: new LiveData(server) },
     workspaceDialogService: dialogs,
     organizeService: {

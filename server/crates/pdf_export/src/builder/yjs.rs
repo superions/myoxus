@@ -88,6 +88,7 @@ mod annotation_tests {
             body: Some("Inter".into()),
             mono: Some("Inter".into()),
             symbol: Some("Inter".into()),
+            eyebrow: None,
           },
           ..ExportOptions::default()
         },
@@ -102,12 +103,9 @@ mod annotation_tests {
     .source;
     assert!(source.contains("BPMN: Approve"));
     assert!(source.contains(r"\#panic"));
-    for hidden in [
-      "private-process-source",
-      "private-preview-code",
-      "<definitions>",
-      "<svg",
-    ] {
+    // Shared checkbox bindings legitimately contain SVG. The authored BPMN
+    // preview/source must stay absent; `ir.assets` below excludes preview media.
+    for hidden in ["private-process-source", "private-preview-code", "<definitions>"] {
       assert!(!source.contains(hidden));
     }
     assert!(ir.assets.is_empty());
@@ -659,6 +657,7 @@ impl<R: AssetResolver> YjsIrBuilder<R> {
     // Find the root myoxus:page block.
     let mut root = ctx.build_root_block().await?;
     bind_local_notes(&mut root, &mut ctx.local_definitions, &options.locale)?;
+    resolve_content_paint(&mut root, options.native_table_palette.as_ref(), &mut ctx.diagnostics);
     // Use the same revision as the body, including historical exports. Explicit
     // caller metadata remains authoritative when supplied.
     if metadata.title.is_none()
@@ -723,7 +722,7 @@ fn walk_local_note_text(
         walk_local_note_text(child, inspect)?;
       }
     }
-    Block::Paragraph { content, children }
+    Block::Paragraph { content, children, .. }
     | Block::Quote { content, children }
     | Block::List { content, children, .. }
     | Block::Callout { content, children, .. }
@@ -1011,6 +1010,54 @@ impl<'a, R: AssetResolver> BuildContext<'a, R> {
     })
   }
 
+  fn callout_paint(&mut self, bmap: &yrs::MapRef) -> Option<crate::ir::block::CalloutPaint> {
+    let palette = self.table_palette?;
+    let name = get_prop_string(bmap, self.txn, "backgroundColorName")
+      .filter(|name| !name.is_empty() && name != "default")
+      .unwrap_or_else(|| "grey".into());
+    let fill_key = if name == "grey" {
+      "--myoxus-tag-gray".to_owned()
+    } else if let Some(marker) = name.strip_prefix("neon-") {
+      format!("--myoxus-sem-text-marker-{marker}")
+    } else {
+      format!("--myoxus-text-highlight-{name}")
+    };
+    let fill = palette.get(&fill_key)?;
+    let stroke = palette
+      .get(&format!("--myoxus-text-highlight-foreground-{name}"))
+      .unwrap_or(fill);
+    let appearance = get_prop_string(bmap, self.txn, "appearance").unwrap_or_else(|| "soft".into());
+    let fill = if appearance == "accent" {
+      palette.get("--myoxus-background-secondary-color").unwrap_or(fill)
+    } else {
+      fill
+    };
+    let authored_icon_color = get_callout_icon_field(bmap, self.txn, "color");
+    let icon_color = authored_icon_color.as_deref().and_then(|color| {
+      let color = color
+        .trim()
+        .strip_prefix("var(")
+        .and_then(|v| v.strip_suffix(')'))
+        .unwrap_or(color.trim());
+      palette.get_key_value(color).map(|(key, _)| key.clone()).or_else(|| {
+        palette
+          .iter()
+          .find(|(key, paint)| key.contains("foreground-") && paint.fill.eq_ignore_ascii_case(color))
+          .map(|(key, _)| key.clone())
+      })
+    });
+    if authored_icon_color.is_some() && icon_color.is_none() {
+      *self.diagnostics.entry("callout_icon_color_normalized").or_default() += 1;
+    }
+    let icon_color = icon_color.or_else(|| Some(format!("--myoxus-text-highlight-foreground-{name}")));
+    Some(crate::ir::block::CalloutPaint {
+      fill: fill.fill.clone(),
+      stroke: stroke.fill.clone(),
+      icon_color,
+      appearance,
+    })
+  }
+
   fn build_block<'b>(
     &'b mut self,
     bmap: &'b yrs::MapRef,
@@ -1046,6 +1093,8 @@ impl<'a, R: AssetResolver> BuildContext<'a, R> {
           marks: TextMarks::default(),
         }],
         children: Vec::new(),
+        alignment: None,
+        eyebrow: false,
       });
     }
 
@@ -1180,7 +1229,13 @@ impl<'a, R: AssetResolver> BuildContext<'a, R> {
             children,
           }),
           Some("quote") => Ok(Block::Quote { content, children }),
-          _ => Ok(Block::Paragraph { content, children }),
+          _ => Ok(Block::Paragraph {
+            content,
+            children,
+            alignment: get_prop_string(bmap, self.txn, "textAlign")
+              .filter(|v| matches!(v.as_str(), "left" | "center" | "right" | "justify")),
+            eyebrow: get_prop_string(bmap, self.txn, "presentation").as_deref() == Some("eyebrow"),
+          }),
         }
       }
 
@@ -1204,17 +1259,32 @@ impl<'a, R: AssetResolver> BuildContext<'a, R> {
           content,
           checked,
           children,
+          start: get_prop_f64(bmap, self.txn, "order")
+            .filter(|v| v.is_finite() && *v >= 1.0 && *v <= u32::MAX as f64)
+            .map(|v| v as u32),
         })
       }
 
       "myoxus:code" => {
         let code = get_text_plain(bmap, self.txn, "text");
         let language = get_prop_string(bmap, self.txn, "language");
-        let caption = None;
+        let caption = Some(get_text_content(bmap, self.txn, "caption"))
+          .filter(|v| !v.is_empty())
+          .or_else(|| {
+            get_prop_string(bmap, self.txn, "caption")
+              .filter(|s| !s.is_empty())
+              .map(|text| {
+                vec![InlineSpan::Text {
+                  text,
+                  marks: TextMarks::default(),
+                }]
+              })
+          });
         Ok(Block::Code(CodeBlock {
           language,
           code,
           caption,
+          line_numbers: get_prop_bool(bmap, self.txn, "lineNumber").unwrap_or(false),
         }))
       }
 
@@ -1251,7 +1321,13 @@ impl<'a, R: AssetResolver> BuildContext<'a, R> {
 
       "myoxus:callout" => {
         let mut content = get_text_content(bmap, self.txn, "text");
-        let emoji = get_prop_string(bmap, self.txn, "emoji");
+        let emoji = get_callout_icon(bmap, self.txn).or_else(|| get_prop_string(bmap, self.txn, "emoji"));
+        if emoji
+          .as_deref()
+          .is_some_and(|icon| !icon.is_empty() && crate::document_icons::document_icon(icon, false).is_none())
+        {
+          *self.diagnostics.entry("callout_icon_normalized").or_default() += 1;
+        }
         let variant_str = get_prop_string(bmap, self.txn, "type");
         if let Some(kind) = variant_str.as_deref().filter(|kind| !kind.is_empty()) {
           let mut title = get_text_plain(bmap, self.txn, "title");
@@ -1317,6 +1393,7 @@ impl<'a, R: AssetResolver> BuildContext<'a, R> {
         Ok(Block::Callout {
           variant,
           emoji,
+          paint: self.callout_paint(bmap),
           content,
           children,
         })
@@ -1341,9 +1418,13 @@ impl<'a, R: AssetResolver> BuildContext<'a, R> {
               marks: TextMarks::default(),
             }]
           });
-        // The editor uses zero for natural image dimensions, not a zero-sized image.
-        let width_hint = get_prop_f64(bmap, self.txn, "width").filter(|v| v.is_finite() && *v > 0.0);
-        let height_hint = get_prop_f64(bmap, self.txn, "height").filter(|v| v.is_finite() && *v > 0.0);
+        // Editor dimensions are CSS pixels; the IR uses print points. Zero keeps natural sizing.
+        let width_hint = get_prop_f64(bmap, self.txn, "width")
+          .filter(|v| v.is_finite() && *v > 0.0)
+          .map(|px| px * 0.75);
+        let height_hint = get_prop_f64(bmap, self.txn, "height")
+          .filter(|v| v.is_finite() && *v > 0.0)
+          .map(|px| px * 0.75);
         let blob = BlobRef {
           blob_id: blob_id.clone(),
           mime_hint: None,
@@ -1840,7 +1921,9 @@ impl<'a, R: AssetResolver> BuildContext<'a, R> {
   ) -> Vec<AiChatMessage> {
     // AI chat messages are stored as JSON in `prop:messages`.
     let messages_json = get_prop_json(bmap, self.txn, "messages");
-    let Some(json) = messages_json else { return Vec::new() };
+    let Some(json) = messages_json else {
+      return Vec::new();
+    };
     let Ok(msgs) = serde_json::from_value::<Vec<serde_json::Value>>(json) else {
       return Vec::new();
     };
@@ -1910,6 +1993,43 @@ fn get_prop_string(bmap: &yrs::MapRef, txn: &yrs::Transaction<'_>, key: &str) ->
       _ => None,
     })
   })
+}
+
+fn get_callout_icon_field(bmap: &yrs::MapRef, txn: &yrs::Transaction<'_>, key: &str) -> Option<String> {
+  let icon = bmap.get(txn, "prop:icon").or_else(|| {
+    if let Some(Out::YMap(props)) = bmap.get(txn, "props") {
+      props.get(txn, "icon")
+    } else {
+      None
+    }
+  })?;
+  match icon {
+    Out::Any(Any::Map(fields)) => fields.get(key).and_then(any_to_string),
+    Out::YMap(fields) => get_any_string(&fields, txn, key),
+    _ => None,
+  }
+}
+
+fn get_callout_icon(bmap: &yrs::MapRef, txn: &yrs::Transaction<'_>) -> Option<String> {
+  let icon = bmap.get(txn, "prop:icon").or_else(|| {
+    if let Some(Out::YMap(props)) = bmap.get(txn, "props") {
+      props.get(txn, "icon")
+    } else {
+      None
+    }
+  })?;
+  match icon {
+    Out::Any(Any::Null) => Some(String::new()),
+    Out::Any(Any::Map(fields)) => ["name", "unicode"].into_iter().find_map(|key| {
+      if let Some(Any::String(value)) = fields.get(key) {
+        Some(value.to_string())
+      } else {
+        None
+      }
+    }),
+    Out::YMap(fields) => get_any_string(&fields, txn, "name").or_else(|| get_any_string(&fields, txn, "unicode")),
+    _ => None,
+  }
 }
 
 fn get_prop_bool(bmap: &yrs::MapRef, txn: &yrs::Transaction<'_>, key: &str) -> Option<bool> {
@@ -2007,6 +2127,107 @@ fn value_to_string(value: &Out) -> Option<String> {
     Out::Any(Any::Number(n)) => Some(n.to_string()),
     Out::Any(Any::BigInt(i)) => Some(i.to_string()),
     _ => None,
+  }
+}
+
+/// Resolve semantic content references from the dispatch-time light palette.
+/// Unknown CSS cannot become Typst source or silently change document ink.
+fn resolve_content_paint(
+  block: &mut Block,
+  palette: Option<&NativeTablePalette>,
+  diagnostics: &mut BTreeMap<&'static str, u64>,
+) {
+  fn spans(
+    items: &mut [InlineSpan],
+    palette: Option<&NativeTablePalette>,
+    diagnostics: &mut BTreeMap<&'static str, u64>,
+  ) {
+    for span in items {
+      match span {
+        InlineSpan::Text { marks, .. } => {
+          if let Some(tone) = &marks.label_tone {
+            let (paper, ink) = match tone.as_str() {
+              "info" => ("status-info-paper", "status-info-deep"),
+              "positive" => ("status-success-paper", "status-success-deep"),
+              "warning" => ("status-pending-paper", "status-pending-deep"),
+              "danger" => ("status-error-paper", "status-error-deep"),
+              "accent" => ("status-preset-paper", "accent-primary"),
+              _ => ("paper-deep", "ink-soft"),
+            };
+            if let Some(palette) = palette {
+              marks.background = palette.get(&format!("--myoxus-sem-{paper}")).map(|p| p.fill.clone());
+              marks.color = palette.get(&format!("--myoxus-sem-{ink}")).map(|p| p.fill.clone());
+            }
+          }
+          for color in [&mut marks.color, &mut marks.background] {
+            if let Some(value) = color.take() {
+              let value = value.trim();
+              let reference = value
+                .strip_prefix("var(")
+                .and_then(|v| v.strip_suffix(')'))
+                .unwrap_or(value)
+                .trim();
+              *color = palette
+                .and_then(|p| {
+                  p.get(reference).or_else(|| {
+                    // Background-role spelling still resolves to the same
+                    // server-owned highlight; it never creates a new palette.
+                    let name = reference.strip_prefix("--myoxus-text-highlight-background-")?;
+                    p.get(&format!("--myoxus-text-highlight-{name}"))
+                  })
+                })
+                .map(|p| p.fill.clone())
+                .or_else(|| {
+                  let hex = value.strip_prefix('#')?;
+                  (matches!(hex.len(), 3 | 6 | 8) && hex.bytes().all(|b| b.is_ascii_hexdigit()))
+                    .then(|| value.to_owned())
+                });
+              if color.is_none() {
+                *diagnostics.entry("unresolved_content_color").or_default() += 1;
+              }
+            }
+          }
+        }
+        InlineSpan::Footnote { content } => spans(content, palette, diagnostics),
+        InlineSpan::LocalFootnote { body: Some(body), .. } => {
+          for block in body {
+            resolve_content_paint(block, palette, diagnostics);
+          }
+        }
+        _ => {}
+      }
+    }
+  }
+  match block {
+    Block::Page { title, children } => {
+      spans(title, palette, diagnostics);
+      for child in children {
+        resolve_content_paint(child, palette, diagnostics);
+      }
+    }
+    Block::Paragraph { content, children, .. }
+    | Block::Heading { content, children, .. }
+    | Block::Quote { content, children, .. }
+    | Block::List { content, children, .. }
+    | Block::Callout { content, children, .. } => {
+      spans(content, palette, diagnostics);
+      for child in children {
+        resolve_content_paint(child, palette, diagnostics);
+      }
+    }
+    Block::Note { children } | Block::LocalNoteDefinition { children, .. } | Block::EdgelessText { children, .. } => {
+      for child in children {
+        resolve_content_paint(child, palette, diagnostics);
+      }
+    }
+    Block::Table { rows, .. } => {
+      for row in rows {
+        for cell in &mut row.cells {
+          spans(&mut cell.content, palette, diagnostics);
+        }
+      }
+    }
+    _ => {}
   }
 }
 
@@ -2180,6 +2401,7 @@ fn parse_attrs(attrs: Option<&yrs::types::Attrs>) -> TextMarks {
       "code" | "inline-code" => marks.code = to_bool(val),
       "color" => marks.color = to_str(val),
       "background" | "highlight" => marks.background = to_str(val),
+      "labelTone" | "label-tone" => marks.label_tone = to_str(val),
       "link" => marks.link = to_str(val),
       _ => {}
     }

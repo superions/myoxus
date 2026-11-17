@@ -1,1 +1,1 @@
-export * from "@virgultum/block-latex/view";
+export { BlockLatexViewExtension as LatexViewExtension } from "@virgultum/content/view";

@@ -3,7 +3,7 @@ import {
   ConnectorElementModel,
   ConnectorLabelOffsetAnchor,
   ConnectorMode,
-} from "@virgultum/model";
+} from "@virgultum/core/models";
 
 import {
   canStartMermaidGfxEdgeReconnect,

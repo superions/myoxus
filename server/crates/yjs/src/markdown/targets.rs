@@ -27,6 +27,174 @@ pub enum MarkdownTargetError {
   Invalid,
 }
 
+/// The native reference keeps one stable ID and a finite live-range kind.
+/// Navigation geometry and multi-target selections are not section embeds.
+pub fn markdown_block_selection(
+  params: Option<&serde_json::Value>,
+) -> Result<Option<(&str, &str)>, MarkdownTargetError> {
+  let Some(params) = params else { return Ok(None) };
+  let params = params.as_object().ok_or(MarkdownTargetError::Invalid)?;
+  if params.get("blockIds").is_none() && params.get("blockSelection").is_none() && params.get("elementIds").is_none() {
+    return Ok(None);
+  }
+  if params
+    .keys()
+    .any(|key| !matches!(key.as_str(), "mode" | "blockIds" | "blockSelection"))
+    || params.get("mode").is_some_and(|mode| mode.as_str() != Some("page"))
+  {
+    return Err(MarkdownTargetError::Invalid);
+  }
+  let ids = params
+    .get("blockIds")
+    .and_then(serde_json::Value::as_array)
+    .ok_or(MarkdownTargetError::Invalid)?;
+  if ids.is_empty() && !params.contains_key("blockSelection") {
+    return Ok(None);
+  }
+  if ids.len() != 1 {
+    return Err(MarkdownTargetError::Invalid);
+  }
+  let id = ids[0]
+    .as_str()
+    .filter(|id| !id.is_empty())
+    .ok_or(MarkdownTargetError::Invalid)?;
+  let kind = params
+    .get("blockSelection")
+    .map_or(Some("subtree"), serde_json::Value::as_str)
+    .filter(|kind| matches!(*kind, "section" | "subtree"))
+    .ok_or(MarkdownTargetError::Invalid)?;
+  Ok(Some((id, kind)))
+}
+
+fn heading_level(flavour: &str, kind: &str) -> Option<u8> {
+  (crate::resolve_flavour(flavour) == "myoxus:paragraph")
+    .then(|| {
+      kind
+        .strip_prefix('h')?
+        .parse::<u8>()
+        .ok()
+        .filter(|level| (1..=6).contains(level))
+    })
+    .flatten()
+}
+
+/// Project an already authorized capture with the same native target identity.
+/// This is output-only: range membership is never stored on the live reference.
+pub fn selected_document_snapshot(binary: &[u8], params: &serde_json::Value) -> Result<Vec<u8>, String> {
+  let (target, kind) = markdown_block_selection(Some(params))
+    .map_err(|_| "unsupported embedded selection")?
+    .ok_or("missing embedded selection")?;
+  let capture = crate::native_snapshot::document_to_export_snapshot(binary, "selected-document", "")?;
+  let blocks: Vec<crate::PortableSnapshotBlock> =
+    serde_json::from_value(capture["blocks"].clone()).map_err(|_| "invalid selected capture")?;
+  let map = blocks
+    .iter()
+    .map(|block| (block.id.as_str(), block))
+    .collect::<std::collections::BTreeMap<_, _>>();
+  let roots = blocks
+    .iter()
+    .filter(|block| block.flavour == "myoxus:page")
+    .collect::<Vec<_>>();
+  if roots.len() != 1 {
+    return Err("selected capture needs one root".into());
+  }
+  let root = roots[0];
+  let mut ordered = Vec::new();
+  let mut pending = vec![root.id.as_str()];
+  let mut seen = HashSet::new();
+  while let Some(id) = pending.pop() {
+    if !seen.insert(id) {
+      return Err("invalid selected capture tree".into());
+    }
+    let block = *map.get(id).ok_or("selected capture missing child")?;
+    let hidden = matches!(
+      block.flavour.as_str(),
+      "myoxus:surface" | "myoxus:annotation" | "myoxus:footnote-definition"
+    ) || block.flavour == "myoxus:note"
+      && (block.props.get("displayMode").and_then(serde_json::Value::as_str) == Some("edgeless")
+        || !block.props.contains_key("displayMode")
+          && block.props.get("hidden").and_then(serde_json::Value::as_bool) == Some(true));
+    if hidden {
+      continue;
+    }
+    ordered.push(block);
+    pending.extend(block.children.iter().rev().map(String::as_str));
+  }
+  let start = ordered
+    .iter()
+    .position(|block| block.id == target)
+    .ok_or("embedded selection target missing")?;
+  if matches!(ordered[start].flavour.as_str(), "myoxus:page" | "myoxus:note") {
+    return Err("embedded selection target invalid".into());
+  }
+  let included: HashSet<&str> = if kind == "section" {
+    let level = heading_level(
+      &ordered[start].flavour,
+      ordered[start]
+        .props
+        .get("type")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or(""),
+    )
+    .ok_or("embedded section target is not a heading")?;
+    let end = (start + 1..ordered.len())
+      .find(|index| {
+        heading_level(
+          &ordered[*index].flavour,
+          ordered[*index]
+            .props
+            .get("type")
+            .and_then(serde_json::Value::as_str)
+            .unwrap_or(""),
+        )
+        .is_some_and(|next| next <= level)
+      })
+      .unwrap_or(ordered.len());
+    ordered[start..end].iter().map(|block| block.id.as_str()).collect()
+  } else {
+    let reachable = ordered.iter().map(|block| block.id.as_str()).collect::<HashSet<_>>();
+    let mut result = HashSet::new();
+    let mut pending = vec![target];
+    while let Some(id) = pending.pop() {
+      if !reachable.contains(id) {
+        continue;
+      }
+      result.insert(id);
+      pending.extend(map[id].children.iter().rev().map(String::as_str));
+    }
+    result
+  };
+  let reachable = ordered.iter().map(|block| block.id.as_str()).collect::<HashSet<_>>();
+  fn narrow(
+    id: &str,
+    map: &std::collections::BTreeMap<&str, &crate::PortableSnapshotBlock>,
+    included: &HashSet<&str>,
+    reachable: &HashSet<&str>,
+    out: &mut Vec<crate::PortableSnapshotBlock>,
+  ) -> Vec<String> {
+    if !reachable.contains(id) {
+      return Vec::new();
+    }
+    let block = map[id];
+    let children = block
+      .children
+      .iter()
+      .flat_map(|id| narrow(id, map, included, reachable, out))
+      .collect::<Vec<_>>();
+    if included.contains(id) || matches!(block.flavour.as_str(), "myoxus:page" | "myoxus:note") {
+      let mut block = block.clone();
+      block.children = children;
+      out.push(block);
+      vec![id.into()]
+    } else {
+      children
+    }
+  }
+  let mut output = Vec::new();
+  narrow(&root.id, &map, &included, &reachable, &mut output);
+  crate::snapshot_blocks_to_yjs(&output)
+}
+
 /// Add portable anchors to an export-only copy, never the live document.
 /// Only reachable paragraph/list/callout targets without existing provenance
 /// may be annotated; literal code and annotations are not export anchor hosts.
@@ -132,14 +300,7 @@ pub fn markdown_native_targets_with_references(
     };
     let flavour = string(&block, "sys:flavour").unwrap_or_default();
     let kind = string(&block, "prop:type").unwrap_or_default();
-    let heading = if resolve_flavour(&flavour) == "myoxus:paragraph" {
-      kind
-        .strip_prefix('h')
-        .and_then(|level| level.parse::<u8>().ok())
-        .filter(|level| (1..=6).contains(level))
-    } else {
-      None
-    };
+    let heading = heading_level(&flavour, &kind);
     let heading_path = heading
       .map(|level| {
         while headings.last().is_some_and(|(previous, _)| *previous >= level) {

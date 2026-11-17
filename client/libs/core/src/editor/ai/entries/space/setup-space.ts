@@ -47,8 +47,8 @@ export function setupSpaceAIEntry(panel: MyoxusAIPanelWidget) {
       // If the AI panel is in the input state and the input content is empty,
       // insert a space back into the editor.
       if (panel.state === "input") {
-        const input = panel.shadowRoot?.querySelector("ai-panel-input");
-        if (input?.textarea.value.trim() === "") {
+        const input = panel.inputElement;
+        if (input?.value.trim() === "") {
           event.preventDefault();
           insertSpace(host);
           panel.hide();

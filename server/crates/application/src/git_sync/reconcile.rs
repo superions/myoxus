@@ -132,7 +132,7 @@ pub fn reconcile_binding_with_git_baseline(
       if let Some(base) = baseline {
         // Was in baseline → deleted in Git
         if can_pull {
-          let myoxus_changed = myoxus.content_hash.as_deref() != Some(&base.content_hash);
+          let myoxus_changed = myoxus.content_hash.as_deref() != Some(base.content_hash.as_str());
           if myoxus_changed {
             ReconcileAction::DeleteConflict(ConflictType::ModifyVsDelete)
           } else {

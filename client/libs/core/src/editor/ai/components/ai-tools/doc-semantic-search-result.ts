@@ -1,10 +1,15 @@
+import { createElement } from "react";
+import {
+  PageIcon as NativePageIcon,
+  AiEmbeddingIcon as NativeAiEmbeddingIcon,
+} from "@myoxus/icons/react";
+import { renderToolCallCard, renderToolResultCard } from "./tool-cards";
 import type { PeekViewService } from "@myoxus/core/modules/peek-view";
-import { AiEmbeddingIcon, PageIcon } from "@myoxus/icons/lit";
+
 import type { ReactToLit } from "@myoxus/lit-react";
-import type { Signal } from "@preact/signals-core";
-import { WithDisposable } from "@virgultum/global/lit";
-import { ShadowlessElement } from "@virgultum/std";
-import { html, nothing } from "lit";
+import { WithDisposable } from "@virgultum/core/primitives/lit";
+import { ShadowlessElement } from "@virgultum/core/runtime";
+import { nothing } from "lit";
 import { property } from "lit/decorators.js";
 
 import type { DocDisplayConfig } from "../ai-chat-chips";
@@ -47,7 +52,7 @@ function parseResultContent(content: string) {
     return {
       title,
       content: text,
-      icon: PageIcon(),
+      icon: createElement(NativePageIcon),
     };
   } catch (error) {
     console.error("Failed to parse result content", error);
@@ -61,9 +66,6 @@ export class DocSemanticSearchResult extends WithDisposable(ShadowlessElement) {
   accessor data!: DocSemanticSearchToolCall | DocSemanticSearchToolResult;
 
   @property({ attribute: false })
-  accessor width: Signal<number | undefined> | undefined;
-
-  @property({ attribute: false })
   accessor docDisplayService!: DocDisplayConfig;
 
   @property({ attribute: false })
@@ -73,24 +75,20 @@ export class DocSemanticSearchResult extends WithDisposable(ShadowlessElement) {
   accessor peekViewService!: PeekViewService;
 
   renderToolCall() {
-    return html`<tool-call-card
-      .reactToLit=${this.reactToLit}
-      .name=${`Finding semantically related pages for "${this.data.args.query}"`}
-      .icon=${AiEmbeddingIcon()}
-      .width=${this.width}
-    ></tool-call-card>`;
+    return renderToolCallCard(this.reactToLit, {
+      name: `Finding semantically related pages for "${this.data.args.query}"`,
+      icon: createElement(NativeAiEmbeddingIcon),
+    });
   }
 
   renderToolResult() {
     if (this.data.type !== "tool-result") {
       return nothing;
     }
-    return html`<tool-result-card
-      .reactToLit=${this.reactToLit}
-      .name=${`Found semantically related pages for "${this.data.args.query}"`}
-      .icon=${AiEmbeddingIcon()}
-      .width=${this.width}
-      .results=${this.data.result
+    return renderToolResultCard(this.reactToLit, {
+      name: `Found semantically related pages for "${this.data.args.query}"`,
+      icon: createElement(NativeAiEmbeddingIcon),
+      results: this.data.result
         .map((result) => ({
           ...parseResultContent(result.content),
           title: this.docDisplayService.getTitle(result.docId),
@@ -105,8 +103,8 @@ export class DocSemanticSearchResult extends WithDisposable(ShadowlessElement) {
               .catch(console.error);
           },
         }))
-        .filter(Boolean)}
-    ></tool-result-card>`;
+        .filter(Boolean),
+    });
   }
 
   protected override render() {

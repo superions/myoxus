@@ -1,5 +1,5 @@
-import { Bound } from "@virgultum/global/gfx";
-import { getMermaidSubgraphCollapseBound } from "@virgultum/model";
+import { Bound } from "@virgultum/core/primitives/gfx";
+import { getMermaidSubgraphCollapseBound } from "@virgultum/core/models";
 
 import { getMermaidGfxSelectionIdentity } from "./mermaid-gfx-selection.js";
 import { readMermaidGfxMeta } from "./mermaid-gfx-metadata.js";

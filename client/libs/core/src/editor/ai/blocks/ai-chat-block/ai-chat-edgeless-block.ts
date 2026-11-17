@@ -1,6 +1,6 @@
 import { Bound, clamp } from "@virgultum/editor/global/gfx";
 import { toGfxBlockComponent } from "@virgultum/editor/std";
-import { GfxViewInteractionExtension } from "@virgultum/std/gfx";
+import { GfxViewInteractionExtension } from "@virgultum/core/runtime/gfx";
 import { html } from "lit";
 import { styleMap } from "lit/directives/style-map.js";
 

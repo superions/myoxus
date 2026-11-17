@@ -19,7 +19,7 @@ import type {
   SlashMenuContext,
   SlashMenuItem,
 } from "@virgultum/editor/widgets/slash-menu";
-import { editorMessage, DocModeProvider } from "@virgultum/shared/services";
+import { editorMessage, DocModeProvider } from "@virgultum/core/services";
 
 import { getPrimaryView } from "../model";
 import { openTaskCardCreation } from "../tasks/create-task-card";

@@ -6,7 +6,7 @@ import {
   mermaidMessages as m,
   type MindmapImportHostProps,
 } from "@virgultum/block-mermaid";
-import { FileSizeLimitProvider } from "@virgultum/shared/services";
+import { FileSizeLimitProvider } from "@virgultum/core/services";
 import { MindmapFileImportForm } from "./import-popover";
 
 /** Native Create shares the owner import form. Candidate reads, loss acceptance

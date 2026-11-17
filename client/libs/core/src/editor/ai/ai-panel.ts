@@ -20,7 +20,7 @@ import {
 } from "@virgultum/editor/shared/utils";
 import type { EditorHost } from "@virgultum/editor/std";
 import { GfxControllerIdentifier } from "@virgultum/editor/std/gfx";
-import { ThemeProvider } from "@virgultum/shared/services";
+import { ThemeProvider } from "@virgultum/core/services";
 import type { TemplateResult } from "lit";
 
 import { insertFromMarkdown } from "../utils";
@@ -33,7 +33,10 @@ import {
   pageResponseHandler,
   replaceWithMarkdown,
 } from "./actions/page-response";
-import type { AIItemConfig } from "./components/ai-item/types";
+import type {
+  AIItemConfig,
+  AIItemGroupConfig,
+} from "./components/ai-item/types";
 import { createAIScrollableTextRenderer } from "./components/ai-scrollable-text-renderer";
 import { AIProvider } from "./provider";
 import { reportResponse } from "./utils/action-reporter";
@@ -52,6 +55,7 @@ function asCaption<T extends keyof VirgultumPresets.AIActions>(
   return {
     name: "Use as caption",
     icon: PenIcon(),
+    iconName: "PenIcon",
     testId: "answer-use-as-caption",
     showWhen: () => {
       const panel = getAIPanelWidget(host);
@@ -79,6 +83,7 @@ function createNewNote(host: EditorHost): AIItemConfig {
   return {
     name: "Create new note",
     icon: PageIcon(),
+    iconName: "PageIcon",
     testId: "answer-create-new-note",
     showWhen: () => {
       const panel = getAIPanelWidget(host);
@@ -142,7 +147,7 @@ function buildPageResponseConfig<T extends keyof VirgultumPresets.AIActions>(
   panel: MyoxusAIPanelWidget,
   id: T,
   ctx: AIContext,
-) {
+): AIItemGroupConfig[] {
   const host = panel.host;
 
   return [
@@ -154,6 +159,7 @@ function buildPageResponseConfig<T extends keyof VirgultumPresets.AIActions>(
           name: "Insert below",
           testId: "answer-insert-below",
           icon: InsertBelowIcon(),
+          iconName: "InsertBelowIcon",
           showWhen: () =>
             !!panel.answer && (!id || !INSERT_ABOVE_ACTIONS.includes(id)),
           handler: () => {
@@ -178,6 +184,7 @@ function buildPageResponseConfig<T extends keyof VirgultumPresets.AIActions>(
           name: "Insert above",
           testId: "answer-insert-above",
           icon: InsertTopIcon(),
+          iconName: "InsertAboveIcon",
           showWhen: () =>
             !!panel.answer && !!id && INSERT_ABOVE_ACTIONS.includes(id),
           handler: () => {
@@ -203,6 +210,7 @@ function buildPageResponseConfig<T extends keyof VirgultumPresets.AIActions>(
           name: "Replace selection",
           testId: "answer-replace",
           icon: ReplaceIcon(),
+          iconName: "ReplaceIcon",
           showWhen: () =>
             !!panel.answer && !EXCLUDING_REPLACE_ACTIONS.includes(id),
           handler: () => {
@@ -221,6 +229,7 @@ function buildPageResponseConfig<T extends keyof VirgultumPresets.AIActions>(
         {
           name: "Continue in chat",
           icon: ChatWithAiIcon(),
+          iconName: "ChatWithAiIcon",
           testId: "answer-continue-in-chat",
           handler: () => {
             reportResponse("result:continue-in-chat");
@@ -231,6 +240,7 @@ function buildPageResponseConfig<T extends keyof VirgultumPresets.AIActions>(
         {
           name: "Regenerate",
           icon: ResetIcon(),
+          iconName: "ResetIcon",
           testId: "answer-regenerate",
           handler: () => {
             reportResponse("result:retry");
@@ -240,6 +250,7 @@ function buildPageResponseConfig<T extends keyof VirgultumPresets.AIActions>(
         {
           name: "Discard",
           icon: DeleteIcon(),
+          iconName: "DeleteIcon",
           testId: "answer-discard",
           handler: () => {
             panel.discard();
@@ -250,7 +261,9 @@ function buildPageResponseConfig<T extends keyof VirgultumPresets.AIActions>(
   ];
 }
 
-export function buildErrorResponseConfig(panel: MyoxusAIPanelWidget) {
+export function buildErrorResponseConfig(
+  panel: MyoxusAIPanelWidget,
+): AIItemGroupConfig[] {
   return [
     {
       name: "",
@@ -258,6 +271,7 @@ export function buildErrorResponseConfig(panel: MyoxusAIPanelWidget) {
         {
           name: "Retry",
           icon: ResetIcon(),
+          iconName: "ResetIcon",
           testId: "error-retry",
           showWhen: () => true,
           handler: () => {
@@ -268,6 +282,7 @@ export function buildErrorResponseConfig(panel: MyoxusAIPanelWidget) {
         {
           name: "Discard",
           icon: DeleteIcon(),
+          iconName: "DeleteIcon",
           testId: "error-discard",
           showWhen: () => !!panel.answer,
           handler: () => {

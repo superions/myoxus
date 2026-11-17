@@ -1,1 +1,16 @@
-export * from "@virgultum/inline-footnote";
+export {
+  footnoteReferenceDeltaToMarkdownAdapterMatcher,
+  markdownFootnoteReferenceToDeltaMatcher,
+  preprocessFootnoteReference,
+  FootnoteReferenceMarkdownPreprocessorExtension,
+  localFootnoteDeltaToHtml,
+  localFootnoteHtmlToDelta,
+  localFootnoteDeltaToPlainText,
+  type FootNotePopupClickHandler,
+  type FootNoteNodeConfig,
+  FootNoteNodeConfigProvider,
+  FootNoteNodeConfigIdentifier,
+  FootNoteNodeConfigExtension,
+  MyoxusFootnoteNode,
+  FootNoteInlineSpecExtension,
+} from "@virgultum/content/inlines";

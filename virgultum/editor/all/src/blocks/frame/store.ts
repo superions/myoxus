@@ -1,1 +1,1 @@
-export * from "@virgultum/block-frame/store";
+export { FrameStoreExtension } from "@virgultum/canvas/store";

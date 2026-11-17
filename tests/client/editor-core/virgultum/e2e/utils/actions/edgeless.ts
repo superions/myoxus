@@ -108,7 +108,9 @@ export async function getNoteProps(page: Page, noteId: string) {
 export async function mountFramePanelFixture(page: Page) {
   await page.evaluate(async () => {
     const panel: FramePanel = document.createElement("myoxus-frame-panel");
-    panel.host = window.editor.host;
+    const host = window.editor.host;
+    if (!host) throw new Error("Editor host is not mounted");
+    panel.host = host;
     panel.hideHeader = true;
     // Bound the real fragment for pointer input; this is not sidebar layout QA.
     Object.assign(panel.style, {
@@ -214,7 +216,11 @@ export async function enterPresentationMode(page: Page) {
   // Core starts this tool from its app header, absent from this editor fixture.
   // Mount the registered editor control; do not recreate the Core toolbar.
   await page.evaluate(() => {
-    const button = document.createElement("edgeless-present-button");
+    const button = document.createElement(
+      "edgeless-present-button",
+    ) as HTMLElement & {
+      edgeless: HTMLElementTagNameMap["myoxus-edgeless-root"];
+    };
     button.edgeless = document.querySelector("myoxus-edgeless-root")!;
     // Like the app header, keep the control in the canvas viewport; appending
     // it in document flow would scroll the page when Playwright clicks it.
@@ -261,13 +267,9 @@ const locatorEdgelessToolButtonSenior = async (
   const visible = await target.isVisible();
   if (visible) return target;
   // try to click next page
-  const nextButton = page.locator(
-    ".senior-nav-button-wrapper.next > icon-button",
-  );
-  const nextExists = await nextButton.count();
-  const isDisabled =
-    (await nextButton.getAttribute("data-test-disabled")) === "true";
-  if (!nextExists || isDisabled) return target;
+  const nextButton = page.getByTestId("canvas-tools-next");
+  if (!(await nextButton.count()) || (await nextButton.isDisabled()))
+    return target;
   await nextButton.click();
   await page.waitForTimeout(200);
   return locatorEdgelessToolButtonSenior(page, selector);
@@ -276,46 +278,23 @@ const locatorEdgelessToolButtonSenior = async (
 export async function locatorEdgelessToolButton(
   page: Page,
   type: EdgelessTool,
-  innerContainer = true,
+  _innerContainer = true,
 ) {
-  const selector = {
-    default: ".edgeless-default-button",
-    pan: ".edgeless-default-button",
-    shape: ".edgeless-shape-button",
-    pen: ".edgeless-pen-button",
-    brush: ".edgeless-brush-button",
-    highlighter: ".edgeless-highlighter-button",
-    eraser: ".edgeless-eraser-button",
-    text: ".edgeless-text-button",
-    connector: ".edgeless-connector-button",
-    note: ".edgeless-note-button",
-    frame: ".edgeless-frame-button",
-    frameNavigator: ".edgeless-frame-navigator-button",
+  const id = {
+    default: "canvas-pointer",
+    pan: "canvas-pointer",
+    shape: "canvas-shape",
+    pen: "canvas-pen",
+    brush: "canvas-brush",
+    highlighter: "canvas-highlighter",
+    eraser: "canvas-eraser",
+    text: "canvas-text",
+    connector: "canvas-connector",
+    note: "canvas-note",
+    frame: "canvas-frame",
+    frameNavigator: "canvas-frame-navigator",
   }[type];
-
-  let buttonType;
-  switch (type) {
-    case "brush":
-    case "highlighter":
-      buttonType = "edgeless-tool-icon-button";
-      break;
-    case "pen":
-    case "text":
-    case "eraser":
-    case "shape":
-    case "note":
-      buttonType = "edgeless-toolbar-button";
-      break;
-    default:
-      buttonType = "edgeless-tool-icon-button";
-  }
-  // TODO: quickTool locator is different
-  const button = await locatorEdgelessToolButtonSenior(
-    page,
-    `edgeless-toolbar-widget ${buttonType}${selector}`,
-  );
-
-  return innerContainer ? button.locator(".icon-container") : button;
+  return locatorEdgelessToolButtonSenior(page, `[data-testid="${id}"]`);
 }
 
 export async function toggleZoomBarWhenSmallScreenWidth(page: Page) {
@@ -332,7 +311,7 @@ export async function toggleZoomBarWhenSmallScreenWidth(page: Page) {
 export async function locatorEdgelessZoomToolButton(
   page: Page,
   type: ZoomToolType,
-  innerContainer = true,
+  _innerContainer = true,
 ) {
   const text = {
     zoomIn: "Zoom in",
@@ -340,22 +319,8 @@ export async function locatorEdgelessZoomToolButton(
     fitToScreen: "Fit to screen",
   }[type];
 
-  const screenWidth = page.viewportSize()?.width ?? 0;
-  let zoomBarClass = "horizontal";
-  if (screenWidth < ZOOM_BAR_RESPONSIVE_SCREEN_WIDTH) {
-    await toggleZoomBarWhenSmallScreenWidth(page);
-    zoomBarClass = "vertical";
-  }
-
-  const button = page
-    .locator(
-      `.edgeless-zoom-toolbar-container.${zoomBarClass} edgeless-tool-icon-button`,
-    )
-    .filter({
-      hasText: text,
-    });
-
-  return innerContainer ? button.locator(".icon-container") : button;
+  // Native controls have one accessible button, without a nested icon container.
+  return page.getByRole("button", { name: text, exact: true });
 }
 
 export function locatorPresentationToolbarButton(
@@ -367,10 +332,8 @@ export function locatorPresentationToolbarButton(
     next: "Next",
   }[type];
   const button = page
-    .locator("presentation-toolbar edgeless-tool-icon-button")
-    .filter({
-      hasText: text,
-    });
+    .locator("presentation-toolbar")
+    .getByRole("button", { name: text, exact: true });
 
   return button;
 }
@@ -385,27 +348,17 @@ export async function setEdgelessTool(
     case "text":
       await page.keyboard.press("t", { delay: 100 });
       break;
-    case "default": {
-      const button = await locatorEdgelessToolButton(page, "default", false);
-      const classes = (await button.getAttribute("class"))?.split(" ");
-      if (!classes?.includes("default")) {
-        await button.click();
-        await sleep(100);
-      }
-      break;
-    }
+    case "default":
     case "pan": {
-      const button = await locatorEdgelessToolButton(page, "default", false);
-      const classes = (await button.getAttribute("class"))?.split(" ");
-      if (classes?.includes("default")) {
+      const button = await locatorEdgelessToolButton(page, mode, false);
+      const label = mode === "pan" ? "Hand" : "Select";
+      // Activating the control also exits focused text editing without printable input.
+      await button.click();
+      await expect(button).toHaveAttribute("aria-pressed", "true");
+      if ((await button.getAttribute("aria-label")) !== label) {
         await button.click();
-        await sleep(100);
-      } else if (classes?.includes("pan")) {
-        await button.click(); // change to default
-        await sleep(100);
-        await button.click(); // change to pan
-        await sleep(100);
       }
+      await expect(button).toHaveAccessibleName(label);
       break;
     }
     case "brush":
@@ -437,9 +390,10 @@ export async function setEdgelessTool(
       // Avoid clicking on the shape-element (will trigger dragging mode)
       await shapeToolButton.click({ position: { x: 5, y: 5 } });
 
-      const squareShapeButton = page
-        .locator("edgeless-slide-menu edgeless-tool-icon-button")
-        .filter({ hasText: shape });
+      const squareShapeButton = page.getByRole("button", {
+        name: shape,
+        exact: true,
+      });
       await squareShapeButton.click();
       break;
     }
@@ -613,6 +567,8 @@ export async function addBasicConnectorElement(
   end: Point,
 ) {
   await setEdgelessTool(page, "connector");
+  const tool = await locatorEdgelessToolButton(page, "connector");
+  if ((await tool.getAttribute("aria-expanded")) === "true") await tool.click();
   await dragBetweenCoords(page, start, end, { steps: 100 });
   return (await getSelectedIds(page))[0];
 }
@@ -643,9 +599,28 @@ export async function addBasicEdgelessText(
 
 export async function addNote(page: Page, text: string, x: number, y: number) {
   await setEdgelessTool(page, "note");
+  const tool = await locatorEdgelessToolButton(page, "note");
+  if ((await tool.getAttribute("aria-expanded")) === "true") await tool.click();
+  const previous = await page.evaluate(() =>
+    window.doc.getBlocksByFlavour("myoxus:note").map((x) => x.model.id),
+  );
   await page.mouse.click(x, y);
   await waitNextFrame(page);
 
+  // A chrome hit must not silently turn a creation fixture into a different command.
+  await expect
+    .poll(() =>
+      page.evaluate((previous) => {
+        const root = document.querySelector("myoxus-edgeless-root")!;
+        const id = root.service.selection.selectedIds[0];
+        return (
+          id &&
+          !previous.includes(id) &&
+          root.store.getBlock(id)?.model.flavour === "myoxus:note"
+        );
+      }, previous),
+    )
+    .toBe(true);
   const paragraphs = text.split("\n");
   let i = 0;
   for (const paragraph of paragraphs) {
@@ -657,6 +632,10 @@ export async function addNote(page: Page, text: string, x: number, y: number) {
     }
   }
 
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+  });
+  await waitNextFrame(page);
   const { id } = await page.evaluate(() => {
     const container = document.querySelector("myoxus-edgeless-root");
     if (!container) throw new Error("container not found");
@@ -718,7 +697,7 @@ export async function rotateElementByHandle(
   deg = 0,
   corner:
     "top-left" | "top-right" | "bottom-right" | "bottom-left" = "top-left",
-  steps = 1,
+  steps = 20,
 ) {
   const rect = await page
     .locator(".myoxus-edgeless-selected-rect")
@@ -747,26 +726,52 @@ export async function rotateElementByHandle(
 }
 
 export async function selectBrushColor(page: Page, label: string) {
-  const colorButton = page
+  const color = await page.evaluate((label) => {
+    const { DefaultTheme, resolveColor, ColorScheme } =
+      window.$virgultum.editorModel;
+    const value = DefaultTheme.StrokeColorShortMap[label];
+    if (!value) throw new Error("Unknown brush color: " + label);
+    const probe = document.createElement("span");
+    probe.style.color = resolveColor(value, ColorScheme.Light);
+    document.body.append(probe);
+    const color = getComputedStyle(probe).color;
+    probe.remove();
+    return color;
+  }, label);
+  await page
     .locator("edgeless-pen-menu")
-    .locator("edgeless-color-panel")
-    .locator(`.color-unit[aria-label="${label}"]`);
-  await colorButton.click();
+    .getByRole("button", { name: color, exact: true })
+    .click();
 }
 
 export async function selectBrushSize(page: Page, size: string) {
-  const sizeIndexMap: Record<string, number> = {
-    two: 1,
-    four: 2,
-    six: 3,
-    eight: 4,
-    ten: 5,
-    twelve: 6,
+  const sizes: Record<string, number> = {
+    two: 2,
+    four: 4,
+    six: 6,
+    eight: 8,
+    ten: 10,
+    twelve: 12,
   };
-  const sizeButton = page.locator(
-    `edgeless-pen-menu edgeless-line-width-panel .point-button:nth-child(${sizeIndexMap[size]})`,
-  );
-  await sizeButton.click();
+  const value = sizes[size];
+  if (!value) throw new Error("Unknown brush size: " + size);
+  const menu = page.locator("edgeless-pen-menu");
+  const slider = menu.getByRole("slider", { name: "Thickness", exact: true });
+  const min = Number(await slider.getAttribute("aria-valuemin"));
+  const max = Number(await slider.getAttribute("aria-valuemax"));
+  const rail = menu.locator(".mantine-Slider-root");
+  const box = await rail.boundingBox();
+  if (!box) throw new Error("Brush thickness slider is not visible");
+  await rail.click({
+    position: {
+      x: Math.max(
+        1,
+        Math.min(box.width - 1, (box.width * (value - min)) / (max - min)),
+      ),
+      y: box.height / 2,
+    },
+  });
+  await expect(slider).toHaveAttribute("aria-valuenow", String(value));
 }
 
 export async function pickColorAtPoints(page: Page, points: number[][]) {
@@ -828,7 +833,10 @@ export async function getAllEdgelessNoteIds(page: Page) {
 export async function getAllEdgelessTextIds(page: Page) {
   return page.evaluate(() => {
     return Array.from(document.querySelectorAll("myoxus-edgeless-text")).map(
-      (text) => text.model.id,
+      (text) =>
+        (
+          text as import("@virgultum/editor/blocks/edgeless-text").EdgelessTextBlockComponent
+        ).model.id,
     );
   });
 }
@@ -859,7 +867,8 @@ export function locatorNoteDisplayModeButton(
   page: Page,
   mode: NoteDisplayMode,
 ) {
-  return page.locator("note-display-mode-panel").locator(`.item.${mode}`);
+  const label = { both: "Both", edgeless: "Edgeless", doc: "Page" }[mode];
+  return page.getByRole("option", { name: label, exact: true });
 }
 
 export async function changeNoteDisplayMode(page: Page, mode: NoteDisplayMode) {
@@ -882,12 +891,15 @@ export async function updateExistedBrushElementSize(
   page: Page,
   nthSizeButton: 1 | 2 | 3 | 4 | 5 | 6,
 ) {
-  // pick from the visible panel to avoid strict-mode collisions from hidden/duplicate toolbars
-  const btn = page
-    .locator("edgeless-line-width-panel:visible .point-button")
-    .nth(nthSizeButton - 1);
-
-  await btn.click();
+  const control = locatorComponentToolbar(page).getByRole("combobox", {
+    name: "Thickness",
+    exact: true,
+  });
+  await control.click();
+  await page
+    .getByRole("option", { name: String(nthSizeButton * 2), exact: true })
+    .click();
+  await expect(control).toHaveValue(String(nthSizeButton * 2));
 }
 
 export async function openComponentToolbarMoreMenu(page: Page) {
@@ -1052,19 +1064,12 @@ export async function zoomInByKeyboard(page: Page) {
 }
 
 export async function getZoomLevel(page: Page) {
-  const screenWidth = page.viewportSize()?.width ?? 0;
-  let zoomBarClass = "horizontal";
-  if (screenWidth < ZOOM_BAR_RESPONSIVE_SCREEN_WIDTH) {
-    await toggleZoomBarWhenSmallScreenWidth(page);
-    zoomBarClass = "vertical";
-  }
-  const span = page.locator(
-    `.edgeless-zoom-toolbar-container.${zoomBarClass} .zoom-percent`,
-  );
+  // The native zoom control exposes the current percentage as its button text.
+  const span = page.getByRole("button", { name: "Zoom to 100%", exact: true });
   await waitNextFrame(page);
   const text = await span.textContent();
   if (!text) {
-    throw new Error("Missing .zoom-percent");
+    throw new Error("Missing native zoom percentage");
   }
   return Number(text.replace("%", ""));
 }
@@ -1318,19 +1323,28 @@ export async function triggerComponentToolbarAction(
       break;
     }
     case "addFrame": {
-      const button = locatorComponentToolbar(page).getByLabel(/^Frame$/);
+      const button = locatorComponentToolbar(page).getByRole("button", {
+        name: "Frame",
+        exact: true,
+      });
       await button.click();
       break;
     }
     case "addGroup": {
-      const button = locatorComponentToolbar(page).getByLabel(/^Group$/);
+      const button = locatorComponentToolbar(page).getByRole("button", {
+        name: "Group",
+        exact: true,
+      });
       await button.click();
       break;
     }
     case "addMindmap": {
       await page.getByTestId("myoxus-mermaid-edgeless-toolbar-button").click();
       await page
-        .getByTestId("myoxus-mermaid-edgeless-template-mindmap-basic")
+        .getByRole("searchbox", { name: "Diagram type", exact: true })
+        .fill("Mindmap");
+      await page
+        .getByRole("menuitem", { name: "Mindmap", exact: true })
         .click();
       break;
     }
@@ -1361,8 +1375,10 @@ export async function triggerComponentToolbarAction(
       break;
     }
     case "releaseFromGroup": {
-      const button =
-        locatorComponentToolbar(page).getByLabel("Release from group");
+      const button = locatorComponentToolbar(page).getByRole("button", {
+        name: "Release from group",
+        exact: true,
+      });
       await button.click();
       break;
     }
@@ -1473,7 +1489,10 @@ export async function triggerComponentToolbarAction(
     }
     case "autoArrange": {
       const toolbar = locatorComponentToolbar(page);
-      const button = toolbar.getByLabel("Align objects");
+      const button = toolbar.getByRole("button", {
+        name: "Align objects",
+        exact: true,
+      });
       await button.click();
       const arrange = toolbar.getByRole("menuitem", {
         name: "Auto arrange",
@@ -1484,7 +1503,10 @@ export async function triggerComponentToolbarAction(
     }
     case "autoResize": {
       const toolbar = locatorComponentToolbar(page);
-      const button = toolbar.getByLabel("Align objects");
+      const button = toolbar.getByRole("button", {
+        name: "Align objects",
+        exact: true,
+      });
       await button.click();
       const resize = toolbar.getByRole("menuitem", {
         name: "Resize & Align",
@@ -1516,7 +1538,10 @@ async function pickToolbarPalette(
         (item) => item.key === key,
       );
       if (!item) throw new Error("Unknown toolbar palette: " + key);
-      return window.$virgultum.editorModel.resolveColor(item.value, "light");
+      return window.$virgultum.editorModel.resolveColor(
+        item.value,
+        window.$virgultum.editorModel.ColorScheme.Light,
+      );
     },
     { key, palette },
   );
@@ -1966,11 +1991,26 @@ export async function createFrame(
   coord1: [number, number],
   coord2: [number, number],
 ) {
-  await page.keyboard.press("f");
+  const existing = await page.evaluate(() =>
+    window.doc.getBlocksByFlavour("myoxus:frame").map((x) => x.model.id),
+  );
+  await setEdgelessTool(page, "frame");
   await dragBetweenViewCoords(page, coord1, coord2);
-  const id = (await getSelectedIds(page))[0];
+  let id: string | undefined;
+  await expect
+    .poll(async () => {
+      id = (await getSelectedIds(page)).find((id) => !existing.includes(id));
+      return (
+        id &&
+        (await page.evaluate(
+          (id) => window.doc.getBlock(id)?.model.flavour === "myoxus:frame",
+          id,
+        ))
+      );
+    })
+    .toBe(true);
   await page.keyboard.press("Escape");
-  return id;
+  return id!;
 }
 
 export async function createShapeElement(
@@ -2044,10 +2084,33 @@ export async function createEdgelessText(
   await addBasicEdgelessText(page, text, position[0], position[1]);
 }
 
-export async function createMindmap(page: Page, coord: number[]) {
-  const position = await toViewCoord(page, coord);
+export async function createMindmap(page: Page, _coord: number[]) {
+  const previous = await page.evaluate(() =>
+    window.doc
+      .getBlocksByFlavour("myoxus:mermaid")
+      .map((block) => block.model.id),
+  );
   await page.keyboard.press("m");
-  await page.mouse.click(position[0], position[1]);
+  // The native Source producer prepares and projects the diagram asynchronously;
+  // it already positions/selects the owner, rather than arming an old drawing tool.
+  await expect
+    .poll(() =>
+      page.evaluate((previous) => {
+        const root = document.querySelector("myoxus-edgeless-root")!;
+        return root.store
+          .getBlocksByFlavour("myoxus:mermaid")
+          .some(
+            ({ model }) =>
+              !previous.includes(model.id) &&
+              "childIds" in model &&
+              model.childIds.length > 0 &&
+              root.service.selection.selectedElements.some(
+                (selected) => selected.id === model.id,
+              ),
+          );
+      }, previous),
+    )
+    .toBe(true);
 }
 
 export async function createNote(

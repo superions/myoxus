@@ -1,1 +1,7 @@
-export * from "@virgultum/block-edgeless-text";
+export {
+  EdgelessClipboardEdgelessTextConfig,
+  EdgelessTextBlockComponent,
+  EdgelessTextInteraction,
+  edgelessTextToolbarConfig,
+  edgelessTextToolbarExtension,
+} from "@virgultum/canvas/blocks";

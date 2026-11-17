@@ -32,8 +32,6 @@ describe("lit-react package ownership", () => {
   test("core imports bridge helpers from the neutral package", () => {
     const graphConsumers = [
       "client/libs/core/src/editor/virgultum/doc-editor/lit-adaper.tsx",
-      "client/libs/core/src/editor/virgultum/doc-editor/bi-directional-link-panel.tsx",
-      "client/libs/core/src/editor/database-block/properties/file/view.tsx",
       "client/libs/core/src/editor/ai/components/text-renderer.ts",
       "client/libs/core/src/editor/view-extensions/editor-view/notification-service.tsx",
       "client/libs/core/src/desktop/pages/workspace/layouts/workspace-layout.tsx",

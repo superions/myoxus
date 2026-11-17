@@ -1,1 +1,1 @@
-export * from "@virgultum/std/effects";
+export * from "@virgultum/core/runtime/effects";

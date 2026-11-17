@@ -1,1 +1,1 @@
-export * from "@virgultum/global/exceptions";
+export * from "@virgultum/core/primitives/exceptions";

@@ -1,4 +1,4 @@
-import type { BlockSnapshot } from "@virgultum/store";
+import type { BlockSnapshot } from "@virgultum/core/store";
 
 export function ignoreFields(target: unknown, keys: string[]): unknown {
   if (Array.isArray(target)) {

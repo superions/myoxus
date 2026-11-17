@@ -6,15 +6,15 @@ import {
   expandAnnotationSelection,
   getAnnotationRanges,
 } from "@virgultum/editor/model/annotation";
-import { Container } from "@virgultum/global/di";
+import { Container } from "@virgultum/core/primitives/di";
 import {
   ClipboardAdapter,
   HtmlAdapter,
   MarkdownAdapter,
   MixTextAdapter,
   pasteMiddleware,
-} from "@virgultum/shared/adapters";
-import { printToPdf } from "@virgultum/shared/utils";
+} from "@virgultum/core/adapters";
+import { printToPdf } from "@virgultum/core/utils";
 import {
   Text,
   Slice,
@@ -22,8 +22,8 @@ import {
   SliceSnapshotSchema,
   type SliceSnapshot,
   type BlockSnapshot,
-} from "@virgultum/store";
-import { TestWorkspace } from "@virgultum/store/test";
+} from "@virgultum/core/store";
+import { TestWorkspace } from "@virgultum/core/store/test";
 import { describe, expect, test, vi } from "vitest";
 import { html } from "lit";
 import {
@@ -36,32 +36,32 @@ import {
   BlockSelection,
   TextSelection,
   type BlockStdScope,
-} from "@virgultum/std";
+} from "@virgultum/core/runtime";
 
 import {
   AnnotationInlineSpecExtension,
   InlineAnnotation,
   InlineDocumentField,
 } from "@virgultum/editor/inlines/preset";
-import type { DocumentFieldInlineHostProps } from "@virgultum/shared/services";
-import { InlineEditor } from "@virgultum/std/inline";
-import type { MyoxusTextAttributes } from "@virgultum/shared/types";
+import type { DocumentFieldInlineHostProps } from "@virgultum/core/services";
+import { InlineEditor } from "@virgultum/core/runtime/inline";
+import type { MyoxusTextAttributes } from "@virgultum/core/types";
 import { createJob } from "./utils/create-job";
 import { getProvider } from "./utils/get-provider";
 import { testStoreExtensions } from "./utils/store";
 import syntaxFixtures from "../../../../../build/fixtures/contracts/annotation-syntax.json";
 import interchangeFixtures from "../../../../../build/fixtures/contracts/annotation-interchange.json";
-import { annotationsToLiteralSnapshot } from "../../../shared/src/adapters/markdown/annotation-deltas";
-import { builtinToolbarConfig } from "../../../blocks/root/src/configs/toolbar";
-import { TableCell } from "../../../blocks/table/src/table-cell";
-import { TableDataManager } from "../../../blocks/table/src/table-data-manager";
-import { SelectionController } from "../../../blocks/table/src/selection-controller";
-import { PageKeyboardManager } from "../../../blocks/root/src/keyboard/keyboard-manager";
-import { EdgelessCRUDExtension } from "../../../blocks/surface/src/extensions/crud-extension";
-import type { GfxModel } from "@virgultum/std/gfx";
-import { convertSelectedBlocksToLinkedDoc } from "@virgultum/block-embed";
-import type { TableBlockModel } from "@virgultum/model";
-import { mergeToCodeModel, transformModel } from "@virgultum/shared/utils";
+import { annotationsToLiteralSnapshot } from "../../../../core/src/adapters/markdown/annotation-deltas";
+import { builtinToolbarConfig } from "../blocks/root/configs/toolbar";
+import { TableCell } from "../../../../content/src/blocks/table/table-cell";
+import { TableDataManager } from "../../../../content/src/blocks/table/table-data-manager";
+import { SelectionController } from "../../../../content/src/blocks/table/selection-controller";
+import { PageKeyboardManager } from "../blocks/root/keyboard/keyboard-manager";
+import { EdgelessCRUDExtension } from "@virgultum/canvas-runtime/surface";
+import type { GfxModel } from "@virgultum/core/runtime/gfx";
+import { convertSelectedBlocksToLinkedDoc } from "@virgultum/embeds/blocks";
+import type { TableBlockModel } from "@virgultum/core/models";
+import { mergeToCodeModel, transformModel } from "@virgultum/core/utils";
 
 test("fixed native cells reject destructive table operations before changing free cells", () => {
   const workspace = new TestWorkspace();
@@ -463,7 +463,7 @@ describe("canonical annotations", () => {
           },
         },
       };
-      const doc: import("@virgultum/store").DocSnapshot = {
+      const doc: import("@virgultum/core/store").DocSnapshot = {
         type: "page",
         meta: { id: "doc", title: "", createDate: 0, tags: [] },
         blocks: {

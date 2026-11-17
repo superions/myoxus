@@ -14,9 +14,9 @@ import {
   releaseMermaidGeometryPreview,
   type MermaidGeometryPreview,
 } from "./gfx-geometry-preview.js";
-import type { MermaidBlockModel } from "@virgultum/model";
-import type { BlockStdScope } from "@virgultum/std";
-import { Bound } from "@virgultum/global/gfx";
+import type { MermaidBlockModel } from "@virgultum/core/models";
+import type { BlockStdScope } from "@virgultum/core/runtime";
+import { Bound } from "@virgultum/core/primitives/gfx";
 
 import {
   addMermaidGfxEdgeCommand,

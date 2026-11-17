@@ -1,1 +1,1 @@
-export * from "@virgultum/block-list/view";
+export { ListViewExtension } from "@virgultum/content/view";

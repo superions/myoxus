@@ -4,13 +4,12 @@ import { useI18n } from "@myoxus/i18n";
 import { FileTextIcon, ResetIcon } from "@myoxus/icons/react";
 import { LiveData, useLiveData } from "@myoxus/infra";
 import {
-  Card,
   Group,
   IconButton,
   Loading,
   MyoxusText,
+  ReferenceCard,
   Scrollable,
-  Stack,
   Typography,
 } from "@myoxus/ui-facade";
 import type { AttachmentBlockModel } from "@virgultum/editor/model";
@@ -83,61 +82,55 @@ export function TextAttachmentPreview({
   }, [blobUrl, attempt]);
   const current = result?.url === blobUrl ? result : undefined;
   return (
-    <Card
-      withBorder
-      padding="sm"
+    <ReferenceCard
+      size="preview"
+      contained={inSurface}
       fullHeight={inSurface}
+      icon={<FileTextIcon />}
+      title={name}
       data-testid="attachment-text-preview"
     >
-      <Stack gap="xs" h={inSurface ? "100%" : undefined}>
-        <Group wrap="nowrap" gap="xs">
-          <FileTextIcon />
-          <MyoxusText truncate title={name}>
-            <strong>{name}</strong>
-          </MyoxusText>
-        </Group>
-        <Scrollable.Viewport
-          autosize={!inSurface}
-          fill={inSurface}
-          maxHeight={inSurface ? undefined : "20em"}
-          scrollbars="xy"
-          aria-label={name}
-          contentEditable={false}
-          data-range-sync-exclude="true"
-          // The attachment host suppresses block text selection; file content must remain selectable.
-          style={{ userSelect: "text" }}
-          {...selectText}
-          onDragStartCapture={(event) => event.stopPropagation()}
-          onMouseDown={(event) => event.stopPropagation()}
-          onClick={(event) => event.stopPropagation()}
-          onDoubleClick={(event) => event.stopPropagation()}
-          onCopy={(event) => event.stopPropagation()}
-          onKeyDown={(event) => {
-            if (event.key !== "Escape") event.stopPropagation();
-          }}
-        >
-          {!current ? (
-            <Loading />
-          ) : current.error ? (
-            <Group>
-              <MyoxusText tone="secondary">
-                {t["com.myoxus.attachment.preview.error.title"]()}
-              </MyoxusText>
-              <IconButton
-                icon={<ResetIcon />}
-                tooltip={t["Retry"]()}
-                onClick={() => setAttempt((value) => value + 1)}
-              />
-            </Group>
-          ) : format === "markdown" ? (
-            <Typography>
-              <MarkdownPreview source={current.text ?? ""} />
-            </Typography>
-          ) : (
-            <MyoxusText preserveWhitespace>{current.text}</MyoxusText>
-          )}
-        </Scrollable.Viewport>
-      </Stack>
-    </Card>
+      <Scrollable.Viewport
+        autosize={!inSurface}
+        fill={inSurface}
+        maxHeight={inSurface ? undefined : "20em"}
+        scrollbars="xy"
+        aria-label={name}
+        contentEditable={false}
+        data-range-sync-exclude="true"
+        // The attachment host suppresses block text selection; file content must remain selectable.
+        style={{ userSelect: "text" }}
+        {...selectText}
+        onDragStartCapture={(event) => event.stopPropagation()}
+        onMouseDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+        onDoubleClick={(event) => event.stopPropagation()}
+        onCopy={(event) => event.stopPropagation()}
+        onKeyDown={(event) => {
+          if (event.key !== "Escape") event.stopPropagation();
+        }}
+      >
+        {!current ? (
+          <Loading />
+        ) : current.error ? (
+          <Group>
+            <MyoxusText tone="secondary">
+              {t["com.myoxus.attachment.preview.error.title"]()}
+            </MyoxusText>
+            <IconButton
+              icon={<ResetIcon />}
+              tooltip={t["Retry"]()}
+              onClick={() => setAttempt((value) => value + 1)}
+            />
+          </Group>
+        ) : format === "markdown" ? (
+          <Typography>
+            <MarkdownPreview source={current.text ?? ""} />
+          </Typography>
+        ) : (
+          <MyoxusText preserveWhitespace>{current.text}</MyoxusText>
+        )}
+      </Scrollable.Viewport>
+    </ReferenceCard>
   );
 }

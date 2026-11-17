@@ -9,20 +9,23 @@ import {
   readTypeOwnedMermaidSourceProjection,
   reconcileTypeOwnedMermaidVisualProjection,
 } from "../families/runtime/gfx-owner-hooks.js";
-import { EdgelessCRUDIdentifier } from "@virgultum/block-surface";
-import { ConnectorPathGenerator } from "@virgultum/gfx-connector";
+import { EdgelessCRUDIdentifier } from "@virgultum/canvas-runtime/surface";
+import { ConnectorPathGenerator } from "@virgultum/canvas/gfx";
 import { getMermaidGfxFamilyHooks } from "../families/runtime/gfx-family-hooks-registry.js";
-import { Bound } from "@virgultum/global/gfx";
+import { Bound } from "@virgultum/core/primitives/gfx";
 import type { MermaidVisualHistoryModel } from "../mermaid-block-constants.js";
 import {
   ConnectorElementModel,
   type FrameBlockModel,
   MERMAID_BLOCK_DIAGRAM_VERSION,
   type MermaidBlockModel,
-} from "@virgultum/model";
-import type { Command } from "@virgultum/std";
-import { GfxControllerIdentifier, type GfxModel } from "@virgultum/std/gfx";
-import { type BlockModel, type Store, Text } from "@virgultum/store";
+} from "@virgultum/core/models";
+import type { Command } from "@virgultum/core/runtime";
+import {
+  GfxControllerIdentifier,
+  type GfxModel,
+} from "@virgultum/core/runtime/gfx";
+import { type BlockModel, type Store, Text } from "@virgultum/core/store";
 import * as Y from "yjs";
 import {
   getMermaidVisualNodeDetailElementCount,

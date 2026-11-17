@@ -8,7 +8,6 @@ import {
   edgelessCommonSetup,
   getSelectedBound,
   getSelectedBoundCount,
-  selectElementInEdgeless,
   zoomResetByKeyboard,
 } from "../utils/actions/edgeless.js";
 import {
@@ -41,8 +40,8 @@ test("elements should be selectable after open mindmap menu", async ({
 
   await page.getByTestId("myoxus-mermaid-edgeless-toolbar-button").click();
   await expect(
-    page.getByTestId("myoxus-mermaid-edgeless-template-mindmap-basic"),
-  ).toBeAttached();
+    page.getByRole("menu", { name: "Diagram templates", exact: true }),
+  ).toBeVisible();
 
   await page.mouse.click(start.x + 5, start.y + 5);
   await assertEdgelessSelectedRect(page, [100, 100, 100, 100]);
@@ -173,10 +172,11 @@ test("allow to type content directly when node has been selected", async ({
   await zoomResetByKeyboard(page);
 
   const mindmapId = await createMindMap(page, [0, 0]);
-  const { id: nodeId } = await getMindMapNode(page, mindmapId, [0, 1]);
-
-  await clickView(page, [0, 0]);
-  await selectElementInEdgeless(page, [nodeId]);
+  const { rect } = await getMindMapNode(page, mindmapId, [0, 1]);
+  await page.mouse.click(rect.x + rect.w / 2, rect.y + rect.h / 2);
+  await expect(
+    page.getByRole("button", { name: /Add another object/ }),
+  ).toHaveCount(0);
   await type(page, "parent node");
   await pressEnter(page);
   await pressTab(page);

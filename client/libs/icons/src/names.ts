@@ -441,6 +441,7 @@ export const iconNames = [
   "MathPanelIcon",
   "McpIcon",
   "MeetingIcon",
+  "MegaphoneIcon",
   "MemberIcon",
   "MenubarIcon",
   "MessageSquareTextIcon",

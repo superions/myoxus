@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { getSurfaceBlock } from "@virgultum/block-surface";
-import { Bound, type SerializedXYWH } from "@virgultum/global/gfx";
+import { getSurfaceBlock } from "@virgultum/canvas-runtime/surface";
+import { Bound, type SerializedXYWH } from "@virgultum/core/primitives/gfx";
 import {
   type FrameBlockModel,
   type MermaidBlockModel,
   type NoteBlockModel,
   NoteDisplayMode,
-} from "@virgultum/model";
-import type { BlockModel, Store } from "@virgultum/store";
+} from "@virgultum/core/models";
+import type { BlockModel, Store } from "@virgultum/core/store";
 
 import {
   materializeMermaidElements,

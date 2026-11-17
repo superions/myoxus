@@ -835,20 +835,19 @@ test.describe("Workspace Home dashboard arrangement", () => {
           .getByRole("button", { name: "Open tasks", exact: true })
           .click();
         await expect(
-          page.getByRole("radio", { name: "My tasks", exact: true }),
-        ).toBeChecked();
+          page.getByRole("button", { name: "My tasks", exact: true }),
+        ).toBeVisible();
         await expect(
-          page.getByRole("combobox", { name: "Task lifecycle", exact: true }),
-        ).toHaveValue("Open work");
+          page.getByRole("button", { name: "Open work", exact: true }),
+        ).toBeVisible();
+        expect(new URL(page.url()).searchParams.get("scope")).toBe("Mine");
+        expect(new URL(page.url()).searchParams.get("lifecycle")).toBe("Open");
         await page.goBack();
         await expect(section).toBeVisible();
         await section
           .getByRole("button", { name: "New task", exact: true })
           .click();
         const modal = page.getByTestId("task-creation-modal");
-        await modal
-          .getByRole("button", { name: "Destination", exact: true })
-          .click();
         await expect(modal.getByTestId("task-destination-select")).toHaveValue(
           "Workspace Tasks",
         );

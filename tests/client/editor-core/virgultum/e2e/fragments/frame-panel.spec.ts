@@ -21,7 +21,7 @@ test.describe("frame panel", () => {
     await mountFramePanelFixture(page);
     const frameCards = page.locator("myoxus-frame-card");
     await expect(frameCards).toHaveCount(0);
-    await expect(page.locator(".no-frame-placeholder")).toBeVisible();
+    await expect(page.getByTestId("frame-navigator-empty")).toBeVisible();
 
     await addNote(page, "hello", 150, 500);
 
@@ -102,7 +102,9 @@ test.describe("frame panel", () => {
       await switchEditorMode(page);
       await page.evaluate(async () => {
         const panel = document.querySelector("myoxus-frame-panel")!;
-        panel.host = window.editor.host;
+        const host = window.editor.host;
+        if (!host) throw new Error("Editor host is not mounted");
+        panel.host = host;
         await panel.updateComplete;
       });
       await checkNoteRect();
@@ -110,7 +112,9 @@ test.describe("frame panel", () => {
       await switchEditorMode(page);
       await page.evaluate(async () => {
         const panel = document.querySelector("myoxus-frame-panel")!;
-        panel.host = window.editor.host;
+        const host = window.editor.host;
+        if (!host) throw new Error("Editor host is not mounted");
+        panel.host = host;
         await panel.updateComplete;
       });
       await checkNoteRect();
@@ -125,13 +129,17 @@ test.describe("frame panel", () => {
       await switchEditorMode(page);
       await page.evaluate(async () => {
         const panel = document.querySelector("myoxus-frame-panel")!;
-        panel.host = window.editor.host;
+        const host = window.editor.host;
+        if (!host) throw new Error("Editor host is not mounted");
+        panel.host = host;
         await panel.updateComplete;
       });
       await switchEditorMode(page);
       await page.evaluate(async () => {
         const panel = document.querySelector("myoxus-frame-panel")!;
-        panel.host = window.editor.host;
+        const host = window.editor.host;
+        if (!host) throw new Error("Editor host is not mounted");
+        panel.host = host;
         await panel.updateComplete;
       });
 
@@ -209,9 +217,8 @@ test.describe("frame panel", () => {
       await frameCards.nth(0).click();
       await assertEdgelessNonSelectedRect(page);
       await frameCards.nth(0).click();
-      await page
-        .locator(".frame-panel-body")
-        .click({ position: { x: 5, y: 5 } });
+      // Native cards have no extra legacy padding; deselect on the canvas.
+      await page.mouse.click(0, 0);
       await assertEdgelessNonSelectedRect(page);
     });
   });

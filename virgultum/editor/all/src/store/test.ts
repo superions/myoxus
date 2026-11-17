@@ -1,1 +1,1 @@
-export * from "@virgultum/store/test";
+export * from "@virgultum/core/store/test";

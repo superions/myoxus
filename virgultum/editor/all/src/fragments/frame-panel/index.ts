@@ -1,1 +1,1 @@
-export * from "@virgultum/fragment-frame-panel";
+export * from "./frame-panel";

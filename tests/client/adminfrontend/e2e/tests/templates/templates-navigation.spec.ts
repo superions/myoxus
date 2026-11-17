@@ -214,12 +214,12 @@ test.describe("INV-TPL-E2E-04: Assignments tab workspace search", () => {
     await expect(searchInput).toBeVisible({ timeout: 5_000 });
 
     // Search button disabled when input is empty
-    const searchBtn = page.locator("button", { hasText: /search/i });
+    const searchBtn = page.getByRole("button", { name: "Search", exact: true });
     await expect(searchBtn).toBeVisible({ timeout: 5_000 });
     await expect(searchBtn).toBeDisabled();
   });
 
-  test("entering workspace ID enables search button", async ({
+  test("selecting an existing workspace enables search button", async ({
     page,
     context,
     request,
@@ -239,9 +239,10 @@ test.describe("INV-TPL-E2E-04: Assignments tab workspace search", () => {
     });
 
     const searchInput = page.locator('input[placeholder*="workspace" i]');
-    await searchInput.fill("00000000-0000-0000-0000-000000000001");
+    await searchInput.fill("Beta");
+    await page.getByRole("option", { name: /^Beta(?:\s|$)/ }).click();
 
-    const searchBtn = page.locator("button", { hasText: /search/i });
+    const searchBtn = page.getByRole("button", { name: "Search", exact: true });
     await expect(searchBtn).toBeEnabled({ timeout: 5_000 });
   });
 });
@@ -268,19 +269,10 @@ test.describe("INV-TPL-E2E-05: Jobs tab renders", () => {
       timeout: 8_000,
     });
 
-    // Wait for Suspense boundary to resolve — skeleton (aria-hidden divs) to
-    // be replaced by actual content.  Give the data fetch up to 8 seconds.
-    await page.waitForTimeout(500);
-    const emptyState = page.locator("text=No jobs recorded yet");
-    const tableBody = page.locator("tbody");
-    // Try up to 8 seconds for either to appear
-    const hasEmpty = await emptyState
-      .isVisible({ timeout: 8_000 })
-      .catch(() => false);
-    const hasTable = await tableBody
-      .isVisible({ timeout: 8_000 })
-      .catch(() => false);
-    expect(hasEmpty || hasTable).toBe(true);
+    const panel = page.getByRole("tabpanel", { name: "Jobs", exact: true });
+    const emptyState = panel.getByText("No jobs recorded yet", { exact: true });
+    const jobs = panel.getByRole("article").first();
+    await expect(emptyState.or(jobs)).toBeVisible({ timeout: 8_000 });
   });
 });
 

@@ -416,17 +416,55 @@ async fn load_public_document(
     .map(|context| myoxus_application::document_fields::output::current_snapshot(&doc.payload, context))
     .transpose()
     .map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+  let source = projected.as_deref().unwrap_or(&doc.payload);
+  let directory_payload = if yjs::document_index::inspect(source)
+    .map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?
+    .is_empty()
+  {
+    None
+  } else {
+    Some(
+      state
+        .workspace_overview_service()
+        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?
+        .public_directory_snapshot(
+          &service,
+          source,
+          workspace_id,
+          doc_id,
+          &state.config.server.origin,
+          &state.config.i18n.default_locale,
+        )
+        .await
+        .map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?,
+    )
+  };
+  let source = directory_payload.as_deref().unwrap_or(source);
+  let embed_output = state
+    .prepare_document_embeds(source, workspace_id, doc_id, None)
+    .await
+    .map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+  let embed_payload = embed_output
+    .as_ref()
+    .map(|prepared| prepared.apply(source, workspace_id, doc_id))
+    .transpose()
+    .map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
   let mut ir = document_from_yjs(
     workspace_id,
     doc_id,
     fallback_title,
     public_mode,
-    projected.as_deref().unwrap_or(&doc.payload),
+    embed_payload.as_deref().unwrap_or(source),
   )
   .map_err(|err| {
     warn!(%workspace_id, %doc_id, error = %err, outcome = "error", "public doc IR extraction failed");
     StatusCode::INTERNAL_SERVER_ERROR
   })?;
+  if let Some(prepared) = &embed_output {
+    for source in prepared.image_sources() {
+      apply_public_asset_url(&mut ir, source, source);
+    }
+  }
   let metadata_projection = if let Some(metadata) = field_context.as_ref().and_then(|context| context.metadata()) {
     metadata.clone()
   } else {
@@ -463,7 +501,12 @@ async fn load_public_document(
     Some(fields) => format!("{}\0{badge_projection}\0{fields}", allow.source_hash),
     None => format!("{}\0{badge_projection}", allow.source_hash),
   };
-  let artifact_source_hash = source_hash(artifact_input.as_bytes());
+  let artifact_source_hash = if directory_payload.is_some() || embed_payload.is_some() {
+    let directory_projection = serde_json::to_vec(&ir).map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+    source_hash(&[artifact_input.as_bytes(), &directory_projection].concat())
+  } else {
+    source_hash(artifact_input.as_bytes())
+  };
   let assets = materialize_public_assets(state, service, workspace_id, doc_id, &mut ir).await?;
   Ok(LoadedPublicDocument {
     ir,

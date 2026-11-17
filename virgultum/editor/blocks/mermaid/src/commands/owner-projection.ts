@@ -1,6 +1,6 @@
-import { getSurfaceBlock } from "@virgultum/block-surface";
-import type { MermaidBlockModel } from "@virgultum/model";
-import type { Command } from "@virgultum/std";
+import { getSurfaceBlock } from "@virgultum/canvas-runtime/surface";
+import type { MermaidBlockModel } from "@virgultum/core/models";
+import type { Command } from "@virgultum/core/runtime";
 import { resolveMermaidSourceLifecycle } from "../families/runtime/source-lifecycle.js";
 import {
   MermaidGfxThemeUnavailableError,

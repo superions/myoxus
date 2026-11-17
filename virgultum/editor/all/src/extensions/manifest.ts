@@ -45,11 +45,11 @@ export {
   FeatureManifestRegistryError,
   type FeatureScope,
   isDocMode,
-} from "@virgultum/ext-loader";
+} from "@virgultum/core/extensions";
 export {
   getModeSurfaceContractEntry,
   type MatrixRowId,
   MODE_SURFACE_CONTRACT,
   type ModeSurfaceContractEntry,
   validateManifestAgainstContract,
-} from "@virgultum/ext-loader/mode-surface-contract";
+} from "@virgultum/core/extensions/mode-surface-contract";

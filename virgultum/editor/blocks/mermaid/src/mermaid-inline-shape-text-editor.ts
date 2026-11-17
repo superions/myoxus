@@ -1,7 +1,7 @@
-import { Bound } from "@virgultum/global/gfx";
-import type { ShapeElementModel } from "@virgultum/model";
-import { getFontString, wrapText } from "@virgultum/gfx-text";
-import { RANGE_SYNC_EXCLUDE_ATTR } from "@virgultum/std/inline";
+import { Bound } from "@virgultum/core/primitives/gfx";
+import type { ShapeElementModel } from "@virgultum/core/models";
+import { getFontString, wrapText } from "@virgultum/canvas/gfx";
+import { RANGE_SYNC_EXCLUDE_ATTR } from "@virgultum/core/runtime/inline";
 import * as Y from "yjs";
 
 import { MERMAID_INLINE_NODE_EDITOR_CLASS } from "./mermaid-editor-events.js";

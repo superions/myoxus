@@ -10,7 +10,7 @@ import {
 import { render } from "lit";
 import { dedent } from "ts-dedent";
 import DOMPurify from "dompurify";
-import type { ShapeLabelProjection } from "@virgultum/model";
+import type { ShapeLabelProjection } from "@virgultum/core/models";
 
 // Explicit bundled resources, not aliases for unavailable Font Awesome/Iconify
 // packs. Unknown names remain authored Source and are diagnosed by the controls.

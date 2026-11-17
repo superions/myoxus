@@ -6,9 +6,9 @@ import {
   ParagraphBlockSchemaExtension,
   TableBlockSchemaExtension,
   type TableBlockModel,
-} from "@virgultum/model";
-import { Boxed, Text } from "@virgultum/store";
-import { TestWorkspace } from "@virgultum/store/test";
+} from "@virgultum/core/models";
+import { Boxed, Text } from "@virgultum/core/store";
+import { TestWorkspace } from "@virgultum/core/store/test";
 import type {
   DocumentField,
   MyoxusTextAttributes,

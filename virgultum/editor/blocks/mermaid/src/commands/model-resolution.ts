@@ -1,6 +1,6 @@
 import { parseMermaidVisualFamilyData } from "../families/runtime/gfx-family-data.js";
 import { readTypeOwnedMermaidSourceProjection } from "../families/runtime/gfx-owner-hooks.js";
-import type { MermaidBlockModel } from "@virgultum/model";
+import type { MermaidBlockModel } from "@virgultum/core/models";
 
 import { parseMermaidSourceToGfxVisualModel } from "../mermaid-gfx-graph-adapters.js";
 import { getMermaidBlockSource } from "../utils.js";

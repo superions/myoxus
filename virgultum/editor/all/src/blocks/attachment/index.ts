@@ -1,1 +1,15 @@
-export * from "@virgultum/block-attachment";
+export {
+  attachmentBlockMarkdownAdapterMatcher,
+  AttachmentBlockMarkdownAdapterExtension,
+  attachmentBlockNotionHtmlAdapterMatcher,
+  AttachmentBlockNotionHtmlAdapterExtension,
+  AttachmentBlockComponent,
+  AttachmentDropOption,
+  attachmentViewDropdownMenu,
+  EdgelessClipboardAttachmentConfig,
+  type AttachmentEmbedConfig,
+  AttachmentEmbedConfigIdentifier,
+  AttachmentEmbedProvider,
+  addAttachments,
+  addSiblingAttachmentBlocks,
+} from "@virgultum/embeds/blocks";

@@ -156,6 +156,8 @@ export function GanttTaskBar({
     event.stopPropagation();
     barRef.current?.focus();
     onSelect(task.id);
+    // Labels remain connection targets without starting a captured move gesture.
+    if (!readonly && (connecting || connectMode)) onConnectTarget(task.id);
   };
   const renameLabel = (event: MouseEvent) => {
     event.stopPropagation();

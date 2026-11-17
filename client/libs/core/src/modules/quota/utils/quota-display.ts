@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { formatByteSize } from "@virgultum/global/utils";
+import { formatByteSize } from "@virgultum/core/primitives/utils";
 
 const NEUTRAL_UNLIMITED_STORAGE_SENTINEL = Number.MAX_SAFE_INTEGER;
 const NEUTRAL_UNLIMITED_MEMBER_SENTINEL = 2_000_000_000;

@@ -2023,6 +2023,7 @@ pub struct DocumentMetadataState {
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct DocumentMetadataIndexRow {
+  pub responsible_user_id: Option<uuid::Uuid>,
   pub doc_id: uuid::Uuid,
   pub external_id: String,
   pub created_by: Option<uuid::Uuid>,

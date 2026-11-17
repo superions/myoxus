@@ -2,15 +2,15 @@
  * @vitest-environment happy-dom
  */
 
-import { PanTool } from "@virgultum/gfx-pointer";
-import { on } from "@virgultum/shared/utils";
-import type { PointerEventState } from "@virgultum/std";
+import { PanTool } from "@virgultum/editor/gfx/pointer";
+import { on } from "@virgultum/core/utils";
+import type { PointerEventState } from "@virgultum/core/runtime";
 import {
   type BaseTool,
   MouseButton,
   type ToolOptionWithType,
   type ToolType,
-} from "@virgultum/std/gfx";
+} from "@virgultum/core/runtime/gfx";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 type SelectionEntry = {
@@ -23,8 +23,8 @@ type SelectionEntry = {
 const pointerUpHandlers: unknown[] = [];
 const pointerUpDisposers: Array<ReturnType<typeof vi.fn>> = [];
 
-vi.mock("@virgultum/shared/utils", async () => {
-  const actual = await vi.importActual("@virgultum/shared/utils");
+vi.mock("@virgultum/core/utils", async () => {
+  const actual = await vi.importActual("@virgultum/core/utils");
 
   return {
     ...actual,

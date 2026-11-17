@@ -1,4 +1,4 @@
-import { Bound } from "@virgultum/global/gfx";
+import { Bound } from "@virgultum/core/primitives/gfx";
 
 import type { MermaidVisualEndpointPosition } from "./families/runtime/gfx-model.js";
 import type { MermaidGfxNodeConnectionPort } from "./families/runtime/gfx-family-hooks-contract.js";

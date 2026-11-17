@@ -2209,6 +2209,76 @@ mod tests {
   }
 
   #[tokio::test]
+  async fn copilot_tool_turns_preserve_provider_ids_after_reload_and_cancellation() {
+    use super::provider::{LlmRole, LlmToolCall};
+    let service = CopilotService::new(Arc::new(InMemoryCopilotRepository::default()));
+    let session = service
+      .create_session(Uuid::new_v4(), None, None, None, None, serde_json::json!({}))
+      .await
+      .unwrap();
+    let handle = service.start_message_stream(session.id).await.unwrap();
+    service
+      .append_stream_reasoning(handle.stream_id, "provider reasoning".into())
+      .await
+      .unwrap();
+    let call = LlmToolCall {
+      id: "opaque-provider-id".into(),
+      name: "read_doc".into(),
+      arguments: serde_json::json!({"external_id":"qa"}),
+    };
+    let first = service.append_stream_tool_call(handle.stream_id, &call).await.unwrap();
+    let first_id = Uuid::parse_str(first["toolCallId"].as_str().unwrap()).unwrap();
+    assert_ne!(first["toolCallId"], first["providerCallId"]);
+    service
+      .append_stream_tool_result(handle.stream_id, first_id, Ok(serde_json::json!({"title":"QA"})))
+      .await
+      .unwrap();
+    service
+      .append_stream_chunk(handle.stream_id, "Read QA".into())
+      .await
+      .unwrap();
+    // Opaque IDs may be reused in another model round; UI/receipt IDs may not.
+    let second = service.append_stream_tool_call(handle.stream_id, &call).await.unwrap();
+    assert_ne!(first["toolCallId"], second["toolCallId"]);
+    service
+      .finalize_stream(&handle, super::CopilotStreamOutcome::Canceled)
+      .await
+      .unwrap();
+    let messages = service.list_messages(session.id, 10, 0).await.unwrap();
+    let saved = &messages[0];
+    assert_eq!(saved.tool_calls.len(), 2);
+    assert_eq!(
+      saved.tool_calls[0].status,
+      myoxus_domain::entities::CopilotToolCallStatus::Completed
+    );
+    assert_eq!(
+      saved.tool_calls[1].status,
+      myoxus_domain::entities::CopilotToolCallStatus::Failed
+    );
+    assert_eq!(
+      saved.content["streamObjects"].as_array().unwrap().last().unwrap()["result"]["type"],
+      "error"
+    );
+    let turns = super::context_prompt::assemble_chat_messages(&messages, None, None, None, HashMap::new());
+    assert_eq!(
+      turns.iter().map(|message| message.role.clone()).collect::<Vec<_>>(),
+      vec![
+        LlmRole::System,
+        LlmRole::Assistant,
+        LlmRole::Tool,
+        LlmRole::Assistant,
+        LlmRole::Tool
+      ]
+    );
+    assert_eq!(turns[1].tool_calls[0].id, call.id);
+    assert_eq!(turns[1].reasoning.as_deref(), Some("provider reasoning"));
+    assert_eq!(turns[2].tool_call_id.as_deref(), Some(call.id.as_str()));
+    assert_eq!(turns[2].content.as_text(), Some(r#"{"title":"QA"}"#));
+    assert_eq!(turns[3].tool_calls[0].id, call.id);
+    assert_eq!(turns[4].tool_call_id.as_deref(), Some(call.id.as_str()));
+  }
+
+  #[tokio::test]
   async fn copilot_active_snapshot_and_chunk_retry_are_idempotent() {
     let service = CopilotService::new(Arc::new(InMemoryCopilotRepository::default()));
     let user_id = Uuid::new_v4();

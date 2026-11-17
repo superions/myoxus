@@ -1,1 +1,1 @@
-export * from "@virgultum/components/icons";
+export * from "@virgultum/core/view/icons";

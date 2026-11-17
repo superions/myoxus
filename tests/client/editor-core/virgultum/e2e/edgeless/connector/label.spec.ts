@@ -95,8 +95,9 @@ test.describe("connector label with straight shape", () => {
     const menu = page.locator("edgeless-connector-menu");
     await expect(menu).toBeVisible();
 
-    const straightBtn = menu.locator("edgeless-tool-icon-button", {
-      hasText: "Straight",
+    const straightBtn = menu.getByRole("button", {
+      name: "Straight",
+      exact: true,
     });
     await expect(straightBtn).toBeVisible();
     await straightBtn.click();
@@ -144,8 +145,9 @@ test.describe("connector label with straight shape", () => {
 
     await dragBetweenViewCoords(page, [140, 40], [160, 60]);
     await triggerComponentToolbarAction(page, "changeConnectorShape");
-    const straightBtn = locatorComponentToolbar(page).getByRole("button", {
+    const straightBtn = page.getByRole("option", {
       name: "Straight",
+      exact: true,
     });
     await straightBtn.click();
 
@@ -252,8 +254,9 @@ test.describe("connector label with straight shape", () => {
 
     await dragBetweenViewCoords(page, [140, 40], [160, 60]);
     await triggerComponentToolbarAction(page, "changeConnectorShape");
-    const straightBtn = locatorComponentToolbar(page).getByRole("button", {
+    const straightBtn = page.getByRole("option", {
       name: "Straight",
+      exact: true,
     });
     await straightBtn.click();
 

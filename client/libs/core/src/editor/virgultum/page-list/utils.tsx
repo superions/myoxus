@@ -1,14 +1,11 @@
-import { getStoreManager } from "@myoxus/core/editor/manager/store";
 import { DocsService } from "@myoxus/core/modules/doc";
 import { WorkbenchService } from "@myoxus/core/modules/workbench";
-import { getMyoxusWorkspaceSchema } from "@myoxus/core/modules/workspace";
 import { useServices } from "@myoxus/infra";
-import { notify } from "@myoxus/ui-facade";
 import { type DocMode } from "@virgultum/editor/model";
 import type { Workspace } from "@virgultum/editor/store";
 import { useCallback, useMemo } from "react";
 
-export const usePageHelper = (docCollection: Workspace) => {
+export const usePageHelper = (_docCollection: Workspace) => {
   const { docsService, workbenchService } = useServices({
     DocsService,
     WorkbenchService,
@@ -54,51 +51,6 @@ export const usePageHelper = (docCollection: Workspace) => {
     [createPageAndOpen],
   );
 
-  const importFileAndOpen = useMemo(
-    () => async () => {
-      const { showImportModal } =
-        await import("@virgultum/editor/widgets/linked-doc");
-      const { promise, resolve, reject } =
-        Promise.withResolvers<
-          Parameters<
-            NonNullable<Parameters<typeof showImportModal>[0]["onSuccess"]>
-          >[1]
-        >();
-      const onSuccess = (
-        pageIds: string[],
-        options: { isWorkspaceFile: boolean; importedCount: number },
-      ) => {
-        resolve(options);
-        notify({
-          title: `Successfully imported ${options.importedCount} Page${
-            options.importedCount > 1 ? "s" : ""
-          }.`,
-        });
-        if (options.isWorkspaceFile) {
-          workbench.openAll();
-          return;
-        }
-
-        if (pageIds.length === 0) {
-          return;
-        }
-        const pageId = pageIds[0];
-        workbench.openDoc(pageId);
-      };
-      showImportModal({
-        collection: docCollection,
-        schema: getMyoxusWorkspaceSchema(),
-        extensions: getStoreManager().config.init().value.get("store"),
-        onSuccess,
-        onFail: (message) => {
-          reject(new Error(message));
-        },
-      });
-      return await promise;
-    },
-    [docCollection, workbench],
-  );
-
   return useMemo(() => {
     return {
       createPage: (
@@ -109,7 +61,6 @@ export const usePageHelper = (docCollection: Workspace) => {
         },
       ) => createPageAndOpen(mode, options),
       createEdgeless: createEdgelessAndOpen,
-      importFile: importFileAndOpen,
     };
-  }, [createEdgelessAndOpen, createPageAndOpen, importFileAndOpen]);
+  }, [createEdgelessAndOpen, createPageAndOpen]);
 };

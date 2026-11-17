@@ -671,7 +671,7 @@ fn public_html_rejects_javascript_links_and_keeps_external_rel() {
 
 #[test]
 fn public_html_uses_public_asset_urls() {
-  let ir = PublicDocIr {
+  let mut ir = PublicDocIr {
     native_fields: Vec::new(),
     native_children: Default::default(),
     native_tables: Default::default(),
@@ -699,6 +699,17 @@ fn public_html_uses_public_asset_urls() {
   let html = render_document_html(&renderer(), &ir, &options()).expect("render").html;
   assert!(html.contains("/public-assets/ws/doc/hash/blob.png"));
   assert!(!html.contains("private/blob.png"));
+  let source = "data:image/png;base64,AA==";
+  let Block::Image { asset, .. } = &mut ir.document.blocks[0] else {
+    unreachable!()
+  };
+  asset.source = source.into();
+  asset.public_url = None;
+  let unbound = render_document_html(&renderer(), &ir, &options()).unwrap().html;
+  assert!(unbound.contains("public-asset-placeholder") && !unbound.contains("data:image/"));
+  apply_public_asset_url(&mut ir, source, source);
+  let admitted = render_document_html(&renderer(), &ir, &options()).unwrap().html;
+  assert!(admitted.contains("<img src=\"data:image/png;base64,AA==\""));
 }
 
 #[test]

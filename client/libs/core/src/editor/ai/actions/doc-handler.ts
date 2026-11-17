@@ -279,6 +279,7 @@ export function handleInlineAskAIAction(
   setTimeout(() => {
     abortController = new AbortController();
     actionPanel = createLitPortal({
+      shadowDom: false,
       template: html`
         <ask-ai-panel
           .host=${host}

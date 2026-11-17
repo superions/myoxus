@@ -1,1 +1,1 @@
-export * from "@virgultum/global/utils";
+export * from "@virgultum/core/primitives/utils";

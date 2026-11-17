@@ -1,1 +1,1 @@
-export * from "@virgultum/fragment-doc-title";
+export { DocTitle, getDocTitleByEditorHost } from "@virgultum/content/title";

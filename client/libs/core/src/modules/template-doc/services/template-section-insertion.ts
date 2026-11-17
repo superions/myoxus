@@ -25,6 +25,7 @@ import type { RegionalFormatPreferences } from "../../i18n";
 import { FeatureFlagService } from "../../feature-flag";
 import { GuardService } from "../../permissions";
 import { WorkspaceService, WorkspacesService } from "../../workspace";
+import { BuiltinTemplateReconcilerService } from "./builtin-reconciler";
 import { TemplateDocService } from "./template-doc";
 import {
   TemplateInstantiationError,
@@ -46,8 +47,50 @@ export class TemplateSectionInsertionService extends Service {
     private readonly workspaceService: WorkspaceService,
     private readonly featureFlags: FeatureFlagService,
     private readonly workspaces: WorkspacesService,
+    private readonly builtins: BuiltinTemplateReconcilerService,
   ) {
     super();
+  }
+
+  /** Named commands resolve a delivered source, then use the same native writer
+   * and revision fence as the Library picker. They never synthesize block bodies.
+   */
+  async insertNamed(
+    slug: string,
+    target: BuildingBlockTarget,
+    preferences: RegionalFormatPreferences,
+    signal: AbortSignal,
+    onCommitted: () => void,
+  ) {
+    resolveBuildingBlockTarget(target);
+    const sourceDocId =
+      this.workspaceService.workspace.flavour === "local"
+        ? (await this.builtins.ensureBuiltinTemplatesSeeded([slug]))[slug]
+        : (
+            await this.templates.lookupNamedBuildingBlock(
+              slug,
+              preferences.locale,
+            )
+          )?.templateDocId;
+    if (!sourceDocId)
+      throw new TemplateInstantiationError("source-unavailable");
+    const source = this.docs.open(sourceDocId, { readonly: true });
+    if (!source) throw new TemplateInstantiationError("source-unavailable");
+    let revision: Uint8Array;
+    try {
+      await source.doc.waitForSyncReady(signal);
+      revision = encodeStateAsUpdate(source.doc.yDoc);
+    } finally {
+      source.release();
+    }
+    await this.insert(
+      sourceDocId,
+      revision,
+      target,
+      preferences,
+      signal,
+      onCommitted,
+    );
   }
 
   /** Preparation is fallible and read-only to live documents. The final native

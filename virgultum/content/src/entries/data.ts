@@ -1,0 +1,17 @@
+export {
+  TableBlockAdapterExtensions,
+  tableBlockHtmlAdapterMatcher,
+  TableBlockHtmlAdapterExtension,
+  tableBlockMarkdownAdapterMatcher,
+  TableBlockMarkdownAdapterExtension,
+  tableBlockNotionHtmlAdapterMatcher,
+  TableBlockNotionHtmlAdapterExtension,
+  tableBlockPlainTextAdapterMatcher,
+  TableBlockPlainTextAdapterExtension,
+  insertTableBlockCommand,
+  type TableAreaSelection,
+  TableSelectionData,
+  TableSelection,
+  TableSelectionExtension,
+  TableDataManager,
+} from "../blocks/table/index";

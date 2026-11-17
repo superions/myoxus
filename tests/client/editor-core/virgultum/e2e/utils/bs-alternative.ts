@@ -5,7 +5,7 @@ export {
   NOTE_MIN_HEIGHT,
   DEFAULT_NOTE_WIDTH,
   DEFAULT_NOTE_HEIGHT,
-} from "../../../../../../virgultum/editor/model/src/consts/note.js";
+} from "../../../../../../virgultum/core/src/models/consts/note.js";
 
 export enum NoteDisplayMode {
   DocAndEdgeless = "both",

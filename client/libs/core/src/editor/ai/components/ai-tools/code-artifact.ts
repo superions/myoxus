@@ -1,19 +1,11 @@
-import {
-  CodeBlockIcon,
-  CopyIcon,
-  DownloadIcon,
-  PageIcon,
-  ToolIcon,
-} from "@myoxus/icons/lit";
+import { createElement } from "react";
+import { ToolIcon as NativeToolIcon } from "@myoxus/icons/react";
+import { renderToolFailedCard } from "./tool-cards";
+import { CodeBlockIcon } from "@myoxus/icons/react";
 import { effect, type Signal, signal } from "@preact/signals-core";
 import { CodeBlockHighlighter } from "@virgultum/editor/blocks/code";
 import { SignalWatcher, WithDisposable } from "@virgultum/editor/global/lit";
-import type { ColorScheme } from "@virgultum/editor/model";
-import {
-  fontMonoStyle,
-  fontSMStyle,
-  fontXSStyle,
-} from "@virgultum/editor/shared/styles";
+import { fontMonoStyle } from "@virgultum/editor/shared/styles";
 import { unsafeCSSValue, unsafeCSSVar } from "@virgultum/editor/shared/theme";
 import { type BlockStdScope } from "@virgultum/editor/std";
 import {
@@ -22,17 +14,23 @@ import {
   type SliceSnapshot,
   Text,
 } from "@virgultum/editor/store";
-import type { NotificationService } from "@virgultum/shared/services";
-import { css, html, LitElement, nothing } from "lit";
+import type { NotificationService } from "@virgultum/core/services";
+import { css, html, LitElement, nothing, type PropertyValues } from "lit";
 import { property, state } from "lit/decorators.js";
-import { classMap } from "lit/directives/class-map.js";
+import { keyed } from "lit/directives/keyed.js";
 import {
   bundledLanguagesInfo,
   type ThemedToken,
-} from "@virgultum/components/syntax-highlighter";
+} from "@virgultum/content/syntax-highlighter";
 
-import { preprocessHtml } from "../../utils/html";
+import { renderCodePreviewStatus } from "../../../view-extensions/code-block-preview/status-view";
+import {
+  EditorChromeHostIdentifier,
+  type EditorCodePreviewStatus,
+} from "@virgultum/editor/shared/services";
+
 import { ArtifactTool } from "./artifact-tool";
+import { CodeArtifactControls } from "./artifact-view";
 import type { ToolError } from "./type";
 
 interface CodeArtifactToolCall {
@@ -132,6 +130,13 @@ export class CodeHighlighter extends SignalWatcher(WithDisposable(LitElement)) {
     return this.std.get(CodeBlockHighlighter);
   }
 
+  private cancelHighlight: (() => void) | undefined;
+
+  private readonly refreshHighlight = () => {
+    this.cancelHighlight?.();
+    this.cancelHighlight = this._updateHighlightTokens();
+  };
+
   override connectedCallback() {
     super.connectedCallback();
 
@@ -140,7 +145,8 @@ export class CodeHighlighter extends SignalWatcher(WithDisposable(LitElement)) {
     // recompute highlight when code / language changes
     this.disposables.add(
       effect(() => {
-        return this._updateHighlightTokens();
+        this.refreshHighlight();
+        return () => this.cancelHighlight?.();
       }),
     );
   }
@@ -148,26 +154,47 @@ export class CodeHighlighter extends SignalWatcher(WithDisposable(LitElement)) {
   override disconnectedCallback() {
     super.disconnectedCallback();
     this.highlighter.unmounted();
+    this.highlightTokens.value = [];
+  }
+
+  protected override updated(changed: PropertyValues<this>) {
+    super.updated(changed);
+    if (changed.has("code") || changed.has("language")) this.refreshHighlight();
   }
 
   private _updateHighlightTokens() {
     let cancelled = false;
     const language = this.language;
+    const code = this.code;
     const highlighter = this.highlighter.highlighter$.value;
 
     if (!highlighter) return;
 
+    let idle: number | undefined;
     const updateTokens = () => {
       if (cancelled) return;
-      requestIdleCallback(() => {
-        this.highlightTokens.value = highlighter.codeToTokensBase(this.code, {
+      idle = requestIdleCallback(() => {
+        if (cancelled || !this.isConnected) return;
+        this.highlightTokens.value = highlighter.codeToTokensBase(code, {
           lang: language,
           theme: this.highlighter.themeKey,
         });
       });
     };
 
-    const loadedLanguages = highlighter.getLoadedLanguages();
+    let loadedLanguages: string[];
+    try {
+      loadedLanguages = highlighter.getLoadedLanguages();
+    } catch (error) {
+      // The shared service retains its last signal while a new mount loads.
+      // Reopening must wait for the new instance rather than use a disposed one.
+      if (
+        error instanceof Error &&
+        error.message.includes("Shiki instance has been disposed")
+      )
+        return;
+      throw error;
+    }
     if (!loadedLanguages.includes(language)) {
       const matchedInfo = bundledLanguagesInfo.find(
         (info) =>
@@ -190,6 +217,7 @@ export class CodeHighlighter extends SignalWatcher(WithDisposable(LitElement)) {
 
     return () => {
       cancelled = true;
+      if (idle !== undefined) cancelIdleCallback(idle);
     };
   }
 
@@ -244,83 +272,14 @@ export class CodeHighlighter extends SignalWatcher(WithDisposable(LitElement)) {
   }
 }
 
-// The banner is a product illustration, so its visible fills must follow the
-// same runtime theme variables as the surrounding tool card chrome.
-const CodeBlockBanner = html`<svg
-  width="204"
-  height="102"
-  viewBox="0 0 204 102"
-  fill="none"
-  xmlns="http://www.w3.org/2000/svg"
->
-  <g clip-path="url(#clip0_3371_100809)">
-    <g filter="url(#filter0_d_3371_100809)">
-      <rect
-        x="53.5054"
-        width="111.999"
-        height="99.5543"
-        rx="12.4443"
-        transform="rotate(8.37805 53.5054 0)"
-        fill="var(--myoxus-background-primary-color)"
-      />
-    </g>
-    <path
-      d="M89.7547 40.6581C90.8629 39.8345 92.4285 40.065 93.2522 41.1732C94.0758 42.2813 93.8452 43.847 92.7371 44.6706L79.7618 54.3146L89.4058 67.2899L89.5482 67.5024C90.1977 68.5905 89.9295 70.0161 88.8906 70.7883C87.8516 71.56 86.4104 71.4044 85.5558 70.4689L85.3932 70.2732L74.2581 55.2907C73.4345 54.1826 73.6653 52.617 74.7732 51.7933L89.7547 40.6581ZM114.378 44.2845C115.486 43.4608 117.052 43.6914 117.875 44.7996L129.011 59.7812C129.834 60.8892 129.604 62.4551 128.496 63.2787L113.514 74.4147L113.301 74.5552C112.213 75.2046 110.789 74.9382 110.016 73.8996C109.244 72.8606 109.399 71.4184 110.335 70.5637L110.531 70.4012L123.507 60.7572L113.863 47.7819C113.039 46.6738 113.27 45.1081 114.378 44.2845Z"
-      fill="var(--myoxus-icon-secondary)"
-    />
-  </g>
-  <defs>
-    <filter
-      id="filter0_d_3371_100809"
-      x="35.6787"
-      y="-3.32129"
-      width="131.951"
-      height="121.453"
-      filterUnits="userSpaceOnUse"
-      color-interpolation-filters="sRGB"
-    >
-      <feFlood flood-opacity="0" result="BackgroundImageFix" />
-      <feColorMatrix
-        in="SourceAlpha"
-        type="matrix"
-        values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"
-        result="hardAlpha"
-      />
-      <feOffset />
-      <feGaussianBlur stdDeviation="2.5" />
-      <feComposite in2="hardAlpha" operator="out" />
-      <feColorMatrix
-        type="matrix"
-        values="0 0 0 0 0.258824 0 0 0 0 0.254902 0 0 0 0 0.286275 0 0 0 0.17 0"
-      />
-      <feBlend
-        mode="normal"
-        in2="BackgroundImageFix"
-        result="effect1_dropShadow_3371_100809"
-      />
-      <feBlend
-        mode="normal"
-        in="SourceGraphic"
-        in2="effect1_dropShadow_3371_100809"
-        result="shape"
-      />
-    </filter>
-    <clipPath id="clip0_3371_100809">
-      <rect
-        width="204"
-        height="102"
-        fill="var(--myoxus-background-primary-color)"
-      />
-    </clipPath>
-  </defs>
-</svg>`;
-
 /**
  * Component to render code artifact tool call/result inside chat.
  */
 export class CodeArtifactTool extends ArtifactTool<
   CodeArtifactToolCall | CodeArtifactToolResult
 > {
+  // Renderer viewport geometry: the sandbox and highlighter fill the panel's
+  // bounded content area; ordinary controls are rendered by the native view.
   static override styles = css`
     .code-artifact-preview {
       overflow: hidden;
@@ -344,76 +303,7 @@ export class CodeArtifactTool extends ArtifactTool<
     .code-artifact-preview :is(.html-preview-iframe, .html-preview-container) {
       height: 100%;
     }
-
-    .code-artifact-control-btn {
-      background: transparent;
-      border-radius: ${unsafeCSSValue("var(--mantine-radius-lg)")};
-      border: ${unsafeCSSValue("calc(var(--mantine-scale) * 1px)")} solid
-        ${unsafeCSSVar("black10")};
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: ${unsafeCSSValue("var(--mantine-spacing-xs)")};
-      padding: 0 ${unsafeCSSValue("var(--mantine-spacing-sm)")};
-      height: ${unsafeCSSValue(
-        "calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-2xs))",
-      )};
-    }
-
-    ${fontSMStyle(".code-artifact-control-btn")}
-
-    .code-artifact-control-btn svg {
-      width: ${unsafeCSSValue(
-        "calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))",
-      )};
-      height: ${unsafeCSSValue(
-        "calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))",
-      )};
-      color: ${unsafeCSSVar("iconColor")};
-    }
-
-    .code-artifact-control-btn:hover {
-      background: ${unsafeCSSVar("hoverColor")};
-    }
-
-    .code-artifact-toggle-container {
-      display: flex;
-      padding: ${unsafeCSSValue("var(--mantine-spacing-2xs)")};
-      align-items: flex-start;
-      gap: ${unsafeCSSValue("var(--mantine-spacing-xs)")};
-      border-radius: ${unsafeCSSValue("var(--mantine-radius-sm)")};
-      background: ${unsafeCSSVar("hoverColor")};
-    }
-
-    .code-artifact-toggle-container .toggle-button {
-      display: flex;
-      padding: 0 ${unsafeCSSValue("var(--mantine-spacing-xs)")};
-      justify-content: center;
-      align-items: center;
-      gap: ${unsafeCSSValue("var(--mantine-spacing-xs)")};
-      border-radius: ${unsafeCSSValue("var(--mantine-radius-sm)")};
-      color: ${unsafeCSSVar("textPrimaryColor")};
-      cursor: pointer;
-    }
-
-    ${fontXSStyle(".code-artifact-toggle-container .toggle-button")}
-
-    .code-artifact-toggle-container .toggle-button:hover {
-      background: ${unsafeCSSVar("hoverColor")};
-    }
-
-    .code-artifact-toggle-container .toggle-button.active {
-      background: ${unsafeCSSVar("backgroundPrimaryColor")};
-      box-shadow: var(--mantine-shadow-xs);
-    }
-
-    .code-artifact-control-spacer {
-      flex: 1;
-    }
   `;
-
-  @property({ attribute: false })
-  accessor std: BlockStdScope | undefined;
 
   @property({ attribute: false })
   accessor notificationService!: NotificationService;
@@ -423,19 +313,14 @@ export class CodeArtifactTool extends ArtifactTool<
 
   /* ---------------- ArtifactTool hooks ---------------- */
 
-  protected getBanner(_theme: ColorScheme) {
-    return CodeBlockBanner;
-  }
-
   protected getCardMeta() {
     return {
       title: this.data.args.title,
-      className: "code-artifact-result",
     };
   }
 
   protected override getIcon() {
-    return CodeBlockIcon();
+    return createElement(CodeBlockIcon);
   }
 
   protected override getPreviewContent() {
@@ -447,17 +332,36 @@ export class CodeArtifactTool extends ArtifactTool<
     if (typeof result !== "object" || !("html" in result)) return html``;
 
     const { html: htmlContent } = result as { html: string };
+    const reactToLit = this.reactToLit;
+    const renderStatus =
+      this.std?.getOptional(EditorChromeHostIdentifier)
+        ?.renderCodePreviewStatus ??
+      (reactToLit
+        ? (status: EditorCodePreviewStatus) =>
+            renderCodePreviewStatus(reactToLit, status)
+        : undefined);
 
     return html`<div class="code-artifact-preview">
       ${
         this.mode === "preview"
-          ? html`<html-preview .html=${htmlContent}></html-preview>`
-          : html`<code-highlighter
-              .std=${this.std}
-              .code=${htmlContent}
-              .language=${"html"}
-              .showLineNumbers=${true}
-            ></code-highlighter>`
+          ? html`<html-preview
+              .html=${htmlContent}
+              .renderStatus=${renderStatus}
+            ></html-preview>`
+          : this.std
+            ? // A renderer's mount, signal subscription and unmount belong to
+              // one scope. Replace it before binding another scope, and wait
+              // through missing bindings rather than mounting without a service.
+              keyed(
+                this.std,
+                html`<code-highlighter
+                  .std=${this.std}
+                  .code=${htmlContent}
+                  .language=${"html"}
+                  .showLineNumbers=${true}
+                ></code-highlighter>`,
+              )
+            : nothing
       }
     </div>`;
   }
@@ -471,11 +375,13 @@ export class CodeArtifactTool extends ArtifactTool<
       return undefined;
     }
 
-    const result = this.data.result as { html: string; title: string };
+    const result = this.data.result;
+    if (!("html" in result)) return undefined;
     const htmlContent = result.html;
     const title = result.title;
 
     const copyHTML = async () => {
+      if (!this.isConnected) return;
       const codeBlock: BlockSnapshot = {
         type: "block",
         id: nanoid(),
@@ -513,6 +419,7 @@ export class CodeArtifactTool extends ArtifactTool<
     };
 
     const downloadHTML = () => {
+      if (!this.isConnected) return;
       try {
         const blob = new Blob([htmlContent], { type: "text/html" });
         const url = URL.createObjectURL(blob);
@@ -531,14 +438,21 @@ export class CodeArtifactTool extends ArtifactTool<
     const insertHtmlBlockToEnd = () => {
       try {
         const store = this.std?.store;
-        if (!store) return;
+        if (
+          !this.isConnected ||
+          this.independentMode ||
+          !store ||
+          store.readonly$.value
+        )
+          return;
         const notes = store.getBlocksByFlavour("myoxus:note");
         const parentId = notes.length > 0 ? notes[0].id : store.root?.id;
         if (!parentId) return;
-        const html = preprocessHtml(htmlContent);
+        // A tool result already contains authored HTML, not a model answer to
+        // trim. Preserve the same bytes used by preview, copy and download.
         store.addBlock(
           "myoxus:code",
-          { text: new Text(html), language: "html", preview: true },
+          { text: new Text(htmlContent), language: "html", preview: true },
           parentId,
         );
         this.notificationService.toast("Inserted to current doc");
@@ -547,75 +461,35 @@ export class CodeArtifactTool extends ArtifactTool<
       }
     };
 
-    const setCodeMode = () => {
-      if (this.mode !== "code") {
-        this.mode = "code";
-        this.refreshPreviewPanel();
-      }
-    };
-
-    const setPreviewMode = () => {
-      if (this.mode !== "preview") {
-        this.mode = "preview";
-        this.refreshPreviewPanel();
-      }
-    };
-
-    return html`
-      <div class="code-artifact-toggle-container">
-        <div
-          class=${classMap({
-            "toggle-button": true,
-            active: this.mode === "code",
-          })}
-          @click=${setCodeMode}
-        >
-          Code
-        </div>
-        <div
-          class=${classMap({
-            "toggle-button": true,
-            active: this.mode === "preview",
-          })}
-          @click=${setPreviewMode}
-        >
-          Preview
-        </div>
-      </div>
-      <div class="code-artifact-control-spacer"></div>
-      <button class="code-artifact-control-btn" @click=${insertHtmlBlockToEnd}>
-        ${PageIcon({
-          width: "calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))",
-          height: "calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))",
-        })}
-        Insert
-      </button>
-      <icon-button @click=${downloadHTML} title="Download HTML">
-        ${DownloadIcon({
-          width: "calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))",
-          height: "calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))",
-        })}
-      </icon-button>
-      <icon-button @click=${copyHTML} title="Copy HTML">
-        ${CopyIcon({
-          width: "calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))",
-          height: "calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))",
-        })}
-      </icon-button>
-    `;
+    return createElement(CodeArtifactControls, {
+      mode: this.mode,
+      setMode: (mode) => {
+        if (this.mode !== mode) {
+          this.mode = mode;
+        }
+      },
+      copy: () => void copyHTML().catch(console.error),
+      download: downloadHTML,
+      // Main's service scope borrows an arbitrary workspace document; it is not
+      // an explicit insertion target. Only a document-bound consumer can insert.
+      insert:
+        this.independentMode || this.std.store.readonly$.value
+          ? undefined
+          : insertHtmlBlockToEnd,
+    });
   }
 
   protected override getErrorTemplate() {
     if (
       this.data.type === "tool-result" &&
       this.data.result &&
-      (this.data.result as any).type === "error"
+      "type" in this.data.result &&
+      this.data.result.type === "error"
     ) {
-      return html`<tool-call-failed
-        .reactToLit=${this.reactToLit}
-        .name=${"Code artifact failed"}
-        .icon=${ToolIcon()}
-      ></tool-call-failed>`;
+      return renderToolFailedCard(this.reactToLit, {
+        name: "Code artifact failed",
+        icon: createElement(NativeToolIcon),
+      });
     }
     return null;
   }

@@ -25,6 +25,34 @@ use crate::doc::DocCachePort;
 use crate::document_metadata::DocumentMetadataService;
 use crate::document_version::{DocumentVersionCreateRequest, DocumentVersionCreateService, DocumentVersionHistoryPort};
 
+/// Resolve display-only identities for already admitted index rows in one read.
+/// Retained/deleted profiles keep AuthStore's existing privacy semantics.
+#[instrument(skip_all)]
+pub async fn index_identity_labels(
+  auth: &dyn crate::auth::AuthStore,
+  rows: &[DocumentMetadataIndexRow],
+) -> crate::auth::AuthResult<BTreeMap<Uuid, String>> {
+  let ids = rows
+    .iter()
+    .flat_map(|row| [row.created_by, row.responsible_user_id])
+    .flatten()
+    .collect::<BTreeSet<_>>()
+    .into_iter()
+    .collect::<Vec<_>>();
+  let profiles = auth.get_historical_profiles(&ids).await?;
+  Ok(
+    profiles
+      .into_iter()
+      .filter_map(|(id, profile)| {
+        profile
+          .name
+          .or_else(|| (!profile.email.is_empty()).then_some(profile.email))
+          .map(|name| (id, name))
+      })
+      .collect(),
+  )
+}
+
 #[derive(Debug, Error)]
 pub enum DocumentMetadataPolicyServiceError {
   #[error(transparent)]

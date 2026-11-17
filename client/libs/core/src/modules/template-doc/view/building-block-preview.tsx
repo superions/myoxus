@@ -4,8 +4,8 @@ import { ErrorBoundary } from "@sentry/react";
 import { useI18n } from "@myoxus/i18n";
 import { FrameworkScope, useLiveData, useService } from "@myoxus/infra";
 import { Button, Group, Loading, SettingsNotice } from "@myoxus/ui-facade";
-import { DisposableGroup } from "@virgultum/global/disposable";
-import type { Store } from "@virgultum/store";
+import { DisposableGroup } from "@virgultum/core/primitives/disposable";
+import type { Store } from "@virgultum/core/store";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Transaction } from "yjs";
 

@@ -1,4 +1,4 @@
-import type { BlockSnapshot, SliceSnapshot } from "@virgultum/store";
+import type { BlockSnapshot, SliceSnapshot } from "@virgultum/core/store";
 
 export function nanoidReplacement(snapshot: BlockSnapshot | SliceSnapshot) {
   return JSON.parse(nanoidReplacementString(JSON.stringify(snapshot)));

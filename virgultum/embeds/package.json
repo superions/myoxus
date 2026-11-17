@@ -1,0 +1,52 @@
+{
+  "name": "@virgultum/embeds",
+  "description": "Virgultum resource, embed and reference controllers.",
+  "type": "module",
+  "scripts": {
+    "build": "yarn --cwd \"$PROJECT_CWD\" exec tsc -p \"$PROJECT_CWD/virgultum/embeds/tsconfig.json\" --noEmit && yarn --cwd \"$PROJECT_CWD\" exec tsc -p \"$PROJECT_CWD/virgultum/embeds/tsconfig.data.json\" --noEmit"
+  },
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "author": "Myoxus Contributors",
+  "license": "AGPL-3.0-or-later AND MIT",
+  "dependencies": {
+    "@floating-ui/dom": "^1.6.13",
+    "@lit/context": "^1.1.6",
+    "@myoxus/icons": "workspace:*",
+    "@myoxus/theme": "workspace:*",
+    "@preact/signals-core": "^1.14.5",
+    "@types/lodash-es": "^4.17.12",
+    "@types/mdast": "^4.0.4",
+    "@virgultum/canvas-runtime": "workspace:*",
+    "@virgultum/content": "workspace:*",
+    "@virgultum/core": "workspace:*",
+    "file-type": "22.1.1",
+    "lit": "^3.3.3",
+    "lodash-es": "4.18.1",
+    "rxjs": "^7.8.2",
+    "yjs": "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "vitest": "4.1.11"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./blocks": "./src/entries/blocks.ts",
+    "./store": "./src/entries/store.ts",
+    "./view": "./src/entries/view.ts",
+    "./manifests": "./src/entries/manifests.ts",
+    "./painters/image": "./src/image/turbo/image-painter.worker.ts",
+    "./painters/note": "./src/note/turbo/note-painter.worker.ts",
+    "./data": "./src/database/reference-store.ts",
+    "./card-session": "./src/card-session/index.ts"
+  },
+  "files": [
+    "src",
+    "dist",
+    "!src/**/__tests__",
+    "!dist/**/__tests__"
+  ],
+  "version": "0.41.5"
+}

@@ -160,12 +160,12 @@ pub(super) async fn authorize_fragment(
 async fn visible_members(
   members: HashSet<Uuid>,
   workspace_id: Uuid,
-  auth: &McpAuthContext,
+  user_id: Uuid,
   state: &McpToolState,
 ) -> HashSet<Uuid> {
   let mut visible = HashSet::new();
   if members.is_empty()
-    || assert_workspace_permission(state, auth.user_id, workspace_id, WorkspaceAction::UsersRead)
+    || assert_workspace_permission(state, user_id, workspace_id, WorkspaceAction::UsersRead)
       .await
       .is_err()
   {
@@ -192,7 +192,7 @@ pub(super) async fn private_blocks(
   state: &McpToolState,
 ) -> Value {
   let mut blocks = serde_json::json!(readback.serialized_blocks());
-  redact_mentions(&mut blocks, workspace_id, auth, state).await;
+  redact_mentions(&mut blocks, workspace_id, auth.user_id, state).await;
   blocks
 }
 
@@ -236,7 +236,7 @@ fn visit_spans(value: &mut Value, visit: &mut impl FnMut(&mut serde_json::Map<St
 pub(super) async fn redact_mentions(
   value: &mut Value,
   workspace_id: Uuid,
-  auth: &McpAuthContext,
+  user_id: Uuid,
   state: &McpToolState,
 ) -> bool {
   let mut members = HashSet::new();
@@ -252,7 +252,7 @@ pub(super) async fn redact_mentions(
   if !has_mentions {
     return false;
   }
-  let visible = visible_members(members, workspace_id, auth, state).await;
+  let visible = visible_members(members, workspace_id, user_id, state).await;
   let mut changed = false;
   visit_spans(value, &mut |span| {
     if span.get("mention").is_some_and(|m| {

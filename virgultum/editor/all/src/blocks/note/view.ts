@@ -1,1 +1,4 @@
-export * from "@virgultum/block-note/view";
+export {
+  NoteViewExtension,
+  FootnoteDefinitionViewExtension,
+} from "@virgultum/embeds/view";

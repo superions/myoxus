@@ -10,7 +10,7 @@ import {
   documentMetadataGroupLabel,
   metadataIndexDisplayValue,
   metadataLookupHydrated,
-} from "../../../../components/system-property-types/document-metadata";
+} from "../../../document-metadata/utils";
 import { configureCollectionRulesModule } from "../../index";
 import {
   documentMetadataIndexRows$,
@@ -22,6 +22,8 @@ import {
 const UUID_DEFAULT_ID = "10000000-0000-4000-8000-000000000001";
 const COLLISION_EXTERNAL_ID = "10000000-0000-4000-8000-000000000002";
 const nativeDefaults = {
+  responsibleUserId: null,
+  responsibleName: null,
   createdBy: null,
   updatedBy: null,
   journalDate: null,

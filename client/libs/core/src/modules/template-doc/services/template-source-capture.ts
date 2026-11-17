@@ -1,6 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { Slice, type SliceSnapshot, type Transformer } from "@virgultum/store";
+import {
+  Slice,
+  type SliceSnapshot,
+  type Transformer,
+} from "@virgultum/core/store";
 import { encodeStateAsUpdate } from "yjs";
 
 import type { Doc } from "../../doc/entities/doc";

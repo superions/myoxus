@@ -1,0 +1,40 @@
+import type { RootBlockModel } from "../../models/index";
+import type { BlockComponent } from "../../runtime/index";
+import { BLOCK_ID_ATTR } from "../../runtime/view/element/consts";
+import type { BlockModel } from "../../store/index";
+
+const ATTR_SELECTOR = `[${BLOCK_ID_ATTR}]`;
+
+export function getModelByElement<Model extends BlockModel>(
+  element: Element,
+): Model | null {
+  const closestBlock = element.closest<BlockComponent>(ATTR_SELECTOR);
+  if (!closestBlock) {
+    return null;
+  }
+  return closestBlock.model as Model;
+}
+
+export function getRootByElement(
+  element: Element,
+): BlockComponent<RootBlockModel> | null {
+  const pageRoot = getPageRootByElement(element);
+  if (pageRoot) return pageRoot;
+
+  const edgelessRoot = getEdgelessRootByElement(element);
+  if (edgelessRoot) return edgelessRoot;
+
+  return null;
+}
+
+export function getPageRootByElement(
+  element: Element,
+): BlockComponent<RootBlockModel> | null {
+  return element.closest("myoxus-page-root");
+}
+
+export function getEdgelessRootByElement(
+  element: Element,
+): BlockComponent<RootBlockModel> | null {
+  return element.closest("myoxus-edgeless-root");
+}

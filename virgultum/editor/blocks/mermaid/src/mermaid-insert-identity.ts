@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { DEFAULT_MERMAID_BLOCK_TITLE } from "@virgultum/model";
+import { DEFAULT_MERMAID_BLOCK_TITLE } from "@virgultum/core/models";
 
 import {
   resolveMermaidDiagramTitle,

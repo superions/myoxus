@@ -5653,6 +5653,8 @@ export const documentTypeDefinitionFieldsFragment = `fragment DocumentTypeDefini
   isSuggested
 }`;
 export const documentMetadataIndexFieldsFragment = `fragment DocumentMetadataIndexFields on DocumentMetadataIndexRowType {
+  responsibleUserId
+  responsibleName
   docId
   externalId
   createdBy
@@ -10213,6 +10215,16 @@ fragment workspaceOverviewRegisterPresentationFields on WorkspaceOverviewRegiste
     key
     desc
   }
+  selection {
+    subtree
+    tagIds
+    matchAllTags
+    filters {
+      key
+      method
+      value
+    }
+  }
 }`;
 export const workspaceOverviewRegisterPresentationFieldsFragment = `fragment workspaceOverviewRegisterPresentationFields on WorkspaceOverviewRegisterPresentationType {
   displayProperties
@@ -10221,6 +10233,79 @@ export const workspaceOverviewRegisterPresentationFieldsFragment = `fragment wor
     key
     desc
   }
+  selection {
+    subtree
+    tagIds
+    matchAllTags
+    filters {
+      key
+      method
+      value
+    }
+  }
+}`;
+export const workspaceRegisterDocumentFieldsFragment = `fragment WorkspaceRegisterDocumentFields on WorkspaceOverviewDocumentType {
+  metadata {
+    ...DocumentMetadataIndexFields
+  }
+  metadataLabels {
+    statusLabel
+    documentTypeLabel
+    versionLabel
+    classificationLabel
+  }
+  createdAt
+  createdByName
+  tags {
+    ...WorkspaceTagFields
+  }
+  resource {
+    workspaceId
+    kind
+    id
+  }
+  title
+  updatedAt
+  canEdit
+}
+fragment DocumentMetadataIndexFields on DocumentMetadataIndexRowType {
+  responsibleUserId
+  responsibleName
+  docId
+  externalId
+  createdBy
+  updatedBy
+  journalDate
+  isTemplate
+  templateState
+  templateOrigin
+  templateCategory
+  templateTags
+  primaryMode
+  pageWidth
+  edgelessColorTheme
+  integrationType
+  canPublish
+  statusId
+  documentTypeId
+  currentVersionId
+  dirtySinceCurrentVersion
+  reviewDueAt
+  validUntil
+  classificationId
+  tagIds
+}
+fragment WorkspaceTagFields on WorkspaceTag {
+  id
+  workspaceId
+  name
+  slug
+  colorRole
+  description
+  archived
+  archivedAt
+  createdAt
+  updatedAt
 }`;
 export const workspaceTagFieldsFragment = `fragment WorkspaceTagFields on WorkspaceTag {
   id
@@ -32980,6 +33065,8 @@ export const documentMetadataIndexQuery = {
   }
 }
 fragment DocumentMetadataIndexFields on DocumentMetadataIndexRowType {
+  responsibleUserId
+  responsibleName
   docId
   externalId
   createdBy
@@ -50727,10 +50814,15 @@ export const workspaceOverviewQuery = {
   id: "workspaceOverviewQuery" as const,
   op: "workspaceOverview",
   kind: "query" as const,
-  query: `query workspaceOverview($id: String!, $folderId: String, $first: Int = 50, $offset: Int = 0) {
+  query: `query workspaceOverview($id: String!, $folderId: String, $first: Int = 50, $offset: Int = 0, $registerPresentation: WorkspaceOverviewRegisterPresentationInput) {
   workspace(id: $id) {
     id
-    overview(folderId: $folderId, first: $first, offset: $offset) {
+    overview(
+      folderId: $folderId
+      first: $first
+      offset: $offset
+      registerPresentation: $registerPresentation
+    ) {
       registerPresentation {
         ...workspaceOverviewRegisterPresentationFields
       }
@@ -50762,28 +50854,7 @@ export const workspaceOverviewQuery = {
       }
       introductionUnavailable
       documents {
-        metadata {
-          ...DocumentMetadataIndexFields
-        }
-        metadataLabels {
-          statusLabel
-          documentTypeLabel
-          versionLabel
-          classificationLabel
-        }
-        createdAt
-        createdByName
-        tags {
-          ...WorkspaceTagFields
-        }
-        resource {
-          workspaceId
-          kind
-          id
-        }
-        title
-        updatedAt
-        canEdit
+        ...WorkspaceRegisterDocumentFields
       }
     }
   }
@@ -50795,8 +50866,44 @@ fragment workspaceOverviewRegisterPresentationFields on WorkspaceOverviewRegiste
     key
     desc
   }
+  selection {
+    subtree
+    tagIds
+    matchAllTags
+    filters {
+      key
+      method
+      value
+    }
+  }
+}
+fragment WorkspaceRegisterDocumentFields on WorkspaceOverviewDocumentType {
+  metadata {
+    ...DocumentMetadataIndexFields
+  }
+  metadataLabels {
+    statusLabel
+    documentTypeLabel
+    versionLabel
+    classificationLabel
+  }
+  createdAt
+  createdByName
+  tags {
+    ...WorkspaceTagFields
+  }
+  resource {
+    workspaceId
+    kind
+    id
+  }
+  title
+  updatedAt
+  canEdit
 }
 fragment DocumentMetadataIndexFields on DocumentMetadataIndexRowType {
+  responsibleUserId
+  responsibleName
   docId
   externalId
   createdBy
@@ -50877,6 +50984,16 @@ fragment workspaceOverviewRegisterPresentationFields on WorkspaceOverviewRegiste
     key
     desc
   }
+  selection {
+    subtree
+    tagIds
+    matchAllTags
+    filters {
+      key
+      method
+      value
+    }
+  }
 }`,
 };
 
@@ -50921,6 +51038,16 @@ fragment workspaceOverviewRegisterPresentationFields on WorkspaceOverviewRegiste
     type
     key
     desc
+  }
+  selection {
+    subtree
+    tagIds
+    matchAllTags
+    filters {
+      key
+      method
+      value
+    }
   }
 }`,
 };

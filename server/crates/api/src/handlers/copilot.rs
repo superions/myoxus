@@ -14,7 +14,8 @@ use axum::{
 };
 use futures_util::StreamExt;
 use myoxus_application::copilot::provider::{
-  LlmProviderError, LlmRequest, LlmStreamEvent, map_provider_error_to_legacy,
+  LlmFinishReason, LlmMessage, LlmProviderError, LlmRequest, LlmRole, LlmStreamEvent, LlmToolCallBuffer,
+  execute_tool_calls, map_provider_error_to_legacy,
 };
 use myoxus_domain::entities::CopilotMessageRole;
 use myoxus_infrastructure::copilot::embedding_store::build_context_window;
@@ -105,6 +106,7 @@ pub(crate) async fn copilot_chat_sse_handler(
   State(state): State<ApiState>,
   Path((session_id_str, endpoint)): Path<(String, String)>,
   Query(params): Query<CopilotChatSseQuery>,
+  native_tools: Option<axum::Extension<std::sync::Arc<myoxus_mcp::tools::McpToolState>>>,
   headers: axum::http::HeaderMap,
 ) -> Result<impl IntoResponse, StatusCode> {
   // ── Validate endpoint ──────────────────────────────────────────────────
@@ -112,6 +114,7 @@ pub(crate) async fn copilot_chat_sse_handler(
     return Err(StatusCode::NOT_FOUND);
   }
 
+  let generation_started = tokio::time::Instant::now();
   let session_id = Uuid::parse_str(&session_id_str).map_err(|_| StatusCode::BAD_REQUEST)?;
 
   // ── Authenticate ───────────────────────────────────────────────────────
@@ -295,13 +298,9 @@ pub(crate) async fn copilot_chat_sse_handler(
     }
   };
   // Validate explicit references before any embedding or generation request.
-  // Ignore client docContent/title; the application materializes current content.
+  // Ignore client docContent/title; resolve the open document as metadata only.
   let mut explicit_docs = Vec::new();
-  let mut prompt_docs = Vec::new();
-  // A document-sidebar question without a deliberate selection refers to the
-  // open document. Materialize it directly, without narrowing workspace search.
-  let include_current_doc = !selected_context.has_selection()
-    && selected_context.docs.as_ref().is_none_or(|docs| docs.is_empty());
+  let mut current_doc_id = None;
   {
     let refs = selected_context
       .docs
@@ -337,16 +336,14 @@ pub(crate) async fn copilot_chat_sse_handler(
       if selected_context.docs.iter().flatten().any(|doc| doc.doc_id == doc_ref) && !explicit_docs.contains(&id) {
         explicit_docs.push(id);
       }
-      if (explicit_docs.contains(&id)
-        || (include_current_doc && selected_context.current_doc_id.as_deref() == Some(doc_ref)))
-        && !prompt_docs.contains(&id)
-      {
-        prompt_docs.push(id);
+      if selected_context.current_doc_id.as_deref() == Some(doc_ref) {
+        current_doc_id = Some(id);
       }
     }
   }
 
-  let preparation_timeout_ms = if prompt_docs.is_empty()
+  let preparation_timeout_ms = if current_doc_id.is_none()
+    && explicit_docs.is_empty()
     && !selected_context.has_selection()
     && selected_context.files.as_ref().is_none_or(|files| files.is_empty())
     && messages.iter().all(|message| message.attachment_refs.is_empty())
@@ -437,12 +434,14 @@ pub(crate) async fn copilot_chat_sse_handler(
         .materialize_prompt(
           myoxus_application::copilot::context_prompt::SelectedContextSources {
             docs: state.doc(),
+            metadata: state.document_metadata_service().as_ref(),
+            current_doc_id,
             blobs: state.blob(),
             copilot: &copilot,
             permissions: &state.permission_service(),
             session: &session,
           },
-          &prompt_docs,
+          &explicit_docs,
           state.config.mcp.document_export_max_bytes,
         )
         .await?;
@@ -663,20 +662,35 @@ pub(crate) async fn copilot_chat_sse_handler(
 
   let llm_messages = myoxus_application::copilot::context_prompt::assemble_chat_messages(
     &messages,
+    session.workspace_id,
     selected_prompt,
     rag_context_block.as_deref(),
     image_content,
   );
 
-  let llm_request = LlmRequest {
+  let tool_byte_limit = state.config.mcp.document_export_max_bytes;
+  let tool_executor = native_tools
+    .zip(session.workspace_id)
+    .map(|(axum::Extension(tools), workspace)| myoxus_mcp::copilot::CopilotReadTools::new(tools, user_id, workspace));
+  let tools = if state.llm_provider_registry().supports_tools(&default_provider, &model) {
+    tool_executor
+      .as_ref()
+      .map(|executor| executor.definitions())
+      .unwrap_or_default()
+  } else {
+    Vec::new()
+  };
+  let tools = tools
+    .into_iter()
+    .filter(|tool| tool.name != "search_docs" || retrieval.search_workspace != Some(false))
+    .collect();
+  let mut llm_request = LlmRequest {
     reasoning: params.reasoning.map(Into::into),
     model: model.clone(),
     messages: llm_messages,
     temperature: Some(0.7),
     max_tokens: None,
-    // Configuration alone is not a tool continuation loop. Native chat must not
-    // advertise Exa/MCP execution until the application owns that capability.
-    tools: Vec::new(),
+    tools,
     metadata: json!({}),
   };
 
@@ -713,79 +727,99 @@ pub(crate) async fn copilot_chat_sse_handler(
     if let Some(available) = retrieval_available {
       yield Ok(SseEvent::default().event("retrieval-status").data(json!({"available":available}).to_string()));
     }
-    let (provider_id, token_stream) = match registry.stream_with_fallback(&llm_request, &default_provider, &fallback_chain).await {
-      Ok(result) => result,
-      Err(mut error) => {
-        if let Err(storage_error) = guard.finish(myoxus_application::copilot::CopilotStreamOutcome::Failed).await {
-          warn!(%stream_id, error = %storage_error, "failed to persist provider startup failure");
-          error = LlmProviderError::Upstream("Failed to save the response outcome".into());
-        }
-        let legacy = map_provider_error_to_legacy(&error, request_timeout_ms);
-        yield Ok(SseEvent::default().event("error").data(json!({"type":"error","code":legacy.code,"message":legacy.message}).to_string()));
-        return;
-      }
-    };
-    info!(%session_id, %provider_id, %model, "copilot SSE stream started");
+    // One absolute deadline covers prefill, all model rounds and all tool reads.
+    let deadline = generation_started + std::time::Duration::from_millis(request_timeout_ms);
     let mut chunk_count: u64 = 0;
-    let mut failure = None;
-
-    futures_util::pin_mut!(token_stream);
-
-    loop {
-      tokio::select! {
-        biased;
-
-        maybe_item = token_stream.next() => {
-          let item = match maybe_item {
-            Some(Ok(LlmStreamEvent::Finish(reason))) => match reason.require_complete() {
-              Ok(()) => break,
-              Err(error) => Err(error),
-            },
-            Some(item) => item,
-            None => Err(LlmProviderError::Upstream("provider stream ended without a completion event".into())),
+    let mut failure: Option<LlmProviderError>;
+    let mut tool_rounds = 0;
+    'generation: loop {
+      let mut token_stream = match tokio::time::timeout_at(deadline,
+        registry.stream_with_fallback(&llm_request, &default_provider, &fallback_chain)).await {
+        Ok(Ok((provider_id, stream))) => {
+          info!(%session_id, %provider_id, %model, tool_rounds, "copilot model round started"); stream
+        },
+        Ok(Err(error)) => { failure = Some(error); break; },
+        Err(_) => { failure = Some(LlmProviderError::Timeout("generation deadline exceeded".into())); break; },
+      };
+      let mut calls = LlmToolCallBuffer::new(tool_byte_limit);
+      let mut text = String::new();
+      let mut reasoning = String::new();
+      let finish = loop {
+        match tokio::time::timeout_at(deadline, token_stream.next()).await {
+          Ok(Some(Ok(LlmStreamEvent::Text(token)))) => {
+            if copilot_for_stream.append_stream_chunk(stream_id, token.clone()).await.is_err() {
+              failure = Some(LlmProviderError::Upstream("Failed to save generated output".into())); break 'generation;
+            }
+            chunk_count += 1;
+            text.push_str(&token);
+            yield Ok(SseEvent::default().event("message").data(json!({"type":"text-delta","textDelta":token}).to_string()));
+          },
+          Ok(Some(Ok(LlmStreamEvent::Reasoning(token)))) => {
+            if copilot_for_stream.append_stream_reasoning(stream_id, token.clone()).await.is_err() {
+              failure = Some(LlmProviderError::Upstream("Failed to save generated output".into())); break 'generation;
+            }
+            reasoning.push_str(&token);
+            yield Ok(SseEvent::default().event("message").data(json!({"type":"reasoning","textDelta":token}).to_string()));
+          },
+          Ok(Some(Ok(LlmStreamEvent::ToolCall(delta)))) => {
+            if let Err(error) = calls.push(delta) { failure = Some(error); break 'generation; }
+          },
+          Ok(Some(Ok(LlmStreamEvent::Finish(reason)))) => break reason,
+          Ok(Some(Err(error))) => { failure = Some(error); break 'generation; },
+          Ok(None) => { failure = Some(LlmProviderError::Upstream("provider stream ended without a completion event".into())); break 'generation; },
+          Err(_) => { failure = Some(LlmProviderError::Timeout("generation deadline exceeded".into())); break 'generation; },
+        }
+      };
+      let calls = match calls.finish() {
+        Ok(calls) => calls,
+        Err(error) => { failure = Some(error); break; }
+      };
+      if finish != LlmFinishReason::ToolCalls {
+        failure = finish.require_complete().err();
+        if !calls.is_empty() { failure = Some(LlmProviderError::Upstream("provider returned tool calls without a tool completion".into())); }
+        break;
+      }
+      if llm_request.tools.is_empty() {
+        failure = Some(LlmProviderError::Unavailable("provider requested unavailable chat tool execution".into())); break;
+      }
+      let Some(executor) = tool_executor.as_ref() else {
+        failure = Some(LlmProviderError::Unavailable("No tool executor available".into())); break;
+      };
+      if calls.is_empty() || calls.iter().any(|call| !llm_request.tools.iter().any(|tool| tool.name == call.name)) {
+        failure = Some(LlmProviderError::InvalidRequest("provider requested an unavailable tool".into())); break;
+      }
+      if tool_rounds >= 8 {
+        failure = Some(LlmProviderError::InvalidRequest("Tool round limit reached".into())); break;
+      }
+      tool_rounds += 1;
+      llm_request.messages.push(LlmMessage { role: LlmRole::Assistant, content: text.into(), name: None,
+        tool_call_id: None, tool_calls: calls.clone(), reasoning: (!reasoning.is_empty()).then_some(reasoning) });
+      for call in calls {
+        let event = match copilot_for_stream.append_stream_tool_call(stream_id, &call).await {
+          Ok(event) => event,
+          Err(_) => { failure = Some(LlmProviderError::Upstream("Failed to save tool call".into())); break 'generation; }
+        };
+        let local_id = match event["toolCallId"].as_str().and_then(|id| Uuid::parse_str(id).ok()) {
+          Some(id) => id,
+          None => { failure = Some(LlmProviderError::Upstream("Invalid persisted tool identity".into())); break 'generation; }
+        };
+        yield Ok(SseEvent::default().event("message").data(event.to_string()));
+        let outputs = match tokio::time::timeout_at(deadline, execute_tool_calls(executor, std::slice::from_ref(&call))).await {
+          Ok(outputs) => outputs,
+          Err(_) => { failure = Some(LlmProviderError::Timeout("generation deadline exceeded".into())); break 'generation; }
+        };
+        for output in outputs {
+          let value: serde_json::Value = match output.content.as_text().and_then(|text| serde_json::from_str(text).ok()) {
+            Some(value) => value,
+            None => { failure = Some(LlmProviderError::Upstream("Invalid tool result".into())); break 'generation; }
           };
-          match item {
-            Ok(LlmStreamEvent::Text(token)) => {
-              chunk_count += 1;
-
-              // Persist before publication; never acknowledge output that failed storage.
-              if let Err(e) = copilot_for_stream
-                .append_stream_chunk(stream_id, token.clone())
-                .await
-              {
-                warn!(%stream_id, error = %e, "failed to persist stream chunk");
-                failure = Some(LlmProviderError::Upstream("Failed to save generated output".into()));
-                break;
-              }
-
-              // The chat renderer parses StreamObjectSchema inside the SSE
-              // message event. Other object shapes become literal chat text.
-              let event_data = json!({
-                "type": "text-delta",
-                "textDelta": token,
-              });
-              let event: Result<SseEvent, std::convert::Infallible> = Ok(SseEvent::default()
-                .event("message")
-                .data(event_data.to_string()));
-              yield event;
-            }
-            Ok(LlmStreamEvent::Reasoning(text)) => {
-              if let Err(e) = copilot_for_stream.append_stream_reasoning(stream_id, text.clone()).await {
-                warn!(%stream_id, error = %e, "failed to persist reasoning");
-                failure = Some(LlmProviderError::Upstream("Failed to save generated output".into()));
-                break;
-              }
-              let event: Result<SseEvent, std::convert::Infallible> = Ok(SseEvent::default()
-                .event("message")
-                .data(json!({"type":"reasoning","textDelta":text}).to_string()));
-              yield event;
-            }
-            Ok(LlmStreamEvent::Finish(_)) => unreachable!("finish events are handled above"),
-            Err(e) => {
-              failure = Some(e);
-              break;
-            }
-          }
+          let result = if let Some(error) = value.get("error").and_then(|error| error.as_str()) { Err(error.to_owned()) } else { Ok(value) };
+          let event = match copilot_for_stream.append_stream_tool_result(stream_id, local_id, result).await {
+            Ok(event) => event,
+            Err(_) => { failure = Some(LlmProviderError::Upstream("Failed to save tool result".into())); break 'generation; }
+          };
+          yield Ok(SseEvent::default().event("message").data(event.to_string()));
+          llm_request.messages.push(output);
         }
       }
     }

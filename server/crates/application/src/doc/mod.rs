@@ -13,6 +13,7 @@ pub mod compaction;
 pub mod content_mutation;
 pub mod content_projection;
 pub mod delete;
+pub mod embed_output;
 pub mod history;
 pub mod lifecycle;
 pub mod load;

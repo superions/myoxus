@@ -1,10 +1,19 @@
+import { createElement } from "react";
+import {
+  PageIcon as NativePageIcon,
+  PenIcon as NativePenIcon,
+} from "@myoxus/icons/react";
+import {
+  renderToolCallCard,
+  renderToolFailedCard,
+  renderToolResultCard,
+} from "./tool-cards";
 import type { PeekViewService } from "@myoxus/core/modules/peek-view";
-import { PageIcon, PenIcon } from "@myoxus/icons/lit";
+
 import type { ReactToLit } from "@myoxus/lit-react";
-import type { Signal } from "@preact/signals-core";
-import { WithDisposable } from "@virgultum/global/lit";
-import { ShadowlessElement } from "@virgultum/std";
-import { html, nothing } from "lit";
+import { WithDisposable } from "@virgultum/core/primitives/lit";
+import { ShadowlessElement } from "@virgultum/core/runtime";
+import { nothing } from "lit";
 import { property } from "lit/decorators.js";
 
 import type { DocDisplayConfig } from "../ai-chat-chips";
@@ -52,9 +61,6 @@ export class DocWriteTool extends WithDisposable(ShadowlessElement) {
   accessor data!: DocWriteToolCall | DocWriteToolResult;
 
   @property({ attribute: false })
-  accessor width: Signal<number | undefined> | undefined;
-
-  @property({ attribute: false })
   accessor peekViewService!: PeekViewService;
 
   @property({ attribute: false })
@@ -92,7 +98,9 @@ export class DocWriteTool extends WithDisposable(ShadowlessElement) {
   }
 
   private getToolIcon() {
-    return this.data.toolName === "doc_create" ? PageIcon() : PenIcon();
+    return this.data.toolName === "doc_create"
+      ? createElement(NativePageIcon)
+      : createElement(NativePenIcon);
   }
 
   private getCallLabel(title?: string) {
@@ -135,12 +143,10 @@ export class DocWriteTool extends WithDisposable(ShadowlessElement) {
   renderToolCall() {
     const docId = this.getDocId();
     const title = this.getDocTitle(docId);
-    return html`<tool-call-card
-      .reactToLit=${this.reactToLit}
-      .name=${this.getCallLabel(title)}
-      .icon=${this.getToolIcon()}
-      .width=${this.width}
-    ></tool-call-card>`;
+    return renderToolCallCard(this.reactToLit, {
+      name: this.getCallLabel(title),
+      icon: this.getToolIcon(),
+    });
   }
 
   renderToolResult() {
@@ -151,11 +157,10 @@ export class DocWriteTool extends WithDisposable(ShadowlessElement) {
     const result = this.data.result;
     if (!result || isToolError(result)) {
       const name = isToolError(result) ? result.name : "Document action failed";
-      return html`<tool-call-failed
-        .reactToLit=${this.reactToLit}
-        .name=${name}
-        .icon=${this.getToolIcon()}
-      ></tool-call-failed>`;
+      return renderToolFailedCard(this.reactToLit, {
+        name: name,
+        icon: this.getToolIcon(),
+      });
     }
 
     const docId = this.getDocId();
@@ -165,20 +170,18 @@ export class DocWriteTool extends WithDisposable(ShadowlessElement) {
     if (docId) parts.push(`Doc ID: ${docId}`);
     const content = parts.length ? parts.join("\n") : undefined;
 
-    return html`<tool-result-card
-      .reactToLit=${this.reactToLit}
-      .name=${this.getResultLabel(title)}
-      .icon=${this.getToolIcon()}
-      .width=${this.width}
-      .results=${[
+    return renderToolResultCard(this.reactToLit, {
+      name: this.getResultLabel(title),
+      icon: this.getToolIcon(),
+      results: [
         {
           title,
-          icon: PageIcon(),
+          icon: createElement(NativePageIcon),
           content,
           onClick: () => this.openDoc(docId),
         },
-      ]}
-    ></tool-result-card>`;
+      ],
+    });
   }
 
   protected override render() {

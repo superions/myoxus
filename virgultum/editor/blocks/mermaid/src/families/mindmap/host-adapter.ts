@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { FileSizeLimitProvider } from "@virgultum/shared/services";
+import { FileSizeLimitProvider } from "@virgultum/core/services";
 import { insertMermaidEdgelessDiagramCommand } from "../../commands.js";
 import { writeMindmapPatches } from "../../engine/mindmap/index.js";
 import type { PreparedMindmapImport } from "./import/foreign.js";
@@ -8,7 +8,7 @@ import { createMermaidClipboardPort } from "../../clipboard.js";
 import { duplicateMermaidBlockCommand } from "../../commands.js";
 import { copiedMindmapProjection } from "./interaction/clipboard.js";
 import { recordMermaidSelectionHistory } from "../../mermaid-selection-history.js";
-import { SurfaceBlockComponent } from "@virgultum/block-surface";
+import { SurfaceBlockComponent } from "@virgultum/canvas-runtime/surface";
 import { MermaidEdgelessOwnerGfxSync } from "../../presentation/edgeless-owner-gfx-sync.js";
 import {
   mindmapPopoverAnchorSide,
@@ -21,8 +21,8 @@ import {
 } from "./interaction/handles.js";
 import { mindmapMoveProjectionOptions } from "./interaction/move.js";
 import { mindmapIntentFromObjectEdit } from "./interaction/keyboard.js";
-import { Bound } from "@virgultum/global/gfx";
-import { mountShapeTextEditor } from "@virgultum/gfx-shape";
+import { Bound } from "@virgultum/core/primitives/gfx";
+import { mountShapeTextEditor } from "@virgultum/canvas/gfx";
 import { previewMermaidGfxModel } from "../runtime/gfx-preview.js";
 import { revealNativeMermaidNode } from "../runtime/gfx-edgeless-toolbar.js";
 import { getMermaidGfxTitleBandHeight } from "../runtime/gfx-element-projection.js";
@@ -34,7 +34,7 @@ import {
   beginMindmapLabelDraft,
   type MindmapLabelDraft,
 } from "./interaction/label-draft.js";
-import type { ToolbarContext } from "@virgultum/shared/services";
+import type { ToolbarContext } from "@virgultum/core/services";
 import type {
   MermaidFamilyHostAdapter,
   MermaidFamilyEdgelessToolbarContribution,
@@ -988,6 +988,7 @@ function nativeProps(context: ToolbarContext): MindmapReactHostProps | null {
       viewportIdentity: context.gfx.viewport,
       registerPointerDown: (handler) => {
         const listener = (request: Event) => {
+          if (context.store.readonly || state.owner.isLocked()) return;
           if (handler((request as CustomEvent<PointerEvent>).detail))
             request.preventDefault();
         };

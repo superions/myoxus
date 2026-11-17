@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { StrokeStyle, PointStyle } from "@virgultum/model";
+import { StrokeStyle, PointStyle } from "@virgultum/core/models";
 import type { MermaidBlockEdge } from "../../engine/block/index.js";
 import type {
   MermaidVisualEdge,

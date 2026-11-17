@@ -137,7 +137,7 @@ export type RequirementReactHostProps = {
   resolveReturnFocusTarget: () => HTMLElement | null;
 };
 export type RequirementLabelActionsProps =
-  import("@virgultum/gfx-shape").ShapeTextEditDraftActions & {
+  import("@virgultum/canvas/gfx").ShapeTextEditDraftActions & {
     surface: "label-actions";
   };
 export const mermaidRequirementRendererToken =

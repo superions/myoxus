@@ -104,7 +104,10 @@ export class PageEditor extends SignalWatcher(
     super.willUpdate(changedProperties);
     if (
       this.hasUpdated && // skip the first update
-      (changedProperties.has("doc") || changedProperties.has("hostExtension"))
+      // Permissions and AI bindings can finish loading after the first render.
+      (changedProperties.has("doc") ||
+        changedProperties.has("hostExtension") ||
+        changedProperties.has("specs"))
     ) {
       this.std = new BlockStdScope({
         store: this.doc,

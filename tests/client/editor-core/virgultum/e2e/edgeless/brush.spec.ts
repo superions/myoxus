@@ -36,7 +36,10 @@ test("change editor mode when brush color palette opening", async ({
   await setEdgelessTool(page, "brush");
 
   const penMenu = page.locator("edgeless-pen-menu");
-  const colorPalettes = penMenu.locator("edgeless-color-panel");
+  const colorPalettes = penMenu.getByRole("slider", {
+    name: "Thickness",
+    exact: true,
+  });
   await expect(colorPalettes).toBeVisible();
 
   await switchEditorMode(page);

@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { ViewExtensionManagerIdentifier } from "@virgultum/ext-loader";
-import { Bound, type SerializedXYWH } from "@virgultum/global/gfx";
-import { DefaultTool } from "@virgultum/block-surface";
+import { ViewExtensionManagerIdentifier } from "@virgultum/core/extensions";
+import { Bound, type SerializedXYWH } from "@virgultum/core/primitives/gfx";
+import { DefaultTool } from "@virgultum/canvas-runtime/surface";
 import {
+  EditorChromeHostIdentifier,
   ThemeExtensionIdentifier,
   ThemeProvider,
   ViewportElementExtension,
-} from "@virgultum/shared/services";
-import { BlockStdScope } from "@virgultum/std";
-import { GfxControllerIdentifier } from "@virgultum/std/gfx";
-import type { ExtensionType, Store } from "@virgultum/store";
+} from "@virgultum/core/services";
+import { BlockStdScope } from "@virgultum/core/runtime";
+import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
+import type { ExtensionType, Store } from "@virgultum/core/store";
 import { html, nothing, type TemplateResult } from "lit";
 import { guard } from "lit/directives/guard.js";
 import { styleMap } from "lit/directives/style-map.js";
@@ -118,6 +119,7 @@ export type MermaidGfxPageEditorHandlers = {
     portId: string,
   ) => void;
   readonly onContextConnect: () => void;
+  readonly onCloseContextMenu: () => void;
   readonly onEdgeReconnectKeydown: (
     event: KeyboardEvent,
     endpoint: MermaidGfxEdgeReconnectEndpoint,
@@ -483,10 +485,11 @@ export function renderMermaidGfxPageEditor({
       })}
       ${renderMermaidGfxContextMenu({
         canShow: !readonly && visualState.showContextMenu,
+        chrome: std.getOptional(EditorChromeHostIdentifier) ?? undefined,
+        close: handlers.onCloseContextMenu,
         label: visualState.contextMenuLabel,
         left: visualState.contextMenu?.left ?? 0,
         onClick: handlers.onContextConnect,
-        onStopEvent: handlers.onStopEditorEvent,
         top: visualState.contextMenu?.top ?? 0,
       })}
       ${renderMermaidGfxSubgraphDropPreview({

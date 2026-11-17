@@ -1,8 +1,8 @@
-import { BpmnBlockSchema } from "@virgultum/model";
+import { BpmnBlockSchema } from "@virgultum/core/models";
 import {
   BlockHtmlAdapterExtension,
   type BlockHtmlAdapterMatcher,
-} from "@virgultum/shared/adapters";
+} from "@virgultum/core/adapters";
 
 import { getBpmnBlockExportMetadata } from "../utils.js";
 

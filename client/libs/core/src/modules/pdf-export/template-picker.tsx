@@ -1,6 +1,5 @@
 import { useI18n } from "@myoxus/i18n";
 import {
-  Badge,
   Group,
   MyoxusText,
   RadioCard,
@@ -12,31 +11,6 @@ import {
 
 import { PdfTemplatePreviewThumbnail } from "./template-preview-thumbnail";
 import type { PdfTemplateOption } from "./types";
-
-function capabilityTags(
-  template: PdfTemplateOption,
-  t: ReturnType<typeof useI18n>,
-): string[] {
-  const caps = template.capabilities ?? {};
-  const tags = new Set<string>();
-  if (caps.coverPage?.kind === "boolean") {
-    tags.add(t.t("com.myoxus.pdf-export.dialog.tag.cover"));
-  }
-  if (Array.isArray(caps.tocBehavior?.values)) {
-    tags.add(t.t("com.myoxus.pdf-export.dialog.tag.toc"));
-  }
-  if ((caps.confidentialityLabels?.max_items ?? 0) > 0) {
-    tags.add(t.t("com.myoxus.pdf-export.dialog.tag.labels"));
-  }
-  if (Array.isArray(caps.language?.values)) {
-    tags.add(
-      t.t("com.myoxus.pdf-export.dialog.tag.locales", {
-        count: caps.language.values.length.toString(),
-      }),
-    );
-  }
-  return [...tags].slice(0, 4);
-}
 
 export function PdfTemplatePicker({
   templates,
@@ -65,6 +39,7 @@ export function PdfTemplatePicker({
             <RadioCard
               key={template.id}
               value={template.id}
+              selected={selectedTemplateId === template.id}
               data-myoxus-ui-role="pdf-template-selection-card"
             >
               <Group align="flex-start" wrap="nowrap">
@@ -82,19 +57,13 @@ export function PdfTemplatePicker({
                     </MyoxusText>
                     <RadioCardIndicator />
                   </Group>
-                  <MyoxusText tone="secondary">
-                    {template.slug} · v{template.version}
-                    {template.isDefault
-                      ? ` · ${t.t("com.myoxus.pdf-export.dialog.template.workspace-default")}`
-                      : ""}
-                  </MyoxusText>
-                  <Group gap="xs" wrap="wrap">
-                    {capabilityTags(template, t).map((tag) => (
-                      <Badge key={tag} data-myoxus-ui-role="status-badge">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </Group>
+                  {template.isDefault ? (
+                    <MyoxusText tone="secondary">
+                      {t.t(
+                        "com.myoxus.pdf-export.dialog.template.workspace-default",
+                      )}
+                    </MyoxusText>
+                  ) : null}
                 </Stack>
               </Group>
             </RadioCard>

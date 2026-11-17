@@ -36,6 +36,7 @@ pub(super) fn overview_reader(services: &Services) -> WorkspaceOverviewService {
     DocumentMetadataPolicyService::new(Arc::new(PgDocumentMetadataPolicyRepository::new(services.pool.clone()))),
     services.workspace_tags(),
     services.auth.clone(),
+    Some(services.html_catalog.clone()),
   )
 }
 

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { isValidUrl, normalizeUrl } from "@virgultum/shared/utils";
+import { isValidUrl, normalizeUrl } from "@virgultum/core/utils";
 
 import {
   createMermaidVisualFamilyData,

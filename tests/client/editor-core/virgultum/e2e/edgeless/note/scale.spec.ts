@@ -98,7 +98,10 @@ test.describe("note scale", () => {
 
     const scaleInput = scalePanel.getByLabel("Scale", { exact: true });
     await scaleInput.click();
+    // NumberInput completes its suffix-aware caret placement after focus.
+    await waitNextFrame(page);
     await scaleInput.fill("50");
+    await expect(scaleInput).toHaveValue("50%");
     await selectAllByKeyboard(page);
     await copyByKeyboard(page);
     await page.mouse.click(0, 0);
@@ -108,6 +111,8 @@ test.describe("note scale", () => {
     await waitNextFrame(page);
 
     await scaleInput.click();
+    // NumberInput completes its suffix-aware caret placement after focus.
+    await waitNextFrame(page);
     await selectAllByKeyboard(page);
     // This input lives in a toolbar portal, not inside the editor container.
     await pasteByKeyboard(page, false);

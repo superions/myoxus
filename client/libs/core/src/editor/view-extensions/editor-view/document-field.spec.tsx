@@ -9,7 +9,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { DocumentFieldSchema } from "@virgultum/shared/types";
+import { DocumentFieldSchema } from "@virgultum/core/types";
 import { afterEach, expect, test, vi } from "vitest";
 import { DocumentFieldInline } from "./document-field";
 

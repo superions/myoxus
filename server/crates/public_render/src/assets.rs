@@ -106,12 +106,12 @@ fn candidate_from_asset(asset: &AssetRef) -> Option<PublicAssetCandidate> {
   })
 }
 
-/// Return whether an asset source is an externally hosted HTTP resource.
+/// Whether a source is addressable without a workspace blob lookup.
 ///
-/// Private exporters use the same classification as the public renderer so an
-/// external URL can never be misrepresented as an authenticated workspace blob.
+/// Private exporters and public output retain remote URLs and materialized
+/// output-local data images, rather than treating them as private blob keys.
 pub fn is_external_asset_source(value: &str) -> bool {
-  value.starts_with("http://") || value.starts_with("https://")
+  value.starts_with("http://") || value.starts_with("https://") || value.starts_with("data:image/")
 }
 
 fn normalized_asset_source(value: &str) -> String {

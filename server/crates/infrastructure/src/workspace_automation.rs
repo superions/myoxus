@@ -269,7 +269,7 @@ impl PgWorkspaceAutomationRepository {
             .map_err(Self::storage_error)?
             != Some(task.occurrence_id)
             || accepted.as_ref().and_then(|run| run.actor_id)
-              != row.try_get("confirmed_actor_id").map_err(Self::storage_error)?
+              != row.try_get::<Option<uuid::Uuid>, _>("confirmed_actor_id").map_err(Self::storage_error)?
           {
             return Err(RepositoryError::Validation("recurring Task acceptance mismatch".into()));
           }
@@ -288,7 +288,7 @@ impl PgWorkspaceAutomationRepository {
           if facts.request_id != request_id
             || facts.fingerprint != fingerprint
             || accepted.as_ref().and_then(|run| run.actor_id)
-              != row.try_get("confirmed_actor_id").map_err(Self::storage_error)?
+              != row.try_get::<Option<uuid::Uuid>, _>("confirmed_actor_id").map_err(Self::storage_error)?
           {
             return Err(RepositoryError::Validation("correction request mismatch".into()));
           }
@@ -307,7 +307,7 @@ impl PgWorkspaceAutomationRepository {
           if facts.request_id != request_id
             || facts.fingerprint != fingerprint
             || accepted.as_ref().and_then(|run| run.actor_id)
-              != row.try_get("confirmed_actor_id").map_err(Self::storage_error)?
+              != row.try_get::<Option<uuid::Uuid>, _>("confirmed_actor_id").map_err(Self::storage_error)?
           {
             return Err(RepositoryError::Validation("handover request mismatch".into()));
           }
@@ -326,7 +326,7 @@ impl PgWorkspaceAutomationRepository {
               .ok_or_else(|| RepositoryError::Validation("review acceptance unavailable".into()))?;
             if review.request_id != request_id
               || review.fingerprint != fingerprint
-              || run.actor_id != row.try_get("review_actor_id").map_err(Self::storage_error)?
+              || run.actor_id != row.try_get::<Option<uuid::Uuid>, _>("review_actor_id").map_err(Self::storage_error)?
               || review.review_task_id
                 != row
                   .try_get::<uuid::Uuid, _>("review_task_id")

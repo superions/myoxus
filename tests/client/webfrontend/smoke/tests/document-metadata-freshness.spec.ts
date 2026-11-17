@@ -655,6 +655,7 @@ test("native document metadata freshness reaches the running Web client without 
 
   try {
     docId = await createDoc(page, workspaceId, title);
+    await waitForWorkspaceDocSync(page, docId);
     const pageUpdatedAtBefore = await waitForStablePageUpdatedAt(
       request,
       cookies,

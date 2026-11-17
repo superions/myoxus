@@ -645,9 +645,10 @@ async function runSuite(suite, reasonItems) {
     };
   }
   const suiteCwd = path.resolve(repoRoot, suite.cwd);
+  // CLI arguments are literal values, never extra suite shell programs.
   const command =
     options.extraArgs.length > 0
-      ? `${suite.command} ${options.extraArgs.join(" ")}`
+      ? `${suite.command} ${options.extraArgs.map((arg) => `'${arg.replaceAll("'", "'\"'\"'")}'`).join(" ")}`
       : suite.command;
   const suiteEnv = {
     ...process.env,

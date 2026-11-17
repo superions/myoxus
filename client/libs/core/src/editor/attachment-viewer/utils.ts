@@ -1,4 +1,4 @@
-import { formatDecimalByteSize as formatAttachmentSize } from "@virgultum/global/utils";
+import { formatDecimalByteSize as formatAttachmentSize } from "@virgultum/core/primitives/utils";
 import type { AttachmentBlockModel } from "@virgultum/editor/model";
 
 import { downloadBlob } from "../../utils/resource";

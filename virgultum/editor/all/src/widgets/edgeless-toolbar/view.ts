@@ -1,1 +1,1 @@
-export * from "@virgultum/widget-edgeless-toolbar/view";
+export { EdgelessToolbarViewExtension } from "@virgultum/canvas/view";

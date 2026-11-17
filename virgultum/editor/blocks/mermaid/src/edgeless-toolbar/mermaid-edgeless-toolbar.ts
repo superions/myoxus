@@ -1,22 +1,15 @@
 import { createMermaidMindmapImportMenuItem } from "./mindmap-file-actions.js";
-import {
-  menu,
-  type MenuConfig,
-  type MenuHandler,
-  popMenu,
-  popupTargetFromElement,
-} from "@virgultum/components/context-menu";
-import type { BlockComponent } from "@virgultum/std";
-import { Bound } from "@virgultum/global/gfx";
-import { GfxControllerIdentifier } from "@virgultum/std/gfx";
-import type { ToolType } from "@virgultum/std/gfx";
+import type { BlockComponent } from "@virgultum/core/runtime";
+import { Bound } from "@virgultum/core/primitives/gfx";
+import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
 import {
   type SeniorTool,
   SeniorToolExtension,
-  EdgelessToolbarToolMixin,
+  type EdgelessToolbarWidget,
+  EDGELESS_TOOLBAR_WIDGET,
   type ToolBuilder,
-} from "@virgultum/widget-edgeless-toolbar";
-import { css, html, LitElement } from "lit";
+} from "@virgultum/canvas/widgets";
+import { html } from "lit";
 
 import { insertMermaidEdgelessDiagramCommand } from "../commands.js";
 import { prepareMermaidFamilySource } from "../families/runtime/registry.js";
@@ -29,9 +22,11 @@ import { mermaidMessages } from "../i18n.js";
 import { createMermaidMmdImportMenuItem } from "./mmd-file-actions.js";
 import {
   EditorI18nProvider,
+  EditorChromeHostIdentifier,
   editorMessage,
   resolveEditorMessage,
-} from "@virgultum/shared/services";
+  type SelectionAction,
+} from "@virgultum/core/services";
 import { mermaidToolbarSymbol } from "./mermaid-toolbar-symbol.js";
 
 const titleMessage = editorMessage(
@@ -116,7 +111,8 @@ export async function insertMermaidEdgelessToolbarTemplate(
 
 export function buildMermaidEdgelessToolbarMenuItems(
   edgeless: BlockComponent,
-): MenuConfig[] {
+  query = "",
+): SelectionAction[] {
   const i18n = edgeless.std.getOptional(EditorI18nProvider) ?? undefined;
   const collator = new Intl.Collator(i18n?.locale$.value, {
     sensitivity: "base",
@@ -125,124 +121,79 @@ export function buildMermaidEdgelessToolbarMenuItems(
   const templates = getMermaidEdgelessToolbarTemplates().sort((a, b) =>
     collator.compare(a.label, b.label),
   );
-  const actions = (items: readonly MermaidEdgelessToolbarTemplate[]) =>
-    items.map((template) =>
-      menu.action({
-        name: template.label,
-        select: () =>
-          void insertMermaidEdgelessToolbarTemplate(edgeless, template),
-        testId: `myoxus-mermaid-edgeless-template-${template.id}`,
-      }),
+  const actions = (
+    items: readonly MermaidEdgelessToolbarTemplate[],
+  ): SelectionAction[] =>
+    items.map((template) => ({
+      id: `myoxus-mermaid-edgeless-template-${template.id}`,
+      label: template.label,
+      disabled: edgeless.store.readonly,
+      run: () => void insertMermaidEdgelessToolbarTemplate(edgeless, template),
+    }));
+  const imports = [
+    createMermaidMmdImportMenuItem(edgeless),
+    createMermaidMindmapImportMenuItem(edgeless),
+  ];
+  if (query) {
+    const needle = query.toLocaleLowerCase(i18n?.locale$.value);
+    return [...actions(templates), ...imports].filter((action) =>
+      action.label.toLocaleLowerCase(i18n?.locale$.value).includes(needle),
     );
-  const grouped = MERMAID_PRODUCT_CATEGORY_IDS.map((category) =>
-    menu.subMenu({
-      name: resolveEditorMessage(categoryMessages[category], i18n),
-      label: categoryMessages[category],
-      openOnHover: false,
-      options: {
+  }
+  return [
+    ...MERMAID_PRODUCT_CATEGORY_IDS.map((category): SelectionAction => ({
+      id: `mermaid-template-category-${category}`,
+      label: resolveEditorMessage(categoryMessages[category], i18n),
+      disabled: edgeless.store.readonly,
+      control: {
+        type: "menu",
         items: actions(
           templates.filter((template) => template.category === category),
         ),
-        title: { text: resolveEditorMessage(categoryMessages[category], i18n) },
       },
-    }),
-  );
-  return [
-    // Search exposes matching types directly, without requiring a category hop.
-    (current) =>
-      html`${current.renderItems(current.searchName$.value ? actions(templates) : grouped)}`,
-    menu.group({
-      items: [
-        createMermaidMmdImportMenuItem(edgeless),
-        createMermaidMindmapImportMenuItem(edgeless),
-      ],
-    }),
+    })),
+    {
+      id: "mermaid-template-imports",
+      label: "",
+      disabled: edgeless.store.readonly,
+      actions: imports,
+    },
   ];
 }
 
-export class EdgelessMermaidToolButton extends EdgelessToolbarToolMixin(
-  LitElement,
-) {
-  static override styles = css`
-    :host {
-      display: flex;
-      width: 100%;
-      height: 100%;
-    }
-  `;
-
-  // Mermaid opens an insertion menu; it does not register a persistent GFX tool.
-  override type: ToolType[] = [];
-
-  private _menu: MenuHandler | null = null;
-
-  private _toggleMenu(event: Event) {
-    if (this._menu) {
-      this._menu.close();
-      this._menu = null;
-      this.requestUpdate();
-      return;
-    }
-
-    const target = event.currentTarget;
-    if (!(target instanceof HTMLElement)) return;
-
-    this.toolbar.activePopper?.dispose();
-    this.toolbar.activePopper = null;
-    this._menu = popMenu(popupTargetFromElement(target), {
-      options: {
-        i18n: this.edgeless.std.getOptional(EditorI18nProvider) ?? undefined,
-        items: buildMermaidEdgelessToolbarMenuItems(this.edgeless),
-        onClose: () => {
-          this._menu = null;
-          this.requestUpdate();
-        },
-        search: {
-          placeholder: mermaidMessages.toolbarSearchPlaceholder(),
-        },
-        title: {
-          text: resolveEditorMessage(
-            titleMessage,
-            this.edgeless.std.getOptional(EditorI18nProvider) ?? undefined,
-          ),
-        },
+export const buildMermaidSeniorTool: ToolBuilder<SeniorTool> = ({
+  block,
+  toolbarContainer,
+}) => ({
+  name: titleMessage,
+  enable: !block.store.readonly,
+  // The native host owns this insertion menu; no persistent GFX tool or Lit control remains.
+  content:
+    block.std.getOptional(EditorChromeHostIdentifier)?.renderCanvasTool({
+      action: {
+        id: "myoxus-mermaid-edgeless-toolbar-button",
+        label: resolveEditorMessage(
+          titleMessage,
+          block.std.getOptional(EditorI18nProvider) ?? undefined,
+        ),
+        disabled: block.store.readonly,
       },
-      placement: "top-start",
-    });
-    this.requestUpdate();
-  }
-
-  override disconnectedCallback() {
-    this._menu?.close();
-    this._menu = null;
-    super.disconnectedCallback();
-  }
-
-  override render() {
-    return html`<edgeless-toolbar-button
-      class="edgeless-mermaid-button"
-      data-testid="myoxus-mermaid-edgeless-toolbar-button"
-      .tooltip=${this._menu ? "" : resolveEditorMessage(titleMessage, this.edgeless.std.getOptional(EditorI18nProvider) ?? undefined)}
-      .tooltipOffset=${5}
-      .iconSize=${"64px"}
-      .active=${Boolean(this._menu)}
-      .activeMode=${"background"}
-      @click=${this._toggleMenu}
-    >
-      ${mermaidToolbarSymbol()}
-    </edgeless-toolbar-button>`;
-  }
-}
-
-export const buildMermaidSeniorTool: ToolBuilder<SeniorTool> = ({ block }) => {
-  return {
-    name: titleMessage,
-    content: html`<edgeless-mermaid-tool-button
-      .edgeless=${block}
-    ></edgeless-mermaid-tool-button>`,
-    enable: !block.store.readonly,
-  };
-};
+      menu: {
+        searchPlaceholder: mermaidMessages.toolbarSearchPlaceholder(),
+        onOpen: () => {
+          const toolbar = toolbarContainer.closest<EdgelessToolbarWidget>(
+            EDGELESS_TOOLBAR_WIDGET,
+          );
+          toolbar?.activePopper?.dispose();
+          if (toolbar) toolbar.activePopper = null;
+        },
+        actions: (query) => buildMermaidEdgelessToolbarMenuItems(block, query),
+      },
+      artwork: mermaidToolbarSymbol(),
+      // Retain the existing symbol's measured artwork and hit box.
+      artworkBounds: { width: 64, height: 64 },
+    }) ?? html``,
+});
 
 export const mermaidSeniorTool = SeniorToolExtension(
   "mermaid",

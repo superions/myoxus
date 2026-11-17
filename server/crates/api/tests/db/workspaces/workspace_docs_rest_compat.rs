@@ -622,7 +622,9 @@ fn workspace_content_roundtrips_only_external_document_keys() {
         .keys()
         .map(String::as_str)
         .collect::<std::collections::BTreeSet<_>>(),
-      ["docs", "workspaceId"].into_iter().collect()
+      ["docs", "workspaceId"]
+        .into_iter()
+        .collect::<std::collections::BTreeSet<_>>()
     );
     assert_eq!(list["workspaceId"], workspace_id.to_string());
 
@@ -651,7 +653,7 @@ fn workspace_content_roundtrips_only_external_document_keys() {
           .collect::<std::collections::BTreeSet<_>>(),
         ["docId", "externalId", "plainText", "title", "updatedAt", "workspaceId"]
           .into_iter()
-          .collect(),
+          .collect::<std::collections::BTreeSet<_>>(),
         "RPC response shape changed"
       );
 

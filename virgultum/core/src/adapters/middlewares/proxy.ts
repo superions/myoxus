@@ -1,0 +1,68 @@
+import { StoreExtension, type TransformerMiddleware } from "../../store/index";
+
+import { DEFAULT_IMAGE_PROXY_ENDPOINT } from "../../consts";
+
+export const customImageProxyMiddleware = (
+  imageProxyURL: string,
+): TransformerMiddleware => {
+  return ({ adapterConfigs }) => {
+    adapterConfigs.set("imageProxy", imageProxyURL);
+  };
+};
+
+const imageProxyMiddlewareBuilder = () => {
+  let middleware = customImageProxyMiddleware(DEFAULT_IMAGE_PROXY_ENDPOINT);
+  return {
+    get: () => middleware,
+    set: (url: string) => {
+      middleware = customImageProxyMiddleware(url);
+    },
+  };
+};
+
+const IMAGE_PROXY_PATH = "/api/worker/image-proxy";
+
+export const isImageProxyURL = (imageUrl: string) => {
+  try {
+    const url = new URL(imageUrl, globalThis.location.origin);
+    return url.pathname === IMAGE_PROXY_PATH && url.searchParams.has("url");
+  } catch {
+    return false;
+  }
+};
+
+/** Keep editor media and native source icons on the same proxy URL contract. */
+export function buildImageProxyURL(imageUrl: string, proxyUrl: string) {
+  if (imageUrl.startsWith(proxyUrl) || isImageProxyURL(imageUrl)) {
+    return imageUrl;
+  }
+  return `${proxyUrl}?url=${encodeURIComponent(imageUrl)}`;
+}
+
+const defaultImageProxyMiddlewarBuilder = imageProxyMiddlewareBuilder();
+
+export const setImageProxyMiddlewareURL = defaultImageProxyMiddlewarBuilder.set;
+
+export const defaultImageProxyMiddleware: TransformerMiddleware = (args) => {
+  return defaultImageProxyMiddlewarBuilder.get()(args);
+};
+
+// TODO(@mirone): this should be configured when setup instead of runtime
+export class ImageProxyService extends StoreExtension {
+  static override key = "image-proxy";
+
+  private _imageProxyURL = DEFAULT_IMAGE_PROXY_ENDPOINT;
+
+  setImageProxyURL(url: string) {
+    this._imageProxyURL = url;
+    setImageProxyMiddlewareURL(url);
+  }
+
+  buildUrl(imageUrl: string) {
+    return buildImageProxyURL(imageUrl, this.imageProxyURL);
+  }
+
+  get imageProxyURL() {
+    return this._imageProxyURL;
+  }
+}

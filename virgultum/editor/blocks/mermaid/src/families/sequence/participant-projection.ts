@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { mermaidMessages as m } from "../../i18n.js";
-import { ShapeType, StrokeStyle } from "@virgultum/model";
+import { ShapeType, StrokeStyle } from "@virgultum/core/models";
 import type {
   MermaidSequenceModel,
   SequenceParticipantType,

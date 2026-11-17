@@ -45,6 +45,12 @@ caller-owned substitution. Building blocks use native fields, automatic variable
 and ordinary editable text; insertion does not open a question form. Protect only
 explicitly assigned fixed boilerplate, not all template-derived prose. Their sources use the existing
 `category: building-blocks` and work-area `tags`, with the same native ZIP format.
+The supplied **Page report** building block is also available as a direct Slash
+command. It inserts its native table-view directory immediately through the same
+building-block service; its source is resolved by Registry slug through the
+existing workspace Library query and current access checks. Native local delivery
+uses the existing prepared bundle catalog; report results still require a server.
+
 Embedded native images travel with the source; the export retains their exact
 referenced bytes. It does not resolve inputs or alter the source document.
 

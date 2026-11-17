@@ -1,6 +1,6 @@
-import type { MermaidBlockModel } from "@virgultum/model";
-import type { BlockStdScope } from "@virgultum/std";
-import type { Query, Store } from "@virgultum/store";
+import type { MermaidBlockModel } from "@virgultum/core/models";
+import type { BlockStdScope } from "@virgultum/core/runtime";
+import type { Query, Store } from "@virgultum/core/store";
 
 import { getMermaidVisualModelForEditing } from "../commands.js";
 import { resolveMermaidFamilyRuntime } from "../families/runtime/registry.js";
@@ -10,7 +10,7 @@ import {
   isMermaidOwnerAdoptionCandidate,
   projectTypeOwnedAdoptedMermaidOwnerShape,
 } from "../mermaid-owner-source-sync.js";
-import { Bound } from "@virgultum/global/gfx";
+import { Bound } from "@virgultum/core/primitives/gfx";
 import { createMermaidOwnerGfxStoreElementKey } from "../mermaid-owner-gfx-store.js";
 import { getMermaidVisualModel } from "../commands/model-resolution.js";
 import { projectMermaidLocalGfxAppearance } from "../mermaid-local-gfx-appearance.js";

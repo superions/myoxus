@@ -18,6 +18,7 @@
 //! - [`subscriptions`] — SSE subscription fanout state.
 
 pub mod auth;
+pub mod copilot;
 mod idempotency;
 #[cfg(test)]
 mod output_schema_test_support;

@@ -1,1 +1,1 @@
-export * from "@virgultum/gfx-shape/view";
+export { ShapeViewExtension } from "@virgultum/canvas/view";

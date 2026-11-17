@@ -420,6 +420,8 @@ pub fn create_get_service(
   let config = &state.config.pdf_export;
   PdfExportService {
     field_source: Some(state.clone()),
+    directory_source: state.workspace_overview_service(),
+    web_origin: state.config.server.origin.trim_end_matches('/').to_string(),
     permission: state.permission_service(),
     doc: state.doc().clone(),
     jobs: state.pdf_export_jobs(),
@@ -461,6 +463,19 @@ impl PdfExportBackend for PdfCreateGetAdapter {
       .metrics_pool()
       .map(|_| ())
       .ok_or_else(|| PdfExportError::new("DB unavailable"))
+  }
+  async fn prepare_document_embeds(
+    &self,
+    snapshot: &[u8],
+    workspace_id: Uuid,
+    doc_id: Uuid,
+    actor: Uuid,
+  ) -> PdfResult<Option<myoxus_application::doc::embed_output::PreparedEmbedOutput>> {
+    self
+      .state
+      .prepare_document_embeds(snapshot, workspace_id, doc_id, Some(actor))
+      .await
+      .map_err(|_| PdfExportError::new("PDF document embed output unavailable"))
   }
   async fn theme(&self, workspace_id: Uuid) -> PdfResult<myoxus_application::pdf_export::dispatch::PdfThemeContext> {
     let pool = self

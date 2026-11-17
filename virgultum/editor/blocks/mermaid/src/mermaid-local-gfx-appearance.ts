@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { Bound } from "@virgultum/global/gfx";
+import { Bound } from "@virgultum/core/primitives/gfx";
 import * as Y from "yjs";
 import { getMermaidGfxFamilyHooks } from "./families/runtime/gfx-family-hooks-registry.js";
 

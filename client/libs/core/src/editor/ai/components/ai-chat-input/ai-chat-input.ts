@@ -11,7 +11,7 @@ import { type ReactToLit, toReactNode } from "@myoxus/lit-react";
 import { signal } from "@preact/signals-core";
 import { SignalWatcher, WithDisposable } from "@virgultum/editor/global/lit";
 import { type EditorHost, ShadowlessElement } from "@virgultum/editor/std";
-import type { NotificationService } from "@virgultum/shared/services";
+import type { NotificationService } from "@virgultum/core/services";
 import { html, nothing, type PropertyValues } from "lit";
 import { property, query, state } from "lit/decorators.js";
 import { createElement } from "react";
@@ -34,6 +34,8 @@ import {
 } from "../ai-chat-messages";
 import type { AIChatInputContext, AIReasoningConfig } from "./type";
 import { ChatInputView } from "./view";
+import { ChatImagePreviewView } from "../ai-chat-chips/view";
+import { ImagePreviewUrls } from "../image-preview-grid";
 
 /** Retains draft/request ownership while React supplies native input chrome. */
 export class AIChatInput extends SignalWatcher(
@@ -88,6 +90,7 @@ export class AIChatInput extends SignalWatcher(
 
   // One transient draft source for both Lit orchestration and the native view.
   readonly draft = signal("");
+  private readonly imagePreviewUrls = new ImagePreviewUrls();
   private draftRevision = 0;
   // The parent Lit props can lag the first synchronous send/stop transition.
   // This is the request lease, not another conversation or draft store.
@@ -182,6 +185,7 @@ export class AIChatInput extends SignalWatcher(
   }
 
   override disconnectedCallback() {
+    this.imagePreviewUrls.dispose();
     this.draftRevision++;
     this.activeRequest?.abort();
     this.activeRequest = null;
@@ -192,20 +196,19 @@ export class AIChatInput extends SignalWatcher(
   protected override render() {
     if (!this.reactToLit) return nothing;
     const { images, status } = this.chatContextValue;
+    const previews = this.imagePreviewUrls.sync(this.isConnected ? images : []);
     const generating =
       !!this.activeRequest || status === "loading" || status === "transmitting";
     return this.reactToLit(
       createElement(ChatInputView, {
         draft: this.draft,
         quote: this.chatContextValue.quote,
-        images: images.length
-          ? toReactNode(
-              html`<image-preview-grid
-                .reactToLit=${this.reactToLit}
-                .images=${images}
-                .onImageRemove=${this._handleImageRemove}
-              ></image-preview-grid>`,
-            )
+        images: previews.length
+          ? createElement(ChatImagePreviewView, {
+              images: previews,
+              onRemove: this._handlePreviewRemove,
+              onError: this.imagePreviewUrls.release,
+            })
           : null,
         context: toReactNode(
           html`<ai-chat-add-context
@@ -304,6 +307,13 @@ export class AIChatInput extends SignalWatcher(
 
   private readonly _toggleReasoning = (enabled: boolean) => {
     this.reasoningConfig.setEnabled(enabled);
+  };
+
+  private readonly _handlePreviewRemove = (file: File) => {
+    const index = this.chatContextValue.images.indexOf(file);
+    if (index < 0) return;
+    this.imagePreviewUrls.release(file);
+    this._handleImageRemove(index);
   };
 
   private readonly _handleImageRemove = (index: number) => {

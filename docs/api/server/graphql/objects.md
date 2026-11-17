@@ -4276,6 +4276,8 @@ Persisted overrides. Nullable fields intentionally inherit defaults.
 | `journalDate`<br>[NaiveDate](./scalars.md#naivedate) |  |
 | `pageWidth`<br>`String` |  |
 | `primaryMode`<br>`String` |  |
+| `responsibleName`<br>`String` |  |
+| `responsibleUserId`<br>`ID` |  |
 | `reviewDueAt`<br>[DateTime](./scalars.md#datetime) |  |
 | `statusId`<br>`ID` |  |
 | `tagIds`<br>\[`ID`!\]! | Current ordered labels, joined after the shared index's visibility filter. |
@@ -8133,8 +8135,6 @@ Workspace invite link details returned after link creation.
 
 ## WorkspaceOverviewPageType
 
-Authorized page facts only. The workspace row and its private bindings stay with the native settings owner rather than becoming a generic JSON payload.
-
 <!-- prettier-ignore -->
 | Field and return type | Arguments and description |
 | --- | --- |
@@ -8150,6 +8150,15 @@ Authorized page facts only. The workspace row and its private bindings stay with
 | `offset`<br>`Int`! |  |
 | `registerPresentation`<br>[WorkspaceOverviewRegisterPresentationType](./objects.md#workspaceoverviewregisterpresentationtype) |  |
 
+## WorkspaceOverviewRegisterFilterType
+
+<!-- prettier-ignore -->
+| Field and return type | Arguments and description |
+| --- | --- |
+| `key`<br>`String`! |  |
+| `method`<br>`String`! |  |
+| `value`<br>`String` |  |
+
 ## WorkspaceOverviewRegisterPresentationType
 
 <!-- prettier-ignore -->
@@ -8157,6 +8166,17 @@ Authorized page facts only. The workspace row and its private bindings stay with
 | --- | --- |
 | `displayProperties`<br>\[`String`!\]! |  |
 | `orderBy`<br>[WorkspaceOverviewOrderByType](./objects.md#workspaceovervieworderbytype)! |  |
+| `selection`<br>[WorkspaceOverviewRegisterSelectionType](./objects.md#workspaceoverviewregisterselectiontype)! |  |
+
+## WorkspaceOverviewRegisterSelectionType
+
+<!-- prettier-ignore -->
+| Field and return type | Arguments and description |
+| --- | --- |
+| `filters`<br>\[[WorkspaceOverviewRegisterFilterType](./objects.md#workspaceoverviewregisterfiltertype)!\]! |  |
+| `matchAllTags`<br>`Boolean`! |  |
+| `subtree`<br>`Boolean`! |  |
+| `tagIds`<br>\[[UUID](./scalars.md#uuid)!\]! |  |
 
 ## WorkspaceOverviewSettingsType
 
@@ -8553,7 +8573,7 @@ A workspace template policy as exposed via GraphQL.
 | `memberCount`<br>`Int`! | Complexity 5: triggers a DB COUNT query. |
 | `members`<br>\[[InviteUserType](./objects.md#inviteusertype)!\]! | `query`: `String`<br>`skip`: `Int`<br>`take`: `Int`<br><br>Complexity 20: permission check + paginated member list with user joins. |
 | `name`<br>`String`! |  |
-| `overview`<br>[WorkspaceOverviewPageType](./objects.md#workspaceoverviewpagetype)! | `first`: `Int`! = 50<br>`folderId`: `String`<br>`offset`: `Int`! = 0<br><br>Folder IDs are opaque Organizer identities. The native reader owns both current bulk document access and the root/direct-folder membership rules. |
+| `overview`<br>[WorkspaceOverviewPageType](./objects.md#workspaceoverviewpagetype)! | `first`: `Int`! = 50<br>`folderId`: `String`<br>`offset`: `Int`! = 0<br>`registerPresentation`: [WorkspaceOverviewRegisterPresentationInput](./inputs.md#workspaceoverviewregisterpresentationinput)<br><br>Folder IDs are opaque Organizer identities. The native reader owns both current bulk document access and the root/direct-folder membership rules. |
 | `overviewSettings`<br>[WorkspaceOverviewSettingsType](./objects.md#workspaceoverviewsettingstype)! | The captured row is also the mutation's exact saved basis; no second read can replace its returned revision with a concurrent writer's settings. |
 | `owner`<br>[UserType](./objects.md#usertype) | Complexity 10: DB query to fetch workspace owner with user data. |
 | `pageMeta`<br>[WorkspaceDocMeta](./objects.md#workspacedocmeta) | `pageId`: `String`!<br><br>Cloud page metadata — author and timestamp information for a single doc. |

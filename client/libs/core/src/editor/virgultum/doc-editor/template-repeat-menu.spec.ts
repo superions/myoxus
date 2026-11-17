@@ -1,22 +1,31 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // @vitest-environment happy-dom
 
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { createElement } from "react";
+import { MyoxusUIProvider } from "@myoxus/ui-facade/provider";
+import { I18nextProvider, getOrCreateI18n } from "@myoxus/i18n";
+import {
+  templateRepeatActions,
+  type EditorTemplateRepeatPickerControls,
+  type SelectionAction,
+} from "@virgultum/core/services";
+import { SelectionActions } from "../../view-extensions/editor-view/editor-chrome/selection-toolbar/block-actions";
+import { renderControl } from "../../view-extensions/editor-view/editor-chrome/selection-toolbar";
+import { TableCell } from "../../../../../../../virgultum/content/src/blocks/table/table-cell";
 import { afterEach, expect, test, vi } from "vitest";
 
-import {
-  effects,
-  Menu,
-  type MenuButton,
-  type MenuComponent,
-  templateRepeatMenuOptions,
-} from "@virgultum/components/context-menu";
-
-// The root Lit setup stubs registration for non-rendering tests. This consumer
-// needs Happy-DOM's real registry; do not change the global suite's setup.
-vi.unstubAllGlobals();
-if (!customElements.get("myoxus-menu")) effects();
-const openMenus: Menu[] = [];
-afterEach(() => openMenus.splice(0).forEach((menu) => menu.close()));
+// Use the same native semantic menu renderer as both productive producers.
+vi.hoisted(() => vi.unstubAllGlobals());
+vi.unmock("@myoxus/i18n");
+afterEach(cleanup);
 
 async function open(
   unit = {
@@ -24,68 +33,88 @@ async function open(
     texts: ["{{member.name}}"],
     leaf: true,
   },
+  build: (
+    controls: EditorTemplateRepeatPickerControls,
+  ) => SelectionAction[] = templateRepeatActions,
 ) {
   let writable = true;
   const change = vi.fn((binding) => {
     unit.binding = binding;
   });
   const onClose = vi.fn();
-  const menu = new Menu(
-    templateRepeatMenuOptions({
-      unit: () => unit,
-      canWrite: () => writable,
-      change,
-      onClose,
-    }),
+  const actions: SelectionAction[] = [
+    {
+      id: "repeat",
+      label: "Repeat for",
+      disabled: false,
+      control: {
+        type: "menu",
+        onClose,
+        items: build({ unit: () => unit, canWrite: () => writable, change }),
+      },
+    },
+  ];
+  const mounted = render(
+    createElement(
+      MyoxusUIProvider,
+      null,
+      createElement(
+        I18nextProvider,
+        { i18n: getOrCreateI18n() },
+        createElement("input", { "aria-label": "Document title" }),
+        createElement(SelectionActions, { actions, renderControl }),
+      ),
+    ),
   );
-  openMenus.push(menu);
-  document.body.append(menu.menuElement);
-  await (menu.menuElement as MenuComponent).updateComplete;
-  const buttons = Array.from(
-    menu.menuElement.querySelectorAll<MenuButton>("myoxus-menu-button"),
-  );
-  await Promise.all(buttons.map((button) => button.updateComplete));
+  screen.getByRole("button", { name: "Repeat for" }).focus();
+  fireEvent.click(screen.getByRole("button", { name: "Repeat for" }));
+  await screen.findByRole("menuitem", { name: "Workspace members" });
   return {
-    menu,
-    buttons,
     unit,
     change,
     onClose,
+    mounted,
     deny: () => {
       writable = false;
     },
   };
 }
 
-test("repeat menu authors and removes binding only, with keyboard cancellation and no Enter default", async () => {
+test("native repeat submenu authors and removes binding only, without a default write and with cancellation", async () => {
   const f = await open();
-  f.buttons[0].onClick();
+  expect(f.change).not.toHaveBeenCalled();
+  fireEvent.click(screen.getByRole("menuitem", { name: "Workspace members" }));
   expect(f.change).toHaveBeenCalledWith({
     source: "workspace.members",
     alias: "member",
   });
   expect(f.unit.texts).toEqual(["{{member.name}}"]);
-  expect(f.onClose).toHaveBeenCalledOnce();
+  await waitFor(() => expect(f.onClose).toHaveBeenCalledOnce());
+  f.mounted.unmount();
   const removal = await open(f.unit);
-  expect(removal.buttons).toHaveLength(2);
-  removal.menu.focusTo(removal.buttons[1]);
-  const enter = new KeyboardEvent("keydown", {
-    key: "Enter",
-    bubbles: true,
-    cancelable: true,
-  });
-  removal.menu.menuElement.querySelector("input")!.dispatchEvent(enter);
-  expect(enter.defaultPrevented).toBe(true);
+  fireEvent.click(screen.getByRole("menuitem", { name: "Remove repeat" }));
   expect(removal.change).toHaveBeenCalledWith(undefined);
   expect(removal.unit.texts).toEqual(["{{member.name}}"]);
+  await waitFor(() => expect(removal.onClose).toHaveBeenCalledOnce());
+  removal.mounted.unmount();
   const cancel = await open();
-  cancel.menu.menuElement
-    .querySelector("input")!
-    .dispatchEvent(
-      new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
-    );
+  fireEvent.keyDown(
+    screen.getByRole("menuitem", { name: "Workspace members" }),
+    { key: "Escape", bubbles: true },
+  );
+  await waitFor(() => expect(cancel.onClose).toHaveBeenCalledOnce());
   expect(cancel.change).not.toHaveBeenCalled();
-  expect(cancel.onClose).toHaveBeenCalledOnce();
+  cancel.mounted.unmount();
+  const outside = await open();
+  const title = screen.getByRole("textbox", { name: "Document title" });
+  title.focus();
+  fireEvent.click(title);
+  await waitFor(() => expect(outside.onClose).toHaveBeenCalledOnce());
+  // Mantine normally returns focus after ten milliseconds; the editor owner
+  // must retain the title caret after an outside click, beyond that callback.
+  await new Promise((resolve) => setTimeout(resolve, 30));
+  expect(document.activeElement).toBe(title);
+  expect(outside.change).not.toHaveBeenCalled();
 });
 
 test.each([
@@ -95,7 +124,7 @@ test.each([
   "changed-permission",
   "invalid-binding",
 ])(
-  "repeat menu respects %s and keeps invalid metadata removable",
+  "native repeat picker respects %s and keeps invalid metadata removable",
   async (kind) => {
     const f = await open({
       binding:
@@ -106,23 +135,75 @@ test.each([
       leaf: kind !== "children",
     });
     if (kind === "changed-text") f.unit.texts = ["No field anymore"];
-    if (kind === "changed-permission") f.deny();
+    if (kind === "changed-permission") act(() => f.deny());
     if (kind === "invalid-binding") {
-      expect(f.menu.menuElement.textContent).toContain(
+      expect(screen.getByRole("menu").textContent).toContain(
         "This repeat binding is invalid.",
       );
-      f.buttons[1].onClick();
+      fireEvent.click(screen.getByRole("menuitem", { name: "Remove repeat" }));
       expect(f.change).toHaveBeenCalledWith(undefined);
     } else {
-      f.buttons[0].onClick();
-      f.buttons[0].onPressEnter();
+      fireEvent.click(
+        screen.getByRole("menuitem", { name: "Workspace members" }),
+      );
       expect(f.change).not.toHaveBeenCalled();
       if (kind === "missing-field")
-        expect(f.menu.menuElement.textContent).toContain("{{member.name}}");
+        expect(screen.getByRole("status").textContent).toContain(
+          "{{member.name}}",
+        );
       if (kind === "children")
-        expect(f.menu.menuElement.textContent).toContain(
+        expect(screen.getByRole("status").textContent).toContain(
           "without nested content",
         );
     }
+  },
+);
+
+// The previous six cases stubbed canWrite and could not detect the productive
+// table producer losing ownership after a cell click or component reuse.
+test.each(["selection", "cell"])(
+  "table repeat rejects a changed %s through its native submenu",
+  async (kind) => {
+    const model = { id: "table", children: [] };
+    const manager = {
+      rows$: { value: [{ rowId: "r", repeat: undefined }] },
+      columns$: { value: [{ columnId: "c" }] },
+      getCell: () => ({ text: { toString: () => "{{member.name}}" } }),
+      canSetRowRepeat: () => true,
+      setRowRepeat: vi.fn(() => true),
+    };
+    const selection = { selected$: { value: { type: "row", rowId: "r" } } };
+    const block = {
+      isConnected: true,
+      model,
+      store: { getBlock: () => ({ model }) },
+      std: { getOptional: () => ({ isTemplateDocument: () => true }) },
+    };
+    const cell = {
+      readonly: false,
+      isConnected: true,
+      dataManager: manager,
+      selectionController: selection,
+      row: { rowId: "r" },
+      closest: () => block,
+      notifyHeaderRepeatConflict: vi.fn(),
+      i18n: undefined,
+    };
+    await open(undefined, () => {
+      const [action] = TableCell.prototype.rowRepeatActions.call(
+        cell as unknown as TableCell,
+        "r",
+      );
+      if (action.control?.type !== "menu")
+        throw new Error("Missing native repeat submenu");
+      return action.control.items;
+    });
+    if (kind === "selection")
+      selection.selected$.value = { type: "row", rowId: "other" };
+    else cell.row = { rowId: "other" };
+    fireEvent.click(
+      screen.getByRole("menuitem", { name: "Workspace members" }),
+    );
+    expect(manager.setRowRepeat).not.toHaveBeenCalled();
   },
 );

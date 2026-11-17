@@ -12,8 +12,8 @@ import {
   NoteBlockSchemaExtension,
   RootBlockSchemaExtension,
   type BpmnBlockModel,
-} from "@virgultum/model";
-import { TestWorkspace } from "@virgultum/store/test";
+} from "@virgultum/core/models";
+import { TestWorkspace } from "@virgultum/core/store/test";
 import { afterEach, expect, test, vi } from "vitest";
 import { mergeUpdates } from "yjs";
 import { BpmnEditorService } from "./session";
@@ -25,8 +25,8 @@ import type { WorkspaceService } from "../workspace";
 import type { DocsService, Doc } from "../doc";
 import type { GuardService } from "../permissions";
 import type { WorkspaceDialogService } from "../dialogs";
-import type { MyoxusBpmnEditorCloseResult } from "@virgultum/shared/services";
-import { MyoxusHostCapability } from "@virgultum/shared/services";
+import type { MyoxusBpmnEditorCloseResult } from "@virgultum/core/services";
+import { MyoxusHostCapability } from "@virgultum/core/services";
 import {
   createMyoxusHostServiceAdapter,
   type MyoxusHostAdapterDeps,

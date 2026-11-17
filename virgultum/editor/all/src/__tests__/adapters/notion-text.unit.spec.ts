@@ -1,6 +1,6 @@
-import { DefaultTheme } from "@virgultum/model";
-import { NotionTextAdapter } from "@virgultum/shared/adapters";
-import type { SliceSnapshot } from "@virgultum/store";
+import { DefaultTheme } from "@virgultum/core/models";
+import { NotionTextAdapter } from "@virgultum/core/adapters";
+import type { SliceSnapshot } from "@virgultum/core/store";
 import { describe, expect, test } from "vitest";
 
 import { createJob } from "../utils/create-job.js";

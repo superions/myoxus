@@ -2,8 +2,8 @@ import type { FrameBlockComponent } from "@virgultum/editor/blocks/frame";
 import type { EdgelessRootBlockComponent } from "@virgultum/editor/blocks/root";
 import type { FrameBlockModel } from "@virgultum/editor/model";
 import type { MyoxusFrameTitleWidget } from "@virgultum/editor/widgets/frame-title";
-import { assertType } from "@virgultum/global/utils";
-import { Text } from "@virgultum/store";
+import { assertType } from "@virgultum/editor/global/utils";
+import { Text } from "@virgultum/editor/store";
 import { beforeEach, describe, expect, test } from "vitest";
 
 import { wait } from "../utils/common.js";

@@ -64,9 +64,10 @@ fn register_page(request: PageRequest, count: i64) -> PageRequest {
 pub struct WorkspaceOverviewService {
   workspace: WorkspaceService,
   documents: DocService,
-  metadata: DocumentMetadataPolicyService,
-  tags: Arc<WorkspaceTagService>,
+  pub(super) metadata: DocumentMetadataPolicyService,
+  pub(super) tags: Arc<WorkspaceTagService>,
   auth: AuthService,
+  pub(super) html_catalog: Option<Arc<dyn myoxus_public_render::HtmlRendererProvider>>,
 }
 
 impl WorkspaceOverviewService {
@@ -76,6 +77,7 @@ impl WorkspaceOverviewService {
     metadata: DocumentMetadataPolicyService,
     tags: Arc<WorkspaceTagService>,
     auth: AuthService,
+    html_catalog: Option<Arc<dyn myoxus_public_render::HtmlRendererProvider>>,
   ) -> Self {
     Self {
       workspace,
@@ -83,6 +85,7 @@ impl WorkspaceOverviewService {
       metadata,
       tags,
       auth,
+      html_catalog,
     }
   }
 
@@ -94,7 +97,40 @@ impl WorkspaceOverviewService {
     workspace_id: Uuid,
     folder_id: Option<&str>,
     page_request: PageRequest,
+    presentation: Option<myoxus_domain::workspace_overview::OverviewRegisterPresentation>,
   ) -> AuthResult<WorkspaceOverviewRead> {
+    let (workspace, snapshot, facts) = self.authenticated_source(user_id, permission, workspace_id).await?;
+    let mut page = select_overview_page(
+      &snapshot,
+      &workspace.overview_settings,
+      facts,
+      folder_id,
+      presentation,
+      false,
+    )?;
+    let document_count = page.documents.len() as i64;
+    let register_page = register_page(page_request, document_count);
+    page.documents = page
+      .documents
+      .into_iter()
+      .skip(register_page.offset as usize)
+      .take(register_page.limit as usize)
+      .collect();
+    hydrate_overview_register_display(&self.metadata, &self.tags, &mut page.documents).await?;
+    Ok(WorkspaceOverviewRead {
+      workspace,
+      page,
+      document_count,
+      register_page,
+    })
+  }
+
+  pub(super) async fn authenticated_source(
+    &self,
+    user_id: Uuid,
+    permission: &PermissionService,
+    workspace_id: Uuid,
+  ) -> AuthResult<(Workspace, OrganizerSnapshot, Vec<OverviewDocument>)> {
     permission
       .assert(&WorkspaceResource { user_id, workspace_id }, WorkspaceAction::Read)
       .await?;
@@ -118,27 +154,11 @@ impl WorkspaceOverviewService {
       );
     }
 
-    hydrate_overview_creators(self.auth.store.as_ref(), &mut facts).await?;
+    hydrate_overview_identities(self.auth.store.as_ref(), &mut facts).await?;
     permission
       .assert(&WorkspaceResource { user_id, workspace_id }, WorkspaceAction::Read)
       .await?;
-    let overview = compose_workspace_overview(&snapshot, &workspace.overview_settings, facts, false)?;
-    let mut page = overview.page(&snapshot, folder_id)?.clone();
-    let document_count = page.documents.len() as i64;
-    let register_page = register_page(page_request, document_count);
-    page.documents = page
-      .documents
-      .into_iter()
-      .skip(register_page.offset as usize)
-      .take(register_page.limit as usize)
-      .collect();
-    hydrate_overview_register_display(&self.metadata, &self.tags, &mut page.documents).await?;
-    Ok(WorkspaceOverviewRead {
-      workspace,
-      page,
-      document_count,
-      register_page,
-    })
+    Ok((workspace, snapshot, facts))
   }
 
   /// Git retains the caller's exact Organizer capture and its private read
@@ -198,6 +218,7 @@ impl WorkspaceOverviewService {
             labels: Default::default(),
             created_at: document.observed_at,
             created_by_name: None,
+            responsible_name: None,
             tag_ids: vec![],
             tags: vec![],
             can_publish: false,
@@ -209,7 +230,7 @@ impl WorkspaceOverviewService {
         ));
       }
     }
-    hydrate_overview_creators(self.auth.store.as_ref(), &mut facts).await?;
+    hydrate_overview_identities(self.auth.store.as_ref(), &mut facts).await?;
     hydrate_overview_register_display(&self.metadata, &self.tags, &mut facts).await?;
     let definitions = self
       .metadata
@@ -255,7 +276,7 @@ impl WorkspaceOverviewService {
       true,
     )
     .await?;
-    hydrate_overview_creators(self.auth.store.as_ref(), &mut facts).await?;
+    hydrate_overview_identities(self.auth.store.as_ref(), &mut facts).await?;
     hydrate_overview_register_display(&self.metadata, &self.tags, &mut facts).await?;
     let definitions = self
       .metadata
@@ -329,7 +350,7 @@ impl WorkspaceOverviewService {
       .field_definitions()
       .await
       .map_err(|_| AuthError::Storage("public metadata definitions could not be loaded".into()))?;
-    super::public::admit_public_presentation(&mut workspace.overview_settings, &definitions);
+    super::public::admit_public_presentation(&mut workspace.overview_settings, &definitions)?;
     let mut facts = Vec::new();
     for source_id in document_sources(&snapshot) {
       if public
@@ -388,6 +409,7 @@ impl WorkspaceOverviewService {
             labels: Default::default(),
             created_at: document.created_at,
             created_by_name: None,
+            responsible_name: None,
             tag_ids,
             tags: Vec::new(),
             can_publish: false,
@@ -503,6 +525,7 @@ async fn read_authorized_overview_facts(
         metadata,
         created_at: document.created_at,
         created_by_name: None,
+        responsible_name: None,
         labels: Default::default(),
         tag_ids,
         tags: Vec::new(),
@@ -514,32 +537,24 @@ async fn read_authorized_overview_facts(
   Ok(facts)
 }
 
-/// Attribution is display-only and grants no access to its associated documents.
-pub async fn hydrate_overview_creators(
+/// Identity display grants no access and is never hydrated by anonymous reads.
+pub async fn hydrate_overview_identities(
   auth: &dyn crate::auth::AuthStore,
   facts: &mut [OverviewDocument],
 ) -> AuthResult<()> {
-  let authors = facts
+  let rows = facts
     .iter()
-    .filter_map(|document| document.register.as_ref()?.metadata.created_by)
-    .collect::<BTreeSet<_>>()
-    .into_iter()
+    .filter_map(|doc| doc.register.as_ref().map(|row| row.metadata.clone()))
     .collect::<Vec<_>>();
-  // Reuse retained attribution profiles, including authors who left or were
-  // deleted. This is one bulk display read and grants no document access.
-  let profiles = auth.get_historical_profiles(&authors).await?;
-  for document in facts.iter_mut() {
+  let profiles = crate::document_metadata_policy::index_identity_labels(auth, &rows).await?;
+  for document in facts {
     if let Some(register) = &mut document.register {
-      register.created_by_name = register
+      register.created_by_name = register.metadata.created_by.and_then(|id| profiles.get(&id)).cloned();
+      register.responsible_name = register
         .metadata
-        .created_by
+        .responsible_user_id
         .and_then(|id| profiles.get(&id))
-        .and_then(|profile| {
-          profile
-            .name
-            .clone()
-            .or_else(|| (!profile.email.is_empty()).then(|| profile.email.clone()))
-        });
+        .cloned();
     }
   }
   Ok(())
@@ -633,4 +648,34 @@ fn visit_document_rows(nodes: &[OrganizerSnapshotNode], visit: &mut impl FnMut(&
     }
     visit_document_rows(&node.children, visit);
   }
+}
+
+/// Narrow one already-authorized inventory; every consumer shares these rules.
+/// Both routed overviews and embeddings project the same captured inventory.
+/// Overrides are operation-local; rendering never writes workspace settings.
+pub(super) fn select_overview_page(
+  snapshot: &OrganizerSnapshot,
+  settings: &myoxus_domain::workspace_overview::WorkspaceOverviewSettings,
+  facts: Vec<OverviewDocument>,
+  folder_id: Option<&str>,
+  presentation: Option<myoxus_domain::workspace_overview::OverviewRegisterPresentation>,
+  public: bool,
+) -> AuthResult<OverviewPage> {
+  let mut settings = settings.clone();
+  if let Some(presentation) = presentation {
+    presentation
+      .validate()
+      .map_err(|_| AuthError::InvalidInput("invalid register presentation".into()))?;
+    if let Some(folder) = folder_id {
+      settings
+        .folders
+        .entry(folder.to_string())
+        .or_default()
+        .register_presentation = Some(presentation);
+    } else {
+      settings.register_presentation = Some(presentation);
+    }
+  }
+  let overview = compose_workspace_overview(snapshot, &settings, facts, public)?;
+  Ok(overview.page(snapshot, folder_id)?.clone())
 }

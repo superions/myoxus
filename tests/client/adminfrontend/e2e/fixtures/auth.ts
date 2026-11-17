@@ -57,7 +57,6 @@ type RequestFactory = {
 };
 
 let cachedAdminStorageStatePromise: Promise<RequestStorageState> | null = null;
-const requestAdminCookieHeaders = new WeakMap<APIRequestContext, string>();
 
 // ---------------------------------------------------------------------------
 // Low-level API helpers
@@ -315,19 +314,12 @@ export async function ensureAdminUser(
   await ensureAdminUserExists(request);
 
   if (await requestHasAdminSession(request)) {
-    requestAdminCookieHeaders.delete(request);
     return;
   }
 
-  const cached = await readCachedAdminStorageState();
-  if (cached && (await storageStateHasAdminSession(request, cached))) {
-    requestAdminCookieHeaders.set(
-      request,
-      cookieHeaderFromStorageState(cached),
-    );
-    return;
-  }
-
+  // A Cookie header used to validate cached state does not populate this
+  // request context's cookie jar. Callers also use REST and inject these
+  // cookies into browsers, so this context needs its own real session.
   // Sign in so the request context carries a valid admin session cookie.
   // Playwright's APIRequestContext automatically stores Set-Cookie headers,
   // so all subsequent calls in this context will be authenticated.
@@ -343,7 +335,6 @@ export async function ensureAdminUser(
       `Admin sign-in failed after bootstrap: ${signInRes.status()} ${await signInRes.text()}`,
     );
   }
-  requestAdminCookieHeaders.delete(request);
   await writeCachedAdminStorageState(await request.storageState());
 }
 
@@ -358,7 +349,6 @@ export async function apiSignIn(
   email: string,
   password: string,
 ): Promise<string[]> {
-  requestAdminCookieHeaders.delete(request);
   const res = await request.post(`${API_BASE}/api/auth/sign-in`, {
     data: { email, password },
     headers: {
@@ -371,7 +361,6 @@ export async function apiSignIn(
       `Sign-in failed for ${email}: ${res.status()} ${await res.text()}`,
     );
   }
-  requestAdminCookieHeaders.delete(request);
   return res
     .headersArray()
     .filter((header) => header.name.toLowerCase() === "set-cookie")
@@ -389,12 +378,10 @@ export async function gqlRequest<T = unknown>(
   variables?: Record<string, unknown>,
   headers?: Record<string, string>,
 ): Promise<T> {
-  const cachedAdminCookie = requestAdminCookieHeaders.get(request);
   const res = await request.post(`${API_BASE}/graphql`, {
     data: { query, variables },
     headers: {
       "Content-Type": "application/json",
-      ...(cachedAdminCookie ? { Cookie: cachedAdminCookie } : {}),
       ...headers,
     },
   });

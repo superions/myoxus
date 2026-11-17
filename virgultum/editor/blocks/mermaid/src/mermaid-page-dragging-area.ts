@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { cssVar } from "@myoxus/theme";
-import { DefaultModeDragType } from "@virgultum/block-surface";
-import type { RootBlockModel } from "@virgultum/model";
-import { WidgetComponent, WidgetViewExtension } from "@virgultum/std";
-import { GfxControllerIdentifier } from "@virgultum/std/gfx";
+import { DefaultModeDragType } from "@virgultum/canvas-runtime/surface";
+import type { RootBlockModel } from "@virgultum/core/models";
+import { WidgetComponent, WidgetViewExtension } from "@virgultum/core/runtime";
+import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
 import { css, html, nothing, unsafeCSS } from "lit";
 import { styleMap } from "lit/directives/style-map.js";
 import { literal } from "lit/static-html.js";

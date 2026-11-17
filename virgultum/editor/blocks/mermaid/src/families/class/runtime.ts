@@ -5,7 +5,7 @@ import {
 } from "../../engine/class/index.js";
 import { nextClassSourceKey } from "../../engine/class/source-document.js";
 import { classRelationProjection } from "./edge-projection.js";
-import { StrokeStyle } from "@virgultum/model";
+import { StrokeStyle } from "@virgultum/core/models";
 import { defineMermaidFamilyRuntime } from "../runtime/factory.js";
 import { mermaidClassFamily, isClassDiagramType } from "./family.js";
 import { classDiagramTitle } from "./diagram-title.js";

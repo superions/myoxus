@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { DefaultModeDragType, DefaultTool } from "@virgultum/block-surface";
-import { IS_MAC } from "@virgultum/global/env";
-import type { PointerEventState } from "@virgultum/std";
-import type { GfxModel } from "@virgultum/std/gfx";
+import {
+  DefaultModeDragType,
+  DefaultTool,
+} from "@virgultum/canvas-runtime/surface";
+import { IS_MAC } from "@virgultum/core/primitives/env";
+import type { PointerEventState } from "@virgultum/core/runtime";
+import type { GfxModel } from "@virgultum/core/runtime/gfx";
 
 import type { MermaidPageSelectionOperation } from "./mermaid-page-selection-controller.js";
 import type { MermaidPageSelectionTool as MermaidPageSelectionToolMode } from "./mermaid-page-selection-state.js";

@@ -1,1 +1,1 @@
-export * from "@virgultum/block-attachment/view";
+export { AttachmentViewExtension } from "@virgultum/embeds/view";

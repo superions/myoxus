@@ -1,0 +1,70 @@
+{
+  "name": "@virgultum/content",
+  "description": "Virgultum native document content, rich text, inlines and authored renderers.",
+  "type": "module",
+  "scripts": {
+    "build": "yarn --cwd \"$PROJECT_CWD\" exec tsc -p \"$PROJECT_CWD/virgultum/content/tsconfig.json\" --noEmit",
+    "generate:syntax-languages": "node scripts/generate-syntax-languages.mjs"
+  },
+  "sideEffects": false,
+  "author": "Myoxus Contributors",
+  "license": "AGPL-3.0-or-later AND MIT",
+  "dependencies": {
+    "@atlaskit/pragmatic-drag-and-drop": "^1.4.0",
+    "@floating-ui/dom": "^1.6.13",
+    "@lit/context": "^1.1.6",
+    "@myoxus/icons": "workspace:*",
+    "@myoxus/theme": "workspace:*",
+    "@preact/signals-core": "^1.14.5",
+    "@shikijs/core": "3.23.0",
+    "@shikijs/engine-oniguruma": "3.23.0",
+    "@shikijs/langs": "3.23.0",
+    "@shikijs/themes": "3.23.0",
+    "@types/hast": "^3.0.4",
+    "@types/lodash-es": "^4.17.12",
+    "@types/mdast": "^4.0.4",
+    "@virgultum/canvas-runtime": "workspace:*",
+    "@virgultum/core": "workspace:*",
+    "collapse-white-space": "^2.1.0",
+    "katex": "0.18.2",
+    "lit": "^3.3.3",
+    "lit-html": "^3.3.3",
+    "lodash-es": "4.18.1",
+    "remark-math": "^6.0.0",
+    "rxjs": "^7.8.2",
+    "yjs": "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch",
+    "zod": "4.6.7"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./rich-text": "./src/entries/rich-text.ts",
+    "./effects": "./src/entries/effects.ts",
+    "./blocks": "./src/entries/blocks.ts",
+    "./store": "./src/entries/store.ts",
+    "./view": "./src/entries/view.ts",
+    "./painters/code": "./src/entries/painters/code.ts",
+    "./manifests": "./src/entries/manifests.ts",
+    "./painters/list": "./src/entries/painters/list.ts",
+    "./painters/paragraph": "./src/entries/painters/paragraph.ts",
+    "./inlines": "./src/entries/inlines.ts",
+    "./title": "./src/entries/title.ts",
+    "./caption": "./src/caption/index.ts",
+    "./linked-doc-title": "./src/linked-doc-title/index.ts",
+    "./link-preview": "./src/link-preview/index.ts",
+    "./syntax-highlighter": "./src/syntax-highlighter/index.ts",
+    "./reference-notification": "./src/reference-notification/index.ts",
+    "./data": "./src/entries/data.ts",
+    "./disclosure": "./src/disclosure/index.ts"
+  },
+  "files": [
+    "src",
+    "dist",
+    "!src/**/__tests__",
+    "!dist/**/__tests__"
+  ],
+  "version": "0.41.5",
+  "devDependencies": {
+    "prettier": "3.9.9",
+    "vitest": "4.1.11"
+  }
+}

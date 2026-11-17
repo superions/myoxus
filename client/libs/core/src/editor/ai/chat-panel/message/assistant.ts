@@ -17,7 +17,7 @@ import {
   ShadowlessElement,
 } from "@virgultum/editor/std";
 import type { ExtensionType } from "@virgultum/editor/store";
-import type { NotificationService } from "@virgultum/shared/services";
+import type { NotificationService } from "@virgultum/core/services";
 import { html, nothing } from "lit";
 import { property } from "lit/decorators.js";
 

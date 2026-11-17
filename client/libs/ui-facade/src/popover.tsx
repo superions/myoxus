@@ -57,6 +57,7 @@ export function Popover({
   children,
   fitViewport,
   floatingStrategy,
+  hideDetached,
   opened,
   open,
   onChange,
@@ -79,6 +80,7 @@ export function Popover({
   open?: boolean;
   fitViewport?: boolean;
   floatingStrategy?: MantineCorePopoverProps["floatingStrategy"];
+  hideDetached?: MantineCorePopoverProps["hideDetached"];
   onChange?: (opened: boolean) => void;
   onOpenChange?: (opened: boolean) => void;
   /** Run after the native dropdown releases its focus trap. */
@@ -136,6 +138,7 @@ export function Popover({
       }
       position={position}
       floatingStrategy={floatingStrategy ?? (insideModal ? "fixed" : undefined)}
+      hideDetached={hideDetached}
       middlewares={
         (fitViewport ?? insideModal) ? popoverViewportMiddlewares : undefined
       }

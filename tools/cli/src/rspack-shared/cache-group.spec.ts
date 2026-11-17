@@ -16,7 +16,7 @@ test("Shiki loads individual grammars and themes without losing highlighting", a
   writeFileSync(
     entry,
     `
-    import { createEditorHighlighterCore } from '@virgultum/components/syntax-highlighter';
+    import { createEditorHighlighterCore } from '@virgultum/content/syntax-highlighter';
     const languages = {
       javascript: () => import('@shikijs/langs/javascript'),
       python: () => import('@shikijs/langs/python'),

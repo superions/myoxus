@@ -445,6 +445,9 @@ export function MermaidStateRuntimeEditor({
         key={`${selected?.kind}:${selected?.key}`}
         opened
         fitViewport
+        // The zero-sized canvas anchor moves with Page scrolling. Let Mantine
+        // shift the controls without toggling their measured content's display.
+        hideDetached={false}
         contentMeasure={props.intent ? "reading" : undefined}
         position={
           props.intent

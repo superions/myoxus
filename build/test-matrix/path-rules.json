@@ -105,11 +105,11 @@
     "id": "bpmn-block",
     "paths": [
       "virgultum/editor/blocks/bpmn/**",
-      "virgultum/editor/model/src/blocks/bpmn/**",
+      "virgultum/core/src/models/blocks/bpmn/**",
       "client/libs/core/src/modules/bpmn-editor/**",
       "client/libs/core/src/editor/view-extensions/editor-view/bpmn-block-presentation*",
       "client/libs/core/src/editor/virgultum/doc-editor/myoxus-host-adapter.ts",
-      "virgultum/editor/shared/src/services/host/{types,myoxus-host-service}.ts"
+      "virgultum/core/src/services/host/{types,myoxus-host-service}.ts"
     ],
     "select_suites": ["bpmn.block"],
     "reason": "The root Virgultum name filter does not discover the block package tests; execute its actual XML model/clipboard and real Core portal/session consumers."
@@ -684,9 +684,9 @@
       "client/web/**",
       "server/crates/application/src/template_registry/**",
       "server/crates/workspace_import/**",
-      "virgultum/editor/blocks/database/**",
+      "virgultum/embeds/src/database/**",
       "virgultum/editor/blocks/mermaid/**",
-      "virgultum/editor/widgets/linked-doc/**",
+      "virgultum/editor/all/src/widgets/linked-doc/**",
       "build/scripts/ci/database-decommission-baseline.json",
       "build/scripts/ci/verify-database-decommission.mjs",
       "build/scripts/test/generate-workspace-import-fixtures.mjs",
@@ -1344,22 +1344,21 @@
     "reason": "Release orchestration must preserve Forgejo workflow reachability, the static Web/Admin artifact boundary and the commit-first promotion contract."
   },
   {
-    "id": "virgultum-std",
-    "paths": ["virgultum/framework/std/**"],
-    "select_suites": ["virgultum.std.build", "virgultum.std.vitest"],
-    "reason": "Std changes have package-local build and Vitest gates; do not run the root Virgultum name-filter command or unrelated representative package build smoke by default."
-  },
-  {
-    "id": "virgultum-store",
-    "paths": ["virgultum/framework/store/**"],
-    "select_suites": ["virgultum.store.build", "virgultum.store.vitest"],
-    "reason": "Store changes have package-local build and Vitest gates; do not run the root Virgultum name-filter command or unrelated representative package build smoke by default."
-  },
-  {
     "id": "virgultum-mermaid",
     "paths": ["virgultum/editor/blocks/mermaid/**"],
     "select_suites": ["virgultum.mermaid.build", "virgultum.mermaid.vitest"],
     "reason": "Mermaid changes have package build and package-scoped Vitest gates; do not run the root Virgultum name-filter command or unrelated representative package build smoke by default."
+  },
+  {
+    "id": "virgultum-core",
+    "paths": ["virgultum/core/**"],
+    "select_suites": [
+      "virgultum.core.build",
+      "virgultum.store.vitest",
+      "virgultum.std.vitest",
+      "virgultum.shared.vitest"
+    ],
+    "reason": "The cohesive Core preserves its complete Store, runtime and shared browser test owners as well as its package build."
   },
   {
     "id": "virgultum",
@@ -1370,9 +1369,7 @@
     ],
     "exclude_paths": [
       "virgultum/provenance/**",
-      "virgultum/editor/blocks/mermaid/**",
-      "virgultum/framework/store/**",
-      "virgultum/framework/std/**"
+      "virgultum/editor/blocks/mermaid/**"
     ],
     "select_suites": [
       "virgultum.package-builds",
@@ -2090,13 +2087,13 @@
   {
     "id": "editor-syntax-highlighter",
     "paths": [
-      "virgultum/editor/components/src/syntax-highlighter/**",
-      "virgultum/editor/components/scripts/generate-syntax-languages.mjs",
-      "virgultum/editor/components/tests/**",
-      "virgultum/editor/components/vitest.config.ts",
-      "virgultum/editor/components/package.json",
-      "virgultum/editor/blocks/code/**",
-      "virgultum/editor/inlines/latex/**",
+      "virgultum/content/src/syntax-highlighter/**",
+      "virgultum/content/scripts/generate-syntax-languages.mjs",
+      "virgultum/content/tests/**",
+      "virgultum/content/vitest.syntax.config.ts",
+      "virgultum/content/package.json",
+      "virgultum/content/src/blocks/code/**",
+      "virgultum/content/src/inlines/latex/**",
       "client/libs/core/src/editor/ai/components/ai-tools/code-artifact.ts"
     ],
     "select_suites": ["editor.syntax-highlighter.vitest"],

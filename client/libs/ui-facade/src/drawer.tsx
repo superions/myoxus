@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+import { useI18n } from "@myoxus/i18n";
 import { type RoleBoxProps } from "./helpers/ui-role";
 import {
   type ReactNode,
@@ -59,6 +60,7 @@ export function Drawer({
   "data-myoxus-ui-role": uiRole = "drawer",
   "aria-label": ariaLabel,
 }: DrawerProps) {
+  const t = useI18n();
   const descriptionId = useId();
   const resolvedOpen = opened ?? !!open;
   const wasOpenRef = useRef(resolvedOpen);
@@ -85,9 +87,10 @@ export function Drawer({
       position={position}
       size={size}
       withCloseButton={withCloseButton}
-      closeButtonProps={
-        closeButtonLabel ? { "aria-label": closeButtonLabel } : undefined
-      }
+      closeButtonProps={{
+        "aria-label":
+          closeButtonLabel ?? t["com.myoxus.peek-view-controls.close"](),
+      }}
       aria-label={ariaLabel}
       aria-describedby={description ? descriptionId : undefined}
       className={className}

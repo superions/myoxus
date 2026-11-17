@@ -59,6 +59,7 @@ const TEMPLATE_HANDLES_DIAGRAM_FIT_MARKER: &str = "MYOXUS_TEMPLATE_HANDLES_DIAGR
 pub struct GeneratedSource {
   pub source: String,
   pub inline_assets: HashMap<String, Vec<u8>>,
+  pub(super) formula_ranges: Vec<(std::ops::Range<usize>, usize)>,
 }
 
 #[derive(Default)]
@@ -70,6 +71,7 @@ struct RenderState {
   leading_document_title: Option<String>,
   locale: String,
   inside_footnote: bool,
+  monochrome: bool,
 }
 
 impl RenderState {
@@ -84,10 +86,15 @@ impl RenderState {
 
 /// Errors specific to the V2 source generator. Distinct from the broader
 /// [`crate::error::RenderError`] because the generator runs **before** the
-/// Typst pipeline and its failures are about template-shape, not Typst
-/// compilation.
+/// Typst pipeline; failures cover template shape and bounded formula conversion.
 #[derive(Debug, thiserror::Error)]
 pub enum SourceV2Error {
+  #[error("LaTeX formula {index}: {reason}")]
+  Latex {
+    index: usize,
+    reason: crate::error::LatexErrorReason,
+  },
+
   /// A template bundle is missing a required file (`theme.typ` /
   /// `preamble.typ`). The V2 manifest's `assets` array is the authority
   /// on which files _must_ be present; this guard catches inconsistencies
@@ -138,13 +145,52 @@ pub fn ir_to_typst_source_v2(
     out: String::with_capacity(8192),
     template_handles_diagram_fit: preamble.contains(TEMPLATE_HANDLES_DIAGRAM_FIT_MARKER),
     locale: doc.options.locale.clone(),
+    monochrome: doc.options.color_variant.as_deref() == Some("mono"),
     ..Default::default()
   };
 
   write_dynamic_bindings(&mut state.out, doc, preamble)?;
+  // Use the same flat inventory as TypstWorld, also inside local footnotes.
+  // A missing blob keeps its caption without trying to read a nonexistent file.
+  let mut asset_ids: Vec<_> = doc.assets.keys().collect();
+  asset_ids.sort();
+  let asset_ids = asset_ids
+    .iter()
+    .map(|id| format!("\"{}\",", escape_str(id)))
+    .collect::<String>();
+  let _ = writeln!(state.out, "#let myoxus-image-assets = ({asset_ids})");
+  // Helpers are offline, matching the reviewed MiTeX command specification.
+  state.out.push_str(include_str!("../../vendor/mitex/prelude.typ"));
+  state.out.push_str(include_str!("../../vendor/mitex/standard.typ"));
+  state
+    .out
+    .push_str("\n#let myoxus-mitex-scope = scope\n#let myoxus-formulas = (\n");
+  let mut formula_ranges = Vec::new();
+  for (source, (index, converted)) in super::latex::convert_document(&doc.root)? {
+    let start = state.out.len();
+    let _ = writeln!(
+      state.out,
+      "  \"{}\": eval(\"${}$\", scope: myoxus-mitex-scope),",
+      escape_str(&source),
+      escape_str(&converted)
+    );
+    formula_ranges.push((start..state.out.len(), index));
+  }
+  state
+    .out
+    .push_str(")\n#let myoxus-latex(source, block: false) = math.equation(block: block, myoxus-formulas.at(source))\n");
   state.out.push_str(theme);
   state.out.push('\n');
   state.out.push_str(preamble);
+  // Keep numbers inline: a grid/block per raw line adds paragraph spacing and
+  // changes pagination even though the raw font and leading remain unchanged.
+  state.out.push_str(r#"
+#let myoxus-numbered-code(content, line-count: 1) = context {
+  let number-width = measure(text(font: mono-font, size: mono-size, str(line-count))).width
+  show raw.line: line => box(width: number-width, align(right, text(fill: secondary-text-fill, str(line.number)))) + h(0.8em) + line.body
+  content
+}
+"#);
   state.out.push('\n');
 
   if let Block::Page { title, children } = &doc.root {
@@ -181,6 +227,7 @@ pub fn ir_to_typst_source_v2(
   Ok(GeneratedSource {
     source: state.out,
     inline_assets: state.inline_assets,
+    formula_ranges,
   })
 }
 
@@ -336,6 +383,12 @@ fn write_theme_typography_bindings(
   write_typography_role_bindings(out, "body", &body, body_font_scale)?;
   write_typography_role_bindings(out, "mono", &mono, body_font_scale)?;
   write_typography_role_bindings(out, "symbol", &symbol, body_font_scale)?;
+  write_typography_role_bindings(
+    out,
+    "eyebrow",
+    typography.eyebrow.as_ref().unwrap_or(&body),
+    body_font_scale,
+  )?;
   write_text_style_helpers(out);
   Ok(())
 }
@@ -511,7 +564,8 @@ fn write_dynamic_bindings(out: &mut String, doc: &IrDocument, preamble: &str) ->
 #let bg-color = if color-variant in ("mono", "accent") { luma(rgb(bg-color)).to-hex() } else { bg-color }
 #let rule-color = if color-variant in ("mono", "accent") { luma(rgb(rule-color)).to-hex() } else { rule-color }
 #let code-background-color = if color-variant in ("mono", "accent") { luma(rgb(code-background-color)).to-hex() } else { code-background-color }
-#let native-table-color(value) = if color-variant in ("mono", "accent") { luma(rgb(value)) } else { rgb(value) }
+#let document-color(value) = if color-variant == "mono" { luma(rgb(value)) } else { rgb(value) }
+#let native-table-color(value) = document-color(value)
 "##);
 
   let _ = writeln!(
@@ -558,6 +612,8 @@ fn write_dynamic_bindings(out: &mut String, doc: &IrDocument, preamble: &str) ->
     body,
     mono,
     symbol,
+    eyebrow,
+    ..
   } = theme_fonts;
   let _ = writeln!(
     out,
@@ -578,6 +634,11 @@ fn write_dynamic_bindings(out: &mut String, doc: &IrDocument, preamble: &str) ->
     out,
     "#let symbol-font = {}",
     required_font_family("symbol", symbol.as_deref())?
+  );
+  let _ = writeln!(
+    out,
+    "#let eyebrow-font = {}",
+    required_font_family("eyebrow", eyebrow.as_deref().or(body.as_deref()))?
   );
   write_theme_typography_bindings(out, theme_typography, *heading_font_scale, *body_font_scale)?;
   write_document_style_bindings(out);
@@ -615,9 +676,13 @@ fn write_dynamic_bindings(out: &mut String, doc: &IrDocument, preamble: &str) ->
 }
 "#,
   );
+  let checked = callout_icon_markup(CalloutVariant::Info, Some("CheckBoxCheckLinearIcon"), None, &[]);
+  let unchecked = callout_icon_markup(CalloutVariant::Info, Some("CheckBoxUnIcon"), None, &[]);
   let _ = writeln!(
     out,
-    "#let pdf-check(checked) = box(width: 1.2em, height: 0.9em, inset: 0pt, stroke: 0.7pt + rgb(accent), radius: 1pt, if checked {{ text(font: symbol-font, size: 0.48em, weight: symbol-font-weight, style: symbol-font-style, tracking: symbol-tracking, fill: rgb(text-color), \"OK\") }} else {{ [] }})"
+    "#let pdf-check(checked) = if checked {{ [{}] }} else {{ [{}] }}",
+    checked.trim_end(),
+    unchecked.trim_end()
   );
   let _ = writeln!(out);
   Ok(())
@@ -767,12 +832,40 @@ fn write_block(state: &mut RenderState, block: &Block, depth: usize) {
       }
     }
 
-    Block::Paragraph { content, children } => {
+    Block::Paragraph {
+      content,
+      children,
+      alignment,
+      eyebrow,
+      ..
+    } => {
       if content.is_empty() {
-        let _ = writeln!(state.out);
+        if children.is_empty() {
+          let _ = writeln!(state.out, "#block(height: 1em)[]\n");
+        }
       } else {
-        let _ = writeln!(state.out, "{}", render_inline(content));
-        let _ = writeln!(state.out);
+        let text = render_inline(content);
+        let text = if *eyebrow {
+          format!(
+            "#text(font: eyebrow-font, size: eyebrow-size, weight: eyebrow-font-weight, style: eyebrow-font-style, tracking: eyebrow-tracking)[#upper([{text}])]"
+          )
+        } else {
+          text
+        };
+        if let Some(alignment) = alignment {
+          let align = match alignment.as_str() {
+            "center" => "center",
+            "right" => "right",
+            _ => "left",
+          };
+          let justify = alignment == "justify";
+          let _ = writeln!(
+            state.out,
+            "#block(width: 100%)[#set align({align})\n#set par(justify: {justify})\n{text}]\n"
+          );
+        } else {
+          let _ = writeln!(state.out, "{text}\n");
+        }
       }
       for child in children {
         write_block(state, child, depth + 1);
@@ -810,17 +903,35 @@ fn write_block(state: &mut RenderState, block: &Block, depth: usize) {
       content,
       checked,
       children,
+      start,
+      ..
     } => {
-      write_list_item(state, *list_type, *checked, content, children, depth);
+      write_list_item(state, *list_type, *checked, *start, content, children, depth);
     }
 
     Block::Code(code) => {
-      let lang = code.language.as_deref().unwrap_or("");
-      let fenced_code = code.code.replace("```", "\\`\\`\\`");
-      let _ = writeln!(state.out, "```{lang}");
-      let _ = writeln!(state.out, "{fenced_code}");
-      let _ = writeln!(state.out, "```");
-      let _ = writeln!(state.out);
+      let lang = if state.monochrome {
+        ""
+      } else {
+        code.language.as_deref().unwrap_or("")
+      };
+      let raw = format!(
+        "raw(\"{}\", block: true, lang: \"{}\")",
+        escape_str(&code.code),
+        escape_str(lang)
+      );
+      if code.line_numbers {
+        let _ = writeln!(
+          state.out,
+          "#myoxus-numbered-code({raw}, line-count: {})\n",
+          code.code.split('\n').count()
+        );
+      } else {
+        let _ = writeln!(state.out, "#{raw}\n");
+      }
+      if let Some(caption) = &code.caption {
+        let _ = writeln!(state.out, "#myoxus-caption([{}])\n", render_inline(caption));
+      }
     }
 
     Block::Mermaid(diagram) => {
@@ -834,21 +945,41 @@ fn write_block(state: &mut RenderState, block: &Block, depth: usize) {
 
     Block::Callout {
       variant,
-      emoji: _,
+      emoji,
+      paint,
       content,
       children,
     } => {
       let (fill_token, stroke_token) = callout_tokens(*variant);
-      // Callouts may carry arbitrary emoji/glyphicons. Typst's
-      // PDF font set is intentionally bounded, so render a semantic ASCII
-      // badge instead of leaking unsupported emoji into the PDF.
-      let icon = callout_default_label(*variant, &state.locale);
+      let fill = paint
+        .as_ref()
+        .map(|p| {
+          if p.appearance == "outline" {
+            "none".to_owned()
+          } else {
+            format!("document-color(\"{}\")", p.fill)
+          }
+        })
+        .unwrap_or_else(|| format!("document-color({fill_token})"));
+      let stroke = paint
+        .as_ref()
+        .map(|p| format!("document-color(\"{}\")", p.stroke))
+        .unwrap_or_else(|| format!("document-color({stroke_token})"));
+      let icon_color = if state.monochrome {
+        None
+      } else {
+        paint.as_ref().and_then(|p| p.icon_color.as_deref())
+      };
+      let icon = callout_icon_markup(*variant, emoji.as_deref(), icon_color, content);
+      let border = if paint.as_ref().is_some_and(|p| p.appearance == "outline") {
+        format!("1pt + {stroke}")
+      } else {
+        format!("(left: 3pt + {stroke})")
+      };
       let inner = render_inline(content);
-      // The border's decorative accent can be nearly white in grayscale.
-      // Keep the semantic label readable with the document text foreground.
       let _ = writeln!(
         state.out,
-        "#block(fill: rgb({fill_token}), stroke: (left: 3pt + rgb({stroke_token})), inset: 0.75em, radius: 4pt, width: 100%, breakable: true)[#text(font: symbol-font, weight: \"bold\")[{icon}] {inner}"
+        "#block(fill: {fill}, stroke: {border}, inset: 0.75em, radius: 4pt, width: 100%, breakable: true)[{icon}{inner}"
       );
       let _ = writeln!(state.out);
       for child in children {
@@ -860,16 +991,14 @@ fn write_block(state: &mut RenderState, block: &Block, depth: usize) {
     }
 
     Block::LatexBlock { source } => {
-      let _ = writeln!(state.out, "$ {source} $");
+      let _ = writeln!(state.out, "{}", render_latex(source, true));
       let _ = writeln!(state.out);
     }
 
     Block::Image(img_ref) => {
       let blob_id = &img_ref.blob.blob_id;
-      if blob_id.is_empty() {
-        return;
-      }
-      let path = format!("{BLOB_PATH_PREFIX}{blob_id}");
+      let _ = writeln!(state.out, "#if \"{}\" in myoxus-image-assets [", escape_str(blob_id));
+      let path = escape_str(&format!("{BLOB_PATH_PREFIX}{blob_id}"));
       // The authored caption also owns the image alternative in every fitting path.
       let alt = img_ref
         .caption
@@ -915,7 +1044,21 @@ fn write_block(state: &mut RenderState, block: &Block, depth: usize) {
       } else {
         let _ = writeln!(state.out, "#image(\"{path}\"{width_spec}, alt: \"{alt}\")");
       }
-      let _ = writeln!(state.out);
+      let label = match state.locale.split(['-', '_']).next().unwrap_or("en") {
+        "de" => "Bild nicht verfügbar",
+        "fr" => "Image indisponible",
+        "es" => "Imagen no disponible",
+        _ => "Image unavailable",
+      };
+      let caption = img_ref
+        .caption
+        .as_ref()
+        .map(|c| render_inline_plain(c))
+        .unwrap_or_default();
+      let _ = writeln!(
+        state.out,
+        "] else [#block(width: 100%, inset: 0.75em, stroke: 1pt + rgb(rule-color))[{label}\n\n#myoxus-caption([{caption}])]]\n"
+      );
     }
 
     Block::Attachment {
@@ -1052,6 +1195,7 @@ fn write_list_item(
   state: &mut RenderState,
   list_type: ListType,
   checked: bool,
+  start: Option<u32>,
   content: &[InlineSpan],
   children: &[Block],
   depth: usize,
@@ -1063,7 +1207,8 @@ fn write_list_item(
       let _ = writeln!(state.out, "{indent}- {text}");
     }
     ListType::Numbered => {
-      let _ = writeln!(state.out, "{indent}+ {text}");
+      let number = start.map_or_else(|| "+".to_string(), |n| format!("{n}."));
+      let _ = writeln!(state.out, "{indent}{number} {text}");
     }
     ListType::Todo => {
       let mark = if checked { "true" } else { "false" };
@@ -1117,11 +1262,16 @@ fn write_table(
       format!("({tracks},)")
     })
     .unwrap_or_else(|| col_count.to_string());
+  // Compact native tables retain the theme's readable secondary text size.
+  let text_rule = match density.unwrap_or(TableDensity::Normal) {
+    TableDensity::Compact => "#set text(size: compact-body-size, hyphenate: true)\n",
+    TableDensity::Normal => "",
+  };
   // Template paragraph justification must not stretch native table labels.
   // Scope the rule to this object so surrounding document prose is unchanged.
   let _ = write!(
     out,
-    "#block[\n#set par(justify: false)\n#table(columns: {columns}, stroke: {stroke}, inset: {inset}, "
+    "#block[\n#set par(justify: false)\n{text_rule}#table(columns: {columns}, stroke: {stroke}, inset: {inset}, "
   );
 
   // Missing legacy metadata retains the historical first-row treatment.
@@ -1303,6 +1453,11 @@ fn write_edgeless_snapshot(state: &mut RenderState, snap: &EdgelessSnapshot) {
 
 // ─── Inline renderer ─────────────────────────────────────────────────────────
 
+/// Lookup only formulas admitted and converted once by the source generator.
+fn render_latex(source: &str, block: bool) -> String {
+  format!("#myoxus-latex(\"{}\", block: {block})", escape_str(source))
+}
+
 /// Render inline spans as Typst markup (with formatting).
 pub fn render_inline(spans: &[InlineSpan]) -> String {
   spans.iter().map(render_span).collect()
@@ -1314,7 +1469,7 @@ pub fn render_inline_plain(spans: &[InlineSpan]) -> String {
     .iter()
     .map(|s| match s {
       InlineSpan::Text { text, .. } => escape_content(text),
-      InlineSpan::Latex { source } => format!("${source}$"),
+      InlineSpan::Latex { source } => render_latex(source, false),
       InlineSpan::Reference { title, .. } => title.as_deref().unwrap_or("ref").to_string(),
       InlineSpan::Mention { display_name, .. } => {
         format!("@{}", display_name.as_deref().unwrap_or("user"))
@@ -1329,8 +1484,10 @@ fn render_inline_heading(spans: &[InlineSpan]) -> String {
   spans
     .iter()
     .map(|span| match span {
-      InlineSpan::Text { text, .. } => format!("#myoxus-heading-string(\"{}\")", escape_str(text)),
-      InlineSpan::Latex { source } => format!("${source}$"),
+      InlineSpan::Text { text, .. } => {
+        format!("#myoxus-heading-string(\"{}\")", escape_str(text))
+      }
+      InlineSpan::Latex { source } => render_latex(source, false),
       InlineSpan::Reference { title, doc_id } => {
         format!(
           "#myoxus-heading-string(\"{}\")",
@@ -1350,7 +1507,7 @@ fn render_inline_heading(spans: &[InlineSpan]) -> String {
 fn render_span(span: &InlineSpan) -> String {
   match span {
     InlineSpan::Text { text, marks } => render_text_with_marks(text, marks),
-    InlineSpan::Latex { source } => format!("${source}$"),
+    InlineSpan::Latex { source } => render_latex(source, false),
     InlineSpan::Reference { doc_id, title } => {
       let label = title.as_deref().unwrap_or(doc_id.as_str());
       format!("#link(\"{doc_id}\")[#myoxus-body-string(\"{}\")]", escape_str(label))
@@ -1430,10 +1587,10 @@ fn render_text_with_marks(text: &str, marks: &TextMarks) -> String {
 
   // Apply marks from innermost to outermost so nesting is correct.
   if let Some(color) = &marks.color {
-    s = format!("#text(fill: rgb(\"{color}\"))[{s}]");
+    s = format!("#text(fill: document-color(\"{color}\"))[{s}]");
   }
   if let Some(bg) = &marks.background {
-    s = format!("#highlight(fill: rgb(\"{bg}\"))[{s}]");
+    s = format!("#highlight(fill: document-color(\"{bg}\"))[{s}]");
   }
   if marks.strike == Some(true) {
     s = format!("#strike[{s}]");
@@ -1488,10 +1645,8 @@ fn escape_content(s: &str) -> String {
 
 // ─── Callout colors ──────────────────────────────────────────────────────────
 
-/// Map a callout variant to the (fill, stroke) **Typst-side** identifiers
-/// defined in `templates/default/theme.typ`. Emitting identifiers (rather
-/// than inlining hex literals) makes the theme file the single source of
-/// truth for callout colors.
+/// Template fallback for captured IR without authored callout paint. Current
+/// native exports carry their colours from the dispatch-time light palette.
 fn callout_tokens(variant: CalloutVariant) -> (&'static str, &'static str) {
   match variant {
     CalloutVariant::Info => ("callout-info-fill", "callout-info-stroke"),
@@ -1501,17 +1656,46 @@ fn callout_tokens(variant: CalloutVariant) -> (&'static str, &'static str) {
   }
 }
 
-fn callout_default_label(variant: CalloutVariant, locale: &str) -> &'static str {
-  match variant {
-    CalloutVariant::Info => "Info",
-    CalloutVariant::Warning => "Warn",
-    CalloutVariant::Note => match locale.split('-').next().unwrap_or("en") {
-      "de" => "Hinweis",
-      "es" => "Nota",
-      _ => "Note",
-    },
-    CalloutVariant::Tip => "Tip",
+fn callout_icon_markup(
+  variant: CalloutVariant,
+  authored: Option<&str>,
+  color: Option<&str>,
+  content: &[InlineSpan],
+) -> String {
+  if authored == Some("") {
+    return String::new();
   }
+  let default = match variant {
+    CalloutVariant::Info => "InformationIcon",
+    CalloutVariant::Warning => "AlertTriangleIcon",
+    CalloutVariant::Note | CalloutVariant::Tip => "LightPanelIcon",
+  };
+  let name = authored.unwrap_or(default);
+  let icon = crate::document_icons::document_icon(name, false)
+    .or_else(|| crate::document_icons::document_icon("InformationIcon", false))
+    .expect("generated callout fallback");
+  let svg = crate::document_icons::document_icon_svg(name, color).unwrap_or(icon.svg);
+  let factor = 1.0 - (icon.ink_bounds[1] + icon.ink_bounds[3]) / 192.0;
+  let plain = crate::ir::inline::inline_plain_text(content);
+  let first = plain.lines().next().filter(|line| !line.is_empty()).unwrap_or("H");
+  let weight = if matches!(content.first(), Some(InlineSpan::Text { marks, .. }) if marks.bold == Some(true)) {
+    "\"bold\""
+  } else {
+    "body-font-weight"
+  };
+  // Measure the actual first-line ink in Typst's effective font. A positive box
+  // baseline offset lowers the stored icon to that centre, independent of em size.
+  format!(
+    r#"#context {{
+    let label = text(weight: {weight}, "{}")
+    let above = measure(text(top-edge: "bounds", bottom-edge: "baseline", label)).height
+    let below = measure(text(top-edge: "baseline", bottom-edge: "bounds", label)).height
+    let size = 1em + 1pt
+    box(baseline: {factor} * size - (above - below) / 2, image(bytes("{}"), format: "svg", height: size, alt: none))
+  }} "#,
+    escape_str(first),
+    escape_str(svg)
+  )
 }
 
 #[cfg(test)]
@@ -1519,8 +1703,8 @@ mod callout_tests {
   use super::*;
 
   #[test]
-  fn note_badge_uses_export_locale_without_hiding_its_body() {
-    for (locale, label) in [("en", "Note"), ("de-DE", "Hinweis"), ("fr", "Note"), ("es", "Nota")] {
+  fn callout_uses_materialized_svg_without_hiding_its_body() {
+    for locale in ["en", "de-DE", "fr", "es"] {
       let mut state = RenderState {
         locale: locale.into(),
         ..Default::default()
@@ -1528,6 +1712,7 @@ mod callout_tests {
       let block = Block::Callout {
         variant: CalloutVariant::Note,
         emoji: None,
+        paint: None,
         content: vec![InlineSpan::Text {
           text: "Visible note body".into(),
           marks: Default::default(),
@@ -1535,12 +1720,9 @@ mod callout_tests {
         children: Vec::new(),
       };
       write_block(&mut state, &block, 0);
-      assert!(state.out.contains(&format!("[{label}]")), "{locale}");
-      assert!(
-        state
-          .out
-          .contains(&format!("#text(font: symbol-font, weight: \"bold\")[{label}]"))
-      );
+      assert!(state.out.contains("format: \"svg\""), "{locale}");
+      assert!(state.out.contains("bottom-edge: \"baseline\""));
+      assert!(!state.out.contains("#text(font: symbol-font"));
       assert!(state.out.contains("Visible note body"));
     }
   }

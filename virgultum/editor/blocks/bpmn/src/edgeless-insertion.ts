@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { DefaultTool } from "@virgultum/block-surface";
-import { addNoteAtPoint } from "@virgultum/gfx-note";
-import type { IPoint } from "@virgultum/global/gfx";
-import { NoteDisplayMode } from "@virgultum/model";
-import type { BlockStdScope } from "@virgultum/std";
-import { GfxControllerIdentifier } from "@virgultum/std/gfx";
+import { DefaultTool } from "@virgultum/canvas-runtime/surface";
+import { addNoteAtPoint } from "@virgultum/canvas/gfx";
+import type { IPoint } from "@virgultum/core/primitives/gfx";
+import { NoteDisplayMode } from "@virgultum/core/models";
+import type { BlockStdScope } from "@virgultum/core/runtime";
+import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
 import type * as Y from "yjs";
 
 import {

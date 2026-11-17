@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test";
-import type { DeltaInsert } from "@virgultum/store";
+import type { DeltaInsert } from "@virgultum/core/store";
 
 import {
   addNoteFixture,
@@ -46,7 +46,10 @@ test(scoped`basic init with external text`, async ({ page }) => {
         title: new window.$virgultum.store.Text("hello"),
       });
     const note = doc.addBlock("myoxus:note", {}, rootId);
-    const title = doc.getBlock(rootId)!.model.props.title;
+    const title = (
+      doc.getBlock(rootId)!
+        .model as import("@virgultum/core/models").RootBlockModel
+    ).props.title;
     title.clear();
     title.insert("hello", 0);
 

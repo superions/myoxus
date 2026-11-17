@@ -12,6 +12,7 @@ import type { ReactElement } from "react";
 
 export type PdfExportErrorCode =
   | "CapabilityViolation"
+  | "InvalidFormula"
   | "MissingFont"
   | "TemplateCompileFailed"
   | "LinkValidationFailed"
@@ -42,7 +43,7 @@ export interface PdfExportErrorDescriptor {
   recoveryFallback: string;
 }
 
-const DESCRIPTORS: Record<PdfExportErrorCode, PdfExportErrorDescriptor> = {
+const DESCRIPTORS = {
   CapabilityViolation: {
     code: "CapabilityViolation",
     titleKey: "com.myoxus.pdf-export.dialog.validation.summary",
@@ -50,6 +51,14 @@ const DESCRIPTORS: Record<PdfExportErrorCode, PdfExportErrorDescriptor> = {
     titleFallback: "Review export inputs",
     recoveryFallback:
       "Return to export inputs, correct the reported values, and try again.",
+  },
+  InvalidFormula: {
+    code: "InvalidFormula",
+    titleKey: "com.myoxus.pdf-export.error.invalid-formula",
+    recoveryKey: "com.myoxus.pdf-export.error.invalid-formula.recovery",
+    titleFallback: "Formula could not be exported: {detail}",
+    recoveryFallback:
+      "Edit the reported formula using supported LaTeX math commands, then retry the export.",
   },
   MissingFont: {
     code: "MissingFont",
@@ -123,7 +132,7 @@ const DESCRIPTORS: Record<PdfExportErrorCode, PdfExportErrorDescriptor> = {
     titleFallback: "PDF export failed.",
     recoveryFallback: "Copy the details and send them to support.",
   },
-};
+} as const satisfies Record<PdfExportErrorCode, PdfExportErrorDescriptor>;
 
 export function normalizePdfExportErrorCode(code: string): PdfExportErrorCode {
   return code in DESCRIPTORS ? (code as PdfExportErrorCode) : "Unknown";
@@ -131,7 +140,7 @@ export function normalizePdfExportErrorCode(code: string): PdfExportErrorCode {
 
 export function getPdfExportErrorDescriptor(
   error: Pick<PdfExportRenderError, "code">,
-): PdfExportErrorDescriptor {
+) {
   return DESCRIPTORS[normalizePdfExportErrorCode(error.code)];
 }
 

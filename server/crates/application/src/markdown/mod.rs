@@ -34,9 +34,11 @@ mod assets;
 mod projection;
 mod references;
 
+pub(crate) use assets::image_extension_for_mime;
+
 pub use assets::{
-  MaterializedMarkdown, MaterializedMarkdownAsset, PreparedMarkdownAssetWrite, PreparedMarkdownAssets,
-  materialize_markdown_data_images, prepare_markdown_data_images,
+  DataImage, MaterializedMarkdown, MaterializedMarkdownAsset, PreparedMarkdownAssetWrite, PreparedMarkdownAssets,
+  decode_data_image, materialize_markdown_data_images, prepare_markdown_data_images,
 };
 pub use assets::{markdown_image_sources, rewrite_markdown_image_sources};
 pub use projection::{
@@ -127,7 +129,9 @@ pub fn yjs_to_markdown_with_references(
     return Ok(None);
   }
   let result = yjs::extract_text_from_yjs_with_references(yjs_binary, &|_| true, &|reference| {
-    references.resolve_export_reference(reference)
+    references
+      .resolve_export_reference(reference)
+      .or_else(|| references.preserve_unavailable_selection(reference))
   })
   .map_err(ConversionError::YjsDecode)?;
   if result.markdown.trim().is_empty() && result.diagnostics.is_empty() {

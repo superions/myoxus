@@ -1,3 +1,4 @@
+import { METADATA_FIELD_LABEL_KEYS } from "./utils";
 import { DocumentInfoSection } from "@myoxus/core/components/document-info";
 import { useRegionalPreferences } from "@myoxus/core/components/hooks/myoxus/use-user-preferences";
 import { isDocumentNotFoundError } from "@myoxus/core/modules/doc/errors";
@@ -130,21 +131,6 @@ type I18nApi = ReturnType<typeof useI18n>;
 
 type DocumentMetadataSavingKey = CanonicalMetadataKey;
 type DocumentMetadataTagService = Pick<TagService, "tagList">;
-
-const METADATA_FIELD_LABEL_KEYS: Record<CanonicalMetadataKey, string> = {
-  status: "com.myoxus.document-metadata.field.status",
-  documentType: "com.myoxus.document-metadata.field.document-type",
-  version: "com.myoxus.document-metadata.field.version",
-  responsible: "com.myoxus.document-metadata.field.responsible",
-  reviewDueAt: "com.myoxus.document-metadata.field.review-due-at",
-  validFrom: "com.myoxus.document-metadata.field.valid-from",
-  validUntil: "com.myoxus.document-metadata.field.valid-until",
-  classification: "com.myoxus.document-metadata.field.classification",
-  documentNumber: "com.myoxus.document-metadata.field.document-number",
-  language: "com.myoxus.document-metadata.field.language",
-  audience: "com.myoxus.document-metadata.field.audience",
-  retentionPolicy: "com.myoxus.document-metadata.field.retention-policy",
-};
 
 function displayMessages(t: I18nApi) {
   return {

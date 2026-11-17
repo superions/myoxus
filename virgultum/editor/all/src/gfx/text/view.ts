@@ -1,1 +1,1 @@
-export * from "@virgultum/gfx-text/view";
+export { TextViewExtension } from "@virgultum/canvas/view";

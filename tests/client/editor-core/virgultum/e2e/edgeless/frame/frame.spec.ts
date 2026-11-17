@@ -104,7 +104,7 @@ test.describe("add a frame", () => {
     await setEdgelessTool(page, "frame");
     const frameMenu = page.locator("edgeless-frame-menu");
     await expect(frameMenu).toBeVisible();
-    const button = page.locator('.frame-add-button[data-name="1:1"]');
+    const button = page.getByTestId("canvas-frame-1:1");
     await button.click();
     await assertSelectedBound(page, [-450, -550, 1200, 1200]);
 
@@ -402,20 +402,35 @@ test("undo/redo should work when change frame background", async ({ page }) => {
         return getComputedStyle(el).backgroundColor;
       });
   };
-  const colorPanel = page.locator("edgeless-color-picker-button");
+  const colorPanel = page.getByRole("button", {
+    name: "Background",
+    exact: true,
+  });
+  const dialog = page.getByRole("dialog", { name: "Background", exact: true });
 
   let prevBackground = await getFrameBackground();
 
   // preset color
   {
-    await colorPanel.getByLabel("Background", { exact: true }).click();
-    await colorPanel.getByLabel("LightRed").click();
+    await colorPanel.click();
+    const preset = await page.evaluate(() => {
+      const { DefaultTheme, ColorScheme, resolveColor } =
+        window.$virgultum.editorModel;
+      return resolveColor(
+        DefaultTheme.Palettes.find((x) => x.key === "LightRed")!.value,
+        ColorScheme.Light,
+      );
+    });
+    await dialog
+      .getByRole("button", { name: preset, exact: true })
+      .first()
+      .click();
     expect(await getFrameBackground()).not.toBe(prevBackground);
-    await colorPanel.getByLabel("Background", { exact: true }).click();
+    await colorPanel.click();
 
     await undoByKeyboard(page);
     await waitNextFrame(page);
-    expect(await getFrameBackground()).toBe(prevBackground);
+    await expect.poll(getFrameBackground).toBe(prevBackground);
 
     await redoByKeyboard(page);
     await waitNextFrame(page);
@@ -427,24 +442,21 @@ test("undo/redo should work when change frame background", async ({ page }) => {
   // custom color
   {
     await selectFrameByTitle(page, frameId);
-    await colorPanel.getByLabel("Background", { exact: true }).click();
-    await expect(colorPanel.locator("editor-menu-button")).toHaveAttribute(
-      "data-open",
-      "true",
-    );
-    await colorPanel.locator("edgeless-color-custom-button").click();
-    await page.locator(".color-palette").click({
-      position: {
-        x: 100,
-        y: 100,
-      },
+    await colorPanel.click();
+    const input = dialog.getByRole("textbox", {
+      name: "Background",
+      exact: true,
     });
+    await expect(input).toBeVisible();
+    await input.fill("#7a3dd6");
+    await input.press("Tab");
     await pressEscape(page);
 
     expect(await getFrameBackground()).not.toBe(prevBackground);
+
     await undoByKeyboard(page);
     await waitNextFrame(page);
-    expect(await getFrameBackground()).toBe(prevBackground);
+    await expect.poll(getFrameBackground).toBe(prevBackground);
 
     await redoByKeyboard(page);
     await waitNextFrame(page);
@@ -469,10 +481,10 @@ test("connector and shape created simultaneously with edgeless-auto-complete sho
   // Click on the existing shape to start connection
   await clickView(page, [200, 200]);
 
-  const autoComplete = page.locator("edgeless-auto-complete");
-  const rightArrowButton = autoComplete
-    .locator(".edgeless-auto-complete-arrow")
-    .nth(0);
+  const rightArrowButton = page.getByRole("button", {
+    name: "Add another object of this type to the right",
+    exact: true,
+  });
 
   await rightArrowButton.click();
 

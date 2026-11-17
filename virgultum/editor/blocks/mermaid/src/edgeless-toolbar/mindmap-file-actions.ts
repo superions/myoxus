@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { ImportIcon } from "@myoxus/icons/lit";
-import { menu, type MenuConfig } from "@virgultum/components/context-menu";
-import type { BlockComponent } from "@virgultum/std";
+import type { SelectionAction } from "@virgultum/core/services";
+import type { BlockComponent } from "@virgultum/core/runtime";
 import { render, nothing } from "lit";
 import { mermaidMessages as m } from "../i18n.js";
 import { MermaidFamilyReactHostIdentifier } from "../families/runtime/react-host.js";
@@ -29,11 +28,12 @@ export function openMermaidMindmapImport(edgeless: BlockComponent) {
 
 export function createMermaidMindmapImportMenuItem(
   edgeless: BlockComponent,
-): MenuConfig {
-  return menu.action({
-    name: m.mindmapImport(),
-    prefix: ImportIcon({ width: "20px", height: "20px" }),
-    select: () => openMermaidMindmapImport(edgeless),
-    testId: "myoxus-mermaid-edgeless-import-mindmap",
-  });
+): SelectionAction {
+  return {
+    id: "myoxus-mermaid-edgeless-import-mindmap",
+    label: m.mindmapImport(),
+    icon: "ImportIcon",
+    disabled: edgeless.store.readonly,
+    run: () => openMermaidMindmapImport(edgeless),
+  };
 }

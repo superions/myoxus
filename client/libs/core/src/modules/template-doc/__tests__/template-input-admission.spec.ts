@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { expect, test } from "vitest";
-import { DocumentFieldSchema } from "@virgultum/shared/types";
+import { DocumentFieldSchema } from "@virgultum/core/types";
 import fixtures from "../../../../../../../build/fixtures/contracts/document-fields.json";
 import {
   formatDocumentInput,

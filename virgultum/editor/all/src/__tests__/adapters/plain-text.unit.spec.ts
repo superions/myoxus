@@ -1,13 +1,13 @@
-import { DefaultTheme, NoteDisplayMode } from "@virgultum/model";
+import { DefaultTheme, NoteDisplayMode } from "@virgultum/core/models";
 import {
   embedSyncedDocMiddleware,
   PlainTextAdapter,
-} from "@virgultum/shared/adapters";
+} from "@virgultum/core/adapters";
 import type {
   BlockSnapshot,
   DocSnapshot,
   TransformerMiddleware,
-} from "@virgultum/store";
+} from "@virgultum/core/store";
 import { describe, expect, test } from "vitest";
 
 import { createJob } from "../utils/create-job.js";

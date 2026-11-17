@@ -6,7 +6,7 @@ import {
   PointStyle,
   ShapeType,
   StrokeStyle,
-} from "@virgultum/model";
+} from "@virgultum/core/models";
 
 import type {
   MermaidGfxConnectorElementProjection,

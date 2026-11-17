@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { LifeCycleWatcher } from "@virgultum/std";
-import { GfxControllerIdentifier } from "@virgultum/std/gfx";
+import { LifeCycleWatcher } from "@virgultum/core/runtime";
+import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
 import {
   getMermaidEdgelessToolbarTemplates,
   insertMermaidEdgelessToolbarTemplate,

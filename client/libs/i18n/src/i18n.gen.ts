@@ -29,6 +29,12 @@ function createProxy<T extends object>(createValue: (key: string) => unknown): T
 }
 
 export interface MyoxusI18nFunctions {
+  /** Text link */
+  ["com.myoxus.editor.slash.text-link"](): string;
+  /** More */
+  ["com.myoxus.editor.callout.more"](): string;
+  /** Inline code */
+  ["com.myoxus.editor.slash.inline-code"](): string;
   /** Search */
   ["com.myoxus.common.search"](): string;
   /** Database name */
@@ -8807,6 +8813,14 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.ai-scroll-tip.view"](): string;
   /** Please switch to edgeless mode */
   ["com.myoxus.ai.action.edgeless-only.dialog-title"](): string;
+  /** Accept */
+  ["com.myoxus.ai.chat-panel.doc-edit.accept"](): string;
+  /** Accepting... */
+  ["com.myoxus.ai.chat-panel.doc-edit.accepting"](): string;
+  /** Applying */
+  ["com.myoxus.ai.chat-panel.doc-edit.applying"](): string;
+  /** Reject */
+  ["com.myoxus.ai.chat-panel.doc-edit.reject"](): string;
   /** Embedding {{done}}/{{total}} */
   ["com.myoxus.ai.chat-panel.embedding-progress"](options: { readonly ["done"]: string; readonly ["total"]: string; }): string;
   /** Myoxus AI is loading history... */
@@ -11007,8 +11021,6 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.editor.mermaid.page-selection-all-nodes"](): string;
   /** {{label}}, {{count}} selected */
   ["com.myoxus.editor.mermaid.page-selection-announcement"](options: { readonly ["label"]: string; readonly ["count"]: string; }): string;
-  /** Select for {{action}} · {{count}}/{{minimum}}+ */
-  ["com.myoxus.editor.mermaid.page-selection-pending"](options: { readonly ["action"]: string; readonly ["count"]: string; readonly ["minimum"]: string; }): string;
   /** {{count}} selected */
   ["com.myoxus.diagram.selection-count"](options: { readonly ["count"]: string; }): string;
   /** Pointer */
@@ -11501,10 +11513,6 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.editor.mermaid.embedded-edit-in-page"](): string;
   /** Source-first diagram */
   ["com.myoxus.editor.mermaid.source-first-title"](): string;
-  /** Browser-tested visual editor */
-  ["com.myoxus.editor.mermaid.support-browser-proven"](): string;
-  /** Experimental visual editor */
-  ["com.myoxus.editor.mermaid.support-experimental"](): string;
   /** flowchart TD A[Start] B[Step] C[Result] */
   ["com.myoxus.editor.mermaid.source-placeholder"](): string;
   /** Mermaid source preview */
@@ -13731,6 +13739,10 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.pdf-export.error.link-validation-failed"](options: { readonly ["url"]: string; }): string;
   /** Fix or remove the invalid link, then start the export again. */
   ["com.myoxus.pdf-export.error.link-validation-failed.recovery"](): string;
+  /** Formula could not be exported: {{detail}} */
+  ["com.myoxus.pdf-export.error.invalid-formula"](options: { readonly ["detail"]: string; }): string;
+  /** Edit the reported formula using supported LaTeX math commands, then retry the export. */
+  ["com.myoxus.pdf-export.error.invalid-formula.recovery"](): string;
   /** Required font is missing: {{fontFamily}} */
   ["com.myoxus.pdf-export.error.missing-font"](options: { readonly ["fontFamily"]: string; }): string;
   /** Choose another template or ask an admin to approve the required font. */
@@ -18617,7 +18629,7 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.pdf-export.dialog.field.page-numbering.help"](): string;
   /** Document color treatment */
   ["com.myoxus.pdf-export.dialog.field.color-variant"](): string;
-  /** Use grayscale, accent highlights, or the complete document palette. */
+  /** Preserve document colours, or export in grayscale. */
   ["com.myoxus.pdf-export.dialog.field.color-variant.help"](): string;
   /** This template does not offer this option. */
   ["com.myoxus.pdf-export.dialog.validation.option-unavailable"](): string;
@@ -18639,7 +18651,7 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.pdf-export.dialog.option.color-variant.mono"](): string;
   /** Accent highlights */
   ["com.myoxus.pdf-export.dialog.option.color-variant.accent"](): string;
-  /** Full document palette */
+  /** Colour */
   ["com.myoxus.pdf-export.dialog.option.color-variant.brand"](): string;
   /** Documentation */
   ["admin.pdf-export.template.builtin.myoxus-doc.name"](): string;
@@ -18841,6 +18853,14 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.editor.caption.placeholder"](): string;
   /** Add another object of this type */
   ["com.myoxus.editor.canvas.add-same-object"](): string;
+  /** Add another object of this type to the right */
+  ["com.myoxus.editor.canvas.add-same-object-right"](): string;
+  /** Add another object of this type below */
+  ["com.myoxus.editor.canvas.add-same-object-below"](): string;
+  /** Add another object of this type to the left */
+  ["com.myoxus.editor.canvas.add-same-object-left"](): string;
+  /** Add another object of this type above */
+  ["com.myoxus.editor.canvas.add-same-object-above"](): string;
   /** Open document menu */
   ["com.myoxus.editor.toolbar.open-menu"](): string;
   /** Choose how to open the document */
@@ -22123,6 +22143,130 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.multi-tab.close"](): string;
   /** Close other tabs */
   ["com.myoxus.multi-tab.close-others"](): string;
+  /** Rendering {{language}}… */
+  ["com.myoxus.editor.code-preview.loading"](options: { readonly ["language"]: string; }): string;
+  /** Enter {{language}} source to preview. */
+  ["com.myoxus.editor.code-preview.empty"](options: { readonly ["language"]: string; }): string;
+  /** Could not render {{language}}. Check the source. */
+  ["com.myoxus.editor.code-preview.failed"](options: { readonly ["language"]: string; }): string;
+  /** Could not load fonts. Check your connection and try again. */
+  ["com.myoxus.editor.code-preview.fonts-failed"](): string;
+  /** Technical details */
+  ["com.myoxus.editor.code-preview.details"](): string;
+  /** Callout: Note */
+  ["com.myoxus.editor.callout.preset.note"](): string;
+  /** Callout: Abstract */
+  ["com.myoxus.editor.callout.preset.abstract"](): string;
+  /** Callout: Info */
+  ["com.myoxus.editor.callout.preset.info"](): string;
+  /** Callout: Todo */
+  ["com.myoxus.editor.callout.preset.todo"](): string;
+  /** Callout: Tip */
+  ["com.myoxus.editor.callout.preset.tip"](): string;
+  /** Callout: Success */
+  ["com.myoxus.editor.callout.preset.success"](): string;
+  /** Callout: Question */
+  ["com.myoxus.editor.callout.preset.question"](): string;
+  /** Callout: Warning */
+  ["com.myoxus.editor.callout.preset.warning"](): string;
+  /** Callout: Failure */
+  ["com.myoxus.editor.callout.preset.failure"](): string;
+  /** Callout: Danger */
+  ["com.myoxus.editor.callout.preset.danger"](): string;
+  /** Callout: Bug */
+  ["com.myoxus.editor.callout.preset.bug"](): string;
+  /** Callout: Example */
+  ["com.myoxus.editor.callout.preset.example"](): string;
+  /** Callout: Quote */
+  ["com.myoxus.editor.callout.preset.quote"](): string;
+  /** Callouts */
+  ["com.myoxus.editor.group.callouts"](): string;
+  /** Read document */
+  ["com.myoxus.ai.tools.read-document"](): string;
+  /** Search documents */
+  ["com.myoxus.ai.tools.search-documents"](): string;
+  /** Read workspace */
+  ["com.myoxus.ai.tools.read-workspace"](): string;
+  /** Action failed: {{tool}} */
+  ["com.myoxus.ai.tools.failed"](options: { readonly ["tool"]: string; }): string;
+  /** Page report */
+  ["com.myoxus.wiki.report.title"](): string;
+  /** Page directory */
+  ["com.myoxus.wiki.directory.title"](): string;
+  /** Insert a dynamic list of pages. */
+  ["com.myoxus.wiki.directory.description"](): string;
+  /** Scope */
+  ["com.myoxus.wiki.directory.scope"](): string;
+  /** Entire workspace */
+  ["com.myoxus.wiki.directory.workspace"](): string;
+  /** Include subfolders */
+  ["com.myoxus.wiki.directory.subtree"](): string;
+  /** Labels */
+  ["com.myoxus.wiki.directory.labels"](): string;
+  /** Require all selected labels */
+  ["com.myoxus.wiki.directory.all-labels"](): string;
+  /** Organizer order */
+  ["com.myoxus.wiki.directory.organizer"](): string;
+  /** Current directory results require a server connection. */
+  ["com.myoxus.wiki.directory.offline"](): string;
+  /** The directory is unavailable. Check its scope and access, then retry. */
+  ["com.myoxus.wiki.directory.error"](): string;
+  /** Refresh directory */
+  ["com.myoxus.wiki.directory.refresh"](): string;
+  /** Metadata filters */
+  ["com.myoxus.wiki.directory.filter"](): string;
+  /** Add filter */
+  ["com.myoxus.wiki.directory.add-filter"](): string;
+  /** Remove filter */
+  ["com.myoxus.wiki.directory.remove-filter"](): string;
+  /** Is */
+  ["com.myoxus.wiki.directory.is"](): string;
+  /** Is not */
+  ["com.myoxus.wiki.directory.is-not"](): string;
+  /** Is empty */
+  ["com.myoxus.wiki.directory.is-empty"](): string;
+  /** Is not empty */
+  ["com.myoxus.wiki.directory.is-not-empty"](): string;
+  /** Before */
+  ["com.myoxus.wiki.directory.before"](): string;
+  /** After */
+  ["com.myoxus.wiki.directory.after"](): string;
+  /** Advanced options */
+  ["com.myoxus.pdf-export.dialog.options.advanced"](): string;
+  /** Review document changes */
+  ["com.myoxus.editor.diff.title"](): string;
+  /** Accept change */
+  ["com.myoxus.editor.diff.accept"](): string;
+  /** Reject change */
+  ["com.myoxus.editor.diff.reject"](): string;
+  /** Accept all */
+  ["com.myoxus.editor.diff.accept-all"](): string;
+  /** Reject all */
+  ["com.myoxus.editor.diff.reject-all"](): string;
+  /** Markdown to apply */
+  ["com.myoxus.editor.diff.markdown"](): string;
+  /** Load current document */
+  ["com.myoxus.editor.diff.current-document"](): string;
+  /** Eraser */
+  ["com.myoxus.editor.tool.eraser"](): string;
+  /** Highlighter */
+  ["com.myoxus.editor.tool.highlighter"](): string;
+  /** Page mode index {{index}} */
+  ["com.myoxus.editor.canvas.page-index"](options: { readonly ["index"]: string; }): string;
+  /** Hidden on page */
+  ["com.myoxus.editor.canvas.hidden-on-page"](): string;
+  /** Edited content */
+  ["com.myoxus.ai.chat-panel.edited-content"](): string;
+  /** Show or hide keyboard */
+  ["com.myoxus.editor.keyboard.toggle"](): string;
+  /** The Mermaid diagram projection is unavailable. */
+  ["com.myoxus.editor.mermaid.owner-missing"](): string;
+  /** {{count}} selected */
+  ["com.myoxus.editor.mermaid.page-selection-count"](options: { readonly ["count"]: string; }): string;
+  /** Height */
+  ["com.myoxus.editor.mermaid.quadrant-height"](): string;
+  /** Width */
+  ["com.myoxus.editor.mermaid.quadrant-width"](): string;
 }
 
 export function useMyoxusI18N(): MyoxusI18nFunctions {

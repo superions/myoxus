@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import type { LitPortalDecorator, ReactToLit } from "@myoxus/lit-react";
-import { MyoxusEmbeddedUIProvider } from "@myoxus/ui-facade/provider";
 import {
   MermaidFamilyReactHostExtension,
   mermaidPieRendererToken,
@@ -21,14 +20,9 @@ import {
   type MermaidEmbeddedTitleReactHostProps,
   type MermaidShellNoticeReactHostProps,
 } from "@virgultum/block-mermaid";
-import type { ExtensionType } from "@virgultum/store";
-import {
-  type PropsWithChildren,
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import type { ExtensionType } from "@virgultum/core/store";
+import type { ReactNode } from "react";
+import { EditorEmbeddedUIRoot } from "./embedded-ui-root";
 import { DeferredMermaidChart } from "./deferred-mermaid-chart";
 import { createMermaidTimelineRendererRegistration } from "./mermaid-timeline-runtime";
 import { createMermaidGanttRendererRegistration } from "./mermaid-gantt-runtime";
@@ -55,75 +49,6 @@ import { createMermaidC4RendererRegistration } from "./mermaid-c4-runtime";
 import { createMermaidMindmapRendererRegistration } from "./mermaid-mindmap-runtime";
 import { createMermaidRequirementRendererRegistration } from "./mermaid-requirement-runtime";
 
-function findMermaidThemeScope(element: Element): Element | null {
-  let current: Element | null = element;
-  while (current) {
-    const themeScope = current.closest(
-      "[data-theme='light'], [data-theme='dark']",
-    );
-    if (themeScope) return themeScope;
-
-    const root = current.getRootNode();
-    current = root instanceof ShadowRoot ? root.host : null;
-  }
-  return null;
-}
-
-function resolveMermaidColorScheme(
-  portalRoot: HTMLElement,
-): "dark" | "light" | undefined {
-  const theme = findMermaidThemeScope(portalRoot)?.getAttribute("data-theme");
-  return theme === "dark" || theme === "light" ? theme : undefined;
-}
-
-function ensureMermaidPortalSelector(portalRoot: HTMLElement) {
-  const attribute = "data-myoxus-mermaid-react-root";
-  let id = portalRoot.getAttribute(attribute);
-  if (!id) {
-    id = portalRoot.getAttribute("portalid");
-    if (!id) throw new Error("Mermaid React portal is missing its anchor id");
-    portalRoot.setAttribute(attribute, id);
-  }
-  return `[${attribute}="${id}"]`;
-}
-
-/** Keep Mantine controls aligned with the nearest Page/Edgeless renderer. */
-function MermaidEmbeddedUIRoot({
-  children,
-  portalRoot,
-}: PropsWithChildren<{ portalRoot: HTMLElement }>) {
-  const [colorScheme, setColorScheme] = useState<"dark" | "light" | undefined>(
-    () => resolveMermaidColorScheme(portalRoot),
-  );
-  const [cssVariablesSelector] = useState(() =>
-    ensureMermaidPortalSelector(portalRoot),
-  );
-  const getRootElement = useCallback(() => portalRoot, [portalRoot]);
-
-  useEffect(() => {
-    const themeScope = findMermaidThemeScope(portalRoot);
-    if (!themeScope) return undefined;
-    const update = () => setColorScheme(resolveMermaidColorScheme(portalRoot));
-    update();
-    const observer = new MutationObserver(update);
-    observer.observe(themeScope, {
-      attributeFilter: ["data-theme"],
-      attributes: true,
-    });
-    return () => observer.disconnect();
-  }, [portalRoot]);
-
-  return (
-    <MyoxusEmbeddedUIProvider
-      colorScheme={colorScheme}
-      cssVariablesSelector={cssVariablesSelector}
-      getRootElement={getRootElement}
-    >
-      {children}
-    </MyoxusEmbeddedUIProvider>
-  );
-}
-
 export function patchMermaidFamilyReactHost(
   reactToLit: ReactToLit,
 ): ExtensionType {
@@ -131,9 +56,9 @@ export function patchMermaidFamilyReactHost(
     portalElement,
     portalRoot,
   ) => (
-    <MermaidEmbeddedUIRoot portalRoot={portalRoot}>
+    <EditorEmbeddedUIRoot portalRoot={portalRoot}>
       {portalElement as ReactNode}
-    </MermaidEmbeddedUIRoot>
+    </EditorEmbeddedUIRoot>
   );
   const mermaidReactToLit: ReactToLit = (element, rerendering) =>
     reactToLit(element, rerendering, decorateMermaidPortal);

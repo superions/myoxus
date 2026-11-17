@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import type { Store } from "@virgultum/store";
-import type { GfxModel } from "@virgultum/std/gfx";
+import type { Store } from "@virgultum/core/store";
+import type { GfxModel } from "@virgultum/core/runtime/gfx";
 
 import { isMermaidBlockModel } from "./owner.js";
 import {

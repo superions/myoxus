@@ -1,7 +1,7 @@
 import { projectNeutralMermaidGfxDetailElementStyle } from "../runtime/gfx-detail-projection.js";
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { pointInPolygon } from "@virgultum/global/gfx";
-import { ShapeType, StrokeStyle } from "@virgultum/model";
+import { pointInPolygon } from "@virgultum/core/primitives/gfx";
+import { ShapeType, StrokeStyle } from "@virgultum/core/models";
 import type { MermaidBlockDirection } from "../../engine/block/index.js";
 import type {
   MermaidVisualModel,

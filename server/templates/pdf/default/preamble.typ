@@ -31,7 +31,7 @@
 //   #let symbol-font     — bounded ASCII marker font tuple
 //   #let <role>-font-weight/style/size/leading/tracking
 //                       — effective server-theme PDF typography metrics
-//   #let pdf-check       — ASCII marker helper used for todo lists
+//   #let pdf-check       — vector checkbox helper used for todo lists
 //   #let ligatures-enabled — bool
 
 // PDF metadata fields. `doc-keywords` is always an array (empty when

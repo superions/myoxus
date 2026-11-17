@@ -24,7 +24,7 @@ const bare = (stem: string): RegExp =>
   new RegExp(`(?<![${LATIN}])${stem}(?![${LATIN}])`);
 
 const countMatches = (pattern: RegExp): string[] =>
-  values.filter((v) => pattern.test(v));
+  values.filter((v) => pattern.test(v.replace(/\{\{[^{}]+\}\}/g, "")));
 
 const guards: Array<[string, RegExp]> = [
   // -ción family

@@ -1,13 +1,18 @@
+import { createElement } from "react";
+import {
+  SearchIcon as NativeSearchIcon,
+  PageIcon as NativePageIcon,
+} from "@myoxus/icons/react";
+import { renderToolCallCard, renderToolResultCard } from "./tool-cards";
 import type { PeekViewService } from "@myoxus/core/modules/peek-view";
-import { PageIcon, SearchIcon } from "@myoxus/icons/lit";
+
 import type { ReactToLit } from "@myoxus/lit-react";
-import type { Signal } from "@preact/signals-core";
-import { WithDisposable } from "@virgultum/global/lit";
-import { ShadowlessElement } from "@virgultum/std";
-import { html, nothing } from "lit";
+import { WithDisposable } from "@virgultum/core/primitives/lit";
+import { ShadowlessElement } from "@virgultum/core/runtime";
+import { nothing } from "lit";
 import { property } from "lit/decorators.js";
 
-import type { ToolResult } from "./tool-result-card";
+import type { ToolResult } from "./tool-cards";
 
 interface DocKeywordSearchToolCall {
   type: "tool-call";
@@ -33,21 +38,16 @@ export class DocKeywordSearchResult extends WithDisposable(ShadowlessElement) {
   accessor data!: DocKeywordSearchToolCall | DocKeywordSearchToolResult;
 
   @property({ attribute: false })
-  accessor width: Signal<number | undefined> | undefined;
-
-  @property({ attribute: false })
   accessor onOpenDoc!: (docId: string, sessionId?: string) => void;
 
   @property({ attribute: false })
   accessor peekViewService!: PeekViewService;
 
   renderToolCall() {
-    return html`<tool-call-card
-      .reactToLit=${this.reactToLit}
-      .name=${`Searching workspace documents for "${this.data.args.query}"`}
-      .icon=${SearchIcon()}
-      .width=${this.width}
-    ></tool-call-card>`;
+    return renderToolCallCard(this.reactToLit, {
+      name: `Searching workspace documents for "${this.data.args.query}"`,
+      icon: createElement(NativeSearchIcon),
+    });
   }
 
   renderToolResult() {
@@ -58,7 +58,7 @@ export class DocKeywordSearchResult extends WithDisposable(ShadowlessElement) {
     try {
       results = this.data.result.map((item) => ({
         title: item.title,
-        icon: PageIcon(),
+        icon: createElement(NativePageIcon),
         onClick: () => {
           this.peekViewService.peekView
             .open({
@@ -71,13 +71,11 @@ export class DocKeywordSearchResult extends WithDisposable(ShadowlessElement) {
     } catch (err) {
       console.error("Failed to parse result", err);
     }
-    return html`<tool-result-card
-      .reactToLit=${this.reactToLit}
-      .name=${`Found ${this.data.result.length} pages for "${this.data.args.query}"`}
-      .icon=${SearchIcon()}
-      .width=${this.width}
-      .results=${results}
-    ></tool-result-card>`;
+    return renderToolResultCard(this.reactToLit, {
+      name: `Found ${this.data.result.length} pages for "${this.data.args.query}"`,
+      icon: createElement(NativeSearchIcon),
+      results: results,
+    });
   }
 
   protected override render() {

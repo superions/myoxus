@@ -1,4 +1,4 @@
-import type { MermaidBlockModel } from "@virgultum/model";
+import type { MermaidBlockModel } from "@virgultum/core/models";
 
 import { detectMermaidDiagramType } from "./engine/diagram-types.js";
 import { isMermaidProductDiagramType } from "./engine/product-types.js";

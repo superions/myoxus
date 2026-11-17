@@ -30,12 +30,12 @@
  * @see docs/dev/virgultum/refactor-roadmap.md §B (B-FIND-04)
  */
 
-import type { MyoxusConfirmEventRemovalRequest } from "@virgultum/shared/services";
+import type { MyoxusConfirmEventRemovalRequest } from "@virgultum/editor/shared/services";
 import {
   hasCapability,
   MyoxusHostCapability,
   MyoxusHostServiceIdentifier,
-} from "@virgultum/shared/services";
+} from "@virgultum/editor/shared/services";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 import { setupEditor } from "../utils/setup.js";

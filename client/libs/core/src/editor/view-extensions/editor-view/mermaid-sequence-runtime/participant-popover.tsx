@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { createPortal } from "react-dom";
 import { GripVerticalIcon } from "@myoxus/icons";
-import { isValidUrl } from "@virgultum/shared/utils";
+import { isValidUrl } from "@virgultum/core/utils";
 import { useEffect, useRef, useState } from "react";
 import {
   Alert,

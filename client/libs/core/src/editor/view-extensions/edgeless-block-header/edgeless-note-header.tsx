@@ -27,7 +27,7 @@ import {
   resolveMermaidEffectiveBlockTitle,
   type MermaidBlockComponent,
 } from "@virgultum/block-mermaid";
-import type { BlockStdScope } from "@virgultum/std";
+import type { BlockStdScope } from "@virgultum/core/runtime";
 import { GfxControllerIdentifier } from "@virgultum/editor/std/gfx";
 import { useCallback, useEffect, useMemo, useState } from "react";
 

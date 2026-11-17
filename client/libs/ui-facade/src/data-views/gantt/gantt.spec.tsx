@@ -1,7 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 /** @vitest-environment happy-dom */
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import type { ReactElement } from "react";
 
 import { MyoxusUIProvider } from "../../provider";
@@ -301,12 +307,15 @@ test("a selected dependency is keyboard reachable and deletable", () => {
   expect(hit.getAttribute("tabindex")).toBe("0");
   fireEvent.keyDown(hit, { key: "Delete" });
   expect(onDeleteDependency).toHaveBeenCalledWith("d1");
-  // ArrowRight arms a target-end reconnect; the next bar click confirms it.
+  // ArrowRight arms a target-end reconnect; its label is a real pointer target.
   fireEvent.keyDown(hit, { key: "ArrowRight" });
-  fireEvent.pointerDown(screen.getByTestId("gantt-bar-t1"), {
-    clientX: 100,
-    pointerId: 9,
-  });
+  fireEvent.pointerDown(
+    within(screen.getByTestId("gantt-bar-t1")).getByText("Design"),
+    {
+      clientX: 100,
+      pointerId: 9,
+    },
+  );
   expect(onReconnectDependency).toHaveBeenCalledWith("d1", "target", "t1");
 });
 

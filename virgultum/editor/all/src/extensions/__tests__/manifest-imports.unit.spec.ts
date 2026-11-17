@@ -32,10 +32,10 @@
  *      (P-VIRG-ARCH-C-02)
  */
 
-import { dividerManifest } from "@virgultum/block-divider/manifest";
-import { eventManifest } from "@virgultum/block-event/manifest";
-import { latexManifest } from "@virgultum/block-latex/manifest";
-import { surfaceRefManifest } from "@virgultum/block-surface-ref/manifest";
+import { dividerManifest } from "@virgultum/content/manifests";
+import { eventManifest } from "@virgultum/embeds/manifests";
+import { latexManifest } from "@virgultum/content/manifests";
+import { surfaceRefManifest } from "@virgultum/canvas/manifest";
 import { describe, expect, test } from "vitest";
 
 import { internalManifestRegistry } from "../manifest-registry";

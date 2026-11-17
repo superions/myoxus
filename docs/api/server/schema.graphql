@@ -8134,6 +8134,8 @@ type DocumentMetadataIndexRowType {
   journalDate: NaiveDate
   pageWidth: String
   primaryMode: String
+  responsibleName: String
+  responsibleUserId: ID
   reviewDueAt: DateTime
   statusId: ID
   """
@@ -13295,6 +13297,10 @@ input TemplateLibraryFilterInput {
   Exact workspace-local source key; returns at most one item, without list traversal.
   """
   sourceDocId: ID
+  """
+  Exact Registry source slug; uses current workspace assignment and read access.
+  """
+  sourceSlug: String
   workAreaTag: String
 }
 
@@ -15330,10 +15336,6 @@ type WorkspaceOverviewOrderByType {
   type: String!
 }
 
-"""
-Authorized page facts only. The workspace row and its private bindings stay
-with the native settings owner rather than becoming a generic JSON payload.
-"""
 type WorkspaceOverviewPageType {
   breadcrumbs: [WorkspaceOverviewFolderType!]!
   children: [WorkspaceOverviewFolderType!]!
@@ -15348,14 +15350,42 @@ type WorkspaceOverviewPageType {
   registerPresentation: WorkspaceOverviewRegisterPresentationType
 }
 
+input WorkspaceOverviewRegisterFilterInput {
+  key: String!
+  method: String!
+  value: String
+}
+
+type WorkspaceOverviewRegisterFilterType {
+  key: String!
+  method: String!
+  value: String
+}
+
 input WorkspaceOverviewRegisterPresentationInput {
   displayProperties: [String!]!
   orderBy: WorkspaceOverviewOrderByInput!
+  selection: WorkspaceOverviewRegisterSelectionInput
 }
 
 type WorkspaceOverviewRegisterPresentationType {
   displayProperties: [String!]!
   orderBy: WorkspaceOverviewOrderByType!
+  selection: WorkspaceOverviewRegisterSelectionType!
+}
+
+input WorkspaceOverviewRegisterSelectionInput {
+  filters: [WorkspaceOverviewRegisterFilterInput!]! = []
+  matchAllTags: Boolean! = false
+  subtree: Boolean! = false
+  tagIds: [UUID!]! = []
+}
+
+type WorkspaceOverviewRegisterSelectionType {
+  filters: [WorkspaceOverviewRegisterFilterType!]!
+  matchAllTags: Boolean!
+  subtree: Boolean!
+  tagIds: [UUID!]!
 }
 
 """
@@ -15996,6 +16026,7 @@ type WorkspaceType {
     first: Int! = 50
     folderId: String
     offset: Int! = 0
+    registerPresentation: WorkspaceOverviewRegisterPresentationInput
   ): WorkspaceOverviewPageType!
   """
   The captured row is also the mutation's exact saved basis; no second read

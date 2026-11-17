@@ -7,14 +7,17 @@ import { mermaidRuntimePreservesSourceBytes } from "../families/runtime/factory.
 import { getMermaidFamilyRuntime } from "../families/runtime/registry.js";
 import { MERMAID_GFX_TITLE_ROLE } from "../families/runtime/gfx-element-roles.js";
 import { usesTypeOwnedMermaidDocumentHistory } from "../families/runtime/gfx-owner-hooks.js";
-import { Bound } from "@virgultum/global/gfx";
+import { Bound } from "@virgultum/core/primitives/gfx";
 import { getMermaidGfxFamilyHooks } from "../families/runtime/gfx-family-hooks-registry.js";
 import { readMermaidGfxMeta } from "../mermaid-gfx-metadata.js";
 import type { MermaidGfxObjectEditIntent } from "../families/runtime/editor-capabilities.js";
 import { batch } from "@preact/signals-core";
-import { DisposableGroup } from "@virgultum/global/disposable";
-import type { MermaidBlockModel } from "@virgultum/model";
-import { GfxExtension, InteractivityIdentifier } from "@virgultum/std/gfx";
+import { DisposableGroup } from "@virgultum/core/primitives/disposable";
+import type { MermaidBlockModel } from "@virgultum/core/models";
+import {
+  GfxExtension,
+  InteractivityIdentifier,
+} from "@virgultum/core/runtime/gfx";
 
 import type { MermaidVisualHistoryModel } from "../mermaid-block-constants.js";
 import {
@@ -172,7 +175,7 @@ export class MermaidEdgelessOwnerGfxSync extends GfxExtension {
       !event.isComposing &&
       !event.altKey &&
       (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() === "d") &&
-      !event.shiftKey &&
+      (!event.shiftKey || event.key.length === 1) &&
       event.composedPath().includes(this.std.host) &&
       !(
         event.target instanceof Element &&
@@ -245,7 +248,10 @@ export class MermaidEdgelessOwnerGfxSync extends GfxExtension {
   private readonly _handleDocumentPointerdown = (event: PointerEvent) => {
     // Portaled domain controls are not canvas gestures. Capturing every owner
     // here would reparse whole diagrams before the form's click can run.
-    if (!this._isCanvasPointerEvent(event)) return;
+    if (!this._isCanvasPointerEvent(event)) {
+      this._lastObjectPointerDown = null;
+      return;
+    }
     // A selected-node structural gesture owns its down before double-click
     // editing or generic child movement can initialize a competing journey.
     if (
@@ -326,7 +332,7 @@ export class MermaidEdgelessOwnerGfxSync extends GfxExtension {
     const owner = resolveNativeMermaidOwnerForSelection(this.std.store, [
       hit,
     ])?.model;
-    if (!owner) return false;
+    if (!owner || owner.isLocked()) return false;
     const visual = getMermaidVisualModel(owner);
     if (
       !visual ||

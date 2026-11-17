@@ -118,13 +118,18 @@ mod document_reference;
 mod document_semantics;
 #[path = "tools/document_template.rs"]
 mod document_template;
+pub(crate) use document_template::{DocumentTemplateGetRequest, DocumentTemplateListRequest};
 #[path = "tools/folder.rs"]
 mod folder;
+pub(crate) use folder::{FolderPathEnsureRequest, FolderTreeRequest};
 #[path = "tools/organization.rs"]
 mod organization;
 mod pdf_export;
 #[path = "tools/tag.rs"]
 mod tag;
+pub(crate) use tag::{
+  DocumentTagsGetRequest, WorkspaceTagGetRequest, WorkspaceTagLifecycleRequest, WorkspaceTagListRequest,
+};
 #[path = "tools/user.rs"]
 mod user;
 #[path = "tools/workspace.rs"]
@@ -456,6 +461,46 @@ pub(crate) type ToolHandler = for<'a> fn(
   Option<&'a RequestContext<RoleServer>>,
 ) -> BoxFuture<'a, Result<Value, (i32, String)>>;
 
+/// Native callers reuse the same read owner without impersonating an API key.
+pub(crate) type NativeReadHandler =
+  for<'a> fn(&'a Value, Uuid, &'a McpToolState) -> BoxFuture<'a, Result<Value, (i32, String)>>;
+
+pub(crate) struct ToolHandlerBinding {
+  pub key: ToolHandler,
+  pub native_read: Option<NativeReadHandler>,
+}
+
+/// The canonical registry selects the handler; its existing owner checks target ACLs.
+#[instrument(skip_all, fields(tool = tool_name, %user_id))]
+pub async fn call_user_read_tool(
+  tool_name: &str,
+  params: &Value,
+  user_id: Uuid,
+  state: &McpToolState,
+) -> Result<Value, (i32, String)> {
+  let descriptor = find_tool(tool_name).ok_or_else(|| (-32601, "Unknown tool".into()))?;
+  let handler = descriptor
+    .native_read
+    .filter(|_| descriptor.services_available(state.tool_availability()))
+    .ok_or_else(|| (-32002, "Native read tool is unavailable".into()))?;
+  if !params.is_object() {
+    return Err((-32602, "Tool arguments must be an object".into()));
+  }
+  let mut value = handler(params, user_id, state).await?;
+  value
+    .as_object_mut()
+    .map(|object| object.remove("_mcpInternalDocumentId"));
+  let value = normalize_legacy_tool_result(value);
+  if serde_json::to_vec(&value)
+    .map_err(|_| (-32002, "Tool output serialization failed".into()))?
+    .len()
+    > state.document_export_max_bytes
+  {
+    return Err((-32002, "Tool result exceeds the configured output bound".into()));
+  }
+  Ok(value)
+}
+
 /// Routes bind a fixed descriptor/handler pair before accepting requests. The
 /// shared router is never disabled or rewritten for an individual caller.
 pub(crate) fn tool_router() -> &'static ToolRouter<McpToolState> {
@@ -496,34 +541,82 @@ pub(crate) fn tool_router() -> &'static ToolRouter<McpToolState> {
 /// Consumed once while building the catalog, not a second request-time router.
 /// Domain adapters that own a multi-operation use case receive a bound literal
 /// name; ordinary adapters are bound directly to their existing function.
-pub(crate) fn handler_bindings() -> HashMap<&'static str, ToolHandler> {
+pub(crate) fn handler_bindings() -> HashMap<&'static str, ToolHandlerBinding> {
   let mut bindings = HashMap::new();
   macro_rules! bind {
+    ($name:literal, $handler:path, native_read $reader:path) => {
+      let key: ToolHandler = |params, auth, state, _context| Box::pin($handler(params, auth, state));
+      let native_read: NativeReadHandler = |params, user_id, state| Box::pin($reader(params, user_id, state));
+      assert!(
+        bindings
+          .insert(
+            $name,
+            ToolHandlerBinding {
+              key,
+              native_read: Some(native_read)
+            }
+          )
+          .is_none(),
+        "duplicate MCP handler binding"
+      );
+    };
     ($name:literal, $handler:path) => {
       let handler: ToolHandler = |params, auth, state, _context| Box::pin($handler(params, auth, state));
       assert!(
-        bindings.insert($name, handler).is_none(),
+        bindings
+          .insert(
+            $name,
+            ToolHandlerBinding {
+              key: handler,
+              native_read: None
+            }
+          )
+          .is_none(),
         "duplicate MCP handler binding"
       );
     };
     ($name:literal, named $handler:path) => {
       let handler: ToolHandler = |params, auth, state, _context| Box::pin($handler($name, params, auth, state));
       assert!(
-        bindings.insert($name, handler).is_none(),
+        bindings
+          .insert(
+            $name,
+            ToolHandlerBinding {
+              key: handler,
+              native_read: None
+            }
+          )
+          .is_none(),
         "duplicate MCP handler binding"
       );
     };
     ($name:literal, $handler:path, $flag:literal) => {
       let handler: ToolHandler = |params, auth, state, _context| Box::pin($handler(params, auth, state, $flag));
       assert!(
-        bindings.insert($name, handler).is_none(),
+        bindings
+          .insert(
+            $name,
+            ToolHandlerBinding {
+              key: handler,
+              native_read: None
+            }
+          )
+          .is_none(),
         "duplicate MCP handler binding"
       );
     };
     ($name:literal, contextual $handler:path) => {
       let handler: ToolHandler = |params, auth, state, context| Box::pin($handler(params, auth, state, context));
       assert!(
-        bindings.insert($name, handler).is_none(),
+        bindings
+          .insert(
+            $name,
+            ToolHandlerBinding {
+              key: handler,
+              native_read: None
+            }
+          )
+          .is_none(),
         "duplicate MCP handler binding"
       );
     };
@@ -580,13 +673,13 @@ pub(crate) fn handler_bindings() -> HashMap<&'static str, ToolHandler> {
   bind!("workspace_delete", workspace::delete);
   bind!("workspace_restore", workspace::restore);
   bind!("workspace_create", workspace::create);
-  bind!("workspace_get", workspace::get);
+  bind!("workspace_get", workspace::get, native_read workspace::get_for_user);
   bind!("workspace_update", workspace::update);
   bind!("list_pages", list_pages);
-  bind!("read_doc", document::read_doc);
+  bind!("read_doc", document::read_doc, native_read document::read_doc_for_user);
   bind!("doc_publication_get", document::publication_get);
   bind!("doc_publication_set", document::publication_set);
-  bind!("search_docs", search_docs);
+  bind!("search_docs", search_docs, native_read search_docs_for_user);
   bind!("create_page", create_page);
   bind!("document_import", contextual document_import::import_document);
   bind!("document_image_insert", document_image::insert);
@@ -1854,14 +1947,14 @@ use myoxus_application::workspace::resource_inventory::{
 /// Search indexes and diagnostic projections are candidates, never authority.
 async fn readable_live_document_keys(
   state: &McpToolState,
-  auth: &McpAuthContext,
+  user_id: Uuid,
   workspace_id: Uuid,
   candidates: &[Uuid],
 ) -> Result<std::collections::HashMap<Uuid, String>, (i32, String)> {
   myoxus_application::workspace::resource_inventory::readable_live_document_keys(
     &state.doc_service,
     &state.permission_service,
-    auth.user_id,
+    user_id,
     workspace_id,
     candidates,
   )
@@ -1950,7 +2043,10 @@ async fn search_docs(params: &Value, auth: &McpAuthContext, state: &McpToolState
   if !auth.has_scope("read:docs") {
     return Err((-32003, "Scope 'read:docs' required".to_string()));
   }
+  search_docs_for_user(params, auth.user_id, state).await
+}
 
+async fn search_docs_for_user(params: &Value, user_id: Uuid, state: &McpToolState) -> Result<Value, (i32, String)> {
   let workspace_id = parse_uuid(params, "workspace_id")?;
   let query = params.get("query").and_then(|v| v.as_str()).unwrap_or("").to_string();
 
@@ -1965,7 +2061,7 @@ async fn search_docs(params: &Value, auth: &McpAuthContext, state: &McpToolState
 
   let language = params.get("language").and_then(|v| v.as_str()).map(|s| s.to_string());
 
-  check_workspace_membership(&state.workspace_service, auth.user_id, workspace_id).await?;
+  check_workspace_membership(&state.workspace_service, user_id, workspace_id).await?;
 
   let Some(search_repo) = &state.search_repository else {
     return Err((-32002, "Search is not configured on this server".to_string()));
@@ -1973,7 +2069,7 @@ async fn search_docs(params: &Value, auth: &McpAuthContext, state: &McpToolState
 
   use myoxus_application::search::{SEARCH_CANDIDATE_BATCH, SEARCH_CANDIDATE_BUDGET, SearchContinuation};
   let continuation = SearchContinuation::new(
-    auth.user_id,
+    user_id,
     workspace_id,
     &query,
     language.as_deref(),
@@ -1998,7 +2094,7 @@ async fn search_docs(params: &Value, auth: &McpAuthContext, state: &McpToolState
       .await
       .map_err(|_| (-32002, "Search failed".to_string()))?;
     let ids = results.iter().map(|doc| doc.doc_id).collect::<Vec<_>>();
-    let readable = readable_live_document_keys(state, auth, workspace_id, &ids).await?;
+    let readable = readable_live_document_keys(state, user_id, workspace_id, &ids).await?;
     for doc in &results {
       if let Some(external_id) = readable.get(&doc.doc_id) {
         if items.len() == limit {
@@ -2016,7 +2112,7 @@ async fn search_docs(params: &Value, auth: &McpAuthContext, state: &McpToolState
   }
   let next_cursor = (!exhausted).then(|| continuation.cursor(position));
   let enriched = myoxus_application::search::enrich_search_page(
-    auth.user_id,
+    user_id,
     workspace_id,
     &items,
     &state.doc_service,
@@ -2320,7 +2416,7 @@ async fn page_projection_scan(
       }
     }
     let ids = identities.values().copied().collect::<Vec<_>>();
-    let readable = readable_live_document_keys(state, auth, workspace_id, &ids).await?;
+    let readable = readable_live_document_keys(state, auth.user_id, workspace_id, &ids).await?;
     let visible = |item: &myoxus_application::doc::PageProjectionPresenceEvidence| {
       item
         .external_doc_id
@@ -3168,7 +3264,7 @@ async fn template_list_for_workspace(
       let needs_rebuild = e
         .current_instance
         .as_ref()
-        .map(|i| i.applied_hash.as_deref() != Some(&e.expected_hash))
+        .map(|i| i.applied_hash.as_deref() != Some(e.expected_hash.as_str()))
         .unwrap_or(true);
       json!({
         "slug": e.slug,
@@ -3221,7 +3317,7 @@ async fn template_request_reconcile(
     .filter(|e| {
       e.current_instance
         .as_ref()
-        .map(|i| i.applied_hash.as_deref() != Some(&e.expected_hash))
+        .map(|i| i.applied_hash.as_deref() != Some(e.expected_hash.as_str()))
         .unwrap_or(true)
     })
     .count();

@@ -1,5 +1,5 @@
 // Import models only, the bundled file should not include anything else.
-import { SurfaceBlockSchema } from "@virgultum/block-surface/model";
+import { SurfaceBlockSchema } from "@virgultum/canvas-runtime/model";
 import {
   AnnotationBlockSchema,
   FootnoteDefinitionBlockSchema,
@@ -20,6 +20,7 @@ import {
   EmbedSyncedDocBlockSchema,
   EmbedYoutubeBlockSchema,
   EventBlockSchema,
+  DocumentIndexBlockSchema,
   FrameBlockSchema,
   ImageBlockSchema,
   LatexBlockSchema,
@@ -30,8 +31,8 @@ import {
   RootBlockSchema,
   SurfaceRefBlockSchema,
   TableBlockSchema,
-} from "@virgultum/model";
-import type { BlockSchema } from "@virgultum/store";
+} from "@virgultum/core/models";
+import type { BlockSchema } from "@virgultum/core/store";
 import type { z } from "zod";
 
 export const MyoxusSchemas: z.infer<typeof BlockSchema>[] = [
@@ -45,6 +46,7 @@ export const MyoxusSchemas: z.infer<typeof BlockSchema>[] = [
   NoteBlockSchema,
   DividerBlockSchema,
   EventBlockSchema,
+  DocumentIndexBlockSchema,
   ImageBlockSchema,
   SurfaceBlockSchema,
   BookmarkBlockSchema,

@@ -21,6 +21,7 @@ import { patchForAudioEmbedView } from "./audio/audio-view";
 import { patchTextAttachmentPreview } from "./text-attachment";
 import { buildDocDisplayMetaExtension } from "./display-meta";
 import { patchDocEmbedService } from "./doc-embed";
+import { patchDocumentIndex } from "./document-index";
 import { patchDocumentFieldOutput } from "./document-field-output";
 import { patchDocumentFieldHost } from "./document-field";
 import { patchDocModeService } from "./doc-mode-service";
@@ -132,6 +133,7 @@ export class MyoxusEditorViewExtension extends ViewExtensionProvider<MyoxusEdito
         buildDocDisplayMetaExtension(framework),
         patchDocEmbedService(framework),
         patchDocumentFieldOutput(framework),
+        patchDocumentIndex(framework, reactToLit),
         patchDocumentFieldHost(reactToLit),
         patchForAudioEmbedView(reactToLit),
         patchTextAttachmentPreview(reactToLit),

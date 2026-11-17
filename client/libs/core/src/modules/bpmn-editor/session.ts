@@ -20,11 +20,11 @@ import {
   coerceBpmnBlockText,
   BPMN_SOURCE_TRANSACTION_ORIGIN,
 } from "@virgultum/block-bpmn";
-import type { BpmnBlockModel } from "@virgultum/model";
+import type { BpmnBlockModel } from "@virgultum/core/models";
 import type {
   MyoxusBpmnEditorRequest,
   MyoxusBpmnEditorCloseResult,
-} from "@virgultum/shared/services";
+} from "@virgultum/core/services";
 import { mergeUpdates } from "yjs";
 import type { Doc, DocsService } from "../doc";
 import type { WorkspaceDialogService } from "../dialogs";

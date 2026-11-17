@@ -6,6 +6,7 @@ import {
   Group,
   IconButton,
   Menu,
+  type MenuRef,
   Popover,
   PopoverContent,
   PopoverTarget,
@@ -15,7 +16,7 @@ import type {
   EditorSelectionControls,
   SelectionAction,
 } from "@virgultum/editor/shared/services";
-import { type PointerEvent, useSyncExternalStore } from "react";
+import { type PointerEvent, useRef, useSyncExternalStore } from "react";
 import { SelectionActions } from "./block-actions";
 import { TextFormatControl } from "./text-format";
 import { SurfacePropertyControl } from "./surface-property";
@@ -40,6 +41,9 @@ export function EditorSelectionToolbar({
     controls.getSnapshot,
   );
   const t = useI18n();
+  const moreMenu = useRef<MenuRef>(null);
+  // A dismissed canvas toolbar must stop intercepting gestures immediately.
+  if (!state.open) return null;
   const preserveSelection = (event: PointerEvent) => {
     event.stopPropagation();
     if (
@@ -90,17 +94,24 @@ export function EditorSelectionToolbar({
         <Group key={state.key}>
           <SelectionActions
             actions={state.primary}
+            afterAction={controls.activate}
             renderControl={renderControl}
           />
           {state.more.length ? (
             <>
               <Divider orientation="vertical" />
               <Menu
+                ref={moreMenu}
                 noPortal
+                rootOptions={{
+                  returnFocus: false,
+                  onClose: () => requestAnimationFrame(controls.activate),
+                }}
                 items={
                   <SelectionActions
                     actions={state.more}
                     menu
+                    afterAction={() => moreMenu.current?.changeOpen(false)}
                     renderControl={renderControl}
                   />
                 }

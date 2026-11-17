@@ -30,6 +30,7 @@ use crate::{
 
 // Ordinary Word paragraph/table indentation carries the visible hierarchy of
 // the two named semantic styles, not private roundtrip metadata.
+const CALLOUT_FRAME_STYLE: &str = "MyoxusCalloutFrame";
 const CONTENT_INDENT: f32 = 18.0;
 
 mod math;
@@ -251,6 +252,13 @@ impl<'a> Mapper<'a> {
     segment.italic = props.italic;
     segment.underline = props.underline != Default::default();
     segment.strike = props.strike;
+    segment.background = props.highlight.map(|color| match color {
+      wordcraft_doc::Rgb(255, 255, 0) => "var(--myoxus-sem-text-marker-yellow)".into(),
+      wordcraft_doc::Rgb(0, 255, 0) => "var(--myoxus-sem-text-marker-green)".into(),
+      wordcraft_doc::Rgb(255, 0, 255) => "var(--myoxus-sem-text-marker-pink)".into(),
+      wordcraft_doc::Rgb(0, 255, 255) => "var(--myoxus-sem-text-marker-blue)".into(),
+      _ => format!("#{}", color.hex()),
+    });
     segment.link = props
       .link
       .as_deref()
@@ -473,6 +481,17 @@ impl<'a> Mapper<'a> {
   fn map_nested_blocks(&mut self, blocks: &[std::sync::Arc<Block>], depth: usize) -> Result<(), ImportError> {
     if depth > 64 {
       return Err(ImportError::TooLarge);
+    }
+    if blocks.iter().any(|block| {
+      matches!(&**block, Block::Table(table)
+      if table.props.style.as_deref() == Some(CALLOUT_FRAME_STYLE)
+        && table.rows.len() == 1 && table.rows[0].cells.len() == 1)
+    }) {
+      // Layout frames carry no data-table semantics. Restore the outer indent
+      // before reusing the existing callout/code/list hierarchy decoder.
+      let mut expanded = Vec::new();
+      expand_callout_frames(blocks, 0.0, depth, &mut expanded)?;
+      return self.map_nested_blocks(&expanded, depth + 1);
     }
     let mut index = 0;
     while index < blocks.len() {
@@ -1030,6 +1049,16 @@ impl<'a> Mapper<'a> {
           continue;
         }
         match para.object_at(absolute) {
+          Some(InlineObject::Image { alt, .. })
+            if para.props.style.as_deref() == Some("MyoxusCallout")
+              && absolute == 0
+              && alt.starts_with("Callout icon: ") =>
+          {
+            // Decorative callout art returns to readable inline text, never an
+            // extra native image child that would change the content hierarchy.
+            result.push(Self::segment(alt.trim_start_matches("Callout icon: "), &resolved));
+            self.warn("callout_icon_normalized");
+          }
           Some(InlineObject::BookmarkStart { .. } | InlineObject::BookmarkEnd { .. }) => {}
           Some(InlineObject::CommentEnd { id }) if self.current_note.is_none() => {
             if let Some((definition, label, _)) = self
@@ -1215,6 +1244,51 @@ impl<'a> Mapper<'a> {
     }
     Ok((result, pictures))
   }
+}
+
+fn expand_callout_frames(
+  blocks: &[std::sync::Arc<Block>],
+  offset: f32,
+  depth: usize,
+  out: &mut Vec<std::sync::Arc<Block>>,
+) -> Result<(), ImportError> {
+  if depth > 64 {
+    return Err(ImportError::TooLarge);
+  }
+  for block in blocks {
+    if let Block::Table(table) = &**block
+      && table.props.style.as_deref() == Some(CALLOUT_FRAME_STYLE)
+      && table.rows.len() == 1
+      && table.rows[0].cells.len() == 1
+    {
+      let mut content = table.rows[0].cells[0].blocks.clone();
+      // Rejoin the exported title/body pair before decoding native hierarchy.
+      if let [first, second, ..] = content.as_slice()
+        && let (Block::Para(header), Block::Para(body)) = (&**first, &**second)
+        && header.props.style.as_deref() == Some("MyoxusCallout")
+        && body.props.style.as_deref() == Some("MyoxusCallout")
+      {
+        let mut header = header.clone();
+        header
+          .insert_text(header.text.len(), "\n", &Default::default())
+          .map_err(|_| ImportError::Conversion)?;
+        header.append(body.clone());
+        content.splice(0..2, [wordcraft_doc::para_block(header)]);
+      }
+      expand_callout_frames(&content, offset + block_indent(block), depth + 1, out)?;
+    } else if offset != 0.0 {
+      let mut moved = block.clone();
+      let indent = block_indent(block) + offset;
+      match std::sync::Arc::make_mut(&mut moved) {
+        Block::Para(p) => p.props.indent_left = Some(indent),
+        Block::Table(t) => t.props.indent = Some(indent),
+      }
+      out.push(moved);
+    } else {
+      out.push(block.clone());
+    }
+  }
+  Ok(())
 }
 
 fn block_indent(block: &Block) -> f32 {
@@ -1644,7 +1718,7 @@ mod tests {
     builder.push_list_item(&[YjsTextSegment::plain("Checked task")], false, 0, Some(true));
     builder.push_list_item(&[YjsTextSegment::plain("Nested pending task")], false, 1, Some(false));
     builder.push_list_item(&[YjsTextSegment::plain("Sibling pending task")], false, 0, Some(false));
-    let id = builder.push_callout_under("warning", "", true, true, None);
+    let id = builder.push_callout_under("warning", "Warning title", true, true, None);
     let mut rich_body = YjsTextSegment::plain("Rich callout");
     rich_body.bold = true;
     builder.set_container_body(&id, &[rich_body]);
@@ -1652,12 +1726,12 @@ mod tests {
     let mut rich_child = YjsTextSegment::plain("First child");
     rich_child.italic = true;
     builder.push_paragraph(&[rich_child]);
-    let code = "let x = 1;\nprintln!(\"{x}\");\n";
+    let code = "let x = 1;\n\tprintln!(\"{x}\");\n";
     builder.push_code("rust", code);
     let code_id = builder.last_created_block_id().unwrap();
     let nested = builder.push_callout_under("note", "", false, true, None);
     builder.set_container_body(&nested, &[YjsTextSegment::plain("Nested note")]);
-    let nested_context = builder.enter_content_parent(nested);
+    let nested_context = builder.enter_content_parent(nested.clone());
     builder.push_paragraph(&[YjsTextSegment::plain("Nested child")]);
     builder.restore_content_parent(nested_context);
     builder.push_table_with_header_rows(&[vec![vec![YjsTextSegment::plain("Cell under callout")]]], 0);
@@ -1674,6 +1748,14 @@ mod tests {
         panic!("Native code block")
       };
       block.insert(&mut txn, "prop:lineNumber", true);
+      let Some(yrs::Out::YMap(block)) = blocks.get(&txn, &nested) else {
+        panic!("Nested callout")
+      };
+      block.insert(
+        &mut txn,
+        "prop:icon",
+        yrs::Any::from_json(r##"{"type":"myoxus-icon","name":"InformationIcon","color":"#000000"}"##).unwrap(),
+      );
       txn.encode_state_as_update_v1(&yrs::StateVector::default())
     };
     let exported = super::export::encode_test_snapshot(&snapshot, &[]);
@@ -1690,28 +1772,65 @@ mod tests {
         .any(|warning| warning.code == "callout_variant_normalized")
     );
     let mut word = wordcraft_docx::read(&exported.bytes).unwrap();
-    assert_eq!(word.body.iter().filter_map(|block| match &**block { Block::Para(p) => Some(p), _ => None })
-      .flat_map(|p| &p.objects).filter(|object| matches!(object, InlineObject::ControlStart { control } if matches!(control.kind, wordcraft_doc::ControlKind::CheckBox { .. }))).count(), 4);
-    let code_lines = word
+    assert_eq!(
+      word.styles.get("Normal").unwrap().para.line_spacing,
+      Some(wordcraft_doc::props::LineSpacing::Multiple(1.0)),
+      "Callout and prose lines inherit native Word single spacing"
+    );
+    let paragraphs = word
+      .shown_stories()
+      .into_iter()
+      .flat_map(|story| word.para_paths(story).into_iter().map(move |path| (story, path)))
+      .filter_map(|(story, path)| word.para(story, &path))
+      .collect::<Vec<_>>();
+    assert_eq!(paragraphs.iter().flat_map(|p| &p.objects)
+      .filter(|object| matches!(object, InlineObject::ControlStart { control } if matches!(control.kind, wordcraft_doc::ControlKind::CheckBox { .. }))).count(), 4);
+    let frame = word
       .body
       .iter()
-      .filter_map(|b| match &**b {
-        Block::Para(p) if p.props.style.as_deref() == Some("MyoxusCode") => Some(p),
+      .find_map(|block| match &**block {
+        Block::Table(t) if t.props.style.as_deref() == Some(CALLOUT_FRAME_STYLE) => Some(t),
         _ => None,
       })
+      .expect("Callout layout frame");
+    assert_eq!(frame.props.cell_margins, Some([6.0; 4]));
+    let Block::Para(header) = &*frame.rows[0].cells[0].blocks[0] else {
+      panic!("Callout title")
+    };
+    assert_eq!(header.props.keep_next, Some(true));
+    assert!(
+      header
+        .runs
+        .iter()
+        .any(|run| run.props.position.is_some_and(|offset| (-3.0..=-1.0).contains(&offset))),
+      "Inline icon ink is lowered to the header ink centre"
+    );
+    assert!(
+      header
+        .objects
+        .iter()
+        .any(|object| matches!(object, InlineObject::Image { .. }))
+    );
+    assert_eq!(
+      word.svg_images.len(),
+      2,
+      "Emoji and named callout icons both retain SVG with a raster fallback"
+    );
+    for (raster, svg) in &word.svg_images {
+      let bytes = &word.media[raster];
+      let image = image::load_from_memory(bytes).unwrap();
+      assert_eq!((image.width(), image.height()), (96, 96));
+      assert!(std::str::from_utf8(&word.media[svg]).unwrap().starts_with("<svg"));
+    }
+    let code_lines = paragraphs
+      .iter()
+      .copied()
+      .filter(|p| p.props.style.as_deref() == Some("MyoxusCode"))
       .collect::<Vec<_>>();
     assert!(code_lines.iter().all(|p| p.props.numbering.is_some()));
     assert_eq!(
       code_lines.iter().map(|p| p.final_text()).collect::<Vec<_>>().join("\n"),
       code
-    );
-    assert_eq!(
-      word
-        .body
-        .iter()
-        .filter(|block| matches!(&***block, Block::Para(p) if p.props.style.as_deref() == Some("MyoxusCallout")))
-        .count(),
-      2
     );
     Arc::make_mut(&mut word.styles).styles.push(wordcraft_doc::Style {
       id: "ForeignCode".into(),
@@ -1752,6 +1871,7 @@ mod tests {
       panic!("Native callout");
     };
     assert!(text.iter().any(|part| part.text == "Rich callout" && part.bold));
+    assert!(text.iter().any(|part| part.text == "Warning title" && part.bold));
     assert_eq!(children.len(), 6);
     assert!(
       matches!(&children[0], NativeBlock::Paragraph { text, .. } if text.iter().any(|part| part.text == "First child" && part.italic))
@@ -2164,7 +2284,7 @@ mod tests {
         .values()
         .flat_map(|block| &block.fields)
         .flat_map(|field| &field.spans)
-        .any(|span| span.link.as_deref() == Some(&format!("?blockIds={target_id}")))
+        .any(|span| span.link.as_deref() == Some(format!("?blockIds={target_id}").as_str()))
     );
     let exported = super::export::encode_test_snapshot(&imported.snapshot, &[]);
     let word = wordcraft_docx::read(&exported.bytes).unwrap();

@@ -41,7 +41,6 @@ type KeyboardShortcutsI18NKeys =
   | "alignLeft"
   | "alignCenter"
   | "alignRight"
-  | "groupDatabase"
   | "moveUp"
   | "moveDown"
   | "divider"
@@ -190,7 +189,6 @@ export const useMacPageKeyboardShortcuts = (): ShortcutMap => {
       [t("alignLeft")]: ["⌘", "⇧", "L"],
       [t("alignCenter")]: ["⌘", "⇧", "E"],
       [t("alignRight")]: ["⌘", "⇧", "R"],
-      [t("groupDatabase")]: ["⌘", "G"],
       [t("switch")]: ["⌥", "S"],
       // not implement yet
       // [t('moveUp')]: ['⌘', '⌥', '↑'],
@@ -250,7 +248,6 @@ export const useWinPageKeyboardShortcuts = (): ShortcutMap => {
       [t("alignLeft")]: ["Ctrl", "Shift", "L"],
       [t("alignCenter")]: ["Ctrl", "Shift", "E"],
       [t("alignRight")]: ["Ctrl", "Shift", "R"],
-      [t("groupDatabase")]: ["Ctrl", "G"],
       [t("switch")]: ["Alt", "S"],
       // not implement yet
       // [t('moveUp')]: ['Ctrl', 'Alt', '↑'],

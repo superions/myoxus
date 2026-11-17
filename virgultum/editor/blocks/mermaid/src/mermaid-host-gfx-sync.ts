@@ -1,4 +1,4 @@
-import { GfxControllerIdentifier } from "@virgultum/std/gfx";
+import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
 
 import {
   getMermaidSourceAuthoritativeVisualModel,

@@ -96,7 +96,9 @@ COPY virgultum/icons/src/icon-names.json ./virgultum/icons/src/icon-names.json
 COPY client/libs/core/public/favicon.ico ./client/libs/core/public/favicon.ico
 COPY server/provenance ./server/provenance
 COPY server/static/branding/theme-catalog.json ./server/static/branding/theme-catalog.json
+COPY server/static/icons/document-icons.json ./server/static/icons/document-icons.json
 COPY server/static/icc ./server/static/icc
+COPY server/static/fonts/noto-emoji-vf.ttf ./server/static/fonts/noto-emoji-vf.ttf
 
 ARG MYOXUS_SERVER_VERSION
 

@@ -1,1 +1,1 @@
-export * from "@virgultum/gfx-turbo-renderer";
+export * from "@virgultum/canvas-runtime/renderer";

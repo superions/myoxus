@@ -30,7 +30,6 @@ import type { AIReasoningConfig } from "../ai-chat-input";
 import {
   type HistoryMessage,
   type ChatMessage,
-  isChatAction,
   isChatMessage,
   StreamObjectSchema,
 } from "./type";
@@ -196,12 +195,6 @@ export class AIChatMessages extends SignalWatcher(
                   .peekViewService=${this.peekViewService}
                   .onOpenDoc=${this.onOpenDoc}
                 ></chat-message-assistant>`;
-              } else if (isChatAction(item) && this.host) {
-                return html`<chat-message-action
-                  .reactToLit=${this.reactToLit}
-                  .host=${this.host}
-                  .item=${item}
-                ></chat-message-action>`;
               }
               return nothing;
             },

@@ -1,52 +1,24 @@
 import { WithDisposable } from "@virgultum/editor/global/lit";
-import { scrollbarStyle } from "@virgultum/editor/shared/styles";
-import { unsafeCSSValue, unsafeCSSVar } from "@virgultum/editor/shared/theme";
+import { ShadowlessElement } from "@virgultum/editor/std";
+import { createElement } from "react";
+import { AIWidgetUI } from "../native-ui";
+import { AIActionMenu } from "../ai-panel/view";
 import { on, stopPropagation } from "@virgultum/editor/shared/utils";
 import type { EditorHost } from "@virgultum/editor/std";
-import { css, html, LitElement, nothing } from "lit";
+import { nothing } from "lit";
 import { property } from "lit/decorators.js";
 
 import type { AIItemGroupConfig } from "../../components/ai-item/types";
 
-export class EdgelessCopilotPanel extends WithDisposable(LitElement) {
-  static override styles = css`
-    :host {
-      display: flex;
-      position: absolute;
-      max-block-size: ${unsafeCSSValue(
-        "calc(calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm)) * 13)",
-      )};
-    }
-
-    .edgeless-copilot-panel {
-      box-sizing: border-box;
-      padding: ${unsafeCSSValue("var(--mantine-spacing-sm)")}
-        ${unsafeCSSValue("var(--mantine-spacing-xs)")}
-        ${unsafeCSSValue("var(--mantine-spacing-sm)")}
-        ${unsafeCSSValue("var(--mantine-spacing-sm)")};
-      min-inline-size: ${unsafeCSSValue(
-        "calc(calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm)) * 7)",
-      )};
-      max-block-size: ${unsafeCSSValue(
-        "calc(calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm)) * 13)",
-      )};
-      overflow-y: auto;
-      overscroll-behavior: contain;
-      background: ${unsafeCSSVar("backgroundOverlayPanelColor")};
-      box-shadow: ${unsafeCSSVar("overlayPanelShadow")};
-      border-radius: ${unsafeCSSValue("var(--mantine-radius-lg)")};
-      z-index: var(--myoxus-z-index-popover);
-    }
-
-    ${scrollbarStyle(".edgeless-copilot-panel")}
-  `;
-
+export class EdgelessCopilotPanel extends WithDisposable(ShadowlessElement) {
   private _getChain() {
     return this.host.std.command.chain();
   }
 
   override connectedCallback(): void {
     super.connectedCallback();
+    this.style.position = "absolute";
+    this.style.zIndex = "var(--myoxus-z-index-popover)";
     this._disposables.add(on(this, "wheel", stopPropagation));
     this._disposables.add(on(this, "pointerdown", stopPropagation));
   }
@@ -69,17 +41,14 @@ export class EdgelessCopilotPanel extends WithDisposable(LitElement) {
 
     if (groups.every((group) => group.items.length === 0)) return nothing;
 
-    return html`
-      <div class="edgeless-copilot-panel">
-        <ai-item-list
-          .onClick=${() => {
-            this.onClick?.();
-          }}
-          .host=${this.host}
-          .groups=${groups}
-        ></ai-item-list>
-      </div>
-    `;
+    return this.host.std.get(AIWidgetUI)(
+      createElement(AIActionMenu, {
+        host: this.host,
+        groups,
+        maxHeight: "floating",
+        onChoose: () => this.onClick?.(),
+      }),
+    );
   }
 
   @property({ attribute: false })

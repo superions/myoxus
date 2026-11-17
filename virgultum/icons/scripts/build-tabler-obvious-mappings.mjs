@@ -248,6 +248,7 @@ const safeAliases = {
   McpIcon: "IconPlugConnected",
   MeetingIcon: "IconUsersGroup",
   MenubarIcon: "IconMenu2",
+  MegaphoneIcon: "IconSpeakerphone",
   MessageSquareTextIcon: "IconMessage",
   MicPanelIcon: "IconMicrophone",
   MindmapNodeIcon: "IconHierarchy3",

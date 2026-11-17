@@ -8,7 +8,7 @@ import type {
   LinkedMenuItem,
   LinkedWidgetConfig,
 } from "@virgultum/editor/widgets/linked-doc";
-import { BLOCK_ID_ATTR, type BlockComponent } from "@virgultum/std";
+import { BLOCK_ID_ATTR, type BlockComponent } from "@virgultum/core/runtime";
 import Fuse from "fuse.js";
 
 export const createCommentLinkedWidgetConfig = (

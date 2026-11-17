@@ -1,1 +1,1 @@
-export * from "@virgultum/components/portal";
+export * from "@virgultum/core/view/portal";

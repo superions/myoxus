@@ -228,7 +228,34 @@ async fn block_callout_all_four_variants() {
   ] {
     let bin = build_with_child("co", "myoxus:callout", |tx, c| {
       c.insert(tx, "prop:type", yjs_variant);
-      c.insert(tx, "prop:emoji", "💡");
+      match yjs_variant {
+        "info" => {
+          c.insert(
+            tx,
+            "prop:icon",
+            Any::Map(std::sync::Arc::new(HashMap::from([
+              ("type".into(), Any::String("myoxus-icon".into())),
+              ("name".into(), Any::String("MegaphoneIcon".into())),
+            ]))),
+          );
+        }
+        "warning" => {
+          c.insert(
+            tx,
+            "prop:icon",
+            Any::Map(std::sync::Arc::new(HashMap::from([(
+              "unicode".into(),
+              Any::String("⚠".into()),
+            )]))),
+          );
+        }
+        "tip" => {
+          c.insert(tx, "prop:icon", Any::Null);
+        }
+        _ => {
+          c.insert(tx, "prop:emoji", "💡");
+        }
+      }
       c.insert(tx, "prop:text", TextPrelim::new("note body"));
     });
     let ir = build_ir(&bin).await;
@@ -240,7 +267,13 @@ async fn block_callout_all_four_variants() {
         ..
       } => {
         assert_eq!(*variant, expected, "callout variant mismatch for {yjs_variant}");
-        assert_eq!(emoji.as_deref(), Some("💡"));
+        let icon = match yjs_variant {
+          "info" => "MegaphoneIcon",
+          "warning" => "⚠",
+          "tip" => "",
+          _ => "💡",
+        };
+        assert_eq!(emoji.as_deref(), Some(icon));
         assert_eq!(join_text(content), "note body");
       }
       other => panic!("{yjs_variant}: expected Callout, got {other:?}"),
@@ -299,7 +332,7 @@ async fn block_latex() {
 #[tokio::test]
 async fn block_image_with_blob_id() {
   for (width, height, expected_width, expected_height) in
-    [(320.0, 200.0, Some(320.0), Some(200.0)), (0.0, 0.0, None, None)]
+    [(320.0, 200.0, Some(240.0), Some(150.0)), (0.0, 0.0, None, None)]
   {
     let bin = build_with_child("i", "myoxus:image", |tx, c| {
       c.insert(tx, "prop:sourceId", "blob-abc");
@@ -311,8 +344,14 @@ async fn block_image_with_blob_id() {
     match first_child(&ir) {
       Block::Image(img) => {
         assert_eq!(img.blob.blob_id, "blob-abc");
-        assert_eq!(img.width_hint, expected_width, "editor zero means natural width");
-        assert_eq!(img.height_hint, expected_height, "editor zero means natural height");
+        assert_eq!(
+          img.width_hint, expected_width,
+          "CSS pixels convert to points; zero retains natural width"
+        );
+        assert_eq!(
+          img.height_hint, expected_height,
+          "CSS pixels convert to points; zero retains natural height"
+        );
         assert_eq!(
           join_text(img.caption.as_deref().unwrap_or_default()),
           "A retained image caption"

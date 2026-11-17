@@ -1,10 +1,14 @@
 import type { CopilotChatHistoryFragment } from "@myoxus/graphql";
 import { WithDisposable } from "@virgultum/editor/global/lit";
 import { type NotificationService } from "@virgultum/editor/shared/services";
-import { unsafeCSSVar } from "@virgultum/editor/shared/theme";
+import type { ReactToLit } from "@myoxus/lit-react";
+import { IconButton } from "@myoxus/ui-facade";
+import { TrashIcon } from "@myoxus/icons/react";
+import { createElement } from "react";
+import { chatI18n } from "../chat-i18n";
 import { ShadowlessElement } from "@virgultum/editor/std";
 import type { Store } from "@virgultum/editor/store";
-import { css, html } from "lit";
+import { nothing } from "lit";
 import { property } from "lit/decorators.js";
 
 import { AIProvider } from "../../provider";
@@ -24,18 +28,9 @@ export class AIHistoryClear extends WithDisposable(ShadowlessElement) {
   accessor doc!: Store;
 
   @property({ attribute: false })
-  accessor onHistoryCleared!: () => void;
+  accessor onHistoryCleared!: () => void | Promise<void>;
 
-  static override styles = css`
-    .chat-history-clear {
-      cursor: pointer;
-      color: ${unsafeCSSVar("iconColor")};
-    }
-    .chat-history-clear[aria-disabled="true"] {
-      cursor: not-allowed;
-      color: ${unsafeCSSVar("iconSecondary")};
-    }
-  `;
+  @property({ attribute: false }) accessor reactToLit!: ReactToLit;
 
   private get _isHistoryClearDisabled() {
     return (
@@ -53,40 +48,52 @@ export class AIHistoryClear extends WithDisposable(ShadowlessElement) {
     const sessionId = this.session.sessionId;
     try {
       const confirm = await this.notificationService.confirm({
-        title: "Clear History",
+        title:
+          chatI18n()["com.myoxus.ai.chat-panel.session.delete.confirm.title"](),
         message:
-          "Are you sure you want to clear all history? This action will permanently delete all content, including all chat logs and data, and cannot be undone.",
-        confirmText: "Confirm",
-        cancelText: "Cancel",
+          chatI18n()[
+            "com.myoxus.ai.chat-panel.session.delete.confirm.message"
+          ](),
+        confirmText: chatI18n()["Confirm"](),
+        cancelText: chatI18n()["Cancel"](),
       });
 
       if (confirm) {
-        const actionIds = this.chatContextValue.messages
-          .filter((item) => "sessionId" in item)
-          .map((item) => item.sessionId);
         await AIProvider.histories?.cleanup(
           this.doc.workspace.id,
           this.doc.id,
-          [...(sessionId ? [sessionId] : []), ...(actionIds || [])],
+          sessionId ? [sessionId] : [],
         );
-        this.notificationService.toast("History cleared");
-        this.onHistoryCleared?.();
+        await this.onHistoryCleared?.();
+        this.notificationService.toast(
+          chatI18n()["com.myoxus.ai.chat-panel.session.delete.toast.success"](),
+        );
       }
     } catch {
-      this.notificationService.toast("Failed to clear history");
+      this.notificationService.toast(
+        chatI18n()["com.myoxus.ai.chat-panel.session.delete.toast.failed"](),
+      );
     }
   };
 
   override render() {
-    return html`
-      <div
-        class="chat-history-clear"
-        aria-disabled=${this._isHistoryClearDisabled}
-        @click=${this._cleanupHistories}
-        data-testid="chat-panel-clear"
-      >
-        Clear
-      </div>
-    `;
+    if (!this.reactToLit) return nothing;
+    const label =
+      chatI18n()["com.myoxus.ai.chat-panel.session.delete.confirm.title"]();
+    return this.reactToLit(
+      createElement(
+        IconButton,
+        {
+          size: "small",
+          tooltip: label,
+          "aria-label": label,
+          "data-testid": "chat-panel-clear",
+          disabled: this._isHistoryClearDisabled,
+          onClick: this._cleanupHistories,
+        },
+        createElement(TrashIcon),
+      ),
+      true,
+    );
   }
 }

@@ -73,10 +73,12 @@ impl Document {
             footnote_separators: NoteSeparators::default(),
             endnote_separators: NoteSeparators::default(),
             media: BTreeMap::new(),
+            svg_images: BTreeMap::new(),
             passthrough: BTreeMap::new(),
             glossary: Vec::new(),
             media_index: MediaIndex::default(),
             kept: Default::default(),
+            missing_pictures: Default::default(),
         }
     }
 
@@ -150,10 +152,12 @@ impl Document {
             footnote_separators,
             endnote_separators,
             media,
+            svg_images,
             passthrough,
             glossary,
             media_index: _,
             kept: _,
+            missing_pictures: _,
         } = self;
         let Document {
             body: other_body,
@@ -170,10 +174,12 @@ impl Document {
             footnote_separators: other_footnotes,
             endnote_separators: other_endnotes,
             media: other_media,
+            svg_images: other_svg_images,
             passthrough: other_passthrough,
             glossary: other_glossary,
             media_index: _,
             kept: _,
+            missing_pictures: _,
         } = other;
         same_blocks(body, other_body)
             && same_parts(parts, other_parts)
@@ -189,6 +195,7 @@ impl Document {
             && footnote_separators == other_footnotes
             && endnote_separators == other_endnotes
             && same_bytes(media, other_media)
+            && svg_images == other_svg_images
             && same_bytes(passthrough, other_passthrough)
             && same_glossary(glossary, other_glossary)
     }
@@ -800,6 +807,25 @@ impl Document {
     /// Number of paragraphs in the body (all depths).
     pub fn paragraph_count(&self) -> usize {
         self.para_paths(StoryRef::Body).len()
+    }
+
+    /// Pair an SVG with its raster fallback, returning the picture's media key.
+    /// Distinct vectors can share identical raster bytes; give those pairs their
+    /// own key rather than overwriting another picture's scalable source.
+    pub fn pair_svg(&mut self, mut raster: String, svg: String) -> String {
+        if self.svg_images.get(&raster).is_some_and(|existing| existing != &svg)
+            && let Some(bytes) = self.media.get(&raster).cloned()
+        {
+            let (stem, suffix) = raster.rsplit_once('.')
+                .map(|(s, e)| (s.to_string(), format!(".{e}")))
+                .unwrap_or((raster.clone(), String::new()));
+            let mut n = self.media.len().saturating_add(1);
+            while self.media.contains_key(&format!("{stem}_svg{n}{suffix}")) { n += 1; }
+            raster = format!("{stem}_svg{n}{suffix}");
+            self.media.insert(raster.clone(), bytes);
+        }
+        self.svg_images.insert(raster.clone(), svg);
+        raster
     }
 
     /// Add a media item; returns its key (deduplicated by content).

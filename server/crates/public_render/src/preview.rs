@@ -116,6 +116,25 @@ impl PreparedPreviewContext {
       .map_err(|_| media_diagnostic("figure", "preview_svg_invalid", "Figure PNG encoding failed."))
   }
 
+  /// Canonical font-outlined figure for Office SVG, using the same bounded
+  /// parser and approved font inventory as its PNG fallback. External resources
+  /// are disabled by that parser; source XML is never copied into the package.
+  pub fn outline_svg(&self, bytes: &[u8], policy: &PreviewPolicy) -> Result<Vec<u8>, RenderDiagnostic> {
+    let tree = bounded_svg_tree(bytes, self, policy, "figure")?;
+    let svg = tree.to_string(&WriteOptions {
+      preserve_text: false,
+      ..Default::default()
+    });
+    if svg.len() > policy.max_output_svg_bytes {
+      return Err(media_diagnostic(
+        "figure",
+        "preview_svg_invalid",
+        "Figure SVG exceeds the configured limit.",
+      ));
+    }
+    Ok(svg.into_bytes())
+  }
+
   pub fn prepare(
     revision: impl Into<String>,
     theme: PreviewTheme,

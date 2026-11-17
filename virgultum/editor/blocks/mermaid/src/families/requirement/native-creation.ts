@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { SurfaceBlockComponent } from "@virgultum/block-surface";
-import { Bound } from "@virgultum/global/gfx";
-import { mountShapeTextEditor } from "@virgultum/gfx-shape";
-import type { ToolbarContext } from "@virgultum/shared/services";
+import { SurfaceBlockComponent } from "@virgultum/canvas-runtime/surface";
+import { Bound } from "@virgultum/core/primitives/gfx";
+import { mountShapeTextEditor } from "@virgultum/canvas/gfx";
+import type { ToolbarContext } from "@virgultum/core/services";
 import {
   getMermaidGfxNode,
   getMermaidVisualElementOriginBound,

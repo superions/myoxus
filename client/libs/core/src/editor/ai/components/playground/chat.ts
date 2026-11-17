@@ -1,6 +1,12 @@
+import { createElement } from "react";
+import { useI18n } from "@myoxus/i18n";
+import { IconButton } from "@myoxus/ui-facade";
+import { NewPageIcon as NativeNewPageIcon } from "@myoxus/icons/react";
 import type { AIToolsConfigService } from "@myoxus/core/modules/ai-button";
 import type { AIModelService } from "@myoxus/core/modules/ai-button/services/models";
-import type { ReactToLit } from "@myoxus/lit-react";
+import { type ReactToLit, toReactNode } from "@myoxus/lit-react";
+import type { PeekViewService } from "@myoxus/core/modules/peek-view";
+import { PlaygroundConversation } from "./view";
 import type { WorkspaceDialogService } from "@myoxus/core/modules/dialogs";
 import type { FeatureFlagService } from "@myoxus/core/modules/feature-flag";
 import type { ServerService } from "@myoxus/core/modules/server";
@@ -9,30 +15,24 @@ import type {
   ContextEmbedStatus,
   CopilotChatHistoryFragment,
 } from "@myoxus/graphql";
-import { DeleteIcon, NewPageIcon } from "@myoxus/icons/lit";
 import { SignalWatcher, WithDisposable } from "@virgultum/editor/global/lit";
 import { type NotificationService } from "@virgultum/editor/shared/services";
-import { fontSMStyle } from "@virgultum/editor/shared/styles";
-import { unsafeCSSValue, unsafeCSSVar } from "@virgultum/editor/shared/theme";
 import { type EditorHost, ShadowlessElement } from "@virgultum/editor/std";
 import type { ExtensionType, Store } from "@virgultum/editor/store";
-import { css, html, type PropertyValues } from "lit";
+import { css, html, nothing, type PropertyValues } from "lit";
 import { property, state } from "lit/decorators.js";
 import { createRef, type Ref, ref } from "lit/directives/ref.js";
 import { throttle } from "lodash-es";
 
 import type { AppSidebarConfig } from "../../chat-panel/chat-config";
 import { AIProvider } from "../../provider";
-import { HISTORY_IMAGE_ACTIONS } from "../../utils/history-image-actions";
 import type { SearchMenuConfig } from "../ai-chat-add-context";
 import type { DocDisplayConfig } from "../ai-chat-chips";
 import type { ChatContextValue } from "../ai-chat-content";
 import type { AIPlaygroundConfig, AIReasoningConfig } from "../ai-chat-input";
 import {
   type AIChatMessages,
-  type ChatAction,
   type ChatMessage,
-  type HistoryMessage,
   isChatMessage,
 } from "../ai-chat-messages";
 
@@ -51,97 +51,37 @@ const DEFAULT_CHAT_CONTEXT_VALUE: ChatContextValue = {
   html: null,
 };
 
+function PlaygroundAddChatAction({
+  addChat,
+}: {
+  addChat: () => Promise<void>;
+}) {
+  const t = useI18n();
+  const label = t["com.myoxus.ai.chat-panel.new-chat"]();
+  return createElement(IconButton, {
+    icon: createElement(NativeNewPageIcon),
+    tooltip: label,
+    "aria-label": label,
+    onClick: addChat,
+  });
+}
+
 export class PlaygroundChat extends SignalWatcher(
   WithDisposable(ShadowlessElement),
 ) {
   @property({ attribute: false })
   accessor reactToLit!: ReactToLit;
+  // AIChatMessages' public scroll methods act on this actual viewport.
   static override styles = css`
-    playground-chat {
-      .chat-panel-container {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        padding: 0 ${unsafeCSSValue("var(--mantine-spacing-lg)")};
-      }
-
-      .chat-panel-title {
-        background: ${unsafeCSSVar("backgroundPrimaryColor")};
-        position: relative;
-        padding: ${unsafeCSSValue("var(--mantine-spacing-sm)")} 0;
-        width: 100%;
-        min-height: ${unsafeCSSValue(
-          "calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-xs))",
-        )};
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        z-index: 1;
-
-        .chat-panel-title-text {
-          color: ${unsafeCSSVar("textSecondaryColor")};
-        }
-
-        svg {
-          width: ${unsafeCSSValue(
-            "calc(var(--mantine-spacing-lg) + var(--mantine-spacing-2xs))",
-          )};
-          height: ${unsafeCSSValue(
-            "calc(var(--mantine-spacing-lg) + var(--mantine-spacing-2xs))",
-          )};
-          color: ${unsafeCSSVar("iconSecondary")};
-        }
-      }
-
-      ai-chat-messages {
-        flex: 1;
-        overflow-y: auto;
-      }
-
-      .chat-panel-hints {
-        margin: 0 ${unsafeCSSValue("var(--mantine-spacing-xs)")};
-        padding: ${unsafeCSSValue("var(--mantine-spacing-sm)")}
-          ${unsafeCSSValue("var(--mantine-spacing-md)")};
-        border-radius: ${unsafeCSSValue("var(--mantine-radius-lg)")};
-        border: ${unsafeCSSValue("calc(var(--mantine-scale) * 1px)")} solid
-          ${unsafeCSSVar("borderColor")};
-        cursor: pointer;
-      }
-
-      .chat-panel-hints :first-child {
-        color: ${unsafeCSSVar("textPrimaryColor")};
-      }
-
-      .chat-panel-hints :nth-child(2) {
-        color: ${unsafeCSSVar("textSecondaryColor")};
-      }
-
-      .chat-panel-add,
-      .chat-panel-delete {
-        cursor: pointer;
-        padding: ${unsafeCSSValue("var(--mantine-spacing-2xs)")};
-        display: flex;
-        justify-content: center;
-        align-items: center;
-      }
-
-      .chat-panel-add {
-        margin-left: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
-        margin-right: auto;
-      }
-
-      .chat-panel-delete {
-        margin-left: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
-        display: none;
-      }
-
-      .chat-panel-add:hover svg,
-      .chat-panel-delete:hover svg {
-        color: ${unsafeCSSVar("primaryColor")};
-      }
-
-      ${fontSMStyle(".chat-panel-title-text")}
-      ${fontSMStyle(".chat-panel-hints")}
+    playground-chat,
+    playground-chat > lit-react-portal {
+      display: contents;
+    }
+    playground-chat ai-chat-messages {
+      display: block;
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
     }
   `;
 
@@ -153,6 +93,12 @@ export class PlaygroundChat extends SignalWatcher(
 
   @property({ attribute: false })
   accessor session!: CopilotChatHistoryFragment | null | undefined;
+
+  @property({ attribute: false })
+  accessor peekViewService!: PeekViewService;
+
+  @property({ attribute: false })
+  accessor onOpenDoc!: (docId: string, sessionId?: string) => void;
 
   @property({ attribute: false })
   accessor reasoningConfig!: AIReasoningConfig;
@@ -196,6 +142,9 @@ export class PlaygroundChat extends SignalWatcher(
   @property({ attribute: false })
   accessor addChat!: () => Promise<void>;
 
+  @property({ attribute: false })
+  accessor onHistoryCleared!: () => Promise<void>;
+
   @state()
   accessor isLoading = false;
 
@@ -212,18 +161,7 @@ export class PlaygroundChat extends SignalWatcher(
   private _updateHistoryCounter = 0;
 
   get messages() {
-    return this.chatContextValue.messages.filter((item) => {
-      return (
-        isChatMessage(item) ||
-        item.messages?.length === 3 ||
-        (HISTORY_IMAGE_ACTIONS.includes(item.action) &&
-          item.messages?.length === 2)
-      );
-    });
-  }
-
-  get showActions() {
-    return false;
+    return this.chatContextValue.messages.filter(isChatMessage);
   }
 
   private readonly _initPanel = async () => {
@@ -247,29 +185,20 @@ export class PlaygroundChat extends SignalWatcher(
     const currentRequest = ++this._updateHistoryCounter;
 
     const sessionId = this.session?.sessionId;
-    const [histories, actions] = await Promise.all([
-      sessionId
-        ? AIProvider.histories.chats(
-            this.doc.workspace.id,
-            sessionId,
-            this.doc.id,
-          )
-        : Promise.resolve([]),
-      this.doc.id && this.showActions
-        ? AIProvider.histories.actions(this.doc.workspace.id, this.doc.id)
-        : Promise.resolve([]),
-    ]);
+    const histories = sessionId
+      ? await AIProvider.histories.chats(
+          this.doc.workspace.id,
+          sessionId,
+          this.doc.id,
+        )
+      : [];
 
     // Check if this is still the latest request
     if (currentRequest !== this._updateHistoryCounter) {
       return;
     }
 
-    const chatActions = (actions || []) as ChatAction[];
-    const messages: HistoryMessage[] = chatActions;
-
-    const chatMessages = (histories?.[0]?.messages || []) as ChatMessage[];
-    messages.push(...chatMessages);
+    const messages = (histories?.[0]?.messages || []) as ChatMessage[];
 
     this.chatContextValue = {
       ...this.chatContextValue,
@@ -324,71 +253,76 @@ export class PlaygroundChat extends SignalWatcher(
 
   override render() {
     const [done, total] = this.embeddingProgress;
-    const isEmbedding = total > 0 && done < total;
-
-    return html`<div class="chat-panel-container">
-      <div class="chat-panel-title">
-        <div class="chat-panel-title-text">
-          ${
-            isEmbedding
-              ? html`<span data-testid="chat-panel-embedding-progress"
-                  >Embedding ${done}/${total}</span
-                >`
-              : "Myoxus AI"
-          }
-        </div>
-        <div class="chat-panel-add" @click=${this.addChat}>
-          ${NewPageIcon()}
-          <myoxus-tooltip>Add chat</myoxus-tooltip>
-        </div>
-        <ai-history-clear
-          .doc=${this.doc}
-          .session=${this.session}
-          .notificationService=${this.notificationService}
-          .onHistoryCleared=${this._updateHistory}
-          .chatContextValue=${this.chatContextValue}
-        ></ai-history-clear>
-        <div class="chat-panel-delete">${DeleteIcon()}</div>
-      </div>
-      <ai-chat-messages
-        ${ref(this._chatMessagesRef)}
-        .host=${this.host}
-        .workspaceId=${this.doc.workspace.id}
-        .docId=${this.doc.id}
-        .isHistoryLoading=${this.isLoading}
-        .chatContextValue=${this.chatContextValue}
-        .session=${this.session}
-        .createSession=${this._createSession}
-        .updateContext=${this.updateContext}
-        .extensions=${this.extensions}
-        .myoxusFeatureFlagService=${this.myoxusFeatureFlagService}
-        .myoxusThemeService=${this.myoxusThemeService}
-        .notificationService=${this.notificationService}
-        .aiToolsConfigService=${this.aiToolsConfigService}
-        .reasoningConfig=${this.reasoningConfig}
-        .messages=${this.messages}
-      ></ai-chat-messages>
-      <ai-chat-composer
-        .reactToLit=${this.reactToLit}
-        .host=${this.host}
-        .workspaceId=${this.doc.workspace.id}
-        .docId=${this.doc.id}
-        .session=${this.session}
-        .createSession=${this._createSession}
-        .chatContextValue=${this.chatContextValue}
-        .updateContext=${this.updateContext}
-        .onEmbeddingProgressChange=${this.onEmbeddingProgressChange}
-        .reasoningConfig=${this.reasoningConfig}
-        .playgroundConfig=${this.playgroundConfig}
-        .docDisplayConfig=${this.docDisplayConfig}
-        .searchMenuConfig=${this.searchMenuConfig}
-        .serverService=${this.serverService}
-        .notificationService=${this.notificationService}
-        .aiToolsConfigService=${this.aiToolsConfigService}
-        .myoxusWorkspaceDialogService=${this.myoxusWorkspaceDialogService}
-        .myoxusFeatureFlagService=${this.myoxusFeatureFlagService}
-        .aiModelService=${this.aiModelService}
-      ></ai-chat-composer>
-    </div>`;
+    return (
+      this.reactToLit?.(
+        createElement(
+          PlaygroundConversation,
+          {
+            done,
+            total,
+            actions: toReactNode(
+              html` ${this.reactToLit?.(createElement(PlaygroundAddChatAction, { addChat: this.addChat }), true) ?? nothing}
+                <ai-history-clear
+                  .reactToLit=${this.reactToLit}
+                  .doc=${this.doc}
+                  .session=${this.session}
+                  .notificationService=${this.notificationService}
+                  .onHistoryCleared=${this.onHistoryCleared}
+                  .chatContextValue=${this.chatContextValue}
+                ></ai-history-clear>`,
+            ),
+            composer: toReactNode(
+              html` <ai-chat-composer
+                .reactToLit=${this.reactToLit}
+                .host=${this.host}
+                .workspaceId=${this.doc.workspace.id}
+                .docId=${this.doc.id}
+                .session=${this.session}
+                .createSession=${this._createSession}
+                .chatContextValue=${this.chatContextValue}
+                .updateContext=${this.updateContext}
+                .onEmbeddingProgressChange=${this.onEmbeddingProgressChange}
+                .reasoningConfig=${this.reasoningConfig}
+                .playgroundConfig=${this.playgroundConfig}
+                .docDisplayConfig=${this.docDisplayConfig}
+                .searchMenuConfig=${this.searchMenuConfig}
+                .serverService=${this.serverService}
+                .notificationService=${this.notificationService}
+                .aiToolsConfigService=${this.aiToolsConfigService}
+                .myoxusWorkspaceDialogService=${this.myoxusWorkspaceDialogService}
+                .myoxusFeatureFlagService=${this.myoxusFeatureFlagService}
+                .aiModelService=${this.aiModelService}
+              ></ai-chat-composer>`,
+            ),
+          },
+          toReactNode(
+            html` <ai-chat-messages
+              .reactToLit=${this.reactToLit}
+              .aiModelService=${this.aiModelService}
+              .docDisplayService=${this.docDisplayConfig}
+              .peekViewService=${this.peekViewService}
+              .onOpenDoc=${this.onOpenDoc}
+              ${ref(this._chatMessagesRef)}
+              .host=${this.host}
+              .workspaceId=${this.doc.workspace.id}
+              .docId=${this.doc.id}
+              .isHistoryLoading=${this.isLoading}
+              .chatContextValue=${this.chatContextValue}
+              .session=${this.session}
+              .createSession=${this._createSession}
+              .updateContext=${this.updateContext}
+              .extensions=${this.extensions}
+              .myoxusFeatureFlagService=${this.myoxusFeatureFlagService}
+              .myoxusThemeService=${this.myoxusThemeService}
+              .notificationService=${this.notificationService}
+              .aiToolsConfigService=${this.aiToolsConfigService}
+              .reasoningConfig=${this.reasoningConfig}
+              .messages=${this.messages}
+            ></ai-chat-messages>`,
+          ),
+        ),
+        true,
+      ) ?? nothing
+    );
   }
 }

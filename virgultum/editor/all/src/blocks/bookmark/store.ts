@@ -1,1 +1,1 @@
-export * from "@virgultum/block-bookmark/store";
+export { BookmarkStoreExtension } from "@virgultum/embeds/store";

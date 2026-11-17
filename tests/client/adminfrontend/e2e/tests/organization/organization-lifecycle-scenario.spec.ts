@@ -199,6 +199,9 @@ test.describe("ORG-LIFE — Admin organization lifecycle", () => {
       await page
         .locator("#utype-label")
         .fill(`E2E Lifecycle Custom Type ${suffix}`);
+      await page
+        .getByRole("checkbox", { name: /root-level|Wurzelebene/i })
+        .check();
       await clickDialogSubmit(page);
       await page.waitForSelector('[role="dialog"]', {
         state: "detached",
@@ -264,11 +267,12 @@ test.describe("ORG-LIFE — Admin organization lifecycle", () => {
       );
       await expect(childRow).toBeVisible({ timeout: 15_000 });
       await childRow.locator("button").first().click();
-      await expect(page.getByTestId("unit-detail")).toBeVisible();
+      const unitDetail = page.getByTestId("organization-units-detail");
+      await expect(unitDetail.getByTestId("unit-detail")).toBeVisible();
       await attachScreenshot(page, testInfo, "organization-units-detail.png");
 
-      await page.getByTestId("unit-detail-tab-members").click();
-      const userPicker = page
+      await unitDetail.getByTestId("unit-detail-tab-members").click();
+      const userPicker = unitDetail
         .getByTestId("unit-detail-add-member-picker")
         .getByRole("combobox");
       await userPicker.fill(manager.email);
@@ -277,11 +281,11 @@ test.describe("ORG-LIFE — Admin organization lifecycle", () => {
           name: new RegExp(escapeRegExp(manager.email), "i"),
         })
         .click();
-      await page.getByTestId("unit-detail-add-member-role").click();
+      await unitDetail.getByTestId("unit-detail-add-member-role").click();
       await page.getByRole("option", { name: /manager/i }).click();
-      await page.getByTestId("unit-detail-add-member-button").click();
+      await unitDetail.getByTestId("unit-detail-add-member-button").click();
       await expect(
-        page.getByTestId(`unit-detail-member-row-${manager.id}`),
+        unitDetail.getByTestId(`unit-detail-member-row-${manager.id}`),
       ).toBeVisible({ timeout: 15_000 });
 
       await userPicker.fill(member.email);
@@ -290,9 +294,9 @@ test.describe("ORG-LIFE — Admin organization lifecycle", () => {
           name: new RegExp(escapeRegExp(member.email), "i"),
         })
         .click();
-      await page.getByTestId("unit-detail-add-member-button").click();
+      await unitDetail.getByTestId("unit-detail-add-member-button").click();
       await expect(
-        page.getByTestId(`unit-detail-member-row-${member.id}`),
+        unitDetail.getByTestId(`unit-detail-member-row-${member.id}`),
       ).toBeVisible({ timeout: 15_000 });
       await expect
         .poll(
@@ -303,22 +307,22 @@ test.describe("ORG-LIFE — Admin organization lifecycle", () => {
               .sort(),
           { timeout: 15_000 },
         )
-        .toEqual([`${manager.id}:MANAGER`, `${member.id}:MEMBER`].sort());
+        .toEqual([`${manager.id}:Manager`, `${member.id}:Member`].sort());
       await attachScreenshot(
         page,
         testInfo,
         "organization-members-assigned.png",
       );
 
-      await page.getByTestId("unit-detail-tab-workspaces").click();
-      const workspacePicker = page
+      await unitDetail.getByTestId("unit-detail-tab-workspaces").click();
+      const workspacePicker = unitDetail
         .getByTestId("unit-detail-add-workspace-picker")
         .getByRole("combobox");
       await workspacePicker.fill(workspaceName);
       await page.getByTestId("workspace-picker-option-0").click();
-      await page.getByTestId("unit-detail-add-workspace-button").click();
+      await unitDetail.getByTestId("unit-detail-add-workspace-button").click();
       await expect(
-        page.getByTestId(`unit-detail-workspace-row-${workspaceId}`),
+        unitDetail.getByTestId(`unit-detail-workspace-row-${workspaceId}`),
       ).toBeVisible({ timeout: 15_000 });
       await expect
         .poll(
@@ -328,7 +332,7 @@ test.describe("ORG-LIFE — Admin organization lifecycle", () => {
             ).find((link) => link.workspaceId === workspaceId)?.relationship,
           { timeout: 15_000 },
         )
-        .toBe("MANAGED");
+        .toBe("Managed");
       await attachScreenshot(page, testInfo, "organization-workspace-link.png");
 
       await page.getByTestId("organization-tab-members").click();

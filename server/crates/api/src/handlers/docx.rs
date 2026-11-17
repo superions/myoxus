@@ -84,7 +84,8 @@ async fn export_fonts(state: &ApiState, workspace: Uuid) -> Result<docx::ExportF
       );
     }
   }
-  let mode = if profile.theme_mode == "dark" { "dark" } else { "light" };
+  // Client display mode does not select a dark document palette.
+  let mode = "light";
   let colors = profile.theme.colors.get(mode).ok_or(ImportError::Conversion)?;
   let table_fill = colors.get("background-code-block").cloned();
   let table_ink = table_fill

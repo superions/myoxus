@@ -82,6 +82,8 @@ pub struct TemplateLibraryFilterInput {
   pub sort: Option<TemplateLibrarySortType>,
   /// Exact workspace-local source key; returns at most one item, without list traversal.
   pub source_doc_id: Option<ID>,
+  /// Exact Registry source slug; uses current workspace assignment and read access.
+  pub source_slug: Option<String>,
 }
 
 impl From<TemplateLibraryFilterInput> for TemplateLibraryFilter {
@@ -106,6 +108,7 @@ impl From<TemplateLibraryFilterInput> for TemplateLibraryFilter {
         _ => TemplateLibrarySort::NameAsc,
       },
       source_doc_id: value.source_doc_id.map(|id| id.to_string()),
+      source_slug: value.source_slug,
     }
   }
 }

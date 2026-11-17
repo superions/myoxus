@@ -94,7 +94,14 @@ malformed recognizable citation metadata block Apply before product writes,
 with a bounded label and source path. Code and escaped syntax stay literal;
 deployed citations keep Sources. Obtain a fresh preview after this cutover;
 existing experimental documents are not migrated or deleted. Selected
-heading/block embeds remain unsupported.
+`![[Note#Heading|alias]]` and `![[Note#^anchor|alias]]` embeds now retain their
+native target, section/subtree semantics and alias. Obtain a fresh Preview after
+this mapping change. A section ends at the next same-or-higher heading; a block
+includes its children. Renaming headings preserves existing native references.
+Deleted, ambiguous or inaccessible sources stay explicitly unavailable; they
+never expand to the whole note. Public hosts require independently published
+sources. HTML/PDF contain admitted output-time content; native captures retain
+live dependencies rather than freezing another document's revision.
 Native snapshots and Myoxus HTML preserve Footnote/Endnote placement. Standard
 Markdown/vault export preserves complete definitions and assets but cannot carry
 that placement: the existing export report lists `NormalizedEndnote` for each
@@ -188,13 +195,18 @@ content was previously cached. HTML clipboard and Markdown/vault exports retain
 references instead of silently copying embed content.
 
 HTML and public reading projections expose complete formula source as code;
-they do not promise MathJax rendering. PDF uses the existing Typst math renderer,
-not a TeX converter: LaTeX macros such as `\frac{a}{b}` reach that renderer
-unchanged and can fail with its compilation error. Adjacent TeX variables
-(`E=mc^2`) can likewise fail as an unknown Typst identifier (`mc`); a successful
-browser rendering is not evidence of PDF compatibility. Native source preservation is
-not universal renderer parity. Inspect the exported notes and report; formulas
-outside the supported Markdown grammar produce explicit loss diagnostics.
+they do not promise MathJax rendering. PDF converts standard LaTeX math through
+the server's native MiTeX/Typst pipeline: fractions, roots, Greek symbols,
+sub/superscripts, sums, integrals, common operators, text, scalable delimiters,
+matrices/cases and inline expressions such as `E=mc^2` are supported.
+Unknown commands, malformed formulas, custom macros, packages and embedded Typst
+code fail the PDF export. The error identifies a formula occurrence without
+exposing its source; correct that formula in the document and retry the export.
+Sources are bounded to 8 KiB per formula, 64 nesting levels and 1 MiB aggregate
+formula source per document. A converted formula is limited to 64 KiB and the
+normal export timeout/memory limits still apply. Markdown/vault exports retain
+the original formula source. Inspect exported notes and the conversion report;
+placements outside the supported Markdown grammar remain explicit loss findings.
 
 The export is bounded to 10,000 documents, 10,000 blob inventory entries and
 512 MiB of uncompressed output. Each document is captured from its own current

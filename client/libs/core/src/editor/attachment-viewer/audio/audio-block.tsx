@@ -19,7 +19,7 @@ import {
   Tooltip,
 } from "@myoxus/ui-facade";
 import type { AttachmentBlockModel } from "@virgultum/editor/model";
-import { formatByteSize } from "@virgultum/global/utils";
+import { formatByteSize } from "@virgultum/core/primitives/utils";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { AttachmentViewerProps } from "../types";

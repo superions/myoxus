@@ -112,10 +112,9 @@ async function connectByMouse(
   const source = page.locator(`.react-flow__node-${sourceType}`).last();
   const target = page.locator(`.react-flow__node-${targetType}`).last();
   await source.click();
-  await source.getByRole("button", { name: /^(Actions|Aktionen)$/ }).click();
-  const handle = source.getByRole("button", {
-    name: /^(Sequence Flow|Sequenzfluss)$/,
-  });
+  const handle = source.locator(
+    ".react-flow__handle.source[data-handlepos=right][data-discoverable=true]",
+  );
   const from = await handle.boundingBox();
   const to = await target.boundingBox();
   if (!from || !to) throw new Error("Visible connection endpoints required");
@@ -227,8 +226,18 @@ test("catalog mouse construction and Page/Edgeless entry preserve canonical BPMN
     await page.waitForTimeout(650);
     await dialog.locator(".react-flow__node-node_task").click();
     await dialog
+      .getByRole("button", { name: /^(Properties|Eigenschaften)$/ })
+      .click();
+    await dialog
       .getByRole("textbox", { name: "Name", exact: true })
       .fill("BPMN persisted task");
+    await dialog
+      .getByRole("textbox", { name: "Name", exact: true })
+      .press("Tab");
+    await dialog
+      .getByRole("button", { name: /^(Close|Schließen)$/ })
+      .last()
+      .click();
     await page.waitForTimeout(650);
     const task = dialog.locator(".react-flow__node-node_task");
     const beforeMove = await task.boundingBox();
@@ -274,7 +283,7 @@ test("catalog mouse construction and Page/Edgeless entry preserve canonical BPMN
     ).toHaveCount(0);
     await expect(dialog.locator(".react-flow__node")).toHaveCount(3);
     await expect(dialog.locator(".react-flow__edge")).toHaveCount(2);
-    await dialog.locator("header button").click();
+    await dialog.getByRole("button", { name: /^(Close|Schließen)$/ }).click();
     await expect(dialog).toBeHidden();
     await expect(page.locator("myoxus-bpmn")).toBeFocused();
     const before = await downloadSource(page);
@@ -299,7 +308,7 @@ test("catalog mouse construction and Page/Edgeless entry preserve canonical BPMN
     await expect(dialog.locator(".react-flow__node-node_task")).toContainText(
       "BPMN persisted task",
     );
-    await dialog.locator("header button").click();
+    await dialog.getByRole("button", { name: /^(Close|Schließen)$/ }).click();
     await expect(dialog).toBeHidden();
     expect(await downloadSource(page)).toEqual(before);
     // Catalog creation replaces the initial empty paragraph atomically. Use a
@@ -314,7 +323,7 @@ test("catalog mouse construction and Page/Edgeless entry preserve canonical BPMN
     await page.getByTestId("slash-menu-item-bpmn").click();
     await expect(dialog.locator(".react-flow")).toBeVisible();
     await expect(page.locator("myoxus-bpmn")).toHaveCount(1);
-    await dialog.locator("header button").click();
+    await dialog.getByRole("button", { name: /^(Close|Schließen)$/ }).click();
     await page
       .getByRole("radio", { name: "Edgeless", exact: true })
       .locator("..")
@@ -332,7 +341,7 @@ test("catalog mouse construction and Page/Edgeless entry preserve canonical BPMN
     await expect(
       page.locator("myoxus-edgeless-root .react-flow, myoxus-frame"),
     ).toHaveCount(0);
-    await dialog.locator("header button").click();
+    await dialog.getByRole("button", { name: /^(Close|Schließen)$/ }).click();
     const edgelessBlock = page.locator("myoxus-bpmn").last();
     const note = edgelessBlock.locator("xpath=ancestor::myoxus-edgeless-note");
     await expect(note).toBeVisible();

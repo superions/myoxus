@@ -371,7 +371,9 @@ test("should support ctrl/cmd+shift+l convert to linked doc", async ({
   const linkedDocCard = page.locator("myoxus-embed-linked-doc-block");
   await expect(linkedDocCard).toBeVisible();
 
-  const title = page.locator(".myoxus-embed-linked-doc-content-title-text");
+  const title = page
+    .getByTestId("editor-document-card")
+    .locator('[data-slot="title"]');
   expect(await title.innerText()).toBe("Untitled");
 
   const noteContent = page.locator(".myoxus-embed-linked-doc-content-note");

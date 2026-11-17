@@ -17,16 +17,13 @@ import {
   templateVariableGroupMessages,
   templateVariableGroupOrder,
   templateVariableLabel,
-} from "@virgultum/components/context-menu";
+} from "@virgultum/core/services";
 import {
   editorMessage,
   resolveEditorMessage,
   type MyoxusTemplateVariableRequest,
-} from "@virgultum/shared/services";
-import {
-  DocumentFieldSchema,
-  type DocumentField,
-} from "@virgultum/shared/types";
+} from "@virgultum/core/services";
+import { DocumentFieldSchema, type DocumentField } from "@virgultum/core/types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { templateVariableCapabilities } from "../../../modules/doc/services/template-variables";

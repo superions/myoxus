@@ -10,7 +10,7 @@ use uuid::Uuid;
 
 use crate::workspace_content_operation::{WorkspaceContentResourceKind, WorkspaceContentResourceRef};
 
-pub const OVERVIEW_PROPERTY_KEYS: [&str; 11] = [
+pub const OVERVIEW_PROPERTY_KEYS: [&str; 12] = [
   "title",
   "documentType",
   "status",
@@ -18,6 +18,7 @@ pub const OVERVIEW_PROPERTY_KEYS: [&str; 11] = [
   "version",
   "tags",
   "createdBy",
+  "responsible",
   "createdAt",
   "updatedAt",
   "reviewDueAt",
@@ -48,11 +49,16 @@ pub struct FolderOverviewSettings {
 pub struct OverviewRegisterPresentation {
   pub display_properties: Vec<String>,
   pub order_by: OverviewOrderBy,
+  // Empty selection keeps existing settings fingerprints stable for replayed
+  // content operations; authored filters are serialized with the presentation.
+  #[serde(default, skip_serializing_if = "OverviewRegisterSelection::is_default")]
+  pub selection: OverviewRegisterSelection,
 }
 
 impl Default for OverviewRegisterPresentation {
   fn default() -> Self {
     Self {
+      selection: OverviewRegisterSelection::default(),
       display_properties: [
         "title",
         "documentType",
@@ -142,24 +148,7 @@ impl WorkspaceOverviewSettingsPatch {
       }
     }
     if let Some(Some(presentation)) = &self.register_presentation {
-      let mut seen = BTreeSet::new();
-      for key in &presentation.display_properties {
-        if !key
-          .strip_prefix("system:")
-          .is_some_and(|key| OVERVIEW_PROPERTY_KEYS.contains(&key))
-          || !seen.insert(key.as_str())
-        {
-          return Err(OverviewSettingsError::InvalidInput("unsupported or duplicate column"));
-        }
-      }
-      if !seen.contains("system:title") {
-        return Err(OverviewSettingsError::InvalidInput("title column is required"));
-      }
-      if presentation.order_by.property_type != "system"
-        || !OVERVIEW_PROPERTY_KEYS.contains(&presentation.order_by.key.as_str())
-      {
-        return Err(OverviewSettingsError::InvalidInput("unsupported sort"));
-      }
+      presentation.validate()?;
     }
     Ok(())
   }
@@ -224,4 +213,115 @@ fn validate_folder_id(workspace_id: Uuid, id: &str) -> Result<(), OverviewSettin
   WorkspaceContentResourceRef::new(workspace_id, WorkspaceContentResourceKind::Folder, id)
     .map(|_| ())
     .map_err(|_| OverviewSettingsError::InvalidInput("invalid folder identity"))
+}
+
+/// Authored directory settings. Results and authority are never persisted here.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase", deny_unknown_fields)]
+pub struct DocumentIndexQuery {
+  pub folder_id: Option<String>,
+  // Keep native block query JSON flat while sharing the overview selection.
+  #[serde(flatten)]
+  pub selection: OverviewRegisterSelection,
+  /// Absence follows Organizer order, with unfiled documents last.
+  pub order_by: Option<OverviewOrderBy>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct DocumentIndexFilter {
+  pub key: String,
+  pub method: String,
+  pub value: Option<String>,
+}
+
+impl DocumentIndexQuery {
+  pub fn validate(&self, workspace_id: Uuid) -> Result<(), OverviewSettingsError> {
+    if let Some(id) = &self.folder_id {
+      validate_folder_id(workspace_id, id)?;
+    }
+    if let Some(order) = &self.order_by {
+      if order.property_type != "system"
+        || !(OVERVIEW_PROPERTY_KEYS.contains(&order.key.as_str()) || order.key == "organizer")
+      {
+        return Err(OverviewSettingsError::InvalidInput("unsupported directory sort"));
+      }
+    }
+    self.selection.validate()?;
+    Ok(())
+  }
+}
+
+impl OverviewRegisterPresentation {
+  /// Shared by revision-fenced settings and operation-local embedded overrides.
+  pub fn validate(&self) -> Result<(), OverviewSettingsError> {
+    let mut seen = BTreeSet::new();
+    for key in &self.display_properties {
+      if !key
+        .strip_prefix("system:")
+        .is_some_and(|key| OVERVIEW_PROPERTY_KEYS.contains(&key))
+        || !seen.insert(key.as_str())
+      {
+        return Err(OverviewSettingsError::InvalidInput("unsupported or duplicate column"));
+      }
+    }
+    if !seen.contains("system:title") {
+      return Err(OverviewSettingsError::InvalidInput("title column is required"));
+    }
+    if self.order_by.property_type != "system"
+      || !(OVERVIEW_PROPERTY_KEYS.contains(&self.order_by.key.as_str()) || self.order_by.key == "organizer")
+    {
+      return Err(OverviewSettingsError::InvalidInput("unsupported sort"));
+    }
+    self.selection.validate()?;
+    Ok(())
+  }
+}
+
+/// One finite selection contract for native overviews and embedded registers.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default, rename_all = "camelCase", deny_unknown_fields)]
+pub struct OverviewRegisterSelection {
+  pub subtree: bool,
+  pub tag_ids: Vec<Uuid>,
+  pub match_all_tags: bool,
+  pub filters: Vec<DocumentIndexFilter>,
+}
+impl OverviewRegisterSelection {
+  pub fn is_default(&self) -> bool {
+    self == &Self::default()
+  }
+  pub fn validate(&self) -> Result<(), OverviewSettingsError> {
+    for filter in &self.filters {
+      let identity = matches!(filter.key.as_str(), "documentType" | "status");
+      let date = matches!(filter.key.as_str(), "reviewDueAt" | "validUntil");
+      let empty = matches!(filter.method.as_str(), "is-empty" | "is-not-empty");
+      let equality = matches!(filter.method.as_str(), "is" | "is-not");
+      let comparison = matches!(filter.method.as_str(), "before" | "after");
+      let valid_value = match filter.value.as_deref() {
+        None => empty,
+        Some(_) if empty => false,
+        Some(value) if identity => Uuid::parse_str(value).is_ok(),
+        Some(value) if date => chrono::DateTime::parse_from_rfc3339(value).is_ok(),
+        _ => false,
+      };
+      if !(identity || date) || !(empty || equality || (date && comparison)) || !valid_value {
+        return Err(OverviewSettingsError::InvalidInput("unsupported directory filter"));
+      }
+    }
+    Ok(())
+  }
+}
+impl DocumentIndexQuery {
+  pub fn presentation(&self, display_properties: Vec<String>) -> OverviewRegisterPresentation {
+    OverviewRegisterPresentation {
+      display_properties,
+      selection: self.selection.clone(),
+      order_by: self.order_by.clone().unwrap_or_else(|| OverviewOrderBy {
+        property_type: "system".into(),
+        key: "organizer".into(),
+        desc: false,
+      }),
+    }
+  }
 }

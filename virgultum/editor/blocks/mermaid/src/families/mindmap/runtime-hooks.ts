@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { EditPropsStore } from "@virgultum/shared/services";
+import { EditPropsStore } from "@virgultum/core/services";
 import { remapCopiedMindmapIdentities } from "./copy-identities.js";
 import { mindmapPopoverAnchorSide } from "./interaction/anchors.js";
 import { mindmapNodeKeyboardIntent } from "./interaction/keyboard.js";

@@ -1,1 +1,20 @@
-export * from "@virgultum/rich-text";
+export {
+  type TextAlignConfig,
+  textAlignConfigs,
+  type TextConversionConfig,
+  textConversionConfigs,
+  asyncGetRichText,
+  asyncSetInlineRange,
+  cleanSpecifiedTail,
+  focusTextModel,
+  getInlineEditorByModel,
+  getRichTextByModel,
+  getTextContentFromInlineRange,
+  onModelTextUpdated,
+  selectTextModel,
+  RichText,
+  openTemplateFieldPicker,
+  insertContent,
+  clearMarksOnDiscontinuousInput,
+  getPrefixText,
+} from "@virgultum/content/rich-text";

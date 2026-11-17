@@ -1,1 +1,24 @@
-export * from "@virgultum/widget-page-dragging-area/view";
+import {
+  type ViewExtensionContext,
+  ViewExtensionProvider,
+} from "@virgultum/core/extensions";
+
+import { effects } from "./effects";
+import { pageDraggingAreaWidget } from "./index";
+
+export class PageDraggingAreaViewExtension extends ViewExtensionProvider {
+  override name = "myoxus-page-dragging-area-widget";
+
+  override effect() {
+    super.effect();
+    effects();
+  }
+
+  override setup(context: ViewExtensionContext) {
+    super.setup(context);
+    if (this.isEdgeless(context.scope)) {
+      return;
+    }
+    context.register(pageDraggingAreaWidget);
+  }
+}

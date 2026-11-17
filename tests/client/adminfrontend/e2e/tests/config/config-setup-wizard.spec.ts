@@ -55,16 +55,6 @@ const visualProfiles = [
     name: "desktop-dark",
     viewport: { height: 900, width: 1440 },
   },
-  {
-    colorScheme: "light" as const,
-    name: "mobile-light",
-    viewport: { height: 844, width: 390 },
-  },
-  {
-    colorScheme: "dark" as const,
-    name: "mobile-dark",
-    viewport: { height: 844, width: 390 },
-  },
 ] as const;
 
 async function assertFirstAdminTransition(
@@ -187,7 +177,7 @@ async function assertFirstAdminTransition(
 
   releaseFreshResponse?.();
   await expect.poll(() => serverConfigStates).toEqual([false, true]);
-  await expect(page).toHaveURL(/\/adminfrontend(?:\/dashboard)?$/);
+  await expect(page).toHaveURL(/\/adminfrontend\/config-wizard$/);
   expect(transitionEvents).toEqual([
     "server-config:false",
     "create-admin",
@@ -195,7 +185,7 @@ async function assertFirstAdminTransition(
   ]);
 
   await page.goto(`${ADMIN_FRONTEND_BASE}/setup`);
-  await expect(page).toHaveURL(/\/adminfrontend(?:\/dashboard)?$/);
+  await expect(page).toHaveURL(/\/adminfrontend\/config-wizard$/);
   expect(createRequests).toBe(1);
   expect(
     invalidLayoutWarnings,

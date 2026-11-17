@@ -478,6 +478,9 @@ impl CopilotRepository for SqlxCopilotRepository {
         FROM copilot_sessions WHERE user_id=$1
           AND ($2::uuid IS NULL OR workspace_id=$2)
           AND deleted_at IS NULL AND ($3::bool OR archived_at IS NULL)
+          -- Missing references are not catalog candidates. Existing targets,
+          -- including trashed documents, still require the caller's normal ACL.
+          AND (doc_id IS NULL OR EXISTS (SELECT 1 FROM docs WHERE id=copilot_sessions.doc_id))
           AND ($4::uuid IS NULL OR doc_id=$4)
           AND ($5::uuid IS NULL OR id=$5)
           AND ($6::bool IS NULL OR pinned=$6)

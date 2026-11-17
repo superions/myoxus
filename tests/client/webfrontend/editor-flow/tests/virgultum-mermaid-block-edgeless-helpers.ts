@@ -11,10 +11,8 @@
  * (pre-I-04i lines 312-2125, ~1683 LoC
  * incl. dead `expectMermaidSourceMatch`
  * at 1642-1655).
- * The 28 functions here are
- * byte-for-byte identical to the
- * originals; the move is a
- * relocation, not a reimplementation.
+ * The extraction retained the original checks;
+ * current popup locators follow native Facade portal ownership.
  * (Of the 28 candidate functions
  * in the source range, 27 moved
  * here, 1 dead function was
@@ -2326,7 +2324,9 @@ export async function connectFlowchartNodesViaContextMenu(
     targetNodeId,
   ]);
   await clickCanvasPoint(target, { button: "right" });
-  const contextMenu = mermaidBlock.locator(".myoxus-mermaid-gfx-context-menu");
+  const contextMenu = page.getByRole("menu").filter({
+    has: page.getByRole("menuitem").filter({ hasText: /->/ }),
+  });
   const menuVisible = await contextMenu
     .isVisible({ timeout: 5_000 })
     .catch(() => false);
@@ -2340,7 +2340,9 @@ export async function connectFlowchartNodesViaContextMenu(
       };
       return {
         contextMenuInDom: Boolean(
-          block.querySelector(".myoxus-mermaid-gfx-context-menu"),
+          Array.from(document.querySelectorAll('[role="menu"]')).some((menu) =>
+            menu.textContent?.includes("->"),
+          ),
         ),
         selectedVisualNodeId: raw._selectedVisualNodeId ?? "",
         selectedVisualNodeOrder: raw._selectedVisualNodeOrder ?? [],

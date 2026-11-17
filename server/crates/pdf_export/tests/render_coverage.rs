@@ -61,6 +61,7 @@ fn document_with_text(title: &str, text: &str, body_font: &str) -> IrDocument {
       body: Some(body_font.into()),
       mono: Some("JetBrains Mono".into()),
       symbol: Some("JetBrains Mono".into()),
+      eyebrow: None,
     },
     ..Default::default()
   };
@@ -88,6 +89,8 @@ fn document_with_text(title: &str, text: &str, body_font: &str) -> IrDocument {
           marks: TextMarks::default(),
         }],
         children: vec![],
+        alignment: None,
+        eyebrow: false,
       }],
     },
     assets: HashMap::new(),
@@ -246,6 +249,7 @@ fn inv_font_coverage_multilingual_document_renders() {
       body: Some("Inter".into()),
       mono: Some("JetBrains Mono".into()),
       symbol: Some("JetBrains Mono".into()),
+      eyebrow: None,
     },
     ..Default::default()
   };
@@ -275,6 +279,8 @@ fn inv_font_coverage_multilingual_document_renders() {
             marks: TextMarks::default(),
           }],
           children: vec![],
+          alignment: None,
+          eyebrow: false,
         },
         Block::Paragraph {
           content: vec![InlineSpan::Text {
@@ -282,6 +288,8 @@ fn inv_font_coverage_multilingual_document_renders() {
             marks: TextMarks::default(),
           }],
           children: vec![],
+          alignment: None,
+          eyebrow: false,
         },
         Block::Paragraph {
           content: vec![InlineSpan::Text {
@@ -289,6 +297,8 @@ fn inv_font_coverage_multilingual_document_renders() {
             marks: TextMarks::default(),
           }],
           children: vec![],
+          alignment: None,
+          eyebrow: false,
         },
         Block::Paragraph {
           content: vec![InlineSpan::Text {
@@ -296,6 +306,8 @@ fn inv_font_coverage_multilingual_document_renders() {
             marks: TextMarks::default(),
           }],
           children: vec![],
+          alignment: None,
+          eyebrow: false,
         },
       ],
     },
@@ -421,4 +433,48 @@ fn inv_font_coverage_inter_face_is_embedded() {
      embedded the server-owned Theme DB body face. If absent, the SFNT font loader \
      did not index Inter."
   );
+}
+
+/// Formula failures must abort the real PDF pipeline, identify the occurrence,
+/// and never copy private source into retained errors or worker logs.
+#[test]
+fn native_math_rejects_invalid_unsafe_and_unbounded_source() {
+  for (case, (source, reason)) in [
+    (r"\privateCustomerSecret{account}", "unsupported command"),
+    (r"\frac{privateCustomerSecret}", "math arguments"),
+    (r"\frac{privateCustomerSecret", "unclosed brace"),
+    (r"\begin{matrix}privateCustomerSecret", "unclosed environment"),
+    (r"\begin{matrix}x\end{cases}", "mismatched environments"),
+    (r#"\iftypst #read("privateCustomerSecret") \fi"#, "embedded Typst"),
+    (r"\newcommand{\f}{privateCustomerSecret}\f", "unsupported command"),
+    (r"\includegraphics{privateCustomerSecret}", "unsupported command"),
+    (&"x".repeat(8193), "conversion limit"),
+    (&format!("{}x{}", "{".repeat(65), "}".repeat(65)), "nesting"),
+  ]
+  .into_iter()
+  .enumerate()
+  {
+    let mut doc = document_with_text("Formula failure", "Unchanged surrounding text", "Inter");
+    doc.root = Block::Page {
+      title: vec![],
+      children: vec![
+        Block::LatexBlock {
+          source: "E=mc^2".into(),
+        },
+        Block::LatexBlock { source: source.into() },
+      ],
+    };
+    let Err(error) = render_to_pdf_with_report(&doc, &[fonts_dir()]) else {
+      panic!("invalid formula case {case} exported successfully");
+    };
+    let message = error.to_string();
+    assert!(
+      message.contains("LaTeX formula 2") && message.contains(reason),
+      "{message}"
+    );
+    assert!(
+      !message.contains("privateCustomerSecret"),
+      "private source must not enter errors"
+    );
+  }
 }

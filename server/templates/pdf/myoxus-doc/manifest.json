@@ -32,7 +32,7 @@
     "colorVariant": {
       "kind": "enum",
       "values": ["mono", "accent", "brand"],
-      "default": "accent"
+      "default": "brand"
     },
     "headerStyle": {
       "kind": "enum",

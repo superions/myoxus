@@ -6,7 +6,7 @@ import {
   initializeDocumentField,
   visitDocumentFieldRuns,
   type DocumentField,
-} from "@virgultum/shared/types";
+} from "@virgultum/core/types";
 import {
   formatRegionalDate,
   formatRegionalDateTime,

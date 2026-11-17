@@ -244,6 +244,8 @@ impl From<DocumentWorkspaceSettings> for WorkspaceDocumentSettingsType {
 
 #[derive(SimpleObject, Clone)]
 pub struct DocumentMetadataIndexRowType {
+  pub responsible_user_id: Option<ID>,
+  pub responsible_name: Option<String>,
   pub doc_id: ID,
   pub external_id: Option<ID>,
   pub created_by: Option<ID>,
@@ -273,6 +275,8 @@ pub struct DocumentMetadataIndexRowType {
 impl DocumentMetadataIndexRowType {
   pub(crate) fn from_row(value: DocumentMetadataIndexRow, can_publish: bool) -> Self {
     Self {
+      responsible_user_id: value.responsible_user_id.map(|id| ID(id.to_string())),
+      responsible_name: None,
       doc_id: ID(value.doc_id.to_string()),
       external_id: Some(ID(value.external_id.clone())),
       created_by: value.created_by.map(|id| ID(id.to_string())),
@@ -466,6 +470,13 @@ impl DocumentMetadataPolicyQueryRoot {
       .map(|(doc, role)| (doc.id, role))
       .collect::<std::collections::HashMap<_, _>>();
     rows.retain(|row| readable_roles.contains_key(&row.doc_id));
+    let identity_labels = if ctx.look_ahead().field("responsibleName").exists() {
+      myoxus_application::document_metadata_policy::index_identity_labels(state.auth().store.as_ref(), &rows)
+        .await
+        .map_err(crate::graphql::utils::map_gql_error)?
+    } else {
+      Default::default()
+    };
     // Assignments are read outside the versioned metadata cache: Tag writes
     // have their own lifecycle, and must not inherit stale metadata-index facts.
     let with_tags = ctx.look_ahead().field("tagIds").exists();
@@ -505,7 +516,9 @@ impl DocumentMetadataPolicyQueryRoot {
             .get(&row.doc_id)
             .is_some_and(|role| role.can(myoxus_domain::permission::DocAction::Publish));
           let tag_ids = tag_assignments.remove(&row.external_id).unwrap_or_default();
+          let responsible_name = row.responsible_user_id.and_then(|id| identity_labels.get(&id)).cloned();
           let mut projected = DocumentMetadataIndexRowType::from_row(row, can_publish);
+          projected.responsible_name = responsible_name;
           projected.tag_ids = tag_ids.into_iter().map(|id| ID(id.to_string())).collect();
           projected
         })
@@ -881,6 +894,7 @@ mod tests {
     let doc_id = Uuid::new_v4();
     let projected = DocumentMetadataIndexRowType::from_row(
       DocumentMetadataIndexRow {
+        responsible_user_id: None,
         doc_id,
         external_id: "public-document-key".to_string(),
         created_by: None,

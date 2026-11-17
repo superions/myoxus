@@ -1,1 +1,1 @@
-export * from "@virgultum/block-callout/store";
+export { CalloutStoreExtension } from "@virgultum/content/store";

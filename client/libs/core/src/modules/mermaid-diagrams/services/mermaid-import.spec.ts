@@ -11,9 +11,9 @@ import {
   MermaidBlockSchemaExtension,
   NoteBlockSchemaExtension,
   RootBlockSchemaExtension,
-} from "@virgultum/model";
-import { Text } from "@virgultum/store";
-import { TestWorkspace } from "@virgultum/store/test";
+} from "@virgultum/core/models";
+import { Text } from "@virgultum/core/store";
+import { TestWorkspace } from "@virgultum/core/store/test";
 import { MarkdownTransformer } from "@virgultum/editor/widgets/linked-doc";
 
 import {

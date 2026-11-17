@@ -6,7 +6,10 @@ import {
   StdIdentifier,
 } from "@virgultum/editor/std";
 import { Extension, type Store } from "@virgultum/editor/store";
-import { type Container, createIdentifier } from "@virgultum/global/di";
+import {
+  type Container,
+  createIdentifier,
+} from "@virgultum/core/primitives/di";
 import type { Subscription } from "rxjs";
 
 import { applyPatchToDoc } from "../utils/apply-model/apply-patch-to-doc";

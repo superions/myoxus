@@ -5,7 +5,7 @@ import {
   Schema,
   Transformer,
   type Workspace,
-} from "@virgultum/store";
+} from "@virgultum/editor/store";
 
 export async function importFromSnapshot(
   collection: Workspace,

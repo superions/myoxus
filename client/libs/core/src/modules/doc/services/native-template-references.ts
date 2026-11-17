@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import type { BlockSnapshot, Transformer } from "@virgultum/store";
+import type { BlockSnapshot, Transformer } from "@virgultum/core/store";
 
 import { TemplateInstantiationError } from "../../template-doc/services/template-instantiation-error";
 

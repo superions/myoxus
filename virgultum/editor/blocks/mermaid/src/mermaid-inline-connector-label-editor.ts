@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { mountConnectorLabelEditor } from "@virgultum/gfx-connector";
-import type { ConnectorElementModel } from "@virgultum/model";
-import type { BlockComponent } from "@virgultum/std";
+import { mountConnectorLabelEditor } from "@virgultum/canvas/gfx";
+import type { ConnectorElementModel } from "@virgultum/core/models";
+import type { BlockComponent } from "@virgultum/core/runtime";
 
 type ObservableText = {
   observe(callback: () => void): void;

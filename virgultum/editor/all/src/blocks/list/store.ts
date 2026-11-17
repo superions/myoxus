@@ -1,1 +1,1 @@
-export * from "@virgultum/block-list/store";
+export { ListStoreExtension } from "@virgultum/content/store";

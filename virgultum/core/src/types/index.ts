@@ -1,0 +1,89 @@
+import type { Annotation, FootNote, ReferenceInfo } from "../models/index";
+import type { InlineEditor } from "../runtime/inline/index";
+import type { BlockModel } from "../store/index";
+import type { DocumentField } from "./document-field";
+export * from "./document-field";
+export * from "./uni-component";
+
+export type NoteChildrenFlavour =
+  | "myoxus:annotation"
+  | "myoxus:paragraph"
+  | "myoxus:list"
+  | "myoxus:code"
+  | "myoxus:divider"
+  | "myoxus:database"
+  | "myoxus:image"
+  | "myoxus:bookmark"
+  | "myoxus:attachment"
+  | "myoxus:surface-ref";
+
+export interface Viewport {
+  left: number;
+  top: number;
+  scrollLeft: number;
+  scrollTop: number;
+  scrollWidth: number;
+  scrollHeight: number;
+  clientWidth: number;
+  clientHeight: number;
+}
+
+export type ExtendedModel = BlockModel & Record<string, any>;
+
+export type IndentContext = {
+  blockId: string;
+  inlineIndex: number;
+  flavour: string;
+  type: "indent" | "dedent";
+};
+
+export type MyoxusTextStyleAttributes = {
+  bold?: true | null;
+  italic?: true | null;
+  underline?: true | null;
+  strike?: true | null;
+  code?: true | null;
+  color?: string | null;
+  background?: string | null;
+  labelTone?: MyoxusLabelTone | null;
+};
+
+export type MyoxusLabelTone =
+  "neutral" | "info" | "positive" | "warning" | "danger" | "accent";
+
+export type HighlightType = Pick<
+  MyoxusTextStyleAttributes,
+  "color" | "background"
+>;
+
+export type MyoxusTextAttributes = MyoxusTextStyleAttributes & {
+  documentField?: DocumentField | null;
+  /** Capture-only readable text; never authority for current metadata. */
+  documentFieldCaptured?: true | null;
+  annotation?: Annotation | null;
+  link?: string | null;
+  reference?:
+    | ({
+        type: "Subpage" | "LinkedPage";
+      } & ReferenceInfo)
+    | null;
+  latex?: string | null;
+  footnote?: FootNote | null;
+  mention?: {
+    member: string;
+    notification?: string;
+  } | null;
+  [key: `comment-${string}`]: boolean | null;
+};
+
+export type MyoxusInlineEditor = InlineEditor<MyoxusTextAttributes>;
+
+export type SelectedRect = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  borderWidth: number;
+  borderStyle: string;
+  rotate: number;
+};

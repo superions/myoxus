@@ -1,19 +1,19 @@
 import { createMermaidClipboardPort } from "./clipboard.js";
-import { FileSizeLimitProvider } from "@virgultum/shared/services";
+import { FileSizeLimitProvider } from "@virgultum/core/services";
 import {
   insertMermaidBlockCommand,
   insertMermaidEdgelessDiagramCommand,
   duplicateMermaidBlockCommand,
 } from "./commands.js";
-import { SurfaceBlockComponent } from "@virgultum/block-surface";
-import { mountShapeTextEditor } from "@virgultum/gfx-shape";
+import { SurfaceBlockComponent } from "@virgultum/canvas-runtime/surface";
+import { mountShapeTextEditor } from "@virgultum/canvas/gfx";
 import {
   readMermaidGfxNodeId,
   readMermaidGfxEdgeId,
 } from "./mermaid-gfx-metadata.js";
 import { getMermaidGfxFamilyHooks } from "./families/runtime/gfx-family-hooks-registry.js";
 import { readMermaidGfxMeta } from "./mermaid-gfx-metadata.js";
-import { Bound } from "@virgultum/global/gfx";
+import { Bound } from "@virgultum/core/primitives/gfx";
 import { getMermaidVisualModel } from "./commands.js";
 
 import {
@@ -338,6 +338,10 @@ export abstract class MermaidHostGfxRender extends MermaidHostGfxSync {
         onConnectorHandlePointerDown:
           this._gfxSession.handleVisualConnectorHandlePointerDown,
         onContextConnect: this._handleConnectSelectedVisualNodesFromContext,
+        onCloseContextMenu: () => {
+          this._visualContextMenu = null;
+          this.requestUpdate();
+        },
         onEdgeReconnectKeydown:
           this._gfxSession.handleVisualEdgeReconnectKeydown,
         onEdgeReconnectPointerDown: (event, endpoint) =>

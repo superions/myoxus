@@ -1,1 +1,1 @@
-export * from "@virgultum/ext-loader";
+export * from "@virgultum/core/extensions";

@@ -56,14 +56,7 @@ export const ChatMessagesSchema = z.array(ChatMessageSchema);
 
 export type ChatMessage = z.infer<typeof ChatMessageSchema>;
 
-export type ChatAction = {
-  action: string;
-  messages: ChatMessage[];
-  sessionId: string;
-  createdAt: string;
-};
-
-export type HistoryMessage = ChatMessage | ChatAction;
+export type HistoryMessage = ChatMessage;
 
 export type MessageRole = "user" | "assistant";
 
@@ -72,10 +65,6 @@ export type MessageUserInfo = {
   userName?: string;
   avatarUrl?: string;
 };
-
-export function isChatAction(item: HistoryMessage): item is ChatAction {
-  return "action" in item;
-}
 
 export function isChatMessage(item: HistoryMessage): item is ChatMessage {
   return "role" in item;

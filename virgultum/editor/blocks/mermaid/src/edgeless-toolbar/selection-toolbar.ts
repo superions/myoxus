@@ -8,13 +8,16 @@ import {
   type ToolbarGenericAction,
   type ToolbarModuleConfig,
   ToolbarModuleExtension,
-} from "@virgultum/shared/services";
+} from "@virgultum/core/services";
 import { getMermaidFamilyRuntime } from "../families/runtime/registry.js";
 import type { MermaidFamilyEdgelessToolbarContribution } from "../families/runtime/contracts.js";
 import { detectMermaidDiagramType } from "../engine/diagram-types.js";
 import { isMermaidProductDiagramType } from "../engine/product-types.js";
 import { getMermaidBlockSource } from "../utils.js";
-import { BlockFlavourIdentifier, type BlockStdScope } from "@virgultum/std";
+import {
+  BlockFlavourIdentifier,
+  type BlockStdScope,
+} from "@virgultum/core/runtime";
 
 import {
   deleteMermaidBlockCommand,
@@ -32,7 +35,7 @@ import {
   GfxBlockElementModel,
   GfxControllerIdentifier,
   GfxPrimitiveElementModel,
-} from "@virgultum/std/gfx";
+} from "@virgultum/core/runtime/gfx";
 import { mermaidMmdExportAction } from "./mmd-file-actions.js";
 
 type MermaidFamilyToolbarLeaf = ToolbarAction | ToolbarActionGenerator;

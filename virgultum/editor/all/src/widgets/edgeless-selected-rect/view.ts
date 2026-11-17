@@ -1,1 +1,1 @@
-export * from "@virgultum/widget-edgeless-selected-rect/view";
+export { EdgelessSelectedRectViewExtension } from "@virgultum/canvas/view";

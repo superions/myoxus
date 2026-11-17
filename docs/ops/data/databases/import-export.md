@@ -198,17 +198,17 @@ record and rows, so it never lies about the source-of-truth.
 `workspace.previewDatabaseJsonImport(file, input)` parses the snapshot,
 runs the schema checks and returns a `DatabaseJsonPreview` with:
 
-| Field                       | Purpose                                                                                         |
-| --------------------------- | ----------------------------------------------------------------------------------------------- |
-| `schemaVersion`             | Echoed from the snapshot (currently `4`).                                                       |
-| `schemaVersionSupported`    | `true` for `1..=4`, `false` for zero or a higher version.                                       |
-| `title`, `fieldCount`, …    | Counts the wizard renders on the review step.                                                   |
-| `fileManifestCount`         | Number of `filesManifest` entries. The wizard surfaces this as the file count.                  |
-| `exportActor`, `exportedAt` | Operator identity captured at export time.                                                      |
-| `defaultMode`               | Selected preview mode (`CREATE` when omitted). |
-| `defaultConflictStrategy`   | Selected preview conflict strategy (`ABORT` when omitted).                                                |
-| `warnings[]`                | Soft diagnostics (e.g. `MIX_DATABASE_JSON_MISSING_FILE`).                                       |
-| `errors[]`                  | Hard diagnostics (e.g. `MIX_DATABASE_JSON_UNSUPPORTED_VERSION`).                                |
+| Field                       | Purpose                                                                        |
+| --------------------------- | ------------------------------------------------------------------------------ |
+| `schemaVersion`             | Echoed from the snapshot (currently `4`).                                      |
+| `schemaVersionSupported`    | `true` for `1..=4`, `false` for zero or a higher version.                      |
+| `title`, `fieldCount`, …    | Counts the wizard renders on the review step.                                  |
+| `fileManifestCount`         | Number of `filesManifest` entries. The wizard surfaces this as the file count. |
+| `exportActor`, `exportedAt` | Operator identity captured at export time.                                     |
+| `defaultMode`               | Selected preview mode (`CREATE` when omitted).                                 |
+| `defaultConflictStrategy`   | Selected preview conflict strategy (`ABORT` when omitted).                     |
+| `warnings[]`                | Soft diagnostics (e.g. `MIX_DATABASE_JSON_MISSING_FILE`).                      |
+| `errors[]`                  | Hard diagnostics (e.g. `MIX_DATABASE_JSON_UNSUPPORTED_VERSION`).               |
 
 ### Import
 

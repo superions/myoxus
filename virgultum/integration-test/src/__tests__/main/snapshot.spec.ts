@@ -1,12 +1,12 @@
 import type { SurfaceBlockModel } from "@virgultum/editor/blocks/surface";
 import { MyoxusSchemas } from "@virgultum/editor/schemas";
 import { ZipTransformer } from "@virgultum/editor/widgets/linked-doc";
-import type { PointLocation } from "@virgultum/global/gfx";
-import { Schema } from "@virgultum/store";
+import type { PointLocation } from "@virgultum/editor/global/gfx";
+import { Schema } from "@virgultum/editor/store";
 import { beforeEach, expect, test } from "vitest";
 import { Text } from "yjs";
 
-import { Zip } from "../../../../editor/widgets/linked-doc/src/transformers/utils.js";
+import { Zip } from "../../../../editor/all/src/widgets/linked-doc/transformers/utils.js";
 
 import { wait } from "../utils/common.js";
 import { setupEditor } from "../utils/setup.js";

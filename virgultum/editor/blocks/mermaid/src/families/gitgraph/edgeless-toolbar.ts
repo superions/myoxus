@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { ShapeElementModel } from "@virgultum/model";
+import { ShapeElementModel } from "@virgultum/core/models";
 import { getMermaidVisualModel } from "../../commands/model-resolution.js";
 import { parseMermaidVisualFamilyData } from "../runtime/gfx-family-data.js";
 import { resolveMermaidSourceLifecycle } from "../runtime/source-lifecycle.js";
 import { createGitGraphSourceRepairProps } from "./source-repair.js";
 import { exportMermaidMmdOwner } from "../../edgeless-toolbar/mmd-file-actions.js";
 
-import { Bound } from "@virgultum/global/gfx";
-import type { ToolbarContext } from "@virgultum/shared/services";
+import { Bound } from "@virgultum/core/primitives/gfx";
+import type { ToolbarContext } from "@virgultum/core/services";
 import {
   applyMermaidVisualModelCommand,
   readMermaidVisualModelFromProjectionGroup,

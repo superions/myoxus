@@ -1,7 +1,7 @@
 import {
   BlockMarkdownAdapterExtension,
   type BlockMarkdownAdapterMatcher,
-} from "@virgultum/shared/adapters";
+} from "@virgultum/core/adapters";
 
 export const blockTagMarkdownAdapterMatcher: BlockMarkdownAdapterMatcher = {
   flavour: "myoxus:page/affine:note/*",

@@ -3,19 +3,19 @@ import {
   NoteDisplayMode,
   type TableCellSerialized,
   TableModelFlavour,
-} from "@virgultum/model";
+} from "@virgultum/core/models";
 import {
   embedSyncedDocMiddleware,
   HtmlAdapter,
   DOCUMENT_REFERENCE_TITLE_PREFIX,
-} from "@virgultum/shared/adapters";
+} from "@virgultum/core/adapters";
 import {
   AssetsManager,
   type BlockSnapshot,
   type DocSnapshot,
   MemoryBlobCRUD,
   type TransformerMiddleware,
-} from "@virgultum/store";
+} from "@virgultum/core/store";
 import { describe, expect, test } from "vitest";
 
 import { createJob } from "../utils/create-job.js";

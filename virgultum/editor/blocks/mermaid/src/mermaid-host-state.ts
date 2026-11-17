@@ -1,7 +1,7 @@
 import { getMermaidGfxFamilyHooks } from "./families/runtime/gfx-family-hooks-registry.js";
-import { type MermaidBlockModel } from "@virgultum/model";
-import { BlockComponent, BlockSelection } from "@virgultum/std";
-import { GfxControllerIdentifier } from "@virgultum/std/gfx";
+import { type MermaidBlockModel } from "@virgultum/core/models";
+import { BlockComponent, BlockSelection } from "@virgultum/core/runtime";
+import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
 
 import { getMermaidVisualModel } from "./commands.js";
 import {
@@ -63,7 +63,7 @@ import {
 import type { MermaidGfxObjectEditIntent } from "./families/runtime/editor-capabilities.js";
 import { readMermaidGfxMeta } from "./mermaid-gfx-metadata.js";
 import { resolveMermaidGfxProjection } from "./presentation/gfx-projection-owner.js";
-import { Bound } from "@virgultum/global/gfx";
+import { Bound } from "@virgultum/core/primitives/gfx";
 export abstract class MermaidHostState extends BlockComponent<MermaidBlockModel> {
   protected _objectEditIntent:
     ((intent: MermaidGfxObjectEditIntent) => boolean) | undefined;

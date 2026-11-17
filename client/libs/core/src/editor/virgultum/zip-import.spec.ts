@@ -19,8 +19,8 @@ import {
   MarkdownTransformer,
   ZipTransformer,
 } from "@virgultum/editor/widgets/linked-doc";
-import { Schema } from "@virgultum/store";
-import { TestWorkspace } from "@virgultum/store/test";
+import { Schema } from "@virgultum/core/store";
+import { TestWorkspace } from "@virgultum/core/store/test";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 // These bytes also exercise the product's Markdown-with-media file import.

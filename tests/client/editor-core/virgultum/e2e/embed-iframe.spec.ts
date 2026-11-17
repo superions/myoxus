@@ -15,8 +15,8 @@ const SPOTIFY_IFRAME_URL =
 const NON_EMBEDDABLE_MYOXUS_URL = "https://app.myoxus.de/";
 
 const EMBED_IFRAME_BLOCK = "myoxus-embed-iframe-block";
-const IDLE_CARD = "embed-iframe-idle-card";
-const LINK_INPUT_POPUP = "embed-iframe-link-input-popup";
+const IDLE_CARD = '[data-testid="editor-iframe-status-card"]';
+const LINK_INPUT_POPUP = '[role="dialog"][aria-label="Embed Link"]';
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/worker/link-preview", async (route) => {
@@ -88,7 +88,9 @@ async function createReadyEmbedIframeBlock(page: Page) {
 }
 
 async function openSwitchViewMenu(page: Page) {
-  await page.getByLabel("Switch view").click();
+  await page
+    .getByRole("combobox", { name: "Switch view", exact: true })
+    .click();
 }
 
 test("creates iframe embed from the slash menu and from the idle card", async ({
@@ -144,27 +146,29 @@ test("converts iframe embed between inline, card and embed views", async ({
   await embedIframeBlock.click();
 
   await openSwitchViewMenu(page);
-  await page.getByRole("button", { name: "Inline view" }).click();
+  await page.getByRole("option", { name: "Inline view" }).click();
   const inlineLink = page.locator("myoxus-link");
   await expect(inlineLink).toBeVisible();
   await expect(embedIframeBlock).toHaveCount(0);
 
-  await inlineLink.hover();
-  await openSwitchViewMenu(page);
-  await page.getByRole("button", { name: "Embed view" }).click();
+  // Block-to-inline conversion selects the Note; activate its text before hover chrome.
+  await focusRichText(page);
+  await inlineLink.getByRole("link").hover();
+  await page.getByRole("button", { name: "Inline view", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Embed view", exact: true }).click();
   embedIframeBlock = page.locator(EMBED_IFRAME_BLOCK);
   await expect(embedIframeBlock).toHaveCount(1);
 
   await embedIframeBlock.click();
   await openSwitchViewMenu(page);
-  await page.getByRole("button", { name: "Card view" }).click();
+  await page.getByRole("option", { name: "Card view" }).click();
   const bookmarkBlock = page.locator("myoxus-bookmark");
   await expect(bookmarkBlock).toHaveCount(1);
   await expect(embedIframeBlock).toHaveCount(0);
 
   await bookmarkBlock.click();
   await openSwitchViewMenu(page);
-  await page.getByRole("button", { name: "Embed view" }).click();
+  await page.getByRole("option", { name: "Embed view", exact: true }).click();
   await expect(page.locator(EMBED_IFRAME_BLOCK)).toHaveCount(1);
   await expect(bookmarkBlock).toHaveCount(0);
 });

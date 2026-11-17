@@ -1,1 +1,1 @@
-export * from "@virgultum/gfx-template/view";
+export { TemplateViewExtension } from "@virgultum/canvas/view";

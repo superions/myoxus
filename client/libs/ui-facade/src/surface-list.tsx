@@ -453,7 +453,7 @@ export type SurfaceListItemProps = PropsWithChildren<
      * or card-border styles.
      */
     accentTagColorRoles?: readonly TagColorRole[];
-    component?: "article" | "div" | "label" | "li" | "section";
+    component?: "article" | "button" | "div" | "label" | "li" | "section";
     "data-myoxus-ui-role"?: string;
     alignItems?: CSSProperties["alignItems"];
     appearance?: SurfaceListItemAppearance;
@@ -471,8 +471,8 @@ export type SurfaceListItemProps = PropsWithChildren<
 >;
 
 /**
- * Surface row for non-button list items. Rows that commit an action should use
- * SelectableCardRow so focus and pressed semantics stay explicit.
+ * Shared surface frame. Native button roots commit an action without adding
+ * the toggle/pressed semantics owned by SelectableCardRow.
  */
 export const SurfaceListItem = forwardRef<HTMLElement, SurfaceListItemProps>(
   function SurfaceListItem(
@@ -542,6 +542,7 @@ export const SurfaceListItem = forwardRef<HTMLElement, SurfaceListItemProps>(
       <MantineCard
         {...props}
         component={cardComponent}
+        {...(component === "button" ? { type: "button" as const } : {})}
         ref={ref as Ref<HTMLElement>}
         withBorder={appearance === "card"}
         radius={appearance === "row" ? "sm" : undefined}
@@ -567,6 +568,7 @@ export const SurfaceListItem = forwardRef<HTMLElement, SurfaceListItemProps>(
               : {}),
             ...(foreground ? { color: foreground } : {}),
             cursor: interactive ? "pointer" : undefined,
+            textAlign: component === "button" ? "start" : undefined,
             display: layout === "block" ? undefined : "flex",
             // Stack-backed lists may be height-constrained by a scrolling
             // rail. A semantic row must overflow that rail instead of

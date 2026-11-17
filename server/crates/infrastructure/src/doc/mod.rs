@@ -430,7 +430,7 @@ impl SqlxDocStore {
             metadata
               .get("nativeFieldComparison")
               .and_then(serde_json::Value::as_str)
-              == Some(comparison)
+              == Some(comparison.as_str())
               && fields.version_matches_frozen(&latest, version_id)?
           }
           _ => Sha256::digest(&latest) == Sha256::digest(&snapshot),

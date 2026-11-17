@@ -1,38 +1,31 @@
 import { CodeBlockPreviewExtension } from "@virgultum/editor/blocks/code";
 import { SignalWatcher, WithDisposable } from "@virgultum/editor/global/lit";
 import type { CodeBlockModel } from "@virgultum/editor/model";
-import { fontMonoStyle } from "@virgultum/editor/shared/styles";
-import { unsafeCSSValue, unsafeCSSVar } from "@virgultum/editor/shared/theme";
-import { ShadowlessElement } from "@virgultum/std";
+import {
+  EditorChromeHostIdentifier,
+  type RenderCodePreviewStatus,
+} from "@virgultum/editor/shared/services";
+import { unsafeCSSValue } from "@virgultum/editor/shared/theme";
+import { ShadowlessElement } from "@virgultum/core/runtime";
 import { css, html, type PropertyValues } from "lit";
 import { property, query, state } from "lit/decorators.js";
-import { choose } from "lit/directives/choose.js";
 import { styleMap } from "lit/directives/style-map.js";
 
 import { linkIframe } from "./iframe-container";
 
 export const CodeBlockHtmlPreview = CodeBlockPreviewExtension(
   "html",
-  (model) => html`<html-preview .model=${model}></html-preview>`,
+  (model, block) =>
+    html`<html-preview
+      .model=${model}
+      .renderStatus=${block?.std.get(EditorChromeHostIdentifier).renderCodePreviewStatus}
+    ></html-preview>`,
 );
 
 export class HTMLPreview extends SignalWatcher(
   WithDisposable(ShadowlessElement),
 ) {
   static override styles = css`
-    ${fontMonoStyle(".html-preview-loading")}
-    ${fontMonoStyle(".html-preview-error")}
-    ${fontMonoStyle(".html-preview-fallback")}
-
-    .html-preview-loading {
-      color: ${unsafeCSSVar("placeholderColor")};
-    }
-
-    .html-preview-error,
-    .html-preview-fallback {
-      color: ${unsafeCSSVar("errorColor")};
-    }
-
     .html-preview-iframe {
       width: 100%;
       height: calc(
@@ -45,6 +38,9 @@ export class HTMLPreview extends SignalWatcher(
       border: none;
     }
   `;
+
+  @property({ attribute: false })
+  accessor renderStatus!: RenderCodePreviewStatus;
 
   @property({ attribute: false })
   accessor model: CodeBlockModel | null = null;
@@ -106,31 +102,7 @@ export class HTMLPreview extends SignalWatcher(
   override render() {
     return html`
       <div class="html-preview-container">
-        ${choose(this.state, [
-          [
-            "loading",
-            () =>
-              html`<div class="html-preview-loading">
-                Rendering the code...
-              </div>`,
-          ],
-          [
-            "error",
-            () =>
-              html`<div class="html-preview-error">
-                Failed to render the preview. Please check your HTML code for
-                errors.
-              </div>`,
-          ],
-          [
-            "fallback",
-            () =>
-              html`<div class="html-preview-fallback">
-                This feature is not supported in your browser. Please download
-                the Myoxus Desktop App to use it.
-              </div>`,
-          ],
-        ])}
+        ${this.state === "finish" ? undefined : this.renderStatus({ language: "HTML", state: this.state === "fallback" ? "empty" : this.state })}
         <iframe
           class="html-preview-iframe"
           title="HTML Preview"

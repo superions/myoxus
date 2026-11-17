@@ -32,29 +32,42 @@ use super::{
 const DEFAULT_LIMIT: usize = 50;
 const MAX_LIMIT: usize = 200;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, rmcp::schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
-struct WorkspaceTagListRequest {
+#[schemars(crate = "rmcp::schemars")]
+pub(crate) struct WorkspaceTagListRequest {
+  #[schemars(with = "String", extend("format" = "uuid"))]
   workspace_id: Uuid,
   #[serde(default)]
   include_archived: bool,
+  // Preserve the published integer schemas without platform-specific formats.
   #[serde(default)]
+  #[schemars(transform = |schema: &mut rmcp::schemars::Schema| { schema.remove("format"); })]
   offset: usize,
   #[serde(default = "default_limit")]
+  #[schemars(range(min = 1, max = MAX_LIMIT))]
+  #[schemars(transform = |schema: &mut rmcp::schemars::Schema| { schema.remove("format"); })]
   limit: usize,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, rmcp::schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
-struct WorkspaceTagGetRequest {
+#[schemars(crate = "rmcp::schemars")]
+pub(crate) struct WorkspaceTagGetRequest {
+  #[schemars(with = "String", extend("format" = "uuid"))]
   workspace_id: Uuid,
+  #[schemars(with = "String", extend("format" = "uuid"))]
   tag_id: Uuid,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, rmcp::schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
-struct DocumentTagsGetRequest {
+#[schemars(crate = "rmcp::schemars")]
+pub(crate) struct DocumentTagsGetRequest {
+  #[schemars(with = "String", extend("format" = "uuid"))]
   workspace_id: Uuid,
+  /// External document key within workspace_id; never an internal document UUID.
+  #[schemars(length(min = 1))]
   external_id: String,
 }
 
@@ -100,12 +113,16 @@ struct WorkspaceTagDescriptionRequest {
   _idempotency_key: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, rmcp::schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
-struct WorkspaceTagLifecycleRequest {
+#[schemars(crate = "rmcp::schemars")]
+pub(crate) struct WorkspaceTagLifecycleRequest {
+  #[schemars(with = "String", extend("format" = "uuid"))]
   workspace_id: Uuid,
+  #[schemars(with = "String", extend("format" = "uuid"))]
   tag_id: Uuid,
   #[serde(rename = "idempotency_key")]
+  #[schemars(length(min = 1, max = 160))]
   _idempotency_key: String,
 }
 

@@ -8,7 +8,7 @@ import type { FrameworkProvider } from "@myoxus/infra";
 import { ClipboardConfigExtension } from "@virgultum/editor/blocks/root";
 import { ToolbarMoreMenuConfigExtension } from "@virgultum/editor/components/toolbar";
 import { EditorSettingExtension } from "@virgultum/editor/shared/services";
-import type { ExtensionType } from "@virgultum/store";
+import type { ExtensionType } from "@virgultum/core/store";
 
 export function getEditorConfigExtension(
   framework: FrameworkProvider,

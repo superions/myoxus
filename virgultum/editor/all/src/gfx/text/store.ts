@@ -1,1 +1,1 @@
-export * from "@virgultum/gfx-text/store";
+export { TextStoreExtension } from "@virgultum/canvas/store";

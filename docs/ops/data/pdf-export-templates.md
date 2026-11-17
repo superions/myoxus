@@ -188,8 +188,9 @@ technical stroke widths remain template-owned.
 Document colors follow the resolved export palette. Secondary text blends the
 effective text and background colors, neutral surfaces blend the effective
 background and rule colors, and structural strokes use the effective rule
-color. Callout labels continue to identify their type while their surface and
-edge use the effective background and accent. Explicit document branding keeps
+color. Native callouts retain their authored background and soft/accent/outline
+presentation. Their icon-picker colours select prebuilt SVGs from the light
+content palette. Explicit document branding keeps
 its existing precedence over theme defaults, and the selected document color
 policy remains independent from the application light/dark mode.
 

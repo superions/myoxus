@@ -1,1 +1,5 @@
-export * from "@virgultum/block-event";
+export {
+  EventBlockAdapterExtensions,
+  EventBlockComponent,
+  EventBlockSpec,
+} from "@virgultum/embeds/blocks";

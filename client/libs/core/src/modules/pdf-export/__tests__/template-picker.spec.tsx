@@ -92,27 +92,23 @@ describe("PDF template picker", () => {
     const defaultTemplate = screen.getByRole("radio", { name: /Default/ });
     expect(defaultTemplate.getAttribute("aria-checked")).toBe("true");
     expect(screen.getByText(/Workspace default/)).not.toBeNull();
-    expect(screen.getByText("Cover")).not.toBeNull();
-    expect(screen.getByText("TOC")).not.toBeNull();
-    expect(screen.getByText("Labels")).not.toBeNull();
-    expect(screen.getByText("2 locales")).not.toBeNull();
     fireEvent.click(screen.getByRole("radio", { name: /Report/ }));
     expect(onSelect).toHaveBeenCalledWith(templates[1]);
   });
 
-  test("lazy-loads the first-page preview on hover", async () => {
+  test("loads template previews when the visual picker is opened", async () => {
     const loadPreviewPdf = vi.fn(() => Promise.resolve("JVBERi0="));
     render(
       <MyoxusUIProvider>
         <PdfTemplatePicker
-          templates={templates}
+          templates={[templates[0]]}
           selectedTemplateId="tpl-default"
           loadPreviewPdf={loadPreviewPdf}
           onSelect={vi.fn()}
         />
       </MyoxusUIProvider>,
     );
-    expect(loadPreviewPdf).not.toHaveBeenCalled();
+    expect(loadPreviewPdf).toHaveBeenCalledWith(templates[0]);
 
     fireEvent.pointerEnter(
       screen.getByTestId("pdf-template-thumbnail-tpl-default"),

@@ -3713,6 +3713,8 @@ impl myoxus_worker::JobHandler for CopilotQueueHandler {
             role: LlmRole::User,
             content: prompt.into(),
             name: None,
+            tool_calls: Vec::new(),
+            reasoning: None,
             tool_call_id: None,
           }],
           temperature: Some(0.3),

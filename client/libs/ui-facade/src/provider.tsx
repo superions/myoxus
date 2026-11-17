@@ -1073,12 +1073,16 @@ export const myoxusMantineTheme = createTheme({
       defaultProps: {
         radius: "md",
       },
-      styles: {
+      styles: (_, props) => ({
         description: controlDescriptionStyle,
         error: controlDescriptionStyle,
-        input: controlInputStyle,
+        // Respect native borderless inputs inside an already framed composer.
+        input:
+          props.variant === "unstyled"
+            ? { ...controlInputStyle, border: 0, background: "transparent" }
+            : controlInputStyle,
         label: controlLabelStyle,
-      },
+      }),
     }),
     TextInput: TextInput.extend({
       defaultProps: {

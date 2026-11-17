@@ -1,1 +1,1 @@
-export * from "@virgultum/block-latex/store";
+export { BlockLatexStoreExtension as LatexStoreExtension } from "@virgultum/content/store";

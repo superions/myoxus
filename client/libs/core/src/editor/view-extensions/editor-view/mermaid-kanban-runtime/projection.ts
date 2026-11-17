@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { normalizeUrl, isValidUrl } from "@virgultum/shared/utils";
+import { normalizeUrl, isValidUrl } from "@virgultum/core/utils";
 import type { KanbanColumnModel, KanbanCardModel } from "@myoxus/ui-facade";
 import type { MermaidKanbanModel } from "@virgultum/block-mermaid";
 import type { KanbanDraft } from "./drafts";

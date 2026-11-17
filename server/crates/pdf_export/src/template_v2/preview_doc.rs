@@ -207,6 +207,8 @@ fn paragraph(content: Vec<InlineSpan>) -> Block {
   Block::Paragraph {
     content,
     children: vec![],
+    alignment: None,
+    eyebrow: false,
   }
 }
 
@@ -336,7 +338,9 @@ pub fn build_preview_doc(locale: &str) -> IrDocument {
               content: vec![text(content.notes[2])],
               checked: false,
               children: vec![],
+              start: None,
             }],
+            start: None,
           });
         }
         for checked in [true, false] {
@@ -345,6 +349,7 @@ pub fn build_preview_doc(locale: &str) -> IrDocument {
             content: vec![text(content.labels[if checked { 4 } else { 5 }])],
             checked,
             children: vec![],
+            start: None,
           });
         }
         blocks.push(Block::Quote {
@@ -354,6 +359,7 @@ pub fn build_preview_doc(locale: &str) -> IrDocument {
         blocks.push(Block::Callout {
           variant: CalloutVariant::Note,
           emoji: None,
+          paint: None,
           content: vec![text(content.notes[2])],
           children: vec![],
         });
@@ -380,12 +386,12 @@ pub fn build_preview_doc(locale: &str) -> IrDocument {
           height_hint: Some(100.0),
           data: Some(asset),
         }));
-        blocks.push(Block::Code(CodeBlock { language: Some("rust".into()), code: "struct Milestone {\n    title: String,\n    complete: bool,\n}\n\nfn completed(items: &[Milestone]) -> usize {\n    items.iter().filter(|item| item.complete).count()\n}".into(), caption: None }));
+        blocks.push(Block::Code(CodeBlock { language: Some("rust".into()), code: "struct Milestone {\n    title: String,\n    complete: bool,\n}\n\nfn completed(items: &[Milestone]) -> usize {\n    items.iter().filter(|item| item.complete).count()\n}".into(), caption: None , line_numbers: false}));
         blocks.push(paragraph(vec![InlineSpan::Latex {
           source: "a^2 + b^2 = c^2".into(),
         }]));
         blocks.push(Block::LatexBlock {
-          source: "sum_(i=1)^n i = (n (n + 1)) / 2".into(),
+          source: r"\sum_{i=1}^{n} i = \frac{n(n+1)}{2}".into(),
         });
       }
       9 => {

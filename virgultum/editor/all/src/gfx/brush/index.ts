@@ -1,1 +1,16 @@
-export * from "@virgultum/gfx-brush";
+export {
+  brushToMarkdownAdapterMatcher,
+  brushToPlainTextAdapterMatcher,
+  BrushTool,
+  EraserTool,
+  HighlighterTool,
+  BrushDomRendererExtension,
+  HighlighterDomRendererExtension,
+  BrushElementRendererExtension,
+  HighlighterElementRendererExtension,
+  brushToolbarConfig,
+  brushToolbarExtension,
+  highlighterToolbarConfig,
+  highlighterToolbarExtension,
+  penSeniorTool,
+} from "@virgultum/canvas/gfx";

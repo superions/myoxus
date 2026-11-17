@@ -1,1 +1,1 @@
-export * from "@virgultum/block-callout/view";
+export { CalloutViewExtension } from "@virgultum/content/view";

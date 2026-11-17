@@ -79,7 +79,12 @@ function renderDialog(
         docTitle="Doc"
         bootstrap={bootstrap}
         initialTemplateId={initialTemplateId}
-        initialFormValue={{ locale: "de", tocBehavior: "auto" }}
+        initialFormValue={{
+          locale: "de",
+          tocBehavior: "auto",
+          colorVariant: undefined,
+          complianceProfile: undefined,
+        }}
       />
     </MyoxusUIProvider>,
   );
@@ -94,11 +99,12 @@ describe("PDF export dialog", () => {
   test("uses native facade radio cards and form controls for the workflow", async () => {
     renderDialog();
 
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Report" }));
     const report = await screen.findByRole("radio", { name: /Report/ });
     expect(report.getAttribute("aria-checked")).toBe("true");
 
-    const user = userEvent.setup();
-    screen.getByRole("button", { name: /Export inputs/ }).focus();
+    screen.getByRole("button", { name: "Advanced options" }).focus();
     await user.keyboard("{Enter}");
     expect(screen.getByRole("combobox", { name: "Locale" })).toHaveProperty(
       "value",
@@ -121,6 +127,7 @@ describe("PDF export dialog", () => {
         locale: "de",
         tocBehavior: "auto",
         complianceProfile: "pdfa-2u",
+        colorVariant: "brand",
       }),
     );
     await waitFor(() =>
@@ -134,17 +141,15 @@ describe("PDF export dialog", () => {
   test("preserves explicit Tagged PDF selection through failure and retry", async () => {
     renderDialog();
     const user = userEvent.setup();
-    await user.click(
-      await screen.findByRole("button", { name: /Export inputs/ }),
-    );
+    await user.click(screen.getByRole("button", { name: "Advanced options" }));
     const profile = screen.getByRole("combobox", { name: "PDF profile" });
     expect(profile).toHaveProperty("value", "PDF/A-2u");
     profile.focus();
     await user.keyboard("{ArrowDown}{ArrowDown}{Enter}");
     expect(profile).toHaveProperty("value", "PDF 1.7 (Tagged)");
-    await user.click(screen.getByRole("button", { name: "Template" }));
+    await user.click(screen.getByRole("button", { name: "Report" }));
     await user.click(screen.getByRole("radio", { name: /Default/ }));
-    await user.click(screen.getByRole("button", { name: /Export inputs/ }));
+
     expect(
       screen.getByRole("combobox", { name: "PDF profile" }),
     ).toHaveProperty("value", "PDF 1.7 (Tagged)");
@@ -168,6 +173,7 @@ describe("PDF export dialog", () => {
       ),
     );
     await user.click(screen.getByRole("button", { name: /retry/i }));
+    await user.click(screen.getByRole("button", { name: "Advanced options" }));
     expect(
       screen.getByRole("combobox", { name: "PDF profile" }),
     ).toHaveProperty("value", "PDF 1.7 (Tagged)");
@@ -185,29 +191,20 @@ describe("PDF export dialog", () => {
     renderDialog();
     const user = userEvent.setup();
 
-    await user.click(
-      await screen.findByRole("button", { name: /Export inputs/ }),
-    );
-    const orientation = screen.getByRole("combobox", { name: "Orientation" });
-    expect(orientation).toHaveProperty("value", "Portrait");
-    orientation.focus();
-    await user.keyboard("{ArrowDown}{ArrowDown}{Enter}");
-    expect(orientation).toHaveProperty("value", "Landscape");
-
-    const paperSize = screen.getByRole("combobox", { name: "Paper size" });
-    paperSize.focus();
-    await user.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}{Enter}");
-    expect(paperSize).toHaveProperty("value", "A3");
-    await user.click(screen.getByRole("button", { name: "Template" }));
+    await user.click(screen.getByRole("button", { name: "Advanced options" }));
+    await user.click(screen.getByRole("radio", { name: "Grayscale" }));
+    await user.click(screen.getByRole("radio", { name: "Landscape" }));
+    await user.click(screen.getByRole("radio", { name: "A3" }));
+    await user.click(screen.getByRole("button", { name: "Report" }));
     await user.click(screen.getByRole("radio", { name: /Default/ }));
-    await user.click(screen.getByRole("button", { name: /Export inputs/ }));
 
-    expect(
-      screen.getByRole("combobox", { name: "Orientation" }),
-    ).toHaveProperty("value", "Landscape");
-    expect(screen.getByRole("combobox", { name: "Paper size" })).toHaveProperty(
-      "value",
-      "A3",
+    expect(screen.getByRole("radio", { name: "Landscape" })).toHaveProperty(
+      "checked",
+      true,
+    );
+    expect(screen.getByRole("radio", { name: "A3" })).toHaveProperty(
+      "checked",
+      true,
     );
     mocks.runServerPdfExport.mockResolvedValueOnce({
       unmappedFontFamilies: [],
@@ -222,12 +219,14 @@ describe("PDF export dialog", () => {
         templateId: "tpl-default",
         orientation: "landscape",
         paperSize: "A3",
+        colorVariant: "mono",
       }),
     );
   });
 
   test("keeps a historical slug selection within the assigned template inventory", async () => {
     renderDialog(createPdfExportBootstrap(), "report");
+    fireEvent.click(screen.getByRole("button", { name: "Report" }));
     expect(
       (await screen.findByRole("radio", { name: /Report/ })).getAttribute(
         "aria-checked",
@@ -271,29 +270,6 @@ describe("PDF export dialog", () => {
     },
   );
 
-  test("keeps navigation editable without treating the progress step as an export action", async () => {
-    renderDialog();
-    fireEvent.click(
-      await screen.findByRole("button", { name: /Export inputs/ }),
-    );
-    fireEvent.click(screen.getByRole("combobox", { name: "Locale" }));
-    fireEvent.click(await screen.findByRole("option", { name: "en" }));
-    fireEvent.click(screen.getByRole("button", { name: /Template/ }));
-    expect(screen.getByRole("radio", { name: /Report/ })).toBeInstanceOf(
-      HTMLElement,
-    );
-    fireEvent.click(screen.getByRole("button", { name: /Export inputs/ }));
-    expect(screen.getByRole("combobox", { name: "Locale" })).toHaveProperty(
-      "value",
-      "en",
-    );
-    fireEvent.click(screen.getByRole("button", { name: /Ready/ }));
-    expect(screen.getByRole("button", { name: "Start export" })).toBeInstanceOf(
-      HTMLElement,
-    );
-    expect(mocks.runServerPdfExport).not.toHaveBeenCalled();
-  });
-
   test("shows server input validation with a return path instead of generic support recovery", async () => {
     mocks.runServerPdfExport.mockRejectedValueOnce(
       Object.assign(new Error("invalid export inputs"), {
@@ -304,7 +280,6 @@ describe("PDF export dialog", () => {
       }),
     );
     renderDialog();
-    fireEvent.click(await screen.findByRole("button", { name: /continue/i }));
     fireEvent.click(screen.getByRole("button", { name: "Start export" }));
     expect(
       (await screen.findByTestId("pdf-export-error")).textContent,
@@ -328,10 +303,11 @@ describe("PDF export dialog", () => {
     bootstrap.availablePdfTemplates = [bootstrap.availablePdfTemplates[0]];
     renderDialog(bootstrap);
 
-    expect(
-      (await screen.findByRole("combobox", { name: "PDF profile" })).tagName,
-    ).toBe("INPUT");
-    expect(screen.queryByRole("radio")).toBeNull();
+    expect(screen.getByRole("button", { name: "Start export" })).toHaveProperty(
+      "disabled",
+      false,
+    );
+    expect(screen.queryByRole("button", { name: "Default" })).toBeNull();
   });
 
   test("rejects missing workspace configuration before opening a modal", () => {
@@ -369,7 +345,6 @@ describe("PDF export dialog", () => {
       warnings: [],
     };
     renderDialog(bootstrap);
-    fireEvent.click(await screen.findByRole("button", { name: /continue/i }));
 
     expect((await screen.findByRole("alert")).textContent).toContain(
       "Classification is required for export",

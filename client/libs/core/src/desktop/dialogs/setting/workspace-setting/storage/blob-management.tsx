@@ -5,7 +5,7 @@ import { useLiveData, useService } from "@myoxus/infra";
 import type { ListedBlobRecord } from "@myoxus/storage";
 import track from "@myoxus/track";
 import { getAttachmentFileIcon } from "@virgultum/editor/components/icons";
-import { formatByteSize } from "@virgultum/global/utils";
+import { formatByteSize } from "@virgultum/core/primitives/utils";
 import type { KeyboardEvent, MouseEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 

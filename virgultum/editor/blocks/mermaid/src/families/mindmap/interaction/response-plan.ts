@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { MindmapLayoutType as LayoutType } from "../projection/types.js";
 
-import { Bound } from "@virgultum/global/gfx";
+import { Bound } from "@virgultum/core/primitives/gfx";
 import { walkMindmapTree } from "../projection/tree-access.js";
 import type { MindmapLayoutAccess } from "../projection/layout-plan.js";
 import {

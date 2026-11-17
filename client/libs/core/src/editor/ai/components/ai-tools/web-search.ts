@@ -1,9 +1,15 @@
-import { WebIcon } from "@myoxus/icons/lit";
+import { createElement } from "react";
+import { WebIcon as NativeWebIcon } from "@myoxus/icons/react";
+import {
+  renderToolCallCard,
+  renderToolResultCard,
+  renderToolFailedCard,
+} from "./tool-cards";
+
 import type { ReactToLit } from "@myoxus/lit-react";
-import type { Signal } from "@preact/signals-core";
 import { WithDisposable } from "@virgultum/editor/global/lit";
 import { ShadowlessElement } from "@virgultum/editor/std";
-import { html, nothing } from "lit";
+import { nothing } from "lit";
 import { property } from "lit/decorators.js";
 
 import type { ToolError } from "./type";
@@ -38,17 +44,11 @@ export class WebSearchTool extends WithDisposable(ShadowlessElement) {
   @property({ attribute: false })
   accessor data!: WebSearchToolCall | WebSearchToolResult;
 
-  @property({ attribute: false })
-  accessor width: Signal<number | undefined> | undefined;
-
   renderToolCall() {
-    return html`
-      <tool-call-card
-        .reactToLit=${this.reactToLit}
-        .name=${`Searching the web for "${this.data.args.query}"`}
-        .icon=${WebIcon()}
-      ></tool-call-card>
-    `;
+    return renderToolCallCard(this.reactToLit, {
+      name: `Searching the web for "${this.data.args.query}"`,
+      icon: createElement(NativeWebIcon),
+    });
   }
 
   renderToolResult() {
@@ -62,32 +62,25 @@ export class WebSearchTool extends WithDisposable(ShadowlessElement) {
         const { favicon, title, content, url } = item;
         return {
           title: title,
-          icon: favicon || WebIcon(),
+          icon: favicon || createElement(NativeWebIcon),
           content: content,
           href: url,
         };
       });
       const footerIcons = result.map((item) => item.favicon).filter(Boolean);
 
-      return html`
-        <tool-result-card
-          .reactToLit=${this.reactToLit}
-          .name=${"The search is complete, and these webpages have been searched"}
-          .icon=${WebIcon()}
-          .footerIcons=${footerIcons}
-          .results=${results}
-          .width=${this.width}
-        ></tool-result-card>
-      `;
+      return renderToolResultCard(this.reactToLit, {
+        name: "The search is complete, and these webpages have been searched",
+        icon: createElement(NativeWebIcon),
+        footerIcons: footerIcons,
+        results: results,
+      });
     }
 
-    return html`
-      <tool-call-failed
-        .reactToLit=${this.reactToLit}
-        .name=${"Web search failed"}
-        .icon=${WebIcon()}
-      ></tool-call-failed>
-    `;
+    return renderToolFailedCard(this.reactToLit, {
+      name: "Web search failed",
+      icon: createElement(NativeWebIcon),
+    });
   }
 
   protected override render() {

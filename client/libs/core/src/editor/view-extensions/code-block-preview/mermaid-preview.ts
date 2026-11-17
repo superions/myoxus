@@ -1,6 +1,5 @@
 import {
   convertMermaidCodeBlockCommand,
-  mermaidMessages,
   MermaidRenderSourceError,
   renderMermaidSvg,
 } from "@virgultum/block-mermaid";
@@ -8,17 +7,21 @@ import type { CodeBlockComponent } from "@virgultum/editor/blocks/code";
 import { CodeBlockPreviewExtension } from "@virgultum/editor/blocks/code";
 import { SignalWatcher, WithDisposable } from "@virgultum/editor/global/lit";
 import type { CodeBlockModel } from "@virgultum/editor/model";
+import {
+  EditorChromeHostIdentifier,
+  type RenderCodePreviewStatus,
+} from "@virgultum/editor/shared/services";
 import { unsafeCSSVar } from "@virgultum/editor/shared/theme";
-import { ShadowlessElement } from "@virgultum/std";
+import { ShadowlessElement } from "@virgultum/core/runtime";
 import { css, html, nothing, type PropertyValues } from "lit";
 import { property, query, state } from "lit/decorators.js";
-import { choose } from "lit/directives/choose.js";
 import { styleMap } from "lit/directives/style-map.js";
 
 export const CodeBlockMermaidPreview = CodeBlockPreviewExtension(
   "mermaid",
   (model, blockComponent) =>
     html`<mermaid-preview
+      .renderStatus=${blockComponent?.std.get(EditorChromeHostIdentifier).renderCodePreviewStatus}
       .blockComponent=${blockComponent ?? null}
       .model=${model}
     ></mermaid-preview>`,
@@ -28,35 +31,6 @@ export class MermaidPreview extends SignalWatcher(
   WithDisposable(ShadowlessElement),
 ) {
   static override styles = css`
-    .mermaid-preview-loading {
-      color: ${unsafeCSSVar("placeholderColor")};
-      font-feature-settings:
-        "liga" off,
-        "clig" off;
-
-      /* light/code/base */
-      font-family: "IBM Plex Mono";
-      font-size: 12px;
-      font-style: normal;
-      font-weight: 400;
-      line-height: normal;
-    }
-
-    .mermaid-preview-error,
-    .mermaid-preview-fallback {
-      color: ${unsafeCSSVar("errorColor")};
-      font-feature-settings:
-        "liga" off,
-        "clig" off;
-
-      /* light/code/base */
-      font-family: "IBM Plex Mono";
-      font-size: 12px;
-      font-style: normal;
-      font-weight: 400;
-      line-height: normal;
-    }
-
     .mermaid-preview-container {
       width: 100%;
       min-height: 300px;
@@ -148,6 +122,9 @@ export class MermaidPreview extends SignalWatcher(
       z-index: 10;
     }
   `;
+
+  @property({ attribute: false })
+  accessor renderStatus!: RenderCodePreviewStatus;
 
   @property({ attribute: false })
   accessor model: CodeBlockModel | null = null;
@@ -390,46 +367,15 @@ export class MermaidPreview extends SignalWatcher(
   override render() {
     return html`
       <div class="mermaid-preview-wrapper">
-        ${choose(this.state, [
-          [
-            "loading",
-            () =>
-              html`<div class="mermaid-preview-loading">
-                <div style="text-align: center; padding: 20px;">
-                  <div style="margin-bottom: 8px;">
-                    Rendering Mermaid diagram...
-                  </div>
-                  <div style="font-size: 10px; opacity: 0.6;">Please wait</div>
-                </div>
-              </div>`,
-          ],
-          [
-            "error",
-            () =>
-              html`<div class="mermaid-preview-error">
-                <div style="text-align: center; padding: 20px;">
-                  <div style="margin-bottom: 8px;">
-                    Failed to render diagram
-                  </div>
-                  <div style="font-size: 10px; opacity: 0.6;">
-                    ${
-                      this.sourceError ||
-                      "Please check if your Mermaid code has syntax errors"
-                    }
-                  </div>
-                </div>
-              </div>`,
-          ],
-          [
-            "empty",
-            () =>
-              html`<div class="mermaid-preview-fallback">
-                <div style="text-align: center; padding: 20px;">
-                  ${mermaidMessages.previewEmpty()}
-                </div>
-              </div>`,
-          ],
-        ])}
+        ${
+          this.state === "finish"
+            ? nothing
+            : this.renderStatus({
+                language: "Mermaid",
+                state: this.state,
+                detail: this.sourceError,
+              })
+        }
         <div
           class="mermaid-preview-container"
           style=${styleMap({

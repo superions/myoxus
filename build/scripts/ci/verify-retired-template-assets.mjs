@@ -9,7 +9,7 @@ import { readZip } from "../zip-archive.mjs";
 export async function verifyRetiredTemplateAssets(repoRoot) {
   const forbiddenPaths = [
     "client/libs/templates",
-    "virgultum/editor/gfx/template/src/toolbar/cards.ts",
+    "virgultum/canvas/src/gfx/template/toolbar/cards.ts",
     "client/libs/core/public/static/templates",
     "client/libs/core/src/editor/ai/components/ai-chat-messages/templates",
     "client/libs/core/src/editor/ai/components/ai-chat-messages/preload-config.ts",

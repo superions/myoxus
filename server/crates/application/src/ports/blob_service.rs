@@ -743,8 +743,8 @@ impl BlobService {
     Ok(response)
   }
 
-  /// Speech inputs must be completed canonical attachments in the authorized
-  /// workspace. Both database and actual stored size are checked before use.
+  /// Bounded input materialization requires a completed canonical attachment in
+  /// the authorized workspace. Check both metadata and actual bytes before use.
   #[instrument(skip_all)]
   pub async fn get_blob_bounded(
     &self,

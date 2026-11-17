@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { createIdentifier } from "@virgultum/global/di";
-import type { ExtensionType } from "@virgultum/store";
+import { createIdentifier } from "@virgultum/core/primitives/di";
+import type { ExtensionType } from "@virgultum/core/store";
 import type { TemplateResult } from "lit";
-import type { BpmnPreviewArtifact } from "@virgultum/model";
+import type { BpmnPreviewArtifact } from "@virgultum/core/models";
 
 export type BpmnBlockPresentationProps = {
   docId: string;

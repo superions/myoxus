@@ -12,7 +12,7 @@ import {
   c4BoundaryHeaderHeight,
 } from "./boundary-projection.js";
 import { c4ProjectedContentStyle, c4NoPaint } from "./style-projection.js";
-import { measureTextInDOM } from "@virgultum/gfx-text";
+import { measureTextInDOM } from "@virgultum/canvas/gfx";
 import { resolveMermaidGfxProjectionTheme } from "../../mermaid-gfx-theme.js";
 import type {
   MermaidC4Model,

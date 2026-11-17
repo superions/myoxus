@@ -1,3 +1,4 @@
+import { REGISTER_FIELD_LABEL_KEYS } from "../../modules/document-metadata/utils";
 import type { FilterParams } from "@myoxus/core/modules/collection-rules";
 import type { DocRecord } from "@myoxus/core/modules/doc";
 import type { I18nString } from "@myoxus/i18n";
@@ -38,6 +39,7 @@ import {
   DocumentClassificationDocListProperty,
   DocumentClassificationGroupHeader,
   DocumentMetadataFilterValue,
+  DocumentResponsibleDocListProperty,
   DocumentReviewDueAtDocListProperty,
   DocumentReviewDueAtGroupHeader,
   DocumentStatusDocListProperty,
@@ -82,7 +84,7 @@ import {
 export const SystemPropertyTypes = {
   title: {
     icon: TitleIcon,
-    name: "Title",
+    name: REGISTER_FIELD_LABEL_KEYS.title,
     allowInOrderBy: true,
     filterMethod: {
       match: "com.myoxus.filter.contains",
@@ -92,7 +94,7 @@ export const SystemPropertyTypes = {
   },
   tags: {
     icon: TagIcon,
-    name: "Tags",
+    name: REGISTER_FIELD_LABEL_KEYS.tags,
     filterMethod: {
       "include-all": "com.myoxus.filter.contains all",
       "include-any-of": "com.myoxus.filter.contains one of",
@@ -112,7 +114,7 @@ export const SystemPropertyTypes = {
   },
   createdBy: {
     icon: MemberIcon,
-    name: "com.myoxus.page-properties.property.createdBy",
+    name: REGISTER_FIELD_LABEL_KEYS.createdBy,
     allowInGroupBy: true,
     allowInOrderBy: true,
     filterMethod: {
@@ -140,7 +142,7 @@ export const SystemPropertyTypes = {
   },
   updatedAt: {
     icon: DateTimeIcon,
-    name: "com.myoxus.page-properties.property.updatedAt",
+    name: REGISTER_FIELD_LABEL_KEYS.updatedAt,
     allowInGroupBy: true,
     allowInOrderBy: true,
     filterMethod: {
@@ -154,7 +156,7 @@ export const SystemPropertyTypes = {
   },
   createdAt: {
     icon: HistoryIcon,
-    name: "com.myoxus.page-properties.property.createdAt",
+    name: REGISTER_FIELD_LABEL_KEYS.createdAt,
     allowInGroupBy: true,
     allowInOrderBy: true,
     filterMethod: {
@@ -224,7 +226,7 @@ export const SystemPropertyTypes = {
   },
   status: {
     icon: HistoryIcon,
-    name: "Status",
+    name: REGISTER_FIELD_LABEL_KEYS.status,
     showInDocList: "stack",
     allowInGroupBy: true,
     allowInOrderBy: true,
@@ -239,9 +241,15 @@ export const SystemPropertyTypes = {
     filterValue: DocumentMetadataFilterValue,
     defaultFilter: { method: "is-not-empty" },
   },
+  responsible: {
+    icon: MemberIcon,
+    name: REGISTER_FIELD_LABEL_KEYS.responsible,
+    showInDocList: "inline",
+    docListProperty: DocumentResponsibleDocListProperty,
+  },
   documentType: {
     icon: FileIcon,
-    name: "com.myoxus.document-metadata.field.document-type",
+    name: REGISTER_FIELD_LABEL_KEYS.documentType,
     showInDocList: "stack",
     allowInGroupBy: true,
     allowInOrderBy: true,
@@ -258,7 +266,7 @@ export const SystemPropertyTypes = {
   },
   version: {
     icon: HistoryIcon,
-    name: "Version",
+    name: REGISTER_FIELD_LABEL_KEYS.version,
     showInDocList: "stack",
     allowInGroupBy: true,
     allowInOrderBy: true,
@@ -275,7 +283,7 @@ export const SystemPropertyTypes = {
   },
   classification: {
     icon: TagIcon,
-    name: "com.myoxus.document-metadata.field.classification",
+    name: REGISTER_FIELD_LABEL_KEYS.classification,
     showInDocList: "stack",
     allowInGroupBy: true,
     allowInOrderBy: true,
@@ -292,7 +300,7 @@ export const SystemPropertyTypes = {
   },
   reviewDueAt: {
     icon: DateTimeIcon,
-    name: "com.myoxus.document-metadata.field.review-due-at",
+    name: REGISTER_FIELD_LABEL_KEYS.reviewDueAt,
     showInDocList: "inline",
     allowInGroupBy: true,
     allowInOrderBy: true,
@@ -309,7 +317,7 @@ export const SystemPropertyTypes = {
   },
   validUntil: {
     icon: DateTimeIcon,
-    name: "com.myoxus.document-metadata.field.valid-until",
+    name: REGISTER_FIELD_LABEL_KEYS.validUntil,
     showInDocList: "inline",
     allowInGroupBy: true,
     allowInOrderBy: true,

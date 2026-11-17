@@ -3,7 +3,7 @@ import type {
   MermaidSequenceModel,
   SequenceArrowMarker,
 } from "../../engine/sequence/index.js";
-import { createConnectorEndpointMarker } from "@virgultum/gfx-connector";
+import { createConnectorEndpointMarker } from "@virgultum/canvas/gfx";
 import { endpointPointStyle } from "../runtime/gfx-element-projection-defaults.js";
 import { SEQUENCE_ARROW_MAP } from "../../engine/sequence/index.js";
 import type {

@@ -9,7 +9,7 @@
           "props": {
             "collapsed": false,
             "text": {
-              "$blocksuite:internal:text$": true,
+              "$virgultum:internal:text$": true,
               "delta": [
                 {
                   "insert": "123"
@@ -28,7 +28,7 @@
           "props": {
             "collapsed": false,
             "text": {
-              "$blocksuite:internal:text$": true,
+              "$virgultum:internal:text$": true,
               "delta": [
                 {
                   "attributes": {
@@ -52,7 +52,7 @@
           "props": {
             "collapsed": false,
             "text": {
-              "$blocksuite:internal:text$": true,
+              "$virgultum:internal:text$": true,
               "delta": [
                 {
                   "insert": "789"
@@ -90,7 +90,7 @@
   "id": "0",
   "props": {
     "title": {
-      "$blocksuite:internal:text$": true,
+      "$virgultum:internal:text$": true,
       "delta": []
     }
   },

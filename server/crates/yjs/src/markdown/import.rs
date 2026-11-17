@@ -1495,7 +1495,8 @@ fn import_with_reserved_blocks(
                   continue;
                 }
                 emit_paragraph(&segments, &mut builder, &mut lists, &mut items, &mut quotes, None);
-                pending_source_anchor = None;
+                // A trailing caret belongs to the final prose fragment, not
+                // the prefix flushed before this native embed.
                 segments.clear();
                 let parent = if let Some(quote) = quotes.last_mut().filter(|quote| quote.item_depth == items.len()) {
                   if quote.last_quote_id.is_none() {
@@ -1937,11 +1938,6 @@ fn parse_wiki_text(
     let alias = alias.map(str::trim).filter(|alias| !alias.is_empty());
     if target.is_empty() {
       parts.push(WikiInline::Text(source[syntax_start..token_end].to_string()));
-    } else if embedded && target.contains('#') {
-      diagnostics.push(super::MarkdownDiagnostic {
-        code: super::MarkdownDiagnosticCode::UnsupportedDocumentReference,
-      });
-      parts.push(WikiInline::Text(source[syntax_start..token_end].to_string()));
     } else {
       let link_target = if target.starts_with("https://") || target.starts_with("http://") {
         super::MarkdownLinkTarget::Url(target)
@@ -1952,20 +1948,36 @@ fn parse_wiki_text(
         super::MarkdownLinkResolution::Reference(mut reference) => {
           let alias = alias.map(str::to_string);
           if embedded {
-            if reference.params.as_ref().is_some_and(|params| {
-              ["blockIds", "elementIds"].iter().any(|key| {
-                params
-                  .get(key)
-                  .and_then(serde_json::Value::as_array)
-                  .is_some_and(|ids| !ids.is_empty())
-              })
-            }) {
-              diagnostics.push(super::MarkdownDiagnostic {
-                code: super::MarkdownDiagnosticCode::UnsupportedDocumentReference,
-              });
-              parts.push(WikiInline::Text(source[syntax_start..token_end].to_string()));
-              cursor = token_end;
-              continue;
+            match super::markdown_block_selection(reference.params.as_ref()) {
+              Ok(Some(_)) => {
+                let fragment = target.split_once('#').map(|(_, fragment)| fragment);
+                if let Some(params) = reference.params.as_mut().and_then(serde_json::Value::as_object_mut) {
+                  if !params.contains_key("blockSelection") {
+                    params.insert(
+                      "blockSelection".into(),
+                      serde_json::json!(
+                        if fragment.as_deref().is_some_and(|fragment| !(fragment.starts_with('^')
+                          || fragment.starts_with("%5E")
+                          || fragment.starts_with("%5e")))
+                        {
+                          "section"
+                        } else {
+                          "subtree"
+                        }
+                      ),
+                    );
+                  }
+                }
+              }
+              Ok(None) => {}
+              Err(_) => {
+                diagnostics.push(super::MarkdownDiagnostic {
+                  code: super::MarkdownDiagnosticCode::UnsupportedDocumentReference,
+                });
+                parts.push(WikiInline::Text(source[syntax_start..token_end].to_string()));
+                cursor = token_end;
+                continue;
+              }
             }
             reference.title = alias;
             parts.push(WikiInline::Embed {

@@ -8,89 +8,64 @@ import {
   ResetIcon,
   WarningIcon,
 } from "@myoxus/icons/react";
-import {
-  Grid,
-  Group,
-  IconButton,
-  Loading,
-  MyoxusText,
-  Stack,
-  SurfaceListItem,
-} from "@myoxus/ui-facade";
+import { IconButton, Loading, ReferenceCard } from "@myoxus/ui-facade";
 import type { EditorIframeStatusCardControls } from "@virgultum/editor/shared/services";
 
 export function EditorIframeStatusCard({
-  controls,
+  controls: c,
 }: {
   controls: EditorIframeStatusCardControls;
 }) {
   const t = useI18n();
   const title =
-    controls.status === "idle"
+    c.status === "idle"
       ? t["com.myoxus.editor.embed.idle-hint"]()
-      : controls.status === "loading"
+      : c.status === "loading"
         ? t["com.myoxus.loading"]()
         : t["com.myoxus.editor.embed.load-error"]();
-  const card = (
-    <SurfaceListItem
-      component="div"
-      appearance="card"
-      selected={controls.selected}
-      fullHeight
-      data-testid="editor-iframe-status-card"
-      aria-busy={controls.status === "loading"}
-    >
-      <Stack gap="xs" miw={0}>
-        <Group wrap="nowrap" gap="xs">
-          {controls.status === "loading" ? (
-            <Loading />
-          ) : controls.status === "error" ? (
-            <WarningIcon />
-          ) : (
-            <EmbedIcon />
-          )}
-          <MyoxusText truncate title={title}>
-            <strong>{title}</strong>
-          </MyoxusText>
-          {controls.status === "error" ? (
-            <Group wrap="nowrap" gap="xs">
-              {!controls.readonly ? (
-                <IconButton
-                  icon={<EditIcon />}
-                  tooltip={t["Edit"]()}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    controls.edit(event.currentTarget);
-                  }}
-                />
-              ) : null}
+  return (
+    <ReferenceCard
+      size="small"
+      contained={c.inSurface}
+      selected={c.selected}
+      fullHeight={c.inSurface}
+      title={title}
+      metadata={c.status === "error" ? c.message : undefined}
+      icon={
+        c.status === "loading" ? (
+          <Loading />
+        ) : c.status === "error" ? (
+          <WarningIcon />
+        ) : (
+          <EmbedIcon />
+        )
+      }
+      actions={
+        c.status === "error" ? (
+          <>
+            {!c.readonly ? (
               <IconButton
-                icon={<ResetIcon />}
-                tooltip={t["com.myoxus.editor.toolbar.reload"]()}
+                icon={<EditIcon />}
+                tooltip={t.Edit()}
                 onClick={(event) => {
                   event.stopPropagation();
-                  void controls.retry();
+                  c.edit(event.currentTarget);
                 }}
               />
-            </Group>
-          ) : null}
-        </Group>
-        {controls.status === "error" && controls.message ? (
-          <MyoxusText tone="secondary" truncate title={controls.message}>
-            {controls.message}
-          </MyoxusText>
-        ) : null}
-      </Stack>
-    </SurfaceListItem>
-  );
-  // Persisted canvas bounds stay with the renderer; Page follows the approved compact-card pattern.
-  return controls.inSurface ? (
-    card
-  ) : (
-    <Grid>
-      <Grid.Col span="content" maw="50%">
-        {card}
-      </Grid.Col>
-    </Grid>
+            ) : null}
+            <IconButton
+              icon={<ResetIcon />}
+              tooltip={t["com.myoxus.editor.toolbar.reload"]()}
+              onClick={(event) => {
+                event.stopPropagation();
+                void c.retry();
+              }}
+            />
+          </>
+        ) : undefined
+      }
+      data-testid="editor-iframe-status-card"
+      aria-busy={c.status === "loading"}
+    />
   );
 }

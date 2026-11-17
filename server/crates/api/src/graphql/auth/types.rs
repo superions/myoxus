@@ -1564,6 +1564,7 @@ pub struct WorkspaceOverviewSettingsInput {
 pub struct WorkspaceOverviewRegisterPresentationInput {
   pub display_properties: Vec<String>,
   pub order_by: WorkspaceOverviewOrderByInput,
+  pub selection: Option<WorkspaceOverviewRegisterSelectionInput>,
 }
 
 #[derive(InputObject)]
@@ -1603,14 +1604,7 @@ impl WorkspaceOverviewSettingsInput {
       register_presentation: match self.register_presentation {
         MaybeUndefined::Undefined => None,
         MaybeUndefined::Null => Some(None),
-        MaybeUndefined::Value(value) => Some(Some(myoxus_domain::workspace_overview::OverviewRegisterPresentation {
-          display_properties: value.display_properties,
-          order_by: myoxus_domain::workspace_overview::OverviewOrderBy {
-            property_type: value.order_by.property_type,
-            key: value.order_by.key,
-            desc: value.order_by.desc,
-          },
-        })),
+        MaybeUndefined::Value(value) => Some(Some(value.into())),
       },
     })
   }
@@ -3081,4 +3075,53 @@ pub struct ServerUserSearchResult {
   pub name: String,
   #[graphql(name = "avatarUrl")]
   pub avatar_url: Option<String>,
+}
+
+#[derive(InputObject)]
+pub struct WorkspaceOverviewRegisterSelectionInput {
+  #[graphql(default)]
+  pub subtree: bool,
+  #[graphql(default)]
+  pub tag_ids: Vec<Uuid>,
+  #[graphql(default)]
+  pub match_all_tags: bool,
+  #[graphql(default)]
+  pub filters: Vec<WorkspaceOverviewRegisterFilterInput>,
+}
+#[derive(InputObject)]
+pub struct WorkspaceOverviewRegisterFilterInput {
+  pub key: String,
+  pub method: String,
+  pub value: Option<String>,
+}
+impl From<WorkspaceOverviewRegisterPresentationInput>
+  for myoxus_domain::workspace_overview::OverviewRegisterPresentation
+{
+  fn from(value: WorkspaceOverviewRegisterPresentationInput) -> Self {
+    Self {
+      display_properties: value.display_properties,
+      order_by: myoxus_domain::workspace_overview::OverviewOrderBy {
+        property_type: value.order_by.property_type,
+        key: value.order_by.key,
+        desc: value.order_by.desc,
+      },
+      selection: value
+        .selection
+        .map(|v| myoxus_domain::workspace_overview::OverviewRegisterSelection {
+          subtree: v.subtree,
+          tag_ids: v.tag_ids,
+          match_all_tags: v.match_all_tags,
+          filters: v
+            .filters
+            .into_iter()
+            .map(|f| myoxus_domain::workspace_overview::DocumentIndexFilter {
+              key: f.key,
+              method: f.method,
+              value: f.value,
+            })
+            .collect(),
+        })
+        .unwrap_or_default(),
+    }
+  }
 }

@@ -70,11 +70,10 @@ pub fn compile_handover_definition(
     || format!("{:x}", Sha256::digest(&source.source_bytes)) != source.identity.digest
     || source.source.nodes.len() != 2
     || source.source.capability_versions
-      != [
+      != BTreeMap::from([
         (AssistantWorkflowCapability::AwaitTaskSet, 1),
         (AssistantWorkflowCapability::CreateTaskFromDocument, 1),
-      ]
-      .into()
+      ])
   {
     return Err(invalid());
   }

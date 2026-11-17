@@ -40,7 +40,7 @@ import {
   createFeatureManifestRegistry,
   type FeatureManifest,
   featureManifestId,
-} from "@virgultum/ext-loader";
+} from "@virgultum/core/extensions";
 import { describe, expect, test } from "vitest";
 
 import { internalManifestRegistry } from "../manifest-registry";

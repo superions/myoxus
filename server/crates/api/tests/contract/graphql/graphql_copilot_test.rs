@@ -255,13 +255,16 @@ async fn inv_copilot_complete_history_filters_precede_paging_and_scope_authoriza
   let workspace = helpers::create_workspace(&pool, user).await;
   let doc = helpers::create_doc(&pool, workspace, user).await;
   let other_doc = helpers::create_doc(&pool, workspace, user).await;
-  let ids = (0..210).map(|_| Uuid::new_v4()).collect::<Vec<_>>();
+  // One newest orphan must not poison the catalog or enter its count/paging.
+  // Extant unreadable off-page targets are still rejected below.
+  let missing_doc = Uuid::new_v4();
+  let ids = (0..211).map(|_| Uuid::new_v4()).collect::<Vec<_>>();
   let records = ids
     .iter()
     .enumerate()
     .map(|(index, id)| {
       json!({
-        "id":id,"sequence":index,"doc_id":if index<4 {Some(doc)} else if index==4 {Some(other_doc)} else {None},
+        "id":id,"sequence":index,"doc_id":if index<4 {Some(doc)} else if index==4 {Some(other_doc)} else if index==210 {Some(missing_doc)} else {None},
         "pinned":index<2,"archived":index==0,
         "metadata":match index {
           2=>json!({"action":"rewrite"}),

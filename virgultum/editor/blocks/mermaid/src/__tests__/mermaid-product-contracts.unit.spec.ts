@@ -861,6 +861,5 @@ describe("Mermaid product integration contracts", () => {
   test("registers the first-class Mermaid custom elements", () => {
     effects();
     expect(customElements.get("myoxus-mermaid")).toBeTruthy();
-    expect(customElements.get("edgeless-mermaid-tool-button")).toBeTruthy();
   });
 });

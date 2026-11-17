@@ -1,1 +1,17 @@
-export * from "@virgultum/gfx-note";
+export {
+  type NoteToolOption,
+  NoteTool,
+  addNoteAtPoint,
+  NOTE_OVERLAY_OFFSET_X,
+  NOTE_OVERLAY_OFFSET_Y,
+  NOTE_OVERLAY_WIDTH,
+  NOTE_OVERLAY_HEIGHT,
+  NOTE_OVERLAY_CORNER_RADIUS,
+  NOTE_OVERLAY_STOKE_COLOR,
+  NOTE_OVERLAY_TEXT_COLOR,
+  NOTE_OVERLAY_LIGHT_BACKGROUND_COLOR,
+  NOTE_OVERLAY_DARK_BACKGROUND_COLOR,
+  NoteOverlay,
+  DraggingNoteOverlay,
+  noteSeniorTool,
+} from "@virgultum/canvas/gfx";

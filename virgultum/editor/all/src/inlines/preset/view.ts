@@ -1,1 +1,1 @@
-export * from "@virgultum/inline-preset/view";
+export { InlinePresetViewExtension } from "@virgultum/content/view";

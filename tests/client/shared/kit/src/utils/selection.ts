@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import type { RichText } from "@virgultum/rich-text";
+import type { RichText } from "@virgultum/content/rich-text";
 
 export async function setSelection(
   page: Page,

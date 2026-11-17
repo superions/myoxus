@@ -110,6 +110,8 @@ pub fn build_stub_doc() -> IrDocument {
         text("."),
       ],
       children: vec![],
+      alignment: None,
+      eyebrow: false,
     },
     // Image placeholder (1×1 PNG)
     Block::Image(ImageRef {
@@ -131,11 +133,11 @@ pub fn build_stub_doc() -> IrDocument {
       language: Some("rust".into()),
       code: "fn main() {\n    println!(\"hello\");\n}".into(),
       caption: None,
+      line_numbers: false,
     }),
-    // Block-level math — use Typst-style math (no backslash, letter atoms).
-    // "E = m c^2" uses product of variables m and c (squared).
+    // Preview content uses the same authored LaTeX contract as real documents.
     Block::LatexBlock {
-      source: "E = m c^2".into(),
+      source: r"E=mc^2, \quad \frac{a}{b}".into(),
     },
     // A second outlined heading exercises the automatic TOC threshold.
     Block::Heading {
@@ -227,6 +229,7 @@ pub fn build_stub_doc() -> IrDocument {
         body: Some("Inter".into()),
         mono: Some("JetBrains Mono".into()),
         symbol: Some("JetBrains Mono".into()),
+        eyebrow: None,
       },
       theme_typography: Default::default(),
       native_table_palette: None,

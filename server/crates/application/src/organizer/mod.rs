@@ -3409,6 +3409,7 @@ mod tests {
       document.register = Some(crate::workspace_overview::OverviewRegisterFacts {
         labels: Default::default(),
         metadata: myoxus_domain::entities::DocumentMetadataIndexRow {
+          responsible_user_id: None,
           doc_id: document.doc_id,
           external_id: document.reference.resource_id().into(),
           created_by: Some(Uuid::from_u128(rank)),
@@ -3432,6 +3433,7 @@ mod tests {
           classification_id: None,
         },
         created_at: epoch + chrono::Duration::seconds(if rank == 1 { 1 } else { 2 }),
+        responsible_name: None,
         created_by_name: Some(
           match rank {
             1 => "ZZZ",
@@ -3458,6 +3460,7 @@ mod tests {
       ("tags", false, ["shared key", "introduction", "unplaced"]),
     ] {
       sorted_settings.register_presentation = Some(myoxus_domain::workspace_overview::OverviewRegisterPresentation {
+          selection: Default::default(),
         display_properties: vec!["system:title".into()],
         order_by: myoxus_domain::workspace_overview::OverviewOrderBy {
           property_type: "system".into(),

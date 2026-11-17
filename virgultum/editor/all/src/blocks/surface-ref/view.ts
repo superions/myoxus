@@ -1,1 +1,1 @@
-export * from "@virgultum/block-surface-ref/view";
+export { SurfaceRefViewExtension } from "@virgultum/canvas/view";

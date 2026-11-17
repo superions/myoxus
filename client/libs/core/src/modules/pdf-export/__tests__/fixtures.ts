@@ -13,6 +13,11 @@ export function createPdfExportBootstrap(): PdfExportDialogBootstrap {
         schemaVersion: "2.0",
         isDefault: true,
         capabilities: {
+          colorVariant: {
+            kind: "enum",
+            values: ["mono", "accent", "brand"],
+            default: "brand",
+          },
           language: { kind: "enum", values: ["en", "de"], default: "en" },
           tocBehavior: {
             kind: "enum",
@@ -29,6 +34,11 @@ export function createPdfExportBootstrap(): PdfExportDialogBootstrap {
         schemaVersion: "2.0",
         isDefault: false,
         capabilities: {
+          colorVariant: {
+            kind: "enum",
+            values: ["mono", "accent", "brand"],
+            default: "brand",
+          },
           language: { kind: "enum", values: ["en", "de"], default: "en" },
           tocBehavior: {
             kind: "enum",

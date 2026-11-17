@@ -331,7 +331,6 @@ path = [
   "libs/core/src/desktop/dialogs/selectors/date.tsx",
   "libs/core/src/desktop/dialogs/selectors/doc.tsx",
   "libs/core/src/desktop/dialogs/selectors/tag.tsx",
-  "libs/core/src/desktop/dialogs/setting/account-setting/ai-usage-panel.tsx",
   "libs/core/src/desktop/dialogs/setting/account-setting/delete-account.tsx",
   "libs/core/src/desktop/dialogs/setting/account-setting/index.tsx",
   "libs/core/src/desktop/dialogs/setting/account-setting/storage-progress.tsx",
@@ -491,48 +490,29 @@ path = [
   "libs/core/src/editor/ai/blocks/ai-chat-block/model/consts.ts",
   "libs/core/src/editor/ai/blocks/ai-chat-block/styles.ts",
   "libs/core/src/editor/ai/blocks/transcription-block/model.ts",
-  "libs/core/src/editor/ai/chat-panel/actions/action-wrapper.ts",
-  "libs/core/src/editor/ai/chat-panel/actions/image-to-text.ts",
-  "libs/core/src/editor/ai/chat-panel/actions/image.ts",
-  "libs/core/src/editor/ai/chat-panel/actions/mindmap.ts",
-  "libs/core/src/editor/ai/chat-panel/actions/slides.ts",
-  "libs/core/src/editor/ai/chat-panel/actions/text.ts",
   "libs/core/src/editor/ai/chat-panel/ai-loading.ts",
   "libs/core/src/editor/ai/chat-panel/chat-config.ts",
-  "libs/core/src/editor/ai/chat-panel/message/action.ts",
   "libs/core/src/editor/ai/chat-panel/message/assistant.ts",
   "libs/core/src/editor/ai/chat-panel/message/user.ts",
-  "libs/core/src/editor/ai/components/ai-artifact-skeleton/index.ts",
   "libs/core/src/editor/ai/components/ai-chat-add-context/ai-chat-add-context.ts",
   "libs/core/src/editor/ai/components/ai-chat-add-context/type.ts",
   "libs/core/src/editor/ai/components/ai-chat-chips/add-popover.ts",
-  "libs/core/src/editor/ai/components/ai-chat-chips/attachment-chip.ts",
   "libs/core/src/editor/ai/components/ai-chat-chips/candidates-popover.ts",
   "libs/core/src/editor/ai/components/ai-chat-chips/chat-panel-chips.ts",
   "libs/core/src/editor/ai/components/ai-chat-chips/chip.ts",
-  "libs/core/src/editor/ai/components/ai-chat-chips/collection-chip.ts",
   "libs/core/src/editor/ai/components/ai-chat-chips/doc-chip.ts",
-  "libs/core/src/editor/ai/components/ai-chat-chips/file-chip.ts",
-  "libs/core/src/editor/ai/components/ai-chat-chips/selected-chip.ts",
-  "libs/core/src/editor/ai/components/ai-chat-chips/tag-chip.ts",
   "libs/core/src/editor/ai/components/ai-chat-chips/type.ts",
   "libs/core/src/editor/ai/components/ai-chat-chips/utils.ts",
-  "libs/core/src/editor/ai/components/ai-chat-composer/ai-chat-composer-tip.ts",
   "libs/core/src/editor/ai/components/ai-chat-composer/ai-chat-composer.ts",
   "libs/core/src/editor/ai/components/ai-chat-content/ai-chat-content.ts",
-  "libs/core/src/editor/ai/components/ai-chat-content/split-view.ts",
   "libs/core/src/editor/ai/components/ai-chat-content/type.ts",
   "libs/core/src/editor/ai/components/ai-chat-input/ai-chat-input.ts",
   "libs/core/src/editor/ai/components/ai-chat-input/const.ts",
-  "libs/core/src/editor/ai/components/ai-chat-input/embedding-status-tooltip.ts",
   "libs/core/src/editor/ai/components/ai-chat-input/preference-popup.ts",
   "libs/core/src/editor/ai/components/ai-chat-input/type.ts",
   "libs/core/src/editor/ai/components/ai-chat-messages/ai-chat-messages.ts",
   "libs/core/src/editor/ai/components/ai-chat-messages/type.ts",
   "libs/core/src/editor/ai/components/ai-history-clear/ai-history-clear.ts",
-  "libs/core/src/editor/ai/components/ai-item/ai-item-list.ts",
-  "libs/core/src/editor/ai/components/ai-item/ai-item.ts",
-  "libs/core/src/editor/ai/components/ai-item/ai-sub-item-list.ts",
   "libs/core/src/editor/ai/components/ai-item/types.ts",
   "libs/core/src/editor/ai/components/ai-message-content/images.ts",
   "libs/core/src/editor/ai/components/ai-message-content/pure-text.ts",
@@ -549,22 +529,15 @@ path = [
   "libs/core/src/editor/ai/components/ai-tools/doc-semantic-search-result.ts",
   "libs/core/src/editor/ai/components/ai-tools/doc-write.ts",
   "libs/core/src/editor/ai/components/ai-tools/section-edit.ts",
-  "libs/core/src/editor/ai/components/ai-tools/tool-call-card.ts",
-  "libs/core/src/editor/ai/components/ai-tools/tool-failed-card.ts",
-  "libs/core/src/editor/ai/components/ai-tools/tool-result-card.ts",
   "libs/core/src/editor/ai/components/ai-tools/type.ts",
   "libs/core/src/editor/ai/components/ai-tools/web-crawl.ts",
   "libs/core/src/editor/ai/components/ai-tools/web-search.ts",
-  "libs/core/src/editor/ai/components/ask-ai-button.ts",
-  "libs/core/src/editor/ai/components/ask-ai-icon.ts",
   "libs/core/src/editor/ai/components/ask-ai-panel.ts",
-  "libs/core/src/editor/ai/components/chat-action-list.ts",
   "libs/core/src/editor/ai/components/copy-more.ts",
   "libs/core/src/editor/ai/components/image-preview-grid.ts",
   "libs/core/src/editor/ai/components/page-editor-block-specs.ts",
   "libs/core/src/editor/ai/components/playground/chat.ts",
   "libs/core/src/editor/ai/components/playground/content.ts",
-  "libs/core/src/editor/ai/components/playground/modal.ts",
   "libs/core/src/editor/ai/components/text-renderer.ts",
   "libs/core/src/editor/ai/effects/editor.ts",
   "libs/core/src/editor/ai/effects/registry.ts",
@@ -584,8 +557,6 @@ path = [
   "libs/core/src/editor/ai/mini-mindmap/__tests__/mindmap-preview.unit.spec.ts",
   "libs/core/src/editor/ai/mini-mindmap/mindmap-preview.ts",
   "libs/core/src/editor/ai/peek-view/chat-block-peek-view.ts",
-  "libs/core/src/editor/ai/peek-view/date-time.ts",
-  "libs/core/src/editor/ai/peek-view/styles.ts",
   "libs/core/src/editor/ai/peek-view/types.ts",
   "libs/core/src/editor/ai/peek-view/utils.ts",
   "libs/core/src/editor/ai/provider/ai-provider.ts",
@@ -618,13 +589,6 @@ path = [
   "libs/core/src/editor/ai/utils/selection-utils.ts",
   "libs/core/src/editor/ai/utils/stream-objects.ts",
   "libs/core/src/editor/ai/widgets/ai-panel/ai-panel.ts",
-  "libs/core/src/editor/ai/widgets/ai-panel/components/divider.ts",
-  "libs/core/src/editor/ai/widgets/ai-panel/components/finish-tip.ts",
-  "libs/core/src/editor/ai/widgets/ai-panel/components/generating-placeholder.ts",
-  "libs/core/src/editor/ai/widgets/ai-panel/components/state/answer.ts",
-  "libs/core/src/editor/ai/widgets/ai-panel/components/state/error.ts",
-  "libs/core/src/editor/ai/widgets/ai-panel/components/state/generating.ts",
-  "libs/core/src/editor/ai/widgets/ai-panel/components/state/input.ts",
   "libs/core/src/editor/ai/widgets/ai-panel/type.ts",
   "libs/core/src/editor/ai/widgets/block-diff/block.ts",
   "libs/core/src/editor/ai/widgets/block-diff/options.ts",
@@ -2652,7 +2616,6 @@ path = [
   "libs/core/src/editor/ai/blocks/ai-chat-block/index.ts",
   "libs/core/src/editor/ai/blocks/ai-chat-block/model/index.ts",
   "libs/core/src/editor/ai/blocks/index.ts",
-  "libs/core/src/editor/ai/chat-panel/actions/make-real.ts",
   "libs/core/src/editor/ai/components/ai-chat-add-context/index.ts",
   "libs/core/src/editor/ai/components/ai-chat-chips/index.ts",
   "libs/core/src/editor/ai/components/ai-chat-composer/index.ts",
@@ -2661,8 +2624,6 @@ path = [
   "libs/core/src/editor/ai/components/ai-chat-messages/index.ts",
   "libs/core/src/editor/ai/components/ai-chat-toolbar/index.ts",
   "libs/core/src/editor/ai/components/ai-history-clear/index.ts",
-  "libs/core/src/editor/ai/components/ai-item/index.ts",
-  "libs/core/src/editor/ai/components/ai-item/styles.ts",
   "libs/core/src/editor/ai/components/ai-message-content/assistant-avatar.ts",
   "libs/core/src/editor/ai/components/playground/index.ts",
   "libs/core/src/editor/ai/effects/app.ts",
@@ -2678,10 +2639,7 @@ path = [
   "libs/core/src/editor/ai/slides/slide-backgrounds.spec.ts",
   "libs/core/src/editor/ai/slides/slide-backgrounds.ts",
   "libs/core/src/editor/ai/utils/attachment.ts",
-  "libs/core/src/editor/ai/utils/history-image-actions.ts",
   "libs/core/src/editor/ai/utils/html.ts",
-  "libs/core/src/editor/ai/widgets/ai-panel/components/index.ts",
-  "libs/core/src/editor/ai/widgets/ai-panel/components/state/index.ts",
   "libs/core/src/editor/ai/widgets/ai-panel/utils.ts",
   "libs/core/src/editor/attachment-viewer/pdf/utils.spec.ts",
   "libs/core/src/editor/attachment-viewer/viewer.spec.tsx",
@@ -3636,18 +3594,14 @@ path = [
 precedence = "override"
 
 [[annotations]]
-SPDX-FileCopyrightText = "2018 Google LLC"
+SPDX-FileCopyrightText  = "2018 Google LLC"
 SPDX-License-Identifier = "BSD-3-Clause"
-X-Myoxus-Origin = "T1"
-path = [
-  "libs/lit-react/src/create-component.ts",
-]
-precedence = "override"
+X-Myoxus-Origin         = "T1"
+path                    = ["libs/lit-react/src/create-component.ts"]
+precedence              = "override"
 
 [[annotations]]
-SPDX-FileCopyrightText = [
-  "2026-present Daniel Scharf and Myoxus contributors",
-]
+SPDX-FileCopyrightText = ["2026-present Daniel Scharf and Myoxus contributors"]
 SPDX-License-Identifier = "AGPL-3.0-or-later"
 X-Myoxus-Origin = "M0"
 path = [
@@ -4206,9 +4160,7 @@ path = [
 precedence = "override"
 
 [[annotations]]
-SPDX-FileCopyrightText = [
-  "2026-present Daniel Scharf and Myoxus contributors",
-]
+SPDX-FileCopyrightText = ["2026-present Daniel Scharf and Myoxus contributors"]
 SPDX-License-Identifier = "AGPL-3.0-or-later"
 X-Myoxus-Origin = "M0"
 path = [
@@ -4350,9 +4302,7 @@ path = [
 precedence = "override"
 
 [[annotations]]
-SPDX-FileCopyrightText = [
-  "2023-2026 The Apache Software Foundation",
-]
+SPDX-FileCopyrightText = ["2023-2026 The Apache Software Foundation"]
 SPDX-License-Identifier = "Apache-2.0"
 X-Myoxus-Origin = "T1"
 path = [
@@ -4576,9 +4526,7 @@ path = [
 precedence = "override"
 
 [[annotations]]
-SPDX-FileCopyrightText = [
-  "2026-present Daniel Scharf and Myoxus contributors",
-]
+SPDX-FileCopyrightText = ["2026-present Daniel Scharf and Myoxus contributors"]
 SPDX-License-Identifier = "AGPL-3.0-or-later"
 X-Myoxus-Origin = "M0"
 path = [
@@ -4725,15 +4673,11 @@ SPDX-FileCopyrightText = [
 ]
 SPDX-License-Identifier = "LicenseRef-OMG-BPMN AND W3C-20150513"
 X-Myoxus-Origin = "T1"
-path = [
-  "libs/bpmn-editor/THIRD-PARTY-NOTICES",
-]
+path = ["libs/bpmn-editor/THIRD-PARTY-NOTICES"]
 precedence = "override"
 
 [[annotations]]
-SPDX-FileCopyrightText = [
-  "2026-present Daniel Scharf and Myoxus contributors",
-]
+SPDX-FileCopyrightText = ["2026-present Daniel Scharf and Myoxus contributors"]
 SPDX-License-Identifier = "AGPL-3.0-or-later"
 X-Myoxus-Origin = "M0"
 path = [
@@ -4981,9 +4925,7 @@ X-Myoxus-LicenseException = "component-declared"
 X-Myoxus-Origin = "F1"
 X-Myoxus-UpstreamCutoff = "e31cca33540af2737dc9e520b70acac170c0709e"
 X-Myoxus-UpstreamCutoffDate = "2026-03-04"
-path = [
-  "apps/electron/resources/templates/linux.metainfo.xml",
-]
+path = ["apps/electron/resources/templates/linux.metainfo.xml"]
 precedence = "override"
 
 [[annotations]]
@@ -4994,19 +4936,15 @@ SPDX-License-Identifier = "MIT"
 X-Myoxus-Origin = "F1"
 X-Myoxus-UpstreamCutoff = "e31cca33540af2737dc9e520b70acac170c0709e"
 X-Myoxus-UpstreamCutoffDate = "2026-03-04"
-path = [
-  "apps/electron/scripts/package.json",
-]
+path = ["apps/electron/scripts/package.json"]
 precedence = "override"
 
 [[annotations]]
-SPDX-FileCopyrightText = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-FileCopyrightText  = "2026-present Daniel Scharf and Myoxus contributors"
 SPDX-License-Identifier = "AGPL-3.0-or-later"
-X-Myoxus-Origin = "M0"
-path = [
-  "libs/notifications/src/index.ts",
-]
-precedence = "override"
+X-Myoxus-Origin         = "M0"
+path                    = ["libs/notifications/src/index.ts"]
+precedence              = "override"
 
 [[annotations]]
 SPDX-FileCopyrightText = "2026-present Daniel Scharf and Myoxus contributors"
@@ -5021,6 +4959,7 @@ path = [
   "libs/core/src/editor/virgultum/font-projection.spec.ts",
   "libs/core/src/editor/view-extensions/editor-view/editor-chrome/glyphs.tsx",
   "libs/core/src/editor/view-extensions/editor-view/editor-chrome/selection-toolbar/index.tsx",
+  "libs/core/src/editor/view-extensions/editor-view/editor-chrome/selection-toolbar.spec.tsx",
   "libs/core/src/editor/view-extensions/editor-view/editor-chrome/selection-toolbar/surface-property.tsx",
   "libs/core/src/editor/view-extensions/editor-view/editor-chrome/selection-toolbar/text-format.tsx",
   "libs/core/src/editor/view-extensions/editor-view/editor-chrome/zoom.tsx",
@@ -5794,14 +5733,13 @@ path = [
 ]
 
 [[annotations]]
-SPDX-FileCopyrightText = [
-  "2026-present Daniel Scharf and Myoxus contributors",
-]
+SPDX-FileCopyrightText = ["2026-present Daniel Scharf and Myoxus contributors"]
 SPDX-License-Identifier = "AGPL-3.0-or-later"
 X-Myoxus-Origin = "M0"
 path = [
   "libs/core/src/editor/ai/entries/code-toolbar/code-toolbar-actions.ts",
   "libs/core/src/editor/view-extensions/editor-view/editor-chrome/code-toolbar.tsx",
+  "libs/core/src/editor/view-extensions/editor-view/editor-chrome/table-control.tsx",
   "libs/core/src/editor/view-extensions/editor-view/editor-chrome/attachment-rename.tsx",
   "libs/core/src/editor/view-extensions/editor-view/editor-chrome/embed-card-create.tsx",
   "libs/core/src/editor/view-extensions/editor-view/editor-chrome/embed-card-edit.tsx",
@@ -5809,7 +5747,7 @@ path = [
   "libs/core/src/editor/view-extensions/editor-view/editor-chrome/equation-editor.tsx",
   "libs/core/src/editor/view-extensions/editor-view/editor-chrome/citation-preview.tsx",
   "libs/core/src/editor/view-extensions/editor-view/editor-chrome/document-outline.tsx",
-  "libs/core/src/editor/view-extensions/editor-view/editor-chrome/table-menu.tsx",
+  "libs/core/src/editor/view-extensions/editor-view/editor-chrome/action-menu.tsx",
   "apps/electron/test/main/open-external.spec.ts",
 ]
 
@@ -5851,4 +5789,133 @@ SPDX-License-Identifier = "AGPL-3.0-or-later"
 X-Myoxus-Origin = "M0"
 path = [
   "libs/core/src/editor/view-extensions/editor-view/editor-chrome/bookmark-card.tsx",
+]
+
+[[annotations]]
+SPDX-FileCopyrightText = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+X-Myoxus-Origin = "M0"
+path = [
+  "libs/core/src/editor/view-extensions/code-block-preview/status-view.tsx",
+  "libs/core/src/editor/view-extensions/editor-view/editor-chrome/event-card.tsx",
+  "libs/core/src/editor/view-extensions/editor-view/editor-chrome/figma-card.tsx",
+  "libs/core/src/editor/view-extensions/editor-view/editor-chrome/frame-navigator.tsx",
+  "libs/core/src/editor/view-extensions/editor-view/editor-chrome/github-card.tsx",
+  "libs/core/src/editor/view-extensions/editor-view/editor-chrome/html-fullscreen-toolbar.tsx",
+  "libs/core/src/editor/view-extensions/editor-view/editor-chrome/loom-card.tsx",
+  "libs/core/src/editor/view-extensions/editor-view/editor-chrome/youtube-card.tsx",
+  "libs/core/src/editor/view-extensions/editor-view/embedded-ui-root.tsx",
+  "libs/ui-facade/src/reference-card.tsx",
+]
+
+[[annotations]]
+SPDX-FileCopyrightText = ["2026-present Daniel Scharf and Myoxus contributors"]
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+X-Myoxus-Origin = "M0"
+path = [
+  "libs/core/src/editor/ai/components/ai-tools/tool-cards.ts",
+  "libs/core/src/editor/ai/components/ai-tools/native-mcp-tools.ts",
+]
+
+[[annotations]]
+SPDX-FileCopyrightText = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+X-Myoxus-Origin = "M0"
+path = [
+  "libs/core/public/document-bundles/payloads/9ee83d8d2adfdcdbc4bebe652b8d115caa02d3fb3cd2f8937072d2ef8e7d60e2.snapshot.json",
+  "libs/core/public/document-bundles/payloads/a2fddc9c3ac273522a4e35ea4ee87499f45daec4b07cdd3f0bdf6aad6089701f.snapshot.json",
+  "libs/core/public/document-bundles/payloads/bc5c4168041aec7c008c780b2e6ac9587e227dab3129626deb70fd20743c3784.snapshot.json",
+  "libs/core/public/document-bundles/payloads/d94e17b0b15207e2e80db37ff48692ef610dc6aeb2e902281792a888a2098e87.snapshot.json",
+  "libs/core/src/desktop/pages/workspace/overview/register-configuration.tsx",
+  "libs/core/src/editor/ai/widgets/ai-panel/view.tsx",
+  "libs/core/src/editor/ai/widgets/block-diff/view.tsx",
+  "libs/core/src/editor/ai/widgets/native-ui.ts",
+  "libs/core/src/editor/view-extensions/editor-view/document-index.tsx",
+  "libs/core/src/modules/doc/services/document-index.ts",
+]
+precedence = "override"
+
+[[annotations]]
+SPDX-FileCopyrightText = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+X-Myoxus-Origin = "M0"
+path = [
+  "libs/core/src/editor/view-extensions/editor-view/editor-chrome/canvas-toolbar.tsx",
+]
+
+[[annotations]]
+SPDX-FileCopyrightText = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+X-Myoxus-Origin = "M0"
+path = [
+  "libs/core/src/editor/view-extensions/editor-view/editor-chrome/canvas-menu.tsx",
+]
+
+[[annotations]]
+SPDX-FileCopyrightText = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+X-Myoxus-Origin = "M0"
+path = [
+  "libs/core/src/editor/view-extensions/editor-view/editor-chrome/canvas-templates.tsx",
+]
+
+[[annotations]]
+SPDX-FileCopyrightText = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+X-Myoxus-Origin = "M0"
+path = [
+  "libs/core/src/editor/ai/components/ai-artifact-skeleton/index.tsx",
+  "libs/core/src/editor/ai/components/ai-tools/artifact-view.tsx",
+]
+
+[[annotations]]
+SPDX-FileCopyrightText = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+X-Myoxus-Origin = "M0"
+path = [
+  "libs/core/src/editor/view-extensions/editor-view/editor-chrome/auto-complete.tsx",
+]
+
+[[annotations]]
+SPDX-FileCopyrightText  = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+X-Myoxus-Origin         = "M0"
+path                    = ["libs/core/src/editor/ai/components/ai-tools/doc-edit-result-view.tsx"]
+
+[[annotations]]
+SPDX-FileCopyrightText = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+X-Myoxus-Origin = "M0"
+path = [
+  "libs/core/src/editor/ai/components/ai-tools/section-edit-result-view.tsx",
+]
+
+[[annotations]]
+SPDX-FileCopyrightText = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+X-Myoxus-Origin = "M0"
+path = [
+  "libs/core/src/editor/view-extensions/editor-view/editor-chrome/frame-order.tsx",
+]
+
+[[annotations]]
+SPDX-FileCopyrightText  = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+X-Myoxus-Origin         = "M0"
+path                    = ["libs/core/src/editor/ai/components/playground/view.tsx"]
+
+[[annotations]]
+SPDX-FileCopyrightText = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+X-Myoxus-Origin = "M0"
+path = [
+  "libs/core/src/editor/view-extensions/editor-view/editor-chrome/keyboard-toolbar.tsx",
+]
+
+[[annotations]]
+SPDX-FileCopyrightText = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+X-Myoxus-Origin = "M0"
+path = [
+  "libs/core/src/editor/view-extensions/editor-view/editor-chrome/import-dialog.tsx",
 ]

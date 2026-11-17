@@ -4,7 +4,7 @@ import type { AIModelService } from "@myoxus/core/modules/ai-button/services/mod
 import type { CopilotChatHistoryFragment } from "@myoxus/graphql";
 import type { ReactToLit } from "@myoxus/lit-react";
 import { SignalWatcher, WithDisposable } from "@virgultum/editor/global/lit";
-import { ShadowlessElement } from "@virgultum/std";
+import { ShadowlessElement } from "@virgultum/core/runtime";
 import { nothing } from "lit";
 import { property } from "lit/decorators.js";
 import { createElement } from "react";

@@ -2,13 +2,14 @@
 //! Operation-local overview projection. Organizer remains the only hierarchy;
 //! callers supply document facts admitted by their existing access owner.
 
+pub mod document_index;
 pub mod markdown;
 mod public;
 mod read;
 mod register;
 pub use public::{public_register_columns, public_register_values};
 pub use read::{
-  WorkspaceOverviewRead, WorkspaceOverviewService, WorkspaceOverviewSource, hydrate_overview_creators,
+  WorkspaceOverviewRead, WorkspaceOverviewService, WorkspaceOverviewSource, hydrate_overview_identities,
   hydrate_overview_register_display,
 };
 pub use register::OverviewRegisterFacts;
@@ -142,7 +143,13 @@ pub fn compose_workspace_overview(
     .filter(|document| document.reference.workspace_id() == snapshot.workspace_id)
     .cloned()
     .collect::<Vec<_>>();
-  sort_documents(&mut documents, settings.register_presentation.as_ref());
+  register::select_documents(&mut documents, settings.register_presentation.as_ref());
+  sort_overview_documents(
+    &mut documents,
+    settings.register_presentation.as_ref(),
+    &snapshot.roots,
+    snapshot.workspace_id,
+  );
   Ok(WorkspaceOverview {
     workspace_id: snapshot.workspace_id,
     root: OverviewPage {
@@ -172,7 +179,7 @@ pub fn compose_git_workspace_overview(
   definitions: &[myoxus_domain::entities::DocumentMetadataFieldDefinition],
 ) -> AuthResult<WorkspaceOverview> {
   let mut admitted_settings = settings.clone();
-  public::admit_export_presentation(&mut admitted_settings, definitions, true);
+  public::admit_export_presentation(&mut admitted_settings, definitions, true)?;
   compose_workspace_overview(snapshot, &admitted_settings, authorized_documents, false)
 }
 
@@ -226,20 +233,16 @@ impl Composer<'_> {
       breadcrumbs.push(folder.clone());
       let children = self.folders(&node.children, &breadcrumbs, inside);
       let child_admitted = children.iter().any(|(_, admitted)| *admitted);
-      let mut documents = node
-        .children
-        .iter()
-        .filter(|child| child.row.link_type() == Ok(OrganizerLinkType::Doc))
-        .filter_map(|child| child.row.resource_reference(self.workspace_id).ok().flatten())
-        .filter_map(|reference| self.facts.get(&reference).cloned())
-        .collect::<Vec<_>>();
       let presentation = self
         .settings
         .folders
         .get(&folder.id)
         .and_then(|config| config.register_presentation.as_ref())
         .or(self.settings.register_presentation.as_ref());
-      sort_documents(&mut documents, presentation);
+      let subtree = presentation.is_some_and(|value| value.selection.subtree);
+      let mut documents = collect_register_documents(&node.children, self.facts, self.workspace_id, subtree);
+      register::select_documents(&mut documents, presentation);
+      sort_overview_documents(&mut documents, presentation, &node.children, self.workspace_id);
       let config = self.settings.folders.get(&folder.id);
       let (introduction, introduction_unavailable) =
         self.introduction(config.and_then(|config| config.introduction.as_ref()));
@@ -270,5 +273,59 @@ impl Composer<'_> {
       }
     }
     result
+  }
+}
+
+fn collect_register_documents(
+  nodes: &[OrganizerSnapshotNode],
+  facts: &BTreeMap<WorkspaceContentResourceRef, OverviewDocument>,
+  workspace_id: Uuid,
+  subtree: bool,
+) -> Vec<OverviewDocument> {
+  let mut documents = Vec::new();
+  let mut seen = BTreeSet::new();
+  let mut pending = nodes.iter().rev().collect::<Vec<_>>();
+  while let Some(node) = pending.pop() {
+    if node.row.link_type() == Ok(OrganizerLinkType::Doc) {
+      if let Ok(Some(reference)) = node.row.resource_reference(workspace_id) {
+        if seen.insert(reference.clone()) {
+          if let Some(document) = facts.get(&reference) {
+            documents.push(document.clone());
+          }
+        }
+      }
+    }
+    if subtree || node.row.is_workspace_root() {
+      pending.extend(node.children.iter().rev());
+    }
+  }
+  documents
+}
+fn sort_overview_documents(
+  documents: &mut [OverviewDocument],
+  presentation: Option<&myoxus_domain::workspace_overview::OverviewRegisterPresentation>,
+  nodes: &[OrganizerSnapshotNode],
+  workspace_id: Uuid,
+) {
+  if presentation.is_some_and(|value| value.order_by.key == "organizer") {
+    let mut ranks = BTreeMap::new();
+    let mut pending = nodes.iter().rev().collect::<Vec<_>>();
+    while let Some(node) = pending.pop() {
+      if node.row.link_type() == Ok(OrganizerLinkType::Doc) {
+        if let Ok(Some(reference)) = node.row.resource_reference(workspace_id) {
+          let rank = ranks.len();
+          ranks.entry(reference).or_insert(rank);
+        }
+      }
+      pending.extend(node.children.iter().rev());
+    }
+    documents.sort_by_key(|document| {
+      (
+        ranks.get(&document.reference).copied().unwrap_or(usize::MAX),
+        document.reference.clone(),
+      )
+    });
+  } else {
+    sort_documents(documents, presentation);
   }
 }

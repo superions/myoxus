@@ -12,7 +12,7 @@ import {
   smartRetry,
 } from "@myoxus/infra";
 import { cssVar } from "@myoxus/theme";
-import { formatByteSize } from "@virgultum/global/utils";
+import { formatByteSize } from "@virgultum/core/primitives/utils";
 import { tap } from "rxjs";
 
 import type { WorkspaceService } from "../../workspace";

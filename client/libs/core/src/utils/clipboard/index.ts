@@ -1,7 +1,7 @@
 import { type Clipboard as BlockStdScopeClipboard } from "@virgultum/editor/std";
 
-import { copyTextToClipboard } from "@virgultum/global/utils";
-export { copyTextToClipboard } from "@virgultum/global/utils";
+import { copyTextToClipboard } from "@virgultum/core/primitives/utils";
+export { copyTextToClipboard } from "@virgultum/core/primitives/utils";
 
 export const copyLinkToBlockStdScopeClipboard = async (
   text: string,

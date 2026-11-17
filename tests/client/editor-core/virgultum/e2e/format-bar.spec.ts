@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test";
-import type { DeltaInsert } from "@virgultum/store";
+import type { DeltaInsert } from "@virgultum/core/store";
 
 import {
   activeEmbed,
@@ -9,7 +9,6 @@ import {
   expectConsoleMessage,
   focusRichText,
   focusRichTextEnd,
-  focusTitle,
   getBoundingBox,
   getClipboardText,
   getEditorHostLocator,
@@ -188,10 +187,10 @@ test("should format quick bar be able to format text", async ({
     getFormatBar(page);
 
   await expect(boldBtn).toHaveAttribute("aria-pressed", "false");
-  await expect(italicBtn).not.toHaveAttribute("active", "");
-  await expect(underlineBtn).not.toHaveAttribute("active", "");
-  await expect(strikeBtn).not.toHaveAttribute("active", "");
-  await expect(codeBtn).not.toHaveAttribute("active", "");
+  await expect(italicBtn).not.toHaveAttribute("aria-pressed", "true");
+  await expect(underlineBtn).not.toHaveAttribute("aria-pressed", "true");
+  await expect(strikeBtn).not.toHaveAttribute("aria-pressed", "true");
+  await expect(codeBtn).not.toHaveAttribute("aria-pressed", "true");
 
   await boldBtn.click();
   await italicBtn.click();
@@ -200,11 +199,11 @@ test("should format quick bar be able to format text", async ({
   await codeBtn.click();
 
   // The button should be active after click
-  await expect(boldBtn).toHaveAttribute("active", "");
-  await expect(italicBtn).toHaveAttribute("active", "");
-  await expect(underlineBtn).toHaveAttribute("active", "");
-  await expect(strikeBtn).toHaveAttribute("active", "");
-  await expect(codeBtn).toHaveAttribute("active", "");
+  await expect(boldBtn).toHaveAttribute("aria-pressed", "true");
+  await expect(italicBtn).toHaveAttribute("aria-pressed", "true");
+  await expect(underlineBtn).toHaveAttribute("aria-pressed", "true");
+  await expect(strikeBtn).toHaveAttribute("aria-pressed", "true");
+  await expect(codeBtn).toHaveAttribute("aria-pressed", "true");
 
   expect(await getTextOperationSnapshot(page)).toMatchSnapshot(
     `${testInfo.title}_init.json`,
@@ -217,11 +216,11 @@ test("should format quick bar be able to format text", async ({
   await waitNextFrame(page);
 
   // The bold button should be inactive after click again
-  await expect(boldBtn).not.toHaveAttribute("active", "");
-  await expect(italicBtn).toHaveAttribute("active", "");
-  await expect(underlineBtn).not.toHaveAttribute("active", "");
-  await expect(strikeBtn).toHaveAttribute("active", "");
-  await expect(codeBtn).not.toHaveAttribute("active", "");
+  await expect(boldBtn).not.toHaveAttribute("aria-pressed", "true");
+  await expect(italicBtn).toHaveAttribute("aria-pressed", "true");
+  await expect(underlineBtn).not.toHaveAttribute("aria-pressed", "true");
+  await expect(strikeBtn).toHaveAttribute("aria-pressed", "true");
+  await expect(codeBtn).not.toHaveAttribute("aria-pressed", "true");
 
   expect(await getTextOperationSnapshot(page)).toMatchSnapshot(
     `${testInfo.title}_finial.json`,
@@ -241,14 +240,14 @@ test("should render the chosen text marker color on a word fragment", async ({
 
   const { highlight } = getFormatBar(page);
   await highlight.highlightBtn.click();
-  await highlight.chooseRedBackground();
+  await highlight.chooseNeonPink();
 
   await assertRichTextInlineDeltas(page, [
     { insert: "Myoxus " },
     {
       insert: "text",
       attributes: {
-        background: "var(--myoxus-text-highlight-red)",
+        background: "var(--myoxus-sem-text-marker-pink)",
       },
     },
     { insert: " marker works" },
@@ -266,7 +265,7 @@ test("should render the chosen text marker color on a word fragment", async ({
       if (!wrapper) throw new Error("Text marker wrapper was not rendered");
 
       const probe = document.createElement("span");
-      probe.style.backgroundColor = "var(--myoxus-text-highlight-red)";
+      probe.style.backgroundColor = "var(--myoxus-sem-text-marker-pink)";
       document.body.append(probe);
       const expected = getComputedStyle(probe).backgroundColor;
       probe.remove();
@@ -277,7 +276,7 @@ test("should render the chosen text marker color on a word fragment", async ({
         inline: wrapper.style.backgroundColor,
       };
     });
-  expect(renderedMarker.inline).toBe("var(--myoxus-text-highlight-red)");
+  expect(renderedMarker.inline).toBe("var(--myoxus-sem-text-marker-pink)");
   expect(renderedMarker.expected).not.toBe("");
   expect(renderedMarker.computed).toBe(renderedMarker.expected);
 });
@@ -299,12 +298,12 @@ test("should preserve and render a semantic label tone in a table cell", async (
   await cell.locator("v-line").click({ clickCount: 3 });
 
   const { formatBar } = getFormatBar(page);
-  const labelToneButton = formatBar.locator(
-    'editor-icon-button[aria-label^="Label tone:"]',
-  );
+  const labelToneButton = formatBar.getByRole("button", {
+    name: /^Label tone:/,
+  });
   await expect(labelToneButton).toBeVisible();
   await labelToneButton.click();
-  await page.getByTestId("label-tone-positive").click();
+  await page.getByRole("menuitem", { name: "Positive", exact: true }).click();
 
   await assertRichTextInlineDeltas(page, [
     { insert: "Status", attributes: { labelTone: "positive" } },
@@ -328,7 +327,9 @@ test("should preserve and render a semantic label tone in a table cell", async (
     "Label tone: Positive",
   );
   await labelToneButton.click();
-  await page.getByTestId("label-tone-clear").click();
+  await page
+    .getByRole("menuitem", { name: "Clear label tone", exact: true })
+    .click();
   await assertRichTextInlineDeltas(page, [{ insert: "Status" }]);
 });
 
@@ -341,17 +342,17 @@ test("should format quick bar be able to format text when select multiple line",
   await dragBetweenIndices(page, [0, 0], [2, 3]);
 
   const { boldBtn } = getFormatBar(page);
-  await expect(boldBtn).not.toHaveAttribute("active", "");
+  await expect(boldBtn).not.toHaveAttribute("aria-pressed", "true");
   await boldBtn.click();
 
   // The bold button should be active after click
-  await expect(boldBtn).toHaveAttribute("active", "");
+  await expect(boldBtn).toHaveAttribute("aria-pressed", "true");
   expect(await getTextOperationSnapshot(page)).toMatchSnapshot(
     `${testInfo.title}_init.json`,
   );
 
   await boldBtn.click();
-  await expect(boldBtn).not.toHaveAttribute("active", "");
+  await expect(boldBtn).not.toHaveAttribute("aria-pressed", "true");
   expect(await getTextOperationSnapshot(page)).toMatchSnapshot(
     `${testInfo.title}_finial.json`,
   );
@@ -367,10 +368,13 @@ test("should format quick bar be able to link text", async ({
   await dragBetweenIndices(page, [1, 0], [1, 3]);
 
   const { linkBtn } = getFormatBar(page);
-  await expect(linkBtn).not.toHaveAttribute("active", "");
+  await expect(linkBtn).not.toHaveAttribute("aria-pressed", "true");
   await linkBtn.click();
 
-  const linkPopoverInput = page.locator(".myoxus-link-popover-input");
+  const linkPopoverInput = page.getByRole("textbox", {
+    name: "Link",
+    exact: true,
+  });
   await expect(linkPopoverInput).toBeVisible();
 
   const url = "https://www.example.com";
@@ -390,10 +394,10 @@ test("should format quick bar be able to link text", async ({
   await dragBetweenIndices(page, [1, 3], [1, 0]);
 
   // The link button should be active after click
-  await expect(linkBtn).toHaveAttribute("active", "");
+  await expect(linkBtn).toHaveAttribute("aria-pressed", "true");
   await linkBtn.click();
   await waitNextFrame(page);
-  await expect(linkBtn).not.toHaveAttribute("active", "");
+  await expect(linkBtn).not.toHaveAttribute("aria-pressed", "true");
 
   expect(await getTextOperationSnapshot(page)).toMatchSnapshot(
     `${testInfo.title}_finial.json`,
@@ -502,13 +506,13 @@ test("should format quick bar action status updated while undo", async ({
   await expect(formatBar).toBeVisible();
   await expect(boldBtn).toBeVisible();
 
-  await expect(boldBtn).not.toHaveAttribute("active", "");
+  await expect(boldBtn).not.toHaveAttribute("aria-pressed", "true");
   await boldBtn.click();
-  await expect(boldBtn).toHaveAttribute("active", "");
+  await expect(boldBtn).toHaveAttribute("aria-pressed", "true");
 
   await undoByKeyboard(page);
   await expect(formatBar).toBeVisible();
-  await expect(boldBtn).not.toHaveAttribute("active", "");
+  await expect(boldBtn).not.toHaveAttribute("aria-pressed", "true");
 });
 
 test("should format quick bar work in single block selection", async ({
@@ -681,7 +685,7 @@ test("buttons in format quick bar should have correct active styles", async ({
   );
   const { codeBtn } = getFormatBar(page);
   await codeBtn.click();
-  await expect(codeBtn).toHaveAttribute("active", "");
+  await expect(codeBtn).toHaveAttribute("aria-pressed", "true");
 
   // `456`
   await setInlineRangeInInlineEditor(
@@ -692,7 +696,7 @@ test("buttons in format quick bar should have correct active styles", async ({
     },
     2,
   );
-  await expect(codeBtn).not.toHaveAttribute("active", "");
+  await expect(codeBtn).not.toHaveAttribute("aria-pressed", "true");
 });
 
 test("should format bar style active correctly", async ({ page }) => {
@@ -716,14 +720,14 @@ test("should format bar style active correctly", async ({ page }) => {
 
   const { boldBtn, codeBtn, underlineBtn } = getFormatBar(page);
   await dragBetweenIndices(page, [0, 0], [0, 3]);
-  await expect(boldBtn).toHaveAttribute("active", "");
-  await expect(underlineBtn).not.toHaveAttribute("active", "");
-  await expect(codeBtn).not.toHaveAttribute("active", "");
+  await expect(boldBtn).toHaveAttribute("aria-pressed", "true");
+  await expect(underlineBtn).not.toHaveAttribute("aria-pressed", "true");
+  await expect(codeBtn).not.toHaveAttribute("aria-pressed", "true");
 
   await underlineBtn.click();
-  await expect(underlineBtn).toHaveAttribute("active", "");
-  await expect(boldBtn).toHaveAttribute("active", "");
-  await expect(codeBtn).not.toHaveAttribute("active", "");
+  await expect(underlineBtn).toHaveAttribute("aria-pressed", "true");
+  await expect(boldBtn).toHaveAttribute("aria-pressed", "true");
+  await expect(codeBtn).not.toHaveAttribute("aria-pressed", "true");
 });
 
 test("should show format-quick-bar and select all text of the block when triple clicking on text", async ({
@@ -793,16 +797,16 @@ test("should update the format quick bar state when there is a change in keyboar
     const text = new window.$virgultum.store.Text(delta as DeltaInsert[]);
     doc.addBlock("myoxus:paragraph", { text }, note);
   });
-  await focusTitle(page);
-  await pressArrowDown(page);
+  await focusRichText(page);
+  await page.keyboard.press("Home");
 
   const formatBar = getFormatBar(page);
   await withPressKey(page, "Shift", async () => {
     await page.keyboard.press("ArrowRight");
     await page.keyboard.press("ArrowRight");
-    await expect(formatBar.boldBtn).toHaveAttribute("active", "");
+    await expect(formatBar.boldBtn).toHaveAttribute("aria-pressed", "true");
     await page.keyboard.press("ArrowRight");
-    await expect(formatBar.boldBtn).not.toHaveAttribute("active", "");
+    await expect(formatBar.boldBtn).not.toHaveAttribute("aria-pressed", "true");
   });
 });
 
@@ -862,19 +866,19 @@ test("create linked doc from block selection with format bar", async ({
   await expect(blockSelections).toHaveCount(2);
 
   const { createLinkedDocBtn } = getFormatBar(page);
-  expect(await createLinkedDocBtn.isVisible()).toBe(true);
+  await expect(createLinkedDocBtn).toBeVisible();
   const sourceBefore = await getTextOperationSnapshot(page);
   const docIdsBefore = await page.evaluate(() =>
     window.collection.meta.docMetas.map((meta) => meta.id),
   );
-  // The transformer signals a failed import with undefined. Exercise that
-  // boundary once, then restore it before the same real conversion journey.
+  // Fail the batch importer once, then restore it before the real conversion.
+  // Source blocks and the workspace must survive the rejected copy unchanged.
   await page.evaluate(() => {
     const clipboard = window.editor.std.clipboard;
-    const original = clipboard.pasteBlockSnapshot;
-    clipboard.pasteBlockSnapshot = async () => {
-      clipboard.pasteBlockSnapshot = original;
-      return undefined;
+    const original = clipboard.pasteBlockSnapshots;
+    clipboard.pasteBlockSnapshots = async () => {
+      clipboard.pasteBlockSnapshots = original;
+      throw new Error("Failed to copy a block into the linked document");
     };
   });
   const failedCopy = page.waitForEvent("console", {
@@ -904,8 +908,9 @@ test("create linked doc from block selection with format bar", async ({
   // the existing fixture switch instead of claiming a no-op double-click did it.
   const targetDocId = await page.evaluate(
     () =>
-      document.querySelector("myoxus-embed-linked-doc-block")!.model.props
-        .pageId,
+      document.querySelector<
+        import("@virgultum/editor/blocks/embed-doc").EmbedLinkedDocBlockComponent
+      >("myoxus-embed-linked-doc-block")!.model.props.pageId,
   );
   await assertBlockChildrenFlavours(page, "1", ["myoxus:embed-linked-doc"]);
   expect(docIdsBefore).not.toContain(targetDocId);
@@ -921,14 +926,13 @@ test.describe("more menu button", () => {
     // drag only the `456` paragraph
     await dragBetweenIndices(page, [1, 0], [1, 3]);
 
-    const { openMoreMenu, moreBtn, copyBtn } = getFormatBar(page);
+    const { openMoreMenu, copyBtn } = getFormatBar(page);
     await openMoreMenu();
     await expect(copyBtn).toBeVisible();
     await assertRichTextInlineRange(page, 1, 0, 3);
     await copyBtn.click();
     await assertRichTextInlineRange(page, 1, 0, 3);
     await expect.poll(() => getClipboardText(page)).toBe("456");
-    await moreBtn.click();
     await expect(copyBtn).toBeHidden();
 
     await focusRichText(page, 1);

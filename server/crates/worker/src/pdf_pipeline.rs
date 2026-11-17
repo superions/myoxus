@@ -55,6 +55,7 @@ pub struct PipelineError {
   /// uses this to decide between "fall back to async" (this case) and
   /// "propagate as error" (every other class).
   pub is_block_limit: bool,
+  pub formula: Option<myoxus_pdf_export::error::LatexDiagnostic>,
 }
 
 impl PipelineError {
@@ -64,6 +65,7 @@ impl PipelineError {
     Self {
       class,
       detail,
+      formula: None,
       is_block_limit,
     }
   }
@@ -73,6 +75,10 @@ impl PipelineError {
     Self {
       class,
       detail,
+      formula: match err {
+        RenderError::Latex(diagnostic) => Some(*diagnostic),
+        _ => None,
+      },
       is_block_limit: false,
     }
   }
@@ -99,6 +105,16 @@ struct WorkspaceAssetResolver<'a> {
 
 impl AssetResolver for WorkspaceAssetResolver<'_> {
   async fn resolve(&mut self, blob_id: &str) -> Result<AssetData, AssetError> {
+    if blob_id.starts_with("data:image/") {
+      let image = myoxus_application::markdown::decode_data_image(blob_id).map_err(|_| AssetError::BlobNotFound {
+        id: "embedded-image".into(),
+      })?;
+      return Ok(AssetData {
+        mime: image.mime,
+        bytes: image.bytes,
+        filename: None,
+      });
+    }
     let Some(reader) = self.reader else {
       warn!(
         workspace_id = %self.workspace_id,
@@ -152,6 +168,7 @@ async fn read_document_brand_asset(
     return Err(PipelineError {
       class: "AssetError",
       detail: "document brand asset reader is not configured".to_owned(),
+      formula: None,
       is_block_limit: false,
     });
   };
@@ -173,6 +190,7 @@ async fn read_document_brand_asset(
     PipelineError {
       class: "AssetError",
       detail,
+      formula: None,
       is_block_limit: false,
     }
   })?;
@@ -430,6 +448,7 @@ pub async fn validate_compliance_if_requested(
   let report = client.validate(pdf_bytes, profile).await.map_err(|e| PipelineError {
     class: profile.failure_class(),
     detail: e.to_string(),
+    formula: None,
     is_block_limit: false,
   })?;
   if report.passed && report.failures.is_empty() {
@@ -442,6 +461,7 @@ pub async fn validate_compliance_if_requested(
     } else {
       report.failures.join("; ")
     },
+    formula: None,
     is_block_limit: false,
   })
 }
@@ -595,6 +615,7 @@ pub async fn try_sync_render(inputs: SyncRenderInputs<'_>) -> SyncRenderOutcome 
         Some("StorageError"),
       );
       return SyncRenderOutcome::Failed {
+        formula: None,
         renderer_diagnostics: None,
         class: "StorageError",
         detail,
@@ -637,6 +658,7 @@ pub async fn try_sync_render(inputs: SyncRenderInputs<'_>) -> SyncRenderOutcome 
       Some("StorageError"),
     );
     return SyncRenderOutcome::Failed {
+      formula: None,
       renderer_diagnostics: Some(renderer_diagnostics),
       class: "StorageError",
       detail: e,
@@ -668,6 +690,7 @@ pub async fn try_sync_render(inputs: SyncRenderInputs<'_>) -> SyncRenderOutcome 
       Some("StorageError"),
     );
     return SyncRenderOutcome::Failed {
+      formula: None,
       renderer_diagnostics: Some(renderer_diagnostics),
       class: "StorageError",
       detail: e.to_string(),
@@ -706,7 +729,7 @@ pub async fn render_snapshot(
   let started_at = std::time::Instant::now();
   let template_id = inputs.template_id.clone();
   let metrics = inputs.metrics.clone();
-  let yjs_binary = myoxus_application::pdf_export::render::document_field_snapshot(
+  let yjs_binary = myoxus_application::pdf_export::render::document_output_snapshot(
     yjs_binary,
     inputs.workspace_id,
     inputs.doc_id,
@@ -722,6 +745,7 @@ pub async fn render_snapshot(
       Some(class),
     );
     SyncRenderOutcome::Failed {
+      formula: None,
       class,
       detail: "PDF document field context unavailable".into(),
       renderer_diagnostics: None,
@@ -803,6 +827,7 @@ pub async fn render_snapshot(
         Some(pe.class),
       );
       return Err(SyncRenderOutcome::Failed {
+        formula: pe.formula,
         renderer_diagnostics: None,
         class: pe.class,
         detail: pe.detail,
@@ -824,6 +849,7 @@ pub async fn render_snapshot(
       Some(pe.class),
     );
     return Err(SyncRenderOutcome::Failed {
+      formula: pe.formula,
       renderer_diagnostics: Some(renderer_diagnostics),
       class: pe.class,
       detail: pe.detail,
@@ -855,6 +881,7 @@ pub async fn render_snapshot(
         Some("AssetError"),
       );
       return Err(SyncRenderOutcome::Failed {
+        formula: None,
         renderer_diagnostics: Some(renderer_diagnostics),
         class: "AssetError",
         detail,
@@ -892,6 +919,7 @@ pub async fn render_snapshot(
         Some(pe.class),
       );
       return Err(SyncRenderOutcome::Failed {
+        formula: pe.formula,
         renderer_diagnostics: Some(renderer_diagnostics),
         class: pe.class,
         detail: pe.detail,
@@ -916,6 +944,7 @@ pub async fn render_snapshot(
       Some(pe.class),
     );
     return Err(SyncRenderOutcome::Failed {
+      formula: pe.formula,
       renderer_diagnostics: Some(renderer_diagnostics),
       class: pe.class,
       detail: pe.detail,
@@ -955,6 +984,7 @@ mod tests {
       body: Some("New Computer Modern".into()),
       mono: Some("New Computer Modern".into()),
       symbol: Some("New Computer Modern".into()),
+      eyebrow: None,
     };
     doc
   }

@@ -4,8 +4,8 @@ import type {
   NoteBlockModel,
   ParagraphProps,
   RootBlockProps,
-} from "@virgultum/model";
-import type { Store } from "@virgultum/store";
+} from "@virgultum/core/models";
+import type { Store } from "@virgultum/core/store";
 
 import { waitNextFrame } from "../utils/actions";
 /**

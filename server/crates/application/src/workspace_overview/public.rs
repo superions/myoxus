@@ -10,8 +10,8 @@ use std::collections::{BTreeMap, BTreeSet};
 pub(super) fn admit_public_presentation(
   settings: &mut WorkspaceOverviewSettings,
   definitions: &[DocumentMetadataFieldDefinition],
-) {
-  admit_export_presentation(settings, definitions, false);
+) -> crate::auth::AuthResult<()> {
+  admit_export_presentation(settings, definitions, false)
 }
 
 /// Export-field admission is shared; anonymous publishing additionally omits
@@ -20,23 +20,34 @@ pub(super) fn admit_export_presentation(
   settings: &mut WorkspaceOverviewSettings,
   definitions: &[DocumentMetadataFieldDefinition],
   allow_people: bool,
-) {
+) -> crate::auth::AuthResult<()> {
   let visible = definitions
     .iter()
     .filter(|field| crate::public::document_metadata_export_visible(field) && field.visible_in_lists)
     .map(|field| field.key.as_str())
     .chain(["title", "tags"])
-    .filter(|key| allow_people || *key != "createdBy")
+    .filter(|key| allow_people || !matches!(*key, "createdBy" | "responsible"))
     .collect::<BTreeSet<_>>();
-  let admit = |value: Option<OverviewRegisterPresentation>| {
+  let admit = |value: Option<OverviewRegisterPresentation>| -> crate::auth::AuthResult<OverviewRegisterPresentation> {
     let mut value = value.unwrap_or_default();
+    if value
+      .selection
+      .filters
+      .iter()
+      .any(|filter| !visible.contains(filter.key.as_str()))
+    {
+      return Err(crate::auth::AuthError::InvalidInput(
+        "register selection unavailable in this output".into(),
+      ));
+    }
     value
       .display_properties
       .retain(|key| key.strip_prefix("system:").is_some_and(|key| visible.contains(key)));
     // Hidden/unselected columns must not disclose their values through ordering.
-    if !value
-      .display_properties
-      .contains(&format!("system:{}", value.order_by.key))
+    if value.order_by.key != "organizer"
+      && !value
+        .display_properties
+        .contains(&format!("system:{}", value.order_by.key))
     {
       value.order_by = OverviewOrderBy {
         property_type: "system".into(),
@@ -44,14 +55,15 @@ pub(super) fn admit_export_presentation(
         desc: false,
       };
     }
-    value
+    Ok(value)
   };
-  settings.register_presentation = Some(admit(settings.register_presentation.take()));
+  settings.register_presentation = Some(admit(settings.register_presentation.take())?);
   for folder in settings.folders.values_mut() {
     if let Some(value) = folder.register_presentation.take() {
-      folder.register_presentation = Some(admit(Some(value)));
+      folder.register_presentation = Some(admit(Some(value))?);
     }
   }
+  Ok(())
 }
 
 /// Consume only pages that passed the appropriate export-field admission
@@ -83,6 +95,8 @@ pub fn public_register_values(
       "updatedAt" => Some(WorkspaceRegisterValue::Timestamp(document.updated_at)),
       "createdAt" => row.map(|row| WorkspaceRegisterValue::Timestamp(row.created_at)),
       "tags" => row.map(|row| WorkspaceRegisterValue::Labels(row.tags.iter().map(|tag| tag.name.clone()).collect())),
+      "createdBy" => text(row.and_then(|row| row.created_by_name.clone())),
+      "responsible" => text(row.and_then(|row| row.responsible_name.clone())),
       "status" => text(row.and_then(|row| row.labels.status_label.clone())),
       "documentType" => text(row.and_then(|row| row.labels.document_type_label.clone())),
       "classification" => text(row.and_then(|row| row.labels.classification_label.clone())),

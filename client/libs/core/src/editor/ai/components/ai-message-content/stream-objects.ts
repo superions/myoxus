@@ -1,3 +1,8 @@
+import { renderNativeMcpTool } from "../ai-tools/native-mcp-tools";
+import {
+  renderToolCallCard,
+  renderToolResultCard,
+} from "../ai-tools/tool-cards";
 import type { FeatureFlagService } from "@myoxus/core/modules/feature-flag";
 import type { PeekViewService } from "@myoxus/core/modules/peek-view";
 import { type ReactToLit, toReactNode } from "@myoxus/lit-react";
@@ -10,12 +15,15 @@ import {
   ShadowlessElement,
 } from "@virgultum/editor/std";
 import type { ExtensionType } from "@virgultum/editor/store";
-import type { NotificationService } from "@virgultum/shared/services";
+import type { NotificationService } from "@virgultum/core/services";
 import { html, nothing } from "lit";
 import { property } from "lit/decorators.js";
+import { keyed } from "lit/directives/keyed.js";
 import { createElement, type ReactNode } from "react";
+import { Stack } from "@myoxus/ui-facade";
 import { ReasoningSection } from "./reasoning";
 
+import { mergeStreamObjects } from "../../utils/stream-objects";
 import type { MyoxusAIPanelState } from "../../widgets/ai-panel/type";
 import type { DocDisplayConfig } from "../ai-chat-chips";
 import type { StreamObject } from "../ai-chat-messages";
@@ -66,18 +74,69 @@ export class ChatContentStreamObjects extends WithDisposable(
   @property({ attribute: false })
   accessor onOpenDoc!: (docId: string, sessionId?: string) => void;
 
+  // Call and result share one template per logical call. Replacing the element
+  // would lose explicit-close/selection state and dispose its active renderer.
+  private renderArtifact(
+    streamObject: Extract<StreamObject, { type: "tool-call" | "tool-result" }>,
+  ) {
+    switch (streamObject.toolName) {
+      case "doc_compose":
+        return keyed(
+          streamObject.toolCallId,
+          html`<doc-compose-tool
+            .reactToLit=${this.reactToLit}
+            .independentMode=${this.independentMode}
+            .std=${this.std || this.host?.std}
+            .data=${streamObject}
+            .width=${this.width}
+            .theme=${this.theme}
+            .notificationService=${this.notificationService}
+          ></doc-compose-tool>`,
+        );
+      case "code_artifact":
+        return keyed(
+          streamObject.toolCallId,
+          html`<code-artifact-tool
+            .reactToLit=${this.reactToLit}
+            .independentMode=${this.independentMode}
+            .std=${this.std || this.host?.std}
+            .data=${streamObject}
+            .width=${this.width}
+            .theme=${this.theme}
+            .notificationService=${this.notificationService}
+          ></code-artifact-tool>`,
+        );
+      default:
+        return nothing;
+    }
+  }
+
   private renderToolCall(streamObject: StreamObject) {
     if (streamObject.type !== "tool-call") {
       return nothing;
     }
 
     switch (streamObject.toolName) {
+      case "read_doc":
+      case "search_docs":
+      case "workspace_get":
+        return renderNativeMcpTool(this.reactToLit, streamObject, {
+          generating: this.state === "generating",
+          contained: !this.independentMode,
+          getDocumentTitle: (id) => this.docDisplayService?.getTitle(id),
+          openDocument: this.peekViewService
+            ? (docId) => {
+                this.peekViewService.peekView
+                  .open({ type: "doc", docRef: { docId } })
+                  .catch(console.error);
+              }
+            : undefined,
+        });
       case "web_crawl_exa":
         return html`
           <web-crawl-tool
             .reactToLit=${this.reactToLit}
             .data=${streamObject}
-            .width=${this.width}
           ></web-crawl-tool>
         `;
       case "web_search_exa":
@@ -85,30 +144,11 @@ export class ChatContentStreamObjects extends WithDisposable(
           <web-search-tool
             .reactToLit=${this.reactToLit}
             .data=${streamObject}
-            .width=${this.width}
           ></web-search-tool>
         `;
       case "doc_compose":
-        return html`
-          <doc-compose-tool
-            .reactToLit=${this.reactToLit}
-            .std=${this.std || this.host?.std}
-            .data=${streamObject}
-            .width=${this.width}
-            .theme=${this.theme}
-            .notificationService=${this.notificationService}
-          ></doc-compose-tool>
-        `;
       case "code_artifact":
-        return html`
-          <code-artifact-tool
-            .reactToLit=${this.reactToLit}
-            .std=${this.std || this.host?.std}
-            .data=${streamObject}
-            .width=${this.width}
-            .theme=${this.theme}
-          ></code-artifact-tool>
-        `;
+        return this.renderArtifact(streamObject);
       case "doc_edit":
         return html`
           <doc-edit-tool
@@ -122,20 +162,17 @@ export class ChatContentStreamObjects extends WithDisposable(
         return html`<doc-semantic-search-result
           .reactToLit=${this.reactToLit}
           .data=${streamObject}
-          .width=${this.width}
           .peekViewService=${this.peekViewService}
         ></doc-semantic-search-result>`;
       case "doc_keyword_search":
         return html`<doc-keyword-search-result
           .reactToLit=${this.reactToLit}
           .data=${streamObject}
-          .width=${this.width}
         ></doc-keyword-search-result>`;
       case "doc_read":
         return html`<doc-read-result
           .reactToLit=${this.reactToLit}
           .data=${streamObject}
-          .width=${this.width}
         ></doc-read-result>`;
       case "doc_create":
       case "doc_update":
@@ -143,7 +180,6 @@ export class ChatContentStreamObjects extends WithDisposable(
         return html`<doc-write-tool
           .reactToLit=${this.reactToLit}
           .data=${streamObject}
-          .width=${this.width}
           .peekViewService=${this.peekViewService}
           .docDisplayService=${this.docDisplayService}
           .onOpenDoc=${this.onOpenDoc}
@@ -163,12 +199,7 @@ export class ChatContentStreamObjects extends WithDisposable(
         `;
       default: {
         const name = streamObject.toolName + " tool calling";
-        return html`
-          <tool-call-card
-            .reactToLit=${this.reactToLit}
-            .name=${name}
-          ></tool-call-card>
-        `;
+        return renderToolCallCard(this.reactToLit, { name: name });
       }
     }
   }
@@ -179,12 +210,26 @@ export class ChatContentStreamObjects extends WithDisposable(
     }
 
     switch (streamObject.toolName) {
+      case "read_doc":
+      case "search_docs":
+      case "workspace_get":
+        return renderNativeMcpTool(this.reactToLit, streamObject, {
+          generating: this.state === "generating",
+          contained: !this.independentMode,
+          getDocumentTitle: (id) => this.docDisplayService?.getTitle(id),
+          openDocument: this.peekViewService
+            ? (docId) => {
+                this.peekViewService.peekView
+                  .open({ type: "doc", docRef: { docId } })
+                  .catch(console.error);
+              }
+            : undefined,
+        });
       case "web_crawl_exa":
         return html`
           <web-crawl-tool
             .reactToLit=${this.reactToLit}
             .data=${streamObject}
-            .width=${this.width}
           ></web-crawl-tool>
         `;
       case "web_search_exa":
@@ -192,31 +237,11 @@ export class ChatContentStreamObjects extends WithDisposable(
           <web-search-tool
             .reactToLit=${this.reactToLit}
             .data=${streamObject}
-            .width=${this.width}
           ></web-search-tool>
         `;
       case "doc_compose":
-        return html`
-          <doc-compose-tool
-            .reactToLit=${this.reactToLit}
-            .std=${this.std || this.host?.std}
-            .data=${streamObject}
-            .width=${this.width}
-            .theme=${this.theme}
-            .notificationService=${this.notificationService}
-          ></doc-compose-tool>
-        `;
       case "code_artifact":
-        return html`
-          <code-artifact-tool
-            .reactToLit=${this.reactToLit}
-            .std=${this.std || this.host?.std}
-            .data=${streamObject}
-            .width=${this.width}
-            .theme=${this.theme}
-            .notificationService=${this.notificationService}
-          ></code-artifact-tool>
-        `;
+        return this.renderArtifact(streamObject);
       case "doc_edit":
         return html`
           <doc-edit-tool
@@ -231,7 +256,6 @@ export class ChatContentStreamObjects extends WithDisposable(
         return html`<doc-semantic-search-result
           .reactToLit=${this.reactToLit}
           .data=${streamObject}
-          .width=${this.width}
           .docDisplayService=${this.docDisplayService}
           .peekViewService=${this.peekViewService}
           .onOpenDoc=${this.onOpenDoc}
@@ -240,7 +264,6 @@ export class ChatContentStreamObjects extends WithDisposable(
         return html`<doc-keyword-search-result
           .reactToLit=${this.reactToLit}
           .data=${streamObject}
-          .width=${this.width}
           .peekViewService=${this.peekViewService}
           .onOpenDoc=${this.onOpenDoc}
         ></doc-keyword-search-result>`;
@@ -248,7 +271,6 @@ export class ChatContentStreamObjects extends WithDisposable(
         return html`<doc-read-result
           .reactToLit=${this.reactToLit}
           .data=${streamObject}
-          .width=${this.width}
           .peekViewService=${this.peekViewService}
           .onOpenDoc=${this.onOpenDoc}
         ></doc-read-result>`;
@@ -258,7 +280,6 @@ export class ChatContentStreamObjects extends WithDisposable(
         return html`<doc-write-tool
           .reactToLit=${this.reactToLit}
           .data=${streamObject}
-          .width=${this.width}
           .peekViewService=${this.peekViewService}
           .docDisplayService=${this.docDisplayService}
           .onOpenDoc=${this.onOpenDoc}
@@ -278,13 +299,7 @@ export class ChatContentStreamObjects extends WithDisposable(
         `;
       default: {
         const name = streamObject.toolName + " tool result";
-        return html`
-          <tool-result-card
-            .reactToLit=${this.reactToLit}
-            .name=${name}
-            .width=${this.width}
-          ></tool-result-card>
-        `;
+        return renderToolResultCard(this.reactToLit, { name: name });
       }
     }
   }
@@ -301,8 +316,10 @@ export class ChatContentStreamObjects extends WithDisposable(
   }
 
   protected override render() {
-    return html`<div>
-      ${this.answer.map((data, index) => {
+    // Persisted history keeps both events; the same call/result merge owns live and replay presentation.
+    const answer = mergeStreamObjects(this.answer);
+    const content = html`
+      ${answer.map((data, index) => {
         switch (data.type) {
           case "text-delta":
             return this.renderRichText(data.textDelta);
@@ -316,10 +333,9 @@ export class ChatContentStreamObjects extends WithDisposable(
                     {
                       identity:
                         index === 0 ? this.reasoningIdentity : undefined,
-                      followedByContent: index < this.answer.length - 1,
+                      followedByContent: index < answer.length - 1,
                       generating:
-                        this.state === "generating" &&
-                        data === this.answer.at(-1),
+                        this.state === "generating" && data === answer.at(-1),
                     },
                     toReactNode(this.renderRichText(data.textDelta, true)),
                   ),
@@ -334,6 +350,12 @@ export class ChatContentStreamObjects extends WithDisposable(
             return nothing;
         }
       })}
-    </div>`;
+    `;
+    return this.reactToLit
+      ? this.reactToLit(
+          createElement(Stack, { gap: "xs" }, toReactNode(content)),
+          true,
+        )
+      : content;
   }
 }

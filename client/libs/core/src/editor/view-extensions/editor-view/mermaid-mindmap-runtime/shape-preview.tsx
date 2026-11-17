@@ -3,8 +3,8 @@ import {
   shapeMethods,
   mermaidSoftShapePath,
   ShapeType,
-} from "@virgultum/model";
-import { Bound } from "@virgultum/global/gfx";
+} from "@virgultum/core/models";
+import { Bound } from "@virgultum/core/primitives/gfx";
 import {
   mermaidMessages as m,
   type MermaidMindmapShape,

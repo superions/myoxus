@@ -27,7 +27,7 @@
 //   #let symbol-font     — bounded ASCII marker font tuple
 //   #let <role>-font-weight/style/size/leading/tracking
 //                       — effective server-theme PDF typography metrics
-//   #let pdf-check       — ASCII marker helper used for todo lists
+//   #let pdf-check       — vector checkbox helper used for todo lists
 //   #let ligatures-enabled — bool
 //   #let toc-behavior    — string ("off" | "auto" | "force")
 //   #let cover-page-enabled — bool, resolved from L3 input or template default

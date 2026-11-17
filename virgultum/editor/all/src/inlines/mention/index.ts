@@ -1,1 +1,5 @@
-export * from "@virgultum/inline-mention";
+export {
+  effects,
+  MentionInlineSpecExtension,
+  MyoxusMention,
+} from "@virgultum/content/inlines";

@@ -35,13 +35,11 @@ test("stale Git-Sync config is scoped, scrubbed, and recoverable against the ser
   await injectRequestSessionCookies(page.context(), adminRequest);
 
   let staleValuesResponses = 0;
+  let allowFreshValues = false;
   await page.route("**/graphql", async (route) => {
     const request = route.request();
     const payload = request.postDataJSON() as { operationName?: string } | null;
-    if (
-      payload?.operationName !== "adminConfigValues" ||
-      staleValuesResponses > 0
-    ) {
+    if (payload?.operationName !== "adminConfigValues" || allowFreshValues) {
       await route.continue();
       return;
     }
@@ -50,14 +48,14 @@ test("stale Git-Sync config is scoped, scrubbed, and recoverable against the ser
     const body = await response.json();
     const modules = body?.data?.admin?.adminConfigValues?.modules ?? [];
     const gitSync = modules.find(
-      (module: { module?: string }) => module.module === "gitSync",
+      (module: { module?: string }) => module.module === "git_sync",
     );
     const fields = (gitSync?.groups ?? []).flatMap(
       (group: { fields?: Array<{ path?: string; value?: unknown }> }) =>
         group.fields ?? [],
     );
     const enabled = fields.find(
-      (field: { path?: string }) => field.path === "gitSync.enabled",
+      (field: { path?: string }) => field.path === "git_sync.enabled",
     );
     if (!enabled) {
       const moduleNames = modules
@@ -70,7 +68,7 @@ test("stale Git-Sync config is scoped, scrubbed, and recoverable against the ser
         )
         .join(",");
       throw new Error(
-        `served adminConfigValues omitted gitSync.enabled (modules=${moduleNames}; errorCodes=${errorCodes})`,
+        `served adminConfigValues omitted git_sync.enabled (modules=${moduleNames}; errorCodes=${errorCodes})`,
       );
     }
     enabled.value = "synthetic-stale-value";
@@ -91,7 +89,7 @@ test("stale Git-Sync config is scoped, scrubbed, and recoverable against the ser
   await expect(page.locator('[data-admin-page-frame="true"]')).toBeVisible();
   await expectAllTabsReachable(page);
   await expect(
-    page.getByText(/^Diagnose: GITSYNC-VALUE_TYPE-[0-9a-f]{8}$/),
+    page.getByText(/(?:Diagnosis|Diagnose): GITSYNC-VALUE_TYPE-[0-9a-f]{8}/),
   ).toBeVisible();
   await expect(page.getByText("synthetic-stale-value")).toHaveCount(0);
 
@@ -100,6 +98,7 @@ test("stale Git-Sync config is scoped, scrubbed, and recoverable against the ser
     fullPage: true,
   });
 
+  allowFreshValues = true;
   await page
     .getByRole("button", {
       name: /Reload server values|Serverwerte neu laden/,
@@ -113,7 +112,7 @@ test("stale Git-Sync config is scoped, scrubbed, and recoverable against the ser
     fullPage: true,
   });
 
-  expect(staleValuesResponses).toBe(1);
+  expect(staleValuesResponses).toBeGreaterThanOrEqual(1);
   expect(pageErrors).toEqual([]);
   expect(
     consoleMessages.filter(

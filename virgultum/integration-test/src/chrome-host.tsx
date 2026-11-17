@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
+import { patchMermaidFamilyReactHost } from "@myoxus/core/editor/view-extensions/editor-view/mermaid-family-react-host";
 import { patchEditorChromeHost } from "@myoxus/core/editor/view-extensions/editor-view/editor-chrome";
 import { setupGlobal } from "@myoxus/env/global";
 import { getOrCreateI18n, I18nextProvider } from "@myoxus/i18n";
@@ -19,10 +20,16 @@ function ChromeHost({
   bind: (extension: ExtensionType) => void;
 }) {
   const [reactToLit, portals] = useLitPortalFactory();
-  const extension = useMemo(
-    () => patchEditorChromeHost(reactToLit),
-    [reactToLit],
-  );
+  const extension = useMemo(() => {
+    const chrome = patchEditorChromeHost(reactToLit);
+    const mermaid = patchMermaidFamilyReactHost(reactToLit);
+    return {
+      setup(di) {
+        chrome.setup(di);
+        mermaid.setup(di);
+      },
+    } satisfies ExtensionType;
+  }, [reactToLit]);
   useLayoutEffect(() => bind(extension), [extension, bind]);
   return (
     <I18nextProvider i18n={getOrCreateI18n()}>

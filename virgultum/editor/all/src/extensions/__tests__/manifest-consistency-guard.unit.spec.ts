@@ -49,12 +49,15 @@
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-import { dividerManifest } from "@virgultum/block-divider/manifest";
-import { eventManifest } from "@virgultum/block-event/manifest";
-import { latexManifest } from "@virgultum/block-latex/manifest";
+import { dividerManifest } from "@virgultum/content/manifests";
+import { eventManifest } from "@virgultum/embeds/manifests";
+import { latexManifest } from "@virgultum/content/manifests";
 import { mermaidManifest } from "@virgultum/block-mermaid/manifest";
-import { surfaceRefManifest } from "@virgultum/block-surface-ref/manifest";
-import { type FeatureManifest, featureManifestId } from "@virgultum/ext-loader";
+import { surfaceRefManifest } from "@virgultum/canvas/manifest";
+import {
+  type FeatureManifest,
+  featureManifestId,
+} from "@virgultum/core/extensions";
 import { describe, expect, test } from "vitest";
 
 import {
@@ -73,19 +76,67 @@ import {
  */
 const MIGRATED = [
   {
-    packageName: "@virgultum/block-divider",
+    packageName: "@virgultum/content",
     manifest: dividerManifest,
-    expectedExports: new Set([".", "./view", "./store", "./manifest"]),
+    expectedExports: new Set([
+      ".",
+      "./rich-text",
+      "./effects",
+      "./blocks",
+      "./store",
+      "./view",
+      "./painters/code",
+      "./manifests",
+      "./painters/list",
+      "./painters/paragraph",
+      "./inlines",
+      "./title",
+      "./caption",
+      "./linked-doc-title",
+      "./link-preview",
+      "./syntax-highlighter",
+      "./reference-notification",
+      "./data",
+    ]),
   },
   {
-    packageName: "@virgultum/block-event",
+    packageName: "@virgultum/embeds",
     manifest: eventManifest,
-    expectedExports: new Set([".", "./view", "./store", "./manifest"]),
+    expectedExports: new Set([
+      ".",
+      "./blocks",
+      "./store",
+      "./view",
+      "./manifests",
+      "./painters/image",
+      "./painters/note",
+      "./data",
+      "./card-session",
+    ]),
   },
   {
-    packageName: "@virgultum/block-latex",
+    packageName: "@virgultum/content",
     manifest: latexManifest,
-    expectedExports: new Set([".", "./view", "./store", "./manifest"]),
+    expectedExports: new Set([
+      ".",
+      "./rich-text",
+      "./effects",
+      "./blocks",
+      "./store",
+      "./view",
+      "./painters/code",
+      "./manifests",
+      "./painters/list",
+      "./painters/paragraph",
+      "./inlines",
+      "./title",
+      "./caption",
+      "./linked-doc-title",
+      "./link-preview",
+      "./syntax-highlighter",
+      "./reference-notification",
+      "./data",
+    ]),
   },
   {
     packageName: "@virgultum/block-mermaid",
@@ -93,9 +144,17 @@ const MIGRATED = [
     expectedExports: new Set([".", "./view", "./store", "./manifest"]),
   },
   {
-    packageName: "@virgultum/block-surface-ref",
+    packageName: "@virgultum/canvas",
     manifest: surfaceRefManifest,
-    expectedExports: new Set([".", "./view", "./store", "./manifest"]),
+    expectedExports: new Set([
+      ".",
+      "./gfx",
+      "./store",
+      "./view",
+      "./blocks",
+      "./widgets",
+      "./manifest",
+    ]),
   },
 ] as const satisfies ReadonlyArray<GuardEntry>;
 
@@ -336,8 +395,10 @@ describe("P-VIRG-ARCH-C-03 manifest-consistency-guard", () => {
         const blockId = entry.packageName.replace("@virgultum/block-", "");
         const pkgPath = join(
           repoRoot,
-          "virgultum/editor/blocks",
-          blockId,
+          entry.packageName === "@virgultum/content"
+            ? "virgultum/content"
+            : "virgultum/editor/blocks",
+          entry.packageName === "@virgultum/content" ? "" : blockId,
           "package.json",
         );
         const pkg = JSON.parse(readFileSync(pkgPath, "utf8")) as {

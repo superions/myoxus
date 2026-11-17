@@ -7,9 +7,9 @@
     "license": "MIT"
   },
   "scope": {
-    "publicIconCount": 721,
+    "publicIconCount": 722,
     "previouslyReviewedGlyphCount": 197,
-    "acceptedObviousGlyphCount": 466,
+    "acceptedObviousGlyphCount": 467,
     "remainingAfterObviousCount": 58
   },
   "methodology": {
@@ -1640,6 +1640,12 @@
     {
       "myoxus": "MeetingIcon",
       "tabler": "IconUsersGroup",
+      "classification": "semantic-alias",
+      "status": "accepted"
+    },
+    {
+      "myoxus": "MegaphoneIcon",
+      "tabler": "IconSpeakerphone",
       "classification": "semantic-alias",
       "status": "accepted"
     },

@@ -13,7 +13,7 @@ export function getFormatBar(page: Page) {
   const linkBtn = formatBar.getByTestId("link");
   // highlight
   const highlightBtn = formatBar.getByRole("button", {
-    name: "Highlight",
+    name: "Text highlight",
     exact: true,
   });
   const openMenu = async (button: Locator) => {
@@ -24,16 +24,16 @@ export function getFormatBar(page: Page) {
   const highlight = {
     highlightBtn,
     openHighlightMenu: () => openMenu(highlightBtn),
-    chooseRedBackground: async () => {
+    chooseNeonPink: async () => {
       await formatBar
-        .getByRole("menuitem", { name: "Background", exact: true })
-        .hover();
-      await formatBar
-        .getByRole("menuitem", { name: "Red", exact: true })
+        .getByRole("menuitem", { name: "Neon pink", exact: true })
         .click();
     },
   };
-  const createLinkedDocBtn = formatBar.getByTestId("convert-to-linked-doc");
+  const createLinkedDocBtn = formatBar.getByRole("button", {
+    name: "Create Linked Doc",
+    exact: true,
+  });
   const paragraphBtn = formatBar.getByRole("button", {
     name: "Conversions",
     exact: true,

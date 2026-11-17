@@ -974,7 +974,7 @@ test("should select with shift-click", async ({ page }) => {
   await page.click('[data-block-id="4"] [data-v-text]', {
     modifiers: ["Shift"],
   });
-  expect(await getSelectedText(page)).toContain("4567");
+  await expect.poll(() => getSelectedText(page)).toContain("4567");
 });
 
 test("should collapse to end when press arrow-right on multi-line selection", async ({
@@ -1081,15 +1081,24 @@ test("scroll vertically when inputting long text in a block", async ({
     await pressShiftEnter(page);
   }
 
-  const viewportScrollTop = await page.evaluate(() => {
+  const bounds = await page.evaluate(() => {
     const viewport = document.querySelector(".myoxus-page-viewport");
-    if (!viewport) {
-      throw new Error("viewport not found");
-    }
-    return viewport.scrollTop;
+    const selection = document.getSelection();
+    if (!viewport || !selection?.rangeCount)
+      throw new Error("Missing editor viewport or caret");
+    const view = viewport.getBoundingClientRect(),
+      caret = selection.getRangeAt(0).getBoundingClientRect();
+    return {
+      scrollTop: viewport.scrollTop,
+      top: view.top,
+      bottom: view.bottom,
+      caretTop: caret.top,
+      caretBottom: caret.bottom,
+    };
   });
-
-  expect(viewportScrollTop).toBeGreaterThan(100);
+  expect(bounds.scrollTop).toBeGreaterThan(0);
+  expect(bounds.caretTop).toBeGreaterThanOrEqual(bounds.top);
+  expect(bounds.caretBottom).toBeLessThanOrEqual(bounds.bottom);
 });
 
 test("scroll vertically when adding multiple blocks", async ({ page }) => {

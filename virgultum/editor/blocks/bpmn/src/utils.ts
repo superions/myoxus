@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import type { BpmnBlockModel } from "@virgultum/model";
+import type { BpmnBlockModel } from "@virgultum/core/models";
 import {
   editorMessage,
   resolveEditorMessage,
   type EditorI18nService,
-} from "@virgultum/shared/services";
+} from "@virgultum/core/services/data";
 
 export type BpmnBlockSnapshotLike = { title?: unknown; caption?: unknown };
 export function coerceBpmnBlockText(value: unknown) {

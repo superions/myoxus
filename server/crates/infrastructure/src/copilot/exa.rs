@@ -436,9 +436,7 @@ mod tests {
       "x-myoxus-client-instance",
       HeaderValue::from_static("shared-exa-client"),
     );
-    let client = reqwest::Client::builder()
-      .default_headers(headers)
-      .build()
+    let client = crate::tls::build_http_client(reqwest::Client::builder().default_headers(headers), None)
       .expect("build test HTTP client");
     let executor = ExaToolExecutor::with_client(Some("test-key".to_string()), client, origin);
 

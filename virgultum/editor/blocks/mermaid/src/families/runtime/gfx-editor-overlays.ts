@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { html } from "lit";
+import type { EditorChromeHost } from "@virgultum/core/services";
 import { styleMap } from "lit/directives/style-map.js";
 
 import { mermaidMessages } from "../../i18n.js";
@@ -335,35 +336,57 @@ export function renderMermaidGfxEdgeReconnectHandles({
     ></button>`;
 }
 
+/** Only the point anchor is local geometry; the shared native action menu owns its chrome. */
 export function renderMermaidGfxContextMenu({
   canShow,
+  chrome,
+  close,
   label,
   left,
   onClick,
-  onStopEvent,
   top,
 }: {
   canShow: boolean;
+  chrome?: EditorChromeHost;
+  close: () => void;
   label: string;
   left: number;
   onClick: () => void;
-  onStopEvent: (event: Event) => void;
   top: number;
 }) {
-  if (!canShow) return null;
-  return html`<div
-    class="myoxus-mermaid-gfx-context-menu"
-    role="menu"
-    aria-label=${mermaidMessages.visualContextMenu()}
+  if (!canShow || !chrome) return null;
+  return html`<span
+    aria-hidden="true"
     style=${styleMap({
+      position: "absolute",
       left: `${left}px`,
       top: `${top}px`,
+      pointerEvents: "none",
     })}
-    @click=${onStopEvent}
-    @pointerdown=${onStopEvent}
-  >
-    <button type="button" role="menuitem" @click=${onClick}>${label}</button>
-  </div>`;
+    >${chrome.renderActionMenu({
+      label: mermaidMessages.visualContextMenu(),
+      actions: [
+        {
+          id: "mermaid-connect-selected",
+          label,
+          disabled: false,
+          run: onClick,
+        },
+      ],
+      close,
+      setAnchor: (element) => {
+        if (element)
+          Object.assign(element.style, {
+            position: "absolute",
+            left: "0",
+            top: "0",
+            width: "1px",
+            height: "1px",
+            pointerEvents: "none",
+          });
+      },
+    })}</span
+  >`;
 }
 
 export function renderMermaidGfxSubgraphResizeHandle({

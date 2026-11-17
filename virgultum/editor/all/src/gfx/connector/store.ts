@@ -1,1 +1,1 @@
-export * from "@virgultum/gfx-connector/store";
+export { ConnectorStoreExtension } from "@virgultum/canvas/store";

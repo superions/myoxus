@@ -1,11 +1,10 @@
-import { MermaidBlockSchema } from "@virgultum/model";
+import { MermaidBlockSchema } from "@virgultum/core/models";
 import {
   BlockHtmlAdapterExtension,
   type BlockHtmlAdapterMatcher,
-} from "@virgultum/shared/adapters";
+} from "@virgultum/core/adapters";
 
 import { getMermaidBlockSource } from "../utils.js";
-import { getMermaidEffectiveBlockExportLabel } from "../mermaid-title-projection.js";
 
 export const mermaidBlockHtmlAdapterMatcher: BlockHtmlAdapterMatcher = {
   flavour: MermaidBlockSchema.model.flavour,
@@ -13,7 +12,9 @@ export const mermaidBlockHtmlAdapterMatcher: BlockHtmlAdapterMatcher = {
   fromMatch: (o) => o.node.flavour === MermaidBlockSchema.model.flavour,
   toBlockSnapshot: {},
   fromBlockSnapshot: {
-    enter: (o, context) => {
+    enter: async (o, context) => {
+      const { getMermaidEffectiveBlockExportLabel } =
+        await import("../mermaid-title-projection.js");
       context.walkerContext
         .openNode(
           {

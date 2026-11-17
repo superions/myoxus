@@ -89,7 +89,7 @@ test.describe("groups connections", () => {
     await triggerComponentToolbarAction(page, "quickConnect");
 
     // move to elements within group 2
-    await moveView(page, [610, 50]);
+    await moveView(page, [590, 50]);
     await waitNextFrame(page);
 
     await assertConnectorPath(page, [

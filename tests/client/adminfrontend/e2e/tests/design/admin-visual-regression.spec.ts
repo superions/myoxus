@@ -99,7 +99,9 @@ async function openAdminPage(page: Page, routePath: string) {
   await expect(page.locator('[data-admin-page-frame="true"]')).toBeVisible({
     timeout: 10_000,
   });
-  await expect(page.locator(".org-stagger").first()).toBeVisible({
+  await expect(
+    page.locator("[data-myoxus-ui-role='admin-page-frame-body']").first(),
+  ).toBeVisible({
     timeout: 10_000,
   });
 }
@@ -174,7 +176,7 @@ const DESIGN_TAB_READY_TEST_IDS = {
   colors: "design-colors-tab",
   branding: "design-branding-tab",
   "font-library": "font-library-tab",
-  "editor-fonts": "design-fonts-tab",
+  "editor-fonts": "editor-fonts-tab",
 } as const;
 
 const DESIGN_TAB_REVIEW_TEST_IDS = {
@@ -202,9 +204,11 @@ test.describe("P-AR-DOD — Admin role visual regression gates", () => {
       "font-library",
       "editor-fonts",
     ]) {
-      await page.getByTestId(`design-tab-${key}`).click();
+      const tabId = `${key === "font-library" || key === "editor-fonts" ? "typography" : "design"}-tab-${key}`;
+      if (key === "font-library") await openAdminPage(page, "/typography");
+      await page.getByTestId(tabId).click();
       await expect
-        .poll(() => activeTabState(page, `design-tab-${key}`), {
+        .poll(() => activeTabState(page, tabId), {
           message: `${key} design tab trigger must expose the active Mantine/ARIA tab state`,
           timeout: 10_000,
         })
@@ -241,11 +245,9 @@ test.describe("P-AR-DOD — Admin role visual regression gates", () => {
       });
       if (key === "font-library") {
         const readyFonts = Number(
-          await page
-            .getByTestId("font-library-summary-ready")
-            .locator("div")
-            .last()
-            .innerText(),
+          (
+            await page.getByTestId("font-library-summary-ready").innerText()
+          ).match(/:\s*(\d+)$/)?.[1],
         );
         expect(
           readyFonts,
@@ -267,7 +269,7 @@ test.describe("P-AR-DOD — Admin role visual regression gates", () => {
       });
       await openAdminPage(page, "/design");
       const header = await page
-        .locator(".org-stagger .org-h1")
+        .locator("[data-myoxus-ui-role='settings-page-header'] h1")
         .first()
         .evaluate((el) => {
           const style = getComputedStyle(el);
@@ -283,7 +285,7 @@ test.describe("P-AR-DOD — Admin role visual regression gates", () => {
           };
         });
 
-      expect(header.className).toContain("org-h1");
+      expect(header.className).toContain("mantine-Title-root");
       expect(header.fontStyle).not.toBe("italic");
       expect(header.headingToken).toContain("Lato");
       expect(header.fontFamily.toLowerCase()).toContain("lato");
@@ -308,11 +310,13 @@ test.describe("P-AR-DOD — Admin role visual regression gates", () => {
         text: el.textContent?.trim(),
         visible:
           getComputedStyle(el).display !== "none" &&
+          getComputedStyle(el).clip !== "rect(0px, 0px, 0px, 0px)" &&
+          getComputedStyle(el).clipPath !== "inset(50%)" &&
           el.getBoundingClientRect().width > 0 &&
           el.getBoundingClientRect().height > 0,
       }));
     const visibleHeroText = await page
-      .locator(".org-stagger .org-h1")
+      .locator("[data-myoxus-ui-role='settings-page-header'] h1")
       .first()
       .innerText();
 
@@ -337,7 +341,7 @@ test.describe("P-AR-DOD — Admin role visual regression gates", () => {
     ]) {
       await openAdminPage(page, route);
       const hero = await page
-        .locator(".org-stagger header")
+        .locator("[data-myoxus-ui-role='settings-page-header']")
         .first()
         .evaluate((header) => {
           const heading = header.querySelector("h1");
@@ -354,7 +358,7 @@ test.describe("P-AR-DOD — Admin role visual regression gates", () => {
         });
 
       expect(hero.hasH1, `${route} must expose an h1 page hero`).toBe(true);
-      expect(hero.h1Class).toContain("org-h1");
+      expect(hero.h1Class).toContain("mantine-Title-root");
       expect(hero.h1Style, `${route} hero must not be italic`).not.toBe(
         "italic",
       );
@@ -435,13 +439,15 @@ test.describe("P-AR-DOD — Admin role visual regression gates", () => {
       await openAdminPage(page, "/organization");
       await page.getByTestId("organization-tab-unit-types").click();
       await expect(
-        page.getByTestId("organization-unit-type-package-default"),
+        page.getByTestId("organization-unit-type-catalog-default"),
       ).toBeVisible();
 
       const contrast = await page
-        .getByTestId("organization-unit-type-package-default")
+        .getByTestId("organization-unit-type-catalog-default")
         .evaluate((card) => {
-          const heading = card.querySelector(".org-h5, .org-h4, .org-display");
+          const heading = card.querySelector(
+            '[data-myoxus-ui-role="settings-list-item-title"]',
+          );
           if (!heading)
             return { color: "rgb(0, 0, 0)", background: "rgb(0, 0, 0)" };
           const headingStyle = getComputedStyle(heading);
@@ -535,11 +541,11 @@ test.describe("P-AR-DOD — Admin role visual regression gates", () => {
 
     for (const key of ["default", "kvg", "kvk", "wt", "mx"]) {
       await expect(
-        page.getByTestId(`organization-unit-type-package-${key}`),
+        page.getByTestId(`organization-unit-type-catalog-${key}`),
       ).toBeVisible();
       const count = Number(
         await page
-          .getByTestId(`organization-unit-type-package-${key}`)
+          .getByTestId(`organization-unit-type-catalog-${key}`)
           .getAttribute("data-count"),
       );
       expect(

@@ -62,12 +62,12 @@ describe("P-VIRG-ARCH-H-01 import-boundary guard", () => {
         `import { z } from "zod";`,
         `import * as Y from "yjs";`,
         ``,
-        `import { foo } from "@virgultum/std/gfx";`,
+        `import { foo } from "@virgultum/core/runtime/gfx";`,
         ``,
       ].join("\n");
       const imports = Array.from(extractVirgultumImports(src, "x.ts"));
       expect(imports).toHaveLength(1);
-      expect(imports[0]?.importPath).toBe("@virgultum/std/gfx");
+      expect(imports[0]?.importPath).toBe("@virgultum/core/runtime/gfx");
     });
 
     test("multi-line imports: line of `from` keyword wins", () => {
@@ -123,7 +123,7 @@ describe("P-VIRG-ARCH-H-01 import-boundary guard", () => {
 
     const WIDGETS_RULE: PackageRule = {
       name: "widgets",
-      pathPrefix: "virgultum/editor/widgets",
+      pathPrefix: "virgultum/editor/all/src/widgets",
       forbiddenImportPatterns: [
         {
           pattern: /@virgultum\/editor\/all\b/,
@@ -142,7 +142,7 @@ describe("P-VIRG-ARCH-H-01 import-boundary guard", () => {
       const src = `import { foo } from "@virgultum/editor/all";\n`;
       const violations = runCheckOnSource(
         src,
-        "virgultum/editor/blocks/note/src/x.ts",
+        "virgultum/editor/blocks/bpmn/x.ts",
         [BLOCKS_RULE, WIDGETS_RULE],
       );
       expect(violations).toHaveLength(1);
@@ -154,7 +154,7 @@ describe("P-VIRG-ARCH-H-01 import-boundary guard", () => {
       const src = `import { foo } from "@virgultum/editor/widgets/drag-handle";\n`;
       const violations = runCheckOnSource(
         src,
-        "virgultum/editor/blocks/note/src/x.ts",
+        "virgultum/editor/blocks/bpmn/x.ts",
         [BLOCKS_RULE, WIDGETS_RULE],
       );
       expect(violations).toHaveLength(1);
@@ -165,7 +165,7 @@ describe("P-VIRG-ARCH-H-01 import-boundary guard", () => {
       const src = `import { foo } from "@virgultum/editor/all";\n`;
       const violations = runCheckOnSource(
         src,
-        "virgultum/editor/widgets/slash-menu/src/x.ts",
+        "virgultum/editor/all/src/widgets/slash-menu/x.ts",
         [BLOCKS_RULE, WIDGETS_RULE],
       );
       expect(violations).toHaveLength(1);
@@ -176,7 +176,7 @@ describe("P-VIRG-ARCH-H-01 import-boundary guard", () => {
       const src = `import { foo } from "@virgultum/editor/widgets/drag-handle";\n`;
       const violations = runCheckOnSource(
         src,
-        "virgultum/editor/widgets/slash-menu/src/x.ts",
+        "virgultum/editor/all/src/widgets/slash-menu/x.ts",
         [BLOCKS_RULE, WIDGETS_RULE],
       );
       expect(violations).toHaveLength(1);
@@ -187,7 +187,7 @@ describe("P-VIRG-ARCH-H-01 import-boundary guard", () => {
       const src = `import { foo } from "@virgultum/editor/model";\n`;
       const violations = runCheckOnSource(
         src,
-        "virgultum/editor/blocks/note/src/x.ts",
+        "virgultum/editor/blocks/bpmn/x.ts",
         [BLOCKS_RULE, WIDGETS_RULE],
       );
       expect(violations).toHaveLength(0);
@@ -197,7 +197,7 @@ describe("P-VIRG-ARCH-H-01 import-boundary guard", () => {
       const src = `import { foo } from "@virgultum/editor/model";\n`;
       const violations = runCheckOnSource(
         src,
-        "virgultum/editor/widgets/slash-menu/src/x.ts",
+        "virgultum/editor/all/src/widgets/slash-menu/x.ts",
         [BLOCKS_RULE, WIDGETS_RULE],
       );
       expect(violations).toHaveLength(0);
@@ -216,12 +216,12 @@ describe("P-VIRG-ARCH-H-01 import-boundary guard", () => {
     test("clean source produces zero violations", () => {
       const src = [
         `import { foo } from "@virgultum/editor/model";`,
-        `import { bar } from "@virgultum/std/gfx";`,
+        `import { bar } from "@virgultum/core/runtime/gfx";`,
         `import lodash from "lodash-es";`,
       ].join("\n");
       const violations = runCheckOnSource(
         src,
-        "virgultum/editor/blocks/note/src/x.ts",
+        "virgultum/editor/blocks/bpmn/x.ts",
         [BLOCKS_RULE, WIDGETS_RULE],
       );
       expect(violations).toEqual([]);
@@ -234,7 +234,7 @@ describe("P-VIRG-ARCH-H-01 import-boundary guard", () => {
       ].join("\n");
       const violations = runCheckOnSource(
         src,
-        "virgultum/editor/blocks/note/src/x.ts",
+        "virgultum/editor/blocks/bpmn/x.ts",
         [BLOCKS_RULE, WIDGETS_RULE],
       );
       expect(violations).toHaveLength(2);

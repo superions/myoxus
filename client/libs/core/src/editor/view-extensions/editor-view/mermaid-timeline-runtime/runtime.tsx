@@ -30,7 +30,7 @@ import {
   MoreHorizontalIcon,
 } from "@myoxus/icons/react";
 import { useState, useId, useEffect } from "react";
-import { isTouchPadPinchEvent } from "@virgultum/shared/utils";
+import { isTouchPadPinchEvent } from "@virgultum/core/utils";
 import { MermaidEmbeddedActions } from "../mermaid-embedded-actions";
 import { MermaidEditorWorkbench } from "../mermaid-editor-workbench";
 import { TimelineDeleteDialog } from "./delete-dialog";

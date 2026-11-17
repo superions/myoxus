@@ -95,23 +95,26 @@ test.describe("Documents admin module", () => {
 
     try {
       await openDocuments(page);
-      await page.getByTestId("documents-tab-attributes").click();
+      await page.getByTestId("documents-tab-metadata").click();
       await page
-        .getByTestId(`documents-attribute-row-${ATTRIBUTE_KEY}`)
+        .getByTestId(`documents-metadata-field-row-${ATTRIBUTE_KEY}`)
         .click();
-      await page.locator("#attribute-export-mode").selectOption("required");
-      await page.getByTestId("documents-attribute-save").click();
-      await expect(page.getByTestId("documents-attribute-save")).toBeDisabled({
+      await page.locator("#metadata-field-export-mode").click();
+      await page.getByRole("option", { name: "Required", exact: true }).click();
+      await page.getByTestId("documents-metadata-field-save").click();
+      await expect(
+        page.getByTestId("documents-metadata-field-save"),
+      ).toBeDisabled({
         timeout: 10_000,
       });
 
       await page.reload({ waitUntil: "networkidle" });
-      await page.getByTestId("documents-tab-attributes").click();
+      await page.getByTestId("documents-tab-metadata").click();
       await page
-        .getByTestId(`documents-attribute-row-${ATTRIBUTE_KEY}`)
+        .getByTestId(`documents-metadata-field-row-${ATTRIBUTE_KEY}`)
         .click();
-      await expect(page.locator("#attribute-export-mode")).toHaveValue(
-        "required",
+      await expect(page.locator("#metadata-field-export-mode")).toHaveValue(
+        "Required",
       );
     } finally {
       await restoreExportMode(adminRequest, original.exportMode);

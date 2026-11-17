@@ -1,7 +1,6 @@
 import { lightTheme } from "@myoxus/theme";
 import { expect, type Page } from "@playwright/test";
 
-import { clickView, moveView } from "../utils/actions/click.js";
 import { dragBetweenCoords } from "../utils/actions/drag.js";
 import {
   addNote,
@@ -16,6 +15,7 @@ import {
   getNoteRect,
   Shape,
   setViewportCenter,
+  setEdgelessTool,
   switchEditorMode,
   triggerComponentToolbarAction,
 } from "../utils/actions/edgeless.js";
@@ -35,10 +35,7 @@ import {
 import { test } from "../utils/playwright.js";
 
 function getAutoCompletePanelButton(page: Page, type: string) {
-  return page
-    .locator(".auto-complete-panel-container")
-    .locator("edgeless-tool-icon-button")
-    .filter({ hasText: `${type}` });
+  return page.getByRole("menuitem", { name: new RegExp(`^${type}`, "i") });
 }
 
 test.describe("auto-complete", () => {
@@ -47,14 +44,26 @@ test.describe("auto-complete", () => {
       await edgelessCommonSetup(page);
       await createShapeElement(page, [0, 0], [100, 100], Shape.Square);
       await assertSelectedBound(page, [0, 0, 100, 100]);
-      await clickView(page, [120, 50]);
+      await page
+        .getByRole("button", {
+          name: "Add another object of this type to the right",
+          exact: true,
+        })
+        .click();
       await assertSelectedBound(page, [200, 0, 100, 100]);
     });
     test("click on bottom auto-complete button", async ({ page }) => {
       await edgelessCommonSetup(page);
+      // Leave room above the object for its existing selection toolbar.
+      await setViewportCenter(page, [200, 150]);
       await createShapeElement(page, [0, 0], [100, 100], Shape.Square);
       await assertSelectedBound(page, [0, 0, 100, 100]);
-      await clickView(page, [50, 120]);
+      await page
+        .getByRole("button", {
+          name: "Add another object of this type below",
+          exact: true,
+        })
+        .click();
       await assertSelectedBound(page, [0, 200, 100, 100]);
     });
     test("click on left auto-complete button", async ({ page }) => {
@@ -62,7 +71,12 @@ test.describe("auto-complete", () => {
       await setViewportCenter(page, [200, 150]);
       await createShapeElement(page, [0, 0], [100, 100], Shape.Square);
       await assertSelectedBound(page, [0, 0, 100, 100]);
-      await clickView(page, [-20, 50]);
+      await page
+        .getByRole("button", {
+          name: "Add another object of this type to the left",
+          exact: true,
+        })
+        .click();
       await assertSelectedBound(page, [-200, 0, 100, 100]);
     });
     test("click on top auto-complete button", async ({ page }) => {
@@ -70,19 +84,31 @@ test.describe("auto-complete", () => {
       await setViewportCenter(page, [200, 150]);
       await createShapeElement(page, [0, 0], [100, 100], Shape.Square);
       await assertSelectedBound(page, [0, 0, 100, 100]);
-      await clickView(page, [50, -20]);
+      await page
+        .getByRole("button", {
+          name: "Add another object of this type above",
+          exact: true,
+        })
+        .click();
       await assertSelectedBound(page, [0, -200, 100, 100]);
     });
 
     test("click on note auto-complete button", async ({ page }) => {
       await edgelessCommonSetup(page);
-      await addNote(page, "note", 100, 100);
-      await page.mouse.click(600, 50);
-      await page.mouse.click(300, 50);
-      await page.mouse.click(150, 120);
+      // Keep the Note insertion clear of the existing native tool menu.
+      const noteId = await addNote(page, "note", 200, 300);
+      await page.mouse.click(900, 800);
+      await setEdgelessTool(page, "default");
+      await page
+        .locator(`myoxus-edgeless-note[data-block-id="${noteId}"]`)
+        .click({ position: { x: 2, y: 2 } });
       const rect = await getEdgelessSelectedRectModel(page);
-      await moveView(page, [rect[0] + rect[2] + 30, rect[1] + rect[3] / 2]);
-      await clickView(page, [rect[0] + rect[2] + 30, rect[1] + rect[3] / 2]);
+      const add = page.getByRole("button", {
+        name: "Add another object of this type to the right",
+        exact: true,
+      });
+      await add.hover();
+      await add.click();
       const newRect = await getEdgelessSelectedRectModel(page);
       expect(rect[0]).not.toEqual(newRect[0]);
       expect(rect[1]).toEqual(newRect[1]);
@@ -98,6 +124,12 @@ test.describe("auto-complete", () => {
       await edgelessCommonSetup(page);
       await createShapeElement(page, [0, 0], [100, 100], Shape.Square);
       await assertSelectedBound(page, [0, 0, 100, 100]);
+      await page
+        .getByRole("button", {
+          name: "Add another object of this type to the right",
+          exact: true,
+        })
+        .waitFor();
       await dragBetweenViewCoords(page, [120, 50], [200, 0]);
 
       const ellipseButton = getAutoCompletePanelButton(page, "ellipse");
@@ -116,6 +148,12 @@ test.describe("auto-complete", () => {
       await deleteAll(page);
       await createShapeElement(page, [0, 0], [100, 100], Shape.Square);
       await assertSelectedBound(page, [0, 0, 100, 100]);
+      await page
+        .getByRole("button", {
+          name: "Add another object of this type to the right",
+          exact: true,
+        })
+        .waitFor();
       await dragBetweenViewCoords(page, [120, 50], [200, 0]);
 
       const canvasTextButton = getAutoCompletePanelButton(page, "text");
@@ -139,9 +177,18 @@ test.describe("auto-complete", () => {
       await triggerComponentToolbarAction(page, "changeShapeColor");
       await changeShapeStrokeColor(page, "MediumRed");
       await changeShapeFillColor(page, "HeavyGreen");
-      // Closes color pickers
-      await triggerComponentToolbarAction(page, "changeShapeColor");
+      // Dismiss the native style menu before beginning the connector gesture.
+      await page.keyboard.press("Escape");
+      await page
+        .getByRole("textbox", { name: "Fill color", exact: true })
+        .waitFor({ state: "hidden" });
 
+      await page
+        .getByRole("button", {
+          name: "Add another object of this type to the right",
+          exact: true,
+        })
+        .waitFor();
       await dragBetweenViewCoords(page, [120, 50], [200, 0]);
 
       const noteButton = getAutoCompletePanelButton(page, "note");
@@ -252,6 +299,12 @@ test.describe("auto-complete", () => {
       await edgelessCommonSetup(page);
       await createShapeElement(page, [0, 0], [100, 100], Shape.Square);
       await assertSelectedBound(page, [0, 0, 100, 100]);
+      await page
+        .getByRole("button", {
+          name: "Add another object of this type to the right",
+          exact: true,
+        })
+        .waitFor();
       await dragBetweenViewCoords(page, [120, 50], [200, 0]);
 
       expect(await page.locator(".myoxus-frame-container").count()).toBe(0);

@@ -25,8 +25,8 @@ export class ChatContentImages extends WithDisposable(ShadowlessElement) {
     .chat-content-images-row img {
       max-inline-size: calc(
         ${unsafeCSSValue(
-          "calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm))",
-        )} *
+            "calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm))",
+          )} *
           4 +
           ${unsafeCSSValue(
             "calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))",
@@ -34,8 +34,8 @@ export class ChatContentImages extends WithDisposable(ShadowlessElement) {
       );
       max-block-size: calc(
         ${unsafeCSSValue(
-          "calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm))",
-        )} *
+            "calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm))",
+          )} *
           6 + ${unsafeCSSValue("var(--mantine-spacing-xl)")}
       );
       object-fit: cover;
@@ -62,8 +62,8 @@ export class ChatContentImages extends WithDisposable(ShadowlessElement) {
         100%,
         calc(
           ${unsafeCSSValue(
-            "calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm))",
-          )} *
+              "calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm))",
+            )} *
             8
         )
       );

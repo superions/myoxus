@@ -1,1 +1,1 @@
-export * from "@virgultum/block-paragraph/store";
+export { ParagraphStoreExtension } from "@virgultum/content/store";

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import type { ShapeTextEditDraft } from "@virgultum/gfx-shape";
+import type { ShapeTextEditDraft } from "@virgultum/canvas/gfx";
 import {
   addRequirementObject,
   nextRequirementAlias,

@@ -2,8 +2,6 @@ import type { DocCustomPropertyInfo } from "@myoxus/core/modules/db";
 
 import { SystemPropertyTypes } from "../system-property-types";
 
-const systemProperties = Object.entries(SystemPropertyTypes);
-
 /**
  * In Myoxus's property system, the property list can be fully customized by users.
  * For example, system properties like `createdAt` and `updatedAt`.
@@ -41,7 +39,7 @@ export function generateExplorerPropertyList(
   const finalList = [];
   workspaceProperties = [...workspaceProperties];
 
-  for (const [type, info] of systemProperties) {
+  for (const [type, info] of Object.entries(SystemPropertyTypes)) {
     if (info.allPagesOnly && !options.includeAllPagesOnly) continue;
     const workspacePropertyIndex = workspaceProperties.findIndex(
       (p) => p.type === type,

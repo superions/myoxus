@@ -1,1 +1,1 @@
-export * from "@virgultum/components/color-picker";
+export * from "@virgultum/core/color";

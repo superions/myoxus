@@ -11,7 +11,7 @@ import {
   type GfxModel,
   MouseButton,
 } from "@virgultum/editor/std/gfx";
-import { on } from "@virgultum/shared/utils";
+import { on } from "@virgultum/core/utils";
 import { isEqual } from "lodash-es";
 import { Subject } from "rxjs";
 

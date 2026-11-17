@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import type { DatabaseReferenceBlockModel } from "@virgultum/block-database/reference-store";
+import type { DatabaseReferenceBlockModel } from "@virgultum/editor/blocks/database/reference-store";
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** An explicit scope is never repaired using the containing workspace. */

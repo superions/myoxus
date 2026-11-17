@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { ImportIcon } from "@myoxus/icons/lit";
-import { menu, type MenuConfig } from "@virgultum/components/context-menu";
-import { NotificationProvider } from "@virgultum/shared/services";
-import type { ToolbarAction, ToolbarContext } from "@virgultum/shared/services";
-import type { BlockComponent } from "@virgultum/std";
-import { downloadBlob, openSingleFileWith } from "@virgultum/shared/utils";
-import type { MermaidBlockModel } from "@virgultum/model";
+import type { SelectionAction } from "@virgultum/core/services";
+import { NotificationProvider } from "@virgultum/core/services";
+import type { ToolbarAction, ToolbarContext } from "@virgultum/core/services";
+import type { BlockComponent } from "@virgultum/core/runtime";
+import { downloadBlob, openSingleFileWith } from "@virgultum/core/utils";
+import type { MermaidBlockModel } from "@virgultum/core/models";
 
 import { insertMermaidEdgelessDiagramCommand } from "../commands.js";
 import { resolveMermaidSourceLifecycle } from "../families/runtime/source-lifecycle.js";
@@ -74,14 +73,14 @@ export async function importMermaidMmdFile(edgeless: BlockComponent) {
 
 export function createMermaidMmdImportMenuItem(
   edgeless: BlockComponent,
-): MenuConfig {
-  if (edgeless.store.readonly) return () => undefined;
-  return menu.action({
-    name: mermaidMessages.mmdImport(),
-    prefix: ImportIcon({ width: "20px", height: "20px" }),
-    select: () => void importMermaidMmdFile(edgeless),
-    testId: "myoxus-mermaid-edgeless-import-mmd",
-  });
+): SelectionAction {
+  return {
+    id: "myoxus-mermaid-edgeless-import-mmd",
+    label: mermaidMessages.mmdImport(),
+    icon: "ImportIcon",
+    disabled: edgeless.store.readonly,
+    run: () => void importMermaidMmdFile(edgeless),
+  };
 }
 
 export function exportMermaidMmdOwner(owner: MermaidBlockModel) {

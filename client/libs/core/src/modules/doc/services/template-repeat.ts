@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { nanoid, type Store, type Transformer } from "@virgultum/store";
+import { nanoid, type Store, type Transformer } from "@virgultum/core/store";
 import {
   cloneTextWithDocumentFieldIdentities,
   DocumentFieldSchema,
   validateDocumentFieldRun,
   type DocumentField,
   type MyoxusTextAttributes,
-} from "@virgultum/shared/types";
-import type { DeltaInsert } from "@virgultum/store";
+} from "@virgultum/core/types";
+import type { DeltaInsert } from "@virgultum/core/store";
 import { normalizeDocumentField } from "../../template-doc/services/template-inputs";
 import {
   normalizeTableHeaderRows,
   type TableBlockModel,
   type TableRow,
-} from "@virgultum/model";
+} from "@virgultum/core/models";
 
 import { TemplateInstantiationError } from "../../template-doc/services/template-instantiation-error";
 import {

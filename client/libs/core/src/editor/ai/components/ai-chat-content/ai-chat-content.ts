@@ -14,12 +14,13 @@ import type {
   CopilotChatHistoryFragment,
 } from "@myoxus/graphql";
 import { type Signal } from "@preact/signals-core";
-import type { ReactToLit } from "@myoxus/lit-react";
+import { type ReactToLit, toReactNode } from "@myoxus/lit-react";
+import { createElement } from "react";
+import { ChatConversationLayout } from "../message-chrome";
 import { SignalWatcher, WithDisposable } from "@virgultum/editor/global/lit";
-import { unsafeCSSValue } from "@virgultum/editor/shared/theme";
 import { type EditorHost, ShadowlessElement } from "@virgultum/editor/std";
 import type { ExtensionType } from "@virgultum/editor/store";
-import type { NotificationService } from "@virgultum/shared/services";
+import type { NotificationService } from "@virgultum/core/services";
 import {
   css,
   html,
@@ -28,21 +29,17 @@ import {
   type TemplateResult,
 } from "lit";
 import { property, state } from "lit/decorators.js";
-import { classMap } from "lit/directives/class-map.js";
 import { createRef, type Ref, ref } from "lit/directives/ref.js";
 import { pick } from "lodash-es";
 
 import { type AIChatParams, AIProvider } from "../../provider/ai-provider";
 import { extractSelectedContent } from "../../utils/extract";
-import { HISTORY_IMAGE_ACTIONS } from "../../utils/history-image-actions";
 import type { SearchMenuConfig } from "../ai-chat-add-context";
 import type { DocDisplayConfig } from "../ai-chat-chips";
 import type { AIReasoningConfig } from "../ai-chat-input";
 import {
   type AIChatMessages,
-  type ChatAction,
   type ChatMessage,
-  type HistoryMessage,
   isChatMessage,
 } from "../ai-chat-messages";
 import type { ChatContextValue } from "./type";
@@ -73,82 +70,35 @@ export class AIChatContent extends SignalWatcher(
       display: flex;
       flex-direction: column;
     }
-    /* The Workbench's native flex card supplies the bound. Preserve it through
-       retained Lit hosts so only messages scroll and the composer stays visible. */
-    ai-chat-content[bounded-mode],
-    ai-chat-content[bounded-mode] chat-panel-split-view,
-    ai-chat-content[bounded-mode] .ai-chat-panel-split-view-left,
-    ai-chat-content[bounded-mode] .chat-panel-main {
-      display: flex;
-      flex-direction: column;
+    ai-chat-content > lit-react-portal {
+      display: contents;
+    }
+    ai-chat-content[bounded-mode] {
       flex: 1 1 auto;
       min-height: 0;
     }
+    /* The editor engine remains size-contained so only messages scroll inside the Workbench rail. */
     ai-chat-content[bounded-mode] ai-chat-messages {
-      /* Bound the retained renderer independently of its transcript. Keep a
-         small reading viewport when other tools overflow the shared rail. */
       contain: size;
       flex: 1 1 auto;
       min-height: 8lh;
       overflow-y: auto;
       overscroll-behavior-y: contain;
     }
-    ai-chat-content[bounded-mode] .ai-chat-panel-split-view {
-      flex: 1 1 auto;
-      min-height: 0;
-    }
     ai-chat-content[bounded-mode] ai-chat-composer {
       flex-shrink: 0;
     }
     ai-chat-content[independent-mode] {
-      justify-content: center;
-      height: 100%;
-
-      ai-chat-messages {
-        flex: 1;
-        overflow-y: auto;
-        padding: 0 var(--h-padding);
-        transition:
-          flex-grow 0.32s cubic-bezier(0.07, 0.83, 0.46, 1),
-          padding-top 0.32s ease,
-          padding-bottom 0.32s ease;
-      }
-      ai-chat-messages.independent-mode.no-message {
-        flex-grow: 0;
-        flex-shrink: 0;
-        overflow-y: visible;
-      }
-    }
-    chat-panel-split-view {
-      width: 100%;
-      container-type: inline-size;
-      container-name: chat-panel-split-view;
-    }
-    .chat-panel-main {
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-    }
-    ai-chat-content[independent-mode] chat-panel-split-view {
       height: 100%;
     }
-    .chat-panel-main[data-independent="true"] {
-      --h-padding: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
-      justify-content: center;
-      height: 100%;
-      padding: ${unsafeCSSValue("var(--mantine-spacing-sm)")}
-        ${unsafeCSSValue(
-          "clamp(\n    var(--mantine-spacing-xs),\n    2cqi,\n    var(--mantine-spacing-lg)\n  )",
-        )}
-        0;
-      max-width: ${unsafeCSSValue(
-        "calc(\n    calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm)) * 20\n  )",
-      )};
-      margin: 0 auto;
+    ai-chat-content[independent-mode] ai-chat-messages {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
     }
-
-    ai-chat-content[independent-mode] ai-chat-composer {
-      padding: 0 var(--h-padding);
+    ai-chat-content[independent-mode] ai-chat-messages[data-empty] {
+      flex: 0 0 auto;
+      overflow-y: visible;
     }
   `;
 
@@ -265,78 +215,21 @@ export class AIChatContent extends SignalWatcher(
   private lastScrollTop: number | undefined;
 
   get messages() {
-    return this.chatContextValue.messages.filter((item) => {
-      return (
-        isChatMessage(item) ||
-        item.messages?.length === 3 ||
-        (HISTORY_IMAGE_ACTIONS.includes(item.action) &&
-          item.messages?.length === 2)
-      );
-    });
-  }
-
-  get showActions() {
-    return false;
+    return this.chatContextValue.messages.filter(isChatMessage);
   }
 
   private readonly loadHistory = async () => {
-    if (!AIProvider.histories) {
-      return undefined;
-    }
-
+    if (!AIProvider.histories) return undefined;
     const sessionId = this.session?.sessionId;
-    const [histories, actions] = await Promise.all([
-      sessionId
-        ? AIProvider.histories.chats(this.workspaceId, sessionId)
-        : Promise.resolve([]),
-      this.docId && this.showActions
-        ? AIProvider.histories.actions(this.workspaceId, this.docId)
-        : Promise.resolve([]),
-    ]);
-
-    const messages: HistoryMessage[] = [];
-    const chatActions = (actions || []) as ChatAction[];
-    messages.push(...chatActions);
-
-    const chatMessages = (histories?.[0]?.messages || []) as ChatMessage[];
-    messages.push(...chatMessages);
-
+    const histories = sessionId
+      ? await AIProvider.histories.chats(this.workspaceId, sessionId)
+      : [];
+    const messages = (histories?.[0]?.messages || []) as ChatMessage[];
     return messages.sort(
       (a, b) =>
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     );
   };
-
-  private readonly updateActions = async () => {
-    if (!this.docId || !AIProvider.histories || !this.showActions) {
-      return;
-    }
-    const identity = this.currentHistoryIdentity;
-    const request = this.updateHistoryCounter;
-    const actions = await AIProvider.histories.actions(
-      this.workspaceId,
-      this.docId,
-    );
-    if (
-      this.isConnected &&
-      identity === this.currentHistoryIdentity &&
-      request === this.updateHistoryCounter &&
-      actions?.length
-    ) {
-      const chatMessages = this.chatContextValue.messages.filter((message) =>
-        isChatMessage(message),
-      );
-      const chatActions = actions as ChatAction[];
-      const messages: HistoryMessage[] = [...chatMessages, ...chatActions];
-      this.updateContext({
-        messages: messages.sort(
-          (a, b) =>
-            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-        ),
-      });
-    }
-  };
-
   private readonly updateContext = (context: Partial<ChatContextValue>) => {
     if (["quote", "images", "markdown"].some((key) => key in context))
       this.draftRestoreRevision++;
@@ -517,18 +410,6 @@ export class AIChatContent extends SignalWatcher(
     }
 
     this._disposables.add(
-      AIProvider.slots.actions.subscribe(({ event }) => {
-        const { status } = this.chatContextValue;
-        if (
-          event === "finished" &&
-          (status === "idle" || status === "success")
-        ) {
-          this.updateActions().catch(console.error);
-        }
-      }),
-    );
-
-    this._disposables.add(
       AIProvider.slots.requestOpenWithChat.subscribe(
         (params: AIChatParams | null) => {
           if (!params) {
@@ -560,6 +441,7 @@ export class AIChatContent extends SignalWatcher(
   }
 
   override render() {
+    if (!this.reactToLit) return nothing;
     const historyError = this.historyLoadFailed
       ? html`<ai-error-wrapper
           .reactToLit=${this.reactToLit}
@@ -572,11 +454,7 @@ export class AIChatContent extends SignalWatcher(
         .aiModelService=${this.aiModelService}
         .onScrollAvailabilityChange=${this.onScrollAvailabilityChange}
         .reactToLit=${this.reactToLit}
-        class=${classMap({
-          "ai-chat-messages": true,
-          "independent-mode": !!this.independentMode,
-          "no-message": this.messages.length === 0,
-        })}
+        ?data-empty=${this.messages.length === 0}
         ${ref(this.chatMessagesRef)}
         .host=${this.host}
         .workspaceId=${this.workspaceId}
@@ -627,20 +505,18 @@ export class AIChatContent extends SignalWatcher(
         }}
       ></ai-chat-composer>`;
 
-    const right = this.previewPanelContent;
-
-    return html`<chat-panel-split-view
-      .left=${html`<div
-        class="chat-panel-main"
-        data-empty=${this.messages.length === 0}
-        data-independent=${!!this.independentMode}
-      >
-        ${historyError} ${left}
-      </div>`}
-      .right=${right}
-      .open=${this.showPreviewPanel}
-    >
-    </chat-panel-split-view>`;
+    return this.reactToLit(
+      createElement(
+        ChatConversationLayout,
+        {
+          independent: !!this.independentMode,
+          open: this.showPreviewPanel,
+          preview: toReactNode(this.previewPanelContent ?? undefined),
+        },
+        toReactNode(html`${historyError}${left}`),
+      ),
+      true,
+    );
   }
 
   @state()

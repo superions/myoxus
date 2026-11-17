@@ -707,8 +707,7 @@ test.describe("toggle list", () => {
     );
 
     await page.mouse.move(0, 0);
-    await waitNextFrame(page, 200);
-    expect(await isToggleIconVisible(toggleIcon)).toBe(false);
+    await expect.poll(() => isToggleIconVisible(toggleIcon)).toBe(false);
   });
 
   test("indent item should expand toggle", async ({ page }, testInfo) => {

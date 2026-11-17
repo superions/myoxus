@@ -1,3 +1,4 @@
+import { popoverViewportMiddlewares } from "@myoxus/ui-facade";
 import {
   autoPlacement,
   autoUpdate,
@@ -38,8 +39,12 @@ import { EdgelessCopilotPanel } from "../edgeless-copilot-panel/index.js";
 import { MYOXUS_EDGELESS_COPILOT_WIDGET } from "./constant.js";
 
 export class EdgelessCopilotWidget extends WidgetComponent<RootBlockModel> {
+  override createRenderRoot() {
+    return this;
+  }
+
   static override styles = css`
-    .copilot-selection-rect {
+    myoxus-edgeless-copilot-widget .copilot-selection-rect {
       position: absolute;
       box-sizing: border-box;
       border-radius: ${unsafeCSSValue("var(--mantine-radius-sm)")};
@@ -117,9 +122,7 @@ export class EdgelessCopilotWidget extends WidgetComponent<RootBlockModel> {
               .catch(console.error);
           };
           aiPanel.config.inputCallback = (text) => {
-            const panel = this.shadowRoot?.querySelector(
-              "edgeless-copilot-panel",
-            );
+            const panel = this.querySelector("edgeless-copilot-panel");
             if (panel instanceof HTMLElement) {
               panel.style.visibility = text ? "hidden" : "visible";
             }
@@ -147,7 +150,7 @@ export class EdgelessCopilotWidget extends WidgetComponent<RootBlockModel> {
     const panel = this._copilotPanel;
     if (!panel) return;
 
-    const originMaxHeight = window.getComputedStyle(panel).maxHeight;
+    const padding = { top: 10, right: 10, bottom: 150, left: 10 };
 
     this._autoUpdateCleanup?.();
     this._autoUpdateCleanup = autoUpdate(referenceElement, panel, () => {
@@ -164,22 +167,9 @@ export class EdgelessCopilotWidget extends WidgetComponent<RootBlockModel> {
               "bottom-end",
             ],
           }),
-          size({
-            apply: ({ availableHeight }) => {
-              availableHeight -= 10;
-              panel.style.maxHeight =
-                originMaxHeight && originMaxHeight !== "none"
-                  ? `min(${originMaxHeight}, ${availableHeight}px)`
-                  : `${availableHeight}px`;
-            },
-          }),
+          size({ ...popoverViewportMiddlewares.size, padding }),
           shift({
-            padding: {
-              top: 10,
-              right: 10,
-              bottom: 150,
-              left: 10,
-            },
+            padding,
             limiter: limitShift(),
           }),
         ],
@@ -308,17 +298,20 @@ export class EdgelessCopilotWidget extends WidgetComponent<RootBlockModel> {
 
     const rect = this._selectionRect;
 
-    return html`<div class="myoxus-edgeless-ai">
-      <div
-        class="copilot-selection-rect"
-        style=${styleMap({
-          left: `${rect.x}px`,
-          top: `${rect.y}px`,
-          width: `${rect.width}px`,
-          height: `${rect.height}px`,
-        })}
-      ></div>
-    </div>`;
+    return html`<style>
+        ${EdgelessCopilotWidget.styles}
+      </style>
+      <div class="myoxus-edgeless-ai">
+        <div
+          class="copilot-selection-rect"
+          style=${styleMap({
+            left: `${rect.x}px`,
+            top: `${rect.y}px`,
+            width: `${rect.width}px`,
+            height: `${rect.height}px`,
+          })}
+        ></div>
+      </div>`;
   }
 
   @state()

@@ -7,7 +7,7 @@ import {
   prepareMermaidFamilySource,
   readMindmapProjectionOptions,
 } from "@virgultum/editor/blocks/mermaid";
-import type { MermaidBlockModel } from "@virgultum/model";
+import type { MermaidBlockModel } from "@virgultum/editor/model";
 import type { EdgelessRootBlockComponent } from "@virgultum/editor/blocks/root";
 import { getSurfaceBlock } from "@virgultum/editor/blocks/surface";
 import {
@@ -25,7 +25,7 @@ import {
   type TextElementModel,
 } from "@virgultum/editor/model";
 import { EditPropsStore } from "@virgultum/editor/shared/services";
-import type { BlockStdScope } from "@virgultum/std";
+import type { BlockStdScope } from "@virgultum/editor/std";
 import { beforeEach, describe, expect, test } from "vitest";
 
 import { getDocRootBlock } from "../utils/edgeless.js";

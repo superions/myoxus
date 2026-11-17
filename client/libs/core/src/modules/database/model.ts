@@ -974,7 +974,20 @@ export function formatCellValue(
             timeZone: dateTime.timeZone,
           }).format(date);
     }
-    return formatDateTime(value, locale, regionalPreferences);
+    if (!dateTime) return formatDateTime(value, locale, regionalPreferences);
+    const date = new Date(dateTime.start);
+    if (Number.isNaN(date.getTime())) return String(value);
+    // Card summaries and editable cells must display the same stored wall time.
+    return regionalPreferences
+      ? formatRegionalDateTime(date, {
+          ...regionalPreferences,
+          timezone: dateTime.timeZone,
+        })
+      : new Intl.DateTimeFormat(locale, {
+          dateStyle: "medium",
+          timeStyle: "short",
+          timeZone: dateTime.timeZone,
+        }).format(date);
   }
   if (field.fieldType === DatabaseFieldKind.Files) {
     return Array.isArray(value)

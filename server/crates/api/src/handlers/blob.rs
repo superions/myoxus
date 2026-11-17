@@ -469,9 +469,32 @@ pub(crate) async fn download_blob_handler(
   .await
   .map_err(|_| StatusCode::FORBIDDEN)?;
 
+  let canonical_key = myoxus_application::ports::blob::BlobKey::parse(&key).map_err(|_| StatusCode::NOT_FOUND)?;
+  let key = canonical_key.as_str();
+
+  // The ordinary blob URL must retain the same selected-source ACL as the
+  // PDF URL; otherwise a copied artifact link would bypass revocation.
+  if let Some(blob_id) = key.strip_prefix("pdf-export/").and_then(|id| Uuid::parse_str(id).ok()) {
+    if let Some(job) = state
+      .pdf_export_jobs()
+      .find_output(workspace_uuid, blob_id)
+      .await
+      .map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?
+    {
+      myoxus_application::doc::embed_output::authorize_render_inputs(
+        &job.render_inputs,
+        &pc,
+        state.doc(),
+        snapshot.user.id,
+      )
+      .await
+      .map_err(|_| StatusCode::FORBIDDEN)?;
+    }
+  }
+
   let blob = state
     .blob()
-    .get_blob(workspace_uuid, &key)
+    .get_blob(workspace_uuid, key)
     .await
     .map_err(|_| StatusCode::NOT_FOUND)?;
 
@@ -499,7 +522,11 @@ pub(crate) async fn download_blob_handler(
     .map(|s| s.to_string());
   let data = blob.data.to_vec();
   let total_len = data.len();
-  let cache_control = "private, max-age=3600";
+  let cache_control = if key.starts_with("pdf-export/") {
+    "private, no-store"
+  } else {
+    "private, max-age=3600"
+  };
 
   if let Some(range_header) = range_header {
     let Some((start, end)) = parse_range_header(&range_header, total_len) else {

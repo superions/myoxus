@@ -1,19 +1,20 @@
 import type { AIToolsConfigService } from "@myoxus/core/modules/ai-button";
 import type { AIModelService } from "@myoxus/core/modules/ai-button/services/models";
-import type { ReactToLit } from "@myoxus/lit-react";
+import { type ReactToLit, toReactNode } from "@myoxus/lit-react";
+import { createElement } from "react";
+import type { PeekViewService } from "@myoxus/core/modules/peek-view";
+import { PlaygroundColumns } from "./view";
 import type { WorkspaceDialogService } from "@myoxus/core/modules/dialogs";
 import type { FeatureFlagService } from "@myoxus/core/modules/feature-flag";
 import type { ServerService } from "@myoxus/core/modules/server";
 import type { AppThemeService } from "@myoxus/core/modules/theme";
 import type { CopilotChatHistoryFragment } from "@myoxus/graphql";
 import { SignalWatcher, WithDisposable } from "@virgultum/editor/global/lit";
-import { unsafeCSSValue, unsafeCSSVar } from "@virgultum/editor/shared/theme";
 import { type EditorHost, ShadowlessElement } from "@virgultum/editor/std";
 import type { ExtensionType, Store } from "@virgultum/editor/store";
-import type { NotificationService } from "@virgultum/shared/services";
-import { css, html } from "lit";
+import type { NotificationService } from "@virgultum/core/services";
+import { css, html, nothing } from "lit";
 import { property, state } from "lit/decorators.js";
-import { repeat } from "lit/directives/repeat.js";
 
 import type { AppSidebarConfig } from "../../chat-panel/chat-config";
 import { AIProvider } from "../../provider";
@@ -26,39 +27,11 @@ export class PlaygroundContent extends SignalWatcher(
 ) {
   @property({ attribute: false })
   accessor reactToLit!: ReactToLit;
+  // The custom element is only a lifecycle boundary; native components own layout.
   static override styles = css`
-    playground-content {
-      .playground-content {
-        display: flex;
-        gap: ${unsafeCSSValue("var(--mantine-spacing-lg)")};
-        width: 100%;
-        height: 100%;
-        padding: ${unsafeCSSValue("var(--mantine-spacing-lg)")};
-        box-sizing: border-box;
-      }
-
-      .playground-chat-item {
-        flex: 1;
-        min-width: 0;
-        border: ${unsafeCSSValue("calc(var(--mantine-scale) * 1px)")} solid
-          ${unsafeCSSVar("borderColor")};
-        border-radius: ${unsafeCSSValue("var(--mantine-radius-lg)")};
-        background: ${unsafeCSSVar("backgroundPrimaryColor")};
-        overflow: hidden;
-        box-shadow: ${unsafeCSSValue("var(--mantine-shadow-sm)")};
-        transition: box-shadow ${unsafeCSSValue("200ms")} ease;
-      }
-
-      .playground-chat-item:hover {
-        box-shadow: ${unsafeCSSValue("var(--mantine-shadow-md)")};
-      }
-
-      .playground-chat-item:only-child {
-        max-width: ${unsafeCSSValue(
-          "calc(\n    calc(var(--mantine-spacing-2xl) + var(--mantine-spacing-sm)) * 20\n  )",
-        )};
-        margin: 0 auto;
-      }
+    playground-content,
+    playground-content > lit-react-portal {
+      display: contents;
     }
   `;
 
@@ -67,6 +40,12 @@ export class PlaygroundContent extends SignalWatcher(
 
   @property({ attribute: false })
   accessor doc!: Store;
+
+  @property({ attribute: false })
+  accessor peekViewService!: PeekViewService;
+
+  @property({ attribute: false })
+  accessor onOpenDoc!: (docId: string, sessionId?: string) => void;
 
   @property({ attribute: false })
   accessor reasoningConfig!: AIReasoningConfig;
@@ -183,6 +162,17 @@ export class PlaygroundContent extends SignalWatcher(
     if (forkSession) {
       this.sessions = [...this.sessions, forkSession];
     }
+  };
+
+  private readonly restartChat = async (sessionId: string) => {
+    const replacement = this.rootSessionId
+      ? await this.forkSession(this.rootSessionId)
+      : undefined;
+    if (!replacement) throw new Error("Playground session unavailable");
+    // A deleted session must not remain the composer's next send target.
+    this.sessions = this.sessions.map((session) =>
+      session.sessionId === sessionId ? replacement : session,
+    );
   };
 
   private setupTextareaSync() {
@@ -343,17 +333,18 @@ export class PlaygroundContent extends SignalWatcher(
   }
 
   override render() {
-    return html`
-      <div class="playground-content">
-        ${repeat(
-          this.sessions,
-          (session) => session.sessionId,
-          (session) => html`
-            <div class="playground-chat-item">
-              <playground-chat
+    return (
+      this.reactToLit?.(
+        createElement(PlaygroundColumns, {
+          items: this.sessions.map((session) => ({
+            id: session.sessionId,
+            content: toReactNode(
+              html` <playground-chat
                 .reactToLit=${this.reactToLit}
                 .host=${this.host}
                 .doc=${this.doc}
+                .peekViewService=${this.peekViewService}
+                .onOpenDoc=${this.onOpenDoc}
                 .session=${session}
                 .reasoningConfig=${this.reasoningConfig}
                 .playgroundConfig=${this.playgroundConfig}
@@ -371,11 +362,13 @@ export class PlaygroundContent extends SignalWatcher(
                 }
                 .aiModelService=${this.aiModelService}
                 .addChat=${this.addChat}
-              ></playground-chat>
-            </div>
-          `,
-        )}
-      </div>
-    `;
+                .onHistoryCleared=${() => this.restartChat(session.sessionId)}
+              ></playground-chat>`,
+            ),
+          })),
+        }),
+        true,
+      ) ?? nothing
+    );
   }
 }

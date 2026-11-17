@@ -23,7 +23,6 @@ import {
   SettingsInlineControl,
   SettingWrapper,
 } from "../primitives";
-import { AIUsagePanel } from "./ai-usage-panel";
 import { DeleteAccount } from "./delete-account";
 import { StorageProgress } from "./storage-progress";
 
@@ -153,7 +152,6 @@ export const AccountSetting = () => {
     GlobalDialogService,
   });
   const preferences = useService(UserPreferencesService);
-  const serverFeatures = useLiveData(serverService.server.features$);
   const t = useI18n();
   const session = authService.session;
   useEffect(() => {
@@ -217,7 +215,6 @@ export const AccountSetting = () => {
           </Button>
         </SettingRow>
         <StoragePanel />
-        {serverFeatures?.copilot && <AIUsagePanel />}
         <SettingRow
           name={t[`Sign out`]()}
           desc={t["com.myoxus.setting.sign.out.message"]()}

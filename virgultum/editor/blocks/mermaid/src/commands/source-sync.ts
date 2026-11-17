@@ -2,9 +2,9 @@ import {
   reconcileTypeOwnedMermaidGeometryGesture,
   usesTypeOwnedMermaidDocumentHistory,
 } from "../families/runtime/gfx-owner-hooks.js";
-import { editorToast } from "@virgultum/shared/utils";
-import type { MermaidBlockModel } from "@virgultum/model";
-import type { Command } from "@virgultum/std";
+import { editorToast } from "@virgultum/core/utils";
+import type { MermaidBlockModel } from "@virgultum/core/models";
+import type { Command } from "@virgultum/core/runtime";
 import type { MermaidVisualHistoryModel } from "../mermaid-block-constants.js";
 import {
   createMermaidGfxModelHash,

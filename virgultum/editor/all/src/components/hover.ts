@@ -1,1 +1,1 @@
-export * from "@virgultum/components/hover";
+export * from "@virgultum/core/view/hover";

@@ -1,1 +1,1 @@
-export * from "@virgultum/components/linked-doc-title";
+export * from "@virgultum/content/linked-doc-title";

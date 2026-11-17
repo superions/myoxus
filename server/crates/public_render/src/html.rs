@@ -275,23 +275,10 @@ pub fn render_workspace_index_html(
             ));
           } else {
             match item.register.get(key) {
-              Some(WorkspaceRegisterValue::Text(value)) => body.push_str(&esc(value)),
-              Some(WorkspaceRegisterValue::Labels(values)) if !values.is_empty() => {
-                body.push_str(&esc(&values.join(", ")))
-              }
               Some(WorkspaceRegisterValue::Timestamp(value)) => {
                 body.push_str(&register_timestamp_html(renderer, *value, &options.locale))
               }
-              Some(WorkspaceRegisterValue::Version { label, dirty }) => {
-                let value = match (label, dirty) {
-                  (Some(label), true) => format!("{label} ({})", labels.register_changed),
-                  (Some(label), false) => label.clone(),
-                  (None, true) => labels.register_unversioned.clone(),
-                  (None, false) => "–".into(),
-                };
-                body.push_str(&esc(&value));
-              }
-              _ => body.push('–'),
+              value => body.push_str(&esc(&renderer.register_value_text(value, &options.locale))),
             }
           }
           body.push_str("</td>");
@@ -770,7 +757,10 @@ fn render_image(asset: &AssetRef, snapshot_relative_links: bool) -> String {
       .trim_start_matches("../")
       .strip_prefix("public-assets/")
       .is_some_and(|path| !path.split('/').any(|segment| matches!(segment, "" | "." | "..")));
-  if !is_allowed_public_url(src) && !resolved_snapshot_asset {
+  // Application binds output-local images only after admitting their source.
+  // An authored data source without this delivery binding stays unavailable.
+  let resolved_inline_image = asset.public_url.is_some() && src.starts_with("data:image/");
+  if !is_allowed_public_url(src) && !resolved_snapshot_asset && !resolved_inline_image {
     return "<p data-myoxus-role=\"public-asset-placeholder\" data-pagefind-ignore>Image unavailable.</p>".to_string();
   }
   format!(

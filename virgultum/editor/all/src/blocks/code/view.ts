@@ -1,1 +1,1 @@
-export * from "@virgultum/block-code/view";
+export { CodeBlockViewExtension } from "@virgultum/content/view";

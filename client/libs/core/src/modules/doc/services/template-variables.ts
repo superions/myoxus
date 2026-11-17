@@ -5,7 +5,7 @@ import {
   editorMessage,
   type EditorI18nMessage,
   type MyoxusTemplateVariableCapability,
-} from "@virgultum/shared/services";
+} from "@virgultum/core/services";
 
 import { formatRegionalDate, type RegionalFormatPreferences } from "../../i18n";
 import { TemplateInstantiationError } from "../../template-doc/services/template-instantiation-error";

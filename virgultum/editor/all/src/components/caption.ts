@@ -1,1 +1,1 @@
-export * from "@virgultum/components/caption";
+export * from "@virgultum/content/caption";

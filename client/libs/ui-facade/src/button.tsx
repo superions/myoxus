@@ -393,6 +393,8 @@ export type MyoxusIconButtonProps = Omit<
   iconClassName?: string;
   tooltipShortcut?: string[];
   tooltipOptions?: {
+    /** Keep native portals inside their fullscreen or renderer owner. */
+    portalProps?: ComponentProps<typeof MantineTooltip>["portalProps"];
     side?: "top" | "right" | "bottom" | "left";
     align?: "start" | "center" | "end";
     [key: string]: unknown;
@@ -555,6 +557,7 @@ export const IconButton = forwardRef(function IconButton(
   if (!tooltip) return button;
   return (
     <MantineTooltip
+      portalProps={tooltipOptions?.portalProps}
       label={renderTooltipLabel(tooltip, tooltipShortcut)}
       opened={
         typeof tooltipOptions?.opened === "boolean"

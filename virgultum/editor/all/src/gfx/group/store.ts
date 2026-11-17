@@ -1,1 +1,1 @@
-export * from "@virgultum/gfx-group/store";
+export { GroupStoreExtension } from "@virgultum/canvas/store";

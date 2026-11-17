@@ -1,1 +1,1 @@
-export * from "@virgultum/widget-frame-title/view";
+export { FrameTitleViewExtension } from "@virgultum/canvas/view";

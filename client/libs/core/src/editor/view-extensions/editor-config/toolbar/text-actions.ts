@@ -2,7 +2,7 @@
 // SPDX-FileCopyrightText: 2022-2026 TOEVERYTHING PTE. LTD. and its affiliates.
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
-import { copyTextToClipboard } from "@virgultum/global/utils";
+import { copyTextToClipboard } from "@virgultum/core/primitives/utils";
 
 import type { EditorSettingExt } from "@myoxus/core/modules/editor-setting/entities/editor-setting";
 import { computed } from "@preact/signals-core";
@@ -25,7 +25,7 @@ import {
   type ToolbarContext,
   type ToolbarModuleConfig,
 } from "@virgultum/editor/shared/services";
-import { editorToast } from "@virgultum/shared/utils";
+import { editorToast } from "@virgultum/core/utils";
 import { openDocActions } from "../../editor-view/open-doc";
 
 export function createOpenDocActions(

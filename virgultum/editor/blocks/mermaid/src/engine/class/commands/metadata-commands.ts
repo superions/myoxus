@@ -3,7 +3,7 @@ import {
   resolveMermaidDiagramTitle,
   writeMermaidDiagramTitle,
 } from "../../diagram-title.js";
-import { isValidUrl, normalizeUrl } from "@virgultum/shared/utils";
+import { isValidUrl, normalizeUrl } from "@virgultum/core/utils";
 import type {
   MermaidClassModel,
   MermaidClassComment,

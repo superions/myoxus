@@ -4,13 +4,13 @@
 import { StoreExtensionManager } from "../ext-loader/index.js";
 import { getInternalStoreExtensions } from "../extensions/store.js";
 import { MyoxusSchemas } from "../schemas.js";
-import { ParagraphBlockModel } from "@virgultum/model";
-import { Schema } from "@virgultum/store";
-import { TestWorkspace } from "@virgultum/store/test";
+import { ParagraphBlockModel } from "@virgultum/core/models";
+import { Schema } from "@virgultum/core/store";
+import { TestWorkspace } from "@virgultum/core/store/test";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { MarkdownTransformer } from "@virgultum/widget-linked-doc";
-import { parseMatter } from "../../../widgets/linked-doc/src/transformers/utils.js";
+import { MarkdownTransformer } from "../widgets/linked-doc/index";
+import { parseMatter } from "../widgets/linked-doc/transformers/utils.js";
 
 const frontmatter = (matter: string) => `---\n${matter}\n---\n# Body\n`;
 

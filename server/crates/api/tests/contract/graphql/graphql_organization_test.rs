@@ -67,7 +67,9 @@ async fn inv_org_d_t02_manager_sees_own_organization_units() {
   let units = resp["data"]["myOrganizationUnits"]
     .as_array()
     .unwrap_or_else(|| panic!("myOrganizationUnits must be an array, got: {resp}"));
-  let found = units.iter().any(|u| u["id"].as_str() == Some(&unit_id.to_string()));
+  let found = units
+    .iter()
+    .any(|u| u["id"].as_str() == Some(unit_id.to_string().as_str()));
   assert!(
     found,
     "manager should see their own OU in myOrganizationUnits, got: {resp}"
@@ -212,7 +214,7 @@ async fn inv_org_d_t04_admin_can_upsert_and_list_unit() {
   let units = list["data"]["admin"]["organizationUnits"]
     .as_array()
     .unwrap_or_else(|| panic!("organizationUnits must be array, got: {list}"));
-  let exists = units.iter().any(|u| u["id"].as_str() == Some(&new_id));
+  let exists = units.iter().any(|u| u["id"].as_str() == Some(new_id.as_str()));
   assert!(
     exists,
     "admin should see the freshly upserted OU in the list, got: {list}"
@@ -526,7 +528,7 @@ fn inv_org_shared_workspace_effective_capability_projection_preserves_raw_role()
           .as_array()
           .is_some_and(|workspaces| workspaces
             .iter()
-            .any(|workspace| { workspace["id"].as_str() == Some(&shared_workspace_id.to_string()) })),
+            .any(|workspace| { workspace["id"].as_str() == Some(shared_workspace_id.to_string().as_str()) })),
         "OU-managed workspace must be discoverable without a direct membership: {projection}"
       );
       for access in [
@@ -634,11 +636,11 @@ fn inv_org_f_t07_admin_organization_units_expose_counts() {
       .unwrap_or_else(|| panic!("organizationUnits must be array, got: {resp}"));
     let root = units
       .iter()
-      .find(|u| u["id"].as_str() == Some(&root_id.to_string()))
+      .find(|u| u["id"].as_str() == Some(root_id.to_string().as_str()))
       .unwrap_or_else(|| panic!("root must be listed, got: {resp}"));
     let child = units
       .iter()
-      .find(|u| u["id"].as_str() == Some(&child_id.to_string()))
+      .find(|u| u["id"].as_str() == Some(child_id.to_string().as_str()))
       .unwrap_or_else(|| panic!("child must be listed, got: {resp}"));
 
     assert_eq!(root["childUnitCount"], 1, "root child count must be 1: {resp}");

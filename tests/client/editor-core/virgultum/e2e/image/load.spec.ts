@@ -18,12 +18,10 @@ test("missing image asset renders its fallback without a broken image", async ({
       noteId,
     );
   }, noteId);
-  const fallback = page.locator("myoxus-image-fallback-card");
-  await expect(
-    fallback.locator(".myoxus-image-fallback-card-title-text"),
-  ).toHaveText("Image");
-  await expect(
-    fallback.locator(".myoxus-image-fallback-card-description"),
-  ).toContainText("Image not found");
+  const fallback = page.getByTestId("editor-image-fallback");
+  await expect(fallback.getByTestId("editor-image-fallback-title")).toHaveText(
+    "Image",
+  );
+  await expect(fallback).toContainText("Image not found");
   await expect(page.locator("myoxus-page-image img")).toHaveCount(0);
 });

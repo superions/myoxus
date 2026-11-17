@@ -10,7 +10,7 @@
             "caption": "",
             "language": "javascript",
             "text": {
-              "$blocksuite:internal:text$": true,
+              "$virgultum:internal:text$": true,
               "delta": []
             },
             "wrap": false
@@ -26,7 +26,7 @@
             "caption": "",
             "language": "javascript",
             "text": {
-              "$blocksuite:internal:text$": true,
+              "$virgultum:internal:text$": true,
               "delta": []
             },
             "wrap": false
@@ -64,7 +64,7 @@
   "id": "0",
   "props": {
     "title": {
-      "$blocksuite:internal:text$": true,
+      "$virgultum:internal:text$": true,
       "delta": []
     }
   },

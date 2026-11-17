@@ -340,6 +340,10 @@ function BuildingBlockPicker({
 /** Page, Edgeless and Electron share this host binding and native writer. */
 export function useBuildingBlockPicker() {
   const t = useI18n();
+  const insertion = useService(TemplateSectionInsertionService);
+  const preferences = useRegionalPreferences();
+  const directAbort = useRef<AbortController | null>(null);
+  useEffect(() => () => directAbort.current?.abort(), []);
   const [target, setTarget] = useState<BuildingBlockTarget | null>(null);
   const [saved, setSaved] = useState<{
     std: BlockStdScope;
@@ -420,7 +424,59 @@ export function useBuildingBlockPicker() {
     },
     [t],
   );
+  const insertNamedBuildingBlock = useCallback(
+    (std: BlockStdScope, slug: string) => {
+      if (preparing.current) return;
+      let target: BuildingBlockTarget;
+      try {
+        target = captureBuildingBlockTarget(std);
+      } catch (cause) {
+        notify.error({
+          title: t["com.myoxus.templates.blocks.insert"](),
+          message:
+            cause instanceof BuildingBlockTargetError
+              ? t[targetMessages[cause.reason]]()
+              : t["com.myoxus.templates.blocks.no-body"](),
+        });
+        return;
+      }
+      preparing.current = true;
+      const controller = new AbortController();
+      directAbort.current = controller;
+      let committed = false;
+      void insertion
+        .insertNamed(
+          slug,
+          target,
+          preferences,
+          AbortSignal.any([controller.signal, AbortSignal.timeout(30_000)]),
+          () => {
+            committed = true;
+          },
+        )
+        .catch((cause) => {
+          if (controller.signal.aborted) return;
+          notify.error({
+            title: t["com.myoxus.templates.blocks.insert"](),
+            message: committed
+              ? t["com.myoxus.templates.blocks.confirmation-pending"]()
+              : cause instanceof TemplateInstantiationError
+                ? t[templateFailureMessages[cause.reason]]()
+                : cause instanceof BuildingBlockTargetError
+                  ? t[targetMessages[cause.reason]]()
+                  : t["com.myoxus.template-application.error.failed"](),
+          });
+          if (!committed) restoreBuildingBlockTarget(target);
+        })
+        .finally(() => {
+          preparing.current = false;
+          directAbort.current = null;
+        });
+    },
+    [insertion, preferences, t],
+  );
   return {
+    insertNamedBuildingBlock,
     openBuildingBlockPicker,
     saveBuildingBlockSelection,
     buildingBlockPicker: (

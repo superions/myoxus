@@ -1,4 +1,4 @@
-import { GfxControllerIdentifier } from "@virgultum/std/gfx";
+import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
 import { type PropertyValues } from "lit";
 
 import { MermaidHostState } from "./mermaid-host-state.js";
@@ -11,19 +11,45 @@ export abstract class MermaidHostLifecycle extends MermaidHostState {
   private _observedSource = "";
   private _themeProjectionObserver: MutationObserver | null = null;
   private _themeProjectionRefreshQueued = false;
+  private _projectionRefreshGeneration = 0;
 
   private readonly _handleThemeProjectionChange = () => {
     if (this._themeProjectionRefreshQueued) return;
     this._themeProjectionRefreshQueued = true;
-    queueMicrotask(() => {
-      this._themeProjectionRefreshQueued = false;
-      if (!this.isConnected) return;
-      this.store.get(MermaidOwnerMigrationExtension).migrate();
-      this._pauseProjectionOwnerSourceSync();
-      this._ensureProjectionOwner(false, true);
-      this._acceptProjectionOwnerSourceSyncKey();
-      this._scheduleRender();
-      this.requestUpdate();
+    const generation = this._projectionRefreshGeneration;
+    queueMicrotask(async () => {
+      try {
+        if (
+          !this.isConnected ||
+          generation !== this._projectionRefreshGeneration
+        )
+          return;
+        const std = this.std;
+        const store = this.store;
+        const lifetime = store.disposableGroup;
+        if (lifetime.disposed) return;
+        // Readonly resume must reconcile after lazy legacy adoption, even when
+        // Source bytes are unchanged. Do not resume an outgoing mounted scope.
+        await store.get(MermaidOwnerMigrationExtension).migrate();
+        if (
+          !this.isConnected ||
+          generation !== this._projectionRefreshGeneration ||
+          std !== this.std ||
+          store !== this.store ||
+          lifetime !== store.disposableGroup ||
+          lifetime.disposed
+        )
+          return;
+        this._pauseProjectionOwnerSourceSync();
+        this._ensureProjectionOwner(false, true);
+        this._acceptProjectionOwnerSourceSyncKey();
+        this._scheduleRender();
+        this.requestUpdate();
+      } finally {
+        if (generation === this._projectionRefreshGeneration) {
+          this._themeProjectionRefreshQueued = false;
+        }
+      }
     });
   };
 
@@ -105,6 +131,8 @@ export abstract class MermaidHostLifecycle extends MermaidHostState {
 
   override connectedCallback() {
     super.connectedCallback();
+    this._projectionRefreshGeneration++;
+    this._themeProjectionRefreshQueued = false;
     this.contentEditable = "false";
     if (!this.hasAttribute("tabindex")) this.tabIndex = -1;
     this.addEventListener(
@@ -172,6 +200,13 @@ export abstract class MermaidHostLifecycle extends MermaidHostState {
     this._disposables.add(
       this.store.history.onUpdated.subscribe(() => this.requestUpdate()),
     );
+    this._disposables.add(
+      this.store.readonly$.subscribe((readonly) => {
+        // A mounted readonly owner skips reconciliation. Resume it after the
+        // store's queued legacy adoption, even when Source itself is unchanged.
+        if (!readonly) this._handleThemeProjectionChange();
+      }),
+    );
     const hostViewport = this.std.get(GfxControllerIdentifier).viewport;
     const hostSelection = this.std.get(GfxControllerIdentifier).selection;
     this._disposables.add(
@@ -214,6 +249,8 @@ export abstract class MermaidHostLifecycle extends MermaidHostState {
   }
 
   override disconnectedCallback() {
+    this._projectionRefreshGeneration++;
+    this._themeProjectionRefreshQueued = false;
     this.removeEventListener(
       "keydown",
       this._handleDocumentKeydown as EventListener,

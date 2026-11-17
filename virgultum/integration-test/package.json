@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "yarn --cwd \"$PROJECT_CWD\" exec tsc -p \"$PWD/tsconfig.json\" --noEmit",
+    "build": "yarn --cwd \"$PROJECT_CWD\" exec tsc -p \"$PROJECT_CWD/virgultum/integration-test/tsconfig.json\" --noEmit",
     "test:unit": "vitest --browser.headless --run",
     "test:debug": "PWDEBUG=1 npx vitest"
   },

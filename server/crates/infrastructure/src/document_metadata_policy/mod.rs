@@ -186,6 +186,7 @@ fn row_to_runtime_bucket(row: &sqlx::postgres::PgRow) -> DocumentRuntimeAggregat
 
 fn row_to_metadata_index(row: &sqlx::postgres::PgRow) -> DocumentMetadataIndexRow {
   DocumentMetadataIndexRow {
+    responsible_user_id: row.get("responsible_user_id"),
     doc_id: row.get("doc_id"),
     external_id: row.get("external_id"),
     created_by: row.get("created_by"),
@@ -229,7 +230,7 @@ const METADATA_INDEX_VERSION_SQL: &str = r#"
 const METADATA_INDEX_SQL: &str = r#"
   WITH runtime_docs AS (
     SELECT
-      d.id AS doc_id, d.external_id, d.created_by, d.updated_by, d.journal_date,
+      d.id AS doc_id, d.external_id, d.created_by, d.updated_by, d.journal_date, d.responsible_user_id,
       COALESCE(template.state <> 'none', false) AS is_template,
       template.state AS template_state,
       CASE WHEN template.state <> 'none' THEN template.metadata ->> 'origin' END AS template_origin,
@@ -258,7 +259,7 @@ const METADATA_INDEX_SQL: &str = r#"
     WHERE d.workspace_id = $1 AND d.deleted_at IS NULL
   )
   SELECT
-    rd.doc_id, rd.external_id, rd.created_by, rd.updated_by, rd.journal_date,
+    rd.doc_id, rd.external_id, rd.created_by, rd.updated_by, rd.journal_date, rd.responsible_user_id,
     rd.is_template, rd.template_state, rd.template_origin, rd.template_category, rd.template_tags, rd.primary_mode,
     rd.page_width, rd.edgeless_color_theme, rd.integration_type,
     COALESCE(rd.state_status_id, type_status.status_id, first_status.id) AS status_id,
@@ -490,9 +491,10 @@ impl DocumentMetadataPolicyRepository for PgDocumentMetadataPolicyRepository {
     doc_id: uuid::Uuid,
     actor_id: uuid::Uuid,
   ) -> RepoResult<DocumentMetadataIndexRow> {
-    let row = sqlx::query("SELECT initial.status_id, initial.document_type_id, initial.classification_id FROM document_metadata_initial_defaults(jsonb_populate_record(NULL::docs, jsonb_build_object('id',$1::uuid,'workspace_id',$2::uuid,'created_by',$3::uuid,'updated_by',$3::uuid))) AS initial")
+    let row = sqlx::query("SELECT initial.status_id, initial.document_type_id, initial.classification_id, initial.responsible_user_id FROM document_metadata_initial_defaults(jsonb_populate_record(NULL::docs, jsonb_build_object('id',$1::uuid,'workspace_id',$2::uuid,'created_by',$3::uuid,'updated_by',$3::uuid))) AS initial")
       .bind(doc_id).bind(workspace_id).bind(actor_id).fetch_one(&self.pool).await.map_err(db_error)?;
     Ok(DocumentMetadataIndexRow {
+      responsible_user_id: row.try_get("responsible_user_id").map_err(db_error)?,
       doc_id,
       external_id: doc_id.to_string(),
       created_by: Some(actor_id),

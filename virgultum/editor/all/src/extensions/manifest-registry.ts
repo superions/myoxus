@@ -7,73 +7,74 @@
  * The consistency contract pins both provider identities and ordering.
  */
 
-import { AnnotationViewExtension } from "@virgultum/block-annotation/view";
-import { AttachmentViewExtension } from "@virgultum/block-attachment/view";
-import { BookmarkViewExtension } from "@virgultum/block-bookmark/view";
+import { AnnotationViewExtension } from "@virgultum/content/view";
+import { AttachmentViewExtension } from "@virgultum/embeds/view";
+import { BookmarkViewExtension } from "@virgultum/embeds/view";
 import { BpmnViewExtension } from "@virgultum/block-bpmn/view";
-import { CalloutViewExtension } from "@virgultum/block-callout/view";
-import { CodeBlockViewExtension } from "@virgultum/block-code/view";
-import { DatabaseReferenceViewExtension } from "@virgultum/block-database/reference-view";
-import { dividerManifest } from "@virgultum/block-divider/manifest";
-import { EdgelessTextViewExtension } from "@virgultum/block-edgeless-text/view";
-import { EmbedViewExtension } from "@virgultum/block-embed/view";
-import { EmbedDocViewExtension } from "@virgultum/block-embed-doc/view";
-import { eventManifest } from "@virgultum/block-event/manifest";
-import { FrameViewExtension } from "@virgultum/block-frame/view";
-import { ImageViewExtension } from "@virgultum/block-image/view";
-import { latexManifest } from "@virgultum/block-latex/manifest";
-import { ListViewExtension } from "@virgultum/block-list/view";
+import { CalloutViewExtension } from "@virgultum/content/view";
+import { CodeBlockViewExtension } from "@virgultum/content/view";
+import { DatabaseReferenceViewExtension } from "@virgultum/embeds/view";
+import { dividerManifest } from "@virgultum/content/manifests";
+import { EdgelessTextViewExtension } from "@virgultum/canvas/view";
+import { EmbedViewExtension } from "@virgultum/embeds/view";
+import { EmbedDocViewExtension } from "@virgultum/embeds/view";
+import { documentIndexManifest } from "@virgultum/content/manifests";
+import { eventManifest } from "@virgultum/embeds/manifests";
+import { FrameViewExtension } from "@virgultum/canvas/view";
+import { ImageViewExtension } from "@virgultum/embeds/view";
+import { latexManifest } from "@virgultum/content/manifests";
+import { ListViewExtension } from "@virgultum/content/view";
 import { mermaidManifest } from "@virgultum/block-mermaid/manifest";
 import {
   FootnoteDefinitionViewExtension,
   NoteViewExtension,
-} from "@virgultum/block-note/view";
-import { ParagraphViewExtension } from "@virgultum/block-paragraph/view";
-import { RootViewExtension } from "@virgultum/block-root/view";
-import { SurfaceViewExtension } from "@virgultum/block-surface/view";
-import { surfaceRefManifest } from "@virgultum/block-surface-ref/manifest";
-import { TableViewExtension } from "@virgultum/block-table/view";
+} from "@virgultum/embeds/view";
+import { ParagraphViewExtension } from "@virgultum/content/view";
+import { RootViewExtension } from "../blocks/root/view";
+import { SurfaceViewExtension } from "@virgultum/canvas-runtime/view";
+import { surfaceRefManifest } from "@virgultum/canvas/manifest";
+import { TableViewExtension } from "@virgultum/content/view";
 import {
   type ExtensionProviderClass,
   type FeatureManifestId,
   featureManifestId,
-} from "@virgultum/ext-loader";
-import { FoundationViewExtension } from "@virgultum/foundation/view";
-import { DocTitleViewExtension } from "@virgultum/fragment-doc-title/view";
-import { FramePanelViewExtension } from "@virgultum/fragment-frame-panel/view";
-import { OutlineViewExtension } from "@virgultum/fragment-outline/view";
-import { BrushViewExtension } from "@virgultum/gfx-brush/view";
-import { ConnectorViewExtension } from "@virgultum/gfx-connector/view";
-import { GroupViewExtension } from "@virgultum/gfx-group/view";
-import { LinkViewExtension as GfxLinkViewExtension } from "@virgultum/gfx-link/view";
-import { NoteViewExtension as GfxNoteViewExtension } from "@virgultum/gfx-note/view";
-import { PointerViewExtension } from "@virgultum/gfx-pointer/view";
-import { ShapeViewExtension } from "@virgultum/gfx-shape/view";
-import { TemplateViewExtension } from "@virgultum/gfx-template/view";
-import { TextViewExtension } from "@virgultum/gfx-text/view";
-import { InlineCommentViewExtension } from "@virgultum/inline-comment/view";
-import { FootnoteViewExtension } from "@virgultum/inline-footnote/view";
-import { LatexViewExtension as InlineLatexViewExtension } from "@virgultum/inline-latex/view";
-import { LinkViewExtension } from "@virgultum/inline-link/view";
-import { MentionViewExtension } from "@virgultum/inline-mention/view";
-import { InlinePresetViewExtension } from "@virgultum/inline-preset/view";
-import { ReferenceViewExtension } from "@virgultum/inline-reference/view";
-import { DragHandleViewExtension } from "@virgultum/widget-drag-handle/view";
-import { EdgelessAutoConnectViewExtension } from "@virgultum/widget-edgeless-auto-connect/view";
-import { EdgelessDraggingAreaViewExtension } from "@virgultum/widget-edgeless-dragging-area/view";
-import { EdgelessSelectedRectViewExtension } from "@virgultum/widget-edgeless-selected-rect/view";
-import { EdgelessToolbarViewExtension } from "@virgultum/widget-edgeless-toolbar/view";
-import { EdgelessZoomToolbarViewExtension } from "@virgultum/widget-edgeless-zoom-toolbar/view";
-import { FrameTitleViewExtension } from "@virgultum/widget-frame-title/view";
-import { KeyboardToolbarViewExtension } from "@virgultum/widget-keyboard-toolbar/view";
-import { LinkedDocViewExtension } from "@virgultum/widget-linked-doc/view";
-import { NoteSlicerViewExtension } from "@virgultum/widget-note-slicer/view";
-import { PageDraggingAreaViewExtension } from "@virgultum/widget-page-dragging-area/view";
-import { RemoteSelectionViewExtension } from "@virgultum/widget-remote-selection/view";
-import { ScrollAnchoringViewExtension } from "@virgultum/widget-scroll-anchoring/view";
-import { SlashMenuViewExtension } from "@virgultum/widget-slash-menu/view";
-import { ToolbarViewExtension } from "@virgultum/widget-toolbar/view";
-import { ViewportOverlayViewExtension } from "@virgultum/widget-viewport-overlay/view";
+} from "@virgultum/core/extensions";
+import { FoundationViewExtension } from "../foundation/view";
+import { DocTitleViewExtension } from "@virgultum/content/view";
+import { FramePanelViewExtension } from "../fragments/frame-panel/view";
+import { OutlineViewExtension } from "../fragments/outline/view";
+import { BrushViewExtension } from "@virgultum/canvas/view";
+import { ConnectorViewExtension } from "@virgultum/canvas/view";
+import { GroupViewExtension } from "@virgultum/canvas/view";
+import { LinkViewExtension as GfxLinkViewExtension } from "@virgultum/canvas/view";
+import { NoteViewExtension as GfxNoteViewExtension } from "@virgultum/canvas/view";
+import { PointerViewExtension } from "@virgultum/canvas/view";
+import { ShapeViewExtension } from "@virgultum/canvas/view";
+import { TemplateViewExtension } from "@virgultum/canvas/view";
+import { TextViewExtension } from "@virgultum/canvas/view";
+import { InlineCommentViewExtension } from "@virgultum/content/view";
+import { FootnoteViewExtension } from "@virgultum/content/view";
+import { InlineLatexViewExtension } from "@virgultum/content/view";
+import { LinkViewExtension } from "@virgultum/content/view";
+import { MentionViewExtension } from "@virgultum/content/view";
+import { InlinePresetViewExtension } from "@virgultum/content/view";
+import { ReferenceViewExtension } from "@virgultum/content/view";
+import { DragHandleViewExtension } from "../widgets/drag-handle/view";
+import { EdgelessAutoConnectViewExtension } from "@virgultum/canvas/view";
+import { EdgelessDraggingAreaViewExtension } from "@virgultum/canvas/view";
+import { EdgelessSelectedRectViewExtension } from "@virgultum/canvas/view";
+import { EdgelessToolbarViewExtension } from "@virgultum/canvas/view";
+import { EdgelessZoomToolbarViewExtension } from "../widgets/edgeless-zoom-toolbar/view";
+import { FrameTitleViewExtension } from "@virgultum/canvas/view";
+import { KeyboardToolbarViewExtension } from "../widgets/keyboard-toolbar/view";
+import { LinkedDocViewExtension } from "../widgets/linked-doc/view";
+import { NoteSlicerViewExtension } from "@virgultum/canvas/view";
+import { PageDraggingAreaViewExtension } from "../widgets/page-dragging-area/view";
+import { RemoteSelectionViewExtension } from "../widgets/remote-selection/view";
+import { ScrollAnchoringViewExtension } from "../widgets/scroll-anchoring/view";
+import { SlashMenuViewExtension } from "../widgets/slash-menu/view";
+import { ToolbarViewExtension } from "../widgets/toolbar/view";
+import { ViewportOverlayViewExtension } from "../widgets/viewport-overlay/view";
 import { internalStoreExtensionsByFeature } from "./store";
 export { getInternalStoreExtensions } from "./store";
 import {
@@ -131,6 +132,7 @@ const INTERNAL_MANIFESTS: ReadonlyArray<FeatureManifest> = [
   },
   dividerManifest,
   eventManifest,
+  documentIndexManifest,
   {
     id: featureManifestId("edgeless-text"),
     view: [EdgelessTextViewExtension],
@@ -359,6 +361,7 @@ const INTERNAL_VIEW_ORDER: ReadonlyArray<FeatureManifestId> = [
   featureManifestId("embed"),
   featureManifestId("embed-doc"),
   featureManifestId("event"),
+  featureManifestId("document-index"),
   featureManifestId("frame"),
   featureManifestId("image"),
   featureManifestId("latex"),

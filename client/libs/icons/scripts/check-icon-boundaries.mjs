@@ -53,7 +53,7 @@ const generatedBrandScanRoots = [
   "client/admin/workspaces/admin/dist",
   "client/apps/electron-renderer/dist",
   "server/runtime/storage",
-  "virgultum/editor/shared/dist",
+  "virgultum/core/dist",
   "virgultum/integration-test/dist",
 ];
 

@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 use myoxus_application::document_template::{
   CreateDocumentTemplate, DEFAULT_DOCUMENT_TEMPLATE_LIMIT, DocumentTemplateError, DocumentTemplateFolderSelector,
-  DocumentTemplateService, DocumentTemplateVariable,
+  DocumentTemplateService, DocumentTemplateVariable, MAX_DOCUMENT_TEMPLATE_LIMIT,
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -18,20 +18,29 @@ use super::{
   with_internal_document_identity,
 };
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, rmcp::schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
-struct DocumentTemplateListRequest {
+#[schemars(crate = "rmcp::schemars")]
+pub(crate) struct DocumentTemplateListRequest {
+  #[schemars(with = "String", extend("format" = "uuid"))]
   workspace_id: Uuid,
+  // Preserve the published integer schemas without platform-specific formats.
   #[serde(default)]
+  #[schemars(transform = |schema: &mut rmcp::schemars::Schema| { schema.remove("format"); })]
   offset: usize,
   #[serde(default = "default_limit")]
+  #[schemars(range(min = 1, max = MAX_DOCUMENT_TEMPLATE_LIMIT))]
+  #[schemars(transform = |schema: &mut rmcp::schemars::Schema| { schema.remove("format"); })]
   limit: usize,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, rmcp::schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
-struct DocumentTemplateGetRequest {
+#[schemars(crate = "rmcp::schemars")]
+pub(crate) struct DocumentTemplateGetRequest {
+  #[schemars(with = "String", extend("format" = "uuid"))]
   workspace_id: Uuid,
+  #[schemars(length(min = 1))]
   external_id: String,
 }
 

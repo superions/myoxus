@@ -19,6 +19,7 @@
 //! to [`render_to_pdf_v2`] / [`render_to_pdf_v2_with_snapshot_limits`].
 
 pub mod builder;
+pub mod document_icons;
 pub mod error;
 pub mod execution;
 pub mod ir;
@@ -26,6 +27,10 @@ pub mod mermaid;
 pub mod render_v2;
 pub mod template_v2;
 pub mod typst_engine;
+
+/// Namespace for newly admitted export reuse. Bump when renderer semantics or
+/// bundled coverage assets change; already published job downloads stay frozen.
+pub const PDF_RENDER_CONTRACT_KEY: &str = "native-latex-v4";
 
 pub use builder::{AssetResolver, NullAssetResolver, YjsIrBuilder};
 pub use error::{IrBuildError, PdfExportError, RenderError, TemplateError};

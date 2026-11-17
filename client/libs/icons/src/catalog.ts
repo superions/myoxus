@@ -441,6 +441,7 @@ import {
   MathPanelIcon as SourceMathPanelIcon,
   McpIcon as SourceMcpIcon,
   MeetingIcon as SourceMeetingIcon,
+  MegaphoneIcon as SourceMegaphoneIcon,
   MemberIcon as SourceMemberIcon,
   MenubarIcon as SourceMenubarIcon,
   MessageSquareTextIcon as SourceMessageSquareTextIcon,
@@ -3332,6 +3333,12 @@ export const MeetingIcon = /*#__PURE__*/ createMyoxusIcon(
   "MeetingIcon",
 );
 export const Meeting = MeetingIcon;
+
+export const MegaphoneIcon = /*#__PURE__*/ createMyoxusIcon(
+  SourceMegaphoneIcon,
+  "MegaphoneIcon",
+);
+export const Megaphone = MegaphoneIcon;
 
 export const MemberIcon = /*#__PURE__*/ createMyoxusIcon(
   SourceMemberIcon,

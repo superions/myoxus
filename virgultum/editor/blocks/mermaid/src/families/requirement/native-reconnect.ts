@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import type { ConnectorElementModel } from "@virgultum/model";
-import type { ToolbarContext } from "@virgultum/shared/services";
+import type { ConnectorElementModel } from "@virgultum/core/models";
+import type { ToolbarContext } from "@virgultum/core/services";
 import type { MermaidEdgelessSelectionContext } from "../../edgeless-toolbar/selection-context.js";
 import { getMermaidGfxNode } from "../../commands.js";
 import {

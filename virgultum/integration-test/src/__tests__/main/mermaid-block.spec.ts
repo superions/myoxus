@@ -31,23 +31,26 @@ import {
   type NoteBlockModel,
   NoteDisplayMode,
   type ParagraphBlockModel,
-} from "@virgultum/model";
-import { beforeEach, describe, expect, test } from "vitest";
+} from "@virgultum/editor/model";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import { html } from "lit";
-import { Bound, almostEqual } from "@virgultum/global/gfx";
-import { GfxControllerIdentifier } from "@virgultum/std/gfx";
+import { Bound, almostEqual } from "@virgultum/editor/global/gfx";
+import { GfxControllerIdentifier } from "@virgultum/editor/std/gfx";
 import { encodeStateAsUpdate } from "yjs";
 
-import { collectEmbeddedMermaidRootExclusions } from "../../../../editor/blocks/mermaid/src/presentation/embedded-child-visibility.js";
-import { createMermaidOwnerGfxQuery } from "../../../../editor/blocks/mermaid/src/presentation/owner-gfx-query.js";
-import { resolveMermaidGfxProjection } from "../../../../editor/blocks/mermaid/src/presentation/gfx-projection-owner.js";
-import { planLinkedMermaidOwnerMigration } from "../../../../editor/blocks/mermaid/src/presentation/migrate-linked-owners.js";
-import { MermaidOwnerMigrationExtension } from "../../../../editor/blocks/mermaid/src/presentation/mermaid-owner-migration-extension.js";
-import { writeMermaidSourceModelState } from "../../../../editor/blocks/mermaid/src/mermaid-source-write.js";
+import { collectEmbeddedMermaidRootExclusions } from "../../../../editor/all/src/test-support/mermaid.js";
+import { createMermaidOwnerGfxQuery } from "../../../../editor/all/src/test-support/mermaid.js";
+import { resolveMermaidGfxProjection } from "../../../../editor/all/src/test-support/mermaid.js";
+import { planLinkedMermaidOwnerMigration } from "../../../../editor/all/src/test-support/mermaid.js";
+import {
+  settleMermaidMigrationModule,
+  MermaidOwnerMigrationExtension,
+} from "../../../../editor/all/src/test-support/mermaid.js";
+import { writeMermaidSourceModelState } from "../../../../editor/all/src/test-support/mermaid.js";
 import {
   preserveMermaidProjectionOwnerGeometry,
   resolveMermaidProjectionOwnerBoundForVisualModel,
-} from "../../../../editor/blocks/mermaid/src/commands/materialization.js";
+} from "../../../../editor/all/src/test-support/mermaid.js";
 import { wait } from "../utils/common.js";
 import { addNote } from "../utils/edgeless.js";
 import { setupEditor } from "../utils/setup.js";
@@ -419,7 +422,8 @@ describe("Mermaid single-owner integration", () => {
       const parent = doc.getParent(owner);
       return (
         parent?.flavour === "myoxus:note" &&
-        parent.props.displayMode === NoteDisplayMode.DocAndEdgeless &&
+        (parent as NoteBlockModel).props.displayMode ===
+          NoteDisplayMode.DocAndEdgeless &&
         resolveMermaidGfxProjection(owner)?.kind === "legacy"
       );
     });
@@ -513,6 +517,23 @@ describe("Mermaid single-owner integration", () => {
     }
   });
 
+  test("preserves a writable migration request arriving while a readonly pass completes", async () => {
+    const { paragraph } = addParagraph();
+    const inserted = await insertEmbedded(paragraph);
+    const owner = getMermaidBlock(inserted.blockId);
+    const legacy = makeLegacyLinkedOwner(owner, "[220,160,520,360]");
+    doc.readonly = true;
+    const migration = doc.get(MermaidOwnerMigrationExtension);
+    const completion = migration.migrate();
+    queueMicrotask(() => {
+      doc.readonly = false;
+    });
+    await completion;
+    expect(owner.yBlock.get("prop:reference")).toBeUndefined();
+    expect(owner.childIds).toEqual(legacy.childIds);
+    expect(doc.getBlock(legacy.frame.id)).toBeUndefined();
+  });
+
   test("migrates once when a mounted legacy owner becomes writable", async () => {
     const { paragraph } = addParagraph();
     const inserted = await insertEmbedded(paragraph);
@@ -523,9 +544,24 @@ describe("Mermaid single-owner integration", () => {
     expect(planLinkedMermaidOwnerMigration(doc).hasWrites).toBe(false);
     expect(encodeStateAsUpdate(doc.spaceDoc)).toEqual(beforeReadonly);
 
+    const migration = doc.get(MermaidOwnerMigrationExtension);
+    doc.readonly = false;
+    // Revoke permission and dispose after the callback reaches its import,
+    // before the family module can resume the synchronous migration.
+    await new Promise<void>((resolve) =>
+      queueMicrotask(() => {
+        doc.readonly = true;
+        migration.disposed();
+        resolve();
+      }),
+    );
+    await settleMermaidMigrationModule();
+    expect(owner.yBlock.get("prop:reference")).toBe(legacy.frame.id);
+    expect(doc.getBlock(legacy.frame.id)).toBeDefined();
+    migration.loaded();
     doc.readonly = false;
     await wait();
-    expect(owner.yBlock.get("prop:reference")).toBeUndefined();
+    await expect.poll(() => owner.yBlock.get("prop:reference")).toBeUndefined();
     expect(owner.childIds).toEqual(legacy.childIds);
     expect(doc.getBlock(legacy.frame.id)).toBeUndefined();
     // Migration replaces the rendered owner. Wait for the Note mask's existing
@@ -560,5 +596,30 @@ describe("Mermaid single-owner integration", () => {
     doc.readonly = false;
     await wait();
     expect(encodeStateAsUpdate(doc.spaceDoc)).toEqual(migrated);
+
+    // A Store can reload while its host/std identity is retained. The outgoing
+    // async theme callback must not resume Source reconciliation in that life.
+    const view = getHost().view.getBlock(owner.id) as unknown as {
+      _handleThemeProjectionChange(): void;
+      _ensureProjectionOwner(): void;
+    };
+    const reconcile = vi.spyOn(view, "_ensureProjectionOwner");
+    const lifetime = doc.disposableGroup;
+    try {
+      view._handleThemeProjectionChange();
+      await new Promise<void>((resolve) =>
+        queueMicrotask(() => {
+          doc.dispose();
+          doc.load();
+          resolve();
+        }),
+      );
+      await migration.migrate();
+      expect(lifetime.disposed).toBe(true);
+      expect(doc.disposableGroup).not.toBe(lifetime);
+      expect(reconcile).not.toHaveBeenCalled();
+    } finally {
+      reconcile.mockRestore();
+    }
   });
 });

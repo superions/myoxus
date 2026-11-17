@@ -71,6 +71,17 @@ dependencies = [
 
 [[package]]
 name = "ahash"
+version = "0.7.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "891477e0c6a8957309ee5c45a6368af3ae14bb510732d2684ffa19af310920f9"
+dependencies = [
+ "getrandom 0.2.17",
+ "once_cell",
+ "version_check",
+]
+
+[[package]]
+name = "ahash"
 version = "0.8.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5a15f179cd60c4584b8a8c596927aadc462e27f2ca70c04e0071964a73ba7a75"
@@ -412,7 +423,7 @@ dependencies = [
  "futures-lite",
  "parking",
  "polling",
- "rustix",
+ "rustix 1.1.4",
  "slab",
  "windows-sys 0.61.2",
 ]
@@ -797,6 +808,28 @@ name = "by_address"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "64fa3c856b712db6612c019f14756e64e4bcea13337a6b33b696333a9eaa2d06"
+
+[[package]]
+name = "bytecheck"
+version = "0.6.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23cdc57ce23ac53c931e88a43d06d070a6fd142f2617be5855eb75efc9beb1c2"
+dependencies = [
+ "bytecheck_derive",
+ "ptr_meta",
+ "simdutf8",
+]
+
+[[package]]
+name = "bytecheck_derive"
+version = "0.6.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3db406d29fbcd95542e92559bed4d8ad92636d1ca8b3b72ede10b4bcc010e659"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
 
 [[package]]
 name = "bytecount"
@@ -1288,6 +1321,12 @@ checksum = "77745e017f5edba1a9c1d854f6f3a52dac8a12dd5af5d2f54aecf61e43d80d30"
 dependencies = [
  "libm",
 ]
+
+[[package]]
+name = "countme"
+version = "3.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7704b5fdd17b18ae31c4c1da5a2e0305a2bf17b5249300a9ee9ed7b72114c636"
 
 [[package]]
 name = "cpubits"
@@ -2027,7 +2066,7 @@ checksum = "531e46835a22af56d1e3b66f04844bed63158bc094a628bec1d321d9b4c44bf2"
 dependencies = [
  "bit-set 0.5.3",
  "regex-automata",
- "regex-syntax",
+ "regex-syntax 0.8.11",
 ]
 
 [[package]]
@@ -2038,7 +2077,7 @@ checksum = "998b056554fbe42e03ae0e152895cd1a7e1002aec800fdc6635d20270260c46f"
 dependencies = [
  "bit-set 0.8.0",
  "regex-automata",
- "regex-syntax",
+ "regex-syntax 0.8.11",
 ]
 
 [[package]]
@@ -2344,6 +2383,15 @@ dependencies = [
  "memchr",
  "pin-project-lite",
  "slab",
+]
+
+[[package]]
+name = "fxhash"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c31b6d751ae2c7f11320402d34e41349dd1016f8d5d45e48c4312bc8625af50c"
+dependencies = [
+ "byteorder",
 ]
 
 [[package]]
@@ -2666,7 +2714,7 @@ dependencies = [
  "bstr",
  "log",
  "regex-automata",
- "regex-syntax",
+ "regex-syntax 0.8.11",
 ]
 
 [[package]]
@@ -2714,11 +2762,20 @@ dependencies = [
 
 [[package]]
 name = "hashbrown"
+version = "0.12.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
+dependencies = [
+ "ahash 0.7.8",
+]
+
+[[package]]
+name = "hashbrown"
 version = "0.14.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
 dependencies = [
- "ahash",
+ "ahash 0.8.12",
 ]
 
 [[package]]
@@ -3950,7 +4007,7 @@ dependencies = [
  "petgraph",
  "pico-args",
  "regex",
- "regex-syntax",
+ "regex-syntax 0.8.11",
  "string_cache 0.8.9",
  "term",
  "tiny-keccak",
@@ -4093,6 +4150,12 @@ checksum = "d4a5ff6bcca6c4867b1c4fd4ef63e4db7436ef363e0ad7531d1558856bae64f4"
 
 [[package]]
 name = "linux-raw-sys"
+version = "0.4.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d26c52dbd32dccf2d10cac7725f8eae5296885fb5703b261f7d0a0739ec807ab"
+
+[[package]]
+name = "linux-raw-sys"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32a66949e030da00e8c7d4434b251670a91556f4144941d37452769c25d58a53"
@@ -4133,11 +4196,34 @@ checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
 
 [[package]]
 name = "logos"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c000ca4d908ff18ac99b93a062cb8958d331c3220719c52e77cb19cc6ac5d2c1"
+dependencies = [
+ "logos-derive 0.13.0",
+]
+
+[[package]]
+name = "logos"
 version = "0.14.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7251356ef8cb7aec833ddf598c6cb24d17b689d20b993f9d11a3d764e34e6458"
 dependencies = [
- "logos-derive",
+ "logos-derive 0.14.4",
+]
+
+[[package]]
+name = "logos-codegen"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dc487311295e0002e452025d6b580b77bb17286de87b57138f3b5db711cded68"
+dependencies = [
+ "beef",
+ "fnv",
+ "proc-macro2",
+ "quote",
+ "regex-syntax 0.6.29",
+ "syn 2.0.119",
 ]
 
 [[package]]
@@ -4151,8 +4237,17 @@ dependencies = [
  "lazy_static",
  "proc-macro2",
  "quote",
- "regex-syntax",
+ "regex-syntax 0.8.11",
  "syn 2.0.119",
+]
+
+[[package]]
+name = "logos-derive"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dbfc0d229f1f42d790440136d941afd806bc9e949e2bcb8faa813b0f00d1267e"
+dependencies = [
+ "logos-codegen 0.13.0",
 ]
 
 [[package]]
@@ -4161,7 +4256,7 @@ version = "0.14.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "24fb722b06a9dc12adb0963ed585f19fc61dc5413e6a9be9422ef92c091e731d"
 dependencies = [
- "logos-codegen",
+ "logos-codegen 0.14.4",
 ]
 
 [[package]]
@@ -4371,6 +4466,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "memoffset"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "488016bfae457b036d996092f6cb448677611ce4449e970ceaf42695203f218a"
+dependencies = [
+ "autocfg",
+]
+
+[[package]]
 name = "merman"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4394,7 +4498,7 @@ dependencies = [
  "json5",
  "lalrpop",
  "lalrpop-util",
- "logos",
+ "logos 0.14.4",
  "lol_html",
  "regex",
  "rustc-hash 2.1.3",
@@ -4477,6 +4581,75 @@ dependencies = [
 ]
 
 [[package]]
+name = "mitex"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "81f1eb466efdd212fe624f8bf24083f21d582f2d08e3b879bc4a059b25969d6c"
+dependencies = [
+ "mitex-parser",
+ "mitex-spec-gen",
+ "rowan",
+]
+
+[[package]]
+name = "mitex-glob"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3074187856f137e3392e906daefa2fdc993175d1c7d55ff1348e3bb9321d415"
+
+[[package]]
+name = "mitex-lexer"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0fd0a245774eed6cbf0df25bc3a9c6cc64445a5ea2c3a241f1c9691d83ae214b"
+dependencies = [
+ "ecow",
+ "ena",
+ "fxhash",
+ "logos 0.13.0",
+ "mitex-spec",
+ "once_cell",
+]
+
+[[package]]
+name = "mitex-parser"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1a42a2f86c46d250802262387dfb1d6bb18affd2d99328bbe4dbd12ce294c3a4"
+dependencies = [
+ "mitex-glob",
+ "mitex-lexer",
+ "mitex-spec",
+ "rowan",
+]
+
+[[package]]
+name = "mitex-spec"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "12ecaa5f36d60e2d64ea5508d1be44b1c19daa50518f5b8425f36697fdc60509"
+dependencies = [
+ "fxhash",
+ "rkyv",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "mitex-spec-gen"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1e9ef918ec9c2a14e60ebb20275684b483d23afb5c3314127c9eb46ce74ae68"
+dependencies = [
+ "anyhow",
+ "mitex-spec",
+ "once_cell",
+ "serde",
+ "serde_json",
+ "which",
+]
+
+[[package]]
 name = "moka"
 version = "0.12.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4531,7 +4704,7 @@ checksum = "13d2233c9842d08cfe13f9eac96e207ca6a2ea10b80259ebe8ad0268be27d2af"
 
 [[package]]
 name = "myoxus-api"
-version = "0.42.4"
+version = "0.42.5"
 dependencies = [
  "altcha-lib-rs",
  "async-graphql",
@@ -4604,7 +4777,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-application"
-version = "0.42.4"
+version = "0.42.5"
 dependencies = [
  "altcha-lib-rs",
  "argon2",
@@ -4669,7 +4842,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-cli"
-version = "0.42.4"
+version = "0.42.5"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -4705,7 +4878,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-contracts"
-version = "0.42.4"
+version = "0.42.5"
 dependencies = [
  "config",
  "serde",
@@ -4719,7 +4892,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-doc-pipeline"
-version = "0.42.4"
+version = "0.42.5"
 dependencies = [
  "html2text",
  "infer",
@@ -4748,7 +4921,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-domain"
-version = "0.42.4"
+version = "0.42.5"
 dependencies = [
  "async-trait",
  "chrono",
@@ -4764,7 +4937,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-infrastructure"
-version = "0.42.4"
+version = "0.42.5"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -4827,7 +5000,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-mcp"
-version = "0.42.4"
+version = "0.42.5"
 dependencies = [
  "async-trait",
  "axum",
@@ -4856,7 +5029,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-mermaid-render"
-version = "0.42.4"
+version = "0.42.5"
 dependencies = [
  "hex",
  "merman",
@@ -4867,20 +5040,26 @@ dependencies = [
 
 [[package]]
 name = "myoxus-pdf-export"
-version = "0.42.4"
+version = "0.42.5"
 dependencies = [
  "async-trait",
  "base64 0.22.1",
  "chrono",
  "ciborium",
+ "comemo",
  "image",
  "libc",
  "lopdf",
+ "mitex",
+ "mitex-parser",
+ "mitex-spec-gen",
  "myoxus-domain",
  "myoxus-mermaid-render",
  "myoxus-yrs",
  "pdf-extract",
+ "quick-xml",
  "rayon",
+ "resvg",
  "serde",
  "serde_bytes",
  "serde_json",
@@ -4906,7 +5085,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-public-render"
-version = "0.42.4"
+version = "0.42.5"
 dependencies = [
  "base64 0.22.1",
  "chrono",
@@ -4935,7 +5114,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-tests"
-version = "0.42.4"
+version = "0.42.5"
 dependencies = [
  "myoxus-api",
  "myoxus-application",
@@ -4955,7 +5134,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-worker"
-version = "0.42.4"
+version = "0.42.5"
 dependencies = [
  "async-trait",
  "chrono",
@@ -4978,7 +5157,7 @@ dependencies = [
 
 [[package]]
 name = "myoxus-workspace-import"
-version = "0.42.4"
+version = "0.42.5"
 dependencies = [
  "rusqlite",
  "serde",
@@ -5911,7 +6090,7 @@ dependencies = [
  "concurrent-queue",
  "hermit-abi",
  "pin-project-lite",
- "rustix",
+ "rustix 1.1.4",
  "windows-sys 0.61.2",
 ]
 
@@ -6048,6 +6227,26 @@ checksum = "4dcd034599e63b970727f70d79e02d62390a4a84f7c6b827c27c46d5ac3fa622"
 dependencies = [
  "ar_archive_writer",
  "cc",
+]
+
+[[package]]
+name = "ptr_meta"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0738ccf7ea06b608c10564b31debd4f5bc5e197fc8bfe088f68ae5ce81e7a4f1"
+dependencies = [
+ "ptr_meta_derive",
+]
+
+[[package]]
+name = "ptr_meta_derive"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16b845dbfca988fa33db069c0e230574d15a3088f147a87b64c7589eb662c9ac"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -6369,7 +6568,7 @@ dependencies = [
  "aho-corasick",
  "memchr",
  "regex-automata",
- "regex-syntax",
+ "regex-syntax 0.8.11",
 ]
 
 [[package]]
@@ -6380,7 +6579,7 @@ checksum = "8fcfdb36bda0c880c5931cdc7a2bcdc8ba4556847b9d912bca70bc94708711ad"
 dependencies = [
  "aho-corasick",
  "memchr",
- "regex-syntax",
+ "regex-syntax 0.8.11",
 ]
 
 [[package]]
@@ -6391,9 +6590,24 @@ checksum = "cab834c73d247e67f4fae452806d17d3c7501756d98c8808d7c9c7aa7d18f973"
 
 [[package]]
 name = "regex-syntax"
+version = "0.6.29"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f162c6dd7b008981e4d40210aca20b4bd0f9b60ca9271061b07f78537722f2e1"
+
+[[package]]
+name = "regex-syntax"
 version = "0.8.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
+
+[[package]]
+name = "rend"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "71fe3824f5629716b1589be05dacd749f6aa084c87e00e016714a8cdfccc997c"
+dependencies = [
+ "bytecheck",
+]
 
 [[package]]
 name = "reqsign-aws-v4"
@@ -6531,6 +6745,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "rkyv"
+version = "0.7.46"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2297bf9c81a3f0dc96bc9521370b88f054168c29826a75e89c55ff196e7ed6a1"
+dependencies = [
+ "bitvec",
+ "bytecheck",
+ "bytes",
+ "hashbrown 0.12.3",
+ "ptr_meta",
+ "rend",
+ "rkyv_derive",
+ "seahash",
+ "tinyvec",
+ "uuid",
+]
+
+[[package]]
+name = "rkyv_derive"
+version = "0.7.46"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "84d7b42d4b8d06048d3ac8db0eb31bcb942cbeb709f0b5f2b2ebde398d3038f5"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
 name = "rmcp"
 version = "3.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6581,6 +6824,19 @@ dependencies = [
  "rand 0.8.7",
  "svgtypes 0.11.0",
  "svgtypes 0.16.1",
+]
+
+[[package]]
+name = "rowan"
+version = "0.15.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a2441aaccb50f4267d4f0f58b21e0138e96a449f361ed57a2673a83c9bca0772"
+dependencies = [
+ "countme",
+ "hashbrown 0.14.5",
+ "memoffset",
+ "rustc-hash 1.1.0",
+ "text-size",
 ]
 
 [[package]]
@@ -6705,6 +6961,19 @@ dependencies = [
 
 [[package]]
 name = "rustix"
+version = "0.38.44"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fdb5bc1ae2baa591800df16c9ca78619bf65c0488b41b96ccec5d11220d8c154"
+dependencies = [
+ "bitflags 2.13.1",
+ "errno",
+ "libc",
+ "linux-raw-sys 0.4.15",
+ "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "rustix"
 version = "1.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6fe4565b9518b83ef4f91bb47ce29620ca828bd32cb7e408f0062e9930ba190"
@@ -6712,7 +6981,7 @@ dependencies = [
  "bitflags 2.13.1",
  "errno",
  "libc",
- "linux-raw-sys",
+ "linux-raw-sys 0.12.1",
  "windows-sys 0.61.2",
 ]
 
@@ -6914,6 +7183,12 @@ dependencies = [
  "selectors 0.38.0",
  "tendril 0.5.1",
 ]
+
+[[package]]
+name = "seahash"
+version = "4.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c107b6f4780854c8b126e228ea8869f4d7b71260f962fefb57b996b8959ba6b"
 
 [[package]]
 name = "security-framework"
@@ -8003,7 +8278,7 @@ dependencies = [
  "once_cell",
  "onig",
  "plist",
- "regex-syntax",
+ "regex-syntax 0.8.11",
  "serde",
  "serde_derive",
  "serde_json",
@@ -8056,7 +8331,7 @@ dependencies = [
  "fastrand",
  "getrandom 0.4.3",
  "once_cell",
- "rustix",
+ "rustix 1.1.4",
  "windows-sys 0.61.2",
 ]
 
@@ -8123,12 +8398,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "text-size"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f18aa187839b2bdb1ad2fa35ead8c4c2976b64e4363c386d45ac0f7ee85c9233"
+
+[[package]]
 name = "text-splitter"
 version = "0.28.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78a30c4be95b880c8636416e160665979029f42eb17ab1edf44adb1b2a14b6e7"
 dependencies = [
- "ahash",
+ "ahash 0.8.12",
  "auto_enums",
  "either",
  "icu_provider",
@@ -8594,7 +8875,7 @@ checksum = "af1c71c1c4cc0920b20d6b0f6572e7682cd07a6a2faec71067a31fa394c586df"
 dependencies = [
  "cc",
  "regex",
- "regex-syntax",
+ "regex-syntax 0.8.11",
  "serde_json",
  "streaming-iterator",
  "tree-sitter-language",
@@ -8906,7 +9187,7 @@ dependencies = [
  "png",
  "rayon",
  "regex",
- "regex-syntax",
+ "regex-syntax 0.8.11",
  "roxmltree 0.21.1",
  "rust_decimal",
  "rustc-hash 2.1.3",
@@ -9606,6 +9887,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a28ac98ddc8b9274cb41bb4d9d4d5c425b6020c50c46f25559911905610b4a88"
 
 [[package]]
+name = "which"
+version = "5.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9bf3ea8596f3a0dd5980b46430f2058dfe2c36a27ccfbb1845d6fbfcd9ba6e14"
+dependencies = [
+ "either",
+ "home",
+ "once_cell",
+ "rustix 0.38.44",
+ "windows-sys 0.48.0",
+]
+
+[[package]]
 name = "whoami"
 version = "1.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -9921,7 +10215,7 @@ dependencies = [
 
 [[package]]
 name = "wordcraft-doc"
-version = "0.16.0"
+version = "0.18.1"
 dependencies = [
  "base64 0.23.0",
  "log",
@@ -9934,7 +10228,7 @@ dependencies = [
 
 [[package]]
 name = "wordcraft-docx"
-version = "0.16.0"
+version = "0.18.1"
 dependencies = [
  "aes 0.9.3",
  "base64 0.23.0",
@@ -9956,7 +10250,7 @@ dependencies = [
 
 [[package]]
 name = "wordcraft-geom"
-version = "0.16.0"
+version = "0.18.1"
 dependencies = [
  "serde",
 ]
@@ -10022,7 +10316,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32e45ad4206f6d2479085147f02bc2ef834ac85886624a23575ae137c8aa8156"
 dependencies = [
  "libc",
- "rustix",
+ "rustix 1.1.4",
 ]
 
 [[package]]

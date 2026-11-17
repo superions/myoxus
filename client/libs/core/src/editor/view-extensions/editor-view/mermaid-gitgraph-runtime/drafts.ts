@@ -1,4 +1,4 @@
-import { consumeMyoxusEditorEscape } from "@virgultum/shared/utils";
+import { consumeMyoxusEditorEscape } from "@virgultum/core/utils";
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import {

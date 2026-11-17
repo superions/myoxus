@@ -249,11 +249,11 @@
       "notes": "Successful owner run covered 13 files and 67 tests. Exact selection, rather than a noisy single-run percentage, proves the common-path reduction."
     },
     {
-      "suite_id": "virgultum.store.build",
+      "suite_id": "virgultum.core.build",
       "baseline_ms": 1500,
       "warn_budget_ms": 5000,
       "strict_budget_ms": 10000,
-      "cost_center": "Focused @virgultum/store TypeScript package build",
+      "cost_center": "Cohesive Core TypeScript package build",
       "decision": "use this package build for Store changed paths instead of unrelated representative Virgultum package builds",
       "source_artifact": "output/test-runs/matrix-run-2026-07-04T11-55-27-793Z.json",
       "notes": "P-TCI-C-04 measured the final combined strict run at 1500 ms after routing Store changes; standalone probes also passed at 1430 ms and concurrent stress probes at 1520/1747 ms."
@@ -267,16 +267,6 @@
       "decision": "use this package-local Vitest gate for Store changed paths instead of the root Virgultum name-filter command",
       "source_artifact": "output/test-runs/matrix-run-2026-07-04T11-52-55-436Z.json",
       "notes": "P-TCI-C-04 measured three passing runs at 1916/2045/2165 ms after merging duplicate alias-completeness tests; median 2045 ms."
-    },
-    {
-      "suite_id": "virgultum.std.build",
-      "baseline_ms": 2208,
-      "warn_budget_ms": 5000,
-      "strict_budget_ms": 10000,
-      "cost_center": "Focused @virgultum/std TypeScript package build",
-      "decision": "use this package build for Std changed paths instead of unrelated representative Virgultum package builds",
-      "source_artifact": "output/test-runs/matrix-run-2026-07-04T12-00-38-135Z.json",
-      "notes": "P-TCI-C-04 measured three passing runs at 1641/2208/2308 ms after routing Std changes; median 2208 ms."
     },
     {
       "suite_id": "virgultum.std.vitest",
@@ -526,7 +516,7 @@
       "cost_center": "Seventy-nine exact API smoke filters in the dedicated integration_quick target, executed serially in one process",
       "decision": "keep exact smoke subset, bound its cold compile surface and leave the 1,000+ test target to api.integration",
       "source_artifact": "output/test-runs/matrix-run-2026-07-27T20-02-53-113Z.json",
-      "notes": "Historical baseline: the 2026-07-27 replacement target completed its then-current smoke set, compile/link and isolated service lifecycle in 53.796 seconds. The 120-second strict budget was last set on 2026-06-27; the 2026-08-28 description still covered forty-one filters. On 2026-09-13 the user authorized a 180-second strict budget for the current seventy-nine unchanged filters after removing repeated Cargo/test-process launches. Current complete measurements: 142.359 seconds profiled warm, 152.698 seconds first warm and 165.079 seconds including the target rebuild. The historical attempt artifacts, including failures under the previous budget, were removed at the user’s request on 2026-10-05. The warning budget, historical baseline, test scope and global 20-percent fluctuation tolerance remain unchanged; the strict tolerance ceiling is now 216 seconds. This calibration is not a runtime optimization or a fully cold-build guarantee. Since the capability partition, this is historical evidence for the former 79-case aggregate, not a measurement of the eight-case shared API group. Existing thresholds are unchanged."
+      "notes": "Historical baseline: the 2026-07-27 replacement target completed its then-current smoke set, compile/link and isolated service lifecycle in 53.796 seconds. The 120-second strict budget was last set on 2026-06-27; the 2026-08-28 description still covered forty-one filters. On 2026-09-13 the user authorized a 180-second strict budget for the current seventy-nine unchanged filters after removing repeated Cargo/test-process launches. Current complete measurements: 142.359 seconds profiled warm, 152.698 seconds first warm and 165.079 seconds including the target rebuild. The historical attempt artifacts, including failures under the previous budget, were removed at the user\u2019s request on 2026-10-05. The warning budget, historical baseline, test scope and global 20-percent fluctuation tolerance remain unchanged; the strict tolerance ceiling is now 216 seconds. This calibration is not a runtime optimization or a fully cold-build guarantee. Since the capability partition, this is historical evidence for the former 79-case aggregate, not a measurement of the eight-case shared API group. Existing thresholds are unchanged."
     },
     {
       "suite_id": "server.cli.integration",

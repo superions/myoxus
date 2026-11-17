@@ -42,7 +42,7 @@ import {
   type MyoxusOpenEventEditDialogArgs,
   type MyoxusResolvedEvent,
   type MyoxusResolveEventRequest,
-} from "@virgultum/shared/services";
+} from "@virgultum/core/services";
 
 import type { WorkspaceDialogService } from "../../../modules/dialogs";
 import type { DocsService } from "../../../modules/doc";
@@ -73,6 +73,7 @@ export interface MyoxusHostAdapterDeps {
   templateDocService: TemplateDocService;
   openTemplateVariablePicker?: MyoxusHostService["openTemplateVariablePicker"];
   openBuildingBlockPicker?: MyoxusHostService["openBuildingBlockPicker"];
+  insertNamedBuildingBlock?: MyoxusHostService["insertNamedBuildingBlock"];
   saveBuildingBlockSelection?: MyoxusHostService["saveBuildingBlockSelection"];
 }
 
@@ -159,6 +160,7 @@ export function createMyoxusHostServiceAdapter(
 
     openTemplateVariablePicker: deps.openTemplateVariablePicker,
     openBuildingBlockPicker: deps.openBuildingBlockPicker,
+    insertNamedBuildingBlock: deps.insertNamedBuildingBlock,
     saveBuildingBlockSelection: deps.saveBuildingBlockSelection,
 
     async openEventEditDialog(

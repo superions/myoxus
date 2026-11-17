@@ -1,20 +1,11 @@
-/**
- * E2E: Config Validation — Test frontend form validation and error display.
- *
- * Invariants tested:
- * - INV-CFG-VAL01: Invalid URL format triggers client-side validation error
- * - INV-CFG-VAL02: Error toast appears when saving invalid config
- * - INV-CFG-VAL03: Correction to valid URL clears error display
- * - INV-CFG-VAL04: Valid URL save succeeds with success toast
- *
- * Prerequisites:
- *   - Stack running: build/scripts/server/stack-up.sh
- *   - Admin user exists (ensured in beforeAll via /api/setup/create-admin-user)
- */
-
+// SPDX-License-Identifier: AGPL-3.0-or-later
+/** Generic settings use the authoritative config write validator. Invalid input
+ * must be rejected atomically, a correction must recover, and a valid value must
+ * survive reload. Restore the original origin after this live-stack journey. */
+import type { Page } from "@playwright/test";
 import {
   ADMIN_FRONTEND_BASE,
-  ensureAdminUser,
+  API_BASE,
   loginAsAdmin,
 } from "../../fixtures/auth";
 import { expect, test } from "../../fixtures/index";
@@ -22,91 +13,80 @@ import { expect, test } from "../../fixtures/index";
 test.describe("Config validation — form errors and validation messages", () => {
   const validUrl = "https://valid.example.com";
   const invalidUrl = "not-a-url";
-
-  test.beforeAll(async ({ request }) => {
-    await ensureAdminUser(request);
+  let original: string;
+  test.beforeAll(async ({ adminRequest }) => {
+    const response = await adminRequest.get(
+      `${API_BASE}/api/admin/config/export`,
+    );
+    expect(response.ok()).toBe(true);
+    original = (await response.json())["server.origin"];
+    expect(typeof original).toBe("string");
   });
-
-  /**
-   * Navigate to settings and locate the externalUrl input.
-   * Shared setup for all three tests.
-   */
-  async function navigateToExternalUrlField(page: any) {
+  test.afterEach(async ({ adminRequest }) => {
+    if (original === undefined) return;
+    const response = await adminRequest.post(
+      `${API_BASE}/api/admin/config/import`,
+      {
+        data: { config: { "server.origin": original } },
+      },
+    );
+    expect(response.ok()).toBe(true);
+  });
+  async function openField(page: Page) {
     await loginAsAdmin(page);
-    await page.goto(`${ADMIN_FRONTEND_BASE}/settings`);
-    await page.waitForURL(`**settings**`, { timeout: 10_000 });
-
-    // Click System tab if present — some layouts show tabs
-    const systemTab = page
-      .locator("button, a", { hasText: /^System$/i })
-      .first();
-    // System tab is optional — layout may not have tabs
-    const tabVisible = await systemTab
-      .isVisible({ timeout: 3_000 })
-      .catch(() => false);
-    if (tabVisible) {
-      await systemTab.click();
-    }
-
-    const externalUrlInput = page
-      .locator(
-        'input[name="externalUrl"], input[placeholder*="external" i], input[placeholder*="url" i]',
-      )
-      .first();
-    await expect(externalUrlInput).toBeVisible({ timeout: 8_000 });
-    return externalUrlInput;
+    await page.goto(`${ADMIN_FRONTEND_BASE}/system`);
+    const input = page.getByRole("textbox", { name: "Base URL", exact: true });
+    await expect(input).toBeVisible();
+    return input;
   }
-
-  test("invalid externalUrl shows validation error", async ({ page }) => {
-    const externalUrlInput = await navigateToExternalUrlField(page);
-
-    await externalUrlInput.fill(invalidUrl);
-
-    // Wait for validation error to appear near the field
-    const errorIndicator = page
-      .locator(
-        '[role="alert"], .error, [class*="error"], text=/invalid|not.*url|must.*https/i',
-      )
-      .first();
-    await expect(errorIndicator).toBeVisible({ timeout: 5_000 });
+  const save = (page: Page) =>
+    page.getByRole("button", { name: "Save", exact: true }).click();
+  const error = (page: Page) =>
+    page.getByRole("alert").filter({ hasText: "server.origin" }).first();
+  test("invalid externalUrl shows validation error without persisting it", async ({
+    page,
+    adminRequest,
+  }) => {
+    const field = await openField(page);
+    await field.fill(invalidUrl);
+    await save(page);
+    await expect(error(page)).toBeVisible();
+    const response = await adminRequest.get(
+      `${API_BASE}/api/admin/config/export`,
+    );
+    expect(response.ok()).toBe(true);
+    expect((await response.json())["server.origin"]).toBe(original);
   });
-
   test("correcting URL clears validation error", async ({ page }) => {
-    const externalUrlInput = await navigateToExternalUrlField(page);
-
-    // First trigger the error
-    await externalUrlInput.fill(invalidUrl);
-    const errorIndicator = page
-      .locator(
-        '[role="alert"], .error, [class*="error"], text=/invalid|not.*url|must.*https/i',
-      )
-      .first();
-    await expect(errorIndicator).toBeVisible({ timeout: 5_000 });
-
-    // Now correct the value
-    await externalUrlInput.fill(validUrl);
-
-    // Error should disappear
-    await expect(errorIndicator).not.toBeVisible({ timeout: 5_000 });
+    const field = await openField(page);
+    await field.fill(invalidUrl);
+    await save(page);
+    await expect(error(page)).toBeVisible();
+    await field.fill("https://recovered.example.com");
+    await save(page);
+    await page.reload();
+    await expect(
+      page.getByRole("textbox", { name: "Base URL", exact: true }),
+    ).toHaveValue("https://recovered.example.com");
+    await expect(error(page)).toHaveCount(0);
   });
-
-  test("valid URL saves successfully", async ({ page }) => {
-    const externalUrlInput = await navigateToExternalUrlField(page);
-
-    await externalUrlInput.fill(validUrl);
-
-    const saveBtn = page
-      .locator('button:has-text("Save"), button:has-text("Apply")')
-      .first();
-    await expect(saveBtn).toBeVisible({ timeout: 3_000 });
-    await saveBtn.click();
-
-    // Wait for success toast
-    const successToast = page
-      .locator(
-        'text=/saved|success|updated/i, [class*="success"], [role="status"]',
-      )
-      .first();
-    await expect(successToast).toBeVisible({ timeout: 5_000 });
+  test("valid URL saves successfully", async ({ page, adminRequest }) => {
+    const field = await openField(page);
+    await field.fill(validUrl);
+    await save(page);
+    await expect
+      .poll(async () => {
+        const response = await adminRequest.get(
+          `${API_BASE}/api/admin/config/export`,
+        );
+        expect(response.ok()).toBe(true);
+        return (await response.json())["server.origin"];
+      })
+      .toBe(validUrl);
+    await page.reload();
+    await expect(
+      page.getByRole("textbox", { name: "Base URL", exact: true }),
+    ).toHaveValue(validUrl);
+    await expect(error(page)).toHaveCount(0);
   });
 });

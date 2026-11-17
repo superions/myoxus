@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+import { useI18n } from "@myoxus/i18n";
+import { ChevronDownIcon, ChevronRightIcon } from "@myoxus/icons/react";
 import {
-  Accordion,
-  AccordionControl,
-  AccordionItem,
-  AccordionPanel,
   Avatar,
   Group,
+  IconButton,
+  InsideModalContext,
   MyoxusText,
   NavLink,
+  ReferenceCard,
   Stack,
 } from "@myoxus/ui-facade";
-import type { ReactNode } from "react";
+import { useContext, useId, useState, type ReactNode } from "react";
 
 interface ResultView {
   title: ReactNode;
@@ -21,82 +22,105 @@ interface ResultView {
   onClick?: () => void;
 }
 
-/** Uncontrolled native disclosure retains expansion across streamed updates.
- * Source actions remain outside its toggle, never nested interactive headers.
- */
+/** Streaming updates retain expansion. Source actions never nest in the disclosure button. */
 export function ToolResultCardView({
   name,
   icon,
   footerIcons,
   results,
+  contained = true,
 }: {
   name: string;
   icon: ReactNode;
   footerIcons: { url?: string; icon?: ReactNode }[];
   results: ResultView[];
+  contained?: boolean;
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const detailsId = useId();
+  const inModal = useContext(InsideModalContext);
+  const t = useI18n();
+  const label = expanded ? t["Collapse"]() : t["Expand"]();
   return (
-    <Accordion data-testid="chat-tool-result">
-      <AccordionItem value="result">
-        <AccordionControl icon={icon}>
-          <Group>
-            <MyoxusText>{name}</MyoxusText>
+    <ReferenceCard
+      size="small"
+      contained={contained && !inModal}
+      title={name}
+      metadata={results[0]?.title}
+      icon={icon}
+      actions={
+        <IconButton
+          size="small"
+          aria-label={label}
+          tooltip={label}
+          aria-expanded={expanded}
+          aria-controls={detailsId}
+          onClick={() => setExpanded((value) => !value)}
+        >
+          {expanded ? <ChevronDownIcon /> : <ChevronRightIcon />}
+        </IconButton>
+      }
+      footer={
+        footerIcons.length ? (
+          <Group gap="xs">
             {footerIcons.slice(0, 3).map((item, index) => (
               <Avatar key={index} url={item.url}>
                 {item.icon ?? icon}
               </Avatar>
             ))}
           </Group>
-        </AccordionControl>
-        <AccordionPanel>
-          <Stack>
-            {results.map((result, index) => {
-              const sourceIcon = result.image ? (
-                <Avatar url={result.image}>{icon}</Avatar>
-              ) : (
-                result.icon
-              );
-              if (result.href)
-                return (
-                  <NavLink
-                    key={index}
-                    component="a"
-                    href={result.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    label={result.title}
-                    description={result.content}
-                    leftSection={sourceIcon}
-                    onClick={result.onClick}
-                  />
-                );
-              if (result.onClick)
-                return (
-                  <NavLink
-                    key={index}
-                    component="button"
-                    type="button"
-                    label={result.title}
-                    description={result.content}
-                    leftSection={sourceIcon}
-                    onClick={result.onClick}
-                  />
-                );
+        ) : undefined
+      }
+      data-testid="chat-tool-result"
+    >
+      {expanded ? (
+        <Stack gap="xs" id={detailsId}>
+          {results.map((result, index) => {
+            const sourceIcon = result.image ? (
+              <Avatar url={result.image}>{icon}</Avatar>
+            ) : (
+              result.icon
+            );
+            if (result.href)
               return (
-                <Stack key={index}>
-                  <Group>
-                    {sourceIcon}
-                    <MyoxusText>{result.title}</MyoxusText>
-                  </Group>
-                  {result.content ? (
-                    <MyoxusText>{result.content}</MyoxusText>
-                  ) : null}
-                </Stack>
+                <NavLink
+                  key={index}
+                  component="a"
+                  href={result.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  label={result.title}
+                  description={result.content}
+                  leftSection={sourceIcon}
+                  onClick={result.onClick}
+                />
               );
-            })}
-          </Stack>
-        </AccordionPanel>
-      </AccordionItem>
-    </Accordion>
+            if (result.onClick)
+              return (
+                <NavLink
+                  key={index}
+                  component="button"
+                  type="button"
+                  label={result.title}
+                  description={result.content}
+                  leftSection={sourceIcon}
+                  onClick={result.onClick}
+                />
+              );
+            return (
+              <Stack key={index} gap="xs">
+                <Group>
+                  {sourceIcon}
+                  <MyoxusText>{result.title}</MyoxusText>
+                </Group>
+                {result.content ? (
+                  <MyoxusText>{result.content}</MyoxusText>
+                ) : null}
+              </Stack>
+            );
+          })}
+        </Stack>
+      ) : null}
+    </ReferenceCard>
   );
 }

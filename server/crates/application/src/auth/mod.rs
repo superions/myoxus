@@ -1905,7 +1905,7 @@ impl AuthStore for InMemoryAuthStore {
       .expect("in-memory token lock poisoned")
       .retain(|_, token| {
         token.user_id != Some(user_id)
-          && token.email.as_deref().map(str::to_lowercase).as_deref() != Some(&projection.email.to_lowercase())
+          && token.email.as_deref().map(str::to_lowercase).as_deref() != Some(projection.email.to_lowercase().as_str())
       });
     self
       .magic_link_otps

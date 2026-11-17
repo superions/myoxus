@@ -13,7 +13,7 @@ import {
   findCommentedElements,
 } from "@virgultum/editor/shared/services";
 import { GfxControllerIdentifier } from "@virgultum/editor/std/gfx";
-import type { InlineEditor } from "@virgultum/std/inline";
+import type { InlineEditor } from "@virgultum/core/runtime/inline";
 import { isEqual, omit } from "lodash-es";
 import { skip } from "rxjs";
 

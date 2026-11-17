@@ -8,7 +8,7 @@ import {
   OnEvent,
   Service,
 } from "@myoxus/infra";
-import { exhaustMap, groupBy, mergeMap, Observable } from "rxjs";
+import { exhaustMap, groupBy, map, merge, mergeMap, Observable } from "rxjs";
 
 import { ApplicationFocused } from "../../lifecycle";
 import type { WorkspaceService } from "../../workspace";
@@ -34,6 +34,12 @@ export class GuardService extends Service {
   private readonly docPermissions$ = new LiveData<
     Record<string, Partial<Record<DocPermissionActions, boolean>>>
   >({});
+  /** Invalidate derived reads when the existing confirmed permission projection changes. */
+  readonly permissionChanges$ = merge(
+    this.workspacePermissions$,
+    this.docPermissions$,
+  ).pipe(map(() => undefined));
+
   private indexedPermissionKeys = new Set<string>();
   private readonly observedDesktopDocs = new Map<string, number>();
 

@@ -335,7 +335,7 @@ impl TranscriptionResultRepository for InMemoryTranscriptionResultRepository {
         && query
           .blob_id
           .as_ref()
-          .is_none_or(|blob| job.payload["blobId"].as_str() == Some(blob))
+          .is_none_or(|blob| job.payload["blobId"].as_str() == Some(blob.as_str()))
     });
     jobs.sort_by(|a, b| b.updated_at.cmp(&a.updated_at).then_with(|| b.id.cmp(&a.id)));
     Ok(

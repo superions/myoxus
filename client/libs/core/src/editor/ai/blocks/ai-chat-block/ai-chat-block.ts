@@ -9,6 +9,8 @@ import type { TextRendererOptions } from "../../components/text-renderer";
 import { ChatWithAIIcon } from "./components/icon";
 import { type AIChatBlockModel } from "./model";
 import { AIChatBlockStyles } from "./styles";
+import { AIWidgetUI } from "../../widgets/native-ui";
+import type { ReactToLit } from "@myoxus/lit-react";
 
 @Peekable({
   enableOn: ({ store }: AIChatBlockComponent) => {
@@ -46,11 +48,17 @@ export class AIChatBlockComponent extends BlockComponent<AIChatBlockModel> {
 
   override renderBlock() {
     const messages = this._deserializeChatMessages.value.slice(-2);
+    // Stored previews consume the same native tool-result views as the interactive chat.
+    const render = this.std.getOptional(AIWidgetUI);
+    const renderNative: ReactToLit | undefined = render
+      ? (view) => render(typeof view === "function" ? view() : view)
+      : undefined;
 
     return html`<div class="myoxus-ai-chat-block-container">
       <div class="ai-chat-messages-container">
         <ai-chat-block-messages
           .host=${this.host}
+          .reactToLit=${renderNative}
           .messages=${messages}
           .textRendererOptions=${this._textRendererOptions}
           .withMask=${true}

@@ -1296,7 +1296,8 @@ async fn public_overviews_use_native_folders_and_current_publication_without_pri
           overview: Some(WorkspaceOverviewSettingsPatch {
             introduction: Some(Some(reference.clone())),
             register_presentation: Some(Some(OverviewRegisterPresentation {
-              display_properties: ["title", "createdAt", "createdBy", "tags", "updatedAt"]
+          selection: Default::default(),
+              display_properties: ["title", "createdAt", "createdBy", "responsible", "tags", "updatedAt"]
                 .into_iter()
                 .map(|key| format!("system:{key}"))
                 .collect(),
@@ -1357,6 +1358,7 @@ async fn public_overviews_use_native_folders_and_current_publication_without_pri
     assert!(
       !root.contains("data-register-key=\"createdAt\"")
         && !root.contains("data-register-key=\"createdBy\"")
+        && !root.contains("data-register-key=\"responsible\"")
         && !root.contains("2099-09-09"),
       "Hidden metadata must be absent, not merely hidden by CSS"
     );
@@ -1430,6 +1432,27 @@ async fn public_overviews_use_native_folders_and_current_publication_without_pri
       http::StatusCode::OK
     );
 
+    let directory_doc = helpers::create_doc(&pool, workspace, owner).await;
+    let source = yjs::markdown_to_yjs("Directory source", "Directory body").unwrap();
+    let capture = yjs::document_to_snapshot(&source, "directory-source", "Directory source").unwrap();
+    let mut directory_blocks: Vec<yjs::PortableSnapshotBlock> = serde_json::from_value(capture["blocks"].clone()).unwrap();
+    directory_blocks.iter_mut().find(|block| block.flavour == "myoxus:note").unwrap().children.push("live-directory".into());
+    directory_blocks.push(yjs::PortableSnapshotBlock { id: "live-directory".into(), flavour: "myoxus:document-index".into(), version: Some(1), props: serde_json::json!({ "title": "Current pages", "query": { "folderId": "services", "subtree": true, "tagIds": [], "matchAllTags": false, "filters": [] } }).as_object().unwrap().clone(), children: Vec::new() });
+    directory_blocks.iter_mut().find(|block| block.flavour == "myoxus:note").unwrap().children.push("live-report".into());
+    directory_blocks.push(yjs::PortableSnapshotBlock { id: "live-report".into(), flavour: "myoxus:document-index".into(), version: Some(1), props: serde_json::json!({ "title": "Current report", "view": "table", "displayProperties": ["system:title", "system:responsible", "system:reviewDueAt"], "query": { "folderId": "services", "subtree": true, "tagIds": [], "matchAllTags": false, "filters": [] } }).as_object().unwrap().clone(), children: Vec::new() });
+    sqlx::query("INSERT INTO doc_snapshots (workspace_id,doc_id,payload,last_sequence,updated_at) VALUES ($1,$2,$3,0,now())").bind(workspace).bind(directory_doc).bind(yjs::snapshot_blocks_to_yjs(&directory_blocks).unwrap()).execute(&pool).await.unwrap();
+    sqlx::query("UPDATE docs SET title='Directory source',public_mode='Page' WHERE id=$1").bind(directory_doc).execute(&pool).await.unwrap();
+    let (status, directory, _) = get(&app, public_document_path(workspace, &directory_doc.to_string())).await;
+    assert_eq!(status, http::StatusCode::OK);
+    assert!(directory.contains("Current pages") && directory.contains("Monitoring guide") && directory.contains("External guide"));
+    assert!(!directory.contains("Private planning sentinel") && !directory.contains(&private.to_string()));
+    assert!(directory.contains("Current report") && directory.contains("<table") && directory.contains("Review due"));
+    assert!(!directory.contains("Responsible"), "public reports omit private person columns");
+    let directory_links = directory.replace("&#x2F;", "/").replace("&#x2f;", "/");
+    for path in [public_document_path(workspace, "monitoring & alerts"), public_document_path(foreign, "foreign guide & notes")] {
+      assert!(directory_links.contains(&format!("href=\"{}{path}\"", state.config.server.origin.trim_end_matches('/'))), "Directory entries must retain clickable, qualified public links");
+    }
+
     state
       .doc()
       .update_public_mode(workspace, introduction, None, owner)
@@ -1468,6 +1491,10 @@ async fn public_overviews_use_native_folders_and_current_publication_without_pri
       get(&app, public_folder_path(workspace, "services")).await.0,
       http::StatusCode::NOT_FOUND
     );
+    let (status, directory, _) = get(&app, public_document_path(workspace, &directory_doc.to_string())).await;
+    assert_eq!(status, http::StatusCode::OK);
+    assert!(!directory.contains("Monitoring guide") && !directory.contains("External guide"), "A native directory must not reuse revoked result titles");
+    state.doc().update_public_mode(workspace, directory_doc, None, owner).await.unwrap();
     // Exercise the existing route across its real page boundary, with equal
     // title/sort facts. Later revocation must not resurrect a cached last page.
     let mut paging_ids = (0..52).map(|_| Uuid::new_v4()).collect::<Vec<_>>();
@@ -1523,6 +1550,72 @@ async fn public_overviews_use_native_folders_and_current_publication_without_pri
   std::fs::remove_file(&storage).expect("remove overview asset fixture");
   cleanup_blob_fixture_storage(workspace);
   helpers::cleanup_workspaces(&pool, &[workspace, foreign]).await;
+  helpers::cleanup_users(&pool, &[owner]).await;
+  if let Err(panic) = outcome {
+    std::panic::resume_unwind(panic);
+  }
+}
+
+#[tokio::test]
+async fn selected_embeds_render_only_current_admitted_sections_and_subtrees() {
+  use futures_util::FutureExt;
+  let (app, pool, auth, state) = helpers::setup_app_with_state().await;
+  let (owner, _) = helpers::seed_user(&pool, &auth, "pub-selected-embed").await;
+  let (workspace, source) = public_doc_fixture(&pool, owner, "Selected source", "## Admitted section\n\nSelected body sentinel.\n\n![Selected image](selected.png)\n\n### Child heading\n\nSelected child sentinel.\n\n## Outside section\n\nOUTSIDE-SECRET-SENTINEL").await;
+  let host = helpers::create_doc(&pool, workspace, owner).await;
+  insert_completed_blob_fixture(
+    &pool,
+    workspace,
+    "selected.png",
+    "image/png",
+    include_bytes!("../../../pdf_export/fixtures/edgeless_snapshot_4x4_red.png"),
+  )
+  .await;
+  sqlx::query("UPDATE docs SET document_number=CASE WHEN id=$1 THEN 'SOURCE-NUMBER-14' ELSE 'HOST-NUMBER-14' END WHERE id=ANY($2)").bind(source).bind(vec![source,host]).execute(&pool).await.unwrap();
+  let outcome = std::panic::AssertUnwindSafe(async {
+    let binary = state.doc().load_full_doc_with_meta(workspace, source).await.unwrap().payload;
+    let targets = yjs::markdown::markdown_native_targets(&binary).unwrap();
+    let heading = targets.iter().find(|target| target.heading_path.as_ref().is_some_and(|path|path == &["Admitted section"])).unwrap().block_id.clone();
+    let capture = yjs::document_to_snapshot(&binary, "selected-source", "").unwrap();
+    let mut source_blocks:Vec<yjs::PortableSnapshotBlock> = serde_json::from_value(capture["blocks"].clone()).unwrap();
+    let body = source_blocks.iter_mut().find(|block|block.flavour=="myoxus:paragraph" && block.props.get("type").is_none()).unwrap();
+    body.props["text"]["delta"].as_array_mut().unwrap().push(serde_json::json!({"insert":" ","attributes":{"documentField":{"type":"metadata","id":"source-number","key":"documentNumber","format":"text"}}}));
+    sqlx::query("UPDATE doc_snapshots SET payload=$3 WHERE workspace_id=$1 AND doc_id=$2").bind(workspace).bind(source).bind(yjs::snapshot_blocks_to_yjs(&source_blocks).unwrap()).execute(&pool).await.unwrap();
+    let make_host = |kind:&str, target:&str| {
+      let binary = yjs::markdown_to_yjs("Embedding", "Host introduction.").unwrap();
+      let capture = yjs::document_to_snapshot(&binary, "host", "").unwrap();
+      let mut blocks:Vec<yjs::PortableSnapshotBlock> = serde_json::from_value(capture["blocks"].clone()).unwrap();
+      blocks.iter_mut().find(|block| block.flavour=="myoxus:note").unwrap().children.push("selected-embed".into());
+      blocks.push(yjs::PortableSnapshotBlock { id:"selected-embed".into(), flavour:"myoxus:embed-synced-doc".into(),version:Some(1),props:serde_json::json!({"pageId":source.to_string(),"params":{"mode":"page","blockIds":[target],"blockSelection":kind},"title":"PRIVATE-ALIAS-SENTINEL","style":"syncedDoc"}).as_object().unwrap().clone(),children:Vec::new() });
+      yjs::snapshot_blocks_to_yjs(&blocks).unwrap()
+    };
+    sqlx::query("UPDATE docs SET public_mode='Page' WHERE id=$1").bind(host).execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO doc_snapshots(workspace_id,doc_id,payload,last_sequence) VALUES($1,$2,$3,0)").bind(workspace).bind(host).bind(make_host("section",&heading)).execute(&pool).await.unwrap();
+    let path = myoxus_public_render::public_document_path(workspace,&host.to_string());
+    let (status, html, _) = get(&app,path.clone()).await;
+    assert_eq!(status,http::StatusCode::OK);
+    assert!(html.contains("Selected body sentinel.") && html.contains("Selected child sentinel."));
+    assert!(!html.contains("OUTSIDE-SECRET-SENTINEL"));
+    assert!(html.contains("SOURCE-NUMBER-14") && !html.contains("HOST-NUMBER-14"),"fields belong to the selected source");
+    assert!(html.contains("data:image/png;base64,"),"authorized source assets reach the reading output");
+    // A heading's level changes the live boundary without changing target IDs.
+    source_blocks.iter_mut().find(|block| block.props.get("type").and_then(serde_json::Value::as_str)==Some("h3")).unwrap().props.insert("type".into(),serde_json::json!("h2"));
+    sqlx::query("UPDATE doc_snapshots SET payload=$3 WHERE workspace_id=$1 AND doc_id=$2").bind(workspace).bind(source).bind(yjs::snapshot_blocks_to_yjs(&source_blocks).unwrap()).execute(&pool).await.unwrap();
+    let (_, html, _) = get(&app,path.clone()).await;
+    assert!(html.contains("Selected body sentinel.") && !html.contains("Selected child sentinel."),"current target boundary invalidates cached output");
+    sqlx::query("UPDATE doc_snapshots SET payload=$3 WHERE workspace_id=$1 AND doc_id=$2").bind(workspace).bind(host).bind(make_host("subtree",&heading)).execute(&pool).await.unwrap();
+    let (_, html, _) = get(&app,path.clone()).await;
+    assert!(html.contains("Admitted section") && !html.contains("Selected body sentinel."));
+    state.doc().update_public_mode(workspace,source,None,owner).await.unwrap();
+    let (_, html, _) = get(&app,path.clone()).await;
+    assert!(!html.contains("Admitted section") && !html.contains("PRIVATE-ALIAS-SENTINEL"));
+    assert!(html.contains("Content preview unavailable"));
+    state.doc().update_public_mode(workspace,source,Some("Page".into()),owner).await.unwrap();
+    sqlx::query("UPDATE doc_snapshots SET payload=$3 WHERE workspace_id=$1 AND doc_id=$2").bind(workspace).bind(host).bind(make_host("section","deleted-target")).execute(&pool).await.unwrap();
+    let (_, html, _) = get(&app,path).await;
+    assert!(html.contains("Content preview unavailable") && !html.contains("OUTSIDE-SECRET-SENTINEL"));
+  }).catch_unwind().await;
+  cleanup_blob_fixture_storage(workspace);
   helpers::cleanup_users(&pool, &[owner]).await;
   if let Err(panic) = outcome {
     std::panic::resume_unwind(panic);

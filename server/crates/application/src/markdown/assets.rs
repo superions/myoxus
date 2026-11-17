@@ -2,8 +2,9 @@
 //! Markdown asset normalization for server-owned import paths.
 //!
 //! Markdown documents may legally embed images as `data:image/*` URLs. Active
-//! Myoxus documents, public publishing, PDF export, and blob ACLs expect binary
-//! assets to be represented as workspace blobs instead. This module performs
+//! stored Myoxus documents and blob ACLs expect binary assets as workspace
+//! blobs instead. Authorized output-only captures may carry materialized data
+//! images, decoded by this same owner for PDF asset resolution. This module performs
 //! that boundary conversion before Markdown is turned into Yjs blocks, so every
 //! consuming renderer sees the same document/asset model.
 
@@ -44,9 +45,9 @@ pub struct MaterializedMarkdown {
 }
 
 #[derive(Debug, Clone)]
-struct DataImage {
-  mime: String,
-  bytes: Vec<u8>,
+pub struct DataImage {
+  pub mime: String,
+  pub bytes: Vec<u8>,
   extension: &'static str,
 }
 
@@ -334,7 +335,7 @@ fn rewrite_image_occurrences(
   Ok(rewritten)
 }
 
-fn decode_data_image(source: &str) -> Result<DataImage, ConversionError> {
+pub fn decode_data_image(source: &str) -> Result<DataImage, ConversionError> {
   let Some(prefix) = source.get(.."data:".len()) else {
     return Err(ConversionError::Conversion(
       "markdown image is not a data URL".to_string(),
@@ -377,7 +378,7 @@ fn decode_data_image(source: &str) -> Result<DataImage, ConversionError> {
   Ok(DataImage { mime, bytes, extension })
 }
 
-fn image_extension_for_mime(mime: &str) -> Option<&'static str> {
+pub(crate) fn image_extension_for_mime(mime: &str) -> Option<&'static str> {
   match mime {
     "image/png" => Some("png"),
     "image/jpeg" | "image/jpg" => Some("jpg"),

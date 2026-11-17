@@ -9,7 +9,7 @@ import type * as StoreModule from "@virgultum/editor/store";
 import type { Store, Transformer, Workspace } from "@virgultum/editor/store";
 import type * as IntegrationTest from "@virgultum/integration-test";
 import type { TestMyoxusEditorContainer } from "@virgultum/integration-test";
-import type * as EditorModel from "@virgultum/model";
+import type * as EditorModel from "@virgultum/core/models";
 
 declare type _GLOBAL_ = typeof Effect;
 

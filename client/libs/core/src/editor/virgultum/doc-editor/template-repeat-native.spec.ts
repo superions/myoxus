@@ -12,13 +12,13 @@ import {
   type ListBlockModel,
   normalizeTableColumnTextAlign,
   TextAlign,
-} from "@virgultum/model";
-import { transformModel } from "@virgultum/shared/utils";
-import { Text } from "@virgultum/store";
-import { TestWorkspace } from "@virgultum/store/test";
+} from "@virgultum/core/models";
+import { transformModel } from "@virgultum/core/utils";
+import { Text } from "@virgultum/core/store";
+import { TestWorkspace } from "@virgultum/core/store/test";
 import { afterEach, expect, test } from "vitest";
 
-import { TableDataManager } from "@virgultum/block-table";
+import { TableDataManager } from "@virgultum/content/data";
 
 const cleanups: (() => void)[] = [];
 afterEach(() => cleanups.splice(0).forEach((cleanup) => cleanup()));

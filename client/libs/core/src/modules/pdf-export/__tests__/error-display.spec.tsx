@@ -49,15 +49,23 @@ describe("PDF export error display", () => {
     render(
       <MyoxusUIProvider>
         <PdfExportErrorDisplay
-          error={{ code: "MissingFont", jobId: "job-9", fontFamily: "Lato" }}
+          error={{
+            code: "InvalidFormula",
+            jobId: "job-9",
+            message: "LaTeX formula 2: unsupported command",
+          }}
           onCopyDetails={onCopy}
         />
       </MyoxusUIProvider>,
     );
 
     expect(screen.getByTestId("pdf-export-error").tagName).toBe("SECTION");
-    expect(screen.getByText("Required font is missing: Lato").textContent).toBe(
-      "Required font is missing: Lato",
+    expect(
+      screen.getByText(
+        "Formula could not be exported: LaTeX formula 2: unsupported command",
+      ).textContent,
+    ).toBe(
+      "Formula could not be exported: LaTeX formula 2: unsupported command",
     );
     fireEvent.click(screen.getByRole("button", { name: "Copy details" }));
     expect(onCopy).toHaveBeenCalledWith(

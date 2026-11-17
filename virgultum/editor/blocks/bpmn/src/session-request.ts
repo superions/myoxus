@@ -3,9 +3,9 @@ import {
   hasCapability,
   MyoxusHostCapability,
   MyoxusHostServiceIdentifier,
-} from "@virgultum/shared/services";
-import { type BlockStdScope, BlockSelection } from "@virgultum/std";
-import { GfxControllerIdentifier } from "@virgultum/std/gfx";
+} from "@virgultum/core/services";
+import { type BlockStdScope, BlockSelection } from "@virgultum/core/runtime";
+import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
 
 /** All block/menu entry points dispatch the same identity-bound workspace request. */
 export async function requestBpmnEditor(std: BlockStdScope, blockId: string) {

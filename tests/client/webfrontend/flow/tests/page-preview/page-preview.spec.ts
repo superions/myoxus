@@ -18,6 +18,7 @@ import {
   getSmokeWorkspaceId,
   smokeGql,
   waitForWorkspaceReady,
+  waitForWorkspaceDocSync,
 } from "../../../shared/workspace-helper";
 
 const frontend =
@@ -35,7 +36,7 @@ async function displayedSvg(card: Locator) {
     "ready",
   );
   return card
-    .locator("img[data-myoxus-ui-role=media-preview-image]")
+    .locator('[data-page-preview="ready"] img')
     .evaluate(async (image: HTMLImageElement) => {
       await image.decode();
       if (!image.src.startsWith("blob:"))
@@ -284,6 +285,7 @@ test.afterEach(async ({ page, request }) => {
     await page.getByTestId("doc-list-operation-trash").click();
     await page.getByRole("dialog").getByTestId("confirm-modal-confirm").click();
     await expect(item).toHaveCount(0);
+    await waitForWorkspaceDocSync(page, docId);
     const unavailable = await page.evaluate(
       async (url) => (await fetch(url)).status,
       `/api/workspaces/${workspaceId}/docs/${docId}/preview`,

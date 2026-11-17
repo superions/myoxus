@@ -67,6 +67,8 @@ pub enum SyncRenderOutcome {
   Failed {
     class: &'static str,
     detail: String,
+    /// Only this closed diagnostic may bypass generic compiler-detail redaction.
+    formula: Option<myoxus_pdf_export::error::LatexDiagnostic>,
     /// Available only after the canonical IR builder completed. The report
     /// remains useful when a later compiler/storage stage fails.
     renderer_diagnostics: Option<serde_json::Value>,
@@ -79,4 +81,48 @@ pub struct SnapshotRenderedPdf {
   pub page_count: usize,
   pub unmapped_font_families: Vec<String>,
   pub renderer_diagnostics: serde_json::Value,
+}
+
+/// Native fields, directories and selected embeds feed the same downstream IR.
+pub fn document_output_snapshot(
+  snapshot: Vec<u8>,
+  workspace_id: Uuid,
+  doc_id: Uuid,
+  historical: bool,
+  inputs: &serde_json::Value,
+) -> Result<Vec<u8>, crate::document_fields::DocumentFieldError> {
+  let snapshot = document_field_snapshot(snapshot, workspace_id, doc_id, historical, inputs)?;
+  let snapshot = if yjs::document_index::inspect(&snapshot)
+    .map_err(|_| crate::document_fields::DocumentFieldError::InvalidField)?
+    .is_empty()
+  {
+    snapshot
+  } else {
+    let prepared: crate::workspace_overview::document_index::PreparedDirectoryOutput = serde_json::from_value(
+      inputs
+        .get("document_index_output")
+        .ok_or(crate::document_fields::DocumentFieldError::ContextUnavailable)?
+        .clone(),
+    )
+    .map_err(|_| crate::document_fields::DocumentFieldError::ContextUnavailable)?;
+    prepared
+      .apply(&snapshot, workspace_id, doc_id)
+      .map_err(|_| crate::document_fields::DocumentFieldError::ContextUnavailable)?
+  };
+  if yjs::document_embed::inspect(&snapshot)
+    .map_err(|_| crate::document_fields::DocumentFieldError::InvalidField)?
+    .is_empty()
+  {
+    return Ok(snapshot);
+  }
+  let prepared: crate::doc::embed_output::PreparedEmbedOutput = serde_json::from_value(
+    inputs
+      .get("document_embed_output")
+      .ok_or(crate::document_fields::DocumentFieldError::ContextUnavailable)?
+      .clone(),
+  )
+  .map_err(|_| crate::document_fields::DocumentFieldError::ContextUnavailable)?;
+  prepared
+    .apply(&snapshot, workspace_id, doc_id)
+    .map_err(|_| crate::document_fields::DocumentFieldError::ContextUnavailable)
 }

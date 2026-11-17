@@ -1,1 +1,1 @@
-export * from "@virgultum/block-bookmark/view";
+export { BookmarkViewExtension } from "@virgultum/embeds/view";

@@ -272,13 +272,16 @@ export function SettingsFieldGroup({
  * control width budget; route code should compose controls, not hard-code
  * min/max widths per settings page.
  */
-export function SettingsControlGroup({ children }: PropsWithChildren) {
+export function SettingsControlGroup({
+  children,
+  stretch = false,
+}: PropsWithChildren<{ stretch?: boolean }>) {
   return (
     <Group
       justify="flex-end"
       wrap="nowrap"
       style={{
-        width: "auto",
+        width: stretch ? settingsControlMaxWidth : "auto",
         minWidth: 0,
         maxWidth: settingsControlMaxWidth,
       }}

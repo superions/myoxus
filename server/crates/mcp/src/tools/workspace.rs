@@ -752,9 +752,13 @@ async fn require_active_unit(state: &McpToolState, unit: Uuid) -> Result<(), Han
 
 pub(super) async fn get(params: &Value, auth: &McpAuthContext, state: &McpToolState) -> Result<Value, HandlerError> {
   require_scope(auth, "read:workspaces")?;
+  get_for_user(params, auth.user_id, state).await
+}
+
+pub(crate) async fn get_for_user(params: &Value, user_id: Uuid, state: &McpToolState) -> Result<Value, HandlerError> {
   validate_keys(params, &["workspace_id"])?;
   let workspace_id = required_uuid(params, "workspace_id")?;
-  assert_workspace_action(state, auth.user_id, workspace_id, WorkspaceAction::Read).await?;
+  assert_workspace_action(state, user_id, workspace_id, WorkspaceAction::Read).await?;
   Ok(mcp_json_response(workspace_projection(state, workspace_id).await?))
 }
 

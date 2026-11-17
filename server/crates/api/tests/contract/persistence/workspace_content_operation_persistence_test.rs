@@ -806,6 +806,7 @@ async fn configure_overview(
 
 fn overview_columns(key: &str) -> OverviewRegisterPresentation {
   OverviewRegisterPresentation {
+          selection: Default::default(),
     display_properties: vec!["system:title".into(), format!("system:{key}")],
     order_by: OverviewOrderBy {
       property_type: "system".into(),

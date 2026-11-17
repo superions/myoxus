@@ -11,24 +11,12 @@ import {
 } from "../blocks/ai-chat-block/components/chat-images";
 import { ImagePlaceholder } from "../blocks/ai-chat-block/components/image-placeholder";
 import { UserInfo } from "../blocks/ai-chat-block/components/user-info";
-import { effects as componentAiItemEffects } from "../components/ai-item";
 import { AIScrollableTextRenderer } from "../components/ai-scrollable-text-renderer";
-import { AskAIButton } from "../components/ask-ai-button";
-import { AskAIIcon } from "../components/ask-ai-icon";
 import { AskAIPanel } from "../components/ask-ai-panel";
 import {
   MYOXUS_AI_PANEL_WIDGET,
   MyoxusAIPanelWidget,
 } from "../widgets/ai-panel/ai-panel";
-import {
-  AIPanelAnswer,
-  AIPanelDivider,
-  AIPanelError,
-  AIPanelGenerating,
-  AIPanelInput,
-} from "../widgets/ai-panel/components";
-import { AIFinishTip } from "../widgets/ai-panel/components/finish-tip";
-import { GeneratingPlaceholder } from "../widgets/ai-panel/components/generating-placeholder";
 import {
   MYOXUS_BLOCK_DIFF_WIDGET_FOR_BLOCK,
   MyoxusBlockDiffWidgetForBlock,
@@ -57,8 +45,6 @@ import { registerAISharedEffects } from "./shared";
 
 const editorRegistries = new WeakSet<CustomElementRegistry>();
 const editorElements = {
-  "ask-ai-icon": AskAIIcon,
-  "ask-ai-button": AskAIButton,
   "ask-ai-panel": AskAIPanel,
   "myoxus-edgeless-ai-chat": EdgelessAIChatBlockComponent,
   "myoxus-ai-chat": AIChatBlockComponent,
@@ -69,13 +55,6 @@ const editorElements = {
   "chat-image": ChatImage,
   "chat-images": ChatImages,
   "user-info": UserInfo,
-  "generating-placeholder": GeneratingPlaceholder,
-  "ai-finish-tip": AIFinishTip,
-  "ai-panel-divider": AIPanelDivider,
-  "ai-panel-answer": AIPanelAnswer,
-  "ai-panel-input": AIPanelInput,
-  "ai-panel-generating": AIPanelGenerating,
-  "ai-panel-error": AIPanelError,
   "ai-block-diff-options": BlockDiffOptions,
   [MYOXUS_BLOCK_DIFF_PLAYGROUND]: BlockDiffPlayground,
   [MYOXUS_BLOCK_DIFF_PLAYGROUND_MODAL]: BlockDiffPlaygroundModal,
@@ -93,7 +72,6 @@ export function registerAIEditorEffects() {
   editorRegistries.add(registry);
 
   registerAISharedEffects();
-  componentAiItemEffects();
 
   for (const tag of editorEffectElementTags) {
     customElements.define(tag, editorElements[tag]);

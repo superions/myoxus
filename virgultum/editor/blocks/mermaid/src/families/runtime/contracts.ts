@@ -18,7 +18,7 @@ import type { MermaidGfxFamilyHookRegistration } from "./gfx-family-hooks-contra
 import type {
   ToolbarContext,
   ToolbarGenericAction,
-} from "@virgultum/shared/services";
+} from "@virgultum/core/services";
 
 export type MermaidFamilyRenderSurface = "core-facade" | "gfx" | "source-first";
 

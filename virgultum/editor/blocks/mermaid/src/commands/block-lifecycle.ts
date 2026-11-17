@@ -5,16 +5,16 @@ import {
   DefaultTool,
   EdgelessCRUDIdentifier,
   getSurfaceBlock,
-} from "@virgultum/block-surface";
-import { Bound } from "@virgultum/global/gfx";
+} from "@virgultum/canvas-runtime/surface";
+import { Bound } from "@virgultum/core/primitives/gfx";
 import {
   NoteBlockModel,
   NoteDisplayMode,
   ParagraphBlockModel,
-} from "@virgultum/model";
-import { BlockSelection, type Command } from "@virgultum/std";
-import { GfxControllerIdentifier } from "@virgultum/std/gfx";
-import type { BlockModel } from "@virgultum/store";
+} from "@virgultum/core/models";
+import { BlockSelection, type Command } from "@virgultum/core/runtime";
+import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
+import type { BlockModel } from "@virgultum/core/store";
 import { DEFAULT_MERMAID_FLOWCHART_SOURCE } from "../families/flowchart/defaults.js";
 import { resolveMermaidFamilyRuntime } from "../families/runtime/registry.js";
 import { parseMermaidSourceToGfxVisualModel } from "../mermaid-gfx-graph-adapters.js";
@@ -85,7 +85,7 @@ export type DuplicatedMermaidDiagram = {
 function insertVisualModel(
   ctx: {
     visualModel?: MermaidVisualModel;
-    std: import("@virgultum/std").BlockStdScope;
+    std: import("@virgultum/core/runtime").BlockStdScope;
   },
   source: string,
   fallback: MermaidVisualModel,

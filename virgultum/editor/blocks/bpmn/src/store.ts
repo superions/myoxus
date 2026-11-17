@@ -1,8 +1,8 @@
 import {
   type StoreExtensionContext,
   StoreExtensionProvider,
-} from "@virgultum/ext-loader";
-import { BpmnBlockSchemaExtension } from "@virgultum/model";
+} from "@virgultum/core/extensions";
+import { BpmnBlockSchemaExtension } from "@virgultum/core/models";
 
 import { BpmnBlockAdapterExtensions } from "./adapters/extension.js";
 

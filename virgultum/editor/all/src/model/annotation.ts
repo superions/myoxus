@@ -6,9 +6,9 @@ export {
   expandAnnotationSelection,
   getAnnotationRanges,
   remapAnnotationIdentities,
-} from "@virgultum/model";
+} from "@virgultum/core/models";
 export type {
   Annotation,
   AnnotationProps,
   AnnotationRange,
-} from "@virgultum/model";
+} from "@virgultum/core/models";

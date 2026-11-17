@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { ConnectorPathGenerator } from "@virgultum/gfx-connector";
-import { Bound } from "@virgultum/global/gfx";
+import { ConnectorPathGenerator } from "@virgultum/canvas/gfx";
+import { Bound } from "@virgultum/core/primitives/gfx";
 import {
   LocalShapeElementModel,
   LocalConnectorElementModel,
   ConnectorElementModel,
   ShapeType,
-} from "@virgultum/model";
-import type { GfxModel } from "@virgultum/std/gfx";
-import type { SurfaceBlockModel } from "@virgultum/std/gfx";
+} from "@virgultum/core/models";
+import type { GfxModel } from "@virgultum/core/runtime/gfx";
+import type { SurfaceBlockModel } from "@virgultum/core/runtime/gfx";
 import type { MermaidVisualModel } from "./gfx-model.js";
 import { getMermaidGfxFamilyHooks } from "./gfx-family-hooks-registry.js";
 import { createMermaidElementIndexMaps } from "./gfx-layer-order.js";

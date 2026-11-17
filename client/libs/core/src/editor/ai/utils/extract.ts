@@ -1,5 +1,5 @@
 import { WorkspaceImpl } from "@myoxus/core/modules/workspace/impls/workspace";
-import { getElementProps } from "@virgultum/block-root";
+import { getElementProps } from "@virgultum/editor/blocks/root";
 import { getSurfaceBlock } from "@virgultum/editor/blocks/surface";
 import {
   DatabaseBlockModel,

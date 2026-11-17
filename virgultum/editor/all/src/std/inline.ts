@@ -1,1 +1,1 @@
-export * from "@virgultum/std/inline";
+export * from "@virgultum/core/runtime/inline";

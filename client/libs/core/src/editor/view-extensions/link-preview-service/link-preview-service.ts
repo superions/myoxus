@@ -7,7 +7,7 @@ import {
   LinkPreviewServiceIdentifier,
 } from "@virgultum/editor/shared/services";
 import { type ExtensionType } from "@virgultum/editor/store";
-import type { Container } from "@virgultum/global/di";
+import type { Container } from "@virgultum/core/primitives/di";
 
 import { ServerService } from "../../../modules/server/services/server";
 

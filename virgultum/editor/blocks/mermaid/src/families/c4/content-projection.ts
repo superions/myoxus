@@ -5,8 +5,8 @@ import {
   getLineWidth,
   measureTextInDOM,
   wrapText,
-} from "@virgultum/gfx-text";
-import { mermaidPersonGeometry, StrokeStyle } from "@virgultum/model";
+} from "@virgultum/canvas/gfx";
+import { mermaidPersonGeometry, StrokeStyle } from "@virgultum/core/models";
 import type {
   MermaidVisualModel,
   MermaidVisualNode,

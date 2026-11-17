@@ -9,4 +9,5 @@
 pub mod cross_refs;
 pub mod image_pipeline;
 pub mod pdfa;
+mod svg_grayscale;
 pub mod tagged_pdf;

@@ -3,16 +3,16 @@ import {
   carryMermaidSelectionHistory,
 } from "./mermaid-selection-history.js";
 import { getMermaidGfxFamilyHooks } from "./families/runtime/gfx-family-hooks-registry.js";
-import { GfxControllerIdentifier } from "@virgultum/std/gfx";
+import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
 import { typeOwnedMermaidGeometrySelection } from "./families/runtime/gfx-owner-hooks.js";
 import { usesTypeOwnedMermaidDocumentHistory } from "./families/runtime/gfx-owner-hooks.js";
-import { BlockSelection } from "@virgultum/std";
+import { BlockSelection } from "@virgultum/core/runtime";
 import {
   consumeMyoxusEditorEscape,
   hasMyoxusEditorLocalKeyboardTarget,
   hasOpenMyoxusUiOverlay,
   wasMyoxusEditorEscapeConsumed,
-} from "@virgultum/shared/utils";
+} from "@virgultum/core/utils";
 
 import { applyMermaidVisualModelCommand } from "./commands.js";
 

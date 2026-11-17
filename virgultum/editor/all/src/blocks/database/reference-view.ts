@@ -1,1 +1,6 @@
-export * from "@virgultum/block-database/reference-view";
+export {
+  DatabaseReferenceBlockComponent,
+  DatabaseReferenceConfigExtension,
+  type DatabaseReferenceViewExtensionOptions,
+  DatabaseReferenceViewExtension,
+} from "@virgultum/embeds/view";

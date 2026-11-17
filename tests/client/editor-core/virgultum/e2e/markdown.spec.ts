@@ -1,5 +1,5 @@
 import { expect } from "@playwright/test";
-import type { BlockSnapshot } from "@virgultum/store";
+import type { BlockSnapshot } from "@virgultum/core/store";
 
 import {
   enterPlaygroundRoom,
@@ -43,6 +43,7 @@ test("quote hard breaks survive history and readonly mode", async ({
   await page.keyboard.press("Shift+Enter");
   await type(page, "Second line");
 
+  if (!id) throw new Error("Quote block is not mounted");
   await assertBlockType(page, id, "quote");
   await assertBlockTextContent(page, id, "First line\nSecond line");
 
@@ -388,6 +389,7 @@ test("markdown shortcut", async ({ page }) => {
   await type(page, "> ");
   await waitNextFrame(page);
   [id] = await getCursorBlockIdAndHeight(page);
+  if (!id) throw new Error("Quote block is not mounted");
   await assertBlockType(page, id, "quote");
   await undoByKeyboard(page);
   await assertText(page, "> ");

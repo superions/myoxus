@@ -1,1 +1,1 @@
-export * from "@virgultum/fragment-doc-title/view";
+export { DocTitleViewExtension } from "@virgultum/content/view";

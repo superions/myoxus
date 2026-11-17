@@ -1,47 +1,48 @@
 // SPDX-License-Identifier: MIT
 
-import { AnnotationStoreExtension } from "@virgultum/block-annotation/store";
-import { AttachmentStoreExtension } from "@virgultum/block-attachment/store";
-import { BookmarkStoreExtension } from "@virgultum/block-bookmark/store";
+import { AnnotationStoreExtension } from "@virgultum/content/store";
+import { AttachmentStoreExtension } from "@virgultum/embeds/store";
+import { BookmarkStoreExtension } from "@virgultum/embeds/store";
 import { BpmnStoreExtension } from "@virgultum/block-bpmn/store";
-import { CalloutStoreExtension } from "@virgultum/block-callout/store";
-import { CodeStoreExtension } from "@virgultum/block-code/store";
-import { DatabaseReferenceStoreExtension } from "@virgultum/block-database/reference-store";
-import { DividerStoreExtension } from "@virgultum/block-divider/store";
-import { EdgelessTextStoreExtension } from "@virgultum/block-edgeless-text/store";
-import { EmbedStoreExtension } from "@virgultum/block-embed/store";
-import { EmbedDocStoreExtension } from "@virgultum/block-embed-doc/store";
-import { EventStoreExtension } from "@virgultum/block-event/store";
-import { FrameStoreExtension } from "@virgultum/block-frame/store";
-import { ImageStoreExtension } from "@virgultum/block-image/store";
-import { LatexStoreExtension } from "@virgultum/block-latex/store";
-import { ListStoreExtension } from "@virgultum/block-list/store";
+import { CalloutStoreExtension } from "@virgultum/content/store";
+import { CodeStoreExtension } from "@virgultum/content/store";
+import { DatabaseReferenceStoreExtension } from "@virgultum/embeds/data";
+import { DividerStoreExtension } from "@virgultum/content/store";
+import { EdgelessTextStoreExtension } from "@virgultum/canvas/store";
+import { EmbedStoreExtension } from "@virgultum/embeds/store";
+import { EmbedDocStoreExtension } from "@virgultum/embeds/store";
+import { DocumentIndexStoreExtension } from "@virgultum/content/store";
+import { EventStoreExtension } from "@virgultum/embeds/store";
+import { FrameStoreExtension } from "@virgultum/canvas/store";
+import { ImageStoreExtension } from "@virgultum/embeds/store";
+import { BlockLatexStoreExtension as LatexStoreExtension } from "@virgultum/content/store";
+import { ListStoreExtension } from "@virgultum/content/store";
 import { MermaidStoreExtension } from "@virgultum/block-mermaid/store";
 import {
   FootnoteDefinitionStoreExtension,
   NoteStoreExtension,
-} from "@virgultum/block-note/store";
-import { ParagraphStoreExtension } from "@virgultum/block-paragraph/store";
-import { RootStoreExtension } from "@virgultum/block-root/store";
-import { SurfaceStoreExtension } from "@virgultum/block-surface/store";
-import { SurfaceRefStoreExtension } from "@virgultum/block-surface-ref/store";
-import { TableStoreExtension } from "@virgultum/block-table/store";
-import { FoundationStoreExtension } from "@virgultum/foundation/store";
-import { BrushStoreExtension } from "@virgultum/gfx-brush/store";
-import { ConnectorStoreExtension } from "@virgultum/gfx-connector/store";
-import { GroupStoreExtension } from "@virgultum/gfx-group/store";
-import { ShapeStoreExtension } from "@virgultum/gfx-shape/store";
-import { TextStoreExtension } from "@virgultum/gfx-text/store";
-import { FootnoteStoreExtension } from "@virgultum/inline-footnote/store";
-import { LatexStoreExtension as InlineLatexStoreExtension } from "@virgultum/inline-latex/store";
-import { LinkStoreExtension } from "@virgultum/inline-link/store";
-import { InlinePresetStoreExtension } from "@virgultum/inline-preset/store";
-import { ReferenceStoreExtension } from "@virgultum/inline-reference/store";
+} from "@virgultum/embeds/store";
+import { ParagraphStoreExtension } from "@virgultum/content/store";
+import { RootStoreExtension } from "../blocks/root/store";
+import { SurfaceStoreExtension } from "@virgultum/canvas-runtime/store";
+import { SurfaceRefStoreExtension } from "@virgultum/canvas/store";
+import { TableStoreExtension } from "@virgultum/content/store";
+import { FoundationStoreExtension } from "../foundation/store";
+import { BrushStoreExtension } from "@virgultum/canvas/store";
+import { ConnectorStoreExtension } from "@virgultum/canvas/store";
+import { GroupStoreExtension } from "@virgultum/canvas/store";
+import { ShapeStoreExtension } from "@virgultum/canvas/store";
+import { TextStoreExtension } from "@virgultum/canvas/store";
+import { FootnoteStoreExtension } from "@virgultum/content/store";
+import { InlineLatexStoreExtension } from "@virgultum/content/store";
+import { LinkStoreExtension } from "@virgultum/content/store";
+import { InlinePresetStoreExtension } from "@virgultum/content/store";
+import { ReferenceStoreExtension } from "@virgultum/content/store";
 import {
   type ExtensionProviderClass,
   type FeatureManifestId,
   featureManifestId,
-} from "@virgultum/ext-loader";
+} from "@virgultum/core/extensions";
 
 // Keep the store projection independent of the full view/widget registry.
 // The full manifest registry composes these same providers with its view slots.
@@ -60,6 +61,7 @@ export const internalStoreExtensionsByFeature: ReadonlyMap<
   [featureManifestId("database"), DatabaseReferenceStoreExtension],
   [featureManifestId("divider"), DividerStoreExtension],
   [featureManifestId("event"), EventStoreExtension],
+  [featureManifestId("document-index"), DocumentIndexStoreExtension],
   [featureManifestId("edgeless-text"), EdgelessTextStoreExtension],
   [featureManifestId("embed"), EmbedStoreExtension],
   [featureManifestId("embed-doc"), EmbedDocStoreExtension],

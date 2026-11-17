@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { MindmapLayoutType as LayoutType } from "../projection/types.js";
 
-import type { PathGenerator } from "@virgultum/gfx-connector";
+import type { PathGenerator } from "@virgultum/canvas/gfx";
 import {
   Bound,
   isVecZero,
@@ -9,8 +9,8 @@ import {
   PointLocation,
   toRadian,
   Vec,
-} from "@virgultum/global/gfx";
-import { ConnectorMode } from "@virgultum/model";
+} from "@virgultum/core/primitives/gfx";
+import { ConnectorMode } from "@virgultum/core/models";
 import {
   NODE_HORIZONTAL_SPACING,
   NODE_VERTICAL_SPACING,

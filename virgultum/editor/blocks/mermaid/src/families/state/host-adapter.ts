@@ -550,8 +550,8 @@ export const mermaidStateHostAdapter: MermaidFamilyHostAdapter = {
 import { mermaidMessages } from "../../i18n.js";
 import type { MermaidFamilyHostAdapter } from "../runtime/contracts.js";
 import type { MermaidGfxActionContext } from "../runtime/editor-capabilities.js";
-import type { ToolbarContext } from "@virgultum/shared/services";
-import { Bound } from "@virgultum/global/gfx";
+import type { ToolbarContext } from "@virgultum/core/services";
+import { Bound } from "@virgultum/core/primitives/gfx";
 import {
   resolveMermaidEdgelessSelection,
   resolveMermaidEdgelessOwnerSelection,

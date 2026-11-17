@@ -8,12 +8,12 @@ import {
   MermaidBlockSchemaExtension,
   NoteBlockSchemaExtension,
   RootBlockSchemaExtension,
-} from "@virgultum/model";
-import { type Store, Text } from "@virgultum/store";
+} from "@virgultum/core/models";
+import { type Store, Text } from "@virgultum/core/store";
 import {
   createAutoIncrementIdGenerator,
   TestWorkspace,
-} from "@virgultum/store/test";
+} from "@virgultum/core/store/test";
 import { afterEach, describe, expect, test, vi } from "vitest";
 
 const nativeExport = vi.hoisted(() => ({

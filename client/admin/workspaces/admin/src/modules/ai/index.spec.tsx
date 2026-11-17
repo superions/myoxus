@@ -73,6 +73,7 @@ let serverErrors: Record<string, { message: string }> = {};
 let testSchema: any = null;
 let testSaving = false;
 let testCopilotEnabled = true;
+let testSupportsTools = false;
 
 function makeBaseConfig(copilotOverrides?: any) {
   return {
@@ -88,6 +89,9 @@ function makeBaseConfig(copilotOverrides?: any) {
           api_key: "sk-test",
           endpoint: "https://api.openai.com/v1",
           models: ["gpt.v1/model"],
+          ...(testSupportsTools
+            ? { model_options: { "gpt.v1/model": { supports_tools: true } } }
+            : {}),
           timeout_ms: 30000,
           kind: "openai",
         },
@@ -239,6 +243,7 @@ describe("AiPage — P100-H-03", () => {
     testSchema = null;
     testSaving = false;
     testCopilotEnabled = true;
+    testSupportsTools = false;
     window.history.replaceState({}, "", "/adminfrontend/ai");
   });
 
@@ -331,80 +336,95 @@ describe("AiPage — P100-H-03", () => {
     expect(document.body.textContent).toContain("env:");
   });
 
-  test("reasoning fields update whole provider objects with literal model IDs", async () => {
-    serverErrors = {
-      "config/candidate": {
-        message:
-          "reasoning_effort requires distinct supported on and off values",
-      },
-    };
-    renderWithFacade(<AiPage />);
-    const card = screen.getByTestId("provider-card-openai");
-    fireEvent.click(card.querySelector("button[aria-expanded]")!);
-    const select = await screen.findByRole("combobox", {
-      name: "Reasoning control for gpt.v1/model",
-    });
-    selectMantineOption(select, "vLLM enable_thinking");
-    expect(screen.getByRole("alert").textContent).toContain(
-      "reasoning_effort requires distinct supported on and off values",
-    );
-    expect(mockUpdate).toHaveBeenLastCalledWith(
-      "copilot/providers",
-      expect.objectContaining({
-        openai: expect.objectContaining({
-          model_options: {
-            "gpt.v1/model": { reasoning_control: { type: "enable_thinking" } },
-          },
-        }),
-      }),
-    );
-    const vision = screen.getByRole("switch", {
-      name: "Image input supported: gpt.v1/model",
-    });
-    fireEvent.click(vision);
-    selectMantineOption(select, "reasoning_effort");
-    selectMantineOption(
-      screen.getByRole("combobox", { name: "Effort when reasoning is on" }),
-      "high",
-    );
-    selectMantineOption(
-      screen.getByRole("combobox", { name: "Effort when reasoning is off" }),
-      "none",
-    );
-    expect(mockUpdate).toHaveBeenLastCalledWith(
-      "copilot/providers",
-      expect.objectContaining({
-        openai: expect.objectContaining({
-          model_options: {
-            "gpt.v1/model": {
-              supports_vision: true,
-              reasoning_control: {
-                type: "reasoning_effort",
-                on: "high",
-                off: "none",
+  test.each([false, true])(
+    "reasoning fields preserve model capabilities (tools=%s)",
+    async (supportsTools) => {
+      testSupportsTools = supportsTools;
+      const capabilities = supportsTools ? { supports_tools: true } : {};
+      serverErrors = {
+        "config/candidate": {
+          message:
+            "reasoning_effort requires distinct supported on and off values",
+        },
+      };
+      renderWithFacade(<AiPage />);
+      const card = screen.getByTestId("provider-card-openai");
+      fireEvent.click(card.querySelector("button[aria-expanded]")!);
+      const select = await screen.findByRole("combobox", {
+        name: "Reasoning control for gpt.v1/model",
+      });
+      selectMantineOption(select, "vLLM enable_thinking");
+      expect(screen.getByRole("alert").textContent).toContain(
+        "reasoning_effort requires distinct supported on and off values",
+      );
+      expect(mockUpdate).toHaveBeenLastCalledWith(
+        "copilot/providers",
+        expect.objectContaining({
+          openai: expect.objectContaining({
+            model_options: {
+              "gpt.v1/model": {
+                ...capabilities,
+                reasoning_control: { type: "enable_thinking" },
               },
             },
-          },
+          }),
         }),
-      }),
-    );
-    selectMantineOption(select, "Provider default (no override)");
-    expect(mockUpdate).toHaveBeenLastCalledWith(
-      "copilot/providers",
-      expect.objectContaining({
-        openai: expect.objectContaining({
-          model_options: { "gpt.v1/model": { supports_vision: true } },
+      );
+      const vision = screen.getByRole("switch", {
+        name: "Image input supported: gpt.v1/model",
+      });
+      fireEvent.click(vision);
+      selectMantineOption(select, "reasoning_effort");
+      selectMantineOption(
+        screen.getByRole("combobox", { name: "Effort when reasoning is on" }),
+        "high",
+      );
+      selectMantineOption(
+        screen.getByRole("combobox", { name: "Effort when reasoning is off" }),
+        "none",
+      );
+      expect(mockUpdate).toHaveBeenLastCalledWith(
+        "copilot/providers",
+        expect.objectContaining({
+          openai: expect.objectContaining({
+            model_options: {
+              "gpt.v1/model": {
+                ...capabilities,
+                supports_vision: true,
+                reasoning_control: {
+                  type: "reasoning_effort",
+                  on: "high",
+                  off: "none",
+                },
+              },
+            },
+          }),
         }),
-      }),
-    );
-    fireEvent.click(vision);
-    expect(mockUpdate).toHaveBeenLastCalledWith(
-      "copilot/providers",
-      expect.objectContaining({
-        openai: expect.objectContaining({ model_options: {} }),
-      }),
-    );
-  });
+      );
+      selectMantineOption(select, "Provider default (no override)");
+      expect(mockUpdate).toHaveBeenLastCalledWith(
+        "copilot/providers",
+        expect.objectContaining({
+          openai: expect.objectContaining({
+            model_options: {
+              "gpt.v1/model": { ...capabilities, supports_vision: true },
+            },
+          }),
+        }),
+      );
+      fireEvent.click(vision);
+      expect(mockUpdate).toHaveBeenLastCalledWith(
+        "copilot/providers",
+        expect.objectContaining({
+          openai: expect.objectContaining({
+            model_options: supportsTools
+              ? { "gpt.v1/model": { ...capabilities, supports_vision: false } }
+              : {},
+          }),
+        }),
+      );
+    },
+  );
 
   test("native routing tags preserve order and save only Copilot while other tabs keep their drafts", async () => {
     renderWithFacade(<AiPage />);

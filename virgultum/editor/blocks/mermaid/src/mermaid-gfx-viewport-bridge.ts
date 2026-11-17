@@ -2,9 +2,12 @@ import {
   readMermaidGfxNodeId,
   readMermaidGfxEdgeId,
 } from "./mermaid-gfx-metadata.js";
-import { calPanDeltaFromClientPoint } from "@virgultum/block-surface";
-import { Bound, getCommonBound } from "@virgultum/global/gfx";
-import type { MermaidBlockModel, ShapeElementModel } from "@virgultum/model";
+import { calPanDeltaFromClientPoint } from "@virgultum/canvas-runtime/surface";
+import { Bound, getCommonBound } from "@virgultum/core/primitives/gfx";
+import type {
+  MermaidBlockModel,
+  ShapeElementModel,
+} from "@virgultum/core/models";
 
 import { getMermaidVisualModel } from "./commands/model-resolution.js";
 import { MERMAID_GFX_DETAIL_ROLE } from "./families/runtime/gfx-element-roles.js";
@@ -64,8 +67,8 @@ import type {
 import { MermaidPageSelectionTool } from "./mermaid-page-selection-tool.js";
 
 type MermaidScopedGfxController = {
-  readonly std?: import("@virgultum/std").BlockStdScope;
-  surface?: import("@virgultum/std/gfx").SurfaceBlockModel;
+  readonly std?: import("@virgultum/core/runtime").BlockStdScope;
+  surface?: import("@virgultum/core/runtime/gfx").SurfaceBlockModel;
   getElementById?: (id: string) => unknown;
   getElementByPoint?: (
     x: number,

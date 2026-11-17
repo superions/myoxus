@@ -20,10 +20,7 @@ import {
   type,
   waitNextFrame,
 } from "../utils/actions/index.js";
-import {
-  assertEdgelessSelectedModelRect,
-  getSelectedRect,
-} from "../utils/asserts.js";
+import { assertEdgelessSelectedModelRect } from "../utils/asserts.js";
 import { test } from "../utils/playwright.js";
 
 async function commonSetup(page: Page) {
@@ -41,7 +38,10 @@ async function arrangementBounds(page: Page) {
         const { x, y, w, h } = model.elementBound;
         return {
           id: model.id,
-          connector: model.type === "connector",
+          connector: "type" in model && model.type === "connector",
+          nativeOwner:
+            "managesChildMembership" in model &&
+            model.managesChildMembership === true,
           x,
           y,
           w,
@@ -65,7 +65,8 @@ async function assertArrangement(
     );
     for (const box of after) {
       const original = before.find((b) => b.id === box.id)!;
-      const scale = resize && !box.connector ? 200 / original.h : 1;
+      const scale =
+        resize && !box.connector && !box.nativeOwner ? 200 / original.h : 1;
       expect(box.w).toBeCloseTo(original.w * scale, 0);
       expect(box.h).toBeCloseTo(original.h * scale, 0);
     }
@@ -252,16 +253,14 @@ test.describe("auto arrange align", () => {
     await clickView(page, [500, 200]);
 
     await selectAllByKeyboard(page);
-    const box1 = await getSelectedRect(page);
-    expect(box1.width).toBeGreaterThan(700);
-    expect(box1.height).toBeGreaterThan(300);
+    const before = await arrangementBounds(page);
+    expect(before).toHaveLength(2);
+    expect(before.filter((x) => x.nativeOwner)).toHaveLength(1);
 
     // arrange
     await triggerComponentToolbarAction(page, "autoArrange");
     await waitNextFrame(page, 200);
-    const box2 = await getSelectedRect(page);
-    expect(box2.width).toBeLessThan(550);
-    expect(box2.height).toBeLessThan(210);
+    await assertArrangement(page, before);
   });
 
   test("arrange shape, note, connector, brush and edgeless text", async ({
@@ -417,6 +416,7 @@ test.describe("auto resize align", () => {
     // arrange
     await triggerComponentToolbarAction(page, "autoResize");
     await waitNextFrame(page, 200);
+
     await assertEdgelessSelectedModelRect(page, [
       0,
       0,
@@ -469,16 +469,14 @@ test.describe("auto resize align", () => {
     await clickView(page, [500, 200]);
 
     await selectAllByKeyboard(page);
-    const box1 = await getSelectedRect(page);
-    expect(box1.width).toBeGreaterThan(700);
-    expect(box1.height).toBeGreaterThan(300);
+    const before = await arrangementBounds(page);
+    expect(before).toHaveLength(2);
+    expect(before.filter((x) => x.nativeOwner)).toHaveLength(1);
 
     // arrange
     await triggerComponentToolbarAction(page, "autoResize");
     await waitNextFrame(page, 200);
-    const box2 = await getSelectedRect(page);
-    expect(box2.width).toBeLessThan(650);
-    expect(box2.height).toBeLessThan(210);
+    await assertArrangement(page, before, true);
   });
 
   test("resize and arrange shape, note, connector, brush and text", async ({

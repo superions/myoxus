@@ -189,13 +189,21 @@ export async function enterPlaygroundRoom(
 
   const locator = page.locator("myoxus-editor-container");
   await locator.waitFor({ state: "visible" });
-  await page.evaluate(async () => {
+  // An unupgraded custom element is already visible. Wait for the fixture's
+  // document and React chrome owner before a test resets history or edits it.
+  await page.waitForFunction(() => {
     const dom = document.querySelector<TestMyoxusEditorContainer>(
       "myoxus-editor-container",
     );
-    if (dom) {
-      await dom.updateComplete;
-    }
+    return !!window.doc && dom?.doc === window.doc && !!dom.chromeReady;
+  });
+  await page.evaluate(async () => {
+    const dom = document.querySelector<TestMyoxusEditorContainer>(
+      "myoxus-editor-container",
+    )!;
+    await dom.chromeReady;
+    await dom.updateComplete;
+    await document.fonts.ready;
   });
 
   await page.evaluate(() => {
@@ -729,14 +737,24 @@ export async function getClipboardHTML(page: Page) {
 }
 
 export async function getClipboardText(page: Page) {
-  const dataInClipboard = await page.evaluate(async () => {
-    const clipItems = await navigator.clipboard.read();
-    const item = clipItems.find((item) => item.types.includes("text/plain"));
-    const data = await item?.getType("text/plain");
-    const text = await data?.text();
-    return text ?? "";
+  return page.evaluate(async () => {
+    // Chromium lazily resolves ClipboardItems. A pending native copy can
+    // invalidate that handle; reread it without accepting different content.
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const items = await navigator.clipboard.read();
+        const item = items.find((item) => item.types.includes("text/plain"));
+        return (await (await item?.getType("text/plain"))?.text()) ?? "";
+      } catch (error) {
+        if (
+          !(error instanceof DOMException) ||
+          error.name !== "InvalidStateError" ||
+          attempt >= 2
+        )
+          throw error;
+      }
+    }
   });
-  return dataInClipboard;
 }
 
 export async function getClipboardCustomData(page: Page, type: string) {
@@ -936,7 +954,7 @@ export async function getIndexCoordinate(
 ) {
   for (let attempt = 0; attempt < 20; attempt++) {
     const coord = await page.evaluate(
-      ({ richTextIndex, vIndex, coordOffSet, currentEditorIndex }) => {
+      async ({ richTextIndex, vIndex, coordOffSet, currentEditorIndex }) => {
         const editorHost =
           document.querySelectorAll("editor-host")[currentEditorIndex];
         const richTexts = Array.from(
@@ -952,6 +970,8 @@ export async function getIndexCoordinate(
         if (!inlineEditor) {
           return null;
         }
+        await inlineEditor.waitForUpdate();
+        await document.fonts.ready;
         const clampedIndex = Math.max(
           0,
           Math.min(vIndex, inlineEditor.yTextLength ?? vIndex),
@@ -1178,14 +1198,14 @@ export async function mockParseDocUrlService(
     // URL parsing is supplied by the workspace host in Web, not by the
     // standalone editor. The running provider owns a cloned container; bind
     // this fixture there, on the current host (mode switches replace hosts).
-    host.std.provider.container.addImpl(
+    host.std.provider.container.override(
       window.$virgultum.services.ParseDocUrlProvider,
-      {
+      () => ({
         parseDocUrl(url: string) {
           const docId = mapping[url];
           return docId ? { docId } : undefined;
         },
-      },
+      }),
     );
   }, mapping);
 }

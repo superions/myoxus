@@ -36,6 +36,8 @@
     "décembre"
   ],
   "register_columns": {
+    "createdBy": "Créé par",
+    "responsible": "Responsable",
     "title": "Titre",
     "documentType": "Type de document",
     "status": "Statut",

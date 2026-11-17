@@ -1,5 +1,5 @@
-import { Bound } from "@virgultum/global/gfx";
-import type { MermaidBlockModel } from "@virgultum/model";
+import { Bound } from "@virgultum/core/primitives/gfx";
+import type { MermaidBlockModel } from "@virgultum/core/models";
 import {
   getMermaidVisualNodeDetailElementEntries,
   toMermaidShapeElementProps,

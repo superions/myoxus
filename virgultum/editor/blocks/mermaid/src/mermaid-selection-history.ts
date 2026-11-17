@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import type { Store } from "@virgultum/store";
+import type { Store } from "@virgultum/core/store";
 
 export type MermaidHistoryStackItem = {
   readonly meta: ReadonlyMap<string, unknown>;

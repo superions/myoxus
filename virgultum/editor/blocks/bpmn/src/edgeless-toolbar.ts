@@ -1,21 +1,20 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { WorkflowIcon } from "@myoxus/icons/lit";
-import { menu } from "@virgultum/components/context-menu";
-import { NoteTool } from "@virgultum/gfx-note";
-import type { BlockStdScope } from "@virgultum/std";
+import { NoteTool } from "@virgultum/canvas/gfx";
+import { type BlockStdScope, ShadowlessElement } from "@virgultum/core/runtime";
 import {
   editorMessage,
   EditorI18nProvider,
+  EditorChromeHostIdentifier,
   NotificationProvider,
   resolveEditorMessage,
-} from "@virgultum/shared/services";
+} from "@virgultum/core/services";
 import {
   type QuickTool,
   QuickToolExtension,
   QuickToolMixin,
   type ToolBuilder,
-} from "@virgultum/widget-edgeless-toolbar";
-import { css, html, LitElement } from "lit";
+} from "@virgultum/canvas/widgets";
+import { css, html, nothing } from "lit";
 
 import { insertBpmnEdgelessNote } from "./edgeless-insertion.js";
 import { requestBpmnEditor } from "./session-request.js";
@@ -57,9 +56,9 @@ function insertAndOpen(
   }
 }
 
-export class EdgelessBpmnToolButton extends QuickToolMixin(LitElement) {
+export class EdgelessBpmnToolButton extends QuickToolMixin(ShadowlessElement) {
   static override styles = css`
-    :host {
+    myoxus-bpmn-edgeless-tool-button {
       display: flex;
     }
   `;
@@ -103,15 +102,23 @@ export class EdgelessBpmnToolButton extends QuickToolMixin(LitElement) {
   }
 
   override render() {
-    return html`<edgeless-tool-icon-button
-      data-testid="myoxus-bpmn-edgeless-toolbar-button"
-      .tooltip=${this.label}
-      .iconSize=${"24px"}
-      .iconContainerPadding=${6}
-      .active=${this.active && this.edgelessTool?.options?.createNote === this.insert}
-      @click=${this.activate}
-      >${WorkflowIcon()}</edgeless-tool-icon-button
-    >`;
+    return (
+      this.edgeless.std
+        .getOptional(EditorChromeHostIdentifier)
+        ?.renderCanvasTool({
+          action: {
+            id: "myoxus-bpmn-edgeless-toolbar-button",
+            icon: "WorkflowIcon",
+            label: this.label,
+            active:
+              this.active &&
+              this.edgelessTool?.options?.createNote === this.insert,
+            disabled: false,
+            // Preserve detail=0 keyboard placement through the existing note coordinate owner.
+            run: (_anchor, event) => this.activate(event as MouseEvent),
+          },
+        }) ?? nothing
+    );
   }
 }
 
@@ -122,20 +129,22 @@ export const buildBpmnQuickTool: ToolBuilder<QuickTool> = ({ block, gfx }) => ({
   ></myoxus-bpmn-edgeless-tool-button>`,
   enable: !block.store.readonly,
   priority: 84,
-  menu: menu.action({
-    name: resolveEditorMessage(
+  menu: {
+    id: "canvas-overflow-bpmn",
+    label: resolveEditorMessage(
       label,
       block.std.getOptional(EditorI18nProvider) ?? undefined,
     ),
-    prefix: WorkflowIcon(),
-    select: () => {
+    icon: "WorkflowIcon",
+    disabled: block.store.readonly,
+    run: () => {
       const [x, y] = gfx.viewport.toViewCoord(
         gfx.viewport.centerX,
         gfx.viewport.centerY,
       );
       insertAndOpen(block.std, { x, y });
     },
-  }),
+  },
 });
 
 export const bpmnQuickTool = QuickToolExtension("bpmn", buildBpmnQuickTool);

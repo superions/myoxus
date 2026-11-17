@@ -7,9 +7,6 @@ export const sharedEffectElementTags = [
   "chat-content-rich-text",
   "chat-content-stream-objects",
   "text-renderer",
-  "tool-call-card",
-  "tool-result-card",
-  "tool-call-failed",
   "doc-semantic-search-result",
   "doc-keyword-search-result",
   "doc-read-result",
@@ -22,14 +19,11 @@ export const sharedEffectElementTags = [
   "code-highlighter",
   "artifact-preview-panel",
   "doc-edit-tool",
-  "artifact-skeleton",
 ] as const;
 
 export type SharedEffectElementTag = (typeof sharedEffectElementTags)[number];
 
 export const editorEffectElementTags = [
-  "ask-ai-icon",
-  "ask-ai-button",
   "ask-ai-panel",
   "myoxus-edgeless-ai-chat",
   "myoxus-ai-chat",
@@ -40,13 +34,6 @@ export const editorEffectElementTags = [
   "chat-image",
   "chat-images",
   "user-info",
-  "generating-placeholder",
-  "ai-finish-tip",
-  "ai-panel-divider",
-  "ai-panel-answer",
-  "ai-panel-input",
-  "ai-panel-generating",
-  "ai-panel-error",
   "ai-block-diff-options",
   "myoxus-block-diff-playground",
   "myoxus-block-diff-playground-modal",
@@ -61,22 +48,12 @@ export const editorEffectElementTags = [
 export type EditorEffectElementTag = (typeof editorEffectElementTags)[number];
 
 export const appEffectElementTags = [
-  "chat-action-list",
   "chat-copy-more",
-  "image-preview-grid",
-  "action-wrapper",
-  "action-image-to-text",
-  "action-image",
-  "action-make-real",
-  "action-mindmap",
-  "action-slides",
-  "action-text",
   "ai-loading",
   "ai-chat-content",
   "ai-chat-messages",
   "ai-chat-input",
   "ai-chat-add-context",
-  "ai-chat-embedding-status-tooltip",
   "ai-chat-composer",
   "chat-panel-chips",
   "ai-history-clear",
@@ -84,19 +61,11 @@ export const appEffectElementTags = [
   "chat-input-preference",
   "chat-panel-candidates-popover",
   "chat-panel-doc-chip",
-  "chat-panel-file-chip",
-  "chat-panel-tag-chip",
-  "chat-panel-collection-chip",
-  "chat-panel-selected-chip",
-  "chat-panel-attachment-chip",
   "chat-panel-chip",
   "chat-assistant-avatar",
-  "chat-message-action",
   "chat-message-assistant",
   "chat-message-user",
   "ai-chat-block-peek-view",
-  "date-time",
-  "chat-panel-split-view",
 ] as const;
 
 export type AppEffectElementTag = (typeof appEffectElementTags)[number];

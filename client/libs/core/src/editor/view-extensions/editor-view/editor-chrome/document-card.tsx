@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
+import { toReactNode } from "@myoxus/lit-react";
 import { useI18n } from "@myoxus/i18n";
 import {
   BlockLinkIcon,
@@ -11,123 +12,122 @@ import {
 import {
   Box,
   Grid,
-  Group,
   IconButton,
   Loading,
   MyoxusText,
-  Stack,
-  SurfaceListItem,
+  ReferenceCard,
+  Badge,
 } from "@myoxus/ui-facade";
 import type { EditorDocumentCardControls } from "@virgultum/editor/shared/services";
 
 export function EditorDocumentCard({
-  controls,
+  controls: c,
 }: {
   controls: EditorDocumentCardControls;
 }) {
   const t = useI18n();
-  const label = controls.loading
-    ? t["Loading"]()
-    : controls.title || t["com.myoxus.reference.target-unavailable"]();
-  const status = controls.error
+  if (c.citationIdentifier !== undefined) {
+    return (
+      <ReferenceCard
+        size="small"
+        contained={c.inSurface}
+        selected={c.selected}
+        title={c.title}
+        icon={toReactNode(c.citationIcon)}
+        status={
+          <Badge tone={c.selected ? "info" : "neutral"}>
+            {c.citationIdentifier}
+          </Badge>
+        }
+        data-testid="editor-document-card"
+      />
+    );
+  }
+
+  const label = c.loading
+    ? t.Loading()
+    : c.title || t["com.myoxus.reference.target-unavailable"]();
+  const status = c.error
     ? t["com.myoxus.editor.embed.load-error"]()
-    : controls.deleted
-      ? t["Deleted"]()
-      : controls.unavailable
+    : c.deleted
+      ? t.Deleted()
+      : c.unavailable
         ? t["com.myoxus.reference.target-unavailable"]()
-        : controls.empty
+        : c.empty
           ? t["com.myoxus.common.preview-unavailable"]()
           : "";
-  const compact = controls.variant === "list" || controls.variant === "cube";
-  const fixed = controls.variant === "vertical" || controls.variant === "cube";
+  const compact = c.variant === "list" || c.variant === "cube";
+  const fixed = c.variant === "vertical" || c.variant === "cube";
   const card = (
-    <SurfaceListItem
-      component="div"
-      appearance="card"
-      selected={controls.selected}
-      fullHeight={controls.inSurface || fixed}
-      data-testid="editor-document-card"
-      aria-busy={controls.loading}
-    >
-      <Stack gap="xs" miw={0} h="100%">
-        <Group wrap="nowrap" gap="xs">
-          {controls.loading ? (
-            <Loading />
-          ) : controls.error ? (
-            <WarningIcon />
-          ) : controls.nodeReference ? (
-            <BlockLinkIcon />
-          ) : (
-            <LinkIcon />
-          )}
-          <MyoxusText
-            truncate
-            title={label}
-            data-testid="editor-document-card-title"
-            className={
-              controls.kind === "synced"
-                ? "myoxus-embed-synced-doc-card-content-title-text"
-                : "myoxus-embed-linked-doc-content-title-text"
-            }
-          >
-            <strong>{label}</strong>
-          </MyoxusText>
-        </Group>
-        {!compact && controls.description ? (
-          <MyoxusText
-            lineClamp={controls.variant === "vertical" ? undefined : 2}
-            preserveWhitespace
-            data-testid="editor-document-card-description"
-            className="myoxus-embed-linked-doc-content-note alias"
-          >
-            {controls.description}
-          </MyoxusText>
+    <ReferenceCard
+      size={compact ? "small" : "large"}
+      orientation={fixed ? "vertical" : "horizontal"}
+      contained={c.inSurface || fixed}
+      selected={c.selected}
+      fullHeight={c.inSurface || fixed}
+      title={label}
+      metadata={
+        compact && !c.error && c.updated
+          ? t.Updated() + " " + c.updated
+          : undefined
+      }
+      icon={
+        c.loading ? (
+          <Loading />
+        ) : c.error ? (
+          <WarningIcon />
+        ) : c.nodeReference ? (
+          <BlockLinkIcon />
+        ) : (
+          <LinkIcon />
+        )
+      }
+      description={
+        !compact && c.description ? (
+          c.description
         ) : !compact && status && status !== label ? (
-          <MyoxusText tone={controls.error ? "danger" : "secondary"}>
+          <MyoxusText tone={c.error ? "danger" : "secondary"}>
             {status}
           </MyoxusText>
-        ) : null}
-        <Box
-          flex={1}
-          mih={0}
-          ref={controls.mountPreview}
-          hidden={
-            compact || !!controls.description || !!status || controls.loading
-          }
-        />
-        {controls.mountBanner && (
-          <Box ref={controls.mountBanner} hidden={!controls.showBanner} />
-        )}
-        <Group wrap="nowrap" gap="xs">
-          {controls.error ? (
-            <IconButton
-              icon={<ResetIcon />}
-              tooltip={t["com.myoxus.editor.toolbar.reload"]()}
-              onClick={(event) => {
-                event.stopPropagation();
-                controls.reload();
-              }}
-            />
-          ) : controls.updated ? (
-            <MyoxusText typographySlot="caption" tone="secondary" truncate>
-              {t["Updated"]()} {controls.updated}
-            </MyoxusText>
-          ) : null}
-        </Group>
-      </Stack>
-    </SurfaceListItem>
+        ) : undefined
+      }
+      footer={
+        c.error ? (
+          <IconButton
+            icon={<ResetIcon />}
+            tooltip={t["com.myoxus.editor.toolbar.reload"]()}
+            onClick={(event) => {
+              event.stopPropagation();
+              c.reload();
+            }}
+          />
+        ) : !compact && c.updated ? (
+          <MyoxusText typographySlot="caption" tone="secondary" truncate>
+            {t.Updated()} {c.updated}
+          </MyoxusText>
+        ) : undefined
+      }
+      data-testid="editor-document-card"
+      aria-busy={c.loading}
+    >
+      {/* These renderer-owned mounts stay present across resource, metadata and selection updates. */}
+      <Box
+        key="preview"
+        flex={1}
+        mih={0}
+        ref={c.mountPreview}
+        hidden={compact || !!c.description || !!status || c.loading}
+      />
+      {c.mountBanner ? (
+        <Box key="banner" ref={c.mountBanner} hidden={!c.showBanner} />
+      ) : null}
+    </ReferenceCard>
   );
-  // Canvas dimensions belong to the persisted block; Page cards follow their content.
-  return controls.inSurface ? (
-    card
-  ) : (
-    <Grid>
-      <Grid.Col
-        span="content"
-        maw="50%"
-        h={fixed ? controls.height : undefined}
-        w={fixed ? controls.width : undefined}
-      >
+  if (c.inSurface || !fixed) return card;
+  // Fixed Page variants retain their renderer-owned height; the shared size owns normal Page width.
+  return (
+    <Grid gap={0}>
+      <Grid.Col span="content" maw="50%" h={c.height} w={c.width}>
         {card}
       </Grid.Col>
     </Grid>

@@ -1,1 +1,5 @@
-export * from "@virgultum/widget-edgeless-dragging-area";
+export {
+  EDGELESS_DRAGGING_AREA_WIDGET,
+  EdgelessDraggingAreaRectWidget,
+  edgelessDraggingAreaWidget,
+} from "@virgultum/canvas/widgets";

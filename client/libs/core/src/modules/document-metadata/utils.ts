@@ -1,7 +1,13 @@
+import type {
+  DocumentMetadataIndexLookups,
+  DocumentMetadataIndexRow,
+  DocumentMetadataLookupKey,
+} from "./services/document-metadata-cache";
 import {
   formatRegionalDateTime,
+  formatRegionalDate,
   type RegionalFormatPreferences,
-} from "../i18n";
+} from "../i18n/regional-format";
 
 import type {
   CanonicalMetadataKey,
@@ -265,4 +271,152 @@ export function parseCsvIds(value: string): string[] {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+export const METADATA_FIELD_LABEL_KEYS = {
+  status: "com.myoxus.document-metadata.field.status",
+  documentType: "com.myoxus.document-metadata.field.document-type",
+  version: "com.myoxus.document-metadata.field.version",
+  responsible: "com.myoxus.document-metadata.field.responsible",
+  reviewDueAt: "com.myoxus.document-metadata.field.review-due-at",
+  validFrom: "com.myoxus.document-metadata.field.valid-from",
+  validUntil: "com.myoxus.document-metadata.field.valid-until",
+  classification: "com.myoxus.document-metadata.field.classification",
+  documentNumber: "com.myoxus.document-metadata.field.document-number",
+  language: "com.myoxus.document-metadata.field.language",
+  audience: "com.myoxus.document-metadata.field.audience",
+  retentionPolicy: "com.myoxus.document-metadata.field.retention-policy",
+} as const satisfies Record<CanonicalMetadataKey, string>;
+
+/** Native register columns share their labels with Explorer and export consumers. */
+export const REGISTER_FIELD_LABEL_KEYS = {
+  title: "Title",
+  documentType: METADATA_FIELD_LABEL_KEYS.documentType,
+  status: METADATA_FIELD_LABEL_KEYS.status,
+  classification: METADATA_FIELD_LABEL_KEYS.classification,
+  version: METADATA_FIELD_LABEL_KEYS.version,
+  createdBy: "com.myoxus.page-properties.property.createdBy",
+  responsible: METADATA_FIELD_LABEL_KEYS.responsible,
+  createdAt: "com.myoxus.page-properties.property.createdAt",
+  tags: "Tags",
+  updatedAt: "com.myoxus.page-properties.property.updatedAt",
+  reviewDueAt: METADATA_FIELD_LABEL_KEYS.reviewDueAt,
+  validUntil: METADATA_FIELD_LABEL_KEYS.validUntil,
+} as const;
+
+export interface DocumentMetadataIndexDisplayMessages {
+  loading: string;
+  notSet: string;
+  unversionedChanges: string;
+  version: string;
+  changedSuffix?: string;
+}
+
+const DEFAULT_INDEX_DISPLAY_MESSAGES: DocumentMetadataIndexDisplayMessages = {
+  loading: "Loading",
+  notSet: "Not set",
+  unversionedChanges: "Unversioned changes",
+  version: "Version",
+  changedSuffix: "changed",
+};
+
+function indexDateValue(
+  value: string | null | undefined,
+  regionalPreferences?: RegionalFormatPreferences,
+) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  if (regionalPreferences) {
+    return formatRegionalDate(date, regionalPreferences);
+  }
+  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(
+    date,
+  );
+}
+
+function metadataLookupKey(
+  metadataKey: CanonicalMetadataKey,
+): DocumentMetadataLookupKey | null {
+  switch (metadataKey) {
+    case "status":
+    case "documentType":
+    case "classification":
+    case "version":
+      return metadataKey;
+    default:
+      return null;
+  }
+}
+
+export function metadataLookupHydrated(
+  metadataKey: CanonicalMetadataKey,
+  lookups: DocumentMetadataIndexLookups,
+) {
+  const lookupKey = metadataLookupKey(metadataKey);
+  if (!lookupKey) return true;
+  if (lookupKey === "version") return true;
+  return lookups.hydratedKeys[lookupKey] === true;
+}
+
+export function metadataIndexDisplayValue(
+  row: DocumentMetadataIndexRow,
+  metadataKey: CanonicalMetadataKey,
+  lookups: DocumentMetadataIndexLookups,
+  messages = DEFAULT_INDEX_DISPLAY_MESSAGES,
+  regionalPreferences?: RegionalFormatPreferences,
+) {
+  switch (metadataKey) {
+    case "responsible":
+      return row.responsibleName ?? null;
+    case "status":
+      return row.statusId ? (lookups.statusLabels[row.statusId] ?? null) : null;
+    case "documentType":
+      return row.documentTypeId
+        ? (lookups.documentTypeLabels[row.documentTypeId] ?? null)
+        : null;
+    case "version":
+      if (row.currentVersionId) {
+        const label = lookups.versionLabels[row.currentVersionId];
+        return label
+          ? `${label}${row.dirtySinceCurrentVersion ? ` (${messages.changedSuffix ?? DEFAULT_INDEX_DISPLAY_MESSAGES.changedSuffix})` : ""}`
+          : null;
+      }
+      return row.dirtySinceCurrentVersion ? messages.unversionedChanges : null;
+    case "classification":
+      return row.classificationId
+        ? (lookups.classificationLabels[row.classificationId] ?? null)
+        : null;
+    case "reviewDueAt":
+      return indexDateValue(row.reviewDueAt, regionalPreferences);
+    case "validUntil":
+      return indexDateValue(row.validUntil, regionalPreferences);
+    default:
+      return null;
+  }
+}
+
+export function documentMetadataGroupLabel(
+  groupId: string,
+  metadataKey: CanonicalMetadataKey,
+  lookups: DocumentMetadataIndexLookups,
+  messages = DEFAULT_INDEX_DISPLAY_MESSAGES,
+  regionalPreferences?: RegionalFormatPreferences,
+) {
+  if (!groupId) return messages.notSet;
+  switch (metadataKey) {
+    case "status":
+      return lookups.statusLabels[groupId] ?? messages.loading;
+    case "documentType":
+      return lookups.documentTypeLabels[groupId] ?? messages.loading;
+    case "version":
+      return lookups.versionLabels[groupId] ?? messages.version;
+    case "classification":
+      return lookups.classificationLabels[groupId] ?? messages.loading;
+    case "reviewDueAt":
+    case "validUntil":
+      return indexDateValue(groupId, regionalPreferences) ?? messages.notSet;
+    default:
+      return messages.notSet;
+  }
 }

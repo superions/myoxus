@@ -1,1 +1,10 @@
-export * from "@virgultum/inline-latex";
+export {
+  latexDeltaToMarkdownAdapterMatcher,
+  markdownInlineMathToDeltaMatcher,
+  latexDeltaMarkdownAdapterMatch,
+  insertInlineLatex,
+  LatexInlineSpecExtension,
+  LatexEditorUnitSpecExtension,
+  LatexExtension,
+  openEquationEditor,
+} from "@virgultum/content/inlines";

@@ -11,8 +11,8 @@ use bytes::Bytes;
 use futures_util::{Stream, StreamExt};
 use myoxus_application::copilot::provider::{
   EmbeddingPurpose, EmbeddingResponse, EmbeddingUsage, LlmFinishReason, LlmMessage, LlmModelInfo, LlmProvider,
-  LlmProviderError, LlmRequest, LlmResponse, LlmRole, LlmStreamEvent, LlmTokenStream, LlmToolCall, LlmToolDefinition,
-  LlmUsage,
+  LlmProviderError, LlmRequest, LlmResponse, LlmRole, LlmStreamEvent, LlmTokenStream, LlmToolCall, LlmToolCallDelta,
+  LlmToolDefinition, LlmUsage,
 };
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -179,6 +179,8 @@ struct ChatMessage {
   tool_call_id: Option<String>,
   #[serde(skip_serializing_if = "Option::is_none")]
   tool_calls: Option<Vec<ChatToolCallRequest>>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  reasoning_content: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -337,18 +339,16 @@ struct StreamDelta {
   tool_calls: Option<Vec<StreamToolCallDelta>>,
 }
 
-/// Tool call delta in streaming mode (for future use).
+/// OpenAI-compatible tool fragments; application owns assembly and execution.
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)]
 struct StreamToolCallDelta {
   index: Option<u32>,
   id: Option<String>,
   function: Option<StreamToolCallFunctionDelta>,
 }
 
-/// Function call delta in streaming mode (for future use).
+/// A function name or argument string can span several wire events.
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)]
 struct StreamToolCallFunctionDelta {
   name: Option<String>,
   arguments: Option<String>,
@@ -471,6 +471,19 @@ where
           if let Some(content) = choice.delta.content && !content.is_empty() {
             yield Ok(LlmStreamEvent::Text(content));
           }
+          for call in choice.delta.tool_calls.unwrap_or_default() {
+            let Some(index) = call.index else {
+              yield Err(LlmProviderError::Upstream("provider tool fragment has no index".into()));
+              return;
+            };
+            let function = call.function;
+            yield Ok(LlmStreamEvent::ToolCall(LlmToolCallDelta {
+              index,
+              id: call.id,
+              name: function.as_ref().and_then(|function| function.name.clone()),
+              arguments: function.and_then(|function| function.arguments).unwrap_or_default(),
+            }));
+          }
           if let Some(reason) = choice.finish_reason {
             match LlmFinishReason::parse(&reason) {
               Ok(reason) => finish_reason = reason,
@@ -558,7 +571,20 @@ fn map_messages(messages: &[LlmMessage]) -> Vec<ChatMessage> {
       },
       name: m.name.clone(),
       tool_call_id: m.tool_call_id.clone(),
-      tool_calls: None,
+      tool_calls: (!m.tool_calls.is_empty()).then(|| {
+        m.tool_calls
+          .iter()
+          .map(|call| ChatToolCallRequest {
+            id: call.id.clone(),
+            call_type: "function".into(),
+            function: ChatToolCallFunction {
+              name: call.name.clone(),
+              arguments: call.arguments.to_string(),
+            },
+          })
+          .collect()
+      }),
+      reasoning_content: m.reasoning.clone(),
     })
     .collect()
 }
@@ -604,6 +630,12 @@ impl LlmProvider for OpenAiProvider {
       .get(model)
       .is_some_and(|options| options.supports_vision)
   }
+  fn supports_tools(&self, model: &str) -> bool {
+    self
+      .model_options
+      .get(model)
+      .is_some_and(|options| options.supports_tools)
+  }
   fn provider_id(&self) -> &str {
     &self.id
   }
@@ -622,7 +654,7 @@ impl LlmProvider for OpenAiProvider {
           id: id.clone(),
           provider: self.id.clone(),
           display_name: Some(id.clone()),
-          supports_tools: true,
+          supports_tools: self.supports_tools(id),
         })
         .collect(),
     )
@@ -641,6 +673,11 @@ impl LlmProvider for OpenAiProvider {
       ));
     }
 
+    if !request.tools.is_empty() && !self.supports_tools(&model) {
+      return Err(LlmProviderError::InvalidRequest(
+        "selected model does not support tools".into(),
+      ));
+    }
     let start = std::time::Instant::now();
 
     let body = ChatCompletionRequest {
@@ -821,6 +858,11 @@ impl LlmProvider for OpenAiProvider {
       ));
     }
 
+    if !request.tools.is_empty() && !self.supports_tools(&model) {
+      return Err(LlmProviderError::InvalidRequest(
+        "selected model does not support tools".into(),
+      ));
+    }
     let start = std::time::Instant::now();
 
     let body = ChatCompletionStreamRequest {
@@ -1203,6 +1245,46 @@ mod tests {
     assert_eq!(role_to_string(&LlmRole::Tool), "tool");
   }
 
+  #[tokio::test]
+  async fn streamed_tool_fragments_preserve_opaque_ids_and_complete_arguments() {
+    use myoxus_application::copilot::provider::LlmToolCallBuffer;
+    let fragments = [
+      serde_json::json!({"index":0,"id":"provider:opaque-7/α","function":{"name":"read_doc","arguments":"{\"external_id\":\"qa-"}}),
+      serde_json::json!({"index":0,"function":{"arguments":"🦔\"}"}}),
+    ];
+    let mut wire = String::new();
+    for fragment in fragments {
+      wire.push_str(&format!(
+        "data: {}\n\n",
+        serde_json::json!({"choices":[{"delta":{"tool_calls":[fragment]}}]})
+      ));
+    }
+    wire.push_str("data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"tool_calls\"}]}\n\ndata: [DONE]\n\n");
+    let chunks = wire
+      .as_bytes()
+      .chunks(7)
+      .map(|chunk| Ok(Bytes::copy_from_slice(chunk)))
+      .collect::<Vec<_>>();
+    let events = decode_openai_stream(futures_util::stream::iter(chunks))
+      .collect::<Vec<_>>()
+      .await
+      .into_iter()
+      .collect::<Result<Vec<_>, _>>()
+      .unwrap();
+    assert_eq!(events.last(), Some(&LlmStreamEvent::Finish(LlmFinishReason::ToolCalls)));
+    let mut calls = LlmToolCallBuffer::new(1024);
+    for event in events {
+      if let LlmStreamEvent::ToolCall(delta) = event {
+        calls.push(delta).unwrap();
+      }
+    }
+    let calls = calls.finish().unwrap();
+    assert_eq!(calls.len(), 1);
+    assert_eq!(calls[0].id, "provider:opaque-7/α");
+    assert_eq!(calls[0].name, "read_doc");
+    assert_eq!(calls[0].arguments, serde_json::json!({"external_id":"qa-🦔"}));
+  }
+
   #[test]
   fn map_messages_preserves_order_and_fields() {
     let msgs = vec![
@@ -1210,6 +1292,8 @@ mod tests {
         role: LlmRole::System,
         content: "You are helpful".into(),
         name: None,
+        tool_calls: Vec::new(),
+        reasoning: None,
         tool_call_id: None,
       },
       LlmMessage {
@@ -1222,17 +1306,33 @@ mod tests {
           },
         ]),
         name: Some("alice".to_string()),
+        tool_calls: Vec::new(),
+        reasoning: None,
         tool_call_id: None,
+      },
+      LlmMessage {
+        role: LlmRole::Assistant,
+        content: "".into(),
+        name: None,
+        tool_call_id: None,
+        reasoning: Some("provider reasoning".into()),
+        tool_calls: vec![LlmToolCall {
+          id: "call-1".into(),
+          name: "read_doc".into(),
+          arguments: serde_json::json!({"external_id":"qa"}),
+        }],
       },
       LlmMessage {
         role: LlmRole::Tool,
         content: r#"{"result":42}"#.into(),
         name: Some("calculator".to_string()),
+        tool_calls: Vec::new(),
+        reasoning: None,
         tool_call_id: Some("call-1".to_string()),
       },
     ];
     let mapped = map_messages(&msgs);
-    assert_eq!(mapped.len(), 3);
+    assert_eq!(mapped.len(), 4);
     assert_eq!(mapped[0].role, "system");
     assert_eq!(serde_json::to_value(&mapped[0]).unwrap()["content"], "You are helpful");
     assert_eq!(
@@ -1243,7 +1343,14 @@ mod tests {
       ])
     );
     assert_eq!(mapped[1].name.as_deref(), Some("alice"));
-    assert_eq!(mapped[2].tool_call_id.as_deref(), Some("call-1"));
+    let assistant = serde_json::to_value(&mapped[2]).unwrap();
+    assert_eq!(assistant["tool_calls"][0]["id"], "call-1");
+    assert_eq!(
+      assistant["tool_calls"][0]["function"]["arguments"],
+      r#"{"external_id":"qa"}"#
+    );
+    assert_eq!(assistant["reasoning_content"], "provider reasoning");
+    assert_eq!(mapped[3].tool_call_id.as_deref(), Some("call-1"));
   }
 
   #[test]

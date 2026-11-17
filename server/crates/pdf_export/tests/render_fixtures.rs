@@ -129,6 +129,8 @@ fn paragraph(value: &str) -> Block {
   Block::Paragraph {
     content: vec![text(value)],
     children: vec![],
+    alignment: None,
+    eyebrow: false,
   }
 }
 
@@ -152,6 +154,7 @@ fn test_export_options() -> ExportOptions {
       body: Some("Inter".into()),
       mono: Some("JetBrains Mono".into()),
       symbol: Some("JetBrains Mono".into()),
+      eyebrow: None,
     },
     ..ExportOptions::default()
   }
@@ -172,6 +175,7 @@ fn stuttgart_typography() -> ThemeTypographySelection {
     body: Some(style(400, 14.0, 1.5, 0.0)),
     mono: Some(style(400, 13.0, 1.55, 0.0)),
     symbol: Some(style(400, 13.0, 1.55, 0.0)),
+    eyebrow: None,
   }
 }
 
@@ -227,10 +231,14 @@ fn inv_render_footnote_inline() {
       text(" attached to it."),
     ],
     children: vec![],
+    alignment: None,
+    eyebrow: false,
   }];
   let without_footnote = vec![Block::Paragraph {
     content: vec![text("This sentence has a footnote"), text(" attached to it.")],
     children: vec![],
+    alignment: None,
+    eyebrow: false,
   }];
 
   let doc_with = document_with_blocks("Footnote Doc", with_footnote);

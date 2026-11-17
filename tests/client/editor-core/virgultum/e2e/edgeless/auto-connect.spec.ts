@@ -8,6 +8,7 @@ import {
   getNoteBoundBoxInEdgeless,
   getSelectedBound,
   selectNoteInEdgeless,
+  setEdgelessTool,
   zoomResetByKeyboard,
 } from "../utils/actions/edgeless.js";
 import { assertSelectedBound } from "../utils/asserts.js";
@@ -51,15 +52,18 @@ test.describe("auto-connect", () => {
 
     await selectNoteInEdgeless(page, id1);
     const bound = await getSelectedBound(page, 0);
-    await page.locator(".page-visible-index-label").nth(0).click();
+    await page
+      .getByRole("button", { name: /^Page mode index/ })
+      .nth(0)
+      .click();
     await assertSelectedBound(page, bound);
 
-    await page.locator(".edgeless-auto-connect-next-button").click();
+    await page.getByRole("button", { name: "Next", exact: true }).click();
     bound[0] += 100;
     bound[1] += 200;
     await assertSelectedBound(page, bound);
 
-    await page.locator(".edgeless-auto-connect-next-button").click();
+    await page.getByRole("button", { name: "Next", exact: true }).click();
     bound[0] += 100;
     bound[1] += 200;
     await assertSelectedBound(page, bound);
@@ -79,12 +83,17 @@ test.describe("auto-connect", () => {
     );
 
     await selectNoteInEdgeless(page, id2);
-    const edgelessOnlyIndexLabel = page.locator(".edgeless-only-index-label");
+    const edgelessOnlyIndexLabel = page.getByRole("img", {
+      name: "Hidden on page",
+      exact: true,
+    });
     await expect(edgelessOnlyIndexLabel).toBeVisible();
     await expect(edgelessOnlyIndexLabel).toHaveCount(1);
 
     await selectNoteInEdgeless(page, id1);
-    const pageVisibleIndexLabel = page.locator(".page-visible-index-label");
+    const pageVisibleIndexLabel = page.getByRole("button", {
+      name: /^Page mode index/,
+    });
     await expect(pageVisibleIndexLabel).toBeVisible();
     await expect(pageVisibleIndexLabel).toHaveCount(1);
   });
@@ -101,13 +110,15 @@ test.describe("auto-connect", () => {
       NoteDisplayMode.DocAndEdgeless,
     );
 
-    const pageVisibleIndexLabel = page.locator(".page-visible-index-label");
+    const pageVisibleIndexLabel = page.getByRole("button", {
+      name: /^Page mode index/,
+    });
     await expect(pageVisibleIndexLabel).toBeVisible();
     await expect(pageVisibleIndexLabel).toHaveCount(1);
 
     const bound = await getNoteBoundBoxInEdgeless(page, id1);
-    // Close the display-mode popover before starting the actual Note gesture.
-    await page.mouse.click(900, 800);
+    // Return to Select through its native control before the Note gesture.
+    await setEdgelessTool(page, "default");
     await selectNoteInEdgeless(page, id1);
     await expect(pageVisibleIndexLabel).toBeVisible();
     await page.mouse.move(
@@ -145,7 +156,10 @@ test.describe("auto-connect", () => {
     );
 
     await selectNoteInEdgeless(page, id2);
-    const edgelessOnlyIndexLabel = page.locator(".edgeless-only-index-label");
+    const edgelessOnlyIndexLabel = page.getByRole("img", {
+      name: "Hidden on page",
+      exact: true,
+    });
     await expect(edgelessOnlyIndexLabel).toBeVisible();
 
     // check initial index label position

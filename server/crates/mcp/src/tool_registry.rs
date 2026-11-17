@@ -601,15 +601,8 @@ fn raw_tool_definitions() -> Value {
       {
         "name": "folder_tree",
         "description": "Returns the ordered workspace folder tree and permission-filtered folder entries in one compact call. Document entries use workspace-local external IDs.",
-        "inputSchema": {
-          "type": "object",
-          "required": ["workspace_id"],
-          "additionalProperties": false,
-          "properties": {
-            "workspace_id": { "type": "string", "format": "uuid" },
-            "max_depth": { "type": "integer", "minimum": 1, "maximum": 32, "default": 32 }
-          }
-        }
+        "inputSchema": rmcp::handler::server::common::schema_for_input::<crate::tools::FolderTreeRequest>()
+          .expect("Folder tree input is an object").as_ref()
       },
       {
         "name": "folder_list",
@@ -1523,29 +1516,14 @@ fn document_template_tool_definitions() -> [Value; 6] {
     json!({
       "name": "document_template_list",
       "description": "Lists readable user-visible document templates from canonical workspace documents. Bodies remain available only through read_doc.",
-      "inputSchema": {
-        "type": "object",
-        "required": ["workspace_id"],
-        "additionalProperties": false,
-        "properties": {
-          "workspace_id": { "type": "string", "format": "uuid" },
-          "offset": { "type": "integer", "minimum": 0, "default": 0 },
-          "limit": { "type": "integer", "minimum": 1, "maximum": 200, "default": 50 }
-        }
-      }
+      "inputSchema": rmcp::handler::server::common::schema_for_input::<crate::tools::DocumentTemplateListRequest>()
+        .expect("Document template list input is an object").as_ref()
     }),
     json!({
       "name": "document_template_get",
       "description": "Gets readable metadata and required variable names for one user-visible document template without returning its body.",
-      "inputSchema": {
-        "type": "object",
-        "required": ["workspace_id", "external_id"],
-        "additionalProperties": false,
-        "properties": {
-          "workspace_id": { "type": "string", "format": "uuid" },
-          "external_id": { "type": "string", "minLength": 1 }
-        }
-      }
+      "inputSchema": rmcp::handler::server::common::schema_for_input::<crate::tools::DocumentTemplateGetRequest>()
+        .expect("Document template get input is an object").as_ref()
     }),
     json!({
       "name": "document_template_create",
@@ -1798,19 +1776,8 @@ fn folder_workflow_tool_definitions() -> Vec<Value> {
     json!({
       "name": "folder_path_ensure",
       "description": "Resolves an exact workspace folder path and creates only its missing suffix. Duplicate sibling names fail with candidate folder IDs.",
-      "inputSchema": {
-        "type": "object",
-        "required": ["workspace_id", "path", "idempotency_key"],
-        "additionalProperties": false,
-        "properties": {
-          "workspace_id": { "type": "string", "format": "uuid" },
-          "path": {
-            "type": "array", "minItems": 1,
-            "items": { "type": "string", "minLength": 1, "maxLength": 256 }
-          },
-          "idempotency_key": { "type": "string", "minLength": 1, "maxLength": 160 }
-        }
-      }
+      "inputSchema": rmcp::handler::server::common::schema_for_input::<crate::tools::FolderPathEnsureRequest>()
+        .expect("Folder path input is an object").as_ref()
     }),
     json!({
       "name": "folder_entry_place",
@@ -1843,43 +1810,20 @@ fn workspace_tag_read_tool_definitions() -> Vec<Value> {
     json!({
       "name": "workspace_tag_list",
       "description": "Lists workspace Labels (API name: Tags) from the canonical SQL catalog in stable server order. Follow nextOffset for every page; active Tags are returned unless include_archived is true. Use returned canonical UUIDs for document_tags_set, never names or legacy Yjs IDs. Read document_tags_get before editing an assignment so its existing order and archived references can be retained. Create a missing Label explicitly with workspace_tag_create; set never creates Tags.",
-      "inputSchema": {
-        "type": "object",
-        "required": ["workspace_id"],
-        "additionalProperties": false,
-        "properties": {
-          "workspace_id": { "type": "string", "format": "uuid" },
-          "include_archived": { "type": "boolean", "default": false },
-          "offset": { "type": "integer", "minimum": 0, "default": 0 },
-          "limit": { "type": "integer", "minimum": 1, "maximum": 200, "default": 50 }
-        }
-      }
+      "inputSchema": rmcp::handler::server::common::schema_for_input::<crate::tools::WorkspaceTagListRequest>()
+        .expect("Workspace Tag list input is an object").as_ref()
     }),
     json!({
       "name": "workspace_tag_get",
       "description": "Returns one workspace Tag by its canonical Tag ID.",
-      "inputSchema": {
-        "type": "object",
-        "required": ["workspace_id", "tag_id"],
-        "additionalProperties": false,
-        "properties": {
-          "workspace_id": { "type": "string", "format": "uuid" },
-          "tag_id": { "type": "string", "format": "uuid" }
-        }
-      }
+      "inputSchema": rmcp::handler::server::common::schema_for_input::<crate::tools::WorkspaceTagGetRequest>()
+        .expect("Workspace Tag get input is an object").as_ref()
     }),
     json!({
       "name": "document_tags_get",
       "description": "Reads the complete ordered canonical Labels (Tags) assigned to a document. external_id is the workspace-local external document key, not an internal document UUID. The returned tags contain canonical Tag UUIDs and include retained archived Tags; [] confirms no assignment. Read this before editing, use workspace_tag_list or workspace_tag_create for additional active IDs, then send the entire desired ordered list to document_tags_set. Missing or forbidden documents fail rather than returning an empty assignment.",
-      "inputSchema": {
-        "type": "object",
-        "required": ["workspace_id", "external_id"],
-        "additionalProperties": false,
-        "properties": {
-          "workspace_id": { "type": "string", "format": "uuid" },
-          "external_id": { "type": "string", "minLength": 1, "description": "External document key within workspace_id; never an internal document UUID." }
-        }
-      }
+      "inputSchema": rmcp::handler::server::common::schema_for_input::<crate::tools::DocumentTagsGetRequest>()
+        .expect("Document Tags get input is an object").as_ref()
     }),
   ]
 }
@@ -1921,12 +1865,14 @@ fn workspace_tag_write_tool_definitions() -> Vec<Value> {
     json!({
       "name": "workspace_tag_archive",
       "description": "Archives one workspace Tag without removing historical assignments.",
-      "inputSchema": tag_lifecycle_write_schema()
+      "inputSchema": rmcp::handler::server::common::schema_for_input::<crate::tools::WorkspaceTagLifecycleRequest>()
+        .expect("Workspace Tag lifecycle input is an object").as_ref()
     }),
     json!({
       "name": "workspace_tag_restore",
       "description": "Restores one archived workspace Tag when its server-owned slug is available.",
-      "inputSchema": tag_lifecycle_write_schema()
+      "inputSchema": rmcp::handler::server::common::schema_for_input::<crate::tools::WorkspaceTagLifecycleRequest>()
+        .expect("Workspace Tag lifecycle input is an object").as_ref()
     }),
     json!({
       "name": "workspace_tag_delete_permanently",
@@ -1983,18 +1929,6 @@ fn tag_field_write_schema(field: &str, field_schema: Value) -> Value {
     "required": ["workspace_id", "tag_id", field, "idempotency_key"],
     "additionalProperties": false,
     "properties": properties
-  })
-}
-
-fn tag_lifecycle_write_schema() -> Value {
-  json!({
-    "type": "object", "required": ["workspace_id", "tag_id", "idempotency_key"],
-    "additionalProperties": false,
-    "properties": {
-      "workspace_id": { "type": "string", "format": "uuid" },
-      "tag_id": { "type": "string", "format": "uuid" },
-      "idempotency_key": { "type": "string", "minLength": 1, "maxLength": 160 }
-    }
   })
 }
 
@@ -2120,6 +2054,7 @@ pub struct ToolDescriptor {
   pub access: ToolAccess,
   pub annotations: ToolAnnotations,
   pub(crate) handler: crate::tools::ToolHandler,
+  pub(crate) native_read: Option<crate::tools::NativeReadHandler>,
 }
 
 impl ToolDescriptor {
@@ -4735,6 +4670,16 @@ fn build_registry() -> Vec<ToolDescriptor> {
       let mut input_schema = object
         .remove("inputSchema")
         .expect("MCP tool definition requires an inputSchema");
+      // MCP defaults to Draft 2020-12; omit its redundant declaration to preserve
+      // the discovery contract. Keep explicitly selected other dialects.
+      if input_schema.get("$schema").and_then(Value::as_str)
+        == Some("https://json-schema.org/draft/2020-12/schema")
+      {
+        input_schema
+          .as_object_mut()
+          .expect("MCP input schema is an object")
+          .remove("$schema");
+      }
       if matches!(name.as_str(), "create_page" | "document_import" | "update_doc" | "doc_patch") {
         input_schema["properties"]["strict_loss"] = json!({
           "type": "boolean", "default": false,
@@ -4773,7 +4718,8 @@ fn build_registry() -> Vec<ToolDescriptor> {
         output_schema["properties"]["normalizationDiagnosticsTruncated"] = json!({"type": "boolean"});
       }
       ToolDescriptor {
-        handler,
+        handler: handler.key,
+        native_read: handler.native_read,
         title: title(&name),
         name,
         description: {

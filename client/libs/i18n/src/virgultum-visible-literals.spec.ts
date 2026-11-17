@@ -12,17 +12,17 @@ import { describe, expect, test } from "vitest";
 
 const repoRoot = fileURLToPath(new URL("../../../..", import.meta.url));
 const migratedFiles = [
-  "virgultum/editor/blocks/root/src/configs/toolbar.ts",
-  "virgultum/editor/blocks/note/src/configs/toolbar.ts",
-  "virgultum/editor/blocks/callout/src/configs/toolbar.ts",
-  "virgultum/editor/widgets/keyboard-toolbar/src/config.ts",
-  "virgultum/editor/blocks/attachment/src/configs/toolbar.ts",
-  "virgultum/editor/blocks/code/src/code-toolbar/controller.ts",
-  "virgultum/editor/blocks/embed-doc/src/embed-linked-doc-block/configs/toolbar.ts",
-  "virgultum/editor/blocks/embed-doc/src/embed-synced-doc-block/configs/toolbar.ts",
-  "virgultum/editor/fragments/outline/src/outline-viewer.ts",
+  "virgultum/editor/all/src/blocks/root/configs/toolbar.ts",
+  "virgultum/embeds/src/note/configs/toolbar.ts",
+  "virgultum/content/src/blocks/callout/configs/toolbar.ts",
+  "virgultum/editor/all/src/widgets/keyboard-toolbar/config.ts",
+  "virgultum/embeds/src/attachment/configs/toolbar.ts",
+  "virgultum/content/src/blocks/code/code-toolbar/controller.ts",
+  "virgultum/embeds/src/embed-doc/embed-linked-doc-block/configs/toolbar.ts",
+  "virgultum/embeds/src/embed-doc/embed-synced-doc-block/configs/toolbar.ts",
+  "virgultum/editor/all/src/fragments/outline/outline-viewer.ts",
   "client/libs/core/src/editor/view-extensions/editor-view/editor-chrome/reference-editor.tsx",
-  "virgultum/editor/blocks/frame/src/present/present-button.ts",
+  "virgultum/canvas/src/blocks/frame/present/present-button.ts",
 ] as const;
 
 const sourcePropertyPattern =
@@ -31,7 +31,7 @@ const textCallPattern =
   /\b(?:text|resolveLegacyEditorText)\(\s*["'`]([^"'`]+)["'`]/g;
 
 const legacyEditorTextSource = readFileSync(
-  join(repoRoot, "virgultum/editor/shared/src/services/legacy-editor-text.ts"),
+  join(repoRoot, "virgultum/core/src/services/legacy-editor-text.ts"),
   "utf8",
 );
 const legacyEditorTextKeys = new Set(
@@ -60,7 +60,7 @@ function extractVisibleLiterals(
     // labels/tooltips in the same file must still be rejected.
     if (
       match[1] === "name" &&
-      file.endsWith("widgets/keyboard-toolbar/src/config.ts")
+      file.endsWith("widgets/keyboard-toolbar/config.ts")
     )
       continue;
     findings.push({ file, literal: match[2], role: "property" });
@@ -117,7 +117,7 @@ describe("INV-VIRGULTUM-I18N-3: migrated editor chrome owns visible copy", () =>
     expect(
       auditVisibleLiterals(
         'label: "Copy"',
-        "virgultum/editor/widgets/keyboard-toolbar/src/config.ts",
+        "virgultum/editor/all/src/widgets/keyboard-toolbar/config.ts",
       ),
     ).toHaveLength(1);
   });

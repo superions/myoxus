@@ -470,6 +470,7 @@ fn build_router_with_options(
       overrides: Arc::clone(&state.config_overrides),
     }),
   };
+  let copilot_tools = Arc::new(mcp_state.tool_state.clone());
   let mcp_sub_router: Router<ApiState> = mcp_router(mcp_state);
 
   // Health, readiness, liveness, and metrics endpoints bypass the full
@@ -617,7 +618,7 @@ fn build_router_with_options(
     )
     .route(
       "/api/copilot/chat/{session_id}/{endpoint}",
-      get(copilot_chat_sse_handler),
+      get(copilot_chat_sse_handler).layer(axum::Extension(copilot_tools)),
     )
     .route("/api/calendar/webhook/google", post(calendar_google_webhook_handler))
     .route("/api/git-sync/webhook/{profile_id}", post(git_sync_webhook_handler))

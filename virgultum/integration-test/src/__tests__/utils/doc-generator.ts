@@ -1,4 +1,4 @@
-import { type Store, Text } from "@virgultum/store";
+import { type Store, Text } from "@virgultum/editor/store";
 
 function addParagraph(doc: Store, noteId: string, content: string) {
   const props = { text: new Text(content) };

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { MERMAID_GFX_TITLE_ROLE } from "../runtime/gfx-element-roles.js";
 import { erCommentMarkers } from "./annotation-projection.js";
-import { Bound } from "@virgultum/global/gfx";
+import { Bound } from "@virgultum/core/primitives/gfx";
 import type { MermaidFamilyHostAdapter } from "../runtime/contracts.js";
 import type {
   MermaidHostProjectionContext,
@@ -530,7 +530,7 @@ export const mermaidErHostAdapter: MermaidFamilyHostAdapter = {
     }),
 };
 
-import type { ToolbarContext } from "@virgultum/shared/services";
+import type { ToolbarContext } from "@virgultum/core/services";
 import {
   resolveMermaidEdgelessSelection,
   runMermaidEdgelessMutation,

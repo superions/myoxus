@@ -1,1 +1,1 @@
-export * from "@virgultum/block-surface/view";
+export * from "@virgultum/canvas-runtime/view";

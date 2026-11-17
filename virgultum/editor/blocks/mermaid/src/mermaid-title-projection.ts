@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import type { MermaidBlockModel } from "@virgultum/model";
+import type { MermaidBlockModel } from "@virgultum/core/models";
 
 import { detectMermaidDiagramType } from "./engine/diagram-types.js";
 import { resolveMermaidDiagramTitle } from "./engine/diagram-title.js";

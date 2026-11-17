@@ -1,1 +1,1 @@
-export * from "@virgultum/block-table/store";
+export { TableStoreExtension } from "@virgultum/content/store";

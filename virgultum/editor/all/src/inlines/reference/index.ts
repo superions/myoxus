@@ -1,1 +1,17 @@
-export * from "@virgultum/inline-reference";
+export {
+  referenceDeltaToHtmlAdapterMatcher,
+  referenceDeltaToMarkdownAdapterMatcher,
+  referenceDeltaMarkdownAdapterMatch,
+  ReferenceInlineSpecExtension,
+  type ReferenceNodeConfig,
+  ReferenceNodeConfigExtension,
+  ReferenceNodeConfigProvider,
+  MyoxusReference,
+  type DocLinkClickedEvent,
+  type RefNodeSlots,
+  RefNodeSlotsProvider,
+  RefNodeSlotsExtension,
+  openReferenceEditor,
+  referenceNodeToolbar,
+  insertLinkedNode,
+} from "@virgultum/content/inlines";

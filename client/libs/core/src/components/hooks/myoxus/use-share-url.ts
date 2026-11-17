@@ -24,6 +24,7 @@ export type UseSharingUrl = {
   workspaceId: string;
   pageId: string;
   mode?: DocMode;
+  blockSelection?: "section" | "subtree";
   blockIds?: string[];
   elementIds?: string[];
   xywh?: SerializedXYWH; // not needed currently
@@ -39,13 +40,20 @@ export const generateUrl = ({
   workspaceId,
   pageId,
   blockIds,
+  blockSelection,
   elementIds,
   mode,
   xywh, // not needed currently
 }: UseSharingUrl & { baseUrl: string }) => {
   try {
     const url = new URL(`/workspace/${workspaceId}/${pageId}`, baseUrl);
-    const search = toDocSearchParams({ mode, blockIds, elementIds, xywh });
+    const search = toDocSearchParams({
+      mode,
+      blockIds,
+      blockSelection,
+      elementIds,
+      xywh,
+    });
     if (search?.size) url.search = search.toString();
     return url.toString();
   } catch (err) {

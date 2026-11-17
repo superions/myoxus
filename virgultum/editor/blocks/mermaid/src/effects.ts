@@ -1,4 +1,3 @@
-import { EdgelessMermaidToolButton } from "./edgeless-toolbar/index.js";
 import { MermaidBlockComponent } from "./mermaid-block.js";
 import { MermaidEdgelessBlockComponent } from "./presentation/mermaid-edgeless-block.js";
 import {
@@ -16,22 +15,10 @@ export function effects() {
       MermaidEdgelessBlockComponent,
     );
   }
-  if (!customElements.get("edgeless-mermaid-tool-button")) {
-    customElements.define(
-      "edgeless-mermaid-tool-button",
-      EdgelessMermaidToolButton,
-    );
-  }
   if (!customElements.get(MERMAID_PAGE_DRAGGING_AREA_WIDGET)) {
     customElements.define(
       MERMAID_PAGE_DRAGGING_AREA_WIDGET,
       MermaidPageDraggingAreaWidget,
     );
-  }
-}
-
-declare global {
-  interface HTMLElementTagNameMap {
-    "edgeless-mermaid-tool-button": EdgelessMermaidToolButton;
   }
 }

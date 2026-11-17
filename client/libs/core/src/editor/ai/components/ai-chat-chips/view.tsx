@@ -12,8 +12,10 @@ import {
   ColorDot,
   Group,
   IconButton,
+  Image,
   MyoxusLoader,
   RemovableBadge,
+  Scrollable,
   Tooltip,
 } from "@myoxus/ui-facade";
 import { isValidElement, type ReactNode } from "react";
@@ -142,25 +144,47 @@ export function ChatChipsView({
 }
 
 export function ChatImagePreviewView({
-  preview,
-  name,
+  images,
   onRemove,
+  onError,
 }: {
-  preview: ReactNode;
-  name: string;
-  onRemove: () => void;
+  images: readonly { file: File; url: string }[];
+  onRemove: (file: File) => void;
+  onError: (file: File, url: string) => void;
 }) {
   const t = useI18n();
   return (
-    <Group wrap="nowrap">
-      {preview}
-      <IconButton
-        aria-label={t["com.myoxus.ai.chat-panel.remove-image"]()}
-        tooltip={t["com.myoxus.common.remove-item"]({ item: name })}
-        onClick={onRemove}
-      >
-        <CloseIcon />
-      </IconButton>
-    </Group>
+    <Scrollable.Root
+      data-myoxus-ui-role="chat-image-previews"
+      // Intrinsic chat hosts must not grow to the thumbnail strip's content width.
+      style={{ contain: "inline-size" }}
+    >
+      <Scrollable.Viewport autosize scrollbars="x" offsetScrollbars="x">
+        <Group wrap="nowrap">
+          {images.map(({ file, url }) => (
+            <Group key={url} wrap="nowrap">
+              <Image
+                src={url}
+                alt={file.name}
+                // Bound input thumbnails while preserving the entire authored image.
+                h="calc(var(--mantine-spacing-2xl) * 2)"
+                w="calc(var(--mantine-spacing-2xl) * 2)"
+                fit="contain"
+                onError={() => onError(file, url)}
+              />
+              <IconButton
+                aria-label={t["com.myoxus.ai.chat-panel.remove-image"]()}
+                tooltip={t["com.myoxus.common.remove-item"]({
+                  item: file.name,
+                })}
+                onClick={() => onRemove(file)}
+              >
+                <CloseIcon />
+              </IconButton>
+            </Group>
+          ))}
+        </Group>
+      </Scrollable.Viewport>
+    </Scrollable.Root>
   );
 }

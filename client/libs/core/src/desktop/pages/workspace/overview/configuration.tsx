@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import { OverviewRegisterConfiguration } from "./register-configuration";
+
 import type { FilterParams } from "@myoxus/core/modules/collection-rules";
-import { DisplayProperties } from "@myoxus/core/components/explorer/display-menu/properties";
-import {
-  OrderByList,
-  OrderByName,
-} from "@myoxus/core/components/explorer/display-menu/order";
 import { WorkspaceDialogService } from "@myoxus/core/modules/dialogs";
 import { DocDisplayMetaService } from "@myoxus/core/modules/doc-display-meta";
 import { OrganizeService } from "@myoxus/core/modules/organize";
@@ -30,8 +27,6 @@ import {
   Group,
   Loading,
   Modal,
-  Menu,
-  MenuPanel,
   MyoxusMultiSelect,
   MyoxusText,
   MyoxusTitle,
@@ -51,7 +46,7 @@ import useSWR from "swr";
 import {
   defaultOverviewRegisterPresentation,
   overviewPresentationKey,
-  overviewRegisterProperties,
+  overviewPresentationIncomplete,
   type OverviewRegisterPresentation,
 } from "./presentation";
 
@@ -307,12 +302,22 @@ export function WorkspaceOverviewConfiguration({
     }
   };
   const save = async () => {
-    if (!server || !basis || !dirty || busy.current || error === "conflict")
+    if (
+      overviewPresentationIncomplete(effectivePresentation) ||
+      !server ||
+      !basis ||
+      !dirty ||
+      busy.current ||
+      error === "conflict"
+    )
       return;
     busy.current = true;
     setSaving(true);
     setError(null);
-    const patch: WorkspaceOverviewSettingsInput = {
+    const patch: Omit<
+      WorkspaceOverviewSettingsInput,
+      "registerPresentation"
+    > & { registerPresentation?: OverviewRegisterPresentation | null } = {
       expectedRevision: basis.revision,
       folderId,
     };
@@ -330,6 +335,7 @@ export function WorkspaceOverviewConfiguration({
       patch.registerPresentation = presentation
         ? {
             displayProperties: presentation.displayProperties,
+            selection: presentation.selection,
             orderBy: {
               type: presentation.orderBy.type,
               key: presentation.orderBy.key,
@@ -475,62 +481,14 @@ export function WorkspaceOverviewConfiguration({
                   ]()}
                 </Switch>
               ) : null}
-              <Group>
-                <Menu
-                  items={
-                    <MenuPanel panelWidth="display">
-                      <DisplayProperties
-                        displayPreference={effectivePresentation}
-                        systemPropertyKeys={overviewRegisterProperties}
-                        requiredSystemProperties={["title"]}
-                        onDisplayPreferenceChange={(next) =>
-                          !busy.current &&
-                          !presentationDisabled &&
-                          setPresentation({
-                            ...effectivePresentation,
-                            displayProperties:
-                              next.displayProperties ??
-                              effectivePresentation.displayProperties,
-                          })
-                        }
-                      />
-                    </MenuPanel>
-                  }
-                >
-                  <Button variant="secondary" disabled={presentationDisabled}>
-                    {t["com.myoxus.all-docs.display.properties"]()}
-                  </Button>
-                </Menu>
-                <Menu
-                  title={t["com.myoxus.explorer.display-menu.ordering"]()}
-                  items={
-                    <MenuPanel panelWidth="display">
-                      <OrderByList
-                        orderBy={effectivePresentation.orderBy}
-                        systemPropertyKeys={overviewRegisterProperties}
-                        onChange={(next) =>
-                          !busy.current &&
-                          !presentationDisabled &&
-                          setPresentation({
-                            ...effectivePresentation,
-                            orderBy: {
-                              type: next.type,
-                              key: next.key,
-                              desc: next.desc ?? false,
-                            },
-                          })
-                        }
-                      />
-                    </MenuPanel>
-                  }
-                >
-                  <Button variant="secondary" disabled={presentationDisabled}>
-                    {t["com.myoxus.explorer.display-menu.ordering"]()}
-                    {" · "}
-                    <OrderByName orderBy={effectivePresentation.orderBy} />
-                  </Button>
-                </Menu>
-              </Group>
+              <OverviewRegisterConfiguration
+                value={effectivePresentation}
+                disabled={presentationDisabled}
+                onChange={(next) => {
+                  if (!busy.current && !presentationDisabled)
+                    setPresentation(next);
+                }}
+              />
             </Stack>
             <SettingsNotice>
               {t[
@@ -570,7 +528,12 @@ export function WorkspaceOverviewConfiguration({
               {t["Cancel"]()}
             </Button>
             <Button
-              disabled={!dirty || saving || error === "conflict"}
+              disabled={
+                !dirty ||
+                saving ||
+                error === "conflict" ||
+                overviewPresentationIncomplete(effectivePresentation)
+              }
               onClick={() => void save()}
             >
               {t["Save"]()}

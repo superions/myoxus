@@ -433,6 +433,7 @@ pub async fn pdf_export_download_handler(
     output_blob_id,
     error_class,
     expires_at,
+    render_inputs,
     ..
   } = download.job;
 
@@ -456,6 +457,12 @@ pub async fn pdf_export_download_handler(
       )
       .await
       .is_err()
+  {
+    return (StatusCode::FORBIDDEN, "Forbidden").into_response();
+  }
+  if myoxus_application::doc::embed_output::authorize_render_inputs(&render_inputs, &permission, state.doc(), user_id)
+    .await
+    .is_err()
   {
     return (StatusCode::FORBIDDEN, "Forbidden").into_response();
   }

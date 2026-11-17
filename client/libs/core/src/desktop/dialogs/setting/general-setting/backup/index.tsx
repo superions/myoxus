@@ -10,7 +10,7 @@ import {
 } from "@myoxus/icons/react";
 import { useLiveData, useService } from "@myoxus/infra";
 import track from "@myoxus/track";
-import { formatByteSize } from "@virgultum/global/utils";
+import { formatByteSize } from "@virgultum/core/primitives/utils";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {

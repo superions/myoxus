@@ -434,8 +434,8 @@ export const mermaidBlockHostAdapter: MermaidFamilyHostAdapter = {
 };
 
 import { previewMermaidGfxModel } from "../runtime/gfx-preview.js";
-import type { ToolbarContext } from "@virgultum/shared/services";
-import { Bound } from "@virgultum/global/gfx";
+import type { ToolbarContext } from "@virgultum/core/services";
+import { Bound } from "@virgultum/core/primitives/gfx";
 import {
   resolveMermaidEdgelessSelection,
   resolveMermaidEdgelessOwnerSelection,

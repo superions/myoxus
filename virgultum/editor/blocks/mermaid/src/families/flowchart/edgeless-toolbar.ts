@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import type { MyoxusIconExportName } from "@myoxus/icons/names";
-import type { ToolbarControl } from "@virgultum/shared/services";
+import type { ToolbarControl } from "@virgultum/core/services";
 
 import {
   ActionPlacement,
   editorMessage,
   EditorI18nProvider,
   type ToolbarContext,
-} from "@virgultum/shared/services";
+} from "@virgultum/core/services";
 
 import {
   applyMermaidVisualModelCommand,

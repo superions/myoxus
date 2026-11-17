@@ -129,7 +129,7 @@ function getAttachment(page: Page) {
   };
 
   const getName = () =>
-    attachment.locator(".myoxus-attachment-content-title-text").innerText();
+    attachment.getByTestId("editor-attachment-card-title").innerText();
 
   return {
     // locators
@@ -147,7 +147,10 @@ function getAttachment(page: Page) {
     waitLoading: () => loading.waitFor({ state: "hidden" }),
     getName,
     getSize: () =>
-      attachment.locator(".myoxus-attachment-content-info").innerText(),
+      attachment
+        .getByTestId("editor-attachment-card")
+        .locator('span[title]:not([data-slot="title"])')
+        .innerText(),
 
     turnToEmbed: async () => {
       await expect(switchViewButton).toBeVisible();
@@ -437,7 +440,9 @@ test(`support dragging attachment block directly`, async ({ page }) => {
   });
   await page.mouse.up();
 
-  const rects = page.locator(".myoxus-attachment-container.focused");
+  const rects = page.locator(
+    '[data-testid="editor-attachment-card"][data-selected="true"]',
+  );
   await expect(rects).toHaveCount(1);
   await assertNoteContent(page, [
     paragraph("4", "111"),

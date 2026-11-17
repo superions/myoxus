@@ -1,3 +1,6 @@
+import type { ReactToLit } from "@myoxus/lit-react";
+import { aiWidgetUI } from "../../ai/widgets/native-ui";
+import { decorateEditorEmbeddedUI } from "../editor-view/embedded-ui-root";
 import { toolbarAIEntryConfig } from "@myoxus/core/editor/ai";
 import { AIChatBlockSpec } from "@myoxus/core/editor/ai/blocks";
 import { AITranscriptionBlockSpec } from "@myoxus/core/editor/ai/blocks/ai-chat-block/ai-transcription-block";
@@ -30,6 +33,7 @@ import { EdgelessClipboardAIChatConfig } from "./edgeless-clipboard";
 
 const optionsSchema = z.object({
   enable: z.boolean().optional(),
+  reactToLit: z.custom<ReactToLit>().optional(),
   framework: z.instanceof(FrameworkProvider).optional(),
 });
 
@@ -45,6 +49,13 @@ export class AIViewExtension extends ViewExtensionProvider<AIViewOptions> {
     if (!options?.enable) return;
     const framework = options.framework;
     if (!framework) return;
+
+    if (options.reactToLit) {
+      const render = options.reactToLit;
+      context.register(
+        aiWidgetUI((view) => render(view, true, decorateEditorEmbeddedUI)),
+      );
+    }
 
     context
       .register(AIChatBlockSpec)

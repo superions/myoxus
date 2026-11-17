@@ -1,1 +1,1 @@
-export * from "@virgultum/gfx-pointer/view";
+export { PointerViewExtension } from "@virgultum/canvas/view";

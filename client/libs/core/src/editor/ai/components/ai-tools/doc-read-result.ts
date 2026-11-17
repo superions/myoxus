@@ -1,10 +1,15 @@
+import { createElement } from "react";
+import {
+  ViewIcon as NativeViewIcon,
+  PageIcon as NativePageIcon,
+} from "@myoxus/icons/react";
+import { renderToolCallCard, renderToolResultCard } from "./tool-cards";
 import type { PeekViewService } from "@myoxus/core/modules/peek-view";
-import { PageIcon, ViewIcon } from "@myoxus/icons/lit";
+
 import type { ReactToLit } from "@myoxus/lit-react";
-import type { Signal } from "@preact/signals-core";
-import { WithDisposable } from "@virgultum/global/lit";
-import { ShadowlessElement } from "@virgultum/std";
-import { html, nothing } from "lit";
+import { WithDisposable } from "@virgultum/core/primitives/lit";
+import { ShadowlessElement } from "@virgultum/core/runtime";
+import { nothing } from "lit";
 import { property } from "lit/decorators.js";
 
 interface DocReadToolCall {
@@ -33,19 +38,14 @@ export class DocReadResult extends WithDisposable(ShadowlessElement) {
   accessor data!: DocReadToolCall | DocReadToolResult;
 
   @property({ attribute: false })
-  accessor width: Signal<number | undefined> | undefined;
-
-  @property({ attribute: false })
   accessor peekViewService!: PeekViewService;
 
   renderToolCall() {
     // TODO: get document name by doc_id
-    return html`<tool-call-card
-      .reactToLit=${this.reactToLit}
-      .name=${`Reading document`}
-      .icon=${ViewIcon()}
-      .width=${this.width}
-    ></tool-call-card>`;
+    return renderToolCallCard(this.reactToLit, {
+      name: `Reading document`,
+      icon: createElement(NativeViewIcon),
+    });
   }
 
   renderToolResult() {
@@ -53,15 +53,13 @@ export class DocReadResult extends WithDisposable(ShadowlessElement) {
       return nothing;
     }
     // TODO: better markdown rendering
-    return html`<tool-result-card
-      .reactToLit=${this.reactToLit}
-      .name=${`Read "${this.data.result.title}"`}
-      .icon=${ViewIcon()}
-      .width=${this.width}
-      .results=${[
+    return renderToolResultCard(this.reactToLit, {
+      name: `Read "${this.data.result.title}"`,
+      icon: createElement(NativeViewIcon),
+      results: [
         {
           title: this.data.result.title,
-          icon: PageIcon(),
+          icon: createElement(NativePageIcon),
           content: this.data.result.markdown,
           onClick: () => {
             const docId = (this.data as DocReadToolResult).result.docId;
@@ -76,8 +74,8 @@ export class DocReadResult extends WithDisposable(ShadowlessElement) {
               .catch(console.error);
           },
         },
-      ]}
-    ></tool-result-card>`;
+      ],
+    });
   }
 
   protected override render() {

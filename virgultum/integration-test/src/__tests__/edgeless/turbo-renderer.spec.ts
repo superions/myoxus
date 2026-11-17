@@ -6,7 +6,7 @@ import { noop } from "@virgultum/editor/global/utils";
 import {
   TurboRendererConfigFactory,
   ViewportTurboRendererExtension,
-} from "@virgultum/gfx-turbo-renderer";
+} from "@virgultum/editor/gfx/turbo-renderer";
 import { firstValueFrom } from "rxjs";
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
@@ -22,12 +22,16 @@ const FRAME = 16;
 
 describe("viewport turbo renderer", () => {
   let cleanup: () => void;
+  let painterWorker: Worker;
 
   beforeEach(async () => {
     cleanup = await setupEditor("edgeless", [
       ParagraphLayoutHandlerExtension,
       TurboRendererConfigFactory({
-        painterWorkerEntry: createPainterWorker,
+        painterWorkerEntry: () => {
+          painterWorker = createPainterWorker();
+          return painterWorker;
+        },
       }),
       ViewportTurboRendererExtension,
     ]);
@@ -36,11 +40,38 @@ describe("viewport turbo renderer", () => {
 
   afterEach(() => cleanup?.());
 
-  test("should access turbo renderer instance", async () => {
+  test("should access turbo renderer instance and receive its worker bitmap", async () => {
     const renderer = getRenderer();
     expect(renderer).toBeDefined();
     expect(renderer instanceof ViewportTurboRendererExtension).toBe(true);
     expect(renderer.canvas).toBeInstanceOf(HTMLCanvasElement);
+
+    // The renderer can exist while a view/CSS import crashes its worker.
+    // Exercise the real worker's existing paint protocol, not main-thread state.
+    const painted = new Promise<MessageEvent>((resolve, reject) => {
+      painterWorker.addEventListener("message", resolve, { once: true });
+      painterWorker.addEventListener("error", reject, { once: true });
+    });
+    painterWorker.postMessage({
+      type: "paintLayout",
+      data: {
+        layout: { roots: [], overallRect: { x: 0, y: 0, w: 2, h: 2 } },
+        width: 2,
+        height: 2,
+        dpr: 1,
+        zoom: 1,
+        version: 1,
+      },
+    });
+    const { data } = await painted;
+    try {
+      expect(data.type).toBe("bitmapPainted");
+      expect(data.version).toBe(1);
+      expect(data.bitmap).toBeInstanceOf(ImageBitmap);
+      expect([data.bitmap.width, data.bitmap.height]).toEqual([2, 2]);
+    } finally {
+      data.bitmap?.close();
+    }
   });
 
   test("initial state should be pending", async () => {

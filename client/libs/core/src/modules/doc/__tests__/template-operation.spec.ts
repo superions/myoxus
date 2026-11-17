@@ -23,20 +23,22 @@ import {
   CalloutBlockSchemaExtension,
   ImageBlockSchemaExtension,
   BpmnBlockSchemaExtension,
+  DocumentIndexBlockSchemaExtension,
   type TableBlockModel,
+  type DocumentIndexBlockModel,
   type ListBlockModel,
   type RootBlockModel,
   type ParagraphBlockModel,
-} from "@virgultum/model";
-import { Slice, Text, type Store } from "@virgultum/store";
+} from "@virgultum/core/models";
+import { Slice, Text, type Store } from "@virgultum/core/store";
 import {
   DocumentFieldSchema,
   type MyoxusTextAttributes,
-} from "@virgultum/shared/types";
-import type { BlockStdScope } from "@virgultum/std";
+} from "@virgultum/core/types";
+import type { BlockStdScope } from "@virgultum/core/runtime";
 import type { BuildingBlockTarget } from "../../../editor/virgultum/doc-editor/building-block-target";
 import { commitBuildingBlockSection } from "../../template-doc/services/template-section-insertion";
-import { TestWorkspace } from "@virgultum/store/test";
+import { TestWorkspace } from "@virgultum/core/store/test";
 import { createBlankBpmnSource } from "@myoxus/bpmn-editor/source";
 import { Subscription } from "rxjs";
 import { afterEach, expect, test, vi } from "vitest";
@@ -113,6 +115,7 @@ function setup(workspaceId = "template-operation") {
         CalloutBlockSchemaExtension,
         ImageBlockSchemaExtension,
         BpmnBlockSchemaExtension,
+        DocumentIndexBlockSchemaExtension,
       ],
     });
     stores.set(id, store);
@@ -405,6 +408,18 @@ test("document duplication retains exact BPMN heads and rejects failed content c
       },
     },
   });
+  const directoryDefinition = {
+    title: "Knowledge pages",
+    workspaceId: "explicit-source-workspace",
+    query: {
+      folderId: "existing-folder",
+      subtree: true,
+      tagIds: [],
+      matchAllTags: false,
+      filters: [],
+    },
+  };
+  source.addBlock("myoxus:document-index", directoryDefinition, note.id);
   const targetId = await fixture.service.duplicate("source");
   const target = fixture.stores.get(targetId)!;
   const sourceText = (fixture.paragraph("source") as unknown as { text: Text })
@@ -426,6 +441,13 @@ test("document duplication retains exact BPMN heads and rejects failed content c
     ?.attributes?.documentField;
   expect(copiedMetadata).toMatchObject({ ...metadata, id: expect.any(String) });
   expect(copiedMetadata?.id).not.toBe(metadata.id);
+  const copiedDirectory = target.getBlocksByFlavour("myoxus:document-index")[0]
+    .model as DocumentIndexBlockModel;
+  expect({
+    title: copiedDirectory.props.title,
+    workspaceId: copiedDirectory.props.workspaceId,
+    query: JSON.parse(JSON.stringify(copiedDirectory.props.query)),
+  }).toEqual(directoryDefinition);
   const copy = target.getBlocksByFlavour("myoxus:bpmn")[0].model;
   expect(copy.id).not.toBe(id);
   expect(

@@ -2,7 +2,7 @@ import type {
   ExposeWrapper,
   UniComponent,
   UniComponentReturn,
-} from "@virgultum/shared/types";
+} from "@virgultum/core/types";
 import { nanoid } from "nanoid";
 import {
   type ComponentType,

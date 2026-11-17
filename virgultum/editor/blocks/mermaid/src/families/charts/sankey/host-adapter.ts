@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { consumeMyoxusEditorEscape } from "@virgultum/shared/utils";
+import { consumeMyoxusEditorEscape } from "@virgultum/core/utils";
 import type { SankeyModel } from "../../../engine/charts/sankey/model.js";
 import { parseSankeySource } from "../../../engine/charts/sankey/parser.js";
 import {

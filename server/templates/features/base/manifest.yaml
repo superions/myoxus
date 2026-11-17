@@ -1,6 +1,6 @@
 formatVersion: 1
 id: myoxus.features.base
-version: 1.0.36
+version: 1.0.37
 capabilities:
   artwork: 1
   assistant: 1
@@ -821,6 +821,9 @@ components:
   - id: document.block-raci.1.1.0
     kind: documentTemplate
     path: documents/block-raci/1.1.0.zip
+  - id: document.block-page-report.1.0.0
+    kind: documentTemplate
+    path: documents/block-page-report/1.0.0.zip
   - id: document.block-technical-profile.1.1.0
     kind: documentTemplate
     path: documents/block-technical-profile/1.1.0.zip
@@ -3501,6 +3504,12 @@ exports:
     source:
       component: document.block-raci.1.1.0
       export: block-raci@1.1.0
+    document:
+      newWorkspaceDefault: true
+  - id: document.block-page-report
+    source:
+      component: document.block-page-report.1.0.0
+      export: block-page-report@1.0.0
     document:
       newWorkspaceDefault: true
   - id: document.block-technical-profile

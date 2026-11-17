@@ -123,6 +123,7 @@ impl SqlxTemplateRegistryStore {
         LEFT JOIN document_template_state template ON template.doc_id=d.id
         {SOURCE_REVISIONS_SQL}
         WHERE p.workspace_id=$1 AND p.is_enabled
+          AND ($11::text IS NULL OR c.slug=$11)
           AND (i.id IS NULL OR (i.state<>'retired' AND i.retired_at IS NULL))
           AND (c.source='builtin' OR target.id IS NOT NULL)
           AND NOT (c.source='builtin' AND c.category IS NOT DISTINCT FROM 'onboarding')
@@ -138,7 +139,7 @@ impl SqlxTemplateRegistryStore {
           ARRAY(SELECT jsonb_array_elements_text(CASE WHEN jsonb_typeof(template.metadata->'tags')='array' THEN template.metadata->'tags' ELSE '[]'::jsonb END)),
           NULL::text,0,FALSE,NULL::uuid,NULL::jsonb,NULL::text
         FROM docs d JOIN document_template_state template ON template.doc_id=d.id
-        WHERE d.workspace_id=$1 AND {NATIVE_TEMPLATE_SOURCE_PREDICATE}
+        WHERE d.workspace_id=$1 AND {NATIVE_TEMPLATE_SOURCE_PREDICATE} AND $11::text IS NULL
           AND ($2::text IS NULL OR d.external_id=$2)
           AND NOT EXISTS (SELECT 1 FROM bindings bound WHERE bound.resolved_doc_id=d.id)
       ), unique_sources AS (
@@ -201,6 +202,7 @@ impl SqlxTemplateRegistryStore {
       .bind(query.after.as_ref().map(|cursor| cursor.updated_at))
       .bind(query.after.as_ref().map(|cursor| &cursor.key))
       .bind(query.limit as i64)
+      .bind(&query.filter.source_slug)
       .fetch_all(&self.pool)
       .await
       .map_err(Self::map_db_err)?;

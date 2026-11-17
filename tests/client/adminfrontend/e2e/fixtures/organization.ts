@@ -39,6 +39,7 @@ export interface OrganizationUnitTypeInfo {
   label: string;
   isPreset: boolean;
   isActive: boolean;
+  canBeRootLevel: boolean;
 }
 
 export interface OrganizationProjectRequestInfo {
@@ -115,7 +116,7 @@ export async function fetchOrganizationUnitTypes(
   }>(
     request,
     `query { admin { organizationUnitTypes(includeInactive: true) {
-       id key label isPreset isActive
+       id key label isPreset isActive canBeRootLevel
      } } }`,
   );
   return data.admin.organizationUnitTypes;

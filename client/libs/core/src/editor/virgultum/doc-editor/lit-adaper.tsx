@@ -50,8 +50,8 @@ import {
 import type { DocTitle } from "@virgultum/editor/fragments/doc-title";
 import type { DocMode, RootBlockModel } from "@virgultum/editor/model";
 import type { Store } from "@virgultum/editor/store";
-import type { BpmnBlockModel, MermaidBlockModel } from "@virgultum/model";
-import { MyoxusHostExtension } from "@virgultum/shared/services";
+import type { BpmnBlockModel, MermaidBlockModel } from "@virgultum/core/models";
+import { MyoxusHostExtension } from "@virgultum/core/services";
 import { debounce } from "lodash-es";
 import type React from "react";
 import {
@@ -143,10 +143,12 @@ function useMermaidDiagramDocumentTitle(page: Store, docsService: DocsService) {
         stopObservingTitle?.();
         observedTitle = title;
         stopObservingTitle = title?.yText
-          ? observeDocumentTitle(title.yText, (value) => projectTitle(value))
+          ? observeDocumentTitle(title.yText, (value, local) => {
+              if (local) projectTitle(value);
+            })
           : null;
       }
-      projectTitle();
+      // Mounting or rebinding must not replay the block title over a document rename.
     };
     const readySubscription = page.slots.ready.subscribe(bindTitle);
     const blockSubscription = page.slots.blockUpdated.subscribe(bindTitle);
@@ -170,7 +172,12 @@ const usePatchSpecs = (mode: DocMode, shared?: boolean) => {
   const isCloud = workspaceService.workspace.flavour !== "local";
   const framework = useFramework();
 
-  const confirmModal = useConfirmModal();
+  const { openConfirmModal, closeConfirmModal } = useConfirmModal();
+  // Portal updates must not recreate the editor's extension scope.
+  const confirmModal = useMemo(
+    () => ({ openConfirmModal, closeConfirmModal }),
+    [openConfirmModal, closeConfirmModal],
+  );
 
   const enableAI = useEnableAI();
 
@@ -191,7 +198,7 @@ const usePatchSpecs = (mode: DocMode, shared?: boolean) => {
     const manager = getViewManager()
       .config.init()
       .foundation(framework)
-      .ai(enableAI, framework)
+      .ai(enableAI, framework, reactToLit)
       .theme(framework)
       .editorConfig(framework)
       .editorView({
@@ -286,6 +293,7 @@ export const VirgultumDocEditor = forwardRef<
     useTemplateVariablePicker();
   const {
     openBuildingBlockPicker,
+    insertNamedBuildingBlock,
     saveBuildingBlockSelection,
     buildingBlockPicker,
   } = useBuildingBlockPicker();
@@ -324,6 +332,8 @@ export const VirgultumDocEditor = forwardRef<
           bpmnEditorService,
           bpmnEditorView,
           openTemplateVariablePicker,
+          insertNamedBuildingBlock:
+            !page.readonly && !snapshot ? insertNamedBuildingBlock : undefined,
           openBuildingBlockPicker:
             !page.readonly && !snapshot ? openBuildingBlockPicker : undefined,
           saveBuildingBlockSelection:
@@ -345,6 +355,7 @@ export const VirgultumDocEditor = forwardRef<
       bpmnEditorView,
       openTemplateVariablePicker,
       openBuildingBlockPicker,
+      insertNamedBuildingBlock,
       saveBuildingBlockSelection,
       snapshot,
     ],
@@ -517,6 +528,7 @@ export const VirgultumEdgelessEditor = forwardRef<
     useTemplateVariablePicker();
   const {
     openBuildingBlockPicker,
+    insertNamedBuildingBlock,
     saveBuildingBlockSelection,
     buildingBlockPicker,
   } = useBuildingBlockPicker();
@@ -547,6 +559,8 @@ export const VirgultumEdgelessEditor = forwardRef<
           bpmnEditorService,
           bpmnEditorView,
           openTemplateVariablePicker,
+          insertNamedBuildingBlock:
+            !page.readonly && !snapshot ? insertNamedBuildingBlock : undefined,
           openBuildingBlockPicker:
             !page.readonly && !snapshot ? openBuildingBlockPicker : undefined,
           saveBuildingBlockSelection:
@@ -568,6 +582,7 @@ export const VirgultumEdgelessEditor = forwardRef<
       bpmnEditorView,
       openTemplateVariablePicker,
       openBuildingBlockPicker,
+      insertNamedBuildingBlock,
       saveBuildingBlockSelection,
       snapshot,
     ],

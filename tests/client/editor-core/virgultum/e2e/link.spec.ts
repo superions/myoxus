@@ -34,9 +34,15 @@ test("basic link", async ({ page }, testInfo) => {
   await pressCreateLinkShortCut(page);
   await page.mouse.move(0, 0);
 
-  const createLinkPopoverLocator = page.locator(".myoxus-link-popover.create");
+  const createLinkPopoverLocator = page.getByRole("dialog", {
+    name: "Link",
+    exact: true,
+  });
   await expect(createLinkPopoverLocator).toBeVisible();
-  const linkPopoverInput = page.locator(".myoxus-link-popover-input");
+  const linkPopoverInput = page.getByRole("textbox", {
+    name: "Link",
+    exact: true,
+  });
   await expect(linkPopoverInput).toBeVisible();
   await type(page, link);
   await pressEnter(page);
@@ -59,21 +65,26 @@ test("basic link", async ({ page }, testInfo) => {
   // Edit link
   const text2 = "link2";
   const link2 = "https://github.com";
-  const editLinkBtn = toolbar.getByTestId("edit");
+  const editLinkBtn = toolbar.getByRole("button", {
+    name: "Edit Description",
+    exact: true,
+  });
   await editLinkBtn.click();
 
-  const editLinkPopoverLocator = page.locator(".myoxus-link-edit-popover");
-  await expect(editLinkPopoverLocator).toBeVisible();
-  // workaround to make tab key work as expected
-  await editLinkPopoverLocator.click({
-    position: { x: 5, y: 5 },
+  const editLinkPopoverLocator = page.getByRole("dialog", {
+    name: "Link",
+    exact: true,
   });
-  await page.keyboard.press("Tab");
-  await type(page, text2);
-  await page.keyboard.press("Tab");
-  await type(page, link2);
-  await page.keyboard.press("Tab");
-  await pressEnter(page);
+  await expect(editLinkPopoverLocator).toBeVisible();
+  await editLinkPopoverLocator
+    .getByRole("textbox", { name: "Text", exact: true })
+    .fill(text2);
+  await editLinkPopoverLocator
+    .getByRole("textbox", { name: "Link", exact: true })
+    .fill(link2);
+  await editLinkPopoverLocator
+    .getByRole("button", { name: "Save", exact: true })
+    .click();
   const link2Locator = page.locator("myoxus-link a");
 
   await expect(link2Locator).toHaveAttribute("href", link2);
@@ -98,9 +109,15 @@ test("add link when dragging from empty line", async ({ page }) => {
   await pressCreateLinkShortCut(page);
   await page.mouse.move(0, 0);
 
-  const createLinkPopoverLocator = page.locator(".myoxus-link-popover.create");
+  const createLinkPopoverLocator = page.getByRole("dialog", {
+    name: "Link",
+    exact: true,
+  });
   await expect(createLinkPopoverLocator).toBeVisible();
-  const linkPopoverInput = page.locator(".myoxus-link-popover-input");
+  const linkPopoverInput = page.getByRole("textbox", {
+    name: "Link",
+    exact: true,
+  });
   await expect(linkPopoverInput).toBeVisible();
   await type(page, link);
   await pressEnter(page);
@@ -120,7 +137,10 @@ async function createLinkBlock(page: Page, str: string, link: string) {
           title: new window.$virgultum.store.Text("title"),
         });
       const noteId = doc.addBlock("myoxus:note", {}, rootId);
-      const title = doc.getBlock(rootId)!.model.props.title;
+      const title = (
+        doc.getBlock(rootId)!
+          .model as import("@virgultum/core/models").RootBlockModel
+      ).props.title;
       title.clear();
       title.insert("title", 0);
 
@@ -193,7 +213,10 @@ test("readonly mode should not trigger toolbar", async ({ page }) => {
   await pressCreateLinkShortCut(page);
 
   await expect(toolbar).not.toBeVisible();
-  const linkPopoverInput = page.locator(".myoxus-link-popover-input");
+  const linkPopoverInput = page.getByRole("textbox", {
+    name: "Link",
+    exact: true,
+  });
   await expect(linkPopoverInput).not.toBeVisible();
 });
 
@@ -209,9 +232,9 @@ test("should mock selection not stored", async ({ page }, testInfo) => {
   await dragBetweenIndices(page, [0, 0], [0, 8]);
   await pressCreateLinkShortCut(page);
 
-  const mockSelectNode = page.locator(".mock-selection");
-  await expect(mockSelectNode).toHaveCount(1);
-  await expect(mockSelectNode).toBeVisible();
+  const popupHighlight = () =>
+    page.evaluate(() => CSS.highlights.get("myoxus-inline-popup")?.size ?? 0);
+  await expect.poll(popupHighlight).toBe(1);
 
   // the mock select node should not be stored in the Y doc
   expect(await getTextOperationSnapshot(page)).toMatchSnapshot(
@@ -222,8 +245,7 @@ test("should mock selection not stored", async ({ page }, testInfo) => {
   await pressEnter(page);
 
   // the mock select node should be removed after link created
-  await expect(mockSelectNode).not.toBeVisible();
-  await expect(mockSelectNode).toHaveCount(0);
+  await expect.poll(popupHighlight).toBe(0);
 });
 
 test("should keyboard work in link popover", async ({ page }) => {
@@ -233,33 +255,47 @@ test("should keyboard work in link popover", async ({ page }) => {
 
   await dragBetweenIndices(page, [0, 0], [0, 8]);
   await pressCreateLinkShortCut(page);
-  const linkPopoverInput = page.locator(".myoxus-link-popover-input");
+  const linkPopoverInput = page.getByRole("textbox", {
+    name: "Link",
+    exact: true,
+  });
   await assertKeyboardWorkInInput(page, linkPopoverInput);
-  await page.mouse.click(500, 500);
+  await page.keyboard.press("Escape");
+  await expect(linkPopoverInput).toBeHidden();
 
   const toolbar = page.getByTestId("selection-toolbar");
   const linkLocator = page.locator(`text="${linkText}"`);
 
   await focusRichText(page);
   // hover link
+  await page.keyboard.press("ArrowRight");
+  await page.mouse.move(0, 0);
   await linkLocator.hover();
   // wait for popover delay open
   await page.waitForTimeout(500);
   await expect(toolbar).toBeVisible();
 
-  const editLinkBtn = toolbar.getByTestId("edit");
+  const editLinkBtn = toolbar.getByRole("button", {
+    name: "Edit Description",
+    exact: true,
+  });
   await editLinkBtn.click();
 
-  const editLinkPopover = page.locator(".myoxus-link-edit-popover");
+  const editLinkPopover = page.getByRole("dialog", {
+    name: "Link",
+    exact: true,
+  });
   await expect(editLinkPopover).toBeVisible();
 
-  const editTextInput = editLinkPopover.locator(
-    ".myoxus-edit-area.text .myoxus-edit-input",
-  );
+  const editTextInput = editLinkPopover.getByRole("textbox", {
+    name: "Text",
+    exact: true,
+  });
   await assertKeyboardWorkInInput(page, editTextInput);
-  const editLinkInput = editLinkPopover.locator(
-    ".myoxus-edit-area.link .myoxus-edit-input",
-  );
+  const editLinkInput = editLinkPopover.getByRole("textbox", {
+    name: "Link",
+    exact: true,
+  });
   await assertKeyboardWorkInInput(page, editLinkInput);
 });
 
@@ -272,7 +308,10 @@ test("link bar should not be appear when the range is collapsed", async ({
   await type(page, "aaa");
 
   await pressCreateLinkShortCut(page);
-  const linkPopoverLocator = page.locator(".myoxus-link-popover");
+  const linkPopoverLocator = page.getByRole("dialog", {
+    name: "Link",
+    exact: true,
+  });
   await expect(linkPopoverLocator).not.toBeVisible();
 
   await dragBetweenIndices(page, [0, 0], [0, 3]);
@@ -289,11 +328,17 @@ test("create link with paste", async ({ page }, testInfo) => {
   await dragBetweenIndices(page, [0, 0], [0, 3]);
   await pressCreateLinkShortCut(page);
 
-  const createLinkPopoverLocator = page.locator(".myoxus-link-popover.create");
-  const confirmBtn = createLinkPopoverLocator.locator(".myoxus-confirm-button");
+  const createLinkPopoverLocator = page.getByRole("dialog", {
+    name: "Link",
+    exact: true,
+  });
+  const confirmBtn = createLinkPopoverLocator.getByRole("button", {
+    name: "Save",
+    exact: true,
+  });
 
   await expect(createLinkPopoverLocator).toBeVisible();
-  await expect(confirmBtn).toHaveAttribute("disabled");
+  await expect(confirmBtn).toBeDisabled();
 
   await type(page, "example.com");
   await expect(confirmBtn).not.toHaveAttribute("disabled");
@@ -303,7 +348,7 @@ test("create link with paste", async ({ page }, testInfo) => {
   // press enter should not trigger confirm
   await pressEnter(page);
   await expect(createLinkPopoverLocator).toBeVisible();
-  await expect(confirmBtn).toHaveAttribute("disabled");
+  await expect(confirmBtn).toBeDisabled();
 
   await pasteByKeyboard(page, false);
   await expect(confirmBtn).not.toHaveAttribute("disabled");

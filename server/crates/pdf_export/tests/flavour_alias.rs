@@ -121,6 +121,8 @@ fn inv_flavour_name_is_canonical_myoxus_form() {
       Block::Paragraph {
         content: vec![],
         children: vec![],
+        alignment: None,
+        eyebrow: false,
       },
       "myoxus:paragraph/text",
     ),
@@ -145,6 +147,7 @@ fn inv_flavour_name_is_canonical_myoxus_form() {
         content: vec![],
         checked: false,
         children: vec![],
+        start: None,
       },
       "myoxus:list",
     ),
@@ -153,6 +156,7 @@ fn inv_flavour_name_is_canonical_myoxus_form() {
         language: None,
         code: String::new(),
         caption: None,
+        line_numbers: false,
       }),
       "myoxus:code",
     ),
@@ -169,6 +173,7 @@ fn inv_flavour_name_is_canonical_myoxus_form() {
       Block::Callout {
         variant: CalloutVariant::Info,
         emoji: None,
+        paint: None,
         content: vec![],
         children: vec![],
       },

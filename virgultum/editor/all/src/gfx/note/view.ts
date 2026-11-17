@@ -1,1 +1,1 @@
-export * from "@virgultum/gfx-note/view";
+export { NoteViewExtension } from "@virgultum/canvas/view";

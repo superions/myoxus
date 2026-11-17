@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { MindmapLayoutType as LayoutType } from "../projection/types.js";
 
-import type { Bound, IVec } from "@virgultum/global/gfx";
+import type { Bound, IVec } from "@virgultum/core/primitives/gfx";
 
 export type MindmapInsertPosition =
   | {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { getFontString, wrapText } from "@virgultum/gfx-text";
-import { FontFamily } from "@virgultum/model";
+import { getFontString, wrapText } from "@virgultum/canvas/gfx";
+import { FontFamily } from "@virgultum/core/models";
 
 export type MermaidGfxTypography = {
   displayFontSize: number;

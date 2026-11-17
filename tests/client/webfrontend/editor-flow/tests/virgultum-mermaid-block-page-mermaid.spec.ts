@@ -22,7 +22,10 @@ import {
   setAccountColorMode,
   setAccountLocale,
 } from "../../shared/user-preferences-helper";
-import { getSmokeWorkspaceId } from "../../shared/workspace-helper";
+import {
+  getSmokeWorkspaceId,
+  waitForWorkspaceDocSync,
+} from "../../shared/workspace-helper";
 import {
   assertLocatorUsesThemeBackground,
   assertScreenshotHasDiagramContent,
@@ -1837,7 +1840,12 @@ test.describe("Virgultum Mermaid block", () => {
       );
     await page.keyboard.press("Escape");
     await page.keyboard.press("Escape");
-    await note.click({ position: { x: 15, y: 70 } });
+    await page
+      .locator("myoxus-edgeless-root")
+      .click({ position: { x: 10, y: 10 } });
+    await note
+      .locator(".myoxus-note-mask")
+      .click({ position: { x: 15, y: 70 } });
     const exportMmd = page.getByRole("button", {
       name: "Export .mmd",
       exact: true,
@@ -1862,7 +1870,10 @@ test.describe("Virgultum Mermaid block", () => {
     if (!svgPath) throw new Error("Native export has no file");
     const svg = await readFile(svgPath, "utf8");
     expect(svg).toContain('aria-roledescription="gantt"');
-    expect(svg).not.toMatch(/NaN|Infinity|gantt-dependency-/);
+    // Embedded font bytes are opaque, not SVG coordinates or editor overlays.
+    expect(svg.replace(/data:[^"'\s)]+/g, "")).not.toMatch(
+      /NaN|Infinity|gantt-dependency-/,
+    );
 
     await page.evaluate(async () => {
       for (const registration of await navigator.serviceWorker.getRegistrations())
@@ -2004,39 +2015,50 @@ test.describe("Virgultum Mermaid block", () => {
       const text = page.locator("rich-text [contenteditable=true]").filter({
         hasText: "History state A",
       });
-      const sidebarToggle = page.getByTestId("context-panel-toggle");
-      if ((await sidebarToggle.getAttribute("aria-expanded")) !== "true") {
-        await sidebarToggle.click();
-      }
-      await page.getByTestId("header-dropDownButton").click();
-      await page.getByRole("menuitem", { name: "Tools", exact: true }).hover();
-      const versionTool = page.getByTestId("workbench-tool-menu-activity");
-      if ((await versionTool.getAttribute("data-checked")) !== "true") {
-        await versionTool.focus();
-        await page.keyboard.press("Enter");
-      }
-      await expect(versionTool).toHaveAttribute("data-checked", "true");
-      await page.keyboard.press("Escape");
-      await page.keyboard.press("Escape");
+      const openVersionsSidebar = async () => {
+        const sidebarToggle = page.getByTestId("context-panel-toggle");
+        if ((await sidebarToggle.getAttribute("aria-expanded")) !== "true") {
+          await sidebarToggle.click();
+        }
+        await page.getByTestId("header-dropDownButton").click();
+        await page
+          .getByRole("menuitem", { name: "Tools", exact: true })
+          .hover();
+        const versionTool = page.getByTestId("workbench-tool-menu-activity");
+        if ((await versionTool.getAttribute("data-checked")) !== "true") {
+          await versionTool.focus();
+          await page.keyboard.press("Enter");
+        }
+        await expect(versionTool).toHaveAttribute("data-checked", "true");
+        await page.keyboard.press("Escape");
+        await page.keyboard.press("Escape");
+      };
+      await openVersionsSidebar();
       await expect(page.getByTestId("document-versions-empty")).toBeVisible();
       await page
-        .getByRole("button", { name: "Create the first version", exact: true })
+        .getByRole("button", { name: "Save current state", exact: true })
         .click();
       await page
-        .getByRole("textbox", { name: "Label", exact: true })
+        .getByTestId("document-version-modal-create-label")
         .fill("History A");
       const captured = page.waitForResponse(
         (response) =>
-          response.request().postData()?.includes("createDocumentVersion") ===
+          response.request().postData()?.includes("captureDocumentHistory") ===
           true,
       );
-      await page.getByRole("button", { name: "Save", exact: true }).click();
+      await page.getByTestId("document-version-modal-create-save").click();
       const capture = await (await captured).json();
       expect(capture.errors).toBeUndefined();
-      const version = capture.data.createDocumentVersion;
-      await expect(page.locator('[aria-label^="Version:"]')).toHaveText(
-        `Version ${version.label}`,
-      );
+      const version = capture.data.captureDocumentHistory.version;
+      await expect(
+        page
+          .getByTestId("version-history-item")
+          .filter({ hasText: version.label }),
+      ).toBeVisible();
+      await page
+        .getByRole("button", { name: "Back to doc", exact: true })
+        .click();
+      await expect(page.getByTestId("document-history-view")).toBeHidden();
 
       await text.click();
       await page.keyboard.press("End");
@@ -2047,20 +2069,13 @@ test.describe("Virgultum Mermaid block", () => {
         .click();
       await pieValue.fill("6");
       await pieValue.press("Enter");
-      await expect(page.locator('[aria-label^="Version:"]')).toHaveText(
-        `Version ${version.label} (changed)`,
-      );
+      await expect(text).toHaveText("History state A changed to B");
 
-      await page
-        .locator("label")
-        .filter({ has: page.getByText("Edgeless", { exact: true }) })
-        .click();
+      await page.getByTestId("switch-edgeless-mode-button").click();
       await expect(page.locator("myoxus-edgeless-root")).toBeVisible();
       await expect(page).toHaveURL(/mode=edgeless/);
-      await page.getByTestId("header-dropDownButton").click();
-      await page
-        .getByRole("menuitem", { name: "View history version", exact: true })
-        .click();
+      await openVersionsSidebar();
+      await page.getByTestId("document-version-history").click();
       await page.getByTestId("history-named-version-select").click();
       await page
         .getByRole("option", { name: version.label, exact: true })
@@ -2076,7 +2091,18 @@ test.describe("Virgultum Mermaid block", () => {
       await expect(
         page.getByText("History state A", { exact: true }),
       ).toBeVisible();
+      // The routed history surface replaces the live editor. Return to the
+      // document to prove preview isolation before reopening the same capture.
+      await page
+        .getByRole("button", { name: "Back to doc", exact: true })
+        .click();
       await expect(text).toHaveText("History state A changed to B");
+      await openVersionsSidebar();
+      await page.getByTestId("document-version-history").click();
+      await page.getByTestId("history-named-version-select").click();
+      await page
+        .getByRole("option", { name: version.label, exact: true })
+        .click();
       await page.getByRole("button", { name: "Restore", exact: true }).click();
       await page.getByTestId("confirm-restore-history-button").click();
       await expect(
@@ -4073,7 +4099,9 @@ flowchart LR
         "slash-menu-item-mermaid-kanban-basic",
       );
       await expect(kanbanMenuItem).toBeVisible({ timeout: 5_000 });
-      await expect(kanbanMenuItem).toContainText("Create a Mermaid diagram");
+      await expect(kanbanMenuItem).toHaveAccessibleDescription(
+        "Create a Mermaid diagram",
+      );
       await expect(kanbanMenuItem).not.toContainText(
         /Browser-tested|Experimental|Stable visual editor/i,
       );
@@ -5027,10 +5055,18 @@ flowchart LR
       // Replace our own catalog example through its owner action, then build
       // the Page reference. Diagram metadata and native exports remain owned
       // by the same persisted catalog document.
+      // Catalog activation starts inside the diagram. Leave it through the
+      // canvas before selecting the enclosing Note's owner actions.
+      await page
+        .locator("myoxus-edgeless-root")
+        .click({ position: { x: 50, y: 50 } });
+      await page
+        .locator(".myoxus-note-mask")
+        .click({ position: { x: 35, y: 40 } });
       await expect(
         page.getByRole("button", { name: "Export .mmd", exact: true }),
       ).toBeVisible();
-      const deleteExample = page.getByTestId("delete");
+      const deleteExample = page.getByTestId("e.delete");
       if (!(await deleteExample.isVisible()))
         await page.getByRole("button", { name: "More", exact: true }).click();
       await deleteExample.click();
@@ -5038,6 +5074,8 @@ flowchart LR
         .poll(async () => (await mermaidOwnerInventory(page)).length)
         .toBe(0);
       await page.getByTestId("switch-page-mode-button").click();
+      await typeSlashCommand(page, "/mermaid");
+      await page.getByTestId("slash-menu-item-mermaid-block-basic").click();
       const block = page.locator("myoxus-mermaid").first();
       const mode = block.locator(
         '[data-myoxus-ui-role="mermaid-editor-mode-control"]',
@@ -5102,7 +5140,7 @@ flowchart LR
         return form;
       };
       await expect(
-        block.getByRole("button", { name: /Space · 0/ }),
+        page.getByRole("button", { name: /Space · 0/ }),
       ).toBeVisible();
       await page.screenshot({
         path: testInfo.outputPath("block-page-grid.png"),
@@ -5288,9 +5326,9 @@ flowchart LR
         .toBe(moved.xywh);
       await mode.getByText("View", { exact: true }).click();
       await expect(actions).toHaveCount(0);
-      await expect(
-        block.getByRole("button", { name: /Space · 0/ }),
-      ).toHaveCount(0);
+      await expect(page.getByRole("button", { name: /Space · 0/ })).toHaveCount(
+        0,
+      );
       await page.screenshot({
         path: testInfo.outputPath("block-page-view.png"),
       });
@@ -5299,7 +5337,7 @@ flowchart LR
       await mode.getByText("Visual", { exact: true }).click();
       await expect(
         block.getByRole("status", {
-          name: "Last valid Mermaid preview",
+          name: "Last valid Mermaid preview · Read-only diagram",
           exact: true,
         }),
       ).toContainText("end");
@@ -5386,7 +5424,8 @@ flowchart LR
       if (!svgPath) throw new Error("Block SVG export has no path");
       const svg = await readFile(svgPath, "utf8");
       expect(svg).toContain('aria-roledescription="block"');
-      expect(svg).not.toMatch(/NaN|Infinity/);
+      // Embedded font bytes are opaque, not SVG coordinates.
+      expect(svg.replace(/data:[^"'\s)]+/g, "")).not.toMatch(/NaN|Infinity/);
       // The native SVG consumer omits the invisible pair while retaining both
       // visible parallel occurrences, rather than hiding every related edge.
       expect(svg).toContain('id="1-intake-validate"');
@@ -5551,6 +5590,25 @@ flowchart LR
         .toBe(
           nativeBefore.children.find((c) => c.label === "Object store")!
             .bounds[0] + 1,
+        );
+      // Child movement precedes debounced owner reconciliation. Snapshot the
+      // completed enclosing geometry, not an intermediate native GFX frame.
+      const enclosingLabels = ["Processing", "Publication pipeline"];
+      await expect
+        .poll(async () =>
+          (await nativeGeometry()).children
+            .filter((c) => enclosingLabels.includes(c.label!))
+            .map((c) => c.bounds),
+        )
+        .toEqual(
+          nativeBefore.children
+            .filter((c) => enclosingLabels.includes(c.label!))
+            .map((c) => [
+              c.bounds[0],
+              c.bounds[1],
+              c.bounds[2] + 1,
+              c.bounds[3],
+            ]),
         );
       const nativeMoved = await nativeGeometry();
       expect(nativeMoved.source).toBe(nativeBefore.source);
@@ -5765,11 +5823,14 @@ flowchart LR
         await expect
           .poll(async () => (await compositePoint()).visible)
           .toBe(true);
-        const target = await compositePoint();
         const grip = block.getByRole("button", {
           name: `Reconnect edge ${endpoint}`,
           exact: true,
         });
+        // Hover performs the hit-target scroll that raw mouse coordinates omit
+        // when the document's fixed header covers a partially visible grip.
+        await grip.hover();
+        const target = await compositePoint();
         const start = await grip.boundingBox();
         if (!start)
           throw new Error("State reconnect grip has no rendered bounds");
@@ -6002,7 +6063,7 @@ flowchart LR
       await mode.getByText("Visual", { exact: true }).click();
       await expect(
         block.getByRole("status", {
-          name: "Last valid Mermaid preview",
+          name: "Last valid Mermaid preview · Read-only diagram",
           exact: true,
         }),
       ).toContainText("Broken: }");
@@ -6225,7 +6286,10 @@ flowchart LR
           retainedSource: embeddedSource,
         },
       );
+      await waitForWorkspaceDocSync(page, docId);
       await page.reload({ waitUntil: "domcontentloaded" });
+      await page.locator("myoxus-edgeless-root").waitFor({ state: "visible" });
+      await expect(nativeBlock).toBeVisible();
       await expect(nativeBlock.getByRole("alert")).toContainText(
         "Last valid Mermaid preview",
       );

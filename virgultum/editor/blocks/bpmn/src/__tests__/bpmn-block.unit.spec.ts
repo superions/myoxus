@@ -6,9 +6,9 @@ import {
   ParagraphBlockSchemaExtension,
   RootBlockSchemaExtension,
   type BpmnBlockModel,
-} from "@virgultum/model";
-import { type Store, Text } from "@virgultum/store";
-import { TestWorkspace } from "@virgultum/store/test";
+} from "@virgultum/core/models";
+import { type Store, Text } from "@virgultum/core/store";
+import { TestWorkspace } from "@virgultum/core/store/test";
 import { afterEach, expect, test, vi } from "vitest";
 import * as Y from "yjs";
 import { bpmnBlockHtmlAdapterMatcher } from "../adapters/html.js";

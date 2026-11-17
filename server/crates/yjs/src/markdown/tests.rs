@@ -456,7 +456,7 @@ fn math_uses_real_latex_models_and_shared_client_roundtrip_fixtures() {
 }
 
 #[test]
-fn whole_document_embeds_share_registered_client_fixtures_and_keep_relations() {
+fn document_embeds_share_registered_client_fixtures_and_keep_relations() {
   let fixtures: serde_json::Value = serde_json::from_str(include_str!(
     "../../../../../build/fixtures/contracts/document-embeds.json"
   ))
@@ -465,6 +465,19 @@ fn whole_document_embeds_share_registered_client_fixtures_and_keep_relations() {
     super::MarkdownLinkTarget::Wiki("Target" | "Target.md" | "Target.v2") => {
       super::MarkdownLinkResolution::Reference(MarkdownDocumentReference {
         page_id: "opaque-target-key".into(),
+        ..Default::default()
+      })
+    }
+    super::MarkdownLinkTarget::Wiki(target) if target.starts_with("Target#") || target.starts_with("Target.md#") => {
+      let fragment = target.split_once('#').unwrap().1;
+      let (id, kind) = if fragment.starts_with('^') {
+        ("block-id", "subtree")
+      } else {
+        ("heading-id", "section")
+      };
+      super::MarkdownLinkResolution::Reference(MarkdownDocumentReference {
+        page_id: "opaque-target-key".into(),
+        params: Some(serde_json::json!({"mode":"page","blockIds":[id],"blockSelection":kind})),
         ..Default::default()
       })
     }
@@ -520,7 +533,16 @@ fn whole_document_embeds_share_registered_client_fixtures_and_keep_relations() {
     );
     let exported = extract_text_from_yjs_with_references(&imported.yjs_binary, &|_| true, &|reference| {
       (reference.page_id == "opaque-target-key").then(|| MarkdownResolvedReference {
-        url: "Target.md".into(),
+        url: match reference
+          .params
+          .as_ref()
+          .and_then(|params| params["blockSelection"].as_str())
+        {
+          Some("section") => "Target.md#Heading",
+          Some("subtree") => "Target.md#^block",
+          _ => "Target.md",
+        }
+        .into(),
         title: "Current target title".into(),
       })
     })
@@ -535,6 +557,17 @@ fn whole_document_embeds_share_registered_client_fixtures_and_keep_relations() {
         .count(),
       embeds.len(),
       "{}",
+      fixture["name"]
+    );
+    assert_eq!(
+      again
+        .occurrences
+        .iter()
+        .filter(|item| item.link_kind == DocumentReferenceLinkKind::EmbedSyncedDoc)
+        .map(|item| &item.params_json)
+        .collect::<Vec<_>>(),
+      embeds.iter().map(|item| &item.params_json).collect::<Vec<_>>(),
+      "native selection and alias survive the actual codec roundtrip: {}",
       fixture["name"]
     );
     if fixture["name"] == "rich surrounding prose" {

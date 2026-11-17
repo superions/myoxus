@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { FootNoteSchema } from "@virgultum/model";
+import { FootNoteSchema } from "@virgultum/core/models";
 import {
   MarkdownAdapter,
   normalizeFootnoteLabel,
@@ -9,14 +9,18 @@ import {
   PlainTextAdapter,
   MixTextAdapter,
   ClipboardAdapter,
-} from "@virgultum/shared/adapters";
+} from "@virgultum/core/adapters";
 import {
   Slice,
   Text,
   wrapFakeNote,
   type BlockSnapshot,
-} from "@virgultum/store";
-import { BlockStdScope, TextSelection, type EditorHost } from "@virgultum/std";
+} from "@virgultum/core/store";
+import {
+  BlockStdScope,
+  TextSelection,
+  type EditorHost,
+} from "@virgultum/core/runtime";
 import {
   insertLocalFootnote,
   renameLocalFootnote,
@@ -26,13 +30,13 @@ import {
   localFootnoteCaret,
   localFootnotePresentation,
   setLocalFootnotePlacement,
-} from "@virgultum/shared/commands";
+} from "@virgultum/core/commands";
 import { testStoreExtensions } from "./utils/store";
 import type {
   FootnoteDefinitionBlockModel,
   ParagraphBlockModel,
   TableBlockModel,
-} from "@virgultum/model";
+} from "@virgultum/core/models";
 import { describe, expect, test, vi } from "vitest";
 import numberingFixture from "../../../../../build/fixtures/contracts/footnote-numbering.json";
 import fixtures from "../../../../../build/fixtures/contracts/footnotes.json";

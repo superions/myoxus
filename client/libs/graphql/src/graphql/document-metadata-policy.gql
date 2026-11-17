@@ -212,6 +212,8 @@ mutation updateWorkspaceDocumentSettings($workspaceId: ID!, $input: UpdateWorksp
 }
 
 fragment DocumentMetadataIndexFields on DocumentMetadataIndexRowType {
+    responsibleUserId
+    responsibleName
     docId
     externalId
     createdBy

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import type { MermaidBlockModel } from "@virgultum/model";
-import type { SerializedXYWH } from "@virgultum/global/gfx";
-import type { FrameBlockModel } from "@virgultum/model";
-import type { GfxModel } from "@virgultum/std/gfx";
+import type { MermaidBlockModel } from "@virgultum/core/models";
+import type { SerializedXYWH } from "@virgultum/core/primitives/gfx";
+import type { FrameBlockModel } from "@virgultum/core/models";
+import type { GfxModel } from "@virgultum/core/runtime/gfx";
 
 import { resolveMermaidLegacyLinkedOwner } from "./legacy-linked-owner.js";
 

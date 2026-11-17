@@ -173,14 +173,7 @@ function generateTypes() {
  * UI message. This finite projection is generated, never a second translation
  * source. Main languages are required; optional locales use normal EN fallback.
  */
-function generateDocumentFieldMessages() {
-  const keys = {
-    unset: "com.myoxus.document-metadata.value.not-set",
-    noVersion: "com.myoxus.document-metadata.value.no-version",
-    unversionedChanges:
-      "com.myoxus.document-metadata.value.unversioned-changes",
-    changedSuffix: "com.myoxus.document-metadata.value.changed",
-  } as const;
+function generateServerMessages(keys: Record<string, string>, owner: string) {
   const base = readResource("en");
   const files = readdirSync(resourcesDir)
     .filter((file) => file.endsWith(".json"))
@@ -218,7 +211,7 @@ function generateDocumentFieldMessages() {
       "crates",
       "application",
       "src",
-      "document_fields",
+      owner,
       "messages.generated.json",
     ).toString(),
     JSON.stringify(messages, null, 2) + "\n",
@@ -230,7 +223,23 @@ if (shouldCleanup) {
 }
 generateTypes();
 calcCompletenesses();
-generateDocumentFieldMessages();
+generateServerMessages(
+  {
+    unset: "com.myoxus.document-metadata.value.not-set",
+    noVersion: "com.myoxus.document-metadata.value.no-version",
+    unversionedChanges:
+      "com.myoxus.document-metadata.value.unversioned-changes",
+    changedSuffix: "com.myoxus.document-metadata.value.changed",
+  } as const,
+  "document_fields",
+);
+generateServerMessages(
+  {
+    empty: "com.myoxus.workspace-overview.documents.empty",
+    untitled: "Untitled",
+  },
+  "workspace_overview",
+);
 
 if (isDev) {
   let rebuildTimer: ReturnType<typeof setTimeout> | undefined;
@@ -240,7 +249,23 @@ if (isDev) {
     rebuildTimer = setTimeout(() => {
       generateTypes();
       calcCompletenesses();
-      generateDocumentFieldMessages();
+      generateServerMessages(
+        {
+          unset: "com.myoxus.document-metadata.value.not-set",
+          noVersion: "com.myoxus.document-metadata.value.no-version",
+          unversionedChanges:
+            "com.myoxus.document-metadata.value.unversioned-changes",
+          changedSuffix: "com.myoxus.document-metadata.value.changed",
+        } as const,
+        "document_fields",
+      );
+      generateServerMessages(
+        {
+          empty: "com.myoxus.workspace-overview.documents.empty",
+          untitled: "Untitled",
+        },
+        "workspace_overview",
+      );
     }, 50);
   });
 }

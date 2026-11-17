@@ -1,1 +1,1 @@
-export * from "@virgultum/gfx-link";
+export {};

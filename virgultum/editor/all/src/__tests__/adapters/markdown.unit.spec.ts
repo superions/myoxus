@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 
 import { MarkdownTransformer } from "@virgultum/editor/widgets/linked-doc";
-import { Container } from "@virgultum/global/di";
+import { Container } from "@virgultum/core/primitives/di";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,7 +13,7 @@ import {
   type TableBlockPropsSerialized,
   TableModelFlavour,
   TextAlign,
-} from "@virgultum/model";
+} from "@virgultum/core/models";
 import {
   ClipboardAdapter,
   HtmlAdapter,
@@ -28,15 +28,15 @@ import {
   MarkdownAdapter,
   MixTextAdapter,
   PlainTextAdapter,
-} from "@virgultum/shared/adapters";
+} from "@virgultum/core/adapters";
 import {
   NotificationExtension,
   type NotificationService,
   ThemeProvider,
   ThemeService,
   DocumentFieldOutputProvider,
-} from "@virgultum/shared/services";
-import type { BlockStdScope } from "@virgultum/std";
+} from "@virgultum/core/services";
+import type { BlockStdScope } from "@virgultum/core/runtime";
 import {
   AssetsManager,
   type BlockSnapshot,
@@ -45,18 +45,18 @@ import {
   Schema,
   type SliceSnapshot,
   type TransformerMiddleware,
-} from "@virgultum/store";
-import { TestWorkspace } from "@virgultum/store/test";
+} from "@virgultum/core/store";
+import { TestWorkspace } from "@virgultum/core/store/test";
 import { describe, expect, test, vi } from "vitest";
 
-import { TableDataManager } from "../../../../blocks/table/src/table-data-manager.js";
+import { TableDataManager } from "../../../../../content/src/blocks/table/table-data-manager";
 
 import { MyoxusSchemas } from "../../schemas.js";
 import { createJob } from "../utils/create-job.js";
 import { getProvider } from "../utils/get-provider.js";
 import { nanoidReplacement } from "../utils/nanoid-replacement.js";
 import { testStoreExtensions } from "../utils/store.js";
-import { Zip } from "../../../../widgets/linked-doc/src/transformers/utils.js";
+import { Zip } from "../../widgets/linked-doc/transformers/utils.js";
 
 const provider = getProvider();
 

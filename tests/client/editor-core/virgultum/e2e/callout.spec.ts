@@ -80,13 +80,12 @@ test("changes callout appearance through the block toolbar and keeps it undoable
   };
   await selectCallout();
 
-  const appearanceButton = page.locator(
-    'editor-icon-button[aria-label="Appearance"]:visible',
-  );
+  const appearanceButton = page.getByRole("combobox", {
+    name: "Appearance",
+    exact: true,
+  });
   await appearanceButton.click();
-  await page
-    .locator('[data-testid="callout-appearance-accent"]:visible')
-    .click();
+  await page.getByRole("option", { name: "Accent", exact: true }).click();
   await expect(surface).toHaveAttribute("data-callout-appearance", "accent");
 
   await page.keyboard.press("Control+z");

@@ -1,16 +1,18 @@
-import type { FeatureFlagService } from "@myoxus/core/modules/feature-flag";
+import { createElement } from "react";
 import {
-  CopyIcon,
-  InsertBleowIcon,
-  LinkedPageIcon,
-  PageIcon,
-} from "@myoxus/icons/lit";
+  PageIcon as NativePageIcon,
+  CopyIcon as NativeCopyIcon,
+  InsertBleowIcon as NativeInsertBelowIcon,
+  LinkedPageIcon as NativeLinkedPageIcon,
+} from "@myoxus/icons/react";
+import { useI18n } from "@myoxus/i18n";
+import { Group, IconButton } from "@myoxus/ui-facade";
+import { renderToolCallCard, renderToolFailedCard } from "./tool-cards";
+import type { FeatureFlagService } from "@myoxus/core/modules/feature-flag";
 import type { Signal } from "@preact/signals-core";
-import type { ReactToLit } from "@myoxus/lit-react";
+import { toReactNode, type ReactToLit } from "@myoxus/lit-react";
 import { WithDisposable } from "@virgultum/editor/global/lit";
 import type { ColorScheme } from "@virgultum/editor/model";
-import { fontSMStyle } from "@virgultum/editor/shared/styles";
-import { unsafeCSSValue, unsafeCSSVar } from "@virgultum/editor/shared/theme";
 import {
   type BlockSelection,
   type EditorHost,
@@ -18,9 +20,9 @@ import {
   type TextSelection,
 } from "@virgultum/editor/std";
 import type { ExtensionType } from "@virgultum/editor/store";
-import type { NotificationService } from "@virgultum/shared/services";
-import { isInsidePageEditor } from "@virgultum/shared/utils";
-import { css, html, nothing } from "lit";
+import type { NotificationService } from "@virgultum/core/services";
+import { isInsidePageEditor } from "@virgultum/core/utils";
+import { html, nothing } from "lit";
 import { property } from "lit/decorators.js";
 
 import {
@@ -30,6 +32,7 @@ import {
 } from "../../_common/chat-actions-handle";
 import { copyText } from "../../utils/editor-actions";
 import type { ToolError } from "./type";
+import { SectionEditResultView } from "./section-edit-result-view";
 
 interface SectionEditToolCall {
   type: "tool-call";
@@ -46,73 +49,46 @@ interface SectionEditToolResult {
   result: { content: string } | ToolError | null;
 }
 
+function SectionEditResultActions({
+  copy,
+  insert,
+  createDoc,
+}: {
+  copy: () => void;
+  insert?: () => void;
+  createDoc?: () => void;
+}) {
+  const t = useI18n();
+  return createElement(
+    Group,
+    null,
+    createElement(IconButton, {
+      icon: createElement(NativeCopyIcon),
+      tooltip: t.Copy(),
+      "aria-label": t.Copy(),
+      onClick: copy,
+    }),
+    insert
+      ? createElement(IconButton, {
+          icon: createElement(NativeInsertBelowIcon),
+          tooltip: t["com.myoxus.common.insert"](),
+          "aria-label": t["com.myoxus.common.insert"](),
+          onClick: insert,
+        })
+      : null,
+    createDoc
+      ? createElement(IconButton, {
+          icon: createElement(NativeLinkedPageIcon),
+          tooltip: t["com.myoxus.ai.chat-panel.save-as-doc"](),
+          "aria-label": t["com.myoxus.ai.chat-panel.save-as-doc"](),
+          onClick: createDoc,
+        })
+      : null,
+  );
+}
+
 export class SectionEditTool extends WithDisposable(ShadowlessElement) {
   @property({ attribute: false }) accessor reactToLit: ReactToLit | undefined;
-  static override styles = css`
-    .section-edit-result {
-      padding: ${unsafeCSSValue("var(--mantine-spacing-md)")};
-      margin: ${unsafeCSSValue("var(--mantine-spacing-sm)")} 0;
-      border-radius: ${unsafeCSSValue("var(--mantine-radius-lg)")};
-      border: ${unsafeCSSValue("calc(var(--mantine-scale) * 1px)")} solid
-        ${unsafeCSSVar("borderColor")};
-
-      .section-edit-header {
-        min-height: ${unsafeCSSValue("var(--mantine-spacing-xl)")};
-        margin-bottom: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-
-        .section-edit-title {
-          display: flex;
-          align-items: center;
-          gap: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
-
-          svg {
-            width: ${unsafeCSSValue("var(--mantine-spacing-xl)")};
-            height: ${unsafeCSSValue("var(--mantine-spacing-xl)")};
-            color: ${unsafeCSSVar("iconColor")};
-          }
-
-          span {
-            color: ${unsafeCSSVar("iconColor")};
-          }
-        }
-
-        ${fontSMStyle(".section-edit-title span")}
-
-        .section-edit-actions {
-          display: flex;
-          align-items: center;
-          gap: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
-
-          .edit-button {
-            width: ${unsafeCSSValue("var(--mantine-spacing-xl)")};
-            height: ${unsafeCSSValue("var(--mantine-spacing-xl)")};
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: ${unsafeCSSValue("var(--mantine-radius-sm)")};
-            cursor: pointer;
-            &:hover {
-              background-color: ${unsafeCSSVar("hoverColor")};
-            }
-
-            svg {
-              width: ${unsafeCSSValue(
-                "calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))",
-              )};
-              height: ${unsafeCSSValue(
-                "calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))",
-              )};
-              color: ${unsafeCSSVar("iconColor")};
-            }
-          }
-        }
-      }
-    }
-  `;
-
   @property({ attribute: false })
   accessor data!: SectionEditToolCall | SectionEditToolResult;
 
@@ -143,13 +119,10 @@ export class SectionEditTool extends WithDisposable(ShadowlessElement) {
   }
 
   renderToolCall() {
-    return html`
-      <tool-call-card
-        .reactToLit=${this.reactToLit}
-        .name=${`Editing: ${this.data.args.instructions}`}
-        .icon=${PageIcon()}
-      ></tool-call-card>
-    `;
+    return renderToolCallCard(this.reactToLit, {
+      name: `Editing: ${this.data.args.instructions}`,
+      icon: createElement(NativePageIcon),
+    });
   }
 
   renderToolResult() {
@@ -159,94 +132,71 @@ export class SectionEditTool extends WithDisposable(ShadowlessElement) {
 
     const result = this.data.result;
     if (result && "content" in result) {
-      return html`
-        <div class="section-edit-result">
-          <div class="section-edit-header">
-            <div class="section-edit-title">
-              ${PageIcon()}
-              <span>Edited Content</span>
-            </div>
-            <div class="section-edit-actions">
-              <div
-                class="edit-button"
-                @click=${async () => {
+      return (
+        this.reactToLit?.(
+          createElement(
+            SectionEditResultView,
+            {
+              actions: createElement(SectionEditResultActions, {
+                copy: async () => {
                   const success = await copyText(result.content);
                   if (success) {
                     this.notifySuccess("Copied to clipboard");
                   }
-                }}
-              >
-                ${CopyIcon()}
-                <myoxus-tooltip>Copy</myoxus-tooltip>
-              </div>
-              ${
-                this.independentMode
-                  ? nothing
-                  : html`<div
-                      class="edit-button"
-                      @click=${async () => {
-                        if (!this.host) return;
-                        if (this.host.std.store.readonly$.value) {
-                          this.notificationService.notify({
-                            title: "Cannot insert in read-only mode",
-                            accent: "error",
-                            onClose: () => {},
-                          });
-                          return;
-                        }
-                        if (isInsidePageEditor(this.host)) {
-                          await PAGE_INSERT.handler(
-                            this.host,
-                            result.content,
-                            this.selection,
-                          );
-                        } else {
-                          await EDGELESS_INSERT.handler(
-                            this.host,
-                            result.content,
-                            this.selection,
-                          );
-                        }
-                      }}
-                    >
-                      ${InsertBleowIcon()}
-                      <myoxus-tooltip>Insert below</myoxus-tooltip>
-                    </div>`
-              }
-              ${
-                this.independentMode
-                  ? nothing
-                  : html`<div
-                      class="edit-button"
-                      @click=${async () => {
-                        if (!this.host) return;
-                        SAVE_AS_DOC.handler(this.host, result.content);
-                      }}
-                    >
-                      ${LinkedPageIcon()}
-                      <myoxus-tooltip>Create new doc</myoxus-tooltip>
-                    </div>`
-              }
-            </div>
-          </div>
-          <chat-content-rich-text
-            .text=${result.content}
-            .state=${"finished"}
-            .extensions=${this.extensions}
-            .myoxusFeatureFlagService=${this.myoxusFeatureFlagService}
-            .theme=${this.theme}
-          ></chat-content-rich-text>
-        </div>
-      `;
+                },
+                insert: this.independentMode
+                  ? undefined
+                  : async () => {
+                      if (!this.host) return;
+                      if (this.host.std.store.readonly$.value) {
+                        this.notificationService.notify({
+                          title: "Cannot insert in read-only mode",
+                          accent: "error",
+                          onClose: () => {},
+                        });
+                        return;
+                      }
+                      if (isInsidePageEditor(this.host)) {
+                        await PAGE_INSERT.handler(
+                          this.host,
+                          result.content,
+                          this.selection,
+                        );
+                      } else {
+                        await EDGELESS_INSERT.handler(
+                          this.host,
+                          result.content,
+                          this.selection,
+                        );
+                      }
+                    },
+                createDoc: this.independentMode
+                  ? undefined
+                  : async () => {
+                      if (!this.host) return;
+                      SAVE_AS_DOC.handler(this.host, result.content);
+                    },
+              }),
+            },
+            toReactNode(
+              html`<chat-content-rich-text
+                .text=${result.content}
+                .state=${"finished"}
+                .extensions=${this.extensions}
+                .myoxusFeatureFlagService=${this.myoxusFeatureFlagService}
+                .theme=${this.theme}
+              ></chat-content-rich-text>`,
+            ),
+          ),
+          true,
+        ) ?? nothing
+      );
     }
 
-    return html`
-      <tool-call-failed
-        .reactToLit=${this.reactToLit}
-        .name=${"Section edit failed"}
-        .icon=${PageIcon()}
-      ></tool-call-failed>
-    `;
+    return renderToolFailedCard(this.reactToLit, {
+      name: "Section edit failed",
+      icon: createElement(NativePageIcon),
+    });
   }
 
   private readonly notifySuccess = (title: string) => {

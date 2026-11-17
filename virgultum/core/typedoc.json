@@ -1,0 +1,3 @@
+{
+  "entryPoints": ["src/store/index.ts", "src/runtime/index.ts"]
+}

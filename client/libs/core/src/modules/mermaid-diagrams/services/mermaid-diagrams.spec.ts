@@ -1,6 +1,6 @@
 import type { Store } from "@virgultum/editor/store";
 import { Framework, LiveData } from "@myoxus/infra";
-import { TestWorkspace } from "@virgultum/store/test";
+import { TestWorkspace } from "@virgultum/core/store/test";
 import { SurfaceBlockSchemaExtension } from "@virgultum/editor/blocks/surface";
 import {
   BpmnBlockSchemaExtension,

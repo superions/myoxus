@@ -1,4 +1,4 @@
-import { DomRenderer } from "@virgultum/block-surface";
+import { DomRenderer } from "@virgultum/editor/blocks/surface";
 import { beforeEach, describe, expect, test } from "vitest";
 
 import { wait } from "../utils/common.js";

@@ -1,1 +1,1 @@
-export * from "@virgultum/block-paragraph/view";
+export { ParagraphViewExtension } from "@virgultum/content/view";

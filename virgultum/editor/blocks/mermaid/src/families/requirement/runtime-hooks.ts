@@ -16,7 +16,7 @@ import {
   projectNeutralMermaidGfxNodeElement,
   projectNeutralMermaidGfxSubgraphElement,
 } from "../runtime/gfx-element-projection-defaults.js";
-import { StrokeStyle } from "@virgultum/model";
+import { StrokeStyle } from "@virgultum/core/models";
 import { resolveMermaidGfxProjectionTheme } from "../../mermaid-gfx-theme.js";
 import { isRequirementDiagramType } from "./family.js";
 import {

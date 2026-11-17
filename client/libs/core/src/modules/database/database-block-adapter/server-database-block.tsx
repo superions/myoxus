@@ -53,7 +53,7 @@ import {
   SurfaceListText,
 } from "@myoxus/ui-facade";
 import { MyoxusEmbeddedUIProvider } from "@myoxus/ui-facade/provider";
-import type { DatabaseReferenceBlockModel } from "@virgultum/block-database/reference-store";
+import type { DatabaseReferenceBlockModel } from "@virgultum/editor/blocks/database/reference-store";
 import { html } from "lit";
 import {
   useCallback,

@@ -3,6 +3,16 @@ use serde::{Deserialize, Serialize};
 
 use super::inline::InlineSpan;
 
+/// Authored callout paint resolved from the captured light document palette.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CalloutPaint {
+  pub fill: String,
+  pub stroke: String,
+  pub appearance: String,
+  /// Editor palette reference, selecting an already materialized SVG.
+  pub icon_color: Option<String>,
+}
+
 // ─── Shared primitives ───────────────────────────────────────────────────────
 
 /// A resolved binary asset (image, embedded attachment content).
@@ -114,6 +124,8 @@ pub enum TableDensity {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CodeBlock {
+  #[serde(default)]
+  pub line_numbers: bool,
   pub language: Option<String>,
   pub code: String,
   pub caption: Option<RichText>,
@@ -317,7 +329,14 @@ pub enum Block {
 
   // ── Text blocks ─────────────────────────────────────────────────────────
   /// `myoxus:paragraph` with `prop:type = "text"` or no explicit type.
-  Paragraph { content: RichText, children: Vec<Block> },
+  Paragraph {
+    content: RichText,
+    children: Vec<Block>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    alignment: Option<String>,
+    #[serde(default)]
+    eyebrow: bool,
+  },
 
   /// `myoxus:paragraph` with `prop:type = "quote"`.
   Quote { content: RichText, children: Vec<Block> },
@@ -333,6 +352,9 @@ pub enum Block {
   List {
     list_type: ListType,
     content: RichText,
+    /// Authored first ordinal, not a document-global counter.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    start: Option<u32>,
     /// Todo checkbox state (only meaningful when list_type = Todo).
     checked: bool,
     children: Vec<Block>,
@@ -350,7 +372,11 @@ pub enum Block {
   /// `myoxus:callout` — callout box with variant styling.
   Callout {
     variant: CalloutVariant,
+    /// Unicode symbol or central icon name; empty explicitly hides the icon.
+    /// The persisted field name also accepts older queued IR documents.
     emoji: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    paint: Option<CalloutPaint>,
     content: RichText,
     children: Vec<Block>,
   },

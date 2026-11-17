@@ -1,9 +1,15 @@
-import { WebIcon } from "@myoxus/icons/lit";
+import { createElement } from "react";
+import { WebIcon as NativeWebIcon } from "@myoxus/icons/react";
+import {
+  renderToolCallCard,
+  renderToolResultCard,
+  renderToolFailedCard,
+} from "./tool-cards";
+
 import type { ReactToLit } from "@myoxus/lit-react";
-import type { Signal } from "@preact/signals-core";
 import { WithDisposable } from "@virgultum/editor/global/lit";
 import { ShadowlessElement } from "@virgultum/editor/std";
-import { html, nothing } from "lit";
+import { nothing } from "lit";
 import { property } from "lit/decorators.js";
 
 import type { ToolError } from "./type";
@@ -38,17 +44,11 @@ export class WebCrawlTool extends WithDisposable(ShadowlessElement) {
   @property({ attribute: false })
   accessor data!: WebCrawlToolCall | WebCrawlToolResult;
 
-  @property({ attribute: false })
-  accessor width: Signal<number | undefined> | undefined;
-
   renderToolCall() {
-    return html`
-      <tool-call-card
-        .reactToLit=${this.reactToLit}
-        .name=${`Reading the website "${this.data.args.url}"`}
-        .icon=${WebIcon()}
-      ></tool-call-card>
-    `;
+    return renderToolCallCard(this.reactToLit, {
+      name: `Reading the website "${this.data.args.url}"`,
+      icon: createElement(NativeWebIcon),
+    });
   }
 
   renderToolResult() {
@@ -59,31 +59,24 @@ export class WebCrawlTool extends WithDisposable(ShadowlessElement) {
     const result = this.data.result;
     if (result && Array.isArray(result) && result.length > 0) {
       const { favicon, title, content } = result[0];
-      return html`
-        <tool-result-card
-          .reactToLit=${this.reactToLit}
-          .name=${"The reading is complete, and this webpage has been read"}
-          .icon=${WebIcon()}
-          .footerIcons=${favicon ? [favicon] : []}
-          .results=${[
-            {
-              title: title,
-              icon: favicon,
-              content: content,
-            },
-          ]}
-          .width=${this.width}
-        ></tool-result-card>
-      `;
+      return renderToolResultCard(this.reactToLit, {
+        name: "The reading is complete, and this webpage has been read",
+        icon: createElement(NativeWebIcon),
+        footerIcons: favicon ? [favicon] : [],
+        results: [
+          {
+            title: title,
+            icon: favicon,
+            content: content,
+          },
+        ],
+      });
     }
 
-    return html`
-      <tool-call-failed
-        .reactToLit=${this.reactToLit}
-        .name=${"Web reading failed"}
-        .icon=${WebIcon()}
-      ></tool-call-failed>
-    `;
+    return renderToolFailedCard(this.reactToLit, {
+      name: "Web reading failed",
+      icon: createElement(NativeWebIcon),
+    });
   }
 
   protected override render() {

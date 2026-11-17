@@ -1,7 +1,7 @@
 import { Entity, LiveData } from "@myoxus/infra";
 import type { Signal } from "@preact/signals-core";
 import { ColorScheme } from "@virgultum/editor/model";
-import { createSignalFromObservable } from "@virgultum/shared/utils";
+import { createSignalFromObservable } from "@virgultum/core/utils";
 
 export class AppTheme extends Entity {
   theme$ = new LiveData<string | undefined>(undefined);

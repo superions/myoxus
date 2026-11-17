@@ -284,6 +284,7 @@ async fn workspace_overviews_preserve_other_scopes_and_reject_stale_or_denied_se
             introduction: Some(Some(introduction.clone())),
             folder_ids: Some(Some(vec![folder_id.into()])),
             register_presentation: Some(Some(OverviewRegisterPresentation {
+          selection: Default::default(),
               display_properties: vec!["system:title".into(), "system:status".into()],
               order_by: OverviewOrderBy {
                 property_type: "system".into(),
@@ -401,7 +402,10 @@ async fn workspace_overviews_preserve_other_scopes_and_reject_stale_or_denied_se
     let tags = state.workspace_tag_service().unwrap();
     let tag = tags.create_tag(owner, workspace, "Overview native label", "tag.blue", None).await.unwrap();
     tags.set_document_tags(owner, workspace, introduction_id, &[tag.id]).await.unwrap();
-    let register_query = "query($id:String!,$folder:String,$offset:Int!){workspace(id:$id){overview(folderId:$folder,first:200,offset:$offset){documentCount limit offset hasMore documents{resource{id} createdAt createdByName tags{id workspaceId name colorRole archived} metadata{docId externalId createdBy canPublish tagIds}}}}}";
+    // Responsible is its canonical person, deliberately different from creator.
+    sqlx::query("UPDATE docs SET responsible_user_id=$1 WHERE id=$2")
+      .bind(reader).bind(introduction_id).execute(&pool).await.unwrap();
+    let register_query = "query($id:String!,$folder:String,$offset:Int!){workspace(id:$id){overview(folderId:$folder,first:200,offset:$offset){documentCount limit offset hasMore documents{resource{id} createdAt createdByName tags{id workspaceId name colorRole archived} metadata{docId externalId createdBy responsibleUserId responsibleName canPublish tagIds}}}}}";
     let register = helpers::gql(&app, reader_session, json!({
       "query":register_query,"variables":{"id":workspace,"offset":-10}
     })).await;
@@ -414,6 +418,14 @@ async fn workspace_overviews_preserve_other_scopes_and_reject_stale_or_denied_se
     assert_eq!(row["metadata"]["docId"], introduction_id.to_string());
     assert_eq!(row["metadata"]["externalId"],external_key);
     assert_eq!(row["metadata"]["createdBy"],owner.to_string());
+    let responsible = state.auth().get_historical_profiles(&[reader]).await.unwrap().remove(&reader).unwrap();
+    assert_eq!(row["metadata"]["responsibleUserId"], reader.to_string());
+    assert_eq!(row["metadata"]["responsibleName"], responsible.name.unwrap_or(responsible.email));
+    let index = helpers::gql(&app, reader_session, json!({"query":"query($id:ID!){documentMetadataIndex(workspaceId:$id){docId responsibleUserId responsibleName}}","variables":{"id":workspace}})).await;
+    assert!(index.get("errors").is_none(), "{index}");
+    let same = index["data"]["documentMetadataIndex"].as_array().unwrap().iter().find(|row| row["docId"] == introduction_id.to_string()).unwrap();
+    assert_eq!(same["responsibleName"], row["metadata"]["responsibleName"]);
+
     assert_eq!(row["metadata"]["tagIds"], json!([tag.id]));
     assert_eq!(row["tags"], json!([{
       "id": tag.id, "workspaceId": workspace, "name": "Overview native label",
@@ -435,6 +447,38 @@ async fn workspace_overviews_preserve_other_scopes_and_reject_stale_or_denied_se
         "an obsolete page offset returns the first page without changing direct membership; a folder introduction adds no members");
       assert_eq!(page["hasMore"],false);
     }
+
+    // The block read shares live label admission, but never workspace bindings.
+    sqlx::query("UPDATE docs SET responsible_user_id=NULL WHERE id=$1").bind(introduction_id).execute(&pool).await.unwrap();
+    let cleared = helpers::gql(&app, reader_session, json!({"query":register_query,"variables":{"id":workspace,"offset":0}})).await;
+    assert!(cleared.get("errors").is_none(), "{cleared}");
+    assert!(cleared["data"]["workspace"]["overview"]["documents"][0]["metadata"]["responsibleUserId"].is_null());
+    assert!(cleared["data"]["workspace"]["overview"]["documents"][0]["metadata"]["responsibleName"].is_null());
+
+    let index_query = "query($id:String!,$folderId:String,$input:WorkspaceOverviewRegisterPresentationInput!){workspace(id:$id){overview(folderId:$folderId,registerPresentation:$input,first:1){documentCount documents{resource{id}}}}}";
+    let override_input = json!({"displayProperties":["system:title"],"orderBy":{"type":"system","key":"title","desc":false},"selection":{"tagIds":[tag.id]}});
+    let before_override = state.workspace().get_workspace(workspace).await.unwrap().unwrap();
+    let selected = helpers::gql(&app, reader_session, json!({
+      "query":index_query,"variables":{"id":workspace,"input":override_input}
+    })).await;
+    assert!(selected.get("errors").is_none(), "directory query failed: {selected}");
+    assert_eq!(selected["data"]["workspace"]["overview"],json!({
+      "documentCount":1,"documents":[{"resource":{"id":external_key}}]
+    }));
+    tags.set_document_tags(owner, workspace, introduction_id, &[]).await.unwrap();
+    let removed = helpers::gql(&app, reader_session, json!({
+      "query":index_query,"variables":{"id":workspace,"input":override_input}
+    })).await;
+    assert!(removed.get("errors").is_none(), "directory refresh failed: {removed}");
+    assert_eq!(removed["data"]["workspace"]["overview"],json!({"documentCount":0,"documents":[]}));
+    let missing = helpers::gql(&app, reader_session, json!({
+      "query":index_query,"variables":{"id":workspace,"folderId":"absent-directory-folder","input":override_input}
+    })).await;
+    assert!(missing.get("errors").is_some(), "missing scope must not become an empty directory: {missing}");
+    let after_override = state.workspace().get_workspace(workspace).await.unwrap().unwrap();
+    assert_eq!(before_override.overview_settings, after_override.overview_settings, "an embedded override must not persist into overview settings");
+    assert_eq!(before_override.overview_revision, after_override.overview_revision);
+
 
     let stale = settings
       .update(
@@ -672,6 +716,22 @@ async fn workspace_overviews_preserve_other_scopes_and_reject_stale_or_denied_se
     assert!(clear_basis["folderIds"].is_null());
     assert_eq!(clear_basis["folders"],folder_basis["folders"]);
     assert!(state.doc().get_metadata(introduction_id).await.unwrap().is_some());
+    // The primary overview persists the same selection; an embedding may override it independently.
+    let filtered = helpers::gql(&app, owner_session, json!({
+      "query":mutation,"variables":{"input":{"id":workspace,"overview":{
+        "expectedRevision":8,"registerPresentation":override_input
+      }}}
+    })).await;
+    assert!(filtered.get("errors").is_none(), "primary overview filter save failed: {filtered}");
+    let persisted = helpers::gql(&app, reader_session, json!({"query":register_query,"variables":{"id":workspace,"offset":0}})).await;
+    assert!(persisted.get("errors").is_none(), "{persisted}");
+    assert_eq!(persisted["data"]["workspace"]["overview"]["documentCount"],0);
+    let independent = helpers::gql(&app, reader_session, json!({"query":index_query,"variables":{"id":workspace,"input":{
+      "displayProperties":["system:title"],"orderBy":{"type":"system","key":"title","desc":false},"selection":{}
+    }}})).await;
+    assert!(independent.get("errors").is_none(), "{independent}");
+    assert!(independent["data"]["workspace"]["overview"]["documentCount"].as_i64().unwrap()>0);
+
   })
   .catch_unwind()
   .await;

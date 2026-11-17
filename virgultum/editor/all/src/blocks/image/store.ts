@@ -1,1 +1,1 @@
-export * from "@virgultum/block-image/store";
+export { ImageStoreExtension } from "@virgultum/embeds/store";

@@ -1,12 +1,11 @@
+import type { PeekViewService } from "@myoxus/core/modules/peek-view";
+import type { DocDisplayConfig } from "../../../components/ai-chat-chips";
 import type { TextRendererOptions } from "@myoxus/core/editor/ai/components/text-renderer";
 import type { ReactToLit } from "@myoxus/lit-react";
 import { fontSMStyle } from "@virgultum/editor/shared/styles";
 import { unsafeCSSValue } from "@virgultum/editor/shared/theme";
 import { type EditorHost, ShadowlessElement } from "@virgultum/editor/std";
-import {
-  NotificationProvider,
-  ThemeProvider,
-} from "@virgultum/shared/services";
+import { NotificationProvider, ThemeProvider } from "@virgultum/core/services";
 import { css, html, nothing } from "lit";
 import { property } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
@@ -56,6 +55,10 @@ export class AIChatBlockMessage extends ShadowlessElement {
   `;
 
   @property({ attribute: false }) accessor reactToLit: ReactToLit | undefined;
+  @property({ attribute: false }) accessor peekViewService:
+    PeekViewService | undefined;
+  @property({ attribute: false }) accessor docDisplayConfig:
+    DocDisplayConfig | undefined;
 
   override render() {
     const {
@@ -95,6 +98,8 @@ export class AIChatBlockMessage extends ShadowlessElement {
     return html`<chat-content-stream-objects
       .reactToLit=${this.reactToLit}
       .answer=${answer}
+      .peekViewService=${this.peekViewService}
+      .docDisplayService=${this.docDisplayConfig}
       .host=${this.host}
       .state=${this.state}
       .extensions=${this.textRendererOptions.extensions}
@@ -150,6 +155,10 @@ export class AIChatBlockMessages extends ShadowlessElement {
   `;
 
   @property({ attribute: false }) accessor reactToLit: ReactToLit | undefined;
+  @property({ attribute: false }) accessor peekViewService:
+    PeekViewService | undefined;
+  @property({ attribute: false }) accessor docDisplayConfig:
+    DocDisplayConfig | undefined;
   // Canvas previews retain their bounded rendering; only the interactive peek
   // exposes authenticated downloads from restored message references.
   @property({ attribute: false }) accessor showGeneratedFiles = false;
@@ -166,6 +175,8 @@ export class AIChatBlockMessages extends ShadowlessElement {
               .host=${this.host}
               .textRendererOptions=${this.textRendererOptions}
               .message=${message}
+              .peekViewService=${this.peekViewService}
+              .docDisplayConfig=${this.docDisplayConfig}
             ></ai-chat-block-message>
             ${
               this.showGeneratedFiles && message.generatedFiles?.length

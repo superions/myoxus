@@ -56,6 +56,10 @@ export function PdfTemplatePreviewThumbnail({
   }, [loadPreviewPdf, templateId]);
 
   useEffect(() => {
+    requestPreview();
+  }, [requestPreview]);
+
+  useEffect(() => {
     if (!pdfBase64) return;
     let cancelled = false;
     let loadingTask: PDFDocumentLoadingTask | undefined;

@@ -304,7 +304,7 @@ describe("server-backed database slash menu", () => {
     const virgultumBlock = readFileSync(
       join(
         process.cwd(),
-        "virgultum/editor/blocks/database/src/reference-database-block.ts",
+        "virgultum/embeds/src/database/reference-database-block.ts",
       ),
       "utf8",
     );

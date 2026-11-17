@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { Bound } from "@virgultum/global/gfx";
-import type { ToolbarContext } from "@virgultum/shared/services";
+import { Bound } from "@virgultum/core/primitives/gfx";
+import type { ToolbarContext } from "@virgultum/core/services";
 import {
   applyMermaidVisualModelCommand,
   getMermaidVisualModelForEditing,

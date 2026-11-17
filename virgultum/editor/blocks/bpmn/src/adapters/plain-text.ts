@@ -1,8 +1,8 @@
-import { BpmnBlockSchema } from "@virgultum/model";
+import { BpmnBlockSchema } from "@virgultum/core/models";
 import {
   BlockPlainTextAdapterExtension,
   type BlockPlainTextAdapterMatcher,
-} from "@virgultum/shared/adapters";
+} from "@virgultum/core/adapters";
 
 import { getBpmnBlockExportLabel } from "../utils.js";
 

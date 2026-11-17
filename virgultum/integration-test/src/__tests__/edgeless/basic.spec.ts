@@ -1,5 +1,5 @@
-import { LocalShapeElementModel } from "@virgultum/model";
-import { Text } from "@virgultum/store";
+import { LocalShapeElementModel } from "@virgultum/editor/model";
+import { Text } from "@virgultum/editor/store";
 import { beforeEach, describe, expect, test } from "vitest";
 
 import { addNote, getSurface } from "../utils/edgeless.js";

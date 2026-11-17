@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import type { BlockModel } from "@virgultum/store";
+import type { BlockModel } from "@virgultum/core/store";
 
 import type {
   MermaidFamilyResolvedRuntimeResolution,
   MermaidFamilyRuntimeResolution,
 } from "../families/runtime/contracts.js";
-import type { MermaidBlockModel } from "@virgultum/model";
+import type { MermaidBlockModel } from "@virgultum/core/models";
 import type { MermaidEditorCapabilities } from "../families/runtime/editor-capabilities.js";
 import { resolveMermaidFamilyRuntime } from "../families/runtime/registry.js";
 

@@ -41,7 +41,7 @@ import {
   type FeatureManifestId,
   type FeatureManifestRegistry,
   type FeatureScope,
-} from "@virgultum/ext-loader";
+} from "@virgultum/core/extensions";
 
 /**
  * One entry in the scope report. Carries the

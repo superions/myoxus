@@ -1,1 +1,1 @@
-export * from "@virgultum/gfx-shape/store";
+export { ShapeStoreExtension } from "@virgultum/canvas/store";

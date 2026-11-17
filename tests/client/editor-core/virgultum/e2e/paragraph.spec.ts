@@ -86,12 +86,11 @@ for (const flavour of ["myoxus:paragraph", "myoxus:list"]) {
       { flavour, noteId, paragraphId },
     );
     await dragBetweenIndices(page, [0, 0], [0, 15]);
-    await page.locator('editor-icon-button[aria-label="Repeat for"]').click();
+    await page.getByRole("button", { name: "Repeat for", exact: true }).click();
     await page
-      .locator("myoxus-menu-button")
-      .filter({ hasText: "Workspace members" })
+      .getByRole("menuitem", { name: "Workspace members", exact: true })
       .click();
-    await expect(page.locator("myoxus-menu")).toHaveCount(0);
+    await expect(page.getByRole("menu")).toHaveCount(0);
     await expect
       .poll(() =>
         page.evaluate((id) => {
@@ -136,10 +135,9 @@ for (const flavour of ["myoxus:paragraph", "myoxus:list"]) {
       { source: "workspace.members", alias: "member" },
     ]);
     await dragBetweenIndices(page, [0, 0], [0, 15]);
-    await page.locator('editor-icon-button[aria-label="Repeat for"]').click();
+    await page.getByRole("button", { name: "Repeat for", exact: true }).click();
     await page
-      .locator("myoxus-menu-button")
-      .filter({ hasText: "Remove repeat" })
+      .getByRole("menuitem", { name: "Remove repeat", exact: true })
       .click();
     await expect.poll(bindings).toEqual([null]);
     await undoByKeyboard(page);
@@ -172,18 +170,29 @@ test("eyebrow presentation preserves paragraph content and survivor semantics", 
   const paragraphState = () =>
     page.evaluate(
       (noteId) =>
-        window.doc.getModelById(noteId)!.children.map((model) => ({
-          text: model.props.text.toString(),
-          delta: model.props.text.toDelta(),
-          textAlign: model.props.textAlign,
-          presentation: model.props.presentation ?? null,
-        })),
+        window.doc.getModelById(noteId)!.children.map((model) => {
+          const paragraph =
+            model as import("@virgultum/core/models").ParagraphBlockModel;
+          return {
+            text: paragraph.props.text.toString(),
+            delta: paragraph.props.text.toDelta(),
+            textAlign: paragraph.props.textAlign,
+            presentation: paragraph.props.presentation ?? null,
+          };
+        }),
       noteId,
     );
   const initial = await paragraphState();
 
   await dragBetweenIndices(page, [0, 0], [0, 12]);
-  const eyebrow = page.locator('editor-icon-button[data-testid="eyebrow"]');
+  const eyebrow = page.getByRole("menuitem", {
+    name: "Small heading",
+    exact: true,
+  });
+  await page
+    .getByTestId("selection-toolbar")
+    .getByRole("button", { name: "Conversions", exact: true })
+    .click();
   await expect(eyebrow).toBeVisible();
   await eyebrow.click();
   await expect
@@ -232,6 +241,10 @@ test("eyebrow presentation preserves paragraph content and survivor semantics", 
     .toEqual([{ ...initial[0], presentation: "eyebrow" }]);
 
   await dragBetweenIndices(page, [0, 0], [0, 12]);
+  await page
+    .getByTestId("selection-toolbar")
+    .getByRole("button", { name: "Conversions", exact: true })
+    .click();
   await eyebrow.click();
   await expect.poll(paragraphState).toEqual(initial);
 });

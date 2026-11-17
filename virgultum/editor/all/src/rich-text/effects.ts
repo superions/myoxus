@@ -1,1 +1,1 @@
-export * from "@virgultum/rich-text/effects";
+export { RichTextEffects as effects } from "@virgultum/content/effects";

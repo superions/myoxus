@@ -1,1 +1,1 @@
-export * from "@virgultum/block-event/view";
+export { EventViewExtension } from "@virgultum/embeds/view";

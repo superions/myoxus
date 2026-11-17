@@ -7,7 +7,11 @@ import type {
   MermaidC4Model,
 } from "../../engine/c4/model.js";
 
-import { getFontString, measureTextInDOM, wrapText } from "@virgultum/gfx-text";
+import {
+  getFontString,
+  measureTextInDOM,
+  wrapText,
+} from "@virgultum/canvas/gfx";
 import {
   mermaidGfxLabelPadding,
   resolveMermaidGfxProjectionTheme,
@@ -22,7 +26,7 @@ import type {
 } from "../runtime/gfx-model.js";
 import { c4BoundaryPresentation } from "./gfx-data.js";
 import { projectNeutralMermaidGfxSubgraphElement } from "../runtime/gfx-element-projection-defaults.js";
-import { StrokeStyle } from "@virgultum/model";
+import { StrokeStyle } from "@virgultum/core/models";
 
 export function c4BoundaryDisplayLabel(boundary: {
   label: string;

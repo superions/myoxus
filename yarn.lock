@@ -773,7 +773,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@floating-ui/dom@npm:^1.0.0, @floating-ui/dom@npm:^1.6.10, @floating-ui/dom@npm:^1.6.13, @floating-ui/dom@npm:^1.7.6, @floating-ui/dom@npm:^1.8.0":
+"@floating-ui/dom@npm:^1.0.0, @floating-ui/dom@npm:^1.6.13, @floating-ui/dom@npm:^1.7.6, @floating-ui/dom@npm:^1.8.0":
   version: 1.8.0
   resolution: "@floating-ui/dom@npm:1.8.0"
   dependencies:
@@ -1630,7 +1630,7 @@ __metadata:
     "@types/lodash-es": "npm:^4.17.12"
     "@types/mime-types": "npm:^3.0.0"
     "@types/node": "npm:^26.0.0"
-    "@virgultum/components": "workspace:*"
+    "@virgultum/content": "workspace:*"
     clipanion: "npm:^3.2.1"
     jsonc-parser: "npm:^3.3.1"
     lodash-es: "npm:4.18.1"
@@ -1803,19 +1803,10 @@ __metadata:
     "@types/lodash-es": "npm:^4.17.12"
     "@types/semver": "npm:^7"
     "@virgultum/block-bpmn": "workspace:*"
-    "@virgultum/block-database": "workspace:*"
     "@virgultum/block-mermaid": "workspace:*"
-    "@virgultum/block-root": "workspace:*"
-    "@virgultum/block-table": "workspace:*"
-    "@virgultum/components": "workspace:*"
+    "@virgultum/content": "workspace:*"
+    "@virgultum/core": "workspace:*"
     "@virgultum/editor": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/gfx-pointer": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
     "@xyflow/react": "npm:12.11.1"
     "@zip.js/zip.js": "npm:2.24.0"
     altcha: "npm:^3.0.5"
@@ -2092,7 +2083,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@myoxus/lit-react@workspace:client/libs/lit-react"
   dependencies:
-    "@virgultum/shared": "workspace:*"
+    "@virgultum/core": "workspace:*"
     lit: "npm:^3.3.3"
     nanoid: "npm:6.0.1"
     react: "npm:19.3.0"
@@ -5323,404 +5314,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@virgultum/block-annotation@workspace:*, @virgultum/block-annotation@workspace:virgultum/editor/blocks/annotation":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/block-annotation@workspace:virgultum/editor/blocks/annotation"
-  dependencies:
-    "@myoxus/icons": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-slash-menu": "workspace:*"
-    lit: "npm:^3.3.3"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/block-attachment@workspace:*, @virgultum/block-attachment@workspace:virgultum/editor/blocks/attachment":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/block-attachment@workspace:virgultum/editor/blocks/attachment"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-slash-menu": "workspace:*"
-    file-type: "npm:22.1.1"
-    lit: "npm:^3.3.3"
-    rxjs: "npm:^7.8.2"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/block-bookmark@workspace:*, @virgultum/block-bookmark@workspace:virgultum/editor/blocks/bookmark":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/block-bookmark@workspace:virgultum/editor/blocks/bookmark"
-  dependencies:
-    "@lit/context": "npm:^1.1.6"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@virgultum/block-embed": "workspace:*"
-    "@virgultum/block-embed-doc": "workspace:*"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-slash-menu": "workspace:*"
-    lit: "npm:^3.3.3"
-    rxjs: "npm:^7.8.2"
-    vitest: "npm:4.1.11"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
 "@virgultum/block-bpmn@workspace:*, @virgultum/block-bpmn@workspace:virgultum/editor/blocks/bpmn":
   version: 0.0.0-use.local
   resolution: "@virgultum/block-bpmn@workspace:virgultum/editor/blocks/bpmn"
   dependencies:
     "@myoxus/bpmn-editor": "workspace:*"
     "@myoxus/icons": "workspace:*"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/gfx-note": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-edgeless-toolbar": "workspace:*"
-    "@virgultum/widget-slash-menu": "workspace:*"
+    "@virgultum/canvas": "workspace:*"
+    "@virgultum/canvas-runtime": "workspace:*"
+    "@virgultum/core": "workspace:*"
     lit: "npm:^3.3.3"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/block-callout@workspace:*, @virgultum/block-callout@workspace:virgultum/editor/blocks/callout":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/block-callout@workspace:virgultum/editor/blocks/callout"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.10"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/mdast": "npm:^4.0.4"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/inline-preset": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-slash-menu": "workspace:*"
-    lit: "npm:^3.3.3"
-    rxjs: "npm:^7.8.2"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/block-code@workspace:*, @virgultum/block-code@workspace:virgultum/editor/blocks/code":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/block-code@workspace:virgultum/editor/blocks/code"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/mdast": "npm:^4.0.4"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/gfx-turbo-renderer": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/inline-comment": "workspace:*"
-    "@virgultum/inline-latex": "workspace:*"
-    "@virgultum/inline-link": "workspace:*"
-    "@virgultum/inline-preset": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-slash-menu": "workspace:*"
-    lit: "npm:^3.3.3"
-    rxjs: "npm:^7.8.2"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/block-database@workspace:*, @virgultum/block-database@workspace:virgultum/editor/blocks/database":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/block-database@workspace:virgultum/editor/blocks/database"
-  dependencies:
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-slash-menu": "workspace:*"
-    lit: "npm:^3.3.3"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/block-divider@workspace:*, @virgultum/block-divider@workspace:virgultum/editor/blocks/divider":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/block-divider@workspace:virgultum/editor/blocks/divider"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/mdast": "npm:^4.0.4"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    lit: "npm:^3.3.3"
-    rxjs: "npm:^7.8.2"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/block-edgeless-text@workspace:*, @virgultum/block-edgeless-text@workspace:virgultum/editor/blocks/edgeless-text":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/block-edgeless-text@workspace:virgultum/editor/blocks/edgeless-text"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/gfx-text": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/inline-preset": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-edgeless-toolbar": "workspace:*"
-    lit: "npm:^3.3.3"
-    rxjs: "npm:^7.8.2"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/block-embed-doc@workspace:*, @virgultum/block-embed-doc@workspace:virgultum/editor/blocks/embed-doc":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/block-embed-doc@workspace:virgultum/editor/blocks/embed-doc"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/block-embed": "workspace:*"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/inline-reference": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-slash-menu": "workspace:*"
-    lit: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-    vitest: "npm:4.1.11"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/block-embed@workspace:*, @virgultum/block-embed@workspace:virgultum/editor/blocks/embed":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/block-embed@workspace:virgultum/editor/blocks/embed"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/gfx-pointer": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/inline-reference": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-slash-menu": "workspace:*"
-    lit: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-    vitest: "npm:4.1.11"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/block-event@workspace:*, @virgultum/block-event@workspace:virgultum/editor/blocks/event":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/block-event@workspace:virgultum/editor/blocks/event"
-  dependencies:
-    "@myoxus/icons": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-slash-menu": "workspace:*"
-    lit: "npm:^3.3.3"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/block-frame@workspace:*, @virgultum/block-frame@workspace:virgultum/editor/blocks/frame":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/block-frame@workspace:virgultum/editor/blocks/frame"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/mdast": "npm:^4.0.4"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/gfx-pointer": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-edgeless-toolbar": "workspace:*"
-    "@virgultum/widget-frame-title": "workspace:*"
-    lit: "npm:^3.3.3"
-    rxjs: "npm:^7.8.2"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/block-image@workspace:*, @virgultum/block-image@workspace:virgultum/editor/blocks/image":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/block-image@workspace:virgultum/editor/blocks/image"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@virgultum/block-note": "workspace:*"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/gfx-turbo-renderer": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-slash-menu": "workspace:*"
-    file-type: "npm:22.1.1"
-    lit: "npm:^3.3.3"
-    rxjs: "npm:^7.8.2"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/block-latex@workspace:*, @virgultum/block-latex@workspace:virgultum/editor/blocks/latex":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/block-latex@workspace:virgultum/editor/blocks/latex"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/mdast": "npm:^4.0.4"
-    "@virgultum/block-note": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/inline-latex": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-slash-menu": "workspace:*"
-    katex: "npm:0.18.2"
-    lit: "npm:^3.3.3"
-    remark-math: "npm:^6.0.0"
-    rxjs: "npm:^7.8.2"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/block-list@workspace:*, @virgultum/block-list@workspace:virgultum/editor/blocks/list":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/block-list@workspace:virgultum/editor/blocks/list"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/mdast": "npm:^4.0.4"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/gfx-turbo-renderer": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/inline-preset": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    lit: "npm:^3.3.3"
-    rxjs: "npm:^7.8.2"
-    vitest: "npm:4.1.11"
-    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -5730,21 +5334,10 @@ __metadata:
   dependencies:
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
-    "@virgultum/block-code": "workspace:*"
-    "@virgultum/block-frame": "workspace:*"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/gfx-connector": "workspace:*"
-    "@virgultum/gfx-shape": "workspace:*"
-    "@virgultum/gfx-text": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-edgeless-toolbar": "workspace:*"
-    "@virgultum/widget-slash-menu": "workspace:*"
+    "@virgultum/canvas": "workspace:*"
+    "@virgultum/canvas-runtime": "workspace:*"
+    "@virgultum/content": "workspace:*"
+    "@virgultum/core": "workspace:*"
     dayjs: "npm:^1.11.23"
     dompurify: "npm:3.4.17"
     lit: "npm:^3.3.3"
@@ -5755,155 +5348,13 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@virgultum/block-note@workspace:*, @virgultum/block-note@workspace:virgultum/editor/blocks/note":
+"@virgultum/canvas-runtime@workspace:*, @virgultum/canvas-runtime@workspace:virgultum/canvas-runtime":
   version: 0.0.0-use.local
-  resolution: "@virgultum/block-note@workspace:virgultum/editor/blocks/note"
+  resolution: "@virgultum/canvas-runtime@workspace:virgultum/canvas-runtime"
   dependencies:
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
     "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
-    "@types/mdast": "npm:^4.0.4"
-    "@virgultum/block-embed": "workspace:*"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/fragment-doc-title": "workspace:*"
-    "@virgultum/gfx-turbo-renderer": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/inline-preset": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-slash-menu": "workspace:*"
-    lit: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/block-paragraph@workspace:*, @virgultum/block-paragraph@workspace:virgultum/editor/blocks/paragraph":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/block-paragraph@workspace:virgultum/editor/blocks/paragraph"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/mdast": "npm:^4.0.4"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/gfx-turbo-renderer": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/inline-preset": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    lit: "npm:^3.3.3"
-    rxjs: "npm:^7.8.2"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/block-root@workspace:*, @virgultum/block-root@workspace:virgultum/editor/blocks/root":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/block-root@workspace:virgultum/editor/blocks/root"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/block-attachment": "workspace:*"
-    "@virgultum/block-bookmark": "workspace:*"
-    "@virgultum/block-edgeless-text": "workspace:*"
-    "@virgultum/block-embed": "workspace:*"
-    "@virgultum/block-frame": "workspace:*"
-    "@virgultum/block-image": "workspace:*"
-    "@virgultum/block-note": "workspace:*"
-    "@virgultum/block-paragraph": "workspace:*"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/gfx-brush": "workspace:*"
-    "@virgultum/gfx-connector": "workspace:*"
-    "@virgultum/gfx-group": "workspace:*"
-    "@virgultum/gfx-note": "workspace:*"
-    "@virgultum/gfx-pointer": "workspace:*"
-    "@virgultum/gfx-shape": "workspace:*"
-    "@virgultum/gfx-text": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/inline-preset": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-edgeless-selected-rect": "workspace:*"
-    "@virgultum/widget-edgeless-toolbar": "workspace:*"
-    dompurify: "npm:3.4.17"
-    html2canvas: "npm:^1.4.1"
-    lit: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/block-surface-ref@workspace:*, @virgultum/block-surface-ref@workspace:virgultum/editor/blocks/surface-ref":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/block-surface-ref@workspace:virgultum/editor/blocks/surface-ref"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/block-frame": "workspace:*"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/inline-reference": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-slash-menu": "workspace:*"
-    fractional-indexing: "npm:^3.2.0"
-    lit: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    nanoid: "npm:6.0.1"
-    rxjs: "npm:^7.8.2"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/block-surface@workspace:*, @virgultum/block-surface@workspace:virgultum/editor/blocks/surface":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/block-surface@workspace:virgultum/editor/blocks/surface"
-  dependencies:
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
+    "@virgultum/core": "workspace:*"
     fractional-indexing: "npm:^3.2.0"
     html2canvas: "npm:^1.4.1"
     lit: "npm:^3.3.3"
@@ -5912,40 +5363,37 @@ __metadata:
     rxjs: "npm:^7.8.2"
     vitest: "npm:4.1.11"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
-"@virgultum/block-table@workspace:*, @virgultum/block-table@workspace:virgultum/editor/blocks/table":
+"@virgultum/canvas@workspace:*, @virgultum/canvas@workspace:virgultum/canvas":
   version: 0.0.0-use.local
-  resolution: "@virgultum/block-table@workspace:virgultum/editor/blocks/table"
+  resolution: "@virgultum/canvas@workspace:virgultum/canvas"
   dependencies:
-    "@atlaskit/pragmatic-drag-and-drop": "npm:^1.4.0"
     "@floating-ui/dom": "npm:^1.6.13"
+    "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
     "@preact/signals-core": "npm:^1.14.5"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/inline-preset": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-slash-menu": "workspace:*"
+    "@types/lodash-es": "npm:^4.17.12"
+    "@virgultum/canvas-runtime": "workspace:*"
+    "@virgultum/content": "workspace:*"
+    "@virgultum/core": "workspace:*"
+    "@virgultum/embeds": "workspace:*"
+    fractional-indexing: "npm:^3.2.0"
     lit: "npm:^3.3.3"
+    lodash-es: "npm:4.18.1"
     rxjs: "npm:^7.8.2"
+    vitest: "npm:4.1.11"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
-"@virgultum/components@workspace:*, @virgultum/components@workspace:virgultum/editor/components":
+"@virgultum/content@workspace:*, @virgultum/content@workspace:virgultum/content":
   version: 0.0.0-use.local
-  resolution: "@virgultum/components@workspace:virgultum/editor/components"
+  resolution: "@virgultum/content@workspace:virgultum/content"
   dependencies:
+    "@atlaskit/pragmatic-drag-and-drop": "npm:^1.4.0"
     "@floating-ui/dom": "npm:^1.6.13"
     "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
@@ -5958,14 +5406,9 @@ __metadata:
     "@types/hast": "npm:^3.0.4"
     "@types/lodash-es": "npm:^4.17.12"
     "@types/mdast": "npm:^4.0.4"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/sync": "workspace:*"
+    "@virgultum/canvas-runtime": "workspace:*"
+    "@virgultum/core": "workspace:*"
     collapse-white-space: "npm:^2.1.0"
-    dayjs: "npm:^1.11.23"
     katex: "npm:0.18.2"
     lit: "npm:^3.3.3"
     lit-html: "npm:^3.3.3"
@@ -5979,100 +5422,97 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@virgultum/core@workspace:*, @virgultum/core@workspace:virgultum/core":
+  version: 0.0.0-use.local
+  resolution: "@virgultum/core@workspace:virgultum/core"
+  dependencies:
+    "@atlaskit/pragmatic-drag-and-drop": "npm:^1.4.0"
+    "@atlaskit/pragmatic-drag-and-drop-auto-scroll": "npm:^2.1.2"
+    "@atlaskit/pragmatic-drag-and-drop-hitbox": "npm:^1.1.0"
+    "@floating-ui/dom": "npm:^1.6.13"
+    "@lit/context": "npm:^1.1.6"
+    "@myoxus/icons": "workspace:*"
+    "@myoxus/theme": "workspace:*"
+    "@playwright/test": "npm:=1.65.0"
+    "@preact/signals-core": "npm:^1.14.5"
+    "@types/hast": "npm:^3.0.4"
+    "@types/lodash-es": "npm:^4.17.12"
+    "@types/mdast": "npm:^4.0.4"
+    "@vitest/browser-playwright": "npm:4.1.11"
+    dompurify: "npm:3.4.17"
+    fake-indexeddb: "npm:^6.0.0"
+    file-type: "npm:22.1.1"
+    fractional-indexing: "npm:^3.2.0"
+    idb: "npm:^8.0.0"
+    lib0: "npm:^0.2.119"
+    lit: "npm:^3.3.3"
+    lodash-es: "npm:4.18.1"
+    lz-string: "npm:^1.5.0"
+    mdast-util-from-markdown: "npm:^2.0.3"
+    mdast-util-gfm-autolink-literal: "npm:^2.0.1"
+    mdast-util-gfm-footnote: "npm:^2.1.0"
+    mdast-util-gfm-strikethrough: "npm:^2.0.1"
+    mdast-util-gfm-table: "npm:^2.0.0"
+    mdast-util-gfm-task-list-item: "npm:^2.0.0"
+    mdast-util-to-markdown: "npm:^2.1.3"
+    micromark-extension-gfm-autolink-literal: "npm:^2.1.0"
+    micromark-extension-gfm-footnote: "npm:^2.1.0"
+    micromark-extension-gfm-strikethrough: "npm:^2.1.0"
+    micromark-extension-gfm-table: "npm:^2.1.2"
+    micromark-extension-gfm-task-list-item: "npm:^2.1.0"
+    micromark-util-combine-extensions: "npm:^2.0.1"
+    micromark-util-types: "npm:^2.0.3"
+    minimatch: "npm:^10.2.2"
+    nanoid: "npm:6.0.1"
+    rehype-parse: "npm:^9.0.0"
+    rehype-stringify: "npm:^10.0.0"
+    remark-math: "npm:^6.0.0"
+    remark-parse: "npm:^11.0.0"
+    remark-stringify: "npm:^11.0.0"
+    rxjs: "npm:^7.8.2"
+    unified: "npm:^11.0.5"
+    unist-util-visit: "npm:^5.0.0"
+    vitest: "npm:4.1.11"
+    w3c-keyname: "npm:^2.2.8"
+    y-protocols: "npm:^1.0.7"
+    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
+    zod: "npm:4.6.7"
+  languageName: unknown
+  linkType: soft
+
 "@virgultum/editor@workspace:*, @virgultum/editor@workspace:virgultum/editor/all":
   version: 0.0.0-use.local
   resolution: "@virgultum/editor@workspace:virgultum/editor/all"
   dependencies:
-    "@virgultum/block-annotation": "workspace:*"
-    "@virgultum/block-attachment": "workspace:*"
-    "@virgultum/block-bookmark": "workspace:*"
+    "@floating-ui/dom": "npm:^1.6.13"
+    "@myoxus/icons": "workspace:*"
+    "@myoxus/theme": "workspace:*"
+    "@preact/signals-core": "npm:^1.14.5"
+    "@types/lodash-es": "npm:^4.17.12"
     "@virgultum/block-bpmn": "workspace:*"
-    "@virgultum/block-callout": "workspace:*"
-    "@virgultum/block-code": "workspace:*"
-    "@virgultum/block-database": "workspace:*"
-    "@virgultum/block-divider": "workspace:*"
-    "@virgultum/block-edgeless-text": "workspace:*"
-    "@virgultum/block-embed": "workspace:*"
-    "@virgultum/block-embed-doc": "workspace:*"
-    "@virgultum/block-event": "workspace:*"
-    "@virgultum/block-frame": "workspace:*"
-    "@virgultum/block-image": "workspace:*"
-    "@virgultum/block-latex": "workspace:*"
-    "@virgultum/block-list": "workspace:*"
     "@virgultum/block-mermaid": "workspace:*"
-    "@virgultum/block-note": "workspace:*"
-    "@virgultum/block-paragraph": "workspace:*"
-    "@virgultum/block-root": "workspace:*"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/block-surface-ref": "workspace:*"
-    "@virgultum/block-table": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/foundation": "workspace:*"
-    "@virgultum/fragment-doc-title": "workspace:*"
-    "@virgultum/fragment-frame-panel": "workspace:*"
-    "@virgultum/fragment-outline": "workspace:*"
-    "@virgultum/gfx-brush": "workspace:*"
-    "@virgultum/gfx-connector": "workspace:*"
-    "@virgultum/gfx-group": "workspace:*"
-    "@virgultum/gfx-link": "workspace:*"
-    "@virgultum/gfx-note": "workspace:*"
-    "@virgultum/gfx-pointer": "workspace:*"
-    "@virgultum/gfx-shape": "workspace:*"
-    "@virgultum/gfx-template": "workspace:*"
-    "@virgultum/gfx-text": "workspace:*"
-    "@virgultum/gfx-turbo-renderer": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/inline-comment": "workspace:*"
-    "@virgultum/inline-footnote": "workspace:*"
-    "@virgultum/inline-latex": "workspace:*"
-    "@virgultum/inline-link": "workspace:*"
-    "@virgultum/inline-mention": "workspace:*"
-    "@virgultum/inline-preset": "workspace:*"
-    "@virgultum/inline-reference": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/sync": "workspace:*"
-    "@virgultum/widget-drag-handle": "workspace:*"
-    "@virgultum/widget-edgeless-auto-connect": "workspace:*"
-    "@virgultum/widget-edgeless-dragging-area": "workspace:*"
-    "@virgultum/widget-edgeless-selected-rect": "workspace:*"
-    "@virgultum/widget-edgeless-toolbar": "workspace:*"
-    "@virgultum/widget-edgeless-zoom-toolbar": "workspace:*"
-    "@virgultum/widget-frame-title": "workspace:*"
-    "@virgultum/widget-keyboard-toolbar": "workspace:*"
-    "@virgultum/widget-linked-doc": "workspace:*"
-    "@virgultum/widget-note-slicer": "workspace:*"
-    "@virgultum/widget-page-dragging-area": "workspace:*"
-    "@virgultum/widget-remote-selection": "workspace:*"
-    "@virgultum/widget-scroll-anchoring": "workspace:*"
-    "@virgultum/widget-slash-menu": "workspace:*"
-    "@virgultum/widget-toolbar": "workspace:*"
-    "@virgultum/widget-viewport-overlay": "workspace:*"
+    "@virgultum/canvas": "workspace:*"
+    "@virgultum/canvas-runtime": "workspace:*"
+    "@virgultum/content": "workspace:*"
+    "@virgultum/core": "workspace:*"
+    "@virgultum/embeds": "workspace:*"
+    "@zip.js/zip.js": "npm:2.24.0"
+    dompurify: "npm:3.4.17"
+    html2canvas: "npm:^1.4.1"
+    lit: "npm:^3.3.3"
+    lodash-es: "npm:4.18.1"
     rxjs: "npm:^7.8.2"
     vite: "npm:8.3.6"
     vitest: "npm:4.1.11"
+    yaml: "npm:2.9.1"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/ext-loader@workspace:*, @virgultum/ext-loader@workspace:virgultum/editor/ext-loader":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/ext-loader@workspace:virgultum/editor/ext-loader"
-  dependencies:
-    "@virgultum/global": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    vitest: "npm:4.1.11"
     zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
-"@virgultum/foundation@workspace:*, @virgultum/foundation@workspace:virgultum/editor/foundation":
+"@virgultum/embeds@workspace:*, @virgultum/embeds@workspace:virgultum/embeds":
   version: 0.0.0-use.local
-  resolution: "@virgultum/foundation@workspace:virgultum/editor/foundation"
+  resolution: "@virgultum/embeds@workspace:virgultum/embeds"
   dependencies:
     "@floating-ui/dom": "npm:^1.6.13"
     "@lit/context": "npm:^1.1.6"
@@ -6080,375 +5520,16 @@ __metadata:
     "@myoxus/theme": "workspace:*"
     "@preact/signals-core": "npm:^1.14.5"
     "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    lit: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/fragment-doc-title@workspace:*, @virgultum/fragment-doc-title@workspace:virgultum/editor/fragments/doc-title":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/fragment-doc-title@workspace:virgultum/editor/fragments/doc-title"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@virgultum/block-frame": "workspace:*"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    lit: "npm:^3.3.3"
-    rxjs: "npm:^7.8.2"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/fragment-frame-panel@workspace:*, @virgultum/fragment-frame-panel@workspace:virgultum/editor/fragments/frame-panel":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/fragment-frame-panel@workspace:virgultum/editor/fragments/frame-panel"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/block-frame": "workspace:*"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    lit: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/fragment-outline@workspace:*, @virgultum/fragment-outline@workspace:virgultum/editor/fragments/outline":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/fragment-outline@workspace:virgultum/editor/fragments/outline"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@virgultum/block-note": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/fragment-doc-title": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    lit: "npm:^3.3.3"
-    rxjs: "npm:^7.8.2"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/gfx-brush@workspace:*, @virgultum/gfx-brush@workspace:virgultum/editor/gfx/brush":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/gfx-brush@workspace:virgultum/editor/gfx/brush"
-  dependencies:
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-edgeless-toolbar": "workspace:*"
-    lit: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/gfx-connector@workspace:*, @virgultum/gfx-connector@workspace:virgultum/editor/gfx/connector":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/gfx-connector@workspace:virgultum/editor/gfx/connector"
-  dependencies:
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/gfx-text": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-edgeless-toolbar": "workspace:*"
-    lit: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/gfx-group@workspace:*, @virgultum/gfx-group@workspace:virgultum/editor/gfx/group":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/gfx-group@workspace:virgultum/editor/gfx/group"
-  dependencies:
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/gfx-text": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-edgeless-toolbar": "workspace:*"
-    fractional-indexing: "npm:^3.2.0"
+    "@types/mdast": "npm:^4.0.4"
+    "@virgultum/canvas-runtime": "workspace:*"
+    "@virgultum/content": "workspace:*"
+    "@virgultum/core": "workspace:*"
+    file-type: "npm:22.1.1"
     lit: "npm:^3.3.3"
     lodash-es: "npm:4.18.1"
     rxjs: "npm:^7.8.2"
     vitest: "npm:4.1.11"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/gfx-link@workspace:*, @virgultum/gfx-link@workspace:virgultum/editor/gfx/link":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/gfx-link@workspace:virgultum/editor/gfx/link"
-  dependencies:
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/block-bookmark": "workspace:*"
-    "@virgultum/block-embed": "workspace:*"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/gfx-pointer": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-edgeless-toolbar": "workspace:*"
-    lit: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/gfx-note@workspace:*, @virgultum/gfx-note@workspace:virgultum/editor/gfx/note":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/gfx-note@workspace:virgultum/editor/gfx/note"
-  dependencies:
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/block-attachment": "workspace:*"
-    "@virgultum/block-bookmark": "workspace:*"
-    "@virgultum/block-image": "workspace:*"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-edgeless-toolbar": "workspace:*"
-    lit: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/gfx-pointer@workspace:*, @virgultum/gfx-pointer@workspace:virgultum/editor/gfx/pointer":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/gfx-pointer@workspace:virgultum/editor/gfx/pointer"
-  dependencies:
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-edgeless-toolbar": "workspace:*"
-    lit: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-    vitest: "npm:4.1.11"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/gfx-shape@workspace:*, @virgultum/gfx-shape@workspace:virgultum/editor/gfx/shape":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/gfx-shape@workspace:virgultum/editor/gfx/shape"
-  dependencies:
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/gfx-text": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-edgeless-toolbar": "workspace:*"
-    lit: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/gfx-template@workspace:*, @virgultum/gfx-template@workspace:virgultum/editor/gfx/template":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/gfx-template@workspace:virgultum/editor/gfx/template"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/gfx-text": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-edgeless-toolbar": "workspace:*"
-    lit: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/gfx-text@workspace:*, @virgultum/gfx-text@workspace:virgultum/editor/gfx/text":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/gfx-text@workspace:virgultum/editor/gfx/text"
-  dependencies:
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@virgultum/widget-edgeless-toolbar": "workspace:*"
-    lit: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/gfx-turbo-renderer@workspace:*, @virgultum/gfx-turbo-renderer@workspace:virgultum/editor/gfx/turbo-renderer":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/gfx-turbo-renderer@workspace:virgultum/editor/gfx/turbo-renderer"
-  dependencies:
-    "@virgultum/global": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    rxjs: "npm:^7.8.2"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/global@workspace:*, @virgultum/global@workspace:virgultum/framework/global":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/global@workspace:virgultum/framework/global"
-  dependencies:
-    "@preact/signals-core": "npm:^1.14.5"
-    lib0: "npm:^0.2.119"
-    lit: "npm:^3.3.3"
-    rxjs: "npm:^7.8.2"
-    vitest: "npm:4.1.11"
     zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
@@ -6469,213 +5550,6 @@ __metadata:
       optional: true
     react:
       optional: true
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/inline-comment@workspace:*, @virgultum/inline-comment@workspace:virgultum/editor/inlines/comment":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/inline-comment@workspace:virgultum/editor/inlines/comment"
-  dependencies:
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    lit: "npm:^3.3.3"
-    lit-html: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-    vitest: "npm:4.1.11"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/inline-footnote@workspace:*, @virgultum/inline-footnote@workspace:virgultum/editor/inlines/footnote":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/inline-footnote@workspace:virgultum/editor/inlines/footnote"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/inline-reference": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    collapse-white-space: "npm:^2.1.0"
-    lit: "npm:^3.3.3"
-    lit-html: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-    vitest: "npm:4.1.11"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/inline-latex@workspace:*, @virgultum/inline-latex@workspace:virgultum/editor/inlines/latex":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/inline-latex@workspace:virgultum/editor/inlines/latex"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/hast": "npm:^3.0.4"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/inline-reference": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    collapse-white-space: "npm:^2.1.0"
-    katex: "npm:0.18.2"
-    lit: "npm:^3.3.3"
-    lit-html: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    remark-math: "npm:^6.0.0"
-    rxjs: "npm:^7.8.2"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/inline-link@workspace:*, @virgultum/inline-link@workspace:virgultum/editor/inlines/link":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/inline-link@workspace:virgultum/editor/inlines/link"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/inline-reference": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    collapse-white-space: "npm:^2.1.0"
-    lit: "npm:^3.3.3"
-    lit-html: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/inline-mention@workspace:*, @virgultum/inline-mention@workspace:virgultum/editor/inlines/mention":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/inline-mention@workspace:virgultum/editor/inlines/mention"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    collapse-white-space: "npm:^2.1.0"
-    lit: "npm:^3.3.3"
-    lit-html: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/inline-preset@workspace:*, @virgultum/inline-preset@workspace:virgultum/editor/inlines/preset":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/inline-preset@workspace:virgultum/editor/inlines/preset"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/hast": "npm:^3.0.4"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@types/mdast": "npm:^4.0.4"
-    "@virgultum/block-annotation": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/inline-comment": "workspace:*"
-    "@virgultum/inline-footnote": "workspace:*"
-    "@virgultum/inline-latex": "workspace:*"
-    "@virgultum/inline-link": "workspace:*"
-    "@virgultum/inline-mention": "workspace:*"
-    "@virgultum/inline-reference": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    collapse-white-space: "npm:^2.1.0"
-    katex: "npm:0.18.2"
-    lit: "npm:^3.3.3"
-    lit-html: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    remark-math: "npm:^6.0.0"
-    rxjs: "npm:^7.8.2"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/inline-reference@workspace:*, @virgultum/inline-reference@workspace:virgultum/editor/inlines/reference":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/inline-reference@workspace:virgultum/editor/inlines/reference"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    collapse-white-space: "npm:^2.1.0"
-    lit: "npm:^3.3.3"
-    lit-html: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
   languageName: unknown
   linkType: soft
 
@@ -6704,531 +5578,6 @@ __metadata:
     vitest: "npm:4.1.11"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
     zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/model@workspace:*, @virgultum/model@workspace:virgultum/editor/model":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/model@workspace:virgultum/editor/model"
-  dependencies:
-    "@myoxus/theme": "workspace:*"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    fractional-indexing: "npm:^3.2.0"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/rich-text@workspace:*, @virgultum/rich-text@workspace:virgultum/editor/rich-text":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/rich-text@workspace:virgultum/editor/rich-text"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    collapse-white-space: "npm:^2.1.0"
-    lit: "npm:^3.3.3"
-    lit-html: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/shared@workspace:*, @virgultum/shared@workspace:virgultum/editor/shared":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/shared@workspace:virgultum/editor/shared"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/hast": "npm:^3.0.4"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@types/mdast": "npm:^4.0.4"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    dompurify: "npm:3.4.17"
-    fractional-indexing: "npm:^3.2.0"
-    lit: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    mdast-util-from-markdown: "npm:^2.0.3"
-    mdast-util-gfm-autolink-literal: "npm:^2.0.1"
-    mdast-util-gfm-footnote: "npm:^2.1.0"
-    mdast-util-gfm-strikethrough: "npm:^2.0.1"
-    mdast-util-gfm-table: "npm:^2.0.0"
-    mdast-util-gfm-task-list-item: "npm:^2.0.0"
-    mdast-util-to-markdown: "npm:^2.1.3"
-    micromark-extension-gfm-autolink-literal: "npm:^2.1.0"
-    micromark-extension-gfm-footnote: "npm:^2.1.0"
-    micromark-extension-gfm-strikethrough: "npm:^2.1.0"
-    micromark-extension-gfm-table: "npm:^2.1.2"
-    micromark-extension-gfm-task-list-item: "npm:^2.1.0"
-    micromark-util-combine-extensions: "npm:^2.0.1"
-    micromark-util-types: "npm:^2.0.3"
-    rehype-parse: "npm:^9.0.0"
-    rehype-stringify: "npm:^10.0.0"
-    remark-math: "npm:^6.0.0"
-    remark-parse: "npm:^11.0.0"
-    remark-stringify: "npm:^11.0.0"
-    rxjs: "npm:^7.8.2"
-    unified: "npm:^11.0.5"
-    unist-util-visit: "npm:^5.0.0"
-    vitest: "npm:4.1.11"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/std@workspace:*, @virgultum/std@workspace:virgultum/framework/std":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/std@workspace:virgultum/framework/std"
-  dependencies:
-    "@atlaskit/pragmatic-drag-and-drop": "npm:^1.4.0"
-    "@atlaskit/pragmatic-drag-and-drop-auto-scroll": "npm:^2.1.2"
-    "@atlaskit/pragmatic-drag-and-drop-hitbox": "npm:^1.1.0"
-    "@lit/context": "npm:^1.1.6"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/hast": "npm:^3.0.4"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    dompurify: "npm:3.4.17"
-    fractional-indexing: "npm:^3.2.0"
-    lib0: "npm:^0.2.119"
-    lit: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    lz-string: "npm:^1.5.0"
-    rehype-parse: "npm:^9.0.0"
-    rxjs: "npm:^7.8.2"
-    unified: "npm:^11.0.5"
-    vitest: "npm:4.1.11"
-    w3c-keyname: "npm:^2.2.8"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/store@workspace:*, @virgultum/store@workspace:virgultum/framework/store":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/store@workspace:virgultum/framework/store"
-  dependencies:
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/sync": "workspace:*"
-    file-type: "npm:22.1.1"
-    lib0: "npm:^0.2.119"
-    lodash-es: "npm:4.18.1"
-    minimatch: "npm:^10.2.2"
-    nanoid: "npm:6.0.1"
-    rxjs: "npm:^7.8.2"
-    vitest: "npm:4.1.11"
-    y-protocols: "npm:^1.0.7"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/sync@workspace:*, @virgultum/sync@workspace:virgultum/framework/sync":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/sync@workspace:virgultum/framework/sync"
-  dependencies:
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/global": "workspace:*"
-    fake-indexeddb: "npm:^6.0.0"
-    idb: "npm:^8.0.0"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-    vitest: "npm:4.1.11"
-    y-protocols: "npm:^1.0.7"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/widget-drag-handle@workspace:*, @virgultum/widget-drag-handle@workspace:virgultum/editor/widgets/drag-handle":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/widget-drag-handle@workspace:virgultum/editor/widgets/drag-handle"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/block-callout": "workspace:*"
-    "@virgultum/block-embed": "workspace:*"
-    "@virgultum/block-list": "workspace:*"
-    "@virgultum/block-note": "workspace:*"
-    "@virgultum/block-paragraph": "workspace:*"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    lit: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/widget-edgeless-auto-connect@workspace:*, @virgultum/widget-edgeless-auto-connect@workspace:virgultum/editor/widgets/edgeless-auto-connect":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/widget-edgeless-auto-connect@workspace:virgultum/editor/widgets/edgeless-auto-connect"
-  dependencies:
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@virgultum/block-note": "workspace:*"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    lit: "npm:^3.3.3"
-    rxjs: "npm:^7.8.2"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/widget-edgeless-dragging-area@workspace:*, @virgultum/widget-edgeless-dragging-area@workspace:virgultum/editor/widgets/edgeless-dragging-area":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/widget-edgeless-dragging-area@workspace:virgultum/editor/widgets/edgeless-dragging-area"
-  dependencies:
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@virgultum/block-note": "workspace:*"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    lit: "npm:^3.3.3"
-    rxjs: "npm:^7.8.2"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/widget-edgeless-selected-rect@workspace:*, @virgultum/widget-edgeless-selected-rect@workspace:virgultum/editor/widgets/edgeless-selected-rect":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/widget-edgeless-selected-rect@workspace:virgultum/editor/widgets/edgeless-selected-rect"
-  dependencies:
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@virgultum/block-frame": "workspace:*"
-    "@virgultum/block-note": "workspace:*"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/gfx-connector": "workspace:*"
-    "@virgultum/gfx-shape": "workspace:*"
-    "@virgultum/gfx-text": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    lit: "npm:^3.3.3"
-    rxjs: "npm:^7.8.2"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/widget-edgeless-toolbar@workspace:*, @virgultum/widget-edgeless-toolbar@workspace:virgultum/editor/widgets/edgeless-toolbar":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/widget-edgeless-toolbar@workspace:virgultum/editor/widgets/edgeless-toolbar"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    lit: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/widget-edgeless-zoom-toolbar@workspace:*, @virgultum/widget-edgeless-zoom-toolbar@workspace:virgultum/editor/widgets/edgeless-zoom-toolbar":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/widget-edgeless-zoom-toolbar@workspace:virgultum/editor/widgets/edgeless-zoom-toolbar"
-  dependencies:
-    "@preact/signals-core": "npm:^1.14.5"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    lit: "npm:^3.3.3"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/widget-frame-title@workspace:*, @virgultum/widget-frame-title@workspace:virgultum/editor/widgets/frame-title":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/widget-frame-title@workspace:virgultum/editor/widgets/frame-title"
-  dependencies:
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    lit: "npm:^3.3.3"
-    rxjs: "npm:^7.8.2"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/widget-keyboard-toolbar@workspace:*, @virgultum/widget-keyboard-toolbar@workspace:virgultum/editor/widgets/keyboard-toolbar":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/widget-keyboard-toolbar@workspace:virgultum/editor/widgets/keyboard-toolbar"
-  dependencies:
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/block-attachment": "workspace:*"
-    "@virgultum/block-embed": "workspace:*"
-    "@virgultum/block-image": "workspace:*"
-    "@virgultum/block-latex": "workspace:*"
-    "@virgultum/block-list": "workspace:*"
-    "@virgultum/block-note": "workspace:*"
-    "@virgultum/block-paragraph": "workspace:*"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/block-surface-ref": "workspace:*"
-    "@virgultum/block-table": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/fragment-doc-title": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/inline-latex": "workspace:*"
-    "@virgultum/inline-link": "workspace:*"
-    "@virgultum/inline-preset": "workspace:*"
-    "@virgultum/inline-reference": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    fflate: "npm:^0.8.3"
-    lit: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/widget-linked-doc@workspace:*, @virgultum/widget-linked-doc@workspace:virgultum/editor/widgets/linked-doc":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/widget-linked-doc@workspace:virgultum/editor/widgets/linked-doc"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@virgultum/block-image": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/inline-reference": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    "@zip.js/zip.js": "npm:2.24.0"
-    lit: "npm:^3.3.3"
-    rxjs: "npm:^7.8.2"
-    typescript: "npm:7.0.2"
-    vitest: "npm:4.1.11"
-    yaml: "npm:2.9.1"
-    zod: "npm:4.6.7"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/widget-note-slicer@workspace:*, @virgultum/widget-note-slicer@workspace:virgultum/editor/widgets/note-slicer":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/widget-note-slicer@workspace:virgultum/editor/widgets/note-slicer"
-  dependencies:
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@virgultum/block-note": "workspace:*"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/widget-edgeless-selected-rect": "workspace:*"
-    lit: "npm:^3.3.3"
-    rxjs: "npm:^7.8.2"
-    yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/widget-page-dragging-area@workspace:*, @virgultum/widget-page-dragging-area@workspace:virgultum/editor/widgets/page-dragging-area":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/widget-page-dragging-area@workspace:virgultum/editor/widgets/page-dragging-area"
-  dependencies:
-    "@lit/context": "npm:^1.1.6"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    fflate: "npm:^0.8.3"
-    lit: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/widget-remote-selection@workspace:*, @virgultum/widget-remote-selection@workspace:virgultum/editor/widgets/remote-selection":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/widget-remote-selection@workspace:virgultum/editor/widgets/remote-selection"
-  dependencies:
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    lit: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/widget-scroll-anchoring@workspace:*, @virgultum/widget-scroll-anchoring@workspace:virgultum/editor/widgets/scroll-anchoring":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/widget-scroll-anchoring@workspace:virgultum/editor/widgets/scroll-anchoring"
-  dependencies:
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    lit: "npm:^3.3.3"
-    rxjs: "npm:^7.8.2"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/widget-slash-menu@workspace:*, @virgultum/widget-slash-menu@workspace:virgultum/editor/widgets/slash-menu":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/widget-slash-menu@workspace:virgultum/editor/widgets/slash-menu"
-  dependencies:
-    "@myoxus/icons": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/rich-text": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    "@virgultum/store": "workspace:*"
-    lit: "npm:^3.3.3"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/widget-toolbar@workspace:*, @virgultum/widget-toolbar@workspace:virgultum/editor/widgets/toolbar":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/widget-toolbar@workspace:virgultum/editor/widgets/toolbar"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/block-surface": "workspace:*"
-    "@virgultum/block-table": "workspace:*"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    lit: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
-  languageName: unknown
-  linkType: soft
-
-"@virgultum/widget-viewport-overlay@workspace:*, @virgultum/widget-viewport-overlay@workspace:virgultum/editor/widgets/viewport-overlay":
-  version: 0.0.0-use.local
-  resolution: "@virgultum/widget-viewport-overlay@workspace:virgultum/editor/widgets/viewport-overlay"
-  dependencies:
-    "@floating-ui/dom": "npm:^1.6.13"
-    "@myoxus/icons": "workspace:*"
-    "@myoxus/theme": "workspace:*"
-    "@preact/signals-core": "npm:^1.14.5"
-    "@types/lodash-es": "npm:^4.17.12"
-    "@virgultum/components": "workspace:*"
-    "@virgultum/ext-loader": "workspace:*"
-    "@virgultum/global": "workspace:*"
-    "@virgultum/model": "workspace:*"
-    "@virgultum/shared": "workspace:*"
-    "@virgultum/std": "workspace:*"
-    lit: "npm:^3.3.3"
-    lodash-es: "npm:4.18.1"
-    rxjs: "npm:^7.8.2"
   languageName: unknown
   linkType: soft
 
@@ -8884,7 +7233,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fflate@npm:^0.8.2, fflate@npm:^0.8.3":
+"fflate@npm:^0.8.2":
   version: 0.8.3
   resolution: "fflate@npm:0.8.3"
   checksum: 10/6ebf528dc9c56e78e715eac615b009b25dc33e15c1920b11ebba44e6d76181c647756a81a23e19247907496b93aa99928514c53090579a65109e026ac2824aa7

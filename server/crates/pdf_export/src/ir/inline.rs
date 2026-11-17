@@ -20,6 +20,8 @@ pub struct TextMarks {
   /// Background highlight color as CSS hex string
   #[serde(skip_serializing_if = "Option::is_none")]
   pub background: Option<String>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  pub label_tone: Option<String>,
   /// Link target URL or doc-id (prefixed with "doc:")
   #[serde(skip_serializing_if = "Option::is_none")]
   pub link: Option<String>,
@@ -27,7 +29,8 @@ pub struct TextMarks {
 
 impl TextMarks {
   pub fn is_empty(&self) -> bool {
-    self.bold.is_none()
+    self.label_tone.is_none()
+      && self.bold.is_none()
       && self.italic.is_none()
       && self.underline.is_none()
       && self.strike.is_none()
@@ -50,7 +53,7 @@ pub enum InlineSpan {
   },
 
   /// Inline LaTeX math expression.
-  /// Rendered as Typst `$expr$`.
+  /// Converted from the unchanged LaTeX source at the PDF renderer boundary.
   Latex { source: String },
 
   /// Inline reference to another document.

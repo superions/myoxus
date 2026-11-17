@@ -263,6 +263,7 @@ async fn public_snapshot_uses_authoritative_visibility_external_keys_and_relativ
     let settings = WorkspaceOverviewSettings {
       introduction: Some(introduction.clone()),
       register_presentation: Some(OverviewRegisterPresentation {
+          selection: Default::default(),
         display_properties: ["tags", "title", "createdAt", "createdBy"]
           .map(|key| format!("system:{key}"))
           .into(),

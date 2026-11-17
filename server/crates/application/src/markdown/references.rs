@@ -292,7 +292,7 @@ impl MarkdownBatchReferenceInventory {
         let retained = current
           .iter()
           .filter(|target| {
-            portable_fragment(current, target)
+            portable_fragment(current, target, None)
               .is_some_and(|fragment| resolve_markdown_target(&observed, &fragment).is_ok())
           })
           .cloned()
@@ -404,33 +404,39 @@ impl MarkdownBatchReferenceInventory {
       targets.remove(id);
     }
     self.native_targets = Arc::new(targets);
-    let mut snapshots = Vec::with_capacity(planned.len());
-    let mut failures = Vec::new();
-    for (id, path, source) in &planned {
-      let references = if vault {
-        self.for_vault_source(path)?
-      } else {
-        self.for_source(path)?
-      };
-      let title = self
-        .canonical
-        .documents
-        .get(id)
-        .expect("reserved batch metadata was validated");
-      match super::prepare_markdown_batch_import(title, source, &references) {
-        Ok(imported) => snapshots.push((id.clone(), imported.yjs_binary)),
-        Err(ConversionError::Conversion(message) | ConversionError::YjsDecode(message)) => {
-          failures.push((id.clone(), message))
+    // Discover selectors first, then reserve the resolved native shape. Selected
+    // embeds can split prose/list bodies; final conversion must reuse that shape
+    // before any batch member's retained block IDs are handed to another member.
+    for _ in 0..2 {
+      let mut snapshots = Vec::with_capacity(planned.len());
+      let mut failures = Vec::new();
+      for (id, path, source) in &planned {
+        let references = if vault {
+          self.for_vault_source(path)?
+        } else {
+          self.for_source(path)?
+        };
+        let title = self
+          .canonical
+          .documents
+          .get(id)
+          .expect("reserved batch metadata was validated");
+        match super::prepare_markdown_batch_import(title, source, &references) {
+          Ok(imported) => snapshots.push((id.clone(), imported.yjs_binary)),
+          Err(ConversionError::Conversion(message) | ConversionError::YjsDecode(message)) => {
+            failures.push((id.clone(), message))
+          }
         }
       }
+      for (id, failure) in failures {
+        Arc::make_mut(&mut self.imports)
+          .get_mut(&id)
+          .expect("source identity was reserved")
+          .failure = Some(failure);
+      }
+      self = self.with_target_snapshots(snapshots.iter().map(|(id, binary)| (id.as_str(), binary.as_slice())))?;
     }
-    for (id, failure) in failures {
-      Arc::make_mut(&mut self.imports)
-        .get_mut(&id)
-        .expect("source identity was reserved")
-        .failure = Some(failure);
-    }
-    self.with_target_snapshots(snapshots.iter().map(|(id, binary)| (id.as_str(), binary.as_slice())))
+    Ok(self)
   }
 
   /// Bind the shared indexes to one source path without rebuilding them.
@@ -539,15 +545,42 @@ impl MarkdownBatchReferenceLookup {
   }
 
   pub fn resolve_export_reference(&self, reference: &MarkdownDocumentReference) -> Option<MarkdownResolvedReference> {
-    let canonical = self.inventory.canonical.resolve_export_reference(reference)?;
+    let selected = reference
+      .params
+      .as_ref()
+      .and_then(|params| params.get("blockSelection"))
+      .is_some();
+    let canonical = self
+      .inventory
+      .canonical
+      .resolve_export_reference(reference)
+      .or_else(|| self.inventory.canonical.preserve_unavailable_selection(reference))?;
     if let Some(targets) = self.inventory.native_targets.get(&reference.page_id)
       && let Some(block_id) = portable_markdown_block_id(reference.params.as_ref())
     {
-      let target = targets.iter().find(|target| target.block_id == block_id)?;
+      let Some(target) = targets.iter().find(|target| target.block_id == block_id) else {
+        return selected.then_some(canonical);
+      };
       let Some(target_path) = self.inventory.paths_by_external_id.get(&reference.page_id) else {
         return Some(canonical);
       };
-      let fragment = portable_fragment(targets, target)?;
+      let Some(fragment) = portable_fragment(
+        targets,
+        target,
+        reference
+          .params
+          .as_ref()
+          .and_then(|params| params.get("blockSelection"))
+          .and_then(serde_json::Value::as_str),
+      ) else {
+        // A retained section can remain exact after headings become ambiguous.
+        // Keep its qualified native selector instead of exporting a whole note.
+        return reference
+          .params
+          .as_ref()
+          .and_then(|params| params.get("blockSelection"))
+          .map(|_| canonical);
+      };
       let path = if self.source_path == *target_path {
         String::new()
       } else {
@@ -692,8 +725,13 @@ fn generated_export_anchors(targets: &[MarkdownNativeTarget]) -> BTreeMap<String
 /// A portable single block selector must not discard unrelated navigation data.
 pub fn portable_markdown_block_id(params: Option<&serde_json::Value>) -> Option<&str> {
   let params = params?.as_object()?;
-  if params.keys().any(|key| !matches!(key.as_str(), "mode" | "blockIds"))
+  if params
+    .keys()
+    .any(|key| !matches!(key.as_str(), "mode" | "blockIds" | "blockSelection"))
     || params.get("mode").is_some_and(|mode| mode.as_str() != Some("page"))
+    || params
+      .get("blockSelection")
+      .is_some_and(|kind| !matches!(kind.as_str(), Some("section" | "subtree")))
   {
     return None;
   }
@@ -704,8 +742,14 @@ pub fn portable_markdown_block_id(params: Option<&serde_json::Value>) -> Option<
   blocks[0].as_str().filter(|id| !id.is_empty())
 }
 
-fn portable_fragment(targets: &[MarkdownNativeTarget], target: &MarkdownNativeTarget) -> Option<String> {
-  let fragment = if let Some(anchor) = &target.source_anchor {
+fn portable_fragment(
+  targets: &[MarkdownNativeTarget],
+  target: &MarkdownNativeTarget,
+  kind: Option<&str>,
+) -> Option<String> {
+  let fragment = if kind == Some("section") {
+    target.heading_path.as_ref()?.join("#")
+  } else if let Some(anchor) = &target.source_anchor {
     // An emptied target retains its native identity but cannot export a
     // standalone caret token as if it still owned a portable Markdown body.
     if !target.can_export_anchor {
@@ -713,6 +757,9 @@ fn portable_fragment(targets: &[MarkdownNativeTarget], target: &MarkdownNativeTa
     }
     format!("^{anchor}")
   } else {
+    if kind == Some("subtree") {
+      return None;
+    }
     target.heading_path.as_ref()?.join("#")
   };
   (resolve_markdown_target(targets, &fragment).ok()?.block_id == target.block_id).then_some(fragment)
@@ -881,6 +928,26 @@ impl MarkdownReferenceLookup {
 
   pub fn resolve_export_reference(&self, reference: &MarkdownDocumentReference) -> Option<MarkdownResolvedReference> {
     let title = self.documents.get(&reference.page_id)?.clone();
+    Some(MarkdownResolvedReference {
+      url: self.reference_url(reference)?,
+      title,
+    })
+  }
+
+  /// Preserve only an authored selection in output; this is not target admission
+  /// and must never feed native target discovery or metadata resolution.
+  pub(super) fn preserve_unavailable_selection(
+    &self,
+    reference: &MarkdownDocumentReference,
+  ) -> Option<MarkdownResolvedReference> {
+    reference.params.as_ref()?.get("blockSelection")?;
+    Some(MarkdownResolvedReference {
+      url: self.reference_url(reference)?,
+      title: String::new(),
+    })
+  }
+
+  fn reference_url(&self, reference: &MarkdownDocumentReference) -> Option<String> {
     let mut url = self.document_base_url.clone();
     {
       let mut segments = url.path_segments_mut().ok()?;
@@ -888,7 +955,7 @@ impl MarkdownReferenceLookup {
       segments.push(&reference.page_id);
     }
     append_navigation_params(&mut url, reference.params.as_ref());
-    Some(MarkdownResolvedReference { url: url.into(), title })
+    Some(url.into())
   }
 
   fn own_external_id(&self, candidate: &Url) -> Option<String> {
@@ -913,6 +980,9 @@ fn navigation_params(url: &Url) -> Option<serde_json::Value> {
   let mut params = serde_json::Map::new();
   for (key, value) in url.query_pairs() {
     match key.as_ref() {
+      "blockSelection" if matches!(value.as_ref(), "section" | "subtree") => {
+        params.insert(key.into_owned(), serde_json::Value::String(value.into_owned()));
+      }
       "mode" if matches!(value.as_ref(), "page" | "edgeless") => {
         params.insert(key.into_owned(), serde_json::Value::String(value.into_owned()));
       }
@@ -945,6 +1015,7 @@ fn append_navigation_params(url: &mut Url, params: Option<&serde_json::Value>) {
   for key in [
     "mode",
     "blockIds",
+    "blockSelection",
     "elementIds",
     "databaseId",
     "databaseRowId",
@@ -1056,6 +1127,41 @@ mod tests {
       )),
       MarkdownLinkResolution::Unsupported
     );
+    // Forward selected embeds split prose only after target discovery. Their
+    // additional blocks must not invalidate the other batch member's target.
+    let source_body = "Before ![[../reference/target#Later|Target section]] after.\n\n- Before ![[../reference/target#Later]] after. ^task\n\n## Later\n\n![[../reference/target#^task]]";
+    let target_body = "Before ![[../guides/source#Later|Source section]] after.\n\n- Before ![[../guides/source#Later]] after. ^task\n\n## Later\n\n![[../guides/source#^task]]";
+    let batch = inventory
+      .with_import_sources([("guides/source.md", source_body), ("reference/target.md", target_body)])
+      .unwrap();
+    let imported = [
+      ("source", "guides/source.md", source_body),
+      ("target", "reference/target.md", target_body),
+    ]
+    .map(|(id, path, body)| {
+      (
+        id,
+        super::super::prepare_markdown_batch_import(id, body, &batch.for_source(path).unwrap())
+          .unwrap()
+          .yjs_binary,
+      )
+    });
+    for (index, (_, binary)) in imported.iter().enumerate() {
+      let references = yjs::extract_document_references_from_yjs(binary).unwrap();
+      let other = &imported[1 - index];
+      let targets = markdown_native_targets(&other.1).unwrap();
+      assert_eq!(references.occurrences.len(), 3);
+      for (selected, (selector, kind)) in
+        references
+          .occurrences
+          .iter()
+          .zip([("Later", "section"), ("Later", "section"), ("^task", "subtree")])
+      {
+        let expected = resolve_markdown_target(&targets, selector).unwrap();
+        assert_eq!(selected.params_json["blockIds"][0], expected.block_id);
+        assert_eq!(selected.params_json["blockSelection"], kind);
+      }
+    }
   }
 
   #[test]
@@ -1073,6 +1179,75 @@ mod tests {
       assert_eq!(
         lookup.resolve_link(MarkdownLinkTarget::Wiki(selector)),
         MarkdownLinkResolution::Unresolved
+      );
+    }
+    let selected = MarkdownDocumentReference {
+      page_id: "target".into(),
+      params: Some(
+        serde_json::json!({"mode":"page","blockIds":[markdown_native_targets(&binary).unwrap()[0].block_id],"blockSelection":"section"}),
+      ),
+      ..Default::default()
+    };
+    let missing = MarkdownDocumentReference {
+      params: Some(serde_json::json!({"mode":"page","blockIds":["deleted-native-block"],"blockSelection":"section"})),
+      ..selected.clone()
+    };
+    let denied = MarkdownDocumentReference {
+      page_id: "private".into(),
+      ..selected.clone()
+    };
+    let mut legacy = selected.clone();
+    legacy
+      .params
+      .as_mut()
+      .unwrap()
+      .as_object_mut()
+      .unwrap()
+      .remove("blockSelection");
+    for candidate in [selected, missing, denied, legacy] {
+      let kind = candidate
+        .params
+        .as_ref()
+        .and_then(|params| params["blockSelection"].as_str())
+        .unwrap_or("subtree");
+      let embedded = yjs::markdown_to_yjs_with_link_resolver("Source", "![[native|Aliased section]]", &|_| {
+        MarkdownLinkResolution::Reference(candidate.clone())
+      })
+      .unwrap();
+      let mut binary = embedded.yjs_binary;
+      if candidate
+        .params
+        .as_ref()
+        .is_some_and(|params| params.get("blockSelection").is_none())
+      {
+        let capture = yjs::document_to_snapshot(&binary, "legacy-embed", "").unwrap();
+        let mut blocks: Vec<yjs::PortableSnapshotBlock> = serde_json::from_value(capture["blocks"].clone()).unwrap();
+        for block in blocks
+          .iter_mut()
+          .filter(|block| block.flavour == "myoxus:embed-synced-doc")
+        {
+          block.props["params"].as_object_mut().unwrap().remove("blockSelection");
+        }
+        binary = yjs::snapshot_blocks_to_yjs(&blocks).unwrap();
+      }
+      let exported = super::super::project_document_in_batch(
+        &binary,
+        "Source",
+        super::super::MarkdownProjectionPolicy::default(),
+        &lookup,
+      )
+      .unwrap();
+      assert!(
+        exported.markdown.contains(&format!("blockSelection={kind}"))
+          && exported.markdown.contains("blockIds=")
+          && exported.markdown.contains("|Aliased section]]"),
+        "ambiguous, deleted and unavailable selected relations retain their exact selector"
+      );
+      assert!(
+        exported
+          .diagnostics
+          .iter()
+          .any(|finding| finding.code == yjs::MarkdownDiagnosticCode::UnsupportedDocumentReference)
       );
     }
     let unauthorized = inventory

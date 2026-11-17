@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 
-import { ConnectorMode } from "@virgultum/model";
+import { ConnectorMode } from "@virgultum/core/models";
 import { MindmapDesign as MindmapStyle } from "./types.js";
-import { StrokeStyle } from "@virgultum/model";
-import { FontFamily, FontWeight, TextResizing } from "@virgultum/model";
-import { type Color, DefaultTheme } from "@virgultum/model";
+import { StrokeStyle } from "@virgultum/core/models";
+import { FontFamily, FontWeight, TextResizing } from "@virgultum/core/models";
+import { type Color, DefaultTheme } from "@virgultum/core/models";
 
 export type CollapseButton = {
   width: number;

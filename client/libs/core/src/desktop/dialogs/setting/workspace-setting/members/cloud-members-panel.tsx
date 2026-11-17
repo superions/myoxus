@@ -3,7 +3,6 @@ import { useAsyncCallback } from "@myoxus/core/components/hooks/myoxus-async-hoo
 import { Upload } from "@myoxus/core/components/pure/file-upload";
 import { WorkspaceMembersService } from "@myoxus/core/modules/permissions";
 import { WorkspaceQuotaService } from "@myoxus/core/modules/quota";
-import { formatMemberLimit } from "@myoxus/core/modules/quota/utils/quota-display";
 import { WorkspaceShareSettingService } from "@myoxus/core/modules/share-setting";
 import { WorkspaceService } from "@myoxus/core/modules/workspace";
 import { copyTextToClipboard } from "@myoxus/core/utils/clipboard";
@@ -355,11 +354,8 @@ export const CloudWorkspaceMembersPanel = () => {
 
   const title = useMemo(() => {
     const memberCount = workspaceQuota?.memberCount ?? 0;
-    return `${t["Members"]()} (${memberCount}/${formatMemberLimit(
-      workspaceQuota?.memberLimit,
-      t["com.myoxus.storage.unlimited"](),
-    )})`;
-  }, [t, workspaceQuota?.memberCount, workspaceQuota?.memberLimit]);
+    return `${t["Members"]()} (${memberCount})`;
+  }, [t, workspaceQuota?.memberCount]);
 
   if (workspaceQuota === null) {
     if (isLoading) {

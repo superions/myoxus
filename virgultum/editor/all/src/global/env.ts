@@ -1,1 +1,1 @@
-export * from "@virgultum/global/env";
+export * from "@virgultum/core/primitives/env";

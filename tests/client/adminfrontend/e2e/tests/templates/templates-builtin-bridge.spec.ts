@@ -82,16 +82,14 @@ async function fetchDefaultPolicies(
   return data.admin.templateDefaultPolicies ?? [];
 }
 
-/** Restores a previously-modified default policy.  Wrapped in try/catch so
- *  cleanup never fails the test. */
+/** Restore the original policy; cleanup failures must fail the test. */
 async function restoreDefaultPolicy(
   request: APIRequestContext,
   policy: BuiltinPolicy,
 ): Promise<void> {
-  try {
-    await gqlRequest(
-      request,
-      `mutation RestorePolicy($templateId: String!, $applyToNewWorkspaces: Boolean!, $selectionMode: SelectionModeType!, $provisioningMode: ProvisioningModeType!) {
+  await gqlRequest(
+    request,
+    `mutation RestorePolicy($templateId: String!, $applyToNewWorkspaces: Boolean!, $selectionMode: SelectionModeType!, $provisioningMode: ProvisioningModeType!) {
          admin {
            setTemplateDefaultPolicy(input: {
              templateId: $templateId,
@@ -101,20 +99,20 @@ async function restoreDefaultPolicy(
            })
          }
        }`,
-      {
-        templateId: policy.templateId,
-        applyToNewWorkspaces: policy.applyToNewWorkspaces,
-        selectionMode: policy.selectionMode,
-        provisioningMode: policy.provisioningMode,
-      },
-    );
-  } catch {
-    // afterAll cleanup must never fail the test.
-  }
+    {
+      templateId: policy.templateId,
+      applyToNewWorkspaces: policy.applyToNewWorkspaces,
+      selectionMode: policy.selectionMode,
+      provisioningMode: policy.provisioningMode,
+    },
+  );
 }
 
 async function gotoTemplatesPage(page: Page): Promise<void> {
-  await page.goto(TEMPLATES_URL, { waitUntil: "networkidle", timeout: 20_000 });
+  await page.goto(TEMPLATES_URL, {
+    waitUntil: "domcontentloaded",
+    timeout: 20_000,
+  });
   // Wait for the tab list to render before any further interaction.
   await expect(page.locator('[role="tablist"]')).toBeVisible({
     timeout: 10_000,
@@ -143,12 +141,16 @@ test.describe("INV-TPL-E2E-BB-01: Built-in source filter", () => {
     const allRowsBefore = await page.locator("tbody tr").count();
 
     // Click the "Built-in" filter button.
-    const builtinFilter = page.getByTestId("templates-source-filter-builtin");
+    const builtinFilter = page.getByRole("combobox", {
+      name: "Filter templates",
+      exact: true,
+    });
     await expect(builtinFilter).toBeVisible({ timeout: 5_000 });
     await builtinFilter.click();
+    await page.getByRole("option", { name: "Built-in", exact: true }).click();
 
     // After clicking, the button is pressed.
-    await expect(builtinFilter).toHaveAttribute("aria-pressed", "true");
+    await expect(builtinFilter).toHaveValue("Built-in");
 
     // Filtered rows: at least one builtin must exist.  Exact count is left
     // open so the test stays valid as the builder evolves.
@@ -175,7 +177,10 @@ test.describe("INV-TPL-E2E-BB-02: Builtin detail drawer read-only", () => {
     });
 
     // Filter to builtins so the first row is guaranteed to be a builtin.
-    await page.getByTestId("templates-source-filter-builtin").click();
+    await page
+      .getByRole("combobox", { name: "Filter templates", exact: true })
+      .click();
+    await page.getByRole("option", { name: "Built-in", exact: true }).click();
     await expect(page.locator("tbody tr").first()).toBeVisible({
       timeout: 5_000,
     });
@@ -244,8 +249,7 @@ test.describe("INV-TPL-E2E-BB-03: Default-policy toggle round-trip", () => {
     const policies = await fetchDefaultPolicies(adminRequest);
     expect(policies.length).toBeGreaterThan(0);
 
-    const target = policies[0];
-    const originalState = target.applyToNewWorkspaces;
+    let target: BuiltinPolicy | undefined;
 
     try {
       await gotoTemplatesPage(page);
@@ -253,21 +257,31 @@ test.describe("INV-TPL-E2E-BB-03: Default-policy toggle round-trip", () => {
       // Switch to Default Policies tab via locale-independent test-id.
       await page.getByTestId("templates-tab-default-policies").click();
 
-      // Locate the row containing the target template UUID and its switch.
-      const targetRow = page.locator("tbody tr", {
-        hasText: target.templateId,
-      });
+      const targetRow = page
+        .locator('[data-myoxus-ui-role="template-soft-list-item"]')
+        .first();
+      await targetRow
+        .getByRole("button", { name: "Edit", exact: true })
+        .click();
+      const drawer = page.getByRole("dialog");
+      await expect(drawer).toBeVisible();
+      const details = await drawer.innerText();
+      target = policies.find((policy) => details.includes(policy.templateId));
+      expect(
+        target,
+        "the visible card must identify its server policy",
+      ).toBeTruthy();
+      const originalState = target!.applyToNewWorkspaces;
+      await drawer.getByRole("button", { name: /close/i }).click();
+      await expect(drawer).toBeHidden();
       await expect(targetRow).toBeVisible({ timeout: 8_000 });
 
       const switchEl = targetRow.getByRole("switch");
-      await expect(switchEl).toHaveAttribute(
-        "aria-checked",
-        originalState ? "true" : "false",
-      );
+      await expect(switchEl).toBeChecked({ checked: originalState });
 
       // Click the switch — opens the confirm dialog (it does NOT mutate yet).
-      await switchEl.click();
-      const confirmBtn = page.getByTestId("confirm-dialog-confirm");
+      await switchEl.locator("xpath=ancestor::label[1]").click();
+      const confirmBtn = page.getByTestId("admin-confirm-modal-confirm");
       await expect(confirmBtn).toBeVisible({ timeout: 5_000 });
 
       // Confirm → fires setTemplateDefaultPolicy mutation.
@@ -278,33 +292,31 @@ test.describe("INV-TPL-E2E-BB-03: Default-policy toggle round-trip", () => {
 
       // Switch should reflect the new (inverted) state.
       const newExpected = !originalState;
-      await expect(switchEl).toHaveAttribute(
-        "aria-checked",
-        newExpected ? "true" : "false",
-        { timeout: 8_000 },
-      );
+      await expect(switchEl).toBeChecked({
+        checked: newExpected,
+        timeout: 8_000,
+      });
 
       // Reload the page and verify the new state persists.
-      await page.reload({ waitUntil: "networkidle" });
+      await page.reload({ waitUntil: "domcontentloaded" });
       await page.getByTestId("templates-tab-default-policies").click();
-      const reloadedRow = page.locator("tbody tr", {
-        hasText: target.templateId,
-      });
+      const reloadedRow = page
+        .locator('[data-myoxus-ui-role="template-soft-list-item"]')
+        .first();
       await expect(reloadedRow).toBeVisible({ timeout: 8_000 });
       const reloadedSwitch = reloadedRow.getByRole("switch");
-      await expect(reloadedSwitch).toHaveAttribute(
-        "aria-checked",
-        newExpected ? "true" : "false",
-        { timeout: 5_000 },
-      );
+      await expect(reloadedSwitch).toBeChecked({
+        checked: newExpected,
+        timeout: 5_000,
+      });
 
       // Cross-check: query the server directly — DB row should match.
       const after = await fetchDefaultPolicies(adminRequest);
-      const updated = after.find((p) => p.templateId === target.templateId);
+      const updated = after.find((p) => p.templateId === target!.templateId);
       expect(updated?.applyToNewWorkspaces).toBe(newExpected);
     } finally {
       // Restore the original policy state so the dev DB is unchanged.
-      await restoreDefaultPolicy(adminRequest, target);
+      if (target) await restoreDefaultPolicy(adminRequest, target);
     }
   });
 });

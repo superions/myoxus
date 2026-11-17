@@ -62,10 +62,16 @@ async function createAndConvertToEmbedLinkedDoc(page: Page) {
   const toolbar = page.getByTestId("selection-toolbar");
   await expect(toolbar).toBeVisible();
 
-  const switchButton = toolbar.getByRole("combobox", { name: "Switch view" });
+  const switchButton = toolbar.getByRole("button", {
+    name: "Inline view",
+    exact: true,
+  });
   await switchButton.click();
 
-  const embedLinkedDocBtn = toolbar.getByRole("option", { name: "Card view" });
+  const embedLinkedDocBtn = toolbar.getByRole("menuitem", {
+    name: "Card view",
+    exact: true,
+  });
   await expect(embedLinkedDocBtn).toBeVisible();
   await embedLinkedDocBtn.click();
   await waitNextFrame(page, 200);
@@ -536,7 +542,10 @@ test.describe("linked page popover", () => {
       "Import",
     ]);
 
-    const moreNode = page.locator(`icon-button[data-id="Link to Doc More"]`);
+    const moreNode = page.getByRole("option", {
+      name: "4 more docs",
+      exact: true,
+    });
     await moreNode.click();
     await expect(pageBtn).toHaveText([
       ...Array.from({ length: 10 }, (_, index) => `page${index}`),
@@ -818,9 +827,7 @@ test.describe("Customize linked doc title and description", () => {
     const linkedDocBlock = page.locator("myoxus-embed-linked-doc-block");
     await expect(linkedDocBlock).toBeVisible();
 
-    const linkedDocBlockTitle = linkedDocBlock.locator(
-      ".myoxus-embed-linked-doc-content-title-text",
-    );
+    const linkedDocBlockTitle = linkedDocBlock.locator('[data-slot="title"]');
     await expect(linkedDocBlockTitle).toHaveText("page0-title0");
 
     await linkedDocBlock.click();
@@ -871,7 +878,7 @@ test.describe("Customize linked doc title and description", () => {
     await waitNextFrame(page, 200);
     await expect(linkedDocBlockTitle).toHaveText("page0-title0");
     await expect(
-      page.locator(".myoxus-embed-linked-doc-content-note.alias"),
+      page.getByTestId("editor-document-card-description"),
     ).toHaveText("This is a new description");
   });
 
@@ -1004,12 +1011,10 @@ test.describe("Customize linked doc title and description", () => {
     await expect(syncedDocBlock).not.toBeVisible();
 
     await expect(linkedDocBlock).toBeVisible();
-    const linkedDocBlockTitle = linkedDocBlock.locator(
-      ".myoxus-embed-linked-doc-content-title-text",
-    );
+    const linkedDocBlockTitle = linkedDocBlock.locator('[data-slot="title"]');
     await expect(linkedDocBlockTitle).toHaveText("page0-title0");
     await expect(
-      linkedDocBlock.locator(".myoxus-embed-linked-doc-content-note.alias"),
+      linkedDocBlock.getByTestId("editor-document-card-description"),
     ).toHaveText("This is a new description");
   });
 });

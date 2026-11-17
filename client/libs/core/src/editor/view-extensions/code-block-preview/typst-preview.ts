@@ -1,12 +1,15 @@
 import { CodeBlockPreviewExtension } from "@virgultum/editor/blocks/code";
 import { SignalWatcher, WithDisposable } from "@virgultum/editor/global/lit";
 import type { CodeBlockModel } from "@virgultum/editor/model";
-import { fontMonoStyle, fontSMStyle } from "@virgultum/editor/shared/styles";
+import {
+  EditorChromeHostIdentifier,
+  type RenderCodePreviewStatus,
+} from "@virgultum/editor/shared/services";
+import { fontSMStyle } from "@virgultum/editor/shared/styles";
 import { unsafeCSSValue, unsafeCSSVar } from "@virgultum/editor/shared/theme";
-import { ShadowlessElement } from "@virgultum/std";
+import { ShadowlessElement } from "@virgultum/core/runtime";
 import { css, html, nothing } from "lit";
 import { property, query, state } from "lit/decorators.js";
-import { choose } from "lit/directives/choose.js";
 import { styleMap } from "lit/directives/style-map.js";
 
 import { ensureTypstReady, getTypst } from "./typst";
@@ -15,78 +18,18 @@ const RENDER_DEBOUNCE_MS = 200;
 
 export const CodeBlockTypstPreview = CodeBlockPreviewExtension(
   "typst",
-  (model) => html`<typst-preview .model=${model}></typst-preview>`,
+  (model, block) =>
+    html`<typst-preview
+      .model=${model}
+      .renderStatus=${block?.std.get(EditorChromeHostIdentifier).renderCodePreviewStatus}
+    ></typst-preview>`,
 );
 
 export class TypstPreview extends SignalWatcher(
   WithDisposable(ShadowlessElement),
 ) {
   static override styles = css`
-    ${fontMonoStyle(".typst-preview-loading")}
-    ${fontMonoStyle(".typst-preview-error")}
-    ${fontMonoStyle(".typst-preview-fallback")}
-    ${fontMonoStyle("details.typst-error-details")}
-    ${fontSMStyle(".typst-copy-button")}
     ${fontSMStyle(".typst-control-button")}
-
-    .typst-preview-loading {
-      color: ${unsafeCSSVar("placeholderColor")};
-      padding: ${unsafeCSSValue("var(--mantine-spacing-md)")};
-      text-align: center;
-    }
-
-    .typst-preview-error,
-    .typst-preview-fallback {
-      color: ${unsafeCSSVar("errorColor")};
-      padding: ${unsafeCSSValue("var(--mantine-spacing-md)")};
-      text-align: center;
-    }
-
-    details.typst-error-details {
-      margin-top: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
-      text-align: left;
-      border: ${unsafeCSSValue("calc(var(--mantine-scale) * 1px)")} dashed
-        ${unsafeCSSVar("borderColor")};
-      border-radius: ${unsafeCSSValue("var(--mantine-radius-md)")};
-      padding: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
-      background: ${unsafeCSSVar("backgroundSecondaryColor")};
-      color: ${unsafeCSSVar("textSecondaryColor")};
-    }
-
-    .typst-error-text {
-      white-space: pre-wrap;
-      word-break: break-word;
-      user-select: text;
-    }
-
-    .typst-copy-row {
-      display: flex;
-      gap: ${unsafeCSSValue("var(--mantine-spacing-sm)")};
-      align-items: center;
-      margin-top: ${unsafeCSSValue(
-        "calc(var(--mantine-spacing-2xs) + var(--mantine-spacing-xs))",
-      )};
-    }
-
-    .typst-copy-button {
-      min-block-size: ${unsafeCSSValue(
-        "calc(var(--mantine-spacing-xl) + var(--mantine-spacing-xs) + var(--mantine-spacing-2xs))",
-      )};
-      padding: 0 ${unsafeCSSValue("var(--mantine-spacing-sm)")};
-      border-radius: ${unsafeCSSValue("var(--mantine-radius-sm)")};
-      border: ${unsafeCSSValue("calc(var(--mantine-scale) * 1px)")} solid
-        ${unsafeCSSVar("borderColor")};
-      background: ${unsafeCSSVar("backgroundPrimaryColor")};
-      color: ${unsafeCSSVar("textPrimaryColor")};
-      cursor: pointer;
-      transition:
-        background ${unsafeCSSValue("200ms")} ease,
-        border-color ${unsafeCSSValue("200ms")} ease;
-    }
-
-    .typst-copy-button:hover {
-      background: ${unsafeCSSVar("hoverColor")};
-    }
 
     .typst-preview-container {
       width: 100%;
@@ -164,6 +107,9 @@ export class TypstPreview extends SignalWatcher(
   `;
 
   @property({ attribute: false })
+  accessor renderStatus!: RenderCodePreviewStatus;
+
+  @property({ attribute: false })
   accessor model: CodeBlockModel | null = null;
 
   @property({ attribute: false })
@@ -187,6 +133,7 @@ export class TypstPreview extends SignalWatcher(
 
   private renderTimeout: ReturnType<typeof setTimeout> | null = null;
   private isRendering = false;
+  private copyTimeout: ReturnType<typeof setTimeout> | undefined;
   private scale = 1;
   private translateX = 0;
   private translateY = 0;
@@ -198,52 +145,15 @@ export class TypstPreview extends SignalWatcher(
     if (!this.errorMessage) return;
     try {
       await navigator.clipboard.writeText(this.errorMessage);
+      if (!this.isConnected) return;
       this.copyState = "copied";
-      setTimeout(() => (this.copyState = "idle"), 1500);
     } catch (err) {
       console.error("Failed to copy Typst error message:", err);
+      if (!this.isConnected) return;
       this.copyState = "failed";
-      setTimeout(() => (this.copyState = "idle"), 1500);
     }
-  }
-
-  private get _errorMessageDetail() {
-    return this.errorMessage
-      ? html`<details class="typst-error-details">
-          <summary>Error details</summary>
-          <pre
-            class="typst-error-text"
-            tabindex="0"
-            aria-label="Typst error message"
-          >
-${this.errorMessage}</pre>
-          <div class="typst-copy-row">
-            <button class="typst-copy-button" @click=${this._copyError}>
-              ${this._copyButtonLabel}
-            </button>
-          </div>
-        </details>`
-      : nothing;
-  }
-
-  private get _errorMessageComponent() {
-    const lower = this.errorMessage?.toLowerCase() ?? "";
-
-    const friendlyMessage = lower.includes("no font could be found")
-      ? "Failed to load fonts. Please check your network or try again."
-      : "Failed to render Typst. Please check your code.";
-
-    return [friendlyMessage, this._errorMessageDetail];
-  }
-
-  private get _copyButtonLabel() {
-    if (this.copyState === "copied") {
-      return "Copied";
-    } else if (this.copyState === "failed") {
-      return "Copy failed";
-    } else {
-      return "Copy";
-    }
+    clearTimeout(this.copyTimeout);
+    this.copyTimeout = setTimeout(() => (this.copyState = "idle"), 1500);
   }
 
   private get _finalPreview() {
@@ -302,6 +212,8 @@ ${this.errorMessage}</pre>
   }
 
   override disconnectedCallback(): void {
+    clearTimeout(this.copyTimeout);
+    this.copyState = "idle";
     super.disconnectedCallback();
     if (this.renderTimeout) {
       clearTimeout(this.renderTimeout);
@@ -424,37 +336,27 @@ ${this.errorMessage}</pre>
   override render() {
     return html`
       <div class="typst-preview-wrapper">
-        ${choose(this.state, [
-          [
-            "loading",
-            () =>
-              html`<div class="typst-preview-loading">
-                Rendering Typst code...
-              </div>`,
-          ],
-          [
-            "error",
-            () =>
-              html`<div class="typst-preview-error">
-                ${this._errorMessageComponent}
-              </div>`,
-          ],
-          [
-            "syntax-error",
-            () =>
-              html`<div class="typst-preview-error">
-                Typst code has errors: ${this.errorMessage ?? "Unknown error."}
-                ${this._errorMessageDetail}
-              </div>`,
-          ],
-          [
-            "fallback",
-            () =>
-              html`<div class="typst-preview-fallback">
-                Enter Typst code to preview.
-              </div>`,
-          ],
-        ])}
+        ${
+          this.state === "finish"
+            ? nothing
+            : this.renderStatus({
+                language: "Typst",
+                state:
+                  this.state === "fallback"
+                    ? "empty"
+                    : this.state === "loading"
+                      ? "loading"
+                      : "error",
+                detail: this.errorMessage,
+                fontError: this.errorMessage
+                  ?.toLowerCase()
+                  .includes("no font could be found"),
+                copyState: this.copyState,
+                copy: () => {
+                  void this._copyError();
+                },
+              })
+        }
         <div
           class="typst-preview-container"
           style=${styleMap({

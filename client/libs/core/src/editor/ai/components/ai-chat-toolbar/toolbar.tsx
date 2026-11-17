@@ -16,7 +16,7 @@ import {
   PopoverTarget,
 } from "@myoxus/ui-facade";
 import type { NotificationService } from "@virgultum/editor/shared/services";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import type { DocDisplayConfig } from "../ai-chat-chips";
 import type { ChatStatus } from "../ai-chat-messages";
@@ -50,6 +50,7 @@ export function ChatToolbar(props: ChatToolbarProps) {
   } = props;
   const t = useI18n();
   const [historyOpen, setHistoryOpen] = useState(false);
+  const historyContentRef = useRef<HTMLDivElement>(null);
   const [pending, setPending] = useState(false);
   const generating = status === "loading" || status === "transmitting";
   const disabled = generating || pending;
@@ -127,9 +128,11 @@ export function ChatToolbar(props: ChatToolbarProps) {
       </IconButton>
       <Popover
         open={historyOpen}
-        onOpenChange={setHistoryOpen}
+        onOpenChange={(open) => {
+          // Keep the confirmation's focus owner mounted while it owns input.
+          if (open || !pending) setHistoryOpen(open);
+        }}
         position="bottom-end"
-        contentMeasure="reading"
         fitViewport
         returnFocus
         trapFocus
@@ -148,6 +151,7 @@ export function ChatToolbar(props: ChatToolbarProps) {
           </IconButton>
         </PopoverTarget>
         <PopoverContent
+          ref={historyContentRef}
           role="dialog"
           aria-label={t["com.myoxus.ai.chat-panel.history"]()}
         >
@@ -178,14 +182,16 @@ export function ChatToolbar(props: ChatToolbarProps) {
                     doc !== props.docId,
                   );
               }}
-              onDelete={(item) =>
-                transition(
+              onDelete={(item) => {
+                // Native confirmation must return to this stable dialog, not a closing menu item.
+                historyContentRef.current?.focus();
+                return transition(
                   () => props.onSessionDelete(item),
                   false,
                   false,
                   true,
-                )
-              }
+                );
+              }}
             />
           ) : null}
         </PopoverContent>

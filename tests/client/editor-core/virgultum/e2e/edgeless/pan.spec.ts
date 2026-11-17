@@ -24,7 +24,6 @@ import {
 } from "../utils/actions/index.js";
 import {
   assertEdgelessSelectedRect,
-  assertNotHasClass,
   assertRichTexts,
 } from "../utils/asserts.js";
 import { test } from "../utils/playwright.js";
@@ -190,7 +189,7 @@ test("pan tool shortcut when user is editing", async ({ page }) => {
 
   await page.keyboard.down("Space");
   const defaultButton = await locatorEdgelessToolButton(page, "pan", false);
-  await assertNotHasClass(defaultButton, "pan");
+  await expect(defaultButton).toHaveAccessibleName("Select");
   await waitNextFrame(page);
 });
 

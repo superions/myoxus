@@ -1,1 +1,1 @@
-export * from "@virgultum/block-attachment/store";
+export { AttachmentStoreExtension } from "@virgultum/embeds/store";

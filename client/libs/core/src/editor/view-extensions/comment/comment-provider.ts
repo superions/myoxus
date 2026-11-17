@@ -7,18 +7,18 @@ import {
 } from "@virgultum/editor/shared/services";
 import { type BlockStdScope, StdIdentifier } from "@virgultum/editor/std";
 import type { BaseSelection, ExtensionType } from "@virgultum/editor/store";
-import { type Container } from "@virgultum/global/di";
-import { ImageSelection } from "@virgultum/shared/selection";
+import { type Container } from "@virgultum/core/primitives/di";
+import { ImageSelection } from "@virgultum/core/selection";
 import {
   BlockSelection,
   SurfaceSelection,
   TextSelection,
-} from "@virgultum/std";
+} from "@virgultum/core/runtime";
 import {
   GfxBlockElementModel,
   GfxControllerIdentifier,
   GfxPrimitiveElementModel,
-} from "@virgultum/std/gfx";
+} from "@virgultum/core/runtime/gfx";
 
 import { DocCommentManagerService } from "../../../modules/comment/services/doc-comment-manager";
 

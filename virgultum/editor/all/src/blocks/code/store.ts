@@ -1,1 +1,1 @@
-export * from "@virgultum/block-code/store";
+export { CodeStoreExtension } from "@virgultum/content/store";

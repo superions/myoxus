@@ -1,15 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { effect } from "@preact/signals-core";
-import { Bound } from "@virgultum/global/gfx";
-import { MermaidBlockSchema, type MermaidBlockModel } from "@virgultum/model";
-import { GfxBlockComponent } from "@virgultum/std";
+import { Bound } from "@virgultum/core/primitives/gfx";
+import {
+  MermaidBlockSchema,
+  type MermaidBlockModel,
+} from "@virgultum/core/models";
+import { GfxBlockComponent } from "@virgultum/core/runtime";
 import {
   type BoxSelectionContext,
   GfxViewInteractionExtension,
   InteractivityExtension,
   type GfxModel,
-} from "@virgultum/std/gfx";
+} from "@virgultum/core/runtime/gfx";
 import { html, nothing, type PropertyValues } from "lit";
 
 import { resolveMermaidSourceLifecycle } from "../families/runtime/source-lifecycle.js";
@@ -400,6 +403,9 @@ export const MermaidEdgelessBlockInteraction =
       handleSelection: ({ gfx, model }) => ({
         selectable(context) {
           if (!context.default(context)) return false;
+          // A locked diagram is one selectable owner; its children cannot be
+          // picked, but must not make the owner's own hit target disappear.
+          if (model.isLocked()) return true;
           const hits = gfx.getElementByPoint(
             context.position.x,
             context.position.y,

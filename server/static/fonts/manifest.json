@@ -5240,6 +5240,13 @@
       "source_url": "https://raw.githubusercontent.com/typst/typst-assets/ad8080d46d42fca909562572cfa14a86f00eb945/files/fonts/NewCMMath-Regular.otf",
       "license": "licenses/typst-NewCMMath-Regular.otf.txt",
       "license_id": "LicenseRef-GUST-Font-1.0"
+    },
+    {
+      "file": "noto-emoji-vf.ttf",
+      "sha256": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+      "source_url": "https://raw.githubusercontent.com/google/fonts/29b4ec6df2522a8aee279414b78a07910b065874/ofl/notoemoji/NotoEmoji%5Bwght%5D.ttf",
+      "license": "licenses/noto-emoji-OFL.txt",
+      "license_id": "OFL-1.1"
     }
   ]
 }

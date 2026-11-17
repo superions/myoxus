@@ -266,9 +266,7 @@ test("outline viewer should be useable in doc peek preview", async ({
   // outline viewer should be hidden when clicking the outline panel toggle button
   {
     await indicators.first().hover({ force: true });
-    const toggleButton = peekView.locator(
-      ".outline-viewer-header edgeless-tool-icon-button",
-    );
+    const toggleButton = peekView.getByTestId("toggle-outline-panel-button");
     await toggleButton.click();
 
     await page.waitForTimeout(500);

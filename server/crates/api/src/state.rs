@@ -1333,6 +1333,7 @@ impl ApiState {
       self.document_metadata_policy_service()?,
       self.workspace_tag_service()?,
       self.auth().clone(),
+      self.html_catalog(),
     ))
   }
 
@@ -2448,6 +2449,31 @@ impl ApiState {
         self.user_preference_defaults().await,
       ),
     )
+  }
+
+  /// Materialize selected document dependencies through existing application owners.
+  pub async fn prepare_document_embeds(
+    &self,
+    snapshot: &[u8],
+    workspace_id: uuid::Uuid,
+    doc_id: uuid::Uuid,
+    actor: Option<uuid::Uuid>,
+  ) -> myoxus_application::auth::AuthResult<Option<myoxus_application::doc::embed_output::PreparedEmbedOutput>> {
+    let permission = self.permission_service();
+    let public = self.public_repository();
+    let fields = self.document_field_resolver().await;
+    let redirects = self.workspace_content_redirect_service();
+    myoxus_application::doc::embed_output::EmbedOutputContext {
+      doc: self.doc(),
+      permission: &permission,
+      public: public.as_ref(),
+      fields: fields.as_ref(),
+      blobs: self.blob(),
+      redirects: redirects.as_deref(),
+      actor,
+    }
+    .prepare(snapshot, workspace_id, doc_id)
+    .await
   }
 
   /// Replace the no-op audit recorder with a real `PgAuditLogStore`-backed one.

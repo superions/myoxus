@@ -1,1 +1,1 @@
-export * from "@virgultum/shared/commands";
+export * from "@virgultum/core/commands";

@@ -18,6 +18,7 @@ use myoxus_domain::permission::{DocAction, WorkspaceAction};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use url::Url;
+use uuid::Uuid;
 
 use super::{
   McpAuthContext, McpToolState, assert_doc_permission, assert_workspace_permission, authorized_markdown_references,
@@ -234,11 +235,19 @@ pub(super) async fn read_doc(
   auth: &McpAuthContext,
   state: &McpToolState,
 ) -> Result<Value, (i32, String)> {
-  let structured = project_authorized_document(params, auth, state).await?;
-  Ok(json!({
-    "content": [{"type": "text", "text": serde_json::to_string(&structured).unwrap_or_default()}],
-    "structuredContent": structured,
-  }))
+  if !auth.has_scope("read:docs") {
+    return Err((-32003, "Scope 'read:docs' required".into()));
+  }
+  read_doc_for_user(params, auth.user_id, state).await
+}
+
+pub(crate) async fn read_doc_for_user(
+  params: &Value,
+  user_id: Uuid,
+  state: &McpToolState,
+) -> Result<Value, (i32, String)> {
+  let structured = project_document_for_user(params, user_id, state).await?;
+  Ok(super::mcp_json_response(structured))
 }
 
 /// Read immutable content with current ACLs, independently of the live version head.
@@ -339,7 +348,7 @@ pub(super) async fn version_read(
   if serde_json::to_vec(&content).map_or(true, |bytes| bytes.len() > state.document_export_max_bytes) {
     return Err(map_projection_error(DocumentProjectionError::ExportTooLarge));
   }
-  super::document_semantics::redact_mentions(&mut content, workspace_id, auth, state).await;
+  super::document_semantics::redact_mentions(&mut content, workspace_id, auth.user_id, state).await;
   Ok(mcp_json_response(content))
 }
 
@@ -449,6 +458,14 @@ pub(crate) async fn project_authorized_document(
   if !auth.has_scope("read:docs") {
     return Err((-32003, "Scope 'read:docs' required".to_string()));
   }
+  project_document_for_user(params, auth.user_id, state).await
+}
+
+pub(crate) async fn project_document_for_user(
+  params: &Value,
+  user_id: Uuid,
+  state: &McpToolState,
+) -> Result<Value, (i32, String)> {
   let workspace_id = parse_uuid(params, "workspace_id")?;
   let external_id = required_non_empty(params, "external_id")?;
   let representation = parse_representation(params)?;
@@ -474,20 +491,17 @@ pub(crate) async fn project_authorized_document(
     .and_then(Value::as_u64)
     .map(|value| usize::try_from(value).unwrap_or(usize::MAX));
 
-  check_workspace_membership(&state.workspace_service, auth.user_id, workspace_id).await?;
+  check_workspace_membership(&state.workspace_service, user_id, workspace_id).await?;
   let resolved = resolve_external_document_for_mcp(&state.doc_service, workspace_id, &external_id).await?;
   let doc_id = resolved.internal_id;
   let doc_meta = resolve_doc_in_workspace(&state.doc_service, workspace_id, doc_id).await?;
-  assert_doc_permission(state, auth.user_id, workspace_id, doc_id, DocAction::Read).await?;
+  assert_doc_permission(state, user_id, workspace_id, doc_id, DocAction::Read).await?;
 
   if !include_okf {
-    state.doc_service.load.fire_view_tracking(
-      workspace_id,
-      doc_id,
-      auth.user_id,
-      true,
-      state.workspace_service.clone(),
-    );
+    state
+      .doc_service
+      .load
+      .fire_view_tracking(workspace_id, doc_id, user_id, true, state.workspace_service.clone());
   }
 
   let metadata = load_document_metadata(state.document_services.as_ref(), doc_id, workspace_id).await?;
@@ -498,7 +512,7 @@ pub(crate) async fn project_authorized_document(
     .map_err(|error| (-32002, format!("document metadata policy load failed: {error}")))?;
   let metadata_badges = document_metadata_badges(&metadata, &policy.definitions);
   let references = if representation == DocumentRepresentation::Markdown {
-    Some(authorized_markdown_references(state, auth.user_id, workspace_id).await?)
+    Some(authorized_markdown_references(state, user_id, workspace_id).await?)
   } else {
     None
   };
@@ -508,7 +522,7 @@ pub(crate) async fn project_authorized_document(
     state.document_cursor_signing_key.clone(),
   )
   .with_html_catalog(state.html_catalog.clone())
-  .with_field_source(state.document_services.field_context_source(), Some(auth.user_id))
+  .with_field_source(state.document_services.field_context_source(), Some(user_id))
   .with_max_output_bytes(state.document_export_max_bytes);
   if let Some(references) = references {
     service = service.with_markdown_references(references);
@@ -519,11 +533,11 @@ pub(crate) async fn project_authorized_document(
       .as_ref()
       .ok_or_else(|| (-32002, "Canonical tag service unavailable".to_owned()))?;
     let ids = tags
-      .document_tag_ids(auth.user_id, workspace_id, doc_id)
+      .document_tag_ids(user_id, workspace_id, doc_id)
       .await
       .map_err(|_| (-32002, "Canonical tag assignments unavailable".to_owned()))?;
     let tags = tags
-      .resolve_tags(auth.user_id, workspace_id, &ids)
+      .resolve_tags(user_id, workspace_id, &ids)
       .await
       .map_err(|_| (-32002, "Canonical tags unavailable".to_owned()))?;
     let status_mapping = metadata
@@ -573,7 +587,7 @@ pub(crate) async fn project_authorized_document(
       .ok_or_else(|| (-32002, "Generated OKF frontmatter boundary unavailable".to_owned()))?;
     myoxus_application::document_metadata::okf::enrich_sources(
       okf,
-      auth.user_id,
+      user_id,
       &state.doc_service,
       &state.permission_service,
       state.document_services.as_ref(),
@@ -586,7 +600,7 @@ pub(crate) async fn project_authorized_document(
       .map_err(|_| (-32002, "OKF serialization failed".to_owned()))?;
   }
   if projection_has_private_assets(&projection) {
-    assert_workspace_permission(state, auth.user_id, workspace_id, WorkspaceAction::BlobsRead).await?;
+    assert_workspace_permission(state, user_id, workspace_id, WorkspaceAction::BlobsRead).await?;
   }
   resolve_private_asset_metadata(&mut projection, state).await?;
   if serde_json::to_vec(&projection).map_or(true, |value| value.len() > state.document_export_max_bytes) {
@@ -605,7 +619,7 @@ pub(crate) async fn project_authorized_document(
     document.remove("docId");
     document.insert("externalId".to_string(), json!(resolved.external_id));
   }
-  super::document_semantics::redact_mentions(&mut structured, workspace_id, auth, state).await;
+  super::document_semantics::redact_mentions(&mut structured, workspace_id, user_id, state).await;
   Ok(structured)
 }
 
@@ -1456,7 +1470,7 @@ async fn authorize_replayed_readback(
     payload["readback"] = json!(MutationReadbackStatus::Unavailable { reason });
     true
   } else {
-    super::document_semantics::redact_mentions(&mut payload, workspace_id, auth, state).await
+    super::document_semantics::redact_mentions(&mut payload, workspace_id, auth.user_id, state).await
   };
   if changed {
     response["content"] = mcp_json_response(payload.clone())["content"].clone();

@@ -1,1 +1,1 @@
-export * from "@virgultum/block-annotation/view";
+export { AnnotationViewExtension } from "@virgultum/content/view";

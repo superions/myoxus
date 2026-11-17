@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import type { ToolbarContext } from "@virgultum/shared/services";
+import type { ToolbarContext } from "@virgultum/core/services";
 
 import { deleteMermaidGfxSelectionCommand } from "../../families/runtime/gfx-commands.js";
 import { resolveTypeOwnedMermaidGfxDeletionPlan } from "../../families/runtime/gfx-graph-operations.js";

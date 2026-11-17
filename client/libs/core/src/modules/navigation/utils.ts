@@ -144,6 +144,7 @@ export const preprocessParams = (
   return pick(result, [
     "mode",
     "blockIds",
+    "blockSelection",
     "elementIds",
     "databaseId",
     "databaseRowId",
@@ -155,10 +156,12 @@ export const preprocessParams = (
 /** Decode the document-reference fields; comma-separated selections stay arrays. */
 export function parseDocSearchParams(search: string) {
   const params = parseNavigationQuery(search);
-  for (const key of ["mode", "blockIds", "elementIds"]) {
+  for (const key of ["mode", "blockIds", "blockSelection", "elementIds"]) {
     if (!Object.hasOwn(params, key)) continue;
     const transform = (value: unknown) => {
       if (value === null) return null;
+      if (key === "blockSelection")
+        return value === "section" || value === "subtree" ? value : undefined;
       if (key === "mode")
         return value === "page" || value === "edgeless" ? value : undefined;
       return String(value).split(",").filter(Boolean);

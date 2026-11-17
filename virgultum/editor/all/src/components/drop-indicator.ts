@@ -1,1 +1,1 @@
-export * from "@virgultum/components/drop-indicator";
+export * from "@virgultum/core/view/drop-indicator";

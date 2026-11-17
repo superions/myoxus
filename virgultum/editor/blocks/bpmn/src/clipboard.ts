@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import type { BpmnSourceRevisionProps } from "@virgultum/model";
-import { LifeCycleWatcher } from "@virgultum/std";
-import type { TransformerMiddleware } from "@virgultum/store";
+import type { BpmnSourceRevisionProps } from "@virgultum/core/models";
+import { LifeCycleWatcher } from "@virgultum/core/runtime";
+import type { TransformerMiddleware } from "@virgultum/core/store";
 import { cloneBpmnSourceRevisionSnapshot } from "./source-revisions.js";
 
 /** Native Page/Edgeless snapshots retain every head and ancestry, but each paste

@@ -21,10 +21,10 @@ const ignoredDirectories = new Set([
   "target",
 ]);
 const expectedBrowserConfigs = new Set([
-  "virgultum/editor/blocks/bookmark/vitest.config.ts",
-  "virgultum/editor/inlines/footnote/vitest.config.ts",
-  "virgultum/editor/shared/vitest.config.ts",
-  "virgultum/framework/std/vitest.config.ts",
+  "virgultum/embeds/vitest.config.ts",
+  "virgultum/content/vitest.footnote.config.ts",
+  "virgultum/core/vitest.services.config.ts",
+  "virgultum/core/vitest.runtime.config.ts",
   "virgultum/integration-test/vitest.config.ts",
 ]);
 const expectedDecoratorConfigs = new Set([
@@ -43,7 +43,7 @@ function configFiles(directory = repoRoot, relativeDirectory = "") {
         ? []
         : configFiles(resolve(directory, entry.name), relativePath);
     }
-    return /^(?:vite|vitest)\.config\.[cm]?[jt]s$/.test(entry.name)
+    return /^(?:vite|vitest)(?:\.[\w-]+)?\.config\.[cm]?[jt]s$/.test(entry.name)
       ? [relativePath]
       : [];
   });

@@ -103,7 +103,7 @@ describe("PDF capability form rendering", () => {
 
     expect(
       screen
-        .getByRole("button", { name: "Advanced typed inputs" })
+        .getByRole("button", { name: "Advanced options" })
         .getAttribute("aria-expanded"),
     ).toBe("false");
     expect(

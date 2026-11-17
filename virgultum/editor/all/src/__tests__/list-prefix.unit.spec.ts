@@ -1,8 +1,8 @@
-import type { ListBlockModel } from "@virgultum/model";
+import type { ListBlockModel } from "@virgultum/core/models";
 import { render } from "lit";
 import { expect, test } from "vitest";
 
-import { getListPrefix } from "../../../blocks/list/src/utils/get-list-prefix.js";
+import { getListPrefix } from "../../../../content/src/blocks/list/utils/get-list-prefix";
 
 test("bulleted lists use a native CSS marker instead of an icon", async () => {
   const model = {

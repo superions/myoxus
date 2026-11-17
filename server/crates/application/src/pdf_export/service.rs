@@ -52,6 +52,22 @@ pub struct PdfEnqueueOutcome {
 #[async_trait::async_trait]
 pub trait PdfExportBackend: Send + Sync {
   fn ensure_database(&self) -> Result<()>;
+  async fn prepare_document_embeds(
+    &self,
+    snapshot: &[u8],
+    _workspace_id: Uuid,
+    _doc_id: Uuid,
+    _actor: Uuid,
+  ) -> Result<Option<crate::doc::embed_output::PreparedEmbedOutput>> {
+    if yjs::document_embed::inspect(snapshot)
+      .map_err(|_| PdfExportError::new("PDF document embed output unavailable"))?
+      .is_empty()
+    {
+      Ok(None)
+    } else {
+      Err(PdfExportError::new("PDF document embed output unavailable"))
+    }
+  }
   async fn theme(&self, workspace_id: Uuid) -> Result<PdfThemeContext>;
   async fn template(&self, selector: &str) -> Result<LoadedTemplate>;
   async fn render(&self, request: PdfExportRenderRequest) -> Result<SyncRenderOutcome>;
@@ -85,6 +101,8 @@ pub struct PdfExportRenderRequest {
 
 #[derive(Clone)]
 pub struct PdfExportService {
+  pub directory_source: Option<crate::workspace_overview::WorkspaceOverviewService>,
+  pub web_origin: String,
   pub field_source: Option<Arc<dyn crate::document_fields::context::DocumentFieldContextSource>>,
   pub permission: Arc<PermissionService>,
   pub doc: DocService,
@@ -439,6 +457,9 @@ impl PdfExportService {
         .await
         .map_err(PdfExportError::authorization)?;
     }
+    crate::doc::embed_output::authorize_render_inputs(&job.render_inputs, &self.permission, &self.doc, actor_user_id)
+      .await
+      .map_err(PdfExportError::authorization)?;
     debug!(job_id = %job_id, user_id = %actor_user_id, "pdf export job polled");
     Ok(job)
   }
@@ -845,27 +866,57 @@ impl PdfExportService {
     input.document_metadata_snapshot = Some(metadata_snapshot);
     input.metadata_validation = Some(metadata_validation);
     let original_history = input.doc_history_id;
-    let (mut field_output, field_latest_key) = self
-      .prepare_document_fields(workspace_uuid, doc_uuid, actor_user_id, original_history)
+    let (mut field_output, field_latest_key, output_snapshot, source_revision) = self
+      .prepare_document_output(workspace_uuid, doc_uuid, actor_user_id, original_history)
       .await?;
+    let source_revision = source_revision.filter(|_| source.is_none());
 
+    let mut directory_output = self
+      .prepare_directories(&output_snapshot, workspace_uuid, doc_uuid, actor_user_id, &locale)
+      .await?;
+    let mut embed_output = self
+      .backend
+      .prepare_document_embeds(&output_snapshot, workspace_uuid, doc_uuid, actor_user_id)
+      .await?;
     // Hash the validated user request before resolving `latest` into a
     // freshly created auto-version. Otherwise double-clicks would create a
     // different label and bypass the existing 60-second idempotency window.
     // Reuse is qualified by the already validated bundle snapshot, so both
     // regular and latest-selector retries observe same-version file changes.
     input.latest_idempotency_key = stable_latest_idempotency_key(&input, &theme_context).map(|key| {
-      if let Some(fields) = &field_latest_key {
-        stable_hash_value(&serde_json::json!([key, &template_digest, fields]))
-      } else {
-        stable_hash_value(&serde_json::json!([key, &template_digest]))
+      // A retry may reuse an artifact only while the captured live source is unchanged.
+      // Auto-version metadata lives in SQL and does not advance this native sequence.
+      let key = stable_hash_value(&serde_json::json!([key, source_revision]));
+      match (&field_latest_key, &directory_output) {
+        (Some(fields), Some(directory)) => {
+          stable_hash_value(&serde_json::json!([key, &template_digest, fields, directory]))
+        }
+        (Some(fields), None) => stable_hash_value(&serde_json::json!([key, &template_digest, fields])),
+        (None, Some(directory)) => stable_hash_value(&serde_json::json!([key, &template_digest, directory])),
+        (None, None) => stable_hash_value(&serde_json::json!([key, &template_digest])),
       }
     });
+    if let Some(output) = &embed_output {
+      input.latest_idempotency_key = input
+        .latest_idempotency_key
+        .map(|key| stable_hash_value(&serde_json::json!([key, output])));
+    }
     let mut idempotency_inputs = build_render_inputs(&input, &theme_context);
+    if let Some(revision) = source_revision {
+      idempotency_inputs["source_revision"] = serde_json::json!(revision);
+    }
+    if let Some(output) = &embed_output {
+      idempotency_inputs["document_embed_output"] =
+        serde_json::to_value(output).map_err(|_| PdfExportError::new("PDF document embed output unavailable"))?;
+    }
     idempotency_inputs["template_content_sha256"] = serde_json::json!(&template_digest);
     if let Some(fields) = &field_output {
       idempotency_inputs["document_field_output"] =
         serde_json::to_value(fields).map_err(|_| PdfExportError::new("PDF document field output unavailable"))?;
+    }
+    if let Some(directory) = &directory_output {
+      idempotency_inputs["document_index_output"] =
+        serde_json::to_value(directory).map_err(|_| PdfExportError::new("PDF directory output unavailable"))?;
     }
     let options_hash = compute_render_inputs_hash(&doc_uuid, &template_id, &idempotency_inputs);
 
@@ -1018,14 +1069,32 @@ impl PdfExportService {
       source_digest = Some(hex::encode(Sha256::digest(&history.snapshot)));
     }
     if input.doc_history_id != original_history {
-      // A named/replayable capture is now the authoritative source. Its frozen
-      // text must stand on its own; never reuse a pre-capture live field plan.
-      field_output = self
-        .prepare_document_fields(workspace_uuid, doc_uuid, actor_user_id, input.doc_history_id)
-        .await?
-        .0;
+      // Both projections consume the same final capture. Frozen fields retain
+      // history semantics; the directory's dependency inventory remains live.
+      let (fields, _, snapshot, _) = self
+        .prepare_document_output(workspace_uuid, doc_uuid, actor_user_id, input.doc_history_id)
+        .await?;
+      field_output = fields;
+      embed_output = self
+        .backend
+        .prepare_document_embeds(&snapshot, workspace_uuid, doc_uuid, actor_user_id)
+        .await?;
+      directory_output = self
+        .prepare_directories(&snapshot, workspace_uuid, doc_uuid, actor_user_id, &locale)
+        .await?;
     }
     let mut render_inputs = build_render_inputs(&input, &theme_context);
+    if let Some(revision) = source_revision {
+      render_inputs["source_revision"] = serde_json::json!(revision);
+    }
+    if let Some(output) = embed_output {
+      render_inputs["document_embed_output"] =
+        serde_json::to_value(output).map_err(|_| PdfExportError::new("PDF document embed output unavailable"))?;
+    }
+    if let Some(directory) = directory_output {
+      render_inputs["document_index_output"] =
+        serde_json::to_value(directory).map_err(|_| PdfExportError::new("PDF directory output unavailable"))?;
+    }
     render_inputs["template_content_sha256"] = serde_json::json!(&template_digest);
     if let Some(fields) = field_output {
       render_inputs["document_field_output"] =
@@ -1218,6 +1287,7 @@ impl PdfExportService {
         SyncRenderOutcome::Failed {
           class,
           detail: _,
+          formula,
           renderer_diagnostics,
         } => {
           warn!(
@@ -1226,12 +1296,13 @@ impl PdfExportService {
             class = %class,
             "pdf sync: render failed — surfacing error to client"
           );
-          // PDFREV-SEC-03 — never put `detail` on the wire. The renderer
-          // produces detail strings that may contain Typst compiler source
-          // snippets, asset paths, opendal/S3 backend codes, or workspace-
-          // internal block UUIDs. It must not enter logs; the client
-          // gets a deterministic one-liner keyed off the stable class.
-          let mut err = PdfExportError::new(safe_sync_error_summary(class).to_string());
+          // Compiler detail can contain private source, paths and block IDs.
+          // Only the closed, payload-free formula diagnostic crosses this boundary.
+          let message = formula.map_or_else(
+            || safe_sync_error_summary(class).to_string(),
+            |diagnostic| diagnostic.to_string(),
+          );
+          let mut err = PdfExportError::new(message);
           err.extensions = Some({
             let mut ext = PdfExportErrorDetails::default();
             ext.set("class", class);
@@ -1368,10 +1439,47 @@ impl PdfExportService {
       .map_err(|_| PdfExportError::new("PDF historical field output unavailable"))
   }
 
-  /// Current render plans and their retry comparison use the exact authorized
-  /// native capture. Historical selection bypasses today's context entirely.
+  /// Query only dependencies; the native source was captured once by its existing owner.
   #[tracing::instrument(skip_all)]
-  async fn prepare_document_fields(
+  async fn prepare_directories(
+    &self,
+    payload: &[u8],
+    workspace: Uuid,
+    doc: Uuid,
+    actor: Uuid,
+    locale: &str,
+  ) -> Result<Option<crate::workspace_overview::document_index::PreparedDirectoryOutput>> {
+    if yjs::document_index::inspect(payload)
+      .map_err(|_| PdfExportError::new("PDF directory invalid"))?
+      .is_empty()
+    {
+      return Ok(None);
+    }
+    self
+      .directory_source
+      .as_ref()
+      .ok_or_else(|| PdfExportError::new("PDF directory source unavailable"))?
+      .prepare_directory_output(
+        payload,
+        workspace,
+        doc,
+        actor,
+        self.permission.as_ref(),
+        &self.web_origin,
+        locale,
+      )
+      .await
+      .map_err(|error| match error {
+        crate::auth::AuthError::InvalidInput(message) => PdfExportError::new(message),
+        _ => PdfExportError::new("PDF directory output unavailable"),
+      })
+  }
+
+  /// Capture the native source once for output plans and retry comparison.
+  /// History already freezes field text; directory dependencies are resolved
+  /// separately under current access.
+  #[tracing::instrument(skip_all)]
+  async fn prepare_document_output(
     &self,
     workspace_id: Uuid,
     doc_id: Uuid,
@@ -1380,6 +1488,8 @@ impl PdfExportService {
   ) -> Result<(
     Option<crate::document_fields::output::PreparedFieldOutput>,
     Option<String>,
+    Vec<u8>,
+    Option<i64>,
   )> {
     use crate::document_fields::{
       DocumentFieldError,
@@ -1397,7 +1507,7 @@ impl PdfExportService {
         .filter(|entry| entry.workspace_id == workspace_id && entry.doc_id == doc_id)
         .ok_or_else(|| PdfExportError::new("PDF historical source unavailable"))?;
       historical_snapshot(&entry.snapshot).map_err(unavailable)?;
-      return Ok((None, None));
+      return Ok((None, None, entry.snapshot, None));
     }
     let captured = self
       .doc
@@ -1408,7 +1518,7 @@ impl PdfExportService {
     // A registered document without a native snapshot/tail has no fields. Keep
     // the existing queue admission for that empty source, without decoding it.
     if !captured.has_real_content {
-      return Ok((None, None));
+      return Ok((None, None, captured.payload, Some(captured.revision)));
     }
     let fields = yjs::document_field::content::inspect(&captured.payload)
       .map_err(|_| PdfExportError::new("PDF native document fields invalid"))?
@@ -1416,7 +1526,7 @@ impl PdfExportService {
       .map(|field| field.run.descriptor)
       .collect::<Vec<_>>();
     if fields.is_empty() {
-      return Ok((None, None));
+      return Ok((None, None, captured.payload, Some(captured.revision)));
     }
     crate::document_fields::validate_snapshot(&captured.payload).map_err(unavailable)?;
     let context = self
@@ -1434,7 +1544,7 @@ impl PdfExportService {
       .map_err(unavailable)?;
     let prepared = PreparedFieldOutput::prepare(&context, &fields).map_err(unavailable)?;
     let latest = prepared.latest_comparison(&fields).map_err(unavailable)?;
-    Ok((Some(prepared), Some(latest)))
+    Ok((Some(prepared), Some(latest), captured.payload, Some(captured.revision)))
   }
 
   /// Capture default assignment, template bytes and theme before rendering an

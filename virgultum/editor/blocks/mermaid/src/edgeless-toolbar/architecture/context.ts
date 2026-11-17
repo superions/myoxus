@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import type { MermaidBlockModel } from "@virgultum/model";
-import type { ToolbarContext } from "@virgultum/shared/services";
+import type { MermaidBlockModel } from "@virgultum/core/models";
+import type { ToolbarContext } from "@virgultum/core/services";
 
 import {
   applyMermaidVisualModelCommand,

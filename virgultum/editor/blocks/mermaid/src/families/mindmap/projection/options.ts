@@ -13,7 +13,7 @@ import {
   resolveMermaidGfxHeadingFont,
   resolveMermaidGfxProjectionTheme,
 } from "../../../mermaid-gfx-theme.js";
-import { TextUtils } from "@virgultum/block-surface";
+import { TextUtils } from "@virgultum/canvas-runtime/surface";
 import { sourceValuesEqual } from "../../../engine/source-yaml.js";
 import type { MermaidMindmapModel } from "../../../engine/mindmap/index.js";
 import type { MermaidVisualModel } from "../../runtime/gfx-model.js";
@@ -24,7 +24,7 @@ import type {
 } from "./designs.js";
 
 export { MindmapLayoutType, MindmapDesign } from "./types.js";
-export { StrokeStyle as MindmapStrokeStyle } from "@virgultum/model";
+export { StrokeStyle as MindmapStrokeStyle } from "@virgultum/core/models";
 export type MindmapSettingsAction = {
   type: "settings";
   nativeConfig?: Partial<

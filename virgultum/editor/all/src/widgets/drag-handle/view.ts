@@ -1,1 +1,21 @@
-export * from "@virgultum/widget-drag-handle/view";
+import {
+  type ViewExtensionContext,
+  ViewExtensionProvider,
+} from "@virgultum/core/extensions";
+
+import { dragHandleWidget } from ".";
+import { effects } from "./effects";
+
+export class DragHandleViewExtension extends ViewExtensionProvider {
+  override name = "myoxus-drag-handle-widget";
+
+  override effect() {
+    super.effect();
+    effects();
+  }
+
+  override setup(context: ViewExtensionContext) {
+    super.setup(context);
+    context.register(dragHandleWidget);
+  }
+}

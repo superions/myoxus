@@ -84,7 +84,7 @@ impl WorkspaceImportPolicy {
     );
     // Conversion semantics are part of the confirmation contract, not just
     // resource limits. Old previews must not apply under the new native mapping.
-    let material = format!("native-parent-local-footnotes-2026-10-02-tight-containers:{material}");
+    let material = format!("native-selected-embeds-2026-11-13:{material}");
     format!("{:x}", Sha256::digest(material.as_bytes()))
   }
 }
@@ -2145,7 +2145,7 @@ mod tests {
       documents: vec![
         make_document(
           "Source.md",
-          "# Navigation review\n\nOpen [[Target#Über Größe|the heading]], [the checklist item](Target.md#%5Erelease), or [[Target#^instruction|the instruction]].\n\nLocal decision for the release review. ^local\n\nReturn to [[#^local|the local decision]].\n\nCode remains literal: `[[Target#^instruction]]`.\n\n%%The private annotation [[Target#^instruction]] stays literal.%%\n",
+          "# Navigation review\n\nOpen [[Target#Über Größe|the heading]], [the checklist item](Target.md#%5Erelease), or [[Target#^instruction|the instruction]].\n\nLocal decision for the release review. ^local\n\nReturn to [[#^local|the local decision]].\n\n![[Target#Über Größe|Live section]]\n\n![[Target#^instruction|Live instruction]]\n\nCode remains literal: `[[Target#^instruction]]`.\n\n%%The private annotation [[Target#^instruction]] stays literal.%%\n",
         ),
         make_document(
           "Target.md",
@@ -2177,6 +2177,14 @@ mod tests {
         && finding.code == "VAULT_REFERENCE_TARGET_NATIVE"
         && finding.preservation == VaultPreservation::Native
     }));
+    assert!(
+      vault
+        .classifications
+        .iter()
+        .any(|finding| finding.source_path == "Source.md"
+          && finding.code == "VAULT_EMBED_NATIVE"
+          && finding.preservation == VaultPreservation::Native)
+    );
     let source = &vault.documents[0];
     let target = &vault.documents[1];
     assert_eq!(target.display_title, "Current target");
@@ -2187,7 +2195,7 @@ mod tests {
     let instruction = yjs::markdown::resolve_markdown_target(&target_tree, "^instruction").unwrap();
     let local = yjs::markdown::resolve_markdown_target(&source_tree, "^local").unwrap();
     let references = yjs::extract_document_references_from_yjs(&source.prepared_yjs).unwrap();
-    assert_eq!(references.occurrences.len(), 4);
+    assert_eq!(references.occurrences.len(), 6);
     for (reference, expected_doc, expected_block) in references
       .occurrences
       .iter()
@@ -2196,12 +2204,19 @@ mod tests {
         (target.target_document_id, &item.block_id),
         (target.target_document_id, &instruction.block_id),
         (source.target_document_id, &local.block_id),
+        (target.target_document_id, &heading.block_id),
+        (target.target_document_id, &instruction.block_id),
       ])
       .map(|(reference, (doc, block))| (reference, doc, block))
     {
       assert_eq!(reference.raw_target_doc_id, expected_doc.to_string());
-      assert_eq!(reference.params_json["params"]["blockIds"][0], expected_block.as_str());
+      assert_eq!(
+        reference.params_json.get("params").unwrap_or(&reference.params_json)["blockIds"][0],
+        expected_block.as_str()
+      );
     }
+    assert_eq!(references.occurrences[4].params_json["blockSelection"], "section");
+    assert_eq!(references.occurrences[5].params_json["blockSelection"], "subtree");
     assert_eq!(
       preview,
       build_preview(

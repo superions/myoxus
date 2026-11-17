@@ -1,1 +1,1 @@
-export * from "@virgultum/widget-edgeless-auto-connect/view";
+export { EdgelessAutoConnectViewExtension } from "@virgultum/canvas/view";

@@ -43,8 +43,50 @@ pub enum IrBuildError {
   Asset(String),
 }
 
+/// Closed, payload-free reasons safe to expose across the compiler process and export API.
+#[derive(Debug, Clone, Copy, Error, serde::Serialize, serde::Deserialize)]
+pub enum LatexErrorReason {
+  #[error("conversion limit exceeded (8 KiB per formula, 1 MiB per document); shorten the formula")]
+  SourceLimit,
+  #[error("nesting exceeds 64 levels; simplify the formula")]
+  NestingLimit,
+  #[error("unmatched closing brace; check formula delimiters")]
+  UnmatchedBrace,
+  #[error("unclosed brace; close each formula group")]
+  UnclosedBrace,
+  #[error("malformed LaTeX; check delimiters and command arguments")]
+  Malformed,
+  #[error("TeX conditionals and embedded Typst code are unsupported")]
+  EmbeddedCode,
+  #[error("unsupported command; use built-in math commands without packages, macros, files or references")]
+  UnsupportedCommand,
+  #[error("unclosed environment; match begin and end")]
+  UnclosedEnvironment,
+  #[error("mismatched environments; match begin and end")]
+  MismatchedEnvironment,
+  #[error("unsupported environment; use math matrices, cases or aligned equations")]
+  UnsupportedEnvironment,
+  #[error("malformed or unsupported LaTeX; check delimiters and command arguments")]
+  ConversionFailed,
+  #[error("converted formula exceeds 64 KiB; simplify the formula")]
+  OutputLimit,
+  #[error("unsupported math arguments or layout; check the formula's built-in command syntax")]
+  InvalidArguments,
+}
+
+/// The ordinal follows document IR traversal; no author source or compiler text is retained.
+#[derive(Debug, Clone, Copy, Error, serde::Serialize, serde::Deserialize)]
+#[error("LaTeX formula {index}: {reason}")]
+pub struct LatexDiagnostic {
+  pub index: usize,
+  pub reason: LatexErrorReason,
+}
+
 #[derive(Debug, Error, serde::Serialize, serde::Deserialize)]
 pub enum RenderError {
+  #[error(transparent)]
+  Latex(#[from] LatexDiagnostic),
+
   #[error("Typst compilation error: {0}")]
   Compilation(String),
 

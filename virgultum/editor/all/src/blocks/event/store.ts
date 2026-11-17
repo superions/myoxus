@@ -1,1 +1,1 @@
-export * from "@virgultum/block-event/store";
+export { EventStoreExtension } from "@virgultum/embeds/store";

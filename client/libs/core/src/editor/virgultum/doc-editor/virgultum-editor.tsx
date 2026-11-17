@@ -141,6 +141,14 @@ async function activateCatalogMermaidNote(
           if (signal.aborted) cancel();
         })
       : null;
+  // Resolving the measurement promise resumes inside ResizeObserver delivery.
+  // Fitting the outer camera there rewrites observed Note/toolbar geometry;
+  // leave that delivery cycle before applying the initial catalog fit.
+  if (workarea) {
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => resolve()),
+    );
+  }
   if (signal.aborted || !std.host.isConnected || std.store.readonly) return;
   const naturalWidth = Number(workarea?.dataset.mermaidPageNaturalWidth);
   if (workarea && Number.isFinite(naturalWidth) && naturalWidth > 0) {

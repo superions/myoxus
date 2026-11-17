@@ -14,7 +14,7 @@ import type {
   DocSnapshot,
   Store,
 } from "@virgultum/editor/store";
-import type { BlockStdScope } from "@virgultum/std";
+import type { BlockStdScope } from "@virgultum/core/runtime";
 import { nanoid } from "nanoid";
 import {
   catchError,

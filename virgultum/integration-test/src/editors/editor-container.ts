@@ -1,15 +1,21 @@
+import { getTestViewManager, TestChromeViewExtension } from "../view";
+import { ViewExtensionManagerIdentifier } from "@virgultum/core/extensions";
 import { mountEditorChrome } from "../chrome-host";
 import { computed, signal } from "@preact/signals-core";
 import { SignalWatcher, WithDisposable } from "@virgultum/editor/global/lit";
 import type { DocMode } from "@virgultum/editor/model";
-import { ThemeProvider } from "@virgultum/editor/shared/services";
+import {
+  DocEmbedProvider,
+  ThemeProvider,
+} from "@virgultum/editor/shared/services";
 import { BlockStdScope, ShadowlessElement } from "@virgultum/editor/std";
+import { GfxControllerIdentifier } from "@virgultum/editor/std/gfx";
 import {
   type BlockModel,
   type ExtensionType,
   type Store,
 } from "@virgultum/editor/store";
-import { css, html } from "lit";
+import { css, html, nothing } from "lit";
 import { property } from "lit/decorators.js";
 import { keyed } from "lit/directives/keyed.js";
 import { when } from "lit/directives/when.js";
@@ -97,6 +103,8 @@ export class TestMyoxusEditorContainer extends SignalWatcher(
       : this._edgelessSpecs.value,
   );
 
+  readonly viewManager = getTestViewManager();
+
   private readonly chromeExtensions = signal<ExtensionType[]>([]);
 
   private readonly chromeReadyState = Promise.withResolvers<void>();
@@ -113,7 +121,11 @@ export class TestMyoxusEditorContainer extends SignalWatcher(
   });
 
   private readonly _editorTemplate = computed(() => {
-    return this._std.value.render();
+    const std = this._std.value;
+    // Match PageEditor/EdgelessEditor: native diagram gestures consume the
+    // current scope's GFX mode, rather than guessing it from a DOM ancestor.
+    std.getOptional(GfxControllerIdentifier)?.setModeResolver(() => this.mode);
+    return std.render();
   });
 
   get doc() {
@@ -166,9 +178,63 @@ export class TestMyoxusEditorContainer extends SignalWatcher(
 
   override connectedCallback() {
     super.connectedCallback();
+    const workspace = this.doc.workspace;
+    const documentsRevision = signal(0);
     this._disposables.add(
-      mountEditorChrome(this, (extension) => {
-        this.chromeExtensions.value = [extension];
+      workspace.slots.docListUpdated.subscribe(() => documentsRevision.value++),
+    );
+    // The standalone fixture host owns its local documents. Exercise the same
+    // access boundary as Web; unknown and foreign documents receive no grant.
+    const access: DocEmbedProvider = {
+      inWorkspace: (id) =>
+        id === workspace.id
+          ? { access, collection: workspace, dispose: () => {} }
+          : undefined,
+      openReference: (id, docId) => ({
+        target: computed(() => {
+          void documentsRevision.value;
+          return (id === undefined || id === workspace.id) &&
+            workspace.getDoc(docId)
+            ? { access, collection: workspace, docId }
+            : null;
+        }),
+        dispose: () => {},
+      }),
+      canRead: async (id) => !!workspace.getDoc(id),
+      readable: (id) =>
+        computed(() => {
+          void documentsRevision.value;
+          return !!workspace.getDoc(id);
+        }),
+      waitForLoaded: async (id, abort) => {
+        abort.throwIfAborted();
+        const target = workspace.getDoc(id);
+        if (!target) throw new Error("Unknown fixture document");
+        target.load();
+        if (!target.ready) throw new Error("Fixture document is not ready");
+      },
+    };
+    this._disposables.add(
+      mountEditorChrome(this, (chrome) => {
+        const extension: ExtensionType = {
+          setup: (di) => {
+            chrome.setup(di);
+            di.override(DocEmbedProvider, () => access);
+          },
+        };
+        this.viewManager.configure(TestChromeViewExtension, { extension });
+        this.chromeExtensions.value = [
+          extension,
+          {
+            // A second test editor may inherit specs; its previews still belong
+            // to its own React portal host and must not reuse the first editor's.
+            setup: (di) =>
+              di.override(
+                ViewExtensionManagerIdentifier,
+                () => this.viewManager,
+              ),
+          },
+        ];
         this.chromeReadyState.resolve();
       }),
     );
@@ -191,6 +257,10 @@ export class TestMyoxusEditorContainer extends SignalWatcher(
   }
 
   override render() {
+    // React supplies the required chrome host asynchronously. Do not mount a
+    // transient scope without it; consumers retain the first rendered host.
+    if (this.chromeExtensions.value.length === 0) return nothing;
+
     const mode = this._mode.value;
     const themeService = this.std.get(ThemeProvider);
     const appTheme = themeService.app$.value;

@@ -4,14 +4,17 @@ import {
   canPreserveBpmnSource,
   inspectBpmnSource,
 } from "@myoxus/bpmn-editor/source";
-import type { BpmnBlockProps, BpmnSourceRevisionProps } from "@virgultum/model";
-import { BlockSelection, type Command } from "@virgultum/std";
+import type {
+  BpmnBlockProps,
+  BpmnSourceRevisionProps,
+} from "@virgultum/core/models";
+import { BlockSelection, type Command } from "@virgultum/core/runtime";
 import {
   type BlockModel,
   type Store,
   native2Y,
   internalPrimitives,
-} from "@virgultum/store";
+} from "@virgultum/core/store";
 import * as Y from "yjs";
 import {
   cloneBpmnSourceRevisionSnapshot,

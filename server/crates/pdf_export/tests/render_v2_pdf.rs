@@ -74,6 +74,7 @@ fn doc(title: &str) -> IrDocument {
         body: Some("New Computer Modern".into()),
         mono: Some("New Computer Modern".into()),
         symbol: Some("New Computer Modern".into()),
+        eyebrow: None,
       },
       ..ExportOptions::default()
     },
@@ -175,12 +176,41 @@ fn mermaid_block_renders_svg_asset_into_pdf() {
   };
 
   let report = render_to_pdf_v2(&mermaid_doc, bundle(), &[], usize::MAX).expect("Mermaid PDF render");
-  assert!(report.pdf_bytes.starts_with(b"%PDF-"));
-  assert!(report.pdf_bytes.len() > 1024);
   let extracted = pdf_extract::extract_text_from_mem(&report.pdf_bytes).expect("extract text");
+  assert!(extracted.contains("Process") && extracted.contains("Visible process caption"));
+  mermaid_doc.options.color_variant = Some("mono".into());
+  let gray = render_to_pdf_v2(&mermaid_doc, bundle(), &[], usize::MAX).expect("grayscale Mermaid PDF");
+  let gray_text = common::pdf_page_text(&gray.pdf_bytes).join("\n");
+  for label in ["Start", "Done", "Visible process caption"] {
+    assert!(
+      gray_text
+        .split_whitespace()
+        .collect::<String>()
+        .contains(&label.split_whitespace().collect::<String>()),
+      "SVG glyphs must stay selectable: {gray_text}"
+    );
+  }
+  let pdf = lopdf::Document::load_mem(&gray.pdf_bytes).expect("grayscale PDF");
   assert!(
-    extracted.contains("Process") && extracted.contains("Visible process caption"),
-    "caption text must survive PDF render, extracted:\n{extracted}"
+    !pdf
+      .objects
+      .values()
+      .any(|object| object.as_stream().is_ok_and(|stream| {
+        stream
+          .dict
+          .get(b"Subtype")
+          .and_then(lopdf::Object::as_name)
+          .is_ok_and(|name| name == b"Image")
+      })),
+    "vector diagram must not become a raster image"
+  );
+  let paints = pdf_rgb_paints(&gray.pdf_bytes);
+  assert!(!paints.is_empty());
+  assert!(
+    paints
+      .iter()
+      .all(|[r, g, b]| (r - g).abs() < 0.001 && (g - b).abs() < 0.001),
+    "SVG and page paint must be gray: {paints:?}"
   );
 
   // Keep artifact generation opt-in so normal test runs stay hermetic while
@@ -213,6 +243,8 @@ fn paragraph(value: &str) -> Block {
   Block::Paragraph {
     content: vec![text(value)],
     children: vec![],
+    alignment: None,
+    eyebrow: false,
   }
 }
 
@@ -221,7 +253,8 @@ fn nested_callout_boxes_compile_and_keep_all_text_across_pages() {
   let mut document = doc("Nested callouts");
   let mut children = vec![Block::Callout {
     variant: CalloutVariant::Tip,
-    emoji: None,
+    emoji: Some("✅".into()),
+    paint: None,
     content: vec![text("Nested recovery instruction")],
     children: vec![paragraph("Inner retained body")],
   }];
@@ -231,7 +264,8 @@ fn nested_callout_boxes_compile_and_keep_all_text_across_pages() {
     children: vec![
       Block::Callout {
         variant: CalloutVariant::Warning,
-        emoji: None,
+        emoji: Some("MegaphoneIcon".into()),
+        paint: None,
         content: vec![text("Outer deployment approval")],
         children,
       },
@@ -239,6 +273,11 @@ fn nested_callout_boxes_compile_and_keep_all_text_across_pages() {
     ],
   };
   let generated = ir_to_typst_source_v2(&document, bundle()).expect("nested callout source");
+  let icon = myoxus_pdf_export::document_icons::document_icon("MegaphoneIcon", false).unwrap();
+  assert!(
+    generated.source.contains(&serde_json::to_string(icon.svg).unwrap()),
+    "Authored named icon is rendered"
+  );
   assert!(generated.source.contains("breakable: true"));
   let outer_body = myoxus_pdf_export::typst_engine::ir_to_typst::render_inline(&[text("Outer deployment approval")]);
   assert!(!generated.source.contains(&format!("{outer_body}]")));
@@ -274,11 +313,31 @@ fn table_cell(value: &str, is_header: bool, align: Option<&str>) -> TableCell {
 
 fn pdf_rgb_paints(bytes: &[u8]) -> Vec<[f32; 3]> {
   let pdf = lopdf::Document::load_mem(bytes).expect("PDF paint inspection");
-  pdf
+  let mut streams: Vec<_> = pdf
     .get_pages()
     .values()
-    .flat_map(|page| {
-      let content = pdf.get_page_content(*page).expect("page content stream");
+    .map(|page| pdf.get_page_content(*page).expect("page content"))
+    .collect();
+  streams.extend(
+    pdf
+      .objects
+      .values()
+      .filter_map(|object| match object {
+        lopdf::Object::Stream(stream) => Some(stream),
+        _ => None,
+      })
+      .filter(|stream| {
+        stream
+          .dict
+          .get(b"Subtype")
+          .and_then(lopdf::Object::as_name)
+          .is_ok_and(|name| name == b"Form")
+      })
+      .map(|stream| stream.get_plain_content().expect("SVG form content")),
+  );
+  streams
+    .into_iter()
+    .flat_map(|content| {
       lopdf::content::Content::decode(&content)
         .expect("PDF drawing operations")
         .operations
@@ -425,7 +484,7 @@ fn native_table_paint_survives_color_and_monochrome_rendering() {
     density: Some(TableDensity::Compact),
   };
   let source = ir_to_typst_source_v2(&document, bundle()).expect("paint source");
-  assert!(source.source.contains("#block[\n#set par(justify: false)\n#table("));
+  assert!(source.source.contains("#block[\n#set par(justify: false)\n"));
   assert!(source.source.contains("#table(columns: (1fr, 0.5fr, 0.25fr,)"));
   assert!(
     source
@@ -454,20 +513,37 @@ fn native_table_paint_survives_color_and_monochrome_rendering() {
 
 #[test]
 fn inv_w01_v2_render_produces_pdf_for_default_bundle() {
-  let report = render_to_pdf_v2(&doc("V2 Render Smoke"), bundle(), &[], usize::MAX).expect("V2 render must succeed");
-  assert!(
-    report.pdf_bytes.starts_with(b"%PDF-"),
-    "INV-PDF-W01-V2: V2 render must produce PDF magic header (got {} bytes prefix `{:?}`)",
-    report.pdf_bytes.len(),
-    &report.pdf_bytes[..report.pdf_bytes.len().min(8)]
+  let mut document = doc("Theme glyph coverage");
+  document.root = paragraph("Theme text with 😀 emoji");
+  document.metadata.created_at = Some(
+    chrono::DateTime::parse_from_rfc3339("2026-11-13T12:00:00Z")
+      .unwrap()
+      .into(),
   );
+  document.options.compliance_profile = Some("pdfa-2u".into());
+  let report = render_to_pdf_v2(&document, bundle(), &[], usize::MAX).expect("PDF/A theme glyph fallback");
+  let text = common::pdf_page_text(&report.pdf_bytes).join("\n");
   assert!(
-    report.page_count >= 1,
-    "INV-PDF-W01-V2: rendered PDF must have ≥ 1 page"
+    text
+      .split_whitespace()
+      .collect::<Vec<_>>()
+      .join(" ")
+      .contains("Theme text with 😀 emoji"),
+    "selectable Unicode must survive: {text}"
+  );
+  let pdf = lopdf::Document::load_mem(&report.pdf_bytes).expect("PDF/A document");
+  assert!(
+    pdf.objects.values().any(|object| object.as_dict().is_ok_and(|dict| {
+      dict
+        .get(b"BaseFont")
+        .and_then(lopdf::Object::as_name)
+        .is_ok_and(|name| String::from_utf8_lossy(name).contains("NotoEmoji"))
+    })),
+    "Unicode supplement must be embedded, not installed on the host"
   );
   assert!(
     report.unmapped_font_families.is_empty(),
-    "INV-PDF-W01-V2: resolved Theme DB body font must be present"
+    "configured theme roles remain authoritative"
   );
 }
 
@@ -875,6 +951,8 @@ fn inv_v2_rendered_pdf_keeps_table_special_chars_and_no_structural_canvas_placeh
       Block::Paragraph {
         content: vec![text("Sonderzeichen: äöü ÄÖÜ ß € # [] * _")],
         children: vec![],
+        alignment: None,
+        eyebrow: false,
       },
       Block::Table {
         rows: vec![
@@ -948,6 +1026,8 @@ fn inv_v2_rendered_pdf_keeps_table_special_chars_and_no_structural_canvas_placeh
           },
         }],
         children: vec![],
+        alignment: None,
+        eyebrow: false,
       },
       Block::Unknown {
         flavour: "myoxus:surface".to_owned(),
@@ -1088,6 +1168,7 @@ fn inv_v2_report_template_renders_complex_10_page_pdf_with_toc_and_tables() {
     body: Some("Inter".into()),
     mono: Some("JetBrains Mono".into()),
     symbol: Some("JetBrains Mono".into()),
+    eyebrow: None,
   };
   doc.metadata.author = Some("PDF Export QA".into());
   doc.metadata.workspace_name = Some("Myoxus Review Workspace".into());
@@ -1128,6 +1209,8 @@ fn inv_v2_report_template_renders_complex_10_page_pdf_with_toc_and_tables() {
         text(" within its paragraph."),
       ],
       children: vec![],
+      alignment: None,
+      eyebrow: false,
     },
     paragraph("Table header reference: Metrik."),
     paragraph(
@@ -1221,13 +1304,15 @@ fn inv_v2_report_template_renders_complex_10_page_pdf_with_toc_and_tables() {
           content: vec![text("Retain captions and link destinations.")],
           checked: false,
           children: vec![],
+          start: None,
         }],
+        start: None,
       });
       children.push(Block::Code(CodeBlock {
         language: Some("rust".into()),
         code: "fn review_document(title: &str, pages: usize) -> String {\n    assert!(pages > 0);\n    format!(\"{title}: {pages} reviewed pages\")\n}".into(),
         caption: None,
-      }));
+       line_numbers: false}));
       children.push(Block::Paragraph {
         content: vec![InlineSpan::Text {
           text: "Myoxus project reference".into(),
@@ -1237,6 +1322,8 @@ fn inv_v2_report_template_renders_complex_10_page_pdf_with_toc_and_tables() {
           },
         }],
         children: vec![],
+        alignment: None,
+        eyebrow: false,
       });
     }
   }
@@ -1755,12 +1842,14 @@ fn inv_v2_source_uses_global_theme_font_roles_and_safe_symbols() {
     body: Some("Inter".to_owned()),
     mono: Some("JetBrains Mono".to_owned()),
     symbol: Some("Inter".to_owned()),
+    eyebrow: None,
   };
   doc.options.theme_typography = ThemeTypographySelection {
     heading: Some(typography_style(600, 32.0, 1.2, -0.005)),
     body: Some(typography_style(400, 14.0, 1.55, 0.0)),
     mono: Some(typography_style(400, 13.0, 1.55, 0.0)),
     symbol: Some(typography_style(400, 13.0, 1.55, 0.0)),
+    eyebrow: None,
   };
   doc.root = Block::Page {
     title: vec![text("Theme Font Roles")],
@@ -1770,10 +1859,12 @@ fn inv_v2_source_uses_global_theme_font_roles_and_safe_symbols() {
         content: vec![text("Checked task")],
         checked: true,
         children: vec![],
+        start: None,
       },
       Block::Callout {
         variant: CalloutVariant::Warning,
         emoji: Some("✅".to_owned()),
+        paint: None,
         content: vec![text("No raw emoji should leak into Typst source.")],
         children: vec![],
       },
@@ -1790,6 +1881,7 @@ fn inv_v2_source_uses_global_theme_font_roles_and_safe_symbols() {
         language: Some("rust".to_owned()),
         code: "fn theme_surface() -> bool { true }".to_owned(),
         caption: None,
+        line_numbers: false,
       }),
     ],
   };
@@ -1819,18 +1911,25 @@ fn inv_v2_source_uses_global_theme_font_roles_and_safe_symbols() {
   assert!(generated.source.contains("#let code-background-color = \"#e4e4e7\""));
   assert!(generated.source.contains("fill: rgb(code-background-color)"));
   assert!(generated.source.contains("#pdf-check(true)"));
+  let icon = myoxus_pdf_export::document_icons::document_icon("CheckCircleIcon", false).unwrap();
   assert!(
-    generated.source.contains("\"OK\""),
-    "todo checkbox helper must use a guaranteed ASCII marker:\n{}",
-    generated.source
+    generated.source.contains(&serde_json::to_string(icon.svg).unwrap()),
+    "Authored symbol is rendered as SVG"
   );
+  for name in ["CheckBoxCheckLinearIcon", "CheckBoxUnIcon"] {
+    let checkbox = myoxus_pdf_export::document_icons::document_icon(name, false).unwrap();
+    assert!(
+      generated.source.contains(&serde_json::to_string(checkbox.svg).unwrap()),
+      "checkbox geometry: {name}"
+    );
+  }
   assert!(
     !generated.source.contains('✅')
       && !generated.source.contains('📎')
       && !generated.source.contains('✓')
       && !generated.source.contains('☑')
       && !generated.source.contains('☐'),
-    "source must avoid unsupported emoji/icon glyphs:\n{}",
+    "icons must use generated geometry rather than font glyphs:\n{}",
     generated.source
   );
 
@@ -1846,12 +1945,21 @@ fn inv_v2_source_uses_global_theme_font_roles_and_safe_symbols() {
   }
   let pdf_text =
     pdf_extract::extract_text_from_mem(&report.pdf_bytes).expect("safe-symbol PDF text must be extractable");
-  for expected in ["OK", "Checked task", "Warn", "Attachment:", "readme.txt"] {
+  for expected in [
+    "Checked task",
+    "No raw emoji should leak into Typst source.",
+    "Attachment:",
+    "readme.txt",
+  ] {
     assert!(
       pdf_text.contains(expected),
-      "rendered PDF must expose safe ASCII replacement `{expected}`, extracted:\n{pdf_text}"
+      "rendered PDF must retain `{expected}`, extracted:\n{pdf_text}"
     );
   }
+  assert!(
+    !pdf_text.split_whitespace().any(|word| word == "Warn"),
+    "Callout has no visible text plaque"
+  );
   for forbidden in ['✅', '📎', '✓', '☑', '☐'] {
     assert!(
       !pdf_text.contains(forbidden),
@@ -1874,6 +1982,7 @@ fn inv_v2_theme_display_style_changes_visible_text_without_mutating_code_links_o
     body: Some(body),
     mono: Some(typography_style(400, 13.0, 1.55, 0.0)),
     symbol: Some(typography_style(400, 13.0, 1.55, 0.0)),
+    eyebrow: None,
   };
   styled.root = Block::Page {
     title: vec![],
@@ -1892,11 +2001,14 @@ fn inv_v2_theme_display_style_changes_visible_text_without_mutating_code_links_o
           },
         }],
         children: vec![],
+        alignment: None,
+        eyebrow: false,
       },
       Block::Code(CodeBlock {
         language: Some("rust".into()),
         code: "let MixedCode = \"Keep exact\";".into(),
         caption: None,
+        line_numbers: false,
       }),
     ],
   };
@@ -1976,6 +2088,7 @@ fn inv_v2_source_does_not_append_local_font_fallbacks() {
     body: Some("Acme Body".to_owned()),
     mono: Some("Acme Mono".to_owned()),
     symbol: Some("Acme Symbol".to_owned()),
+    eyebrow: None,
   };
 
   let generated = ir_to_typst_source_v2(&doc, bundle()).expect("source generation");
@@ -2242,4 +2355,234 @@ async fn parent_local_notes_continue_across_pages_and_keep_cross_page_repeat_ide
   ] {
     assert!(all.contains(preserved), "missing rich retained content: {preserved}");
   }
+}
+
+#[test]
+fn native_latex_sources_compile_as_pdf_math() {
+  let mut document = doc("Native formulas");
+  document.root = Block::Page {
+    title: vec![],
+    children: vec![
+      Block::Paragraph {
+        content: vec![
+          text("Before inline "),
+          InlineSpan::Latex {
+            source: r"\frac{x^2+1}{\sqrt{y}}".into(),
+          },
+          text(" after inline"),
+        ],
+        children: vec![],
+        alignment: None,
+        eyebrow: false,
+      },
+      Block::LatexBlock {
+        source: r"\sum_{i=1}^{n} i=\frac{n(n+1)}{2}".into(),
+      },
+      Block::LatexBlock {
+        source: r"\begin{matrix}a&b\\c&d\end{matrix}".into(),
+      },
+    ],
+  };
+  let Block::Page { children, .. } = &mut document.root else {
+    unreachable!()
+  };
+  for source in [
+    r"E=mc^2",
+    "123+456=579",
+    r"\sqrt[3]{x}",
+    r"\alpha+\beta=\gamma",
+    r"x_i^2",
+    r"\int_0^1 x\,dx",
+    r"\sin(x)+\log(x)",
+    r"\text{speed}=\frac{d}{t}",
+    r"\left(\frac{a}{b}\right)",
+    r"\begin{cases}x^2 & x>0\\0 & x\leq 0\end{cases}",
+  ] {
+    children.push(Block::LatexBlock { source: source.into() });
+  }
+  let formula = || InlineSpan::Latex {
+    source: r"\frac{a}{b}".into(),
+  };
+  children.extend([
+    Block::Heading {
+      level: HeadingLevel::H2,
+      content: vec![text("Formula heading "), formula()],
+      children: vec![],
+    },
+    Block::List {
+      list_type: ListType::Bulleted,
+      content: vec![text("Formula list "), formula()],
+      start: None,
+      checked: false,
+      children: vec![],
+    },
+    Block::Table {
+      rows: vec![TableRow {
+        cells: vec![TableCell {
+          content: vec![text("Formula cell "), formula()],
+          is_header: false,
+          col_span: 1,
+          row_span: 1,
+          align: None,
+          fill: None,
+          foreground: None,
+        }],
+      }],
+      caption: Some(vec![text("Formula caption "), formula()]),
+      column_widths: None,
+      header_rows: Some(0),
+      appearance: None,
+      density: None,
+    },
+  ]);
+  let report = render_to_pdf_v2(&document, bundle(), &[], usize::MAX).expect("native LaTeX math");
+  let text = common::pdf_page_text(&report.pdf_bytes).join("\n");
+  for fragment in [
+    "Before inline",
+    "after inline",
+    "𝑥",
+    "𝑦",
+    "𝑎",
+    "𝑏",
+    "𝑐",
+    "𝑑",
+    "∑",
+    "√",
+    "∫",
+    "𝛼",
+    "𝛽",
+    "𝛾",
+    "speed",
+    "Formula heading",
+    "Formula list",
+    "Formula cell",
+    "Formula caption",
+  ] {
+    assert!(text.contains(fragment), "math text: {text}");
+  }
+  assert!(
+    !text.contains("\\frac") && !text.contains("\\begin"),
+    "must render math, not literal LaTeX"
+  );
+}
+
+#[test]
+fn unavailable_image_retains_caption_and_following_content() {
+  let mut document = doc("Unavailable figure");
+  document.root = Block::Page {
+    title: vec![],
+    children: vec![
+      Block::Image(ImageRef {
+        blob: BlobRef {
+          blob_id: "private-missing-key".into(),
+          mime_hint: None,
+        },
+        caption: Some(vec![text("Retained figure caption")]),
+        width_hint: None,
+        height_hint: None,
+        data: None,
+      }),
+      paragraph("Following content"),
+    ],
+  };
+  let report = render_to_pdf_v2(&document, bundle(), &[], usize::MAX).expect("unavailable image fallback");
+  let text = common::pdf_page_text(&report.pdf_bytes).join("\n");
+  for fragment in ["Image unavailable", "Retained figure caption", "Following content"] {
+    assert!(text.contains(fragment), "fallback content: {text}");
+  }
+  assert!(
+    !text.contains("private-missing-key"),
+    "storage identities are not document content"
+  );
+}
+
+#[tokio::test]
+async fn authored_paragraph_list_and_code_presentation_reaches_the_pdf() {
+  use yrs::{Doc, Map, ReadTxn, Transact, Update, updates::decoder::Decode};
+  let mut native = yjs::YjsDocumentBuilder::new("Native formatting");
+  native.push_paragraph(&[yjs::YjsTextSegment::plain("Native eyebrow")]);
+  let paragraph = native.last_created_block_id().unwrap();
+  native.push_list_item_with_order(&[yjs::YjsTextSegment::plain("Native first")], true, 0, None, Some(3));
+  native.push_list_item_with_order(&[yjs::YjsTextSegment::plain("Native child")], true, 1, None, Some(7));
+  native.push_list_item_with_order(&[yjs::YjsTextSegment::plain("Native next")], true, 0, None, Some(4));
+  native.push_list_item(&[yjs::YjsTextSegment::plain("Native unchecked")], false, 0, Some(false));
+  native.push_list_item(&[yjs::YjsTextSegment::plain("Native checked")], false, 0, Some(true));
+  let mut source = "let first = 10;\nlet second = 20;".to_owned();
+  for number in 3..=80 {
+    source.push_str(&format!("\nlet value_{number} = {number};"));
+  }
+  native.push_code("rust", &source);
+  let code = native.last_created_block_id().unwrap();
+  let snapshot = Doc::new();
+  let mut tx = snapshot.transact_mut();
+  tx.apply_update(Update::decode_v1(&native.encode()).unwrap()).unwrap();
+  let blocks = tx.get_map("blocks").unwrap();
+  let yrs::Out::YMap(para) = blocks.get(&tx, &paragraph).unwrap() else {
+    panic!("paragraph")
+  };
+  para.insert(&mut tx, "prop:textAlign", "center");
+  para.insert(&mut tx, "prop:presentation", "eyebrow");
+  let yrs::Out::YMap(code) = blocks.get(&tx, &code).unwrap() else {
+    panic!("code")
+  };
+  code.insert(&mut tx, "prop:lineNumber", true);
+  code.insert(&mut tx, "prop:caption", "Native code caption");
+  let binary = tx.encode_state_as_update_v1(&Default::default());
+  code.insert(&mut tx, "prop:lineNumber", false);
+  let plain_binary = tx.encode_state_as_update_v1(&Default::default());
+  drop(tx);
+  let base = doc("Native formatting");
+  let ir = myoxus_pdf_export::YjsIrBuilder::new(myoxus_pdf_export::NullAssetResolver)
+    .build(&binary, base.metadata.clone(), base.options.clone())
+    .await
+    .unwrap();
+  let Block::Page { children, .. } = &ir.root else {
+    panic!("page")
+  };
+  let children = children
+    .iter()
+    .find_map(|block| {
+      if let Block::Note { children } = block {
+        Some(children)
+      } else {
+        None
+      }
+    })
+    .expect("native note");
+  assert!(
+    children
+      .iter()
+      .any(|block| matches!(block, Block::Paragraph {alignment:Some(value),eyebrow:true,..} if value=="center")),
+    "{:#?}",
+    ir.root
+  );
+  let rendered = render_to_pdf_v2(&ir, bundle(), &[fonts_dir()], usize::MAX).unwrap();
+  let text = common::pdf_page_text(&rendered.pdf_bytes).join(" ");
+  let text = text.split_whitespace().collect::<String>();
+  for expected in [
+    "NATIVEEYEBROW",
+    "Nativeunchecked",
+    "Nativechecked",
+    "3.Nativefirst",
+    "7.Nativechild",
+    "4.Nativenext",
+    "1letfirst=10;",
+    "2letsecond=20;",
+    "Nativecodecaption",
+  ] {
+    assert!(text.contains(expected), "missing {expected}: {text}");
+  }
+  assert!(
+    !text.contains("OK"),
+    "checkboxes use the generated icons, not text plaques"
+  );
+  let plain = myoxus_pdf_export::YjsIrBuilder::new(myoxus_pdf_export::NullAssetResolver)
+    .build(&plain_binary, base.metadata, base.options)
+    .await
+    .unwrap();
+  let plain = render_to_pdf_v2(&plain, bundle(), &[fonts_dir()], usize::MAX).unwrap();
+  assert_eq!(
+    rendered.page_count, plain.page_count,
+    "line numbers retain native code line spacing and pagination"
+  );
 }

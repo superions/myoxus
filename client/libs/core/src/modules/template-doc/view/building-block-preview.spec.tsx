@@ -11,7 +11,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { LiveData } from "@myoxus/infra";
-import { Text, type Store } from "@virgultum/store";
+import { Text, type Store } from "@virgultum/core/store";
 import { Doc as YDoc } from "yjs";
 import { afterEach, expect, test, vi } from "vitest";
 import { createContext, useContext, type ReactNode } from "react";

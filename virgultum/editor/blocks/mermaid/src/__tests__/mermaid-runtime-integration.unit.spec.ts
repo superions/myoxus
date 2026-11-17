@@ -64,9 +64,9 @@ import {
   ConnectorPathGenerator,
   connector as paintConnector,
   connectorBaseDomRenderer,
-} from "@virgultum/gfx-connector";
-import { PointLocation } from "@virgultum/global/gfx";
-import { LocalShapeElementModel } from "@virgultum/model";
+} from "@virgultum/canvas/gfx";
+import { PointLocation } from "@virgultum/core/primitives/gfx";
+import { LocalShapeElementModel } from "@virgultum/core/models";
 import { previewMermaidGfxModel } from "../families/runtime/gfx-preview.js";
 import {
   GfxPrimitiveElementModel,
@@ -75,7 +75,7 @@ import {
   LayerManager,
   gfxGroupCompatibleSymbol,
   type GfxController,
-} from "@virgultum/std/gfx";
+} from "@virgultum/core/runtime/gfx";
 import {
   readMermaidVisualModelFromProjectionGroup,
   preserveMermaidProjectionOwnerGeometry,

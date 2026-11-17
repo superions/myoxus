@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { prepareMermaidOwnerCopy } from "./commands/copy-identities.js";
-import { DisposableGroup } from "@virgultum/global/disposable";
-import type { MermaidBlockModel } from "@virgultum/model";
-import { getSelectedModelsCommand } from "@virgultum/shared/commands";
+import { DisposableGroup } from "@virgultum/core/primitives/disposable";
+import type { MermaidBlockModel } from "@virgultum/core/models";
+import { getSelectedModelsCommand } from "@virgultum/core/commands";
 import {
   BlockSelection,
   type BlockStdScope,
   LifeCycleWatcher,
   type UIEventHandler,
-} from "@virgultum/std";
-import type { SerializedElement } from "@virgultum/std/gfx";
-import type { BlockModel } from "@virgultum/store";
+} from "@virgultum/core/runtime";
+import type { SerializedElement } from "@virgultum/core/runtime/gfx";
+import type { BlockModel } from "@virgultum/core/store";
 
 import {
   cleanupPartialMermaidOwner,

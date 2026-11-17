@@ -197,7 +197,7 @@ fn inv_admin_list_users_returns_seeded_rows() {
 
     let admin_user = users
       .iter()
-      .find(|u| u["email"].as_str() == Some(&data.admin_email))
+      .find(|u| u["email"].as_str() == Some(data.admin_email.as_str()))
       .expect("seeded admin user must appear in the user list");
     assert_eq!(
       admin_user["isAdmin"], true,

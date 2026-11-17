@@ -1,1 +1,21 @@
-export * from "@virgultum/block-frame";
+export {
+  EdgelessClipboardFrameConfig,
+  FrameConfig,
+  buildFrameDenseMenu,
+  EdgelessFrameMenu,
+  EdgelessFrameToolButton,
+  frameQuickTool,
+  FrameBlockComponent,
+  FrameBlockInteraction,
+  FrameHighlightManager,
+  type NavigatorMode,
+  FrameOverlay,
+  EdgelessFrameManagerIdentifier,
+  EdgelessFrameManager,
+  isFrameBlock,
+  FrameBlockSpec,
+  FrameTool,
+  frameToolbarExtension,
+  type PresentToolOption,
+  PresentTool,
+} from "@virgultum/canvas/blocks";

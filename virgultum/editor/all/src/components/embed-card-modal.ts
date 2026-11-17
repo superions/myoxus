@@ -1,1 +1,1 @@
-export * from "@virgultum/components/embed-card-modal";
+export * from "@virgultum/embeds/card-session";

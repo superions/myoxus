@@ -333,6 +333,76 @@ mod tests {
     assert!(matches!(err, CompressionError::Empty));
   }
 
+  #[test]
+  fn grayscale_preserves_media_codecs_and_geometry() {
+    let source = image::load_from_memory(&synth_png(24, 16)).expect("colour source");
+    for format in [ImageFormat::Png, ImageFormat::Jpeg, ImageFormat::WebP] {
+      let mut input = Cursor::new(Vec::new());
+      let encoded_source = if format == ImageFormat::Jpeg {
+        DynamicImage::ImageRgb8(source.to_rgb8())
+      } else {
+        source.clone()
+      };
+      encoded_source.write_to(&mut input, format).expect("source codec");
+      let mut bytes = input.into_inner();
+      if format == ImageFormat::Jpeg {
+        // The native PDF decoder honours EXIF. A phone photo must retain that
+        // visible orientation after re-encoding drops its metadata.
+        let exif = b"Exif\0\0II\x2a\0\x08\0\0\0\x01\0\x12\x01\x03\0\x01\0\0\0\x06\0\0\0\0\0\0\0";
+        let mut app1 = vec![0xff, 0xe1];
+        app1.extend_from_slice(&((exif.len() + 2) as u16).to_be_bytes());
+        app1.extend_from_slice(exif);
+        bytes.splice(2..2, app1);
+      }
+      let gray = grayscale(&bytes, &[], "New Computer Modern").expect("grayscale conversion");
+      assert_eq!(
+        image::guess_format(&gray).unwrap(),
+        format,
+        "blob filename codec must remain valid"
+      );
+      let decoded = image::load_from_memory(&gray).unwrap().to_rgb8();
+      assert_eq!(
+        decoded.dimensions(),
+        if format == ImageFormat::Jpeg {
+          (16, 24)
+        } else {
+          (24, 16)
+        }
+      );
+      assert!(
+        decoded.pixels().all(|p| p[0] == p[1] && p[1] == p[2]),
+        "{format:?} must contain only gray pixels"
+      );
+    }
+    use base64::Engine as _;
+    let embedded = base64::engine::general_purpose::STANDARD.encode(synth_png(8, 8));
+    let svg = format!(
+      r##"<svg xmlns="http://www.w3.org/2000/svg" width="100" height="50" color="red">
+      <defs><linearGradient id="paint"><stop stop-color="blue"/><stop offset="1" stop-color="green"/></linearGradient><path id="shape" d="M0 0H50V30H0Z"/></defs>
+      <style>.shape {{ fill: url(#paint); stroke: currentColor; }}</style>
+      <use href="#shape" class="shape"/><text x="2" y="45" font-size="10">Scalable</text>
+      <image x="60" width="8" height="8" href="data:image/png;base64,{embedded}"/>
+    </svg>"##
+    );
+    let gray = grayscale(svg.as_bytes(), &[], "New Computer Modern").expect("SVG paint conversion");
+    let source = std::str::from_utf8(&gray).unwrap();
+    assert!(
+      source.contains("<path") && source.contains("Scalable"),
+      "keep SVG paths and text"
+    );
+    let tree = resvg::usvg::Tree::from_data(&gray, &resvg::usvg::Options::default()).expect("converted SVG");
+    assert_eq!((tree.size().width(), tree.size().height()), (100.0, 50.0));
+    let mut pixels = resvg::tiny_skia::Pixmap::new(100, 50).unwrap();
+    resvg::render(&tree, resvg::tiny_skia::Transform::identity(), &mut pixels.as_mut());
+    assert!(
+      pixels
+        .pixels()
+        .iter()
+        .all(|p| p.red() == p.green() && p.green() == p.blue()),
+      "CSS, gradients and embedded images must all be gray"
+    );
+  }
+
   /// The pipeline does not panic on an unrecognised input — surfaces
   /// the decode error.
   #[test]
@@ -347,4 +417,44 @@ mod tests {
     .expect_err("expected error");
     assert!(matches!(err, CompressionError::Decode(_)));
   }
+}
+
+/// Convert admitted document media for an explicit grayscale export. Prebuilt
+/// callout icons are selected separately and never pass through this renderer.
+pub(crate) fn grayscale(bytes: &[u8], fonts: &[std::path::PathBuf], family: &str) -> Result<Vec<u8>, CompressionError> {
+  grayscale_at_depth(bytes, fonts, family, 0)
+}
+
+pub(super) fn grayscale_at_depth(
+  bytes: &[u8],
+  fonts: &[std::path::PathBuf],
+  family: &str,
+  depth: usize,
+) -> Result<Vec<u8>, CompressionError> {
+  let Some(original_format) = image::guess_format(bytes).ok() else {
+    return super::svg_grayscale::convert(bytes, fonts, family, depth);
+  };
+  let mut reader = ImageReader::new(Cursor::new(bytes))
+    .with_guessed_format()
+    .map_err(|e| CompressionError::Decode(e.to_string()))?;
+  let mut limits = image::Limits::default();
+  limits.max_alloc = Some(128 * 1024 * 1024);
+  reader.limits(limits);
+  use image::ImageDecoder as _;
+  let mut decoder = reader.into_decoder()?;
+  let orientation = decoder.orientation()?;
+  let mut image = DynamicImage::from_decoder(decoder)?;
+  image.apply_orientation(orientation);
+  let mut output = Cursor::new(Vec::new());
+  // Preserve the codec: Typst can select it from a referenced blob filename.
+  let grayscale = image.grayscale();
+  let grayscale = if original_format == ImageFormat::WebP {
+    DynamicImage::ImageRgba8(grayscale.to_rgba8())
+  } else {
+    grayscale
+  };
+  grayscale
+    .write_to(&mut output, original_format)
+    .map_err(|e| CompressionError::Encode(e.to_string()))?;
+  Ok(output.into_inner())
 }

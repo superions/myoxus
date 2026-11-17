@@ -16,8 +16,8 @@ This reference describes the compiled server schema. A trailing `!` means non-nu
 | [Query root](./queries.md) | 1 |
 | [Mutation root](./mutations.md) | 1 |
 | [Subscription root](./subscriptions.md) | 0 |
-| [Objects](./objects.md) | 652 |
-| [Input objects](./inputs.md) | 324 |
+| [Objects](./objects.md) | 654 |
+| [Input objects](./inputs.md) | 326 |
 | [Enums](./enums.md) | 208 |
 | [Unions](./unions.md) | 3 |
 | [Interfaces](./interfaces.md) | 0 |
@@ -1185,8 +1185,12 @@ This reference describes the compiled server schema. A trailing `!` means non-nu
 | [WorkspaceOverviewOrderByInput](./inputs.md#workspaceovervieworderbyinput) | Input objects |
 | [WorkspaceOverviewOrderByType](./objects.md#workspaceovervieworderbytype) | Objects |
 | [WorkspaceOverviewPageType](./objects.md#workspaceoverviewpagetype) | Objects |
+| [WorkspaceOverviewRegisterFilterInput](./inputs.md#workspaceoverviewregisterfilterinput) | Input objects |
+| [WorkspaceOverviewRegisterFilterType](./objects.md#workspaceoverviewregisterfiltertype) | Objects |
 | [WorkspaceOverviewRegisterPresentationInput](./inputs.md#workspaceoverviewregisterpresentationinput) | Input objects |
 | [WorkspaceOverviewRegisterPresentationType](./objects.md#workspaceoverviewregisterpresentationtype) | Objects |
+| [WorkspaceOverviewRegisterSelectionInput](./inputs.md#workspaceoverviewregisterselectioninput) | Input objects |
+| [WorkspaceOverviewRegisterSelectionType](./objects.md#workspaceoverviewregisterselectiontype) | Objects |
 | [WorkspaceOverviewSettingsInput](./inputs.md#workspaceoverviewsettingsinput) | Input objects |
 | [WorkspaceOverviewSettingsType](./objects.md#workspaceoverviewsettingstype) | Objects |
 | [WorkspacePermissionNotFoundDataType](./objects.md#workspacepermissionnotfounddatatype) | Objects |

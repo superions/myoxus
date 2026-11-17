@@ -40,7 +40,7 @@ import {
 } from "@myoxus/core/editor/ai/components/ai-chat-content";
 import type { ChatStatus } from "@myoxus/core/editor/ai/components/ai-chat-messages";
 import { ChatToolbar } from "@myoxus/core/editor/ai/components/ai-chat-toolbar";
-import { createPlaygroundModal } from "@myoxus/core/editor/ai/components/playground/modal";
+import { PlaygroundDialog } from "@myoxus/core/editor/ai/components/playground/view";
 import { registerAIAppEffects } from "@myoxus/core/editor/ai/effects/app";
 import { NotificationServiceImpl } from "@myoxus/core/editor/view-extensions/editor-view/notification-service";
 import type { MyoxusEditorContainer } from "@myoxus/core/editor/virgultum/doc-editor";
@@ -566,48 +566,48 @@ export const EditorChatPanel = ({ editor, onLoad }: EditorChatPanelProps) => {
     return () => disposable.forEach((item) => item?.unsubscribe());
   }, [chatContent, editor]);
 
-  const openPlayground = useCallback(() => {
-    if (!doc || !host) {
-      return;
-    }
-    const playgroundContent = html`
-      <playground-content
-        .reactToLit=${reactToLit}
-        .host=${host}
-        .doc=${doc}
-        .reasoningConfig=${reasoningConfig}
-        .playgroundConfig=${playgroundConfig}
-        .appSidebarConfig=${appSidebarConfig}
-        .searchMenuConfig=${searchMenuConfig}
-        .docDisplayConfig=${docDisplayConfig}
-        .extensions=${specs}
-        .serverService=${framework.get(ServerService)}
-        .myoxusFeatureFlagService=${framework.get(FeatureFlagService)}
-        .myoxusThemeService=${framework.get(AppThemeService)}
-        .notificationService=${notificationService}
-        .myoxusWorkspaceDialogService=${framework.get(WorkspaceDialogService)}
-        .aiToolsConfigService=${framework.get(AIToolsConfigService)}
-        .aiModelService=${framework.get(AIModelService)}
-      ></playground-content>
-    `;
-
-    createPlaygroundModal(
-      playgroundContent,
-      t["com.myoxus.ai.chat-panel.playground"](),
-    );
-  }, [
-    appSidebarConfig,
-    doc,
-    docDisplayConfig,
-    framework,
-    host,
-    notificationService,
-    playgroundConfig,
-    reasoningConfig,
-    searchMenuConfig,
-    specs,
-    t,
-  ]);
+  // Keep the dialog and its session controllers bound to one document owner.
+  const [playgroundDocId, setPlaygroundDocId] = useState<string | null>(null);
+  const renderPlayground = useCallback(
+    (render: typeof reactToLit) => {
+      if (!doc || !host) return null;
+      return html`
+        <playground-content
+          .reactToLit=${render}
+          .host=${host}
+          .doc=${doc}
+          .peekViewService=${framework.get(PeekViewService)}
+          .onOpenDoc=${openDoc}
+          .reasoningConfig=${reasoningConfig}
+          .playgroundConfig=${playgroundConfig}
+          .appSidebarConfig=${appSidebarConfig}
+          .searchMenuConfig=${searchMenuConfig}
+          .docDisplayConfig=${docDisplayConfig}
+          .extensions=${specs}
+          .serverService=${framework.get(ServerService)}
+          .myoxusFeatureFlagService=${framework.get(FeatureFlagService)}
+          .myoxusThemeService=${framework.get(AppThemeService)}
+          .notificationService=${notificationService}
+          .myoxusWorkspaceDialogService=${framework.get(WorkspaceDialogService)}
+          .aiToolsConfigService=${framework.get(AIToolsConfigService)}
+          .aiModelService=${framework.get(AIModelService)}
+        ></playground-content>
+      `;
+    },
+    [
+      appSidebarConfig,
+      doc,
+      docDisplayConfig,
+      framework,
+      host,
+      notificationService,
+      playgroundConfig,
+      reasoningConfig,
+      searchMenuConfig,
+      specs,
+      openDoc,
+    ],
+  );
 
   const onChatContainerRef = useCallback((node: HTMLDivElement) => {
     if (!node) {
@@ -630,6 +630,15 @@ export const EditorChatPanel = ({ editor, onLoad }: EditorChatPanelProps) => {
       {portals.map(({ id, portal }) => (
         <Fragment key={id}>{portal}</Fragment>
       ))}
+      <PlaygroundDialog
+        key={doc?.id}
+        open={!!doc && playgroundDocId === doc.id}
+        onOpenChange={(open) => {
+          if (!open) setPlaygroundDocId(null);
+        }}
+        title={t["com.myoxus.ai.chat-panel.playground"]()}
+        renderContent={renderPlayground}
+      />
       {sessionError ? (
         <Alert>
           <MyoxusText>
@@ -672,7 +681,9 @@ export const EditorChatPanel = ({ editor, onLoad }: EditorChatPanelProps) => {
                 aria-label={t["com.myoxus.ai.chat-panel.playground"]()}
                 tooltip={t["com.myoxus.ai.chat-panel.playground"]()}
                 tooltipOptions={{ side: "left" }}
-                onClick={openPlayground}
+                onClick={() => {
+                  if (doc && host) setPlaygroundDocId(doc.id);
+                }}
               >
                 <CenterPeekIcon />
               </IconButton>

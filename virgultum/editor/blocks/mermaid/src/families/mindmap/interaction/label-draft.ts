@@ -11,7 +11,7 @@ import type {
 } from "../react-host-contract.js";
 import { mermaidMessages as m } from "../../../i18n.js";
 import { mindmapChildSideOptions } from "./handles.js";
-import type { ShapeTextEditDraft } from "@virgultum/gfx-shape";
+import type { ShapeTextEditDraft } from "@virgultum/canvas/gfx";
 
 export type MindmapLabelDraft = { cancel: () => void; valid: () => boolean };
 type Port = Pick<
@@ -59,7 +59,8 @@ export function beginMindmapLabelDraft(
       ? model.nodes.find((node) => node.sourceKey === intent.key)
       : undefined;
   if (intent.type === "rename" && !existing) return null;
-  const initial = existing?.label ?? m.nodePlaceholder();
+  const typed = intent.type === "rename" ? intent.initialText : undefined;
+  const initial = typed ?? existing?.label ?? m.nodePlaceholder();
   const prepared = existing
     ? null
     : runMindmapAction(model, { ...intent, label: initial });
@@ -109,6 +110,7 @@ export function beginMindmapLabelDraft(
     closeEditor = port.mountShapeDraft(shape, {
       ariaLabel: m.selectedNodeLabel(),
       value: initial,
+      selectAllOnMount: typed === undefined,
       isValid: valid,
       cancel,
       renderActions: port.renderActions,

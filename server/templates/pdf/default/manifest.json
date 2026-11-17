@@ -26,7 +26,7 @@
     "colorVariant": {
       "kind": "enum",
       "values": ["mono", "accent", "brand"],
-      "default": "mono"
+      "default": "brand"
     },
     "headerStyle": {
       "kind": "enum",

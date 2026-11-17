@@ -342,6 +342,7 @@ impl DocumentMetadataPolicyRepository for MockAttributesRepo {
         .clone()
         .map(|state| {
           vec![DocumentMetadataIndexRow {
+            responsible_user_id: None,
             doc_id: state.doc_id,
             external_id: state.doc_id.to_string(),
             created_by: None,

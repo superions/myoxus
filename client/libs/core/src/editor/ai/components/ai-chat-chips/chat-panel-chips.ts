@@ -4,10 +4,18 @@ import { type ReactToLit, toReactNode } from "@myoxus/lit-react";
 import { computed, type Signal, signal } from "@preact/signals-core";
 import { SignalWatcher, WithDisposable } from "@virgultum/editor/global/lit";
 import { ShadowlessElement } from "@virgultum/editor/std";
-import { html, nothing, type PropertyValues, type TemplateResult } from "lit";
+import { html, nothing, type PropertyValues } from "lit";
 import { property, state } from "lit/decorators.js";
 import { isEqual } from "lodash-es";
-import { createElement, Fragment } from "react";
+import { createElement, Fragment, type ReactNode } from "react";
+import {
+  FileIcon,
+  TagsIcon,
+  CollectionsIcon,
+  UngroupIcon,
+} from "@myoxus/icons/react";
+import { notify } from "@myoxus/ui-facade";
+import { chatI18n } from "../chat-i18n";
 
 import type {
   AttachmentChip,
@@ -18,6 +26,7 @@ import type {
 } from "./type";
 import {
   estimateTokenCount,
+  getChipTooltip,
   getChipKey,
   isAttachmentChip,
   isCollectionChip,
@@ -26,7 +35,7 @@ import {
   isSelectedContextChip,
   isTagChip,
 } from "./utils";
-import { ChatChipsView } from "./view";
+import { ChatChipView, ChatChipsView } from "./view";
 
 // Existing document-context token bound; the native view does not change it.
 const MAX_TOKEN_COUNT = 100000;
@@ -67,63 +76,83 @@ export class ChatPanelChips extends SignalWatcher(
   private cleanup: (() => void) | null = null;
   private docIds: string[] = [];
 
-  private renderChip(chip: ChatChip): TemplateResult | null {
-    if (isDocChip(chip))
-      return html`<chat-panel-doc-chip
-        .reactToLit=${this.reactToLit}
-        .chip=${chip}
-        .independentMode=${this.independentMode}
-        .addChip=${this.addChip}
-        .updateChip=${this.updateChip}
-        .removeChip=${this.removeChip}
-        .checkTokenLimit=${this.checkTokenLimit}
-        .docDisplayConfig=${this.docDisplayConfig}
-      ></chat-panel-doc-chip>`;
-    if (isFileChip(chip))
-      return html`<chat-panel-file-chip
-        .reactToLit=${this.reactToLit}
-        .chip=${chip}
-        .removeChip=${this.removeChip}
-        .retryChip=${this.retryFileChip}
-      ></chat-panel-file-chip>`;
-    if (isAttachmentChip(chip))
-      return html`<chat-panel-attachment-chip
-        .reactToLit=${this.reactToLit}
-        .chip=${chip}
-        .removeChip=${this.removeChip}
-        .retryChip=${this.retryAttachmentChip}
-      ></chat-panel-attachment-chip>`;
-    if (isTagChip(chip)) {
-      const tag = this.tags.value.find((tag) => tag.id === chip.tagId);
-      return tag
-        ? html`<chat-panel-tag-chip
-            .reactToLit=${this.reactToLit}
-            .chip=${chip}
-            .tag=${tag}
-            .removeChip=${this.removeChip}
-          ></chat-panel-tag-chip>`
-        : null;
+  private async act(action: () => void | Promise<void>) {
+    const composer = this.closest("ai-chat-composer");
+    const focused = document.activeElement;
+    try {
+      await action();
+      if (
+        focused &&
+        !focused.isConnected &&
+        composer?.isConnected &&
+        document.activeElement === document.body
+      )
+        composer
+          .querySelector<HTMLButtonElement>(
+            'button[data-testid="chat-panel-with-button"]',
+          )
+          ?.focus();
+    } catch {
+      notify({ title: chatI18n()["com.myoxus.ai.chat-panel.context-error"]() });
     }
-    if (isCollectionChip(chip)) {
+  }
+
+  private renderChip(chip: ChatChip): ReactNode {
+    // Document materialization retains its existing reactive controller and lifecycle.
+    if (isDocChip(chip))
+      return toReactNode(
+        html`<chat-panel-doc-chip
+          .reactToLit=${this.reactToLit}
+          .chip=${chip}
+          .independentMode=${this.independentMode}
+          .addChip=${this.addChip}
+          .updateChip=${this.updateChip}
+          .removeChip=${this.removeChip}
+          .checkTokenLimit=${this.checkTokenLimit}
+          .docDisplayConfig=${this.docDisplayConfig}
+        ></chat-panel-doc-chip>`,
+      );
+    let name: string;
+    let icon: ReactNode;
+    let tagColor: string | undefined;
+    let closeable = chip.state !== "processing";
+    let retry: (() => Promise<void>) | undefined;
+    if (isFileChip(chip) || isAttachmentChip(chip)) {
+      name = isFileChip(chip) ? chip.file.name : chip.name;
+      icon = createElement(FileIcon);
+      closeable = true;
+      if (isFileChip(chip) && this.retryFileChip)
+        retry = () => this.retryFileChip!(chip);
+      if (isAttachmentChip(chip) && this.retryAttachmentChip)
+        retry = () => this.retryAttachmentChip!(chip);
+    } else if (isTagChip(chip)) {
+      const tag = this.tags.value.find((tag) => tag.id === chip.tagId);
+      if (!tag) return null;
+      name = tag.name;
+      tagColor = tag.color;
+      icon = createElement(TagsIcon);
+    } else if (isCollectionChip(chip)) {
       const collection = this.collections.value.find(
         (collection) => collection.id === chip.collectionId,
       );
-      return collection
-        ? html`<chat-panel-collection-chip
-            .reactToLit=${this.reactToLit}
-            .chip=${chip}
-            .collection=${collection}
-            .removeChip=${this.removeChip}
-          ></chat-panel-collection-chip>`
-        : null;
-    }
-    if (isSelectedContextChip(chip))
-      return html`<chat-panel-selected-chip
-        .reactToLit=${this.reactToLit}
-        .chip=${chip}
-        .removeChip=${this.removeChip}
-      ></chat-panel-selected-chip>`;
-    return null;
+      if (!collection) return null;
+      name = collection.name;
+      icon = createElement(CollectionsIcon);
+    } else if (isSelectedContextChip(chip)) {
+      name = chatI18n()["com.myoxus.ai.chat-panel.selected-content"]();
+      icon = createElement(UngroupIcon);
+    } else return null;
+    return createElement(ChatChipView, {
+      state: chip.state,
+      name,
+      icon,
+      tagColor,
+      closeable,
+      tooltip: getChipTooltip(chip.state, name, chip.tooltip),
+      onAdd: () => {},
+      onRemove: () => void this.act(() => this.removeChip(chip)),
+      onRetry: retry ? () => void this.act(retry!) : undefined,
+    });
   }
 
   override render() {
@@ -162,7 +191,7 @@ export class ChatPanelChips extends SignalWatcher(
           createElement(
             Fragment,
             { key: getChipKey(chip) },
-            toReactNode(this.renderChip(chip) ?? undefined),
+            this.renderChip(chip),
           ),
         ),
       ),

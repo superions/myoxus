@@ -41,7 +41,7 @@
  *      (P-VIRG-ARCH-C-03)
  */
 
-import type { FeatureManifest } from "@virgultum/ext-loader";
+import type { FeatureManifest } from "@virgultum/core/extensions";
 
 /**
  * Issue code returned by the guard. The string is the

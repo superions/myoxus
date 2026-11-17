@@ -1817,7 +1817,10 @@ async fn runner_reprojects_referrers_after_a_linked_document_moves() {
   .await
   .expect("fresh graph protects anchors in a target-only partial batch");
   assert!(selection.used_fresh_document_graph);
-  assert_eq!(selection.doc_ids, paths.keys().copied().collect());
+  assert_eq!(
+    selection.doc_ids,
+    paths.keys().copied().collect::<std::collections::HashSet<_>>()
+  );
   let commits_before_precise_noop = git_repo.commit_count();
   let precise_noop_id = create_run(&store, &profile).await;
   let precise_noop = run_sync_with_git_repo(

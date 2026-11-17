@@ -1,1 +1,1 @@
-export * from "@virgultum/inline-reference/store";
+export { ReferenceStoreExtension } from "@virgultum/content/store";

@@ -1,1 +1,1 @@
-export * from "@virgultum/components/resource";
+export * from "@virgultum/core/resource";

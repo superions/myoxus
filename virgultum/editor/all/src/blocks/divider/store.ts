@@ -1,1 +1,1 @@
-export * from "@virgultum/block-divider/store";
+export { DividerStoreExtension } from "@virgultum/content/store";

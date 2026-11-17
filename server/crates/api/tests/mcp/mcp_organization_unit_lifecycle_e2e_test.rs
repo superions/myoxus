@@ -25,6 +25,8 @@ async fn mcp(app: &axum::Router, token: &str, id: i64, method: &str, params: Val
       Request::builder()
         .method("POST")
         .uri("/mcp")
+        .header("host", "localhost")
+        .header("accept", "application/json, text/event-stream")
         .header("content-type", "application/json")
         .header("authorization", format!("Bearer {token}"))
         .body(Body::from(
@@ -162,7 +164,7 @@ async fn inv_mcp_organization_unit_http_lifecycle_is_scoped_blocker_safe_and_ret
       token,
       1,
       "initialize",
-      json!({ "protocolVersion": "2024-11-05", "clientInfo": { "name": "organization-e2e", "version": "1" } }),
+      json!({ "protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": { "name": "organization-e2e", "version": "1" } }),
     )
     .await;
     assert_eq!(initialized["result"]["serverInfo"]["name"], "myoxus");

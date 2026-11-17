@@ -3,14 +3,18 @@ import { useI18n } from "@myoxus/i18n";
 import { BrainIcon, ArrowDownBigIcon } from "@myoxus/icons/react";
 import {
   Avatar,
+  Card,
+  PageContentRail,
   Group,
   IconButton,
   MyoxusLoader,
   MyoxusText,
   Stack,
+  Scrollable,
+  Splitter,
   ThemeIcon,
 } from "@myoxus/ui-facade";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 export function ChatAssistantIdentity({
   withDocs = false,
@@ -19,7 +23,7 @@ export function ChatAssistantIdentity({
 }) {
   const t = useI18n();
   return (
-    <Group>
+    <Group gap="xs">
       <ThemeIcon variant="transparent" color="myoxus-text-secondary" size="sm">
         <BrainIcon size="calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))" />
       </ThemeIcon>
@@ -44,12 +48,17 @@ export function ChatUserIdentity({
 }) {
   const t = useI18n();
   return (
-    <Avatar
-      kind="user"
-      size="sm"
-      url={avatarUrl}
-      name={name || t["com.myoxus.common.you"]()}
-    />
+    <Group gap="xs">
+      <Avatar
+        kind="user"
+        size="sm"
+        url={avatarUrl}
+        name={name || t["com.myoxus.common.you"]()}
+      />
+      <MyoxusText typographySlot="body-small" tone="secondary">
+        {name || t["com.myoxus.common.you"]()}
+      </MyoxusText>
+    </Group>
   );
 }
 
@@ -138,8 +147,9 @@ export function ChatMessageSurface({
   identity?: ReactNode;
   children?: ReactNode;
 }) {
-  return (
+  const content = (
     <Stack
+      gap="xs"
       data-myoxus-ui-role={
         assistant ? "chat-assistant-message" : "chat-user-message"
       }
@@ -147,6 +157,15 @@ export function ChatMessageSurface({
       {identity}
       {children}
     </Stack>
+  );
+  return assistant ? (
+    content
+  ) : (
+    <Group>
+      <Card withBorder padding="sm">
+        {content}
+      </Card>
+    </Group>
   );
 }
 
@@ -156,6 +175,101 @@ export function ChatDisclaimer({ children }: { children?: ReactNode }) {
       <MyoxusText typographySlot="caption" tone="secondary" component="div">
         {children}
       </MyoxusText>
+    </Stack>
+  );
+}
+
+/** Keep the conversation pane mounted while native Mantine owns artifact resizing. */
+export function ChatConversationLayout({
+  children,
+  preview,
+  open,
+  independent,
+}: {
+  children?: ReactNode;
+  preview: ReactNode;
+  open: boolean;
+  independent: boolean;
+}) {
+  const storageKey = "chat-panel-split-view-size";
+  const [ratio, setRatio] = useState(() => {
+    try {
+      const saved = Number(localStorage.getItem(storageKey));
+      return Number.isFinite(saved) && saved >= 20 && saved <= 80 ? saved : 50;
+    } catch {
+      return 50;
+    }
+  });
+  const main = (
+    // Messages and composer own their spacing; the frame only distributes the viewport.
+    <Stack
+      gap={0}
+      h="100%"
+      w="100%"
+      mih={0}
+      justify={independent ? "center" : undefined}
+      data-myoxus-ui-role="chat-conversation-main"
+    >
+      {children}
+    </Stack>
+  );
+  return (
+    <Splitter
+      sizes={open ? [ratio, 100 - ratio] : [100]}
+      onSizeChange={(sizes) => {
+        if (open) setRatio(Number(sizes[0]));
+      }}
+      onResizeEnd={(_, sizes) => {
+        try {
+          localStorage.setItem(storageKey, String(sizes[0]));
+        } catch {
+          console.error("Failed to save chat preview size");
+        }
+      }}
+    >
+      <Splitter.Pane defaultSize={50} min={open ? 20 : 0} max={open ? 80 : 100}>
+        {independent ? (
+          <PageContentRail width="editor" fill>
+            {main}
+          </PageContentRail>
+        ) : (
+          main
+        )}
+      </Splitter.Pane>
+      {open ? (
+        <Splitter.Pane defaultSize={50} min={20} max={80}>
+          {preview}
+        </Splitter.Pane>
+      ) : null}
+    </Splitter>
+  );
+}
+
+/** The existing peek owns its session; only its native viewport is exposed for scrolling. */
+export function ChatPeekConversation({
+  header,
+  children,
+  composer,
+  viewportRef,
+}: {
+  header: ReactNode;
+  children?: ReactNode;
+  composer: ReactNode;
+  viewportRef: (element: HTMLDivElement | null) => void;
+}) {
+  return (
+    <Stack
+      h="100%"
+      mih={0}
+      p="md"
+      gap="xs"
+      data-myoxus-ui-role="chat-peek-conversation"
+    >
+      <Group justify="flex-end">{header}</Group>
+      <Scrollable.Viewport fill scrollbars="y" ref={viewportRef}>
+        <Stack>{children}</Stack>
+      </Scrollable.Viewport>
+      {composer}
     </Stack>
   );
 }

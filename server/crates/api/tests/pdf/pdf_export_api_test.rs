@@ -2352,6 +2352,13 @@ fn inv_pdfexp22b_documentation_customization_survives_worker_dispatch() {
           let blocks = native.get_or_insert_map("blocks");
           let mut txn = native.transact_mut();
           txn.apply_update(yrs::Update::decode_v1(&plain).unwrap()).unwrap();
+          // This legacy PDF fixture needs native identities before it can host
+          // a real document-reference block through the canonical capture codec.
+          let identities: Vec<_> = blocks.iter(&txn).map(|(id, value)| (id.to_owned(), value)).collect();
+          for (id, value) in identities {
+            let yrs::Out::YMap(block) = value else { unreachable!() };
+            block.insert(&mut txn, "sys:id", id);
+          }
           let text = blocks.iter(&txn).find_map(|(_, value)| {
             let yrs::Out::YMap(block) = value else { return None };
             let Some(yrs::Out::Any(yrs::Any::String(flavour))) = block.get(&txn, "sys:flavour") else { return None };
@@ -2373,6 +2380,19 @@ fn inv_pdfexp22b_documentation_customization_survives_worker_dispatch() {
           }
           txn.encode_state_as_update_v1(&Default::default())
         };
+        let embedded_doc = helpers::create_doc(&pool, ws_id, owner_id).await;
+        let image_key = "selected-embed.png";
+        lifetime_blobs.push(format!("{ws_id}/{image_key}"));
+        let png = include_bytes!("../../../pdf_export/fixtures/edgeless_snapshot_4x4_red.png");
+        upload_workspace_blob_via_graphql(&app, session_id, ws_id, image_key, "image/png", png).await;
+        let embedded_source = yjs::markdown_to_yjs("PDF selected source", "## Included native section\n\nPDF-SELECTED-BODY\n\n![Selected asset](selected-embed.png)\n\n## Outside native section\n\nPDF-OUTSIDE-SECRET").unwrap();
+        let target = yjs::markdown::markdown_native_targets(&embedded_source).unwrap().into_iter().find(|target|target.heading_path.as_ref().is_some_and(|path|path==&["Included native section"])).unwrap();
+        insert_doc_snapshot(&pool,ws_id,embedded_doc,embedded_source).await;
+        let capture = yjs::document_to_snapshot(&native_source,"pdf-host","").unwrap();
+        let mut host_blocks:Vec<yjs::PortableSnapshotBlock> = serde_json::from_value(capture["blocks"].clone()).unwrap();
+        host_blocks.iter_mut().find(|block|block.flavour=="myoxus:page").unwrap().children.push("pdf-selected-embed".into());
+        host_blocks.push(yjs::PortableSnapshotBlock {id:"pdf-selected-embed".into(),flavour:"myoxus:embed-synced-doc".into(),version:Some(1),props:json!({"pageId":embedded_doc.to_string(),"params":{"mode":"page","blockIds":[target.block_id],"blockSelection":"section"},"style":"syncedDoc"}).as_object().unwrap().clone(),children:Vec::new()});
+        let native_source = yjs::snapshot_blocks_to_yjs(&host_blocks).unwrap();
         sqlx::query("UPDATE docs SET document_number='NATIVE-PDF-01', responsible_user_id=$2, metadata_revision=metadata_revision+1 WHERE id=$1")
           .bind(doc_id).bind(responsible_id).execute(&pool).await.unwrap();
         insert_doc_snapshot(
@@ -2471,6 +2491,7 @@ fn inv_pdfexp22b_documentation_customization_survives_worker_dispatch() {
         // content. Inspect the actual pages and every source paragraph instead.
         let parsed_pdf = lopdf::Document::load_mem(&body_bytes).expect("valid rendered PDF");
         assert!(parsed_pdf.get_pages().len() >= 2, "actual PDF must be multi-page");
+        assert!(parsed_pdf.objects.values().any(|object|object.as_stream().is_ok_and(|stream|stream.dict.get(b"Subtype").is_ok_and(|kind|kind.as_name().is_ok_and(|name| name == b"Image")))),"authorized selected-source images reach the real PDF");
         let pdf_text = pdf_extract::extract_text_from_mem(&body_bytes).expect("long-doc PDF text must be extractable");
         let page_ids = parsed_pdf.get_pages().keys().copied().collect::<Vec<_>>();
         let complete_text = parsed_pdf.extract_text(&page_ids).expect("complete PDF Unicode text");
@@ -2500,6 +2521,7 @@ fn inv_pdfexp22b_documentation_customization_survives_worker_dispatch() {
         for value in ["NATIVE-PDF-01", "pdfexp22-responsible", "Literal{{native-value}}", "Authoreddecisionlabel"] {
           assert!(normalized_text.contains(value), "actual PDF body must contain the canonical native field value: {value}; {complete_text}");
         }
+        assert!(normalized_text.contains("PDF-SELECTED-BODY") && !normalized_text.contains("PDF-OUTSIDE-SECRET"), "actual PDF must preserve the selected section boundary");
         assert!(!normalized_text.contains("Nottheanswer"), "rendering must not initialize a source default");
         assert!(
           pdf_text.contains("pdfexp22-doc"),
@@ -2586,6 +2608,7 @@ fn inv_pdfexp22b_documentation_customization_survives_worker_dispatch() {
           "theme_typography",
           "document_branding",
           "document_field_output",
+          "document_embed_output",
         ] {
           assert_eq!(queued_inputs[key], render_inputs[key], "same selected {key}");
         }
@@ -2796,7 +2819,13 @@ fn inv_pdfexp22b_documentation_customization_survives_worker_dispatch() {
         assert_eq!(next.status, "done");
         let next_pdf = storage.read_blob(&myoxus_worker::pdf_export_handler::pdf_export_storage_key(ws_id, next.output_blob_id.unwrap())).await.unwrap();
         assert_eq!(pdf_extract::extract_text_from_mem(&next_pdf.data).unwrap(), pdf_text);
+        sqlx::query("UPDATE docs SET deleted_at=now() WHERE id=$1").bind(embedded_doc).execute(&pool).await.unwrap();
+        for uri in [format!("/api/pdf-export/{queued_id}/download"),format!("/api/workspaces/{ws_id}/blobs/{queued_blob_key}"),format!("/api/workspaces/{ws_id}/blobs/%20{queued_blob_key}")] {
+          let response = queued_app.clone().oneshot(Request::builder().uri(&uri).header("cookie",format!("affine_session={session_id}")).body(Body::empty()).unwrap()).await.unwrap();
+          assert_eq!(response.status(),http::StatusCode::FORBIDDEN,"a captured selected body cannot bypass source deletion: {uri}");
+        }
         storage.delete_blob(&queued_key).await.expect("remove queued artifact");
+
       })
       .catch_unwind()
       .await;
@@ -3602,15 +3631,19 @@ mod mcp_export {
         sqlx::query("UPDATE doc_snapshots SET payload=$2 WHERE doc_id=$1").bind(doc)
           .bind(with_omissions(build_pdf_doc_yjs_from_paragraphs("Broken stored asset", &["Visible body remains intact.".into()]), true))
           .execute(&pool).await.unwrap();
-        let failed = rpc(&app, &raw, "pdf_export_create", json!({"workspace_id":ws,"external_id":external,
-          "idempotency_key":"missing-asset-sync","typed_inputs":{"title":"Missing asset title"}})).await;
-        assert_eq!(failed["result"]["structuredContent"]["code"], "PDF_EXPORT_FAILED");
-        let failure: Value = serde_json::from_str(failed["result"]["structuredContent"]["message"].as_str().unwrap()).unwrap();
-        assert_eq!(failure["class"], "RenderError");
-        assert_eq!(failure["diagnostics"],json!({"coverage":"pipeline_reported","findings":[{"code":"missing_asset","count":1},{"code":"unsupported_block","count":1}]}));
-        assert!(!failed.to_string().contains("private/missing.png"), "private paths never enter the tool error");
+        let missing = success(&rpc(&app, &raw, "pdf_export_create", json!({"workspace_id":ws,"external_id":external,
+          "idempotency_key":"missing-asset-sync","locale":"en","typed_inputs":{"title":"Missing asset title"}})).await);
+        assert_eq!(missing["status"], "done");
+        assert_eq!(missing["diagnostics"],json!({"coverage":"pipeline_reported","findings":[{"code":"missing_asset","count":1},{"code":"unsupported_block","count":1}],"unmappedFontFamilies":[]}));
+        assert!(!missing.to_string().contains("private/missing.png"), "private paths never enter the tool report");
+        let missing_id = missing["jobId"].as_str().unwrap().parse().unwrap();
+        let (status, bytes) = download(&app, missing_id, Some(&raw), None).await;
+        assert_eq!(status, 200);
+        let text = complete_pdf_text(&bytes).split_whitespace().collect::<String>();
+        assert!(text.contains("Imageunavailable") && text.contains("Visiblebodyremainsintact."));
+        assert!(!text.contains("private/missing.png"));
         let count_after: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM pdf_export_jobs WHERE workspace_id=$1").bind(ws).fetch_one(&pool).await.unwrap();
-        assert_eq!(count_after, count, "a failed sync render must not publish a successful job");
+        assert_eq!(count_after, count + 1, "the diagnosed placeholder output owns one ordinary job");
         sqlx::query("UPDATE pdf_export_jobs SET expires_at=now()-interval '1 second' WHERE id=$1")
           .bind(id)
           .execute(&pool)
@@ -3881,25 +3914,27 @@ mod mcp_export {
       assert!(!text.contains("Newer content must not leak"));
       assert!(text.contains("Unknown block fallback"));
       assert!(text.contains("Canvas snapshot not available"));
-      // A genuinely missing stored asset retains the existing fail-closed
-      // compiler behavior, while its already-observed report survives failure.
+      // Missing stored bytes retain the renderer's visible placeholder and
+      // observed diagnostic through the same queued MCP delivery path.
       sqlx::query("UPDATE doc_snapshots SET payload=$2 WHERE doc_id=$1").bind(doc)
         .bind(with_omissions(build_pdf_doc_yjs_from_paragraphs("Broken queued asset", &["Visible original body.".into()]), true))
         .execute(&pool).await.unwrap();
       let broken = success(&rpc(&app,&raw,"pdf_export_create",json!({"workspace_id":ws,"external_id":doc,
-        "idempotency_key":"missing-asset-queued","typed_inputs":{"title":"Missing queued asset title"}})).await);
+        "idempotency_key":"missing-asset-queued","locale":"en","typed_inputs":{"title":"Missing queued asset title"}})).await);
       let broken_id: Uuid = broken["jobId"].as_str().unwrap().parse().unwrap();
       let broken_job = queue.get_job("pdf-export", &broken_id.to_string()).await.unwrap().unwrap();
-      assert!(handler.process(&broken_job).await.is_err(), "missing private asset cannot produce a successful PDF");
-      let failed=success(&rpc(&app,&raw,"pdf_export_get",json!({"job_id":broken_id})).await);
-      assert_eq!(failed["status"],"failed");
-      assert_eq!(failed["errorClass"],"RenderError");
-      assert_eq!(failed["diagnostics"]["coverage"],"pipeline_reported");
-      assert_eq!(failed["diagnostics"]["findings"],json!([{"code":"missing_asset","count":1},{"code":"unsupported_block","count":1}]));
-      assert_eq!(failed["delivery"]["available"],false);
-      assert!(failed["delivery"]["url"].is_null());
-      assert!(!failed.to_string().contains("private/missing.png"));
-      assert_eq!(download(&app,broken_id,Some(&raw),None).await.0,410);
+      handler.process(&broken_job).await.expect("queued missing-image placeholder output");
+      let missing=success(&rpc(&app,&raw,"pdf_export_get",json!({"job_id":broken_id})).await);
+      assert_eq!(missing["status"],"done");
+      assert_eq!(missing["diagnostics"]["coverage"],"pipeline_reported");
+      assert_eq!(missing["diagnostics"]["findings"],json!([{"code":"missing_asset","count":1},{"code":"unsupported_block","count":1}]));
+      assert_eq!(missing["delivery"]["available"],true);
+      assert!(!missing.to_string().contains("private/missing.png"));
+      let (status, bytes) = download(&app,broken_id,Some(&raw),None).await;
+      assert_eq!(status,200);
+      let text = complete_pdf_text(&bytes).split_whitespace().collect::<String>();
+      assert!(text.contains("Imageunavailable") && text.contains("Visibleoriginalbody."));
+      assert!(!text.contains("private/missing.png"));
       }).catch_unwind().await;
       sqlx::query(&format!("DROP TRIGGER IF EXISTS {trigger} ON pdf_export_jobs"))
         .execute(&pool)

@@ -542,8 +542,12 @@ test.describe.serial("OU-managed shared workspace integrity", () => {
       ]);
       if (
         failure === "net::ERR_ABORTED" &&
-        operation &&
-        routeCancelledReadOperations.has(operation)
+        ((operation && routeCancelledReadOperations.has(operation)) ||
+          // Workspace teardown terminates its storage worker even while its
+          // script is loading. Other worker failures still fail this journey.
+          /^\/js\/storage-[^/]+\.worker\.js$/.test(
+            new URL(request.url()).pathname,
+          ))
       ) {
         return;
       }

@@ -911,7 +911,7 @@ async function readInitialRouteVisualSnapshot(
         document.querySelectorAll("button, [role='button']"),
       ).filter(visible);
       const panelSelector =
-        ".admin-role-surface-panel, [data-myoxus-ui-role='card'], [data-myoxus-ui-role='settings-panel'], .admin-ui-bordered-panel, .admin-ui-soft-list";
+        ".admin-role-surface-panel, [data-myoxus-ui-role='card'], [data-myoxus-ui-role='settings-panel'], .admin-ui-bordered-panel, .admin-ui-soft-list, [data-myoxus-ui-role='admin-page-frame-body'] section.mantine-Stack-root";
       const panels = Array.from(
         document.querySelectorAll(panelSelector),
       ).filter(visible);
@@ -1697,7 +1697,7 @@ async function readRouteVisualSnapshot(
         ? Array.from(primaryRail.children).filter(visible)
         : [];
       const panelSelector =
-        ".admin-role-surface-panel, [data-myoxus-ui-role='card'], [data-myoxus-ui-role='settings-panel'], .admin-ui-bordered-panel, .admin-ui-soft-list";
+        ".admin-role-surface-panel, [data-myoxus-ui-role='card'], [data-myoxus-ui-role='settings-panel'], .admin-ui-bordered-panel, .admin-ui-soft-list, [data-myoxus-ui-role='admin-page-frame-body'] section.mantine-Stack-root";
       const visiblePanels = Array.from(
         document.querySelectorAll<HTMLElement>(panelSelector),
       ).filter(visible);
@@ -2048,7 +2048,7 @@ async function readRouteVisualSnapshot(
             }
           : null,
         panelCount: document.querySelectorAll(
-          ".admin-role-surface-panel, [data-myoxus-ui-role='card'], [data-myoxus-ui-role='settings-panel'], .admin-ui-bordered-panel, .admin-ui-soft-list",
+          ".admin-role-surface-panel, [data-myoxus-ui-role='card'], [data-myoxus-ui-role='settings-panel'], .admin-ui-bordered-panel, .admin-ui-soft-list, [data-myoxus-ui-role='admin-page-frame-body'] section.mantine-Stack-root",
         ).length,
         buttonCount: buttons.length,
         chromeCount: Array.from(

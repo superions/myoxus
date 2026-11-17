@@ -1,1 +1,1 @@
-export * from "@virgultum/gfx-link/view";
+export { LinkViewExtension } from "@virgultum/canvas/view";

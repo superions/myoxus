@@ -1,7 +1,7 @@
 import {
   type ViewExtensionContext,
   ViewExtensionProvider,
-} from "@virgultum/ext-loader";
+} from "@virgultum/core/extensions";
 
 import { BpmnBlockSpec } from "./bpmn-spec.js";
 import { effects } from "./effects.js";

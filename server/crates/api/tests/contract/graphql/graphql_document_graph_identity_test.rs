@@ -222,10 +222,37 @@ async fn document_graph_reindex_resolves_workspace_external_keys_and_projects_th
   )
   .await;
 
+  // Trash is authoritative even before its cached graph occurrences are removed.
+  sqlx::query("UPDATE docs SET deleted_at = now() WHERE id = $1")
+    .bind(source_id)
+    .execute(&pool)
+    .await
+    .expect("trash the indexed source before graph cleanup");
+  let trashed_response = helpers::gql(
+    &app,
+    session_id,
+    json!({
+      "query": "query($workspaceId: String!) { workspace(id: $workspaceId) { documentGraph(input: { direction: Both, first: 20, includeOccurrences: true }) { nodes { docId } edges { sourceDocId } } } }",
+      "variables": { "workspaceId": workspace_id.to_string() },
+    }),
+  ).await;
+
   helpers::cleanup_workspaces(&pool, &[workspace_id, other_workspace_id]).await;
   helpers::cleanup_users(&pool, &[actor_id]).await;
 
   assert_eq!(outcome.reindexed_count, 1);
+  assert!(
+    trashed_response.get("errors").is_none(),
+    "trashed graph source must not fail identity projection: {trashed_response}"
+  );
+  assert_eq!(
+    trashed_response["data"]["workspace"]["documentGraph"]["edges"],
+    json!([])
+  );
+  assert_eq!(
+    trashed_response["data"]["workspace"]["documentGraph"]["nodes"],
+    json!([])
+  );
   let by_raw = occurrences
     .into_iter()
     .map(|occurrence| (occurrence.raw_target_doc_id.clone(), occurrence))

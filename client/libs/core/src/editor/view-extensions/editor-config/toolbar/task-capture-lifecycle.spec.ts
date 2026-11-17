@@ -18,7 +18,7 @@ import {
 import {
   Flags,
   Flag,
-} from "../../../../../../../../virgultum/editor/shared/src/services/toolbar-service/flags";
+} from "../../../../../../../../virgultum/core/src/services/toolbar-service/flags";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { createCustomToolbarExtension } from "./index";
 

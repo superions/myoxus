@@ -19,6 +19,7 @@ pub struct OverviewRegisterFacts {
   pub labels: myoxus_domain::entities::DocumentMetadataIndexLabels,
   pub created_at: DateTime<Utc>,
   pub created_by_name: Option<String>,
+  pub responsible_name: Option<String>,
   pub tag_ids: Vec<Uuid>,
   pub tags: Vec<WorkspaceTag>,
   pub can_publish: bool,
@@ -62,7 +63,7 @@ fn compare(left: &OverviewDocument, right: &OverviewDocument, key: &str) -> Orde
       .as_ref()
       .map(|row| row.created_at)
       .cmp(&right.register.as_ref().map(|row| row.created_at)),
-    "createdBy" | "documentType" | "status" | "classification" | "version" => {
+    "createdBy" | "responsible" | "documentType" | "status" | "classification" | "version" => {
       id_value(left, key).cmp(&id_value(right, key))
     }
     "reviewDueAt" => left
@@ -83,6 +84,7 @@ fn id_value(document: &OverviewDocument, key: &str) -> Option<Uuid> {
   let metadata = &document.register.as_ref()?.metadata;
   match key {
     "createdBy" => metadata.created_by,
+    "responsible" => metadata.responsible_user_id,
     "documentType" => metadata.document_type_id,
     "status" => metadata.status_id,
     "classification" => metadata.classification_id,
@@ -99,4 +101,83 @@ fn tag_sort_value(document: &OverviewDocument) -> String {
   let mut ids = row.tag_ids.clone();
   ids.sort_unstable();
   ids.iter().map(Uuid::to_string).collect::<Vec<_>>().join(",")
+}
+
+/// Selection only sees inventory already admitted by the caller's access policy.
+pub(super) fn matches_index(
+  document: &OverviewDocument,
+  query: &myoxus_domain::workspace_overview::OverviewRegisterSelection,
+) -> bool {
+  if query.tag_ids.is_empty() && query.filters.is_empty() {
+    return true;
+  }
+  let Some(row) = document.register.as_ref() else {
+    return false;
+  };
+  if !query.tag_ids.is_empty() {
+    let matches = |id: &Uuid| row.tag_ids.contains(id);
+    if !(if query.match_all_tags {
+      query.tag_ids.iter().all(matches)
+    } else {
+      query.tag_ids.iter().any(matches)
+    }) {
+      return false;
+    }
+  }
+  query.filters.iter().all(|filter| {
+    let comparison = match filter.key.as_str() {
+      "documentType" | "status" => {
+        let value = if filter.key == "status" {
+          row.metadata.status_id
+        } else {
+          row.metadata.document_type_id
+        };
+        value.map(|value| {
+          value.cmp(
+            &filter
+              .value
+              .as_deref()
+              .and_then(|value| Uuid::parse_str(value).ok())
+              .unwrap_or_default(),
+          )
+        })
+      }
+      key => {
+        let value = if key == "reviewDueAt" {
+          row.metadata.review_due_at
+        } else {
+          row.metadata.valid_until
+        };
+        value.map(|value| {
+          value.cmp(
+            &filter
+              .value
+              .as_deref()
+              .and_then(|value| DateTime::parse_from_rfc3339(value).ok())
+              .map(|value| value.with_timezone(&Utc))
+              .unwrap_or_default(),
+          )
+        })
+      }
+    };
+    match filter.method.as_str() {
+      "is-empty" => comparison.is_none(),
+      "is-not-empty" => comparison.is_some(),
+      "is" => comparison == Some(Ordering::Equal),
+      "is-not" => comparison != Some(Ordering::Equal),
+      "before" => comparison == Some(Ordering::Less),
+      "after" => comparison == Some(Ordering::Greater),
+      _ => false,
+    }
+  })
+}
+
+/// Apply the shared finite selection before the common sort and pagination.
+pub(super) fn select_documents(
+  documents: &mut Vec<OverviewDocument>,
+  presentation: Option<&OverviewRegisterPresentation>,
+) {
+  if let Some(presentation) = presentation {
+    documents.retain(|document| matches_index(document, &presentation.selection));
+  }
 }

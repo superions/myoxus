@@ -409,6 +409,8 @@ mod tests {
         marks: Default::default(),
       }],
       children: vec![],
+      alignment: None,
+      eyebrow: false,
     }]));
     assert!(!StructTreeReadiness::evaluate(&just_paragraphs).is_ready());
 

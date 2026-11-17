@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { MindmapDesign as MindmapStyle } from "./types.js";
 import { mindmapStyleGetters } from "./style-getters.js";
-import { ConnectorMode, StrokeStyle } from "@virgultum/model";
+import { ConnectorMode, StrokeStyle } from "@virgultum/core/models";
 import type {
   MermaidGfxElementStyleProjection,
   MermaidGfxConnectorElementProjection,

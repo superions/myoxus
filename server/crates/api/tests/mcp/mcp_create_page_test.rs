@@ -695,7 +695,7 @@ async fn inv_mcp_document_discovery_enforces_live_acl_past_denied_candidate_page
     })).await;
     let actual = [first["pages"][0]["externalId"].as_str().unwrap(), second["pages"][0]["externalId"].as_str().unwrap()]
       .into_iter().collect::<std::collections::HashSet<_>>();
-    assert_eq!(actual, [&*keys[0], &*keys[1]].into_iter().collect());
+    assert_eq!(actual, [&*keys[0], &*keys[1]].into_iter().collect::<std::collections::HashSet<_>>());
     assert!(second.get("next_cursor").is_none());
     let matches = document_read_call(&app, &external_key, "search_docs", json!({"workspace_id": workspace, "query": "needle", "limit": 2})).await;
     assert_eq!(matches["total_count"], 2);
@@ -759,7 +759,7 @@ async fn inv_mcp_document_discovery_enforces_live_acl_past_denied_candidate_page
     let unique = traversed.iter().copied().collect::<std::collections::HashSet<_>>();
     assert_eq!(traversed.len(), 62);
     assert_eq!(unique.len(), 62, "no duplicate between pages");
-    assert_eq!(unique, keys[..63].iter().enumerate().filter(|(index,_)| *index != 2).map(|(_,key)| key.as_str()).collect());
+    assert_eq!(unique, keys[..63].iter().enumerate().filter(|(index,_)| *index != 2).map(|(_,key)| key.as_str()).collect::<std::collections::HashSet<_>>());
     assert!(!page.to_string().contains("classified"));
     for (field,value) in [("query", json!("different")), ("cursor", json!(42))] {
       let mut mismatch = continued.clone(); mismatch[field] = value;
@@ -909,7 +909,7 @@ async fn inv_mcp_compat_document_resources_enforce_scopes_acl_and_complete_unico
   let targets = vec![inventory_uri.clone(), selected_uri.clone()];
   let mut stream = resource_stream(&app, &external_key, &targets).await;
   let initial = [stream.update().await, stream.update().await].into_iter().collect::<std::collections::HashSet<_>>();
-  assert_eq!(initial, targets.iter().cloned().collect());
+  assert_eq!(initial, targets.iter().cloned().collect::<std::collections::HashSet<_>>());
   assert_eq!(hub.active_observation_groups(), 1, "workspace/document share one comparison");
   let inventory = read(external_key.clone(), inventory_uri.clone()).await;
   let inventory:Value = serde_json::from_str(inventory["result"]["contents"][0]["text"].as_str().unwrap()).unwrap();
@@ -926,7 +926,7 @@ async fn inv_mcp_compat_document_resources_enforce_scopes_acl_and_complete_unico
   // Deliberately omit the wakeup: the shared heartbeat must discover tail-only
   // content changes even when docs.updated_at was restored to its prior value.
   let changed = [stream.update().await, stream.update().await].into_iter().collect::<std::collections::HashSet<_>>();
-  assert_eq!(changed, targets.iter().cloned().collect());
+  assert_eq!(changed, targets.iter().cloned().collect::<std::collections::HashSet<_>>());
   let snapshot = document_read_rpc(&other_instance, &external_key, "resources/read", json!({"uri":inventory_uri})).await;
   let snapshot:Value = serde_json::from_str(snapshot["result"]["contents"][0]["text"].as_str().unwrap()).unwrap();
   assert!(snapshot["documents"][0]["contentRevision"].as_i64().unwrap() > old_revision);

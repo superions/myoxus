@@ -1,1 +1,1 @@
-export * from "@virgultum/components/peek";
+export * from "@virgultum/core/view/peek";

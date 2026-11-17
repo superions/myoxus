@@ -22,6 +22,8 @@ use typst::utils::LazyHash;
 /// A path like `blob:abc123` is served from the IR's asset map.
 pub const BLOB_PATH_PREFIX: &str = "blob:";
 
+pub(crate) const EMOJI_FONT: &[u8] = include_bytes!("../../../../static/fonts/noto-emoji-vf.ttf");
+
 // One unaddressable identity avoids both bundle main.typ collisions and leaking
 // a new entry in Typst's bounded global FileId interner for every export.
 static GENERATED_MAIN: LazyLock<FileId> = LazyLock::new(|| {
@@ -83,7 +85,9 @@ impl TypstWorld {
     let mut fonts = Vec::new();
 
     // Phase 0: typst-assets baseline (Linux Libertine, NewCM, DejaVu Mono…).
-    for data in typst_assets::fonts() {
+    // Unicode coverage supplements glyphs, never substitutes a configured theme
+    // family. Embedding the licensed font keeps PDF/A independent of host fonts.
+    for data in typst_assets::fonts().chain(std::iter::once(EMOJI_FONT)) {
       let bytes = Bytes::new(data);
       for font in Font::iter(bytes) {
         book.push(font.info().clone());
@@ -235,13 +239,8 @@ mod tests {
   use tempfile::TempDir;
   use typst::text::FontVariant;
 
-  fn count_typst_assets_fonts() -> usize {
-    let mut n = 0;
-    for data in typst_assets::fonts() {
-      let bytes = Bytes::new(data);
-      n += Font::iter(bytes).count();
-    }
-    n
+  fn count_baseline_fonts() -> usize {
+    TypstWorld::new(String::new(), HashMap::new(), &[]).fonts.len()
   }
 
   /// INV-FONT-WOFF2-HOTPATH: a `.woff2` file dropped in an extra font dir is
@@ -249,7 +248,7 @@ mod tests {
   /// PDF hot path must only index raw SFNT fonts.
   #[test]
   fn inv_font_woff2_extra_dir_ignores_woff2_fonts() {
-    let baseline = count_typst_assets_fonts();
+    let baseline = count_baseline_fonts();
 
     // Use the real bundled Inter regular woff2 from server/static/fonts.
     let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -282,7 +281,7 @@ mod tests {
   /// `Font::iter`.
   #[test]
   fn inv_font_non_font_files_are_skipped() {
-    let baseline = count_typst_assets_fonts();
+    let baseline = count_baseline_fonts();
     let dir = TempDir::new().expect("tempdir");
     std::fs::write(dir.path().join("readme.txt"), b"not a font").unwrap();
     std::fs::write(dir.path().join("manifest.json"), b"{}").unwrap();

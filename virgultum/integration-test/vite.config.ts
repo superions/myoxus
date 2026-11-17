@@ -102,6 +102,10 @@ export default defineConfig(() => {
       }),
     },
     plugins: [createDecoratorTransform(), apiFontMiddleware(), wasm()],
+    worker: {
+      // Worker bundles resolve the same decorated production assembly as the main harness.
+      plugins: () => [createDecoratorTransform()],
+    },
     oxc: {
       target: "es2022",
     },

@@ -28,6 +28,7 @@ import {
 import { DisposableGroup } from "@virgultum/editor/global/disposable";
 import { Bound } from "@virgultum/editor/global/gfx";
 import { RefNodeSlotsProvider } from "@virgultum/editor/inlines/reference";
+import { SidebarExtensionIdentifier } from "@virgultum/core/services";
 import { GfxControllerIdentifier } from "@virgultum/editor/std/gfx";
 import { lazy, Suspense, useCallback, useEffect } from "react";
 import type { Subscription } from "rxjs";
@@ -170,8 +171,10 @@ function DocPeekPreviewEditor({
 
   const openOutlinePanel = useCallback(() => {
     jumpToPageBlock(workspace.id, doc.id, mode);
+    // Reuse the owning sidebar host; navigation alone does not reveal its outline tool.
+    editorElement?.std.getOptional(SidebarExtensionIdentifier)?.open("outline");
     peekView.close();
-  }, [doc, peekView, jumpToPageBlock, workspace.id, mode]);
+  }, [doc, peekView, jumpToPageBlock, workspace.id, mode, editorElement]);
 
   const canEdit = useGuard("Doc_Update", doc.id);
 

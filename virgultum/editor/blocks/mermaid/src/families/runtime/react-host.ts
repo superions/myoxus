@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import type { ToolbarControl } from "@virgultum/shared/services";
+import type { ToolbarControl } from "@virgultum/core/services";
 
-import { createIdentifier } from "@virgultum/global/di";
-import type { ExtensionType } from "@virgultum/store";
+import { createIdentifier } from "@virgultum/core/primitives/di";
+import type { ExtensionType } from "@virgultum/core/store";
 import type { TemplateResult } from "lit";
 import type {
   MermaidBlockShellReactHostProps,

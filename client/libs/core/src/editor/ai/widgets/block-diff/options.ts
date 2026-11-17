@@ -1,49 +1,32 @@
-import { CloseIcon, DoneIcon } from "@myoxus/icons/lit";
+import { createElement } from "react";
+import type { EditorHost } from "@virgultum/editor/std";
+import { AIWidgetUI } from "../native-ui";
+import { DiffOptions } from "./view";
 import track from "@myoxus/track";
 import { WithDisposable } from "@virgultum/editor/global/lit";
-import { unsafeCSSValue, unsafeCSSVar } from "@virgultum/editor/shared/theme";
-import { css, html, LitElement } from "lit";
+import { LitElement } from "lit";
 import { property } from "lit/decorators.js";
 
 import type { PatchOp } from "../../utils/apply-model/markdown-diff";
 
 export class BlockDiffOptions extends WithDisposable(LitElement) {
-  static override styles = css`
-    :host {
-      position: absolute;
-      right: calc(
-        ${unsafeCSSValue(
-          "calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))",
-        )} *
-          -1
-      );
-      top: 0;
+  override createRenderRoot() {
+    return this;
+  }
+  override connectedCallback() {
+    super.connectedCallback();
+    // The diff renderer owns the anchor outside the document text bounds.
+    Object.assign(this.style, {
+      position: "absolute",
+      right:
+        "calc((var(--mantine-spacing-lg) + var(--mantine-spacing-xs)) * -1)",
+      top: "0",
+      pointerEvents: "auto",
+    });
+  }
 
-      display: flex;
-      flex-direction: column;
-      gap: ${unsafeCSSValue("var(--mantine-spacing-xs)")};
-      cursor: pointer;
-      pointer-events: auto;
-    }
-
-    .ai-block-diff-option {
-      padding: ${unsafeCSSValue("var(--mantine-spacing-2xs)")};
-      border-radius: ${unsafeCSSValue("var(--mantine-radius-sm)")};
-      box-shadow: ${unsafeCSSValue("var(--mantine-shadow-sm)")};
-      display: flex;
-      background-color: ${unsafeCSSVar("backgroundOverlayPanelColor")};
-      align-items: center;
-      justify-content: center;
-    }
-
-    .ai-block-diff-option.accept {
-      color: ${unsafeCSSVar("primaryColor")};
-    }
-
-    .ai-block-diff-option.reject {
-      color: ${unsafeCSSVar("iconSecondary")};
-    }
-  `;
+  @property({ attribute: false })
+  accessor host!: EditorHost;
 
   @property({ attribute: false })
   accessor onAccept!: (op: PatchOp) => void;
@@ -65,20 +48,12 @@ export class BlockDiffOptions extends WithDisposable(LitElement) {
   };
 
   override render() {
-    return html`
-      <div
-        class="ai-block-diff-option accept"
-        @click=${this._handleAcceptClick}
-      >
-        ${DoneIcon()}
-      </div>
-      <div
-        class="ai-block-diff-option reject"
-        @click=${this._handleRejectClick}
-      >
-        ${CloseIcon()}
-      </div>
-    `;
+    return this.host.std.get(AIWidgetUI)(
+      createElement(DiffOptions, {
+        accept: this._handleAcceptClick,
+        reject: this._handleRejectClick,
+      }),
+    );
   }
 }
 

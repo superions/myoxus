@@ -102,7 +102,7 @@ const requiredIdentityContracts = new Map([
     ["content.affine.zip", 'trim_end_matches(".affine")'],
   ],
   [
-    "virgultum/framework/store/src/schema/flavour-alias.ts",
+    "virgultum/core/src/store/schema/flavour-alias.ts",
     [
       '["affine:page", "myoxus:page"]',
       '["affine:surface", "myoxus:surface"]',
@@ -110,7 +110,7 @@ const requiredIdentityContracts = new Map([
     ],
   ],
   [
-    "virgultum/framework/store/src/consts.ts",
+    "virgultum/core/src/store/consts.ts",
     [
       'TEXT_UNIQ_IDENTIFIER = "$virgultum:internal:text$"',
       'NATIVE_UNIQ_IDENTIFIER = "$virgultum:internal:native$"',
@@ -119,7 +119,7 @@ const requiredIdentityContracts = new Map([
     ],
   ],
   [
-    "virgultum/editor/blocks/embed/src/embed-iframe-block/configs/providers/generic.ts",
+    "virgultum/embeds/src/embed/embed-iframe-block/configs/providers/generic.ts",
     ["toeverything.app", "apple.getaffineapp.com"],
   ],
   [

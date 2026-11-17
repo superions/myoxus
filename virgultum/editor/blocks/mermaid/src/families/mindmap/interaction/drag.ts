@@ -2,7 +2,7 @@
 import { MindmapLayoutType as LayoutType } from "../projection/types.js";
 import { findMindmapDropTarget, planMindmapInsertion } from "./drop-plan.js";
 import { planMindmapResponseAreas } from "./response-plan.js";
-import { Bound } from "@virgultum/global/gfx";
+import { Bound } from "@virgultum/core/primitives/gfx";
 import {
   mindmapMoveAtAnchor,
   mindmapMoveImpact,

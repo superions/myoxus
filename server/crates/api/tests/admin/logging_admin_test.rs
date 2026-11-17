@@ -210,7 +210,7 @@ async fn inv_p33d07_schema_compat_logging_types_and_fields() {
     "updateLogOutput",
   ] {
     assert!(
-      admin_fields.iter().any(|f| f["name"].as_str() == Some(name)),
+      admin_fields.iter().any(|f| f["name"].as_str() == Some(*name)),
       "AdminRoot missing '{name}'. Available: {:?}",
       admin_fields
         .iter()

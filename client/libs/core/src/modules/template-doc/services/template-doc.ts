@@ -1,5 +1,8 @@
 import {
   type TemplateSuggestionInput,
+  type TemplateLibraryFilterInput,
+  TemplateLibraryKind,
+  TemplateLibraryOrigin,
   type TemplateSuggestionItemFieldsFragment,
   templateSuggestionsQuery,
   assistantDocumentSourceQuery,
@@ -803,7 +806,25 @@ export class TemplateDocService extends Service {
   /** Resolve an exact source independently of the loaded Library page. This read
    * never replaces inventory, classification, pagination or loading state.
    */
-  public async lookupTemplateSource(sourceDocId: string, locale: string) {
+  public lookupTemplateSource(sourceDocId: string, locale: string) {
+    return this.lookupLibrarySource({ sourceDocId }, locale);
+  }
+
+  public lookupNamedBuildingBlock(slug: string, locale: string) {
+    return this.lookupLibrarySource(
+      {
+        sourceSlug: slug,
+        kind: TemplateLibraryKind.BuildingBlock,
+        origin: TemplateLibraryOrigin.Imported,
+      },
+      locale,
+    );
+  }
+
+  private async lookupLibrarySource(
+    library: TemplateLibraryFilterInput,
+    locale: string,
+  ) {
     const workspace = this.workspaceService.workspace;
     const server = this.workspaceServerService.server;
     if (workspace.flavour === "local" || !server) return null;
@@ -823,7 +844,7 @@ export class TemplateDocService extends Service {
             first: 1,
             locale,
             clientVersion: TEMPLATE_SUGGESTION_CLIENT_VERSION,
-            library: { sourceDocId },
+            library,
           },
         },
       });
@@ -837,7 +858,9 @@ export class TemplateDocService extends Service {
       const items = response.workspace?.templateSuggestions.items;
       if (items?.length !== 1) return null;
       const item = items[0];
-      return item.templateDocId === sourceDocId ||
+      return (library.sourceDocId
+        ? item.templateDocId === library.sourceDocId
+        : item.slug === library.sourceSlug) ||
         (!item.available && !item.templateDocId)
         ? item
         : null;

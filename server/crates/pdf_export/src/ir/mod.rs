@@ -97,6 +97,9 @@ pub struct ThemeFontSelection {
   pub mono: Option<String>,
   #[serde(default)]
   pub symbol: Option<String>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  /// Existing theme `label.compact` family for authored eyebrow paragraphs.
+  pub eyebrow: Option<String>,
 }
 
 /// Printable typography metrics for one effective theme role.
@@ -140,6 +143,9 @@ pub struct ThemeTypographySelection {
   pub mono: Option<ThemeTypographyStyle>,
   #[serde(default)]
   pub symbol: Option<ThemeTypographyStyle>,
+  #[serde(default, skip_serializing_if = "Option::is_none")]
+  /// Existing theme `label.compact` metrics for authored eyebrow paragraphs.
+  pub eyebrow: Option<ThemeTypographyStyle>,
 }
 
 /// Calibrates the common 30 px PDF heading role to 21.375 pt before the
@@ -150,7 +156,7 @@ pub const DEFAULT_HEADING_FONT_SCALE: f64 = 0.95;
 /// CSS absolute-length conversion (1 px = 0.75 pt).
 pub const DEFAULT_BODY_FONT_SCALE: f64 = 1.05;
 
-/// Concrete native-cell paint captured from the server theme at dispatch.
+/// Concrete light document paint captured from the server theme at dispatch.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct NativeTablePaint {
   pub fill: String,
@@ -212,8 +218,9 @@ pub struct ExportOptions {
   /// Effective non-family typography metrics for the same theme roles.
   #[serde(default)]
   pub theme_typography: ThemeTypographySelection,
-  /// Dispatch-time content paint, separate from document branding. Absence
-  /// preserves rendering for jobs queued before native table paint was captured.
+  /// Captured light paint for native tables, text marks and callouts, separate
+  /// from document branding. The persisted field name retains queued-job input
+  /// compatibility; older snapshots may contain only the table roles.
   #[serde(default, skip_serializing_if = "Option::is_none")]
   pub native_table_palette: Option<NativeTablePalette>,
   /// Effective ICC color-profile family (`sRGB`, `CMYK_FOGRA39`,

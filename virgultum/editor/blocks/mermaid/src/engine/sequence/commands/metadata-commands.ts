@@ -19,7 +19,7 @@ import {
   type SequencePatch,
 } from "../writer.js";
 import { sequenceParticipant } from "./participant-commands.js";
-import { isValidUrl, normalizeUrl } from "@virgultum/shared/utils";
+import { isValidUrl, normalizeUrl } from "@virgultum/core/utils";
 import { mermaidMessages as messages } from "../../../i18n.js";
 import {
   resolveMermaidDiagramTitle,

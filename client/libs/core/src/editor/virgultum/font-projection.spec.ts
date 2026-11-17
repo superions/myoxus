@@ -9,7 +9,7 @@ import {
   getFontStyles,
   supportsFontFace,
   wrapFontFamily,
-} from "../../../../../../virgultum/editor/blocks/surface/src/utils/font";
+} from "../../../../../../virgultum/canvas-runtime/src/utils/font";
 
 const mounted: HTMLStyleElement[] = [];
 afterEach(() => {

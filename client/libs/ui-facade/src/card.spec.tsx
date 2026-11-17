@@ -14,6 +14,7 @@ import {
   CanvasOverlayTitleText,
   CanvasOverlayToolbar,
   Card,
+  ReferenceCard,
   ColorSwatch,
   commentEditorViewportClassName,
   DisclosureCard,
@@ -112,6 +113,95 @@ describe("Card facade primitive", () => {
 
     const card = screen.getByTestId("card");
     expect(card.getAttribute("style")).not.toContain("padding: 0");
+  });
+});
+
+describe("Reference card templates", () => {
+  test("uses an action button without implicit form submission and preserves readonly group semantics", () => {
+    const activate = vi.fn();
+    const view = render(
+      <MyoxusUIProvider>
+        <ReferenceCard
+          size="small"
+          component="button"
+          title="Event"
+          aria-label="Edit event"
+          onClick={activate}
+        />
+      </MyoxusUIProvider>,
+    );
+    const button = screen.getByRole("button", { name: "Edit event" });
+    expect(button.getAttribute("type")).toBe("button");
+    fireEvent.click(button);
+    expect(activate).toHaveBeenCalledTimes(1);
+    view.rerender(
+      <MyoxusUIProvider>
+        <ReferenceCard
+          size="small"
+          component="div"
+          role="group"
+          title="Event"
+          aria-label="Event"
+        />
+      </MyoxusUIProvider>,
+    );
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(
+      screen.getByRole("group", { name: "Event" }).getAttribute("role"),
+    ).toBe("group");
+  });
+
+  test("keeps an image failure stable across metadata updates and recovers for a new source", () => {
+    const content = (image: string, title: string) => (
+      <MyoxusUIProvider>
+        <ReferenceCard
+          size="preview"
+          title={title}
+          image={image}
+          imageFallback={<span>Preview unavailable</span>}
+        />
+      </MyoxusUIProvider>
+    );
+    const view = render(content("https://example.test/first.png", "Initial"));
+    const image = view.container.querySelector("img");
+    expect(image).not.toBeNull();
+    fireEvent.error(image!);
+    expect(screen.getByText("Preview unavailable").textContent).toBe(
+      "Preview unavailable",
+    );
+    view.rerender(content("https://example.test/first.png", "Updated"));
+    expect(screen.getByText("Preview unavailable").textContent).toBe(
+      "Preview unavailable",
+    );
+    view.rerender(content("https://example.test/second.png", "Updated"));
+    expect(screen.queryByText("Preview unavailable")).toBeNull();
+    expect(view.container.querySelector("img")?.getAttribute("src")).toBe(
+      "https://example.test/second.png",
+    );
+  });
+
+  test("keeps mounted preview content stable across metadata and selection updates", () => {
+    const mount = vi.fn();
+    const content = (title: string, selected: boolean) => (
+      <MyoxusUIProvider>
+        <ReferenceCard
+          size="preview"
+          contained
+          title={title}
+          metadata={title}
+          selected={selected}
+        >
+          <div ref={mount} data-testid="live-preview">
+            Document renderer
+          </div>
+        </ReferenceCard>
+      </MyoxusUIProvider>
+    );
+    const view = render(content("Initial", false));
+    const preview = screen.getByTestId("live-preview");
+    view.rerender(content("Updated", true));
+    expect(screen.getByTestId("live-preview")).toBe(preview);
+    expect(mount).toHaveBeenCalledTimes(1);
   });
 });
 

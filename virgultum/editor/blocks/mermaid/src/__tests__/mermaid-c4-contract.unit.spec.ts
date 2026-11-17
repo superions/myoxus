@@ -19,7 +19,7 @@ import { mermaidGfxCommittedSource } from "../mermaid-gfx-graph-adapters.js";
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { describe, expect, test, vi } from "vitest";
-import * as gfxText from "@virgultum/gfx-text";
+import * as gfxText from "@virgultum/canvas/gfx";
 import { readTypeOwnedMermaidSourceProjection } from "../families/runtime/gfx-owner-hooks.js";
 import { c4ModelToGfxVisualModel } from "../families/c4/visual-model.js";
 import { readC4ProjectionModel } from "../families/c4/gfx-data.js";
@@ -32,7 +32,7 @@ import {
   createMermaidVisualModelFromGfxElements,
   getMermaidVisualFrameGeometry,
 } from "./mermaid-test-support.js";
-import { Bound } from "@virgultum/global/gfx";
+import { Bound } from "@virgultum/core/primitives/gfx";
 
 import { projectC4RelationshipElement } from "../families/c4/relationship-projection.js";
 import { c4BoundaryPresentation } from "../families/c4/gfx-data.js";

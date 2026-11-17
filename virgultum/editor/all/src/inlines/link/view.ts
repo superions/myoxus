@@ -1,1 +1,1 @@
-export * from "@virgultum/inline-link/view";
+export { LinkViewExtension } from "@virgultum/content/view";

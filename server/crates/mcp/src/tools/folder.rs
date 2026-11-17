@@ -29,19 +29,34 @@ const PATH_AMBIGUOUS: &str = "MIX_MCP_FOLDER_PATH_AMBIGUOUS";
 const PATH_NOT_FOUND: &str = "MIX_MCP_FOLDER_PATH_NOT_FOUND";
 const ENTRY_DUPLICATE: &str = "MIX_MCP_FOLDER_ENTRY_DUPLICATE";
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, rmcp::schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
-struct FolderTreeRequest {
+#[schemars(crate = "rmcp::schemars")]
+pub(crate) struct FolderTreeRequest {
+  #[schemars(with = "String", extend("format" = "uuid"))]
   workspace_id: Uuid,
+  // Discovery advertises an optional integer; the existing parser also accepts
+  // null and applies the same default. Keep that admission behavior unchanged.
+  // Omit the generator's uint8 format from the published integer schema.
+  #[schemars(with = "u8", default = "default_max_depth", range(min = 1, max = MAX_MAX_DEPTH))]
+  #[schemars(transform = |schema: &mut rmcp::schemars::Schema| { schema.remove("format"); })]
   max_depth: Option<u8>,
 }
 
-#[derive(Debug, Deserialize)]
+const fn default_max_depth() -> u8 {
+  DEFAULT_MAX_DEPTH
+}
+
+#[derive(Debug, Deserialize, rmcp::schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
-struct FolderPathEnsureRequest {
+#[schemars(crate = "rmcp::schemars")]
+pub(crate) struct FolderPathEnsureRequest {
+  #[schemars(with = "String", extend("format" = "uuid"))]
   workspace_id: Uuid,
+  #[schemars(length(min = 1), inner(length(min = 1, max = 256)))]
   path: Vec<String>,
   #[serde(rename = "idempotency_key")]
+  #[schemars(length(min = 1, max = 160))]
   _idempotency_key: String,
 }
 

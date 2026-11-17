@@ -138,6 +138,32 @@ impl HtmlRenderer {
     };
     pattern.replace("{count}", &count.to_string())
   }
+  /// Shared reading text for native report cells and the public register.
+  pub fn register_column_label(&self, key: &str, locale: &str) -> Result<String, String> {
+    self
+      .labels(locale)
+      .register_columns
+      .get(key)
+      .cloned()
+      .ok_or_else(|| "unsupported register column".into())
+  }
+
+  pub fn register_value_text(&self, value: Option<&crate::WorkspaceRegisterValue>, locale: &str) -> String {
+    let labels = self.labels(locale);
+    match value {
+      Some(crate::WorkspaceRegisterValue::Text(value)) => value.clone(),
+      Some(crate::WorkspaceRegisterValue::Labels(values)) if !values.is_empty() => values.join(", "),
+      Some(crate::WorkspaceRegisterValue::Timestamp(value)) => self.timestamp(*value, locale),
+      Some(crate::WorkspaceRegisterValue::Version { label, dirty }) => match (label, dirty) {
+        (Some(label), true) => format!("{label} ({})", labels.register_changed),
+        (Some(label), false) => label.clone(),
+        (None, true) => labels.register_unversioned.clone(),
+        (None, false) => "–".into(),
+      },
+      _ => "–".into(),
+    }
+  }
+
   pub(crate) fn timestamp(&self, value: DateTime<Utc>, locale: &str) -> String {
     let labels = self.labels(locale);
     labels

@@ -1,1 +1,1 @@
-export * from "@virgultum/shared/theme";
+export * from "@virgultum/core/theme";

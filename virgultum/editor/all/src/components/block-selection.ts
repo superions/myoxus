@@ -1,1 +1,1 @@
-export * from "@virgultum/components/block-selection";
+export * from "@virgultum/core/view/block-selection";

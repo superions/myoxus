@@ -46,6 +46,8 @@ fn paragraph(text: &str) -> Block {
       marks: TextMarks::default(),
     }],
     children: vec![],
+    alignment: None,
+    eyebrow: false,
   }
 }
 
@@ -72,6 +74,7 @@ fn test_export_options() -> ExportOptions {
       body: Some("New Computer Modern".into()),
       mono: Some("New Computer Modern".into()),
       symbol: Some("New Computer Modern".into()),
+      eyebrow: None,
     },
     ..ExportOptions::default()
   }
@@ -205,6 +208,7 @@ fn inv_mixed_block_document_renders() {
         }],
         checked: false,
         children: vec![],
+        start: None,
       },
       Block::List {
         list_type: ListType::Bulleted,
@@ -214,16 +218,19 @@ fn inv_mixed_block_document_renders() {
         }],
         checked: false,
         children: vec![],
+        start: None,
       },
       Block::Divider,
       Block::Code(CodeBlock {
         language: Some("rust".into()),
         code: "fn main() {\n    println!(\"hi\");\n}".into(),
         caption: None,
+        line_numbers: false,
       }),
       Block::Callout {
         variant: myoxus_pdf_export::ir::block::CalloutVariant::Info,
         emoji: None,
+        paint: None,
         content: vec![InlineSpan::Text {
           text: "Heads up.".into(),
           marks: TextMarks::default(),
@@ -237,6 +244,7 @@ fn inv_mixed_block_document_renders() {
             }],
             checked: false,
             children: vec![],
+            start: None,
           },
           Block::List {
             list_type: ListType::Numbered,
@@ -246,6 +254,7 @@ fn inv_mixed_block_document_renders() {
             }],
             checked: false,
             children: vec![],
+            start: None,
           },
           Block::List {
             list_type: ListType::Todo,
@@ -255,6 +264,7 @@ fn inv_mixed_block_document_renders() {
             }],
             checked: true,
             children: vec![],
+            start: None,
           },
         ],
       },

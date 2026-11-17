@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import type { TemplateResult } from "lit";
-import type { ShapeTextEditDraftActions } from "@virgultum/gfx-shape";
+import type { ShapeTextEditDraftActions } from "@virgultum/canvas/gfx";
 import type { MermaidMindmapModel } from "../../engine/mindmap/index.js";
 import type { MermaidPageViewportProjection } from "../../mermaid-page-viewport-state.js";
 import { defineMermaidFamilyReactRendererToken } from "../runtime/react-host.js";
@@ -17,7 +17,7 @@ export type MindmapEditIntent =
   | MindmapCreateIntent
   | { type: "layout" }
   | { type: "import" }
-  | { type: "rename"; key: string }
+  | { type: "rename"; key: string; initialText?: string }
   | { type: "duplicate"; keys: readonly string[] }
   | { type: "properties"; key: string }
   | { type: "move"; key: string }
@@ -85,7 +85,7 @@ export type MindmapReactHostProps = {
 };
 export type MindmapPreviewHostProps = {
   readonly surface: "preview";
-  readonly host: import("@virgultum/std").EditorHost;
+  readonly host: import("@virgultum/core/runtime").EditorHost;
   readonly model: MermaidMindmapModel;
   readonly design: import("./projection/options.js").MindmapDesign;
   readonly height: number;
@@ -104,7 +104,7 @@ export type MindmapLabelActionsProps = ShapeTextEditDraftActions & {
 };
 export type MindmapImportHostProps = {
   readonly surface: "import";
-  readonly host: import("@virgultum/std").EditorHost;
+  readonly host: import("@virgultum/core/runtime").EditorHost;
   readonly onClose: () => void;
 };
 export const mermaidMindmapRendererToken =

@@ -4,7 +4,7 @@ import {
   canPreserveBpmnSource,
   inspectBpmnSource,
 } from "@myoxus/bpmn-editor/source";
-import type { BpmnSourceRevisionProps } from "@virgultum/model";
+import type { BpmnSourceRevisionProps } from "@virgultum/core/models";
 import * as Y from "yjs";
 
 /** Immutable whole-source payloads and compact ancestry live in distinct nested maps. */

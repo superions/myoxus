@@ -1033,7 +1033,7 @@ test.each(["rejection"])(
           if (query !== updateDatabaseRowTemplateMutation) return {};
           writes++;
           if (writes === 1) throw new Error("initial rejected value");
-          return await new Promise((resolve, reject) => {
+          return new Promise((resolve, reject) => {
             pending.push({
               resolve: () =>
                 resolve({ updateDatabaseRowTemplate: rowTemplates[0] }),

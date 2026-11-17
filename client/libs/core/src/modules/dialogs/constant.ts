@@ -78,7 +78,7 @@ export type WORKSPACE_DIALOG_SCHEMA = {
   }) => void;
   "bpmn-editor": (props: {
     session: import("../bpmn-editor/session").BpmnEditorSession;
-  }) => import("@virgultum/shared/services").MyoxusBpmnEditorCloseResult;
+  }) => import("@virgultum/core/services").MyoxusBpmnEditorCloseResult;
   "template-inputs": (props: {
     prompt: import("../template-doc/services/template-input-prompt").TemplateInputPrompt;
   }) => void;

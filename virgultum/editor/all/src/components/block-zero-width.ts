@@ -1,1 +1,1 @@
-export * from "@virgultum/components/block-zero-width";
+export * from "@virgultum/core/view/block-zero-width";

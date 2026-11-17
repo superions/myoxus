@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
-use super::{CopilotService, CopilotStreamHandle};
+use super::provider::LlmToolCall;
+use super::{ActiveCopilotStream, CopilotService, CopilotStreamHandle};
 use crate::auth::{AuthError, AuthResult};
-use myoxus_domain::entities::CopilotMessage;
+use myoxus_domain::entities::{CopilotMessage, CopilotToolCall, CopilotToolCallStatus};
+use serde_json::Value;
 use serde_json::json;
 use tracing::{instrument, warn};
 use uuid::Uuid;
@@ -98,6 +100,96 @@ impl Drop for CopilotStreamGuard {
 }
 
 impl CopilotService {
+  /// Publish only after the call and its local/provider identity mapping are durable.
+  #[instrument(skip_all)]
+  pub async fn append_stream_tool_call(&self, stream_id: Uuid, call: &LlmToolCall) -> AuthResult<Value> {
+    let mut streams = self.active_streams.write().await;
+    let stream = streams
+      .get_mut(&stream_id)
+      .ok_or_else(|| AuthError::InvalidInput("copilot stream not active".into()))?;
+    let local_id = Uuid::new_v4();
+    let now = chrono::Utc::now();
+    stream.message.tool_calls.push(CopilotToolCall {
+      id: local_id,
+      message_id: stream.message_id,
+      tool_name: call.name.clone(),
+      args: call.arguments.clone(),
+      status: CopilotToolCallStatus::Running,
+      result: None,
+      error: None,
+      started_at: Some(now),
+      finished_at: None,
+      created_at: now,
+      updated_at: now,
+    });
+    // UI IDs are unique within the assistant message even when a provider reuses
+    // an opaque call ID in another round. History retains the original ID too.
+    let event = json!({"type":"tool-call", "toolCallId":local_id, "providerCallId":call.id,
+      "toolName":call.name, "args":call.arguments});
+    stream.message.content["streamObjects"]
+      .as_array_mut()
+      .expect("server-created stream envelope")
+      .push(event.clone());
+    self.persist_stream_message(stream).await?;
+    Ok(event)
+  }
+
+  #[instrument(skip_all)]
+  pub async fn append_stream_tool_result(
+    &self,
+    stream_id: Uuid,
+    local_id: Uuid,
+    result: Result<Value, String>,
+  ) -> AuthResult<Value> {
+    let mut streams = self.active_streams.write().await;
+    let stream = streams
+      .get_mut(&stream_id)
+      .ok_or_else(|| AuthError::InvalidInput("copilot stream not active".into()))?;
+    let call = stream
+      .message
+      .tool_calls
+      .iter_mut()
+      .find(|call| call.id == local_id)
+      .ok_or_else(|| AuthError::InvalidInput("tool call does not belong to this stream".into()))?;
+    let value = match result {
+      Ok(value) => {
+        call.status = CopilotToolCallStatus::Completed;
+        call.result = Some(value.clone());
+        value
+      }
+      Err(error) => {
+        call.status = CopilotToolCallStatus::Failed;
+        call.error = Some(error.clone());
+        json!({"type":"error", "name":error})
+      }
+    };
+    let now = chrono::Utc::now();
+    call.finished_at = Some(now);
+    call.updated_at = now;
+    let event = json!({"type":"tool-result", "toolCallId":local_id, "toolName":call.tool_name,
+      "args":call.args, "result":value});
+    stream.message.content["streamObjects"]
+      .as_array_mut()
+      .expect("server-created stream envelope")
+      .push(event.clone());
+    self.persist_stream_message(stream).await?;
+    Ok(event)
+  }
+
+  async fn persist_stream_message(&self, stream: &ActiveCopilotStream) -> AuthResult<()> {
+    if !self
+      .repo
+      .update_copilot_stream(&stream.message, stream.stream_id)
+      .await
+      .map_err(Self::map_repo_err)?
+    {
+      return Err(AuthError::InvalidInput(
+        "copilot generation was edited or superseded".into(),
+      ));
+    }
+    Ok(())
+  }
+
   #[instrument(skip_all)]
   pub async fn append_stream_reasoning(&self, stream_id: Uuid, text: String) -> AuthResult<CopilotMessage> {
     self.append_stream_output(stream_id, None, "reasoning", text).await
@@ -140,16 +232,7 @@ impl CopilotService {
     if let Some(id) = chunk_id {
       stream.chunk_ids.insert(id);
     }
-    if !self
-      .repo
-      .update_copilot_stream(&stream.message, stream_id)
-      .await
-      .map_err(Self::map_repo_err)?
-    {
-      return Err(AuthError::InvalidInput(
-        "copilot generation was edited or superseded".into(),
-      ));
-    }
+    self.persist_stream_message(stream).await?;
     Ok(stream.message.clone())
   }
 
@@ -178,6 +261,30 @@ impl CopilotService {
     let mut message = buffered.unwrap_or_else(|| current.clone());
     if message.id != handle.message_id || current.edited_at.is_some() || message.edited_at != current.edited_at {
       return Err(AuthError::InvalidInput("copilot generation was edited".into()));
+    }
+    if !matches!(outcome, CopilotStreamOutcome::Completed) {
+      for call in &mut message.tool_calls {
+        if matches!(
+          call.status,
+          CopilotToolCallStatus::Queued | CopilotToolCallStatus::Running
+        ) {
+          let error = match outcome {
+            CopilotStreamOutcome::Canceled => "Copilot generation canceled",
+            _ => "Copilot generation failed",
+          };
+          call.status = CopilotToolCallStatus::Failed;
+          call.error = Some(error.into());
+          call.finished_at = Some(chrono::Utc::now());
+          call.updated_at = chrono::Utc::now();
+          message.content["streamObjects"]
+            .as_array_mut()
+            .expect("server-created stream envelope")
+            .push(
+              json!({"type":"tool-result", "toolCallId":call.id, "toolName":call.tool_name,
+              "args":call.args, "result":{"type":"error", "name":error}}),
+            );
+        }
+      }
     }
     message.token_usage.as_mut().expect("stream metadata")["streamStatus"] = json!(outcome.status());
     if self

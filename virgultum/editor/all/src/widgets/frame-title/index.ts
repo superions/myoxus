@@ -1,1 +1,9 @@
-export * from "@virgultum/widget-frame-title";
+export {
+  EdgelessFrameTitleEditor,
+  mountFrameTitleEditor,
+  MYOXUS_FRAME_TITLE_WIDGET,
+  MyoxusFrameTitleWidget,
+  frameTitleWidget,
+  frameTitleStyleVars,
+  frameTitleStyle,
+} from "@virgultum/canvas/widgets";

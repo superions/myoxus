@@ -4,9 +4,9 @@ import {
   MindmapDesign as MindmapStyle,
 } from "./types.js";
 import { mindmapStyleGetters } from "./style-getters.js";
-import { Bound } from "@virgultum/global/gfx";
+import { Bound } from "@virgultum/core/primitives/gfx";
 import { planMindmapLayout } from "./layout-plan.js";
-import { measureTextInDOM } from "@virgultum/gfx-text";
+import { measureTextInDOM } from "@virgultum/canvas/gfx";
 
 import type {
   MermaidMindmapModel,

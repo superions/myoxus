@@ -12,10 +12,10 @@ import {
   readMindmapProjectionModel,
   readMindmapProjectionOptions,
 } from "@virgultum/editor/blocks/mermaid";
-import type { MermaidBlockModel } from "@virgultum/model";
+import type { MermaidBlockModel } from "@virgultum/editor/model";
 import { beforeEach, describe, expect, test } from "vitest";
-import { createMindmapCommandConsumer } from "../../../../editor/blocks/mermaid/src/families/mindmap/host-adapter.js";
-import { MERMAID_GFX_TITLE_ROLE } from "../../../../editor/blocks/mermaid/src/families/runtime/gfx-element-roles.js";
+import { createMindmapCommandConsumer } from "../../../../editor/all/src/test-support/mermaid.js";
+import { MERMAID_GFX_TITLE_ROLE } from "../../../../editor/all/src/test-support/mermaid.js";
 import { wait } from "../utils/common.js";
 import { setupEditor } from "../utils/setup.js";
 

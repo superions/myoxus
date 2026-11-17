@@ -189,7 +189,7 @@ test("undo/redo should work when change note custom background", async ({
 
   // custom color
   {
-    await selectNoteInEdgeless(page, noteId);
+    await expect(styleButton).toBeVisible();
     await styleButton.click();
     await fill.fill("#654321");
     await fill.press("Tab");

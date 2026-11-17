@@ -13,7 +13,7 @@
  * `ExportManager.captureEdgelessSnapshotForExport()` using
  * `doc.updateBlock(surfaceModel, { exportSnapshotBlobId, ... })`. That call
  * routes through the proxy in
- * `virgultum/framework/store/src/model/block/sync-controller.ts:179-200`,
+ * `virgultum/core/src/store/model/block/sync-controller.ts:179-200`,
  * which gates writes on `model.keys.includes(p)`. `model.keys` is hydrated
  * from the schema's `props()` factory at parse time.
  *

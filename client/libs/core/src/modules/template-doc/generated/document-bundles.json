@@ -1968,6 +1968,54 @@
       }
     },
     {
+      "template_id": "block-page-report",
+      "version": "1.0.0",
+      "title": "Seitenbericht",
+      "description": "Seiten und ihre aktuellen Metadaten als dynamische Tabelle anzeigen.",
+      "locale": "de",
+      "kind": "page",
+      "purpose": "template",
+      "title_policy": "template",
+      "category": "building-blocks",
+      "tags": ["knowledge-management"],
+      "checksum": "acc1cd15061133e5ccf5edcfb66b45ece304cbb5fe36e5902076d713940c846d",
+      "defaultLocale": "de",
+      "contents": {
+        "de": {
+          "kind": "snapshot",
+          "asset": "payloads/9ee83d8d2adfdcdbc4bebe652b8d115caa02d3fb3cd2f8937072d2ef8e7d60e2.snapshot.json",
+          "sha256": "9ee83d8d2adfdcdbc4bebe652b8d115caa02d3fb3cd2f8937072d2ef8e7d60e2",
+          "assets": [],
+          "title": "Seitenbericht",
+          "description": "Seiten und ihre aktuellen Metadaten als dynamische Tabelle anzeigen."
+        },
+        "en": {
+          "kind": "snapshot",
+          "asset": "payloads/a2fddc9c3ac273522a4e35ea4ee87499f45daec4b07cdd3f0bdf6aad6089701f.snapshot.json",
+          "sha256": "a2fddc9c3ac273522a4e35ea4ee87499f45daec4b07cdd3f0bdf6aad6089701f",
+          "assets": [],
+          "title": "Page report",
+          "description": "Show pages and their current metadata in a dynamic table."
+        },
+        "fr": {
+          "kind": "snapshot",
+          "asset": "payloads/bc5c4168041aec7c008c780b2e6ac9587e227dab3129626deb70fd20743c3784.snapshot.json",
+          "sha256": "bc5c4168041aec7c008c780b2e6ac9587e227dab3129626deb70fd20743c3784",
+          "assets": [],
+          "title": "Rapport de pages",
+          "description": "Afficher les pages et leurs métadonnées actuelles dans un tableau dynamique."
+        },
+        "es": {
+          "kind": "snapshot",
+          "asset": "payloads/d94e17b0b15207e2e80db37ff48692ef610dc6aeb2e902281792a888a2098e87.snapshot.json",
+          "sha256": "d94e17b0b15207e2e80db37ff48692ef610dc6aeb2e902281792a888a2098e87",
+          "assets": [],
+          "title": "Informe de páginas",
+          "description": "Mostrar las páginas y sus metadatos actuales en una tabla dinámica."
+        }
+      }
+    },
+    {
       "template_id": "block-peer-check",
       "version": "1.1.0",
       "title": "Vieraugenprüfung",
