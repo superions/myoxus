@@ -60,9 +60,15 @@ export function readMindmapNativeConfig(model: MermaidMindmapModel) {
         prefix: front.prefix,
       });
   }
-  for (const match of source.matchAll(
-    /%%\{\s*(?:init|initialize)\s*:[\s\S]*?\}%%/gi,
-  )) {
+  const openings = /%%\{\s*(?:init|initialize)\s*:/gi;
+  for (
+    let match = openings.exec(source);
+    match;
+    match = openings.exec(source)
+  ) {
+    const end = source.indexOf("}%%", openings.lastIndex);
+    if (end < 0) break;
+    openings.lastIndex = end + 3;
     // A quoted label containing directive-looking text is not a config owner.
     const record = model.sourceDocument.records.find(
       (record) =>
@@ -74,7 +80,10 @@ export function readMindmapNativeConfig(model: MermaidMindmapModel) {
       (front && match.index < front.closingStart)
     )
       continue;
-    const yaml = readSourceYaml(match[0].slice(2, -2), match.index + 2);
+    const yaml = readSourceYaml(
+      source.slice(match.index + 2, end + 1),
+      match.index + 2,
+    );
     if (!yaml) continue;
     const name = Object.hasOwn(yaml.values, "init") ? "init" : "initialize";
     let values = yaml.values[name];

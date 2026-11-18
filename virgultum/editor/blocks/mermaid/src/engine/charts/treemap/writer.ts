@@ -176,6 +176,6 @@ export function treemapChildIndent(model: TreemapModel, parentId: string) {
   if (!parent) return null;
   const sibling = model.nodes.find((node) => node.parentId === parentId);
   if (sibling) return sibling.indent;
-  const ownUnit = parent.indent.match(/([ \t]+)$/)?.[1];
+  const ownUnit = parent.indent.match(/(?<![ \t])([ \t]+)$/)?.[1];
   return parent.indent + (ownUnit || "  ");
 }

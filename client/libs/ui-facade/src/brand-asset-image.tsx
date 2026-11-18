@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 /// <reference types="env" />
 
+import { normalizeRuntimeSubPath } from "@myoxus/theme";
 import {
   createContext,
   type ImgHTMLAttributes,
@@ -90,15 +91,8 @@ function runtimeEnvironmentSubPath(): string | undefined {
 
 // All runtime asset URLs must stay same-origin/subpath-relative. Absolute URLs
 // are rejected here to prevent accidental CDN or upstream-brand asset use.
-function normalizeSubPath(subPath: string | undefined): string {
-  if (!subPath || subPath === "/") {
-    return "";
-  }
-  return subPath.replace(/\/+$/, "");
-}
-
 function runtimeUrl(path: string, subPath: string | undefined): string {
-  return `${normalizeSubPath(subPath)}${path}`;
+  return `${normalizeRuntimeSubPath(subPath)}${path}`;
 }
 
 export function resolveBrandPublicUrl(
@@ -109,7 +103,7 @@ export function resolveBrandPublicUrl(
   if (!trimmed) return undefined;
   if (/^(?:[a-z][a-z0-9+.-]*:|\/\/)/iu.test(trimmed)) return undefined;
 
-  const prefix = normalizeSubPath(subPath);
+  const prefix = normalizeRuntimeSubPath(subPath);
   if (trimmed.startsWith("/")) {
     if (prefix && trimmed.startsWith(`${prefix}/`)) return trimmed;
     return `${prefix}${trimmed}`;
@@ -195,7 +189,7 @@ export function loadBrandIdentity(
   subPath: string | undefined = runtimeEnvironmentSubPath(),
 ): Promise<BrandIdentityState> {
   const prefix = serverPathPrefix;
-  const cacheKey = `${prefix ?? ""}:${normalizeSubPath(subPath)}`;
+  const cacheKey = `${prefix ?? ""}:${normalizeRuntimeSubPath(subPath)}`;
   const cached = requestCache.get(cacheKey);
   if (cached) return cached;
 

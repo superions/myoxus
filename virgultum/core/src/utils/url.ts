@@ -106,7 +106,7 @@ const URL_SCHEME_IN_TOKEN_REGEXP =
 
 const URL_LEADING_DELIMITER_REGEXP = /^[-([{<'"~]+/;
 
-const URL_TRAILING_DELIMITER_REGEXP = /[)\]}>.,;:!?'"]+$/;
+const URL_TRAILING_DELIMITERS = ")]}>.,;:!?'\"";
 
 export type UrlTextSegment = {
   text: string;
@@ -138,11 +138,12 @@ function splitTokenByUrl(token: string, baseUrl: string): UrlTextSegment[] {
 
   const leading = token.match(URL_LEADING_DELIMITER_REGEXP)?.[0] ?? "";
   const withoutLeading = token.slice(leading.length);
-  const trailing =
-    withoutLeading.match(URL_TRAILING_DELIMITER_REGEXP)?.[0] ?? "";
-  const core = trailing
-    ? withoutLeading.slice(0, withoutLeading.length - trailing.length)
-    : withoutLeading;
+  let end = withoutLeading.length;
+  while (end > 0 && URL_TRAILING_DELIMITERS.includes(withoutLeading[end - 1])) {
+    end -= 1;
+  }
+  const core = withoutLeading.slice(0, end);
+  const trailing = withoutLeading.slice(end);
 
   if (core && isValidUrl(core, baseUrl)) {
     const segments: UrlTextSegment[] = [];

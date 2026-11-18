@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { gitGraphDirectiveSpans } from "./runtime-contract.js";
-import { hasTerminalMermaidDirectiveEnd } from "../diagram-types.js";
+import {
+  hasTerminalMermaidDirectiveEnd,
+  withoutMermaidScalarComment,
+} from "../diagram-types.js";
 import {
   gitGraphDiagnostic,
   type GitGraphDiagnosticCode,
@@ -42,14 +45,14 @@ function decodeGitGraphConfigurationScalar(
     }
   }
   if (singleQuoted !== undefined) return singleQuoted.replaceAll("''", "'");
-  return (plain ?? "").replace(/\s+#.*$/, "").trim();
+  return withoutMermaidScalarComment(plain ?? "").trim();
 }
 
 export function gitGraphMainBranchConfig(lines: readonly string[]) {
   const source = gitGraphConfigurationSource(lines);
   const names = [
     ...source.matchAll(
-      /["']?mainBranchName["']?\s*:\s*(?:"((?:\\.|[^"])*)"|'((?:''|[^'])*)'|([^,}\n]+))/g,
+      /["']?mainBranchName["']?\s*:\s*(?:"((?:\\.|[^"\\])*)"|'((?:''|[^'])*)'|([^,}\n]+))/g,
     ),
   ];
   const orders = [

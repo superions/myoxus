@@ -659,12 +659,16 @@ describe("canonical annotations", () => {
       assertCurrent: vi.fn(),
       dispose: vi.fn(),
     };
-    const readFromClipboard = vi.fn(() => ({
+    const readOptionalSnapshotFromClipboard = vi.fn(() => ({
       "VIRGULTUM/SNAPSHOT": JSON.stringify({ snapshot: copied, blobs: {} }),
     }));
     const prepareNativeSlice = vi.fn(async () => prepared);
     const std = {
-      clipboard: { copySnapshot, readFromClipboard, prepareNativeSlice },
+      clipboard: {
+        copySnapshot,
+        readOptionalSnapshotFromClipboard,
+        prepareNativeSlice,
+      },
       getOptional: () => undefined,
     };
     const table = { store, std, host: { std } };
@@ -818,7 +822,7 @@ describe("canonical annotations", () => {
       expect(invalidPaste.preventDefault).toHaveBeenCalledOnce();
       expect(invalidError).toHaveBeenCalledOnce();
       expect(text.toDelta()).toEqual(before);
-      readFromClipboard.mockImplementationOnce(() => {
+      readOptionalSnapshotFromClipboard.mockImplementationOnce(() => {
         throw new Error("Corrupt clipboard envelope");
       });
       const corruptPaste = {

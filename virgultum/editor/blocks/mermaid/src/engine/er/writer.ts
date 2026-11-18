@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import type { MermaidErModel } from "./model.js";
 import {
-  ATTRIBUTE_WORD_RE,
-  GENERIC_ATTRIBUTE_WORD_RE,
+  isMermaidErAttributeWord,
   isMermaidErEntityCharacter,
 } from "./parser.js";
 
@@ -23,7 +22,7 @@ function sourceRelationshipRole(value: string) {
 }
 
 function sourceErAttributeWord(value: string) {
-  return ATTRIBUTE_WORD_RE.test(value) || GENERIC_ATTRIBUTE_WORD_RE.test(value)
+  return isMermaidErAttributeWord(value)
     ? value
     : `\`${value.replaceAll("`", "")}\``;
 }

@@ -130,8 +130,8 @@ export function gitGraphMaskedQuotedSpan(
     }
   }
   if (quote === '"' && source[at] === "<") {
-    const tag = /^<(\w+)([^>]*)>/.exec(source.slice(at));
-    if (tag && /="[^"]*"/.test(tag[2]!)) return tag[0].length;
+    const tag = /^<\w[^>]*>/.exec(source.slice(at));
+    if (tag && /="[^"]*"/.test(tag[0])) return tag[0].length;
   }
   return 0;
 }

@@ -162,7 +162,7 @@ export function encodeSankeyField(value: string, previous?: SankeyField) {
     ? previous.raw.trim().slice(1, -1)
     : (previous?.raw ?? "");
   const leading = raw.match(/^ */)?.[0] ?? "";
-  const trailing = raw.match(/ *$/)?.[0] ?? "";
+  const trailing = raw.match(/(?<! ) *$/)?.[0] ?? "";
   const content = leading + value + trailing;
   // Jison does not permit whitespace outside a quoted CSV field. Preserve
   // existing endpoint whitespace inside quotes when quoting becomes necessary.

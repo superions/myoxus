@@ -466,15 +466,16 @@ export class TableDataManager {
 
   setColumnTextAlign(columnId: string, textAlign?: TextAlign) {
     if (this.readonly$.value || this.hasFixedColumn(columnId)) return;
-    const column = this.model.props.columns[columnId];
-    if (this.readonly$.value || !column || column.textAlign === textAlign)
-      return;
+    const columns = this.model.props.columns;
+    if (!Object.hasOwn(columns, columnId)) return;
+    const column = columns[columnId];
+    if (!column || column.textAlign === textAlign) return;
     this.model.store.captureSync();
     this.model.store.transact(() => {
       if (textAlign === undefined) {
-        delete this.model.props.columns[columnId]?.textAlign;
-      } else if (this.model.props.columns[columnId]) {
-        this.model.props.columns[columnId].textAlign = textAlign;
+        delete column.textAlign;
+      } else {
+        column.textAlign = textAlign;
       }
     });
     this.model.store.captureSync();

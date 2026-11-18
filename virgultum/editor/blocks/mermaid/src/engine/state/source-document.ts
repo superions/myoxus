@@ -160,7 +160,9 @@ export function scanStateSource(source: string): StateSourceDocument {
       continue;
     }
     if (
-      /^note\s+(?:left|right)\s+of\s+[^:\r\n]+[ \t]*(?:\r\n|\r|\n)/i.test(text)
+      /^note\s+(?:left|right)\s+of\s+(?=[^\s:])[^:\r\n]+(?:\r\n|\r|\n)/i.test(
+        text,
+      )
     ) {
       const end = /(?:\r\n|\r|\n)[ \t]*end[ \t]+note\b/i.exec(text);
       push(

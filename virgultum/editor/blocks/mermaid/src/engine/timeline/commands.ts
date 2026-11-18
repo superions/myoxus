@@ -846,7 +846,8 @@ function applyTimelineIntent(
       return timelineNoChange(model, "invalid");
     const start = record.range.start + record.indent.length;
     const end =
-      record.range.end - (record.raw.match(/[ \t]*$/)?.[0].length ?? 0);
+      record.range.end -
+      (record.raw.match(/(?<![ \t])[ \t]*$/)?.[0].length ?? 0);
     if (model.direction === command.value) return timelineNoChange(model);
     return writeTimelinePatches(model, [
       { range: { start, end }, value: `timeline ${command.value}` },

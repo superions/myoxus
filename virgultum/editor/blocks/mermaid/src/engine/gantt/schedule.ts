@@ -63,9 +63,39 @@ export type GanttDateFormatSupport = {
   readonly hasTime: boolean;
 };
 
+/** Transform Dayjs format tokens while leaving complete bracket literals intact. */
+function mapGanttFormat(
+  format: string,
+  transform: (tokens: string) => string,
+  literal: (text: string) => string,
+) {
+  const fragments: string[] = [];
+  let cursor = 0;
+  while (cursor < format.length) {
+    const open = format.indexOf("[", cursor);
+    const close = open < 0 ? -1 : format.indexOf("]", open + 1);
+    if (close < 0) break;
+    fragments.push(
+      transform(format.slice(cursor, open)),
+      literal(format.slice(open, close + 1)),
+    );
+    cursor = close + 1;
+  }
+  fragments.push(transform(format.slice(cursor)));
+  return fragments.join("");
+}
+
+function ganttFormatTokens(format: string) {
+  return mapGanttFormat(
+    format,
+    (tokens) => tokens,
+    () => "",
+  );
+}
+
 /** Format parsing belongs to Dayjs; literals do not enable time controls. */
 export function inspectGanttDateFormat(format: string): GanttDateFormatSupport {
-  const tokens = format.replace(/\[[^\]]*\]/g, "");
+  const tokens = ganttFormatTokens(format);
   return {
     supported: Boolean(format.trim()),
     hasTime: /[HhmsSAaxX]/.test(tokens),
@@ -77,14 +107,16 @@ export function ganttDateFormatOrDefault(format: string) {
 }
 
 function zoneFormat(format: string, lexeme: string) {
-  return format.replace(/\[[^\]]*\]|ZZ?/g, (token) =>
-    token.startsWith("[") ? token : `[${lexeme}]`,
+  return mapGanttFormat(
+    format,
+    (tokens) => tokens.replace(/ZZ?/g, () => `[${lexeme}]`),
+    (literal) => literal,
   );
 }
 
 /** Recover the authored fixed offset without interpreting escaped literals. */
 function authoredZone(value: string, format: string, instant: number) {
-  if (!/Z/.test(format.replace(/\[[^\]]*\]/g, ""))) return null;
+  if (!/Z/.test(ganttFormatTokens(format))) return null;
   for (const match of value.matchAll(/Z|[+-]\d{2}:?\d{2}/g)) {
     const lexeme = match[0];
     const digits = lexeme.replace(/[^\d]/g, "");
@@ -149,7 +181,7 @@ export function parseGanttDateValue(
       ? ms
       : null;
   }
-  if (/Z/.test(effective.replace(/\[[^\]]*\]/g, ""))) {
+  if (/Z/.test(ganttFormatTokens(effective))) {
     const candidate = parseUtcDate(trimmed, effective, "en");
     if (!candidate.isValid()) return null;
     return authoredZone(trimmed, effective, candidate.valueOf())

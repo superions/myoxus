@@ -244,16 +244,13 @@ export class TableCell extends SignalWatcher(
     const text = this.text;
     const range = editor?.getInlineRange();
     if (!table || !editor || !text || !range || !event.clipboardData) return;
-    const html = event.clipboardData.getData("text/html");
-    const hasNativeSnapshot = !!new DOMParser()
-      .parseFromString(html, "text/html")
-      .querySelector("[data-virgultum-snapshot]");
-    if (!hasNativeSnapshot) return;
     let snapshot: SliceSnapshot;
     try {
-      const native = table.std.clipboard.readFromClipboard(event.clipboardData)[
-        "VIRGULTUM/SNAPSHOT"
-      ];
+      const items = table.std.clipboard.readOptionalSnapshotFromClipboard(
+        event.clipboardData,
+      );
+      if (items === undefined) return;
+      const native = items["VIRGULTUM/SNAPSHOT"];
       if (typeof native !== "string")
         throw new Error("Missing native snapshot");
       snapshot = SliceSnapshotSchema.parse(JSON.parse(native).snapshot);

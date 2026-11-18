@@ -84,11 +84,28 @@ export function hasTerminalMermaidDirectiveEnd(line: string) {
   return closeIndex >= 0 && !line.slice(closeIndex + 3).trim();
 }
 
+/** Strip the trailing comment from the legacy Mermaid scalar grammar. */
+export function withoutMermaidScalarComment(value: string) {
+  const lastLineStart =
+    Math.max(
+      value.lastIndexOf("\r"),
+      value.lastIndexOf("\n"),
+      value.lastIndexOf("\u2028"),
+      value.lastIndexOf("\u2029"),
+    ) + 1;
+  for (
+    let hash = value.indexOf("#", lastLineStart);
+    hash >= 0;
+    hash = value.indexOf("#", hash + 1)
+  ) {
+    if (hash === 0 || !/\s/u.test(value[hash - 1])) continue;
+    return value.slice(0, hash).trimEnd();
+  }
+  return value;
+}
 function cleanMermaidFrontmatterScalar(value: string) {
-  const trimmed = value
-    .trim()
-    .replace(/\s+#.*$/, "")
-    .trim();
+  const trimmed = withoutMermaidScalarComment(value.trim());
+
   if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
     try {
       const parsed = JSON.parse(trimmed) as unknown;
@@ -111,7 +128,7 @@ export function getMermaidFrontmatterTitle(lines: readonly string[]) {
   );
   if (end < 0) return undefined;
   for (let index = start + 1; index < end; index += 1) {
-    const match = /^title\s*:\s*(.*)$/i.exec(lines[index].trim());
+    const match = /^title\s*:(.*)$/i.exec(lines[index].trim());
     if (!match) continue;
     const value = match[1].trim();
     if (!/^[>|][+-]?$/.test(value)) {

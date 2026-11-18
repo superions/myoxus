@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import type { MermaidErModel, MermaidErAttribute } from "../model.js";
 import { nextErSourceKey } from "../source-document.js";
-import { parseMermaidErAttributeSourceLine } from "../parser.js";
+import {
+  isMermaidErAttributeWord,
+  parseMermaidErAttributeSourceLine,
+} from "../parser.js";
 import {
   erEntity,
   erEntityDeclarations,
@@ -60,10 +63,7 @@ export function editErAttribute(
         range,
         value,
         (v) =>
-          /^[\p{L}_*][\p{L}\p{N}_()[\].,*-]*$/u.test(v) ||
-          /^\S*~[^~\n]+~\S*$/u.test(v)
-            ? v
-            : `\`${v.replaceAll("`", "")}\``,
+          isMermaidErAttributeWord(v) ? v : `\`${v.replaceAll("`", "")}\``,
       );
       patches.push({ range, value: encoded });
     } else if (field === "optional") {

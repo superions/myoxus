@@ -278,7 +278,7 @@ export function applyPacketMetadataCommand(
       } else {
         const old = record.raw.slice(prefix.length);
         const leading = /^[ \t]*/.exec(old)![0],
-          trailing = /[ \t]*$/.exec(old)![0];
+          trailing = /(?<![ \t])[ \t]*$/.exec(old)![0];
         patches.push({
           range: { start, end },
           value: leading + value + trailing,

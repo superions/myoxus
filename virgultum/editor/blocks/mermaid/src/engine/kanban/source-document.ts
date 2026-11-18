@@ -31,8 +31,7 @@ export function nextKanbanSourceKey() {
 
 /** This scanner only bounds native statements; semantic projection stays in parser.ts. */
 function nodeComplete(raw: string) {
-  const opening =
-    /^(?:[ \t]*)([^([\n){}@]*)(-\)|\(-|\)\)|\)|\(\(|\{\{|\(|\[)/.exec(raw);
+  const opening = /^[^([\n){}@]*(-\)|\(-|\)\)|\)|\(\(|\{\{|\(|\[)/.exec(raw);
   let cursor = 0;
   if (opening) {
     cursor = opening[0].length;

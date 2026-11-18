@@ -103,8 +103,22 @@ function assertBoundedControlXml(xml: string) {
 }
 
 function withoutXmlMarkup(xml: string) {
-  return xml
-    .replace(/<!--[\s\S]*?-->/g, "")
+  const pieces: string[] = [];
+  const markers = /<!--|<!\[CDATA\[/g;
+  let cursor = 0;
+  for (let marker = markers.exec(xml); marker; marker = markers.exec(xml)) {
+    const comment = marker[0] === "<!--";
+    const close = xml.indexOf(comment ? "-->" : "]]>", markers.lastIndex);
+    if (close < 0) throw new Error("Unterminated S3 control XML markup");
+    markers.lastIndex = close + 3;
+    if (comment) {
+      pieces.push(xml.slice(cursor, marker.index));
+      cursor = markers.lastIndex;
+    }
+  }
+  pieces.push(xml.slice(cursor));
+  return pieces
+    .join("")
     .replace(/<!DOCTYPE[\s\S]*?\]>/gi, "")
     .replace(/<!DOCTYPE[^>]*>/gi, "");
 }

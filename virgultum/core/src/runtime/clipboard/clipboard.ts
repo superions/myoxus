@@ -670,6 +670,15 @@ export class Clipboard extends LifeCycleWatcher {
   }
 
   readFromClipboard(clipboardData: DataTransfer) {
+    const snapshot = this.readOptionalSnapshotFromClipboard(clipboardData);
+    if (snapshot === undefined) {
+      throw new VirgultumError(ErrorCode.TransformerError, "No snapshot found");
+    }
+    return snapshot;
+  }
+
+  /** Returns undefined for ordinary HTML. A malformed native snapshot still throws. */
+  readOptionalSnapshotFromClipboard(clipboardData: DataTransfer) {
     const items = clipboardData.getData("text/html");
     const sanitizedItems = DOMPurify.sanitize(items, {
       FORBID_TAGS: ["svg", "use"],
@@ -678,10 +687,9 @@ export class Clipboard extends LifeCycleWatcher {
     const domParser = new DOMParser();
     const doc = domParser.parseFromString(sanitizedItems, "text/html");
     const dom = doc.querySelector<HTMLDivElement>("[data-virgultum-snapshot]");
-    if (!dom) {
-      throw new VirgultumError(ErrorCode.TransformerError, "No snapshot found");
-    }
-    return decodeClipboardSnapshot(dom.dataset.virgultumSnapshot as string);
+    return dom
+      ? decodeClipboardSnapshot(dom.dataset.virgultumSnapshot as string)
+      : undefined;
   }
 
   sliceToSnapshot(slice: Slice) {

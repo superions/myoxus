@@ -447,7 +447,7 @@ export function resolveMermaidStateSource(
     }
     const floating = /^note\s+"([^"]*)"\s+as\s+([^\r\n]+?)\s*$/i.exec(raw);
     const attached =
-      /^note\s+(left|right)\s+of\s+([^:\s{}-]+)(?:[ \t]*:[ \t]*((?:#(?:\d+|\w+);|[^:\r\n;])+)|[ \t]*(?:\r\n|\r|\n)([\s\S]*?)(?:\r\n|\r|\n)[ \t]*end\s+note)\s*$/i.exec(
+      /^note\s+(left|right)\s+of\s+([^:\s{}-]+)(?:[ \t]*:[ \t]*((?:#\w+;|#(?!\w+;)|[^#:\r\n;])+)|[ \t]*(?:\r\n|\r|\n)([\s\S]*?)(?:\r\n|\r|\n)[ \t]*end\s+note)\s*$/i.exec(
         raw,
       );
     if (floating || attached) {

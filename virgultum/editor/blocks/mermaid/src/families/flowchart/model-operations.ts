@@ -22,7 +22,9 @@ export function setMermaidVisualNodeStyleClass(
   let insertionIndex: number | undefined;
   for (const statement of next.styleStatements ?? []) {
     const match =
-      /^class\s+([A-Za-z0-9_,\s-]+?)\s+([A-Za-z0-9_-]+)\s*;?$/i.exec(statement);
+      /^class\s+(?=\S)([A-Za-z0-9_,-](?:[A-Za-z0-9_,\s-]*[A-Za-z0-9_,-])?)\s+([A-Za-z0-9_-]+)\s*;?$/i.exec(
+        statement,
+      );
     if (!match?.[1] || !match[2]) {
       statements.push(statement);
       continue;

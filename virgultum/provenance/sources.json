@@ -2323,13 +2323,13 @@
         },
         {
           "path": "virgultum/content/src/blocks/table/table-cell.ts",
-          "sha256": "1deb67d2c3b51a8ce5872b48338eb176b11a27fabbc840ddc994a3c3dca5b43d",
+          "sha256": "4c482f414c3a1ad155c3ddd35472338c1477c10ebc1965ee1c2d057cd61ffd87",
           "originalPath": "blocksuite/affine/blocks/table/src/table-cell.ts",
           "originalGitBlob": "a13a987fab353f22e7698721dd5e0cec7fe42688"
         },
         {
           "path": "virgultum/content/src/blocks/table/table-data-manager.ts",
-          "sha256": "1a7f7261e332f7f597d96e035f02a469eeb8f45127f78dd3452ba8741722a8f1",
+          "sha256": "98557617207507e81da9d9565ae48d055721d6db2b0fcf598d347bb598805e29",
           "originalPath": "blocksuite/affine/blocks/table/src/table-data-manager.ts",
           "originalGitBlob": "916999d4c598b99071c4c69eac999614447f99a5"
         },
@@ -4027,7 +4027,7 @@
         },
         {
           "path": "virgultum/core/src/runtime/clipboard/clipboard.ts",
-          "sha256": "a6b3b1a4f46eed0388f7020c70dda268bc301f1a73f3981e5a0764c8682c1f7a",
+          "sha256": "785daa1f2d3deab7b045a1e812bda0cafe27c0e60f8d847c8a2fac371d5ac59c",
           "originalPath": "blocksuite/framework/std/src/clipboard/clipboard.ts",
           "originalGitBlob": "e1a8ecfc7e59c44389312a5a40bf014672bcd640"
         },
@@ -5647,7 +5647,7 @@
         },
         {
           "path": "virgultum/core/src/utils/url.ts",
-          "sha256": "96b83553b8f05db14aa1edea63e073c983a06c61088d1bc8687b1f9922055068",
+          "sha256": "125673b0380e96bbf5f278e22b66ea8bf666b5ce2cba0d222ef7df0fe9963c59",
           "originalPath": "blocksuite/affine/shared/src/utils/url.ts",
           "originalGitBlob": "4c0f97d27315d666e23903b1a16e61d5dae912f5"
         },
@@ -9654,7 +9654,7 @@
         },
         {
           "path": "virgultum/editor/all/src/__tests__/annotation-model.unit.spec.ts",
-          "sha256": "566c91cb285c4da11c5d297b11c0999d624e316129de2f5dce942a15a3edff09"
+          "sha256": "2c93384a8d421feac5808d20acf3556c37cd9b9ad14ed17eca8243c66897d879"
         },
         {
           "path": "virgultum/editor/all/src/__tests__/callout-model.unit.spec.ts",
@@ -10694,7 +10694,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/charts/sankey/writer.ts",
-          "sha256": "b5657261a8ec3e79a11fb7378d618868d07aefc8d44fdce5bd68d4a4d1520b80"
+          "sha256": "5179f504d58c525d5e35920b60eb3ef5c38578a094b728c07eb422f2cabbd755"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/charts/treemap/commands/appearance.ts",
@@ -10754,7 +10754,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/charts/treemap/writer.ts",
-          "sha256": "35873e63bd0c44e0aecc46397ddaf396289fd1e4beef4c237368910b1e2f9b97"
+          "sha256": "cfbb718aff59e37fe97b007985d8d5f8759c7e3d23b796b018823334bfe70d3c"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/charts/xy/commands/appearance.ts",
@@ -10874,11 +10874,11 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/diagram-types.ts",
-          "sha256": "4f9a9e92145be4294355a4ad6213a9bf4b0618c0293cdc2d816b8b47aff2314a"
+          "sha256": "eb9b5a57423727ea9aa0e0de9ba531b934ee8905346ff8b82c42ca203c97c25e"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/er/commands/attribute-commands.ts",
-          "sha256": "b3bca3f8e20121e3a8a8761f03d5c921616016ede4862bb68a480e4bd4a66b6c"
+          "sha256": "9bac8d80d41c5e42f8f4bb256e4f6282e36cbed47c05032c9da71a108bcb8fcf"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/er/commands/entity-commands.ts",
@@ -10918,7 +10918,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/er/parser.ts",
-          "sha256": "5613ec452569f5c225eb88fab47f9b04ab7d24be42057347c38563ee770ca38d"
+          "sha256": "c1390a91c626b704e57b607534a3a9bbd338b8374e0ea016c3dc925698daaff9"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/er/source-document.ts",
@@ -10926,7 +10926,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/er/writer.ts",
-          "sha256": "a54aab69534c230bafad7b509ebd5242ae1862c3a9eb745ce64ce73de0cfb452"
+          "sha256": "a8c988abdbfb2b6e73c5ae32aefb26bf584b6a5aa4959819bb394a08abcc1415"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/flowchart-geometry.ts",
@@ -10938,7 +10938,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/flowchart-node.ts",
-          "sha256": "3537148735c00aa5b2d7a8b9f1ed17594873f7e43c41f87df26dd25c7de7ddd5"
+          "sha256": "e52c30e395d883947b7be4f73595e638bdd81913fcbd01aa76131cbcf3bc1784"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/flowchart-writer.ts",
@@ -10998,7 +10998,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/gantt/schedule.ts",
-          "sha256": "c835ab174e440ee6ed067c5ef04773ba3f230c1869ed02482845e364647c0796"
+          "sha256": "d17afb8f734795af87fb4a78601e0087d02d613b26fc7761dfe8efdad606a30b"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/gantt/source-document.ts",
@@ -11046,7 +11046,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/gitgraph/config.ts",
-          "sha256": "65ee5e121a274de6ce6df2c702128f912d19943db87bf854bb485d1640e24a0e"
+          "sha256": "feb88992281d2b98e3be17d9ab31ec0d4ca68db4034e52f07c121209ea69723f"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/gitgraph/derived-graph.ts",
@@ -11070,7 +11070,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/gitgraph/runtime-contract.ts",
-          "sha256": "398f1322f9e99ce1b7853e20b2637b0e1f6b54c82f3efe920fcf2e33417f3611"
+          "sha256": "7f7a3c202f48d02a351e3262e4f3b650997cfc5aa9ce83ac261b3e8270fb1c0a"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/gitgraph/source-document.ts",
@@ -11138,7 +11138,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/kanban/source-document.ts",
-          "sha256": "477f31d40d6e9d7ade4d66f0d31cd918923dcc2b37a6ca41c91ffc82c2c9b94b"
+          "sha256": "4b6e55c4ed6fe792360cbe31b1d1d2f91d7161d3f20e22df0a737a1f2fdec582"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/kanban/writer.ts",
@@ -11158,7 +11158,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/mindmap/commands/metadata-commands.ts",
-          "sha256": "f30d0331f7603319e0d289ffddb9b5c6c411ebceefea7b117d29df5b5ff37f2c"
+          "sha256": "f5ac701f1f69d9c5bf43b0aeeb1f44febc38d837dc08ee0ed3b91d2f6786f3ba"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/mindmap/commands/node-commands.ts",
@@ -11210,7 +11210,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/packet/commands/metadata-commands.ts",
-          "sha256": "4a79360a815136f6b1ffd56d3a041ba93109698672aedf7caf6e9ef8b89a1c89"
+          "sha256": "ae703ecc2cf96dcedc479f9996379d37ccef5e32eb559fd67a97656d4102a912"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/packet/config.ts",
@@ -11446,11 +11446,11 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/state/parser.ts",
-          "sha256": "7c306306e4b3ac76d38425063734e2dd53feeadfb3c694e4f3f1ce9a54bdbf4d"
+          "sha256": "2b891bb99647e1f8ecbfed50750f3557987bb00d13f1cae6e99a26fa82cea260"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/state/source-document.ts",
-          "sha256": "a63f0c38a8d89e4bd2610e60d22b5cffdbbf00dca75d75954f8f964172e7f5e7"
+          "sha256": "4fa82f005182150bb085e6f667084675d7f1ff7d13c6d0f497a9c2dab5675f06"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/state/writer.ts",
@@ -11458,7 +11458,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/timeline/commands.ts",
-          "sha256": "a4d5f21d50839ee7bf7d397cc3464182d21b7a7d233d3cd059087caac23812fe"
+          "sha256": "363e66c17461b611b4a512be0dfd38a4051be938dc63c03079d5f9e0b7224851"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/timeline/config.ts",
@@ -12190,7 +12190,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/flowchart/model-operations.ts",
-          "sha256": "a1e2b1237b4321829be57e5cdf66f438d0ea12b80f2106bc2b28bfa669138742"
+          "sha256": "49b055968524db0b33bac7d5eebed6d85b28d4b8355b3f081fe8fae5d1535f1c"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/flowchart/owner-geometry.ts",

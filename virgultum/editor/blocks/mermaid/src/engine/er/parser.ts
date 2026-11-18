@@ -19,7 +19,22 @@ const ENTITY_BLOCK_RE = new RegExp(
   "du",
 );
 export const ATTRIBUTE_WORD_RE = /^[\p{L}_*][\p{L}\p{N}_()[\].,*-]*$/u;
-export const GENERIC_ATTRIBUTE_WORD_RE = /^\S*~[^~\n]+~\S*$/u;
+export function isMermaidErAttributeWord(value: string) {
+  if (ATTRIBUTE_WORD_RE.test(value)) return true;
+  if (value.includes("\n")) return false;
+  const firstSpace = value.search(/\s/u);
+  let lastSpace = value.length - 1;
+  while (lastSpace >= 0 && !/\s/u.test(value[lastSpace])) lastSpace -= 1;
+  // A native generic body lies between adjacent tildes and owns any whitespace.
+  let open = value.indexOf("~");
+  while (open >= 0 && (firstSpace < 0 || open < firstSpace)) {
+    const close = value.indexOf("~", open + 1);
+    if (close < 0) return false;
+    if (close > open + 1 && close > lastSpace) return true;
+    open = close;
+  }
+  return false;
+}
 const ATTRIBUTE_TAIL_RE =
   /^((?:PK|FK|UK)(?:\s*,\s*(?:PK|FK|UK))*)?(?:\s*"([^"]*)")?\s*;?$/i;
 const DIRECTION_RE = /^direction\s+(TB|BT|RL|LR)\s*;?$/i;
@@ -66,10 +81,7 @@ export function takeErAttributeWord(
     if (/\s/.test(character) && !inGeneric) break;
   }
   const word = source.slice(0, end);
-  if (
-    !word ||
-    (!ATTRIBUTE_WORD_RE.test(word) && !GENERIC_ATTRIBUTE_WORD_RE.test(word))
-  ) {
+  if (!word || !isMermaidErAttributeWord(word)) {
     return null;
   }
   return { rest: source.slice(end), value: word };

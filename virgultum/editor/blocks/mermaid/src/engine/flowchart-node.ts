@@ -14,7 +14,7 @@ import type {
 const FLOWCHART_NODE_KIND = "node";
 
 const CLICK_STATEMENT_RE =
-  /^click\s+([A-Za-z0-9_][\w-]*)\s+(?:href\s+)?"((?:\\.|[^"])*)"(?:\s+"((?:\\.|[^"])*)")?(?:\s+_(self|blank|parent|top))?\s*;?$/i;
+  /^click\s+([A-Za-z0-9_][\w-]*)\s+(?:href\s+)?"((?:\\.|[^"\\])*)"(?:\s+"((?:\\.|[^"\\])*)")?(?:\s+_(self|blank|parent|top))?\s*;?$/i;
 const CLICK_STATEMENT_NODE_RE = /^click\s+([A-Za-z0-9_][\w-]*)\s+\S+/i;
 
 export type MermaidFlowchartNodeData = {

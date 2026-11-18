@@ -24,7 +24,9 @@ export function normalizeRuntimeSubPath(subPath: string | undefined) {
   if (!subPath || subPath === "/") {
     return "";
   }
-  return subPath.replace(/\/+$/, "");
+  let end = subPath.length;
+  while (end > 0 && subPath[end - 1] === "/") end -= 1;
+  return subPath.slice(0, end);
 }
 
 export function getThemeFallbackHref(subPath: string | undefined) {
