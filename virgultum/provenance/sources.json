@@ -31,7 +31,7 @@
       "files": [
         {
           "path": "virgultum/canvas-runtime/package.json",
-          "sha256": "1719fced27b50fa6527d50eec41e0a8a71c175c8fed048550ce46ddc47a731df",
+          "sha256": "d9fb3cce30a287f2010c46d3b2e85ff492309d587062774e702139c5f4103b20",
           "originalPath": "blocksuite/affine/blocks/surface/package.json",
           "originalGitBlob": "5b1114acdee27564a6e14995c06e61875371b0d1"
         },
@@ -5803,7 +5803,7 @@
         },
         {
           "path": "virgultum/editor/all/package.json",
-          "sha256": "57ec7461a9748b1959f9b5afa3d11702d3f5be0e4134a1d70ba2b1ff03216a53",
+          "sha256": "427d2d84428e71e6d88caa4417a126eb6c42b81d313b5d496c2e17153fd41a4f",
           "originalPath": "blocksuite/affine/all/package.json",
           "originalGitBlob": "abba782d27e671eb45ee10935eebfb0427f3bea6"
         },
@@ -8779,7 +8779,7 @@
         },
         {
           "path": "virgultum/integration-test/package.json",
-          "sha256": "6f0b69f75ab42bae2e6e482b5871ec110cd4b26ca89edec1109f92ed25bf7efe",
+          "sha256": "c2fe099654f3037a64007ddf34b197193adc5925411a7a44a20f6670c5636e6d",
           "originalPath": "blocksuite/integration-test/package.json",
           "originalGitBlob": "d131b8e20d200fc30ef2b9e350ee40de2feeee84"
         },
@@ -8990,7 +8990,7 @@
         },
         {
           "path": "virgultum/canvas/package.json",
-          "sha256": "099c97d5f04d69be52c53233a1aa02af26f4e19f6d9882fb6c640a2c962d60b3"
+          "sha256": "bf5ef0095b80ca3af98c7b8b4c6bfdd80d1ee861049021396a0f358e06e4292e"
         },
         {
           "path": "virgultum/canvas/src/blocks/surface-ref/manifest.ts",
@@ -9062,7 +9062,7 @@
         },
         {
           "path": "virgultum/content/package.json",
-          "sha256": "56e5d4735cdf1aede134c7644140704049675cc58f6e70f16ebea0def2ed20d1"
+          "sha256": "d29fc125bdc245c067372d52154f37838cb7db221279df3f7ed10bcb0aaffe83"
         },
         {
           "path": "virgultum/content/scripts/generate-syntax-languages.mjs",
@@ -9278,7 +9278,7 @@
         },
         {
           "path": "virgultum/core/package.json",
-          "sha256": "71dc251f9ba2ca96f16bfc0a12d4bcab58c9b3bb6bfa624f8f82863ea8f5b449"
+          "sha256": "9f37432af81963f3ec47d218fcd4f1d8bf9f52515276a2f0e1a6daa8b2e0363a"
         },
         {
           "path": "virgultum/core/src/__tests__/adapters/markdown/table-html.unit.spec.ts",
@@ -13418,7 +13418,7 @@
         },
         {
           "path": "virgultum/embeds/package.json",
-          "sha256": "e8f1a4b3b8035e05c154be9d7784e48c288542827ed3fd852408968e686b5c83"
+          "sha256": "a6fb1fd34599c58df049cd64227d2411417278fea1e88d035318e15607f38e59"
         },
         {
           "path": "virgultum/embeds/src/attachment/rename-session.ts",

@@ -28,7 +28,7 @@
     "yjs": "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
   },
   "devDependencies": {
-    "vitest": "4.1.11"
+    "vitest": "4.1.12"
   },
   "exports": {
     ".": "./src/index.ts",

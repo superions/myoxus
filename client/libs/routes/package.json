@@ -11,7 +11,7 @@
   "devDependencies": {
     "@myoxus-tools/cli": "workspace:*",
     "@myoxus-tools/utils": "workspace:*",
-    "vitest": "4.1.11"
+    "vitest": "4.1.12"
   },
   "peerDependencies": {
     "react": "^19.2.1",

@@ -37,10 +37,10 @@ const exactVersions = new Map([
   ["@electron/packager", "20.3.0"],
   ["@sentry/electron", "7.20.0"],
   ["@sentry/bundler-plugins", "10.75.0"],
-  ["vitest", "4.1.11"],
-  ["@vitest/browser-playwright", "4.1.11"],
-  ["@vitest/coverage-istanbul", "4.1.11"],
-  ["@vitest/ui", "4.1.11"],
+  ["vitest", "4.1.12"],
+  ["@vitest/browser-playwright", "4.1.12"],
+  ["@vitest/coverage-istanbul", "4.1.12"],
+  ["@vitest/ui", "4.1.12"],
   ["vite", "8.3.6"],
   ["vite-plugin-wasm", "3.6.0"],
   ["typescript", "7.0.2"],
@@ -468,13 +468,13 @@ function verifyManifests() {
 
 function verifyToolchainLock(graph) {
   const allowed = new Map([
-    ["@vitest/browser", "4.1.11"],
-    ["@vitest/browser-playwright", "4.1.11"],
-    ["@vitest/coverage-istanbul", "4.1.11"],
-    ["@vitest/ui", "4.1.11"],
+    ["@vitest/browser", "4.1.12"],
+    ["@vitest/browser-playwright", "4.1.12"],
+    ["@vitest/coverage-istanbul", "4.1.12"],
+    ["@vitest/ui", "4.1.12"],
     ["typescript", "7.0.2"],
     ["vite", "8.3.6"],
-    ["vitest", "4.1.11"],
+    ["vitest", "4.1.12"],
   ]);
   const findings = [];
   for (const entry of graph.entries) {
@@ -787,7 +787,7 @@ function runSelfTests() {
     expectManifestFixtureFailure(
       "vitest-3",
       { vitest: "3.2.7" },
-      /vitest.*must be exactly 4\.1\.11/,
+      /vitest.*must be exactly 4\.1\.12/,
     ),
     expectManifestFixtureFailure(
       "retired-vitest-browser",
@@ -797,7 +797,7 @@ function runSelfTests() {
     expectManifestFixtureFailure(
       "mismatched-vitest-family",
       { "@vitest/ui": "4.1.9" },
-      /@vitest\/ui.*must be exactly 4\.1\.11/,
+      /@vitest\/ui.*must be exactly 4\.1\.12/,
     ),
     expectManifestFixtureFailure(
       "typescript-alias",

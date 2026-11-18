@@ -68,7 +68,7 @@
     "@types/d3-sankey": "0.12.5",
     "@types/react": "^19.0.1",
     "@types/react-dom": "^19.0.2",
-    "vitest": "4.1.11"
+    "vitest": "4.1.12"
   },
   "license": "AGPL-3.0-or-later"
 }

@@ -22,7 +22,7 @@
     "@graphql-codegen/typescript-operations": "^6.1.10",
     "@types/lodash-es": "^4.17.12",
     "prettier": "3.9.9",
-    "vitest": "4.1.11",
+    "vitest": "4.1.12",
     "yaml": "2.9.1"
   },
   "dependencies": {

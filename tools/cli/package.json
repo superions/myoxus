@@ -38,6 +38,6 @@
     "@types/mime-types": "^3.0.0",
     "@types/node": "^26.0.0",
     "@virgultum/content": "workspace:*",
-    "vitest": "4.1.11"
+    "vitest": "4.1.12"
   }
 }

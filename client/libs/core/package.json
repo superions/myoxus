@@ -76,7 +76,7 @@
     "fake-indexeddb": "^6.0.0",
     "happy-dom": "21.0.4",
     "lodash-es": "4.18.1",
-    "vitest": "4.1.11",
+    "vitest": "4.1.12",
     "yaml": "2.9.1"
   },
   "license": "AGPL-3.0-or-later"
