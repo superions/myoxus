@@ -2,10 +2,12 @@
 
 <div align="center">
   <img src="./assets/branding/myoxus_text.svg" alt="Myoxus" width="320">
+  <br>
+  <img src="./client/branding/artwork/docs-hero.webp" alt="The Myoxus dormouse among documents, folders, and a database" width="440">
 
   <p><strong>Your knowledge. Your projects. Your infrastructure.</strong></p>
   <p>Documents, visual thinking, databases and teamwork in one self-hosted workspace.</p>
-  <p><strong>Open source · Self-hosted · Beta</strong></p>
+  <p><strong>Open source · Beta</strong></p>
 
   <p>
     <a href="#start-now">Start now</a> ·

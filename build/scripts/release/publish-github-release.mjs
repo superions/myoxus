@@ -18,6 +18,7 @@ import {
   githubContainers,
   verifyGithubContainers,
 } from "./github-container-registry.mjs";
+import { renderContainerReleaseNotes } from "./github-release-notes.mjs";
 
 const REPOSITORY = "superions/myoxus";
 const API = `https://api.github.com/repos/${REPOSITORY}`;
@@ -476,17 +477,28 @@ export async function prepareRelease({
     throw new Error("Explicit release notes are required");
   const containers = input.containers ?? [];
   const publicContainers = githubContainers(containers);
-  const nativeNotes = includeNative
-    ? `\n\nNative server packages (Linux x86_64):\n${assets
-        .filter((a) => /\.(deb|rpm)$/.test(a.name))
-        .map(
-          (a) =>
-            `- [${a.name}](https://github.com/${REPOSITORY}/releases/download/${input.tag}/${encodeURIComponent(a.name)})`,
-        )
-        .join("\n")}`
-    : "";
+  const nativeNotes =
+    includeNative && !publicContainers.length
+      ? `\n\nNative server packages (Linux x86_64):\n${assets
+          .filter((a) => /\.(deb|rpm)$/.test(a.name))
+          .map(
+            (a) =>
+              `- [${a.name}](https://github.com/${REPOSITORY}/releases/download/${input.tag}/${encodeURIComponent(a.name)})`,
+          )
+          .join("\n")}`
+      : "";
   const sourceNotes = `Source tree: \`${source.tree}\`\nSource download: ${source.repository}/archive/${source.commit}.tar.gz`;
-  const body = `${notes.trim()}${nativeNotes}\n\nSource: ${source.repository}/tree/${source.commit}\n${sourceNotes}\n${publicContainers.map((c) => `\n${githubContainerLine(c)}`).join("")}\n`;
+  const body = publicContainers.length
+    ? renderContainerReleaseNotes({
+        version: input.version,
+        tag: input.tag,
+        prerelease: input.prerelease,
+        notes,
+        source,
+        containers: publicContainers,
+        assets,
+      })
+    : `${notes.trim()}${nativeNotes}\n\nSource: ${source.repository}/tree/${source.commit}\n${sourceNotes}\n`;
   if (body.includes(`github.com/${REPOSITORY}/commit/${revision}`))
     throw new Error("Private build revisions are not GitHub commit URLs");
   const metadataNames = new Set(
@@ -542,9 +554,10 @@ export async function prepareRelease({
     version: input.version,
     prerelease: input.prerelease,
     source: identity,
-    body:
-      body +
-      `\nLegal, SBOM and provenance: https://github.com/${REPOSITORY}/releases/download/${input.tag}/${bundle.name}\n`,
+    body: publicContainers.length
+      ? body
+      : body +
+        `\nLegal, SBOM and provenance: https://github.com/${REPOSITORY}/releases/download/${input.tag}/${bundle.name}\n`,
     assets,
     ...(containers.length ? { containers } : {}),
     ...(homebrew ? { homebrew } : {}),

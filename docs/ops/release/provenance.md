@@ -226,6 +226,10 @@ cache; extracts original legal files without running the server; and uses the
 existing prepare/publish functions. It never builds, regenerates an SBOM or
 repackages binaries. Missing accepted OCI/native artifacts stop the copy.
 The separate `prepare`/`publish` modes below retain optional exact-plan review.
+Write public `notes` in English as the release-specific change summary. The
+container release template adds the Myoxus wordmark and illustrations from
+the matching public source commit, installation links, verified OCI references,
+and a collapsible source and provenance section.
 
 Publication copies the accepted Server, Web and Admin manifests and layers
 from Forgejo to `ghcr.io/superions` via Crane, using the existing product version
