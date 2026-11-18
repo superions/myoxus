@@ -94,6 +94,39 @@ function parseCssClasses(value = "") {
     .filter(Boolean);
 }
 
+function classOperationParts(raw: string) {
+  // Mermaid selects the last closing parenthesis, then the last eligible
+  // opening parenthesis before it, on the first matching source line.
+  for (const line of raw.matchAll(/[^\r\n\u2028\u2029]+/g)) {
+    const close = line[0].lastIndexOf(")");
+    if (close < 2) continue;
+    const open = line[0].lastIndexOf("(", close - 1);
+    if (open < 1) continue;
+    const start = line.index;
+    const visibility = open > 1 && /^[#+~-]/.test(line[0]) ? raw[start] : "";
+    const nameStart = start + visibility.length;
+    const suffixStart = start + close + 1;
+    const suffix = raw[suffixStart] ?? "";
+    const qualifier = /[\s$*]/.test(suffix) ? suffix : "";
+    const returnStart = suffixStart + qualifier.length;
+    const returnType = /^[^\r\n\u2028\u2029]*/.exec(raw.slice(returnStart))![0];
+    return {
+      start,
+      end: returnStart + returnType.length,
+      visibility,
+      name: raw.slice(nameStart, start + open),
+      nameStart,
+      parameters: raw.slice(start + open + 1, start + close),
+      parameterStart: start + open + 1,
+      qualifier,
+      suffixStart,
+      returnType,
+      returnStart,
+    };
+  }
+  return null;
+}
+
 /** Use ClassMember's tolerant signature recognition. Unsplit signatures retain
  * their raw line and stay editable without a programming-language validator. */
 export function parseMermaidClassMember(
@@ -144,39 +177,30 @@ export function parseMermaidClassMember(
       start + value.trimEnd().length,
     ] as const;
   if (member.kind === "operation") {
-    const match = /([#+~-])?(.+)\((.*)\)([\s$*])?(.*)([$*])?/d.exec(raw);
-    if (!match) {
+    const parts = classOperationParts(raw);
+    if (!parts) {
       member.precise = false;
       return member;
     }
-    member.precise = match.index === 0 && match[0].length === raw.length;
-    member.visibility = (match[1] ?? "") as MermaidClassMember["visibility"];
-    member.name = match[2]!.trim();
-    member.parameters = match[3]!.trim();
-    member.returnType = match[5]!.trim();
-    for (const [field, group] of [
-      ["visibility", 1],
-      ["name", 2],
-      ["parameters", 3],
-      ["returnType", 5],
-    ] as const) {
-      const indices = match.indices?.[group];
-      if (indices) set(field, ...trimRange(match[group]!, indices[0]));
-    }
-    let classifier = match[4]?.trim() ?? "";
+    member.precise = parts.start === 0 && parts.end === raw.length;
+    member.visibility = parts.visibility as MermaidClassMember["visibility"];
+    member.name = parts.name.trim();
+    member.parameters = parts.parameters.trim();
+    member.returnType = parts.returnType.trim();
+    if (parts.visibility) set("visibility", parts.start, parts.nameStart);
+    set("name", ...trimRange(parts.name, parts.nameStart));
+    set("parameters", ...trimRange(parts.parameters, parts.parameterStart));
+    set("returnType", ...trimRange(parts.returnType, parts.returnStart));
+    let classifier = parts.qualifier.trim();
     if (classifier) {
-      const indices = match.indices![4]!;
-      set("classifier", indices[0], indices[1]);
+      set("classifier", parts.suffixStart, parts.returnStart);
     } else if (/[$*]$/.test(member.returnType)) {
       classifier = member.returnType.slice(-1);
       member.returnType = member.returnType.slice(0, -1).trimEnd();
-      const indices = match.indices![5]!,
-        end = indices[0] + match[5]!.trimEnd().length;
-      set("classifier", end - 1, end);
-      set(
-        "returnType",
-        ...trimRange(match[5]!.trimEnd().slice(0, -1), indices[0]),
-      );
+      const beforeClassifier = parts.returnType.trimEnd().slice(0, -1);
+      const classifierStart = parts.returnStart + beforeClassifier.length;
+      set("classifier", classifierStart, classifierStart + 1);
+      set("returnType", ...trimRange(beforeClassifier, parts.returnStart));
     }
     member.classifier =
       classifier === "$" ? "static" : classifier === "*" ? "abstract" : "";

@@ -6,9 +6,9 @@ import type { MermaidVisualModel } from "../runtime/gfx-model.js";
 import {
   flowchartEdgeElementStyle,
   flowchartNodeElementStyle,
-  flowchartStyleTargetIds,
   flowchartSubgraphElementStyle,
   parseFlowchartStyleDeclaration,
+  readFlowchartInlineStyleStatement,
 } from "./gfx-style-projection.js";
 
 export type FlowchartTextFormat = {
@@ -97,26 +97,22 @@ export function patchFlowchartInlineStyle(
   const statements: string[] = [];
   const keys = new Set(Object.keys(patch));
   for (const statement of model.styleStatements ?? []) {
-    const match = /^(style|linkStyle)\s+(.+?)\s+([\w-]+\s*:.+)$/iu.exec(
-      statement,
-    );
-    const ids = match?.[2] ? flowchartStyleTargetIds(match[2]) : [];
+    const style = readFlowchartInlineStyleStatement(statement);
     if (
-      match?.[1]?.toLowerCase() !== command ||
-      !ids.includes(key) ||
-      !match[3]
+      style?.command !== command.toLowerCase() ||
+      !style.targets.includes(key)
     ) {
       statements.push(statement);
       continue;
     }
-    const properties = parseFlowchartStyleDeclaration(match[3]);
+    const properties = parseFlowchartStyleDeclaration(style.declaration);
     if (!Object.keys(properties).some((property) => keys.has(property))) {
       statements.push(statement);
       continue;
     }
-    const remaining = ids.filter((id) => id !== key);
+    const remaining = style.targets.filter((id) => id !== key);
     if (remaining.length)
-      statements.push(`${command} ${remaining.join(",")} ${match[3]}`);
+      statements.push(`${command} ${remaining.join(",")} ${style.declaration}`);
     // Keep untouched properties at their original cascade position. Moving
     // fill/stroke or inherited font fields past a class would change them.
     const untouched = Object.entries(properties)

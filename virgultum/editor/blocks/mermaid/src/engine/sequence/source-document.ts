@@ -146,15 +146,15 @@ export function scanSequenceSource(source: string): SequenceSourceDocument {
       if (depth > 0) continue;
       if (c === ":" && source[end - 1] !== "@") label = true;
       if (/[\r\n]/.test(c)) break;
-      if (
-        (!label && c === "%") ||
-        (c === "#" && !/^#(?:\d+|[A-Za-z]+);/.test(source.slice(end)))
-      )
-        break;
+      if (!label && c === "%") break;
+      if (c === "#") {
+        const entity = /^#(?:\d+|[A-Za-z]+);/.exec(source.slice(end));
+        if (!entity) break;
+        // The semicolon belongs to the entity, including in participant aliases.
+        end += entity[0].length - 1;
+        continue;
+      }
       if (c === ";") {
-        // Mermaid text escapes such as #59; must remain in their owning label.
-        if (label && /#(?:\d+|[A-Za-z]+)$/.test(source.slice(cursor, end)))
-          continue;
         end++;
         break;
       }

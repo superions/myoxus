@@ -2529,10 +2529,11 @@ describe("Mermaid engine and family contracts", () => {
     const model = parseMermaidSequenceSource(
       "sequenceDiagram\n  participant Alice\n  actor Bob\n  Alice->>Bob: Hello\n",
     )!;
+    const alias = 'Product "Owner" \\ Support';
     const renamedParticipant = renameMermaidSequenceParticipant(
       model,
       "Alice",
-      "Product Owner",
+      alias,
     );
     const renamedMessage = renameMermaidSequenceMessage(
       renamedParticipant,
@@ -2541,7 +2542,12 @@ describe("Mermaid engine and family contracts", () => {
     );
     const source = generateMermaidSequenceSource(renamedMessage);
 
-    expect(source).toContain("participant Alice as Product Owner");
+    expect(source).toContain(
+      "participant Alice as Product #34;Owner#34; #92; Support",
+    );
+    expect(parseMermaidSequenceSource(source)?.participants[0].label).toBe(
+      alias,
+    );
     expect(source).toContain("Alice->>Bob: Approve");
     expect(parseMermaidSequenceSource(source)?.messages[0].label).toBe(
       "Approve",

@@ -39,7 +39,7 @@ import {
   sequenceRecordGroup,
   sequenceNewRecordPatch,
   sequenceMoveRecordGroups,
-  sequenceTextValue,
+  sequenceParticipantLabelValue,
   writeSequencePatches,
   sequenceNoChange,
   composeSequenceCommandResults,
@@ -68,7 +68,7 @@ export function sequenceParticipantDeclaration(
 ) {
   const type = p.type ?? "participant",
     keyword = type === "actor" ? "actor" : prefix;
-  return `${keyword} ${p.id}${type !== "actor" && type !== "participant" ? `@{type: ${type}}` : ""}${p.label !== undefined && p.label !== p.id ? ` as ${sequenceTextValue(p.label)}` : ""}`;
+  return `${keyword} ${p.id}${type !== "actor" && type !== "participant" ? `@{type: ${type}}` : ""}${p.label !== undefined && p.label !== p.id ? ` as ${sequenceParticipantLabelValue(p.label)}` : ""}`;
 }
 export function addSequenceParticipant(
   model: MermaidSequenceModel,
@@ -220,7 +220,7 @@ export function editSequenceParticipant(
       if (record.values.label)
         patches.push({
           range: record.values.label,
-          value: sequenceTextValue(changes.label || id),
+          value: sequenceParticipantLabelValue(changes.label || id),
         });
       else if (yaml && Object.hasOwn(yaml.values, "alias")) {
         const updates = sourceYamlFieldPatch(yaml, ["alias"], changes.label);
@@ -231,7 +231,7 @@ export function editSequenceParticipant(
         const at = config?.end ?? record.values.id!.end;
         patches.push({
           range: { start: at, end: at },
-          value: ` as ${sequenceTextValue(changes.label || id)}`,
+          value: ` as ${sequenceParticipantLabelValue(changes.label || id)}`,
         });
       }
     }

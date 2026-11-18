@@ -9998,7 +9998,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/__tests__/mermaid-engine-contracts.unit.spec.ts",
-          "sha256": "4d83243f65a477f5a0d69ef1b96e42e1ff6a89805cfa440515240b1ecbfce588"
+          "sha256": "b39f758676fe1a51f8859743c1cdec5adb8243fb577cdfab61b7ca1757132404"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/__tests__/mermaid-gfx-connection.unit.spec.ts",
@@ -10854,7 +10854,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/class/parser.ts",
-          "sha256": "cb602709d21522b9af2f17a547b41dd62b1758f5907adf8119d3caa8e6bf25be"
+          "sha256": "6c4657d9c9fc296f7c6d17aa202b6c2d8300ae8f990f51cbd78c753edb29d53a"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/class/source-document.ts",
@@ -11070,7 +11070,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/gitgraph/runtime-contract.ts",
-          "sha256": "7f7a3c202f48d02a351e3262e4f3b650997cfc5aa9ce83ac261b3e8270fb1c0a"
+          "sha256": "27ca05eb6aa111dc74a17eb2dc8cc5e974f993c7052da98a99b69e14e09a62e0"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/gitgraph/source-document.ts",
@@ -11358,7 +11358,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/sequence/commands/participant-commands.ts",
-          "sha256": "7afecf6247bf0758aaea7d1dc985757d0ab8967a15dafc0b91fbaf7ec22b1af1"
+          "sha256": "56b8b71b3cc154a9ec58f92b2e3b3845b8a2040400d5241c1c935e17a4aeea41"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/sequence/config.ts",
@@ -11382,11 +11382,11 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/sequence/source-document.ts",
-          "sha256": "18e15e83767dda2b03d779a55ca02a5ccbe84d73a52484bc32e5d41ccd62c968"
+          "sha256": "be737191e47f2d7c0dd61bf30f37d4d520c977744534c0e21fae7363b2c6da85"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/sequence/writer.ts",
-          "sha256": "01b3cebb8da71080bbf4860c02101c37db5eae90451cd531f30d86be4cec6412"
+          "sha256": "e192c294260d6162c2d1872f946ba3a097b36f3ced7cdc7f78177d5179e1fae0"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/engine/source-hash.ts",
@@ -12170,7 +12170,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/flowchart/gfx-style-projection.ts",
-          "sha256": "4b42ddc5287172060599e4e0f255b344cf3106d473d346bcf13512fa6a5de76d"
+          "sha256": "87c56ae83c2d8f06168c009d5b913662703fd20c17ed642463a93f822b256f44"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/flowchart/host-adapter.ts",
@@ -12226,7 +12226,7 @@
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/flowchart/text-formatting.ts",
-          "sha256": "009a3b4b41ec5b92afc6aa6b24cfae04d676ce1c87501efaf5be0b22feceaee5"
+          "sha256": "99b64f4f8acd65c62106ec6b49508c15cc1ab817b2a75f1e9f1b2417b8544beb"
         },
         {
           "path": "virgultum/editor/blocks/mermaid/src/families/gantt/__tests__/gantt-family.unit.spec.ts",

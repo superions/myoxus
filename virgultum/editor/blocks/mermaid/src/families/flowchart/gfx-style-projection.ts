@@ -221,6 +221,21 @@ export function flowchartStyleTargetIds(value: string) {
   return targets;
 }
 
+export function readFlowchartInlineStyleStatement(statement: string) {
+  // Source stores these declarations one per line. A property starts only
+  // after a complete whitespace run following a nonempty target.
+  const prefix = /^(style|linkStyle)\s+(?=\S)/iu.exec(statement);
+  if (!prefix || /[\r\n\u2028\u2029]/u.test(statement)) return null;
+  const body = statement.slice(prefix[0].length);
+  const separator = /(?<!\s)\s+(?=[\w-]+\s*:.+)/u.exec(body);
+  if (!separator || separator.index === 0) return null;
+  return {
+    command: prefix[1].toLowerCase(),
+    targets: flowchartStyleTargetIds(body.slice(0, separator.index)),
+    declaration: body.slice(separator.index + separator[0].length),
+  };
+}
+
 function nodeClassStatement(statement: string) {
   const match = /^(class|cssClass)\s+(.+?)\s+([^\s;]+)\s*;?$/iu.exec(statement);
   if (!match?.[1] || !match[2] || !match[3]) return null;
@@ -263,13 +278,14 @@ function resolveFlowchartNodeStyle(
       }
       continue;
     }
-    const styleStatement = /^style\s+(.+?)\s+([\w-]+\s*:.+)$/iu.exec(statement);
+    const styleStatement = readFlowchartInlineStyleStatement(statement);
     if (
-      styleStatement?.[1] &&
-      flowchartStyleTargetIds(styleStatement[1]).includes(target.id) &&
-      styleStatement[2]
+      styleStatement?.command === "style" &&
+      styleStatement.targets.includes(target.id)
     ) {
-      declarations.push(parseFlowchartStyleDeclaration(styleStatement[2]));
+      declarations.push(
+        parseFlowchartStyleDeclaration(styleStatement.declaration),
+      );
     }
   }
   return Object.assign({}, ...declarations) as Record<string, string>;

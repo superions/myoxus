@@ -18,11 +18,6 @@ function sequenceBackgroundLine(background: MermaidSequenceBackground) {
   return `box${value ? ` ${value}` : ""}`;
 }
 
-function quoteIfNeeded(value: string) {
-  return /^[A-Za-z_][\w -]*$/.test(value)
-    ? value
-    : `"${value.replace(/"/g, '\\"')}"`;
-}
 export function generateMermaidSequenceSource(model: MermaidSequenceModel) {
   const lines = [
     ...model.directives.filter((line) => line.trim()),
@@ -52,7 +47,7 @@ export function generateMermaidSequenceSource(model: MermaidSequenceModel) {
   const participantLine = (participant: MermaidSequenceParticipant) => {
     const label =
       participant.label && participant.label !== participant.id
-        ? ` as ${quoteIfNeeded(participant.label)}`
+        ? ` as ${sequenceParticipantLabelValue(participant.label)}`
         : "";
     return `  ${participant.kind} ${participant.id}${participant.config}${label}`;
   };
@@ -840,6 +835,14 @@ export function sequenceTextValue(value: string) {
   return value
     .replaceAll(/\r\n|\r|\n/g, "<br/>")
     .replaceAll(/[#%;]/g, (c) => `#${c.charCodeAt(0)};`);
+}
+
+/** Mermaid numeric entities preserve alias punctuation through both parsers. */
+export function sequenceParticipantLabelValue(value: string) {
+  return sequenceTextValue(value).replaceAll(
+    /["\\]/g,
+    (character) => `#${character.charCodeAt(0)};`,
+  );
 }
 
 /** Move explicitly selected lexical units together. Repeated declarations must

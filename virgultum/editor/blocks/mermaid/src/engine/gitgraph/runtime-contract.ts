@@ -135,16 +135,36 @@ export function gitGraphMaskedQuotedSpan(
   }
   return 0;
 }
+function protectGitGraphStyleColors(text: string, keyword: string) {
+  // Native preprocessing removes the last semicolon on each matching line.
+  // Search for a colon and a following hash within the same non-space run.
+  return text.replace(/[^\r\n\u2028\u2029]+/g, (line) => {
+    const start = line.indexOf(keyword);
+    const end = line.lastIndexOf(";");
+    if (start < 0 || end <= start) return line;
+    let inColor = false;
+    for (let index = start + keyword.length; index < end; index++) {
+      const character = line[index]!;
+      if (character === "#" && inColor) {
+        return line.slice(0, end) + line.slice(end + 1);
+      }
+      if (character === ":") inColor = true;
+      else if (/\s/u.test(character)) inColor = false;
+    }
+    return line;
+  });
+}
+
 /** Diagram.fromText encodes Mermaid entities before Langium reads strings.
  * Keep that native map value separate from the Source lexeme/decoded field. */
 export function encodeGitGraphNativeEntities(text: string) {
-  return text
-    .replace(/style.*:\S*#.*;/g, (s) => s.slice(0, -1))
-    .replace(/classDef.*:\S*#.*;/g, (s) => s.slice(0, -1))
-    .replace(/#\w+;/g, (s) => {
-      const name = s.slice(1, -1);
-      return `ﬂ°${/^\+?\d+$/.test(name) ? "°" : ""}${name}¶ß`;
-    });
+  return protectGitGraphStyleColors(
+    protectGitGraphStyleColors(text, "style"),
+    "classDef",
+  ).replace(/#\w+;/g, (s) => {
+    const name = s.slice(1, -1);
+    return `ﬂ°${/^\+?\d+$/.test(name) ? "°" : ""}${name}¶ß`;
+  });
 }
 export function gitGraphNativeStringValue(lexeme: string) {
   return decodeGitString(
