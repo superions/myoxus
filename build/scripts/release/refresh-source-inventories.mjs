@@ -149,6 +149,35 @@ export function refreshPublicClientInventories(root, reviewedPolicy) {
   refreshClientInventories(root);
 }
 
+async function refreshServerFontInventory(root) {
+  const file = path.join(root, "server/provenance/components.json");
+  const manifest = JSON.parse(fs.readFileSync(file, "utf8"));
+  const component = manifest.components.find(
+    (c) => c.id === "google-fonts-bundle",
+  );
+  const fontManifest = "server/static/fonts/manifest.json";
+  if (
+    JSON.stringify(component?.paths) !== JSON.stringify([fontManifest]) ||
+    !component.upstreamRevision?.startsWith("sha256-manifest:")
+  )
+    throw new Error(
+      "Font inventory identity changed; explicit review required",
+    );
+  // This identity is derived from the manifest; upstream grants and notices are not.
+  const digest = createHash("sha256")
+    .update(fs.readFileSync(path.join(root, fontManifest)))
+    .digest("hex");
+  component.sha256 = [digest];
+  component.upstreamRevision = `sha256-manifest:${digest}`;
+  fs.writeFileSync(
+    file,
+    await format(JSON.stringify(manifest), {
+      ...(await resolveConfig(file)),
+      parser: "json",
+    }),
+  );
+}
+
 export async function refreshSourceInventories(root) {
   refreshClientInventories(root);
   const sourcesPath = path.join(root, "virgultum/provenance/sources.json");
@@ -188,5 +217,11 @@ export async function refreshSourceInventories(root) {
   );
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href)
-  await refreshSourceInventories(path.resolve(process.argv[2] ?? "."));
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(process.argv[1]).href
+) {
+  const root = path.resolve(process.argv[2] ?? ".");
+  if (process.argv.includes("--server")) await refreshServerFontInventory(root);
+  await refreshSourceInventories(root);
+}

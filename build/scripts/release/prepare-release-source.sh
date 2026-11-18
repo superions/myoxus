@@ -17,15 +17,32 @@ exec 9>"$root/.lock"
 flock 9
 candidate="$root/$revision"
 report="$candidate/source-correspondence.json"
-if [ -n "${SOURCE_TAG:-}" ] && [ ! -f "$report" ]; then
+rolling_revision=""
+if [[ -s "$root/rolling-source" ]]; then
+  read -r rolling_revision _ <"$root/rolling-source"
+fi
+# Older or divergent releases may reuse existing provenance without updating main.
+recovery_only=false
+if [[ -n "${SOURCE_TAG:-}" ]]; then
+  recovery_only=true
+elif [[ -n "$rolling_revision" && "$rolling_revision" != "$revision" && ! -f "$report" ]]; then
+  if [[ "$(git rev-parse --is-shallow-repository)" == true ]]; then
+    git fetch --no-tags --unshallow origin wip
+  fi
+  if ! git merge-base --is-ancestor "$rolling_revision" "$revision"; then
+    recovery_only=true
+  fi
+fi
+if [[ "$recovery_only" == true && ! -f "$report" ]]; then
   # Recovery must never roll public main back to an older source snapshot.
   mkdir -p "$candidate"
   curl --fail --silent --show-error --max-time 30 \
-    "https://git.blume29.de/api/packages/myoxus/generic/myoxus-source/$version-$revision/source-correspondence.json" -o "$report"
-  node --input-type=module - "$report" "$revision" <<'JS'
+    "https://git.blume29.de/api/packages/myoxus/generic/myoxus-source/$version-$revision/source-correspondence.json" -o "$report.tmp" || { echo "No published source correspondence for this older or divergent revision." >&2; exit 1; }
+  node --input-type=module - "$report.tmp" "$revision" <<'JS'
 import {readSourceProvenance} from './build/scripts/release/source-correspondence.mjs';
 readSourceProvenance(process.argv[2], process.argv[3]);
 JS
+  mv "$report.tmp" "$report"
 fi
 if [ ! -f "$report" ]; then
   parent="$(git ls-remote https://github.com/superions/myoxus.git refs/heads/main | cut -f1)"
@@ -45,6 +62,8 @@ if [ ! -f "$report" ]; then
     --expected-archive-sha256 "$archive_sha256" --expected-manifest-sha256 "$manifest_sha256" \
     --expected-settings-sha256 "$settings_sha256"
   fi
+  printf '%s %s\n' "$revision" "$candidate_commit" >"$candidate/rolling-source"
+  mv "$candidate/rolling-source" "$root/rolling-source"
   node --input-type=module - "$candidate" "$revision" <<'JS'
 import fs from 'node:fs';
 import {validatePublicSource} from './build/scripts/release/source-correspondence.mjs';

@@ -308,7 +308,7 @@ export type ContextMenuProps = PropsWithChildren<{
 export type MenuPanelProps = HTMLAttributes<HTMLDivElement> &
   MyoxusUiRoleProp & {
     panelWidth?: "default" | "comfortable" | "wide" | "display" | "large";
-    panelPadding?: "default" | "comfortable";
+    panelPadding?: "default" | "comfortable" | "none";
   };
 
 export type MenuSectionProps = HTMLAttributes<HTMLDivElement> &
@@ -720,6 +720,7 @@ const menuPanelPaddingByKind: Record<
   CSSProperties
 > = {
   default: {},
+  none: { padding: 0 },
   comfortable: {
     padding: "var(--mantine-spacing-md)",
   },

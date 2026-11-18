@@ -28,6 +28,7 @@ printf '%s\n' \
   recover-container-release.yml \
   recover-desktop-release.yml \
   refresh-desktop-dependencies.yml \
+  refresh-vulnerability-database.yml \
   release-desktop.yml \
   release-linux.yml \
   renovate.yml \
@@ -38,6 +39,8 @@ printf '%s\n' \
   server-fast.yml \
   server-integration.yml \
   sync-github-issues.yml \
+  sync-github-prs.yml \
+  sync-github-source.yml \
   windows-release-contract.yml \
   >"$expected"
 

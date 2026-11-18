@@ -256,7 +256,7 @@ NODE
 }
 
 verify_expected_version_changes() {
-  local allowed='^(package.json|server/Cargo.toml|server/Cargo.lock|SECURITY.md|client/REUSE.toml|client/provenance/components.json|virgultum/provenance/sources.json|virgultum/provenance/licenses.json)$'
+  local allowed='^(package.json|server/Cargo.toml|server/Cargo.lock|SECURITY.md|server/provenance/components.json|client/REUSE.toml|client/provenance/components.json|virgultum/provenance/sources.json|virgultum/provenance/licenses.json)$'
   local unexpected
   unexpected="$(git status --porcelain --untracked-files=no | sed -E 's/^.. //' | grep -Ev "$allowed" || true)"
   test -z "$unexpected" || fail "version preparation changed unexpected files:\n$unexpected"
@@ -524,7 +524,7 @@ prepare_release() {
   local version="$1"
   require_clean_worktree
   set_versions "$version"
-  node build/scripts/release/refresh-source-inventories.mjs "$REPO_ROOT"
+  node build/scripts/release/refresh-source-inventories.mjs "$REPO_ROOT" --server
   verify_expected_version_changes
   verify_release_contract "$version"
 }
@@ -568,6 +568,7 @@ main() {
       section "Selected container release $version"
       prepare_release "$version"
       git add -- package.json server/Cargo.toml server/Cargo.lock SECURITY.md \
+        server/provenance/components.json \
         client/REUSE.toml client/provenance/components.json \
         virgultum/provenance/sources.json virgultum/provenance/licenses.json
       if ! git diff --cached --quiet; then

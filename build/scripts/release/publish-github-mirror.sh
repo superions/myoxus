@@ -18,6 +18,7 @@ Usage:
 
 One-time cleanup: prepare-baseline / publish-baseline accept the same options.
 Options: --github-url <url> --github-api <url> --branch main
+Ordinary publish only: --source-only (leave repository settings untouched)
 Baseline only: --replace-tag <tag> --expected-tag <previous-object-sha>
 
 Preparation is anonymous and read-only. Publication requires the exact reviewed
@@ -44,9 +45,9 @@ desired_settings() {
 {
   "repository": {"default_branch":"main","has_issues":true,"has_projects":false,"has_wiki":false,"has_discussions":false,"allow_merge_commit":true,"allow_squash_merge":true,"allow_rebase_merge":true,"delete_branch_on_merge":true},
   "branch_protection": {"required_status_checks":null,"enforce_admins":true,"required_pull_request_reviews":null,"restrictions":null,"required_linear_history":true,"allow_force_pushes":false,"allow_deletions":false,"block_creations":false,"required_conversation_resolution":true,"lock_branch":false,"allow_fork_syncing":true},
-  "actions_permissions": {"enabled":false},
+  "actions_permissions": {"enabled":true,"allowed_actions":"local_only"},
   "workflow_permissions": {"default_workflow_permissions":"read","can_approve_pull_request_reviews":false},
-  "public_services": {"pull_requests":"enabled","security_reporting":"SECURITY.md","pages":"disabled","packages":"no publication or package-write permission","github_hosted_release_builds":"disabled with GitHub Actions"},
+  "public_services": {"pull_requests":"enabled","security_reporting":"SECURITY.md","pages":"disabled","packages":"no publication or package-write permission","github_hosted_release_builds":"disabled"},
   "publication_credential": {"kind":"repository-scoped fine-grained token","repository":"superions/myoxus only","permissions":{"metadata":"read","contents":"write","administration":"write","actions":"write"}}
 }
 EOF
@@ -91,9 +92,10 @@ case "$MODE" in prepare-baseline|publish-baseline) BASELINE=true; MODE="${MODE%-
 [[ "$MODE" == prepare || "$MODE" == publish ]] || { usage >&2; exit 2; }; shift
 REVISION=""; SOURCE=""; PARENT=""; COMMIT=""; TREE=""; ARCHIVE_SHA=""; MANIFEST_SHA=""; SETTINGS_SHA=""
 BRANCH=main; WORKDIR=""; URL="$DEFAULT_URL"; API="$DEFAULT_API"
-REPLACE_TAG=""; EXPECTED_TAG=""
+REPLACE_TAG=""; EXPECTED_TAG=""; SOURCE_ONLY=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --source-only) SOURCE_ONLY=true; shift; continue;;
     --revision) REVISION="${2:-}";; --expected-source) SOURCE="${2:-}";;
     --expected-parent) PARENT="${2:-}";; --expected-commit) COMMIT="${2:-}";;
     --expected-tree) TREE="${2:-}";; --expected-archive-sha256) ARCHIVE_SHA="${2:-}";;
@@ -104,6 +106,7 @@ while [[ $# -gt 0 ]]; do
   esac
   shift 2
 done
+if [[ "$SOURCE_ONLY" == true && ( "$MODE" != publish || "$BASELINE" == true ) ]]; then fail "--source-only requires ordinary publish"; fi
 [[ "$BRANCH" == main ]] || fail "the public branch is fixed to main"
 [[ -n "$WORKDIR" ]] || fail "--workdir is required"
 if [[ -n "$REPLACE_TAG$EXPECTED_TAG" ]]; then
@@ -162,14 +165,14 @@ if [[ "$MODE" == prepare ]]; then
     NEW_ROOT="$(printf 'Public Myoxus source baseline\n' | GIT_AUTHOR_DATE="$SOURCE_TIME" GIT_COMMITTER_DATE="$SOURCE_TIME" git -C "$SNAPSHOT" \
       -c user.name='Myoxus Release' -c user.email=release@myoxus.invalid commit-tree "$(git -C "$SNAPSHOT" write-tree)")"
     git -C "$SNAPSHOT" update-ref "refs/heads/$BRANCH" "$NEW_ROOT" "$PARENT"
-  else
+  elif [[ "$(git -C "$SNAPSHOT" write-tree)" != "$(git -C "$SNAPSHOT" rev-parse "HEAD^{tree}")" ]]; then
     GIT_AUTHOR_DATE="$SOURCE_TIME" GIT_COMMITTER_DATE="$SOURCE_TIME" git -C "$SNAPSHOT" \
       -c user.name='Myoxus Release' -c user.email=release@myoxus.invalid commit -q -m "Public Myoxus source snapshot"
   fi
   COMMIT="$(git -C "$SNAPSHOT" rev-parse HEAD)"; TREE="$(git -C "$SNAPSHOT" rev-parse 'HEAD^{tree}')"
   if [[ "$BASELINE" == true ]]; then
     [[ "$(git -C "$SNAPSHOT" rev-list --count "$COMMIT")" == 1 ]] || fail "baseline must be parentless"
-  else
+  elif [[ "$COMMIT" != "$PARENT" ]]; then
   [[ "$(git -C "$SNAPSHOT" rev-parse HEAD^)" == "$PARENT" ]] || fail "candidate parent changed"
   [[ "$(git -C "$SNAPSHOT" rev-list --count "$PARENT..$COMMIT")" == 1 ]] || fail "candidate is not exactly one child commit"
   [[ "$(git -C "$SNAPSHOT" merge-base "$PARENT" "$COMMIT")" == "$PARENT" ]] || fail "candidate diverged"
@@ -211,7 +214,7 @@ SNAPSHOT="$WORKDIR/snapshot"; ARCHIVE="$WORKDIR/source-export.tar"; DESIRED="$WO
 [[ "$(git -C "$SNAPSHOT" rev-parse HEAD)" == "$COMMIT" && "$(git -C "$SNAPSHOT" rev-parse 'HEAD^{tree}')" == "$TREE" ]] || fail "candidate identity changed"
 if [[ "$BASELINE" == true ]]; then
   [[ "$(git -C "$SNAPSHOT" rev-list --count "$COMMIT")" == 1 ]] || fail "baseline must be parentless"
-else
+elif [[ "$COMMIT" != "$PARENT" ]]; then
   [[ "$(git -C "$SNAPSHOT" rev-parse HEAD^)" == "$PARENT" ]] || fail "candidate parent changed"
 fi
 grep -Fxq "baseline_replacement=$BASELINE" "$WORKDIR/candidate-identities.txt" || fail "publication mode differs from preparation"
@@ -237,7 +240,9 @@ if [[ "$API" == file://* ]]; then
   push_candidate
 else
   [[ -n "${GITHUB_MIRROR_TOKEN:-}" ]] || fail "GITHUB_MIRROR_TOKEN is required"
-  apply_settings "$API" "$DESIRED" "$GITHUB_MIRROR_TOKEN"
+  if [[ "$SOURCE_ONLY" == false ]]; then
+    apply_settings "$API" "$DESIRED" "$GITHUB_MIRROR_TOKEN"
+  fi
   [[ "$(remote_main "$URL" "$BRANCH")" == "$PARENT" ]] || fail "public main moved after settings; source not pushed"
   ASKPASS="$WORKDIR/github-askpass.sh"
   printf '#!/usr/bin/env bash\ncase "$1" in *Username*) echo x-access-token;; *Password*) echo "$GITHUB_MIRROR_TOKEN";; *) exit 1;; esac\n' >"$ASKPASS"; chmod 700 "$ASKPASS"

@@ -68,7 +68,7 @@ export const NotificationButton = ({
         open: notificationListOpen,
         onOpenChange: handleNotificationListOpenChange,
       }}
-      contentOptions={{ side: "right" }}
+      contentOptions={{ side: "right", panelPadding: "none" }}
       items={<NotificationList onOpenInbox={openInbox} />}
     >
       {compact ? (

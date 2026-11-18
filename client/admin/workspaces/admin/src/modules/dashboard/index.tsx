@@ -291,12 +291,6 @@ function chooseRuntimeTone(runtime: DashboardModel["runtime"]): Tone {
   return "success";
 }
 
-function chooseQueueTone(queue: DashboardModel["queueSummary"]): Tone {
-  if (queue.failedTotal > 0) return "error";
-  if (queue.pendingReadyTotal > 0) return "warning";
-  return "success";
-}
-
 function chooseMetricsTone(pipeline: DashboardModel["metricsPipeline"]): Tone {
   if (!pipeline.enabled) return "neutral";
   if (pipeline.cardinalityDropsTotal > 0) return "error";
@@ -904,7 +898,10 @@ function DashboardOverview({
   // TimeWindow sizes use their bucket unit: the sync resolver returns minutes.
   const syncWindowHours = dashboard.syncWindow.effectiveSize / 60;
   const runtimeTone = chooseRuntimeTone(dashboard.runtime);
-  const queueTone = chooseQueueTone(dashboard.queueSummary);
+  const backlogTone: Tone =
+    dashboard.queueSummary.pendingReadyTotal > 0 ? "warning" : "success";
+  const failedJobsTone: Tone =
+    dashboard.queueSummary.failedTotal > 0 ? "error" : "success";
   const metricsTone = chooseMetricsTone(dashboard.metricsPipeline);
   const telemetryTone = chooseTelemetryTone(dashboard.telemetryPipeline);
   const securityTone = chooseSecurityTone(dashboard.captcha);
@@ -1038,7 +1035,7 @@ function DashboardOverview({
           hint: i18n.t("admin.dashboard.metric.queue-backlog-hint", {
             count: dashboard.queueSummary.queues.length,
           }),
-          tone: queueTone,
+          tone: backlogTone,
         },
         {
           label: i18n.t("admin.dashboard.metric.queue-failed"),
@@ -1047,7 +1044,7 @@ function DashboardOverview({
             dashboard.queueSummary.failedTotal,
           ),
           hint: i18n.t("admin.dashboard.metric.queue-failed-hint"),
-          tone: queueTone,
+          tone: failedJobsTone,
         },
         {
           label: i18n.t("admin.dashboard.metric.metrics-active-series"),
@@ -1317,7 +1314,7 @@ function DashboardOverview({
                   formatters,
                   dashboard.queueSummary.pendingReadyTotal,
                 ),
-                tone: queueTone,
+                tone: backlogTone,
               },
               {
                 label: i18n.t("admin.dashboard.metric.queue-failed"),
@@ -1325,7 +1322,7 @@ function DashboardOverview({
                   formatters,
                   dashboard.queueSummary.failedTotal,
                 ),
-                tone: queueTone,
+                tone: failedJobsTone,
               },
             ].map((metric) => (
               <Stack key={metric.label}>

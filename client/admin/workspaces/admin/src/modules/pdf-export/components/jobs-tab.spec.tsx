@@ -1,6 +1,7 @@
 /**
  * @vitest-environment happy-dom
  */
+import { getOrCreateI18n } from "@myoxus/i18n";
 import { MyoxusUIProvider } from "@myoxus/ui-facade/provider";
 import {
   cleanup,
@@ -10,7 +11,15 @@ import {
   waitFor,
 } from "@testing-library/react";
 import type { ReactElement } from "react";
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+  vi,
+} from "vitest";
 
 import enJson from "../../../../../../../libs/i18n/src/resources/en.json";
 
@@ -33,14 +42,7 @@ const notifyMock = vi.hoisted(() => ({
 let eventListeners: Record<string, EventListener> = {};
 const eventSourceClose = vi.fn();
 
-vi.mock("@myoxus/i18n", () => ({
-  useI18n: () => ({
-    t: (key: string) => en[key] ?? key,
-    exists: (key: string) => key in en,
-    language: "en",
-    changeLanguage: () => Promise.resolve(),
-  }),
-}));
+beforeAll(() => getOrCreateI18n().changeLanguage("en"));
 
 vi.mock("@myoxus/ui-facade", async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();

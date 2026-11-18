@@ -410,47 +410,34 @@ pub(crate) fn is_supported_locale(locale: &str) -> bool {
   SUPPORTED_I18N_LOCALES.contains(&locale)
 }
 
-/// Extract the `content` attribute value of an HTML `<meta>` tag by `property` or `name`.
-///
-/// Matching is case-insensitive on both the key name and the `content=` attribute.
-/// Returns `None` when the tag is not present or has no `content` attribute.
-/// API-RV-04: All searching AND slicing happens on the same string representation
-/// (lowercased) to avoid byte-index misalignment on multi-byte Unicode characters.
-/// The extracted content is lowercased, which is acceptable for meta tags
-/// (URLs, descriptions) where casing is not semantically critical.
-pub(crate) fn parse_meta_content_case_insensitive(html: &str, key: &str) -> Option<String> {
-  let html_lower = html.to_lowercase();
-  let key1 = format!("property=\"{}\"", key.to_lowercase());
-  let key2 = format!("name=\"{}\"", key.to_lowercase());
-  let idx = html_lower.find(&key1).or_else(|| html_lower.find(&key2))?;
-  let tail = &html_lower[idx..];
-  let content_attr = "content=\"";
-  let content_pos = tail.find(content_attr)?;
-  let rest = &tail[content_pos + content_attr.len()..];
-  let end = rest.find('"')?;
-  Some(rest[..end].trim().to_string())
+/// Match metadata keys case-insensitively while preserving decoded text and case-sensitive URL paths.
+fn preview_meta(html: &scraper::Html, key: &str) -> Option<String> {
+  static META: std::sync::LazyLock<scraper::Selector> =
+    std::sync::LazyLock::new(|| scraper::Selector::parse("meta[content]").expect("valid meta selector"));
+  html.select(&META).find_map(|element| {
+    let attrs = element.value();
+    if !["property", "name"]
+      .iter()
+      .any(|attr| attrs.attr(attr).is_some_and(|value| value.eq_ignore_ascii_case(key)))
+    {
+      return None;
+    }
+    attrs
+      .attr("content")
+      .map(str::trim)
+      .filter(|value| !value.is_empty())
+      .map(str::to_owned)
+  })
 }
 
-/// Extract the text content of the first `<title>` element from an HTML document.
-///
-/// API-RV-04: Searches and slices the same lowered string to avoid byte-index
-/// misalignment. Returns the original-case title by using char-based offset mapping.
-pub(crate) fn parse_title(html: &str) -> Option<String> {
-  let lower = html.to_lowercase();
-  let start = lower.find("<title>")?;
-  let content_start = start + 7; // len("<title>")
-  let end = lower[content_start..].find("</title>")?;
-  // Map byte offsets from the lowered string back to the original.
-  // For pure ASCII this is 1:1; for multi-byte characters we count chars.
-  let char_start = lower[..content_start].chars().count();
-  let char_len = lower[content_start..content_start + end].chars().count();
-  let raw: String = html.chars().skip(char_start).take(char_len).collect();
-  let trimmed = raw.trim();
-  if trimmed.is_empty() {
-    None
-  } else {
-    Some(trimmed.to_string())
-  }
+fn preview_page_title(html: &scraper::Html) -> Option<String> {
+  static TITLE: std::sync::LazyLock<scraper::Selector> =
+    std::sync::LazyLock::new(|| scraper::Selector::parse("title").expect("valid title selector"));
+  html
+    .select(&TITLE)
+    .next()
+    .map(|element| element.text().collect::<String>().trim().to_owned())
+    .filter(|title| !title.is_empty())
 }
 
 // ---------------------------------------------------------------------------
@@ -647,7 +634,7 @@ pub(crate) async fn worker_link_preview_handler(
     ));
   }
 
-  let html = String::from_utf8_lossy(&body);
+  let html = scraper::Html::parse_document(&String::from_utf8_lossy(&body));
   let parsed_final = reqwest::Url::parse(&final_url).ok();
   let mut favicons = Vec::new();
   if let Some(base) = parsed_final
@@ -658,19 +645,14 @@ pub(crate) async fn worker_link_preview_handler(
 
   let response_payload = LinkPreviewResponse {
     url: final_url,
-    title: parse_meta_content_case_insensitive(&html, "og:title").or_else(|| parse_title(&html)),
-    site_name: parse_meta_content_case_insensitive(&html, "og:site_name"),
-    description: parse_meta_content_case_insensitive(&html, "og:description")
-      .or_else(|| parse_meta_content_case_insensitive(&html, "description")),
-    images: parse_meta_content_case_insensitive(&html, "og:image")
-      .map(|v| vec![v])
-      .unwrap_or_default(),
-    media_type: parse_meta_content_case_insensitive(&html, "og:type"),
+    title: preview_meta(&html, "og:title").or_else(|| preview_page_title(&html)),
+    site_name: preview_meta(&html, "og:site_name"),
+    description: preview_meta(&html, "og:description").or_else(|| preview_meta(&html, "description")),
+    images: preview_meta(&html, "og:image").map(|v| vec![v]).unwrap_or_default(),
+    media_type: preview_meta(&html, "og:type"),
     content_type,
     charset: None,
-    videos: parse_meta_content_case_insensitive(&html, "og:video")
-      .map(|v| vec![v])
-      .unwrap_or_default(),
+    videos: preview_meta(&html, "og:video").map(|v| vec![v]).unwrap_or_default(),
     favicons,
   };
 
@@ -872,31 +854,32 @@ mod tests {
   /// API-RV-04c: non-ASCII prefix before meta/title tag must not cause panic.
   #[test]
   fn parse_meta_non_ascii_prefix() {
-    let html = r#"<html><head><!-- Ünïcödé --><meta property="og:title" content="Hëllo Wörld"></head></html>"#;
-    let result = parse_meta_content_case_insensitive(html, "og:title");
-    // Content is extracted from the lowered string, so it's lowercased
-    assert_eq!(result.as_deref(), Some("hëllo wörld"));
+    let html = scraper::Html::parse_document(
+      r#"<html><head><!-- Ünïcödé --><meta content="Hëllo &amp; Wörld&#39;s" property="OG:TITLE"></head></html>"#,
+    );
+    let result = preview_meta(&html, "og:title");
+    assert_eq!(result.as_deref(), Some("Hëllo & Wörld's"));
   }
 
   #[test]
   fn parse_title_non_ascii() {
-    let html = "<html><head><title>Ünïcödé Tïtlé</title></head></html>";
-    let result = parse_title(html);
+    let html = scraper::Html::parse_document("<html><head><title>Ünïcödé Tïtlé</title></head></html>");
+    let result = preview_page_title(&html);
     assert_eq!(result.as_deref(), Some("Ünïcödé Tïtlé"));
   }
 
   #[test]
   fn parse_title_case_insensitive_tags() {
-    let html = "<HTML><HEAD><TITLE>My Page</TITLE></HEAD></HTML>";
-    let result = parse_title(html);
+    let html = scraper::Html::parse_document("<HTML><HEAD><TITLE>My Page</TITLE></HEAD></HTML>");
+    let result = preview_page_title(&html);
     assert_eq!(result.as_deref(), Some("My Page"));
   }
 
   #[test]
   fn parse_meta_missing_returns_none() {
-    let html = "<html><head></head></html>";
-    assert!(parse_meta_content_case_insensitive(html, "og:title").is_none());
-    assert!(parse_title(html).is_none());
+    let html = scraper::Html::parse_document("<html><head></head></html>");
+    assert!(preview_meta(&html, "og:title").is_none());
+    assert!(preview_page_title(&html).is_none());
   }
 
   /// API-RV-07: Self-proxy loop detection.

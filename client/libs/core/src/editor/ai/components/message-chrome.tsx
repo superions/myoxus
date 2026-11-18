@@ -3,6 +3,7 @@ import { useI18n } from "@myoxus/i18n";
 import { BrainIcon, ArrowDownBigIcon } from "@myoxus/icons/react";
 import {
   Avatar,
+  Box,
   Card,
   PageContentRail,
   Group,
@@ -179,7 +180,7 @@ export function ChatDisclaimer({ children }: { children?: ReactNode }) {
   );
 }
 
-/** Keep the conversation pane mounted while native Mantine owns artifact resizing. */
+/** Keep the producer mounted while its artifact occupies the sidebar or shares the standalone route. */
 export function ChatConversationLayout({
   children,
   preview,
@@ -207,12 +208,26 @@ export function ChatConversationLayout({
       h="100%"
       w="100%"
       mih={0}
+      inert={!independent && open}
+      opacity={!independent && open ? 0 : undefined}
       justify={independent ? "center" : undefined}
       data-myoxus-ui-role="chat-conversation-main"
     >
       {children}
     </Stack>
   );
+  if (!independent) {
+    return (
+      <Box pos="relative" h="100%" w="100%" mih={0}>
+        {main}
+        {open ? (
+          <Box pos="absolute" inset={0}>
+            {preview}
+          </Box>
+        ) : null}
+      </Box>
+    );
+  }
   return (
     <Splitter
       sizes={open ? [ratio, 100 - ratio] : [100]}
@@ -228,13 +243,9 @@ export function ChatConversationLayout({
       }}
     >
       <Splitter.Pane defaultSize={50} min={open ? 20 : 0} max={open ? 80 : 100}>
-        {independent ? (
-          <PageContentRail width="editor" fill>
-            {main}
-          </PageContentRail>
-        ) : (
-          main
-        )}
+        <PageContentRail width="editor" fill>
+          {main}
+        </PageContentRail>
       </Splitter.Pane>
       {open ? (
         <Splitter.Pane defaultSize={50} min={20} max={80}>

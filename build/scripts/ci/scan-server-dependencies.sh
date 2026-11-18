@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: AGPL-3.0-or-later
-# Scan Cargo before compilation, or a loaded runtime/final image with --image.
+# Scan Cargo/images, or refresh the shared vulnerability database with --update-db.
 set -euo pipefail
 
-if [ "$#" -lt 2 ] || [ "$#" -gt 3 ] || { [ "$#" -eq 3 ] && [ "$3" != --image ]; }; then
-  echo "Usage: scan-server-dependencies.sh <Cargo.lock|loaded-image> <output-dir> [--image]" >&2
+update_db=false
+if [ "$#" -eq 1 ] && [ "$1" = --update-db ]; then
+  update_db=true
+elif [ "$#" -lt 2 ] || [ "$#" -gt 3 ] || { [ "$#" -eq 3 ] && [ "$3" != --image ]; }; then
+  echo "Usage: scan-server-dependencies.sh <Cargo.lock|loaded-image> <output-dir> [--image] | --update-db" >&2
   exit 2
 fi
 lockfile="$1"
-output_dir="$2"
+output_dir="${2:-}"
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 work_dir="$(mktemp -d)"
 scanner_name="myoxus-server-dependencies-$$"
@@ -17,6 +20,29 @@ cleanup() {
   rm -rf "$work_dir"
 }
 trap cleanup EXIT
+scanner_image=docker.io/anchore/grype:v0.118.0@sha256:8a93fc48da96bd6ec5981279d099b69de11541dc68fdf222fb9161f8ff284af7
+prepare_scanner() {
+  local cache_dir="${CI_RUNNER_CACHE:-/var/cache/ci-runner}/grype"
+  mkdir -p "$cache_dir"
+  cache_dir="$(cd "$cache_dir" && pwd -P)"
+  # Native updates replace the database directory; scans must not race replacement.
+  exec 9>"$cache_dir/.database.lock"
+  flock -w 300 9
+  # No socket, credentials or checkout reach the scanner. Retain fail-closed 72h age.
+  scanner=(timeout --signal=TERM --kill-after=15s 300s docker run --rm
+    --name "$scanner_name" --user "$(id -u):$(id -g)" --cap-drop ALL
+    --security-opt no-new-privileges --tmpfs /tmp:rw,nosuid,nodev,mode=1777
+    --volume "$cache_dir:/cache"
+    --env GRYPE_DB_CACHE_DIR=/cache --env GRYPE_DB_AUTO_UPDATE=true
+    --env GRYPE_DB_REQUIRE_UPDATE_CHECK=true --env GRYPE_DB_VALIDATE_AGE=true
+    --env GRYPE_DB_MAX_ALLOWED_BUILT_AGE=72h)
+}
+if [ "$update_db" = true ]; then
+  prepare_scanner
+  "${scanner[@]}" "$scanner_image" db update
+  "${scanner[@]}" "$scanner_image" db status
+  exit 0
+fi
 mkdir -p "$output_dir"
 output_dir="$(cd "$output_dir" && pwd -P)"
 # An earlier successful report must not survive an export/scanner failure.
@@ -41,26 +67,11 @@ else
   source_mount="$lockfile:/source/Cargo.lock:ro"
   scan_source=dir:/source
 fi
-cache_dir="${CI_RUNNER_CACHE:-/var/cache/ci-runner}/grype"
-mkdir -p "$cache_dir"
-cache_dir="$(cd "$cache_dir" && pwd -P)"
-
-# No Docker socket, credentials or repository checkout reach the pinned scanner.
-# Update checks fail closed; a stopped database feed expires after 72 hours.
+prepare_scanner
 set +e
-timeout --signal=TERM --kill-after=15s 300s docker run --rm \
-  --name "$scanner_name" \
-  --user "$(id -u):$(id -g)" --cap-drop ALL \
-  --security-opt no-new-privileges \
-  --tmpfs /tmp:rw,nosuid,nodev,mode=1777 \
+"${scanner[@]}" \
   --volume "$source_mount" \
-  --volume "$output_dir:/scan" --volume "$cache_dir:/cache" \
-  --env GRYPE_DB_CACHE_DIR=/cache \
-  --env GRYPE_DB_AUTO_UPDATE=true \
-  --env GRYPE_DB_REQUIRE_UPDATE_CHECK=true \
-  --env GRYPE_DB_VALIDATE_AGE=true \
-  --env GRYPE_DB_MAX_ALLOWED_BUILT_AGE=72h \
-  docker.io/anchore/grype:v0.118.0@sha256:8a93fc48da96bd6ec5981279d099b69de11541dc68fdf222fb9161f8ff284af7 \
+  --volume "$output_dir:/scan" "$scanner_image" \
   "$scan_source" --name myoxus-server-dependencies \
   ${scan_args[@]+"${scan_args[@]}"} --output json --file /scan/server-vulnerabilities.json
 status=$?

@@ -9278,7 +9278,7 @@
         },
         {
           "path": "virgultum/core/package.json",
-          "sha256": "82748bf89f11de21beb960ead0b9ae508f2b25c12f45d7168367d42542b90ea8"
+          "sha256": "71dc251f9ba2ca96f16bfc0a12d4bcab58c9b3bb6bfa624f8f82863ea8f5b449"
         },
         {
           "path": "virgultum/core/src/__tests__/adapters/markdown/table-html.unit.spec.ts",

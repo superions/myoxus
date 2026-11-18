@@ -53,14 +53,16 @@ prepare() {
     --github-url "$PUBLIC" --github-api "file://fixture"
 }
 publish() {
-  "$SOURCE/build/scripts/release/publish-github-mirror.sh" publish --workdir "$1" \
-    --expected-source "$(identity "$1" source_revision)" \
-    --expected-parent "$(identity "$1" public_parent)" \
-    --expected-commit "$(identity "$1" candidate_commit)" \
-    --expected-tree "$(identity "$1" candidate_tree)" \
-    --expected-archive-sha256 "$(identity "$1" archive_sha256)" \
-    --expected-manifest-sha256 "$(identity "$1" manifest_sha256)" \
-    --expected-settings-sha256 "$(identity "$1" settings_sha256)" \
+  local candidate="$1"
+  shift
+  "$SOURCE/build/scripts/release/publish-github-mirror.sh" publish "$@" --workdir "$candidate" \
+    --expected-source "$(identity "$candidate" source_revision)" \
+    --expected-parent "$(identity "$candidate" public_parent)" \
+    --expected-commit "$(identity "$candidate" candidate_commit)" \
+    --expected-tree "$(identity "$candidate" candidate_tree)" \
+    --expected-archive-sha256 "$(identity "$candidate" archive_sha256)" \
+    --expected-manifest-sha256 "$(identity "$candidate" manifest_sha256)" \
+    --expected-settings-sha256 "$(identity "$candidate" settings_sha256)" \
     --github-url "$PUBLIC" --github-api "file://fixture"
 }
 
@@ -85,8 +87,13 @@ prepare "$TMP/second" "$SOURCE_TWO" "$FIRST"
 SECOND="$(identity "$TMP/second" candidate_commit)"
 test "$(git -C "$TMP/second/snapshot" rev-parse "$SECOND^")" = "$FIRST"
 test "$(git -C "$TMP/second/snapshot" show "$SECOND:Casks/myoxus.rb")" = 'published client cask'
-publish "$TMP/second"
+publish "$TMP/second" --source-only
 test "$(git --git-dir="$PUBLIC" rev-parse main)" = "$SECOND"
+
+# A private-only revision must reuse the public commit without adding history.
+git -C "$SOURCE" commit -q --allow-empty -m private-only
+prepare "$TMP/unchanged" "$(git -C "$SOURCE" rev-parse HEAD)" "$SECOND"
+test "$(identity "$TMP/unchanged" candidate_commit)" = "$SECOND"
 
 printf 'third public body\n' >"$SOURCE/README.md"
 git -C "$SOURCE" add README.md; git -C "$SOURCE" commit -q -m source-three

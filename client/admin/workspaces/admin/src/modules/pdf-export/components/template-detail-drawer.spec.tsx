@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 /** @vitest-environment happy-dom */
+import { getOrCreateI18n } from "@myoxus/i18n";
 import { MyoxusUIProvider } from "@myoxus/ui-facade/provider";
 import {
   cleanup,
@@ -9,7 +10,15 @@ import {
   waitFor,
 } from "@testing-library/react";
 
-import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+  vi,
+} from "vitest";
 
 import enJson from "../../../../../../../libs/i18n/src/resources/en.json";
 
@@ -33,12 +42,7 @@ let previewResponse: { pdfBase64: string | null; error: Error | null } = {
   error: null,
 };
 
-vi.mock("@myoxus/i18n", () => ({
-  useI18n: () => ({
-    t: (key: string) => en[key] ?? key,
-    language: "en",
-  }),
-}));
+beforeAll(() => getOrCreateI18n().changeLanguage("en"));
 
 vi.mock("@myoxus/ui-facade", async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();

@@ -524,3 +524,56 @@ test("the actual PR bootstrap kills a timed-out checkout process tree and cleans
     rmSync(fixture, { recursive: true, force: true });
   }
 });
+
+test("imported PR bootstrap never executes incoming CI helpers", () => {
+  const fixture = mkdtempSync(join(tmpdir(), "myoxus-import-trust-"));
+  try {
+    const git = (...args) =>
+      execFileSync("git", args, {
+        cwd: fixture,
+        encoding: "utf8",
+        timeout: 5000,
+        env: {
+          ...process.env,
+          GIT_AUTHOR_NAME: "Fixture",
+          GIT_AUTHOR_EMAIL: "fixture@example.org",
+          GIT_COMMITTER_NAME: "Fixture",
+          GIT_COMMITTER_EMAIL: "fixture@example.org",
+        },
+      }).trim();
+    git("init", "--quiet");
+    mkdirSync(join(fixture, "build/scripts/ci"), { recursive: true });
+    writeFileSync(join(fixture, ".oxlintrc.json"), "{}");
+    const helper = join(fixture, "build/scripts/ci/run-pr-source-checks.mjs");
+    writeFileSync(helper, 'console.log("trusted target checks");\n');
+    git("add", ".");
+    git("commit", "-qm", "Trusted target");
+    const base = git("rev-parse", "HEAD");
+    writeFileSync(helper, 'throw Error("untrusted helper executed");\n');
+    git("commit", "-qam", "Incoming helper");
+    const head = git("rev-parse", "HEAD");
+    const source = workflows["pr-check.yml"].jobs.source.steps[0].run;
+    const script = source.slice(
+      source.indexOf("\n") + 1,
+      source.lastIndexOf("\nNODE"),
+    );
+    const result = spawnSync(process.execPath, ["--input-type=module", "-"], {
+      input: script,
+      encoding: "utf8",
+      timeout: 15000,
+      env: {
+        ...process.env,
+        IMPORTED_PR: "true",
+        PR_BASE: base,
+        PR_HEAD: head,
+        REPOSITORY_URL: fixture,
+        CHECKOUT_TOKEN: "fixture",
+      },
+    });
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.match(result.stdout, /trusted target checks/);
+    assert.doesNotMatch(result.stderr, /untrusted helper executed/);
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
+  }
+});

@@ -65,7 +65,7 @@ export function NotificationPanelRoot({
       mah={isRoute ? undefined : "448px"}
       p={0}
       w={mobile || isRoute ? "100%" : "360px"}
-      withBorder={!isRoute}
+      withBorder={false}
       style={{
         display: "flex",
         flexDirection: "column",
@@ -166,6 +166,7 @@ export function NotificationPanelScrollRoot({
 
 export function NotificationPanelViewport({
   className,
+  style,
   ...props
 }: ComponentProps<typeof Scrollable.Viewport>) {
   return (
@@ -174,6 +175,7 @@ export function NotificationPanelViewport({
       className={className}
       fill
       padding={`var(--mantine-spacing-sm) 0`}
+      style={{ display: "flex", flexDirection: "column", ...style }}
       data-myoxus-ui-role="notification-panel-viewport"
     />
   );

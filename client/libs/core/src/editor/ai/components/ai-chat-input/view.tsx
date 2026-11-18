@@ -57,7 +57,12 @@ export function ChatInputView(props: ChatInputViewProps) {
   useEffect(() => {
     // Polling may rerender an unavailable index. Notify on the transition only,
     // so dismissing the native notification keeps the composer clear.
-    if (props.retrievalUnavailable) notify.warning({ title: retrievalMessage });
+    if (props.retrievalUnavailable) {
+      notify.warning(
+        { title: retrievalMessage },
+        { id: "chat-workspace-search-unavailable" },
+      );
+    }
   }, [props.retrievalUnavailable, retrievalMessage]);
   return (
     <Stack gap="xs" data-myoxus-ui-role="chat-composer-input">

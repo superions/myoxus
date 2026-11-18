@@ -93,7 +93,7 @@ pub fn project_yjs_plain_text(
     .map_err(|_| DocumentProjectionError::Projection)?;
   Ok(DocumentPlainTextProjection {
     title: ir.document.title.clone(),
-    plain_text: ir_to_plain_text(&ir),
+    plain_text: ir_to_plain_text(&ir, PlainTextPurpose::Index),
   })
 }
 
@@ -817,7 +817,7 @@ impl DocumentContentProjectionService {
         })
       }
       DocumentRepresentation::PlainText => {
-        let content = ir_to_plain_text(&ir);
+        let content = ir_to_plain_text(&ir, PlainTextPurpose::Export);
         self.checked_export(DocumentExportEnvelope {
           schema_version: DOCUMENT_PROJECTION_SCHEMA,
           revision,
@@ -1337,11 +1337,20 @@ fn constant_time_eq(left: &[u8], right: &[u8]) -> bool {
     == 0
 }
 
-fn ir_to_plain_text(ir: &PublicDocIr) -> String {
-  render_plain_text_blocks(&ir.document.blocks).trim_end().to_string()
+/// Export diagnostics mark omitted blocks; search excerpts contain only document content.
+#[derive(Clone, Copy)]
+enum PlainTextPurpose {
+  Index,
+  Export,
 }
 
-fn render_plain_text_blocks(blocks: &[Block]) -> String {
+fn ir_to_plain_text(ir: &PublicDocIr, purpose: PlainTextPurpose) -> String {
+  render_plain_text_blocks(&ir.document.blocks, purpose)
+    .trim_end()
+    .to_string()
+}
+
+fn render_plain_text_blocks(blocks: &[Block], purpose: PlainTextPurpose) -> String {
   let mut output = String::new();
   for block in blocks {
     match block {
@@ -1351,7 +1360,7 @@ fn render_plain_text_blocks(blocks: &[Block]) -> String {
       Block::List { list, .. } => {
         for item in &list.items {
           push_line(&mut output, &render_plain_inline(&item.text));
-          output.push_str(&render_plain_text_blocks(&item.children));
+          output.push_str(&render_plain_text_blocks(&item.children, purpose));
         }
       }
       Block::Callout {
@@ -1363,7 +1372,7 @@ fn render_plain_text_blocks(blocks: &[Block]) -> String {
         if !text.is_empty() {
           push_line(&mut output, &render_plain_inline(text));
         }
-        output.push_str(&render_plain_text_blocks(children));
+        output.push_str(&render_plain_text_blocks(children, purpose));
       }
       Block::FootnoteDefinition {
         placement,
@@ -1375,7 +1384,7 @@ fn render_plain_text_blocks(blocks: &[Block]) -> String {
           &mut output,
           &myoxus_public_render::ir::local_note_name(*placement, *number, "en"),
         );
-        output.push_str(&render_plain_text_blocks(children));
+        output.push_str(&render_plain_text_blocks(children, purpose));
       }
       Block::Code { text, .. } => push_line(&mut output, text),
       Block::Mermaid { source, .. } => push_line(&mut output, source),
@@ -1392,7 +1401,9 @@ fn render_plain_text_blocks(blocks: &[Block]) -> String {
         }
       }
       Block::TablePlaceholder { .. } | Block::UnsupportedBlock { .. } => {
-        push_line(&mut output, "[Unsupported content]");
+        if matches!(purpose, PlainTextPurpose::Export) {
+          push_line(&mut output, "[Unsupported content]");
+        }
       }
     }
   }

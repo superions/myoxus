@@ -162,7 +162,7 @@ cp build/scripts/release/check-archived-version.mjs build/scripts/release/archiv
 cat >"$policy_fixture/build/scripts/release/refresh-source-inventories.mjs" <<'JS'
 import fs from 'node:fs';
 import path from 'node:path';
-for (const file of ['client/REUSE.toml', 'client/provenance/components.json', 'virgultum/provenance/sources.json', 'virgultum/provenance/licenses.json']) {
+for (const file of ['server/provenance/components.json', 'client/REUSE.toml', 'client/provenance/components.json', 'virgultum/provenance/sources.json', 'virgultum/provenance/licenses.json']) {
   fs.mkdirSync(path.dirname(file), {recursive:true});
   fs.writeFileSync(file, '{}\n');
 }
