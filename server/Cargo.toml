@@ -188,7 +188,8 @@ resolver = "2"
     "tokio",
   ] }
   infer = "0.19"
-  jsonwebtoken = { version = "9.3.1", default-features = false, features = [
+  jsonwebtoken = { version = "10.3.0", default-features = false, features = [
+    "rust_crypto",
     "use_pem",
   ] }
   # P-PDF-TPL-IMG-01: image-rs for the PDF render image-compression pipeline.
