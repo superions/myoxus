@@ -76,7 +76,6 @@ pub async fn run(args: ImportFileArgs, svc: &Services) -> anyhow::Result<()> {
   // 1. Resolve user
   let user = resolve_user(svc, &args.user).await?;
   let user_id = user.id;
-  eprintln!("User: {} ({})", user.email, user_id);
 
   // 2. Resolve workspace
   let workspace_id = resolve_workspace(svc, &args).await?;

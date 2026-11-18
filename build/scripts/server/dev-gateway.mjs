@@ -219,16 +219,18 @@ function sendFont(req, res, fontPath) {
   sendStaticFromRoot(req, res, fontRoot, fontPath, "/api/fonts/");
 }
 
-function proxyHttp(req, res, targetOrigin, pathOverride = null) {
+function proxyTarget(req, targetOrigin, pathOverride) {
   const incoming = new URL(req.url ?? "/", "http://dev-gateway.local");
-  const target = new URL(
-    pathOverride ?? `${incoming.pathname}${incoming.search}`,
-    targetOrigin,
-  );
-  if (pathOverride && incoming.search && !target.search) {
-    target.search = incoming.search;
-  }
+  const target = new URL(targetOrigin);
+  // Request data may change the path and query, never the upstream authority.
+  target.pathname = pathOverride ?? incoming.pathname;
+  target.search = incoming.search;
+  target.hash = "";
+  return target;
+}
 
+function proxyHttp(req, res, targetOrigin, pathOverride = null) {
+  const target = proxyTarget(req, targetOrigin, pathOverride);
   const headers = { ...req.headers };
   headers.host = target.host;
   headers["x-forwarded-host"] = req.headers.host ?? `${host}:${port}`;
@@ -278,14 +280,7 @@ function proxyHttp(req, res, targetOrigin, pathOverride = null) {
 }
 
 function proxyUpgrade(req, socket, head, targetOrigin, pathOverride = null) {
-  const incoming = new URL(req.url ?? "/", "http://dev-gateway.local");
-  const target = new URL(
-    pathOverride ?? `${incoming.pathname}${incoming.search}`,
-    targetOrigin,
-  );
-  if (pathOverride && incoming.search && !target.search) {
-    target.search = incoming.search;
-  }
+  const target = proxyTarget(req, targetOrigin, pathOverride);
 
   const targetPort = Number.parseInt(
     target.port || (target.protocol === "https:" ? "443" : "80"),

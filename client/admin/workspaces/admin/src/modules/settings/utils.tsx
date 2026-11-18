@@ -17,10 +17,23 @@ export function setByPath<T extends Record<string, any> = Record<string, any>>(
   value: any,
 ): T {
   const parts = path.split(".");
+  // Validate the entire path before mutating any part of the config object.
+  if (
+    parts.some(
+      (part) =>
+        part === "__proto__" || part === "constructor" || part === "prototype",
+    )
+  ) {
+    throw new Error("Unsafe configuration path");
+  }
   let cursor: Record<string, any> = obj;
   for (let i = 0; i < parts.length - 1; i++) {
     const part = parts[i];
-    if (cursor[part] == null || typeof cursor[part] !== "object") {
+    if (
+      !Object.hasOwn(cursor, part) ||
+      cursor[part] === null ||
+      typeof cursor[part] !== "object"
+    ) {
       cursor[part] = {};
     }
     cursor = cursor[part];

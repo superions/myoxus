@@ -526,7 +526,7 @@ async fn public_snapshot_uses_authoritative_visibility_external_keys_and_relativ
       ])
       .into_iter()
       .chain(extra_docs.iter().map(ToString::to_string))
-      .collect(),
+      .collect::<std::collections::BTreeSet<_>>(),
       "system payloads and private documents must not become snapshot/search artifacts"
     );
     assert_eq!(

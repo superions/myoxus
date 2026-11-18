@@ -32,7 +32,7 @@ use std::time::Duration;
 
 use chrono::{DateTime, Utc};
 use reqwest::{
-  Client,
+  Client, Method, RequestBuilder, Url,
   header::{AUTHORIZATION, CONTENT_TYPE, HeaderMap, HeaderValue},
 };
 use tracing::{debug, instrument, trace, warn};
@@ -110,7 +110,7 @@ pub struct CalDavAttendee {
 /// Constructed once per sync run and reused across discover + fetch calls.
 pub struct CalDavClient {
   http: Client,
-  base_url: String,
+  base_url: Url,
   credential: CalDavCredential,
 }
 
@@ -124,18 +124,58 @@ impl CalDavClient {
     credential: CalDavCredential,
     additional_ca: Option<&crate::tls::ValidatedCaBundle>,
   ) -> Result<Self, CalDavError> {
-    let http = crate::tls::build_http_client(
-      Client::builder()
-        .timeout(Duration::from_secs(30))
-        .user_agent("Myoxus-CalDAV/1.0"),
-      additional_ca,
-    )
-    .map_err(|e| CalDavError::Protocol(format!("failed to build HTTP client: {e}")))?;
+    let base_url = Url::parse(&base_url).map_err(|_| CalDavError::Protocol("invalid CalDAV URL".into()))?;
+    let loopback_http = base_url.scheme() == "http"
+      && base_url
+        .host_str()
+        .and_then(|host| host.trim_matches(['[', ']']).parse::<std::net::IpAddr>().ok())
+        .is_some_and(|ip| ip.is_loopback());
+    if base_url.scheme() != "https" && !loopback_http {
+      return Err(CalDavError::Protocol(
+        "CalDAV requires HTTPS outside literal loopback".into(),
+      ));
+    }
+    if !base_url.username().is_empty() || base_url.password().is_some() {
+      return Err(CalDavError::Protocol("CalDAV URL must not contain credentials".into()));
+    }
+    let origin = base_url.origin();
+    let builder = Client::builder()
+      .timeout(Duration::from_secs(30))
+      .user_agent("Myoxus-CalDAV/1.0")
+      .https_only(!loopback_http)
+      .redirect(reqwest::redirect::Policy::custom(move |attempt| {
+        let url = attempt.url();
+        if url.origin() != origin
+          || !url.username().is_empty()
+          || url.password().is_some()
+          || attempt.previous().len() >= 10
+        {
+          attempt.error("CalDAV redirect violates the resource URL policy")
+        } else {
+          attempt.follow()
+        }
+      }));
+    // Loopback HTTP supports local fixtures and proxies without sending their
+    // credentials through a system HTTP proxy.
+    let builder = if loopback_http { builder.no_proxy() } else { builder };
+    let http = crate::tls::build_http_client(builder, additional_ca)
+      .map_err(|e| CalDavError::Protocol(format!("failed to build HTTP client: {e}")))?;
     Ok(Self {
       http,
       base_url,
       credential,
     })
+  }
+
+  fn request(&self, method: Method, url: &str) -> Result<RequestBuilder, CalDavError> {
+    // Provider-supplied resource URLs share the configured credential boundary.
+    let url = Url::parse(url).map_err(|_| CalDavError::Protocol("invalid CalDAV resource URL".into()))?;
+    if url.origin() != self.base_url.origin() || !url.username().is_empty() || url.password().is_some() {
+      return Err(CalDavError::Protocol(
+        "CalDAV resource URL must use the configured origin without embedded credentials".into(),
+      ));
+    }
+    Ok(self.http.request(method, url))
   }
 
   /// Build the `Authorization` header for this credential.
@@ -165,11 +205,10 @@ impl CalDavClient {
 
     trace!(%url, depth, "issuing PROPFIND");
     let response = self
-      .http
       .request(
         reqwest::Method::from_bytes(b"PROPFIND").expect("PROPFIND is valid"),
         url,
-      )
+      )?
       .headers(headers)
       .body(body.to_string())
       .send()
@@ -213,8 +252,7 @@ impl CalDavClient {
 
     trace!(%url, "issuing REPORT");
     let response = self
-      .http
-      .request(reqwest::Method::from_bytes(b"REPORT").expect("REPORT is valid"), url)
+      .request(reqwest::Method::from_bytes(b"REPORT").expect("REPORT is valid"), url)?
       .headers(headers)
       .body(body.to_string())
       .send()
@@ -262,7 +300,7 @@ impl CalDavClient {
   </D:prop>
 </D:propfind>"#;
 
-    let xml = self.propfind(&self.base_url.clone(), "1", propfind_body).await?;
+    let xml = self.propfind(self.base_url.as_str(), "1", propfind_body).await?;
     parse_propfind_calendars(&xml)
   }
 
@@ -441,8 +479,7 @@ impl CalDavClient {
     trace!(%href, "issuing PUT (create)");
 
     let response = self
-      .http
-      .put(&href)
+      .request(Method::PUT, &href)?
       .headers(headers)
       .body(ical_data.to_string())
       .send()
@@ -511,8 +548,7 @@ impl CalDavClient {
     trace!(%event_href, "issuing PUT (update)");
 
     let response = self
-      .http
-      .put(event_href)
+      .request(Method::PUT, event_href)?
       .headers(headers)
       .body(ical_data.to_string())
       .send()
@@ -569,8 +605,7 @@ impl CalDavClient {
     trace!(%event_href, "issuing DELETE");
 
     let response = self
-      .http
-      .delete(event_href)
+      .request(Method::DELETE, event_href)?
       .headers(headers)
       .send()
       .await
@@ -635,11 +670,10 @@ impl CalDavClient {
     trace!(%principal_url, "issuing PROPFIND for scheduling capabilities");
 
     let response = self
-      .http
       .request(
         reqwest::Method::from_bytes(b"PROPFIND").expect("PROPFIND is valid"),
         principal_url,
-      )
+      )?
       .headers(headers)
       .body(propfind_body.to_string())
       .send()
@@ -2001,6 +2035,31 @@ END:VCALENDAR</C:calendar-data>
     assert!(
       matches!(result, Err(CalDavError::EtagConflict)),
       "INV-CAL-W03: 412 from update_event must return EtagConflict, got: {result:?}"
+    );
+  }
+
+  #[test]
+  fn credentialed_requests_require_the_configured_secure_origin() {
+    let cred = CalDavCredential::Basic {
+      username: "fixture".into(),
+      password: "fixture".into(),
+    };
+    assert!(CalDavClient::new("http://calendar.example.test/dav/".into(), cred.clone(), None).is_err());
+    let client = CalDavClient::new("https://calendar.example.test/dav/".into(), cred, None).expect("HTTPS client");
+    assert!(
+      client
+        .request(Method::PUT, "https://calendar.example.test/dav/event.ics")
+        .is_ok()
+    );
+    assert!(
+      client
+        .request(Method::PUT, "http://calendar.example.test/dav/event.ics")
+        .is_err()
+    );
+    assert!(
+      client
+        .request(Method::PUT, "https://other.example.test/dav/event.ics")
+        .is_err()
     );
   }
 

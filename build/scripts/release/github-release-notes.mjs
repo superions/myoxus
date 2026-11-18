@@ -25,8 +25,8 @@ export function renderContainerReleaseNotes({
 
   return [
     '<p align="center">',
-    `  <img src="${raw}/assets/branding/myoxus_text.svg" width="320" alt="Myoxus" /><br />`,
-    `  <img src="${raw}/client/branding/artwork/docs-hero.webp" width="480" alt="The Myoxus dormouse among documents, folders, and a database" />`,
+    `  <img src="${raw}/client/branding/artwork/docs-hero.webp" width="288" alt="The Myoxus dormouse among documents, folders, and a database" />`,
+    `  <img src="${raw}/assets/branding/myoxus_text.svg" width="192" alt="Myoxus" />`,
     "</p>",
     "",
     `## Myoxus ${version}${prerelease ? " · Beta" : ""}`,

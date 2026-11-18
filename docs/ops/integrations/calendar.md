@@ -28,6 +28,11 @@ timeouts remain unchanged. No calendar-specific CA setting is needed; restart
 every worker/server after replacing the bundle. A DB-only legacy Git CA does
 not supply calendar trust. See [configuration](../configuration/README.md).
 
+Use an HTTPS CalDAV URL for remote servers. Resource URLs and redirects must
+keep the configured scheme, host and port, with credentials supplied separately.
+HTTP is allowed for literal loopback IPs, including locally hosted test
+fixtures and proxies. Loopback HTTP bypasses system proxy settings.
+
 ### CalDAV sync interval
 
 ```yaml
