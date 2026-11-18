@@ -227,6 +227,22 @@ existing prepare/publish functions. It never builds, regenerates an SBOM or
 repackages binaries. Missing accepted OCI/native artifacts stop the copy.
 The separate `prepare`/`publish` modes below retain optional exact-plan review.
 
+Publication copies the accepted Server, Web and Admin manifests and layers
+from Forgejo to `ghcr.io/superions` via Crane, using the existing product version
+as the tag. The publisher checks each tag and manifest by digest with anonymous
+registry access before advertising the GHCR coordinates in the public release.
+Forgejo dispatches the public `copy-release-containers.yml` workflow on
+`main` using the release API credential with Actions write access. The
+single copy job uses a short-lived `GITHUB_TOKEN` with Packages write access.
+Forgejo waits for that exact run and checks the public registry independently.
+GitHub initially creates packages as private. Set the three packages to public
+in GitHub Packages and retry the same dispatch to finish the first publication.
+
+Use `mode: backfill-containers` and the existing `version` to mirror an already
+published release. It uses the three digest references recorded in that
+release, verifies the GHCR copies, and updates only those release-note lines.
+The operation can be retried using the same version.
+
 A server-Dockerfile-only repair can retain the accepted frontend tag and images.
 The assembler verifies that the component sources differ only in
 `build/server/Dockerfile`, validates each producer against its own immutable

@@ -56,6 +56,7 @@ printf '%s\n' \
   .github/ISSUE_TEMPLATE/feature_request.yml \
   .github/PULL_REQUEST_TEMPLATE.md \
   .github/copilot-instructions.md \
+  .github/workflows/copy-release-containers.yml \
   >"$expected_github"
 
 if [ -d .github ]; then

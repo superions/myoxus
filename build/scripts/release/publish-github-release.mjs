@@ -9,8 +9,15 @@ import { request as httpsRequest } from "node:https";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
+import { setTimeout as delay } from "node:timers/promises";
 import { gzipSync } from "node:zlib";
 import { readSourceProvenance } from "./source-correspondence.mjs";
+import {
+  containersFromRelease,
+  githubContainerLine,
+  githubContainers,
+  verifyGithubContainers,
+} from "./github-container-registry.mjs";
 
 const REPOSITORY = "superions/myoxus";
 const API = `https://api.github.com/repos/${REPOSITORY}`;
@@ -104,7 +111,14 @@ function localFile(root, relative) {
 async function request(
   fetchImpl,
   url,
-  { method = "GET", token, body, raw = false, missing = false } = {},
+  {
+    method = "GET",
+    token,
+    body,
+    raw = false,
+    missing = false,
+    apiVersion = "2022-11-28",
+  } = {},
 ) {
   const parsed = new URL(url);
   if (parsed.protocol !== "https:" || parsed.username || parsed.password)
@@ -115,7 +129,7 @@ async function request(
         ? "application/octet-stream"
         : "application/vnd.github+json",
     "User-Agent": "Myoxus-release-publisher",
-    "X-GitHub-Api-Version": "2022-11-28",
+    "X-GitHub-Api-Version": apiVersion,
   };
   if (token) headers.Authorization = `Bearer ${token}`;
   if (body !== undefined)
@@ -461,15 +475,7 @@ export async function prepareRelease({
   )
     throw new Error("Explicit release notes are required");
   const containers = input.containers ?? [];
-  if (
-    containers.some(
-      (c) =>
-        !/^git\.blume29\.de\/myoxus\/[a-z-]+@sha256:[0-9a-f]{64}$/.test(
-          c.coordinate,
-        ),
-    )
-  )
-    throw new Error("Container references require exact Forgejo OCI digests");
+  const publicContainers = githubContainers(containers);
   const nativeNotes = includeNative
     ? `\n\nNative server packages (Linux x86_64):\n${assets
         .filter((a) => /\.(deb|rpm)$/.test(a.name))
@@ -480,7 +486,7 @@ export async function prepareRelease({
         .join("\n")}`
     : "";
   const sourceNotes = `Source tree: \`${source.tree}\`\nSource download: ${source.repository}/archive/${source.commit}.tar.gz`;
-  const body = `${notes.trim()}${nativeNotes}\n\nSource: ${source.repository}/tree/${source.commit}\n${sourceNotes}\n${containers.map((c) => `\n- ${c.role}: \`${c.coordinate}\``).join("")}\n`;
+  const body = `${notes.trim()}${nativeNotes}\n\nSource: ${source.repository}/tree/${source.commit}\n${sourceNotes}\n${publicContainers.map((c) => `\n${githubContainerLine(c)}`).join("")}\n`;
   if (body.includes(`github.com/${REPOSITORY}/commit/${revision}`))
     throw new Error("Private build revisions are not GitHub commit URLs");
   const metadataNames = new Set(
@@ -540,6 +546,7 @@ export async function prepareRelease({
       body +
       `\nLegal, SBOM and provenance: https://github.com/${REPOSITORY}/releases/download/${input.tag}/${bundle.name}\n`,
     assets,
+    ...(containers.length ? { containers } : {}),
     ...(homebrew ? { homebrew } : {}),
     ...(desktopName ? { name: desktopName } : {}),
   };
@@ -753,10 +760,47 @@ async function writePublicHomebrewCask(plan, fetchImpl, token) {
     );
 }
 
+async function dispatchContainerCopy(containers, version, token, fetchImpl) {
+  const inputs = {
+    version,
+    ...Object.fromEntries(containers.map(({ role, digest }) => [role, digest])),
+  };
+  const dispatch = await request(
+    fetchImpl,
+    `${API}/actions/workflows/copy-release-containers.yml/dispatches`,
+    {
+      method: "POST",
+      apiVersion: "2026-03-10",
+      token,
+      body: { ref: "main", inputs },
+    },
+  );
+  const id = dispatch?.workflow_run_id;
+  if (!Number.isSafeInteger(id) || id <= 0)
+    throw new Error("GitHub did not return a GHCR copy run ID");
+  const url = `https://github.com/${REPOSITORY}/actions/runs/${id}`;
+  console.log(`GHCR copy: ${url}`);
+  const deadline = Date.now() + 35 * 60_000;
+  while (Date.now() < deadline) {
+    const run = await request(fetchImpl, `${API}/actions/runs/${id}`, {
+      token,
+    });
+    if (run.status === "completed") {
+      if (run.conclusion !== "success")
+        throw new Error(`GHCR copy ended with ${run.conclusion}: ${url}`);
+      verifyGithubContainers(containers, version);
+      return;
+    }
+    await delay(10_000);
+  }
+  throw new Error(`Timed out waiting for GHCR copy: ${url}`);
+}
+
 export async function publishPreparedRelease({
   planFile,
   expectedSha256,
   token,
+  copyContainers = dispatchContainerCopy,
   fetchImpl = fetch,
 }) {
   if (
@@ -788,6 +832,22 @@ export async function publishPreparedRelease({
     throw new Error(
       "Existing release metadata differs from the reviewed candidate",
     );
+  const containers = githubContainers(plan.containers ?? []);
+  if (containers.length) {
+    if (
+      containers.some(
+        (entry) => !plan.body.split("\n").includes(githubContainerLine(entry)),
+      )
+    )
+      throw new Error(
+        "Approved release body must include each exact GHCR reference",
+      );
+    await copyContainers(containers, plan.version, token, fetchImpl);
+  } else if (
+    /^- (server|web|admin): `git\.blume29\.de\/myoxus\//m.test(plan.body)
+  ) {
+    throw new Error("Reprepare the legacy OCI plan for GHCR publication");
+  }
   if (!release)
     release = await request(fetchImpl, `${API}/releases`, {
       method: "POST",
@@ -848,6 +908,57 @@ export async function publishPreparedRelease({
   return { id: release.id, alreadyPublished: false };
 }
 
+export async function backfillGithubContainers({
+  version,
+  token,
+  copyContainers = dispatchContainerCopy,
+  fetchImpl = fetch,
+}) {
+  if (!/^\d+\.\d+\.\d+$/.test(version ?? "") || !token)
+    throw new Error(
+      "Backfill requires a complete version and GITHUB_RELEASE_TOKEN",
+    );
+  const tag = `v${version}`;
+  const url = `${API}/releases/tags/${tag}`;
+  const release = await request(fetchImpl, url, { token });
+  if (release.draft || release.tag_name !== tag)
+    throw new Error("Backfill requires an existing public release");
+  const existing = containersFromRelease(release.body);
+  const containers = githubContainers(existing);
+  await copyContainers(containers, version, token, fetchImpl);
+  const replacements = new Map(
+    existing.map((entry, index) => [
+      entry.line,
+      githubContainerLine(containers[index]),
+    ]),
+  );
+  const body = release.body
+    .split(/(\r?\n)/)
+    .map((line) => replacements.get(line) ?? line)
+    .join("");
+  const current = await request(fetchImpl, url, { token });
+  if (
+    current.id !== release.id ||
+    current.draft ||
+    current.body !== release.body
+  )
+    throw new Error(
+      "GitHub release changed during GHCR publication; retry against the current release",
+    );
+  if (body !== current.body)
+    await request(fetchImpl, `${API}/releases/${release.id}`, {
+      method: "PATCH",
+      token,
+      body: { body },
+    });
+  const published = await request(fetchImpl, url);
+  if (published.id !== release.id || published.body !== body)
+    throw new Error(
+      "GitHub release did not expose the verified GHCR references",
+    );
+  return { id: release.id, updated: body !== release.body };
+}
+
 if (
   process.argv[1] &&
   import.meta.url === pathToFileURL(process.argv[1]).href
@@ -858,6 +969,7 @@ if (
     strict: true,
     options: {
       input: { type: "string" },
+      version: { type: "string" },
       output: { type: "string" },
       plan: { type: "string" },
       "expected-plan-sha256": { type: "string" },
@@ -875,6 +987,15 @@ if (
     console.log(
       `Prepared ${result.plan.assets.length} exact assets; plan SHA-256 ${result.sha256}. No GitHub write was made.`,
     );
+  } else if (mode === "backfill-containers") {
+    console.log(
+      JSON.stringify(
+        await backfillGithubContainers({
+          version: values.version,
+          token: process.env.GITHUB_RELEASE_TOKEN,
+        }),
+      ),
+    );
   } else if (mode === "publish" && values.plan) {
     console.log(
       JSON.stringify(
@@ -887,6 +1008,6 @@ if (
     );
   } else
     throw new Error(
-      "Use prepare --input <allowlist.json> --output <new-directory>, or publish --plan <prepared-plan.json> --expected-plan-sha256 <reviewed-digest>",
+      "Use prepare --input <allowlist.json> --output <new-directory>, publish --plan <prepared-plan.json> --expected-plan-sha256 <reviewed-digest>, or backfill-containers --version <version>",
     );
 }

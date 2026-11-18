@@ -386,7 +386,7 @@ export type MyoxusNavigationLinkProps = Omit<
    * Semantic navigation role. Row layout, hover and active state remain native
    * Mantine NavLink behavior; do not add Facade CSS classes for those states.
    */
-  variant?: "default" | "sidebar";
+  variant?: "default" | "sidebar" | "compact-sidebar";
   component?: ElementType;
   to?: unknown;
   href?: string;
@@ -399,6 +399,11 @@ export type MyoxusNavigationLinkProps = Omit<
 
 const SIDEBAR_NAV_BLOCK_PADDING =
   "calc(var(--mantine-spacing-xs) + var(--mantine-spacing-2xs))";
+
+// Dense tree rows use their label line height and a small inset. The padding
+// of primary navigation links would compound across consecutive tree rows.
+const COMPACT_SIDEBAR_NAV_BLOCK_PADDING =
+  "calc(var(--mantine-spacing-2xs) / 2)";
 
 export const SIDEBAR_NAV_ICON_SIZE =
   "calc(var(--mantine-spacing-lg) + var(--mantine-spacing-2xs))";
@@ -437,6 +442,7 @@ export const NavigationLink = forwardRef<
 ) {
   const narrowViewport = useResponsiveSmQuery();
   const resolvedCollapsed = collapsed === "narrow" ? narrowViewport : collapsed;
+  const isSidebar = variant !== "default";
 
   return (
     <MantineNavLink
@@ -468,16 +474,22 @@ export const NavigationLink = forwardRef<
       data-myoxus-ui-tone={tone === "default" ? undefined : tone}
       data-myoxus-ui-variant={variant}
       data-myoxus-ui-collapsed={resolvedCollapsed ? "true" : undefined}
-      maw={variant === "sidebar" ? "100%" : undefined}
-      miw={variant === "sidebar" ? 0 : undefined}
+      maw={isSidebar ? "100%" : undefined}
+      miw={isSidebar ? 0 : undefined}
       opened={opened}
       onChange={onOpenedChange}
       py={
-        variant === "sidebar"
-          ? { base: "sm", sm: SIDEBAR_NAV_BLOCK_PADDING }
+        isSidebar
+          ? {
+              base: "sm",
+              sm:
+                variant === "compact-sidebar"
+                  ? COMPACT_SIDEBAR_NAV_BLOCK_PADDING
+                  : SIDEBAR_NAV_BLOCK_PADDING,
+            }
           : undefined
       }
-      w={variant === "sidebar" ? "100%" : undefined}
+      w={isSidebar ? "100%" : undefined}
     >
       {resolvedCollapsed ? null : children}
     </MantineNavLink>

@@ -442,6 +442,7 @@ test("desktop copy preserves producer bytes, binds separate public source and pu
 
 test("failed upload stays a draft; same-byte retry completes once and is idempotent", async (t) => {
   const f = fixture(t);
+  let ghcrVerified = false;
   const prepared = await prepareRelease({
     inputFile: f.inputFile,
     outputDir: path.join(f.root, "prepared"),
@@ -452,12 +453,33 @@ test("failed upload stays a draft; same-byte retry completes once and is idempot
     expectedSha256: prepared.sha256,
     token,
     fetchImpl: f.fetchImpl,
+    copyContainers: async (containers, releaseVersion) => {
+      assert.equal(releaseVersion, version);
+      assert.deepEqual(
+        containers.map(({ source }) => source),
+        f.input.containers.map(({ coordinate }) => coordinate),
+      );
+      if (!ghcrVerified) throw new Error("GHCR digest verification failed");
+    },
   };
+  await assert.rejects(
+    publishPreparedRelease(options),
+    /GHCR digest verification failed/,
+  );
+  assert.equal(f.state.writes.length, 0);
+  ghcrVerified = true;
   f.state.failNextUpload = true;
   await assert.rejects(publishPreparedRelease(options), /HTTP 503/);
   assert.equal(f.state.release.draft, true);
   assert.equal(f.state.tagCommit, undefined);
   assert.equal((await publishPreparedRelease(options)).alreadyPublished, false);
+  for (const { coordinate } of f.input.containers) {
+    assert.ok(
+      f.state.release.body.includes(
+        coordinate.replace("git.blume29.de/myoxus/", "ghcr.io/superions/"),
+      ),
+    );
+  }
   const writes = f.state.writes.length;
   assert.equal((await publishPreparedRelease(options)).alreadyPublished, true);
   assert.equal(f.state.writes.length, writes);

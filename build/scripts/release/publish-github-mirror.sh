@@ -47,7 +47,7 @@ desired_settings() {
   "branch_protection": {"required_status_checks":null,"enforce_admins":true,"required_pull_request_reviews":null,"restrictions":null,"required_linear_history":true,"allow_force_pushes":false,"allow_deletions":false,"block_creations":false,"required_conversation_resolution":true,"lock_branch":false,"allow_fork_syncing":true},
   "actions_permissions": {"enabled":true,"allowed_actions":"local_only"},
   "workflow_permissions": {"default_workflow_permissions":"read","can_approve_pull_request_reviews":false},
-  "public_services": {"pull_requests":"enabled","security_reporting":"SECURITY.md","pages":"disabled","packages":"no publication or package-write permission","github_hosted_release_builds":"disabled"},
+  "public_services": {"pull_requests":"enabled","security_reporting":"SECURITY.md","pages":"disabled","packages":"accepted OCI images published by the Forgejo release workflow","github_hosted_release_builds":"disabled"},
   "publication_credential": {"kind":"repository-scoped fine-grained token","repository":"superions/myoxus only","permissions":{"metadata":"read","contents":"write","administration":"write","actions":"write"}}
 }
 EOF

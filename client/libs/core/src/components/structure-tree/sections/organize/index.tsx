@@ -326,7 +326,7 @@ export const StructureTreeOrganizeTree = ({
         <SidebarNavSectionHeading>
           {t["com.myoxus.sidebar.hierarchy.folders"]()}
         </SidebarNavSectionHeading>
-        <StructureTreeRoot>
+        <StructureTreeRoot density="compact">
           <StructureTreeNode
             icon={StructureTreeHomeIcon}
             name={

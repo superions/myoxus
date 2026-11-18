@@ -566,8 +566,10 @@ export const StructureTreeNode = ({
       tabIndex={keyboardInteractive ? 0 : undefined}
       label={rowLabel}
       leftSection={
-        <StructureTreeLeading>
-          {collapseControl}
+        <StructureTreeLeading
+          alignDisclosure={level > 0}
+          disclosure={collapseControl}
+        >
           <StructureTreeIconSlot>
             <IconRenderer data={explorerIcon?.icon} fallback={fallbackIcon} />
           </StructureTreeIconSlot>

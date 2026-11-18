@@ -1,0 +1,55 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+name: Copy accepted Myoxus images to GHCR
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Accepted Myoxus release version
+        required: true
+        type: string
+      server:
+        description: Accepted server manifest digest
+        required: true
+        type: string
+      web:
+        description: Accepted Web manifest digest
+        required: true
+        type: string
+      admin:
+        description: Accepted Admin manifest digest
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: myoxus-ghcr-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  copy:
+    if: github.repository == 'superions/myoxus' && github.ref == 'refs/heads/main' && github.actor == 'superions'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      packages: write
+    steps:
+      - name: Load the copy script and pinned registry tool
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --max-time 30 \
+            "https://raw.githubusercontent.com/superions/myoxus/$GITHUB_SHA/build/scripts/release/github-container-registry.mjs" \
+            -o "$RUNNER_TEMP/github-container-registry.mjs"
+          GOBIN="$RUNNER_TEMP/myoxus-release-tools" GOTOOLCHAIN=local \
+            go install github.com/google/go-containerregistry/cmd/crane@v0.20.6
+          echo "$RUNNER_TEMP/myoxus-release-tools" >> "$GITHUB_PATH"
+
+      - name: Copy the accepted manifests and layers
+        env:
+          GHCR_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ inputs.version }}
+          SERVER_DIGEST: ${{ inputs.server }}
+          WEB_DIGEST: ${{ inputs.web }}
+          ADMIN_DIGEST: ${{ inputs.admin }}
+        run: node "$RUNNER_TEMP/github-container-registry.mjs"

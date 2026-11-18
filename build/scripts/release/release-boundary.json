@@ -29,6 +29,7 @@
         ".github/ISSUE_TEMPLATE/config.yml",
         ".github/PULL_REQUEST_TEMPLATE.md"
       ],
+      "allowedGitHubWorkflow": ".github/workflows/copy-release-containers.yml",
       "excludedGeneratedOrLocalPaths": [
         ".github/workflows/**",
         "server/crates/api/test-storage/**",

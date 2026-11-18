@@ -3,10 +3,12 @@
 import {
   type PropsWithChildren,
   type HTMLAttributes,
+  createContext,
   forwardRef,
   type ElementType,
   type ReactNode,
   type ButtonHTMLAttributes,
+  useContext,
   useState,
   type FocusEvent,
   type MouseEvent as ReactMouseEvent,
@@ -55,13 +57,21 @@ type StructureTreeDivProps = PropsWithChildren<
   }
 >;
 
+const StructureTreeDensity = createContext<"compact" | undefined>(undefined);
+const COMPACT_DISCLOSURE_SIZE =
+  "calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))";
+
 export const StructureTreeRoot = forwardRef<
   HTMLDivElement,
-  StructureTreeDivProps
+  StructureTreeDivProps & {
+    /** Use the compact row and disclosure layout for this tree. */
+    density?: "compact";
+  }
 >(function StructureTreeRoot(
   {
     children,
     className,
+    density,
     "data-myoxus-ui-role": uiRole = "structure-tree",
     ...props
   },
@@ -77,7 +87,9 @@ export const StructureTreeRoot = forwardRef<
       miw={0}
       w="100%"
     >
-      {children}
+      <StructureTreeDensity.Provider value={density}>
+        {children}
+      </StructureTreeDensity.Provider>
     </Box>
   );
 });
@@ -182,6 +194,7 @@ export const StructureTreeRow = forwardRef<HTMLElement, StructureTreeRowProps>(
     },
     ref,
   ) {
+    const compact = useContext(StructureTreeDensity) === "compact";
     const hoverCapable = useMediaQuery("(hover: hover)", undefined, {
       getInitialValueInEffect: false,
     });
@@ -189,6 +202,9 @@ export const StructureTreeRow = forwardRef<HTMLElement, StructureTreeRowProps>(
     const [focusWithin, setFocusWithin] = useState(false);
     const actionsVisible =
       rightSectionAlwaysVisible || !hoverCapable || hovered || focusWithin;
+    // Compact trees give the resting label the space held by contextual
+    // actions. The disclosure column and depth already take up inline space.
+    const showRightSection = rightSection && (!compact || actionsVisible);
 
     return (
       <NavigationLink
@@ -228,7 +244,7 @@ export const StructureTreeRow = forwardRef<HTMLElement, StructureTreeRowProps>(
         }}
         ref={ref}
         rightSection={
-          rightSection ? (
+          showRightSection ? (
             <Box
               component="span"
               inert={actionsVisible ? undefined : true}
@@ -240,25 +256,38 @@ export const StructureTreeRow = forwardRef<HTMLElement, StructureTreeRowProps>(
           ) : undefined
         }
         type={component === "button" ? (type ?? "button") : type}
-        variant="sidebar"
+        variant={compact ? "compact-sidebar" : "sidebar"}
       />
     );
   },
 );
 
 export function StructureTreeLeading({
+  alignDisclosure,
   children,
   className,
+  disclosure,
   ...props
-}: StructureTreeDivProps) {
+}: StructureTreeDivProps & {
+  /** Reserve the disclosure column for rows that share a nesting level. */
+  alignDisclosure?: boolean;
+  disclosure?: ReactNode;
+}) {
+  const compact = useContext(StructureTreeDensity) === "compact";
   return (
     <Group
       {...props}
-      gap="xs"
+      gap={compact ? "2xs" : "xs"}
       wrap="nowrap"
       className={joinClassName(STRUCTURE_TREE_CLASS_NAMES.leading, className)}
       data-myoxus-ui-role="structure-tree-row-leading"
     >
+      {/* A leaf has the same icon origin as a branch at its depth. Without
+          this slot, a document can start to the left of its parent folder. */}
+      {disclosure ??
+        (compact && alignDisclosure ? (
+          <Box component="span" aria-hidden w={COMPACT_DISCLOSURE_SIZE} />
+        ) : null)}
       {children}
     </Group>
   );
@@ -308,6 +337,7 @@ export const StructureTreeCollapseButton = forwardRef<
   },
   ref,
 ) {
+  const compact = useContext(StructureTreeDensity) === "compact";
   return (
     <ActionIcon
       {...props}
@@ -321,7 +351,7 @@ export const StructureTreeCollapseButton = forwardRef<
       data-disabled={disabled || !collapsible ? true : undefined}
       data-myoxus-ui-role={uiRole}
       disabled={disabled || !collapsible}
-      size="md"
+      size={compact ? COMPACT_DISCLOSURE_SIZE : "md"}
       tabIndex={collapsible ? props.tabIndex : -1}
       type={type}
       variant={collapsible ? "subtle" : "transparent"}

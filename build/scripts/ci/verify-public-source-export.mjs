@@ -89,8 +89,8 @@ const FORBIDDEN_DIRECTORY_ENTRIES = [
   "server/crates/api/test-storage/",
   "tests/client/shared/fixtures/alpha/",
   "virgultum/icons/dist/",
-  ".github/workflows/",
 ];
+const PUBLIC_GHCR_WORKFLOW = ".github/workflows/copy-release-containers.yml";
 
 function sha256OfFile(path) {
   const data = readFileSync(path);
@@ -175,6 +175,7 @@ function validateExport(
     }
   }
   for (const entry of fileEntries) {
+    if (entry === PUBLIC_GHCR_WORKFLOW) continue;
     if (
       /^tests\/(?:.*\/)?readme[^/]*$/i.test(entry) ||
       entry === "build/test-matrix/README.md" ||

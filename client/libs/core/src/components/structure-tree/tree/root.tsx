@@ -16,7 +16,7 @@
  * @param placeholder        - Element shown when there are no children.
  */
 import { StructureTreeRoot as StructureTreeRootFrame } from "@myoxus/ui-facade";
-import { useMemo, useState } from "react";
+import { type ComponentProps, useMemo, useState } from "react";
 
 import { StructureTreeContext } from "./context";
 import type { NodeOperation } from "./types";
@@ -24,11 +24,13 @@ import type { NodeOperation } from "./types";
 export const StructureTreeRoot = ({
   children,
   childrenOperations = [],
+  density,
   placeholder,
 }: {
   children?: React.ReactNode;
   childrenOperations?: NodeOperation[];
   className?: string;
+  density?: ComponentProps<typeof StructureTreeRootFrame>["density"];
   placeholder?: React.ReactNode;
 }) => {
   const [childCount, setChildCount] = useState(0);
@@ -44,7 +46,7 @@ export const StructureTreeRoot = ({
   }, [childrenOperations]);
 
   return (
-    <StructureTreeRootFrame>
+    <StructureTreeRootFrame density={density}>
       {childCount === 0 ? placeholder : null}
       <StructureTreeContext.Provider value={contextValue}>
         {children}
