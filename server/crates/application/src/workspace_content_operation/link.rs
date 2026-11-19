@@ -7,10 +7,7 @@
 //! denied-or-missing result and therefore cannot use links to enumerate
 //! inaccessible resources.
 
-use std::{
-  collections::{HashMap, HashSet},
-  sync::Arc,
-};
+use std::{collections::HashMap, sync::Arc};
 
 use myoxus_domain::permission::{DocAction, WorkspaceAction};
 use myoxus_domain::workspace_content_operation::{
@@ -67,6 +64,21 @@ pub enum WorkspaceContentLinkError {
 pub struct WorkspaceContentBacklink {
   pub containing_workspace_id: Uuid,
   pub row: OrganizerRow,
+}
+
+/// A read-only entry in a linked folder, qualified by its owning workspace.
+#[derive(Debug, PartialEq, Eq)]
+pub struct LinkedFolderEntry {
+  pub workspace_id: Uuid,
+  pub id: String,
+  pub row_type: String,
+  pub name: String,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct LinkedFolder {
+  pub name: String,
+  pub children: Vec<LinkedFolderEntry>,
 }
 
 /// Shared link handler used by server transports and XWS workers.
@@ -214,41 +226,13 @@ impl WorkspaceContentLinkService {
       .await?;
     let snapshot = self.organizer.snapshot(containing_workspace_id).await?;
     let rows = flatten_rows(&snapshot.roots);
-    let mut document_keys: HashMap<Uuid, Vec<String>> = HashMap::new();
-    for row in rows.iter().filter(|row| row.row_type == "doc") {
-      if DocumentKey::parse(row.data.clone()).is_ok() {
-        document_keys
-          .entry(row.target_workspace_id.unwrap_or(containing_workspace_id))
-          .or_default()
-          .push(row.data.clone());
-      }
-    }
-    let mut readable_keys = HashSet::new();
-    for (workspace, keys) in document_keys {
-      for keys in keys.chunks(200) {
-        let metadata = self
-          .doc
-          .metadata_by_external_keys(workspace, keys)
-          .await
-          .map_err(|_| WorkspaceContentLinkError::DependencyUnavailable)?;
-        let ids = metadata.values().map(|doc| doc.id).collect::<Vec<_>>();
-        let readable = self
-          .permission
-          .readable_doc_ids(actor_id, workspace, &ids)
-          .await
-          .map_err(|_| WorkspaceContentLinkError::DependencyUnavailable)?;
-        readable_keys.extend(
-          metadata
-            .into_iter()
-            .filter(|(_, doc)| readable.contains(&doc.id))
-            .map(|(key, _)| (workspace, key)),
-        );
-      }
-    }
+    let readable_keys = self
+      .readable_document_titles(actor_id, containing_workspace_id, rows.iter())
+      .await?;
     let mut visible = Vec::new();
     for row in rows.into_iter().filter(|row| !row.is_folder()) {
       if row.row_type == "doc" {
-        if readable_keys.contains(&(
+        if readable_keys.contains_key(&(
           row.target_workspace_id.unwrap_or(containing_workspace_id),
           row.data.clone(),
         )) {
@@ -270,6 +254,105 @@ impl WorkspaceContentLinkService {
       }
     }
     Ok((snapshot.revision, visible))
+  }
+
+  async fn readable_document_titles<'a>(
+    &self,
+    actor_id: Uuid,
+    containing_workspace_id: Uuid,
+    rows: impl Iterator<Item = &'a OrganizerRow>,
+  ) -> Result<HashMap<(Uuid, String), String>, WorkspaceContentLinkError> {
+    let mut document_keys: HashMap<Uuid, Vec<String>> = HashMap::new();
+    for row in rows.filter(|row| row.row_type == "doc") {
+      if DocumentKey::parse(row.data.clone()).is_ok() {
+        document_keys
+          .entry(row.target_workspace_id.unwrap_or(containing_workspace_id))
+          .or_default()
+          .push(row.data.clone());
+      }
+    }
+    let mut titles = HashMap::new();
+    for (workspace, keys) in document_keys {
+      for keys in keys.chunks(200) {
+        let metadata = self
+          .doc
+          .metadata_by_external_keys(workspace, keys)
+          .await
+          .map_err(|_| WorkspaceContentLinkError::DependencyUnavailable)?;
+        let ids = metadata.values().map(|doc| doc.id).collect::<Vec<_>>();
+        let readable = self
+          .permission
+          .readable_doc_ids(actor_id, workspace, &ids)
+          .await
+          .map_err(|_| WorkspaceContentLinkError::DependencyUnavailable)?;
+        titles.extend(
+          metadata
+            .into_iter()
+            .filter(|(_, doc)| doc.deleted_at.is_none() && !doc.blocked && readable.contains(&doc.id))
+            .map(|(key, doc)| ((workspace, key), doc.title)),
+        );
+      }
+    }
+    Ok(titles)
+  }
+
+  /// Read only the direct children of the requested source folder. Foreign
+  /// folders remain references, so a cycle cannot recurse inside a request.
+  pub async fn linked_folder(
+    &self,
+    actor_id: Uuid,
+    workspace_id: Uuid,
+    folder_id: &str,
+    include_children: bool,
+  ) -> Result<LinkedFolder, WorkspaceContentLinkError> {
+    self
+      .assert_workspace_action(actor_id, workspace_id, WorkspaceAction::Read)
+      .await?;
+    let snapshot = self.organizer.snapshot(workspace_id).await?;
+    let node = snapshot
+      .folder(folder_id)
+      .ok_or(WorkspaceContentLinkError::DeniedOrMissing)?;
+    let mut folder = LinkedFolder {
+      name: node.row.data.clone(),
+      children: Vec::new(),
+    };
+    if !include_children {
+      return Ok(folder);
+    }
+    let titles = self
+      .readable_document_titles(actor_id, workspace_id, node.children.iter().map(|child| &child.row))
+      .await?;
+    for child in &node.children {
+      let row = &child.row;
+      let owner = row.effective_target_workspace_id(workspace_id);
+      let (id, name) = if row.is_folder() {
+        (row.id.clone(), Some(row.data.clone()))
+      } else if row.row_type == "doc" {
+        (row.data.clone(), titles.get(&(owner, row.data.clone())).cloned())
+      } else {
+        (
+          row.data.clone(),
+          self
+            .target_label(
+              actor_id,
+              workspace_id,
+              row.link_type()?,
+              &row.data,
+              row.target_workspace_id,
+            )
+            .await?,
+        )
+      };
+      if let Some(name) = name {
+        folder.children.push(LinkedFolderEntry {
+          workspace_id: if row.is_folder() { workspace_id } else { owner },
+          id,
+          name,
+          row_type: row.row_type.clone(),
+        });
+      }
+    }
+    Ok(folder)
   }
 
   /// Resolve backlinks without exposing either the target or hidden containers.
@@ -376,11 +459,33 @@ impl WorkspaceContentLinkService {
     target_id: &str,
     target_workspace_id: Option<Uuid>,
   ) -> Result<bool, WorkspaceContentLinkError> {
+    Ok(
+      self
+        .target_label(
+          actor_id,
+          containing_workspace_id,
+          target_type,
+          target_id,
+          target_workspace_id,
+        )
+        .await?
+        .is_some(),
+    )
+  }
+
+  async fn target_label(
+    &self,
+    actor_id: Uuid,
+    containing_workspace_id: Uuid,
+    target_type: OrganizerLinkType,
+    target_id: &str,
+    target_workspace_id: Option<Uuid>,
+  ) -> Result<Option<String>, WorkspaceContentLinkError> {
     let workspace_id = target_workspace_id.unwrap_or(containing_workspace_id);
     match target_type {
       OrganizerLinkType::Doc => {
         let Ok(document_key) = DocumentKey::parse(target_id) else {
-          return Ok(false);
+          return Ok(None);
         };
         let Some(doc_id) = self
           .doc
@@ -388,7 +493,7 @@ impl WorkspaceContentLinkService {
           .await
           .map_err(|_| WorkspaceContentLinkError::DependencyUnavailable)?
         else {
-          return Ok(false);
+          return Ok(None);
         };
         let Some(metadata) = self
           .doc
@@ -396,10 +501,10 @@ impl WorkspaceContentLinkService {
           .await
           .map_err(|_| WorkspaceContentLinkError::DependencyUnavailable)?
         else {
-          return Ok(false);
+          return Ok(None);
         };
-        if metadata.workspace_id != Some(workspace_id) || metadata.deleted_at.is_some() {
-          return Ok(false);
+        if metadata.workspace_id != Some(workspace_id) || metadata.deleted_at.is_some() || metadata.blocked {
+          return Ok(None);
         }
         // A storage failure is not evidence that a previously visible link
         // disappeared. Current-state consumers must fail closed, not publish a
@@ -410,7 +515,8 @@ impl WorkspaceContentLinkService {
             .get_effective_doc_role(actor_id, workspace_id, doc_id)
             .await
             .map_err(|_| WorkspaceContentLinkError::DependencyUnavailable)?
-            .can(DocAction::Read),
+            .can(DocAction::Read)
+            .then_some(metadata.title),
         )
       }
       OrganizerLinkType::Database => {
@@ -418,11 +524,14 @@ impl WorkspaceContentLinkService {
           return Err(WorkspaceContentLinkError::DependencyUnavailable);
         };
         let Ok(database_id) = Uuid::parse_str(target_id) else {
-          return Ok(false);
+          return Ok(None);
         };
         match database.get_database(actor_id, database_id).await {
-          Ok(record) => Ok(record.database.workspace_id == workspace_id && record.database.deleted_at.is_none()),
-          Err(error) if matches!(error.code, ERR_NOT_FOUND | ERR_FORBIDDEN) => Ok(false),
+          Ok(record) => Ok(
+            (record.database.workspace_id == workspace_id && record.database.deleted_at.is_none())
+              .then_some(record.database.title),
+          ),
+          Err(error) if matches!(error.code, ERR_NOT_FOUND | ERR_FORBIDDEN) => Ok(None),
           Err(_) => Err(WorkspaceContentLinkError::DependencyUnavailable),
         }
       }
@@ -431,18 +540,18 @@ impl WorkspaceContentLinkService {
           return Err(WorkspaceContentLinkError::DependencyUnavailable);
         };
         let Ok(tag_id) = Uuid::parse_str(target_id) else {
-          return Ok(false);
+          return Ok(None);
         };
         if !self
           .workspace_action_allowed(actor_id, workspace_id, WorkspaceAction::PropertiesRead)
           .await
         {
-          return Ok(false);
+          return Ok(None);
         }
         match tags.get_tag(actor_id, workspace_id, tag_id).await {
-          Ok(Some(tag)) => Ok(tag.workspace_id == workspace_id && tag.archived_at.is_none()),
-          Ok(None) => Ok(false),
-          Err(error) if matches!(error.code, ERR_TAG_NOT_FOUND | ERR_TAG_FORBIDDEN) => Ok(false),
+          Ok(Some(tag)) => Ok((tag.workspace_id == workspace_id && tag.archived_at.is_none()).then_some(tag.name)),
+          Ok(None) => Ok(None),
+          Err(error) if matches!(error.code, ERR_TAG_NOT_FOUND | ERR_TAG_FORBIDDEN) => Ok(None),
           Err(_) => Err(WorkspaceContentLinkError::DependencyUnavailable),
         }
       }
@@ -451,7 +560,7 @@ impl WorkspaceContentLinkService {
           .workspace_action_allowed(actor_id, workspace_id, WorkspaceAction::OrganizeRead)
           .await
         {
-          return Ok(false);
+          return Ok(None);
         }
         let root = self
           .doc
@@ -463,19 +572,38 @@ impl WorkspaceContentLinkService {
         Ok(
           collections
             .iter()
-            .any(|value| value.get("id").and_then(serde_json::Value::as_str) == Some(target_id)),
+            .find(|value| value.get("id").and_then(serde_json::Value::as_str) == Some(target_id))
+            .map(|value| {
+              value
+                .get("name")
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or_default()
+                .to_owned()
+            }),
         )
+      }
+      OrganizerLinkType::FolderLink => {
+        if target_workspace_id.is_none()
+          || !self
+            .workspace_action_allowed(actor_id, workspace_id, WorkspaceAction::Read)
+            .await
+        {
+          return Ok(None);
+        }
+        let snapshot = self.organizer.snapshot(workspace_id).await?;
+        Ok(snapshot.folder(target_id).map(|node| node.row.data.clone()))
       }
       OrganizerLinkType::Workspace => {
         let Ok(target) = Uuid::parse_str(target_id) else {
-          return Ok(false);
+          return Ok(None);
         };
         Ok(
-          target == workspace_id
+          (target == workspace_id
             && target_workspace_id == Some(target)
             && self
               .workspace_action_allowed(actor_id, workspace_id, WorkspaceAction::Read)
-              .await,
+              .await)
+            .then(String::new),
         )
       }
     }
@@ -601,9 +729,8 @@ impl WorkspaceContentLinkExecutor {
       WorkspaceContentResourceKind::Document => OrganizerLinkType::Doc,
       WorkspaceContentResourceKind::Database => OrganizerLinkType::Database,
       WorkspaceContentResourceKind::Tag => OrganizerLinkType::Tag,
-      WorkspaceContentResourceKind::Folder
-      | WorkspaceContentResourceKind::Blob
-      | WorkspaceContentResourceKind::Collection => {
+      WorkspaceContentResourceKind::Folder => OrganizerLinkType::FolderLink,
+      WorkspaceContentResourceKind::Blob | WorkspaceContentResourceKind::Collection => {
         return self
           .fail_with_code(
             record,

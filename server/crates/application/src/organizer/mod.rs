@@ -212,6 +212,7 @@ impl OrganizerError {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum OrganizerLinkType {
+  FolderLink,
   Doc,
   Database,
   Collection,
@@ -222,6 +223,7 @@ pub enum OrganizerLinkType {
 impl OrganizerLinkType {
   pub fn parse(value: &str) -> Result<Self, OrganizerError> {
     match value {
+      "folder_link" => Ok(Self::FolderLink),
       "doc" => Ok(Self::Doc),
       "database" => Ok(Self::Database),
       "collection" => Ok(Self::Collection),
@@ -233,6 +235,7 @@ impl OrganizerLinkType {
 
   pub const fn as_str(self) -> &'static str {
     match self {
+      Self::FolderLink => "folder_link",
       Self::Doc => "doc",
       Self::Database => "database",
       Self::Collection => "collection",
@@ -244,6 +247,7 @@ impl OrganizerLinkType {
 
 fn organizer_resource_kind(link_type: OrganizerLinkType) -> Result<WorkspaceContentResourceKind, OrganizerError> {
   match link_type {
+    OrganizerLinkType::FolderLink => Ok(WorkspaceContentResourceKind::Folder),
     OrganizerLinkType::Doc => Ok(WorkspaceContentResourceKind::Document),
     OrganizerLinkType::Database => Ok(WorkspaceContentResourceKind::Database),
     OrganizerLinkType::Collection => Ok(WorkspaceContentResourceKind::Collection),
@@ -291,6 +295,7 @@ impl OrganizerRow {
       (WorkspaceContentResourceKind::Folder, self.id.as_str())
     } else {
       let kind = match self.link_type()? {
+        OrganizerLinkType::FolderLink => WorkspaceContentResourceKind::Folder,
         OrganizerLinkType::Doc => WorkspaceContentResourceKind::Document,
         OrganizerLinkType::Database => WorkspaceContentResourceKind::Database,
         OrganizerLinkType::Tag => WorkspaceContentResourceKind::Tag,
@@ -327,6 +332,19 @@ pub struct OrganizerSnapshot {
 }
 
 impl OrganizerSnapshot {
+  pub fn folder(&self, id: &str) -> Option<&OrganizerSnapshotNode> {
+    fn find_folder<'a>(nodes: &'a [OrganizerSnapshotNode], id: &str) -> Option<&'a OrganizerSnapshotNode> {
+      nodes.iter().filter(|node| node.row.is_folder()).find_map(|node| {
+        if node.row.id == id {
+          Some(node)
+        } else {
+          find_folder(&node.children, id)
+        }
+      })
+    }
+    find_folder(&self.roots, id)
+  }
+
   /// Decode a transaction-local system snapshot with the canonical Organizer codec.
   pub fn from_update(workspace_id: Uuid, update: &[u8]) -> Result<Self, OrganizerError> {
     OrganizerDocument::decode(update.to_vec())?.snapshot(workspace_id)
@@ -688,7 +706,7 @@ impl<P: OrganizerDocumentPort> OrganizerService<P> {
       }
       let mut transferred = source_row.clone();
       transferred.parent_id = Some((*parent_id).to_string());
-      if link_type != OrganizerLinkType::Workspace {
+      if !matches!(link_type, OrganizerLinkType::Workspace | OrganizerLinkType::FolderLink) {
         project_reference_row(
           &mut transferred,
           source_workspace_id,
@@ -937,7 +955,7 @@ impl<P: OrganizerDocumentPort> OrganizerService<P> {
               continue;
             }
             transferred.target_workspace_id = Some(source_target_workspace);
-          } else if link_type != OrganizerLinkType::Workspace {
+          } else if !matches!(link_type, OrganizerLinkType::Workspace | OrganizerLinkType::FolderLink) {
             project_reference_row(
               &mut transferred,
               source_workspace_id,
@@ -1453,7 +1471,7 @@ impl OrganizerDocument {
         let link_type = row.link_type()?;
         // Broken persisted resource targets are readable. Workspace-link
         // structure and all newly authored placements remain strict.
-        if link_type == OrganizerLinkType::Workspace {
+        if matches!(link_type, OrganizerLinkType::Workspace | OrganizerLinkType::FolderLink) {
           validate_link_target(link_type, &row.data, row.target_workspace_id)?;
         }
         if !links.insert((
@@ -2093,6 +2111,9 @@ fn validate_link_target(
 ) -> Result<(), OrganizerError> {
   if target_id.trim().is_empty() {
     return Err(OrganizerError::InvalidTarget);
+  }
+  if link_type == OrganizerLinkType::FolderLink && target_workspace_id.is_none() {
+    return Err(OrganizerError::InvalidWorkspaceTarget);
   }
   if link_type == OrganizerLinkType::Workspace {
     let target = Uuid::parse_str(target_id).map_err(|_| OrganizerError::InvalidWorkspaceTarget)?;

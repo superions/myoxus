@@ -1539,7 +1539,7 @@
         },
         "targetType": {
           "type": "string",
-          "enum": ["doc", "database", "collection", "tag", "workspace"]
+          "enum": ["doc", "database", "collection", "tag", "workspace", "folder_link"]
         },
         "targetId": {
           "type": "string"
@@ -2192,7 +2192,7 @@
             },
             "targetType": {
               "type": "string",
-              "enum": ["database", "collection", "tag", "workspace"]
+              "enum": ["database", "collection", "tag", "workspace", "folder_link"]
             },
             "targetId": {
               "type": "string"

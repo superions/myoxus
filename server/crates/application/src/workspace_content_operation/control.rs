@@ -1152,7 +1152,7 @@ fn validate_request(
   if link
     && matches!(&request.selection, WorkspaceContentOperationSelection::Resources { resources }
       if resources.iter().any(|resource| !matches!(resource.kind(),
-        WorkspaceContentResourceKind::Document | WorkspaceContentResourceKind::Database | WorkspaceContentResourceKind::Tag)))
+        WorkspaceContentResourceKind::Document | WorkspaceContentResourceKind::Database | WorkspaceContentResourceKind::Folder | WorkspaceContentResourceKind::Tag)))
   {
     return Err(AuthError::InvalidInput(
       WorkspaceContentErrorCode::SelectedResourceUnsupported.as_str().into(),

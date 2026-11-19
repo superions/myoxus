@@ -198,7 +198,11 @@ describe("WorkspaceContentOperationMenuItems", () => {
     expect(
       screen.getByTestId("workspace-content-operation-extract"),
     ).not.toBeNull();
-    expect(screen.queryByTestId("workspace-content-operation-link")).toBeNull();
+    fireEvent.click(screen.getByTestId("workspace-content-operation-link"));
+    expect(state.open).toHaveBeenCalledWith("workspace-content-operation", {
+      kind: WorkspaceContentOperationKindType.Link,
+      selection: { type: "folder", folderId: "folder-1" },
+    });
   });
 
   test("labels the multiselection command menu and keeps it absent offline", () => {

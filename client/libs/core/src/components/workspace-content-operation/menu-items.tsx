@@ -76,8 +76,7 @@ export function WorkspaceContentOperationMenuItems({
     );
   const canLink =
     hasTarget &&
-    selection.type === "resources" &&
-    selection.resources.length === 1 &&
+    (selection.type === "folder" || selection.resources.length === 1) &&
     workspaceContentOperationService.canStart(
       WorkspaceContentOperationKindType.Link,
     );
@@ -162,7 +161,7 @@ export function WorkspaceContentOperationSelectionMenu({
     [
       WorkspaceContentOperationKindType.Move,
       WorkspaceContentOperationKindType.Copy,
-      ...(selection.type === "resources" && selection.resources.length === 1
+      ...(selection.type === "folder" || selection.resources.length === 1
         ? [WorkspaceContentOperationKindType.Link]
         : []),
     ].some((kind) => workspaceContentOperationService.canStart(kind));

@@ -39,6 +39,7 @@ export const StructureTreeNode = ({
   active,
   disabled,
   collapsed,
+  collapsible = true,
   extractEmojiAsIcon,
   setCollapsed,
   operations = [],
@@ -105,11 +106,11 @@ export const StructureTreeNode = ({
       }
       if (!clickForCollapse) {
         onClick?.();
-      } else {
+      } else if (collapsible) {
         setCollapsed(!collapsed);
       }
     },
-    [clickForCollapse, collapsed, onClick, setCollapsed],
+    [clickForCollapse, collapsed, collapsible, onClick, setCollapsed],
   );
 
   const renderedIcon = emoji ?? (Icon && <Icon collapsed={collapsed} />);
@@ -135,7 +136,7 @@ export const StructureTreeNode = ({
       <StructureTreeIconSlot>{renderedIcon}</StructureTreeIconSlot>
     );
 
-  const collapseControl = (
+  const collapseControl = collapsible && (
     <StructureTreeCollapseButton
       aria-label={collapsed === false ? "Collapse" : "Expand"}
       collapsed={collapsed !== false}
@@ -150,7 +151,7 @@ export const StructureTreeNode = ({
     <StructureTreeRow
       onClick={handleClick}
       active={active}
-      collapsible
+      collapsible={collapsible}
       data-touch="true"
       disabled={disabled}
       label={

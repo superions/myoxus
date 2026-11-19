@@ -106,6 +106,20 @@ impl From<WorkspaceContentResourceKind> for WorkspaceContentResourceKindType {
   }
 }
 
+#[derive(SimpleObject)]
+pub struct WorkspaceLinkedFolderEntry {
+  pub workspace_id: Uuid,
+  pub id: String,
+  pub row_type: String,
+  pub name: String,
+}
+
+#[derive(SimpleObject)]
+pub struct WorkspaceLinkedFolder {
+  pub name: String,
+  pub children: Vec<WorkspaceLinkedFolderEntry>,
+}
+
 #[derive(Debug, InputObject, Clone)]
 pub struct WorkspaceContentResourceInput {
   pub kind: WorkspaceContentResourceKindType,

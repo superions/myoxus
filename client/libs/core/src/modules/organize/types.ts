@@ -8,4 +8,4 @@ export interface NodeInfo {
 }
 
 export type FolderLinkType =
-  "collection" | "database" | "doc" | "tag" | "workspace";
+  "folder_link" | "collection" | "database" | "doc" | "tag" | "workspace";

@@ -573,6 +573,18 @@ impl ApiQueryRoot {
     auth::QueryRoot.workspace_content_redirect(ctx, input).await
   }
 
+  async fn workspace_linked_folder(
+    &self,
+    ctx: &Context<'_>,
+    workspace_id: Uuid,
+    #[graphql(validator(min_length = 1, max_length = 512))] folder_id: String,
+    include_children: bool,
+  ) -> Result<Option<auth::WorkspaceLinkedFolder>> {
+    auth::QueryRoot
+      .workspace_linked_folder(ctx, workspace_id, folder_id, include_children)
+      .await
+  }
+
   async fn preview_legacy_database_migration(
     &self,
     ctx: &Context<'_>,

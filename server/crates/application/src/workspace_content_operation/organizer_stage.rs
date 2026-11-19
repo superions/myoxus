@@ -39,7 +39,10 @@ where
 {
   let mut decisions = Vec::new();
   for row in source.contained_resource_rows(mappings) {
-    if row.link_type().map_err(super::diagnostics::organizer_failure)? == OrganizerLinkType::Workspace {
+    if matches!(
+      row.link_type().map_err(super::diagnostics::organizer_failure)?,
+      OrganizerLinkType::FolderLink | OrganizerLinkType::Workspace
+    ) {
       continue;
     }
     let target = match row

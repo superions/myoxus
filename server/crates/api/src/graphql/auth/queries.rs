@@ -89,6 +89,42 @@ impl QueryRoot {
     }
   }
 
+  pub(crate) async fn workspace_linked_folder(
+    &self,
+    ctx: &Context<'_>,
+    workspace_id: Uuid,
+    #[graphql(validator(min_length = 1, max_length = 512))] folder_id: String,
+    include_children: bool,
+  ) -> Result<Option<super::WorkspaceLinkedFolder>> {
+    use myoxus_application::workspace_content_operation::link::{
+      WorkspaceContentLinkError, WorkspaceContentLinkService,
+    };
+    let (state, session) = require_session(ctx).await?;
+    let links = WorkspaceContentLinkService::new(state.doc().clone(), state.permission_service())
+      .with_database_definition(state.database_services().map(|services| services.definition.clone()))
+      .with_workspace_tag_service(state.workspace_tag_service());
+    match links
+      .linked_folder(session.user.id, workspace_id, &folder_id, include_children)
+      .await
+    {
+      Ok(folder) => Ok(Some(super::WorkspaceLinkedFolder {
+        name: folder.name,
+        children: folder
+          .children
+          .into_iter()
+          .map(|entry| super::WorkspaceLinkedFolderEntry {
+            workspace_id: entry.workspace_id,
+            id: entry.id,
+            name: entry.name,
+            row_type: entry.row_type,
+          })
+          .collect(),
+      })),
+      Err(WorkspaceContentLinkError::DeniedOrMissing) => Ok(None),
+      Err(_) => Err(async_graphql::Error::new("linked folder unavailable")),
+    }
+  }
+
   /// Public, cache-free projection of the server-owned Browser Web update policy.
   ///
   /// A malformed or unavailable value fails closed with a stable transport code;

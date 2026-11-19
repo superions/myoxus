@@ -17,6 +17,7 @@ import {
   type WorkspaceContentPreflightProjectionFragment,
   type WorkspaceContentRedirectInput,
   workspaceContentRedirectQuery,
+  workspaceLinkedFolderQuery,
   WorkspaceContentResourceKindType,
 } from "@myoxus/graphql";
 import { LiveData, Service } from "@myoxus/infra";
@@ -337,6 +338,18 @@ export class WorkspaceContentOperationService extends Service {
       }
     }
     return redirect;
+  }
+
+  async linkedFolder(
+    workspaceId: string,
+    folderId: string,
+    includeChildren: boolean,
+  ) {
+    const result = await this.requireServer().gql({
+      query: workspaceLinkedFolderQuery,
+      variables: { workspaceId, folderId, includeChildren },
+    });
+    return result.workspaceLinkedFolder;
   }
 
   async resolveWorkspaceHome(targetWorkspaceId: string) {

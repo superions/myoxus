@@ -2,6 +2,7 @@ import type {
   NodeOperation,
   StructureTreeNodeIcon,
 } from "@myoxus/core/components/structure-tree";
+import { LinkedFolderNode } from "@myoxus/core/components/structure-tree/nodes/folder/linked-folder";
 import { WorkspaceContentOperationMenuItems } from "@myoxus/core/components/workspace-content-operation/menu-items";
 import { useCreatePageInFolder } from "@myoxus/core/components/structure-tree/nodes/folder/use-create-page-in-folder";
 import { WorkspaceDialogService } from "@myoxus/core/modules/dialogs";
@@ -60,6 +61,7 @@ export const StructureTreeFolderNode = ({
   const node = useLiveData(organizeService.folderTree.folderNode$(nodeId));
   const type = useLiveData(node?.type$);
   const data = useLiveData(node?.data$);
+  const targetWorkspaceId = useLiveData(node?.targetWorkspaceId$);
 
   const additionalOperations = useMemo(() => {
     if (!type || !node) {
@@ -75,6 +77,17 @@ export const StructureTreeFolderNode = ({
     return;
   }
 
+  if (type === "folder_link" && targetWorkspaceId && data) {
+    return (
+      <LinkedFolderNode
+        key={JSON.stringify([targetWorkspaceId, data])}
+        treeNode={StructureTreeNode}
+        workspaceId={targetWorkspaceId}
+        folderId={data}
+        operations={additionalOperations}
+      />
+    );
+  }
   if (type === "folder") {
     return (
       <StructureTreeFolderNodeFolder
@@ -404,6 +417,7 @@ const StructureTreeFolderNodeFolder = ({
         type === "doc" ||
         type === "database" ||
         type === "collection" ||
+        type === "folder_link" ||
         type === "tag"
       ) {
         return [

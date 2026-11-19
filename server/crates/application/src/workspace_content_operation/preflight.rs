@@ -290,6 +290,7 @@ impl WorkspaceContentGraphBuilder {
           !matches!(
             resource.kind(),
             WorkspaceContentResourceKind::Document
+              | WorkspaceContentResourceKind::Folder
               | WorkspaceContentResourceKind::Database
               | WorkspaceContentResourceKind::Tag
           )
@@ -435,22 +436,12 @@ fn selection_roots(
       if organizer.workspace_id != source_workspace_id {
         return Err(WorkspaceContentGraphError::InvalidWorkspaceBoundary);
       }
-      let node = find_organizer_node(&organizer.roots, folder_id).ok_or(WorkspaceContentGraphError::FolderNotFound)?;
+      let node = organizer.folder(folder_id).ok_or(WorkspaceContentGraphError::FolderNotFound)?;
       let mut roots = Vec::new();
       collect_organizer_roots(node, source_workspace_id, &mut roots)?;
       Ok(roots)
     }
   }
-}
-
-fn find_organizer_node<'a>(nodes: &'a [OrganizerSnapshotNode], folder_id: &str) -> Option<&'a OrganizerSnapshotNode> {
-  nodes.iter().find_map(|node| {
-    if node.row.id == folder_id && node.row.is_folder() {
-      Some(node)
-    } else {
-      find_organizer_node(&node.children, folder_id)
-    }
-  })
 }
 
 fn collect_organizer_roots(
@@ -484,7 +475,7 @@ fn collect_organizer_roots(
       OrganizerLinkType::Database => WorkspaceContentResourceKind::Database,
       OrganizerLinkType::Collection => continue,
       OrganizerLinkType::Tag => WorkspaceContentResourceKind::Tag,
-      OrganizerLinkType::Workspace => continue,
+      OrganizerLinkType::FolderLink | OrganizerLinkType::Workspace => continue,
     };
     if let Ok(resource) = WorkspaceContentResourceRef::new(target_workspace_id, kind, child.row.data.clone()) {
       roots.push(resource);

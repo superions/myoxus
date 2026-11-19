@@ -68359,6 +68359,24 @@ export interface WorkspaceContentRedirectQuery {
   } | null;
 }
 
+export type WorkspaceLinkedFolderQueryVariables = Exact<{
+  workspaceId: string;
+  folderId: string;
+  includeChildren: boolean;
+}>;
+
+export interface WorkspaceLinkedFolderQuery {
+  workspaceLinkedFolder: {
+    name: string;
+    children: Array<{
+      workspaceId: string;
+      id: string;
+      rowType: string;
+      name: string;
+    }>;
+  } | null;
+}
+
 export type SetEnableAiMutationVariables = Exact<{
   id: string;
   enableAi: boolean;
@@ -70928,6 +70946,11 @@ export type Queries =
       name: "workspaceContentRedirectQuery";
       variables: WorkspaceContentRedirectQueryVariables;
       response: WorkspaceContentRedirectQuery;
+    }
+  | {
+      name: "workspaceLinkedFolderQuery";
+      variables: WorkspaceLinkedFolderQueryVariables;
+      response: WorkspaceLinkedFolderQuery;
     }
   | {
       name: "workspaceImportQuery";
