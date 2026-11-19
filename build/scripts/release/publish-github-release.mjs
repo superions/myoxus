@@ -801,7 +801,7 @@ async function dispatchContainerCopy(containers, version, token, fetchImpl) {
     if (run.status === "completed") {
       if (run.conclusion !== "success")
         throw new Error(`GHCR copy ended with ${run.conclusion}: ${url}`);
-      await verifyGithubContainers(containers, version);
+      verifyGithubContainers(containers, version);
       return;
     }
     await delay(10_000);
