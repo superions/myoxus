@@ -636,7 +636,7 @@ impl WorkspaceContentRedirectRepository for PgWorkspaceContentRedirectRepository
           .snapshot(resource.workspace_id())
           .await
           .map_err(myoxus_application::workspace_content_operation::organizer_failure)?;
-        Ok(organizer_contains(&snapshot.roots, resource))
+        Ok(snapshot.folder(resource.resource_id()).is_some())
       }
     }
   }
@@ -747,16 +747,6 @@ async fn resolve_resource_reference_in_tx(
   ))
 }
 
-fn organizer_contains(nodes: &[OrganizerSnapshotNode], resource: &WorkspaceContentResourceRef) -> bool {
-  nodes.iter().any(|node| {
-    let matches = match resource.kind() {
-      WorkspaceContentResourceKind::Folder => node.row.is_folder() && node.row.id == resource.resource_id(),
-      _ => false,
-    };
-    matches || organizer_contains(&node.children, resource)
-  })
-}
-
 impl PgWorkspaceContentAuthorizationSource {
   pub fn new(pool: PgPool) -> Self {
     Self { pool }
@@ -849,6 +839,7 @@ impl WorkspaceContentGraphSourcePort for PgWorkspaceContentGraphSource {
         WorkspaceContentResourceKind::Document => WorkspaceContentErrorCode::SourceDocumentMissing,
         WorkspaceContentResourceKind::Database => WorkspaceContentErrorCode::SourceDatabaseMissing,
         WorkspaceContentResourceKind::Tag => WorkspaceContentErrorCode::SourceTagMissing,
+        WorkspaceContentResourceKind::Folder => WorkspaceContentErrorCode::SourceRootMissing,
         _ => {
           return Err(AuthError::InvalidInput(
             WorkspaceContentErrorCode::SelectedResourceUnsupported.as_str().into(),
@@ -861,9 +852,25 @@ impl WorkspaceContentGraphSourcePort for PgWorkspaceContentGraphSource {
         ));
       }
       // Link owns only placement. Never expand a Database's rows or read document payloads/catalogs.
-      let resource = load_graph_resource(&self.pool, selected, None)
+      let source_organizer = if selected.kind() == WorkspaceContentResourceKind::Folder {
+        Some(
+          self
+            .organizer
+            .snapshot(request.source_workspace_id)
+            .await
+            .map_err(myoxus_application::workspace_content_operation::organizer_failure)?,
+        )
+      } else {
+        None
+      };
+      let mut resource = load_graph_resource(&self.pool, selected, source_organizer.as_ref())
         .await?
         .ok_or_else(|| AuthError::NotFound(missing.as_str().into()))?;
+      if selected.kind() == WorkspaceContentResourceKind::Folder {
+        // Link admits this folder identity, independent of edits to its descendants.
+        resource.revision = hex::encode(Sha256::digest(selected.resource_id().as_bytes()));
+        resource.display_name = None;
+      }
       let organizer = self
         .organizer
         .snapshot(request.target_workspace_id)
@@ -1367,7 +1374,8 @@ fn organizer_graph_references(
       myoxus_application::organizer::OrganizerLinkType::Database => WorkspaceContentResourceKind::Database,
       myoxus_application::organizer::OrganizerLinkType::Collection => return Ok(None),
       myoxus_application::organizer::OrganizerLinkType::Tag => WorkspaceContentResourceKind::Tag,
-      myoxus_application::organizer::OrganizerLinkType::Workspace => return Ok(None),
+      myoxus_application::organizer::OrganizerLinkType::FolderLink
+      | myoxus_application::organizer::OrganizerLinkType::Workspace => return Ok(None),
     };
     Ok(WorkspaceContentResourceRef::new(workspace_id, kind, node.row.data.clone()).ok())
   }
@@ -1666,7 +1674,8 @@ fn collect_organizer_resources(
         myoxus_application::organizer::OrganizerLinkType::Database => WorkspaceContentResourceKind::Database,
         myoxus_application::organizer::OrganizerLinkType::Collection => return Ok(()),
         myoxus_application::organizer::OrganizerLinkType::Tag => WorkspaceContentResourceKind::Tag,
-        myoxus_application::organizer::OrganizerLinkType::Workspace => return Ok(()),
+        myoxus_application::organizer::OrganizerLinkType::FolderLink
+        | myoxus_application::organizer::OrganizerLinkType::Workspace => return Ok(()),
       };
       if let Ok(resource) = WorkspaceContentResourceRef::new(workspace_id, kind, node.row.data.clone()) {
         resources.push(resource);
@@ -1821,7 +1830,7 @@ async fn load_graph_resource(
         let Some(snapshot) = organizer else {
           return Ok(None);
         };
-        let Some(node) = find_organizer_node(&snapshot.roots, resource) else {
+        let Some(node) = snapshot.folder(resource.resource_id()) else {
           return Ok(None);
         };
         (
@@ -1961,21 +1970,6 @@ async fn load_target_inventory(
   ids.sort();
   ids.dedup();
   Ok((definitions, ids))
-}
-
-fn find_organizer_node<'a>(
-  nodes: &'a [OrganizerSnapshotNode],
-  resource: &WorkspaceContentResourceRef,
-) -> Option<&'a OrganizerSnapshotNode> {
-  nodes.iter().find_map(|node| {
-    let found = match resource.kind() {
-      WorkspaceContentResourceKind::Folder => node.row.is_folder() && node.row.id == resource.resource_id(),
-      _ => false,
-    };
-    found
-      .then_some(node)
-      .or_else(|| find_organizer_node(&node.children, resource))
-  })
 }
 
 fn collect_target_organizer_ids(
@@ -4178,10 +4172,7 @@ impl WorkspaceContentLinkIntentRepository for PgWorkspaceContentOperationReposit
       || intent.entry_id.trim() != intent.entry_id
       || intent.parent_id.trim() != intent.parent_id
       || intent.index.trim() != intent.index
-      || matches!(
-        intent.target.kind(),
-        WorkspaceContentResourceKind::Blob | WorkspaceContentResourceKind::Folder
-      )
+      || intent.target.kind() == WorkspaceContentResourceKind::Blob
     {
       return Err(Self::invalid(WorkspaceContentErrorCode::MappingPlanInvalid.as_str()));
     }

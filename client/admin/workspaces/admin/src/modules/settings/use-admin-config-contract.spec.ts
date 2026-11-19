@@ -2,6 +2,22 @@
 import { renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, expectTypeOf, test, vi } from "vitest";
 
+import { setByPath } from "./utils";
+
+test("writes own settings fields without invoking inherited accessors", () => {
+  const get = vi.fn();
+  const set = vi.fn();
+  const prototype = Object.defineProperty({}, "theme", { get, set });
+  const config = Object.create(prototype);
+
+  expect(setByPath(config, "theme.light", true)).toBe(config);
+  expect(Object.getOwnPropertyDescriptor(config, "theme")?.value).toEqual({
+    light: true,
+  });
+  expect(get).not.toHaveBeenCalled();
+  expect(set).not.toHaveBeenCalled();
+});
+
 const mocked = vi.hoisted(() => {
   const schemaSnapshot = {
     modules: [

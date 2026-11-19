@@ -102,25 +102,57 @@ function assertBoundedControlXml(xml: string) {
   }
 }
 
+// Skip declarations as text. Quoted IDs and the internal subset can contain
+// literal angle brackets, and S3 control responses never resolve entities.
+function doctypeEnd(xml: string, start: number): number {
+  let quote: string | undefined;
+  let internalSubset = false;
+  for (let i = start; i < xml.length; i++) {
+    const char = xml[i];
+    if (quote) {
+      if (char === quote) quote = undefined;
+    } else if (char === '"' || char === "'") {
+      quote = char;
+    } else if (
+      char === "<" &&
+      (xml.startsWith("<!--", i) || xml.startsWith("<?", i))
+    ) {
+      const marker = xml[i + 1] === "?" ? "?>" : "-->";
+      const close = xml.indexOf(marker, i + (marker === "?>" ? 2 : 4));
+      if (close < 0) break;
+      i = close + marker.length - 1;
+    } else if (char === "[") {
+      internalSubset = true;
+    } else if (char === "]") {
+      internalSubset = false;
+    } else if (char === ">" && !internalSubset) {
+      return i + 1;
+    }
+  }
+  throw new Error("Unterminated S3 control XML declaration");
+}
+
 function withoutXmlMarkup(xml: string) {
   const pieces: string[] = [];
-  const markers = /<!--|<!\[CDATA\[/g;
+  const markers = /<!--|<!\[CDATA\[|<!DOCTYPE\b/gi;
   let cursor = 0;
   for (let marker = markers.exec(xml); marker; marker = markers.exec(xml)) {
+    const declaration = marker[0].toUpperCase() === "<!DOCTYPE";
     const comment = marker[0] === "<!--";
-    const close = xml.indexOf(comment ? "-->" : "]]>", markers.lastIndex);
-    if (close < 0) throw new Error("Unterminated S3 control XML markup");
-    markers.lastIndex = close + 3;
-    if (comment) {
+    if (declaration) {
+      markers.lastIndex = doctypeEnd(xml, markers.lastIndex);
+    } else {
+      const close = xml.indexOf(comment ? "-->" : "]]>", markers.lastIndex);
+      if (close < 0) throw new Error("Unterminated S3 control XML markup");
+      markers.lastIndex = close + 3;
+    }
+    if (declaration || comment) {
       pieces.push(xml.slice(cursor, marker.index));
       cursor = markers.lastIndex;
     }
   }
   pieces.push(xml.slice(cursor));
-  return pieces
-    .join("")
-    .replace(/<!DOCTYPE[\s\S]*?\]>/gi, "")
-    .replace(/<!DOCTYPE[^>]*>/gi, "");
+  return pieces.join("");
 }
 
 function decodeControlXmlText(value: string): string | undefined {

@@ -659,29 +659,29 @@ fn raw_tool_definitions() -> Value {
       },
       {
         "name": "folder_entry_list",
-        "description": "Lists document, database, collection, tag and workspace entries in folders. Requires `read:docs` scope and workspace membership.",
+        "description": "Lists document, database, collection, tag, workspace and linked-folder entries in folders. Requires `read:docs` scope and workspace membership.",
         "inputSchema": {
           "type": "object",
           "required": ["workspace_id"],
           "properties": {
             "workspace_id": { "type": "string", "format": "uuid" },
             "parent_id": { "type": "string", "description": "Optional containing folder id." },
-            "target_type": { "type": "string", "enum": ["doc", "database", "collection", "tag", "workspace"], "description": "Optional entry target type filter." }
+            "target_type": { "type": "string", "enum": ["doc", "database", "collection", "tag", "workspace", "folder_link"], "description": "Optional entry target type filter." }
           }
         }
       },
       {
         "name": "folder_entry_create",
-        "description": "Creates a document, database, collection, tag or workspace entry inside a folder. Requires `write:docs` scope and workspace CreateDoc permission.",
+        "description": "Creates a document, database, collection, tag, workspace or linked-folder entry inside a folder. Requires `write:docs` scope and workspace CreateDoc permission.",
         "inputSchema": {
           "type": "object",
           "required": ["workspace_id", "parent_id", "target_type", "target_id"],
           "properties": {
             "workspace_id": { "type": "string", "format": "uuid" },
             "parent_id": { "type": "string", "minLength": 1 },
-            "target_type": { "type": "string", "enum": ["doc", "database", "collection", "tag", "workspace"] },
+            "target_type": { "type": "string", "enum": ["doc", "database", "collection", "tag", "workspace", "folder_link"] },
             "target_id": { "type": "string", "minLength": 1 },
-            "target_workspace_id": { "type": "string", "format": "uuid", "description": "Required for workspace links and cross-workspace targets; omitted for local legacy-compatible links." },
+            "target_workspace_id": { "type": "string", "format": "uuid", "description": "Required for workspace links, folder links and cross-workspace targets; omitted for local legacy-compatible links." },
             "index": { "type": "string", "description": "Validated fractional ordering key. Omit to append with a server-generated key." }
           }
         }
@@ -696,7 +696,7 @@ fn raw_tool_definitions() -> Value {
             "workspace_id": { "type": "string", "format": "uuid" },
             "entry_id": { "type": "string", "minLength": 1 },
             "parent_id": { "type": "string", "minLength": 1 },
-            "target_type": { "type": "string", "enum": ["doc", "database", "collection", "tag", "workspace"] },
+            "target_type": { "type": "string", "enum": ["doc", "database", "collection", "tag", "workspace", "folder_link"] },
             "target_id": { "type": "string", "minLength": 1 },
             "target_workspace_id": { "type": ["string", "null"], "format": "uuid", "description": "Explicit target workspace, or null to restore local legacy-compatible semantics." },
             "index": { "type": "string", "description": "New lexicographic ordering key." }

@@ -12,7 +12,6 @@ import { WorkspacesService } from "@myoxus/core/modules/workspace";
 import { WorkspaceContentOperationService } from "@myoxus/core/modules/workspace-content-operation";
 import type { MyoxusDNDData, MyoxusDNDEntity } from "@myoxus/core/types/dnd";
 import { Unreachable } from "@myoxus/env/constant";
-import { WorkspaceContentResourceKindType } from "@myoxus/graphql";
 import { useI18n } from "@myoxus/i18n";
 import {
   CloudWorkspaceIcon,
@@ -53,6 +52,11 @@ import { StructureTreeDatabaseNode } from "../database";
 import { StructureTreeDocNode } from "../doc";
 import { StructureTreeTagNode } from "../tag";
 import type { GenericStructureTreeNode } from "../types";
+import {
+  LinkedFolderNode,
+  CROSS_WORKSPACE_RESOURCE_KINDS,
+  isCrossWorkspaceResourceKind,
+} from "./linked-folder";
 import { FavoriteFolderOperation } from "./operations";
 import { useCreatePageInFolder } from "./use-create-page-in-folder";
 
@@ -113,6 +117,17 @@ export const StructureTreeFolderNode = ({
     return;
   }
 
+  if (type === "folder_link" && data && targetWorkspaceId) {
+    return (
+      <LinkedFolderNode
+        key={JSON.stringify([targetWorkspaceId, data])}
+        treeNode={StructureTreeNode}
+        workspaceId={targetWorkspaceId}
+        folderId={data}
+        operations={additionalOperations}
+      />
+    );
+  }
   if (type && type !== "folder" && data && targetWorkspaceId) {
     return (
       <StructureTreeCrossWorkspaceLinkNode
@@ -207,19 +222,6 @@ export const StructureTreeFolderNode = ({
 
   return;
 };
-
-const CROSS_WORKSPACE_RESOURCE_KINDS = {
-  collection: WorkspaceContentResourceKindType.Collection,
-  database: WorkspaceContentResourceKindType.Database,
-  doc: WorkspaceContentResourceKindType.Document,
-  tag: WorkspaceContentResourceKindType.Tag,
-} as const;
-
-function isCrossWorkspaceResourceKind(
-  type: string,
-): type is keyof typeof CROSS_WORKSPACE_RESOURCE_KINDS {
-  return type in CROSS_WORKSPACE_RESOURCE_KINDS;
-}
 
 function StructureTreeCrossWorkspaceLinkNode({
   canDrop,
@@ -900,6 +902,7 @@ const StructureTreeFolderNodeFolder = ({
         type === "database" ||
         type === "collection" ||
         type === "tag" ||
+        type === "folder_link" ||
         type === "workspace"
       ) {
         return [

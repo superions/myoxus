@@ -91,5 +91,6 @@ This page lists the compiled schema definitions for this section. Use the type l
 | `workspaceDocumentSettings`<br>[WorkspaceDocumentSettingsType](./objects.md#workspacedocumentsettingstype) | `workspaceId`: `ID`! |
 | `workspaceHistorySettings`<br>[WorkspaceHistorySettingsType](./objects.md#workspacehistorysettingstype)! | `workspaceId`: `ID`! |
 | `workspaceImport`<br>[WorkspaceImportType](./objects.md#workspaceimporttype)! | `workspaceImportId`: `ID`! |
+| `workspaceLinkedFolder`<br>[WorkspaceLinkedFolder](./objects.md#workspacelinkedfolder) | `folderId`: `String`!<br>`includeChildren`: `Boolean`!<br>`workspaceId`: [UUID](./scalars.md#uuid)! |
 | `workspaceRolePermissions`<br>[WorkspaceRolePermissions](./objects.md#workspacerolepermissions)! | `id`: `String`! |
 | `workspaces`<br>\[[WorkspaceType](./objects.md#workspacetype)!\]! |  |

@@ -6347,6 +6347,7 @@ Minimal public user profile exposed in invitation and document-share contexts.
 | `workspaceContentOperation`<br>[WorkspaceContentOperationType](./objects.md#workspacecontentoperationtype)! | `operationId`: [UUID](./scalars.md#uuid)!<br><br>Actor-scoped, redacted durable XWS status. |
 | `workspaceContentRedirect`<br>[WorkspaceContentRedirectType](./objects.md#workspacecontentredirecttype) | `input`: [WorkspaceContentRedirectInput](./inputs.md#workspacecontentredirectinput)!<br><br>Resolve an old XWS route only when the actor can currently read the canonical target. Denied and missing targets both return \`null\`. |
 | `workspaceImport`<br>[WorkspaceImportType](./objects.md#workspaceimporttype)! | `workspaceImportId`: `ID`! |
+| `workspaceLinkedFolder`<br>[WorkspaceLinkedFolder](./objects.md#workspacelinkedfolder) | `folderId`: `String`!<br>`includeChildren`: `Boolean`!<br>`workspaceId`: [UUID](./scalars.md#uuid)! |
 | `workspaceRolePermissions`<br>[WorkspaceRolePermissions](./objects.md#workspacerolepermissions)! | `id`: `String`! |
 | `workspaces`<br>\[[WorkspaceType](./objects.md#workspacetype)!\]! | Complexity 20 \* child: lists all workspaces for a user; each returned workspace may have expensive sub-field resolvers. |
 
@@ -8081,6 +8082,24 @@ Workspace invite link details returned after link creation.
 | `expireTime`<br>`Float`! | Expiry time as a Unix epoch millisecond value (float for JS compatibility). |
 | `inviteId`<br>`String`! | Opaque invite ID encoded in the link URL. |
 | `workspaceId`<br>`String`! | UUID of the workspace the link grants access to. |
+
+## WorkspaceLinkedFolder
+
+<!-- prettier-ignore -->
+| Field and return type | Arguments and description |
+| --- | --- |
+| `children`<br>\[[WorkspaceLinkedFolderEntry](./objects.md#workspacelinkedfolderentry)!\]! |  |
+| `name`<br>`String`! |  |
+
+## WorkspaceLinkedFolderEntry
+
+<!-- prettier-ignore -->
+| Field and return type | Arguments and description |
+| --- | --- |
+| `id`<br>`String`! |  |
+| `name`<br>`String`! |  |
+| `rowType`<br>`String`! |  |
+| `workspaceId`<br>[UUID](./scalars.md#uuid)! |  |
 
 ## WorkspaceOverviewDocumentType
 

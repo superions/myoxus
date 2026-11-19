@@ -3,19 +3,21 @@ import { describe, expect, it } from "vitest";
 import { parseListPartsXml } from "./index.js";
 
 describe("S3 control XML boundary", () => {
-  it("does not expand document entities", () => {
-    const xml = `<!DOCTYPE x [
+  it("skips a document declaration without expanding its entities", () => {
+    const xml = `<!DOCTYPE x SYSTEM "urn:example:unused>id" [
+      <!-- The text ]> is part of this comment. -->
       <!ENTITY a "1234567890">
       <!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;">
     ]>
     <ListPartsResult>
       <Part><PartNumber>&b;</PartNumber><ETag>unsafe</ETag></Part>
+      <Part><PartNumber>2</PartNumber><ETag>safe-etag</ETag></Part>
     </ListPartsResult>`;
 
     expect(parseListPartsXml(xml)).toEqual({
       isTruncated: false,
       nextPartNumberMarker: undefined,
-      parts: [],
+      parts: [{ etag: "safe-etag", partNumber: 2 }],
     });
   });
 
@@ -23,14 +25,14 @@ describe("S3 control XML boundary", () => {
     const xml = `
       <ListPartsResult>
         <!-- <Part><PartNumber>1</PartNumber><ETag>comment</ETag></Part> -->
-        <Part><PartNumber>2</PartNumber><ETag><![CDATA["safe-etag"]]></ETag></Part>
+        <Part><PartNumber>2</PartNumber><ETag><![CDATA["safe-<!DOCTYPE example>-etag"]]></ETag></Part>
         <IsTruncated>false</IsTruncated>
       </ListPartsResult>`;
 
     expect(parseListPartsXml(xml)).toEqual({
       isTruncated: false,
       nextPartNumberMarker: undefined,
-      parts: [{ etag: "safe-etag", partNumber: 2 }],
+      parts: [{ etag: "safe-<!DOCTYPE example>-etag", partNumber: 2 }],
     });
   });
 

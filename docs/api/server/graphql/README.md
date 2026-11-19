@@ -16,7 +16,7 @@ This reference describes the compiled server schema. A trailing `!` means non-nu
 | [Query root](./queries.md) | 1 |
 | [Mutation root](./mutations.md) | 1 |
 | [Subscription root](./subscriptions.md) | 0 |
-| [Objects](./objects.md) | 654 |
+| [Objects](./objects.md) | 656 |
 | [Input objects](./inputs.md) | 326 |
 | [Enums](./enums.md) | 208 |
 | [Unions](./unions.md) | 3 |
@@ -1177,6 +1177,8 @@ This reference describes the compiled server schema. A trailing `!` means non-nu
 | [WorkspaceInitialContentPolicy](./enums.md#workspaceinitialcontentpolicy) | Enums |
 | [WorkspaceInviteLinkExpireTime](./enums.md#workspaceinvitelinkexpiretime) | Enums |
 | [WorkspaceInviteLinkType](./objects.md#workspaceinvitelinktype) | Objects |
+| [WorkspaceLinkedFolder](./objects.md#workspacelinkedfolder) | Objects |
+| [WorkspaceLinkedFolderEntry](./objects.md#workspacelinkedfolderentry) | Objects |
 | [WorkspaceMemberStatus](./enums.md#workspacememberstatus) | Enums |
 | [WorkspaceOverviewDocumentType](./objects.md#workspaceoverviewdocumenttype) | Objects |
 | [WorkspaceOverviewFolderSettingsType](./objects.md#workspaceoverviewfoldersettingstype) | Objects |

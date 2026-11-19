@@ -3061,6 +3061,11 @@ type ApiQueryRoot {
   workspaceDocumentSettings(workspaceId: ID!): WorkspaceDocumentSettingsType
   workspaceHistorySettings(workspaceId: ID!): WorkspaceHistorySettingsType!
   workspaceImport(workspaceImportId: ID!): WorkspaceImportType!
+  workspaceLinkedFolder(
+    folderId: String!
+    includeChildren: Boolean!
+    workspaceId: UUID!
+  ): WorkspaceLinkedFolder
   workspaceRolePermissions(id: String!): WorkspaceRolePermissions!
   workspaces: [WorkspaceType!]!
 }
@@ -11824,6 +11829,11 @@ type QueryRoot {
     input: WorkspaceContentRedirectInput!
   ): WorkspaceContentRedirectType
   workspaceImport(workspaceImportId: ID!): WorkspaceImportType!
+  workspaceLinkedFolder(
+    folderId: String!
+    includeChildren: Boolean!
+    workspaceId: UUID!
+  ): WorkspaceLinkedFolder
   workspaceRolePermissions(id: String!): WorkspaceRolePermissions!
   """
   Complexity 20 * child: lists all workspaces for a user; each returned workspace
@@ -15262,6 +15272,18 @@ type WorkspaceInviteLinkType {
   UUID of the workspace the link grants access to.
   """
   workspaceId: String!
+}
+
+type WorkspaceLinkedFolder {
+  children: [WorkspaceLinkedFolderEntry!]!
+  name: String!
+}
+
+type WorkspaceLinkedFolderEntry {
+  id: String!
+  name: String!
+  rowType: String!
+  workspaceId: UUID!
 }
 
 """

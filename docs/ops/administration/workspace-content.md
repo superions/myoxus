@@ -42,7 +42,10 @@ Link placement revisions now describe the validated visible Organizer tree.
 Compaction and client tombstone bookkeeping do not invalidate an unchanged
 placement; real folder, ordering and target-reference changes still do. Old
 Link previews likewise require a fresh review when upgrading. Link selects exactly
-one Document, Database or Tag. It does not copy or inventory its content. Older
+one Document, Database, Tag or Folder. Select a destination folder for the link.
+Expand a linked folder in the destination tree to browse its current contents
+with the viewer’s source permissions. Opening a document takes the viewer to
+the original. Removing the link preserves the source folder and its contents. Older
 uncommitted intents that point to a Database row instead of the selected Database
 are rejected as stale and require a new preview; completed receipts are unchanged.
 

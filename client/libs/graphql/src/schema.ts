@@ -4167,6 +4167,7 @@ export interface ApiQueryRoot {
   workspaceDocumentSettings: Maybe<WorkspaceDocumentSettingsType>;
   workspaceHistorySettings: WorkspaceHistorySettingsType;
   workspaceImport: WorkspaceImportType;
+  workspaceLinkedFolder: Maybe<WorkspaceLinkedFolder>;
   workspaceRolePermissions: WorkspaceRolePermissions;
   workspaces: Array<WorkspaceType>;
 }
@@ -4464,6 +4465,12 @@ export interface ApiQueryRootWorkspaceHistorySettingsArgs {
 
 export interface ApiQueryRootWorkspaceImportArgs {
   workspaceImportId: Scalars["ID"]["input"];
+}
+
+export interface ApiQueryRootWorkspaceLinkedFolderArgs {
+  folderId: Scalars["String"]["input"];
+  includeChildren: Scalars["Boolean"]["input"];
+  workspaceId: Scalars["UUID"]["input"];
 }
 
 export interface ApiQueryRootWorkspaceRolePermissionsArgs {
@@ -14065,6 +14072,7 @@ export interface QueryRoot {
    */
   workspaceContentRedirect: Maybe<WorkspaceContentRedirectType>;
   workspaceImport: WorkspaceImportType;
+  workspaceLinkedFolder: Maybe<WorkspaceLinkedFolder>;
   workspaceRolePermissions: WorkspaceRolePermissions;
   /**
    * Complexity 20 * child: lists all workspaces for a user; each returned workspace
@@ -14202,6 +14210,12 @@ export interface QueryRootWorkspaceContentRedirectArgs {
 
 export interface QueryRootWorkspaceImportArgs {
   workspaceImportId: Scalars["ID"]["input"];
+}
+
+export interface QueryRootWorkspaceLinkedFolderArgs {
+  folderId: Scalars["String"]["input"];
+  includeChildren: Scalars["Boolean"]["input"];
+  workspaceId: Scalars["UUID"]["input"];
 }
 
 export interface QueryRootWorkspaceRolePermissionsArgs {
@@ -17480,6 +17494,20 @@ export interface WorkspaceInviteLinkType {
   inviteId: Scalars["String"]["output"];
   /** UUID of the workspace the link grants access to. */
   workspaceId: Scalars["String"]["output"];
+}
+
+export interface WorkspaceLinkedFolder {
+  __typename?: "WorkspaceLinkedFolder";
+  children: Array<WorkspaceLinkedFolderEntry>;
+  name: Scalars["String"]["output"];
+}
+
+export interface WorkspaceLinkedFolderEntry {
+  __typename?: "WorkspaceLinkedFolderEntry";
+  id: Scalars["String"]["output"];
+  name: Scalars["String"]["output"];
+  rowType: Scalars["String"]["output"];
+  workspaceId: Scalars["UUID"]["output"];
 }
 
 /** GraphQL enum for the lifecycle state of a workspace membership invitation. */

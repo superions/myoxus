@@ -2110,6 +2110,221 @@ fn redirect_resolution_is_permission_checked_chain_bounded_and_cycle_safe() {
 }
 
 #[test]
+fn linked_folder_projects_live_children_with_source_permissions() {
+  use futures_util::FutureExt;
+  use myoxus_application::workspace_content_operation::control::WorkspaceContentControlService;
+  use myoxus_application::workspace_content_operation::worker::{
+    WorkspaceContentWorkerEnvelope, WorkspaceContentWorkerPort, WorkspaceContentWorkerService,
+  };
+  use serde_json::json;
+
+  helpers::block_on_large_stack("linked_folder_live_children", || async {
+    let (_, pool, auth, state) = helpers::setup_app_with_state().await;
+    let (owner, session) = helpers::seed_user(&pool, &auth, "folder-link-owner").await;
+    let (viewer, viewer_session) = helpers::seed_user(&pool, &auth, "folder-link-viewer").await;
+    let source = helpers::create_workspace(&pool, owner).await;
+    let target = helpers::create_workspace(&pool, owner).await;
+    let outcome = std::panic::AssertUnwindSafe(async {
+      let docs = state.doc().clone();
+      let permissions = state.permission_service();
+      let repo = Arc::new(PgWorkspaceContentOperationRepository::new(
+        pool.clone(),
+        helpers::database_starter_catalog(),
+      ));
+      let control = WorkspaceContentControlService::new(
+        repo.clone(),
+        repo.clone(),
+        repo.clone(),
+        repo.clone(),
+        Arc::new(PgWorkspaceContentGraphSource::new(pool.clone(), docs.clone())),
+        Arc::new(WorkspaceContentAuthorizer::new(
+          permissions.clone(),
+          PgWorkspaceContentAuthorizationSource::new(pool.clone()),
+        )),
+        Arc::new(WorkspaceContentClusterCoordinator::new(
+          repo.clone(),
+          Arc::new(RecordingQueue {
+            fail: false,
+            wakes: Mutex::default(),
+          }),
+          None,
+          None,
+        )),
+        repo.clone(),
+        state.storage().clone(),
+        state.audit_recorder().clone(),
+      );
+      let app =
+        myoxus_api::build_router_for_integration_tests(state.with_workspace_content_control_service(Arc::new(control)));
+      let worker = WorkspaceContentWorkerService::new(repo.clone(), Uuid::new_v4()).with_semantic_executor(
+        WorkspaceContentOperationKind::Link,
+        Arc::new(WorkspaceContentLinkExecutor::new(
+          repo.clone(),
+          repo.clone(),
+          WorkspaceContentLinkService::new(docs.clone(), permissions),
+          repo,
+          Uuid::new_v4(),
+        )),
+      );
+      let organizer = OrganizerService::new(docs);
+      for (ws, id, parent) in [
+        (source, "NetBox", None),
+        (target, "Links", None),
+        (source, "Plugins", Some("NetBox")),
+      ] {
+        organizer
+          .create_folder(
+            ws,
+            CreateOrganizerFolder {
+              id: id.into(),
+              name: id.into(),
+              parent_id: parent.map(String::from),
+              index: None,
+            },
+          )
+          .await
+          .unwrap();
+      }
+      let doc = helpers::create_doc(&pool, source, owner).await;
+      sqlx::query("UPDATE docs SET title='Host finden', external_id='host' WHERE id=$1")
+        .bind(doc)
+        .execute(&pool)
+        .await
+        .unwrap();
+      let preview = helpers::gql(&app, session, json!({
+            "query":"mutation($input:WorkspaceContentPreflightInput!){workspaceContentPreflight(input:$input){operation{id} revision resourceCount blockers}}",
+            "variables":{"input":{"kind":"Link","idempotencyId":Uuid::new_v4(),"sourceWorkspaceId":source,"targetWorkspaceId":target,
+              "resources":[{"id":"NetBox","kind":"Folder"}],"linkEntryId":"netbox-link","linkParentId":"Links","linkIndex":"a0"}}
+          })).await;
+      assert!(preview.get("errors").is_none(), "{preview}");
+      let preview = &preview["data"]["workspaceContentPreflight"];
+      assert_eq!(preview["resourceCount"], 1);
+      assert_eq!(preview["blockers"], json!([]));
+      let operation_id: Uuid = serde_json::from_value(preview["operation"]["id"].clone()).unwrap();
+      organizer
+        .create_link(
+          source,
+          CreateOrganizerLink {
+            id: "doc-entry".into(),
+            parent_id: "Plugins".into(),
+            link_type: OrganizerLinkType::Doc,
+            target_id: "host".into(),
+            target_workspace_id: None,
+            index: None,
+          },
+        )
+        .await
+        .unwrap();
+      let executed = helpers::gql(
+        &app,
+        session,
+        json!({
+          "query":"mutation($input:WorkspaceContentExecuteInput!){executeWorkspaceContentOperation(input:$input){status}}",
+          "variables":{"input":{"operationId":operation_id,"revision":preview["revision"],"confirmations":[]}}
+        }),
+      )
+      .await;
+      assert!(executed.get("errors").is_none(), "{executed}");
+      let published = worker
+        .execute(WorkspaceContentWorkerEnvelope { operation_id })
+        .await
+        .unwrap()
+        .record;
+      assert_eq!(
+        published.status,
+        WorkspaceContentOperationStatus::Succeeded,
+        "{:?}",
+        published.error
+      );
+      let destination = organizer.snapshot(target).await.unwrap();
+      let placement = &destination.roots[0].children[0];
+      assert_eq!(placement.row.row_type, "folder_link");
+      assert_eq!(placement.row.target_workspace_id, Some(source));
+      assert!(placement.children.is_empty());
+
+      let read = |workspace, id| {
+        json!({
+          "query":"query($ws:UUID!, $id:String!){workspaceLinkedFolder(workspaceId:$ws,folderId:$id,includeChildren:true){name children{id name rowType workspaceId}}}",
+          "variables":{"ws":workspace,"id":id}
+        })
+      };
+      let root = helpers::gql(&app, session, read(source, "NetBox")).await;
+      assert_eq!(root["data"]["workspaceLinkedFolder"]["children"][0]["name"], "Plugins");
+      let nested = helpers::gql(&app, session, read(source, "Plugins")).await;
+      assert_eq!(
+        nested["data"]["workspaceLinkedFolder"]["children"],
+        json!([{"id":"host","rowType":"doc","name":"Host finden","workspaceId":source}])
+      );
+
+      organizer
+        .update_folder(
+          source,
+          "NetBox",
+          myoxus_application::organizer::UpdateOrganizerFolder {
+            name: Some("NetBox live".into()),
+            parent_id: None,
+            index: None,
+          },
+        )
+        .await
+        .unwrap();
+      organizer
+        .create_folder(
+          source,
+          CreateOrganizerFolder {
+            id: "new".into(),
+            name: "New after publication".into(),
+            parent_id: Some("NetBox".into()),
+            index: None,
+          },
+        )
+        .await
+        .unwrap();
+      let changed = helpers::gql(&app, session, read(source, "NetBox")).await;
+      assert_eq!(changed["data"]["workspaceLinkedFolder"]["name"], "NetBox live");
+      assert!(
+        changed["data"]["workspaceLinkedFolder"]["children"]
+          .as_array()
+          .unwrap()
+          .iter()
+          .any(|entry| entry["name"] == "New after publication")
+      );
+      helpers::add_workspace_member(&pool, target, viewer).await;
+      let hidden = helpers::gql(&app, viewer_session, read(source, "NetBox")).await;
+      let missing = helpers::gql(&app, session, read(source, "missing")).await;
+      assert_eq!(hidden, missing);
+      assert_eq!(hidden["data"]["workspaceLinkedFolder"], serde_json::Value::Null);
+      sqlx::query(
+        "INSERT INTO workspace_memberships(workspace_id,user_id,role,status) VALUES ($1,$2,'External','Accepted')",
+      )
+      .bind(source)
+      .bind(viewer)
+      .execute(&pool)
+      .await
+      .unwrap();
+      let filtered = helpers::gql(&app, viewer_session, read(source, "Plugins")).await;
+      assert_eq!(
+        filtered["data"]["workspaceLinkedFolder"],
+        json!({"name":"Plugins","children":[]})
+      );
+      organizer.delete_link(target, "netbox-link").await.unwrap();
+      assert!(organizer.snapshot(target).await.unwrap().roots[0].children.is_empty());
+      assert_eq!(helpers::gql(&app, session, read(source, "Plugins")).await, nested);
+    }).catch_unwind().await;
+    sqlx::query("DELETE FROM workspace_content_operations WHERE source_workspace_id=$1")
+      .bind(source)
+      .execute(&pool)
+      .await
+      .unwrap();
+    helpers::cleanup_workspaces(&pool, &[source, target]).await;
+    helpers::cleanup_users(&pool, &[owner, viewer]).await;
+    if let Err(error) = outcome {
+      std::panic::resume_unwind(error);
+    }
+  });
+}
+
+#[test]
 fn link_publication_is_atomic_and_replayable() {
   helpers::block_on_large_stack("link_publication_is_atomic_and_replayable", || async {
     let (_app, pool, auth) = helpers::setup_app().await;
@@ -2225,7 +2440,7 @@ fn link_publication_is_atomic_and_replayable() {
       assert_eq!(database_graph.mappings[0].mapping.target, database_root);
       for (kind, id, cause) in [
         (WorkspaceContentResourceKind::Database, Uuid::new_v4().to_string(), WorkspaceContentErrorCode::SourceDatabaseMissing),
-        (WorkspaceContentResourceKind::Folder, parent_id.clone(), WorkspaceContentErrorCode::SelectedResourceUnsupported),
+        (WorkspaceContentResourceKind::Folder, parent_id.clone(), WorkspaceContentErrorCode::SourceRootMissing),
         (WorkspaceContentResourceKind::Blob, "unrelated-blob".into(), WorkspaceContentErrorCode::SelectedResourceUnsupported),
       ] {
         let invalid = WorkspaceContentOperationRequest {

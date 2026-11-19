@@ -27,19 +27,25 @@ export function setByPath<T extends Record<string, any> = Record<string, any>>(
     throw new Error("Unsafe configuration path");
   }
   let cursor: Record<string, any> = obj;
-  for (let i = 0; i < parts.length - 1; i++) {
-    const part = parts[i];
-    if (
-      !Object.hasOwn(cursor, part) ||
-      cursor[part] === null ||
-      typeof cursor[part] !== "object"
-    ) {
-      cursor[part] = {};
+  for (const [i, part] of parts.entries()) {
+    const property = Object.getOwnPropertyDescriptor(cursor, part);
+    const child = property?.value;
+    const isLast = i === parts.length - 1;
+    if (!isLast && child !== null && typeof child === "object") {
+      cursor = child;
+      continue;
     }
-    cursor = cursor[part];
+    const next = isLast ? value : {};
+    // Define a data property directly so prototype setters cannot handle writes.
+    Object.defineProperty(
+      cursor,
+      part,
+      property
+        ? { value: next }
+        : { value: next, writable: true, enumerable: true, configurable: true },
+    );
+    cursor = next;
   }
-  const lastPart = parts[parts.length - 1];
-  cursor[lastPart] = value;
   return obj;
 }
 

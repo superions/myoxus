@@ -126,3 +126,23 @@ query workspaceContentRedirect($input: WorkspaceContentRedirectInput!) {
     id
   }
 }
+
+query workspaceLinkedFolder(
+  $workspaceId: UUID!
+  $folderId: String!
+  $includeChildren: Boolean!
+) {
+  workspaceLinkedFolder(
+    workspaceId: $workspaceId
+    folderId: $folderId
+    includeChildren: $includeChildren
+  ) {
+    name
+    children {
+      workspaceId
+      id
+      rowType
+      name
+    }
+  }
+}

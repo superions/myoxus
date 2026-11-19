@@ -50382,6 +50382,27 @@ export const workspaceContentRedirectQuery = {
 }`,
 };
 
+export const workspaceLinkedFolderQuery = {
+  id: "workspaceLinkedFolderQuery" as const,
+  op: "workspaceLinkedFolder",
+  kind: "query" as const,
+  query: `query workspaceLinkedFolder($workspaceId: UUID!, $folderId: String!, $includeChildren: Boolean!) {
+  workspaceLinkedFolder(
+    workspaceId: $workspaceId
+    folderId: $folderId
+    includeChildren: $includeChildren
+  ) {
+    name
+    children {
+      workspaceId
+      id
+      rowType
+      name
+    }
+  }
+}`,
+};
+
 export const setEnableAiMutation = {
   id: "setEnableAiMutation" as const,
   op: "setEnableAi",
