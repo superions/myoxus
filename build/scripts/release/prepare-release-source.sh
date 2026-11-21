@@ -51,7 +51,8 @@ if [ ! -f "$report" ]; then
       mv "$candidate" "$(mktemp -d "$root/.incomplete-$revision.XXXXXX")/preparation"
     fi
     build/scripts/release/publish-github-mirror.sh prepare \
-      --revision "$revision" --expected-parent "$parent" --workdir "$candidate"
+      --revision "$revision" --previous-source "$rolling_revision" \
+      --expected-parent "$parent" --workdir "$candidate"
   fi
   # Values are produced by the existing helper and validated again by publish.
   source "$candidate/candidate-identities.txt"

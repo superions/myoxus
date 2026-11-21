@@ -2,9 +2,10 @@ import { css } from "@virgultum/core/styles";
 
 export const tableContainer = css({
   display: "block",
-  padding: "10px 0 18px 10px",
+  // Leave room for the add-row button centered on the bottom edge handle.
+  padding: "10px 0 24px 10px",
   overflowX: "auto",
-  overflowY: "visible",
+  overflowY: "hidden",
   "::-webkit-scrollbar": {
     height: "8px",
   },

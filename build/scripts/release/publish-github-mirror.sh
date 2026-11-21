@@ -18,6 +18,7 @@ Usage:
 
 One-time cleanup: prepare-baseline / publish-baseline accept the same options.
 Options: --github-url <url> --github-api <url> --branch main
+Ordinary prepare only: --previous-source <forgejo-sha> (last exported revision)
 Ordinary publish only: --source-only (leave repository settings untouched)
 Baseline only: --replace-tag <tag> --expected-tag <previous-object-sha>
 
@@ -90,13 +91,14 @@ apply_settings() {
 MODE="${1:-}"; BASELINE=false
 case "$MODE" in prepare-baseline|publish-baseline) BASELINE=true; MODE="${MODE%-baseline}";; esac
 [[ "$MODE" == prepare || "$MODE" == publish ]] || { usage >&2; exit 2; }; shift
-REVISION=""; SOURCE=""; PARENT=""; COMMIT=""; TREE=""; ARCHIVE_SHA=""; MANIFEST_SHA=""; SETTINGS_SHA=""
+REVISION=""; SOURCE=""; PREVIOUS_SOURCE=""; PARENT=""; COMMIT=""; TREE=""; ARCHIVE_SHA=""; MANIFEST_SHA=""; SETTINGS_SHA=""
 BRANCH=main; WORKDIR=""; URL="$DEFAULT_URL"; API="$DEFAULT_API"
 REPLACE_TAG=""; EXPECTED_TAG=""; SOURCE_ONLY=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --source-only) SOURCE_ONLY=true; shift; continue;;
     --revision) REVISION="${2:-}";; --expected-source) SOURCE="${2:-}";;
+    --previous-source) PREVIOUS_SOURCE="${2:-}";;
     --expected-parent) PARENT="${2:-}";; --expected-commit) COMMIT="${2:-}";;
     --expected-tree) TREE="${2:-}";; --expected-archive-sha256) ARCHIVE_SHA="${2:-}";;
     --expected-manifest-sha256) MANIFEST_SHA="${2:-}";; --expected-settings-sha256) SETTINGS_SHA="${2:-}";;
@@ -107,6 +109,7 @@ while [[ $# -gt 0 ]]; do
   shift 2
 done
 if [[ "$SOURCE_ONLY" == true && ( "$MODE" != publish || "$BASELINE" == true ) ]]; then fail "--source-only requires ordinary publish"; fi
+if [[ -n "$PREVIOUS_SOURCE" && ( "$MODE" != prepare || "$BASELINE" == true ) ]]; then fail "--previous-source requires ordinary prepare"; fi
 [[ "$BRANCH" == main ]] || fail "the public branch is fixed to main"
 [[ -n "$WORKDIR" ]] || fail "--workdir is required"
 if [[ -n "$REPLACE_TAG$EXPECTED_TAG" ]]; then
@@ -121,6 +124,10 @@ if [[ "$MODE" == prepare ]]; then
   full_sha --expected-parent "$PARENT"
   SOURCE="$(git -C "$REPO_ROOT" rev-parse --verify "${REVISION}^{commit}" 2>/dev/null)" || fail "unknown source revision"
   full_sha source "$SOURCE"
+  if [[ -n "$PREVIOUS_SOURCE" ]]; then
+    full_sha --previous-source "$PREVIOUS_SOURCE"
+    git -C "$REPO_ROOT" merge-base --is-ancestor "$PREVIOUS_SOURCE" "$SOURCE" || fail "previous source is not an ancestor"
+  fi
   [[ "$(remote_main "$URL" "$BRANCH")" == "$PARENT" ]] || fail "public main moved or differs from reviewed parent"
   if [[ -e "$WORKDIR" ]]; then
     [[ -d "$WORKDIR" && -z "$(find "$WORKDIR" -mindepth 1 -maxdepth 1 -print -quit)" ]] || fail "workdir must be new or empty"
@@ -133,7 +140,11 @@ if [[ "$MODE" == prepare ]]; then
   node "$REPO_ROOT/build/scripts/ci/verify-public-source-export.mjs" --archive "$ARCHIVE"
   mkdir "$EXTRACT"; tar -xf "$ARCHIVE" -C "$EXTRACT"
   node "$REPO_ROOT/build/scripts/ci/scan-public-source-secrets.mjs" --dir "$EXTRACT"
-  git clone -q --no-checkout --origin github-mirror "$URL" "$SNAPSHOT"
+  clone_options=(--no-checkout --origin github-mirror)
+  if [[ "$BASELINE" == false ]]; then
+    clone_options+=(--depth=1 --no-tags --branch "$BRANCH" --no-local)
+  fi
+  git clone -q "${clone_options[@]}" "$URL" "$SNAPSHOT"
   [[ "$(git -C "$SNAPSHOT" remote)" == github-mirror ]] || fail "unexpected scratch remote"
   git -C "$SNAPSHOT" checkout -q "$BRANCH"
   [[ "$(git -C "$SNAPSHOT" rev-parse HEAD)" == "$PARENT" ]] || fail "fetched parent changed"
@@ -166,8 +177,15 @@ if [[ "$MODE" == prepare ]]; then
       -c user.name='Myoxus Release' -c user.email=release@myoxus.invalid commit-tree "$(git -C "$SNAPSHOT" write-tree)")"
     git -C "$SNAPSHOT" update-ref "refs/heads/$BRANCH" "$NEW_ROOT" "$PARENT"
   elif [[ "$(git -C "$SNAPSHOT" write-tree)" != "$(git -C "$SNAPSHOT" rev-parse "HEAD^{tree}")" ]]; then
+    MESSAGE="$WORKDIR/snapshot-message"
+    printf 'Public Myoxus source snapshot\n' >"$MESSAGE"
+    if [[ -n "$PREVIOUS_SOURCE" ]]; then
+      git -C "$REPO_ROOT" log --topo-order -z --fixed-strings --committer=github-intake@myoxus.invalid \
+        --format='%ce%x00%B' "$PREVIOUS_SOURCE..$SOURCE" |
+        node "$REPO_ROOT/build/scripts/ci/github-public-authors.mjs" >>"$MESSAGE"
+    fi
     GIT_AUTHOR_DATE="$SOURCE_TIME" GIT_COMMITTER_DATE="$SOURCE_TIME" git -C "$SNAPSHOT" \
-      -c user.name='Myoxus Release' -c user.email=release@myoxus.invalid commit -q -m "Public Myoxus source snapshot"
+      -c user.name='Myoxus Release' -c user.email=release@myoxus.invalid commit -q -F "$MESSAGE"
   fi
   COMMIT="$(git -C "$SNAPSHOT" rev-parse HEAD)"; TREE="$(git -C "$SNAPSHOT" rev-parse 'HEAD^{tree}')"
   if [[ "$BASELINE" == true ]]; then

@@ -45,6 +45,15 @@ test("curated PR intake preserves private ancestry, binary changes, idempotency 
     const base = git(sourceGit, "rev-parse", "HEAD");
     const privateBase = git(targetGit, "rev-parse", "HEAD");
     git(sourceGit, "checkout", "-qb", "proposal");
+    writeFileSync(join(sourceGit, "notes.txt"), "Public contribution\n");
+    git(sourceGit, "add", "notes.txt");
+    git(
+      sourceGit,
+      "commit",
+      "--author=Public Contributor <123+public-contributor@users.noreply.github.com>",
+      "-qm",
+      "Add notes",
+    );
     writeFileSync(join(sourceGit, "requirements.txt"), "pillow==13.0.0\n");
     writeFileSync(join(sourceGit, "binary.dat"), Buffer.from([0, 255, 42]));
     git(sourceGit, "add", ".");
@@ -122,7 +131,7 @@ test("curated PR intake preserves private ancestry, binary changes, idempotency 
     );
     assert.match(
       git(targetGit, "show", "-s", "--format=%B", branch),
-      /Signed-off-by: Contributor/,
+      /\nPublic-GitHub-Authors: 123\+public-contributor@users\.noreply\.github\.com\n\n[\s\S]+Signed-off-by: Contributor/,
     );
     assert.equal((await run()).unchanged, 1);
     assert.equal(copies.length, 1);

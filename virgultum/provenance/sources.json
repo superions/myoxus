@@ -2305,7 +2305,7 @@
         },
         {
           "path": "virgultum/content/src/blocks/table/table-block-css.ts",
-          "sha256": "3b9231f1745c702e1fb13f3d9504a069a9e94514bccd93c8922b31efee83eabb",
+          "sha256": "3b7c4167b8b0fd218ac0f73dd1b6cda7966d8ac597ed11916decf1bd4103f257",
           "originalPath": "blocksuite/affine/blocks/table/src/table-block-css.ts",
           "originalGitBlob": "7e39f270b61208ae05655066beb05b68a202dbef"
         },

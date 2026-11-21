@@ -7,6 +7,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { intakeCommitter, publicEmails } from "./github-public-authors.mjs";
 
 const sha = (value) => /^[a-f0-9]{40}$/.test(value ?? "");
 const repo = (value) => /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(value);
@@ -56,7 +57,7 @@ export async function syncGithubPrs({
       "Authorization: Basic " +
       Buffer.from(`x-access-token:${token}`).toString("base64"),
     GIT_COMMITTER_NAME: "Myoxus GitHub intake",
-    GIT_COMMITTER_EMAIL: "github-intake@myoxus.invalid",
+    GIT_COMMITTER_EMAIL: intakeCommitter,
   });
   async function api(provider, route, method = "GET", body) {
     const credential = provider === "github" ? githubToken : token;
@@ -315,15 +316,23 @@ export async function syncGithubPrs({
           GIT_AUTHOR_DATE: author[2],
           GIT_COMMITTER_DATE: author[2],
         });
-        const message =
-          `${pr.title}\n\nImported-from: https://github.com/${source}/pull/${pr.number}\nGitHub-Head: ${pr.head.sha}\n\n` +
+        const range = `${ancestor}..${pr.head.sha}`;
+        const publicAuthors = publicEmails(
+          text(["log", "--format=%ae", range]).split("\n"),
+        );
+        const provenance = `Imported-from: https://github.com/${source}/pull/${pr.number}\nGitHub-Head: ${pr.head.sha}`;
+        const originalMessages =
           text([
             "log",
             "--reverse",
             "--format=Author: %an <%ae>%n%B",
-            `${ancestor}..${pr.head.sha}`,
+            range,
           ]) +
           "\n";
+        const subject = pr.title.replace(/[\r\n]+/g, " ").trim();
+        const message =
+          `${subject}\n\n${provenance}\nPublic-GitHub-Authors: ${publicAuthors.join(",")}\n\n` +
+          originalMessages;
         // Updates are ordinary fast-forwards with current wip as another parent;
         // no public ancestry, force-push, or overwritten maintainer commits.
         const parents = oldHead ? ["-p", oldHead, "-p", base] : ["-p", base];
@@ -331,9 +340,11 @@ export async function syncGithubPrs({
         if (oldHead && !copy) {
           // Recover a successful push followed by a failed PR creation. Only the
           // exact generated tree/message on private ancestry can be adopted.
+          const oldMessage = text(["show", "-s", "--format=%B", oldHead]);
+          const legacyMessage = `${pr.title}\n\n${provenance}\n\n${originalMessages}`;
           if (
             text(["rev-parse", oldHead + "^{tree}"]) !== tree ||
-            text(["show", "-s", "--format=%B", oldHead]) !== message.trim() ||
+            ![message.trim(), legacyMessage.trim()].includes(oldMessage) ||
             text(["rev-parse", oldHead + "^1"]) !== base
           )
             throw new Error(

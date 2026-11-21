@@ -12,6 +12,7 @@ PUBLIC="$TMP/public.git"
 
 mkdir -p "$SOURCE/build/scripts/release" "$SOURCE/build/scripts/ci"
 cp "$ROOT/build/scripts/release/publish-github-mirror.sh" "$SOURCE/build/scripts/release/"
+cp "$ROOT/build/scripts/ci/github-public-authors.mjs" "$SOURCE/build/scripts/ci/"
 cat >"$SOURCE/build/scripts/release/export-public-source.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -49,7 +50,7 @@ git clone -q --bare "$SCAFFOLD" "$PUBLIC"
 identity() { sed -n "s/^$2=//p" "$1/candidate-identities.txt"; }
 prepare() {
   "$SOURCE/build/scripts/release/publish-github-mirror.sh" prepare \
-    --revision "$2" --expected-parent "$3" --workdir "$1" \
+    --revision "$2" --expected-parent "$3" --workdir "$1" --previous-source "${4:-}" \
     --github-url "$PUBLIC" --github-api "file://fixture"
 }
 publish() {
@@ -81,10 +82,24 @@ publish "$TMP/first"
 test "$(git --git-dir="$PUBLIC" rev-parse main)" = "$FIRST"
 
 printf 'second public body\n' >"$SOURCE/README.md"
-git -C "$SOURCE" add README.md; git -C "$SOURCE" commit -q -m source-two
+git -C "$SOURCE" add README.md
+GIT_COMMITTER_EMAIL=github-intake@myoxus.invalid git -C "$SOURCE" commit -q --author='Private Name <private@example.invalid>' \
+  -m 'Private title' -m "Imported-from: https://github.com/superions/myoxus/pull/1
+GitHub-Head: $SOURCE_ONE
+Public-GitHub-Authors: 123+public-contributor@users.noreply.github.com,legacy-user@users.noreply.github.com,private@example.invalid" \
+  -m 'Public-GitHub-Authors: unexpected@users.noreply.github.com'
+GIT_COMMITTER_EMAIL=github-intake@myoxus.invalid git -C "$SOURCE" commit -q --allow-empty \
+  -m 'Second imported proposal' -m "Imported-from: https://github.com/superions/myoxus/pull/2
+GitHub-Head: $SOURCE_ONE
+Public-GitHub-Authors: 123+public-contributor@users.noreply.github.com"
 SOURCE_TWO="$(git -C "$SOURCE" rev-parse HEAD)"
-prepare "$TMP/second" "$SOURCE_TWO" "$FIRST"
+prepare "$TMP/second" "$SOURCE_TWO" "$FIRST" "$SOURCE_ONE"
 SECOND="$(identity "$TMP/second" candidate_commit)"
+test "$(git -C "$TMP/second/snapshot" rev-parse --is-shallow-repository)" = true
+test "$(git -C "$TMP/second/snapshot" show -s --format=%B "$SECOND")" = "Public Myoxus source snapshot
+
+Co-authored-by: public-contributor <123+public-contributor@users.noreply.github.com>
+Co-authored-by: legacy-user <legacy-user@users.noreply.github.com>"
 test "$(git -C "$TMP/second/snapshot" rev-parse "$SECOND^")" = "$FIRST"
 test "$(git -C "$TMP/second/snapshot" show "$SECOND:Casks/myoxus.rb")" = 'published client cask'
 publish "$TMP/second" --source-only
@@ -92,12 +107,13 @@ test "$(git --git-dir="$PUBLIC" rev-parse main)" = "$SECOND"
 
 # A private-only revision must reuse the public commit without adding history.
 git -C "$SOURCE" commit -q --allow-empty -m private-only
-prepare "$TMP/unchanged" "$(git -C "$SOURCE" rev-parse HEAD)" "$SECOND"
+prepare "$TMP/unchanged" "$(git -C "$SOURCE" rev-parse HEAD)" "$SECOND" "$SOURCE_TWO"
 test "$(identity "$TMP/unchanged" candidate_commit)" = "$SECOND"
 
 printf 'third public body\n' >"$SOURCE/README.md"
 git -C "$SOURCE" add README.md; git -C "$SOURCE" commit -q -m source-three
-prepare "$TMP/moved" "$(git -C "$SOURCE" rev-parse HEAD)" "$SECOND"
+prepare "$TMP/moved" "$(git -C "$SOURCE" rev-parse HEAD)" "$SECOND" "$SOURCE_TWO"
+test "$(git -C "$TMP/moved/snapshot" show -s --format=%B HEAD)" = "Public Myoxus source snapshot"
 MOVER="$TMP/mover"; git clone -q "$PUBLIC" "$MOVER"
 git -C "$MOVER" config user.name Fixture; git -C "$MOVER" config user.email fixture@example.invalid
 printf 'remote moved\n' >"$MOVER/moved.txt"; git -C "$MOVER" add .; git -C "$MOVER" commit -q -m moved

@@ -75,6 +75,12 @@ Use a descriptive title. Keep generated files synchronized through their
 canonical generators. Do not commit local databases, credentials, test
 artifacts, build output, or editor state.
 
+To receive GitHub co-author credit when an accepted pull request reaches the
+public mirror, configure your commit email with `git config user.email <address>`
+before creating your commits. Use the
+[GitHub-provided noreply address](https://docs.github.com/en/account-and-profile/reference/email-addresses-reference#your-noreply-email-address)
+shown in your account settings and follow the DCO sign-off requirements above.
+
 Maintainers may ask for changes, split a pull request, or close work that does
 not fit the project scope. Feature requests are welcome through GitHub Issues,
 but opening an issue does not create an obligation to investigate, respond to,
