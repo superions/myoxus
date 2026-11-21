@@ -1850,8 +1850,10 @@ ordinary member management without creating direct or OU membership.
 All three writes require `idempotency_key`. Current actor/target authority is
 checked before replay; removed targets cannot authorize removal replay.
 Self-revoke, inactive/deleted targets and protected Owner operations are refused.
-Existing transactional last-active-admin protection and membership effects
-remain authoritative. A Workspace role never grants OU-manager capability.
+OU workspaces with no member default retain last-active-admin protection.
+For new or adopted workspaces the owner OU can administer the workspace
+without a direct Admin. `workspace_update` accepts `ou_member_role` with
+`Reader`, `Collaborator` or `Manager` to configure one active OU-owned workspace. A Workspace role never grants OU-manager capability.
 
 ### Workspace invitations
 
@@ -1885,7 +1887,7 @@ same atomic current-owner transaction as GraphQL `grantMember`. A former owner
 cannot replay without regaining that authority. `principal` requires a fresh
 global admin and exactly one of `user_id` or `owner_unit_id`; it uses the same
 principal transaction as the trusted CLI. Active targets, personal-workspace
-protection, normalized name reservation and OU last-active-admin guards remain
+protection, normalized name reservation and legacy OU last-active-admin guards remain
 in the canonical owners.
 
 `workspace_management_unit_set` requires the same write scope, a durable key,

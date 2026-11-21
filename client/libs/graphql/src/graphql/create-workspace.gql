@@ -3,7 +3,7 @@ mutation createWorkspace($input: CreateWorkspaceInput) {
     id
     name
     initialized
-    role
+    role: effectiveRole
     workspaceType
     owner { id }
     public

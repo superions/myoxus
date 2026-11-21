@@ -366,7 +366,32 @@ impl SqlxWorkspaceStore {
     Ok(())
   }
 
-  /// Run the canonical ownership transfer inside an aggregate transaction.
+  /// Unadopted workspaces retain their previous administrator invariant.
+  async fn require_legacy_ou_admin(
+    tx: &mut PgConnection,
+    workspace_id: WorkspaceId,
+    excluding: Option<UserId>,
+  ) -> AuthResult<()> {
+    let missing: bool = sqlx::query_scalar(
+      "SELECT ou_member_role IS NULL AND NOT EXISTS (
+         SELECT 1 FROM workspace_memberships m JOIN users u ON u.id=m.user_id AND u.status='active'
+          WHERE m.workspace_id=w.id AND m.role='Admin' AND m.status='Accepted'
+            AND m.user_id IS DISTINCT FROM $2
+       ) FROM workspaces w WHERE w.id=$1",
+    )
+    .bind(workspace_id)
+    .bind(excluding)
+    .fetch_one(tx)
+    .await
+    .map_err(Self::map_db_err)?;
+    if missing {
+      return Err(AuthError::InvalidInput(
+        "OU-owned workspace requires an active administrator".into(),
+      ));
+    }
+    Ok(())
+  }
+
   /// The caller owns commit so related aggregate writes cannot escape it.
   pub(crate) async fn transfer_workspace_owner_in_transaction(
     tx: &mut PgConnection,
@@ -432,6 +457,7 @@ impl SqlxWorkspaceStore {
           UPDATE workspaces
              SET owner_user_id = $2,
                  owner_principal_type = 'user'::owner_principal_type,
+                 ou_member_role = NULL,
                  owner_principal_id = $2,
                  management_unit_id = CASE
                    WHEN $3::text = 'ou' AND management_unit_id = $4 THEN NULL
@@ -576,22 +602,7 @@ impl SqlxWorkspaceStore {
         .execute(&mut *tx)
         .await
         .map_err(Self::map_db_err)?;
-        let admin_count: i64 = sqlx::query_scalar(
-          "SELECT COUNT(*)
-             FROM workspace_memberships membership
-             JOIN users member ON member.id = membership.user_id AND member.status = 'active'
-            WHERE membership.workspace_id = $1
-              AND membership.role = 'Admin' AND membership.status = 'Accepted'",
-        )
-        .bind(workspace_id)
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(Self::map_db_err)?;
-        if admin_count == 0 {
-          return Err(AuthError::InvalidInput(
-            "OU-owned workspace requires an active administrator".to_string(),
-          ));
-        }
+        Self::require_legacy_ou_admin(tx, workspace_id, None).await?;
       }
     }
 
@@ -971,7 +982,7 @@ impl WorkspaceStore for SqlxWorkspaceStore {
         .map_err(Self::map_db_err)?;
     if creator_is_active.is_none() {
       return Err(AuthError::InvalidInput(
-        "shared workspace administrator must be an active user".to_string(),
+        "shared workspace creator must be an active user".to_string(),
       ));
     }
     Self::require_available_name(&mut tx, "ou", owner_unit_id, &name, None).await?;
@@ -980,9 +991,9 @@ impl WorkspaceStore for SqlxWorkspaceStore {
       INSERT INTO workspaces (
         owner_user_id, owner_principal_type, owner_principal_id,
         management_unit_id, created_by_user_id, is_personal_workspace,
-        name, name_normalized, public
+        name, name_normalized, public, ou_member_role
       )
-      SELECT NULL, 'ou'::owner_principal_type, ou.id, ou.id, $2, FALSE, $3, $4, FALSE
+      SELECT NULL, 'ou'::owner_principal_type, ou.id, ou.id, $2, FALSE, $3, $4, FALSE, 'Collaborator'
         FROM organization_unit ou
         JOIN organization_unit_type out ON out.id = ou.unit_type_id
        WHERE ou.id = $1
@@ -1024,18 +1035,6 @@ impl WorkspaceStore for SqlxWorkspaceStore {
     )
     .bind(workspace_id)
     .bind(root_update)
-    .execute(&mut *tx)
-    .await
-    .map_err(Self::map_db_err)?;
-
-    sqlx::query(
-      r#"
-      INSERT INTO workspace_memberships (workspace_id, user_id, role, status, joined_at)
-      VALUES ($1, $2, 'Admin', 'Accepted', now())
-      "#,
-    )
-    .bind(workspace_id)
-    .bind(creator_id)
     .execute(&mut *tx)
     .await
     .map_err(Self::map_db_err)?;
@@ -1319,16 +1318,30 @@ impl WorkspaceStore for SqlxWorkspaceStore {
     Ok(row.map(map_workspace_row).transpose().map_err(Self::map_db_err)?)
   }
 
-  /// List all workspaces where the user has an accepted membership.
+  /// Read workspaces and their effective access in one indexed join.
   #[instrument(skip(self))]
   async fn list_user_workspaces(&self, user_id: UserId) -> AuthResult<Vec<Workspace>> {
-    trace!(%user_id, "db list_user_workspaces");
+    Ok(
+      self
+        .list_workspace_access(user_id)
+        .await?
+        .into_iter()
+        .map(|(workspace, _)| workspace)
+        .collect(),
+    )
+  }
+
+  #[instrument(skip(self))]
+  async fn list_workspace_access(
+    &self,
+    user_id: UserId,
+  ) -> AuthResult<Vec<(Workspace, myoxus_application::permission::WorkspaceAccess)>> {
     let rows = sqlx::query(
             r#"
-            SELECT w.id, w.owner_user_id, w.name, w.description, w.avatar_key, w.public, w.enable_ai, w.enable_sharing, w.enable_url_preview, w.enable_doc_embedding, w.created_at, w.updated_at, w.initial_content_policy, w.overview_settings, w.overview_revision
+            SELECT m.role, m.direct_role, m.owner_ou_manager, w.id, w.owner_user_id, w.name, w.description, w.avatar_key, w.public, w.enable_ai, w.enable_sharing, w.enable_url_preview, w.enable_doc_embedding, w.created_at, w.updated_at, w.initial_content_policy, w.overview_settings, w.overview_revision
             FROM workspaces w
-            JOIN workspace_memberships m ON w.id = m.workspace_id
-            WHERE m.user_id = $1 AND m.status = 'Accepted' AND w.deleted_at IS NULL AND w.lifecycle_state = 'active'
+            JOIN workspace_effective_roles m ON w.id = m.workspace_id
+            WHERE m.user_id = $1 AND w.deleted_at IS NULL AND w.lifecycle_state = 'active'
             "#
         )
         .bind(user_id)
@@ -1338,9 +1351,11 @@ impl WorkspaceStore for SqlxWorkspaceStore {
 
     rows
       .into_iter()
-      .map(map_workspace_row)
-      .collect::<Result<Vec<_>, _>>()
-      .map_err(Self::map_db_err)
+      .map(|row| {
+        let access = map_workspace_access(&row)?;
+        Ok((map_workspace_row(row).map_err(Self::map_db_err)?, access))
+      })
+      .collect()
   }
 
   #[instrument(skip(self))]
@@ -1375,6 +1390,26 @@ impl WorkspaceStore for SqlxWorkspaceStore {
     use myoxus_application::workspace::QuotaUpdate;
 
     let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
+    if let Some(role) = update.ou_member_role {
+      let role = match role {
+        WorkspaceRole::Reader => "Reader",
+        WorkspaceRole::Collaborator => "Collaborator",
+        WorkspaceRole::Manager => "Manager",
+        _ => return Err(AuthError::InvalidInput("invalid default OU member role".into())),
+      };
+      let result = sqlx::query(
+        "UPDATE workspaces SET ou_member_role=$2 WHERE id=$1
+         AND owner_principal_type='ou' AND deleted_at IS NULL AND lifecycle_state='active'",
+      )
+      .bind(workspace_id)
+      .bind(role)
+      .execute(&mut *tx)
+      .await
+      .map_err(Self::map_db_err)?;
+      if result.rows_affected() == 0 {
+        return Err(AuthError::InvalidInput("active OU-owned workspace required".into()));
+      }
+    }
     if let Some(name) = &update.name {
       let owner = sqlx::query(
         r#"
@@ -1571,22 +1606,7 @@ impl WorkspaceStore for SqlxWorkspaceStore {
             ));
           }
           Self::require_available_name(&mut tx, "ou", owner_id, &name, Some(workspace_id)).await?;
-          let admin_count: i64 = sqlx::query_scalar(
-            "SELECT COUNT(*)
-               FROM workspace_memberships membership
-               JOIN users member ON member.id = membership.user_id AND member.status = 'active'
-              WHERE membership.workspace_id = $1
-                AND membership.role = 'Admin' AND membership.status = 'Accepted'",
-          )
-          .bind(workspace_id)
-          .fetch_one(&mut *tx)
-          .await
-          .map_err(Self::map_db_err)?;
-          if admin_count == 0 {
-            return Err(AuthError::InvalidInput(
-              "OU-owned workspace requires an active administrator".to_string(),
-            ));
-          }
+          Self::require_legacy_ou_admin(&mut tx, workspace_id, None).await?;
         }
         _ => {
           return Err(AuthError::InvalidInput(
@@ -1932,23 +1952,7 @@ impl WorkspaceStore for SqlxWorkspaceStore {
       ));
     }
     if owner_type == "ou" && target.0 == "Admin" && target.1 == "Accepted" {
-      let other_admins: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*)
-           FROM workspace_memberships membership
-           JOIN users member ON member.id = membership.user_id AND member.status = 'active'
-          WHERE membership.workspace_id = $1 AND membership.user_id <> $2
-            AND membership.role = 'Admin' AND membership.status = 'Accepted'",
-      )
-      .bind(workspace_id)
-      .bind(user_id)
-      .fetch_one(&mut *tx)
-      .await
-      .map_err(Self::map_db_err)?;
-      if other_admins == 0 {
-        return Err(AuthError::InvalidInput(
-          "OU-owned workspace requires an active administrator".to_string(),
-        ));
-      }
+      Self::require_legacy_ou_admin(&mut tx, workspace_id, Some(user_id)).await?;
     }
     sqlx::query(
       r#"
@@ -2026,23 +2030,7 @@ impl WorkspaceStore for SqlxWorkspaceStore {
       ));
     }
     if owner_type == "ou" && target.0 == "Admin" && target.1 == "Accepted" && role != WorkspaceRole::Admin {
-      let other_admins: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*)
-           FROM workspace_memberships membership
-           JOIN users member ON member.id = membership.user_id AND member.status = 'active'
-          WHERE membership.workspace_id = $1 AND membership.user_id <> $2
-            AND membership.role = 'Admin' AND membership.status = 'Accepted'",
-      )
-      .bind(workspace_id)
-      .bind(user_id)
-      .fetch_one(&mut *tx)
-      .await
-      .map_err(Self::map_db_err)?;
-      if other_admins == 0 {
-        return Err(AuthError::InvalidInput(
-          "OU-owned workspace requires an active administrator".to_string(),
-        ));
-      }
+      Self::require_legacy_ou_admin(&mut tx, workspace_id, Some(user_id)).await?;
     }
     let updated = sqlx::query(
       r#"
@@ -2422,6 +2410,21 @@ impl WorkspaceStore for SqlxWorkspaceStore {
 
     Ok(row.map(map_workspace_row).transpose().map_err(Self::map_db_err)?)
   }
+}
+
+pub(crate) fn map_workspace_access(
+  row: &sqlx::postgres::PgRow,
+) -> AuthResult<myoxus_application::permission::WorkspaceAccess> {
+  use myoxus_application::permission::WorkspaceAccess;
+  let parse = |value: String| {
+    serde_json::from_value(serde_json::Value::String(value))
+      .map_err(|_| AuthError::Storage("invalid projected workspace role".into()))
+  };
+  Ok(WorkspaceAccess {
+    direct_role: row.get::<Option<String>, _>("direct_role").map(parse).transpose()?,
+    effective_role: Some(parse(row.get("role"))?),
+    owner_ou_manager: row.get("owner_ou_manager"),
+  })
 }
 
 pub(crate) fn map_workspace_row(row: sqlx::postgres::PgRow) -> Result<Workspace, sqlx::Error> {

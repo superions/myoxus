@@ -4593,6 +4593,7 @@ impl AdminRoot {
       enable_sharing: input.enable_sharing,
       enable_url_preview: input.enable_url_preview,
       enable_doc_embedding: input.enable_doc_embedding,
+      ou_member_role: None,
       storage_quota_update: storage_quota_update.clone(),
       overview: None,
     };

@@ -328,10 +328,9 @@ async fn assert_workspace_default_fields_editable(
           END AS workspace_role
         FROM workspaces w
         JOIN users u ON u.id = $2
-        LEFT JOIN workspace_memberships wm
+        LEFT JOIN workspace_effective_roles wm
           ON wm.workspace_id = w.id
          AND wm.user_id = $2
-         AND wm.status = 'Accepted'
         WHERE w.id = $1
           AND w.deleted_at IS NULL
           AND w.lifecycle_state = 'active'

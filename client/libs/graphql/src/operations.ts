@@ -10534,11 +10534,11 @@ export interface CreateWorkspaceMutation {
     id: string;
     name: string;
     initialized: boolean;
-    role: Types.Permission;
     workspaceType: string;
     public: boolean;
     createdAt: string;
     initialContentPolicy: Types.WorkspaceInitialContentPolicy;
+    role: Types.Permission;
     owner: { id: string } | null;
     creation: {
       workspaceId: string;
@@ -41561,8 +41561,8 @@ export interface GetWorkspaceInfoQuery {
   workspace: {
     name: string;
     initialContentPolicy: Types.WorkspaceInitialContentPolicy;
-    role: Types.Permission;
     workspaceType: string;
+    role: Types.Permission;
     permissions: {
       Workspace_Administrators_Manage: boolean;
       Workspace_Blobs_List: boolean;
@@ -41663,8 +41663,8 @@ export interface GetWorkspacesQuery {
     name: string;
     initialized: boolean;
     initialContentPolicy: Types.WorkspaceInitialContentPolicy;
-    role: Types.Permission;
     workspaceType: string;
+    role: Types.Permission;
     owner: { id: string } | null;
   }>;
 }

@@ -1741,6 +1741,31 @@ impl AuthStore for SqlxAuthStore {
     }))
   }
 
+  #[instrument(skip_all)]
+  async fn workspace_access(
+    &self,
+    user_id: Uuid,
+    workspace_id: Uuid,
+  ) -> AuthResult<myoxus_application::permission::WorkspaceAccess> {
+    let row = sqlx::query(
+      "SELECT r.direct_role, r.role, r.owner_ou_manager FROM workspace_effective_roles r
+       JOIN workspaces w ON w.id = r.workspace_id AND w.lifecycle_state = 'active' AND w.deleted_at IS NULL
+       WHERE r.workspace_id = $1 AND r.user_id = $2",
+    )
+    .bind(workspace_id)
+    .bind(user_id)
+    .fetch_optional(&self.pool)
+    .await
+    .map_err(Self::map_db_err)?;
+    Ok(
+      row
+        .as_ref()
+        .map(crate::workspace::map_workspace_access)
+        .transpose()?
+        .unwrap_or_default(),
+    )
+  }
+
   /// Return the user's per-document role, or `None` when no row exists.
   #[instrument(skip_all)]
   async fn get_doc_role(&self, user_id: Uuid, doc_id: Uuid) -> AuthResult<Option<myoxus_domain::entities::DocRole>> {

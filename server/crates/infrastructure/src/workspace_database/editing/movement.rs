@@ -61,7 +61,7 @@ impl PgDatabaseRepository {
   ) -> RepoResult<()> {
     // This is the same accepted membership authority as the native workspace
     // permission store, held through commit so revocation cannot cross the write.
-    let member=sqlx::query("SELECT m.user_id FROM workspace_memberships m JOIN workspaces w ON w.id=m.workspace_id AND w.lifecycle_state='active' AND w.deleted_at IS NULL JOIN users u ON u.id=m.user_id AND u.status='active' WHERE m.workspace_id=$1 AND m.user_id=$2 AND m.status='Accepted' AND m.role IN ('Owner','Admin','Manager','Collaborator') FOR SHARE OF m,w,u")
+    let member=sqlx::query("SELECT m.user_id FROM workspace_effective_roles m JOIN workspaces w ON w.id=m.workspace_id AND w.lifecycle_state='active' AND w.deleted_at IS NULL JOIN users u ON u.id=m.user_id AND u.status='active' WHERE m.workspace_id=$1 AND m.user_id=$2 AND m.role IN ('Owner','Admin','Manager','Collaborator') FOR SHARE OF m,w,u")
       .bind(input.workspace_id).bind(actor).fetch_optional(&mut **tx).await.map_err(Self::map_sqlx_error)?;
     if member.is_none() {
       return Err(RepositoryError::Validation("task move permission unavailable".into()));

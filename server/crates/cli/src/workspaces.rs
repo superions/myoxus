@@ -52,6 +52,12 @@ pub enum WorkspacesCommand {
   SetMemberRole(WorkspaceSetMemberRoleArgs),
   /// Remove an existing member.
   RemoveMember(WorkspaceRemoveMemberArgs),
+  /// Set inherited access for regular members of the owner OU, including adoption of an existing team workspace.
+  SetOuMemberRole {
+    workspace_id: Uuid,
+    #[arg(long, value_parser = ["Reader", "Collaborator", "Manager"], ignore_case = true)]
+    role: String,
+  },
   /// Transfer ownership to a user or organization unit.
   TransferOwner(WorkspaceTransferOwnerArgs),
   /// Set or clear the operational management unit.
@@ -375,6 +381,20 @@ pub async fn run(cmd: WorkspacesCommand, svc: &Services, json: bool) -> anyhow::
     WorkspacesCommand::AddMember(args) => add_member(args, svc).await,
     WorkspacesCommand::SetMemberRole(args) => set_member_role(args, svc).await,
     WorkspacesCommand::RemoveMember(args) => remove_member(args, svc).await,
+    WorkspacesCommand::SetOuMemberRole { workspace_id, role } => {
+      svc
+        .workspace
+        .update_workspace(
+          workspace_id,
+          UpdateWorkspace {
+            ou_member_role: Some(parse_workspace_role(&role)?),
+            ..Default::default()
+          },
+        )
+        .await?;
+      println!("Updated OU member role for {workspace_id}: {role}");
+      Ok(())
+    }
     WorkspacesCommand::TransferOwner(args) => transfer_owner(args, svc).await,
     WorkspacesCommand::SetManagementUnit(args) => set_management_unit(args, svc).await,
     WorkspacesCommand::SetSharing(args) => set_sharing(args, svc).await,

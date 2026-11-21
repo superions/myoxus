@@ -18896,7 +18896,7 @@ export const createWorkspaceMutation = {
     id
     name
     initialized
-    role
+    role: effectiveRole
     workspaceType
     owner {
       id
@@ -37301,7 +37301,7 @@ export const getWorkspaceInfoQuery = {
       Workspace_Users_Manage
       Workspace_Users_Read
     }
-    role
+    role: effectiveRole
     workspaceType
   }
 }`,
@@ -37407,7 +37407,7 @@ export const getWorkspacesQuery = {
     name
     initialized
     initialContentPolicy
-    role
+    role: effectiveRole
     workspaceType
     owner {
       id

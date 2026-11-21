@@ -2238,13 +2238,7 @@ impl ApiState {
     mut self,
     svc: Arc<myoxus_application::organization::OrganizationPermissionService>,
   ) -> Self {
-    self.services.organization_permission_service = Some(svc.clone());
-    // Services such as Database and workspace tags may already hold this Arc.
-    // Enrich the shared authority in place so no consumer keeps a stale
-    // direct-membership-only permission service.
-    if !self.services.permission_service.set_organization_permissions(svc) {
-      tracing::warn!("organization permission service was already attached; retaining the first authority");
-    }
+    self.services.organization_permission_service = Some(svc);
     self
   }
   pub fn organization_permission_service(

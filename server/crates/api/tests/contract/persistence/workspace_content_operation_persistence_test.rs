@@ -806,7 +806,7 @@ async fn configure_overview(
 
 fn overview_columns(key: &str) -> OverviewRegisterPresentation {
   OverviewRegisterPresentation {
-          selection: Default::default(),
+    selection: Default::default(),
     display_properties: vec!["system:title".into(), format!("system:{key}")],
     order_by: OverviewOrderBy {
       property_type: "system".into(),
@@ -6369,8 +6369,7 @@ fn exercise_extract_publication(
       Arc::new(PgOrganizationPolicyRepository::new(pool.clone())),
       Arc::new(PgUserFeatureLookup::new(pool.clone())),
     ));
-    let permission =
-      Arc::new(PermissionService::new(auth.clone()).with_organization_permissions(organization_permissions.clone()));
+    let permission = Arc::new(PermissionService::new(auth.clone()));
     let mut organization_fixture = None;
     let owner = if ou_owned {
       let organization_id = helpers::default_organization_id(&pool).await;

@@ -145,10 +145,15 @@ impl NativeEventService {
   // ── Permission helper ─────────────────────────────────────────────────
 
   async fn assert_write_access(&self, workspace_id: WorkspaceId, user_id: Uuid) -> AuthResult<()> {
-    let role = self.auth_store.get_workspace_role(user_id, workspace_id).await?;
-    match role {
-      Some(r) if r.can(WorkspaceAction::CreateDoc) => Ok(()),
-      _ => Err(AuthError::ActionForbidden),
+    if self
+      .auth_store
+      .workspace_access(user_id, workspace_id)
+      .await?
+      .can(WorkspaceAction::CreateDoc)
+    {
+      Ok(())
+    } else {
+      Err(AuthError::ActionForbidden)
     }
   }
 

@@ -15548,6 +15548,7 @@ enum WorkspaceQuotaSource {
 A role paired with its derived permission matrix.
 """
 type WorkspaceRolePermissions {
+  effectiveRole: Permission!
   permissions: WorkspacePermissions!
   role: Permission!
 }
@@ -15943,6 +15944,10 @@ type WorkspaceType {
     externalIds: [ID!]!
   ): [WorkspaceTagDocumentAssignment!]!
   documentWorkspaceTagIds(docId: ID!): [ID!]!
+  """
+  Workspace role including inherited OU grants.
+  """
+  effectiveRole: Permission!
   embedding: WorkspaceEmbeddingType!
   enableAi: Boolean!
   enableDocEmbedding: Boolean!
@@ -16069,7 +16074,7 @@ type WorkspaceType {
   """
   pendingGitContentOperations: [WorkspaceContentOperationType!]!
   """
-  Complexity 5: resolves direct membership plus OU-manager scope once.
+  Complexity 5: reads the workspace access snapshot.
   """
   permissions: WorkspacePermissions!
   prepareContextDocuments(

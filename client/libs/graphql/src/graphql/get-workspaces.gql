@@ -4,7 +4,7 @@ query getWorkspaces {
     name
     initialized
     initialContentPolicy
-    role
+    role: effectiveRole
     workspaceType
     owner {
       id

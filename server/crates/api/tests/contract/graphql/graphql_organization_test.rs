@@ -12,6 +12,7 @@
 
 use crate::helpers;
 
+use myoxus_application::auth::AuthStore;
 use serde_json::json;
 use yrs::{Array, Map, ReadTxn, Transact, Update, updates::decoder::Decode};
 
@@ -276,17 +277,34 @@ fn inv_org_shared_workspace_owner_transfer_keeps_one_ou_owner() {
     .await
     .expect("load ownership projection");
     assert_eq!(projection, (None, "ou".to_string(), Some(first_unit), false));
-    let creator_role: String =
-      sqlx::query_scalar("SELECT role::text FROM workspace_memberships WHERE workspace_id = $1 AND user_id = $2")
-        .bind(workspace_id)
-        .bind(admin_id)
-        .fetch_one(&pool)
-        .await
-        .expect("creator membership");
-    assert_eq!(
-      creator_role, "Admin",
-      "a person must administer, not own, a shared workspace"
+    assert!(auth.get_workspace_role(admin_id, workspace_id).await.unwrap().is_none());
+    let (member, member_session) = helpers::seed_user(&pool, &auth, "ou_inherited_access").await;
+    sqlx::query("INSERT INTO organization_unit_member(unit_id,user_id,role) VALUES($1,$2,'member')")
+      .bind(first_unit)
+      .bind(member)
+      .execute(&pool)
+      .await
+      .unwrap();
+    let member_view = helpers::gql(&app, member_session, json!({
+      "query": "query($id: String!) { workspaces { id effectiveRole } workspace(id: $id) { doc(docId: $id) { permissions { Doc_Read Doc_Update } } } workspaceRolePermissions(id: $id) { effectiveRole permissions { Workspace_CreateDoc Workspace_Settings_Update } } }",
+      "variables": {"id":workspace_id.to_string()}
+    })).await;
+    assert!(
+      member_view["data"]["workspaces"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|w| w["id"] == workspace_id.to_string() && w["effectiveRole"] == "Collaborator")
     );
+    assert_eq!(
+      member_view["data"]["workspace"]["doc"]["permissions"],
+      json!({"Doc_Read":true,"Doc_Update":true})
+    );
+    let access = &member_view["data"]["workspaceRolePermissions"];
+    assert_eq!(access["effectiveRole"], "Collaborator");
+    assert_eq!(access["permissions"]["Workspace_CreateDoc"], true);
+    assert_eq!(access["permissions"]["Workspace_Settings_Update"], false);
+    assert!(auth.get_workspace_role(member, workspace_id).await.unwrap().is_none());
 
     let root_update: Vec<u8> =
       sqlx::query_scalar("SELECT payload FROM doc_updates WHERE workspace_id = $1 AND doc_id = $1 AND sequence = 1")
@@ -406,6 +424,16 @@ fn inv_org_shared_workspace_owner_transfer_keeps_one_ou_owner() {
         .await
         .expect("load projected owner");
     assert_eq!(projected_owner, Some(second_unit));
+    assert!(
+      auth
+        .workspace_access(member, workspace_id)
+        .await
+        .unwrap()
+        .effective_role
+        .is_none(),
+      "a regular member loses inherited access when the previous owner becomes a managed link"
+    );
+    helpers::cleanup_users(&pool, &[member]).await;
 
     helpers::cleanup_workspaces(&pool, &[workspace_id, compatible_workspace_id]).await;
     helpers::cleanup_organization_units(&pool, &[first_unit, second_unit]).await;
@@ -414,7 +442,7 @@ fn inv_org_shared_workspace_owner_transfer_keeps_one_ou_owner() {
 }
 
 /// Shared workspace permission projections consume the effective OU-manager
-/// role while preserving the raw membership role.
+/// role without creating a direct membership.
 #[test]
 fn inv_org_shared_workspace_effective_capability_projection_preserves_raw_role() {
   helpers::block_on_large_stack(
@@ -484,7 +512,7 @@ fn inv_org_shared_workspace_effective_capability_projection_preserves_raw_role()
         &app,
         manager_session,
         json!({
-          "query": r#"query($workspace: ID!, $doc: String!) {
+          "query": r#"query($workspace: String!, $doc: String!) {
             workspaces { id }
             workspaceRolePermissions(id: $workspace) {
               role
@@ -537,7 +565,7 @@ fn inv_org_shared_workspace_effective_capability_projection_preserves_raw_role()
       ] {
         assert_eq!(
           access["role"], "External",
-          "raw role must remain External: {projection}"
+          "raw membership role must remain External: {projection}"
         );
         assert_eq!(access["permissions"]["Workspace_Users_Manage"], true);
         assert_eq!(access["permissions"]["Workspace_Settings_Update"], true);
@@ -559,7 +587,7 @@ fn inv_org_shared_workspace_effective_capability_projection_preserves_raw_role()
         &app,
         outsider_session,
         json!({
-          "query": r#"query($workspace: ID!) {
+          "query": r#"query($workspace: String!) {
             workspaceRolePermissions(id: $workspace) {
               permissions {
                 Workspace_Users_Manage

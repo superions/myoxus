@@ -485,22 +485,6 @@ async fn assert_patch_fields_editable(
           COALESCE(u.is_admin, false) AS is_global_admin,
           CASE
             WHEN w.owner_user_id = $3 THEN 'Owner'
-            WHEN EXISTS (
-              SELECT 1
-              FROM organization_unit_workspace ouw
-              JOIN organization_unit ou
-                ON ou.id = ouw.unit_id
-               AND ou.status = 'active'
-              JOIN organization_unit_member oum
-                ON oum.unit_id = ouw.unit_id
-               AND oum.user_id = $3
-               AND oum.role = 'manager'
-              JOIN user_features uf
-                ON uf.user_id = $3
-               AND uf.feature_name = 'manager'
-               AND uf.activated = true
-              WHERE ouw.workspace_id = d.workspace_id
-            ) THEN 'Admin'
             ELSE wm.role
           END AS workspace_role,
           dup.role AS doc_role,
@@ -508,10 +492,9 @@ async fn assert_patch_fields_editable(
         FROM docs d
         JOIN workspaces w ON w.id = d.workspace_id
         JOIN users u ON u.id = $3
-        LEFT JOIN workspace_memberships wm
+        LEFT JOIN workspace_effective_roles wm
           ON wm.workspace_id = d.workspace_id
          AND wm.user_id = $3
-         AND wm.status = 'Accepted'
         LEFT JOIN doc_user_permissions dup
           ON dup.doc_id = d.id
          AND dup.user_id = $3

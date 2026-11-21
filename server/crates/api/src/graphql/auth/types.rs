@@ -496,6 +496,12 @@ pub struct WorkspacePermissions {
 }
 
 impl WorkspacePermissions {
+  pub(crate) fn from_access(access: myoxus_application::permission::WorkspaceAccess) -> Self {
+    let mut permissions = Self::from_role(access.effective_role.unwrap_or(WorkspaceRoleModel::External));
+    permissions.workspace_administrators_manage = access.can(WorkspaceAction::AdministratorsManage);
+    permissions
+  }
+
   pub fn from_role(role: WorkspaceRoleModel) -> Self {
     Self {
       workspace_read: role.can(WorkspaceAction::Read),
@@ -552,6 +558,7 @@ mod workspace_permissions_tests {
 #[derive(SimpleObject)]
 pub struct WorkspaceRolePermissions {
   pub role: WorkspaceRole,
+  pub effective_role: WorkspaceRole,
   pub permissions: WorkspacePermissions,
 }
 
@@ -1340,6 +1347,7 @@ pub struct WorkspaceTemplateContextType {
 
 /// Workspace fields resolve under the authenticated workspace permission boundary.
 pub struct WorkspaceType {
+  pub(super) access: tokio::sync::OnceCell<myoxus_application::permission::WorkspaceAccess>,
   pub(super) overview_settings: WorkspaceOverviewSettings,
   pub(super) overview_revision: i64,
   pub initial_content_policy: WorkspaceInitialContentPolicyType,
@@ -1435,6 +1443,7 @@ pub struct PaginatedDocGrantedUserType {
 
 /// GraphQL output type for a workspace document (metadata only, no content).
 pub struct WorkspaceDocType {
+  pub(super) workspace_role: Option<myoxus_domain::entities::WorkspaceRole>,
   /// Document UUID.
   pub id: String,
   /// UUID of the owning workspace.
@@ -1503,6 +1512,7 @@ pub struct InvitationType {
 impl From<Workspace> for WorkspaceType {
   fn from(w: Workspace) -> Self {
     Self {
+      access: Default::default(),
       overview_settings: w.overview_settings,
       overview_revision: w.overview_revision,
       initial_content_policy: w.initial_content_policy.into(),

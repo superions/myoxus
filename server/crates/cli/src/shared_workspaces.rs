@@ -107,6 +107,7 @@ struct SharedWorkspaceRow {
   name: String,
   owner_unit_id: String,
   owner_unit_name: String,
+  ou_member_role: String,
   member_count: i64,
   created_at: String,
 }
@@ -136,7 +137,7 @@ pub async fn run(cmd: SharedWorkspacesCommand, svc: &Services, json: bool) -> an
 
 async fn list(svc: &Services, json: bool) -> anyhow::Result<()> {
   let rows = sqlx::query(
-    r#"SELECT w.id, w.name, w.owner_principal_id, ou.name AS owner_unit_name,
+    r#"SELECT w.id, w.name, w.owner_principal_id, ou.name AS owner_unit_name, COALESCE(w.ou_member_role, '') AS ou_member_role,
               (SELECT COUNT(*) FROM workspace_memberships wm WHERE wm.workspace_id = w.id) AS member_count,
               w.created_at
          FROM workspaces w
@@ -153,6 +154,7 @@ async fn list(svc: &Services, json: bool) -> anyhow::Result<()> {
       name: row.get("name"),
       owner_unit_id: row.get::<Uuid, _>("owner_principal_id").to_string(),
       owner_unit_name: row.get("owner_unit_name"),
+      ou_member_role: row.get("ou_member_role"),
       member_count: row.get("member_count"),
       created_at: row.get::<chrono::DateTime<chrono::Utc>, _>("created_at").to_rfc3339(),
     })
@@ -179,20 +181,40 @@ async fn get(args: SharedWorkspaceGetArgs, svc: &Services, json: bool) -> anyhow
     })
     .collect::<Vec<_>>();
 
+  #[derive(Tabled, Serialize, sqlx::FromRow)]
+  struct EffectiveMember {
+    email: String,
+    direct_role: String,
+    ou_role: String,
+    effective_role: String,
+  }
+  let effective_access: Vec<EffectiveMember> = sqlx::query_as(
+    "SELECT u.email, COALESCE(r.direct_role, '') AS direct_role, COALESCE(r.ou_role,'') AS ou_role,
+            r.role AS effective_role
+       FROM workspace_effective_roles r JOIN users u ON u.id=r.user_id
+      WHERE r.workspace_id=$1 ORDER BY u.email",
+  )
+  .bind(workspace_id)
+  .fetch_all(&svc.pool)
+  .await?;
   if json {
     #[derive(Serialize)]
     struct DetailOutput {
+      effective_access: Vec<EffectiveMember>,
       workspace: SharedWorkspaceRow,
       members: Vec<SharedWorkspaceMemberRow>,
     }
     print_json(&DetailOutput {
       workspace: detail,
+      effective_access,
       members,
     });
   } else {
     print_single(&detail, false);
     println!("\nMembers:");
     print_table(&members);
+    println!("\nEffective access:");
+    print_table(&effective_access);
   }
   Ok(())
 }
@@ -317,7 +339,7 @@ async fn undelete(args: SharedWorkspaceUndeleteArgs, svc: &Services, json: bool)
 
 async fn load_shared_workspace(svc: &Services, workspace_id: Uuid) -> anyhow::Result<SharedWorkspaceRow> {
   let row = sqlx::query(
-    r#"SELECT w.id, w.name, w.owner_principal_id, ou.name AS owner_unit_name,
+    r#"SELECT w.id, w.name, w.owner_principal_id, ou.name AS owner_unit_name, COALESCE(w.ou_member_role, '') AS ou_member_role,
               (SELECT COUNT(*) FROM workspace_memberships wm WHERE wm.workspace_id = w.id) AS member_count,
               w.created_at
          FROM workspaces w
@@ -333,6 +355,7 @@ async fn load_shared_workspace(svc: &Services, workspace_id: Uuid) -> anyhow::Re
     name: row.get("name"),
     owner_unit_id: row.get::<Uuid, _>("owner_principal_id").to_string(),
     owner_unit_name: row.get("owner_unit_name"),
+    ou_member_role: row.get("ou_member_role"),
     member_count: row.get("member_count"),
     created_at: row.get::<chrono::DateTime<chrono::Utc>, _>("created_at").to_rfc3339(),
   })

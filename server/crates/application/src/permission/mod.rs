@@ -15,12 +15,10 @@ use myoxus_domain::entities::{DocRole, WorkspaceRole};
 use myoxus_domain::permission::{DocAction, WorkspaceAction, fixup_doc_role};
 use std::{
   collections::{HashMap, HashSet},
-  sync::{Arc, OnceLock},
+  sync::Arc,
 };
-use tracing::{debug, instrument};
+use tracing::instrument;
 use uuid::Uuid;
-
-use crate::organization::OrganizationPermissionService;
 
 /// Generic access-control interface for a resource type `R`.
 ///
@@ -61,20 +59,24 @@ pub struct DocResource {
 /// [`AccessController<DocResource>`].
 pub struct PermissionService {
   store: Arc<dyn AuthStore>,
-  /// Optional OU permission service used to derive effective workspace access.
-  ///
-  /// Direct membership remains the raw role. A manager-scoped OU link raises
-  /// only the effective role, capped at [`WorkspaceRole::Admin`].
-  org_permission: OnceLock<Arc<OrganizationPermissionService>>,
 }
 
 /// Raw membership and the role used for authorization decisions.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct WorkspaceAccess {
   /// Direct `workspace_memberships` role, if one exists.
   pub direct_role: Option<WorkspaceRole>,
-  /// Direct role raised to `Admin` when the actor manages a linked OU.
+  /// Strongest accepted direct or active OU-derived grant.
   pub effective_role: Option<WorkspaceRole>,
+  /// Additional administration delegated by the owning OU only.
+  pub owner_ou_manager: bool,
+}
+
+impl WorkspaceAccess {
+  pub fn can(self, action: WorkspaceAction) -> bool {
+    (action == WorkspaceAction::AdministratorsManage && self.owner_ou_manager)
+      || self.effective_role.is_some_and(|role| role.can(action))
+  }
 }
 
 /// Select the capability required to mutate an existing membership.
@@ -99,30 +101,8 @@ pub fn required_membership_mutation_action(
 
 impl PermissionService {
   /// Construct a `PermissionService` backed by the given auth store.
-  /// OU-manager fallback is disabled until [`Self::with_organization_permissions`]
-  /// is called.
   pub fn new(store: Arc<dyn AuthStore>) -> Self {
-    Self {
-      store,
-      org_permission: OnceLock::new(),
-    }
-  }
-
-  /// Wire an [`OrganizationPermissionService`] so OU-manager scope can
-  /// participate in the same effective-role resolution as direct membership.
-  pub fn with_organization_permissions(self, perm: Arc<OrganizationPermissionService>) -> Self {
-    let _ = self.org_permission.set(perm);
-    self
-  }
-
-  /// Attach the organization resolver to an already shared permission service.
-  ///
-  /// Production constructs some workspace-scoped services before organization
-  /// repositories are ready. Keeping this dependency in a one-shot cell means
-  /// those consumers retain the same authoritative permission service instead
-  /// of capturing a stale pre-organization instance.
-  pub fn set_organization_permissions(&self, perm: Arc<OrganizationPermissionService>) -> bool {
-    self.org_permission.set(perm).is_ok()
+    Self { store }
   }
 
   /// Return the user's direct membership role, or `None` if not a member.
@@ -139,41 +119,10 @@ impl PermissionService {
       .unwrap_or(None)
   }
 
-  /// Resolve direct membership and the server-authoritative effective role.
-  ///
-  /// Repository errors for the direct role are propagated. An OU lookup error
-  /// is logged and fails closed by retaining the direct role without elevation.
+  /// Read the stored workspace access for this operation.
   #[instrument(skip_all)]
   pub async fn resolve_workspace_access(&self, user_id: Uuid, workspace_id: Uuid) -> AuthResult<WorkspaceAccess> {
-    let direct_role = self.store.get_workspace_role(user_id, workspace_id).await?;
-    if direct_role.is_some_and(|role| role >= WorkspaceRole::Admin) {
-      return Ok(WorkspaceAccess {
-        direct_role,
-        effective_role: direct_role,
-      });
-    }
-
-    let effective_role = match self.org_permission.get() {
-      Some(org_permission) => match org_permission.can_manage_ou_workspace(user_id, workspace_id).await {
-        Ok(true) => Some(WorkspaceRole::Admin),
-        Ok(false) => direct_role,
-        Err(error) => {
-          debug!(
-            error = %error,
-            user_id = %user_id,
-            workspace_id = %workspace_id,
-            "OU-manager scope lookup failed; retaining direct workspace role"
-          );
-          direct_role
-        }
-      },
-      None => direct_role,
-    };
-
-    Ok(WorkspaceAccess {
-      direct_role,
-      effective_role,
-    })
+    self.store.workspace_access(user_id, workspace_id).await
   }
 
   /// Return the effective workspace role used by capabilities and mutation
@@ -198,7 +147,11 @@ impl PermissionService {
   /// authorization and public delivery keep their existing semantics.
   #[instrument(skip_all)]
   pub async fn assert_template_catalog_read(&self, user_id: Uuid, workspace_id: Uuid) -> AuthResult<()> {
-    match self.get_effective_workspace_role(user_id, workspace_id).await? {
+    Self::assert_template_role(self.get_effective_workspace_role(user_id, workspace_id).await?)
+  }
+
+  pub fn assert_template_role(role: Option<WorkspaceRole>) -> AuthResult<()> {
+    match role {
       Some(role) if role != WorkspaceRole::External && role.can(WorkspaceAction::Read) => Ok(()),
       _ => Err(AuthError::ActionForbidden),
     }
@@ -216,6 +169,16 @@ impl PermissionService {
   #[instrument(skip_all)]
   pub async fn get_effective_doc_role(&self, user_id: Uuid, workspace_id: Uuid, doc_id: Uuid) -> AuthResult<DocRole> {
     let workspace_role = self.get_effective_workspace_role(user_id, workspace_id).await?;
+    self.doc_role_with_workspace_role(user_id, doc_id, workspace_role).await
+  }
+
+  /// Complete the document check using the workspace role already resolved for this operation.
+  pub async fn doc_role_with_workspace_role(
+    &self,
+    user_id: Uuid,
+    doc_id: Uuid,
+    workspace_role: Option<WorkspaceRole>,
+  ) -> AuthResult<DocRole> {
     let document_role = self.store.get_doc_role(user_id, doc_id).await?;
     Ok(fixup_doc_role(workspace_role, document_role))
   }
@@ -278,11 +241,9 @@ impl AccessController<WorkspaceResource> for PermissionService {
 
   async fn can(&self, resource: &WorkspaceResource, action: Self::Action) -> bool {
     self
-      .get_effective_workspace_role(resource.user_id, resource.workspace_id)
+      .resolve_workspace_access(resource.user_id, resource.workspace_id)
       .await
-      .ok()
-      .flatten()
-      .is_some_and(|role| role.can(action))
+      .is_ok_and(|access| access.can(action))
   }
 
   async fn assert(&self, resource: &WorkspaceResource, action: Self::Action) -> Result<(), AuthError> {

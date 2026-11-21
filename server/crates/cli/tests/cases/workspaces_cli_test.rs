@@ -502,6 +502,11 @@ async fn workspace_cli_preserves_complete_user_and_ou_lifecycle() -> Result<()> 
       "failed concurrent mutations must preserve the last Admin"
     );
 
+    run_success(&["workspaces","set-ou-member-role",&workspace,"--role","Collaborator"], &namespace)?;
+    let adopted = run_json(&["shared-workspaces", "get", &workspace], &namespace)?;
+    ensure!(adopted["workspace"]["ou_member_role"] == "Collaborator");
+    run_success(&["workspaces","set-member-role",&workspace,&next_owner_email,"--role","Manager"], &namespace)?;
+
     run_success(
       &[
         "workspaces",

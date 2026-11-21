@@ -213,6 +213,7 @@ pub fn workspace_description(value: &str) -> AuthResult<String> {
 /// clearing a quota override (back to NULL) is a distinct intent from "leave unchanged".
 #[derive(Debug, Clone, Default)]
 pub struct UpdateWorkspace {
+  pub ou_member_role: Option<WorkspaceRole>,
   /// New display name for the workspace.
   pub name: Option<WorkspaceName>,
   /// New plain-text description. `None` leaves it unchanged; an empty value clears it.
@@ -246,6 +247,7 @@ pub struct UpdateWorkspace {
 /// this operation.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct UserWorkspaceSettingsInput {
+  pub ou_member_role: Option<WorkspaceRole>,
   pub name: Option<String>,
   pub description: Option<String>,
   pub public: Option<bool>,
@@ -321,6 +323,7 @@ impl WorkspaceSettingsService {
       .update_workspace(
         workspace_id,
         UpdateWorkspace {
+          ou_member_role: input.ou_member_role,
           name: input.name.as_deref().map(workspace_name).transpose()?,
           description: input.description.as_deref().map(workspace_description).transpose()?,
           public: input.public,
@@ -636,8 +639,27 @@ pub trait WorkspaceStore: Send + Sync {
   async fn get_workspace(&self, workspace_id: WorkspaceId) -> AuthResult<Option<Workspace>>;
   /// Resolve the workspace ownership classification used by client navigation.
   async fn workspace_classification(&self, workspace_id: WorkspaceId) -> AuthResult<Option<WorkspaceClassification>>;
-  /// Return all workspaces the user is an accepted member of.
+  /// List active workspaces accessible through direct or inherited membership.
   async fn list_user_workspaces(&self, user_id: UserId) -> AuthResult<Vec<Workspace>>;
+  /// Carry the access snapshot into list fields so each row is read once.
+  async fn list_workspace_access(
+    &self,
+    user_id: UserId,
+  ) -> AuthResult<Vec<(Workspace, crate::permission::WorkspaceAccess)>> {
+    let mut entries = Vec::new();
+    for workspace in self.list_user_workspaces(user_id).await? {
+      let role = self.get_member(workspace.id, user_id).await?.map(|member| member.role);
+      entries.push((
+        workspace,
+        crate::permission::WorkspaceAccess {
+          direct_role: role,
+          effective_role: role,
+          owner_ou_manager: false,
+        },
+      ));
+    }
+    Ok(entries)
+  }
   /// Return whether the user manages at least one active accepted workspace.
   async fn has_managed_workspace(&self, user_id: UserId) -> AuthResult<bool> {
     for workspace in self.list_user_workspaces(user_id).await? {
@@ -1061,6 +1083,13 @@ impl WorkspaceService {
 
   /// Return all workspaces the given user belongs to.
   #[instrument(skip_all)]
+  pub async fn list_workspace_access(
+    &self,
+    user_id: UserId,
+  ) -> AuthResult<Vec<(Workspace, crate::permission::WorkspaceAccess)>> {
+    self.store.list_workspace_access(user_id).await
+  }
+
   pub async fn list_workspaces(&self, user_id: UserId) -> AuthResult<Vec<Workspace>> {
     self.store.list_user_workspaces(user_id).await
   }

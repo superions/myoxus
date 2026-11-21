@@ -2742,6 +2742,9 @@ pub mod mcp {
         Request::builder()
           .method("POST")
           .uri("/mcp")
+          .header("host", "localhost")
+          .header("accept", "application/json, text/event-stream")
+          .header("mcp-protocol-version", "2025-11-25")
           .header("content-type", "application/json")
           .header("authorization", format!("Bearer {token}"))
           .body(Body::from(

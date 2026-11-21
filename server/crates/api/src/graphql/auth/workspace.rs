@@ -6,25 +6,7 @@
 //! `myoxus_application::workspace::WorkspaceService` and
 //! `myoxus_application::permission::PermissionService`.
 //!
-//! ## DataLoader Analysis (P84-G-01)
-//!
-//! async-graphql's built-in `DataLoader` was evaluated for field-level N+1
-//! mitigation (e.g., `WorkspaceType.initialized` and `.role` resolved
-//! per-item in a list).  Conclusion: **DataLoader is not needed** because:
-//!
-//! 1. **async-graphql already resolves list items concurrently** — field
-//!    resolvers for different list elements are run as concurrent futures,
-//!    so the per-workspace DB queries already overlap.
-//! 2. **Batch queries cover the primary N+1 paths** — member lookups use
-//!    `get_historical_profiles()` for batch author resolution. Workspace listing
-//!    merges direct membership and scoped OU-manager results before field
-//!    resolution; classification is not an access filter.
-//! 3. **Remaining per-item fields** (`initialized`, `role`) are
-//!    single-row lookups with low cardinality (typically 1-5 workspaces per
-//!    user) — the concurrent resolution already achieves near-optimal latency.
-//!
-//! If the workspace list size grows significantly (>50 items), DataLoader
-//! should be reconsidered for these per-item fields.
+//! Role and capability fields share the access snapshot of this query result.
 
 use myoxus_application::workspace::workspace_invite_url;
 use std::collections::{HashMap, HashSet};
@@ -113,21 +95,15 @@ async fn load_workspace_doc_summary(state: &ApiState, workspace_id: Uuid, doc_id
 /// Storage rechecks the tuple in its read snapshot after this authorization.
 async fn authorize_history_document(
   ctx: &Context<'_>,
-  workspace_id: Uuid,
+  workspace: &WorkspaceType,
   guid: &str,
 ) -> Result<(Arc<ApiState>, Uuid)> {
   let (state, snapshot) = require_session(ctx).await?;
-  state
-    .permission_service()
-    .assert(
-      &WorkspaceResource {
-        user_id: snapshot.user.id,
-        workspace_id,
-      },
-      WorkspaceAction::Read,
-    )
-    .await
-    .map_err(map_gql_error)?;
+  let workspace_id = workspace.id;
+  let access = workspace.access(ctx).await?;
+  if !access.can(WorkspaceAction::Read) {
+    return Err(map_gql_error(AuthError::ActionForbidden));
+  }
   let doc_id = crate::graphql::utils::resolve_doc_id(&state, workspace_id, guid).await?;
   let meta = state
     .doc()
@@ -138,13 +114,14 @@ async fn authorize_history_document(
     .ok_or_else(|| map_gql_error(AuthError::NotFound("document".into())))?;
   let document_key = DocumentKey::parse(meta.external_id)
     .map_err(|error| async_graphql::Error::new(format!("invalid document key: {error}")))?;
-  let authorized = crate::document_access::authorize_workspace_document(
+  let authorized = crate::document_access::authorize_document_with_access(
     &state,
     snapshot.user.id,
     workspace_id,
     myoxus_application::doc::DocSpaceKind::Workspace,
     &document_key,
     DocAction::Read,
+    access,
   )
   .await
   .map_err(map_gql_error)?;
@@ -347,6 +324,32 @@ impl From<(myoxus_domain::workspace_overview::WorkspaceOverviewSettings, i64)> f
         })
         .collect(),
     }
+  }
+}
+
+impl WorkspaceType {
+  pub(super) fn with_access(
+    workspace: myoxus_domain::entities::Workspace,
+    access: myoxus_application::permission::WorkspaceAccess,
+  ) -> Self {
+    let mut result = WorkspaceType::from(workspace);
+    result.access = tokio::sync::OnceCell::new_with(Some(access));
+    result
+  }
+
+  async fn access(&self, ctx: &Context<'_>) -> Result<myoxus_application::permission::WorkspaceAccess> {
+    let (state, snapshot) = require_session(ctx).await?;
+    self
+      .access
+      .get_or_try_init(|| async {
+        state
+          .permission_service()
+          .resolve_workspace_access(snapshot.user.id, self.id)
+          .await
+          .map_err(map_gql_error)
+      })
+      .await
+      .copied()
   }
 }
 
@@ -1297,31 +1300,33 @@ impl WorkspaceType {
   #[graphql(complexity = 5)]
   #[instrument(skip_all)]
   pub(crate) async fn role(&self, ctx: &Context<'_>) -> Result<WorkspaceRole> {
-    let (state, snapshot) = require_session(ctx).await?;
-
-    let role = state
-      .auth()
-      .store
-      .get_workspace_role(snapshot.user.id, self.id)
-      .await
-      .map_err(map_gql_error)?;
-    let final_role = role.unwrap_or(WorkspaceRoleModel::External);
-    trace!(workspace_id = %self.id, user_id = %snapshot.user.id, role = ?final_role, "fetched workspace role");
-    Ok(final_role.into())
+    Ok(
+      self
+        .access(ctx)
+        .await?
+        .direct_role
+        .unwrap_or(WorkspaceRoleModel::External)
+        .into(),
+    )
   }
 
-  /// Complexity 5: resolves direct membership plus OU-manager scope once.
+  /// Workspace role including inherited OU grants.
+  async fn effective_role(&self, ctx: &Context<'_>) -> Result<WorkspaceRole> {
+    Ok(
+      self
+        .access(ctx)
+        .await?
+        .effective_role
+        .unwrap_or(WorkspaceRoleModel::External)
+        .into(),
+    )
+  }
+
+  /// Complexity 5: reads the workspace access snapshot.
   #[graphql(complexity = 5)]
   #[instrument(skip_all)]
   pub(crate) async fn permissions(&self, ctx: &Context<'_>) -> Result<WorkspacePermissions> {
-    let (state, snapshot) = require_session(ctx).await?;
-    let role = state
-      .permission_service()
-      .get_effective_workspace_role(snapshot.user.id, self.id)
-      .await
-      .map_err(map_gql_error)?
-      .unwrap_or(WorkspaceRoleModel::External);
-    Ok(WorkspacePermissions::from_role(role))
+    Ok(WorkspacePermissions::from_access(self.access(ctx).await?))
   }
 
   /// Complexity 5: triggers a DB COUNT query.
@@ -1362,17 +1367,10 @@ impl WorkspaceType {
   async fn doc(&self, ctx: &Context<'_>, doc_id: String) -> Result<Option<WorkspaceDocType>> {
     let (state, snapshot) = require_session(ctx).await?;
 
-    state
-      .permission_service()
-      .assert(
-        &WorkspaceResource {
-          user_id: snapshot.user.id,
-          workspace_id: self.id,
-        },
-        WorkspaceAction::Read,
-      )
-      .await
-      .map_err(map_gql_error)?;
+    let access = self.access(ctx).await?;
+    if !access.can(WorkspaceAction::Read) {
+      return Err(map_gql_error(myoxus_application::auth::AuthError::ActionForbidden));
+    }
 
     let doc_uuid = match crate::graphql::utils::resolve_doc_id(&state, self.id, &doc_id).await {
       Ok(doc_id) => doc_id,
@@ -1392,7 +1390,7 @@ impl WorkspaceType {
     let is_trashed = meta.deleted_at.is_some();
     let document_key = DocumentKey::parse(meta.external_id.clone())
       .map_err(|error| async_graphql::Error::new(format!("invalid document key: {error}")))?;
-    crate::document_access::authorize_workspace_document(
+    crate::document_access::authorize_document_with_access(
       &state,
       snapshot.user.id,
       self.id,
@@ -1403,6 +1401,7 @@ impl WorkspaceType {
       } else {
         DocAction::Read
       },
+      access,
     )
     .await
     .map_err(map_gql_error)?;
@@ -1414,6 +1413,7 @@ impl WorkspaceType {
     };
 
     Ok(Some(WorkspaceDocType {
+      workspace_role: access.effective_role,
       id: meta.external_id,
       workspace_id: self.id.to_string(),
       public: meta.public_mode.is_some(),
@@ -2412,7 +2412,7 @@ impl WorkspaceType {
     cursor: Option<String>,
     named_only: Option<bool>,
   ) -> Result<Vec<super::DocHistoryGqlType>> {
-    let (state, doc_uuid) = authorize_history_document(ctx, self.id, &guid).await?;
+    let (state, doc_uuid) = authorize_history_document(ctx, self, &guid).await?;
     let limit = take.unwrap_or(100);
     if !(1..=500).contains(&limit) || (before.is_some() && cursor.is_some()) {
       return Err(async_graphql::Error::new("Invalid history pagination"));
@@ -2464,7 +2464,7 @@ impl WorkspaceType {
     guid: String,
     snapshot_id: ID,
   ) -> Result<Option<super::DocHistoryGqlType>> {
-    let (state, doc_id) = authorize_history_document(ctx, self.id, &guid).await?;
+    let (state, doc_id) = authorize_history_document(ctx, self, &guid).await?;
     let history_id = snapshot_id
       .as_str()
       .parse::<i64>()
@@ -2488,7 +2488,7 @@ impl WorkspaceType {
     guid: String,
     snapshot_id: ID,
   ) -> Result<crate::graphql::document_version::DocumentHistoryDiffType> {
-    let (state, doc_id) = authorize_history_document(ctx, self.id, &guid).await?;
+    let (state, doc_id) = authorize_history_document(ctx, self, &guid).await?;
     let (_, viewer) = require_session(ctx).await?;
     let history_id = snapshot_id
       .as_str()

@@ -23,7 +23,7 @@ query getWorkspaceInfo($workspaceId: String!) {
       Workspace_Users_Manage
       Workspace_Users_Read
     }
-    role
+    role: effectiveRole
     workspaceType
   }
 }

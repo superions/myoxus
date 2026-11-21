@@ -2694,7 +2694,7 @@ impl DocumentTemplateService {
   #[instrument(skip_all)]
   pub async fn authorize_source_read_if_template(
     &self,
-    actor_id: Uuid,
+    workspace_role: Option<myoxus_domain::entities::WorkspaceRole>,
     workspace_id: Uuid,
     doc_id: Uuid,
   ) -> crate::auth::AuthResult<bool> {
@@ -2707,10 +2707,7 @@ impl DocumentTemplateService {
     {
       return Ok(false);
     }
-    self
-      .permission
-      .assert_template_catalog_read(actor_id, workspace_id)
-      .await?;
+    PermissionService::assert_template_role(workspace_role)?;
     Ok(true)
   }
 

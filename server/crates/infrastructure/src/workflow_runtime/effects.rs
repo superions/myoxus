@@ -43,41 +43,24 @@ async fn lock_runtime_authority_mode(
   manager_only: bool,
   read_only: bool,
 ) -> RepoResult<()> {
-  // OU membership writers lock OU before user; workspace ownership/import
-  // writers can lock workspace before OU. Never wait while acquiring these
-  // authority locks in a competing order: contention fails this attempt closed.
-  let workspace_row = sqlx::query(
-    "SELECT id FROM workspaces WHERE id=$1 AND deleted_at IS NULL AND lifecycle_state='active' FOR SHARE NOWAIT",
+  // Lock the same access row that membership and governance writes replace.
+  let granted = sqlx::query(
+    "SELECT u.id FROM workspace_effective_roles m
+       JOIN workspaces w ON w.id = m.workspace_id
+       JOIN users u ON u.id = m.user_id
+      WHERE u.id = $1 AND w.id = $2 AND u.status = 'active'
+        AND w.deleted_at IS NULL AND w.lifecycle_state = 'active'
+        AND ($4 OR m.role IN ('Owner','Admin','Manager') OR (NOT $3 AND m.role = 'Collaborator'))
+      FOR SHARE OF w,u,m NOWAIT",
   )
+  .bind(actor)
   .bind(workspace)
+  .bind(manager_only)
+  .bind(read_only)
   .fetch_optional(&mut *tx)
   .await
   .map_err(storage)?;
-  if workspace_row.is_none() {
-    return Err(stale());
-  }
-  let direct = sqlx::query("SELECT u.id FROM users u JOIN workspace_memberships m ON m.user_id=u.id WHERE u.id=$1 AND m.workspace_id=$2 AND u.status='active' AND m.status='Accepted' AND ($4 OR m.role IN ('Owner','Admin','Manager') OR (NOT $3 AND m.role='Collaborator')) FOR SHARE OF u,m NOWAIT")
-    .bind(actor).bind(workspace).bind(manager_only).bind(read_only).fetch_optional(&mut *tx).await.map_err(storage)?;
-  if direct.is_none() {
-    // Match can_manage_ou_workspace: one active exact Manager membership,
-    // the global Manager capability, and any relationship to this workspace.
-    let unit: Option<uuid::Uuid> = sqlx::query_scalar("SELECT ou.id FROM organization_unit ou JOIN organization_unit_member m ON m.unit_id=ou.id JOIN organization_unit_workspace l ON l.unit_id=ou.id JOIN user_features f ON f.user_id=m.user_id WHERE m.user_id=$1 AND l.workspace_id=$2 AND ou.status='active' AND m.role='manager' AND f.feature_name='manager' AND f.activated ORDER BY ou.id LIMIT 1")
-      .bind(actor).bind(workspace).fetch_optional(&mut *tx).await.map_err(storage)?;
-    let unit = unit.ok_or_else(stale)?;
-    let active = sqlx::query("SELECT id FROM organization_unit WHERE id=$1 AND status='active' FOR SHARE NOWAIT")
-      .bind(unit)
-      .fetch_optional(&mut *tx)
-      .await
-      .map_err(storage)?;
-    if active.is_none() {
-      return Err(stale());
-    }
-    let manager = sqlx::query("SELECT u.id FROM users u JOIN user_features f ON f.user_id=u.id JOIN organization_unit_member m ON m.user_id=u.id JOIN organization_unit_workspace l ON l.unit_id=m.unit_id WHERE u.id=$1 AND l.workspace_id=$2 AND m.unit_id=$3 AND u.status='active' AND m.role='manager' AND f.feature_name='manager' AND f.activated FOR SHARE OF u,f,m,l NOWAIT")
-      .bind(actor).bind(workspace).bind(unit).fetch_optional(&mut *tx).await.map_err(storage)?;
-    if manager.is_none() {
-      return Err(stale());
-    }
-  }
+  granted.ok_or_else(stale)?;
   Ok(())
 }
 

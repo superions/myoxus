@@ -17744,6 +17744,7 @@ export enum WorkspaceQuotaSource {
 /** A role paired with its derived permission matrix. */
 export interface WorkspaceRolePermissions {
   __typename?: "WorkspaceRolePermissions";
+  effectiveRole: Permission;
   permissions: WorkspacePermissions;
   role: Permission;
 }
@@ -18072,6 +18073,8 @@ export interface WorkspaceType {
    */
   documentWorkspaceTagAssignments: Array<WorkspaceTagDocumentAssignment>;
   documentWorkspaceTagIds: Array<Scalars["ID"]["output"]>;
+  /** Workspace role including inherited OU grants. */
+  effectiveRole: Permission;
   /**
    * Workspace embedding resolver — exposes files, ignoredDocs, allIgnoredDocs.
    *
@@ -18177,7 +18180,7 @@ export interface WorkspaceType {
    * reload, including Disconnect targets without a configured Git profile.
    */
   pendingGitContentOperations: Array<WorkspaceContentOperationType>;
-  /** Complexity 5: resolves direct membership plus OU-manager scope once. */
+  /** Complexity 5: reads the workspace access snapshot. */
   permissions: WorkspacePermissions;
   prepareContextDocuments: ContextDocumentsPreparation;
   prepareDatabaseTaskMove: DatabaseTaskMovePreview;

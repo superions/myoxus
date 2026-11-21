@@ -140,7 +140,7 @@ impl WorkspaceDocType {
     let doc_uuid = crate::graphql::utils::resolve_doc_id(&state, workspace_uuid, &self.id).await?;
     let role = state
       .permission_service()
-      .get_effective_doc_role(snapshot.user.id, workspace_uuid, doc_uuid)
+      .doc_role_with_workspace_role(snapshot.user.id, doc_uuid, self.workspace_role)
       .await
       .map_err(map_gql_error)?;
     let mut permissions = doc_permissions_for_role(role);

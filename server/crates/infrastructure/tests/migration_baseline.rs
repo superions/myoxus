@@ -201,7 +201,7 @@ fn source_inventory_allows_only_baseline_and_forward_migrations() {
     .filter_map(|line| line.strip_prefix("INSERT INTO public."))
     .filter_map(|line| line.split_whitespace().next())
     .collect();
-  assert_eq!(inserted, SEED_TABLES.iter().copied().collect());
+  assert_eq!(inserted, SEED_TABLES.iter().copied().collect::<BTreeSet<_>>());
 
   let forbidden_macro = format!("sqlx::{}!", "migrate");
   let forbidden_missing = ["ignore", "missing"].join("_");
@@ -844,6 +844,21 @@ fn expected_ledger() -> Vec<(i64, &'static str, Vec<u8>)> {
       "document field search refresh",
       sha384(DOCUMENT_FIELD_SEARCH_REFRESH.as_bytes()),
     ),
+    (
+      1098,
+      "document index responsible",
+      sha384(include_bytes!("../migrations/1098_document_index_responsible.sql")),
+    ),
+    (
+      1099,
+      "workspace content folder links",
+      sha384(include_bytes!("../migrations/1099_workspace_content_folder_links.sql")),
+    ),
+    (
+      1100,
+      "workspace effective roles",
+      sha384(include_bytes!("../migrations/1100_workspace_effective_roles.sql")),
+    ),
   ]
 }
 
@@ -1248,6 +1263,7 @@ async fn baseline_1000_advances_through_regular_forward_migrations() {
     assert_eq!(after.as_object_mut().unwrap().remove("initial_content_policy"),Some(serde_json::json!("legacy_defaults")));
     assert_eq!(after.as_object_mut().unwrap().remove("overview_settings"),Some(serde_json::json!({})));
     assert_eq!(after.as_object_mut().unwrap().remove("overview_revision"),Some(serde_json::json!(0)));
+    assert_eq!(after.as_object_mut().unwrap().remove("ou_member_role"), Some(serde_json::Value::Null));
     assert_eq!(after,before,"forward migration must preserve every existing Workspace fact");
     let migrated = ledger_snapshot(&released).await;
     myoxus_infrastructure::migrations::run(&released).await.expect("released1044 upgrade is idempotent");

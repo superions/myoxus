@@ -1412,14 +1412,14 @@ fn workspace_tool_definitions() -> [Value; 15] {
         "idempotency_key":{"type":"string","minLength":1,"maxLength":160}}}
     }),
     json!({
-      "name":"workspace_member_set_role", "description":"Changes an existing active member's role using current effective permissions. Admin changes require AdministratorsManage; Owner changes require the separate transfer owner. Retains last-active-admin and membership effects.",
+      "name":"workspace_member_set_role", "description":"Changes an existing active member's role using current effective permissions. Admin changes require AdministratorsManage; Owner changes require the separate transfer owner. Legacy OU workspaces retain the last-active-admin guard.",
       "inputSchema":{"type":"object","additionalProperties":false,"required":["workspace_id","user_id","role","idempotency_key"],"properties":{
         "workspace_id":{"type":"string","format":"uuid"},"user_id":{"type":"string","format":"uuid"},
         "role":{"type":"string","enum":["Admin","Manager","Collaborator","Commenter","Reader","External"]},
         "idempotency_key":{"type":"string","minLength":1,"maxLength":160}}}
     }),
     json!({
-      "name":"workspace_member_remove", "description":"Removes an existing active member with current target-role authority. Self-revoke and Owner removal are refused; OU last-active-admin is protected. Missing or removed targets cannot authorize a replay.",
+      "name":"workspace_member_remove", "description":"Removes an existing active member with current target-role authority. Self-revoke and Owner removal are refused. OU workspaces using the legacy policy protect the last active admin. Missing or removed targets cannot authorize a replay.",
       "inputSchema":{"type":"object","additionalProperties":false,"required":["workspace_id","user_id","idempotency_key"],"properties":{
         "workspace_id":{"type":"string","format":"uuid"},"user_id":{"type":"string","format":"uuid"},
         "idempotency_key":{"type":"string","minLength":1,"maxLength":160}}}
@@ -1461,7 +1461,7 @@ fn workspace_tool_definitions() -> [Value; 15] {
         "type": "object", "required": ["workspace_id", "idempotency_key"], "additionalProperties": false,
         "anyOf": [
           { "required": ["name"] }, { "required": ["description"] },
-          { "required": ["public"] }, { "required": ["enable_sharing"] }
+          { "required": ["public"] }, { "required": ["enable_sharing"] }, { "required": ["ou_member_role"] }
         ],
         "properties": {
           "workspace_id": { "type": "string", "format": "uuid" },
@@ -1469,6 +1469,7 @@ fn workspace_tool_definitions() -> [Value; 15] {
           "description": { "type": "string", "maxLength": 2000 },
           "public": { "type": "boolean" },
           "enable_sharing": { "type": "boolean" },
+          "ou_member_role": { "type": "string", "enum": ["Reader", "Collaborator", "Manager"] },
           "idempotency_key": { "type": "string", "minLength": 1, "maxLength": 160 }
         }
       }

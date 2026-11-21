@@ -217,6 +217,7 @@ myoxus-cli workspaces list
 myoxus-cli workspaces list --user user@example.com
 myoxus-cli workspaces get <workspace-id>
 myoxus-cli workspaces members <workspace-id>
+myoxus-cli workspaces set-ou-member-role <workspace-id> --role Collaborator
 myoxus-cli workspaces stats <workspace-id>
 
 # Create and update a non-personal user-owned workspace
@@ -247,16 +248,24 @@ myoxus-cli workspaces undelete <workspace-id>
 
 `create` never creates a second personal workspace. A user transfer atomically
 updates the owner principal and the accepted `Owner` membership. An OU transfer
-removes every human `Owner`, retains at least one accepted `Admin`, and records
+removes every human `Owner` and records
 exactly one OU owner relationship. The previous owner OU remains attached as
 `managed` when ownership moves between OUs. Personal workspace ownership cannot
 be transferred.
 
 Role changes and removals serialize with ownership changes. They reject removal
 of a user owner and reject demotion or removal of the final accepted `Admin`
-from an OU-owned workspace. `undelete` revalidates the owner, reserved name,
+from an OU-owned workspace that still uses the legacy membership policy. `undelete` revalidates the owner, reserved name,
 personal-workspace uniqueness, required membership, and OU owner relationship
 before restoring the original UUID and membership set.
+
+New team workspaces grant regular owner-OU members `Collaborator`. To adopt
+an existing team workspace or change its default, run `workspaces
+set-ou-member-role <workspace-id> --role Collaborator`. Supported values are
+`Reader`, `Collaborator` and `Manager`. The command preserves every direct
+grant. Use `shared-workspaces get <workspace-id>` to inspect the policy, then
+remove redundant direct memberships individually. Leaving the OU removes
+only the inherited grant.
 Trash retains document/history content and blob metadata/bytes. It does not
 schedule permanent file deletion, and retained trash or archive records protect
 against old queued purge jobs and orphan maintenance. Remote MCP recovery uses

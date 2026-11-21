@@ -1241,20 +1241,7 @@ pub(super) async fn authorize_projection_documents(
 /// Use the ordinary effective-role authority, including its organization
 /// projection. The runner's separate accepted-membership admission still applies.
 pub(super) fn projection_permissions(pool: &PgPool) -> myoxus_application::permission::PermissionService {
-  use myoxus_infrastructure::organization::{
-    PgOrganizationPolicyRepository, PgOrganizationUnitMemberRepository, PgOrganizationUnitRepository,
-    PgOrganizationUnitWorkspaceRepository, PgUserFeatureLookup,
-  };
   myoxus_application::permission::PermissionService::new(Arc::new(
     myoxus_infrastructure::auth::SqlxAuthStore::from_pool(pool.clone()),
-  ))
-  .with_organization_permissions(Arc::new(
-    myoxus_application::organization::OrganizationPermissionService::new(
-      Arc::new(PgOrganizationUnitMemberRepository::new(pool.clone())),
-      Arc::new(PgOrganizationUnitRepository::new(pool.clone())),
-      Arc::new(PgOrganizationUnitWorkspaceRepository::new(pool.clone())),
-      Arc::new(PgOrganizationPolicyRepository::new(pool.clone())),
-      Arc::new(PgUserFeatureLookup::new(pool.clone())),
-    ),
   ))
 }

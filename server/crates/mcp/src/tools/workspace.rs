@@ -774,6 +774,7 @@ pub(super) async fn update(params: &Value, auth: &McpAuthContext, state: &McpToo
       "description",
       "public",
       "enable_sharing",
+      "ou_member_role",
     ],
   )?;
   let workspace_id = required_uuid(params, "workspace_id")?;
@@ -787,7 +788,16 @@ pub(super) async fn update(params: &Value, auth: &McpAuthContext, state: &McpToo
     .map_err(|error| (-32602, error.to_string()))?;
   let public = optional_bool(params, "public")?;
   let enable_sharing = optional_bool(params, "enable_sharing")?;
-  if name.is_none() && description.is_none() && public.is_none() && enable_sharing.is_none() {
+  let ou_member_role = optional_string(params, "ou_member_role")?
+    .map(|role| match role.as_str() {
+      "Reader" => Ok(myoxus_domain::entities::WorkspaceRole::Reader),
+      "Collaborator" => Ok(myoxus_domain::entities::WorkspaceRole::Collaborator),
+      "Manager" => Ok(myoxus_domain::entities::WorkspaceRole::Manager),
+      _ => Err((-32602, "Invalid OU member role".into())),
+    })
+    .transpose()?;
+  if name.is_none() && description.is_none() && public.is_none() && enable_sharing.is_none() && ou_member_role.is_none()
+  {
     return Err((
       -32602,
       "workspace_update requires at least one setting field".to_string(),
@@ -804,6 +814,7 @@ pub(super) async fn update(params: &Value, auth: &McpAuthContext, state: &McpToo
   insert_present(&mut semantic, "description", description.as_ref());
   insert_present(&mut semantic, "public", public.as_ref());
   insert_present(&mut semantic, "enable_sharing", enable_sharing.as_ref());
+  insert_present(&mut semantic, "ou_member_role", ou_member_role.as_ref());
   let semantic = Value::Object(semantic);
   let guard = match crate::idempotency::begin(
     IdempotencyRequirement::Required,
@@ -831,6 +842,7 @@ pub(super) async fn update(params: &Value, auth: &McpAuthContext, state: &McpToo
         auth.user_id,
         workspace_id,
         UserWorkspaceSettingsInput {
+          ou_member_role,
           name,
           description,
           public,

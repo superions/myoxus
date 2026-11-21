@@ -131,7 +131,7 @@ where
   T: AuthStore + Send + Sync + ?Sized,
 {
   async fn acl_workspace_role(&self, user_id: Uuid, workspace_id: Uuid) -> AuthResult<Option<WorkspaceRole>> {
-    self.get_workspace_role(user_id, workspace_id).await
+    Ok(self.workspace_access(user_id, workspace_id).await?.effective_role)
   }
 
   async fn acl_doc_role(&self, user_id: Uuid, doc_id: Uuid) -> AuthResult<Option<DocRole>> {
@@ -187,7 +187,7 @@ impl CommentAclStore for AuthStoreCommentAdapter {
           .get_effective_workspace_role(user_id, workspace_id)
           .await
       }
-      None => self.store.get_workspace_role(user_id, workspace_id).await,
+      None => Ok(self.store.workspace_access(user_id, workspace_id).await?.effective_role),
     }
   }
 

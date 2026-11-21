@@ -1493,6 +1493,18 @@ pub trait AuthStore: Send + Sync {
   ) -> AuthResult<UserPreferencesRecord>;
   async fn has_shared_workspace(&self, user_id1: Uuid, user_id2: Uuid) -> AuthResult<bool>;
   async fn get_workspace_role(&self, user_id: Uuid, workspace_id: Uuid) -> AuthResult<Option<WorkspaceRole>>;
+  async fn workspace_access(
+    &self,
+    user_id: Uuid,
+    workspace_id: Uuid,
+  ) -> AuthResult<crate::permission::WorkspaceAccess> {
+    let direct_role = self.get_workspace_role(user_id, workspace_id).await?;
+    Ok(crate::permission::WorkspaceAccess {
+      direct_role,
+      effective_role: direct_role,
+      owner_ou_manager: false,
+    })
+  }
   async fn get_doc_role(&self, user_id: Uuid, doc_id: Uuid) -> AuthResult<Option<DocRole>>;
   /// Fetch explicit document-role overrides for one user in one database call.
   /// Missing document IDs are intentionally absent from the result.

@@ -628,7 +628,17 @@ async fn inv_workspace_member_http_preserves_effective_authority_protected_roles
     assert_eq!(sqlx::query_scalar::<_,i64>("SELECT count(*) FROM workspace_memberships WHERE workspace_id=$1 AND user_id=$2").bind(shared).bind(manager).fetch_one(&pool).await.unwrap(),0,"OU authority does not fabricate direct membership");
     invoke(&app,&manager_key,"workspace_member_list",json!({"workspace_id":shared}),true).await;
     invoke(&app,&manager_key,"workspace_member_set_role",json!({"workspace_id":shared,"user_id":member,"role":"Commenter","idempotency_key":"manager-change"}),true).await;
-    invoke(&app,&manager_key,"workspace_member_set_role",json!({"workspace_id":shared,"user_id":member,"role":"Admin","idempotency_key":"manager-escalate"}),false).await;
+    invoke(&app,&admin_key,"organization_unit_member_add",json!({"unit_id":unit,"user_id":member,"role":"member","idempotency_key":"join"}),true).await;
+    for role in ["Reader","Manager"] {
+      invoke(&app,&manager_key,"workspace_update",json!({"workspace_id":shared,"ou_member_role":role,"idempotency_key":format!("policy-{role}")}),true).await;
+      let result=helpers::gql(&app,member_session,json!({"query":"query($w:String!){workspaceRolePermissions(id:$w){role effectiveRole}}","variables":{"w":shared}})).await;
+      let effective=if role=="Reader" {"Commenter"} else {"Manager"};
+      assert_eq!(result["data"]["workspaceRolePermissions"],json!({"role":"Commenter","effectiveRole":effective}));
+    }
+    invoke(&app,&admin_key,"organization_unit_member_remove",json!({"unit_id":unit,"user_id":member,"idempotency_key":"leave"}),true).await;
+    let after_leave=helpers::gql(&app,member_session,json!({"query":"query($w:String!){workspaceRolePermissions(id:$w){effectiveRole}}","variables":{"w":shared}})).await;
+    assert_eq!(after_leave["data"]["workspaceRolePermissions"]["effectiveRole"],"Commenter");
+    invoke(&app,&manager_key,"workspace_member_set_role",json!({"workspace_id":shared,"user_id":member,"role":"Admin","idempotency_key":"manager-promote"}),true).await;
     invoke(&app,&manager_key,"workspace_member_remove",json!({"workspace_id":shared,"user_id":admin,"idempotency_key":"protected-admin"}),false).await;
     invoke(&app,&manager_key,"workspace_member_remove",json!({"workspace_id":shared,"user_id":member,"idempotency_key":"manager-remove"}),true).await;
     sqlx::query("UPDATE users SET status='disabled' WHERE id=$1").bind(member).execute(&pool).await.unwrap();

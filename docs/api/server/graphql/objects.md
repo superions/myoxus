@@ -8268,6 +8268,7 @@ A role paired with its derived permission matrix.
 <!-- prettier-ignore -->
 | Field and return type | Arguments and description |
 | --- | --- |
+| `effectiveRole`<br>[Permission](./enums.md#permission)! |  |
 | `permissions`<br>[WorkspacePermissions](./objects.md#workspacepermissions)! |  |
 | `role`<br>[Permission](./enums.md#permission)! |  |
 
@@ -8569,6 +8570,7 @@ A workspace template policy as exposed via GraphQL.
 | `documentSnippets`<br>\[[WorkspaceDocumentSnippetType](./objects.md#workspacedocumentsnippettype)!\]! | `docIds`: \[`ID`!\]!<br><br>Batch list snippets without loading document leaves or scheduling indexing. |
 | `documentWorkspaceTagAssignments`<br>\[[WorkspaceTagDocumentAssignment](./objects.md#workspacetagdocumentassignment)!\]! | `externalIds`: \[`ID`!\]!<br><br>Ordered SQL assignments for at most 200 external document keys. Null means missing or forbidden; an empty array is a confirmed empty assignment. |
 | `documentWorkspaceTagIds`<br>\[`ID`!\]! | `docId`: `ID`! |
+| `effectiveRole`<br>[Permission](./enums.md#permission)! | Workspace role including inherited OU grants. |
 | `embedding`<br>[WorkspaceEmbeddingType](./objects.md#workspaceembeddingtype)! |  |
 | `enableAi`<br>`Boolean`! |  |
 | `enableDocEmbedding`<br>`Boolean`! |  |
@@ -8597,7 +8599,7 @@ A workspace template policy as exposed via GraphQL.
 | `owner`<br>[UserType](./objects.md#usertype) | Complexity 10: DB query to fetch workspace owner with user data. |
 | `pageMeta`<br>[WorkspaceDocMeta](./objects.md#workspacedocmeta) | `pageId`: `String`!<br><br>Cloud page metadata — author and timestamp information for a single doc. |
 | `pendingGitContentOperations`<br>\[[WorkspaceContentOperationType](./objects.md#workspacecontentoperationtype)!\]! | Actor-owned pending Git work remains discoverable after dialog closure or reload, including Disconnect targets without a configured Git profile. |
-| `permissions`<br>[WorkspacePermissions](./objects.md#workspacepermissions)! | Complexity 5: resolves direct membership plus OU-manager scope once. |
+| `permissions`<br>[WorkspacePermissions](./objects.md#workspacepermissions)! | Complexity 5: reads the workspace access snapshot. |
 | `prepareContextDocuments`<br>[ContextDocumentsPreparation](./objects.md#contextdocumentspreparation)! | `input`: [PrepareContextDocumentsInput](./inputs.md#preparecontextdocumentsinput)! |
 | `prepareDatabaseTaskMove`<br>[DatabaseTaskMovePreview](./objects.md#databasetaskmovepreview)! | `input`: [DatabaseTaskMoveInput](./inputs.md#databasetaskmoveinput)! |
 | `prepareDocumentReview`<br>[PreparedDocumentReview](./objects.md#prepareddocumentreview)! | `input`: [PrepareDocumentReviewInput](./inputs.md#preparedocumentreviewinput)! |

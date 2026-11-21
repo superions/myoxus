@@ -12,7 +12,7 @@ use axum::http::StatusCode;
 use myoxus_application::{
   auth::{AuthError, AuthResult},
   doc::DocSpaceKind,
-  permission::{AccessController, DocResource},
+  permission::WorkspaceAccess,
 };
 use myoxus_domain::{
   document_key::DocumentKey,
@@ -48,12 +48,92 @@ pub(crate) async fn authorize_workspace_document(
   external_key: &DocumentKey,
   action: DocAction,
 ) -> AuthResult<AuthorizedDocument> {
+  let access = match space_kind {
+    DocSpaceKind::Workspace => {
+      state
+        .permission_service()
+        .resolve_workspace_access(user_id, space_id)
+        .await?
+    }
+    DocSpaceKind::Userspace => WorkspaceAccess::default(),
+  };
+  authorize_document_with_access(state, user_id, space_id, space_kind, external_key, action, access).await
+}
+
+/// The sync guard also needs workspace capabilities. Reuse its access snapshot
+/// for this document operation, including template and explicit grants.
+pub(crate) async fn authorize_document_with_access(
+  state: &ApiState,
+  user_id: Uuid,
+  space_id: Uuid,
+  space_kind: DocSpaceKind,
+  external_key: &DocumentKey,
+  action: DocAction,
+  access: WorkspaceAccess,
+) -> AuthResult<AuthorizedDocument> {
   let doc_id = state
     .doc()
     .resolve_document_key(space_id, space_kind.clone(), external_key)
     .await?
     .ok_or_else(|| AuthError::NotFound("document not found".to_string()))?;
-  authorize_resolved_document(state, user_id, space_id, space_kind, external_key, doc_id, action).await
+  let metadata = state
+    .doc()
+    .get_metadata_including_deleted(doc_id)
+    .await?
+    .ok_or_else(|| AuthError::NotFound("document not found".to_string()))?;
+
+  match space_kind {
+    DocSpaceKind::Workspace => {
+      if metadata.workspace_id != Some(space_id) {
+        return Err(AuthError::NotFound("document not found".to_string()));
+      }
+      if metadata.blocked {
+        return Err(AuthError::ActionForbidden);
+      }
+      // Trash is a lifecycle state, not a data-disclosure permission. A
+      // caller with Delete/Restore may still address a soft-deleted document
+      // so permanent deletion and restoration remain possible; every read or
+      // ordinary mutation remains denied while the document is in trash.
+      if metadata.deleted_at.is_some() && !matches!(action, DocAction::Delete | DocAction::Restore) {
+        return Err(AuthError::ActionForbidden);
+      }
+      let template_read = if action == DocAction::Read {
+        match state.document_template_service() {
+          Some(templates) => {
+            templates
+              .authorize_source_read_if_template(access.effective_role, space_id, doc_id)
+              .await?
+          }
+          None => false,
+        }
+      } else {
+        false
+      };
+      if !template_read
+        && !state
+          .permission_service()
+          .doc_role_with_workspace_role(user_id, doc_id, access.effective_role)
+          .await?
+          .can(action)
+      {
+        return Err(AuthError::ActionForbidden);
+      }
+    }
+    DocSpaceKind::Userspace => {
+      if metadata.userspace_owner_id != Some(space_id) || user_id != space_id {
+        return Err(AuthError::ActionForbidden);
+      }
+      if metadata.blocked || metadata.deleted_at.is_some() {
+        return Err(AuthError::ActionForbidden);
+      }
+    }
+  }
+
+  Ok(AuthorizedDocument {
+    workspace_id: space_id,
+    external_key: external_key.clone(),
+    doc_id,
+  })
 }
 
 /// Filter already loaded workspace metadata without performing per-document
@@ -117,77 +197,4 @@ pub(crate) fn status_from_auth_error(error: AuthError) -> StatusCode {
     AuthError::InvalidInput(_) => StatusCode::BAD_REQUEST,
     _ => StatusCode::INTERNAL_SERVER_ERROR,
   }
-}
-
-async fn authorize_resolved_document(
-  state: &ApiState,
-  user_id: Uuid,
-  space_id: Uuid,
-  space_kind: DocSpaceKind,
-  external_key: &DocumentKey,
-  doc_id: Uuid,
-  action: DocAction,
-) -> AuthResult<AuthorizedDocument> {
-  let metadata = state
-    .doc()
-    .get_metadata_including_deleted(doc_id)
-    .await?
-    .ok_or_else(|| AuthError::NotFound("document not found".to_string()))?;
-
-  match space_kind {
-    DocSpaceKind::Workspace => {
-      if metadata.workspace_id != Some(space_id) {
-        return Err(AuthError::NotFound("document not found".to_string()));
-      }
-      if metadata.blocked {
-        return Err(AuthError::ActionForbidden);
-      }
-      // Trash is a lifecycle state, not a data-disclosure permission. A
-      // caller with Delete/Restore may still address a soft-deleted document
-      // so permanent deletion and restoration remain possible; every read or
-      // ordinary mutation remains denied while the document is in trash.
-      if metadata.deleted_at.is_some() && !matches!(action, DocAction::Delete | DocAction::Restore) {
-        return Err(AuthError::ActionForbidden);
-      }
-      let template_read = if action == DocAction::Read {
-        match state.document_template_service() {
-          Some(templates) => {
-            templates
-              .authorize_source_read_if_template(user_id, space_id, doc_id)
-              .await?
-          }
-          None => false,
-        }
-      } else {
-        false
-      };
-      if !template_read {
-        state
-          .permission_service()
-          .assert(
-            &DocResource {
-              user_id,
-              workspace_id: space_id,
-              doc_id,
-            },
-            action,
-          )
-          .await?;
-      }
-    }
-    DocSpaceKind::Userspace => {
-      if metadata.userspace_owner_id != Some(space_id) || user_id != space_id {
-        return Err(AuthError::ActionForbidden);
-      }
-      if metadata.blocked || metadata.deleted_at.is_some() {
-        return Err(AuthError::ActionForbidden);
-      }
-    }
-  }
-
-  Ok(AuthorizedDocument {
-    workspace_id: space_id,
-    external_key: external_key.clone(),
-    doc_id,
-  })
 }

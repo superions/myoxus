@@ -135,15 +135,22 @@ relationship and add it. Existing relationships can be changed in the list.
 A unit can have multiple workspace relationships, and a workspace can be linked
 to several units.
 
-| Relationship | Meaning                                                              | Example                                                    |
-| ------------ | -------------------------------------------------------------------- | ---------------------------------------------------------- |
-| **Owner**    | The unit owns the workspace; a workspace has at most one owning unit | Engineering owns its shared service documentation          |
-| **Managed**  | The unit manages the workspace without owning it                     | A central operations team manages a department's workspace |
-| **Linked**   | An informational association without management authority            | Several departments reference a common project workspace   |
+| Relationship | Meaning                                                                         | Example                                                    |
+| ------------ | ------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| **Owner**    | The unit owns the workspace; a workspace has at most one owning unit            | Engineering owns its shared service documentation          |
+| **Managed**  | The unit manages the workspace without owning it                                | A central operations team manages a department's workspace |
+| **Linked**   | Links the workspace to the unit; eligible unit managers receive workspace Admin | Several departments reference a common project workspace   |
 
 Changing the owning unit transfers ownership; the previous owning unit remains
 attached as **Managed**. Check the workspace's members and applicable unit roles
 when validating access. Personal workspace ownership remains with its user.
+
+New OU-owned workspaces grant **Collaborator** to regular **Members** of the
+owning unit. OU Readers receive no workspace role from this policy. Use
+`myoxus-cli workspaces set-ou-member-role <workspace-id> --role Collaborator`
+to enable it on an existing OU workspace, or select `Reader` or `Manager`.
+Direct grants continue to apply. After adoption an eligible manager of the
+owning unit can manage workspace administrators even with no direct Admin.
 
 Use the Admin **Workspaces** area for direct workspace membership and content
 administration. Central template distribution is covered in the

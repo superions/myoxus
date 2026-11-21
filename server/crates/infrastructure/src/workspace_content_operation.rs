@@ -2390,10 +2390,10 @@ impl WorkspaceContentExtractTargetPort for PgWorkspaceContentOperationRepository
          id, owner_user_id, owner_principal_type, owner_principal_id,
          management_unit_id, created_by_user_id, is_personal_workspace,
          name, name_normalized, public, lifecycle_state,
-         lifecycle_owner_kind, lifecycle_owner_id
+         lifecycle_owner_kind, lifecycle_owner_id, ou_member_role
        )
        VALUES ($1, $2, $3::owner_principal_type, $4, $5, $6, false,
-               $7, $8, false, 'extracting', 'workspace_content', $9)",
+               $7, $8, false, 'extracting', 'workspace_content', $9, CASE WHEN $5::uuid IS NOT NULL THEN 'Collaborator' END)",
     )
     .bind(target_workspace_id)
     .bind(owner_user_id)

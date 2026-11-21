@@ -11,11 +11,7 @@
 
 use std::sync::Arc;
 
-use myoxus_application::{
-  auth::AuthError,
-  doc::DocSpaceKind,
-  permission::{AccessController, WorkspaceResource},
-};
+use myoxus_application::{auth::AuthError, doc::DocSpaceKind};
 use myoxus_domain::document_key::DocumentKey;
 use myoxus_domain::permission::{DocAction, WorkspaceAction};
 use serde_json::json;
@@ -23,7 +19,7 @@ use socketioxide::extract::{AckSender, SocketRef};
 use tracing::{info, warn};
 use uuid::Uuid;
 
-use crate::document_access::authorize_workspace_document;
+use crate::document_access::authorize_document_with_access;
 use crate::state::ApiState;
 
 use super::error::emit_sync_error;
@@ -79,7 +75,22 @@ pub(super) async fn ensure_space_joined(
   }
   // Not yet joined — check DB permissions
   assert_accessible(state, user_id, space_type, space_id, None, None).await?;
-  // User has access — auto-join.
+  join_authorized_space(state, socket, user_id, space_type, space_id).await;
+  Ok(())
+}
+
+async fn join_authorized_space(
+  state: &Arc<ApiState>,
+  socket: &SocketRef,
+  user_id: Uuid,
+  space_type: SpaceType,
+  space_id: &str,
+) {
+  let space_key = make_space_key(space_type, space_id);
+  let socket_id = socket.id.to_string();
+  if has_space_membership(&socket_id, &space_key) {
+    return;
+  }
   // SC-H-04: Use the client version from the socket's previous space:join if
   // available, instead of hardcoding a protocol version.
   let client_version = SOCKET_CLIENT_VERSIONS
@@ -106,7 +117,6 @@ pub(super) async fn ensure_space_joined(
     }
   }
   info!(%user_id, %space_id, "auto-joined space on doc operation");
-  Ok(())
 }
 
 pub(super) fn parse_document_key(doc_id: &str) -> Result<DocumentKey, String> {
@@ -129,16 +139,14 @@ pub(super) async fn assert_accessible(
   match space_type {
     SpaceType::Workspace => {
       let ws_uuid = Uuid::parse_str(space_id).map_err(|_| "invalid workspace id")?;
-      let pc = state.permission_service();
-      pc.assert(
-        &WorkspaceResource {
-          user_id,
-          workspace_id: ws_uuid,
-        },
-        WorkspaceAction::Sync,
-      )
-      .await
-      .map_err(|e| e.to_string())?;
+      let access = state
+        .permission_service()
+        .resolve_workspace_access(user_id, ws_uuid)
+        .await
+        .map_err(|e| e.to_string())?;
+      if !access.can(WorkspaceAction::Sync) {
+        return Err(AuthError::ActionForbidden.to_string());
+      }
 
       if let (Some(did), Some(document_access)) = (doc_id, document_access) {
         let document_key = parse_document_key(did)?;
@@ -147,8 +155,16 @@ pub(super) async fn assert_accessible(
           DocumentAccess::ReadOrNotFound => DocAction::Read,
           DocumentAccess::UpdateOrCreate => DocAction::Update,
         };
-        let authorization =
-          authorize_workspace_document(state, user_id, ws_uuid, DocSpaceKind::Workspace, &document_key, action).await;
+        let authorization = authorize_document_with_access(
+          state,
+          user_id,
+          ws_uuid,
+          DocSpaceKind::Workspace,
+          &document_key,
+          action,
+          access,
+        )
+        .await;
         match (authorization, document_access) {
           (Ok(_), _) => {}
           (Err(AuthError::NotFound(_)), DocumentAccess::ReadOrNotFound) => {
@@ -163,15 +179,9 @@ pub(super) async fn assert_accessible(
             // `authorize_workspace_document` distinguishes a genuinely unknown
             // key from blocked/deleted rows; broadening this branch would allow
             // a write to resurrect an existing lifecycle record.
-            pc.assert(
-              &WorkspaceResource {
-                user_id,
-                workspace_id: ws_uuid,
-              },
-              WorkspaceAction::CreateDoc,
-            )
-            .await
-            .map_err(|e| e.to_string())?;
+            if !access.can(WorkspaceAction::CreateDoc) {
+              return Err(AuthError::ActionForbidden.to_string());
+            }
           }
           (Err(error), _) => return Err(error.to_string()),
         }
@@ -189,11 +199,8 @@ pub(super) async fn assert_accessible(
 
 /// Consolidated access-check preamble for emitWithAck-style doc handlers.
 ///
-/// Runs the three-step guard chain (`await_authenticated` →
-/// `ensure_space_joined` → `assert_accessible`) and emits the standard
-/// UNAUTHORIZED / ACCESS_DENIED ack-error + `sync-error` on failure. Callers
-/// consume the returned `AckSender` in the success path (it is passed through
-/// unchanged so the handler can still respond).
+/// Authorize the authenticated caller before joining the room. Forward the
+/// acknowledgement on success and report denial through the sync protocol.
 ///
 /// `log_event` is the event name used in the `"<event> access denied"` warn
 /// log; keep it as a `&'static str` literal at the call site so the log line
@@ -224,13 +231,6 @@ pub(super) async fn check_space_access_with_ack(
       return Err(());
     }
   };
-  if let Err(e) = ensure_space_joined(state, socket, user_id, space_type, space_id).await {
-    emit_sync_error(socket, "SpaceAccessDenied", &e, Some(space_id));
-    ack
-      .send(&json!({ "error": { "name": "ACCESS_DENIED", "message": e } }))
-      .ok();
-    return Err(());
-  }
   if let Err(e) = assert_accessible(state, user_id, space_type, space_id, doc_id, Some(document_access)).await {
     match doc_id {
       Some(did) => warn!(%user_id, space_id = %space_id, doc_id = %did, reason = %e, "{} access denied", log_event),
@@ -242,6 +242,7 @@ pub(super) async fn check_space_access_with_ack(
       .ok();
     return Err(());
   }
+  join_authorized_space(state, socket, user_id, space_type, space_id).await;
   Ok((user_id, ack))
 }
 
@@ -265,10 +266,6 @@ pub(super) async fn check_space_access(
     Some(id) => id,
     None => return Err(()),
   };
-  if let Err(e) = ensure_space_joined(state, socket, user_id, space_type, space_id).await {
-    emit_sync_error(socket, "SpaceAccessDenied", &e, Some(space_id));
-    return Err(());
-  }
   if let Err(e) = assert_accessible(state, user_id, space_type, space_id, doc_id, Some(document_access)).await {
     match doc_id {
       Some(did) => warn!(%user_id, space_id = %space_id, doc_id = %did, reason = %e, "{} access denied", log_event),
@@ -277,5 +274,6 @@ pub(super) async fn check_space_access(
     emit_sync_error(socket, "SpaceAccessDenied", &e, Some(space_id));
     return Err(());
   }
+  join_authorized_space(state, socket, user_id, space_type, space_id).await;
   Ok(user_id)
 }

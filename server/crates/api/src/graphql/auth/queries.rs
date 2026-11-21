@@ -384,45 +384,18 @@ impl QueryRoot {
     let (state, snapshot) = require_session(ctx).await?;
 
     debug!(user_id = %snapshot.user.id, "listing accessible workspaces");
-    let mut workspaces = state
+    let workspaces = state
       .workspace()
-      .list_workspaces(snapshot.user.id)
+      .list_workspace_access(snapshot.user.id)
       .await
       .map_err(map_gql_error)?;
 
-    // OU-manager scope is an authorization projection, not a synthetic
-    // membership. Include those workspaces explicitly so a manager can enter
-    // the same routes whose capabilities the permission service grants.
-    if let Some(org_permission) = state.organization_permission_service() {
-      match org_permission.manageable_workspace_ids(snapshot.user.id).await {
-        Ok(workspace_ids) => {
-          let mut known = workspaces
-            .iter()
-            .map(|workspace| workspace.id)
-            .collect::<std::collections::HashSet<_>>();
-          for workspace_id in workspace_ids {
-            if known.insert(workspace_id)
-              && let Some(workspace) = state
-                .workspace()
-                .get_workspace(workspace_id)
-                .await
-                .map_err(map_gql_error)?
-            {
-              workspaces.push(workspace);
-            }
-          }
-        }
-        Err(error) => {
-          debug!(
-            error = %error,
-            user_id = %snapshot.user.id,
-            "OU-manager workspace listing failed closed"
-          );
-        }
-      }
-    }
-
-    Ok(workspaces.into_iter().map(|workspace| workspace.into()).collect())
+    Ok(
+      workspaces
+        .into_iter()
+        .map(|(workspace, access)| WorkspaceType::with_access(workspace, access))
+        .collect(),
+    )
   }
 
   #[instrument(skip_all)]
@@ -458,27 +431,20 @@ impl QueryRoot {
 
     let workspace_id = Uuid::parse_str(&id).map_err(|_| "Invalid id")?;
 
-    let pc = state.permission_service();
-    if let Err(e) = pc
-      .assert(
-        &WorkspaceResource {
-          user_id: snapshot.user.id,
-          workspace_id,
-        },
-        WorkspaceAction::Read,
-      )
+    let access = state
+      .permission_service()
+      .resolve_workspace_access(snapshot.user.id, workspace_id)
       .await
-    {
-      warn!(workspace_id = %workspace_id, user_id = %snapshot.user.id, "access denied for workspace query");
-      return Err(map_gql_error(e));
+      .map_err(map_gql_error)?;
+    if !access.can(WorkspaceAction::Read) {
+      return Err(map_gql_error(AuthError::ActionForbidden));
     }
-
     let workspace = state
       .workspace()
       .get_workspace(workspace_id)
       .await
       .map_err(map_gql_error)?;
-    Ok(workspace.map(|w| w.into()))
+    Ok(workspace.map(|workspace| WorkspaceType::with_access(workspace, access)))
   }
 
   #[instrument(skip_all)]
@@ -497,7 +463,7 @@ impl QueryRoot {
     let effective_role = access
       .effective_role
       .unwrap_or(myoxus_domain::entities::WorkspaceRole::External);
-    if !effective_role.can(WorkspaceAction::Read)
+    if !access.can(WorkspaceAction::Read)
       || state
         .workspace()
         .get_workspace(workspace_id)
@@ -514,9 +480,10 @@ impl QueryRoot {
     let role = access
       .direct_role
       .unwrap_or(myoxus_domain::entities::WorkspaceRole::External);
-    let permissions = super::WorkspacePermissions::from_role(effective_role);
+    let permissions = super::WorkspacePermissions::from_access(access);
     Ok(WorkspaceRolePermissions {
       role: role.into(),
+      effective_role: effective_role.into(),
       permissions,
     })
   }
