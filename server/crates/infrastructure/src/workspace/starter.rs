@@ -191,25 +191,20 @@ impl SqlxWorkspaceStore {
       .map_err(Self::map_db_err)?;
     sqlx::query("INSERT INTO workspace_memberships(workspace_id,user_id,role,status,joined_at) VALUES($1,$2,'Owner','Accepted',now())")
       .bind(receipt.workspace_id).bind(receipt.actor_id).execute(&mut *tx).await.map_err(Self::map_db_err)?;
+    let catalog = self.task_catalog()?;
     let state = myoxus_application::workspace::tasks::workspace_tasks_initial_state(
-      &self.database_templates,
+      catalog,
       receipt.workspace_id,
       Some(receipt.actor_id),
     )
     .map_err(|error| AuthError::Storage(error.to_string()))?;
-    crate::workspace_database::PgDatabaseRepository::ensure_workspace_tasks_in_tx(
-      &mut tx,
-      &self.database_templates,
-      state,
-    )
-    .await
-    .map_err(|error| AuthError::Storage(error.to_string()))?;
+    crate::workspace_database::PgDatabaseRepository::ensure_workspace_tasks_in_tx(&mut tx, catalog, state)
+      .await
+      .map_err(|error| AuthError::Storage(error.to_string()))?;
     let project = receipt.prepared.as_ref().and_then(|prepared| prepared.project.as_ref());
     let ids = project.map(Self::reserve_project_ids);
     let admission = project
-      .map(|plan| {
-        myoxus_application::workspace::assistant_packages::review_project_admission(&self.database_templates, plan)
-      })
+      .map(|plan| myoxus_application::workspace::assistant_packages::review_project_admission(catalog, plan))
       .transpose()
       .map_err(|error| AuthError::InvalidInput(error.to_string()))?;
     if let Some(project) = project {
@@ -911,7 +906,7 @@ impl SqlxWorkspaceStore {
       || installed.variant.priority != admission.variant.priority
       || installed.variant.complexity != admission.variant.complexity
       || installed.variant.structure != admission.variant.structure
-      || self.database_templates.current_source(&admission.template_id)
+      || self.task_catalog()?.current_source(&admission.template_id)
         != Some((admission.version.as_str(), admission.digest.as_str()))
     {
       return Err(ProjectStarterError::Conflict);
@@ -942,7 +937,7 @@ impl SqlxWorkspaceStore {
     }
     Self::project_members(&mut tx, workspace, &receipt.plan).await?;
     Self::lock_project_sources(&mut tx, &receipt.plan).await?;
-    crate::workspace_database::PgDatabaseRepository::capture_catalog_admission(&mut tx, &self.database_templates)
+    crate::workspace_database::PgDatabaseRepository::capture_catalog_admission(&mut tx, self.task_catalog()?)
       .await
       .map_err(|error| AuthError::Storage(error.to_string()))?;
     let record = crate::workspace_database::PgDatabaseRepository::insert_project_starter_in_tx(&mut tx, state, actor)

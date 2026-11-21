@@ -331,8 +331,8 @@ fn explicit_pinned_platform_task_core_is_decoder_only_and_never_copied_as_local_
     serde_json::to_value(&capture.databases["database"].definitions).unwrap(),
     serde_json::to_value(&definitions).unwrap()
   );
-  assert!(read_feature_bundle(&capture.archive_bytes).is_err());
-  read_feature_bundle_with_platform(&capture.archive_bytes, std::slice::from_ref(&platform)).unwrap();
+  assert!(read_feature_bundle(capture.archive.as_ref()).is_err());
+  read_feature_bundle_with_platform(capture.archive.as_ref(), std::slice::from_ref(&platform)).unwrap();
   // Every definition needs its own exact dependency link even when preceding
   // definitions referenced the same already decoded Core bytes.
   let mut incomplete = capture.manifest.clone();
@@ -340,8 +340,8 @@ fn explicit_pinned_platform_task_core_is_decoder_only_and_never_copied_as_local_
   let archive = pack_captured_feature_bundle(&incomplete, &capture.files).unwrap();
   assert!(read_feature_bundle_with_platform(&archive, std::slice::from_ref(&platform)).is_err());
   let mut wrong = platform.clone();
-  wrong.archive_sha256 = "f".repeat(64);
-  assert!(read_feature_bundle_with_platform(&capture.archive_bytes, &[wrong]).is_err());
+  wrong.archive = myoxus_application::feature_bundle::FeatureArchive::new(b"another archive".to_vec());
+  assert!(read_feature_bundle_with_platform(capture.archive.as_ref(), &[wrong]).is_err());
   std::fs::write(root.path().join(&core_paths[0]), b"different local core").unwrap();
   assert!(
     capture_feature_source_with_platform(root.path(), "feature.yaml", &[platform])

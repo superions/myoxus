@@ -5,6 +5,7 @@
 //! may cache GraphQL responses, but they must not persist schema, rows or cell
 //! values as a parallel truth.
 
+use crate::feature_bundle::FeatureInput;
 pub mod activity;
 pub mod definition;
 pub mod projections;
@@ -895,7 +896,7 @@ impl DatabaseServices {
     permission: Arc<PermissionService>,
     limits: DatabaseLimits,
     workspace_store: Arc<dyn WorkspaceStore>,
-    starter_templates: Arc<DatabaseStarterTemplateCatalog>,
+    starter_templates: impl Into<FeatureInput<DatabaseStarterTemplateCatalog>>,
     dependencies: DatabaseServiceDependencies,
   ) -> Self
   where
@@ -907,6 +908,7 @@ impl DatabaseServices {
       + DatabaseProjectionRepository
       + 'static,
   {
+    let starter_templates = starter_templates.into();
     let schema_repo: Arc<dyn DatabaseDefinitionRepository> = repo.clone();
     let row_repo: Arc<dyn DatabaseEditingRepository> = repo.clone();
     let view_query_repo: Arc<dyn DatabaseViewRepository> = repo.clone();

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Portable formats share native import/content owners; jobs retain their current lifecycle.
 pub(super) mod content;
+use crate::feature_bundle::FeatureInput;
 mod csv;
 mod jobs;
 pub(super) mod json;
@@ -31,7 +32,7 @@ pub use workspace_content::{WorkspaceContentDatabaseIdentityPlan, WorkspaceConte
 
 #[derive(Clone)]
 pub struct DatabaseImportExportService {
-  pub(super) starter_templates: Arc<DatabaseStarterTemplateCatalog>,
+  pub(super) starter_templates: FeatureInput<DatabaseStarterTemplateCatalog>,
   pub(super) schema_repo: Arc<dyn DatabaseDefinitionRepository>,
   pub(super) row_repo: Arc<dyn DatabaseEditingRepository>,
   pub(super) view_query_repo: Arc<dyn DatabaseViewRepository>,

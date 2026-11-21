@@ -2,6 +2,7 @@
 //! Glirulus advances accepted native actions. PostgreSQL/native receipts remain
 //! authoritative for authorization, reserved identities and committed effects.
 pub(crate) mod effects;
+use myoxus_application::feature_bundle::FeatureInput;
 mod waits;
 pub use effects::{acknowledge_runtime_effect, lock_runtime_effect};
 
@@ -101,7 +102,7 @@ impl RuntimeInput {
 
 pub struct GlirulusWorkspaceAutomationRuntime {
   pool: PgPool,
-  database_templates: Option<Arc<myoxus_application::database::DatabaseStarterTemplateCatalog>>,
+  database_templates: Option<FeatureInput<myoxus_application::database::DatabaseStarterTemplateCatalog>>,
   executor: Arc<dyn WorkspaceAutomationNativeExecutor>,
   backend: OnceCell<Backend>,
   definitions: Mutex<HashMap<String, (AcceptedAutomationDefinition, glirulus_core::DefinitionHash)>>,
@@ -212,9 +213,9 @@ impl GlirulusWorkspaceAutomationRuntime {
   /// Supply the validated node catalog before readiness/start initializes waits.
   pub fn with_database_templates(
     mut self,
-    catalog: Arc<myoxus_application::database::DatabaseStarterTemplateCatalog>,
+    catalog: impl Into<FeatureInput<myoxus_application::database::DatabaseStarterTemplateCatalog>>,
   ) -> Self {
-    self.database_templates = Some(catalog);
+    self.database_templates = Some(catalog.into());
     self
   }
   async fn backend(&self) -> RuntimeResult<&Backend> {

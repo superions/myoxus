@@ -159,7 +159,7 @@ impl WorkspaceAutomationService {
     locale: &str,
     client_version: u32,
   ) -> WorkspaceAutomationResult<PreparedTaskHandover> {
-    let native = self.context_documents.as_ref().ok_or_else(runtime::unavailable)?;
+    let native = self.context_actions()?.ok_or_else(runtime::unavailable)?;
     let mut plan = native
       .packages
       .prepare_task_handover(
@@ -433,8 +433,7 @@ impl WorkspaceAutomationService {
       Err(error) => return Err(error),
     };
     let responsible_available = self
-      .context_documents
-      .as_ref()
+      .context_actions()?
       .ok_or_else(runtime::unavailable)?
       .store
       .has_accepted_member(run.workspace_id, plan.responsible_id)
@@ -488,8 +487,7 @@ impl WorkspaceAutomationService {
       run: run.clone(),
       accepted: plan.clone(),
       accepted_descriptor: self
-        .context_documents
-        .as_ref()
+        .context_actions()?
         .and_then(|native| native.packages.document_review_descriptor(&plan.package)),
       result_task_id: accepted.result_task_id,
       result_available,

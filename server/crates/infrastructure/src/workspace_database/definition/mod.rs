@@ -664,6 +664,7 @@ impl PgDatabaseRepository {
     if let Some(installed) = record.database.managed_installation.as_mut() {
       let available = self
         .database_templates
+        .get()?
         .current_source(&installed.template_id)
         .is_some_and(|(version, digest)| version == installed.template_version && digest == installed.template_digest);
       if !available {
@@ -749,7 +750,7 @@ impl PgDatabaseRepository {
   }
 
   pub(crate) async fn capture_managed_admission(&self, tx: &mut Transaction<'_, Postgres>) -> RepoResult<()> {
-    Self::capture_catalog_admission(tx, &self.database_templates).await
+    Self::capture_catalog_admission(tx, self.database_templates.get()?).await
   }
 
   /// Caller-owned transactions admit only this node's validated immutable catalog.
@@ -827,7 +828,7 @@ impl DatabaseDefinitionRepository for PgDatabaseRepository {
 
   async fn ensure_workspace_tasks(&self, state: DatabaseInitialState) -> RepoResult<DatabaseRecord> {
     let mut tx = self.begin_write().await?;
-    let id = Self::ensure_workspace_tasks_in_tx(&mut tx, &self.database_templates, state).await?;
+    let id = Self::ensure_workspace_tasks_in_tx(&mut tx, self.database_templates.get()?, state).await?;
     tx.commit().await.map_err(Self::map_sqlx_error)?;
     self
       .get_record_with_lifecycle(id, DatabaseLifecycleFilter::Any)

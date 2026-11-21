@@ -128,7 +128,7 @@ pub fn copy_feature_templates(root: &std::path::Path) {
   for bundle in &sources.bundles {
     let path = root.join("features").join(bundle.pin().archive_path());
     std::fs::create_dir_all(path.parent().unwrap()).expect("create immutable Feature fixture directory");
-    std::fs::write(path, &bundle.archive_bytes).expect("write exact captured Feature bytes");
+    std::fs::write(path, bundle.archive.as_ref()).expect("write exact captured Feature bytes");
   }
   std::fs::write(
     root.join("features/catalog.yaml"),
@@ -290,7 +290,7 @@ pub fn add_assistant_feature(
     .map_err(anyhow::Error::msg)?;
   let path = root.join("features").join(captured.pin().archive_path());
   std::fs::create_dir_all(path.parent().unwrap())?;
-  std::fs::write(path, &captured.archive_bytes)?;
+  std::fs::write(path, captured.archive.as_ref())?;
   std::fs::write(root.join("features/catalog.yaml"), encode_config_yaml(&catalog)?)?;
   Ok(())
 }

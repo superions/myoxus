@@ -93,7 +93,7 @@ fn admin_update_config_persists_and_returns_structured_field_errors() {
         for bundle in &features.bundles {
           let path = catalog.path().join("features").join(bundle.pin().archive_path());
           std::fs::create_dir_all(path.parent().unwrap()).expect("create Feature archive directory");
-          std::fs::write(path, &bundle.archive_bytes).expect("write captured Feature archive");
+          std::fs::write(path, bundle.archive.as_ref()).expect("write captured Feature archive");
         }
         let source = repository.join("server/templates");
         let mut directories = vec![std::path::PathBuf::from("mail"), std::path::PathBuf::from("html")];

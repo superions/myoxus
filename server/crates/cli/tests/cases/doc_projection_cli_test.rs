@@ -89,15 +89,22 @@ async fn projection_cli_exposes_only_bounded_external_key_commands() {
   );
   let migrations: Value = serde_json::from_slice(&maintenance.stdout).expect("maintenance returns native JSON");
   assert!(migrations.as_array().unwrap().iter().any(|row| row["version"] == 1000));
-  let guarded = cli_command(&["users", "list"])
+  let email = format!("missing-feature-{}@test.local", Uuid::new_v4());
+  let guarded = cli_command(&["users", "create", "--email", &email, "--name", "Missing Feature"])
     .env("MYOXUS__TEMPLATES__ROOT_DIR", &missing_root)
     .output()
-    .expect("run service-backed command without Feature sources");
+    .expect("create a user whose personal workspace requires Feature sources");
+  assert!(!guarded.status.success());
+  assert!(String::from_utf8_lossy(&guarded.stderr).contains("load Feature release for personal workspace"));
+  let inserted: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM users WHERE email=$1)")
+    .bind(&email)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
   assert!(
-    !guarded.status.success(),
-    "service-backed commands must retain complete Feature admission"
+    !inserted,
+    "missing Feature sources must fail before creating the account"
   );
-  assert!(String::from_utf8_lossy(&guarded.stderr).contains("could not initialize CLI services"));
   let user_id = Uuid::new_v4();
   sqlx::query("INSERT INTO users (id, email, name, email_verified_at) VALUES ($1, $2, 'Projection CLI', now())")
     .bind(user_id)

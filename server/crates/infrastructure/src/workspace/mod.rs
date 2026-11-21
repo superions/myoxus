@@ -5,6 +5,7 @@
 //! membership management (upsert, role update, removal), invite-link
 //! generation and redemption, and member listing with full user details.
 
+use myoxus_application::feature_bundle::FeatureInput;
 mod starter;
 mod starter_documents;
 
@@ -28,7 +29,7 @@ use uuid::Uuid;
 pub struct SqlxWorkspaceStore {
   /// Database connection pool.
   pool: PgPool,
-  database_templates: std::sync::Arc<myoxus_application::database::DatabaseStarterTemplateCatalog>,
+  database_templates: FeatureInput<myoxus_application::database::DatabaseStarterTemplateCatalog>,
 }
 
 impl SqlxWorkspaceStore {
@@ -145,12 +146,20 @@ impl SqlxWorkspaceStore {
   /// Construct a `SqlxWorkspaceStore` from an existing pool.
   pub fn new(
     pool: PgPool,
-    database_templates: std::sync::Arc<myoxus_application::database::DatabaseStarterTemplateCatalog>,
+    database_templates: impl Into<FeatureInput<myoxus_application::database::DatabaseStarterTemplateCatalog>>,
   ) -> Self {
     Self {
       pool,
-      database_templates,
+      database_templates: database_templates.into(),
     }
+  }
+
+  fn task_catalog(&self) -> AuthResult<&myoxus_application::database::DatabaseStarterTemplateCatalog> {
+    self
+      .database_templates
+      .get()
+      .map(std::sync::Arc::as_ref)
+      .map_err(|error| AuthError::Storage(error.to_string()))
   }
 
   fn map_db_err(err: sqlx::Error) -> AuthError {
@@ -270,6 +279,7 @@ impl SqlxWorkspaceStore {
     name: WorkspaceName,
     personal: bool,
   ) -> AuthResult<Workspace> {
+    let catalog = self.task_catalog()?;
     let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
     Self::lock_name_principal(&mut tx, "user", owner_id).await?;
     let owner_is_active: bool = sqlx::query_scalar("SELECT status = 'active' FROM users WHERE id = $1")
@@ -329,19 +339,12 @@ impl SqlxWorkspaceStore {
     .await
     .map_err(Self::map_db_err)?;
 
-    let state = myoxus_application::workspace::tasks::workspace_tasks_initial_state(
-      &self.database_templates,
-      workspace_id,
-      Some(owner_id),
-    )
-    .map_err(|error| AuthError::Storage(error.to_string()))?;
-    crate::workspace_database::PgDatabaseRepository::ensure_workspace_tasks_in_tx(
-      &mut tx,
-      &self.database_templates,
-      state,
-    )
-    .await
-    .map_err(|error| AuthError::Storage(error.to_string()))?;
+    let state =
+      myoxus_application::workspace::tasks::workspace_tasks_initial_state(catalog, workspace_id, Some(owner_id))
+        .map_err(|error| AuthError::Storage(error.to_string()))?;
+    crate::workspace_database::PgDatabaseRepository::ensure_workspace_tasks_in_tx(&mut tx, catalog, state)
+      .await
+      .map_err(|error| AuthError::Storage(error.to_string()))?;
     tx.commit().await.map_err(Self::map_db_err)?;
     info!(%workspace_id, %owner_id, personal, "user-owned workspace transaction committed");
     map_workspace_row(row).map_err(Self::map_db_err)
@@ -959,6 +962,7 @@ impl WorkspaceStore for SqlxWorkspaceStore {
         "shared workspace root update must not be empty".to_string(),
       ));
     }
+    let catalog = self.task_catalog()?;
     let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
     // The key-share lock closes the race with permanent OU deletion. It is
     // held until the workspace owner and relationship rows commit together.
@@ -1051,19 +1055,12 @@ impl WorkspaceStore for SqlxWorkspaceStore {
     .await
     .map_err(Self::map_db_err)?;
 
-    let state = myoxus_application::workspace::tasks::workspace_tasks_initial_state(
-      &self.database_templates,
-      workspace_id,
-      Some(creator_id),
-    )
-    .map_err(|error| AuthError::Storage(error.to_string()))?;
-    crate::workspace_database::PgDatabaseRepository::ensure_workspace_tasks_in_tx(
-      &mut tx,
-      &self.database_templates,
-      state,
-    )
-    .await
-    .map_err(|error| AuthError::Storage(error.to_string()))?;
+    let state =
+      myoxus_application::workspace::tasks::workspace_tasks_initial_state(catalog, workspace_id, Some(creator_id))
+        .map_err(|error| AuthError::Storage(error.to_string()))?;
+    crate::workspace_database::PgDatabaseRepository::ensure_workspace_tasks_in_tx(&mut tx, catalog, state)
+      .await
+      .map_err(|error| AuthError::Storage(error.to_string()))?;
     tx.commit().await.map_err(Self::map_db_err)?;
     info!(%workspace_id, %owner_unit_id, %creator_id, "shared workspace transaction committed");
     map_workspace_row(row).map_err(Self::map_db_err)
@@ -1077,6 +1074,7 @@ impl WorkspaceStore for SqlxWorkspaceStore {
     workspace_id: WorkspaceId,
     name: WorkspaceName,
   ) -> AuthResult<Workspace> {
+    let catalog = self.task_catalog()?;
     let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
     Self::lock_name_principal(&mut tx, "user", owner_id).await?;
     // A replay owns the same preallocated target and therefore excludes it
@@ -1126,19 +1124,12 @@ impl WorkspaceStore for SqlxWorkspaceStore {
     .execute(&mut *tx)
     .await
     .map_err(Self::map_db_err)?;
-    let state = myoxus_application::workspace::tasks::workspace_tasks_initial_state(
-      &self.database_templates,
-      workspace_id,
-      Some(owner_id),
-    )
-    .map_err(|error| AuthError::Storage(error.to_string()))?;
-    crate::workspace_database::PgDatabaseRepository::ensure_workspace_tasks_in_tx(
-      &mut tx,
-      &self.database_templates,
-      state,
-    )
-    .await
-    .map_err(|error| AuthError::Storage(error.to_string()))?;
+    let state =
+      myoxus_application::workspace::tasks::workspace_tasks_initial_state(catalog, workspace_id, Some(owner_id))
+        .map_err(|error| AuthError::Storage(error.to_string()))?;
+    crate::workspace_database::PgDatabaseRepository::ensure_workspace_tasks_in_tx(&mut tx, catalog, state)
+      .await
+      .map_err(|error| AuthError::Storage(error.to_string()))?;
     tx.commit().await.map_err(Self::map_db_err)?;
     map_workspace_row(row).map_err(Self::map_db_err)
   }

@@ -2,6 +2,7 @@
 
 //! Canonical Workspace Tasks provisioning without a Workspace/Database service dependency cycle.
 use crate::database::{DatabaseLimits, DatabaseResult, DatabaseStarterTemplateCatalog};
+use crate::feature_bundle::FeatureInput;
 use myoxus_domain::database::*;
 use myoxus_domain::ids::*;
 use std::sync::Arc;
@@ -46,19 +47,19 @@ pub fn workspace_tasks_initial_state(
 }
 
 pub struct WorkspaceTasksInitializer {
-  catalog: Arc<DatabaseStarterTemplateCatalog>,
+  catalog: FeatureInput<DatabaseStarterTemplateCatalog>,
   repository: Arc<dyn DatabaseDefinitionRepository>,
   changes: Arc<dyn crate::ports::database_change::DatabaseChangeNotificationPort>,
   projection: Arc<crate::database::DatabaseProjectionService>,
 }
 impl WorkspaceTasksInitializer {
   pub fn new(
-    catalog: Arc<DatabaseStarterTemplateCatalog>,
+    catalog: impl Into<FeatureInput<DatabaseStarterTemplateCatalog>>,
     repository: Arc<dyn DatabaseDefinitionRepository>,
     projection: Arc<crate::database::DatabaseProjectionService>,
   ) -> Self {
     Self {
-      catalog,
+      catalog: catalog.into(),
       repository,
       projection,
       changes: Arc::new(crate::ports::database_change::NullDatabaseChangeNotification),
@@ -72,12 +73,13 @@ impl WorkspaceTasksInitializer {
     self
   }
   pub async fn ensure(&self, workspace_id: WorkspaceId, actor: Option<UserId>) -> DatabaseResult<DatabaseRecord> {
+    let catalog = self.catalog.get()?;
     let record = self
       .repository
-      .ensure_workspace_tasks(workspace_tasks_initial_state(&self.catalog, workspace_id, actor)?)
+      .ensure_workspace_tasks(workspace_tasks_initial_state(catalog, workspace_id, actor)?)
       .await?;
     crate::database::definition::managed_schema::reconcile_managed_database(
-      &self.catalog,
+      catalog,
       self.repository.as_ref(),
       record.database.id,
       self.changes.as_ref(),

@@ -2145,6 +2145,7 @@ impl DatabaseImportExportService {
       })?;
       let (version, digest) = self
         .starter_templates
+        .get()?
         .current_source(&source.template_id)
         .ok_or_else(|| DatabaseServiceError::new(ERR_JSON_INVALID, "Project source unavailable"))?;
       if version != source.template_version || digest != source.template_digest {
@@ -2197,11 +2198,15 @@ impl DatabaseImportExportService {
       };
       let current = self
         .starter_templates
+        .get()?
         .current_source(&source.template_id)
         .ok_or_else(|| DatabaseServiceError::new(ERR_JSON_INVALID, "managed source current version missing"))?
         .0;
-      let expected =
-        crate::database::definition::managed_schema::expected_state_at(&self.starter_templates, &record, current)?;
+      let expected = crate::database::definition::managed_schema::expected_state_at(
+        self.starter_templates.get()?,
+        &record,
+        current,
+      )?;
       let expected_record = DatabaseRecord {
         database: expected.database.clone(),
         fields: expected.fields,

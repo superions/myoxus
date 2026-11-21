@@ -247,6 +247,17 @@ citationberg = { git = "https://github.com/typst/citationberg.git", rev = "072ae
 debug = 0
 strip = "debuginfo"
 
+  # Feature admission hashes archives, decodes artwork and processes native template ZIPs.
+  # These dependencies dominate release recovery even in a normal development build.
+  [profile.dev.package."sha2@0.10"]
+  opt-level = 3
+
+  [profile.dev.package.image-webp]
+  opt-level = 3
+
+  [profile.dev.package.zlib-rs]
+  opt-level = 3
+
 [profile.test]
 debug = 0
 strip = "debuginfo"

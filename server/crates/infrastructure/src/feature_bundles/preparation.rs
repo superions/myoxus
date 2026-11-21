@@ -5,8 +5,8 @@ use super::source_set::{
 };
 use crate::template_files::{decode_yaml, read_confined_file};
 use myoxus_application::feature_bundle::{
-  CapturedFeatureBundle, ResolvedFeatureCatalogs, canonical_feature_path, prepare_feature_release_catalog,
-  validate_feature_release_candidate,
+  CapturedFeatureBundle, FeatureArchive, ResolvedFeatureCatalogs, canonical_feature_path,
+  prepare_feature_release_catalog, validate_feature_release_candidate,
 };
 use myoxus_contracts::config_document::encode_config_yaml;
 use myoxus_domain::{
@@ -19,7 +19,7 @@ pub struct PreparedFeatureSourceSet {
   pub release_bytes: Vec<u8>,
   pub catalog_bytes: Vec<u8>,
   /// Root-relative immutable archive paths; the catalog is the sole active pointer.
-  pub archives: BTreeMap<String, Vec<u8>>,
+  pub archives: BTreeMap<String, FeatureArchive>,
   pub resolved: ResolvedFeatureCatalogs,
 }
 
@@ -143,7 +143,7 @@ pub fn prepare_feature_source_set(
 fn publication_archives(
   catalog: &FeatureBundleCatalogSource,
   mut captured: CapturedArchives,
-) -> RepoResult<BTreeMap<String, Vec<u8>>> {
+) -> RepoResult<BTreeMap<String, FeatureArchive>> {
   catalog_pins(catalog)?
     .into_iter()
     .map(|pin| {
@@ -191,7 +191,7 @@ pub fn write_prepared_feature_source_set(prepared: &PreparedFeatureSourceSet, pr
     file.write_all(bytes).map_err(storage)
   };
   for (path, bytes) in &prepared.archives {
-    write(path, bytes)?;
+    write(path, bytes.as_ref())?;
   }
   write("features/release.yaml", &prepared.release_bytes)?;
   write("features/catalog.yaml", &prepared.catalog_bytes)

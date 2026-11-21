@@ -119,13 +119,12 @@ impl PgDatabaseRepository {
         "managed schema identity or variant cannot change".into(),
       ));
     }
-    let locally_known = self
-      .database_templates
+    let catalog = self.database_templates.get()?;
+    let locally_known = catalog
       .version_source(&current.template_id, &current.template_version)
       .is_some_and(|(_, digest)| digest == current.template_digest);
     if !locally_known
-      || self
-        .database_templates
+      || catalog
         .update_route(&current.template_id, &current.template_version)
         .is_none()
     {
@@ -134,8 +133,7 @@ impl PgDatabaseRepository {
       ));
     }
     if replacement.is_some() {
-      let (edge, _) = self
-        .database_templates
+      let (edge, _) = catalog
         .inventory()
         .update_from(&current.template_id, &current.template_version)
         .ok_or_else(|| RepositoryError::Validation("managed transition edge unavailable".into()))?;
@@ -146,8 +144,7 @@ impl PgDatabaseRepository {
       {
         return Err(RepositoryError::Conflict("managed transition edge fence"));
       }
-      let final_target = self
-        .database_templates
+      let final_target = catalog
         .current_source(&installation.template_id)
         .is_some_and(|(version, digest)| {
           version == installation.template_version && digest == installation.template_digest
@@ -179,8 +176,7 @@ impl PgDatabaseRepository {
       {
         return Err(RepositoryError::Validation("invalid structural transition".into()));
       }
-      let (edge, _) = self
-        .database_templates
+      let (edge, _) = catalog
         .inventory()
         .update_from(&current.template_id, &current.template_version)
         .ok_or_else(|| RepositoryError::Validation("managed transition edge unavailable".into()))?;
@@ -189,12 +185,10 @@ impl PgDatabaseRepository {
         complexity: current.variant.complexity,
         structure: current.variant.structure,
       };
-      let source_spec = self
-        .database_templates
+      let source_spec = catalog
         .select_version(&current.template_id, &current.template_version, selection)
         .ok_or_else(|| RepositoryError::Validation("managed source variant unavailable".into()))?;
-      let target_spec = self
-        .database_templates
+      let target_spec = catalog
         .select_version(&current.template_id, &installation.template_version, selection)
         .ok_or_else(|| RepositoryError::Validation("managed target variant unavailable".into()))?;
       affected_rows.extend(

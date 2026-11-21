@@ -167,6 +167,7 @@ impl DatabaseDefinitionService {
           workspace_id: input.workspace_id,
           template_id: self
             .starter_templates
+            .get()?
             .system_source(DatabaseTemplateSourceRole::ProjectDefault)
             .ok_or_else(|| DatabaseServiceError::new(ERR_TEMPLATE_INVALID, "default Project source unavailable"))?
             .template_id

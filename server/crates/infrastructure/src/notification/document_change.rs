@@ -33,7 +33,7 @@ pub(crate) async fn accumulate_in_tx(
   actor: Uuid,
   sequence: i64,
   now: DateTime<Utc>,
-) -> AuthResult<()> {
+) -> sqlx::Result<()> {
   // Once expired or moved, a window is immutable even if dispatch is late.
   sqlx::query(
     "UPDATE document_change_batches SET sealed_at=$3
@@ -43,8 +43,7 @@ pub(crate) async fn accumulate_in_tx(
   .bind(workspace_id)
   .bind(now)
   .execute(&mut **tx)
-  .await
-  .map_err(storage)?;
+  .await?;
   let batch_id: Uuid = sqlx::query_scalar(
     "INSERT INTO document_change_batches
     (id, doc_id, workspace_id, started_at, last_changed_at, due_at, first_sequence, last_sequence)
@@ -61,8 +60,7 @@ pub(crate) async fn accumulate_in_tx(
   .bind(now + Duration::seconds(DOCUMENT_CHANGE_WINDOW_SECONDS))
   .bind(sequence)
   .fetch_one(&mut **tx)
-  .await
-  .map_err(storage)?;
+  .await?;
   sqlx::query(
     "INSERT INTO document_change_batch_actors (batch_id,user_id,first_sequence,last_sequence)
     VALUES ($1,$2,$3,$3) ON CONFLICT(batch_id,user_id) DO UPDATE
@@ -72,8 +70,7 @@ pub(crate) async fn accumulate_in_tx(
   .bind(actor)
   .bind(sequence)
   .execute(&mut **tx)
-  .await
-  .map_err(storage)?;
+  .await?;
   Ok(())
 }
 

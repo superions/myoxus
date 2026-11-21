@@ -17,7 +17,7 @@ pub struct WorkspaceAutomationNativeActions {
   webhook: Option<Arc<dyn WorkspaceAutomationWebhookPort>>,
   editing: Arc<crate::database::DatabaseEditingService>,
   audit: AuditRecorder,
-  context_documents: Option<Arc<super::workflows::ContextDocumentActions>>,
+  context_documents: Option<crate::feature_bundle::FeatureInput<super::workflows::ContextDocumentActions>>,
 }
 impl WorkspaceAutomationNativeActions {
   #[allow(clippy::too_many_arguments)]
@@ -30,7 +30,7 @@ impl WorkspaceAutomationNativeActions {
     webhook: Option<Arc<dyn WorkspaceAutomationWebhookPort>>,
     editing: Arc<crate::database::DatabaseEditingService>,
     audit: AuditRecorder,
-    context_documents: Option<Arc<super::workflows::ContextDocumentActions>>,
+    context_documents: Option<crate::feature_bundle::FeatureInput<super::workflows::ContextDocumentActions>>,
   ) -> Self {
     Self {
       repo,
@@ -308,7 +308,12 @@ impl NativeExecution<'_> {
         .ok_or_else(|| {
           WorkspaceAutomationServiceError::new(ERR_AUTOMATION_RUN_NOT_RETRYABLE, "Task content owner unavailable")
         })?;
-      let native = self.context_documents.as_ref().ok_or_else(unavailable)?;
+      let native = self
+        .context_documents
+        .as_ref()
+        .ok_or_else(unavailable)?
+        .get()
+        .map_err(|_| unavailable())?;
       let (documents, registry) = native.packages.automation_document_services().ok_or_else(unavailable)?;
       let doc = documents
         .create_automation_row_body(
@@ -445,6 +450,8 @@ impl WorkspaceAutomationNativeExecutor for WorkspaceAutomationNativeActions {
             .context_documents
             .as_ref()
             .ok_or_else(unavailable)?
+            .get()
+            .map_err(|_| unavailable())?
             .execute_workspace_setup(&self.repo, invocation, &run, &accepted)
             .await
         } else if accepted.task_maintenance.is_some() {
@@ -466,6 +473,8 @@ impl WorkspaceAutomationNativeExecutor for WorkspaceAutomationNativeActions {
             .context_documents
             .as_ref()
             .ok_or_else(unavailable)?
+            .get()
+            .map_err(|_| unavailable())?
             .execute(&self.repo, invocation, &run, &accepted)
             .await
         };

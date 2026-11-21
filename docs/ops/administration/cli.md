@@ -211,6 +211,11 @@ The two command groups are deliberately retained:
 
 ### General workspaces
 
+Listing workspaces and changing memberships work without the packaged Feature
+catalog. Creating a workspace or running `workspaces ensure-tasks` loads the
+validated release to materialize the native Tasks database. Consumers in the
+same CLI invocation share that release snapshot.
+
 ```bash
 # Read projections
 myoxus-cli workspaces list

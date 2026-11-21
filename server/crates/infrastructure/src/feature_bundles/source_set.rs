@@ -3,14 +3,14 @@
 use super::archive::{archive_limits, read_feature_bundle_with_budget};
 use crate::template_files::{decode_yaml, read_confined_file};
 use myoxus_application::{
-  feature_bundle::{CapturedFeatureBundle, ResolvedFeatureCatalogs, assemble_feature_catalogs},
+  feature_bundle::{CapturedFeatureBundle, FeatureArchive, ResolvedFeatureCatalogs, assemble_feature_catalogs},
   template_registry::bundle::NestedArchiveBudget,
 };
 use myoxus_domain::{
   feature_bundle::*,
   repositories::{RepoResult, RepositoryError},
 };
-use sha2::{Digest, Sha256};
+
 use std::{
   collections::{BTreeMap, BTreeSet},
   path::Path,
@@ -113,7 +113,7 @@ pub fn capture_feature_selection(
   })
 }
 
-pub(super) type CapturedArchives = BTreeMap<(String, String), (FeatureBundlePin, Vec<u8>)>;
+pub(super) type CapturedArchives = BTreeMap<(String, String), (FeatureBundlePin, FeatureArchive)>;
 
 pub(super) fn catalog_pins(catalog: &FeatureBundleCatalogSource) -> RepoResult<Vec<&FeatureBundlePin>> {
   if catalog.format_version != 1 || catalog.optional.len() > 128 || catalog.retained.len() > 256 {
@@ -170,13 +170,18 @@ pub(super) fn capture_archive(
   *total = total
     .checked_add(bytes.len())
     .ok_or_else(|| invalid("Feature source set byte size overflow"))?;
-  if format!("{:x}", Sha256::digest(&bytes)) != pin.sha256 {
+  let bytes = FeatureArchive::new(bytes);
+  if bytes.sha256() != pin.sha256 {
     return Err(invalid(format!("Feature archive SHA-256 mismatch: {path}")));
   }
   merge_archive(captured, pin.clone(), bytes)
 }
 
-pub(super) fn merge_archive(captured: &mut CapturedArchives, pin: FeatureBundlePin, bytes: Vec<u8>) -> RepoResult<()> {
+pub(super) fn merge_archive(
+  captured: &mut CapturedArchives,
+  pin: FeatureBundlePin,
+  bytes: FeatureArchive,
+) -> RepoResult<()> {
   let identity = (pin.id.clone(), pin.version.clone());
   if let Some((previous, previous_bytes)) = captured.get(&identity) {
     if previous != &pin || previous_bytes != &bytes {

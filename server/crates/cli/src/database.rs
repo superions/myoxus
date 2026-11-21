@@ -1308,6 +1308,7 @@ async fn assistant_list(args: DatabaseAssistantListArgs, svc: &Services, json: b
   print_json_or_debug(
     &svc
       .assistant_packages
+      .get()?
       .list(myoxus_domain::assistant_package::AssistantPackageContext::ProjectCreation),
     json,
   );
@@ -1362,13 +1363,14 @@ async fn assistant_project(args: DatabaseAssistantProjectArgs, svc: &Services, j
           plan_digest: confirmation,
           admission_confirmation: args.admission_confirmation,
         },
-        &svc.assistant_packages,
+        svc.assistant_packages.get()?,
       )
       .await?;
     print_json_or_debug(&assistant_project_outcome(result), json);
   } else {
     let plan = svc
       .assistant_packages
+      .get()?
       .prepare_project(
         args.actor.actor_user_id,
         args.workspace_id,
@@ -1445,7 +1447,7 @@ async fn assistant_project_request(
           args.actor.actor_user_id,
           args.workspace_id,
           args.request_id,
-          &svc.assistant_packages,
+          svc.assistant_packages.get()?,
         )
         .await?,
     )
@@ -1456,7 +1458,7 @@ async fn assistant_project_request(
         args.actor.actor_user_id,
         args.workspace_id,
         args.request_id,
-        &svc.assistant_packages,
+        svc.assistant_packages.get()?,
       )
       .await?
   };

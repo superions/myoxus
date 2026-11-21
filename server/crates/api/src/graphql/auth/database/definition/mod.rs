@@ -1550,6 +1550,7 @@ pub(crate) async fn list_database_starter_templates(
     service(&state)?
       .definition
       .list_starter_templates()
+      .map_err(map_database_error)?
       .into_iter()
       .map(map_starter_template)
       .collect(),
@@ -1616,6 +1617,7 @@ pub(crate) async fn create_database_from_template(
   let defaults = services
     .definition
     .starter_template_catalog()
+    .map_err(map_database_error)?
     .default_selection(&input.template_id)
     .copied()
     .ok_or_else(|| {

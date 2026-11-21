@@ -5,6 +5,7 @@
 //! sequence numbers, compacted snapshots, history entries for rollback,
 //! and per-document permission records.
 
+use myoxus_application::feature_bundle::FeatureInput;
 use std::collections::{BTreeSet, HashMap};
 
 use async_trait::async_trait;
@@ -41,21 +42,49 @@ use crate::document_version::edit_capture_state::{self, lock_key as workspace_do
 const HISTORY_SERIALIZATION_CONFLICT: &str = "document history capture serialization conflict";
 
 fn history_capture_lock_error(error: sqlx::Error) -> myoxus_application::doc::history::HistoryCaptureError {
-  if is_history_serialization(&error) {
+  if is_serialization_failure(&error) {
     return myoxus_domain::repositories::RepositoryError::Conflict(HISTORY_SERIALIZATION_CONFLICT).into();
   }
   SqlxDocStore::map_db_err(error).into()
 }
 
-fn is_history_serialization(error: &sqlx::Error) -> bool {
+fn is_serialization_failure(error: &sqlx::Error) -> bool {
   error.as_database_error().and_then(|error| error.code()).as_deref() == Some("40001")
 }
 
-fn mutation_capture_lock_error(error: sqlx::Error) -> AuthError {
-  if error.as_database_error().and_then(|error| error.code()).as_deref() == Some("40001") {
-    return AuthError::InvalidInput("MIX_DOCUMENT_MUTATION_CONFLICT: document changed during capture".into());
+#[derive(Debug, thiserror::Error)]
+pub(crate) enum MutationWriteError {
+  #[error("document write serialization conflict")]
+  Serialization,
+  #[error(transparent)]
+  Operation(AuthError),
+}
+
+impl From<sqlx::Error> for MutationWriteError {
+  fn from(error: sqlx::Error) -> Self {
+    if is_serialization_failure(&error) {
+      Self::Serialization
+    } else {
+      Self::Operation(SqlxDocStore::map_db_err(error))
+    }
   }
-  SqlxDocStore::map_db_err(error)
+}
+
+impl From<AuthError> for MutationWriteError {
+  fn from(error: AuthError) -> Self {
+    Self::Operation(error)
+  }
+}
+
+impl From<MutationWriteError> for AuthError {
+  fn from(error: MutationWriteError) -> Self {
+    match error {
+      MutationWriteError::Serialization => {
+        Self::InvalidInput("MIX_DOCUMENT_MUTATION_CONFLICT: document changed during capture".into())
+      }
+      MutationWriteError::Operation(error) => error,
+    }
+  }
 }
 
 fn map_history_metadata(row: &PgRow) -> AuthResult<DocHistoryMetadataEntry> {
@@ -97,7 +126,7 @@ fn map_history_row(row: PgRow) -> AuthResult<DocHistoryEntry> {
 pub struct SqlxDocStore {
   /// Database connection pool.
   pool: PgPool,
-  database_templates: Option<std::sync::Arc<myoxus_application::database::DatabaseStarterTemplateCatalog>>,
+  database_templates: Option<FeatureInput<myoxus_application::database::DatabaseStarterTemplateCatalog>>,
   /// Optional Redis cache for quota checks (P38 performance optimization).
   /// When present, quota and usage are read from cache first, falling back
   /// to DB on cache miss. Write-through updates cache after each write.
@@ -556,6 +585,49 @@ impl SqlxDocStore {
     Ok(())
   }
 
+  async fn mutate_content_once(
+    &self,
+    workspace_id: Uuid,
+    doc_id: Uuid,
+    actor_user_id: Option<Uuid>,
+    mutation: &yjs::DocumentMutation,
+    capture_recovery_history: bool,
+    expected_sequence: Option<i64>,
+  ) -> Result<DocContentMutationCommit, MutationWriteError> {
+    let mut tx = self.pool.begin().await?;
+    let current = Self::load_full_doc_in_tx(&mut tx, workspace_id, doc_id).await?;
+    let preview = yjs::apply_document_mutation(&current, mutation).map_err(Self::map_document_mutation_error)?;
+    let mut locked_docs = BTreeSet::from([doc_id]);
+    locked_docs
+      .extend(Self::title_projection_lock_candidates_in_tx(&mut tx, workspace_id, doc_id, &preview.delta).await?);
+    tx.rollback().await?;
+
+    let mut tx = self.pool.begin().await?;
+    sqlx::query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
+      .execute(&mut *tx)
+      .await?;
+    for locked_doc_id in locked_docs.iter().copied() {
+      sqlx::query("SELECT pg_advisory_xact_lock(hashtext($1)::bigint)")
+        .bind(workspace_document_lock_key(workspace_id, locked_doc_id))
+        .execute(&mut *tx)
+        .await?;
+    }
+    let result = self
+      .mutate_content_in_tx(
+        &mut tx,
+        workspace_id,
+        doc_id,
+        actor_user_id,
+        ContentChange::Semantic(mutation),
+        capture_recovery_history,
+        expected_sequence,
+        locked_docs.contains(&workspace_id),
+      )
+      .await?;
+    tx.commit().await?;
+    Ok(result)
+  }
+
   async fn mutate_content_in_tx(
     &self,
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
@@ -566,13 +638,12 @@ impl SqlxDocStore {
     capture_recovery_history: bool,
     expected_sequence: Option<i64>,
     project_root_title: bool,
-  ) -> AuthResult<DocContentMutationCommit> {
+  ) -> Result<DocContentMutationCommit, MutationWriteError> {
     crate::mcp_idempotency::lock_document_write(tx, actor_user_id).await?;
     sqlx::query("SELECT pg_advisory_xact_lock(hashtext($1)::bigint)")
       .bind(workspace_document_lock_key(workspace_id, doc_id))
       .execute(&mut **tx)
-      .await
-      .map_err(Self::map_db_err)?;
+      .await?;
 
     // Under the capture snapshot a writer that committed while the advisory
     // lock was awaited must conflict, not be overwritten using an older leaf.
@@ -582,10 +653,9 @@ impl SqlxDocStore {
     .bind(workspace_id)
     .bind(doc_id)
     .fetch_optional(&mut **tx)
-    .await
-    .map_err(mutation_capture_lock_error)?;
+    .await?;
     if exists.is_none() {
-      return Err(AuthError::NotFound("document".to_string()));
+      return Err(AuthError::NotFound("document".to_string()).into());
     }
 
     crate::document_metadata::reject_guide_content_write(tx, doc_id).await?;
@@ -595,8 +665,7 @@ impl SqlxDocStore {
         .bind(workspace_id)
         .bind(doc_id)
         .fetch_optional(&mut **tx)
-        .await
-        .map_err(Self::map_db_err)?;
+        .await?;
     let (snapshot_payload, last_sequence) = snapshot
       .map(|row| (row.get::<Vec<u8>, _>("payload"), row.get::<i64, _>("last_sequence")))
       .unwrap_or_else(|| (Vec::new(), -1));
@@ -610,8 +679,7 @@ impl SqlxDocStore {
     .bind(doc_id)
     .bind(last_sequence)
     .fetch_all(&mut **tx)
-    .await
-    .map_err(Self::map_db_err)?;
+    .await?;
     let mut updates = Vec::with_capacity(tail.len() + 1);
     if !snapshot_payload.is_empty() {
       updates.push(snapshot_payload);
@@ -652,7 +720,8 @@ impl SqlxDocStore {
     };
     // Only this explicit materialized content operation performs field admission.
     // Raw synchronization and leaf persistence retain their existing fast path.
-    let normalized = myoxus_application::document_fields::normalize_snapshot(&applied.state)?;
+    let normalized =
+      myoxus_application::document_fields::normalize_snapshot(&applied.state).map_err(AuthError::from)?;
     if let Some(delta) = normalized.delta {
       applied.delta = yjs::merge_updates(vec![applied.delta, delta])
         .map_err(|_| AuthError::InvalidInput("MIX_DOCUMENT_FIELD_INVALID".into()))?;
@@ -661,7 +730,7 @@ impl SqlxDocStore {
     if !yjs::preserves_fixed_text(&current, &applied.state)
       .map_err(|_| AuthError::InvalidInput("MIX_DOCUMENT_TEXT_PROTECTED".into()))?
     {
-      return Err(AuthError::InvalidInput("MIX_DOCUMENT_TEXT_PROTECTED".into()));
+      return Err(AuthError::InvalidInput("MIX_DOCUMENT_TEXT_PROTECTED".into()).into());
     }
     let recovery_history_id = if capture_recovery_history {
       let frozen = match crate::document_field_capture::FieldCapture::load(
@@ -686,11 +755,8 @@ impl SqlxDocStore {
       .bind(&frozen)
       .bind(actor_user_id)
       .fetch_one(&mut **tx)
-      .await
-      .map_err(Self::map_db_err)?;
-      crate::history_git_sync::record_history_capture(&mut *tx, workspace_id, history_id)
-        .await
-        .map_err(Self::map_db_err)?;
+      .await?;
+      crate::history_git_sync::record_history_capture(&mut *tx, workspace_id, history_id).await?;
       Some(history_id)
     } else {
       None
@@ -708,20 +774,16 @@ impl SqlxDocStore {
     .bind(workspace_id)
     .bind(&applied.delta)
     .fetch_one(&mut **tx)
-    .await
-    .map_err(Self::map_db_err)?;
+    .await?;
     sqlx::query("UPDATE docs SET sync_state_vector_v1 = NULL, updated_at = now() WHERE id = $1")
       .bind(doc_id)
       .execute(&mut **tx)
-      .await
-      .map_err(Self::map_db_err)?;
+      .await?;
     // Restore owns its named/unnamed head transition in the same transaction.
     if is_semantic_edit {
-      crate::document_metadata::PgDocumentMetadataRepository::mark_named_version_dirty_in_tx(tx, doc_id)
-        .await
-        .map_err(|error| AuthError::Storage(error.to_string()))?;
+      crate::document_metadata::PgDocumentMetadataRepository::mark_named_version_dirty_in_tx(tx, doc_id).await?;
     }
-    let eligible = Self::mark_edit_capture_dirty_in_tx(tx, workspace_id, doc_id, sequence).await?;
+    let eligible = edit_capture_state::mark_dirty(tx, workspace_id, doc_id, sequence).await?;
     if eligible
       && !unchanged_restore
       && applied.state != current
@@ -796,9 +858,9 @@ impl SqlxDocStore {
   /// Ordinary page writes need no managed Database admission.
   pub fn with_database_templates(
     mut self,
-    catalog: std::sync::Arc<myoxus_application::database::DatabaseStarterTemplateCatalog>,
+    catalog: impl Into<FeatureInput<myoxus_application::database::DatabaseStarterTemplateCatalog>>,
   ) -> Self {
-    self.database_templates = Some(catalog);
+    self.database_templates = Some(catalog.into());
     self
   }
 
@@ -1136,12 +1198,10 @@ impl SqlxDocStore {
     workspace_id: Uuid,
     doc_id: Uuid,
     delta: Vec<u8>,
-  ) -> AuthResult<PageLifecycleDelta> {
+  ) -> Result<PageLifecycleDelta, MutationWriteError> {
     crate::document_metadata::reject_guide_content_write(tx, doc_id).await?;
     if delta.is_empty() {
-      return Err(AuthError::Storage(
-        "page lifecycle produced an empty Yjs delta".to_string(),
-      ));
+      return Err(AuthError::Storage("page lifecycle produced an empty Yjs delta".to_string()).into());
     }
     let sequence = sqlx::query_scalar::<_, i64>(
       "INSERT INTO doc_updates (doc_id, workspace_id, payload, sequence)
@@ -1156,16 +1216,12 @@ impl SqlxDocStore {
     .bind(workspace_id)
     .bind(&delta)
     .fetch_one(&mut **tx)
-    .await
-    .map_err(Self::map_db_err)?;
+    .await?;
     sqlx::query("UPDATE docs SET sync_state_vector_v1 = NULL WHERE id = $1")
       .bind(doc_id)
       .execute(&mut **tx)
-      .await
-      .map_err(Self::map_db_err)?;
-    crate::document_metadata::PgDocumentMetadataRepository::mark_named_version_dirty_in_tx(tx, doc_id)
-      .await
-      .map_err(|error| AuthError::Storage(error.to_string()))?;
+      .await?;
+    crate::document_metadata::PgDocumentMetadataRepository::mark_named_version_dirty_in_tx(tx, doc_id).await?;
     Ok(PageLifecycleDelta {
       doc_id,
       sequence,
@@ -1203,7 +1259,7 @@ impl SqlxDocStore {
     actor_user_id: Option<Uuid>,
     lifecycle_operation: &str,
     updates: &[PageLifecycleDelta],
-  ) -> AuthResult<()> {
+  ) -> Result<(), MutationWriteError> {
     let updates = updates
       .iter()
       .map(|update| {
@@ -1226,8 +1282,7 @@ impl SqlxDocStore {
       "deliveryAttempts": 0,
     }))
     .execute(&mut **tx)
-    .await
-    .map_err(Self::map_db_err)?;
+    .await?;
     Ok(())
   }
 
@@ -1302,6 +1357,7 @@ impl SqlxDocStore {
       std::slice::from_ref(&root),
     )
     .await
+    .map_err(Into::into)
   }
 
   async fn lock_page_lifecycle_documents(
@@ -1503,7 +1559,7 @@ impl SqlxDocStore {
     doc_id: Uuid,
     committed_at: chrono::DateTime<chrono::Utc>,
     project_root: bool,
-  ) -> AuthResult<Option<PageLifecycleDelta>> {
+  ) -> Result<Option<PageLifecycleDelta>, MutationWriteError> {
     let Some(title) = Self::structural_leaf_title_in_tx(tx, workspace_id, doc_id).await? else {
       return Ok(None);
     };
@@ -1514,8 +1570,7 @@ impl SqlxDocStore {
     .bind(workspace_id)
     .bind(doc_id)
     .fetch_optional(&mut **tx)
-    .await
-    .map_err(Self::map_db_err)?;
+    .await?;
     let Some(row) = row else {
       return Ok(None);
     };
@@ -1528,8 +1583,7 @@ impl SqlxDocStore {
         .bind(&title)
         .bind(committed_at)
         .execute(&mut **tx)
-        .await
-        .map_err(Self::map_db_err)?;
+        .await?;
     }
     if !project_root {
       return Ok(None);
@@ -3321,40 +3375,25 @@ impl DocUpdateStore for SqlxDocStore {
     capture_recovery_history: bool,
     expected_sequence: Option<i64>,
   ) -> AuthResult<DocContentMutationCommit> {
-    let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
-    let current = Self::load_full_doc_in_tx(&mut tx, workspace_id, doc_id).await?;
-    let preview = yjs::apply_document_mutation(&current, &mutation).map_err(Self::map_document_mutation_error)?;
-    let mut locked_docs = BTreeSet::from([doc_id]);
-    locked_docs
-      .extend(Self::title_projection_lock_candidates_in_tx(&mut tx, workspace_id, doc_id, &preview.delta).await?);
-    tx.rollback().await.map_err(Self::map_db_err)?;
-
-    let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
-    sqlx::query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
-      .execute(&mut *tx)
-      .await
-      .map_err(Self::map_db_err)?;
-    for locked_doc_id in locked_docs.iter().copied() {
-      sqlx::query("SELECT pg_advisory_xact_lock(hashtext($1)::bigint)")
-        .bind(workspace_document_lock_key(workspace_id, locked_doc_id))
-        .execute(&mut *tx)
-        .await
-        .map_err(Self::map_db_err)?;
+    // Retry only a PostgreSQL serialization abort. The fresh preview rediscovers
+    // the title lock set and revalidates the caller's original text and revision.
+    let mut retries = 2;
+    loop {
+      let result = self
+        .mutate_content_once(
+          workspace_id,
+          doc_id,
+          actor_user_id,
+          &mutation,
+          capture_recovery_history,
+          expected_sequence,
+        )
+        .await;
+      match result {
+        Err(MutationWriteError::Serialization) if retries > 0 => retries -= 1,
+        result => return result.map_err(Into::into),
+      }
     }
-    let result = self
-      .mutate_content_in_tx(
-        &mut tx,
-        workspace_id,
-        doc_id,
-        actor_user_id,
-        ContentChange::Semantic(&mutation),
-        capture_recovery_history,
-        expected_sequence,
-        locked_docs.contains(&workspace_id),
-      )
-      .await?;
-    tx.commit().await.map_err(Self::map_db_err)?;
-    Ok(result)
   }
 
   /// Return updates with `sequence > after_sequence` in ascending order.
@@ -4093,7 +4132,8 @@ impl DocHistoryStore for SqlxDocStore {
         request.expected_sequence,
         true,
       )
-      .await?;
+      .await
+      .map_err(AuthError::from)?;
     let recovery_history_id = applied
       .recovery_history_id
       .ok_or_else(|| AuthError::Storage("restore recovery snapshot missing".into()))?;
@@ -4177,7 +4217,8 @@ impl DocHistoryStore for SqlxDocStore {
       &mut tx,
       myoxus_application::mcp::McpDocumentWriteCommit::HistoryRestore(&committed),
     )
-    .await?;
+    .await
+    .map_err(AuthError::from)?;
     tx.commit().await.map_err(Self::map_db_err)?;
     Ok(committed)
   }
@@ -4220,7 +4261,7 @@ impl DocHistoryStore for SqlxDocStore {
       .fetch_optional(&mut *tx)
       .await;
       let existing = match existing {
-        Err(error) if attempt < 2 && is_history_serialization(&error) => {
+        Err(error) if attempt < 2 && is_serialization_failure(&error) => {
           tx.rollback().await.map_err(Self::map_db_err)?;
           continue;
         }
@@ -4240,7 +4281,7 @@ impl DocHistoryStore for SqlxDocStore {
           HistoryCapture::Snapshot(history_id)
         };
         if let Err(error) = tx.commit().await {
-          if attempt < 2 && is_history_serialization(&error) {
+          if attempt < 2 && is_serialization_failure(&error) {
             continue;
           }
           return Err(history_capture_lock_error(error));
@@ -4304,7 +4345,7 @@ impl DocHistoryStore for SqlxDocStore {
         return Err(history_capture_lock_error(error));
       }
       if let Err(error) = tx.commit().await {
-        if attempt < 2 && is_history_serialization(&error) {
+        if attempt < 2 && is_serialization_failure(&error) {
           continue;
         }
         return Err(history_capture_lock_error(error));
@@ -4463,7 +4504,7 @@ impl DocHistoryStore for SqlxDocStore {
         result => result?,
       };
       if let Err(error) = tx.commit().await {
-        if attempt < 2 && is_history_serialization(&error) {
+        if attempt < 2 && is_serialization_failure(&error) {
           continue;
         }
         return Err(history_capture_lock_error(error));
@@ -4931,7 +4972,9 @@ impl SqlxDocStore {
       let catalog = self
         .database_templates
         .as_ref()
-        .ok_or_else(|| AuthError::Storage("Task content database catalog unavailable".into()))?;
+        .ok_or_else(|| AuthError::Storage("Task content database catalog unavailable".into()))?
+        .get()
+        .map_err(|error| AuthError::Storage(error.to_string()))?;
       crate::workspace_database::PgDatabaseRepository::capture_catalog_admission(&mut tx, catalog)
         .await
         .map_err(|error| AuthError::Storage(error.to_string()))?;
@@ -5336,7 +5379,8 @@ impl SqlxDocStore {
             leaf.sequence,
             committed_at,
           )
-          .await?;
+          .await
+          .map_err(Self::map_db_err)?;
         }
         (self.map_doc_row(row), Some(leaf), root)
       }
@@ -6188,7 +6232,8 @@ impl SqlxDocStore {
           assigned_sequence,
           chrono::Utc::now(),
         )
-        .await?;
+        .await
+        .map_err(Self::map_db_err)?;
       }
     }
     let page_registration = if registration_needed {

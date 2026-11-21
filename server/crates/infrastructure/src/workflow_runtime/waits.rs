@@ -3,14 +3,15 @@
 //! The engine consumes the resulting correlated bytes and owns continuation.
 use super::*;
 use glirulus_postgres::{WaitArbitrator, WaitFuture, WaitResolution};
+use myoxus_application::feature_bundle::FeatureInput;
 use myoxus_domain::workspace_automation::*;
 
 pub(super) struct NativeWaitArbitrator {
-  database_templates: Option<Arc<myoxus_application::database::DatabaseStarterTemplateCatalog>>,
+  database_templates: Option<FeatureInput<myoxus_application::database::DatabaseStarterTemplateCatalog>>,
 }
 impl NativeWaitArbitrator {
   pub(super) fn new(
-    database_templates: Option<Arc<myoxus_application::database::DatabaseStarterTemplateCatalog>>,
+    database_templates: Option<FeatureInput<myoxus_application::database::DatabaseStarterTemplateCatalog>>,
   ) -> Self {
     Self { database_templates }
   }
@@ -95,7 +96,12 @@ impl WaitArbitrator for NativeWaitArbitrator {
             payload: Bytes::from(serde_json::to_vec(&input).map_err(|_| unavailable_wait())?),
           });
         }
-        let catalog = self.database_templates.as_deref().ok_or_else(unavailable_wait)?;
+        let catalog = self
+          .database_templates
+          .as_ref()
+          .ok_or_else(unavailable_wait)?
+          .get()
+          .map_err(|_| unavailable_wait())?;
         crate::workspace_database::PgDatabaseRepository::capture_catalog_admission(connection, catalog)
           .await
           .map_err(|_| unavailable_wait())?;

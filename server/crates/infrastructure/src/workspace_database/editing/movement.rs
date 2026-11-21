@@ -271,7 +271,7 @@ impl PgDatabaseRepository {
       .await
       .map_err(Self::map_sqlx_error)?;
     Self::task_move_authority(&mut tx, actor, &input).await?;
-    let (source, target) = Self::task_move_records(&mut tx, &input, &self.database_templates).await?;
+    let (source, target) = Self::task_move_records(&mut tx, &input, self.database_templates.get()?).await?;
     Self::task_move_preview_in_tx(&mut tx, input, &source, &target).await
   }
 
@@ -298,7 +298,7 @@ impl PgDatabaseRepository {
       .fetch_all(&mut *tx)
       .await
       .map_err(Self::map_sqlx_error)?;
-    let (source, target) = Self::task_move_records(&mut tx, &input, &self.database_templates).await?;
+    let (source, target) = Self::task_move_records(&mut tx, &input, self.database_templates.get()?).await?;
     // Preserved role-managed facts are not user Cell edits. Acquire the native
     // graph policy for row admission without unlocking direct managed writes.
     let source_policy = Self::prepare_project_mutation(&mut tx, input.source_database_id, &[], true).await?;

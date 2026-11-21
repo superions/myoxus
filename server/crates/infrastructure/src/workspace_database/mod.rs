@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! SQLx repository for server-backed Databases.
 
+use myoxus_application::feature_bundle::FeatureInput;
 mod definition;
 mod editing;
 mod import_export;
@@ -44,17 +45,17 @@ const DATABASE_VIEW_ROLES_TABLE: &str = "database_view_roles";
 const PROJECT_HIERARCHY_ERROR: &str = "database project hierarchy invalid";
 pub struct PgDatabaseRepository {
   pool: PgPool,
-  database_templates: std::sync::Arc<myoxus_application::database::DatabaseStarterTemplateCatalog>,
+  database_templates: FeatureInput<myoxus_application::database::DatabaseStarterTemplateCatalog>,
 }
 
 impl PgDatabaseRepository {
   pub fn new(
     pool: PgPool,
-    database_templates: std::sync::Arc<myoxus_application::database::DatabaseStarterTemplateCatalog>,
+    database_templates: impl Into<FeatureInput<myoxus_application::database::DatabaseStarterTemplateCatalog>>,
   ) -> Self {
     Self {
       pool,
-      database_templates,
+      database_templates: database_templates.into(),
     }
   }
 

@@ -3851,6 +3851,42 @@ async fn inv_mcp_compat_mcp_document_unicode_text_ranges_are_native_atomic_and_r
 async fn inv_mcp_document_import_persisted_interruptions_never_duplicate_or_orphan_placement() {
   use futures_util::FutureExt;
   use sqlx::Connection;
+  fn import_state(pool: &sqlx::PgPool) -> McpToolState {
+    let mut state = observed_tool_state(pool).0;
+    state.idempotency =
+      Arc::new(myoxus_infrastructure::mcp_idempotency::SqlxMcpIdempotencyRepository::new(pool.clone()));
+    state
+  }
+
+  // The SDK runs the handler in its own task. Give the writer a separate
+  // runtime and pool so stopping it models losing the entire importing process.
+  fn start_writer(
+    options: Arc<sqlx::postgres::PgConnectOptions>,
+    token: String,
+    arguments: Value,
+  ) -> (tokio::sync::oneshot::Sender<()>, std::thread::JoinHandle<()>) {
+    let (stop, stopped) = tokio::sync::oneshot::channel();
+    let thread = std::thread::spawn(move || {
+      let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .expect("import writer runtime");
+      runtime.block_on(async move {
+        let pool = sqlx::postgres::PgPoolOptions::new()
+          .connect_with((*options).clone())
+          .await
+          .expect("import writer pool");
+        let app = document_read_router(&pool, import_state(&pool));
+        let params = json!({"name": "document_import", "arguments": arguments});
+        tokio::select! {
+          _ = stopped => {}
+          _ = document_read_rpc(&app, &token, "tools/call", params) => panic!("import finished before its crash point"),
+        }
+      });
+    });
+    (stop, thread)
+  }
+
   let (key_app, pool, auth_store) = helpers::setup_app().await;
   let (owner, session) = helpers::seed_user(&pool, &auth_store, "mcp-import-interruption").await;
   let workspace = create_workspace(&pool, owner).await;
@@ -3863,16 +3899,13 @@ async fn inv_mcp_document_import_persisted_interruptions_never_duplicate_or_orph
   let outcome = std::panic::AssertUnwindSafe(async {
     let token = document_read_key(&key_app, session, &["read:docs", "write:docs"]).await;
     let read_token = document_read_key(&key_app, session, &["read:docs"]).await;
-    let mut state = observed_tool_state(&pool).0;
-    state.idempotency = Arc::new(myoxus_infrastructure::mcp_idempotency::SqlxMcpIdempotencyRepository::new(pool.clone()));
+    let state = import_state(&pool);
     let app = document_read_router(&pool, state.clone());
     let destination = document_read_call(&app, &token, "folder_path_ensure", json!({"workspace_id":workspace,"path":["Imports"],"idempotency_key":"import-gate-folder"})).await;
     let blocked = document_read_call(&app, &token, "folder_path_ensure", json!({"workspace_id":workspace,"path":["Blocked","Bad sibling"],"idempotency_key":"import-gate-blocked"})).await;
     let blocked_parent = document_read_call(&app, &token, "folder_path_ensure", json!({"workspace_id":workspace,"path":["Blocked"],"idempotency_key":"import-gate-blocked-parent"})).await;
     crate::mcp_folder_tools_test::corrupt_organizer_order_key(&state, workspace, blocked["folderId"].as_str().expect("bad sibling")).await;
 
-    // The gates block real SQL boundaries, not only mock futures. Aborting the
-    // HTTP task and its exact backend simulates loss of the owning process.
     for (stage, table) in [("created", "doc_updates"), ("placed", "mcp_idempotency_keys"), ("cleanup", "docs")] {
       let key = format!("import-interrupted-{stage}");
       let title = format!("Owned import {stage}");
@@ -3893,8 +3926,7 @@ async fn inv_mcp_document_import_persisted_interruptions_never_duplicate_or_orph
       let mut gate = connection.begin().await.expect("owned gate transaction");
       let holder: i32 = sqlx::query_scalar("SELECT pg_backend_pid()").fetch_one(&mut *gate).await.expect("gate backend");
       sqlx::query("SELECT pg_advisory_xact_lock($1)").bind(gate_key).execute(&mut *gate).await.expect("hold owned gate");
-      let task_app=app.clone();let task_token=token.clone();let task_args=args.clone();
-      pending_task = Some(tokio::spawn(async move {document_read_rpc(&task_app,&task_token,"tools/call",json!({"name":"document_import","arguments":task_args})).await}));
+      pending_task = Some(start_writer(pool.connect_options(), token.clone(), args.clone()));
       let pid = tokio::time::timeout(std::time::Duration::from_secs(10), async {
         loop {
           if let Some(pid) = sqlx::query_scalar::<_,i32>("SELECT pid FROM pg_stat_activity WHERE datname=current_database() AND $1=ANY(pg_blocking_pids(pid))")
@@ -3909,7 +3941,9 @@ async fn inv_mcp_document_import_persisted_interruptions_never_duplicate_or_orph
       assert!(!receipt.to_string().contains("untouched content"), "receipt must contain no private input");
       let external=receipt["_mcpImportRecovery"]["externalId"].as_str().expect("existing page");
       let entry=receipt["_mcpImportRecovery"]["entryId"].as_str().expect("preallocated entry");
-      let task=pending_task.take().expect("owned HTTP task");task.abort();assert!(task.await.expect_err("request stopped").is_cancelled());
+      let (stop, writer) = pending_task.take().expect("owned import writer");
+      stop.send(()).expect("writer still waiting at crash point");
+      writer.join().expect("writer runtime stopped");
       assert!(sqlx::query_scalar::<_,bool>("SELECT pg_terminate_backend($1)").bind(pid).fetch_one(&pool).await.expect("terminate exact interrupted backend"));
       writer_pid=None;gate.rollback().await.expect("release gate");
       sqlx::query(&format!("DROP TRIGGER {trigger} ON {table}")).execute(&pool).await.expect("remove gate trigger");
@@ -3997,10 +4031,9 @@ async fn inv_mcp_document_import_persisted_interruptions_never_duplicate_or_orph
     assert_eq!(document_read_rpc(&app,&token,"tools/call",json!({"name":"document_import","arguments":success_args})).await["result"]["structuredContent"]["code"],"PERMISSION_DENIED","completed replay must check current target access too");
     assert_eq!(document_write_effect_counts(&pool,workspace).await,counts);
   }).catch_unwind().await;
-  if let Some(task) = pending_task {
-    task.abort();
-    let stopped = task.await;
-    assert!(stopped.is_err());
+  if let Some((stop, writer)) = pending_task {
+    drop(stop);
+    let _ = writer.join();
   }
   if let Some(pid) = writer_pid {
     sqlx::query("SELECT pg_terminate_backend($1)")

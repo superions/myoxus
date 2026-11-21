@@ -24,7 +24,7 @@ use crate::workspace_automation::*;
 ///
 /// These variants are intentionally coarse-grained so that application services
 /// can pattern-match on them without knowing database-specific error codes.
-#[derive(Debug, Error)]
+#[derive(Debug, Clone, Error)]
 pub enum RepositoryError {
   /// The requested entity does not exist in the store.  The `&'static str`
   /// carries a human-readable entity name (e.g. `"user"`, `"workspace"`).

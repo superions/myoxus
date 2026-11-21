@@ -7,8 +7,8 @@ use crate::{
 };
 use myoxus_application::{
   feature_bundle::{
-    CapturedFeatureBundle, FeatureAssistantSources, FeatureDatabaseSources, canonical_feature_path,
-    resolve_feature_task_core, validate_feature_manifest,
+    CapturedFeatureBundle, FeatureArchive, FeatureAssistantSources, FeatureDatabaseSources, FeatureInventory,
+    canonical_feature_path, resolve_feature_task_core,
   },
   template_registry::bundle::{
     NestedArchiveBudget, TemplateBundleZipLimits, TemplateInputFormat, ValidationSeverity, parse_bundle_with_limits,
@@ -20,7 +20,7 @@ use myoxus_domain::{
   feature_bundle::*,
   repositories::{RepoResult, RepositoryError},
 };
-use sha2::{Digest, Sha256};
+
 use std::{
   collections::{BTreeMap, BTreeSet},
   io::{Cursor, Read},
@@ -70,16 +70,20 @@ pub fn read_feature_bundle_with_platform(
   platform: &[CapturedFeatureBundle],
 ) -> RepoResult<CapturedFeatureBundle> {
   let mut budget = NestedArchiveBudget::new(archive_limits());
-  read_feature_bundle_with_budget(bytes, platform, &mut budget)
+  if bytes.is_empty() || bytes.len() > 200 * 1024 * 1024 {
+    return Err(invalid("archive", "archive byte limit exceeded"));
+  }
+  read_feature_bundle_with_budget(&FeatureArchive::new(bytes.to_vec()), platform, &mut budget)
 }
 
 /// Source-set decoding shares this budget across wrappers and every native ZIP
 /// layer. Standalone archive callers retain their own independent budget.
 pub(super) fn read_feature_bundle_with_budget(
-  bytes: &[u8],
+  captured: &FeatureArchive,
   platform: &[CapturedFeatureBundle],
   budget: &mut NestedArchiveBudget,
 ) -> RepoResult<CapturedFeatureBundle> {
+  let bytes = captured.as_ref();
   if bytes.is_empty() || bytes.len() > 200 * 1024 * 1024 {
     return Err(invalid("archive", "archive byte limit exceeded"));
   }
@@ -121,14 +125,18 @@ pub(super) fn read_feature_bundle_with_budget(
   }
   let manifest: FeatureBundleManifest =
     decode_yaml(&manifest_bytes).map_err(|error| invalid("manifest.yaml", error))?;
-  validate_feature_manifest(&manifest, &files).map_err(|error| invalid("manifest.yaml", error))?;
+  let inventory = FeatureInventory { manifest, files }
+    .validate()
+    .map_err(|error| invalid("manifest.yaml", error))?;
+  let manifest = &inventory.manifest;
+  let files = &inventory.files;
   let mut used = BTreeSet::new();
   let mut databases = BTreeMap::new();
   let mut assistants = BTreeMap::new();
   let mut workflows = BTreeMap::new();
   let mut documents: BTreeMap<String, FeatureBundleIdentity> = BTreeMap::new();
   for component in &manifest.components {
-    let component_bytes = payload(&files, &component.path, &mut used)?;
+    let component_bytes = payload(files, &component.path, &mut used)?;
     match component.kind {
       FeatureComponentKind::DatabaseCatalog => {
         let prefix = catalog_prefix(&component.path)?;
@@ -138,12 +146,12 @@ pub(super) fn read_feature_bundle_with_budget(
         for entry in &source.templates {
           for reference in &entry.definitions {
             let path = format!("{prefix}{}", reference.path);
-            let bytes = payload(&files, &path, &mut used)?;
+            let bytes = payload(files, &path, &mut used)?;
             namespace.insert(reference.path.clone(), bytes.to_vec());
           }
           for reference in &entry.updates {
             let path = format!("{prefix}{}", reference.path);
-            let bytes = payload(&files, &path, &mut used)?;
+            let bytes = payload(files, &path, &mut used)?;
             namespace.insert(reference.path.clone(), bytes.to_vec());
           }
         }
@@ -196,7 +204,7 @@ pub(super) fn read_feature_bundle_with_budget(
         for entry in &source.packages {
           for reference in &entry.definitions {
             let path = format!("{prefix}{}", reference.path);
-            namespace.insert(reference.path.clone(), payload(&files, &path, &mut used)?.to_vec());
+            namespace.insert(reference.path.clone(), payload(files, &path, &mut used)?.to_vec());
           }
         }
         let (catalog, definitions) =
@@ -255,10 +263,8 @@ pub(super) fn read_feature_bundle_with_budget(
     return Err(invalid(path, "undeclared native closure member"));
   }
   Ok(CapturedFeatureBundle {
-    manifest,
-    archive_sha256: format!("{:x}", Sha256::digest(bytes)),
-    archive_bytes: bytes.to_vec(),
-    files,
+    inventory,
+    archive: captured.clone(),
     databases,
     assistants,
     workflows,

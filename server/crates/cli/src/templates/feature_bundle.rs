@@ -529,7 +529,7 @@ pub fn run_feature_bundle(command: &FeatureBundleCommand) -> anyhow::Result<()> 
     } else {
       None
     };
-    write_output(&feature_root.join(pin.archive_path()), &captured.archive_bytes, true)?;
+    write_output(&feature_root.join(pin.archive_path()), captured.archive.as_ref(), true)?;
     if let Some((release_bytes, catalog_bytes)) = release_metadata {
       write_output(&feature_root.join("release.yaml"), release_bytes.as_bytes(), false)?;
       write_output(&feature_root.join("catalog.yaml"), catalog_bytes.as_bytes(), false)?;
@@ -543,7 +543,9 @@ pub fn run_feature_bundle(command: &FeatureBundleCommand) -> anyhow::Result<()> 
   } else {
     println!(
       "Feature Bundle {} {} is valid ({})",
-      captured.manifest.id, captured.manifest.version, captured.archive_sha256
+      captured.manifest.id,
+      captured.manifest.version,
+      captured.archive.sha256()
     );
   }
   Ok(())

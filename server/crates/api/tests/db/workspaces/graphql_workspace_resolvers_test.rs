@@ -48,23 +48,24 @@ fn contextual_document_api_preserves_native_identity_context_and_current_access(
       // Isolate only the Registry identity. The actual authored native body,
       // typed links and complete Feature admission remain the productive path.
       let sources = helpers::feature_source_set();
-      let mut captured = sources.bundles.iter().find(|source| source.pin() == sources.release.base).unwrap().clone();
+      let base = sources.bundles.iter().find(|source| source.pin() == sources.release.base).unwrap();
+      let mut inventory = (**base).clone();
       let path = "documents/meeting-agenda/1.1.0.zip";
-      let mut source = bundle::parse_bundle(&captured.files[path]).unwrap();
+      let mut source = bundle::parse_bundle(&inventory.files[path]).unwrap();
       source.manifest.template_id = slug.clone();
       let bytes = bundle::create_export_bundle(&source.manifest, &source.content_bytes, None, &source.localized_contents).unwrap();
       let digest = format!("{:x}", Sha256::digest(&bytes));
-      captured.files.insert(path.into(), bytes.clone());
-      captured.manifest.files.insert(path.into(), digest.clone());
-      let component = captured.manifest.components.iter_mut().find(|component| component.path == path).unwrap();
+      inventory.files.insert(path.into(), bytes.clone());
+      inventory.manifest.files.insert(path.into(), digest.clone());
+      let component = inventory.manifest.components.iter_mut().find(|component| component.path == path).unwrap();
       component.sha256 = digest;
       component.native_identity.as_mut().unwrap().id = slug.clone();
       let component_id = component.id.clone();
       let isolated_export = format!("{slug}@1.1.0");
-      for export in &mut captured.manifest.exports {
+      for export in &mut inventory.manifest.exports {
         if export.source.component == component_id { export.source.export = isolated_export.clone(); }
       }
-      for link in &mut captured.manifest.links {
+      for link in &mut inventory.manifest.links {
         if let FeatureLink::DocumentComponent { to: FeatureReference::Local { reference }, .. }
           | FeatureLink::DocumentSource { to: FeatureReference::Local { reference }, .. } = link {
           if reference.component == component_id { reference.export = isolated_export.clone(); }
@@ -73,7 +74,7 @@ fn contextual_document_api_preserves_native_identity_context_and_current_access(
       // Re-enable one catalog entry only in this isolated fixture. The same
       // native flow remains available when the delivered catalog changes.
       let catalog_path = "assistants/catalog.yaml";
-      let mut selection: AssistantPackageCatalogSource = yaml_serde::from_slice(&captured.files[catalog_path]).unwrap();
+      let mut selection: AssistantPackageCatalogSource = yaml_serde::from_slice(&inventory.files[catalog_path]).unwrap();
       // The shipped catalog can move this default to another offered package.
       // Isolate the fixture's context selection as well as its native identity;
       // complete catalog admission must still reject duplicate live defaults.
@@ -85,10 +86,10 @@ fn contextual_document_api_preserves_native_identity_context_and_current_access(
       contextual.default_for = vec![AssistantPackageContext::TaskContainerAssistance];
       let selection_bytes = yaml_serde::to_string(&selection).unwrap().into_bytes();
       let selection_digest = format!("{:x}", Sha256::digest(&selection_bytes));
-      captured.manifest.files.insert(catalog_path.into(), selection_digest.clone());
-      captured.manifest.components.iter_mut().find(|component| component.path == catalog_path).unwrap().sha256 = selection_digest;
-      captured.files.insert(catalog_path.into(), selection_bytes);
-      let fixture = read_feature_bundle(&pack_captured_feature_bundle(&captured.manifest, &captured.files).unwrap()).unwrap();
+      inventory.manifest.files.insert(catalog_path.into(), selection_digest.clone());
+      inventory.manifest.components.iter_mut().find(|component| component.path == catalog_path).unwrap().sha256 = selection_digest;
+      inventory.files.insert(catalog_path.into(), selection_bytes);
+      let fixture = read_feature_bundle(&pack_captured_feature_bundle(&inventory.manifest, &inventory.files).unwrap()).unwrap();
       let pin = fixture.pin();
       let resolved = assemble_feature_catalogs(
         &FeatureReleaseDescriptor { format_version:1,base:pin.clone() },
@@ -1245,7 +1246,8 @@ fn feature_artwork_http_revalidates_actor_and_retained_workspace_acceptance() {
     let mut owned_workspaces = Vec::new();
     let outcome = std::panic::AssertUnwindSafe(async {
       let shipped = helpers::feature_source_set();
-      let mut source_a = shipped.bundles.iter().find(|bundle| bundle.pin() == shipped.release.base).unwrap().clone();
+      let source_a = shipped.bundles.iter().find(|bundle| bundle.pin() == shipped.release.base).unwrap();
+      let mut a_manifest = source_a.manifest.clone();
       let descriptor = shipped.resolved.assistants.default_descriptor(AssistantPackageContext::WorkspaceCreation).unwrap();
       let (assistant_component, sources) = source_a.assistants.iter().find(|(_, sources)| sources.definitions.iter().any(|(package, digest)| package.id == descriptor.identity.id && package.version == descriptor.identity.version && *digest == descriptor.identity.digest)).unwrap();
       let package = &sources.definitions.iter().find(|(package, _)| package.id == descriptor.identity.id && package.version == descriptor.identity.version).unwrap().0;
@@ -1258,15 +1260,15 @@ fn feature_artwork_http_revalidates_actor_and_retained_workspace_acceptance() {
       // two competing assets for the same native presentation slot.
       let artwork_export = format!("{}@{}", package.id, package.version);
       let artwork_key = format!("group/{}/{}", step.id, group.id);
-      source_a.manifest.links.retain(|link| !matches!(link, FeatureLink::Artwork { from, .. }
+      a_manifest.links.retain(|link| !matches!(link, FeatureLink::Artwork { from, .. }
         if from.component == *assistant_component && from.export == artwork_export && from.key.as_deref() == Some(artwork_key.as_str())));
-      source_a.manifest.links.push(FeatureLink::Artwork {
+      a_manifest.links.push(FeatureLink::Artwork {
         from: FeatureNativeReference { component: assistant_component.clone(), export: artwork_export, key: Some(artwork_key) },
         to: FeatureReference::Local { reference: FeatureNativeReference { component: artwork.id.clone(), export: artwork.id.clone(), key: None } },
       });
       // Both fixtures cross the real closed archive boundary. Selection metadata
       // and Artwork change; retained native definition bodies remain immutable.
-      let a_bytes = pack_captured_feature_bundle(&source_a.manifest, &source_a.files).unwrap();
+      let a_bytes = pack_captured_feature_bundle(&a_manifest, &source_a.files).unwrap();
       let a = read_feature_bundle(&a_bytes).unwrap();
       let mut b_manifest = a.manifest.clone();
       let a_version = semver::Version::parse(&a.manifest.version).expect("captured base semver");
@@ -1727,14 +1729,14 @@ fn project_setup_creates_full_native_brief_and_preserves_its_acknowledged_copy()
       // Repack and read the real closed Feature archive; no test-only catalog
       // injection or fabricated source permission bypasses native admission.
       let shipped = helpers::feature_source_set();
-      let mut captured = shipped
+      let base = shipped
         .bundles
         .iter()
         .find(|source| source.pin() == shipped.release.base)
-        .unwrap()
-        .clone();
+        .unwrap();
+      let mut inventory = (**base).clone();
       let path = "documents/project-brief/1.0.0.zip";
-      let mut parsed = bundle::parse_bundle(&captured.files[path]).unwrap();
+      let mut parsed = bundle::parse_bundle(&inventory.files[path]).unwrap();
       parsed.manifest.template_id = slug.clone();
       let bytes = bundle::create_export_bundle(
         &parsed.manifest,
@@ -1744,9 +1746,9 @@ fn project_setup_creates_full_native_brief_and_preserves_its_acknowledged_copy()
       )
       .unwrap();
       let digest = format!("{:x}", Sha256::digest(&bytes));
-      captured.files.insert(path.into(), bytes.clone());
-      captured.manifest.files.insert(path.into(), digest.clone());
-      let component = captured
+      inventory.files.insert(path.into(), bytes.clone());
+      inventory.manifest.files.insert(path.into(), digest.clone());
+      let component = inventory
         .manifest
         .components
         .iter_mut()
@@ -1757,11 +1759,11 @@ fn project_setup_creates_full_native_brief_and_preserves_its_acknowledged_copy()
       let component_id = component.id.clone();
       // The active native Project link keeps this exact component, but the
       // Library no longer offers it as a standalone source.
-      captured
+      inventory
         .manifest
         .exports
         .retain(|export| export.source.component != component_id);
-      for link in &mut captured.manifest.links {
+      for link in &mut inventory.manifest.links {
         if let FeatureLink::DocumentComponent {
           to: FeatureReference::Local { reference },
           ..
@@ -1773,7 +1775,7 @@ fn project_setup_creates_full_native_brief_and_preserves_its_acknowledged_copy()
         }
       }
       let fixture =
-        read_feature_bundle(&pack_captured_feature_bundle(&captured.manifest, &captured.files).unwrap()).unwrap();
+        read_feature_bundle(&pack_captured_feature_bundle(&inventory.manifest, &inventory.files).unwrap()).unwrap();
       let release = FeatureReleaseDescriptor {
         format_version: 1,
         base: fixture.pin(),

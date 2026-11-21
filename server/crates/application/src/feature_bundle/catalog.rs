@@ -2,7 +2,7 @@
 //! Explicit release/provider selection produces the existing native catalogs.
 //! Historical captures supply immutable facts, never active defaults or offers.
 use super::validation::valid_pin;
-use super::{CapturedFeatureBundle, resolve_feature_task_core, validate_feature_manifest, validate_feature_references};
+use super::{CapturedFeatureBundle, resolve_feature_task_core, validate_feature_references};
 use crate::database::definition::templates::{
   DatabaseStarterTemplateCatalog, DatabaseTemplateCatalogSelection, DatabaseTemplateCurrentTarget,
   DatabaseTemplateInventory, DatabaseTemplateOffering,
@@ -10,7 +10,7 @@ use crate::database::definition::templates::{
 use crate::workspace::WorkspaceInitialContent;
 use crate::workspace::assistant_packages::{AssistantPackageCatalog, AssistantPackageInventory};
 use myoxus_domain::{assistant_package::*, database::*, feature_bundle::*};
-use sha2::{Digest, Sha256};
+
 use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Debug, Clone)]
@@ -61,16 +61,15 @@ pub(super) fn selected_captures<'a>(
     if matches.next().is_some() {
       return Err("duplicate captured Feature archive".into());
     }
-    if source.archive_bytes.is_empty() || format!("{:x}", Sha256::digest(&source.archive_bytes)) != pin.sha256 {
+    if source.archive.as_ref().is_empty() {
       return Err(format!("Feature archive SHA-256 mismatch: {} {}", pin.id, pin.version));
     }
     total_bytes = total_bytes
-      .checked_add(source.archive_bytes.len())
+      .checked_add(source.archive.as_ref().len())
       .ok_or("Feature release byte size overflow")?;
     if total_bytes > 200 * 1024 * 1024 {
       return Err("Feature release aggregate byte limit exceeded".into());
     }
-    validate_feature_manifest(&source.manifest, &source.files)?;
     selected.push((source, active));
   }
   for pin in &catalog.retained {
@@ -432,7 +431,6 @@ pub fn validate_feature_native_sources(
   bundle: &CapturedFeatureBundle,
   platform: &[CapturedFeatureBundle],
 ) -> Result<(), String> {
-  validate_feature_manifest(&bundle.manifest, &bundle.files)?;
   let declared = bundle
     .manifest
     .components

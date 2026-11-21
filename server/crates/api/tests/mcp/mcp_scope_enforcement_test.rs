@@ -371,6 +371,9 @@ async fn inv_mcp_resource_discovery_distinguishes_empty_scope_and_backend_failur
         Request::builder()
           .method("POST")
           .uri("/")
+          .header("host", "localhost")
+          .header("accept", "application/json, text/event-stream")
+          .header("mcp-protocol-version", "2025-11-25")
           .header("authorization", format!("Bearer {token}"))
           .header("content-type", "application/json")
           .body(Body::from(

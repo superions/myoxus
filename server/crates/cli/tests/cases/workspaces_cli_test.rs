@@ -266,7 +266,8 @@ async fn workspace_cli_preserves_complete_user_and_ou_lifecycle() -> Result<()> 
     let source = serde_json::to_value(&extra)?;
     let package_cli=|args:&[&str]|->Result<Output>{let mut command=cli_command(args,&namespace,true);command.env("MYOXUS__TEMPLATES__ROOT_DIR",package_root.path());command.output().context("run file-authored package CLI")};
     let actor=owner_id.to_string();
-    let list=package_cli(&["database","assistants","--actor-user-id",&actor,"--workspace-id",&workspace])?;
+    let assistants = ["database","assistants","--actor-user-id",&actor,"--workspace-id",&workspace];
+    let list=package_cli(&assistants)?;
     ensure_success(&list)?;
     let list:Value=serde_json::from_slice(&list.stdout)?;
     let descriptor=list.as_array().unwrap().iter().find(|package|package["identity"]["id"]==extra_id).context("extra CLI offering is listed")?;
@@ -328,6 +329,13 @@ async fn workspace_cli_preserves_complete_user_and_ou_lifecycle() -> Result<()> 
     ensure!(created==(None,"project".into(),0),"file-only package applies one native managed Project with samples disabled");
     let view_owner:Uuid=sqlx::query_scalar("SELECT database_id FROM workspace_database_views WHERE id=$1").bind(initial_view).fetch_one(&pool).await?;
     ensure!(view_owner==project_id);
+
+    // Both commands use the same damaged distribution. Only the consumer
+    // of package offerings should require the archive to pass admission.
+    std::fs::write(package_root.path().join("features").join(captured.release.base.archive_path()), b"damaged")?;
+    let rejected = package_cli(&assistants)?;
+    ensure!(!rejected.status.success() && String::from_utf8_lossy(&rejected.stderr).contains("SHA-256 mismatch"),
+      "invalid Feature archive must fail admission");
 
     let renamed = format!("Workspace Lifecycle Renamed {suffix}");
     run_json(&["workspaces", "update", &workspace, "--name", &renamed], &namespace)?;
@@ -520,7 +528,9 @@ async fn workspace_cli_preserves_complete_user_and_ou_lifecycle() -> Result<()> 
     run_success(&["workspaces", "delete", &workspace, "--confirm"], &namespace)?;
     let deleted = run_json(&["workspaces", "get", &workspace], &namespace)?;
     ensure!(!deleted["deleted_at"].as_str().unwrap_or_default().is_empty());
-    let active = run_json(&["workspaces", "list", "--user", &next_owner_email], &namespace)?;
+    let output = package_cli(&["workspaces", "list", "--user", &next_owner_email])?;
+    ensure_success(&output)?;
+    let active: Value = serde_json::from_slice(&output.stdout)?;
     ensure!(
       active
         .as_array()

@@ -7,6 +7,7 @@
 //! payloads are stored as JSONB, while application code receives typed domain
 //! structs.
 
+use myoxus_application::feature_bundle::FeatureInput;
 mod task_events;
 
 use std::str::FromStr;
@@ -33,7 +34,7 @@ type HmacSha256 = Hmac<sha2::Sha256>;
 #[derive(Clone)]
 pub struct PgWorkspaceAutomationRepository {
   pool: PgPool,
-  database_templates: Option<std::sync::Arc<myoxus_application::database::DatabaseStarterTemplateCatalog>>,
+  database_templates: Option<FeatureInput<myoxus_application::database::DatabaseStarterTemplateCatalog>>,
 }
 
 impl PgWorkspaceAutomationRepository {
@@ -46,17 +47,18 @@ impl PgWorkspaceAutomationRepository {
 
   pub fn with_database_templates(
     mut self,
-    catalog: std::sync::Arc<myoxus_application::database::DatabaseStarterTemplateCatalog>,
+    catalog: impl Into<FeatureInput<myoxus_application::database::DatabaseStarterTemplateCatalog>>,
   ) -> Self {
-    self.database_templates = Some(catalog);
+    self.database_templates = Some(catalog.into());
     self
   }
 
   async fn capture_maintenance_admission(&self, tx: &mut sqlx::PgConnection) -> RepoResult<()> {
     let catalog = self
       .database_templates
-      .as_deref()
-      .ok_or_else(|| RepositoryError::Validation("native Task maintenance catalog unavailable".into()))?;
+      .as_ref()
+      .ok_or_else(|| RepositoryError::Validation("native Task maintenance catalog unavailable".into()))?
+      .get()?;
     crate::workspace_database::PgDatabaseRepository::capture_catalog_admission(tx, catalog).await
   }
 
@@ -269,7 +271,9 @@ impl PgWorkspaceAutomationRepository {
             .map_err(Self::storage_error)?
             != Some(task.occurrence_id)
             || accepted.as_ref().and_then(|run| run.actor_id)
-              != row.try_get::<Option<uuid::Uuid>, _>("confirmed_actor_id").map_err(Self::storage_error)?
+              != row
+                .try_get::<Option<uuid::Uuid>, _>("confirmed_actor_id")
+                .map_err(Self::storage_error)?
           {
             return Err(RepositoryError::Validation("recurring Task acceptance mismatch".into()));
           }
@@ -288,7 +292,9 @@ impl PgWorkspaceAutomationRepository {
           if facts.request_id != request_id
             || facts.fingerprint != fingerprint
             || accepted.as_ref().and_then(|run| run.actor_id)
-              != row.try_get::<Option<uuid::Uuid>, _>("confirmed_actor_id").map_err(Self::storage_error)?
+              != row
+                .try_get::<Option<uuid::Uuid>, _>("confirmed_actor_id")
+                .map_err(Self::storage_error)?
           {
             return Err(RepositoryError::Validation("correction request mismatch".into()));
           }
@@ -307,7 +313,9 @@ impl PgWorkspaceAutomationRepository {
           if facts.request_id != request_id
             || facts.fingerprint != fingerprint
             || accepted.as_ref().and_then(|run| run.actor_id)
-              != row.try_get::<Option<uuid::Uuid>, _>("confirmed_actor_id").map_err(Self::storage_error)?
+              != row
+                .try_get::<Option<uuid::Uuid>, _>("confirmed_actor_id")
+                .map_err(Self::storage_error)?
           {
             return Err(RepositoryError::Validation("handover request mismatch".into()));
           }
@@ -326,7 +334,10 @@ impl PgWorkspaceAutomationRepository {
               .ok_or_else(|| RepositoryError::Validation("review acceptance unavailable".into()))?;
             if review.request_id != request_id
               || review.fingerprint != fingerprint
-              || run.actor_id != row.try_get::<Option<uuid::Uuid>, _>("review_actor_id").map_err(Self::storage_error)?
+              || run.actor_id
+                != row
+                  .try_get::<Option<uuid::Uuid>, _>("review_actor_id")
+                  .map_err(Self::storage_error)?
               || review.review_task_id
                 != row
                   .try_get::<uuid::Uuid, _>("review_task_id")

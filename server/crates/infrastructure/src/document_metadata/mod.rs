@@ -25,21 +25,19 @@ pub(crate) mod review;
 pub(crate) async fn reject_guide_content_write(
   conn: &mut PgConnection,
   doc_id: Uuid,
-) -> myoxus_application::auth::AuthResult<()> {
+) -> Result<(), crate::doc::MutationWriteError> {
   sqlx::query("SELECT id FROM docs WHERE id=$1 FOR UPDATE")
     .bind(doc_id)
     .execute(&mut *conn)
-    .await
-    .map_err(|error| myoxus_application::auth::AuthError::Storage(error.to_string()))?;
+    .await?;
   // Read after acquiring the row lock: a marker committed while waiting must
   // be visible in this statement's snapshot.
   let state: Option<String> = sqlx::query_scalar("SELECT state FROM document_template_state WHERE doc_id=$1")
     .bind(doc_id)
     .fetch_optional(conn)
-    .await
-    .map_err(|error| myoxus_application::auth::AuthError::Storage(error.to_string()))?;
+    .await?;
   if state.as_deref() == Some("guide") {
-    return Err(myoxus_application::auth::AuthError::ActionForbidden);
+    return Err(myoxus_application::auth::AuthError::ActionForbidden.into());
   }
   Ok(())
 }
@@ -74,7 +72,7 @@ impl PgDocumentMetadataRepository {
   /// Content writers join this transition to their existing document transaction.
   /// Replays must be rejected before reaching it. Unversioned documents have no
   /// named head to diverge from; already-dirty heads need no revision churn.
-  pub(crate) async fn mark_named_version_dirty_in_tx(conn: &mut PgConnection, doc_id: Uuid) -> RepoResult<()> {
+  pub(crate) async fn mark_named_version_dirty_in_tx(conn: &mut PgConnection, doc_id: Uuid) -> sqlx::Result<()> {
     sqlx::query(
       "UPDATE docs SET dirty_since_current_version = true, metadata_updated_at = now()
        WHERE id = $1 AND deleted_at IS NULL
@@ -82,8 +80,7 @@ impl PgDocumentMetadataRepository {
     )
     .bind(doc_id)
     .execute(conn)
-    .await
-    .map_err(db_error)?;
+    .await?;
     Ok(())
   }
 

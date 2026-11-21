@@ -974,6 +974,9 @@ characters and UTF-16 surrogate pairs cannot be split. Combining marks count
 separately in scalar mode; no Unicode normalization or grapheme expansion occurs.
 Optional `expected_text` must exactly match the selected original text under
 the canonical content lock; a mismatch or invalid boundary writes nothing.
+If a concurrent writer invalidates the PostgreSQL document snapshot, the server
+can make up to two more attempts with fresh transactions and the original
+preconditions. Continued contention returns `CONFLICT`.
 Native rich-text attributes, references, block identities and neighbors outside
 the range are retained. Native embeds consume one position in each unit; an
 expected string cannot attest to replacing embedded content.

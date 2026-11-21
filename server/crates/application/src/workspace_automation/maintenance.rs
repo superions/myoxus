@@ -125,7 +125,7 @@ impl WorkspaceAutomationService {
     locale: &str,
     client_version: u32,
   ) -> WorkspaceAutomationResult<PreparedTaskMaintenance> {
-    let native = self.context_documents.as_ref().ok_or_else(runtime::unavailable)?;
+    let native = self.context_actions()?.ok_or_else(runtime::unavailable)?;
     let mut plan = native
       .packages
       .prepare_task_maintenance(
@@ -353,8 +353,7 @@ impl WorkspaceAutomationService {
     let can_confirm = can_apply || can_decline;
     let can_retry = can_control && self.can_retry_context_run(actor, &run).await?;
     let accepted_descriptor = self
-      .context_documents
-      .as_ref()
+      .context_actions()?
       .and_then(|native| native.packages.document_review_descriptor(&plan.package));
     let reason_code = if run.status == WorkspaceAutomationRunStatus::Succeeded {
       None

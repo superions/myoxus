@@ -136,7 +136,10 @@ impl WorkspaceAutomationService {
     {
       return Err("reviewerSourceForbidden");
     }
-    let native = self.context_documents.as_ref().ok_or("formalReviewUnavailable")?;
+    let native = self
+      .context_actions()
+      .map_err(|_| "formalReviewUnavailable")?
+      .ok_or("formalReviewUnavailable")?;
     let target = native
       .packages
       .metadata_review_target(actor, workspace)
@@ -187,7 +190,7 @@ impl WorkspaceAutomationService {
     locale: &str,
     client_version: u32,
   ) -> WorkspaceAutomationResult<PreparedDocumentReview> {
-    let native = self.context_documents.as_ref().ok_or_else(runtime::unavailable)?;
+    let native = self.context_actions()?.ok_or_else(runtime::unavailable)?;
     let mut plan = native
       .packages
       .prepare_document_review(
@@ -457,7 +460,7 @@ impl WorkspaceAutomationService {
         "Review unavailable",
       ));
     }
-    let native = self.context_documents.as_ref().ok_or_else(runtime::unavailable)?;
+    let native = self.context_actions()?.ok_or_else(runtime::unavailable)?;
     let record = self
       .database_schema_repo
       .get_database(plan.destination_database_id)

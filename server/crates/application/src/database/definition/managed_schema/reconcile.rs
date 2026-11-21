@@ -32,7 +32,8 @@ impl DatabaseDefinitionService {
         break;
       }
       for workspace in &workspaces {
-        let state = crate::workspace::tasks::workspace_tasks_initial_state(&self.starter_templates, *workspace, None)?;
+        let state =
+          crate::workspace::tasks::workspace_tasks_initial_state(self.starter_templates.get()?, *workspace, None)?;
         match self.schema_repo.ensure_workspace_tasks(state).await {
           Ok(_) => report.defaults_ensured += 1,
           Err(error) => report.failures.push((*workspace, error.to_string())),
@@ -48,7 +49,7 @@ impl DatabaseDefinitionService {
       }
       for id in &ids {
         match reconcile_managed_database(
-          &self.starter_templates,
+          self.starter_templates.get()?,
           self.schema_repo.as_ref(),
           *id,
           self.effects.change_notifications.as_ref(),

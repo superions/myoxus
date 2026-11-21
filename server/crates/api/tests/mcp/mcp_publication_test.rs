@@ -730,7 +730,6 @@ async fn workspace_admin_call(app: &axum::Router, token: &str, name: &str, param
 async fn inv_workspace_invitation_http_preserves_pending_acceptance_outbox_replay_and_join_secrecy() {
   use crate::helpers::mcp::{invoke, key};
   use futures_util::FutureExt;
-  use tracing::instrument::WithSubscriber as _;
   let (app, pool, store) = helpers::setup_app_with_mcp_and_audit().await;
   let (owner, session) = helpers::seed_user(&pool, &store, "invite-owner").await;
   let (recipient, recipient_session) = helpers::seed_user(&pool, &store, "invite-recipient").await;
@@ -744,6 +743,8 @@ async fn inv_workspace_invitation_http_preserves_pending_acceptance_outbox_repla
   let subscriber=tracing_subscriber::fmt().with_env_filter("off,myoxus_application::workspace=trace,myoxus_infrastructure::workspace=trace,myoxus_mcp::tools::workspace=trace")
     .with_span_events(tracing_subscriber::fmt::format::FmtSpan::NEW).with_ansi(false).without_time().with_writer(capture.clone()).finish();
   let mut secrets = Vec::new();
+  // The SDK dispatches the handler in another task on this current-thread runtime.
+  let _trace = tracing::subscriber::set_default(subscriber);
   let journey=std::panic::AssertUnwindSafe(async {
     let empty=workspace_admin_call(&app,&token,"workspace_invite_link_get",json!({"workspace_id":workspace}),true).await;
     assert_eq!(empty,json!({"workspaceId":workspace,"active":false,"expiresAt":null}));
@@ -804,7 +805,7 @@ async fn inv_workspace_invitation_http_preserves_pending_acceptance_outbox_repla
     sqlx::query("UPDATE users SET status='active' WHERE id=$1").bind(recipient).execute(&pool).await.unwrap();
     sqlx::query("UPDATE workspaces SET deleted_at=now() WHERE id=$1").bind(workspace).execute(&pool).await.unwrap();
     workspace_admin_call(&app,&token,"workspace_invite_link_create",json!({"workspace_id":workspace,"expire_time":"OneWeek","idempotency_key":"expire"}),false).await;
-  }.with_subscriber(subscriber)).catch_unwind().await;
+  }).catch_unwind().await;
   helpers::cleanup_users(&pool, &[owner, recipient, outsider]).await;
   assert_eq!(
     sqlx::query_scalar::<_, i64>("SELECT count(*) FROM users WHERE id=ANY($1)")

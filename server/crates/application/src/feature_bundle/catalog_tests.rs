@@ -2,7 +2,8 @@
 //! Assembly fixtures use original native starter variants and all shipped assistants.
 use super::super::release::validate_feature_release_candidate;
 use super::*;
-use crate::feature_bundle::{FeatureAssistantSources, FeatureDatabaseSources};
+use crate::feature_bundle::{FeatureArchive, FeatureAssistantSources, FeatureDatabaseSources, FeatureInventory};
+use sha2::{Digest, Sha256};
 
 fn database(id: &str) -> (DatabaseTemplateDefinitionSource, DatabaseTemplateCatalogEntry) {
   let original: serde_json::Value = serde_json::from_str(include_str!(concat!(
@@ -326,10 +327,8 @@ fn bundle(id: &str, version: &str, base: bool, include_assets: bool) -> Captured
   // qualify native composition against real source bytes and original states.
   let archive_bytes = serde_json::to_vec(&manifest).unwrap();
   CapturedFeatureBundle {
-    manifest,
-    archive_sha256: format!("{:x}", Sha256::digest(&archive_bytes)),
-    archive_bytes,
-    files,
+    inventory: FeatureInventory { manifest, files }.validate().unwrap(),
+    archive: FeatureArchive::new(archive_bytes),
     databases: BTreeMap::from([("databases".into(), sources)]),
     assistants,
     workflows: BTreeMap::new(),
@@ -355,14 +354,15 @@ fn source(
 }
 
 fn refresh(bundle: &mut CapturedFeatureBundle) {
+  let mut inventory = (**bundle).clone();
   for (component, sources) in &bundle.databases {
-    let catalog = bundle
+    let catalog = inventory
       .manifest
       .components
       .iter()
       .find(|item| item.id == *component)
       .unwrap();
-    bundle
+    inventory
       .files
       .insert(catalog.path.clone(), serde_json::to_vec(&sources.catalog).unwrap());
     let prefix = catalog.path.strip_suffix("catalog.yaml").unwrap();
@@ -377,14 +377,14 @@ fn refresh(bundle: &mut CapturedFeatureBundle) {
         .iter()
         .find(|reference| reference.version == definition.version)
         .unwrap();
-      bundle.files.insert(
+      inventory.files.insert(
         format!("{prefix}{}", reference.path),
         serde_json::to_vec(definition).unwrap(),
       );
     }
   }
   for (component, sources) in &bundle.databases {
-    let catalog = bundle
+    let catalog = inventory
       .manifest
       .components
       .iter()
@@ -392,21 +392,21 @@ fn refresh(bundle: &mut CapturedFeatureBundle) {
       .unwrap();
     let prefix = catalog.path.strip_suffix("catalog.yaml").unwrap();
     for (source, reference) in &sources.updates {
-      bundle.files.insert(
+      inventory.files.insert(
         format!("{prefix}{}", reference.path),
         serde_json::to_vec(source).unwrap(),
       );
     }
   }
   for (component, sources) in &bundle.assistants {
-    let catalog = bundle
+    let catalog = inventory
       .manifest
       .components
       .iter()
       .find(|item| item.id == *component)
       .unwrap();
     let prefix = catalog.path.strip_suffix("catalog.yaml").unwrap();
-    bundle
+    inventory
       .files
       .insert(catalog.path.clone(), serde_json::to_vec(&sources.catalog).unwrap());
     for (source, _) in &sources.definitions {
@@ -420,22 +420,22 @@ fn refresh(bundle: &mut CapturedFeatureBundle) {
         .iter()
         .find(|reference| reference.version == source.version)
         .unwrap();
-      bundle.files.insert(
+      inventory.files.insert(
         format!("{prefix}{}", reference.path),
         serde_json::to_vec(source).unwrap(),
       );
     }
   }
-  for component in &mut bundle.manifest.components {
-    component.sha256 = format!("{:x}", Sha256::digest(&bundle.files[&component.path]));
+  for component in &mut inventory.manifest.components {
+    component.sha256 = format!("{:x}", Sha256::digest(&inventory.files[&component.path]));
   }
-  bundle.manifest.files = bundle
+  inventory.manifest.files = inventory
     .files
     .iter()
     .map(|(path, bytes)| (path.clone(), format!("{:x}", Sha256::digest(bytes))))
     .collect();
-  bundle.archive_bytes = serde_json::to_vec(&bundle.manifest).unwrap();
-  bundle.archive_sha256 = format!("{:x}", Sha256::digest(&bundle.archive_bytes));
+  bundle.archive = FeatureArchive::new(serde_json::to_vec(&inventory.manifest).unwrap());
+  bundle.inventory = inventory.validate().unwrap();
 }
 
 fn offered_ids(bundle: &CapturedFeatureBundle) -> Vec<String> {
@@ -641,8 +641,9 @@ fn explicit_base_optional_and_retained_frames_have_distinct_native_selection() {
       entry.default_for.push(AssistantPackageContext::ProjectCreation);
     }
   }
+  let mut inventory = (*next).clone();
   for reference in &retired.definitions {
-    next.files.remove(&format!("assistants/{}", reference.path));
+    inventory.files.remove(&format!("assistants/{}", reference.path));
   }
   next
     .databases
@@ -654,11 +655,11 @@ fn explicit_base_optional_and_retained_frames_have_distinct_native_selection() {
     .find(|entry| entry.id == retired_template)
     .unwrap()
     .offering = Some(false);
-  next.manifest.exports.retain(|export| {
+  inventory.manifest.exports.retain(|export| {
     !(export.source.component == "assistants" && export.source.export.starts_with(&format!("{}@", retired.id)))
       && !(export.source.component == "databases" && export.source.export.starts_with(&format!("{retired_template}@")))
   });
-  next.manifest.links.retain(|link| match link {
+  inventory.manifest.links.retain(|link| match link {
     FeatureLink::Schema { from, .. }
     | FeatureLink::View { from, .. }
     | FeatureLink::Artwork { from, .. }
@@ -671,24 +672,24 @@ fn explicit_base_optional_and_retained_frames_have_distinct_native_selection() {
     _ => true,
   });
   // Refresh selection bytes only; native bodies/digests remain untouched.
-  next.files.insert(
+  inventory.files.insert(
     "databases/catalog.yaml".into(),
     serde_json::to_vec(&next.databases["databases"].catalog).unwrap(),
   );
-  next.files.insert(
+  inventory.files.insert(
     "assistants/catalog.yaml".into(),
     serde_json::to_vec(&next.assistants["assistants"].catalog).unwrap(),
   );
-  for component in &mut next.manifest.components {
-    component.sha256 = format!("{:x}", Sha256::digest(&next.files[&component.path]));
+  for component in &mut inventory.manifest.components {
+    component.sha256 = format!("{:x}", Sha256::digest(&inventory.files[&component.path]));
   }
-  next.manifest.files = next
+  inventory.manifest.files = inventory
     .files
     .iter()
     .map(|(path, bytes)| (path.clone(), format!("{:x}", Sha256::digest(bytes))))
     .collect();
-  next.archive_bytes = serde_json::to_vec(&next.manifest).unwrap();
-  next.archive_sha256 = format!("{:x}", Sha256::digest(&next.archive_bytes));
+  next.archive = FeatureArchive::new(serde_json::to_vec(&inventory.manifest).unwrap());
+  next.inventory = inventory.validate().unwrap();
   let (installed_release, installed_catalog) = source(&current, std::slice::from_ref(&extension), &[]);
   let (next_release, source_catalog) = source(&next, &[], &[]);
   let promoted = crate::feature_bundle::prepare_feature_release_catalog(
@@ -699,7 +700,7 @@ fn explicit_base_optional_and_retained_frames_have_distinct_native_selection() {
   )
   .unwrap();
   assert_eq!(promoted.optional, installed_catalog.optional);
-  let extension_bytes = extension.archive_bytes.clone();
+  let extension_bytes = extension.archive.as_ref().to_vec();
   let captures = vec![next.clone(), extension.clone()];
   let admitted = validate_feature_release_candidate(
     &next_release,
@@ -713,7 +714,7 @@ fn explicit_base_optional_and_retained_frames_have_distinct_native_selection() {
   )
   .unwrap();
   assert_eq!(admitted.active, vec![next.pin(), extension.pin()]);
-  assert_eq!(captures[1].archive_bytes, extension_bytes);
+  assert_eq!(captures[1].archive.as_ref(), extension_bytes);
   assert_eq!(
     admitted
       .assistants
@@ -782,7 +783,9 @@ fn wrong_base_duplicate_provider_shadow_and_unexported_offering_fail_closed() {
       .contains("duplicate active native provider")
   );
   let mut missing = base.clone();
-  missing.manifest.exports.clear();
+  let mut inventory = (*missing).clone();
+  inventory.manifest.exports.clear();
+  missing.inventory = inventory.validate().unwrap();
   assert!(
     validate_feature_native_sources(&missing, &[])
       .unwrap_err()

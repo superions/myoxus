@@ -4,6 +4,7 @@
 use std::{
   collections::{BTreeMap, BTreeSet},
   io::Write,
+  sync::Arc,
 };
 
 use anyhow::{Context, bail, ensure};
@@ -53,12 +54,12 @@ pub struct RecoveryArgs {
   pub apply: bool,
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 struct ReleaseSource {
   version: Option<String>,
   default: bool,
   guide: bool,
-  revisions: BTreeMap<String, ParsedBundle>,
+  revisions: BTreeMap<String, Arc<ParsedBundle>>,
 }
 
 #[derive(FromRow)]
@@ -174,6 +175,7 @@ pub async fn preview(args: RecoveryArgs, pool: &PgPool, json: bool) -> anyhow::R
       .fetch_optional(&mut *tx)
       .await?;
   let (_, sources) = Services::capture_feature_sources(root.as_ref())?;
+  let documents = release_sources(&args, &sources)?;
   let columns: (bool, bool) = sqlx::query_as("SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='template_revisions' AND column_name='release_managed_publication'), EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='template_default_policies' AND column_name='release_managed')")
     .fetch_one(&mut *tx).await?;
   ensure!(
@@ -196,14 +198,14 @@ pub async fn preview(args: RecoveryArgs, pool: &PgPool, json: bool) -> anyhow::R
         break;
       }
       for workspace in workspaces {
-        let mut plan = inspect(&args, Some(workspace), &mut tx, &sources).await?;
+        let mut plan = inspect(&args, Some(workspace), &mut tx, &documents).await?;
         unresolved += plan.unresolved;
         output.rows(Some(workspace), &mut plan.output)?;
         after = Some(workspace);
       }
     }
     if after.is_none() {
-      let mut plan = inspect(&args, None, &mut tx, &sources).await?;
+      let mut plan = inspect(&args, None, &mut tx, &documents).await?;
       unresolved += plan.unresolved;
       output.rows(None, &mut plan.output)?;
     }
@@ -229,6 +231,53 @@ pub async fn preview(args: RecoveryArgs, pool: &PgPool, json: bool) -> anyhow::R
   result
 }
 
+/// Decode the selected document revisions once for all Workspace inspections in this command.
+fn release_sources(
+  args: &RecoveryArgs,
+  feature_sources: &myoxus_infrastructure::feature_bundles::CapturedFeatureSourceSet,
+) -> anyhow::Result<BTreeMap<String, ReleaseSource>> {
+  let mut release = BTreeMap::<String, ReleaseSource>::new();
+  for bundle in &feature_sources.bundles {
+    let active = feature_sources.resolved.active.contains(&bundle.pin());
+    for component in &bundle.manifest.components {
+      if component.kind != FeatureComponentKind::DocumentTemplate {
+        continue;
+      }
+      let identity = component
+        .native_identity
+        .as_ref()
+        .context("native document identity missing")?;
+      let source = release.entry(identity.id.clone()).or_default();
+      let parsed = bundle::parse_bundle(&bundle.files[&component.path])?;
+      source.guide |= parsed.manifest.purpose == Some(bundle::TemplatePurpose::Guide);
+      source.revisions.insert(identity.version.clone(), Arc::new(parsed));
+      if active {
+        for export in bundle
+          .manifest
+          .exports
+          .iter()
+          .filter(|export| export.source.component == component.id)
+        {
+          ensure!(source.version.is_none(), "duplicate current document export");
+          source.version = Some(identity.version.clone());
+          source.default = export
+            .document
+            .as_ref()
+            .is_some_and(|document| document.new_workspace_default);
+        }
+      }
+    }
+  }
+  for slug in &args.retired_slugs {
+    ensure!(
+      release.get(slug).is_none_or(|source| source.version.is_none()),
+      "cannot retire a current release export: {slug}"
+    );
+    release.entry(slug.clone()).or_default();
+  }
+  Ok(release)
+}
+
 /// Recovery uses a captured release, exact Registry identities and explicit orphan
 /// keys. Titles and actorless authorship alone never select documents for deletion.
 #[instrument(skip_all, fields(workspace_id = ?workspace, apply = args.apply))]
@@ -236,7 +285,7 @@ async fn inspect(
   args: &RecoveryArgs,
   workspace: Option<Uuid>,
   connection: &mut PgConnection,
-  feature_sources: &myoxus_infrastructure::feature_bundles::CapturedFeatureSourceSet,
+  release_sources: &BTreeMap<String, ReleaseSource>,
 ) -> anyhow::Result<RecoveryPlan> {
   ensure!(
     args.orphan_sources.len() + args.unknown_sources.len() <= 500,
@@ -262,45 +311,7 @@ async fn inspect(
       .await?
   };
 
-  let mut release = BTreeMap::<String, ReleaseSource>::new();
-  for bundle in &feature_sources.bundles {
-    let active = feature_sources.resolved.active.contains(&bundle.pin());
-    for component in &bundle.manifest.components {
-      if component.kind != FeatureComponentKind::DocumentTemplate {
-        continue;
-      }
-      let identity = component
-        .native_identity
-        .as_ref()
-        .context("native document identity missing")?;
-      let source = release.entry(identity.id.clone()).or_default();
-      let parsed = bundle::parse_bundle(&bundle.files[&component.path])?;
-      source.guide |= parsed.manifest.purpose == Some(bundle::TemplatePurpose::Guide);
-      source.revisions.insert(identity.version.clone(), parsed);
-      if active {
-        for export in bundle
-          .manifest
-          .exports
-          .iter()
-          .filter(|export| export.source.component == component.id)
-        {
-          ensure!(source.version.is_none(), "duplicate current document export");
-          source.version = Some(identity.version.clone());
-          source.default = export
-            .document
-            .as_ref()
-            .is_some_and(|document| document.new_workspace_default);
-        }
-      }
-    }
-  }
-  for slug in &args.retired_slugs {
-    ensure!(
-      release.get(slug).is_none_or(|source| source.version.is_none()),
-      "cannot retire a current release export: {slug}"
-    );
-    release.entry(slug.clone()).or_default();
-  }
+  let mut release = release_sources.clone();
   // Complete selection also withdraws identities absent from the new archive.
   // Discover only positive native release ownership; a pre-marker publication
   // is never reclassified from NULL authorship or an absent component.
@@ -701,7 +712,8 @@ async fn inspect(
 pub async fn run(args: RecoveryArgs, svc: &Services, json: bool) -> anyhow::Result<()> {
   let mut output = RecoveryOutput { json, written: false };
   let result: anyhow::Result<()> = async {
-    prepare_release(&args, svc, &mut output).await?;
+    let documents = release_sources(&args, svc.feature_sources.get()?)?;
+    prepare_release(&args, svc, &documents, &mut output).await?;
     let mut after = None;
     loop {
       let workspaces = if args.all_workspaces {
@@ -715,7 +727,7 @@ pub async fn run(args: RecoveryArgs, svc: &Services, json: bool) -> anyhow::Resu
         break;
       }
       for workspace in workspaces {
-        run_workspace(&args, workspace, svc, &mut output).await?;
+        run_workspace(&args, workspace, svc, &documents, &mut output).await?;
         after = Some(workspace);
       }
     }
@@ -728,7 +740,12 @@ pub async fn run(args: RecoveryArgs, svc: &Services, json: bool) -> anyhow::Resu
 
 /// Immutable history admission precedes current selection, even with
 /// no active Workspaces. Global ownership is never inferred from an empty page.
-async fn prepare_release(args: &RecoveryArgs, svc: &Services, output: &mut RecoveryOutput) -> anyhow::Result<()> {
+async fn prepare_release(
+  args: &RecoveryArgs,
+  svc: &Services,
+  documents: &BTreeMap<String, ReleaseSource>,
+  output: &mut RecoveryOutput,
+) -> anyhow::Result<()> {
   ensure!(args.apply, "preview must be dispatched before CLI service bootstrap");
   let mut snapshot = svc.pool.begin().await?;
   sqlx::query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
@@ -736,14 +753,15 @@ async fn prepare_release(args: &RecoveryArgs, svc: &Services, output: &mut Recov
     .await?;
   // Validate the selected Workspace and exact overrides before any global
   // history/ownership write. A mistyped scope must not partially activate it.
-  let mut plan = inspect(args, args.workspace_id, &mut snapshot, &svc.feature_sources).await?;
+  let sources = svc.feature_sources.get()?;
+  let mut plan = inspect(args, args.workspace_id, &mut snapshot, documents).await?;
   snapshot.rollback().await?;
   output.rows(args.workspace_id, &mut plan.output)?;
   ensure!(plan.unresolved == 0, "recovery has unresolved global system ownership");
   let selection = myoxus_application::feature_bundle::stage_feature_document_sources(
     &svc.template_registry,
-    &svc.feature_sources.bundles,
-    &svc.feature_sources.resolved.active,
+    &sources.bundles,
+    &sources.resolved.active,
   )
   .await?;
   let ids: Vec<_> = plan
@@ -773,7 +791,7 @@ async fn prepare_release(args: &RecoveryArgs, svc: &Services, output: &mut Recov
   sqlx::query("UPDATE template_default_policies SET release_managed=true WHERE template_id=ANY($1) AND apply_to_new_workspaces AND selection_mode='published' AND provisioning_mode IN ('seed_once','managed_until_local_edit') AND $2")
     .bind(&ids).bind(args.confirm_unmodified_system_documents).execute(&mut *tx).await?;
   sqlx::query("INSERT INTO template_registry_audit_events(action,event_type,workspace_id,payload_json) VALUES('updated','template.release.recovery',$1,$2)")
-    .bind(args.workspace_id).bind(serde_json::json!({"release":svc.feature_sources.release.base,"all_workspaces":args.all_workspaces,"orphan_source_keys":args.orphan_sources,"unknown_source_keys":args.unknown_sources}))
+    .bind(args.workspace_id).bind(serde_json::json!({"release":sources.release.base,"all_workspaces":args.all_workspaces,"orphan_source_keys":args.orphan_sources,"unknown_source_keys":args.unknown_sources}))
     .execute(&mut *tx).await?;
   tx.commit().await?;
   let registered = svc
@@ -814,6 +832,7 @@ async fn run_workspace(
   args: &RecoveryArgs,
   workspace: Uuid,
   svc: &Services,
+  documents: &BTreeMap<String, ReleaseSource>,
   output: &mut RecoveryOutput,
 ) -> anyhow::Result<()> {
   ensure!(args.apply, "preview must be dispatched before CLI service bootstrap");
@@ -825,7 +844,7 @@ async fn run_workspace(
   sqlx::query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
     .execute(&mut *snapshot)
     .await?;
-  let mut plan = inspect(args, Some(workspace), &mut snapshot, &svc.feature_sources).await?;
+  let mut plan = inspect(args, Some(workspace), &mut snapshot, documents).await?;
   snapshot.rollback().await?;
   output.rows(Some(workspace), &mut plan.output)?;
   ensure!(plan.unresolved == 0, "recovery has unresolved system identities");

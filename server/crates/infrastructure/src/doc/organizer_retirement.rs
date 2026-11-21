@@ -49,6 +49,7 @@ impl SqlxDocStore {
     Self::append_lifecycle_delta(tx, workspace_id, organizer_id, removal.update)
       .await
       .map(Some)
+      .map_err(Into::into)
   }
 
   /// Remove old references automatically. No preview, operator approval or

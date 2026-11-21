@@ -27,7 +27,7 @@ impl WorkspaceAutomationService {
     locale: &str,
     client_version: u32,
   ) -> WorkspaceAutomationResult<PreparedTaskPreparation> {
-    let native = self.context_documents.as_ref().ok_or_else(runtime::unavailable)?;
+    let native = self.context_actions()?.ok_or_else(runtime::unavailable)?;
     let assistance = native
       .auth
       .get_assistance(actor, Some(workspace), Some(target.database_id))
@@ -191,7 +191,7 @@ impl WorkspaceAutomationService {
     if plan.workflow.source.trigger != Some(AssistantWorkflowTrigger::TaskChanged) {
       return Err(invalid());
     }
-    let native = self.context_documents.as_ref().ok_or_else(runtime::unavailable)?;
+    let native = self.context_actions()?.ok_or_else(runtime::unavailable)?;
     let mode = native
       .auth
       .get_assistance(actor, Some(workspace), Some(plan.target.database_id))
@@ -323,7 +323,7 @@ impl WorkspaceAutomationService {
     {
       return Ok(None);
     }
-    let native = self.context_documents.as_ref().ok_or_else(runtime::unavailable)?;
+    let native = self.context_actions()?.ok_or_else(runtime::unavailable)?;
     let mode = native
       .auth
       .get_assistance(config.actor_id, Some(rule.workspace_id), Some(config.database_id))
@@ -491,7 +491,7 @@ impl WorkspaceAutomationService {
     {
       return Err(invalid());
     }
-    let native = self.context_documents.as_ref().ok_or_else(runtime::unavailable)?;
+    let native = self.context_actions()?.ok_or_else(runtime::unavailable)?;
     let mode = native
       .auth
       .get_assistance(proof.actor_id, Some(run.workspace_id), Some(proof.database_id))
@@ -745,8 +745,7 @@ impl WorkspaceAutomationService {
     let mut can_retry = self.limits.enabled
       && self.runtime.is_some()
       && self
-        .context_documents
-        .as_ref()
+        .context_actions()?
         .is_some_and(|native| native.packages.context_workflows_enabled())
       && can_control
       && workflows::confirmed_run_retryable(&run)

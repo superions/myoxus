@@ -60,6 +60,7 @@ pub(crate) async fn create_project(ctx: &Context<'_>, input: CreateProjectInput)
   let defaults = services
     .definition
     .starter_template_catalog()
+    .map_err(map_database_error)?
     .system_source(domain::DatabaseTemplateSourceRole::ProjectDefault)
     .ok_or_else(|| {
       Error::new("default Project source unavailable")

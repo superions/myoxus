@@ -4,6 +4,7 @@
 //! The CLI connects directly to PostgreSQL (no HTTP hop) through the same
 //! application+infrastructure service layer used by the API server.
 
+use myoxus_application::feature_bundle::FeatureInput;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::{collections::HashMap, collections::HashSet};
@@ -485,15 +486,15 @@ pub struct Services {
   pub doc: DocService,
   /// Server-backed Workspace Database capability owners.
   pub databases: Arc<DatabaseServices>,
-  pub assistant_packages: Arc<myoxus_application::workspace::assistant_packages::AssistantPackageService>,
+  pub assistant_packages: FeatureInput<myoxus_application::workspace::assistant_packages::AssistantPackageService>,
   /// Document Graph service for read/reindex diagnostics.
   pub document_graph: DocumentGraphService,
   /// Canonical server-owned document metadata projection.
   pub document_metadata: Arc<DocumentMetadataService>,
   /// Template Registry service for catalog and row-template diagnostics.
   pub template_registry: Arc<TemplateRegistryService>,
-  /// The same immutable release input admitted during service construction.
-  pub feature_sources: myoxus_infrastructure::feature_bundles::CapturedFeatureSourceSet,
+  /// All catalog consumers share this invocation’s validated release snapshot.
+  pub feature_sources: FeatureInput<myoxus_infrastructure::feature_bundles::CapturedFeatureSourceSet>,
   /// Contextual Template Suggestions service.
   pub template_suggestions: TemplateSuggestionService,
   /// Workspace Automation service for final contract diagnostics.
@@ -650,16 +651,12 @@ impl Services {
     // Read-only preflight must not deserialize unrelated candidate settings.
     let sources = load_server_config_sources().context("load Myoxus server configuration sources")?;
     let templates: CliTemplatesConfig = sources.config.get("templates").context("load template source root")?;
-    Self::capture_feature_sources_from(&templates.root_dir, root_override)
+    let root = Self::template_root(&templates.root_dir, root_override)?;
+    let sources = Self::load_feature_sources(&root)?;
+    Ok((root, sources))
   }
 
-  fn capture_feature_sources_from(
-    configured_root: &str,
-    root_override: Option<&serde_json::Value>,
-  ) -> anyhow::Result<(
-    PathBuf,
-    myoxus_infrastructure::feature_bundles::CapturedFeatureSourceSet,
-  )> {
+  fn template_root(configured_root: &str, root_override: Option<&serde_json::Value>) -> anyhow::Result<PathBuf> {
     let root = match root_override {
       Some(value) => value.as_str().context("templates.root_dir must be a string")?,
       None => configured_root,
@@ -670,11 +667,16 @@ impl Services {
     } else {
       std::env::current_dir()?.join(configured)
     };
-    let captured = myoxus_infrastructure::feature_bundles::capture_feature_source_set(
-      &root,
+    Ok(root)
+  }
+
+  fn load_feature_sources(
+    root: &std::path::Path,
+  ) -> myoxus_domain::repositories::RepoResult<myoxus_infrastructure::feature_bundles::CapturedFeatureSourceSet> {
+    myoxus_infrastructure::feature_bundles::capture_feature_source_set(
+      root,
       &myoxus_infrastructure::feature_bundles::packaged_feature_release_manifest()?,
-    )?;
-    Ok((root, captured))
+    )
   }
 
   /// Construct all services from an already-connected pool.
@@ -693,10 +695,12 @@ impl Services {
       .await
       .context("load validated runtime configuration overrides")?;
     let automation_limits = load_workspace_automation_limits(&config_overrides, &runtime.workspace_automation)?;
-    let (template_root, feature_sources) =
-      Self::capture_feature_sources_from(&runtime.templates.root_dir, config_overrides.get("templates.root_dir"))?;
-    let database_starter_catalog = Arc::new(feature_sources.resolved.databases.clone());
-    let assistant_catalog = Arc::new(feature_sources.resolved.assistants.clone());
+    let template_root = Self::template_root(&runtime.templates.root_dir, config_overrides.get("templates.root_dir"))?;
+    let root = template_root.clone();
+    let feature_sources = FeatureInput::deferred(move || Self::load_feature_sources(&root).map(Arc::new));
+    let database_starter_catalog = feature_sources
+      .clone()
+      .map(|sources| sources.resolved.databases.clone());
     let html_catalog = Arc::new(myoxus_infrastructure::html_templates::FilesystemHtmlCatalog::new(
       template_root.join("html"),
     ));
@@ -939,27 +943,38 @@ impl Services {
         },
       })),
     );
-    let assistant_packages = Arc::new(
-      myoxus_application::workspace::assistant_packages::AssistantPackageService::new(
-        assistant_catalog,
-        database_starter_catalog.clone(),
-        databases.definition.clone(),
-        databases.views.clone(),
-        workspace_store.clone(),
-        config_overrides
-          .get("i18n.default_currency")
-          .and_then(serde_json::Value::as_str)
-          .unwrap_or(&runtime.i18n.default_currency)
-          .to_string(),
-        config_overrides
-          .get("i18n.default_locale")
-          .and_then(serde_json::Value::as_str)
-          .unwrap_or(&runtime.i18n.default_locale)
-          .to_string(),
-      )
-      .with_document_components(documents, template_registry.clone())
-      .with_context_workflows_enabled(automation_limits.enabled),
-    );
+    let sources = feature_sources.clone();
+    let templates = database_starter_catalog.clone();
+    let definition = databases.definition.clone();
+    let views = databases.views.clone();
+    let store = workspace_store.clone();
+    let registry = template_registry.clone();
+    let currency = config_overrides
+      .get("i18n.default_currency")
+      .and_then(serde_json::Value::as_str)
+      .unwrap_or(&runtime.i18n.default_currency)
+      .to_owned();
+    let locale = config_overrides
+      .get("i18n.default_locale")
+      .and_then(serde_json::Value::as_str)
+      .unwrap_or(&runtime.i18n.default_locale)
+      .to_owned();
+    let workflows_enabled = automation_limits.enabled;
+    let assistant_packages = FeatureInput::deferred(move || {
+      Ok(Arc::new(
+        myoxus_application::workspace::assistant_packages::AssistantPackageService::new(
+          Arc::new(sources.get()?.resolved.assistants.clone()),
+          templates.get()?.clone(),
+          definition,
+          views,
+          store,
+          currency,
+          locale,
+        )
+        .with_document_components(documents, registry)
+        .with_context_workflows_enabled(workflows_enabled),
+      ))
+    });
     let workspace_automation = WorkspaceAutomationService::new(
       Arc::new(
         PgWorkspaceAutomationRepository::new(pool.clone()).with_database_templates(database_starter_catalog.clone()),

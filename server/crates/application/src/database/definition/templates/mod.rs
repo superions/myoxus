@@ -74,11 +74,13 @@ impl DatabaseDefinitionService {
     self.validate_database_creation(actor, workspace, &plan.title).await?;
     let (_, digest) = self
       .starter_templates
+      .get()?
       .inventory()
       .version_source(&plan.definition_id, &plan.version)
       .ok_or_else(|| DatabaseServiceError::new(ERR_NOT_FOUND, "accepted Generic source unavailable"))?;
     let template = self
       .starter_templates
+      .get()?
       .select_version(&plan.definition_id, &plan.version, plan.selection)
       .filter(|source| source.profile_kind == DatabaseProfileKind::Generic)
       .filter(|_| digest == plan.digest)
@@ -123,6 +125,7 @@ impl DatabaseDefinitionService {
     };
     let template = self
       .starter_templates
+      .get()?
       .select_selection(&review.template_id, selection)
       .ok_or_else(|| DatabaseServiceError::new(ERR_NOT_FOUND, "current managed Project source unavailable"))?
       .clone();
@@ -163,11 +166,11 @@ impl DatabaseDefinitionService {
       accepted.ids.database_id,
       &scaffold,
     )?;
-    managed_schema::install_source_metadata(&self.starter_templates, &review.template_id, &mut state)?;
+    managed_schema::install_source_metadata(self.starter_templates.get()?, &review.template_id, &mut state)?;
     Ok(state)
   }
-  pub fn list_starter_templates(&self) -> Vec<DatabaseStarterTemplateSummary> {
-    self.starter_templates.summaries()
+  pub fn list_starter_templates(&self) -> DatabaseResult<Vec<DatabaseStarterTemplateSummary>> {
+    Ok(self.starter_templates.get()?.summaries())
   }
 
   #[tracing::instrument(skip(self,input),fields(workspace_id=%input.workspace_id,template_id=%input.template_id,actor=%actor))]
@@ -182,6 +185,7 @@ impl DatabaseDefinitionService {
       normalize_database_currency_code(&input.default_currency).unwrap_or_else(default_database_currency_code);
     let template = self
       .starter_templates
+      .get()?
       .select_offering(
         &input.template_id,
         DatabaseTemplateSelection {
@@ -202,7 +206,7 @@ impl DatabaseDefinitionService {
       &currency,
       template,
     )?;
-    managed_schema::install_source_metadata(&self.starter_templates, &input.template_id, &mut state)?;
+    managed_schema::install_source_metadata(self.starter_templates.get()?, &input.template_id, &mut state)?;
     self.schema_repo.create_database(state).await.map_err(Into::into)
   }
 }

@@ -21,6 +21,7 @@ pub mod workflows;
 use myoxus_domain::workspace_automation::{AcceptedAutomationRun, AutomationExecutionPolicy};
 use runtime::{WorkspaceAutomationRuntime, freeze_definition};
 
+use crate::feature_bundle::FeatureInput;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -132,7 +133,7 @@ pub struct WorkspaceAutomationService {
   repo: Arc<dyn WorkspaceAutomationRepository>,
   runtime: Option<Arc<dyn WorkspaceAutomationRuntime>>,
   editing: Arc<crate::database::DatabaseEditingService>,
-  context_documents: Option<Arc<workflows::ContextDocumentActions>>,
+  context_documents: Option<FeatureInput<workflows::ContextDocumentActions>>,
   database_schema_repo: Arc<dyn myoxus_domain::database::DatabaseDefinitionRepository>,
   database_row_repo: Arc<dyn myoxus_domain::database::DatabaseEditingRepository>,
   doc_service: DocService,
@@ -178,12 +179,25 @@ impl WorkspaceAutomationService {
   pub fn with_context_documents(
     mut self,
     store: Arc<dyn crate::workspace::WorkspaceStore>,
-    packages: Arc<crate::workspace::assistant_packages::AssistantPackageService>,
+    packages: impl Into<FeatureInput<crate::workspace::assistant_packages::AssistantPackageService>>,
     auth: Arc<crate::auth::AuthService>,
   ) -> Self {
-    self.context_documents = Some(Arc::new(workflows::ContextDocumentActions { store, packages, auth }));
+    self.context_documents = Some(packages.into().map(move |packages| workflows::ContextDocumentActions {
+      store,
+      packages: packages.clone(),
+      auth,
+    }));
     self
   }
+  fn context_actions(&self) -> WorkspaceAutomationResult<Option<&workflows::ContextDocumentActions>> {
+    self
+      .context_documents
+      .as_ref()
+      .map(|source| source.get().map(Arc::as_ref))
+      .transpose()
+      .map_err(|_| runtime::unavailable())
+  }
+
   pub(crate) fn prepare_workspace_setup_definition(
     &self,
     plan: &myoxus_domain::assistant_package::AssistantPreparedWorkspaceSetup,
@@ -672,8 +686,7 @@ impl WorkspaceAutomationService {
       let authorized = match self.authorize_run_control(actor, run).await {
         Ok(()) => {
           self
-            .context_documents
-            .as_ref()
+            .context_actions()?
             .ok_or_else(runtime::unavailable)?
             .authorize_workspace_setup_retry(&self.repo, run)
             .await
@@ -698,7 +711,7 @@ impl WorkspaceAutomationService {
       };
     }
     let authorization = match self.authorize_run_control(actor, run).await {
-      Ok(()) => match &self.context_documents {
+      Ok(()) => match self.context_actions()? {
         Some(actions) => actions.authorize_retry(&self.repo, run).await,
         None => return Err(runtime::unavailable()),
       },
@@ -737,7 +750,7 @@ impl WorkspaceAutomationService {
           "Context request requires a fresh explicit intent",
         ));
       }
-      let actions = self.context_documents.as_ref().ok_or_else(runtime::unavailable)?;
+      let actions = self.context_actions()?.ok_or_else(runtime::unavailable)?;
       if previous
         .accepted
         .as_ref()

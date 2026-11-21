@@ -1,5 +1,6 @@
 //! Database creation, lifecycle, fields and currently assigned saved definitions.
 use super::*;
+use crate::feature_bundle::FeatureInput;
 mod fields;
 mod lifecycle;
 pub mod rules;
@@ -18,13 +19,13 @@ pub struct DatabaseDefinitionService {
   pub(super) permission: Arc<PermissionService>,
   pub(super) limits: DatabaseLimits,
   pub(super) effects: DatabaseMutationEffects,
-  pub(super) starter_templates: Arc<DatabaseStarterTemplateCatalog>,
+  pub(super) starter_templates: FeatureInput<DatabaseStarterTemplateCatalog>,
 }
 
 impl DatabaseDefinitionService {
   /// Immutable source metadata shared by native defaults and package preparation.
-  pub fn starter_template_catalog(&self) -> &DatabaseStarterTemplateCatalog {
-    &self.starter_templates
+  pub fn starter_template_catalog(&self) -> DatabaseResult<&DatabaseStarterTemplateCatalog> {
+    Ok(self.starter_templates.get()?)
   }
 
   pub fn new(
@@ -33,7 +34,7 @@ impl DatabaseDefinitionService {
     permission: Arc<PermissionService>,
     limits: DatabaseLimits,
     effects: DatabaseMutationEffects,
-    starter_templates: Arc<DatabaseStarterTemplateCatalog>,
+    starter_templates: impl Into<FeatureInput<DatabaseStarterTemplateCatalog>>,
     projection: Arc<DatabaseProjectionService>,
   ) -> Self {
     Self {
@@ -43,7 +44,7 @@ impl DatabaseDefinitionService {
       permission,
       limits,
       effects,
-      starter_templates,
+      starter_templates: starter_templates.into(),
     }
   }
 }

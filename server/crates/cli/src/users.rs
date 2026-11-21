@@ -226,6 +226,12 @@ async fn get(args: UserGetArgs, svc: &Services, json: bool) -> anyhow::Result<()
 }
 
 async fn create(args: UserCreateArgs, svc: &Services, json: bool) -> anyhow::Result<()> {
+  // Creating the personal workspace needs the release. Admit it before the
+  // account insert, which deliberately survives later provisioning failures.
+  svc
+    .feature_sources
+    .get()
+    .context("load Feature release for personal workspace")?;
   let user = svc
     .admin_users
     .create(

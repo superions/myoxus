@@ -229,9 +229,8 @@ async fn inv_mcp_rv01d_non_member_workspace_denied() {
 
 #[tokio::test]
 async fn inv_mcp_compat_external_keys_are_workspace_scoped_without_uuid_syntax_guessing() {
-  let pool = helpers::setup_pool().await;
-  let auth_store = Arc::new(SqlxAuthStore::from_pool(pool.clone()));
-  let (user, _) = helpers::seed_user(&pool, &auth_store, "mcp-external-key-collision").await;
+  let (key_app, pool, auth_store) = helpers::setup_app().await;
+  let (user, session) = helpers::seed_user(&pool, &auth_store, "mcp-external-key-collision").await;
   let workspace_a = super::mcp_create_page_test::create_workspace(&pool, user).await;
   let workspace_b = super::mcp_create_page_test::create_workspace(&pool, user).await;
   let state = super::mcp_create_page_test::build_tool_state(&pool);
@@ -269,23 +268,22 @@ async fn inv_mcp_compat_external_keys_are_workspace_scoped_without_uuid_syntax_g
     .expect("set colliding UUID-shaped external key");
 
   let auth = auth_context(user);
+  let token =
+    super::mcp_create_page_test::document_read_key(&key_app, session, &["read:docs", "read:workspaces"]).await;
+  let app = super::mcp_create_page_test::document_read_router(&pool, state.clone());
   for (workspace_id, external_id) in [
     (workspace_a, nanoid_external),
     (workspace_b, uuid_shaped_external.as_str()),
   ] {
-    let result = dispatch_tool(
+    let result = super::mcp_create_page_test::document_read_call(
+      &app,
+      &token,
       "read_doc",
-      &json!({ "workspace_id": workspace_id, "external_id": external_id }),
-      &auth,
-      &state,
+      json!({"workspace_id": workspace_id, "external_id": external_id}),
     )
-    .await
-    .expect("workspace-scoped external key must resolve");
-    assert_eq!(
-      result.pointer("/structuredContent/document/externalId"),
-      Some(&json!(external_id))
-    );
-    assert!(result.pointer("/structuredContent/document/docId").is_none());
+    .await;
+    assert_eq!(result.pointer("/document/externalId"), Some(&json!(external_id)));
+    assert!(result.pointer("/document/docId").is_none());
 
     let uri = format!("myoxus://{workspace_id}/{external_id}");
     let resource = read_resource(&uri, &state, &auth)

@@ -1,5 +1,6 @@
 //! SQLx repository for the server-authoritative workspace tag catalog.
 
+use myoxus_application::feature_bundle::FeatureInput;
 use std::str::FromStr;
 
 use async_trait::async_trait;
@@ -25,17 +26,17 @@ use myoxus_workspace_import::WorkspaceImportLimits;
 
 pub struct PgWorkspaceTagRepository {
   pool: PgPool,
-  database_templates: std::sync::Arc<myoxus_application::database::DatabaseStarterTemplateCatalog>,
+  database_templates: FeatureInput<myoxus_application::database::DatabaseStarterTemplateCatalog>,
 }
 
 impl PgWorkspaceTagRepository {
   pub fn new(
     pool: PgPool,
-    database_templates: std::sync::Arc<myoxus_application::database::DatabaseStarterTemplateCatalog>,
+    database_templates: impl Into<FeatureInput<myoxus_application::database::DatabaseStarterTemplateCatalog>>,
   ) -> Self {
     Self {
       pool,
-      database_templates,
+      database_templates: database_templates.into(),
     }
   }
 

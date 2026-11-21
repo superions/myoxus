@@ -164,16 +164,16 @@ impl McpIdempotencyRepository for SqlxMcpIdempotencyRepository {
 pub(crate) async fn lock_document_write(
   tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
   actor_id: Option<Uuid>,
-) -> AuthResult<()> {
+) -> Result<(), crate::doc::MutationWriteError> {
   let Some(replay) = myoxus_application::mcp::current_mcp_document_write() else {
     return Ok(());
   };
   if actor_id != Some(replay.user_id) {
-    return Err(AuthError::InvalidInput("MIX_MCP_IDEMPOTENCY_ACTOR_MISMATCH".into()));
+    return Err(AuthError::InvalidInput("MIX_MCP_IDEMPOTENCY_ACTOR_MISMATCH".into()).into());
   }
   let row = sqlx::query(
     "SELECT user_id, api_key_id, recovery_enabled, mutation_committed FROM mcp_idempotency_keys WHERE id = $1 FOR UPDATE",
-  ).bind(replay.row_id).fetch_optional(&mut **tx).await.map_err(SqlxMcpIdempotencyRepository::storage)?;
+  ).bind(replay.row_id).fetch_optional(&mut **tx).await?;
   let valid = row.is_some_and(|row| {
     row.get::<Uuid, _>("user_id") == replay.user_id
       && row.get::<Uuid, _>("api_key_id") == replay.api_key_id
@@ -181,7 +181,7 @@ pub(crate) async fn lock_document_write(
       && !row.get::<bool, _>("mutation_committed")
   });
   if !valid {
-    return Err(AuthError::InvalidInput("MIX_MCP_IDEMPOTENCY_WRITER_FENCED".into()));
+    return Err(AuthError::InvalidInput("MIX_MCP_IDEMPOTENCY_WRITER_FENCED".into()).into());
   }
   Ok(())
 }
@@ -190,7 +190,7 @@ pub(crate) async fn lock_document_write(
 pub(crate) async fn commit_document_write(
   tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
   commit: myoxus_application::mcp::McpDocumentWriteCommit<'_>,
-) -> AuthResult<()> {
+) -> Result<(), crate::doc::MutationWriteError> {
   let Some(replay) = myoxus_application::mcp::current_mcp_document_write() else {
     return Ok(());
   };
@@ -202,11 +202,10 @@ pub(crate) async fn commit_document_write(
   .bind(replay.row_id)
   .bind(response)
   .execute(&mut **tx)
-  .await
-  .map_err(SqlxMcpIdempotencyRepository::storage)?
+  .await?
   .rows_affected();
   if affected != 1 {
-    return Err(AuthError::InvalidInput("MIX_MCP_IDEMPOTENCY_WRITER_FENCED".into()));
+    return Err(AuthError::InvalidInput("MIX_MCP_IDEMPOTENCY_WRITER_FENCED".into()).into());
   }
   Ok(())
 }

@@ -61,7 +61,7 @@ fn optional(id: &str) -> CapturedFeatureBundle {
 fn put(root: &Path, bundle: &CapturedFeatureBundle) {
   let path = root.join("features").join(bundle.pin().archive_path());
   std::fs::create_dir_all(path.parent().unwrap()).unwrap();
-  std::fs::write(path, &bundle.archive_bytes).unwrap();
+  std::fs::write(path, bundle.archive.as_ref()).unwrap();
 }
 fn catalog(
   root: &Path,
@@ -162,13 +162,13 @@ fn source_set_decode_shares_expansion_budget_across_valid_archives() {
     .map(|bundle| {
       (
         (bundle.manifest.id.clone(), bundle.manifest.version.clone()),
-        (bundle.pin(), bundle.archive_bytes.clone()),
+        (bundle.pin(), bundle.archive.clone()),
       )
     })
     .collect();
   let expanded = [&first, &second].map(|bundle| {
     NestedArchiveBudget::new(archive_limits())
-      .account(&bundle.archive_bytes)
+      .account(bundle.archive.as_ref())
       .unwrap()
       .expanded_bytes
   });
