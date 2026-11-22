@@ -159,3 +159,31 @@ export function resolveGitForgeTargets(url: string): GitForgeUrlTargets | null {
   if (!parsed) return null;
   return { host: parsed.host, profileOrigin: parsed.origin };
 }
+/** The short issue date follows the card locale. Only English has the
+ * ordinal treatment used by the original English-language card. */
+export function formatForgeCardDate(
+  value: string | null | undefined,
+  locale?: string,
+) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  const format = new Intl.DateTimeFormat(locale, {
+    month: "short",
+    day: "numeric",
+  });
+  if (!/^en(?:-|$)/i.test(format.resolvedOptions().locale))
+    return format.format(date);
+  const suffix = {
+    one: "st",
+    two: "nd",
+    few: "rd",
+    other: "th",
+    zero: "th",
+    many: "th",
+  }[new Intl.PluralRules("en", { type: "ordinal" }).select(date.getDate())];
+  return format
+    .formatToParts(date)
+    .map((p) => (p.type === "day" ? p.value + suffix : p.value))
+    .join("");
+}

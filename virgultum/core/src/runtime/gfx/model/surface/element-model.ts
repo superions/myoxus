@@ -28,7 +28,6 @@ import {
   lockElementImpl,
   unlockElementImpl,
 } from "../../../utils/tree.js";
-import type { EditorHost } from "../../../view/index.js";
 import {
   type GfxCompatibleInterface,
   type GfxGroupCompatibleInterface,
@@ -225,12 +224,7 @@ export abstract class GfxPrimitiveElementModel<
     return new PointLocation(rotatePoint, tangent);
   }
 
-  includesPoint(
-    x: number,
-    y: number,
-    opt: PointTestOptions,
-    __: EditorHost,
-  ): boolean {
+  includesPoint(x: number, y: number, opt: PointTestOptions): boolean {
     const bound = opt.useElementBound ? this.elementBound : this.responseBound;
     return bound.isPointInBound([x, y]);
   }

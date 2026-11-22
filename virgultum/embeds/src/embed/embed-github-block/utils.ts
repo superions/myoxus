@@ -8,6 +8,7 @@ import { isAbortError } from "@virgultum/core/utils";
 import type { EmbedGithubBlockComponent } from "./embed-github-block.js";
 import {
   parseCardUrl,
+  parseGitForgeUrl,
   parseForgejoGiteaUrl,
   parseGitLabUrl,
   resolveGitForgeFamily,
@@ -87,7 +88,9 @@ async function queryGithubApiData(
   embedGithubModel: EmbedGithubModel,
   signal?: AbortSignal,
 ): Promise<Partial<EmbedGithubBlockUrlData>> {
-  const { owner, repo, githubType, githubId } = embedGithubModel.props;
+  const identity = parseGitForgeUrl(embedGithubModel.props.url);
+  if (!identity) return {};
+  const { owner, repo, githubType, githubId } = identity;
   let githubApiData: Partial<EmbedGithubBlockUrlData> = {};
 
   // github's public api has a rate limit of 60 requests per hour

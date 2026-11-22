@@ -8,6 +8,8 @@ import {
 } from "@myoxus/icons/react";
 import {
   Group,
+  IconEditor,
+  IconRenderer,
   IconButton,
   InlineContentTrigger,
   MyoxusText,
@@ -22,7 +24,139 @@ import {
   CalloutTitleHostExtension,
   type CalloutTitleHostProps,
 } from "@virgultum/editor/blocks/callout";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  type CalloutBlockModel,
+  normalizeCalloutAppearance,
+} from "@virgultum/core/models";
+import { editorBackgroundColors } from "@virgultum/core/services";
+import { restorePageRange } from "../../virgultum/doc-editor/plain-page-input";
+
+export function PageCallout({
+  model,
+  readonly,
+  children,
+}: {
+  model: CalloutBlockModel;
+  readonly: boolean;
+  children: ReactNode;
+}) {
+  const el = useRef<HTMLDivElement>(null);
+  const {
+    type,
+    title,
+    foldable = false,
+    defaultOpen = true,
+    icon,
+  } = model.props;
+  const [view, setView] = useState<{ policy: string; open: boolean }>();
+  const policy = `${foldable}:${defaultOpen}`;
+  const expanded =
+    !foldable || (view?.policy === policy ? view.open : defaultOpen);
+  const writable = () =>
+    !readonly &&
+    !model.store.readonly &&
+    model.store.getModelById(model.id) === model &&
+    !model.props.textProtection;
+  const palette =
+    editorBackgroundColors.find(
+      (c) => c.name === model.props.backgroundColorName,
+    ) ?? editorBackgroundColors.find((c) => c.name === "grey")!;
+  const appearance =
+    normalizeCalloutAppearance(model.props.appearance) ?? "soft";
+  return (
+    <div
+      ref={el}
+      data-page-callout={model.id}
+      data-block-id={model.id}
+      data-callout-appearance={appearance}
+      style={
+        appearance === "soft"
+          ? { backgroundColor: palette.background, color: palette.ink }
+          : appearance === "accent"
+            ? {
+                borderInlineStart: `3px solid ${palette.emphasis}`,
+                backgroundColor: "var(--myoxus-background-secondary-color)",
+              }
+            : {
+                border: `1px solid ${palette.emphasis}`,
+                backgroundColor: "var(--myoxus-background-primary-color)",
+              }
+      }
+    >
+      <div contentEditable={false} data-block-id={model.id}>
+        {readonly ? (
+          <IconRenderer data={icon} />
+        ) : (
+          <IconEditor
+            icon={icon}
+            closeAfterSelect
+            onIconChange={(next) => {
+              if (writable()) {
+                model.store.captureSync();
+                model.store.updateBlock(model, () => {
+                  model.props.icon = next;
+                });
+                model.store.captureSync();
+              }
+            }}
+          />
+        )}
+      </div>
+      <div data-callout-content="">
+        {type && (
+          <div
+            contentEditable={false}
+            data-block-id={model.id}
+            data-callout-title=""
+          >
+            <CalloutTitle
+              type={type}
+              title={title?.toString() ?? ""}
+              readonly={readonly}
+              foldable={foldable}
+              defaultOpen={defaultOpen}
+              expanded={expanded}
+              toggle={() => setView({ policy, open: !expanded })}
+              apply={(value, base) =>
+                writable() && model.applyTitle(value, base)
+              }
+              applySettings={(value) =>
+                writable() &&
+                model.applySettings(value, { type, foldable, defaultOpen })
+              }
+              focusEditor={() => {
+                if (!writable()) return;
+                setView({ policy, open: true });
+                requestAnimationFrame(() => {
+                  const field = el.current?.querySelector<HTMLElement>(
+                      "[data-callout-body] [data-page-text]",
+                    ),
+                    root = el.current?.closest<HTMLElement>(
+                      "[data-page-renderer]",
+                    );
+                  if (!field || !root || !writable()) return;
+                  const id = field.dataset.pageText!,
+                    p = {
+                      id,
+                      offset: model.store.getModelById(id)?.text?.length ?? 0,
+                    };
+                  root
+                    .querySelector<HTMLElement>("[data-page-body]")
+                    ?.focus({ preventScroll: true });
+                  restorePageRange(root, { anchor: p, focus: p });
+                });
+              }}
+            />
+          </div>
+        )}
+        <div data-callout-body="" hidden={!expanded}>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function CalloutTitle({
   title,

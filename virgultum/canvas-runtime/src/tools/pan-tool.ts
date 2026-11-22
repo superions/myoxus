@@ -7,10 +7,10 @@ import { on } from "@virgultum/core/utils";
 import type { PointerEventState } from "@virgultum/core/runtime";
 import {
   BaseTool,
-  createRafCoalescer,
   MouseButton,
   type ToolOptions,
 } from "@virgultum/core/runtime/gfx";
+import { cameraPan } from "../tool/panning-utils";
 
 interface RestorablePresentToolOptions {
   mode?: string; // 'fit' | 'fill', simplified to string for local use
@@ -24,59 +24,29 @@ export type PanToolOption = {
 export class PanTool extends BaseTool<PanToolOption> {
   static override toolName = "pan";
 
-  private _lastPoint: [number, number] | null = null;
-
-  private _pendingDelta: [number, number] = [0, 0];
+  private readonly pan = cameraPan(this.gfx.viewport);
 
   private _restoreAfterTemporaryPan: (() => void) | null = null;
 
-  private readonly _deltaFlushCoalescer = createRafCoalescer<void>(() => {
-    this._flushPendingDelta();
-  });
-
   readonly panning$ = new Signal<boolean>(false);
-
-  private _flushPendingDelta() {
-    if (this._pendingDelta[0] === 0 && this._pendingDelta[1] === 0) {
-      return;
-    }
-
-    const [deltaX, deltaY] = this._pendingDelta;
-    this._pendingDelta = [0, 0];
-    this.gfx.viewport.applyDeltaCenter(deltaX, deltaY);
-  }
 
   override get allowDragWithRightButton(): boolean {
     return true;
   }
 
   override dragEnd(_: PointerEventState): void {
-    this._deltaFlushCoalescer.flush();
-    this._lastPoint = null;
+    this.pan.end();
     this.panning$.value = false;
     this._restoreAfterTemporaryPan?.();
     this._restoreAfterTemporaryPan = null;
   }
 
   override dragMove(e: PointerEventState): void {
-    if (!this._lastPoint) return;
-
-    const { viewport } = this.gfx;
-    const { zoom } = viewport;
-
-    const [lastX, lastY] = this._lastPoint;
-    const deltaX = lastX - e.x;
-    const deltaY = lastY - e.y;
-
-    this._lastPoint = [e.x, e.y];
-    this._pendingDelta[0] += deltaX / zoom;
-    this._pendingDelta[1] += deltaY / zoom;
-    this._deltaFlushCoalescer.schedule(undefined);
+    this.pan.move(e.x, e.y);
   }
 
   override dragStart(e: PointerEventState): void {
-    this._lastPoint = [e.x, e.y];
-    this._pendingDelta = [0, 0];
+    this.pan.start(e.x, e.y);
     this.panning$.value = true;
   }
 
@@ -154,7 +124,7 @@ export class PanTool extends BaseTool<PanToolOption> {
   }
 
   override unmounted(): void {
-    this._deltaFlushCoalescer.cancel();
+    this.pan.cancel();
     this._restoreAfterTemporaryPan = null;
   }
 }

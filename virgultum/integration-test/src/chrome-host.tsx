@@ -8,6 +8,7 @@ import { getOrCreateI18n, I18nextProvider } from "@myoxus/i18n";
 import { useLitPortalFactory } from "@myoxus/lit-react";
 import { MyoxusEmbeddedUIProvider } from "@myoxus/ui-facade/provider";
 import type { ExtensionType } from "@virgultum/editor/store";
+import { MermaidFamilyReactHostIdentifier } from "@virgultum/editor/blocks/mermaid";
 import { Fragment, useLayoutEffect, useMemo } from "react";
 import { createRoot } from "react-dom/client";
 import themeProjection from "../../../client/branding/theme-fallback.css?raw";
@@ -26,7 +27,8 @@ function ChromeHost({
     return {
       setup(di) {
         chrome.setup(di);
-        mermaid.setup(di);
+        // A renderer-contract fixture can supply its own host for this scope.
+        if (!di.getFactory(MermaidFamilyReactHostIdentifier)) mermaid.setup(di);
       },
     } satisfies ExtensionType;
   }, [reactToLit]);

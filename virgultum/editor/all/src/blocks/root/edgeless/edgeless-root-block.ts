@@ -3,12 +3,11 @@ import { NoteConfigExtension } from "@virgultum/embeds/blocks";
 import {
   DefaultTool,
   getBgGridGap,
-  normalizeWheelDeltaY,
+  wheelCanvas,
   type SurfaceBlockComponent,
   type SurfaceBlockModel,
 } from "@virgultum/canvas-runtime/surface";
 import { PanTool } from "@virgultum/canvas-runtime/tools";
-import { IS_WINDOWS } from "@virgultum/core/primitives/env";
 import { Bound, Point, Vec } from "@virgultum/core/primitives/gfx";
 import { NoteBlockModel, type RootBlockModel } from "@virgultum/core/models";
 import {
@@ -20,7 +19,6 @@ import {
 } from "@virgultum/core/services";
 import {
   hasTextControlEventTarget,
-  isTouchPadPinchEvent,
   matchModels,
   requestConnectedFrame,
   requestThrottledConnectedFrame,
@@ -377,36 +375,12 @@ export class EdgelessRootBlockComponent extends BlockComponent<
         const e = state.event as WheelEvent;
         const edgelessScrollZoom = config?.peek().edgelessScrollZoom ?? false;
 
-        e.preventDefault();
-
-        const { viewport } = this.gfx;
-        if (viewport.locked) return;
-
-        // zoom
-        if (isTouchPadPinchEvent(e) || edgelessScrollZoom) {
-          const rect = this.getBoundingClientRect();
-          // Perform zooming relative to the mouse position
-          const [baseX, baseY] = this.gfx.viewport.toModelCoord(
-            e.clientX - rect.x,
-            e.clientY - rect.y,
-          );
-
-          const zoom = normalizeWheelDeltaY(e.deltaY, viewport.zoom);
-          viewport.setZoom(zoom, new Point(baseX, baseY), true);
-          e.stopPropagation();
-        }
-        // pan
-        else {
-          const simulateHorizontalScroll = IS_WINDOWS && e.shiftKey;
-          const dx = simulateHorizontalScroll
-            ? e.deltaY / viewport.zoom
-            : e.deltaX / viewport.zoom;
-          const dy = simulateHorizontalScroll ? 0 : e.deltaY / viewport.zoom;
-
-          viewport.applyDeltaCenter(dx, dy);
-          viewport.viewportMoved.next([dx, dy]);
-          e.stopPropagation();
-        }
+        wheelCanvas(
+          this.gfx.viewport,
+          e,
+          this.getBoundingClientRect(),
+          edgelessScrollZoom,
+        );
       }),
     );
   }

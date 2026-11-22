@@ -60,19 +60,22 @@ export class SearchMenuService extends Service {
   ): LinkedMenuGroup {
     const showRecent = query.trim().length === 0;
     if (showRecent) {
-      return this.getRecentDocMenuGroup(action);
+      return this.getRecentDocMenuGroup(action, abortSignal);
     } else {
       return this.getSearchDocMenuGroup(query, action, abortSignal);
     }
   }
 
-  private getRecentDocMenuGroup(action: SearchDocMenuAction): LinkedMenuGroup {
+  private getRecentDocMenuGroup(
+    action: SearchDocMenuAction,
+    abort: AbortSignal,
+  ): LinkedMenuGroup {
     const currentWorkspace = this.workspaceService.workspace;
     const rawMetas = currentWorkspace.docCollection.meta.docMetas;
     const recentDocs = this.recentItemsService.getRecentDocs();
-    return {
-      name: I18n.t("com.myoxus.editor.at-menu.recent-docs"),
-      items: recentDocs
+    const recent = (allowed?: Set<string>) =>
+      recentDocs
+        .filter((doc) => !allowed || allowed.has(doc.id))
         .map((doc) => {
           const meta = rawMetas.find((meta) => meta.id === doc.id);
           if (!meta) {
@@ -80,8 +83,23 @@ export class SearchMenuService extends Service {
           }
           return this.toDocMenuItem(meta, action);
         })
-        .filter((m) => !!m),
-    };
+        .filter((m) => !!m);
+    const name = I18n.t("com.myoxus.editor.at-menu.recent-docs");
+    if (!BUILD_CONFIG.isWeb) return { name, items: recent() };
+    // Recency is a preference, not a grant: apply the same confirmed readable
+    // catalogue before exposing a recently visited document on an empty query.
+    const { signal: items, cleanup } = createSignalFromObservable(
+      observeConfirmedDocumentMetadataIndex(this.metadata).pipe(
+        map(({ rows }) =>
+          recent(new Set(rows.map((row) => row.externalId ?? row.docId))),
+        ),
+        catchError(() => of([])),
+      ),
+      [],
+    );
+    if (abort.aborted) cleanup();
+    else abort.addEventListener("abort", cleanup, { once: true });
+    return { name, items };
   }
 
   private getSearchDocMenuGroup(

@@ -14,26 +14,15 @@ import { GuardService } from "@myoxus/core/modules/permissions";
 
 import { WorkspaceDBService } from "@myoxus/core/modules/db";
 import { DocumentMetadataCacheService } from "@myoxus/core/modules/document-metadata/services/document-metadata-cache";
-import {
-  CoreDocumentIndexProvider,
-  documentIndexRegionalPreferences,
-} from "@myoxus/core/modules/doc/services/document-index";
-import {
-  GraphQLService,
-  WorkspaceServerService,
-} from "@myoxus/core/modules/server";
+import { generateUrl } from "@myoxus/core/components/hooks/myoxus/use-share-url";
+import { WorkspaceServerService } from "@myoxus/core/modules/server";
 import { WorkspaceService } from "@myoxus/core/modules/workspace";
 import { WorkspaceShareSettingService } from "@myoxus/core/modules/share-setting";
 import { TagService } from "@myoxus/core/modules/tag";
 import { OrganizeService } from "@myoxus/core/modules/organize";
 import { collectWorkspaceFolderOptions } from "@myoxus/core/modules/workspace-pages/organizer";
 import { useI18n } from "@myoxus/i18n";
-import {
-  type FrameworkProvider,
-  useLiveData,
-  useServices,
-} from "@myoxus/infra";
-import type { ReactToLit } from "@myoxus/lit-react";
+import { useLiveData, useServices } from "@myoxus/infra";
 import {
   Button,
   FormSelect,
@@ -52,50 +41,9 @@ import type {
   DocumentIndexBlockModel,
   DocumentIndexProps,
 } from "@virgultum/editor/model";
-import {
-  DocumentIndexHost,
-  DocumentIndexOutputProvider,
-  GenerateDocUrlProvider,
-} from "@virgultum/editor/shared/services";
-import type { BlockStdScope } from "@virgultum/editor/std";
-import type { ExtensionType } from "@virgultum/editor/store";
 import { useCallback, useEffect, useReducer, useState } from "react";
 
-export function patchDocumentIndex(
-  framework: FrameworkProvider,
-  reactToLit: ReactToLit,
-): ExtensionType {
-  return {
-    setup(di) {
-      di.addImpl(
-        DocumentIndexOutputProvider,
-        () =>
-          new CoreDocumentIndexProvider(
-            framework
-              .get(WorkspaceServerService)
-              .server?.scope.get(GraphQLService),
-            framework.get(WorkspaceService).workspace.id,
-            framework.get(WorkspaceServerService).server?.baseUrl,
-            () =>
-              documentIndexRegionalPreferences(
-                framework.get(WorkspaceServerService).server,
-              ),
-          ),
-      );
-      di.addImpl(DocumentIndexHost, () => ({
-        render: (model, std) =>
-          reactToLit(<Directory model={model} std={std} />, true),
-        configure: (value, apply, close) =>
-          reactToLit(
-            <Configuration value={value} apply={apply} close={close} />,
-            true,
-          ),
-      }));
-    },
-  };
-}
-
-function Configuration({
+export function Configuration({
   value,
   apply,
   close,
@@ -222,12 +170,12 @@ function Configuration({
   );
 }
 
-function Directory({
+export function Directory({
   model,
-  std,
+  readonly,
 }: {
   model: DocumentIndexBlockModel;
-  std: BlockStdScope;
+  readonly: boolean;
 }) {
   const t = useI18n();
   const {
@@ -331,7 +279,7 @@ function Directory({
                 : "com.myoxus.wiki.directory.title"
             ]()}
         </MyoxusTitle>
-        {!std.store.readonly && (
+        {!readonly && (
           <Button variant="plain" onClick={() => setEditing(true)}>
             {t["Edit"]()}
           </Button>
@@ -368,15 +316,11 @@ function Directory({
                   >
                     <NavLink
                       component="a"
-                      href={
-                        std
-                          .get(GenerateDocUrlProvider)
-                          .generateDocUrl(
-                            row.resource.id,
-                            undefined,
-                            row.resource.workspaceId,
-                          ) || undefined
-                      }
+                      href={generateUrl({
+                        pageId: row.resource.id,
+                        workspaceId: row.resource.workspaceId,
+                        baseUrl: server.baseUrl,
+                      })}
                       label={row.title || t["Untitled"]()}
                     />
                   </List.Item>
@@ -398,7 +342,7 @@ function Directory({
           )}
         </>
       )}
-      {editing && !std.store.readonly && (
+      {editing && !readonly && (
         <Configuration
           value={{
             title: model.props.title,
@@ -409,10 +353,15 @@ function Directory({
           }}
           close={() => setEditing(false)}
           apply={(value) => {
-            if (std.store.readonly) return;
-            std.store.captureSync();
-            std.store.updateBlock(model, value);
-            std.store.captureSync();
+            if (
+              readonly ||
+              model.store.readonly ||
+              model.store.getModelById(model.id) !== model
+            )
+              return;
+            model.store.captureSync();
+            model.store.updateBlock(model, value);
+            model.store.captureSync();
             setEditing(false);
           }}
         />

@@ -9492,6 +9492,7 @@
   "com.myoxus.editor.embed.title-placeholder": "Write a title",
   "com.myoxus.editor.embed.description-placeholder": "Write a description…",
   "com.myoxus.editor.embed.empty": "Empty embed",
+  "com.myoxus.editor.embed.html-title": "Basic HTML Page Structure",
   "com.myoxus.editor.embed.no-link": "No link found",
   "com.myoxus.editor.embed.set-link": "Please set a link for this block",
   "com.myoxus.editor.mindmap.importing": "Importing mind map…",

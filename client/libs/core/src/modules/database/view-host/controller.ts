@@ -75,9 +75,35 @@ import {
 } from "../view-controls";
 import type { DatabaseViewHostProps } from "./contracts";
 
+/** A cold view has no effective permissions or settings until this read is
+ * confirmed. Its loading boundary stays inside the Database, including embeds. */
+export function useEffectiveViewRead({
+  workspaceId,
+  databaseId,
+  record,
+  activeViewId,
+}: DatabaseViewHostProps) {
+  return useQuery(
+    {
+      query: databaseEffectiveViewStateQuery,
+      variables: {
+        workspaceId,
+        databaseId,
+        viewId: getPrimaryView(record, activeViewId).id,
+      },
+    },
+    {
+      suspense: false,
+      keepPreviousData: false,
+      suppressErrorNotification: true,
+    },
+  );
+}
+
 export function useDatabaseViewHostController(
   props: DatabaseViewHostProps,
   t: I18nInstance,
+  effectiveStateQuery: ReturnType<typeof useEffectiveViewRead>,
 ) {
   const {
     activeViewId,
@@ -275,15 +301,6 @@ export function useDatabaseViewHostController(
     },
     [detailRowId, windowDetailRow, onChanged, mutateOutsideDetail],
   );
-
-  const effectiveStateQuery = useQuery({
-    query: databaseEffectiveViewStateQuery,
-    variables: {
-      workspaceId,
-      databaseId,
-      viewId: activeView.id,
-    },
-  });
 
   const mutateEffectiveState = effectiveStateQuery.mutate;
   const effectiveViewBasisRef = useRef({

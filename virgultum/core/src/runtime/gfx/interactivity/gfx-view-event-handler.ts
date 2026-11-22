@@ -72,15 +72,10 @@ export class GfxViewEventManager {
       .filter((model) => !("renderViewport" in model && model.renderViewport))
       .reduce((pre, model) => {
         if (
-          model.includesPoint(
-            x,
-            y,
-            {
-              hitThreshold: 10,
-              responsePadding: [5, 5],
-            },
-            this.gfx.std.host,
-          ) ||
+          model.includesPoint(x, y, {
+            hitThreshold: 10,
+            responsePadding: [5, 5],
+          }) ||
           ("externalBound" in model
             ? model.externalBound?.isPointInBound([x, y])
             : false)

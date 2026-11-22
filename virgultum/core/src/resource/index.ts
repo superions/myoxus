@@ -73,6 +73,8 @@ export class ResourceController implements Disposable {
   );
 
   private engine?: BlobEngine;
+  private revision = 0;
+  private publishedFor?: string;
 
   constructor(
     readonly blobId$: ReadonlySignal<string | undefined>,
@@ -161,55 +163,38 @@ export class ResourceController implements Disposable {
     );
   }
 
-  async blob() {
+  /** Blob reads cannot be cancelled by this view. Only its latest live request
+   * may publish a URL or an error, including retries of the same source. */
+  async refreshUrlWith(type?: string) {
+    const revision = ++this.revision;
     const blobId = this.blobId$.peek();
-    if (!blobId) return null;
+    if (blobId !== this.publishedFor) this.releaseUrl();
+    this.state$.value = {};
+    if (!blobId) return;
 
-    let blob: Blob | null = null;
-    let errorMessage: string | null = null;
+    const current = () =>
+      revision === this.revision && blobId === this.blobId$.peek();
 
     try {
       if (!this.engine) {
         throw new Error("Blob engine is not initialized");
       }
-
-      blob = (await this.engine.get(blobId)) ?? null;
-
-      if (!blob) errorMessage = `${this.kind} not found`;
+      const blob = await this.engine.get(blobId);
+      if (!current()) return;
+      if (!blob) {
+        this.updateState({ errorMessage: `${this.kind} not found` });
+        return;
+      }
+      const url = URL.createObjectURL(type ? new Blob([blob], { type }) : blob);
+      const previous = this.blobUrl$.peek();
+      this.publishedFor = blobId;
+      this.blobUrl$.value = url;
+      if (previous) URL.revokeObjectURL(previous);
     } catch (err) {
+      if (!current()) return;
       console.error(err);
-      errorMessage = `Failed to retrieve ${this.kind}`;
+      this.updateState({ errorMessage: `Failed to retrieve ${this.kind}` });
     }
-
-    if (errorMessage) this.updateState({ errorMessage });
-
-    return blob;
-  }
-
-  async createUrlWith(type?: string) {
-    let blob = await this.blob();
-    if (!blob) return null;
-
-    if (type) blob = new Blob([blob], { type });
-
-    return URL.createObjectURL(blob);
-  }
-
-  async refreshUrlWith(type?: string) {
-    // Resets the state.
-    this.state$.value = {};
-
-    const url = await this.createUrlWith(type);
-    if (!url) return;
-
-    const prevUrl = this.blobUrl$.peek();
-
-    this.blobUrl$.value = url;
-
-    if (!prevUrl) return;
-
-    // Releases the previous url.
-    URL.revokeObjectURL(prevUrl);
   }
 
   // Re-upload to the server.
@@ -227,11 +212,15 @@ export class ResourceController implements Disposable {
     return await this.engine?.upload(blobId);
   }
 
-  dispose() {
+  private releaseUrl() {
     const url = this.blobUrl$.peek();
-    if (!url) return;
+    this.publishedFor = undefined;
+    this.blobUrl$.value = null;
+    if (url) URL.revokeObjectURL(url);
+  }
 
-    // Releases the current url.
-    URL.revokeObjectURL(url);
+  dispose() {
+    ++this.revision;
+    this.releaseUrl();
   }
 }

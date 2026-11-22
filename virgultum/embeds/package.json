@@ -40,7 +40,8 @@
     "./painters/image": "./src/image/turbo/image-painter.worker.ts",
     "./painters/note": "./src/note/turbo/note-painter.worker.ts",
     "./data": "./src/database/reference-store.ts",
-    "./card-session": "./src/card-session/index.ts"
+    "./card-session": "./src/card-session/index.ts",
+    "./provider-data": "./src/embed/provider-data.ts"
   },
   "files": [
     "src",

@@ -4,7 +4,7 @@ import { FeatureFlagService, ThemeProvider } from "@virgultum/core/services";
 import {
   BlockComponent,
   type EditorHost,
-  type SurfaceSelection,
+  SurfaceSelection,
 } from "@virgultum/core/runtime";
 import {
   GfxControllerIdentifier,
@@ -17,7 +17,10 @@ import type { Subject } from "rxjs";
 
 import { ConnectorElementModel } from "./element-model/index.js";
 import { CanvasRenderer } from "./renderer/canvas-renderer.js";
+import { ElementRendererIdentifier } from "./extensions/element-renderer";
+import type { ElementRenderer } from "./renderer/elements";
 import { DomRenderer } from "./renderer/dom-renderer.js";
+import { DomElementRendererIdentifier } from "./renderer/dom-elements";
 import { OverlayIdentifier } from "./renderer/overlay.js";
 import type { SurfaceBlockModel } from "./surface-model.js";
 
@@ -179,7 +182,7 @@ export class SurfaceBlockComponent extends BlockComponent<SurfaceBlockModel> {
     const useDOMRenderer = featureFlagService.getFlag("enable_dom_renderer");
 
     const rendererOptions = {
-      std: this.std,
+      turboEnabled: () => featureFlagService.getFlag("enable_turbo_renderer"),
       viewport: gfx.viewport,
       layerManager: gfx.layer,
       gridManager: gfx.grid,
@@ -209,11 +212,25 @@ export class SurfaceBlockComponent extends BlockComponent<SurfaceBlockModel> {
     };
 
     if (useDOMRenderer) {
-      this._renderer = new DomRenderer(rendererOptions);
+      this._renderer = new DomRenderer({
+        ...rendererOptions,
+        resolvePainter: (type) =>
+          this.std.getOptional(DomElementRendererIdentifier(type)),
+        watchSelection: (change) =>
+          this.std.selection
+            .filter$(SurfaceSelection)
+            .subscribe((selections) =>
+              change(selections.flatMap((s) => s.elements)),
+            ),
+      });
       this._disposables.add(() => this._renderer.dispose());
     } else {
       this._renderer = new CanvasRenderer({
         ...rendererOptions,
+        resolvePainter: (type) =>
+          this.std.getOptional<ElementRenderer>(
+            ElementRendererIdentifier(type),
+          ),
         enableStackingCanvas: true,
         onStackingCanvasCreated(canvas) {
           canvas.className = "indexable-canvas";
@@ -223,24 +240,6 @@ export class SurfaceBlockComponent extends BlockComponent<SurfaceBlockModel> {
       this._disposables.add(() => {
         this._renderer.dispose();
       });
-
-      this._disposables.add(
-        this._renderer.stackingCanvasUpdated.subscribe((payload) => {
-          if (payload.added.length) {
-            if (this._surfaceContainer) {
-              this._surfaceContainer.append(...payload.added);
-            } else {
-              payload.added.forEach((canvas) => canvas.remove());
-            }
-          }
-
-          if (payload.removed.length) {
-            payload.removed.forEach((canvas) => {
-              canvas.remove();
-            });
-          }
-        }),
-      );
     }
 
     if (this._locallyExcludedElementIds.size > 0) {
@@ -268,11 +267,6 @@ export class SurfaceBlockComponent extends BlockComponent<SurfaceBlockModel> {
 
   override firstUpdated() {
     this._renderer.attach(this._surfaceContainer);
-
-    if ("stackingCanvas" in this._renderer) {
-      this._renderer["_render"]();
-      this._surfaceContainer.append(...this._renderer.stackingCanvas);
-    }
   }
 
   override render() {

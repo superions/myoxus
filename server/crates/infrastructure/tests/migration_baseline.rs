@@ -954,6 +954,11 @@ fn expected_ledger() -> Vec<(i64, &'static str, Vec<u8>)> {
       "qualify document blob keys",
       sha384(include_bytes!("../migrations/1119_qualify_document_blob_keys.sql")),
     ),
+    (
+      1120,
+      "scope document field refresh",
+      sha384(include_bytes!("../migrations/1120_scope_document_field_refresh.sql")),
+    ),
   ]
 }
 

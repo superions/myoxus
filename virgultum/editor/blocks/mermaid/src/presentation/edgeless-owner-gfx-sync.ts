@@ -320,12 +320,10 @@ export class MermaidEdgelessOwnerGfxSync extends GfxExtension {
       .filter((element) =>
         readMermaidGfxMeta(element, "mermaidDetailSourceKey")
           ? element.elementBound.isPointInBound([x, y])
-          : element.includesPoint(
-              x,
-              y,
-              { hitThreshold: 0, responsePadding: [0, 0] },
-              this.std.host,
-            ),
+          : element.includesPoint(x, y, {
+              hitThreshold: 0,
+              responsePadding: [0, 0],
+            }),
       )
       .at(-1);
     if (!hit) return false;

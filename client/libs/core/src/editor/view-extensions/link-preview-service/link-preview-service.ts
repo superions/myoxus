@@ -11,28 +11,15 @@ import type { Container } from "@virgultum/core/primitives/di";
 
 import { ServerService } from "../../../modules/server/services/server";
 
-class MyoxusLinkPreviewService extends LinkPreviewService {
-  constructor(endpoint: string, cache: LinkPreviewCacheProvider) {
-    super(cache);
-    this.setEndpoint(endpoint);
-  }
-}
-
-/**
- * Patch the link preview service, set the endpoint and cache
- * @param framework
- * @returns
- */
-export function patchLinkPreviewService(
-  framework: FrameworkProvider,
-): ExtensionType {
-  // get link preview service endpoint from server and BUILD_CONFIG
+export function workspaceLinkPreview(
+  baseUrl: string,
+  cache: LinkPreviewCacheProvider,
+) {
   let linkPreviewUrl: string;
   try {
-    const server = framework.get(ServerService).server;
     linkPreviewUrl = new URL(
       BUILD_CONFIG.linkPreviewUrl || "/",
-      server.baseUrl,
+      baseUrl,
     ).toString();
   } catch (err) {
     console.error(
@@ -42,11 +29,20 @@ export function patchLinkPreviewService(
     linkPreviewUrl = DEFAULT_LINK_PREVIEW_ENDPOINT;
   }
 
+  const service = new LinkPreviewService(cache);
+  service.setEndpoint(linkPreviewUrl);
+  return service;
+}
+
+export function patchLinkPreviewService(
+  framework: FrameworkProvider,
+): ExtensionType {
+  const baseUrl = framework.get(ServerService).server.baseUrl;
   return {
     setup: (di: Container) => {
       di.override(LinkPreviewServiceIdentifier, (provider) => {
-        return new MyoxusLinkPreviewService(
-          linkPreviewUrl,
+        return workspaceLinkPreview(
+          baseUrl,
           provider.get(LinkPreviewCacheIdentifier),
         );
       });

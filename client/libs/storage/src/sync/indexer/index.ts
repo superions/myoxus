@@ -417,8 +417,11 @@ export class IndexerSyncImpl implements IndexerSync {
         await this.processAcceptedJob(docId, indexVersion, signal);
       }
     } finally {
-      await this.refreshIfNeed();
       unsubscribe();
+      // A clean shutdown can precede the periodic flush. Persist pending
+      // index writes before the worker releases storage and its indexed clocks.
+      if (signal?.aborted) await this.indexer.refreshIfNeed();
+      else await this.refreshIfNeed();
     }
   }
 

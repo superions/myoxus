@@ -9493,6 +9493,7 @@
   "com.myoxus.editor.embed.title-placeholder": "Escribe un título",
   "com.myoxus.editor.embed.description-placeholder": "Escribe una descripción…",
   "com.myoxus.editor.embed.empty": "Contenido incrustado vacío",
+  "com.myoxus.editor.embed.html-title": "Estructura básica de una página HTML",
   "com.myoxus.editor.embed.no-link": "No se encontró ningún enlace",
   "com.myoxus.editor.embed.set-link": "Añade un enlace para este bloque",
   "com.myoxus.editor.mindmap.importing": "Importando mapa mental…",

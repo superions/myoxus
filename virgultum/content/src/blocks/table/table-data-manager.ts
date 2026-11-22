@@ -442,6 +442,107 @@ export class TableDataManager {
       );
   }
 
+  /** Keep coordinates, shared text identity and formatted contents together.
+   * A completed clipboard write may no longer own the cells it copied. */
+  captureArea(selection: TableAreaSelection) {
+    const rows = this.rows$
+      .peek()
+      .slice(selection.rowStartIndex, selection.rowEndIndex + 1);
+    const columns = this.columns$
+      .peek()
+      .slice(selection.columnStartIndex, selection.columnEndIndex + 1);
+    const captured = rows.map(({ rowId }) =>
+      columns.map(({ columnId }) => {
+        const cell = this.getCell(rowId, columnId);
+        return {
+          rowId,
+          columnId,
+          text: cell?.text,
+          delta: JSON.stringify(cell?.text.toDelta()),
+          value: cell?.text.toString() ?? "",
+        };
+      }),
+    );
+    return {
+      values: captured.map((row) => row.map((cell) => cell.value)),
+      clearIfCurrent: () => {
+        if (
+          this.model.store.readonly ||
+          this.model.store.getModelById(this.model.id) !== this.model
+        )
+          return;
+        if (
+          rows.some(
+            (row, i) =>
+              this.rows$.peek()[selection.rowStartIndex + i]?.rowId !==
+              row.rowId,
+          ) ||
+          columns.some(
+            (col, i) =>
+              this.columns$.peek()[selection.columnStartIndex + i]?.columnId !==
+              col.columnId,
+          )
+        )
+          return;
+        const cells = captured.flat();
+        if (
+          cells.some(({ rowId, columnId, text, delta }) => {
+            const cell = this.getCell(rowId, columnId);
+            return (
+              !cell ||
+              cell.textProtection === "fixed" ||
+              cell.text !== text ||
+              JSON.stringify(cell.text.toDelta()) !== delta
+            );
+          })
+        )
+          return;
+        this.clearCells(cells);
+      },
+    };
+  }
+
+  pasteArea(selection: TableAreaSelection, values: string[][]) {
+    const height = values.length,
+      width = Math.max(0, ...values.map((row) => row.length));
+    if (
+      !height ||
+      !width ||
+      this.model.store.readonly ||
+      this.getCellsBySelection(selection).some(
+        (cell) => cell.textProtection === "fixed",
+      )
+    )
+      return;
+    const rows = this.rows$.peek(),
+      columns = this.columns$.peek();
+    this.model.store.captureSync();
+    this.model.store.transact(() => {
+      for (
+        let i = selection.rowStartIndex;
+        i <= selection.rowEndIndex && i < rows.length;
+        i++
+      ) {
+        for (
+          let j = selection.columnStartIndex;
+          j <= selection.columnEndIndex && j < columns.length;
+          j++
+        ) {
+          const text = this.getCell(rows[i].rowId, columns[j].columnId)?.text;
+          if (text)
+            text.replace(
+              0,
+              text.length,
+              values[(i - selection.rowStartIndex) % height][
+                (j - selection.columnStartIndex) % width
+              ] ?? "",
+            );
+        }
+      }
+    });
+    this.model.store.captureSync();
+  }
+
   setCellsBackgroundColor(selection: TableAreaSelection, color?: string) {
     if (this.readonly$.value) return;
     if (

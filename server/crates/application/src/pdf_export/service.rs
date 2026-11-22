@@ -1554,6 +1554,7 @@ impl PdfExportService {
     workspace_id: Uuid,
     identity: Uuid,
     locale: String,
+    title: &str,
   ) -> Result<PdfExportRenderRequest> {
     let assignment = self
       .pdf_assignment_repo
@@ -1573,6 +1574,12 @@ impl PdfExportService {
       template_id: loaded.id.to_string(),
       locale: Some(locale),
       compliance_profile: Some("pdfa-2u".into()),
+      // Schemas that omit title can disallow additional properties.
+      typed_inputs: loaded
+        .manifest
+        .inputs_schema
+        .pointer("/properties/title")
+        .map(|_| serde_json::json!({ "title": title })),
       ..Default::default()
     };
     apply_effective_pdf_defaults(&mut input, &theme, &self.defaults, &self.defaults.main_web_locale)?;
@@ -1596,7 +1603,7 @@ impl PdfExportService {
       page_numbering: input.page_numbering.clone(),
       color_variant: input.color_variant.clone(),
       confidentiality_label: None,
-      typed_inputs: serde_json::Value::Null,
+      typed_inputs: input.typed_inputs.clone().unwrap_or(serde_json::Value::Null),
     };
     if !super::capability_validator::validate_inputs_against_manifest(&check, &loaded.manifest).is_empty() {
       return Err(PdfExportError::new(

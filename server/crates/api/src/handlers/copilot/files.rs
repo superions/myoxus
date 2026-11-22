@@ -86,7 +86,7 @@ impl CopilotFileRenderer for Renderer {
     if format == CopilotFileFormat::Pdf {
       let service = crate::pdf_export_adapter::create_get_service(self.state.clone());
       return service
-        .prepare_snapshot_render(workspace_id, source.message.id, source.locale.clone())
+        .prepare_snapshot_render(workspace_id, source.message.id, source.locale.clone(), &source.title)
         .await
         .map(CopilotFileRenderContext::Pdf)
         .map_err(|e| unavailable(&e.message));

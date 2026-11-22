@@ -109,6 +109,14 @@ export class EdgelessNoteMask extends SignalWatcher(
     });
 
     observer.observe(maskDOM!);
+    // Layout can settle while the store is readonly. Permission changes do
+    // not resize the mask, so replay its last measurement when writes resume.
+    this._disposables.add(
+      this.model.store.readonly$.subscribe((readonly) => {
+        if (!readonly && measuredHeight && !frame)
+          frame = requestAnimationFrame(updateBounds);
+      }),
+    );
 
     this._disposables.add(() => {
       observer.disconnect();

@@ -13,7 +13,6 @@ import {
 } from "../models/index";
 import type { BlockStdScope } from "../runtime/index";
 import { StdIdentifier } from "../runtime/identifier";
-import { Extension } from "../store/index";
 
 import { isInsideEdgelessEditor } from "../utils/dom";
 
@@ -54,38 +53,12 @@ function runtimeThemeColorProbe(theme: ColorScheme) {
   return probe;
 }
 
-export class ThemeService extends Extension {
-  app$: Signal<ColorScheme>;
-
-  edgeless$: Signal<ColorScheme>;
-
-  get appTheme() {
-    return this.app$.peek();
-  }
-
-  get edgelessTheme() {
-    return this.edgeless$.peek();
-  }
-
+/** A painter resolves persisted semantic colors against its own viewport's
+ * scheme; resolving them does not require an editor host. */
+export class ViewportColors {
+  constructor(private readonly scheme: () => ColorScheme) {}
   get theme() {
-    return this.theme$.peek();
-  }
-
-  get theme$() {
-    return isInsideEdgelessEditor(this.std.host) ? this.edgeless$ : this.app$;
-  }
-
-  constructor(private readonly std: BlockStdScope) {
-    super();
-    const extension = this.std.getOptional(ThemeExtensionIdentifier);
-    this.app$ = extension?.getAppTheme?.() || getThemeObserver().theme$;
-    this.edgeless$ =
-      extension?.getEdgelessTheme?.(this.std.store.id) ||
-      getThemeObserver().theme$;
-  }
-
-  static override setup(di: Container) {
-    di.addImpl(ThemeProvider, ThemeService, [StdIdentifier]);
+    return this.scheme();
   }
 
   /**
@@ -181,6 +154,30 @@ export class ThemeService extends Extension {
       return color;
     }
     return property;
+  }
+}
+
+export class ThemeService extends ViewportColors {
+  app$: Signal<ColorScheme>;
+  edgeless$: Signal<ColorScheme>;
+  get appTheme() {
+    return this.app$.peek();
+  }
+  get edgelessTheme() {
+    return this.edgeless$.peek();
+  }
+  get theme$() {
+    return isInsideEdgelessEditor(this.std.host) ? this.edgeless$ : this.app$;
+  }
+  constructor(private readonly std: BlockStdScope) {
+    super(() => this.theme$.peek());
+    const extension = std.getOptional(ThemeExtensionIdentifier);
+    this.app$ = extension?.getAppTheme?.() || getThemeObserver().theme$;
+    this.edgeless$ =
+      extension?.getEdgelessTheme?.(std.store.id) || getThemeObserver().theme$;
+  }
+  static setup(di: Container) {
+    di.addImpl(ThemeProvider, ThemeService, [StdIdentifier]);
   }
 }
 

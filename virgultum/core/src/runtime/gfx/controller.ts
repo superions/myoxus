@@ -8,7 +8,6 @@ import {
 } from "../../primitives/gfx/index";
 import { assertType } from "../../primitives/utils/index";
 import type { BlockModel } from "../../store/index";
-import last from "lodash-es/last";
 
 import { LifeCycleWatcher } from "../extension/lifecycle-watcher.js";
 import type { BlockStdScope } from "../scope/std-scope.js";
@@ -169,37 +168,10 @@ export class GfxController extends LifeCycleWatcher {
       all?: boolean;
     } = { all: false, hitThreshold: 10 },
   ): GfxModel | GfxModel[] | null {
-    options.zoom = this.viewport.zoom;
-    options.hitThreshold ??= 10;
-
-    const hitThreshold = options.hitThreshold;
-    const responsePadding = options.responsePadding ?? [
-      hitThreshold / 2,
-      hitThreshold / 2,
-    ];
-    const all = options.all ?? false;
-    const hitTestBound = {
-      x: x - responsePadding[0],
-      y: y - responsePadding[1],
-      w: responsePadding[0] * 2,
-      h: responsePadding[1] * 2,
-    };
-
-    const candidates = this.grid.search(hitTestBound);
-    const picked = candidates.filter(
-      (elm) =>
-        !("renderViewport" in elm && elm.renderViewport) &&
-        (elm.includesPoint(x, y, options as PointTestOptions, this.std.host) ||
-          elm.externalBound?.isPointInBound([x, y])),
-    );
-
-    picked.sort(this.layer.compare);
-
-    if (all) {
-      return picked;
-    }
-
-    return last(picked) ?? null;
+    const hits = this.grid
+      .hitsAt(x, y, { ...options, zoom: this.viewport.zoom })
+      .sort(this.layer.compare);
+    return options.all ? hits : (hits.at(-1) ?? null);
   }
 
   /**

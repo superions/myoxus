@@ -1,0 +1,362 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+import { autoUpdate } from "@floating-ui/dom";
+import { useI18n } from "@myoxus/i18n";
+import { LiveData, useLiveData, useService } from "@myoxus/infra";
+import { PeekViewService } from "../../../modules/peek-view/services/peek-view";
+import {
+  defaultAttachmentProps,
+  type AttachmentBlockModel,
+  type ImageBlockModel,
+} from "@virgultum/core/models";
+import { Bound } from "@virgultum/core/primitives/gfx";
+import { EMBED_CARD_HEIGHT, EMBED_CARD_WIDTH } from "@virgultum/core/consts";
+import { ResourceController } from "@virgultum/core/resource";
+import type {
+  EditorSelectionState,
+  SelectionAction,
+} from "@virgultum/core/services";
+import { formatSize } from "@virgultum/core/utils";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  lazy,
+  Suspense,
+  useRef,
+  useState,
+  type ClipboardEvent,
+} from "react";
+import {
+  TextAttachmentPreview,
+  textAttachmentFormat,
+} from "../../attachment-viewer/text/text-preview";
+import { EditorAttachmentCard } from "../../view-extensions/editor-view/editor-chrome/attachment-card";
+import { EditorSelectionToolbar } from "../../view-extensions/editor-view/editor-chrome/selection-toolbar";
+import { attachmentFileLimit } from "../../view-extensions/editor-view/file-size-limit";
+import type { PageIntent } from "./plain-page-input";
+const MediaPreview = lazy(async () => ({
+  default: (await import("../../attachment-viewer/attachment-embed-preview"))
+    .AttachmentEmbedPreview,
+}));
+
+export function usePageResource(
+  model: AttachmentBlockModel | ImageBlockModel,
+  type?: string,
+) {
+  const resource = useMemo(
+    () =>
+      new ResourceController(
+        model.props.sourceId$,
+        model.flavour === "myoxus:image" ? "Image" : "File",
+      ).setEngine(model.store.blobSync),
+    [model],
+  );
+  const state = useLiveData(
+    useMemo(() => LiveData.fromSignal(resource.resolvedState$), [resource]),
+  );
+  const source = model.props.sourceId;
+  useLayoutEffect(() => {
+    const stop = resource.subscribe();
+    void resource.refreshUrlWith(type);
+    return () => {
+      stop();
+      resource.dispose();
+    };
+  }, [resource, source, type]);
+  return { resource, state };
+}
+export default function PageAttachment({
+  model,
+  readonly,
+  handoff,
+}: {
+  model: AttachmentBlockModel;
+  readonly: boolean;
+  handoff: (intent: PageIntent) => void;
+}) {
+  const t = useI18n();
+  const peekView = useService(PeekViewService).peekView;
+  const block = useRef<HTMLDivElement>(null);
+  const [selected, select] = useState(false);
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const { sourceId, type, embed, name, size, style } = model.props;
+  const media =
+    type === "application/pdf"
+      ? "pdf"
+      : type.startsWith("video/")
+        ? "video"
+        : type.startsWith("audio/")
+          ? "audio"
+          : textAttachmentFormat(name, type)
+            ? "text"
+            : undefined;
+  const { state, resource } = usePageResource(model, type);
+  useLayoutEffect(() => {
+    if (!selected || !anchor || !block.current) return;
+    const target = block.current;
+    return autoUpdate(target, anchor, () => {
+      const rect = target.getBoundingClientRect();
+      Object.assign(anchor.style, {
+        position: "fixed",
+        pointerEvents: "none",
+        left: `${rect.left}px`,
+        top: `${rect.top}px`,
+        width: `${rect.width}px`,
+        height: `${rect.height}px`,
+      });
+    });
+  }, [selected, anchor]);
+  useEffect(() => {
+    if (!selected) return;
+    const leave = (event: PointerEvent) => {
+      if (
+        event.target instanceof Element &&
+        !block.current?.contains(event.target) &&
+        !event.target.closest('[data-testid="selection-toolbar"]')
+      )
+        select(false);
+    };
+    document.addEventListener("pointerdown", leave, true);
+    return () => document.removeEventListener("pointerdown", leave, true);
+  }, [selected]);
+  const focus = () => block.current?.focus({ preventScroll: true });
+  const current = () =>
+    !readonly &&
+    !model.store.readonly &&
+    model.store.getModelById(model.id) === model;
+  const command = (control: string) =>
+    handoff({ kind: "block-command", id: model.id, control });
+  const peek = () => {
+    if (!current() || !type.endsWith("pdf")) return;
+    const element = model.store.getBlock(model.id);
+    if (element) void peekView.open({ element }).catch(console.error);
+  };
+  const advanced = (
+    id: string,
+    label: string,
+    icon: SelectionAction["icon"],
+  ): SelectionAction => ({
+    id,
+    label,
+    icon,
+    disabled: false,
+    run: () => command(id),
+  });
+  const snapshot: EditorSelectionState = {
+    open: selected && !readonly,
+    key: model.id,
+    placement: "top",
+    more: [],
+    primary: [
+      advanced("a.rename", t.Rename(), "EditIcon"),
+      {
+        id: "b.conversions",
+        label: t["com.myoxus.keyboardShortcuts.switch"](),
+        disabled: false,
+        control: {
+          type: "choice",
+          value: embed ? "embed" : "card",
+          options: [
+            {
+              value: "card",
+              label: t["com.myoxus.editor.toolbar.card-view"](),
+              disabled: !embed,
+            },
+            {
+              value: "embed",
+              label: t["com.myoxus.editor.toolbar.embed-view"](),
+              disabled:
+                !!embed ||
+                !media ||
+                !state.url ||
+                state.state !== "none" ||
+                size > attachmentFileLimit.maxFileSize,
+            },
+          ],
+          change(value) {
+            if (!current() || (value !== "card" && value !== "embed")) return;
+            if (
+              value === "embed" &&
+              (!media ||
+                !resource.blobUrl$.peek() ||
+                model.props.size > attachmentFileLimit.maxFileSize)
+            )
+              return;
+            model.store.captureSync();
+            if (value === "embed" && (media === "pdf" || media === "video")) {
+              const bounds = Bound.deserialize(model.xywh);
+              bounds.w = EMBED_CARD_WIDTH[media];
+              bounds.h = EMBED_CARD_HEIGHT[media];
+              model.store.updateBlock(model, {
+                embed: true,
+                style: media,
+                xywh: bounds.serialize(),
+              });
+            } else if (value === "embed")
+              model.store.updateBlock(model, { embed: true });
+            else {
+              const style = defaultAttachmentProps.style!;
+              const bounds = Bound.deserialize(model.xywh);
+              bounds.w = EMBED_CARD_WIDTH[style];
+              bounds.h = EMBED_CARD_HEIGHT[style];
+              model.store.updateBlock(model, {
+                style,
+                embed: false,
+                xywh: bounds.serialize(),
+              });
+            }
+            model.store.captureSync();
+            queueMicrotask(focus);
+          },
+        },
+      },
+      advanced(
+        "c.replace",
+        t["com.myoxus.editor.toolbar.replace-attachment"](),
+        "ReplaceIcon",
+      ),
+      {
+        id: "d.download",
+        label: t["com.myoxus.attachment.download"](),
+        icon: "DownloadIcon",
+        disabled: !state.url,
+        run: () => {
+          const url = resource.blobUrl$.peek();
+          if (!url || model.props.sourceId !== sourceId) return;
+          const link = document.createElement("a");
+          link.download = model.props.name;
+          link.href = url;
+          link.click();
+        },
+      },
+      advanced(
+        "e.caption",
+        t["com.myoxus.editor.toolbar.caption"](),
+        "CaptionIcon",
+      ),
+    ],
+  };
+  const clipboard = (e: ClipboardEvent, action: "copy" | "cut" | "paste") => {
+    if (
+      document.activeElement !== block.current ||
+      !document.getSelection()?.isCollapsed
+    )
+      return;
+    e.preventDefault();
+    const data = new DataTransfer();
+    if (action === "paste") {
+      for (const key of e.clipboardData.types)
+        if (key !== "Files") data.setData(key, e.clipboardData.getData(key));
+      for (const file of e.clipboardData.files) data.items.add(file);
+    }
+    if (action === "copy" || current())
+      handoff({ kind: "block-command", id: model.id, clipboard: action, data });
+  };
+  return (
+    <div
+      data-page-attachment={model.id}
+      data-block-id={model.id}
+      contentEditable={false}
+      ref={block}
+      tabIndex={-1}
+      onClick={(e) => {
+        select(true);
+        if (!(
+          e.target instanceof Element &&
+          e.target.closest("button,input,select,a,video,audio")
+        )) {
+          if (e.shiftKey) peek();
+          else focus();
+        }
+      }}
+      onDoubleClick={(e) => {
+        if (!(
+          e.target instanceof Element &&
+          e.target.closest("button,input,select,a,video,audio")
+        ))
+          peek();
+      }}
+      onKeyDown={(e) => {
+        if (e.target !== block.current || !current()) return;
+        if (
+          (e.ctrlKey || e.metaKey) &&
+          ["z", "y"].includes(e.key.toLowerCase())
+        ) {
+          e.preventDefault();
+          e.key.toLowerCase() === "y" || e.shiftKey
+            ? model.store.redo()
+            : model.store.undo();
+        } else if (e.key === "Delete" || e.key === "Backspace") {
+          e.preventDefault();
+          model.store.captureSync();
+          model.store.deleteBlock(model);
+          model.store.captureSync();
+        }
+      }}
+      onCopy={(e) => clipboard(e, "copy")}
+      onCut={(e) => clipboard(e, "cut")}
+      onPaste={(e) => clipboard(e, "paste")}
+    >
+      {embed &&
+      media &&
+      state.url &&
+      size <= attachmentFileLimit.maxFileSize &&
+      !state.error ? (
+        media === "text" ? (
+          <TextAttachmentPreview model={model} blobUrl={state.url} />
+        ) : media === "video" ? (
+          <video key={sourceId} src={state.url} controls aria-label={name} />
+        ) : (
+          <Suspense fallback={null}>
+            <MediaPreview key={sourceId} model={model} />
+          </Suspense>
+        )
+      ) : (
+        <EditorAttachmentCard
+          controls={{
+            inSurface: false,
+            selected,
+            title: name,
+            description:
+              (state.error && resource.state$.peek().errorMessage) ||
+              formatSize(size) ||
+              "",
+            fileType: name.split(".").pop() ?? "",
+            loading: state.loading,
+            error: state.error,
+            vertical: style === "cubeThick",
+            action:
+              state.state === "error:oversize"
+                ? readonly
+                  ? undefined
+                  : { kind: "limit", run: attachmentFileLimit.onOverFileSize }
+                : state.error
+                  ? {
+                      kind: state.needUpload ? "retry" : "reload",
+                      run: () => {
+                        if (state.needUpload) {
+                          if (current())
+                            void resource.upload().catch(console.error);
+                        } else void resource.refreshUrlWith(type);
+                      },
+                    }
+                  : undefined,
+          }}
+        />
+      )}
+      {selected && !readonly && (
+        <EditorSelectionToolbar
+          controls={{
+            getSnapshot: () => snapshot,
+            subscribe: () => () => {},
+            setAnchor,
+            setFloating: () => {},
+            dismiss: () => select(false),
+            activate: focus,
+          }}
+          openMore={() => command("selection-more")}
+        />
+      )}
+    </div>
+  );
+}

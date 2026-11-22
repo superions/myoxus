@@ -43,13 +43,9 @@ import {
   EMBED_IFRAME_DEFAULT_CONTAINER_BORDER_RADIUS,
 } from "./consts.js";
 import { embedIframeBlockStyles } from "./style.js";
-import { safeGetIframeSrc } from "./utils.js";
+import { iframeSandbox, safeGetIframeSrc } from "./utils.js";
 
 export type EmbedIframeStatus = "idle" | "loading" | "success" | "error";
-
-const TRUSTED_SANDBOX =
-  "allow-same-origin allow-scripts allow-forms allow-presentation";
-const UNTRUSTED_SANDBOX = "allow-scripts";
 
 export class EmbedIframeBlockComponent extends CaptionedBlockComponent<EmbedIframeBlockModel> {
   private _text(message: EditorI18nMessage) {
@@ -102,7 +98,6 @@ export class EmbedIframeBlockComponent extends CaptionedBlockComponent<EmbedIfra
   });
 
   protected iframeOptions: IframeOptions | undefined = undefined;
-  private currentConfigName: string | undefined;
 
   get embedIframeService() {
     return this.std.get(EmbedIframeService);
@@ -202,6 +197,25 @@ export class EmbedIframeBlockComponent extends CaptionedBlockComponent<EmbedIfra
   };
 
   private _linkInputAbortController: AbortController | null = null;
+  /** Continue the Page form on the mounted command owner, including an error
+   * whose status card has not finished its first asynchronous refresh. */
+  resumeLinkInput() {
+    if (!this._blockContainer || !this.isConnected || this.readonly) return;
+    if (!this.model.props.url) {
+      this.toggleLinkInputPopup();
+      return;
+    }
+    this._linkInputAbortController?.abort();
+    this._linkInputAbortController = new AbortController();
+    openIframeLinkEditor(
+      this.std,
+      this.model,
+      this._blockContainer,
+      this._linkInputAbortController,
+      this.inSurface,
+      true,
+    );
+  }
   toggleLinkInputPopup = (options?: EmbedLinkInputPopupOptions) => {
     if (this.readonly) {
       return;
@@ -243,10 +257,8 @@ export class EmbedIframeBlockComponent extends CaptionedBlockComponent<EmbedIfra
     const config = this.embedIframeService?.getConfig(url);
     if (config) {
       this.iframeOptions = config.options;
-      this.currentConfigName = config.name;
     } else {
       this.iframeOptions = undefined;
-      this.currentConfigName = undefined;
     }
   };
 
@@ -296,17 +308,14 @@ export class EmbedIframeBlockComponent extends CaptionedBlockComponent<EmbedIfra
       referrerpolicy,
       scrolling,
       allowFullscreen,
-      sandbox,
     } = this.iframeOptions ?? {};
     const width = `${widthPercent}%`;
     // if the block is in the surface, use 100% as the height
     // otherwise, use the heightInNote
     const height = this.inSurface ? "100%" : heightInNote;
-    const sandboxValue =
-      sandbox ??
-      (this.currentConfigName === "generic"
-        ? UNTRUSTED_SANDBOX
-        : TRUSTED_SANDBOX);
+    const sandboxValue = iframeSandbox(
+      this.embedIframeService.getConfig(this.model.props.url),
+    );
     const sourceHost = this._getSourceHost();
     return html`<iframe
         width=${width ?? DEFAULT_IFRAME_WIDTH}

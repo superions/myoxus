@@ -16,8 +16,7 @@ import {
   ungroupIndex,
   updateLayersZIndex,
 } from "../utils/layer.js";
-import { GfxExtension } from "./extension.js";
-import type { GfxController } from "./index.js";
+import { CanvasIndex, type CanvasIndexSource } from "./extension.js";
 import {
   type GfxGroupCompatibleInterface,
   isGfxGroupCompatibleModel,
@@ -67,7 +66,7 @@ export type CanvasLayer = BaseLayer<GfxPrimitiveElementModel> & {
 
 export type Layer = BlockLayer | CanvasLayer;
 
-export class LayerManager extends GfxExtension {
+export class LayerManager extends CanvasIndex {
   static override key = "layerManager";
 
   static INITIAL_INDEX = "a0";
@@ -75,11 +74,11 @@ export class LayerManager extends GfxExtension {
   private readonly _disposable = new DisposableGroup();
 
   private get _doc() {
-    return this.std.store;
+    return this.source.doc;
   }
 
   private get _surface() {
-    return this.gfx.surface;
+    return this.source.surface;
   }
 
   blocks: GfxBlockElementModel[] = [];
@@ -110,7 +109,7 @@ export class LayerManager extends GfxExtension {
     }>(),
   };
 
-  constructor(gfx: GfxController) {
+  constructor(gfx: CanvasIndexSource) {
     super(gfx);
     this._reset();
   }
@@ -733,7 +732,7 @@ export class LayerManager extends GfxExtension {
    * @returns
    */
   createIndexGenerator() {
-    const manager = new LayerManager(this.gfx);
+    const manager = new LayerManager(this.source);
     manager._reset();
 
     return () => {
@@ -1049,11 +1048,11 @@ export class LayerManager extends GfxExtension {
       );
     };
 
-    if (this.gfx.surface) {
-      watchSurface(this.gfx.surface);
+    if (this.source.surface) {
+      watchSurface(this.source.surface);
     } else {
       this._disposable.add(
-        this.gfx.surface$.subscribe((surface) => {
+        this.source.surface$.subscribe((surface) => {
           if (surface) {
             watchSurface(surface);
           }

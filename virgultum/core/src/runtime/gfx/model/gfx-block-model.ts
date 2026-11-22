@@ -26,7 +26,6 @@ import {
   lockElementImpl,
   unlockElementImpl,
 } from "../../utils/tree.js";
-import type { EditorHost } from "../../view/index.js";
 import type { GfxCompatibleInterface, PointTestOptions } from "./base.js";
 import type { GfxGroupModel } from "./model.js";
 import type { SurfaceBlockModel } from "./surface/surface-model.js";
@@ -242,12 +241,7 @@ export class GfxBlockElementModel<
     return new PointLocation(rotatePoint, tangent);
   }
 
-  includesPoint(
-    x: number,
-    y: number,
-    opt: PointTestOptions,
-    __: EditorHost,
-  ): boolean {
+  includesPoint(x: number, y: number, opt: PointTestOptions): boolean {
     const bound = opt.useElementBound ? this.elementBound : this.responseBound;
     return bound.isPointInBound([x, y], 0);
   }

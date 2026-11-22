@@ -111,6 +111,63 @@ fn indexer(pool: &sqlx::PgPool) -> SearchIndexerService {
   )
 }
 
+/// Inventory cursors must not enqueue field reindexing. Real defaults still
+/// refresh an as-yet unindexed document, but only in the affected workspace.
+#[tokio::test]
+async fn inv_search_field_refresh_respects_workspace_revision_kind_and_owner() {
+  let pool = helpers::setup_pool().await;
+  let mut tx = pool.begin().await.unwrap();
+  let workspaces = [Uuid::new_v4(), Uuid::new_v4()];
+  let docs = [Uuid::new_v4(), Uuid::new_v4()];
+  for (&workspace, &doc) in workspaces.iter().zip(&docs) {
+    sqlx::query("INSERT INTO workspaces(id,name) VALUES($1,'Field scope')")
+      .bind(workspace)
+      .execute(&mut *tx)
+      .await
+      .unwrap();
+    sqlx::query("INSERT INTO docs(id,workspace_id,external_id,title) VALUES($1,$2,$1::uuid::text,'Pending index')")
+      .bind(doc)
+      .bind(workspace)
+      .execute(&mut *tx)
+      .await
+      .unwrap();
+  }
+  let ids = docs.map(|doc| doc.to_string());
+  let targets = "SELECT aggregate_id FROM outbox_events WHERE event_type='doc_updated'
+    AND payload->>'fieldContextChanged'='true' AND aggregate_id=ANY($1) ORDER BY aggregate_id";
+  for function in [
+    "bump_workspace_document_metadata_index_revision",
+    "bump_workspace_database_page_inventory_revision",
+  ] {
+    sqlx::query(&format!("SELECT {function}($1)"))
+      .bind(workspaces[0])
+      .execute(&mut *tx)
+      .await
+      .unwrap();
+  }
+  let inventory: Vec<String> = sqlx::query_scalar(targets)
+    .bind(&ids[..])
+    .fetch_all(&mut *tx)
+    .await
+    .unwrap();
+  assert!(
+    inventory.is_empty(),
+    "inventory changes queued field refreshes: {inventory:?}"
+  );
+  sqlx::query("SELECT bump_workspace_document_metadata_epoch($1,'defaults')")
+    .bind(workspaces[0])
+    .execute(&mut *tx)
+    .await
+    .unwrap();
+  let defaults: Vec<String> = sqlx::query_scalar(targets)
+    .bind(&ids[..])
+    .fetch_all(&mut *tx)
+    .await
+    .unwrap();
+  assert_eq!(defaults, [ids[0].clone()]);
+  tx.rollback().await.unwrap();
+}
+
 /// Snapshot and delta jobs must update the single canonical row and rebuild
 /// its persisted `simple` search vector.
 #[tokio::test]
@@ -637,7 +694,14 @@ async fn inv_native_document_search_outbox_retries_without_opening_a_page() {
     let generated:Vec<Uuid>=sqlx::query_scalar("SELECT id FROM outbox_events WHERE event_type='doc_updated' AND payload->>'docId'=$1 AND payload->>'fieldContextChanged'='true' AND processed_at IS NULL")
       .bind(doc.to_string()).fetch_all(&pool).await.unwrap();
     assert!(generated.len()>=4, "metadata, profile, catalog and startup must each retain a committed refresh intent");
+    let before=queue.payloads.lock().unwrap().len();
+    queue.lose_reply.store(true, Ordering::SeqCst);
+    assert!(repository.process_document_search_update(generated[0],&indexer).await.is_err());
+    let pending:i64=sqlx::query_scalar("SELECT count(*) FROM outbox_events WHERE id=ANY($1) AND processed_at IS NULL")
+      .bind(&generated).fetch_one(&pool).await.unwrap();
+    assert_eq!(pending,generated.len() as i64);
     for event in &generated { repository.process_document_search_update(*event,&indexer).await.unwrap(); }
+    assert_eq!(queue.payloads.lock().unwrap().len()-before,2,"one uncertain delivery and one acknowledged retry cover the committed field changes");
     events.extend(generated);
     let payloads=queue.payloads.lock().unwrap().clone();
     for _ in &payloads[2..] {

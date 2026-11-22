@@ -41,6 +41,22 @@ export const AnnotationBlockSchemaExtension = BlockSchemaExtension(
 );
 
 export class AnnotationBlockModel extends BlockModel<AnnotationProps> {
+  /** A draft is relative to its opening body: never replace a newer peer edit. */
+  applyBody(body: string, expected: string) {
+    const text = this.props.text;
+    if (
+      this.store.readonly ||
+      this.store.getModelById(this.id) !== this ||
+      text.toString() !== expected
+    )
+      return false;
+    if (body !== expected) {
+      this.store.captureSync();
+      text.replace(0, text.length, body, {});
+      this.store.captureSync();
+    }
+    return true;
+  }
   override isEmpty(): boolean {
     return this.props.text.length === 0;
   }

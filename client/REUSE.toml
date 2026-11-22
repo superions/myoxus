@@ -5834,6 +5834,7 @@ path = [
   "libs/core/src/editor/ai/widgets/block-diff/view.tsx",
   "libs/core/src/editor/ai/widgets/native-ui.ts",
   "libs/core/src/editor/view-extensions/editor-view/document-index.tsx",
+  "libs/core/src/editor/view-extensions/editor-view/document-index-host.tsx",
   "libs/core/src/modules/doc/services/document-index.ts",
 ]
 precedence = "override"
@@ -5940,12 +5941,43 @@ path = [
   "libs/core/src/components/document-links/use-document-link-counts.ts",
   "libs/core/src/editor/virgultum/doc-editor/legacy-entry.ts",
   "libs/core/src/editor/virgultum/doc-editor/page-handoff.ts",
+  "libs/core/src/editor/virgultum/doc-editor/page-equation.tsx",
+  "libs/core/src/editor/virgultum/doc-editor/page-event.tsx",
+  "libs/core/src/editor/virgultum/doc-editor/page-attachment.tsx",
+  "libs/core/src/editor/virgultum/doc-editor/page-table.tsx",
+  "libs/core/src/editor/virgultum/doc-editor/page-inline-object.tsx",
+  "libs/core/src/editor/virgultum/doc-editor/page-picker.tsx",
+  "libs/core/src/editor/virgultum/doc-editor/page-bookmark.tsx",
+  "libs/core/src/editor/virgultum/doc-editor/page-footnote.tsx",
+  "libs/core/src/editor/virgultum/doc-editor/page-textarea.ts",
+  "libs/core/src/editor/virgultum/doc-editor/page-code.tsx",
+  "libs/core/src/editor/virgultum/doc-editor/page-provider-player.tsx",
+  "libs/core/src/editor/virgultum/doc-editor/page-link.tsx",
+  "libs/core/src/editor/virgultum/doc-editor/page-document-card.tsx",
+  "libs/core/src/editor/virgultum/doc-editor/page-image.tsx",
+  "libs/core/src/editor/attachment-viewer/text/format.ts",
   "libs/core/src/editor/virgultum/doc-editor/page-input-lease.ts",
   "libs/core/src/editor/virgultum/doc-editor/page-interaction.ts",
+  "libs/core/src/editor/virgultum/doc-editor/page-renderer-context.ts",
   "libs/core/src/editor/virgultum/doc-editor/plain-page-formatting.tsx",
   "libs/core/src/editor/virgultum/doc-editor/plain-page-input.ts",
   "libs/core/src/editor/virgultum/doc-editor/plain-page-model.ts",
   "libs/core/src/editor/virgultum/doc-editor/plain-page-view.tsx",
   "libs/core/src/editor/virgultum/doc-editor/view-entry.tsx",
   "libs/core/src/modules/peek-view/view/peek-view-entry.tsx",
+]
+
+[[annotations]]
+SPDX-FileCopyrightText  = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+X-Myoxus-Origin         = "M0"
+path                    = ["libs/core/src/editor/virgultum/doc-editor/page-citation.tsx"]
+
+[[annotations]]
+SPDX-FileCopyrightText = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+X-Myoxus-Origin = "M0"
+path = [
+  "libs/core/src/editor/virgultum/doc-editor/canvas-preview.tsx",
+  "libs/core/src/editor/virgultum/doc-editor/raster-surface.ts",
 ]

@@ -584,14 +584,13 @@ async function focusVirgultumLine(
             const editor = document.querySelector(
               `[data-testid="editor-${CSS.escape(docId)}"]`,
             );
-            const paragraphs = editor
-              ? [...editor.querySelectorAll("myoxus-paragraph")].filter(
-                  (paragraph) => paragraph.textContent?.includes(paragraphText),
-                )
+            const lines = editor
+              ? [
+                  ...editor.querySelectorAll(
+                    "[data-page-body] [data-page-text]",
+                  ),
+                ].filter((line) => line.textContent?.includes(paragraphText))
               : [];
-            const lines = paragraphs.flatMap((paragraph) => [
-              ...paragraph.querySelectorAll("v-line"),
-            ]);
             const rect = lines[0]?.getBoundingClientRect();
             return {
               count: lines.length,
@@ -618,12 +617,15 @@ async function focusVirgultumLine(
             const editor = document.querySelector(
               `[data-testid="editor-${CSS.escape(docId)}"]`,
             );
-            const paragraph = editor
-              ? [...editor.querySelectorAll("myoxus-paragraph")].find(
-                  (candidate) => candidate.textContent?.includes(paragraphText),
+            const line = editor
+              ? [
+                  ...editor.querySelectorAll(
+                    "[data-page-body] [data-page-text]",
+                  ),
+                ].find((candidate) =>
+                  candidate.textContent?.includes(paragraphText),
                 )
               : undefined;
-            const line = paragraph?.querySelector("v-line");
             const anchor = getSelection()?.anchorNode;
             return Boolean(line && anchor && line.contains(anchor));
           },
@@ -849,16 +851,9 @@ export async function createElectronDocument(
   await waitForRendererElement(renderer, editorSelector, {
     message: `Electron document editor ${docId} must be visible`,
   });
-  await clickRendererElement(
-    renderer,
-    `${editorSelector} doc-title .doc-title-container`,
-    { message: "Electron document title must be interactive" },
-  );
-  await waitForRendererElement(
-    renderer,
-    `${editorSelector} doc-title .inline-editor`,
-    { message: "Electron document title editor must be visible" },
-  );
+  await clickRendererElement(renderer, `${editorSelector} [data-page-title]`, {
+    message: "Electron document title must be interactive",
+  });
   await renderer.press("a", [
     process.platform === "darwin" ? "Meta" : "Control",
   ]);
@@ -870,7 +865,7 @@ export async function createElectronDocument(
       () =>
         renderer.evaluate((selector) => {
           const lines = document.querySelectorAll(
-            `${selector} myoxus-paragraph v-line`,
+            `${selector} [data-page-body] [data-page-text]`,
           );
           const anchor = getSelection()?.anchorNode;
           return {
@@ -888,18 +883,22 @@ export async function createElectronDocument(
   await renderer.insertText(initialContent);
   await waitForRendererElement(
     renderer,
-    `${editorSelector} doc-title .doc-title-container`,
+    `${editorSelector} [data-page-title]`,
     {
       message: "Electron document title must commit",
       text: title,
       timeout: 20_000,
     },
   );
-  await waitForRendererElement(renderer, `${editorSelector} myoxus-paragraph`, {
-    message: "Electron document body must commit",
-    text: initialContent,
-    timeout: 20_000,
-  });
+  await waitForRendererElement(
+    renderer,
+    `${editorSelector} [data-page-body] [data-page-text]`,
+    {
+      message: "Electron document body must commit",
+      text: initialContent,
+      timeout: 20_000,
+    },
+  );
   return docId;
 }
 
@@ -1001,12 +1000,13 @@ export async function openLiveDocumentInWeb(
     .toContain(`/${docId}`);
   const editor = documentEditor(session.page, docId);
   await expect(editor).toBeVisible({ timeout: 20_000 });
-  await expect(editor.locator("doc-title .doc-title-container")).toContainText(
-    title,
-    { timeout: 20_000 },
-  );
+  await expect(editor.locator("[data-page-title]")).toContainText(title, {
+    timeout: 20_000,
+  });
   await expect(
-    editor.locator("myoxus-paragraph").filter({ hasText: initialContent }),
+    editor
+      .locator("[data-page-body] [data-page-text]")
+      .filter({ hasText: initialContent }),
   ).toBeVisible({ timeout: 20_000 });
 }
 
@@ -1019,12 +1019,11 @@ export async function appendElectronContent(
   await focusVirgultumLine(renderer, docId, initialContent);
   const paragraphEnd = await renderer.evaluate(
     ({ docId, initialContent }) => {
-      const paragraph = [
+      const line = [
         ...document.querySelectorAll(
-          `[data-testid="editor-${CSS.escape(docId)}"] myoxus-paragraph`,
+          `[data-testid="editor-${CSS.escape(docId)}"] [data-page-body] [data-page-text]`,
         ),
       ].find((candidate) => candidate.textContent?.includes(initialContent));
-      const line = paragraph?.querySelector("v-line");
       if (!line) return null;
       const range = document.createRange();
       range.selectNodeContents(line);
@@ -1048,7 +1047,7 @@ export async function appendElectronContent(
   await renderer.insertText(` ${content}`);
   await clickRendererElement(
     renderer,
-    `[data-testid="editor-${docId}"] doc-title .doc-title-container`,
+    `[data-testid="editor-${docId}"] [data-page-title]`,
     {
       message:
         "Electron live-sync mutation must leave the contenteditable before sync is asserted",
@@ -1056,7 +1055,7 @@ export async function appendElectronContent(
   );
   await waitForRendererElement(
     renderer,
-    `[data-testid="editor-${docId}"] myoxus-paragraph`,
+    `[data-testid="editor-${docId}"] [data-page-body] [data-page-text]`,
     {
       message: "Electron live-sync body mutation must commit",
       text: `${initialContent} ${content}`,
@@ -1087,7 +1086,7 @@ export async function assertWebReceivesContentWithoutReload(
     await mutateElectron();
     await expect(
       documentEditor(session.page, docId)
-        .locator("myoxus-paragraph")
+        .locator("[data-page-body] [data-page-text]")
         .filter({ hasText: `${initialContent} ${content}` }),
     ).toBeVisible({ timeout: 30_000 });
   } finally {
@@ -1099,7 +1098,7 @@ export async function assertWebReceivesContentWithoutReload(
   ).toBe(0);
   expect(session.page.url()).toBe(urlBefore);
   const observedContent = await documentEditor(session.page, docId)
-    .locator("myoxus-paragraph")
+    .locator("[data-page-body] [data-page-text]")
     .filter({ hasText: `${initialContent} ${content}` })
     .innerText();
   return {
@@ -1154,7 +1153,7 @@ export async function proveOfflineDocumentPersistence(
   });
   await waitForRendererElement(
     renderer,
-    `${editorSelector} doc-title .doc-title-container`,
+    `${editorSelector} [data-page-title]`,
     {
       message:
         "The restarted Electron profile must render the document title offline",
@@ -1162,12 +1161,16 @@ export async function proveOfflineDocumentPersistence(
       timeout: 30_000,
     },
   );
-  await waitForRendererElement(renderer, `${editorSelector} myoxus-paragraph`, {
-    message:
-      "The restarted Electron profile must render the synced body from local persistence while offline",
-    text: content,
-    timeout: 30_000,
-  });
+  await waitForRendererElement(
+    renderer,
+    `${editorSelector} [data-page-body] [data-page-text]`,
+    {
+      message:
+        "The restarted Electron profile must render the synced body from local persistence while offline",
+      text: content,
+      timeout: 30_000,
+    },
+  );
   return {
     content,
     docId,

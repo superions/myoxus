@@ -33,6 +33,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./gfx": "./src/entries/gfx.ts",
+    "./painters": "./src/entries/painters.ts",
     "./store": "./src/entries/store.ts",
     "./view": "./src/entries/view.ts",
     "./blocks": "./src/entries/blocks.ts",

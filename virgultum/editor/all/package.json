@@ -171,6 +171,7 @@
     "./fragments/outline": "./src/fragments/outline/index.ts",
     "./fragments/outline/view": "./src/fragments/outline/view.ts",
     "./gfx/text": "./src/gfx/text/index.ts",
+    "./gfx/painters": "./src/gfx/painters.ts",
     "./gfx/text/store": "./src/gfx/text/store.ts",
     "./gfx/text/view": "./src/gfx/text/view.ts",
     "./gfx/brush": "./src/gfx/brush/index.ts",

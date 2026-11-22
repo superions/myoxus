@@ -47,6 +47,26 @@ const LocalPropsSchema = z.object({
   autoHideEmbedHTMLFullScreenToolbar: z.boolean(),
 });
 
+export const canvasCameraStorage = (docId: string) => {
+  const key = `virgultum:${docId}:edgelessViewport`;
+  return {
+    key,
+    read() {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw
+          ? LocalPropsSchema.shape.viewport.parse(JSON.parse(raw))
+          : null;
+      } catch {
+        return null;
+      }
+    },
+    write(value: LocalProps["viewport"]) {
+      localStorage.setItem(key, JSON.stringify(value));
+    },
+  };
+};
+
 type SessionProps = z.infer<typeof SessionPropsSchema>;
 type LocalProps = z.infer<typeof LocalPropsSchema>;
 type StorageProps = SessionProps & LocalProps;
@@ -121,7 +141,7 @@ export class EditPropsStore extends LifeCycleWatcher {
     const id = this.std.store.id;
     switch (key) {
       case "viewport":
-        return "virgultum:" + id + ":edgelessViewport";
+        return canvasCameraStorage(id).key;
       case "presentBlackBackground":
         return "virgultum:presentation:blackBackground";
       case "presentFillScreen":

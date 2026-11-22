@@ -80,7 +80,8 @@ function createRebuildLifecycle(options?: { failCommit?: boolean }) {
   } as unknown as DocStorage;
   const indexer = {
     isReadonly: false,
-    recommendRefreshInterval: 0,
+    // A quick restart must flush even before SQLite's first periodic refresh.
+    recommendRefreshInterval: 30_000,
     connection: { waitForConnected },
     indexVersion: vi.fn(async () => 30),
     indexState: vi.fn(async () => "rebuilding"),

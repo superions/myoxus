@@ -1,5 +1,17 @@
 import { EmbedIframeService } from "@virgultum/core/services/data";
 import type { BlockStdScope } from "@virgultum/core/runtime";
+import type { EmbedIframeConfig } from "@virgultum/core/services/data";
+
+/** Persisted iframe URLs are document content. A missing provider never grants
+ * same-origin privileges, even when a formerly supported config disappears. */
+export function iframeSandbox(config: EmbedIframeConfig | undefined) {
+  return (
+    config?.options?.sandbox ??
+    (!config || config.name === "generic"
+      ? "allow-scripts"
+      : "allow-same-origin allow-scripts allow-forms allow-presentation")
+  );
+}
 
 /**
  * The options for the embed iframe url validation

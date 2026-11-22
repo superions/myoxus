@@ -9493,6 +9493,7 @@
   "com.myoxus.editor.embed.title-placeholder": "Titel eingeben",
   "com.myoxus.editor.embed.description-placeholder": "Beschreibung eingeben…",
   "com.myoxus.editor.embed.empty": "Leere Einbettung",
+  "com.myoxus.editor.embed.html-title": "Grundstruktur einer HTML-Seite",
   "com.myoxus.editor.embed.no-link": "Kein Link vorhanden",
   "com.myoxus.editor.embed.set-link": "Link für diesen Block eingeben",
   "com.myoxus.editor.mindmap.importing": "Mindmap wird importiert…",

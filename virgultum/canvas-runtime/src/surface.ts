@@ -7,7 +7,10 @@ export {
   SurfaceGroupLikeModel,
 } from "./element-model/base.js";
 export { CanvasElementType } from "./element-model/index.js";
-export { CanvasRenderer } from "./renderer/canvas-renderer.js";
+export {
+  CanvasRenderer,
+  mountCanvasScene,
+} from "./renderer/canvas-renderer.js";
 export { DomRenderer } from "./renderer/dom-renderer.js";
 export type { ElementRenderer } from "./renderer/elements/index.js";
 export * from "./renderer/elements/type.js";
@@ -34,7 +37,11 @@ export {
 } from "./surface-model.js";
 export { SurfaceBlockTransformer } from "./surface-transformer.js";
 export * from "./tool/default-tool.js";
-export { calPanDeltaFromClientPoint } from "./tool/panning-utils.js";
+export {
+  calPanDeltaFromClientPoint,
+  cameraPan,
+  wheelCanvas,
+} from "./tool/panning-utils.js";
 export {
   checkSnapshotPreflight,
   generateElementId,

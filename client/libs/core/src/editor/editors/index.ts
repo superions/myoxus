@@ -2,10 +2,9 @@ import { createReactComponentFromLit } from "@myoxus/lit-react";
 import { DocTitle } from "@virgultum/editor/fragments/doc-title";
 import React from "react";
 
-import { EdgelessEditor } from "./edgeless-editor";
 import { PageEditor } from "./page-editor";
 
-export * from "./edgeless-editor";
+export type { EdgelessEditor } from "./edgeless-editor";
 export * from "./page-editor";
 
 export const LitDocEditor = createReactComponentFromLit({
@@ -18,14 +17,7 @@ export const LitDocTitle = createReactComponentFromLit({
   elementClass: DocTitle,
 });
 
-export const LitEdgelessEditor = createReactComponentFromLit({
-  react: React,
-  elementClass: EdgelessEditor,
-});
-
 export function editorEffects() {
   if (!customElements.get("page-editor"))
     customElements.define("page-editor", PageEditor);
-  if (!customElements.get("edgeless-editor"))
-    customElements.define("edgeless-editor", EdgelessEditor);
 }

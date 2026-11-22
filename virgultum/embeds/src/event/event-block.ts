@@ -6,6 +6,7 @@ import {
   EditorI18nProvider,
   type EditorI18nMessage,
   editorMessage,
+  eventCardDateRange,
   hasCapability,
   MyoxusHostCapability,
   MyoxusHostServiceIdentifier,
@@ -142,45 +143,14 @@ export class EventBlockComponent extends BlockComponent<EventBlockModel> {
   }
 
   private _formatDateRange(event: MyoxusResolvedEvent): string {
-    if (!event.startsAt) return "";
-    const start = new Date(event.startsAt);
-    const end = event.endsAt ? new Date(event.endsAt) : null;
-    if (Number.isNaN(start.valueOf())) return "";
-
     const i18n = this.std.getOptional(EditorI18nProvider) ?? undefined;
-    const locale = i18n?.locale$.value;
-    const date = new Intl.DateTimeFormat(locale, {
-      weekday: "short",
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-    const time = new Intl.DateTimeFormat(locale, {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-    const sameDay =
-      end &&
-      start.getFullYear() === end.getFullYear() &&
-      start.getMonth() === end.getMonth() &&
-      start.getDate() === end.getDate();
-
-    if (event.allDay) {
-      const range =
-        end && !sameDay
-          ? `${date.format(start)} – ${date.format(end)}`
-          : date.format(start);
-      return `${range} · ${this._text(
+    return eventCardDateRange(
+      event,
+      i18n?.locale$.value,
+      this._text(
         editorMessage("com.myoxus.integration.calendar.all-day", "All day"),
-      )}`;
-    }
-    if (!end || Number.isNaN(end.valueOf())) {
-      return `${date.format(start)} · ${time.format(start)}`;
-    }
-    if (sameDay) {
-      return `${date.format(start)} · ${time.format(start)}–${time.format(end)}`;
-    }
-    return `${date.format(start)} ${time.format(start)} – ${date.format(end)} ${time.format(end)}`;
+      ),
+    );
   }
 
   override renderBlock() {

@@ -14,6 +14,7 @@ import { EmbedBlockComponent } from "../common/embed-block-element.js";
 import type { EmbedGithubBlockService } from "./embed-github-service.js";
 import {
   parseCardUrl,
+  formatForgeCardDate,
   parseGitForgeUrl,
   resolveGitForgeFamily,
   resolveGitForgeTargets,
@@ -149,21 +150,10 @@ export class EmbedGithubBlockComponent extends EmbedBlockComponent<
     if (!isGfxBlockComponent(this)) this.embedContainerStyle.height = "auto";
     const targets = resolveGitForgeTargets(url);
     const fallbackHost = parseCardUrl(url)?.host ?? "";
-    let dateText = "";
-    if (createdAt) {
-      const date = new Date(createdAt);
-      dateText = date.toLocaleDateString(
-        this.std.getOptional(EditorI18nProvider)?.locale$.value,
-        {
-          month: "short",
-          day: "numeric",
-        },
-      );
-      const day = date.getDate();
-      const suffix =
-        ["th", "st", "nd", "rd"][((day / 10) | 0) !== 1 ? day % 10 : 4] || "th";
-      dateText = dateText.replace(/\d+/, `${day}${suffix}`);
-    }
+    const dateText = formatForgeCardDate(
+      createdAt,
+      this.std.getOptional(EditorI18nProvider)?.locale$.value,
+    );
 
     // Read reactive state in the mounted block; the host receives plain values
     // and never owns fetching, persisted identity or selection policy.

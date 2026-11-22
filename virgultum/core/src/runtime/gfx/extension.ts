@@ -6,7 +6,28 @@ import type { GfxController } from "./controller.js";
 import { GfxControllerIdentifier } from "./identifiers.js";
 
 export const GfxExtensionIdentifier =
-  createIdentifier<GfxExtension>("GfxExtension");
+  createIdentifier<Pick<GfxExtension, "mounted" | "unmounted">>("GfxExtension");
+
+/** Spatial indices consume model notifications, independent of the mounted
+ * editor or its interaction extensions. Both runtime entries use these owners. */
+export type CanvasIndexSource = Pick<
+  GfxController,
+  "doc" | "surface" | "surface$"
+>;
+export abstract class CanvasIndex extends Extension {
+  static key: string;
+  constructor(protected readonly source: CanvasIndexSource) {
+    super();
+  }
+  abstract mounted(): void;
+  abstract unmounted(): void;
+  static override setup(di: Container) {
+    di.add(this as unknown as { new (gfx: CanvasIndexSource): CanvasIndex }, [
+      GfxControllerIdentifier,
+    ]);
+    di.addImpl(GfxExtensionIdentifier(this.key), (p) => p.get(this));
+  }
+}
 
 export const GfxClassExtenderIdentifier = createIdentifier<{
   extendFn: (gfx: GfxController) => void;

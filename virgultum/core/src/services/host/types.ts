@@ -76,6 +76,36 @@ export type MyoxusResolvedEvent = {
   tagColor?: string | null;
 };
 
+/** Both Page hosts present the same workspace-local calendar interval. */
+export function eventCardDateRange(
+  event: MyoxusResolvedEvent,
+  locale: string | undefined,
+  allDayLabel: string,
+) {
+  if (!event.startsAt) return "";
+  const start = new Date(event.startsAt);
+  if (!Number.isFinite(start.getTime())) return "";
+  const parsed = event.endsAt ? new Date(event.endsAt) : null;
+  const end = parsed && Number.isFinite(parsed.getTime()) ? parsed : null;
+  const date = new Intl.DateTimeFormat(locale, {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+  const time = new Intl.DateTimeFormat(locale, {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const sameDay = end && start.toDateString() === end.toDateString();
+  if (event.allDay)
+    return `${date.format(start)}${end && !sameDay ? ` – ${date.format(end)}` : ""} · ${allDayLabel}`;
+  if (!end) return `${date.format(start)} · ${time.format(start)}`;
+  return sameDay
+    ? `${date.format(start)} · ${time.format(start)}–${time.format(end)}`
+    : `${date.format(start)} ${time.format(start)} – ${date.format(end)} ${time.format(end)}`;
+}
+
 /**
  * Open the event edit dialog. Returns the new (or updated) eventId, or
  * `null` if the user cancelled the dialog.

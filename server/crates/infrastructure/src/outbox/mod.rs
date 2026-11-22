@@ -107,6 +107,24 @@ impl SqlxOutboxRepository {
       };
       let workspace_id = parse_identity("workspaceId")?;
       let doc_id = parse_identity("docId")?;
+      let mut claimed = vec![event_id];
+      if payload["fieldContextChanged"].as_bool() == Some(true) {
+        // Claim committed invalidations before enqueue: the worker reads the
+        // latest document. A writer committing later retains its own event;
+        // a failed enqueue rolls back the entire claim.
+        let siblings: Vec<Uuid> = sqlx::query_scalar(
+          "SELECT id FROM outbox_events WHERE processed_at IS NULL AND event_type='doc_updated'
+           AND payload @> '{\"fieldContextChanged\":true}' AND payload->>'workspaceId'=$1
+           AND payload->>'docId'=$2 AND id<>$3 ORDER BY id LIMIT 255 FOR UPDATE SKIP LOCKED",
+        )
+        .bind(workspace_id.to_string())
+        .bind(doc_id.to_string())
+        .bind(event_id)
+        .fetch_all(&mut *transaction)
+        .await
+        .map_err(|error| AuthError::Storage(error.to_string()))?;
+        claimed.extend(siblings);
+      }
       // Snapshot events also cover technical roots and Organizer state. Only a
       // current ordinary workspace page may enter document search; historical
       // source-workspace events after a move must not index the new owner's data.
@@ -125,8 +143,8 @@ impl SqlxOutboxRepository {
       if eligible {
         publisher.enqueue_search_update(workspace_id, doc_id).await?;
       }
-      sqlx::query("UPDATE outbox_events SET processed_at=now() WHERE id=$1")
-        .bind(event_id)
+      sqlx::query("UPDATE outbox_events SET processed_at=now() WHERE id=ANY($1)")
+        .bind(&claimed)
         .execute(&mut *transaction)
         .await
         .map_err(|error| AuthError::Storage(error.to_string()))?;

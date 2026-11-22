@@ -13,7 +13,8 @@ import {
   type PageIntent,
   type PageRange,
 } from "./plain-page-input";
-import { plainPageLines, type PageLine } from "./plain-page-model";
+import { readPageContent, type PageLine } from "./plain-page-model";
+export type PickerStart = { start: PageBookmark; trigger: string };
 
 /** The DOM owns an IME preedit; the Store owns its final replacement. Remote
  * edits move the bookmarked endpoints without replacing the composing node. */
@@ -27,6 +28,7 @@ export class PageInteraction {
   private after?: PageRange;
   private marks?: Record<string, unknown>;
   private retired = false;
+  private selecting = false;
   constructor(
     private readonly page: Store,
     private readonly root: HTMLElement,
@@ -37,6 +39,7 @@ export class PageInteraction {
       range: PageBookmark | null,
       intent?: PageIntent,
     ) => void,
+    private readonly picker: (start: PickerStart) => void,
   ) {
     const { signal } = this.stop;
     root.addEventListener("beforeinput", this.input, { signal });
@@ -45,6 +48,26 @@ export class PageInteraction {
     root.addEventListener("paste", this.paste, { signal });
     root.addEventListener("keydown", this.key, { signal });
     root.addEventListener("cut", this.cut, { signal });
+    root.addEventListener("copy", this.copyBlock, { signal });
+    root.addEventListener("focusin", this.focusBlock, { signal });
+    root.addEventListener(
+      "pointerdown",
+      (e) => {
+        this.selecting =
+          e.button === 0 &&
+          e.target instanceof Element &&
+          !!e.target.closest("[data-page-text]");
+      },
+      { signal },
+    );
+    const finishSelection = () => {
+      if (this.selecting) {
+        this.selecting = false;
+        this.remember();
+      }
+    };
+    document.addEventListener("pointerup", finishSelection, { signal });
+    document.addEventListener("pointercancel", finishSelection, { signal });
     document.addEventListener("selectionchange", this.remember, { signal });
     page.spaceDoc.on("beforeAllTransactions", this.remember);
   }
@@ -57,15 +80,139 @@ export class PageInteraction {
       : this.current;
   }
   selectedBlocks() {
+    const selected = this.selectedDivider();
+    if (selected) return [selected.id];
     const r = this.current && resolveBookmark(this.page, this.current);
     if (
       !r ||
       (r.anchor.id === r.focus.id && r.anchor.offset === r.focus.offset)
     )
       return [];
-    return segments(this.lines(), r)
-      .filter((p) => p.line.kind !== "title")
-      .map((p) => p.line.model.id);
+    const body = readPageContent(this.page)?.order;
+    if (!body) return [];
+    const a = body.findIndex((b) => b.model.id === r.anchor.id);
+    const b = body.findIndex((b) => b.model.id === r.focus.id);
+    return body
+      .slice(Math.max(0, Math.min(a, b)), Math.max(a, b) + 1)
+      .map((b) => b.model.id);
+  }
+  private selectedDivider() {
+    const el = this.root.ownerDocument.activeElement;
+    const id =
+      el instanceof HTMLElement &&
+      this.root.contains(el) &&
+      el.dataset.pageDivider;
+    const model = id ? this.page.getModelById(id) : null;
+    return model?.flavour === "myoxus:divider" ? model : null;
+  }
+  private focusBlock = () => {
+    const target = this.root.ownerDocument.activeElement;
+    if (
+      !(target instanceof Element) ||
+      !target.closest("[data-block-id][contenteditable=false]")
+    )
+      return;
+    this.current = undefined;
+    this.after = undefined;
+    if (this.selectedDivider())
+      this.root.ownerDocument.getSelection()?.removeAllRanges();
+  };
+  /** A card's visible DOM can contain a resolved server record. Copy the
+   * document reference through its model serializer, not the preview text. */
+  private transferMixedClipboard(e: ClipboardEvent, action: "copy" | "cut") {
+    const range = readPageRange(this.root);
+    if (
+      !range ||
+      (range.anchor.id === range.focus.id &&
+        range.anchor.offset === range.focus.offset)
+    )
+      return false;
+    const inline = segments(this.lines(), range).some(({ line, from, to }) => {
+      let pos = 0;
+      return line.text
+        .toDelta()
+        .some(
+          (op: { insert: string; attributes?: Record<string, unknown> }) => {
+            const start = pos;
+            pos += op.insert.length;
+            return (
+              start < to &&
+              pos > from &&
+              (op.attributes?.annotation ||
+                op.attributes?.reference ||
+                op.attributes?.footnote ||
+                op.attributes?.mention ||
+                op.attributes?.documentField ||
+                typeof op.attributes?.latex === "string")
+            );
+          },
+        );
+    });
+    if (!inline && range.anchor.id === range.focus.id) return false;
+    const body = readPageContent(this.page)?.order;
+    if (!body) return false;
+    const a = body.findIndex((b) => b.model.id === range.anchor.id);
+    const b = body.findIndex((b) => b.model.id === range.focus.id);
+    if (
+      !inline &&
+      !body
+        .slice(Math.min(a, b) + 1, Math.max(a, b))
+        .some((block) => !("text" in block))
+    )
+      return false;
+    e.preventDefault();
+    if (action === "copy" || this.canWrite())
+      this.transfer({ kind: "range-clipboard", action });
+    return true;
+  }
+  private copyBlock = (event: ClipboardEvent) => {
+    if (this.transferMixedClipboard(event, "copy")) return;
+    if (!this.selectedDivider() || !event.clipboardData) return;
+    event.preventDefault();
+    event.clipboardData.setData("text/plain", "---");
+    event.clipboardData.setData("text/html", "<hr>");
+  };
+  private leaveDivider(direction: number, remove: boolean, insert = false) {
+    const block = this.selectedDivider(),
+      parent = block?.parent;
+    if (!block || !parent) return;
+    if ((remove || insert) && !this.canWrite()) return;
+    const siblings = parent.children,
+      index = siblings.indexOf(block);
+    let next: (typeof siblings)[number] | undefined =
+      siblings[index + direction] ?? siblings[index - direction];
+    let id = next?.id;
+    if (remove || insert) {
+      this.page.captureSync();
+      this.page.transact(() => {
+        if (remove) this.page.deleteBlock(block);
+        if (insert || !next) {
+          id = this.page.addBlock(
+            "myoxus:paragraph",
+            {},
+            parent,
+            index + (insert ? 1 : 0),
+          );
+          next = undefined;
+        }
+      });
+      this.page.captureSync();
+    }
+    if (!id) return;
+    if (next?.flavour === "myoxus:divider") {
+      this.root
+        .querySelector<HTMLElement>(`[data-page-divider="${CSS.escape(id)}"]`)
+        ?.focus();
+    } else {
+      const point = {
+        id,
+        offset:
+          next && next === siblings[index - 1] ? (next.text?.length ?? 0) : 0,
+      };
+      this.root.querySelector<HTMLElement>("[data-page-body]")?.focus();
+      this.after = { anchor: point, focus: point };
+      this.refresh();
+    }
   }
   relinquish(intent?: PageIntent) {
     this.transfer(intent);
@@ -81,8 +228,73 @@ export class PageInteraction {
       !this.retired &&
       this.writable() &&
       !this.page.readonly &&
-      !!plainPageLines(this.page)
+      !!readPageContent(this.page)
     );
+  }
+  pickerRange(start: PickerStart) {
+    if (!this.canWrite() || this.composing) return;
+    const from = resolveBookmark(this.page, start.start)?.focus;
+    const range = this.after ?? readPageRange(this.root);
+    if (
+      !from ||
+      !range ||
+      range.focus.id !== from.id ||
+      range.anchor.id !== from.id ||
+      range.anchor.offset !== range.focus.offset
+    )
+      return;
+    const line = this.lines().find((l) => l.model.id === from.id);
+    const raw = line?.text.toString().slice(from.offset, range.focus.offset);
+    if (!line || !raw?.startsWith(start.trigger)) return;
+    return {
+      line,
+      from,
+      end: range.focus,
+      query: raw.slice(start.trigger.length),
+    };
+  }
+  consumePicker(start: PickerStart, query: string) {
+    const range = this.pickerRange(start);
+    if (
+      !range ||
+      range.query !== query ||
+      this.page.hasFixedText(range.line.model)
+    )
+      return;
+    const { line, from, end } = range;
+    let slot = bookmark(this.lines(), { anchor: from, focus: from });
+    this.page.captureSync();
+    this.page.transact(() =>
+      line.text.delete(from.offset, end.offset - from.offset),
+    );
+    this.after = { anchor: from, focus: from };
+    this.refresh();
+    return (id: string, kind: "reference" | "mention" = "reference") => {
+      const at = slot && resolveBookmark(this.page, slot)?.focus;
+      if (!at || !this.canWrite() || this.page.hasFixedText(line.model)) return;
+      this.page.transact(() =>
+        line.text.insert(
+          at.offset,
+          " ",
+          kind === "mention"
+            ? { mention: { member: id } }
+            : {
+                reference: { type: "LinkedPage", pageId: id },
+              },
+        ),
+      );
+      this.page.captureSync();
+      const next = { id: at.id, offset: at.offset + 1 };
+      this.after = { anchor: next, focus: next };
+      slot = bookmark(this.lines(), this.after);
+      this.refresh();
+      return {
+        model: line.model,
+        text: line.text,
+        index: at.offset,
+        mode: "page" as const,
+      };
+    };
   }
   private remember = () => {
     if (this.composing || this.after || this.retired) return;
@@ -99,7 +311,9 @@ export class PageInteraction {
     }
   };
   afterRender() {
-    if (this.retired || this.composing) return;
+    // The browser owns a pointer drag until release. Restoring the last
+    // collapsed caret during a preview update would move the drag's anchor.
+    if (this.retired || this.composing || this.selecting) return;
     const next =
       this.after ??
       (this.current && this.root.contains(document.activeElement)
@@ -135,6 +349,49 @@ export class PageInteraction {
     }
     return !!next;
   }
+  private quoteBreak(range: PageRange, soft: boolean) {
+    if (range.anchor.id !== range.focus.id) return false;
+    const line = this.lines().find((l) => l.model.id === range.focus.id);
+    if (
+      line?.kind !== "quote" ||
+      !this.canWrite() ||
+      this.page.hasFixedText(line.model)
+    )
+      return false;
+    const parent = line.model.parent;
+    if (!parent) return false;
+    const from = Math.min(range.anchor.offset, range.focus.offset),
+      to = Math.max(range.anchor.offset, range.focus.offset);
+    let point = { id: line.model.id, offset: from + 1 };
+    this.page.captureSync();
+    this.page.transact(() => {
+      if (
+        !soft &&
+        from === to &&
+        from === line.text.length &&
+        line.text.toString().endsWith("\n")
+      ) {
+        line.text.delete(from - 1, 1);
+        const hasChildren = !!line.model.children.length;
+        point = {
+          id: this.page.addBlock(
+            "myoxus:paragraph",
+            {},
+            hasChildren ? line.model : parent,
+            hasChildren ? 0 : parent.children.indexOf(line.model) + 1,
+          ),
+          offset: 0,
+        };
+      } else {
+        if (to > from) line.text.delete(from, to - from);
+        line.text.insert(from, "\n");
+      }
+    });
+    this.page.captureSync();
+    this.after = { anchor: point, focus: point };
+    this.refresh();
+    return true;
+  }
   markActive(key: string) {
     const range = this.current && resolveBookmark(this.page, this.current);
     if (!range) return false;
@@ -164,6 +421,99 @@ export class PageInteraction {
             );
         });
   }
+  /** Read just the selected runs; mixed tones must not select a menu option. */
+  labelTone(): string | null {
+    const range = this.current && resolveBookmark(this.page, this.current);
+    if (!range) return null;
+    const values = new Set<string | null>();
+    for (const { line, from, to } of segments(this.lines(), range)) {
+      let pos = 0;
+      for (const run of line.text.toDelta()) {
+        const start = pos;
+        pos += run.insert.length;
+        if (pos > from && start < to)
+          values.add(run.attributes?.labelTone ?? null);
+      }
+    }
+    return values.size > 1 ? "mixed" : (values.values().next().value ?? null);
+  }
+  private selectedBodyLines() {
+    const range = this.current && resolveBookmark(this.page, this.current);
+    return range
+      ? segments(this.lines(), range)
+          .map((p) => p.line)
+          .filter(
+            (l) =>
+              l.model.flavour === "myoxus:paragraph" ||
+              l.model.flavour === "myoxus:list",
+          )
+      : [];
+  }
+  alignment() {
+    const counts = new Map<string, number>();
+    for (const line of this.selectedBodyLines()) {
+      const value = line.alignment ?? "left";
+      counts.set(value, (counts.get(value) ?? 0) + 1);
+    }
+    return [...counts].sort((a, b) => b[1] - a[1])[0]?.[0];
+  }
+  private eyebrowLines() {
+    const range = this.current && resolveBookmark(this.page, this.current);
+    if (!range) return [];
+    const parts = segments(this.lines(), range);
+    if (
+      !parts.length ||
+      parts.some(
+        (p) =>
+          p.line.kind !== "text" ||
+          !!p.line.heading ||
+          p.line.model.flavour !== "myoxus:paragraph",
+      )
+    )
+      return [];
+    const body = readPageContent(this.page)?.order;
+    if (!body) return [];
+    const first = body.findIndex((b) => b.model === parts[0].line.model);
+    const last = body.findIndex((b) => b.model === parts.at(-1)!.line.model);
+    return last - first + 1 === parts.length ? parts : [];
+  }
+  eyebrowState() {
+    const parts = this.eyebrowLines();
+    return parts.length ? parts.every((p) => p.line.eyebrow) : undefined;
+  }
+  toggleEyebrow() {
+    if (!this.canWrite()) return;
+    const parts = this.eyebrowLines();
+    if (!parts.length) return;
+    const remove = parts.every((p) => p.line.eyebrow);
+    this.page.captureSync();
+    this.page.transact(() => {
+      for (const {
+        line: { model },
+      } of parts) {
+        if (remove)
+          this.page.updateBlock(model, () => {
+            Reflect.deleteProperty(model.props, "presentation");
+          });
+        else this.page.updateBlock(model, { presentation: "eyebrow" });
+      }
+    });
+    this.page.captureSync();
+    this.restore();
+  }
+  align(value: string) {
+    if (!this.canWrite() || !["left", "center", "right"].includes(value))
+      return;
+    const lines = this.selectedBodyLines();
+    if (!lines.some((line) => (line.alignment ?? "left") !== value)) return;
+    this.page.captureSync();
+    this.page.transact(() => {
+      for (const { model } of lines)
+        this.page.updateBlock(model, { textAlign: value });
+    });
+    this.page.captureSync();
+    this.restore();
+  }
   format(key: string, value?: string | null) {
     if (!this.canWrite() || !this.current) return;
     const range = resolveBookmark(this.page, this.current);
@@ -187,12 +537,126 @@ export class PageInteraction {
   }
   private key = (e: KeyboardEvent) => {
     if (
+      (e.target as Element)?.closest?.(
+        "[contenteditable=false][data-block-id]:not([data-page-divider])",
+      )
+    )
+      return;
+    if (
+      this.selectedDivider() &&
+      !e.isComposing &&
+      !e.ctrlKey &&
+      !e.metaKey &&
+      !e.altKey
+    ) {
+      if (
+        [
+          "ArrowDown",
+          "ArrowRight",
+          "ArrowUp",
+          "ArrowLeft",
+          "Backspace",
+          "Delete",
+          "Enter",
+        ].includes(e.key)
+      ) {
+        e.preventDefault();
+        this.leaveDivider(
+          ["ArrowUp", "ArrowLeft", "Backspace"].includes(e.key) ? -1 : 1,
+          e.key === "Delete" || e.key === "Backspace",
+          e.key === "Enter",
+        );
+      }
+      return;
+    }
+    if (
       !this.root.contains(e.target as Node) ||
       !(e.target as Element).closest("[data-page-text],[data-page-body]") ||
       e.isComposing ||
       !this.canWrite()
     )
       return;
+    const range = readPageRange(this.root);
+    if (
+      range &&
+      range.anchor.id === range.focus.id &&
+      range.anchor.offset === range.focus.offset &&
+      !e.shiftKey &&
+      !e.ctrlKey &&
+      !e.metaKey &&
+      !e.altKey
+    ) {
+      const line = this.lines().find((l) => l.model.id === range.focus.id);
+      if (
+        line?.kind === "quote" &&
+        e.key === "Backspace" &&
+        range.focus.offset === 0
+      ) {
+        e.preventDefault();
+        this.page.captureSync();
+        this.page.updateBlock(line.model, { type: "text" });
+        this.page.captureSync();
+        this.after = range;
+        this.refresh();
+        return;
+      }
+      const backwards = e.key === "Backspace" || e.key === "ArrowUp";
+      const forwards = e.key === "Delete" || e.key === "ArrowDown";
+      if (
+        line &&
+        ((backwards && range.focus.offset === 0) ||
+          (forwards && range.focus.offset === line.text.length))
+      ) {
+        const siblings = line.model.parent?.children;
+        const adjacent =
+          siblings?.[siblings.indexOf(line.model) + (backwards ? -1 : 1)];
+        if (
+          adjacent &&
+          !["myoxus:paragraph", "myoxus:list", "myoxus:divider"].includes(
+            adjacent.flavour,
+          )
+        ) {
+          // Navigation/deletion at a report boundary belongs to block
+          // selection, never to the text line on the other side of the report.
+          e.preventDefault();
+          this.transfer({
+            kind: "key",
+            key: e.key,
+            code: e.code,
+            ctrlKey: false,
+            altKey: false,
+            metaKey: false,
+            shiftKey: false,
+          });
+          return;
+        }
+        if (adjacent?.flavour === "myoxus:divider") {
+          const el = this.root.querySelector<HTMLElement>(
+            `[data-page-divider="${CSS.escape(adjacent.id)}"]`,
+          );
+          if (el) {
+            e.preventDefault();
+            el.focus();
+            return;
+          }
+        }
+      }
+    }
+    if (
+      e.key === "ArrowDown" &&
+      BUILD_CONFIG.isElectron &&
+      (e.target as Element).closest("[data-page-title]")
+    ) {
+      const first = this.lines()[1];
+      if (first) {
+        e.preventDefault();
+        this.root.querySelector<HTMLElement>("[data-page-body]")?.focus();
+        const start = { id: first.model.id, offset: 0 };
+        restorePageRange(this.root, { anchor: start, focus: start });
+        this.remember();
+      }
+      return;
+    }
     if (
       e.key === "Tab" ||
       ((e.ctrlKey || e.metaKey) &&
@@ -200,6 +664,15 @@ export class PageInteraction {
           e.key.length === 1 ? e.key.toLowerCase() : e.key,
         ))
     ) {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        e.key === "Enter" &&
+        range &&
+        this.quoteBreak(range, true)
+      ) {
+        e.preventDefault();
+        return;
+      }
       e.preventDefault();
       this.transfer({
         kind: "key",
@@ -229,6 +702,10 @@ export class PageInteraction {
     }
   };
   private input = (e: InputEvent) => {
+    if (
+      (e.target as Element)?.closest?.("[contenteditable=false][data-block-id]")
+    )
+      return;
     if (
       !(e.target instanceof Element) ||
       !e.target.closest("[data-page-text],[data-page-body]")
@@ -269,11 +746,84 @@ export class PageInteraction {
           const line = lines.find((l) => l.model.id === range.focus.id);
           const prefix =
             line?.text.toString().slice(0, range.focus.offset) ?? "";
+          const trigger =
+            e.data === "@"
+              ? "@"
+              : e.data === "[" && prefix.endsWith("[")
+                ? "[["
+                : e.data === "【" && prefix.endsWith("【")
+                  ? "【【"
+                  : undefined;
+          if (
+            trigger &&
+            line &&
+            line.kind !== "title" &&
+            range.anchor.id === range.focus.id &&
+            range.anchor.offset === range.focus.offset &&
+            !prefix.includes("%%")
+          ) {
+            const at = {
+              id: line.model.id,
+              offset: range.focus.offset - (trigger.length - 1),
+            };
+            const start = bookmark(lines, { anchor: at, focus: at });
+            if (start && this.write(range, e.data)) {
+              this.picker({ start, trigger });
+              break;
+            }
+          }
+          if (
+            line?.kind === "text" &&
+            !line.eyebrow &&
+            e.data === " " &&
+            prefix === ">" &&
+            range.anchor.id === range.focus.id &&
+            range.anchor.offset === range.focus.offset &&
+            !this.page.hasFixedText(line.model)
+          ) {
+            this.page.captureSync();
+            this.page.transact(() => {
+              line.text.delete(0, 1);
+              this.page.updateBlock(line.model, { type: "quote" });
+            });
+            this.page.captureSync();
+            const point = { id: line.model.id, offset: 0 };
+            this.after = { anchor: point, focus: point };
+            this.refresh();
+            break;
+          }
+          if (
+            line?.kind === "text" &&
+            e.data === " " &&
+            /^(-{3,}|\*{3,}|_{3,})$/.test(prefix) &&
+            range.anchor.id === range.focus.id &&
+            range.anchor.offset === range.focus.offset &&
+            !this.page.hasFixedText(line.model) &&
+            line.model.parent
+          ) {
+            const parent = line.model.parent;
+            this.page.captureSync();
+            this.page.transact(() => {
+              this.page.addBlock(
+                "myoxus:divider",
+                {},
+                parent,
+                parent.children.indexOf(line.model),
+              );
+              line.text.delete(0, prefix.length);
+            });
+            this.page.captureSync();
+            const point = { id: line.model.id, offset: 0 };
+            this.after = { anchor: point, focus: point };
+            this.refresh();
+            break;
+          }
           // Let the established shortcut/reference owners consume their actual
           // triggering input once, rather than inserting a second marker.
           if (
             (line?.kind !== "title" &&
-              (e.data === "@" ||
+              (trigger ||
+                (e.data === "%" && prefix.endsWith("%")) ||
                 (e.data === "[" && prefix.endsWith("[")) ||
                 (e.data === " " &&
                   /^(?:#{1,6}|[-*+>]|[0-9]+[.)]|\[[ x]?\]|```.*)$/.test(
@@ -292,6 +842,7 @@ export class PageInteraction {
       case "insertParagraph":
       case "insertLineBreak":
         {
+          if (this.quoteBreak(range, e.inputType === "insertLineBreak")) break;
           this.page.captureSync();
           const line = lines.find((l) => l.model.id === range.focus.id);
           if (
@@ -352,6 +903,12 @@ export class PageInteraction {
     }
   };
   private cut = (e: ClipboardEvent) => {
+    if (this.transferMixedClipboard(e, "cut")) return;
+    if (this.selectedDivider()) {
+      this.copyBlock(e);
+      if (e.defaultPrevented) this.leaveDivider(1, true);
+      return;
+    }
     const range = readPageRange(this.root);
     if (!range || !e.clipboardData || !this.canWrite()) return;
     e.preventDefault();
@@ -364,6 +921,17 @@ export class PageInteraction {
       this.transfer({ kind: "input", inputType: "deleteByCut", data: null });
   };
   private paste = (e: ClipboardEvent) => {
+    const block = this.selectedDivider();
+    if (block && e.clipboardData) {
+      e.preventDefault();
+      if (!this.canWrite()) return;
+      const data = new DataTransfer();
+      for (const type of e.clipboardData.types)
+        if (type !== "Files") data.setData(type, e.clipboardData.getData(type));
+      for (const file of e.clipboardData.files) data.items.add(file);
+      this.handoff(null, { kind: "block-paste", id: block.id, data });
+      return;
+    }
     const data = e.clipboardData,
       range = readPageRange(this.root);
     if (!data || !range) return;

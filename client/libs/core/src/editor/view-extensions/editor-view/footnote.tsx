@@ -88,7 +88,7 @@ function noteName(
     ? t["com.myoxus.editor.endnote.reference"]({ label })
     : t["com.myoxus.editor.footnote.reference"]({ label });
 }
-function FootnoteMarker({
+export function FootnoteMarker({
   label,
   placement,
   number,
@@ -124,7 +124,7 @@ function FootnoteMarker({
     </Tooltip>
   );
 }
-function FootnoteHeader({
+export function FootnoteHeader({
   titleId,
   placement,
   number,

@@ -44,7 +44,11 @@ import {
 } from "@myoxus/graphql";
 import { useI18n } from "@myoxus/i18n";
 import { DatabaseIcon, OpenInNewIcon } from "@myoxus/icons/react";
-import { type FrameworkProvider, FrameworkRoot } from "@myoxus/infra";
+import {
+  type FrameworkProvider,
+  FrameworkRoot,
+  useFramework,
+} from "@myoxus/infra";
 import {
   Button,
   Group,
@@ -54,7 +58,6 @@ import {
 } from "@myoxus/ui-facade";
 import { MyoxusEmbeddedUIProvider } from "@myoxus/ui-facade/provider";
 import type { DatabaseReferenceBlockModel } from "@virgultum/editor/blocks/database/reference-store";
-import { html } from "lit";
 import {
   useCallback,
   useDeferredValue,
@@ -918,6 +921,58 @@ export function DatabaseEmbed({
 
 let databaseEmbedThemeRoot = 0;
 
+type ReferenceProps = DatabaseEmbedProps & {
+  mode: string;
+  rowId?: string;
+  readonly: boolean;
+};
+
+function ReferenceView({ mode, readonly, rowId, ...embed }: ReferenceProps) {
+  const { framework, workspaceId, databaseId } = embed;
+  if (mode === "database") return <DatabaseEmbed {...embed} />;
+  if (!framework || mode === "unavailable")
+    return <DatabaseEmbedMessage status="unavailable" />;
+  if (mode === "container")
+    return (
+      <DatabaseContainerReference {...{ framework, workspaceId, databaseId }} />
+    );
+  if (mode !== "task" || !rowId)
+    return <DatabaseEmbedMessage status="unavailable" />;
+  return (
+    <TaskRowReference
+      framework={framework}
+      readonly={readonly}
+      target={{ workspaceId, databaseId, rowId }}
+    />
+  );
+}
+
+/** The Page already supplies framework and theme context. Only references,
+ * never fetched rows or permissions, belong to the document model. */
+export function PageDatabaseReference({
+  model,
+  readonly,
+}: {
+  model: DatabaseReferenceBlockModel;
+  readonly: boolean;
+}) {
+  const framework = useFramework();
+  const workspace = framework.get(WorkspaceService).workspace;
+  const scope = resolveTaskReferenceScope(model.props, workspace.id);
+  return (
+    <ReferenceView
+      mode={scope.kind}
+      readonly={readonly}
+      framework={framework}
+      workspaceId={workspace.id}
+      workspaceFlavour={workspace.flavour}
+      databaseId={model.props.serverDatabaseId ?? ""}
+      rowId={scope.kind === "task" ? scope.rowId : undefined}
+      viewId={model.props.serverViewId}
+    />
+  );
+}
+
 class DatabaseEmbedElement extends HTMLElement {
   private readonly themeRootId = String(++databaseEmbedThemeRoot);
   private readonly cssVariablesSelector = `[data-myoxus-database-react-root="${this.themeRootId}"]`;
@@ -980,41 +1035,16 @@ class DatabaseEmbedElement extends HTMLElement {
         cssVariablesSelector={this.cssVariablesSelector}
         getRootElement={this.getMantineRootElement}
       >
-        {this.getAttribute("reference-mode") === "unavailable" ? (
-          <DatabaseEmbedMessage status="unavailable" />
-        ) : this.getAttribute("reference-mode") === "container" ? (
-          this.frameworkValue ? (
-            <DatabaseContainerReference
-              framework={this.frameworkValue}
-              workspaceId={this.getAttribute("workspace-id") ?? ""}
-              databaseId={this.getAttribute("database-id") ?? ""}
-            />
-          ) : (
-            <DatabaseEmbedMessage status="unavailable" />
-          )
-        ) : this.getAttribute("reference-mode") === "task" ? (
-          this.frameworkValue ? (
-            <TaskRowReference
-              framework={this.frameworkValue}
-              readonly={this.hasAttribute("readonly")}
-              target={{
-                workspaceId: this.getAttribute("workspace-id") ?? "",
-                databaseId: this.getAttribute("database-id") ?? "",
-                rowId: this.getAttribute("row-id") ?? "",
-              }}
-            />
-          ) : (
-            <DatabaseEmbedMessage status="unavailable" />
-          )
-        ) : (
-          <DatabaseEmbed
-            databaseId={this.getAttribute("database-id") ?? ""}
-            framework={this.frameworkValue}
-            viewId={this.getAttribute("view-id")}
-            workspaceFlavour={this.getAttribute("workspace-flavour")}
-            workspaceId={this.getAttribute("workspace-id") ?? ""}
-          />
-        )}
+        <ReferenceView
+          mode={this.getAttribute("reference-mode") ?? "database"}
+          rowId={this.getAttribute("row-id") ?? ""}
+          readonly={this.hasAttribute("readonly")}
+          databaseId={this.getAttribute("database-id") ?? ""}
+          framework={this.frameworkValue}
+          viewId={this.getAttribute("view-id")}
+          workspaceFlavour={this.getAttribute("workspace-flavour")}
+          workspaceId={this.getAttribute("workspace-id") ?? ""}
+        />
       </MyoxusEmbeddedUIProvider>
     );
     this.root.render(
@@ -1071,26 +1101,6 @@ export function defineDatabaseEmbedElement() {
   if (!customElements.get("myoxus-database-embed")) {
     customElements.define("myoxus-database-embed", DatabaseEmbedElement);
   }
-}
-
-export function renderServerDatabaseBlock(
-  framework: FrameworkProvider,
-  model: DatabaseReferenceBlockModel,
-) {
-  defineDatabaseEmbedElement();
-  const workspaceId = framework.get(WorkspaceService).workspace.id;
-  const workspaceFlavour = framework.get(WorkspaceService).workspace.flavour;
-  const scope = resolveTaskReferenceScope(model.props, workspaceId);
-  return html`<myoxus-database-embed
-    .framework=${framework}
-    ?readonly=${model.store.readonly}
-    database-id=${model.props.serverDatabaseId ?? ""}
-    reference-mode=${scope.kind}
-    row-id=${scope.kind === "task" ? scope.rowId : ""}
-    view-id=${model.props.serverViewId ?? ""}
-    workspace-flavour=${workspaceFlavour}
-    workspace-id=${workspaceId}
-  ></myoxus-database-embed>`;
 }
 
 declare global {

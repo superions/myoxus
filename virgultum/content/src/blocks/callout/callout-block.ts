@@ -9,7 +9,6 @@ import { DefaultInlineManagerExtension } from "../../inlines/preset/index";
 import {
   type CalloutBlockModel,
   normalizeCalloutAppearance,
-  calloutPresentation,
   type ParagraphBlockModel,
 } from "@virgultum/core/models";
 import { focusTextModel } from "../../rich-text/index";
@@ -24,7 +23,6 @@ import {
   textProtectionHint,
 } from "@virgultum/core/services";
 import type { BlockComponent } from "@virgultum/core/runtime";
-import { Text } from "@virgultum/core/store";
 import { html, type TemplateResult } from "lit";
 import { type StyleInfo, styleMap } from "lit/directives/style-map.js";
 
@@ -325,43 +323,12 @@ export class CalloutBlockComponent extends CaptionedBlockComponent<CalloutBlockM
                         this._expanded = !expanded;
                         this.requestUpdate();
                       },
-                      applySettings: (value) => {
-                        if (
-                          this.store.readonly ||
-                          this.model.props.textProtection === "fixed" ||
-                          this.store.getModelById(this.model.id) !==
-                            this.model ||
-                          this.model.props.type !== type ||
-                          (this.model.props.foldable === true) !== foldable ||
-                          (this.model.props.defaultOpen !== false) !==
-                            defaultOpen ||
-                          !/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(value.type)
-                        )
-                          return false;
-                        if (
-                          value.type === type &&
-                          value.foldable === foldable &&
-                          value.defaultOpen === defaultOpen
-                        )
-                          return true;
-                        this.store.captureSync();
-                        this.store.updateBlock(this.model, {
-                          ...value,
-                          ...(value.type !== type
-                            ? {
-                                icon: {
-                                  type: IconType.Emoji,
-                                  unicode: calloutPresentation(value.type).icon,
-                                },
-                                backgroundColorName: calloutPresentation(
-                                  value.type,
-                                ).background,
-                              }
-                            : {}),
-                        });
-                        this.store.captureSync();
-                        return true;
-                      },
+                      applySettings: (value) =>
+                        this.model.applySettings(value, {
+                          type,
+                          foldable,
+                          defaultOpen,
+                        }),
                       title: titleValue,
                       readonly:
                         this.store.readonly$.value ||
@@ -395,29 +362,8 @@ export class CalloutBlockComponent extends CaptionedBlockComponent<CalloutBlockM
                           target.text?.length ?? 0,
                         );
                       },
-                      apply: (value, expectedTitle) => {
-                        if (
-                          this.store.readonly ||
-                          this.model.props.textProtection === "fixed" ||
-                          this.store.getModelById(this.model.id) !==
-                            this.model ||
-                          /[\r\n]/.test(value)
-                        )
-                          return false;
-                        const current = this.model.props.title;
-                        if ((current?.toString() ?? "") !== expectedTitle)
-                          return false;
-                        if (expectedTitle === value) return true;
-                        this.store.captureSync();
-                        if (current)
-                          current.replace(0, current.length, value, {});
-                        else
-                          this.store.updateBlock(this.model, {
-                            title: new Text(value),
-                          });
-                        this.store.captureSync();
-                        return true;
-                      },
+                      apply: (value, base) =>
+                        this.model.applyTitle(value, base),
                     }) ?? titleValue
                   }
                 </div>`

@@ -103,8 +103,17 @@ export function openTableMenu(
   const stopHighlight = anchor.popupStart();
   abort.signal.addEventListener("abort", stopHighlight, { once: true });
   const actions = tableMenuActions(
-    cell,
-    table,
+    {
+      dataManager: manager,
+      selectionController: selection,
+      textProtectionActions: (area) => cell.textProtectionActions(area),
+      templateVariableActions: (handoff) =>
+        cell.templateVariableActions(handoff),
+      rowRepeatActions: (id) => cell.rowRepeatActions(id),
+      notifyHeaderRepeatConflict: () => cell.notifyHeaderRepeatConflict(),
+      pasteFailed: (error) => cell.notifyNativePasteFailure(table, error),
+    },
+    std.getOptional(EditorI18nProvider) ?? undefined,
     target,
     () => (live() ? resolveArea() : undefined),
     handoff,

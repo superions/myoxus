@@ -16,17 +16,8 @@ import type { AttachmentBlockModel } from "@virgultum/editor/model";
 import { useEffect, useMemo, useState } from "react";
 import { MarkdownPreview } from "./markdown-preview";
 import { useAttachmentTextSelection } from "./use-text-selection";
-
-export function textAttachmentFormat(name: string, mime: string) {
-  if (
-    /\.(md|markdown)$/i.test(name) ||
-    /^text\/(markdown|x-markdown)$/i.test(mime)
-  )
-    return "markdown";
-  if (/\.txt$/i.test(name) || mime.toLowerCase() === "text/plain")
-    return "text";
-  return null;
-}
+import { textAttachmentFormat } from "./format";
+export { textAttachmentFormat } from "./format";
 
 /** BOMs are explicit encoding declarations; invalid/binary data must not masquerade as decoded text. */
 export function decodeAttachmentText(bytes: ArrayBuffer) {

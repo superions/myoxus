@@ -97,12 +97,19 @@ import {
 } from "../workbench-context";
 import type { DatabaseViewHostProps } from "./contracts";
 import { databaseScheduleNavigationDate } from "../shared/schedule";
-import { useDatabaseViewHostController } from "./controller";
+import {
+  useDatabaseViewHostController,
+  useEffectiveViewRead,
+} from "./controller";
 import { useMutateQueryResource } from "@myoxus/core/components/hooks/use-mutation";
 import { databaseChangeImpact } from "../shared/change-invalidation";
 import { DatabaseViewTabs } from "./view-tabs";
+import { classifyDatabaseError } from "../route-state";
 
-function DatabaseViewHostLayout(props: DatabaseViewHostProps) {
+function DatabaseViewHostLayout({
+  read,
+  ...props
+}: DatabaseViewHostProps & { read: ReturnType<typeof useEffectiveViewRead> }) {
   const t = useI18n();
   const {
     databaseId,
@@ -194,7 +201,7 @@ function DatabaseViewHostLayout(props: DatabaseViewHostProps) {
     viewControlSection,
     viewEditScope,
     workspaceTags,
-  } = useDatabaseViewHostController(props, t);
+  } = useDatabaseViewHostController(props, t, read);
   const capabilities = databaseManagedCapabilities(record);
   const scheduleDateInputRef = useRef<HTMLInputElement>(null);
   const databaseContextRef = useRef<DatabasePageWorkbenchContextHandle>(null);
@@ -1111,11 +1118,30 @@ function DatabaseViewHostLayout(props: DatabaseViewHostProps) {
   );
 }
 
-/**
- * Shared conflict boundary for standalone pages and server-backed embeds. All
- * descendant mutation paths therefore expose the same explicit reload/force
- * contract instead of implementing per-view conflict behavior.
- */
+function DatabaseViewReadBoundary(props: DatabaseViewHostProps) {
+  const read = useEffectiveViewRead(props);
+  const t = useI18n();
+  const error = read.error ? classifyDatabaseError(read.error) : null;
+  if (error || (read.data && !read.data.workspace?.databaseEffectiveViewState))
+    return (
+      <Notice
+        tone="warning"
+        title={
+          error === "forbidden"
+            ? t["com.myoxus.database.embed.forbidden"]()
+            : error === "missing"
+              ? t["com.myoxus.database.embed.not-found"]()
+              : t["com.myoxus.database.embed.unavailable"]()
+        }
+      >
+        <Button onClick={() => void read.mutate()}>{t.Retry()}</Button>
+      </Notice>
+    );
+  if (!read.data) return <Loading />;
+  return <DatabaseViewHostLayout {...props} read={read} />;
+}
+
+/** Both standalone and embedded views share the conflict and presence owners. */
 export function DatabaseViewHost(props: DatabaseViewHostProps) {
   const t = useI18n();
   const revalidate = useMutateQueryResource();
@@ -1163,7 +1189,7 @@ export function DatabaseViewHost(props: DatabaseViewHostProps) {
   return (
     <DatabaseConflictProvider>
       <DatabasePresenceProvider value={presence}>
-        <DatabaseViewHostLayout {...props} />
+        <DatabaseViewReadBoundary {...props} />
       </DatabasePresenceProvider>
     </DatabaseConflictProvider>
   );

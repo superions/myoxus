@@ -3,16 +3,32 @@
 
 import { useI18n } from "@myoxus/i18n";
 import { DoneIcon } from "@myoxus/icons/react";
-import { Group, IconButton, InputBase, Scrollable } from "@myoxus/ui-facade";
+import {
+  Group,
+  IconButton,
+  InputBase,
+  Scrollable,
+  Textarea,
+} from "@myoxus/ui-facade";
 import type { EditorEquationControls } from "@virgultum/editor/shared/services";
 import { flushSync } from "react-dom";
 import { EditorInlinePopup } from "./inline-popup";
 
 export function EditorEquation({
   controls,
-}: {
-  controls: EditorEquationControls;
-}) {
+  source,
+}:
+  | {
+      controls: Pick<
+        EditorEquationControls,
+        "close" | "setAnchor" | "position" | "restoreFocus"
+      >;
+      source: { value: string; change: (value: string) => void };
+    }
+  | {
+      controls: EditorEquationControls;
+      source?: undefined;
+    }) {
   const t = useI18n();
   const label = t["com.myoxus.editor.slash.equation"]();
   const close = () => {
@@ -30,30 +46,51 @@ export function EditorEquation({
     >
       <Group wrap="nowrap">
         <Scrollable.Viewport autosize maxHeight="floating" data-equation-scroll>
-          <InputBase
-            component="div"
-            multiline
-            size="md"
-            styles={{
-              input: { fontFamily: "var(--mantine-font-family-monospace)" },
-            }}
-            ref={controls.mountSource}
-            aria-label={label}
-            onCopyCapture={controls.syncSourceRange}
-            onCutCapture={controls.syncSourceRange}
-            onPasteCapture={controls.syncSourceRange}
-            onKeyDown={(event) => {
-              // Let the source editor finish IME composition without the outer form intercepting Enter.
-              if (event.nativeEvent.isComposing) {
-                event.stopPropagation();
-                return;
-              }
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                close();
-              }
-            }}
-          />
+          {source ? (
+            <Textarea
+              autoFocus
+              autosize
+              aria-label={label}
+              value={source.value}
+              mono
+              onChange={source.change}
+              onKeyDown={(event) => {
+                if (
+                  event.key === "Enter" &&
+                  !event.shiftKey &&
+                  !event.nativeEvent.isComposing
+                ) {
+                  event.preventDefault();
+                  close();
+                }
+              }}
+            />
+          ) : (
+            <InputBase
+              component="div"
+              multiline
+              size="md"
+              styles={{
+                input: { fontFamily: "var(--mantine-font-family-monospace)" },
+              }}
+              ref={controls.mountSource}
+              aria-label={label}
+              onCopyCapture={controls.syncSourceRange}
+              onCutCapture={controls.syncSourceRange}
+              onPasteCapture={controls.syncSourceRange}
+              onKeyDown={(event) => {
+                // Let the source editor finish IME composition without the outer form intercepting Enter.
+                if (event.nativeEvent.isComposing) {
+                  event.stopPropagation();
+                  return;
+                }
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  close();
+                }
+              }}
+            />
+          )}
         </Scrollable.Viewport>
         <IconButton
           aria-label={t["Confirm"]()}

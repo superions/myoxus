@@ -6,6 +6,7 @@ import type {
 } from "@virgultum/core/services";
 import { EditorSelectionToolbar } from "../../view-extensions/editor-view/editor-chrome/selection-toolbar";
 import type { PageInteraction } from "./page-interaction";
+import { isMyoxusLabelTone } from "@virgultum/core/styles/text";
 
 export function PageFormatting({
   controller,
@@ -19,6 +20,9 @@ export function PageFormatting({
   changed: () => void;
 }) {
   const t = useI18n();
+  const tone = controller.labelTone();
+  const alignment = controller.alignment();
+  const eyebrow = controller.eyebrowState();
   const run = (key: string, value?: string | null) => () => {
     controller.format(key, value);
     changed();
@@ -137,11 +141,11 @@ export function PageFormatting({
     {
       id: "b.align",
       label: t["com.myoxus.editor.toolbar.alignment"](),
-      disabled: false,
+      disabled: !alignment,
       control: {
         type: "choice",
         presentation: "icons",
-        value: "left",
+        value: alignment ?? null,
         options: [
           {
             value: "left",
@@ -159,21 +163,55 @@ export function PageFormatting({
             label: t["com.myoxus.editor.toolbar.align-right"](),
           },
         ],
-        change: (value) =>
-          controller.relinquish({
-            kind: "selection",
-            control: "b.align." + value,
-          }),
+        change: (value) => {
+          controller.align(value);
+          changed();
+        },
       },
     },
     { id: "b.inline-text", label: "", disabled: false, actions: formats },
   );
+  if (eyebrow !== undefined)
+    primary.push({
+      id: "b.eyebrow",
+      icon: "TextTypeIcon",
+      label: t["com.myoxus.editor.paragraph.eyebrow"](),
+      disabled: false,
+      active: eyebrow,
+      run: () => {
+        controller.toggleEyebrow();
+        changed();
+      },
+    });
   primary.push(
-    advanced(
-      "c.label-tone",
-      t["com.myoxus.editor.label-tone.label"](),
-      "TagsIcon",
-    ),
+    {
+      id: "c.label-tone",
+      label: `${t["com.myoxus.editor.label-tone.label"]()}: ${t[`com.myoxus.editor.label-tone.${isMyoxusLabelTone(tone) || tone === "mixed" ? tone : "clear"}`]()}`,
+      icon: "TagsIcon",
+      active: isMyoxusLabelTone(tone),
+      disabled: false,
+      control: {
+        type: "menu",
+        onClose: () => controller.restore(),
+        items: (
+          [
+            "neutral",
+            "info",
+            "positive",
+            "warning",
+            "danger",
+            "accent",
+            "clear",
+          ] as const
+        ).map((value) => ({
+          id: value,
+          label: t[`com.myoxus.editor.label-tone.${value}`](),
+          disabled: false,
+          active: (tone ?? "clear") === value,
+          run: run("labelTone", value === "clear" ? null : value),
+        })),
+      },
+    },
     advanced(
       "d.template-variable",
       t["com.myoxus.editor.field.document-fields"](),

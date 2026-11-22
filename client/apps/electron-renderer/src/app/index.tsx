@@ -1,5 +1,6 @@
 import "./setup";
 
+import { DesktopPageRendererContext } from "@myoxus/core/editor/virgultum/doc-editor/page-renderer-context";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
@@ -14,7 +15,9 @@ function mountApp() {
   const root = document.getElementById("app")!;
   createRoot(root).render(
     <StrictMode>
-      <App />
+      <DesktopPageRendererContext value={true}>
+        <App />
+      </DesktopPageRendererContext>
     </StrictMode>,
   );
 }

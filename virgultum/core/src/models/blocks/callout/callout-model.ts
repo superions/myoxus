@@ -3,7 +3,7 @@ import {
   BlockModel,
   BlockSchemaExtension,
   defineBlockSchema,
-  type Text,
+  Text,
 } from "../../../store/index";
 
 import type { BlockMeta, TextProtection } from "../../utils/types";
@@ -118,7 +118,61 @@ export const CalloutBlockSchema = defineBlockSchema({
   toModel: () => new CalloutBlockModel(),
 });
 
-export class CalloutBlockModel extends BlockModel<CalloutProps> {}
+type Settings = { type: string; foldable: boolean; defaultOpen: boolean };
+export class CalloutBlockModel extends BlockModel<CalloutProps> {
+  private get editable() {
+    return (
+      !this.store.readonly &&
+      this.props.textProtection !== "fixed" &&
+      this.store.getModelById(this.id) === this
+    );
+  }
+  /** An open title editor must not overwrite a newer title from a peer. */
+  applyTitle(value: string, base: string) {
+    const current = this.props.title;
+    if (
+      !this.editable ||
+      /[\r\n]/.test(value) ||
+      (current?.toString() ?? "") !== base
+    )
+      return false;
+    if (value === base) return true;
+    this.store.captureSync();
+    if (current) current.replace(0, current.length, value, {});
+    else this.store.updateBlock(this, { title: new Text(value) });
+    this.store.captureSync();
+    return true;
+  }
+  applySettings(value: Settings, base: Settings) {
+    if (
+      !this.editable ||
+      this.props.type !== base.type ||
+      (this.props.foldable === true) !== base.foldable ||
+      (this.props.defaultOpen !== false) !== base.defaultOpen ||
+      !/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(value.type)
+    )
+      return false;
+    if (
+      value.type === base.type &&
+      value.foldable === base.foldable &&
+      value.defaultOpen === base.defaultOpen
+    )
+      return true;
+    const presentation = calloutPresentation(value.type);
+    this.store.captureSync();
+    this.store.updateBlock(this, {
+      ...value,
+      ...(value.type !== base.type
+        ? {
+            icon: { type: "emoji", unicode: presentation.icon },
+            backgroundColorName: presentation.background,
+          }
+        : {}),
+    });
+    this.store.captureSync();
+    return true;
+  }
+}
 
 export const CalloutBlockSchemaExtension =
   BlockSchemaExtension(CalloutBlockSchema);

@@ -8,7 +8,8 @@ import {
 import type { BlockModel } from "../../store/index";
 
 import { compare } from "../utils/layer.js";
-import { GfxExtension } from "./extension.js";
+import { CanvasIndex } from "./extension.js";
+import type { PointTestOptions } from "./model/base.js";
 import { GfxBlockElementModel } from "./model/gfx-block-model.js";
 import type { GfxModel } from "./model/model.js";
 import { GfxPrimitiveElementModel } from "./model/surface/element-model.js";
@@ -75,7 +76,7 @@ export type BuiltInFilterType = keyof typeof typeFilters;
 
 type FilterFunc = (model: GfxModel | GfxLocalElementModel) => boolean;
 
-export class GridManager extends GfxExtension {
+export class GridManager extends CanvasIndex {
   static override key = "grid";
 
   private readonly _locallyExcludedElementIds = new Set<string>();
@@ -291,6 +292,23 @@ export class GridManager extends GfxExtension {
     }
   }
 
+  /** Return all point hits in model coordinates. The viewport owner supplies
+   * its current zoom and orders hits with its own layer projection. */
+  hitsAt(x: number, y: number, options: PointTestOptions = {}): GfxModel[] {
+    const hitThreshold = options.hitThreshold ?? 10;
+    const [dx, dy] = options.responsePadding ?? [
+      hitThreshold / 2,
+      hitThreshold / 2,
+    ];
+    const test = { ...options, hitThreshold };
+    return this.search({ x: x - dx, y: y - dy, w: dx * 2, h: dy * 2 }).filter(
+      (el) =>
+        !("renderViewport" in el && el.renderViewport) &&
+        (el.includesPoint(x, y, test) ||
+          el.externalBound?.isPointInBound([x, y])),
+    );
+  }
+
   /**
    * Search for elements in a bound.
    * @param bound
@@ -390,7 +408,7 @@ export class GridManager extends GfxExtension {
 
   override mounted() {
     const disposables = this._disposables;
-    const { store } = this.std;
+    const store = this.source.doc;
     const canBeRenderedAsGfxBlock = (
       block: BlockModel,
     ): block is GfxBlockElementModel => {
@@ -507,11 +525,11 @@ export class GridManager extends GfxExtension {
       });
     };
 
-    if (this.gfx.surface) {
-      watchSurface(this.gfx.surface);
+    if (this.source.surface) {
+      watchSurface(this.source.surface);
     } else {
       disposables.add(
-        this.gfx.surface$.subscribe((surface) => {
+        this.source.surface$.subscribe((surface) => {
           if (surface) {
             watchSurface(surface);
           }

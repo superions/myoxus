@@ -33,7 +33,7 @@ const labelToneColors: Record<
 };
 
 export function isMyoxusLabelTone(value: unknown): value is MyoxusLabelTone {
-  return typeof value === "string" && value in labelToneColors;
+  return typeof value === "string" && Object.hasOwn(labelToneColors, value);
 }
 
 /**

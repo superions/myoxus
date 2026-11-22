@@ -168,7 +168,9 @@ test("can open peek view for embedded frames", async ({ page }) => {
   const frameInViewport = async () => {
     const peekView = page.locator('[data-testid="peek-view-modal"]');
     // wait for peek view ani
-    const frameTitle = peekView.locator("edgeless-editor myoxus-frame-title");
+    const frameTitle = peekView.locator(
+      ".myoxus-edgeless-viewport myoxus-frame-title",
+    );
     await frameTitle.waitFor({ state: "visible" });
 
     await frameTitle.click();

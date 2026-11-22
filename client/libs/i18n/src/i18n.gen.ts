@@ -18891,6 +18891,8 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.editor.embed.description-placeholder"](): string;
   /** Empty embed */
   ["com.myoxus.editor.embed.empty"](): string;
+  /** Basic HTML Page Structure */
+  ["com.myoxus.editor.embed.html-title"](): string;
   /** No link found */
   ["com.myoxus.editor.embed.no-link"](): string;
   /** Please set a link for this block */

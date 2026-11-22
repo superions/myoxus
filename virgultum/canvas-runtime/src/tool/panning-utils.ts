@@ -1,8 +1,77 @@
 import type { IVec } from "@virgultum/core/primitives/gfx";
 import type { PointerEventState } from "@virgultum/core/runtime";
-import type { Viewport } from "@virgultum/core/runtime/gfx";
+import { createRafCoalescer, type Viewport } from "@virgultum/core/runtime/gfx";
+import { Point } from "@virgultum/core/primitives/gfx";
+import { IS_WINDOWS } from "@virgultum/core/primitives/env";
+import { isTouchPadPinchEvent } from "@virgultum/core/utils";
+import { normalizeWheelDeltaY } from "../utils";
+
+/** Wheel coordinates are relative to the viewport, not to an overlay under
+ * the pointer. The same camera policy applies to readonly and writable views. */
+export function wheelCanvas(
+  viewport: Viewport,
+  e: WheelEvent,
+  rect: DOMRect,
+  scrollZoom: boolean,
+) {
+  e.preventDefault();
+  if (viewport.locked) return;
+  if (isTouchPadPinchEvent(e) || scrollZoom) {
+    const [x, y] = viewport.toModelCoord(
+      e.clientX - rect.x,
+      e.clientY - rect.y,
+    );
+    viewport.setZoom(
+      normalizeWheelDeltaY(e.deltaY, viewport.zoom),
+      new Point(x, y),
+      true,
+    );
+  } else {
+    const horizontal = IS_WINDOWS && e.shiftKey;
+    const dx = (horizontal ? e.deltaY : e.deltaX) / viewport.zoom,
+      dy = horizontal ? 0 : e.deltaY / viewport.zoom;
+    viewport.applyDeltaCenter(dx, dy);
+    viewport.viewportMoved.next([dx, dy]);
+  }
+  e.stopPropagation();
+}
 
 const PANNING_DISTANCE = 30;
+
+/** Accumulate model-space movement between frames and commit the last delta
+ * on release. Pointer capture is owned by the view initiating the gesture. */
+export function cameraPan(camera: Viewport) {
+  let last: IVec | null = null,
+    dx = 0,
+    dy = 0;
+  const frames = createRafCoalescer<void>(() => {
+    if (dx || dy) camera.applyDeltaCenter(dx, dy);
+    dx = dy = 0;
+  });
+  return {
+    start(x: number, y: number) {
+      frames.cancel();
+      last = [x, y];
+      dx = dy = 0;
+    },
+    move(x: number, y: number) {
+      if (!last) return;
+      dx += (last[0] - x) / camera.zoom;
+      dy += (last[1] - y) / camera.zoom;
+      last = [x, y];
+      frames.schedule(undefined);
+    },
+    end() {
+      frames.flush();
+      last = null;
+    },
+    cancel() {
+      frames.cancel();
+      dx = dy = 0;
+      last = null;
+    },
+  };
+}
 
 export function calPanDeltaFromClientPoint({
   clientX,

@@ -11,3 +11,4 @@ export * from "./i18n-service";
 export * from "./parse-url-service";
 export * from "./telemetry-service";
 export * from "./theme-service";
+export { eventCardDateRange } from "./host/types";

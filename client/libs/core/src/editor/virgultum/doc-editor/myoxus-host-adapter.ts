@@ -116,6 +116,57 @@ async function resolveEventData(
   }
 }
 
+export function workspaceEventCommands({
+  workspaceService,
+  workspaceDialogService,
+  integrationService,
+}: Pick<
+  MyoxusHostAdapterDeps,
+  "workspaceService" | "workspaceDialogService" | "integrationService"
+>) {
+  return {
+    async openEventEditDialog(
+      args: MyoxusOpenEventEditDialogArgs,
+    ): Promise<string | null> {
+      if (
+        args.workspaceId !== undefined &&
+        args.workspaceId !== workspaceService.workspace.id
+      )
+        return null;
+      if (
+        args.eventId &&
+        !(await integrationService.calendar.resolveEventDetails(args.eventId))
+      )
+        return null;
+      return new Promise((resolve) =>
+        workspaceDialogService.open(
+          "event-edit",
+          { eventId: args.eventId, sourceDocId: args.sourceDocId },
+          (id) => resolve(id ?? null),
+        ),
+      );
+    },
+    async resolveEventData(request: MyoxusResolveEventRequest) {
+      return request.workspaceId === workspaceService.workspace.id
+        ? resolveEventData(integrationService, request.eventId)
+        : null;
+    },
+    confirmEventBlockRemoval(
+      request: MyoxusConfirmEventRemovalRequest,
+    ): Promise<boolean> {
+      if (request.workspaceId !== workspaceService.workspace.id)
+        return Promise.resolve(false);
+      return new Promise((resolve) =>
+        workspaceDialogService.open(
+          "event-block-remove",
+          { eventId: request.eventId },
+          (ok) => resolve(ok === true),
+        ),
+      );
+    },
+  };
+}
+
 /**
  * Construct a `MyoxusHostService` backed by the supplied Myoxus Core
  * services. The returned service captures the services by reference,
@@ -163,50 +214,11 @@ export function createMyoxusHostServiceAdapter(
     insertNamedBuildingBlock: deps.insertNamedBuildingBlock,
     saveBuildingBlockSelection: deps.saveBuildingBlockSelection,
 
-    async openEventEditDialog(
-      args: MyoxusOpenEventEditDialogArgs,
-    ): Promise<string | null> {
-      const workspaceId = args.workspaceId ?? workspaceService.workspace.id;
-      if (workspaceId !== workspaceService.workspace.id) return null;
-      if (args.eventId) {
-        const event = await integrationService.calendar.resolveEventDetails(
-          args.eventId,
-        );
-        if (!event) return null;
-      }
-      return new Promise<string | null>((resolve) => {
-        workspaceDialogService.open(
-          "event-edit",
-          {
-            eventId: args.eventId,
-            sourceDocId: args.sourceDocId,
-          },
-          (eventId) => resolve(eventId ?? null),
-        );
-      });
-    },
-
-    async resolveEventData(
-      request: MyoxusResolveEventRequest,
-    ): Promise<MyoxusResolvedEvent | null> {
-      if (request.workspaceId !== workspaceService.workspace.id) return null;
-      return resolveEventData(integrationService, request.eventId);
-    },
-
-    confirmEventBlockRemoval(
-      request: MyoxusConfirmEventRemovalRequest,
-    ): Promise<boolean> {
-      if (request.workspaceId !== workspaceService.workspace.id) {
-        return Promise.resolve(false);
-      }
-      return new Promise<boolean>((resolve) => {
-        workspaceDialogService.open(
-          "event-block-remove",
-          { eventId: request.eventId },
-          (confirmed) => resolve(confirmed === true),
-        );
-      });
-    },
+    ...workspaceEventCommands({
+      workspaceService,
+      workspaceDialogService,
+      integrationService,
+    }),
 
     hasImageProxyUrl(): boolean {
       try {

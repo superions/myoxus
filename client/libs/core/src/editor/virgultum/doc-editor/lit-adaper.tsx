@@ -6,9 +6,9 @@ import {
   type EdgelessEditor,
   LitDocEditor,
   LitDocTitle,
-  LitEdgelessEditor,
   type PageEditor,
 } from "@myoxus/core/editor/editors";
+import { CanvasViewport } from "../../editors/edgeless-editor";
 import { getViewManager } from "@myoxus/core/editor/manager/view";
 import { createMyoxusHostServiceAdapter } from "@myoxus/core/editor/virgultum/doc-editor/myoxus-host-adapter";
 import { WorkspaceDialogService } from "@myoxus/core/modules/dialogs";
@@ -589,7 +589,7 @@ export const VirgultumEdgelessEditor = forwardRef<
   );
 
   const onDocRef = useCallback(
-    (el: EdgelessEditor) => {
+    (el: EdgelessEditor | null) => {
       editorRef.current = el;
       if (ref) {
         if (typeof ref === "function") {
@@ -607,7 +607,7 @@ export const VirgultumEdgelessEditor = forwardRef<
       editorRef.current.updateComplete
         .then(() => {
           // make sure editor can get keyboard events on showing up
-          editorRef.current
+          editorRef.current?.host
             ?.querySelector<HTMLElement>("myoxus-edgeless-root")
             ?.click();
         })
@@ -617,7 +617,7 @@ export const VirgultumEdgelessEditor = forwardRef<
 
   return (
     <DocumentEditorEdgelessViewport>
-      <LitEdgelessEditor
+      <CanvasViewport
         ref={onDocRef}
         doc={page}
         specs={specs}

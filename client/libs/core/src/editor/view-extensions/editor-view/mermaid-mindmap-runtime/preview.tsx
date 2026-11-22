@@ -3,12 +3,13 @@ import { useEffect, useRef } from "react";
 import { Box, MyoxusText, RadioGroup, Stack } from "@myoxus/ui-facade";
 import { useI18n } from "@myoxus/i18n";
 import {
-  CanvasRenderer,
+  ElementRendererIdentifier,
+  type ElementRenderer,
   getSurfaceBlock,
 } from "@virgultum/editor/blocks/surface";
+import { mountCanvasScene } from "@virgultum/editor/blocks/surface";
 import { Bound, getCommonBound } from "@virgultum/core/primitives/gfx";
-import { GfxControllerIdentifier, Viewport } from "@virgultum/core/runtime/gfx";
-import { ThemeProvider } from "@virgultum/core/services";
+import { ThemeProvider, FeatureFlagService } from "@virgultum/core/services";
 import {
   MindmapDesign,
   projectMindmapTree,
@@ -32,8 +33,7 @@ export function MindmapPassivePreview({
     const { std } = props.host,
       surface = getSurfaceBlock(std.store);
     if (!surface) return;
-    const gfx = std.get(GfxControllerIdentifier),
-      theme = std.get(ThemeProvider);
+    const theme = std.get(ThemeProvider);
     const visual = projectMindmapTree(props.model, { design: props.design });
     const bound = getCommonBound(
       visual.nodes.map(
@@ -41,15 +41,11 @@ export function MindmapPassivePreview({
       ),
     );
     if (!bound) return;
-    const viewport = new Viewport();
-    viewport.ZOOM_MIN = 0.01;
-    viewport.setShellElement(container.current);
-    const renderer = new CanvasRenderer({
-      std,
-      viewport,
-      layerManager: gfx.layer,
-      gridManager: gfx.grid,
-      surfaceModel: surface,
+    const scene = mountCanvasScene(container.current, surface, {
+      resolvePainter: (type) =>
+        std.getOptional<ElementRenderer>(ElementRendererIdentifier(type)),
+      turboEnabled: () =>
+        std.get(FeatureFlagService).getFlag("enable_turbo_renderer"),
       provider: {
         selectedElements: () => [],
         getColorScheme: () => theme.edgelessTheme,
@@ -61,7 +57,13 @@ export function MindmapPassivePreview({
           theme.getCssVariableColor(property, theme.edgelessTheme),
       },
     });
-    const excluded = new Set(gfx.gfxElements.map((element) => element.id));
+    const { renderer, viewport } = scene;
+    viewport.ZOOM_MIN = 0.01;
+    const excluded = new Set(
+      [...scene.layer.blocks, ...scene.layer.canvasElements].map(
+        (element) => element.id,
+      ),
+    );
     const excludeDocument = () =>
       renderer.setLocallyExcludedElementIds(excluded);
     excludeDocument();
@@ -69,7 +71,6 @@ export function MindmapPassivePreview({
       excluded.add(id);
       excludeDocument();
     });
-    renderer.attach(container.current);
     const preview = previewMermaidGfxModel(visual, {
       surface,
       viewport,
@@ -89,9 +90,7 @@ export function MindmapPassivePreview({
       size.unsubscribe();
       documentAddition.unsubscribe();
       preview();
-      renderer.dispose();
-      viewport.dispose();
-      renderer.canvas.remove();
+      scene.dispose();
     };
   }, [props.host, props.model, props.design]);
   return (

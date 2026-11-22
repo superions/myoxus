@@ -54,6 +54,8 @@
     "./syntax-highlighter": "./src/syntax-highlighter/index.ts",
     "./reference-notification": "./src/reference-notification/index.ts",
     "./data": "./src/entries/data.ts",
+    "./page-table": "./src/entries/page-table.ts",
+    "./citation-controls": "./src/inlines/footnote/citation-controls.ts",
     "./disclosure": "./src/disclosure/index.ts"
   },
   "files": [

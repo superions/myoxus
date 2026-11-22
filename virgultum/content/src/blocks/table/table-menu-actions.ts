@@ -7,7 +7,6 @@ import {
   TextAlign,
 } from "@virgultum/core/models";
 import {
-  EditorI18nProvider,
   editorMessage,
   resolveEditorMessage,
   type EditorI18nMessage,
@@ -15,7 +14,7 @@ import {
 } from "@virgultum/core/services";
 import { cssVar } from "@virgultum/core/theme";
 import { cellColorList, colorList } from "./color";
-import type { TableBlockComponent } from "./table-block";
+import type { TableDataManager } from "./table-data-manager";
 import type { TableCell } from "./table-cell";
 import type { TableAreaSelection } from "./selection-schema";
 
@@ -75,15 +74,27 @@ const colors: Record<string, EditorI18nMessage> = {
 
 /** Plain presentation and existing commands; the session supplies live target guards. */
 export function tableMenuActions(
-  cell: TableCell,
-  table: TableBlockComponent,
+  cell: Pick<
+    TableCell,
+    | "textProtectionActions"
+    | "templateVariableActions"
+    | "rowRepeatActions"
+    | "notifyHeaderRepeatConflict"
+  > & {
+    dataManager: TableDataManager;
+    selectionController: Pick<
+      TableCell["selectionController"],
+      "doCopyOrCut" | "doPaste"
+    >;
+    pasteFailed: (error: unknown) => void;
+  },
+  i18n: Parameters<typeof resolveEditorMessage>[1],
   target: TableMenuTarget,
   area: () => TableAreaSelection | undefined,
   handoff: () => void,
 ): SelectionAction[] {
   const manager = cell.dataManager,
     selection = cell.selectionController;
-  const i18n = table.std.getOptional(EditorI18nProvider) ?? undefined;
   const item = ([message, icon]: Presentation): SelectionAction => ({
     id: message.key,
     label: resolveEditorMessage(message, i18n),
@@ -181,12 +192,10 @@ export function tableMenuActions(
               const value = await navigator.clipboard.readText(),
                 selected = area();
               if (selected) {
-                table.store.captureSync();
                 selection.doPaste(value, selected);
-                table.store.captureSync();
               }
             } catch (error) {
-              if (area()) cell.notifyNativePasteFailure(table, error);
+              if (area()) cell.pasteFailed(error);
             }
           },
           { disabled: fixed || !navigator.clipboard?.readText },

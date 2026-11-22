@@ -1814,6 +1814,7 @@ __metadata:
     "@virgultum/content": "workspace:*"
     "@virgultum/core": "workspace:*"
     "@virgultum/editor": "workspace:*"
+    "@virgultum/embeds": "workspace:*"
     "@xyflow/react": "npm:12.11.1"
     "@zip.js/zip.js": "npm:2.24.0"
     altcha: "npm:^3.0.5"

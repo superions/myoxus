@@ -28,7 +28,6 @@ import {
   TableCellComponentName,
 } from "./table-cell";
 import { cleanSelection } from "./utils";
-type Cells = string[][];
 const TEXT = "text/plain";
 export class SelectionController implements ReactiveController {
   constructor(public readonly host: TableBlockComponent) {
@@ -324,64 +323,33 @@ export class SelectionController implements ReactiveController {
     window.addEventListener("mouseup", onUp);
   }
   readonly doCopyOrCut = (selection: TableAreaSelection, isCut: boolean) => {
-    const columns = this.dataManager.uiColumns$.value;
-    const rows = this.dataManager.uiRows$.value;
-    const cells: Cells = [];
-    const deleteCells: { rowId: string; columnId: string }[] = [];
-    for (let i = selection.rowStartIndex; i <= selection.rowEndIndex; i++) {
-      const row = rows[i];
-      if (!row) {
-        continue;
-      }
-      const rowCells: string[] = [];
-      for (
-        let j = selection.columnStartIndex;
-        j <= selection.columnEndIndex;
-        j++
-      ) {
-        const column = columns[j];
-        if (!column) {
-          continue;
-        }
-        const cell = this.dataManager.getCell(row.rowId, column.columnId);
-        rowCells.push(cell?.text.toString() ?? "");
-        if (isCut) {
-          deleteCells.push({ rowId: row.rowId, columnId: column.columnId });
-        }
-      }
-      cells.push(rowCells);
-    }
-    if (isCut) {
-      this.dataManager.clearCells(deleteCells);
-    }
+    const { values: cells, clearIfCurrent } =
+      this.dataManager.captureArea(selection);
+    const active = this.selected$.peek();
     const text = cells.map((row) => row.join("\t")).join("\n");
-
-    const htmlTable = `<table style="border-collapse: collapse;">
-      <tbody>
-        ${cells
-          .map(
-            (row) => `
-          <tr>
-            ${row
-              .map(
-                (cell) => `
-              <td style="border: 1px solid var(--myoxus-border-color); padding: ${this.clipboardCellPadding}; min-width: ${DefaultColumnWidth}px; min-height: 22px;">${cell}</td>
-            `,
-              )
-              .join("")}
-          </tr>
-        `,
-          )
-          .join("")}
-      </tbody>
-    </table>`;
+    const table = document.createElement("table");
+    table.style.borderCollapse = "collapse";
+    const body = table.createTBody();
+    const style = `border: 1px solid var(--myoxus-border-color); padding: ${this.clipboardCellPadding}; min-width: ${DefaultColumnWidth}px; min-height: 22px;`;
+    for (const values of cells) {
+      const row = body.insertRow();
+      for (const value of values) {
+        const cell = row.insertCell();
+        cell.style.cssText = style;
+        cell.textContent = value;
+      }
+    }
 
     this.clipboard
       .writeToClipboard((items) => ({
         ...items,
         [TEXT]: text,
-        "text/html": htmlTable,
+        "text/html": table.outerHTML,
       }))
+      .then(() => {
+        if (isCut && this.host.isConnected && this.selected$.peek() === active)
+          clearIfCurrent();
+      })
       .catch(console.error);
   };
   onCopy = () => {
@@ -401,56 +369,10 @@ export class SelectionController implements ReactiveController {
     return true;
   };
   doPaste = (plainText: string, selection: TableAreaSelection) => {
-    if (
-      this.dataManager.readonly$.value ||
-      this.dataManager
-        .getCellsBySelection(selection)
-        .some((cell) => cell.textProtection === "fixed")
-    )
-      return;
-    try {
-      const rowTextLists = plainText
-        .split(/\r?\n/)
-        .map((line) => line.split("\t").map((cell) => cell.trim()))
-        .filter((row) => row.some((cell) => cell !== "")); // Filter out empty rows
-      const height = rowTextLists.length;
-      const width = rowTextLists[0]?.length ?? 0;
-      if (height > 0 && width > 0) {
-        const columns = this.dataManager.uiColumns$.value;
-        const rows = this.dataManager.uiRows$.value;
-        for (let i = selection.rowStartIndex; i <= selection.rowEndIndex; i++) {
-          const row = rows[i];
-          if (!row) {
-            continue;
-          }
-          for (
-            let j = selection.columnStartIndex;
-            j <= selection.columnEndIndex;
-            j++
-          ) {
-            const column = columns[j];
-            if (!column) {
-              continue;
-            }
-            const text = this.dataManager.getCell(
-              row.rowId,
-              column.columnId,
-            )?.text;
-            if (text) {
-              const rowIndex = (i - selection.rowStartIndex) % height;
-              const columnIndex = (j - selection.columnStartIndex) % width;
-              text.replace(
-                0,
-                text.length,
-                rowTextLists[rowIndex]?.[columnIndex] ?? "",
-              );
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error(error);
-    }
+    this.dataManager.pasteArea(
+      selection,
+      plainText.split(/\r?\n/).map((line) => line.split("\t")),
+    );
   };
   onPaste = (_context: UIEventStateContext) => {
     const event = _context.get("clipboardState").raw;
@@ -471,20 +393,15 @@ export class SelectionController implements ReactiveController {
         const table = doc.querySelector("table");
         if (table) {
           const rows: string[][] = [];
-          table.querySelectorAll("tr").forEach((tr) => {
+          for (const tr of table.rows) {
             const rowData: string[] = [];
-            tr.querySelectorAll("td,th").forEach((cell) => {
-              rowData.push(cell.textContent?.trim() ?? "");
-            });
+            for (const cell of tr.cells) rowData.push(cell.textContent ?? "");
             if (rowData.length > 0) {
               rows.push(rowData);
             }
-          });
+          }
           if (rows.length > 0) {
-            this.doPaste(
-              rows.map((row) => row.join("\t")).join("\n"),
-              selection,
-            );
+            this.dataManager.pasteArea(selection, rows);
             return true;
           }
         }

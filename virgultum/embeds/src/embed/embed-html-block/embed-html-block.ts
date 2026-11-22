@@ -62,7 +62,12 @@ export class EmbedHtmlBlockComponent extends EmbedBlockComponent<EmbedHtmlModel>
   }
 
   override renderBlock(): unknown {
-    const titleText = "Basic HTML Page Structure";
+    const titleText = this._text(
+      editorMessage(
+        "com.myoxus.editor.embed.html-title",
+        "Basic HTML Page Structure",
+      ),
+    );
 
     const htmlSrc = `
       <style>

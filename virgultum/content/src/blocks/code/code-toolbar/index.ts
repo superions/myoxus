@@ -132,6 +132,22 @@ export class MyoxusCodeToolbarWidget extends WidgetComponent<
   addPrimaryActions(factory: CodeToolbarActions) {
     this.primaryActions.value = [...this.primaryActions.value, factory];
   }
+  /** Resume an optional Page command only after the receiving widget and its
+   * configured extensions own the selected block. */
+  runPageCommand(id: string) {
+    if (!this.isConnected || !this.block) return;
+    const abort = new AbortController();
+    this.disposables.add(() => abort.abort());
+    const context = new CodeBlockToolbarContext(this.block, abort, () => {});
+    const controls = createCodeToolbarControls(
+      context,
+      () => this.primaryActions.value,
+    );
+    const { primary, more } = controls.getSnapshot();
+    const action = [...primary, ...more].find((a) => a.id === id);
+    if (action && !action.disabled && action.run)
+      action.run(this.block, new MouseEvent("click"));
+  }
 
   override firstUpdated() {
     this._setHoverController();

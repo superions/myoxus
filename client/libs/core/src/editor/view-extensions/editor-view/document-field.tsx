@@ -36,6 +36,133 @@ import {
 } from "@virgultum/editor/shared/types";
 import type { ExtensionType } from "@virgultum/editor/store";
 import { useEffect, useRef, useState } from "react";
+import type { PageLine } from "../../virgultum/doc-editor/plain-page-model";
+import type { PageInlineObject } from "../../virgultum/doc-editor/page-inline-object";
+import { restorePageRange } from "../../virgultum/doc-editor/plain-page-input";
+import { createAbsolutePositionFromRelativePosition } from "yjs";
+
+export function PageDocumentField({
+  line,
+  element,
+  object,
+  readonly,
+}: {
+  line: PageLine;
+  element: HTMLElement;
+  object: Extract<PageInlineObject, { kind: "field" }>;
+  readonly: boolean;
+}) {
+  const context = useDocumentFieldPresentation(),
+    store = line.model.store;
+  const locate = (expected?: DocumentField) => {
+    if (
+      !element.isConnected ||
+      store.getModelById(line.model.id) !== line.model
+    )
+      return;
+    const at = createAbsolutePositionFromRelativePosition(
+      object.start,
+      store.spaceDoc,
+    );
+    if (!at || at.type !== line.text) return;
+    const run = line.model.text?.sliceToDelta(at.index, at.index + 1)[0],
+      parse = DocumentFieldSchema.safeParse(run?.attributes?.documentField);
+    if (
+      !parse.success ||
+      run?.insert !== " " ||
+      run.attributes?.documentFieldCaptured ||
+      parse.data.id !== object.value.id
+    )
+      return;
+    if (
+      expected &&
+      JSON.stringify(parse.data) !==
+        JSON.stringify(DocumentFieldSchema.safeParse(expected).data)
+    )
+      return;
+    return { index: at.index, field: parse.data, attributes: run.attributes };
+  };
+  const caret = (offset: number) => {
+    const root = element.closest<HTMLElement>("[data-page-renderer]");
+    if (!root) return;
+    root
+      .querySelector<HTMLElement>("[data-page-body]")
+      ?.focus({ preventScroll: true });
+    const p = { id: line.model.id, offset };
+    restorePageRange(root, { anchor: p, focus: p });
+  };
+  const write = (
+    expected: DocumentField,
+    replace: DocumentField,
+    definition: boolean,
+  ) => {
+    const at = locate(expected),
+      parsed = DocumentFieldSchema.safeParse(replace);
+    if (
+      !at ||
+      readonly ||
+      store.readonly ||
+      store.hasFixedText(line.model) ||
+      !parsed.success ||
+      at.field.type !== "input" ||
+      parsed.data.type !== "input" ||
+      parsed.data.id !== at.field.id ||
+      context?.template !== definition
+    )
+      return false;
+    if (definition) {
+      const answer = (v: typeof at.field.value) =>
+        Array.isArray(v) ? JSON.stringify([...v].sort()) : v;
+      if (
+        parsed.data.definition.kind !== at.field.definition.kind ||
+        answer(parsed.data.value) !== answer(at.field.value)
+      )
+        return false;
+    } else if (
+      JSON.stringify(parsed.data.definition) !==
+      JSON.stringify(at.field.definition)
+    )
+      return false;
+    store.captureSync();
+    store.transact(() =>
+      line.text.format(at.index, 1, { documentField: parsed.data }),
+    );
+    store.captureSync();
+    caret(at.index + 1);
+    return true;
+  };
+  return (
+    <DocumentFieldInline
+      field={object.value}
+      readonly={readonly}
+      updateDefinition={(a, b) => write(a, b, true)}
+      updateValue={(a, b) => write(a, b, false)}
+      focusEditor={(side) => {
+        const at = locate();
+        if (at) caret(at.index + (side === "after" ? 1 : 0));
+      }}
+      convertToText={(expected, value) => {
+        const at = locate(expected);
+        if (!at || readonly || store.readonly || store.hasFixedText(line.model))
+          return false;
+        const {
+          documentField: _,
+          documentFieldCaptured: __,
+          ...marks
+        } = at.attributes ?? {};
+        caret(at.index);
+        store.captureSync();
+        store.transact(() => {
+          line.text.delete(at.index, 1);
+          if (value) line.text.insert(at.index, value, marks);
+        });
+        store.captureSync();
+        requestAnimationFrame(() => caret(at.index + value.length));
+        return true;
+      }}
+    />
+  );
+}
 
 /** Register one visual host; the surrounding editor owns its shared context. */
 export function patchDocumentFieldHost(reactToLit: ReactToLit): ExtensionType {

@@ -214,14 +214,9 @@ export class ConnectionOverlay extends Overlay {
 
       // if not, check if in inside of the element
       if (
-        connectable.includesPoint(
-          point[0],
-          point[1],
-          {
-            ignoreTransparent: false,
-          },
-          this.gfx.std.host,
-        )
+        connectable.includesPoint(point[0], point[1], {
+          ignoreTransparent: false,
+        })
       ) {
         target.push(connectable);
         result = {

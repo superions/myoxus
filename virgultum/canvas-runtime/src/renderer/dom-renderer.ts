@@ -9,9 +9,7 @@ import {
   ColorScheme,
   type ShapeElementModel,
 } from "@virgultum/core/models";
-import { FeatureFlagService } from "@virgultum/core/services";
 import { requestConnectedFrame } from "@virgultum/core/utils";
-import { type BlockStdScope, SurfaceSelection } from "@virgultum/core/runtime";
 import type {
   GfxCompatibleInterface,
   GridManager,
@@ -22,10 +20,7 @@ import type {
 import { Subject } from "rxjs";
 
 import type { SurfaceElementModel } from "../element-model/base.js";
-import {
-  type DomElementRenderer,
-  DomElementRendererIdentifier,
-} from "./dom-elements/index.js";
+import { type DomElementRenderer } from "./dom-elements/index.js";
 import type { Overlay } from "./overlay.js";
 
 type EnvProvider = {
@@ -37,7 +32,9 @@ type EnvProvider = {
 };
 
 type RendererOptions = {
-  std: BlockStdScope;
+  resolvePainter: (type: string) => DomElementRenderer | null | undefined;
+  turboEnabled: () => boolean;
+  watchSelection: (changed: (ids: readonly string[]) => void) => () => void;
   viewport: Viewport;
   layerManager: LayerManager;
   provider?: Partial<EnvProvider>;
@@ -207,7 +204,8 @@ export class DomRenderer {
 
   private readonly _elementsMap = new Map<string, HTMLElement>();
 
-  std: BlockStdScope;
+  private readonly resolvePainter: RendererOptions["resolvePainter"];
+  private disposed = false;
 
   grid: GridManager;
 
@@ -237,19 +235,16 @@ export class DomRenderer {
     this.rootElement.classList.add("dom-renderer-root");
     this.rootElement.style.pointerEvents = "none";
 
-    this.std = options.std;
+    this.resolvePainter = options.resolvePainter;
     this.viewport = options.viewport;
     this.layerManager = options.layerManager;
     this.grid = options.gridManager;
     this.provider = options.provider ?? {};
 
-    this._turboEnabled = () => {
-      const featureFlagService = options.std.get(FeatureFlagService);
-      return featureFlagService.getFlag("enable_turbo_renderer");
-    };
+    this._turboEnabled = options.turboEnabled;
 
     this._initViewport();
-    this._watchSurface(options.surfaceModel);
+    this._watchSurface(options.surfaceModel, options.watchSelection);
   }
 
   private _initViewport() {
@@ -296,9 +291,7 @@ export class DomRenderer {
     elementModel: SurfaceElementModel,
     domElement: HTMLElement,
   ) {
-    const renderFn = this.std.getOptional<DomElementRenderer>(
-      DomElementRendererIdentifier(elementModel.type),
-    );
+    const renderFn = this.resolvePainter(elementModel.type);
 
     if (renderFn) {
       renderFn(elementModel, domElement, this);
@@ -388,7 +381,10 @@ export class DomRenderer {
     this._renderIncremental();
   }
 
-  private _watchSurface(surfaceModel: SurfaceBlockModel) {
+  private _watchSurface(
+    surfaceModel: SurfaceBlockModel,
+    watchSelection: RendererOptions["watchSelection"],
+  ) {
     this._disposables.add(
       surfaceModel.elementAdded.subscribe((payload) => {
         this._markElementDirty(payload.id, UpdateType.ELEMENT_ADDED);
@@ -432,20 +428,18 @@ export class DomRenderer {
     // Workaround for the group rendering reactive update when selection changed
     let lastSet = new Set<string>();
     this._disposables.add(
-      this.std.selection.filter$(SurfaceSelection).subscribe((selections) => {
+      watchSelection((ids) => {
         const groupRelatedSelection = new Set(
-          selections.flatMap((s) =>
-            s.elements.flatMap((e) => {
-              const element = surfaceModel.getElementById(e);
-              if (
-                element &&
-                (element.type === "group" || element.groups.length !== 0)
-              ) {
-                return [element.id, ...element.groups.map((g) => g.id)];
-              }
-              return [];
-            }),
-          ),
+          ids.flatMap((e) => {
+            const element = surfaceModel.getElementById(e);
+            if (
+              element &&
+              (element.type === "group" || element.groups.length !== 0)
+            ) {
+              return [element.id, ...element.groups.map((g) => g.id)];
+            }
+            return [];
+          }),
         );
 
         if (lastSet.symmetricDifference(groupRelatedSelection).size !== 0) {
@@ -475,6 +469,8 @@ export class DomRenderer {
   };
 
   dispose = () => {
+    if (this.disposed) return;
+    this.disposed = true;
     this._overlays.forEach((overlay) => overlay.dispose());
     this._overlays.clear();
     this._disposables.dispose();
@@ -489,6 +485,7 @@ export class DomRenderer {
     }
 
     this.rootElement.remove();
+    this.localVisibilityUpdated.complete();
     this._elementsMap.clear();
   };
 
@@ -513,7 +510,7 @@ export class DomRenderer {
   };
 
   refresh = () => {
-    if (this._refreshRafId !== null) return;
+    if (this.disposed || this._refreshRafId !== null) return;
 
     this._refreshRafId = requestConnectedFrame(() => {
       this._refreshRafId = null;

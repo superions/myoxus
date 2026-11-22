@@ -7,7 +7,6 @@ import type {
   XYWH,
 } from "../../../primitives/gfx/index";
 
-import type { EditorHost } from "../../view/element/lit-host.js";
 import type { GfxGroupModel, GfxModel } from "./model.js";
 
 /**
@@ -19,12 +18,7 @@ export interface GfxElementGeometry {
   getNearestPoint(point: IVec): IVec;
   getLineIntersections(start: IVec, end: IVec): PointLocation[] | null;
   getRelativePointLocation(point: IVec): PointLocation;
-  includesPoint(
-    x: number,
-    y: number,
-    options: PointTestOptions,
-    host: EditorHost,
-  ): boolean;
+  includesPoint(x: number, y: number, options: PointTestOptions): boolean;
   intersectsBound(bound: Bound): boolean;
 }
 

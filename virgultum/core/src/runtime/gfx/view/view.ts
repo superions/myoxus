@@ -21,7 +21,6 @@ export type GfxSelectionAction = {
 };
 
 import type { PointerEventState } from "../../event/index.js";
-import type { EditorHost } from "../../view/index.js";
 import type { GfxController } from "../index.js";
 import type {
   BoxSelectionContext,
@@ -155,13 +154,8 @@ export class GfxElementModelView<
     return this.model.getRelativePointLocation(relativePoint);
   }
 
-  includesPoint(
-    x: number,
-    y: number,
-    _: PointTestOptions,
-    __: EditorHost,
-  ): boolean {
-    return this.model.includesPoint(x, y, _, __);
+  includesPoint(x: number, y: number, options: PointTestOptions): boolean {
+    return this.model.includesPoint(x, y, options);
   }
 
   intersectsBound(bound: Bound): boolean {

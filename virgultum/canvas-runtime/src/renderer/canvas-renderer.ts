@@ -5,9 +5,7 @@ import {
   intersects,
 } from "@virgultum/core/primitives/gfx";
 import { type Color, ColorScheme } from "@virgultum/core/models";
-import { FeatureFlagService } from "@virgultum/core/services";
 import { requestConnectedFrame } from "@virgultum/core/utils";
-import type { BlockStdScope } from "@virgultum/core/runtime";
 import type {
   GfxCompatibleInterface,
   GridManager,
@@ -17,9 +15,14 @@ import type {
 } from "@virgultum/core/runtime/gfx";
 import last from "lodash-es/last";
 import { Subject } from "rxjs";
+import { signal } from "@preact/signals-core";
+import {
+  GridManager as SpatialGrid,
+  LayerManager as SurfaceLayers,
+  Viewport as Camera,
+} from "@virgultum/core/runtime/gfx";
 
 import type { SurfaceElementModel } from "../element-model/base.js";
-import { ElementRendererIdentifier } from "../extensions/element-renderer.js";
 import { RoughCanvas } from "../utils/rough/canvas.js";
 import type { ElementRenderer } from "./elements/index.js";
 import type { Overlay } from "./overlay.js";
@@ -33,7 +36,8 @@ type EnvProvider = {
 };
 
 type RendererOptions = {
-  std: BlockStdScope;
+  resolvePainter: (type: string) => ElementRenderer | null | undefined;
+  turboEnabled: () => boolean;
   viewport: Viewport;
   layerManager: LayerManager;
   provider?: Partial<EnvProvider>;
@@ -42,6 +46,49 @@ type RendererOptions = {
   gridManager: GridManager;
   surfaceModel: SurfaceBlockModel;
 };
+
+/** Own one independent projection of a mounted surface. Geometry and local
+ * overlays belong to this camera; the document and its history are borrowed. */
+export function mountCanvasScene(
+  shell: HTMLElement,
+  surface: SurfaceBlockModel,
+  options: Pick<
+    RendererOptions,
+    "provider" | "resolvePainter" | "turboEnabled"
+  >,
+) {
+  const source = {
+    doc: surface.store,
+    surface,
+    surface$: signal<SurfaceBlockModel | null>(surface),
+  };
+  const grid = new SpatialGrid(source),
+    layer = new SurfaceLayers(source),
+    viewport = new Camera();
+  grid.mounted();
+  layer.mounted();
+  viewport.setShellElement(shell);
+  const renderer = new CanvasRenderer({
+    ...options,
+    viewport,
+    gridManager: grid,
+    layerManager: layer,
+    surfaceModel: surface,
+  });
+  renderer.attach(shell);
+  return {
+    viewport,
+    grid,
+    layer,
+    renderer,
+    dispose() {
+      renderer.dispose();
+      viewport.dispose();
+      layer.unmounted();
+      grid.unmounted();
+    },
+  };
+}
 
 export class CanvasRenderer {
   private _container!: HTMLElement;
@@ -87,7 +134,8 @@ export class CanvasRenderer {
 
   ctx: CanvasRenderingContext2D;
 
-  std: BlockStdScope;
+  private readonly resolvePainter: RendererOptions["resolvePainter"];
+  private disposed = false;
 
   grid: GridManager;
 
@@ -120,16 +168,13 @@ export class CanvasRenderer {
 
     this.canvas = canvas;
     this.ctx = this.canvas.getContext("2d") as CanvasRenderingContext2D;
-    this.std = options.std;
+    this.resolvePainter = options.resolvePainter;
     this.viewport = options.viewport;
     this.layerManager = options.layerManager;
     this.grid = options.gridManager;
     this.provider = options.provider ?? {};
 
-    this._turboEnabled = () => {
-      const featureFlagService = options.std.get(FeatureFlagService);
-      return featureFlagService.getFlag("enable_turbo_renderer");
-    };
+    this._turboEnabled = options.turboEnabled;
 
     this._initViewport();
 
@@ -244,6 +289,9 @@ export class CanvasRenderer {
 
   private _initViewport() {
     let sizeUpdatedRafId: number | null = null;
+    this._disposables.add(() => {
+      if (sizeUpdatedRafId !== null) cancelAnimationFrame(sizeUpdatedRafId);
+    });
 
     this._disposables.add(
       this.viewport.viewportUpdated.subscribe(() => {
@@ -358,13 +406,9 @@ export class CanvasRenderer {
           ctx.fillRect(drawX, drawY, element.w, element.h);
           ctx.restore();
         } else {
-          ctx.save();
-          const renderFn = this.std.getOptional<ElementRenderer>(
-            ElementRendererIdentifier(element.type),
-          );
-
+          const renderFn = this.resolvePainter(element.type);
           if (!renderFn) continue;
-
+          ctx.save();
           ctx.globalAlpha = element.opacity ?? 1;
           const dx = element.x - bound.x;
           const dy = element.y - bound.y;
@@ -433,16 +477,33 @@ export class CanvasRenderer {
    */
   attach(container: HTMLElement) {
     this._container = container;
-    container.append(this.canvas);
+    container.append(this.canvas, ...this._stackingCanvas);
+    this._disposables.add(
+      this.stackingCanvasUpdated.subscribe(({ added, removed }) => {
+        container.append(...added);
+        removed.forEach((c) => c.remove());
+      }),
+    );
 
     this._resetSize();
     this.refresh();
   }
 
   dispose(): void {
-    this._overlays.forEach((overlay) => overlay.dispose());
+    if (this.disposed) return;
+    this.disposed = true;
+    if (this._refreshRafId !== null) cancelAnimationFrame(this._refreshRafId);
+    this._overlays.forEach((overlay) => {
+      overlay.setRenderer(null);
+      overlay.dispose();
+    });
     this._overlays.clear();
     this._disposables.dispose();
+    this.canvas.remove();
+    this._stackingCanvas.forEach((c) => c.remove());
+    this._stackingCanvas = [];
+    this.stackingCanvasUpdated.complete();
+    this.localVisibilityUpdated.complete();
   }
 
   generateColorProperty(color: Color, fallback?: Color) {
@@ -496,7 +557,7 @@ export class CanvasRenderer {
   }
 
   refresh() {
-    if (this._refreshRafId !== null) return;
+    if (this.disposed || this._refreshRafId !== null) return;
 
     this._refreshRafId = requestConnectedFrame(() => {
       this._refreshRafId = null;

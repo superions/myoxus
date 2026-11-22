@@ -202,13 +202,22 @@ html[data-theme="dark"] .myoxus-app-container-root {
 .myoxus-document-editor-root[data-editor-mode="edgeless"]
   .myoxus-document-editor-edgeless-viewport
   > div,
-.myoxus-document-editor-root[data-editor-mode="edgeless"] edgeless-editor,
 .myoxus-document-editor-root[data-editor-mode="edgeless"]
   .myoxus-edgeless-viewport {
   display: block;
   height: 100%;
   min-height: 100%;
   width: 100%;
+}
+.myoxus-edgeless-viewport {
+  position: relative;
+  overflow: clip;
+  container: viewport / inline-size;
+  font-family: var(--myoxus-font-family);
+  background: var(--myoxus-background-primary-color);
+}
+.myoxus-edgeless-viewport * {
+  box-sizing: border-box;
 }
 
 /* Virgultum's AI panel is rendered inside the Lit editor and needs bottom

@@ -31,20 +31,7 @@ export class AnnotationBlockComponent extends CaptionedBlockComponent<Annotation
         .join(""),
       readonly: this.store.readonly$.value,
       editRequest: this.editRequest,
-      apply: (body, expectedBody) => {
-        if (
-          this.store.readonly ||
-          this.store.getModelById(this.model.id) !== this.model
-        )
-          return false;
-        const text = this.model.props.text;
-        if (text.toString() !== expectedBody) return false;
-        if (text.toString() === body) return true;
-        this.store.captureSync();
-        text.replace(0, text.length, body, {});
-        this.store.captureSync();
-        return true;
-      },
+      apply: (body, expectedBody) => this.model.applyBody(body, expectedBody),
     });
   }
 }

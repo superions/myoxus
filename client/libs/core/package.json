@@ -33,6 +33,7 @@
     "@virgultum/content": "workspace:*",
     "@virgultum/core": "workspace:*",
     "@virgultum/editor": "workspace:*",
+    "@virgultum/embeds": "workspace:*",
     "@xyflow/react": "12.11.1",
     "altcha": "^3.0.5",
     "core-js": "^3.49.0",

@@ -570,6 +570,14 @@ export function DatabaseViewFieldValues({
         const missingRequiredValue =
           field.required && !semanticRoleKey && !getCellValue(row, field.id);
         const primitive = getCellPrimitiveValue(row, field);
+        const memberIds =
+          field.fieldType === DatabaseFieldKind.User
+            ? typeof primitive === "string" && primitive
+              ? [primitive]
+              : []
+            : field.fieldType === DatabaseFieldKind.Users
+              ? stringArrayCellValue(primitive)
+              : null;
         const unavailable = t["com.myoxus.template-list.unavailable"]();
         const optionIds =
           field.fieldType === DatabaseFieldKind.MultiSelect
@@ -638,18 +646,16 @@ export function DatabaseViewFieldValues({
                   getCellPrimitiveValue(row, field) as DatabaseRichTextValue
                 }
               />
-            ) : readonly &&
-              (field.fieldType === DatabaseFieldKind.User ||
-                field.fieldType === DatabaseFieldKind.Users) ? (
-              <InlineMemberList
-                members={
-                  field.fieldType === DatabaseFieldKind.User
-                    ? typeof primitive === "string" && primitive
-                      ? [primitive]
-                      : []
-                    : stringArrayCellValue(primitive)
-                }
-              />
+            ) : readonly && memberIds ? (
+              memberIds.length ? (
+                <InlineMemberList members={memberIds} />
+              ) : (
+                <MyoxusText typographySlot="body-small" tone="secondary">
+                  {semanticRoleKey === "task.assignees"
+                    ? t["com.myoxus.database.kanban.unassigned"]()
+                    : t["com.myoxus.database.cell.empty"]()}
+                </MyoxusText>
+              )
             ) : readonly && field.fieldType === DatabaseFieldKind.Tags ? (
               <DatabaseTagBadges tagIds={stringArrayCellValue(primitive)} />
             ) : readonly &&

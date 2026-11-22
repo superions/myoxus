@@ -6,12 +6,18 @@ import {
   useReducer,
   useRef,
   useCallback,
+  useContext,
   useState,
 } from "react";
 import { EditorLoading } from "@myoxus/ui-facade";
+import { readRasterSurface } from "./raster-surface";
+import { useLiveData, useService } from "@myoxus/infra";
+import { EditorService } from "../../../modules/editor";
+import { useEnableAI } from "../../../components/hooks/myoxus/use-enable-ai";
 import type { EditorProps } from "./virgultum-editor";
-import { plainPageLines } from "./plain-page-model";
+import { readPageContent } from "./plain-page-model";
 import { PlainPageView } from "./plain-page-view";
+import { DesktopPageRendererContext } from "./page-renderer-context";
 import type { PageInteraction } from "./page-interaction";
 import {
   bookmark,
@@ -25,8 +31,86 @@ import { EditorSlashMenu } from "../../view-extensions/editor-view/editor-chrome
 let receiver: typeof import("./legacy-entry") | undefined;
 const loadLegacy = async () => (receiver ??= await import("./legacy-entry"));
 const Legacy = lazy(loadLegacy);
+const CanvasReader = lazy(() => import("./canvas-preview"));
 
-function WebPage(props: EditorProps) {
+function ReadonlyCanvas(props: EditorProps) {
+  const { page } = props;
+  const [, refresh] = useReducer((n) => n + 1, 0);
+  const editor = useService(EditorService).editor,
+    selector = useLiveData(editor.selector$);
+  const [legacy, setLegacy] = useState(false),
+    origin = useRef<HTMLDivElement>(null),
+    present = useRef(false);
+  useLayoutEffect(() => {
+    const awareness = page.awarenessStore.awareness;
+    const root = page.slots.rootAdded.subscribe(refresh),
+      readonly = page.readonly$.subscribe(refresh);
+    page.spaceDoc.on("afterTransaction", refresh);
+    awareness.on("change", refresh);
+    refresh();
+    return () => {
+      root.unsubscribe();
+      readonly();
+      page.spaceDoc.off("afterTransaction", refresh);
+      awareness.off("change", refresh);
+    };
+  }, [page]);
+  const surface = readRasterSurface(page);
+  const native =
+    !!surface &&
+    !legacy &&
+    page.readonly &&
+    !selector?.elementIds?.length &&
+    !selector?.blockIds?.length &&
+    !selector?.commentId &&
+    page.awarenessStore.getStates().size <= 1;
+  useLayoutEffect(() => {
+    if (native && origin.current)
+      return editor.bindCanvasOrigin(
+        origin.current,
+        () => setLegacy(true),
+        () => {
+          present.current = true;
+          setLegacy(true);
+        },
+      );
+    return;
+  }, [editor, native]);
+  const ready = useCallback<NonNullable<EditorProps["onEditorReady"]>>(
+    (container) => {
+      const release = props.onEditorReady?.(container);
+      if (present.current) {
+        present.current = false;
+        editor.togglePresentation();
+      }
+      return release;
+    },
+    [editor, props.onEditorReady],
+  );
+  if (!page.root) return <EditorLoading />;
+  if (!native) return <Legacy {...props} onEditorReady={ready} />;
+  return (
+    <div
+      ref={origin}
+      className="myoxus-edgeless-viewport"
+      data-testid={`editor-${page.id}`}
+      style={{ height: "100%" }}
+    >
+      <CanvasReader
+        surface={surface!}
+        title={page.meta?.title ?? ""}
+        interactive
+      />
+    </div>
+  );
+}
+const Fields = lazy(async () => ({
+  default: (await import("./document-field-presentation"))
+    .DocumentFieldPresentationProvider,
+}));
+
+function EditablePage(props: EditorProps) {
+  const enableAI = useEnableAI();
   const { page, readonly, onEditorReady, onEditorError } = props;
   const [, refresh] = useReducer((n) => n + 1, 0);
   const owner = useRef<PageInteraction | null>(null);
@@ -76,7 +160,7 @@ function WebPage(props: EditorProps) {
                     const at = r.focus.offset;
                     page.transact(() => model.text!.yText.insert(at, text));
                     const end = { id: model.id, offset: at + text.length };
-                    transfer.range = bookmark(last.current ?? [], {
+                    transfer.range = bookmark(last.current?.lines ?? [], {
                       anchor: end,
                       focus: end,
                     });
@@ -94,7 +178,8 @@ function WebPage(props: EditorProps) {
     },
     [onEditorError, readonly, page],
   );
-  const last = useRef<ReturnType<typeof plainPageLines>>(null);
+  const last = useRef<ReturnType<typeof readPageContent>>(null);
+  const needsFields = useRef(false);
   const legacyReady = useCallback<NonNullable<EditorProps["onEditorReady"]>>(
     (editor) => {
       setLegacy(true);
@@ -102,13 +187,20 @@ function WebPage(props: EditorProps) {
       const request = pending.current;
       pending.current = null;
       const abort = new AbortController();
-      if (request?.range)
+      if (
+        request &&
+        (request.range ||
+          request.intent?.kind === "block-paste" ||
+          request.intent?.kind === "block-command" ||
+          request.intent?.kind === "comment-thread" ||
+          request.intent?.kind === "table-cell")
+      )
         void loadLegacy()
           .then(async ({ resumePageIntent }) => {
             if (!abort.signal.aborted)
               await resumePageIntent(
                 editor,
-                request.range!,
+                request.range,
                 request.intent,
                 abort.signal,
                 () => lease.current?.release() ?? "",
@@ -126,6 +218,7 @@ function WebPage(props: EditorProps) {
   useLayoutEffect(() => {
     alive.current = true;
     const sub = page.slots.rootAdded.subscribe(refresh);
+    const stopReadonly = page.readonly$.subscribe(refresh);
     page.spaceDoc.on("afterTransaction", refresh);
     refresh();
     return () => {
@@ -133,15 +226,20 @@ function WebPage(props: EditorProps) {
       lease.current?.release();
       lease.current = null;
       sub.unsubscribe();
+      stopReadonly();
       page.spaceDoc.off("afterTransaction", refresh);
     };
   }, [page]);
   if (!page.root) return <EditorLoading />;
-  const lines = owner.current?.isComposing
+  const content = owner.current?.isComposing
     ? last.current
-    : plainPageLines(page);
-  if (lines) last.current = lines;
-  if (!lines || legacy) {
+    : readPageContent(page);
+  if (content) last.current = content;
+  if (
+    !content ||
+    legacy ||
+    (enableAI && content.order.some((b) => b.kind === "code"))
+  ) {
     if (owner.current && !pending.current)
       pending.current = { range: owner.current.selection ?? null };
     // Keep this session (and its pending input) mounted while a first
@@ -154,11 +252,11 @@ function WebPage(props: EditorProps) {
       </Suspense>
     );
   }
-  return (
+  const view = (
     <PlainPageView
       page={page}
-      readonly={Boolean(props.readonly)}
-      lines={lines}
+      readonly={Boolean(props.readonly || page.readonly)}
+      content={content}
       refresh={refresh}
       controller={owner}
       handoff={transfer}
@@ -166,18 +264,44 @@ function WebPage(props: EditorProps) {
       fullWidth={props["data-full-width-layout"]}
     />
   );
+  // Keep the provider when the final field is converted back to text so the
+  // conversion's restored caret stays in the same mounted Page.
+  needsFields.current ||= content.lines.some((l) =>
+    l.text
+      .toDelta()
+      .some(
+        (d: { attributes?: Record<string, unknown> }) =>
+          d.attributes?.documentField,
+      ),
+  );
+  return needsFields.current ? (
+    <Suspense fallback={<EditorLoading />}>
+      <Fields page={page}>{view}</Fields>
+    </Suspense>
+  ) : (
+    view
+  );
 }
 
 export function VirgultumEditor(props: EditorProps) {
+  const desktopPage = useContext(DesktopPageRendererContext);
   return (
     <Suspense fallback={<EditorLoading />}>
-      {BUILD_CONFIG.isWeb &&
+      {(BUILD_CONFIG.isWeb || desktopPage) &&
       props.mode === "page" &&
       !props.shared &&
       !props.snapshot &&
       !props.contentOnly &&
       props.plainPage ? (
-        <WebPage key={props.page.id} {...props} />
+        <EditablePage key={props.page.id} {...props} />
+      ) : (BUILD_CONFIG.isWeb || desktopPage) &&
+        props.mode === "edgeless" &&
+        props.plainPage &&
+        props.readonly &&
+        !props.snapshot &&
+        !props.contentOnly &&
+        !props.shared ? (
+        <ReadonlyCanvas key={props.page.id} {...props} />
       ) : (
         <Legacy {...props} />
       )}

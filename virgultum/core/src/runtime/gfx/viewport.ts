@@ -298,7 +298,15 @@ export class Viewport {
   }
 
   dispose() {
+    if (this._rafId !== null) {
+      cancelAnimationFrame(this._rafId);
+      this._rafId = null;
+    }
+    this._resetZooming.cancel();
+    this._resetPanning.cancel();
     this.clearViewportElement();
+    this._element = null;
+    this.elementReady.complete();
     this.sizeUpdated.complete();
     this.viewportMoved.complete();
     this.viewportUpdated.complete();

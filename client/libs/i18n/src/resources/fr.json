@@ -9493,6 +9493,7 @@
   "com.myoxus.editor.embed.title-placeholder": "Saisissez un titre",
   "com.myoxus.editor.embed.description-placeholder": "Saisissez une description…",
   "com.myoxus.editor.embed.empty": "Contenu intégré vide",
+  "com.myoxus.editor.embed.html-title": "Structure de base d’une page HTML",
   "com.myoxus.editor.embed.no-link": "Aucun lien trouvé",
   "com.myoxus.editor.embed.set-link": "Veuillez ajouter un lien pour ce bloc",
   "com.myoxus.editor.mindmap.importing": "Importation de la carte mentale…",

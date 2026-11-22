@@ -13,7 +13,7 @@ import {
   type BlockComponent,
   type EditorHost,
 } from "@virgultum/editor/std";
-import type { DocMeta } from "@virgultum/editor/store";
+import type { DocMeta, BlockModel } from "@virgultum/editor/store";
 import {
   type LinkedMenuGroup,
   type LinkedMenuItem,
@@ -24,6 +24,7 @@ import Fuse from "fuse.js";
 import {
   createAbsolutePositionFromRelativePosition,
   createRelativePositionFromTypeIndex,
+  type Text as YText,
 } from "yjs";
 
 import type { WorkspaceDialogService } from "../../dialogs";
@@ -45,6 +46,18 @@ const RESERVED_ITEM_KEYS = {
   createEdgeless: "create:edgeless",
   datePicker: "date-picker",
 };
+export interface PagePickerTarget {
+  insertDocument(id: string): void;
+  insertMember(id: string): MentionOccurrence | undefined;
+  anchorRect(): DOMRect;
+}
+type MentionOccurrence = {
+  model: BlockModel;
+  text: YText;
+  index: number;
+  mode: DocMode;
+};
+type PickerInput = MyoxusInlineEditor | PagePickerTarget;
 
 export class AtMenuConfigService extends Service {
   constructor(
@@ -71,14 +84,16 @@ export class AtMenuConfigService extends Service {
     };
   }
 
-  private insertDoc(inlineEditor: MyoxusInlineEditor, id: string) {
+  private insertDoc(inlineEditor: PickerInput, id: string) {
+    if ("insertDocument" in inlineEditor)
+      return inlineEditor.insertDocument(id);
     LinkedWidgetUtils.insertLinkedNode({
       inlineEditor,
       docId: id,
     });
   }
 
-  private readonly autoFocusedItemKey = (
+  readonly autoFocusedItemKey = (
     menus: LinkedMenuGroup[],
     query: string,
   ): string | null => {
@@ -107,24 +122,27 @@ export class AtMenuConfigService extends Service {
   private newDocMenuGroup(
     query: string,
     close: () => void,
-    editorHost: EditorHost,
-    inlineEditor: MyoxusInlineEditor,
+    editorHost: EditorHost | null,
+    inlineEditor: PickerInput,
   ): LinkedMenuGroup {
-    const originalNewDocMenuGroup = LinkedWidgetUtils.createNewDocMenuGroup(
-      query,
-      close,
-      editorHost,
-      inlineEditor,
-    );
+    const originalNewDocMenuGroup =
+      editorHost && !("insertDocument" in inlineEditor)
+        ? LinkedWidgetUtils.createNewDocMenuGroup(
+            query,
+            close,
+            editorHost,
+            inlineEditor,
+          )
+        : null;
 
     // Patch the import item, to use the custom import dialog.
-    const items = Array.isArray(originalNewDocMenuGroup.items)
-      ? originalNewDocMenuGroup.items
-      : originalNewDocMenuGroup.items.value;
+    const items = originalNewDocMenuGroup
+      ? resolveSignal(originalNewDocMenuGroup.items)
+      : [];
 
     const importItem = items.find((item) => item.key === "import");
 
-    if (!importItem) {
+    if (!importItem && originalNewDocMenuGroup) {
       return originalNewDocMenuGroup;
     }
 
@@ -170,6 +188,8 @@ export class AtMenuConfigService extends Service {
       },
     ];
     const customImportItem: LinkedMenuItem = {
+      key: "import",
+      icon: "ImportIcon",
       ...importItem,
       name: I18n.t("com.myoxus.editor.at-menu.import"),
       action: () => {
@@ -205,7 +225,7 @@ export class AtMenuConfigService extends Service {
   private journalGroup(
     query: string,
     close: () => void,
-    inlineEditor: MyoxusInlineEditor,
+    inlineEditor: PickerInput,
   ): LinkedMenuGroup {
     const suggestedDate = suggestJournalDate(query);
 
@@ -218,6 +238,7 @@ export class AtMenuConfigService extends Service {
           close();
 
           const getRect = () => {
+            if ("anchorRect" in inlineEditor) return inlineEditor.anchorRect();
             if (!inlineEditor.rootElement) {
               return { x: 0, y: 0, width: 0, height: 0 };
             }
@@ -284,7 +305,7 @@ export class AtMenuConfigService extends Service {
   private linkToDocGroup(
     query: string,
     close: () => void,
-    inlineEditor: MyoxusInlineEditor,
+    inlineEditor: PickerInput,
     abortSignal: AbortSignal,
   ): LinkedMenuGroup {
     const action = (meta: DocMeta) => {
@@ -313,7 +334,7 @@ export class AtMenuConfigService extends Service {
   private memberGroup(
     query: string,
     close: () => void,
-    inlineEditor: MyoxusInlineEditor,
+    inlineEditor: PickerInput,
     _: AbortSignal,
   ): LinkedMenuGroup {
     const getMenuItem = (
@@ -328,84 +349,89 @@ export class AtMenuConfigService extends Service {
         icon: "UserIcon",
         avatar: avatar ?? undefined,
         action: () => {
-          const root = inlineEditor.rootElement;
-          const block = root?.closest<BlockComponent>(`[${BLOCK_ID_ATTR}]`);
-          if (!block) return;
-
           const notificationService =
             this.workspaceServerService.server?.scope.get(NotificationService);
           if (!notificationService) return;
-
-          const doc = block.store;
-          const workspaceId = doc.workspace.id;
-          const docId = doc.id;
-          const mode = block.std.get(DocModeProvider).getEditorMode() ?? "page";
-
-          close();
-
+          let occurrence: MentionOccurrence | undefined;
+          if ("insertMember" in inlineEditor)
+            occurrence = inlineEditor.insertMember(id);
+          else {
+            const block = inlineEditor.rootElement?.closest<BlockComponent>(
+              `[${BLOCK_ID_ATTR}]`,
+            );
+            if (!block || block.store.readonly) return;
+            close();
+            const range = inlineEditor.getInlineRange();
+            if (!range || range.length) return;
+            inlineEditor.insertText(range, " ", { mention: { member: id } });
+            inlineEditor.setInlineRange({ index: range.index + 1, length: 0 });
+            occurrence = {
+              model: block.model,
+              text: inlineEditor.yText,
+              index: range.index,
+              mode: block.std.get(DocModeProvider).getEditorMode() ?? "page",
+            };
+          }
+          if (!occurrence) return;
+          const { model, text, index, mode } = occurrence,
+            doc = model.store,
+            workspaceId = doc.workspace.id,
+            docId = doc.id;
           track.doc.editor.atMenu.mentionMember({
             type: "member",
           });
-
-          const inlineRange = inlineEditor.getInlineRange();
-          if (!inlineRange || inlineRange.length !== 0) return;
-
-          inlineEditor.insertText(inlineRange, " ", {
-            mention: {
-              member: id,
-            },
-          });
-          inlineEditor.setInlineRange({
-            index: inlineRange.index + 1,
-            length: 0,
-          });
-
           if (!sendNotification) return;
-
-          const relativePosition = createRelativePositionFromTypeIndex(
-            inlineEditor.yText,
-            inlineRange.index + 1,
-          );
+          // Bind the acknowledgement to both sides of the inserted occurrence.
+          // Removal collapses the range even if the next marker names the same member.
+          const from = createRelativePositionFromTypeIndex(text, index),
+            to = createRelativePositionFromTypeIndex(text, index + 1, -1);
           notificationService
             .mentionUser(id, workspaceId, {
               id: docId,
               title: this.docDisplayMetaService.title$(docId).value,
-              blockId: block.blockId,
+              blockId: model.id,
               mode,
             })
             .then((notificationId) => {
-              const doc = inlineEditor.yText.doc;
-              if (!doc) return;
-              const absolutePosition =
-                createAbsolutePositionFromRelativePosition(
-                  relativePosition,
-                  doc,
-                );
-              if (!absolutePosition) return;
-              const index = absolutePosition.index;
-
-              const delta = inlineEditor.getDeltaByRangeIndex(index);
               if (
-                !delta ||
-                delta.insert !== " " ||
-                !delta.attributes?.mention ||
-                delta.attributes.mention.notification ||
-                delta.attributes.mention.member !== id
+                doc.readonly ||
+                doc.getModelById(model.id) !== model ||
+                doc.hasFixedText(model) ||
+                !text.doc
               )
                 return;
-
-              inlineEditor.formatText(
-                {
-                  index: index - 1,
-                  length: 1,
-                },
-                {
-                  mention: {
-                    member: id,
-                    notification: notificationId,
-                  },
-                },
-              );
+              const a = createAbsolutePositionFromRelativePosition(
+                  from,
+                  text.doc,
+                ),
+                b = createAbsolutePositionFromRelativePosition(to, text.doc);
+              if (
+                !a ||
+                !b ||
+                a.type !== text ||
+                b.type !== text ||
+                a.index + 1 !== b.index
+              )
+                return;
+              let offset = 0;
+              const delta = text
+                .toDelta()
+                .find(
+                  (op: { insert: unknown }) =>
+                    (offset +=
+                      typeof op.insert === "string" ? op.insert.length : 1) >
+                    a.index,
+                );
+              if (
+                delta?.insert === " " &&
+                delta.attributes?.mention?.member === id &&
+                !delta.attributes.mention.notification
+              )
+                doc.transact(() =>
+                  text.format(a.index, 1, {
+                    mention: { member: id, notification: notificationId },
+                  }),
+                );
             })
             .catch((error) => {
               const err = UserFriendlyError.fromAny(error);
@@ -450,7 +476,7 @@ export class AtMenuConfigService extends Service {
                                 title:
                                   this.docDisplayMetaService.title$(docId)
                                     .value,
-                                blockId: block.blockId,
+                                blockId: model.id,
                                 mode,
                               },
                             );
@@ -595,48 +621,61 @@ export class AtMenuConfigService extends Service {
   }
 
   private getMenusFn(): LinkedWidgetConfig["getMenus"] {
-    return (
-      query,
-      close,
-      editorHost,
-      inlineEditor,
-      abortSignal,
-      triggerKey = "@",
-    ) => {
-      if (triggerKey === "[[" || triggerKey === "【【") {
-        const documents = this.linkToDocGroup(
-          query,
-          close,
-          inlineEditor,
-          abortSignal,
-        );
-        documents.emptyMessage = I18n.t("com.myoxus.cmdk.no-results");
-        const create = this.newDocMenuGroup(
-          query,
-          close,
-          editorHost,
-          inlineEditor,
-        );
-        const items = resolveSignal(create.items);
-        const canCreate = this.guardService.can$("Workspace_CreateDoc").signal;
-        const pageItems = items
-          .filter((item) => item.key === RESERVED_ITEM_KEYS.createPage)
-          .map((item) => ({
-            ...item,
-            action: () => {
-              if (canCreate.value) return item.action();
-            },
-          }));
-        create.items = computed(() => (canCreate.value ? pageItems : []));
-        return [documents, create];
-      }
-      return [
-        this.linkToDocGroup(query, close, inlineEditor, abortSignal),
-        this.memberGroup(query, close, inlineEditor, abortSignal),
-        this.journalGroup(query, close, inlineEditor),
-        this.newDocMenuGroup(query, close, editorHost, inlineEditor),
-      ];
-    };
+    return (query, close, host, editor, abort, trigger) =>
+      this.groups(query, close, host, editor, abort, trigger);
+  }
+
+  pageGroups(
+    query: string,
+    close: () => void,
+    input: PagePickerTarget,
+    abort: AbortSignal,
+    trigger: string,
+  ) {
+    return this.groups(query, close, null, input, abort, trigger);
+  }
+
+  private groups(
+    query: string,
+    close: () => void,
+    editorHost: EditorHost | null,
+    inlineEditor: PickerInput,
+    abortSignal: AbortSignal,
+    triggerKey = "@",
+  ) {
+    if (triggerKey === "[[" || triggerKey === "【【") {
+      const documents = this.linkToDocGroup(
+        query,
+        close,
+        inlineEditor,
+        abortSignal,
+      );
+      documents.emptyMessage = I18n.t("com.myoxus.cmdk.no-results");
+      const create = this.newDocMenuGroup(
+        query,
+        close,
+        editorHost,
+        inlineEditor,
+      );
+      const items = resolveSignal(create.items);
+      const canCreate = this.guardService.can$("Workspace_CreateDoc").signal;
+      const pageItems = items
+        .filter((item) => item.key === RESERVED_ITEM_KEYS.createPage)
+        .map((item) => ({
+          ...item,
+          action: () => {
+            if (canCreate.value) return item.action();
+          },
+        }));
+      create.items = computed(() => (canCreate.value ? pageItems : []));
+      return [documents, create];
+    }
+    return [
+      this.linkToDocGroup(query, close, inlineEditor, abortSignal),
+      this.memberGroup(query, close, inlineEditor, abortSignal),
+      this.journalGroup(query, close, inlineEditor),
+      this.newDocMenuGroup(query, close, editorHost, inlineEditor),
+    ];
   }
 
   private getMobileConfig(): Partial<LinkedWidgetConfig["mobile"]> {

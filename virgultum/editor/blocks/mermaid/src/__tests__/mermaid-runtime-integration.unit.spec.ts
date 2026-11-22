@@ -1356,7 +1356,7 @@ describe("Mermaid runtime integration contracts", () => {
       [inner, node, other, outer, edge],
     ]) {
       const manager = new LayerManager({
-        std: { store: { getAllModels: () => [ownerA, ownerB] } },
+        doc: { getAllModels: () => [ownerA, ownerB] },
         surface: { elementModels: elements, localElementModels: [] },
       } as unknown as GfxController);
       expect(

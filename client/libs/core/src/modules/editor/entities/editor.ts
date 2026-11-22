@@ -63,15 +63,33 @@ export class Editor extends Entity {
   readonly isSharedMode =
     this.workspaceService.workspace.openOptions.isSharedMode;
   readonly editorContainer$ = new LiveData<MyoxusEditorContainer | null>(null);
-  readonly pageOrigin$ = new LiveData<HTMLElement | null>(null);
+  readonly nativeOrigin$ = new LiveData<HTMLElement | null>(null);
   pageSelection: PageBookmark | null = null;
-  private pageCommandOwner?: () => void;
+  private nativeCommandOwner?: () => void;
+  private canvasPresentationOwner?: () => void;
   private pageBlockSelection?: () => string[];
   selectedPageBlocks() {
     return this.pageBlockSelection?.() ?? [];
   }
   requireEditorHost() {
-    this.pageCommandOwner?.();
+    this.nativeCommandOwner?.();
+  }
+
+  bindCanvasOrigin(
+    origin: HTMLElement,
+    requireHost: () => void,
+    present: () => void,
+  ) {
+    this.nativeOrigin$.next(origin);
+    this.nativeCommandOwner = requireHost;
+    this.canvasPresentationOwner = present;
+    return () => {
+      if (this.nativeOrigin$.value === origin) {
+        this.nativeOrigin$.next(null);
+        this.nativeCommandOwner = undefined;
+        this.canvasPresentationOwner = undefined;
+      }
+    };
   }
 
   /** Bind the Page viewport without allocating a Lit standard scope merely
@@ -82,8 +100,8 @@ export class Editor extends Entity {
     requireHost: () => void,
     selectedBlocks: () => string[],
   ) {
-    this.pageOrigin$.next(origin);
-    this.pageCommandOwner = requireHost;
+    this.nativeOrigin$.next(origin);
+    this.nativeCommandOwner = requireHost;
     this.pageBlockSelection = selectedBlocks;
     const pending = this.pendingWorkbenchMode;
     if (pending) {
@@ -101,9 +119,9 @@ export class Editor extends Entity {
     viewport?.addEventListener("scroll", scroll);
     return () => {
       viewport?.removeEventListener("scroll", scroll);
-      if (this.pageOrigin$.value === origin) {
-        this.pageOrigin$.next(null);
-        this.pageCommandOwner = undefined;
+      if (this.nativeOrigin$.value === origin) {
+        this.nativeOrigin$.next(null);
+        this.nativeCommandOwner = undefined;
         this.pageBlockSelection = undefined;
       }
     };
@@ -154,7 +172,10 @@ export class Editor extends Entity {
     const gfx = this.editorContainer$.value?.host?.std.get(
       GfxControllerIdentifier,
     );
-    if (!gfx) return;
+    if (!gfx) {
+      this.canvasPresentationOwner?.();
+      return;
+    }
     if (!this.isPresenting$.value) {
       gfx.tool.setTool(PresentTool);
     } else {
