@@ -6,6 +6,9 @@ query getMembersByWorkspaceId($workspaceId: String!, $skip: Int, $take: Int, $qu
       name
       email
       avatarUrl
+      directRole
+      ouRole
+      ouNames
       permission
       inviteId
       emailVerified

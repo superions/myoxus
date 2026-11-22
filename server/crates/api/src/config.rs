@@ -1526,11 +1526,7 @@ pub enum CompatibilityFeature {
   UnlimitedCopilot,
   #[serde(rename = "UnlimitedWorkspace", alias = "unlimited_workspace")]
   UnlimitedWorkspace,
-  /// Global Manager capability that makes a user eligible for OU management.
-  /// It grants no permission by itself and becomes effective only together
-  /// with an `organization_unit_member.role = 'manager'` membership. See the
-  /// permission matrix in `docs/dev/server/organization-management.md` and
-  /// learning `LRN-20260502-ORG-A-01`.
+  /// Read-only compatibility label for an active OU manager membership.
   #[serde(rename = "Manager", alias = "manager")]
   Manager,
 }

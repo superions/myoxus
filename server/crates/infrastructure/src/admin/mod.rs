@@ -99,11 +99,11 @@ impl SqlxAdminStore {
       };
     }
     if let Some(min) = filter.member_count_min {
-      query.push(" AND (SELECT COUNT(*) FROM workspace_memberships m WHERE m.workspace_id = w.id) >= ");
+      query.push(" AND (SELECT COUNT(*) FROM workspace_effective_roles m WHERE m.workspace_id = w.id) >= ");
       query.push_bind(min);
     }
     if let Some(max) = filter.member_count_max {
-      query.push(" AND (SELECT COUNT(*) FROM workspace_memberships m WHERE m.workspace_id = w.id) <= ");
+      query.push(" AND (SELECT COUNT(*) FROM workspace_effective_roles m WHERE m.workspace_id = w.id) <= ");
       query.push_bind(max);
     }
 
@@ -216,7 +216,7 @@ impl AdminStore for SqlxAdminStore {
     Self::append_workspace_filters(&mut query, &filter);
 
     let order = match filter.order_by.as_deref() {
-      Some("MemberCount") => "(SELECT COUNT(*) FROM workspace_memberships m WHERE m.workspace_id = w.id)",
+      Some("MemberCount") => "(SELECT COUNT(*) FROM workspace_effective_roles m WHERE m.workspace_id = w.id)",
       Some("SnapshotCount") => "(SELECT COUNT(*) FROM doc_snapshots s WHERE s.workspace_id = w.id)",
       Some("SnapshotSize") => {
         "(SELECT COALESCE(SUM(LENGTH(s.payload)), 0) FROM doc_snapshots s WHERE s.workspace_id = w.id)"
@@ -379,37 +379,31 @@ impl AdminStore for SqlxAdminStore {
   #[instrument(skip(self))]
   async fn dashboard_projection(&self, sync_hours: i32, storage_days: i32) -> AuthResult<AdminDashboardProjection> {
     let sync_active_users = sqlx::query_scalar(
-      "SELECT COALESCE(SUM(active_users), 0)::bigint FROM workspace_analytics_minute WHERE bucket_at > now() - interval '5 minutes'",
+      "SELECT COALESCE((SELECT value::bigint FROM metrics_raw WHERE category='collab' AND metric_name='active_sync_users' AND labels='{}' AND minute > now() - interval '5 minutes' ORDER BY minute DESC LIMIT 1), 0)::bigint",
     )
     .fetch_one(&self.pool)
     .await
     .map_err(Self::map_db_err)?;
-    let workspace_storage_bytes =
-      sqlx::query_scalar("SELECT COALESCE(SUM(snapshot_size), 0)::bigint FROM workspace_storage_stats")
-        .fetch_one(&self.pool)
-        .await
-        .map_err(Self::map_db_err)?;
-    let blob_storage_bytes =
-      sqlx::query_scalar("SELECT COALESCE(SUM(blob_size), 0)::bigint FROM workspace_storage_stats")
-        .fetch_one(&self.pool)
-        .await
-        .map_err(Self::map_db_err)?;
+    let (workspace_storage_bytes, blob_storage_bytes) = sqlx::query_as(
+      "SELECT COALESCE(SUM(snapshot_size), 0)::bigint, COALESCE(SUM(blob_size), 0)::bigint FROM workspace_storage_stats",
+    )
+    .fetch_one(&self.pool)
+    .await
+    .map_err(Self::map_db_err)?;
     let sync_active_users_timeline = sqlx::query_as(
       r#"
-      SELECT bucket_at, COALESCE(SUM(active_users), 0)::int
-      FROM workspace_analytics_minute
-      WHERE bucket_at > now() - make_interval(hours => $1)
-      GROUP BY bucket_at
-      ORDER BY bucket_at ASC
+      SELECT minute, value::integer FROM metrics_raw
+      WHERE category='collab' AND metric_name='active_sync_users' AND labels='{}' AND minute > now() - make_interval(hours => $1)
+      ORDER BY minute
       "#,
     )
     .bind(sync_hours)
     .fetch_all(&self.pool)
     .await
     .map_err(Self::map_db_err)?;
-    let workspace_storage_history = sqlx::query_as(
+    let (workspace_storage_history, blob_storage_history) = sqlx::query_as(
       r#"
-      SELECT day::timestamptz, COALESCE(SUM(snapshot_size), 0)::bigint
+      SELECT day::timestamptz, COALESCE(SUM(snapshot_size), 0)::bigint, COALESCE(SUM(blob_size), 0)::bigint
       FROM workspace_storage_stats_daily
       WHERE day > (now() - make_interval(days => $1))::date
       GROUP BY day
@@ -419,20 +413,10 @@ impl AdminStore for SqlxAdminStore {
     .bind(storage_days)
     .fetch_all(&self.pool)
     .await
-    .map_err(Self::map_db_err)?;
-    let blob_storage_history = sqlx::query_as(
-      r#"
-      SELECT day::timestamptz, COALESCE(SUM(blob_size), 0)::bigint
-      FROM workspace_storage_stats_daily
-      WHERE day > (now() - make_interval(days => $1))::date
-      GROUP BY day
-      ORDER BY day ASC
-      "#,
-    )
-    .bind(storage_days)
-    .fetch_all(&self.pool)
-    .await
-    .map_err(Self::map_db_err)?;
+    .map_err(Self::map_db_err)?
+    .into_iter()
+    .map(|(day, snapshots, blobs)| ((day, snapshots), (day, blobs)))
+    .unzip();
     let top_shared_links = sqlx::query(
       r#"
       SELECT
@@ -635,7 +619,7 @@ impl AdminStore for SqlxAdminStore {
                   ARRAY[]::TEXT[]
                 )                  AS features
            FROM users u
-           LEFT JOIN user_features uf ON uf.user_id = u.id
+           LEFT JOIN effective_user_features uf ON uf.user_id = u.id
           WHERE u.status <> 'deleted' AND (u.email ILIKE "#,
     );
     qb.push_bind(pattern.clone());
@@ -650,7 +634,9 @@ impl AdminStore for SqlxAdminStore {
       // This avoids binding a driver-specific TEXT[] value and keeps the
       // filter independent from the aggregate used to return active features.
       for feature in feats {
-        qb.push(" AND EXISTS (SELECT 1 FROM user_features req WHERE req.user_id = u.id AND req.feature_name = ");
+        qb.push(
+          " AND EXISTS (SELECT 1 FROM effective_user_features req WHERE req.user_id = u.id AND req.feature_name = ",
+        );
         qb.push_bind(feature);
         qb.push(" AND req.activated = TRUE)");
       }
@@ -703,24 +689,12 @@ impl AdminStore for SqlxAdminStore {
   }
 
   #[instrument(skip(self))]
-  async fn upsert_active_users_metric(
-    &self,
-    workspace_id: Uuid,
-    minute: chrono::DateTime<chrono::Utc>,
-    count: i32,
-  ) -> AuthResult<()> {
-    // Leased Redis observation may outlive a hard-deleted workspace. Select
-    // and lock the existing parent; missing parents produce no orphan sample,
-    // while concurrent deletion waits for this statement's FK-safe write.
+  async fn upsert_active_users_metric(&self, minute: chrono::DateTime<chrono::Utc>, count: i32) -> AuthResult<()> {
     sqlx::query(
-      r#"
-            INSERT INTO workspace_analytics_minute (workspace_id, bucket_at, active_users)
-            SELECT id, $2, $3 FROM workspaces WHERE id = $1 FOR KEY SHARE
-            ON CONFLICT (workspace_id, bucket_at) DO UPDATE SET
-                active_users = EXCLUDED.active_users
-            "#,
+      "INSERT INTO metrics_raw(minute, category, metric_name, labels, value)
+      VALUES ($1, 'collab', 'active_sync_users', '{}', $2::integer)
+      ON CONFLICT (minute, category, metric_name, labels) DO UPDATE SET value=EXCLUDED.value",
     )
-    .bind(workspace_id)
     .bind(minute)
     .bind(count)
     .execute(&self.pool)

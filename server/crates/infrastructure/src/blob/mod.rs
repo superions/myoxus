@@ -9,7 +9,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use myoxus_application::auth::{AuthError, AuthResult};
 use myoxus_application::ports::blob::{
-  BlobGcCandidate, BlobKey, BlobMetadata, BlobStatus, BlobStore, MultipartUploadedPart,
+  BlobGcCandidate, BlobKey, BlobMetadata, BlobStatus, BlobStore, MultipartUploadedPart, ReservedBlobRemoval,
 };
 use sqlx::{PgPool, Row};
 use tracing::{debug, error, info, instrument, warn};
@@ -23,6 +23,14 @@ pub struct SqlxBlobStore {
   quota_cache: Option<std::sync::Arc<crate::quota_cache::QuotaCache>>,
   /// Default workspace storage quota in MB. 0 = unlimited.
   default_workspace_quota_mb: u64,
+}
+
+struct ReservedRemoval(sqlx::Transaction<'static, sqlx::Postgres>);
+#[async_trait]
+impl ReservedBlobRemoval for ReservedRemoval {
+  async fn commit(self: Box<Self>) -> AuthResult<()> {
+    self.0.commit().await.map_err(SqlxBlobStore::map_db_err)
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -325,6 +333,50 @@ impl SqlxBlobStore {
 
 #[async_trait]
 impl BlobStore for SqlxBlobStore {
+  #[instrument(skip_all)]
+  async fn reserve_unused_removal(&self, workspace: Uuid, key: &BlobKey) -> AuthResult<Box<dyn ReservedBlobRemoval>> {
+    let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
+    let removed=sqlx::query(concat!("DELETE FROM blobs b USING (",include_str!("unused.sql"),
+      ") candidate WHERE candidate.ready AND b.blob_id=candidate.blob_id AND b.workspace_id=$1 AND b.deleted_at IS NULL AND b.status='completed'"))
+      .bind(workspace).bind(1i64).bind(0i64).bind([key.as_str().to_string()].as_slice())
+      .execute(&mut *tx).await.map_err(Self::map_db_err)?;
+    if removed.rows_affected() != 1 {
+      return Err(AuthError::InvalidInput(
+        "attachment is no longer confirmed unused".into(),
+      ));
+    }
+    Ok(Box::new(ReservedRemoval(tx)))
+  }
+
+  async fn unused_blob_page(
+    &self,
+    workspace: Uuid,
+    offset: i64,
+    limit: i64,
+    keys: Option<&[String]>,
+  ) -> AuthResult<Option<(i64, Vec<BlobMetadata>)>> {
+    let rows = sqlx::query(include_str!("unused.sql"))
+      .bind(workspace)
+      .bind(limit)
+      .bind(offset)
+      .bind(keys)
+      .fetch_all(&self.pool)
+      .await
+      .map_err(Self::map_db_err)?;
+    let Some(head) = rows.first() else { return Ok(None) };
+    if !head.get::<bool, _>("ready") {
+      return Ok(None);
+    }
+    let total = head.get("total");
+    Ok(Some((
+      total,
+      rows
+        .into_iter()
+        .filter(|r| r.get::<Option<Uuid>, _>("blob_id").is_some())
+        .map(Self::map_blob_row)
+        .collect(),
+    )))
+  }
   /// Insert or reset a blob metadata row (upserts on `(workspace_id, key)`).
   /// Also atomically updates `workspace_storage_stats.blob_size` (BF-SRV-02d).
   #[instrument(skip(self))]
@@ -944,7 +996,7 @@ impl BlobStore for SqlxBlobStore {
          WHERE b.deleted_at IS NULL
            AND b.workspace_id IN (
              SELECT membership.workspace_id
-             FROM workspace_memberships membership
+             FROM workspace_effective_roles membership
              JOIN workspaces workspace ON workspace.id = membership.workspace_id
                AND workspace.lifecycle_state = 'active'
                AND workspace.deleted_at IS NULL

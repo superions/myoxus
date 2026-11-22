@@ -320,7 +320,7 @@ async fn inv_tpl_04_apply_default_policies_seeds_workspace(pool: PgPool) {
 
   // Count total active default policies before seeding (migration may pre-seed some)
   let total_active: i64 =
-    sqlx::query_scalar("SELECT COUNT(*) FROM template_default_policies WHERE apply_to_new_workspaces = TRUE")
+    sqlx::query_scalar("SELECT COUNT(*) FROM template_catalog_entries WHERE apply_to_new_workspaces = TRUE")
       .fetch_one(&pool)
       .await
       .expect("count active default policies");
@@ -352,12 +352,6 @@ async fn inv_tpl_04_apply_default_policies_seeds_workspace(pool: PgPool) {
     .execute(&pool)
     .await
     .ok();
-  sqlx::query("DELETE FROM template_default_policies WHERE template_id IN ($1, $2)")
-    .bind(entry_a.id)
-    .bind(entry_b.id)
-    .execute(&pool)
-    .await
-    .ok();
   sqlx::query("DELETE FROM template_catalog_entries WHERE id IN ($1, $2)")
     .bind(entry_a.id)
     .bind(entry_b.id)
@@ -378,7 +372,7 @@ async fn inv_tpl_05_apply_default_policies_idempotent(pool: PgPool) {
   seed_policy(&store, entry.id).await;
 
   let total_active: i64 =
-    sqlx::query_scalar("SELECT COUNT(*) FROM template_default_policies WHERE apply_to_new_workspaces = TRUE")
+    sqlx::query_scalar("SELECT COUNT(*) FROM template_catalog_entries WHERE apply_to_new_workspaces = TRUE")
       .fetch_one(&pool)
       .await
       .expect("count active default policies");
@@ -412,11 +406,6 @@ async fn inv_tpl_05_apply_default_policies_idempotent(pool: PgPool) {
   // Cleanup
   sqlx::query("DELETE FROM workspace_template_policies WHERE workspace_id = $1")
     .bind(workspace_id)
-    .execute(&pool)
-    .await
-    .ok();
-  sqlx::query("DELETE FROM template_default_policies WHERE template_id = $1")
-    .bind(entry.id)
     .execute(&pool)
     .await
     .ok();
@@ -624,14 +613,6 @@ async fn inv_ts09_default_policies_include_bundles_and_filter_disabled_entries(p
 
   sqlx::query("DELETE FROM workspace_template_policies WHERE workspace_id = $1")
     .bind(workspace_id)
-    .execute(&pool)
-    .await
-    .expect("clean up native default policy fixture");
-  sqlx::query("DELETE FROM template_default_policies WHERE template_id IN ($1, $2, $3, $4)")
-    .bind(active_entry.id)
-    .bind(bundle_entry.id)
-    .bind(disabled_entry.id)
-    .bind(unpublished_entry.id)
     .execute(&pool)
     .await
     .expect("clean up native default policy fixture");
@@ -884,11 +865,6 @@ async fn inv_tpl_09_reconcile_entries_include_expected_hash(pool: PgPool) {
     .execute(&pool)
     .await
     .ok();
-  sqlx::query("DELETE FROM template_default_policies WHERE template_id = $1")
-    .bind(entry.id)
-    .execute(&pool)
-    .await
-    .ok();
   sqlx::query("DELETE FROM template_catalog_entries WHERE id = $1")
     .bind(entry.id)
     .execute(&pool)
@@ -1071,11 +1047,6 @@ async fn inv_tpl_16_reconcile_entry_includes_workspace_doc_id(pool: PgPool) {
     .ok();
   sqlx::query("DELETE FROM workspace_template_policies WHERE workspace_id = $1")
     .bind(workspace_id)
-    .execute(&pool)
-    .await
-    .ok();
-  sqlx::query("DELETE FROM template_default_policies WHERE template_id = $1")
-    .bind(entry.id)
     .execute(&pool)
     .await
     .ok();
@@ -1314,11 +1285,6 @@ async fn inv_tpl_18_builtin_instance_applied_resolves_synced_external_id(pool: P
     .ok();
   sqlx::query("DELETE FROM workspace_template_policies WHERE workspace_id = $1")
     .bind(workspace_id)
-    .execute(&pool)
-    .await
-    .ok();
-  sqlx::query("DELETE FROM template_default_policies WHERE template_id = $1")
-    .bind(entry.id)
     .execute(&pool)
     .await
     .ok();
@@ -1578,11 +1544,6 @@ async fn inv_tpl_19_reapply_clears_retired_marker_and_reconciles(pool: PgPool) {
     .execute(&pool)
     .await
     .ok();
-  sqlx::query("DELETE FROM template_default_policies WHERE template_id = $1")
-    .bind(entry.id)
-    .execute(&pool)
-    .await
-    .ok();
   sqlx::query("DELETE FROM template_catalog_entries WHERE id = $1")
     .bind(entry.id)
     .execute(&pool)
@@ -1626,7 +1587,7 @@ async fn inv_tpl_20_report_applied_requires_workspace_policy(pool: PgPool) {
 
 // ── INV-TPL-11 ───────────────────────────────────────────────────────────────
 
-/// INV-TPL-11: template_default_policies deletion cascades when the catalog
+/// INV-TPL-11: default policy disappears when the catalog
 /// entry is deleted.
 #[sqlx::test(migrations = "../infrastructure/migrations")]
 async fn inv_tpl_11_default_policy_cascades_on_entry_delete(pool: PgPool) {
@@ -1767,11 +1728,6 @@ async fn inv_tpl_13_archived_template_excluded_from_reconcile_list(pool: PgPool)
   // Cleanup
   sqlx::query("DELETE FROM workspace_template_policies WHERE workspace_id = $1")
     .bind(workspace_id)
-    .execute(&pool)
-    .await
-    .ok();
-  sqlx::query("DELETE FROM template_default_policies WHERE template_id = $1")
-    .bind(entry.id)
     .execute(&pool)
     .await
     .ok();
@@ -1932,11 +1888,6 @@ async fn inv_tpl_21_builtin_rows_are_hidden_from_revision_backed_instance_api(po
     .ok();
   sqlx::query("DELETE FROM workspace_template_policies WHERE workspace_id = $1")
     .bind(workspace_id)
-    .execute(&pool)
-    .await
-    .ok();
-  sqlx::query("DELETE FROM template_default_policies WHERE template_id = $1")
-    .bind(entry.id)
     .execute(&pool)
     .await
     .ok();

@@ -464,7 +464,7 @@ async fn export_reference_presentation(
           let Ok(user) = Uuid::parse_str(&id) else {
             continue;
           };
-          let Some(member) = state.workspace().get_member(workspace, user).await? else {
+          let Some(member) = state.workspace().effective_member(workspace, user).await? else {
             continue;
           };
           if member.status == myoxus_domain::entities::MembershipStatus::Accepted && !member.user.disabled {

@@ -1304,7 +1304,7 @@ async fn both_supported_workspace_fixtures_apply_once_and_terminal_retry_is_idem
         .await
         .unwrap();
       sqlx::query(
-        "INSERT INTO workspace_tag_retired_ids (workspace_id, retired_tag_id, retired_at) VALUES ($1, $2, now())",
+        "INSERT INTO workspace_tag_identities (workspace_id, external_id, retired_at) VALUES ($1, $2, now())",
       )
       .bind(workspace_id)
       .bind(retired.id.to_string())

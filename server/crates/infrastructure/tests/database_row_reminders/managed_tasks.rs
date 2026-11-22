@@ -1823,7 +1823,7 @@ async fn derived_projection_fences_current_catalog_and_moved_native_owner() {
       .await
       .expect("native Task with derived binding");
     let owner: (Uuid, Uuid, String) =
-      sqlx::query_as("SELECT database_id,field_id,stale_state FROM workspace_database_formula_values WHERE row_id=$1")
+      sqlx::query_as("SELECT database_id,field_id,stale_state FROM workspace_database_computed_values WHERE row_id=$1")
         .bind(row.row.id)
         .fetch_one(&fixture.pool)
         .await
@@ -1875,7 +1875,7 @@ async fn derived_projection_fences_current_catalog_and_moved_native_owner() {
       )
       .await
       .expect("admitted current projection");
-    let count: i64 = sqlx::query_scalar("SELECT count(*) FROM workspace_database_formula_values WHERE row_id=$1")
+    let count: i64 = sqlx::query_scalar("SELECT count(*) FROM workspace_database_computed_values WHERE row_id=$1")
       .bind(row.row.id)
       .fetch_one(&fixture.pool)
       .await

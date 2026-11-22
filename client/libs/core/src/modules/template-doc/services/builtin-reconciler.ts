@@ -144,7 +144,7 @@ export class BuiltinTemplateReconcilerService extends Service {
    * their live `slug -> docId` mapping.
    *
    * Server-backed workspaces use the normal policy-driven reconcile path, so
-   * `template_default_policies` remains the source of truth for automatic
+   * The template catalog remains the source of truth for automatic
    * seeding. Local workspaces import committed native bundles offline;
    * no document bodies are built at runtime.
    */

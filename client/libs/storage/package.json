@@ -7,6 +7,7 @@
     ".": "./src/index.ts",
     "./worker/client": "./src/worker/client.ts",
     "./worker/consumer": "./src/worker/consumer.ts",
+    "./worker/transport-consumer": "./src/worker/transport-consumer.ts",
     "./idb": "./src/impls/idb/index.ts",
     "./tokenizer": "./src/impls/idb/indexer/tokenizer.ts",
     "./broadcast-channel": "./src/impls/broadcast-channel/index.ts",

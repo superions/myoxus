@@ -37,6 +37,15 @@ struct CountingGraphRepository {
 
 #[async_trait]
 impl DocumentGraphRepository for CountingGraphRepository {
+  async fn outgoing_navigation(
+    &self,
+    _: Uuid,
+    _: Uuid,
+    _: PageRequest,
+  ) -> RepoResult<Vec<myoxus_domain::document_graph::NavigationOccurrence>> {
+    unreachable!("full graph reads must not load the navigation projection")
+  }
+
   async fn replace_doc_occurrences(
     &self,
     _workspace_id: Uuid,

@@ -149,7 +149,7 @@ async fn source_run_preserves_a_detached_child_with_a_generated_overview() {
       "the source must still publish its own document"
     );
     let retained_path: String =
-      sqlx::query_scalar("SELECT repo_path FROM git_sync_bindings WHERE profile_id = $1 AND doc_id = $2")
+      sqlx::query_scalar("SELECT repo_path FROM git_sync_document_bindings WHERE profile_id = $1 AND doc_id = $2")
         .bind(profile.id)
         .bind(retained_doc_id)
         .fetch_one(&pool)
@@ -783,16 +783,17 @@ async fn runner_processes_git_markdown_partial_session_across_runs() {
     .expect("open partial session count");
     assert_eq!(open_sessions, 0, "second run must close the partial session");
 
-    let bindings: i64 =
-      sqlx::query_scalar("SELECT COUNT(*)::bigint FROM git_sync_bindings WHERE profile_id = $1 AND tombstone = false")
-        .bind(profile.id)
-        .fetch_one(&pool)
-        .await
-        .expect("doc binding count");
+    let bindings: i64 = sqlx::query_scalar(
+      "SELECT COUNT(*)::bigint FROM git_sync_document_bindings WHERE profile_id = $1 AND tombstone = false",
+    )
+    .bind(profile.id)
+    .fetch_one(&pool)
+    .await
+    .expect("doc binding count");
     assert_eq!(bindings, 2, "both markdown files must be bound after two partial runs");
 
     let before: Vec<(Uuid, String)> = sqlx::query_as(
-      "SELECT doc_id,repo_path FROM git_sync_bindings WHERE profile_id=$1 AND NOT tombstone ORDER BY doc_id",
+      "SELECT doc_id,repo_path FROM git_sync_document_bindings WHERE profile_id=$1 AND NOT tombstone ORDER BY doc_id",
     )
     .bind(profile.id)
     .fetch_all(&pool)
@@ -1085,7 +1086,7 @@ async fn runner_pushes_updates_and_deletes_myoxus_docs_to_git() {
     assert_eq!(pulled["docsDeleted"],0);
     assert_eq!(git_repo.commit_count(),before,"inbound-only cannot regenerate derived bytes");
     assert_eq!(git_repo.remote_bytes(export::GIT_SYNC_MANIFEST_PATH).unwrap(),serde_json::to_vec(&owned_manifest).unwrap());
-    let count:i64 = sqlx::query_scalar("SELECT count(*) FROM git_sync_bindings WHERE profile_id=$1 AND NOT tombstone").bind(profile.id).fetch_one(&pool).await.unwrap();
+    let count:i64 = sqlx::query_scalar("SELECT count(*) FROM git_sync_document_bindings WHERE profile_id=$1 AND NOT tombstone").bind(profile.id).fetch_one(&pool).await.unwrap();
     assert_eq!(count,1,"no derived document binding");
   }
   store.update_profile(&profile).await.expect("restore bidirectional profile policy");
@@ -1297,7 +1298,7 @@ async fn runner_pushes_updates_and_deletes_myoxus_docs_to_git() {
     git_repo.remote_text(renamed_repo_path).is_none(),
     "soft-deleted Myoxus doc must remove the bound Git markdown file"
   );
-  let tombstoned: bool = sqlx::query_scalar("SELECT tombstone FROM git_sync_bindings WHERE id = $1")
+  let tombstoned: bool = sqlx::query_scalar("SELECT tombstone FROM git_sync_document_bindings WHERE id = $1")
     .bind(binding_id)
     .fetch_one(&pool)
     .await
@@ -1508,7 +1509,7 @@ async fn runner_reprojects_referrers_after_a_linked_document_moves() {
     "Git export must use the final relative target path: {first_source}"
   );
   let first_hash: String =
-    sqlx::query_scalar("SELECT content_hash FROM git_sync_bindings WHERE profile_id = $1 AND doc_id = $2")
+    sqlx::query_scalar("SELECT content_hash FROM git_sync_document_bindings WHERE profile_id = $1 AND doc_id = $2")
       .bind(profile.id)
       .bind(source_id)
       .fetch_one(&pool)
@@ -1609,7 +1610,7 @@ async fn runner_reprojects_referrers_after_a_linked_document_moves() {
     "referrer must follow the moved final path: {moved_source}"
   );
   let moved_hash: String =
-    sqlx::query_scalar("SELECT content_hash FROM git_sync_bindings WHERE profile_id = $1 AND doc_id = $2")
+    sqlx::query_scalar("SELECT content_hash FROM git_sync_document_bindings WHERE profile_id = $1 AND doc_id = $2")
       .bind(profile.id)
       .bind(source_id)
       .fetch_one(&pool)
@@ -2044,7 +2045,7 @@ async fn runner_imports_precise_forward_and_existing_targets_with_matching_persi
   .expect("actual future outbound projection");
   assert_eq!((failures, failed_ids), (0, Vec::new()));
   for document in projected.docs {
-    let baseline: String = sqlx::query_scalar("SELECT bl.content_hash FROM git_sync_baselines bl JOIN git_sync_bindings b ON b.id = bl.binding_id WHERE b.profile_id = $1 AND b.doc_id = $2")
+    let baseline: String = sqlx::query_scalar("SELECT b.baseline_content_hash FROM git_sync_document_bindings b WHERE b.baseline_content_hash IS NOT NULL AND b.profile_id = $1 AND b.doc_id = $2")
       .bind(profile.id).bind(document.doc_id).fetch_one(&pool).await.expect("persisted imported baseline");
     assert_eq!(
       document.content_hash.as_deref(),
@@ -2209,13 +2210,14 @@ async fn empty_document_materializes_and_second_run_is_exact_noop() {
   assert!(body.is_empty(), "empty document must have an empty Markdown body");
 
   let empty_hash = content_hash("");
-  let binding_hash: Option<String> = sqlx::query_scalar("SELECT content_hash FROM git_sync_bindings WHERE id = $1")
-    .bind(binding_id)
-    .fetch_one(&pool)
-    .await
-    .expect("empty binding hash");
+  let binding_hash: Option<String> =
+    sqlx::query_scalar("SELECT content_hash FROM git_sync_document_bindings WHERE id = $1")
+      .bind(binding_id)
+      .fetch_one(&pool)
+      .await
+      .expect("empty binding hash");
   assert_eq!(binding_hash.as_deref(), Some(empty_hash.as_str()));
-  let baseline_hash: String = sqlx::query_scalar("SELECT content_hash FROM git_sync_baselines WHERE binding_id = $1")
+  let baseline_hash: String = sqlx::query_scalar("SELECT baseline_content_hash AS content_hash FROM git_sync_document_bindings WHERE baseline_content_hash IS NOT NULL AND id = $1")
     .bind(binding_id)
     .fetch_one(&pool)
     .await
@@ -2324,11 +2326,12 @@ async fn empty_document_contract_keeps_conversion_failure_before_git_mutation() 
     git_repo.remote_text(export::GIT_SYNC_MANIFEST_PATH).is_none(),
     "conversion failure must not publish a manifest"
   );
-  let bindings: i64 = sqlx::query_scalar("SELECT COUNT(*)::bigint FROM git_sync_bindings WHERE profile_id = $1")
-    .bind(profile.id)
-    .fetch_one(&pool)
-    .await
-    .expect("binding count after conversion failure");
+  let bindings: i64 =
+    sqlx::query_scalar("SELECT COUNT(*)::bigint FROM git_sync_document_bindings WHERE profile_id = $1")
+      .bind(profile.id)
+      .fetch_one(&pool)
+      .await
+      .expect("binding count after conversion failure");
   assert_eq!(bindings, 0, "conversion failure must not create a binding");
 
   cleanup_git_sync_policy(&pool).await;
@@ -2392,11 +2395,12 @@ async fn unsupported_git_html_fails_before_document_or_repository_mutation() {
     .fetch_one(&pool)
     .await
     .expect("document count after rejected Git import");
-  let bindings: i64 = sqlx::query_scalar("SELECT COUNT(*)::bigint FROM git_sync_bindings WHERE profile_id = $1")
-    .bind(profile.id)
-    .fetch_one(&pool)
-    .await
-    .expect("binding count after rejected Git import");
+  let bindings: i64 =
+    sqlx::query_scalar("SELECT COUNT(*)::bigint FROM git_sync_document_bindings WHERE profile_id = $1")
+      .bind(profile.id)
+      .fetch_one(&pool)
+      .await
+      .expect("binding count after rejected Git import");
   assert_eq!(docs_after, docs_before);
   assert_eq!(bindings, 0);
   assert_eq!(git_repo.remote_text("content/unsupported.md").as_deref(), Some(source));
@@ -2466,7 +2470,7 @@ async fn rejected_push_never_materializes_normal_state_or_a_successful_commit() 
   assert_eq!(pending.commit_after, None);
   assert_eq!(pending.observed_remote_oid, None);
   assert!(!pending.reconciliation_required);
-  for table in ["git_sync_bindings", "git_sync_version_links"] {
+  for table in ["git_sync_document_bindings", "git_sync_version_links"] {
     let count: i64 = sqlx::query_scalar(&format!("SELECT COUNT(*)::bigint FROM {table} WHERE profile_id = $1"))
       .bind(profile.id)
       .fetch_one(&pool)
@@ -2476,9 +2480,7 @@ async fn rejected_push_never_materializes_normal_state_or_a_successful_commit() 
   }
   let baseline_count: i64 = sqlx::query_scalar(
     "SELECT COUNT(*)::bigint
-     FROM git_sync_baselines b
-     JOIN git_sync_bindings d ON d.id = b.binding_id
-     WHERE d.profile_id = $1",
+     FROM git_sync_document_bindings d WHERE d.baseline_content_hash IS NOT NULL AND d.profile_id = $1",
   )
   .bind(profile.id)
   .fetch_one(&pool)
@@ -2700,7 +2702,7 @@ async fn runner_pulls_updates_and_deletes_git_markdown_to_myoxus() {
     .await
     .expect("doc deleted_at");
   assert!(deleted_at_exists, "DeleteInMyoxus must soft-delete the imported doc");
-  let tombstoned: bool = sqlx::query_scalar("SELECT tombstone FROM git_sync_bindings WHERE id = $1")
+  let tombstoned: bool = sqlx::query_scalar("SELECT tombstone FROM git_sync_document_bindings WHERE id = $1")
     .bind(binding_id)
     .fetch_one(&pool)
     .await
@@ -2843,7 +2845,7 @@ async fn runner_keeps_normalized_markdown_noop_and_propagates_later_edits() {
     "only the normal native and imported source parents exist"
   );
   let native_path: String = sqlx::query_scalar(
-    "SELECT repo_path FROM git_sync_bindings WHERE profile_id = $1 AND doc_id = $2 AND tombstone = false",
+    "SELECT repo_path FROM git_sync_document_bindings WHERE profile_id = $1 AND doc_id = $2 AND tombstone = false",
   )
   .bind(profile.id)
   .bind(native_doc_id)
@@ -2935,6 +2937,15 @@ async fn runner_keeps_normalized_markdown_noop_and_propagates_later_edits() {
       .contains("native edit\\\nstill visible")
   );
 
+  let native_pushed = git_repo.remote_text(&native_path).expect("pushed native document");
+  let baseline_for_native = || sqlx::query_as::<_, (Uuid, String)>(
+    "SELECT id, baseline_content_hash FROM git_sync_document_bindings WHERE profile_id=$1 AND doc_id=$2 AND NOT tombstone"
+  ).bind(profile.id).bind(native_doc_id).fetch_one(&pool);
+  let (binding_id, pushed_hash) = baseline_for_native().await.unwrap();
+  assert_eq!(pushed_hash, content_hash(&export::split_markdown_file(&native_pushed).1));
+  let native_remote_edit = native_pushed.replace("native edit", "edited again in Git");
+  git_repo.set_remote_file(&native_path, native_remote_edit.as_bytes());
+
   let external_edit_body = external_body.replace("soft\r\nwrap", "remote\r\nedit");
   let external_edit = export::compose_markdown_file(
     &export::ExportFrontmatter {
@@ -2957,8 +2968,11 @@ async fn runner_keeps_normalized_markdown_noop_and_propagates_later_edits() {
   )
   .await
   .expect("pull later external edit");
-  assert_eq!(pulled["docsUpdated"], 1);
+  assert_eq!(pulled["docsUpdated"], 2);
   assert_eq!(pulled["conflictsFound"], 0);
+  let native_pulled = doc_markdown(&pool, native_doc_id).await;
+  assert!(native_pulled.contains("edited again in Git"));
+  assert_eq!(baseline_for_native().await.unwrap(), (binding_id, content_hash(&native_pulled)));
   assert!(doc_markdown(&pool, external_doc_id).await.contains("remote edit"));
   assert_parent_local_targets(&service.load_full_doc(workspace_id, external_doc_id).await.unwrap());
   let final_body=doc_markdown(&pool,external_doc_id).await;
@@ -3712,10 +3726,9 @@ async fn update_myoxus_payload(pool: &sqlx::PgPool, workspace_id: Uuid, doc_id: 
 
 async fn document_sync_hash_state(pool: &sqlx::PgPool, profile_id: Uuid) -> Vec<(Uuid, String, String)> {
   sqlx::query_as(
-    "SELECT b.doc_id, b.content_hash, bl.content_hash
-     FROM git_sync_bindings b
-     JOIN git_sync_baselines bl ON bl.binding_id = b.id
-     WHERE b.profile_id = $1 AND b.tombstone = false
+    "SELECT b.doc_id, b.content_hash, b.baseline_content_hash
+     FROM git_sync_document_bindings b
+     WHERE b.baseline_content_hash IS NOT NULL AND b.profile_id = $1 AND b.tombstone = false
      ORDER BY b.doc_id",
   )
   .bind(profile_id)
@@ -3747,7 +3760,7 @@ async fn doc_markdown(pool: &sqlx::PgPool, doc_id: Uuid) -> String {
 
 async fn active_doc_binding(pool: &sqlx::PgPool, profile_id: Uuid) -> (Uuid, Uuid, Uuid, String) {
   sqlx::query_as(
-    "SELECT id, doc_id, sync_id, repo_path FROM git_sync_bindings WHERE profile_id = $1 AND tombstone = false",
+    "SELECT id, doc_id, sync_id, repo_path FROM git_sync_document_bindings WHERE profile_id = $1 AND tombstone = false",
   )
   .bind(profile_id)
   .fetch_one(pool)
@@ -4134,12 +4147,10 @@ async fn blob_preparation_failure_cannot_publish_prepared_document_or_persistenc
     sqlx::query_as(
       r#"
     SELECT
-      (SELECT COUNT(*)::bigint FROM git_sync_bindings WHERE profile_id = $1),
+      (SELECT COUNT(*)::bigint FROM git_sync_document_bindings WHERE profile_id = $1),
       (SELECT COUNT(*)::bigint FROM git_sync_file_bindings WHERE profile_id = $1),
       (SELECT COUNT(*)::bigint
-       FROM git_sync_baselines baseline
-       JOIN git_sync_bindings binding ON binding.id = baseline.binding_id
-       WHERE binding.profile_id = $1),
+       FROM git_sync_document_bindings binding WHERE binding.baseline_content_hash IS NOT NULL AND binding.profile_id = $1),
       (SELECT COUNT(*)::bigint FROM git_sync_file_baselines WHERE profile_id = $1),
       (SELECT COUNT(*)::bigint FROM git_sync_blob_promotions WHERE run_id = $2)
     "#,
@@ -4803,11 +4814,12 @@ async fn runner_rejects_terminal_run_before_git_or_binding_io() {
     0,
     "terminal run rejection must happen before clone/fetch"
   );
-  let binding_count: i64 = sqlx::query_scalar("SELECT COUNT(*)::bigint FROM git_sync_bindings WHERE profile_id = $1")
-    .bind(profile.id)
-    .fetch_one(&pool)
-    .await
-    .expect("binding count");
+  let binding_count: i64 =
+    sqlx::query_scalar("SELECT COUNT(*)::bigint FROM git_sync_document_bindings WHERE profile_id = $1")
+      .bind(profile.id)
+      .fetch_one(&pool)
+      .await
+      .expect("binding count");
   assert_eq!(binding_count, 0, "terminal replay must not mutate bindings");
   let status: String = sqlx::query_scalar("SELECT status FROM git_sync_runs WHERE id = $1")
     .bind(run_id)
@@ -4910,11 +4922,9 @@ async fn auth_denial_preserves_existing_mirror_and_terminal_replay_performs_no_g
   let commit_count_before = git_repo.commit_count();
   let state_counts_before: (i64, i64, i64, i64) = sqlx::query_as(
     "SELECT
-       (SELECT COUNT(*)::bigint FROM git_sync_bindings WHERE profile_id = $1),
+       (SELECT COUNT(*)::bigint FROM git_sync_document_bindings WHERE profile_id = $1),
        (SELECT COUNT(*)::bigint
-        FROM git_sync_baselines baseline
-        JOIN git_sync_bindings binding ON binding.id = baseline.binding_id
-        WHERE binding.profile_id = $1),
+        FROM git_sync_document_bindings binding WHERE binding.baseline_content_hash IS NOT NULL AND binding.profile_id = $1),
        (SELECT COUNT(*)::bigint FROM git_sync_file_bindings WHERE profile_id = $1),
        (SELECT COUNT(*)::bigint FROM git_sync_file_baselines WHERE profile_id = $1)",
   )
@@ -4979,11 +4989,9 @@ async fn auth_denial_preserves_existing_mirror_and_terminal_replay_performs_no_g
   assert_eq!(denied_run.1.as_deref(), Some("GitAuth"));
   let state_counts_after: (i64, i64, i64, i64) = sqlx::query_as(
     "SELECT
-       (SELECT COUNT(*)::bigint FROM git_sync_bindings WHERE profile_id = $1),
+       (SELECT COUNT(*)::bigint FROM git_sync_document_bindings WHERE profile_id = $1),
        (SELECT COUNT(*)::bigint
-        FROM git_sync_baselines baseline
-        JOIN git_sync_bindings binding ON binding.id = baseline.binding_id
-        WHERE binding.profile_id = $1),
+        FROM git_sync_document_bindings binding WHERE binding.baseline_content_hash IS NOT NULL AND binding.profile_id = $1),
        (SELECT COUNT(*)::bigint FROM git_sync_file_bindings WHERE profile_id = $1),
        (SELECT COUNT(*)::bigint FROM git_sync_file_baselines WHERE profile_id = $1)",
   )

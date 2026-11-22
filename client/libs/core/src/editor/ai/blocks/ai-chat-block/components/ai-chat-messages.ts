@@ -15,6 +15,8 @@ import {
   type ChatMessage,
   type StreamObject,
 } from "../../../components/ai-chat-messages";
+import { createElement } from "react";
+import { CopilotResponseActions } from "../../../components/response-actions";
 import { UserInfoTemplate } from "./user-info";
 
 // Native descendants consume the host's Mantine stylesheet. Retained block
@@ -180,13 +182,15 @@ export class AIChatBlockMessages extends ShadowlessElement {
             ></ai-chat-block-message>
             ${
               this.showGeneratedFiles && message.generatedFiles?.length
-                ? html`<chat-copy-more
-                    .reactToLit=${this.reactToLit}
-                    .host=${this.host}
-                    .messageId=${message.id}
-                    .generatedFiles=${message.generatedFiles}
-                    .notificationService=${this.host.std.get(NotificationProvider)}
-                  ></chat-copy-more>`
+                ? this.reactToLit?.(
+                    createElement(CopilotResponseActions, {
+                      messageId: message.id,
+                      generatedFiles: message.generatedFiles,
+                      notificationService:
+                        this.host.std.get(NotificationProvider),
+                    }),
+                    true,
+                  )
                 : nothing
             }
           `;

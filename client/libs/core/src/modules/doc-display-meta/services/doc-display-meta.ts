@@ -1,14 +1,5 @@
 import { i18nTime } from "@myoxus/i18n";
 import {
-  BlockLinkIcon as LitBlockLinkIcon,
-  EdgelessIcon as LitEdgelessIcon,
-  LinkIcon as LitLinkIcon,
-  PageIcon as LitPageIcon,
-  TodayIcon as LitTodayIcon,
-  TomorrowIcon as LitTomorrowIcon,
-  YesterdayIcon as LitYesterdayIcon,
-} from "@myoxus/icons/lit";
-import {
   BlockLinkIcon,
   EdgelessIcon,
   LinkIcon,
@@ -24,11 +15,9 @@ import type { DocRecord, DocsService } from "../../doc";
 import type { ExplorerIconService } from "../../explorer-icon/services/explorer-icon";
 import type { I18nService } from "../../i18n";
 import type { JournalService } from "../../journal";
-import { getDocIconComponent, getDocIconComponentLit } from "./icon";
+import { getDocIconComponent } from "./icon";
 
-type IconType = "rc" | "lit";
-interface DocDisplayIconOptions<T extends IconType> {
-  type?: T;
+interface DocDisplayIconOptions {
   /**
    * Override the mode detected inside the hook:
    * by default, it will use the `primaryMode$` of the doc.
@@ -60,20 +49,6 @@ const rcIcons = {
   TomorrowIcon,
   YesterdayIcon,
 };
-const litIcons = {
-  BlockLinkIcon: LitBlockLinkIcon,
-  EdgelessIcon: LitEdgelessIcon,
-  LinkIcon: LitLinkIcon,
-  PageIcon: LitPageIcon,
-  TodayIcon: LitTodayIcon,
-  TomorrowIcon: LitTomorrowIcon,
-  YesterdayIcon: LitYesterdayIcon,
-};
-const icons = { rc: rcIcons, lit: litIcons } as {
-  rc: Record<keyof typeof rcIcons, any>;
-  lit: Record<keyof typeof litIcons, any>;
-};
-
 export class DocDisplayMetaService extends Service {
   constructor(
     private readonly journalService: JournalService,
@@ -84,27 +59,8 @@ export class DocDisplayMetaService extends Service {
     super();
   }
 
-  getJournalIcon(
-    journalDate: string | Dayjs,
-    options?: DocDisplayIconOptions<"rc">,
-  ): typeof TodayIcon;
-
-  getJournalIcon(
-    journalDate: string | Dayjs,
-    options?: DocDisplayIconOptions<"lit">,
-  ): typeof LitYesterdayIcon;
-
-  getJournalIcon<T extends IconType = "rc">(
-    journalDate: string | Dayjs,
-    options?: DocDisplayIconOptions<T>,
-  ): T extends "rc" ? typeof TodayIcon : typeof LitTodayIcon;
-
-  getJournalIcon<T extends IconType = "rc">(
-    journalDate: string | Dayjs,
-    options?: DocDisplayIconOptions<T>,
-  ) {
-    const iconSet = icons[options?.type ?? "rc"];
-    return iconSet[this.getJournalIconName(journalDate)];
+  getJournalIcon(journalDate: string | Dayjs) {
+    return rcIcons[this.getJournalIconName(journalDate)];
   }
 
   getJournalIconName(journalDate: string | Dayjs) {
@@ -116,18 +72,19 @@ export class DocDisplayMetaService extends Service {
         : "TodayIcon";
   }
 
-  icon$<T extends IconType = "rc">(
-    docId: string,
-    options?: DocDisplayIconOptions<T>,
-  ) {
-    const iconSet = icons[options?.type ?? "rc"];
-
+  icon$(docId: string, options?: DocDisplayIconOptions) {
+    return this.iconDescriptor$(docId, options).map((icon) =>
+      typeof icon === "string" ? rcIcons[icon] : getDocIconComponent(icon),
+    );
+  }
+  /** Editor and shell resolve the same icon choice in their own rendering tier. */
+  iconDescriptor$(docId: string, options?: DocDisplayIconOptions) {
     return LiveData.computed((get) => {
       // Link identity must not depend on its label, target mode or custom icon.
       if (options?.reference) {
         return options.referenceToNode
-          ? iconSet.BlockLinkIcon
-          : iconSet.LinkIcon;
+          ? ("BlockLinkIcon" as const)
+          : ("LinkIcon" as const);
       }
 
       const enableEmojiIcon = options?.enableEmojiIcon !== false;
@@ -135,7 +92,7 @@ export class DocDisplayMetaService extends Service {
       // link to journal doc
       const journalDateString = get(this.journalService.journalDate$(docId));
       const journalIcon = journalDateString
-        ? this.getJournalIcon(journalDateString, options)
+        ? this.getJournalIconName(journalDateString)
         : undefined;
       const mode = doc ? get(doc.primaryMode$) : undefined;
       const finalMode = options?.mode ?? mode ?? "page";
@@ -144,16 +101,16 @@ export class DocDisplayMetaService extends Service {
       if (enableEmojiIcon) {
         const icon = get(this.explorerIconService.icon$("doc", docId))?.icon;
         if (icon) {
-          return options?.type === "lit"
-            ? getDocIconComponentLit(icon)
-            : getDocIconComponent(icon);
+          return icon;
         }
       }
 
       if (journalIcon) return journalIcon;
 
       // default icon
-      return finalMode === "edgeless" ? iconSet.EdgelessIcon : iconSet.PageIcon;
+      return finalMode === "edgeless"
+        ? ("EdgelessIcon" as const)
+        : ("PageIcon" as const);
     });
   }
 

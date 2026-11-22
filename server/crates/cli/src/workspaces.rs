@@ -653,7 +653,7 @@ async fn stats(args: WorkspaceStatsArgs, pool: &PgPool, json: bool) -> anyhow::R
 
   // Member count.
   let member_count: i64 =
-    sqlx::query_scalar("SELECT COUNT(*)::bigint FROM workspace_memberships WHERE workspace_id = $1")
+    sqlx::query_scalar("SELECT COUNT(*)::bigint FROM workspace_effective_roles WHERE workspace_id = $1")
       .bind(id)
       .fetch_one(pool)
       .await
@@ -1027,7 +1027,7 @@ async fn set_boolean_setting(
   PgPublicRepository::new(svc.pool.clone())
     .invalidate_workspace(workspace_id)
     .await
-    .map_err(|error| anyhow::anyhow!("Failed to invalidate public artifacts: {error}"))?;
+    .map_err(|error| anyhow::anyhow!("Failed to invalidate the public asset manifest: {error}"))?;
   println!(
     "Workspace {workspace_id} {} set to {}.",
     if public_setting {

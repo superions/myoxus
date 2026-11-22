@@ -13,8 +13,10 @@ import { EditorChromeHostIdentifier } from "@virgultum/core/services";
 import { nothing } from "lit";
 import type { SlashMenuItem } from "@virgultum/core/slash-menu";
 import { SlashSession } from "./slash-session";
+import type { EditorSlashControls } from "@virgultum/core/services";
 export class MyoxusSlashMenuWidget extends WidgetComponent {
   private session?: SlashSession;
+  private externalMenu = false;
   private request = 0;
   private readonly _getInlineEditor = (evt: CompositionEvent | InputEvent) => {
     if (evt.target instanceof HTMLElement) {
@@ -37,7 +39,12 @@ export class MyoxusSlashMenuWidget extends WidgetComponent {
     return getInlineEditorByModel(this.std, model);
   };
 
-  private readonly _handleInput = (inlineEditor: InlineEditor) => {
+  /** Resume an already committed trigger after a Page renderer handoff. */
+  readonly openAtCaret = (
+    inlineEditor: InlineEditor,
+    triggerEnd?: number,
+    present?: (controls: EditorSlashControls | null) => void,
+  ) => {
     if (!this.isConnected || this.std.store.readonly) return;
     const textSelection = this.host.selection.find(TextSelection);
     if (!textSelection) return;
@@ -64,7 +71,11 @@ export class MyoxusSlashMenuWidget extends WidgetComponent {
       ? leafStart.textContent.slice(0, offsetStart)
       : "";
 
-    const triggerKey = findSlashMenuTriggerSuffix(text);
+    const triggerKey = findSlashMenuTriggerSuffix(
+      triggerEnd === undefined
+        ? text
+        : inlineEditor.yText.toString().slice(0, triggerEnd),
+    );
     if (!triggerKey) return;
 
     this.session?.cancel();
@@ -74,13 +85,17 @@ export class MyoxusSlashMenuWidget extends WidgetComponent {
       triggerKey,
       this.config,
       this.configItemTransform,
+      triggerEnd,
     );
     this.session = session;
+    this.externalMenu = !!present;
     if (!session.getSnapshot().open) return;
+    present?.(session);
     this.requestUpdate();
     const unsubscribe = session.subscribe(() => {
       if (!session.getSnapshot().open) {
         unsubscribe();
+        present?.(null);
       }
       this.requestUpdate();
     });
@@ -95,7 +110,7 @@ export class MyoxusSlashMenuWidget extends WidgetComponent {
     if (!inlineEditor) return;
 
     this.request++;
-    this._handleInput(inlineEditor);
+    this.openAtCaret(inlineEditor);
   };
 
   private readonly _onBeforeInput = (ctx: UIEventStateContext) => {
@@ -116,7 +131,7 @@ export class MyoxusSlashMenuWidget extends WidgetComponent {
     inlineEditor
       .waitForUpdate()
       .then(() => {
-        if (request === this.request) this._handleInput(inlineEditor);
+        if (request === this.request) this.openAtCaret(inlineEditor);
       })
       .catch(console.error);
   };
@@ -133,7 +148,7 @@ export class MyoxusSlashMenuWidget extends WidgetComponent {
     return this;
   }
   override render() {
-    return this.session?.getSnapshot().open
+    return !this.externalMenu && this.session?.getSnapshot().open
       ? (this.std
           .getOptional(EditorChromeHostIdentifier)
           ?.renderSlash(this.session) ?? nothing)

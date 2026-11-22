@@ -183,6 +183,14 @@ export class OpConsumer<Ops extends OpSchema> extends AutoMessageHandler {
     }
   }
 
+  /** Register a complete named capability group on a shared port. */
+  registerGroup<Group extends OpNames<Ops> & string>(handlers: {
+    [K in Group]: OpHandler<Ops, K>;
+  }) {
+    for (const op of Object.keys(handlers) as Group[])
+      this.register(op, handlers[op]);
+  }
+
   before<Op extends OpNames<Ops>>(
     op: Op,
     handler: (...input: OpInput<Ops, Op>) => void,

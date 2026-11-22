@@ -216,13 +216,13 @@ pub trait DocCachePort: Send + Sync {
 }
 
 pub use traits::{
-  AutomationPageLifecycleResult, AutomationRowContentTarget, DocContentMutationCommit, DocDeleteCandidate,
-  DocHistoryStore, DocLoadStore, DocMetadataStore, DocPermissionStore, DocRevisionCheckedUpdateOutcome,
-  DocSnapshotStore, DocTitleBackfillCandidate, DocUpdatePersistenceOutcome, DocUpdatePersistenceResult, DocUpdateStore,
-  DocViewStore, PageLifecycleAuditState, PageLifecycleCommand, PageLifecycleCommit, PageLifecycleDelta,
-  PageLifecycleKind, PageLifecycleRepairCommand, PageLifecycleRepairCommit, PageProjectionSqlRow,
-  PageRegistrationState, PanicDocHistoryStore, PanicDocLoadStore, PanicDocMetadataStore, PanicDocPermissionStore,
-  PanicDocSnapshotStore, PanicDocUpdateStore, PanicDocViewStore,
+  AutomationPageLifecycleResult, DocContentMutationCommit, DocDeleteCandidate, DocHistoryStore, DocLoadStore,
+  DocMetadataStore, DocPermissionStore, DocRevisionCheckedUpdateOutcome, DocSnapshotStore, DocTitleBackfillCandidate,
+  DocUpdatePersistenceOutcome, DocUpdatePersistenceResult, DocUpdateStore, DocViewStore, PageLifecycleAuditState,
+  PageLifecycleCommand, PageLifecycleCommit, PageLifecycleDelta, PageLifecycleKind, PageLifecycleRepairCommand,
+  PageLifecycleRepairCommit, PageProjectionSqlRow, PageRegistrationState, PanicDocHistoryStore, PanicDocLoadStore,
+  PanicDocMetadataStore, PanicDocPermissionStore, PanicDocSnapshotStore, PanicDocUpdateStore, PanicDocViewStore,
+  RowContentTarget,
 };
 
 pub(crate) use traits::AutomationPageContent;
@@ -1364,9 +1364,20 @@ impl DocService {
     created_by: Uuid,
     title: Option<String>,
   ) -> AuthResult<(Doc, CreatedPageSyncUpdates)> {
+    let (commit, updates) = self.create_page_for_row(workspace_id, created_by, title, None).await?;
+    Ok((commit.document, updates))
+  }
+
+  pub(crate) async fn create_page_for_row(
+    &self,
+    workspace_id: Uuid,
+    created_by: Uuid,
+    title: Option<String>,
+    row: Option<RowContentTarget>,
+  ) -> AuthResult<(PageLifecycleCommit, CreatedPageSyncUpdates)> {
     let committed = self
       .page_lifecycle
-      .create(workspace_id, created_by, title, None)
+      .create_with_row_target(workspace_id, created_by, title, None, row)
       .await?;
     let leaf = committed
       .leaf
@@ -1378,11 +1389,15 @@ impl DocService {
       workspace_root: committed.workspace_root.delta.clone(),
       workspace_root_sequence: committed.workspace_root.sequence,
     };
-    let doc = committed.document;
     self
-      .notify_document_graph_reindex(workspace_id, doc.id, true, DocumentGraphReindexReason::DocUpdated)
+      .notify_document_graph_reindex(
+        workspace_id,
+        committed.document.id,
+        true,
+        DocumentGraphReindexReason::DocUpdated,
+      )
       .await;
-    Ok((doc, sync_updates))
+    Ok((committed, sync_updates))
   }
 
   /// Admit an explicit complete content capture, not an incremental sync update.

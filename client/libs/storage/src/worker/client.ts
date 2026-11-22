@@ -106,7 +106,7 @@ export class StoreManagerClient {
       });
 
     const connection = {
-      store: new StoreClient(client),
+      store: new StoreClient(client, !!options.local.indexer),
       resettable:
         this.clientUpdateEndpoint !== undefined && registration !== null,
       dispose: () => {
@@ -193,7 +193,10 @@ class TelemetryClient {
 }
 
 export class StoreClient {
-  constructor(private readonly client: OpClient<WorkerOps>) {
+  constructor(
+    private readonly client: OpClient<WorkerOps>,
+    indexed: boolean,
+  ) {
     this.docStorage = new WorkerDocStorage(this.client);
     this.blobStorage = new WorkerBlobStorage(this.client);
     this.docSync = new WorkerDocSync(this.client);
@@ -202,8 +205,10 @@ export class StoreClient {
     this.docFrontend = new DocFrontend(this.docStorage, this.docSync);
     this.blobFrontend = new BlobFrontend(this.blobStorage, this.blobSync);
     this.awarenessFrontend = new AwarenessFrontend(this.awarenessSync);
-    this.indexerSync = new WorkerIndexerSync(this.client);
-    this.indexerFrontend = new IndexerFrontend(this.indexerSync);
+    if (indexed)
+      this.indexerFrontend = new IndexerFrontend(
+        new WorkerIndexerSync(this.client),
+      );
   }
 
   private readonly docStorage: WorkerDocStorage;
@@ -211,12 +216,11 @@ export class StoreClient {
   private readonly docSync: WorkerDocSync;
   private readonly blobSync: WorkerBlobSync;
   private readonly awarenessSync: WorkerAwarenessSync;
-  private readonly indexerSync: WorkerIndexerSync;
 
   readonly docFrontend: DocFrontend;
   readonly blobFrontend: BlobFrontend;
   readonly awarenessFrontend: AwarenessFrontend;
-  readonly indexerFrontend: IndexerFrontend;
+  readonly indexerFrontend?: IndexerFrontend;
 
   enableBatterySaveMode(): Promise<void> {
     return this.client.call("sync.enableBatterySaveMode");

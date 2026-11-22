@@ -174,6 +174,7 @@ impl From<myoxus_application::auth::AuthError> for ApiError {
       },
       myoxus_application::auth::AuthError::DocSyncCancelled
       | myoxus_application::auth::AuthError::YjsDecoderUnavailable => Self::ServiceUnavailable(err.to_string()),
+      myoxus_application::auth::AuthError::RowAttachment(_) => Self::Internal("row attachment failed".into()),
       myoxus_application::auth::AuthError::Storage(msg) => Self::Internal(msg),
     }
   }

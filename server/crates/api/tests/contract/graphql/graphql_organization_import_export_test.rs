@@ -765,7 +765,7 @@ async fn inv_org_import_late_failure_rolls_back_every_owner() {
     .expect("count rolled-back unit");
   assert_eq!(unit_count, 0, "new unit and its membership must roll back");
   let capability_count: i64 = sqlx::query_scalar(
-    "SELECT COUNT(*) FROM user_features
+    "SELECT COUNT(*) FROM effective_user_features
       WHERE user_id = $1 AND feature_name = 'manager' AND activated = true",
   )
   .bind(member_id)

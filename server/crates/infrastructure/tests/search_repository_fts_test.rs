@@ -270,15 +270,13 @@ async fn hybrid_search_fuses_fts_only_embedding_only_and_combined_results() {
     &query_embedding,
     "fixture-search-model",
     10,
+    0,
   )
   .await
   .expect("hybrid search");
-  let fts_only_id = fts_only.to_string();
-  let embedding_only_id = embedding_only.to_string();
-  let combined_id = combined.to_string();
-  let ids: Vec<&str> = results.iter().map(|result| result.doc_id.as_str()).collect();
+  let ids: Vec<_> = results.iter().map(|result| result.doc_id).collect();
   assert!(
-    !ids.contains(&legacy.to_string().as_str()),
+    !ids.contains(&legacy),
     "hybrid vectors must match the query model and dimension"
   );
   assert_eq!(
@@ -286,29 +284,27 @@ async fn hybrid_search_fuses_fts_only_embedding_only_and_combined_results() {
     3,
     "one result per ordinary document; no reserved sources: {ids:?}"
   );
-  assert_eq!(ids.first().copied(), Some(combined_id.as_str()));
-  assert!(ids.contains(&fts_only_id.as_str()), "missing FTS-only result: {ids:?}");
-  assert!(
-    ids.contains(&embedding_only_id.as_str()),
-    "missing embedding-only result: {ids:?}"
-  );
+  assert_eq!(ids.first().copied(), Some(combined));
+  assert!(ids.contains(&fts_only), "missing FTS-only result: {ids:?}");
+  assert!(ids.contains(&embedding_only), "missing embedding-only result: {ids:?}");
   let combined_result = results
     .iter()
-    .find(|result| result.doc_id == combined_id)
+    .find(|result| result.doc_id == combined)
     .expect("combined result");
   let fts_result = results
     .iter()
-    .find(|result| result.doc_id == fts_only_id)
+    .find(|result| result.doc_id == fts_only)
     .expect("FTS-only result");
   let embedding_result = results
     .iter()
-    .find(|result| result.doc_id == embedding_only_id)
+    .find(|result| result.doc_id == embedding_only)
     .expect("embedding-only result");
   assert!(combined_result.rrf_score > fts_result.rrf_score);
   assert!(combined_result.rrf_score > embedding_result.rrf_score);
   assert_eq!(embedding_result.chunk_text.as_deref(), Some("embedding-only chunk"));
   assert_eq!(embedding_result.title.as_deref(), Some("Vector handbook"));
   assert_eq!(fts_result.title.as_deref(), Some("Orchid handbook"));
+  assert_eq!(fts_result.chunk_text.as_deref(), Some("orchid lexical signal"));
 
   sqlx::query("DELETE FROM copilot_embeddings WHERE workspace_id = $1")
     .bind(workspace_id)

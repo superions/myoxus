@@ -335,7 +335,7 @@ async fn test_workspace_persistence_lifecycle() {
   assert_eq!(members[0].user.id, owner.id);
   assert_eq!(members[0].role, myoxus_domain::entities::WorkspaceRole::Owner);
   assert_eq!(members[0].status, myoxus_domain::entities::MembershipStatus::Accepted);
-  assert!(!members[0].invite_id.is_nil()); // Should be a real UUID from 0006 migration
+  assert!(members[0].invite_id.is_some_and(|id| !id.is_nil())); // Should be a real UUID from 0006 migration
 
   // 5. Member count
   let count = workspace_store

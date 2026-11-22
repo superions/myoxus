@@ -16,6 +16,7 @@ use myoxus_application::workspace::{
   UpdateWorkspace, WorkspaceLifecycleOwnerKind, WorkspaceLifecycleState, WorkspaceName, WorkspaceOwnerTarget,
   WorkspaceStore,
 };
+use myoxus_domain::entities::OrganizationUnitWorkspaceRelationship;
 use myoxus_domain::entities::{
   AccountStatus, MembershipStatus, User, Workspace, WorkspaceInviteLink, WorkspaceMember, WorkspaceRole,
 };
@@ -33,6 +34,70 @@ pub struct SqlxWorkspaceStore {
 }
 
 impl SqlxWorkspaceStore {
+  pub(crate) async fn upsert_unit_link(
+    tx: &mut PgConnection,
+    unit_id: Uuid,
+    workspace_id: Uuid,
+    relationship: OrganizationUnitWorkspaceRelationship,
+  ) -> Result<(), sqlx::Error> {
+    sqlx::query(
+      "INSERT INTO organization_unit_workspace(unit_id,workspace_id,relationship)
+      VALUES ($1,$2,$3::organization_unit_workspace_relationship)
+      ON CONFLICT(unit_id,workspace_id) DO UPDATE SET relationship=EXCLUDED.relationship, updated_at=now()
+      WHERE organization_unit_workspace.relationship IS DISTINCT FROM EXCLUDED.relationship",
+    )
+    .bind(unit_id)
+    .bind(workspace_id)
+    .bind(relationship.as_str())
+    .execute(tx)
+    .await?;
+    Ok(())
+  }
+
+  async fn effective_members(
+    &self,
+    workspace_id: WorkspaceId,
+    skip: i64,
+    take: i64,
+    query: Option<String>,
+    user_id: Option<UserId>,
+  ) -> AuthResult<Vec<WorkspaceMember>> {
+    let q = format!("%{}%", query.unwrap_or_default());
+    let rows = sqlx::query(
+            r#"
+            SELECT
+                u.id as user_id, u.name as user_name, u.email as user_email, u.email_verified_at as user_email_verified_at,
+                u.avatar_key as user_avatar_key, u.created_at as user_created_at, u.updated_at as user_updated_at,
+                (u.password_hash IS NOT NULL) AS user_has_password, u.status as user_status, u.is_admin as user_is_admin,
+                m.invited_by_user_id as member_inviter_id, m.id as member_invite_id, r.role as member_role, 'Accepted' as member_status, r.workspace_id as member_workspace_id,
+                r.direct_role, r.ou_role, ARRAY(SELECT name FROM organization_unit WHERE id=ANY(r.ou_ids) ORDER BY name,id) AS ou_names
+            FROM workspace_effective_roles r
+            LEFT JOIN workspace_memberships m ON m.workspace_id=r.workspace_id AND m.user_id=r.user_id AND m.status='Accepted'
+            JOIN users u ON r.user_id = u.id AND u.status <> 'deleted'
+            JOIN workspaces w ON w.id = r.workspace_id
+              AND w.lifecycle_state = 'active'
+              AND w.deleted_at IS NULL
+            WHERE r.workspace_id = $1 AND ($5::uuid IS NULL OR r.user_id=$5) AND (u.email ILIKE $2 OR u.name ILIKE $2)
+            ORDER BY u.created_at ASC, u.id ASC
+            LIMIT $3 OFFSET $4
+            "#
+        )
+        .bind(workspace_id)
+        .bind(q)
+        .bind(take)
+        .bind(skip)
+        .bind(user_id)
+        .fetch_all(&self.pool)
+        .await
+        .map_err(Self::map_db_err)?;
+
+    rows
+      .into_iter()
+      .map(map_member_row)
+      .collect::<Result<Vec<_>, _>>()
+      .map_err(Self::map_db_err)
+  }
+
   /// Read the same native fields for user patches and lifecycle publication.
   pub(crate) fn overview_from_row(
     row: &sqlx::postgres::PgRow,
@@ -530,53 +595,21 @@ impl SqlxWorkspaceStore {
           && let Some(previous_owner_unit_id) = current_id
           && previous_owner_unit_id != new_owner_unit_id
         {
-          let created_at = sqlx::query_scalar::<_, Option<DateTime<Utc>>>(
-            "SELECT MIN(created_at) FROM organization_unit_workspace
-              WHERE unit_id = $1 AND workspace_id = $2",
+          Self::upsert_unit_link(
+            tx,
+            previous_owner_unit_id,
+            workspace_id,
+            OrganizationUnitWorkspaceRelationship::Managed,
           )
-          .bind(previous_owner_unit_id)
-          .bind(workspace_id)
-          .fetch_one(&mut *tx)
-          .await
-          .map_err(Self::map_db_err)?;
-          sqlx::query("DELETE FROM organization_unit_workspace WHERE unit_id = $1 AND workspace_id = $2")
-            .bind(previous_owner_unit_id)
-            .bind(workspace_id)
-            .execute(&mut *tx)
-            .await
-            .map_err(Self::map_db_err)?;
-          sqlx::query(
-            r#"
-            INSERT INTO organization_unit_workspace
-              (unit_id, workspace_id, relationship, created_at, updated_at)
-            VALUES (
-              $1, $2, 'managed'::organization_unit_workspace_relationship,
-              COALESCE($3, NOW()), NOW()
-            )
-            "#,
-          )
-          .bind(previous_owner_unit_id)
-          .bind(workspace_id)
-          .bind(created_at)
-          .execute(&mut *tx)
           .await
           .map_err(Self::map_db_err)?;
         }
-        sqlx::query("DELETE FROM organization_unit_workspace WHERE unit_id = $1 AND workspace_id = $2")
-          .bind(new_owner_unit_id)
-          .bind(workspace_id)
-          .execute(&mut *tx)
-          .await
-          .map_err(Self::map_db_err)?;
-        sqlx::query(
-          r#"
-          INSERT INTO organization_unit_workspace (unit_id, workspace_id, relationship)
-          VALUES ($1, $2, 'owner'::organization_unit_workspace_relationship)
-          "#,
+        Self::upsert_unit_link(
+          tx,
+          new_owner_unit_id,
+          workspace_id,
+          OrganizationUnitWorkspaceRelationship::Owner,
         )
-        .bind(new_owner_unit_id)
-        .bind(workspace_id)
-        .execute(&mut *tx)
         .await
         .map_err(Self::map_db_err)?;
         sqlx::query(
@@ -620,7 +653,7 @@ impl WorkspaceStore for SqlxWorkspaceStore {
     actor: UserId,
     package: &myoxus_domain::assistant_package::AssistantPackageIdentity,
   ) -> AuthResult<bool> {
-    sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM workspace_starter_applications a JOIN workspaces w ON w.id=a.workspace_id JOIN workspace_memberships m ON m.workspace_id=w.id AND m.user_id=a.actor_id WHERE a.actor_id=$1 AND a.operation IN ('create_workspace','create_project','prepare_documents') AND ((a.package_id=$2 AND a.package_version=$3 AND a.package_digest=$4) OR (a.operation='create_workspace' AND a.workspace_plan->'project'->'package'->>'id'=$2 AND a.workspace_plan->'project'->'package'->>'version'=$3 AND a.workspace_plan->'project'->'package'->>'digest'=$4) OR (a.operation='create_workspace' AND a.workspace_plan->'setup'->'package'->>'id'=$2 AND a.workspace_plan->'setup'->'package'->>'version'=$3 AND a.workspace_plan->'setup'->'package'->>'digest'=$4)) AND w.deleted_at IS NULL AND w.lifecycle_state='active' AND m.status='Accepted')")
+    sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM workspace_starter_applications a JOIN workspaces w ON w.id=a.workspace_id JOIN workspace_effective_roles m ON m.workspace_id=w.id AND m.user_id=a.actor_id WHERE a.actor_id=$1 AND a.operation IN ('create_workspace','create_project','prepare_documents') AND ((a.package_id=$2 AND a.package_version=$3 AND a.package_digest=$4) OR (a.operation='create_workspace' AND a.workspace_plan->'project'->'package'->>'id'=$2 AND a.workspace_plan->'project'->'package'->>'version'=$3 AND a.workspace_plan->'project'->'package'->>'digest'=$4) OR (a.operation='create_workspace' AND a.workspace_plan->'setup'->'package'->>'id'=$2 AND a.workspace_plan->'setup'->'package'->>'version'=$3 AND a.workspace_plan->'setup'->'package'->>'digest'=$4)) AND w.deleted_at IS NULL AND w.lifecycle_state='active')")
       .bind(actor).bind(&package.id).bind(&package.version).bind(&package.digest)
       .fetch_one(&self.pool).await.map_err(Self::map_db_err)
   }
@@ -629,13 +662,12 @@ impl WorkspaceStore for SqlxWorkspaceStore {
       r#"
         SELECT EXISTS(
           SELECT 1
-            FROM workspace_memberships membership
+            FROM workspace_effective_roles membership
             JOIN workspaces workspace ON workspace.id = membership.workspace_id
              AND workspace.lifecycle_state = 'active'
              AND workspace.deleted_at IS NULL
            WHERE membership.workspace_id = $1
              AND membership.user_id = $2
-             AND membership.status = 'Accepted'
         )
       "#,
     )
@@ -650,13 +682,12 @@ impl WorkspaceStore for SqlxWorkspaceStore {
     sqlx::query_scalar::<_, UserId>(
       r#"
         SELECT u.id
-        FROM workspace_memberships wm
+        FROM workspace_effective_roles wm
         JOIN users u ON u.id = wm.user_id
         JOIN workspaces w ON w.id = wm.workspace_id
           AND w.lifecycle_state = 'active'
           AND w.deleted_at IS NULL
         WHERE wm.workspace_id = $1
-          AND wm.status = 'Accepted'
           AND lower(u.email) = lower($2)
         LIMIT 1
       "#,
@@ -680,13 +711,12 @@ impl WorkspaceStore for SqlxWorkspaceStore {
     let rows: Vec<(UserId, String, String)> = sqlx::query_as(
       r#"
         SELECT u.id, u.name, u.email
-        FROM workspace_memberships wm
+        FROM workspace_effective_roles wm
         JOIN users u ON u.id = wm.user_id
         JOIN workspaces w ON w.id = wm.workspace_id
           AND w.lifecycle_state = 'active'
           AND w.deleted_at IS NULL
         WHERE wm.workspace_id = $1
-          AND wm.status = 'Accepted'
         ORDER BY lower(u.name) ASC
       "#,
     )
@@ -1354,13 +1384,12 @@ impl WorkspaceStore for SqlxWorkspaceStore {
     sqlx::query_scalar(
       r#"SELECT EXISTS(
            SELECT 1
-           FROM workspace_memberships membership
+           FROM workspace_effective_roles membership
            JOIN workspaces workspace ON workspace.id = membership.workspace_id
              AND workspace.lifecycle_state = 'active'
              AND workspace.deleted_at IS NULL
            WHERE membership.user_id = $1
              AND membership.role IN ('Admin', 'Owner')
-             AND membership.status = 'Accepted'
          )"#,
     )
     .bind(user_id)
@@ -1686,21 +1715,12 @@ impl WorkspaceStore for SqlxWorkspaceStore {
     if let Some(unit_id) = management_unit_id
       && !(owner_type == "ou" && owner_id == Some(unit_id))
     {
-      sqlx::query("DELETE FROM organization_unit_workspace WHERE unit_id = $1 AND workspace_id = $2")
-        .bind(unit_id)
-        .bind(workspace_id)
-        .execute(&mut *tx)
-        .await
-        .map_err(Self::map_db_err)?;
-      sqlx::query(
-        r#"
-        INSERT INTO organization_unit_workspace (unit_id, workspace_id, relationship)
-        VALUES ($1, $2, 'managed'::organization_unit_workspace_relationship)
-        "#,
+      Self::upsert_unit_link(
+        &mut tx,
+        unit_id,
+        workspace_id,
+        OrganizationUnitWorkspaceRelationship::Managed,
       )
-      .bind(unit_id)
-      .bind(workspace_id)
-      .execute(&mut *tx)
       .await
       .map_err(Self::map_db_err)?;
     }
@@ -1724,37 +1744,16 @@ impl WorkspaceStore for SqlxWorkspaceStore {
     take: i64,
     query: Option<String>,
   ) -> AuthResult<Vec<WorkspaceMember>> {
-    let q = format!("%{}%", query.unwrap_or_default());
-    let rows = sqlx::query(
-            r#"
-            SELECT
-                u.id as user_id, u.name as user_name, u.email as user_email, u.email_verified_at as user_email_verified_at,
-                u.avatar_key as user_avatar_key, u.created_at as user_created_at, u.updated_at as user_updated_at,
-                (u.password_hash IS NOT NULL) AS user_has_password, u.status as user_status, u.is_admin as user_is_admin,
-                m.invited_by_user_id as member_inviter_id, m.id as member_invite_id, m.role as member_role, m.status as member_status, m.workspace_id as member_workspace_id
-            FROM workspace_memberships m
-            JOIN users u ON m.user_id = u.id AND u.status <> 'deleted'
-            JOIN workspaces w ON w.id = m.workspace_id
-              AND w.lifecycle_state = 'active'
-              AND w.deleted_at IS NULL
-            WHERE m.workspace_id = $1 AND m.status = 'Accepted' AND (u.email ILIKE $2 OR u.name ILIKE $2)
-            ORDER BY u.created_at ASC, u.id ASC
-            LIMIT $3 OFFSET $4
-            "#
-        )
-        .bind(workspace_id)
-        .bind(q)
-        .bind(take)
-        .bind(skip)
-        .fetch_all(&self.pool)
-        .await
-        .map_err(Self::map_db_err)?;
+    self.effective_members(workspace_id, skip, take, query, None).await
+  }
 
-    rows
-      .into_iter()
-      .map(map_member_row)
-      .collect::<Result<Vec<_>, _>>()
-      .map_err(Self::map_db_err)
+  async fn effective_member(&self, workspace_id: WorkspaceId, user_id: UserId) -> AuthResult<Option<WorkspaceMember>> {
+    Ok(
+      self
+        .effective_members(workspace_id, 0, 1, None, Some(user_id))
+        .await?
+        .pop(),
+    )
   }
 
   /// Count accepted members in a workspace.
@@ -1763,11 +1762,11 @@ impl WorkspaceStore for SqlxWorkspaceStore {
     let row = sqlx::query(
       r#"
       SELECT COUNT(*)
-        FROM workspace_memberships m
+        FROM workspace_effective_roles m
         JOIN workspaces w ON w.id = m.workspace_id
          AND w.lifecycle_state = 'active'
          AND w.deleted_at IS NULL
-       WHERE m.workspace_id = $1 AND m.status = 'Accepted'
+       WHERE m.workspace_id = $1
       "#,
     )
     .bind(workspace_id)
@@ -1867,7 +1866,7 @@ impl WorkspaceStore for SqlxWorkspaceStore {
                 u.id as user_id, u.name as user_name, u.email as user_email, u.email_verified_at as user_email_verified_at,
                 u.avatar_key as user_avatar_key, u.created_at as user_created_at, u.updated_at as user_updated_at,
                 (u.password_hash IS NOT NULL) AS user_has_password, u.status as user_status, u.is_admin as user_is_admin,
-                m.invited_by_user_id as member_inviter_id, m.id as member_invite_id, m.role as member_role, m.status as member_status, m.workspace_id as member_workspace_id
+                m.invited_by_user_id as member_inviter_id, m.id as member_invite_id, m.role as member_role, m.status as member_status, m.workspace_id as member_workspace_id, m.role as direct_role, NULL::text as ou_role, ARRAY[]::text[] as ou_names
             FROM workspace_memberships m
             JOIN users u ON m.user_id = u.id AND u.status <> 'deleted'
             JOIN workspaces w ON w.id = m.workspace_id
@@ -1894,7 +1893,7 @@ impl WorkspaceStore for SqlxWorkspaceStore {
                 u.id as user_id, u.name as user_name, u.email as user_email, u.email_verified_at as user_email_verified_at,
                 u.avatar_key as user_avatar_key, u.created_at as user_created_at, u.updated_at as user_updated_at,
                 (u.password_hash IS NOT NULL) AS user_has_password, u.status as user_status, u.is_admin as user_is_admin,
-                m.invited_by_user_id as member_inviter_id, m.id as member_invite_id, m.role as member_role, m.status as member_status, m.workspace_id as member_workspace_id
+                m.invited_by_user_id as member_inviter_id, m.id as member_invite_id, m.role as member_role, m.status as member_status, m.workspace_id as member_workspace_id, m.role as direct_role, NULL::text as ou_role, ARRAY[]::text[] as ou_names
             FROM workspace_memberships m
             JOIN users u ON m.user_id = u.id AND u.status <> 'deleted'
             JOIN workspaces w ON w.id = m.workspace_id
@@ -2494,16 +2493,10 @@ fn map_member_row(row: sqlx::postgres::PgRow) -> Result<WorkspaceMember, sqlx::E
     },
   };
 
-  let role_str: String = row.get("member_role");
-  let role = match role_str.as_str() {
-    "Owner" => WorkspaceRole::Owner,
-    "Admin" => WorkspaceRole::Admin,
-    "Manager" => WorkspaceRole::Manager,
-    "Collaborator" => WorkspaceRole::Collaborator,
-    "Commenter" => WorkspaceRole::Commenter,
-    "Reader" => WorkspaceRole::Reader,
-    _ => WorkspaceRole::External,
+  let parse_role = |role: String| -> Result<WorkspaceRole, sqlx::Error> {
+    serde_json::from_value(serde_json::Value::String(role)).map_err(|err| sqlx::Error::Decode(Box::new(err)))
   };
+  let role = parse_role(row.try_get("member_role")?)?;
 
   let status_str: String = row.get("member_status");
   let status = match status_str.as_str() {
@@ -2523,6 +2516,15 @@ fn map_member_row(row: sqlx::postgres::PgRow) -> Result<WorkspaceMember, sqlx::E
     role,
     status,
     invite_id: row.get("member_invite_id"),
+    direct_role: row
+      .try_get::<Option<String>, _>("direct_role")?
+      .map(parse_role)
+      .transpose()?,
+    ou_role: row
+      .try_get::<Option<String>, _>("ou_role")?
+      .map(parse_role)
+      .transpose()?,
+    ou_names: row.try_get("ou_names")?,
   })
 }
 

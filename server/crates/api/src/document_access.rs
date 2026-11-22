@@ -112,7 +112,7 @@ pub(crate) async fn authorize_document_with_access(
       if !template_read
         && !state
           .permission_service()
-          .doc_role_with_workspace_role(user_id, doc_id, access.effective_role)
+          .doc_role_with_access(user_id, doc_id, access)
           .await?
           .can(action)
       {

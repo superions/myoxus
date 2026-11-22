@@ -1941,12 +1941,13 @@ async fn load_target_inventory(
       });
     }
     if portable_tags {
-      for retired in
-        sqlx::query_scalar::<_, String>("SELECT retired_tag_id FROM workspace_tag_retired_ids WHERE workspace_id = $1")
-          .bind(workspace_id)
-          .fetch_all(pool)
-          .await
-          .map_err(PgWorkspaceContentOperationRepository::storage)?
+      for retired in sqlx::query_scalar::<_, String>(
+        "SELECT external_id FROM workspace_tag_identities WHERE workspace_id = $1 AND retired_at IS NOT NULL",
+      )
+      .bind(workspace_id)
+      .fetch_all(pool)
+      .await
+      .map_err(PgWorkspaceContentOperationRepository::storage)?
       {
         if let Ok(id) = Uuid::parse_str(&retired) {
           ids.push(
@@ -3852,22 +3853,7 @@ impl WorkspaceContentControlRepository for PgWorkspaceContentOperationRepository
               diagnostic_instance_id = NULL, updated_at = now()
         WHERE operation_row.id = $1 AND operation_row.actor_id = $2
           AND operation_row.status IN ('draft', 'previewed', 'queued', 'running')
-          AND NOT EXISTS (
-            SELECT 1 FROM workspace_content_move_publications published
-             WHERE published.operation_id = operation_row.id
-          )
-          AND NOT EXISTS (
-            SELECT 1 FROM workspace_content_copy_publications published
-             WHERE published.operation_id = operation_row.id
-          )
-          AND NOT EXISTS (
-            SELECT 1 FROM workspace_content_link_publications published
-             WHERE published.operation_id = operation_row.id
-          )
-          AND NOT EXISTS (
-            SELECT 1 FROM workspace_content_extract_publications published
-             WHERE published.operation_id = operation_row.id
-          )
+          AND NOT EXISTS (SELECT 1 FROM workspace_content_publications published WHERE published.operation_id = operation_row.id)
         RETURNING {RECORD_COLUMNS}"
     ))
     .bind(operation_id)
@@ -3904,9 +3890,7 @@ impl WorkspaceContentControlRepository for PgWorkspaceContentOperationRepository
       "SELECT target_workspace_id, target_id FROM workspace_content_operation_compensations intent
        WHERE operation_id=$1 AND kind='delete_operation_blob' AND target_kind='blob'
          AND NOT EXISTS(SELECT 1 FROM blobs WHERE workspace_id=intent.target_workspace_id AND key=intent.target_id AND deleted_at IS NULL)
-         AND NOT EXISTS(SELECT 1 FROM workspace_content_copy_publications WHERE operation_id=$1)
-         AND NOT EXISTS(SELECT 1 FROM workspace_content_move_publications WHERE operation_id=$1)
-         AND NOT EXISTS(SELECT 1 FROM workspace_content_extract_publications WHERE operation_id=$1)
+         AND NOT EXISTS(SELECT 1 FROM workspace_content_publications WHERE operation_id=$1 AND kind<>'link')
        ORDER BY sequence")
       .bind(operation_id).fetch_all(&mut *tx).await.map_err(Self::storage)?;
     let targets = rows
@@ -4334,7 +4318,7 @@ impl WorkspaceContentLinkPublicationPort for PgWorkspaceContentOperationReposito
 
     if let Some(receipt) = sqlx::query(
       "SELECT target_workspace_id, organizer_revision, organizer_sequence, entry_id
-       FROM workspace_content_link_publications WHERE operation_id = $1",
+       FROM workspace_content_publications WHERE kind='link' AND operation_id = $1",
     )
     .bind(batch.operation.id)
     .fetch_optional(&mut *tx)
@@ -4461,10 +4445,10 @@ impl WorkspaceContentLinkPublicationPort for PgWorkspaceContentOperationReposito
     .await
     .map_err(Self::storage)?;
     sqlx::query(
-      "INSERT INTO workspace_content_link_publications
-         (operation_id, target_workspace_id, organizer_revision, organizer_sequence,
+      "INSERT INTO workspace_content_publications
+         (kind, operation_id, target_workspace_id, organizer_revision, organizer_sequence,
           entry_id, diagnostic_instance_id)
-       VALUES ($1, $2, $3, $4, $5, $6)",
+       VALUES ('link', $1, $2, $3, $4, $5, $6)",
     )
     .bind(batch.operation.id)
     .bind(target_workspace_id)
@@ -4511,8 +4495,8 @@ impl WorkspaceContentRecipientSnapshotPort for PgWorkspaceContentOperationReposi
         .ok_or_else(|| AuthError::NotFound(WorkspaceContentErrorCode::SourceWorkspaceMissing.as_str().to_string()))?;
     let rows = sqlx::query(
       "SELECT user_id, role
-       FROM workspace_memberships
-       WHERE workspace_id = $1 AND status = 'Accepted'
+       FROM workspace_effective_roles
+       WHERE workspace_id = $1
        ORDER BY user_id",
     )
     .bind(source_workspace_id)
@@ -4845,12 +4829,12 @@ impl PgWorkspaceContentCopyPublicationRepository {
             r#"
           SELECT EXISTS (
             SELECT 1
-            FROM workspace_content_copy_publications
-            WHERE operation_id = $1
+            FROM workspace_content_publications
+            WHERE kind='copy' AND operation_id = $1
               AND target_workspace_id = $2
               AND lower(manifest_hash) = lower($3)
               AND preview_revision IS NOT DISTINCT FROM $4
-              AND object_count = $5
+              AND resource_count = $5
           )
           "#,
           )
@@ -5092,10 +5076,10 @@ envelope, bundle, .. } = object
 
       sqlx::query(
         r#"
-        INSERT INTO workspace_content_copy_publications
-          (operation_id, target_workspace_id, manifest_hash, preview_revision,
-           object_count, diagnostic_instance_id)
-        VALUES ($1, $2, $3, $4, $5, $6)
+        INSERT INTO workspace_content_publications
+          (kind, operation_id, target_workspace_id, manifest_hash, preview_revision,
+           resource_count, diagnostic_instance_id)
+        VALUES ('copy', $1, $2, $3, $4, $5, $6)
         "#,
       )
       .bind(batch.operation.id)
@@ -5524,8 +5508,8 @@ impl PgWorkspaceContentMovePublicationRepository {
               r#"
             SELECT EXISTS (
               SELECT 1
-              FROM workspace_content_extract_publications
-              WHERE operation_id = $1
+              FROM workspace_content_publications
+              WHERE kind='extract_folder' AND operation_id = $1
                 AND source_workspace_id = $2
                 AND target_workspace_id = $3
                 AND lower(manifest_hash) = lower($4)
@@ -5552,8 +5536,8 @@ impl PgWorkspaceContentMovePublicationRepository {
               r#"
           SELECT EXISTS (
             SELECT 1
-            FROM workspace_content_move_publications
-            WHERE operation_id = $1
+            FROM workspace_content_publications
+            WHERE kind='move' AND operation_id = $1
               AND source_workspace_id = $2
               AND target_workspace_id = $3
               AND lower(manifest_hash) = lower($4)
@@ -5803,9 +5787,7 @@ impl PgWorkspaceContentMovePublicationRepository {
               .get(*table)
               .copied()
               .ok_or_else(|| publication_failure(WorkspaceContentErrorCode::MoveDocumentChildCountIsMissing))?;
-            let affected = if matches!(*table, "public_asset_manifest" | "public_render_artifacts")
-              && !target_allows_public_sharing
-            {
+            let affected = if *table == "public_asset_manifest" && !target_allows_public_sharing {
               sqlx::query(&format!(
                 "DELETE FROM {table} WHERE workspace_id = $1 AND {column} = $2"
               ))
@@ -5833,6 +5815,10 @@ impl PgWorkspaceContentMovePublicationRepository {
               return Err(publication_failure(WorkspaceContentErrorCode::MoveDocumentChildOwnershipChanged));
             }
           }
+          // Moving the physical streams dirtied the destination usage ledger.
+          // A source entry can no longer be rebuilt in its old workspace.
+          sqlx::query("DELETE FROM document_blob_usage WHERE workspace_id=$1 AND doc_id=$2")
+            .bind(source_workspace_id).bind(doc_id).execute(&mut *tx).await.map_err(move_conflict)?;
           // Whole persisted-stream equality proves that the captured numeric
           // selectors are still bound, despite Any-map encoding order changes.
           let (snapshot, source_hash) = crate::doc::SqlxDocStore::load_reference_snapshot_in_tx(
@@ -6103,10 +6089,10 @@ impl PgWorkspaceContentMovePublicationRepository {
         .map_err(PgWorkspaceContentOperationRepository::storage)?;
         if is_extract {
           sqlx::query(
-            "INSERT INTO workspace_content_extract_publications
-             (operation_id, source_workspace_id, target_workspace_id, source_folder_id,
+            "INSERT INTO workspace_content_publications
+             (kind, operation_id, source_workspace_id, target_workspace_id, source_folder_id,
               manifest_hash, preview_revision, resource_count, diagnostic_instance_id)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+           VALUES ('extract_folder', $1, $2, $3, $4, $5, $6, $7, $8)",
           )
           .bind(batch.operation.id)
           .bind(source_workspace_id)
@@ -6123,10 +6109,10 @@ impl PgWorkspaceContentMovePublicationRepository {
           .map_err(PgWorkspaceContentOperationRepository::storage)?;
         } else {
           sqlx::query(
-            "INSERT INTO workspace_content_move_publications
-           (operation_id, source_workspace_id, target_workspace_id, manifest_hash,
+            "INSERT INTO workspace_content_publications
+           (kind, operation_id, source_workspace_id, target_workspace_id, manifest_hash,
             preview_revision, resource_count, diagnostic_instance_id)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)",
+           VALUES ('move', $1, $2, $3, $4, $5, $6, $7)",
           )
           .bind(batch.operation.id)
           .bind(source_workspace_id)
@@ -6442,8 +6428,8 @@ async fn verify_current_move_recipient_snapshot(
   }
   let rows = sqlx::query(
     "SELECT user_id, role
-     FROM workspace_memberships
-     WHERE workspace_id = $1 AND status = 'Accepted'
+     FROM workspace_effective_roles
+     WHERE workspace_id = $1
      ORDER BY user_id",
   )
   .bind(batch.operation.source_workspace_id)
@@ -6622,6 +6608,15 @@ fn normalized_move_manifests(
         // Deployed manifests may include view counters. They describe source
         // workspace usage, not transferable content or ownership freshness.
         document.ownership_row_counts.remove("workspace_doc_view_daily");
+        // Older plans counted regenerable HTML copies, which no longer exist after migration 1113.
+        document.ownership_row_counts.remove("public_render_artifacts");
+        // An empty retired child cannot make a deployed move plan stale.
+        // Plans that observed actual legacy rows must obtain fresh evidence.
+        for retired in ["ai_workspace_doc_embeddings", "ai_workspace_ignored_docs"] {
+          if document.ownership_row_counts.get(retired) == Some(&0) {
+            document.ownership_row_counts.remove(retired);
+          }
+        }
       }
       manifest.workspaces.clear();
     }
@@ -6879,8 +6874,7 @@ async fn publish_operation_overviews(
        WHERE m.operation_id=$1 AND o.status='succeeded'
          AND o.source_workspace_id=$2 AND o.target_workspace_id=$3
          AND o.kind IN ('move','extract_folder')
-         AND (EXISTS(SELECT 1 FROM workspace_content_move_publications p WHERE p.operation_id=o.id AND p.manifest_hash=o.manifest_hash)
-           OR EXISTS(SELECT 1 FROM workspace_content_extract_publications p WHERE p.operation_id=o.id AND p.manifest_hash=o.manifest_hash))",
+         AND EXISTS(SELECT 1 FROM workspace_content_publications p WHERE p.kind IN ('move','extract_folder') AND p.operation_id=o.id AND p.manifest_hash=o.manifest_hash)",
     ).bind(origin_id).bind(target_workspace_id).bind(operation.source_workspace_id)
       .fetch_optional(&mut **tx).await.map_err(PgWorkspaceContentOperationRepository::storage)?
       .ok_or_else(|| publication_failure(WorkspaceContentErrorCode::UndoHasNoCommittedOriginReceipt))?;
@@ -7025,14 +7019,11 @@ const MOVE_DOCUMENT_OWNERSHIP_TABLES: &[(&str, &str, bool)] = &[
   ("document_version", "doc_id", false),
   ("document_graph_index_state", "doc_id", false),
   ("search_content", "doc_id", false),
-  ("ai_workspace_ignored_docs", "doc_id", false),
-  ("ai_workspace_doc_embeddings", "doc_id", false),
   ("copilot_sessions", "doc_id", false),
   ("git_sync_bindings", "doc_id", false),
   ("pdf_export_jobs", "doc_id", false),
   ("pdf_export_render_audit", "doc_id", false),
   ("public_asset_manifest", "doc_id", false),
-  ("public_render_artifacts", "doc_id", false),
   ("workspace_tag_document_assignments", "doc_id", false),
   ("document_graph_occurrences", "source_doc_id", false),
 ];
@@ -7486,14 +7477,15 @@ async fn capture_move_tag_manifest(
     .map(PgWorkspaceTagRepository::row_to_tag)
     .collect::<Result<Vec<_>, _>>()
     .map_err(|_| AuthError::InvalidInput(WorkspaceContentErrorCode::SourceTagInvalid.as_str().into()))?;
-  let retired =
-    sqlx::query_scalar::<_, String>("SELECT retired_tag_id FROM workspace_tag_retired_ids WHERE workspace_id=$1")
-      .bind(target_workspace_id)
-      .fetch_all(&mut **tx)
-      .await
-      .map_err(PgWorkspaceContentOperationRepository::storage)?
-      .into_iter()
-      .collect::<BTreeSet<_>>();
+  let retired = sqlx::query_scalar::<_, String>(
+    "SELECT external_id FROM workspace_tag_identities WHERE workspace_id=$1 AND retired_at IS NOT NULL",
+  )
+  .bind(target_workspace_id)
+  .fetch_all(&mut **tx)
+  .await
+  .map_err(PgWorkspaceContentOperationRepository::storage)?
+  .into_iter()
+  .collect::<BTreeSet<_>>();
   let mut materializations = BTreeMap::new();
   definitions.sort_by_key(|tag| (tag.archived_at.is_some(), tag.id));
   for source in &definitions {
@@ -7664,8 +7656,7 @@ async fn capture_move_tag_manifest(
       "SELECT m.manifest,m.manifest_hash FROM workspace_content_move_revision_manifests m
        JOIN workspace_content_operations o ON o.id=m.operation_id AND o.status='succeeded'
        WHERE m.operation_id=$1 AND o.source_workspace_id=$2 AND o.target_workspace_id=$3
-       AND (EXISTS(SELECT 1 FROM workspace_content_move_publications p WHERE p.operation_id=o.id AND p.manifest_hash=o.manifest_hash)
-         OR EXISTS(SELECT 1 FROM workspace_content_extract_publications p WHERE p.operation_id=o.id AND p.manifest_hash=o.manifest_hash))")
+       AND EXISTS(SELECT 1 FROM workspace_content_publications p WHERE p.kind IN ('move','extract_folder') AND p.operation_id=o.id AND p.manifest_hash=o.manifest_hash)")
       .bind(origin_id).bind(target_workspace_id).bind(operation.source_workspace_id)
       .fetch_optional(&mut **tx).await.map_err(PgWorkspaceContentOperationRepository::storage)?
       .ok_or_else(|| publication_failure(WorkspaceContentErrorCode::UndoHasNoCommittedOriginReceipt))?;
@@ -8063,7 +8054,7 @@ async fn capture_move_revision_manifest(
        FROM workspace_content_operation_requests r
        JOIN workspace_content_operations o ON o.id=r.origin_operation_id
        LEFT JOIN workspace_content_extract_targets t ON t.operation_id=o.id
-       LEFT JOIN workspace_content_extract_publications p ON p.operation_id=o.id
+       LEFT JOIN workspace_content_publications p ON p.kind='extract_folder' AND p.operation_id=o.id
       WHERE r.operation_id=$1",
   )
   .bind(operation.id)
@@ -9204,12 +9195,13 @@ async fn operation_publication_receipt(
     .await
     .map_err(PgWorkspaceContentOperationRepository::storage)?;
   let record = map_record(&row)?;
-  let committed: bool =
-    sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM workspace_content_copy_publications WHERE operation_id=$1) OR EXISTS(SELECT 1 FROM workspace_content_move_publications WHERE operation_id=$1) OR EXISTS(SELECT 1 FROM workspace_content_extract_publications WHERE operation_id=$1)")
-      .bind(operation_id)
-      .fetch_one(&mut *tx)
-      .await
-      .map_err(PgWorkspaceContentOperationRepository::storage)?;
+  let committed: bool = sqlx::query_scalar(
+    "SELECT EXISTS(SELECT 1 FROM workspace_content_publications WHERE operation_id=$1 AND kind<>'link')",
+  )
+  .bind(operation_id)
+  .fetch_one(&mut *tx)
+  .await
+  .map_err(PgWorkspaceContentOperationRepository::storage)?;
   tx.commit()
     .await
     .map_err(PgWorkspaceContentOperationRepository::storage)?;
@@ -9263,9 +9255,7 @@ async fn cleanup_operation_blob_keys_in_tx(
     let owned_unpublished: bool = sqlx::query_scalar(
       "SELECT EXISTS(SELECT 1 FROM workspace_content_operation_compensations WHERE operation_id=$1 AND kind='delete_operation_blob' AND target_workspace_id=$2 AND target_kind='blob' AND target_id=$3)
        AND NOT EXISTS(SELECT 1 FROM blobs WHERE workspace_id=$2 AND key=$3 AND deleted_at IS NULL)
-       AND NOT EXISTS(SELECT 1 FROM workspace_content_copy_publications WHERE operation_id=$1)
-       AND NOT EXISTS(SELECT 1 FROM workspace_content_move_publications WHERE operation_id=$1)
-       AND NOT EXISTS(SELECT 1 FROM workspace_content_extract_publications WHERE operation_id=$1)")
+       AND NOT EXISTS(SELECT 1 FROM workspace_content_publications WHERE operation_id=$1 AND kind<>'link')")
       .bind(operation_id).bind(workspace_id).bind(blob_key).fetch_one(&mut **tx).await.map_err(PgWorkspaceContentOperationRepository::storage)?;
     // Reuse the Blob owner's accounting/catalog fence, including unrelated
     // canonical import references. It serializes publication through deletion.

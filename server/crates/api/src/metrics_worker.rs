@@ -13,10 +13,9 @@
 //!   than `retention_raw_days` and `metrics_daily` older than
 //!   `retention_daily_days` (INV-MET-05).
 //!
-//! The server registers these jobs and performs the graceful-shutdown flush
-//! only when the restart-bound `metrics.persistence_enabled` setting is true.
-//! A stale queued job also checks the same startup policy before touching the
-//! database.
+//! Flush, rollup and graceful-shutdown persistence follow the startup setting.
+//! Daily retention always runs because the Admin sync gauge is sampled even
+//! when business-metric persistence is disabled.
 
 use std::sync::Arc;
 
@@ -111,9 +110,6 @@ impl MetricsQueueHandler {
   }
 
   async fn retention(&self) -> Result<Option<serde_json::Value>, JobError> {
-    if !self.persistence_enabled {
-      return Ok(Some(serde_json::json!({ "skipped": "persistence_disabled" })));
-    }
     // INV-MET-05: clamp to >= 1 day so a misconfigured `retention_raw_days=0`
     // cannot prune the current window.
     let raw_days = self.retention_raw_days.max(1);
@@ -121,10 +117,15 @@ impl MetricsQueueHandler {
     let raw_cutoff = Utc::now() - Duration::days(raw_days as i64);
     let daily_cutoff = (Utc::now() - Duration::days(daily_days as i64)).date_naive();
 
-    let Some((raw_deleted, daily_deleted)) =
-      prune_with_advisory_lock(&self.pool, LOCK_ID_RETENTION, raw_cutoff, daily_cutoff)
-        .await
-        .map_err(|e| JobError::Retryable(format!("retention: {e}")))?
+    let Some((raw_deleted, daily_deleted)) = prune_with_advisory_lock(
+      &self.pool,
+      LOCK_ID_RETENTION,
+      raw_cutoff,
+      daily_cutoff,
+      self.persistence_enabled,
+    )
+    .await
+    .map_err(|e| JobError::Retryable(format!("retention: {e}")))?
     else {
       info!("metrics retention already in progress — skipping");
       return Ok(Some(serde_json::json!({ "skipped": "lock_busy" })));
@@ -148,8 +149,7 @@ impl MetricsQueueHandler {
 
 /// Produces the persistence schedules for the metrics pipeline.
 ///
-/// Register all definitions, setting their enabled state from the same startup
-/// persistence policy. The handler retains its check for old queued deliveries.
+/// Registration enables retention independently of the optional counter pipeline.
 pub fn metrics_schedules(flush_interval_seconds: u64) -> Vec<RegisteredWorker> {
   let every_ms = flush_interval_seconds.max(1).saturating_mul(1_000);
   vec![

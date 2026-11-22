@@ -1,17 +1,15 @@
 //! SQLx-backed public publishing delivery repository.
 //!
-//! This module stores regenerable delivery artifacts only. The business source
+//! This module maintains the public asset manifest. The business source
 //! of truth remains `docs.public_mode` and `workspaces.public`.
 
 use async_trait::async_trait;
 use myoxus_application::public::{
-  DEFAULT_PUBLIC_THEME_VERSION, PUBLIC_ASSET_CACHE_CONTROL, PublicAclDecision, PublicAllow, PublicArtifact,
-  PublicAssetManifestEntry, PublicDenyReason, PublicError, PublicRepository, PublicResult, PublicWorkspaceDoc,
-  PublicWorkspaceProjection,
+  PUBLIC_ASSET_CACHE_CONTROL, PublicAclDecision, PublicAllow, PublicAssetManifestEntry, PublicDenyReason, PublicError,
+  PublicRepository, PublicResult, PublicWorkspaceDoc, PublicWorkspaceProjection,
 };
-use serde_json::Value;
 use sqlx::{PgPool, Row};
-use tracing::{debug, instrument};
+use tracing::instrument;
 use uuid::Uuid;
 
 #[derive(Clone)]
@@ -91,8 +89,6 @@ impl PublicRepository for PgPublicRepository {
       doc_id: None,
       public_mode: None,
       workspace_public: true,
-      source_hash: workspace_id.to_string(),
-      theme_version: DEFAULT_PUBLIC_THEME_VERSION.to_string(),
       noindex: false,
       title: Some(row.get("name")),
       workspace_title: Some(row.get("name")),
@@ -100,13 +96,8 @@ impl PublicRepository for PgPublicRepository {
     }))
   }
 
-  #[instrument(skip(self, source_hash))]
-  async fn decide_document(
-    &self,
-    workspace_id: Uuid,
-    doc_id: Uuid,
-    source_hash: String,
-  ) -> PublicResult<PublicAclDecision> {
+  #[instrument(skip(self))]
+  async fn decide_document(&self, workspace_id: Uuid, doc_id: Uuid) -> PublicResult<PublicAclDecision> {
     let row = sqlx::query(
       r#"
       SELECT d.title, d.public_mode, d.blocked, d.deleted_at,
@@ -153,8 +144,6 @@ impl PublicRepository for PgPublicRepository {
       doc_id: Some(doc_id),
       public_mode: Some(public_mode),
       workspace_public: row.get("workspace_public"),
-      source_hash,
-      theme_version: DEFAULT_PUBLIC_THEME_VERSION.to_string(),
       noindex: false,
       title: Some(row.get("title")),
       workspace_title: Some(row.get("workspace_title")),
@@ -198,73 +187,22 @@ impl PublicRepository for PgPublicRepository {
     )
   }
 
-  async fn upsert_artifact(&self, artifact: &PublicArtifact) -> PublicResult<()> {
-    let mut tx = self.pool.begin().await.map_err(Self::map_err)?;
-    sqlx::query(
-      r#"
-      DELETE FROM public_render_artifacts
-      WHERE workspace_id = $1 AND doc_id IS NOT DISTINCT FROM $2
-      "#,
-    )
-    .bind(artifact.workspace_id)
-    .bind(artifact.doc_id)
-    .execute(&mut *tx)
-    .await
-    .map_err(Self::map_err)?;
-    sqlx::query(
-      r#"
-      INSERT INTO public_render_artifacts
-        (workspace_id, doc_id, source_hash, renderer_version, theme_version, noindex, asset_manifest, rendered_html)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      "#,
-    )
-    .bind(artifact.workspace_id)
-    .bind(artifact.doc_id)
-    .bind(&artifact.source_hash)
-    .bind(&artifact.renderer_version)
-    .bind(&artifact.theme_version)
-    .bind(artifact.noindex)
-    .bind(&artifact.asset_manifest)
-    .bind(&artifact.rendered_html)
-    .execute(&mut *tx)
-    .await
-    .map_err(Self::map_err)?;
-    tx.commit().await.map_err(Self::map_err)?;
-    debug!(workspace_id = %artifact.workspace_id, doc_id = ?artifact.doc_id, "public artifact upserted");
-    Ok(())
-  }
-
   async fn invalidate_document(&self, workspace_id: Uuid, doc_id: Uuid) -> PublicResult<()> {
-    let mut tx = self.pool.begin().await.map_err(Self::map_err)?;
     sqlx::query("DELETE FROM public_asset_manifest WHERE workspace_id = $1 AND doc_id = $2")
       .bind(workspace_id)
       .bind(doc_id)
-      .execute(&mut *tx)
+      .execute(&self.pool)
       .await
       .map_err(Self::map_err)?;
-    sqlx::query("DELETE FROM public_render_artifacts WHERE workspace_id = $1 AND doc_id = $2")
-      .bind(workspace_id)
-      .bind(doc_id)
-      .execute(&mut *tx)
-      .await
-      .map_err(Self::map_err)?;
-    tx.commit().await.map_err(Self::map_err)?;
     Ok(())
   }
 
   async fn invalidate_workspace(&self, workspace_id: Uuid) -> PublicResult<()> {
-    let mut tx = self.pool.begin().await.map_err(Self::map_err)?;
     sqlx::query("DELETE FROM public_asset_manifest WHERE workspace_id = $1")
       .bind(workspace_id)
-      .execute(&mut *tx)
+      .execute(&self.pool)
       .await
       .map_err(Self::map_err)?;
-    sqlx::query("DELETE FROM public_render_artifacts WHERE workspace_id = $1")
-      .bind(workspace_id)
-      .execute(&mut *tx)
-      .await
-      .map_err(Self::map_err)?;
-    tx.commit().await.map_err(Self::map_err)?;
     Ok(())
   }
 
@@ -339,27 +277,6 @@ impl PublicRepository for PgPublicRepository {
       last_modified: row.get("last_modified"),
       cache_control: row.get("cache_control"),
     }))
-  }
-}
-
-pub fn artifact_for_html(
-  workspace_id: Uuid,
-  doc_id: Option<Uuid>,
-  source_hash: String,
-  noindex: bool,
-  asset_manifest: Value,
-  rendered_html: String,
-  renderer_version: String,
-) -> PublicArtifact {
-  PublicArtifact {
-    workspace_id,
-    doc_id,
-    source_hash,
-    renderer_version,
-    theme_version: DEFAULT_PUBLIC_THEME_VERSION.to_string(),
-    noindex,
-    asset_manifest,
-    rendered_html: Some(rendered_html),
   }
 }
 

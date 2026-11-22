@@ -300,11 +300,57 @@ fn inv_org_shared_workspace_owner_transfer_keeps_one_ou_owner() {
       member_view["data"]["workspace"]["doc"]["permissions"],
       json!({"Doc_Read":true,"Doc_Update":true})
     );
+    let roster = helpers::gql(&app, session_id, json!({
+      "query":"query($id:String!){admin{adminWorkspace(id:$id){members{id role directRole ouRole ouNames inviteId}}}}",
+      "variables":{"id":workspace_id}
+    })).await;
+    let entry = roster["data"]["admin"]["adminWorkspace"]["members"]
+      .as_array()
+      .expect("workspace roster")
+      .iter()
+      .find(|entry| entry["id"] == member.to_string())
+      .expect("inherited OU member");
+    assert_eq!(entry["role"], "Collaborator");
+    assert_eq!(entry["ouRole"], "Collaborator");
+    assert!(entry["directRole"].is_null());
+    assert!(entry["inviteId"].is_null());
+    assert_eq!(entry["ouNames"], json!(["Shared owner first"]));
     let access = &member_view["data"]["workspaceRolePermissions"];
     assert_eq!(access["effectiveRole"], "Collaborator");
     assert_eq!(access["permissions"]["Workspace_CreateDoc"], true);
     assert_eq!(access["permissions"]["Workspace_Settings_Update"], false);
     assert!(auth.get_workspace_role(member, workspace_id).await.unwrap().is_none());
+
+    sqlx::query("UPDATE workspaces SET ou_member_role='Reader' WHERE id=$1")
+      .bind(workspace_id)
+      .execute(&pool)
+      .await
+      .unwrap();
+    sqlx::query("INSERT INTO doc_user_permissions (doc_id,user_id,role) VALUES ($1,$2,'Editor')")
+      .bind(workspace_id)
+      .bind(member)
+      .execute(&pool)
+      .await
+      .unwrap();
+    let doc_permissions = json!({"query":"query($id:String!){workspace(id:$id){doc(docId:$id){permissions{Doc_Update}}}}","variables":{"id":workspace_id}});
+    let inherited = helpers::gql(&app, member_session, doc_permissions.clone()).await;
+    assert_eq!(inherited["data"]["workspace"]["doc"]["permissions"]["Doc_Update"], true);
+    sqlx::query(
+      "INSERT INTO workspace_memberships (workspace_id,user_id,role,status) VALUES ($1,$2,'Reader','Accepted')",
+    )
+    .bind(workspace_id)
+    .bind(member)
+    .execute(&pool)
+    .await
+    .unwrap();
+    let direct = helpers::gql(&app, member_session, doc_permissions).await;
+    assert_eq!(direct["data"]["workspace"]["doc"]["permissions"]["Doc_Update"], false);
+    sqlx::query("DELETE FROM workspace_memberships WHERE workspace_id=$1 AND user_id=$2")
+      .bind(workspace_id)
+      .bind(member)
+      .execute(&pool)
+      .await
+      .unwrap();
 
     let root_update: Vec<u8> =
       sqlx::query_scalar("SELECT payload FROM doc_updates WHERE workspace_id = $1 AND doc_id = $1 AND sequence = 1")

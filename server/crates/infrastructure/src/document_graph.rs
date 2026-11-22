@@ -134,6 +134,40 @@ impl PgDocumentGraphRepository {
 
 #[async_trait]
 impl DocumentGraphRepository for PgDocumentGraphRepository {
+  #[instrument(skip_all)]
+  async fn outgoing_navigation(
+    &self,
+    workspace_id: WorkspaceId,
+    doc_id: DocId,
+    page: PageRequest,
+  ) -> RepoResult<Vec<NavigationOccurrence>> {
+    use myoxus_application::workspace_content_operation::redirect::MAX_REDIRECT_CHAIN_LENGTH;
+    let rows = sqlx::query(include_str!("document_graph_navigation.sql"))
+      .bind(workspace_id)
+      .bind(doc_id)
+      .bind(page.limit)
+      .bind(MAX_REDIRECT_CHAIN_LENGTH as i32)
+      .bind(page.offset)
+      .fetch_all(&self.pool)
+      .await
+      .map_err(Self::map_sqlx_error)?;
+    Ok(
+      rows
+        .into_iter()
+        .map(|row| NavigationOccurrence {
+          block_id: row.get("source_block_id"),
+          target: row.get::<Option<DocId>, _>("id").map(|doc_id| NavigationTarget {
+            workspace_id: row.get("workspace_id"),
+            doc_id,
+            external_id: row.get("external_id"),
+            title: row.get("title"),
+            params: row.get("params_json"),
+          }),
+        })
+        .collect(),
+    )
+  }
+
   #[instrument(skip(self, occurrences), fields(workspace_id = %workspace_id, doc_id = %doc_id, occurrence_count = occurrences.len()))]
   async fn replace_doc_occurrences(
     &self,

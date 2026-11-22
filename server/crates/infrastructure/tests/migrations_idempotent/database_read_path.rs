@@ -635,7 +635,7 @@ async fn seed_snapshot_fixture(pool: &PgPool) -> SnapshotFixture {
   .await
   .expect("seed snapshot Cell");
   sqlx::query(
-    "INSERT INTO workspace_database_rollup_values
+    "INSERT INTO workspace_database_computed_values
        (database_id, row_id, field_id, value_json, stale_state)
      VALUES ($1, $2, $3, '{\"kind\":\"number\",\"value\":1}'::jsonb, 'current')",
   )
@@ -646,7 +646,7 @@ async fn seed_snapshot_fixture(pool: &PgPool) -> SnapshotFixture {
   .await
   .expect("seed snapshot Rollup");
   sqlx::query(
-    "INSERT INTO workspace_database_formula_values
+    "INSERT INTO workspace_database_computed_values
        (database_id, row_id, field_id, value_json, stale_state)
      VALUES ($1, $2, $3, '{\"kind\":\"number\",\"value\":2}'::jsonb, 'current')",
   )
@@ -675,8 +675,7 @@ async fn filtered_row_page_uses_one_snapshot_for_cells_revisions_and_derived_val
   let mut writer = pool.begin().await.expect("begin concurrent snapshot writer");
   sqlx::query(
     "LOCK TABLE workspace_database_cell_values,
-                workspace_database_rollup_values,
-                workspace_database_formula_values
+                workspace_database_computed_values
      IN ACCESS EXCLUSIVE MODE",
   )
   .execute(&mut *writer)
@@ -693,7 +692,7 @@ async fn filtered_row_page_uses_one_snapshot_for_cells_revisions_and_derived_val
   .await
   .expect("stage concurrent Cell update");
   sqlx::query(
-    "UPDATE workspace_database_rollup_values
+    "UPDATE workspace_database_computed_values
      SET value_json = '{\"kind\":\"number\",\"value\":11}'::jsonb
      WHERE row_id = $1 AND field_id = $2",
   )
@@ -703,7 +702,7 @@ async fn filtered_row_page_uses_one_snapshot_for_cells_revisions_and_derived_val
   .await
   .expect("stage concurrent Rollup update");
   sqlx::query(
-    "UPDATE workspace_database_formula_values
+    "UPDATE workspace_database_computed_values
      SET value_json = '{\"kind\":\"number\",\"value\":12}'::jsonb
      WHERE row_id = $1 AND field_id = $2",
   )

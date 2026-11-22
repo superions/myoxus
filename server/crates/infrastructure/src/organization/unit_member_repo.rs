@@ -15,6 +15,17 @@ pub struct PgOrganizationUnitMemberRepository {
 }
 
 impl PgOrganizationUnitMemberRepository {
+  pub(crate) async fn lock_users(tx: &mut sqlx::PgConnection, users: &[UserId]) -> Result<Vec<UserId>, sqlx::Error> {
+    let rows = sqlx::query("SELECT id,status FROM users WHERE id = ANY($1) ORDER BY id FOR UPDATE")
+      .bind(users)
+      .fetch_all(tx)
+      .await?;
+    if rows.iter().any(|row| row.get::<String, _>("status") == "deleted") {
+      return Err(sqlx::Error::RowNotFound);
+    }
+    Ok(rows.into_iter().map(|row| row.get("id")).collect())
+  }
+
   pub fn new(pool: PgPool) -> Self {
     Self { pool }
   }
@@ -59,7 +70,7 @@ impl PgOrganizationUnitMemberRepository {
     let Some(max_members) = max_members else {
       return Err(RepositoryError::Conflict("organization_unit is not active"));
     };
-    super::PgManagerCapabilityWriter::lock_users(&mut **tx, &[member.user_id])
+    Self::lock_users(&mut **tx, &[member.user_id])
       .await
       .map_err(Self::map_db_err)?;
     let exists = sqlx::query_scalar::<_, bool>(
@@ -121,6 +132,19 @@ impl PgOrganizationUnitMemberRepository {
 
 #[async_trait]
 impl OrganizationUnitMemberRepository for PgOrganizationUnitMemberRepository {
+  async fn manages_organization(
+    &self,
+    user: UserId,
+    organization: myoxus_domain::ids::OrganizationId,
+  ) -> RepoResult<bool> {
+    sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM organization_managers WHERE user_id=$1 AND organization_id=$2)")
+      .bind(user)
+      .bind(organization)
+      .fetch_one(&self.pool)
+      .await
+      .map_err(Self::map_db_err)
+  }
+
   #[instrument(skip(self), err)]
   async fn list_members(
     &self,
@@ -223,9 +247,7 @@ impl OrganizationUnitMemberRepository for PgOrganizationUnitMemberRepository {
       .fetch_optional(&mut *tx)
       .await
       .map_err(Self::map_db_err)?;
-    super::PgManagerCapabilityWriter::lock_users(&mut tx, &[user])
-      .await
-      .map_err(Self::map_db_err)?;
+    Self::lock_users(&mut tx, &[user]).await.map_err(Self::map_db_err)?;
     Self::remove_in_transaction(&mut tx, unit, user).await?;
     tx.commit().await.map_err(Self::map_db_err)?;
     Ok(())

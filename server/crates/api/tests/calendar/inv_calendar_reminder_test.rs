@@ -149,12 +149,6 @@ async fn seed_reminder(pool: &PgPool, channel: &str) -> (Uuid, Uuid) {
 async fn cleanup_reminder(pool: &PgPool, user_id: Uuid, reminder_id: Uuid) {
   sqlx::query("DELETE FROM outbox_events WHERE aggregate_type='calendar_reminder' AND (aggregate_id=$1 OR payload->'admission'->>'schedule_id'=$1)")
     .bind(reminder_id.to_string()).execute(pool).await.expect("cleanup reminder outbox");
-  // Order: reminder_dispatch_log → reminder → event → account → user
-  sqlx::query("DELETE FROM calendar_reminder_dispatch_log WHERE reminder_id = $1")
-    .bind(reminder_id)
-    .execute(pool)
-    .await
-    .expect("cleanup reminder fixture");
   sqlx::query("DELETE FROM calendar_reminders WHERE id = $1")
     .bind(reminder_id)
     .execute(pool)
@@ -593,8 +587,13 @@ async fn interrupted_reminder_fanout_reclaims_pending_claim_and_preserves_receip
     vec![a],
     "abort happens after A completion but before B completion"
   );
-  let pending: bool = sqlx::query_scalar("SELECT r.delivered_at IS NULL FROM calendar_reminders r JOIN calendar_reminder_dispatch_log d ON d.reminder_id=r.id WHERE r.id=$1")
-    .bind(reminder).fetch_one(&pool).await.expect("pending claim persisted");
+  let pending: bool = sqlx::query_scalar(
+    "SELECT r.delivered_at IS NULL FROM calendar_reminders r WHERE r.worker_job_id IS NOT NULL AND r.id=$1",
+  )
+  .bind(reminder)
+  .fetch_one(&pool)
+  .await
+  .expect("pending claim persisted");
   assert!(pending);
   let lock_key = format!("calendar-reminder:{reminder}");
   let (state, transaction): (String, Option<chrono::DateTime<Utc>>) = sqlx::query_as(
@@ -648,8 +647,13 @@ async fn interrupted_reminder_fanout_reclaims_pending_claim_and_preserves_receip
       .await
       .expect("receipts after SMTP failure");
   assert_eq!(preserved, vec![a], "B failure cannot reset successful A or complete B");
-  let unfinished: bool = sqlx::query_scalar("SELECT r.delivered_at IS NULL FROM calendar_reminders r JOIN calendar_reminder_dispatch_log d ON d.reminder_id=r.id WHERE r.id=$1")
-    .bind(reminder).fetch_one(&pool).await.expect("pending whole reminder after SMTP failure");
+  let unfinished: bool = sqlx::query_scalar(
+    "SELECT r.delivered_at IS NULL FROM calendar_reminders r WHERE r.worker_job_id IS NOT NULL AND r.id=$1",
+  )
+  .bind(reminder)
+  .fetch_one(&pool)
+  .await
+  .expect("pending whole reminder after SMTP failure");
   assert!(unfinished);
   let attempts = sink.messages().await;
   assert_eq!(attempts.len(), 4);
@@ -679,8 +683,13 @@ async fn interrupted_reminder_fanout_reclaims_pending_claim_and_preserves_receip
       .await
       .expect("completed recipients");
   assert_eq!(receipts, vec![a, b]);
-  let consistent: bool = sqlx::query_scalar("SELECT r.delivered_at=d.dispatched_at FROM calendar_reminders r JOIN calendar_reminder_dispatch_log d ON d.reminder_id=r.id WHERE r.id=$1")
-    .bind(reminder).fetch_one(&pool).await.expect("atomic completion");
+  let consistent: bool = sqlx::query_scalar(
+    "SELECT r.delivered_at=r.dispatched_at FROM calendar_reminders r WHERE r.worker_job_id IS NOT NULL AND r.id=$1",
+  )
+  .bind(reminder)
+  .fetch_one(&pool)
+  .await
+  .expect("atomic completion");
   assert!(consistent, "log and whole reminder complete together");
   assert_eq!(
     calls.lock().unwrap().len(),

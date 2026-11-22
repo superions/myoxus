@@ -558,14 +558,16 @@ export class SelectionController implements ReactiveController {
       if (removeNativeSelection) {
         getSelection()?.removeAllRanges();
       }
-      this.host.selection.set([
+      // Cell selection belongs to the note. The canvas keeps its enclosing
+      // surface selection while the user edits or scrolls the table.
+      this.host.selection.setGroup("note", [
         new TableSelection({
           blockId: this.host.model.id,
           data: selection,
         }),
       ]);
     } else {
-      this.host.selection.clear();
+      this.host.selection.setGroup("note", []);
     }
   }
   selected$ = computed(() => this.getSelected());

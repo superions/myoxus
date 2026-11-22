@@ -1,7 +1,8 @@
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 // SPDX-License-Identifier: MIT
 
-import { CopilotClient, setupAIProvider } from "@myoxus/core/editor/ai";
+import { CopilotClient } from "@myoxus/core/editor/ai/provider/copilot-client";
+import { setupAIProvider } from "@myoxus/core/editor/ai/provider/setup-provider";
 import { GlobalDialogService } from "@myoxus/core/modules/dialogs";
 import {
   AuthService,

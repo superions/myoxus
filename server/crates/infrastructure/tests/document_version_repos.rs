@@ -565,9 +565,7 @@ async fn inv_docver05_effective_settings_inherit_global_and_workspace_defaults()
   );
 
   sqlx::query(
-    "INSERT INTO document_versioning_workspace_settings \
-     (workspace_id, enabled, auto_version_on, retention_count, updated_by) \
-     VALUES ($1, false, $2, 5, $3)",
+    "INSERT INTO document_workspace_settings(updated_at,versioning_updated_at,workspace_id, enabled, auto_version_on, retention_count, versioning_updated_by) VALUES (NULL,now(),$1, false, $2, 5, $3) ON CONFLICT (workspace_id) DO UPDATE SET enabled=EXCLUDED.enabled, auto_version_on=EXCLUDED.auto_version_on, retention_count=EXCLUDED.retention_count, versioning_updated_by=EXCLUDED.versioning_updated_by, versioning_updated_at=EXCLUDED.versioning_updated_at",
   )
   .bind(ws_id)
   .bind(Vec::<String>::new())
@@ -1071,8 +1069,7 @@ async fn inv_edit_capture03_competing_workers_retry_failures_and_do_not_duplicat
     ..GlobalEditCaptureSettings::default()
   };
   sqlx::query(
-    "INSERT INTO document_versioning_workspace_settings (workspace_id, edit_capture_enabled)
-     VALUES ($1, false)",
+    "INSERT INTO document_workspace_settings(updated_at,versioning_updated_at,workspace_id, edit_capture_enabled) VALUES (NULL,now(),$1, false) ON CONFLICT (workspace_id) DO UPDATE SET edit_capture_enabled=EXCLUDED.edit_capture_enabled, versioning_updated_at=EXCLUDED.versioning_updated_at",
   )
   .bind(ws_id)
   .execute(&pool)
@@ -1091,7 +1088,7 @@ async fn inv_edit_capture03_competing_workers_retry_failures_and_do_not_duplicat
       .await
       .unwrap();
   assert!(disabled_due.is_none());
-  sqlx::query("DELETE FROM document_versioning_workspace_settings WHERE workspace_id=$1")
+  sqlx::query("UPDATE document_workspace_settings SET edit_capture_enabled=NULL, versioning_updated_at=NULL WHERE workspace_id=$1")
     .bind(ws_id)
     .execute(&pool)
     .await
@@ -1282,7 +1279,7 @@ async fn inv_edit_capture04_repair_merges_revision_hash_pair_and_destination_pol
     .await
     .unwrap();
     sqlx::query(
-      "INSERT INTO document_versioning_workspace_settings(workspace_id,edit_capture_interval_ms) VALUES($1,1800000)",
+      "INSERT INTO document_workspace_settings(updated_at,versioning_updated_at,workspace_id,edit_capture_interval_ms) VALUES(NULL,now(),$1,1800000) ON CONFLICT (workspace_id) DO UPDATE SET edit_capture_interval_ms=EXCLUDED.edit_capture_interval_ms, versioning_updated_at=EXCLUDED.versioning_updated_at",
     )
     .bind(target)
     .execute(&pool)
@@ -1415,7 +1412,7 @@ async fn inv_edit_capture05_bounded_repair_covers_clean_unknown_busy_and_disable
         .unwrap();
       if index == 1 {
         sqlx::query(
-          "INSERT INTO document_versioning_workspace_settings(workspace_id,edit_capture_enabled) VALUES($1,false)",
+          "INSERT INTO document_workspace_settings(updated_at,versioning_updated_at,workspace_id,edit_capture_enabled) VALUES(NULL,now(),$1,false) ON CONFLICT (workspace_id) DO UPDATE SET edit_capture_enabled=EXCLUDED.edit_capture_enabled, versioning_updated_at=EXCLUDED.versioning_updated_at",
         )
         .bind(target)
         .execute(&pool)
@@ -1469,7 +1466,7 @@ async fn inv_edit_capture05_bounded_repair_covers_clean_unknown_busy_and_disable
       }
     }
     let disabled = fixtures[1];
-    sqlx::query("UPDATE document_versioning_workspace_settings SET edit_capture_enabled=true WHERE workspace_id=$1")
+    sqlx::query("UPDATE document_workspace_settings SET edit_capture_enabled=true WHERE workspace_id=$1")
       .bind(disabled.3)
       .execute(&pool)
       .await
@@ -1631,7 +1628,7 @@ async fn inv_edit_capture07_unpolled_source_disable_breaks_move_schedule_continu
     .await
     .unwrap();
   // Policy committed before Move; the worker has not yet cleared its old due state.
-  sqlx::query("INSERT INTO document_versioning_workspace_settings(workspace_id,edit_capture_enabled) VALUES($1,false)")
+  sqlx::query("INSERT INTO document_workspace_settings(updated_at,versioning_updated_at,workspace_id,edit_capture_enabled) VALUES(NULL,now(),$1,false) ON CONFLICT (workspace_id) DO UPDATE SET edit_capture_enabled=EXCLUDED.edit_capture_enabled, versioning_updated_at=EXCLUDED.versioning_updated_at")
     .bind(source)
     .execute(&pool)
     .await

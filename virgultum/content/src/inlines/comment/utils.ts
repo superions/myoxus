@@ -1,4 +1,8 @@
-import type { CommentId } from "@virgultum/core/services";
+import {
+  type CommentId,
+  findAllCommentedBlocks,
+  findAllCommentedElements,
+} from "@virgultum/core/services";
 import type { MyoxusTextAttributes } from "@virgultum/core/types";
 import { TextSelection } from "@virgultum/core/runtime";
 import type { DeltaInsert, Store } from "@virgultum/core/store";
@@ -51,6 +55,19 @@ export function findCommentedTexts(
   return [...findAllCommentedTexts(store).entries()]
     .filter(([_, id]) => id === commentId)
     .map(([selection]) => selection);
+}
+export function commentsInStore(store: Store) {
+  return [
+    ...new Set([
+      ...findAllCommentedTexts(store).values(),
+      ...findAllCommentedBlocks(store).flatMap((b) =>
+        Object.keys(b.props.comments),
+      ),
+      ...findAllCommentedElements(store).flatMap((e) =>
+        Object.keys(e.comments),
+      ),
+    ]),
+  ];
 }
 
 export function extractCommentIdFromDelta(

@@ -967,21 +967,8 @@ impl CopilotRepository for SqlxCopilotRepository {
   ) -> RepoResult<Vec<CopilotContextItem>> {
     let rows = sqlx::query(
       r#"SELECT item.id, item.context_id, item.item_type, item.item_ref,
-                CASE WHEN item.item_type = 'file' THEN
-                  jsonb_strip_nulls(jsonb_build_object(
-                    'name', file.file_name,
-                    'mimeType', file.mime_type,
-                    'size', file.size,
-                    'blobId', file.blob_id
-                  )) || item.metadata
-                ELSE item.metadata END AS metadata,
-                item.created_at
+                item.metadata, item.created_at
          FROM copilot_context_items item
-         LEFT JOIN copilot_contexts context ON context.id = item.context_id
-         LEFT JOIN ai_workspace_files file
-           ON item.item_type = 'file'
-          AND file.workspace_id = context.workspace_id
-          AND file.file_id = item.item_ref
          WHERE item.context_id = $1
          ORDER BY item.created_at ASC
          LIMIT $2 OFFSET $3"#,

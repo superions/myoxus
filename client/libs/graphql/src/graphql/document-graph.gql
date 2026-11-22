@@ -109,3 +109,17 @@ query documentGraphIndexStatus($workspaceId: String!, $docId: ID) {
     }
   }
 }
+
+query outgoingNavigation($workspaceId: String!, $input: DocumentLinksInput!) {
+  workspace(id: $workspaceId) {
+    documentLinks(input: $input) {
+      outgoingNavigation {
+        pending
+        blocks {
+          blockId
+          links { workspaceId docId title paramsJson }
+        }
+      }
+    }
+  }
+}

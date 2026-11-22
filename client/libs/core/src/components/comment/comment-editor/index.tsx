@@ -1,7 +1,11 @@
 import { patchEditorChromeHost } from "@myoxus/core/editor/view-extensions/editor-view/editor-chrome";
 import { useLitPortalFactory } from "@myoxus/lit-react";
 import type { ReactToLit } from "@myoxus/lit-react";
-import { LitDocEditor, type PageEditor } from "@myoxus/core/editor/editors";
+import {
+  editorEffects,
+  LitDocEditor,
+  type PageEditor,
+} from "@myoxus/core/editor/editors";
 import { SnapshotHelper } from "@myoxus/core/modules/comment/services/snapshot-helper";
 import type { CommentAttachment } from "@myoxus/core/modules/comment/types";
 import { PeekViewService } from "@myoxus/core/modules/peek-view";
@@ -48,6 +52,7 @@ const MAX_ATTACHMENT_COUNT = 10;
 const logger = new DebugLogger("CommentEditor");
 
 const usePatchSpecs = (readonly: boolean, reactToLit: ReactToLit) => {
+  editorEffects();
   const framework = useFramework();
   // const confirmModal = useConfirmModal();
 

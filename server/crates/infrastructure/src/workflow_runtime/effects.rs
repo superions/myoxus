@@ -381,7 +381,7 @@ pub(crate) async fn lock_runtime_execution(
       }
     } else {
       let member: Option<bool> = sqlx::query_scalar(
-        "SELECT true FROM workspace_memberships WHERE workspace_id=$1 AND user_id=$2 AND status='Accepted' FOR SHARE NOWAIT",
+        "SELECT true FROM workspace_effective_roles WHERE workspace_id=$1 AND user_id=$2 FOR SHARE NOWAIT",
       )
       .bind(accepted.workspace_id)
       .bind(review.plan.reviewer_id)

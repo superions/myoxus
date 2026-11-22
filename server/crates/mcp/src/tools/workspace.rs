@@ -422,7 +422,7 @@ async fn member_write(
 
 fn member_json(member: &myoxus_domain::entities::WorkspaceMember) -> Value {
   json!({"userId":member.user.id,"name":member.user.name,"email":member.user.email,
-    "disabled":member.user.disabled,"role":member.role,"status":member.status,"inviteId":member.invite_id})
+    "disabled":member.user.disabled,"role":member.role,"status":member.status,"inviteId":member.invite_id,"directRole":member.direct_role,"ouRole":member.ou_role,"ouNames":member.ou_names})
 }
 
 fn bounded_integer(params: &Value, key: &str, default: i64, min: i64, max: i64) -> Result<i64, HandlerError> {

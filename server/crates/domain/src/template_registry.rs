@@ -342,7 +342,7 @@ impl fmt::Display for TemplateRegistryAuditAction {
 /// Default-policy entry that drives automatic per-workspace seeding.
 ///
 /// When a workspace is created, the server inserts one `workspace_template_policies`
-/// row per `template_default_policies` entry where `apply_to_new_workspaces = true`.
+/// row per template catalog entry where `apply_to_new_workspaces = true`.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TemplateDefaultPolicy {
   /// The template this policy applies to.

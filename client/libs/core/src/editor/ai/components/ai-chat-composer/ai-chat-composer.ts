@@ -212,7 +212,6 @@ export class AIChatComposer extends SignalWatcher(
                 .aiToolsConfigService=${this.aiToolsConfigService}
                 .notificationService=${this.notificationService}
                 .aiModelService=${this.aiModelService}
-                .portalContainer=${this.portalContainer}
                 .onChatSuccess=${this.onChatSuccess}
                 .trackOptions=${this.trackOptions}
                 .isContextProcessing=${this.isContextProcessing}

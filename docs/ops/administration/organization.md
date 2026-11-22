@@ -123,10 +123,24 @@ The server derives access from the applicable relationships; adding an OU
 membership does not create a separate direct workspace membership.
 
 Assign managers through the unit's membership controls or an OIDC manager
-mapping. Myoxus maintains the accompanying Manager capability automatically.
-A global Manager capability alone is insufficient: the person also needs a
-Manager membership in the relevant active unit. A unit manager does not become
-a global Admin or the workspace owner.
+mapping. Each active unit's Manager membership grants authority in that unit.
+Workspace settings show the effective role and its direct and OU sources.
+
+Before upgrading from independently editable Manager flags, review any active
+manager memberships previously suppressed by a disabled or missing flag:
+
+```sql
+SELECT m.user_id, m.unit_id
+FROM organization_unit_member m
+JOIN organization_unit u ON u.id=m.unit_id AND u.status='active'
+WHERE m.role='manager' AND NOT EXISTS (
+  SELECT 1 FROM user_features f WHERE f.user_id=m.user_id AND f.feature_name='manager' AND f.activated
+);
+```
+
+The migration retains the OU roles. Change a membership before upgrading if
+its holder should no longer manage that unit. Existing workspace defaults are
+preserved.
 
 ## Assigning workspaces to an OU
 
@@ -344,7 +358,7 @@ cascade into the unit's workspaces or other records.
 | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | A unit is missing                                    | Status filter, search and parent hierarchy                                                                        |
 | A type is missing from a creation form               | Active organization model; select **All** for custom types                                                        |
-| A manager cannot administer a unit                   | Global Manager capability, Manager membership in that unit, active status and Policy settings                     |
+| A manager cannot administer a unit                   | Manager membership in that unit, active status and Policy settings                     |
 | SSO works but membership is missing                  | Actual group claim, Groups field/source, mapping target, role and existing membership source                      |
 | A removed provider group still grants membership     | A successful new login, removal setting, and whether Source is Manual or Import instead of OIDC                   |
 | Login is denied after enabling mapping               | Missing/unknown group policy, emitted scopes and values, OIDC diagnostic warnings                                 |

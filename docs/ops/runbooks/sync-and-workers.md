@@ -212,14 +212,20 @@ WHERE s.target_json->>'kind'='registered_job'
 GROUP BY s.id ORDER BY registered_job;
 ```
 
-There are35closed roots. Disabled metrics persistence has ended definitions,
-not missing registration. Existing queued/tracked future slots suppress another
+There are 35 registered jobs. Disabling optional metrics persistence ends the
+flush and rollup schedules. Daily retention still expires the Admin sync gauge. Existing queued/tracked future slots suppress another
 startup slot; their native handlers still apply current startup enablement.
 For new work, SQL/outbox accepts one future slot using the stable native job ID.
 Native delayed promotion executes it at its UTC due time. Missed unqueued Cron
 slots are skipped; fixed intervals calculate from current admission/startup time
 rather than replaying backlog. Thus `next_admission_at` can precede the nominal
 due instant while SQL is preparing the next delayed delivery.
+
+The nightly processed-outbox cleanup also drains old registered-worker slots in
+batches of 5,000 once the nominal time has passed. It keeps the current
+or future cursor and every pending outbox delivery. After handoff, native
+queue leases and retries are independent of the SQL receipt. Task recurrence
+members and other product scheduling records follow their own lifecycle.
 
 No legacy public repeat type, registration loop, tracking helper or Redis leader
 remains. Keep heartbeat/stall/retry processes running after startup; those are

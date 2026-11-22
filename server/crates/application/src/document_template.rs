@@ -856,7 +856,7 @@ impl DocumentTemplateService {
         // and creator facts are requested in the same application attempt.
         let creator = workspace
           .ok_or(DocumentTemplateError::MemberUnavailable)?
-          .get_member(workspace_id, creator_id)
+          .effective_member(workspace_id, creator_id)
           .await
           .map_err(|_| DocumentTemplateError::MemberUnavailable)?
           .filter(|member| member.status == myoxus_domain::entities::MembershipStatus::Accepted)
@@ -1482,7 +1482,7 @@ impl DocumentTemplateService {
         .workspace_context
         .as_ref()
         .ok_or(DocumentTemplateError::CreatorUnavailable)?
-        .get_member(workspace_id, actor_id)
+        .effective_member(workspace_id, actor_id)
         .await
         .map_err(|_| DocumentTemplateError::CreatorUnavailable)?
         .filter(|member| member.status == myoxus_domain::entities::MembershipStatus::Accepted)
@@ -1771,7 +1771,7 @@ impl DocumentTemplateService {
         .workspace_context
         .as_ref()
         .ok_or(DocumentTemplateError::CreatorUnavailable)?
-        .get_member(workspace_id, actor_id)
+        .effective_member(workspace_id, actor_id)
         .await
         .map_err(|_| DocumentTemplateError::CreatorUnavailable)?
         .filter(|member| member.status == myoxus_domain::entities::MembershipStatus::Accepted)
@@ -2322,7 +2322,7 @@ impl DocumentTemplateService {
     actor: Uuid,
     workspace: Uuid,
     setup: &myoxus_domain::workspace_automation::AutomationDocumentSourceSetup,
-    target: crate::doc::AutomationRowContentTarget,
+    target: crate::doc::RowContentTarget,
     title: String,
     reserved: Uuid,
     fence: myoxus_domain::workspace_automation::AutomationEffectFence,
@@ -2873,7 +2873,10 @@ mod tests {
       invited_by_user_id: None,
       role: WorkspaceRole::Collaborator,
       status: MembershipStatus::Accepted,
-      invite_id: Uuid::from_u128(id),
+      direct_role: Some(WorkspaceRole::Collaborator),
+      ou_role: None,
+      ou_names: Vec::new(),
+      invite_id: Some(Uuid::from_u128(id)),
       user: User {
         id: Uuid::from_u128(id),
         name: format!(" Member {id} "),

@@ -854,7 +854,7 @@ impl SqlxDocStore {
     self
   }
 
-  /// Share the node's validated catalog with atomic Task-content association.
+  /// Share the node's validated catalog with atomic Row-content association.
   /// Ordinary page writes need no managed Database admission.
   pub fn with_database_templates(
     mut self,
@@ -1820,8 +1820,7 @@ impl DocMetadataStore for SqlxDocStore {
       "SELECT EXISTS(SELECT 1 FROM workspace_content_move_revision_manifests m
        JOIN workspace_content_operations o ON o.id = m.operation_id
        WHERE o.source_workspace_id = $1 AND (m.manifest->'documents') @> $2::jsonb
-         AND (EXISTS(SELECT 1 FROM workspace_content_move_publications p WHERE p.operation_id=m.operation_id AND p.manifest_hash=o.manifest_hash)
-           OR EXISTS(SELECT 1 FROM workspace_content_extract_publications p WHERE p.operation_id=m.operation_id AND p.manifest_hash=o.manifest_hash)))",
+         AND EXISTS(SELECT 1 FROM workspace_content_publications p WHERE p.kind IN ('move','extract_folder') AND p.operation_id=m.operation_id AND p.manifest_hash=o.manifest_hash))",
     )
     .bind(workspace_id)
     .bind(serde_json::json!([{ "doc_id": doc_id }]))
@@ -1956,12 +1955,9 @@ impl DocMetadataStore for SqlxDocStore {
   async fn commit_automation_page_lifecycle(
     &self,
     command: PageLifecycleCommand,
-    row_content: Option<myoxus_application::doc::AutomationRowContentTarget>,
     fence: myoxus_domain::workspace_automation::AutomationEffectFence,
   ) -> AuthResult<myoxus_application::doc::AutomationPageLifecycleResult> {
-    self
-      .commit_lifecycle_with_native_ack(command, None, Some(fence), row_content)
-      .await
+    self.commit_lifecycle_with_native_ack(command, None, Some(fence)).await
   }
   async fn commit_project_page_lifecycle(
     &self,
@@ -3701,30 +3697,24 @@ impl DocSnapshotStore for SqlxDocStore {
     last_sequence: i64,
   ) -> AuthResult<()> {
     let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
-    // Private compaction receives the owner UUID just like private loads.
-    // Keep the persisted workspace FK; document ownership is the access scope.
-    let workspace_id = sqlx::query_scalar::<_, Option<Uuid>>(
-      "SELECT COALESCE(
-         (SELECT workspace_id FROM doc_snapshots WHERE doc_id = $1),
-         (SELECT workspace_id FROM doc_updates WHERE doc_id = $1 ORDER BY sequence LIMIT 1),
-         (SELECT id FROM workspaces WHERE owner_user_id = $2
-            AND lifecycle_state = 'active' AND deleted_at IS NULL ORDER BY created_at, id LIMIT 1)
-       ) FROM docs WHERE id = $1 AND userspace_owner_id = $2",
-    )
-    .bind(doc_id)
-    .bind(workspace_id)
-    .fetch_optional(&mut *tx)
-    .await
-    .map_err(Self::map_db_err)?
-    .flatten()
-    .unwrap_or(workspace_id);
-    let lock_space_id = sqlx::query_scalar::<_, Option<Uuid>>("SELECT userspace_owner_id FROM docs WHERE id = $1")
+    // The sync scope is the user's UUID; quota and binary storage belong to
+    // the canonical personal workspace, including after a team is deleted.
+    let owner: Option<Uuid> = sqlx::query_scalar("SELECT userspace_owner_id FROM docs WHERE id=$1")
       .bind(doc_id)
       .fetch_optional(&mut *tx)
       .await
       .map_err(Self::map_db_err)?
-      .flatten()
-      .unwrap_or(workspace_id);
+      .flatten();
+    let lock_space_id = owner.unwrap_or(workspace_id);
+    let workspace_id = if let Some(owner) = owner {
+      let personal = Self::personal_storage_workspace(&mut tx, owner).await?;
+      if workspace_id != owner && workspace_id != personal {
+        return Err(AuthError::NotFound("private document".into()));
+      }
+      personal
+    } else {
+      workspace_id
+    };
     let mut locked_docs = BTreeSet::from([doc_id]);
     locked_docs.extend(Self::title_projection_lock_candidates_in_tx(&mut tx, workspace_id, doc_id, &payload).await?);
     tx.rollback().await.map_err(Self::map_db_err)?;
@@ -4815,10 +4805,9 @@ impl DocViewStore for SqlxDocStore {
                 mla.last_accessed_at, mla.last_doc_id
          FROM workspace_member_last_access mla
          JOIN users u ON u.id = mla.user_id
-         JOIN workspace_memberships wm
+         JOIN workspace_effective_roles wm
            ON wm.workspace_id = mla.workspace_id
           AND wm.user_id = mla.user_id
-          AND wm.status = 'Accepted'
          JOIN workspaces w
            ON w.id = mla.workspace_id
           AND w.lifecycle_state = 'active'
@@ -4916,7 +4905,7 @@ impl SqlxDocStore {
     command: PageLifecycleCommand,
     ack: Option<myoxus_application::workspace::ProjectDocumentAck>,
   ) -> AuthResult<PageLifecycleCommit> {
-    match self.commit_lifecycle_with_native_ack(command, ack, None, None).await? {
+    match self.commit_lifecycle_with_native_ack(command, ack, None).await? {
       myoxus_application::doc::AutomationPageLifecycleResult::Committed(commit) => Ok(commit),
       myoxus_application::doc::AutomationPageLifecycleResult::Replay(_) => {
         Err(AuthError::Storage("unexpected automation lifecycle replay".into()))
@@ -4930,7 +4919,6 @@ impl SqlxDocStore {
     command: PageLifecycleCommand,
     ack: Option<myoxus_application::workspace::ProjectDocumentAck>,
     automation: Option<myoxus_domain::workspace_automation::AutomationEffectFence>,
-    row_content: Option<myoxus_application::doc::AutomationRowContentTarget>,
   ) -> AuthResult<myoxus_application::doc::AutomationPageLifecycleResult> {
     let kind = command.kind();
     let (workspace_id, doc_id, actor_user_id, committed_at) = match &command {
@@ -4962,9 +4950,10 @@ impl SqlxDocStore {
       ));
     }
 
-    if row_content.is_some() && automation.is_none() {
-      return Err(AuthError::InvalidInput("Task content requires a native effect".into()));
-    }
+    let row_content = match &command {
+      PageLifecycleCommand::Create { row_content, .. } => *row_content,
+      _ => None,
+    };
     let mut tx = self.pool.begin().await.map_err(Self::map_db_err)?;
     if row_content.is_some() {
       // The native Row writer checks transaction-local admission even when its
@@ -4972,7 +4961,7 @@ impl SqlxDocStore {
       let catalog = self
         .database_templates
         .as_ref()
-        .ok_or_else(|| AuthError::Storage("Task content database catalog unavailable".into()))?
+        .ok_or_else(|| AuthError::Storage("Row content database catalog unavailable".into()))?
         .get()
         .map_err(|error| AuthError::Storage(error.to_string()))?;
       crate::workspace_database::PgDatabaseRepository::capture_catalog_admission(&mut tx, catalog)
@@ -5055,8 +5044,15 @@ impl SqlxDocStore {
           .ok_or_else(|| AuthError::InvalidInput("automation document unavailable".into()))?;
         let document = self.map_doc_row(row);
         if let Some(target) = &row_content {
-          let attached: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM workspace_database_rows WHERE id=$1 AND database_id=$2 AND doc_id=$3 AND deleted_at IS NULL)")
-            .bind(target.row_id).bind(target.database_id).bind(doc_id).fetch_one(&mut *tx).await.map_err(Self::map_db_err)?;
+          let attached: bool = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM workspace_database_rows WHERE id=$1 AND database_id=$2 AND doc_id=$3)",
+          )
+          .bind(target.row_id)
+          .bind(target.database_id)
+          .bind(doc_id)
+          .fetch_one(&mut *tx)
+          .await
+          .map_err(Self::map_db_err)?;
           if !attached {
             return Err(AuthError::InvalidInput("Task content association changed".into()));
           }
@@ -5185,15 +5181,22 @@ impl SqlxDocStore {
       None
     };
     if let Some(target) = &row_content {
-      let row = sqlx::query("SELECT edit_revision,doc_id FROM workspace_database_rows WHERE id=$1 AND database_id=$2 AND row_kind='task' AND deleted_at IS NULL FOR UPDATE")
-        .bind(target.row_id).bind(target.database_id).fetch_optional(&mut *tx).await.map_err(Self::map_db_err)?
-        .ok_or_else(||AuthError::InvalidInput("Task content target unavailable".into()))?;
-      if row.try_get::<i64, _>("edit_revision").map_err(Self::map_db_err)? != target.expected_edit_revision
-        || row
-          .try_get::<Option<Uuid>, _>("doc_id")
-          .map_err(Self::map_db_err)?
-          .is_some()
-      {
+      // Match the native Row writer's database-before-row lock order.
+      crate::workspace_database::PgDatabaseRepository::lock_managed_admission(&mut tx, target.database_id)
+        .await
+        .map_err(AuthError::RowAttachment)?;
+      let kind: String = sqlx::query_scalar(
+        "SELECT row_kind::text FROM workspace_database_rows WHERE id=$1 AND database_id=$2 FOR UPDATE",
+      )
+      .bind(target.row_id)
+      .bind(target.database_id)
+      .fetch_optional(&mut *tx)
+      .await
+      .map_err(Self::map_db_err)?
+      .ok_or_else(|| {
+        AuthError::RowAttachment(myoxus_domain::repositories::RepositoryError::NotFound("database row"))
+      })?;
+      if automation.is_some() && kind != "task" {
         return Err(AuthError::InvalidInput("Task content target changed".into()));
       }
     }
@@ -5445,7 +5448,25 @@ impl SqlxDocStore {
 
     Self::append_doc_updated_outbox(&mut tx, doc_id, workspace_id).await?;
 
+    let attached_row = if let Some(target) = &row_content {
+      Some(
+        crate::workspace_database::PgDatabaseRepository::attach_row_content_document_in_tx(
+          &mut tx,
+          target.row_id,
+          doc_id,
+          actor_user_id,
+          myoxus_domain::database::DatabaseEditPrecondition::new(Some(target.expected_edit_revision), false)
+            .in_workspace(workspace_id)
+            .in_database(target.database_id),
+        )
+        .await
+        .map_err(AuthError::RowAttachment)?,
+      )
+    } else {
+      None
+    };
     let committed = PageLifecycleCommit {
+      attached_row,
       kind,
       document,
       leaf,
@@ -5506,19 +5527,6 @@ impl SqlxDocStore {
       .await
       .map_err(|error| AuthError::Storage(error.to_string()))?;
     }
-    if let Some(target) = &row_content {
-      crate::workspace_database::PgDatabaseRepository::attach_row_content_document_in_tx(
-        &mut tx,
-        target.row_id,
-        doc_id,
-        actor_user_id,
-        myoxus_domain::database::DatabaseEditPrecondition::new(Some(target.expected_edit_revision), false)
-          .in_workspace(workspace_id)
-          .in_database(target.database_id),
-      )
-      .await
-      .map_err(|error| AuthError::Storage(error.to_string()))?;
-    }
     if let Some(fence) = &automation {
       crate::workflow_runtime::acknowledge_runtime_effect(
         &mut *tx,
@@ -5536,6 +5544,18 @@ impl SqlxDocStore {
 }
 
 impl SqlxDocStore {
+  async fn personal_storage_workspace(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    user_id: Uuid,
+  ) -> AuthResult<Uuid> {
+    sqlx::query_scalar("SELECT id FROM workspaces WHERE owner_user_id = $1 AND is_personal_workspace AND lifecycle_state = 'active' AND deleted_at IS NULL")
+      .bind(user_id)
+      .fetch_optional(&mut **tx)
+      .await
+      .map_err(Self::map_db_err)?
+      .ok_or_else(|| AuthError::NotFound("personal workspace".into()))
+  }
+
   #[instrument(skip_all)]
   async fn push_update_with_project_placement(
     &self,
@@ -5678,16 +5698,7 @@ impl SqlxDocStore {
     };
     let ws_id = match update.space_kind {
       DocSpaceKind::Workspace => update.workspace_id,
-      DocSpaceKind::Userspace => sqlx::query_scalar::<_, Uuid>(
-        "SELECT id FROM workspaces
-          WHERE owner_user_id = $1
-            AND lifecycle_state = 'active'
-            AND deleted_at IS NULL",
-      )
-      .bind(update.workspace_id)
-      .fetch_one(&mut *tx)
-      .await
-      .map_err(Self::map_db_err)?,
+      DocSpaceKind::Userspace => Self::personal_storage_workspace(&mut tx, update.workspace_id).await?,
     };
 
     let (requested_internal_id, external_id) = match &update.target {

@@ -36,16 +36,12 @@ import {
   IndexedDBBlobSyncStorage,
   IndexedDBDocStorage,
   IndexedDBDocSyncStorage,
-  IndexedDBIndexerStorage,
-  IndexedDBIndexerSyncStorage,
 } from "@myoxus/storage/idb";
 import {
   SqliteBlobStorage,
   SqliteBlobSyncStorage,
   SqliteDocStorage,
   SqliteDocSyncStorage,
-  SqliteIndexerStorage,
-  SqliteIndexerSyncStorage,
 } from "@myoxus/storage/sqlite";
 import type { WorkerInitOptions } from "@myoxus/storage/worker/client";
 import { isEqual } from "lodash-es";
@@ -143,13 +139,6 @@ export class CloudWorkspaceFlavourProvider implements WorkspaceFlavourProvider {
     BUILD_CONFIG.isElectron || BUILD_CONFIG.isIOS || BUILD_CONFIG.isAndroid
       ? SqliteBlobSyncStorage
       : IndexedDBBlobSyncStorage;
-  IndexerStorageType =
-    BUILD_CONFIG.isElectron || BUILD_CONFIG.isIOS || BUILD_CONFIG.isAndroid
-      ? SqliteIndexerStorage
-      : IndexedDBIndexerStorage;
-  IndexerSyncStorageType = BUILD_CONFIG.isElectron
-    ? SqliteIndexerSyncStorage
-    : IndexedDBIndexerSyncStorage;
 
   async deleteWorkspace(id: string): Promise<void> {
     await this.graphqlService.gql({
@@ -536,13 +525,14 @@ export class CloudWorkspaceFlavourProvider implements WorkspaceFlavourProvider {
     id: string,
     blob: string,
     permanent: boolean,
+    onlyIfUnused?: boolean,
   ): Promise<void> {
     const cloudStorage = new CloudBlobStorage({
       id,
       serverId: this.server.id,
       serverBaseUrl: this.server.serverMetadata.baseUrl,
     });
-    await cloudStorage.delete(blob, permanent);
+    await cloudStorage.delete(blob, permanent, undefined, onlyIfUnused);
 
     // should also delete from local storage
     const storage = new this.BlobStorageType({
@@ -616,22 +606,30 @@ export class CloudWorkspaceFlavourProvider implements WorkspaceFlavourProvider {
             id: `${this.flavour}:${workspaceId}`,
           },
         },
-        indexer: {
-          name: this.IndexerStorageType.identifier,
-          opts: {
-            flavour: this.flavour,
-            type: "workspace",
-            id: workspaceId,
-          },
-        },
-        indexerSync: {
-          name: this.IndexerSyncStorageType.identifier,
-          opts: {
-            flavour: this.flavour,
-            type: "workspace",
-            id: workspaceId,
-          },
-        },
+        indexer: BUILD_CONFIG.isWeb
+          ? undefined
+          : {
+              name: BUILD_CONFIG.isNative
+                ? "SqliteIndexerStorage"
+                : "IndexedDBIndexerStorage",
+              opts: {
+                flavour: this.flavour,
+                type: "workspace",
+                id: workspaceId,
+              },
+            },
+        indexerSync: BUILD_CONFIG.isWeb
+          ? undefined
+          : {
+              name: BUILD_CONFIG.isElectron
+                ? "SqliteIndexerSyncStorage"
+                : "IndexedDBIndexerSyncStorage",
+              opts: {
+                flavour: this.flavour,
+                type: "workspace",
+                id: workspaceId,
+              },
+            },
       },
       remotes: {
         [`cloud:${this.flavour}`]: {
@@ -667,18 +665,18 @@ export class CloudWorkspaceFlavourProvider implements WorkspaceFlavourProvider {
                 ServerDeploymentType.Standalone,
             },
           },
-          indexer: this.server.config$.value.features.includes(
-            ServerFeature.Indexer,
-          )
-            ? {
-                name: "CloudIndexerStorage",
-                opts: {
-                  id: workspaceId,
-                  serverId: this.server.id,
-                  serverBaseUrl: this.server.serverMetadata.baseUrl,
-                },
-              }
-            : undefined,
+          indexer:
+            !BUILD_CONFIG.isWeb &&
+            this.server.config$.value.features.includes(ServerFeature.Indexer)
+              ? {
+                  name: "CloudIndexerStorage",
+                  opts: {
+                    id: workspaceId,
+                    serverId: this.server.id,
+                    serverBaseUrl: this.server.serverMetadata.baseUrl,
+                  },
+                }
+              : undefined,
         },
       },
     };

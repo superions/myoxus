@@ -32,8 +32,10 @@ export function renderControl(action: SelectionAction, menu: boolean) {
 /** One portal under the owning editor tree; selection geometry stays in Virgultum. */
 export function EditorSelectionToolbar({
   controls,
+  openMore,
 }: {
   controls: EditorSelectionControls;
+  openMore?: () => void;
 }) {
   const state = useSyncExternalStore(
     controls.subscribe,
@@ -97,7 +99,18 @@ export function EditorSelectionToolbar({
             afterAction={controls.activate}
             renderControl={renderControl}
           />
-          {state.more.length ? (
+          {openMore ? (
+            <>
+              <Divider orientation="vertical" />
+              <IconButton
+                data-testid="selection-more"
+                aria-label={t["com.myoxus.editor.toolbar.more"]()}
+                tooltip={t["com.myoxus.editor.toolbar.more"]()}
+                icon={<MoreVerticalIcon />}
+                onClick={openMore}
+              />
+            </>
+          ) : state.more.length ? (
             <>
               <Divider orientation="vertical" />
               <Menu
@@ -117,6 +130,7 @@ export function EditorSelectionToolbar({
                 }
               >
                 <IconButton
+                  data-testid="selection-more"
                   aria-label={t["com.myoxus.editor.toolbar.more"]()}
                   tooltip={t["com.myoxus.editor.toolbar.more"]()}
                   icon={<MoreVerticalIcon />}

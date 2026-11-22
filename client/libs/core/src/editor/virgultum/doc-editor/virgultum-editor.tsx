@@ -78,6 +78,8 @@ export interface MyoxusEditorContainer extends HTMLElement {
 }
 
 export interface EditorProps extends HTMLAttributes<HTMLDivElement> {
+  "data-full-width-layout"?: string;
+  plainPage?: boolean;
   page: Store;
   mode: DocMode;
   shared?: boolean;
@@ -175,6 +177,7 @@ async function activateCatalogMermaidNote(
 }
 
 const VirgultumEditorImpl = ({
+  plainPage: _plainPage,
   mode,
   page,
   shared,

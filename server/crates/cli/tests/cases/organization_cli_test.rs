@@ -608,7 +608,7 @@ async fn organization_cli_drives_complete_unit_and_membership_workflow() -> Resu
     )?;
     ensure!(promoted["manager_capability_changed"] == true);
     let manager_active: bool =
-      sqlx::query_scalar("SELECT activated FROM user_features WHERE user_id = $1 AND feature_name = 'manager'")
+      sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM organization_managers WHERE user_id=$1)")
         .bind(user_id)
         .fetch_one(&pool)
         .await?;
@@ -684,11 +684,10 @@ async fn organization_cli_drives_complete_unit_and_membership_workflow() -> Resu
       &redis_namespace,
     )?;
     ensure!(removed["manager_capability_changed"] == false);
-    let still_active: bool =
-      sqlx::query_scalar("SELECT activated FROM user_features WHERE user_id = $1 AND feature_name = 'manager'")
-        .bind(user_id)
-        .fetch_one(&pool)
-        .await?;
+    let still_active: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM organization_managers WHERE user_id=$1)")
+      .bind(user_id)
+      .fetch_one(&pool)
+      .await?;
     ensure!(still_active, "another manager membership must retain the capability");
 
     let before_revoke = cache_state.query_cache.user_features_key(user_id);
@@ -717,11 +716,10 @@ async fn organization_cli_drives_complete_unit_and_membership_workflow() -> Resu
       &redis_namespace,
     )?;
     ensure!(downgraded["manager_capability_changed"] == true);
-    let inactive: bool =
-      sqlx::query_scalar("SELECT activated FROM user_features WHERE user_id = $1 AND feature_name = 'manager'")
-        .bind(user_id)
-        .fetch_one(&pool)
-        .await?;
+    let inactive: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM organization_managers WHERE user_id=$1)")
+      .bind(user_id)
+      .fetch_one(&pool)
+      .await?;
     ensure!(!inactive, "last manager-role downgrade must revoke the capability");
 
     tokio::time::timeout(std::time::Duration::from_secs(2), async {

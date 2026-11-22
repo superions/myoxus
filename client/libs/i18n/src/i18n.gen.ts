@@ -13053,6 +13053,10 @@ export interface MyoxusI18nFunctions {
   ["com.myoxus.m.selector.where-folder"](): string;
   /** Tag */
   ["com.myoxus.m.selector.where-tag"](): string;
+  /** {{role}} directly assigned */
+  ["com.myoxus.member.role.direct"](options: { readonly ["role"]: string; }): string;
+  /** {{role}} via {{units}} */
+  ["com.myoxus.member.role.inherited"](options: { readonly ["role"]: string; readonly ["units"]: string; }): string;
   /** Approve */
   ["com.myoxus.member.approve"](): string;
   /** You have approved the {{name}}’s request to join this workspace */

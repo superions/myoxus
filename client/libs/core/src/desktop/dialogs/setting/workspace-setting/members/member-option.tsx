@@ -145,7 +145,7 @@ export const MemberOptions = ({
   );
 
   const canManageTarget =
-    member.permission === Permission.Admin ? canManageAdmins : canManageUsers;
+    member.directRole === Permission.Admin ? canManageAdmins : canManageUsers;
   const isAccepted = member.status === WorkspaceMemberStatus.Accepted;
 
   const operationButtonInfo = useMemo(() => {
@@ -155,8 +155,8 @@ export const MemberOptions = ({
       show:
         isAccepted &&
         canManageTarget &&
-        member.permission !== permission &&
-        member.permission !== Permission.Owner,
+        member.directRole !== permission &&
+        member.directRole !== Permission.Owner,
     }));
 
     return [
@@ -196,8 +196,8 @@ export const MemberOptions = ({
         show:
           canManageAdmins &&
           isAccepted &&
-          member.permission !== Permission.Owner &&
-          member.permission !== Permission.Admin,
+          member.directRole !== Permission.Owner &&
+          member.directRole !== Permission.Admin,
       },
       {
         label: t["com.myoxus.member.assign"](),
@@ -216,7 +216,7 @@ export const MemberOptions = ({
     handleRemove,
     handleRevoke,
     isAccepted,
-    member.permission,
+    member.directRole,
     member.status,
     roleOptions,
     t,

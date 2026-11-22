@@ -503,7 +503,7 @@ fn folder_preflight_reconciles_organizer_targets_for_move_and_extract() {
         .bind(profile_id).bind(source_workspace_id).bind(actor_id).execute(&pool).await.unwrap();
       let binding_id = Uuid::new_v4();
       let bound_path = "content/folder-preflight-root/folder-preflight-nested/doc.md";
-      sqlx::query("INSERT INTO git_sync_bindings (id, profile_id, workspace_id, doc_id, sync_id, repo_path)
+      sqlx::query("INSERT INTO git_sync_document_bindings (id, profile_id, workspace_id, doc_id, sync_id, repo_path)
         VALUES ($1, $2, $3, $4, $5, $6)")
         .bind(binding_id).bind(profile_id).bind(source_workspace_id).bind(document_id)
         .bind(Uuid::new_v4()).bind(bound_path).execute(&pool).await.unwrap();
@@ -566,12 +566,12 @@ fn folder_preflight_reconciles_organizer_targets_for_move_and_extract() {
       let changed = changed_source.prepare(actor_id, Uuid::new_v4(), &request, Vec::new()).await.unwrap();
       assert!(changed.authorization_options.git_sync_blockers.contains(&WorkspaceContentBlocker::GitSyncOwnershipUnproven),
         "a remotely edited body invalidates the last manifest ownership evidence");
-      sqlx::query("UPDATE git_sync_bindings SET repo_path = 'content/outside.md' WHERE id = $1")
+      sqlx::query("UPDATE git_sync_document_bindings SET repo_path = 'content/outside.md' WHERE id = $1")
         .bind(binding_id).execute(&pool).await.unwrap();
       let escaped = git_source.prepare(actor_id, Uuid::new_v4(), &request, Vec::new()).await.unwrap();
       assert!(escaped.authorization_options.git_sync_blockers.contains(&WorkspaceContentBlocker::GitSyncScopeAmbiguous),
         "a bound selected document outside the physical subtree must block before publication");
-      sqlx::query("UPDATE git_sync_bindings SET repo_path = $2 WHERE id = $1")
+      sqlx::query("UPDATE git_sync_document_bindings SET repo_path = $2 WHERE id = $1")
         .bind(binding_id).bind(bound_path).execute(&pool).await.unwrap();
       let empty_folder_id = Uuid::new_v4().to_string();
       organizer.create_folder(source_workspace_id, CreateOrganizerFolder {
@@ -2674,7 +2674,7 @@ fn link_publication_is_atomic_and_replayable() {
       assert_eq!(snapshot.roots[0].children[0].row.id, intent.entry_id);
       assert_eq!(
         sqlx::query_scalar::<_, i64>(
-          "SELECT count(*) FROM workspace_content_link_publications WHERE operation_id = $1",
+          "SELECT count(*) FROM workspace_content_publications WHERE kind='link' AND operation_id = $1",
         )
         .bind(record.id)
         .fetch_one(&pool)
@@ -3777,7 +3777,7 @@ fn copy_publication_is_atomic_private_and_idempotent() {
       );
       assert_eq!(
         sqlx::query_scalar::<_, i64>(
-          "SELECT count(*) FROM workspace_content_copy_publications WHERE operation_id = $1",
+          "SELECT count(*) FROM workspace_content_publications WHERE kind='copy' AND operation_id = $1",
         )
         .bind(published.id)
         .fetch_one(&pool)
@@ -5041,7 +5041,7 @@ fn move_publication_retains_catalogs_and_restores_receipt_bound_tag_lineage() {
         sqlx::query("INSERT INTO workspace_tags (id,workspace_id,name,slug,color_role,description,archived_at) VALUES ($1,$2,$3,$4,$5,'Canonical metadata',CASE WHEN $6 THEN now() ELSE NULL END)")
           .bind(id).bind(workspace).bind(name).bind(slug).bind(color).bind(archived).execute(&pool).await.expect("seed canonical tag");
       }
-      sqlx::query("INSERT INTO workspace_tag_legacy_ids (workspace_id,legacy_id,tag_id) VALUES ($1,'historical-label',$2)")
+      sqlx::query("INSERT INTO workspace_tag_identities (workspace_id,external_id,tag_id) VALUES ($1,'historical-label',$2)")
         .bind(source).bind(historical).execute(&pool).await.expect("seed retained legacy alias");
       for (workspace, doc, ids) in [(source,moved,vec![historical,active,sole]),(source,retained,vec![active]),(target,independent,vec![reused])] {
         for (position, tag) in ids.into_iter().enumerate() {
@@ -5140,7 +5140,7 @@ fn move_publication_retains_catalogs_and_restores_receipt_bound_tag_lineage() {
         .bind(source).fetch_one(&pool).await.unwrap(),source_catalog,"all source metadata survives, including the zero-use tag");
       assert_eq!(sqlx::query_scalar::<_,serde_json::Value>("SELECT to_jsonb(t) FROM workspace_tags t WHERE id=$1")
         .bind(reused).fetch_one(&pool).await.unwrap(),reused_metadata,"target metadata wins without an update");
-      assert_eq!(sqlx::query_scalar::<_,Uuid>("SELECT tag_id FROM workspace_tag_legacy_ids WHERE workspace_id=$1 AND legacy_id='historical-label'")
+      assert_eq!(sqlx::query_scalar::<_,Uuid>("SELECT tag_id FROM workspace_tag_identities WHERE workspace_id=$1 AND external_id='historical-label'")
         .bind(source).fetch_one(&pool).await.unwrap(),historical);
       assert_eq!(sqlx::query_scalar::<_,i64>("SELECT count(*) FROM workspace_tags WHERE workspace_id=$1")
         .bind(target).fetch_one(&pool).await.unwrap(),2,"replay creates no extra catalog entries");
@@ -5940,7 +5940,7 @@ fn move_publication_preserves_identity_history_acl_and_rolls_back_conflicts() {
       source_service.push_update(source_workspace_id,window_doc.id,
         pending_delta,0,DocSpaceKind::Workspace)
         .await.expect("persist pending content before Move admission");
-      sqlx::query("INSERT INTO document_versioning_workspace_settings(workspace_id,edit_capture_enabled,edit_capture_interval_ms) VALUES($1,false,1800000),($2,true,900000)")
+      sqlx::query("INSERT INTO document_workspace_settings(updated_at,versioning_updated_at,workspace_id,edit_capture_enabled,edit_capture_interval_ms) VALUES(NULL,now(),$1,false,1800000),(NULL,now(),$2,true,900000) ON CONFLICT (workspace_id) DO UPDATE SET edit_capture_enabled=EXCLUDED.edit_capture_enabled, edit_capture_interval_ms=EXCLUDED.edit_capture_interval_ms, versioning_updated_at=EXCLUDED.versioning_updated_at")
         .bind(target_workspace_id).bind(source_workspace_id).execute(&pool).await.unwrap();
       let mut move_origin=None;
       for (from,to,title) in [(source_workspace_id,target_workspace_id,"Target edit"),(target_workspace_id,source_workspace_id,"Returned edit")] {
@@ -6164,9 +6164,7 @@ async fn assert_extract_followup_syncs(
     let mut rows = Vec::new();
     for table in [
       "git_sync_bindings",
-      "git_sync_file_bindings",
       "git_sync_file_baselines",
-      "git_sync_path_owners",
       "git_sync_scope_exclusions",
     ] {
       let query = format!("SELECT to_jsonb(t) FROM {table} t WHERE profile_id=ANY($1) ORDER BY to_jsonb(t)::text");
@@ -6178,16 +6176,6 @@ async fn assert_extract_followup_syncs(
           .unwrap(),
       );
     }
-    rows.push(
-      sqlx::query_scalar::<_, serde_json::Value>(
-        "SELECT to_jsonb(b) FROM git_sync_baselines b
-      JOIN git_sync_bindings d ON d.id=b.binding_id WHERE d.profile_id=ANY($1) ORDER BY b.binding_id",
-      )
-      .bind(&ids)
-      .fetch_all(pool)
-      .await
-      .unwrap(),
-    );
     rows.push(
       sqlx::query_scalar::<_, serde_json::Value>(
         "SELECT to_jsonb(e) FROM workspace_content_extract_targets e WHERE target_workspace_id=$1",
@@ -6274,13 +6262,14 @@ async fn assert_extract_followup_syncs(
       );
     }
   }
-  let retained_path: String =
-    sqlx::query_scalar("SELECT repo_path FROM git_sync_bindings WHERE profile_id=$1 AND doc_id=$2 AND NOT tombstone")
-      .bind(source_profile)
-      .bind(retained.id)
-      .fetch_one(pool)
-      .await
-      .unwrap();
+  let retained_path: String = sqlx::query_scalar(
+    "SELECT repo_path FROM git_sync_document_bindings WHERE profile_id=$1 AND doc_id=$2 AND NOT tombstone",
+  )
+  .bind(source_profile)
+  .bind(retained.id)
+  .fetch_one(pool)
+  .await
+  .unwrap();
   assert!(
     outputs[0].contains_key(&retained_path),
     "the source still publishes its own remaining content"
@@ -6307,13 +6296,14 @@ async fn assert_extract_followup_syncs(
         );
       }
     }
-    let current_path: String =
-      sqlx::query_scalar("SELECT repo_path FROM git_sync_bindings WHERE profile_id=$1 AND doc_id=$2 AND NOT tombstone")
-        .bind(target_profile.unwrap())
-        .bind(moved_doc)
-        .fetch_one(pool)
-        .await
-        .unwrap();
+    let current_path: String = sqlx::query_scalar(
+      "SELECT repo_path FROM git_sync_document_bindings WHERE profile_id=$1 AND doc_id=$2 AND NOT tombstone",
+    )
+    .bind(target_profile.unwrap())
+    .bind(moved_doc)
+    .fetch_one(pool)
+    .await
+    .unwrap();
     let body = std::str::from_utf8(target_files.get(&current_path).unwrap()).unwrap();
     assert!(
       body.contains("Body survives equal attachments"),
@@ -6358,17 +6348,6 @@ fn exercise_extract_publication(
       sqlx::query("INSERT INTO workspace_memberships (workspace_id, user_id, role, status) VALUES ($1, $2, 'Manager', 'Accepted')")
         .bind(source_workspace_id).bind(actor_id).execute(&pool).await.expect("seed direct workspace manager");
     }
-    use myoxus_infrastructure::organization::{
-      PgOrganizationPolicyRepository, PgOrganizationUnitMemberRepository, PgOrganizationUnitRepository,
-      PgOrganizationUnitWorkspaceRepository, PgUserFeatureLookup,
-    };
-    let organization_permissions = Arc::new(myoxus_application::organization::OrganizationPermissionService::new(
-      Arc::new(PgOrganizationUnitMemberRepository::new(pool.clone())),
-      Arc::new(PgOrganizationUnitRepository::new(pool.clone())),
-      Arc::new(PgOrganizationUnitWorkspaceRepository::new(pool.clone())),
-      Arc::new(PgOrganizationPolicyRepository::new(pool.clone())),
-      Arc::new(PgUserFeatureLookup::new(pool.clone())),
-    ));
     let permission = Arc::new(PermissionService::new(auth.clone()));
     let mut organization_fixture = None;
     let owner = if ou_owned {
@@ -6896,11 +6875,11 @@ fn exercise_extract_publication(
 
     if let Some((organization_id, unit_id, _)) = organization_fixture {
       assert!(
-        !organization_permissions
-          .manageable_workspace_ids(actor_id)
+        !api_state.workspace()
+          .list_workspaces(actor_id)
           .await
           .expect("manager discovery")
-          .contains(&target_workspace_id)
+          .iter().any(|workspace| workspace.id == target_workspace_id)
       );
       sqlx::query("UPDATE organization_unit_member SET role = 'member' WHERE unit_id = $1 AND user_id = $2")
         .bind(unit_id)
@@ -6978,7 +6957,7 @@ fn exercise_extract_publication(
       let binding_id = Uuid::new_v4();
       let sync_id = Uuid::new_v4();
       let path = "content/extracted-folder/doc.md";
-      sqlx::query("INSERT INTO git_sync_bindings (id,profile_id,workspace_id,doc_id,sync_id,repo_path)
+      sqlx::query("INSERT INTO git_sync_document_bindings (id,profile_id,workspace_id,doc_id,sync_id,repo_path)
         VALUES ($1,$2,$3,$4,$5,$6)")
         .bind(binding_id).bind(profile_id).bind(source_workspace_id).bind(document_id).bind(sync_id).bind(path)
         .execute(&pool).await.unwrap();
@@ -7049,7 +7028,9 @@ fn exercise_extract_publication(
         let normalized=myoxus_application::markdown::yjs_to_markdown(&imported).unwrap().unwrap();
         format!("{:x}",Sha256::digest(normalized.markdown.as_bytes()))
       };
-      sqlx::query("INSERT INTO git_sync_baselines (binding_id,content_hash,commit_oid,myoxus_updated_at) VALUES ($1,$2,$3,now())")
+      sqlx::query("UPDATE git_sync_document_bindings
+         SET (baseline_content_hash, baseline_commit_oid, baseline_myoxus_updated_at, baseline_captured_at) = ($2,$3,now(),now())
+         WHERE id = $1")
         .bind(binding_id).bind(&baseline_hash).bind(oid.to_string()).execute(&pool).await.unwrap();
       if disconnect {
         sqlx::query("INSERT INTO git_sync_conflicts (profile_id,binding_id,doc_id,repo_path,conflict_type) VALUES ($1,$2,$3,$4,'BothModified')")
@@ -7226,8 +7207,8 @@ fn exercise_extract_publication(
           .get_effective_workspace_role(actor_id, target_workspace_id)
           .await
           .unwrap(),
-        None,
-        "completion must not restore revoked OU-manager access"
+        Some(WorkspaceRole::Collaborator),
+        "the demoted OU member keeps the workspace default after publication"
       );
       helpers::make_manager_of(&pool, actor_id, unit_id).await;
       sqlx::query("UPDATE organization_policy SET manager_can_create_workspaces = true WHERE organization_id = $1")
@@ -7398,9 +7379,9 @@ fn exercise_extract_publication(
         assert!(store.get_profile_by_workspace(target_workspace_id).await.unwrap().is_none());
         assert_eq!(sqlx::query_scalar::<_,i64>("SELECT count(*) FROM git_sync_profiles WHERE workspace_id=$1")
           .bind(target_workspace_id).fetch_one(&pool).await.unwrap(),0,"Disconnect creates no disabled target profile either");
-        assert!(sqlx::query_scalar::<_,bool>("SELECT tombstone FROM git_sync_bindings WHERE profile_id=$1 AND doc_id=$2")
+        assert!(sqlx::query_scalar::<_,bool>("SELECT tombstone FROM git_sync_document_bindings WHERE profile_id=$1 AND doc_id=$2")
           .bind(source_profile).bind(document_id).fetch_one(&pool).await.unwrap());
-        assert_eq!(sqlx::query_scalar::<_,i64>("SELECT count(*) FROM git_sync_baselines baseline JOIN git_sync_bindings binding ON binding.id=baseline.binding_id WHERE binding.profile_id=$1")
+        assert_eq!(sqlx::query_scalar::<_,i64>("SELECT count(*) FROM git_sync_document_bindings binding WHERE binding.baseline_content_hash IS NOT NULL AND binding.profile_id=$1")
           .bind(source_profile).fetch_one(&pool).await.unwrap(),0);
         assert_eq!(sqlx::query_scalar::<_,String>("SELECT resolution FROM git_sync_conflicts WHERE profile_id=$1 AND doc_id=$2")
           .bind(source_profile).bind(document_id).fetch_one(&pool).await.unwrap(),"Dismissed");
@@ -7504,7 +7485,7 @@ fn exercise_extract_publication(
       assert!(!target.enabled, "target sync waits, independently of content usability");
       assert_eq!(target.sync_direction, myoxus_domain::git_sync::SyncDirection::GitToMyoxus);
       assert_eq!(target.root_path, "content/extracted-folder");
-      let binding: (Uuid,Uuid) = sqlx::query_as("SELECT profile_id,workspace_id FROM git_sync_bindings WHERE doc_id=$1")
+      let binding: (Uuid,Uuid) = sqlx::query_as("SELECT profile_id,workspace_id FROM git_sync_document_bindings WHERE doc_id=$1")
         .bind(document_id).fetch_one(&pool).await.unwrap();
       assert_eq!(binding, (target.id,target_workspace_id));
       let file: (Uuid,Uuid,String) = sqlx::query_as("SELECT profile_id,workspace_id,blob_key FROM git_sync_file_bindings WHERE profile_id=$1 AND repo_path='content/extracted-folder/attachment.bin'")
@@ -7709,8 +7690,7 @@ fn exercise_extract_publication(
       let restored:GitSyncManifest=serde_json::from_slice(&read(&source.manifest_path)).unwrap();
       assert!(restored.documents.iter().any(|document|document.doc_id==document_id));
       if disconnect {
-        assert!(sqlx::query_scalar::<_,bool>("SELECT baseline.myoxus_updated_at<document.updated_at FROM git_sync_baselines baseline
-          JOIN git_sync_bindings binding ON binding.id=baseline.binding_id JOIN docs document ON document.id=binding.doc_id
+        assert!(sqlx::query_scalar::<_,bool>("SELECT binding.baseline_myoxus_updated_at<document.updated_at FROM git_sync_document_bindings binding JOIN docs document ON document.id=binding.doc_id
           WHERE binding.profile_id=$1 AND binding.doc_id=$2")
           .bind(source_profile).bind(document_id).fetch_one(&pool).await.unwrap(),"restored baseline must not acknowledge the current local edit");
       }
@@ -7795,11 +7775,11 @@ fn exercise_extract_publication(
         Some(WorkspaceRole::Admin)
       );
       assert!(
-        organization_permissions
-          .manageable_workspace_ids(actor_id)
+        api_state.workspace()
+          .list_workspaces(actor_id)
           .await
           .expect("published manager discovery")
-          .contains(&target_workspace_id)
+          .iter().any(|workspace| workspace.id == target_workspace_id)
       );
       sqlx::query("DELETE FROM workspace_content_operations WHERE id = $1")
         .bind(draft.id)
@@ -8450,7 +8430,7 @@ fn task_source_discovery_binds_internal_identity_without_editor_key_retargeting(
       PgWorkspaceContentOperationRepository::new(pool.clone(), crate::helpers::database_starter_catalog()).create_or_get(moved_operation).await.unwrap();
       sqlx::query("INSERT INTO workspace_content_move_revision_manifests(operation_id,manifest,manifest_hash) VALUES($1,$2,$3)")
         .bind(operation_id).bind(serde_json::json!({"documents":[{"doc_id":source}]})).bind(&hash).execute(&pool).await.unwrap();
-      sqlx::query("INSERT INTO workspace_content_move_publications(operation_id,source_workspace_id,target_workspace_id,manifest_hash,resource_count,diagnostic_instance_id) VALUES($1,$2,$3,$4,1,'capture-source-test')")
+      sqlx::query("INSERT INTO workspace_content_publications(kind, operation_id,source_workspace_id,target_workspace_id,manifest_hash,resource_count,diagnostic_instance_id) VALUES ('move', $1,$2,$3,$4,1,'capture-source-test')")
         .bind(operation_id).bind(source_workspace).bind(target_workspace).bind(&hash).execute(&pool).await.unwrap();
       assert!(DocService::new(Arc::new(SqlxDocStore::new(pool.clone()))).has_committed_transfer_from(source,source_workspace).await.unwrap());
       let moved_api=graph_source_projection(&app,session,source_workspace).await;

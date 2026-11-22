@@ -218,6 +218,7 @@ pub fn record_operation_failure(
     AuthError::Storage(_) => "storage",
     AuthError::NotFound(_) => "not_found",
     AuthError::ActionForbidden => "action_forbidden",
+    AuthError::RowAttachment(_) => "row_attachment_failed",
     AuthError::WorkspaceNameConflict { .. } => "workspace_name_conflict",
     AuthError::WorkspaceOverviewRevisionConflict { .. } => "workspace_overview_revision_conflict",
     AuthError::StorageQuotaExceeded { .. } => "storage_quota_exceeded",

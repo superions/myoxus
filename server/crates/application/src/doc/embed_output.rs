@@ -132,7 +132,7 @@ impl EmbedOutputContext<'_> {
     Ok(Some(prepared))
   }
 
-  async fn admit(&self, workspace_id: Uuid, doc_id: Uuid, snapshot: &[u8]) -> AuthResult<()> {
+  async fn admit(&self, workspace_id: Uuid, doc_id: Uuid) -> AuthResult<()> {
     if let Some(user_id) = self.actor {
       self
         .permission
@@ -147,7 +147,7 @@ impl EmbedOutputContext<'_> {
         .await
     } else if self
       .public
-      .decide_document(workspace_id, doc_id, crate::public::source_hash(snapshot))
+      .decide_document(workspace_id, doc_id)
       .await
       .map_err(|_| unavailable())?
       .allowed()
@@ -210,7 +210,7 @@ impl EmbedOutputContext<'_> {
     if !source.exists {
       return Err(unavailable());
     }
-    self.admit(workspace_id, doc_id, &source.payload).await?;
+    self.admit(workspace_id, doc_id).await?;
     let selected =
       yjs::markdown::selected_document_snapshot(&source.payload, &definition.params).map_err(|_| unavailable())?;
     let fields = yjs::document_field::content::inspect(&selected).map_err(|_| unavailable())?;
@@ -292,7 +292,7 @@ impl EmbedOutputContext<'_> {
         .map_err(|_| unavailable())?
         .full_state
     };
-    self.admit(workspace_id, doc_id, &source.payload).await?;
+    self.admit(workspace_id, doc_id).await?;
     Ok((
       yjs::document_embed::body(&selected).map_err(|_| unavailable())?,
       (workspace_id, doc_id),

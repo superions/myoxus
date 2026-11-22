@@ -58,7 +58,7 @@ vi.mock("@myoxus/track", () => ({
   },
 }));
 
-import { __test__ as exportHookTest } from "../components/hooks/myoxus/use-export-page";
+import { __test__ as exportHookTest } from "../components/hooks/myoxus/page-export-actions";
 import { ExportMenuItems } from "../components/page-list/operation-menu-items/export";
 
 function createMermaidExportTestStore(): Store {

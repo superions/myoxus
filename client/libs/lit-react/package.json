@@ -5,6 +5,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./utils": "./src/utils.ts",
+    "./uni-component": "./src/lit-portal/uni-component.tsx",
     "./*": "./src/*"
   },
   "dependencies": {

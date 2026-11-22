@@ -103,8 +103,12 @@ impl SqlxAuthStore {
       .await
       .map_err(Self::map_db_err)?
       .ok_or(AuthError::ActionForbidden)?;
-    sqlx::query("SELECT workspace_id FROM workspace_memberships WHERE workspace_id=$1 AND user_id=$2 AND status='Accepted' FOR SHARE")
-      .bind(workspace_id).bind(user_id).fetch_optional(&mut *tx).await.map_err(Self::map_db_err)?
+    sqlx::query("SELECT workspace_id FROM workspace_effective_roles WHERE workspace_id=$1 AND user_id=$2 FOR SHARE")
+      .bind(workspace_id)
+      .bind(user_id)
+      .fetch_optional(&mut *tx)
+      .await
+      .map_err(Self::map_db_err)?
       .ok_or(AuthError::ActionForbidden)?;
     Ok(())
   }
@@ -399,7 +403,7 @@ impl AuthStore for SqlxAuthStore {
 
   #[instrument(skip_all)]
   async fn get_user_feature_override(&self, user_id: Uuid, feature_name: &str) -> AuthResult<Option<bool>> {
-    sqlx::query_scalar("SELECT activated FROM user_features WHERE user_id = $1 AND feature_name = $2")
+    sqlx::query_scalar("SELECT activated FROM effective_user_features WHERE user_id = $1 AND feature_name = $2")
       .bind(user_id)
       .bind(feature_name)
       .fetch_optional(&self.pool)
@@ -417,7 +421,7 @@ impl AuthStore for SqlxAuthStore {
       return Ok(std::collections::HashMap::new());
     }
     let rows = sqlx::query_as::<_, (Uuid, bool)>(
-      "SELECT user_id, activated FROM user_features WHERE user_id = ANY($1) AND feature_name = $2",
+      "SELECT user_id, activated FROM effective_user_features WHERE user_id = ANY($1) AND feature_name = $2",
     )
     .bind(user_ids)
     .bind(feature_name)
@@ -586,10 +590,9 @@ impl AuthStore for SqlxAuthStore {
           updated_at = now()
       WHERE owner_user_id = $1
         AND EXISTS (
-          SELECT 1 FROM workspace_memberships
+          SELECT 1 FROM workspace_effective_roles
           WHERE workspace_id = workspaces.id
             AND user_id <> $1
-            AND status = 'Accepted'
         )
       "#,
     )
@@ -601,8 +604,8 @@ impl AuthStore for SqlxAuthStore {
     // 1b. Delete sole-owner workspaces (user was the only member) and all their content.
     let sole_owner_workspaces = sqlx::query_scalar::<_, Uuid>(
       "SELECT id FROM workspaces WHERE owner_user_id=$1 AND NOT EXISTS(
-        SELECT 1 FROM workspace_memberships WHERE workspace_id=workspaces.id
-          AND user_id<>$1 AND status='Accepted')",
+        SELECT 1 FROM workspace_effective_roles WHERE workspace_id=workspaces.id
+          AND user_id<>$1)",
     )
     .bind(user_id)
     .fetch_all(&mut *tx)
@@ -614,10 +617,9 @@ impl AuthStore for SqlxAuthStore {
       DELETE FROM workspaces
       WHERE owner_user_id = $1
         AND NOT EXISTS (
-          SELECT 1 FROM workspace_memberships
+          SELECT 1 FROM workspace_effective_roles
           WHERE workspace_id = workspaces.id
             AND user_id <> $1
-            AND status = 'Accepted'
         )
       "#,
     )
@@ -1682,13 +1684,12 @@ impl AuthStore for SqlxAuthStore {
     let row = sqlx::query(
       r#"
       SELECT 1
-      FROM workspace_memberships m1
-      JOIN workspace_memberships m2 ON m1.workspace_id = m2.workspace_id
+      FROM workspace_effective_roles m1
+      JOIN workspace_effective_roles m2 ON m1.workspace_id = m2.workspace_id
       JOIN workspaces w ON w.id = m1.workspace_id
         AND w.lifecycle_state = 'active'
         AND w.deleted_at IS NULL
       WHERE m1.user_id = $1 AND m2.user_id = $2
-        AND m1.status = 'Accepted' AND m2.status = 'Accepted'
       LIMIT 1
       "#,
     )

@@ -507,7 +507,7 @@ impl DocLoadService {
 
         // P80-K-01: A user who passed auth but has no membership is a guest
         // (e.g. public workspace or share link access).
-        let is_guest = match ws_svc.get_member(workspace_id, user_id).await {
+        let is_guest = match ws_svc.effective_member(workspace_id, user_id).await {
           Ok(Some(_)) => false,
           Ok(None) => true,
           Err(e) => {
@@ -567,7 +567,7 @@ impl DocLoadService {
         DOC_VIEW_DEDUP.insert((user_id, workspace_id, doc_id_str.clone(), today))
       };
 
-      let is_guest = match ws_svc.get_member(workspace_id, user_id).await {
+      let is_guest = match ws_svc.effective_member(workspace_id, user_id).await {
         Ok(Some(_)) => false,
         Ok(None) => true,
         Err(e) => {

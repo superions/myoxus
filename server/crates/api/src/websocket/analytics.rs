@@ -8,7 +8,6 @@
 //!
 //! Extracted from `mod.rs` in P107-H.
 
-use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -73,29 +72,16 @@ pub(super) async fn flush_analytics(state: &Arc<ApiState>) {
         }
       }
     }
-    let mut counts = adapter.workspace_active_users().await?;
-    for (workspace_id, _) in &local {
-      counts.entry(*workspace_id).or_insert(0);
-    }
-    Ok::<HashMap<Uuid, i32>, String>(counts)
+    adapter.active_sync_users().await
   };
   // Bound the entire sample, including a paused Redis connection or large scan.
   let snapshot = tokio::time::timeout(std::time::Duration::from_secs(5), snapshot).await;
   match snapshot {
-    Ok(Ok(counts)) => {
-      for (workspace_id, count) in counts {
-        match state
-          .admin()
-          .upsert_active_users_metric(workspace_id, minute, count)
-          .await
-        {
-          Ok(()) if count == 0 => {
-            WORKSPACE_SESSIONS.remove_if(&workspace_id, |_, set| set.is_empty());
-          }
-          Ok(()) => {}
-          Err(error) => error!(%workspace_id, %error, "failed to flush analytics to db"),
-        }
+    Ok(Ok(count)) => {
+      if let Err(error) = state.admin().upsert_active_users_metric(minute, count).await {
+        error!(%error, "failed to flush analytics to db");
       }
+      WORKSPACE_SESSIONS.retain(|_, sessions| !sessions.is_empty());
     }
     _ => warn!("cluster workspace analytics unavailable; metric sample skipped"),
   }

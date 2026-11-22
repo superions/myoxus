@@ -806,7 +806,7 @@ function verifyApiQuickCompileBoundary() {
     createHash("sha256")
       .update([...exactFilters].sort().join("\n"))
       .digest("hex") !==
-      "da6b824a646fb299348436b925a0cd0cf239c7290abf08c01fe2ae03b338dd3d"
+      "ad6d623f1bb9e1b35a40aece7856328f84ec67674233bdc7c21b7cdaa56e2efd"
   ) {
     throw new Error(
       "API standard assignment lost, duplicated or replaced an existing test",

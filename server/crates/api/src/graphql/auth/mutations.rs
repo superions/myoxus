@@ -1751,7 +1751,7 @@ impl MutationRoot {
           sent_ok += 1;
           results.push(InviteResult {
             email,
-            invite_id: Some(m.invite_id.to_string()),
+            invite_id: m.invite_id.map(|id| id.to_string()),
             sent_success: true,
             error: None,
           });
@@ -1828,7 +1828,10 @@ impl MutationRoot {
       .await
       .map_err(map_gql_error)?;
 
-    Ok(member.invite_id.to_string())
+    member
+      .invite_id
+      .map(|id| id.to_string())
+      .ok_or_else(|| async_graphql::Error::new("Invitation ID missing"))
   }
 
   #[instrument(skip_all)]
@@ -3040,6 +3043,7 @@ impl MutationRoot {
     hash: Option<String>,
     key: Option<String>,
     permanently: Option<bool>,
+    only_if_unused: Option<bool>,
   ) -> Result<bool> {
     let (state, snapshot) = require_session(ctx).await?;
     let workspace_uuid = Uuid::parse_str(&workspace_id)
@@ -3061,10 +3065,15 @@ impl MutationRoot {
       .await
       .map_err(map_gql_error)?;
 
+    if only_if_unused == Some(true) && permanently != Some(true) {
+      return Err(map_gql_error(AuthError::InvalidInput(
+        "unused guard requires permanent removal".into(),
+      )));
+    }
     if permanently.unwrap_or(false) {
       let _ = state
         .blob()
-        .hard_delete_blob(workspace_uuid, &blob_key)
+        .delete_content(workspace_uuid, &blob_key, only_if_unused.unwrap_or(false))
         .await
         .map_err(map_gql_error)?;
     } else {

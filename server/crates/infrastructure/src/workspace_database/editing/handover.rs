@@ -120,7 +120,14 @@ impl PgDatabaseRepository {
     {
       return Err(RepositoryError::Validation("handover prerequisites unavailable".into()));
     }
-    let member:Option<Uuid>=sqlx::query_scalar("SELECT user_id FROM workspace_memberships WHERE workspace_id=$1 AND user_id=$2 AND status='Accepted' FOR SHARE NOWAIT").bind(accepted.workspace_id).bind(handover.plan.responsible_id).fetch_optional(&mut *tx).await.map_err(Self::map_sqlx_error)?;
+    let member: Option<Uuid> = sqlx::query_scalar(
+      "SELECT user_id FROM workspace_effective_roles WHERE workspace_id=$1 AND user_id=$2 FOR SHARE NOWAIT",
+    )
+    .bind(accepted.workspace_id)
+    .bind(handover.plan.responsible_id)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(Self::map_sqlx_error)?;
     if member.is_none() {
       return Err(RepositoryError::Validation(
         "handover responsible member unavailable".into(),

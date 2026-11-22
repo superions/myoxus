@@ -39,8 +39,7 @@ async fn database_children(pool: &PgPool, database_id: Uuid) -> serde_json::Valu
     "database_unique_id_sequences",
     "workspace_database_row_search",
     "database_document_references",
-    "workspace_database_formula_values",
-    "workspace_database_rollup_values",
+    "workspace_database_computed_values",
     "database_row_reminders",
   ] {
     let rows:serde_json::Value=sqlx::query_scalar(&format!(

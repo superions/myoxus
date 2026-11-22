@@ -30,7 +30,6 @@ import {
   type WORKSPACE_DIALOG_SCHEMA,
 } from "@myoxus/core/modules/dialogs";
 import { ExplorerIconService } from "@myoxus/core/modules/explorer-icon/services/explorer-icon";
-import { importMermaidFilesToDocs } from "@myoxus/core/modules/mermaid-diagrams/services/mermaid-import";
 import { MermaidDiagramsService } from "@myoxus/core/modules/mermaid-diagrams";
 import {
   isPreservableBpmnImport,
@@ -286,7 +285,9 @@ const importConfigs: Record<Exclude<ImportType, "docx">, ImportConfig> & {
     fileOptions: { acceptType: "Mermaid", multiple: true },
     importFunction: async (docCollection, files) => {
       return {
-        docIds: await importMermaidFilesToDocs({
+        docIds: await (
+          await import("@myoxus/core/modules/mermaid-diagrams/services/mermaid-import")
+        ).importMermaidFilesToDocs({
           collection: docCollection,
           files,
         }),

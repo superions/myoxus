@@ -233,13 +233,104 @@ pub struct DocumentGraphResultObjectType {
   pub index_status: DocumentGraphIndexStatusObjectType,
 }
 
-#[derive(SimpleObject, Clone)]
-#[graphql(name = "DocumentLinksResult")]
 pub struct DocumentLinksResultObjectType {
-  pub nodes: Vec<DocumentGraphNodeObjectType>,
-  pub edges: Vec<DocumentGraphEdgeObjectType>,
-  pub database_references: Vec<DatabaseDocumentReferenceObjectType>,
-  pub index_status: DocumentGraphIndexStatusObjectType,
+  state: Arc<ApiState>,
+  actor: myoxus_domain::ids::UserId,
+  workspace: WorkspaceId,
+  doc: DocId,
+  input: DocumentLinksInput,
+  page: domain::DocumentGraphPage,
+  graph: tokio::sync::OnceCell<DocumentGraphResultObjectType>,
+}
+
+impl DocumentLinksResultObjectType {
+  async fn graph(&self) -> Result<&DocumentGraphResultObjectType> {
+    self
+      .graph
+      .get_or_try_init(|| async {
+        let model = document_graph_service(&self.state)?
+          .read_document_links(
+            self.actor,
+            self.workspace,
+            self.doc,
+            self.input.direction.into(),
+            self.page.clone(),
+            self.input.include_occurrences.unwrap_or(false),
+          )
+          .await
+          .map_err(map_document_graph_error)?;
+        map_graph_result(&self.state, self.workspace, model).await
+      })
+      .await
+  }
+}
+
+#[derive(SimpleObject)]
+pub struct DocumentNavigationLink {
+  pub workspace_id: ID,
+  pub doc_id: ID,
+  pub title: Option<String>,
+  pub params_json: async_graphql::Json<serde_json::Value>,
+}
+
+#[derive(SimpleObject)]
+pub struct DocumentNavigationBlock {
+  pub block_id: String,
+  pub links: Vec<DocumentNavigationLink>,
+}
+
+#[derive(SimpleObject)]
+pub struct OutgoingDocumentNavigation {
+  pub pending: bool,
+  pub blocks: Vec<DocumentNavigationBlock>,
+}
+
+#[async_graphql::Object(name = "DocumentLinksResult")]
+impl DocumentLinksResultObjectType {
+  async fn nodes(&self) -> Result<&Vec<DocumentGraphNodeObjectType>> {
+    Ok(&self.graph().await?.nodes)
+  }
+  async fn edges(&self) -> Result<&Vec<DocumentGraphEdgeObjectType>> {
+    Ok(&self.graph().await?.edges)
+  }
+  async fn database_references(&self) -> Result<&Vec<DatabaseDocumentReferenceObjectType>> {
+    Ok(&self.graph().await?.database_references)
+  }
+  async fn index_status(&self) -> Result<&DocumentGraphIndexStatusObjectType> {
+    Ok(&self.graph().await?.index_status)
+  }
+
+  /// Outgoing navigation uses matching source blocks as its page unit.
+  async fn outgoing_navigation(&self) -> Result<OutgoingDocumentNavigation> {
+    if self.input.direction != DocumentGraphDirectionType::Outgoing {
+      return Err(graph_error(
+        myoxus_application::document_graph::ERR_QUERY_INVALID,
+        "navigation requires outgoing direction",
+      ));
+    }
+    let (pending, occurrences) = document_graph_service(&self.state)?
+      .outgoing_navigation(self.actor, self.workspace, self.doc, self.page.clone())
+      .await
+      .map_err(map_document_graph_error)?;
+    let mut blocks: Vec<DocumentNavigationBlock> = Vec::new();
+    for occurrence in occurrences {
+      if blocks.last().is_none_or(|block| block.block_id != occurrence.block_id) {
+        blocks.push(DocumentNavigationBlock {
+          block_id: occurrence.block_id,
+          links: Vec::new(),
+        });
+      }
+      if let (Some(block), Some(target)) = (blocks.last_mut(), occurrence.target) {
+        block.links.push(DocumentNavigationLink {
+          workspace_id: ID::from(target.workspace_id),
+          doc_id: ID::from(target.external_id),
+          title: target.title,
+          params_json: async_graphql::Json(target.params),
+        });
+      }
+    }
+    Ok(OutgoingDocumentNavigation { pending, blocks })
+  }
 }
 
 pub(crate) async fn read_workspace_document_graph(
@@ -276,28 +367,23 @@ pub(crate) async fn read_document_links(
   input: DocumentLinksInput,
 ) -> Result<DocumentLinksResultObjectType> {
   let (state, snapshot) = require_session(ctx).await?;
-  let service = document_graph_service(&state)?;
   let document_id = resolve_doc_id(&state, workspace_id, input.doc_id.as_str()).await?;
-  let model = service
-    .read_document_links(
-      snapshot.user.id,
-      workspace_id,
-      document_id,
-      input.direction.into(),
-      domain::DocumentGraphPage {
-        first: input.first.unwrap_or(100).clamp(1, i32::MAX) as i64,
-        offset: parse_offset(input.after.as_deref())?,
-      },
-      input.include_occurrences.unwrap_or(false),
-    )
+  // Authorize the parent even for fieldless (__typename-only) projections.
+  document_graph_service(&state)?
+    .assert_doc_read(snapshot.user.id, workspace_id, document_id)
     .await
     .map_err(map_document_graph_error)?;
-  let result = map_graph_result(&state, workspace_id, model).await?;
   Ok(DocumentLinksResultObjectType {
-    nodes: result.nodes,
-    edges: result.edges,
-    database_references: result.database_references,
-    index_status: result.index_status,
+    state,
+    actor: snapshot.user.id,
+    workspace: workspace_id,
+    doc: document_id,
+    page: domain::DocumentGraphPage {
+      first: input.first.unwrap_or(100).max(1) as i64,
+      offset: parse_offset(input.after.as_deref())?,
+    },
+    input,
+    graph: tokio::sync::OnceCell::new(),
   })
 }
 

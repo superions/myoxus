@@ -1202,7 +1202,7 @@ type AdminRoot {
   """
   Set a template default policy (admin only).
 
-  Creates or updates the row in `template_default_policies` that drives
+  Creates or updates the template catalog policy that drives
   automatic seeding of new workspaces.
   """
   setTemplateDefaultPolicy(input: SetTemplateDefaultPolicyInput!): Boolean!
@@ -2230,6 +2230,7 @@ type ApiMutationRoot {
   deleteBlob(
     hash: String
     key: String
+    onlyIfUnused: Boolean
     permanently: Boolean
     workspaceId: String!
   ): Boolean!
@@ -8066,6 +8067,10 @@ type DocumentLinksResult {
   edges: [DocumentGraphEdgeType!]!
   indexStatus: DocumentGraphIndexStatusType!
   nodes: [DocumentGraphNodeType!]!
+  """
+  Outgoing navigation uses matching source blocks as its page unit.
+  """
+  outgoingNavigation: OutgoingDocumentNavigation!
 }
 
 type DocumentMetadataAudienceType {
@@ -8283,6 +8288,18 @@ type DocumentMetadataValueDefinitionType {
   label: String!
   metadata: JSON!
   sortOrder: Int!
+}
+
+type DocumentNavigationBlock {
+  blockId: String!
+  links: [DocumentNavigationLink!]!
+}
+
+type DocumentNavigationLink {
+  docId: ID!
+  paramsJson: JSON!
+  title: String
+  workspaceId: ID!
 }
 
 type DocumentReview {
@@ -9587,13 +9604,16 @@ GraphQL output type for a workspace member / invitee (schema name `InviteUserTyp
 """
 type InviteUserType {
   avatarUrl: String
+  directRole: Permission
   disabled: Boolean
   email: String!
   emailVerified: Boolean
   hasPassword: Boolean
   id: ID!
-  inviteId: String!
+  inviteId: String
   name: String!
+  ouNames: [String!]!
+  ouRole: Permission
   permission: Permission!
   role: Permission!
   status: WorkspaceMemberStatus!
@@ -10009,6 +10029,7 @@ type MutationRoot {
   deleteBlob(
     hash: String
     key: String
+    onlyIfUnused: Boolean
     permanently: Boolean
     workspaceId: String!
   ): Boolean!
@@ -10792,6 +10813,11 @@ type OrganizationUnitWorkspaceType {
   updatedAt: DateTime!
   workspaceId: ID!
   workspaceName: String
+}
+
+type OutgoingDocumentNavigation {
+  blocks: [DocumentNavigationBlock!]!
+  pending: Boolean!
 }
 
 """
@@ -13658,6 +13684,12 @@ type UnsupportedSubscriptionPlanDataType {
   message: String!
 }
 
+type UnusedBlobPage {
+  items: [ListedBlobType!]!
+  ready: Boolean!
+  total: Int!
+}
+
 input UpdateAppConfigInput {
   key: String!
   module: String!
@@ -16165,6 +16197,7 @@ type WorkspaceType {
   views, rows and cells stay intact until permanent deletion.
   """
   trashedDatabases(first: Int, offset: Int): [DatabaseSummary!]!
+  unusedBlobs(first: Int!, offset: Int!): UnusedBlobPage!
   """
   Guided help projects authored public source choices, never the creator's
   answers or personal preferences. Native admission reads current scope.

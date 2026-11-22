@@ -280,8 +280,9 @@ export class DocSummaryService extends Service {
         if (
           source === "auto" &&
           (this.workspaceService.workspace.flavour === "local" ||
-            this.featureFlagService.flags.enable_battery_save_mode.value ===
-              false)
+            (!BUILD_CONFIG.isWeb &&
+              this.featureFlagService.flags.enable_battery_save_mode.value ===
+                false))
         ) {
           // use local indexer
           const sub = this.store

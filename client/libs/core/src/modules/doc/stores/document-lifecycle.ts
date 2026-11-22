@@ -28,6 +28,7 @@ const CREATING_ABORT_REASON = new Error(
 export class DocumentLifecycleStore extends Store {
   private readonly lifecycles = new Map<string, DocumentLifecycle>();
   private readonly notFoundSubject = new Subject<string>();
+  private readonly remoteMembership = new Set<string>();
   readonly notFound$ = this.notFoundSubject.asObservable();
 
   state(docId: string): DocumentLifecycleState {
@@ -79,16 +80,26 @@ export class DocumentLifecycleStore extends Store {
       controller,
       state$: lifecycle.state$,
     });
+    this.remoteMembership.delete(docId);
     lifecycle.state$.setValue("not-found");
     this.notFoundSubject.next(docId);
     return true;
   }
 
-  beginCreating(docId: string): boolean {
+  isRemoteMembershipPending(docId: string) {
+    return this.remoteMembership.has(docId);
+  }
+
+  beginCreating(
+    docId: string,
+    source: "local" | "membership" = "local",
+  ): boolean {
     const current = this.lifecycle(docId);
     if (current.state$.value === "creating") {
       return false;
     }
+    if (source === "membership") this.remoteMembership.add(docId);
+    else this.remoteMembership.delete(docId);
     current.controller.abort(CREATING_ABORT_REASON);
     const controller = new AbortController();
     controller.abort(CREATING_ABORT_REASON);
@@ -113,6 +124,7 @@ export class DocumentLifecycleStore extends Store {
       state$: current.state$,
     });
     current.state$.setValue("available");
+    this.remoteMembership.delete(docId);
     return true;
   }
 
@@ -122,6 +134,7 @@ export class DocumentLifecycleStore extends Store {
       lifecycle.state$.complete();
     }
     this.lifecycles.clear();
+    this.remoteMembership.clear();
     this.notFoundSubject.complete();
     super.dispose();
   }

@@ -3,6 +3,10 @@ import { AIReasoningService } from "@myoxus/core/modules/ai-button/services/reas
 import { CollectionService } from "@myoxus/core/modules/collection";
 import { DocsService } from "@myoxus/core/modules/doc";
 import { DocDisplayMetaService } from "@myoxus/core/modules/doc-display-meta";
+import {
+  navigationTargets,
+  OutgoingNavigationService,
+} from "@myoxus/core/modules/doc-link";
 import { DocsSearchService } from "@myoxus/core/modules/docs-search";
 import {
   type SearchCollectionMenuAction,
@@ -14,7 +18,8 @@ import { TagService } from "@myoxus/core/modules/tag";
 import { WorkspaceService } from "@myoxus/core/modules/workspace";
 import { useFramework } from "@myoxus/infra";
 import { createSignalFromObservable } from "@virgultum/editor/shared/utils";
-import { useMemo } from "react";
+import { createElement, useMemo } from "react";
+import { combineLatest, map, of } from "rxjs";
 
 export function useAIChatConfig() {
   const framework = useFramework();
@@ -25,6 +30,7 @@ export function useAIChatConfig() {
   const workspaceService = framework.get(WorkspaceService);
   const searchMenuService = framework.get(SearchMenuService);
   const docsSearchService = framework.get(DocsSearchService);
+  const outgoing = framework.get(OutgoingNavigationService);
   const tagService = framework.get(TagService);
   const collectionService = framework.get(CollectionService);
   const docsService = framework.get(DocsService);
@@ -43,7 +49,7 @@ export function useAIChatConfig() {
 
     const docDisplayConfig = {
       getIcon: (docId: string) => {
-        return docDisplayMetaService.icon$(docId, { type: "lit" }).value;
+        return createElement(docDisplayMetaService.icon$(docId).value);
       },
       getTitle: (docId: string) => {
         return docDisplayMetaService.title$(docId).value;
@@ -65,7 +71,19 @@ export function useAIChatConfig() {
         return doc?.getStore() ?? null;
       },
       getReferenceDocs: (docIds: string[]) => {
-        const docs$ = docsSearchService.watchRefsFrom(docIds);
+        const sources = [...new Set(docIds)];
+        const docs$ = !BUILD_CONFIG.isWeb
+          ? docsSearchService.watchRefsFrom(sources)
+          : sources.length
+            ? combineLatest(sources.map((id) => outgoing.watch(id))).pipe(
+                map((blocks) =>
+                  navigationTargets(
+                    blocks.flatMap((value) => value ?? []),
+                    sources,
+                  ),
+                ),
+              )
+            : of([]);
         return createSignalFromObservable(docs$, []);
       },
       getTags: () => {
@@ -133,6 +151,7 @@ export function useAIChatConfig() {
     workspaceService,
     searchMenuService,
     docsSearchService,
+    outgoing,
     tagService,
     collectionService,
     docsService,

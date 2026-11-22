@@ -73,6 +73,15 @@ pub struct WorkspaceAccess {
 }
 
 impl WorkspaceAccess {
+  /// An inherited Reader provides a floor. Only an explicitly assigned workspace
+  /// Reader caps the document role.
+  pub fn document_role(self, explicit: Option<DocRole>) -> DocRole {
+    if self.effective_role == Some(WorkspaceRole::Reader) && self.direct_role != Some(WorkspaceRole::Reader) {
+      return explicit.unwrap_or(DocRole::Reader).max(DocRole::Reader);
+    }
+    fixup_doc_role(self.effective_role, explicit)
+  }
+
   pub fn can(self, action: WorkspaceAction) -> bool {
     (action == WorkspaceAction::AdministratorsManage && self.owner_ou_manager)
       || self.effective_role.is_some_and(|role| role.can(action))
@@ -168,19 +177,19 @@ impl PermissionService {
   /// an explicit document grant.
   #[instrument(skip_all)]
   pub async fn get_effective_doc_role(&self, user_id: Uuid, workspace_id: Uuid, doc_id: Uuid) -> AuthResult<DocRole> {
-    let workspace_role = self.get_effective_workspace_role(user_id, workspace_id).await?;
-    self.doc_role_with_workspace_role(user_id, doc_id, workspace_role).await
+    let access = self.resolve_workspace_access(user_id, workspace_id).await?;
+    self.doc_role_with_access(user_id, doc_id, access).await
   }
 
   /// Complete the document check using the workspace role already resolved for this operation.
-  pub async fn doc_role_with_workspace_role(
+  pub async fn doc_role_with_access(
     &self,
     user_id: Uuid,
     doc_id: Uuid,
-    workspace_role: Option<WorkspaceRole>,
+    access: WorkspaceAccess,
   ) -> AuthResult<DocRole> {
     let document_role = self.store.get_doc_role(user_id, doc_id).await?;
-    Ok(fixup_doc_role(workspace_role, document_role))
+    Ok(access.document_role(document_role))
   }
 
   /// Return the subset of `doc_ids` for which the user may read document data.
@@ -218,18 +227,13 @@ impl PermissionService {
       return Ok(HashMap::new());
     }
 
-    let workspace_role = self.get_effective_workspace_role(user_id, workspace_id).await?;
+    let access = self.resolve_workspace_access(user_id, workspace_id).await?;
     let explicit_roles = self.store.get_doc_roles_bulk(user_id, doc_ids).await?;
     Ok(
       doc_ids
         .iter()
         .copied()
-        .map(|doc_id| {
-          (
-            doc_id,
-            fixup_doc_role(workspace_role, explicit_roles.get(&doc_id).copied()),
-          )
-        })
+        .map(|doc_id| (doc_id, access.document_role(explicit_roles.get(&doc_id).copied())))
         .collect(),
     )
   }

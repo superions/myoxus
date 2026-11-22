@@ -2919,9 +2919,10 @@ impl ApiMutationRoot {
     hash: Option<String>,
     key: Option<String>,
     permanently: Option<bool>,
+    only_if_unused: Option<bool>,
   ) -> Result<bool> {
     auth::MutationRoot
-      .delete_blob(ctx, workspace_id, hash, key, permanently)
+      .delete_blob(ctx, workspace_id, hash, key, permanently, only_if_unused)
       .await
   }
 
@@ -6225,6 +6226,7 @@ fn is_runtime_user_feature(feature: crate::config::CompatibilityFeature) -> bool
   !matches!(
     feature,
     crate::config::CompatibilityFeature::Admin
+      | crate::config::CompatibilityFeature::Manager
       | crate::config::CompatibilityFeature::FreePlan
       | crate::config::CompatibilityFeature::LifetimeProPlan
       | crate::config::CompatibilityFeature::ProPlan
@@ -6237,6 +6239,7 @@ fn is_runtime_workspace_feature(feature: crate::config::CompatibilityFeature) ->
   !matches!(
     feature,
     crate::config::CompatibilityFeature::Admin
+      | crate::config::CompatibilityFeature::Manager
       | crate::config::CompatibilityFeature::FreePlan
       | crate::config::CompatibilityFeature::LifetimeProPlan
       | crate::config::CompatibilityFeature::ProPlan
@@ -6329,6 +6332,21 @@ pub async fn list_users_with_feature_filter(
 
   let user_ids = matched.iter().map(|user| user.id).collect::<Vec<_>>();
   let overrides_by_user = load_user_feature_overrides(state, &user_ids).await?;
+  // Manager is a role-derived compatibility filter, independent of feature defaults.
+  let needs_manager = features.contains(&auth::FeatureType::Manager);
+  let managers = if needs_manager {
+    state
+      .auth()
+      .user_feature_overrides(&user_ids, USER_FEATURE_MANAGER)
+      .await
+      .map_err(utils::map_gql_error)?
+  } else {
+    HashMap::new()
+  };
+  let features: Vec<_> = features
+    .into_iter()
+    .filter(|f| *f != auth::FeatureType::Manager)
+    .collect();
 
   Ok(
     matched
@@ -6338,7 +6356,8 @@ pub async fn list_users_with_feature_filter(
           .get(&user.id)
           .copied()
           .unwrap_or_else(UserFeatureOverrides::default);
-        user_matches_features(user.is_admin, &default_user_features, overrides, &features)
+        (!needs_manager || managers.contains_key(&user.id))
+          && user_matches_features(user.is_admin, &default_user_features, overrides, &features)
       })
       .collect(),
   )

@@ -1,6 +1,6 @@
 // Import the identifier for internal use
 import { Service } from "@myoxus/infra";
-import { uniReactRoot } from "@myoxus/lit-react";
+import { uniReactRoot } from "@myoxus/lit-react/uni-component";
 import { IconPicker } from "@myoxus/ui-facade";
 import { type IconPickerService as IIconPickerService } from "@virgultum/core/services";
 

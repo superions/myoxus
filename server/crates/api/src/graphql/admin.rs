@@ -3926,7 +3926,7 @@ impl AdminRoot {
 
   /// List all template default policies (admin only).
   ///
-  /// Returns every row in `template_default_policies`. Used by the
+  /// Returns every configured template default policy. Used by the
   /// Default-Policies admin tab (P125-TPL-A-06).
   #[graphql(name = "templateDefaultPolicies")]
   #[instrument(skip(self, ctx))]
@@ -4607,7 +4607,7 @@ impl AdminRoot {
     if publication_boundary_changed
       && let Err(error) = state.public_repository().invalidate_workspace(workspace_id).await
     {
-      warn!(%workspace_id, %error, "admin workspace publication artifact invalidation failed");
+      warn!(%workspace_id, %error, "admin workspace publication asset manifest invalidation failed");
     }
 
     // Invalidate blob quota cache so next upload sees the new limit immediately.
@@ -5925,7 +5925,7 @@ impl AdminRoot {
 
   /// Set a template default policy (admin only).
   ///
-  /// Creates or updates the row in `template_default_policies` that drives
+  /// Creates or updates the template catalog policy that drives
   /// automatic seeding of new workspaces.
   #[graphql(name = "setTemplateDefaultPolicy")]
   #[instrument(skip(self, ctx))]

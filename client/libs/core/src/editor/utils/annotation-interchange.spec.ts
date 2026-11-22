@@ -37,7 +37,7 @@ import {
   insertFromMarkdown,
   replaceFromMarkdown,
 } from "./markdown-utils";
-import { __test__ as exportActions } from "../../components/hooks/myoxus/use-export-page";
+import { __test__ as exportActions } from "../../components/hooks/myoxus/page-export-actions";
 import { MarkdownTransformer } from "@virgultum/editor/widgets/linked-doc";
 import { TemplateJob } from "@virgultum/editor/gfx/template";
 import type { SurfaceBlockModel } from "@virgultum/editor/blocks/surface";

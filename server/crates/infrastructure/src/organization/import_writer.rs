@@ -6,7 +6,7 @@
 //! preserves fields absent from CSV, and commits organization, OU, membership,
 //! workspace-owner, capability, and policy projections together.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use async_trait::async_trait;
 use chrono::Utc;
@@ -316,9 +316,8 @@ impl PgOrganizationImportWriter {
         .bind(&emails)
         .fetch_all(&mut *tx)
         .await?;
-    PgManagerCapabilityWriter::lock_users(&mut tx, &member_user_ids).await?;
+    PgOrganizationUnitMemberRepository::lock_users(&mut tx, &member_user_ids).await?;
 
-    let mut capability_candidates = HashSet::new();
     for member in members {
       let unit_id = unit_ids
         .get(&member.ou_slug)
@@ -368,9 +367,6 @@ impl PgOrganizationImportWriter {
       };
       let role = OrganizationUnitRole::parse_or_member(&member.role);
       let source = OrganizationUnitMemberSource::parse_or_manual(&member.source);
-      if existing.as_ref().is_some_and(|value| value.role == "manager") || role == OrganizationUnitRole::Manager {
-        capability_candidates.insert(user_id);
-      }
       if existing.as_ref().is_some_and(|value| {
         value.role == role.as_str() && value.source == source.as_str() && value.metadata == metadata
       }) {
@@ -401,18 +397,6 @@ impl PgOrganizationImportWriter {
         summary.members_updated += 1;
       } else {
         summary.members_inserted += 1;
-      }
-    }
-
-    let mut capability_candidates: Vec<Uuid> = capability_candidates.into_iter().collect();
-    capability_candidates.sort_unstable();
-    let mut manager_capability_users = Vec::new();
-    for user_id in capability_candidates {
-      if PgManagerCapabilityWriter::sync_in_transaction(&mut tx, user_id)
-        .await
-        .map_err(ApplyAttemptError::Sql)?
-      {
-        manager_capability_users.push(user_id);
       }
     }
 
@@ -502,10 +486,7 @@ impl PgOrganizationImportWriter {
     }
 
     tx.commit().await?;
-    Ok(OrganizationImportCommit {
-      summary,
-      manager_capability_users,
-    })
+    Ok(OrganizationImportCommit { summary })
   }
 }
 
@@ -679,7 +660,6 @@ fn database_code(error: &sqlx::Error) -> Option<String> {
 }
 
 use super::{
-  PgManagerCapabilityWriter, PgOrganizationPolicyRepository, PgOrganizationRepository,
-  PgOrganizationUnitMemberRepository, PgOrganizationUnitRepository, PgOrganizationUnitTypeRepository,
-  PgOrganizationUnitWorkspaceRepository,
+  PgOrganizationPolicyRepository, PgOrganizationRepository, PgOrganizationUnitMemberRepository,
+  PgOrganizationUnitRepository, PgOrganizationUnitTypeRepository, PgOrganizationUnitWorkspaceRepository,
 };

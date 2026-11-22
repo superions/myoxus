@@ -126,8 +126,8 @@ pub(super) async fn enqueue(
     && let Some(workspace) = event.workspace_id
   {
     let members = sqlx::query(
-      "SELECT users.id, users.email FROM workspace_memberships m JOIN users ON users.id = m.user_id \
-      WHERE m.workspace_id = $1 AND m.status = 'Accepted' AND users.status = 'active' ORDER BY users.id",
+      "SELECT users.id, users.email FROM workspace_effective_roles m JOIN users ON users.id = m.user_id \
+      WHERE m.workspace_id = $1 AND users.status = 'active' ORDER BY users.id",
     )
     .bind(workspace)
     .fetch_all(&mut **tx)

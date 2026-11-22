@@ -1213,8 +1213,8 @@ async fn status(args: StatusArgs, pool: &PgPool, json: bool) -> anyhow::Result<(
         SELECT
           (SELECT COUNT(*) FROM git_sync_conflicts WHERE profile_id = $1 AND resolution = 'Open') AS open_doc_conflicts,
           (SELECT COUNT(*) FROM git_sync_file_conflicts WHERE profile_id = $1 AND resolution = 'Open') AS open_file_conflicts,
-          (SELECT COUNT(*) FROM git_sync_bindings WHERE profile_id = $1 AND tombstone = false) AS total_doc_bindings,
-          (SELECT COUNT(*) FROM git_sync_file_bindings WHERE profile_id = $1 AND tombstoned = false) AS total_file_bindings
+          COUNT(doc_id) AS total_doc_bindings, COUNT(blob_key) AS total_file_bindings
+        FROM git_sync_bindings WHERE profile_id = $1 AND NOT tombstone
       ),
       latest_partial AS (
         SELECT

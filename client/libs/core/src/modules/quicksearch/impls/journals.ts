@@ -82,9 +82,7 @@ export class JournalsQuickSearchSession
         absolute: { accuracy: "day" },
       });
 
-      const icon = this.docDisplayMetaService.getJournalIcon(dateString, {
-        type: "rc",
-      });
+      const icon = this.docDisplayMetaService.getJournalIcon(dateString);
 
       items.unshift({
         icon,

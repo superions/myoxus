@@ -46,7 +46,7 @@ async fn history_metadata_survives_failed_lineage_and_denies_foreign_ids() {
       .bind(operation).bind(Uuid::new_v4()).bind(owner).bind(workspace).bind(other_workspace).bind(&hash).execute(&pool).await.unwrap();
     sqlx::query("INSERT INTO workspace_content_move_revision_manifests(operation_id,manifest,manifest_hash) VALUES($1,$2,$3)")
       .bind(operation).bind(json!({"history_reference_lineage":[{"history_id":history}]})).bind(&hash).execute(&pool).await.unwrap();
-    sqlx::query("INSERT INTO workspace_content_move_publications(operation_id,source_workspace_id,target_workspace_id,manifest_hash,resource_count,diagnostic_instance_id) VALUES($1,$2,$3,$4,1,'hist02-lineage-fixture')")
+    sqlx::query("INSERT INTO workspace_content_publications(kind, operation_id,source_workspace_id,target_workspace_id,manifest_hash,resource_count,diagnostic_instance_id) VALUES ('move', $1,$2,$3,$4,1,'hist02-lineage-fixture')")
       .bind(operation).bind(workspace).bind(other_workspace).bind(&hash).execute(&pool).await.unwrap();
     let query = "query($w:String!,$d:String!,$s:ID!) { workspace(id:$w) { histories(guid:$d,take:10) { snapshotId timestamp origin editor { name } } history(guid:$d,snapshotId:$s) { snapshotId timestamp origin editor { name } } } }";
     let variables = json!({"w":workspace.to_string(),"d":doc.to_string(),"s":history.to_string()});

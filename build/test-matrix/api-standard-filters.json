@@ -38,7 +38,7 @@
     "graphql_git_sync_profile_test::git_sync_runs_expose_completed_pre_push_and_reconciliation_truth",
     "graphql_git_sync_profile_test::cron_profile_preview_and_manual_trigger_preserve_server_owned_schedule",
     "git_sync_db_invariants_test::reconciliation_apply_is_atomic_audited_and_idempotent",
-    "git_sync_db_invariants_test::reconciliation_adoption_is_trigger_owned_atomic_and_idempotent",
+    "git_sync_db_invariants_test::reconciliation_adoption_is_atomic_and_idempotent",
     "git_sync_db_invariants_test::post_push_constraint_failure_rolls_back_normal_state_and_records_reconciliation",
     "git_sync_db_invariants_test::post_push_import_cannot_overwrite_a_document_snapshot_from_another_workspace",
     "git_sync_db_invariants_test::token_rotation_admission_is_single_row_and_mutually_exclusive_with_runs",

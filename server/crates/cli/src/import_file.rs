@@ -438,8 +438,8 @@ async fn resolve_workspace(svc: &Services, args: &ImportFileArgs) -> anyhow::Res
 async fn check_membership(pool: &PgPool, workspace_id: Uuid, user_id: Uuid) -> anyhow::Result<()> {
   let is_member: bool = sqlx::query_scalar(
     "SELECT EXISTS(
-            SELECT 1 FROM workspace_memberships
-            WHERE workspace_id = $1 AND user_id = $2 AND status = 'Accepted'
+            SELECT 1 FROM workspace_effective_roles
+            WHERE workspace_id = $1 AND user_id = $2 AND role IN ('Owner','Admin','Manager','Collaborator')
         )",
   )
   .bind(workspace_id)

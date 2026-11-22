@@ -983,13 +983,6 @@ BEGIN
          WHERE id = v_beta;
     END IF;
 
-    INSERT INTO user_features (user_id, feature_name, activated, reason)
-    VALUES (v_admin, 'manager', true, 'seed: organization manager')
-    ON CONFLICT (user_id, feature_name) DO UPDATE
-      SET activated = true,
-          reason = EXCLUDED.reason,
-          updated_at = now();
-
     INSERT INTO organization_unit_member (unit_id, user_id, role, source, metadata)
     VALUES
       (v_root, v_admin, 'manager', 'manual', jsonb_build_object('seed', 'manual-test')),
@@ -1013,10 +1006,10 @@ BEGIN
     IF v_alpha_ws IS NULL THEN
         INSERT INTO workspaces (
             owner_user_id, name, public,
-            owner_principal_type, owner_principal_id, management_unit_id, created_by_user_id
+            owner_principal_type, owner_principal_id, management_unit_id, created_by_user_id, ou_member_role
         ) VALUES (
             NULL, 'Alpha', false,
-            'ou', v_alpha, v_alpha, v_admin
+            'ou', v_alpha, v_alpha, v_admin, 'Collaborator'
         )
         RETURNING id INTO v_alpha_ws;
     ELSE
@@ -1043,10 +1036,10 @@ BEGIN
     IF v_beta_ws IS NULL THEN
         INSERT INTO workspaces (
             owner_user_id, name, public,
-            owner_principal_type, owner_principal_id, management_unit_id, created_by_user_id
+            owner_principal_type, owner_principal_id, management_unit_id, created_by_user_id, ou_member_role
         ) VALUES (
             NULL, 'Beta', false,
-            'ou', v_beta, v_beta, v_admin
+            'ou', v_beta, v_beta, v_admin, 'Collaborator'
         )
         RETURNING id INTO v_beta_ws;
     ELSE
@@ -1067,8 +1060,8 @@ BEGIN
     VALUES
       (v_alpha, v_alpha_ws, 'owner'),
       (v_beta, v_beta_ws, 'owner')
-    ON CONFLICT (unit_id, workspace_id, relationship) DO UPDATE
-      SET updated_at = now();
+    ON CONFLICT (unit_id, workspace_id) DO UPDATE
+      SET relationship = excluded.relationship, updated_at = now();
 
     INSERT INTO docs (id, workspace_id, title, is_workspace_root, created_by, updated_by)
     VALUES
@@ -1100,11 +1093,10 @@ BEGIN
         id, workspace_id, template_id, selection_mode, selected_revision_id,
         provisioning_mode, is_enabled, created_at, updated_at
     )
-    SELECT gen_random_uuid(), target.workspace_id, dp.template_id, dp.selection_mode, NULL,
-           dp.provisioning_mode, true, now(), now()
+    SELECT gen_random_uuid(), target.workspace_id, c.id, c.selection_mode, NULL,
+           c.provisioning_mode, true, now(), now()
       FROM (VALUES (v_alpha_ws), (v_beta_ws)) AS target(workspace_id)
-      JOIN template_default_policies dp ON dp.apply_to_new_workspaces = true
-      JOIN template_catalog_entries c ON c.id = dp.template_id
+      JOIN template_catalog_entries c ON c.apply_to_new_workspaces = true
      WHERE c.source = 'builtin'
        AND c.status = 'active'
     ON CONFLICT (workspace_id, template_id) DO NOTHING;

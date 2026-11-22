@@ -1,6 +1,7 @@
 import { type Framework } from "@myoxus/infra";
 
 import { DocsSearchService } from "../docs-search";
+import { WorkspaceServerService } from "../server";
 import { WorkspaceScope, WorkspaceService } from "../workspace";
 import { WorkspaceFlavoursService } from "../workspace/services/flavours";
 import { UnusedBlobs } from "./entity/unused-blobs";
@@ -13,6 +14,7 @@ export function configureBlobManagementModule(framework: Framework) {
       WorkspaceFlavoursService,
       WorkspaceService,
       DocsSearchService,
+      WorkspaceServerService,
     ])
     .service(BlobManagementService);
 }

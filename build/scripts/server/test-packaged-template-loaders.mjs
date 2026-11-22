@@ -765,7 +765,7 @@ nativeSourceSet();
 const registrationCatalog = readFileSync(catalogPath);
 const registrationDocuments = documentStates();
 const registrationDefaultsQuery =
-  "SELECT to_jsonb(p) FROM template_default_policies p ORDER BY template_id";
+  "SELECT jsonb_build_array(p.id,p.apply_to_new_workspaces,p.selection_mode,p.provisioning_mode,p.release_managed,p.policy_created_at,p.policy_updated_at) FROM template_catalog_entries p WHERE p.apply_to_new_workspaces IS NOT NULL ORDER BY p.id";
 const registrationDefaults = sql(registrationDefaultsQuery);
 const registrationContentQuery = `SELECT jsonb_build_object(
   'workspaces',(SELECT jsonb_agg(to_jsonb(w) ORDER BY id) FROM workspaces w),

@@ -1,106 +1,57 @@
-import { map, type Observable } from "rxjs";
-
+import { DummyIndexerStorage } from "../storage/dummy/indexer";
+import { DummyIndexerSyncStorage } from "../storage/dummy/indexer-sync";
 import type { SpaceStorage } from "../storage";
-import { AwarenessSyncImpl } from "./awareness";
-import { BlobSyncImpl } from "./blob";
-import { DocSyncImpl, type DocSyncState } from "./doc";
 import { IndexerSyncImpl } from "./indexer";
+import { TransportSync } from "./transport";
 import type { PeerStorageOptions } from "./types";
+export type * from "./transport";
 
-export type { BlobSyncState } from "./blob";
-export type { DocSyncDocState, DocSyncState } from "./doc";
-export type {
-  IndexerDocSyncState,
-  IndexerPreferOptions,
-  IndexerSyncState,
-} from "./indexer";
-
-export interface SyncState {
-  doc?: DocSyncState;
-}
-
-export class Sync {
-  readonly doc: DocSyncImpl;
-  readonly blob: BlobSyncImpl;
-  readonly awareness: AwarenessSyncImpl;
+/** Native/local sessions add search to the shared document/blob transport. */
+export class Sync extends TransportSync {
+  private pauseTimer?: ReturnType<typeof setTimeout>;
+  private paused = false;
+  scheduleIndexPause() {
+    if (!this.pauseTimer && !this.paused)
+      this.pauseTimer = setTimeout(() => {
+        this.paused = true;
+        this.indexer.pauseSync();
+        this.pauseTimer = undefined;
+      }, 1000);
+  }
+  resumeIndex() {
+    clearTimeout(this.pauseTimer);
+    this.pauseTimer = undefined;
+    if (this.paused) this.indexer.resumeSync();
+    this.paused = false;
+  }
   readonly indexer: IndexerSyncImpl;
-
-  readonly state$: Observable<SyncState>;
-
-  constructor(readonly storages: PeerStorageOptions<SpaceStorage>) {
-    const doc = storages.local.get("doc");
-    const blob = storages.local.get("blob");
-    const docSync = storages.local.get("docSync");
-    const blobSync = storages.local.get("blobSync");
-    const awareness = storages.local.get("awareness");
-    const indexer = storages.local.get("indexer");
-    const indexerSync = storages.local.get("indexerSync");
-
-    this.doc = new DocSyncImpl(
-      {
-        local: doc,
-        remotes: Object.fromEntries(
-          Object.entries(storages.remotes).map(([peerId, remote]) => [
-            peerId,
-            remote.get("doc"),
-          ]),
-        ),
-      },
-      docSync,
-    );
-    this.blob = new BlobSyncImpl(
-      {
-        local: blob,
-        remotes: Object.fromEntries(
-          Object.entries(storages.remotes).map(([peerId, remote]) => [
-            peerId,
-            remote.get("blob"),
-          ]),
-        ),
-      },
-      blobSync,
-    );
-    this.awareness = new AwarenessSyncImpl({
-      local: awareness,
-      remotes: Object.fromEntries(
-        Object.entries(storages.remotes).map(([peerId, remote]) => [
-          peerId,
-          remote.get("awareness"),
-        ]),
-      ),
-    });
+  constructor(storages: PeerStorageOptions<SpaceStorage>) {
+    super(storages);
     this.indexer = new IndexerSyncImpl(
-      doc,
+      storages.local.get("doc"),
       {
-        local: indexer,
+        local: storages.local.optional("indexer") ?? new DummyIndexerStorage(),
         remotes: Object.fromEntries(
-          Object.entries(storages.remotes).map(([peerId, remote]) => [
-            peerId,
-            remote.get("indexer"),
+          Object.entries(storages.remotes).map(([id, remote]) => [
+            id,
+            remote.optional("indexer") ?? new DummyIndexerStorage(),
           ]),
         ),
       },
-      indexerSync,
+      storages.local.optional("indexerSync") ?? new DummyIndexerSyncStorage(),
     );
-
-    this.state$ = this.doc.state$.pipe(map((doc) => ({ doc })));
   }
-
-  start() {
-    this.doc?.start();
-    this.blob?.start();
-    this.indexer?.start();
+  override start() {
+    super.start();
+    this.indexer.start();
   }
-
-  stop() {
-    this.doc?.stop();
-    this.blob?.stop();
-    this.indexer?.stop();
+  override stop() {
+    super.stop();
+    this.indexer.stop();
   }
-
-  async stopAndWait() {
-    this.doc?.stop();
-    this.blob?.stop();
-    await this.indexer?.stopAndWait();
+  override async stopAndWait() {
+    clearTimeout(this.pauseTimer);
+    super.stop();
+    await this.indexer.stopAndWait();
   }
 }

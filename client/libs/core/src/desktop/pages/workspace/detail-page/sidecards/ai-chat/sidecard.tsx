@@ -2,7 +2,10 @@
 // SPDX-License-Identifier: MIT
 
 import { useEnableAI } from "@myoxus/core/components/hooks/myoxus/use-enable-ai";
-import { type AIChatParams, AIProvider } from "@myoxus/core/editor/ai";
+import {
+  type AIChatParams,
+  AIProvider,
+} from "@myoxus/core/editor/ai/provider/ai-provider";
 import type { MyoxusEditorContainer } from "@myoxus/core/editor/virgultum/doc-editor";
 import {
   ViewContextSurface,
@@ -11,10 +14,24 @@ import {
 import { useI18n } from "@myoxus/i18n";
 import { AiIcon } from "@myoxus/icons/react";
 import { useService } from "@myoxus/infra";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
+import { EditorService } from "@myoxus/core/modules/editor";
 import type { Subscription } from "rxjs";
 
-import { EditorChatPanel } from "./panel";
+const EditorChatPanel = lazy(async () => ({
+  default: (await import("./panel")).EditorChatPanel,
+}));
+function ChatBody({ editor }: { editor: MyoxusEditorContainer | null }) {
+  const owner = useService(EditorService).editor;
+  useEffect(() => {
+    if (!editor) owner.requireEditorHost();
+  }, [editor, owner]);
+  return (
+    <Suspense>
+      <EditorChatPanel editor={editor} />
+    </Suspense>
+  );
+}
 
 const DOCUMENT_VIEW_FAMILIES = [
   "document-page",
@@ -69,7 +86,7 @@ export function AiChatSidecard({
       retainBodyWhenCollapsed
       boundedBody
     >
-      <EditorChatPanel editor={editor} />
+      <ChatBody editor={editor} />
     </ViewContextSurface>
   );
 }

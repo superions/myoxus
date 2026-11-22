@@ -44,6 +44,8 @@ export class WorkspaceEngine extends Entity<{
     if (!this.client) {
       throw new Error("Engine is not initialized");
     }
+    if (!this.client.indexerFrontend)
+      throw new Error("This workspace has no local search index");
     return this.client.indexerFrontend;
   }
 
@@ -66,6 +68,7 @@ export class WorkspaceEngine extends Entity<{
       this.props.engineWorkerInitOptions,
     );
     if (
+      !BUILD_CONFIG.isWeb &&
       this.featureFlagService.flags.enable_battery_save_mode.value &&
       this.workspaceService.workspace.flavour !== "local"
     ) {
@@ -88,7 +91,7 @@ export class WorkspaceEngine extends Entity<{
     const rootDoc = this.workspaceService.workspace.docCollection.doc;
     // priority load root doc
     this.doc.addPriority(rootDoc.guid, 100);
-    this.indexer.addPriority(rootDoc.guid, 100);
+    if (!BUILD_CONFIG.isWeb) this.indexer.addPriority(rootDoc.guid, 100);
     this.doc.start();
     this.disposables.push(() => this.doc.stop());
 

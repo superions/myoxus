@@ -1,3 +1,4 @@
+import { unusedBlobsQuery } from "@myoxus/graphql";
 import {
   catchErrorInto,
   effect,
@@ -12,6 +13,7 @@ import { fileTypeFromBuffer } from "file-type";
 import { switchMap, tap } from "rxjs";
 
 import type { DocsSearchService } from "../../docs-search";
+import type { WorkspaceServerService } from "../../server";
 import type { WorkspaceService } from "../../workspace";
 import type { WorkspaceFlavoursService } from "../../workspace/services/flavours";
 
@@ -57,6 +59,7 @@ export class UnusedBlobs extends Entity {
     private readonly flavoursService: WorkspaceFlavoursService,
     private readonly workspaceService: WorkspaceService,
     private readonly docsSearchService: DocsSearchService,
+    private readonly workspaceServer: WorkspaceServerService,
   ) {
     super();
   }
@@ -64,15 +67,27 @@ export class UnusedBlobs extends Entity {
   isLoading$ = new LiveData(false);
   loadError$ = new LiveData<any | null>(null);
   unusedBlobs$ = new LiveData<ListedBlobRecord[]>([]);
+  total$ = new LiveData(0);
+  private get serverPaged() {
+    return (
+      BUILD_CONFIG.isWeb && this.workspaceService.workspace.flavour !== "local"
+    );
+  }
 
   readonly revalidate = effect(
-    switchMap(() =>
+    switchMap(({ offset, first }: { offset: number; first: number }) =>
       fromPromise(async (signal) => {
-        return await this.getUnusedBlobs(signal);
+        if (this.serverPaged) return this.readPage(offset, first, signal);
+        const items = await this.getUnusedBlobs(signal);
+        return {
+          items: items.slice(offset, offset + first),
+          total: items.length,
+        };
       }).pipe(
         tap((data) => {
           this.loadError$.setValue(null);
-          this.unusedBlobs$.setValue(data);
+          this.unusedBlobs$.setValue(data.items);
+          this.total$.setValue(data.total);
         }),
         catchErrorInto(this.loadError$, (error) => {
           console.warn("[workspace-storage] unused blob scan failed", {
@@ -80,7 +95,10 @@ export class UnusedBlobs extends Entity {
             error,
           });
         }),
-        onStart(() => this.isLoading$.setValue(true)),
+        onStart(() => {
+          this.unusedBlobs$.setValue([]);
+          this.isLoading$.setValue(true);
+        }),
         onComplete(() => this.isLoading$.setValue(false)),
       ),
     ),
@@ -108,10 +126,14 @@ export class UnusedBlobs extends Entity {
   }
 
   async deleteBlob(blob: string, permanent: boolean) {
+    if (this.serverPaged) {
+      await this.workspaceService.workspace.engine.doc.waitForSynced();
+    }
     await this.flavourProvider?.deleteBlob(
       this.workspaceService.workspace.id,
       blob,
       permanent,
+      this.serverPaged || undefined,
     );
   }
 
@@ -139,6 +161,28 @@ export class UnusedBlobs extends Entity {
         (blob) => !usedBlobs.includes(blob.key) && blob.key !== workspaceAvatar,
       ) ?? []
     );
+  }
+
+  private async readPage(offset: number, first: number, signal?: AbortSignal) {
+    const workspace = this.workspaceService.workspace;
+    await workspace.engine.doc.waitForSynced(undefined, signal);
+    const server = this.workspaceServer.server;
+    if (!server) throw new Error("Workspace server unavailable");
+    const result = await server.gql({
+      query: unusedBlobsQuery,
+      variables: { workspaceId: workspace.id, offset, first },
+      context: { signal },
+    });
+    const page = result.workspace?.unusedBlobs;
+    if (!page?.ready)
+      throw new Error("Document attachment usage is not current");
+    return {
+      total: page.total,
+      items: page.items.map((b) => ({
+        ...b,
+        createdAt: new Date(b.createdAt),
+      })),
+    };
   }
 
   private async getUsedBlobs(): Promise<string[]> {

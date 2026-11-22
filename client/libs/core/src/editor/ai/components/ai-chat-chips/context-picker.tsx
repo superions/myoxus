@@ -5,6 +5,7 @@ import {
   HiddenFileInput,
   IconButton,
   MyoxusLoader,
+  notify,
   Popover,
   PopoverContent,
   PopoverTarget,
@@ -12,16 +13,13 @@ import {
   type SearchComboboxOption,
   Stack,
 } from "@myoxus/ui-facade";
-import type { Signal } from "@preact/signals-core";
 import {
   type ReactNode,
-  useCallback,
   useEffect,
   useId,
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
 } from "react";
 
 export function ContextPicker({
@@ -82,6 +80,7 @@ export function ContextPicker({
       position="bottom-start"
       contentMeasure="reading"
       fitViewport
+      floatingStrategy="fixed"
       trapFocus
       returnFocus
       closeOnEscape
@@ -114,13 +113,13 @@ export interface ContextSearchOption extends SearchComboboxOption {
   action: () => void | Promise<void>;
 }
 export interface ContextSearchProps {
-  query: Signal<string>;
+  query: string;
   placeholder: string;
   options: ContextSearchOption[];
   loading?: boolean;
   onQueryChange: (query: string) => void;
-  onFiles: (files: File[]) => void;
-  onImages: (files: File[]) => void;
+  onFiles?: (files: File[]) => void | Promise<void>;
+  onImages?: (files: File[]) => void;
   onClose: () => void;
 }
 
@@ -130,11 +129,13 @@ export function ContextSearch(props: ContextSearchProps) {
   const id = useId();
   const imageInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
-  const subscribe = useCallback(
-    (notify: () => void) => props.query.subscribe(notify),
-    [props.query],
-  );
-  const query = useSyncExternalStore(subscribe, () => props.query.value);
+  const run = async (action: () => void | Promise<void>) => {
+    try {
+      await action();
+    } catch {
+      notify({ title: t["com.myoxus.ai.chat-panel.context-error"]() });
+    }
+  };
   const [active, setActive] = useState(0);
   const options = props.options.map((option) => ({
     ...option,
@@ -151,13 +152,13 @@ export function ContextSearch(props: ContextSearchProps) {
       return;
     }
     const item = props.options.find((item) => `${id}-${item.id}` === option.id);
-    void item?.action();
+    if (item) void run(item.action);
   };
   return (
     <Stack data-testid="ai-add-popover">
       <SearchCombobox
         embedded
-        value={query}
+        value={props.query}
         placeholder={props.placeholder}
         isOpen
         listboxId={`${id}-options`}
@@ -213,7 +214,7 @@ export function ContextSearch(props: ContextSearchProps) {
         onChange={(event) => {
           const files = Array.from(event.currentTarget.files ?? []);
           event.currentTarget.value = "";
-          if (files.length) props.onImages(files);
+          if (files.length) void run(() => props.onImages?.(files));
         }}
       />
       <HiddenFileInput
@@ -223,7 +224,7 @@ export function ContextSearch(props: ContextSearchProps) {
         onChange={(event) => {
           const files = Array.from(event.currentTarget.files ?? []);
           event.currentTarget.value = "";
-          if (files.length) props.onFiles(files);
+          if (files.length) void run(() => props.onFiles?.(files));
         }}
       />
     </Stack>

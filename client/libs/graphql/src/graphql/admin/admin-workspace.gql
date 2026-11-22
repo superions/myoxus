@@ -50,6 +50,9 @@ query adminWorkspace(
         email
         avatarUrl
         role
+        directRole
+        ouRole
+        ouNames
         status
       }
     }

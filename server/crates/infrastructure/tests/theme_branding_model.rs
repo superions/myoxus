@@ -30,15 +30,12 @@ async fn setup_pool() -> PgPool {
 
 async fn cleanup_theme_branding(pool: &PgPool) {
   for stmt in [
-    "DELETE FROM brand_identity_cutover_findings",
     "DELETE FROM document_brand_profiles",
     "DELETE FROM pdf_export_settings",
     "DELETE FROM app_server_branding",
     "DELETE FROM brand_assets",
     "DELETE FROM organization_identity",
     "DELETE FROM theme_profiles",
-    "DELETE FROM branding_assets",
-    "DELETE FROM branding_profiles",
     "DELETE FROM themes WHERE origin = 'system'",
     "DELETE FROM typography_styles WHERE typography_id IN (SELECT id FROM typography_sets WHERE origin = 'system')",
     "DELETE FROM typography_sets WHERE origin = 'system'",
@@ -144,17 +141,23 @@ async fn inv_theme_db_01_schema_and_seed_materialize_full_catalog() {
     "each theme must have exactly one default document palette"
   );
 
-  let color_values: i64 = sqlx::query_scalar(
-    "SELECT COUNT(*) FROM color_schema_values csv JOIN color_schemas cs ON cs.id = csv.schema_id WHERE cs.origin = 'system'",
+  let seed: serde_json::Value = serde_json::from_str(include_str!("../../../static/branding/theme-seed.json")).unwrap();
+  let mut required: Vec<String> = serde_json::from_value(seed["requiredColorKeys"].clone()).unwrap();
+  required.sort();
+  let palettes: Vec<Vec<String>> = sqlx::query_scalar(
+    "SELECT array_agg(csv.token_key ORDER BY csv.token_key) FROM color_schema_values csv
+     JOIN color_schemas cs ON cs.id=csv.schema_id WHERE cs.origin='system' GROUP BY cs.id, csv.mode",
   )
-  .fetch_one(&pool)
+  .fetch_all(&pool)
   .await
-  .expect("count color values");
-  assert_eq!(
-    color_values,
-    16 * 2 * 18,
-    "every city theme needs all light/dark color tokens"
-  );
+  .expect("load each system palette");
+  assert_eq!(palettes.len(), 16 * 2);
+  for palette in palettes {
+    assert_eq!(
+      palette, required,
+      "each light and dark palette must contain the complete color contract"
+    );
+  }
 
   let required_styles_missing: i64 = sqlx::query_scalar(
     r#"
@@ -477,17 +480,13 @@ async fn inv_brand_identity_01_pdf_projection_inherits_global_document_branding_
 }
 
 #[tokio::test]
-async fn inv_brand_identity_02_legacy_workspace_company_names_do_not_override_global_org() {
+async fn inv_brand_identity_02_workspace_pdf_uses_global_organization() {
   let _guard = theme_branding_guard().await;
   let pool = setup_pool().await;
   myoxus_infrastructure::migrations::run(&pool).await.expect("migrate");
   cleanup_theme_branding(&pool).await;
   seed_system_theme_branding(&pool).await.expect("seed");
 
-  let default_theme_id: Uuid = sqlx::query_scalar("SELECT id FROM themes WHERE is_default = TRUE LIMIT 1")
-    .fetch_one(&pool)
-    .await
-    .expect("default theme id");
   sqlx::query("UPDATE organization_identity SET display_name = 'Global Legal Org' WHERE id = TRUE")
     .execute(&pool)
     .await
@@ -507,19 +506,6 @@ async fn inv_brand_identity_02_legacy_workspace_company_names_do_not_override_gl
     .execute(&pool)
     .await
     .expect("insert workspace");
-  sqlx::query(
-    r#"
-    INSERT INTO branding_profiles
-      (scope, workspace_id, theme_id, theme_mode, company_name)
-    VALUES ('workspace', $1, $2, 'system', 'Rogue Workspace Org')
-    "#,
-  )
-  .bind(workspace_id)
-  .bind(default_theme_id)
-  .execute(&pool)
-  .await
-  .expect("insert legacy workspace company_name");
-
   let projection = PgPdfWorkspaceBrandAssetRepository::new(pool.clone())
     .get(workspace_id)
     .await
@@ -529,12 +515,7 @@ async fn inv_brand_identity_02_legacy_workspace_company_names_do_not_override_gl
   assert_eq!(
     projection.company_name.as_deref(),
     Some("Global Legal Org"),
-    "legacy workspace company_name must never become a workspace organisation override"
-  );
-  assert_ne!(
-    projection.company_name.as_deref(),
-    Some("Rogue Workspace Org"),
-    "the final brand model has no workspace-scoped organisation name"
+    "workspace PDF projection must use the global legal organization"
   );
 
   cleanup_theme_branding(&pool).await;

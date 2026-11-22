@@ -1,3 +1,4 @@
+import { litDocIcon } from "@myoxus/core/modules/doc-display-meta/services/lit-icon";
 import { DocDisplayMetaService } from "@myoxus/core/modules/doc-display-meta";
 import { LinkIcon, PageIcon } from "@myoxus/icons/lit";
 import { type FrameworkProvider } from "@myoxus/infra";
@@ -54,13 +55,12 @@ export function buildDocDisplayMetaExtension(framework: FrameworkProvider) {
       { params, title, referenced }: DocDisplayMetaParams = {},
     ): ReadonlySignal<TemplateResult> {
       const icon$ = docDisplayMetaService
-        .icon$(docId, {
-          type: "lit",
+        .iconDescriptor$(docId, {
           title,
           reference: referenced,
           referenceToNode: referenceToNode({ pageId: docId, params }),
         })
-        .map(iconBuilder);
+        .map((icon) => iconBuilder(litDocIcon(icon)));
 
       const { signal: iconSignal, cleanup } = createSignalFromObservable(
         icon$,

@@ -9,8 +9,6 @@ const CLOUD_INDEXED_DB_STORAGES = {
   blobSync: "IndexedDBBlobSyncStorage",
   doc: "IndexedDBDocStorage",
   docSync: "IndexedDBDocSyncStorage",
-  indexer: "IndexedDBIndexerStorage",
-  indexerSync: "IndexedDBIndexerSyncStorage",
 } as const;
 
 type IndexedDbOptions = {
@@ -35,7 +33,7 @@ function isIndexedDbOptions(value: unknown): value is IndexedDbOptions {
   );
 }
 
-/** Classifies only the six canonical Browser Web Cloud storage bindings. */
+/** Document and blob bindings own the cloud cache and pending-write fence. */
 export function classifyCloudWorkspaceDatabase(
   options: StoreInitOptions,
 ): RegisteredCloudDatabase | null {

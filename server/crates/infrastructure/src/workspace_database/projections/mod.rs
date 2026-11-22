@@ -145,7 +145,7 @@ impl DatabaseProjectionRepository for PgDatabaseRepository {
           FROM workspace_databases d
           JOIN workspace_database_fields f ON f.database_id = d.id AND f.field_type = 'rollup'
           JOIN workspace_database_rows r ON r.database_id = d.id
-          LEFT JOIN workspace_database_rollup_values rv ON rv.row_id = r.id AND rv.field_id = f.id
+          LEFT JOIN workspace_database_computed_values rv ON rv.row_id = r.id AND rv.field_id = f.id
           WHERE ($1::uuid IS NULL OR d.workspace_id = $1)
             AND d.deleted_at IS NULL
             AND (NOT EXISTS(SELECT 1 FROM database_profiles profile WHERE profile.database_id=d.id AND profile.profile_kind='project') OR myoxus_database_source_admitted(d.managed_installation))
@@ -158,7 +158,7 @@ impl DatabaseProjectionRepository for PgDatabaseRepository {
         FROM workspace_database_rows r
         JOIN workspace_database_fields f ON f.database_id = r.database_id AND f.field_type = 'rollup'
         JOIN candidate_databases cd ON cd.id = f.database_id
-        LEFT JOIN workspace_database_rollup_values rv ON rv.row_id = r.id AND rv.field_id = f.id
+        LEFT JOIN workspace_database_computed_values rv ON rv.row_id = r.id AND rv.field_id = f.id
         WHERE r.deleted_at IS NULL
           AND (rv.row_id IS NULL OR rv.stale_state IN ('stale', 'failed', 'recompute_pending'))
         ORDER BY f.database_id, r.position ASC, r.id ASC, f.position ASC, f.id ASC
@@ -271,7 +271,7 @@ impl DatabaseProjectionRepository for PgDatabaseRepository {
     let is_failed = stale_state == DatabaseRollupStaleState::Failed;
     sqlx::query(
       r#"
-        INSERT INTO workspace_database_rollup_values
+        INSERT INTO workspace_database_computed_values
           (database_id, row_id, field_id, value_json, source_hash, stale_state,
            computed_at, failed_at, error_code, error_message, updated_at)
         VALUES (
@@ -350,7 +350,7 @@ impl DatabaseProjectionRepository for PgDatabaseRepository {
           FROM workspace_databases d
           JOIN workspace_database_fields f ON f.database_id = d.id AND f.field_type = 'formula'
           JOIN workspace_database_rows r ON r.database_id = d.id
-          LEFT JOIN workspace_database_formula_values fv ON fv.row_id = r.id AND fv.field_id = f.id
+          LEFT JOIN workspace_database_computed_values fv ON fv.row_id = r.id AND fv.field_id = f.id
           WHERE ($1::uuid IS NULL OR d.workspace_id = $1)
             AND d.deleted_at IS NULL
             AND (NOT EXISTS(SELECT 1 FROM database_profiles profile WHERE profile.database_id=d.id AND profile.profile_kind='project') OR myoxus_database_source_admitted(d.managed_installation))
@@ -363,7 +363,7 @@ impl DatabaseProjectionRepository for PgDatabaseRepository {
         FROM workspace_database_rows r
         JOIN workspace_database_fields f ON f.database_id = r.database_id AND f.field_type = 'formula'
         JOIN candidate_databases cd ON cd.id = f.database_id
-        LEFT JOIN workspace_database_formula_values fv ON fv.row_id = r.id AND fv.field_id = f.id
+        LEFT JOIN workspace_database_computed_values fv ON fv.row_id = r.id AND fv.field_id = f.id
         WHERE r.deleted_at IS NULL
           AND (fv.row_id IS NULL OR fv.stale_state IN ('stale', 'failed', 'recompute_pending'))
         ORDER BY f.database_id, r.position ASC, r.id ASC, f.position ASC, f.id ASC
@@ -473,7 +473,7 @@ impl DatabaseProjectionRepository for PgDatabaseRepository {
     let is_failed = stale_state == DatabaseFormulaStaleState::Failed;
     sqlx::query(
       r#"
-        INSERT INTO workspace_database_formula_values
+        INSERT INTO workspace_database_computed_values
           (database_id, row_id, field_id, value_json, source_hash, stale_state,
            computed_at, failed_at, error_code, error_message, updated_at)
         VALUES (

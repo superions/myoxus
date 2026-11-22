@@ -66,15 +66,6 @@ setTelemetryTransport(storeManagerClient.telemetry);
 window.addEventListener("pagehide", (event) => {
   if (!event.persisted) storeManagerClient.dispose();
 });
-window.addEventListener("focus", () => {
-  storeManagerClient.resume();
-});
-window.addEventListener("click", () => {
-  storeManagerClient.resume();
-});
-window.addEventListener("blur", () => {
-  storeManagerClient.pause();
-});
 
 const framework = new Framework();
 configureCommonShellModules(framework);

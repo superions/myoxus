@@ -63,7 +63,11 @@ export class EdgelessNoteMask extends SignalWatcher(
     const maskDOM = this.renderRoot!.querySelector(".myoxus-note-mask");
     let frame = 0;
     let measuredHeight = 0;
-    const updateHeight = () => {
+    const container = this.closest<HTMLElement>(
+      ".virgultum-note-edgeless-container",
+    );
+    const noteView = this.closest<HTMLElement>("myoxus-edgeless-note");
+    const updateBounds = () => {
       frame = 0;
       if (
         !this.isConnected ||
@@ -74,10 +78,19 @@ export class EdgelessNoteMask extends SignalWatcher(
       const bound = Bound.deserialize(this.model.xywh);
       const scale = this.model.props.edgeless.scale ?? 1;
       const height = measuredHeight * scale;
-      if (!height || almostEqual(bound.h, height)) return;
-      // GFX hit testing uses model bounds, not the rendered Note height.
-      // Keep both aligned before serializing so lower content stays editable.
+      const width =
+        container && noteView && container.offsetWidth > noteView.offsetWidth
+          ? Math.max(bound.w, container.offsetWidth * scale)
+          : bound.w;
+      if (
+        !height ||
+        !width ||
+        (almostEqual(bound.h, height) && almostEqual(bound.w, width))
+      )
+        return;
+      // Canvas selection and hit testing must include the full rendered table.
       bound.h = height;
+      bound.w = width;
       this.model.stash("xywh");
       this.model.xywh = bound.serialize();
       this.model.pop("xywh");
@@ -92,7 +105,7 @@ export class EdgelessNoteMask extends SignalWatcher(
       // Updating the observed Note's geometry during delivery feeds its own
       // ancestor layout back into ResizeObserver. Coalesce the latest measure
       // into the next frame and recheck live readonly/collapse state there.
-      if (!frame) frame = requestAnimationFrame(updateHeight);
+      if (!frame) frame = requestAnimationFrame(updateBounds);
     });
 
     observer.observe(maskDOM!);

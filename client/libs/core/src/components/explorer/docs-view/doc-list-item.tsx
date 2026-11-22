@@ -300,7 +300,7 @@ const RawDocIcon = memo(function RawDocIcon({
 }: HTMLProps<SVGSVGElement>) {
   const docDisplayMetaService = useService(DocDisplayMetaService);
   const Icon = useLiveData(id ? docDisplayMetaService.icon$(id) : null);
-  return <Icon {...props} />;
+  return Icon ? <Icon {...props} /> : null;
 });
 const RawDocTitle = memo(function RawDocTitle({ id }: { id: string }) {
   const docDisplayMetaService = useService(DocDisplayMetaService);

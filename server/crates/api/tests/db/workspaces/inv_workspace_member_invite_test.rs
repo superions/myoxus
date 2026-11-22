@@ -427,9 +427,11 @@ async fn shared_workspace_invite_uses_canonical_workspace_pipeline() {
     "Shared"
   );
 
+  let (manager, manager_session) = helpers::seed_user(&pool, &auth_store, "shared_invite_manager").await;
+  helpers::make_manager_of(&pool, manager, unit_id).await;
   let invited = helpers::gql(
     &app,
-    admin_session,
+    manager_session,
     json!({
       "query": "mutation($workspace: ID!, $user: ID!) { inviteServerUserById(workspaceId: $workspace, userId: $user) }",
       "variables": {
@@ -520,5 +522,5 @@ async fn shared_workspace_invite_uses_canonical_workspace_pipeline() {
     .await
     .expect("delete shared workspace fixture");
   helpers::cleanup_organization_units(&pool, &[unit_id]).await;
-  helpers::cleanup_users(&pool, &[admin_id, target_id]).await;
+  helpers::cleanup_users(&pool, &[admin_id, manager, target_id]).await;
 }

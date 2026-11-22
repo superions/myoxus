@@ -40,11 +40,13 @@ use uuid::Uuid;
 /// Read the `activated` flag for a user's `manager`-feature row, returning
 /// `None` if no row exists yet.
 async fn read_manager_feature(pool: &PgPool, user_id: Uuid) -> Option<bool> {
-  sqlx::query_scalar::<_, bool>("SELECT activated FROM user_features WHERE user_id = $1 AND feature_name = 'manager'")
-    .bind(user_id)
-    .fetch_optional(pool)
-    .await
-    .expect("query user_features")
+  sqlx::query_scalar::<_, bool>(
+    "SELECT activated FROM effective_user_features WHERE user_id = $1 AND feature_name = 'manager'",
+  )
+  .bind(user_id)
+  .fetch_optional(pool)
+  .await
+  .expect("query user_features")
 }
 
 /// `inv_p_ar_2_s03_assign_manager_grants_capability` — Admin assigns
@@ -166,7 +168,7 @@ async fn inv_p_ar_2_s03_unassign_last_manager_revokes_capability() {
   // Capability now revoked (last manager-membership gone).
   assert_eq!(
     read_manager_feature(&pool, target_id).await,
-    Some(false),
+    None,
     "manager-capability must be revoked after last manager-membership removal"
   );
 
@@ -273,7 +275,7 @@ async fn inv_p_ar_2_s03_role_downgrade_last_manager_revokes_capability() {
   );
   assert_eq!(
     read_manager_feature(&pool, target_id).await,
-    Some(false),
+    None,
     "last manager-role downgrade must revoke manager capability"
   );
 
@@ -495,17 +497,16 @@ async fn inv_manual_membership_transaction_rolls_back_and_serializes_manager_tar
     manager_id: None,
   };
   let result = AssertUnwindSafe(async {
-    // The fault applies only to this disposable user's capability row. Failure
-    // must roll back the already-written membership, not just the feature row.
+    // Fail after inserting the scoped row to exercise transaction rollback.
     sqlx::query(&format!("CREATE FUNCTION {failure_name}() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.user_id = '{target}'::uuid THEN RAISE EXCEPTION 'owned capability failure'; END IF; RETURN NEW; END $$"))
       .execute(&pool).await.expect("create owned failure function");
-    sqlx::query(&format!("CREATE TRIGGER {failure_name} BEFORE INSERT OR UPDATE ON user_features FOR EACH ROW EXECUTE FUNCTION {failure_name}()"))
+    sqlx::query(&format!("CREATE TRIGGER {failure_name} AFTER INSERT OR UPDATE ON organization_unit_member FOR EACH ROW EXECUTE FUNCTION {failure_name}()"))
       .execute(&pool).await.expect("create owned failure trigger");
     assert!(writer.commit(&change).await.is_err(), "capability fault must reject aggregate");
     assert!(!sqlx::query_scalar::<_,bool>("SELECT EXISTS(SELECT 1 FROM organization_unit_member WHERE unit_id=$1 AND user_id=$2)")
       .bind(unit).bind(target).fetch_one(&pool).await.expect("read rollback membership"));
     assert_eq!(read_manager_feature(&pool,target).await, None);
-    sqlx::query(&format!("DROP TRIGGER {failure_name} ON user_features")).execute(&pool).await.expect("drop fault trigger");
+    sqlx::query(&format!("DROP TRIGGER {failure_name} ON organization_unit_member")).execute(&pool).await.expect("drop fault trigger");
     sqlx::query(&format!("DROP FUNCTION {failure_name}()")).execute(&pool).await.expect("drop fault function");
     let (a,b) = tokio::join!(writer.commit(&change), writer.commit(&change));
     assert_eq!(usize::from(a.is_ok())+usize::from(b.is_ok()),1,"add-only must have one winner");
@@ -531,19 +532,20 @@ async fn inv_manual_membership_transaction_rolls_back_and_serializes_manager_tar
     assert_eq!(removed.manager_capability,Some(false));
     assert!(writer.commit(&MembershipChange { operation:MembershipOperation::SetRole,..change.clone() }).await.is_err());
     assert!(writer.commit(&MembershipChange { operation:MembershipOperation::RemoveExisting,..change.clone() }).await.is_err());
-    // An explicit global grant is not owned by Reader/Member-only writes.
-    sqlx::query("UPDATE user_features SET activated=true,reason='explicit test grant' WHERE user_id=$1 AND feature_name='manager'")
-      .bind(target).execute(&pool).await.expect("explicit manager grant");
+    // A personal flag cannot grant organization authority.
+    assert!(sqlx::query("INSERT INTO user_features(user_id,feature_name,activated) VALUES ($1,'manager',true)").bind(target).execute(&pool).await.is_err());
     writer.commit(&MembershipChange { role:OrganizationUnitRole::Reader,..change.clone() }).await.expect("reader assignment");
     let response=helpers::gql(&app,manager_session,json!({"query":"mutation($u: ID!, $t: ID!) { addOrganizationUnitMemberAsManager(unitId:$u,userId:$t,role:Member) { role } }","variables":{"u":unit,"t":target}})).await;
     assert!(response["errors"].is_null(),"valid reader-to-member manager update: {response}");
     assert_eq!(response["data"]["addOrganizationUnitMemberAsManager"]["role"],"Member");
-    assert_eq!(read_manager_feature(&pool,target).await,Some(true));
+    assert_eq!(read_manager_feature(&pool,target).await,None);
   }).catch_unwind().await;
-  sqlx::query(&format!("DROP TRIGGER IF EXISTS {failure_name} ON user_features"))
-    .execute(&pool)
-    .await
-    .expect("cleanup owned trigger");
+  sqlx::query(&format!(
+    "DROP TRIGGER IF EXISTS {failure_name} ON organization_unit_member"
+  ))
+  .execute(&pool)
+  .await
+  .expect("cleanup owned trigger");
   sqlx::query(&format!("DROP FUNCTION IF EXISTS {failure_name}()"))
     .execute(&pool)
     .await

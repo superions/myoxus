@@ -227,7 +227,7 @@ pub fn map_gql_error(err: AuthError) -> Error {
       "SERVICE UNAVAILABLE",
       None,
     ),
-    AuthError::Storage(_) => (
+    AuthError::Storage(_) | AuthError::RowAttachment(_) => (
       "INTERNAL_SERVER_ERROR",
       "INTERNAL_SERVER_ERROR",
       "INTERNAL SERVER ERROR",

@@ -648,7 +648,7 @@ async fn load_existing_document_bindings(
   };
   let rows = sqlx::query(
     "SELECT doc_id, sync_id, repo_path
-     FROM git_sync_bindings
+     FROM git_sync_document_bindings
      WHERE profile_id = $1 AND tombstone = false",
   )
   .bind(profile_id)

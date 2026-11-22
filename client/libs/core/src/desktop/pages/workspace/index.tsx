@@ -52,8 +52,9 @@ import {
   useServices,
 } from "@myoxus/infra";
 import { DNDContext } from "@myoxus/ui-facade";
-import { ZipTransformer } from "@virgultum/editor/widgets/linked-doc";
 import {
+  lazy,
+  Suspense,
   type PropsWithChildren,
   type ReactElement,
   useEffect,
@@ -75,7 +76,9 @@ import { WorkbenchRoot } from "../../../modules/workbench";
 import { AppContainer } from "../../components/app-container";
 import { PageNotFound } from "../404";
 import { WorkspaceLayout } from "./layouts/workspace-layout";
-import { SharePage } from "./share/share-page";
+const SharePage = lazy(async () => ({
+  default: (await import("./share/share-page")).SharePage,
+}));
 
 declare global {
   /**
@@ -243,10 +246,12 @@ export const Component = (): ReactElement => {
     if (detailDocRoute) {
       return (
         <FrameworkScope scope={server?.scope}>
-          <SharePage
-            docId={detailDocRoute.docId}
-            workspaceId={detailDocRoute.workspaceId}
-          />
+          <Suspense>
+            <SharePage
+              docId={detailDocRoute.docId}
+              workspaceId={detailDocRoute.workspaceId}
+            />
+          </Suspense>
         </FrameworkScope>
       );
     }
@@ -348,6 +353,8 @@ const WorkspacePage = ({ meta }: { meta: WorkspaceMetadata }) => {
         const exported = Array.from(workspace.docCollection.docs.values())
           .filter((doc) => (docs ? docs.includes(doc.id) : true))
           .map((doc) => doc.getStore());
+        const { ZipTransformer } =
+          await import("@virgultum/editor/widgets/linked-doc");
         await ZipTransformer.exportDocs(
           workspace.docCollection,
           getMyoxusWorkspaceSchema(),

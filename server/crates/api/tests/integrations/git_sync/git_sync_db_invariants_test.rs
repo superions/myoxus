@@ -105,7 +105,7 @@ async fn seed_binding(pool: &sqlx::PgPool, profile_id: Uuid, ws_id: Uuid) -> Uui
     .expect("create doc");
 
   sqlx::query(
-    "INSERT INTO git_sync_bindings (id, profile_id, workspace_id, doc_id, sync_id, repo_path, tombstone)
+    "INSERT INTO git_sync_document_bindings (id, profile_id, workspace_id, doc_id, sync_id, repo_path, tombstone)
      VALUES ($1, $2, $3, $4, $5, 'content/test.md', false)",
   )
   .bind(binding_id)
@@ -1043,7 +1043,7 @@ async fn reconciliation_apply_is_atomic_audited_and_idempotent() {
 }
 
 #[tokio::test]
-async fn reconciliation_adoption_is_trigger_owned_atomic_and_idempotent() {
+async fn reconciliation_adoption_is_atomic_and_idempotent() {
   let (_, pool, auth_store) = helpers::setup_app().await;
   let (admin_id, _) = helpers::seed_admin(&pool, &auth_store).await;
   let (workspace_id, profile_id) = seed_profile(&pool, admin_id).await;
@@ -1141,11 +1141,11 @@ async fn reconciliation_adoption_is_trigger_owned_atomic_and_idempotent() {
   let counts: (i64, i64, i64) = sqlx::query_as(
     r#"
     SELECT
-      (SELECT COUNT(*)::bigint FROM git_sync_bindings WHERE id = $1),
-      (SELECT COUNT(*)::bigint FROM git_sync_baselines WHERE binding_id = $1),
-      (SELECT COUNT(*)::bigint FROM git_sync_path_owners
-       WHERE profile_id = $2 AND repo_path = $3 AND owner_kind = 'document'
-         AND owner_id = $4)
+      (SELECT COUNT(*)::bigint FROM git_sync_document_bindings WHERE id = $1),
+      (SELECT COUNT(*)::bigint FROM git_sync_document_bindings WHERE baseline_content_hash IS NOT NULL AND id = $1),
+      (SELECT COUNT(*)::bigint FROM git_sync_bindings
+       WHERE NOT tombstone AND profile_id = $2 AND repo_path = $3 AND binding_kind = 'document'
+         AND doc_id = $4)
     "#,
   )
   .bind(binding_id)
@@ -1155,7 +1155,7 @@ async fn reconciliation_adoption_is_trigger_owned_atomic_and_idempotent() {
   .fetch_one(&pool)
   .await
   .expect("adoption rows");
-  assert_eq!(counts, (1, 1, 1), "binding trigger must create exactly one owner");
+  assert_eq!(counts, (1, 1, 1), "adopted document must own its path");
   let audit_count: i64 = sqlx::query_scalar(
     "SELECT COUNT(*)::bigint FROM admin_audit_log
      WHERE event_key = 'git_sync.reconcile.apply' AND target_id = $1",
@@ -1256,10 +1256,10 @@ async fn reconciliation_adoption_is_trigger_owned_atomic_and_idempotent() {
   let collision_rows: (i64, i64, i64) = sqlx::query_as(
     r#"
     SELECT
-      (SELECT COUNT(*)::bigint FROM git_sync_bindings WHERE id = $1),
-      (SELECT COUNT(*)::bigint FROM git_sync_baselines WHERE binding_id = $1),
-      (SELECT COUNT(*)::bigint FROM git_sync_path_owners
-       WHERE profile_id = $2 AND repo_path = $3 AND owner_kind = 'file')
+      (SELECT COUNT(*)::bigint FROM git_sync_document_bindings WHERE id = $1),
+      (SELECT COUNT(*)::bigint FROM git_sync_document_bindings WHERE baseline_content_hash IS NOT NULL AND id = $1),
+      (SELECT COUNT(*)::bigint FROM git_sync_bindings
+       WHERE NOT tombstone AND profile_id = $2 AND repo_path = $3 AND binding_kind = 'file')
     "#,
   )
   .bind(collision_binding_id)
@@ -1692,12 +1692,14 @@ async fn profile_delete_cascades_bindings_and_conflicts() {
     .await
     .expect("remove unauthorized claimant");
   let binding_id = seed_binding(&pool, profile_id, ws_id).await;
-  sqlx::query("UPDATE docs SET workspace_id = $2 WHERE id = (SELECT doc_id FROM git_sync_bindings WHERE id = $1)")
-    .bind(binding_id)
-    .bind(target_ws_id)
-    .execute(&pool)
-    .await
-    .expect("simulate a document moving without a binding handoff");
+  sqlx::query(
+    "UPDATE docs SET workspace_id = $2 WHERE id = (SELECT doc_id FROM git_sync_document_bindings WHERE id = $1)",
+  )
+  .bind(binding_id)
+  .bind(target_ws_id)
+  .execute(&pool)
+  .await
+  .expect("simulate a document moving without a binding handoff");
   assert!(
     store
       .assert_bound_documents_in_workspace(&current_source)
@@ -1705,12 +1707,14 @@ async fn profile_delete_cascades_bindings_and_conflicts() {
       .is_err(),
     "the missing source document must not be planned as a Git deletion"
   );
-  sqlx::query("UPDATE docs SET workspace_id = $2 WHERE id = (SELECT doc_id FROM git_sync_bindings WHERE id = $1)")
-    .bind(binding_id)
-    .bind(ws_id)
-    .execute(&pool)
-    .await
-    .expect("restore the owning Workspace for cascade cleanup");
+  sqlx::query(
+    "UPDATE docs SET workspace_id = $2 WHERE id = (SELECT doc_id FROM git_sync_document_bindings WHERE id = $1)",
+  )
+  .bind(binding_id)
+  .bind(ws_id)
+  .execute(&pool)
+  .await
+  .expect("restore the owning Workspace for cascade cleanup");
   store
     .assert_bound_documents_in_workspace(&current_source)
     .await
@@ -1720,7 +1724,7 @@ async fn profile_delete_cascades_bindings_and_conflicts() {
   let conflict_id = Uuid::new_v4();
   sqlx::query(
     "INSERT INTO git_sync_conflicts (id, profile_id, binding_id, doc_id, repo_path, conflict_type, resolution)
-     VALUES ($1, $2, $3, (SELECT doc_id FROM git_sync_bindings WHERE id = $3), 'content/test.md', 'BothModified', 'Open')",
+     VALUES ($1, $2, $3, (SELECT doc_id FROM git_sync_document_bindings WHERE id = $3), 'content/test.md', 'BothModified', 'Open')",
   )
   .bind(conflict_id)
   .bind(profile_id)
@@ -1730,11 +1734,12 @@ async fn profile_delete_cascades_bindings_and_conflicts() {
   .expect("create conflict");
 
   // Verify data exists
-  let binding_count: i64 = sqlx::query_scalar("SELECT COUNT(*)::bigint FROM git_sync_bindings WHERE profile_id = $1")
-    .bind(profile_id)
-    .fetch_one(&pool)
-    .await
-    .expect("binding count query must succeed");
+  let binding_count: i64 =
+    sqlx::query_scalar("SELECT COUNT(*)::bigint FROM git_sync_document_bindings WHERE profile_id = $1")
+      .bind(profile_id)
+      .fetch_one(&pool)
+      .await
+      .expect("binding count query must succeed");
   assert_eq!(binding_count, 1);
 
   let conflict_count: i64 = sqlx::query_scalar("SELECT COUNT(*)::bigint FROM git_sync_conflicts WHERE profile_id = $1")
@@ -1752,7 +1757,7 @@ async fn profile_delete_cascades_bindings_and_conflicts() {
     .expect("delete profile");
 
   // Verify cascade
-  let binding_after: i64 = sqlx::query_scalar("SELECT COUNT(*)::bigint FROM git_sync_bindings WHERE id = $1")
+  let binding_after: i64 = sqlx::query_scalar("SELECT COUNT(*)::bigint FROM git_sync_document_bindings WHERE id = $1")
     .bind(binding_id)
     .fetch_one(&pool)
     .await
@@ -1805,7 +1810,7 @@ async fn duplicate_sync_id_rejected_for_active_bindings() {
 
   // First binding with sync_id
   sqlx::query(
-    "INSERT INTO git_sync_bindings (id, profile_id, workspace_id, doc_id, sync_id, repo_path, tombstone)
+    "INSERT INTO git_sync_document_bindings (id, profile_id, workspace_id, doc_id, sync_id, repo_path, tombstone)
      VALUES ($1, $2, $3, $4, $5, 'a.md', false)",
   )
   .bind(Uuid::new_v4())
@@ -1819,7 +1824,7 @@ async fn duplicate_sync_id_rejected_for_active_bindings() {
 
   // Second binding with SAME sync_id and tombstone=false → should fail
   let result = sqlx::query(
-    "INSERT INTO git_sync_bindings (id, profile_id, workspace_id, doc_id, sync_id, repo_path, tombstone)
+    "INSERT INTO git_sync_document_bindings (id, profile_id, workspace_id, doc_id, sync_id, repo_path, tombstone)
      VALUES ($1, $2, $3, $4, $5, 'b.md', false)",
   )
   .bind(Uuid::new_v4())
@@ -1866,7 +1871,7 @@ async fn tombstoned_sync_id_allows_reuse() {
 
   // First binding — tombstoned
   sqlx::query(
-    "INSERT INTO git_sync_bindings (id, profile_id, workspace_id, doc_id, sync_id, repo_path, tombstone)
+    "INSERT INTO git_sync_document_bindings (id, profile_id, workspace_id, doc_id, sync_id, repo_path, tombstone)
      VALUES ($1, $2, $3, $4, $5, 'a.md', true)",
   )
   .bind(Uuid::new_v4())
@@ -1881,7 +1886,7 @@ async fn tombstoned_sync_id_allows_reuse() {
   // Second binding with same sync_id but tombstone=false → should succeed
   // because the unique index is partial: WHERE tombstone = false
   let result = sqlx::query(
-    "INSERT INTO git_sync_bindings (id, profile_id, workspace_id, doc_id, sync_id, repo_path, tombstone)
+    "INSERT INTO git_sync_document_bindings (id, profile_id, workspace_id, doc_id, sync_id, repo_path, tombstone)
      VALUES ($1, $2, $3, $4, $5, 'b.md', false)",
   )
   .bind(Uuid::new_v4())
@@ -1911,14 +1916,14 @@ async fn tombstone_binding_preserves_row() {
   let binding_id = seed_binding(&pool, profile_id, ws_id).await;
 
   // Tombstone the binding
-  sqlx::query("UPDATE git_sync_bindings SET tombstone = true WHERE id = $1")
+  sqlx::query("UPDATE git_sync_document_bindings SET tombstone = true WHERE id = $1")
     .bind(binding_id)
     .execute(&pool)
     .await
     .expect("tombstone binding");
 
   // Row must still exist
-  let row = sqlx::query("SELECT tombstone FROM git_sync_bindings WHERE id = $1")
+  let row = sqlx::query("SELECT tombstone FROM git_sync_document_bindings WHERE id = $1")
     .bind(binding_id)
     .fetch_one(&pool)
     .await
@@ -1938,13 +1943,13 @@ async fn hard_delete_binding_removes_row() {
   let (ws_id, profile_id) = seed_profile(&pool, admin_id).await;
   let binding_id = seed_binding(&pool, profile_id, ws_id).await;
 
-  sqlx::query("DELETE FROM git_sync_bindings WHERE id = $1")
+  sqlx::query("DELETE FROM git_sync_document_bindings WHERE id = $1")
     .bind(binding_id)
     .execute(&pool)
     .await
     .expect("hard delete binding");
 
-  let count: i64 = sqlx::query_scalar("SELECT COUNT(*)::bigint FROM git_sync_bindings WHERE id = $1")
+  let count: i64 = sqlx::query_scalar("SELECT COUNT(*)::bigint FROM git_sync_document_bindings WHERE id = $1")
     .bind(binding_id)
     .fetch_one(&pool)
     .await
@@ -1967,7 +1972,7 @@ async fn binding_delete_cascades_conflicts() {
   let conflict_id = Uuid::new_v4();
   sqlx::query(
     "INSERT INTO git_sync_conflicts (id, profile_id, binding_id, doc_id, repo_path, conflict_type, resolution)
-     VALUES ($1, $2, $3, (SELECT doc_id FROM git_sync_bindings WHERE id = $3), 'content/test.md', 'BothModified', 'Open')",
+     VALUES ($1, $2, $3, (SELECT doc_id FROM git_sync_document_bindings WHERE id = $3), 'content/test.md', 'BothModified', 'Open')",
   )
   .bind(conflict_id)
   .bind(profile_id)
@@ -1977,7 +1982,7 @@ async fn binding_delete_cascades_conflicts() {
   .expect("create conflict");
 
   // Delete the binding
-  sqlx::query("DELETE FROM git_sync_bindings WHERE id = $1")
+  sqlx::query("DELETE FROM git_sync_document_bindings WHERE id = $1")
     .bind(binding_id)
     .execute(&pool)
     .await
@@ -2005,20 +2010,20 @@ async fn restore_tombstoned_binding() {
   let binding_id = seed_binding(&pool, profile_id, ws_id).await;
 
   // Tombstone
-  sqlx::query("UPDATE git_sync_bindings SET tombstone = true WHERE id = $1")
+  sqlx::query("UPDATE git_sync_document_bindings SET tombstone = true WHERE id = $1")
     .bind(binding_id)
     .execute(&pool)
     .await
     .expect("tombstone update must succeed");
 
   // Restore
-  sqlx::query("UPDATE git_sync_bindings SET tombstone = false WHERE id = $1")
+  sqlx::query("UPDATE git_sync_document_bindings SET tombstone = false WHERE id = $1")
     .bind(binding_id)
     .execute(&pool)
     .await
     .expect("restore binding");
 
-  let row = sqlx::query("SELECT tombstone FROM git_sync_bindings WHERE id = $1")
+  let row = sqlx::query("SELECT tombstone FROM git_sync_document_bindings WHERE id = $1")
     .bind(binding_id)
     .fetch_one(&pool)
     .await
@@ -2054,7 +2059,7 @@ async fn concurrent_binding_creation_same_sync_id() {
   let (r1, r2) = tokio::join!(
     async move {
       sqlx::query(
-        "INSERT INTO git_sync_bindings (id, profile_id, workspace_id, doc_id, sync_id, repo_path)
+        "INSERT INTO git_sync_document_bindings (id, profile_id, workspace_id, doc_id, sync_id, repo_path)
          VALUES ($1, $2, $3, $4, $5, 'path/a.md')",
       )
       .bind(Uuid::new_v4())
@@ -2067,7 +2072,7 @@ async fn concurrent_binding_creation_same_sync_id() {
     },
     async move {
       sqlx::query(
-        "INSERT INTO git_sync_bindings (id, profile_id, workspace_id, doc_id, sync_id, repo_path)
+        "INSERT INTO git_sync_document_bindings (id, profile_id, workspace_id, doc_id, sync_id, repo_path)
          VALUES ($1, $2, $3, $4, $5, 'path/b.md')",
       )
       .bind(Uuid::new_v4())
@@ -2088,12 +2093,13 @@ async fn concurrent_binding_creation_same_sync_id() {
   );
 
   // Verify only one binding exists
-  let count: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM git_sync_bindings WHERE profile_id = $1 AND sync_id = $2")
-    .bind(profile_id)
-    .bind(sync_id)
-    .fetch_one(&pool)
-    .await
-    .expect("count query");
+  let count: i64 =
+    sqlx::query_scalar("SELECT COUNT(*) FROM git_sync_document_bindings WHERE profile_id = $1 AND sync_id = $2")
+      .bind(profile_id)
+      .bind(sync_id)
+      .fetch_one(&pool)
+      .await
+      .expect("count query");
   assert_eq!(count, 1, "exactly one binding must exist for this sync_id");
 
   cleanup(&pool, ws_id, admin_id).await;
@@ -2118,12 +2124,13 @@ async fn active_repo_path_is_unique_across_document_and_file_bindings() {
   .bind(ws_id)
   .execute(&pool)
   .await;
-  assert!(
-    conflicting_file.is_err(),
-    "a file binding must not claim an active document path"
+  let error = conflicting_file.expect_err("a file binding must not claim an active document path");
+  assert_eq!(
+    error.as_database_error().and_then(|e| e.constraint()),
+    Some("git_sync_active_path")
   );
 
-  sqlx::query("UPDATE git_sync_bindings SET tombstone = true WHERE id = $1")
+  sqlx::query("UPDATE git_sync_document_bindings SET tombstone = true WHERE id = $1")
     .bind(document_binding_id)
     .execute(&pool)
     .await
@@ -2140,13 +2147,14 @@ async fn active_repo_path_is_unique_across_document_and_file_bindings() {
   .await
   .expect("released path can be claimed by file");
 
-  let revive_document = sqlx::query("UPDATE git_sync_bindings SET tombstone = false WHERE id = $1")
+  let revive_document = sqlx::query("UPDATE git_sync_document_bindings SET tombstone = false WHERE id = $1")
     .bind(document_binding_id)
     .execute(&pool)
     .await;
-  assert!(
-    revive_document.is_err(),
-    "a tombstoned document cannot be revived onto a file-owned path"
+  let error = revive_document.expect_err("a tombstoned document cannot be revived onto a file-owned path");
+  assert_eq!(
+    error.as_database_error().and_then(|e| e.constraint()),
+    Some("git_sync_active_path")
   );
 
   cleanup(&pool, ws_id, admin_id).await;

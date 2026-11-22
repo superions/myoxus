@@ -200,6 +200,7 @@ pub enum PageLifecycleCommand {
     actor_user_id: Uuid,
     title: String,
     initial_leaf_update: Vec<u8>,
+    row_content: Option<RowContentTarget>,
     /// Registry source classification is committed before the page is discoverable.
     source_purpose: Option<crate::template_registry::bundle::TemplatePurpose>,
     committed_at: DateTime<Utc>,
@@ -245,16 +246,16 @@ pub struct PageLifecycleDelta {
 #[derive(Debug, Clone)]
 pub struct PageLifecycleCommit {
   pub kind: PageLifecycleKind,
+  pub attached_row: Option<myoxus_domain::database::DatabaseRowRecord>,
   pub document: Doc,
   pub leaf: Option<PageLifecycleDelta>,
   pub workspace_root: PageLifecycleDelta,
   pub committed_at: DateTime<Utc>,
 }
 
-/// Association admitted by the native Task owner. The document and this binding
-/// publish in the same transaction as the workflow effect acknowledgement.
+/// Row association checked and published in the same transaction as the new page.
 #[derive(Debug, Clone, Copy)]
-pub struct AutomationRowContentTarget {
+pub struct RowContentTarget {
   pub database_id: Uuid,
   pub row_id: Uuid,
   pub expected_edit_revision: i64,
@@ -263,7 +264,7 @@ pub struct AutomationRowContentTarget {
 pub(crate) struct AutomationPageContent {
   pub initial_leaf_update: Vec<u8>,
   pub committed_at: DateTime<Utc>,
-  pub target: AutomationRowContentTarget,
+  pub target: RowContentTarget,
 }
 
 /// Replay returns current authorized metadata without fabricated CRDT deltas.
@@ -655,7 +656,6 @@ pub trait DocMetadataStore: Send + Sync {
   async fn commit_automation_page_lifecycle(
     &self,
     _command: PageLifecycleCommand,
-    _row_content: Option<AutomationRowContentTarget>,
     _fence: myoxus_domain::workspace_automation::AutomationEffectFence,
   ) -> AuthResult<AutomationPageLifecycleResult> {
     Err(AuthError::Storage("native automation lifecycle unavailable".into()))

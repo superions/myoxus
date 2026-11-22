@@ -186,7 +186,7 @@ describe("Workbench tool content ownership", () => {
     ],
   ] as const)(
     "renders one document sidecard body without a combined presenter",
-    (Body, expected, excluded) => {
+    async (Body, expected, excluded) => {
       render(
         <TestProviders>
           <DocumentProvider>
@@ -195,7 +195,7 @@ describe("Workbench tool content ownership", () => {
         </TestProviders>,
       );
 
-      expect(screen.getByTestId(expected)).toBeTruthy();
+      expect(await screen.findByTestId(expected)).toBeTruthy();
       for (const testId of excluded) {
         expect(screen.queryByTestId(testId)).toBeNull();
       }

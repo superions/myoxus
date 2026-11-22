@@ -2347,7 +2347,11 @@ async fn run(
   registered_workers.extend(
     myoxus_api::metrics_worker::metrics_schedules(config.metrics.flush_interval_seconds)
       .into_iter()
-      .map(|worker| worker.with_enabled(config.metrics.persistence_enabled)),
+      .map(|worker| {
+        let enabled = config.metrics.persistence_enabled
+          || worker.job == myoxus_domain::scheduling::registered::RegisteredJob::MetricsRetention;
+        worker.with_enabled(enabled)
+      }),
   );
   let count = registered_startup
     .register(registered_workers, chrono::Utc::now())
@@ -3097,8 +3101,13 @@ impl myoxus_worker::JobHandler for NightlyQueueHandler {
           .clean_processed_outbox_events(days)
           .await
           .map_err(|error| JobError::Retryable(format!("cleanProcessedOutboxEvents: {error}")))?;
+        let occurrences = self
+          .retention
+          .clean_registered_occurrences()
+          .await
+          .map_err(|error| JobError::Retryable(format!("cleanRegisteredOccurrences: {error}")))?;
         Ok(Some(
-          serde_json::json!({ "rows_affected": total, "retentionDays": days }),
+          serde_json::json!({ "rows_affected": total + occurrences, "outbox": total, "registeredOccurrences": occurrences, "retentionDays": days }),
         ))
       }
       "nightly.cleanMergedDocUpdates" => {
@@ -4221,13 +4230,17 @@ impl myoxus_worker::JobHandler for IndexerQueueHandler {
         }
       }
       "indexer.autoIndexWorkspaces" => {
-        // Cron-triggered jobs have no runId — skip gracefully (no active reindex).
+        // The recurring no-run-id job drains one bounded blob-usage batch.
         // Only jobs enqueued by start_full_reindex() / start_incremental_reindex()
         // carry a valid runId referencing an existing reindex_runs row.
         let run_id = match job.data["runId"].as_str().and_then(|s| s.parse::<uuid::Uuid>().ok()) {
           Some(id) => id,
           None => {
-            tracing::debug!(job_id = %job.id, "autoIndexWorkspaces: no runId, skipping (cron poll)");
+            self
+              .search_indexer
+              .refresh_pending_blob_usage()
+              .await
+              .map_err(|error| JobError::Retryable(error.to_string()))?;
             return Ok(None);
           }
         };
@@ -5313,8 +5326,7 @@ async fn process_outbox_batch(
           .map(str::parse::<uuid::Uuid>)
           .transpose()?
         {
-          // A moved directory/document invalidates both public workspace listings
-          // and document artifacts. Link has no source-publication effect. Keep
+          // A move invalidates asset manifests in both workspaces. Link has no source-publication effect. Keep
           // this committed side effect retryable through the existing outbox.
           let mut public_projection_ready = true;
           for changed_workspace_id in [source_workspace_id, workspace_id] {

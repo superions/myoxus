@@ -1,7 +1,11 @@
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import { CommentSidebar } from "@myoxus/core/components/comment/sidebar";
+import { lazy, Suspense } from "react";
+const CommentSidebar = lazy(async () => ({
+  default: (await import("@myoxus/core/components/comment/sidebar"))
+    .CommentSidebar,
+}));
 import { ServerService } from "@myoxus/core/modules/server";
 import { ViewContextSurface } from "@myoxus/core/modules/workbench";
 import { ServerFeature } from "@myoxus/graphql";
@@ -40,7 +44,9 @@ export function CommentsSidecard({
       icon={<CommentIcon />}
       viewFamilies={DOCUMENT_AND_JOURNAL_VIEW_FAMILIES}
     >
-      <CommentSidebar />
+      <Suspense>
+        <CommentSidebar />
+      </Suspense>
     </ViewContextSurface>
   );
 }

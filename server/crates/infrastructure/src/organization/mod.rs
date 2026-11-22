@@ -10,7 +10,6 @@
 //! Contract: `docs/dev/server/organization-management.md`
 
 mod import_writer;
-mod manager_capability;
 mod membership_writer;
 mod oidc_directory;
 mod organization_repo;
@@ -23,7 +22,6 @@ mod unit_repo;
 mod unit_workspace_repo;
 
 pub use import_writer::PgOrganizationImportWriter;
-pub use manager_capability::{PgManagerCapabilityWriter, PgUserFeatureLookup};
 pub use oidc_directory::HttpOidcGroupDirectory;
 pub use organization_repo::PgOrganizationRepository;
 pub use policy_repo::PgOrganizationPolicyRepository;

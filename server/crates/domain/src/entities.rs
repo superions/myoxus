@@ -239,7 +239,10 @@ pub struct WorkspaceMember {
   pub user: User,
   pub role: WorkspaceRole,
   pub status: MembershipStatus,
-  pub invite_id: uuid::Uuid,
+  pub invite_id: Option<uuid::Uuid>,
+  pub direct_role: Option<WorkspaceRole>,
+  pub ou_role: Option<WorkspaceRole>,
+  pub ou_names: Vec<String>,
 }
 
 /// P-DB-29R: lightweight projection of a workspace member used by the
@@ -985,15 +988,6 @@ pub struct CopilotWorkspaceState {
   pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WorkspaceAnalyticsMinute {
-  pub workspace_id: WorkspaceId,
-  pub bucket_at: DateTime<Utc>,
-  pub active_users: i32,
-  pub doc_views: i32,
-  pub sync_updates: i32,
-}
-
 // ─── Organization and organization units ────────────────────────────────────
 
 /// Tenant boundary of a Myoxus installation. Single-tenant deployments have
@@ -1582,7 +1576,7 @@ pub struct ApiKey {
 /// full-text search via Reciprocal Rank Fusion (RRF).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HybridSearchResult {
-  pub doc_id: String,
+  pub doc_id: uuid::Uuid,
   pub title: Option<String>,
   pub chunk_text: Option<String>,
   pub rrf_score: f64,

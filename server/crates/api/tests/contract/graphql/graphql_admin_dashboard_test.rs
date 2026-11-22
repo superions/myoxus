@@ -67,13 +67,12 @@ async fn inv_dash03_sync_active_users_non_negative(pool: sqlx::PgPool) {
     .await
     .expect("owned dashboard database migrations");
   let (app, pool, auth) = helpers::setup_app_with_pool(pool).await;
-  let (admin_id, session_id) = helpers::seed_admin(&pool, &auth).await;
-  let workspace_id = helpers::create_workspace(&pool, admin_id).await;
+  let (_, session_id) = helpers::seed_admin(&pool, &auth).await;
   let store = SqlxAdminStore::new(pool.clone());
   let minute = Utc::now().with_second(0).unwrap().with_nanosecond(0).unwrap();
   for count in [2, 1, 0] {
     store
-      .upsert_active_users_metric(workspace_id, minute, count)
+      .upsert_active_users_metric(minute, count)
       .await
       .expect("owned global sample");
     let resp = helpers::gql(&app, session_id,
@@ -92,19 +91,6 @@ async fn inv_dash03_sync_active_users_non_negative(pool: sqlx::PgPool) {
           == minute
     }));
   }
-  store.delete_workspace(workspace_id).await.expect("owned hard delete");
-  for count in [0, 2] {
-    store
-      .upsert_active_users_metric(workspace_id, minute, count)
-      .await
-      .expect("deleted workspace has no metric sample");
-  }
-  let remaining: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM workspace_analytics_minute WHERE workspace_id = $1")
-    .bind(workspace_id)
-    .fetch_one(&pool)
-    .await
-    .expect("orphan metric count");
-  assert_eq!(remaining, 0);
   // SQLx drops the complete owned database, including startup/admin fixtures.
 }
 
@@ -139,76 +125,71 @@ async fn inv_dash04_storage_window_has_from_and_to() {
   helpers::cleanup_users(&pool, &[admin_id]).await;
 }
 
-/// INV-DASH-05: With test data inserted, workspaceStorageHistory must not be empty.
-#[test]
-fn inv_dash05_storage_history_non_empty_with_data() {
-  helpers::block_on_large_stack("inv_dash05_storage_history_non_empty_with_data", || async {
-    let (app, pool, auth) = helpers::setup_app().await;
-    let (admin_id, session_id) = helpers::seed_admin(&pool, &auth).await;
-    let ws_id = helpers::create_workspace(&pool, admin_id).await;
+/// INV-DASH-05: current totals and daily series sum each storage category across workspaces.
+#[sqlx::test(migrations = false)]
+async fn inv_dash05_dashboard_aggregates_storage_by_day(pool: sqlx::PgPool) {
+  myoxus_infrastructure::migrations::run(&pool).await.unwrap();
+  let (app, pool, auth) = helpers::setup_app_with_pool(pool).await;
+  let (admin_id, session_id) = helpers::seed_admin(&pool, &auth).await;
+  let first = helpers::create_workspace(&pool, admin_id).await;
+  let second = helpers::create_workspace(&pool, admin_id).await;
 
-    // Insert test data into materialized stats tables
-    sqlx::query(
-      "INSERT INTO workspace_storage_stats (workspace_id, snapshot_size, blob_size) VALUES ($1, 2048, 1024)
-         ON CONFLICT (workspace_id) DO UPDATE SET snapshot_size = 2048, blob_size = 1024",
-    )
-    .bind(ws_id)
-    .execute(&pool)
+  sqlx::query(
+    "INSERT INTO workspace_storage_stats (workspace_id, snapshot_size, blob_size)
+    VALUES ($1, 70, 5), ($2, 20, 8)
+    ON CONFLICT (workspace_id) DO UPDATE SET snapshot_size=EXCLUDED.snapshot_size, blob_size=EXCLUDED.blob_size",
+  )
+  .bind(first)
+  .bind(second)
+  .execute(&pool)
+  .await
+  .unwrap();
+  let today: chrono::NaiveDate = sqlx::query_scalar("SELECT CURRENT_DATE")
+    .fetch_one(&pool)
     .await
-    .expect("insert workspace_storage_stats");
-    sqlx::query(
-        "INSERT INTO workspace_storage_stats_daily (workspace_id, day, snapshot_size, blob_size) VALUES ($1, CURRENT_DATE, 2048, 1024)
-         ON CONFLICT (workspace_id, day) DO UPDATE SET snapshot_size = 2048, blob_size = 1024",
-    )
-    .bind(ws_id)
-    .execute(&pool)
-    .await
-    .expect("insert workspace_storage_stats_daily");
+    .unwrap();
+  sqlx::query(
+    "INSERT INTO workspace_storage_stats_daily (workspace_id, day, snapshot_size, blob_size)
+    VALUES ($1, $3::date - 1, 20, 8), ($2, $3::date - 3, 10, 2),
+           ($1, $3::date - 3, 30, 4), ($1, $3::date - 20, 90, 90)",
+  )
+  .bind(first)
+  .bind(second)
+  .bind(today)
+  .execute(&pool)
+  .await
+  .unwrap();
 
-    let resp = helpers::gql(
+  let resp = helpers::gql(
     &app,
     session_id,
-    json!({"query": "{ admin { adminDashboard { workspaceStorageHistory { date value } blobStorageHistory { date value } } } }"}),
+    json!({"query": "{
+    admin { adminDashboard(input: {storageHistoryDays: 7}) {
+      workspaceStorageBytes blobStorageBytes workspaceStorageHistory { date value } blobStorageHistory { date value }
+    } } }"}),
   )
   .await;
-
-    let dash = &resp["data"]["admin"]["adminDashboard"];
-    let ws_hist = dash["workspaceStorageHistory"]
+  assert!(resp["errors"].is_null(), "{resp}");
+  let dash = &resp["data"]["admin"]["adminDashboard"];
+  assert_eq!(dash["workspaceStorageBytes"], 90);
+  assert_eq!(dash["blobStorageBytes"], 13);
+  let history = |field: &str| {
+    dash[field]
       .as_array()
-      .expect("workspaceStorageHistory array");
-    let blob_hist = dash["blobStorageHistory"].as_array().expect("blobStorageHistory array");
-    assert!(
-      !ws_hist.is_empty(),
-      "workspaceStorageHistory must not be empty when stats data exists"
-    );
-    assert!(
-      !blob_hist.is_empty(),
-      "blobStorageHistory must not be empty when stats data exists"
-    );
-
-    // Cleanup
-    sqlx::query("DELETE FROM workspace_storage_stats_daily WHERE workspace_id = $1")
-      .bind(ws_id)
-      .execute(&pool)
-      .await
-      .ok();
-    sqlx::query("DELETE FROM workspace_storage_stats WHERE workspace_id = $1")
-      .bind(ws_id)
-      .execute(&pool)
-      .await
-      .ok();
-    sqlx::query("DELETE FROM workspace_memberships WHERE workspace_id = $1")
-      .bind(ws_id)
-      .execute(&pool)
-      .await
-      .ok();
-    sqlx::query("DELETE FROM workspaces WHERE id = $1")
-      .bind(ws_id)
-      .execute(&pool)
-      .await
-      .ok();
-    helpers::cleanup_users(&pool, &[admin_id]).await;
-  });
+      .unwrap()
+      .iter()
+      .map(|point| {
+        let day = DateTime::parse_from_rfc3339(point["date"].as_str().unwrap())
+          .unwrap()
+          .date_naive();
+        (day, point["value"].as_i64().unwrap())
+      })
+      .collect::<Vec<_>>()
+  };
+  let earlier = today - chrono::Days::new(3);
+  let later = today - chrono::Days::new(1);
+  assert_eq!(history("workspaceStorageHistory"), [(earlier, 40), (later, 20)]);
+  assert_eq!(history("blobStorageHistory"), [(earlier, 6), (later, 8)]);
 }
 
 /// INV-DASH-06: copilotConversations must be a non-negative integer.

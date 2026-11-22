@@ -20,9 +20,7 @@ use chrono::{DateTime, Utc};
 use clap::Subcommand;
 use myoxus_application::{
   ports::blob_service::BlobService,
-  public::{
-    DEFAULT_PUBLIC_THEME_VERSION, PUBLIC_ASSET_CACHE_CONTROL, PUBLIC_RENDERER_VERSION, PublicService, source_hash,
-  },
+  public::{DEFAULT_PUBLIC_THEME_VERSION, PUBLIC_ASSET_CACHE_CONTROL, PUBLIC_RENDERER_VERSION, PublicService},
   workspace_overview::WorkspaceOverviewSource,
 };
 use myoxus_infrastructure::{
@@ -279,7 +277,7 @@ async fn export_public_into_staging(
       );
     }
     if public
-      .decide_document(doc.workspace_id, doc.doc_id, &loaded.payload)
+      .decide_document(doc.workspace_id, doc.doc_id)
       .await?
       .allowed()
       .is_none()
@@ -373,7 +371,7 @@ async fn export_public_into_staging(
       route,
       title: doc.title.clone(),
       public_mode: doc.public_mode.clone(),
-      source_hash: source_hash(&loaded.payload),
+      source_hash: format!("{:x}", Sha256::digest(&loaded.payload)),
       assets,
       social_card_route,
     });

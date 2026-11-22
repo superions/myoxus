@@ -87,88 +87,21 @@ pub async fn search_visible_docs(
     AuthError::Storage("search repository is not configured".to_string())
   })?;
 
-  // P71-B: Hybrid search path when useSemanticSearch is requested.
-  if params.use_semantic_search {
-    if let Some(pool) = state.metrics_pool() {
-      let embedding_cfg = &state.config.copilot.embedding;
-      if embedding_cfg.endpoint.is_some() {
-        let requested_limit = params.normalized_limit();
-        let mut remaining_skip = params.normalized_offset();
-        let hybrid_fetch_limit = requested_limit.saturating_add(remaining_skip).clamp(1, i32::MAX as i64) as i32;
-        match state.embed_copilot_query(&params.query).await {
-          Ok(embedding) => {
-            let hybrid_results = myoxus_infrastructure::search::hybrid_search(
-              &pool,
-              params.workspace_id,
-              &params.query,
-              &embedding,
-              &embedding_cfg.model,
-              hybrid_fetch_limit,
-            )
-            .await
-            .map_err(|e| AuthError::Storage(e.to_string()))?;
-
-            let candidate_ids: Vec<Uuid> = hybrid_results
-              .iter()
-              .filter_map(|result| Uuid::parse_str(&result.doc_id).ok())
-              .collect();
-            let readable = pc
-              .readable_doc_ids(user_id, params.workspace_id, &candidate_ids)
-              .await?;
-            let mut collected = Vec::new();
-            for hr in hybrid_results {
-              let doc_id_str = &hr.doc_id;
-              let Ok(doc_id) = Uuid::parse_str(doc_id_str) else {
-                warn!(
-                  workspace_id = %params.workspace_id,
-                  doc_id = %doc_id_str,
-                  "hybrid search returned invalid internal doc UUID, skipping result"
-                );
-                continue;
-              };
-              if readable.contains(&doc_id) {
-                if remaining_skip > 0 {
-                  remaining_skip -= 1;
-                  continue;
-                }
-                collected.push(SearchDocument {
-                  workspace_id: params.workspace_id,
-                  doc_id,
-                  title: hr.title.unwrap_or_default(),
-                  plain_text: hr.chunk_text.unwrap_or_default(),
-                  workspace_tags: Vec::new(),
-                  search_vector: None,
-                  updated_at: Utc::now(),
-                });
-                if (collected.len() as i64) >= requested_limit {
-                  break;
-                }
-              }
-            }
-            debug!(returned = collected.len(), "hybrid search completed with acl filtering");
-            return Ok(collected);
-          }
-          Err(e) => {
-            warn!(
-              workspace_id = %params.workspace_id,
-              error = %e,
-              "embedding endpoint not available, falling back to FTS"
-            );
-          }
-        }
-      } else {
-        warn!(
-          workspace_id = %params.workspace_id,
-          "embedding endpoint not configured, falling back to FTS"
-        );
+  let cfg = &state.config.copilot.embedding;
+  let hybrid = if params.use_semantic_search
+    && cfg.endpoint.is_some()
+    && let Some(pool) = state.metrics_pool()
+  {
+    match state.embed_copilot_query(&params.query).await {
+      Ok(vector) => Some((pool, vector)),
+      Err(error) => {
+        warn!(workspace_id = %params.workspace_id, %error, "query embedding unavailable, using full-text search");
+        None
       }
-    } else {
-      warn!(
-        workspace_id = %params.workspace_id,
-        "metrics pool not configured, cannot run hybrid search -- falling back to FTS"
-      );
     }
-  }
+  } else {
+    None
+  };
 
   // ACL-aware pagination: fetch in windows from DB and keep only docs readable for this user.
   let mut collected = Vec::new();
@@ -178,26 +111,53 @@ pub async fn search_visible_docs(
   let db_window = (requested_limit * 2).clamp(20, 200);
 
   while (collected.len() as i64) < requested_limit {
-    let page = repo
-      .search_docs(SearchPageRequest {
-        query: params.query.clone(),
-        language: params.language.clone(),
-        sort_by: params.sort_by.clone(),
-        sort_direction: params.sort_direction.clone(),
-        workspace_id: params.workspace_id,
-        page: PageRequest {
-          limit: db_window,
-          offset: db_offset,
-        },
-      })
+    let page = if let Some((pool, vector)) = &hybrid {
+      let rows = myoxus_infrastructure::search::hybrid_search(
+        pool,
+        params.workspace_id,
+        &params.query,
+        vector,
+        &cfg.model,
+        db_window as i32,
+        db_offset,
+      )
       .await
-      .map_err(|e| AuthError::Storage(e.to_string()))?;
+      .map_err(|error| AuthError::Storage(error.to_string()))?;
+      rows
+        .into_iter()
+        .map(|row| SearchDocument {
+          workspace_id: params.workspace_id,
+          doc_id: row.doc_id,
+          title: row.title.unwrap_or_default(),
+          plain_text: row.chunk_text.unwrap_or_default(),
+          workspace_tags: Vec::new(),
+          search_vector: None,
+          updated_at: Utc::now(),
+        })
+        .collect()
+    } else {
+      repo
+        .search_docs(SearchPageRequest {
+          query: params.query.clone(),
+          language: params.language.clone(),
+          sort_by: params.sort_by.clone(),
+          sort_direction: params.sort_direction.clone(),
+          workspace_id: params.workspace_id,
+          page: PageRequest {
+            limit: db_window,
+            offset: db_offset,
+          },
+        })
+        .await
+        .map_err(|e| AuthError::Storage(e.to_string()))?
+    };
 
     if page.is_empty() {
       break;
     }
 
-    db_offset += page.len() as i64;
+    let page_size = page.len() as i64;
+    db_offset += page_size;
 
     let candidate_ids: Vec<Uuid> = page.iter().map(|doc| doc.doc_id).collect();
     let readable = pc
@@ -214,6 +174,9 @@ pub async fn search_visible_docs(
           break;
         }
       }
+    }
+    if page_size < db_window {
+      break;
     }
   }
 

@@ -14,6 +14,7 @@ pub trait RetentionRepository: Send + Sync {
   async fn clean_notifications(&self, retention_days: i64) -> AuthResult<u64>;
   async fn clean_pending_blobs(&self, retention_hours: i64) -> AuthResult<u64>;
   async fn clean_processed_outbox_events(&self, retention_days: i64) -> AuthResult<u64>;
+  async fn clean_registered_occurrences(&self) -> AuthResult<u64>;
   async fn clean_merged_document_updates(&self) -> AuthResult<u64>;
   async fn clean_orphaned_session_links(&self) -> AuthResult<u64>;
 }
@@ -49,6 +50,10 @@ impl RetentionService {
       .repository
       .clean_processed_outbox_events(retention_days.max(1))
       .await
+  }
+
+  pub async fn clean_registered_occurrences(&self) -> AuthResult<u64> {
+    self.repository.clean_registered_occurrences().await
   }
 
   pub async fn clean_merged_document_updates(&self) -> AuthResult<u64> {

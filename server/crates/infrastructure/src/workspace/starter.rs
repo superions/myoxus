@@ -35,8 +35,12 @@ impl SqlxWorkspaceStore {
         .await
         .map_err(Self::map_db_err)?
         .ok_or(WorkspaceStarterError::Gone { workspace_id })?;
-    sqlx::query("SELECT workspace_id FROM workspace_memberships WHERE workspace_id=$1 AND user_id=$2 AND status='Accepted' FOR SHARE")
-      .bind(workspace_id).bind(actor).fetch_optional(&mut *tx).await.map_err(Self::map_db_err)?
+    sqlx::query("SELECT workspace_id FROM workspace_effective_roles WHERE workspace_id=$1 AND user_id=$2 FOR SHARE")
+      .bind(workspace_id)
+      .bind(actor)
+      .fetch_optional(&mut *tx)
+      .await
+      .map_err(Self::map_db_err)?
       .ok_or(AuthError::ActionForbidden)?;
     let root_ready: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM docs WHERE id=$1 AND workspace_id=$1 AND is_workspace_root AND (EXISTS(SELECT 1 FROM doc_updates WHERE doc_id=$1 AND workspace_id=$1) OR EXISTS(SELECT 1 FROM doc_snapshots WHERE doc_id=$1 AND workspace_id=$1)))")
       .bind(workspace_id).fetch_one(&mut *tx).await.map_err(Self::map_db_err)?;
@@ -352,14 +356,13 @@ impl SqlxWorkspaceStore {
       .await
       .map_err(Self::map_db_err)?
       .ok_or(AuthError::ActionForbidden)?;
-    let role: Option<String> = sqlx::query_scalar(
-      "SELECT role FROM workspace_memberships WHERE workspace_id=$1 AND user_id=$2 AND status='Accepted' FOR SHARE",
-    )
-    .bind(workspace)
-    .bind(actor)
-    .fetch_optional(&mut *tx)
-    .await
-    .map_err(Self::map_db_err)?;
+    let role: Option<String> =
+      sqlx::query_scalar("SELECT role FROM workspace_effective_roles WHERE workspace_id=$1 AND user_id=$2 FOR SHARE")
+        .bind(workspace)
+        .bind(actor)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(Self::map_db_err)?;
     let role = match role.as_deref().ok_or(AuthError::ActionForbidden)? {
       "Owner" => WorkspaceRole::Owner,
       "Admin" => WorkspaceRole::Admin,
@@ -383,8 +386,13 @@ impl SqlxWorkspaceStore {
     people.sort();
     people.dedup();
     for person in people {
-      sqlx::query("SELECT user_id FROM workspace_memberships WHERE workspace_id=$1 AND user_id=$2 AND status='Accepted' FOR SHARE")
-        .bind(workspace).bind(person).fetch_optional(&mut *tx).await.map_err(Self::map_db_err)?.ok_or(AuthError::ActionForbidden)?;
+      sqlx::query("SELECT user_id FROM workspace_effective_roles WHERE workspace_id=$1 AND user_id=$2 FOR SHARE")
+        .bind(workspace)
+        .bind(person)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(Self::map_db_err)?
+        .ok_or(AuthError::ActionForbidden)?;
     }
     Ok(())
   }

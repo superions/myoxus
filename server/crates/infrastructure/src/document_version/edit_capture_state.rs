@@ -156,8 +156,12 @@ pub(crate) async fn rebind(
   if rows.is_empty() {
     return Ok(false);
   }
-  let policy=sqlx::query("SELECT edit_capture_enabled,edit_capture_interval_ms FROM document_versioning_workspace_settings WHERE workspace_id=$1")
-    .bind(workspace).fetch_optional(&mut **tx).await?;
+  let policy = sqlx::query(
+    "SELECT edit_capture_enabled,edit_capture_interval_ms FROM document_workspace_settings WHERE workspace_id=$1",
+  )
+  .bind(workspace)
+  .fetch_optional(&mut **tx)
+  .await?;
   let enabled = policy
     .as_ref()
     .and_then(|r| r.get::<Option<bool>, _>("edit_capture_enabled"))
@@ -203,7 +207,7 @@ pub(crate) async fn rebind(
     .collect::<Vec<_>>();
   let enabled_scopes = sqlx::query_scalar::<_, Uuid>(
     "SELECT w.id FROM workspaces w
-    LEFT JOIN document_versioning_workspace_settings s ON s.workspace_id=w.id
+    LEFT JOIN document_workspace_settings s ON s.workspace_id=w.id
     WHERE w.id=ANY($1) AND COALESCE(s.edit_capture_enabled,$2)",
   )
   .bind(&scopes)

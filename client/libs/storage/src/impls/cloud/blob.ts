@@ -232,10 +232,21 @@ export class CloudBlobStorage extends BlobStorageBase {
     }
   }
 
-  override async delete(key: string, permanently: boolean) {
+  override async delete(
+    key: string,
+    permanently: boolean,
+    signal?: AbortSignal,
+    onlyIfUnused?: boolean,
+  ) {
     await this.connection.gql({
       query: deleteBlobMutation,
-      variables: { workspaceId: this.options.id, key, permanently },
+      context: { signal },
+      variables: {
+        workspaceId: this.options.id,
+        key,
+        permanently,
+        onlyIfUnused,
+      },
     });
   }
 

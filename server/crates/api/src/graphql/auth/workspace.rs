@@ -1413,7 +1413,7 @@ impl WorkspaceType {
     };
 
     Ok(Some(WorkspaceDocType {
-      workspace_role: access.effective_role,
+      workspace_access: access,
       id: meta.external_id,
       workspace_id: self.id.to_string(),
       public: meta.public_mode.is_some(),
@@ -1938,6 +1938,42 @@ impl WorkspaceType {
     )
   }
 
+  #[instrument(skip_all)]
+  async fn unused_blobs(&self, ctx: &Context<'_>, offset: i32, first: i32) -> Result<super::types::UnusedBlobPage> {
+    let (state, snapshot) = require_session(ctx).await?;
+    state
+      .permission_service()
+      .assert(
+        &WorkspaceResource {
+          user_id: snapshot.user.id,
+          workspace_id: self.id,
+        },
+        WorkspaceAction::BlobsList,
+      )
+      .await
+      .map_err(map_gql_error)?;
+    let page = state
+      .blob()
+      .unused_blob_page(self.id, offset.into(), first.into(), None)
+      .await
+      .map_err(map_gql_error)?;
+    let ready = page.is_some();
+    let (total, items) = page.unwrap_or_default();
+    Ok(super::types::UnusedBlobPage {
+      ready,
+      total,
+      items: items
+        .into_iter()
+        .map(|b| ListedBlobType {
+          key: b.key,
+          size: b.size.min(i32::MAX as u64) as i32,
+          mime: b.mime,
+          created_at: b.created_at,
+        })
+        .collect(),
+    })
+  }
+
   #[instrument(skip(self, ctx))]
   async fn blobs(&self, ctx: &Context<'_>) -> Result<Vec<ListedBlobType>> {
     let (state, snapshot) = require_session(ctx).await?;
@@ -2086,7 +2122,7 @@ impl WorkspaceType {
         Some(input.limit.unwrap_or(20).clamp(1, 100)),
         Some(SearchSortByType::Relevance),
         Some(SortDirectionType::Desc),
-        input.use_semantic_search,
+        Some(self.enable_doc_embedding && input.use_semantic_search.unwrap_or(true)),
       )
       .await?;
     let doc_ids = docs.iter().map(|doc| doc.doc_id).collect::<Vec<_>>();

@@ -23,24 +23,7 @@
 use crate::helpers;
 
 use serde_json::json;
-use sqlx::PgPool;
 use uuid::Uuid;
-
-/// Activate a user-feature row for a given user. Idempotent.
-async fn set_user_feature(pool: &PgPool, user_id: Uuid, feature: &str, activated: bool) {
-  sqlx::query(
-    r#"INSERT INTO user_features (user_id, feature_name, activated, created_at, updated_at)
-       VALUES ($1, $2, $3, now(), now())
-       ON CONFLICT (user_id, feature_name) DO UPDATE
-         SET activated = EXCLUDED.activated, updated_at = now()"#,
-  )
-  .bind(user_id)
-  .bind(feature)
-  .bind(activated)
-  .execute(pool)
-  .await
-  .expect("upsert user_features");
-}
 
 /// `inv_p_ar_0_s02_admin_sees_all` — Admin findet einen User ueber ein
 /// Email-Snippet und bekommt das volle Result-Objekt zurueck.
@@ -145,16 +128,21 @@ fn inv_p_ar_0_s02_features_filter() {
 
     let (admin_id, admin_session) = helpers::seed_admin(&pool, &auth).await;
 
-    // Three users sharing one snippet:
-    //   * with_feature      — manager feature ACTIVATED
-    //   * without_feature   — no feature row at all
-    //   * deactivated       — has the row but `activated = false`
     let token = format!("p-ar-s02-c-{}", &Uuid::new_v4().to_string()[..8]);
     let with_feature = helpers::create_user(&pool, &token, false).await;
     let without_feature = helpers::create_user(&pool, &token, false).await;
     let deactivated = helpers::create_user(&pool, &token, false).await;
-    set_user_feature(&pool, with_feature, "manager", true).await;
-    set_user_feature(&pool, deactivated, "manager", false).await;
+    let org = helpers::default_organization_id(&pool).await;
+    let kind = helpers::preset_unit_type_id(&pool, "team").await;
+    let active = helpers::create_organization_unit(&pool, org, kind, None, "Active manager").await;
+    let archived = helpers::create_organization_unit(&pool, org, kind, None, "Archived manager").await;
+    helpers::make_manager_of(&pool, with_feature, active).await;
+    helpers::make_manager_of(&pool, deactivated, archived).await;
+    sqlx::query("UPDATE organization_unit SET status='archived' WHERE id=$1")
+      .bind(archived)
+      .execute(&pool)
+      .await
+      .expect("archive unit");
 
     let resp = helpers::gql(
       &app,
@@ -189,6 +177,7 @@ fn inv_p_ar_0_s02_features_filter() {
       "features list must include 'manager', got: {hits:?}"
     );
 
+    helpers::cleanup_organization_units(&pool, &[active, archived]).await;
     helpers::cleanup_users(&pool, &[admin_id, with_feature, without_feature, deactivated]).await;
   });
 }

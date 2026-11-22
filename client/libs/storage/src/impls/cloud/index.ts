@@ -16,10 +16,11 @@ export * from "./space-room";
 export * from "./web-client-update-state";
 export * from "./web-cloud-cache";
 
-export const cloudStorages = [
+export const cloudTransportStorages = [
   CloudDocStorage,
   StaticCloudDocStorage,
   CloudBlobStorage,
   CloudAwarenessStorage,
-  CloudIndexerStorage,
 ] satisfies StorageConstructor[];
+
+export const cloudStorages = [...cloudTransportStorages, CloudIndexerStorage];

@@ -250,6 +250,7 @@ export const StructureTreeNode = ({
   const clickForCollapse = !onClick && !to && !disabled;
   const [childCount, setChildCount] = useState(0);
   const [renaming, setRenaming] = useState(defaultRenaming);
+  const [operationsMenuOpen, setOperationsMenuOpen] = useState(false);
   const [lastInGroup, setLastInGroup] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const explorerIcon = useLiveData(
@@ -541,6 +542,10 @@ export const StructureTreeNode = ({
         ))}
         {menuOperations.length > 0 && (
           <Menu
+            rootOptions={{
+              open: operationsMenuOpen,
+              onOpenChange: setOperationsMenuOpen,
+            }}
             items={menuOperations.map(({ view, index }) => (
               <Fragment key={index}>{view}</Fragment>
             ))}
@@ -576,9 +581,10 @@ export const StructureTreeNode = ({
         </StructureTreeLeading>
       }
       rightSection={rowActions}
-      rightSectionAlwaysVisible={inlineOperations.some(
-        ({ alwaysVisible }) => alwaysVisible,
-      )}
+      rightSectionAlwaysVisible={
+        operationsMenuOpen ||
+        inlineOperations.some(({ alwaysVisible }) => alwaysVisible)
+      }
     />
   );
 

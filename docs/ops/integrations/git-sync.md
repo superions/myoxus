@@ -541,7 +541,7 @@ JOIN git_sync_runs r ON r.id = p.run_id
 ORDER BY p.created_at;
 ```
 
-Do not edit `git_sync_baselines`, `git_sync_file_baselines`, run OIDs, or
+Do not edit document baseline columns in `git_sync_bindings`, `git_sync_file_baselines`, run OIDs, or
 promotion rows manually. First preserve the run, remote ref, logs and ledger
 evidence. Repair the underlying profile/credential/storage problem, then let
 the server reconcile or perform an explicitly reviewed database repair.
@@ -604,16 +604,16 @@ derived Markdown output by `repoPath` and SHA-256 `contentHash`. They are not
 synchronized documents and do not own document/file bindings. Older schema-1
 manifests omit them unchanged. `overview_preflight` rejects unknown marked read-only outputs as well as invalid workspace,
 path/hash or conflicting ordinary content ownership before Git/SQL content
-writes; fix the actual source collision rather than editing the path ledger.
+writes. Resolve the colliding source identities.
 
-The server reserves active paths in `git_sync_path_owners` across document and
-file bindings before writing outbound content. A path-preflight failure means
+The server checks active paths across document and file bindings before writing outbound
+content. PostgreSQL enforces the same rule when the bindings are written. A path-preflight failure means
 that two object identities would claim one path. Inspect without mutating:
 
 ```sql
-SELECT profile_id, repo_path, owner_kind, owner_id
-FROM git_sync_path_owners
-WHERE profile_id = '<profile-id>'
+SELECT profile_id, repo_path, binding_kind, COALESCE(doc_id, id) AS owner_id
+FROM git_sync_bindings
+WHERE NOT tombstone AND profile_id = '<profile-id>'
 ORDER BY repo_path;
 ```
 
@@ -996,12 +996,10 @@ RUST_LOG=myoxus_application::git_sync::reconcile=debug,myoxus_application::git_s
 | Table                         | Purpose                                                 | Key queries                             |
 | ----------------------------- | ------------------------------------------------------- | --------------------------------------- |
 | `git_sync_profiles`           | Workspace config                                        | By workspace_id                         |
-| `git_sync_bindings`           | Doc-file mappings                                       | By profile_id, filter tombstone=false   |
+| `git_sync_bindings`           | Document and file paths, document baselines             | By profile_id, filter tombstone=false   |
 | `git_sync_runs`               | Execution history                                       | By profile_id, ORDER BY started_at DESC |
 | `git_sync_conflicts`          | Conflict records                                        | By profile_id, filter resolution='Open' |
-| `git_sync_baselines`          | Last common state                                       | By binding_id (1:1)                     |
 | `git_sync_credentials`        | Encrypted secrets                                       | By id (never expose encrypted_data)     |
-| `git_sync_file_bindings`      | Blob-file mappings                                      | By profile_id, filter tombstone=false   |
 | `git_sync_file_baselines`     | Last synced file state                                  | By profile_id + blob_key                |
 | `git_sync_file_conflicts`     | File conflict records                                   | By profile_id, filter resolution='Open' |
 | `git_sync_partial_sessions`   | Durable batch/session state for `max_docs_per_sync`     | By profile_id + status                  |
@@ -1123,7 +1121,7 @@ and every content hash. A verified unbound entry is adoptable only when its
 document ID resolves to one active workspace document and no active,
 tombstoned, sync-ID, document-path, or file-path conflict exists. The
 transaction uses the shared path planner, inserts adopted bindings and
-baselines, lets the existing binding trigger derive path ownership, rebuilds
+their baselines, enforces unique active paths, rebuilds
 document baselines only from verified remote content, clears unreachable
 commit references, finalizes only matching reconciliation-required runs, and
 writes one scrubbed `git_sync.reconcile.apply` audit event. Running the
@@ -1290,11 +1288,11 @@ Loader (classify + MIME check) → Reconcile (3-way) → Executor (blob↔git) �
 
 ### Database tables
 
-| Table                     | Purpose                                                |
-| ------------------------- | ------------------------------------------------------ |
-| `git_sync_file_bindings`  | Maps Myoxus blob IDs to Git repo paths                 |
-| `git_sync_file_baselines` | Stores last-synced state (hash, size) per file binding |
-| `git_sync_file_conflicts` | Conflict records for file-level conflicts              |
+| Table                           | Purpose                                                      |
+| ------------------------------- | ------------------------------------------------------------ |
+| `git_sync_file_bindings` (view) | Maps Myoxus blob keys to Git repo paths                      |
+| `git_sync_file_baselines`       | Stores synced hash and Git revision per profile and blob key |
+| `git_sync_file_conflicts`       | Conflict records for file-level conflicts                    |
 
 ### File conflict resolution
 

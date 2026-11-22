@@ -341,8 +341,13 @@ impl SqlxWorkspaceStore {
     people.sort();
     people.dedup();
     for person in people {
-      sqlx::query("SELECT user_id FROM workspace_memberships WHERE workspace_id=$1 AND user_id=$2 AND status='Accepted' FOR SHARE")
-      .bind(receipt.workspace_id).bind(person).fetch_optional(&mut *tx).await.map_err(Self::map_db_err)?.ok_or(AuthError::ActionForbidden)?;
+      sqlx::query("SELECT user_id FROM workspace_effective_roles WHERE workspace_id=$1 AND user_id=$2 FOR SHARE")
+        .bind(receipt.workspace_id)
+        .bind(person)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(Self::map_db_err)?
+        .ok_or(AuthError::ActionForbidden)?;
     }
     Ok(())
   }

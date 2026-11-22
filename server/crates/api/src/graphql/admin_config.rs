@@ -915,7 +915,6 @@ fn humanize_segment(segment: &str) -> String {
 /// Load config changelog entries from the database.
 ///
 /// Reads from `admin_audit_log` filtered to `category = 'config'`.
-/// The `config_changelog` table is no longer written (P113-AUDIT-C-03).
 /// Returns entries ordered by changed_at DESC (newest first).
 #[instrument(skip_all)]
 pub(crate) async fn load_config_changelog(
@@ -1004,7 +1003,6 @@ pub(crate) async fn record_config_change(
     new_value
   };
 
-  // P113-AUDIT-C-03: config_changelog INSERT removed — writes go only to admin_audit_log.
   // The audit recorder swallows errors so config writes are never blocked.
   {
     use myoxus_domain::audit::{AuditActor, AuditCategory, AuditEvent, AuditTarget};

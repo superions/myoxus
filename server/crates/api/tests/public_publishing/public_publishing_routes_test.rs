@@ -547,7 +547,7 @@ async fn public_route_renders_active_web_update_only_doc_after_empty_initial_ren
 
   // Active Web documents usually arrive as a stream of Yjs updates, not as a
   // compacted snapshot. Public HTML must use the latest merged update stream on
-  // every render, even after an earlier empty render has written an artifact.
+  // every render, including after an earlier empty render.
   sqlx::query(
     r#"
       INSERT INTO doc_updates (workspace_id, doc_id, payload, sequence, server_timestamp)
@@ -566,23 +566,6 @@ async fn public_route_renders_active_web_update_only_doc_after_empty_initial_ren
   assert!(
     rendered_body.contains(&body),
     "public route must render the later live Web body update: {rendered_body}"
-  );
-
-  let artifact_html: String = sqlx::query_scalar(
-    r#"
-      SELECT rendered_html
-      FROM public_render_artifacts
-      WHERE workspace_id = $1 AND doc_id = $2
-    "#,
-  )
-  .bind(workspace_id)
-  .bind(doc_id)
-  .fetch_one(&pool)
-  .await
-  .expect("public artifact after second render");
-  assert!(
-    artifact_html.contains(&body),
-    "public artifact must be regenerated from the latest live Web update stream"
   );
 
   helpers::cleanup_workspaces(&pool, &[workspace_id]).await;
@@ -823,15 +806,6 @@ async fn public_workspace_and_legacy_share_routes_use_canonical_public_contract(
 
   let (initial_doc_status, _, _) = get(&app, format!("/public/{workspace_id}/{doc_id}")).await;
   assert_eq!(initial_doc_status, http::StatusCode::OK);
-  let artifact_count: i64 =
-    sqlx::query_scalar("SELECT count(*) FROM public_render_artifacts WHERE workspace_id = $1 AND doc_id = $2")
-      .bind(workspace_id)
-      .bind(doc_id)
-      .fetch_one(&pool)
-      .await
-      .expect("materialized public artifact count");
-  assert_eq!(artifact_count, 1);
-
   let suspended = helpers::gql(
     &app,
     session_id,
@@ -846,18 +820,6 @@ async fn public_workspace_and_legacy_share_routes_use_canonical_public_contract(
     "workspace suspension failed: {suspended}"
   );
   assert_eq!(suspended["data"]["updateWorkspace"]["public"], false);
-  let artifact_count_after_suspension: i64 =
-    sqlx::query_scalar("SELECT count(*) FROM public_render_artifacts WHERE workspace_id = $1 AND doc_id = $2")
-      .bind(workspace_id)
-      .bind(doc_id)
-      .fetch_one(&pool)
-      .await
-      .expect("public artifact count after workspace suspension");
-  assert_eq!(
-    artifact_count_after_suspension, 0,
-    "workspace settings changes must invalidate public artifacts"
-  );
-
   let (private_ws_status, _, _) = get(&app, format!("/public/{workspace_id}")).await;
   assert_eq!(
     private_ws_status,
@@ -1372,12 +1334,6 @@ async fn public_overviews_use_native_folders_and_current_publication_without_pri
           .unwrap(),
       "Hidden creation-time sorting must fall back to title rather than put the older introduction first"
     );
-    let root_artifact: String =
-      sqlx::query_scalar("SELECT rendered_html FROM public_render_artifacts WHERE workspace_id=$1 AND doc_id IS NULL")
-        .bind(workspace)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
     let (status, parent, _) = get(&app, public_folder_path(workspace, "services")).await;
     assert_eq!(status, http::StatusCode::OK);
     assert!(parent.contains(&public_folder_path(workspace, "monitoring & alarms").replace('&', "&amp;")));
@@ -1400,16 +1356,6 @@ async fn public_overviews_use_native_folders_and_current_publication_without_pri
     assert_eq!(status, http::StatusCode::OK);
     assert!(document.contains("Check current alerts."));
     assert!(document.contains("monitoring%20%26%20alerts"));
-    let after_folder_reads: String =
-      sqlx::query_scalar("SELECT rendered_html FROM public_render_artifacts WHERE workspace_id=$1 AND doc_id IS NULL")
-        .bind(workspace)
-        .fetch_one(&pool)
-        .await
-        .unwrap();
-    assert_eq!(
-      after_folder_reads, root_artifact,
-      "Folder HTML must not overwrite the existing root artifact"
-    );
     for folder in ["private", "collection-only"] {
       assert_eq!(
         get(&app, public_folder_path(workspace, folder)).await.0,

@@ -238,6 +238,25 @@ pub trait BlobStore: Send + Sync {
     offset: i64,
     include_deleted: bool,
   ) -> AuthResult<Vec<BlobMetadata>>;
+  /// Begin an explicit removal only if the current usage snapshot permits it.
+  /// Dropping the reservation rolls back the metadata removal on object-store failure.
+  async fn reserve_unused_removal(&self, _workspace: Uuid, _key: &BlobKey) -> AuthResult<Box<dyn ReservedBlobRemoval>> {
+    Err(crate::auth::AuthError::Storage(
+      "blob usage projection unavailable".into(),
+    ))
+  }
+  /// `None` means document coverage is incomplete, never an empty inventory.
+  async fn unused_blob_page(
+    &self,
+    _workspace: Uuid,
+    _offset: i64,
+    _limit: i64,
+    _keys: Option<&[String]>,
+  ) -> AuthResult<Option<(i64, Vec<BlobMetadata>)>> {
+    Err(crate::auth::AuthError::Storage(
+      "blob usage projection unavailable".into(),
+    ))
+  }
   /// Return every object-store key that must be removed with a workspace.
   /// This administrative projection is intentionally not paginated.
   async fn list_workspace_blob_keys_for_deletion(&self, workspace_id: Uuid) -> AuthResult<Vec<String>>;
@@ -260,6 +279,11 @@ pub trait BlobStore: Send + Sync {
     deleted_before: DateTime<Utc>,
     limit: i64,
   ) -> AuthResult<Vec<BlobGcCandidate>>;
+}
+
+#[async_trait]
+pub trait ReservedBlobRemoval: Send {
+  async fn commit(self: Box<Self>) -> AuthResult<()>;
 }
 
 // ─── Null Store (for ApiState::new() and tests that don't exercise blobs) ────

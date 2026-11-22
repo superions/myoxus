@@ -68,6 +68,7 @@ pub async fn rollup_day_with_advisory_lock(
     FROM metrics_raw
     WHERE minute >= $1::date::timestamptz
       AND minute <  ($1::date + INTERVAL '1 day')::timestamptz
+      AND NOT (category='collab' AND metric_name='active_sync_users' AND labels='{}')
     GROUP BY category, metric_name, labels
     ON CONFLICT (day, category, metric_name, labels)
     DO UPDATE SET sum = EXCLUDED.sum, count = EXCLUDED.count
@@ -90,6 +91,7 @@ pub async fn prune_with_advisory_lock(
   lock_id: i64,
   raw_cutoff: DateTime<Utc>,
   daily_cutoff: NaiveDate,
+  persistence_enabled: bool,
 ) -> MetricsStoreResult<Option<(u64, u64)>> {
   let mut transaction = pool.begin().await.map_err(map_db_err)?;
   let acquired = sqlx::query_scalar::<_, bool>("SELECT pg_try_advisory_xact_lock($1)")
@@ -102,14 +104,21 @@ pub async fn prune_with_advisory_lock(
     return Ok(None);
   }
 
-  let raw_deleted = sqlx::query("DELETE FROM metrics_raw WHERE minute < $1")
-    .bind(raw_cutoff)
-    .execute(&mut *transaction)
-    .await
-    .map_err(map_db_err)?
-    .rows_affected();
-  let daily_deleted = sqlx::query("DELETE FROM metrics_daily WHERE day < $1")
+  // The Admin gauge is sampled independently of optional business metrics.
+  let raw_deleted = sqlx::query(
+    "DELETE FROM metrics_raw WHERE
+      CASE WHEN category='collab' AND metric_name='active_sync_users' AND labels='{}'
+        THEN minute < now() - interval '7 days' ELSE $2 AND minute < $1 END",
+  )
+  .bind(raw_cutoff)
+  .bind(persistence_enabled)
+  .execute(&mut *transaction)
+  .await
+  .map_err(map_db_err)?
+  .rows_affected();
+  let daily_deleted = sqlx::query("DELETE FROM metrics_daily WHERE $2 AND day < $1")
     .bind(daily_cutoff)
+    .bind(persistence_enabled)
     .execute(&mut *transaction)
     .await
     .map_err(map_db_err)?
@@ -185,6 +194,7 @@ impl MetricsRepository for SqlxMetricsRepository {
       FROM metrics_raw
       WHERE minute >= $1::date::timestamptz
         AND minute <  ($1::date + INTERVAL '1 day')::timestamptz
+      AND NOT (category='collab' AND metric_name='active_sync_users' AND labels='{}')
       GROUP BY category, metric_name, labels
       ON CONFLICT (day, category, metric_name, labels)
       DO UPDATE SET sum = EXCLUDED.sum, count = EXCLUDED.count

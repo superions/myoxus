@@ -287,6 +287,11 @@ export class EdgelessNoteBlockComponent extends toGfxBlockComponent(
         data-model-height="${bound.h}"
         data-editing=${this._editing}
         data-collapse=${ifDefined(collapse)}
+        data-fit-page-tables=${ifDefined(
+          !collapse && displayMode !== NoteDisplayMode.EdgelessOnly
+            ? ""
+            : undefined,
+        )}
         data-testid="edgeless-note-container"
         @mouseleave=${this._leaved}
         @mousemove=${this._hovered}

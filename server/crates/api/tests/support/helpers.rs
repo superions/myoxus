@@ -1249,7 +1249,7 @@ where
     crate::helpers::database_starter_catalog(),
   ));
   let admin_store = Arc::new(SqlxAdminStore::new(pool.clone()));
-  let doc_store = Arc::new(SqlxDocStore::new(pool.clone()));
+  let doc_store = Arc::new(SqlxDocStore::new(pool.clone()).with_database_templates(database_starter_catalog()));
   let mailer = Arc::new(LogMailAdapter);
   let storage = Arc::new(StorageAdapter::new_fs("./test-storage").expect("storage"));
   let blob_store = Arc::new(SqlxBlobStore::new(pool.clone()));
@@ -2297,19 +2297,8 @@ pub async fn create_organization_unit(
   id
 }
 
-/// Assign a user as `manager` to an OU AND set the global `manager`
-/// user-feature, so the two-axis check (`is_manager_for_unit`) returns
-/// `true`.
+/// Assign the scoped role through its sole source.
 pub async fn make_manager_of(pool: &PgPool, user_id: Uuid, unit_id: Uuid) {
-  sqlx::query(
-    r#"INSERT INTO user_features (user_id, feature_name, activated, created_at, updated_at)
-       VALUES ($1, 'manager', true, now(), now())
-       ON CONFLICT (user_id, feature_name) DO UPDATE SET activated = true, updated_at = now()"#,
-  )
-  .bind(user_id)
-  .execute(pool)
-  .await
-  .expect("upsert user_features manager");
   sqlx::query(
     r#"INSERT INTO organization_unit_member (unit_id, user_id, role, source, metadata, created_at, updated_at)
        VALUES ($1, $2, 'manager', 'manual', '{}'::jsonb, now(), now())

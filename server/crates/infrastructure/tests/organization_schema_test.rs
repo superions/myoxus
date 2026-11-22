@@ -251,6 +251,20 @@ async fn inv_org_b_t04_only_one_owner_per_workspace() {
   .await
   .expect("second 'managed' link succeeds for the same workspace");
 
+  let duplicate_pair = sqlx::query(
+    "INSERT INTO organization_unit_workspace(unit_id, workspace_id, relationship)
+    VALUES ($1,$2,'linked')",
+  )
+  .bind(unit_b)
+  .bind(ws_id)
+  .execute(&pool)
+  .await
+  .unwrap_err();
+  assert_eq!(
+    duplicate_pair.as_database_error().and_then(|e| e.constraint()),
+    Some("organization_unit_workspace_pkey")
+  );
+
   // Cleanup.
   for unit_id in [unit_a, unit_b] {
     sqlx::query("DELETE FROM organization_unit WHERE id = $1")

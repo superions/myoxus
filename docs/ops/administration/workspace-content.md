@@ -80,7 +80,7 @@ operator SQL repair path.
 The permanent-delete transaction removes document assignments, every matching
 Database `Tags` cell value and root-Yjs compatibility references before it
 deletes the catalog row. It also records the canonical and legacy identifiers
-in `workspace_tag_retired_ids`, preventing explicit reconciliation from
+as retired in `workspace_tag_identities`, preventing explicit reconciliation from
 recreating retired identities. The old client bootstrap is retired and never writes. Do not delete or edit those retirement rows manually.
 
 An archived reference is immutable historical data, not a write lock on the
@@ -252,7 +252,7 @@ The current destination public/sharing policy wins automatically when Move or
 Extract publishes. It can retain or reduce a document's public mode, never
 publish private content. Copy is private and Link changes no publication or
 access rights. A disabled/private destination requires no extra confirmation
-or flag change. Public artifacts/listings are invalidated through the committed
+or flag change. Public asset manifests are invalidated through the committed
 outbox; an old source URL cannot expose the moved document. Legacy confirmation
 and blocker values remain visible only in historical records.
 

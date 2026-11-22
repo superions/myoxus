@@ -896,14 +896,23 @@ impl TemplateRegistryStore for SqlxTemplateRegistryStore {
             .iter()
             .find(|revision| Some(revision.id) == entry.current_revision_id)
             .expect("validated current selection");
-          sqlx::query("INSERT INTO template_default_policies(template_id,apply_to_new_workspaces,selection_mode,provisioning_mode,release_managed,created_at,updated_at) VALUES($1,true,'published',$2,true,now(),now()) ON CONFLICT(template_id) DO UPDATE SET apply_to_new_workspaces=true,updated_at=CASE WHEN NOT template_default_policies.apply_to_new_workspaces THEN now() ELSE template_default_policies.updated_at END WHERE template_default_policies.release_managed")
-            .bind(entry.template_id).bind(provisioning_mode_to_db(shipped_default_provisioning_mode(revision)))
-            .execute(&mut *tx).await.map_err(Self::map_db_err)?;
+          sqlx::query(
+            "UPDATE template_catalog_entries SET apply_to_new_workspaces=true,
+            provisioning_mode=CASE WHEN apply_to_new_workspaces IS NULL THEN $2 ELSE provisioning_mode END,
+            release_managed=true,policy_created_at=COALESCE(policy_created_at,now()),
+            policy_updated_at=now()
+            WHERE id=$1 AND (apply_to_new_workspaces IS NULL OR (release_managed AND NOT apply_to_new_workspaces))",
+          )
+          .bind(entry.template_id)
+          .bind(provisioning_mode_to_db(shipped_default_provisioning_mode(revision)))
+          .execute(&mut *tx)
+          .await
+          .map_err(Self::map_db_err)?;
         }
       } else {
         // Only rows explicitly created by release publication follow authored
         // default changes. Existing/edited operator rows are never adopted.
-        sqlx::query("UPDATE template_default_policies SET apply_to_new_workspaces=false,updated_at=CASE WHEN apply_to_new_workspaces THEN now() ELSE updated_at END WHERE template_id=$1 AND release_managed")
+        sqlx::query("UPDATE template_catalog_entries SET apply_to_new_workspaces=false,policy_updated_at=now() WHERE id=$1 AND release_managed AND apply_to_new_workspaces")
           .bind(entry.template_id).execute(&mut *tx).await.map_err(Self::map_db_err)?;
       }
       if catalog.status == TemplateStatus::Active
@@ -916,7 +925,7 @@ impl TemplateRegistryStore for SqlxTemplateRegistryStore {
         // Only positive release ownership authorizes correcting old defaults.
         // Turning the authored new-workspace flag off does not freeze an active
         // export's existing source assignments.
-        sqlx::query("UPDATE template_default_policies SET provisioning_mode=$2,updated_at=now() WHERE template_id=$1 AND release_managed AND selection_mode='published' AND provisioning_mode IN ('seed_once','managed_until_local_edit') AND provisioning_mode<>$2")
+        sqlx::query("UPDATE template_catalog_entries SET provisioning_mode=$2,policy_updated_at=now() WHERE id=$1 AND release_managed AND selection_mode='published' AND provisioning_mode IN ('seed_once','managed_until_local_edit') AND provisioning_mode<>$2")
           .bind(entry.template_id).bind(mode).execute(&mut *tx).await.map_err(Self::map_db_err)?;
         // Metadata/lifecycle writes lock the document before inspecting policy.
         // Take that same lock before reading native attribution below, so a
@@ -924,7 +933,7 @@ impl TemplateRegistryStore for SqlxTemplateRegistryStore {
         sqlx::query_scalar::<_, Uuid>(
           r#"
           SELECT d.id FROM workspace_template_policies p
-          JOIN template_default_policies dp ON dp.template_id=p.template_id AND dp.release_managed
+          JOIN template_catalog_entries dp ON dp.id=p.template_id AND dp.release_managed
           JOIN workspace_template_instances i ON i.workspace_id=p.workspace_id AND i.template_id=p.template_id
           JOIN docs d ON d.id=i.workspace_doc_id AND d.workspace_id=i.workspace_id
           WHERE p.template_id=$1 AND p.is_enabled AND p.selection_mode='published'
@@ -940,8 +949,8 @@ impl TemplateRegistryStore for SqlxTemplateRegistryStore {
         .map_err(Self::map_db_err)?;
         sqlx::query(r#"
           UPDATE workspace_template_policies p SET provisioning_mode=$2,updated_at=now()
-          FROM template_default_policies dp
-          WHERE p.template_id=$1 AND dp.template_id=p.template_id AND dp.release_managed
+          FROM template_catalog_entries dp
+          WHERE p.template_id=$1 AND dp.id=p.template_id AND dp.release_managed
             AND p.is_enabled AND p.selection_mode='published' AND p.selected_revision_id IS NULL
             AND p.provisioning_mode='seed_once' AND $2='managed_until_local_edit'
             AND (
@@ -1042,12 +1051,12 @@ impl TemplateRegistryStore for SqlxTemplateRegistryStore {
           AND p.provisioning_mode='managed_until_local_edit' AND COALESCE(i.state,'ok') NOT IN ('detached','retired')
           AND (i.id IS NULL OR i.revision_id IS DISTINCT FROM r.id OR d.id IS NULL OR d.deleted_at IS NOT NULL)
         UNION
-        SELECT w.id FROM workspaces w JOIN template_default_policies dp ON dp.release_managed AND dp.apply_to_new_workspaces
-        JOIN current_release r ON r.template_id=dp.template_id
+        SELECT w.id FROM workspaces w JOIN template_catalog_entries dp ON dp.release_managed AND dp.apply_to_new_workspaces
+        JOIN current_release r ON r.template_id=dp.id
         WHERE w.initial_content_policy='legacy_defaults' AND dp.selection_mode='published'
           AND dp.provisioning_mode IN ('seed_once','managed_until_local_edit')
-          AND NOT EXISTS(SELECT 1 FROM workspace_template_policies p WHERE p.workspace_id=w.id AND p.template_id=dp.template_id)
-          AND NOT EXISTS(SELECT 1 FROM workspace_template_instances i WHERE i.workspace_id=w.id AND i.template_id=dp.template_id)
+          AND NOT EXISTS(SELECT 1 FROM workspace_template_policies p WHERE p.workspace_id=w.id AND p.template_id=dp.id)
+          AND NOT EXISTS(SELECT 1 FROM workspace_template_instances i WHERE i.workspace_id=w.id AND i.template_id=dp.id)
         UNION
         SELECT p.workspace_id FROM workspace_template_policies p JOIN withdrawn c ON c.id=p.template_id
         WHERE p.is_enabled AND p.selection_mode='published' AND p.selected_revision_id IS NULL
@@ -1063,14 +1072,14 @@ impl TemplateRegistryStore for SqlxTemplateRegistryStore {
 
   async fn pending_release_default_ids(&self, workspace: WorkspaceId) -> AuthResult<Vec<TemplateCatalogEntryId>> {
     sqlx::query_scalar(r#"
-      SELECT dp.template_id FROM template_default_policies dp JOIN template_catalog_entries c ON c.id=dp.template_id
+      SELECT dp.id FROM template_catalog_entries dp
       JOIN workspaces w ON w.id=$1 AND w.initial_content_policy='legacy_defaults' AND w.deleted_at IS NULL AND w.lifecycle_state='active'
       WHERE dp.release_managed AND dp.apply_to_new_workspaces AND dp.selection_mode='published'
-        AND dp.provisioning_mode IN ('seed_once','managed_until_local_edit') AND c.source='bundle' AND c.status='active'
-        AND EXISTS(SELECT 1 FROM template_revisions r WHERE r.template_id=c.id AND r.state='published' AND r.release_managed_publication)
-        AND NOT EXISTS(SELECT 1 FROM workspace_template_policies p WHERE p.workspace_id=w.id AND p.template_id=c.id)
-        AND NOT EXISTS(SELECT 1 FROM workspace_template_instances i WHERE i.workspace_id=w.id AND i.template_id=c.id)
-      ORDER BY dp.template_id
+        AND dp.provisioning_mode IN ('seed_once','managed_until_local_edit') AND dp.source='bundle' AND dp.status='active'
+        AND EXISTS(SELECT 1 FROM template_revisions r WHERE r.template_id=dp.id AND r.state='published' AND r.release_managed_publication)
+        AND NOT EXISTS(SELECT 1 FROM workspace_template_policies p WHERE p.workspace_id=w.id AND p.template_id=dp.id)
+        AND NOT EXISTS(SELECT 1 FROM workspace_template_instances i WHERE i.workspace_id=w.id AND i.template_id=dp.id)
+      ORDER BY dp.id
     "#).bind(workspace).fetch_all(&self.pool).await.map_err(Self::map_db_err)
   }
 
@@ -2545,9 +2554,9 @@ impl TemplateRegistryStore for SqlxTemplateRegistryStore {
   async fn list_default_policies(&self) -> AuthResult<Vec<TemplateDefaultPolicy>> {
     let rows = sqlx::query(
       r#"
-            SELECT template_id, apply_to_new_workspaces, selection_mode, provisioning_mode,
-                   created_at, updated_at
-            FROM template_default_policies
+            SELECT id AS template_id, apply_to_new_workspaces, selection_mode, provisioning_mode,
+                   policy_created_at AS created_at, policy_updated_at AS updated_at
+            FROM template_catalog_entries WHERE apply_to_new_workspaces IS NOT NULL
             ORDER BY created_at ASC
             "#,
     )
@@ -2564,18 +2573,13 @@ impl TemplateRegistryStore for SqlxTemplateRegistryStore {
   /// Upsert a template default policy.
   #[instrument(skip(self, policy), fields(template_id = %policy.template_id))]
   async fn upsert_default_policy(&self, policy: &TemplateDefaultPolicy) -> AuthResult<()> {
-    sqlx::query(
+    let result = sqlx::query(
       r#"
-            INSERT INTO template_default_policies
-                (template_id, apply_to_new_workspaces, selection_mode, provisioning_mode,
-                 created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            ON CONFLICT (template_id) DO UPDATE
-            SET apply_to_new_workspaces = EXCLUDED.apply_to_new_workspaces,
-                selection_mode = EXCLUDED.selection_mode,
-                provisioning_mode = EXCLUDED.provisioning_mode,
-                updated_at = EXCLUDED.updated_at,
-                release_managed = false
+            UPDATE template_catalog_entries
+            SET apply_to_new_workspaces=$2, selection_mode=$3, provisioning_mode=$4,
+                policy_created_at=COALESCE(policy_created_at,$5), policy_updated_at=$6,
+                release_managed=false
+            WHERE id=$1
             "#,
     )
     .bind(policy.template_id)
@@ -2588,6 +2592,9 @@ impl TemplateRegistryStore for SqlxTemplateRegistryStore {
     .await
     .map_err(Self::map_db_err)?;
 
+    if result.rows_affected() == 0 {
+      return Err(AuthError::NotFound("template".into()));
+    }
     debug!(template_id = %policy.template_id, "default policy upserted");
     Ok(())
   }
@@ -2596,11 +2603,11 @@ impl TemplateRegistryStore for SqlxTemplateRegistryStore {
   async fn insert_default_policy_if_absent(&self, policy: &TemplateDefaultPolicy) -> AuthResult<bool> {
     let result = sqlx::query(
       r#"
-            INSERT INTO template_default_policies
-                 (template_id, apply_to_new_workspaces, selection_mode, provisioning_mode,
-                  created_at, updated_at, release_managed)
-            VALUES ($1, $2, $3, $4, $5, $6, true)
-            ON CONFLICT (template_id) DO NOTHING
+            UPDATE template_catalog_entries
+            SET apply_to_new_workspaces=$2, selection_mode=$3, provisioning_mode=$4,
+                policy_created_at=COALESCE(policy_created_at,$5), policy_updated_at=$6,
+                release_managed=true
+            WHERE id=$1 AND apply_to_new_workspaces IS NULL
             "#,
     )
     .bind(policy.template_id)
@@ -2620,7 +2627,7 @@ impl TemplateRegistryStore for SqlxTemplateRegistryStore {
   #[instrument(skip(self))]
   async fn set_default_policy_apply_flag(&self, template_id: TemplateCatalogEntryId, apply: bool) -> AuthResult<()> {
     sqlx::query(
-      "UPDATE template_default_policies SET apply_to_new_workspaces = $1, release_managed = false, updated_at = now() WHERE template_id = $2",
+      "UPDATE template_catalog_entries SET apply_to_new_workspaces = $1, release_managed = false, policy_updated_at = now() WHERE id = $2 AND apply_to_new_workspaces IS NOT NULL",
     )
     .bind(apply)
     .bind(template_id)
@@ -2661,7 +2668,7 @@ impl TemplateRegistryStore for SqlxTemplateRegistryStore {
             INSERT INTO workspace_template_policies
                 (id, workspace_id, template_id, selection_mode, provisioning_mode, is_enabled,
                  created_at, updated_at)
-            SELECT gen_random_uuid(), $1, dp.template_id, dp.selection_mode,
+            SELECT gen_random_uuid(), $1, dp.id, dp.selection_mode,
                    CASE WHEN dp.release_managed AND dp.selection_mode='published'
                      AND dp.provisioning_mode IN ('seed_once','managed_until_local_edit')
                      AND published.release_managed_publication
@@ -2669,17 +2676,16 @@ impl TemplateRegistryStore for SqlxTemplateRegistryStore {
                        THEN 'seed_once' ELSE 'managed_until_local_edit' END
                      ELSE dp.provisioning_mode END,
                    TRUE, now(), now()
-            FROM template_default_policies dp
-            JOIN template_catalog_entries c ON c.id = dp.template_id
+            FROM template_catalog_entries dp
             LEFT JOIN LATERAL (
               SELECT revision.id,revision.manifest_json,revision.release_managed_publication
-              FROM template_revisions revision WHERE revision.template_id=c.id AND revision.state='published'
+              FROM template_revisions revision WHERE revision.template_id=dp.id AND revision.state='published'
               ORDER BY revision.published_at DESC NULLS LAST,revision.id LIMIT 1
-            ) published ON c.source='bundle'
+            ) published ON dp.source='bundle'
             WHERE dp.apply_to_new_workspaces = TRUE
               AND EXISTS(SELECT 1 FROM workspaces WHERE id=$1 AND initial_content_policy='legacy_defaults' AND deleted_at IS NULL AND lifecycle_state='active')
-              AND c.status = 'active'
-              AND (c.source = 'builtin' OR published.id IS NOT NULL)
+              AND dp.status = 'active'
+              AND (dp.source = 'builtin' OR published.id IS NOT NULL)
             ON CONFLICT (workspace_id, template_id) DO NOTHING
             "#,
     )

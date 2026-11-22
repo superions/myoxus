@@ -484,7 +484,8 @@ async fn assert_patch_fields_editable(
             WHEN w.owner_user_id = $3 THEN 'Owner'
             ELSE wm.role
           END AS workspace_role,
-          dup.role AS doc_role,
+          CASE WHEN wm.role = 'Reader' AND wm.direct_role = 'Reader' THEN 'Reader'
+               ELSE dup.role END AS doc_role,
           d.responsible_user_id
         FROM docs d
         JOIN workspaces w ON w.id = d.workspace_id
@@ -671,7 +672,7 @@ async fn load_projection_version(
     LEFT JOIN organization_document_metadata_epoch org_defaults
       ON org_defaults.organization_id = effective_org.organization_id
      AND org_defaults.epoch_name = 'defaults'
-    LEFT JOIN workspace_document_metadata_epoch workspace_defaults
+    LEFT JOIN workspace_revisions workspace_defaults
       ON workspace_defaults.workspace_id = d.workspace_id
      AND workspace_defaults.epoch_name = 'defaults'
     WHERE d.id = $1 AND d.workspace_id = $2 AND d.deleted_at IS NULL

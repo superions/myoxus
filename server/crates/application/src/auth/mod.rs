@@ -1317,6 +1317,8 @@ pub enum AuthError {
   /// The shared bounded Yjs decoder gate was closed or its worker failed.
   #[error("Yjs decoder is temporarily unavailable")]
   YjsDecoderUnavailable,
+  #[error("row attachment failed: {0}")]
+  RowAttachment(myoxus_domain::repositories::RepositoryError),
   /// An internal storage or I/O error occurred.
   #[error("storage failure: {0}")]
   Storage(String),
@@ -1821,6 +1823,9 @@ impl AuthStore for InMemoryAuthStore {
     let users = self.users_by_id.read().expect("in-memory users lock poisoned");
     if users.get(&user_id).filter(Self::operational).is_none() {
       return Err(AuthError::NotFound("user".into()));
+    }
+    if feature_name == "manager" {
+      return Err(AuthError::InvalidInput("Manager is derived from OU memberships".into()));
     }
     self
       .user_features
@@ -2940,7 +2945,10 @@ impl WorkspaceStore for InMemoryAuthStore {
         role: WorkspaceRole::Owner,
         status: MembershipStatus::Accepted,
         invited_by_user_id: None,
-        invite_id: Uuid::new_v4(),
+        direct_role: Some(WorkspaceRole::Owner),
+        ou_role: None,
+        ou_names: Vec::new(),
+        invite_id: Some(Uuid::new_v4()),
       },
     );
 
@@ -3078,7 +3086,10 @@ impl WorkspaceStore for InMemoryAuthStore {
       user: map_auth_user_to_domain_user(user),
       role,
       status,
-      invite_id: prior.map(|member| member.invite_id).unwrap_or_else(Uuid::new_v4),
+      direct_role: Some(role),
+      ou_role: None,
+      ou_names: Vec::new(),
+      invite_id: Some(prior.and_then(|member| member.invite_id).unwrap_or_else(Uuid::new_v4)),
     };
     memberships.insert((workspace_id, user_id), member.clone());
     Ok(member)
@@ -3091,7 +3102,7 @@ impl WorkspaceStore for InMemoryAuthStore {
 
   async fn get_member_by_invite_id(&self, invite_id: InviteLinkId) -> AuthResult<Option<WorkspaceMember>> {
     let memberships = self.memberships.read().expect("in-memory memberships lock poisoned");
-    Ok(memberships.values().find(|m| m.invite_id == invite_id).cloned())
+    Ok(memberships.values().find(|m| m.invite_id == Some(invite_id)).cloned())
   }
 
   async fn delete_member(&self, workspace_id: WorkspaceId, user_id: UserId) -> AuthResult<()> {
@@ -6486,7 +6497,9 @@ mod tests {
         Err(AuthError::NotFound(_))
       ));
       assert!(matches!(
-        store.set_user_feature_override(user.id, "manager", true, "test").await,
+        store
+          .set_user_feature_override(user.id, "unlimited_copilot", true, "test")
+          .await,
         Err(AuthError::NotFound(_))
       ));
       assert_eq!(commit.revoked_session_ids, vec![session.id]);

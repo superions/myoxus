@@ -205,6 +205,9 @@ async fn document_graph_reindex_resolves_workspace_external_keys_and_projects_th
     json!({
       "query": r#"query DocumentGraphIdentity($workspaceId: String!, $source: ID!) {
         workspace(id: $workspaceId) {
+          documentLinks(input: { docId: $source, direction: Outgoing, first: 20 }) {
+            outgoingNavigation { blocks { links { docId } } }
+          }
           documentGraph(input: { focusDocId: $source, direction: Outgoing, first: 20, includeOccurrences: true }) {
             nodes { docId rawDocId deleted redacted }
             edges {
@@ -305,6 +308,22 @@ async fn document_graph_reindex_resolves_workspace_external_keys_and_projects_th
     "Document Graph GraphQL read failed: {response}"
   );
   let serialized = response.to_string();
+  let blocks = response["data"]["workspace"]["documentLinks"]["outgoingNavigation"]["blocks"]
+    .as_array()
+    .expect("navigation blocks");
+  let links = blocks
+    .iter()
+    .flat_map(|block| block["links"].as_array().expect("navigation links"))
+    .map(|link| link["docId"].as_str().expect("external target key"))
+    .collect::<Vec<_>>();
+  assert_eq!(
+    links,
+    [
+      nano_target_external_id,
+      &uuid_default_target_id.to_string(),
+      &collision_external_id
+    ]
+  );
   for internal_only_id in [source_id, nano_target_id, deleted_target_id, collision_target_id] {
     assert!(
       !serialized.contains(&internal_only_id.to_string()),

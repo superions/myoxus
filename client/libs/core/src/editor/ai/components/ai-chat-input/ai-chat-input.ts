@@ -7,12 +7,12 @@ import type { AIModelService } from "@myoxus/core/modules/ai-button/services/mod
 import type { FeatureFlagService } from "@myoxus/core/modules/feature-flag";
 import type { ServerService } from "@myoxus/core/modules/server";
 import type { CopilotChatHistoryFragment } from "@myoxus/graphql";
-import { type ReactToLit, toReactNode } from "@myoxus/lit-react";
+import type { ReactToLit } from "@myoxus/lit-react";
 import { signal } from "@preact/signals-core";
 import { SignalWatcher, WithDisposable } from "@virgultum/editor/global/lit";
 import { type EditorHost, ShadowlessElement } from "@virgultum/editor/std";
 import type { NotificationService } from "@virgultum/core/services";
-import { html, nothing, type PropertyValues } from "lit";
+import { nothing, type PropertyValues } from "lit";
 import { property, query, state } from "lit/decorators.js";
 import { createElement } from "react";
 import { nanoid } from "nanoid";
@@ -20,6 +20,7 @@ import { nanoid } from "nanoid";
 import { type AIError, AIProvider, type AISendParams } from "../../provider";
 import { readBlobAsURL } from "../../utils/image";
 import { mergeStreamObjects } from "../../utils/stream-objects";
+import { AddContext } from "../ai-chat-chips/context-options";
 import type { SearchMenuConfig } from "../ai-chat-add-context";
 import type { ChatChip, DocDisplayConfig } from "../ai-chat-chips/type";
 import {
@@ -33,6 +34,7 @@ import {
   StreamObjectSchema,
 } from "../ai-chat-messages";
 import type { AIChatInputContext, AIReasoningConfig } from "./type";
+import { ChatPreferenceMenu } from "./preference-menu";
 import { ChatInputView } from "./view";
 import { ChatImagePreviewView } from "../ai-chat-chips/view";
 import { ImagePreviewUrls } from "../image-preview-grid";
@@ -85,8 +87,6 @@ export class AIChatInput extends SignalWatcher(
     VirgultumPresets.TrackerOptions | undefined;
   @property({ attribute: "data-testid", reflect: true }) accessor testId =
     "chat-panel-input-container";
-  @property({ attribute: false }) accessor portalContainer: HTMLElement | null =
-    null;
 
   // One transient draft source for both Lit orchestration and the native view.
   readonly draft = signal("");
@@ -196,6 +196,8 @@ export class AIChatInput extends SignalWatcher(
   protected override render() {
     if (!this.reactToLit) return nothing;
     const { images, status } = this.chatContextValue;
+    const modelService = this.aiModelService;
+    const tools = this.aiToolsConfigService.config.value;
     const previews = this.imagePreviewUrls.sync(this.isConnected ? images : []);
     const generating =
       !!this.activeRequest || status === "loading" || status === "transmitting";
@@ -210,35 +212,37 @@ export class AIChatInput extends SignalWatcher(
               onError: this.imagePreviewUrls.release,
             })
           : null,
-        context: toReactNode(
-          html`<ai-chat-add-context
-            .reactToLit=${this.reactToLit}
-            .disabled=${generating}
-            .docId=${this.docId}
-            .independentMode=${this.independentMode}
-            .addChip=${this.addChip}
-            .addImages=${this.addImages}
-            .docDisplayConfig=${this.docDisplayConfig}
-            .searchMenuConfig=${this.searchMenuConfig}
-            .portalContainer=${this.portalContainer}
-          ></ai-chat-add-context>`,
-        ),
-        preferences: toReactNode(
-          html`<chat-input-preference
-            .reactToLit=${this.reactToLit}
-            .session=${this.session}
-            .extendedThinking=${this._isReasoningActive}
-            .disabled=${generating}
-            .onExtendedThinkingChange=${this._toggleReasoning}
-            .toolsConfigService=${this.aiToolsConfigService}
-            .aiModelService=${this.aiModelService}
-          ></chat-input-preference>`,
-        ),
+        context: createElement(AddContext, {
+          disabled: generating,
+          docId: this.docId,
+          independentMode: this.independentMode,
+          addChip: this.addChip,
+          addImages: this.addImages,
+          docDisplayConfig: this.docDisplayConfig,
+          searchMenuConfig: this.searchMenuConfig,
+        }),
+        preferences: createElement(ChatPreferenceMenu, {
+          models: modelService.models.value,
+          modelId: modelService.effectiveModelId,
+          modelStatus: modelService.status.value,
+          onReloadModels: modelService.reload,
+          reasoning: this._isReasoningActive,
+          reasoningAvailable: modelService.reasoningAvailable,
+          searchWorkspace: !!tools.searchWorkspace && !!tools.readingDocs,
+          disabled: generating,
+          onModelChange: modelService.setModel,
+          onReasoningChange: this._toggleReasoning,
+          onSearchChange: (enabled) =>
+            this.aiToolsConfigService.setConfig({
+              searchWorkspace: enabled,
+              readingDocs: enabled,
+            }),
+        }),
         generating,
         imageInputUnsupported: this.imageInputUnsupported,
         retrievalUnavailable:
           this.chatContextValue.retrievalAvailable === false &&
-          this.aiToolsConfigService?.config.value.searchWorkspace !== false,
+          tools.searchWorkspace !== false,
         sendDisabled: this.isSendDisabled,
         onInput: (value) => {
           this._handleInput(value).catch(console.error);

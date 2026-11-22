@@ -6,8 +6,6 @@ import {
   BlockElementCommentManager,
   type CommentId,
   CommentProviderIdentifier,
-  findAllCommentedBlocks,
-  findAllCommentedElements,
 } from "@virgultum/core/services";
 import type { MyoxusInlineEditor } from "@virgultum/core/types";
 import {
@@ -20,7 +18,7 @@ import difference from "lodash-es/difference";
 
 import {
   extractCommentIdFromDelta,
-  findAllCommentedTexts,
+  commentsInStore,
   findCommentedTexts,
 } from "./utils";
 
@@ -82,21 +80,7 @@ export class InlineCommentManager extends LifeCycleWatcher {
   }
 
   getCommentsInEditor() {
-    const inlineComments = [...findAllCommentedTexts(this.std.store).values()];
-
-    const blockComments = findAllCommentedBlocks(this.std.store).flatMap(
-      (block) => Object.keys(block.props.comments),
-    );
-
-    const surfaceComments = findAllCommentedElements(this.std.store).flatMap(
-      (element) => Object.keys(element.comments),
-    );
-
-    const commentsInEditor = [
-      ...new Set([...inlineComments, ...blockComments, ...surfaceComments]),
-    ];
-
-    return commentsInEditor;
+    return commentsInStore(this.std.store);
   }
 
   private readonly _handleAddComment = (

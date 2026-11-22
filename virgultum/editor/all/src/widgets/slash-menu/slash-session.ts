@@ -79,8 +79,12 @@ export class SlashSession implements EditorSlashControls {
     readonly triggerKey: string,
     private readonly config: SlashMenuConfig,
     transform: (item: SlashMenuItem) => SlashMenuItem,
+    triggerEnd?: number,
   ) {
-    this.startRange = inlineEditor.getInlineRange();
+    this.startRange =
+      triggerEnd === undefined
+        ? inlineEditor.getInlineRange()
+        : { index: triggerEnd, length: 0 };
     this.items = buildSlashMenuItems(
       typeof config.items === "function" ? config.items(context) : config.items,
       context,

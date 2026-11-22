@@ -1566,15 +1566,6 @@ export interface AdminSetOrganizationUnitStatusMutation {
   };
 }
 
-export type AdminSetUserManagerFeatureMutationVariables = Exact<{
-  userId: string;
-  enabled: boolean;
-}>;
-
-export interface AdminSetUserManagerFeatureMutation {
-  admin: { setUserManagerFeature: boolean };
-}
-
 export type AdminTestOidcProviderMutationVariables = Exact<{
   config: any;
   sampleClaims?: any;
@@ -1889,6 +1880,9 @@ export interface AdminWorkspaceQuery {
         email: string;
         avatarUrl: string | null;
         role: Types.Permission;
+        directRole: Types.Permission | null;
+        ouRole: Types.Permission | null;
+        ouNames: Array<string>;
         status: Types.WorkspaceMemberStatus;
       }>;
     } | null;
@@ -4166,6 +4160,7 @@ export type DeleteBlobMutationVariables = Exact<{
   workspaceId: string;
   key: string;
   permanently?: boolean | null | undefined;
+  onlyIfUnused?: boolean | null | undefined;
 }>;
 
 export interface DeleteBlobMutation {
@@ -33903,6 +33898,30 @@ export interface DocumentGraphIndexStatusQuery {
   } | null;
 }
 
+export type OutgoingNavigationQueryVariables = Exact<{
+  workspaceId: string;
+  input: Types.DocumentLinksInput;
+}>;
+
+export interface OutgoingNavigationQuery {
+  workspace: {
+    documentLinks: {
+      outgoingNavigation: {
+        pending: boolean;
+        blocks: Array<{
+          blockId: string;
+          links: Array<{
+            workspaceId: string;
+            docId: string;
+            title: string | null;
+            paramsJson: any;
+          }>;
+        }>;
+      };
+    };
+  } | null;
+}
+
 export type DocumentMetadataFieldDefinitionFieldsFragment = {
   key: string;
   label: string;
@@ -41315,8 +41334,11 @@ export interface GetMembersByWorkspaceIdQuery {
       name: string;
       email: string;
       avatarUrl: string | null;
+      directRole: Types.Permission | null;
+      ouRole: Types.Permission | null;
+      ouNames: Array<string>;
       permission: Types.Permission;
-      inviteId: string;
+      inviteId: string | null;
       emailVerified: boolean | null;
       status: Types.WorkspaceMemberStatus;
     }>;
@@ -57193,6 +57215,27 @@ export interface TemplateSuggestionsQuery {
   } | null;
 }
 
+export type UnusedBlobsQueryVariables = Exact<{
+  workspaceId: string;
+  offset: number;
+  first: number;
+}>;
+
+export interface UnusedBlobsQuery {
+  workspace: {
+    unusedBlobs: {
+      ready: boolean;
+      total: number;
+      items: Array<{
+        key: string;
+        size: number;
+        mime: string;
+        createdAt: string;
+      }>;
+    };
+  } | null;
+}
+
 export type UpdateDocDefaultRoleMutationVariables = Exact<{
   input: Types.UpdateDocDefaultRoleInput;
 }>;
@@ -70408,6 +70451,11 @@ export type Queries =
       response: DocumentGraphIndexStatusQuery;
     }
   | {
+      name: "outgoingNavigationQuery";
+      variables: OutgoingNavigationQueryVariables;
+      response: OutgoingNavigationQuery;
+    }
+  | {
       name: "documentMetadataIndexQuery";
       variables: DocumentMetadataIndexQueryVariables;
       response: DocumentMetadataIndexQuery;
@@ -70893,6 +70941,11 @@ export type Queries =
       response: TemplateSuggestionsQuery;
     }
   | {
+      name: "unusedBlobsQuery";
+      variables: UnusedBlobsQueryVariables;
+      response: UnusedBlobsQuery;
+    }
+  | {
       name: "userLastLoginAtQuery";
       variables: UserLastLoginAtQueryVariables;
       response: UserLastLoginAtQuery;
@@ -71213,11 +71266,6 @@ export type Mutations =
       name: "adminSetOrganizationUnitStatusMutation";
       variables: AdminSetOrganizationUnitStatusMutationVariables;
       response: AdminSetOrganizationUnitStatusMutation;
-    }
-  | {
-      name: "adminSetUserManagerFeatureMutation";
-      variables: AdminSetUserManagerFeatureMutationVariables;
-      response: AdminSetUserManagerFeatureMutation;
     }
   | {
       name: "adminTestOidcProviderMutation";

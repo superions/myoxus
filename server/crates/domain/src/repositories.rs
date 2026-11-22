@@ -509,6 +509,15 @@ pub trait DocumentGraphRepository: Send + Sync {
     page: PageRequest,
   ) -> RepoResult<Vec<DocumentGraphOccurrence>>;
 
+  /// Source-local, block-limited navigation candidates. The application must
+  /// authorize the resolved target identities before exposing their data.
+  async fn outgoing_navigation(
+    &self,
+    workspace_id: WorkspaceId,
+    doc_id: DocId,
+    page: PageRequest,
+  ) -> RepoResult<Vec<crate::document_graph::NavigationOccurrence>>;
+
   async fn list_workspace_edges(
     &self,
     workspace_id: WorkspaceId,
@@ -660,7 +669,7 @@ pub trait CalendarMailDeliveryGuard: Send {
   async fn release(self: Box<Self>) -> RepoResult<()>;
 }
 
-/// Exclusive reminder fanout ownership. Pending dispatch-log rows may be reclaimed;
+/// Exclusive reminder fanout ownership. Pending attempts on the reminder may be reclaimed;
 /// recipient receipts and whole-reminder completion survive retries. Persistence
 /// steps finish before SMTP, and cancellation closes the session during acquisition too.
 #[async_trait]
@@ -1431,23 +1440,6 @@ pub trait CopilotEmbeddingRepository: Send + Sync {
   /// IDs. Used for garbage-collecting embeddings of deleted documents.
   /// Returns the number of rows deleted.
   async fn delete_orphan_embeddings(&self, workspace_id: WorkspaceId, valid_source_ids: &[String]) -> RepoResult<u64>;
-}
-
-/// Persistence operations for workspace usage analytics (minute-resolution
-/// time-series data).
-#[async_trait]
-pub trait AnalyticsRepository: Send + Sync {
-  /// Upsert a single one-minute analytics record for a workspace.  Callers
-  /// should bucket timestamps to the start of each minute before calling this.
-  async fn upsert_workspace_analytics_minute(&self, record: &WorkspaceAnalyticsMinute) -> RepoResult<()>;
-  /// Return all analytics records for a workspace within the given half-open
-  /// time range `[from, to)`.
-  async fn list_workspace_analytics(
-    &self,
-    workspace_id: WorkspaceId,
-    from: DateTime<Utc>,
-    to: DateTime<Utc>,
-  ) -> RepoResult<Vec<WorkspaceAnalyticsMinute>>;
 }
 
 // --- PDF-Export V2 Repository Traits ---
@@ -2363,6 +2355,7 @@ pub struct OrganizationUnitCounts {
 /// Persistence operations for `organization_unit_member`.
 #[async_trait]
 pub trait OrganizationUnitMemberRepository: Send + Sync {
+  async fn manages_organization(&self, user: UserId, organization: OrganizationId) -> RepoResult<bool>;
   /// All members of `unit`, optionally filtered by role.
   async fn list_members(
     &self,

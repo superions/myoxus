@@ -1,6 +1,6 @@
 import { Entity, LiveData } from "@myoxus/infra";
 import type { SurfaceRefBlockComponent } from "@virgultum/editor/blocks/surface-ref";
-import { MyoxusReference } from "@virgultum/editor/inlines/reference";
+import type { MyoxusReference } from "@virgultum/editor/inlines/reference";
 import type {
   AttachmentBlockModel,
   DocMode,
@@ -145,8 +145,11 @@ function resolvePeekInfoFromPeekTarget(
   const element = peekTarget.element;
 
   if (element) {
-    if (element instanceof MyoxusReference) {
-      const referenceInfo = element.referenceInfo;
+    if (
+      element instanceof HTMLElement &&
+      element.localName === "myoxus-reference"
+    ) {
+      const referenceInfo = (element as MyoxusReference).referenceInfo;
       if (referenceInfo) {
         const { pageId: docId, workspaceId, params } = referenceInfo;
         const info: DocPeekViewInfo = {

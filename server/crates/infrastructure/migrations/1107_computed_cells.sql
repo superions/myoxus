@@ -1,0 +1,21 @@
+-- SPDX-License-Identifier: AGPL-3.0-or-later
+
+-- Computed cells are identified by row and field. The field owns their type.
+ALTER TABLE workspace_database_formula_values RENAME TO workspace_database_computed_values;
+DELETE FROM workspace_database_computed_values v USING workspace_database_fields f
+WHERE f.id=v.field_id AND f.field_type <> 'formula';
+INSERT INTO workspace_database_computed_values
+  (database_id,row_id,field_id,value_json,source_hash,stale_state,computed_at,failed_at,error_code,error_message,updated_at)
+SELECT v.database_id,v.row_id,v.field_id,v.value_json,v.source_hash,v.stale_state,
+  v.computed_at,v.failed_at,v.error_code,v.error_message,v.updated_at
+FROM workspace_database_rollup_values v JOIN workspace_database_fields f ON f.id=v.field_id
+WHERE f.field_type='rollup';
+DROP TABLE workspace_database_rollup_values;
+ALTER TABLE workspace_database_computed_values RENAME CONSTRAINT workspace_database_formula_values_pkey TO workspace_database_computed_values_pkey;
+ALTER TABLE workspace_database_computed_values RENAME CONSTRAINT workspace_database_formula_values_check TO workspace_database_computed_values_check;
+ALTER TABLE workspace_database_computed_values RENAME CONSTRAINT workspace_database_formula_values_stale_state_check TO workspace_database_computed_values_stale_state_check;
+ALTER TABLE workspace_database_computed_values RENAME CONSTRAINT workspace_database_formula_values_database_id_fkey TO workspace_database_computed_values_database_id_fkey;
+ALTER TABLE workspace_database_computed_values RENAME CONSTRAINT workspace_database_formula_values_field_id_fkey TO workspace_database_computed_values_field_id_fkey;
+ALTER TABLE workspace_database_computed_values RENAME CONSTRAINT workspace_database_formula_values_row_id_fkey TO workspace_database_computed_values_row_id_fkey;
+ALTER INDEX idx_workspace_database_formula_values_stale_scan RENAME TO idx_workspace_database_computed_values_stale_scan;
+ALTER INDEX idx_workspace_database_formula_values_state RENAME TO idx_workspace_database_computed_values_state;

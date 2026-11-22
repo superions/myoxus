@@ -133,6 +133,10 @@ export class DocFrontend {
   };
 
   private readonly statusUpdatedSubject$ = new Subject<string>();
+  private readonly storedUpdates = new Subject<string>();
+  /** Content invalidation without forwarding another copy of the update
+   * through the storage worker or raising document sync priority. */
+  readonly storedDocUpdates$ = this.storedUpdates.asObservable();
 
   private readonly abort = new AbortController();
 
@@ -241,6 +245,7 @@ export class DocFrontend {
 
   stop() {
     this.abort.abort(MANUALLY_STOP);
+    this.storedUpdates.complete();
   }
 
   private async mainLoop(signal?: AbortSignal) {
@@ -380,6 +385,7 @@ export class DocFrontend {
 
   event = {
     onStorageUpdate: (update: DocRecord, origin?: string) => {
+      this.storedUpdates.next(update.docId);
       if (origin !== this.uniqueId) {
         this.schedule({
           type: "apply",

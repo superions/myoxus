@@ -506,7 +506,7 @@ async fn assert_task_input_in(tx: &mut PgConnection, run: &AcceptedAutomationRun
       }
       ("task.assignees", Cell::Users(users)) => {
         let users: std::collections::BTreeSet<_> = users.iter().copied().collect();
-        let current: Vec<Uuid> = sqlx::query_scalar("SELECT m.user_id FROM workspace_memberships m WHERE m.user_id=ANY($1) AND m.workspace_id=$2 AND m.status='Accepted' ORDER BY m.user_id FOR SHARE OF m NOWAIT")
+        let current: Vec<Uuid> = sqlx::query_scalar("SELECT m.user_id FROM workspace_effective_roles m WHERE m.user_id=ANY($1) AND m.workspace_id=$2 ORDER BY m.user_id FOR SHARE OF m NOWAIT")
           .bind(users.iter().copied().collect::<Vec<_>>()).bind(run.workspace_id)
           .fetch_all(&mut *tx).await.map_err(storage)?;
         if current.len() != users.len() {

@@ -156,7 +156,7 @@ async fn publication_status(
   })?;
   let repository_allows = matches!(
     repository
-      .decide_document(workspace_id, doc_id, String::new())
+      .decide_document(workspace_id, doc_id)
       .await
       .map_err(|error| (
         -32002,

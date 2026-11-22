@@ -2287,7 +2287,7 @@
         },
         {
           "path": "virgultum/content/src/blocks/table/selection-controller.ts",
-          "sha256": "28f5e22962867798fb677eaed20f32e6d78e9a78b5e3824f42c410eb87c8329f",
+          "sha256": "436a043d9862515afc7d88454926465c9c44e05d60f821bc747dbcff13300cb2",
           "originalPath": "blocksuite/affine/blocks/table/src/selection-controller.ts",
           "originalGitBlob": "3a6c393c3d4506c91ac75a4678ae0d14f2c866ea"
         },
@@ -2311,7 +2311,7 @@
         },
         {
           "path": "virgultum/content/src/blocks/table/table-block.ts",
-          "sha256": "1a071e267916955632d5067000c4b5ae7e90b184001d2fdc3fd15362c305f922",
+          "sha256": "3856d4e721b41cf61467b74c1236af2bb504a7d4194b4af834c0493d8cefc933",
           "originalPath": "blocksuite/affine/blocks/table/src/table-block.ts",
           "originalGitBlob": "de9063e05142b45d3bf06675dd639fd174cc19db"
         },
@@ -2383,7 +2383,7 @@
         },
         {
           "path": "virgultum/content/src/inlines/comment/inline-comment-manager.ts",
-          "sha256": "d4a6ec547886c602f5403406bb02799b85b2333fc0cb48113478f086c1b00211",
+          "sha256": "9a312511db0d9b068357f20c84679bb2e7ab33e200b756683f5e03d62bc5dcda",
           "originalPath": "blocksuite/affine/inlines/comment/src/inline-comment-manager.ts",
           "originalGitBlob": "7c75dc48dcb913c6b6b928b5358cba263ac480a5"
         },
@@ -2401,7 +2401,7 @@
         },
         {
           "path": "virgultum/content/src/inlines/comment/utils.ts",
-          "sha256": "9a24f3bb5dc04a45539b0acdfcc247ca54fb7c58dbf36f0c8539026be5ca113f",
+          "sha256": "60762d1034cdda2b76bdbeb6de7a6213a14fa4104af3f270b4b39929e9913daa",
           "originalPath": "blocksuite/affine/inlines/comment/src/utils.ts",
           "originalGitBlob": "653c2bfd90ca4a9ba1a7b981ee916a8a15496f56"
         },
@@ -4705,7 +4705,7 @@
         },
         {
           "path": "virgultum/core/src/services/drag-handle-config.ts",
-          "sha256": "90dd4c64ffb93986b4aa7b00085484f92d6f301805dd57d9cb0006173a56e40c",
+          "sha256": "4f2b50aeef5933caaceb1f511a339dda9ff24aed33bcd4bad67a3c34d85186d3",
           "originalPath": "blocksuite/affine/shared/src/services/drag-handle-config.ts",
           "originalGitBlob": "c26baabeea6396d3aff355ac98b2b29cc36a3db2"
         },
@@ -6817,7 +6817,7 @@
         },
         {
           "path": "virgultum/editor/all/src/inlines/comment/index.ts",
-          "sha256": "40bc7e9490d7c27d2f479189b46a940b2c6e84884f6932c0d1df6103e6d2355b",
+          "sha256": "80d08196163343e0211d581c9167f5d046c02eb79a34e1648571736cdbb4b038",
           "originalPath": "blocksuite/affine/all/src/inlines/comment/index.ts",
           "originalGitBlob": "8e7c6d9f0d40eb4fdbeed9d9c6b7f9e296f565b7"
         },
@@ -7255,7 +7255,7 @@
         },
         {
           "path": "virgultum/editor/all/src/widgets/linked-doc/config.ts",
-          "sha256": "7e530a3b0026e7b2d9e7b3350db2a9b8a04234488eb5f4c2e0152dd217677fbd",
+          "sha256": "64d33e0d07c1762c49126cdac56309e4f6ed33affa2aa6a29210103371711a9f",
           "originalPath": "blocksuite/affine/widgets/linked-doc/src/config.ts",
           "originalGitBlob": "19a2525d89362dc9bc72cea5e9f798d3876727e3"
         },
@@ -7477,7 +7477,7 @@
         },
         {
           "path": "virgultum/editor/all/src/widgets/slash-menu/widget.ts",
-          "sha256": "612487ed580d1cf9b844bbc2c7b425b29a2b41d63c6c5efb5e70f6167f28c6df",
+          "sha256": "172282750ba18c91201813848ea9735e95b123f9098422227593e1566a440d33",
           "originalPath": "blocksuite/affine/widgets/slash-menu/src/widget.ts",
           "originalGitBlob": "3b2749390ccf1dc0a0217a34e568ef13956c7edd"
         },
@@ -8677,7 +8677,7 @@
         },
         {
           "path": "virgultum/embeds/src/note/components/edgeless-note-mask.ts",
-          "sha256": "d45761f9765317af21ab22130383b1dbd413e59b6434c4cc7559177e8f5052c7",
+          "sha256": "60c764fd09e8c9ed9feb32e01349013f39b8634f39fab5f752e6058d258585e9",
           "originalPath": "blocksuite/affine/blocks/note/src/components/edgeless-note-mask.ts",
           "originalGitBlob": "dd2a72212ec59133dacccf50d70a32c15d798efa"
         },
@@ -8731,7 +8731,7 @@
         },
         {
           "path": "virgultum/embeds/src/note/note-edgeless-block.ts",
-          "sha256": "30e097675a7258abb72216c64c89a0f67865f39103d0cb766b2e50210ab327e1",
+          "sha256": "12fd8204a285bf00fe9527fe60fc20c7f91fd90b1589e18c8ca6e0e32d43e65a",
           "originalPath": "blocksuite/affine/blocks/note/src/note-edgeless-block.ts",
           "originalGitBlob": "2f59756286ad0017de016b746750d6d3c5422461"
         },
@@ -9174,7 +9174,7 @@
         },
         {
           "path": "virgultum/content/src/entries/inlines.ts",
-          "sha256": "ee19d3946b2b0ce40cf49b5b37aa50f8b2e0c84f8cb8072dcea912d4736256c8"
+          "sha256": "ce01f618d6db16a573c9fc3ed889742a4b7ccdd25d0f874a4267eadd0d10ad6b"
         },
         {
           "path": "virgultum/content/src/entries/manifests.ts",
@@ -9858,7 +9858,7 @@
         },
         {
           "path": "virgultum/editor/all/src/widgets/slash-menu/slash-session.ts",
-          "sha256": "223a082aa41d34f4ff467002d3d30f62a0515a0bac1d72a612b3d3d0dd05c6f5"
+          "sha256": "8be7bb3c32b618c2d8adb4a046574af81dc5f7ae0d6cb9e69240f2056a82e731"
         },
         {
           "path": "virgultum/editor/all/tests/editor-translation-consumers.unit.spec.ts",
@@ -13582,7 +13582,7 @@
         },
         {
           "path": "virgultum/embeds/src/note/note-edgeless-block.css",
-          "sha256": "c8c93a8497064bc332aa07a5ae80f26666d8421529cd1790facf1cbcd8ce61f6"
+          "sha256": "035c732d085f813e3db991ae4af7ecc7fb944ddc539211c30e4d798f000a7ff6"
         },
         {
           "path": "virgultum/embeds/src/note/note-edgeless-block.styles.ts",

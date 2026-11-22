@@ -11,7 +11,7 @@ impl PgDatabaseRepository {
   ) -> RepoResult<()> {
     sqlx::query(
       r#"
-        INSERT INTO workspace_database_rollup_values
+        INSERT INTO workspace_database_computed_values
           (database_id, row_id, field_id, value_json, source_hash, stale_state, computed_at,
            failed_at, error_code, error_message, updated_at)
         SELECT f.database_id, $1, f.id, NULL, NULL, 'stale', NULL, NULL, NULL, NULL, now()
@@ -40,7 +40,7 @@ impl PgDatabaseRepository {
   ) -> RepoResult<()> {
     sqlx::query(
       r#"
-        INSERT INTO workspace_database_rollup_values
+        INSERT INTO workspace_database_computed_values
           (database_id, row_id, field_id, value_json, source_hash, stale_state, computed_at,
            failed_at, error_code, error_message, updated_at)
         SELECT rollup.database_id, edge.source_row_id, rollup.id,
@@ -72,7 +72,7 @@ impl PgDatabaseRepository {
   ) -> RepoResult<()> {
     sqlx::query(
       r#"
-        INSERT INTO workspace_database_formula_values
+        INSERT INTO workspace_database_computed_values
           (database_id, row_id, field_id, value_json, source_hash, stale_state, computed_at,
            failed_at, error_code, error_message, updated_at)
         SELECT formula.database_id, $1, formula.id,

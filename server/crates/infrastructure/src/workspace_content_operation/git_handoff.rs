@@ -155,10 +155,10 @@ pub(super) async fn publish(
     .map_err(|_| stale())?;
   for document in &plan.documents {
     let changed = sqlx::query(
-      "UPDATE git_sync_bindings SET profile_id = $2, workspace_id = $3, updated_at = now()
+      "UPDATE git_sync_document_bindings SET profile_id = $2, workspace_id = $3, updated_at = now()
       WHERE id = $1 AND profile_id = $4 AND workspace_id = $5 AND doc_id = $6 AND sync_id = $7
         AND repo_path = $8 AND NOT tombstone AND content_hash IS NOT DISTINCT FROM $9
-        AND (SELECT content_hash FROM git_sync_baselines WHERE binding_id = $1) IS NOT DISTINCT FROM $10",
+        AND baseline_content_hash IS NOT DISTINCT FROM $10",
     )
     .bind(document.binding_id)
     .bind(target)
@@ -274,8 +274,7 @@ async fn disconnect(
   operation: &WorkspaceContentOperationRecord,
   plan: &WorkspaceContentGitSyncPlan,
 ) -> AuthResult<()> {
-  // Retire bindings, not path-owner rows: their triggers alone release the
-  // ledger. The detached fence remains authoritative even after history expiry.
+  // Retiring a binding releases its path. The detached fence survives history expiry.
   sqlx::query("UPDATE git_sync_profiles SET scope_revision=scope_revision+1,updated_at=now() WHERE id=$1")
     .bind(plan.source_profile_id)
     .execute(&mut **tx)
@@ -293,7 +292,8 @@ async fn disconnect(
   let paths = plan.files.iter().map(|file| file.repo_path.clone()).collect::<Vec<_>>();
   for document in &plan.documents {
     let changed = sqlx::query(
-      "UPDATE git_sync_bindings SET tombstone=true,updated_at=now()
+      "UPDATE git_sync_document_bindings SET tombstone=true,updated_at=now(),
+        baseline_content_hash=NULL,baseline_commit_oid=NULL,baseline_myoxus_updated_at=NULL,baseline_captured_at=NULL
       WHERE id=$1 AND profile_id=$2 AND doc_id=$3 AND sync_id=$4 AND repo_path=$5 AND NOT tombstone",
     )
     .bind(document.binding_id)
@@ -308,11 +308,6 @@ async fn disconnect(
     if changed != 1 {
       return Err(stale());
     }
-    sqlx::query("DELETE FROM git_sync_baselines WHERE binding_id=$1")
-      .bind(document.binding_id)
-      .execute(&mut **tx)
-      .await
-      .map_err(PgWorkspaceContentOperationRepository::storage)?;
   }
   for file in &plan.files {
     let changed = sqlx::query(
@@ -421,7 +416,7 @@ impl PgWorkspaceContentOperationRepository {
       work.target_workspace_id
     };
     let count:i64=sqlx::query_scalar("SELECT count(*) FROM jsonb_to_recordset($1) AS expected(\"bindingId\" uuid,\"docId\" uuid,\"syncId\" uuid,\"repoPath\" text)
-      JOIN git_sync_bindings b ON b.id=expected.\"bindingId\" AND b.doc_id=expected.\"docId\" AND b.sync_id=expected.\"syncId\" AND b.repo_path=expected.\"repoPath\"
+      JOIN git_sync_document_bindings b ON b.id=expected.\"bindingId\" AND b.doc_id=expected.\"docId\" AND b.sync_id=expected.\"syncId\" AND b.repo_path=expected.\"repoPath\"
       WHERE b.profile_id=$2 AND b.workspace_id=$3 AND NOT b.tombstone")
       .bind(serde_json::to_value(&work.plan.documents).map_err(|_|stale())?).bind(profile).bind(workspace)
       .fetch_one(&self.pool).await.map_err(Self::storage)?;
@@ -554,7 +549,7 @@ impl PgWorkspaceContentOperationRepository {
           .find(|doc| doc.doc_id == document.doc_id)
           .ok_or_else(stale)?;
         let changed = sqlx::query(
-          "UPDATE git_sync_bindings SET content_hash=$2,last_commit_oid=$3,updated_at=now()
+          "UPDATE git_sync_document_bindings SET content_hash=$2,last_commit_oid=$3,updated_at=now()
         WHERE id=$1 AND profile_id=$4 AND doc_id=$5 AND sync_id=$6 AND repo_path=$7 AND NOT tombstone",
         )
         .bind(document.binding_id)
@@ -573,8 +568,8 @@ impl PgWorkspaceContentOperationRepository {
         }
         if emitted != &old.content_hash {
           sqlx::query(
-            "UPDATE git_sync_baselines SET content_hash=$2,commit_oid=$3
-          WHERE binding_id=$1 AND content_hash=$4",
+            "UPDATE git_sync_document_bindings SET baseline_content_hash=$2,baseline_commit_oid=$3
+          WHERE id=$1 AND baseline_content_hash=$4",
           )
           .bind(document.binding_id)
           .bind(emitted)

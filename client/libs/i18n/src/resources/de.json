@@ -6421,6 +6421,8 @@
   "com.myoxus.m.selector.where-collection": "Sammlung",
   "com.myoxus.m.selector.where-folder": "Ordner",
   "com.myoxus.m.selector.where-tag": "Tag",
+  "com.myoxus.member.role.direct": "{{role}} direkt zugewiesen",
+  "com.myoxus.member.role.inherited": "{{role}} über {{units}}",
   "com.myoxus.member.approve": "Genehmigen",
   "com.myoxus.member.approve.notify.message": "Du hast die Anfrage von {{name}} genehmigt, diesem Workspace beizutreten",
   "com.myoxus.member.approve.notify.title": "Anfrage genehmigt",

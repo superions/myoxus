@@ -484,7 +484,7 @@ async fn inv_cli_gitsync_bootstrap_is_guarded_complete_and_converges_to_no_op() 
   }
   assert!(typed.overview.is_some());
   let bound_doc_id: Uuid =
-    sqlx::query_scalar("SELECT doc_id FROM git_sync_bindings WHERE profile_id = $1 AND tombstone = false")
+    sqlx::query_scalar("SELECT doc_id FROM git_sync_document_bindings WHERE profile_id = $1 AND tombstone = false")
       .bind(profile_id)
       .fetch_one(&pool)
       .await
@@ -492,25 +492,24 @@ async fn inv_cli_gitsync_bootstrap_is_guarded_complete_and_converges_to_no_op() 
   assert_eq!(bound_doc_id, doc_id);
 
   let active_bindings: i64 =
-    sqlx::query_scalar("SELECT COUNT(*) FROM git_sync_bindings WHERE profile_id = $1 AND tombstone = false")
+    sqlx::query_scalar("SELECT COUNT(*) FROM git_sync_document_bindings WHERE profile_id = $1 AND tombstone = false")
       .bind(profile_id)
       .fetch_one(&pool)
       .await
       .unwrap();
   let baselines: i64 = sqlx::query_scalar(
-    "SELECT COUNT(*) FROM git_sync_baselines bl
-     JOIN git_sync_bindings b ON b.id = bl.binding_id
-     WHERE b.profile_id = $1 AND b.tombstone = false",
+    "SELECT COUNT(*) FROM git_sync_document_bindings b WHERE b.baseline_content_hash IS NOT NULL AND b.profile_id = $1 AND b.tombstone = false",
   )
   .bind(profile_id)
   .fetch_one(&pool)
   .await
   .unwrap();
-  let owners: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM git_sync_path_owners WHERE profile_id = $1")
-    .bind(profile_id)
-    .fetch_one(&pool)
-    .await
-    .unwrap();
+  let owners: i64 =
+    sqlx::query_scalar("SELECT COUNT(*) FROM git_sync_bindings WHERE NOT tombstone AND profile_id = $1")
+      .bind(profile_id)
+      .fetch_one(&pool)
+      .await
+      .unwrap();
   assert_eq!((active_bindings, baselines, owners), (1, 1, 1));
   let second = run_cli(&["git-sync", "bootstrap", &profile_id.to_string()]);
   assert_eq!(second["report"]["noOp"], true);
@@ -826,7 +825,7 @@ async fn seed_git_sync_surface(pool: &PgPool, suffix: &str) -> SeededGitSync {
 
   let binding_id = Uuid::new_v4();
   sqlx::query(
-    "INSERT INTO git_sync_bindings \
+    "INSERT INTO git_sync_document_bindings \
        (id, profile_id, workspace_id, doc_id, sync_id, repo_path, content_hash, tombstone) \
      VALUES ($1, $2, $3, $4, $5, 'content/doc.md', 'doc-hash', false)",
   )

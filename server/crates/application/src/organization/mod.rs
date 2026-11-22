@@ -10,22 +10,9 @@
 //! Vertrag: `docs/dev/server/organization-management.md`
 //! Learnings: `learnings/organization-management.md`
 //!
-//! ## Rollen-Achse
-//!
-//! Drei strikt getrennte Achsen, die zusammen entscheiden:
-//!
-//! 1. **`FeatureType.Manager`** — global capability synchronized implicitly by
-//!    Manager assignments; it grants no OU authority by itself.
-//! 2. **`organization_unit_member.role`** — `reader`/`member`/`manager`
-//!    pro OU. Erst eine `manager`-Mitgliedschaft + globale
-//!    `FeatureType.Manager`-Capability gibt Verwaltungsrechte
-//!    (`is_manager_for_unit`).
-//! 3. **`workspace_memberships.role`** — bleibt unveraendert; Workspace-
-//!    Aktionen werden weiterhin per `WorkspaceRole` geprueft. OU-Manager
-//!    duerfen Workspace-Rollen nur bis `Admin` vergeben (nie `Owner`).
-//!
-//! Siehe Learning `LRN-20260502-ORG-A-01` (FeatureType allein vergibt keine
-//! Rechte) und `LRN-20260502-ORG-A-02` (OU- vs Workspace-Rollen).
+//! Manager authority comes from a Manager membership in an active OU. The
+//! account-level Manager badge reflects those memberships. Workspace actions
+//! use the effective workspace role materialized from direct and OU roles.
 
 pub mod import_export;
 pub mod membership;
@@ -44,9 +31,8 @@ pub use import_export::{
   OrganizationSnapshotUnitType, OrganizationSnapshotWorkspaceLink, PreparedOrganizationImport, UserEmailLookup,
 };
 pub use oidc_sync::{
-  ManagerCapabilityWriter, OidcGroupMapping, OidcGroupMappingRule, OidcGroupSyncAction, OidcGroupSyncError,
-  OidcGroupSyncEvent, OidcGroupSyncInput, OidcGroupSyncReport, OidcGroupSyncService, OidcMissingGroupsPolicy,
-  OidcUnknownGroupsPolicy,
+  OidcGroupMapping, OidcGroupMappingRule, OidcGroupSyncAction, OidcGroupSyncError, OidcGroupSyncEvent,
+  OidcGroupSyncInput, OidcGroupSyncReport, OidcGroupSyncService, OidcMissingGroupsPolicy, OidcUnknownGroupsPolicy,
 };
 pub use permission::{OrganizationPermissionService, ProjectCreationDecision, ProjectCreationScope};
 pub use project_request::{CreateProjectRequestInput, ProjectRequestOutcome, ProjectRequestService};

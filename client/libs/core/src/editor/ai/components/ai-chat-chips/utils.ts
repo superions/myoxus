@@ -1,6 +1,3 @@
-import { WarningIcon } from "@myoxus/icons/lit";
-import { LoadingIcon } from "@virgultum/editor/components/icons";
-import { type TemplateResult } from "lit";
 import { chatI18n } from "../chat-i18n";
 
 import type {
@@ -32,21 +29,6 @@ export function getChipTooltip(
     return chatI18n()["com.myoxus.ai.chat-panel.context-error"]();
   }
   return name;
-}
-
-export function getChipIcon(
-  state: ChipState,
-  icon: TemplateResult<1>,
-): TemplateResult<1> {
-  const isLoading = state === "processing";
-  const isFailed = state === "failed";
-  if (isFailed) {
-    return WarningIcon();
-  }
-  if (isLoading) {
-    return LoadingIcon();
-  }
-  return icon;
 }
 
 export function isDocChip(chip: ChatChip): chip is DocChip {

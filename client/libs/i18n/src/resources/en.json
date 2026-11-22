@@ -6539,6 +6539,8 @@
   "com.myoxus.m.selector.where-collection": "Collection",
   "com.myoxus.m.selector.where-folder": "Folder",
   "com.myoxus.m.selector.where-tag": "Tag",
+  "com.myoxus.member.role.direct": "{{role}} directly assigned",
+  "com.myoxus.member.role.inherited": "{{role}} via {{units}}",
   "com.myoxus.member.approve": "Approve",
   "com.myoxus.member.approve.notify.message": "You have approved the {{name}}’s request to join this workspace",
   "com.myoxus.member.approve.notify.title": "Request approved",

@@ -986,7 +986,7 @@ async fn terminal_account_repository_cleanup_guards_and_released_email_are_atomi
       ("verification_tokens","user_id",format!("INSERT INTO verification_tokens(user_id,kind,token_hash,email,expires_at) VALUES('{target}','OpenAppSignIn','app-{target}','{email}',now()+interval '1 hour')")),
       ("connected_accounts","user_id",format!("INSERT INTO connected_accounts(user_id,provider,provider_account_id) VALUES('{target}','owned','{target}')")),
       ("mcp_idempotency_keys","user_id",format!("INSERT INTO mcp_idempotency_keys(id,api_key_id,user_id,tool_name,idempotency_key,payload_sha256) VALUES('{key}','{key}','{target}','owned','owned',repeat('a',64))")),
-      ("user_features","user_id",format!("INSERT INTO user_features(user_id,feature_name) VALUES('{target}','manager')")),
+      ("user_features","user_id",format!("INSERT INTO user_features(user_id,feature_name) VALUES('{target}','unlimited_copilot')")),
       ("user_preferences","user_id",format!("INSERT INTO user_preferences(user_id) VALUES('{target}')")),
       ("workspace_memberships","user_id",format!("INSERT INTO workspace_memberships(workspace_id,user_id,role,status) VALUES('{ws}','{target}','Owner','Accepted')")),
       ("organization_unit_member","user_id",format!("INSERT INTO organization_unit_member(unit_id,user_id,role) VALUES('{unit}','{target}','manager')")),
@@ -1079,7 +1079,7 @@ async fn terminal_account_repository_cleanup_guards_and_released_email_are_atomi
     assert_eq!(admin_store.count_users(Some(email.clone())).await.unwrap(),0);
     assert!(admin_store.search_users(&email,None,10).await.unwrap().is_empty());
     assert!(admin_store.search_users(&email,Some(&["manager".into()]),10).await.unwrap().is_empty());
-    assert!(store.set_user_feature_override(target,"manager",true,"terminal test").await.is_err());
+    assert!(store.set_user_feature_override(target,"unlimited_copilot",true,"terminal test").await.is_err());
     use myoxus_domain::{entities::{CalendarAccount,CopilotJob,CopilotJobState,OrganizationUnitMember,OrganizationUnitRole,OrganizationUnitMemberSource},repositories::{CalendarRepository,CopilotRepository,OrganizationUnitMemberRepository,RepositoryError}};
     let now=Utc::now();
     let calendar=myoxus_infrastructure::calendar::SqlxCalendarRepository::new(pool.clone());

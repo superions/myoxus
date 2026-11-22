@@ -230,6 +230,52 @@ mod tests {
   }
 
   #[tokio::test]
+  async fn registered_retention_keeps_cursor_and_unacknowledged_handoff() {
+    let fixture = Fixture::new().await;
+    let cleanup = fixture.clone();
+    let result = tokio::spawn(async move {
+      let old = clock() - chrono::Duration::minutes(10);
+      fixture.register(old, 120_000).await;
+      assert_eq!(fixture.admit(old).await, Some(1));
+      use myoxus_application::maintenance::RetentionRepository;
+      let retention = myoxus_infrastructure::maintenance::SqlxRetentionRepository::new(fixture.pool.clone());
+      // A confirmed handoff still protects the schedule's current slot.
+      sqlx::query("UPDATE outbox_events SET processed_at=now() WHERE event_type='registered_job_due'")
+        .execute(&fixture.pool)
+        .await
+        .unwrap();
+      assert_eq!(
+        retention.clean_registered_occurrences().await.unwrap(),
+        0,
+        "current slot"
+      );
+      // Simulate a handoff whose acknowledgement is still outstanding when the cursor advances.
+      sqlx::query("UPDATE outbox_events SET processed_at=NULL WHERE event_type='registered_job_due'")
+        .execute(&fixture.pool)
+        .await
+        .unwrap();
+      assert_eq!(fixture.admit(clock()).await, Some(1));
+      assert_eq!(
+        retention.clean_registered_occurrences().await.unwrap(),
+        0,
+        "pending outbox handoff"
+      );
+      sqlx::query(
+        "UPDATE outbox_events SET processed_at=now() WHERE event_type='registered_job_due'
+        AND (payload->>'scheduledFor')::timestamptz < now()",
+      )
+      .execute(&fixture.pool)
+      .await
+      .unwrap();
+      assert_eq!(retention.clean_registered_occurrences().await.unwrap(), 1);
+      assert_eq!(retention.clean_registered_occurrences().await.unwrap(), 0);
+    })
+    .await;
+    cleanup.cleanup().await;
+    result.expect("retention assertions");
+  }
+
+  #[tokio::test]
   async fn registered_scheduler_reschedules_from_current_time_after_outage() {
     let fixture = Fixture::new().await;
     let cleanup = fixture.clone();

@@ -4,6 +4,10 @@ import { useAsyncCallback } from "@myoxus/core/components/hooks/myoxus-async-hoo
 import { WorkspaceDialogService } from "@myoxus/core/modules/dialogs";
 import { DocsService } from "@myoxus/core/modules/doc";
 import { DocDisplayMetaService } from "@myoxus/core/modules/doc-display-meta";
+import {
+  navigationTargets,
+  OutgoingNavigationService,
+} from "@myoxus/core/modules/doc-link";
 import { DocsSearchService } from "@myoxus/core/modules/docs-search";
 import { GlobalContextService } from "@myoxus/core/modules/global-context";
 import { GuardService } from "@myoxus/core/modules/permissions";
@@ -28,7 +32,7 @@ import {
   Tooltip,
 } from "@myoxus/ui-facade";
 import { useCallback, useLayoutEffect, useMemo, useState } from "react";
-import { NEVER } from "rxjs";
+import { map, NEVER } from "rxjs";
 
 import {
   StructureTreeNode,
@@ -44,6 +48,7 @@ export const StructureTreeDocNode = ({
   location,
   reorderable,
   isLinked,
+  targetParams,
   allowLinkedDocuments = true,
   canDrop,
   operations: additionalOperations,
@@ -52,6 +57,7 @@ export const StructureTreeDocNode = ({
 }: {
   docId: string;
   isLinked?: boolean;
+  targetParams?: URLSearchParams;
   allowLinkedDocuments?: boolean;
   forwardKey?: string;
 } & GenericStructureTreeNode) => {
@@ -72,6 +78,9 @@ export const StructureTreeDocNode = ({
     GuardService,
   });
   const structureTreeStateService = useService(StructureTreeStateService);
+  const outgoing = useService(OutgoingNavigationService);
+  const serverTree =
+    BUILD_CONFIG.isWeb && workspaceService.workspace.flavour !== "local";
   const { effectivePreferences } = useUserPreferences();
   const showLinkedDocuments =
     allowLinkedDocuments && (effectivePreferences?.showLinkedDocuments ?? true);
@@ -111,17 +120,27 @@ export const StructureTreeDocNode = ({
     useMemo(
       () =>
         LiveData.from(
-          !isCollapsed ? docsSearchService.watchRefsFrom(docId) : NEVER,
+          isCollapsed
+            ? NEVER
+            : serverTree
+              ? outgoing
+                  .watch(docId)
+                  .pipe(
+                    map(
+                      (blocks) => blocks && navigationTargets(blocks, [docId]),
+                    ),
+                  )
+              : docsSearchService.watchRefsFrom(docId),
           null,
         ),
-      [docsSearchService, docId, isCollapsed],
+      [docsSearchService, docId, isCollapsed, outgoing, serverTree],
     ),
   );
   const searching = children === null;
 
   const [referencesLoading, setReferencesLoading] = useState(true);
   useLayoutEffect(() => {
-    if (collapsed) {
+    if (serverTree || collapsed) {
       return;
     }
     const abortController = new AbortController();
@@ -145,7 +164,7 @@ export const StructureTreeDocNode = ({
       undoIndexer();
       abortController.abort(MANUALLY_STOP);
     };
-  }, [docId, docsSearchService, workspaceService, collapsed]);
+  }, [docId, docsSearchService, workspaceService, collapsed, serverTree]);
 
   const dndData = useMemo(() => {
     return {
@@ -279,13 +298,13 @@ export const StructureTreeDocNode = ({
       setCollapsed={setCollapsed}
       collapsible={showLinkedDocuments}
       canDrop={handleCanDrop}
-      to={`/${docId}`}
+      to={targetParams?.size ? `/${docId}?${targetParams}` : `/${docId}`}
       onClick={() => {
         track.$.navigationPanel.docs.openDoc();
       }}
       active={active}
       postfix={
-        referencesLoading &&
+        (serverTree ? searching : referencesLoading) &&
         !isCollapsed && (
           <Tooltip
             content={t["com.myoxus.rootAppSidebar.docs.references-loading"]()}
@@ -326,6 +345,7 @@ export const StructureTreeDocNode = ({
                   <StructureTreeDocNode
                     key={`${child.docId}-${index}`}
                     docId={child.docId}
+                    targetParams={serverTree ? child.params : undefined}
                     reorderable={false}
                     location={{
                       at: "structure-tree:doc:linked-docs",

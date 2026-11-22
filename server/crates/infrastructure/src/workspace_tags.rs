@@ -66,14 +66,18 @@ impl PgWorkspaceTagRepository {
          SELECT jsonb_build_array(
            COALESCE((SELECT jsonb_agg(t ORDER BY t.id) FROM workspace_tags t WHERE t.workspace_id = $1), '[]'),
            COALESCE((SELECT jsonb_agg(a ORDER BY a.external_id) FROM assignments a), '[]'),
-           COALESCE((SELECT jsonb_object_agg(legacy_id, tag_id) FROM workspace_tag_legacy_ids WHERE workspace_id = $1), '{}'),
-           COALESCE((SELECT jsonb_agg(retired_tag_id ORDER BY retired_tag_id) FROM workspace_tag_retired_ids WHERE workspace_id = $1), '[]')
-         )::text AS payload
+           COALESCE(jsonb_object_agg(external_id, tag_id) FILTER (WHERE tag_id IS NOT NULL), '{}'),
+           COALESCE(jsonb_agg(external_id ORDER BY external_id) FILTER (WHERE retired_at IS NOT NULL), '[]')
+         )::text AS payload FROM workspace_tag_identities WHERE workspace_id = $1
        ) SELECT CASE WHEN octet_length(payload) <= $2 AND (SELECT count(*) FROM assignments) <= $3
          THEN payload ELSE NULL END FROM projection",
-    ).bind(workspace_id).bind(i64::try_from(limits.max_document_bytes).unwrap_or(i64::MAX))
-      .bind(i64::try_from(limits.max_documents).unwrap_or(i64::MAX))
-      .fetch_one(&mut **tx).await.map_err(Self::map_sqlx_error)?;
+    )
+    .bind(workspace_id)
+    .bind(i64::try_from(limits.max_document_bytes).unwrap_or(i64::MAX))
+    .bind(i64::try_from(limits.max_documents).unwrap_or(i64::MAX))
+    .fetch_one(&mut **tx)
+    .await
+    .map_err(Self::map_sqlx_error)?;
     let payload =
       payload.ok_or_else(|| RepositoryError::Validation("label inspection exceeds metadata/document limits".into()))?;
     let (catalog, documents, legacy_ids, retired_ids) = serde_json::from_str(&payload)
@@ -420,7 +424,7 @@ impl PgWorkspaceTagRepository {
     candidate: &str,
   ) -> RepoResult<bool> {
     sqlx::query_scalar(
-      "SELECT EXISTS(SELECT 1 FROM workspace_tag_retired_ids WHERE workspace_id = $1 AND retired_tag_id = $2)",
+      "SELECT EXISTS(SELECT 1 FROM workspace_tag_identities WHERE workspace_id = $1 AND external_id = $2 AND retired_at IS NOT NULL)",
     )
     .bind(workspace_id)
     .bind(candidate)
@@ -489,8 +493,8 @@ impl LabelMigrationRepository for PgWorkspaceTagRepository {
     Self::import_tags_in_tx(&mut tx, decision.workspace_id, actor, &plan.tags, &plan.assignments).await?;
     for (legacy_id, tag_id) in &plan.mappings {
       sqlx::query(
-        "INSERT INTO workspace_tag_legacy_ids (workspace_id, legacy_id, tag_id)
-                   VALUES ($1, $2, $3) ON CONFLICT (workspace_id, legacy_id) DO NOTHING",
+        "INSERT INTO workspace_tag_identities (workspace_id, external_id, tag_id)
+                   VALUES ($1, $2, $3) ON CONFLICT (workspace_id, external_id) DO NOTHING",
       )
       .bind(decision.workspace_id)
       .bind(legacy_id)
@@ -766,33 +770,29 @@ impl WorkspaceTagRepository for PgWorkspaceTagRepository {
       return Ok(None);
     };
 
-    let mut retired_ids = vec![tag_id.to_string()];
-    retired_ids.extend(
-      sqlx::query_scalar::<_, String>(
-        "SELECT legacy_id FROM workspace_tag_legacy_ids WHERE workspace_id = $1 AND tag_id = $2 ORDER BY legacy_id",
-      )
-      .bind(workspace_id)
-      .bind(tag_id)
-      .fetch_all(&mut *tx)
-      .await
-      .map_err(Self::map_sqlx_error)?,
-    );
+    // Detach aliases before deleting their catalog target so their reservations survive the FK cascade.
+    let mut retired_ids = sqlx::query_scalar::<_, String>(
+      "UPDATE workspace_tag_identities SET tag_id = NULL, retired_at = now()
+       WHERE workspace_id = $1 AND tag_id = $2 RETURNING external_id",
+    )
+    .bind(workspace_id)
+    .bind(tag_id)
+    .fetch_all(&mut *tx)
+    .await
+    .map_err(Self::map_sqlx_error)?;
+    sqlx::query(
+      "INSERT INTO workspace_tag_identities (workspace_id, external_id, retired_at)
+       VALUES ($1, $2, now()) ON CONFLICT (workspace_id, external_id) DO UPDATE
+       SET tag_id = NULL, retired_at = EXCLUDED.retired_at WHERE workspace_tag_identities.retired_at IS NULL",
+    )
+    .bind(workspace_id)
+    .bind(tag_id.to_string())
+    .execute(&mut *tx)
+    .await
+    .map_err(Self::map_sqlx_error)?;
+    retired_ids.push(tag_id.to_string());
     retired_ids.sort();
     retired_ids.dedup();
-    for retired_id in &retired_ids {
-      sqlx::query(
-        r#"
-          INSERT INTO workspace_tag_retired_ids (workspace_id, retired_tag_id, retired_at)
-          VALUES ($1, $2, now())
-          ON CONFLICT (workspace_id, retired_tag_id) DO NOTHING
-        "#,
-      )
-      .bind(workspace_id)
-      .bind(retired_id)
-      .execute(&mut *tx)
-      .await
-      .map_err(Self::map_sqlx_error)?;
-    }
 
     sqlx::query("DELETE FROM workspace_tag_document_assignments WHERE workspace_id = $1 AND tag_id = $2")
       .bind(workspace_id)

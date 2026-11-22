@@ -1,4 +1,4 @@
-import { signal } from "@preact/signals-core";
+import { effect, signal } from "@preact/signals-core";
 import { CaptionedBlockComponent } from "../../caption/index";
 import { IS_MOBILE } from "@virgultum/core/primitives/env";
 import type { TableBlockModel } from "@virgultum/core/models";
@@ -39,6 +39,74 @@ export class TableBlockComponent extends CaptionedBlockComponent<TableBlockModel
     super.connectedCallback();
     this.setAttribute(RANGE_SYNC_EXCLUDE_ATTR, "true");
     this.style.position = "relative";
+    if (
+      this.closest("myoxus-note, myoxus-edgeless-note")?.localName ===
+      "myoxus-edgeless-note"
+    ) {
+      this.observeCanvasTable();
+    }
+  }
+
+  private observeCanvasTable() {
+    this.disposables.add(
+      effect(() => {
+        const table = this.table$.value;
+        const layout = table?.parentElement;
+        const scroller = layout?.parentElement;
+        if (!table || !layout || !scroller) return;
+        layout.setAttribute("data-edgeless-table-layout", "");
+
+        let frame = 0;
+        const observer = new ResizeObserver(() => {
+          if (frame) return;
+          frame = requestAnimationFrame(() => {
+            frame = 0;
+            if (!table.offsetWidth) return;
+            const available =
+              scroller.clientWidth -
+              parseFloat(getComputedStyle(scroller).paddingLeft);
+            // Measure in layout pixels, independently of the canvas camera. At
+            // the legibility floor, the remaining columns use native scrolling.
+            const scale = Math.max(
+              0.8,
+              Math.min(1, available / table.offsetWidth),
+            );
+            layout.style.setProperty(
+              "--virgultum-table-fit-scale",
+              String(scale),
+            );
+          });
+        });
+        observer.observe(scroller);
+        observer.observe(table);
+
+        const onWheel = (event: WheelEvent) => {
+          if (event.ctrlKey || event.metaKey) return;
+          const delta = event.deltaX || (event.shiftKey ? event.deltaY : 0);
+          if (
+            !delta ||
+            (!event.shiftKey && Math.abs(event.deltaY) > Math.abs(delta))
+          )
+            return;
+          if (
+            delta < 0
+              ? scroller.scrollLeft > 0
+              : scroller.scrollLeft + scroller.clientWidth <
+                scroller.scrollWidth - 1
+          ) {
+            event.stopPropagation();
+          }
+        };
+        scroller.addEventListener("wheel", onWheel, { passive: true });
+        return () => {
+          scroller.removeEventListener("wheel", onWheel);
+          cancelAnimationFrame(frame);
+          observer.disconnect();
+          layout.removeAttribute("data-edgeless-table-layout");
+          layout.style.removeProperty("--virgultum-table-fit-scale");
+        };
+      }),
+    );
   }
 
   override get topContenteditableElement() {

@@ -1056,7 +1056,7 @@ export interface AdminRoot {
   /**
    * Set a template default policy (admin only).
    *
-   * Creates or updates the row in `template_default_policies` that drives
+   * Creates or updates the template catalog policy that drives
    * automatic seeding of new workspaces.
    */
   setTemplateDefaultPolicy: Scalars["Boolean"]["output"];
@@ -1097,7 +1097,7 @@ export interface AdminRoot {
   /**
    * List all template default policies (admin only).
    *
-   * Returns every row in `template_default_policies`. Used by the
+   * Returns every configured template default policy. Used by the
    * Default-Policies admin tab (P125-TPL-A-06).
    */
   templateDefaultPolicies: Array<TemplateDefaultPolicyType>;
@@ -3186,6 +3186,7 @@ export interface ApiMutationRootDeleteAssistantSetupArgs {
 export interface ApiMutationRootDeleteBlobArgs {
   hash?: InputMaybe<Scalars["String"]["input"]>;
   key?: InputMaybe<Scalars["String"]["input"]>;
+  onlyIfUnused?: InputMaybe<Scalars["Boolean"]["input"]>;
   permanently?: InputMaybe<Scalars["Boolean"]["input"]>;
   workspaceId: Scalars["String"]["input"];
 }
@@ -9860,6 +9861,8 @@ export interface DocumentLinksResult {
   edges: Array<DocumentGraphEdgeType>;
   indexStatus: DocumentGraphIndexStatusType;
   nodes: Array<DocumentGraphNodeType>;
+  /** Outgoing navigation uses matching source blocks as its page unit. */
+  outgoingNavigation: OutgoingDocumentNavigation;
 }
 
 export interface DocumentMetadataAudienceType {
@@ -10088,6 +10091,20 @@ export interface DocumentMetadataValueDefinitionType {
   label: Scalars["String"]["output"];
   metadata: Scalars["JSON"]["output"];
   sortOrder: Scalars["Int"]["output"];
+}
+
+export interface DocumentNavigationBlock {
+  __typename?: "DocumentNavigationBlock";
+  blockId: Scalars["String"]["output"];
+  links: Array<DocumentNavigationLink>;
+}
+
+export interface DocumentNavigationLink {
+  __typename?: "DocumentNavigationLink";
+  docId: Scalars["ID"]["output"];
+  paramsJson: Scalars["JSON"]["output"];
+  title: Maybe<Scalars["String"]["output"]>;
+  workspaceId: Scalars["ID"]["output"];
 }
 
 export interface DocumentReview {
@@ -11310,13 +11327,16 @@ export interface InviteResult {
 export interface InviteUserType {
   __typename?: "InviteUserType";
   avatarUrl: Maybe<Scalars["String"]["output"]>;
+  directRole: Maybe<Permission>;
   disabled: Maybe<Scalars["Boolean"]["output"]>;
   email: Scalars["String"]["output"];
   emailVerified: Maybe<Scalars["Boolean"]["output"]>;
   hasPassword: Maybe<Scalars["Boolean"]["output"]>;
   id: Scalars["ID"]["output"];
-  inviteId: Scalars["String"]["output"];
+  inviteId: Maybe<Scalars["String"]["output"]>;
   name: Scalars["String"]["output"];
+  ouNames: Array<Scalars["String"]["output"]>;
+  ouRole: Maybe<Permission>;
   permission: Permission;
   role: Permission;
   status: WorkspaceMemberStatus;
@@ -12117,6 +12137,7 @@ export interface MutationRootDeleteAssistantSetupArgs {
 export interface MutationRootDeleteBlobArgs {
   hash?: InputMaybe<Scalars["String"]["input"]>;
   key?: InputMaybe<Scalars["String"]["input"]>;
+  onlyIfUnused?: InputMaybe<Scalars["Boolean"]["input"]>;
   permanently?: InputMaybe<Scalars["Boolean"]["input"]>;
   workspaceId: Scalars["String"]["input"];
 }
@@ -13104,6 +13125,12 @@ export interface OrganizationUnitWorkspaceType {
   updatedAt: Scalars["DateTime"]["output"];
   workspaceId: Scalars["ID"]["output"];
   workspaceName: Maybe<Scalars["String"]["output"]>;
+}
+
+export interface OutgoingDocumentNavigation {
+  __typename?: "OutgoingDocumentNavigation";
+  blocks: Array<DocumentNavigationBlock>;
+  pending: Scalars["Boolean"]["output"];
 }
 
 /** Standard Relay page-info object returned with paginated connection types. */
@@ -15913,6 +15940,13 @@ export interface UnsupportedSubscriptionPlanDataType {
   message: Scalars["String"]["output"];
 }
 
+export interface UnusedBlobPage {
+  __typename?: "UnusedBlobPage";
+  items: Array<ListedBlobType>;
+  ready: Scalars["Boolean"]["output"];
+  total: Scalars["Int"]["output"];
+}
+
 export interface UpdateAppConfigInput {
   key: Scalars["String"]["input"];
   module: Scalars["String"]["input"];
@@ -18237,6 +18271,7 @@ export interface WorkspaceType {
    * views, rows and cells stay intact until permanent deletion.
    */
   trashedDatabases: Array<DatabaseSummary>;
+  unusedBlobs: UnusedBlobPage;
   /**
    * Guided help projects authored public source choices, never the creator's
    * answers or personal preferences. Native admission reads current scope.
@@ -18641,6 +18676,11 @@ export interface WorkspaceTypeTrashedDatabasePageIdentitiesArgs {
 export interface WorkspaceTypeTrashedDatabasesArgs {
   first?: InputMaybe<Scalars["Int"]["input"]>;
   offset?: InputMaybe<Scalars["Int"]["input"]>;
+}
+
+export interface WorkspaceTypeUnusedBlobsArgs {
+  first: Scalars["Int"]["input"];
+  offset: Scalars["Int"]["input"];
 }
 
 export interface WorkspaceTypeWorkspaceTagArgs {

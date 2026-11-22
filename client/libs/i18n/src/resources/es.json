@@ -6196,6 +6196,8 @@
   "com.myoxus.m.selector.where-collection": "Colección",
   "com.myoxus.m.selector.where-folder": "Carpeta",
   "com.myoxus.m.selector.where-tag": "Etiqueta",
+  "com.myoxus.member.role.direct": "{{role}} por asignación directa",
+  "com.myoxus.member.role.inherited": "{{role}} por {{units}}",
   "com.myoxus.member.approve": "Aprobar",
   "com.myoxus.member.approve.notify.message": "Has aprobado la solicitud de {{name}} para unirse a este espacio de trabajo",
   "com.myoxus.member.approve.notify.title": "Solicitud aprobada",

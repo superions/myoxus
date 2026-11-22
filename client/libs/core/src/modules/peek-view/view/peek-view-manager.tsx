@@ -1,11 +1,21 @@
 import { useLiveData, useService } from "@myoxus/infra";
 import { toReactNode } from "@myoxus/lit-react";
 import { BlockComponent } from "@virgultum/editor/std";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import type { ActivePeekView } from "../entities/peek-view";
 import { PeekViewService } from "../services/peek-view";
-import { AIChatBlockPeekView } from "./ai-chat-block-peek-view";
+const AIChatBlockPeekView = lazy(async () => ({
+  default: (await import("./ai-chat-block-peek-view")).AIChatBlockPeekView,
+}));
 import { AttachmentPreviewPeekView } from "./attachment-preview";
 import { DocPeekPreview } from "./doc-preview";
 import {
@@ -60,7 +70,11 @@ function renderPeekView({ info }: ActivePeekView, animating?: boolean) {
   }
 
   if (info.type === "ai-chat-block") {
-    return <AIChatBlockPeekView model={info.model} host={info.host} />;
+    return (
+      <Suspense>
+        <AIChatBlockPeekView model={info.model} host={info.host} />
+      </Suspense>
+    );
   }
 
   return null; // unreachable

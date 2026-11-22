@@ -128,19 +128,12 @@ async fn inv_docmeta_schema01_target_tables_and_docs_columns_exist() {
   migrate(&pool).await;
 
   let migration_versions: Vec<i64> = sqlx::query_scalar(
-    "SELECT version FROM _sqlx_migrations WHERE version IN (123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151) ORDER BY version",
+    "SELECT version FROM _sqlx_migrations WHERE success AND version IN (1000,1017,1108) ORDER BY version",
   )
   .fetch_all(&pool)
   .await
-  .expect("query migration versions");
-  assert_eq!(
-    migration_versions,
-    vec![
-      123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144,
-      145, 146, 147, 148, 149, 150, 151
-    ],
-    "0123 target schema through 0151 document metadata cut-over migrations must be applied"
-  );
+  .expect("query applied metadata migrations");
+  assert_eq!(migration_versions, [1000, 1017, 1108]);
 
   let required_columns = [
     "status_id",
@@ -310,11 +303,12 @@ async fn inv_docmeta_schema01_target_tables_and_docs_columns_exist() {
       .expect("public classification label");
   assert_eq!(public_label, "Öffentlich");
 
-  let french_label: String = sqlx::query_scalar("SELECT label FROM language_definition WHERE key = 'fr'")
-    .fetch_one(&pool)
-    .await
-    .expect("French language label");
-  assert_eq!(french_label, "Français");
+  let french_labels: (String, String) =
+    sqlx::query_as("SELECT label, native_label FROM language_definition WHERE key = 'fr'")
+      .fetch_one(&pool)
+      .await
+      .expect("French language labels");
+  assert_eq!(french_labels, ("French".into(), "français".into()));
 
   let language_keys: Vec<String> = sqlx::query_scalar("SELECT key FROM language_definition ORDER BY sort_order, key")
     .fetch_all(&pool)
@@ -322,20 +316,13 @@ async fn inv_docmeta_schema01_target_tables_and_docs_columns_exist() {
     .expect("language keys");
   assert_eq!(
     language_keys,
-    vec![
-      "en".to_string(),
-      "de".to_string(),
-      "fr".to_string(),
-      "it".to_string(),
-      "es".to_string(),
-      "pl".to_string(),
-      "uk".to_string(),
-      "nl".to_string(),
-      "pt-BR".to_string(),
-      "el-GR".to_string()
+    [
+      "en", "de", "fr", "it", "es", "es-AR", "es-CL", "pl", "uk", "nl", "pt-BR", "el-GR", "zh-Hans", "zh-Hant", "ru",
+      "ja", "ca", "sv-SE", "ar", "fa", "ko", "nb-NO", "cs", "hu", "sk", "ro", "hr", "sr"
     ],
-    "language defaults must use the normalized active metadata language set"
+    "ordered document language seeds"
   );
+
   sqlx::query(
     "INSERT INTO app_configs (id, value) VALUES ('i18n.default_locale', to_jsonb('en'::text)) \
      ON CONFLICT (id) DO UPDATE SET value = EXCLUDED.value, updated_at = now()",
@@ -475,7 +462,7 @@ async fn inv_docmeta_schema01_target_tables_and_docs_columns_exist() {
   for table in [
     "document_metadata_global_epoch",
     "organization_document_metadata_epoch",
-    "workspace_document_metadata_epoch",
+    "workspace_revisions",
     "document_presentation_state",
     "document_integration_state",
   ] {
@@ -644,7 +631,11 @@ async fn inv_docmeta_schema01_target_tables_and_docs_columns_exist() {
       .expect("query global epoch names");
   assert_eq!(
     global_epochs,
-    vec!["field_definition".to_string(), "reference_values".to_string()],
+    vec![
+      "field_definition".to_string(),
+      "list_index".to_string(),
+      "reference_values".to_string()
+    ],
     "global projection epochs must be named, not one broad id=true counter"
   );
 
@@ -654,7 +645,11 @@ async fn inv_docmeta_schema01_target_tables_and_docs_columns_exist() {
       "organization_id",
       vec!["defaults", "policy"],
     ),
-    ("workspace_document_metadata_epoch", "workspace_id", vec!["defaults"]),
+    (
+      "workspace_revisions",
+      "workspace_id",
+      vec!["database_page_inventory", "defaults", "document_index"],
+    ),
   ] {
     let columns: Vec<String> = sqlx::query_scalar(
       "SELECT column_name FROM information_schema.columns WHERE table_name = $1 ORDER BY ordinal_position",
@@ -671,18 +666,17 @@ async fn inv_docmeta_schema01_target_tables_and_docs_columns_exist() {
       "{table} must use normalized named revisions with actor provenance"
     );
 
-    let distinct_names: Vec<String> =
-      sqlx::query_scalar(&format!("SELECT DISTINCT epoch_name FROM {table} ORDER BY epoch_name"))
-        .fetch_all(&pool)
-        .await
-        .expect("query scoped epoch names");
-    if !distinct_names.is_empty() {
-      assert_eq!(
-        distinct_names,
-        expected_names.into_iter().map(ToString::to_string).collect::<Vec<_>>(),
-        "{table} epoch names drifted"
-      );
-    }
+    let allowed_names: Vec<String> = sqlx::query_scalar(
+      "SELECT DISTINCT names[1] FROM pg_constraint c,
+          LATERAL regexp_matches(pg_get_constraintdef(c.oid), $pattern$'([^']+)'$pattern$, 'g') AS names
+       WHERE c.conrelid = $1::regclass AND c.contype='c' AND pg_get_constraintdef(c.oid) LIKE '%epoch_name%'
+       ORDER BY 1",
+    )
+    .bind(table)
+    .fetch_all(&pool)
+    .await
+    .expect("read allowed revision names");
+    assert_eq!(allowed_names, expected_names, "{table} revision names drifted");
   }
 }
 

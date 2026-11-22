@@ -8,6 +8,21 @@
   line-height: var(--myoxus-line-height);
 }
 
+/* Grow an expanded Page note to its table's intrinsic width, up to a
+   desktop-sized canvas object. A wider authored note keeps its own width. */
+.virgultum-note-edgeless-container[data-fit-page-tables]:has(
+    [data-edgeless-table-layout]
+  ) {
+  width: min-content;
+  min-width: 100%;
+  max-width: max(100%, 1280px);
+}
+
+.virgultum-note-edgeless-container[data-fit-page-tables]
+  [data-edgeless-table-layout] {
+  zoom: var(--virgultum-table-fit-scale, 1);
+}
+
 .virgultum-note-collapse-button {
   display: flex;
   align-items: center;

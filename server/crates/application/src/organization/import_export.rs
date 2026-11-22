@@ -297,9 +297,6 @@ pub struct PreparedOrganizationImport {
 #[derive(Debug, Clone)]
 pub struct OrganizationImportCommit {
   pub summary: ImportSummary,
-  /// Manager capability rows changed by the transaction. Consumers invalidate
-  /// their caches only after commit; cache work never runs inside the writer.
-  pub manager_capability_users: Vec<UserId>,
 }
 
 /// Infrastructure-owned atomic persistence boundary for organization imports.

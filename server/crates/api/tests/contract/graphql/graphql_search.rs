@@ -28,13 +28,13 @@ async fn setup_pool() -> sqlx::PgPool {
 
 async fn setup_test_app(
   pool: sqlx::PgPool,
+  config: AppConfig,
 ) -> (
   axum::Router,
   Arc<ApiState>,
   Arc<InMemoryAuthStore>,
   Arc<SqlxSearchRepository>,
 ) {
-  let config = AppConfig::load().expect("AppConfig must load successfully");
   let auth_store = Arc::new(InMemoryAuthStore::default());
   let storage = Arc::new(DummyStorage);
   let auth_service = AuthService::new(
@@ -168,7 +168,19 @@ async fn graphql_and_rest_search_apply_acl_paging_and_sorting() {
     .await
     .expect("clean stale users");
 
-  let (app, state, auth_store, search_repo) = setup_test_app(pool.clone()).await;
+  let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+  let mut config = AppConfig::load().unwrap();
+  config.copilot.embedding.endpoint = Some(format!("http://{}", listener.local_addr().unwrap()));
+  config.copilot.embedding.model = "search-fixture".into();
+  config.copilot.embedding.dimensions = 768;
+  let provider = tokio::spawn(async move {
+    let mock = axum::Router::new().route(
+      "/embeddings",
+      axum::routing::post(|| async { axum::Json(json!({"data":[{"index":0,"embedding":vec![1.0_f32;768]}]})) }),
+    );
+    axum::serve(listener, mock).await.unwrap();
+  });
+  let (app, state, auth_store, search_repo) = setup_test_app(pool.clone(), config).await;
 
   let (owner_id, owner_session) = create_user_session(&auth_store, "owner-search@example.com").await;
   let (_outsider_id, outsider_session) = create_user_session(&auth_store, "outsider-search@example.com").await;
@@ -338,6 +350,43 @@ async fn graphql_and_rest_search_apply_acl_paging_and_sorting() {
       "use document modification, not index time"
     );
   }
+
+  // The quick-search request omits a mode. A vector-only hit must follow the workspace switch.
+  sqlx::query(
+    "INSERT INTO copilot_embeddings(workspace_id,source_type,source_id,chunk_index,chunk_text,embedding,model)
+    VALUES($1,'doc',$2,0,'semantic passage',array_fill(1::real,ARRAY[768])::vector,'search-fixture')",
+  )
+  .bind(workspace.id)
+  .bind(doc_a.to_string())
+  .execute(&pool)
+  .await
+  .unwrap();
+  let semantic_query = json!({
+    "query":"query($id:String!){workspace(id:$id){searchDocs(input:{keyword:\"unrelated-query\"}){externalId highlight}}}",
+    "variables":{"id":workspace.id}
+  });
+  for enabled in [true, false] {
+    state
+      .workspace()
+      .update_workspace(
+        workspace.id,
+        myoxus_application::workspace::UpdateWorkspace {
+          enable_doc_embedding: Some(enabled),
+          ..Default::default()
+        },
+      )
+      .await
+      .unwrap();
+    let result = graphql(&app, owner_session, semantic_query.clone()).await;
+    assert!(result.get("errors").is_none(), "{result}");
+    let expected = if enabled {
+      json!([{"externalId":"external-alpha","highlight":"semantic passage"}])
+    } else {
+      json!([])
+    };
+    assert_eq!(result["data"]["workspace"]["searchDocs"], expected);
+  }
+  provider.abort();
 
   let nested_page = |offset| {
     json!({

@@ -5,7 +5,6 @@ import {
   MoreHorizontalIcon,
   OpenInNewIcon,
 } from "@myoxus/icons/react";
-import { toReactNode } from "@myoxus/lit-react";
 import {
   Button,
   Group,
@@ -102,13 +101,7 @@ function SessionHistoryEntry({
           <>
             {session.docId ? (
               <MenuItem
-                prefixIcon={
-                  icon ? (
-                    toReactNode(typeof icon === "function" ? icon() : icon)
-                  ) : (
-                    <OpenInNewIcon />
-                  )
-                }
+                prefixIcon={icon ?? <OpenInNewIcon />}
                 disabled={disabled}
                 onSelect={() => onOpenDoc(session.docId!, session.sessionId)}
               >

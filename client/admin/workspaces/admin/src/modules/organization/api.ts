@@ -26,7 +26,6 @@ import {
   adminOrganizationUnitWorkspacesQuery,
   adminSetOrganizationUnitParentMutation,
   adminSetOrganizationUnitStatusMutation,
-  adminSetUserManagerFeatureMutation,
   adminUnassignOrganizationManagerMutation,
   adminUnassignOrganizationUnitWorkspaceMutation,
   adminUpdateOrganizationMutation,
@@ -292,10 +291,6 @@ export function useSetOrganizationUnitParentMutation() {
 
 export function useUpdateOrganizationPolicyMutation() {
   return useMutation({ mutation: adminUpdateOrganizationPolicyMutation });
-}
-
-export function useSetUserManagerFeatureMutation() {
-  return useMutation({ mutation: adminSetUserManagerFeatureMutation });
 }
 
 export function useAssignOrganizationManagerMutation() {

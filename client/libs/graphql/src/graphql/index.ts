@@ -11966,17 +11966,6 @@ fragment AdminOrganizationUnitFragment on OrganizationUnitTypeOutput {
 }`,
 };
 
-export const adminSetUserManagerFeatureMutation = {
-  id: "adminSetUserManagerFeatureMutation" as const,
-  op: "adminSetUserManagerFeature",
-  kind: "mutation" as const,
-  query: `mutation adminSetUserManagerFeature($userId: ID!, $enabled: Boolean!) {
-  admin {
-    setUserManagerFeature(userId: $userId, enabled: $enabled)
-  }
-}`,
-};
-
 export const adminTestOidcProviderMutation = {
   id: "adminTestOidcProviderMutation" as const,
   op: "adminTestOidcProvider",
@@ -12321,6 +12310,9 @@ export const adminWorkspaceQuery = {
         email
         avatarUrl
         role
+        directRole
+        ouRole
+        ouNames
         status
       }
     }
@@ -14835,8 +14827,13 @@ export const deleteBlobMutation = {
   id: "deleteBlobMutation" as const,
   op: "deleteBlob",
   kind: "mutation" as const,
-  query: `mutation deleteBlob($workspaceId: String!, $key: String!, $permanently: Boolean) {
-  deleteBlob(workspaceId: $workspaceId, key: $key, permanently: $permanently)
+  query: `mutation deleteBlob($workspaceId: String!, $key: String!, $permanently: Boolean, $onlyIfUnused: Boolean) {
+  deleteBlob(
+    workspaceId: $workspaceId
+    key: $key
+    permanently: $permanently
+    onlyIfUnused: $onlyIfUnused
+  )
 }`,
 };
 
@@ -33049,6 +33046,30 @@ fragment DocumentGraphIndexStatusFields on DocumentGraphIndexStatusType {
 }`,
 };
 
+export const outgoingNavigationQuery = {
+  id: "outgoingNavigationQuery" as const,
+  op: "outgoingNavigation",
+  kind: "query" as const,
+  query: `query outgoingNavigation($workspaceId: String!, $input: DocumentLinksInput!) {
+  workspace(id: $workspaceId) {
+    documentLinks(input: $input) {
+      outgoingNavigation {
+        pending
+        blocks {
+          blockId
+          links {
+            workspaceId
+            docId
+            title
+            paramsJson
+          }
+        }
+      }
+    }
+  }
+}`,
+};
+
 export const documentMetadataIndexQuery = {
   id: "documentMetadataIndexQuery" as const,
   op: "documentMetadataIndex",
@@ -36999,6 +37020,9 @@ export const getMembersByWorkspaceIdQuery = {
       name
       email
       avatarUrl
+      directRole
+      ouRole
+      ouNames
       permission
       inviteId
       emailVerified
@@ -45984,6 +46008,26 @@ fragment TemplateSuggestionItemFields on TemplateSuggestionItem {
   instanceState
   available
   protectedSource
+}`,
+};
+
+export const unusedBlobsQuery = {
+  id: "unusedBlobsQuery" as const,
+  op: "unusedBlobs",
+  kind: "query" as const,
+  query: `query unusedBlobs($workspaceId: String!, $offset: Int!, $first: Int!) {
+  workspace(id: $workspaceId) {
+    unusedBlobs(offset: $offset, first: $first) {
+      ready
+      total
+      items {
+        key
+        size
+        mime
+        createdAt
+      }
+    }
+  }
 }`,
 };
 

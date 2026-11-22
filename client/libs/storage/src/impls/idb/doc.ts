@@ -193,10 +193,11 @@ export class IndexedDBDocStorage extends DocStorageBase<IDBConnectionOptions> {
   private async deleteDocData(docId: string, broadcast: boolean) {
     // Fence this instance before the atomic retirement reaches the database.
     this.deletedDocs.add(docId);
-    const trx = this.db.transaction(
-      ["snapshots", "updates", "clocks", "peerClocks", "indexerSync"],
-      "readwrite",
-    );
+    const stores: (
+      "snapshots" | "updates" | "clocks" | "peerClocks" | "indexerSync"
+    )[] = ["snapshots", "updates", "clocks", "peerClocks"];
+    if (!BUILD_CONFIG.isWeb) stores.push("indexerSync");
+    const trx = this.db.transaction(stores, "readwrite");
 
     await this.finishTransaction(
       trx.done,
@@ -210,7 +211,8 @@ export class IndexedDBDocStorage extends DocStorageBase<IDBConnectionOptions> {
         );
         await trx.objectStore("snapshots").delete(docId);
         await trx.objectStore("clocks").delete(docId);
-        await trx.objectStore("indexerSync").delete(docId);
+        if (!BUILD_CONFIG.isWeb)
+          await trx.objectStore("indexerSync").delete(docId);
         for await (const cursor of trx.objectStore("peerClocks").iterate()) {
           if (cursor.value.docId === docId) await cursor.delete();
         }

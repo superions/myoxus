@@ -297,7 +297,7 @@ impl WorkspaceSettingsService {
   /// Apply the user-editable settings after effective-role authorization.
   ///
   /// Cache invalidation follows a successful persistence write. Publication
-  /// artifact invalidation remains best effort, matching the existing GraphQL
+  /// asset manifest invalidation remains best effort, matching the existing GraphQL
   /// behavior, and only runs when a public boundary was explicitly changed.
   #[instrument(skip_all, fields(user_id = %user_id, workspace_id = %workspace_id))]
   pub async fn update(
@@ -340,7 +340,7 @@ impl WorkspaceSettingsService {
     self.invalidation.invalidate_workspace_settings(workspace_id).await;
     if publication_boundary_changed && let Err(error) = self.public_repository.invalidate_workspace(workspace_id).await
     {
-      warn!(%workspace_id, %error, "workspace publication artifact invalidation failed");
+      warn!(%workspace_id, %error, "workspace publication asset manifest invalidation failed");
     }
     Ok(workspace)
   }
@@ -726,6 +726,14 @@ pub trait WorkspaceStore: Send + Sync {
   ) -> AuthResult<WorkspaceMember>;
   /// Fetch a single membership record.
   async fn get_member(&self, workspace_id: WorkspaceId, user_id: UserId) -> AuthResult<Option<WorkspaceMember>>;
+  async fn effective_member(&self, workspace_id: WorkspaceId, user_id: UserId) -> AuthResult<Option<WorkspaceMember>> {
+    Ok(
+      self
+        .get_member(workspace_id, user_id)
+        .await?
+        .filter(|m| m.status == MembershipStatus::Accepted),
+    )
+  }
   /// Fetch a member by their invite record ID.
   async fn get_member_by_invite_id(&self, invite_id: InviteLinkId) -> AuthResult<Option<WorkspaceMember>>;
   /// Remove a membership record.
@@ -1167,6 +1175,14 @@ impl WorkspaceService {
   #[instrument(skip_all)]
   pub async fn get_member(&self, workspace_id: WorkspaceId, user_id: UserId) -> AuthResult<Option<WorkspaceMember>> {
     self.store.get_member(workspace_id, user_id).await
+  }
+
+  pub async fn effective_member(
+    &self,
+    workspace_id: WorkspaceId,
+    user_id: UserId,
+  ) -> AuthResult<Option<WorkspaceMember>> {
+    self.store.effective_member(workspace_id, user_id).await
   }
 
   /// Classify a membership mutation from the current target, never from the

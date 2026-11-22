@@ -6196,6 +6196,8 @@
   "com.myoxus.m.selector.where-collection": "Collection",
   "com.myoxus.m.selector.where-folder": "Dossier",
   "com.myoxus.m.selector.where-tag": "Tag",
+  "com.myoxus.member.role.direct": "{{role}} attribué directement",
+  "com.myoxus.member.role.inherited": "{{role}} via {{units}}",
   "com.myoxus.member.approve": "Approuver",
   "com.myoxus.member.approve.notify.message": "Vous avez approuvé la demande de {{name}} pour rejoindre cet espace de travail",
   "com.myoxus.member.approve.notify.title": "Demande approuvée",

@@ -2,7 +2,7 @@
  * storage worker entry point (SharedWorker / Worker).
  *
  * This script is loaded as a Web Worker by `app.tsx`. It runs the
- * `StoreManagerConsumer` which owns all storage backends (IndexedDB, cloud
+ * `TransportStoreManagerConsumer` which owns document/blob transport (IndexedDB, cloud
  * sync, BroadcastChannel) and exposes them to the main thread via an
  * `OpConsumer` message channel.
  *
@@ -22,16 +22,21 @@ import {
 } from "@myoxus/storage";
 import { broadcastChannelStorages } from "@myoxus/storage/broadcast-channel";
 import {
-  cloudStorages,
+  cloudTransportStorages,
   configureMyoxusStorageClientContext,
   configureSocketAuthMethod,
   onClientUpdateControlChanged,
 } from "@myoxus/storage/cloud";
-import { idbStorages } from "@myoxus/storage/idb";
 import {
-  StoreManagerConsumer,
+  IndexedDBBlobStorage,
+  IndexedDBBlobSyncStorage,
+  IndexedDBDocStorage,
+  IndexedDBDocSyncStorage,
+} from "@myoxus/storage/idb";
+import {
+  TransportStoreManagerConsumer,
   type WorkerManagerOps,
-} from "@myoxus/storage/worker/consumer";
+} from "@myoxus/storage/worker/transport-consumer";
 
 configureMyoxusStorageClientContext({ client: "web" });
 configureSocketAuthMethod((_endpoint, callback) => {
@@ -54,10 +59,13 @@ startClientUpdateControlRuntime({
       : undefined,
 });
 
-const consumer = new StoreManagerConsumer([
-  ...idbStorages,
+const consumer = new TransportStoreManagerConsumer([
+  IndexedDBBlobStorage,
+  IndexedDBBlobSyncStorage,
+  IndexedDBDocStorage,
+  IndexedDBDocSyncStorage,
   ...broadcastChannelStorages,
-  ...cloudStorages,
+  ...cloudTransportStorages,
 ]);
 
 if ("onconnect" in globalThis) {

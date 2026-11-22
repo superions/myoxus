@@ -24,6 +24,8 @@ export const LitEdgelessEditor = createReactComponentFromLit({
 });
 
 export function editorEffects() {
-  customElements.define("page-editor", PageEditor);
-  customElements.define("edgeless-editor", EdgelessEditor);
+  if (!customElements.get("page-editor"))
+    customElements.define("page-editor", PageEditor);
+  if (!customElements.get("edgeless-editor"))
+    customElements.define("edgeless-editor", EdgelessEditor);
 }

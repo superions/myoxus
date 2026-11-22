@@ -26,7 +26,6 @@ import {
 } from "@virgultum/core/runtime";
 import type { InlineRange } from "@virgultum/core/runtime/inline";
 
-import { showImportModal } from "./import-doc/index.js";
 import type { LinkedDocViewExtensionOptions } from "./view";
 
 export type LinkedWidgetConfig = Required<
@@ -159,7 +158,7 @@ export function createNewDocMenuGroup(
       key: "import",
       name: "Import",
       icon: "ImportIcon",
-      action: () => {
+      action: async () => {
         abort();
         const onSuccess = (
           docIds: string[],
@@ -191,6 +190,8 @@ export function createNewDocMenuGroup(
         const storeManager = editorHost.std.get(
           StoreExtensionManagerIdentifier,
         );
+        const { showImportModal } = await import("./import-doc/index.js");
+        if (!editorHost.isConnected) return;
         showImportModal({
           chrome: editorHost.std.get(EditorChromeHostIdentifier),
           i18n: editorHost.std.getOptional(EditorI18nProvider) ?? undefined,

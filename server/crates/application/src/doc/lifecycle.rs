@@ -76,6 +76,19 @@ impl PageLifecycleService {
     title: Option<String>,
     initial_content: Option<DocumentFragment>,
   ) -> AuthResult<PageLifecycleCommit> {
+    self
+      .create_with_row_target(workspace_id, actor_user_id, title, initial_content, None)
+      .await
+  }
+
+  pub(super) async fn create_with_row_target(
+    &self,
+    workspace_id: Uuid,
+    actor_user_id: Uuid,
+    title: Option<String>,
+    initial_content: Option<DocumentFragment>,
+    row_content: Option<super::RowContentTarget>,
+  ) -> AuthResult<PageLifecycleCommit> {
     let title = normalize_title(title.as_deref().unwrap_or("Untitled"))?;
     let doc_id = Uuid::new_v4();
     let base = crate::markdown::empty_page_to_yjs(&title);
@@ -94,6 +107,7 @@ impl PageLifecycleService {
         actor_user_id,
         title,
         initial_leaf_update,
+        row_content,
         source_purpose: None,
         committed_at: Utc::now(),
       })
@@ -124,10 +138,10 @@ impl PageLifecycleService {
           actor_user_id,
           title,
           initial_leaf_update,
+          row_content,
           source_purpose: None,
           committed_at,
         },
-        row_content,
         fence,
       )
       .await?;
@@ -168,6 +182,7 @@ impl PageLifecycleService {
         actor_user_id,
         title,
         initial_leaf_update,
+        row_content: None,
         source_purpose,
         committed_at,
       })
@@ -199,6 +214,7 @@ impl PageLifecycleService {
           actor_user_id,
           title,
           initial_leaf_update,
+          row_content: None,
           source_purpose: None,
           committed_at,
         },

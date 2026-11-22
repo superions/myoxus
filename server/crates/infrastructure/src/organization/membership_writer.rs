@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-//! Atomic manual membership and derived Manager-capability persistence.
+//! Atomic manual membership changes and reporting of derived Manager status.
 
-use super::{PgManagerCapabilityWriter, PgOrganizationUnitMemberRepository};
+use super::PgOrganizationUnitMemberRepository;
 use async_trait::async_trait;
 use chrono::Utc;
 use myoxus_application::organization::{
@@ -71,7 +71,7 @@ impl OrganizationMembershipWriter for PgOrganizationMembershipWriter {
     }
     users.sort_unstable();
     users.dedup();
-    let found = PgManagerCapabilityWriter::lock_users(&mut tx, &users)
+    let found = PgOrganizationUnitMemberRepository::lock_users(&mut tx, &users)
       .await
       .map_err(storage)?;
     let user_label =
@@ -100,14 +100,6 @@ impl OrganizationMembershipWriter for PgOrganizationMembershipWriter {
       .await
       .map_err(storage)?
       .unwrap_or(false);
-      let capable = sqlx::query_scalar::<_, bool>(
-        "SELECT activated FROM user_features WHERE user_id=$1 AND feature_name='manager' FOR SHARE",
-      )
-      .bind(manager)
-      .fetch_optional(&mut *tx)
-      .await
-      .map_err(storage)?
-      .unwrap_or(false);
       let scoped = sqlx::query_scalar::<_, bool>(
         "SELECT EXISTS(SELECT 1 FROM organization_unit_member WHERE unit_id=$1 AND user_id=$2 AND role='manager')",
       )
@@ -117,7 +109,6 @@ impl OrganizationMembershipWriter for PgOrganizationMembershipWriter {
       .await
       .map_err(storage)?;
       if !policy
-        || !capable
         || !scoped
         || unit.get::<String, _>("status") != "active"
         || previous
@@ -171,31 +162,19 @@ impl OrganizationMembershipWriter for PgOrganizationMembershipWriter {
         .await?,
       )
     };
-    // Reader/Member-only operations must preserve independently granted global
-    // Manager flags. Only a Manager membership transition owns this projection.
     let manager_capability = if previous
       .as_ref()
       .is_some_and(|m| m.role == OrganizationUnitRole::Manager)
-      || current
+      != current
         .as_ref()
         .is_some_and(|m| m.role == OrganizationUnitRole::Manager)
     {
-      if PgManagerCapabilityWriter::sync_in_transaction(&mut tx, change.user_id)
-        .await
-        .map_err(storage)?
-      {
-        Some(
-          sqlx::query_scalar::<_, bool>(
-            "SELECT activated FROM user_features WHERE user_id=$1 AND feature_name='manager'",
-          )
-          .bind(change.user_id)
-          .fetch_one(&mut *tx)
-          .await
-          .map_err(storage)?,
-        )
-      } else {
-        None
-      }
+      let now_manages = current
+        .as_ref()
+        .is_some_and(|m| m.role == OrganizationUnitRole::Manager);
+      let manages_another: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM organization_unit_member m JOIN organization_unit u ON u.id=m.unit_id WHERE m.user_id=$1 AND m.unit_id<>$2 AND m.role='manager' AND u.status='active')")
+        .bind(change.user_id).bind(change.unit_id).fetch_one(&mut *tx).await.map_err(storage)?;
+      (!manages_another && unit.get::<String, _>("status") == "active").then_some(now_manages)
     } else {
       None
     };

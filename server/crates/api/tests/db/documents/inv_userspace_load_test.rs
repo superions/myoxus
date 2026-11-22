@@ -177,7 +177,13 @@ async fn inv_userspace_load_04_owner_streams_durable_snapshot_and_tail_without_d
   let pool = helpers::setup_pool().await;
   let owner = helpers::create_user(&pool, "usload04-owner", false).await;
   let stranger = helpers::create_user(&pool, "usload04-stranger", false).await;
+  let unrelated = helpers::create_workspace(&pool, owner).await;
   let container = helpers::create_workspace(&pool, owner).await;
+  sqlx::query("UPDATE workspaces SET is_personal_workspace=true WHERE id=$1")
+    .bind(container)
+    .execute(&pool)
+    .await
+    .unwrap();
   let store = Arc::new(SqlxDocStore::new(pool.clone()));
   let service = DocService::new(store.clone());
   let key = DocumentKey::parse(format!("private-{}", uuid::Uuid::new_v4())).unwrap();
@@ -235,14 +241,8 @@ async fn inv_userspace_load_04_owner_streams_durable_snapshot_and_tail_without_d
     1,
     "compact through the actual owner-scoped readers and writer"
   );
-  // A private document can outlive its original active container. Subsequent
-  // accepted updates must continue above its existing snapshot watermark.
-  let next_container = helpers::create_workspace(&pool, owner).await;
-  sqlx::query("UPDATE workspaces SET deleted_at=now() WHERE id=$1")
-    .bind(container)
-    .execute(&pool)
-    .await
-    .expect("retire owned original container without deleting its retained rows");
+  // Removing another owned workspace must preserve the private snapshot and tail.
+  helpers::cleanup_workspaces(&pool, &[unrelated]).await;
   let vector = source.transact().state_vector();
   let tail = {
     let mut txn = source.transact_mut();
@@ -259,7 +259,7 @@ async fn inv_userspace_load_04_owner_streams_durable_snapshot_and_tail_without_d
       .fetch_one(&pool)
       .await
       .unwrap();
-  assert_eq!(tail_container, next_container);
+  assert_eq!(tail_container, container);
   assert!(
     tail_sequence > sequence,
     "durable tail stays above the global snapshot watermark"
@@ -357,6 +357,6 @@ async fn inv_userspace_load_04_owner_streams_durable_snapshot_and_tail_without_d
     .execute(&pool)
     .await
     .expect("delete owned private metadata");
-  helpers::cleanup_workspaces(&pool, &[container, next_container]).await;
+  helpers::cleanup_workspaces(&pool, &[container]).await;
   helpers::cleanup_users(&pool, &[owner, stranger]).await;
 }

@@ -176,7 +176,7 @@ pub async fn preview(args: RecoveryArgs, pool: &PgPool, json: bool) -> anyhow::R
       .await?;
   let (_, sources) = Services::capture_feature_sources(root.as_ref())?;
   let documents = release_sources(&args, &sources)?;
-  let columns: (bool, bool) = sqlx::query_as("SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='template_revisions' AND column_name='release_managed_publication'), EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='template_default_policies' AND column_name='release_managed')")
+  let columns: (bool, bool) = sqlx::query_as("SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='template_revisions' AND column_name='release_managed_publication'), EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name IN ('template_default_policies','template_catalog_entries') AND column_name='release_managed')")
     .fetch_one(&mut *tx).await?;
   ensure!(
     columns == (highest >= 1047, highest >= 1046),
@@ -368,11 +368,18 @@ async fn inspect(
     .bind(&ids)
     .fetch_all(&mut *connection)
     .await?;
-  let default_column: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='template_default_policies' AND column_name='release_managed')")
-    .fetch_one(&mut *connection).await?;
+  let (inline_policy, release_managed): (bool, bool) = sqlx::query_as(
+    "SELECT EXISTS(SELECT FROM information_schema.columns WHERE table_schema='public' AND table_name='template_catalog_entries' AND column_name='apply_to_new_workspaces'),
+            EXISTS(SELECT FROM information_schema.columns WHERE table_schema='public' AND table_name IN ('template_catalog_entries','template_default_policies') AND column_name='release_managed')"
+  ).fetch_one(&mut *connection).await?;
+  let (table, key) = if inline_policy {
+    ("template_catalog_entries", "id")
+  } else {
+    ("template_default_policies", "template_id")
+  };
   let default_sql = format!(
-    "SELECT template_id FROM template_default_policies WHERE template_id=ANY($1) AND apply_to_new_workspaces AND selection_mode='published' AND provisioning_mode IN ('seed_once','managed_until_local_edit') AND {}",
-    if default_column { "NOT release_managed" } else { "true" }
+    "SELECT {key} FROM {table} WHERE {key}=ANY($1) AND apply_to_new_workspaces AND selection_mode='published' AND provisioning_mode IN ('seed_once','managed_until_local_edit') AND {}",
+    if release_managed { "NOT release_managed" } else { "true" }
   );
   let unknown_defaults: Vec<Uuid> = sqlx::query_scalar(&default_sql)
     .bind(&ids)
@@ -788,7 +795,7 @@ async fn prepare_release(
   );
   sqlx::query("UPDATE template_revisions SET release_managed_publication=true WHERE template_id=ANY($1) AND state='published' AND created_by IS NULL AND $2")
     .bind(&ids).bind(args.confirm_unmodified_system_documents).execute(&mut *tx).await?;
-  sqlx::query("UPDATE template_default_policies SET release_managed=true WHERE template_id=ANY($1) AND apply_to_new_workspaces AND selection_mode='published' AND provisioning_mode IN ('seed_once','managed_until_local_edit') AND $2")
+  sqlx::query("UPDATE template_catalog_entries SET release_managed=true WHERE id=ANY($1) AND apply_to_new_workspaces AND selection_mode='published' AND provisioning_mode IN ('seed_once','managed_until_local_edit') AND $2")
     .bind(&ids).bind(args.confirm_unmodified_system_documents).execute(&mut *tx).await?;
   sqlx::query("INSERT INTO template_registry_audit_events(action,event_type,workspace_id,payload_json) VALUES('updated','template.release.recovery',$1,$2)")
     .bind(args.workspace_id).bind(serde_json::json!({"release":sources.release.base,"all_workspaces":args.all_workspaces,"orphan_source_keys":args.orphan_sources,"unknown_source_keys":args.unknown_sources}))
@@ -818,12 +825,10 @@ async fn prepare_release(
     // before bounded retirement. End delivery without invalidating genuine pins.
     sqlx::query("UPDATE template_revisions SET state='deprecated' WHERE template_id=$1 AND state='published' AND release_managed_publication")
       .bind(entry.id).execute(&svc.pool).await?;
-    sqlx::query(
-      "UPDATE template_default_policies SET apply_to_new_workspaces=false WHERE template_id=$1 AND release_managed",
-    )
-    .bind(entry.id)
-    .execute(&svc.pool)
-    .await?;
+    sqlx::query("UPDATE template_catalog_entries SET apply_to_new_workspaces=false WHERE id=$1 AND release_managed")
+      .bind(entry.id)
+      .execute(&svc.pool)
+      .await?;
   }
   Ok(())
 }

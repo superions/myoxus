@@ -246,7 +246,7 @@ Native revision publication records release ownership
 separately from authorship: an explicit Admin publication relinquishes release
 ownership even when the revision has no author. Existing publication ownership is
 never inferred from a missing author. New release-owned default policies record their
-ownership in `template_default_policies`; an explicit operator edit relinquishes
+ownership on their `template_catalog_entries` row; an explicit operator edit relinquishes
 it. Existing policies are never inferred to be release-owned. Empty Workspaces
 continue to suppress implicit content provisioning.
 

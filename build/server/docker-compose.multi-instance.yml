@@ -29,7 +29,6 @@ x-api-common: &api-common
     MYOXUS__WEBSOCKET__PING_INTERVAL_SECONDS: "1"
     # Align cron admission with the owned one-second reminder fixture cadence.
     MYOXUS__WORKER__CRON_TICK_INTERVAL_SECONDS: "1"
-    MYOXUS__WORKER__POLLING__DATABASE_REMINDER_INTERVAL_MS: "1000"
   secrets:
     - postgres_password
     - crypto_private_key

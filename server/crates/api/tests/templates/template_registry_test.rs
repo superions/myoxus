@@ -5080,13 +5080,11 @@ async fn inv_template_reconcile_managed_update_preserves_identity_and_updates_so
       .expect("select released v1");
     // Reproduce the deployed release-owned seed-once default without changing its
     // positive provenance. Fresh seeding must also correct that purpose mismatch.
-    sqlx::query(
-      "UPDATE template_default_policies SET provisioning_mode='seed_once' WHERE template_id=$1 AND release_managed",
-    )
-    .bind(entry.id)
-    .execute(&pool)
-    .await
-    .unwrap();
+    sqlx::query("UPDATE template_catalog_entries SET provisioning_mode='seed_once' WHERE id=$1 AND release_managed")
+      .bind(entry.id)
+      .execute(&pool)
+      .await
+      .unwrap();
     service
       .assign_template_to_workspace(
         workspace_id,
@@ -7156,13 +7154,13 @@ async fn inv_feature_document_catalog_selection_is_atomic_and_preserves_native_b
     for item in &mut false_defaults { item.new_workspace_default = false; }
     service.commit_shipped_catalog_selection(&false_defaults).await.unwrap();
     for (entry, _, _) in &staged {
-      let policy: (bool, bool) = sqlx::query_as("SELECT apply_to_new_workspaces,release_managed FROM template_default_policies WHERE template_id=$1")
+      let policy: (bool, bool) = sqlx::query_as("SELECT apply_to_new_workspaces,release_managed FROM template_catalog_entries WHERE id=$1")
         .bind(entry.id).fetch_one(&pool).await.unwrap();
       assert_eq!(policy, (false, true), "authored true-to-false changes only release-owned defaults");
     }
     service.commit_shipped_catalog_selection(&first_selection).await.unwrap();
     for (entry, _, _) in &staged {
-      let policy: (bool, bool) = sqlx::query_as("SELECT apply_to_new_workspaces,release_managed FROM template_default_policies WHERE template_id=$1")
+      let policy: (bool, bool) = sqlx::query_as("SELECT apply_to_new_workspaces,release_managed FROM template_catalog_entries WHERE id=$1")
         .bind(entry.id).fetch_one(&pool).await.unwrap();
       assert_eq!(policy, (true, true), "authored false-to-true remains supported");
     }
@@ -7173,7 +7171,7 @@ async fn inv_feature_document_catalog_selection_is_atomic_and_preserves_native_b
     );
     release.unwrap();
     assert!(operator.unwrap());
-    let policy: (bool, bool) = sqlx::query_as("SELECT apply_to_new_workspaces,release_managed FROM template_default_policies WHERE template_id=$1")
+    let policy: (bool, bool) = sqlx::query_as("SELECT apply_to_new_workspaces,release_managed FROM template_catalog_entries WHERE id=$1")
       .bind(staged[0].0.id).fetch_one(&pool).await.unwrap();
     assert_eq!(policy, (false, false));
     // A later explicit operator save becomes the sole policy authority even
@@ -7193,7 +7191,7 @@ async fn inv_feature_document_catalog_selection_is_atomic_and_preserves_native_b
       .bind(entry.id).execute(&pool).await.unwrap();
     assert_eq!(prior_builtin.rows_affected(), 1);
     service.set_new_workspace_default_for_slug(&slugs[0], false).await.unwrap();
-    let operator_default_before: Value = sqlx::query_scalar("SELECT to_jsonb(p) FROM template_default_policies p WHERE p.template_id=$1")
+    let operator_default_before: Value = sqlx::query_scalar("SELECT jsonb_build_array(p.id,p.apply_to_new_workspaces,p.selection_mode,p.provisioning_mode,p.release_managed,p.policy_created_at,p.policy_updated_at) FROM template_catalog_entries p WHERE p.id=$1")
       .bind(entry.id).fetch_one(&pool).await.unwrap();
     let next_selection: Vec<_> = staged.iter().map(|(entry, first, next)| ShippedTemplateSelection {
       template_id: entry.id, current_revision_id: Some(next.id), history_revision_ids: vec![first.id], new_workspace_default: false,
@@ -7205,13 +7203,13 @@ async fn inv_feature_document_catalog_selection_is_atomic_and_preserves_native_b
     let after: Value = sqlx::query_scalar("SELECT jsonb_build_object('instance',(SELECT to_jsonb(i) FROM workspace_template_instances i WHERE i.id=$1),'policy',(SELECT to_jsonb(p) FROM workspace_template_policies p WHERE p.workspace_id=$2 AND p.template_id=$3),'doc',(SELECT to_jsonb(d) FROM docs d WHERE d.id=$4),'updates',(SELECT jsonb_agg(to_jsonb(u) ORDER BY sequence) FROM doc_updates u WHERE u.doc_id=$4))")
       .bind(instance.id).bind(workspace).bind(entry.id).bind(document).fetch_one(&pool).await.unwrap();
     assert_eq!(before, after, "release current must preserve exact existing docs, updates, pins and bindings");
-    let default: bool = sqlx::query_scalar("SELECT apply_to_new_workspaces FROM template_default_policies WHERE template_id=$1").bind(entry.id).fetch_one(&pool).await.unwrap();
+    let default: bool = sqlx::query_scalar("SELECT apply_to_new_workspaces FROM template_catalog_entries WHERE id=$1").bind(entry.id).fetch_one(&pool).await.unwrap();
     assert!(!default, "explicit operator opt-out remains canonical");
-    let operator_default_after: Value = sqlx::query_scalar("SELECT to_jsonb(p) FROM template_default_policies p WHERE p.template_id=$1")
+    let operator_default_after: Value = sqlx::query_scalar("SELECT jsonb_build_array(p.id,p.apply_to_new_workspaces,p.selection_mode,p.provisioning_mode,p.release_managed,p.policy_created_at,p.policy_updated_at) FROM template_catalog_entries p WHERE p.id=$1")
       .bind(entry.id).fetch_one(&pool).await.unwrap();
     assert_eq!(operator_default_before, operator_default_after);
     assert_eq!(service.store().get_catalog_entry(entry.id).await.unwrap().unwrap().status, TemplateStatus::Disabled);
-    let preserved_true: bool = sqlx::query_scalar("SELECT apply_to_new_workspaces FROM template_default_policies WHERE template_id=$1")
+    let preserved_true: bool = sqlx::query_scalar("SELECT apply_to_new_workspaces FROM template_catalog_entries WHERE id=$1")
       .bind(staged[1].0.id).fetch_one(&pool).await.unwrap();
     assert!(preserved_true, "unknown-provenance existing true policy remains canonical for source default=false");
     // Fail after the first root's retirement has executed: the complete native

@@ -392,7 +392,7 @@ async fn membership_metadata(pool: &PgPool, unit_id: Uuid, user_id: Uuid) -> ser
 
 async fn manager_feature_active(pool: &PgPool, user_id: Uuid) -> bool {
   sqlx::query_scalar::<_, Option<bool>>(
-    "SELECT activated FROM user_features WHERE user_id = $1 AND feature_name = 'manager'",
+    "SELECT activated FROM effective_user_features WHERE user_id = $1 AND feature_name = 'manager'",
   )
   .bind(user_id)
   .fetch_optional(pool)

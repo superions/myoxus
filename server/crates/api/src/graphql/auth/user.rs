@@ -392,7 +392,7 @@ impl UserType {
           features.push(feature);
         }
       }
-      if active.iter().any(|name| name == crate::graphql::USER_FEATURE_MANAGER) {
+      if active.iter().any(|flag| flag == crate::graphql::USER_FEATURE_MANAGER) {
         features.push(FeatureType::Manager);
       }
     } else {

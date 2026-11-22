@@ -114,7 +114,7 @@ async fn test_invite_and_join_persistence() {
 
   // 6. Accept Email Invite
   let accept_res = workspace_service
-    .accept_invite_by_id(invitee_id, invite_results.invite_id)
+    .accept_invite_by_id(invitee_id, invite_results.invite_id.expect("direct invitation"))
     .await
     .expect("Failed to accept email invite");
   assert!(accept_res);

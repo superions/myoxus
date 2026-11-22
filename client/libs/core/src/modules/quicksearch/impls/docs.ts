@@ -37,11 +37,12 @@ export class DocsQuickSearchSession
     super();
   }
 
-  private readonly isIndexerLoading$ = this.docsSearchService.indexerState$.map(
-    ({ completed }) => {
-      return !completed;
-    },
-  );
+  private readonly isIndexerLoading$ =
+    this.workspaceService.workspace.flavour !== "local"
+      ? new LiveData(false)
+      : this.docsSearchService.indexerState$.map(({ completed }) => {
+          return !completed;
+        });
 
   private readonly isQueryLoading$ = new LiveData(false);
 

@@ -23,7 +23,7 @@ use myoxus_domain::{
 
 use std::{
   collections::{BTreeMap, BTreeSet},
-  io::{Cursor, Read},
+  io::Read,
   path::Path,
 };
 
@@ -87,8 +87,7 @@ pub(super) fn read_feature_bundle_with_budget(
   if bytes.is_empty() || bytes.len() > 200 * 1024 * 1024 {
     return Err(invalid("archive", "archive byte limit exceeded"));
   }
-  let index = budget.account(bytes).map_err(|error| invalid("archive", error))?;
-  let mut archive = zip::ZipArchive::new(Cursor::new(bytes)).map_err(|error| invalid("archive", error))?;
+  let (mut archive, index) = budget.open(bytes).map_err(|error| invalid("archive", error))?;
   let mut files = BTreeMap::new();
   // The shared inspector rejects aliases/case-folded duplicates and symlinks.
   // Require the raw spelling too, so by-name access can never resolve an alias.

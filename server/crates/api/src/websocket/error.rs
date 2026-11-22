@@ -102,6 +102,7 @@ pub(super) fn classify_auth_error(err: &myoxus_application::auth::AuthError) -> 
     // Permission, auth, and input errors are permanent.
     AuthError::ActionForbidden
     | AuthError::AuthenticationRequired
+    | AuthError::RowAttachment(_)
     | AuthError::InvalidInput(_)
     | AuthError::WorkspaceNameConflict { .. }
     | AuthError::WorkspaceOverviewRevisionConflict { .. }

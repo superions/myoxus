@@ -414,7 +414,7 @@ export function WorkspaceMembersSection({
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const existingMemberIds = useMemo(
-    () => new Set(members.map((m) => m.id)),
+    () => new Set(members.filter((m) => m.directRole).map((m) => m.id)),
     [members],
   );
 
@@ -448,12 +448,11 @@ export function WorkspaceMembersSection({
         id: string;
         name?: string | null;
         email: string;
-        role: unknown;
+        directRole?: Permission | null;
       },
       nextRole: Permission,
     ) => {
-      const currentRole = member.role as Permission;
-      if (currentRole === nextRole) return;
+      if (!member.directRole || member.directRole === nextRole) return;
       const displayName = member.name || member.email;
       setRoleUpdatingUserId(member.id);
       updateMemberRole({ workspaceId, userId: member.id, role: nextRole })
@@ -549,7 +548,7 @@ export function WorkspaceMembersSection({
             members.map((member) => {
               const isOwner =
                 member.id === ownerId || member.role === Permission.Owner;
-              const currentRole = member.role as Permission;
+              const currentRole = member.directRole ?? member.role;
               const availableRoleOptions = roleOptions.includes(currentRole)
                 ? roleOptions
                 : [currentRole, ...roleOptions];
@@ -573,9 +572,10 @@ export function WorkspaceMembersSection({
                     </SettingsListItemMeta>
                   </TableCell>
                   <TableCell>
-                    {isOwner ? (
-                      <RoleBadge role={currentRole} />
-                    ) : (
+                    {(isOwner || !member.directRole || member.ouRole) && (
+                      <RoleBadge role={member.role} />
+                    )}
+                    {!isOwner && member.directRole && (
                       <MyoxusSelect
                         value={currentRole}
                         disabled={roleUpdatingUserId === member.id}
@@ -593,6 +593,21 @@ export function WorkspaceMembersSection({
                         data-testid={`member-role-select-${member.id}`}
                       />
                     )}
+                    {member.directRole && (
+                      <SettingsListItemMeta>
+                        {i18n.t("com.myoxus.member.role.direct", {
+                          role: roleLabel(i18n, member.directRole),
+                        })}
+                      </SettingsListItemMeta>
+                    )}
+                    {member.ouRole && (
+                      <SettingsListItemMeta>
+                        {i18n.t("com.myoxus.member.role.inherited", {
+                          role: roleLabel(i18n, member.ouRole),
+                          units: member.ouNames.join(", "),
+                        })}
+                      </SettingsListItemMeta>
+                    )}
                   </TableCell>
                   <TableCell>
                     <StatusBadge
@@ -600,7 +615,7 @@ export function WorkspaceMembersSection({
                     />
                   </TableCell>
                   <TableCell>
-                    {!isOwner && (
+                    {!isOwner && member.directRole && (
                       <IconButton
                         icon={<UserMinusIcon aria-hidden />}
                         aria-label={i18n.t("admin.workspaces.members.remove")}

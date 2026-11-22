@@ -2,6 +2,7 @@ mutation deleteBlob(
   $workspaceId: String!
   $key: String!
   $permanently: Boolean
+  $onlyIfUnused: Boolean
 ) {
-  deleteBlob(workspaceId: $workspaceId, key: $key, permanently: $permanently)
+  deleteBlob(workspaceId: $workspaceId, key: $key, permanently: $permanently, onlyIfUnused: $onlyIfUnused)
 }

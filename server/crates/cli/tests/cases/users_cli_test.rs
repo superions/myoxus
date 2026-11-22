@@ -170,11 +170,10 @@ async fn user_cli_secure_password_lifecycle_is_binary_and_store_backed() {
       .bind(user_id).fetch_one(&pool).await?;
     ensure!(root_exists, "created personal workspace must contain an initialized root");
     let missing_policies: i64 = sqlx::query_scalar(
-      "SELECT COUNT(*) FROM workspaces w CROSS JOIN template_default_policies dp \
-       JOIN template_catalog_entries c ON c.id = dp.template_id \
+      "SELECT COUNT(*) FROM workspaces w CROSS JOIN template_catalog_entries c \
        WHERE w.owner_user_id = $1 AND w.is_personal_workspace \
-       AND dp.apply_to_new_workspaces AND c.status = 'active' \
-       AND NOT EXISTS (SELECT 1 FROM workspace_template_policies p WHERE p.workspace_id = w.id AND p.template_id = dp.template_id)"
+       AND c.apply_to_new_workspaces AND c.status = 'active' \
+       AND NOT EXISTS (SELECT 1 FROM workspace_template_policies p WHERE p.workspace_id = w.id AND p.template_id = c.id)"
     ).bind(user_id).fetch_one(&pool).await?;
     ensure!(missing_policies == 0, "CLI creation must seed active default template policies");
     let password_hash = sqlx::query_scalar::<_, Option<String>>("SELECT password_hash FROM users WHERE id = $1")

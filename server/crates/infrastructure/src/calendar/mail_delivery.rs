@@ -192,16 +192,13 @@ impl CalendarReminderDeliveryGuard for PgCalendarReminderDeliveryGuard {
       tx.commit().await.map_err(SqlxCalendarRepository::map_db_err)?;
       return Ok(false);
     }
-    sqlx::query(
-      "INSERT INTO calendar_reminder_dispatch_log(reminder_id,worker_job_id,dispatched_at) VALUES ($1,$2,$3) \
-      ON CONFLICT(reminder_id) DO UPDATE SET worker_job_id=EXCLUDED.worker_job_id,dispatched_at=EXCLUDED.dispatched_at",
-    )
-    .bind(reminder)
-    .bind(worker_job_id)
-    .bind(at)
-    .execute(&mut *tx)
-    .await
-    .map_err(SqlxCalendarRepository::map_db_err)?;
+    sqlx::query("UPDATE calendar_reminders SET worker_job_id=$2,dispatched_at=$3 WHERE id=$1")
+      .bind(reminder)
+      .bind(worker_job_id)
+      .bind(at)
+      .execute(&mut *tx)
+      .await
+      .map_err(SqlxCalendarRepository::map_db_err)?;
     // Freeze the accepted generation's actual times and recipient view before
     // releasing SQL locks. A concurrent edit must not retime this SMTP attempt.
     self.contexts = Some(reminder_contexts(&mut *tx, reminder).await?);
@@ -262,26 +259,13 @@ impl CalendarReminderDeliveryGuard for PgCalendarReminderDeliveryGuard {
       .await
       .map_err(SqlxCalendarRepository::map_db_err)?;
     let updated =
-       sqlx::query("UPDATE calendar_reminders r SET delivered_at=$2,updated_at=$2 WHERE id=$1 AND delivered_at IS NULL AND scheduling_generation=$3 AND NOT suppressed AND EXISTS(SELECT 1 FROM scheduling_schedules s WHERE s.id=r.definition_id AND s.generation=$3 AND s.lifecycle='active')")
+       sqlx::query("UPDATE calendar_reminders r SET delivered_at=$2,dispatched_at=$2,updated_at=$2 WHERE id=$1 AND delivered_at IS NULL AND scheduling_generation=$3 AND NOT suppressed AND EXISTS(SELECT 1 FROM scheduling_schedules s WHERE s.id=r.definition_id AND s.generation=$3 AND s.lifecycle='active')")
          .bind(reminder)
          .bind(at)
          .bind(generation)
         .execute(&mut *tx)
         .await
         .map_err(SqlxCalendarRepository::map_db_err)?;
-    if updated.rows_affected() != 0 {
-      let logged = sqlx::query("UPDATE calendar_reminder_dispatch_log SET dispatched_at=$2 WHERE reminder_id=$1")
-        .bind(reminder)
-        .bind(at)
-        .execute(&mut *tx)
-        .await
-        .map_err(SqlxCalendarRepository::map_db_err)?;
-      if logged.rows_affected() != 1 {
-        return Err(RepositoryError::Storage(
-          "Calendar reminder dispatch log disappeared before completion".into(),
-        ));
-      }
-    }
     tx.commit().await.map_err(SqlxCalendarRepository::map_db_err)?;
     Ok(updated.rows_affected() != 0)
   }
@@ -319,7 +303,7 @@ pub(super) async fn reminder_contexts(
       LEFT JOIN calendar_accounts a ON a.id = e.account_id
       LEFT JOIN workspaces w ON w.id = e.workspace_id
       JOIN users u ON u.id = a.user_id OR (e.origin = 'native' AND (
-        (e.all_members AND EXISTS (SELECT 1 FROM workspace_memberships m WHERE m.workspace_id=e.workspace_id AND m.user_id=u.id AND m.status='Accepted'))
+        (e.all_members AND EXISTS (SELECT 1 FROM workspace_effective_roles m WHERE m.workspace_id=e.workspace_id AND m.user_id=u.id))
         OR (NOT e.all_members AND (u.id=w.owner_user_id OR EXISTS (SELECT 1 FROM calendar_event_participants p WHERE p.event_id=e.id AND (p.user_id=u.id OR lower(p.email)=lower(u.email)))))))
        WHERE r.id = $1 AND NOT r.suppressed AND u.status = 'active' AND (w.id IS NULL OR w.deleted_at IS NULL)
       ORDER BY u.id

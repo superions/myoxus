@@ -413,9 +413,27 @@ impl DocumentGraphService {
         }
         None => (None, DocumentGraphTargetState::Unresolved),
       };
-      let source_position = serde_json::to_value(&raw.position)
+      let mut source_position = serde_json::to_value(&raw.position)
         .map_err(|_| DocumentGraphServiceError::new(ERR_REINDEX_FAILED, "reference position serialization failed"))?;
       let params_json = canonical_json(raw.params_json);
+      // Traversal order is projection data, not part of occurrence identity.
+      let identity = params_key(&serde_json::json!({"params": params_json, "position": source_position}));
+      let navigation = match &raw.position {
+        yjs::NativeReferencePosition::BlockProperty { .. } => matches!(
+          raw.link_kind,
+          yjs::DocumentReferenceLinkKind::EmbedLinkedDoc | yjs::DocumentReferenceLinkKind::EmbedSyncedDoc
+        ),
+        yjs::NativeReferencePosition::TextAttribute {
+          attribute, property, ..
+        } => {
+          attribute == "reference"
+            && (matches!(property.as_str(), "prop:text" | "text")
+              || raw.link_kind == yjs::DocumentReferenceLinkKind::DatabaseCellReference)
+        }
+      };
+      if navigation && let Some(order) = extraction.navigation_order.get(&raw.source_block_id) {
+        source_position["navigationOrder"] = (*order).into();
+      }
       let markdown_preview = truncate_chars(raw.markdown_preview.as_str(), self.limits.preview_max_chars);
       occurrences.push(DocumentGraphOccurrence {
         id: Uuid::new_v4(),
@@ -429,7 +447,7 @@ impl DocumentGraphService {
         raw_target_doc_id: raw.raw_target_doc_id,
         target_doc_id,
         link_kind: map_yjs_link_kind(raw.link_kind),
-        params_key: params_key(&serde_json::json!({"params": params_json, "position": source_position})),
+        params_key: identity,
         params_json,
         markdown_preview,
         target_state,
@@ -511,6 +529,67 @@ impl DocumentGraphService {
       }
     }
     Ok(outcome)
+  }
+
+  /// Unlike full graph reads this projects one source's matching blocks. ACLs
+  /// are evaluated against the current destination, including after a move.
+  #[instrument(skip_all)]
+  pub async fn outgoing_navigation(
+    &self,
+    user_id: UserId,
+    workspace_id: WorkspaceId,
+    doc_id: DocId,
+    page: DocumentGraphPage,
+  ) -> DocumentGraphResult<(bool, Vec<NavigationOccurrence>)> {
+    self.assert_workspace_read(user_id, workspace_id).await?;
+    self.assert_doc_read(user_id, workspace_id, doc_id).await?;
+    // Read before occurrences: a worker finishing between the two reads may
+    // cause a harmless retry, never label old occurrences as newly current.
+    match self
+      .repo
+      .get_index_state(workspace_id, doc_id)
+      .await?
+      .map(|state| state.stale_state)
+    {
+      Some(DocumentGraphStaleState::Current) => {}
+      Some(DocumentGraphStaleState::Deleted | DocumentGraphStaleState::Failed) => return Ok((false, Vec::new())),
+      _ => return Ok((true, Vec::new())),
+    }
+    let mut links = self
+      .repo
+      .outgoing_navigation(
+        workspace_id,
+        doc_id,
+        PageRequest {
+          limit: page.first.clamp(1, 100),
+          offset: page.offset.clamp(0, i32::MAX as i64),
+        },
+      )
+      .await?;
+    let mut by_workspace = HashMap::<WorkspaceId, HashSet<DocId>>::new();
+    for target in links.iter().filter_map(|link| link.target.as_ref()) {
+      by_workspace
+        .entry(target.workspace_id)
+        .or_default()
+        .insert(target.doc_id);
+    }
+    let mut allowed = HashSet::new();
+    for (scope, ids) in by_workspace {
+      let ids = ids.into_iter().collect::<Vec<_>>();
+      let readable = self
+        .permission
+        .readable_doc_ids(user_id, scope, &ids)
+        .await
+        .map_err(|_| DocumentGraphServiceError::new(ERR_SERVICE_UNAVAILABLE, "document permissions unavailable"))?;
+      allowed.extend(readable.into_iter().map(|id| (scope, id)));
+    }
+    for link in &mut links {
+      link.target = link
+        .target
+        .take()
+        .filter(|target| allowed.contains(&(target.workspace_id, target.doc_id)));
+    }
+    Ok((false, links))
   }
 
   #[instrument(skip(self), fields(%user_id, %workspace_id, %doc_id, direction = direction.as_str()), err)]
@@ -1021,7 +1100,7 @@ impl DocumentGraphService {
       .map_err(|_| DocumentGraphServiceError::new(ERR_WORKSPACE_FORBIDDEN, "document graph workspace access forbidden"))
   }
 
-  async fn assert_doc_read(
+  pub async fn assert_doc_read(
     &self,
     user_id: UserId,
     workspace_id: WorkspaceId,

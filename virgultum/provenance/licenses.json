@@ -4,14 +4,12 @@
     "generator": "build/scripts/ci/generate-virgultum-source-provenance.mjs",
     "sourceInventory": {
       "path": "virgultum/provenance/sources.json",
-      "sha256": "f7f35900ec0b01cf6243f6a6dded4acceb9db2ee7eb31bd4d258a59d320fd51e"
+      "sha256": "ffaf418827dd877aeba652801309d62ce013abbfa8566e61f7083868b233e844"
     },
     "trackedPathCount": 3238,
     "trackedPathSha256": "faa943b0ed7176239ab704edf537f2a74aa59675b384cc9b2e3e55b4a8967066",
     "publicExport": {
-      "excludedPaths": [
-        "virgultum/icons/dist/**"
-      ],
+      "excludedPaths": ["virgultum/icons/dist/**"],
       "trackedPathCount": 3228,
       "trackedPathSha256": "44563b2da2abaa7393deb0618f5e812080c911a5efac96041b8c68c24240cc64"
     },
@@ -36,10 +34,7 @@
     "unresolvedOriginAllowed": false
   },
   "rootFiles": {
-    "paths": [
-      "virgultum/scripts/vitest-global.js",
-      "virgultum/tsconfig.json"
-    ],
+    "paths": ["virgultum/scripts/vitest-global.js", "virgultum/tsconfig.json"],
     "origin": "F2/M0",
     "licenseExpression": "AGPL-3.0-or-later AND MIT",
     "copyrightNotices": [
@@ -122,9 +117,7 @@
       "declaredPackageLicense": "AGPL-3.0-or-later",
       "origin": "M0",
       "licenseExpression": "AGPL-3.0-or-later",
-      "copyrightNotices": [
-        "2026-present Daniel Scharf and Myoxus contributors"
-      ]
+      "copyrightNotices": ["2026-present Daniel Scharf and Myoxus contributors"]
     },
     {
       "manifest": "virgultum/editor/blocks/mermaid/package.json",
@@ -181,9 +174,7 @@
       "scope": "virgultum/canvas-runtime/src/utils/path-data-parser/**",
       "origin": "T1",
       "licenseExpression": "MIT",
-      "copyrightNotices": [
-        "2020 Preet Shihn"
-      ],
+      "copyrightNotices": ["2020 Preet Shihn"],
       "sha256": "a734fd0e3f64745e4d78dd34b37a3546f4488a3e516879d62e952f2b9e0f69a4"
     },
     {
@@ -191,9 +182,7 @@
       "scope": "virgultum/canvas-runtime/src/utils/points-on-curve/**",
       "origin": "T1",
       "licenseExpression": "MIT",
-      "copyrightNotices": [
-        "2020 Preet Shihn"
-      ],
+      "copyrightNotices": ["2020 Preet Shihn"],
       "sha256": "a734fd0e3f64745e4d78dd34b37a3546f4488a3e516879d62e952f2b9e0f69a4"
     },
     {
@@ -201,9 +190,7 @@
       "scope": "virgultum/canvas-runtime/src/utils/points-on-path/**",
       "origin": "T1",
       "licenseExpression": "MIT",
-      "copyrightNotices": [
-        "2020 Preet"
-      ],
+      "copyrightNotices": ["2020 Preet"],
       "sha256": "05a601c405df8b356c034413e7d3db9f57300cffad0eea2df809414151914864"
     },
     {
@@ -211,9 +198,7 @@
       "scope": "virgultum/canvas-runtime/src/utils/rough/**",
       "origin": "T1",
       "licenseExpression": "MIT",
-      "copyrightNotices": [
-        "2020 Preet Shihn"
-      ],
+      "copyrightNotices": ["2020 Preet Shihn"],
       "sha256": "a734fd0e3f64745e4d78dd34b37a3546f4488a3e516879d62e952f2b9e0f69a4"
     },
     {
@@ -221,21 +206,15 @@
       "scope": "virgultum/core/src/primitives/gfx/perfect-freehand/**",
       "origin": "T1",
       "licenseExpression": "MIT",
-      "copyrightNotices": [
-        "2021 Stephen Ruiz Ltd"
-      ],
+      "copyrightNotices": ["2021 Stephen Ruiz Ltd"],
       "sha256": "6a5ac82b42ce0af6a1e5fe39b46f0b52f1368e81e437175e8d9ae21569c8688e"
     },
     {
       "path": "virgultum/icons/THIRD_PARTY_LICENSES.md",
-      "paths": [
-        "virgultum/icons/THIRD_PARTY_LICENSES.md"
-      ],
+      "paths": ["virgultum/icons/THIRD_PARTY_LICENSES.md"],
       "origin": "T1",
       "licenseExpression": "MIT",
-      "copyrightNotices": [
-        "2020-2026 Paweł Kuna"
-      ],
+      "copyrightNotices": ["2020-2026 Paweł Kuna"],
       "sha256": "b815747a1cd72bd1e242b0bd21ad76b9293505a942957528571af80abbd2f2a7"
     },
     {
@@ -262,22 +241,16 @@
       ],
       "origin": "T1",
       "licenseExpression": "MIT",
-      "copyrightNotices": [
-        "2021 Tien Pham"
-      ],
+      "copyrightNotices": ["2021 Tien Pham"],
       "sha256": "13eb4acc1fc901948e57ba3e7e48c3b3022d6eac689db2fd81c1d1336531e92f",
       "upstreamUrl": "https://github.com/phamfoo/figma-squircle/blob/7239f0aca50ba236d05f3779e89cea4d4b32d8bf/LICENSE"
     },
     {
       "path": "virgultum/provenance/LICENSE-GFM-AUTOLINK-MIT.txt",
-      "paths": [
-        "virgultum/core/src/adapters/markdown/gfm.ts"
-      ],
+      "paths": ["virgultum/core/src/adapters/markdown/gfm.ts"],
       "origin": "T1",
       "licenseExpression": "MIT",
-      "copyrightNotices": [
-        "2020 Titus Wormer <tituswormer@gmail.com>"
-      ],
+      "copyrightNotices": ["2020 Titus Wormer <tituswormer@gmail.com>"],
       "sha256": "536804b3adbff17dbbb9ed0d2bf9655b78f07640278581e37e3d7475282d5e61",
       "upstreamUrl": "https://github.com/syntax-tree/mdast-util-gfm-autolink-literal/blob/182000e93a49c259d362e6d3f474b13d35b6472d/license"
     }

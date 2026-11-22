@@ -1,7 +1,4 @@
-import {
-  getSelectedNodes,
-  useSharingUrl,
-} from "@myoxus/core/components/hooks/myoxus/use-share-url";
+import { useSharingUrl } from "@myoxus/core/components/hooks/myoxus/use-share-url";
 import { EditorService } from "@myoxus/core/modules/editor";
 import { useI18n } from "@myoxus/i18n";
 import { BlockIcon, EdgelessIcon, PageIcon } from "@myoxus/icons/react";
@@ -12,7 +9,7 @@ import {
   useResponsiveElementSize,
 } from "@myoxus/ui-facade";
 import type { DocMode } from "@virgultum/editor/model";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export const CopyLinkButton = ({
   workspaceId,
@@ -34,10 +31,27 @@ export const CopyLinkButton = ({
     // hydration flicker, then let the facade-owned measurement decide.
     (containerWidth === 0 || containerWidth > 320);
 
-  const { blockIds, elementIds } = useMemo(
-    () => getSelectedNodes(editorContainer?.host || null, currentMode),
-    [editorContainer, currentMode],
-  );
+  const [selected, setSelected] = useState<{
+    blockIds: string[];
+    elementIds: string[];
+  }>({ blockIds: [], elementIds: [] });
+  useEffect(() => {
+    let active = true;
+    const host = editorContainer?.host;
+    if (host) {
+      void import("@myoxus/core/components/hooks/myoxus/selected-host-nodes")
+        .then(({ getSelectedNodes }) => {
+          if (active) setSelected(getSelectedNodes(host, currentMode));
+        })
+        .catch(console.error);
+    } else {
+      setSelected({ blockIds: editor.selectedPageBlocks(), elementIds: [] });
+    }
+    return () => {
+      active = false;
+    };
+  }, [editorContainer, currentMode, editor]);
+  const { blockIds, elementIds } = selected;
   const { onClickCopyLink } = useSharingUrl({
     workspaceId,
     pageId: editor.doc.id,

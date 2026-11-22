@@ -363,6 +363,9 @@ pub struct SearchSourceDoc {
 /// Storage port for the search index and reindex run tracking.
 #[async_trait]
 pub trait SearchStore: Send + Sync {
+  async fn pending_blob_usage(&self, workspace: Uuid, doc: Uuid) -> AuthResult<Option<i64>>;
+  async fn claim_blob_usage_batch(&self, limit: i64) -> AuthResult<Vec<(Uuid, Uuid, i64)>>;
+  async fn finish_blob_usage(&self, workspace: Uuid, doc: Uuid, generation: i64, keys: Vec<String>) -> AuthResult<()>;
   /// Fetch the current search index entry for a document.
   async fn get_search_doc(&self, workspace_id: Uuid, doc_id: Uuid) -> AuthResult<Option<SearchDocument>>;
   /// Fetch indexed projections for one bounded, already-authorized ID set.
@@ -527,11 +530,20 @@ impl SearchIndexerService {
   }
 
   async fn current_text_projection(&self, source: &SearchSourceDoc) -> AuthResult<(String, String, bool, i64)> {
+    let generation = self
+      .store
+      .pending_blob_usage(source.workspace_id, source.doc_id)
+      .await?;
     let current = self
       .doc_service
       .load
       .load_full_doc_with_revision(source.workspace_id, source.doc_id)
       .await?;
+    if let Some(generation) = generation {
+      self
+        .project_blob_usage(source.workspace_id, source.doc_id, generation, &current.payload)
+        .await?;
+    }
     let fields = yjs::document_field::content::inspect(&current.payload)
       .map_err(|_| crate::document_fields::DocumentFieldError::InvalidField)?
       .into_iter()
@@ -564,6 +576,53 @@ impl SearchIndexerService {
         ))
       })?;
     Ok((projected.title, projected.plain_text, has_fields, current.revision))
+  }
+
+  async fn project_blob_usage(&self, workspace: Uuid, doc: Uuid, generation: i64, payload: &[u8]) -> AuthResult<()> {
+    match yjs::document_blob_keys(workspace, payload) {
+      Ok(keys) => self.store.finish_blob_usage(workspace, doc, generation, keys).await,
+      Err(_) => {
+        tracing::warn!(%workspace,%doc,"incomplete blob usage; retaining pending coverage");
+        Ok(())
+      }
+    }
+  }
+
+  /// The normal search pass reuses its loaded document. This bounded recovery
+  /// pass also covers unsearchable streams, including private and trashed docs.
+  #[instrument(skip_all)]
+  pub async fn refresh_pending_blob_usage(&self) -> AuthResult<()> {
+    let batch = self.store.claim_blob_usage_batch(16).await?;
+    let more = batch.len() == 16;
+    for (workspace, doc, generation) in batch {
+      match self
+        .doc_service
+        .load
+        .load_diff_with_meta(Uuid::new_v4(), workspace, doc, None, usize::MAX, Default::default())
+        .await
+      {
+        Ok(state) if state.has_real_content => {
+          self
+            .project_blob_usage(workspace, doc, generation, &state.missing)
+            .await?
+        }
+        _ => tracing::warn!(%workspace,%doc,"blob usage source unavailable; retaining pending coverage"),
+      }
+    }
+    if more {
+      self
+        .queue
+        .add_job(
+          "indexer",
+          "indexer.autoIndexWorkspaces",
+          serde_json::json!({}),
+          Some(3),
+          Some(250),
+        )
+        .await
+        .map_err(|_| AuthError::Storage("failed to enqueue blob usage batch".into()))?;
+    }
+    Ok(())
   }
 
   /// Enqueue a full document snapshot indexing job.  Returns the job ID string.

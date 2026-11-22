@@ -12,8 +12,6 @@ use myoxus_domain::entities::{
 };
 use myoxus_public_render::DocumentBadge;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use sha2::{Digest, Sha256};
 use std::sync::Arc;
 use thiserror::Error;
 use tracing::instrument;
@@ -226,7 +224,7 @@ impl DocumentPublicationService {
     };
 
     if let Err(error) = self.public_repository.invalidate_document(workspace_id, doc_id).await {
-      tracing::warn!(%doc_id, %workspace_id, %error, "public document artifact invalidation failed");
+      tracing::warn!(%doc_id, %workspace_id, %error, "public document asset manifest invalidation failed");
     }
     tracing::info!(
       %doc_id,
@@ -319,24 +317,10 @@ pub struct PublicAllow {
   pub doc_id: Option<Uuid>,
   pub public_mode: Option<String>,
   pub workspace_public: bool,
-  pub source_hash: String,
-  pub theme_version: String,
   pub noindex: bool,
   pub title: Option<String>,
   pub workspace_title: Option<String>,
   pub workspace_description: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct PublicArtifact {
-  pub workspace_id: Uuid,
-  pub doc_id: Option<Uuid>,
-  pub source_hash: String,
-  pub renderer_version: String,
-  pub theme_version: String,
-  pub noindex: bool,
-  pub asset_manifest: Value,
-  pub rendered_html: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -375,14 +359,8 @@ pub struct PublicWorkspaceProjection {
 pub trait PublicRepository: Send + Sync {
   async fn list_public_workspaces(&self) -> PublicResult<Vec<PublicWorkspaceProjection>>;
   async fn decide_workspace(&self, workspace_id: Uuid) -> PublicResult<PublicAclDecision>;
-  async fn decide_document(
-    &self,
-    workspace_id: Uuid,
-    doc_id: Uuid,
-    source_hash: String,
-  ) -> PublicResult<PublicAclDecision>;
+  async fn decide_document(&self, workspace_id: Uuid, doc_id: Uuid) -> PublicResult<PublicAclDecision>;
   async fn list_public_workspace_docs(&self, workspace_id: Uuid) -> PublicResult<Vec<PublicWorkspaceDoc>>;
-  async fn upsert_artifact(&self, artifact: &PublicArtifact) -> PublicResult<()>;
   async fn invalidate_document(&self, workspace_id: Uuid, doc_id: Uuid) -> PublicResult<()>;
   async fn invalidate_workspace(&self, workspace_id: Uuid) -> PublicResult<()>;
   async fn replace_asset_manifest(
@@ -422,25 +400,13 @@ where
     self.repo.decide_workspace(workspace_id).await
   }
 
-  #[instrument(skip(self, source), fields(workspace_id = %workspace_id, doc_id = %doc_id, route = "document"))]
-  pub async fn decide_document(
-    &self,
-    workspace_id: Uuid,
-    doc_id: Uuid,
-    source: &[u8],
-  ) -> PublicResult<PublicAclDecision> {
-    self
-      .repo
-      .decide_document(workspace_id, doc_id, source_hash(source))
-      .await
+  #[instrument(skip(self), fields(workspace_id = %workspace_id, doc_id = %doc_id, route = "document"))]
+  pub async fn decide_document(&self, workspace_id: Uuid, doc_id: Uuid) -> PublicResult<PublicAclDecision> {
+    self.repo.decide_document(workspace_id, doc_id).await
   }
 
   pub async fn list_public_workspace_docs(&self, workspace_id: Uuid) -> PublicResult<Vec<PublicWorkspaceDoc>> {
     self.repo.list_public_workspace_docs(workspace_id).await
-  }
-
-  pub async fn upsert_artifact(&self, artifact: &PublicArtifact) -> PublicResult<()> {
-    self.repo.upsert_artifact(artifact).await
   }
 
   pub async fn invalidate_document(&self, workspace_id: Uuid, doc_id: Uuid) -> PublicResult<()> {
@@ -469,10 +435,4 @@ where
   ) -> PublicResult<Option<PublicAssetManifestEntry>> {
     self.repo.get_asset(workspace_id, doc_id, asset_hash, filename).await
   }
-}
-
-pub fn source_hash(source: &[u8]) -> String {
-  let mut hasher = Sha256::new();
-  hasher.update(source);
-  hex::encode(hasher.finalize())
 }

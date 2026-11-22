@@ -25,6 +25,7 @@ import {
   EdgelessEditorActions,
   PageEditorActions,
 } from "../../_common/chat-actions-handle";
+import { CopilotResponseActions } from "../../components/response-actions";
 import type { DocDisplayConfig } from "../../components/ai-chat-chips";
 import {
   type ChatMessage,
@@ -203,22 +204,25 @@ export class ChatMessageAssistant extends SignalWatcher(
 
     const showActions = host && !!markdown && !this.independentMode;
 
-    return html`
-      <chat-copy-more
-        .reactToLit=${this.reactToLit}
-        .host=${host}
-        .session=${session}
-        .actions=${showActions ? actions : []}
-        .content=${markdown}
-        .isLast=${isLast}
-        .messageId=${messageId}
-        .generatedFiles=${item.generatedFiles ?? []}
-        .exportable=${!!markdown.trim() && !host?.store.readonly && !(isLast && status === "error") && (item.params?.streamStatus === undefined || item.params?.streamStatus === "done")}
-        .withMargin=${true}
-        .retry=${() => this.retry()}
-        .notificationService=${this.notificationService}
-      ></chat-copy-more>
-    `;
+    return this.reactToLit(
+      createElement(CopilotResponseActions, {
+        host,
+        sessionId: session?.sessionId,
+        actions: showActions ? (actions ?? undefined) : undefined,
+        content: markdown,
+        messageId,
+        generatedFiles: item.generatedFiles,
+        exportable:
+          !!markdown.trim() &&
+          !host?.store.readonly &&
+          !(isLast && status === "error") &&
+          (item.params?.streamStatus === undefined ||
+            item.params?.streamStatus === "done"),
+        retry: isLast ? () => this.retry() : undefined,
+        notificationService: this.notificationService,
+      }),
+      true,
+    );
   }
 
   protected override render() {

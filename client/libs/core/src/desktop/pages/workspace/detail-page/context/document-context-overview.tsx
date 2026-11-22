@@ -17,12 +17,16 @@ import { Divider, Stack } from "@myoxus/ui-facade";
 import type { EditorHost } from "@virgultum/editor/std";
 import {
   createContext,
+  lazy,
+  Suspense,
   type PropsWithChildren,
   useContext,
   useMemo,
 } from "react";
 
-import { EditorOutlinePanel } from "../sidecards/outline";
+const EditorOutlinePanel = lazy(async () => ({
+  default: (await import("../sidecards/outline")).EditorOutlinePanel,
+}));
 import { DocumentOrganizationContext } from "./document-organization-context";
 
 interface DocumentToolContentModel {
@@ -99,7 +103,9 @@ export function DocumentOutlineToolBody() {
       data-myoxus-ui-role="document-outline-tool"
       data-testid="document-outline-tool"
     >
-      <EditorOutlinePanel editor={editor} />
+      <Suspense>
+        <EditorOutlinePanel editor={editor} />
+      </Suspense>
     </Stack>
   );
 }

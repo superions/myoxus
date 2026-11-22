@@ -15909,7 +15909,7 @@ fn database_relation_fields_project_edges_and_reciprocal_cells() {
     let formula_projection_state: String = sqlx::query_scalar(
       r#"
       SELECT stale_state
-      FROM workspace_database_formula_values
+      FROM workspace_database_computed_values
       WHERE row_id = $1 AND field_id = $2
     "#,
     )
@@ -15953,7 +15953,7 @@ fn database_relation_fields_project_edges_and_reciprocal_cells() {
     let rollup_projection_state: String = sqlx::query_scalar(
       r#"
       SELECT stale_state
-      FROM workspace_database_rollup_values
+      FROM workspace_database_computed_values
       WHERE row_id = $1 AND field_id = $2
     "#,
     )
@@ -16215,7 +16215,7 @@ fn database_relation_fields_project_edges_and_reciprocal_cells() {
     .expect("inject invalid rollup config for failed-state recompute");
     sqlx::query(
       r#"
-      UPDATE workspace_database_rollup_values
+      UPDATE workspace_database_computed_values
       SET stale_state = 'stale', updated_at = now()
       WHERE row_id = $1 AND field_id = $2
     "#,
@@ -16236,7 +16236,7 @@ fn database_relation_fields_project_edges_and_reciprocal_cells() {
     let (failed_state, failed_code): (String, Option<String>) = sqlx::query_as(
       r#"
       SELECT stale_state, error_code
-      FROM workspace_database_rollup_values
+      FROM workspace_database_computed_values
       WHERE row_id = $1 AND field_id = $2
     "#,
     )
@@ -16944,8 +16944,8 @@ fn pdb38a_row_content_attach_detach_and_create_are_revision_safe() {
       .await
       .expect("restore attached content document visibility");
 
-    let docs_before_failed_create: i64 =
-      sqlx::query_scalar("SELECT COUNT(*)::BIGINT FROM docs WHERE workspace_id = $1")
+    let before: (i64,i64) =
+      sqlx::query_as("SELECT (SELECT count(*) FROM docs WHERE workspace_id=$1), (SELECT coalesce(max(sequence),0) FROM doc_updates WHERE doc_id=$1)")
         .bind(workspace_id)
         .fetch_one(&pool)
         .await
@@ -16972,14 +16972,14 @@ fn pdb38a_row_content_attach_detach_and_create_are_revision_safe() {
     )
     .await;
     assert_eq!(stale_create["errors"][0]["extensions"]["code"], "MIX_DATABASE_CONFLICT");
-    let docs_after_failed_create: i64 = sqlx::query_scalar("SELECT COUNT(*)::BIGINT FROM docs WHERE workspace_id = $1")
+    let after: (i64,i64) = sqlx::query_as("SELECT (SELECT count(*) FROM docs WHERE workspace_id=$1), (SELECT coalesce(max(sequence),0) FROM doc_updates WHERE doc_id=$1)")
       .bind(workspace_id)
       .fetch_one(&pool)
       .await
       .expect("workspace document count after failed create");
     assert_eq!(
-      docs_after_failed_create, docs_before_failed_create,
-      "failed optimistic attach must compensate the just-created document"
+      after, before,
+      "a stale row must roll back the leaf and its workspace-root registration"
     );
 
     helpers::cleanup_users(&pool, &[owner_id]).await;

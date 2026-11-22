@@ -302,13 +302,37 @@ async fn inv_met05_retention_prunes_old_rows() {
     .expect("seed row");
   }
 
-  let handler = MetricsQueueHandler {
+  let mut handler = MetricsQueueHandler {
     service: svc.clone(),
     pool: pool.clone(),
-    persistence_enabled: true,
+    persistence_enabled: false,
     retention_raw_days: 14,
     retention_daily_days: 90,
   };
+  // Dashboard samples have their own seven-day window even when counter persistence is off.
+  let at = Utc::now() - Duration::days(8);
+  sqlx::query(
+    "INSERT INTO metrics_raw(minute,category,metric_name,labels,value)
+    VALUES($1,'collab','active_sync_users','{}',4)",
+  )
+  .bind(at)
+  .execute(&pool)
+  .await
+  .unwrap();
+  handler.process(&test_job("metrics.retention")).await.unwrap();
+  let samples: (i64, i64) = sqlx::query_as(
+    "SELECT
+    count(*) FILTER (WHERE metric_name='active_sync_users' AND minute=$1),
+    count(*) FILTER (WHERE metric_name=$2 AND labels->>'age'='old')
+    FROM metrics_raw WHERE (category='collab' AND minute=$1) OR metric_name=$2",
+  )
+  .bind(at)
+  .bind(&metric)
+  .fetch_one(&pool)
+  .await
+  .unwrap();
+  assert_eq!(samples, (0, 1));
+  handler.persistence_enabled = true;
   handler
     .process(&test_job("metrics.retention"))
     .await

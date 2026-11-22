@@ -171,8 +171,6 @@ impl DatabaseEditingService {
       .await
   }
 
-  // Empty content uses the existing optimistic attachment lifecycle; body
-  // templates instead publish their prepared document in the Row creation tx.
   pub(in crate::database) async fn create_empty_row_content_document(
     &self,
     actor: UserId,
@@ -199,68 +197,27 @@ impl DatabaseEditingService {
       WorkspaceAction::CreateDoc,
     )
     .await?;
-    let title = Some(row.row.title.clone());
-    let (content_document, sync_updates) = self
+    let workspace_id = database.database.workspace_id;
+    let target = crate::doc::RowContentTarget {
+      database_id,
+      row_id,
+      expected_edit_revision,
+    };
+    let (commit, updates) = self
       .doc_service
-      .create_page_with_sync_updates(database.database.workspace_id, actor, title)
+      .create_page_for_row(workspace_id, actor, Some(row.row.title), Some(target))
       .await
-      .map_err(|error| DatabaseServiceError::new(ERR_STORAGE, format!("content document creation failed: {error}")))?;
-    let content_document_id = content_document.id;
-    tracing::Span::current().record("content_document_id", tracing::field::display(content_document_id));
-    let updated = self
-      .attach_created_row_content_document(
-        actor,
-        database_id,
-        row_id,
-        database.database.workspace_id,
-        content_document_id,
-        expected_edit_revision,
-      )
-      .await?;
-    Ok((updated, sync_updates))
-  }
-
-  pub(in crate::database) async fn attach_created_row_content_document(
-    &self,
-    actor: UserId,
-    database_id: DatabaseId,
-    row_id: DatabaseRowId,
-    workspace_id: WorkspaceId,
-    content_document_id: DocId,
-    expected_edit_revision: i64,
-  ) -> DatabaseResult<DatabaseRowRecord> {
-    match self
-      .attach_row_content_document(actor, database_id, row_id, content_document_id, expected_edit_revision)
-      .await
-    {
-      Ok(updated) => Ok(updated),
-      Err(error) => {
-        if let Err(cleanup_error) = self.doc_service.delete_doc(workspace_id, content_document_id).await {
-          error!(
-            %database_id,
-            %row_id,
-            %content_document_id,
-            error = %cleanup_error,
-            "failed to compensate unattached Row content document"
-          );
-          self
-            .effects
-            .record_audit(
-              "database.row.content_document.compensation_failed",
-              AuditCategory::Database,
-              Some(AuditTarget::entity("database_row", row_id, None::<String>)),
-              actor,
-              None,
-              Some(serde_json::json!({
-                "databaseId": database_id,
-                "contentDocumentId": content_document_id,
-              })),
-            )
-            .await;
-        }
-        Err(error)
-      }
-    }
+      .map_err(|error| match error {
+        crate::auth::AuthError::RowAttachment(error) => DatabaseServiceError::from(error),
+        other => DatabaseServiceError::new(ERR_STORAGE, format!("content document creation failed: {other}")),
+      })?;
+    let updated = commit
+      .attached_row
+      .ok_or_else(|| DatabaseServiceError::new(ERR_STORAGE, "page commit omitted row attachment"))?;
+    self
+      .record_row_attachment(workspace_id, database_id, row_id, actor, commit.document.id, None)
+      .await;
+    Ok((updated, updates))
   }
 
   /// Attaches one readable same-workspace document as optional Row content.
@@ -310,10 +267,32 @@ impl DatabaseEditingService {
       .await
       .map_err(DatabaseServiceError::from)?;
     self
+      .record_row_attachment(
+        database.database.workspace_id,
+        database_id,
+        row_id,
+        actor,
+        content_document_id,
+        previous_content_document_id,
+      )
+      .await;
+    Ok(updated)
+  }
+
+  async fn record_row_attachment(
+    &self,
+    workspace_id: WorkspaceId,
+    database_id: DatabaseId,
+    row_id: DatabaseRowId,
+    actor: UserId,
+    content_document_id: DocId,
+    previous_content_document_id: Option<DocId>,
+  ) {
+    self
       .effects
       .record_activity(
-        database.database.workspace_id,
-        database.database.id,
+        workspace_id,
+        database_id,
         Some(row_id),
         DatabaseActivityEventType::RowContentDocumentAttached,
         actor,
@@ -336,7 +315,7 @@ impl DatabaseEditingService {
       .await;
     self
       .projection
-      .enqueue_index_row(database.database.workspace_id, database_id, row_id, 0)
+      .enqueue_index_row(workspace_id, database_id, row_id, 0)
       .await;
     tracing::Span::current().record(
       "previous_content_document_id",
@@ -345,7 +324,7 @@ impl DatabaseEditingService {
     self
       .effects
       .emit_change(
-        database.database.workspace_id,
+        workspace_id,
         database_id,
         DatabaseChangeKind::CellUpdated,
         actor,
@@ -356,7 +335,6 @@ impl DatabaseEditingService {
         },
       )
       .await;
-    Ok(updated)
   }
 
   /// Detaches optional Row content without deleting the normal document.

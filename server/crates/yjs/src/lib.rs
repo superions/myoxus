@@ -2892,6 +2892,9 @@ pub struct DocumentReferenceOccurrence {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DocumentReferenceExtraction {
   pub occurrences: Vec<DocumentReferenceOccurrence>,
+  /// Reachable blocks in the tree reader's document order. Other graph
+  /// consumers also retain references in detached or non-navigation blocks.
+  pub navigation_order: HashMap<String, usize>,
   pub extraction_partial: bool,
 }
 
@@ -3841,6 +3844,93 @@ fn json_to_yjs_any(value: &serde_json::Value) -> Result<Any, String> {
 /// reject incomplete SQLite inputs before any product write is planned.
 #[instrument(skip(update))]
 pub fn extract_portable_asset_references(update: &[u8]) -> Result<Vec<PortableAssetReference>, String> {
+  extract_asset_references(update)
+}
+
+/// Cleanup requires a complete materialization; unlike an import inventory,
+/// an unresolved CRDT dependency cannot be interpreted as an empty key set.
+pub fn document_blob_keys(workspace: Uuid, update: &[u8]) -> Result<Vec<String>, String> {
+  let doc = Doc::new();
+  let blocks = doc.get_or_insert_map("blocks");
+  let mut txn = doc.transact_mut();
+  txn
+    .apply_update(Update::decode_v1(update).map_err(|e| e.to_string())?)
+    .map_err(|e| e.to_string())?;
+  if txn.store().pending_update().is_some() || txn.store().pending_ds().is_some() {
+    return Err("incomplete document asset projection".into());
+  }
+  let mut keys = BTreeSet::new();
+  for (_, block) in blocks.iter(&txn) {
+    let yrs::Out::YMap(_) = &block else {
+      return Err("invalid block in document asset projection".into());
+    };
+    collect_blob_properties(workspace, workspace, "", block, &txn, &mut keys);
+  }
+  Ok(keys.into_iter().collect())
+}
+
+// Rendering uses the physical workspace; native export can also resolve a
+// qualified workspace. Protect both, including nested previews and citations.
+fn collect_blob_properties<T: ReadTxn>(
+  local: Uuid,
+  scope: Uuid,
+  field: &str,
+  value: yrs::Out,
+  txn: &T,
+  keys: &mut BTreeSet<String>,
+) {
+  let subfield = |name: &str| name.rsplit([':', '.']).next().unwrap_or("").to_owned();
+  match value {
+    yrs::Out::YMap(map) => {
+      let scope = native_block_workspace(&map, txn)
+        .and_then(|s| Uuid::parse_str(&s).ok())
+        .unwrap_or(scope);
+      for (field, value) in map.iter(txn) {
+        collect_blob_properties(local, scope, &subfield(field), value, txn, keys);
+      }
+    }
+    yrs::Out::Any(Any::Map(map)) => {
+      let scope = map
+        .get("workspaceId")
+        .and_then(yjs_any_to_string)
+        .and_then(|s| Uuid::parse_str(&s).ok())
+        .unwrap_or(scope);
+      for (field, value) in map.iter() {
+        collect_blob_properties(local, scope, &subfield(field), value.clone().into(), txn, keys);
+      }
+    }
+    yrs::Out::YArray(arr) => {
+      for value in arr.iter(txn) {
+        collect_blob_properties(local, scope, field, value, txn, keys);
+      }
+    }
+    yrs::Out::Any(Any::Array(arr)) => {
+      for value in arr.iter() {
+        collect_blob_properties(local, scope, field, value.clone().into(), txn, keys);
+      }
+    }
+    yrs::Out::YText(text) => {
+      for chunk in text.diff(txn, YChange::identity) {
+        if let Some(attrs) = chunk.attributes {
+          for (name, value) in *attrs {
+            collect_blob_properties(local, scope, &name, value.into(), txn, keys);
+          }
+        }
+      }
+    }
+    yrs::Out::Any(Any::String(key)) if matches!(field, "sourceId" | "blobId" | "blobKey") => {
+      let key = key.trim().trim_start_matches('/');
+      if !key.is_empty() {
+        for owner in [local, scope] {
+          keys.insert(format!("{owner}/{key}"));
+        }
+      }
+    }
+    _ => {}
+  }
+}
+
+fn extract_asset_references(update: &[u8]) -> Result<Vec<PortableAssetReference>, String> {
   if update.is_empty() {
     return Ok(Vec::new());
   }
@@ -4088,6 +4178,7 @@ pub fn extract_document_references_from_yjs(update: &[u8]) -> Result<DocumentRef
   if update.is_empty() {
     return Ok(DocumentReferenceExtraction {
       occurrences: Vec::new(),
+      navigation_order: HashMap::new(),
       extraction_partial: false,
     });
   }
@@ -4193,12 +4284,52 @@ pub fn extract_document_references_from_yjs(update: &[u8]) -> Result<DocumentRef
     }
   }
 
+  let mut navigation_order = HashMap::new();
+  if !occurrences.is_empty() {
+    let roots = blocks_map
+      .iter(&txn)
+      .filter_map(|(id, value)| {
+        let yrs::Out::YMap(block) = value else { return None };
+        block_string(&block, &txn, "flavour")
+          .filter(|kind| resolve_flavour(kind) == "myoxus:page")
+          .map(|_| id.to_string())
+      })
+      .take(2)
+      .collect::<Vec<_>>();
+    if let [root] = roots.as_slice() {
+      let mut stack = vec![root.clone()];
+      let mut visited = HashSet::new();
+      while let Some(id) = stack.pop() {
+        if !visited.insert(id.clone()) {
+          continue;
+        }
+        let Some(yrs::Out::YMap(block)) = blocks_map.get(&txn, &id) else {
+          continue;
+        };
+        stack.extend(block_children(&block, &txn).into_iter().rev());
+        if block_string(&block, &txn, "flavour").is_some_and(|kind| {
+          matches!(
+            resolve_flavour(&kind),
+            "myoxus:paragraph"
+              | "myoxus:list"
+              | "myoxus:code"
+              | "myoxus:embed-linked-doc"
+              | "myoxus:embed-synced-doc"
+              | "myoxus:database"
+          )
+        }) {
+          navigation_order.insert(id, navigation_order.len());
+        }
+      }
+    }
+  }
   debug!(
     occurrence_count = occurrences.len(),
     extraction_partial, "document reference extraction complete"
   );
   Ok(DocumentReferenceExtraction {
     occurrences,
+    navigation_order,
     extraction_partial,
   })
 }

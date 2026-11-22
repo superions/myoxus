@@ -3,6 +3,7 @@ export {
   CommentInlineSpecExtension,
   NullCommentInlineSpecExtension,
   findAllCommentedTexts,
+  commentsInStore,
   findCommentedTexts,
   extractCommentIdFromDelta,
   InlineCommentViewExtension,

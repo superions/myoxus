@@ -76,10 +76,6 @@ impl NotificationMailProjector {
       .get_workspace(workspace_id)
       .await?
       .is_none_or(|workspace| workspace.deleted_at.is_some())
-      || workspace
-        .get_member(workspace_id, recipient)
-        .await?
-        .is_none_or(|member| member.status != MembershipStatus::Accepted)
       || !permission
         .can(
           &WorkspaceResource {
@@ -275,7 +271,12 @@ impl NotificationMailProjector {
         else {
           return Ok(None);
         };
-        let member = workspace.get_member(workspace_id, recipient).await?;
+        let member = match template {
+          MailTemplate::WorkspaceInvitation | MailTemplate::RoleChanged => {
+            workspace.get_member(workspace_id, recipient).await?
+          }
+          _ => workspace.effective_member(workspace_id, recipient).await?,
+        };
         let active = member
           .as_ref()
           .is_some_and(|member| member.status == MembershipStatus::Accepted);
@@ -317,7 +318,7 @@ impl NotificationMailProjector {
           return Ok(None);
         }
         context["workspace_name"] = json!(space.name);
-        let invite_id = member.as_ref().map(|member| member.invite_id);
+        let invite_id = member.as_ref().and_then(|member| member.invite_id);
         if let Some(member) = member {
           context["role"] = json!(format!("{:?}", member.role));
         }

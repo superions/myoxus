@@ -8,7 +8,7 @@ import {
   onStart,
 } from "@myoxus/infra";
 import { track } from "@myoxus/track";
-import { InlineCommentManager } from "@virgultum/editor/inlines/comment";
+import { commentsInStore } from "@virgultum/editor/inlines/comment";
 import type {
   BaseSelection,
   DocSnapshot,
@@ -791,11 +791,7 @@ export class DocCommentEntity extends Entity<{
   }
 
   private getCommentsInEditor(): string[] {
-    const inlineCommentManager = this.props.std?.get(InlineCommentManager);
-    if (!inlineCommentManager) {
-      return [];
-    }
-    return inlineCommentManager.getCommentsInEditor();
+    return this.props.std ? commentsInStore(this.props.std.store) : [];
   }
 
   override dispose(): void {

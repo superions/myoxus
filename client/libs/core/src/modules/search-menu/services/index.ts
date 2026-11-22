@@ -2,6 +2,7 @@ import type { TagMeta } from "@myoxus/core/components/page-list";
 import { UserFriendlyError } from "@myoxus/error";
 import { I18n } from "@myoxus/i18n";
 import { Service } from "@myoxus/infra";
+import { GeneralTokenizer } from "@myoxus/storage/tokenizer";
 import { computed, signal } from "@preact/signals-core";
 import { createSignalFromObservable } from "@virgultum/editor/shared/utils";
 import type { DocMeta } from "@virgultum/editor/store";
@@ -16,6 +17,10 @@ import { catchError, map, of } from "rxjs";
 import { normalizeSearchText } from "../../../utils/normalize-search-text";
 import type { CollectionMeta, CollectionService } from "../../collection";
 import type { DocDisplayMetaService } from "../../doc-display-meta";
+import {
+  type DocumentMetadataCacheService,
+  observeConfirmedDocumentMetadataIndex,
+} from "../../document-metadata/services/document-metadata-cache";
 import type { DocsSearchService } from "../../docs-search";
 import { type RecentWorkspaceItemsService } from "../../quicksearch";
 import type { TagService } from "../../tag";
@@ -43,6 +48,7 @@ export class SearchMenuService extends Service {
     private readonly docsSearch: DocsSearchService,
     private readonly tagService: TagService,
     private readonly collectionService: CollectionService,
+    private readonly metadata: DocumentMetadataCacheService,
   ) {
     super();
   }
@@ -154,6 +160,53 @@ export class SearchMenuService extends Service {
 
   // only search docs by title, excluding blocks
   private searchDocs$(query: string) {
+    if (BUILD_CONFIG.isWeb) {
+      const tokenizer = new GeneralTokenizer();
+      const terms = tokenizer.tokenize(query).map((token) => token.term);
+      return observeConfirmedDocumentMetadataIndex(this.metadata).pipe(
+        map(({ rows }) => {
+          const allowed = new Set(
+            rows.map((row) => row.externalId ?? row.docId),
+          );
+          return this.workspaceService.workspace.docCollection.meta.docMetas
+            .flatMap((doc) => {
+              if (doc.trash || !allowed.has(doc.id)) return [];
+              const title = doc.title || "";
+              const tokens = tokenizer
+                .tokenize(title)
+                .filter((t) => terms.some((term) => t.term.startsWith(term)));
+              if (!tokens.length) return [];
+              const matched = terms.filter((term) =>
+                tokens.some((token) => token.term.startsWith(term)),
+              ).length;
+              const score =
+                matched +
+                (title.toLowerCase().startsWith(query.trim().toLowerCase())
+                  ? terms.length + 1
+                  : 0);
+              let highlights = title;
+              // CJK token spans may overlap. Merge them before inserting markers.
+              const spans: { start: number; end: number }[] = [];
+              for (const token of tokens) {
+                const last = spans.at(-1);
+                if (last && last.end >= token.start)
+                  last.end = Math.max(last.end, token.end);
+                else spans.push({ start: token.start, end: token.end });
+              }
+              for (const token of spans.reverse())
+                highlights =
+                  highlights.slice(0, token.start) +
+                  "\uE000" +
+                  highlights.slice(token.start, token.end) +
+                  "\uE001" +
+                  highlights.slice(token.end);
+              return [{ id: doc.id, title, highlights, score }];
+            })
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 100);
+        }),
+      );
+    }
     return this.docsSearch.indexer
       .search$(
         "doc",

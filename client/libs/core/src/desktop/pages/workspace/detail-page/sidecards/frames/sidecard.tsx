@@ -7,7 +7,10 @@ import { FrameIcon } from "@myoxus/icons/react";
 import { DetailPageContextScrollRoot, Scrollable } from "@myoxus/ui-facade";
 import type { EditorHost } from "@virgultum/editor/std";
 
-import { EditorFramePanel } from "./panel";
+import { lazy, Suspense } from "react";
+const EditorFramePanel = lazy(async () => ({
+  default: (await import("./panel")).EditorFramePanel,
+}));
 
 const DOCUMENT_EDGELESS_VIEW_FAMILY = ["document-edgeless"] as const;
 
@@ -37,7 +40,9 @@ export function FramesSidecard({
     >
       <DetailPageContextScrollRoot>
         <Scrollable.Viewport>
-          <EditorFramePanel editor={editor} />
+          <Suspense>
+            <EditorFramePanel editor={editor} />
+          </Suspense>
         </Scrollable.Viewport>
         <Scrollable.Scrollbar />
       </DetailPageContextScrollRoot>

@@ -247,7 +247,7 @@ async fn git_wins_updates_myoxus_snapshot_and_baseline_to_git_content() {
     markdown.contains("Git version"),
     "snapshot must contain Git content: {markdown}"
   );
-  let baseline_hash: String = sqlx::query_scalar("SELECT content_hash FROM git_sync_baselines WHERE binding_id = $1")
+  let baseline_hash: String = sqlx::query_scalar("SELECT baseline_content_hash AS content_hash FROM git_sync_document_bindings WHERE baseline_content_hash IS NOT NULL AND id = $1")
     .bind(fx.binding.id)
     .fetch_one(&pool)
     .await
@@ -257,11 +257,12 @@ async fn git_wins_updates_myoxus_snapshot_and_baseline_to_git_content() {
     content_hash(&markdown),
     "baseline must match the normalized projection read on the next run"
   );
-  let binding_hash: Option<String> = sqlx::query_scalar("SELECT content_hash FROM git_sync_bindings WHERE id = $1")
-    .bind(fx.binding.id)
-    .fetch_one(&pool)
-    .await
-    .expect("binding Git-source hash");
+  let binding_hash: Option<String> =
+    sqlx::query_scalar("SELECT content_hash FROM git_sync_document_bindings WHERE id = $1")
+      .bind(fx.binding.id)
+      .fetch_one(&pool)
+      .await
+      .expect("binding Git-source hash");
   assert_eq!(binding_hash.as_deref(), Some(expected_git_body_hash(&fx).as_str()));
   let resolution: String = sqlx::query_scalar("SELECT resolution FROM git_sync_conflicts WHERE id = $1")
     .bind(fx.conflict_id)
@@ -293,7 +294,7 @@ async fn manual_merge_requires_content_and_primes_next_run_to_push_merge() {
     markdown.contains("Merged version"),
     "snapshot must contain merge: {markdown}"
   );
-  let row = sqlx::query("SELECT content_hash FROM git_sync_baselines WHERE binding_id = $1")
+  let row = sqlx::query("SELECT baseline_content_hash AS content_hash FROM git_sync_document_bindings WHERE baseline_content_hash IS NOT NULL AND id = $1")
     .bind(fx.binding.id)
     .fetch_one(&pool)
     .await
@@ -304,11 +305,12 @@ async fn manual_merge_requires_content_and_primes_next_run_to_push_merge() {
     content_hash("# Conflict\n\nBase version\n"),
     "normalized Myoxus baseline must remain unchanged so the merge is pushed"
   );
-  let binding_hash: Option<String> = sqlx::query_scalar("SELECT content_hash FROM git_sync_bindings WHERE id = $1")
-    .bind(fx.binding.id)
-    .fetch_one(&pool)
-    .await
-    .expect("binding Git-source hash");
+  let binding_hash: Option<String> =
+    sqlx::query_scalar("SELECT content_hash FROM git_sync_document_bindings WHERE id = $1")
+      .bind(fx.binding.id)
+      .fetch_one(&pool)
+      .await
+      .expect("binding Git-source hash");
   assert_eq!(binding_hash.as_deref(), Some(expected_git_body_hash(&fx).as_str()));
   assert_next_doc_plan_action(&pool, &fx, ReconcileAction::PushToGit).await;
 
@@ -326,17 +328,18 @@ async fn myoxus_wins_does_not_rewrite_snapshot_but_primes_push_to_git() {
   let after = snapshot_markdown(&pool, fx.binding.doc_id).await;
   assert_eq!(after, before, "MyoxusWins must not rewrite the Myoxus snapshot");
 
-  let baseline_hash: String = sqlx::query_scalar("SELECT content_hash FROM git_sync_baselines WHERE binding_id = $1")
+  let baseline_hash: String = sqlx::query_scalar("SELECT baseline_content_hash AS content_hash FROM git_sync_document_bindings WHERE baseline_content_hash IS NOT NULL AND id = $1")
     .bind(fx.binding.id)
     .fetch_one(&pool)
     .await
     .expect("baseline hash");
   assert_eq!(baseline_hash, content_hash("# Conflict\n\nBase version\n"));
-  let binding_hash: Option<String> = sqlx::query_scalar("SELECT content_hash FROM git_sync_bindings WHERE id = $1")
-    .bind(fx.binding.id)
-    .fetch_one(&pool)
-    .await
-    .expect("binding Git-source hash");
+  let binding_hash: Option<String> =
+    sqlx::query_scalar("SELECT content_hash FROM git_sync_document_bindings WHERE id = $1")
+      .bind(fx.binding.id)
+      .fetch_one(&pool)
+      .await
+      .expect("binding Git-source hash");
   assert_eq!(binding_hash.as_deref(), Some(expected_git_body_hash(&fx).as_str()));
   assert_next_doc_plan_action(&pool, &fx, ReconcileAction::PushToGit).await;
 
@@ -349,7 +352,7 @@ async fn dismissed_marks_conflict_without_snapshot_or_baseline_side_effects() {
   let fx = seed_conflict_fixture(&pool, &auth_store).await;
 
   let before = snapshot_markdown(&pool, fx.binding.doc_id).await;
-  let baseline_before: String = sqlx::query_scalar("SELECT content_hash FROM git_sync_baselines WHERE binding_id = $1")
+  let baseline_before: String = sqlx::query_scalar("SELECT baseline_content_hash AS content_hash FROM git_sync_document_bindings WHERE baseline_content_hash IS NOT NULL AND id = $1")
     .bind(fx.binding.id)
     .fetch_one(&pool)
     .await
@@ -357,7 +360,7 @@ async fn dismissed_marks_conflict_without_snapshot_or_baseline_side_effects() {
   let resp = resolve(&app, fx.session_id, fx.conflict_id, "Dismissed", None).await;
   assert!(resp.get("errors").is_none(), "Dismissed must succeed: {resp}");
   let after = snapshot_markdown(&pool, fx.binding.doc_id).await;
-  let baseline_after: String = sqlx::query_scalar("SELECT content_hash FROM git_sync_baselines WHERE binding_id = $1")
+  let baseline_after: String = sqlx::query_scalar("SELECT baseline_content_hash AS content_hash FROM git_sync_document_bindings WHERE baseline_content_hash IS NOT NULL AND id = $1")
     .bind(fx.binding.id)
     .fetch_one(&pool)
     .await

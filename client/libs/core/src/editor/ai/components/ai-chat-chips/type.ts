@@ -2,6 +2,8 @@ import type { TagMeta } from "@myoxus/core/components/page-list";
 import type { Signal } from "@preact/signals-core";
 import type { DocMeta, Store } from "@virgultum/editor/store";
 
+import type { ReactElement } from "react";
+
 export type ChipState = "candidate" | "processing" | "finished" | "failed";
 
 export interface BaseChip {
@@ -57,7 +59,7 @@ export type ChatChip =
   | SelectedContextChip;
 
 export interface DocDisplayConfig {
-  getIcon: (docId: string) => any;
+  getIcon: (docId: string) => ReactElement;
   getTitle: (docId: string) => string;
   getTitleSignal: (docId: string) => {
     signal: Signal<string>;

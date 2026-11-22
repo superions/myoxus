@@ -38,7 +38,7 @@
 //! - Redis Pub/Sub receive: event-driven, no polling
 
 use redis::AsyncCommands;
-use std::collections::HashMap;
+use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::mpsc;
@@ -262,9 +262,7 @@ elseif kind ~= 'none' and kind ~= 'hash' then return redis.error_reply('invalid 
 local now = tonumber(redis.call('TIME')[1])
 local expiry = now + tonumber(ARGV[3])
 if expiry > 9007199254740991 then return redis.error_reply('workspace lease overflow') end
--- Keep observed-empty workspaces discoverable after pruning or a failed SQL
--- sample. Socket fields expire independently; this marker carries no presence.
-redis.call('HSET', KEYS[1], '__observed__', '1', ARGV[1], ARGV[2] .. ':' .. string.format('%.0f', expiry))
+redis.call('HSET', KEYS[1], ARGV[1], ARGV[2] .. ':' .. string.format('%.0f', expiry))
 return 1
 "#,
       )
@@ -281,8 +279,7 @@ return 1
     .map_err(|_| "workspace membership Redis deadline".to_string())?
   }
 
-  /// Remove only this startup instance's socket field. Other replicas and the
-  /// observed-empty marker remain; a failed removal ages out at its lease.
+  /// Remove this instance's socket field. A failed removal ages out at its lease.
   pub async fn leave_workspace(&self, workspace_id: Uuid, socket_id: &str) {
     let key = format!(
       "{}:{}",
@@ -299,7 +296,7 @@ return 1
       redis::Script::new(
         r#"
 local kind = redis.call('TYPE', KEYS[1]).ok
-if kind == 'set' then redis.call('DEL', KEYS[1]); redis.call('HSET', KEYS[1], '__observed__', '1')
+if kind == 'set' then redis.call('DEL', KEYS[1])
 elseif kind == 'hash' then redis.call('HDEL', KEYS[1], ARGV[1])
 elseif kind ~= 'none' then return redis.error_reply('invalid workspace membership type') end
 return 1
@@ -317,11 +314,8 @@ return 1
     }
   }
 
-  /// Read distinct live users for every observed workspace. Pruning and counting
-  /// happen in one Lua operation, so stale cleanup cannot erase a renewal.
-  /// Empty markers survive SQL failures and late positive writers; every later
-  /// heartbeat can publish zero without a local socket or a crashed-node callback.
-  pub async fn workspace_active_users(&self) -> Result<HashMap<Uuid, i32>, String> {
+  /// Count each user with a live workspace lease once across sockets, nodes and workspaces.
+  pub async fn active_sync_users(&self) -> Result<i32, String> {
     tokio::time::timeout(Duration::from_secs(5), async {
       let prefix = format!("{}:ws:sessions:", self.adapter.namespace());
       let mut pattern = String::new();
@@ -340,26 +334,23 @@ return 1
       let script = redis::Script::new(
         r#"
 local kind = redis.call('TYPE', KEYS[1]).ok
-if kind == 'set' then redis.call('DEL', KEYS[1]); redis.call('HSET', KEYS[1], '__observed__', '1'); return 0 end
-if kind == 'none' then return 0 end
+if kind == 'set' then redis.call('DEL', KEYS[1]); return {} end
+if kind == 'none' then return {} end
 if kind ~= 'hash' then return redis.error_reply('invalid workspace membership type') end
 local now = tonumber(redis.call('TIME')[1])
 local entries = redis.call('HGETALL', KEYS[1])
 local users = {}
-local count = 0
 for index = 1, #entries, 2 do
-  local field = entries[index]
-  if field ~= '__observed__' then
-    local user, expiry = string.match(entries[index + 1], '^([%x%-]+):(%d+)$')
-    if user and tonumber(expiry) > now then
-      if not users[user] then users[user] = true; count = count + 1 end
-    else redis.call('HDEL', KEYS[1], field) end
-  end
+  local user, expiry = string.match(entries[index + 1], '^([%x%-]+):(%d+)$')
+  if user and tonumber(expiry) > now then users[user] = true
+  else redis.call('HDEL', KEYS[1], entries[index]) end
 end
-return count
+local ids = {}
+for id in pairs(users) do table.insert(ids, id) end
+return ids
 "#,
       );
-      let mut counts = HashMap::new();
+      let mut users = HashSet::<String>::new();
       let mut cursor = 0u64;
       loop {
         let (next, keys): (u64, Vec<String>) = redis::cmd("SCAN")
@@ -372,23 +363,26 @@ return count
           .await
           .map_err(|error| error.to_string())?;
         for key in keys {
-          let Some(workspace_id) = key.strip_prefix(&prefix).and_then(|id| Uuid::parse_str(id).ok()) else {
+          if key
+            .strip_prefix(&prefix)
+            .and_then(|id| Uuid::parse_str(id).ok())
+            .is_none()
+          {
             continue;
-          };
-          let count: i64 = script
+          }
+          let ids: Vec<String> = script
             .key(key)
             .invoke_async(&mut connection)
             .await
             .map_err(|error| error.to_string())?;
-          let count = i32::try_from(count).map_err(|_| "workspace user count overflow".to_string())?;
-          counts.insert(workspace_id, count);
+          users.extend(ids);
         }
         cursor = next;
         if cursor == 0 {
           break;
         }
       }
-      Ok(counts)
+      i32::try_from(users.len()).map_err(|_| "sync user count overflow".to_string())
     })
     .await
     .map_err(|_| "workspace analytics Redis deadline".to_string())?

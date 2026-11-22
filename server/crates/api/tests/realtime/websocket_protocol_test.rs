@@ -559,7 +559,7 @@ async fn inv_doc_userspace01_push_update_uses_personal_workspace_id() {
     .expect("create user");
   let personal_ws = state
     .workspace()
-    .create_workspace(user.id, Some("Personal".into()), None)
+    .ensure_personal_workspace(user.id, Some("Personal"))
     .await
     .expect("personal workspace");
 

@@ -641,13 +641,12 @@ impl SqlxGitSyncStore {
     sqlx::query_scalar(
       "SELECT EXISTS(
          SELECT 1
-           FROM workspace_memberships membership
+           FROM workspace_effective_roles membership
            JOIN workspaces workspace ON workspace.id = membership.workspace_id
             AND workspace.lifecycle_state = 'active'
             AND workspace.deleted_at IS NULL
           WHERE membership.user_id = $1
             AND membership.workspace_id = $2
-            AND membership.status = 'Accepted'
        )",
     )
     .bind(owner_id)
@@ -812,8 +811,7 @@ impl SqlxGitSyncStore {
 
   /// Atomically replace normal-state bindings/baselines and complete the audit.
   ///
-  /// All active owners are first tombstoned so existing path-owner triggers can
-  /// safely derive swaps and moves. The owner ledger is never written directly.
+  /// Release active paths before assigning replacements so swaps and moves cannot collide.
   #[instrument(skip(self, plan), fields(%attempt_id, %remote_oid))]
   pub async fn complete_bootstrap(
     &self,
@@ -867,36 +865,31 @@ impl SqlxGitSyncStore {
     }
 
     sqlx::query(
-      "UPDATE git_sync_bindings SET tombstone = true, updated_at = now() WHERE profile_id = $1 AND tombstone = false",
+      "UPDATE git_sync_bindings SET tombstone = true, updated_at = now() WHERE profile_id = $1 AND NOT tombstone",
     )
     .bind(profile_id)
     .execute(&mut *tx)
     .await
     .map_err(Self::map_db_err)?;
-    sqlx::query("UPDATE git_sync_file_bindings SET tombstoned = true, updated_at = now() WHERE profile_id = $1 AND tombstoned = false")
-      .bind(profile_id)
-      .execute(&mut *tx)
-      .await
-      .map_err(Self::map_db_err)?;
 
     for binding in &plan.document_bindings {
       let result = sqlx::query(
-        "INSERT INTO git_sync_bindings
+        "INSERT INTO git_sync_document_bindings
            (id, profile_id, workspace_id, doc_id, sync_id, repo_path,
             last_commit_oid, content_hash, structure_hash, tombstone,
             created_at, updated_at)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,false,$10,now())
-         ON CONFLICT (id) DO UPDATE SET
+         ON CONFLICT (id, binding_kind) DO UPDATE SET
            repo_path = EXCLUDED.repo_path,
            last_commit_oid = EXCLUDED.last_commit_oid,
            content_hash = EXCLUDED.content_hash,
            structure_hash = EXCLUDED.structure_hash,
            tombstone = false,
            updated_at = now()
-         WHERE git_sync_bindings.profile_id = EXCLUDED.profile_id
-           AND git_sync_bindings.workspace_id = EXCLUDED.workspace_id
-           AND git_sync_bindings.doc_id = EXCLUDED.doc_id
-           AND git_sync_bindings.sync_id = EXCLUDED.sync_id",
+         WHERE git_sync_document_bindings.profile_id = EXCLUDED.profile_id
+           AND git_sync_document_bindings.workspace_id = EXCLUDED.workspace_id
+           AND git_sync_document_bindings.doc_id = EXCLUDED.doc_id
+           AND git_sync_document_bindings.sync_id = EXCLUDED.sync_id",
       )
       .bind(binding.id)
       .bind(binding.profile_id)
@@ -919,24 +912,23 @@ impl SqlxGitSyncStore {
       }
     }
     for baseline in &plan.document_baselines {
-      sqlx::query(
-        "INSERT INTO git_sync_baselines
-           (binding_id, content_hash, commit_oid, myoxus_updated_at, captured_at)
-         VALUES ($1,$2,$3,$4,$5)
-         ON CONFLICT (binding_id) DO UPDATE SET
-           content_hash = EXCLUDED.content_hash,
-           commit_oid = EXCLUDED.commit_oid,
-           myoxus_updated_at = EXCLUDED.myoxus_updated_at,
-           captured_at = EXCLUDED.captured_at",
+      let result = sqlx::query(
+        "UPDATE git_sync_document_bindings
+         SET (baseline_content_hash, baseline_commit_oid, baseline_myoxus_updated_at, baseline_captured_at) = ($2, $3, $4, $5)
+         WHERE id = $1 AND profile_id = $6",
       )
       .bind(baseline.binding_id)
       .bind(&baseline.content_hash)
       .bind(remote_oid)
       .bind(baseline.myoxus_updated_at)
       .bind(baseline.captured_at)
+      .bind(profile_id)
       .execute(&mut *tx)
       .await
       .map_err(Self::map_db_err)?;
+      if result.rows_affected() != 1 {
+        return Err(GitSyncStoreError::NotFound);
+      }
     }
     for binding in &plan.file_bindings {
       let result = sqlx::query(
@@ -944,7 +936,7 @@ impl SqlxGitSyncStore {
            (id, profile_id, workspace_id, blob_key, repo_path,
             content_hash, mime_type, file_size, tombstoned, created_at, updated_at)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,false,$9,now())
-         ON CONFLICT (id) DO UPDATE SET
+         ON CONFLICT (id, binding_kind) DO UPDATE SET
            blob_key = EXCLUDED.blob_key,
            repo_path = EXCLUDED.repo_path,
            content_hash = EXCLUDED.content_hash,
@@ -1641,7 +1633,7 @@ impl SqlxGitSyncStore {
   pub async fn assert_bound_documents_in_workspace(&self, profile: &GitSyncProfile) -> GitSyncResult<()> {
     let moved: bool = sqlx::query_scalar(
       "SELECT EXISTS(
-         SELECT 1 FROM git_sync_bindings binding
+         SELECT 1 FROM git_sync_document_bindings binding
          LEFT JOIN docs document ON document.id = binding.doc_id
          WHERE binding.profile_id = $1 AND NOT binding.tombstone
            AND (binding.workspace_id <> $2 OR (document.id IS NOT NULL AND document.workspace_id <> $2))
@@ -2378,7 +2370,7 @@ impl SqlxGitSyncStore {
   pub async fn create_binding(&self, binding: &GitSyncBinding) -> GitSyncResult<GitSyncBinding> {
     let row = sqlx::query(
       r#"
-            INSERT INTO git_sync_bindings
+            INSERT INTO git_sync_document_bindings
                 (id, profile_id, workspace_id, doc_id, sync_id, repo_path,
                  last_commit_oid, content_hash, structure_hash, tombstone)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
@@ -2414,7 +2406,7 @@ impl SqlxGitSyncStore {
             SELECT id, profile_id, workspace_id, doc_id, sync_id, repo_path,
                    last_commit_oid, content_hash, structure_hash, tombstone,
                    created_at, updated_at
-            FROM git_sync_bindings
+            FROM git_sync_document_bindings
             WHERE id = $1
             "#,
     )
@@ -2437,7 +2429,7 @@ impl SqlxGitSyncStore {
             SELECT id, profile_id, workspace_id, doc_id, sync_id, repo_path,
                    last_commit_oid, content_hash, structure_hash, tombstone,
                    created_at, updated_at
-            FROM git_sync_bindings
+            FROM git_sync_document_bindings
             WHERE profile_id = $1 AND tombstone = false
             ORDER BY created_at ASC
             "#,
@@ -2455,11 +2447,7 @@ impl SqlxGitSyncStore {
 
   /// Verify that planned document paths do not collide with current owners.
   ///
-  /// This is intentionally read-only. `git_sync_path_owners` is a derived
-  /// ledger written only by the canonical binding triggers.
-  /// A concurrent change after this preflight is still rejected by those
-  /// triggers in the guarded final transaction and enters normal
-  /// reconciliation-required recovery if the remote already moved.
+  /// The active-path unique index also enforces this check at commit time.
   #[instrument(skip(self, paths), fields(%profile_id, path_count = paths.len()))]
   pub async fn validate_document_paths_available(
     &self,
@@ -2483,9 +2471,9 @@ impl SqlxGitSyncStore {
     }
     let repo_paths = paths.iter().map(|(_, path)| path.clone()).collect::<Vec<_>>();
     let owners = sqlx::query(
-      "SELECT repo_path, owner_kind, owner_id
-       FROM git_sync_path_owners
-       WHERE profile_id = $1 AND repo_path = ANY($2)",
+      "SELECT repo_path, binding_kind AS owner_kind, COALESCE(doc_id, id) AS owner_id
+       FROM git_sync_bindings
+       WHERE NOT tombstone AND profile_id = $1 AND repo_path = ANY($2)",
     )
     .bind(profile_id)
     .bind(&repo_paths)
@@ -2510,7 +2498,7 @@ impl SqlxGitSyncStore {
   pub async fn update_binding(&self, binding: &GitSyncBinding) -> GitSyncResult<GitSyncBinding> {
     let row = sqlx::query(
       r#"
-            UPDATE git_sync_bindings
+            UPDATE git_sync_document_bindings
             SET repo_path = $2, last_commit_oid = $3, content_hash = $4,
                 structure_hash = $5, updated_at = now()
             WHERE id = $1
@@ -2537,11 +2525,12 @@ impl SqlxGitSyncStore {
   /// Mark a binding as tombstoned (soft-delete).
   #[instrument(skip(self))]
   pub async fn mark_tombstone(&self, binding_id: Uuid) -> GitSyncResult<()> {
-    let result = sqlx::query("UPDATE git_sync_bindings SET tombstone = true, updated_at = now() WHERE id = $1")
-      .bind(binding_id)
-      .execute(&self.pool)
-      .await
-      .map_err(Self::map_db_err)?;
+    let result =
+      sqlx::query("UPDATE git_sync_document_bindings SET tombstone = true, updated_at = now() WHERE id = $1")
+        .bind(binding_id)
+        .execute(&self.pool)
+        .await
+        .map_err(Self::map_db_err)?;
 
     if result.rows_affected() == 0 {
       return Err(GitSyncStoreError::NotFound);
@@ -3577,20 +3566,20 @@ impl SqlxGitSyncStore {
 
     for binding in &plan.document_bindings {
       let result = sqlx::query(
-        "INSERT INTO git_sync_bindings
+        "INSERT INTO git_sync_document_bindings
            (id, profile_id, workspace_id, doc_id, sync_id, repo_path,
             last_commit_oid, content_hash, structure_hash, tombstone)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-         ON CONFLICT (id) DO UPDATE SET
+         ON CONFLICT (id, binding_kind) DO UPDATE SET
            repo_path = EXCLUDED.repo_path,
            last_commit_oid = EXCLUDED.last_commit_oid,
            content_hash = EXCLUDED.content_hash,
            structure_hash = EXCLUDED.structure_hash,
            tombstone = EXCLUDED.tombstone,
            updated_at = now()
-         WHERE git_sync_bindings.profile_id = EXCLUDED.profile_id
-           AND git_sync_bindings.workspace_id = EXCLUDED.workspace_id
-           AND git_sync_bindings.doc_id = EXCLUDED.doc_id",
+         WHERE git_sync_document_bindings.profile_id = EXCLUDED.profile_id
+           AND git_sync_document_bindings.workspace_id = EXCLUDED.workspace_id
+           AND git_sync_document_bindings.doc_id = EXCLUDED.doc_id",
       )
       .bind(binding.id)
       .bind(binding.profile_id)
@@ -3614,7 +3603,7 @@ impl SqlxGitSyncStore {
     }
     for binding_id in &plan.document_tombstone_ids {
       let result = sqlx::query(
-        "UPDATE git_sync_bindings SET tombstone = true, updated_at = now()
+        "UPDATE git_sync_document_bindings SET tombstone = true, updated_at = now()
          WHERE id = $1 AND profile_id = $2",
       )
       .bind(binding_id)
@@ -3627,39 +3616,25 @@ impl SqlxGitSyncStore {
       }
     }
     for baseline in &plan.document_baselines {
-      let owns_binding: bool = sqlx::query_scalar(
-        "SELECT EXISTS(
-           SELECT 1 FROM git_sync_bindings WHERE id = $1 AND profile_id = $2
-         )",
-      )
-      .bind(baseline.binding_id)
-      .bind(plan.run.profile_id)
-      .fetch_one(&mut *tx)
-      .await
-      .map_err(Self::map_db_err)?;
-      if !owns_binding {
-        return Err(GitSyncStoreError::Validation(format!(
-          "document baseline binding {} does not belong to profile {}",
-          baseline.binding_id, plan.run.profile_id
-        )));
-      }
-      sqlx::query(
-        "INSERT INTO git_sync_baselines
-           (binding_id, content_hash, commit_oid, myoxus_updated_at, captured_at)
-         VALUES ($1,$2,$3,$4,now())
-         ON CONFLICT (binding_id) DO UPDATE SET
-           content_hash = EXCLUDED.content_hash,
-           commit_oid = EXCLUDED.commit_oid,
-           myoxus_updated_at = EXCLUDED.myoxus_updated_at,
-           captured_at = now()",
+      let result = sqlx::query(
+        "UPDATE git_sync_document_bindings
+         SET (baseline_content_hash, baseline_commit_oid, baseline_myoxus_updated_at, baseline_captured_at) = ($2, $3, $4, now())
+         WHERE id = $1 AND profile_id = $5",
       )
       .bind(baseline.binding_id)
       .bind(&baseline.content_hash)
       .bind(&baseline.commit_oid)
       .bind(baseline.myoxus_updated_at)
+      .bind(plan.run.profile_id)
       .execute(&mut *tx)
       .await
       .map_err(Self::map_db_err)?;
+      if result.rows_affected() != 1 {
+        return Err(GitSyncStoreError::Validation(format!(
+          "document baseline binding {} does not belong to profile {}",
+          baseline.binding_id, plan.run.profile_id
+        )));
+      }
     }
     for conflict in &plan.document_conflicts {
       let owns_objects: bool = sqlx::query_scalar(
@@ -3667,7 +3642,7 @@ impl SqlxGitSyncStore {
            SELECT 1 FROM docs d
            WHERE d.id = $1 AND d.workspace_id = $2
              AND ($3::uuid IS NULL OR EXISTS(
-               SELECT 1 FROM git_sync_bindings b
+               SELECT 1 FROM git_sync_document_bindings b
                WHERE b.id = $3 AND b.profile_id = $4
              ))
          )",
@@ -3728,7 +3703,7 @@ impl SqlxGitSyncStore {
            (id, profile_id, workspace_id, blob_key, repo_path,
             content_hash, mime_type, file_size, tombstoned)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-         ON CONFLICT (profile_id, repo_path) DO UPDATE SET
+         ON CONFLICT (profile_id, repo_path) WHERE binding_kind = 'file' DO UPDATE SET
            blob_key = EXCLUDED.blob_key,
            content_hash = EXCLUDED.content_hash,
            mime_type = EXCLUDED.mime_type,
@@ -4555,17 +4530,10 @@ impl SqlxGitSyncStore {
   /// Insert or update a baseline for a binding.
   #[instrument(skip(self))]
   pub async fn upsert_baseline(&self, baseline: &GitSyncBaseline) -> GitSyncResult<()> {
-    sqlx::query(
-      r#"
-            INSERT INTO git_sync_baselines
-                (binding_id, content_hash, commit_oid, myoxus_updated_at, captured_at)
-            VALUES ($1, $2, $3, $4, now())
-            ON CONFLICT (binding_id) DO UPDATE SET
-                content_hash = EXCLUDED.content_hash,
-                commit_oid = EXCLUDED.commit_oid,
-                myoxus_updated_at = EXCLUDED.myoxus_updated_at,
-                captured_at = now()
-            "#,
+    let result = sqlx::query(
+      "UPDATE git_sync_document_bindings
+       SET (baseline_content_hash, baseline_commit_oid, baseline_myoxus_updated_at, baseline_captured_at) = ($2, $3, $4, now())
+         WHERE id = $1",
     )
     .bind(baseline.binding_id)
     .bind(&baseline.content_hash)
@@ -4574,6 +4542,9 @@ impl SqlxGitSyncStore {
     .execute(&self.pool)
     .await
     .map_err(Self::map_db_err)?;
+    if result.rows_affected() != 1 {
+      return Err(GitSyncStoreError::NotFound);
+    }
 
     debug!(binding_id = %baseline.binding_id, "baseline upserted");
     Ok(())
@@ -4583,11 +4554,9 @@ impl SqlxGitSyncStore {
   #[instrument(skip(self))]
   pub async fn get_baseline(&self, binding_id: Uuid) -> GitSyncResult<Option<GitSyncBaseline>> {
     let row = sqlx::query(
-      r#"
-            SELECT binding_id, content_hash, commit_oid, myoxus_updated_at, captured_at
-            FROM git_sync_baselines
-            WHERE binding_id = $1
-            "#,
+      "SELECT id AS binding_id, baseline_content_hash AS content_hash, baseline_commit_oid AS commit_oid,
+             baseline_myoxus_updated_at AS myoxus_updated_at, baseline_captured_at AS captured_at
+      FROM git_sync_document_bindings WHERE baseline_content_hash IS NOT NULL AND id = $1",
     )
     .bind(binding_id)
     .fetch_optional(&self.pool)
@@ -4612,10 +4581,9 @@ impl SqlxGitSyncStore {
   pub async fn get_baselines_by_profile(&self, profile_id: Uuid) -> GitSyncResult<Vec<GitSyncBaseline>> {
     let rows = sqlx::query(
       r#"
-      SELECT bl.binding_id, bl.content_hash, bl.commit_oid, bl.myoxus_updated_at, bl.captured_at
-      FROM git_sync_baselines bl
-      JOIN git_sync_bindings bi ON bi.id = bl.binding_id
-      WHERE bi.profile_id = $1 AND bi.tombstone = false
+      SELECT id AS binding_id, baseline_content_hash AS content_hash, baseline_commit_oid AS commit_oid,
+             baseline_myoxus_updated_at AS myoxus_updated_at, baseline_captured_at AS captured_at
+      FROM git_sync_document_bindings WHERE baseline_content_hash IS NOT NULL AND profile_id = $1 AND NOT tombstone
       "#,
     )
     .bind(profile_id)
@@ -4745,7 +4713,7 @@ impl SqlxGitSyncStore {
                 (id, profile_id, workspace_id, blob_key, repo_path,
                  content_hash, mime_type, file_size, tombstoned)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            ON CONFLICT (profile_id, repo_path) DO UPDATE SET
+            ON CONFLICT (profile_id, repo_path) WHERE binding_kind = 'file' DO UPDATE SET
                 blob_key = EXCLUDED.blob_key,
                 content_hash = EXCLUDED.content_hash,
                 mime_type = EXCLUDED.mime_type,
@@ -5639,7 +5607,7 @@ async fn rotation_steward_in_transaction(
   let eligible: Option<Uuid> = sqlx::query_scalar(
     "SELECT p.id FROM git_sync_profiles p
      JOIN workspaces w ON w.id = p.workspace_id AND w.lifecycle_state = 'active' AND w.deleted_at IS NULL
-     JOIN workspace_memberships m ON m.workspace_id = w.id AND m.user_id = p.owner_id AND m.status = 'Accepted'
+     JOIN workspace_effective_roles m ON m.workspace_id = w.id AND m.user_id = p.owner_id
      WHERE p.credential_id = $1 AND p.enabled AND p.auth_method = 'HttpsToken'
        AND p.repo_url ~* '^https://'
      ORDER BY CASE WHEN p.id = $2 THEN 0 ELSE 1 END, p.id LIMIT 1",
@@ -5837,8 +5805,8 @@ impl GitTokenRotationStore for SqlxGitSyncStore {
          AND credential.profile_id = profile.id
         JOIN workspaces workspace ON workspace.id = profile.workspace_id
           AND workspace.lifecycle_state = 'active' AND workspace.deleted_at IS NULL
-        JOIN workspace_memberships membership ON membership.workspace_id = workspace.id
-          AND membership.user_id = profile.owner_id AND membership.status = 'Accepted'
+        JOIN workspace_effective_roles membership ON membership.workspace_id = workspace.id
+          AND membership.user_id = profile.owner_id
         WHERE profile.id = $1",
     )
     .bind(profile_id)
@@ -6440,13 +6408,13 @@ impl GitSyncLifecycleStore for SqlxGitSyncStore {
       r#"
       SELECT
         (SELECT COUNT(*) FROM git_sync_runs WHERE profile_id = $1) AS runs,
-        (SELECT COUNT(*) FROM git_sync_bindings WHERE profile_id = $1) AS document_bindings,
-        (SELECT COUNT(*) FROM git_sync_file_bindings WHERE profile_id = $1) AS file_bindings,
+        COUNT(doc_id) AS document_bindings, COUNT(blob_key) AS file_bindings,
         (
           (SELECT COUNT(*) FROM git_sync_conflicts WHERE profile_id = $1 AND resolution = 'Open')
           + (SELECT COUNT(*) FROM git_sync_file_conflicts WHERE profile_id = $1 AND resolution = 'Open')
         ) AS open_conflicts,
         (SELECT COUNT(*) FROM git_sync_credentials WHERE profile_id = $1) AS credentials
+      FROM git_sync_bindings WHERE profile_id = $1
       "#,
     )
     .bind(profile_id)
@@ -6593,7 +6561,7 @@ impl GitSyncReconciliationStore for SqlxGitSyncStore {
       SELECT id, profile_id, workspace_id, doc_id, sync_id, repo_path,
              last_commit_oid, content_hash, structure_hash, tombstone,
              created_at, updated_at
-      FROM git_sync_bindings
+      FROM git_sync_document_bindings
       WHERE profile_id = $1 AND tombstone = true
       ORDER BY created_at, id
       "#,
@@ -6782,7 +6750,7 @@ impl GitSyncReconciliationStore for SqlxGitSyncStore {
         r#"
         SELECT id, workspace_id, doc_id, sync_id, repo_path, last_commit_oid,
                content_hash, structure_hash, tombstone
-        FROM git_sync_bindings
+        FROM git_sync_document_bindings
         WHERE profile_id = $1
           AND (id = $2 OR doc_id = $3 OR sync_id = $4 OR repo_path = $5)
         ORDER BY id
@@ -6799,7 +6767,7 @@ impl GitSyncReconciliationStore for SqlxGitSyncStore {
       if existing.is_empty() {
         let inserted = sqlx::query(
           r#"
-          INSERT INTO git_sync_bindings
+          INSERT INTO git_sync_document_bindings
             (id, profile_id, workspace_id, doc_id, sync_id, repo_path,
              last_commit_oid, content_hash, structure_hash, tombstone)
           SELECT $1, $2, $3, $4, $5, $6, $7, $8, $9, false
@@ -6851,19 +6819,10 @@ impl GitSyncReconciliationStore for SqlxGitSyncStore {
       let baseline = &adoption.baseline;
       let changed = sqlx::query(
         r#"
-        INSERT INTO git_sync_baselines
-          (binding_id, content_hash, commit_oid, myoxus_updated_at, captured_at)
-        VALUES ($1, $2, $3, $4, $5)
-        ON CONFLICT (binding_id) DO UPDATE SET
-          content_hash = EXCLUDED.content_hash,
-          commit_oid = EXCLUDED.commit_oid,
-          myoxus_updated_at = EXCLUDED.myoxus_updated_at,
-          captured_at = EXCLUDED.captured_at
-        WHERE (git_sync_baselines.content_hash, git_sync_baselines.commit_oid,
-               git_sync_baselines.myoxus_updated_at)
-          IS DISTINCT FROM
-              (EXCLUDED.content_hash, EXCLUDED.commit_oid,
-               EXCLUDED.myoxus_updated_at)
+        UPDATE git_sync_document_bindings
+         SET (baseline_content_hash, baseline_commit_oid, baseline_myoxus_updated_at, baseline_captured_at) = ($2, $3, $4, $5)
+         WHERE id = $1
+           AND (baseline_content_hash, baseline_commit_oid, baseline_myoxus_updated_at) IS DISTINCT FROM ($2, $3, $4)
         "#,
       )
       .bind(baseline.binding_id)
@@ -6880,7 +6839,7 @@ impl GitSyncReconciliationStore for SqlxGitSyncStore {
     for binding in &plan.binding_updates {
       let current = sqlx::query(
         "SELECT repo_path, last_commit_oid, content_hash, structure_hash
-         FROM git_sync_bindings WHERE id = $1 AND profile_id = $2",
+         FROM git_sync_document_bindings WHERE id = $1 AND profile_id = $2",
       )
       .bind(binding.id)
       .bind(plan.profile_id)
@@ -6905,7 +6864,7 @@ impl GitSyncReconciliationStore for SqlxGitSyncStore {
     for binding in &effective_binding_updates {
       let temporary_path = format!(".myoxus-reconcile/{}.pending", binding.id);
       let changed = sqlx::query(
-        "UPDATE git_sync_bindings SET repo_path = $3, updated_at = now()
+        "UPDATE git_sync_document_bindings SET repo_path = $3, updated_at = now()
          WHERE id = $1 AND profile_id = $2",
       )
       .bind(binding.id)
@@ -6923,7 +6882,7 @@ impl GitSyncReconciliationStore for SqlxGitSyncStore {
     }
     for binding in &effective_binding_updates {
       let changed = sqlx::query(
-        "UPDATE git_sync_bindings
+        "UPDATE git_sync_document_bindings
          SET repo_path = $3, last_commit_oid = $4, content_hash = $5,
              structure_hash = $6, updated_at = now()
          WHERE id = $1 AND profile_id = $2",
@@ -6941,12 +6900,9 @@ impl GitSyncReconciliationStore for SqlxGitSyncStore {
     }
     for binding_id in &plan.baseline_deletes {
       let changed = sqlx::query(
-        "DELETE FROM git_sync_baselines
-         WHERE binding_id = $1
-           AND EXISTS (
-             SELECT 1 FROM git_sync_bindings b
-             WHERE b.id = git_sync_baselines.binding_id AND b.profile_id = $2
-           )",
+        "UPDATE git_sync_document_bindings
+         SET (baseline_content_hash, baseline_commit_oid, baseline_myoxus_updated_at, baseline_captured_at) = (NULL, NULL, NULL, NULL)
+         WHERE id = $1 AND profile_id = $2 AND baseline_content_hash IS NOT NULL",
       )
       .bind(binding_id)
       .bind(plan.profile_id)
@@ -6958,22 +6914,10 @@ impl GitSyncReconciliationStore for SqlxGitSyncStore {
     for baseline in &plan.baseline_upserts {
       let changed = sqlx::query(
         r#"
-        INSERT INTO git_sync_baselines
-          (binding_id, content_hash, commit_oid, myoxus_updated_at, captured_at)
-        SELECT $1, $2, $3, $4, $5
-        WHERE EXISTS (
-          SELECT 1 FROM git_sync_bindings WHERE id = $1 AND profile_id = $6
-        )
-        ON CONFLICT (binding_id) DO UPDATE SET
-          content_hash = EXCLUDED.content_hash,
-          commit_oid = EXCLUDED.commit_oid,
-          myoxus_updated_at = EXCLUDED.myoxus_updated_at,
-          captured_at = EXCLUDED.captured_at
-        WHERE (git_sync_baselines.content_hash, git_sync_baselines.commit_oid,
-               git_sync_baselines.myoxus_updated_at)
-          IS DISTINCT FROM
-              (EXCLUDED.content_hash, EXCLUDED.commit_oid,
-               EXCLUDED.myoxus_updated_at)
+        UPDATE git_sync_document_bindings
+         SET (baseline_content_hash, baseline_commit_oid, baseline_myoxus_updated_at, baseline_captured_at) = ($2, $3, $4, $5)
+         WHERE id = $1 AND profile_id = $6
+           AND (baseline_content_hash, baseline_commit_oid, baseline_myoxus_updated_at) IS DISTINCT FROM ($2, $3, $4)
         "#,
       )
       .bind(baseline.binding_id)

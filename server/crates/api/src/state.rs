@@ -36,7 +36,6 @@ use myoxus_application::document_graph::DocumentGraphService;
 use myoxus_application::git_sync::GitTokenRotationService;
 use myoxus_application::metrics::MetricsService;
 use myoxus_application::notification::{InMemoryNotificationStore, NotificationService};
-use myoxus_application::organization::ManagerCapabilityWriter;
 use myoxus_application::pdf_export::jobs::{PdfExportJobStore, UnavailablePdfExportJobStore};
 use myoxus_application::permission::PermissionService;
 use myoxus_application::ports::blob::NullBlobStore;
@@ -101,31 +100,16 @@ pub(crate) fn feature_override_result(features: &[String]) -> Option<bool> {
   }
 }
 
-// The existing Vec payload retains the explicit copilot-disable sentinel.
-// This marker distinguishes cache entries populated before Manager projection;
-// they must be reloaded rather than hiding a pre-existing capability until TTL.
-const MANAGER_PROJECTION_MARKER: &str = "__manager_projection";
-
 async fn load_user_feature_override(auth: &AuthService, user_id: uuid::Uuid) -> Result<Vec<String>, CacheLoadError> {
   let override_value = auth
     .user_feature_override(user_id, "unlimited_copilot")
     .await
     .map_err(|error| CacheLoadError(error.to_string()))?;
-  let mut features = match override_value {
+  Ok(match override_value {
     Some(true) => vec!["unlimited_copilot".to_string()],
     Some(false) => vec!["__disabled".to_string()],
     None => Vec::new(),
-  };
-  if auth
-    .user_feature_override(user_id, "manager")
-    .await
-    .map_err(|error| CacheLoadError(error.to_string()))?
-    == Some(true)
-  {
-    features.push("manager".to_string());
-  }
-  features.push(MANAGER_PROJECTION_MARKER.to_string());
-  Ok(features)
+  })
 }
 
 async fn load_workspace_settings(
@@ -218,7 +202,6 @@ pub struct ServiceRegistry {
   pub(crate) copilot_embedding_provider:
     Arc<std::sync::OnceLock<Option<Arc<dyn myoxus_application::copilot::provider::LlmProvider>>>>,
   pub(crate) public_repository: Arc<dyn PublicRepository>,
-  pub(crate) manager_capability_writer: Arc<dyn ManagerCapabilityWriter>,
   pub(crate) blob_service: Arc<BlobService>,
   pub(crate) permission_service: Arc<PermissionService>,
   pub(crate) storage: Arc<dyn BlobStoragePort>,
@@ -536,7 +519,6 @@ impl PublicRepository for PanicPublicRepository {
     &self,
     _workspace_id: uuid::Uuid,
     _doc_id: uuid::Uuid,
-    _source_hash: String,
   ) -> myoxus_application::public::PublicResult<myoxus_application::public::PublicAclDecision> {
     panic!("PanicPublicRepository: decide_document called without a configured publication repository")
   }
@@ -546,13 +528,6 @@ impl PublicRepository for PanicPublicRepository {
     _workspace_id: uuid::Uuid,
   ) -> myoxus_application::public::PublicResult<Vec<myoxus_application::public::PublicWorkspaceDoc>> {
     panic!("PanicPublicRepository: list_public_workspace_docs called without a configured publication repository")
-  }
-
-  async fn upsert_artifact(
-    &self,
-    _artifact: &myoxus_application::public::PublicArtifact,
-  ) -> myoxus_application::public::PublicResult<()> {
-    panic!("PanicPublicRepository: upsert_artifact called without a configured publication repository")
   }
 
   async fn invalidate_document(
@@ -584,20 +559,6 @@ impl PublicRepository for PanicPublicRepository {
     _filename: &str,
   ) -> myoxus_application::public::PublicResult<Option<myoxus_application::public::PublicAssetManifestEntry>> {
     panic!("PanicPublicRepository: get_asset called without a configured publication repository")
-  }
-}
-
-/// Fail-fast manager capability writer for in-memory API states.
-struct PanicManagerCapabilityWriter;
-
-#[async_trait]
-impl ManagerCapabilityWriter for PanicManagerCapabilityWriter {
-  async fn ensure_manager_capability(&self, _user_id: myoxus_domain::ids::UserId) -> Result<bool, String> {
-    panic!("PanicManagerCapabilityWriter: ensure called without a configured manager capability writer")
-  }
-
-  async fn revoke_manager_capability_if_no_more(&self, _user_id: myoxus_domain::ids::UserId) -> Result<bool, String> {
-    panic!("PanicManagerCapabilityWriter: revoke called without a configured manager capability writer")
   }
 }
 
@@ -717,7 +678,6 @@ impl ApiState {
         copilot_embedding_repo: None,
         copilot_embedding_provider: Arc::new(std::sync::OnceLock::new()),
         public_repository: Arc::new(PanicPublicRepository),
-        manager_capability_writer: Arc::new(PanicManagerCapabilityWriter),
         blob_service,
         permission_service,
         storage,
@@ -928,7 +888,6 @@ impl ApiState {
         copilot_embedding_repo: None,
         copilot_embedding_provider: Arc::new(std::sync::OnceLock::new()),
         public_repository: Arc::new(PanicPublicRepository),
-        manager_capability_writer: Arc::new(PanicManagerCapabilityWriter),
         blob_service,
         permission_service,
         storage,
@@ -1740,9 +1699,7 @@ impl ApiState {
     // P101-RAG-01: wire embedding repo so the SSE handler can call similarity_search().
     self.services.copilot_embedding_repo = Some(Arc::new(SqlxCopilotEmbeddingRepository::new(pool.clone())));
     self.services.public_repository = Arc::new(myoxus_infrastructure::public::PgPublicRepository::new(pool.clone()));
-    self.services.manager_capability_writer = Arc::new(
-      myoxus_infrastructure::organization::PgManagerCapabilityWriter::new(pool.clone()),
-    );
+
     self.services.setup_state_service = SetupStateService::new(Arc::new(
       myoxus_infrastructure::app_config::PgSetupStateStore::new(pool.clone()),
     ));
@@ -1835,10 +1792,6 @@ impl ApiState {
       );
     }
     service
-  }
-
-  pub fn manager_capability_writer(&self) -> Arc<dyn ManagerCapabilityWriter> {
-    self.services.manager_capability_writer.clone()
   }
 
   pub fn setup_state(&self) -> &SetupStateService {
@@ -2661,18 +2614,22 @@ impl ApiState {
   /// existing boolean consumers; all flags share the same cache population.
   pub async fn user_feature_overrides_cached_l2(&self, user_id: uuid::Uuid) -> Option<bool> {
     self
-      .user_feature_flags_cached_l2(user_id)
+      .cached_feature_overrides(user_id)
       .await
       .as_deref()
       .and_then(feature_override_result)
   }
 
-  /// Return persisted feature flags via the existing three-tier cache.
-  /// Flow: moka L1 → Redis L2 → DB L3.
-  ///
-  /// Retains the copilot-disable sentinel and cache projection marker; callers
-  /// expose only supported flags. None denotes a failed load.
+  /// The Manager badge follows current OU membership, including OIDC and OU status changes.
   pub async fn user_feature_flags_cached_l2(&self, user_id: uuid::Uuid) -> Option<Vec<String>> {
+    let mut flags = self.cached_feature_overrides(user_id).await?;
+    if self.auth().user_feature_override(user_id, "manager").await.ok()? == Some(true) {
+      flags.push("manager".to_string());
+    }
+    Some(flags)
+  }
+
+  async fn cached_feature_overrides(&self, user_id: uuid::Uuid) -> Option<Vec<String>> {
     let metrics = &self.query_cache.metrics_user_features;
     for _ in 0..3 {
       let cache_key = self.query_cache.user_features_key(user_id);
@@ -2695,8 +2652,11 @@ impl ApiState {
           let features = if let Some(redis) = &redis {
             match redis.get_string(&redis_key).await {
               Ok(Some(value)) => match serde_json::from_str::<Vec<String>>(&value) {
-                Ok(features) if features.iter().any(|flag| flag == MANAGER_PROJECTION_MARKER) => features,
-                Ok(_) => load_user_feature_override(&auth, user_id).await?,
+                Ok(mut features) => {
+                  // Older instances also cached the Manager badge and a version marker.
+                  features.retain(|flag| flag == "unlimited_copilot" || flag == "__disabled");
+                  features
+                }
                 Err(error) => {
                   tracing::warn!(user_id = %user_id, %error, "user_features L2 deserialization failed");
                   load_user_feature_override(&auth, user_id).await?
@@ -2888,7 +2848,6 @@ mod tests {
   use myoxus_application::organization::OrganizationPermissionService;
   use myoxus_infrastructure::organization::{
     PgOrganizationPolicyRepository, PgOrganizationUnitMemberRepository, PgOrganizationUnitRepository,
-    PgOrganizationUnitWorkspaceRepository, PgUserFeatureLookup,
   };
   use myoxus_infrastructure::redis::InMemoryRedisAdapter;
   use sqlx::postgres::PgPoolOptions;
@@ -3009,9 +2968,7 @@ oauth:
     let organization_permission = Arc::new(OrganizationPermissionService::new(
       Arc::new(PgOrganizationUnitMemberRepository::new(pool.clone())),
       Arc::new(PgOrganizationUnitRepository::new(pool.clone())),
-      Arc::new(PgOrganizationUnitWorkspaceRepository::new(pool.clone())),
       Arc::new(PgOrganizationPolicyRepository::new(pool.clone())),
-      Arc::new(PgUserFeatureLookup::new(pool)),
     ));
 
     let state = state.with_organization_permission_service(organization_permission);
@@ -3123,7 +3080,7 @@ oauth:
     let user_id = uuid::Uuid::parse_str("00000000-0000-0000-0000-000000000004").unwrap();
 
     // Pre-populate Redis L2 with feature list.
-    let features = vec!["unlimited_copilot".to_string(), MANAGER_PROJECTION_MARKER.to_string()];
+    let features = vec!["unlimited_copilot".to_string()];
     let json = serde_json::to_string(&features).unwrap();
     redis
       .set_string(&format!("cache:features:{user_id}"), &json, Some(300))
@@ -3131,7 +3088,7 @@ oauth:
       .expect("seed L2");
 
     // L2 is independent from the concrete persistence adapter and backfills L1.
-    let result = state.user_feature_flags_cached_l2(user_id).await;
+    let result = state.cached_feature_overrides(user_id).await;
     assert_eq!(result, Some(features.clone()));
     assert_eq!(
       state

@@ -38,8 +38,7 @@ async fn committed_chain(
     "SELECT m.operation_id, m.manifest FROM workspace_content_move_revision_manifests m
      JOIN workspace_content_operations o ON o.id=m.operation_id
      WHERE (m.manifest->'history_reference_lineage') @> $1::jsonb
-       AND (EXISTS(SELECT 1 FROM workspace_content_move_publications p WHERE p.operation_id=o.id AND p.manifest_hash=o.manifest_hash)
-         OR EXISTS(SELECT 1 FROM workspace_content_extract_publications p WHERE p.operation_id=o.id AND p.manifest_hash=o.manifest_hash))",
+       AND EXISTS(SELECT 1 FROM workspace_content_publications p WHERE p.kind IN ('move','extract_folder') AND p.operation_id=o.id AND p.manifest_hash=o.manifest_hash)",
   ).bind(serde_json::json!([{ "history_id": history_id }]))
     .fetch_all(&mut **tx).await.map_err(super::SqlxDocStore::map_db_err)?;
   let hash = hex::encode(Sha256::digest(snapshot));
@@ -131,8 +130,7 @@ async fn initial_plan(
   let previously_moved: bool = sqlx::query_scalar(
     "SELECT EXISTS(SELECT 1 FROM workspace_content_move_revision_manifests m
        WHERE (m.manifest->'documents') @> $1::jsonb
-         AND (EXISTS(SELECT 1 FROM workspace_content_move_publications p WHERE p.operation_id=m.operation_id)
-           OR EXISTS(SELECT 1 FROM workspace_content_extract_publications p WHERE p.operation_id=m.operation_id)))",
+         AND EXISTS(SELECT 1 FROM workspace_content_publications p WHERE p.kind IN ('move','extract_folder') AND p.operation_id=m.operation_id))",
   )
   .bind(serde_json::json!([{ "doc_id": doc_id }]))
   .fetch_one(&mut **tx)
@@ -256,7 +254,7 @@ pub(crate) async fn project_snapshot_in_tx(
   let plan = if let Some((_, item)) = chain.last() {
     Some(item.plan.clone())
   } else {
-    let transferred: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM workspace_content_move_revision_manifests m WHERE (m.manifest->'documents') @> $1::jsonb AND (EXISTS(SELECT 1 FROM workspace_content_move_publications p WHERE p.operation_id=m.operation_id) OR EXISTS(SELECT 1 FROM workspace_content_extract_publications p WHERE p.operation_id=m.operation_id)))")
+    let transferred: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM workspace_content_move_revision_manifests m WHERE (m.manifest->'documents') @> $1::jsonb AND EXISTS(SELECT 1 FROM workspace_content_publications p WHERE p.kind IN ('move','extract_folder') AND p.operation_id=m.operation_id))")
       .bind(serde_json::json!([{ "doc_id": doc_id }])).fetch_one(&mut **tx).await.map_err(super::SqlxDocStore::map_db_err)?;
     let origin: Option<Uuid> =
       sqlx::query_scalar("SELECT reference_workspace_id FROM doc_histories WHERE id=$1 AND doc_id=$2")

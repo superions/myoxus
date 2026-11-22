@@ -138,7 +138,7 @@ pub async fn run(cmd: SharedWorkspacesCommand, svc: &Services, json: bool) -> an
 async fn list(svc: &Services, json: bool) -> anyhow::Result<()> {
   let rows = sqlx::query(
     r#"SELECT w.id, w.name, w.owner_principal_id, ou.name AS owner_unit_name, COALESCE(w.ou_member_role, '') AS ou_member_role,
-              (SELECT COUNT(*) FROM workspace_memberships wm WHERE wm.workspace_id = w.id) AS member_count,
+              (SELECT COUNT(*) FROM workspace_effective_roles wm WHERE wm.workspace_id = w.id) AS member_count,
               w.created_at
          FROM workspaces w
          JOIN organization_unit ou ON ou.id = w.owner_principal_id
@@ -186,10 +186,12 @@ async fn get(args: SharedWorkspaceGetArgs, svc: &Services, json: bool) -> anyhow
     email: String,
     direct_role: String,
     ou_role: String,
+    ou_names: String,
     effective_role: String,
   }
   let effective_access: Vec<EffectiveMember> = sqlx::query_as(
     "SELECT u.email, COALESCE(r.direct_role, '') AS direct_role, COALESCE(r.ou_role,'') AS ou_role,
+            ARRAY_TO_STRING(ARRAY(SELECT name FROM organization_unit WHERE id = ANY(r.ou_ids) ORDER BY name, id), ', ') AS ou_names,
             r.role AS effective_role
        FROM workspace_effective_roles r JOIN users u ON u.id=r.user_id
       WHERE r.workspace_id=$1 ORDER BY u.email",
@@ -340,7 +342,7 @@ async fn undelete(args: SharedWorkspaceUndeleteArgs, svc: &Services, json: bool)
 async fn load_shared_workspace(svc: &Services, workspace_id: Uuid) -> anyhow::Result<SharedWorkspaceRow> {
   let row = sqlx::query(
     r#"SELECT w.id, w.name, w.owner_principal_id, ou.name AS owner_unit_name, COALESCE(w.ou_member_role, '') AS ou_member_role,
-              (SELECT COUNT(*) FROM workspace_memberships wm WHERE wm.workspace_id = w.id) AS member_count,
+              (SELECT COUNT(*) FROM workspace_effective_roles wm WHERE wm.workspace_id = w.id) AS member_count,
               w.created_at
          FROM workspaces w
          JOIN organization_unit ou ON ou.id = w.owner_principal_id

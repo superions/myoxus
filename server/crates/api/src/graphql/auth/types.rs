@@ -357,9 +357,12 @@ pub struct WorkspaceMemberType {
   pub disabled: Option<bool>,
   pub has_password: Option<bool>,
   pub role: WorkspaceRole,
+  pub direct_role: Option<WorkspaceRole>,
+  pub ou_role: Option<WorkspaceRole>,
+  pub ou_names: Vec<String>,
   pub permission: WorkspaceRole, // deprecated but kept for compatibility
   pub status: WorkspaceMemberStatus,
-  pub invite_id: String,
+  pub invite_id: Option<String>,
 }
 
 impl WorkspaceMemberType {
@@ -376,7 +379,10 @@ impl WorkspaceMemberType {
       role,
       permission: role,
       status: m.status.into(),
-      invite_id: m.invite_id.to_string(),
+      direct_role: m.direct_role.map(Into::into),
+      ou_role: m.ou_role.map(Into::into),
+      ou_names: m.ou_names,
+      invite_id: m.invite_id.map(|id| id.to_string()),
     }
   }
 }
@@ -1443,7 +1449,7 @@ pub struct PaginatedDocGrantedUserType {
 
 /// GraphQL output type for a workspace document (metadata only, no content).
 pub struct WorkspaceDocType {
-  pub(super) workspace_role: Option<myoxus_domain::entities::WorkspaceRole>,
+  pub(super) workspace_access: myoxus_application::permission::WorkspaceAccess,
   /// Document UUID.
   pub id: String,
   /// UUID of the owning workspace.
@@ -2970,6 +2976,13 @@ pub struct ListedBlobType {
   pub size: i32,
   pub mime: String,
   pub created_at: DateTime<Utc>,
+}
+
+#[derive(SimpleObject)]
+pub struct UnusedBlobPage {
+  pub ready: bool,
+  pub total: i64,
+  pub items: Vec<ListedBlobType>,
 }
 
 // ─── Page metadata & history types (P24) ─────────────────────────────────────

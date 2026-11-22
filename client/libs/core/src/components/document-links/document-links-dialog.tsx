@@ -6,13 +6,15 @@ import {
   TabsList,
   TabsTrigger,
 } from "@myoxus/ui-facade";
-import type { RefObject } from "react";
+import { lazy, Suspense, type RefObject } from "react";
 
-import {
-  DocumentBacklinksList,
-  DocumentOutgoingLinksList,
-  useDocumentLinkCounts,
-} from "./document-links-content";
+import { useDocumentLinkCounts } from "./use-document-link-counts";
+const DocumentBacklinksList = lazy(async () => ({
+  default: (await import("./document-links-content")).DocumentBacklinksList,
+}));
+const DocumentOutgoingLinksList = lazy(async () => ({
+  default: (await import("./document-links-content")).DocumentOutgoingLinksList,
+}));
 
 type DocumentLinksDialogProps = {
   open: boolean;
@@ -74,10 +76,14 @@ export function DocumentLinksDialog({
             </TabsTrigger>
           </TabsList>
           <TabsContent layout="stack" value={TAB_BACKLINKS}>
-            <DocumentBacklinksList />
+            <Suspense>
+              <DocumentBacklinksList />
+            </Suspense>
           </TabsContent>
           <TabsContent layout="stack" value={TAB_OUTGOING}>
-            <DocumentOutgoingLinksList />
+            <Suspense>
+              <DocumentOutgoingLinksList />
+            </Suspense>
           </TabsContent>
         </Tabs>
       ) : null}

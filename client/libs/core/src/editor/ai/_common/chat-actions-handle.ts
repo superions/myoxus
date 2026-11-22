@@ -4,7 +4,7 @@ import {
   InsertBleowIcon as InsertBelowIcon,
   LinkedPageIcon,
   PageIcon,
-} from "@myoxus/icons/lit";
+} from "@myoxus/icons/react";
 import { EdgelessCRUDIdentifier } from "@virgultum/editor/blocks/surface";
 import {
   Bound,
@@ -38,7 +38,7 @@ import {
 } from "@virgultum/editor/std";
 import { GfxControllerIdentifier } from "@virgultum/editor/std/gfx";
 import type { Store } from "@virgultum/editor/store";
-import type { TemplateResult } from "lit";
+import { createElement, type ReactNode } from "react";
 
 import { insertFromMarkdown } from "../../utils";
 import type { ChatMessage } from "../components/ai-chat-messages";
@@ -57,7 +57,7 @@ const AI_CHAT_ACTION_ICON_SIZE =
   "calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs))";
 
 export type ChatAction = {
-  icon: TemplateResult<1>;
+  icon: ReactNode;
   title: string;
   toast: string;
   showWhen: (host: EditorHost) => boolean;
@@ -67,7 +67,7 @@ export type ChatAction = {
     currentSelections: Selections,
     chatSessionId?: string,
     messageId?: string,
-  ) => Promise<boolean>;
+  ) => boolean | Promise<boolean>;
 };
 
 export async function queryHistoryMessages(
@@ -257,7 +257,7 @@ async function insertBelowBlock(
 }
 
 export const PAGE_INSERT = {
-  icon: InsertBelowIcon({
+  icon: createElement(InsertBelowIcon, {
     width: AI_CHAT_ACTION_ICON_SIZE,
     height: AI_CHAT_ACTION_ICON_SIZE,
   }),
@@ -352,7 +352,7 @@ export const EDGELESS_INSERT = {
 };
 
 const SAVE_AS_BLOCK: ChatAction = {
-  icon: BlockIcon({
+  icon: createElement(BlockIcon, {
     width: AI_CHAT_ACTION_ICON_SIZE,
     height: AI_CHAT_ACTION_ICON_SIZE,
   }),
@@ -453,7 +453,7 @@ const SAVE_AS_BLOCK: ChatAction = {
 };
 
 const ADD_TO_EDGELESS_AS_NOTE = {
-  icon: EdgelessIcon({
+  icon: createElement(EdgelessIcon, {
     width: AI_CHAT_ACTION_ICON_SIZE,
     height: AI_CHAT_ACTION_ICON_SIZE,
   }),
@@ -501,7 +501,7 @@ const ADD_TO_EDGELESS_AS_NOTE = {
 };
 
 export const SAVE_AS_DOC = {
-  icon: PageIcon({
+  icon: createElement(PageIcon, {
     width: AI_CHAT_ACTION_ICON_SIZE,
     height: AI_CHAT_ACTION_ICON_SIZE,
   }),
@@ -546,7 +546,7 @@ export const SAVE_AS_DOC = {
 };
 
 const CREATE_AS_LINKED_DOC = {
-  icon: LinkedPageIcon({
+  icon: createElement(LinkedPageIcon, {
     width: AI_CHAT_ACTION_ICON_SIZE,
     height: AI_CHAT_ACTION_ICON_SIZE,
   }),

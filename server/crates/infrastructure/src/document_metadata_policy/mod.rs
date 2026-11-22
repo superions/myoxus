@@ -221,8 +221,8 @@ const METADATA_INDEX_VERSION_SQL: &str = r#"
     COALESCE(global_list_index.revision, 0)
   ) AS version
   FROM (SELECT 1) seed
-  LEFT JOIN workspace_document_metadata_index_revision index_revision
-    ON index_revision.workspace_id = $1
+  LEFT JOIN workspace_revisions index_revision
+    ON index_revision.workspace_id = $1 AND index_revision.epoch_name='document_index'
   LEFT JOIN document_metadata_global_epoch global_list_index
     ON global_list_index.epoch_name = 'list_index'
 "#;
@@ -1225,7 +1225,7 @@ impl DocumentMetadataPolicyRepository for PgDocumentMetadataPolicyRepository {
              default_document_type_id, default_classification_id,
              default_retention_policy_id, updated_by, updated_at
       FROM document_workspace_settings
-      WHERE workspace_id = $1
+      WHERE workspace_id = $1 AND updated_at IS NOT NULL
       "#,
     )
     .bind(workspace_id)

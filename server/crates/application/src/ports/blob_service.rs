@@ -877,6 +877,20 @@ impl BlobService {
     Ok(purged)
   }
 
+  #[instrument(skip_all)]
+  pub async fn unused_blob_page(
+    &self,
+    workspace: Uuid,
+    offset: i64,
+    limit: i64,
+    keys: Option<&[String]>,
+  ) -> AuthResult<Option<(i64, Vec<BlobMetadata>)>> {
+    self
+      .store
+      .unused_blob_page(workspace, offset.max(0), limit.clamp(1, 100), keys)
+      .await
+  }
+
   #[instrument(skip(self))]
   pub async fn list_workspace_blobs(
     &self,
@@ -926,7 +940,17 @@ impl BlobService {
 
   #[instrument(skip(self))]
   pub async fn hard_delete_blob(&self, workspace_id: Uuid, key: &str) -> AuthResult<bool> {
+    self.delete_content(workspace_id, key, false).await
+  }
+
+  #[instrument(skip_all)]
+  pub async fn delete_content(&self, workspace_id: Uuid, key: &str, only_if_unused: bool) -> AuthResult<bool> {
     let parsed_key = self.parse_key(key)?;
+    let reserved = if only_if_unused {
+      Some(self.store.reserve_unused_removal(workspace_id, &parsed_key).await?)
+    } else {
+      None
+    };
     let storage_key = format!("{workspace_id}/{}", parsed_key.as_str());
     if let Err(err) = self.storage.delete_blob(&storage_key).await {
       warn!(
@@ -939,7 +963,12 @@ impl BlobService {
         "blob content deletion failed; metadata retained".into(),
       ));
     }
-    self.store.hard_delete_blob(workspace_id, &parsed_key).await
+    if let Some(reserved) = reserved {
+      reserved.commit().await?;
+      Ok(true)
+    } else {
+      self.store.hard_delete_blob(workspace_id, &parsed_key).await
+    }
   }
 
   #[instrument(skip(self))]

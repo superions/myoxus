@@ -144,14 +144,13 @@ impl PgWorkspaceAutomationRepository {
       if run.idempotency_key!=review.fingerprint{return Err(RepositoryError::Conflict("review request input"))}
       return Ok(run);
     }
-    let member: Option<bool> = sqlx::query_scalar(
-      "SELECT true FROM workspace_memberships WHERE workspace_id=$1 AND user_id=$2 AND status='Accepted' FOR SHARE",
-    )
-    .bind(accepted.workspace_id)
-    .bind(review.plan.reviewer_id)
-    .fetch_optional(&mut **tx)
-    .await
-    .map_err(storage)?;
+    let member: Option<bool> =
+      sqlx::query_scalar("SELECT true FROM workspace_effective_roles WHERE workspace_id=$1 AND user_id=$2 FOR SHARE")
+        .bind(accepted.workspace_id)
+        .bind(review.plan.reviewer_id)
+        .fetch_optional(&mut **tx)
+        .await
+        .map_err(storage)?;
     if member != Some(true) || review.plan.deadline_at <= chrono::Utc::now() {
       return Err(RepositoryError::Validation(
         "review admission expired or reviewer unavailable".into(),
@@ -937,7 +936,14 @@ impl WorkspaceAutomationRepository for PgWorkspaceAutomationRepository {
     if let Some(row)=sqlx::query("SELECT * FROM workspace_automation_runs WHERE origin_kind='task_handover' AND confirmed_actor_id=$1 AND confirmed_request_id=$2 FOR UPDATE").bind(handover.plan.actor_id).bind(handover.request_id).fetch_optional(&mut *tx).await.map_err(Self::storage_error)? {
       let run=Self::map_run(row)?;if run.workspace_id!=accepted.workspace_id||run.idempotency_key!=handover.fingerprint{return Err(RepositoryError::Conflict("handover request input"))}tx.commit().await.map_err(Self::storage_error)?;return Ok(run)
     }
-    let member:Option<Uuid>=sqlx::query_scalar("SELECT user_id FROM workspace_memberships WHERE workspace_id=$1 AND user_id=$2 AND status='Accepted' FOR SHARE NOWAIT").bind(accepted.workspace_id).bind(handover.plan.responsible_id).fetch_optional(&mut *tx).await.map_err(Self::storage_error)?;
+    let member: Option<Uuid> = sqlx::query_scalar(
+      "SELECT user_id FROM workspace_effective_roles WHERE workspace_id=$1 AND user_id=$2 FOR SHARE NOWAIT",
+    )
+    .bind(accepted.workspace_id)
+    .bind(handover.plan.responsible_id)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(Self::storage_error)?;
     let source:Option<Uuid>=sqlx::query_scalar("SELECT id FROM docs WHERE id=$1 AND workspace_id=$2 AND external_id=$3 AND deleted_at IS NULL AND blocked=false AND is_workspace_root=false FOR SHARE NOWAIT").bind(handover.plan.source_document_id).bind(accepted.workspace_id).bind(&handover.plan.source_external_id).fetch_optional(&mut *tx).await.map_err(Self::storage_error)?;
     if member.is_none() || source.is_none() {
       return Err(RepositoryError::Validation(

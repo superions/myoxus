@@ -5,8 +5,7 @@ import { useRegisterFindInPageCommands } from "@myoxus/core/components/hooks/myo
 import { useRegisterWorkspaceCommands } from "@myoxus/core/components/hooks/use-register-workspace-commands";
 import { useRegisterNavigationCommands } from "@myoxus/core/modules/navigation/view/use-register-navigation-commands";
 import { QuickSearchContainer } from "@myoxus/core/modules/quicksearch";
-import { ServerService } from "@myoxus/core/modules/server";
-import { useLiveData, useService } from "@myoxus/infra";
+import { useEnableAI } from "@myoxus/core/components/hooks/myoxus/use-enable-ai";
 import { lazy, Suspense } from "react";
 
 const WorkspaceAIRuntime = lazy(async () => {
@@ -28,13 +27,12 @@ const WorkspaceCommandRuntime = () => {
  * that actually advertise Copilot support.
  */
 export const WorkspaceRuntime = () => {
-  const server = useService(ServerService).server;
-  const features = useLiveData(server.features$);
+  const enabled = useEnableAI();
 
   return (
     <>
       <WorkspaceCommandRuntime />
-      {features?.copilot ? (
+      {enabled ? (
         <Suspense fallback={null}>
           <WorkspaceAIRuntime />
         </Suspense>

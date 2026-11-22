@@ -685,7 +685,7 @@ fn task_summary_sql() -> &'static str {
         'due', p.due, 'priority', p.priority, 'canEdit', false,
         'hasAssignees', p.has_assignees, 'hasDue', p.has_due, 'hasPriority', p.has_priority,
         'assignees', (SELECT COALESCE(jsonb_agg(jsonb_build_object('id', u.id, 'name', u.name) ORDER BY lower(u.name), u.id), '[]'::jsonb)
-          FROM users u JOIN workspace_memberships m ON m.user_id = u.id AND m.workspace_id = $1 AND m.status = 'Accepted'
+          FROM users u JOIN workspace_effective_roles m ON m.user_id = u.id AND m.workspace_id = $1
           WHERE u.status = 'active' AND p.assignee_ids @> jsonb_build_array(u.id::text))
       )"#
 }

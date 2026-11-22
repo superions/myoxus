@@ -22,8 +22,8 @@ use zip::ZipArchive;
 
 use crate::auth::AuthError;
 use myoxus_workspace_import::{
-  ArchiveLimits, PortableArchiveKind, detect_portable_archive_kind, inspect_zip_bytes, is_ignored_archive_entry,
-  validate_snapshot_archive,
+  ArchiveIndex, ArchiveLimits, PortableArchiveKind, detect_portable_archive_kind, is_ignored_archive_entry,
+  open_inspected_zip, validate_snapshot_archive,
 };
 
 const CANONICAL_CONTENT_ENTRY: &str = "content.template.zip";
@@ -328,9 +328,13 @@ impl NestedArchiveBudget {
     }
   }
 
-  pub fn account(&mut self, bytes: &[u8]) -> Result<myoxus_workspace_import::ArchiveIndex, AuthError> {
-    let index =
-      inspect_zip_bytes(bytes, self.limits.into()).map_err(|error| AuthError::InvalidInput(error.to_string()))?;
+  pub fn account(&mut self, bytes: &[u8]) -> Result<ArchiveIndex, AuthError> {
+    self.open(bytes).map(|(_, index)| index)
+  }
+
+  pub fn open<'a>(&mut self, bytes: &'a [u8]) -> Result<(ZipArchive<Cursor<&'a [u8]>>, ArchiveIndex), AuthError> {
+    let (archive, index) =
+      open_inspected_zip(bytes, self.limits.into()).map_err(|error| AuthError::InvalidInput(error.to_string()))?;
     self.expanded = self
       .expanded
       .checked_add(index.expanded_bytes)
@@ -344,7 +348,7 @@ impl NestedArchiveBudget {
         "aggregate nested archive limit exceeded".into(),
       ));
     }
-    Ok(index)
+    Ok((archive, index))
   }
 }
 
@@ -421,7 +425,7 @@ pub fn parse_bundle_with_filename_and_limits(
   filename: &str,
   limits: TemplateBundleZipLimits,
 ) -> Result<ParsedBundle, AuthError> {
-  let detected = detect_template_format_with_limits(data, limits)?;
+  let (mut archive, detected) = open_template_input(data, limits)?;
   let TemplateFormatDetectionResult {
     format,
     entry_names,
@@ -430,7 +434,8 @@ pub fn parse_bundle_with_filename_and_limits(
     detect_duration,
   } = detected;
 
-  let normalized = normalize_template_input(data, filename, &entry_names, format, ignored_entries)?;
+  let normalized =
+    normalize_template_input_from_archive(data, filename, &mut archive, &entry_names, format, ignored_entries)?;
 
   // Compute content checksum
   let mut content_hasher = Sha256::new();
@@ -469,6 +474,13 @@ pub fn detect_template_format_with_limits(
   data: &[u8],
   limits: TemplateBundleZipLimits,
 ) -> Result<TemplateFormatDetectionResult, AuthError> {
+  open_template_input(data, limits).map(|(_, detection)| detection)
+}
+
+fn open_template_input(
+  data: &[u8],
+  limits: TemplateBundleZipLimits,
+) -> Result<(ZipArchive<Cursor<&[u8]>>, TemplateFormatDetectionResult), AuthError> {
   if looks_like_template_json(data) {
     warn!(
       error_code = "UNSUPPORTED_TEMPLATE_JSON",
@@ -482,8 +494,8 @@ pub fn detect_template_format_with_limits(
 
   let detect_started = Instant::now();
   let archive_limits = ArchiveLimits::from(limits);
-  let archive_index =
-    inspect_zip_bytes(data, archive_limits).map_err(|error| AuthError::InvalidInput(error.to_string()))?;
+  let (archive, archive_index) =
+    open_inspected_zip(data, archive_limits).map_err(|error| AuthError::InvalidInput(error.to_string()))?;
   let entry_names = archive_index.entry_names();
   let ignored_entries = archive_index.ignored_entry_names();
   if !ignored_entries.is_empty() {
@@ -505,13 +517,16 @@ pub fn detect_template_format_with_limits(
   bundle_hasher.update(data);
   let bundle_checksum = format!("{:x}", bundle_hasher.finalize());
 
-  Ok(TemplateFormatDetectionResult {
-    format,
-    entry_names,
-    ignored_entries,
-    bundle_checksum,
-    detect_duration,
-  })
+  Ok((
+    archive,
+    TemplateFormatDetectionResult {
+      format,
+      entry_names,
+      ignored_entries,
+      bundle_checksum,
+      detect_duration,
+    },
+  ))
 }
 
 fn open_zip_archive(data: &[u8]) -> Result<ZipArchive<Cursor<&[u8]>>, AuthError> {
@@ -1848,7 +1863,9 @@ mod tests {
       ("__MACOSX/._content.template.zip", b"noise"),
     ]);
 
-    let archive_index = inspect_zip_bytes(&bundle, ArchiveLimits::from(TemplateBundleZipLimits::default())).unwrap();
+    let archive_index =
+      myoxus_workspace_import::inspect_zip_bytes(&bundle, ArchiveLimits::from(TemplateBundleZipLimits::default()))
+        .unwrap();
     let entry_names = archive_index.entry_names();
     let ignored_entries = archive_index.ignored_entry_names();
 

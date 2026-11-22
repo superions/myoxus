@@ -410,6 +410,33 @@ impl SearchRepository for SqlxSearchRepository {
 
 #[async_trait]
 impl ApplicationSearchStore for SqlxSearchRepository {
+  async fn pending_blob_usage(&self, workspace: Uuid, doc: Uuid) -> AuthResult<Option<i64>> {
+    sqlx::query_scalar("SELECT generation FROM document_blob_usage WHERE workspace_id=$1 AND doc_id=$2 AND dirty")
+      .bind(workspace)
+      .bind(doc)
+      .fetch_optional(&self.pool)
+      .await
+      .map_err(Self::map_db_err_auth)
+  }
+
+  async fn claim_blob_usage_batch(&self, limit: i64) -> AuthResult<Vec<(Uuid, Uuid, i64)>> {
+    sqlx::query_as(
+      "WITH due AS (SELECT workspace_id,doc_id FROM document_blob_usage WHERE dirty AND available_at<=now()
+      ORDER BY available_at,workspace_id,doc_id LIMIT $1 FOR UPDATE SKIP LOCKED)
+      UPDATE document_blob_usage u SET available_at=now()+interval '2 minutes' FROM due
+      WHERE (u.workspace_id,u.doc_id)=(due.workspace_id,due.doc_id) RETURNING u.workspace_id,u.doc_id,u.generation",
+    )
+    .bind(limit)
+    .fetch_all(&self.pool)
+    .await
+    .map_err(Self::map_db_err_auth)
+  }
+
+  async fn finish_blob_usage(&self, workspace: Uuid, doc: Uuid, generation: i64, keys: Vec<String>) -> AuthResult<()> {
+    sqlx::query("UPDATE document_blob_usage SET keys=$4,dirty=false WHERE workspace_id=$1 AND doc_id=$2 AND generation=$3 AND dirty")
+      .bind(workspace).bind(doc).bind(generation).bind(keys).execute(&self.pool).await.map_err(Self::map_db_err_auth)?;
+    Ok(())
+  }
   /// Fetch a single search document by workspace + document ID, returning
   /// `None` when not found.
   #[instrument(skip(self))]
@@ -766,6 +793,7 @@ pub async fn hybrid_search(
   query_embedding: &[f32],
   model: &str,
   limit: i32,
+  offset: i64,
 ) -> Result<Vec<HybridSearchResult>, RepositoryError> {
   let query_trimmed = query_text.trim();
   if query_trimmed.is_empty() {
@@ -794,7 +822,7 @@ pub async fn hybrid_search(
   let rows = sqlx::query(&format!(
     r#"
     WITH vector_sources AS (
-        SELECT DISTINCT ON (e.source_id) e.source_id AS doc_id, e.chunk_text, d.title,
+        SELECT DISTINCT ON (e.source_id) d.id AS doc_id, e.chunk_text, d.title,
                {distance} AS distance
         FROM copilot_embeddings e
         JOIN docs d ON d.workspace_id=e.workspace_id AND d.id::text=e.source_id
@@ -809,30 +837,27 @@ pub async fn hybrid_search(
         SELECT doc_id, chunk_text, title,
                ROW_NUMBER() OVER (ORDER BY distance, doc_id) AS vector_rank
         FROM vector_sources
-        ORDER BY distance, doc_id
-        LIMIT $4
     ),
     fts_results AS (
-        SELECT doc_id::text AS doc_id, title,
+        SELECT doc_id, title, plain_text,
                ROW_NUMBER() OVER (
-                 ORDER BY ts_rank(search_vector, plainto_tsquery('simple', $3)) DESC
+                 ORDER BY ts_rank(search_vector, plainto_tsquery('simple', $3)) DESC, doc_id
                ) AS fts_rank
         FROM search_content
         WHERE workspace_id = $2
-          AND search_vector @@ plainto_tsquery('simple', $3)
-        LIMIT $4
+          AND (search_vector @@ plainto_tsquery('simple', $3)
+               OR to_tsvector('simple', title || ' ' || plain_text) @@ websearch_to_tsquery('simple', $3)
+               OR title ILIKE '%' || $3 || '%' OR plain_text ILIKE '%' || $3 || '%')
     )
     SELECT COALESCE(v.doc_id, f.doc_id) AS doc_id,
            COALESCE(f.title, v.title) AS title,
-           v.chunk_text,
-           (1.0::double precision /
-             (60.0::double precision + COALESCE(v.vector_rank, 1000)::double precision)) +
-           (1.0::double precision /
-             (60.0::double precision + COALESCE(f.fts_rank, 1000)::double precision)) AS rrf_score
+           COALESCE(v.chunk_text, f.plain_text) AS chunk_text,
+           COALESCE(1.0::double precision / (60 + v.vector_rank), 0) +
+           COALESCE(1.0::double precision / (60 + f.fts_rank), 0) AS rrf_score
     FROM vector_results v
     FULL OUTER JOIN fts_results f ON v.doc_id = f.doc_id
-    ORDER BY rrf_score DESC
-    LIMIT $4
+    ORDER BY rrf_score DESC, COALESCE(v.doc_id, f.doc_id)
+    LIMIT $4 OFFSET $6
     "#,
   ))
   .bind(&embedding_literal)
@@ -840,6 +865,7 @@ pub async fn hybrid_search(
   .bind(query_trimmed)
   .bind(limit)
   .bind(model)
+  .bind(offset)
   .fetch_all(pool)
   .await
   .map_err(|e| {

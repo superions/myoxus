@@ -807,8 +807,7 @@ impl PgDatabaseRepository {
       .map(Self::map_cell)
       .collect::<RepoResult<Vec<_>>>()?;
     record.cell_revisions = self.list_cell_revisions_for_rows(&[row_id]).await?;
-    record.cells.extend(self.list_rollup_cells_for_rows(&[row_id]).await?);
-    record.cells.extend(self.list_formula_cells_for_rows(&[row_id]).await?);
+    record.cells.extend(self.list_computed_cells_for_rows(&[row_id]).await?);
     Ok(Some(record))
   }
 

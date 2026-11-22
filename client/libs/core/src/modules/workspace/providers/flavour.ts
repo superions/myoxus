@@ -63,6 +63,7 @@ export interface WorkspaceFlavourProvider {
     workspaceId: string,
     blob: string,
     permanent: boolean,
+    onlyIfUnused?: boolean,
   ): Promise<void>;
 
   getEngineWorkerInitOptions(workspaceId: string): WorkerInitOptions;

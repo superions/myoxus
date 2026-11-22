@@ -2,7 +2,7 @@ import { useI18n } from "@myoxus/i18n";
 import { LinkIcon } from "@myoxus/icons/react";
 import { Badge, MenuItem } from "@myoxus/ui-facade";
 
-import { useDocumentLinkCounts } from "./document-links-content";
+import { useDocumentLinkCounts } from "./use-document-link-counts";
 
 type DocumentLinksMenuItemProps = {
   onSelect: () => void;

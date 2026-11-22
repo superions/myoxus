@@ -73,7 +73,6 @@ const CANONICAL_TRANSFER: &[&str] = &[
   "document_presentation_state",
   "document_template_state",
   "document_version",
-  "document_version_artifact",
   "document_version_label_counter",
   "document_version_relation",
   "document_versioning_settings",
@@ -97,28 +96,22 @@ const WORKSPACE_RECONCILE: &[&str] = &[
   "workspace_databases",
   "workspace_document_audience_default",
   "workspace_tag_document_assignments",
-  "workspace_tag_legacy_ids",
   "workspace_tags",
 ];
 
 const BLOB_MATERIALIZE: &[&str] = &["blobs"];
 
 const DERIVED_REBUILD: &[&str] = &[
-  "ai_workspace_doc_embeddings",
-  "ai_workspace_file_embeddings",
   "copilot_embeddings",
   "database_document_references",
   "database_row_tag_references",
+  "document_blob_usage",
   "document_graph_index_state",
   "document_graph_occurrences",
   "search_content",
-  "workspace_analytics_minute",
-  "workspace_database_formula_values",
-  "workspace_database_page_inventory_revision",
-  "workspace_database_rollup_values",
+  "workspace_database_computed_values",
   "workspace_database_row_search",
-  "workspace_document_metadata_epoch",
-  "workspace_document_metadata_index_revision",
+  "workspace_revisions",
   "workspace_member_last_access",
   "workspace_storage_stats",
   "workspace_storage_stats_daily",
@@ -126,12 +119,8 @@ const DERIVED_REBUILD: &[&str] = &[
 
 const SOURCE_OWNED: &[&str] = &[
   "admin_audit_log",
-  "ai_workspace_files",
-  "ai_workspace_ignored_docs",
   "app_server_branding",
   "brand_assets",
-  "branding_assets",
-  "branding_profiles",
   "calendar_event_instances",
   "calendar_event_participants",
   "calendar_event_source_links",
@@ -141,7 +130,6 @@ const SOURCE_OWNED: &[&str] = &[
   // copying them would carry prior delivery state into an unrelated workspace.
   "calendar_mail_state",
   "calendar_pending_writes",
-  "calendar_reminder_dispatch_log",
   "calendar_reminder_mail_receipts",
   "calendar_reminders",
   "calendar_reminder_definitions",
@@ -168,21 +156,19 @@ const SOURCE_OWNED: &[&str] = &[
   "document_history_capture_request",
   "document_initial_sync_audit",
   "document_version_policy",
-  "document_versioning_workspace_settings",
   "document_workspace_settings",
-  "git_sync_baselines",
   "git_sync_bindings",
   "git_sync_blob_promotions",
   "git_sync_bootstrap_attempts",
   "git_sync_conflicts",
   "git_sync_credentials",
+  "git_sync_document_bindings",
   "git_sync_file_baselines",
   "git_sync_file_bindings",
   "git_sync_file_conflicts",
   "git_sync_history_capture_receipts",
   "git_sync_partial_items",
   "git_sync_partial_sessions",
-  "git_sync_path_owners",
   "git_sync_profiles",
   "git_sync_runs",
   // A detached scope fence stays with its source even if its target disappears.
@@ -191,7 +177,6 @@ const SOURCE_OWNED: &[&str] = &[
   "git_sync_webhook_deliveries",
   "git_token_rotation",
   "multipart_blob_parts",
-  "multipart_uploads",
   "notifications",
   "organization_unit_workspace",
   // Workspace-local registration decisions survive Move at their source key.
@@ -232,12 +217,9 @@ const SOURCE_OWNED: &[&str] = &[
   "workspace_content_operation_compensations",
   // Historical views belong to the workspace where they occurred, not the document's later owner.
   "workspace_doc_view_daily",
-  "workspace_content_copy_publications",
-  "workspace_content_extract_publications",
+  "workspace_content_publications",
   "workspace_content_extract_targets",
-  "workspace_content_link_publications",
   "workspace_content_move_revision_manifests",
-  "workspace_content_move_publications",
   "workspace_content_operation_link_intents",
   "workspace_content_operation_mappings",
   "workspace_content_operation_recipient_outbox",
@@ -252,18 +234,20 @@ const SOURCE_OWNED: &[&str] = &[
   "workspace_imports",
   "workspace_invite_links",
   "workspace_memberships",
+  // Access stays with each workspace and follows its grants and current OU membership.
+  "workspace_effective_roles",
+  "workspace_role_projection",
+  "workspace_role_sources",
   // Actor-owned creation identities survive result deletion and never transfer.
   "workspace_starter_applications",
-  // Retirement identities prevent resurrection only inside their owning
-  // workspace. Copying them could suppress an unrelated Tag identity in the
-  // target workspace, so content operations never transfer them implicitly.
-  "workspace_tag_retired_ids",
+  // Aliases and retired IDs stay in their originating workspace during content transfers.
+  "workspace_tag_identities",
   "workspace_template_instances",
   "workspace_template_policies",
   "workspaces",
 ];
 
-const PUBLICATION_POLICY: &[&str] = &["public_asset_manifest", "public_render_artifacts"];
+const PUBLICATION_POLICY: &[&str] = &["public_asset_manifest"];
 
 const MANIFEST_GROUPS: &[(WorkspaceContentDependencyClass, &[&str])] = &[
   (WorkspaceContentDependencyClass::CanonicalTransfer, CANONICAL_TRANSFER),
@@ -343,14 +327,7 @@ mod tests {
       ),
       ("blobs", WorkspaceContentDependencyClass::BlobMaterialize),
       ("search_content", WorkspaceContentDependencyClass::DerivedRebuild),
-      (
-        "workspace_document_metadata_index_revision",
-        WorkspaceContentDependencyClass::DerivedRebuild,
-      ),
-      (
-        "workspace_database_page_inventory_revision",
-        WorkspaceContentDependencyClass::DerivedRebuild,
-      ),
+      ("workspace_revisions", WorkspaceContentDependencyClass::DerivedRebuild),
       ("notifications", WorkspaceContentDependencyClass::SourceOwned),
       (
         "workspace_starter_applications",
@@ -375,7 +352,7 @@ mod tests {
         WorkspaceContentDependencyClass::SourceOwned,
       ),
       (
-        "public_render_artifacts",
+        "public_asset_manifest",
         WorkspaceContentDependencyClass::PublicationPolicy,
       ),
     ] {

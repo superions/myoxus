@@ -48,20 +48,13 @@ export const editorEffectElementTags = [
 export type EditorEffectElementTag = (typeof editorEffectElementTags)[number];
 
 export const appEffectElementTags = [
-  "chat-copy-more",
   "ai-loading",
   "ai-chat-content",
   "ai-chat-messages",
   "ai-chat-input",
-  "ai-chat-add-context",
   "ai-chat-composer",
   "chat-panel-chips",
   "ai-history-clear",
-  "chat-panel-add-popover",
-  "chat-input-preference",
-  "chat-panel-candidates-popover",
-  "chat-panel-doc-chip",
-  "chat-panel-chip",
   "chat-assistant-avatar",
   "chat-message-assistant",
   "chat-message-user",

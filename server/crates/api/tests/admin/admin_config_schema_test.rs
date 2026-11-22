@@ -497,7 +497,7 @@ fn transcription_setup_persists_and_hotreloads_with_copilot_disabled() {
         json!({"query": mutation, "variables": {"updates": previous}}),
       )
       .await;
-      sqlx::query("DELETE FROM config_changelog WHERE changed_by = $1")
+      sqlx::query("DELETE FROM admin_audit_log WHERE category='config' AND actor_user_id = $1")
         .bind(admin_id)
         .execute(&pool)
         .await
@@ -650,7 +650,7 @@ fn transcription_connection_check_is_admin_only_saved_bounded_and_invalidated() 
         json!({"query":mutation,"variables":{"updates":previous}}),
       )
       .await;
-      sqlx::query("DELETE FROM config_changelog WHERE changed_by = $1")
+      sqlx::query("DELETE FROM admin_audit_log WHERE category='config' AND actor_user_id = $1")
         .bind(admin)
         .execute(&pool)
         .await

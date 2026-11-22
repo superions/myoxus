@@ -174,7 +174,7 @@ impl CalendarSchedulingMailDispatcher {
       {
         allowed &= self
           .workspace
-          .get_member(workspace, user.id)
+          .effective_member(workspace, user.id)
           .await
           .map_err(|_| retry("Calendar mail access unavailable"))?
           .is_some_and(|member| member.status == MembershipStatus::Accepted);
@@ -233,7 +233,7 @@ impl CalendarSchedulingMailDispatcher {
         if let Some(user) = &user {
           if self
             .workspace
-            .get_member(workspace, user.id)
+            .effective_member(workspace, user.id)
             .await
             .map_err(|_| retry("Calendar action access unavailable"))?
             .is_some_and(|member| member.status == MembershipStatus::Accepted)

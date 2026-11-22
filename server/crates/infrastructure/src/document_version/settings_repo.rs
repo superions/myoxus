@@ -223,7 +223,7 @@ impl DocumentVersioningSettingsRepository for PgDocumentVersioningSettingsReposi
             COALESCE(ws.retention_count, $3) AS retention_count,
             COALESCE(ws.enabled, $4) AS enabled
           FROM docs d
-          LEFT JOIN document_versioning_workspace_settings ws
+          LEFT JOIN document_workspace_settings ws
             ON ws.workspace_id = d.workspace_id
           WHERE d.id = $1
           "#,
@@ -264,7 +264,7 @@ impl DocumentVersioningSettingsRepository for PgDocumentVersioningSettingsReposi
         COALESCE(d.updated_by, d.created_by) AS actor_id
       FROM docs d
       LEFT JOIN document_versioning_settings s ON s.doc_id = d.id
-      LEFT JOIN document_versioning_workspace_settings ws ON ws.workspace_id = d.workspace_id
+      LEFT JOIN document_workspace_settings ws ON ws.workspace_id = d.workspace_id
       WHERE (
           (s.doc_id IS NOT NULL AND s.enabled = true AND $1 = ANY(s.auto_version_on))
           OR
@@ -307,12 +307,12 @@ impl DocumentVersioningSettingsRepository for PgDocumentVersioningSettingsReposi
         COALESCE(s.retention_count, ws.retention_count, $1) AS retention_count
       FROM docs d
       LEFT JOIN document_versioning_settings s ON s.doc_id = d.id
-      LEFT JOIN document_versioning_workspace_settings ws ON ws.workspace_id = d.workspace_id
+      LEFT JOIN document_workspace_settings ws ON ws.workspace_id = d.workspace_id
       WHERE d.deleted_at IS NULL
         AND d.workspace_id IS NOT NULL
         AND (
           s.doc_id IS NOT NULL
-          OR ws.workspace_id IS NOT NULL
+          OR ws.versioning_updated_at IS NOT NULL
           OR $2 = true
         )
       "#,
@@ -408,9 +408,9 @@ impl DocumentVersioningSettingsRepository for PgDocumentVersioningSettingsReposi
         settings.retention_count,
         settings.edit_capture_enabled,
         settings.edit_capture_interval_ms,
-        settings.updated_at
+        settings.versioning_updated_at AS updated_at
       FROM workspaces w
-      LEFT JOIN document_versioning_workspace_settings settings
+      LEFT JOIN document_workspace_settings settings
         ON settings.workspace_id = w.id
       WHERE w.lifecycle_state = 'active'
       ORDER BY lower(COALESCE(w.name, w.id::text)), w.id
@@ -437,9 +437,9 @@ impl DocumentVersioningSettingsRepository for PgDocumentVersioningSettingsReposi
         settings.retention_count,
         settings.edit_capture_enabled,
         settings.edit_capture_interval_ms,
-        settings.updated_at
+        settings.versioning_updated_at AS updated_at
       FROM workspaces w
-      LEFT JOIN document_versioning_workspace_settings settings
+      LEFT JOIN document_workspace_settings settings
         ON settings.workspace_id = w.id
       WHERE w.id = $1 AND w.lifecycle_state = 'active'
       "#,
@@ -480,8 +480,8 @@ impl DocumentVersioningSettingsRepository for PgDocumentVersioningSettingsReposi
     let current = sqlx::query(
       r#"
       SELECT enabled, auto_version_on, retention_count,
-             edit_capture_enabled, edit_capture_interval_ms, updated_at
-      FROM document_versioning_workspace_settings
+             edit_capture_enabled, edit_capture_interval_ms, versioning_updated_at AS updated_at
+      FROM document_workspace_settings
       WHERE workspace_id = $1
       "#,
     )
@@ -522,18 +522,18 @@ impl DocumentVersioningSettingsRepository for PgDocumentVersioningSettingsReposi
     let interval_ms = patch.edit_capture_interval_ms.flatten();
     sqlx::query(
       r#"
-      INSERT INTO document_versioning_workspace_settings
-        (workspace_id, enabled, auto_version_on, retention_count,
-         edit_capture_enabled, edit_capture_interval_ms, updated_by, updated_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, now())
+      INSERT INTO document_workspace_settings
+        (updated_at, workspace_id, enabled, auto_version_on, retention_count,
+         edit_capture_enabled, edit_capture_interval_ms, versioning_updated_by, versioning_updated_at)
+      VALUES (NULL, $1, $2, $3, $4, $5, $6, $7, now())
       ON CONFLICT (workspace_id) DO UPDATE SET
-        enabled = CASE WHEN $8 THEN EXCLUDED.enabled ELSE document_versioning_workspace_settings.enabled END,
-        auto_version_on = CASE WHEN $9 THEN EXCLUDED.auto_version_on ELSE document_versioning_workspace_settings.auto_version_on END,
-        retention_count = CASE WHEN $10 THEN EXCLUDED.retention_count ELSE document_versioning_workspace_settings.retention_count END,
-        edit_capture_enabled = CASE WHEN $11 THEN EXCLUDED.edit_capture_enabled ELSE document_versioning_workspace_settings.edit_capture_enabled END,
-        edit_capture_interval_ms = CASE WHEN $12 THEN EXCLUDED.edit_capture_interval_ms ELSE document_versioning_workspace_settings.edit_capture_interval_ms END,
-        updated_by = EXCLUDED.updated_by,
-        updated_at = now()
+        enabled = CASE WHEN $8 THEN EXCLUDED.enabled ELSE document_workspace_settings.enabled END,
+        auto_version_on = CASE WHEN $9 THEN EXCLUDED.auto_version_on ELSE document_workspace_settings.auto_version_on END,
+        retention_count = CASE WHEN $10 THEN EXCLUDED.retention_count ELSE document_workspace_settings.retention_count END,
+        edit_capture_enabled = CASE WHEN $11 THEN EXCLUDED.edit_capture_enabled ELSE document_workspace_settings.edit_capture_enabled END,
+        edit_capture_interval_ms = CASE WHEN $12 THEN EXCLUDED.edit_capture_interval_ms ELSE document_workspace_settings.edit_capture_interval_ms END,
+        versioning_updated_by = EXCLUDED.versioning_updated_by,
+        versioning_updated_at = now()
       "#,
     )
     .bind(workspace_id)
@@ -553,7 +553,7 @@ impl DocumentVersioningSettingsRepository for PgDocumentVersioningSettingsReposi
     .map_err(|error| RepositoryError::Storage(error.to_string()))?;
     sqlx::query(
       r#"
-      DELETE FROM document_versioning_workspace_settings
+      UPDATE document_workspace_settings SET versioning_updated_at = NULL, versioning_updated_by = NULL
       WHERE workspace_id = $1
         AND enabled IS NULL
         AND auto_version_on IS NULL
@@ -577,9 +577,9 @@ impl DocumentVersioningSettingsRepository for PgDocumentVersioningSettingsReposi
         settings.retention_count,
         settings.edit_capture_enabled,
         settings.edit_capture_interval_ms,
-        settings.updated_at
+        settings.versioning_updated_at AS updated_at
       FROM workspaces w
-      LEFT JOIN document_versioning_workspace_settings settings
+      LEFT JOIN document_workspace_settings settings
         ON settings.workspace_id = w.id
       WHERE w.id = $1 AND w.lifecycle_state = 'active'
       "#,
@@ -627,15 +627,15 @@ impl DocumentVersioningSettingsRepository for PgDocumentVersioningSettingsReposi
     let triggers = auto_version_on.as_deref().map(triggers_to_strings);
     sqlx::query(
       r#"
-        INSERT INTO document_versioning_workspace_settings
-          (workspace_id, enabled, auto_version_on, retention_count, updated_by, updated_at)
-        VALUES ($1, $2, $3, $4, $5, now())
+        INSERT INTO document_workspace_settings
+          (updated_at, workspace_id, enabled, auto_version_on, retention_count, versioning_updated_by, versioning_updated_at)
+        VALUES (NULL, $1, $2, $3, $4, $5, now())
         ON CONFLICT (workspace_id) DO UPDATE SET
           enabled = EXCLUDED.enabled,
           auto_version_on = EXCLUDED.auto_version_on,
           retention_count = EXCLUDED.retention_count,
-          updated_by = EXCLUDED.updated_by,
-          updated_at = now()
+          versioning_updated_by = EXCLUDED.versioning_updated_by,
+          versioning_updated_at = now()
         "#,
     )
     .bind(workspace_id)
@@ -648,7 +648,7 @@ impl DocumentVersioningSettingsRepository for PgDocumentVersioningSettingsReposi
     .map_err(|error| RepositoryError::Storage(error.to_string()))?;
     sqlx::query(
       r#"
-      DELETE FROM document_versioning_workspace_settings
+      UPDATE document_workspace_settings SET versioning_updated_at = NULL, versioning_updated_by = NULL
       WHERE workspace_id = $1
         AND enabled IS NULL
         AND auto_version_on IS NULL
@@ -672,9 +672,9 @@ impl DocumentVersioningSettingsRepository for PgDocumentVersioningSettingsReposi
         settings.retention_count,
         settings.edit_capture_enabled,
         settings.edit_capture_interval_ms,
-        settings.updated_at
+        settings.versioning_updated_at AS updated_at
       FROM workspaces w
-      LEFT JOIN document_versioning_workspace_settings settings
+      LEFT JOIN document_workspace_settings settings
         ON settings.workspace_id = w.id
       WHERE w.id = $1 AND w.lifecycle_state = 'active'
       "#,

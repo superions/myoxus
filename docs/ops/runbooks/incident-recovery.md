@@ -228,9 +228,8 @@ See [search.md](./search.md) for full details.
 **Diagnosis:**
 
 ```sql
-SELECT r.id, r.scheduled_for, r.delivered_at, d.dispatched_at
+SELECT r.id, r.scheduled_for, r.delivered_at, r.dispatched_at
 FROM calendar_reminders r
-LEFT JOIN calendar_reminder_dispatch_log d ON d.reminder_id = r.id
 WHERE r.scheduled_for <= now()
   AND r.delivered_at IS NULL
 ORDER BY r.scheduled_for ASC
@@ -248,9 +247,9 @@ it does not prove successful fanout. Successful recipient rows in
 2. Correlate the failed reminder job with mail transport logs and validate mail
    configuration through the protected configuration source. Do not assume an
    SMTP cause without that evidence.
-3. Distinguish the pending dispatch log, successful recipient mail receipts and
-   whole-reminder `delivered_at`. Do not enqueue handcrafted mail/reminder jobs
-   or edit dispatch rows or receipts.
+3. Check `calendar_reminders.worker_job_id` and `dispatched_at` for the latest attempt,
+   recipient mail receipts for individual deliveries, and `delivered_at` for completion.
+   Leave the reminder and its receipts intact so the next worker can resume delivery.
 4. When replacing the old unguarded claim implementation, coordinate a restart
    of all reminder consumers before reclaiming its retained pending claims.
    After fixing the root cause, the polling loop (every 60 seconds by default)

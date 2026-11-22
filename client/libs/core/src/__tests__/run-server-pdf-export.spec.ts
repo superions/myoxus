@@ -133,7 +133,7 @@ import {
   __test__ as pdfExportHookTest,
   runServerPdfExport,
   type ServerPdfExportResult,
-} from "../components/hooks/myoxus/use-export-page";
+} from "../components/hooks/myoxus/page-export-actions";
 import { PDF_EXPORT_COMPLETED_EVENT } from "../modules/pdf-export/events";
 import { runServerDocxExport } from "../modules/file-export/run-server-docx-export";
 import { DOCX_MIME } from "../modules/file-export/deliver-file";

@@ -248,11 +248,11 @@ Read-only calendar pull with server-wins conflict resolution. Polls at the confi
 
 Dispatches calendar event reminders to users and checks every minute for due
 reminders. A reminder-scoped PostgreSQL session lock serializes attempts.
-`calendar_reminder_dispatch_log` records a pending attempt when the reminder's
-`delivered_at` is NULL; it is not proof of completed fanout.
+The reminder's `worker_job_id` and `dispatched_at` identify its latest attempt.
+A NULL `delivered_at` means fanout is still pending.
 `calendar_reminder_mail_receipts` protects successful email recipients during
 retry, while `calendar_reminders.delivered_at` protects whole-reminder completion.
-Final dispatch-log and reminder timestamps are committed together. SMTP holds
+Completion commits both timestamps on the reminder together. SMTP holds
 an idle connection, with no SQL transaction. Worker cancellation closes that
 connection; normal/error exits explicitly unlock, so retries can reclaim a
 pending attempt without clearing successful recipients.

@@ -107,7 +107,11 @@ describe("native metadata storage worker entrypoints", () => {
       const source = readRepoFile(entrypoint);
 
       expect(source).toContain("@myoxus/storage/cloud");
-      expect(source).toContain("cloudStorages");
+      expect(source).toContain(
+        entrypoint === "client/web/workspaces/web/src/storage.worker.ts"
+          ? "...cloudTransportStorages"
+          : "...cloudStorages",
+      );
       expect(source).toContain("configureMyoxusStorageClientContext");
       expect(source).toContain("StoreManagerConsumer");
       expect(source).not.toMatch(/documentMetadata\s*\(/);

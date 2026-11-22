@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useRegionalPreferences } from "@myoxus/core/components/hooks/myoxus/use-user-preferences";
-import { DocumentReviewTask } from "@myoxus/core/modules/database/assistance/document-review";
 import { useTaskIdentity } from "@myoxus/core/modules/database/tasks/use-workspace-tasks";
 import { formatRegionalDateTime } from "@myoxus/core/modules/i18n";
 import { GuardService } from "@myoxus/core/modules/permissions";
@@ -29,7 +28,14 @@ import {
   TableHead,
   TableRow,
 } from "@myoxus/ui-facade";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import type { DocumentMetadataModel } from "./types";
 
 type Props = {
@@ -38,6 +44,11 @@ type Props = {
   readonly?: boolean;
   onChanged: () => Promise<void>;
 };
+const DocumentReviewTask = lazy(async () => ({
+  default: (
+    await import("@myoxus/core/modules/database/assistance/document-review")
+  ).DocumentReviewTask,
+}));
 
 /** The existing metadata readonly capability and native Task-start guard own
  * entry. No local workspace or anonymous fallback can create standing consent. */
@@ -298,16 +309,18 @@ function ReviewPlanningOwner({ docId, model, onChanged }: Props) {
       >
         {review ? (
           <Stack>
-            <DocumentReviewTask
-              showSource={false}
-              databaseId={review.databaseId}
-              rowId={review.rowId}
-              revision={review.revision}
-              onChanged={async () => {
-                await read();
-                await onChanged();
-              }}
-            />
+            <Suspense>
+              <DocumentReviewTask
+                showSource={false}
+                databaseId={review.databaseId}
+                rowId={review.rowId}
+                revision={review.revision}
+                onChanged={async () => {
+                  await read();
+                  await onChanged();
+                }}
+              />
+            </Suspense>
             <Group>
               <Button
                 onClick={() => {

@@ -148,7 +148,10 @@ impl myoxus_application::workspace::WorkspaceStore for MockWorkspaceStore {
       },
       role,
       status,
-      invite_id: uuid::Uuid::nil(),
+      direct_role: Some(role),
+      ou_role: None,
+      ou_names: Vec::new(),
+      invite_id: Some(uuid::Uuid::nil()),
     })
   }
   async fn get_member(

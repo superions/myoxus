@@ -391,12 +391,14 @@ fn workspace_tags_share_one_acl_scoped_catalog_with_document_assignments_and_leg
       .as_str()
       .unwrap()
       .to_owned();
-    sqlx::query("INSERT INTO workspace_tag_legacy_ids(workspace_id,legacy_id,tag_id) VALUES($1,'legacy-priority',$2)")
-      .bind(workspace_id)
-      .bind(Uuid::parse_str(&legacy_tag_id).unwrap())
-      .execute(&pool)
-      .await
-      .unwrap();
+    sqlx::query(
+      "INSERT INTO workspace_tag_identities(workspace_id,external_id,tag_id) VALUES($1,'legacy-priority',$2)",
+    )
+    .bind(workspace_id)
+    .bind(Uuid::parse_str(&legacy_tag_id).unwrap())
+    .execute(&pool)
+    .await
+    .unwrap();
     let assigned = helpers::gql(
       &app,
       owner_session,
@@ -693,7 +695,7 @@ fn workspace_tags_share_one_acl_scoped_catalog_with_document_assignments_and_leg
     assert_eq!(root_options, vec![second_id.clone()]);
     assert_eq!(root_pages, vec![vec![second_id.clone()], vec![second_id.clone()]]);
     let retired_ids: Vec<String> = sqlx::query_scalar(
-      "SELECT retired_tag_id FROM workspace_tag_retired_ids WHERE workspace_id = $1 ORDER BY retired_tag_id",
+      "SELECT external_id FROM workspace_tag_identities WHERE workspace_id = $1 AND retired_at IS NOT NULL ORDER BY external_id",
     )
     .bind(workspace_id)
     .fetch_all(&pool)

@@ -25,11 +25,13 @@ export class DocsSearchService extends Service {
     return this.workspaceService.workspace.engine.indexer;
   }
 
-  readonly indexerState$ = LiveData.from(this.indexer.state$, {
-    availability: "ready",
-    indexing: 0,
-    errorMessage: null,
-  } as IndexerSyncState);
+  get indexerState$() {
+    return LiveData.from(this.indexer.state$, {
+      availability: "ready",
+      indexing: 0,
+      errorMessage: null,
+    } as IndexerSyncState);
+  }
 
   searchTitle$(query: string) {
     return this.indexer
@@ -91,7 +93,6 @@ export class DocsSearchService extends Service {
               ...(remotePage?.offset === undefined
                 ? {}
                 : { offset: Math.max(0, remotePage.offset) }),
-              useSemanticSearch: false,
             },
           },
           // Search subscriptions are short-lived. Keep this request outside

@@ -30,7 +30,6 @@ pub const UUID_TABLES: &[&str] = &[
   "workspace_invite_links",
   "docs",
   "blobs",
-  "multipart_uploads",
   "comment_attachments",
   "comments",
   "notifications",

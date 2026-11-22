@@ -11,7 +11,6 @@
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
-use async_trait::async_trait;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -115,8 +114,6 @@ pub enum OidcGroupSyncAction {
   Updated,
   Removed,
   SkippedConflict,
-  ManagerCapabilitySet,
-  ManagerCapabilityRevoked,
 }
 
 /// Aggregate reconciliation result. Counts intentionally avoid raw group names.
@@ -139,37 +136,17 @@ pub enum OidcGroupSyncError {
   TargetUnitInactive(OrganizationUnitId),
   #[error("OIDC group sync repository error: {0}")]
   Repository(String),
-  #[error("OIDC manager capability update failed: {0}")]
-  ManagerCapability(String),
-}
-
-/// Port for materializing the global manager capability when an OIDC mapping
-/// grants or removes an OU `manager` role. The implementation lives in the API
-/// crate because it must update `user_features` and invalidate API caches.
-#[async_trait]
-pub trait ManagerCapabilityWriter: Send + Sync {
-  async fn ensure_manager_capability(&self, user_id: UserId) -> Result<bool, String>;
-  async fn revoke_manager_capability_if_no_more(&self, user_id: UserId) -> Result<bool, String>;
 }
 
 #[derive(Clone)]
 pub struct OidcGroupSyncService {
   units: Arc<dyn OrganizationUnitRepository>,
   members: Arc<dyn OrganizationUnitMemberRepository>,
-  manager_capabilities: Arc<dyn ManagerCapabilityWriter>,
 }
 
 impl OidcGroupSyncService {
-  pub fn new(
-    units: Arc<dyn OrganizationUnitRepository>,
-    members: Arc<dyn OrganizationUnitMemberRepository>,
-    manager_capabilities: Arc<dyn ManagerCapabilityWriter>,
-  ) -> Self {
-    Self {
-      units,
-      members,
-      manager_capabilities,
-    }
+  pub fn new(units: Arc<dyn OrganizationUnitRepository>, members: Arc<dyn OrganizationUnitMemberRepository>) -> Self {
+    Self { units, members }
   }
 
   /// Reconcile one user's OIDC provider groups into OU memberships.
@@ -296,16 +273,6 @@ impl OidcGroupSyncService {
           source_conflict: None,
         });
       }
-
-      self
-        .sync_manager_capability(
-          input.user_id,
-          saved.unit_id,
-          previous_role,
-          Some(saved.role),
-          &mut report,
-        )
-        .await?;
     }
 
     if input.mapping.remove_missing_oidc_memberships {
@@ -328,56 +295,11 @@ impl OidcGroupSyncService {
             previous_role: Some(member.role),
             source_conflict: None,
           });
-          self
-            .sync_manager_capability(input.user_id, member.unit_id, Some(member.role), None, &mut report)
-            .await?;
         }
       }
     }
 
     Ok(report)
-  }
-
-  async fn sync_manager_capability(
-    &self,
-    user_id: UserId,
-    unit_id: OrganizationUnitId,
-    previous_role: Option<OrganizationUnitRole>,
-    next_role: Option<OrganizationUnitRole>,
-    report: &mut OidcGroupSyncReport,
-  ) -> Result<(), OidcGroupSyncError> {
-    if next_role == Some(OrganizationUnitRole::Manager) {
-      let transitioned = self
-        .manager_capabilities
-        .ensure_manager_capability(user_id)
-        .await
-        .map_err(OidcGroupSyncError::ManagerCapability)?;
-      if transitioned {
-        report.events.push(OidcGroupSyncEvent {
-          action: OidcGroupSyncAction::ManagerCapabilitySet,
-          unit_id,
-          role: Some(OrganizationUnitRole::Manager),
-          previous_role,
-          source_conflict: None,
-        });
-      }
-    } else if previous_role == Some(OrganizationUnitRole::Manager) {
-      let transitioned = self
-        .manager_capabilities
-        .revoke_manager_capability_if_no_more(user_id)
-        .await
-        .map_err(OidcGroupSyncError::ManagerCapability)?;
-      if transitioned {
-        report.events.push(OidcGroupSyncEvent {
-          action: OidcGroupSyncAction::ManagerCapabilityRevoked,
-          unit_id,
-          role: next_role,
-          previous_role,
-          source_conflict: None,
-        });
-      }
-    }
-    Ok(())
   }
 }
 

@@ -1401,7 +1401,7 @@ pub fn map_auth_error(err: AuthError) -> ApiError {
       message,
       data: None,
     },
-    AuthError::WorkspaceOverviewRevisionConflict { .. } => err.into(),
+    AuthError::RowAttachment(_) | AuthError::WorkspaceOverviewRevisionConflict { .. } => err.into(),
     AuthError::WorkspaceNameConflict { suggestion } => ApiError::BadRequest {
       name: "XWS_WORKSPACE_NAME_CONFLICT".into(),
       message: "workspace name is already reserved".into(),

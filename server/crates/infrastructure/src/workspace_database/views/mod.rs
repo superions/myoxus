@@ -398,7 +398,7 @@ impl DatabaseViewRepository for PgDatabaseRepository {
   #[instrument(skip(self), fields(workspace_id = %workspace_id), err)]
   async fn database_page_inventory_revision(&self, workspace_id: WorkspaceId) -> RepoResult<i64> {
     sqlx::query_scalar(
-      "SELECT COALESCE(r.revision, 0) FROM (SELECT $1::uuid AS workspace_id) seed LEFT JOIN workspace_database_page_inventory_revision r USING (workspace_id)",
+      "SELECT COALESCE(r.revision, 0) FROM (SELECT $1::uuid AS workspace_id) seed LEFT JOIN workspace_revisions r ON r.workspace_id=seed.workspace_id AND r.epoch_name='database_page_inventory'",
     )
     .bind(workspace_id)
     .fetch_one(&self.pool)
@@ -424,7 +424,7 @@ impl DatabaseViewRepository for PgDatabaseRepository {
       .await
       .map_err(Self::map_sqlx_error)?;
     let revision = sqlx::query_scalar(
-      "SELECT COALESCE(r.revision, 0) FROM (SELECT $1::uuid AS workspace_id) seed LEFT JOIN workspace_database_page_inventory_revision r USING (workspace_id)",
+      "SELECT COALESCE(r.revision, 0) FROM (SELECT $1::uuid AS workspace_id) seed LEFT JOIN workspace_revisions r ON r.workspace_id=seed.workspace_id AND r.epoch_name='database_page_inventory'",
     )
     .bind(workspace_id)
     .fetch_one(&mut *tx)
@@ -728,12 +728,7 @@ impl DatabaseViewRepository for PgDatabaseRepository {
         }
       }
     }
-    for cell in Self::list_rollup_cells_for_rows_in(&mut *tx, &row_ids).await? {
-      if let Some(index) = record_indexes.get(&cell.row_id).copied() {
-        records[index].cells.push(cell);
-      }
-    }
-    for cell in Self::list_formula_cells_for_rows_in(&mut *tx, &row_ids).await? {
+    for cell in Self::list_computed_cells_for_rows_in(&mut *tx, &row_ids).await? {
       if let Some(index) = record_indexes.get(&cell.row_id).copied() {
         records[index].cells.push(cell);
       }
@@ -971,12 +966,7 @@ impl DatabaseViewRepository for PgDatabaseRepository {
         records[index].cell_revisions.push(revision);
       }
     }
-    for cell in self.list_rollup_cells_for_rows(&row_ids).await? {
-      if let Some(index) = record_indexes.get(&cell.row_id).copied() {
-        records[index].cells.push(cell);
-      }
-    }
-    for cell in self.list_formula_cells_for_rows(&row_ids).await? {
+    for cell in self.list_computed_cells_for_rows(&row_ids).await? {
       if let Some(index) = record_indexes.get(&cell.row_id).copied() {
         records[index].cells.push(cell);
       }

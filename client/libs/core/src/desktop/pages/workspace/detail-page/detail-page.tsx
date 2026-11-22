@@ -16,7 +16,6 @@ import {
   HistoryNavigationProvider,
   useHistoryNavigation,
 } from "@myoxus/core/modules/doc-versioning/history-navigation";
-import { HistoryView } from "./history-view";
 import { PageDetailEditor } from "@myoxus/core/components/page-detail-editor";
 import { TrashPageFooter } from "@myoxus/core/components/pure/trash-page-footer";
 import { TopTip } from "@myoxus/core/components/top-tip";
@@ -39,7 +38,7 @@ import {
   DetailPageEditorViewport,
   DetailPageMainFrame,
 } from "@myoxus/ui-facade";
-import { useContext, useEffect, useState } from "react";
+import { lazy, Suspense, useContext, useEffect, useState } from "react";
 import { useParams } from "react-router";
 
 import {
@@ -58,6 +57,9 @@ import { DocumentSidecards } from "./sidecards/document-sidecards";
 import { FramesSidecard } from "./sidecards/frames/sidecard";
 import { JournalConflictBlock } from "./sidecards/journal";
 
+const HistoryView = lazy(async () => ({
+  default: (await import("./history-view")).HistoryView,
+}));
 const DocumentRouteFailure = ({ pageId }: { pageId: string }) => {
   const docsService = useService(DocsService);
   const docRecord = useLiveData(docsService.list.doc$(pageId));
@@ -289,7 +291,13 @@ const DocumentEditorView = () => {
 /** The live Doc/Editor scope survives; only the current editing renderer is replaced. */
 const DocumentDetailContent = () => {
   const navigation = useHistoryNavigation();
-  return navigation.state.open ? <HistoryView /> : <DocumentEditorView />;
+  return navigation.state.open ? (
+    <Suspense fallback={<WorkbenchRouteLoading />}>
+      <HistoryView />
+    </Suspense>
+  ) : (
+    <DocumentEditorView />
+  );
 };
 const DocumentDetailView = () => {
   const doc = useService(DocService).doc;

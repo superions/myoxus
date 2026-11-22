@@ -1771,7 +1771,9 @@ async fn projection_exact_repair_handles_all_safe_drift_and_second_apply_writes_
     .fetch_one(&pool)
     .await
     .unwrap();
-  let outbox_before_audit: i64 = sqlx::query_scalar("SELECT count(*) FROM outbox_events WHERE aggregate_type = 'doc'")
+  let workspace_outbox = "SELECT count(*) FROM outbox_events WHERE payload->>'workspaceId'=$1";
+  let outbox_before_audit: i64 = sqlx::query_scalar(workspace_outbox)
+    .bind(workspace_id.to_string())
     .fetch_one(&pool)
     .await
     .unwrap();
@@ -1800,7 +1802,8 @@ async fn projection_exact_repair_handles_all_safe_drift_and_second_apply_writes_
     "bounded scan must not write Yjs updates"
   );
   assert_eq!(
-    sqlx::query_scalar::<_, i64>("SELECT count(*) FROM outbox_events WHERE aggregate_type = 'doc'")
+    sqlx::query_scalar::<_, i64>(workspace_outbox)
+      .bind(workspace_id.to_string())
       .fetch_one(&pool)
       .await
       .unwrap(),
@@ -1863,11 +1866,23 @@ async fn projection_exact_repair_handles_all_safe_drift_and_second_apply_writes_
       .unwrap();
     assert!(applied.changed);
   }
-  let outbox_after_apply: i64 = sqlx::query_scalar("SELECT count(*) FROM outbox_events WHERE aggregate_type = 'doc'")
+  let outbox_after_apply: i64 = sqlx::query_scalar(workspace_outbox)
+    .bind(workspace_id.to_string())
     .fetch_one(&pool)
     .await
     .unwrap();
-  assert_eq!(outbox_after_apply - outbox_before_audit, selected.len() as i64);
+  // Each exact repair broadcasts once. SQL/Yjs writes can also enqueue indexing.
+  let repaired_ids: Vec<String> = sqlx::query_scalar(
+    "SELECT aggregate_id FROM outbox_events WHERE event_type='workspace_doc_broadcast'
+       AND payload->>'workspaceId'=$1 AND payload->>'lifecycleOperation'='repair' ORDER BY aggregate_id",
+  )
+  .bind(workspace_id.to_string())
+  .fetch_all(&pool)
+  .await
+  .unwrap();
+  let mut expected_ids = selected;
+  expected_ids.sort();
+  assert_eq!(repaired_ids, expected_ids);
   let update_count_after_apply: i64 = sqlx::query_scalar("SELECT count(*) FROM doc_updates WHERE workspace_id = $1")
     .bind(workspace_id)
     .fetch_one(&pool)
@@ -1911,7 +1926,8 @@ async fn projection_exact_repair_handles_all_safe_drift_and_second_apply_writes_
     update_count_after_apply
   );
   assert_eq!(
-    sqlx::query_scalar::<_, i64>("SELECT count(*) FROM outbox_events WHERE aggregate_type = 'doc'")
+    sqlx::query_scalar::<_, i64>(workspace_outbox)
+      .bind(workspace_id.to_string())
       .fetch_one(&pool)
       .await
       .unwrap(),

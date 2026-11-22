@@ -43,8 +43,8 @@ impl PgDatabaseRepository {
     Ok(record)
   }
 
-  /// Reuse native association validation within a caller's leaf/root/effect ACK
-  /// transaction. Automated creation locks the target Row before document roots.
+  /// Attach within the caller's transaction. Page creation locks the target Row
+  /// before the document roots and publishes both changes together.
   pub(crate) async fn attach_row_content_document_in_tx(
     tx: &mut Transaction<'_, Postgres>,
     row_id: DatabaseRowId,

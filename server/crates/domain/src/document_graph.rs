@@ -14,6 +14,23 @@ use thiserror::Error;
 
 use crate::ids::{DocId, DocumentGraphOccurrenceId, WorkspaceId};
 
+/// A matching source block still consumes one block slot when none of its
+/// targets resolve or pass the caller's read policy.
+#[derive(Debug, Clone)]
+pub struct NavigationOccurrence {
+  pub block_id: String,
+  pub target: Option<NavigationTarget>,
+}
+
+#[derive(Debug, Clone)]
+pub struct NavigationTarget {
+  pub workspace_id: WorkspaceId,
+  pub doc_id: DocId,
+  pub external_id: String,
+  pub title: Option<String>,
+  pub params: Value,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum DocumentGraphLinkKind {

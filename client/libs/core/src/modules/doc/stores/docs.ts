@@ -1240,7 +1240,7 @@ export class DocsStore extends Store {
 
   private confirmRemoteMembership(id: string) {
     this.remoteMembershipSubscriptions.get(id)?.unsubscribe();
-    this.documentLifecycle.beginCreating(id);
+    this.documentLifecycle.beginCreating(id, "membership");
 
     // Root metadata and the first leaf push are separate Yjs streams. Another
     // client can therefore observe membership while the server still reports

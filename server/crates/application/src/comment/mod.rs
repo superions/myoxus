@@ -3,7 +3,7 @@
 //! [`CommentService`] handles the full lifecycle of document comments:
 //! creation (with permission checks), editing, thread resolution, deletion,
 //! and @mention notifications.  Access control is delegated to
-//! [`CommentAclStore`] and the domain-level [`fixup_doc_role`] function.
+//! [`CommentAclStore`] and the domain-level [`WorkspaceAccess::document_role`] function.
 
 use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex};
@@ -16,9 +16,9 @@ use tracing::{debug, info, instrument, warn};
 use uuid::Uuid;
 
 use crate::auth::{AuthError, AuthResult, AuthStore};
-use crate::permission::PermissionService;
-use myoxus_domain::entities::{Comment, DocRole, WorkspaceRole};
-use myoxus_domain::permission::{DocAction, fixup_doc_role};
+use crate::permission::{PermissionService, WorkspaceAccess};
+use myoxus_domain::entities::{Comment, DocRole};
+use myoxus_domain::permission::DocAction;
 
 /// A text-range anchor identifying where in a document a comment is anchored.
 ///
@@ -120,7 +120,7 @@ pub struct CommentThreadView {
 #[async_trait]
 pub trait CommentAclStore: Send + Sync {
   /// Return the user's role in the given workspace.
-  async fn acl_workspace_role(&self, user_id: Uuid, workspace_id: Uuid) -> AuthResult<Option<WorkspaceRole>>;
+  async fn acl_workspace_access(&self, user_id: Uuid, workspace_id: Uuid) -> AuthResult<WorkspaceAccess>;
   /// Return the user's per-document role override.
   async fn acl_doc_role(&self, user_id: Uuid, doc_id: Uuid) -> AuthResult<Option<DocRole>>;
 }
@@ -130,8 +130,8 @@ impl<T> CommentAclStore for T
 where
   T: AuthStore + Send + Sync + ?Sized,
 {
-  async fn acl_workspace_role(&self, user_id: Uuid, workspace_id: Uuid) -> AuthResult<Option<WorkspaceRole>> {
-    Ok(self.workspace_access(user_id, workspace_id).await?.effective_role)
+  async fn acl_workspace_access(&self, user_id: Uuid, workspace_id: Uuid) -> AuthResult<WorkspaceAccess> {
+    self.workspace_access(user_id, workspace_id).await
   }
 
   async fn acl_doc_role(&self, user_id: Uuid, doc_id: Uuid) -> AuthResult<Option<DocRole>> {
@@ -180,14 +180,10 @@ impl AuthStoreCommentAdapter {
 
 #[async_trait]
 impl CommentAclStore for AuthStoreCommentAdapter {
-  async fn acl_workspace_role(&self, user_id: Uuid, workspace_id: Uuid) -> AuthResult<Option<WorkspaceRole>> {
+  async fn acl_workspace_access(&self, user_id: Uuid, workspace_id: Uuid) -> AuthResult<WorkspaceAccess> {
     match &self.permission_service {
-      Some(permission_service) => {
-        permission_service
-          .get_effective_workspace_role(user_id, workspace_id)
-          .await
-      }
-      None => Ok(self.store.workspace_access(user_id, workspace_id).await?.effective_role),
+      Some(permission_service) => permission_service.resolve_workspace_access(user_id, workspace_id).await,
+      None => self.store.workspace_access(user_id, workspace_id).await,
     }
   }
 
@@ -610,9 +606,9 @@ impl CommentService {
     workspace_id: Uuid,
     doc_id: Uuid,
   ) -> AuthResult<myoxus_domain::entities::DocRole> {
-    let workspace_role = self.acl_store.acl_workspace_role(user_id, workspace_id).await?;
+    let workspace_role = self.acl_store.acl_workspace_access(user_id, workspace_id).await?;
     let doc_role = self.acl_store.acl_doc_role(user_id, doc_id).await?;
-    Ok(fixup_doc_role(workspace_role, doc_role))
+    Ok(workspace_role.document_role(doc_role))
   }
 
   #[instrument(skip(self))]
@@ -1495,6 +1491,7 @@ impl CommentStore for InMemoryCommentStore {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use myoxus_domain::entities::WorkspaceRole;
   use std::collections::HashMap;
   use tokio::sync::Mutex;
 
@@ -1505,8 +1502,12 @@ mod tests {
 
   #[async_trait]
   impl CommentAclStore for MockAclStore {
-    async fn acl_workspace_role(&self, _user_id: Uuid, _workspace_id: Uuid) -> AuthResult<Option<WorkspaceRole>> {
-      Ok(self.ws_role)
+    async fn acl_workspace_access(&self, _user_id: Uuid, _workspace_id: Uuid) -> AuthResult<WorkspaceAccess> {
+      Ok(WorkspaceAccess {
+        direct_role: self.ws_role,
+        effective_role: self.ws_role,
+        owner_ou_manager: false,
+      })
     }
 
     async fn acl_doc_role(&self, _user_id: Uuid, _doc_id: Uuid) -> AuthResult<Option<DocRole>> {

@@ -118,8 +118,8 @@ pub(super) async fn prepare(
   };
   for document in &mut plan.documents {
     let binding = sqlx::query(
-      "SELECT b.content_hash,baseline.content_hash AS baseline_hash FROM git_sync_bindings b
-      LEFT JOIN git_sync_baselines baseline ON baseline.binding_id=b.id WHERE b.id=$1 AND b.profile_id=$2
+      "SELECT b.content_hash,b.baseline_content_hash AS baseline_hash FROM git_sync_document_bindings b
+      WHERE b.id=$1 AND b.profile_id=$2
       AND b.doc_id=$3 AND b.sync_id=$4 AND b.repo_path=$5 AND b.tombstone=$6",
     )
     .bind(document.binding_id)
@@ -136,14 +136,12 @@ pub(super) async fn prepare(
     document.baseline_hash = binding.get("baseline_hash");
   }
   if moving {
-    let bindings: i64 = sqlx::query_scalar(
-      "SELECT (SELECT count(*) FROM git_sync_bindings WHERE profile_id=$1 AND NOT tombstone)
-      + (SELECT count(*) FROM git_sync_file_bindings WHERE profile_id=$1 AND NOT tombstoned)",
-    )
-    .bind(binding_profile)
-    .fetch_one(pool)
-    .await
-    .map_err(PgWorkspaceContentOperationRepository::storage)?;
+    let bindings: i64 =
+      sqlx::query_scalar("SELECT count(*) FROM git_sync_bindings WHERE profile_id=$1 AND NOT tombstone")
+        .bind(binding_profile)
+        .fetch_one(pool)
+        .await
+        .map_err(PgWorkspaceContentOperationRepository::storage)?;
     if bindings != (plan.documents.len() + plan.files.len() + plan.shared_files.len()) as i64 {
       return Err(ownership());
     }
@@ -387,10 +385,10 @@ pub(super) async fn publish(
   }
   for document in &plan.documents {
     let changed = sqlx::query(
-      "UPDATE git_sync_bindings SET profile_id=$2,workspace_id=$3,tombstone=false,updated_at=now()
+      "UPDATE git_sync_document_bindings SET profile_id=$2,workspace_id=$3,tombstone=false,updated_at=now()
       WHERE id=$1 AND profile_id=$4 AND doc_id=$5 AND sync_id=$6 AND repo_path=$7 AND tombstone=$8
         AND content_hash IS NOT DISTINCT FROM $9
-        AND (SELECT content_hash FROM git_sync_baselines WHERE binding_id=$1) IS NOT DISTINCT FROM $10",
+        AND baseline_content_hash IS NOT DISTINCT FROM $10",
     )
     .bind(document.binding_id)
     .bind(plan.source_profile_id)
@@ -493,25 +491,28 @@ pub(super) async fn complete(
   let undo = plan.undo.as_ref().ok_or_else(ownership)?;
   for document in &plan.documents {
     let hash = bodies.get(&document.doc_id).ok_or_else(content)?;
-    let changed=sqlx::query("UPDATE git_sync_bindings SET content_hash=$2,last_commit_oid=$3,updated_at=now() WHERE id=$1 AND profile_id=$4 AND NOT tombstone")
+    let changed=sqlx::query("UPDATE git_sync_document_bindings SET content_hash=$2,last_commit_oid=$3,updated_at=now() WHERE id=$1 AND profile_id=$4 AND NOT tombstone")
       .bind(document.binding_id).bind(hash).bind(oid).bind(plan.source_profile_id).execute(&mut **tx).await.map_err(PgWorkspaceContentOperationRepository::storage)?.rows_affected();
     if changed != 1 {
       return Err(ownership());
     }
     // Git bytes and the normalized Myoxus baseline are different contracts.
     // Metadata readback must not acknowledge intervening local document edits.
-    sqlx::query("UPDATE git_sync_baselines SET commit_oid=$2 WHERE binding_id=$1")
-      .bind(document.binding_id)
-      .bind(oid)
-      .execute(&mut **tx)
-      .await
-      .map_err(PgWorkspaceContentOperationRepository::storage)?;
+    sqlx::query(
+      "UPDATE git_sync_document_bindings SET baseline_commit_oid=$2 WHERE id=$1 AND baseline_content_hash IS NOT NULL",
+    )
+    .bind(document.binding_id)
+    .bind(oid)
+    .execute(&mut **tx)
+    .await
+    .map_err(PgWorkspaceContentOperationRepository::storage)?;
     if plan.choice == WorkspaceContentGitSyncChoice::Disconnect
       && let Some(original) = undo.original_baselines.get(&document.binding_id)
     {
       sqlx::query(
-        "INSERT INTO git_sync_baselines (binding_id,content_hash,commit_oid,myoxus_updated_at) VALUES ($1,$2,$3,$4)
-        ON CONFLICT(binding_id) DO NOTHING",
+        "UPDATE git_sync_document_bindings
+         SET (baseline_content_hash, baseline_commit_oid, baseline_myoxus_updated_at, baseline_captured_at) = ($2,$3,$4,now())
+         WHERE id = $1 AND baseline_content_hash IS NULL",
       )
       .bind(document.binding_id)
       .bind(original)

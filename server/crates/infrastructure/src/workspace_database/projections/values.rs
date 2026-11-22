@@ -64,14 +64,14 @@ impl PgDatabaseRepository {
     })
   }
 
-  pub(in crate::workspace_database) async fn list_rollup_cells_for_rows(
+  pub(in crate::workspace_database) async fn list_computed_cells_for_rows(
     &self,
     row_ids: &[DatabaseRowId],
   ) -> RepoResult<Vec<DatabaseCellValue>> {
-    Self::list_rollup_cells_for_rows_in(&self.pool, row_ids).await
+    Self::list_computed_cells_for_rows_in(&self.pool, row_ids).await
   }
 
-  pub(in crate::workspace_database) async fn list_rollup_cells_for_rows_in(
+  pub(in crate::workspace_database) async fn list_computed_cells_for_rows_in(
     executor: impl sqlx::Executor<'_, Database = Postgres>,
     row_ids: &[DatabaseRowId],
   ) -> RepoResult<Vec<DatabaseCellValue>> {
@@ -80,12 +80,12 @@ impl PgDatabaseRepository {
     }
     let rows = sqlx::query(
       r#"
-        SELECT rv.row_id, rv.field_id, rv.value_json, rv.stale_state,
+        SELECT f.field_type, rv.row_id, rv.field_id, rv.value_json, rv.stale_state,
                rv.computed_at, rv.failed_at, rv.error_code, rv.error_message,
                rv.updated_at
-        FROM workspace_database_rollup_values rv
+        FROM workspace_database_computed_values rv
         JOIN workspace_database_fields f ON f.id = rv.field_id
-        WHERE rv.row_id = ANY($1)
+        WHERE rv.row_id = ANY($1) AND f.field_type IN ('formula','rollup')
         ORDER BY f.position ASC, f.id ASC
       "#,
     )
@@ -93,38 +93,13 @@ impl PgDatabaseRepository {
     .fetch_all(executor)
     .await
     .map_err(Self::map_sqlx_error)?;
-    rows.into_iter().map(Self::map_rollup_cell).collect()
-  }
-
-  pub(in crate::workspace_database) async fn list_formula_cells_for_rows(
-    &self,
-    row_ids: &[DatabaseRowId],
-  ) -> RepoResult<Vec<DatabaseCellValue>> {
-    Self::list_formula_cells_for_rows_in(&self.pool, row_ids).await
-  }
-
-  pub(in crate::workspace_database) async fn list_formula_cells_for_rows_in(
-    executor: impl sqlx::Executor<'_, Database = Postgres>,
-    row_ids: &[DatabaseRowId],
-  ) -> RepoResult<Vec<DatabaseCellValue>> {
-    if row_ids.is_empty() {
-      return Ok(Vec::new());
-    }
-    let rows = sqlx::query(
-      r#"
-        SELECT fv.row_id, fv.field_id, fv.value_json, fv.stale_state,
-               fv.computed_at, fv.failed_at, fv.error_code, fv.error_message,
-               fv.updated_at
-        FROM workspace_database_formula_values fv
-        JOIN workspace_database_fields f ON f.id = fv.field_id
-        WHERE fv.row_id = ANY($1)
-        ORDER BY f.position ASC, f.id ASC
-      "#,
-    )
-    .bind(row_ids)
-    .fetch_all(executor)
-    .await
-    .map_err(Self::map_sqlx_error)?;
-    rows.into_iter().map(Self::map_formula_cell).collect()
+    rows
+      .into_iter()
+      .map(|row| match row.get::<&str, _>("field_type") {
+        "formula" => Self::map_formula_cell(row),
+        "rollup" => Self::map_rollup_cell(row),
+        _ => Err(RepositoryError::Validation("unexpected computed field type".into())),
+      })
+      .collect()
   }
 }

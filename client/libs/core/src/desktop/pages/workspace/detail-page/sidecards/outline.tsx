@@ -2,7 +2,9 @@ import { useI18n } from "@myoxus/i18n";
 import { EditorDocumentOutline } from "@myoxus/core/editor/view-extensions/editor-view/editor-chrome/document-outline";
 import { DocumentOutlineController } from "@virgultum/editor/fragments/outline";
 import type { EditorHost } from "@virgultum/editor/std";
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
+import { useService } from "@myoxus/infra";
+import { EditorService } from "@myoxus/core/modules/editor";
 
 /** Shares the editor-owned outline controller without a second sidebar title. */
 export const EditorOutlinePanel = ({
@@ -11,6 +13,10 @@ export const EditorOutlinePanel = ({
   editor: EditorHost | null;
 }) => {
   const t = useI18n();
+  const owner = useService(EditorService).editor;
+  useEffect(() => {
+    if (!editor) owner.requireEditorHost();
+  }, [editor, owner]);
   const labels = useMemo(
     () => ({
       title: t["com.myoxus.sidebar.outline.title"](),

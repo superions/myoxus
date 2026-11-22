@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 import type { TagMeta } from "@myoxus/core/components/page-list";
-import { type ReactToLit, toReactNode } from "@myoxus/lit-react";
-import { computed, type Signal, signal } from "@preact/signals-core";
+import { type ReactToLit } from "@myoxus/lit-react";
+import { type Signal, signal } from "@preact/signals-core";
 import { SignalWatcher, WithDisposable } from "@virgultum/editor/global/lit";
 import { ShadowlessElement } from "@virgultum/editor/std";
-import { html, nothing, type PropertyValues } from "lit";
+import { nothing, type PropertyValues } from "lit";
 import { property, state } from "lit/decorators.js";
 import { isEqual } from "lodash-es";
 import { createElement, Fragment, type ReactNode } from "react";
@@ -14,6 +14,7 @@ import {
   CollectionsIcon,
   UngroupIcon,
 } from "@myoxus/icons/react";
+import track from "@myoxus/track";
 import { notify } from "@myoxus/ui-facade";
 import { chatI18n } from "../chat-i18n";
 
@@ -35,6 +36,8 @@ import {
   isSelectedContextChip,
   isTagChip,
 } from "./utils";
+import { ContextSuggestions } from "./context-options";
+import { DocumentContextChip } from "./document-context-chip";
 import { ChatChipView, ChatChipsView } from "./view";
 
 // Existing document-context token bound; the native view does not change it.
@@ -76,42 +79,52 @@ export class ChatPanelChips extends SignalWatcher(
   private cleanup: (() => void) | null = null;
   private docIds: string[] = [];
 
-  private async act(action: () => void | Promise<void>) {
+  private async act(action: () => void | Promise<void>, removing = false) {
     const composer = this.closest("ai-chat-composer");
     const focused = document.activeElement;
     try {
       await action();
+      // A removed chip may still be mounted until the portal commits. Restore
+      // focus on acknowledgement unless the user already focused another control.
+      const active = document.activeElement;
       if (
-        focused &&
-        !focused.isConnected &&
         composer?.isConnected &&
-        document.activeElement === document.body
-      )
+        (removing || (focused && !focused.isConnected)) &&
+        (active === document.body || active === focused)
+      ) {
         composer
           .querySelector<HTMLButtonElement>(
             'button[data-testid="chat-panel-with-button"]',
           )
           ?.focus();
+      }
     } catch {
       notify({ title: chatI18n()["com.myoxus.ai.chat-panel.context-error"]() });
     }
   }
 
   private renderChip(chip: ChatChip): ReactNode {
-    // Document materialization retains its existing reactive controller and lifecycle.
-    if (isDocChip(chip))
-      return toReactNode(
-        html`<chat-panel-doc-chip
-          .reactToLit=${this.reactToLit}
-          .chip=${chip}
-          .independentMode=${this.independentMode}
-          .addChip=${this.addChip}
-          .updateChip=${this.updateChip}
-          .removeChip=${this.removeChip}
-          .checkTokenLimit=${this.checkTokenLimit}
-          .docDisplayConfig=${this.docDisplayConfig}
-        ></chat-panel-doc-chip>`,
-      );
+    if (isDocChip(chip)) {
+      return createElement(DocumentContextChip, {
+        chip,
+        config: this.docDisplayConfig,
+        update: this.updateChip,
+        fits: this.checkTokenLimit,
+        onRemove: () => void this.act(() => this.removeChip(chip), true),
+        onAdd: () =>
+          void this.act(async () => {
+            await this.addChip({ ...chip, state: "processing" });
+            const scope = this.independentMode
+              ? track.$.intelligence
+              : track.$.chatPanel;
+            scope.chatPanelInput.addEmbeddingDoc({
+              control: "addButton",
+              method: "suggestion",
+              type: this.docDisplayConfig.getDocPrimaryMode(chip.docId),
+            });
+          }),
+      });
+    }
     let name: string;
     let icon: ReactNode;
     let tagColor: string | undefined;
@@ -150,7 +163,7 @@ export class ChatPanelChips extends SignalWatcher(
       closeable,
       tooltip: getChipTooltip(chip.state, name, chip.tooltip),
       onAdd: () => {},
-      onRemove: () => void this.act(() => this.removeChip(chip)),
+      onRemove: () => void this.act(() => this.removeChip(chip), true),
       onRetry: retry ? () => void this.act(retry!) : undefined,
     });
   }
@@ -164,9 +177,7 @@ export class ChatPanelChips extends SignalWatcher(
     const all = this.chips.concat(candidates.slice(0, MAX_CANDIDATES));
     const collapsed = this.isCollapsed && all.length > 1;
     const visible = collapsed ? all.slice(0, 1) : all;
-    const moreDocs = computed(() =>
-      this.referenceDocs.value.slice(MAX_CANDIDATES),
-    );
+    const moreDocs = this.referenceDocs.value.slice(MAX_CANDIDATES);
     return this.reactToLit(
       createElement(
         ChatChipsView,
@@ -176,15 +187,12 @@ export class ChatPanelChips extends SignalWatcher(
           renderCandidates:
             !collapsed && candidates.length > MAX_CANDIDATES
               ? (controller) =>
-                  toReactNode(
-                    html`<chat-panel-candidates-popover
-                      .reactToLit=${this.reactToLit}
-                      .referenceDocs=${moreDocs}
-                      .addChip=${this.addChip}
-                      .docDisplayConfig=${this.docDisplayConfig}
-                      .abortController=${controller}
-                    ></chat-panel-candidates-popover>`,
-                  )
+                  createElement(ContextSuggestions, {
+                    docs: moreDocs,
+                    addChip: this.addChip,
+                    config: this.docDisplayConfig,
+                    controller,
+                  })
               : undefined,
         },
         visible.map((chip) =>
@@ -214,6 +222,8 @@ export class ChatPanelChips extends SignalWatcher(
   override disconnectedCallback() {
     super.disconnectedCallback();
     this.cleanup?.();
+    this.cleanup = null;
+    this.docIds = [];
   }
 
   private readonly checkTokenLimit = (
@@ -247,9 +257,11 @@ export class ChatPanelChips extends SignalWatcher(
       .filter((chip) => chip.state !== "candidate")
       .map((chip) => chip.docId);
     if (isEqual(ids, this.docIds)) return;
-    this.cleanup?.();
     this.docIds = ids;
+    // Acquire retained sources before releasing the previous chip set, so a
+    // shared reference read does not lose its final subscriber in between.
     const docs = this.docDisplayConfig.getReferenceDocs(ids);
+    this.cleanup?.();
     this.referenceDocs = docs.signal;
     this.cleanup = docs.cleanup;
   }

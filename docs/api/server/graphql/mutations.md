@@ -95,7 +95,7 @@ This page lists the compiled schema definitions for this section. Use the type l
 | `decideDocumentReview`<br>[DocumentReview](./objects.md#documentreview)! | `input`: [DecideDocumentReviewInput](./inputs.md#decidedocumentreviewinput)! |
 | `deleteAccount`<br>[DeleteAccount](./objects.md#deleteaccount)! |  |
 | `deleteAssistantSetup`<br>[UserPreferencesType](./objects.md#userpreferencestype)! | `expectedUserId`: `ID`!<br>`id`: `ID`! |
-| `deleteBlob`<br>`Boolean`! | `hash`: `String`<br>`key`: `String`<br>`permanently`: `Boolean`<br>`workspaceId`: `String`! |
+| `deleteBlob`<br>`Boolean`! | `hash`: `String`<br>`key`: `String`<br>`onlyIfUnused`: `Boolean`<br>`permanently`: `Boolean`<br>`workspaceId`: `String`! |
 | `deleteCalendarEvent`<br>`Boolean`! | `eventId`: `String`! |
 | `deleteCalendarEventInstance`<br>`Boolean`! | `eventId`: `String`!<br>`instanceStart`: [DateTime](./scalars.md#datetime)!<br>`scope`: [InstanceEditScope](./enums.md#instanceeditscope)! |
 | `deleteComment`<br>`Boolean`! | `id`: `String`! |

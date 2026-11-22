@@ -483,13 +483,7 @@ pub(crate) async fn reconcile_group_memberships(
   })?;
 
   let normalized_mapping = group_mapping_from_config(mapping)?;
-  let service = OidcGroupSyncService::new(
-    unit_repo,
-    member_repo,
-    Arc::new(crate::organization::ManagerCapabilityWriterAdapter::new(Arc::new(
-      state.clone(),
-    ))),
-  );
+  let service = OidcGroupSyncService::new(unit_repo, member_repo);
   let report = service
     .reconcile(OidcGroupSyncInput {
       user_id,
@@ -532,45 +526,25 @@ fn map_oidc_sync_error(error: OidcGroupSyncError) -> ApiError {
       message: format!("groupMapping targetUnitId '{unit_id}' is inactive"),
       data: None,
     },
-    OidcGroupSyncError::Repository(message) | OidcGroupSyncError::ManagerCapability(message) => {
-      ApiError::Internal(message)
-    }
+    OidcGroupSyncError::Repository(message) => ApiError::Internal(message),
   }
 }
 
 async fn record_oidc_sync_audit(state: &ApiState, user_id: Uuid, provider: &str, events: &[OidcGroupSyncEvent]) {
   for event in events {
-    let capability_event = matches!(
-      event.action,
-      OidcGroupSyncAction::ManagerCapabilitySet | OidcGroupSyncAction::ManagerCapabilityRevoked
-    );
     let event_key = match event.action {
       OidcGroupSyncAction::Added => "organization.member.oidc_sync.add",
       OidcGroupSyncAction::Updated => "organization.member.oidc_sync.update",
       OidcGroupSyncAction::Removed => "organization.member.oidc_sync.remove",
       OidcGroupSyncAction::SkippedConflict => "organization.member.oidc_sync.skipped_conflict",
-      OidcGroupSyncAction::ManagerCapabilitySet => "user.feature.manager.implicit_set",
-      OidcGroupSyncAction::ManagerCapabilityRevoked => "user.feature.manager.implicit_revoke",
     };
     state
       .audit_recorder()
       .record(
         AuditEvent::mutation(
           event_key,
-          if capability_event {
-            AuditCategory::User
-          } else {
-            AuditCategory::Organization
-          },
-          Some(AuditTarget::entity(
-            if capability_event {
-              "user"
-            } else {
-              "organization_unit_member"
-            },
-            if capability_event { user_id } else { event.unit_id },
-            None,
-          )),
+          AuditCategory::Organization,
+          Some(AuditTarget::entity("organization_unit_member", event.unit_id, None)),
           AuditActor::system(),
           event
             .previous_role

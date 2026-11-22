@@ -8,8 +8,6 @@ import { DummyBlobStorage } from "./dummy/blob";
 import { DummyBlobSyncStorage } from "./dummy/blob-sync";
 import { DummyDocStorage } from "./dummy/doc";
 import { DummyDocSyncStorage } from "./dummy/doc-sync";
-import { DummyIndexerStorage } from "./dummy/indexer";
-import { DummyIndexerSyncStorage } from "./dummy/indexer-sync";
 import type { IndexerStorage } from "./indexer";
 import type { IndexerSyncStorage } from "./indexer-sync";
 import type { StorageType } from "./storage";
@@ -29,7 +27,7 @@ export type SpaceStorageOptions = {
 
 export class SpaceStorage {
   protected readonly storages: {
-    [K in StorageType]: Storages & { storageType: K };
+    [K in StorageType]?: Storages & { storageType: K };
   };
   private readonly disposables: Set<() => void> = new Set();
 
@@ -40,8 +38,8 @@ export class SpaceStorage {
       blobSync: storages.blobSync ?? new DummyBlobSyncStorage(),
       doc: storages.doc ?? new DummyDocStorage(),
       docSync: storages.docSync ?? new DummyDocSyncStorage(),
-      indexer: storages.indexer ?? new DummyIndexerStorage(),
-      indexerSync: storages.indexerSync ?? new DummyIndexerSyncStorage(),
+      ...(storages.indexer ? { indexer: storages.indexer } : {}),
+      ...(storages.indexerSync ? { indexerSync: storages.indexerSync } : {}),
     };
   }
 
@@ -53,6 +51,11 @@ export class SpaceStorage {
     }
 
     return storage as unknown as Extract<Storages, { storageType: T }>;
+  }
+
+  optional<T extends StorageType>(type: T) {
+    return this.storages[type] as unknown as
+      Extract<Storages, { storageType: T }> | undefined;
   }
 
   connect() {

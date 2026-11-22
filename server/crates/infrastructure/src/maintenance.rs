@@ -123,6 +123,24 @@ impl SqlxRetentionRepository {
           .execute(&self.pool)
           .await
         }
+        RetentionOperation::RegisteredOccurrences => {
+          // Native queue retries no longer consult SQL after outbox handoff.
+          // The current cursor remains evidence during startup registration.
+          sqlx::query(
+            "WITH candidates AS (
+            SELECT o.id FROM scheduling_occurrences o JOIN scheduling_schedules s ON s.id=o.schedule_id
+            WHERE o.native_job_id IS NOT NULL AND s.target_json->>'kind'='registered_job'
+              AND o.nominal_due_at < now()
+              AND (s.next_due_at IS NULL OR o.nominal_due_at < s.next_due_at)
+              AND NOT EXISTS (SELECT FROM outbox_events e WHERE e.processed_at IS NULL
+                AND e.event_type='registered_job_due' AND e.payload->>'dispatchId'=o.dispatch_id::text)
+            LIMIT $1 FOR UPDATE OF o SKIP LOCKED)
+            DELETE FROM scheduling_occurrences o USING candidates c WHERE o.id=c.id",
+          )
+          .bind(BATCH_LIMIT)
+          .execute(&self.pool)
+          .await
+        }
         RetentionOperation::MergedDocumentUpdates => {
           sqlx::query(
             "DELETE FROM doc_updates WHERE id IN (SELECT du.id FROM doc_updates du \
@@ -160,6 +178,7 @@ enum RetentionOperation {
   Notifications(i64),
   PendingBlobs(i64),
   ProcessedOutbox(i64),
+  RegisteredOccurrences,
   MergedDocumentUpdates,
   OrphanedSessionLinks,
 }
@@ -184,6 +203,10 @@ impl RetentionRepository for SqlxRetentionRepository {
 
   async fn clean_processed_outbox_events(&self, retention_days: i64) -> AuthResult<u64> {
     self.drain(RetentionOperation::ProcessedOutbox(retention_days)).await
+  }
+
+  async fn clean_registered_occurrences(&self) -> AuthResult<u64> {
+    self.drain(RetentionOperation::RegisteredOccurrences).await
   }
 
   async fn clean_merged_document_updates(&self) -> AuthResult<u64> {

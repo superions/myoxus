@@ -222,10 +222,10 @@ or native workspace recipients, formats recipient-owned date/time/timezone
 preferences and supplies the existing Journals route. All-day messages display
 the calendar date. A reminder-scoped session lock serializes fanout without an
 open SQL transaction during SMTP. Cancellation closes its connection; normal
-and failed attempts explicitly unlock. A pending dispatch-log row with
-`delivered_at IS NULL` is reclaimed under that lock; successful recipient receipts
-are retained, and only unfinished recipients are sent again. Dispatch-log and
-whole-reminder completion timestamps are written in one short transaction.
+and failed attempts explicitly unlock. A reminder with a worker job ID and
+`delivered_at IS NULL` can be reclaimed under that lock. The worker sends only to
+recipients without a success receipt. Completion sets `dispatched_at` and
+`delivered_at` on the reminder in the same update.
 A completed reminder suppresses replay. SMTP acceptance before its recipient
 receipt still has a redelivery window after a crash.
 Reminder settings are native definitions, separate from per-occurrence delivery

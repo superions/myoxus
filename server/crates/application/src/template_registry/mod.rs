@@ -1156,6 +1156,7 @@ fn audit_error_code(err: &AuthError) -> &'static str {
     AuthError::DocSyncPayloadTooLarge { .. } => "DOC_SYNC_PAYLOAD_TOO_LARGE",
     AuthError::DocSyncCancelled => "DOC_SYNC_CANCELLED",
     AuthError::YjsDecoderUnavailable => "YJS_DECODER_UNAVAILABLE",
+    AuthError::RowAttachment(_) => "ROW_ATTACHMENT_FAILED",
     AuthError::Storage(_) => "STORAGE_ERROR",
   }
 }

@@ -265,9 +265,16 @@ export class DocLinks extends Entity {
   }
 }
 
-function urlSearchParamsFromJson(value: unknown): URLSearchParams | undefined {
+export function urlSearchParamsFromJson(
+  value: unknown,
+): URLSearchParams | undefined {
   if (!value || typeof value !== "object") {
     return undefined;
+  }
+  // Inline LinkedPage attributes store navigation under `params`; embed
+  // occurrences and older inline attributes store the fields directly.
+  if ("params" in value && value.params && typeof value.params === "object") {
+    value = value.params;
   }
   const params = new URLSearchParams();
   for (const [key, candidate] of Object.entries(

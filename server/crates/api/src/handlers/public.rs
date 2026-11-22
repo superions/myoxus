@@ -12,19 +12,18 @@ use myoxus_application::auth::AuthError;
 use myoxus_application::doc::DocSpaceKind;
 use myoxus_application::document_metadata::DocumentMetadataProjectionMode;
 use myoxus_application::public::{
-  DEFAULT_PUBLIC_THEME_VERSION, PUBLIC_RENDERER_VERSION, PUBLIC_REVOCABLE_CACHE_CONTROL, PublicAllow,
-  PublicAssetManifestEntry, PublicService, document_metadata_badges, source_hash,
+  DEFAULT_PUBLIC_THEME_VERSION, PUBLIC_RENDERER_VERSION, PUBLIC_REVOCABLE_CACHE_CONTROL, PublicAllow, PublicService,
+  document_metadata_badges,
 };
 use myoxus_domain::document_key::DocumentKey;
 use myoxus_domain::repositories::PageRequest;
-use myoxus_infrastructure::public::{PgPublicRepository, artifact_for_html, asset_manifest_entry};
+use myoxus_infrastructure::public::{PgPublicRepository, asset_manifest_entry};
 use myoxus_public_render::{
   HtmlRenderOptions, PublicBreadcrumb, PublicDocIr, PublicSiteShellOptions, WorkspaceIndex, WorkspaceIndexFolder,
   WorkspaceIndexItem, apply_public_asset_url, document_from_yjs, public_document_path, public_folder_path,
   render_document_html, render_workspace_index_html, resolve_asset_candidates,
 };
 use serde::Deserialize;
-use serde_json::json;
 use tracing::{debug, info, instrument, warn};
 use uuid::Uuid;
 
@@ -157,12 +156,10 @@ pub(crate) async fn public_workspace_handler(
       }
     })?;
   let mut introduction = None;
-  let mut assets = Vec::new();
   if let Some(document) = &read.page.introduction {
     match load_public_document(&state, &service, workspace_id, document.doc_id).await {
       Ok(loaded) => {
         introduction = Some(loaded.ir);
-        assets = loaded.assets;
       }
       // The binding does not override the document's current publication state.
       Err(StatusCode::NOT_FOUND) => {
@@ -253,26 +250,6 @@ pub(crate) async fn public_workspace_handler(
     warn!(%workspace_id, error = %err, "public workspace render failed");
     StatusCode::INTERNAL_SERVER_ERROR
   })?;
-  // The existing artifact key owns the root index only. Folder reads must not
-  // overwrite it or manufacture document IDs for derived pages.
-  if read.page.folder.is_none() && read.register_page.offset == 0 && read.register_page.limit == 50 {
-    let source = serde_json::to_vec(&index).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    service
-      .upsert_artifact(&artifact_for_html(
-        workspace_id,
-        None,
-        source_hash(&source),
-        allow.noindex,
-        json!(assets),
-        rendered.html.clone(),
-        renderer.renderer_version(PUBLIC_RENDERER_VERSION),
-      ))
-      .await
-      .map_err(|err| {
-        warn!(%workspace_id, error = %err, "public workspace artifact write failed");
-        StatusCode::INTERNAL_SERVER_ERROR
-      })?;
-  }
   info!(%workspace_id, outcome = "allow", cache_status = "rendered", "public workspace route served");
   Ok(html_response(&state, rendered.html, allow.noindex))
 }
@@ -297,12 +274,7 @@ async fn render_public_document(
   route_doc_id: &str,
 ) -> Result<Response, StatusCode> {
   let service = public_service(state)?;
-  let LoadedPublicDocument {
-    ir,
-    allow,
-    assets,
-    artifact_source_hash,
-  } = load_public_document(state, &service, workspace_id, doc_id).await?;
+  let LoadedPublicDocument { ir, allow } = load_public_document(state, &service, workspace_id, doc_id).await?;
   let public_mode = allow.public_mode.as_deref().unwrap_or("Page");
   let path = public_document_path(workspace_id, route_doc_id);
   let mut options = html_options(state, workspace_id, &path, allow.noindex);
@@ -325,21 +297,6 @@ async fn render_public_document(
     warn!(%workspace_id, %doc_id, error = %err, outcome = "error", "public doc render failed");
     StatusCode::INTERNAL_SERVER_ERROR
   })?;
-  service
-    .upsert_artifact(&artifact_for_html(
-      workspace_id,
-      Some(doc_id),
-      artifact_source_hash,
-      allow.noindex,
-      json!(assets),
-      rendered.html.clone(),
-      renderer.renderer_version(PUBLIC_RENDERER_VERSION),
-    ))
-    .await
-    .map_err(|err| {
-      warn!(%workspace_id, %doc_id, error = %err, outcome = "error", "public doc artifact write failed");
-      StatusCode::INTERNAL_SERVER_ERROR
-    })?;
   info!(
     %workspace_id,
     %doc_id,
@@ -356,8 +313,6 @@ async fn render_public_document(
 struct LoadedPublicDocument {
   ir: PublicDocIr,
   allow: PublicAllow,
-  assets: Vec<PublicAssetManifestEntry>,
-  artifact_source_hash: String,
 }
 
 /// Introductions use the same native body, current document ACL and media
@@ -380,7 +335,7 @@ async fn load_public_document(
     return Err(StatusCode::NOT_FOUND);
   }
   let allow = service
-    .decide_document(workspace_id, doc_id, &doc.payload)
+    .decide_document(workspace_id, doc_id)
     .await
     .map_err(|err| {
       warn!(%workspace_id, %doc_id, error = %err, outcome = "error", "public doc ACL failed");
@@ -488,32 +443,8 @@ async fn load_public_document(
       StatusCode::INTERNAL_SERVER_ERROR
     })?;
   ir.document.metadata_badges = document_metadata_badges(&metadata_projection, &metadata_definitions);
-  let badge_projection = serde_json::to_string(&ir.document.metadata_badges).map_err(|err| {
-    warn!(%workspace_id, %doc_id, error = %err, "public document metadata serialization failed");
-    StatusCode::INTERNAL_SERVER_ERROR
-  })?;
-  let field_inputs = field_context
-    .as_ref()
-    .map(|context| serde_json::to_string(context.freshness()))
-    .transpose()
-    .map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
-  let artifact_input = match field_inputs {
-    Some(fields) => format!("{}\0{badge_projection}\0{fields}", allow.source_hash),
-    None => format!("{}\0{badge_projection}", allow.source_hash),
-  };
-  let artifact_source_hash = if directory_payload.is_some() || embed_payload.is_some() {
-    let directory_projection = serde_json::to_vec(&ir).map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
-    source_hash(&[artifact_input.as_bytes(), &directory_projection].concat())
-  } else {
-    source_hash(artifact_input.as_bytes())
-  };
-  let assets = materialize_public_assets(state, service, workspace_id, doc_id, &mut ir).await?;
-  Ok(LoadedPublicDocument {
-    ir,
-    allow,
-    assets,
-    artifact_source_hash,
-  })
+  materialize_public_assets(state, service, workspace_id, doc_id, &mut ir).await?;
+  Ok(LoadedPublicDocument { ir, allow })
 }
 
 async fn materialize_public_assets(
@@ -522,7 +453,7 @@ async fn materialize_public_assets(
   workspace_id: Uuid,
   doc_id: Uuid,
   ir: &mut myoxus_public_render::PublicDocIr,
-) -> Result<Vec<myoxus_application::public::PublicAssetManifestEntry>, StatusCode> {
+) -> Result<(), StatusCode> {
   let mut manifest = Vec::new();
   for candidate in resolve_asset_candidates(ir) {
     let metadata = state
@@ -566,7 +497,7 @@ async fn materialize_public_assets(
       warn!(%workspace_id, %doc_id, error = %err, "public asset manifest write failed");
       StatusCode::INTERNAL_SERVER_ERROR
     })?;
-  Ok(manifest)
+  Ok(())
 }
 
 #[instrument(skip_all, fields(workspace_id = %workspace_id, doc_id = %doc_id, asset_hash = %asset_hash))]
@@ -582,7 +513,7 @@ pub(crate) async fn public_asset_handler(
   let doc_id = parse_uuid(&doc_id)?;
   let service = public_service(&state)?;
   if service
-    .decide_document(workspace_id, doc_id, b"asset")
+    .decide_document(workspace_id, doc_id)
     .await
     .map_err(|err| {
       warn!(%workspace_id, %doc_id, error = %err, "public asset ACL failed");
@@ -638,14 +569,9 @@ pub(crate) async fn legacy_share_redirect_handler(
   let workspace_id = parse_uuid(&workspace_id)?;
   let route_doc_id = doc_id;
   let doc_id = resolve_public_route_doc_id(&state, workspace_id, &route_doc_id).await?;
-  let doc = state
-    .doc()
-    .load_full_doc_with_meta(workspace_id, doc_id)
-    .await
-    .map_err(|_| StatusCode::NOT_FOUND)?;
   let service = public_service(&state)?;
   let allow = service
-    .decide_document(workspace_id, doc_id, &doc.payload)
+    .decide_document(workspace_id, doc_id)
     .await
     .map_err(|_| StatusCode::NOT_FOUND)?
     .allowed()

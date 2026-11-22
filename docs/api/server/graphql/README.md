@@ -16,7 +16,7 @@ This reference describes the compiled server schema. A trailing `!` means non-nu
 | [Query root](./queries.md) | 1 |
 | [Mutation root](./mutations.md) | 1 |
 | [Subscription root](./subscriptions.md) | 0 |
-| [Objects](./objects.md) | 656 |
+| [Objects](./objects.md) | 660 |
 | [Input objects](./inputs.md) | 326 |
 | [Enums](./enums.md) | 208 |
 | [Unions](./unions.md) | 3 |
@@ -645,6 +645,8 @@ This reference describes the compiled server schema. A trailing `!` means non-nu
 | [DocumentMetadataValidationSeverityType](./enums.md#documentmetadatavalidationseveritytype) | Enums |
 | [DocumentMetadataValidationType](./objects.md#documentmetadatavalidationtype) | Objects |
 | [DocumentMetadataValueDefinitionType](./objects.md#documentmetadatavaluedefinitiontype) | Objects |
+| [DocumentNavigationBlock](./objects.md#documentnavigationblock) | Objects |
+| [DocumentNavigationLink](./objects.md#documentnavigationlink) | Objects |
 | [DocumentReview](./objects.md#documentreview) | Objects |
 | [DocumentReviewDecisionKind](./enums.md#documentreviewdecisionkind) | Enums |
 | [DocumentReviewPlanningType](./objects.md#documentreviewplanningtype) | Objects |
@@ -796,6 +798,7 @@ This reference describes the compiled server schema. A trailing `!` means non-nu
 | [OrganizationUnitTypeType](./objects.md#organizationunittypetype) | Objects |
 | [OrganizationUnitWorkspaceRelationshipEnum](./enums.md#organizationunitworkspacerelationshipenum) | Enums |
 | [OrganizationUnitWorkspaceType](./objects.md#organizationunitworkspacetype) | Objects |
+| [OutgoingDocumentNavigation](./objects.md#outgoingdocumentnavigation) | Objects |
 | [PageInfoType](./objects.md#pageinfotype) | Objects |
 | [PaginatedAdminAllSharedLinkType](./objects.md#paginatedadminallsharedlinktype) | Objects |
 | [PaginatedCommentChangeObjectType](./objects.md#paginatedcommentchangeobjecttype) | Objects |
@@ -1043,6 +1046,7 @@ This reference describes the compiled server schema. A trailing `!` means non-nu
 | [UnknownOauthProviderDataType](./objects.md#unknownoauthproviderdatatype) | Objects |
 | [UnsupportedClientVersionDataType](./objects.md#unsupportedclientversiondatatype) | Objects |
 | [UnsupportedSubscriptionPlanDataType](./objects.md#unsupportedsubscriptionplandatatype) | Objects |
+| [UnusedBlobPage](./objects.md#unusedblobpage) | Objects |
 | [UpdateAppConfigInput](./inputs.md#updateappconfiginput) | Input objects |
 | [UpdateAppServerBrandingInput](./inputs.md#updateappserverbrandinginput) | Input objects |
 | [UpdateCalendarAccountInput](./inputs.md#updatecalendaraccountinput) | Input objects |

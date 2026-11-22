@@ -30,6 +30,7 @@ import {
   gqlRequest,
   injectSessionCookies,
 } from "../../../../adminfrontend/e2e/fixtures/auth";
+import { createEmptyWorkspace } from "../../../shared/create-empty-workspace";
 
 interface WorkspaceListResponse {
   workspaces: Array<{ id: string }>;
@@ -188,6 +189,26 @@ async function dismissOpenInAppOverlay(page: Page): Promise<void> {
   }
 }
 
+const titleField = "[data-page-title], doc-title .inline-editor";
+const writableParagraph =
+  "[data-page-body][contenteditable=true] [data-page-text]:visible, myoxus-paragraph .inline-editor[contenteditable=true]:visible";
+async function readParagraph(target: Locator) {
+  return target.evaluate((node) => {
+    const el = node as HTMLElement & {
+      inlineEditor?: { yText: { toString(): string } };
+    };
+    if (el.inlineEditor) return el.inlineEditor.yText.toString();
+    const id = el.dataset.pageText,
+      docId = location.pathname.split("/").pop()!;
+    return id
+      ? window.currentWorkspace?.docCollection
+          .getDoc(docId)
+          ?.getStore()
+          .getModelById(id)
+          ?.text?.toString()
+      : undefined;
+  });
+}
 async function createWorkspacePage(
   page: Page,
   targetWorkspaceId: string,
@@ -210,13 +231,13 @@ async function createWorkspacePage(
     { timeout: 20_000 },
   );
 
-  const titleEditor = page.locator("doc-title .inline-editor").first();
+  const titleEditor = page.locator(titleField).first();
   await expect(titleEditor).toBeVisible({ timeout: 20_000 });
   await titleEditor.fill(title);
   await expect(page.locator("[data-myoxus-editor-container]")).toBeVisible({
     timeout: 20_000,
   });
-  await page.waitForSelector("v-line", { timeout: 20_000 });
+  await page.waitForSelector(writableParagraph, { timeout: 20_000 });
   await dismissOpenInAppOverlay(page);
 
   const docId = page.url().split("/").findLast(Boolean);
@@ -229,9 +250,7 @@ async function createWorkspacePage(
 async function appendEditorText(page: Page, text: string): Promise<void> {
   const route = new URL(page.url()).pathname.split("/");
   const before = await revision(page, route[2], route[3]);
-  let body = page
-    .locator("myoxus-paragraph .inline-editor[contenteditable=true]:visible")
-    .last();
+  let body = page.locator(writableParagraph).last();
   await expect(body).toBeVisible({ timeout: 10_000 });
   const pointAtEnd = async (target: Locator) => {
     const box = await target.boundingBox();
@@ -243,6 +262,19 @@ async function appendEditorText(page: Page, text: string): Promise<void> {
           const element = node as HTMLElement & {
             inlineEditor: { yText: { length: number; toString(): string } };
           };
+          if (element.dataset.pageText) {
+            const s = window.getSelection();
+            if (
+              !s?.isCollapsed ||
+              !element.contains(s.anchorNode) ||
+              !s.rangeCount
+            )
+              return false;
+            const r = s.getRangeAt(0).cloneRange();
+            r.selectNodeContents(element);
+            r.setEnd(s.anchorNode!, s.anchorOffset);
+            return r.toString() === element.textContent;
+          }
           const block = element.closest("myoxus-paragraph") as HTMLElement & {
             model: { id: string };
             host: {
@@ -267,48 +299,25 @@ async function appendEditorText(page: Page, text: string): Promise<void> {
   // The editor's controlled selection must consume the native pointer before
   // typing. Contenteditable fill/End can otherwise target an earlier selection.
   await pointAtEnd(body);
-  const initial = await body.evaluate((node) =>
-    (
-      node as HTMLElement & { inlineEditor: { yText: { toString(): string } } }
-    ).inlineEditor.yText.toString(),
-  );
+  const initial = await readParagraph(body);
   if (initial) {
-    const count = await page
-      .locator("myoxus-paragraph .inline-editor[contenteditable=true]:visible")
-      .count();
+    const count = await page.locator(writableParagraph).count();
     await page.keyboard.press("Enter");
-    await expect(
-      page.locator(
-        "myoxus-paragraph .inline-editor[contenteditable=true]:visible",
-      ),
-    ).toHaveCount(count + 1);
-    body = page
-      .locator("myoxus-paragraph .inline-editor[contenteditable=true]:visible")
-      .last();
+    await expect(page.locator(writableParagraph)).toHaveCount(count + 1);
+    body = page.locator(writableParagraph).last();
     await pointAtEnd(body);
   }
   await page.keyboard.insertText(text);
   await expect(body).toContainText(text, { timeout: 10_000 });
   // A DOM-only edit is not a restore/binding proof. Require the live Y.Text
   // and an acknowledged server revision before taking a capture or navigating.
-  await expect
-    .poll(() =>
-      body.evaluate((node) => {
-        const editor = (
-          node as HTMLElement & {
-            inlineEditor?: { yText: { toString(): string } };
-          }
-        ).inlineEditor;
-        return editor?.yText.toString();
-      }),
-    )
-    .toBe(text);
+  await expect.poll(() => readParagraph(body)).toBe(text);
   await expect
     .poll(() => revision(page, route[2], route[3]), {
       timeout: 30_000,
     })
     .not.toBe(before);
-  await page.locator("doc-title .inline-editor").first().click();
+  await page.locator(titleField).first().click();
   // A leaf revision can advance while the workspace metadata update is still
   // queued. Settle both sync units before a full navigation disposes the editor.
   await page.evaluate(async (docId) => {
@@ -1083,7 +1092,7 @@ test.describe.serial("Document versioning web sidebar", () => {
       );
       const nextId = new URL(page.url()).pathname.split("/").at(-1)!;
       const nextTitle = `New scope ${Date.now().toString(36)}`;
-      await page.locator("doc-title .inline-editor").first().fill(nextTitle);
+      await page.locator(titleField).first().fill(nextTitle);
       await appendEditorText(page, `Persisted empty history ${nextTitle}`);
       await openDocumentVersionsSidebar(page);
       await page.getByTestId("document-version-history").click();
@@ -1185,13 +1194,12 @@ test.describe.serial("Document versioning web sidebar", () => {
     // manufacture a due timestamp or substitute a manual capture for this row.
     test.setTimeout(1_200_000);
     await signInApiAsTemporaryUser(request);
-    const target = (
-      await gqlRequest<{ createWorkspace: { id: string } }>(
-        request,
-        `mutation { createWorkspace { id } }`,
-      )
-    ).createWorkspace.id;
-    temporaryWorkspaceIds.add(target);
+    // This journey needs a destination history policy, not the legacy starter
+    // template installation whose outbox fanout can starve scheduled capture.
+    const target = await createEmptyWorkspace(
+      (query, variables) => gqlRequest(request, query, variables),
+      (id) => temporaryWorkspaceIds.add(id),
+    );
     const policy = async (id: string, interval: number) => {
       const current = await gqlRequest<{
         workspaceHistorySettings: { revision: string };
@@ -1226,6 +1234,29 @@ test.describe.serial("Document versioning web sidebar", () => {
       `Moved history ${suffix}`,
     );
     await appendEditorText(page, `Before ownership transition ${suffix}`);
+    // The Move owns both organizer roots from preflight through publication.
+    // Release the acknowledged source editor before exercising that contract;
+    // the same browser reopens the document in its destination below.
+    await page.goto("about:blank");
+    let lastRoots = "",
+      quietSince = 0;
+    await expect
+      .poll(
+        async () => {
+          const roots = JSON.stringify(
+            await Promise.all(
+              [workspaceId, target].map((id) => revision(page, id, id)),
+            ),
+          );
+          if (roots !== lastRoots) {
+            lastRoots = roots;
+            quietSince = Date.now();
+          }
+          return Date.now() - quietSince;
+        },
+        { timeout: 30_000, intervals: [500] },
+      )
+      .toBeGreaterThan(2000);
     const preflight = await gqlRequest<{
       workspaceContentPreflight: {
         operation: { id: string };

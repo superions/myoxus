@@ -128,24 +128,21 @@ impl PgDatabaseRepository {
           {
             return Err(RepositoryError::Conflict("correction assignment role changed"));
           }
-          // An absent membership cannot be row-locked. The existing Workspace
-          // FK parent lock also excludes reinsertion, while membership locks
-          // exclude Pending/Revoked -> Accepted. NOWAIT avoids reversing the
-          // governance writer's Workspace-before-membership lock order.
+          // The projection refresh takes the same workspace lock before adding or removing effective members.
           sqlx::query("SELECT id FROM workspaces WHERE id=$1 AND lifecycle_state='active' AND deleted_at IS NULL FOR UPDATE NOWAIT")
             .bind(proposal.workspace_id).fetch_one(&mut *tx).await.map_err(Self::map_sqlx_error)?;
-          let members = sqlx::query("SELECT user_id,status::text AS status FROM workspace_memberships WHERE workspace_id=$1 AND user_id=ANY($2) ORDER BY user_id FOR SHARE NOWAIT")
-            .bind(proposal.workspace_id).bind(old).fetch_all(&mut *tx).await.map_err(Self::map_sqlx_error)?;
-          let mut accepted = std::collections::BTreeSet::new();
-          for member in members {
-            if member.try_get::<String, _>("status").map_err(Self::map_sqlx_error)? == "Accepted" {
-              accepted.insert(member.try_get::<Uuid, _>("user_id").map_err(Self::map_sqlx_error)?);
-            }
-          }
+          let accepted: Vec<Uuid> = sqlx::query_scalar(
+            "SELECT user_id FROM workspace_effective_roles WHERE workspace_id=$1 AND user_id=ANY($2) ORDER BY user_id",
+          )
+          .bind(proposal.workspace_id)
+          .bind(old)
+          .fetch_all(&mut *tx)
+          .await
+          .map_err(Self::map_sqlx_error)?;
           let current = old
             .iter()
             .copied()
-            .filter(|id| accepted.contains(id))
+            .filter(|id| accepted.binary_search(id).is_ok())
             .collect::<Vec<_>>();
           if &current != new || current.len() == old.len() {
             return Err(RepositoryError::Conflict("correction assignment membership changed"));

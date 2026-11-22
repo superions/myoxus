@@ -321,7 +321,7 @@ impl NativeExecution<'_> {
           actor,
           run.workspace_id,
           setup,
-          crate::doc::AutomationRowContentTarget {
+          crate::doc::RowContentTarget {
             database_id: trigger.database_id,
             row_id: trigger.row_id,
             expected_edit_revision: self.receipt.expected_edit_revision.ok_or_else(unavailable)?,

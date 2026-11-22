@@ -1275,37 +1275,17 @@ impl OrganizationMutationRoot {
     Ok(saved.into())
   }
 
-  /// Toggle the `Manager` user feature for a user. Admin-only.
-  ///
-  /// This only flips the global capability; OU-membership must be set
-  /// separately via `assign_organization_manager`. Without both, the user
-  /// has no manager rights (Learning LRN-20260502-ORG-A-01).
-  #[instrument(skip(self, ctx))]
-  pub async fn set_user_manager_feature(&self, ctx: &Context<'_>, user_id: ID, enabled: bool) -> Result<bool> {
-    let (state, admin_id) = require_admin(ctx).await?;
-    let uid = parse_id::<Uuid>(&user_id, "user")?;
-    crate::graphql::persist_user_feature_override(&state, uid, crate::graphql::USER_FEATURE_MANAGER, enabled).await?;
-    let actor = resolve_audit_actor(ctx).await;
-    state
-      .audit_recorder()
-      .record(AuditEvent::mutation(
-        "organization.user_manager_feature.set",
-        AuditCategory::Organization,
-        Some(AuditTarget::entity("user", uid, None)),
-        actor,
-        None,
-        Some(serde_json::json!({"enabled": enabled})),
-      ))
-      .await;
-    info!(admin_id = %admin_id, user_id = %uid, enabled, "user manager feature toggled");
-    Ok(enabled)
+  /// Compatibility mutation. Manager authority can only be changed by editing an OU membership.
+  pub async fn set_user_manager_feature(&self, ctx: &Context<'_>, _user_id: ID, _enabled: bool) -> Result<bool> {
+    require_admin(ctx).await?;
+    Err(async_graphql::Error::new(
+      "Manage the Manager role through organization unit memberships",
+    ))
   }
 
   /// Assign / update an OU member. Admin-only.
   ///
-  /// P-AR-2-S03 intentionally makes the global `Manager` feature a
-  /// consequence of `role=manager`, not a prerequisite. Membership and
-  /// implicit capability commit together in the shared transactional owner.
+  /// The account-level Manager badge reflects active Manager memberships.
   #[instrument(skip(self, ctx))]
   pub async fn assign_organization_manager(
     &self,
@@ -1443,24 +1423,6 @@ pub fn project_creation_decision_label(d: ProjectCreationDecision) -> &'static s
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// P-AR-2-S03 — Implicit Manager-Capability Hooks
-// ─────────────────────────────────────────────────────────────────────────────
-//
-// The global `FeatureType.Manager`-capability is NOT UI-toggle-bar (concept §
-// 3.4). It is set as a CONSEQUENCE of OU manager-role assigns and revoked
-// once the user no longer holds any `manager`-membership in any OU.
-//
-// These helpers are called from the four resolvers that mutate
-// `organization_unit_member.role = 'manager'`:
-//
-//   * `assignOrganizationManager`            (admin)
-//   * `addOrganizationUnitMemberAsManager`   (manager-scoped, never grants
-//                                             role=manager today, but the
-//                                             helper is symmetric for safety)
-//   * `unassignOrganizationManager`          (admin)
-//   * `removeOrganizationUnitMemberAsManager` (manager-scoped)
-//
-// They write an audit row keyed `user.feature.manager.implicit_set` /
 // `ProjectCreationScope` is owned and publicly exported by the application
 // layer (`myoxus_application::organization`). Resolvers that need the decision
 // path import it directly from that authoritative owner.
@@ -1802,7 +1764,7 @@ impl OrganizationManagerQueryRoot {
 
   /// P-AR-0-S02: Manager-scoped user search (`UserPicker` in
   /// `mode="manager"`). Permission gate: caller MUST be a manager of
-  /// `unit_id` (`is_manager_for_unit` — two-axis check: feature
+  /// `unit_id` (`is_manager_for_unit` — membership in an active unit
   /// `manager` AND `organization_unit_member.role = 'manager'`).
   ///
   /// Refuses with `ActionForbidden` when the caller is not a manager of
@@ -2070,7 +2032,7 @@ impl OrganizationManagerMutationRoot {
   /// `assignOrganizationManager` mutation.
   ///
   /// Server checks:
-  ///  - `is_manager_for_unit(caller, unit)` (two-axis)
+  ///  - `is_manager_for_unit(caller, unit)`
   ///  - `policy.manager_can_manage_ou_members`
   ///  - role ∈ {`reader`, `member`} — never `manager` (admin scope)
   #[graphql(name = "addOrganizationUnitMemberAsManager")]
@@ -2356,9 +2318,6 @@ impl OrganizationImportExportRoot {
     let actor = resolve_audit_actor(ctx).await;
     let res = match outcome {
       Ok(commit) => {
-        for user_id in &commit.manager_capability_users {
-          state.invalidate_user_feature_cache_l2(*user_id).await;
-        }
         let summary = commit.summary;
         state
           .audit_recorder()

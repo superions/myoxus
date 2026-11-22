@@ -3222,10 +3222,13 @@ fn mutation_readback_schema() -> Value {
 }
 
 fn workspace_member_output_schema(status: &str) -> Value {
-  json!({"type":"object","additionalProperties":false,"required":["userId","name","email","disabled","role","status","inviteId"],
+  json!({"type":"object","additionalProperties":false,"required":["userId","name","email","disabled","role","status","inviteId","directRole","ouRole","ouNames"],
     "properties":{"userId":{"type":"string","format":"uuid"},"name":{"type":"string"},"email":{"type":"string"},
       "disabled":{"type":"boolean"},"role":{"type":"string","enum":["Owner","Admin","Manager","Collaborator","Commenter","Reader","External"]},
-      "status":{"type":"string","const":status},"inviteId":{"type":"string","format":"uuid"}}})
+      "status":{"type":"string","const":status},"inviteId":{"type":["string","null"],"format":"uuid"},
+      "directRole":{"enum":[null,"Owner","Admin","Manager","Collaborator","Commenter","Reader","External"]},
+      "ouRole":{"enum":[null,"Admin","Manager","Collaborator","Reader"]},
+      "ouNames":{"type":"array","items":{"type":"string"}}}})
 }
 
 fn user_output_schema(detail: bool) -> Value {
@@ -5104,7 +5107,7 @@ mod tests {
         .collect::<BTreeSet<_>>();
       assert_eq!(
         actual_properties,
-        properties.iter().copied().collect(),
+        properties.iter().copied().collect::<BTreeSet<_>>(),
         "{name} properties"
       );
       let actual_required = tool.input_schema["required"]
@@ -5115,7 +5118,7 @@ mod tests {
         .collect::<BTreeSet<_>>();
       assert_eq!(
         actual_required,
-        required.iter().copied().collect(),
+        required.iter().copied().collect::<BTreeSet<_>>(),
         "{name} required fields"
       );
     }
@@ -5363,7 +5366,7 @@ mod tests {
         .union(&required)
         .copied()
         .chain(natural.iter().copied())
-        .collect()
+        .collect::<BTreeSet<_>>()
     );
 
     for name in optional {

@@ -859,6 +859,101 @@ fn expected_ledger() -> Vec<(i64, &'static str, Vec<u8>)> {
       "workspace effective roles",
       sha384(include_bytes!("../migrations/1100_workspace_effective_roles.sql")),
     ),
+    (
+      1101,
+      "ou manager roles",
+      sha384(include_bytes!("../migrations/1101_ou_manager_roles.sql")),
+    ),
+    (
+      1102,
+      "private document storage",
+      sha384(include_bytes!("../migrations/1102_private_document_storage.sql")),
+    ),
+    (
+      1103,
+      "unit workspace relationship",
+      sha384(include_bytes!("../migrations/1103_unit_workspace_relationship.sql")),
+    ),
+    (
+      1104,
+      "sync activity",
+      sha384(include_bytes!("../migrations/1104_sync_activity.sql")),
+    ),
+    (
+      1105,
+      "retire obsolete storage",
+      sha384(include_bytes!("../migrations/1105_retire_obsolete_storage.sql")),
+    ),
+    (
+      1106,
+      "retire legacy storage",
+      sha384(include_bytes!("../migrations/1106_retire_legacy_storage.sql")),
+    ),
+    (
+      1107,
+      "computed cells",
+      sha384(include_bytes!("../migrations/1107_computed_cells.sql")),
+    ),
+    (
+      1108,
+      "workspace revisions",
+      sha384(include_bytes!("../migrations/1108_workspace_revisions.sql")),
+    ),
+    (
+      1109,
+      "calendar dispatch",
+      sha384(include_bytes!("../migrations/1109_calendar_dispatch.sql")),
+    ),
+    (
+      1110,
+      "catalog default policy",
+      sha384(include_bytes!("../migrations/1110_catalog_default_policy.sql")),
+    ),
+    (
+      1111,
+      "workspace version settings",
+      sha384(include_bytes!("../migrations/1111_workspace_version_settings.sql")),
+    ),
+    (
+      1112,
+      "workspace publications",
+      sha384(include_bytes!("../migrations/1112_workspace_publications.sql")),
+    ),
+    (
+      1113,
+      "remove public render artifacts",
+      sha384(include_bytes!("../migrations/1113_remove_public_render_artifacts.sql")),
+    ),
+    (
+      1114,
+      "workspace tag identities",
+      sha384(include_bytes!("../migrations/1114_workspace_tag_identities.sql")),
+    ),
+    (
+      1115,
+      "git sync document baselines",
+      sha384(include_bytes!("../migrations/1115_git_sync_document_baselines.sql")),
+    ),
+    (
+      1116,
+      "git sync bindings",
+      sha384(include_bytes!("../migrations/1116_git_sync_bindings.sql")),
+    ),
+    (
+      1117,
+      "document graph navigation order",
+      sha384(include_bytes!("../migrations/1117_document_graph_navigation_order.sql")),
+    ),
+    (
+      1118,
+      "document blob usage",
+      sha384(include_bytes!("../migrations/1118_document_blob_usage.sql")),
+    ),
+    (
+      1119,
+      "qualify document blob keys",
+      sha384(include_bytes!("../migrations/1119_qualify_document_blob_keys.sql")),
+    ),
   ]
 }
 
@@ -984,7 +1079,7 @@ async fn assert_forward_schema(pool: &PgPool) {
   assert_eq!(terminal_contract, (true, true, true));
 
   let forward_contract: (bool, bool, bool, bool, bool) = sqlx::query_as(
-    "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='workspace_database_views_view_kind_check' AND convalidated AND pg_get_constraintdef(oid) LIKE '%gantt%'), to_regclass('public.git_token_rotation') IS NOT NULL, to_regclass('public.workspace_tag_retired_ids') IS NOT NULL, EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='workspaces' AND column_name='description' AND is_nullable='NO' AND column_default IS NOT NULL), EXISTS (SELECT 1 FROM pg_constraint WHERE conname='workspaces_description_length' AND convalidated AND pg_get_constraintdef(oid) LIKE '%char_length(description) <= 2000%')",
+    "SELECT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='workspace_database_views_view_kind_check' AND convalidated AND pg_get_constraintdef(oid) LIKE '%gantt%'), to_regclass('public.git_token_rotation') IS NOT NULL, to_regclass('public.workspace_tag_identities') IS NOT NULL, EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='workspaces' AND column_name='description' AND is_nullable='NO' AND column_default IS NOT NULL), EXISTS (SELECT 1 FROM pg_constraint WHERE conname='workspaces_description_length' AND convalidated AND pg_get_constraintdef(oid) LIKE '%char_length(description) <= 2000%')",
   )
   .fetch_one(pool)
   .await
@@ -998,7 +1093,7 @@ async fn assert_forward_schema(pool: &PgPool) {
   .expect("read detached calendar delete migration contract");
   assert_eq!(calendar_delete_contract, (true, true));
   let history_capture_contract: (bool, bool, bool) = sqlx::query_as(
-    "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='document_versioning_workspace_settings' AND column_name='edit_capture_enabled' AND is_nullable='YES'), EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='document_versioning_workspace_settings' AND column_name='edit_capture_interval_ms' AND is_nullable='YES'), EXISTS (SELECT 1 FROM pg_constraint WHERE conname='document_versioning_workspace_settings_edit_capture_interval_check' AND convalidated)",
+    "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='document_workspace_settings' AND column_name='edit_capture_enabled' AND is_nullable='YES'), EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='document_workspace_settings' AND column_name='edit_capture_interval_ms' AND is_nullable='YES'), EXISTS (SELECT 1 FROM pg_constraint WHERE conname='document_workspace_settings_edit_capture_interval_ms_check' AND convalidated)",
   )
   .fetch_one(pool)
   .await
@@ -1022,7 +1117,7 @@ async fn assert_forward_schema(pool: &PgPool) {
   .expect("read document edit-capture due-state contract");
   assert_eq!(edit_capture_due_contract, (true, true, true, true));
   let guide_contract: Vec<(String, i32, String)> = sqlx::query_as(
-    "SELECT e.slug, e.builder_version, p.provisioning_mode FROM template_catalog_entries e JOIN template_default_policies p ON p.template_id = e.id WHERE e.source = 'builtin' AND e.slug IN ('agile-retro', 'agile-standup', 'databases-guide-myoxus', 'getting-started-myoxus', 'meeting-notes', 'meeting-templates-myoxus', 'using-folders-myoxus', 'welcome-myoxus') ORDER BY e.slug",
+    "SELECT e.slug, e.builder_version, e.provisioning_mode FROM template_catalog_entries e WHERE e.source = 'builtin' AND e.apply_to_new_workspaces IS NOT NULL AND e.slug IN ('agile-retro', 'agile-standup', 'databases-guide-myoxus', 'getting-started-myoxus', 'meeting-notes', 'meeting-templates-myoxus', 'using-folders-myoxus', 'welcome-myoxus') ORDER BY e.slug",
   )
   .fetch_all(pool)
   .await
@@ -1174,8 +1269,94 @@ async fn baseline_1000_advances_through_regular_forward_migrations() {
     install_baseline_1000(&pool).await?;
     let stale_search_row_id = seed_stale_database_tag_search_payload(&pool).await?;
     let (legacy_user,legacy_key,legacy_pending)=seed_legacy_mcp_receipts(&pool).await?;
+    let personal = Uuid::new_v4();
+    let old_container = Uuid::new_v4();
+    let journal = Uuid::new_v4();
+    sqlx::query("INSERT INTO workspaces(id,owner_user_id,name,is_personal_workspace)
+      VALUES($1,$3,'Private storage',true),($2,$3,'Former container',false)")
+      .bind(personal).bind(old_container).bind(legacy_user).execute(&pool).await?;
+    sqlx::query("INSERT INTO docs(id,userspace_owner_id,external_id) VALUES($1,$2,'private-journal')")
+      .bind(journal).bind(legacy_user).execute(&pool).await?;
+    sqlx::query("INSERT INTO doc_snapshots(doc_id,workspace_id,payload,last_sequence) VALUES($1,$2,'base',4)")
+      .bind(journal).bind(old_container).execute(&pool).await?;
+    sqlx::query("INSERT INTO doc_updates(doc_id,workspace_id,payload,sequence) VALUES($1,$2,'tail',5)")
+      .bind(journal).bind(old_container).execute(&pool).await?;
+    sqlx::query("INSERT INTO doc_histories(doc_id,workspace_id,snapshot) VALUES($1,$2,'old')")
+      .bind(journal).bind(old_container).execute(&pool).await?;
     let guide_workspace = Uuid::new_v4();
     sqlx::query("INSERT INTO workspaces(id,name) VALUES($1,'Guide classification fixture')").bind(guide_workspace).execute(&pool).await?;
+    // Document and file bindings had independent primary keys before consolidation.
+    let binding = Uuid::new_v4();
+    let profile = Uuid::new_v4();
+    sqlx::query("INSERT INTO git_sync_profiles(id,workspace_id,owner_id,repo_url) VALUES($1,$2,$3,'https://example.test/upgrade.git')")
+      .bind(profile).bind(guide_workspace).bind(legacy_user).execute(&pool).await?;
+    sqlx::query("INSERT INTO git_sync_bindings(id,profile_id,workspace_id,doc_id,sync_id,repo_path,content_hash,updated_at)
+      VALUES($1,$2,$3,gen_random_uuid(),gen_random_uuid(),'doc.md','git bytes','2024-03-01')")
+      .bind(binding).bind(profile).bind(guide_workspace).execute(&pool).await?;
+    sqlx::query("INSERT INTO git_sync_baselines(binding_id,content_hash,commit_oid,myoxus_updated_at,captured_at)
+      VALUES($1,'normalized body','old-commit','2024-01-01','2024-02-01')").bind(binding).execute(&pool).await?;
+    sqlx::query("INSERT INTO git_sync_file_bindings(id,profile_id,workspace_id,blob_key,repo_path,content_hash,file_size,tombstoned)
+      VALUES($1,$2,$3,'blob','doc.md','file bytes',12,true)")
+      .bind(binding).bind(profile).bind(guide_workspace).execute(&pool).await?;
+    sqlx::query("INSERT INTO git_sync_conflicts(profile_id,binding_id,doc_id,repo_path,conflict_type)
+      SELECT profile_id,id,doc_id,repo_path,'BothModified' FROM git_sync_bindings WHERE id=$1")
+      .bind(binding).execute(&pool).await?;
+    sqlx::query("WITH run AS (INSERT INTO git_sync_runs(profile_id,direction) VALUES($1,'Bidirectional') RETURNING id)
+      INSERT INTO git_sync_file_conflicts(profile_id,run_id,binding_id,repo_path) SELECT $1,id,$2,'doc.md' FROM run")
+      .bind(profile).bind(binding).execute(&pool).await?;
+    let operation = Uuid::new_v4();
+    let context = Uuid::new_v4();
+    sqlx::query("INSERT INTO workspace_content_operations(id,idempotency_id,actor_id,kind,source_workspace_id,target_workspace_id,status,manifest_hash)
+        VALUES($1,gen_random_uuid(),$2,'move',$3,$4,'succeeded',repeat('a',64))")
+      .bind(operation).bind(legacy_user).bind(personal).bind(guide_workspace).execute(&pool).await?;
+    sqlx::query("INSERT INTO workspace_content_move_publications(operation_id,source_workspace_id,target_workspace_id,manifest_hash,resource_count,diagnostic_instance_id,committed_at)
+        VALUES($1,$2,$3,repeat('a',64),7,'original-worker','2024-01-01')")
+      .bind(operation).bind(personal).bind(guide_workspace).execute(&pool).await?;
+    sqlx::query("INSERT INTO document_workspace_settings(workspace_id,updated_by,updated_at) VALUES($1,$2,'2024-01-01')")
+      .bind(personal).bind(legacy_user).execute(&pool).await?;
+    sqlx::query("INSERT INTO document_versioning_workspace_settings(workspace_id,enabled,retention_count,updated_by,updated_at)
+        VALUES($1,false,9,$2,'2024-02-01')")
+      .bind(personal).bind(legacy_user).execute(&pool).await?;
+    sqlx::query("INSERT INTO copilot_contexts(id,user_id,workspace_id,name) VALUES($1,$2,$3,'files')")
+      .bind(context).bind(legacy_user).bind(personal).execute(&pool).await?;
+    sqlx::query("INSERT INTO ai_workspace_files(workspace_id,file_id,file_name,mime_type,size,blob_id)
+        VALUES($1,'file','old name','text/plain',42,'source')")
+      .bind(personal).execute(&pool).await?;
+    sqlx::query(r#"INSERT INTO copilot_context_items(context_id,item_type,item_ref,metadata)
+        VALUES($1,'file','file','{"name":"explicit"}')"#).bind(context).execute(&pool).await?;
+    sqlx::query("INSERT INTO blobs(workspace_id,key,size,mime,status) VALUES($1,'upload',128,'text/plain','pending')")
+      .bind(personal).execute(&pool).await?;
+    sqlx::query("INSERT INTO multipart_uploads(workspace_id,key,upload_id) VALUES($1,'upload','provider-id')")
+      .bind(personal).execute(&pool).await?;
+    sqlx::query("INSERT INTO config_changelog(config_key,old_value,new_value,changed_by)
+        VALUES('mail.smtp_pass',to_jsonb('old'::text),to_jsonb('new'::text),$1)")
+      .bind(legacy_user).execute(&pool).await?;
+    let disabled_template = Uuid::new_v4();
+    let no_policy = Uuid::new_v4();
+    sqlx::query("INSERT INTO template_catalog_entries(id,slug,title) VALUES ($1,'upgrade-disabled','Disabled'),($2,'upgrade-absent','Absent')")
+      .bind(disabled_template).bind(no_policy).execute(&pool).await?;
+    sqlx::query("INSERT INTO template_default_policies(template_id,apply_to_new_workspaces,provisioning_mode,updated_at)
+        VALUES ($1,false,'manual_update','2024-03-01')")
+      .bind(disabled_template).execute(&pool).await?;
+    let reminder = Uuid::new_v4();
+    let worker = Uuid::new_v4();
+    let event: Uuid = sqlx::query_scalar("INSERT INTO calendar_events(workspace_id,origin,starts_at,ends_at)
+        VALUES ($1,'native',now(),now()+interval '1 hour') RETURNING id").bind(personal).fetch_one(&pool).await?;
+    sqlx::query("INSERT INTO calendar_reminders(id,event_id,minutes_before,scheduled_for) VALUES($1,$2,15,now())")
+      .bind(reminder).bind(event).execute(&pool).await?;
+    sqlx::query("INSERT INTO calendar_reminder_dispatch_log(reminder_id,worker_job_id,dispatched_at) VALUES($1,$2,'2024-04-01')")
+      .bind(reminder).bind(worker).execute(&pool).await?;
+    for (kind,storage,value) in [
+      ("formula","workspace_database_formula_values",31),
+      ("rollup","workspace_database_rollup_values",47),
+    ] {
+      let field: Uuid = sqlx::query_scalar("INSERT INTO workspace_database_fields(database_id,name,field_type,position)
+          SELECT database_id,$2,$2,$3 FROM workspace_database_rows WHERE id=$1 RETURNING id")
+        .bind(stale_search_row_id).bind(kind).bind(value).fetch_one(&pool).await?;
+      sqlx::query(&format!("INSERT INTO {storage}(database_id,field_id,row_id,value_json,source_hash,stale_state)
+          SELECT database_id,$2,id,to_jsonb($3::integer),'source','current' FROM workspace_database_rows WHERE id=$1"))
+        .bind(stale_search_row_id).bind(field).bind(value).execute(&pool).await?;
+    }
     let mut guide_cases = Vec::new();
     for (legacy, purpose, existing_state, expected_state) in [(true,"guide",None,"guide"), (false,"guide",Some("managed"),"guide"), (false,"template",None,"managed"), (false,"template",Some("detached"),"detached")] {
       let doc = Uuid::new_v4();
@@ -1217,6 +1398,63 @@ async fn baseline_1000_advances_through_regular_forward_migrations() {
     assert_eq!(relation_snapshot(&pool).await, before_relations);
 
     myoxus_infrastructure::migrations::run(&pool).await.unwrap();
+    let doc_preserved: bool = sqlx::query_scalar("SELECT content_hash='git bytes' AND baseline_content_hash='normalized body'
+      AND baseline_commit_oid='old-commit' AND baseline_myoxus_updated_at='2024-01-01'::timestamptz
+      AND baseline_captured_at='2024-02-01'::timestamptz AND updated_at='2024-03-01'::timestamptz AND NOT tombstone
+      FROM git_sync_document_bindings WHERE id=$1").bind(binding).fetch_one(&pool).await?;
+    assert!(doc_preserved);
+    let file_preserved: bool = sqlx::query_scalar("SELECT tombstoned AND file_size=12 AND blob_key='blob' AND content_hash='file bytes'
+      AND repo_path='doc.md' FROM git_sync_file_bindings WHERE id=$1").bind(binding).fetch_one(&pool).await?;
+    assert!(file_preserved);
+    sqlx::query("DELETE FROM git_sync_document_bindings WHERE id=$1").bind(binding).execute(&pool).await?;
+    let document_conflicts: i64 = sqlx::query_scalar("SELECT count(*) FROM git_sync_conflicts WHERE profile_id=$1")
+      .bind(profile).fetch_one(&pool).await?;
+    assert_eq!(document_conflicts, 0);
+    let file_reference: Uuid = sqlx::query_scalar("SELECT binding_id FROM git_sync_file_conflicts WHERE profile_id=$1")
+      .bind(profile).fetch_one(&pool).await?;
+    assert_eq!(file_reference, binding);
+    sqlx::query("DELETE FROM git_sync_file_bindings WHERE id=$1").bind(binding).execute(&pool).await?;
+    let file_reference: Option<Uuid> = sqlx::query_scalar("SELECT binding_id FROM git_sync_file_conflicts WHERE profile_id=$1")
+      .bind(profile).fetch_one(&pool).await?;
+    assert_eq!(file_reference, None);
+    sqlx::query("DELETE FROM workspaces WHERE id=$1").bind(old_container).execute(&pool).await?;
+    let projection: Vec<(String,serde_json::Value)> = sqlx::query_as("SELECT f.field_type,v.value_json FROM workspace_database_computed_values v
+      JOIN workspace_database_fields f ON v.field_id=f.id WHERE v.row_id=$1 AND v.stale_state='current' AND v.source_hash='source' ORDER BY 1")
+      .bind(stale_search_row_id).fetch_all(&pool).await?;
+    assert_eq!(projection, vec![("formula".into(),serde_json::json!(31)),("rollup".into(),serde_json::json!(47))]);
+    let attempted: bool = sqlx::query_scalar("SELECT worker_job_id=$2 AND dispatched_at='2024-04-01'::timestamptz AND delivered_at IS NULL FROM calendar_reminders WHERE id=$1")
+      .bind(reminder).bind(worker).fetch_one(&pool).await?;
+    assert!(attempted);
+    let policies: (bool,bool) = sqlx::query_as("SELECT
+        (SELECT apply_to_new_workspaces=false AND provisioning_mode='manual_update' AND policy_updated_at='2024-03-01'::timestamptz FROM template_catalog_entries WHERE id=$1),
+        (SELECT apply_to_new_workspaces IS NULL AND policy_updated_at IS NULL FROM template_catalog_entries WHERE id=$2)")
+      .bind(disabled_template).bind(no_policy).fetch_one(&pool).await?;
+    assert_eq!(policies,(true,true));
+    let receipt: (String,i32,String,bool) = sqlx::query_as("SELECT kind,resource_count,diagnostic_instance_id,
+      committed_at='2024-01-01'::timestamptz AND manifest_hash=repeat('a',64) FROM workspace_content_publications WHERE operation_id=$1")
+      .bind(operation).fetch_one(&pool).await?;
+    assert_eq!(receipt, ("move".into(),7,"original-worker".into(),true));
+    let settings: (bool,i32,bool) = sqlx::query_as("SELECT enabled,retention_count,
+        updated_by=$2 AND versioning_updated_by=$2 AND updated_at='2024-01-01'::timestamptz AND versioning_updated_at='2024-02-01'::timestamptz
+        FROM document_workspace_settings WHERE workspace_id=$1").bind(personal).bind(legacy_user).fetch_one(&pool).await?;
+    assert_eq!(settings,(false,9,true));
+    let metadata: serde_json::Value = sqlx::query_scalar("SELECT metadata FROM copilot_context_items WHERE context_id=$1")
+      .bind(context).fetch_one(&pool).await?;
+    assert_eq!(metadata, serde_json::json!({"name":"explicit","mimeType":"text/plain","size":42,"blobId":"source"}));
+    let active_upload: (String,String) = sqlx::query_as("SELECT upload_id,status FROM blobs WHERE workspace_id=$1 AND key='upload'")
+      .bind(personal).fetch_one(&pool).await?;
+    assert_eq!(active_upload,("provider-id".into(),"uploading".into()));
+    let redacted: bool = sqlx::query_scalar("SELECT old_value=to_jsonb('***REDACTED***'::text) AND new_value=old_value
+      FROM admin_audit_log WHERE category='config' AND target_id='mail.smtp_pass' AND actor_user_id=$1")
+      .bind(legacy_user).fetch_one(&pool).await?;
+    assert!(redacted);
+    let preserved: (Vec<u8>,Vec<u8>,Vec<u8>,i64,i64,i64) = sqlx::query_as(
+      "SELECT s.payload,u.payload,h.snapshot,s.last_sequence,u.sequence,st.snapshot_size
+       FROM doc_snapshots s JOIN doc_updates u USING(doc_id,workspace_id)
+       JOIN doc_histories h USING(doc_id,workspace_id) JOIN workspace_storage_stats st USING(workspace_id)
+       WHERE s.doc_id=$1 AND s.workspace_id=$2")
+      .bind(journal).bind(personal).fetch_one(&pool).await?;
+    assert_eq!(preserved, (b"base".to_vec(), b"tail".to_vec(), b"old".to_vec(), 4, 5, 4));
     assert_current_ledger(&pool).await;
     assert_forward_schema(&pool).await;
     assert_legacy_mcp_receipts_preserved(&pool,legacy_user,legacy_key,legacy_pending).await;

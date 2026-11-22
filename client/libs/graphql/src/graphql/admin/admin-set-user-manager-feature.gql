@@ -1,5 +1,0 @@
-mutation adminSetUserManagerFeature($userId: ID!, $enabled: Boolean!) {
-  admin {
-    setUserManagerFeature(userId: $userId, enabled: $enabled)
-  }
-}

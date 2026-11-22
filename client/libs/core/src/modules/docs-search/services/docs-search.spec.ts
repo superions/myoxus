@@ -12,7 +12,7 @@ import { WorkspaceServerService } from "../../server";
 import { WorkspaceService } from "../../workspace";
 import { DocsSearchService } from "./docs-search";
 
-describe("DocsSearchService remote full-text search", () => {
+describe("DocsSearchService remote workspace search", () => {
   test("uses workspace.searchDocs and never the generic remote block indexer", async () => {
     const aggregate$ = vi.fn(() => of({ buckets: [] }));
     const gql = vi.fn(async () => ({
@@ -63,7 +63,6 @@ describe("DocsSearchService remote full-text search", () => {
         input: {
           keyword: "release needle",
           limit: 50,
-          useSemanticSearch: false,
         },
       },
       context: { signal: expect.any(AbortSignal) },
@@ -90,7 +89,6 @@ describe("DocsSearchService remote full-text search", () => {
             keyword: "release needle",
             limit: 50,
             offset: 50,
-            useSemanticSearch: false,
           },
         },
         context: { signal: expect.any(AbortSignal) },

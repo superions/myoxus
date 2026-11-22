@@ -387,10 +387,8 @@ impl PgDatabaseRepository {
       .execute(&mut *tx)
       .await
       .map_err(Self::map_sqlx_error)?;
-    for table in ["workspace_database_formula_values", "workspace_database_rollup_values"] {
-      sqlx::query(&format!("UPDATE {table} projection SET database_id=$4,field_id=mapped.target,stale_state='stale',updated_at=now() FROM unnest($1::uuid[],$2::uuid[]) mapped(source,target) WHERE projection.row_id=ANY($3) AND projection.field_id=mapped.source"))
+    sqlx::query("UPDATE workspace_database_computed_values projection SET database_id=$4,field_id=mapped.target,stale_state='stale',updated_at=now() FROM unnest($1::uuid[],$2::uuid[]) mapped(source,target) WHERE projection.row_id=ANY($3) AND projection.field_id=mapped.source")
         .bind(&from).bind(&to).bind(&row_ids).bind(input.target_database_id).execute(&mut *tx).await.map_err(Self::map_sqlx_error)?;
-    }
     let target_has_derived = target
       .fields
       .iter()

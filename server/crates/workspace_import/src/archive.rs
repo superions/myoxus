@@ -286,7 +286,17 @@ pub(crate) fn inspect_zip_archive<R: Read + Seek>(
 }
 
 pub fn inspect_zip_bytes(bytes: &[u8], limits: ArchiveLimits) -> Result<ArchiveIndex, ArchiveError> {
-  inspect_zip_archive(&mut open_zip(bytes)?, limits)
+  open_inspected_zip(bytes, limits).map(|(_, index)| index)
+}
+
+/// Keep the reader and the index together when a consumer also needs the admitted bytes.
+pub fn open_inspected_zip(
+  bytes: &[u8],
+  limits: ArchiveLimits,
+) -> Result<(ZipArchive<Cursor<&[u8]>>, ArchiveIndex), ArchiveError> {
+  let mut archive = open_zip(bytes)?;
+  let index = inspect_zip_archive(&mut archive, limits)?;
+  Ok((archive, index))
 }
 
 fn hash_entry<R: Read + Seek>(archive: &mut ZipArchive<R>, name: &str, limit: u64) -> Result<String, ArchiveError> {

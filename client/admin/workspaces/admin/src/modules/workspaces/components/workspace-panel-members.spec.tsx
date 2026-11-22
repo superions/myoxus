@@ -19,6 +19,9 @@ interface MemberFixture {
   email: string;
   avatarUrl: string | null;
   role: string;
+  directRole: string | null;
+  ouRole: string | null;
+  ouNames: string[];
   status: string;
 }
 
@@ -43,6 +46,9 @@ const MEMBERS: MemberFixture[] = [
     email: "alice@test.com",
     avatarUrl: null,
     role: "Owner",
+    directRole: "Owner",
+    ouRole: null,
+    ouNames: [],
     status: "Accepted",
   },
   {
@@ -51,15 +57,21 @@ const MEMBERS: MemberFixture[] = [
     email: "bob@test.com",
     avatarUrl: null,
     role: "Collaborator",
+    directRole: "Collaborator",
+    ouRole: null,
+    ouNames: [],
     status: "Accepted",
   },
   {
     id: "u-carol",
-    name: "Carol Pending",
+    name: "Carol OU",
     email: "carol@test.com",
     avatarUrl: null,
     role: "Reader",
-    status: "Pending",
+    directRole: null,
+    ouRole: "Reader",
+    ouNames: ["LD"],
+    status: "Accepted",
   },
 ];
 
@@ -218,6 +230,9 @@ describe("WorkspaceMembersSection", () => {
     );
 
     expect(screen.queryByTestId(`remove-member-btn-${OWNER_ID}`)).toBeNull();
+    expect(screen.getByText("Reader via LD")).toBeTruthy();
+    expect(screen.queryByTestId("remove-member-btn-u-carol")).toBeNull();
+    expect(screen.queryByTestId("member-role-select-u-carol")).toBeNull();
     expect(
       screen.getByTestId("remove-member-btn-u-bob").getAttribute("data-testid"),
     ).toBe("remove-member-btn-u-bob");

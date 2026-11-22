@@ -216,7 +216,7 @@ async fn journey(pool: &PgPool, url: &str, storage: &Path) {
       .await
       .unwrap();
     ids.push(entry.id);
-    sqlx::query("INSERT INTO template_default_policies(template_id,apply_to_new_workspaces) VALUES($1,true) ON CONFLICT(template_id) DO UPDATE SET apply_to_new_workspaces=true,release_managed=false")
+    sqlx::query("UPDATE template_catalog_entries SET apply_to_new_workspaces=true,release_managed=false,policy_created_at=now(),policy_updated_at=now() WHERE id=$1")
       .bind(entry.id).execute(pool).await.unwrap();
     sqlx::query("INSERT INTO workspace_template_policies(workspace_id,template_id) VALUES($1,$2)")
       .bind(workspace)

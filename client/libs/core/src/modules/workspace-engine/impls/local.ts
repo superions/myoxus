@@ -21,16 +21,12 @@ import {
   IndexedDBBlobSyncStorage,
   IndexedDBDocStorage,
   IndexedDBDocSyncStorage,
-  IndexedDBIndexerStorage,
-  IndexedDBIndexerSyncStorage,
 } from "@myoxus/storage/idb";
 import {
   SqliteBlobStorage,
   SqliteBlobSyncStorage,
   SqliteDocStorage,
   SqliteDocSyncStorage,
-  SqliteIndexerStorage,
-  SqliteIndexerSyncStorage,
 } from "@myoxus/storage/sqlite";
 import type { WorkerInitOptions } from "@myoxus/storage/worker/client";
 import { isEqual } from "lodash-es";
@@ -198,13 +194,13 @@ export class LocalWorkspaceFlavourProvider implements WorkspaceFlavourProvider {
     BUILD_CONFIG.isElectron || BUILD_CONFIG.isIOS || BUILD_CONFIG.isAndroid
       ? SqliteBlobSyncStorage
       : IndexedDBBlobSyncStorage;
-  IndexerStorageType =
+  private readonly indexerStorageName =
     BUILD_CONFIG.isElectron || BUILD_CONFIG.isIOS || BUILD_CONFIG.isAndroid
-      ? SqliteIndexerStorage
-      : IndexedDBIndexerStorage;
-  IndexerSyncStorageType = BUILD_CONFIG.isElectron
-    ? SqliteIndexerSyncStorage
-    : IndexedDBIndexerSyncStorage;
+      ? "SqliteIndexerStorage"
+      : "IndexedDBIndexerStorage";
+  private readonly indexerSyncStorageName = BUILD_CONFIG.isElectron
+    ? "SqliteIndexerSyncStorage"
+    : "IndexedDBIndexerSyncStorage";
 
   async deleteWorkspace(id: string): Promise<void> {
     setLocalWorkspaceIds((ids) => ids.filter((x) => x !== id));
@@ -563,7 +559,7 @@ export class LocalWorkspaceFlavourProvider implements WorkspaceFlavourProvider {
           },
         },
         indexer: {
-          name: this.IndexerStorageType.identifier,
+          name: this.indexerStorageName,
           opts: {
             flavour: this.flavour,
             type: "workspace",
@@ -571,7 +567,7 @@ export class LocalWorkspaceFlavourProvider implements WorkspaceFlavourProvider {
           },
         },
         indexerSync: {
-          name: this.IndexerSyncStorageType.identifier,
+          name: this.indexerSyncStorageName,
           opts: {
             flavour: this.flavour,
             type: "workspace",

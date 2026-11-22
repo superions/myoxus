@@ -324,10 +324,9 @@ impl PgDatabaseRepository {
           ON cell.row_id = reminder.row_id
          AND cell.field_id = reminder.field_id
          AND cell.value_json IS NOT NULL
-        JOIN workspace_memberships AS membership
+        JOIN workspace_effective_roles AS membership
           ON membership.workspace_id = reminder.workspace_id
          AND membership.user_id = reminder.user_id
-         AND membership.status = 'Accepted'
         JOIN users recipient ON recipient.id=reminder.user_id AND recipient.status='active'
         WHERE reminder.id = $1
           AND schedule.generation = $2

@@ -481,6 +481,13 @@ async fn comment_intent_failure_rolls_back_comment_and_outbox() {
   .execute(&pool)
   .await
   .expect("owned failure trigger");
+  // Creating the fixture document already enqueues indexing in this workspace.
+  let outbox = "SELECT id FROM outbox_events WHERE payload->>'workspaceId'=$1 ORDER BY id";
+  let before: Vec<Uuid> = sqlx::query_scalar(outbox)
+    .bind(workspace.to_string())
+    .fetch_all(&pool)
+    .await
+    .unwrap();
   let outcome = std::panic::AssertUnwindSafe(async {
     let response = graphql(&app, session, json!({
       "query":"mutation($ws:String!,$doc:String!,$body:JSON!){createComment(workspaceId:$ws,docId:$doc,body:$body){id}}",
@@ -489,9 +496,9 @@ async fn comment_intent_failure_rolls_back_comment_and_outbox() {
     assert!(response.get("errors").is_some(),"failed intent must fail creation: {response}");
     let comments:i64=sqlx::query_scalar("SELECT count(*) FROM comments WHERE workspace_id=$1")
       .bind(workspace).fetch_one(&pool).await.unwrap();
-    let intents:i64=sqlx::query_scalar("SELECT count(*) FROM outbox_events WHERE payload->>'workspaceId'=$1")
-      .bind(workspace.to_string()).fetch_one(&pool).await.unwrap();
-    assert_eq!((comments,intents),(0,0));
+    let after: Vec<Uuid> = sqlx::query_scalar(outbox).bind(workspace.to_string()).fetch_all(&pool).await.unwrap();
+    assert_eq!(comments, 0);
+    assert_eq!(after, before, "the failed comment must leave the workspace outbox untouched");
   }).catch_unwind().await;
   sqlx::query(&format!("DROP TRIGGER {trigger} ON outbox_events"))
     .execute(&pool)

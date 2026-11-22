@@ -676,7 +676,7 @@ async fn workspace_labels_cli_reconciliation_is_explicit_atomic_revision_bound_a
     }
     sqlx::query("INSERT INTO workspace_tag_document_assignments(workspace_id, doc_id, tag_id, position) VALUES ($1,$2,$3,0)")
       .bind(workspace).bind(docs[0]).bind(active).execute(&pool).await?;
-    sqlx::query("INSERT INTO workspace_tag_retired_ids (workspace_id, retired_tag_id, retired_at) VALUES ($1,'retired',now())")
+    sqlx::query("INSERT INTO workspace_tag_identities (workspace_id, external_id, retired_at) VALUES ($1,'retired',now())")
       .bind(workspace).execute(&pool).await?;
     let mut pages = keys.iter().enumerate().map(|(index, key)| yjs::ImportedWorkspacePage {
       id: key.clone(), title: format!("Preserved title {index}"), mode: "page".into(), parent_id: None,

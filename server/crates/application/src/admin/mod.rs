@@ -188,13 +188,8 @@ pub trait AdminStore: Send + Sync {
 
   /// Delete (or soft-delete) a workspace as an administrative action.
   async fn delete_workspace(&self, workspace_id: Uuid) -> AuthResult<()>;
-  /// Upsert a one-minute active-user metric sample for a workspace.
-  async fn upsert_active_users_metric(
-    &self,
-    workspace_id: Uuid,
-    minute: chrono::DateTime<chrono::Utc>,
-    count: i32,
-  ) -> AuthResult<()>;
+  /// Upsert a one-minute distinct active-user sample for the cluster.
+  async fn upsert_active_users_metric(&self, minute: chrono::DateTime<chrono::Utc>, count: i32) -> AuthResult<()>;
 }
 
 /// High-level administration service.
@@ -301,13 +296,8 @@ impl AdminService {
 
   /// Record a one-minute active-user count sample for telemetry.
   #[instrument(skip(self))]
-  pub async fn upsert_active_users_metric(
-    &self,
-    workspace_id: Uuid,
-    minute: chrono::DateTime<chrono::Utc>,
-    count: i32,
-  ) -> AuthResult<()> {
-    self.store.upsert_active_users_metric(workspace_id, minute, count).await
+  pub async fn upsert_active_users_metric(&self, minute: chrono::DateTime<chrono::Utc>, count: i32) -> AuthResult<()> {
+    self.store.upsert_active_users_metric(minute, count).await
   }
 }
 
@@ -373,12 +363,7 @@ impl AdminStore for InMemoryAdminStore {
   async fn delete_workspace(&self, _workspace_id: Uuid) -> AuthResult<()> {
     Ok(())
   }
-  async fn upsert_active_users_metric(
-    &self,
-    _workspace_id: Uuid,
-    _minute: chrono::DateTime<chrono::Utc>,
-    _count: i32,
-  ) -> AuthResult<()> {
+  async fn upsert_active_users_metric(&self, _minute: chrono::DateTime<chrono::Utc>, _count: i32) -> AuthResult<()> {
     Ok(())
   }
 }

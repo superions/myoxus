@@ -21,7 +21,7 @@ mod sqlite;
 pub use archive::{
   ArchiveEntry, ArchiveError, ArchiveIndex, ArchiveLimits, PortableArchiveKind, SnapshotArchive, SnapshotDocument,
   asset_aliases, detect_portable_archive_kind, inspect_zip_bytes, is_ignored_archive_entry, is_snapshot_json_path,
-  validate_snapshot_archive, validate_snapshot_archive_reader,
+  open_inspected_zip, validate_snapshot_archive, validate_snapshot_archive_reader,
 };
 pub use config::WorkspaceImportConfig;
 pub use database::extract_database_blocks;

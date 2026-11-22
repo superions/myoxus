@@ -11,7 +11,7 @@ async fn pending_in(conn: &mut PgConnection, schedule: Uuid) -> RepoResult<bool>
 /// Formal decisions use the native Task writer's authority. Its locked editor
 /// floor also retains source-read access; a read-only responsible stays blocked.
 async fn lock_reviewer(conn: &mut PgConnection, reviewer: Uuid, workspace: Uuid) -> RepoResult<()> {
-  let member:Option<Uuid>=sqlx::query_scalar("SELECT u.id FROM workspace_memberships m JOIN users u ON u.id=m.user_id WHERE m.user_id=$1 AND m.workspace_id=$2 AND m.status='Accepted' AND u.status='active' FOR SHARE OF m,u NOWAIT")
+  let member:Option<Uuid>=sqlx::query_scalar("SELECT u.id FROM workspace_effective_roles m JOIN users u ON u.id=m.user_id WHERE m.user_id=$1 AND m.workspace_id=$2 AND u.status='active' FOR SHARE OF m,u NOWAIT")
     .bind(reviewer).bind(workspace).fetch_optional(&mut *conn).await.map_err(storage)?;
   if member.is_none() {
     return Err(blocked("reviewerUnavailable"));

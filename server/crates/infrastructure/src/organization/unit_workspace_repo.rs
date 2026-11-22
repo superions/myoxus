@@ -7,7 +7,6 @@
 //! wird auf den Conflict-Variant gemapped, andere Fehler bleiben Storage.
 
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
 use myoxus_application::workspace::WorkspaceOwnerTarget;
 use sqlx::{PgConnection, PgPool, Row};
 use tracing::{error, instrument};
@@ -101,35 +100,9 @@ impl PgOrganizationUnitWorkspaceRepository {
       ));
     }
 
-    let created_at = sqlx::query_scalar::<_, Option<DateTime<Utc>>>(
-      "SELECT MIN(created_at)
-         FROM organization_unit_workspace
-        WHERE unit_id = $1 AND workspace_id = $2",
-    )
-    .bind(unit)
-    .bind(workspace)
-    .fetch_one(&mut *tx)
-    .await
-    .map_err(Self::map_db_err)?;
-    sqlx::query("DELETE FROM organization_unit_workspace WHERE unit_id = $1 AND workspace_id = $2")
-      .bind(unit)
-      .bind(workspace)
-      .execute(&mut *tx)
+    SqlxWorkspaceStore::upsert_unit_link(tx, unit, workspace, relationship)
       .await
       .map_err(Self::map_db_err)?;
-    sqlx::query(
-      r#"INSERT INTO organization_unit_workspace
-           (unit_id, workspace_id, relationship, created_at, updated_at)
-         VALUES ($1, $2, $3::organization_unit_workspace_relationship,
-                 COALESCE($4, NOW()), NOW())"#,
-    )
-    .bind(unit)
-    .bind(workspace)
-    .bind(relationship.as_str())
-    .bind(created_at)
-    .execute(&mut *tx)
-    .await
-    .map_err(Self::map_db_err)?;
     Ok(())
   }
 }

@@ -26,6 +26,7 @@ import type { WorkbenchView } from "../../workbench";
 import type { WorkspaceService } from "../../workspace";
 import { EditorScope } from "../scopes/editor";
 import type { EditorSelector } from "../types";
+import type { PageBookmark } from "../../../editor/virgultum/doc-editor/plain-page-input";
 
 type EditorDocStore = DocService["doc"]["virgultumDoc"];
 
@@ -62,6 +63,51 @@ export class Editor extends Entity {
   readonly isSharedMode =
     this.workspaceService.workspace.openOptions.isSharedMode;
   readonly editorContainer$ = new LiveData<MyoxusEditorContainer | null>(null);
+  readonly pageOrigin$ = new LiveData<HTMLElement | null>(null);
+  pageSelection: PageBookmark | null = null;
+  private pageCommandOwner?: () => void;
+  private pageBlockSelection?: () => string[];
+  selectedPageBlocks() {
+    return this.pageBlockSelection?.() ?? [];
+  }
+  requireEditorHost() {
+    this.pageCommandOwner?.();
+  }
+
+  /** Bind the Page viewport without allocating a Lit standard scope merely
+   * to support printing, scroll restoration or a pending route mode. */
+  bindPageOrigin(
+    origin: HTMLElement,
+    viewport: HTMLElement | null,
+    requireHost: () => void,
+    selectedBlocks: () => string[],
+  ) {
+    this.pageOrigin$.next(origin);
+    this.pageCommandOwner = requireHost;
+    this.pageBlockSelection = selectedBlocks;
+    const pending = this.pendingWorkbenchMode;
+    if (pending) {
+      this.pendingWorkbenchMode = null;
+      this.setMode(pending);
+    }
+    if (this.scrollPosition.page !== null)
+      viewport?.scrollTo(0, this.scrollPosition.page);
+    const scroll = () => {
+      if (viewport) {
+        this.scrollPosition.page = viewport.scrollTop;
+        this.workbenchView?.setScrollPosition(viewport.scrollTop);
+      }
+    };
+    viewport?.addEventListener("scroll", scroll);
+    return () => {
+      viewport?.removeEventListener("scroll", scroll);
+      if (this.pageOrigin$.value === origin) {
+        this.pageOrigin$.next(null);
+        this.pageCommandOwner = undefined;
+        this.pageBlockSelection = undefined;
+      }
+    };
+  }
   workbenchView: WorkbenchView | null = null;
   private pendingWorkbenchMode: DocMode | null = null;
   scrollPosition: {

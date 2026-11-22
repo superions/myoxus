@@ -1,11 +1,11 @@
 //! Compile-time manifest of the Myoxus core database schema.
 //!
-//! [`CORE_SCHEMA_TABLES`] enumerates every table that must exist in the
-//! Myoxus schema.  [`EXPLICITLY_EXCLUDED_BILLING_TABLE_HINTS`] documents
+//! [`CORE_SCHEMA_TABLES`] lists required tables across core features. The migration
+//! runner checks the full product table count.  [`EXPLICITLY_EXCLUDED_BILLING_TABLE_HINTS`] documents
 //! table-name patterns that must never appear, providing a machine-readable
 //! guard against accidental reintroduction of billing infrastructure.
 
-/// All tables that must be present in the Myoxus core PostgreSQL schema.
+/// Required core PostgreSQL tables covered by the schema manifest.
 ///
 /// This list is used by migration verification tooling and integration tests.
 pub const CORE_SCHEMA_TABLES: &[&str] = &[
@@ -24,11 +24,11 @@ pub const CORE_SCHEMA_TABLES: &[&str] = &[
   "doc_updates",
   "doc_histories",
   "blobs",
-  "multipart_uploads",
   "comment_attachments",
   "comments",
   "notifications",
-  "workspace_analytics_minute",
+  "metrics_raw",
+  "metrics_daily",
   "search_content",
   "calendar_accounts",
   "calendar_subscriptions",
@@ -37,7 +37,6 @@ pub const CORE_SCHEMA_TABLES: &[&str] = &[
   "calendar_event_instances",
   "calendar_event_participants",
   "calendar_reminders",
-  "calendar_reminder_dispatch_log",
   "copilot_sessions",
   "copilot_messages",
   "copilot_contexts",

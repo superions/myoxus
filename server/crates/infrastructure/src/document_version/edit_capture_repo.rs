@@ -137,7 +137,7 @@ impl PgDocumentEditCaptureRepository {
                AND COALESCE(e.state, 'legacy') <> 'deleted') AS effective_lifecycle_active
        FROM document_edit_capture_state s
        JOIN docs d ON d.workspace_id = s.workspace_id AND d.id = s.doc_id
-       LEFT JOIN document_versioning_workspace_settings w ON w.workspace_id = s.workspace_id
+       LEFT JOIN document_workspace_settings w ON w.workspace_id = s.workspace_id
        LEFT JOIN page_registration_evidence e
          ON e.workspace_id = d.workspace_id AND e.doc_id = d.id
        WHERE s.workspace_id = $1 AND s.doc_id = $2
@@ -244,7 +244,7 @@ impl DocumentEditCaptureRepository for PgDocumentEditCaptureRepository {
     let candidates = sqlx::query(
       "SELECT s.doc_id, MIN(s.updated_at) AS oldest
        FROM document_edit_capture_state s JOIN docs d ON d.id=s.doc_id
-       LEFT JOIN document_versioning_workspace_settings w ON w.workspace_id=d.workspace_id
+       LEFT JOIN document_workspace_settings w ON w.workspace_id=d.workspace_id
        LEFT JOIN page_registration_evidence e ON e.workspace_id=d.workspace_id AND e.doc_id=d.id
        WHERE s.workspace_id<>d.workspace_id OR (
          s.dirty_revision>COALESCE(s.last_captured_revision,-1) AND (

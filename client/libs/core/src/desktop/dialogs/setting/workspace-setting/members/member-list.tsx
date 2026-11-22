@@ -114,12 +114,13 @@ const getShouldShow = ({
   canTransferOwner: boolean;
 }) => {
   if (
+    !member.directRole ||
     member.id === currentAccountId ||
     member.permission === Permission.Owner
   ) {
     return false;
   }
-  return member.permission === Permission.Admin
+  return member.directRole === Permission.Admin
     ? canManageAdmins || canTransferOwner
     : canManageUsers || canTransferOwner;
 };
@@ -224,6 +225,29 @@ const MemberItem = ({
         )}
       </SurfaceListItemMain>
       <SurfaceListMeta layout="row-cluster">
+        {member.directRole && (
+          <SettingsListItemMeta>
+            {t["com.myoxus.member.role.direct"]({
+              role: t.t(
+                member.directRole === Permission.External
+                  ? "com.myoxus.workspace-content-operation.role.external"
+                  : member.directRole,
+              ),
+            })}
+          </SettingsListItemMeta>
+        )}
+        {member.ouRole && (
+          <SettingsListItemMeta>
+            {t["com.myoxus.member.role.inherited"]({
+              role: t.t(
+                member.ouRole === Permission.External
+                  ? "com.myoxus.workspace-content-operation.role.external"
+                  : member.ouRole,
+              ),
+              units: member.ouNames.join(", "),
+            })}
+          </SettingsListItemMeta>
+        )}
         <Badge tone={memberStatusTone}>{t.t(memberStatus)}</Badge>
         <Menu
           items={
@@ -282,6 +306,8 @@ const getMemberStatus = (member: Member): I18nString => {
           return "Manager";
         case Permission.Reader:
           return "Reader";
+        case Permission.External:
+          return "com.myoxus.workspace-content-operation.role.external";
         default:
           return "Member";
       }

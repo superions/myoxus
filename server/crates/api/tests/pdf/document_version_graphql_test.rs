@@ -870,12 +870,13 @@ async fn workspace_history_settings_enforce_permissions_minimum_and_atomic_patch
     .and_then(Value::as_str)
     .expect("revision")
     .to_string();
-  let rows_before: i64 =
-    sqlx::query_scalar("SELECT COUNT(*) FROM document_versioning_workspace_settings WHERE workspace_id = $1")
-      .bind(workspace_id)
-      .fetch_one(&pool)
-      .await
-      .expect("count settings rows");
+  let rows_before: i64 = sqlx::query_scalar(
+    "SELECT COUNT(*) FROM document_workspace_settings WHERE versioning_updated_at IS NOT NULL AND workspace_id = $1",
+  )
+  .bind(workspace_id)
+  .fetch_one(&pool)
+  .await
+  .expect("count settings rows");
   assert_eq!(rows_before, 0, "settings reads must remain side-effect free");
 
   let invalid = helpers::gql(
@@ -894,12 +895,13 @@ async fn workspace_history_settings_enforce_permissions_minimum_and_atomic_patch
     !errors_array(&invalid).is_empty(),
     "new intervals below 15 minutes must be rejected: {invalid}"
   );
-  let rows_after_invalid: i64 =
-    sqlx::query_scalar("SELECT COUNT(*) FROM document_versioning_workspace_settings WHERE workspace_id = $1")
-      .bind(workspace_id)
-      .fetch_one(&pool)
-      .await
-      .expect("count settings rows after validation failure");
+  let rows_after_invalid: i64 = sqlx::query_scalar(
+    "SELECT COUNT(*) FROM document_workspace_settings WHERE versioning_updated_at IS NOT NULL AND workspace_id = $1",
+  )
+  .bind(workspace_id)
+  .fetch_one(&pool)
+  .await
+  .expect("count settings rows after validation failure");
   assert_eq!(
     rows_after_invalid, 0,
     "validation failure must not partially persist a workspace settings row"
@@ -979,7 +981,7 @@ async fn workspace_history_settings_enforce_permissions_minimum_and_atomic_patch
       "Admin PDF-only update must succeed without replacing other trigger members: {admin_update}"
     );
     let persisted_triggers: Vec<String> =
-      sqlx::query_scalar("SELECT auto_version_on FROM document_versioning_workspace_settings WHERE workspace_id = $1")
+      sqlx::query_scalar("SELECT auto_version_on FROM document_workspace_settings WHERE workspace_id = $1")
         .bind(workspace_id)
         .fetch_one(&pool)
         .await
@@ -993,13 +995,11 @@ async fn workspace_history_settings_enforce_permissions_minimum_and_atomic_patch
     );
   }
 
-  sqlx::query(
-    "UPDATE document_versioning_workspace_settings SET edit_capture_interval_ms = 30000 WHERE workspace_id = $1",
-  )
-  .bind(workspace_id)
-  .execute(&pool)
-  .await
-  .expect("seed a previously accepted sub-minimum interval");
+  sqlx::query("UPDATE document_workspace_settings SET edit_capture_interval_ms = 30000 WHERE workspace_id = $1")
+    .bind(workspace_id)
+    .execute(&pool)
+    .await
+    .expect("seed a previously accepted sub-minimum interval");
   let legacy = helpers::gql(&app, owner_session, settings_query).await;
   assert!(legacy.get("errors").is_none(), "legacy settings read: {legacy}");
   assert_eq!(

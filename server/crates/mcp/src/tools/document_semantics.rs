@@ -25,7 +25,7 @@ pub(super) struct ResolvedSpans {
 async fn active_member(workspace_id: Uuid, member: Uuid, state: &McpToolState) -> Result<bool, (i32, String)> {
   state
     .workspace_service
-    .get_member(workspace_id, member)
+    .effective_member(workspace_id, member)
     .await
     .map(|value| value.is_some_and(|m| m.status == MembershipStatus::Accepted && !m.user.disabled))
     .map_err(|_| {

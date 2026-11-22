@@ -365,7 +365,9 @@ try {
               fieldId: field,
               value: {
                 dateTime: {
-                  start: new Date(Date.now() + 86_400_000).toISOString(),
+                  start: new Date(
+                    Date.now() + 10 * 60_000 + 3_000,
+                  ).toISOString(),
                   allDay: false,
                   timeZone: "UTC",
                 },
@@ -391,11 +393,6 @@ try {
       },
     )
   ).setDatabaseRowReminder.id;
-  // Advance only the owned schedule; the real scheduler and generation/access
-  // validator still consume it, as in the existing Database reminder harness.
-  sql(
-    `UPDATE database_row_reminders SET trigger_at = now() - interval '1 second' WHERE id = '${reminder}';`,
-  );
   // Cron -> Database and Database -> Notification each cross the existing
   // delayed-job promotion cadence. Observe the committed dispatch separately
   // so the delivery deadline is not spent waiting for the preceding queue.
@@ -417,15 +414,24 @@ try {
     45_000,
   );
 
-  const accountId = randomUUID(),
-    eventId = randomUUID(),
-    reminderId = randomUUID();
-  sql(`INSERT INTO calendar_accounts (id, user_id, provider, remote_account_id, config) VALUES ('${accountId}', '${owner.id}', 'google', '${accountId}', '{}'::jsonb);
-    INSERT INTO calendar_events (id, account_id, remote_event_id, starts_at, ends_at, title, payload) VALUES ('${eventId}', '${accountId}', '${eventId}', now() + interval '1 hour', now() + interval '2 hours', 'Cluster calendar reminder', '{}'::jsonb);
-    INSERT INTO calendar_reminders (id, event_id, channel, minutes_before, scheduled_for) VALUES ('${reminderId}', '${eventId}', 'in_app', 60, now());`);
-  enqueue("calendar-reminder", "calendar.processReminder", {
-    reminder_id: reminderId,
-  });
+  const startsAt = Date.now() + 63_000;
+  const eventId = (
+    await gql(
+      a,
+      cookie,
+      "mutation($input: CreateWorkspaceEventInput!) { createWorkspaceEvent(input: $input) { id } }",
+      {
+        input: {
+          workspaceId: workspace,
+          title: "Cluster calendar reminder",
+          allMembers: true,
+          startsAt: new Date(startsAt).toISOString(),
+          endsAt: new Date(startsAt + 3_600_000).toISOString(),
+          reminders: [{ channel: "in_app", minutesBefore: 1 }],
+        },
+      },
+    )
+  ).createWorkspaceEvent.id;
   await sameDelivery(
     peers,
     (e) =>
@@ -434,7 +440,7 @@ try {
   );
   assert.equal(
     sql(
-      `SELECT count(*) FROM notifications WHERE user_id = '${owner.id}' AND idempotency_key = 'calendar_reminder_${reminderId}';`,
+      `SELECT count(*) FROM notifications n JOIN calendar_reminders r ON n.idempotency_key = 'calendar_reminder_' || r.id::text WHERE n.user_id = '${owner.id}' AND r.event_id = '${eventId}';`,
     ),
     "1",
     "Calendar reminder persists once",
@@ -851,7 +857,7 @@ try {
   const latestCount = () =>
     Number(
       sql(
-        `SELECT active_users FROM workspace_analytics_minute WHERE workspace_id = '${invitationWorkspace}' ORDER BY bucket_at DESC LIMIT 1;`,
+        `SELECT value FROM metrics_raw WHERE category='collab' AND metric_name='active_sync_users' AND labels='{}' ORDER BY minute DESC LIMIT 1;`,
       ),
     );
   const expectMetric = async (count, label) => {
@@ -875,7 +881,19 @@ try {
   metricB.socket.emit("space:leave", metricScope);
   metricB.socket.disconnect();
   metricB = await joinMetric(b, cookie);
-  await expectMetric(1, "one authenticated user on two nodes counts once");
+  assert.equal(
+    (
+      await emitAck(metricB.socket, "space:join", {
+        ...metricScope,
+        spaceId: workspace,
+      })
+    ).data.success,
+    true,
+  );
+  await expectMetric(
+    1,
+    "one authenticated user on two nodes and two workspaces counts once",
+  );
   metricA.socket.emit("space:leave", metricScope);
   metricA.socket.disconnect();
   await expectMetric(1, "leaving one socket retains the other user's presence");
@@ -937,15 +955,12 @@ try {
     "Redis recovery restores the shared snapshot after failed leave",
   );
 
-  // The existing Admin query preserves its minute/timeline aggregation. Compare
-  // its actual projection with the persisted rows rather than inventing an
-  // instantaneous dashboard count or changing the public operation.
   const persistedProjection = () =>
     sql(`
-    SELECT json_build_object(
-      'total', (SELECT COALESCE(SUM(active_users),0) FROM workspace_analytics_minute WHERE bucket_at > now() - interval '5 minutes'),
-      'latest', (SELECT json_build_object('minute', bucket_at, 'count', SUM(active_users)) FROM workspace_analytics_minute GROUP BY bucket_at ORDER BY bucket_at DESC LIMIT 1)
-    );`);
+    SELECT json_build_object('total', CASE WHEN minute > now() - interval '5 minutes' THEN value ELSE 0 END,
+      'latest', json_build_object('minute', minute, 'count', value))
+    FROM metrics_raw WHERE category='collab' AND metric_name='active_sync_users' AND labels='{}'
+    ORDER BY minute DESC LIMIT 1;`);
   await until(async () => {
     const before = persistedProjection();
     const dashboard = (

@@ -11,6 +11,7 @@ import { type ReactToLit, toReactNode } from "@myoxus/lit-react";
 import { i18nTime } from "@myoxus/i18n";
 import { InsideModalContext, MyoxusText, Stack } from "@myoxus/ui-facade";
 import { createElement } from "react";
+import { CopilotResponseActions } from "../components/response-actions";
 import type {
   ContextEmbedStatus,
   CopilotChatHistoryFragment,
@@ -604,24 +605,24 @@ export class AIChatBlockPeekView extends ShadowlessElement {
                 .peekViewService=${this.peekViewService}
               ></ai-chat-block-message>
               ${shouldRenderError ? AIChatErrorRenderer(error, host, this.modalReactToLit) : nothing}
-              ${
-                shouldRenderCopyMore
-                  ? html` <chat-copy-more
-                      .reactToLit=${this.modalReactToLit}
-                      .host=${host}
-                      .session=${this.forkSession}
-                      .actions=${actions}
-                      .content=${markdown}
-                      .isLast=${isLastReply}
-                      .messageId=${message.id ?? undefined}
-                      .generatedFiles=${message.generatedFiles ?? []}
-                      .exportable=${!this.host.store.readonly && !!markdown.trim() && (message.params?.streamStatus === undefined || message.params?.streamStatus === "done")}
-                      .retry=${() => this.retry()}
-                      .notificationService=${notificationService}
-                    ></chat-copy-more>`
-                  : nothing
-              }
             `),
+            shouldRenderCopyMore
+              ? createElement(CopilotResponseActions, {
+                  host,
+                  sessionId: this.forkSession?.sessionId,
+                  actions,
+                  content: markdown,
+                  messageId: message.id ?? undefined,
+                  generatedFiles: message.generatedFiles,
+                  exportable:
+                    !this.host.store.readonly &&
+                    !!markdown.trim() &&
+                    (message.params?.streamStatus === undefined ||
+                      message.params?.streamStatus === "done"),
+                  retry: isLastReply ? () => this.retry() : undefined,
+                  notificationService,
+                })
+              : null,
           ),
           true,
         );

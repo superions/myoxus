@@ -3,6 +3,7 @@ import { type Framework } from "@myoxus/infra";
 import { CollectionService } from "../collection";
 import { DocDisplayMetaService } from "../doc-display-meta";
 import { DocsSearchService } from "../docs-search";
+import { DocumentMetadataCacheService } from "../document-metadata/services/document-metadata-cache";
 import { RecentWorkspaceItemsService } from "../quicksearch";
 import { TagService } from "../tag";
 import { WorkspaceScope, WorkspaceService } from "../workspace";
@@ -18,5 +19,6 @@ export function configSearchMenuModule(framework: Framework) {
       DocsSearchService,
       TagService,
       CollectionService,
+      DocumentMetadataCacheService,
     ]);
 }

@@ -50,7 +50,7 @@ async fn cli_archive_is_atomic_and_enable_preserves_disabled_policies() {
       .bind(id).bind(&slug).execute(&pool).await.expect("catalog");
     sqlx::query("INSERT INTO template_revisions(id,template_id,version,state,bundle_blob_id,checksum) VALUES($1,$2,'1.0.0','published','owned-fixture-bundle','owned-fixture-checksum')")
       .bind(revision).bind(id).execute(&pool).await.expect("revision");
-    sqlx::query("INSERT INTO template_default_policies(template_id,apply_to_new_workspaces) VALUES($1,false)")
+    sqlx::query("UPDATE template_catalog_entries SET apply_to_new_workspaces=false,policy_created_at=now(),policy_updated_at=now() WHERE id=$1")
       .bind(id).execute(&pool).await.expect("default");
     sqlx::query("INSERT INTO workspace_template_policies(workspace_id,template_id,selection_mode,provisioning_mode,is_enabled) VALUES($1,$2,'published','seed_once',true)")
       .bind(workspace).bind(id).execute(&pool).await.expect("policy");
@@ -77,7 +77,7 @@ async fn cli_archive_is_atomic_and_enable_preserves_disabled_policies() {
       assert_eq!(String::from_utf8(enabled.stdout).expect("stdout"), format!("Template enabled: {slug} ({id})\n"));
       assert_eq!(state(&pool, id).await, ("active".into(), false));
     }
-    let retained: (String, i32, bool) = sqlx::query_as("SELECT c.source,c.builder_version,d.apply_to_new_workspaces FROM template_catalog_entries c JOIN template_default_policies d ON d.template_id=c.id WHERE c.id=$1")
+    let retained: (String, i32, bool) = sqlx::query_as("SELECT c.source,c.builder_version,c.apply_to_new_workspaces FROM template_catalog_entries c WHERE c.id=$1")
       .bind(id).fetch_one(&pool).await.expect("retained source/default");
     assert_eq!(retained, ("builtin".into(), 3, false));
     let revisions: i64 = sqlx::query_scalar("SELECT count(*) FROM template_revisions WHERE id=$1 AND template_id=$2")

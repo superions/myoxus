@@ -8,11 +8,7 @@ import {
   type MonitorGetFeedback,
   type toExternalData,
 } from "@myoxus/ui-facade";
-import {
-  DNDAPIExtension,
-  DndApiExtensionIdentifier,
-} from "@virgultum/editor/shared/services";
-import { BlockStdScope } from "@virgultum/editor/std";
+import { DNDAPIExtension } from "@virgultum/editor/shared/services";
 import type { SliceSnapshot } from "@virgultum/editor/store";
 import type { DragBlockPayload } from "@virgultum/editor/widgets/drag-handle";
 
@@ -203,12 +199,8 @@ export class DndService extends Service {
       return null;
     }
 
-    const std = new BlockStdScope({
-      store: doc,
-      extensions: [DNDAPIExtension],
-    });
-    const dndAPI = std.get(DndApiExtensionIdentifier);
-    return dndAPI;
+    // Drag payloads use the document transformer even before an editor mounts.
+    return new DNDAPIExtension({ store: doc });
   }
 
   fromExternalData: fromExternalData<MyoxusDNDData> = (

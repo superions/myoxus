@@ -1,0 +1,9 @@
+query unusedBlobs($workspaceId: String!, $offset: Int!, $first: Int!) {
+  workspace(id: $workspaceId) {
+    unusedBlobs(offset: $offset, first: $first) {
+      ready
+      total
+      items { key size mime createdAt }
+    }
+  }
+}

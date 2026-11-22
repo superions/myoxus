@@ -12,6 +12,7 @@ import {
 import { DocService } from "../modules/doc";
 import { EditorService } from "../modules/editor";
 import { EditorSettingService } from "../modules/editor-setting";
+import { JournalService } from "../modules/journal";
 
 export type OnLoadEditor = (
   editor: MyoxusEditorContainer,
@@ -34,6 +35,8 @@ export const PageDetailEditor = ({
   const mode = useLiveData(editor.mode$);
 
   const doc = useService(DocService).doc;
+  const journal = useLiveData(useService(JournalService).journalDate$(doc.id));
+  const template = useLiveData(doc.isTemplate$);
   const docMeta = useLiveData(doc.meta$) as DocMetaWithHeaderImage | null;
   const pageWidth = useLiveData(doc.pageWidth$);
 
@@ -59,6 +62,12 @@ export const PageDetailEditor = ({
       )}
 
       <VirgultumEditor
+        plainPage={
+          !journal &&
+          !template &&
+          !doc.virgultumDoc.meta?.docKind &&
+          !isSharedMode
+        }
         {...detailPageEditorRootAttrs({
           fullWidthLayout: !isSharedMode && fullWidthLayout,
         })}

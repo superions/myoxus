@@ -703,7 +703,7 @@ Entire catalog visible to the read account, not an audit of its permissions.
 | `setDocumentBrandingColorPolicy`<br>[DocumentBrandingProfileAdmin](./objects.md#documentbrandingprofileadmin)! | `paletteKey`: `String`!<br>`policy`: [DocumentBrandColorPolicy](./enums.md#documentbrandcolorpolicy)!<br>`workspaceId`: `ID`!<br><br>Select a server-owned document colour policy. Admin-only. |
 | `setOrganizationUnitParent`<br>`Boolean`! | `parentUnitId`: `ID`<br>`unitId`: `ID`! |
 | `setOrganizationUnitStatus`<br>[OrganizationUnitTypeOutput](./objects.md#organizationunittypeoutput)! | `id`: `ID`!<br>`status`: [OrganizationUnitStatusEnum](./enums.md#organizationunitstatusenum)! |
-| `setTemplateDefaultPolicy`<br>`Boolean`! | `input`: [SetTemplateDefaultPolicyInput](./inputs.md#settemplatedefaultpolicyinput)!<br><br>Set a template default policy (admin only). Creates or updates the row in \`template\_default\_policies\` that drives automatic seeding of new workspaces. |
+| `setTemplateDefaultPolicy`<br>`Boolean`! | `input`: [SetTemplateDefaultPolicyInput](./inputs.md#settemplatedefaultpolicyinput)!<br><br>Set a template default policy (admin only). Creates or updates the template catalog policy that drives automatic seeding of new workspaces. |
 | `setThemeProfile`<br>[ThemeProfileType](./objects.md#themeprofiletype)! | `input`: [SetThemeProfileInput](./inputs.md#setthemeprofileinput)!<br><br>Set the global or workspace-specific effective theme. Admin-only and backed by \`theme\_profiles\`, not \`app\_configs\`. |
 | `setTypographyStyles`<br>[ThemeProfileType](./objects.md#themeprofiletype)! | `input`: [SetTypographyStylesInput](./inputs.md#settypographystylesinput)!<br><br>Update typography styles through the typed Theme DB model. Admin-only and clone-on-write for locked system presets. |
 | `setUserAdmin`<br>`Boolean`! | `isAdmin`: `Boolean`!<br>`userId`: `ID`!<br><br>Set/unset admin privilege for a user. |
@@ -4196,6 +4196,7 @@ A fixed selected-history/current-persisted reading projection; no capture.
 | `edges`<br>\[[DocumentGraphEdgeType](./objects.md#documentgraphedgetype)!\]! |  |
 | `indexStatus`<br>[DocumentGraphIndexStatusType](./objects.md#documentgraphindexstatustype)! |  |
 | `nodes`<br>\[[DocumentGraphNodeType](./objects.md#documentgraphnodetype)!\]! |  |
+| `outgoingNavigation`<br>[OutgoingDocumentNavigation](./objects.md#outgoingdocumentnavigation)! | Outgoing navigation uses matching source blocks as its page unit. |
 
 ## DocumentMetadataAudienceType
 
@@ -4413,6 +4414,24 @@ Persisted overrides. Nullable fields intentionally inherit defaults.
 | `label`<br>`String`! |  |
 | `metadata`<br>[JSON](./scalars.md#json)! |  |
 | `sortOrder`<br>`Int`! |  |
+
+## DocumentNavigationBlock
+
+<!-- prettier-ignore -->
+| Field and return type | Arguments and description |
+| --- | --- |
+| `blockId`<br>`String`! |  |
+| `links`<br>\[[DocumentNavigationLink](./objects.md#documentnavigationlink)!\]! |  |
+
+## DocumentNavigationLink
+
+<!-- prettier-ignore -->
+| Field and return type | Arguments and description |
+| --- | --- |
+| `docId`<br>`ID`! |  |
+| `paramsJson`<br>[JSON](./scalars.md#json)! |  |
+| `title`<br>`String` |  |
+| `workspaceId`<br>`ID`! |  |
 
 ## DocumentReview
 
@@ -5138,13 +5157,16 @@ GraphQL output type for a workspace member / invitee (schema name \`InviteUserTy
 | Field and return type | Arguments and description |
 | --- | --- |
 | `avatarUrl`<br>`String` |  |
+| `directRole`<br>[Permission](./enums.md#permission) |  |
 | `disabled`<br>`Boolean` |  |
 | `email`<br>`String`! |  |
 | `emailVerified`<br>`Boolean` |  |
 | `hasPassword`<br>`Boolean` |  |
 | `id`<br>`ID`! |  |
-| `inviteId`<br>`String`! |  |
+| `inviteId`<br>`String` |  |
 | `name`<br>`String`! |  |
+| `ouNames`<br>\[`String`!\]! |  |
+| `ouRole`<br>[Permission](./enums.md#permission) |  |
 | `permission`<br>[Permission](./enums.md#permission)! |  |
 | `role`<br>[Permission](./enums.md#permission)! |  |
 | `status`<br>[WorkspaceMemberStatus](./enums.md#workspacememberstatus)! |  |
@@ -5310,7 +5332,7 @@ Reduced user view shown to callers who are not permitted to see full profile det
 | `decideDocumentReview`<br>[DocumentReview](./objects.md#documentreview)! | `input`: [DecideDocumentReviewInput](./inputs.md#decidedocumentreviewinput)! |
 | `deleteAccount`<br>[DeleteAccount](./objects.md#deleteaccount)! |  |
 | `deleteAssistantSetup`<br>[UserPreferencesType](./objects.md#userpreferencestype)! | `expectedUserId`: `ID`!<br>`id`: `ID`! |
-| `deleteBlob`<br>`Boolean`! | `hash`: `String`<br>`key`: `String`<br>`permanently`: `Boolean`<br>`workspaceId`: `String`! |
+| `deleteBlob`<br>`Boolean`! | `hash`: `String`<br>`key`: `String`<br>`onlyIfUnused`: `Boolean`<br>`permanently`: `Boolean`<br>`workspaceId`: `String`! |
 | `deleteCalendarEvent`<br>`Boolean`! | `eventId`: `String`! |
 | `deleteCalendarEventInstance`<br>`Boolean`! | `eventId`: `String`!<br>`instanceStart`: [DateTime](./scalars.md#datetime)!<br>`scope`: [InstanceEditScope](./enums.md#instanceeditscope)! |
 | `deleteComment`<br>`Boolean`! | `id`: `String`! |
@@ -5748,6 +5770,14 @@ Result of \`createOrganizationProject\`. Either the manager may proceed directly
 | `updatedAt`<br>[DateTime](./scalars.md#datetime)! |  |
 | `workspaceId`<br>`ID`! |  |
 | `workspaceName`<br>`String` |  |
+
+## OutgoingDocumentNavigation
+
+<!-- prettier-ignore -->
+| Field and return type | Arguments and description |
+| --- | --- |
+| `blocks`<br>\[[DocumentNavigationBlock](./objects.md#documentnavigationblock)!\]! |  |
+| `pending`<br>`Boolean`! |  |
 
 ## PageInfoType
 
@@ -7421,6 +7451,15 @@ Provider timing and speakers remain unknown when absent.
 | --- | --- |
 | `message`<br>`String`! |  |
 
+## UnusedBlobPage
+
+<!-- prettier-ignore -->
+| Field and return type | Arguments and description |
+| --- | --- |
+| `items`<br>\[[ListedBlobType](./objects.md#listedblobtype)!\]! |  |
+| `ready`<br>`Boolean`! |  |
+| `total`<br>`Int`! |  |
+
 ## UpdateCalendarEventInstanceResult
 
 Result of \`updateCalendarEventInstance\`.
@@ -8634,6 +8673,7 @@ A workspace template policy as exposed via GraphQL.
 | `templateSuggestions`<br>[TemplateSuggestionResult](./objects.md#templatesuggestionresult)! | `input`: [TemplateSuggestionInput](./inputs.md#templatesuggestioninput)! |
 | `trashedDatabasePageIdentities`<br>\[[DatabasePageIdentity](./objects.md#databasepageidentity)!\]! | `first`: `Int`<br>`offset`: `Int`<br><br>Count-free trashed Database identities for the workspace trash list. |
 | `trashedDatabases`<br>\[[DatabaseSummary](./objects.md#databasesummary)!\]! | `first`: `Int`<br>`offset`: `Int`<br><br>Recoverable Database roots in this workspace's trash. Child schema, views, rows and cells stay intact until permanent deletion. |
+| `unusedBlobs`<br>[UnusedBlobPage](./objects.md#unusedblobpage)! | `first`: `Int`!<br>`offset`: `Int`! |
 | `workspaceSetupAssistance`<br>[WorkspaceSetupAssistance](./objects.md#workspacesetupassistance) | Guided help projects authored public source choices, never the creator's answers or personal preferences. Native admission reads current scope. |
 | `workspaceTag`<br>[WorkspaceTag](./objects.md#workspacetag) | `tagId`: `ID`! |
 | `workspaceTagCatalog`<br>\[[WorkspaceTagCatalogEntry](./objects.md#workspacetagcatalogentry)!\]! | `includeArchived`: `Boolean`<br><br>Complete catalog projection for the dedicated Tags surface. Assignment controls keep using \`workspaceTags\` so ordinary workspace reads do not pay for aggregate usage counts. |
