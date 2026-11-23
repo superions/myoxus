@@ -30,12 +30,14 @@ import { ifDefined } from "lit/directives/if-defined.js";
 import { repeat } from "lit/directives/repeat.js";
 import { styleMap } from "lit/directives/style-map.js";
 
-import { RenderResizeHandles } from "./resize-handles.js";
+import { CanvasResizeHandles } from "./canvas-resize-handles.js";
 import { generateCursorUrl, getRotatedResizeCursor } from "./utils.js";
 
 export const EDGELESS_SELECTED_RECT_WIDGET = "edgeless-selected-rect";
 
 export class EdgelessSelectedRectWidget extends WidgetComponent<RootBlockModel> {
+  private readonly resizeHandles = new CanvasResizeHandles(this.ownerDocument);
+
   // disable change-in-update warning
   static override enabledWarnings = [];
 
@@ -67,6 +69,32 @@ export class EdgelessSelectedRectWidget extends WidgetComponent<RootBlockModel> 
 
     .myoxus-edgeless-selected-rect[data-locked="true"] {
       border-color: ${unsafeCSSVar("textDisableColor")};
+    }
+
+    .myoxus-edgeless-selected-rect[data-width-limit="true"]
+      .handle[aria-label="right"]::after,
+    .myoxus-edgeless-selected-rect[data-height-limit="true"]
+      .handle[aria-label="bottom"]::after {
+      content: "";
+      position: absolute;
+      background: var(--myoxus-error-color);
+      filter: drop-shadow(-6px 0px 12px rgba(235, 67, 53, 0.35));
+    }
+
+    .myoxus-edgeless-selected-rect[data-width-limit="true"]
+      .handle[aria-label="right"]::after {
+      top: 0;
+      left: 1.5px;
+      width: 2px;
+      height: 100%;
+    }
+
+    .myoxus-edgeless-selected-rect[data-height-limit="true"]
+      .handle[aria-label="bottom"]::after {
+      top: 1.5px;
+      left: 0;
+      width: 100%;
+      height: 2px;
     }
 
     .myoxus-edgeless-selected-rect .handle {
@@ -618,6 +646,7 @@ export class EdgelessSelectedRectWidget extends WidgetComponent<RootBlockModel> 
     const elements = selection.selectedElements;
 
     if (selection.inoperable) {
+      this.resizeHandles.clear();
       return [];
     }
 
@@ -630,86 +659,90 @@ export class EdgelessSelectedRectWidget extends WidgetComponent<RootBlockModel> 
     ) {
       const interaction = this._interaction;
 
-      handles.push(
-        RenderResizeHandles(
-          this._allowedHandles.resizeHandles,
-          this._allowedHandles.rotatable,
-          (e: PointerEvent, handle: ResizeHandle) => {
-            const isRotate = (e.target as HTMLElement).classList.contains(
-              "rotate",
-            );
-
-            if (isRotate) {
-              interaction.handleElementRotate({
-                elements,
-                event: e,
-                onRotateStart: () => {
-                  this._mode = "rotate";
-                },
-                onRotateUpdate: (payload) => {
-                  this._updateCursor({
-                    type: "rotate",
-                    angle: payload.currentAngle,
-                    handle,
-                  });
-                },
-                onRotateEnd: () => {
-                  this._mode = "resize";
-                  this._dragEndCleanup();
-                },
-              });
-            } else {
-              interaction.handleElementResize({
-                elements,
-                handle,
-                event: e,
-                onResizeStart: () => {
-                  this._mode = "resize";
-                },
-                onResizeUpdate: ({ lockRatio, scaleX, scaleY, exceed }) => {
-                  if (lockRatio) {
-                    this._scaleDirection = handle;
-                    this._scalePercent = `${Math.round(scaleX * 100)}%`;
-                    this._mode = "scale";
-                  }
-
-                  if (exceed) {
-                    this._isWidthLimit = exceed.w;
-                    this._isHeightLimit = exceed.h;
-                  }
-
-                  this._updateCursor({
-                    type: "resize",
-                    angle: elements.length > 1 ? 0 : (elements[0]?.rotate ?? 0),
-                    handle,
-                    flipX: scaleX < 0,
-                    flipY: scaleY < 0,
-                  });
-                },
-                onResizeEnd: () => {
-                  this._mode = "resize";
-                  this._dragEndCleanup();
-                },
-              });
-            }
-          },
-          (option) => {
-            if (
-              ["resize", "rotate"].includes(
-                interaction.activeInteraction$.value?.type ?? "",
-              )
-            ) {
-              return "";
-            }
-
-            return this._updateCursor({
-              ...option,
-              angle: elements.length > 1 ? 0 : (elements[0]?.rotate ?? 0),
-              pure: true,
+      const targets = this.resizeHandles.update(
+        this._allowedHandles.resizeHandles,
+        this._allowedHandles.rotatable,
+        (e, handle, action) => {
+          if (action === "rotate") {
+            interaction.handleElementRotate({
+              elements,
+              event: e,
+              onRotateStart: () => {
+                this._mode = "rotate";
+              },
+              onRotateUpdate: (payload) => {
+                this._updateCursor({
+                  type: "rotate",
+                  angle: payload.currentAngle,
+                  handle,
+                });
+              },
+              onRotateEnd: () => {
+                this._mode = "resize";
+                this._dragEndCleanup();
+              },
             });
-          },
+          } else {
+            interaction.handleElementResize({
+              elements,
+              handle,
+              event: e,
+              onResizeStart: () => {
+                this._mode = "resize";
+              },
+              onResizeUpdate: ({ lockRatio, scaleX, scaleY, exceed }) => {
+                if (lockRatio) {
+                  this._scaleDirection = handle;
+                  this._scalePercent = `${Math.round(scaleX * 100)}%`;
+                  this._mode = "scale";
+                }
+
+                if (exceed) {
+                  this._isWidthLimit = exceed.w;
+                  this._isHeightLimit = exceed.h;
+                }
+
+                this._updateCursor({
+                  type: "resize",
+                  angle: elements.length > 1 ? 0 : (elements[0]?.rotate ?? 0),
+                  handle,
+                  flipX: scaleX < 0,
+                  flipY: scaleY < 0,
+                });
+              },
+              onResizeEnd: () => {
+                this._mode = "resize";
+                this._dragEndCleanup();
+              },
+            });
+          }
+        },
+        (type, handle) => {
+          if (
+            ["resize", "rotate"].includes(
+              interaction.activeInteraction$.value?.type ?? "",
+            )
+          ) {
+            return "";
+          }
+
+          return this._updateCursor({
+            type,
+            handle,
+            angle: elements.length > 1 ? 0 : (elements[0]?.rotate ?? 0),
+            pure: true,
+          });
+        },
+      );
+      handles.push(
+        repeat(
+          targets,
+          (target) => target,
+          (target) => target,
         ),
       );
+    } else {
+      this.resizeHandles.clear();
     }
 
     if (
@@ -778,7 +811,10 @@ export class EdgelessSelectedRectWidget extends WidgetComponent<RootBlockModel> 
   override render() {
     const elements = this.selection.selectedElements;
 
-    if (!this._shouldRenderSelection(elements)) return nothing;
+    if (!this._shouldRenderSelection(elements)) {
+      this.resizeHandles.clear();
+      return nothing;
+    }
 
     const { _selectedRect } = this;
     const hasElementLocked = elements.some((element) => element.isLocked());
@@ -788,32 +824,6 @@ export class EdgelessSelectedRectWidget extends WidgetComponent<RootBlockModel> 
       elements.length === 1 && elements[0] instanceof ConnectorElementModel;
 
     return html`
-      <style>
-        .myoxus-edgeless-selected-rect .handle[aria-label="right"]::after {
-          content: "";
-          display: ${this._isWidthLimit ? "initial" : "none"};
-          position: absolute;
-          top: 0;
-          left: 1.5px;
-          width: 2px;
-          height: 100%;
-          background: var(--myoxus-error-color);
-          filter: drop-shadow(-6px 0px 12px rgba(235, 67, 53, 0.35));
-        }
-
-        .myoxus-edgeless-selected-rect .handle[aria-label="bottom"]::after {
-          content: "";
-          display: ${this._isHeightLimit ? "initial" : "none"};
-          position: absolute;
-          top: 1.5px;
-          left: 0px;
-          width: 100%;
-          height: 2px;
-          background: var(--myoxus-error-color);
-          filter: drop-shadow(-6px 0px 12px rgba(235, 67, 53, 0.35));
-        }
-      </style>
-
       ${this._renderAutoComplete()}
 
       <div
@@ -830,6 +840,8 @@ export class EdgelessSelectedRectWidget extends WidgetComponent<RootBlockModel> 
         data-scale-percent=${ifDefined(this._scalePercent)}
         data-scale-direction=${ifDefined(this._scaleDirection)}
         data-locked=${hasElementLocked}
+        data-width-limit=${this._isWidthLimit}
+        data-height-limit=${this._isHeightLimit}
       >
         ${handlers}
       </div>

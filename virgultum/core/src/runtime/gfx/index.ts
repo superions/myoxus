@@ -121,5 +121,5 @@ export {
 } from "./view/view.js";
 export { ViewManager } from "./view/view-manager.js";
 export * from "./viewport.js";
-export { GfxViewportElement } from "./viewport-element.js";
+export type { GfxViewportElement } from "./native-viewport.js";
 export { generateKeyBetween, generateNKeysBetween } from "fractional-indexing";

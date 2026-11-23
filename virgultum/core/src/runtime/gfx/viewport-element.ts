@@ -1,51 +1,11 @@
 import { batch } from "@preact/signals-core";
-import { WithDisposable } from "../../primitives/lit/index";
-import { css, html } from "lit";
-import { property } from "lit/decorators.js";
+import { DisposableGroup } from "../../primitives/disposable/index.js";
+import { requestThrottledConnectedFrame } from "../../utils/event.js";
+import { isGfxBlockComponent } from "../view/element/gfx-block-component.js";
+import type { GfxController } from "./controller.js";
+import { GfxBlockElementModel } from "./model/gfx-block-model.js";
 
-import {
-  type EditorHost,
-  isGfxBlockComponent,
-  ShadowlessElement,
-} from "../view";
-import { PropTypes, requiredProperties } from "../view/decorators/required";
-import { GfxControllerIdentifier } from "./identifiers";
-import { GfxBlockElementModel } from "./model/gfx-block-model";
-import { Viewport } from "./viewport";
-
-/**
- * A wrapper around `requestConnectedFrame` that only calls at most once in one frame
- */
-export function requestThrottledConnectedFrame<
-  T extends (...args: unknown[]) => void,
->(func: T, element?: HTMLElement): T {
-  let raqId: number | undefined = undefined;
-  let latestArgs: unknown[] = [];
-
-  return ((...args: unknown[]) => {
-    latestArgs = args;
-
-    if (raqId === undefined) {
-      raqId = requestAnimationFrame(() => {
-        raqId = undefined;
-
-        if (!element || element.isConnected) {
-          func(...latestArgs);
-        }
-      });
-    }
-  }) as T;
-}
-
-@requiredProperties({
-  viewport: PropTypes.instanceOf(Viewport),
-})
-export class GfxViewportElement extends WithDisposable(ShadowlessElement) {
-  private static readonly VIEWPORT_REFRESH_PIXEL_THRESHOLD = 18;
-
-  private static readonly VIEWPORT_REFRESH_MAX_INTERVAL = 120;
-
-  static override styles = css`
+export const gfxViewportStyle = `
     gfx-viewport {
       position: absolute;
       left: 0;
@@ -56,7 +16,7 @@ export class GfxViewportElement extends WithDisposable(ShadowlessElement) {
     }
 
     /* CSS for idle blocks that are hidden but maintain layout */
-    .block-idle {
+    gfx-viewport > .block-idle {
       visibility: hidden;
       pointer-events: none;
       will-change: transform;
@@ -64,26 +24,29 @@ export class GfxViewportElement extends WithDisposable(ShadowlessElement) {
     }
 
     /* CSS for active blocks participating in viewport transformations */
-    .block-active {
+    gfx-viewport > .block-active {
       visibility: visible;
       pointer-events: auto;
     }
   `;
 
-  private readonly _hideOutsideAndNoSelectedBlock = () => {
-    if (!this.host) return;
+export class GfxViewportRendering {
+  private static readonly VIEWPORT_REFRESH_PIXEL_THRESHOLD = 18;
+  private static readonly VIEWPORT_REFRESH_MAX_INTERVAL = 120;
 
-    const gfx = this.host.std.get(GfxControllerIdentifier);
-    const currentViewportModels = this.getModelsInViewport();
+  private readonly disposables = new DisposableGroup();
+
+  private readonly _hideOutsideAndNoSelectedBlock = () => {
+    const { gfx } = this;
+    const currentViewportModels = gfx.grid.search(gfx.viewport.viewportBounds, {
+      useSet: true,
+      filter: ["block"],
+    });
     const currentSelectedModels = this._getSelectedModels();
     const shouldBeVisible = new Set([
       ...currentViewportModels,
       ...currentSelectedModels,
     ]);
-
-    const previousVisible = this._lastVisibleModels
-      ? new Set(this._lastVisibleModels)
-      : new Set<GfxBlockElementModel>();
 
     batch(() => {
       // Step 1: Activate all the blocks that should be visible
@@ -94,7 +57,7 @@ export class GfxViewportElement extends WithDisposable(ShadowlessElement) {
       });
 
       // Step 2: Hide all the blocks that should not be visible
-      previousVisible.forEach((model) => {
+      this._lastVisibleModels?.forEach((model) => {
         if (shouldBeVisible.has(model)) return;
 
         const view = gfx.view.get(model);
@@ -116,16 +79,13 @@ export class GfxViewportElement extends WithDisposable(ShadowlessElement) {
     typeof globalThis.setTimeout
   > | null = null;
 
-  private readonly _pendingChildrenUpdates: {
-    id: string;
-    resolve: () => void;
-  }[] = [];
+  private readonly _pendingChildrenUpdates: (() => void)[] = [];
+  private childFrame: number | undefined;
+  private disposed = false;
 
   private readonly _refreshViewport = requestThrottledConnectedFrame(() => {
-    this._hideOutsideAndNoSelectedBlock();
-  }, this);
-
-  private _updatingChildrenFlag = false;
+    if (!this.disposed) this._hideOutsideAndNoSelectedBlock();
+  });
 
   private _clearPendingViewportRefreshTimer() {
     if (this._pendingViewportRefreshTimer !== null) {
@@ -140,7 +100,7 @@ export class GfxViewportElement extends WithDisposable(ShadowlessElement) {
       this._pendingViewportRefreshTimer = null;
       this._lastViewportRefreshTime = performance.now();
       this._refreshViewport();
-    }, GfxViewportElement.VIEWPORT_REFRESH_MAX_INTERVAL);
+    }, GfxViewportRendering.VIEWPORT_REFRESH_MAX_INTERVAL);
   }
 
   private _refreshViewportByViewportUpdate(update: {
@@ -167,12 +127,12 @@ export class GfxViewportElement extends WithDisposable(ShadowlessElement) {
     );
     const timeoutReached =
       now - this._lastViewportRefreshTime >=
-      GfxViewportElement.VIEWPORT_REFRESH_MAX_INTERVAL;
+      GfxViewportRendering.VIEWPORT_REFRESH_MAX_INTERVAL;
 
     if (
       zoomChanged ||
       centerMovedInPixel >=
-        GfxViewportElement.VIEWPORT_REFRESH_PIXEL_THRESHOLD ||
+        GfxViewportRendering.VIEWPORT_REFRESH_PIXEL_THRESHOLD ||
       timeoutReached
     ) {
       this._clearPendingViewportRefreshTimer();
@@ -184,21 +144,18 @@ export class GfxViewportElement extends WithDisposable(ShadowlessElement) {
     this._scheduleTrailingViewportRefresh();
   }
 
-  override connectedCallback(): void {
-    super.connectedCallback();
-
-    if (!this.enableChildrenSchedule) {
-      delete this.scheduleUpdateChildren;
-    }
-
+  constructor(
+    private readonly gfx: GfxController,
+    private readonly maxConcurrentRenders: () => number,
+  ) {
     this._hideOutsideAndNoSelectedBlock();
     this.disposables.add(
-      this.viewport.viewportUpdated.subscribe((update) =>
+      gfx.viewport.viewportUpdated.subscribe((update) =>
         this._refreshViewportByViewportUpdate(update),
       ),
     );
     this.disposables.add(
-      this.viewport.sizeUpdated.subscribe(() => {
+      gfx.viewport.sizeUpdated.subscribe(() => {
         this._clearPendingViewportRefreshTimer();
         this._lastViewportRefreshTime = performance.now();
         this._refreshViewport();
@@ -206,52 +163,36 @@ export class GfxViewportElement extends WithDisposable(ShadowlessElement) {
     );
   }
 
-  override disconnectedCallback(): void {
-    this._clearPendingViewportRefreshTimer();
-    super.disconnectedCallback();
-  }
+  private readonly updateChildren = () => {
+    this.childFrame = undefined;
+    const ready = this._pendingChildrenUpdates.splice(
+      0,
+      this.maxConcurrentRenders(),
+    );
+    for (const resolve of ready) resolve();
+    if (this._pendingChildrenUpdates.length)
+      this.childFrame = requestAnimationFrame(this.updateChildren);
+  };
 
-  override render() {
-    return html``;
-  }
-
-  scheduleUpdateChildren? = (id: string) => {
+  readonly scheduleUpdateChildren = () => {
+    if (this.disposed) return Promise.resolve();
     const { promise, resolve } = Promise.withResolvers<void>();
-
-    this._pendingChildrenUpdates.push({ id, resolve });
-
-    if (!this._updatingChildrenFlag) {
-      this._updatingChildrenFlag = true;
-      const schedule = () => {
-        if (this._pendingChildrenUpdates.length) {
-          const childToUpdates = this._pendingChildrenUpdates.splice(
-            0,
-            this.maxConcurrentRenders,
-          );
-
-          childToUpdates.forEach(({ resolve }) => resolve());
-
-          if (this._pendingChildrenUpdates.length) {
-            requestAnimationFrame(() => {
-              this.isConnected && schedule();
-            });
-          } else {
-            this._updatingChildrenFlag = false;
-          }
-        }
-      };
-
-      requestAnimationFrame(() => {
-        this.isConnected && schedule();
-      });
-    }
-
+    this._pendingChildrenUpdates.push(resolve);
+    this.childFrame ??= requestAnimationFrame(this.updateChildren);
     return promise;
   };
 
+  dispose() {
+    this.disposed = true;
+    this._clearPendingViewportRefreshTimer();
+    this.disposables.dispose();
+    if (this.childFrame !== undefined) cancelAnimationFrame(this.childFrame);
+    // Child render promises can outlive their viewport during a mode switch.
+    for (const resolve of this._pendingChildrenUpdates.splice(0)) resolve();
+  }
+
   private _getSelectedModels(): Set<GfxBlockElementModel> {
-    if (!this.host) return new Set();
-    const gfx = this.host.std.get(GfxControllerIdentifier);
+    const { gfx } = this;
     return new Set(
       gfx.selection.surfaceSelections
         .flatMap(({ elements }) => elements)
@@ -260,47 +201,12 @@ export class GfxViewportElement extends WithDisposable(ShadowlessElement) {
     );
   }
 
-  @property({ attribute: false })
-  accessor getModelsInViewport: () => Set<GfxBlockElementModel> = () =>
-    new Set();
-
-  @property({ attribute: false })
-  accessor host: undefined | EditorHost;
-
-  @property({ type: Number })
-  accessor maxConcurrentRenders: number = 2;
-
-  @property({ attribute: false })
-  accessor enableChildrenSchedule: boolean = true;
-
-  @property({ attribute: false })
-  accessor viewport!: Viewport;
-
-  setBlocksActive(blockIds: string[]): void {
-    if (!this.host) return;
-    const gfx = this.host.std.get(GfxControllerIdentifier);
-
+  setBlockVisibility(blockIds: readonly string[], state: "active" | "idle") {
     batch(() => {
-      blockIds.forEach((id) => {
-        const view = gfx.view.get(id);
-        if (isGfxBlockComponent(view)) {
-          view.transformState$.value = "active";
-        }
-      });
-    });
-  }
-
-  setBlocksIdle(blockIds: string[]): void {
-    if (!this.host) return;
-    const gfx = this.host.std.get(GfxControllerIdentifier);
-
-    batch(() => {
-      blockIds.forEach((id) => {
-        const view = gfx.view.get(id);
-        if (isGfxBlockComponent(view)) {
-          view.transformState$.value = "idle";
-        }
-      });
+      for (const id of blockIds) {
+        const view = this.gfx.view.get(id);
+        if (isGfxBlockComponent(view)) view.transformState$.value = state;
+      }
     });
   }
 }

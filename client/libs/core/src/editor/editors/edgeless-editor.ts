@@ -40,40 +40,23 @@ export function CanvasViewport({
     const stopTheme = std.get(ThemeProvider).edgeless$.subscribe((theme) => {
       el.dataset.theme = theme;
     });
-    let host: EditorHost | null = null;
-    const mount = () => {
-      if (doc.root) {
-        if (!host) {
-          host = std.render();
-          el.replaceChildren(host);
-        }
-      } else {
-        host?.remove();
-        host = null;
-      }
-    };
-    const added = doc.slots.rootAdded.subscribe(mount),
-      removed = doc.slots.rootDeleted.subscribe(mount);
-    mount();
+    const host = std.render();
+    el.replaceChildren(host);
     const handle: EdgelessEditor = {
       std,
-      get host() {
-        return host;
-      },
+      host,
       get updateComplete() {
-        return host?.updateComplete ?? Promise.resolve(false);
+        return host.updateComplete;
       },
     };
     const release = typeof ref === "function" ? ref(handle) : undefined;
     if (ref && typeof ref !== "function") ref.current = handle;
     return () => {
-      added.unsubscribe();
-      removed.unsubscribe();
       stopTheme();
       if (release) release();
       else if (typeof ref === "function") ref(null);
       else if (ref) ref.current = null;
-      host?.remove();
+      host.remove();
     };
   }, [doc, specs, hostExtension, ref]);
   return createElement("div", {

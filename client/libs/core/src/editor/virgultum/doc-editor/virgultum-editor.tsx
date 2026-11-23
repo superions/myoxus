@@ -48,6 +48,7 @@ import {
   useRef,
   useId,
   useState,
+  useSyncExternalStore,
 } from "react";
 
 import { VirgultumDocEditor, VirgultumEdgelessEditor } from "./lit-adaper";
@@ -676,6 +677,44 @@ const VirgultumEditorImpl = ({
   );
 };
 
+function CanvasRootSession(
+  props: EditorProps & { readingSize: number | null },
+) {
+  const { page } = props;
+  const subscribe = useCallback(
+    (refresh: () => void) => {
+      let active = true;
+      // The deletion slot fires before its model is removed. Read the final
+      // root after the transaction, including a replacement with the same ID.
+      const rootChanged = () =>
+        queueMicrotask(() => {
+          if (active) refresh();
+        });
+      const added = page.slots.rootAdded.subscribe(rootChanged);
+      const deleted = page.slots.rootDeleted.subscribe(rootChanged);
+      return () => {
+        active = false;
+        added.unsubscribe();
+        deleted.unsubscribe();
+      };
+    },
+    [page],
+  );
+  const getRoot = useCallback(() => page.root, [page]);
+  const root = useSyncExternalStore(subscribe, getRoot);
+  const [session, setSession] = useState({ root, generation: 0 });
+  if (session.root !== root) {
+    // Restoring a document can replace a root while retaining its block ID.
+    // Remount the ready callback and all viewport services with that model.
+    setSession({ root, generation: session.generation + 1 });
+  }
+  return root ? (
+    <VirgultumEditorImpl key={session.generation} {...props} />
+  ) : (
+    <EditorLoading />
+  );
+}
+
 export const VirgultumEditor = (props: EditorProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [longerLoading, setLongerLoading] = useState(false);
@@ -750,6 +789,12 @@ export const VirgultumEditor = (props: EditorProps) => {
 
   return isLoading ? (
     <EditorLoading longerLoading={longerLoading} />
+  ) : props.mode === "edgeless" ? (
+    <CanvasRootSession
+      key={props.page.id}
+      {...props}
+      readingSize={readingSize}
+    />
   ) : (
     <VirgultumEditorImpl
       key={props.page.id}

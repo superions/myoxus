@@ -229,18 +229,7 @@ export class EdgelessRootPreviewBlockComponent extends BlockComponent<RootBlockM
       <div class="edgeless-background edgeless-container" style=${background}>
         <gfx-viewport
           .enableChildrenSchedule=${!this._disableScheduleUpdate}
-          .viewport=${this._gfx.viewport}
-          .getModelsInViewport=${() => {
-            const blocks = this._gfx.grid.search(
-              this._gfx.viewport.viewportBounds,
-              {
-                useSet: true,
-                filter: ["block"],
-              },
-            );
-            return blocks;
-          }}
-          .host=${this.host}
+          .gfx=${this._gfx}
         >
           ${this.renderChildren(this.model)}${this.renderChildren(
             this.surfaceBlockModel,

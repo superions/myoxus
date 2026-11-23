@@ -486,22 +486,7 @@ export class EdgelessRootBlockComponent extends BlockComponent<
 
     return html`
       <div class="edgeless-background edgeless-container">
-        <gfx-viewport
-          .maxConcurrentRenders=${6}
-          .viewport=${this.gfx.viewport}
-          .getModelsInViewport=${() => {
-            const blocks = this.gfx.grid.search(
-              this.gfx.viewport.viewportBounds,
-              {
-                useSet: true,
-                filter: ["block"],
-              },
-            );
-
-            return blocks;
-          }}
-          .host=${this.host}
-        >
+        <gfx-viewport .maxConcurrentRenders=${6} .gfx=${this.gfx}>
           ${this.renderChildren(this.model)}
           ${surface ? this.renderChildren(surface) : null}
         </gfx-viewport>

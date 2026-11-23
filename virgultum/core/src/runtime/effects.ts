@@ -1,4 +1,4 @@
-import { GfxViewportElement } from "./gfx/viewport-element.js";
+import { registerGfxViewportElement } from "./gfx/native-viewport.js";
 import { VElement, VLine, VText } from "./inline/index.js";
 import { EditorHost } from "./view/index.js";
 
@@ -6,7 +6,7 @@ export function effects() {
   // editor host
   customElements.define("editor-host", EditorHost);
   // gfx
-  customElements.define("gfx-viewport", GfxViewportElement);
+  registerGfxViewportElement();
   // inline
   customElements.define("v-element", VElement);
   customElements.define("v-line", VLine);
