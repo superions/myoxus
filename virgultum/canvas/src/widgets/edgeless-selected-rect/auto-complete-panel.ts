@@ -1,4 +1,3 @@
-import { consume } from "@lit/context";
 import { EdgelessFrameManagerIdentifier } from "../../blocks/frame/index";
 import {
   EdgelessCRUDIdentifier,
@@ -20,7 +19,6 @@ import {
   Vec,
   type XYWH,
 } from "@virgultum/core/primitives/gfx";
-import { WithDisposable, SignalWatcher } from "@virgultum/core/primitives/lit";
 import {
   type Connection,
   type ConnectorElementModel,
@@ -41,14 +39,10 @@ import {
   type EditorI18nMessage,
 } from "@virgultum/core/services";
 import { matchModels } from "@virgultum/core/utils";
-import {
-  type BlockComponent,
-  type BlockStdScope,
-  stdContext,
-} from "@virgultum/core/runtime";
+import type { BlockComponent } from "@virgultum/core/runtime";
+import { NativeCanvasWidget } from "../native-canvas-widget";
 import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
-import { LitElement, nothing } from "lit";
-import { property } from "lit/decorators.js";
+import { nothing, render } from "lit";
 import * as Y from "yjs";
 
 import {
@@ -66,9 +60,9 @@ import {
   type TARGET_SHAPE_TYPE,
 } from "./utils.js";
 
-export class EdgelessAutoCompletePanel extends SignalWatcher(
-  WithDisposable(LitElement),
-) {
+export class EdgelessAutoCompletePanel extends NativeCanvasWidget {
+  private readonly chrome = this.ownerDocument.createElement("div");
+
   private _text(message: EditorI18nMessage) {
     return resolveEditorMessage(
       message,
@@ -472,11 +466,17 @@ export class EdgelessAutoCompletePanel extends SignalWatcher(
 
   override disconnectedCallback() {
     this._removeOverlay();
+    render(nothing, this.chrome);
     super.disconnectedCallback();
   }
 
   override connectedCallback() {
     super.connectedCallback();
+    this.chrome.style.display = "contents";
+    this.append(this.chrome);
+    this.disposables.add(
+      this.store.readonly$.subscribe(() => this.requestUpdate()),
+    );
     this.disposables.add(
       this.gfx.viewport.viewportUpdated.subscribe(() => this.requestUpdate()),
     );
@@ -490,15 +490,12 @@ export class EdgelessAutoCompletePanel extends SignalWatcher(
       );
   }
 
-  override createRenderRoot() {
-    return this;
-  }
-
-  override render() {
+  protected paint() {
     const host = this.std.getOptional(EditorChromeHostIdentifier);
     if (!host || !this._active()) {
       this._removeOverlay();
-      return nothing;
+      render(nothing, this.chrome);
+      return;
     }
     const point = this.gfx.viewport.toViewCoord(...this.position);
     const option = (
@@ -550,46 +547,37 @@ export class EdgelessAutoCompletePanel extends SignalWatcher(
         "DuplicateIcon",
       ),
     ];
-    return host.renderAutoCompletePanel({
-      label: this._text(
-        editorMessage(
-          "com.myoxus.editor.canvas.add-same-object",
-          "Add another object of this type",
+    render(
+      host.renderAutoCompletePanel({
+        label: this._text(
+          editorMessage(
+            "com.myoxus.editor.canvas.add-same-object",
+            "Add another object of this type",
+          ),
         ),
-      ),
-      options,
-      // Only the renderer-owned anchor follows world coordinates; Mantine owns menu size/flip/clipping.
-      setAnchor: (anchor) => {
-        if (!anchor) return;
-        Object.assign(anchor.style, {
-          position: "absolute",
-          left: `${point[0]}px`,
-          top: `${point[1]}px`,
-          width: "1px",
-          height: "1px",
-        });
-      },
-      close: () => {
-        this.remove();
-        this.edgeless.host.focus({ preventScroll: true });
-      },
-    });
+        options,
+        // Only the renderer-owned anchor follows world coordinates; Mantine owns menu size/flip/clipping.
+        setAnchor: (anchor) => {
+          if (!anchor) return;
+          Object.assign(anchor.style, {
+            position: "absolute",
+            left: `${point[0]}px`,
+            top: `${point[1]}px`,
+            width: "1px",
+            height: "1px",
+          });
+        },
+        close: () => {
+          this.remove();
+          this.edgeless.host.focus({ preventScroll: true });
+        },
+      }),
+      this.chrome,
+    );
   }
 
-  @property({ attribute: false })
-  accessor connector: ConnectorElementModel;
-
-  @property({ attribute: false })
-  accessor currentSource: ShapeElementModel | NoteBlockModel;
-
-  @property({ attribute: false })
-  accessor edgeless: BlockComponent;
-
-  @property({ attribute: false })
-  accessor position: [number, number];
-
-  @consume({
-    context: stdContext,
-  })
-  accessor std!: BlockStdScope;
+  readonly connector: ConnectorElementModel;
+  readonly currentSource: ShapeElementModel | NoteBlockModel;
+  readonly edgeless: BlockComponent;
+  readonly position: [number, number];
 }

@@ -84,6 +84,7 @@ export class EdgelessSelectedRectWidget extends HTMLElement {
       editor.edgeless = block;
       editor.selectedRect = state.rect;
       if (!editor.isConnected) this.overlay.insertBefore(editor, this.rect);
+      else editor.requestUpdate();
     } else {
       this.autoComplete?.remove();
       this.autoComplete = undefined;

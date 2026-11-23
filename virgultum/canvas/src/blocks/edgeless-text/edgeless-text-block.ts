@@ -1,12 +1,11 @@
 import { computed } from "@preact/signals-core";
 import { TextUtils } from "@virgultum/canvas-runtime/surface";
-import { Bound, clamp } from "@virgultum/core/primitives/gfx";
+import { almostEqual, Bound, clamp } from "@virgultum/core/primitives/gfx";
 import { formatBlockCommand } from "@virgultum/content/inlines";
 import {
   DefaultTheme,
   EDGELESS_TEXT_BLOCK_MIN_HEIGHT,
   EDGELESS_TEXT_BLOCK_MIN_WIDTH,
-  type EdgelessTextBlockModel,
   EdgelessTextBlockSchema,
   ListBlockModel,
   ParagraphBlockModel,
@@ -17,65 +16,59 @@ import { handleNativeRangeAtPoint, matchModels } from "@virgultum/core/utils";
 import {
   type BlockComponent,
   BlockSelection,
-  GfxBlockComponent,
   TextSelection,
 } from "@virgultum/core/runtime";
 import { GfxViewInteractionExtension } from "@virgultum/core/runtime/gfx";
-import { css, html } from "lit";
-import { query, state } from "lit/decorators.js";
-import { type StyleInfo, styleMap } from "lit/directives/style-map.js";
 
-export class EdgelessTextBlockComponent extends GfxBlockComponent<EdgelessTextBlockModel> {
-  static override styles = css`
-    .edgeless-text-block-container[data-max-width="false"] .inline-editor span {
-      word-break: keep-all !important;
-      text-wrap: nowrap !important;
-    }
+import type { EdgelessTextBlockComponent } from "./native-edgeless-text-block";
 
-    .edgeless-text-block-container myoxus-paragraph,
-    myoxus-list {
-      color: var(--edgeless-text-color);
-      font-family: var(--edgeless-text-font-family);
-      font-style: var(--edgeless-text-font-style);
-      font-weight: var(--edgeless-text-font-weight);
-      text-align: var(--edgeless-text-text-align);
-    }
-  `;
+export { EdgelessTextBlockComponent } from "./native-edgeless-text-block";
 
+export const edgelessTextCss = `
+  .edgeless-text-block-container[data-max-width="false"] .inline-editor span {
+    word-break: keep-all !important;
+    text-wrap: nowrap !important;
+  }
+
+  .edgeless-text-block-container myoxus-paragraph,
+  myoxus-list {
+    color: var(--edgeless-text-color);
+    font-family: var(--edgeless-text-font-family);
+    font-style: var(--edgeless-text-font-style);
+    font-weight: var(--edgeless-text-font-weight);
+    text-align: var(--edgeless-text-text-align);
+  }
+`;
+
+export class EdgelessTextController {
+  constructor(private readonly view: EdgelessTextBlockComponent) {}
+
+  private _measureFrame = 0;
   private readonly _resizeObserver = new ResizeObserver(() => {
-    if (this.store.readonly) {
-      return;
-    }
-
-    if (!this.model.props.hasMaxWidth) {
-      this._updateW();
-    }
-
-    this._updateH();
+    if (!this._measureFrame)
+      this._measureFrame = requestAnimationFrame(this._measure);
   });
 
-  private _updateH() {
-    const bound = Bound.deserialize(this.model.xywh);
-    const rect = this._textContainer.getBoundingClientRect();
-    bound.h = rect.height / this.gfx.viewport.zoom;
+  private readonly _measure = () => {
+    this._measureFrame = 0;
+    const { model, store, gfx, textContainer } = this.view;
+    if (!this.view.isConnected || store.readonly) return;
 
-    this.store.updateBlock(this.model, {
-      xywh: bound.serialize(),
-    });
-  }
+    const { zoom } = gfx.viewport;
+    const bound = Bound.deserialize(model.xywh);
+    const rect = textContainer.getBoundingClientRect();
+    const width = model.props.hasMaxWidth
+      ? bound.w
+      : Math.max(rect.width / zoom, EDGELESS_TEXT_BLOCK_MIN_WIDTH * zoom);
+    const height = rect.height / zoom;
+    if (almostEqual(width, bound.w) && almostEqual(height, bound.h)) return;
 
-  private _updateW() {
-    const bound = Bound.deserialize(this.model.xywh);
-    const rect = this._textContainer.getBoundingClientRect();
-    bound.w = Math.max(
-      rect.width / this.gfx.viewport.zoom,
-      EDGELESS_TEXT_BLOCK_MIN_WIDTH * this.gfx.viewport.zoom,
-    );
-
-    this.store.updateBlock(this.model, {
-      xywh: bound.serialize(),
-    });
-  }
+    // The view reacts synchronously to geometry changes. Write one size after
+    // observer delivery so updating the measured element does not reenter it.
+    bound.w = width;
+    bound.h = height;
+    store.updateBlock(model, { xywh: bound.serialize() });
+  };
 
   private readonly _style$ = computed(() => {
     const {
@@ -84,7 +77,7 @@ export class EdgelessTextBlockComponent extends GfxBlockComponent<EdgelessTextBl
       fontStyle$: { value: fontStyle },
       fontWeight$: { value: fontWeight },
       textAlign$: { value: textAlign },
-    } = this.model.props;
+    } = this.view.model.props;
     return {
       color,
       fontFamily,
@@ -97,28 +90,28 @@ export class EdgelessTextBlockComponent extends GfxBlockComponent<EdgelessTextBl
   checkWidthOverflow(width: number) {
     let wValid = true;
 
-    const oldWidthStr = this._textContainer.style.width;
-    this._textContainer.style.width = `${width}px`;
+    const oldWidthStr = this.view.textContainer.style.width;
+    this.view.textContainer.style.width = `${width}px`;
     if (
-      this.childrenContainer.scrollWidth > this.childrenContainer.offsetWidth
+      this.view.childrenContainer.scrollWidth >
+      this.view.childrenContainer.offsetWidth
     ) {
       wValid = false;
     }
-    this._textContainer.style.width = oldWidthStr;
+    this.view.textContainer.style.width = oldWidthStr;
 
     return wValid;
   }
 
-  override connectedCallback() {
-    super.connectedCallback();
-
-    this.disposables.add(
-      this.model.propsUpdated.subscribe(({ key }) => {
-        this.updateComplete
+  connect() {
+    this.view.disposables.add(
+      this.view.model.propsUpdated.subscribe(({ key }) => {
+        this.view.updateComplete
           .then(() => {
-            const command = this.std.command;
-            const blockSelections = this.model.children.map((child) =>
-              this.std.selection.create(BlockSelection, {
+            if (!this.view.isConnected || this.view.store.readonly) return;
+            const command = this.view.std.command;
+            const blockSelections = this.view.model.children.map((child) =>
+              this.view.std.selection.create(BlockSelection, {
                 blockId: child.id,
               }),
             );
@@ -151,57 +144,60 @@ export class EdgelessTextBlockComponent extends GfxBlockComponent<EdgelessTextBl
     );
   }
 
-  override firstUpdated(props: Map<string, unknown>) {
-    super.firstUpdated(props);
-
-    const { disposables, std } = this;
-    const edgelessSelection = this.gfx.selection;
+  mount() {
+    const { disposables, std } = this.view;
+    const edgelessSelection = this.view.gfx.selection;
 
     disposables.add(
       edgelessSelection.slots.updated.subscribe(() => {
-        if (edgelessSelection.has(this.model.id) && edgelessSelection.editing) {
-          this._editing = true;
+        if (
+          edgelessSelection.has(this.view.model.id) &&
+          edgelessSelection.editing
+        ) {
+          this.view.editing.value = true;
         } else {
-          this._editing = false;
+          this.view.editing.value = false;
         }
       }),
     );
 
-    this._resizeObserver.observe(this._textContainer);
+    this._resizeObserver.observe(this.view.textContainer);
     disposables.add(() => {
       this._resizeObserver.disconnect();
+      cancelAnimationFrame(this._measureFrame);
+      this._measureFrame = 0;
     });
 
-    disposables.addFromEvent(this._textContainer, "click", (e) => {
-      if (!this._editing) return;
+    disposables.addFromEvent(this.view.textContainer, "click", (e) => {
+      if (!this.view.editing.value) return;
 
-      const containerRect = this._textContainer.getBoundingClientRect();
+      const containerRect = this.view.textContainer.getBoundingClientRect();
       const isTop = e.clientY < containerRect.top + containerRect.height / 2;
 
       let newParagraphId: string | null = null;
       if (isTop) {
-        const firstChild = this.model.firstChild();
+        const firstChild = this.view.model.firstChild();
         if (
           !firstChild ||
           !matchModels(firstChild, [ListBlockModel, ParagraphBlockModel])
         ) {
-          newParagraphId = this.store.addBlock(
+          newParagraphId = this.view.store.addBlock(
             "myoxus:paragraph",
             {},
-            this.model.id,
+            this.view.model.id,
             0,
           );
         }
       } else {
-        const lastChild = this.model.lastChild();
+        const lastChild = this.view.model.lastChild();
         if (
           !lastChild ||
           !matchModels(lastChild, [ListBlockModel, ParagraphBlockModel])
         ) {
-          newParagraphId = this.store.addBlock(
+          newParagraphId = this.view.store.addBlock(
             "myoxus:paragraph",
             {},
-            this.model.id,
+            this.view.model.id,
           );
         }
       }
@@ -220,49 +216,49 @@ export class EdgelessTextBlockComponent extends GfxBlockComponent<EdgelessTextBl
       }
     });
 
-    disposables.addFromEvent(this._textContainer, "focusout", () => {
-      if (!this._editing) return;
+    disposables.addFromEvent(this.view.textContainer, "focusout", () => {
+      if (!this.view.editing.value) return;
 
-      this.std.selection.clear();
+      this.view.std.selection.clear();
     });
 
     let composingWidth = EDGELESS_TEXT_BLOCK_MIN_WIDTH;
-    disposables.addFromEvent(this, "compositionupdate", () => {
+    disposables.addFromEvent(this.view, "compositionupdate", () => {
       composingWidth = Math.max(
-        this._textContainer.offsetWidth,
+        this.view.textContainer.offsetWidth,
         EDGELESS_TEXT_BLOCK_MIN_HEIGHT,
       );
     });
-    disposables.addFromEvent(this, "compositionend", () => {
-      if (this.model.props.hasMaxWidth) {
+    disposables.addFromEvent(this.view, "compositionend", () => {
+      if (this.view.model.props.hasMaxWidth) {
         composingWidth = EDGELESS_TEXT_BLOCK_MIN_WIDTH;
         return;
       }
       // when IME finish container will crash to a small width, so
       // we set a max width to prevent this
-      this._textContainer.style.width = `${composingWidth}px`;
-      this.model.props.hasMaxWidth = true;
+      this.view.textContainer.style.width = `${composingWidth}px`;
+      this.view.model.props.hasMaxWidth = true;
       requestAnimationFrame(() => {
-        this._textContainer.style.width = "";
+        this.view.textContainer.style.width = "";
       });
     });
   }
 
-  override getCSSTransform(): string {
-    const viewport = this.gfx.viewport;
+  getCSSTransform(): string {
+    const viewport = this.view.gfx.viewport;
     const { translateX, translateY, zoom } = viewport;
-    const bound = Bound.deserialize(this.model.xywh);
+    const bound = Bound.deserialize(this.view.model.xywh);
 
     const scaledX = bound.x * zoom;
     const scaledY = bound.y * zoom;
     const deltaX = scaledX - bound.x;
     const deltaY = scaledY - bound.y;
 
-    return `translate(${translateX + deltaX}px, ${translateY + deltaY}px) scale(${zoom * this.model.props.scale})`;
+    return `translate(${translateX + deltaX}px, ${translateY + deltaY}px) scale(${zoom * this.view.model.props.scale})`;
   }
 
-  override getRenderingRect() {
-    const { xywh, scale, rotate, hasMaxWidth } = this.model.props;
+  getRenderingRect() {
+    const { xywh, scale, rotate, hasMaxWidth } = this.view.model.props;
     const bound = Bound.deserialize(xywh);
     const w = hasMaxWidth ? bound.w / scale : undefined;
 
@@ -272,15 +268,15 @@ export class EdgelessTextBlockComponent extends GfxBlockComponent<EdgelessTextBl
       w,
       h: bound.h / scale,
       rotate,
-      zIndex: this.toZIndex(),
+      zIndex: this.view.toZIndex(),
     };
   }
 
-  override renderGfxBlock() {
-    const { model } = this;
+  getLayoutStyle() {
+    const { model } = this.view;
     const { rotate, hasMaxWidth } = model.props;
-    const editing = this._editing;
-    const containerStyle: StyleInfo = {
+    const editing = this.view.editing.value;
+    const containerStyle = {
       transform: `rotate(${rotate}deg)`,
       transformOrigin: "center",
       border: `1px solid ${editing ? "var(--affine—primary—color, #1e96eb)" : "transparent"}`,
@@ -289,40 +285,23 @@ export class EdgelessTextBlockComponent extends GfxBlockComponent<EdgelessTextBl
       boxShadow: editing ? "0px 0px 0px 2px rgba(30, 150, 235, 0.3)" : "none",
       fontWeight: "400",
       lineHeight: "var(--myoxus-line-height)",
-      minWidth: !hasMaxWidth ? "220px" : undefined,
+      minWidth: !hasMaxWidth ? "220px" : "",
     };
 
-    this.contentEditable = String(editing && !this.store.readonly$.value);
-
-    return html`
-      <div
-        class="edgeless-text-block-container"
-        data-max-width="${hasMaxWidth}"
-        style=${styleMap(containerStyle)}
-      >
-        <div
-          style=${styleMap({
-            pointerEvents: editing ? "auto" : "none",
-            userSelect: editing ? "auto" : "none",
-          })}
-        >
-          ${this.renderPageContent()}
-        </div>
-      </div>
-    `;
+    return containerStyle;
   }
 
-  override renderPageContent() {
+  getTextStyle() {
     const { color, fontFamily, fontStyle, fontWeight, textAlign } =
       this._style$.value;
-    const themeProvider = this.std.get(ThemeProvider);
+    const themeProvider = this.view.std.get(ThemeProvider);
     const textColor = themeProvider.generateColorProperty(
       color,
       DefaultTheme.textColor,
       themeProvider.theme$.value,
     );
 
-    const style = styleMap({
+    return {
       "--edgeless-text-color": textColor,
       "--edgeless-text-font-family": TextUtils.wrapFontFamily(fontFamily),
       "--edgeless-text-font-style": fontStyle,
@@ -330,23 +309,19 @@ export class EdgelessTextBlockComponent extends GfxBlockComponent<EdgelessTextBl
       "--edgeless-text-text-align": textAlign,
       "--myoxus-list-margin": "0",
       "--myoxus-paragraph-margin": "0",
-    });
-
-    return html`
-      <div style=${style} class="myoxus-block-children-container">
-        ${this.renderChildren(this.model)}
-      </div>
-    `;
+    };
   }
 
   tryFocusEnd() {
     const paragraphOrLists = Array.from(
-      this.querySelectorAll<BlockComponent>("myoxus-paragraph, myoxus-list"),
+      this.view.querySelectorAll<BlockComponent>(
+        "myoxus-paragraph, myoxus-list",
+      ),
     );
     const last = paragraphOrLists.at(-1);
     if (last) {
-      this.host.selection.setGroup("note", [
-        this.host.selection.create(TextSelection, {
+      this.view.host.selection.setGroup("note", [
+        this.view.host.selection.create(TextSelection, {
           from: {
             blockId: last.blockId,
             index: last.model.text?.length ?? 0,
@@ -356,21 +331,6 @@ export class EdgelessTextBlockComponent extends GfxBlockComponent<EdgelessTextBl
         }),
       ]);
     }
-  }
-
-  @state()
-  private accessor _editing = false;
-
-  @query(".edgeless-text-block-container")
-  private accessor _textContainer!: HTMLDivElement;
-
-  @query(".myoxus-block-children-container")
-  accessor childrenContainer!: HTMLDivElement;
-}
-
-declare global {
-  interface HTMLElementTagNameMap {
-    "myoxus-edgeless-text": EdgelessTextBlockComponent;
   }
 }
 

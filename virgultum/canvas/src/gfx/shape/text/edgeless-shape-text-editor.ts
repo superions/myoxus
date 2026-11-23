@@ -1,4 +1,5 @@
-import { consume } from "@lit/context";
+import { render as renderDraftActions, type TemplateResult } from "lit";
+import { CanvasTextOverlay } from "../../canvas-text-overlay";
 import {
   DefaultTool,
   EdgelessCRUDIdentifier,
@@ -9,29 +10,16 @@ import {
   VirgultumError,
 } from "@virgultum/core/primitives/exceptions";
 import { Bound, clamp, toRadian, Vec } from "@virgultum/core/primitives/gfx";
-import { WithDisposable } from "@virgultum/core/primitives/lit";
 import {
   LocalShapeElementModel,
   ShapeElementModel,
   TextResizing,
 } from "@virgultum/core/models";
-import type { RichText } from "@virgultum/content/rich-text";
 import { ThemeProvider } from "@virgultum/core/services";
 import { getSelectedRect } from "@virgultum/core/utils";
-import {
-  type BlockComponent,
-  type BlockStdScope,
-  ShadowlessElement,
-  stdContext,
-} from "@virgultum/core/runtime";
+import type { BlockComponent } from "@virgultum/core/runtime";
 import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
-import {
-  RANGE_SYNC_EXCLUDE_ATTR,
-  ZERO_WIDTH_FOR_EMPTY_LINE,
-} from "@virgultum/core/runtime/inline";
-import { html, nothing, type TemplateResult } from "lit";
-import { property, query } from "lit/decorators.js";
-import { styleMap } from "lit/directives/style-map.js";
+import { ZERO_WIDTH_FOR_EMPTY_LINE } from "@virgultum/core/runtime/inline";
 import * as Y from "yjs";
 
 export type ShapeTextEditDraftActions = {
@@ -147,6 +135,7 @@ export function mountShapeTextEditor(
 
   const shapeEditor = new EdgelessShapeTextEditor();
   shapeEditor.element = updatedElement;
+  shapeEditor.std = edgeless.std;
   shapeEditor.onTextCommit = options.onTextCommit;
   shapeEditor.draft = options.draft;
 
@@ -154,7 +143,7 @@ export function mountShapeTextEditor(
   return shapeEditor;
 }
 
-export class EdgelessShapeTextEditor extends WithDisposable(ShadowlessElement) {
+export class EdgelessShapeTextEditor extends CanvasTextOverlay {
   private _keeping = false;
   private _draftValue = "";
   private _draftFinished = false;
@@ -207,6 +196,10 @@ export class EdgelessShapeTextEditor extends WithDisposable(ShadowlessElement) {
     }
     this._draftInvalidation?.();
     this._draftInvalidation = undefined;
+    this._resizeObserver?.disconnect();
+    this._resizeObserver = null;
+    if (!this.draft) this.element.textDisplay = true;
+    if (this.draft?.renderActions) renderDraftActions("", this.draftActions);
     super.disconnectedCallback();
   }
 
@@ -375,19 +368,57 @@ export class EdgelessShapeTextEditor extends WithDisposable(ShadowlessElement) {
     });
   }
 
-  override connectedCallback() {
-    super.connectedCallback();
-    this.setAttribute(RANGE_SYNC_EXCLUDE_ATTR, "true");
-    if (this.draft) {
-      this._originalTextDisplay = this.element.textDisplay;
-      this._draftValue = this.draft.value;
-      this._draftInvalidation = this.draft.subscribeInvalidation?.(() =>
-        this._finishDraft(false),
-      );
+  private readonly textCSS = this.ownerDocument.createElement("style");
+  private readonly draftActions = this.ownerDocument.createElement("div");
+  private _draftInput?: HTMLTextAreaElement;
+
+  protected mountOverlay() {
+    if (!this.draft) {
+      const text =
+        this.element instanceof ShapeElementModel && this.element.text;
+      if (!text) throw new Error("Shape text is missing");
+      this.richText.yText = text;
+      this.richText.enableAutoScrollHorizontally = false;
+      this.append(this.textCSS, this.richText);
+      return;
     }
+    this._originalTextDisplay = this.element.textDisplay;
+    this._draftValue = this.draft.value;
+    const input = this.ownerDocument.createElement("textarea");
+    this._draftInput = input;
+    input.rows = 1;
+    input.wrap = "off";
+    input.value = this._draftValue;
+    input.dataset.shapeTextDraft = "";
+    input.dataset.myoxusEditorKeyboardOwner = "shape-draft";
+    input.setAttribute("aria-label", this.draft.ariaLabel);
+    this.disposables.addFromEvent(input, "input", () =>
+      this.updateDraft(input),
+    );
+    this.draftActions.style.display = "contents";
+    this.append(input, this.draftActions);
+    this._draftInvalidation = this.draft.subscribeInvalidation?.(() =>
+      this._finishDraft(false),
+    );
   }
 
-  override firstUpdated(): void {
+  private updateDraft(input: HTMLTextAreaElement) {
+    input.setCustomValidity("");
+    this._draftValue = input.value;
+    if (!this.draft?.isValid()) {
+      this._finishDraft(false);
+      return;
+    }
+    const next = this.draft.preview?.(this._draftValue);
+    if (!next) return;
+    this._originalTextDisplay = next.textDisplay;
+    next.textDisplay = false;
+    this.element = next;
+    this.selection.set({ elements: [next.id], editing: true });
+    this.requestUpdate();
+  }
+
+  protected beginEditing(): void {
     const dispatcher = this.std.event;
 
     this.element.textDisplay = false;
@@ -423,6 +454,7 @@ export class EdgelessShapeTextEditor extends WithDisposable(ShadowlessElement) {
 
     this.updateComplete
       .then(() => {
+        if (!this.isConnected) return;
         if (this.draft) {
           this._draftInput?.focus({ preventScroll: true });
           if (this.draft.selectAllOnMount !== false) this._draftInput?.select();
@@ -490,19 +522,7 @@ export class EdgelessShapeTextEditor extends WithDisposable(ShadowlessElement) {
     });
   }
 
-  override async getUpdateComplete(): Promise<boolean> {
-    const result = await super.getUpdateComplete();
-    await this.richText?.updateComplete;
-    return result;
-  }
-
-  override render() {
-    const text = this.element.text;
-    if (!this.draft && !text) {
-      console.error("Failed to mount shape editor because of no text.");
-      return nothing;
-    }
-
+  protected paintOverlay() {
     const [verticalPadding, horiPadding] = this.element.padding;
     const textResizing =
       this.element instanceof ShapeElementModel
@@ -578,8 +598,8 @@ export class EdgelessShapeTextEditor extends WithDisposable(ShadowlessElement) {
         textResizing === TextResizing.AUTO_WIDTH_AND_HEIGHT
           ? this.element instanceof ShapeElementModel && this.element.maxWidth
             ? `${this.element.maxWidth}px`
-            : undefined
-          : undefined,
+            : ""
+          : "",
       boxSizing: "border-box",
       fontSize: this.element.fontSize + "px",
       fontFamily: TextUtils.wrapFontFamily(this.element.fontFamily),
@@ -613,37 +633,21 @@ export class EdgelessShapeTextEditor extends WithDisposable(ShadowlessElement) {
       gap: "0",
       zIndex: "1",
     };
-    const inlineEditorStyle = styleMap(inlineEditorStyles);
 
     this._lastXYWH = this.element.xywh;
 
-    if (this.draft)
-      return html`<textarea
-          data-shape-text-draft
-          rows="1"
-          wrap="off"
-          data-myoxus-editor-keyboard-owner="shape-draft"
-          aria-label=${this.draft.ariaLabel}
-          .value=${this._draftValue}
-          @input=${(event: InputEvent) => {
-            this._draftInput.setCustomValidity("");
-            this._draftValue = (event.target as HTMLTextAreaElement).value;
-            if (!this.draft?.isValid()) this._finishDraft(false);
-            else {
-              const next = this.draft.preview?.(this._draftValue);
-              if (next) {
-                this._originalTextDisplay = next.textDisplay;
-                next.textDisplay = false;
-                this.element = next;
-                this.selection.set({ elements: [next.id], editing: true });
-                this.requestUpdate();
-              }
-            }
-          }}
-          style=${styleMap({ ...inlineEditorStyles, height: `${rect.height}px`, lineHeight: this.element.labelProjection ? `${this.element.labelProjection.lineHeight}px` : "normal", display: "block", border: "none", margin: "0", resize: "none", background: "transparent" })}
-        ></textarea
-        >${
-          this.draft.renderActions?.({
+    if (this.draft && this._draftInput) {
+      Object.assign(this._draftInput.style, inlineEditorStyles, {
+        height: `${rect.height}px`,
+        display: "block",
+        border: "none",
+        margin: "0",
+        resize: "none",
+        background: "transparent",
+      });
+      if (this.draft.renderActions)
+        renderDraftActions(
+          this.draft.renderActions({
             apply: () => this._finishDraft(true),
             cancel: () => this.cancelDraft(),
             bounds: {
@@ -652,10 +656,14 @@ export class EdgelessShapeTextEditor extends WithDisposable(ShadowlessElement) {
               width: rect.width * zoom,
               height: rect.height * zoom,
             },
-          }) ?? nothing
-        }`;
+          }) ?? "",
+          this.draftActions,
+        );
+      return;
+    }
 
-    return html` <style>
+    Object.assign(this.richText.style, inlineEditorStyles);
+    this.textCSS.textContent = `
         edgeless-shape-text-editor v-text [data-v-text] {
           overflow-wrap: ${autoWidth ? "normal" : "anywhere"};
           word-break: ${autoWidth ? "normal" : "break-word"} !important;
@@ -665,36 +673,14 @@ export class EdgelessShapeTextEditor extends WithDisposable(ShadowlessElement) {
         edgeless-shape-text-editor .inline-editor {
           min-width: 1px;
         }
-      </style>
-      <rich-text
-        .yText=${text}
-        .enableFormat=${false}
-        .enableAutoScrollHorizontally=${false}
-        style=${inlineEditorStyle}
-      ></rich-text>`;
+    `;
   }
 
   setKeeping(keeping: boolean) {
     this._keeping = keeping;
   }
 
-  @property({ attribute: false })
-  accessor element!: ShapeElementModel | LocalShapeElementModel;
-
-  @property({ attribute: false })
-  accessor draft: ShapeTextEditDraft | undefined;
-
-  @property({ attribute: false })
-  accessor onTextCommit: ((value: string) => void) | undefined;
-
-  @consume({
-    context: stdContext,
-  })
-  accessor std!: BlockStdScope;
-
-  @query("textarea[data-shape-text-draft]")
-  accessor _draftInput!: HTMLTextAreaElement;
-
-  @query("rich-text")
-  accessor richText!: RichText;
+  element!: ShapeElementModel | LocalShapeElementModel;
+  draft?: ShapeTextEditDraft;
+  onTextCommit?: (value: string) => void;
 }

@@ -6,6 +6,7 @@ import {
   type BlockService,
   type GfxBlockComponent,
   GfxElementSymbol,
+  type LegacyGfxBlockRendering,
   toGfxBlockComponent,
 } from "@virgultum/core/runtime";
 import type { GfxBlockElementModel } from "@virgultum/core/runtime/gfx";
@@ -73,6 +74,6 @@ export function toEdgelessEmbedBlock<
     protected override accessor blockContainerStyles: StyleInfo | undefined =
       undefined;
   } as B & {
-    new (...args: any[]): GfxBlockComponent;
+    new (...args: any[]): GfxBlockComponent & LegacyGfxBlockRendering;
   };
 }

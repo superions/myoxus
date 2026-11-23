@@ -1,4 +1,3 @@
-import { consume } from "@lit/context";
 import {
   CanvasElementType,
   EdgelessCRUDIdentifier,
@@ -16,7 +15,6 @@ import {
 import { mountShapeTextEditor } from "../../gfx/shape/index";
 import { DisposableGroup } from "@virgultum/core/primitives/disposable";
 import { type Bound, type IVec, Vec } from "@virgultum/core/primitives/gfx";
-import { SignalWatcher, WithDisposable } from "@virgultum/core/primitives/lit";
 import {
   type Connection,
   type ConnectorElementModel,
@@ -36,18 +34,13 @@ import {
 } from "@virgultum/core/services";
 import type { SelectedRect } from "@virgultum/core/types";
 import { handleNativeRangeAtPoint } from "@virgultum/core/utils";
-import {
-  type BlockComponent,
-  type BlockStdScope,
-  stdContext,
-} from "@virgultum/core/runtime";
+import type { BlockComponent } from "@virgultum/core/runtime";
+import { NativeCanvasWidget } from "../native-canvas-widget";
 import {
   GfxControllerIdentifier,
   GfxElementModelView,
 } from "@virgultum/core/runtime/gfx";
-import { html, LitElement, nothing, render } from "lit";
-import { property, state } from "lit/decorators.js";
-import { styleMap } from "lit/directives/style-map.js";
+import { nothing, render, type TemplateResult } from "lit";
 
 import { EdgelessAutoCompletePanel } from "./auto-complete-panel.js";
 import {
@@ -83,10 +76,29 @@ class AutoCompleteOverlay extends Overlay {
   }
 }
 
-export class EdgelessAutoComplete extends SignalWatcher(
-  WithDisposable(LitElement),
-) {
-  private _chrome: HTMLDivElement | null = null;
+type AutoCompleteControl = {
+  key: string;
+  family: boolean;
+  style: Partial<CSSStyleDeclaration>;
+  control: TemplateResult | typeof nothing;
+};
+
+export class EdgelessAutoComplete extends NativeCanvasWidget {
+  private readonly chrome = this.ownerDocument.createElement("div");
+  private readonly container = this.ownerDocument.createElement("div");
+  private readonly controls = new Map<string, HTMLDivElement>();
+  private _isHover = true;
+  private _isMoving = false;
+
+  protected override findBlock() {
+    return this.edgeless;
+  }
+
+  private updateMoving(value: boolean) {
+    if (this._isMoving === value) return;
+    this._isMoving = value;
+    this.requestUpdate();
+  }
 
   private get _surface() {
     return getSurfaceBlock(this.std.store);
@@ -129,7 +141,7 @@ export class EdgelessAutoComplete extends SignalWatcher(
       );
       if (Vec.dist(start, point) > 8 && !this._isMoving) {
         if (!this.canShowAutoComplete) return;
-        this._isMoving = true;
+        this.updateMoving(true);
         const { startPosition } = getPosition(type);
         connector = this._addConnector(
           {
@@ -180,7 +192,7 @@ export class EdgelessAutoComplete extends SignalWatcher(
     if (!this._pointerDisposables) return;
     this._pointerDisposables.dispose();
     this._pointerDisposables = null;
-    this._isMoving = false;
+    this.updateMoving(false);
     this.connectionOverlay.clear();
     this.std.get(ToolbarRegistryIdentifier).flags.show();
   }
@@ -366,7 +378,7 @@ export class EdgelessAutoComplete extends SignalWatcher(
     surface.renderer.addOverlay(this._autoCompleteOverlay);
   }
 
-  private _renderArrow() {
+  private _renderArrows() {
     const isShape = this.current instanceof ShapeElementModel;
     const { selectedRect } = this;
     const { zoom } = this.gfx.viewport;
@@ -380,7 +392,7 @@ export class EdgelessAutoComplete extends SignalWatcher(
       ? [Direction.Right, Direction.Bottom, Direction.Left, Direction.Top]
       : [Direction.Right, Direction.Left];
     const arrowMargin = isShape ? height / 2 : height * (2 / 3);
-    return arrowDirections.map((type) => {
+    return arrowDirections.map<AutoCompleteControl>((type) => {
       const { startPosition } = getPosition(type);
       const [horizontal, vertical] = startPosition;
       // Project the same directional ports into selection coordinates, extending by the original hit margin.
@@ -389,9 +401,10 @@ export class EdgelessAutoComplete extends SignalWatcher(
       const y =
         selectedRect.height * vertical + (vertical - 0.5) * 2 * arrowMargin;
       const transform = `translate(${x}px, ${y}px)${isShape ? `rotate(${(type + 1) * 90}deg)` : ""} translate(${-width / 2}px, ${-height / 2}px)`;
-      return html`<div
-        class="edgeless-auto-complete-arrow-wrapper"
-        style=${styleMap({
+      return {
+        key: String(type),
+        family: false,
+        style: {
           position: "absolute",
           width: `${width}px`,
           height: `${height}px`,
@@ -404,10 +417,9 @@ export class EdgelessAutoComplete extends SignalWatcher(
           pointerEvents: "auto",
           transform,
           transformOrigin: "left top",
-        })}
-      >
-        ${this._renderTrigger(type)}
-      </div>`;
+        },
+        control: this._renderTrigger(type),
+      };
     });
   }
 
@@ -494,25 +506,26 @@ export class EdgelessAutoComplete extends SignalWatcher(
     this._initOverlay();
     // Selection handles remain in their shadow renderer. Native controls mount beside
     // it in the same editor's light DOM so the shared Mantine stylesheet reaches them.
-    this._chrome = document.createElement("div");
-    this._chrome.dataset.rangeSyncExclude = "true";
-    Object.assign(this._chrome.style, {
+    this.chrome.dataset.rangeSyncExclude = "true";
+    Object.assign(this.chrome.style, {
       position: "absolute",
       top: "0",
       left: "0",
       pointerEvents: "none",
       zIndex: "1",
     });
-    this.edgeless.append(this._chrome);
+    this.container.className = "edgeless-auto-complete-container";
+    this.container.style.position = "absolute";
+    this.chrome.append(this.container);
+    this.edgeless.append(this.chrome);
+    this.disposables.add(
+      this.store.readonly$.subscribe(() => this.requestUpdate()),
+    );
     this._subscribe();
   }
 
-  override updated() {
-    if (this._chrome) render(this._renderChrome(), this._chrome);
-  }
-
   private _subscribe() {
-    const { _disposables, edgeless, gfx } = this;
+    const { disposables, edgeless, gfx } = this;
 
     [
       gfx.selection.slots.updated.subscribe(() => {
@@ -523,15 +536,18 @@ export class EdgelessAutoComplete extends SignalWatcher(
         const evt = ctx.get("pointerState");
         const [x, y] = gfx.viewport.toModelCoord(evt.x, evt.y);
         const elm = gfx.getElementByPoint(x, y);
-        this._isHover = elm === this.current;
+        const hovering = elm === this.current;
+        if (hovering === this._isHover) return;
+        this._isHover = hovering;
+        this.requestUpdate();
       }),
       edgeless.host.event.add("dragStart", () => {
-        this._isMoving = true;
+        this.updateMoving(true);
       }),
       edgeless.host.event.add("dragEnd", () => {
-        this._isMoving = false;
+        this.updateMoving(false);
       }),
-    ].forEach((subscription) => _disposables.add(subscription));
+    ].forEach((subscription) => disposables.add(subscription));
   }
 
   private _canAutoComplete() {
@@ -561,20 +577,40 @@ export class EdgelessAutoComplete extends SignalWatcher(
     getSurfaceComponent(this.std)?.renderer.removeOverlay(
       this._autoCompleteOverlay,
     );
-    if (this._chrome) {
-      render(nothing, this._chrome);
-      this._chrome.remove();
-      this._chrome = null;
-    }
+    this.drawControls([]);
+    this.chrome.remove();
     super.disconnectedCallback();
   }
 
-  override render() {
-    return nothing;
+  private drawControls(entries: readonly AutoCompleteControl[]) {
+    const stale = new Set(this.controls.keys());
+    for (const { key, family, style, control } of entries) {
+      let anchor = this.controls.get(key);
+      if (!anchor) {
+        anchor = this.ownerDocument.createElement("div");
+        anchor.className = family
+          ? "edgeless-auto-complete-arrow-wrapper family"
+          : "edgeless-auto-complete-arrow-wrapper";
+        this.controls.set(key, anchor);
+        this.container.append(anchor);
+      }
+      Object.assign(anchor.style, style);
+      render(control, anchor);
+      stale.delete(key);
+    }
+    for (const key of stale) {
+      const anchor = this.controls.get(key)!;
+      render(nothing, anchor);
+      anchor.remove();
+      this.controls.delete(key);
+    }
   }
 
-  private _renderChrome() {
-    if (!this._active()) return nothing;
+  protected paint() {
+    if (!this._active()) {
+      this.drawControls([]);
+      return;
+    }
     const isShape = this.current instanceof ShapeElementModel;
     const sourceId = this.current.id;
     const owner = this.current.group;
@@ -598,68 +634,53 @@ export class EdgelessAutoComplete extends SignalWatcher(
       (this._isHover && !isShape && !this._canAutoComplete())
     ) {
       this.removeOverlay();
-      return nothing;
+      this.drawControls([]);
+      return;
     }
     const { selectedRect } = this;
 
-    return html`<div
-      class="edgeless-auto-complete-container"
-      style=${styleMap({
-        position: "absolute",
-        top: selectedRect.top + "px",
-        left: selectedRect.left + "px",
-        width: selectedRect.width + "px",
-        height: selectedRect.height + "px",
-        transform: `rotate(${selectedRect.rotate}deg)`,
-      })}
-    >
-      ${
-        actions
-          ? actions.map(
-              (action) =>
-                html`<div
-                  class="edgeless-auto-complete-arrow-wrapper family"
-                  style=${styleMap({ position: "absolute", width: "26px", height: "26px", display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "auto", transform: `translate(${action.left}px, ${action.top}px)${action.mirrored ? " scale(-1)" : ""} translate(-13px, -13px)` })}
-                >
-                  ${
-                    this.std
-                      .getOptional(EditorChromeHostIdentifier)
-                      ?.renderAutoCompleteTrigger({
-                        label: action.id,
-                        artwork: action.icon,
-                        preview: () => {},
-                        pointerDown: () => {
-                          if (this._active(sourceId)) action.run();
-                        },
-                        activate: () => {
-                          if (this._active(sourceId)) action.run();
-                        },
-                      }) ?? nothing
-                  }
-                </div>`,
-            )
-          : this._renderArrow()
-      }
-    </div>`;
+    Object.assign(this.container.style, {
+      top: selectedRect.top + "px",
+      left: selectedRect.left + "px",
+      width: selectedRect.width + "px",
+      height: selectedRect.height + "px",
+      transform: `rotate(${selectedRect.rotate}deg)`,
+    });
+    this.drawControls(
+      actions
+        ? actions.map((action) => ({
+            key: `family:${action.id}`,
+            family: true,
+            style: {
+              position: "absolute",
+              width: "26px",
+              height: "26px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              pointerEvents: "auto",
+              transform: `translate(${action.left}px, ${action.top}px)${action.mirrored ? " scale(-1)" : ""} translate(-13px, -13px)`,
+            },
+            control:
+              this.std
+                .getOptional(EditorChromeHostIdentifier)
+                ?.renderAutoCompleteTrigger({
+                  label: action.id,
+                  artwork: action.icon,
+                  preview: () => {},
+                  pointerDown: () => {
+                    if (this._active(sourceId)) action.run();
+                  },
+                  activate: () => {
+                    if (this._active(sourceId)) action.run();
+                  },
+                }) ?? nothing,
+          }))
+        : this._renderArrows(),
+    );
   }
 
-  @state()
-  private accessor _isHover = true;
-
-  @state()
-  private accessor _isMoving = false;
-
-  @property({ attribute: false })
-  accessor current!: ShapeElementModel | NoteBlockModel;
-
-  @property({ attribute: false })
-  accessor edgeless!: BlockComponent;
-
-  @property({ attribute: false })
-  accessor selectedRect!: SelectedRect;
-
-  @consume({
-    context: stdContext,
-  })
-  accessor std!: BlockStdScope;
+  current!: ShapeElementModel | NoteBlockModel;
+  edgeless!: BlockComponent;
+  selectedRect!: SelectedRect;
 }

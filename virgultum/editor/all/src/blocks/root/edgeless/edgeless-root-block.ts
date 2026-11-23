@@ -27,7 +27,10 @@ import {
   type GfxBlockComponent,
   SurfaceSelection,
 } from "@virgultum/core/runtime";
-import { GfxBlockElementModel } from "@virgultum/core/runtime/gfx";
+import {
+  CanvasCameraHandoffIdentifier,
+  GfxBlockElementModel,
+} from "@virgultum/core/runtime/gfx";
 
 import { mountCanvasZoom } from "../../../widgets/edgeless-zoom-toolbar/mount-zoom";
 import { EdgelessPageKeyboardManager } from "./edgeless-keyboard.js";
@@ -69,8 +72,15 @@ export const canvasRootCss = `
    * otherwise the transparent host intercepts pointers meant for active
    * canvas blocks underneath it.
    */
-  .widgets-container > edgeless-toolbar-widget {
+  .widgets-container > edgeless-toolbar-widget,
+  .widgets-container > .edgeless-navigator-black-background {
     pointer-events: none;
+  }
+
+  .edgeless-navigator-black-background {
+    position: absolute;
+    z-index: 1;
+    box-shadow: 0 0 0 5000px black;
   }
 
   .edgeless-background {
@@ -345,7 +355,13 @@ export class EdgelessRootController {
       this.gfx.fitToScreen();
     };
 
-    run();
+    const handoff = std.getOptional(CanvasCameraHandoffIdentifier);
+    if (handoff)
+      gfx.viewport.setViewport(handoff.zoom, [
+        handoff.centerX,
+        handoff.centerY,
+      ]);
+    else run();
 
     this._disposables.add(() => {
       std.get(EditPropsStore).setStorage("viewport", {

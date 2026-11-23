@@ -1,13 +1,14 @@
-import { consume } from "@lit/context";
+import {
+  CanvasTextOverlay,
+  updateOverlayPlaceholder,
+} from "../../canvas-text-overlay";
 import {
   EdgelessCRUDIdentifier,
   TextUtils,
 } from "@virgultum/canvas-runtime/surface";
 import { getLineHeight } from "../../text/index";
 import { Bound, Vec } from "@virgultum/core/primitives/gfx";
-import { WithDisposable } from "@virgultum/core/primitives/lit";
 import type { ConnectorElementModel } from "@virgultum/core/models";
-import type { RichText } from "@virgultum/content/rich-text";
 import {
   ThemeProvider,
   editorMessage,
@@ -15,26 +16,18 @@ import {
   resolveEditorMessage,
   type EditorI18nMessage,
 } from "@virgultum/core/services";
-import { almostEqual } from "@virgultum/core/utils";
 import {
-  type BlockStdScope,
-  ShadowlessElement,
-  stdContext,
-} from "@virgultum/core/runtime";
+  almostEqual,
+  requestThrottledConnectedFrame,
+} from "@virgultum/core/utils";
 import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
-import { RANGE_SYNC_EXCLUDE_ATTR } from "@virgultum/core/runtime/inline";
-import { css, html, nothing } from "lit";
-import { property, query } from "lit/decorators.js";
-import { styleMap } from "lit/directives/style-map.js";
 import * as Y from "yjs";
 
 const HORIZONTAL_PADDING = 2;
 const VERTICAL_PADDING = 2;
 const BORDER_WIDTH = 1;
 
-export class EdgelessConnectorLabelEditor extends WithDisposable(
-  ShadowlessElement,
-) {
+export class EdgelessConnectorLabelEditor extends CanvasTextOverlay {
   private _text(message: EditorI18nMessage) {
     return resolveEditorMessage(
       message,
@@ -42,7 +35,7 @@ export class EdgelessConnectorLabelEditor extends WithDisposable(
     );
   }
 
-  static override styles = css`
+  private static styles = `
     .edgeless-connector-label-editor {
       position: absolute;
       left: 0;
@@ -125,37 +118,54 @@ export class EdgelessConnectorLabelEditor extends WithDisposable(
     return this.inlineEditor?.rootElement;
   }
 
-  override connectedCallback() {
-    super.connectedCallback();
-    this.setAttribute(RANGE_SYNC_EXCLUDE_ATTR, "true");
+  private readonly container = this.ownerDocument.createElement("div");
+  private readonly placeholder = this.ownerDocument.createElement("span");
+
+  protected mountOverlay() {
+    this.container.className = "edgeless-connector-label-editor";
+    this.placeholder.className = "edgeless-connector-label-editor-placeholder";
+    this.placeholder.textContent = this._text(
+      editorMessage("com.myoxus.editor.toolbar.add-text", "Add text"),
+    );
+    this.richText.yText = this.connector.text!;
+
+    this.container.append(this.richText);
+    this.append(
+      this.overlayStyle(EdgelessConnectorLabelEditor.styles),
+      this.container,
+    );
   }
 
   override disconnectedCallback() {
-    super.disconnectedCallback();
     this._resizeObserver?.disconnect();
     this._resizeObserver = null;
+    super.disconnectedCallback();
   }
 
-  override firstUpdated() {
+  protected beginEditing() {
     const { connector, selection, std } = this;
     const dispatcher = std.event;
 
-    this._resizeObserver = new ResizeObserver(() => {
+    // The persisted size feeds back into the input width. Write once in the next frame.
+    const resize = requestThrottledConnectedFrame(() => {
       this._updateLabelRect();
       this.requestUpdate();
-    });
+    }, this);
+    this._resizeObserver = new ResizeObserver(() => resize());
     this._resizeObserver.observe(this.richText);
 
     this.connector.stash("labelXYWH");
 
     this.updateComplete
       .then(() => {
-        if (!this.inlineEditor) return;
+        if (!this.isConnected || !this.inlineEditor) return;
         this.inlineEditor.selectAll();
 
-        this.inlineEditor.slots.renderComplete.subscribe(() => {
-          this.requestUpdate();
-        });
+        this.disposables.add(
+          this.inlineEditor.slots.renderComplete.subscribe(() => {
+            this.requestUpdate();
+          }),
+        );
 
         this.disposables.add(
           dispatcher.add("keyDown", (ctx) => {
@@ -202,8 +212,8 @@ export class EdgelessConnectorLabelEditor extends WithDisposable(
             const text = connector.text.toString();
             const trimed = text.trim();
             const len = trimed.length;
-            if (len === 0) {
-              // reset
+            // An empty existing label remains editable at its authored anchor.
+            if (len === 0 && !this.hadLabel) {
               this.crud.updateElement(connector.id, {
                 text: undefined,
                 labelXYWH: undefined,
@@ -257,13 +267,7 @@ export class EdgelessConnectorLabelEditor extends WithDisposable(
       .catch(console.error);
   }
 
-  override async getUpdateComplete(): Promise<boolean> {
-    const result = await super.getUpdateComplete();
-    await this.richText?.updateComplete;
-    return result;
-  }
-
-  override render() {
+  protected paintOverlay() {
     const { connector } = this;
     const {
       labelOffset: { distance },
@@ -305,66 +309,35 @@ export class EdgelessConnectorLabelEditor extends WithDisposable(
       .get(ThemeProvider)
       .generateColorProperty(labelColor, "#000000");
 
-    return html`
-      <div
-        class="edgeless-connector-label-editor"
-        style=${styleMap({
-          fontFamily: TextUtils.wrapFontFamily(fontFamily),
-          fontSize: `${fontSize}px`,
-          fontStyle,
-          fontWeight,
-          textAlign,
-          lineHeight: `${lineHeight}px`,
-          maxWidth: hasMaxWidth
-            ? `${maxWidth + BORDER_WIDTH * 2 + HORIZONTAL_PADDING * 2}px`
-            : "initial",
-          minWidth: initialLabelWidth
-            ? `${initialLabelWidth + BORDER_WIDTH * 2 + HORIZONTAL_PADDING * 2}px`
-            : "initial",
-          width: "max-content",
-          color,
-          transform: transformOperation.join(" "),
-        })}
-      >
-        <rich-text
-          .yText=${connector.text}
-          .enableFormat=${false}
-          style=${
-            isEmpty
-              ? styleMap({
-                  position: "absolute",
-                  left: 0,
-                  top: 0,
-                  padding: `${VERTICAL_PADDING}px ${HORIZONTAL_PADDING}px`,
-                })
-              : nothing
-          }
-        ></rich-text>
-        ${
-          isEmpty
-            ? html`
-                <span class="edgeless-connector-label-editor-placeholder"
-                  >${this._text(editorMessage("com.myoxus.editor.toolbar.add-text", "Add text"))}</span
-                >
-              `
-            : nothing
-        }
-      </div>
-    `;
+    Object.assign(this.container.style, {
+      fontFamily: TextUtils.wrapFontFamily(fontFamily),
+      fontSize: `${fontSize}px`,
+      fontStyle,
+      fontWeight,
+      textAlign,
+      lineHeight: `${lineHeight}px`,
+      maxWidth: hasMaxWidth
+        ? `${maxWidth + BORDER_WIDTH * 2 + HORIZONTAL_PADDING * 2}px`
+        : "initial",
+      minWidth: initialLabelWidth
+        ? `${initialLabelWidth + BORDER_WIDTH * 2 + HORIZONTAL_PADDING * 2}px`
+        : "initial",
+      width: "max-content",
+      color,
+      transform: transformOperation.join(" "),
+    });
+    updateOverlayPlaceholder(
+      this.richText,
+      this.placeholder,
+      isEmpty,
+      `${VERTICAL_PADDING}px ${HORIZONTAL_PADDING}px`,
+    );
   }
 
   setKeeping(keeping: boolean) {
     this._keeping = keeping;
   }
 
-  @property({ attribute: false })
-  accessor connector!: ConnectorElementModel;
-
-  @consume({
-    context: stdContext,
-  })
-  accessor std!: BlockStdScope;
-
-  @query("rich-text")
-  accessor richText!: RichText;
+  connector!: ConnectorElementModel;
+  hadLabel = false;
 }

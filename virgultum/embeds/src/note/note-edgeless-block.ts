@@ -1,3 +1,4 @@
+import { signal } from "@preact/signals-core";
 import { EdgelessLegacySlotIdentifier } from "@virgultum/canvas-runtime/surface";
 import type { DocTitle } from "@virgultum/content/title";
 import { Bound } from "@virgultum/core/primitives/gfx";
@@ -9,113 +10,101 @@ import {
 import { focusTextModel } from "@virgultum/content/rich-text";
 import { EDGELESS_BLOCK_CHILD_PADDING } from "@virgultum/core/consts";
 import { TelemetryProvider } from "@virgultum/core/services";
-import {
-  handleNativeRangeAtPoint,
-  stopPropagation,
-} from "@virgultum/core/utils";
-import { toGfxBlockComponent } from "@virgultum/core/runtime";
-import {
-  type BoxSelectionContext,
-  GfxViewInteractionExtension,
-} from "@virgultum/core/runtime/gfx";
-import { html, nothing, type PropertyValues } from "lit";
-import { query, state } from "lit/decorators.js";
-import { classMap } from "lit/directives/class-map.js";
-import { ifDefined } from "lit/directives/if-defined.js";
-import { styleMap } from "lit/directives/style-map.js";
+import { handleNativeRangeAtPoint } from "@virgultum/core/utils";
+import { GfxViewInteractionExtension } from "@virgultum/core/runtime/gfx";
 import clamp from "lodash-es/clamp";
 
-import { MoreIndicator } from "./components/more-indicator";
 import { hasEdgelessNoteHeader } from "./config";
-import { NoteBlockComponent } from "./note-block";
 import { ACTIVE_NOTE_EXTRA_PADDING } from "./note-edgeless-block.styles";
-import * as styles from "./note-edgeless-block.styles";
 
 export const MYOXUS_EDGELESS_NOTE = "myoxus-edgeless-note";
 
-export class EdgelessNoteBlockComponent extends toGfxBlockComponent(
-  NoteBlockComponent,
-) {
-  private get _isShowCollapsedContent() {
+import type { EdgelessNoteBlockComponent } from "./native-edgeless-note-block";
+export { EdgelessNoteBlockComponent } from "./native-edgeless-note-block";
+
+export class EdgelessNoteController {
+  private readonly _editing = signal(false);
+  private readonly _isHover = signal(false);
+  private readonly _isResizing = signal(false);
+  private readonly _noteFullHeight = signal(0);
+
+  constructor(private readonly view: EdgelessNoteBlockComponent) {}
+
+  get showCollapsedContent() {
     return (
-      !!this.model.props.edgeless.collapse &&
-      this.selected$.value &&
+      !!this.view.model.props.edgeless.collapse &&
+      this.view.selected$.value &&
       !this._dragging &&
-      (this._isResizing || this._isHover || this._editing)
+      (this._isResizing.value || this._isHover.value || this._editing.value)
     );
   }
 
   private get _dragging() {
-    return this._isHover && this.gfx.tool.dragging$.value;
+    return this._isHover.value && this.view.gfx.tool.dragging$.value;
   }
 
-  private _collapsedContent() {
-    if (!this._isShowCollapsedContent) {
-      return nothing;
+  collapsedStyle() {
+    if (!this.showCollapsedContent) {
+      return undefined;
     }
 
-    const { xywh, edgeless } = this.model.props;
+    const { xywh, edgeless } = this.view.model.props;
     const { borderSize } = edgeless.style;
 
-    const extraPadding = this._editing ? ACTIVE_NOTE_EXTRA_PADDING : 0;
-    const extraBorder = this._editing ? borderSize : 0;
+    const extraPadding = this._editing.value ? ACTIVE_NOTE_EXTRA_PADDING : 0;
+    const extraBorder = this._editing.value ? borderSize : 0;
     const bound = Bound.deserialize(xywh);
     const scale = edgeless.scale ?? 1;
     const width = bound.w / scale + extraPadding * 2 + extraBorder;
     const height = bound.h / scale;
 
-    const rect = this._noteContent?.getBoundingClientRect();
-    if (!rect) return nothing;
+    const rect = this.view.noteContent?.getBoundingClientRect();
+    if (!rect) return undefined;
 
-    const zoom = this.gfx.viewport.zoom;
-    this._noteFullHeight =
+    const zoom = this.view.gfx.viewport.zoom;
+    const fullHeight =
       rect.height / scale / zoom + 2 * EDGELESS_BLOCK_CHILD_PADDING;
 
-    if (height >= this._noteFullHeight) {
-      return nothing;
+    if (height >= fullHeight) {
+      return undefined;
     }
 
-    return html`
-      <div
-        class=${styles.collapsedContent}
-        style=${styleMap({
-          width: `${width}px`,
-          height: `${this._noteFullHeight - height}px`,
-          left: `${-(extraPadding + extraBorder / 2)}px`,
-          top: `${height + extraPadding + extraBorder / 2}px`,
-        })}
-      ></div>
-    `;
+    return {
+      width: `${width}px`,
+      height: `${fullHeight - height}px`,
+      left: `${-(extraPadding + extraBorder / 2)}px`,
+      top: `${height + extraPadding + extraBorder / 2}px`,
+    };
   }
 
   private _handleKeyDown(e: KeyboardEvent) {
     if (e.key === "ArrowUp") {
-      this._docTitle?.inlineEditor?.focusEnd();
+      this.view.querySelector<DocTitle>("doc-title")?.inlineEditor?.focusEnd();
     }
   }
 
-  private _hovered() {
+  readonly hovered = () => {
     if (
-      this.selection.value.some(
-        (sel) => sel.type === "surface" && sel.blockId === this.model.id,
+      this.view.selection.value.some(
+        (sel) => sel.type === "surface" && sel.blockId === this.view.model.id,
       )
     ) {
       if (this._hoverTimeout) {
         clearTimeout(this._hoverTimeout);
         this._hoverTimeout = null;
       }
-      this._isHover = true;
+      this._isHover.value = true;
     }
-  }
+  };
 
   private _hoverTimeout: ReturnType<typeof setTimeout> | null = null;
 
-  private _leaved(e: MouseEvent) {
+  readonly leaved = (e: MouseEvent) => {
     if (this._hoverTimeout) {
       clearTimeout(this._hoverTimeout);
       this._hoverTimeout = null;
     }
-    const rect = this.getBoundingClientRect();
+    const rect = this.view.getBoundingClientRect();
     const threshold = -10;
     const leavedFromBottom =
       e.clientY - rect.bottom > threshold &&
@@ -124,56 +113,56 @@ export class EdgelessNoteBlockComponent extends toGfxBlockComponent(
 
     if (leavedFromBottom) {
       this._hoverTimeout = setTimeout(() => {
-        this._isHover = false;
+        this._isHover.value = false;
       }, 300);
     } else {
-      this._isHover = false;
+      this._isHover.value = false;
     }
-  }
+  };
 
-  private _setCollapse(event: MouseEvent) {
+  readonly setCollapse = (event: MouseEvent) => {
     event.stopImmediatePropagation();
 
-    const { collapse, collapsedHeight } = this.model.props.edgeless;
+    const { collapse, collapsedHeight } = this.view.model.props.edgeless;
 
     if (collapse) {
-      this.model.store.updateBlock(this.model, () => {
-        this.model.props.edgeless.collapse = false;
+      this.view.model.store.updateBlock(this.view.model, () => {
+        this.view.model.props.edgeless.collapse = false;
       });
     } else if (collapsedHeight) {
-      const { xywh, edgeless } = this.model.props;
+      const { xywh, edgeless } = this.view.model.props;
       const bound = Bound.deserialize(xywh);
       bound.h = collapsedHeight * (edgeless.scale ?? 1);
-      this.model.store.updateBlock(this.model, () => {
-        this.model.props.edgeless.collapse = true;
-        this.model.props.xywh = bound.serialize();
+      this.view.model.store.updateBlock(this.view.model, () => {
+        this.view.model.props.edgeless.collapse = true;
+        this.view.model.props.xywh = bound.serialize();
       });
     }
 
-    this.selection.clear();
-  }
+    this.view.selection.clear();
+  };
 
-  override connectedCallback(): void {
-    super.connectedCallback();
+  connect() {
+    const selection = this.view.gfx.selection;
 
-    const selection = this.gfx.selection;
-
-    this._editing = selection.has(this.model.id) && selection.editing;
-    this._disposables.add(
+    this._editing.value =
+      selection.has(this.view.model.id) && selection.editing;
+    this.view.disposables.add(
       selection.slots.updated.subscribe(() => {
-        if (selection.has(this.model.id) && selection.editing) {
-          this._editing = true;
+        if (selection.has(this.view.model.id) && selection.editing) {
+          this._editing.value = true;
         } else {
-          this._editing = false;
+          this._editing.value = false;
         }
       }),
     );
 
-    this.disposables.addFromEvent(this, "keydown", this._handleKeyDown);
+    this.view.disposables.addFromEvent(this.view, "keydown", (event) =>
+      this._handleKeyDown(event),
+    );
   }
 
-  override disconnectedCallback() {
-    super.disconnectedCallback();
+  dispose() {
     if (this._hoverTimeout) {
       clearTimeout(this._hoverTimeout);
       this._hoverTimeout = null;
@@ -181,52 +170,50 @@ export class EdgelessNoteBlockComponent extends toGfxBlockComponent(
   }
 
   get edgelessSlots() {
-    return this.std.get(EdgelessLegacySlotIdentifier);
+    return this.view.std.get(EdgelessLegacySlotIdentifier);
   }
 
-  override firstUpdated() {
-    const { _disposables } = this;
-    const selection = this.gfx.selection;
+  mount() {
+    const { disposables } = this.view;
+    const selection = this.view.gfx.selection;
 
-    _disposables.add(
+    disposables.add(
       this.edgelessSlots.elementResizeStart.subscribe(() => {
-        if (selection.selectedElements.includes(this.model)) {
-          this._isResizing = true;
+        if (selection.selectedElements.includes(this.view.model)) {
+          this._isResizing.value = true;
         }
       }),
     );
 
-    _disposables.add(
+    disposables.add(
       this.edgelessSlots.elementResizeEnd.subscribe(() => {
-        this._isResizing = false;
+        this._isResizing.value = false;
       }),
     );
 
     const observer = new MutationObserver(() => {
-      const rect = this._noteContent?.getBoundingClientRect();
+      const rect = this.view.noteContent?.getBoundingClientRect();
       if (!rect) return;
-      const zoom = this.gfx.viewport.zoom;
-      const scale = this.model.props.edgeless.scale ?? 1;
-      this._noteFullHeight =
+      const zoom = this.view.gfx.viewport.zoom;
+      const scale = this.view.model.props.edgeless.scale ?? 1;
+      this._noteFullHeight.value =
         rect.height / scale / zoom + 2 * EDGELESS_BLOCK_CHILD_PADDING;
     });
-    if (this._noteContent) {
-      observer.observe(this, { childList: true, subtree: true });
-      _disposables.add(() => observer.disconnect());
+    if (this.view.noteContent) {
+      observer.observe(this.view, { childList: true, subtree: true });
+      disposables.add(() => observer.disconnect());
     }
   }
 
-  override updated(changedProperties: PropertyValues) {
-    if (changedProperties.has("_editing") && this._editing) {
-      this.std.getOptional(TelemetryProvider)?.track("EdgelessNoteEditing", {
-        page: "edgeless",
-        segment: this.model.isPageBlock() ? "page" : "note",
-      });
-    }
+  onEditing() {
+    this.view.std.getOptional(TelemetryProvider)?.track("EdgelessNoteEditing", {
+      page: "edgeless",
+      segment: this.view.model.isPageBlock() ? "page" : "note",
+    });
   }
 
-  override getRenderingRect() {
-    const { xywh, edgeless } = this.model.props;
+  getRenderingRect() {
+    const { xywh, edgeless } = this.view.model.props;
     const { collapse, scale = 1 } = edgeless;
 
     const bound = Bound.deserialize(xywh);
@@ -238,21 +225,20 @@ export class EdgelessNoteBlockComponent extends toGfxBlockComponent(
       y: bound.y,
       w: width,
       h: collapse ? height : "unset",
-      zIndex: this.toZIndex(),
+      zIndex: this.view.toZIndex(),
     };
   }
 
-  override renderGfxBlock() {
-    const { model } = this;
+  read() {
+    const { model } = this.view;
     const { displayMode } = model.props;
-    if (!!displayMode && displayMode === NoteDisplayMode.DocOnly)
-      return nothing;
+    if (!!displayMode && displayMode === NoteDisplayMode.DocOnly) return null;
 
     const { xywh, edgeless } = model.props;
     const { borderRadius } = edgeless.style;
     const { collapse = false, collapsedHeight, scale = 1 } = edgeless;
 
-    const { tool } = this.gfx;
+    const { tool } = this.view.gfx;
 
     const bound = Bound.deserialize(xywh);
     const height = bound.h / scale;
@@ -264,133 +250,38 @@ export class EdgelessNoteBlockComponent extends toGfxBlockComponent(
       transform: `scale(${scale})`,
     };
 
-    const extra = this._editing ? ACTIVE_NOTE_EXTRA_PADDING : 0;
+    const extra = this._editing.value ? ACTIVE_NOTE_EXTRA_PADDING : 0;
 
     const isCollapsable =
       collapse != null &&
       collapsedHeight != null &&
-      collapsedHeight !== this._noteFullHeight;
+      collapsedHeight !== this._noteFullHeight.value;
 
     const isCollapseArrowUp = collapse
-      ? this._noteFullHeight < height
+      ? this._noteFullHeight.value < height
       : !!collapsedHeight && collapsedHeight < height;
 
     const hasHeader = hasEdgelessNoteHeader({
-      note: this.model,
-      std: this.std,
+      note: model,
+      std: this.view.std,
     });
 
-    return html`
-      <div
-        class=${styles.edgelessNoteContainer}
-        style=${styleMap(style)}
-        data-model-height="${bound.h}"
-        data-editing=${this._editing}
-        data-collapse=${ifDefined(collapse)}
-        data-fit-page-tables=${ifDefined(
-          !collapse && displayMode !== NoteDisplayMode.EdgelessOnly
-            ? ""
-            : undefined,
-        )}
-        data-testid="edgeless-note-container"
-        @mouseleave=${this._leaved}
-        @mousemove=${this._hovered}
-        data-scale="${scale}"
-      >
-        <edgeless-note-background
-          .std=${this.std}
-          .editing=${this._editing}
-          .note=${this.model}
-        ></edgeless-note-background>
-
-        <div
-          data-testid="edgeless-note-clip-container"
-          class=${styles.clipContainer}
-          style=${styleMap({
-            "overflow-y": this._isShowCollapsedContent ? "initial" : "clip",
-          })}
-        >
-          <div>
-            <edgeless-page-block-title
-              .std=${this.std}
-              .note=${this.model}
-            ></edgeless-page-block-title>
-            <div
-              contenteditable=${String(!this.store.readonly$.value)}
-              class="edgeless-note-page-content"
-            >
-              ${this.renderPageContent()}
-            </div>
-          </div>
-        </div>
-
-        <edgeless-note-mask
-          .state=${{
-            model: this.model,
-            host: this.host,
-            radius:
-              this.model.props.edgeless.style.borderRadius *
-              (this.gfx.viewport.zoom ?? 1),
-            disabled: this.hideMask || this.store.readonly,
-            editing: this._editing,
-          }}
-        ></edgeless-note-mask>
-
-        ${
-          isCollapsable &&
-          tool.currentToolName$.value !== "frameNavigator" &&
-          !hasHeader
-            ? html`<div
-                class="${classMap({
-                  [styles.collapseButton]: true,
-                  flip: isCollapseArrowUp,
-                })}"
-                style=${styleMap({
-                  bottom: this._editing ? `${-extra}px` : "0",
-                })}
-                data-testid="edgeless-note-collapse-button"
-                @mousedown=${stopPropagation}
-                @mouseup=${stopPropagation}
-                @click=${this._setCollapse}
-              >
-                ${MoreIndicator}
-              </div>`
-            : nothing
-        }
-        ${this._collapsedContent()}
-      </div>
-    `;
-  }
-
-  override onBoxSelected(_: BoxSelectionContext) {
-    return this.model.props.displayMode !== NoteDisplayMode.DocOnly;
-  }
-
-  @state()
-  private accessor _editing = false;
-
-  @state()
-  private accessor _isHover = false;
-
-  @state()
-  private accessor _isResizing = false;
-
-  @state()
-  private accessor _noteFullHeight = 0;
-
-  @state()
-  accessor hideMask = false;
-
-  @query(`.${styles.clipContainer} > div`)
-  private accessor _noteContent: HTMLElement | null = null;
-
-  @query("doc-title")
-  private accessor _docTitle: DocTitle | null = null;
-}
-
-declare global {
-  interface HTMLElementTagNameMap {
-    [MYOXUS_EDGELESS_NOTE]: EdgelessNoteBlockComponent;
+    return {
+      style,
+      modelHeight: bound.h,
+      editing: this._editing.value,
+      collapse,
+      scale,
+      fitsPageTables: !collapse && displayMode !== NoteDisplayMode.EdgelessOnly,
+      canToggleCollapse:
+        isCollapsable &&
+        tool.currentToolName$.value !== "frameNavigator" &&
+        !hasHeader,
+      collapseArrowUp: isCollapseArrowUp,
+      collapseButtonBottom: this._editing.value ? `${-extra}px` : "0",
+      overflowY: this.showCollapsedContent ? "initial" : "clip",
+      collapsedStyle: this.collapsedStyle(),
+    };
   }
 }
 

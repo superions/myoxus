@@ -1,25 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
-import { computed, effect, untracked } from "@preact/signals-core";
-import type { SurfaceBlockModel } from "@virgultum/canvas-runtime/surface";
-import type { RootBlockModel } from "@virgultum/core/models";
-import { DisposableGroup } from "@virgultum/core/primitives/disposable";
+import { mountPresentationBackground } from "@virgultum/canvas/blocks";
+import { effect, untracked } from "@preact/signals-core";
 import {
-  BlockSelection,
-  BlockServiceIdentifier,
-  blockComponentSymbol,
-  bindRetainedWidgetContexts,
-  createRetainedBlockView,
-  createRetainedWidgetViews,
-  editorHostSelector,
-  isEditorHost,
-  type BlockComponent,
-  type BlockStdScope,
-  type EditorHost,
-  type EventName,
-  type UIEventHandler,
-} from "@virgultum/core/runtime";
+  type SurfaceBlockModel,
+  NativeBlockComponent,
+  NativeBlockProjection,
+} from "@virgultum/canvas-runtime/surface";
+import type { RootBlockModel } from "@virgultum/core/models";
+import type { UIEventHandler } from "@virgultum/core/runtime";
 import {
   type GfxViewportElement,
   GfxControllerIdentifier,
@@ -28,7 +18,6 @@ import {
   FontLoaderService,
   ViewportElementProvider,
 } from "@virgultum/core/services";
-import type { BlockModel, BlockViewType, Store } from "@virgultum/core/store";
 import { hasTextControlEventTarget } from "@virgultum/core/utils";
 
 import {
@@ -38,37 +27,18 @@ import {
 import type { EdgelessRootService } from "./edgeless-root-service.js";
 
 const styledRoots = new WeakSet<Node>();
-type ChildView = {
-  model: BlockModel;
-  element: HTMLElement;
-  viewType: BlockViewType;
-};
-
-export class EdgelessRootBlockComponent
-  extends HTMLElement
-  implements BlockComponent<RootBlockModel, EdgelessRootService>
-{
-  [blockComponentSymbol] = true;
-  std!: BlockStdScope;
-  store!: Store;
-  model!: RootBlockModel;
-  host!: EditorHost;
-  service!: EdgelessRootService;
-  viewType: BlockViewType = "display";
-  disposables = new DisposableGroup();
+export class EdgelessRootBlockComponent extends NativeBlockComponent<
+  RootBlockModel,
+  EdgelessRootService
+> {
   private controller?: EdgelessRootController;
-  private readonly views = new Map<string, ChildView>();
-  private readonly retainedWidgets = new Map<string, HTMLElement>();
-  private contextsBound = false;
+  private projection?: NativeBlockProjection;
 
   backgroundElm!: HTMLDivElement;
   gfxViewportElm!: GfxViewportElement;
   overlayElm!: HTMLDivElement;
   mountElm!: HTMLDivElement;
 
-  get selection() {
-    return this.std.selection;
-  }
   get gfx() {
     return this.std.get(GfxControllerIdentifier);
   }
@@ -89,69 +59,11 @@ export class EdgelessRootBlockComponent
   get keyboardManager() {
     return this.controller?.keyboardManager ?? null;
   }
-  get blockId() {
-    return this.model.id;
-  }
-  get flavour() {
-    return this.model.flavour;
-  }
-  get parentComponent() {
-    return null;
-  }
-  get rootComponent() {
-    return this;
-  }
-  get topContenteditableElement() {
-    return this;
-  }
-  get childBlocks() {
-    return this.model.children
-      .map((model) => this.std.view.getBlock(model.id))
-      .filter((view): view is BlockComponent => view !== null);
-  }
-  get widgetComponents() {
-    return Object.fromEntries(
-      [...this.retainedWidgets.keys()].map((id) => [
-        id,
-        this.std.view.getWidget(id, this.blockId) ?? undefined,
-      ]),
-    );
-  }
-  get isVersionMismatch() {
-    return (
-      this.store.schema.flavourSchemaMap.get(this.flavour)?.version !==
-      this.model.version
-    );
-  }
-  get renderChildren() {
-    return this.host.renderChildren;
-  }
-  readonly selected$ = computed(
-    () =>
-      this.std?.selection.value.some(
-        (item) => item.blockId === this.model.id && item.is(BlockSelection),
-      ) ?? false,
-  );
-  get updateComplete() {
-    const views = [...this.views.values()].map(({ element }) => element);
-    return Promise.all(
-      [...views, ...this.retainedWidgets.values()].map((element) =>
-        "updateComplete" in element ? element.updateComplete : undefined,
-      ),
-    ).then(() => this.isConnected);
+  override get updateComplete() {
+    return this.waitForViews(this.projection?.nodes ?? []);
   }
 
-  handleEvent(
-    name: EventName,
-    handler: UIEventHandler,
-    options?: { global?: boolean; flavour?: boolean },
-  ) {
-    this.disposables.add(
-      this.std.event.add(name, handler, this.eventScope(options)),
-    );
-  }
-
-  bindHotKey(
+  override bindHotKey(
     keymap: Record<string, UIEventHandler>,
     options?: { global?: boolean; flavour?: boolean },
   ) {
@@ -166,36 +78,14 @@ export class EdgelessRootBlockComponent
           : handler,
       ]),
     );
-    const dispose = this.std.event.bindHotkey(
-      handlers,
-      this.eventScope(options),
-    );
-    this.disposables.add(dispose);
-    return dispose;
-  }
-
-  private eventScope(options?: { global?: boolean; flavour?: boolean }) {
-    return {
-      flavour: !options?.global && options?.flavour ? this.flavour : undefined,
-      blockId: options?.global || options?.flavour ? undefined : this.blockId,
-    };
+    return super.bindHotKey(handlers, options);
   }
 
   connectedCallback() {
-    const owner = this.closest(editorHostSelector);
-    if (!isEditorHost(owner)) return;
-    const model = owner.store.getModelById<RootBlockModel>(
-      this.dataset.blockId!,
-    );
-    if (!model) return;
-    this.std = owner.std;
-    this.store = owner.store;
-    this.host = owner;
-    this.model = model;
-    this.service = this.std.get(
-      BlockServiceIdentifier(this.flavour),
-    ) as EdgelessRootService;
-    this.disposables = new DisposableGroup();
+    if (!this.connectBlock()) return;
+    const { model } = this;
+    const projection = new NativeBlockProjection(this.host);
+    this.projection = projection;
 
     const root = this.getRootNode();
     const styleRoot =
@@ -206,12 +96,6 @@ export class EdgelessRootBlockComponent
       styleRoot.append(style);
       styledRoots.add(styleRoot);
     }
-
-    if (!this.contextsBound) {
-      bindRetainedWidgetContexts(this, model, this.service);
-      this.contextsBound = true;
-    }
-    this.std.view.setBlock(this);
 
     if (this.viewType === "hidden") return;
     if (this.isVersionMismatch) {
@@ -251,69 +135,32 @@ export class EdgelessRootBlockComponent
           ? [...model.children, ...(this.surfaceBlockModel?.children ?? [])]
           : model.children;
         untracked(() =>
-          this.syncChildren(children, showCanvas ? this.gfxViewportElm : this),
+          projection.sync(children, showCanvas ? this.gfxViewportElm : this),
         );
       }),
     );
     if (showCanvas) {
-      const widgets = createRetainedWidgetViews(this, this.std, model);
-      for (const [key, element] of widgets)
-        this.retainedWidgets.set(key, element);
-      this.overlayElm.append(...this.retainedWidgets.values());
+      this.mountBlockWidgets(this.overlayElm);
+      const background = mountPresentationBackground(this.overlayElm, this.std);
+      if (background) this.disposables.add(background);
       this.controller?.mount();
     }
   }
 
-  requestUpdate() {
+  override requestUpdate() {
     if (!this.isConnected || !this.gfxViewportElm) return;
-    this.syncChildren(
+    this.projection?.sync(
       [...this.model.children, ...(this.surfaceBlockModel?.children ?? [])],
       this.gfxViewportElm,
     );
   }
 
-  disconnectedCallback() {
-    this.disposables.dispose();
+  override disconnectedCallback() {
+    super.disconnectedCallback();
     this.controller?.dispose();
     this.controller = undefined;
-    if (this.std?.view.getBlock(this.model.id) === this)
-      this.std.view.deleteBlock(this);
-    this.views.clear();
-    this.retainedWidgets.clear();
+    this.projection?.dispose();
+    this.projection = undefined;
     this.replaceChildren();
-  }
-
-  /** Keep each child element tied to its materialized model across ordering changes. */
-  private syncChildren(models: readonly BlockModel[], container: HTMLElement) {
-    const remaining = new Set(this.views.keys());
-    const ordered: HTMLElement[] = [];
-    for (const model of models) {
-      const viewType = this.store.getBlock(model.id)?.blockViewType;
-      let entry = this.views.get(model.id);
-      if (entry && (entry.model !== model || entry.viewType !== viewType)) {
-        entry.element.remove();
-        this.views.delete(model.id);
-        entry = undefined;
-      }
-      if (!entry && viewType) {
-        const element = createRetainedBlockView(this.host, model);
-        if (element) {
-          entry = { model, element, viewType };
-          this.views.set(model.id, entry);
-        }
-      }
-      if (entry) {
-        ordered.push(entry.element);
-        remaining.delete(model.id);
-      }
-    }
-    for (const id of remaining) {
-      this.views.get(id)?.element.remove();
-      this.views.delete(id);
-    }
-    ordered.forEach((element, index) => {
-      const current = container.children.item(index);
-      if (element !== current) container.insertBefore(element, current);
-    });
   }
 }

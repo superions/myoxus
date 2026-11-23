@@ -19,6 +19,12 @@ import {
   waitForWorkspaceDocSync,
 } from "../../shared/workspace-helper";
 
+import {
+  cleanupDoc as deleteDisposableDoc,
+  createDisposableDoc,
+  typeSlashCommand,
+} from "./virgultum-mermaid-block-doc-helpers";
+
 const FRONTEND =
   process.env.MYOXUS_FRONTEND_BASE_URL ?? "http://localhost:3010";
 const API = process.env.MYOXUS_API_BASE_URL ?? "http://localhost:3001";
@@ -41,36 +47,12 @@ async function injectCookies(context: BrowserContext, cookies: string[]) {
   );
 }
 async function cleanupDoc(
-  page: Page,
   request: APIRequestContext,
   workspaceId: string,
   cookies: string[],
   docId: string,
 ) {
-  // Content-only sync deletion does not remove authoritative document metadata.
-  // Use the normal trash journey, then the canonical permanent-delete mutation.
-  await page
-    .getByRole("radio", { name: /^(List|Liste)$/ })
-    .locator("..")
-    .click();
-  const row = page.locator(
-    `[data-testid="doc-list-item"][data-doc-id="${docId}"]`,
-  );
-  await row.hover();
-  await row.getByTestId("doc-list-operation-button").click();
-  await page.getByTestId("doc-list-operation-trash").click();
-  await page.getByRole("dialog").getByTestId("confirm-modal-confirm").click();
-  await expect(row).toHaveCount(0);
-  const deleted = await smokeGql<{
-    deleteDocumentPermanently: { deleted: number; failed: number };
-  }>(
-    request,
-    GQL,
-    cookies,
-    `mutation BpmnCleanupDelete($input: DeleteDocumentPermanentlyInput!) { deleteDocumentPermanently(input: $input) { deleted failed } }`,
-    { input: { workspaceId, docId } },
-  );
-  expect(deleted.deleteDocumentPermanently).toEqual({ deleted: 1, failed: 0 });
+  await deleteDisposableDoc(workspaceId, cookies, docId, request);
   await expect
     .poll(
       async () => {
@@ -136,6 +118,7 @@ async function selectEdgeByMouse(page: Page) {
       const screen = local.matrixTransform(line.getScreenCTM()!);
       return { x: screen.x, y: screen.y };
     });
+  await page.mouse.move(point.x, point.y);
   await page.mouse.click(point.x, point.y);
   await expect(page.locator(".react-flow__edge.selected")).toHaveCount(1);
 }
@@ -183,6 +166,9 @@ test("catalog mouse construction and Page/Edgeless entry preserve canonical BPMN
     );
     docId = new URL(page.url()).pathname.split("/").at(-1)!;
     const dialog = page.getByTestId("bpmn-editor-dialog");
+    const closeDialog = dialog
+      .locator("header")
+      .getByRole("button", { name: /^(Close|Schließen)$/ });
     await expect(dialog.locator(".react-flow")).toBeVisible();
     await expect(page.locator("myoxus-bpmn")).toHaveCount(1);
     const blockId = await page
@@ -232,11 +218,8 @@ test("catalog mouse construction and Page/Edgeless entry preserve canonical BPMN
       .getByRole("textbox", { name: "Name", exact: true })
       .fill("BPMN persisted task");
     await dialog
-      .getByRole("textbox", { name: "Name", exact: true })
-      .press("Tab");
-    await dialog
+      .getByTestId("kie-tools--bpmn-editor--properties-panel-container")
       .getByRole("button", { name: /^(Close|Schließen)$/ })
-      .last()
       .click();
     await page.waitForTimeout(650);
     const task = dialog.locator(".react-flow__node-node_task");
@@ -283,7 +266,7 @@ test("catalog mouse construction and Page/Edgeless entry preserve canonical BPMN
     ).toHaveCount(0);
     await expect(dialog.locator(".react-flow__node")).toHaveCount(3);
     await expect(dialog.locator(".react-flow__edge")).toHaveCount(2);
-    await dialog.getByRole("button", { name: /^(Close|Schließen)$/ }).click();
+    await closeDialog.click();
     await expect(dialog).toBeHidden();
     await expect(page.locator("myoxus-bpmn")).toBeFocused();
     const before = await downloadSource(page);
@@ -308,22 +291,17 @@ test("catalog mouse construction and Page/Edgeless entry preserve canonical BPMN
     await expect(dialog.locator(".react-flow__node-node_task")).toContainText(
       "BPMN persisted task",
     );
-    await dialog.getByRole("button", { name: /^(Close|Schließen)$/ }).click();
+    await closeDialog.click();
     await expect(dialog).toBeHidden();
     expect(await downloadSource(page)).toEqual(before);
     // Catalog creation replaces the initial empty paragraph atomically. Use a
     // separate ordinary Page for the existing slash/quick-tool insertion path.
-    await page.getByTestId("sidebar-new-page-button").click();
-    insertionDocId = new URL(page.url()).pathname.split("/").at(-1)!;
-    const paragraph = page
-      .locator("myoxus-paragraph [contenteditable=true]")
-      .last();
-    await paragraph.click();
-    await page.keyboard.type("/bpmn");
+    insertionDocId = await createDisposableDoc(page, workspaceId);
+    await typeSlashCommand(page, "/bpmn");
     await page.getByTestId("slash-menu-item-bpmn").click();
     await expect(dialog.locator(".react-flow")).toBeVisible();
     await expect(page.locator("myoxus-bpmn")).toHaveCount(1);
-    await dialog.getByRole("button", { name: /^(Close|Schließen)$/ }).click();
+    await closeDialog.click();
     await page
       .getByRole("radio", { name: "Edgeless", exact: true })
       .locator("..")
@@ -341,7 +319,7 @@ test("catalog mouse construction and Page/Edgeless entry preserve canonical BPMN
     await expect(
       page.locator("myoxus-edgeless-root .react-flow, myoxus-frame"),
     ).toHaveCount(0);
-    await dialog.getByRole("button", { name: /^(Close|Schließen)$/ }).click();
+    await closeDialog.click();
     const edgelessBlock = page.locator("myoxus-bpmn").last();
     const note = edgelessBlock.locator("xpath=ancestor::myoxus-edgeless-note");
     await expect(note).toBeVisible();
@@ -364,12 +342,13 @@ test("catalog mouse construction and Page/Edgeless entry preserve canonical BPMN
     expect(errors).toEqual([]);
   } finally {
     try {
-      if (docId) {
-        await page.goto(`${FRONTEND}/workspace/${workspaceId}/all`);
-        await cleanupDoc(page, request, workspaceId, cookies, docId);
-      }
-      if (insertionDocId) {
-        await cleanupDoc(page, request, workspaceId, cookies, insertionDocId);
+      const results = await Promise.allSettled(
+        [docId, insertionDocId]
+          .filter((id) => id !== undefined)
+          .map((id) => cleanupDoc(request, workspaceId, cookies, id)),
+      );
+      for (const result of results) {
+        if (result.status === "rejected") throw result.reason;
       }
     } finally {
       await signOutViaApi(request, API, cookies);

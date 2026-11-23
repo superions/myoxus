@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // @vitest-environment happy-dom
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef, useMemo, useState } from "react";
 import {
   render,
   screen,
@@ -17,7 +17,6 @@ import {
   type BpmnBlockPresentationProps,
 } from "@virgultum/block-bpmn";
 import { Container } from "@virgultum/core/primitives/di";
-import { render as renderLit } from "lit";
 import { patchBpmnBlockPresentation } from "./bpmn-block-presentation";
 import { materializeDiagramExportSvg } from "../../../components/hooks/myoxus/diagram-export-svg";
 import { prepareBpmnPreviewSvg } from "@myoxus/bpmn-editor/preview";
@@ -43,9 +42,6 @@ vi.mock("@myoxus/bpmn-editor/preview", () => ({
   ),
 }));
 
-// Root frontend setup disables custom-element registration. This consuming
-// test needs the real Lit portal lifecycle rather than an inert anchor tag.
-vi.hoisted(() => vi.unstubAllGlobals());
 vi.unmock("@myoxus/i18n");
 vi.mock("../../../components/hooks/myoxus/diagram-export-svg", () => ({
   materializeDiagramExportSvg: vi.fn(async (svg: string) => svg),
@@ -57,29 +53,28 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 function Host({ props }: { props: BpmnBlockPresentationProps }) {
-  const [reactToLit, portals] = useLitPortalFactory();
+  const [, portals, mountPortal] = useLitPortalFactory();
   const anchor = useRef<HTMLDivElement>(null);
+  const [source] = useState(() => new BehaviorSubject(props));
   const provider = useMemo(() => {
     const container = new Container();
-    const extension = patchBpmnBlockPresentation(reactToLit, docStorage);
+    const extension = patchBpmnBlockPresentation(mountPortal, docStorage);
     if (typeof extension !== "object" || !("setup" in extension))
       throw new Error("Missing host registration");
     extension.setup(container);
     return container.provider();
-  }, [reactToLit]);
+  }, [mountPortal]);
   useEffect(() => {
     const target = anchor.current!;
-    renderLit(
-      provider.get(BpmnBlockPresentationIdentifier).render(props),
-      target,
-    );
-  }, [props, provider]);
-  useEffect(() => {
-    const target = anchor.current!;
-    return () => {
-      renderLit(null, target);
-    };
-  }, []);
+    return provider.get(BpmnBlockPresentationIdentifier).mount(target, {
+      getSnapshot: () => source.value,
+      subscribe(listener) {
+        const subscription = source.subscribe(listener);
+        return () => subscription.unsubscribe();
+      },
+    });
+  }, [source, provider]);
+  useEffect(() => source.next(props), [props, source]);
   return (
     <>
       <div ref={anchor} />
@@ -87,7 +82,7 @@ function Host({ props }: { props: BpmnBlockPresentationProps }) {
     </>
   );
 }
-test("the real presentation registration mounts Facade controls and dispatches Open instead of a passive Lit placeholder", async () => {
+test("the real presentation registration mounts Facade controls and dispatches Open from a native block anchor", async () => {
   const open = vi.fn(async () => {}),
     download = vi.fn();
   const props: BpmnBlockPresentationProps = {

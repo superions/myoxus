@@ -663,7 +663,28 @@ export function BpmnEditorDialog({
                 // Flush/download may finalize recovery-only drafts after remote
                 // deletion. Never turn that export into a new terminal save error.
                 if (state.missing) return;
-                void run(() => session.save(snapshot));
+                const diagram = root.current?.querySelector<HTMLElement>(
+                  ".myoxus-bpmn-diagram.react-flow",
+                );
+                const restoreCanvasFocus = document.activeElement === diagram;
+                void run(async () => {
+                  await session.save(snapshot);
+                  if (!restoreCanvasFocus) return;
+                  // A settled command can replace the focused canvas while
+                  // its source is acknowledged. Preserve a new user focus.
+                  requestAnimationFrame(() => {
+                    if (
+                      document.activeElement === document.body ||
+                      document.activeElement === root.current
+                    ) {
+                      root.current
+                        ?.querySelector<HTMLElement>(
+                          ".myoxus-bpmn-diagram.react-flow",
+                        )
+                        ?.focus({ preventScroll: true });
+                    }
+                  });
+                });
               }}
               onError={() =>
                 notify.error(t["com.myoxus.common.operation-failed"]())

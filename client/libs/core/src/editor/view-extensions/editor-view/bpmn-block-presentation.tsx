@@ -2,7 +2,7 @@
 import { useI18n } from "@myoxus/i18n";
 import { prepareBpmnPreviewSvg } from "@myoxus/bpmn-editor/preview";
 import { BRANDING_STYLE_ID } from "@myoxus/theme";
-import type { LitPortalDecorator, ReactToLit } from "@myoxus/lit-react";
+import type { MountReactPortal } from "@myoxus/lit-react";
 import {
   Button,
   Card,
@@ -20,10 +20,10 @@ import { MyoxusEmbeddedUIProvider } from "@myoxus/ui-facade/provider";
 import {
   BpmnBlockPresentationExtension,
   type BpmnBlockPresentationProps,
+  type BpmnBlockPresentationBinding,
 } from "@virgultum/block-bpmn";
 import {
   type PropsWithChildren,
-  type ReactNode,
   useCallback,
   useEffect,
   useState,
@@ -31,6 +31,9 @@ import {
   createContext,
   useContext,
   useMemo,
+  useId,
+  useLayoutEffect,
+  useSyncExternalStore,
 } from "react";
 import { materializeDiagramExportSvg } from "../../../components/hooks/myoxus/diagram-export-svg";
 import type { DocFrontend, DocFrontendDocState } from "@myoxus/storage";
@@ -61,12 +64,12 @@ function BpmnEmbeddedUIRoot({
   }, [root]);
   const [scheme, setScheme] = useState(resolve);
   const projection = useMemo(() => ({ root, scheme }), [root, scheme]);
-  const [selector] = useState(() => {
-    const id = root.getAttribute("portalid");
-    if (!id) throw new Error("BPMN_PRESENTATION_ANCHOR");
+  const id = useId();
+  const selector = `[data-myoxus-bpmn-react-root="${id}"]`;
+  useLayoutEffect(() => {
     root.setAttribute("data-myoxus-bpmn-react-root", id);
-    return `[data-myoxus-bpmn-react-root="${id}"]`;
-  });
+    return () => root.removeAttribute("data-myoxus-bpmn-react-root");
+  }, [root, id]);
   const getRootElement = useCallback(() => root, [root]);
   useEffect(() => {
     const scope = themeScope(root);
@@ -378,18 +381,27 @@ function BpmnBlockPresentation(
   );
 }
 
+function LiveBpmnBlockPresentation({
+  binding,
+  docStorage,
+}: {
+  binding: BpmnBlockPresentationBinding;
+  docStorage: PreviewDocStorage;
+}) {
+  const state = useSyncExternalStore(binding.subscribe, binding.getSnapshot);
+  return <BpmnBlockPresentation {...state} docStorage={docStorage} />;
+}
+
 export function patchBpmnBlockPresentation(
-  reactToLit: ReactToLit,
+  mountPortal: MountReactPortal,
   docStorage: PreviewDocStorage,
 ) {
-  const decorate: LitPortalDecorator = (element, root) => (
-    <BpmnEmbeddedUIRoot root={root}>{element as ReactNode}</BpmnEmbeddedUIRoot>
-  );
-  return BpmnBlockPresentationExtension((props) =>
-    reactToLit(
-      <BpmnBlockPresentation {...props} docStorage={docStorage} />,
-      true,
-      decorate,
+  return BpmnBlockPresentationExtension((anchor, binding) =>
+    mountPortal(
+      anchor,
+      <BpmnEmbeddedUIRoot root={anchor}>
+        <LiveBpmnBlockPresentation binding={binding} docStorage={docStorage} />
+      </BpmnEmbeddedUIRoot>,
     ),
   );
 }

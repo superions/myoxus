@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { createIdentifier } from "@virgultum/core/primitives/di";
 import type { ExtensionType } from "@virgultum/core/store";
-import type { TemplateResult } from "lit";
 import type { BpmnPreviewArtifact } from "@virgultum/core/models";
 
 export type BpmnBlockPresentationProps = {
@@ -20,16 +19,26 @@ export type BpmnBlockPresentationProps = {
   onOpen(): Promise<void>;
   onRetry(): Promise<void>;
 };
-/** The block observes persisted state; the existing Core portal owns all visible controls. */
+export type BpmnBlockPresentationBinding = {
+  getSnapshot(): BpmnBlockPresentationProps;
+  subscribe(listener: () => void): () => void;
+};
+
+type MountBpmnPresentation = (
+  anchor: HTMLElement,
+  binding: BpmnBlockPresentationBinding,
+) => () => void;
+
+/** The block projects persisted state into the existing React provider tree. */
 export const BpmnBlockPresentationIdentifier = createIdentifier<{
-  render(props: BpmnBlockPresentationProps): TemplateResult;
+  mount: MountBpmnPresentation;
 }>("BpmnBlockPresentation");
 export function BpmnBlockPresentationExtension(
-  render: (props: BpmnBlockPresentationProps) => TemplateResult,
+  mount: MountBpmnPresentation,
 ): ExtensionType {
   return {
     setup: (di) => {
-      di.addImpl(BpmnBlockPresentationIdentifier, () => ({ render }));
+      di.addImpl(BpmnBlockPresentationIdentifier, () => ({ mount }));
     },
   };
 }

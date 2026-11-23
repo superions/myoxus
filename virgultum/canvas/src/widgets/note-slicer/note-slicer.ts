@@ -12,7 +12,6 @@ import {
 import {
   DEFAULT_NOTE_HEIGHT,
   type NoteBlockModel,
-  type RootBlockModel,
 } from "@virgultum/core/models";
 import { EDGELESS_BLOCK_CHILD_PADDING } from "@virgultum/core/consts";
 import {
@@ -27,27 +26,18 @@ import {
   isControlledKeyboardEvent,
   stopPropagation,
 } from "@virgultum/core/utils";
-import { WidgetComponent, WidgetViewExtension } from "@virgultum/core/runtime";
+import { WidgetViewExtension } from "@virgultum/core/runtime";
 import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
 import type { EdgelessSelectedRectWidget } from "../edgeless-selected-rect/native-selection-overlay";
-import {
-  css,
-  html,
-  nothing,
-  render,
-  type PropertyValues,
-  type TemplateResult,
-} from "lit";
-import { state } from "lit/decorators.js";
-import { classMap } from "lit/directives/class-map.js";
-import { styleMap } from "lit/directives/style-map.js";
+import { nothing, render } from "lit";
+import { NativeCanvasWidget } from "../native-canvas-widget";
 import { literal, unsafeStatic } from "lit/static-html.js";
 
 const DIVIDING_LINE_OFFSET = 4;
 const NEW_NOTE_GAP = 40;
 
-const styles = css`
-  :host {
+const styles = `
+  note-slicer {
     display: flex;
   }
 
@@ -98,11 +88,11 @@ const styles = css`
 
 export const NOTE_SLICER_WIDGET = "note-slicer";
 
-export class NoteSlicer extends WidgetComponent<RootBlockModel> {
-  static override styles = styles;
-
-  private _button: TemplateResult | typeof nothing = nothing;
-
+export class NoteSlicer extends NativeCanvasWidget {
+  private readonly content = this.ownerDocument.createElement("div");
+  private readonly button = this.ownerDocument.createElement("div");
+  private lines: HTMLDivElement[] = [];
+  private removeButton?: () => void;
   private _divingLinePositions: Point[] = [];
 
   private _hidden = false;
@@ -201,7 +191,10 @@ export class NoteSlicer extends WidgetComponent<RootBlockModel> {
     }
 
     if (index < 0) index = 0;
-    this._activeSlicerIndex = index;
+    if (index !== this._activeSlicerIndex) {
+      this._activeSlicerIndex = index;
+      this.requestUpdate();
+    }
   }
 
   private _updateDivingLineAndBlockIds() {
@@ -239,15 +232,22 @@ export class NoteSlicer extends WidgetComponent<RootBlockModel> {
   private _updateSlicedNote() {
     const { selectedElements } = this.gfx.selection;
 
-    if (
+    const next =
       !this.gfx.selection.editing &&
       selectedElements.length === 1 &&
       isNoteBlock(selectedElements[0])
-    ) {
-      this._anchorNote = selectedElements[0];
-    } else {
-      this._anchorNote = null;
-    }
+        ? selectedElements[0]
+        : null;
+    if (next === this._anchorNote) return;
+    this._anchorNote = next;
+    this._noteDisposables?.dispose();
+    this._noteDisposables = next ? new DisposableGroup() : null;
+    if (next)
+      this._noteDisposables?.add(
+        next.propsUpdated.subscribe(({ key }) => {
+          if (key === "children" || key === "xywh") this.requestUpdate();
+        }),
+      );
   }
 
   override connectedCallback(): void {
@@ -255,25 +255,50 @@ export class NoteSlicer extends WidgetComponent<RootBlockModel> {
 
     const { disposables, std, gfx } = this;
 
-    this._updateDivingLineAndBlockIds();
+    const style = this.ownerDocument.createElement("style");
+    style.textContent = styles;
+    this.button.className = "note-slicer-button";
+    this.content.append(this.button);
+    this.append(style, this.content);
+    disposables.addFromEvent(this.content, "pointerdown", stopPropagation);
+    disposables.addFromEvent(this.content, "pointerup", stopPropagation);
+    // Keep the native Facade button's activation separate from Canvas shortcuts.
+    const stopActivationKey = (event: KeyboardEvent) => {
+      if (isControlledKeyboardEvent(event) || event.shiftKey) return;
+      if (event.key === " " || event.key === "Enter") event.stopPropagation();
+    };
+    disposables.addFromEvent(this.button, "keydown", stopActivationKey);
+    disposables.addFromEvent(this.button, "keyup", stopActivationKey);
+    disposables.add(this.store.readonly$.subscribe(() => this.requestUpdate()));
+    disposables.add(
+      this.block.service.uiEventDispatcher.add("wheel", () => {
+        this._hidden = true;
+        this.requestUpdate();
+      }),
+    );
 
     const slots = std.get(EdgelessLegacySlotIdentifier);
 
     disposables.add(
       slots.elementResizeStart.subscribe(() => {
         this._isResizing = true;
+        this.requestUpdate();
       }),
     );
 
     disposables.add(
       slots.elementResizeEnd.subscribe(() => {
         this._isResizing = false;
+        this.requestUpdate();
       }),
     );
 
     disposables.add(
       std.event.add("pointerMove", (ctx) => {
-        if (this._hidden) this._hidden = false;
+        if (this._hidden) {
+          this._hidden = false;
+          this.requestUpdate();
+        }
 
         const state = ctx.get("pointerState");
         const pos = new Point(state.x, state.y);
@@ -292,6 +317,7 @@ export class NoteSlicer extends WidgetComponent<RootBlockModel> {
       gfx.selection.slots.updated.subscribe(() => {
         this._enableNoteSlicer = false;
         this._updateSlicedNote();
+        this.requestUpdate();
 
         if (this.selectedRectEle) {
           this.selectedRectEle.autoCompleteOff = false;
@@ -302,6 +328,7 @@ export class NoteSlicer extends WidgetComponent<RootBlockModel> {
     disposables.add(
       slots.toggleNoteSlicer.subscribe(() => {
         this._enableNoteSlicer = !this._enableNoteSlicer;
+        this.requestUpdate();
 
         if (this.selectedRectEle && this._enableNoteSlicer) {
           this.selectedRectEle.autoCompleteOff = true;
@@ -310,26 +337,23 @@ export class NoteSlicer extends WidgetComponent<RootBlockModel> {
     );
   }
 
-  override disconnectedCallback(): void {
-    super.disconnectedCallback();
-    this.disposables.dispose();
+  override disconnectedCallback() {
     this._noteDisposables?.dispose();
     this._noteDisposables = null;
-    render(nothing, this);
+    this._anchorNote = null;
+    this.hideSlicer();
+    super.disconnectedCallback();
   }
 
-  override firstUpdated() {
-    if (!this.block?.service) return;
-    this.disposables.add(
-      this.block.service.uiEventDispatcher.add("wheel", () => {
-        this._hidden = true;
-        this.requestUpdate();
-      }),
-    );
+  private hideSlicer() {
+    this.removeButton?.();
+    this.removeButton = undefined;
+    for (const line of this.lines) line.remove();
+    this.lines = [];
+    this.button.remove();
   }
 
-  override render() {
-    this._button = nothing;
+  protected paint() {
     if (
       this.store.readonly ||
       this._hidden ||
@@ -337,103 +361,78 @@ export class NoteSlicer extends WidgetComponent<RootBlockModel> {
       !this._anchorNote ||
       !this._enableNoteSlicer
     ) {
-      return nothing;
+      this.hideSlicer();
+      return;
     }
 
     this._updateDivingLineAndBlockIds();
-
-    const noteBlock = this._noteBlock;
-    if (!noteBlock || !this._divingLinePositions.length) return nothing;
-
-    const rect = getRectByBlockComponent(noteBlock);
+    const note = this._noteBlock;
+    if (!note || !this._divingLinePositions.length) {
+      this.hideSlicer();
+      return;
+    }
+    const rect = getRectByBlockComponent(note);
     const width = rect.width - 2 * EDGELESS_BLOCK_CHILD_PADDING * this._zoom;
-    const buttonPosition = this._divingLinePositions[this._activeSlicerIndex];
+    this._activeSlicerIndex = Math.min(
+      this._activeSlicerIndex,
+      this._divingLinePositions.length - 1,
+    );
+    const position = this._divingLinePositions[this._activeSlicerIndex];
 
-    this._button = this.std.get(EditorChromeHostIdentifier).renderCanvasTool({
-      action: {
-        id: "note-slicer-split",
-        icon: "ScissorsIcon",
-        label: resolveEditorMessage(
-          editorMessage("com.myoxus.editor.toolbar.slicer", "Slicer"),
-          this.std.getOptional(EditorI18nProvider) ?? undefined,
-        ),
-        disabled: false,
-        run: () => this._sliceNote(),
-      },
-    });
-
-    // Native pointer and activation-key defaults must run before Canvas dispatch.
-    const stopActivationKey = (event: KeyboardEvent) => {
-      if (isControlledKeyboardEvent(event) || event.shiftKey) return;
-      if (event.key === " " || event.key === "Enter") event.stopPropagation();
-    };
-    return html`<div
-      @pointerdown=${stopPropagation}
-      @pointerup=${stopPropagation}
-    >
-      <div
-        class="note-slicer-button"
-        @keydown=${stopActivationKey}
-        @keyup=${stopActivationKey}
-        style=${styleMap({
-          left: `${buttonPosition.x - 66 * this._zoom}px`,
-          top: `${buttonPosition.y}px`,
-          transform: "translateY(-50%)",
-        })}
-      >
-        <slot></slot>
-      </div>
-      ${this._divingLinePositions.map((pos, idx) => {
-        const dividingLineClasses = classMap({
-          "note-slicer-dividing-line-container": true,
-          active: idx === this._activeSlicerIndex,
-        });
-        return html`<div
-          class=${dividingLineClasses}
-          @click=${this._sliceNote}
-          style=${styleMap({
-            left: `${pos.x}px`,
-            top: `${pos.y}px`,
-            width: `${width}px`,
-          })}
-        >
-          <span class="note-slicer-dividing-line"></span>
-        </div>`;
-      })}
-    </div> `;
-  }
-
-  protected override updated(_changedProperties: PropertyValues) {
-    super.updated(_changedProperties);
-    // Slot the control into the shadow anchor so shared Mantine CSS can reach it.
-    render(this._button, this);
-    if (_changedProperties.has("anchorNote")) {
-      this._noteDisposables?.dispose();
-      this._noteDisposables = null;
-      if (this._anchorNote) {
-        this._noteDisposables = new DisposableGroup();
-        this._noteDisposables.add(
-          this._anchorNote.propsUpdated.subscribe(({ key }) => {
-            if (key === "children" || key === "xywh") {
-              this.requestUpdate();
-            }
-          }),
-        );
+    if (!this.button.parentElement) this.content.prepend(this.button);
+    if (!this.removeButton) {
+      const controls = {
+        action: {
+          id: "note-slicer-split",
+          icon: "ScissorsIcon" as const,
+          label: resolveEditorMessage(
+            editorMessage("com.myoxus.editor.toolbar.slicer", "Slicer"),
+            this.std.getOptional(EditorI18nProvider) ?? undefined,
+          ),
+          disabled: false,
+          run: () => this._sliceNote(),
+        },
+      };
+      const chrome = this.std.get(EditorChromeHostIdentifier);
+      this.removeButton = chrome.mountCanvasTool?.(this.button, controls);
+      if (!this.removeButton) {
+        render(chrome.renderCanvasTool(controls), this.button);
+        this.removeButton = () => render(nothing, this.button);
       }
     }
+    Object.assign(this.button.style, {
+      left: `${position.x - 66 * this._zoom}px`,
+      top: `${position.y}px`,
+      transform: "translateY(-50%)",
+    });
+
+    while (this.lines.length > this._divingLinePositions.length)
+      this.lines.pop()?.remove();
+    this._divingLinePositions.forEach((point, index) => {
+      let line = this.lines[index];
+      if (!line) {
+        line = this.ownerDocument.createElement("div");
+        line.className = "note-slicer-dividing-line-container";
+        line.onclick = () => this._sliceNote();
+        const rule = this.ownerDocument.createElement("span");
+        rule.className = "note-slicer-dividing-line";
+        line.append(rule);
+        this.content.append(line);
+        this.lines.push(line);
+      }
+      line.classList.toggle("active", index === this._activeSlicerIndex);
+      Object.assign(line.style, {
+        left: `${point.x}px`,
+        top: `${point.y}px`,
+        width: `${width}px`,
+      });
+    });
   }
 
-  @state()
-  private accessor _activeSlicerIndex = 0;
-
-  @state()
-  private accessor _anchorNote: NoteBlockModel | null = null;
-
-  @state()
-  private accessor _enableNoteSlicer = false;
-
-  @state()
-  private accessor _isResizing = false;
+  private _activeSlicerIndex = 0;
+  private _anchorNote: NoteBlockModel | null = null;
+  private _enableNoteSlicer = false;
+  private _isResizing = false;
 }
 
 export const noteSlicerWidget = WidgetViewExtension(

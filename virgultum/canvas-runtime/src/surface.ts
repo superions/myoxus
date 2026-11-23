@@ -73,3 +73,9 @@ export const TextUtils = {
 };
 
 export * from "./commands";
+
+export {
+  NativeBlockComponent,
+  NativeBlockProjection,
+} from "./native-block-component.js";
+export { NativeGfxBlockComponent } from "./native-gfx-block-component.js";

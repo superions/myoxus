@@ -22,6 +22,7 @@ import type { UIEventDispatcher } from "../../event/index.js";
 import type { BlockService } from "../../extension/index.js";
 import { WidgetViewIdentifier } from "../../identifier.js";
 import type { RangeManager } from "../../inline/index.js";
+import type { BlockViewType } from "../../spec/type.js";
 import type { BlockStdScope } from "../../scope/std-scope.js";
 import { PropTypes, requiredProperties } from "../decorators/index.js";
 import type { ViewStore } from "../view-store.js";
@@ -74,6 +75,11 @@ export function isEditorHost(target: unknown): target is EditorHost {
   return target instanceof HTMLElement && target.matches(editorHostSelector);
 }
 
+function blockViewTag(view: BlockViewType, model: BlockModel) {
+  const tag = typeof view === "function" ? view(model) : view;
+  return typeof tag === "string" ? tag : tag._$litStatic$;
+}
+
 function resolveBlockView(std: BlockStdScope, model: BlockModel) {
   const block = std.store.getBlock(model.id);
   if (!block || block.blockViewType === "hidden") return;
@@ -93,7 +99,7 @@ function resolveBlockView(std: BlockStdScope, model: BlockModel) {
         html`<${tag} ${unsafeStatic(WIDGET_ID_ATTR)}=${id}></${tag}>`;
   }
   return {
-    tag: typeof view === "function" ? view(model) : view,
+    tag: blockViewTag(view, model),
     viewType: block.blockViewType,
     widgets,
   };
@@ -105,7 +111,8 @@ function renderBlockView(
 ): TemplateResult {
   const view = resolveBlockView(std, model);
   if (!view) return html`${nothing}`;
-  const { tag, viewType, widgets } = view;
+  const { viewType, widgets } = view;
+  const tag = unsafeStatic(view.tag);
   // A restored block can retain its ID while acquiring a new model.
   return html`${keyed(
     model,
@@ -147,16 +154,18 @@ export function bindRetainedBlockContexts(host: EditorHost) {
 export function bindRetainedWidgetContexts(
   element: HTMLElement,
   model: BlockModel,
-  service: BlockService,
+  service?: BlockService,
 ) {
   new ContextProvider(element, {
     context: modelContext,
     initialValue: model,
   }).hostConnected();
-  new ContextProvider(element, {
-    context: serviceContext,
-    initialValue: service,
-  }).hostConnected();
+  if (service) {
+    new ContextProvider(element, {
+      context: serviceContext,
+      initialValue: service,
+    }).hostConnected();
+  }
 }
 
 export function createRetainedWidgetViews(
@@ -181,7 +190,7 @@ export function createRetainedBlockView(host: EditorHost, model: BlockModel) {
   const view = resolveBlockView(host.std, model);
   if (!view) return null;
   const { tag, viewType, widgets } = view;
-  const element = host.ownerDocument.createElement(tag._$litStatic$);
+  const element = host.ownerDocument.createElement(tag);
   element.setAttribute(BLOCK_ID_ATTR, model.id);
   return Object.assign(element, { widgets, viewType });
 }
@@ -285,8 +294,8 @@ export class LitEditorHost
       const view = this.std.getView(rootModel.flavour);
       if (!view) return result;
 
-      const tag = typeof view === "function" ? view(rootModel) : view;
-      const root = this.renderRoot.querySelector<HTMLElement>(tag._$litStatic$);
+      const tag = blockViewTag(view, rootModel);
+      const root = this.renderRoot.querySelector<HTMLElement>(tag);
       await waitForRetainedRootView(this, root);
       return result;
     } catch (e) {

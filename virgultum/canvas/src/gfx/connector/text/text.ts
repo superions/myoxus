@@ -49,7 +49,8 @@ export function mountConnectorLabelEditor(
   });
   connector.labelEditing = true;
 
-  if (!connector.text) {
+  const hadLabel = Boolean(connector.text);
+  if (!hadLabel) {
     const text = new Y.Text();
     const labelOffset = connector.labelOffset;
     let labelXYWH = connector.labelXYWH ?? [0, 0, 16, 16];
@@ -72,11 +73,8 @@ export function mountConnectorLabelEditor(
 
   const editor = new EdgelessConnectorLabelEditor();
   editor.connector = connector;
+  editor.std = edgeless.std;
+  editor.hadLabel = hadLabel;
 
   mountElm.append(editor);
-  editor.updateComplete
-    .then(() => {
-      editor.inlineEditor?.focusEnd();
-    })
-    .catch(console.error);
 }

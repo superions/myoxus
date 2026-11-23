@@ -242,7 +242,9 @@ export async function typeSlashCommand(
     await editor.click();
   }
 
-  const lastLine = page.locator("v-line").last();
+  const lastLine = editor
+    .locator("[data-page-body] [data-page-text], v-line")
+    .last();
   await expect(lastLine).toBeVisible({ timeout: 10_000 });
   await lastLine.click({ timeout: 10_000 });
 
@@ -252,6 +254,7 @@ export async function typeSlashCommand(
         page.evaluate(() => {
           const active = document.activeElement;
           return Boolean(
+            active?.closest?.("[data-page-body]") ||
             active?.closest?.("rich-text") ||
             active?.closest?.("v-line") ||
             active?.closest?.("[data-myoxus-editor-container]") ||
@@ -260,7 +263,7 @@ export async function typeSlashCommand(
         }),
       {
         message:
-          "Mermaid slash-command smoke must focus the Virgultum rich-text host before typing.",
+          "Mermaid slash-command smoke must focus the Page text editor before typing.",
         timeout: 5_000,
       },
     )

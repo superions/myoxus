@@ -496,6 +496,10 @@ export type EditorChromeHost = {
   ) => TemplateResult;
   renderSelection: (controls: EditorSelectionControls) => TemplateResult;
   renderSlash: (controls: EditorSlashControls) => TemplateResult;
+  mountCanvasTool?: (
+    anchor: HTMLElement,
+    controls: EditorCanvasToolControls,
+  ) => () => void;
   mountZoom?: (anchor: HTMLElement, controls: EditorZoomControls) => () => void;
 };
 

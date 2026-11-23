@@ -181,6 +181,10 @@ export function patchEditorChromeHost(
     renderReferenceEditor: renderControl(EditorReferenceEditor),
     renderSelection: renderControl(EditorSelectionToolbar),
     renderSlash: renderControl(EditorSlashMenu),
+    mountCanvasTool: mountPortal
+      ? (anchor, controls) =>
+          mountPortal(anchor, <EditorCanvasTool {...controls} />)
+      : undefined,
     mountZoom: mountPortal
       ? (anchor, controls) =>
           mountPortal(anchor, <EditorZoom controls={controls} />)

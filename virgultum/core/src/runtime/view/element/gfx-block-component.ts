@@ -1,4 +1,4 @@
-import { computed, effect, signal } from "@preact/signals-core";
+import { computed, effect, signal, type Signal } from "@preact/signals-core";
 import {
   ErrorCode,
   VirgultumError,
@@ -6,6 +6,7 @@ import {
 import { Bound } from "../../../primitives/gfx/index";
 import { nothing } from "lit";
 
+import type { GfxController } from "../../gfx/controller.js";
 import type { BlockService } from "../../extension/index.js";
 import { GfxControllerIdentifier } from "../../gfx/identifiers.js";
 import type {
@@ -48,7 +49,7 @@ function updateBlockVisibility(view: GfxBlockComponent) {
   }
 }
 
-function handleGfxConnection(instance: GfxBlockComponent) {
+export function bindGfxBlockView(instance: GfxBlockComponent) {
   instance.style.position = "absolute";
 
   instance.disposables.add(
@@ -73,13 +74,64 @@ function handleGfxConnection(instance: GfxBlockComponent) {
   );
 }
 
-export abstract class GfxBlockComponent<
+export interface GfxBlockComponent<
+  Model extends GfxBlockElementModel = GfxBlockElementModel,
+  Service extends BlockService = BlockService,
+  WidgetName extends string = string,
+>
+  extends
+    BlockComponent<Model, Service, WidgetName>,
+    GfxViewTransformInterface {
+  [GfxElementSymbol]: boolean;
+  readonly transformState$: Signal<"idle" | "active">;
+  readonly gfx: GfxController;
+  getCSSTransform(): string;
+  getRenderingRect(): {
+    x: number;
+    y: number;
+    w?: number | string;
+    h?: number | string;
+    zIndex: string;
+  };
+  toZIndex(): string;
+  updateZIndex(): void;
+  onBoxSelected(context: BoxSelectionContext): boolean | void;
+}
+
+export function gfxBlockTransform(view: GfxBlockComponent) {
+  const viewport = view.gfx.viewport;
+  const { translateX, translateY, zoom, viewScale } = viewport;
+  const bound = Bound.deserialize(view.model.xywh);
+
+  const scaledX = (bound.x * zoom) / viewScale;
+  const scaledY = (bound.y * zoom) / viewScale;
+  const deltaX = scaledX - bound.x;
+  const deltaY = scaledY - bound.y;
+
+  return `translate(${translateX / viewScale + deltaX}px, ${translateY / viewScale + deltaY}px) scale(${zoom / viewScale})`;
+}
+export function gfxBlockRenderingRect(view: GfxBlockComponent) {
+  const { xywh$ } = view.model;
+
+  if (!xywh$) {
+    throw new VirgultumError(
+      ErrorCode.GfxBlockElementError,
+      `Error on rendering '${view.model.flavour}': Gfx block's model should have 'xywh' property.`,
+    );
+  }
+
+  const [x, y, w, h] = JSON.parse(xywh$.value);
+
+  return { x, y, w, h, zIndex: view.toZIndex() };
+}
+
+export abstract class LitGfxBlockComponent<
   Model extends GfxBlockElementModel = GfxBlockElementModel,
   Service extends BlockService = BlockService,
   WidgetName extends string = string,
 >
   extends BlockComponent<Model, Service, WidgetName>
-  implements GfxViewTransformInterface
+  implements GfxBlockComponent<Model, Service, WidgetName>
 {
   [GfxElementSymbol] = true;
 
@@ -91,12 +143,10 @@ export abstract class GfxBlockComponent<
 
   override connectedCallback(): void {
     super.connectedCallback();
-    handleGfxConnection(this);
+    bindGfxBlockView(this);
   }
 
-  onDragMove = ({ dx, dy, currentBound }: DragMoveContext) => {
-    this.model.xywh = currentBound.moveDelta(dx, dy).serialize();
-  };
+  onDragMove = (context: DragMoveContext) => moveGfxBlock(this.model, context);
 
   onDragStart() {
     this.model.stash("xywh");
@@ -109,31 +159,11 @@ export abstract class GfxBlockComponent<
   onBoxSelected(_: BoxSelectionContext) {}
 
   getCSSTransform() {
-    const viewport = this.gfx.viewport;
-    const { translateX, translateY, zoom, viewScale } = viewport;
-    const bound = Bound.deserialize(this.model.xywh);
-
-    const scaledX = (bound.x * zoom) / viewScale;
-    const scaledY = (bound.y * zoom) / viewScale;
-    const deltaX = scaledX - bound.x;
-    const deltaY = scaledY - bound.y;
-
-    return `translate(${translateX / viewScale + deltaX}px, ${translateY / viewScale + deltaY}px) scale(${zoom / viewScale})`;
+    return gfxBlockTransform(this);
   }
 
   getRenderingRect() {
-    const { xywh$ } = this.model;
-
-    if (!xywh$) {
-      throw new VirgultumError(
-        ErrorCode.GfxBlockElementError,
-        `Error on rendering '${this.model.flavour}': Gfx block's model should have 'xywh' property.`,
-      );
-    }
-
-    const [x, y, w, h] = JSON.parse(xywh$.value);
-
-    return { x, y, w, h, zIndex: this.toZIndex() };
+    return gfxBlockRenderingRect(this);
   }
 
   override renderBlock() {
@@ -179,6 +209,22 @@ export abstract class GfxBlockComponent<
   }
 }
 
+export const GfxBlockComponent = LitGfxBlockComponent;
+
+export function moveGfxBlock(
+  model: GfxBlockElementModel,
+  context: DragMoveContext,
+) {
+  model.xywh = context.currentBound
+    .moveDelta(context.dx, context.dy)
+    .serialize();
+}
+
+export interface LegacyGfxBlockRendering {
+  renderGfxBlock(): unknown;
+  renderPageContent(): unknown;
+}
+
 export function toGfxBlockComponent<
   Model extends GfxBlockElementModel,
   Service extends BlockService,
@@ -219,7 +265,7 @@ export function toGfxBlockComponent<
 
     override connectedCallback(): void {
       super.connectedCallback();
-      handleGfxConnection(this);
+      bindGfxBlockView(this);
     }
 
     getCSSTransform() {
@@ -289,6 +335,6 @@ export function toGfxBlockComponent<
       this.style.zIndex = this.toZIndex();
     }
   } as B & {
-    new (...args: any[]): GfxBlockComponent;
+    new (...args: any[]): GfxBlockComponent & LegacyGfxBlockRendering;
   };
 }

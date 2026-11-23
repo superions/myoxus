@@ -1,24 +1,13 @@
-import { consume } from "@lit/context";
+import { CanvasTextOverlay } from "../../canvas-text-overlay";
 import { DefaultTool } from "@virgultum/canvas-runtime/surface";
 import {
   ErrorCode,
   VirgultumError,
 } from "@virgultum/core/primitives/exceptions";
 import { Bound } from "@virgultum/core/primitives/gfx";
-import { WithDisposable } from "@virgultum/core/primitives/lit";
 import type { GroupElementModel } from "@virgultum/core/models";
-import type { RichText } from "@virgultum/content/rich-text";
-import {
-  type BlockComponent,
-  type BlockStdScope,
-  ShadowlessElement,
-  stdContext,
-} from "@virgultum/core/runtime";
+import type { BlockComponent } from "@virgultum/core/runtime";
 import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
-import { RANGE_SYNC_EXCLUDE_ATTR } from "@virgultum/core/runtime/inline";
-import { html, nothing } from "lit";
-import { property, query } from "lit/decorators.js";
-import { styleMap } from "lit/directives/style-map.js";
 
 import {
   GROUP_TITLE_FONT_SIZE,
@@ -48,13 +37,12 @@ export function mountGroupTitleEditor(
 
   const groupEditor = new EdgelessGroupTitleEditor();
   groupEditor.group = group;
+  groupEditor.std = edgeless.std;
 
   mountElm.append(groupEditor);
 }
 
-export class EdgelessGroupTitleEditor extends WithDisposable(
-  ShadowlessElement,
-) {
+export class EdgelessGroupTitleEditor extends CanvasTextOverlay {
   get inlineEditor() {
     return this.richText.inlineEditor;
   }
@@ -74,7 +62,6 @@ export class EdgelessGroupTitleEditor extends WithDisposable(
   private _unmount() {
     // dispose in advance to avoid execute `this.remove()` twice
     this.disposables.dispose();
-    this.group.showTitle = true;
     this.selection.set({
       elements: [this.group.id],
       editing: false,
@@ -82,24 +69,30 @@ export class EdgelessGroupTitleEditor extends WithDisposable(
     this.remove();
   }
 
-  override connectedCallback() {
-    super.connectedCallback();
-    this.setAttribute(RANGE_SYNC_EXCLUDE_ATTR, "true");
+  protected mountOverlay() {
+    this.richText.yText = this.group.title;
+    this.richText.enableAutoScrollHorizontally = false;
+    this.append(this.richText);
   }
 
-  override firstUpdated(): void {
+  protected beginEditing(): void {
     const dispatcher = this.std.event;
 
     this.updateComplete
       .then(() => {
-        if (!this.inlineEditor) return;
+        if (!this.isConnected || !this.inlineEditor) return;
         this.inlineEditor.selectAll();
 
         this.group.showTitle = false;
-
-        this.inlineEditor.slots.renderComplete.subscribe(() => {
-          this.requestUpdate();
+        this.disposables.add(() => {
+          this.group.showTitle = true;
         });
+
+        this.disposables.add(
+          this.inlineEditor.slots.renderComplete.subscribe(() => {
+            this.requestUpdate();
+          }),
+        );
 
         this.disposables.add(
           dispatcher.add("keyDown", (ctx) => {
@@ -135,22 +128,16 @@ export class EdgelessGroupTitleEditor extends WithDisposable(
       .catch(console.error);
   }
 
-  override async getUpdateComplete(): Promise<boolean> {
-    const result = await super.getUpdateComplete();
-    await this.richText?.updateComplete;
-    return result;
-  }
-
-  override render() {
+  protected paintOverlay() {
     if (!this.group.externalXYWH) {
       console.error("group.externalXYWH is not set");
-      return nothing;
+      return;
     }
     const viewport = this.gfx.viewport;
     const bound = Bound.deserialize(this.group.externalXYWH);
     const [x, y] = viewport.toViewCoord(bound.x, bound.y);
 
-    const inlineEditorStyle = styleMap({
+    Object.assign(this.richText.style, {
       transformOrigin: "top left",
       borderRadius: "2px",
       width: "fit-content",
@@ -171,22 +158,7 @@ export class EdgelessGroupTitleEditor extends WithDisposable(
         var(--myoxus-primary-color)`,
       boxShadow: "var(--myoxus-active-shadow)",
     });
-    return html`<rich-text
-      .yText=${this.group.title}
-      .enableFormat=${false}
-      .enableAutoScrollHorizontally=${false}
-      style=${inlineEditorStyle}
-    ></rich-text>`;
   }
 
-  @property({ attribute: false })
-  accessor group!: GroupElementModel;
-
-  @consume({
-    context: stdContext,
-  })
-  accessor std!: BlockStdScope;
-
-  @query("rich-text")
-  accessor richText!: RichText;
+  group!: GroupElementModel;
 }

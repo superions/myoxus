@@ -139,10 +139,14 @@ export class MyoxusEditorViewExtension extends ViewExtensionProvider<MyoxusEdito
         patchForAudioEmbedView(reactToLit),
         patchTextAttachmentPreview(reactToLit),
         patchMermaidFamilyReactHost(reactToLit),
-        patchBpmnBlockPresentation(
-          reactToLit,
-          framework.get(WorkspaceService).workspace.engine.doc,
-        ),
+        ...(options.mountPortal
+          ? [
+              patchBpmnBlockPresentation(
+                options.mountPortal,
+                framework.get(WorkspaceService).workspace.engine.doc,
+              ),
+            ]
+          : []),
         patchAnnotationHost(reactToLit, options.showAnnotations ?? false),
         patchCalloutTitleHost(reactToLit),
         patchFootnoteHost(reactToLit),

@@ -89,19 +89,16 @@ test("roundtrips exact XML and independent title/revision containers without a f
     expect(block.props.title).toBe(titleText);
     expect(block.props.title.toString()).toBe(value);
   }
-  const render = vi.fn((props: { title: string; titleValue: string }) => props);
   const component = {
     model: block,
     store,
-    std: { get: () => ({ render }), getOptional: () => undefined },
+    std: { getOptional: () => undefined },
   } as unknown as BpmnBlockComponent;
-  BpmnBlockComponent.prototype.render.call(component);
-  const empty = render.mock.calls.at(-1)![0];
+  const empty = BpmnBlockComponent.prototype.readPresentation.call(component);
   expect(empty.titleValue).toBe("");
   expect(empty.title).not.toBe("");
   setBpmnBlockTitle(block, "Purchase ");
-  BpmnBlockComponent.prototype.render.call(component);
-  const spaced = render.mock.calls.at(-1)![0];
+  const spaced = BpmnBlockComponent.prototype.readPresentation.call(component);
   expect(spaced.titleValue).toBe("Purchase ");
   expect(spaced.title).toBe("Purchase");
   setBpmnBlockTitle(block, "Procurement");

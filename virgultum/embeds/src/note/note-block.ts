@@ -1,11 +1,10 @@
 import type { NoteBlockModel } from "@virgultum/core/models";
 import { BlockComponent } from "@virgultum/core/runtime";
-import { css, html } from "lit";
+import { html, unsafeCSS } from "lit";
 import { repeat } from "lit/directives/repeat.js";
 import { localFootnotePresentation } from "@virgultum/core/commands";
 
-export class NoteBlockComponent extends BlockComponent<NoteBlockModel> {
-  static override styles = css`
+export const noteBlockCss = `
     .myoxus-note-block-container {
       display: flow-root;
     }
@@ -13,6 +12,20 @@ export class NoteBlockComponent extends BlockComponent<NoteBlockModel> {
       background-color: var(--myoxus-hover-color);
     }
   `;
+
+export function noteDefinitionsInOrder(note: NoteBlockModel) {
+  const presentation = localFootnotePresentation(note.store);
+  return note.children
+    .filter((child) => child.flavour === "myoxus:footnote-definition")
+    .sort(
+      (a, b) =>
+        (presentation.get(a.id)?.order ?? Infinity) -
+        (presentation.get(b.id)?.order ?? Infinity),
+    );
+}
+
+export class NoteBlockComponent extends BlockComponent<NoteBlockModel> {
+  static override styles = unsafeCSS(noteBlockCss);
 
   override connectedCallback() {
     super.connectedCallback();
@@ -22,14 +35,7 @@ export class NoteBlockComponent extends BlockComponent<NoteBlockModel> {
   }
 
   override renderBlock() {
-    const presentation = localFootnotePresentation(this.store);
-    const definitions = this.model.children
-      .filter((child) => child.flavour === "myoxus:footnote-definition")
-      .sort(
-        (a, b) =>
-          (presentation.get(a.id)?.order ?? Infinity) -
-          (presentation.get(b.id)?.order ?? Infinity),
-      );
+    const definitions = noteDefinitionsInOrder(this.model);
     return html`
       <div class="myoxus-note-block-container">
         <div class="myoxus-block-children-container">

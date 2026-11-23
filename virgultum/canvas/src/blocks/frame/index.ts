@@ -7,3 +7,4 @@ export * from "./frame-spec";
 export * from "./frame-tool";
 export * from "./frame-toolbar";
 export * from "./present-tool";
+export { mountPresentationBackground } from "./present/presentation-background";

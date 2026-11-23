@@ -1,4 +1,7 @@
-import { consume } from "@lit/context";
+import {
+  CanvasTextOverlay,
+  updateOverlayPlaceholder,
+} from "../canvas-text-overlay";
 import {
   DefaultTool,
   EdgelessCRUDIdentifier,
@@ -7,9 +10,7 @@ import {
   TextUtils,
 } from "@virgultum/canvas-runtime/surface";
 import { Bound, toRadian, Vec } from "@virgultum/core/primitives/gfx";
-import { WithDisposable, SignalWatcher } from "@virgultum/core/primitives/lit";
 import { DefaultTheme, TextElementModel } from "@virgultum/core/models";
-import type { RichText } from "@virgultum/content/rich-text";
 import {
   ThemeProvider,
   editorMessage,
@@ -18,17 +19,8 @@ import {
   type EditorI18nMessage,
 } from "@virgultum/core/services";
 import { getSelectedRect } from "@virgultum/core/utils";
-import {
-  type BlockComponent,
-  type BlockStdScope,
-  ShadowlessElement,
-  stdContext,
-} from "@virgultum/core/runtime";
+import type { BlockComponent } from "@virgultum/core/runtime";
 import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
-import { RANGE_SYNC_EXCLUDE_ATTR } from "@virgultum/core/runtime/inline";
-import { css, html, nothing } from "lit";
-import { property, query } from "lit/decorators.js";
-import { styleMap } from "lit/directives/style-map.js";
 
 import { getCursorByCoord, getLineHeight } from "./element-renderer/utils";
 
@@ -48,11 +40,13 @@ export function mountTextElementEditor(
 
   const textEditor = new EdgelessTextEditor();
   textEditor.element = textElement;
+  textEditor.std = edgeless.std;
 
   edgeless.append(textEditor);
   textEditor.updateComplete
     .then(() => {
-      textEditor.inlineEditor?.focusIndex(cursorIndex);
+      if (textEditor.isConnected)
+        textEditor.inlineEditor?.focusIndex(cursorIndex);
     })
     .catch(console.error);
 
@@ -65,9 +59,7 @@ export function mountTextElementEditor(
   });
 }
 
-export class EdgelessTextEditor extends SignalWatcher(
-  WithDisposable(ShadowlessElement),
-) {
+export class EdgelessTextEditor extends CanvasTextOverlay {
   private _text(message: EditorI18nMessage) {
     return resolveEditorMessage(
       message,
@@ -91,7 +83,7 @@ export class EdgelessTextEditor extends SignalWatcher(
 
   static PLACEHOLDER_TEXT = "Type from here";
 
-  static override styles = css`
+  private static styles = `
     .edgeless-text-editor {
       position: absolute;
       left: 0;
@@ -209,17 +201,22 @@ export class EdgelessTextEditor extends SignalWatcher(
     return this.inlineEditor?.rootElement;
   }
 
-  override connectedCallback(): void {
-    super.connectedCallback();
-    if (!this.element) {
-      console.error("text element is not set.");
-      return;
-    }
+  private readonly container = this.ownerDocument.createElement("div");
+  private readonly placeholder = this.ownerDocument.createElement("span");
 
-    this.setAttribute(RANGE_SYNC_EXCLUDE_ATTR, "true");
+  protected mountOverlay() {
+    this.container.className = "edgeless-text-editor";
+    this.placeholder.className = "edgeless-text-editor-placeholder";
+    this.placeholder.textContent = this._text(
+      editorMessage("com.myoxus.editor.text.placeholder", "Type from here"),
+    );
+    this.richText.yText = this.element.text!;
+    this.richText.enableAutoScrollHorizontally = false;
+    this.container.append(this.richText);
+    this.append(this.overlayStyle(EdgelessTextEditor.styles), this.container);
   }
 
-  override firstUpdated(): void {
+  protected beginEditing(): void {
     const element = this.element;
     const dispatcher = this.std.event;
     const surface = getSurfaceBlock(this.std.store);
@@ -230,11 +227,13 @@ export class EdgelessTextEditor extends SignalWatcher(
 
     this.updateComplete
       .then(() => {
-        if (!this.inlineEditor) return;
-        this.inlineEditor.slots.renderComplete.subscribe(() => {
-          this._updateRect();
-          this.requestUpdate();
-        });
+        if (!this.isConnected || !this.inlineEditor) return;
+        this.disposables.add(
+          this.inlineEditor.slots.renderComplete.subscribe(() => {
+            this._updateRect();
+            this.requestUpdate();
+          }),
+        );
 
         this.disposables.add(
           surface.elementUpdated.subscribe(({ id }) => {
@@ -374,18 +373,12 @@ export class EdgelessTextEditor extends SignalWatcher(
     return { x: newCenterX - w1 / 2, y: newCenterY - h1 / 2 };
   }
 
-  override async getUpdateComplete(): Promise<boolean> {
-    const result = await super.getUpdateComplete();
-    await this.richText?.updateComplete;
-    return result;
-  }
-
   getVisualPosition(element: TextElementModel) {
     const { x, y, w, h, rotate } = element;
     return Vec.rotWith([x, y], [x + w / 2, y + h / 2], toRadian(rotate));
   }
 
-  override render() {
+  protected paintOverlay() {
     const {
       text,
       fontFamily,
@@ -416,58 +409,30 @@ export class EdgelessTextEditor extends SignalWatcher(
       .get(ThemeProvider)
       .generateColorProperty(this.element.color, DefaultTheme.textColor);
 
-    return html`<div
-      style=${styleMap({
-        transform: transformOperation.join(" "),
-        minWidth: hasMaxWidth ? `${rect.width}px` : "none",
-        maxWidth: hasMaxWidth ? `${w}px` : "none",
-        fontFamily: TextUtils.wrapFontFamily(fontFamily),
-        fontSize: `${fontSize}px`,
-        fontWeight,
-        fontStyle,
-        color,
-        textAlign,
-        lineHeight: `${lineHeight}px`,
-        boxSizing: "content-box",
-      })}
-      class="edgeless-text-editor"
-    >
-      <rich-text
-        .yText=${text}
-        .enableFormat=${false}
-        .enableAutoScrollHorizontally=${false}
-        style=${
-          isEmpty
-            ? styleMap({
-                position: "absolute",
-                left: 0,
-                top: 0,
-                padding: `${EdgelessTextEditor.PADDING_VERTICAL}px
-        ${EdgelessTextEditor.PADDING_HORIZONTAL}px`,
-              })
-            : nothing
-        }
-      ></rich-text>
-      ${
-        isEmpty
-          ? html`<span class="edgeless-text-editor-placeholder"
-              >${this._text(editorMessage("com.myoxus.editor.text.placeholder", "Type from here"))}</span
-            >`
-          : nothing
-      }
-    </div>`;
+    Object.assign(this.container.style, {
+      transform: transformOperation.join(" "),
+      minWidth: hasMaxWidth ? `${rect.width}px` : "none",
+      maxWidth: hasMaxWidth ? `${w}px` : "none",
+      fontFamily: TextUtils.wrapFontFamily(fontFamily),
+      fontSize: `${fontSize}px`,
+      fontWeight,
+      fontStyle,
+      color,
+      textAlign,
+      lineHeight: `${lineHeight}px`,
+      boxSizing: "content-box",
+    });
+    updateOverlayPlaceholder(
+      this.richText,
+      this.placeholder,
+      isEmpty,
+      `${EdgelessTextEditor.PADDING_VERTICAL}px ${EdgelessTextEditor.PADDING_HORIZONTAL}px`,
+    );
   }
 
   setKeeping(keeping: boolean) {
     this._keeping = keeping;
   }
 
-  @consume({ context: stdContext })
-  accessor std!: BlockStdScope;
-
-  @property({ attribute: false })
-  accessor element!: TextElementModel;
-
-  @query("rich-text")
-  accessor richText!: RichText;
+  element!: TextElementModel;
 }

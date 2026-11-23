@@ -1,158 +1,63 @@
 import { cssVar } from "@myoxus/theme";
-import { effect } from "@preact/signals-core";
-import { OverlayIdentifier } from "@virgultum/canvas-runtime/surface";
 import { Bound } from "@virgultum/core/primitives/gfx";
-import {
-  DefaultTheme,
-  type FrameBlockModel,
-  FrameBlockSchema,
-  isTransparent,
-} from "@virgultum/core/models";
+import { DefaultTheme } from "@virgultum/core/models";
+import type { BoxSelectionContext } from "@virgultum/core/runtime/gfx";
 import { ThemeProvider } from "@virgultum/core/services";
-import { GfxBlockComponent } from "@virgultum/core/runtime";
+import { OverlayIdentifier } from "@virgultum/canvas-runtime/surface";
+import { FrameBlockSchema, isTransparent } from "@virgultum/core/models";
 import {
-  type BoxSelectionContext,
   getTopElements,
   GfxViewInteractionExtension,
 } from "@virgultum/core/runtime/gfx";
-import { html } from "lit";
-import { state } from "lit/decorators.js";
-import { ref } from "lit/directives/ref.js";
-import { repeat } from "lit/directives/repeat.js";
-import { styleMap } from "lit/directives/style-map.js";
 
-import {
-  FrameTitleIdentifier,
-  mountFrameTitle,
-} from "../../widgets/frame-title/mount-frame-title";
+import type { FrameBlockComponent } from "./native-frame-block";
+
+export { FrameBlockComponent } from "./native-frame-block";
 
 import {
   EdgelessFrameManagerIdentifier,
   type FrameOverlay,
 } from "./frame-manager";
 
-const trackSignalDependencies = (...values: readonly unknown[]) =>
-  values.length;
-
-export class FrameBlockComponent extends GfxBlockComponent<FrameBlockModel> {
-  private frameTitle?: HTMLElement;
-
-  private readonly bindTitle = (anchor?: Element) => {
-    this.frameTitle?.remove();
-    this.frameTitle =
-      anchor instanceof HTMLElement &&
-      this.std.getOptional(FrameTitleIdentifier)
-        ? mountFrameTitle(anchor, this.model, this.std)
-        : undefined;
+export function frameRenderingRect(view: FrameBlockComponent) {
+  const { translateX, translateY, zoom } = view.gfx.viewport;
+  const { xywh, rotate } = view.model;
+  const bound = Bound.deserialize(xywh);
+  return {
+    x: bound.x * zoom + translateX,
+    y: bound.y * zoom + translateY,
+    w: bound.w * zoom,
+    h: bound.h * zoom,
+    rotate,
+    zIndex: view.toZIndex(),
   };
-
-  override connectedCallback() {
-    super.connectedCallback();
-
-    this._disposables.add(
-      effect(() => {
-        trackSignalDependencies(this.transformState$.value);
-        // Frame selection and resize are handled by GFX hit testing. The DOM
-        // frame must stay transparent so floating GFX toolbars remain clickable;
-        // only its title opts back into DOM events for the existing title editor.
-        this.style.pointerEvents = "none";
-      }),
-    );
-    this._disposables.add(
-      this.store.slots.blockUpdated.subscribe(({ type, id }) => {
-        if (id === this.model.id && type === "update") {
-          this.requestUpdate();
-        }
-      }),
-    );
-    this._disposables.add(
-      this.gfx.viewport.viewportUpdated.subscribe(() => {
-        this.requestUpdate();
-      }),
-    );
-  }
-
-  /**
-   * Due to potentially very large frame sizes, CSS scaling can cause iOS Safari to crash.
-   * To mitigate this issue, we combine size calculations within the rendering rect.
-   */
-  override getCSSTransform(): string {
-    return "";
-  }
-
-  override getRenderingRect() {
-    const viewport = this.gfx.viewport;
-    const { translateX, translateY, zoom } = viewport;
-    const { xywh, rotate } = this.model;
-    const bound = Bound.deserialize(xywh);
-
-    const scaledX = bound.x * zoom + translateX;
-    const scaledY = bound.y * zoom + translateY;
-
-    return {
-      x: scaledX,
-      y: scaledY,
-      w: bound.w * zoom,
-      h: bound.h * zoom,
-      rotate,
-      zIndex: this.toZIndex(),
-    };
-  }
-
-  override onBoxSelected(context: BoxSelectionContext) {
-    const { box } = context;
-    const bound = new Bound(box.x, box.y, box.w, box.h);
-    const elementBound = this.model.elementBound;
-
-    return (
-      this.model.childElements.length === 0 || bound.contains(elementBound)
-    );
-  }
-
-  override renderGfxBlock() {
-    const { model, showBorder, std } = this;
-    const backgroundColor = std
-      .get(ThemeProvider)
-      .generateColorProperty(model.props.background, DefaultTheme.transparent);
-    const _isNavigator =
-      this.gfx.tool.currentToolName$.value === "frameNavigator";
-    const frameIndex = this.gfx.layer.getZIndex(model);
-
-    const widgets = html`${repeat(
-      Object.entries(this.widgets),
-      ([id]) => id,
-      ([_, widget]) => widget,
-    )}`;
-
-    return html`
-      <div
-        class="myoxus-frame-container"
-        ${ref(this.bindTitle)}
-        style=${styleMap({
-          zIndex: `${frameIndex}`,
-          backgroundColor,
-          height: "100%",
-          width: "100%",
-          pointerEvents: "none",
-          borderRadius: "2px",
-          border:
-            _isNavigator || !showBorder
-              ? "none"
-              : `1px solid ${cssVar("borderColor")}`,
-        })}
-      ></div>
-      ${widgets}
-    `;
-  }
-
-  @state()
-  accessor showBorder = true;
 }
 
-declare global {
-  interface HTMLElementTagNameMap {
-    "myoxus-frame": FrameBlockComponent;
-  }
+export function frameBoxSelection(
+  view: FrameBlockComponent,
+  { box }: BoxSelectionContext,
+) {
+  const bound = new Bound(box.x, box.y, box.w, box.h);
+  return (
+    view.model.childElements.length === 0 ||
+    bound.contains(view.model.elementBound)
+  );
+}
+
+export function frameBodyStyle(view: FrameBlockComponent, showBorder: boolean) {
+  const { model, std, gfx } = view;
+  const backgroundColor = std
+    .get(ThemeProvider)
+    .generateColorProperty(model.props.background, DefaultTheme.transparent);
+  const isNavigator = gfx.tool.currentToolName$.value === "frameNavigator";
+  return {
+    zIndex: String(gfx.layer.getZIndex(model)),
+    backgroundColor,
+    border:
+      isNavigator || !showBorder
+        ? "none"
+        : `1px solid ${cssVar("borderColor")}`,
+  };
 }
 
 export const FrameBlockInteraction =

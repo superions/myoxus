@@ -13,7 +13,6 @@ import {
   duplicateSelectedModelsCommand,
   deleteSelectedModelsCommand,
 } from "@virgultum/editor/shared/commands";
-import { html } from "lit";
 import { signal } from "@preact/signals-core";
 import { DocEmbedProvider } from "@virgultum/editor/shared/services";
 import { addNote } from "../utils/edgeless.js";
@@ -25,14 +24,22 @@ describe.each(["page", "edgeless"] as const)("BPMN %s consumer", (mode) => {
     setupEditor(mode, [
       // This fixture exercises public editor command/selection integration only.
       // Core's real Facade portal and session owner have separate consuming checks.
-      BpmnBlockPresentationExtension(
-        (props) =>
-          html`<span
-            data-source-state=${props.sourceState}
-            data-readonly=${String(props.readonly)}
-            >${props.title}</span
-          >`,
-      ),
+      BpmnBlockPresentationExtension((anchor, binding) => {
+        const title = anchor.ownerDocument.createElement("span");
+        const draw = () => {
+          const props = binding.getSnapshot();
+          title.dataset.sourceState = props.sourceState;
+          title.dataset.readonly = String(props.readonly);
+          title.textContent = props.title;
+        };
+        anchor.append(title);
+        draw();
+        const release = binding.subscribe(draw);
+        return () => {
+          release();
+          title.remove();
+        };
+      }),
       {
         setup: (di) => {
           di.addImpl(DocEmbedProvider, () => ({

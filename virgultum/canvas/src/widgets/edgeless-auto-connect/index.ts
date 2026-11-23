@@ -1,3 +1,4 @@
+import { effect } from "@preact/signals-core";
 import {
   EdgelessCRUDIdentifier,
   EdgelessLegacySlotIdentifier,
@@ -8,7 +9,6 @@ import {
   FrameBlockModel,
   NoteBlockModel,
   NoteDisplayMode,
-  type RootBlockModel,
   SurfaceRefBlockModel,
 } from "@virgultum/core/models";
 import {
@@ -16,15 +16,13 @@ import {
   FeatureFlagService,
 } from "@virgultum/core/services";
 import { matchModels } from "@virgultum/core/utils";
-import { WidgetComponent, WidgetViewExtension } from "@virgultum/core/runtime";
+import { WidgetViewExtension } from "@virgultum/core/runtime";
 import {
   type GfxController,
   GfxControllerIdentifier,
 } from "@virgultum/core/runtime/gfx";
-import { html, nothing } from "lit";
-import { state } from "lit/decorators.js";
-import { repeat } from "lit/directives/repeat.js";
-import { styleMap } from "lit/directives/style-map.js";
+import { nothing, render } from "lit";
+import { NativeCanvasWidget } from "../native-canvas-widget";
 import { literal, unsafeStatic } from "lit/static-html.js";
 
 const PAGE_VISIBLE_INDEX_LABEL_HEIGHT = 24;
@@ -49,7 +47,13 @@ function isAutoConnectElement(element: unknown): element is AutoConnectElement {
 export const MYOXUS_EDGELESS_AUTO_CONNECT_WIDGET =
   "myoxus-edgeless-auto-connect-widget";
 
-export class EdgelessAutoConnectWidget extends WidgetComponent<RootBlockModel> {
+export class EdgelessAutoConnectWidget extends NativeCanvasWidget {
+  private readonly labels = new Map<
+    string,
+    { anchor: HTMLDivElement; items: HTMLDivElement[] }
+  >();
+  private navigator?: HTMLDivElement;
+
   private get _gfx(): GfxController {
     return this.std.get(GfxControllerIdentifier);
   }
@@ -119,32 +123,6 @@ export class EdgelessAutoConnectWidget extends WidgetComponent<RootBlockModel> {
     this._pageVisibleElementsMap = pageVisibleBlocks;
   };
 
-  private _EdgelessOnlyLabels() {
-    const { _edgelessOnlyNotesSet } = this;
-
-    if (!_edgelessOnlyNotesSet.size) return nothing;
-
-    return html`${repeat(
-      _edgelessOnlyNotesSet,
-      (note) => note.id,
-      (note) => {
-        const viewport = this._viewport;
-        const { zoom } = viewport;
-        const bound = Bound.deserialize(note.xywh);
-        const [left, right] = viewport.toViewCoord(bound.x, bound.y);
-        const [width, height] = [bound.w * zoom, bound.h * zoom];
-        return html`<div
-          style=${styleMap({
-            position: "absolute",
-            transform: `translate(${left + width / 2}px, ${right + height + INDEX_LABEL_OFFSET}px) translateX(-50%)`,
-          })}
-        >
-          ${this.std.getOptional(EditorChromeHostIdentifier)?.renderAutoConnectLabel({ active: false, toggle: () => {} }) ?? nothing}
-        </div>`;
-      },
-    )}`;
-  }
-
   private _initLabels() {
     const getVisibility = () => {
       const selected = this._selection.selectedElements;
@@ -159,12 +137,13 @@ export class EdgelessAutoConnectWidget extends WidgetComponent<RootBlockModel> {
               selected[0].id,
           ));
       if (!this._show) this._index = -1;
+      this.requestUpdate();
     };
     getVisibility();
-    this._disposables.add(
+    this.disposables.add(
       this._selection.slots.updated.subscribe(getVisibility),
     );
-    this._disposables.add(
+    this.disposables.add(
       this.store.slots.blockUpdated.subscribe(() => {
         getVisibility();
         this.requestUpdate();
@@ -172,7 +151,7 @@ export class EdgelessAutoConnectWidget extends WidgetComponent<RootBlockModel> {
     );
     const surface = this._gfx.surface;
     if (surface) {
-      this._disposables.add(
+      this.disposables.add(
         surface.elementUpdated.subscribe((payload) => {
           if (
             payload.props["xywh"] &&
@@ -204,86 +183,45 @@ export class EdgelessAutoConnectWidget extends WidgetComponent<RootBlockModel> {
     this._viewport.setViewportByBound(bound, [80, 80, 80, 80], true);
   }
 
-  private _NavigatorComponent(elements: AutoConnectElement[]) {
-    const element = elements[this._index];
-    const bound = Bound.deserialize(element.xywh);
-    const [left, top] = this._viewport.toViewCoord(bound.center[0], bound.maxY);
-    return html`<div
-      style=${styleMap({
-        position: "absolute",
-        transform: `translate(${left}px, ${top + INDEX_LABEL_OFFSET}px) translateX(-50%)`,
-      })}
-    >
-      ${
-        this.std
-          .getOptional(EditorChromeHostIdentifier)
-          ?.renderAutoConnectNavigator({
-            previous: this._index > 0,
-            next: this._index < elements.length - 1,
-            navigate: (direction) => this._navigate(direction),
-          }) ?? nothing
-      }
-    </div>`;
+  private label(key: string, count: number) {
+    let entry = this.labels.get(key);
+    if (!entry) {
+      const anchor = this.ownerDocument.createElement("div");
+      anchor.style.position = "absolute";
+      entry = { anchor, items: [] };
+      this.labels.set(key, entry);
+      this.append(anchor);
+    }
+    const { anchor, items } = entry;
+    while (items.length > count) {
+      const item = items.pop()!;
+      render(nothing, item);
+      item.remove();
+    }
+    while (items.length < count) {
+      const item = this.ownerDocument.createElement("div");
+      item.style.position = "absolute";
+      items.push(item);
+      anchor.append(item);
+    }
+    return entry;
   }
 
-  private _PageVisibleIndexLabels(
-    elements: AutoConnectElement[],
-    counts: number[],
-  ) {
-    const viewport = this._viewport;
-    let index = 0;
-    return html`${repeat(
-      elements,
-      (element) => element.id,
-      (element, i) => {
-        const bound = Bound.deserialize(element.xywh$.value);
-        const [left, top] = viewport.toViewCoord(bound.center[0], bound.maxY);
-        const count = counts[i];
-        const indices = Array.from({ length: count }, () => ++index);
-        const positions = calculatePosition(
-          this._expanded === element.id ? 5 : 24 / count - 24,
-          count,
-          PAGE_VISIBLE_INDEX_LABEL_HEIGHT,
-        );
-        return html`<div
-          style=${styleMap({ position: "absolute", left: `${left}px`, top: `${top + INDEX_LABEL_OFFSET}px` })}
-          @mouseenter=${() => {
-            this._expanded = element.id;
-          }}
-          @mouseleave=${() => {
-            this._expanded = null;
-          }}
-        >
-          ${indices.map(
-            (number, j) =>
-              html`<div
-                style=${styleMap({
-                  position: "absolute",
-                  transform: `translate(${positions[j][1] - 10}px, ${positions[j][0]}px) translateX(-50%)`,
-                })}
-              >
-                ${
-                  this.std
-                    .getOptional(EditorChromeHostIdentifier)
-                    ?.renderAutoConnectLabel({
-                      index: number,
-                      active: this._index === i,
-                      toggle: () => {
-                        if (!this._enabled) return;
-                        this._updateLabels();
-                        const currentIndex = [
-                          ...this._pageVisibleElementsMap.keys(),
-                        ].findIndex((item) => item.id === element.id);
-                        this._index =
-                          this._index === currentIndex ? -1 : currentIndex;
-                      },
-                    }) ?? nothing
-                }
-              </div>`,
-          )}
-        </div>`;
-      },
-    )}`;
+  private removeLabelsExcept(required: Set<string>) {
+    for (const [key, { anchor, items }] of this.labels) {
+      if (required.has(key)) continue;
+      for (const item of items) render(nothing, item);
+      if (key.startsWith("hidden:")) render(nothing, anchor);
+      anchor.remove();
+      this.labels.delete(key);
+    }
+  }
+
+  private hideNavigator() {
+    if (!this.navigator) return;
+    render(nothing, this.navigator);
+    this.navigator.remove();
+    this.navigator = undefined;
   }
 
   override connectedCallback(): void {
@@ -296,18 +234,23 @@ export class EdgelessAutoConnectWidget extends WidgetComponent<RootBlockModel> {
       zIndex: "1",
     });
     this._initLabels();
-  }
-
-  override firstUpdated(): void {
-    const { _disposables, std } = this;
+    const { disposables, std } = this;
+    disposables.add(
+      effect(() => {
+        if (!this._enabled) this._index = -1;
+        this.requestUpdate();
+      }),
+    );
     const slots = std.get(EdgelessLegacySlotIdentifier);
     const gfx = std.get(GfxControllerIdentifier);
 
     const start = () => {
       this._dragging = true;
+      this.requestUpdate();
     };
     const end = () => {
       this._dragging = false;
+      this.requestUpdate();
     };
     [
       gfx.viewport.viewportUpdated.subscribe(() => this.requestUpdate()),
@@ -315,47 +258,121 @@ export class EdgelessAutoConnectWidget extends WidgetComponent<RootBlockModel> {
       std.event.add("dragEnd", end),
       slots.elementResizeStart.subscribe(start),
       slots.elementResizeEnd.subscribe(end),
-    ].forEach((subscription) => _disposables.add(subscription));
+    ].forEach((subscription) => disposables.add(subscription));
   }
 
-  override createRenderRoot() {
-    return this;
+  override disconnectedCallback() {
+    this.removeLabelsExcept(new Set());
+    this.hideNavigator();
+    super.disconnectedCallback();
   }
 
-  override render() {
-    if (!this._show || this._dragging || !this._enabled) {
-      return nothing;
+  protected paint() {
+    const chrome = this.std.getOptional(EditorChromeHostIdentifier);
+    if (!this._show || this._dragging || !this._enabled || !chrome) {
+      this.removeLabelsExcept(new Set());
+      this.hideNavigator();
+      return;
     }
-
     this._updateLabels();
-
     const elements = [...this._pageVisibleElementsMap.keys()];
-    const counts = [...this._pageVisibleElementsMap.values()];
+    const required = new Set<string>();
+    let number = 0;
 
-    return html`${this._PageVisibleIndexLabels(elements, counts)}
-    ${this._EdgelessOnlyLabels()}
-    ${
-      this._index >= 0 && this._index < elements.length
-        ? this._NavigatorComponent(elements)
-        : nothing
-    } `;
+    elements.forEach((element, i) => {
+      const bound = Bound.deserialize(element.xywh);
+      const [left, top] = this._viewport.toViewCoord(
+        bound.center[0],
+        bound.maxY,
+      );
+      const count = this._pageVisibleElementsMap.get(element) ?? 0;
+      const key = `visible:${element.id}`;
+      required.add(key);
+      const { anchor, items } = this.label(key, count);
+      Object.assign(anchor.style, {
+        left: `${left}px`,
+        top: `${top + INDEX_LABEL_OFFSET}px`,
+      });
+      anchor.onmouseenter = () => {
+        this._expanded = element.id;
+        this.requestUpdate();
+      };
+      anchor.onmouseleave = () => {
+        this._expanded = null;
+        this.requestUpdate();
+      };
+      const positions = calculatePosition(
+        this._expanded === element.id ? 5 : 24 / count - 24,
+        count,
+        PAGE_VISIBLE_INDEX_LABEL_HEIGHT,
+      );
+      items.forEach((item, j) => {
+        item.style.transform = `translate(${positions[j][1] - 10}px, ${positions[j][0]}px) translateX(-50%)`;
+        render(
+          chrome.renderAutoConnectLabel({
+            index: ++number,
+            active: this._index === i,
+            toggle: () => {
+              if (!this._enabled) return;
+              this._updateLabels();
+              const selected = [
+                ...this._pageVisibleElementsMap.keys(),
+              ].findIndex((entry) => entry.id === element.id);
+              this._index = this._index === selected ? -1 : selected;
+              this.requestUpdate();
+            },
+          }),
+          item,
+        );
+      });
+    });
+
+    for (const note of this._edgelessOnlyNotesSet) {
+      const key = `hidden:${note.id}`;
+      required.add(key);
+      const { anchor } = this.label(key, 0);
+      const bound = Bound.deserialize(note.xywh);
+      const [left, top] = this._viewport.toViewCoord(
+        bound.center[0],
+        bound.maxY,
+      );
+      anchor.style.transform = `translate(${left}px, ${top + INDEX_LABEL_OFFSET}px) translateX(-50%)`;
+      render(
+        chrome.renderAutoConnectLabel({ active: false, toggle: () => {} }),
+        anchor,
+      );
+    }
+    this.removeLabelsExcept(required);
+
+    const current = elements[this._index];
+    if (!current) {
+      this.hideNavigator();
+      return;
+    }
+    const anchor = (this.navigator ??= this.ownerDocument.createElement("div"));
+    const bound = Bound.deserialize(current.xywh);
+    const [left, top] = this._viewport.toViewCoord(bound.center[0], bound.maxY);
+    Object.assign(anchor.style, {
+      position: "absolute",
+      transform: `translate(${left}px, ${top + INDEX_LABEL_OFFSET}px) translateX(-50%)`,
+    });
+    if (!anchor.parentElement) this.append(anchor);
+    render(
+      chrome.renderAutoConnectNavigator({
+        previous: this._index > 0,
+        next: this._index < elements.length - 1,
+        navigate: (direction) => this._navigate(direction),
+      }),
+      anchor,
+    );
   }
 
-  @state()
-  private accessor _dragging = false;
-
+  private _dragging = false;
   private _edgelessOnlyNotesSet = new Set<NoteBlockModel>();
-
-  @state()
-  private accessor _index = -1;
-
-  private _pageVisibleElementsMap: Map<AutoConnectElement, number> = new Map();
-
-  @state()
-  private accessor _show = false;
-
-  @state()
-  private accessor _expanded: string | null = null;
+  private _index = -1;
+  private _pageVisibleElementsMap = new Map<AutoConnectElement, number>();
+  private _show = false;
+  private _expanded: string | null = null;
 }
 
 export const autoConnectWidget = WidgetViewExtension(

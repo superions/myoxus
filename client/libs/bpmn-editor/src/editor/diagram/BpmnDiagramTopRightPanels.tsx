@@ -133,6 +133,7 @@ export function TopRightCornerPanels() {
                   (nodes.some((node) => !remaining.has(node.id)) ||
                     edges.some((edge) => !remaining.has(edge.id)))
                 ) {
+                  propertiesPanelFocusRef.current = null;
                   currentCanvas.focus({ preventScroll: true });
                   // The 500 ms settled-model emission can replace React Flow
                   // after a delete, dropping focus back to body. Do not steal

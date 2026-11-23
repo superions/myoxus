@@ -3,8 +3,7 @@ import { inspectBpmnSource } from "@myoxus/bpmn-editor/source";
 import type { BpmnBlockModel } from "@virgultum/core/models";
 import { EditorI18nProvider } from "@virgultum/core/services";
 import { downloadBlob } from "@virgultum/core/utils";
-import { BlockComponent } from "@virgultum/core/runtime";
-import { css } from "lit";
+import { NativeBlockComponent } from "@virgultum/canvas-runtime/surface";
 import * as Y from "yjs";
 import {
   BpmnBlockPresentationIdentifier,
@@ -17,21 +16,46 @@ import { requestBpmnEditor } from "./session-request.js";
 /** Native notes own canvas masks, selection, movement and resize. The
  * presentation's Edit/Open action and Page preview double-click request this
  * one shared full-screen session; rendering alone never repairs source. */
-export class BpmnBlockComponent extends BlockComponent<BpmnBlockModel> {
-  static override styles = css`
-    myoxus-bpmn {
-      display: block;
-    }
-  `;
+export class BpmnBlockComponent extends NativeBlockComponent<BpmnBlockModel> {
   private _inspection?: { source: string; accepted: boolean };
-  override connectedCallback() {
-    super.connectedCallback();
+  private presentation?: BpmnBlockPresentationProps;
+  private readonly listeners = new Set<() => void>();
+
+  connectedCallback() {
+    if (!this.connectBlock()) return;
+    this.style.display = "block";
     this.contentEditable = "false";
     this.tabIndex = 0;
+    const host = this.std.getOptional(BpmnBlockPresentationIdentifier);
+    if (!host) return;
+
+    this.presentation = this.readPresentation();
+    this.disposables.add(
+      host.mount(this, {
+        getSnapshot: () => this.presentation!,
+        subscribe: (listener) => {
+          this.listeners.add(listener);
+          return () => this.listeners.delete(listener);
+        },
+      }),
+    );
     const update = () => this.requestUpdate();
     this.model.yBlock.observeDeep(update);
-    this._disposables.add(() => this.model.yBlock.unobserveDeep(update));
+    this.disposables.add(() => this.model.yBlock.unobserveDeep(update));
+    this.disposables.add(this.store.readonly$.subscribe(update));
   }
+
+  override requestUpdate() {
+    if (!this.isConnected || !this.presentation) return;
+    this.presentation = this.readPresentation();
+    for (const listener of this.listeners) listener();
+  }
+
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+    this.listeners.clear();
+  }
+
   private readonly _open = async () => {
     await requestBpmnEditor(this.std, this.blockId);
   };
@@ -45,7 +69,7 @@ export class BpmnBlockComponent extends BlockComponent<BpmnBlockModel> {
       `BPMN-${this.blockId}-${revision}.bpmn`,
     );
   }
-  override render() {
+  readPresentation(): BpmnBlockPresentationProps {
     let sourceState: BpmnBlockPresentationProps["sourceState"] = "error";
     let sourceRevision: string | null = null;
     try {
@@ -82,7 +106,7 @@ export class BpmnBlockComponent extends BlockComponent<BpmnBlockModel> {
               download: () => this._download(revision),
             }))
         : [];
-    return this.std.get(BpmnBlockPresentationIdentifier).render({
+    return {
       docId: this.store.id,
       title: getBpmnBlockTitle(
         this.model.props,
@@ -102,6 +126,6 @@ export class BpmnBlockComponent extends BlockComponent<BpmnBlockModel> {
       onTitleChange: (value) => setBpmnBlockTitle(this.model, value),
       onOpen: this._open,
       onRetry: this._open,
-    });
+    };
   }
 }

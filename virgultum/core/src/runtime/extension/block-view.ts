@@ -3,24 +3,7 @@ import type { ExtensionType } from "../../store/index";
 import { BlockViewIdentifier } from "../identifier.js";
 import type { BlockViewType } from "../spec/type.js";
 
-/**
- * Create a block view extension.
- *
- * @param flavour The flavour of the block that the view is for.
- * @param view Lit literal template for the view. Example: `my-list-block`
- *
- * The view is a lit template that is used to render the block.
- *
- * @example
- * ```ts
- * import { BlockViewExtension } from '../index';
- *
- * const MyListBlockViewExtension = BlockViewExtension(
- *   'myoxus:list',
- *   literal`my-list-block`
- * );
- * ```
- */
+/** Register the trusted custom-element name for a block. Older registrations may supply a Lit literal. */
 export function BlockViewExtension(
   flavour: string,
   view: BlockViewType,
