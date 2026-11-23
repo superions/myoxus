@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import type { LitPortalDecorator, ReactToLit } from "@myoxus/lit-react";
+import type { MountReactPortal } from "@myoxus/lit-react";
 import {
   MermaidFamilyReactHostExtension,
+  type MermaidViewBinding,
   mermaidPieRendererToken,
   type MermaidPieReactHostProps,
   mermaidQuadrantRendererToken,
@@ -21,7 +22,8 @@ import {
   type MermaidShellNoticeReactHostProps,
 } from "@virgultum/block-mermaid";
 import type { ExtensionType } from "@virgultum/core/store";
-import type { ReactNode } from "react";
+import { useLayoutEffect, useSyncExternalStore } from "react";
+import { EditorActionMenu } from "./editor-chrome/action-menu";
 import { EditorEmbeddedUIRoot } from "./embedded-ui-root";
 import { DeferredMermaidChart } from "./deferred-mermaid-chart";
 import { createMermaidTimelineRendererRegistration } from "./mermaid-timeline-runtime";
@@ -49,93 +51,88 @@ import { createMermaidC4RendererRegistration } from "./mermaid-c4-runtime";
 import { createMermaidMindmapRendererRegistration } from "./mermaid-mindmap-runtime";
 import { createMermaidRequirementRendererRegistration } from "./mermaid-requirement-runtime";
 
+function MermaidView({ binding }: { binding: MermaidViewBinding }) {
+  const view = useSyncExternalStore(binding.subscribe, binding.getSnapshot);
+  useLayoutEffect(() => binding.afterCommit?.(), [binding, view]);
+  return view;
+}
+
 export function patchMermaidFamilyReactHost(
-  reactToLit: ReactToLit,
+  mountPortal: MountReactPortal,
 ): ExtensionType {
-  const decorateMermaidPortal: LitPortalDecorator = (
-    portalElement,
-    portalRoot,
-  ) => (
-    <EditorEmbeddedUIRoot portalRoot={portalRoot}>
-      {portalElement as ReactNode}
-    </EditorEmbeddedUIRoot>
-  );
-  const mermaidReactToLit: ReactToLit = (element, rerendering) =>
-    reactToLit(element, rerendering, decorateMermaidPortal);
   const rendererHost = createMermaidFamilyReactRendererHost([
-    createMermaidFlowchartRendererRegistration(mermaidReactToLit),
-    createMermaidGanttRendererRegistration(mermaidReactToLit),
-    createMermaidTimelineRendererRegistration(mermaidReactToLit),
-    createMermaidKanbanRendererRegistration(mermaidReactToLit),
+    createMermaidFlowchartRendererRegistration(),
+    createMermaidGanttRendererRegistration(),
+    createMermaidTimelineRendererRegistration(),
+    createMermaidKanbanRendererRegistration(),
     {
       token: mermaidPieRendererToken,
-      render: (props: MermaidPieReactHostProps) =>
-        mermaidReactToLit(
-          <DeferredMermaidChart key="pie" kind="pie" props={props} />,
-          true,
-        ),
+      render: (props: MermaidPieReactHostProps) => (
+        <DeferredMermaidChart key="pie" kind="pie" props={props} />
+      ),
     },
     {
       token: mermaidQuadrantRendererToken,
-      render: (props: MermaidQuadrantReactHostProps) =>
-        mermaidReactToLit(
-          <DeferredMermaidChart key="quadrant" kind="quadrant" props={props} />,
-          true,
-        ),
+      render: (props: MermaidQuadrantReactHostProps) => (
+        <DeferredMermaidChart key="quadrant" kind="quadrant" props={props} />
+      ),
     },
     {
       token: mermaidXyRendererToken,
-      render: (props: MermaidXyReactHostProps) =>
-        mermaidReactToLit(
-          <DeferredMermaidChart key="xy" kind="xy" props={props} />,
-          true,
-        ),
+      render: (props: MermaidXyReactHostProps) => (
+        <DeferredMermaidChart key="xy" kind="xy" props={props} />
+      ),
     },
     {
       token: mermaidRadarRendererToken,
-      render: (props: MermaidRadarReactHostProps) =>
-        mermaidReactToLit(
-          <DeferredMermaidChart key="radar" kind="radar" props={props} />,
-          true,
-        ),
+      render: (props: MermaidRadarReactHostProps) => (
+        <DeferredMermaidChart key="radar" kind="radar" props={props} />
+      ),
     },
     {
       token: mermaidSankeyRendererToken,
-      render: (props: MermaidSankeyReactHostProps) =>
-        mermaidReactToLit(
-          <DeferredMermaidChart key="sankey" kind="sankey" props={props} />,
-          true,
-        ),
+      render: (props: MermaidSankeyReactHostProps) => (
+        <DeferredMermaidChart key="sankey" kind="sankey" props={props} />
+      ),
     },
     {
       token: mermaidTreemapRendererToken,
-      render: (props: MermaidTreemapReactHostProps) =>
-        mermaidReactToLit(
-          <DeferredMermaidChart key="treemap" kind="treemap" props={props} />,
-          true,
-        ),
+      render: (props: MermaidTreemapReactHostProps) => (
+        <DeferredMermaidChart key="treemap" kind="treemap" props={props} />
+      ),
     },
-    createMermaidJourneyRendererRegistration(mermaidReactToLit),
-    createMermaidPacketRendererRegistration(mermaidReactToLit),
-    createMermaidClassRendererRegistration(mermaidReactToLit),
-    createMermaidErRendererRegistration(mermaidReactToLit),
-    createMermaidSequenceRendererRegistration(mermaidReactToLit),
-    createMermaidStateRendererRegistration(mermaidReactToLit),
-    createMermaidBlockRendererRegistration(mermaidReactToLit),
-    createMermaidC4RendererRegistration(mermaidReactToLit),
-    createMermaidGitGraphRendererRegistration(mermaidReactToLit),
-    createMermaidGitGraphRepairRegistration(mermaidReactToLit),
-    createMermaidMindmapRendererRegistration(mermaidReactToLit),
-    createMermaidRequirementRendererRegistration(mermaidReactToLit),
-    createMermaidArchitectureRendererRegistration(mermaidReactToLit),
+    createMermaidJourneyRendererRegistration(),
+    createMermaidPacketRendererRegistration(),
+    createMermaidClassRendererRegistration(),
+    createMermaidErRendererRegistration(),
+    createMermaidSequenceRendererRegistration(),
+    createMermaidStateRendererRegistration(),
+    createMermaidBlockRendererRegistration(),
+    createMermaidC4RendererRegistration(),
+    createMermaidGitGraphRendererRegistration(),
+    createMermaidGitGraphRepairRegistration(),
+    createMermaidMindmapRendererRegistration(),
+    createMermaidRequirementRendererRegistration(),
+    createMermaidArchitectureRendererRegistration(),
   ]);
   return MermaidFamilyReactHostExtension({
     ...rendererHost,
-    renderEmbeddedTitle: (props: MermaidEmbeddedTitleReactHostProps) =>
-      mermaidReactToLit(<MermaidEmbeddedTitle props={props} />, true),
-    renderBlockShell: (props: MermaidBlockShellReactHostProps) =>
-      mermaidReactToLit(<MermaidBlockShell props={props} />, true),
-    renderShellNotice: (props: MermaidShellNoticeReactHostProps) =>
-      mermaidReactToLit(<MermaidEditorShellNotice props={props} />, true),
+    mount: (anchor, binding) =>
+      mountPortal(
+        anchor,
+        <EditorEmbeddedUIRoot portalRoot={anchor}>
+          <MermaidView binding={binding} />
+        </EditorEmbeddedUIRoot>,
+      ),
+    renderContextMenu: (controls) => <EditorActionMenu controls={controls} />,
+    renderEmbeddedTitle: (props: MermaidEmbeddedTitleReactHostProps) => (
+      <MermaidEmbeddedTitle props={props} />
+    ),
+    renderBlockShell: (props: MermaidBlockShellReactHostProps) => (
+      <MermaidBlockShell props={props} />
+    ),
+    renderShellNotice: (props: MermaidShellNoticeReactHostProps) => (
+      <MermaidEditorShellNotice props={props} />
+    ),
   });
 }

@@ -2,7 +2,7 @@
 
 import type { MermaidC4Model } from "../../engine/c4/index.js";
 import type { C4CommandArgs, C4CommandName } from "./actions.js";
-import type { TemplateResult } from "lit";
+import type { ReactNode } from "react";
 import type {
   MermaidGfxActionContext,
   MermaidGfxObjectEditIntent,
@@ -76,8 +76,8 @@ export type C4EditorReactHostProps = C4ReactHostProps & {
   readonly embedded: boolean;
   readonly embeddedEditing: boolean;
   readonly actionTarget: HTMLElement | null;
-  readonly workarea: TemplateResult | null;
-  readonly workareaFooter: TemplateResult | null;
+  readonly workarea: ReactNode | null;
+  readonly workareaFooter: ReactNode | null;
   readonly pageViewport?: MermaidPageViewportProjection;
   readonly commentMarkers: readonly C4CommentMarker[];
   readonly markersInClientSpace?: boolean;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import type { TemplateResult } from "lit";
+import type { ReactNode } from "react";
 import type { MermaidClipboardPort } from "../../clipboard.js";
 import type {
   MermaidRequirementModel,
@@ -69,8 +69,8 @@ export type RequirementReactHostProps = {
   displayOnly: boolean;
   embedded: boolean;
   actionTarget?: HTMLElement | null;
-  workarea: TemplateResult | null;
-  workareaFooter: TemplateResult | null;
+  workarea: ReactNode | null;
+  workareaFooter: ReactNode | null;
   pageViewport?: MermaidPageViewportProjection;
   history?: MermaidHistoryActions;
   selectionAction?: MermaidSelectionActionModel;

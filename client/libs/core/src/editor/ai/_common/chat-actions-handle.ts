@@ -512,35 +512,32 @@ export const SAVE_AS_DOC = {
   get toast() {
     return chatI18n()["com.myoxus.ai.chat-panel.doc-created"]();
   },
-  handler: (host: EditorHost, content: string) => {
+  handler: async (host: EditorHost, content: string) => {
     reportResponse("result:add-page");
-    const doc = host.store.workspace.createDoc();
-    const newDoc = doc.getStore();
-    newDoc.load();
-    const rootId = newDoc.addBlock("myoxus:page");
-    newDoc.addBlock("myoxus:surface", {}, rootId);
-    const noteId = newDoc.addBlock("myoxus:note", {}, rootId);
+    const workspace = host.store.workspace;
+    const newDoc = workspace.createDoc().getStore();
+    try {
+      newDoc.load();
+      const rootId = newDoc.addBlock("myoxus:page");
+      newDoc.addBlock("myoxus:surface", {}, rootId);
+      const noteId = newDoc.addBlock("myoxus:note", {}, rootId);
+      // Write into the destination Store before navigation replaces the source editor.
+      await insertFromMarkdown(host, content, newDoc, noteId, 0);
+      if (!newDoc.getModelById(noteId)?.children.length)
+        throw new Error("The saved answer has no importable content");
+    } catch (error) {
+      workspace.removeDoc(newDoc.id);
+      console.error(error);
+      host.std
+        .getOptional(NotificationProvider)
+        ?.toast(chatI18n()["com.myoxus.workspace-home.layout.save-failed"]());
+      return false;
+    }
 
     host.std.getOptional(RefNodeSlotsProvider)?.docLinkClicked.next({
       pageId: newDoc.id,
       host,
     });
-    let complete = false;
-    (function addContent() {
-      if (complete) return;
-      const newHost = document.querySelector("editor-host");
-      // FIXME: this is a hack to wait for the host to be ready, now we don't have a way to know if the new host is ready
-      if (!newHost || newHost === host) {
-        setTimeout(addContent, 100);
-        return;
-      }
-      complete = true;
-      const { store } = newHost;
-      insertFromMarkdown(newHost, content, store, noteId, 0).catch(
-        console.error,
-      );
-    })();
-
     return true;
   },
 };

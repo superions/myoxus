@@ -76,7 +76,6 @@ import {
   MermaidSelectionDeleteAction,
 } from "../mermaid-editor-workbench";
 import { MermaidEmbeddedActions } from "../mermaid-embedded-actions";
-import type { ReactToLit } from "@myoxus/lit-react";
 import {
   mermaidFlowchartRendererToken,
   type MermaidFamilyReactRendererRegistration,
@@ -1293,9 +1292,7 @@ export function MermaidFlowchartRuntimeSurface({
   );
 }
 
-export function createMermaidFlowchartRendererRegistration(
-  reactToLit: ReactToLit,
-): MermaidFamilyReactRendererRegistration<MermaidFlowchartReactRendererProps> {
+export function createMermaidFlowchartRendererRegistration(): MermaidFamilyReactRendererRegistration<MermaidFlowchartReactRendererProps> {
   const nativeView = (props: MermaidFlowchartReactRendererProps) =>
     "kind" in props && props.kind === "typography" ? (
       <FlowchartTextFormatting props={props} />
@@ -1308,7 +1305,6 @@ export function createMermaidFlowchartRendererRegistration(
     );
   return {
     token: mermaidFlowchartRendererToken,
-    nativeView,
-    render: (props) => reactToLit(nativeView(props), true),
+    render: nativeView,
   };
 }

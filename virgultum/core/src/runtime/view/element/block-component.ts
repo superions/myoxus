@@ -30,7 +30,7 @@ import {
 } from "./consts.js";
 import { type EditorHost, stdContext, storeContext } from "./lit-host.js";
 import { ShadowlessElement } from "./shadowless-element.js";
-import type { WidgetComponent } from "./widget-component.js";
+import type { EditorWidgetView } from "../view-store.js";
 
 /** Runtime contract shared by native and retained block views. */
 export interface BlockComponent<
@@ -54,7 +54,7 @@ export interface BlockComponent<
   readonly topContenteditableElement: BlockComponent | null;
   readonly childBlocks: BlockComponent[];
   readonly isVersionMismatch: boolean;
-  readonly widgetComponents: Partial<Record<WidgetName, WidgetComponent>>;
+  readonly widgetComponents: Partial<Record<WidgetName, EditorWidgetView>>;
   readonly renderChildren: EditorHost["renderChildren"];
   readonly updateComplete: Promise<boolean>;
   viewType: BlockViewType;
@@ -211,7 +211,7 @@ export class LitBlockComponent<
     return this.rootComponent;
   }
 
-  get widgetComponents(): Partial<Record<WidgetName, WidgetComponent>> {
+  get widgetComponents(): Partial<Record<WidgetName, EditorWidgetView>> {
     return Object.keys(this.widgets).reduce(
       (mapping, key) => ({
         ...mapping,

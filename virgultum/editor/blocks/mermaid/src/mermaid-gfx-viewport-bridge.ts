@@ -4,6 +4,10 @@ import {
 } from "./mermaid-gfx-metadata.js";
 import { calPanDeltaFromClientPoint } from "@virgultum/canvas-runtime/surface";
 import { Bound, getCommonBound } from "@virgultum/core/primitives/gfx";
+import {
+  GfxControllerIdentifier,
+  type GfxController,
+} from "@virgultum/core/runtime/gfx";
 import type {
   MermaidBlockModel,
   ShapeElementModel,
@@ -66,47 +70,17 @@ import type {
 } from "./mermaid-page-viewport-state.js";
 import { MermaidPageSelectionTool } from "./mermaid-page-selection-tool.js";
 
-type MermaidScopedGfxController = {
-  readonly std?: import("@virgultum/core/runtime").BlockStdScope;
-  surface?: import("@virgultum/core/runtime/gfx").SurfaceBlockModel;
-  getElementById?: (id: string) => unknown;
-  getElementByPoint?: (
-    x: number,
-    y: number,
-    options?: { all?: boolean; hitThreshold?: number },
-  ) => unknown;
-  selection?: {
-    set?: (selection: { editing?: boolean; elements: string[] }) => void;
-  };
-  surfaceComponent?: { refresh?: () => void };
-  viewport?: {
-    applyDeltaCenter?: (deltaX: number, deltaY: number) => void;
-    centerX?: number;
-    centerY?: number;
-    height?: number;
-    refreshClientRect?: () => boolean;
-    setViewport?: (
-      zoom: number,
-      center?: [number, number],
-      smooth?: boolean,
-      forceUpdate?: boolean,
-    ) => void;
-    setViewportByBound?: (
-      bound: Bound,
-      padding?: [number, number, number, number],
-      smooth?: boolean,
-      forceUpdate?: boolean,
-    ) => void;
-    toModelCoord?: (viewX: number, viewY: number) => [number, number];
-    toModelCoordFromClientCoord?: (point: [number, number]) => [number, number];
-    toViewCoord?: (x: number, y: number) => [number, number];
-    viewScale?: number;
-    viewportX?: number;
-    viewportY?: number;
-    width?: number;
-    zoom?: number;
-    viewportMoved?: { next?: (delta: [number, number]) => void };
-  };
+type ScopedCanvasController = Pick<
+  Partial<GfxController>,
+  | "std"
+  | "surface"
+  | "getElementById"
+  | "getElementByPoint"
+  | "selection"
+  | "surfaceComponent"
+  | "tool"
+> & {
+  viewport?: Partial<GfxController["viewport"]>;
 };
 
 export type MermaidScopedGfxViewportSnapshot = {
@@ -252,26 +226,16 @@ export class MermaidGfxViewportBridge {
     );
   }
 
-  getController(): MermaidScopedGfxController | null {
-    const surfaceElement = this.getViewportElement()?.querySelector(
-      "myoxus-surface",
-    ) as
-      | {
-          _gfx?: MermaidScopedGfxController;
-        }
-      | null
-      | undefined;
-    return surfaceElement?._gfx ?? null;
+  getController(): ScopedCanvasController | null {
+    return (
+      this.getViewportElement()
+        ?.querySelector("myoxus-surface")
+        ?.std?.getOptional(GfxControllerIdentifier) ?? null
+    );
   }
 
   cancelPageSelectionGesture() {
-    const tool = (
-      this.getController() as
-        | (MermaidScopedGfxController & {
-            tool?: { currentTool$?: { peek?: () => unknown } };
-          })
-        | null
-    )?.tool?.currentTool$?.peek?.();
+    const tool = this.getController()?.tool?.currentTool$.peek();
     if (!(tool instanceof MermaidPageSelectionTool)) return false;
     tool.cancelPageGesture();
     return true;

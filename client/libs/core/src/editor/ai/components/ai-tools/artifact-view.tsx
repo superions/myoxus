@@ -96,14 +96,16 @@ export function DocComposeControls({
   save,
 }: {
   copy: () => void;
-  save: () => void;
+  save?: () => void;
 }) {
   const t = useI18n();
   return (
     <>
-      <Button prefix={<PageIcon />} onClick={save}>
-        {t["com.myoxus.ai.chat-panel.save-as-doc"]()}
-      </Button>
+      {save && (
+        <Button prefix={<PageIcon />} onClick={save}>
+          {t["com.myoxus.ai.chat-panel.save-as-doc"]()}
+        </Button>
+      )}
       <IconButton aria-label={t["Copy"]()} tooltip={t["Copy"]()} onClick={copy}>
         <CopyIcon />
       </IconButton>

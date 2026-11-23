@@ -4,7 +4,6 @@ import { ViewExtensionManagerIdentifier } from "@virgultum/core/extensions";
 import { Bound, type SerializedXYWH } from "@virgultum/core/primitives/gfx";
 import { DefaultTool } from "@virgultum/canvas-runtime/surface";
 import {
-  EditorChromeHostIdentifier,
   ThemeExtensionIdentifier,
   ThemeProvider,
   ViewportElementExtension,
@@ -12,9 +11,15 @@ import {
 import { BlockStdScope } from "@virgultum/core/runtime";
 import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
 import type { ExtensionType, Store } from "@virgultum/core/store";
-import { html, nothing, type TemplateResult } from "lit";
-import { guard } from "lit/directives/guard.js";
-import { styleMap } from "lit/directives/style-map.js";
+import {
+  type CSSProperties,
+  type ReactNode,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import type { MermaidEditorShellProjection } from "./runtime/editor-capabilities.js";
+import { MermaidFamilyReactHostIdentifier } from "./runtime/react-host.js";
 
 import type { MermaidVisualModel } from "./runtime/gfx-model.js";
 import { MermaidEdgelessOwnerGfxSync } from "../presentation/edgeless-owner-gfx-sync.js";
@@ -36,7 +41,7 @@ import {
 import { calculateMermaidVisualViewportHeight } from "../mermaid-gfx-viewport.js";
 import type { MermaidGfxEditorState } from "./runtime/gfx-editor-state.js";
 import type { MermaidPageViewportProjection } from "../mermaid-page-viewport-state.js";
-import { mermaidPageDraggingAreaExtension } from "../mermaid-page-dragging-area.js";
+import { mountMermaidPageDraggingArea } from "../mermaid-page-dragging-area.js";
 import { MermaidPageSelectionTool } from "../mermaid-page-selection-tool.js";
 import type { MermaidPageSelectionToolsContribution } from "./runtime/contracts.js";
 import type { MermaidPageSelectionOperation } from "../mermaid-page-selection-controller.js";
@@ -72,6 +77,32 @@ type MermaidGfxEdgeHandlePoints = {
 };
 
 type MermaidGfxDomListener = EventListenerOrEventListenerObject;
+
+function MermaidScopedCanvas({
+  createScope,
+  showDragArea,
+}: {
+  createScope: () => BlockStdScope;
+  showDragArea: boolean;
+}) {
+  const anchor = useRef<HTMLDivElement>(null);
+  const [mount] = useState(() => createScope);
+  useLayoutEffect(() => {
+    const scope = mount();
+    const session = scope.mountCanvas(anchor.current!);
+    const stopDragArea = showDragArea
+      ? mountMermaidPageDraggingArea(
+          session.host,
+          scope.get(GfxControllerIdentifier),
+        )
+      : undefined;
+    return () => {
+      stopDragArea?.();
+      session.dispose();
+    };
+  }, [mount, showDragArea]);
+  return <div ref={anchor} style={{ display: "contents" }} />;
+}
 
 export type MermaidGfxPageEditorVisualState = {
   readonly alignmentGuides: readonly MermaidGfxAlignmentGuideProjection[];
@@ -231,9 +262,9 @@ export function renderMermaidGfxPageEditor({
   }>;
   readonly isViewportUserPositioned: () => boolean;
   readonly projectShell?: (
-    workarea: TemplateResult,
-    workareaFooter: TemplateResult,
-  ) => unknown;
+    workarea: ReactNode,
+    workareaFooter: ReactNode,
+  ) => MermaidEditorShellProjection;
   readonly projectionOwnerStateKey: string;
   readonly pendingShape: MermaidVisualModel["nodes"][number]["shape"] | null;
   readonly pageViewport: MermaidPageViewportProjection;
@@ -287,9 +318,6 @@ export function renderMermaidGfxPageEditor({
     scopedTheme,
     ViewportElementExtension(".myoxus-mermaid-gfx-viewport"),
     ...(useScopedPagePointerTool ? [MermaidPageSelectionTool] : []),
-    ...(useScopedPagePointerTool && pageSelectionTools
-      ? [mermaidPageDraggingAreaExtension]
-      : []),
     createMermaidScopedGfxEditorExtension({
       allowedElementIds: resolution.childElementIds,
       callbacks: {
@@ -387,216 +415,248 @@ export function renderMermaidGfxPageEditor({
   const naturalContentWidth = ownerBound.w + paddingLeft + paddingRight;
   const naturalContentHeight = ownerBound.h + paddingTop + paddingBottom;
 
-  const workarea = html`<div
-    class="myoxus-mermaid-gfx-editor"
-    data-diagram-type=${visualModel.diagramType}
-    data-mermaid-display-mode=${displayOnly ? "display" : "edit"}
-    data-mermaid-gfx-editable=${readonly ? "false" : "true"}
-    data-mermaid-gfx-surface="true"
-    data-inserting-shape=${pendingShape ? "true" : "false"}
-    data-mermaid-owner-id=${resolution.ownerId}
-    data-mermaid-page-natural-height=${naturalContentHeight}
-    data-mermaid-page-natural-width=${naturalContentWidth}
-    style=${styleMap({
-      "--myoxus-mermaid-gfx-viewport-height": `${viewportHeight}px`,
-    })}
-  >
+  const bindViewport = (anchor: HTMLDivElement | null) => {
+    if (!anchor) return;
+    const lifetime = new AbortController();
+    const options = { signal: lifetime.signal, capture: true };
+    anchor.addEventListener("click", handlers.onViewportClick, options);
+    anchor.addEventListener("focusin", handlers.onViewportFocus, options);
+    anchor.addEventListener("focusout", handlers.onViewportFocusOut, options);
+    if (!readonly) {
+      anchor.addEventListener(
+        "contextmenu",
+        handlers.onViewportContextMenu,
+        options,
+      );
+      anchor.addEventListener(
+        "dblclick",
+        handlers.onViewportDoubleClick,
+        options,
+      );
+      if (resolvePageSelectionTool?.() !== "box")
+        anchor.addEventListener(
+          "pointerdown",
+          handlers.onViewportPointerDown,
+          options,
+        );
+    }
+    return () => lifetime.abort();
+  };
+  const scopeKey = JSON.stringify([
+    resolution.ownerId,
+    resolution.childElementIds,
+    projectionOwnerStateKey,
+    readonly,
+    embeddedEditing,
+  ]);
+  const workarea = (
     <div
-      aria-label=${visualModel.accessibilityTitle || mermaidMessages.visualEditorLabel()}
-      aria-description=${visualModel.accessibilityDescription || nothing}
-      role=${visualModel.accessibilityTitle || visualModel.accessibilityDescription ? "group" : nothing}
-      class="myoxus-mermaid-gfx-viewport myoxus-edgeless-viewport"
-      data-theme=${theme}
-      @click=${handlers.onViewportClick}
-      @contextmenu=${readonly ? undefined : handlers.onViewportContextMenu}
-      @dblclick=${readonly ? undefined : handlers.onViewportDoubleClick}
-      @focusin=${handlers.onViewportFocus}
-      @focusout=${handlers.onViewportFocusOut}
-      @pointerdown=${
-        readonly || resolvePageSelectionTool?.() === "box"
-          ? undefined
-          : handlers.onViewportPointerDown
-      }
-      tabindex=${
-        keyboardSelectionItems.length === 0 || visualState.keyboardObjectFocused
-          ? -1
-          : 0
+      className="myoxus-mermaid-gfx-editor"
+      data-diagram-type={visualModel.diagramType}
+      data-mermaid-display-mode={displayOnly ? "display" : "edit"}
+      data-mermaid-gfx-editable={readonly ? "false" : "true"}
+      data-mermaid-gfx-surface="true"
+      data-inserting-shape={pendingShape ? "true" : "false"}
+      data-mermaid-owner-id={resolution.ownerId}
+      data-mermaid-page-natural-height={naturalContentHeight}
+      data-mermaid-page-natural-width={naturalContentWidth}
+      style={
+        {
+          "--myoxus-mermaid-gfx-viewport-height": `${viewportHeight}px`,
+        } as CSSProperties
       }
     >
       <div
-        class="myoxus-mermaid-inline-mount-point myoxus-mermaid-inline-shape-editor-layer"
-      ></div>
-      ${guard(
-        [
-          resolution.ownerId,
-          resolution.childElementIds.join(","),
-          projectionOwnerStateKey,
-          readonly,
-          embeddedEditing,
-          themeSignal,
-        ],
-        () =>
-          new BlockStdScope({
-            extensions,
-            store: gfxStore,
-          }).render(),
-      )}
-      ${renderMermaidGfxConnectionPreview({
-        displayOnly,
-        preview: visualState.connectionPreview,
-      })}
-      ${renderMermaidGfxAlignmentGuides({
-        displayOnly,
-        guides: visualState.alignmentGuides,
-        onSelect: handlers.onAlignmentGuideSelect,
-      })}
-      ${
-        displayOnly || readonly
+        aria-label={
+          visualModel.accessibilityTitle || mermaidMessages.visualEditorLabel()
+        }
+        aria-description={visualModel.accessibilityDescription || undefined}
+        role={
+          visualModel.accessibilityTitle || visualModel.accessibilityDescription
+            ? "group"
+            : undefined
+        }
+        className="myoxus-mermaid-gfx-viewport myoxus-edgeless-viewport"
+        data-theme={theme}
+        ref={bindViewport}
+        tabIndex={
+          keyboardSelectionItems.length === 0 ||
+          visualState.keyboardObjectFocused
+            ? -1
+            : 0
+        }
+      >
+        <div className="myoxus-mermaid-inline-mount-point myoxus-mermaid-inline-shape-editor-layer"></div>
+        <MermaidScopedCanvas
+          key={scopeKey}
+          showDragArea={useScopedPagePointerTool && Boolean(pageSelectionTools)}
+          createScope={() => new BlockStdScope({ extensions, store: gfxStore })}
+        />
+        {renderMermaidGfxConnectionPreview({
+          displayOnly,
+          preview: visualState.connectionPreview,
+        })}
+        {renderMermaidGfxAlignmentGuides({
+          displayOnly,
+          guides: visualState.alignmentGuides,
+          onSelect: handlers.onAlignmentGuideSelect,
+        })}
+        {displayOnly || readonly
           ? null
           : renderMermaidGfxSelectionChrome({
               bounds: visualState.selectionBounds,
               count: visualState.selectionRects.length,
               items: visualState.selectionRects,
-            })
-      }
-      ${renderMermaidGfxNodeConnectHandles({
-        disabled: readonly,
-        displayOnly,
-        handles: visualState.nodeConnectHandles,
-        hasSelectedNode: Boolean(inspector.selectedNode),
-        onKeydown: handlers.onConnectorHandleKeydown,
-        onPointerDown: handlers.onConnectorHandlePointerDown,
-      })}
-      ${renderMermaidGfxNodeResizeHandle({
-        disabled: readonly,
-        displayOnly,
-        handle: visualState.nodeResizeHandle,
-        hasSelectedNode: Boolean(inspector.selectedNode),
-        onKeydown: handlers.onNodeResizeKeydown,
-        onPointerDown: handlers.onNodeResizePointerDown,
-      })}
-      ${renderMermaidGfxEdgeReconnectHandles({
-        disabled: readonly,
-        displayOnly,
-        handles: visualState.edgeReconnectHandles,
-        hasSelectedEdge: Boolean(inspector.selectedEdge),
-        onKeydown: handlers.onEdgeReconnectKeydown,
-        onPointerDown: handlers.onEdgeReconnectPointerDown,
-      })}
-      ${renderMermaidGfxContextMenu({
-        canShow: !readonly && visualState.showContextMenu,
-        chrome: std.getOptional(EditorChromeHostIdentifier) ?? undefined,
-        close: handlers.onCloseContextMenu,
-        label: visualState.contextMenuLabel,
-        left: visualState.contextMenu?.left ?? 0,
-        onClick: handlers.onContextConnect,
-        top: visualState.contextMenu?.top ?? 0,
-      })}
-      ${renderMermaidGfxSubgraphDropPreview({
-        displayOnly,
-        preview: visualState.subgraphDropPreview,
-      })}
-      ${renderMermaidGfxSubgraphMoveHandle({
-        disabled: readonly,
-        displayOnly,
-        handle: visualState.subgraphMoveHandle,
-        hasSelectedSubgraph: Boolean(inspector.selectedSubgraph),
-        onKeydown: handlers.onSubgraphMoveKeydown,
-        onPointerDown: handlers.onSubgraphMovePointerDown,
-      })}
-      ${renderMermaidGfxSubgraphResizeHandle({
-        disabled: readonly,
-        displayOnly,
-        handle: visualState.subgraphResizeHandle,
-        hasSelectedSubgraph: Boolean(inspector.selectedSubgraph),
-        onKeydown: handlers.onSubgraphResizeKeydown,
-        onPointerDown: handlers.onSubgraphResizePointerDown,
-      })}
-      ${
-        visualState.keyboardFocusRect
-          ? html`<div
-              aria-hidden="true"
-              class="myoxus-mermaid-gfx-keyboard-focus-outline"
-              style=${styleMap({
-                height: `${visualState.keyboardFocusRect.height}px`,
-                left: `${visualState.keyboardFocusRect.left}px`,
-                top: `${visualState.keyboardFocusRect.top}px`,
-                width: `${visualState.keyboardFocusRect.width}px`,
-              })}
-            ></div>`
-          : null
-      }
-      ${
-        keyboardSelectionItems.length === 0
+            })}
+        {renderMermaidGfxNodeConnectHandles({
+          disabled: readonly,
+          displayOnly,
+          handles: visualState.nodeConnectHandles,
+          hasSelectedNode: Boolean(inspector.selectedNode),
+          onKeydown: handlers.onConnectorHandleKeydown,
+          onPointerDown: handlers.onConnectorHandlePointerDown,
+        })}
+        {renderMermaidGfxNodeResizeHandle({
+          disabled: readonly,
+          displayOnly,
+          handle: visualState.nodeResizeHandle,
+          hasSelectedNode: Boolean(inspector.selectedNode),
+          onKeydown: handlers.onNodeResizeKeydown,
+          onPointerDown: handlers.onNodeResizePointerDown,
+        })}
+        {renderMermaidGfxEdgeReconnectHandles({
+          disabled: readonly,
+          displayOnly,
+          handles: visualState.edgeReconnectHandles,
+          hasSelectedEdge: Boolean(inspector.selectedEdge),
+          onKeydown: handlers.onEdgeReconnectKeydown,
+          onPointerDown: handlers.onEdgeReconnectPointerDown,
+        })}
+        {renderMermaidGfxContextMenu({
+          canShow: !readonly && visualState.showContextMenu,
+          renderMenu: std.getOptional(MermaidFamilyReactHostIdentifier)
+            ?.renderContextMenu,
+          close: handlers.onCloseContextMenu,
+          label: visualState.contextMenuLabel,
+          left: visualState.contextMenu?.left ?? 0,
+          onClick: handlers.onContextConnect,
+          top: visualState.contextMenu?.top ?? 0,
+        })}
+        {renderMermaidGfxSubgraphDropPreview({
+          displayOnly,
+          preview: visualState.subgraphDropPreview,
+        })}
+        {renderMermaidGfxSubgraphMoveHandle({
+          disabled: readonly,
+          displayOnly,
+          handle: visualState.subgraphMoveHandle,
+          hasSelectedSubgraph: Boolean(inspector.selectedSubgraph),
+          onKeydown: handlers.onSubgraphMoveKeydown,
+          onPointerDown: handlers.onSubgraphMovePointerDown,
+        })}
+        {renderMermaidGfxSubgraphResizeHandle({
+          disabled: readonly,
+          displayOnly,
+          handle: visualState.subgraphResizeHandle,
+          hasSelectedSubgraph: Boolean(inspector.selectedSubgraph),
+          onKeydown: handlers.onSubgraphResizeKeydown,
+          onPointerDown: handlers.onSubgraphResizePointerDown,
+        })}
+        {visualState.keyboardFocusRect ? (
+          <div
+            aria-hidden="true"
+            className="myoxus-mermaid-gfx-keyboard-focus-outline"
+            style={{
+              height: `${visualState.keyboardFocusRect.height}px`,
+              left: `${visualState.keyboardFocusRect.left}px`,
+              top: `${visualState.keyboardFocusRect.top}px`,
+              width: `${visualState.keyboardFocusRect.width}px`,
+            }}
+          ></div>
+        ) : null}
+        {keyboardSelectionItems.length === 0
           ? null
-          : keyboardSelectionItems.map(
-              (node) =>
-                html`<button
-                  aria-label=${node.label || node.editKey}
-                  aria-keyshortcuts="Enter Space"
-                  class="myoxus-mermaid-gfx-object-focus-proxy"
-                  data-mermaid-edit-key=${node.editKey}
-                  data-object-kind=${node.kind}
-                  type="button"
-                  @click=${handlers.onStopEditorEvent}
-                  @focus=${() => handlers.onObjectFocus(node)}
-                  @keydown=${(event: KeyboardEvent) =>
-                    handlers.onObjectKeydown(event, node)}
-                ></button>`,
-            )
-      }
-      ${keyboardDetailItems.map(
-        (detail) =>
-          html`<button
-            aria-label=${detail.label}
+          : keyboardSelectionItems.map((node) => (
+              <button
+                aria-label={node.label || node.editKey}
+                aria-keyshortcuts="Enter Space"
+                key={node.editKey}
+                className="myoxus-mermaid-gfx-object-focus-proxy"
+                data-mermaid-edit-key={node.editKey}
+                data-object-kind={node.kind}
+                type="button"
+                onClick={(event) =>
+                  handlers.onStopEditorEvent?.(event.nativeEvent)
+                }
+                onFocus={() => handlers.onObjectFocus(node)}
+                onKeyDown={(event) =>
+                  ((event: KeyboardEvent) =>
+                    handlers.onObjectKeydown(event, node))?.(event.nativeEvent)
+                }
+              ></button>
+            ))}
+        {keyboardDetailItems.map((detail) => (
+          <button
+            aria-label={detail.label}
             aria-keyshortcuts="Enter Space"
-            class="myoxus-mermaid-gfx-object-focus-proxy"
+            key={detail.detailKey}
+            className="myoxus-mermaid-gfx-object-focus-proxy"
             data-object-kind="detail"
-            data-mermaid-edit-key=${detail.detailKey}
+            data-mermaid-edit-key={detail.detailKey}
             type="button"
-            @click=${handlers.onStopEditorEvent}
-            @focus=${() => {
+            onClick={(event) => handlers.onStopEditorEvent?.(event.nativeEvent)}
+            onFocus={() => {
               handlers.onObjectFocus({
                 editKey: detail.ownerKey,
                 kind: "node",
               });
               handlers.onDetailSelect?.(detail.ownerKey, detail.detailKey);
             }}
-            @keydown=${(event: KeyboardEvent) => {
-              if (event.key !== "Enter" && event.key !== " ") return;
-              event.preventDefault();
-              event.stopPropagation();
-              handlers.onDetailEdit?.(detail.ownerKey, detail.detailKey);
-            }}
-          ></button>`,
-      )}
-      ${
-        keyboardSelectionItems.length
-          ? html`<div
-              aria-live="polite"
-              aria-atomic="true"
-              class="myoxus-mermaid-gfx-selection-live-region"
-            >
-              ${visualState.selectionAnnouncement}
-            </div>`
-          : null
-      }
+            onKeyDown={(event) =>
+              ((event: KeyboardEvent) => {
+                if (event.key !== "Enter" && event.key !== " ") return;
+                event.preventDefault();
+                event.stopPropagation();
+                handlers.onDetailEdit?.(detail.ownerKey, detail.detailKey);
+              })?.(event.nativeEvent)
+            }
+          ></button>
+        ))}
+        {keyboardSelectionItems.length ? (
+          <div
+            aria-live="polite"
+            aria-atomic="true"
+            className="myoxus-mermaid-gfx-selection-live-region"
+          >
+            {visualState.selectionAnnouncement}
+          </div>
+        ) : null}
+      </div>
     </div>
-  </div>`;
+  );
   const workareaFooter =
-    embedded || readonly
-      ? html``
-      : html`${renderMermaidGfxViewportResizeHandle({
+    embedded || readonly ? null : (
+      <>
+        {renderMermaidGfxViewportResizeHandle({
           disabled: readonly,
           displayOnly,
           onKeydown: (event) =>
             handlers.onViewportResizeKeydown(event, viewportHeight),
           onPointerDown: (event) =>
             handlers.onViewportResizePointerDown(event, viewportHeight),
-        })}`;
+        })}
+      </>
+    );
 
   return (
-    projectShell?.(workarea, workareaFooter) ??
-    html`${workarea}${workareaFooter}`
+    projectShell?.(workarea, workareaFooter) ?? {
+      actions: null,
+      body: (
+        <>
+          {workarea}
+          {workareaFooter}
+        </>
+      ),
+    }
   );
 }

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
+import { NativeViewElement } from "@virgultum/core/runtime";
 import { effect, untracked } from "@preact/signals-core";
 import {
   type BlockStdScope,
@@ -30,7 +31,7 @@ function syncTargets(container: HTMLElement, targets: HTMLElement[]) {
   }
 }
 
-export class EdgelessSelectedRectWidget extends HTMLElement {
+export class EdgelessSelectedRectWidget extends NativeViewElement {
   private readonly overlay: ShadowRoot;
   private readonly rect = this.ownerDocument.createElement("div");
   private autoComplete?: EdgelessAutoComplete;

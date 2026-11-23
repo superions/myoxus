@@ -25,9 +25,9 @@ export function DocEditResultView({
   applying: boolean;
   accepting: boolean;
   actions: ReactNode;
-  apply: () => void;
-  reject: () => void;
-  accept: () => void;
+  apply?: () => void;
+  reject?: () => void;
+  accept?: () => void;
   children?: ReactNode;
 }) {
   const t = useI18n();
@@ -43,11 +43,13 @@ export function DocEditResultView({
       actions={
         <>
           {actions}
-          <Button disabled={busy} loading={applying} onClick={apply}>
-            {applying
-              ? t["com.myoxus.ai.chat-panel.doc-edit.applying"]()
-              : t.Apply()}
-          </Button>
+          {apply && (
+            <Button disabled={busy} loading={applying} onClick={apply}>
+              {applying
+                ? t["com.myoxus.ai.chat-panel.doc-edit.applying"]()
+                : t.Apply()}
+            </Button>
+          )}
         </>
       }
       data-testid="chat-doc-edit-result"
@@ -55,21 +57,23 @@ export function DocEditResultView({
       {/* Collapse hides rather than disposes the retained rich-text/diff renderer. */}
       <Box hidden={collapsed}>
         {children}
-        <Group>
-          <Button prefix={<CloseIcon />} onClick={reject}>
-            {t["com.myoxus.ai.chat-panel.doc-edit.reject"]()}
-          </Button>
-          <Button
-            prefix={<DoneIcon />}
-            disabled={busy}
-            loading={accepting}
-            onClick={accept}
-          >
-            {accepting
-              ? t["com.myoxus.ai.chat-panel.doc-edit.accepting"]()
-              : t["com.myoxus.ai.chat-panel.doc-edit.accept"]()}
-          </Button>
-        </Group>
+        {reject && accept && (
+          <Group>
+            <Button prefix={<CloseIcon />} onClick={reject}>
+              {t["com.myoxus.ai.chat-panel.doc-edit.reject"]()}
+            </Button>
+            <Button
+              prefix={<DoneIcon />}
+              disabled={busy}
+              loading={accepting}
+              onClick={accept}
+            >
+              {accepting
+                ? t["com.myoxus.ai.chat-panel.doc-edit.accepting"]()
+                : t["com.myoxus.ai.chat-panel.doc-edit.accept"]()}
+            </Button>
+          </Group>
+        )}
       </Box>
     </ReferenceCard>
   );

@@ -1,10 +1,15 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import type { ToolbarControl } from "@virgultum/core/services";
+import type {
+  EditorActionMenuControls,
+  ToolbarControl,
+} from "@virgultum/core/services";
 
 import { createIdentifier } from "@virgultum/core/primitives/di";
 import type { ExtensionType } from "@virgultum/core/store";
-import type { TemplateResult } from "lit";
+import type { ReactNode } from "react";
+import { computed, type ReadonlySignal } from "@preact/signals-core";
+import type { ShapeTextEditDraftActions } from "@virgultum/canvas/gfx";
 import type {
   MermaidBlockShellReactHostProps,
   MermaidEmbeddedTitleReactHostProps,
@@ -17,8 +22,7 @@ export type MermaidFamilyReactRendererToken<TProps> = {
 };
 export type MermaidFamilyReactRendererRegistration<TProps> = {
   readonly token: MermaidFamilyReactRendererToken<TProps>;
-  readonly render: (props: TProps) => TemplateResult;
-  readonly nativeView?: (props: TProps) => unknown;
+  readonly render: (props: TProps) => ReactNode;
 };
 export function defineMermaidFamilyReactRendererToken<TProps>(
   id: string,
@@ -33,9 +37,9 @@ export function createMermaidFamilyReactRendererHost(
       const registration = registrations.find(
         (candidate) => candidate.token === token,
       );
-      if (!registration?.nativeView)
+      if (!registration)
         throw new Error(`Missing native Mermaid toolbar view: ${token.id}`);
-      return { type: "native", node: registration.nativeView(props as never) };
+      return { type: "native", node: registration.render(props as never) };
     },
     renderFamilyEditor: (token, props) => {
       const registration = registrations.find(
@@ -47,7 +51,18 @@ export function createMermaidFamilyReactRendererHost(
     },
   };
 }
+export type MermaidViewBinding = {
+  readonly getSnapshot: () => ReactNode;
+  readonly subscribe: (listener: () => void) => () => void;
+  readonly afterCommit?: () => void;
+};
+
 export type MermaidFamilyReactHost = {
+  readonly mount: (
+    anchor: HTMLElement,
+    binding: MermaidViewBinding,
+  ) => () => void;
+  readonly renderContextMenu: (controls: EditorActionMenuControls) => ReactNode;
   /** Reuse the registered native view directly inside the selection toolbar. */
   readonly toolbarControl: <TProps>(
     token: MermaidFamilyReactRendererToken<TProps>,
@@ -55,18 +70,37 @@ export type MermaidFamilyReactHost = {
   ) => ToolbarControl;
   readonly renderEmbeddedTitle: (
     props: MermaidEmbeddedTitleReactHostProps,
-  ) => TemplateResult;
+  ) => ReactNode;
   readonly renderBlockShell: (
     props: MermaidBlockShellReactHostProps,
-  ) => TemplateResult;
+  ) => ReactNode;
   readonly renderShellNotice: (
     props: MermaidShellNoticeReactHostProps,
-  ) => TemplateResult;
+  ) => ReactNode;
   readonly renderFamilyEditor: <TProps>(
     token: MermaidFamilyReactRendererToken<TProps>,
     props: TProps,
-  ) => TemplateResult;
+  ) => ReactNode;
 };
+/** Keep draft chrome mounted while its anchor follows scoped GFX geometry. */
+export function mountMermaidDraftActions<TProps>(
+  host: MermaidFamilyReactHost | undefined | null,
+  anchor: HTMLElement,
+  actions: ReadonlySignal<ShapeTextEditDraftActions | null>,
+  token: MermaidFamilyReactRendererToken<TProps>,
+  props: (actions: ShapeTextEditDraftActions) => TProps,
+) {
+  if (!host) return;
+  const view = computed(() => {
+    const current = actions.value;
+    return current ? host.renderFamilyEditor(token, props(current)) : null;
+  });
+  return host.mount(anchor, {
+    getSnapshot: () => view.value,
+    subscribe: (listener) => view.subscribe(listener),
+  });
+}
+
 export const MermaidFamilyReactHostIdentifier =
   createIdentifier<MermaidFamilyReactHost>("MermaidFamilyReactHost");
 export function MermaidFamilyReactHostExtension(

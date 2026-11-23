@@ -5331,7 +5331,6 @@ __metadata:
     "@virgultum/canvas": "workspace:*"
     "@virgultum/canvas-runtime": "workspace:*"
     "@virgultum/core": "workspace:*"
-    lit: "npm:^3.3.3"
     yjs: "patch:yjs@npm%3A13.6.32#~/.yarn/patches/yjs-npm-13.6.32-abd1e6b538.patch"
   languageName: unknown
   linkType: soft
@@ -5342,15 +5341,18 @@ __metadata:
   dependencies:
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
+    "@preact/signals-core": "npm:^1.14.5"
+    "@types/react-dom": "npm:^19.0.2"
     "@virgultum/canvas": "workspace:*"
     "@virgultum/canvas-runtime": "workspace:*"
     "@virgultum/content": "workspace:*"
     "@virgultum/core": "workspace:*"
     dayjs: "npm:^1.11.23"
     dompurify: "npm:3.4.17"
-    lit: "npm:^3.3.3"
     marked: "npm:^16.3.0"
     mermaid: "patch:mermaid@npm%3A11.17.2#~/.yarn/patches/mermaid-npm-11.17.2-97875ab19c.patch"
+    react: "npm:19.3.0"
+    react-dom: "npm:19.3.0"
     ts-dedent: "npm:^2.2.0"
     yaml: "npm:2.9.1"
   languageName: unknown

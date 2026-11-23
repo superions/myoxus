@@ -2,6 +2,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useService } from "@myoxus/infra";
 import { Popover, PopoverContent, PopoverTarget } from "@myoxus/ui-facade";
+import type { CitationFootNote } from "@virgultum/core/models";
+import type { Store } from "@virgultum/core/store";
 import { createAbsolutePositionFromRelativePosition } from "yjs";
 import {
   LinkPreviewCache,
@@ -23,17 +25,36 @@ import { EditorCitationPreview } from "../../view-extensions/editor-view/editor-
 import type { PageInlineObject } from "./page-inline-object";
 import type { PageLine } from "./plain-page-model";
 
-export default function PageCitation({
-  object,
-  line,
-  field,
-  readonly,
-}: {
+type PageSource = {
   object: Extract<PageInlineObject, { kind: "citation" }>;
   line: PageLine;
   field: HTMLElement;
   readonly: boolean;
+};
+
+export default function PageCitation(source: PageSource) {
+  return (
+    <CitationMarker
+      store={source.line.model.store}
+      footnote={source.object.value}
+      source={source}
+    />
+  );
+}
+
+/** Stored Markdown borrows the same access-aware reader, without a writable Yjs range. */
+export function CitationMarker({
+  store,
+  footnote,
+  source,
+}: {
+  store: Store;
+  footnote: CitationFootNote;
+  source?: PageSource;
 }) {
+  const marker = useRef<HTMLElement>(null);
+  const field = source?.field;
+  const line = source?.line;
   const guard = useService(GuardService),
     docs = useService(DocsService),
     workspace = useService(WorkspaceService).workspace,
@@ -44,13 +65,17 @@ export default function PageCitation({
     [controls, setControls] = useState<EditorCitationControls>(),
     timer = useRef<ReturnType<typeof setTimeout>>(undefined),
     lease = useRef<AbortController | null>(null);
-  const store = line.model.store,
-    footnote = object.value;
+
   const offset = () => {
-    if (!field.isConnected || store.getModelById(line.model.id) !== line.model)
+    if (
+      !line ||
+      !source ||
+      !field?.isConnected ||
+      store.getModelById(line.model.id) !== line.model
+    )
       return;
     const at = createAbsolutePositionFromRelativePosition(
-      object.start,
+      source.object.start,
       store.spaceDoc,
     );
     if (
@@ -63,9 +88,11 @@ export default function PageCitation({
       return at.index;
     return undefined;
   };
+  const current = () =>
+    source ? offset() !== undefined : Boolean(marker.current?.isConnected);
   const activate = async () => {
     const { reference: r } = footnote;
-    if (offset() === undefined) return;
+    if (!current()) return;
     if (r.type === "url" && r.url) {
       const url = normalizeUrl(r.url);
       if (url && isValidUrl(url))
@@ -88,7 +115,7 @@ export default function PageCitation({
           target &&
           (await target.access.canRead(target.docId)) &&
           !abort.signal.aborted &&
-          offset() !== undefined
+          current()
         )
           void peek
             .open({
@@ -112,10 +139,11 @@ export default function PageCitation({
       clearTimeout(timer.current);
       lease.current?.abort();
     },
-    [],
+    [store, footnote],
   );
   useLayoutEffect(() => {
-    if (!open) {
+    const target = field ?? marker.current;
+    if (!open || !target) {
       setControls(undefined);
       return;
     }
@@ -131,11 +159,14 @@ export default function PageCitation({
         image: (u) =>
           buildImageProxyURL(u, new URL(BUILD_CONFIG.imageProxyUrl, base).href),
         readonly: () =>
-          readonly || store.readonly || store.hasFixedText(line.model),
+          !source ||
+          source.readonly ||
+          store.readonly ||
+          store.hasFixedText(source.line.model),
       },
-      field,
+      target,
       footnote,
-      () => (offset() === undefined ? undefined : footnote),
+      () => (current() ? footnote : undefined),
       abort,
       () => {
         void activate();
@@ -143,7 +174,7 @@ export default function PageCitation({
       },
       (next) => {
         const at = offset();
-        if (at !== undefined)
+        if (line && at !== undefined)
           store.transact(() => line.text.format(at, 1, { footnote: next }));
       },
     );
@@ -162,8 +193,8 @@ export default function PageCitation({
     store,
     field,
     footnote,
-    readonly,
-    line.model,
+    source?.readonly,
+    line?.model,
   ]);
   const hover = (value: boolean) => {
     clearTimeout(timer.current);
@@ -173,7 +204,11 @@ export default function PageCitation({
   return (
     <Popover opened={open} onChange={setOpen} position="top" fitViewport>
       <PopoverTarget>
-        <sup onMouseEnter={() => hover(true)} onMouseLeave={() => hover(false)}>
+        <sup
+          ref={marker}
+          onMouseEnter={() => hover(true)}
+          onMouseLeave={() => hover(false)}
+        >
           <FootnoteMarker
             label={footnote.label}
             missing={false}

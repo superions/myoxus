@@ -8,7 +8,7 @@ import type { WidgetViewType } from "../spec/type.js";
  *
  * @param flavour The flavour of the block that the widget view is for.
  * @param id The id of the widget view.
- * @param view The widget view lit literal.
+ * @param view A native widget tag or the retained Lit literal.
  *
  * A widget view is to provide a widget view for a block.
  * For every target block, it's view will be rendered with the widget view.

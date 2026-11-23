@@ -2,13 +2,12 @@
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
 import { PageIcon, SearchIcon, ViewIcon } from "@myoxus/icons/react";
-import type { ReactToLit } from "@myoxus/lit-react";
-import { createElement } from "react";
+import { createElement, type ReactNode } from "react";
 import { chatI18n } from "../chat-i18n";
 import {
-  renderToolCallCard,
-  renderToolFailedCard,
-  renderToolResultCard,
+  toolCallCard,
+  toolFailedCard,
+  toolResultCard,
   type ToolResult,
 } from "./tool-cards";
 
@@ -30,7 +29,6 @@ function text(value: unknown): string | undefined {
 
 /** MCP uses external document keys; internal UUIDs must never become navigation targets. */
 export function renderNativeMcpTool(
-  host: ReactToLit | undefined,
   data: {
     type: "tool-call" | "tool-result";
     toolName: string;
@@ -48,20 +46,18 @@ export function renderNativeMcpTool(
     generating: boolean;
     contained?: boolean;
   },
-) {
+): ReactNode {
   const tool = data.toolName as NativeTool;
   const name = chatI18n()[labels[tool]]();
   const icon = createElement(tool === "search_docs" ? SearchIcon : ViewIcon);
   const failed = () =>
-    renderToolFailedCard(host, {
+    toolFailedCard({
       name: chatI18n()["com.myoxus.ai.tools.failed"]({ tool: name }),
       icon,
       contained,
     });
   if (data.type === "tool-call")
-    return generating
-      ? renderToolCallCard(host, { name, icon, contained })
-      : failed();
+    return generating ? toolCallCard({ name, icon, contained }) : failed();
   const value = record(data.result);
   if (value.type === "error") return failed();
   const source = (value: unknown, externalId?: string): ToolResult => {
@@ -88,5 +84,5 @@ export function renderNativeMcpTool(
               content: text(value.description),
             },
           ];
-  return renderToolResultCard(host, { name, icon, results, contained });
+  return toolResultCard({ name, icon, results, contained });
 }

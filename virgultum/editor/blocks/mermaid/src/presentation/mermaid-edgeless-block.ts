@@ -6,17 +6,17 @@ import {
   MermaidBlockSchema,
   type MermaidBlockModel,
 } from "@virgultum/core/models";
-import { GfxBlockComponent } from "@virgultum/core/runtime";
+import { NativeGfxBlockComponent } from "@virgultum/canvas-runtime/surface";
 import {
   type BoxSelectionContext,
   GfxViewInteractionExtension,
   InteractivityExtension,
   type GfxModel,
 } from "@virgultum/core/runtime/gfx";
-import { html, nothing, type PropertyValues } from "lit";
 
 import { resolveMermaidSourceLifecycle } from "../families/runtime/source-lifecycle.js";
 import { MermaidFamilyReactHostIdentifier } from "../families/runtime/react-host.js";
+import type { ReactNode } from "react";
 import { mermaidMessages } from "../i18n.js";
 import { getMermaidBlockSource } from "../utils.js";
 import { subscribeMermaidNativeValidation } from "../families/runtime/native-validation.js";
@@ -256,9 +256,15 @@ export class MermaidEdgelessSubgraphInteraction extends InteractivityExtension {
   }
 }
 
-export class MermaidEdgelessBlockComponent extends GfxBlockComponent<MermaidBlockModel> {
-  override connectedCallback() {
-    super.connectedCallback();
+export class MermaidEdgelessBlockComponent extends NativeGfxBlockComponent<MermaidBlockModel> {
+  private notice: ReactNode = null;
+  private noticeKey = "";
+  private readonly noticeListeners = new Set<() => void>();
+  private releaseNotice?: () => void;
+
+  connectedCallback() {
+    if (!this.connectBlock()) return;
+    this.bindGfx();
     const selection = bindNativeMermaidSessionSelection(
       this.store,
       this.model,
@@ -298,6 +304,11 @@ export class MermaidEdgelessBlockComponent extends GfxBlockComponent<MermaidBloc
     );
   }
 
+  override disconnectedCallback() {
+    this.releaseNotice?.();
+    super.disconnectedCallback();
+  }
+
   override getRenderingRect() {
     const bound = Bound.deserialize(this.model.xywh);
     return {
@@ -310,8 +321,7 @@ export class MermaidEdgelessBlockComponent extends GfxBlockComponent<MermaidBloc
     };
   }
 
-  override updated(changed: PropertyValues) {
-    super.updated(changed);
+  protected override renderGfxView() {
     // Native children paint on the shared surface, so expose the diagram's
     // accessible metadata on its existing non-intercepting owner host.
     const visual = getMermaidVisualModelFromProjectionOwner(
@@ -331,6 +341,7 @@ export class MermaidEdgelessBlockComponent extends GfxBlockComponent<MermaidBloc
       if (value) this.setAttribute(attribute!, value);
       else this.removeAttribute(attribute!);
     }
+    this.updateNotice();
   }
 
   override onBoxSelected({ box }: BoxSelectionContext) {
@@ -341,7 +352,7 @@ export class MermaidEdgelessBlockComponent extends GfxBlockComponent<MermaidBloc
     );
   }
 
-  override renderGfxBlock() {
+  private updateNotice() {
     const source = getMermaidBlockSource(this.model.props);
     if (
       canMutateMermaidGfxOwnerSource({
@@ -350,8 +361,11 @@ export class MermaidEdgelessBlockComponent extends GfxBlockComponent<MermaidBloc
         source,
       })
     ) {
-      return nothing;
+      this.releaseNotice?.();
+      return;
     }
+    const presenter = this.std.getOptional(MermaidFamilyReactHostIdentifier);
+    if (!presenter) return;
     const lifecycle = resolveMermaidSourceLifecycle(source);
     const resolution = lifecycle.resolution;
     const message =
@@ -362,23 +376,43 @@ export class MermaidEdgelessBlockComponent extends GfxBlockComponent<MermaidBloc
       mermaidMessages.visualMutationSourceRejected(
         resolution.diagramType || "Mermaid",
       );
-    const reactHost = this.std.getOptional(MermaidFamilyReactHostIdentifier);
     const retained = this.model.props.lastValidSource;
+    const next = {
+      message,
+      title:
+        retained && resolveMermaidSourceLifecycle(retained).canRetainAsLastValid
+          ? `${mermaidMessages.lastValidPreviewLabel()} · ${mermaidMessages.ganttReadOnly()}`
+          : mermaidMessages.errorTitle(),
+      tone: "error",
+    } as const;
+    const key = JSON.stringify(next);
+    if (this.noticeKey === key) return;
+    this.noticeKey = key;
+    this.notice = presenter.renderShellNotice(next);
+    if (this.releaseNotice) {
+      for (const listener of this.noticeListeners) listener();
+      return;
+    }
     // Keep diagnostic chrome above the native owner rather than covering its
     // retained Start/edge labels. This is overlay geometry, not a Source move.
-    return html`<div style="transform: translateY(-100%)">
-      ${
-        reactHost?.renderShellNotice({
-          message,
-          title:
-            retained &&
-            resolveMermaidSourceLifecycle(retained).canRetainAsLastValid
-              ? `${mermaidMessages.lastValidPreviewLabel()} · ${mermaidMessages.ganttReadOnly()}`
-              : mermaidMessages.errorTitle(),
-          tone: "error",
-        }) ?? nothing
-      }
-    </div>`;
+    const anchor = this.ownerDocument.createElement("div");
+    anchor.style.transform = "translateY(-100%)";
+    this.append(anchor);
+    const unmount = presenter.mount(anchor, {
+      getSnapshot: () => this.notice,
+      subscribe: (listener) => {
+        this.noticeListeners.add(listener);
+        return () => this.noticeListeners.delete(listener);
+      },
+    });
+    this.releaseNotice = () => {
+      unmount();
+      anchor.remove();
+      this.notice = null;
+      this.noticeKey = "";
+      this.noticeListeners.clear();
+      this.releaseNotice = undefined;
+    };
   }
 }
 

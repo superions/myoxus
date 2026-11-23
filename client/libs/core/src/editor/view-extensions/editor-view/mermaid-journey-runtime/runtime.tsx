@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { useI18n } from "@myoxus/i18n";
-import type { ReactToLit } from "@myoxus/lit-react";
 import {
   Alert,
   IconButton,
@@ -1026,12 +1025,9 @@ export function MermaidJourneyRuntime({
     </div>
   );
 }
-export function createMermaidJourneyRendererRegistration(
-  reactToLit: ReactToLit,
-): MermaidFamilyReactRendererRegistration<MermaidJourneyReactHostProps> {
+export function createMermaidJourneyRendererRegistration(): MermaidFamilyReactRendererRegistration<MermaidJourneyReactHostProps> {
   return {
     token: mermaidJourneyRendererToken,
-    render: (props) =>
-      reactToLit(<MermaidJourneyRuntime props={props} />, true),
+    render: (props) => <MermaidJourneyRuntime props={props} />,
   };
 }

@@ -14,7 +14,7 @@ import type {
   MermaidVisualSemanticStyle,
   MermaidVisualSubgraph,
 } from "./gfx-model.js";
-import type { TemplateResult } from "lit";
+import type { ReactNode } from "react";
 import type { MermaidRuntimeTransactionOptions } from "./transaction.js";
 import type {
   MermaidFamilyRenderSurface,
@@ -79,7 +79,9 @@ export type MermaidHostProjectionContext = {
         ownerId: string;
         detailId: string;
       } | null;
-      readonly projectActions?: (context: MermaidGfxActionContext) => unknown;
+      readonly projectActions?: (
+        context: MermaidGfxActionContext,
+      ) => MermaidGfxFamilyProjection | ReactNode;
       readonly pageSelectionTools?: MermaidPageSelectionToolsContribution;
       readonly renderSurface: Exclude<
         MermaidFamilyRenderSurface,
@@ -87,18 +89,18 @@ export type MermaidHostProjectionContext = {
       >;
     },
   ) => MermaidEditorShellProjection;
-  readonly renderSourceFirst: () => unknown;
+  readonly renderSourceFirst: () => ReactNode;
 };
 
 export type MermaidEditorShellProjection = {
   readonly actions: MermaidFamilyActionContribution | null;
-  readonly body: unknown;
+  readonly body: ReactNode;
   readonly notice?: MermaidShellNoticeReactHostProps;
 };
 
 export type MermaidGfxFamilyProjection = {
   readonly actions: MermaidFamilyActionContribution;
-  readonly body: unknown;
+  readonly body: ReactNode;
 };
 
 export function isMermaidGfxFamilyProjection(
@@ -115,7 +117,7 @@ export function isMermaidGfxFamilyProjection(
 }
 
 export function structuredEditorProjection(
-  body: unknown,
+  body: ReactNode,
   label: string,
   disabled: boolean,
   selectionAction: MermaidSelectionActionModel | null,
@@ -298,8 +300,8 @@ export type MermaidGfxActionContext = {
   readonly setEdgeStyle: (value: unknown) => void;
   readonly setEdgeVisualStyle: (value: string | null) => void;
   readonly visualModel: MermaidVisualModel;
-  readonly workarea: TemplateResult | null;
-  readonly workareaFooter: TemplateResult | null;
+  readonly workarea: ReactNode | null;
+  readonly workareaFooter: ReactNode | null;
 };
 
 export type MermaidGfxInspector = {
@@ -347,7 +349,7 @@ export function gfxEditorCapabilities(
     readonly pageSelectionTools?: MermaidPageSelectionToolsContribution;
     readonly projectActions: (
       context: MermaidGfxActionContext,
-    ) => MermaidGfxFamilyProjection | unknown;
+    ) => MermaidGfxFamilyProjection | ReactNode;
   },
 ): MermaidEditorCapabilities {
   return {

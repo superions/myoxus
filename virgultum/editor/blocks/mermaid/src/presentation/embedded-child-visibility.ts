@@ -44,22 +44,13 @@ export class MermaidEmbeddedChildVisibility extends LifeCycleWatcher {
 
   private readonly _disposables = new DisposableGroup();
   override mounted() {
-    this._recompute();
+    const gfx = this.std.get(GfxControllerIdentifier);
     this._disposables.add(
       this.std.store.slots.blockUpdated.subscribe(() => this._recompute()),
     );
     // The surface view can mount after this watcher. Readonly documents do not
     // produce a model write that would otherwise initialize the exclusion set.
-    this._disposables.add(
-      this.std.view.viewUpdated.subscribe(({ id, method, type }) => {
-        if (
-          type === "block" &&
-          method === "add" &&
-          id === this.std.getOptional(GfxControllerIdentifier)?.surface?.id
-        )
-          this._recompute();
-      }),
-    );
+    this._disposables.add(gfx.surfaceView$.subscribe(() => this._recompute()));
   }
 
   override unmounted() {

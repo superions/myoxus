@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import type { TemplateResult } from "lit";
+import type { ReactNode } from "react";
 import type {
   MermaidGitGraphModel,
   GitGraphCommandResult,
@@ -51,8 +51,8 @@ export type GitGraphReactHostProps = {
   embedded: boolean;
   embeddedEditing: boolean;
   actionTarget: HTMLElement | null;
-  workarea: TemplateResult | null;
-  workareaFooter: TemplateResult | null;
+  workarea: ReactNode | null;
+  workareaFooter: ReactNode | null;
   pageViewport?: MermaidPageViewportProjection;
   viewportIdentity?: object;
   onCommand: <K extends GitGraphCommandName>(
@@ -94,8 +94,8 @@ export type GitGraphRepairHostProps = {
   diagnostics: import("../../engine/gitgraph/diagnostics.js").GitGraphDiagnostic[];
   readonly: boolean;
   embedded: boolean;
-  workarea: TemplateResult | null;
-  workareaFooter: TemplateResult | null;
+  workarea: ReactNode | null;
+  workareaFooter: ReactNode | null;
   pageViewport?: MermaidPageViewportProjection;
   viewportIdentity?: object;
   onRename: (

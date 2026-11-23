@@ -18,6 +18,7 @@ import {
   createRetainedWidgetViews,
   editorHostSelector,
   isEditorHost,
+  NativeViewElement,
 } from "@virgultum/core/runtime";
 import type { BlockModel, BlockViewType, Store } from "@virgultum/core/store";
 
@@ -81,7 +82,7 @@ export abstract class NativeBlockComponent<
   Model extends BlockModel,
   Service extends BlockService = BlockService,
 >
-  extends HTMLElement
+  extends NativeViewElement
   implements BlockComponent<Model, Service>
 {
   [blockComponentSymbol] = true;

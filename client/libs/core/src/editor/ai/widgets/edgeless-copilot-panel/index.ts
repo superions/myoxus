@@ -1,67 +1,61 @@
-import { WithDisposable } from "@virgultum/editor/global/lit";
-import { ShadowlessElement } from "@virgultum/editor/std";
-import { createElement } from "react";
-import { AIWidgetUI } from "../native-ui";
+import { signal } from "@preact/signals-core";
+import { createElement, type ReactNode } from "react";
+import { NativeAIWidgetUI } from "../native-ui";
 import { AIActionMenu } from "../ai-panel/view";
-import { on, stopPropagation } from "@virgultum/editor/shared/utils";
-import type { EditorHost } from "@virgultum/editor/std";
-import { nothing } from "lit";
-import { property } from "lit/decorators.js";
+import { stopPropagation } from "@virgultum/editor/shared/utils";
+import { NativeViewElement, type EditorHost } from "@virgultum/editor/std";
 
 import type { AIItemGroupConfig } from "../../components/ai-item/types";
 
-export class EdgelessCopilotPanel extends WithDisposable(ShadowlessElement) {
-  private _getChain() {
-    return this.host.std.command.chain();
-  }
+export class EdgelessCopilotPanel extends NativeViewElement {
+  host!: EditorHost;
+  groups!: AIItemGroupConfig[];
+  onClick?: () => void;
+  private dispose?: () => void;
 
-  override connectedCallback(): void {
-    super.connectedCallback();
+  connectedCallback() {
+    const mount = this.host.std.getOptional(NativeAIWidgetUI);
+    if (!mount) return;
+    const chain = this.host.std.command.chain();
+    const groups = this.groups
+      .map((group) => ({
+        ...group,
+        items: group.items.filter((item) =>
+          item.showWhen?.(chain, "edgeless", this.host),
+        ),
+      }))
+      .filter((group) => group.items.length > 0);
+    if (!groups.length) return;
     this.style.position = "absolute";
     this.style.zIndex = "var(--myoxus-z-index-popover)";
-    this._disposables.add(on(this, "wheel", stopPropagation));
-    this._disposables.add(on(this, "pointerdown", stopPropagation));
+    const events = new AbortController();
+    for (const name of ["wheel", "pointerdown"] as const)
+      this.addEventListener(name, stopPropagation, { signal: events.signal });
+    const release = mount(
+      this,
+      signal<ReactNode>(
+        createElement(AIActionMenu, {
+          host: this.host,
+          groups,
+          maxHeight: "floating",
+          onChoose: () => this.onClick?.(),
+        }),
+      ),
+    );
+    this.dispose = () => {
+      events.abort();
+      release();
+    };
+  }
+
+  disconnectedCallback() {
+    this.dispose?.();
+    this.dispose = undefined;
   }
 
   hide() {
     this.remove();
   }
-
-  override render() {
-    const chain = this._getChain();
-    const groups = this.groups.reduce((pre, group) => {
-      const filtered = group.items.filter((item) =>
-        item.showWhen?.(chain, "edgeless", this.host),
-      );
-
-      if (filtered.length > 0) pre.push({ ...group, items: filtered });
-
-      return pre;
-    }, [] as AIItemGroupConfig[]);
-
-    if (groups.every((group) => group.items.length === 0)) return nothing;
-
-    return this.host.std.get(AIWidgetUI)(
-      createElement(AIActionMenu, {
-        host: this.host,
-        groups,
-        maxHeight: "floating",
-        onChoose: () => this.onClick?.(),
-      }),
-    );
-  }
-
-  @property({ attribute: false })
-  accessor entry: "toolbar" | "selection" | undefined = undefined;
-
-  @property({ attribute: false })
-  accessor groups!: AIItemGroupConfig[];
-
-  @property({ attribute: false })
-  accessor host!: EditorHost;
-
-  @property({ attribute: false })
-  accessor onClick: (() => void) | undefined = undefined;
 }
 
 declare global {

@@ -7,7 +7,6 @@ import {
   PlusIcon,
   SettingsIcon,
 } from "@myoxus/icons/react";
-import type { ReactToLit } from "@myoxus/lit-react";
 import {
   Alert,
   Button,
@@ -1361,11 +1360,9 @@ function ReorderImpactDialog({
   );
 }
 
-export function createMermaidGanttRendererRegistration(
-  reactToLit: ReactToLit,
-): MermaidFamilyReactRendererRegistration<MermaidGanttReactHostProps> {
+export function createMermaidGanttRendererRegistration(): MermaidFamilyReactRendererRegistration<MermaidGanttReactHostProps> {
   return {
     token: mermaidGanttRendererToken,
-    render: (props) => reactToLit(<MermaidGanttRuntime props={props} />, true),
+    render: (props) => <MermaidGanttRuntime props={props} />,
   };
 }

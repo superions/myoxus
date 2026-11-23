@@ -198,7 +198,7 @@ const usePatchSpecs = (mode: DocMode, shared?: boolean) => {
     const manager = getViewManager()
       .config.init()
       .foundation(framework)
-      .ai(enableAI, framework, reactToLit)
+      .ai(enableAI, framework, reactToLit, mountPortal)
       .theme(framework)
       .editorConfig(framework)
       .editorView({

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
+import { NativeViewElement } from "@virgultum/core/runtime";
 import { effect } from "@preact/signals-core";
 import { DisposableGroup } from "@virgultum/core/primitives/disposable";
 import { FrameBlockModel } from "@virgultum/core/models";
@@ -16,7 +17,7 @@ import {
 import { mountFrameTitleEditor } from "./mount-frame-title-editor";
 import { frameTitleStyle } from "./styles";
 
-export class MyoxusFrameTitle extends HTMLElement {
+export class MyoxusFrameTitle extends NativeViewElement {
   model!: FrameBlockModel;
   std!: BlockStdScope;
 

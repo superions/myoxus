@@ -4,7 +4,10 @@
 import type { RichText } from "@virgultum/content/rich-text";
 import { DisposableGroup } from "@virgultum/core/primitives/disposable";
 import type { FrameBlockModel } from "@virgultum/core/models";
-import type { BlockComponent } from "@virgultum/core/runtime";
+import {
+  NativeViewElement,
+  type BlockComponent,
+} from "@virgultum/core/runtime";
 import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
 import { RANGE_SYNC_EXCLUDE_ATTR } from "@virgultum/core/runtime/inline";
 import { ThemeProvider } from "@virgultum/core/services";
@@ -14,7 +17,7 @@ import {
   positionFrameTitleEditor,
 } from "./edgeless-frame-title-editor";
 
-export class EdgelessFrameTitleEditor extends HTMLElement {
+export class EdgelessFrameTitleEditor extends NativeViewElement {
   edgeless!: BlockComponent;
   frameModel!: FrameBlockModel;
 

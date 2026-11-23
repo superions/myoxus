@@ -6,6 +6,8 @@ import {
   type PropsWithChildren,
   useCallback,
   useEffect,
+  useId,
+  useLayoutEffect,
   useState,
 } from "react";
 
@@ -30,17 +32,6 @@ function resolveEditorColorScheme(
   return theme === "dark" || theme === "light" ? theme : undefined;
 }
 
-function ensureEditorPortalSelector(portalRoot: HTMLElement) {
-  const attribute = "data-myoxus-editor-react-root";
-  let id = portalRoot.getAttribute(attribute);
-  if (!id) {
-    id = portalRoot.getAttribute("portalid");
-    if (!id) throw new Error("Editor React portal is missing its anchor id");
-    portalRoot.setAttribute(attribute, id);
-  }
-  return `[${attribute}="${id}"]`;
-}
-
 /** Keep Mantine controls aligned with the nearest Page/Edgeless renderer. */
 export function EditorEmbeddedUIRoot({
   children,
@@ -49,9 +40,13 @@ export function EditorEmbeddedUIRoot({
   const [colorScheme, setColorScheme] = useState<"dark" | "light" | undefined>(
     () => resolveEditorColorScheme(portalRoot),
   );
-  const [cssVariablesSelector] = useState(() =>
-    ensureEditorPortalSelector(portalRoot),
-  );
+  const id = useId();
+  const attribute = "data-myoxus-editor-react-root";
+  const cssVariablesSelector = `[${attribute}="${id}"]`;
+  useLayoutEffect(() => {
+    portalRoot.setAttribute(attribute, id);
+    return () => portalRoot.removeAttribute(attribute);
+  }, [portalRoot, id]);
   const getRootElement = useCallback(() => portalRoot, [portalRoot]);
 
   useEffect(() => {

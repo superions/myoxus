@@ -10,7 +10,6 @@ import {
   UndoIcon,
   WorkflowIcon,
 } from "@myoxus/icons";
-import { toReactNode } from "@myoxus/lit-react";
 import {
   Alert,
   Box,
@@ -342,8 +341,8 @@ type MermaidGfxEditorWorkbenchProps = {
   readonly selectionKey: string;
   readonly selectionControls?: ReactNode;
   readonly toolbar?: ReactNode;
-  readonly workarea: Parameters<typeof toReactNode>[0] | null;
-  readonly workareaFooter?: Parameters<typeof toReactNode>[0] | null;
+  readonly workarea: ReactNode | null;
+  readonly workareaFooter?: ReactNode | null;
   readonly workareaAccessibilityDescription?: string;
   readonly workareaAccessibilityTitle?: string;
   readonly workareaHeader?: ReactNode;
@@ -479,7 +478,7 @@ export function MermaidGfxEditorWorkbench({
               role="group"
             >
               {workareaHeader}
-              {workarea ? toReactNode(workarea) : null}
+              {workarea ? workarea : null}
             </Stack>
             {overlayTarget && selectionControls
               ? createPortal(selectionControls, overlayTarget)
@@ -489,7 +488,7 @@ export function MermaidGfxEditorWorkbench({
         ) : (
           <Box pos="relative" ref={workareaRef}>
             {workareaHeader}
-            {workarea ? toReactNode(workarea) : null}
+            {workarea ? workarea : null}
             {overlayTarget && selectionControls
               ? createPortal(selectionControls, overlayTarget)
               : null}
@@ -497,7 +496,7 @@ export function MermaidGfxEditorWorkbench({
           </Box>
         )}
       </MermaidEditorWorkbench>
-      {workareaFooter ? toReactNode(workareaFooter) : null}
+      {workareaFooter ? workareaFooter : null}
     </>
   );
 }
@@ -1279,13 +1278,7 @@ export function MermaidBlockShell({
                 >
                   {renderedFamilyActions.actions.map((action) =>
                     action.popoverProjection ? (
-                      <Box key={action.id}>
-                        {toReactNode(
-                          action.popoverProjection as Parameters<
-                            typeof toReactNode
-                          >[0],
-                        )}
-                      </Box>
+                      <Box key={action.id}>{action.popoverProjection}</Box>
                     ) : null,
                   )}
                 </IconButtonGroup>
@@ -1298,9 +1291,7 @@ export function MermaidBlockShell({
         ) : null}
         {readingSnapshot && props.mode === "source" ? (
           props.sourcePreview ? (
-            toReactNode(
-              props.sourcePreview as Parameters<typeof toReactNode>[0],
-            )
+            props.sourcePreview
           ) : (
             <MyoxusText>{props.labels.previewEmpty}</MyoxusText>
           )
@@ -1317,9 +1308,7 @@ export function MermaidBlockShell({
                 and must not add a second visual projection beneath it. */}
             {props.usesGfxOnlyDiagram ? null : (
               <Box aria-label={props.labels.sourcePreview} role="group">
-                {toReactNode(
-                  props.sourcePreview as Parameters<typeof toReactNode>[0],
-                )}
+                {props.sourcePreview}
               </Box>
             )}
           </Stack>
@@ -1366,7 +1355,7 @@ export function MermaidBlockShell({
             ) : null}
           </Stack>
         ) : props.body ? (
-          toReactNode(props.body as Parameters<typeof toReactNode>[0])
+          props.body
         ) : null}
       </Stack>
     </Card>

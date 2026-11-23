@@ -1,38 +1,39 @@
 import { Bound, clamp } from "@virgultum/editor/global/gfx";
-import { toGfxBlockComponent } from "@virgultum/editor/std";
+import { NativeGfxBlockComponent } from "@virgultum/editor/blocks/surface";
+import { Peekable } from "@virgultum/editor/components/peek";
 import { GfxViewInteractionExtension } from "@virgultum/core/runtime/gfx";
-import { html } from "lit";
-import { styleMap } from "lit/directives/style-map.js";
 
-import { AIChatBlockComponent } from "./ai-chat-block";
-import { AIChatBlockSchema } from "./model";
+import { mountStoredAIChat } from "./ai-chat-block";
+import { AIChatBlockSchema, type AIChatBlockModel } from "./model";
 
-export class EdgelessAIChatBlockComponent extends toGfxBlockComponent(
-  AIChatBlockComponent,
-) {
-  override renderGfxBlock() {
+@Peekable({
+  enableOn: () => !BUILD_CONFIG.isMobileEdition,
+})
+export class EdgelessAIChatBlockComponent extends NativeGfxBlockComponent<AIChatBlockModel> {
+  private readonly card = document.createElement("div");
+
+  connectedCallback() {
+    if (!this.connectBlock()) return;
+    this.card.className = "edgeless-ai-chat";
+    this.append(this.card);
+    this.disposables.add(() => this.card.remove());
+    this.bindGfx();
+    mountStoredAIChat(this, this.card);
+  }
+
+  protected override renderGfxView() {
     const bound = Bound.deserialize(this.model.props.xywh$.value);
     const scale = this.model.props.scale$.value;
-    const width = bound.w / scale;
-    const height = bound.h / scale;
-    // Bound-derived width, height and scale are renderer geometry. Visual
-    // chrome still comes from the global Myoxus theme tokens.
-    const style = {
-      width: `${width}px`,
-      height: `${height}px`,
+    Object.assign(this.card.style, {
+      width: `${bound.w / scale}px`,
+      height: `${bound.h / scale}px`,
       borderRadius: "var(--mantine-radius-lg)",
       transformOrigin: "0 0",
       boxShadow: "var(--mantine-shadow-sm)",
       border:
         "calc(var(--mantine-scale) * 1px) solid var(--myoxus-border-color)",
       transform: `scale(${scale})`,
-    };
-
-    return html`
-      <div class="edgeless-ai-chat" style=${styleMap(style)}>
-        ${this.renderPageContent()}
-      </div>
-    `;
+    });
   }
 }
 

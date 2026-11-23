@@ -97,6 +97,18 @@ export function handleError(src: any) {
   return err;
 }
 
+/** Saved files use the authenticated server transport independently of model availability. */
+export async function downloadSavedCopilotFile(
+  fetchFile: (url: string) => Promise<Response>,
+  file: CopilotGeneratedFile,
+  current: () => boolean = () => true,
+) {
+  const response = await fetchFile(file.downloadUrl);
+  if (!response.ok) throw new Error("File download failed");
+  const blob = await response.blob();
+  if (current()) await downloadBlob(blob, file.fileName);
+}
+
 export class CopilotClient {
   private readonly fileExports = new Map<
     string,
@@ -141,9 +153,7 @@ export class CopilotClient {
   async downloadGeneratedFile(file: CopilotGeneratedFile) {
     if (!this.fetchFile)
       throw new Error("Authenticated file transport unavailable");
-    const response = await this.fetchFile(file.downloadUrl);
-    if (!response.ok) throw new Error("File download failed");
-    await downloadBlob(await response.blob(), file.fileName);
+    await downloadSavedCopilotFile(this.fetchFile, file);
   }
 
   async createSession(

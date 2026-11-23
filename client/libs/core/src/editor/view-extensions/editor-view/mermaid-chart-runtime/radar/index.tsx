@@ -6,7 +6,6 @@ import {
   CommentIcon,
   TableIcon,
 } from "@myoxus/icons";
-import type { ReactToLit } from "@myoxus/lit-react";
 import {
   Alert,
   Button,
@@ -757,11 +756,9 @@ export function MermaidRadarRuntime({
   );
 }
 
-export function createMermaidRadarRendererRegistration(
-  reactToLit: ReactToLit,
-): MermaidFamilyReactRendererRegistration<MermaidRadarReactHostProps> {
+export function createMermaidRadarRendererRegistration(): MermaidFamilyReactRendererRegistration<MermaidRadarReactHostProps> {
   return {
     token: mermaidRadarRendererToken,
-    render: (props) => reactToLit(<MermaidRadarRuntime props={props} />, true),
+    render: (props) => <MermaidRadarRuntime props={props} />,
   };
 }

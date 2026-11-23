@@ -8,3 +8,7 @@ export const serviceContext = createContext<BlockService>("service");
 export const blockComponentSymbol = Symbol("blockComponent");
 export const WIDGET_ID_ATTR = "data-widget-id";
 export const BLOCK_ID_ATTR = "data-block-id";
+
+// Data-only consumers import view registrations in Node without mounting them.
+export const NativeViewElement =
+  globalThis.HTMLElement ?? (class {} as typeof HTMLElement);

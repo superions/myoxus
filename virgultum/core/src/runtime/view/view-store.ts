@@ -1,7 +1,13 @@
 import { Subject } from "rxjs";
 
 import { LifeCycleWatcher } from "../extension/index.js";
-import type { BlockComponent, WidgetComponent } from "./element/index.js";
+import type {
+  BlockComponent,
+  NativeEditorWidget,
+  WidgetComponent,
+} from "./element/index.js";
+
+export type EditorWidgetView = WidgetComponent | NativeEditorWidget;
 
 type ViewUpdateMethod = "delete" | "add";
 
@@ -16,7 +22,7 @@ export type ViewUpdatePayload =
       id: string;
       method: ViewUpdateMethod;
       type: "widget";
-      view: WidgetComponent;
+      view: EditorWidgetView;
     };
 
 export class ViewStore extends LifeCycleWatcher {
@@ -40,7 +46,7 @@ export class ViewStore extends LifeCycleWatcher {
     return this._blockMap.get(id) ?? null;
   };
 
-  private readonly _widgetMap = new Map<string, WidgetComponent>();
+  private readonly _widgetMap = new Map<string, EditorWidgetView>();
 
   deleteBlock = (node: BlockComponent) => {
     this._blockMap.delete(node.model.id);
@@ -52,9 +58,10 @@ export class ViewStore extends LifeCycleWatcher {
     });
   };
 
-  deleteWidget = (node: WidgetComponent) => {
+  deleteWidget = (node: EditorWidgetView) => {
     const id = node.dataset.widgetId as string;
     const widgetIndex = `${node.model.id}|${id}`;
+    if (this._widgetMap.get(widgetIndex) !== node) return;
     this._widgetMap.delete(widgetIndex);
     this.viewUpdated.next({
       id: node.model.id,
@@ -71,7 +78,7 @@ export class ViewStore extends LifeCycleWatcher {
   getWidget = (
     widgetName: string,
     hostBlockId: string,
-  ): WidgetComponent | null => {
+  ): EditorWidgetView | null => {
     const widgetIndex = `${hostBlockId}|${widgetName}`;
     return this._widgetMap.get(widgetIndex) ?? null;
   };
@@ -89,7 +96,7 @@ export class ViewStore extends LifeCycleWatcher {
     });
   };
 
-  setWidget = (node: WidgetComponent) => {
+  setWidget = (node: EditorWidgetView) => {
     const id = node.dataset.widgetId as string;
     const widgetIndex = `${node.model.id}|${id}`;
     this._widgetMap.set(widgetIndex, node);

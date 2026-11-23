@@ -13,7 +13,10 @@ import { FeatureFlagService } from "@virgultum/core/services";
 import type { BlockStdScope } from "@virgultum/core/runtime";
 import { internalPrimitives } from "@virgultum/core/store";
 import type { SlashMenuContext } from "@virgultum/core/slash-menu";
-import { html, render } from "lit";
+import { type ReactNode } from "react";
+import { flushSync } from "react-dom";
+import { createRoot, type Root } from "react-dom/client";
+import { afterEach } from "vitest";
 import { describe, expect, onTestFinished, test, vi } from "vitest";
 
 import {
@@ -358,6 +361,23 @@ export function createSlashContext({
   } as unknown as SlashMenuContext;
 }
 
+const testRoots = new Set<Root>();
+
+afterEach(() => {
+  for (const root of testRoots) root.unmount();
+  testRoots.clear();
+});
+
+export function renderTestProjection(
+  node: ReactNode,
+  host = document.createElement("div"),
+) {
+  const root = createRoot(host);
+  testRoots.add(root);
+  flushSync(() => root.render(node));
+  return host;
+}
+
 export function renderFakeFlowchartGfxEditor(
   readonly: boolean,
   {
@@ -365,51 +385,61 @@ export function renderFakeFlowchartGfxEditor(
     displayOnly = false,
   }: { diagramType?: string; displayOnly?: boolean } = {},
 ) {
-  return html`<div
-    class="myoxus-mermaid-gfx-editor"
-    data-diagram-type=${diagramType}
-    data-mermaid-display-mode=${displayOnly ? "display" : "edit"}
-    data-mermaid-gfx-editable=${displayOnly ? "false" : "true"}
-    data-mermaid-gfx-surface="true"
-  >
-    ${
-      displayOnly
-        ? null
-        : html`<div
-            class="myoxus-mermaid-visual-toolbar"
-            data-myoxus-ui-role="toolbar-surface"
-            @beforeinput=${(event: Event) => event.stopPropagation()}
-            @click=${(event: Event) => event.stopPropagation()}
-            @input=${(event: Event) => event.stopPropagation()}
-            @keydown=${(event: Event) => event.stopPropagation()}
-            @keypress=${(event: Event) => event.stopPropagation()}
-            @keyup=${(event: Event) => event.stopPropagation()}
-            @mousedown=${(event: Event) => event.stopPropagation()}
-            @mouseup=${(event: Event) => event.stopPropagation()}
-            @pointerdown=${(event: Event) => event.stopPropagation()}
-          >
-            <button
-              type="button"
-              aria-label="Add node"
-              ?disabled=${readonly}
-            ></button>
-          </div>`
-    }
-    <div data-myoxus-ui-role="mermaid-editor-workarea-owner">
-      <div class="myoxus-mermaid-gfx-viewport"></div>
+  return (
+    <div
+      className="myoxus-mermaid-gfx-editor"
+      data-diagram-type={diagramType}
+      data-mermaid-display-mode={displayOnly ? "display" : "edit"}
+      data-mermaid-gfx-editable={displayOnly ? "false" : "true"}
+      data-mermaid-gfx-surface="true"
+    >
+      {displayOnly ? null : (
+        <div
+          className="myoxus-mermaid-visual-toolbar"
+          data-myoxus-ui-role="toolbar-surface"
+          ref={(toolbar) => {
+            if (!toolbar) return;
+            const lifetime = new AbortController();
+            for (const name of [
+              "beforeinput",
+              "click",
+              "input",
+              "keydown",
+              "keypress",
+              "keyup",
+              "mousedown",
+              "mouseup",
+              "pointerdown",
+            ])
+              toolbar.addEventListener(
+                name,
+                (event) => event.stopPropagation(),
+                { signal: lifetime.signal },
+              );
+            return () => lifetime.abort();
+          }}
+        >
+          <button
+            type="button"
+            aria-label="Add node"
+            disabled={readonly}
+          ></button>
+        </div>
+      )}
+      <div data-myoxus-ui-role="mermaid-editor-workarea-owner">
+        <div className="myoxus-mermaid-gfx-viewport"></div>
+      </div>
+      {displayOnly ? null : (
+        <div className="myoxus-mermaid-viewport-resize-row">
+          <button
+            className="myoxus-mermaid-viewport-resize-handle"
+            type="button"
+            aria-label={mermaidMessages.visualResizeViewport()}
+          ></button>
+        </div>
+      )}
     </div>
-    ${
-      displayOnly
-        ? null
-        : html`<div class="myoxus-mermaid-viewport-resize-row">
-            <button
-              class="myoxus-mermaid-viewport-resize-handle"
-              type="button"
-              aria-label=${mermaidMessages.visualResizeViewport()}
-            ></button>
-          </div>`
-    }
-  </div>`;
+  );
 }
 
 export function installProjectedMermaidTestTheme() {
@@ -702,55 +732,69 @@ function renderTestFamilyEditor(
 ) {
   if (token.id === "pie") {
     const pie = props as MermaidPieReactHostProps;
-    return html`<div
-      data-testid="mermaid-pie-view"
-      data-diagram-type="pie"
-      data-readonly=${pie.readonly ? "true" : "false"}
-    ></div>`;
+    return (
+      <div
+        data-testid="mermaid-pie-view"
+        data-diagram-type="pie"
+        data-readonly={pie.readonly ? "true" : "false"}
+      ></div>
+    );
   }
   if (token.id === "treemap") {
     const chart = props as MermaidTreemapReactHostProps;
-    return html`<div
-      class="myoxus-mermaid-chart-editor"
-      data-diagram-type=${chart.model.diagramType}
-      data-readonly=${chart.readonly ? "true" : "false"}
-    ></div>`;
+    return (
+      <div
+        className="myoxus-mermaid-chart-editor"
+        data-diagram-type={chart.model.diagramType}
+        data-readonly={chart.readonly ? "true" : "false"}
+      ></div>
+    );
   }
   if (token.id === "sankey") {
     const sankey = props as MermaidSankeyReactHostProps;
-    return html`<div
-      data-testid="mermaid-sankey-view"
-      data-diagram-type="sankey"
-      data-readonly=${sankey.readonly ? "true" : "false"}
-    ></div>`;
+    return (
+      <div
+        data-testid="mermaid-sankey-view"
+        data-diagram-type="sankey"
+        data-readonly={sankey.readonly ? "true" : "false"}
+      ></div>
+    );
   }
   if (token.id === "journey") {
     const journey = props as MermaidJourneyReactHostProps;
-    return html`<div
-      class="myoxus-mermaid-journey-editor"
-      data-readonly=${journey.readonly ? "true" : "false"}
-    ></div>`;
+    return (
+      <div
+        className="myoxus-mermaid-journey-editor"
+        data-readonly={journey.readonly ? "true" : "false"}
+      ></div>
+    );
   }
   if (token.id === "kanban") {
     const kanban = props as MermaidKanbanReactHostProps;
-    return html`<div
-      class="myoxus-mermaid-kanban-editor"
-      data-readonly=${kanban.readonly ? "true" : "false"}
-    ></div>`;
+    return (
+      <div
+        className="myoxus-mermaid-kanban-editor"
+        data-readonly={kanban.readonly ? "true" : "false"}
+      ></div>
+    );
   }
   if (token.id === "packet") {
     const packet = props as MermaidPacketReactHostProps;
-    return html`<div
-      class="myoxus-mermaid-packet-editor"
-      data-readonly=${packet.readonly ? "true" : "false"}
-    ></div>`;
+    return (
+      <div
+        className="myoxus-mermaid-packet-editor"
+        data-readonly={packet.readonly ? "true" : "false"}
+      ></div>
+    );
   }
   const temporal = props as MermaidTimelineReactHostProps;
-  return html`<div
-    class="myoxus-mermaid-temporal-editor"
-    data-diagram-type=${temporal.model.diagramType}
-    data-readonly=${temporal.readonly ? "true" : "false"}
-  ></div>`;
+  return (
+    <div
+      className="myoxus-mermaid-temporal-editor"
+      data-diagram-type={temporal.model.diagramType}
+      data-readonly={temporal.readonly ? "true" : "false"}
+    ></div>
+  );
 }
 
 export function renderVisualEditorForSource(source: string, readonly = false) {
@@ -821,7 +865,7 @@ export function renderVisualEditorForSource(source: string, readonly = false) {
               diagramType: model.diagramType,
             }),
           }),
-          renderSourceFirst: () => html`<div role="status"></div>`,
+          renderSourceFirst: () => <div role="status"></div>,
           setSelectionAction: () => undefined,
           setSessionState: () => undefined,
           setTitlePresentationPreview: () => undefined,
@@ -829,33 +873,38 @@ export function renderVisualEditorForSource(source: string, readonly = false) {
         },
         displayOnly,
       ),
-    _renderTemporalEditor: (resolution: { diagramType?: string }) =>
-      html`<div
-        class="myoxus-mermaid-temporal-editor"
-        data-diagram-type=${resolution.diagramType ?? ""}
-        data-readonly=${readonly ? "true" : "false"}
-      ></div>`,
-    _renderKanbanEditor: () =>
-      html`<div
-        class="myoxus-mermaid-kanban-editor"
-        data-readonly=${readonly ? "true" : "false"}
-      ></div>`,
-    _renderChartEditor: (resolution: { diagramType?: string }) =>
-      html`<div
-        class="myoxus-mermaid-chart-editor"
-        data-diagram-type=${resolution.diagramType ?? ""}
-        data-readonly=${readonly ? "true" : "false"}
-      ></div>`,
-    _renderJourneyFacadeEditor: () =>
-      html`<div
-        class="myoxus-mermaid-journey-editor"
-        data-readonly=${readonly ? "true" : "false"}
-      ></div>`,
-    _renderPacketFacadeEditor: () =>
-      html`<div
-        class="myoxus-mermaid-packet-editor"
-        data-readonly=${readonly ? "true" : "false"}
-      ></div>`,
+    _renderTemporalEditor: (resolution: { diagramType?: string }) => (
+      <div
+        className="myoxus-mermaid-temporal-editor"
+        data-diagram-type={resolution.diagramType ?? ""}
+        data-readonly={readonly ? "true" : "false"}
+      ></div>
+    ),
+    _renderKanbanEditor: () => (
+      <div
+        className="myoxus-mermaid-kanban-editor"
+        data-readonly={readonly ? "true" : "false"}
+      ></div>
+    ),
+    _renderChartEditor: (resolution: { diagramType?: string }) => (
+      <div
+        className="myoxus-mermaid-chart-editor"
+        data-diagram-type={resolution.diagramType ?? ""}
+        data-readonly={readonly ? "true" : "false"}
+      ></div>
+    ),
+    _renderJourneyFacadeEditor: () => (
+      <div
+        className="myoxus-mermaid-journey-editor"
+        data-readonly={readonly ? "true" : "false"}
+      ></div>
+    ),
+    _renderPacketFacadeEditor: () => (
+      <div
+        className="myoxus-mermaid-packet-editor"
+        data-readonly={readonly ? "true" : "false"}
+      ></div>
+    ),
     _getMermaidVisualModelForEditing() {
       return getMermaidVisualModelForEditing(
         {
@@ -910,7 +959,7 @@ export function renderVisualEditorForSource(source: string, readonly = false) {
     ),
   );
 
-  render(template.body as never, host);
+  renderTestProjection(template.body, host);
   return host;
 }
 
@@ -1042,7 +1091,7 @@ export function renderBlockForSource({
               },
             ),
           }),
-          renderSourceFirst: () => html`<div role="status"></div>`,
+          renderSourceFirst: () => <div role="status"></div>,
           setSelectionAction: () => undefined,
           setSessionState: () => undefined,
           setTitlePresentationPreview: () => undefined,
@@ -1052,26 +1101,30 @@ export function renderBlockForSource({
       ),
     _renderPreview: prototype._renderPreview,
     _renderVisualEditor: prototype._renderVisualEditor,
-    _renderKanbanEditor: () =>
-      html`<div
-        class="myoxus-mermaid-kanban-editor"
-        data-readonly=${readonly ? "true" : "false"}
-      ></div>`,
-    _renderTemporalEditor: () =>
-      html`<div
-        class="myoxus-mermaid-temporal-editor"
-        data-readonly=${readonly ? "true" : "false"}
-      ></div>`,
-    _renderJourneyFacadeEditor: () =>
-      html`<div
-        class="myoxus-mermaid-journey-editor"
-        data-readonly=${readonly ? "true" : "false"}
-      ></div>`,
-    _renderPacketFacadeEditor: () =>
-      html`<div
-        class="myoxus-mermaid-packet-editor"
-        data-readonly=${readonly ? "true" : "false"}
-      ></div>`,
+    _renderKanbanEditor: () => (
+      <div
+        className="myoxus-mermaid-kanban-editor"
+        data-readonly={readonly ? "true" : "false"}
+      ></div>
+    ),
+    _renderTemporalEditor: () => (
+      <div
+        className="myoxus-mermaid-temporal-editor"
+        data-readonly={readonly ? "true" : "false"}
+      ></div>
+    ),
+    _renderJourneyFacadeEditor: () => (
+      <div
+        className="myoxus-mermaid-journey-editor"
+        data-readonly={readonly ? "true" : "false"}
+      ></div>
+    ),
+    _renderPacketFacadeEditor: () => (
+      <div
+        className="myoxus-mermaid-packet-editor"
+        data-readonly={readonly ? "true" : "false"}
+      ></div>
+    ),
     _renderVisualNode: prototype._renderVisualNode,
     _renderGfxEditor: (model: unknown, options?: { displayOnly?: boolean }) =>
       renderFakeFlowchartGfxEditor(readonly, {
@@ -1145,59 +1198,51 @@ export function renderBlockForSource({
     std: {
       get: () => ({}),
       getOptional: () => ({
-        renderBlockShell: (props: MermaidBlockShellReactHostProps) => html`
+        renderBlockShell: (props: MermaidBlockShellReactHostProps) => (
           <section
-            data-display-mode=${displayMode}
+            data-display-mode={displayMode}
             data-myoxus-ui-role="mermaid-block-shell"
           >
             <header data-myoxus-ui-role="mermaid-editor-shell-header">
               <input
                 aria-label="Diagram title"
                 data-myoxus-ui-role="mermaid-shell-title"
-                ?disabled=${props.readonly}
+                disabled={props.readonly}
               />
               <div data-myoxus-ui-role="mermaid-editor-mode-control">
-                ${
-                  props.showView
-                    ? html`<button type="button">${props.labels.view}</button>`
-                    : null
-                }
-                ${
-                  props.sourceFirst
-                    ? null
-                    : html`<button type="button">
-                        ${props.labels.visual}
-                      </button>`
-                }
-                <button type="button">${props.labels.source}</button>
+                {props.showView ? (
+                  <button type="button">{props.labels.view}</button>
+                ) : null}
+                {props.sourceFirst ? null : (
+                  <button type="button">{props.labels.visual}</button>
+                )}
+                <button type="button">{props.labels.source}</button>
               </div>
             </header>
-            ${props.actions} ${props.bodyNotice?.message ?? ""}
-            ${
-              props.mode === "source" || props.sourceFirst
-                ? html`<div
-                    data-editor-surface=${
-                      props.sourceFirst ? "source-first" : "source"
-                    }
-                  >
-                    ${props.sourceFirst ? props.body : null}
-                    <textarea
-                      class="myoxus-mermaid-source"
-                      ?disabled=${props.readonly}
-                      .value=${props.source}
-                    ></textarea>
-                    ${
-                      props.sourceFirst
-                        ? html`<div class="myoxus-mermaid-preview">
-                            ${props.sourcePreview}
-                          </div>`
-                        : null
-                    }
-                  </div>`
-                : props.body
-            }
+            {props.bodyNotice?.message ?? ""}
+            {props.mode === "source" || props.sourceFirst ? (
+              <div
+                data-editor-surface={
+                  props.sourceFirst ? "source-first" : "source"
+                }
+              >
+                {props.sourceFirst ? props.body : null}
+                <textarea
+                  className="myoxus-mermaid-source"
+                  disabled={props.readonly}
+                  defaultValue={props.source}
+                ></textarea>
+                {props.sourceFirst ? (
+                  <div className="myoxus-mermaid-preview">
+                    {props.sourcePreview}
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              props.body
+            )}
           </section>
-        `,
+        ),
         renderShellNotice: (props: {
           actions?: ReadonlyArray<{
             disabled?: boolean;
@@ -1208,27 +1253,31 @@ export function renderBlockForSource({
           message: string;
           title: string;
           tone: "error" | "warning";
-        }) =>
-          html`<div role=${props.tone === "error" ? "alert" : "status"}>
-            <strong>${props.title}</strong>
-            <span>${props.message}</span>
-            ${props.actions?.map(
-              (action) =>
-                html`<button
-                  ?disabled=${action.disabled}
-                  type="button"
-                  @click=${action.onSelect}
-                >
-                  ${action.label}
-                </button>`,
-            )}
-          </div>`,
+        }) => (
+          <div role={props.tone === "error" ? "alert" : "status"}>
+            <strong>{props.title}</strong>
+            <span>{props.message}</span>
+            {props.actions?.map((action) => (
+              <button
+                key={action.id}
+                disabled={action.disabled}
+                type="button"
+                onClick={action.onSelect}
+              >
+                {action.label}
+              </button>
+            ))}
+          </div>
+        ),
       }),
     },
   });
   Object.assign(component.model, { store: component.store });
 
-  render(MermaidBlockComponent.prototype.renderBlock.call(component), host);
+  renderTestProjection(
+    MermaidBlockComponent.prototype.renderBlock.call(component),
+    host,
+  );
   return host;
 }
 
@@ -1379,7 +1428,6 @@ export {
   getMermaidVisualNodeDetailElementEntries,
   getMermaidVisualHistoryStacks,
   hashMermaidSource,
-  html,
   insertMermaidBlockCommand,
   insertMermaidEdgelessDiagramCommand,
   insertMermaidEdgelessToolbarTemplate,
@@ -1431,7 +1479,6 @@ export {
   editStateTransition,
   renameMermaidVisualEdge,
   renameMermaidVisualSubgraph,
-  render,
   resizeMermaidVisualNode,
   resizeMermaidVisualSubgraph,
   resolveMermaidConnectorLabelXYWH,

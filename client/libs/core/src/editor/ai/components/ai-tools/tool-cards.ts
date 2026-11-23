@@ -24,30 +24,28 @@ export function renderToolCallCard(
   host: ReactToLit | undefined,
   p: ToolPresentation,
 ) {
-  return host
-    ? host(
-        createElement(ToolCallCardView, {
-          ...p,
-          icon: p.icon ?? createElement(ToolIcon),
-        }),
-        true,
-      )
-    : p.name;
+  return host ? host(toolCallCard(p), true) : p.name;
+}
+
+export function toolCallCard(p: ToolPresentation) {
+  return createElement(ToolCallCardView, {
+    ...p,
+    icon: p.icon ?? createElement(ToolIcon),
+  });
 }
 
 export function renderToolFailedCard(
   host: ReactToLit | undefined,
   p: ToolPresentation,
 ) {
-  return host
-    ? host(
-        createElement(ToolFailedCardView, {
-          ...p,
-          icon: p.icon ?? createElement(ToolIcon),
-        }),
-        true,
-      )
-    : p.name;
+  return host ? host(toolFailedCard(p), true) : p.name;
+}
+
+export function toolFailedCard(p: ToolPresentation) {
+  return createElement(ToolFailedCardView, {
+    ...p,
+    icon: p.icon ?? createElement(ToolIcon),
+  });
 }
 
 function imageUrl(url: string) {
@@ -55,29 +53,31 @@ function imageUrl(url: string) {
 }
 
 /** The owning producer's portal preserves the native disclosure during streaming. */
+type ToolResults = ToolPresentation & {
+  footerIcons?: readonly ReactNode[];
+  results?: readonly ToolResult[];
+};
+
 export function renderToolResultCard(
   host: ReactToLit | undefined,
-  p: ToolPresentation & {
-    footerIcons?: readonly ReactNode[];
-    results?: readonly ToolResult[];
-  },
+  p: ToolResults,
 ) {
-  if (!host) return p.name;
-  return host(
-    createElement(ToolResultCardView, {
-      name: p.name,
-      contained: p.contained,
-      icon: p.icon ?? createElement(ToolIcon),
-      footerIcons: (p.footerIcons ?? []).map((icon) =>
-        typeof icon === "string" ? { url: imageUrl(icon) } : { icon },
-      ),
-      results: (p.results ?? []).map((result) => ({
-        ...result,
-        icon: typeof result.icon === "string" ? undefined : result.icon,
-        image:
-          typeof result.icon === "string" ? imageUrl(result.icon) : undefined,
-      })),
-    }),
-    true,
-  );
+  return host ? host(toolResultCard(p), true) : p.name;
+}
+
+export function toolResultCard(p: ToolResults): ReactNode {
+  return createElement(ToolResultCardView, {
+    name: p.name,
+    contained: p.contained,
+    icon: p.icon ?? createElement(ToolIcon),
+    footerIcons: (p.footerIcons ?? []).map((icon) =>
+      typeof icon === "string" ? { url: imageUrl(icon) } : { icon },
+    ),
+    results: (p.results ?? []).map((result) => ({
+      ...result,
+      icon: typeof result.icon === "string" ? undefined : result.icon,
+      image:
+        typeof result.icon === "string" ? imageUrl(result.icon) : undefined,
+    })),
+  });
 }

@@ -260,6 +260,7 @@ function EditablePage(props: EditorProps) {
       refresh={refresh}
       controller={owner}
       handoff={transfer}
+      enableAI={enableAI}
       className={props.className}
       fullWidth={props["data-full-width-layout"]}
     />

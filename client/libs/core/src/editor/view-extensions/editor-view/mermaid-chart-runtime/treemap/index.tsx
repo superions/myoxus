@@ -8,7 +8,6 @@ import {
   TableIcon,
   TagIcon,
 } from "@myoxus/icons";
-import type { ReactToLit } from "@myoxus/lit-react";
 import {
   Alert,
   Button,
@@ -749,12 +748,9 @@ export function MermaidTreemapRuntime({
   );
 }
 
-export function createMermaidTreemapRendererRegistration(
-  reactToLit: ReactToLit,
-): MermaidFamilyReactRendererRegistration<MermaidTreemapReactHostProps> {
+export function createMermaidTreemapRendererRegistration(): MermaidFamilyReactRendererRegistration<MermaidTreemapReactHostProps> {
   return {
     token: mermaidTreemapRendererToken,
-    render: (props) =>
-      reactToLit(<MermaidTreemapRuntime props={props} />, true),
+    render: (props) => <MermaidTreemapRuntime props={props} />,
   };
 }

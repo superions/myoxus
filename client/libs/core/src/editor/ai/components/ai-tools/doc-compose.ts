@@ -45,6 +45,8 @@ interface DocComposeToolResult {
 export class DocComposeTool extends ArtifactTool<
   DocComposeToolCall | DocComposeToolResult
 > {
+  @property({ attribute: false }) accessor readOnly = false;
+
   @property({ attribute: false })
   accessor notificationService!: NotificationService;
 
@@ -99,7 +101,7 @@ export class DocComposeTool extends ArtifactTool<
 
     const saveAsDoc = async () => {
       try {
-        if (!this.isConnected || !successResult) {
+        if (!this.isConnected || !successResult || this.readOnly) {
           return;
         }
         const workspace = std.store.workspace;
@@ -139,7 +141,7 @@ export class DocComposeTool extends ArtifactTool<
     return successResult
       ? createElement(DocComposeControls, {
           copy: () => void copyMarkdown(),
-          save: () => void saveAsDoc(),
+          save: this.readOnly ? undefined : () => void saveAsDoc(),
         })
       : undefined;
   }

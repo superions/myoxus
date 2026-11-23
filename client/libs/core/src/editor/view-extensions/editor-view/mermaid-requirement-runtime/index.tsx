@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { ReactToLit } from "@myoxus/lit-react";
 import { useI18n } from "@myoxus/i18n";
 import {
   MoreHorizontalIcon,
@@ -1034,9 +1033,7 @@ function RequirementEditor({ props }: { props: RequirementReactHostProps }) {
     />
   );
 }
-export function createMermaidRequirementRendererRegistration(
-  reactToLit: ReactToLit,
-): MermaidFamilyReactRendererRegistration<
+export function createMermaidRequirementRendererRegistration(): MermaidFamilyReactRendererRegistration<
   RequirementReactHostProps | RequirementLabelActionsProps
 > {
   const nativeView = (
@@ -1049,8 +1046,7 @@ export function createMermaidRequirementRendererRegistration(
     );
   return {
     token: mermaidRequirementRendererToken,
-    nativeView,
-    render: (props) => reactToLit(nativeView(props), true),
+    render: nativeView,
   };
 }
 

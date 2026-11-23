@@ -9,7 +9,10 @@ import {
   ConnectorElementModel,
   ShapeElementModel,
 } from "@virgultum/core/models";
-import { BlockComponent } from "@virgultum/core/runtime";
+import {
+  type BlockComponent,
+  editorHostSelector,
+} from "@virgultum/core/runtime";
 
 import {
   applyMermaidVisualModelCommand,
@@ -852,7 +855,7 @@ export abstract class MermaidHostGfxSelection extends MermaidHostGfxViewport {
     // must mount in the same Surface/CRUD context as the projection owner.
     return (
       (viewport?.querySelector("myoxus-surface") as BlockComponent | null) ??
-      (viewport?.querySelector("editor-host") as BlockComponent | null)
+      (viewport?.querySelector(editorHostSelector) as BlockComponent | null)
     );
   }
 

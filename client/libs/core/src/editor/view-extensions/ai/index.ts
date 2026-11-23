@@ -1,5 +1,5 @@
-import type { ReactToLit } from "@myoxus/lit-react";
-import { aiWidgetUI } from "../../ai/widgets/native-ui";
+import type { MountReactPortal, ReactToLit } from "@myoxus/lit-react";
+import { aiWidgetUI, nativeAIWidgetUI } from "../../ai/widgets/native-ui";
 import { decorateEditorEmbeddedUI } from "../editor-view/embedded-ui-root";
 import { toolbarAIEntryConfig } from "@myoxus/core/editor/ai";
 import { AIChatBlockSpec } from "@myoxus/core/editor/ai/blocks";
@@ -34,6 +34,7 @@ import { EdgelessClipboardAIChatConfig } from "./edgeless-clipboard";
 const optionsSchema = z.object({
   enable: z.boolean().optional(),
   reactToLit: z.custom<ReactToLit>().optional(),
+  mountPortal: z.custom<MountReactPortal>().optional(),
   framework: z.instanceof(FrameworkProvider).optional(),
 });
 
@@ -46,8 +47,7 @@ export class AIViewExtension extends ViewExtensionProvider<AIViewOptions> {
 
   override setup(context: ViewExtensionContext, options?: AIViewOptions) {
     super.setup(context, options);
-    if (!options?.enable) return;
-    const framework = options.framework;
+    const framework = options?.framework;
     if (!framework) return;
 
     if (options.reactToLit) {
@@ -57,9 +57,13 @@ export class AIViewExtension extends ViewExtensionProvider<AIViewOptions> {
       );
     }
 
+    if (options.mountPortal)
+      context.register(nativeAIWidgetUI(options.mountPortal));
+
+    context.register(AIChatBlockSpec).register(AITranscriptionBlockSpec);
+    if (!options.enable) return;
+
     context
-      .register(AIChatBlockSpec)
-      .register(AITranscriptionBlockSpec)
       .register(EdgelessClipboardAIChatConfig)
       .register(AICodeBlockWatcher)
       .register(

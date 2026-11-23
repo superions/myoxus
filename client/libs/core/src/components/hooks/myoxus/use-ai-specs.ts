@@ -17,7 +17,7 @@ export const useAISpecs = () => {
     () => ({ openConfirmModal, closeConfirmModal }),
     [openConfirmModal, closeConfirmModal],
   );
-  const [reactToLit, _portals] = useLitPortalFactory();
+  const [reactToLit, _portals, mountPortal] = useLitPortalFactory();
 
   const { workspaceService } = useServices({
     WorkspaceService,
@@ -29,7 +29,7 @@ export const useAISpecs = () => {
     const manager = getViewManager()
       .config.init()
       .foundation(framework)
-      .ai(enableAI, framework, reactToLit)
+      .ai(enableAI, framework, reactToLit, mountPortal)
       .editorConfig(framework)
       .editorView({
         framework,
@@ -49,7 +49,7 @@ export const useAISpecs = () => {
       .codeBlockPreview(framework).value;
 
     return manager.get("page");
-  }, [framework, reactToLit, enableAI, isCloud, confirmModal]);
+  }, [framework, reactToLit, mountPortal, enableAI, isCloud, confirmModal]);
 
   return specs;
 };

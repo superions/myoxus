@@ -372,6 +372,7 @@ export function applyArchitectureGfxVisualToSource(
       "Architecture source application requires valid source and finite geometry.",
     );
   }
+  const appendAfterLine = parsed.sourceDocument.lines.length;
   const sourceNodeOrder = new Map(
     parsed.sourceDocument.records.flatMap((record) =>
       record.kind === "statement" &&
@@ -387,8 +388,11 @@ export function applyArchitectureGfxVisualToSource(
         [node.id, architectureNodeGfxData(node)?.sourceId || node.id] as const,
     ),
   );
-  const sourceOrderForNode = (id: string, fallback: number) =>
-    sourceNodeOrder.get(sourceNodeIdentity.get(id) ?? id) ?? fallback;
+  // The source patch appends new nodes after the retained declarations.
+  // Sort fallback positions after every persisted line index.
+  const sourceOrderForNode = (id: string, visualOrder: number) =>
+    sourceNodeOrder.get(sourceNodeIdentity.get(id) ?? id) ??
+    appendAfterLine + visualOrder;
   let base: MermaidArchitectureModel = parsed;
   for (const subgraph of visualModel.subgraphs ?? []) {
     const sourceId = architectureSubgraphGfxData(subgraph)?.sourceId;
@@ -522,7 +526,7 @@ export function applyArchitectureGfxVisualToSource(
               ? ""
               : survivingGroupId(architecture?.groupId ?? existing?.groupId),
           id: node.id,
-          order: sourceOrderForNode(node.id, existing?.order ?? order),
+          order: sourceOrderForNode(node.id, order),
         },
       ];
     })

@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+import { mountMermaidDraftActions } from "../runtime/react-host.js";
 import { SurfaceBlockComponent } from "@virgultum/canvas-runtime/surface";
 import { Bound } from "@virgultum/core/primitives/gfx";
 import { mountShapeTextEditor } from "@virgultum/canvas/gfx";
@@ -197,13 +198,14 @@ export function beginNativeRequirementCreation(
           const editor = mountShapeTextEditor(shape, root, { draft: edit });
           return editor ? () => editor.cancelDraft() : null;
         },
-        renderActions: (actions) =>
-          context.std
-            .getOptional(MermaidFamilyReactHostIdentifier)
-            ?.renderFamilyEditor(mermaidRequirementRendererToken, {
-              surface: "label-actions",
-              ...actions,
-            }) ?? undefined,
+        mountActions: (anchor, actions) =>
+          mountMermaidDraftActions(
+            context.std.getOptional(MermaidFamilyReactHostIdentifier),
+            anchor,
+            actions,
+            mermaidRequirementRendererToken,
+            (value) => ({ surface: "label-actions" as const, ...value }),
+          ),
         finish: () => {
           if (drafts.get(state.owner) === draft) drafts.delete(state.owner);
           requestAnimationFrame(() => {

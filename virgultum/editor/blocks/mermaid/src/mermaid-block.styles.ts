@@ -1,91 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-/**
- * `mermaid-block.styles.ts` — P-VIRG-ARCH-I-04b
- * extracted the `static override styles = css\`...\``
- * template literal from `mermaid-block.ts`.
- *
- * **Why a sibling file, not an inline body.** The
- * `css\`...\`` block in `mermaid-block.ts` spans
- * 829 LoC (Z. 260-1088 of the pre-I-04b file). That
- * is roughly 8% of the entire block class, and the
- * Mermaid block is the largest file in the editor
- * (`block-mermaid`). I-04b relocates the body
- * verbatim to this sibling and turns the class
- * field into a one-line reference. The class file
- * loses 829 LoC and the styles become individually
- * diff-able, lint-able, and re-viewable.
- *
- * **No new runtime behaviour.** The byte-for-byte
- * copy uses the same `css` tagged template import
- * from `lit`, the same `unsafeCSSVar` calls
- * (imported from `@virgultum/shared/theme`), the
- * same selector order, and the same closing
- * backtick positioning. Lit's `css` returns a
- * `CSSResult` regardless of where the call site
- * lives, so the resulting `static styles` value
- * is identical.
- *
- * **Why `static override styles` still works with
- * an imported value.** Lit's `LitElement` declares
- * `static styles: CSSResultGroup`. The class field
- * override in `mermaid-block.ts` is rewritten from
- * the 829-LoC template literal to a single
- * identifier (`mermaidBlockStyles`) that resolves
- * to a `CSSResult` at class-evaluation time. Lit
- * reads the field once per class definition, not
- * per instance, so the import-then-reference shape
- * is semantically equivalent to the inline
- * `static override styles = css\`...\`` declaration.
- *
- * **Why a single export, not a namespace.** The
- * `database-block-styles.ts` sibling uses the
- * `css({...})` object syntax to expose a flat set
- * of class-name strings (`databaseBlockStyles`,
- * `databaseBlockHeader`, …). The Mermaid CSS is a
- * single 829-LoC template body; there is nothing
- * to namespace. A single `mermaidBlockStyles`
- * named export is the minimal API surface and
- * matches the `unsafeCSSVar` import shape.
- *
- * **Dependencies of the new file.**
- * - `lit` exports the `css` tagged template
- * - `@virgultum/shared/theme` exports
- *   `unsafeCSSVar`, which is the only
- *   function-call interpolation in the body.
- *
- * The block file imports from this sibling
- * (`./mermaid-block.styles.js`) and the smoke
- * spec does not (it does not consume styles).
- *
- * @see docs/dev/virgultum/refactor-roadmap.md §I
- *      (P-VIRG-ARCH-I-04b)
- * @see docs/dev/virgultum/closeouts/phase-i.md
- *      (P-VIRG-ARCH-I-04b closeout)
- */
+import { cssVar } from "@myoxus/theme";
 
-import { unsafeCSSVar } from "@virgultum/core/theme";
-import { css } from "lit";
-
-/**
- * Static CSS for `MermaidBlockComponent`. The
- * `CSSResult` is consumed by the class field
- * `static override styles` in
- * `mermaid-block.ts`. All selectors are scoped
- * to the `.myoxus-mermaid-*` class prefix
- * (`myoxus-` is the myoxus-owned namespace) and
- * rely on Lit's shadow-DOM scoping; no global
- * selectors leak.
- *
- * The body is intentionally one literal — Lit's
- * `unsafeCSS`/`css` only dedupes across separate
- * `CSSResult` values when the template is a single
- * argument. Splitting the body into multiple
- * `css\`...\`` calls and concatenating would
- * defeat Lit's style-construction caching and
- * would re-introduce byte-for-byte diff noise.
- */
-export const mermaidBlockStyles = css`
+// Scoped diagram geometry and the display projection's semantic theme roles.
+const mermaidBlockStyles = `
   myoxus-mermaid {
     position: relative;
     display: block;
@@ -121,17 +39,12 @@ export const mermaidBlockStyles = css`
     place-items: center;
   }
 
-  .myoxus-mermaid-visual-editor {
-    border-top: 1px solid ${unsafeCSSVar("borderColor")};
-    background: ${unsafeCSSVar("backgroundPrimaryColor")};
-  }
-
   .myoxus-mermaid-display-preview {
     display: grid;
     overflow: hidden;
-    border: 1px solid ${unsafeCSSVar("borderColor")};
+    border: 1px solid ${cssVar("borderColor")};
     border-radius: var(--mantine-radius-md);
-    background: ${unsafeCSSVar("backgroundPrimaryColor")};
+    background: ${cssVar("backgroundPrimaryColor")};
     min-height: calc(var(--myoxus-typography-body-line-height) * 9);
     padding: var(--mantine-spacing-md);
     place-items: center;
@@ -156,23 +69,6 @@ export const mermaidBlockStyles = css`
     display: none;
   }
 
-  .myoxus-mermaid-visual-canvas {
-    --myoxus-mermaid-canvas-background: ${unsafeCSSVar("noteBackgroundWhite")};
-    --myoxus-background-primary-color: var(--myoxus-mermaid-canvas-background);
-    --myoxus-text-primary-color: ${unsafeCSSVar("textPrimaryColor")};
-
-    display: block;
-    width: 100%;
-    min-height: calc(var(--myoxus-typography-body-line-height) * 13);
-    touch-action: none;
-    background-color: var(--myoxus-mermaid-canvas-background);
-    background-image: radial-gradient(
-      var(--myoxus-edgeless-grid-color) 1px,
-      transparent 1px
-    );
-    background-size: 18px 18px;
-  }
-
   .myoxus-mermaid-gfx-editor {
     display: grid;
     min-height: var(
@@ -180,8 +76,8 @@ export const mermaidBlockStyles = css`
       calc(var(--myoxus-typography-body-line-height) * 18)
     );
     grid-template-rows: auto minmax(0, 1fr);
-    border-top: 1px solid ${unsafeCSSVar("borderColor")};
-    background: ${unsafeCSSVar("backgroundPrimaryColor")};
+    border-top: 1px solid ${cssVar("borderColor")};
+    background: ${cssVar("backgroundPrimaryColor")};
   }
 
   .myoxus-mermaid-gfx-editor[data-mermaid-display-mode="display"] {
@@ -193,9 +89,9 @@ export const mermaidBlockStyles = css`
     .myoxus-mermaid-gfx-editor[data-mermaid-gfx-surface="true"]
     > .myoxus-mermaid-gfx-viewport,
   .myoxus-mermaid-gfx-editor > .myoxus-mermaid-gfx-viewport {
-    --myoxus-mermaid-canvas-background: ${unsafeCSSVar("noteBackgroundWhite")};
+    --myoxus-mermaid-canvas-background: ${cssVar("noteBackgroundWhite")};
     --myoxus-background-primary-color: var(--myoxus-mermaid-canvas-background);
-    --myoxus-text-primary-color: ${unsafeCSSVar("textPrimaryColor")};
+    --myoxus-text-primary-color: ${cssVar("textPrimaryColor")};
 
     position: relative;
     height: var(
@@ -232,8 +128,8 @@ export const mermaidBlockStyles = css`
     height: var(--mantine-spacing-md);
     align-items: center;
     justify-content: center;
-    border-top: 1px solid ${unsafeCSSVar("borderColor")};
-    background: ${unsafeCSSVar("backgroundSecondaryColor")};
+    border-top: 1px solid ${cssVar("borderColor")};
+    background: ${cssVar("backgroundSecondaryColor")};
   }
 
   .myoxus-mermaid-viewport-resize-handle {
@@ -254,13 +150,13 @@ export const mermaidBlockStyles = css`
     right: var(--mantine-spacing-md);
     height: 2px;
     border-radius: var(--mantine-radius-xl);
-    background: ${unsafeCSSVar("borderColor")};
+    background: ${cssVar("borderColor")};
     content: "";
   }
 
   .myoxus-mermaid-viewport-resize-handle:hover::before,
   .myoxus-mermaid-viewport-resize-handle:focus-visible::before {
-    background: ${unsafeCSSVar("primaryColor")};
+    background: ${cssVar("primaryColor")};
   }
 
   .myoxus-mermaid-viewport-resize-handle:focus-visible {
@@ -290,10 +186,10 @@ export const mermaidBlockStyles = css`
     z-index: 20;
     box-sizing: border-box;
     border: calc(var(--mantine-scale) * 1px) solid
-      ${unsafeCSSVar("primaryColor")};
+      ${cssVar("primaryColor")};
     border-radius: var(--mantine-radius-sm);
-    background: ${unsafeCSSVar("backgroundPrimaryColor")};
-    color: ${unsafeCSSVar("textPrimaryColor")};
+    background: ${cssVar("backgroundPrimaryColor")};
+    color: ${cssVar("textPrimaryColor")};
     text-align: center;
     outline: none;
     pointer-events: auto;
@@ -338,14 +234,14 @@ export const mermaidBlockStyles = css`
   .myoxus-mermaid-gfx-selection-outline {
     box-sizing: border-box;
     border: calc(var(--mantine-scale) * 2px) solid
-      ${unsafeCSSVar("primaryColor")};
+      ${cssVar("primaryColor")};
     border-radius: var(--mantine-radius-sm);
   }
 
   .myoxus-mermaid-gfx-selection-bounds {
     box-sizing: border-box;
     border: calc(var(--mantine-scale) * 1px) dashed
-      ${unsafeCSSVar("primaryColor")};
+      ${cssVar("primaryColor")};
     border-radius: var(--mantine-radius-sm);
   }
 
@@ -355,8 +251,8 @@ export const mermaidBlockStyles = css`
     inset-block-start: 0;
     padding: var(--mantine-spacing-xs);
     border-radius: var(--mantine-radius-sm);
-    background: ${unsafeCSSVar("backgroundPrimaryColor")};
-    color: ${unsafeCSSVar("textPrimaryColor")};
+    background: ${cssVar("backgroundPrimaryColor")};
+    color: ${cssVar("textPrimaryColor")};
     font: inherit;
     font-size: var(--mantine-font-size-xs);
   }
@@ -385,7 +281,7 @@ export const mermaidBlockStyles = css`
 
   .myoxus-mermaid-gfx-alignment-guide {
     position: absolute;
-    color: ${unsafeCSSVar("warningColor")};
+    color: ${cssVar("warningColor")};
     pointer-events: none;
   }
 
@@ -417,8 +313,8 @@ export const mermaidBlockStyles = css`
     padding: 0;
     border: calc(var(--mantine-scale) * 1px) solid currentColor;
     border-radius: var(--mantine-radius-xl);
-    background: ${unsafeCSSVar("backgroundPrimaryColor")};
-    color: ${unsafeCSSVar("warningColor")};
+    background: ${cssVar("backgroundPrimaryColor")};
+    color: ${cssVar("warningColor")};
     pointer-events: auto;
   }
 
@@ -432,13 +328,13 @@ export const mermaidBlockStyles = css`
 
   .myoxus-mermaid-gfx-alignment-anchor:focus-visible {
     outline: calc(var(--mantine-scale) * 2px) solid
-      ${unsafeCSSVar("primaryColor")};
+      ${cssVar("primaryColor")};
     outline-offset: calc(var(--mantine-scale) * 2px);
   }
 
   .myoxus-mermaid-gfx-connection-preview path {
     fill: none;
-    stroke: ${unsafeCSSVar("textSecondaryColor")};
+    stroke: ${cssVar("textSecondaryColor")};
     stroke-width: 2.5;
     stroke-dasharray: 8 7;
     stroke-linecap: round;
@@ -446,22 +342,22 @@ export const mermaidBlockStyles = css`
   }
 
   .myoxus-mermaid-gfx-connection-preview[data-valid-target="true"] path {
-    stroke: ${unsafeCSSVar("primaryColor")};
+    stroke: ${cssVar("primaryColor")};
     stroke-dasharray: none;
   }
 
   .myoxus-mermaid-gfx-connection-preview-source,
   .myoxus-mermaid-gfx-connection-preview-target {
-    fill: ${unsafeCSSVar("backgroundPrimaryColor")};
-    stroke: ${unsafeCSSVar("textSecondaryColor")};
+    fill: ${cssVar("backgroundPrimaryColor")};
+    stroke: ${cssVar("textSecondaryColor")};
     stroke-width: 2;
     vector-effect: non-scaling-stroke;
   }
 
   .myoxus-mermaid-gfx-connection-preview[data-valid-target="true"]
     .myoxus-mermaid-gfx-connection-preview-target {
-    fill: ${unsafeCSSVar("primaryColor")};
-    stroke: ${unsafeCSSVar("backgroundPrimaryColor")};
+    fill: ${cssVar("primaryColor")};
+    stroke: ${cssVar("backgroundPrimaryColor")};
   }
 
   .myoxus-mermaid-gfx-connection-diagnostic {
@@ -470,10 +366,10 @@ export const mermaidBlockStyles = css`
     max-width: min(28ch, 50%);
     padding: var(--mantine-spacing-xs);
     border: calc(var(--mantine-scale) * 1px) solid
-      ${unsafeCSSVar("warningColor")};
+      ${cssVar("warningColor")};
     border-radius: var(--mantine-radius-sm);
-    background: ${unsafeCSSVar("backgroundPrimaryColor")};
-    color: ${unsafeCSSVar("textPrimaryColor")};
+    background: ${cssVar("backgroundPrimaryColor")};
+    color: ${cssVar("textPrimaryColor")};
     font-size: var(--mantine-font-size-xs);
     pointer-events: none;
     transform: translate(var(--mantine-spacing-xs), var(--mantine-spacing-xs));
@@ -503,7 +399,7 @@ export const mermaidBlockStyles = css`
     height: calc(var(--mantine-spacing-md) + var(--mantine-spacing-2xs));
     border: calc(var(--mantine-scale) * 2px) solid var(--myoxus-primary-color);
     border-radius: var(--mantine-radius-xl);
-    background: ${unsafeCSSVar("backgroundPrimaryColor")};
+    background: ${cssVar("backgroundPrimaryColor")};
     box-shadow: var(--mantine-shadow-sm);
     cursor: crosshair;
     transform: translate(-50%, -50%);
@@ -562,7 +458,7 @@ export const mermaidBlockStyles = css`
   .myoxus-mermaid-gfx-connect-handle::after {
     inset: var(--mantine-spacing-sm);
     border: calc(var(--mantine-scale) * 2px) solid var(--myoxus-primary-color);
-    background: ${unsafeCSSVar("backgroundPrimaryColor")};
+    background: ${cssVar("backgroundPrimaryColor")};
     box-shadow: var(--mantine-shadow-sm);
   }
 
@@ -578,128 +474,31 @@ export const mermaidBlockStyles = css`
     outline-offset: calc(var(--mantine-scale) * 2px);
   }
 
-  .myoxus-mermaid-visual-canvas text {
-    font-family: var(--myoxus-typography-body-family);
-  }
-
-  .myoxus-mermaid-visual-node {
-    cursor: pointer;
-  }
-
-  .myoxus-mermaid-visual-node[data-selected="true"] rect,
-  .myoxus-mermaid-visual-node[data-selected="true"] polygon {
-    stroke: var(--myoxus-primary-color);
-    stroke-width: 3px;
-  }
-
-  .myoxus-mermaid-visual-edge {
-    cursor: pointer;
-  }
-
-  .myoxus-mermaid-visual-edge[data-selected="true"] line {
-    stroke: var(--myoxus-primary-color);
-    stroke-width: 4px;
-  }
-
-  .myoxus-mermaid-visual-resize-handle {
-    cursor: nwse-resize;
-  }
-
-  .myoxus-mermaid-class-node {
-    cursor: grab;
-  }
-
-  .myoxus-mermaid-class-node:active {
-    cursor: grabbing;
-  }
-
-  .myoxus-mermaid-class-node[data-selected="true"] rect {
-    stroke: var(--myoxus-primary-color);
-    stroke-width: 3px;
-  }
-
-  .myoxus-mermaid-class-relation {
-    cursor: pointer;
-  }
-
-  .myoxus-mermaid-class-relation[data-selected="true"] line {
-    stroke: var(--myoxus-primary-color);
-    stroke-width: 3px;
-  }
-
-  .myoxus-mermaid-er-entity {
-    cursor: grab;
-  }
-
-  .myoxus-mermaid-er-entity:active {
-    cursor: grabbing;
-  }
-
-  .myoxus-mermaid-er-entity[data-selected="true"] rect {
-    stroke: var(--myoxus-primary-color);
-    stroke-width: 3px;
-  }
-
-  .myoxus-mermaid-er-relationship {
-    cursor: pointer;
-  }
-
-  .myoxus-mermaid-er-relationship[data-selected="true"] line {
-    stroke: var(--myoxus-primary-color);
-    stroke-width: 3px;
-  }
-
-  .myoxus-mermaid-block-node,
-  .myoxus-mermaid-block-edge {
-    cursor: pointer;
-  }
-
-  .myoxus-mermaid-block-node[data-selected="true"] rect {
-    stroke: var(--myoxus-primary-color);
-    stroke-width: 3px;
-  }
-
-  .myoxus-mermaid-block-edge[data-selected="true"] line {
-    stroke: var(--myoxus-primary-color);
-    stroke-width: 3px;
-  }
-
-  .myoxus-mermaid-requirement-card,
-  .myoxus-mermaid-requirement-relation {
-    cursor: pointer;
-  }
-
-  .myoxus-mermaid-requirement-card[data-selected="true"] rect {
-    stroke: var(--myoxus-primary-color);
-    stroke-width: 3px;
-  }
-
-  .myoxus-mermaid-requirement-relation[data-selected="true"] line {
-    stroke: var(--myoxus-primary-color);
-    stroke-width: 3px;
-  }
-
-  .myoxus-mermaid-state {
-    max-width: 45ch;
-    color: ${unsafeCSSVar("textSecondaryColor")};
-    font-family: var(--myoxus-typography-body-small-family);
-    font-size: var(--myoxus-typography-body-small-size);
-    font-style: var(--myoxus-typography-body-small-font-style);
-    font-weight: var(--myoxus-typography-body-small-weight);
-    letter-spacing: var(--myoxus-typography-body-small-letter-spacing);
-    line-height: var(--myoxus-typography-body-small-line-height);
-    text-align: center;
-  }
-
-  .myoxus-mermaid-state strong {
-    display: block;
-    margin-bottom: var(--mantine-spacing-2xs);
-    color: ${unsafeCSSVar("textPrimaryColor")};
-    font-family: var(--myoxus-typography-card-title-family);
-    font-size: var(--myoxus-typography-card-title-size);
-    font-style: var(--myoxus-typography-card-title-font-style);
-    font-weight: var(--myoxus-typography-card-title-weight);
-    letter-spacing: var(--myoxus-typography-card-title-letter-spacing);
-    line-height: var(--myoxus-typography-card-title-line-height);
-  }
 `;
+
+const mounted = new WeakMap<
+  Document | ShadowRoot,
+  {
+    element: HTMLStyleElement;
+    count: number;
+  }
+>();
+
+export function mountMermaidBlockStyles(block: HTMLElement) {
+  const root = block.getRootNode();
+  const scope = root instanceof ShadowRoot ? root : block.ownerDocument;
+  let entry = mounted.get(scope);
+  if (!entry) {
+    const element = block.ownerDocument.createElement("style");
+    element.textContent = mermaidBlockStyles;
+    (scope instanceof ShadowRoot ? scope : scope.head).append(element);
+    entry = { element, count: 0 };
+    mounted.set(scope, entry);
+  }
+  entry.count++;
+  return () => {
+    if (--entry.count) return;
+    entry.element.remove();
+    mounted.delete(scope);
+  };
+}

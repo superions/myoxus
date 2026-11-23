@@ -250,7 +250,8 @@ export class MarkdownDeltaConverter extends DeltaASTConverter<
     return mdast;
   }
 
-  private _mergeInlineHtml(
+  /** Read one supported inline HTML group through the registered HTML delta adapters. */
+  readInlineHtmlGroup(
     children: MarkdownAST[],
     startIndex: number,
   ): {
@@ -336,7 +337,7 @@ export class MarkdownDeltaConverter extends DeltaASTConverter<
   ): DeltaInsert<MyoxusTextAttributes>[] {
     const deltas: DeltaInsert<MyoxusTextAttributes>[] = [];
     for (let i = 0; i < children.length; i++) {
-      const merged = this._mergeInlineHtml(children, i);
+      const merged = this.readInlineHtmlGroup(children, i);
       if (merged) {
         deltas.push(...merged.deltas);
         i = merged.endIndex;

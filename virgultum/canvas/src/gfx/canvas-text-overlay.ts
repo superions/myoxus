@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
+import { NativeViewElement } from "@virgultum/core/runtime";
 import type { RichText } from "@virgultum/content/rich-text";
 import { DisposableGroup } from "@virgultum/core/primitives/disposable";
 import type { BlockStdScope } from "@virgultum/core/runtime";
 import { RANGE_SYNC_EXCLUDE_ATTR } from "@virgultum/core/runtime/inline";
 
 /** Canvas owns the mount and geometry. The rich-text input stays mounted across repaints. */
-export abstract class CanvasTextOverlay extends HTMLElement {
+export abstract class CanvasTextOverlay extends NativeViewElement {
   std!: BlockStdScope;
   richText!: RichText;
   protected disposables = new DisposableGroup();

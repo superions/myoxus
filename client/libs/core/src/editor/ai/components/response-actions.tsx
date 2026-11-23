@@ -36,6 +36,10 @@ interface ResponseActionsProps {
   sessionId?: string;
   retry?: () => void | Promise<void>;
   generatedFiles?: CopilotGeneratedFile[];
+  downloadSavedFile?: (
+    file: CopilotGeneratedFile,
+    current: () => boolean,
+  ) => Promise<void>;
   exportable?: boolean;
 }
 
@@ -58,6 +62,7 @@ function MessageActions({
   sessionId,
   retry,
   generatedFiles = [],
+  downloadSavedFile,
   exportable,
 }: ResponseActionsProps) {
   const t = useI18n();
@@ -185,8 +190,15 @@ function MessageActions({
           pending={fileStatus === "pending"}
           failed={fileStatus === "failed"}
           download={(file) => {
-            const download = AIProvider.session?.downloadGeneratedFile;
-            if (download) void runFileAction(() => download(file));
+            void runFileAction((current) => {
+              if (downloadSavedFile) return downloadSavedFile(file, current);
+              const download = AIProvider.session?.downloadGeneratedFile;
+              if (!download)
+                return Promise.reject(
+                  new Error("Saved file transport unavailable"),
+                );
+              return download(file);
+            });
           }}
         />
       ) : null}

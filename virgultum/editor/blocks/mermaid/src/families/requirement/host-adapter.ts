@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+import { mountMermaidDraftActions } from "../runtime/react-host.js";
 import { Bound } from "@virgultum/core/primitives/gfx";
 import { createMermaidClipboardPort } from "../../clipboard.js";
 import type { ToolbarContext } from "@virgultum/core/services";
@@ -290,11 +291,17 @@ export const mermaidRequirementHostAdapter: MermaidFamilyHostAdapter = {
                         kind: "node",
                         editKey: id,
                       }),
-                    renderActions: (actions) =>
-                      context.reactHost?.renderFamilyEditor(
+                    mountActions: (anchor, actions) =>
+                      mountMermaidDraftActions(
+                        context.reactHost,
+                        anchor,
+                        actions,
                         mermaidRequirementRendererToken,
-                        { surface: "label-actions", ...actions },
-                      ) ?? undefined,
+                        (value) => ({
+                          surface: "label-actions" as const,
+                          ...value,
+                        }),
+                      ),
                     finish: () => {
                       if (
                         host.getTransientState("requirement.creationDraft") ===

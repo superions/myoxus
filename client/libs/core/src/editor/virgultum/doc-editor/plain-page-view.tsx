@@ -370,6 +370,7 @@ export function PlainPageView({
   refresh,
   controller,
   handoff,
+  enableAI,
   className,
   fullWidth,
 }: {
@@ -379,6 +380,7 @@ export function PlainPageView({
   refresh: () => void;
   controller: { current: PageInteraction | null };
   handoff: (range: PageBookmark | null, intent?: PageIntent) => void;
+  enableAI: boolean;
   className?: string;
   fullWidth?: string;
 }) {
@@ -907,6 +909,7 @@ export function PlainPageView({
             rect={selection}
             dismiss={() => setSelection(null)}
             changed={repaint}
+            enableAI={enableAI}
           />
         )}
       </DocumentEditorPageViewport>

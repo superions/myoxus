@@ -31,6 +31,10 @@
       "import": "./dist/keywords/*",
       "require": "./dist/keywords/*"
     },
+    "./outline": {
+      "types": "./dist/outline.d.ts",
+      "import": "./dist/outline.mjs"
+    },
     "./catalog": {
       "types": "./dist/catalog.d.ts",
       "import": "./dist/catalog.mjs"

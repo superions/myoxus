@@ -1,4 +1,4 @@
-import { Signal } from "@preact/signals-core";
+import { type ReadonlySignal, Signal } from "@preact/signals-core";
 import { DisposableGroup } from "../../primitives/disposable/index";
 import {
   Bound,
@@ -92,18 +92,28 @@ export class GfxController extends LifeCycleWatcher {
     return this._surface$.peek();
   }
 
-  private _surfaceView: (HTMLElement & { requestUpdate(): void }) | null = null;
+  private readonly _surfaceView$ = new Signal<
+    (HTMLElement & { requestUpdate(): void }) | null
+  >(null);
+
+  /** Observe actual renderer attachment, including native views outside ViewStore. */
+  get surfaceView$(): ReadonlySignal<
+    (HTMLElement & { requestUpdate(): void }) | null
+  > {
+    return this._surfaceView$;
+  }
 
   /** Keep a single renderer for this scope, even while its DOM is being replaced. */
   bindSurfaceComponent(view: HTMLElement & { requestUpdate(): void }) {
-    this._surfaceView = view;
+    this._surfaceView$.value = view;
     return () => {
-      if (this._surfaceView === view) this._surfaceView = null;
+      if (this._surfaceView$.peek() === view) this._surfaceView$.value = null;
     };
   }
 
   get surfaceComponent() {
-    if (this._surfaceView) return this._surfaceView;
+    const view = this._surfaceView$.peek();
+    if (view) return view;
     return this.surface
       ? (this.std.view.getBlock(this.surface.id) ?? null)
       : null;

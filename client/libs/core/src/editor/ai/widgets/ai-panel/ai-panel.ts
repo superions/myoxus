@@ -1,6 +1,7 @@
 import { popoverViewportMiddlewares } from "@myoxus/ui-facade";
-import { createElement } from "react";
-import { AIWidgetUI } from "../native-ui";
+import { signal } from "@preact/signals-core";
+import { createElement, type ReactNode } from "react";
+import { NativeAIWidgetUI } from "../native-ui";
 import { AIPanelView } from "./view";
 import {
   autoPlacement,
@@ -13,11 +14,9 @@ import {
   shift,
   size,
 } from "@floating-ui/dom";
-import { ColorScheme } from "@virgultum/editor/model";
 import {
   DocModeProvider,
   NotificationProvider,
-  ThemeProvider,
   ToolbarFlag,
   ToolbarRegistryIdentifier,
 } from "@virgultum/editor/shared/services";
@@ -25,7 +24,7 @@ import {
   getPageRootByElement,
   stopPropagation,
 } from "@virgultum/editor/shared/utils";
-import { WidgetComponent, WidgetViewExtension } from "@virgultum/editor/std";
+import { NativeEditorWidget, WidgetViewExtension } from "@virgultum/editor/std";
 import { GfxControllerIdentifier } from "@virgultum/editor/std/gfx";
 import { RANGE_SYNC_EXCLUDE_ATTR } from "@virgultum/editor/std/inline";
 import type { BaseSelection } from "@virgultum/editor/store";
@@ -33,9 +32,6 @@ import {
   MYOXUS_VIEWPORT_OVERLAY_WIDGET,
   type MyoxusViewportOverlayWidget,
 } from "@virgultum/editor/widgets/viewport-overlay";
-import { nothing, type PropertyValues } from "lit";
-import { property } from "lit/decorators.js";
-import { literal, unsafeStatic } from "lit/static-html.js";
 
 import { mantineLengthPx } from "../../_common/mantine-length";
 import { type AIError } from "../../provider";
@@ -47,14 +43,44 @@ import type {
 import { mergeAIActionAnswer } from "./utils";
 export const MYOXUS_AI_PANEL_WIDGET = "myoxus-ai-panel-widget";
 
-export class MyoxusAIPanelWidget extends WidgetComponent {
-  protected override createRenderRoot() {
-    return this;
+export class MyoxusAIPanelWidget extends NativeEditorWidget {
+  private readonly view = signal<ReactNode>(null);
+  private mounted = false;
+  private pendingRender = false;
+  private completion = Promise.resolve(true);
+  private finishRender?: (connected: boolean) => void;
+  private previousState: MyoxusAIPanelState = "hidden";
+
+  get updateComplete() {
+    return this.completion;
+  }
+
+  private readonly commitView = () => {
+    if (this.pendingRender) return;
+    this.finishRender?.(this.isConnected);
+    this.finishRender = undefined;
+  };
+
+  requestUpdate() {
+    if (!this.mounted || this.pendingRender) return;
+    this.pendingRender = true;
+    if (!this.finishRender)
+      this.completion = new Promise((resolve) => (this.finishRender = resolve));
+    const lifetime = this.disposables;
+    queueMicrotask(() => {
+      if (this.disposables !== lifetime || !this.mounted) return;
+      this.pendingRender = false;
+      this.updateState();
+      const view = this.renderPanel();
+      if (Object.is(view, this.view.peek())) this.commitView();
+      else this.view.value = view;
+    });
   }
   inputElement: HTMLTextAreaElement | null = null;
   private loadingProgress = 1;
   readonly generatingElement = {
     updateLoadingProgress: (progress: number) => {
+      if (progress === this.loadingProgress) return;
       this.loadingProgress = progress;
       this.requestUpdate();
     },
@@ -183,12 +209,16 @@ export class MyoxusAIPanelWidget extends WidgetComponent {
     // reset answer
     this._answer = null;
 
+    const request = this._abortController;
+    const isCurrent = () =>
+      request === this._abortController && !request.signal.aborted;
     const update = (answer: AIActionAnswer) => {
+      if (!isCurrent()) return;
       this._answer = answer;
       this.requestUpdate();
     };
     const finish = (type: "success" | "error" | "aborted", err?: AIError) => {
-      if (type === "aborted") return;
+      if (type === "aborted" || !isCurrent()) return;
 
       if (!this.config) {
         throw new Error("config is not found when finish");
@@ -210,7 +240,7 @@ export class MyoxusAIPanelWidget extends WidgetComponent {
       input: text,
       update,
       finish,
-      signal: this._abortController.signal,
+      signal: request.signal,
     });
   };
 
@@ -252,16 +282,20 @@ export class MyoxusAIPanelWidget extends WidgetComponent {
       return Promise.resolve(true);
     }
     this._clearDiscardModal();
-    this._discardModalAbort = new AbortController();
+    const controller = new AbortController();
+    this._discardModalAbort = controller;
     return notification
       .confirm({
         title: "Stop generating",
         message: "AI is generating content. Do you want to stop generating?",
         cancelText: "Cancel",
         confirmText: "Stop",
-        abort: this._abortController.signal,
+        abort: controller.signal,
       })
-      .finally(() => (this._discardModalAbort = null));
+      .finally(() => {
+        if (this._discardModalAbort === controller)
+          this._discardModalAbort = null;
+      });
   };
 
   showDiscardModal = () => {
@@ -270,16 +304,20 @@ export class MyoxusAIPanelWidget extends WidgetComponent {
       return Promise.resolve(true);
     }
     this._clearDiscardModal();
-    this._discardModalAbort = new AbortController();
+    const controller = new AbortController();
+    this._discardModalAbort = controller;
     return notification
       .confirm({
         title: "Discard the AI result",
         message: "Do you want to discard the results the AI just generated?",
         cancelText: "Cancel",
         confirmText: "Discard",
-        abort: this._abortController.signal,
+        abort: controller.signal,
       })
-      .finally(() => (this._discardModalAbort = null));
+      .finally(() => {
+        if (this._discardModalAbort === controller)
+          this._discardModalAbort = null;
+      });
   };
 
   stopGenerating = () => {
@@ -434,13 +472,10 @@ export class MyoxusAIPanelWidget extends WidgetComponent {
 
   override connectedCallback() {
     super.connectedCallback();
-    this.appTheme = this.std.get(ThemeProvider).app$.value;
-    this.disposables.add(
-      this.std.get(ThemeProvider).app$.subscribe((theme) => {
-        this.appTheme = theme;
-        this.requestUpdate();
-      }),
-    );
+    const mount = this.std.getOptional(NativeAIWidgetUI);
+    this.mounted = Boolean(mount);
+    if (mount) this.disposables.add(mount(this, this.view, this.commitView));
+    this.requestUpdate();
 
     this.tabIndex = -1;
     // Floating-UI owns document/canvas anchoring; native chrome owns all visible styling.
@@ -477,44 +512,47 @@ export class MyoxusAIPanelWidget extends WidgetComponent {
   }
 
   override disconnectedCallback() {
-    super.disconnectedCallback();
+    this.mounted = false;
+    this.pendingRender = false;
+    this.commitView();
+    this._abortController.abort();
     this._clearDiscardModal();
     this._stopAutoUpdate?.();
+    if (this.state !== "hidden") {
+      this.viewportOverlayWidget?.unlock();
+      this.std
+        .get(ToolbarRegistryIdentifier)
+        .flags.toggle(ToolbarFlag.Hiding, false);
+    }
+    super.disconnectedCallback();
+    this.view.value = null;
   }
 
-  override render() {
-    if (this.state === "hidden" || !this.config) return nothing;
-    return (
-      this.std.getOptional(AIWidgetUI)?.(
-        createElement(AIPanelView, {
-          state: this.state,
-          config: this.config,
-          host: this.host,
-          answer: this.answer,
-          progress: this.loadingProgress,
-          onInput: this.onInput,
-          onFinish: this._inputFinish,
-          onStop: this.stopGenerating,
-          setInput: (element: HTMLTextAreaElement | null) => {
-            this.inputElement = element;
-          },
-        }),
-      ) ?? nothing
-    );
+  private renderPanel() {
+    if (this.state === "hidden" || !this.config) return null;
+    return createElement(AIPanelView, {
+      state: this.state,
+      config: this.config,
+      host: this.host,
+      answer: this.answer,
+      progress: this.loadingProgress,
+      onInput: this.onInput,
+      onFinish: this._inputFinish,
+      onStop: this.stopGenerating,
+      setInput: (element: HTMLTextAreaElement | null) => {
+        this.inputElement = element;
+      },
+    });
   }
 
-  protected override willUpdate(changed: PropertyValues): void {
-    const prevState = changed.get("state");
-    if (prevState) {
-      const shouldBeHidden = prevState === "hidden";
-
-      if (shouldBeHidden) {
+  private updateState() {
+    if (this.previousState !== this.state) {
+      if (this.previousState === "hidden") {
         this._selection = this.host.selection.value;
       } else {
         this.restoreSelection();
       }
-
-      // tell toolbar to show or hide
+      this.previousState = this.state;
       this.std
         .get(ToolbarRegistryIdentifier)
         .flags.toggle(
@@ -533,18 +571,28 @@ export class MyoxusAIPanelWidget extends WidgetComponent {
     this.hidden = this.state === "hidden";
   }
 
-  @property({ attribute: false })
-  accessor config: MyoxusAIPanelWidgetConfig | null = null;
+  private _config: MyoxusAIPanelWidgetConfig | null = null;
+  get config() {
+    return this._config;
+  }
+  set config(value: MyoxusAIPanelWidgetConfig | null) {
+    this._config = value;
+    this.requestUpdate();
+  }
 
-  @property()
-  accessor state: MyoxusAIPanelState = "hidden";
-
-  @property({ attribute: "data-app-theme", reflect: true })
-  accessor appTheme: ColorScheme = ColorScheme.Light;
+  private _state: MyoxusAIPanelState = "hidden";
+  get state() {
+    return this._state;
+  }
+  set state(value: MyoxusAIPanelState) {
+    if (value === this._state) return;
+    this._state = value;
+    this.requestUpdate();
+  }
 }
 
 export const aiPanelWidget = WidgetViewExtension(
   "myoxus:page",
   MYOXUS_AI_PANEL_WIDGET,
-  literal`${unsafeStatic(MYOXUS_AI_PANEL_WIDGET)}`,
+  MYOXUS_AI_PANEL_WIDGET,
 );

@@ -27,7 +27,7 @@ type Port = Pick<
   subscribeInvalidation?: (invalidate: () => void) => () => void;
   restoreSelection: () => void;
   finish: () => void;
-  renderActions?: ShapeTextEditDraft["renderActions"];
+  mountActions?: ShapeTextEditDraft["mountActions"];
 };
 
 /** Existing and newly reserved occurrences share a local text/metric preview.
@@ -113,7 +113,7 @@ export function beginMindmapLabelDraft(
       selectAllOnMount: typed === undefined,
       isValid: valid,
       cancel,
-      renderActions: port.renderActions,
+      mountActions: port.mountActions,
       subscribeInvalidation: (invalidate) =>
         port.subscribeInvalidation?.(() => {
           if (!valid()) invalidate();

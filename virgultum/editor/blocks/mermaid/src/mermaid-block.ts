@@ -1,4 +1,5 @@
-import { html } from "lit";
+import { createElement, type ReactNode } from "react";
+import { NativeBlockProjection } from "@virgultum/canvas-runtime/surface";
 
 import { getMermaidVisualModelFromProjectionOwner } from "./commands.js";
 import type { MermaidEditorCapabilities } from "./families/runtime/editor-capabilities.js";
@@ -28,8 +29,106 @@ import {
 import { resolveMermaidGfxProjection } from "./presentation/gfx-projection-owner.js";
 
 import { MermaidHostFamilyRender } from "./mermaid-host-family-render.js";
+import { mountMermaidBlockStyles } from "./mermaid-block.styles.js";
 
 export class MermaidBlockComponent extends MermaidHostFamilyRender {
+  private projectionUpdate?: Promise<boolean>;
+  private finishProjectionUpdate?: (connected: boolean) => void;
+  private projectionQueued = false;
+  private presenterMounted = false;
+  private projection: ReactNode = null;
+  private readonly projectionListeners = new Set<() => void>();
+
+  override connectedCallback() {
+    super.connectedCallback();
+    if (!this.model) return;
+    this.disposables.add(mountMermaidBlockStyles(this));
+    if (this.viewType === "bypass") {
+      const children = new NativeBlockProjection(this.host);
+      const sync = () => children.sync(this.model.children, this);
+      sync();
+      this.disposables.add(this.store.slots.blockUpdated.subscribe(sync));
+      this.disposables.add(() => children.dispose());
+      return;
+    }
+    const presenter = this.std.getOptional(MermaidFamilyReactHostIdentifier);
+    if (!presenter || this.viewType !== "display") return;
+    const lifetime = new AbortController();
+    this.disposables.add(() => lifetime.abort());
+    for (const name of [
+      "click",
+      "contextmenu",
+      "dblclick",
+      "pointerdown",
+      "wheel",
+    ])
+      this.addEventListener(name, this._isolateEmbeddedEdgelessEvent, {
+        signal: lifetime.signal,
+      });
+    this.presenterMounted = true;
+    this.disposables.add(
+      presenter.mount(this, {
+        getSnapshot: () => this.projection,
+        subscribe: (listener) => {
+          this.projectionListeners.add(listener);
+          return () => this.projectionListeners.delete(listener);
+        },
+        afterCommit: this.commitProjection,
+      }),
+    );
+    this.requestUpdate();
+  }
+
+  override disconnectedCallback() {
+    this.presenterMounted = false;
+    this.commitProjection(false);
+    this.projectionQueued = false;
+    this.projection = null;
+    super.disconnectedCallback();
+    this.projectionListeners.clear();
+  }
+
+  override get updateComplete() {
+    return this.projectionUpdate ?? super.updateComplete;
+  }
+
+  private readonly commitProjection = (connected = this.isConnected) => {
+    if (connected) this.afterProjectionUpdate();
+    if (connected && this.projectionQueued) return;
+    this.finishProjectionUpdate?.(connected);
+    this.finishProjectionUpdate = undefined;
+    this.projectionUpdate = undefined;
+  };
+
+  override requestUpdate() {
+    if (this.projectionQueued || !this.presenterMounted || !this.isConnected)
+      return;
+    this.projectionQueued = true;
+    this.projectionUpdate ??= new Promise(
+      (resolve) => (this.finishProjectionUpdate = resolve),
+    );
+    const lifetime = this.disposables;
+    queueMicrotask(() => {
+      if (this.disposables !== lifetime || !this.isConnected) return;
+      // Controllers may synchronously notify during projection reconciliation.
+      // Those notifications belong to this render. A later portal commit or
+      // input event can request a new projection.
+      let next: ReactNode;
+      try {
+        next = this.renderBlock();
+      } finally {
+        this.projectionQueued = false;
+      }
+      if (Object.is(this.projection, next)) {
+        this.projection = next;
+        this.commitProjection();
+        return;
+      }
+      this.projection = next;
+      for (const listener of this.projectionListeners) listener();
+    });
+  }
+
   private _lastValidProjection: {
     readonly capabilities: MermaidEditorCapabilities;
     readonly diagramType: string;
@@ -40,6 +139,7 @@ export class MermaidBlockComponent extends MermaidHostFamilyRender {
   private readonly _isolateEmbeddedEdgelessEvent = (event: Event) => {
     if (
       this.store.readonly ||
+      !this._isInEdgelessMode() ||
       !this._canConsumeScopedGfxEvent() ||
       !this.selected$.value
     ) {
@@ -259,18 +359,16 @@ export class MermaidBlockComponent extends MermaidHostFamilyRender {
     // Its diagnostic is a notice beside that projection, never a replacement.
     const body = projection?.body;
 
-    return html`<div
-      data-mermaid-edgeless-embedded="true"
-      @pointerdown=${this._embeddedEdgelessActivationListener}
-    >
-      <div
-        @click=${this._isolateEmbeddedEdgelessEvent}
-        @contextmenu=${this._isolateEmbeddedEdgelessEvent}
-        @dblclick=${this._isolateEmbeddedEdgelessEvent}
-        @pointerdown=${this._isolateEmbeddedEdgelessEvent}
-        @wheel=${this._isolateEmbeddedEdgelessEvent}
-      >
-        ${reactHost.renderEmbeddedTitle({
+    return createElement(
+      "div",
+      {
+        "data-mermaid-edgeless-embedded": "true",
+        ref: this.bindEmbeddedActivation,
+      },
+      createElement(
+        "div",
+        null,
+        reactHost.renderEmbeddedTitle({
           onActionTargetChange: this._handleFamilyHeaderActionTargetChange,
           onTitleChange: this._handleTitleChange,
           placeholder: mermaidMessages.titlePlaceholder(),
@@ -290,13 +388,21 @@ export class MermaidBlockComponent extends MermaidHostFamilyRender {
                 hostResolution.capabilities?.titlePresentation
               )?.visible !== false,
           },
-        })}
-        ${notice ? reactHost.renderShellNotice(notice) : null} ${body}
-      </div>
-    </div>`;
+        }),
+        notice ? reactHost.renderShellNotice(notice) : null,
+        body,
+      ),
+    );
   }
 
-  override renderBlock() {
+  private readonly bindEmbeddedActivation = (anchor: HTMLDivElement | null) => {
+    if (!anchor) return;
+    const handler = this._embeddedEdgelessActivationListener;
+    anchor.addEventListener("pointerdown", handler, true);
+    return () => anchor.removeEventListener("pointerdown", handler, true);
+  };
+
+  renderBlock() {
     const title = resolveMermaidEffectiveBlockTitle(this.model.props);
     const source = getMermaidBlockSource(this.model.props);
     const readonly = this.store.readonly;

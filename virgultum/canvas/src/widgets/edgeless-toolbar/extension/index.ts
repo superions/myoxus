@@ -1,4 +1,5 @@
 import type {
+  EditorCanvasToolbarItem,
   EditorI18nMessage,
   SelectionAction,
 } from "@virgultum/core/services";
@@ -6,12 +7,11 @@ import { createIdentifier } from "@virgultum/core/primitives/di";
 import type { BlockComponent } from "@virgultum/core/runtime";
 import type { GfxController } from "@virgultum/core/runtime/gfx";
 import type { ExtensionType } from "@virgultum/core/store";
-import { type TemplateResult } from "lit";
 
 export interface QuickTool {
   type?: string;
   enable?: boolean;
-  content: TemplateResult;
+  content: EditorCanvasToolbarItem;
   /**
    * if not configured, the tool will not be shown in dense mode
    */
@@ -24,7 +24,7 @@ export interface SeniorTool {
    * Used to show in nav-button's tooltip
    */
   name: string | EditorI18nMessage;
-  content: TemplateResult;
+  content: EditorCanvasToolbarItem;
   enable?: boolean;
 }
 

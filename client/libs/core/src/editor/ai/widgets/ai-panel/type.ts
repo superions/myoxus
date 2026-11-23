@@ -1,4 +1,5 @@
-import type { nothing, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
+import type { ReactNode } from "react";
 
 import type { StreamObject } from "../../components/ai-chat-messages";
 import type { AIItemGroupConfig } from "../../components/ai-item/types";
@@ -34,10 +35,7 @@ export type AIActionAnswer = {
 };
 
 export interface MyoxusAIPanelWidgetConfig {
-  answerRenderer: (
-    answer: string,
-    state?: MyoxusAIPanelState,
-  ) => TemplateResult<1> | typeof nothing;
+  answerRenderer: (answer: string, state?: MyoxusAIPanelState) => ReactNode;
   generateAnswer?: (props: {
     input: string;
     update: (answer: AIActionAnswer) => void;

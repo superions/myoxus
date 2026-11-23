@@ -1,6 +1,6 @@
+import { createElement } from "react";
 import type { MindmapDesign as MindmapStyle } from "@virgultum/block-mermaid";
 import type { EditorHost } from "@virgultum/editor/std";
-import { html, nothing } from "lit";
 
 import { markdownToMindmap } from "../mini-mindmap";
 import { getAIPanelWidget } from "../utils/ai-widgets";
@@ -22,17 +22,17 @@ export const createMindmapRenderer: (
     }
 
     if (state !== "finished") {
-      return nothing;
+      return null;
     }
 
-    return html`<mini-mindmap-preview
-      .ctx=${ctx}
-      .host=${host}
-      .answer=${answer}
-      .mindmapStyle=${style}
-      .templateShow=${style === undefined}
-      .height=${300}
-    ></mini-mindmap-preview>`;
+    return createElement("mini-mindmap-preview", {
+      ctx,
+      host,
+      answer,
+      mindmapStyle: style,
+      templateShow: style === undefined,
+      height: 300,
+    });
   };
 };
 
@@ -54,10 +54,10 @@ export const createMindmapExecuteRenderer: (
       executed = false;
       const panel = getAIPanelWidget(host);
       panel.generatingElement?.updateLoadingProgress(2);
-      return nothing;
+      return null;
     }
 
-    if (executed) return nothing;
+    if (executed) return null;
     executed = true;
     try {
       ctx.set({
@@ -69,6 +69,6 @@ export const createMindmapExecuteRenderer: (
       ctx.set({ node: null });
     }
 
-    return nothing;
+    return null;
   };
 };

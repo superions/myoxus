@@ -9,7 +9,6 @@ import {
   EDGELESS_TOOLBAR_WIDGET,
   type ToolBuilder,
 } from "@virgultum/canvas/widgets";
-import { html } from "lit";
 
 import { insertMermaidEdgelessDiagramCommand } from "../commands.js";
 import { prepareMermaidFamilySource } from "../families/runtime/registry.js";
@@ -22,7 +21,6 @@ import { mermaidMessages } from "../i18n.js";
 import { createMermaidMmdImportMenuItem } from "./mmd-file-actions.js";
 import {
   EditorI18nProvider,
-  EditorChromeHostIdentifier,
   editorMessage,
   resolveEditorMessage,
   type SelectionAction,
@@ -167,9 +165,9 @@ export const buildMermaidSeniorTool: ToolBuilder<SeniorTool> = ({
 }) => ({
   name: titleMessage,
   enable: !block.store.readonly,
-  // The native host owns this insertion menu; no persistent GFX tool or Lit control remains.
-  content:
-    block.std.getOptional(EditorChromeHostIdentifier)?.renderCanvasTool({
+  content: {
+    type: "control",
+    controls: {
       action: {
         id: "myoxus-mermaid-edgeless-toolbar-button",
         label: resolveEditorMessage(
@@ -189,10 +187,10 @@ export const buildMermaidSeniorTool: ToolBuilder<SeniorTool> = ({
         },
         actions: (query) => buildMermaidEdgelessToolbarMenuItems(block, query),
       },
-      artwork: mermaidToolbarSymbol(),
-      // Retain the existing symbol's measured artwork and hit box.
+      nativeArtwork: mermaidToolbarSymbol(),
       artworkBounds: { width: 64, height: 64 },
-    }) ?? html``,
+    },
+  },
 });
 
 export const mermaidSeniorTool = SeniorToolExtension(

@@ -8,18 +8,9 @@ import {
   CodeHighlighter,
 } from "../components/ai-tools/code-artifact";
 import { DocComposeTool } from "../components/ai-tools/doc-compose";
-import { DocEditTool } from "../components/ai-tools/doc-edit";
-import { DocKeywordSearchResult } from "../components/ai-tools/doc-keyword-search-result";
-import { DocReadResult } from "../components/ai-tools/doc-read-result";
-import { DocSemanticSearchResult } from "../components/ai-tools/doc-semantic-search-result";
-import { DocWriteTool } from "../components/ai-tools/doc-write";
-import { SectionEditTool } from "../components/ai-tools/section-edit";
-import { WebCrawlTool } from "../components/ai-tools/web-crawl";
-import { WebSearchTool } from "../components/ai-tools/web-search";
 import { TextRenderer } from "../components/text-renderer";
 import { AIErrorWrapper } from "../messages/error";
 import { AISlidesRenderer } from "../messages/slides-renderer";
-import { AIAnswerWrapper } from "../messages/wrapper";
 import { registerMiniMindmapBlocks } from "../mini-mindmap";
 import {
   type SharedEffectElementTag,
@@ -30,24 +21,15 @@ const sharedRegistries = new WeakSet<CustomElementRegistry>();
 const sharedElements = {
   "ai-error-wrapper": AIErrorWrapper,
   "ai-slides-renderer": AISlidesRenderer,
-  "ai-answer-wrapper": AIAnswerWrapper,
   "chat-content-images": ChatContentImages,
   "chat-content-pure-text": ChatContentPureText,
   "chat-content-rich-text": ChatContentRichText,
   "chat-content-stream-objects": ChatContentStreamObjects,
   "text-renderer": TextRenderer,
-  "doc-semantic-search-result": DocSemanticSearchResult,
-  "doc-keyword-search-result": DocKeywordSearchResult,
-  "doc-read-result": DocReadResult,
-  "doc-write-tool": DocWriteTool,
-  "web-crawl-tool": WebCrawlTool,
-  "web-search-tool": WebSearchTool,
-  "section-edit-tool": SectionEditTool,
   "doc-compose-tool": DocComposeTool,
   "code-artifact-tool": CodeArtifactTool,
   "code-highlighter": CodeHighlighter,
   "artifact-preview-panel": ArtifactPreviewPanel,
-  "doc-edit-tool": DocEditTool,
 } satisfies Record<SharedEffectElementTag, CustomElementConstructor>;
 
 export function registerAISharedEffects() {

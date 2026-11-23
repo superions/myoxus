@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import type { TemplateResult } from "lit";
+import type { ReactNode } from "react";
 import type { MermaidPageViewportProjection } from "../../mermaid-page-viewport-state.js";
 
 import type { MermaidArchitectureGfxControl } from "./control-contract.js";
@@ -143,8 +143,8 @@ export type MermaidArchitectureEditorReactHostProps = {
     readonly top: number;
   } | null;
   readonly selectionCommentAnchor: MermaidArchitectureCommentAnchor;
-  readonly workarea: TemplateResult | string | null;
-  readonly workareaFooter?: TemplateResult | string | null;
+  readonly workarea: ReactNode | string | null;
+  readonly workareaFooter?: ReactNode | string | null;
 };
 
 export type MermaidArchitecturePropertiesProps = Pick<

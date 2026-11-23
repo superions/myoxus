@@ -418,7 +418,7 @@ const OthersAIGroup: AIItemGroupConfig = {
           host,
           autoSelect: true,
         });
-        edgelessCopilot.hideCopilotPanel();
+        edgelessCopilot?.hideCopilotPanel();
         panel.hide();
       },
     },

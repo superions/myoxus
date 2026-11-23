@@ -1,9 +1,12 @@
-import type { DisposableClass } from "@virgultum/core/primitives/lit";
+import type { DisposableGroup } from "@virgultum/core/primitives/disposable";
 import type { BlockComponent, BlockStdScope } from "@virgultum/core/runtime";
-import type { LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
 
-export type PeekableClass = { std: BlockStdScope } & DisposableClass &
-  LitElement;
+export type PeekableClass = HTMLElement & {
+  std: BlockStdScope;
+  disposables: DisposableGroup;
+  connectedCallback(): void;
+};
 
 export interface PeekOptions {
   /**

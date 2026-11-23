@@ -1,4 +1,4 @@
-import { html } from "lit";
+import { createElement, type ReactNode } from "react";
 
 import type { MermaidRenderState } from "./mermaid-block-constants.js";
 import { shouldScheduleMermaidDisplayPreview } from "./mermaid-render-state.js";
@@ -9,7 +9,7 @@ export function renderMermaidDisplayBody({
   scheduleRender,
   source,
 }: {
-  readonly renderPreview: () => unknown;
+  readonly renderPreview: () => ReactNode;
   readonly renderState: MermaidRenderState;
   readonly scheduleRender: () => void;
   readonly source: string;
@@ -17,7 +17,9 @@ export function renderMermaidDisplayBody({
   if (shouldScheduleMermaidDisplayPreview({ renderState, source })) {
     scheduleRender();
   }
-  return html`<div class="myoxus-mermaid-display-preview">
-    ${renderPreview()}
-  </div>`;
+  return createElement(
+    "div",
+    { className: "myoxus-mermaid-display-preview" },
+    renderPreview(),
+  );
 }

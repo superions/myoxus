@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import type { TemplateResult } from "lit";
+import type { ReactNode } from "react";
 import type {
   FlowchartTextFormat,
   FlowchartTextFormatPatch,
@@ -184,8 +184,8 @@ export type MermaidFlowchartReactHostProps = {
     readonly label: string;
     readonly selected: boolean;
   }>;
-  readonly workarea: TemplateResult | string | null;
-  readonly workareaFooter?: TemplateResult | string | null;
+  readonly workarea: ReactNode | string | null;
+  readonly workareaFooter?: ReactNode | string | null;
 };
 export type MermaidFlowchartMetadataReactHostProps = {
   readonly accessibilityDescription?: string;

@@ -16,17 +16,12 @@ import {
   getCommonBoundWithRotation,
 } from "@virgultum/editor/global/gfx";
 import type { RootBlockModel } from "@virgultum/editor/model";
-import { unsafeCSSValue, unsafeCSSVar } from "@virgultum/editor/shared/theme";
 import {
   MOUSE_BUTTON,
   requestConnectedFrame,
 } from "@virgultum/editor/shared/utils";
-import { WidgetComponent, WidgetViewExtension } from "@virgultum/editor/std";
+import { NativeEditorWidget, WidgetViewExtension } from "@virgultum/editor/std";
 import { GfxControllerIdentifier } from "@virgultum/editor/std/gfx";
-import { css, html, nothing } from "lit";
-import { query, state } from "lit/decorators.js";
-import { styleMap } from "lit/directives/style-map.js";
-import { literal, unsafeStatic } from "lit/static-html.js";
 
 import type { AIItemGroupConfig } from "../../components/ai-item/types.js";
 import { AIProvider } from "../../provider/index.js";
@@ -38,20 +33,8 @@ import {
 import { EdgelessCopilotPanel } from "../edgeless-copilot-panel/index.js";
 import { MYOXUS_EDGELESS_COPILOT_WIDGET } from "./constant.js";
 
-export class EdgelessCopilotWidget extends WidgetComponent<RootBlockModel> {
-  override createRenderRoot() {
-    return this;
-  }
-
-  static override styles = css`
-    myoxus-edgeless-copilot-widget .copilot-selection-rect {
-      position: absolute;
-      box-sizing: border-box;
-      border-radius: ${unsafeCSSValue("var(--mantine-radius-sm)")};
-      border: calc(${unsafeCSSValue("calc(var(--mantine-scale) * 1px)")} * 2)
-        dashed ${unsafeCSSVar("primaryColor")};
-    }
-  `;
+export class EdgelessCopilotWidget extends NativeEditorWidget<RootBlockModel> {
+  readonly selectionElem = document.createElement("div");
 
   private _clickOutsideOff: (() => void) | null = null;
 
@@ -87,6 +70,7 @@ export class EdgelessCopilotWidget extends WidgetComponent<RootBlockModel> {
 
   set visible(visible: boolean) {
     this._visible = visible;
+    this.renderSelection();
   }
 
   private _showCopilotInput() {
@@ -141,7 +125,7 @@ export class EdgelessCopilotWidget extends WidgetComponent<RootBlockModel> {
       const panel = new EdgelessCopilotPanel();
       panel.host = this.host;
       panel.groups = this.groups;
-      this.renderRoot.append(panel);
+      this.append(panel);
       this._copilotPanel = panel;
     }
   }
@@ -192,6 +176,7 @@ export class EdgelessCopilotWidget extends WidgetComponent<RootBlockModel> {
     const [width, height] = [rect.width * zoom, rect.height * zoom];
 
     this._selectionRect = { x, y, width, height };
+    this.renderSelection();
   }
 
   private _watchClickOutside() {
@@ -213,8 +198,7 @@ export class EdgelessCopilotWidget extends WidgetComponent<RootBlockModel> {
             e.button === MOUSE_BUTTON.MAIN &&
             !this.contains(e.target as HTMLElement)
           ) {
-            off();
-            this._visible = false;
+            this.visible = false;
             this.hideCopilotPanel();
           }
         });
@@ -227,9 +211,19 @@ export class EdgelessCopilotWidget extends WidgetComponent<RootBlockModel> {
   override connectedCallback(): void {
     super.connectedCallback();
 
+    this.selectionElem.className = "copilot-selection-rect";
+    Object.assign(this.selectionElem.style, {
+      position: "absolute",
+      boxSizing: "border-box",
+      borderRadius: "var(--mantine-radius-sm)",
+      border:
+        "calc(var(--mantine-scale) * 2px) dashed var(--myoxus-primary-color)",
+    });
+    this.selectionElem.hidden = true;
+    this.append(this.selectionElem);
     const CopilotSelectionTool = this.gfx.tool.get(CopilotTool);
 
-    this._disposables.add(
+    this.disposables.add(
       CopilotSelectionTool.draggingAreaUpdated.subscribe((shouldShowPanel) => {
         this._visible = true;
         this._updateSelection(CopilotSelectionTool.area);
@@ -242,7 +236,7 @@ export class EdgelessCopilotWidget extends WidgetComponent<RootBlockModel> {
       }),
     );
 
-    this._disposables.add(
+    this.disposables.add(
       this.gfx.viewport.viewportUpdated.subscribe(() => {
         if (!this._visible) return;
 
@@ -250,20 +244,21 @@ export class EdgelessCopilotWidget extends WidgetComponent<RootBlockModel> {
       }),
     );
 
-    this._disposables.add(
+    this.disposables.add(
       effect(() => {
         const currentTool = this.gfx.tool.currentToolName$.value;
 
         if (!this._visible || currentTool === "copilot") return;
 
-        this._visible = false;
-        this._clickOutsideOff = null;
-        this._copilotPanel?.remove();
-        this._copilotPanel = null;
+        this.visible = false;
+        this.hideCopilotPanel();
       }),
     );
 
-    this._disposables.add(() => this._autoUpdateCleanup?.());
+    this.disposables.add(() => {
+      this.hideCopilotPanel();
+      this.selectionElem.remove();
+    });
   }
 
   determineInsertionBounds(width = 800, height = 95) {
@@ -283,8 +278,14 @@ export class EdgelessCopilotWidget extends WidgetComponent<RootBlockModel> {
   }
 
   hideCopilotPanel() {
-    this._copilotPanel?.hide();
+    this._copilotPanel?.remove();
     this._copilotPanel = null;
+    this._autoUpdateCleanup?.();
+    this._autoUpdateCleanup = null;
+    if (this._listenClickOutsideId !== null)
+      cancelAnimationFrame(this._listenClickOutsideId);
+    this._listenClickOutsideId = null;
+    this._clickOutsideOff?.();
     this._clickOutsideOff = null;
   }
 
@@ -293,46 +294,25 @@ export class EdgelessCopilotWidget extends WidgetComponent<RootBlockModel> {
     legacySlot.toolbarLocked.next(disabled);
   }
 
-  override render() {
-    if (!this._visible) return nothing;
-
-    const rect = this._selectionRect;
-
-    return html`<style>
-        ${EdgelessCopilotWidget.styles}
-      </style>
-      <div class="myoxus-edgeless-ai">
-        <div
-          class="copilot-selection-rect"
-          style=${styleMap({
-            left: `${rect.x}px`,
-            top: `${rect.y}px`,
-            width: `${rect.width}px`,
-            height: `${rect.height}px`,
-          })}
-        ></div>
-      </div>`;
+  private renderSelection() {
+    const { x, y, width, height } = this._selectionRect;
+    this.selectionElem.hidden = !this.visible;
+    Object.assign(this.selectionElem.style, {
+      left: `${x}px`,
+      top: `${y}px`,
+      width: `${width}px`,
+      height: `${height}px`,
+    });
   }
 
-  @state()
-  private accessor _selectionRect: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } = { x: 0, y: 0, width: 0, height: 0 };
-
-  @state()
-  private accessor _visible = false;
-
-  @query(".copilot-selection-rect")
-  accessor selectionElem!: HTMLDivElement;
+  private _selectionRect = { x: 0, y: 0, width: 0, height: 0 };
+  private _visible = false;
 }
 
 export const edgelessCopilotWidget = WidgetViewExtension(
   "myoxus:page",
   MYOXUS_EDGELESS_COPILOT_WIDGET,
-  literal`${unsafeStatic(MYOXUS_EDGELESS_COPILOT_WIDGET)}`,
+  MYOXUS_EDGELESS_COPILOT_WIDGET,
 );
 
 declare global {

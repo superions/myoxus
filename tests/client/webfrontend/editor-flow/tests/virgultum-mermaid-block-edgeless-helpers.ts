@@ -2072,17 +2072,15 @@ export async function flowchartSubgraphHeaderPoint(
         y: scopedRect.top + Math.min(20, scopedRect.height / 2),
       };
     }
-    const surfaceElement = viewport?.querySelector("myoxus-surface") as
-      | {
-          _gfx?: {
-            viewport?: {
-              toViewCoord?: (x: number, y: number) => [number, number];
-            };
+    const liveViewport = (
+      element as unknown as {
+        _getScopedGfxController?: () => {
+          viewport?: {
+            toViewCoord?: (x: number, y: number) => [number, number];
           };
-        }
-      | null
-      | undefined;
-    const liveViewport = surfaceElement?._gfx?.viewport;
+        } | null;
+      }
+    )._getScopedGfxController?.()?.viewport;
     if (liveViewport?.toViewCoord) {
       const [x, y] = liveViewport.toViewCoord(modelX, modelY);
       return { x, y };

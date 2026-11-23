@@ -21,6 +21,7 @@ function picker() {
     ],
   });
   const provider = {
+    groups: AtMenuConfigService.prototype["groups"],
     linkToDocGroup: vi.fn(() => documents),
     newDocMenuGroup: vi.fn(create),
     memberGroup: vi.fn(() => members),

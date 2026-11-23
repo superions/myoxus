@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
+import { NativeViewElement } from "@virgultum/core/runtime";
 import { effect } from "@preact/signals-core";
 import { DisposableGroup } from "@virgultum/core/primitives/disposable";
 import type { NoteBlockModel } from "@virgultum/core/models";
@@ -34,7 +35,7 @@ function mountWhile(
   };
 }
 
-export class EdgelessNoteBackground extends HTMLElement {
+export class EdgelessNoteBackground extends NativeViewElement {
   note!: NoteBlockModel;
   std!: BlockStdScope;
   editing = false;
@@ -73,7 +74,7 @@ export class EdgelessNoteBackground extends HTMLElement {
   }
 }
 
-export class EdgelessPageBlockTitle extends HTMLElement {
+export class EdgelessPageBlockTitle extends NativeViewElement {
   note!: NoteBlockModel;
   std!: BlockStdScope;
   private connection?: DisposableGroup;

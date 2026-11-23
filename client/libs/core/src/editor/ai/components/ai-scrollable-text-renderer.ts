@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import { WithDisposable } from "@virgultum/editor/global/lit";
 import { scrollbarStyle } from "@virgultum/editor/shared/styles";
 import { ShadowlessElement } from "@virgultum/editor/std";
@@ -106,13 +107,13 @@ export const createAIScrollableTextRenderer: (
   autoScroll,
 ) => {
   return (answer: string, state: MyoxusAIPanelState | undefined) => {
-    return html`<ai-scrollable-text-renderer
-      .answer=${answer}
-      .state=${state}
-      .textRendererOptions=${textRendererOptions}
-      .maxHeight=${maxHeight}
-      .autoScroll=${autoScroll}
-    ></ai-scrollable-text-renderer>`;
+    return createElement("ai-scrollable-text-renderer", {
+      answer,
+      state,
+      textRendererOptions,
+      maxHeight,
+      autoScroll,
+    });
   };
 };
 

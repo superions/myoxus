@@ -1,18 +1,7 @@
 import { AIChatBlockComponent } from "../blocks/ai-chat-block/ai-chat-block";
 import { EdgelessAIChatBlockComponent } from "../blocks/ai-chat-block/ai-chat-edgeless-block";
 import { LitTranscriptionBlock } from "../blocks/ai-chat-block/ai-transcription-block";
-import {
-  AIChatBlockMessage,
-  AIChatBlockMessages,
-} from "../blocks/ai-chat-block/components/ai-chat-messages";
-import {
-  ChatImage,
-  ChatImages,
-} from "../blocks/ai-chat-block/components/chat-images";
-import { ImagePlaceholder } from "../blocks/ai-chat-block/components/image-placeholder";
-import { UserInfo } from "../blocks/ai-chat-block/components/user-info";
 import { AIScrollableTextRenderer } from "../components/ai-scrollable-text-renderer";
-import { AskAIPanel } from "../components/ask-ai-panel";
 import {
   MYOXUS_AI_PANEL_WIDGET,
   MyoxusAIPanelWidget,
@@ -45,16 +34,9 @@ import { registerAISharedEffects } from "./shared";
 
 const editorRegistries = new WeakSet<CustomElementRegistry>();
 const editorElements = {
-  "ask-ai-panel": AskAIPanel,
   "myoxus-edgeless-ai-chat": EdgelessAIChatBlockComponent,
   "myoxus-ai-chat": AIChatBlockComponent,
-  "ai-chat-block-message": AIChatBlockMessage,
-  "ai-chat-block-messages": AIChatBlockMessages,
   "ai-scrollable-text-renderer": AIScrollableTextRenderer,
-  "image-placeholder": ImagePlaceholder,
-  "chat-image": ChatImage,
-  "chat-images": ChatImages,
-  "user-info": UserInfo,
   "ai-block-diff-options": BlockDiffOptions,
   [MYOXUS_BLOCK_DIFF_PLAYGROUND]: BlockDiffPlayground,
   [MYOXUS_BLOCK_DIFF_PLAYGROUND_MODAL]: BlockDiffPlaygroundModal,

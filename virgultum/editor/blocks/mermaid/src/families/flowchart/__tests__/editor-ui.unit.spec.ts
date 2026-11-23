@@ -1,4 +1,5 @@
-import { html, render } from "lit";
+import { createElement, Fragment } from "react";
+import { renderTestProjection } from "../../../__tests__/mermaid-test-support.js";
 import { describe, expect, test } from "vitest";
 
 import type { MermaidVisualModel } from "../../runtime/gfx-model.js";
@@ -66,12 +67,6 @@ const model: MermaidVisualModel = {
   version: 1,
 };
 
-function renderTemplate(template: unknown) {
-  const host = document.createElement("div");
-  render(template as never, host);
-  return host;
-}
-
 describe("Flowchart GFX editor helpers", () => {
   test("resolves selected inspector state from visual model and selection ids", () => {
     const state = resolveMermaidGfxEditorState({
@@ -123,46 +118,50 @@ describe("Flowchart GFX editor helpers", () => {
   test("routes each visible Flowchart port and reconnect endpoint to its owning action", () => {
     const noop = () => undefined;
     const actions: string[] = [];
-    const host = renderTemplate(html`
-      ${renderMermaidGfxNodeConnectHandles({
-        disabled: false,
-        displayOnly: false,
-        handles: FLOWCHART_NODE_CONNECTION_PORTS.map((port, index) => ({
-          ...port,
-          left: 24 + index * 8,
-          top: 32 + index * 8,
-        })),
-        hasSelectedNode: true,
-        onKeydown: noop,
-        onPointerDown: (_event, portId) => actions.push(`port:${portId}`),
-      })}
-      ${renderMermaidGfxNodeResizeHandle({
-        disabled: false,
-        displayOnly: false,
-        handle: { left: 42, top: 52 },
-        hasSelectedNode: true,
-        onKeydown: noop,
-        onPointerDown: noop,
-      })}
-      ${renderMermaidGfxEdgeReconnectHandles({
-        disabled: false,
-        displayOnly: false,
-        handles: {
-          source: { left: 60, top: 70 },
-          target: { left: 160, top: 170 },
-        },
-        hasSelectedEdge: true,
-        onKeydown: noop,
-        onPointerDown: (_event, endpoint) =>
-          actions.push(`endpoint:${endpoint}`),
-      })}
-      ${renderMermaidGfxViewportResizeHandle({
-        disabled: false,
-        displayOnly: false,
-        onKeydown: noop,
-        onPointerDown: noop,
-      })}
-    `);
+    const host = renderTestProjection(
+      createElement(
+        Fragment,
+        null,
+        renderMermaidGfxNodeConnectHandles({
+          disabled: false,
+          displayOnly: false,
+          handles: FLOWCHART_NODE_CONNECTION_PORTS.map((port, index) => ({
+            ...port,
+            left: 24 + index * 8,
+            top: 32 + index * 8,
+          })),
+          hasSelectedNode: true,
+          onKeydown: noop,
+          onPointerDown: (_event, portId) => actions.push(`port:${portId}`),
+        }),
+        renderMermaidGfxNodeResizeHandle({
+          disabled: false,
+          displayOnly: false,
+          handle: { left: 42, top: 52 },
+          hasSelectedNode: true,
+          onKeydown: noop,
+          onPointerDown: noop,
+        }),
+        renderMermaidGfxEdgeReconnectHandles({
+          disabled: false,
+          displayOnly: false,
+          handles: {
+            source: { left: 60, top: 70 },
+            target: { left: 160, top: 170 },
+          },
+          hasSelectedEdge: true,
+          onKeydown: noop,
+          onPointerDown: (_event, endpoint) =>
+            actions.push(`endpoint:${endpoint}`),
+        }),
+        renderMermaidGfxViewportResizeHandle({
+          disabled: false,
+          displayOnly: false,
+          onKeydown: noop,
+          onPointerDown: noop,
+        }),
+      ),
+    );
     const handles = [
       ...host.querySelectorAll<HTMLButtonElement>(
         ".myoxus-mermaid-gfx-connect-handle, .myoxus-mermaid-gfx-resize-handle, .myoxus-mermaid-gfx-edge-handle, .myoxus-mermaid-viewport-resize-handle",
@@ -215,37 +214,41 @@ describe("Flowchart GFX editor helpers", () => {
 
   test("omits transient edit handles in display-only mode", () => {
     const noop = () => undefined;
-    const host = renderTemplate(html`
-      ${renderMermaidGfxNodeConnectHandles({
-        disabled: false,
-        displayOnly: true,
-        handles: FLOWCHART_NODE_CONNECTION_PORTS.map((port) => ({
-          ...port,
-          left: 24,
-          top: 32,
-        })),
-        hasSelectedNode: true,
-        onKeydown: noop,
-        onPointerDown: noop,
-      })}
-      ${renderMermaidGfxEdgeReconnectHandles({
-        disabled: false,
-        displayOnly: true,
-        handles: {
-          source: { left: 60, top: 70 },
-          target: { left: 160, top: 170 },
-        },
-        hasSelectedEdge: true,
-        onKeydown: noop,
-        onPointerDown: noop,
-      })}
-      ${renderMermaidGfxViewportResizeHandle({
-        disabled: false,
-        displayOnly: true,
-        onKeydown: noop,
-        onPointerDown: noop,
-      })}
-    `);
+    const host = renderTestProjection(
+      createElement(
+        Fragment,
+        null,
+        renderMermaidGfxNodeConnectHandles({
+          disabled: false,
+          displayOnly: true,
+          handles: FLOWCHART_NODE_CONNECTION_PORTS.map((port) => ({
+            ...port,
+            left: 24,
+            top: 32,
+          })),
+          hasSelectedNode: true,
+          onKeydown: noop,
+          onPointerDown: noop,
+        }),
+        renderMermaidGfxEdgeReconnectHandles({
+          disabled: false,
+          displayOnly: true,
+          handles: {
+            source: { left: 60, top: 70 },
+            target: { left: 160, top: 170 },
+          },
+          hasSelectedEdge: true,
+          onKeydown: noop,
+          onPointerDown: noop,
+        }),
+        renderMermaidGfxViewportResizeHandle({
+          disabled: false,
+          displayOnly: true,
+          onKeydown: noop,
+          onPointerDown: noop,
+        }),
+      ),
+    );
 
     expect(host.querySelector("button")).toBeNull();
   });

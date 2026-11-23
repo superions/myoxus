@@ -9,7 +9,6 @@ import { AIChatMessages } from "../components/ai-chat-messages/ai-chat-messages"
 import { AIHistoryClear } from "../components/ai-history-clear";
 import { AssistantAvatar } from "../components/ai-message-content/assistant-avatar";
 import { effects as componentPlaygroundEffects } from "../components/playground";
-import { AIChatBlockPeekView } from "../peek-view/chat-block-peek-view";
 import { type AppEffectElementTag, appEffectElementTags } from "./registry";
 import { registerAISharedEffects } from "./shared";
 
@@ -25,7 +24,6 @@ const appElements = {
   "chat-assistant-avatar": AssistantAvatar,
   "chat-message-assistant": ChatMessageAssistant,
   "chat-message-user": ChatMessageUser,
-  "ai-chat-block-peek-view": AIChatBlockPeekView,
 } satisfies Record<AppEffectElementTag, CustomElementConstructor>;
 
 export function registerAIAppEffects() {

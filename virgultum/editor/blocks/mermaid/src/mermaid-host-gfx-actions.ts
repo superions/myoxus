@@ -1,6 +1,6 @@
 import { getMermaidGfxFamilyHooks } from "./families/runtime/gfx-family-hooks-registry.js";
 import { typeOwnedMermaidGeometrySelection } from "./families/runtime/gfx-owner-hooks.js";
-import { html } from "lit";
+import { createElement } from "react";
 
 import { applyMermaidVisualModelCommand } from "./commands.js";
 
@@ -160,15 +160,17 @@ export abstract class MermaidHostGfxActions extends MermaidHostFamilyFields {
 
   protected _renderPreview() {
     if (this._renderState === "finish") {
-      return html`<div .innerHTML=${this._svg}></div>`;
+      return createElement("div", {
+        dangerouslySetInnerHTML: { __html: this._svg },
+      });
     }
     if (this._renderState === "error") {
       return this._lastValidSvg
-        ? html`<div
-            class="myoxus-mermaid-last-valid-preview"
-            aria-label=${mermaidMessages.lastValidPreviewLabel()}
-            .innerHTML=${this._lastValidSvg}
-          ></div>`
+        ? createElement("div", {
+            className: "myoxus-mermaid-last-valid-preview",
+            "aria-label": mermaidMessages.lastValidPreviewLabel(),
+            dangerouslySetInnerHTML: { __html: this._lastValidSvg },
+          })
         : null;
     }
     return null;

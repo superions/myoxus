@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { CommentIcon, TableIcon, SettingsIcon } from "@myoxus/icons";
-import type { ReactToLit } from "@myoxus/lit-react";
 import {
   Alert,
   Button,
@@ -579,11 +578,9 @@ export function MermaidSankeyRuntime({
   );
 }
 
-export function createMermaidSankeyRendererRegistration(
-  reactToLit: ReactToLit,
-): MermaidFamilyReactRendererRegistration<MermaidSankeyReactHostProps> {
+export function createMermaidSankeyRendererRegistration(): MermaidFamilyReactRendererRegistration<MermaidSankeyReactHostProps> {
   return {
     token: mermaidSankeyRendererToken,
-    render: (props) => reactToLit(<MermaidSankeyRuntime props={props} />, true),
+    render: (props) => <MermaidSankeyRuntime props={props} />,
   };
 }

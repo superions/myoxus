@@ -4768,6 +4768,60 @@ function nodeToReact(node) {
   return `jsxRuntime.${fn}(${JSON.stringify(node.tag)}, ${attrsToReactObject(node.attrs, childExpr)})`;
 }
 
+// Shape-label renderers consume path geometry from the same owned catalogue.
+const outlineIconNames = [
+  "CheckCircleIcon",
+  "CloudWorkspaceIcon",
+  "DatabaseIcon",
+  "MindmapIcon",
+  "StarIcon",
+];
+
+function outlinePaths(nodes) {
+  return nodes.flatMap((node) =>
+    node.tag === "path" && typeof node.attrs.d === "string"
+      ? [node.attrs]
+      : outlinePaths(node.children),
+  );
+}
+
+function renderIconOutlines() {
+  return (
+    HEADER +
+    outlineIconNames
+      .map((name) => {
+        const paths = outlinePaths(iconParts(name));
+        const strokeWidth = Number.parseFloat(
+          paths[0]?.["stroke-width"]?.match(/,\s*([\d.]+)\)/)?.[1] ??
+            paths[0]?.["stroke-width"],
+        );
+        if (!paths.length || !Number.isFinite(strokeWidth))
+          throw new Error(`Missing outline geometry for ${name}`);
+        return `export const ${name}Outline = ${JSON.stringify({
+          paths: paths.map((path) => path.d),
+          viewBox: [0, 0, 24, 24],
+          strokeWidth,
+        })};`;
+      })
+      .join("\n") +
+    "\n"
+  );
+}
+
+function renderIconOutlineTypes() {
+  return (
+    HEADER +
+    `export type IconOutline = {
+  readonly paths: readonly string[];
+  readonly viewBox: readonly [number, number, number, number];
+  readonly strokeWidth: number;
+};\n` +
+    outlineIconNames
+      .map((name) => `export declare const ${name}Outline: IconOutline;\n`)
+      .join("")
+  );
+}
+
 function renderReactFunction(iconName, parts) {
   const children = parts.map(nodeToReact);
   const childExpr =
@@ -4994,6 +5048,8 @@ writeFileChecked(path.join(distDir, "rc.d.ts"), renderDts("rc"));
 writeFileChecked(path.join(distDir, "lit.mjs"), renderLitMjs());
 writeFileChecked(path.join(distDir, "lit.js"), renderLitCjs());
 writeFileChecked(path.join(distDir, "lit.d.ts"), renderDts("lit"));
+writeFileChecked(path.join(distDir, "outline.mjs"), renderIconOutlines());
+writeFileChecked(path.join(distDir, "outline.d.ts"), renderIconOutlineTypes());
 writeFileChecked(path.join(distDir, "keywords", "en.json"), renderKeywords());
 writeFileChecked(path.join(distDir, "keywords.d.ts"), renderKeywordsDts());
 

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { useI18n } from "@myoxus/i18n";
-import type { ReactToLit } from "@myoxus/lit-react";
 import {
   Alert,
   InlineLink,
@@ -695,11 +694,9 @@ export function MermaidKanbanRuntime({
     </div>
   );
 }
-export function createMermaidKanbanRendererRegistration(
-  reactToLit: ReactToLit,
-): MermaidFamilyReactRendererRegistration<MermaidKanbanReactHostProps> {
+export function createMermaidKanbanRendererRegistration(): MermaidFamilyReactRendererRegistration<MermaidKanbanReactHostProps> {
   return {
     token: mermaidKanbanRendererToken,
-    render: (props) => reactToLit(<MermaidKanbanRuntime props={props} />, true),
+    render: (props) => <MermaidKanbanRuntime props={props} />,
   };
 }

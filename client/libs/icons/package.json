@@ -12,6 +12,7 @@
     "./lit": "./src/lit.ts",
     "./names": "./src/names.ts",
     "./keywords/en": "./src/keywords/en.ts",
+    "./outline": "./src/outline.ts",
     "./assets": "./src/assets/index.ts",
     "./catalog": "./src/catalog.ts"
   },

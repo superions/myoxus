@@ -1,5 +1,5 @@
 import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
-import { type PropertyValues } from "lit";
+import { editorHostSelector } from "@virgultum/core/runtime";
 
 import { MermaidHostState } from "./mermaid-host-state.js";
 import { reconcileMermaidTitleProjectionFromSource } from "./mermaid-title-projection.js";
@@ -129,8 +129,8 @@ export abstract class MermaidHostLifecycle extends MermaidHostState {
     document.removeEventListener("load", this._handleThemeResourceLoad, true);
   }
 
-  override connectedCallback() {
-    super.connectedCallback();
+  connectedCallback() {
+    if (!this.connectBlock()) return;
     this._projectionRefreshGeneration++;
     this._themeProjectionRefreshQueued = false;
     this.contentEditable = "false";
@@ -140,28 +140,26 @@ export abstract class MermaidHostLifecycle extends MermaidHostState {
       this._handleDocumentKeydown as EventListener,
     );
     window.addEventListener("keydown", this._handleDocumentKeydown, true);
-    this.store.get(MermaidOwnerMigrationExtension).migrate();
     // Derive the display title from Source on mount. Repairing persisted
     // title/hash here marks an untouched document as edited.
     this._observeThemeProjection();
-    this._disposables.add(
+    this.disposables.add(
+      this.model.propsUpdated.subscribe(() => this.requestUpdate()),
+    );
+    this.disposables.add(this.selected$.subscribe(() => this.requestUpdate()));
+    this.disposables.add(
       subscribeMermaidNativeValidation((source) => {
         if (source === getMermaidBlockSource(this.model.props)) {
           this._handleThemeProjectionChange();
         }
       }),
     );
-    // Source is authoritative across remounts. In particular, undo/redo can
-    // restore a source/layout checkpoint before the owner child
-    // relation has been replayed. Mounting must resize and reconcile that
-    // projection from source instead of accepting stale owner children back into
-    // source.
-    this._pauseProjectionOwnerSourceSync();
-    this._ensureProjectionOwner(false, true);
-    this._acceptProjectionOwnerSourceSyncKey();
+    // A native Note can connect this view during a command's Yjs transaction.
+    // Defer reconciliation until paste and restore finish writing owner children.
+    this._handleThemeProjectionChange();
     this._scheduleRender();
     this._observedSource = getMermaidBlockSource(this.model.props);
-    this._disposables.add(
+    this.disposables.add(
       this.model.props.source$.subscribe(() => {
         const source = getMermaidBlockSource(this.model.props);
         // Y.Text can receive a remote delete+insert transaction whose final
@@ -197,19 +195,20 @@ export abstract class MermaidHostLifecycle extends MermaidHostState {
         this._scheduleRender();
       }),
     );
-    this._disposables.add(
+    this.disposables.add(
       this.store.history.onUpdated.subscribe(() => this.requestUpdate()),
     );
-    this._disposables.add(
+    this.disposables.add(
       this.store.readonly$.subscribe((readonly) => {
         // A mounted readonly owner skips reconciliation. Resume it after the
         // store's queued legacy adoption, even when Source itself is unchanged.
         if (!readonly) this._handleThemeProjectionChange();
+        this.requestUpdate();
       }),
     );
     const hostViewport = this.std.get(GfxControllerIdentifier).viewport;
     const hostSelection = this.std.get(GfxControllerIdentifier).selection;
-    this._disposables.add(
+    this.disposables.add(
       hostSelection.slots.updated.subscribe(() => {
         if (!this._isInEdgelessMode()) return;
         const note = this.store.getParent(this.model.id);
@@ -240,7 +239,7 @@ export abstract class MermaidHostLifecycle extends MermaidHostState {
         this.requestUpdate();
       }),
     );
-    this._disposables.add(
+    this.disposables.add(
       hostViewport.viewportUpdated.subscribe(() => {
         if (!this._isInEdgelessMode()) return;
         this._gfxViewportBridge.refreshClientRect();
@@ -286,8 +285,7 @@ export abstract class MermaidHostLifecycle extends MermaidHostState {
     this._gfxViewportInteraction.stopTransientPointerInteractions();
   }
 
-  protected override updated(changedProperties: PropertyValues<this>) {
-    super.updated(changedProperties);
+  protected afterProjectionUpdate() {
     this._ownerGfx.watchOwnerSurface();
     this._attachScopedGfxViewportNativeListeners();
     requestAnimationFrame(() => {
@@ -421,7 +419,9 @@ export abstract class MermaidHostLifecycle extends MermaidHostState {
     // viewport sees them, so the same controller listeners are also attached to
     // the nested hosts. The controller gates editable/native-control targets.
     const nestedHosts = viewport
-      ? Array.from(viewport.querySelectorAll("editor-host, myoxus-surface"))
+      ? Array.from(
+          viewport.querySelectorAll(`${editorHostSelector}, myoxus-surface`),
+        )
       : [];
     const nextElements: EventTarget[] = nestedHosts.flatMap((element) =>
       element.shadowRoot ? [element, element.shadowRoot] : [element],

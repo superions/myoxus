@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { createMermaidClipboardPort } from "./clipboard.js";
 import { FileSizeLimitProvider } from "@virgultum/core/services";
 import {
@@ -177,7 +178,7 @@ export abstract class MermaidHostGfxRender extends MermaidHostGfxSync {
       } | null;
       projectActions?: (
         context: MermaidGfxActionContext,
-      ) => MermaidGfxFamilyProjection | unknown;
+      ) => MermaidGfxFamilyProjection | ReactNode;
       renderSurface?: "core-facade" | "gfx";
     } = {},
   ) {
@@ -322,7 +323,7 @@ export abstract class MermaidHostGfxRender extends MermaidHostGfxSync {
       } satisfies MermaidEditorShellProjection;
     }
 
-    const rendered = renderMermaidGfxPageEditor({
+    return renderMermaidGfxPageEditor({
       displayOnly,
       embedded,
       embeddedEditing: this._isActiveEmbeddedGfxEditor(),
@@ -902,23 +903,22 @@ export abstract class MermaidHostGfxRender extends MermaidHostGfxSync {
                 workarea,
                 workareaFooter,
               });
-              const familyProjection = isMermaidGfxFamilyProjection(
-                projectedFamily,
-              )
-                ? projectedFamily
-                : {
-                    actions: {
-                      actions: [
-                        {
-                          disabled: displayOnly,
-                          id: "gfx-family-actions",
-                          label: mermaidMessages.visualEditorLabel(),
-                        },
-                      ],
-                      portal: true,
-                    },
-                    body: projectedFamily ?? workarea,
-                  };
+              const familyProjection: MermaidGfxFamilyProjection =
+                isMermaidGfxFamilyProjection(projectedFamily)
+                  ? projectedFamily
+                  : {
+                      actions: {
+                        actions: [
+                          {
+                            disabled: displayOnly,
+                            id: "gfx-family-actions",
+                            label: mermaidMessages.visualEditorLabel(),
+                          },
+                        ],
+                        portal: true,
+                      },
+                      body: projectedFamily ?? workarea,
+                    };
               return {
                 actions: {
                   ...familyProjection.actions,
@@ -1098,11 +1098,5 @@ export abstract class MermaidHostGfxRender extends MermaidHostGfxSync {
             : (selectedSubgraphHandleProjection?.resize ?? null),
       },
     });
-    return rendered && typeof rendered === "object" && "body" in rendered
-      ? (rendered as MermaidEditorShellProjection)
-      : ({
-          actions: null,
-          body: rendered,
-        } satisfies MermaidEditorShellProjection);
   }
 }

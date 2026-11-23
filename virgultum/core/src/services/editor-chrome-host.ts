@@ -318,10 +318,14 @@ export type EditorKeyboardPanelControls = {
   }[];
 };
 
-/** Existing contributions retain Lit context, authored artwork and drag hosts. */
+export type EditorCanvasToolbarItem =
+  | TemplateResult
+  | { readonly type: "control"; readonly controls: EditorCanvasToolControls };
+
+/** Tools can contribute existing controls directly alongside retained drag hosts. */
 export type EditorCanvasToolbarControls = {
-  quick: readonly TemplateResult[];
-  senior: readonly TemplateResult[];
+  quick: readonly EditorCanvasToolbarItem[];
+  senior: readonly EditorCanvasToolbarItem[];
   navigation: readonly SelectionAction[];
   more?: SelectionAction & {
     control: Extract<SelectionAction["control"], { type: "menu" }>;
@@ -340,6 +344,7 @@ export type EditorCanvasToolControls = {
   expanded?: boolean;
   separatorBefore?: boolean;
   artwork?: TemplateResult;
+  nativeArtwork?: unknown;
   /** Retained artwork and drag hit boxes, not theme spacing. */
   artworkBounds?: Readonly<{ width: number; height: number }>;
   artworkColor?: string;

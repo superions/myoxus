@@ -1,7 +1,5 @@
-import type {
-  AIDraftService,
-  AIToolsConfigService,
-} from "@myoxus/core/modules/ai-button";
+import { StoredChatMessages } from "../blocks/ai-chat-block/components/stored-chat-messages";
+import type { AIToolsConfigService } from "@myoxus/core/modules/ai-button";
 import type { AIModelService } from "@myoxus/core/modules/ai-button/services/models";
 import type { PeekViewService } from "@myoxus/core/modules/peek-view";
 import type { WorkspaceDialogService } from "@myoxus/core/modules/dialogs";
@@ -10,28 +8,22 @@ import type { ServerService } from "@myoxus/core/modules/server";
 import { type ReactToLit, toReactNode } from "@myoxus/lit-react";
 import { i18nTime } from "@myoxus/i18n";
 import { InsideModalContext, MyoxusText, Stack } from "@myoxus/ui-facade";
-import { createElement } from "react";
+import { createElement, type ReactNode } from "react";
+import { signal } from "@preact/signals-core";
 import { CopilotResponseActions } from "../components/response-actions";
-import type {
-  ContextEmbedStatus,
-  CopilotChatHistoryFragment,
-} from "@myoxus/graphql";
+import type { CopilotChatHistoryFragment } from "@myoxus/graphql";
 import {
   CanvasElementType,
   EdgelessCRUDIdentifier,
   getSurfaceBlock,
 } from "@virgultum/editor/blocks/surface";
-import { ViewExtensionManagerIdentifier } from "@virgultum/editor/ext-loader";
 import { ConnectorMode } from "@virgultum/editor/model";
 import {
   DocModeProvider,
   NotificationProvider,
   TelemetryProvider,
 } from "@virgultum/editor/shared/services";
-import { type EditorHost, ShadowlessElement } from "@virgultum/editor/std";
-import { css, html, nothing, type PropertyValues } from "lit";
-import { property, state } from "lit/decorators.js";
-import { repeat } from "lit/directives/repeat.js";
+import type { EditorHost } from "@virgultum/editor/std";
 import { throttle } from "lodash-es";
 import { nanoid } from "nanoid";
 
@@ -43,6 +35,8 @@ import {
 import { type AIChatBlockModel } from "../blocks";
 import type { SearchMenuConfig } from "../components/ai-chat-add-context";
 import type { DocDisplayConfig } from "../components/ai-chat-chips";
+import type { AIChatComposer } from "../components/ai-chat-composer";
+import type { AIHistoryClear } from "../components/ai-history-clear";
 import type { AIReasoningConfig } from "../components/ai-chat-input";
 import {
   type ChatMessage,
@@ -50,7 +44,6 @@ import {
   isChatMessage,
   StreamObjectSchema,
 } from "../components/ai-chat-messages";
-import type { TextRendererOptions } from "../components/text-renderer";
 import { AIChatErrorRenderer } from "../messages/error";
 import { type AIError, AIProvider } from "../provider";
 import { resolveRetryTarget } from "../utils/chat-turn";
@@ -62,20 +55,52 @@ import { ChatPeekConversation } from "../components/message-chrome";
 import type { ChatContext } from "./types";
 import { calcChildBound } from "./utils";
 
-export class AIChatBlockPeekView extends ShadowlessElement {
-  @property({ attribute: false })
-  accessor reactToLit!: ReactToLit;
-  // The modal supplies the viewport; native Facade components own its chrome.
-  static override styles = css`
-    ai-chat-block-peek-view {
-      display: block;
-      height: 100%;
-      min-height: 0;
-    }
-    ai-chat-block-peek-view > lit-react-portal {
-      display: contents;
-    }
-  `;
+const peekTracking = { where: "ai-chat-block", control: "chat-send" } as const;
+
+type PeekSessionOptions = {
+  blockModel: AIChatBlockModel;
+  peekViewService: PeekViewService;
+  host: EditorHost;
+  reasoningConfig: AIReasoningConfig;
+  serverService: ServerService;
+  docDisplayConfig: DocDisplayConfig;
+  searchMenuConfig: SearchMenuConfig;
+  myoxusFeatureFlagService: FeatureFlagService;
+  myoxusWorkspaceDialogService: WorkspaceDialogService;
+  aiToolsConfigService: AIToolsConfigService;
+  aiModelService: AIModelService;
+  reactToLit: ReactToLit;
+};
+
+export class AIChatBlockPeekSession {
+  private readonly revision = signal(0);
+  readonly subscribe = (notify: () => void) => this.revision.subscribe(notify);
+  readonly getSnapshot = () => this.revision.value;
+  private isConnected = false;
+  private lifetime = 0;
+  private scrollTimer?: ReturnType<typeof setTimeout>;
+  private parentElement?: HTMLElement;
+
+  readonly blockModel!: AIChatBlockModel;
+  readonly peekViewService!: PeekViewService;
+  readonly host!: EditorHost;
+  readonly reasoningConfig!: AIReasoningConfig;
+  readonly serverService!: ServerService;
+  readonly docDisplayConfig!: DocDisplayConfig;
+  readonly searchMenuConfig!: SearchMenuConfig;
+  readonly myoxusFeatureFlagService!: FeatureFlagService;
+  readonly myoxusWorkspaceDialogService!: WorkspaceDialogService;
+  readonly aiToolsConfigService!: AIToolsConfigService;
+  readonly aiModelService!: AIModelService;
+  readonly reactToLit!: ReactToLit;
+
+  constructor(options: PeekSessionOptions) {
+    Object.assign(this, options);
+  }
+
+  private refresh() {
+    this.revision.value++;
+  }
 
   // These islands still belong to the host's portal tree, but their physical
   // destination is the existing peek modal. Keep native popups in its layer and
@@ -114,10 +139,6 @@ export class AIChatBlockPeekView extends ShadowlessElement {
     return this.blockModel.id;
   }
 
-  private get rootDocId() {
-    return this.blockModel.props.rootDocId;
-  }
-
   private get rootWorkspaceId() {
     return this.blockModel.props.rootWorkspaceId;
   }
@@ -125,8 +146,6 @@ export class AIChatBlockPeekView extends ShadowlessElement {
   private get _isReasoningActive() {
     return !!this.reasoningConfig.enabled.value;
   }
-
-  private _textRendererOptions: TextRendererOptions = {};
 
   private _forkBlockId: string | undefined = undefined;
 
@@ -148,15 +167,15 @@ export class AIChatBlockPeekView extends ShadowlessElement {
   };
 
   private readonly _constructBranchChatBlockMessages = async (
-    rootWorkspaceId: string,
     forkSessionId: string,
-    docId?: string,
   ) => {
+    const { store } = this.host;
     const currentUserInfo = await AIProvider.userInfo;
+    // The fork belongs to the open document, including when its source card was copied.
     const forkMessages = (await queryHistoryMessages(
-      rootWorkspaceId,
+      store.workspace.id,
       forkSessionId,
-      docId,
+      store.id,
     )) as ChatMessage[];
     const forkLength = forkMessages.length;
     const historyLength = this._historyMessages.length;
@@ -200,11 +219,14 @@ export class AIChatBlockPeekView extends ShadowlessElement {
   };
 
   private readonly initSession = async () => {
+    const lifetime = this.lifetime;
     const session = await AIProvider.session?.getSession(
       this.rootWorkspaceId,
       this._sessionId,
     );
+    if (lifetime !== this.lifetime) return;
     this.session = session ?? null;
+    this.refresh();
   };
 
   private readonly createForkSession = async () => {
@@ -214,6 +236,7 @@ export class AIChatBlockPeekView extends ShadowlessElement {
     const lastMessage = this._historyMessages.at(-1);
     if (!lastMessage) return;
 
+    const lifetime = this.lifetime;
     const { store } = this.host;
     const forkSessionId = await AIProvider.forkChat?.({
       workspaceId: store.workspace.id,
@@ -223,10 +246,12 @@ export class AIChatBlockPeekView extends ShadowlessElement {
     });
     if (forkSessionId) {
       const session = await AIProvider.session?.getSession(
-        this.rootWorkspaceId,
+        store.workspace.id,
         forkSessionId,
       );
+      if (lifetime !== this.lifetime) return;
       this.forkSession = session ?? null;
+      this.refresh();
     }
     return this.forkSession;
   };
@@ -269,14 +294,17 @@ export class AIChatBlockPeekView extends ShadowlessElement {
       return;
     }
 
-    // Get fork session messages
-    const { rootWorkspaceId, rootDocId } = this;
-    const messages = await this._constructBranchChatBlockMessages(
-      rootWorkspaceId,
-      forkSessionId,
-      rootDocId,
-    );
-    if (!messages.length) {
+    const lifetime = this.lifetime;
+    const messages =
+      await this._constructBranchChatBlockMessages(forkSessionId);
+    if (
+      !messages.length ||
+      lifetime !== this.lifetime ||
+      this.forkSession?.sessionId !== forkSessionId ||
+      this._forkBlockId ||
+      store.readonly ||
+      !store.getBlock(this.blockId)
+    ) {
       return;
     }
 
@@ -289,8 +317,8 @@ export class AIChatBlockPeekView extends ShadowlessElement {
         xywh: bound.serialize(),
         messages: JSON.stringify(messages),
         sessionId: forkSessionId,
-        rootWorkspaceId: rootWorkspaceId,
-        rootDocId: rootDocId,
+        rootWorkspaceId: store.workspace.id,
+        rootDocId: store.id,
       },
       surfaceBlock.id,
     );
@@ -324,22 +352,22 @@ export class AIChatBlockPeekView extends ShadowlessElement {
    */
   updateChatBlockMessages = async () => {
     const forkSessionId = this.forkSession?.sessionId;
-    if (!this._forkBlockId || !forkSessionId) {
-      return;
-    }
+    const blockId = this._forkBlockId;
+    if (!blockId || !forkSessionId) return;
 
+    const lifetime = this.lifetime;
+    const messages =
+      await this._constructBranchChatBlockMessages(forkSessionId);
     const { store } = this.host;
-    const chatBlock = store.getBlock(this._forkBlockId);
-    if (!chatBlock) return;
-
-    // Get fork session messages
-    const { rootWorkspaceId, rootDocId } = this;
-    const messages = await this._constructBranchChatBlockMessages(
-      rootWorkspaceId,
-      forkSessionId,
-      rootDocId,
-    );
-    if (!messages.length) {
+    const chatBlock = store.getBlock(blockId);
+    if (
+      !messages.length ||
+      lifetime !== this.lifetime ||
+      this._forkBlockId !== blockId ||
+      this.forkSession?.sessionId !== forkSessionId ||
+      store.readonly ||
+      !chatBlock
+    ) {
       return;
     }
     store.updateBlock(chatBlock.model, {
@@ -348,14 +376,9 @@ export class AIChatBlockPeekView extends ShadowlessElement {
   };
 
   updateContext = (context: Partial<ChatContext>) => {
+    if (!this.isConnected) return;
     this.chatContext = { ...this.chatContext, ...context };
-  };
-
-  private readonly onEmbeddingProgressChange = (
-    count: Record<ContextEmbedStatus, number>,
-  ) => {
-    const total = count.finished + count.processing + count.failed;
-    this.embeddingProgress = [count.finished, total];
+    this.refresh();
   };
 
   /**
@@ -397,11 +420,16 @@ export class AIChatBlockPeekView extends ShadowlessElement {
   // Keep retry ownership independent of delayed composer props and old callbacks.
   private retryController: AbortController | null = null;
 
-  override disconnectedCallback() {
+  private disconnect() {
+    this.isConnected = false;
+    this.lifetime++;
     this.retryController?.abort();
     this.retryController = null;
     this.chatContext.abortController?.abort();
-    super.disconnectedCallback();
+    this._throttledScrollToEnd.cancel();
+    clearTimeout(this.scrollTimer);
+    this.parentElement = undefined;
+    this._chatMessagesContainer = null;
   }
 
   retry = async () => {
@@ -554,219 +582,191 @@ export class AIChatBlockPeekView extends ShadowlessElement {
     }
   };
 
-  CurrentMessages = (currentMessages: ChatMessage[]) => {
-    if (!currentMessages.length) {
-      return html``;
-    }
-
+  private renderCurrentMessages(currentMessages: ChatMessage[]): ReactNode {
     const { host } = this;
     const actions = ChatBlockPeekViewActions;
 
-    return html`${repeat(
-      currentMessages,
-      (_, index) => index,
-      (message, idx) => {
-        const { status, error } = this.chatContext;
-        const isAssistantMessage = message.role === "assistant";
-        const isLastReply =
-          idx === currentMessages.length - 1 && isAssistantMessage;
-        const messageState =
-          isLastReply && (status === "transmitting" || status === "loading")
-            ? "generating"
-            : "finished";
-        const shouldRenderError = isLastReply && status === "error" && !!error;
-        const isNotReady = status === "transmitting" || status === "loading";
-        const shouldRenderCopyMore =
-          isAssistantMessage && !(isLastReply && isNotReady);
-        const markdown = message.streamObjects?.length
-          ? mergeStreamContent(message.streamObjects)
-          : message.content;
+    return currentMessages.map((message, idx) => {
+      const { status, error } = this.chatContext;
+      const isAssistantMessage = message.role === "assistant";
+      const isLastReply =
+        idx === currentMessages.length - 1 && isAssistantMessage;
+      const messageState =
+        isLastReply && (status === "transmitting" || status === "loading")
+          ? "generating"
+          : "finished";
+      const shouldRenderError = isLastReply && status === "error" && !!error;
+      const isNotReady = status === "transmitting" || status === "loading";
+      const shouldRenderCopyMore =
+        isAssistantMessage && !(isLastReply && isNotReady);
+      const markdown = message.streamObjects?.length
+        ? mergeStreamContent(message.streamObjects)
+        : message.content;
 
-        if (status === "loading" && isLastReply) {
-          return html`<ai-loading
-            .reactToLit=${this.modalReactToLit}
-          ></ai-loading>`;
-        }
+      if (status === "loading" && isLastReply) {
+        return createElement("ai-loading", {
+          key: idx,
+          reactToLit: this.modalReactToLit,
+        });
+      }
 
-        const notificationService = this.host.std.get(NotificationProvider);
+      const notificationService = this.host.std.get(NotificationProvider);
 
-        return this.modalReactToLit(
-          createElement(
-            Stack,
-            { gap: "xs" },
-            toReactNode(html`
-              <ai-chat-block-message
-                .reactToLit=${this.modalReactToLit}
-                .host=${host}
-                .state=${messageState}
-                .message=${message}
-                .textRendererOptions=${this._textRendererOptions}
-                .docDisplayConfig=${this.docDisplayConfig}
-                .peekViewService=${this.peekViewService}
-              ></ai-chat-block-message>
-              ${shouldRenderError ? AIChatErrorRenderer(error, host, this.modalReactToLit) : nothing}
-            `),
-            shouldRenderCopyMore
-              ? createElement(CopilotResponseActions, {
-                  host,
-                  sessionId: this.forkSession?.sessionId,
-                  actions,
-                  content: markdown,
-                  messageId: message.id ?? undefined,
-                  generatedFiles: message.generatedFiles,
-                  exportable:
-                    !this.host.store.readonly &&
-                    !!markdown.trim() &&
-                    (message.params?.streamStatus === undefined ||
-                      message.params?.streamStatus === "done"),
-                  retry: isLastReply ? () => this.retry() : undefined,
-                  notificationService,
-                })
-              : null,
-          ),
-          true,
-        );
-      },
-    )}`;
-  };
+      return createElement(
+        Stack,
+        { key: idx, gap: "xs" },
+        createElement(StoredChatMessages, {
+          host,
+          messages: [message],
+          state: messageState,
+          readOnly: host.store.readonly,
+          docDisplayConfig: this.docDisplayConfig,
+          peekViewService: this.peekViewService,
+        }),
+        shouldRenderError
+          ? toReactNode(AIChatErrorRenderer(error, host, this.modalReactToLit))
+          : null,
+        shouldRenderCopyMore
+          ? createElement(CopilotResponseActions, {
+              host,
+              sessionId: this.forkSession?.sessionId,
+              actions,
+              content: markdown,
+              messageId: message.id ?? undefined,
+              generatedFiles: message.generatedFiles,
+              exportable:
+                !this.host.store.readonly &&
+                !!markdown.trim() &&
+                (message.params?.streamStatus === undefined ||
+                  message.params?.streamStatus === "done"),
+              retry: isLastReply ? () => this.retry() : undefined,
+              notificationService,
+            })
+          : null,
+      );
+    });
+  }
 
-  override connectedCallback() {
-    super.connectedCallback();
+  connect(anchor: HTMLElement) {
+    this.parentElement = anchor;
+    this.isConnected = true;
+    const lifetime = ++this.lifetime;
     this.initSession().catch(console.error);
-    const extensions = this.host.std
-      .get(ViewExtensionManagerIdentifier)
-      .get("preview-page");
-
-    this._textRendererOptions = {
-      extensions,
-      myoxusFeatureFlagService: this.myoxusFeatureFlagService,
-    };
     this._historyMessages = this._deserializeHistoryChatMessages(
       this.historyMessagesString,
     );
-    const { rootWorkspaceId, _sessionId } = this;
-    queryHistoryMessages(rootWorkspaceId, _sessionId)
+    this.refresh();
+    queryHistoryMessages(this.rootWorkspaceId, this._sessionId)
       .then((messages) => {
-        this._historyMessages = this._historyMessages.map((message, idx) => {
-          return {
-            ...message,
-            attachments: messages[idx]?.attachments ?? [],
-            generatedFiles: messages[idx]?.generatedFiles ?? [],
-          };
-        });
+        if (lifetime !== this.lifetime) return;
+        // History enrichment may be unavailable offline. The saved snapshot
+        // already contains readable attachments and completed file references.
+        this._historyMessages = this._historyMessages.map((message, index) => ({
+          ...message,
+          attachments: messages[index]?.attachments ?? message.attachments,
+          generatedFiles:
+            messages[index]?.generatedFiles ?? message.generatedFiles,
+        }));
+        this.refresh();
       })
-      .catch((err: Error) => {
-        console.error("Query history messages failed", err);
-      });
+      .catch((error: Error) =>
+        console.error("Query history messages failed", error),
+      );
+    return () => this.disconnect();
   }
 
-  override firstUpdated() {
-    this._scrollToEnd();
-  }
+  private committedContext?: ChatContext;
 
-  protected override updated(changedProperties: PropertyValues) {
-    if (
-      changedProperties.has("chatContext") &&
-      (this.chatContext.status === "loading" ||
-        this.chatContext.status === "error" ||
-        this.chatContext.status === "success")
-    ) {
-      setTimeout(this._scrollToEnd, 500);
-    }
-
-    if (
-      changedProperties.has("chatContext") &&
-      this.chatContext.status === "transmitting"
-    ) {
+  readonly afterCommit = () => {
+    if (this.committedContext === this.chatContext) return;
+    this.committedContext = this.chatContext;
+    clearTimeout(this.scrollTimer);
+    if (this.chatContext.status === "transmitting")
       this._throttledScrollToEnd();
-    }
-  }
+    else this.scrollTimer = setTimeout(this._scrollToEnd, 500);
+  };
 
-  override render() {
+  // These retained composer elements accept callbacks as properties rather
+  // than DOM events. React treats an on-prefixed custom-element prop as an event.
+  private readonly bindComposer = (element: AIChatComposer | null) => {
+    if (element) element.onChatSuccess = this._onChatSuccess;
+  };
+
+  private readonly bindHistoryClear = (element: AIHistoryClear | null) => {
+    if (element) element.onHistoryCleared = this._onHistoryCleared;
+  };
+
+  render(): ReactNode {
     const { host, _historyMessages } = this;
     if (!_historyMessages.length) {
-      return nothing;
+      return null;
     }
 
     const latestHistoryMessage = _historyMessages[_historyMessages.length - 1];
     const latestMessageCreatedAt = latestHistoryMessage.createdAt;
-    const { chatContext, updateContext, _textRendererOptions } = this;
+    const { chatContext, updateContext } = this;
 
     const { messages: currentChatMessages } = chatContext;
     const notificationService = this.host.std.get(NotificationProvider);
 
-    return this.modalReactToLit(
+    return createElement(
+      ChatPeekConversation,
+      {
+        viewportRef: this._setMessagesViewport,
+        header: createElement("ai-history-clear", {
+          reactToLit: this.modalReactToLit,
+          doc: this.host.store,
+          session: this.forkSession,
+          ref: this.bindHistoryClear,
+          chatContextValue: chatContext,
+          notificationService,
+        }),
+        composer: createElement("ai-chat-composer", {
+          reactToLit: this.modalReactToLit,
+          host,
+          workspaceId: host.store.workspace.id,
+          docId: host.store.id,
+          session: this.forkSession ?? this.session,
+          createSession: this.createForkSession,
+          chatContextValue: chatContext,
+          updateContext,
+          docDisplayConfig: this.docDisplayConfig,
+          searchMenuConfig: this.searchMenuConfig,
+          myoxusWorkspaceDialogService: this.myoxusWorkspaceDialogService,
+          notificationService,
+          aiToolsConfigService: this.aiToolsConfigService,
+          myoxusFeatureFlagService: this.myoxusFeatureFlagService,
+          ref: this.bindComposer,
+          trackOptions: peekTracking,
+          portalContainer: this.parentElement,
+          reasoningConfig: this.reasoningConfig,
+          serverService: this.serverService,
+          aiModelService: this.aiModelService,
+        }),
+      },
+      createElement(StoredChatMessages, {
+        host,
+        messages: _historyMessages,
+        readOnly: host.store.readonly,
+        showGeneratedFiles: true,
+        docDisplayConfig: this.docDisplayConfig,
+        peekViewService: this.peekViewService,
+      }),
       createElement(
-        ChatPeekConversation,
+        MyoxusText,
         {
-          viewportRef: this._setMessagesViewport,
-          header: toReactNode(html`
-            <ai-history-clear
-              .reactToLit=${this.modalReactToLit}
-              .doc=${this.host.store}
-              .session=${this.forkSession}
-              .onHistoryCleared=${this._onHistoryCleared}
-              .chatContextValue=${chatContext}
-              .notificationService=${notificationService}
-            ></ai-history-clear>
-          `),
-          composer: toReactNode(html`
-            <ai-chat-composer
-              .reactToLit=${this.modalReactToLit}
-              .host=${host}
-              .workspaceId=${this.rootWorkspaceId}
-              .docId=${this.rootDocId}
-              .session=${this.forkSession ?? this.session}
-              .createSession=${this.createForkSession}
-              .chatContextValue=${chatContext}
-              .updateContext=${updateContext}
-              .onEmbeddingProgressChange=${this.onEmbeddingProgressChange}
-              .docDisplayConfig=${this.docDisplayConfig}
-              .searchMenuConfig=${this.searchMenuConfig}
-              .myoxusWorkspaceDialogService=${this.myoxusWorkspaceDialogService}
-              .notificationService=${notificationService}
-              .aiToolsConfigService=${this.aiToolsConfigService}
-              .myoxusFeatureFlagService=${this.myoxusFeatureFlagService}
-              .onChatSuccess=${this._onChatSuccess}
-              .trackOptions=${{
-                where: "ai-chat-block",
-                control: "chat-send",
-              }}
-              .portalContainer=${this.parentElement}
-              .reasoningConfig=${this.reasoningConfig}
-              .serverService=${this.serverService}
-              .aiModelService=${this.aiModelService}
-            ></ai-chat-composer>
-          `),
+          component: "time",
+          dateTime: latestMessageCreatedAt,
+          typographySlot: "caption",
+          tone: "secondary",
+          ta: "center",
         },
-        toReactNode(html`
-          <ai-chat-block-messages
-            .reactToLit=${this.modalReactToLit}
-            .host=${host}
-            .messages=${_historyMessages}
-            .showGeneratedFiles=${true}
-            .docDisplayConfig=${this.docDisplayConfig}
-            .peekViewService=${this.peekViewService}
-            .textRendererOptions=${_textRendererOptions}
-          ></ai-chat-block-messages>
-        `),
-        createElement(
-          MyoxusText,
-          {
-            component: "time",
-            dateTime: latestMessageCreatedAt,
-            typographySlot: "caption",
-            tone: "secondary",
-            ta: "center",
-          },
-          i18nTime(latestMessageCreatedAt, {
-            relative: { max: [1, "day"], accuracy: "minute", weekday: true },
-            absolute: { accuracy: "second" },
-          }),
-        ),
-        toReactNode(this.CurrentMessages(currentChatMessages)),
+        i18nTime(latestMessageCreatedAt, {
+          relative: { max: [1, "day"], accuracy: "minute", weekday: true },
+          absolute: { accuracy: "second" },
+        }),
       ),
-      true,
+      this.renderCurrentMessages(currentChatMessages),
     );
   }
 
@@ -776,97 +776,14 @@ export class AIChatBlockPeekView extends ShadowlessElement {
     if (element) this._scrollToEnd();
   };
 
-  @property({ attribute: false })
-  accessor blockModel!: AIChatBlockModel;
-
-  @property({ attribute: false }) accessor peekViewService!: PeekViewService;
-
-  @property({ attribute: false })
-  accessor host!: EditorHost;
-
-  @property({ attribute: false })
-  accessor reasoningConfig!: AIReasoningConfig;
-
-  @property({ attribute: false })
-  accessor serverService!: ServerService;
-
-  @property({ attribute: false })
-  accessor docDisplayConfig!: DocDisplayConfig;
-
-  @property({ attribute: false })
-  accessor searchMenuConfig!: SearchMenuConfig;
-
-  @property({ attribute: false })
-  accessor myoxusFeatureFlagService!: FeatureFlagService;
-
-  @property({ attribute: false })
-  accessor myoxusWorkspaceDialogService!: WorkspaceDialogService;
-
-  @property({ attribute: false })
-  accessor aiDraftService!: AIDraftService;
-
-  @property({ attribute: false })
-  accessor aiToolsConfigService!: AIToolsConfigService;
-
-  @property({ attribute: false })
-  accessor aiModelService!: AIModelService;
-
-  @state()
-  accessor _historyMessages: ChatMessage[] = [];
-
-  @state()
-  accessor chatContext: ChatContext = {
+  private _historyMessages: ChatMessage[] = [];
+  private chatContext: ChatContext = {
     status: "idle",
     error: null,
     images: [],
     abortController: null,
     messages: [],
   };
-
-  @state()
-  accessor embeddingProgress: [number, number] = [0, 0];
-
-  @state()
-  accessor session: CopilotChatHistoryFragment | null | undefined;
-
-  @state()
-  accessor forkSession: CopilotChatHistoryFragment | null | undefined;
+  private session?: CopilotChatHistoryFragment | null;
+  private forkSession?: CopilotChatHistoryFragment | null;
 }
-
-declare global {
-  interface HTMLElementTagNameMap {
-    "ai-chat-block-peek-view": AIChatBlockPeekView;
-  }
-}
-
-export const AIChatBlockPeekViewTemplate = (
-  blockModel: AIChatBlockModel,
-  host: EditorHost,
-  docDisplayConfig: DocDisplayConfig,
-  searchMenuConfig: SearchMenuConfig,
-  reasoningConfig: AIReasoningConfig,
-  serverService: ServerService,
-  myoxusFeatureFlagService: FeatureFlagService,
-  myoxusWorkspaceDialogService: WorkspaceDialogService,
-  aiDraftService: AIDraftService,
-  aiToolsConfigService: AIToolsConfigService,
-  aiModelService: AIModelService,
-  reactToLit: ReactToLit,
-  peekViewService: PeekViewService,
-) => {
-  return html`<ai-chat-block-peek-view
-    .reactToLit=${reactToLit}
-    .blockModel=${blockModel}
-    .peekViewService=${peekViewService}
-    .host=${host}
-    .docDisplayConfig=${docDisplayConfig}
-    .searchMenuConfig=${searchMenuConfig}
-    .reasoningConfig=${reasoningConfig}
-    .serverService=${serverService}
-    .myoxusFeatureFlagService=${myoxusFeatureFlagService}
-    .myoxusWorkspaceDialogService=${myoxusWorkspaceDialogService}
-    .aiDraftService=${aiDraftService}
-    .aiToolsConfigService=${aiToolsConfigService}
-    .aiModelService=${aiModelService}
-  ></ai-chat-block-peek-view>`;
-};

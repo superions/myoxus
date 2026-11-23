@@ -5,6 +5,7 @@ import type { Bound } from "@virgultum/core/primitives/gfx";
 import {
   editorHostSelector,
   isEditorHost,
+  NativeViewElement,
   type BlockStdScope,
 } from "@virgultum/core/runtime";
 import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
@@ -16,7 +17,7 @@ import type { SurfaceBlockModel } from "./surface-model.js";
 
 const styledRoots = new WeakSet<Node>();
 
-export class SurfaceBlockComponent extends HTMLElement {
+export class SurfaceBlockComponent extends NativeViewElement {
   static isConnector = (value: unknown): value is ConnectorElementModel =>
     value instanceof ConnectorElementModel;
 

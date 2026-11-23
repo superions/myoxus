@@ -11,7 +11,7 @@ import {
   Store,
   type StoreSelectionExtension,
 } from "../../../store/index";
-import { css, LitElement, nothing, type TemplateResult } from "lit";
+import { css, nothing, type TemplateResult } from "lit";
 import { property } from "lit/decorators.js";
 import { repeat } from "lit/directives/repeat.js";
 import { keyed } from "lit/directives/keyed.js";
@@ -26,6 +26,7 @@ import type { BlockViewType } from "../../spec/type.js";
 import type { BlockStdScope } from "../../scope/std-scope.js";
 import { PropTypes, requiredProperties } from "../decorators/index.js";
 import type { ViewStore } from "../view-store.js";
+import type { NativeEditorWidget } from "./native-editor-widget.js";
 import {
   BLOCK_ID_ATTR,
   modelContext,
@@ -94,9 +95,17 @@ function resolveBlockView(std: BlockStdScope, model: BlockModel) {
     .getAll(WidgetViewIdentifier)
     .entries()) {
     const [widgetFlavour, id] = key.split("|");
-    if (isMatchFlavour(widgetFlavour, model))
-      widgets[id] =
-        html`<${tag} ${unsafeStatic(WIDGET_ID_ATTR)}=${id}></${tag}>`;
+    if (!isMatchFlavour(widgetFlavour, model)) continue;
+    const widgetId = unsafeStatic(WIDGET_ID_ATTR);
+    if (typeof tag === "string") {
+      const element = unsafeStatic(tag);
+      widgets[id] = html`<${element}
+        ${widgetId}=${id}
+        .editorWidgetContext=${{ std, model }}
+      ></${element}>`;
+    } else {
+      widgets[id] = html`<${tag} ${widgetId}=${id}></${tag}>`;
+    }
   }
   return {
     tag: blockViewTag(view, model),
@@ -179,7 +188,11 @@ export function createRetainedWidgetViews(
     .entries()) {
     const [flavour, id] = key.split("|");
     if (!isMatchFlavour(flavour, model)) continue;
-    const element = root.ownerDocument.createElement(tag._$litStatic$);
+    const element = root.ownerDocument.createElement(
+      typeof tag === "string" ? tag : tag._$litStatic$,
+    );
+    if (typeof tag === "string")
+      (element as NativeEditorWidget).editorWidgetContext = { std, model };
     element.setAttribute(WIDGET_ID_ATTR, id);
     widgets.set(id, element);
   }
@@ -208,8 +221,12 @@ export async function waitForRetainedRootView(
   await Promise.all(
     Object.entries(widgetViews).map(([key, tag]) => {
       if (key.split("|")[0] !== model.flavour) return undefined;
-      const element = host.querySelector(tag._$litStatic$);
-      return element instanceof LitElement ? element.updateComplete : undefined;
+      const element = host.querySelector(
+        typeof tag === "string" ? tag : tag._$litStatic$,
+      );
+      return element && "updateComplete" in element
+        ? element.updateComplete
+        : undefined;
     }),
   );
   return host.isConnected;

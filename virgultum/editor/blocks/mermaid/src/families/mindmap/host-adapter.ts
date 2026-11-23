@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+import { mountMermaidDraftActions } from "../runtime/react-host.js";
 import { FileSizeLimitProvider } from "@virgultum/core/services";
 import { insertMermaidEdgelessDiagramCommand } from "../../commands.js";
 import { writeMindmapPatches } from "../../engine/mindmap/index.js";
@@ -391,11 +392,14 @@ function editorProps(
             context.getVisualModel?.() ?? context.visualModel,
           previewVisualModel: context.previewVisualModel,
           mountShapeDraft: context.mountShapeDraft,
-          renderActions: (actions) =>
-            context.reactHost?.renderFamilyEditor(mermaidMindmapRendererToken, {
-              surface: "label-actions",
-              ...actions,
-            }),
+          mountActions: (anchor, actions) =>
+            mountMermaidDraftActions(
+              context.reactHost,
+              anchor,
+              actions,
+              mermaidMindmapRendererToken,
+              (value) => ({ surface: "label-actions" as const, ...value }),
+            ),
           command,
           subscribeInvalidation: context.subscribeDraftInvalidation,
           clearSelection: context.closeInspector,
@@ -847,13 +851,14 @@ function nativeProps(context: ToolbarContext): MindmapReactHostProps | null {
           const editor = mountShapeTextEditor(shape, root, { draft: edit });
           return editor ? () => editor.cancelDraft() : null;
         },
-        renderActions: (actions) =>
-          context.std
-            .getOptional(MermaidFamilyReactHostIdentifier)
-            ?.renderFamilyEditor(mermaidMindmapRendererToken, {
-              surface: "label-actions",
-              ...actions,
-            }),
+        mountActions: (anchor, actions) =>
+          mountMermaidDraftActions(
+            context.std.getOptional(MermaidFamilyReactHostIdentifier),
+            anchor,
+            actions,
+            mermaidMindmapRendererToken,
+            (value) => ({ surface: "label-actions" as const, ...value }),
+          ),
         previewVisualModel,
         restoreSelection: () => {
           const element =

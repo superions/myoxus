@@ -30,7 +30,7 @@ type Port = Pick<
   selectAfterPreview: (id: string) => void;
   restoreSelection: () => void;
   subscribeInvalidation?: (invalidate: () => void) => () => void;
-  renderActions?: ShapeTextEditDraft["renderActions"];
+  mountActions?: ShapeTextEditDraft["mountActions"];
   finish: () => void;
 };
 
@@ -91,7 +91,7 @@ export function beginRequirementCreationDraft(
       isValid: valid,
       applyOnBlur: false,
       cancel,
-      renderActions: port.renderActions,
+      mountActions: port.mountActions,
       subscribeInvalidation: (invalidate) =>
         port.subscribeInvalidation?.(() => {
           if (!valid()) invalidate();

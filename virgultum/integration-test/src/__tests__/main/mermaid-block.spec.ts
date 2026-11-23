@@ -16,6 +16,7 @@ import {
   mermaidFlowchartRendererToken,
   mermaidPieRendererToken,
   type MermaidFlowchartReactHostProps,
+  type MermaidViewBinding,
   type MermaidPieReactHostProps,
   parseMermaidSourceToGfxVisualModel,
   pasteMermaidClipboardPayloadV2,
@@ -33,7 +34,13 @@ import {
   type ParagraphBlockModel,
 } from "@virgultum/editor/model";
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { html } from "lit";
+import {
+  createElement,
+  Fragment,
+  useLayoutEffect,
+  useSyncExternalStore,
+} from "react";
+import { createRoot } from "react-dom/client";
 import { Bound, almostEqual } from "@virgultum/editor/global/gfx";
 import { GfxControllerIdentifier } from "@virgultum/editor/std/gfx";
 import { encodeStateAsUpdate } from "yjs";
@@ -167,6 +174,12 @@ function migrationTargetIds(
   );
 }
 
+function DiagramFixtureView({ binding }: { binding: MermaidViewBinding }) {
+  const view = useSyncExternalStore(binding.subscribe, binding.getSnapshot);
+  useLayoutEffect(() => binding.afterCommit?.(), [binding, view]);
+  return view;
+}
+
 beforeEach(async () => {
   // This framework fixture exercises ownership, commands and persistence, not
   // the consuming React shell. Keep the real GFX workarea mounted and fail on
@@ -174,25 +187,38 @@ beforeEach(async () => {
   const familyHost = createMermaidFamilyReactRendererHost([
     {
       token: mermaidFlowchartRendererToken,
-      nativeView: () => null,
       render: (props: MermaidFlowchartReactHostProps) =>
-        html`${props.workarea}${props.workareaFooter}`,
+        createElement(Fragment, null, props.workarea, props.workareaFooter),
     },
     {
       token: mermaidPieRendererToken,
       render: (props: MermaidPieReactHostProps) =>
-        html`${props.items.map((item) => html`<span>${item.label}: ${item.value}</span>`)}`,
+        props.items.map((item) =>
+          createElement(
+            "span",
+            { key: item.label },
+            item.label,
+            ": ",
+            item.value,
+          ),
+        ),
     },
   ]);
   const cleanup = await setupEditor("edgeless", [
     EditorI18nExtension(),
     MermaidFamilyReactHostExtension({
       ...familyHost,
-      renderEmbeddedTitle: (props) => html`<span>${props.title}</span>`,
+      renderEmbeddedTitle: (props) => createElement("span", null, props.title),
       renderBlockShell: (props) =>
-        html`<section>${props.body}${props.sourcePreview}</section>`,
+        createElement("section", null, props.body, props.sourcePreview),
       renderShellNotice: (props) =>
-        html`<p>${props.title}: ${props.message}</p>`,
+        createElement("p", null, props.title, ": ", props.message),
+      renderContextMenu: () => null,
+      mount: (anchor, binding) => {
+        const root = createRoot(anchor);
+        root.render(createElement(DiagramFixtureView, { binding }));
+        return () => queueMicrotask(() => root.unmount());
+      },
     }),
   ]);
   return cleanup;

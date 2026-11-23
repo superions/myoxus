@@ -731,10 +731,16 @@ export class MarkdownAdapter extends BaseAdapter<Markdown> {
   }
 
   private _markdownToAst(markdown: Markdown) {
+    return MarkdownAdapter.parseAst(markdown, this._importDiagnostics);
+  }
+
+  static parseAst(
+    markdown: Markdown,
+    diagnostics = emptyMarkdownImportDiagnostics(),
+  ) {
     const unsupported =
       prepareAnnotationSource(markdown).unsupportedRanges.length;
-    if (unsupported)
-      this._importDiagnostics.unsupportedAnnotations = unsupported;
+    if (unsupported) diagnostics.unsupportedAnnotations = unsupported;
     const processor = unified()
       .use(remarkParse)
       .use(remarkGfm, { deferAutolinks: true, rejectMissingFootnotes: true })
@@ -755,7 +761,7 @@ export class MarkdownAdapter extends BaseAdapter<Markdown> {
       (key) => !referenced.has(key),
     ).length;
     if (unreferencedFootnotes)
-      this._importDiagnostics.unreferencedFootnotes = unreferencedFootnotes;
+      diagnostics.unreferencedFootnotes = unreferencedFootnotes;
     visit(result, "paragraph", (node, index, parent) => {
       const math = node.children.length === 1 ? node.children[0] : undefined;
       const start = math?.position?.start.offset;
@@ -798,13 +804,12 @@ export class MarkdownAdapter extends BaseAdapter<Markdown> {
         position: node.position,
       };
       if (unsupported && !currency)
-        this._importDiagnostics.unsupportedMath =
-          (this._importDiagnostics.unsupportedMath ?? 0) + 1;
+        diagnostics.unsupportedMath = (diagnostics.unsupportedMath ?? 0) + 1;
     });
     visit(result, "blockquote", (node) => {
       if (node.data?.unsupportedCallout)
-        this._importDiagnostics.unsupportedCallouts =
-          (this._importDiagnostics.unsupportedCallouts ?? 0) + 1;
+        diagnostics.unsupportedCallouts =
+          (diagnostics.unsupportedCallouts ?? 0) + 1;
     });
     return result;
   }

@@ -13,11 +13,13 @@ export function PageFormatting({
   rect,
   dismiss,
   changed,
+  enableAI,
 }: {
   controller: PageInteraction;
   rect: DOMRect;
   dismiss: () => void;
   changed: () => void;
+  enableAI: boolean;
 }) {
   const t = useI18n();
   const tone = controller.labelTone();
@@ -171,6 +173,10 @@ export function PageFormatting({
     },
     { id: "b.inline-text", label: "", disabled: false, actions: formats },
   );
+  if (enableAI)
+    primary.unshift(
+      advanced("A.ai", t["com.myoxus.editor.toolbar.ask-ai"](), "AiIcon"),
+    );
   if (eyebrow !== undefined)
     primary.push({
       id: "b.eyebrow",

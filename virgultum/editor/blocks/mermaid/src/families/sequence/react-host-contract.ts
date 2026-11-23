@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import type { TemplateResult } from "lit";
+import type { ReactNode } from "react";
 import type {
   MermaidSequenceModel,
   SequenceConfig,
@@ -68,8 +68,8 @@ export type SequenceReactHostProps = {
   readonly embedded: boolean;
   readonly embeddedEditing: boolean;
   readonly actionTarget?: HTMLElement | null;
-  readonly workarea: TemplateResult | null;
-  readonly workareaFooter: TemplateResult | null;
+  readonly workarea: ReactNode | null;
+  readonly workareaFooter: ReactNode | null;
   readonly pageViewport?: MermaidPageViewportProjection;
   readonly commentMarkers: readonly SequenceCommentMarker[];
   readonly markersInClientSpace?: boolean;

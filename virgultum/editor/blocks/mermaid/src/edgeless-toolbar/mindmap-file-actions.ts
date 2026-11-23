@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import type { SelectionAction } from "@virgultum/core/services";
 import type { BlockComponent } from "@virgultum/core/runtime";
-import { render, nothing } from "lit";
 import { mermaidMessages as m } from "../i18n.js";
 import { MermaidFamilyReactHostIdentifier } from "../families/runtime/react-host.js";
 import { mermaidMindmapRendererToken } from "../families/mindmap/react-host-contract.js";
@@ -12,18 +11,19 @@ export function openMermaidMindmapImport(edgeless: BlockComponent) {
   const container = document.createElement("div");
   edgeless.host.append(container);
   const close = () => {
-    render(nothing, container);
+    release();
     container.remove();
   };
+  const view = react.renderFamilyEditor(mermaidMindmapRendererToken, {
+    surface: "import",
+    host: edgeless.host,
+    onClose: close,
+  });
+  const release = react.mount(container, {
+    getSnapshot: () => view,
+    subscribe: () => () => undefined,
+  });
   edgeless.disposables.add(close);
-  render(
-    react.renderFamilyEditor(mermaidMindmapRendererToken, {
-      surface: "import",
-      host: edgeless.host,
-      onClose: close,
-    }),
-    container,
-  );
 }
 
 export function createMermaidMindmapImportMenuItem(

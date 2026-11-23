@@ -1,32 +1,28 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import { effect } from "@preact/signals-core";
 import { cssVar } from "@myoxus/theme";
 import { DefaultModeDragType } from "@virgultum/canvas-runtime/surface";
-import type { RootBlockModel } from "@virgultum/core/models";
-import { WidgetComponent, WidgetViewExtension } from "@virgultum/core/runtime";
-import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
-import { css, html, nothing, unsafeCSS } from "lit";
-import { styleMap } from "lit/directives/style-map.js";
-import { literal } from "lit/static-html.js";
+import type { GfxController } from "@virgultum/core/runtime/gfx";
 
 import { MermaidPageSelectionTool } from "./mermaid-page-selection-tool.js";
 
-export const MERMAID_PAGE_DRAGGING_AREA_WIDGET = "mermaid-page-dragging-area";
-
-export class MermaidPageDraggingAreaWidget extends WidgetComponent<RootBlockModel> {
-  static override styles = css`
-    .myoxus-mermaid-page-dragging-area {
-      position: absolute;
-      z-index: 1;
-      box-sizing: border-box;
-      border: 1px solid ${unsafeCSS(cssVar("primaryColor"))};
-      background: ${unsafeCSS(cssVar("primaryColor04"))};
-      pointer-events: none;
-    }
-  `;
-
-  override render() {
-    const gfx = this.std.get(GfxControllerIdentifier);
+export function mountMermaidPageDraggingArea(
+  anchor: HTMLElement,
+  gfx: GfxController,
+) {
+  const area = anchor.ownerDocument.createElement("div");
+  area.className = "myoxus-mermaid-page-dragging-area";
+  area.setAttribute("aria-hidden", "true");
+  Object.assign(area.style, {
+    position: "absolute",
+    zIndex: "1",
+    boxSizing: "border-box",
+    border: `1px solid ${cssVar("primaryColor")}`,
+    background: cssVar("primaryColor04"),
+    pointerEvents: "none",
+  });
+  const unsubscribe = effect(() => {
     const tool = gfx.tool.currentTool$.value;
     const rect = gfx.tool.draggingViewportArea$.value;
     if (
@@ -36,29 +32,19 @@ export class MermaidPageDraggingAreaWidget extends WidgetComponent<RootBlockMode
       rect.w === 0 ||
       rect.h === 0
     ) {
-      return nothing;
+      area.remove();
+      return;
     }
-    return html`<div
-      aria-hidden="true"
-      class="myoxus-mermaid-page-dragging-area"
-      style=${styleMap({
-        height: `${rect.h}px`,
-        left: `${rect.x}px`,
-        top: `${rect.y}px`,
-        width: `${rect.w}px`,
-      })}
-    ></div>`;
-  }
-}
-
-export const mermaidPageDraggingAreaExtension = WidgetViewExtension(
-  "myoxus:page",
-  MERMAID_PAGE_DRAGGING_AREA_WIDGET,
-  literal`mermaid-page-dragging-area`,
-);
-
-declare global {
-  interface HTMLElementTagNameMap {
-    "mermaid-page-dragging-area": MermaidPageDraggingAreaWidget;
-  }
+    Object.assign(area.style, {
+      height: `${rect.h}px`,
+      left: `${rect.x}px`,
+      top: `${rect.y}px`,
+      width: `${rect.w}px`,
+    });
+    if (!area.isConnected) anchor.append(area);
+  });
+  return () => {
+    unsubscribe();
+    area.remove();
+  };
 }

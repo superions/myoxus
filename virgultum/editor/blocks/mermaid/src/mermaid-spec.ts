@@ -2,7 +2,6 @@ import { MermaidBlockSchema } from "@virgultum/core/models";
 import { BlockViewExtension, FlavourExtension } from "@virgultum/core/runtime";
 import type { ExtensionType } from "@virgultum/core/store";
 import { SlashMenuConfigExtension } from "@virgultum/core/slash-menu";
-import { literal } from "lit/static-html.js";
 
 import { MermaidClipboardController } from "./clipboard.js";
 import { MermaidEdgelessOwnerGfxSync } from "./presentation/edgeless-owner-gfx-sync.js";
@@ -19,8 +18,8 @@ export const MermaidBlockSpec: ExtensionType[] = [
   FlavourExtension(flavour),
   BlockViewExtension(flavour, (model) =>
     model.parent?.flavour === "myoxus:surface"
-      ? literal`myoxus-edgeless-mermaid`
-      : literal`myoxus-mermaid`,
+      ? "myoxus-edgeless-mermaid"
+      : "myoxus-mermaid",
   ),
   SlashMenuConfigExtension(flavour, mermaidSlashMenuConfig),
   MermaidClipboardController,

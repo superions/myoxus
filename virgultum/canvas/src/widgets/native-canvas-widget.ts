@@ -2,10 +2,13 @@
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
 import { DisposableGroup } from "@virgultum/core/primitives/disposable";
-import type { BlockComponent } from "@virgultum/core/runtime";
+import {
+  NativeViewElement,
+  type BlockComponent,
+} from "@virgultum/core/runtime";
 
 /** Coalesce Canvas geometry notifications without replacing the widget's anchors. */
-export abstract class NativeCanvasWidget extends HTMLElement {
+export abstract class NativeCanvasWidget extends NativeViewElement {
   protected block!: BlockComponent;
   protected disposables = new DisposableGroup();
   private pending = false;

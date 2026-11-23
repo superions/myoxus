@@ -1,10 +1,7 @@
-import { flip, offset } from "@floating-ui/dom";
 import { AIStarIconWithAnimation } from "@virgultum/editor/components/icons";
-import { createLitPortal } from "@virgultum/editor/components/portal";
 import { type EditorHost, TextSelection } from "@virgultum/editor/std";
-import { html, type TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
 
-import { mantineLengthPx } from "../_common/mantine-length";
 import {
   buildCopyConfig,
   buildErrorConfig,
@@ -12,7 +9,6 @@ import {
   buildGeneratingConfig,
 } from "../ai-panel";
 import { StreamObjectSchema } from "../components/ai-chat-messages";
-import { type AIItemGroupConfig } from "../components/ai-item/types";
 import { type AIError, AIProvider } from "../provider";
 import { reportResponse } from "../utils/action-reporter";
 import { getAIPanelWidget } from "../utils/ai-widgets";
@@ -234,10 +230,7 @@ export function actionToHandler<T extends keyof VirgultumPresets.AIActions>(
   };
 }
 
-export function handleInlineAskAIAction(
-  host: EditorHost,
-  actionGroups?: AIItemGroupConfig[],
-) {
+export function handleInlineAskAIAction(host: EditorHost) {
   const panel = getAIPanelWidget(host);
   const selection = host.selection.find(TextSelection);
   const lastBlockPath = selection
@@ -253,56 +246,5 @@ export function handleInlineAskAIAction(
     where: "inline-chat-panel",
   });
 
-  if (!actionGroups) {
-    panel.toggle(block, "input");
-    return;
-  }
-
-  let actionPanel: HTMLDivElement | null = null;
-  let abortController: AbortController | null = null;
-  const clear = () => {
-    abortController?.abort();
-    actionPanel = null;
-    abortController = null;
-  };
-
-  panel.config.inputCallback = (text) => {
-    if (!actionPanel) return;
-    actionPanel.style.visibility = text ? "hidden" : "visible";
-  };
-  panel.config.hideCallback = () => {
-    clear();
-  };
-
   panel.toggle(block, "input");
-
-  setTimeout(() => {
-    abortController = new AbortController();
-    actionPanel = createLitPortal({
-      shadowDom: false,
-      template: html`
-        <ask-ai-panel
-          .host=${host}
-          .actionGroups=${actionGroups}
-          .onItemClick=${() => {
-            panel.restoreSelection();
-            clear();
-          }}
-        ></ask-ai-panel>
-      `,
-      computePosition: {
-        referenceElement: panel,
-        placement: "top-start",
-        middleware: [
-          flip(),
-          offset({
-            mainAxis: mantineLengthPx(panel, "--mantine-spacing-xs"),
-          }),
-        ],
-        autoUpdate: true,
-      },
-      abortController: abortController,
-      closeOnClickAway: true,
-    }).portal;
-  }, 0);
 }

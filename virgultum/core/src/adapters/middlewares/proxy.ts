@@ -20,12 +20,19 @@ const imageProxyMiddlewareBuilder = () => {
   };
 };
 
-const IMAGE_PROXY_PATH = "/api/worker/image-proxy";
-
-export const isImageProxyURL = (imageUrl: string) => {
+/** A proxy-shaped path on another origin is still an external image source. */
+export const isImageProxyURL = (
+  imageUrl: string,
+  proxyUrl = DEFAULT_IMAGE_PROXY_ENDPOINT,
+) => {
   try {
-    const url = new URL(imageUrl, globalThis.location.origin);
-    return url.pathname === IMAGE_PROXY_PATH && url.searchParams.has("url");
+    const endpoint = new URL(proxyUrl, globalThis.location?.href);
+    const image = new URL(imageUrl, globalThis.location?.href);
+    return (
+      image.origin === endpoint.origin &&
+      image.pathname === endpoint.pathname &&
+      image.searchParams.has("url")
+    );
   } catch {
     return false;
   }
@@ -33,10 +40,13 @@ export const isImageProxyURL = (imageUrl: string) => {
 
 /** Keep editor media and native source icons on the same proxy URL contract. */
 export function buildImageProxyURL(imageUrl: string, proxyUrl: string) {
-  if (imageUrl.startsWith(proxyUrl) || isImageProxyURL(imageUrl)) {
-    return imageUrl;
-  }
-  return `${proxyUrl}?url=${encodeURIComponent(imageUrl)}`;
+  if (isImageProxyURL(imageUrl, proxyUrl)) return imageUrl;
+  return (
+    proxyUrl +
+    (proxyUrl.includes("?") ? "&" : "?") +
+    "url=" +
+    encodeURIComponent(imageUrl)
+  );
 }
 
 const defaultImageProxyMiddlewarBuilder = imageProxyMiddlewareBuilder();

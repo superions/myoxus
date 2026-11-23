@@ -24,7 +24,7 @@ import { TurboRendererViewExtension } from "@myoxus/core/editor/view-extensions/
 import { PeekViewService } from "@myoxus/core/modules/peek-view";
 import { DebugLogger } from "@myoxus/debug";
 import type { FrameworkProvider } from "@myoxus/infra";
-import type { ReactToLit } from "@myoxus/lit-react";
+import type { MountReactPortal, ReactToLit } from "@myoxus/lit-react";
 import { tracker } from "@myoxus/track";
 import { DatabaseReferenceViewExtension } from "@virgultum/editor/blocks/database/reference-view";
 import { ParagraphViewExtension } from "@virgultum/editor/blocks/paragraph/view";
@@ -68,6 +68,7 @@ type Configure = {
     enable?: boolean,
     framework?: FrameworkProvider,
     reactToLit?: ReactToLit,
+    mountPortal?: MountReactPortal,
   ) => Configure;
   electron: (framework?: FrameworkProvider) => Configure;
   linkPreview: (framework?: FrameworkProvider) => Configure;
@@ -367,8 +368,14 @@ class ViewProvider {
     enable?: boolean,
     framework?: FrameworkProvider,
     reactToLit?: ReactToLit,
+    mountPortal?: MountReactPortal,
   ) => {
-    this._manager.configure(AIViewExtension, { framework, enable, reactToLit });
+    this._manager.configure(AIViewExtension, {
+      framework,
+      enable,
+      reactToLit,
+      mountPortal,
+    });
     return this.config;
   };
 

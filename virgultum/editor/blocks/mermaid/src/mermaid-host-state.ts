@@ -1,6 +1,7 @@
 import { getMermaidGfxFamilyHooks } from "./families/runtime/gfx-family-hooks-registry.js";
 import { type MermaidBlockModel } from "@virgultum/core/models";
-import { BlockComponent, BlockSelection } from "@virgultum/core/runtime";
+import { NativeBlockComponent } from "@virgultum/canvas-runtime/surface";
+import { BlockSelection } from "@virgultum/core/runtime";
 import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
 
 import { getMermaidVisualModel } from "./commands.js";
@@ -11,7 +12,6 @@ import {
 } from "./families/runtime/gfx-host-contract.js";
 import type { MermaidRuntimeTransactionOptions } from "./families/runtime/transaction.js";
 
-import { mermaidBlockStyles } from "./mermaid-block.styles.js";
 import {
   MERMAID_SCOPED_GFX_PAGE_VIEWPORT_RESIZE_STEP,
   type MermaidRenderState,
@@ -64,7 +64,7 @@ import type { MermaidGfxObjectEditIntent } from "./families/runtime/editor-capab
 import { readMermaidGfxMeta } from "./mermaid-gfx-metadata.js";
 import { resolveMermaidGfxProjection } from "./presentation/gfx-projection-owner.js";
 import { Bound } from "@virgultum/core/primitives/gfx";
-export abstract class MermaidHostState extends BlockComponent<MermaidBlockModel> {
+export abstract class MermaidHostState extends NativeBlockComponent<MermaidBlockModel> {
   protected _objectEditIntent:
     ((intent: MermaidGfxObjectEditIntent) => boolean) | undefined;
   protected _familyNodePointerDown:
@@ -156,7 +156,9 @@ export abstract class MermaidHostState extends BlockComponent<MermaidBlockModel>
 
   static activeKeyboardBlock: MermaidHostState | null = null;
 
-  static override styles = mermaidBlockStyles;
+  protected get renderRoot() {
+    return this;
+  }
 
   private _getParentEdgelessNoteId() {
     return (

@@ -1,4 +1,4 @@
-import { render as renderDraftActions, type TemplateResult } from "lit";
+import { type ReadonlySignal, signal } from "@preact/signals-core";
 import { CanvasTextOverlay } from "../../canvas-text-overlay";
 import {
   DefaultTool,
@@ -49,9 +49,10 @@ export type ShapeTextEditDraft = {
   ) => ShapeElementModel | LocalShapeElementModel | void;
   readonly cancel?: () => void;
   /** The consuming family supplies its existing UI renderer; text remains owned here. */
-  readonly renderActions?: (
-    actions: ShapeTextEditDraftActions,
-  ) => TemplateResult | undefined;
+  readonly mountActions?: (
+    anchor: HTMLElement,
+    actions: ReadonlySignal<ShapeTextEditDraftActions | null>,
+  ) => (() => void) | undefined;
   readonly subscribeInvalidation?: (invalidate: () => void) => () => void;
 };
 
@@ -199,7 +200,7 @@ export class EdgelessShapeTextEditor extends CanvasTextOverlay {
     this._resizeObserver?.disconnect();
     this._resizeObserver = null;
     if (!this.draft) this.element.textDisplay = true;
-    if (this.draft?.renderActions) renderDraftActions("", this.draftActions);
+    this._draftActionsState.value = null;
     super.disconnectedCallback();
   }
 
@@ -370,6 +371,8 @@ export class EdgelessShapeTextEditor extends CanvasTextOverlay {
 
   private readonly textCSS = this.ownerDocument.createElement("style");
   private readonly draftActions = this.ownerDocument.createElement("div");
+  private readonly _draftActionsState =
+    signal<ShapeTextEditDraftActions | null>(null);
   private _draftInput?: HTMLTextAreaElement;
 
   protected mountOverlay() {
@@ -397,6 +400,11 @@ export class EdgelessShapeTextEditor extends CanvasTextOverlay {
     );
     this.draftActions.style.display = "contents";
     this.append(input, this.draftActions);
+    const unmount = this.draft?.mountActions?.(
+      this.draftActions,
+      this._draftActionsState,
+    );
+    if (unmount) this.disposables.add(unmount);
     this._draftInvalidation = this.draft.subscribeInvalidation?.(() =>
       this._finishDraft(false),
     );
@@ -645,20 +653,17 @@ export class EdgelessShapeTextEditor extends CanvasTextOverlay {
         resize: "none",
         background: "transparent",
       });
-      if (this.draft.renderActions)
-        renderDraftActions(
-          this.draft.renderActions({
-            apply: () => this._finishDraft(true),
-            cancel: () => this.cancelDraft(),
-            bounds: {
-              left: x,
-              top: y,
-              width: rect.width * zoom,
-              height: rect.height * zoom,
-            },
-          }) ?? "",
-          this.draftActions,
-        );
+      if (this.draft.mountActions)
+        this._draftActionsState.value = {
+          apply: () => this._finishDraft(true),
+          cancel: () => this.cancelDraft(),
+          bounds: {
+            left: x,
+            top: y,
+            width: rect.width * zoom,
+            height: rect.height * zoom,
+          },
+        };
       return;
     }
 

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import { CommentIcon, PlusIcon, TableIcon } from "@myoxus/icons";
-import type { ReactToLit } from "@myoxus/lit-react";
 import {
   Alert,
   Group,
@@ -357,11 +356,9 @@ export function MermaidPieRuntime({
   );
 }
 
-export function createMermaidPieRendererRegistration(
-  reactToLit: ReactToLit,
-): MermaidFamilyReactRendererRegistration<MermaidPieReactHostProps> {
+export function createMermaidPieRendererRegistration(): MermaidFamilyReactRendererRegistration<MermaidPieReactHostProps> {
   return {
     token: mermaidPieRendererToken,
-    render: (props) => reactToLit(<MermaidPieRuntime props={props} />, true),
+    render: (props) => <MermaidPieRuntime props={props} />,
   };
 }

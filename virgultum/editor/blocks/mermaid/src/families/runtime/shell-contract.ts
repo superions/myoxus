@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 import type { MermaidSourceEditIntent } from "../../mermaid-editor-events.js";
@@ -18,7 +19,7 @@ export type MermaidFamilyActionModel = {
   readonly id: string;
   readonly label: string;
   readonly onSelect?: () => void;
-  readonly popoverProjection?: unknown;
+  readonly popoverProjection?: ReactNode;
 };
 
 export type MermaidFamilyActionContribution = {
@@ -79,7 +80,7 @@ export type MermaidHistoryActions = Pick<
 
 export type MermaidBlockShellReactHostProps = {
   readonly actions: MermaidFamilyActionContribution | null;
-  readonly body: unknown;
+  readonly body: ReactNode;
   readonly bodyNotice?: MermaidShellNoticeReactHostProps;
   readonly canRedo: boolean;
   readonly canUndo: boolean;
@@ -144,7 +145,7 @@ export type MermaidBlockShellReactHostProps = {
   readonly sourceState:
     "empty" | "invalid" | "pending" | "source-first" | "valid";
   readonly staleProjection: boolean;
-  readonly sourcePreview: unknown;
+  readonly sourcePreview: ReactNode;
   readonly title: string;
   readonly titlePresentation?: MermaidTitlePresentation;
   readonly usesGfxOnlyDiagram: boolean;

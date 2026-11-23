@@ -123,7 +123,7 @@ export function DatabaseBacklinkReferences({
 }
 
 const usePreviewExtensions = () => {
-  const [reactToLit, portals] = useLitPortalFactory();
+  const [reactToLit, portals, mountPortal] = useLitPortalFactory();
   const framework = useFramework();
   const enableAI = useEnableAI();
 
@@ -159,7 +159,7 @@ const usePreviewExtensions = () => {
     const manager = getViewManager()
       .config.init()
       .foundation(framework)
-      .ai(enableAI, framework, reactToLit)
+      .ai(enableAI, framework, reactToLit, mountPortal)
       .theme(framework)
       .database(framework)
       .linkedDoc(framework)
@@ -168,7 +168,7 @@ const usePreviewExtensions = () => {
       .codeBlockPreview(framework).value;
     const specs = manager.get("preview-page");
     return [...specs, patchReferenceRenderer(reactToLit, referenceRenderer)];
-  }, [reactToLit, referenceRenderer, framework, enableAI]);
+  }, [reactToLit, mountPortal, referenceRenderer, framework, enableAI]);
 
   return [extensions, portals] as const;
 };

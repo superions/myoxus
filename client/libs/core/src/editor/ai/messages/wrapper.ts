@@ -1,119 +1,56 @@
-import { unsafeCSSValue, unsafeCSSVar } from "@virgultum/editor/shared/theme";
+import { MediaPreviewFrame, MediaPreviewImage } from "@myoxus/ui-facade";
 import type { EditorHost } from "@virgultum/editor/std";
-import { css, html, LitElement, nothing } from "lit";
-import { property } from "lit/decorators.js";
+import { createElement, type ReactNode } from "react";
 
 import { getAIPanelWidget } from "../utils/ai-widgets";
 import { preprocessHtml } from "../utils/html";
 import type { MyoxusAIPanelWidgetConfig } from "../widgets/ai-panel/type";
 
-type AIAnswerWrapperOptions = {
-  height: number;
-};
+type AnswerOptions = { height?: number };
 
-export class AIAnswerWrapper extends LitElement {
-  static override styles = css`
-    :host {
-      display: block;
-      width: 100%;
-      box-sizing: border-box;
-      border-radius: ${unsafeCSSValue("var(--mantine-radius-sm)")};
-      border: ${unsafeCSSValue("calc(var(--mantine-scale) * 1px)")} solid
-        ${unsafeCSSVar("borderColor")};
-      box-shadow: ${unsafeCSSValue("var(--mantine-shadow-sm)")};
-      background: ${unsafeCSSVar("backgroundSecondaryColor")};
-      overflow: hidden;
-    }
-
-    ::slotted(.ai-answer-iframe) {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
-
-    ::slotted(.ai-answer-image) {
-      width: 100%;
-      height: 100%;
-    }
-  `;
-
-  @property({ attribute: false })
-  accessor options: AIAnswerWrapperOptions | undefined = undefined;
-
-  protected override render() {
-    return html`<style>
-        :host {
-          height: ${
-            this.options?.height ? this.options?.height + "px" : "100%"
-          };
-        }
-      </style>
-      <slot></slot> `;
-  }
-}
-
-declare global {
-  interface HTMLElementTagNameMap {
-    "ai-answer-wrapper": AIAnswerWrapper;
-  }
-}
-
-export const createIframeRenderer: (
+function createPreviewRenderer(
   host: EditorHost,
-  options?: AIAnswerWrapperOptions,
-) => MyoxusAIPanelWidgetConfig["answerRenderer"] = (host, options) => {
+  options: AnswerOptions | undefined,
+  render: (answer: string) => ReactNode,
+): MyoxusAIPanelWidgetConfig["answerRenderer"] {
   return (answer, state) => {
     if (state === "generating") {
-      const panel = getAIPanelWidget(host);
-      panel.generatingElement?.updateLoadingProgress(2);
-      return nothing;
+      getAIPanelWidget(host).generatingElement.updateLoadingProgress(2);
+      return null;
     }
-
-    if (state !== "finished" && state !== "error") {
-      return nothing;
-    }
-
-    const template = html`<iframe
-      class="ai-answer-iframe"
-      sandbox="allow-scripts"
-      scrolling="no"
-      .srcdoc=${preprocessHtml(answer)}
-    >
-    </iframe>`;
-    return html`<ai-answer-wrapper .options=${options}
-      >${template}</ai-answer-wrapper
-    >`;
+    if (state !== "finished" && state !== "error") return null;
+    return createElement(
+      MediaPreviewFrame,
+      { fill: true, style: { height: options?.height } },
+      render(answer),
+    );
   };
-};
+}
 
-export const createImageRenderer: (
+export function createIframeRenderer(
   host: EditorHost,
-  options?: AIAnswerWrapperOptions,
-) => MyoxusAIPanelWidgetConfig["answerRenderer"] = (host, options) => {
-  return (answer, state) => {
-    if (state === "generating") {
-      const panel = getAIPanelWidget(host);
-      panel.generatingElement?.updateLoadingProgress(2);
-      return nothing;
-    }
+  options?: AnswerOptions,
+) {
+  return createPreviewRenderer(host, options, (answer) =>
+    createElement("iframe", {
+      title: "HTML",
+      sandbox: "allow-scripts",
+      scrolling: "no",
+      srcDoc: preprocessHtml(answer),
+      style: { width: "100%", height: "100%", border: 0 },
+    }),
+  );
+}
 
-    if (state !== "finished" && state !== "error") {
-      return nothing;
-    }
-
-    const template = html`<style>
-      .ai-answer-image img{
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-      }
-    </style>
-    <div class="ai-answer-image" data-testid="ai-answer-image">
-      <img src=${answer}></img>
-    </div>`;
-
-    return html`<ai-answer-wrapper .options=${options}
-      >${template}</ai-answer-wrapper
-    >`;
-  };
-};
+export function createImageRenderer(host: EditorHost, options?: AnswerOptions) {
+  return createPreviewRenderer(host, options, (answer) =>
+    createElement(
+      "div",
+      {
+        "data-testid": "ai-answer-image",
+        style: { width: "100%", height: "100%" },
+      },
+      createElement(MediaPreviewImage, { alt: "", src: answer }),
+    ),
+  );
+}

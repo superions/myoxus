@@ -138,9 +138,9 @@ export class MyoxusEditorViewExtension extends ViewExtensionProvider<MyoxusEdito
         patchDocumentFieldHost(reactToLit),
         patchForAudioEmbedView(reactToLit),
         patchTextAttachmentPreview(reactToLit),
-        patchMermaidFamilyReactHost(reactToLit),
         ...(options.mountPortal
           ? [
+              patchMermaidFamilyReactHost(options.mountPortal),
               patchBpmnBlockPresentation(
                 options.mountPortal,
                 framework.get(WorkspaceService).workspace.engine.doc,

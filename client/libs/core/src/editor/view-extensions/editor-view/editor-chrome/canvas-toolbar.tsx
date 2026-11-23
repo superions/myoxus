@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
-import { useRef, useState } from "react";
+import { type ReactNode, useRef, useState } from "react";
 import { useI18n } from "@myoxus/i18n";
 import { toReactNode } from "@myoxus/lit-react";
 import {
@@ -19,6 +19,7 @@ import {
 } from "@myoxus/ui-facade";
 import type {
   EditorCanvasToolbarControls,
+  EditorCanvasToolbarItem,
   EditorCanvasToolControls,
 } from "@virgultum/editor/shared/services";
 import {
@@ -33,6 +34,7 @@ export function EditorCanvasTool({
   action,
   menu,
   artwork,
+  nativeArtwork,
   artworkBounds,
   artworkColor,
   expanded,
@@ -48,8 +50,9 @@ export function EditorCanvasTool({
     setActions(menu?.actions(value) ?? []);
   };
   const isExpanded = menu ? opened : expanded;
+  const hasArtwork = Boolean(nativeArtwork ?? artwork);
   const Control =
-    !artwork && isExpanded !== undefined ? MenuTrigger : IconButton;
+    !hasArtwork && isExpanded !== undefined ? MenuTrigger : IconButton;
   const trigger = (
     <Control
       data-testid={action.id}
@@ -65,9 +68,9 @@ export function EditorCanvasTool({
       onPointerDown={preserveEditorCommandFocus}
       onClick={(event) => action.run?.(event.currentTarget, event.nativeEvent)}
     >
-      {artwork ? (
+      {hasArtwork ? (
         <Box component="span" style={{ color: artworkColor }}>
-          {toReactNode(artwork)}
+          {(nativeArtwork as ReactNode) ?? toReactNode(artwork)}
         </Box>
       ) : (
         editorGlyph(action.icon)
@@ -116,6 +119,14 @@ export function EditorCanvasTool({
   );
 }
 
+function renderToolbarItem(item: EditorCanvasToolbarItem) {
+  return "controls" in item ? (
+    <EditorCanvasTool {...item.controls} />
+  ) : (
+    toReactNode(item)
+  );
+}
+
 export function EditorCanvasToolbar({
   controls,
 }: {
@@ -142,7 +153,7 @@ export function EditorCanvasToolbar({
           <>
             <Group wrap="nowrap" gap="xs">
               {controls.quick.map((content, index) => (
-                <Box key={index}>{toReactNode(content)}</Box>
+                <Box key={index}>{renderToolbarItem(content)}</Box>
               ))}
             </Group>
             {controls.more && (
@@ -169,7 +180,7 @@ export function EditorCanvasToolbar({
               {controls.senior.map((content, index) => (
                 // Existing artwork and drag hit boxes retain their canvas geometry.
                 <Center key={index} w={96} h={64}>
-                  {toReactNode(content)}
+                  {renderToolbarItem(content)}
                 </Center>
               ))}
             </Group>

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import type { TemplateResult } from "lit";
+import type { ReactNode } from "react";
 import type { ShapeTextEditDraftActions } from "@virgultum/canvas/gfx";
 import type { MermaidMindmapModel } from "../../engine/mindmap/index.js";
 import type { MermaidPageViewportProjection } from "../../mermaid-page-viewport-state.js";
@@ -56,8 +56,8 @@ export type MindmapReactHostProps = {
   readonly embedded: boolean;
   readonly embeddedEditing: boolean;
   readonly actionTarget?: HTMLElement | null;
-  readonly workarea: TemplateResult | null;
-  readonly workareaFooter: TemplateResult | null;
+  readonly workarea: ReactNode | null;
+  readonly workareaFooter: ReactNode | null;
   readonly pageViewport?: MermaidPageViewportProjection;
   readonly intent: MindmapEditIntent | null;
   readonly onIntent: (intent: MindmapEditIntent | null) => void;

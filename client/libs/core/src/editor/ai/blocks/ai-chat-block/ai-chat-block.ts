@@ -1,78 +1,88 @@
-import { computed } from "@preact/signals-core";
+import { signal } from "@preact/signals-core";
+import { Card, Group, MyoxusText, Stack } from "@myoxus/ui-facade";
+import { ChatWithAIIcon } from "./components/icon";
 import { Peekable } from "@virgultum/editor/components/peek";
-import { ViewExtensionManagerIdentifier } from "@virgultum/editor/ext-loader";
-import { BlockComponent } from "@virgultum/editor/std";
-import { html } from "lit";
+import { NativeBlockComponent } from "@virgultum/editor/blocks/surface";
+import { createElement, type ReactNode } from "react";
 
 import { ChatMessagesSchema } from "../../components/ai-chat-messages";
-import type { TextRendererOptions } from "../../components/text-renderer";
-import { ChatWithAIIcon } from "./components/icon";
-import { type AIChatBlockModel } from "./model";
-import { AIChatBlockStyles } from "./styles";
-import { AIWidgetUI } from "../../widgets/native-ui";
-import type { ReactToLit } from "@myoxus/lit-react";
+import { NativeAIWidgetUI } from "../../widgets/native-ui";
+import { StoredChatMessages } from "./components/stored-chat-messages";
+import type { AIChatBlockModel } from "./model";
+
+export function readStoredMessages(source: string) {
+  try {
+    return ChatMessagesSchema.safeParse(JSON.parse(source)).data ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/** Both block views present the persisted snapshot. Opening a chat is a separate action. */
+export function mountStoredAIChat(
+  block: NativeBlockComponent<AIChatBlockModel>,
+  anchor: HTMLElement,
+) {
+  const mount = block.std.getOptional(NativeAIWidgetUI);
+  if (!mount || block.viewType !== "display") return;
+  const view = signal<ReactNode>(null);
+  const render = (source: string) => {
+    const messages = readStoredMessages(source).slice(-2);
+    view.value = createElement(
+      Card,
+      {
+        padding: "lg",
+        style: { height: "100%", pointerEvents: "none", userSelect: "none" },
+      },
+      createElement(
+        Stack,
+        { h: "100%", gap: "xs", justify: "space-between" },
+        createElement(
+          "div",
+          {
+            style: {
+              flex: "1 0 0",
+              width: "100%",
+              overflow: "hidden",
+              maskImage:
+                "linear-gradient(to bottom, var(--myoxus-background-primary-color) 25%, transparent)",
+            },
+          },
+          createElement(StoredChatMessages, {
+            host: block.host,
+            messages,
+            readOnly: true,
+          }),
+        ),
+        createElement(
+          Group,
+          { gap: "sm" },
+          createElement(ChatWithAIIcon),
+          createElement(
+            MyoxusText,
+            { typographySlot: "caption" },
+            "AI chat block",
+          ),
+        ),
+      ),
+    );
+  };
+  block.disposables.add(mount(anchor, view));
+  block.disposables.add(block.model.props.messages$.subscribe(render));
+}
 
 @Peekable({
-  enableOn: ({ store }: AIChatBlockComponent) => {
-    // Disable on mobile and readonly mode
-    return !BUILD_CONFIG.isMobileEdition && !store.readonly;
-  },
+  enableOn: () => !BUILD_CONFIG.isMobileEdition,
 })
-export class AIChatBlockComponent extends BlockComponent<AIChatBlockModel> {
-  static override styles = AIChatBlockStyles;
-
-  private _textRendererOptions: TextRendererOptions = {};
-
-  // Deserialize messages from JSON string and verify the type using zod
-  private readonly _deserializeChatMessages = computed(() => {
-    const messages = this.model.props.messages$.value;
-    try {
-      const result = ChatMessagesSchema.safeParse(JSON.parse(messages));
-      if (result.success) {
-        return result.data;
-      } else {
-        return [];
-      }
-    } catch {
-      return [];
-    }
-  });
-
-  override connectedCallback() {
-    super.connectedCallback();
-    this._textRendererOptions = {
-      customHeading: true,
-      extensions: this.previewExtensions,
-    };
+export class AIChatBlockComponent extends NativeBlockComponent<AIChatBlockModel> {
+  connectedCallback() {
+    if (!this.connectBlock()) return;
+    this.style.display = "block";
+    this.contentEditable = "false";
+    mountStoredAIChat(this, this);
   }
 
-  override renderBlock() {
-    const messages = this._deserializeChatMessages.value.slice(-2);
-    // Stored previews consume the same native tool-result views as the interactive chat.
-    const render = this.std.getOptional(AIWidgetUI);
-    const renderNative: ReactToLit | undefined = render
-      ? (view) => render(typeof view === "function" ? view() : view)
-      : undefined;
-
-    return html`<div class="myoxus-ai-chat-block-container">
-      <div class="ai-chat-messages-container">
-        <ai-chat-block-messages
-          .host=${this.host}
-          .reactToLit=${renderNative}
-          .messages=${messages}
-          .textRendererOptions=${this._textRendererOptions}
-          .withMask=${true}
-        ></ai-chat-block-messages>
-      </div>
-      <div class="ai-chat-block-button">
-        ${ChatWithAIIcon} <span>AI chat block</span>
-      </div>
-    </div> `;
-  }
-
-  get previewExtensions() {
-    return this.std.get(ViewExtensionManagerIdentifier).get("preview-page");
-  }
+  override requestUpdate() {}
 }
 
 declare global {

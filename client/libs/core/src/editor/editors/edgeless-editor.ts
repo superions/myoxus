@@ -10,7 +10,6 @@ import {
   GfxControllerIdentifier,
 } from "@virgultum/editor/std/gfx";
 import type { ExtensionType, Store } from "@virgultum/editor/store";
-import { DIAGRAM_DOC_KIND } from "../../modules/mermaid-diagrams";
 import { createElement, useLayoutEffect, useRef, type Ref } from "react";
 
 import { watchCanvasHandoff } from "./canvas-handoff";
@@ -32,14 +31,12 @@ const ordinaryCanvasBlocks = new Set([
   "myoxus:frame",
   "myoxus:edgeless-text",
   "myoxus:bpmn",
+  "myoxus:mermaid",
 ]);
 
 function canMountCanvasHost(doc: Store) {
-  const metadata = doc.workspace.meta.getDocMeta(doc.id);
   return (
     !doc.readonly &&
-    (metadata?.docKind !== DIAGRAM_DOC_KIND ||
-      metadata.diagramFormat === "bpmn") &&
     doc.getAllModels().every(({ flavour }) => ordinaryCanvasBlocks.has(flavour))
   );
 }

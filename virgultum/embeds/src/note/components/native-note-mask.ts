@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
+import { NativeViewElement } from "@virgultum/core/runtime";
 import type { NoteBlockModel } from "@virgultum/core/models";
 import type { EditorHost } from "@virgultum/core/runtime";
 import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
@@ -16,7 +17,7 @@ interface NoteMaskState {
   radius: number;
 }
 
-export class EdgelessNoteMask extends HTMLElement {
+export class EdgelessNoteMask extends NativeViewElement {
   private readonly mask = this.ownerDocument.createElement("div");
   private current?: NoteMaskState;
   private stopTracking?: () => void;

@@ -276,7 +276,7 @@ async function openMermaidEdgelessMenu(page: Page, query: string) {
     .getByTestId("myoxus-mermaid-edgeless-toolbar-button")
     .click({ timeout: 10_000 });
   await expect(
-    page.locator("myoxus-menu input.myoxus-menu-search").last(),
+    page.getByRole("searchbox", { name: "Diagram type", exact: true }),
   ).toBeFocused();
   await page.keyboard.type(query);
 }
@@ -1266,6 +1266,9 @@ test.describe("Virgultum Mermaid block", () => {
     await expect(svg.locator("desc")).toHaveText("Retained description");
     await mode.getByText("Visual", { exact: true }).click();
     await page.getByTestId("switch-edgeless-mode-button").click();
+    await page
+      .getByRole("button", { name: "Fit to screen", exact: true })
+      .click();
     const note = page.locator("myoxus-edgeless-note").filter({ has: block });
     await note.dblclick({ position: { x: 20, y: 70 } });
     const delta = block
@@ -4295,15 +4298,15 @@ flowchart LR
           (item) =>
             item.type === "connector" && item.text?.toString() === "Dispatch",
         )!;
-        const surface = host.querySelector("myoxus-surface") as HTMLElement & {
-          _gfx: {
+        const scoped = host as typeof host & {
+          _getScopedGfxController: () => {
             viewport: { viewportX: number; viewportY: number; zoom: number };
           };
         };
         const viewport = host
           .querySelector(".myoxus-mermaid-gfx-viewport")!
           .getBoundingClientRect();
-        const camera = surface._gfx.viewport;
+        const camera = scoped._getScopedGfxController().viewport;
         const [x, y, width] = JSON.parse(line.xywh) as number[];
         return {
           x: viewport.left + (x + width / 4 - camera.viewportX) * camera.zoom,
@@ -6832,7 +6835,25 @@ flowchart LR
           ),
         )
         .toEqual([native.id]);
+      const clipboardSnapshot = () =>
+        page.evaluate(async () => {
+          const contents = await navigator.clipboard.read();
+          const item = contents.find((entry) =>
+            entry.types.includes("text/html"),
+          );
+          return item ? (await item.getType("text/html")).text() : "";
+        });
+      const previousClipboard = await clipboardSnapshot();
       await page.locator("myoxus-edgeless-root").press("Control+c");
+      await expect
+        .poll(async () => {
+          const clipboard = await clipboardSnapshot();
+          return (
+            clipboard !== previousClipboard &&
+            clipboard.includes("data-virgultum-snapshot")
+          );
+        })
+        .toBe(true);
       await page.locator("myoxus-edgeless-root").press("Control+v");
       await expect
         .poll(async () => (await mermaidOwnerInventory(page)).length)

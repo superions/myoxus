@@ -299,11 +299,7 @@ export function AIPanelView({
             >
               <Stack gap="xs">
                 {answer !== null ? (
-                  <Box data-testid="answer-content">
-                    {typeof renderedAnswer === "symbol"
-                      ? null
-                      : toReactNode(renderedAnswer ?? undefined)}
-                  </Box>
+                  <Box data-testid="answer-content">{renderedAnswer}</Box>
                 ) : null}
                 {generating ? (
                   <Group

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 export { MermaidArchitectureRuntimeEditor } from "./editor";
-import type { ReactToLit } from "@myoxus/lit-react";
 import {
   mermaidArchitectureRendererToken,
   type MermaidArchitectureReactHostProps,
@@ -40,14 +39,11 @@ function MermaidArchitectureSurface({
   }
 }
 
-export function createMermaidArchitectureRendererRegistration(
-  reactToLit: ReactToLit,
-): MermaidFamilyReactRendererRegistration<MermaidArchitectureReactHostProps> {
+export function createMermaidArchitectureRendererRegistration(): MermaidFamilyReactRendererRegistration<MermaidArchitectureReactHostProps> {
   const nativeView = (props: MermaidArchitectureReactHostProps) =>
     createElement(MermaidArchitectureSurface, { props });
   return {
     token: mermaidArchitectureRendererToken,
-    nativeView,
-    render: (props) => reactToLit(nativeView(props), true),
+    render: nativeView,
   };
 }

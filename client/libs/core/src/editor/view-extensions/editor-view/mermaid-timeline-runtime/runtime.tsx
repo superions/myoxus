@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-import type { ReactToLit } from "@myoxus/lit-react";
 import {
   Alert,
   TimelineView,
@@ -461,12 +460,9 @@ export function MermaidTimelineRuntime({
     </div>
   );
 }
-export function createMermaidTimelineRendererRegistration(
-  reactToLit: ReactToLit,
-): MermaidFamilyReactRendererRegistration<MermaidTimelineReactHostProps> {
+export function createMermaidTimelineRendererRegistration(): MermaidFamilyReactRendererRegistration<MermaidTimelineReactHostProps> {
   return {
     token: mermaidTimelineRendererToken,
-    render: (props) =>
-      reactToLit(<MermaidTimelineRuntime props={props} />, true),
+    render: (props) => <MermaidTimelineRuntime props={props} />,
   };
 }

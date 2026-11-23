@@ -204,18 +204,28 @@ test("Architecture direct editing survives Page history and both Edgeless owners
       .poll(() => mermaidBlockSource(page))
       .not.toBe(sourceAfterReconnect);
     const sourceAfterGroup = await mermaidBlockSource(page);
-    await mermaidBlock
-      .getByRole("textbox", { name: "Selected group title" })
-      .press("Escape");
+    const groupProperties = mermaidBlock.getByRole("button", {
+      name: "Architecture properties",
+      exact: true,
+    });
+    await groupProperties.click();
+    await expect(
+      page
+        .getByRole("dialog", { name: "Architecture properties" })
+        .getByRole("textbox", { name: "Object ID", exact: true }),
+    ).toHaveValue(/group\d+/);
+    await groupProperties.click();
 
-    await mermaidBlock.focus();
-    await page.keyboard.press("Control+Z");
+    await mermaidBlock
+      .getByRole("button", { name: "Undo", exact: true })
+      .click();
     await expect
       .poll(() => mermaidBlockSource(page))
       .not.toMatch(/\n\s*group group\d+/);
     expect(await mermaidBlockSource(page)).toContain("Application service");
-    await mermaidBlock.focus();
-    await page.keyboard.press("Control+Y");
+    await mermaidBlock
+      .getByRole("button", { name: "Redo", exact: true })
+      .click();
     await expect.poll(() => mermaidBlockSource(page)).toBe(sourceAfterGroup);
 
     await page.getByTestId("switch-edgeless-mode-button").click();
@@ -274,6 +284,9 @@ test("Architecture direct editing survives Page history and both Edgeless owners
     await expect.poll(() => mermaidBlockSource(page)).toBe(sourceAfterComment);
 
     await page.getByTestId("myoxus-mermaid-edgeless-toolbar-button").click();
+    await page
+      .getByRole("searchbox", { name: "Diagram type", exact: true })
+      .fill("Architecture");
     await page
       .getByTestId("myoxus-mermaid-edgeless-template-architecture-basic")
       .click();

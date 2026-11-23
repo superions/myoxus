@@ -27,6 +27,12 @@ const _FRONTEND_SOURCE_ANCHOR = FRONTEND;
 const FLOWCHART_PAGE_MIN_READABLE_ZOOM = 0.5;
 const FLOWCHART_PAGE_VIEWPORT_PADDING = 36;
 
+type MermaidScopedViewportProbe = {
+  _getScopedGfxController?: () => {
+    viewport?: { toViewCoord?: (x: number, y: number) => [number, number] };
+  } | null;
+};
+
 export async function flowchartNodePoint(
   mermaidBlock: Locator,
   nodeId: string,
@@ -54,17 +60,8 @@ export async function flowchartNodePoint(
       };
       const viewport = block.querySelector(".myoxus-mermaid-gfx-viewport");
       const gfx = (
-        viewport?.querySelector("myoxus-surface") as
-          | {
-              _gfx?: {
-                viewport?: {
-                  toViewCoord?: (x: number, y: number) => [number, number];
-                };
-              };
-            }
-          | null
-          | undefined
-      )?._gfx;
+        element as unknown as MermaidScopedViewportProbe
+      )._getScopedGfxController?.();
       const viewportRect = viewport?.getBoundingClientRect();
       const ownerXYWH = block.model?.xywh;
       const node = block._getVisualNodeGfxModel?.(targetNodeId);
@@ -247,17 +244,8 @@ export async function flowchartDetailPoint(
       };
       const viewport = block.querySelector(".myoxus-mermaid-gfx-viewport");
       const gfx = (
-        viewport?.querySelector("myoxus-surface") as
-          | {
-              _gfx?: {
-                viewport?: {
-                  toViewCoord?: (x: number, y: number) => [number, number];
-                };
-              };
-            }
-          | null
-          | undefined
-      )?._gfx;
+        element as unknown as MermaidScopedViewportProbe
+      )._getScopedGfxController?.();
       const viewportRect = viewport?.getBoundingClientRect();
       const owner = block.model;
       const fallbackSurface = block.std?.store
@@ -455,19 +443,9 @@ export async function selectFlowchartEdge(
       if (expectedEdgeId && selectedEdgeId === expectedEdgeId) {
         return { expectedEdgeId, selectedEdgeId, viewPoints: [] };
       }
-      const viewport = block.querySelector(".myoxus-mermaid-gfx-viewport");
       const gfx = (
-        viewport?.querySelector("myoxus-surface") as
-          | {
-              _gfx?: {
-                viewport?: {
-                  toViewCoord?: (x: number, y: number) => [number, number];
-                };
-              };
-            }
-          | null
-          | undefined
-      )?._gfx;
+        element as unknown as MermaidScopedViewportProbe
+      )._getScopedGfxController?.();
       const source = block._getVisualNodeGfxModel?.(
         expectedEdge?.source ?? args.sourceNodeId,
       );
@@ -1307,19 +1285,9 @@ export async function renameFlowchartEdgeInline(
         matchingEdges.find((candidate) => candidate.id === selectedEdgeId) ??
         matchingEdges[0] ??
         null;
-      const viewport = block.querySelector(".myoxus-mermaid-gfx-viewport");
       const gfx = (
-        viewport?.querySelector("myoxus-surface") as
-          | {
-              _gfx?: {
-                viewport?: {
-                  toViewCoord?: (x: number, y: number) => [number, number];
-                };
-              };
-            }
-          | null
-          | undefined
-      )?._gfx;
+        element as unknown as MermaidScopedViewportProbe
+      )._getScopedGfxController?.();
       const source = block._getVisualNodeGfxModel?.(
         edge?.source ?? args.sourceNodeId,
       );

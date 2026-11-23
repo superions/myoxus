@@ -1,3 +1,4 @@
+import { createElement } from "react";
 import { WorkspaceImpl } from "@myoxus/core/modules/workspace/impls/workspace";
 import { ViewExtensionManagerIdentifier } from "@virgultum/editor/ext-loader";
 import { WithDisposable } from "@virgultum/editor/global/lit";
@@ -5,7 +6,7 @@ import { fontSMStyle } from "@virgultum/editor/shared/styles";
 import { unsafeCSSValue, unsafeCSSVar } from "@virgultum/editor/shared/theme";
 import { BlockStdScope, type EditorHost } from "@virgultum/editor/std";
 import type { Store } from "@virgultum/editor/store";
-import { css, html, LitElement, nothing } from "lit";
+import { css, html, LitElement } from "lit";
 import { property, query } from "lit/decorators.js";
 import { createRef, type Ref, ref } from "lit/directives/ref.js";
 import { Doc as YDoc } from "yjs";
@@ -23,18 +24,14 @@ export const createSlidesRenderer: (
     if (state === "generating") {
       const panel = getAIPanelWidget(host);
       panel.generatingElement?.updateLoadingProgress(2);
-      return nothing;
+      return null;
     }
 
     if (state !== "finished" && state !== "error") {
-      return nothing;
+      return null;
     }
 
-    return html`<ai-slides-renderer
-      .host=${host}
-      .ctx=${ctx}
-      .text=${answer}
-    ></ai-slides-renderer>`;
+    return createElement("ai-slides-renderer", { host, ctx, text: answer });
   };
 };
 
