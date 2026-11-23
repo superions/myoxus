@@ -66,7 +66,7 @@ export class ZoomController {
     this.listeners.forEach((listener) => listener());
   };
 
-  // Stable snapshots let React and retained Lit views share one state owner.
+  // React reads the same snapshot until a viewport or visibility change.
   readonly getSnapshot = () => this.snapshot;
   readonly subscribe = (listener: () => void) => {
     this.listeners.add(listener);

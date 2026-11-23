@@ -4,7 +4,7 @@ import {
 } from "@virgultum/core/extensions";
 
 import { effects } from "./effects";
-import { frameTitleWidget } from "./myoxus-frame-title-widget";
+import { FrameTitleIdentifier } from "./mount-frame-title";
 
 export class FrameTitleViewExtension extends ViewExtensionProvider {
   override name = "myoxus-frame-title-widget";
@@ -17,7 +17,9 @@ export class FrameTitleViewExtension extends ViewExtensionProvider {
   override setup(context: ViewExtensionContext) {
     super.setup(context);
     if (context.scope === "edgeless") {
-      context.register(frameTitleWidget);
+      context.register({
+        setup: (di) => di.addImpl(FrameTitleIdentifier, () => true),
+      });
     }
   }
 }

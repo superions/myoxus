@@ -496,7 +496,7 @@ export type EditorChromeHost = {
   ) => TemplateResult;
   renderSelection: (controls: EditorSelectionControls) => TemplateResult;
   renderSlash: (controls: EditorSlashControls) => TemplateResult;
-  renderZoom: (controls: EditorZoomControls) => TemplateResult;
+  mountZoom?: (anchor: HTMLElement, controls: EditorZoomControls) => () => void;
 };
 
 export type EditorOutlineEntry = Readonly<{

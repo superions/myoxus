@@ -1,7 +1,8 @@
 import type { BlockStdScope } from "@virgultum/core/runtime";
+import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
 import type { Store } from "@virgultum/core/store";
 
-import type { SurfaceBlockComponent } from "../surface-block";
+import { SurfaceBlockComponent } from "../native-surface-block";
 import type { SurfaceBlockModel } from "../surface-model";
 
 export function getSurfaceBlock(doc: Store) {
@@ -10,7 +11,6 @@ export function getSurfaceBlock(doc: Store) {
 }
 
 export function getSurfaceComponent(std: BlockStdScope) {
-  const surface = getSurfaceBlock(std.store);
-  if (!surface) return null;
-  return std.view.getBlock(surface.id) as SurfaceBlockComponent | null;
+  const view = std.getOptional(GfxControllerIdentifier)?.surfaceComponent;
+  return view instanceof SurfaceBlockComponent ? view : null;
 }

@@ -110,7 +110,14 @@ test("continuous undo and redo (note block add operation) should work", async ({
   await type(page, "hello");
   await switchEditorMode(page);
   await selectNoteInEdgeless(page, noteId);
+  await page.evaluate(() => navigator.clipboard.writeText(""));
   await copyByKeyboard(page);
+  // Copy serializes Canvas blocks asynchronously before the OS receives them.
+  await page.waitForFunction(async () =>
+    (await navigator.clipboard.read()).some((item) =>
+      item.types.includes("text/html"),
+    ),
+  );
 
   let count = await countBlock(page, "myoxus-edgeless-note");
   expect(count).toBe(1);

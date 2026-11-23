@@ -1,7 +1,6 @@
 import type { FrameBlockComponent } from "@virgultum/editor/blocks/frame";
 import type { EdgelessRootBlockComponent } from "@virgultum/editor/blocks/root";
 import type { FrameBlockModel } from "@virgultum/editor/model";
-import type { MyoxusFrameTitleWidget } from "@virgultum/editor/widgets/frame-title";
 import { assertType } from "@virgultum/editor/global/utils";
 import { Text } from "@virgultum/editor/store";
 import { beforeEach, describe, expect, test } from "vitest";
@@ -32,11 +31,9 @@ describe("frame", () => {
     await wait();
 
     const getFrameTitle = (frameId: string) => {
-      const frameTitleWidget = service.std.view.getWidget(
-        "myoxus-frame-title-widget",
-        frameId,
-      ) as MyoxusFrameTitleWidget | null;
-      return frameTitleWidget?.shadowRoot?.querySelector("myoxus-frame-title");
+      return service.std.view
+        .getBlock(frameId)
+        ?.querySelector("myoxus-frame-title");
     };
 
     const frameTitle = getFrameTitle(frame);

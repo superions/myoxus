@@ -6,10 +6,11 @@ import {
   type Placement,
   type ReferenceElement,
 } from "@floating-ui/dom";
+import { editorHostSelector } from "../../runtime/view/element/lit-host.js";
 import { RANGE_SYNC_EXCLUDE_ATTR } from "../../runtime/inline/index";
 
 export const getDefaultModalRoot = (ele: HTMLElement) => {
-  const host = ele.closest<HTMLElement>("editor-host");
+  const host = ele.closest<HTMLElement>(editorHostSelector);
   if (host) {
     return host;
   }

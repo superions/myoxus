@@ -1,35 +1,18 @@
-import { consume } from "@lit/context";
 import {
   EdgelessLegacySlotIdentifier,
   OverlayIdentifier,
 } from "@virgultum/canvas-runtime/surface";
-import { DisposableGroup } from "@virgultum/core/primitives/disposable";
-import { Vec } from "@virgultum/core/primitives/gfx";
-import { WithDisposable } from "@virgultum/core/primitives/lit";
 import type { ConnectorElementModel } from "@virgultum/core/models";
-import {
-  type BlockComponent,
-  type BlockStdScope,
-  stdContext,
-  storeContext,
-} from "@virgultum/core/runtime";
+import type { BlockStdScope } from "@virgultum/core/runtime";
 import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
-import type { Store } from "@virgultum/core/store";
-import { css, html, LitElement } from "lit";
-import { property, query } from "lit/decorators.js";
-import { styleMap } from "lit/directives/style-map.js";
-
 import type { ConnectionOverlay } from "../connection-overlay";
 
-const SIZE = 20;
-const HALF_SIZE = SIZE / 2;
-
-export class EdgelessConnectorHandle extends WithDisposable(LitElement) {
-  static override styles = css`
+export const CONNECTOR_HANDLE_SIZE = 20;
+export const connectorHandleStyles = `
     .line-controller {
       position: absolute;
-      width: ${SIZE}px;
-      height: ${SIZE}px;
+      width: ${CONNECTOR_HANDLE_SIZE}px;
+      height: ${CONNECTOR_HANDLE_SIZE}px;
       box-sizing: border-box;
       border-radius: 50%;
       border: 2px solid var(--myoxus-text-emphasis-color);
@@ -45,133 +28,70 @@ export class EdgelessConnectorHandle extends WithDisposable(LitElement) {
        */
       touch-action: none;
     }
-    .line-controller-hidden {
-      display: none;
-    }
-  `;
+`;
 
-  private _lastZoom = 1;
+export function startConnectorReconnect(
+  std: BlockStdScope,
+  connector: ConnectorElementModel,
+  endpoint: "source" | "target",
+  handle: HTMLElement,
+  event: PointerEvent,
+) {
+  event.stopPropagation();
+  if (event.button !== 0 || std.store.readonly || connector.isLocked()) return;
 
-  get connectionOverlay() {
-    return this.std.get(OverlayIdentifier("connection")) as ConnectionOverlay;
-  }
-
-  get gfx() {
-    return this.std.get(GfxControllerIdentifier);
-  }
-
-  get slots() {
-    return this.std.get(EdgelessLegacySlotIdentifier);
-  }
-
-  private _bindEvent() {
-    this._disposables.addFromEvent(this._startHandler, "pointerdown", (e) => {
-      this._capPointerDown(e, "source");
-    });
-    this._disposables.addFromEvent(this._endHandler, "pointerdown", (e) => {
-      this._capPointerDown(e, "target");
-    });
-    this._disposables.add(() => {
-      this.connectionOverlay.clear();
-    });
-  }
-
-  private _capPointerDown(e: PointerEvent, connection: "target" | "source") {
-    const { gfx, connector, slots, _disposables } = this;
-    e.stopPropagation();
-    if (this.doc.readonly) return;
-    // Semantic owners may turn this into a local confirmation draft. Cancel
-    // before stashing or mutating endpoints so Cancel has no persisted writes.
-    if (
-      !this.std.host.dispatchEvent(
-        new CustomEvent("gfx-connector-reconnect-start", {
-          cancelable: true,
-          detail: { event: e, connector, endpoint: connection },
-        }),
-      )
+  // A specialist can own this gesture as a local confirmation draft.
+  if (
+    !std.host.dispatchEvent(
+      new CustomEvent("gfx-connector-reconnect-start", {
+        cancelable: true,
+        detail: { event, connector, endpoint },
+      }),
     )
-      return;
-    slots.elementResizeStart.next();
-    _disposables.addFromEvent(document, "pointermove", (e) => {
-      const point = gfx.viewport.toModelCoordFromClientCoord([e.x, e.y]);
-      const isStartPointer = connection === "source";
-      const otherSideId = connector[isStartPointer ? "target" : "source"].id;
+  )
+    return;
 
-      connector[connection] = this.connectionOverlay.renderConnector(
-        point,
-        otherSideId ? [otherSideId] : [],
-      );
-      this.requestUpdate();
-    });
+  const { pointerId } = event;
+  const gfx = std.get(GfxControllerIdentifier);
+  const overlay = std.get(OverlayIdentifier("connection")) as ConnectionOverlay;
+  const slots = std.get(EdgelessLegacySlotIdentifier);
+  const controller = new AbortController();
+  const options = { signal: controller.signal };
+  const finish = () => {
+    if (controller.signal.aborted) return;
+    controller.abort();
+    if (handle.hasPointerCapture(pointerId))
+      handle.releasePointerCapture(pointerId);
+    overlay.clear();
+    std.store.captureSync();
+    slots.elementResizeEnd.next();
+  };
 
-    _disposables.addFromEvent(document, "pointerup", () => {
-      this.doc.captureSync();
-      _disposables.dispose();
-      this._disposables = new DisposableGroup();
-      this._bindEvent();
-      slots.elementResizeEnd.next();
-    });
-  }
-
-  override firstUpdated() {
-    const { gfx } = this;
-    const { viewport } = gfx;
-
-    this._lastZoom = viewport.zoom;
-    viewport.viewportUpdated.subscribe(() => {
-      if (viewport.zoom !== this._lastZoom) {
-        this._lastZoom = viewport.zoom;
-        this.requestUpdate();
+  handle.setPointerCapture(pointerId);
+  std.store.captureSync();
+  slots.elementResizeStart.next();
+  handle.addEventListener(
+    "pointermove",
+    (move) => {
+      if (move.pointerId !== pointerId) return;
+      if (std.store.readonly || connector.isLocked()) {
+        finish();
+        return;
       }
-    });
-
-    this._bindEvent();
-  }
-
-  override render() {
-    const { gfx } = this;
-    // path is relative to the element's xywh
-    const { path } = this.connector;
-    const zoom = gfx.viewport.zoom;
-    const startPoint = Vec.subScalar(Vec.mul(path[0], zoom), HALF_SIZE);
-    const endPoint = Vec.subScalar(
-      Vec.mul(path[path.length - 1], zoom),
-      HALF_SIZE,
-    );
-    const startStyle = {
-      transform: `translate3d(${startPoint[0]}px,${startPoint[1]}px,0)`,
-    };
-    const endStyle = {
-      transform: `translate3d(${endPoint[0]}px,${endPoint[1]}px,0)`,
-    };
-    return html`
-      <div
-        class="line-controller line-start"
-        style=${styleMap(startStyle)}
-      ></div>
-      <div class="line-controller line-end" style=${styleMap(endStyle)}></div>
-    `;
-  }
-
-  @query(".line-end")
-  private accessor _endHandler!: HTMLDivElement;
-
-  @query(".line-start")
-  private accessor _startHandler!: HTMLDivElement;
-
-  @property({ attribute: false })
-  accessor connector!: ConnectorElementModel;
-
-  @consume({
-    context: storeContext,
-  })
-  accessor doc!: Store;
-
-  @property({ attribute: false })
-  accessor edgeless!: BlockComponent;
-
-  @consume({
-    context: stdContext,
-  })
-  accessor std!: BlockStdScope;
+      const point = gfx.viewport.toModelCoordFromClientCoord([move.x, move.y]);
+      const otherId = connector[endpoint === "source" ? "target" : "source"].id;
+      connector[endpoint] = overlay.renderConnector(
+        point,
+        otherId ? [otherId] : [],
+      );
+    },
+    options,
+  );
+  const finishPointer = (end: PointerEvent) => {
+    if (end.pointerId === pointerId) finish();
+  };
+  handle.addEventListener("pointerup", finishPointer, options);
+  handle.addEventListener("pointercancel", finishPointer, options);
+  handle.addEventListener("lostpointercapture", finishPointer, options);
+  return finish;
 }

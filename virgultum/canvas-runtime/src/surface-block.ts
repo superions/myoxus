@@ -1,8 +1,9 @@
+import { DisposableGroup } from "@virgultum/core/primitives/disposable";
 import { Bound } from "@virgultum/core/primitives/gfx";
 import type { Color } from "@virgultum/core/models";
 import { FeatureFlagService, ThemeProvider } from "@virgultum/core/services";
 import {
-  BlockComponent,
+  type BlockStdScope,
   type EditorHost,
   SurfaceSelection,
 } from "@virgultum/core/runtime";
@@ -10,12 +11,8 @@ import {
   GfxControllerIdentifier,
   type Viewport,
 } from "@virgultum/core/runtime/gfx";
-import { RANGE_SYNC_EXCLUDE_ATTR } from "@virgultum/core/runtime/inline";
-import { css, html } from "lit";
-import { query } from "lit/decorators.js";
 import type { Subject } from "rxjs";
 
-import { ConnectorElementModel } from "./element-model/index.js";
 import { CanvasRenderer } from "./renderer/canvas-renderer.js";
 import { ElementRendererIdentifier } from "./extensions/element-renderer";
 import type { ElementRenderer } from "./renderer/elements";
@@ -35,78 +32,76 @@ export interface SurfaceContext {
   };
 }
 
-export class SurfaceBlockComponent extends BlockComponent<SurfaceBlockModel> {
-  static isConnector = (element: unknown): element is ConnectorElementModel => {
-    return element instanceof ConnectorElementModel;
-  };
+export const surfaceSceneCss = `
+  .myoxus-edgeless-surface-block-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+  }
 
-  static override styles = css`
-    .myoxus-edgeless-surface-block-container {
-      width: 100%;
-      height: 100%;
-      position: relative;
-    }
+  .myoxus-edgeless-surface-block-container canvas {
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    z-index: 1;
+    pointer-events: none;
+  }
 
-    .myoxus-edgeless-surface-block-container canvas {
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      position: absolute;
-      z-index: 1;
-      pointer-events: none;
-    }
+  edgeless-block-portal-container {
+    position: relative;
+    box-sizing: border-box;
+    overflow: hidden;
+    display: block;
+    height: 100%;
+    font-family: var(--myoxus-font-family);
+    font-size: var(--myoxus-font-base);
+    line-height: var(--myoxus-line-height);
+    color: var(--myoxus-text-primary-color);
+    font-weight: 400;
+  }
 
-    edgeless-block-portal-container {
-      position: relative;
-      box-sizing: border-box;
-      overflow: hidden;
-      display: block;
-      height: 100%;
-      font-family: var(--myoxus-font-family);
-      font-size: var(--myoxus-font-base);
-      line-height: var(--myoxus-line-height);
-      color: var(--myoxus-text-primary-color);
-      font-weight: 400;
-    }
+  .myoxus-block-children-container.edgeless {
+    padding-left: 0;
+    position: relative;
+    overflow: hidden;
+    height: 100%;
+    /**
+     * Fix: pointerEvent stops firing after a short time.
+     * When a gesture is started, the browser intersects the touch-action values of the touched element and its ancestors,
+     * up to the one that implements the gesture (in other words, the first containing scrolling element)
+     * https://developer.mozilla.org/en-US/docs/Web/CSS/touch-action
+     */
+    touch-action: none;
+    background-color: var(--myoxus-background-primary-color);
+    background-image: radial-gradient(
+      var(--myoxus-edgeless-grid-color) 1px,
+      var(--myoxus-background-primary-color) 1px
+    );
+    z-index: 0;
+  }
 
-    .myoxus-block-children-container.edgeless {
-      padding-left: 0;
-      position: relative;
-      overflow: hidden;
-      height: 100%;
-      /**
-       * Fix: pointerEvent stops firing after a short time.
-       * When a gesture is started, the browser intersects the touch-action values of the touched element and its ancestors,
-       * up to the one that implements the gesture (in other words, the first containing scrolling element)
-       * https://developer.mozilla.org/en-US/docs/Web/CSS/touch-action
-       */
-      touch-action: none;
-      background-color: var(--myoxus-background-primary-color);
-      background-image: radial-gradient(
-        var(--myoxus-edgeless-grid-color) 1px,
-        var(--myoxus-background-primary-color) 1px
-      );
-      z-index: 0;
-    }
+  .myoxus-edgeless-block-child {
+    position: absolute;
+    transform-origin: center;
+    box-sizing: border-box;
+    border: 2px solid var(--myoxus-white-10);
+    border-radius: 8px;
+    box-shadow: var(--myoxus-shadow-3);
+    pointer-events: all;
+  }
+`;
 
-    .myoxus-edgeless-block-child {
-      position: absolute;
-      transform-origin: center;
-      box-sizing: border-box;
-      border: 2px solid var(--myoxus-white-10);
-      border-radius: 8px;
-      box-shadow: var(--myoxus-shadow-3);
-      pointer-events: all;
-    }
-  `;
+export class SurfaceScene {
+  private readonly _disposables = new DisposableGroup();
+
+  constructor(
+    readonly std: BlockStdScope,
+    readonly model: SurfaceBlockModel,
+  ) {}
 
   private _cachedViewport = new Bound();
-
-  private readonly _initThemeObserver = () => {
-    const theme = this.std.get(ThemeProvider);
-    this.disposables.add(theme.theme$.subscribe(() => this.requestUpdate()));
-  };
 
   private _lastTime = 0;
 
@@ -115,7 +110,7 @@ export class SurfaceBlockComponent extends BlockComponent<SurfaceBlockModel> {
   private _renderer!: CanvasRenderer | DomRenderer;
 
   fitToViewport = (bound: Bound) => {
-    const { viewport } = this._gfx;
+    const { viewport } = this.gfx;
     bound = bound.expand(30);
     if (Date.now() - this._lastTime > 200)
       this._cachedViewport = viewport.viewportBounds;
@@ -142,10 +137,8 @@ export class SurfaceBlockComponent extends BlockComponent<SurfaceBlockModel> {
     ids.forEach((id) => this._locallyExcludedElementIds.add(id));
     // Embedded projections remain in the shared store, but invisible children
     // must not intercept root-surface pointer or marquee selection.
-    this._gfx.grid.setLocallyExcludedElementIds(
-      this._locallyExcludedElementIds,
-    );
-    const selection = this._gfx.selection;
+    this.gfx.grid.setLocallyExcludedElementIds(this._locallyExcludedElementIds);
+    const selection = this.gfx.selection;
     const visibleSelection = selection.selectedIds.filter((id) => !ids.has(id));
     if (visibleSelection.length !== selection.selectedIds.length) {
       selection.set({ elements: visibleSelection, editing: false });
@@ -155,7 +148,7 @@ export class SurfaceBlockComponent extends BlockComponent<SurfaceBlockModel> {
     );
   };
 
-  private get _gfx() {
+  private get gfx() {
     return this.std.get(GfxControllerIdentifier);
   }
 
@@ -176,7 +169,7 @@ export class SurfaceBlockComponent extends BlockComponent<SurfaceBlockModel> {
   }
 
   private _initRenderer() {
-    const gfx = this._gfx;
+    const gfx = this.gfx;
     const themeService = this.std.get(ThemeProvider);
     const featureFlagService = this.std.get(FeatureFlagService);
     const useDOMRenderer = featureFlagService.getFlag("enable_dom_renderer");
@@ -255,34 +248,16 @@ export class SurfaceBlockComponent extends BlockComponent<SurfaceBlockModel> {
     );
   }
 
-  override connectedCallback() {
-    super.connectedCallback();
-
-    this.setAttribute(RANGE_SYNC_EXCLUDE_ATTR, "true");
-
-    this._initThemeObserver();
+  mount(container: HTMLElement) {
     this._initRenderer();
     this._initOverlays();
+    this._disposables.add(
+      this.std.get(ThemeProvider).theme$.subscribe(this.refresh),
+    );
+    this._renderer.attach(container);
   }
 
-  override firstUpdated() {
-    this._renderer.attach(this._surfaceContainer);
-  }
-
-  override render() {
-    return html`
-      <div class="myoxus-edgeless-surface-block-container">
-        <!-- attach canvas later in renderer -->
-      </div>
-    `;
-  }
-
-  @query(".myoxus-edgeless-surface-block-container")
-  private accessor _surfaceContainer!: HTMLElement;
-}
-
-declare global {
-  interface HTMLElementTagNameMap {
-    "myoxus-surface": SurfaceBlockComponent;
+  dispose() {
+    this._disposables.dispose();
   }
 }

@@ -15,7 +15,7 @@ import { EditorFigmaCard } from "./figma-card";
 import { EditorLoomCard } from "./loom-card";
 
 import { Group, Box } from "@myoxus/ui-facade";
-import { toReactNode } from "@myoxus/lit-react";
+import { type MountReactPortal, toReactNode } from "@myoxus/lit-react";
 import {
   EditorAutoCompleteTrigger,
   EditorAutoCompletePanel,
@@ -58,7 +58,10 @@ import {
 } from "./frame-navigator";
 
 /** Reuse the owning React tree so editor chrome inherits its theme and services. */
-export function patchEditorChromeHost(reactToLit: ReactToLit) {
+export function patchEditorChromeHost(
+  reactToLit: ReactToLit,
+  mountPortal?: MountReactPortal,
+) {
   const renderControl =
     <Controls,>(
       View: ComponentType<{ controls: Controls }>,
@@ -178,6 +181,9 @@ export function patchEditorChromeHost(reactToLit: ReactToLit) {
     renderReferenceEditor: renderControl(EditorReferenceEditor),
     renderSelection: renderControl(EditorSelectionToolbar),
     renderSlash: renderControl(EditorSlashMenu),
-    renderZoom: renderControl(EditorZoom),
+    mountZoom: mountPortal
+      ? (anchor, controls) =>
+          mountPortal(anchor, <EditorZoom controls={controls} />)
+      : undefined,
   });
 }

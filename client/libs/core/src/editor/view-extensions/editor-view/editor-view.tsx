@@ -8,7 +8,7 @@ import { EditorService } from "@myoxus/core/modules/editor";
 import { toDocSearchParams } from "@myoxus/core/modules/navigation";
 import { WorkspaceService } from "@myoxus/core/modules/workspace";
 import { FrameworkProvider } from "@myoxus/infra";
-import type { ElementOrFactory } from "@myoxus/lit-react";
+import type { ElementOrFactory, MountReactPortal } from "@myoxus/lit-react";
 import type { ConfirmModalProps } from "@myoxus/ui-facade";
 import {
   type ViewExtensionContext,
@@ -50,6 +50,7 @@ const optionsSchema = z.object({
     .function()
     .input([z.custom<ElementOrFactory>(), z.boolean().optional()], z.unknown())
     .output(z.custom<TemplateResult>()),
+  mountPortal: z.custom<MountReactPortal>().optional(),
   confirmModal: z.object({
     openConfirmModal: z
       .function()
@@ -145,7 +146,7 @@ export class MyoxusEditorViewExtension extends ViewExtensionProvider<MyoxusEdito
         patchAnnotationHost(reactToLit, options.showAnnotations ?? false),
         patchCalloutTitleHost(reactToLit),
         patchFootnoteHost(reactToLit),
-        patchEditorChromeHost(reactToLit),
+        patchEditorChromeHost(reactToLit, options.mountPortal),
       ])
       .register(patchDocUrlExtensions(framework))
       .register(patchQuickSearchService(framework));

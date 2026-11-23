@@ -4,12 +4,13 @@ import type { FrameBlockModel } from "@virgultum/core/models";
 import type { BlockComponent } from "@virgultum/core/runtime";
 import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
 
-import { EdgelessFrameTitleEditor } from "./edgeless-frame-title-editor";
+import { EdgelessFrameTitleEditor } from "./native-frame-title-editor";
 
 export function mountFrameTitleEditor(
   frame: FrameBlockModel,
   edgeless: BlockComponent,
 ) {
+  if (edgeless.store.readonly || frame.isLocked()) return;
   const mountElm = edgeless.querySelector(".edgeless-mount-point");
   if (!mountElm) {
     throw new VirgultumError(

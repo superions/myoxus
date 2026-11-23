@@ -142,8 +142,6 @@
     "./widgets/drag-handle/view": "./src/widgets/drag-handle/view.ts",
     "./widgets/edgeless-auto-connect": "./src/widgets/edgeless-auto-connect/index.ts",
     "./widgets/edgeless-auto-connect/view": "./src/widgets/edgeless-auto-connect/view.ts",
-    "./widgets/edgeless-dragging-area": "./src/widgets/edgeless-dragging-area/index.ts",
-    "./widgets/edgeless-dragging-area/view": "./src/widgets/edgeless-dragging-area/view.ts",
     "./widgets/edgeless-toolbar": "./src/widgets/edgeless-toolbar/index.ts",
     "./widgets/edgeless-toolbar/view": "./src/widgets/edgeless-toolbar/view.ts",
     "./widgets/frame-title": "./src/widgets/frame-title/index.ts",

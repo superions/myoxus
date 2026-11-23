@@ -38,10 +38,7 @@ export class GfxViewportRendering {
 
   private readonly _hideOutsideAndNoSelectedBlock = () => {
     const { gfx } = this;
-    const currentViewportModels = gfx.grid.search(gfx.viewport.viewportBounds, {
-      useSet: true,
-      filter: ["block"],
-    });
+    const currentViewportModels = this.getModelsInViewport();
     const currentSelectedModels = this._getSelectedModels();
     const shouldBeVisible = new Set([
       ...currentViewportModels,
@@ -199,6 +196,14 @@ export class GfxViewportRendering {
         .map((id) => gfx.getElementById(id))
         .filter((e) => e instanceof GfxBlockElementModel),
     );
+  }
+
+  getModelsInViewport(): Set<GfxBlockElementModel> {
+    const { gfx } = this;
+    return gfx.grid.search(gfx.viewport.viewportBounds, {
+      useSet: true,
+      filter: ["block"],
+    });
   }
 
   setBlockVisibility(blockIds: readonly string[], state: "active" | "idle") {

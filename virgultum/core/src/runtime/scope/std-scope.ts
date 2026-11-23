@@ -24,7 +24,8 @@ import {
   StdIdentifier,
 } from "../identifier.js";
 import { RangeManager } from "../inline/index.js";
-import { EditorHost } from "../view/element/index.js";
+import { LitEditorHost, type EditorHost } from "../view/element/lit-host.js";
+import { createCanvasHost } from "../view/element/canvas-host.js";
 import { ViewStore } from "../view/view-store.js";
 
 export interface BlockStdOptions {
@@ -150,16 +151,45 @@ export class BlockStdScope {
     });
   }
 
-  render() {
-    const element = new EditorHost();
+  render(): LitEditorHost {
+    const element = new LitEditorHost();
     element.std = this;
     element.store = this.store;
-    this._host = element;
-    this._lifeCycleWatchers.forEach((watcher) => {
-      watcher.rendered();
-    });
-
+    this.bindHost(element);
     return element;
+  }
+
+  /** Use one scope per mounted shell. Scope resources cannot be remounted after disposal. */
+  mountCanvas(container: HTMLElement) {
+    const host = createCanvasHost(this, container.ownerDocument);
+    let mounted = false;
+    const dispose = () => {
+      if (!mounted) return;
+      mounted = false;
+      try {
+        host.disposables.dispose();
+        host.remove();
+        host.replaceChildren();
+      } finally {
+        this.unmount();
+      }
+    };
+    try {
+      this.bindHost(host);
+      container.append(host);
+      mounted = true;
+      this.mount();
+      host.rebuildViews();
+      return { host, dispose };
+    } catch (error) {
+      dispose();
+      throw error;
+    }
+  }
+
+  private bindHost(host: EditorHost) {
+    this._host = host;
+    this._lifeCycleWatchers.forEach((watcher) => watcher.rendered());
   }
 
   unmount() {

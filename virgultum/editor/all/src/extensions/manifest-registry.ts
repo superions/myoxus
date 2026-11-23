@@ -61,10 +61,8 @@ import { InlinePresetViewExtension } from "@virgultum/content/view";
 import { ReferenceViewExtension } from "@virgultum/content/view";
 import { DragHandleViewExtension } from "../widgets/drag-handle/view";
 import { EdgelessAutoConnectViewExtension } from "@virgultum/canvas/view";
-import { EdgelessDraggingAreaViewExtension } from "@virgultum/canvas/view";
 import { EdgelessSelectedRectViewExtension } from "@virgultum/canvas/view";
 import { EdgelessToolbarViewExtension } from "@virgultum/canvas/view";
-import { EdgelessZoomToolbarViewExtension } from "../widgets/edgeless-zoom-toolbar/view";
 import { FrameTitleViewExtension } from "@virgultum/canvas/view";
 import { KeyboardToolbarViewExtension } from "../widgets/keyboard-toolbar/view";
 import { LinkedDocViewExtension } from "../widgets/linked-doc/view";
@@ -288,20 +286,12 @@ const INTERNAL_MANIFESTS: ReadonlyArray<FeatureManifest> = [
     view: [ViewportOverlayViewExtension],
   },
   {
-    id: featureManifestId("widget-zoom-toolbar"),
-    view: [EdgelessZoomToolbarViewExtension],
-  },
-  {
     id: featureManifestId("widget-page-dragging-area"),
     view: [PageDraggingAreaViewExtension],
   },
   {
     id: featureManifestId("widget-edgeless-selected-rect"),
     view: [EdgelessSelectedRectViewExtension],
-  },
-  {
-    id: featureManifestId("widget-edgeless-dragging-area"),
-    view: [EdgelessDraggingAreaViewExtension],
   },
   {
     id: featureManifestId("widget-note-slicer"),
@@ -392,10 +382,8 @@ const INTERNAL_VIEW_ORDER: ReadonlyArray<FeatureManifestId> = [
   featureManifestId("widget-slash-menu"),
   featureManifestId("widget-toolbar"),
   featureManifestId("widget-viewport-overlay"),
-  featureManifestId("widget-zoom-toolbar"),
   featureManifestId("widget-page-dragging-area"),
   featureManifestId("widget-edgeless-selected-rect"),
-  featureManifestId("widget-edgeless-dragging-area"),
   featureManifestId("widget-note-slicer"),
   featureManifestId("widget-edgeless-toolbar"),
   // Fragment

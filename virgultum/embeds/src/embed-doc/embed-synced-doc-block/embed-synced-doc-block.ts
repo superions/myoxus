@@ -36,6 +36,7 @@ import { cloneReferenceInfo } from "@virgultum/core/utils";
 import {
   BlockSelection,
   BlockStdScope,
+  editorHostSelector,
   type EditorHost,
   LifeCycleWatcher,
 } from "@virgultum/core/runtime";
@@ -670,7 +671,9 @@ export class EmbedSyncedDocBlockComponent extends EmbedBlockComponent<EmbedSynce
           (this.targetContext?.collection.id ??
             this.model.props.workspaceId ??
             this.std.workspace.id);
-      editorHost = editorHost.parentElement?.closest("editor-host") ?? null;
+      editorHost =
+        editorHost.parentElement?.closest<EditorHost>(editorHostSelector) ??
+        null;
     }
   }
 

@@ -298,6 +298,7 @@ export class EdgelessNoteBlockComponent extends toGfxBlockComponent(
         data-scale="${scale}"
       >
         <edgeless-note-background
+          .std=${this.std}
           .editing=${this._editing}
           .note=${this.model}
         ></edgeless-note-background>
@@ -311,6 +312,7 @@ export class EdgelessNoteBlockComponent extends toGfxBlockComponent(
         >
           <div>
             <edgeless-page-block-title
+              .std=${this.std}
               .note=${this.model}
             ></edgeless-page-block-title>
             <div
@@ -323,11 +325,15 @@ export class EdgelessNoteBlockComponent extends toGfxBlockComponent(
         </div>
 
         <edgeless-note-mask
-          .model=${this.model}
-          .host=${this.host}
-          .zoom=${this.gfx.viewport.zoom ?? 1}
-          .disableMask=${this.hideMask || this.store.readonly}
-          .editing=${this._editing}
+          .state=${{
+            model: this.model,
+            host: this.host,
+            radius:
+              this.model.props.edgeless.style.borderRadius *
+              (this.gfx.viewport.zoom ?? 1),
+            disabled: this.hideMask || this.store.readonly,
+            editing: this._editing,
+          }}
         ></edgeless-note-mask>
 
         ${

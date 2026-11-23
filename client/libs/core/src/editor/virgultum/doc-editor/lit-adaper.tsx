@@ -164,7 +164,7 @@ function useMermaidDiagramDocumentTitle(page: Store, docsService: DocsService) {
 }
 
 const usePatchSpecs = (mode: DocMode, shared?: boolean) => {
-  const [reactToLit, portals] = useLitPortalFactory();
+  const [reactToLit, portals, mountPortal] = useLitPortalFactory();
   const { workspaceService, featureFlagService } = useServices({
     WorkspaceService,
     FeatureFlagService,
@@ -204,6 +204,7 @@ const usePatchSpecs = (mode: DocMode, shared?: boolean) => {
       .editorView({
         framework,
         reactToLit,
+        mountPortal,
         confirmModal,
         // Detached snapshots have no Doc/Editor scope. Keep their read-only
         // renderer on workspace services instead of binding a live editor.
@@ -217,6 +218,7 @@ const usePatchSpecs = (mode: DocMode, shared?: boolean) => {
         framework,
         isInPeekView,
         reactToLit,
+        mountPortal,
       })
       .database(framework)
       .linkedDoc(framework)
@@ -246,6 +248,7 @@ const usePatchSpecs = (mode: DocMode, shared?: boolean) => {
     isInPeekView,
     isCloud,
     mode,
+    mountPortal,
     reactToLit,
     shared,
   ]);
@@ -520,7 +523,7 @@ export const VirgultumDocEditor = forwardRef<
 export const VirgultumEdgelessEditor = forwardRef<
   EdgelessEditor,
   VirgultumEditorProps
->(function VirgultumEdgelessEditor({ page, shared, snapshot }, ref) {
+>(function VirgultumEdgelessEditor({ page, shared, snapshot, readonly }, ref) {
   const bpmnEditorService = useService(BpmnEditorService);
   const bpmnEditorView = useServiceOptional(ViewService)?.view;
   const templateDocService = useService(TemplateDocService);
@@ -622,6 +625,9 @@ export const VirgultumEdgelessEditor = forwardRef<
         doc={page}
         specs={specs}
         hostExtension={hostExtension}
+        allowNativeHost={
+          !shared && !snapshot && !readonly && !BUILD_CONFIG.isMobileEdition
+        }
       />
       {portals}
       {templateVariablePicker}

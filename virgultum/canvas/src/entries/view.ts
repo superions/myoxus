@@ -14,7 +14,6 @@ export * from "../blocks/edgeless-text/view";
 export * from "../blocks/surface-ref/view";
 export * from "../blocks/frame/view";
 export * from "../widgets/frame-title/view";
-export * from "../widgets/edgeless-dragging-area/view";
 export * from "../widgets/edgeless-toolbar/view";
 export * from "../widgets/edgeless-selected-rect/view";
 export * from "../widgets/edgeless-auto-connect/view";

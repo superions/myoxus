@@ -20,9 +20,9 @@ function ChromeHost({
   root: HTMLElement;
   bind: (extension: ExtensionType) => void;
 }) {
-  const [reactToLit, portals] = useLitPortalFactory();
+  const [reactToLit, portals, mountPortal] = useLitPortalFactory();
   const extension = useMemo(() => {
-    const chrome = patchEditorChromeHost(reactToLit);
+    const chrome = patchEditorChromeHost(reactToLit, mountPortal);
     const mermaid = patchMermaidFamilyReactHost(reactToLit);
     return {
       setup(di) {
@@ -31,7 +31,7 @@ function ChromeHost({
         if (!di.getFactory(MermaidFamilyReactHostIdentifier)) mermaid.setup(di);
       },
     } satisfies ExtensionType;
-  }, [reactToLit]);
+  }, [reactToLit, mountPortal]);
   useLayoutEffect(() => bind(extension), [extension, bind]);
   return (
     <I18nextProvider i18n={getOrCreateI18n()}>

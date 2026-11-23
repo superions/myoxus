@@ -6,7 +6,7 @@ import {
   SurfaceSelection,
   TextSelection,
 } from "../../selection/index.js";
-import { EditorHost } from "../../view/index.js";
+import { editorHostSelector, isEditorHost } from "../../view/index.js";
 import { isActiveInEditor } from "./active.js";
 import { RANGE_SYNC_EXCLUDE_ATTR } from "./consts.js";
 import type { RangeManager } from "./range-manager.js";
@@ -123,13 +123,7 @@ export class RangeBinding {
     this._compositionStartCallback = async (event) => {
       this.isComposing = false;
 
-      this.host.renderRoot.replaceChildren();
-      // Because we bypassed Lit and disrupted the DOM structure, this will cause an inconsistency in the original state of `ChildPart`.
-      // Therefore, we need to remove the original `ChildPart`.
-      // https://github.com/lit/lit/blob/a2cd76cfdea4ed717362bb1db32710d70550469d/packages/lit-html/src/lit-html.ts#L2248
-
-      delete (this.host.renderRoot as any)["_$litPart$"];
-      this.host.requestUpdate();
+      this.host.rebuildViews();
       await this.host.updateComplete;
 
       this.host.store.captureSync();
@@ -196,7 +190,7 @@ export class RangeBinding {
     }
 
     // From legacy render lit portal
-    if (range.commonAncestorContainer instanceof EditorHost) {
+    if (isEditorHost(range.commonAncestorContainer)) {
       return;
     }
 
@@ -277,7 +271,7 @@ export class RangeBinding {
     // document TextSelection. Respect the same opt-out in both directions;
     // focusing the host here would blur and close the active label editor.
     if (activeElement?.closest(`[${RANGE_SYNC_EXCLUDE_ATTR}="true"]`)) return;
-    const closestHost = activeElement?.closest("editor-host");
+    const closestHost = activeElement?.closest(editorHostSelector);
     if (closestHost && closestHost !== this.host) return;
     if (
       closestHost === this.host &&

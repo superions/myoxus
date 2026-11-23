@@ -12,7 +12,6 @@ import type { BlockModel } from "../../store/index";
 import { LifeCycleWatcher } from "../extension/lifecycle-watcher.js";
 import type { BlockStdScope } from "../scope/std-scope.js";
 import { onSurfaceAdded } from "../utils/gfx.js";
-import type { BlockComponent } from "../view/index.js";
 import type { CursorType } from "./cursor.js";
 import {
   GfxClassExtenderIdentifier,
@@ -93,7 +92,18 @@ export class GfxController extends LifeCycleWatcher {
     return this._surface$.peek();
   }
 
-  get surfaceComponent(): BlockComponent | null {
+  private _surfaceView: (HTMLElement & { requestUpdate(): void }) | null = null;
+
+  /** Keep a single renderer for this scope, even while its DOM is being replaced. */
+  bindSurfaceComponent(view: HTMLElement & { requestUpdate(): void }) {
+    this._surfaceView = view;
+    return () => {
+      if (this._surfaceView === view) this._surfaceView = null;
+    };
+  }
+
+  get surfaceComponent() {
+    if (this._surfaceView) return this._surfaceView;
     return this.surface
       ? (this.std.view.getBlock(this.surface.id) ?? null)
       : null;

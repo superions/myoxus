@@ -29,7 +29,7 @@ import {
 export * from "./adapters/index.js";
 export * from "./extensions";
 export type { SurfaceContext } from "./surface-block.js";
-export { SurfaceBlockComponent } from "./surface-block.js";
+export { SurfaceBlockComponent } from "./native-surface-block.js";
 export {
   SurfaceBlockModel,
   SurfaceBlockSchema,

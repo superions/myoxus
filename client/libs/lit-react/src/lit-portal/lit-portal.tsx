@@ -87,11 +87,17 @@ export type LitPortalDecorator = (
   portalRoot: HTMLElement,
 ) => React.ReactNode;
 
-type LitPortal = {
+type EditorPortal = {
   id: string;
   portal: React.ReactPortal;
-  litElement: LitReactPortal;
+  target: HTMLElement;
 };
+
+/** Mounts in the current React provider tree. The caller owns anchor lifetime. */
+export type MountReactPortal = (
+  target: HTMLElement,
+  element: React.ReactNode,
+) => () => void;
 
 export type ReactToLit = (
   elementOrFactory: ElementOrFactory,
@@ -101,7 +107,17 @@ export type ReactToLit = (
 
 // returns a factory function that renders a given element to a lit template
 export const useLitPortalFactory = () => {
-  const [portals, setPortals] = useState<LitPortal[]>([]);
+  const [portals, setPortals] = useState<EditorPortal[]>([]);
+  const mountPortal = useCallback<MountReactPortal>((target, element) => {
+    const id = nanoid();
+    const entry = {
+      id,
+      target,
+      portal: ReactDOM.createPortal(element, target),
+    };
+    setPortals((current) => [...current, entry]);
+    return () => setPortals((current) => current.filter((p) => p !== entry));
+  }, []);
 
   const reactToLit: ReactToLit = useCallback(
     (elementOrFactory, rerendering, ...args) => {
@@ -119,9 +135,7 @@ export const useLitPortalFactory = () => {
           const id = target.instanceId;
           let newPortals = portals;
           const updatePortals = () => {
-            let oldPortalIndex = portals.findIndex(
-              (p) => p.litElement === target,
-            );
+            let oldPortalIndex = portals.findIndex((p) => p.target === target);
             oldPortalIndex =
               oldPortalIndex === -1 ? portals.length : oldPortalIndex;
             newPortals = portals.toSpliced(oldPortalIndex, 1, {
@@ -130,7 +144,7 @@ export const useLitPortalFactory = () => {
                 decoratePortal ? decoratePortal(element, target) : element,
                 target,
               ),
-              litElement: target,
+              target,
             });
           };
           switch (name) {
@@ -138,7 +152,7 @@ export const useLitPortalFactory = () => {
               updatePortals();
               break;
             case "disconnectedCallback":
-              newPortals = portals.filter((p) => p.litElement.isConnected);
+              newPortals = portals.filter((p) => p.target !== target);
               break;
             case "willUpdate":
               if (!target.isConnected || !rerendering) {
@@ -154,7 +168,7 @@ export const useLitPortalFactory = () => {
     [],
   );
 
-  return [reactToLit, portals] as const;
+  return [reactToLit, portals, mountPortal] as const;
 };
 
 // render a react element to a lit template

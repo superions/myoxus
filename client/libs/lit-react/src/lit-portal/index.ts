@@ -1,6 +1,7 @@
 export {
   type ElementOrFactory,
   type LitPortalDecorator,
+  type MountReactPortal,
   type ReactToLit,
   useLitPortal,
   useLitPortalFactory,

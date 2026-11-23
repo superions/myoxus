@@ -748,9 +748,7 @@ export function assertDOMRectEqual(a: DOMRect, b: DOMRect) {
 export async function assertEdgelessDraggingArea(page: Page, xywh: number[]) {
   const [x, y, w, h] = xywh;
   const editor = getEditorLocator(page);
-  const draggingArea = editor
-    .locator("edgeless-dragging-area-rect")
-    .locator(".myoxus-edgeless-dragging-area");
+  const draggingArea = editor.locator(".myoxus-edgeless-dragging-area");
 
   const box = await draggingArea.boundingBox();
   if (!box) throw new Error("Missing edgeless dragging area");
@@ -936,7 +934,7 @@ export async function assertEdgelessNoteBackground(
       if (!noteWrapper) {
         throw new Error(`Could not find note: ${noteId}`);
       }
-      return noteWrapper.backgroundStyle$.value.backgroundColor;
+      return getComputedStyle(noteWrapper).backgroundColor;
     });
 
   expect(toHex(backgroundColor)).toEqual(toHex(color));

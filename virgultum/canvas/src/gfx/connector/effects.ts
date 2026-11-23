@@ -1,4 +1,7 @@
-import { EdgelessConnectorHandle } from "./components/connector-handle";
+import {
+  type EdgelessConnectorHandle,
+  registerEdgelessConnectorHandle,
+} from "./components/native-connector-handle";
 import { EdgelessConnectorLabelEditor } from "./text/edgeless-connector-label-editor";
 import { EdgelessConnectorMenu } from "./toolbar/connector-menu";
 import { EdgelessConnectorToolButton } from "./toolbar/connector-tool-button";
@@ -13,7 +16,7 @@ export function effects() {
     "edgeless-connector-label-editor",
     EdgelessConnectorLabelEditor,
   );
-  customElements.define("edgeless-connector-handle", EdgelessConnectorHandle);
+  registerEdgelessConnectorHandle();
 }
 
 declare global {

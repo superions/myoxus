@@ -1,22 +1,20 @@
+import { cssVar } from "@myoxus/theme";
+import { signal } from "@preact/signals-core";
 import { type FrameOverlay } from "../../blocks/frame/index";
 import {
   EdgelessLegacySlotIdentifier,
   SurfaceBlockComponent,
   OverlayIdentifier,
 } from "@virgultum/canvas-runtime/surface";
+import { DisposableGroup } from "@virgultum/core/primitives/disposable";
 import { deserializeXYWH } from "@virgultum/core/primitives/gfx";
-import {
-  ConnectorElementModel,
-  type RootBlockModel,
-} from "@virgultum/core/models";
-import { unsafeCSSVar } from "@virgultum/core/theme";
+import { ConnectorElementModel } from "@virgultum/core/models";
 import type { SelectedRect } from "@virgultum/core/types";
 import {
   getSelectedRect,
   requestThrottledConnectedFrame,
-  stopPropagation,
 } from "@virgultum/core/utils";
-import { WidgetComponent } from "@virgultum/core/runtime";
+import type { BlockStdScope } from "@virgultum/core/runtime";
 import {
   type CursorType,
   GfxControllerIdentifier,
@@ -24,24 +22,13 @@ import {
   InteractivityIdentifier,
   type ResizeHandle,
 } from "@virgultum/core/runtime/gfx";
-import { css, html, nothing } from "lit";
-import { state } from "lit/decorators.js";
-import { ifDefined } from "lit/directives/if-defined.js";
-import { repeat } from "lit/directives/repeat.js";
-import { styleMap } from "lit/directives/style-map.js";
 
 import { CanvasResizeHandles } from "./canvas-resize-handles.js";
 import { generateCursorUrl, getRotatedResizeCursor } from "./utils.js";
 
 export const EDGELESS_SELECTED_RECT_WIDGET = "edgeless-selected-rect";
 
-export class EdgelessSelectedRectWidget extends WidgetComponent<RootBlockModel> {
-  private readonly resizeHandles = new CanvasResizeHandles(this.ownerDocument);
-
-  // disable change-in-update warning
-  static override enabledWarnings = [];
-
-  static override styles = css`
+export const canvasSelectionCss = `
     :host {
       display: block;
       user-select: none;
@@ -68,7 +55,7 @@ export class EdgelessSelectedRectWidget extends WidgetComponent<RootBlockModel> 
     }
 
     .myoxus-edgeless-selected-rect[data-locked="true"] {
-      border-color: ${unsafeCSSVar("textDisableColor")};
+      border-color: ${cssVar("textDisableColor")};
     }
 
     .myoxus-edgeless-selected-rect[data-width-limit="true"]
@@ -387,12 +374,46 @@ export class EdgelessSelectedRectWidget extends WidgetComponent<RootBlockModel> 
     }
   `;
 
-  private readonly _dragEndCleanup = () => {
-    this._isWidthLimit = false;
-    this._isHeightLimit = false;
+export class CanvasSelectionController {
+  private readonly resizeHandles: CanvasResizeHandles;
+  private readonly _disposables = new DisposableGroup();
+  private readonly _revision = signal(0);
+  private readonly _allowedHandles = signal<{
+    rotatable: boolean;
+    resizeHandles: ResizeHandle[];
+  } | null>(null);
+  private readonly _isHeightLimit = signal(false);
+  private readonly _isResizing = signal(false);
+  private readonly _isWidthLimit = signal(false);
+  private readonly _mode = signal<"resize" | "scale" | "rotate">("resize");
+  private readonly _scaleDirection = signal<ResizeHandle | undefined>(
+    undefined,
+  );
+  private readonly _scalePercent = signal<string | undefined>(undefined);
+  readonly autoCompleteOff = signal(false);
 
-    this._scalePercent = undefined;
-    this._scaleDirection = undefined;
+  constructor(
+    private readonly host: HTMLElement,
+    private readonly std: BlockStdScope,
+  ) {
+    this.resizeHandles = new CanvasResizeHandles(host.ownerDocument);
+  }
+
+  private get store() {
+    return this.std.store;
+  }
+
+  dispose() {
+    this._disposables.dispose();
+    this.resizeHandles.clear();
+  }
+
+  private readonly _dragEndCleanup = () => {
+    this._isWidthLimit.value = false;
+    this._isHeightLimit.value = false;
+
+    this._scalePercent.value = undefined;
+    this._scaleDirection.value = undefined;
 
     this._updateCursor();
 
@@ -408,7 +429,7 @@ export class EdgelessSelectedRectWidget extends WidgetComponent<RootBlockModel> 
     pure?: boolean;
   }) => {
     if (!options) {
-      !this._isResizing && (this.gfx.cursor$.value = "default");
+      !this._isResizing.value && (this.gfx.cursor$.value = "default");
       return "default";
     }
 
@@ -471,12 +492,12 @@ export class EdgelessSelectedRectWidget extends WidgetComponent<RootBlockModel> 
         elements,
       });
 
-      this._allowedHandles = {
+      this._allowedHandles.value = {
         rotatable,
         resizeHandles,
       };
     } else {
-      this._allowedHandles = null;
+      this._allowedHandles.value = null;
     }
   };
 
@@ -487,8 +508,7 @@ export class EdgelessSelectedRectWidget extends WidgetComponent<RootBlockModel> 
     this._updateCursor();
   };
 
-  @state()
-  private accessor _selectedRect: SelectedRect = {
+  private readonly _selectedRect = signal<SelectedRect>({
     width: 0,
     height: 0,
     left: 0,
@@ -496,9 +516,10 @@ export class EdgelessSelectedRectWidget extends WidgetComponent<RootBlockModel> 
     rotate: 0,
     borderWidth: 0,
     borderStyle: "solid",
-  };
+  });
 
   private readonly _updateSelectedRect = requestThrottledConnectedFrame(() => {
+    if (!this.host.isConnected) return;
     const { zoom, selection, gfx } = this;
 
     const elements = selection.selectedElements;
@@ -514,7 +535,7 @@ export class EdgelessSelectedRectWidget extends WidgetComponent<RootBlockModel> 
       rotate = elements[0].rotate;
     }
 
-    this._selectedRect = {
+    this._selectedRect.value = {
       width,
       height,
       left,
@@ -523,7 +544,7 @@ export class EdgelessSelectedRectWidget extends WidgetComponent<RootBlockModel> 
       borderStyle: "solid",
       borderWidth: 2,
     };
-  }, this);
+  });
 
   get frameOverlay() {
     return this.std.get(OverlayIdentifier("frame")) as FrameOverlay;
@@ -545,11 +566,6 @@ export class EdgelessSelectedRectWidget extends WidgetComponent<RootBlockModel> 
     return this.gfx.viewport.zoom;
   }
 
-  constructor() {
-    super();
-    this.addEventListener("pointerdown", stopPropagation);
-  }
-
   private _shouldRenderSelection(elements?: GfxModel[]) {
     elements = elements ?? this.selection.selectedElements;
     // Local previews retain selection identity while hiding committed bodies.
@@ -567,7 +583,7 @@ export class EdgelessSelectedRectWidget extends WidgetComponent<RootBlockModel> 
     );
   }
 
-  override firstUpdated() {
+  bind() {
     const { _disposables, selection, gfx } = this;
 
     _disposables.add(
@@ -576,12 +592,13 @@ export class EdgelessSelectedRectWidget extends WidgetComponent<RootBlockModel> 
     );
 
     const surface = gfx.surfaceComponent;
-    if (surface instanceof SurfaceBlockComponent && surface.renderer)
+    if (surface instanceof SurfaceBlockComponent) {
       _disposables.add(
-        surface.renderer.localVisibilityUpdated.subscribe(() =>
-          this.requestUpdate(),
-        ),
+        surface.renderer.localVisibilityUpdated.subscribe(() => {
+          this._revision.value = this._revision.peek() + 1;
+        }),
       );
+    }
 
     if (gfx.surface) {
       _disposables.add(
@@ -604,24 +621,28 @@ export class EdgelessSelectedRectWidget extends WidgetComponent<RootBlockModel> 
     );
 
     _disposables.add(
-      this._slots.readonlyUpdated.subscribe(() => this.requestUpdate()),
+      this._slots.readonlyUpdated.subscribe(() => {
+        this._revision.value = this._revision.peek() + 1;
+      }),
     );
 
     _disposables.add(
-      this._slots.elementResizeEnd.subscribe(() => (this._isResizing = false)),
+      this._slots.elementResizeEnd.subscribe(
+        () => (this._isResizing.value = false),
+      ),
     );
 
     if (this._interaction) {
       _disposables.add(
         this._interaction.activeInteraction$.subscribe((val) => {
-          const pre = this._isResizing;
+          const pre = this._isResizing.value;
           const newVal = val?.type === "resize" || val?.type === "rotate";
 
           if (pre === newVal) {
             return;
           }
 
-          this._isResizing = newVal;
+          this._isResizing.value = newVal;
 
           if (newVal) {
             this._slots.elementResizeStart.next();
@@ -631,6 +652,7 @@ export class EdgelessSelectedRectWidget extends WidgetComponent<RootBlockModel> 
         }),
       );
     }
+    this._updateOnSelectionChange();
   }
 
   private get _interaction() {
@@ -641,34 +663,31 @@ export class EdgelessSelectedRectWidget extends WidgetComponent<RootBlockModel> 
     return this.std.get(EdgelessLegacySlotIdentifier);
   }
 
-  private _renderHandles() {
-    const { selection, gfx, block } = this;
-    const elements = selection.selectedElements;
+  private _getResizeTargets(elements: GfxModel[]) {
+    const { selection } = this;
 
     if (selection.inoperable) {
       this.resizeHandles.clear();
       return [];
     }
 
-    const handles = [];
-
     if (
-      this._allowedHandles &&
+      this._allowedHandles.value &&
       this._interaction &&
       !elements.some((element) => element.isLocked())
     ) {
       const interaction = this._interaction;
 
-      const targets = this.resizeHandles.update(
-        this._allowedHandles.resizeHandles,
-        this._allowedHandles.rotatable,
+      return this.resizeHandles.update(
+        this._allowedHandles.value.resizeHandles,
+        this._allowedHandles.value.rotatable,
         (e, handle, action) => {
           if (action === "rotate") {
             interaction.handleElementRotate({
               elements,
               event: e,
               onRotateStart: () => {
-                this._mode = "rotate";
+                this._mode.value = "rotate";
               },
               onRotateUpdate: (payload) => {
                 this._updateCursor({
@@ -678,7 +697,7 @@ export class EdgelessSelectedRectWidget extends WidgetComponent<RootBlockModel> 
                 });
               },
               onRotateEnd: () => {
-                this._mode = "resize";
+                this._mode.value = "resize";
                 this._dragEndCleanup();
               },
             });
@@ -688,18 +707,18 @@ export class EdgelessSelectedRectWidget extends WidgetComponent<RootBlockModel> 
               handle,
               event: e,
               onResizeStart: () => {
-                this._mode = "resize";
+                this._mode.value = "resize";
               },
               onResizeUpdate: ({ lockRatio, scaleX, scaleY, exceed }) => {
                 if (lockRatio) {
-                  this._scaleDirection = handle;
-                  this._scalePercent = `${Math.round(scaleX * 100)}%`;
-                  this._mode = "scale";
+                  this._scaleDirection.value = handle;
+                  this._scalePercent.value = `${Math.round(scaleX * 100)}%`;
+                  this._mode.value = "scale";
                 }
 
                 if (exceed) {
-                  this._isWidthLimit = exceed.w;
-                  this._isHeightLimit = exceed.h;
+                  this._isWidthLimit.value = exceed.w;
+                  this._isHeightLimit.value = exceed.h;
                 }
 
                 this._updateCursor({
@@ -711,7 +730,7 @@ export class EdgelessSelectedRectWidget extends WidgetComponent<RootBlockModel> 
                 });
               },
               onResizeEnd: () => {
-                this._mode = "resize";
+                this._mode.value = "resize";
                 this._dragEndCleanup();
               },
             });
@@ -734,144 +753,66 @@ export class EdgelessSelectedRectWidget extends WidgetComponent<RootBlockModel> 
           });
         },
       );
-      handles.push(
-        repeat(
-          targets,
-          (target) => target,
-          (target) => target,
-        ),
-      );
-    } else {
-      this.resizeHandles.clear();
     }
-
-    if (
-      elements.length === 1 &&
-      elements[0] instanceof ConnectorElementModel &&
-      !elements[0].isLocked()
-    ) {
-      handles.push(html`
-        <edgeless-connector-handle
-          .connector=${elements[0]}
-          .edgeless=${block}
-        ></edgeless-connector-handle>
-      `);
-    }
-
-    if (
-      elements.length > 1 &&
-      !elements.some((e) => e instanceof ConnectorElementModel)
-    ) {
-      handles.push(
-        repeat(
-          elements,
-          (element) => element.id,
-          (element) => {
-            const [modelX, modelY, w, h] = deserializeXYWH(element.xywh);
-            const [x, y] = gfx.viewport.toViewCoord(modelX, modelY);
-            const { left, top, borderWidth } = this._selectedRect;
-            const style = {
-              position: "absolute",
-              boxSizing: "border-box",
-              left: `${x - left - borderWidth}px`,
-              top: `${y - top - borderWidth}px`,
-              width: `${w * this.zoom}px`,
-              height: `${h * this.zoom}px`,
-              transform: `rotate(${element.rotate}deg)`,
-              border: `1px solid var(--myoxus-primary-color)`,
-            };
-            return html`<div
-              class="element-handle"
-              style=${styleMap(style)}
-            ></div>`;
-          },
-        ),
-      );
-    }
-
-    return handles;
+    this.resizeHandles.clear();
+    return [];
   }
 
-  private _renderAutoComplete() {
-    const { store, selection, block, _selectedRect } = this;
-
-    return !store.readonly &&
-      !selection.inoperable &&
-      !this.autoCompleteOff &&
-      !this._isResizing
-      ? html`<edgeless-auto-complete
-          .current=${selection.selectedElements[0]}
-          .edgeless=${block}
-          .selectedRect=${_selectedRect}
-        >
-        </edgeless-auto-complete>`
-      : nothing;
-  }
-
-  override render() {
-    const elements = this.selection.selectedElements;
-
+  read() {
+    void this._revision.value;
+    const rect = this._selectedRect.value;
+    const { selection, gfx, store } = this;
+    const elements = selection.selectedElements;
     if (!this._shouldRenderSelection(elements)) {
       this.resizeHandles.clear();
-      return nothing;
+      return null;
     }
 
-    const { _selectedRect } = this;
-    const hasElementLocked = elements.some((element) => element.isLocked());
-    const handlers = this._renderHandles();
-
-    const isConnector =
-      elements.length === 1 && elements[0] instanceof ConnectorElementModel;
-
-    return html`
-      ${this._renderAutoComplete()}
-
-      <div
-        class="myoxus-edgeless-selected-rect"
-        style=${styleMap({
-          width: `${_selectedRect.width}px`,
-          height: `${_selectedRect.height}px`,
-          borderWidth: `${_selectedRect.borderWidth}px`,
-          borderStyle: isConnector ? "none" : _selectedRect.borderStyle,
-          transform: `translate(${_selectedRect.left}px, ${_selectedRect.top}px) rotate(${_selectedRect.rotate}deg)`,
-        })}
-        disabled="true"
-        data-mode=${this._mode}
-        data-scale-percent=${ifDefined(this._scalePercent)}
-        data-scale-direction=${ifDefined(this._scaleDirection)}
-        data-locked=${hasElementLocked}
-        data-width-limit=${this._isWidthLimit}
-        data-height-limit=${this._isHeightLimit}
-      >
-        ${handlers}
-      </div>
-    `;
+    const single = elements.length === 1 ? elements[0] : undefined;
+    const isConnector = single instanceof ConnectorElementModel;
+    const locked = elements.some((element) => element.isLocked());
+    const targets = this._getResizeTargets(elements);
+    const outlines =
+      elements.length > 1 &&
+      !elements.some((e) => e instanceof ConnectorElementModel)
+        ? elements.map((element) => {
+            const [modelX, modelY, w, h] = deserializeXYWH(element.xywh);
+            const [x, y] = gfx.viewport.toViewCoord(modelX, modelY);
+            return {
+              id: element.id,
+              style: {
+                position: "absolute",
+                boxSizing: "border-box",
+                left: `${x - rect.left - rect.borderWidth}px`,
+                top: `${y - rect.top - rect.borderWidth}px`,
+                width: `${w * this.zoom}px`,
+                height: `${h * this.zoom}px`,
+                transform: `rotate(${element.rotate}deg)`,
+                border: "1px solid var(--myoxus-primary-color)",
+              },
+            };
+          })
+        : [];
+    return {
+      rect,
+      isConnector,
+      connector:
+        !selection.inoperable && isConnector && !locked ? single : undefined,
+      autoComplete:
+        !store.readonly &&
+        !selection.inoperable &&
+        !this.autoCompleteOff.value &&
+        !this._isResizing.value
+          ? elements[0]
+          : undefined,
+      locked,
+      targets,
+      outlines: selection.inoperable ? [] : outlines,
+      mode: this._mode.value,
+      scalePercent: this._scalePercent.value,
+      scaleDirection: this._scaleDirection.value,
+      widthLimit: this._isWidthLimit.value,
+      heightLimit: this._isHeightLimit.value,
+    };
   }
-
-  @state()
-  private accessor _allowedHandles: {
-    rotatable: boolean;
-    resizeHandles: ResizeHandle[];
-  } | null = null;
-
-  @state()
-  private accessor _isHeightLimit = false;
-
-  @state()
-  private accessor _isResizing = false;
-
-  @state()
-  private accessor _isWidthLimit = false;
-
-  @state()
-  private accessor _mode: "resize" | "scale" | "rotate" = "resize";
-
-  @state()
-  private accessor _scaleDirection: ResizeHandle | undefined = undefined;
-
-  @state()
-  private accessor _scalePercent: string | undefined = undefined;
-
-  @state()
-  accessor autoCompleteOff = false;
 }

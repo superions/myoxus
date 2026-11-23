@@ -1,6 +1,8 @@
-import { EdgelessNoteBackground } from "./components/edgeless-note-background";
-import { EdgelessNoteMask } from "./components/edgeless-note-mask";
-import { EdgelessPageBlockTitle } from "./components/edgeless-page-block-title";
+import { EdgelessNoteMask } from "./components/native-note-mask";
+import {
+  EdgelessNoteBackground,
+  EdgelessPageBlockTitle,
+} from "./components/native-note-chrome";
 import { NoteBlockComponent } from "./note-block";
 import {
   EdgelessNoteBlockComponent,

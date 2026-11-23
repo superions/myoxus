@@ -1,4 +1,5 @@
-import { createContext, provide } from "@lit/context";
+import { ContextProvider, createContext, provide } from "@lit/context";
+import type { DisposableGroup } from "../../../primitives/disposable/index.js";
 import {
   ErrorCode,
   handleError,
@@ -14,16 +15,22 @@ import { css, LitElement, nothing, type TemplateResult } from "lit";
 import { property } from "lit/decorators.js";
 import { repeat } from "lit/directives/repeat.js";
 import { keyed } from "lit/directives/keyed.js";
-import { html, type StaticValue, unsafeStatic } from "lit/static-html.js";
+import { html, unsafeStatic } from "lit/static-html.js";
 
 import type { CommandManager } from "../../command/index.js";
 import type { UIEventDispatcher } from "../../event/index.js";
+import type { BlockService } from "../../extension/index.js";
 import { WidgetViewIdentifier } from "../../identifier.js";
 import type { RangeManager } from "../../inline/index.js";
 import type { BlockStdScope } from "../../scope/std-scope.js";
 import { PropTypes, requiredProperties } from "../decorators/index.js";
 import type { ViewStore } from "../view-store.js";
-import { BLOCK_ID_ATTR, WIDGET_ID_ATTR } from "./consts.js";
+import {
+  BLOCK_ID_ATTR,
+  modelContext,
+  serviceContext,
+  WIDGET_ID_ATTR,
+} from "./consts.js";
 import { ShadowlessElement } from "./shadowless-element.js";
 
 export const storeContext = createContext<Store>("store");
@@ -44,13 +51,169 @@ function isMatchFlavour(widgetFlavour: string, block: BlockModel) {
   return block.flavour === widgetFlavour;
 }
 
+export interface EditorHost extends HTMLElement {
+  std: BlockStdScope;
+  store: Store;
+  readonly command: CommandManager;
+  readonly event: UIEventDispatcher;
+  readonly range: RangeManager;
+  readonly selection: StoreSelectionExtension;
+  readonly view: ViewStore;
+  readonly disposables: DisposableGroup;
+  readonly updateComplete: Promise<boolean>;
+  renderChildren(
+    model: BlockModel,
+    filter?: (model: BlockModel) => boolean,
+  ): TemplateResult;
+  rebuildViews(): void;
+}
+
+export const editorHostSelector = "editor-host, [data-myoxus-canvas-host]";
+
+export function isEditorHost(target: unknown): target is EditorHost {
+  return target instanceof HTMLElement && target.matches(editorHostSelector);
+}
+
+function resolveBlockView(std: BlockStdScope, model: BlockModel) {
+  const block = std.store.getBlock(model.id);
+  if (!block || block.blockViewType === "hidden") return;
+  const view = std.getView(model.flavour);
+  if (!std.store.schema.flavourSchemaMap.has(model.flavour) || !view) {
+    console.warn(`Cannot find render flavour ${model.flavour}.`);
+    return;
+  }
+
+  const widgets: Record<string, TemplateResult> = {};
+  for (const [key, tag] of std.provider
+    .getAll(WidgetViewIdentifier)
+    .entries()) {
+    const [widgetFlavour, id] = key.split("|");
+    if (isMatchFlavour(widgetFlavour, model))
+      widgets[id] =
+        html`<${tag} ${unsafeStatic(WIDGET_ID_ATTR)}=${id}></${tag}>`;
+  }
+  return {
+    tag: typeof view === "function" ? view(model) : view,
+    viewType: block.blockViewType,
+    widgets,
+  };
+}
+
+function renderBlockView(
+  std: BlockStdScope,
+  model: BlockModel,
+): TemplateResult {
+  const view = resolveBlockView(std, model);
+  if (!view) return html`${nothing}`;
+  const { tag, viewType, widgets } = view;
+  // A restored block can retain its ID while acquiring a new model.
+  return html`${keyed(
+    model,
+    html`<${tag}
+      ${unsafeStatic(BLOCK_ID_ATTR)}=${model.id}
+      .widgets=${widgets}
+      .viewType=${viewType}
+    ></${tag}>`,
+  )}`;
+}
+
+export function renderRetainedChildren(
+  std: BlockStdScope,
+  model: BlockModel,
+  filter?: (model: BlockModel) => boolean,
+): TemplateResult {
+  return html`${repeat(
+    filter ? model.children.filter(filter) : model.children,
+    (child) => child.id,
+    (child) => renderBlockView(std, child),
+  )}`;
+}
+
+/** Bridge the retained block views until their owning feature mounts them directly. */
+export function bindRetainedBlockContexts(host: EditorHost) {
+  const store = new ContextProvider(host, {
+    context: storeContext,
+    initialValue: host.store,
+  });
+  const std = new ContextProvider(host, {
+    context: stdContext,
+    initialValue: host.std,
+  });
+  store.hostConnected();
+  std.hostConnected();
+}
+
+/** Existing widgets consume the owning block context even in a native projection. */
+export function bindRetainedWidgetContexts(
+  element: HTMLElement,
+  model: BlockModel,
+  service: BlockService,
+) {
+  new ContextProvider(element, {
+    context: modelContext,
+    initialValue: model,
+  }).hostConnected();
+  new ContextProvider(element, {
+    context: serviceContext,
+    initialValue: service,
+  }).hostConnected();
+}
+
+export function createRetainedWidgetViews(
+  root: HTMLElement,
+  std: BlockStdScope,
+  model: BlockModel,
+) {
+  const widgets = new Map<string, HTMLElement>();
+  for (const [key, tag] of std.provider
+    .getAll(WidgetViewIdentifier)
+    .entries()) {
+    const [flavour, id] = key.split("|");
+    if (!isMatchFlavour(flavour, model)) continue;
+    const element = root.ownerDocument.createElement(tag._$litStatic$);
+    element.setAttribute(WIDGET_ID_ATTR, id);
+    widgets.set(id, element);
+  }
+  return widgets;
+}
+
+export function createRetainedBlockView(host: EditorHost, model: BlockModel) {
+  const view = resolveBlockView(host.std, model);
+  if (!view) return null;
+  const { tag, viewType, widgets } = view;
+  const element = host.ownerDocument.createElement(tag._$litStatic$);
+  element.setAttribute(BLOCK_ID_ATTR, model.id);
+  return Object.assign(element, { widgets, viewType });
+}
+
+export async function waitForRetainedRootView(
+  host: EditorHost,
+  root: HTMLElement | null,
+) {
+  if (root && "updateComplete" in root) await root.updateComplete;
+  const model = host.store.root;
+  if (!model || !host.isConnected) return false;
+  const widgetViews = host.std.provider.getAll(
+    WidgetViewIdentifier(model.flavour),
+  );
+  await Promise.all(
+    Object.entries(widgetViews).map(([key, tag]) => {
+      if (key.split("|")[0] !== model.flavour) return undefined;
+      const element = host.querySelector(tag._$litStatic$);
+      return element instanceof LitElement ? element.updateComplete : undefined;
+    }),
+  );
+  return host.isConnected;
+}
+
 @requiredProperties({
   store: PropTypes.instanceOf(Store),
   std: PropTypes.object,
 })
-export class EditorHost extends SignalWatcher(
-  WithDisposable(ShadowlessElement),
-) {
+export class LitEditorHost
+  extends SignalWatcher(WithDisposable(ShadowlessElement))
+  implements EditorHost
+{
   static override styles = css`
     editor-host {
       outline: none;
@@ -60,55 +223,19 @@ export class EditorHost extends SignalWatcher(
     }
   `;
 
-  private readonly _renderModel = (model: BlockModel): TemplateResult => {
-    const { flavour } = model;
-    const block = this.store.getBlock(model.id);
-    if (!block || block.blockViewType === "hidden") {
-      return html`${nothing}`;
-    }
-    const schema = this.store.schema.flavourSchemaMap.get(flavour);
-    const view = this.std.getView(flavour);
-    if (!schema || !view) {
-      console.warn(`Cannot find render flavour ${flavour}.`);
-      return html`${nothing}`;
-    }
-
-    const widgetViews = this.std.provider.getAll(WidgetViewIdentifier);
-    const widgets = Array.from(widgetViews.entries()).reduce(
-      (mapping, [key, tag]) => {
-        const [widgetFlavour, id] = key.split("|");
-        if (isMatchFlavour(widgetFlavour, model)) {
-          const template = html`<${tag} ${unsafeStatic(WIDGET_ID_ATTR)}=${id}></${tag}>`;
-          mapping[id] = template;
-        }
-        return mapping;
-      },
-      {} as Record<string, TemplateResult>,
-    );
-
-    const tag = typeof view === "function" ? view(model) : view;
-    // Imports and undo may replace a model while retaining its document ID.
-    // Its mounted controllers must release the old model before binding the new one.
-    return html`${keyed(
-      model,
-      html`<${tag}
-      ${unsafeStatic(BLOCK_ID_ATTR)}=${model.id}
-      .widgets=${widgets}
-      .viewType=${block.blockViewType}
-    ></${tag}>`,
-    )}`;
-  };
-
   renderChildren = (
     model: BlockModel,
     filter?: (model: BlockModel) => boolean,
-  ): TemplateResult => {
-    return html`${repeat(
-      model.children.filter(filter ?? (() => true)),
-      (child) => child.id,
-      (child) => this._renderModel(child),
-    )}`;
-  };
+  ) => renderRetainedChildren(this.std, model, filter);
+
+  rebuildViews() {
+    const root = this.renderRoot;
+    root.replaceChildren();
+    // Cross-block IME can replace the browser-managed DOM. Discard Lit's
+    // cached child part before scheduling the fresh projection.
+    delete (root as HTMLElement & { _$litPart$?: unknown })._$litPart$;
+    this.requestUpdate();
+  }
 
   get command(): CommandManager {
     return this.std.command;
@@ -158,32 +285,9 @@ export class EditorHost extends SignalWatcher(
       const view = this.std.getView(rootModel.flavour);
       if (!view) return result;
 
-      const widgetViews = this.std.provider.getAll(
-        WidgetViewIdentifier(rootModel.flavour),
-      );
-      const widgetTags = Object.entries(widgetViews).reduce(
-        (mapping, [key, tag]) => {
-          const [widgetFlavour, id] = key.split("|");
-          if (widgetFlavour === rootModel.flavour) {
-            mapping[id] = tag;
-          }
-          return mapping;
-        },
-        {} as Record<string, StaticValue>,
-      );
-      const elementsTags: StaticValue[] = [
-        typeof view === "function" ? view(rootModel) : view,
-        ...Object.values(widgetTags),
-      ];
-      await Promise.all(
-        elementsTags.map(async (tag) => {
-          const element = this.renderRoot.querySelector(tag._$litStatic$);
-          if (element instanceof LitElement) {
-            return await element.updateComplete;
-          }
-          return null;
-        }),
-      );
+      const tag = typeof view === "function" ? view(rootModel) : view;
+      const root = this.renderRoot.querySelector<HTMLElement>(tag._$litStatic$);
+      await waitForRetainedRootView(this, root);
       return result;
     } catch (e) {
       if (e instanceof Error) {
@@ -199,7 +303,7 @@ export class EditorHost extends SignalWatcher(
     const { root } = this.store;
     if (!root) return nothing;
 
-    return this._renderModel(root);
+    return renderBlockView(this.std, root);
   }
 
   @provide({ context: storeContext })
@@ -211,8 +315,10 @@ export class EditorHost extends SignalWatcher(
   accessor std!: BlockStdScope;
 }
 
+export const EditorHost = LitEditorHost;
+
 declare global {
   interface HTMLElementTagNameMap {
-    "editor-host": EditorHost;
+    "editor-host": LitEditorHost;
   }
 }

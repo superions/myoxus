@@ -1,8 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import type { GfxController } from "./controller.js";
+import type { GfxBlockElementModel } from "./model/gfx-block-model.js";
 import { GfxViewportRendering, gfxViewportStyle } from "./viewport-element.js";
 
 export interface GfxViewportElement extends HTMLElement {
+  gfx: GfxController;
+  maxConcurrentRenders: number;
+  getModelsInViewport(): Set<GfxBlockElementModel>;
   setBlocksActive(blockIds: string[]): void;
   setBlocksIdle(blockIds: string[]): void;
 }
@@ -45,6 +49,12 @@ export function registerGfxViewportElement() {
       delete this.scheduleUpdateChildren;
       this.rendering?.dispose();
       this.rendering = undefined;
+    }
+
+    getModelsInViewport() {
+      return (
+        this.rendering?.getModelsInViewport() ?? new Set<GfxBlockElementModel>()
+      );
     }
 
     setBlocksActive(blockIds: string[]) {

@@ -151,7 +151,7 @@ export class EdgelessPageKeyboardManager extends PageKeyboardManager {
                 segment: "toolbar",
                 type: "frame",
               });
-            rootComponent.surface.fitToViewport(Bound.deserialize(frame.xywh));
+            rootComponent.surface?.fitToViewport(Bound.deserialize(frame.xywh));
           } else if (!this.rootComponent.service.selection.editing) {
             this._setEdgelessTool(FrameTool);
           }

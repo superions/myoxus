@@ -68,7 +68,7 @@ export class AISlidesRenderer extends WithDisposable(LitElement) {
       pointer-events: none;
     }
 
-    .edgeless-container myoxus-edgeless-zoom-toolbar-widget,
+    .edgeless-container [data-canvas-zoom],
     edgeless-toolbar {
       display: none;
     }

@@ -5,7 +5,7 @@ import { ErrorCode, VirgultumError } from "../../primitives/exceptions/index";
 import { LifeCycleWatcher } from "../extension/index.js";
 import { KeymapIdentifier } from "../identifier.js";
 import type { BlockStdScope } from "../scope/index.js";
-import { type BlockComponent, EditorHost } from "../view/index.js";
+import { type BlockComponent, isEditorHost } from "../view/index.js";
 import {
   type UIEventHandler,
   UIEventState,
@@ -272,9 +272,7 @@ export class UIEventDispatcher extends LifeCycleWatcher {
    * drag continuation runs.
    */
   private _ownsActivationEvent(event: Event) {
-    const owningHost = event
-      .composedPath()
-      .find((target): target is EditorHost => target instanceof EditorHost);
+    const owningHost = event.composedPath().find(isEditorHost);
     return !owningHost || owningHost === this.host;
   }
 
@@ -355,7 +353,7 @@ export class UIEventDispatcher extends LifeCycleWatcher {
     return (
       element instanceof HTMLInputElement ||
       element instanceof HTMLTextAreaElement ||
-      (element instanceof EditorHost && !element.store.readonly) ||
+      (isEditorHost(element) && !element.store.readonly) ||
       (element as HTMLElement).isContentEditable
     );
   }

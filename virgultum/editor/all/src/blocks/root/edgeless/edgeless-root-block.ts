@@ -1,125 +1,117 @@
 import { effect } from "@preact/signals-core";
+import {
+  EDGELESS_TOOLBAR_WIDGET,
+  mountCanvasDraggingArea,
+  NOTE_SLICER_WIDGET,
+} from "@virgultum/canvas/widgets";
 import { NoteConfigExtension } from "@virgultum/embeds/blocks";
 import {
   DefaultTool,
   getBgGridGap,
   wheelCanvas,
-  type SurfaceBlockComponent,
-  type SurfaceBlockModel,
 } from "@virgultum/canvas-runtime/surface";
 import { PanTool } from "@virgultum/canvas-runtime/tools";
 import { Bound, Point, Vec } from "@virgultum/core/primitives/gfx";
-import { NoteBlockModel, type RootBlockModel } from "@virgultum/core/models";
+import { NoteBlockModel } from "@virgultum/core/models";
 import {
   EditorSettingProvider,
   EditPropsStore,
-  FontLoaderService,
   ThemeProvider,
-  ViewportElementProvider,
 } from "@virgultum/core/services";
 import {
-  hasTextControlEventTarget,
   matchModels,
   requestConnectedFrame,
   requestThrottledConnectedFrame,
 } from "@virgultum/core/utils";
 import {
-  BlockComponent,
   type GfxBlockComponent,
   SurfaceSelection,
-  type UIEventHandler,
 } from "@virgultum/core/runtime";
-import {
-  GfxBlockElementModel,
-  GfxControllerIdentifier,
-  type GfxViewportElement,
-} from "@virgultum/core/runtime/gfx";
-import { css, html } from "lit";
-import { query } from "lit/decorators.js";
-import { repeat } from "lit/directives/repeat.js";
+import { GfxBlockElementModel } from "@virgultum/core/runtime/gfx";
 
+import { mountCanvasZoom } from "../../../widgets/edgeless-zoom-toolbar/mount-zoom";
 import { EdgelessPageKeyboardManager } from "./edgeless-keyboard.js";
-import type { EdgelessRootService } from "./edgeless-root-service.js";
 import { isCanvasElement } from "./utils/query.js";
 
-export class EdgelessRootBlockComponent extends BlockComponent<
-  RootBlockModel,
-  EdgelessRootService
-> {
-  static override styles = css`
-    myoxus-edgeless-root {
-      -webkit-user-select: none;
-      user-select: none;
-      display: block;
-      height: 100%;
-      min-height: 100%;
-      touch-action: none;
-      width: 100%;
-    }
+import type { EdgelessRootBlockComponent } from "./native-edgeless-root-block.js";
 
-    .widgets-container {
-      position: absolute;
-      left: 0;
-      top: 0;
-      pointer-events: none;
-      contain: size layout;
-      height: 100%;
-      width: 100%;
-      z-index: var(--myoxus-z-index-popover, 10000);
-    }
+export { EdgelessRootBlockComponent } from "./native-edgeless-root-block.js";
 
-    .widgets-container > * {
-      pointer-events: auto;
-    }
+export const canvasRootCss = `
+  myoxus-edgeless-root {
+    -webkit-user-select: none;
+    user-select: none;
+    display: block;
+    height: 100%;
+    min-height: 100%;
+    touch-action: none;
+    width: 100%;
+  }
 
-    /*
-     * The toolbar widget spans the viewport, while only its visible controls
-     * are interactive. Preserve that widget-owned hit-test contract here;
-     * otherwise the transparent host intercepts pointers meant for active
-     * canvas blocks underneath it.
-     */
-    .widgets-container > edgeless-toolbar-widget {
-      pointer-events: none;
-    }
+  .widgets-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    pointer-events: none;
+    contain: size layout;
+    height: 100%;
+    width: 100%;
+    z-index: var(--myoxus-z-index-popover, 10000);
+  }
 
-    .edgeless-background {
-      height: 100%;
-      background-color: var(--myoxus-background-primary-color);
-      background-image: radial-gradient(
-        var(--myoxus-edgeless-grid-color) 1px,
-        var(--myoxus-background-primary-color) 1px
-      );
-    }
+  .widgets-container > * {
+    pointer-events: auto;
+  }
 
-    .edgeless-container {
-      color: var(--myoxus-text-primary-color);
-      position: relative;
-    }
+  /*
+   * The toolbar widget spans the viewport, while only its visible controls
+   * are interactive. Preserve that widget-owned hit-test contract here;
+   * otherwise the transparent host intercepts pointers meant for active
+   * canvas blocks underneath it.
+   */
+  .widgets-container > edgeless-toolbar-widget {
+    pointer-events: none;
+  }
 
-    @media print {
-      .selected {
-        background-color: transparent !important;
-      }
-    }
-  `;
+  .edgeless-background {
+    height: 100%;
+    background-color: var(--myoxus-background-primary-color);
+    background-image: radial-gradient(
+      var(--myoxus-edgeless-grid-color) 1px,
+      var(--myoxus-background-primary-color) 1px
+    );
+  }
 
+  .edgeless-container {
+    color: var(--myoxus-text-primary-color);
+    position: relative;
+  }
+
+  @media print {
+    .selected {
+      background-color: transparent !important;
+    }
+  }
+`;
+
+export class EdgelessRootController {
   private readonly _refreshLayerViewport = requestThrottledConnectedFrame(
     () => {
+      if (!this.root.isConnected) return;
       const { zoom, translateX, translateY } = this.gfx.viewport;
       const gap = getBgGridGap(zoom);
 
-      if (this.backgroundElm) {
-        this.backgroundElm.style.setProperty(
+      if (this.root.backgroundElm) {
+        this.root.backgroundElm.style.setProperty(
           "background-position",
           `${translateX}px ${translateY}px`,
         );
-        this.backgroundElm.style.setProperty(
+        this.root.backgroundElm.style.setProperty(
           "background-size",
           `${gap}px ${gap}px`,
         );
       }
     },
-    this,
   );
 
   private _resizeObserver: ResizeObserver | null = null;
@@ -127,28 +119,24 @@ export class EdgelessRootBlockComponent extends BlockComponent<
 
   keyboardManager: EdgelessPageKeyboardManager | null = null;
 
-  get gfx() {
-    return this.std.get(GfxControllerIdentifier);
+  constructor(private readonly root: EdgelessRootBlockComponent) {}
+
+  private get gfx() {
+    return this.root.gfx;
   }
 
-  get surfaceBlockModel() {
-    return this.model.children.find(
-      (child) => child.flavour === "myoxus:surface",
-    ) as SurfaceBlockModel;
+  private get std() {
+    return this.root.std;
   }
 
-  get viewportElement(): HTMLElement {
-    return this.std.get(ViewportElementProvider).viewportElement;
-  }
-
-  get fontLoader() {
-    return this.std.get(FontLoaderService);
+  private get _disposables() {
+    return this.root.disposables;
   }
 
   private _initFontLoader() {
-    this.fontLoader.ready
+    this.root.fontLoader.ready
       .then(() => {
-        this.surface.refresh();
+        this.root.surface?.refresh();
       })
       .catch(console.error);
   }
@@ -156,7 +144,8 @@ export class EdgelessRootBlockComponent extends BlockComponent<
   private _initLayerUpdateEffect() {
     const updateLayers = requestThrottledConnectedFrame(() => {
       const blocks = Array.from(
-        this.gfxViewportElm.children as HTMLCollectionOf<GfxBlockComponent>,
+        this.root.gfxViewportElm
+          .children as HTMLCollectionOf<GfxBlockComponent>,
       );
 
       blocks.forEach((block: GfxBlockComponent) => {
@@ -170,7 +159,7 @@ export class EdgelessRootBlockComponent extends BlockComponent<
   }
 
   private _initPanEvent() {
-    this.disposables.add(
+    this.root.disposables.add(
       this.std.event.add("pan", (ctx) => {
         const { viewport } = this.gfx;
         if (viewport.locked) return;
@@ -194,7 +183,7 @@ export class EdgelessRootBlockComponent extends BlockComponent<
   }
 
   private _initPinchEvent() {
-    this.disposables.add(
+    this.root.disposables.add(
       this.std.event.add("pinch", (ctx) => {
         const { viewport } = this.gfx;
         if (viewport.locked) return;
@@ -260,10 +249,10 @@ export class EdgelessRootBlockComponent extends BlockComponent<
           y: cursorPosition[1],
         });
         rafId = null;
-      }, this);
+      }, this.root);
     };
 
-    this.handleEvent("pointerMove", (e) => {
+    this.root.handleEvent("pointerMove", (e) => {
       const pointerEvent = e.get("pointerState");
       setRemoteCursor(pointerEvent);
     });
@@ -276,28 +265,28 @@ export class EdgelessRootBlockComponent extends BlockComponent<
       // work outside observer delivery when the sidebar resizes the viewport.
       this._resizeFrame = requestAnimationFrame(() => {
         this._resizeFrame = 0;
-        if (!this.isConnected) return;
+        if (!this.root.isConnected) return;
         this.gfx.selection.set(this.gfx.selection.surfaceSelections);
         this.gfx.viewport.onResize();
       });
     });
 
-    resizeObserver.observe(this.viewportElement);
+    resizeObserver.observe(this.root.viewportElement);
     this._resizeObserver = resizeObserver;
   }
 
   private _initSlotEffects() {
-    const { disposables } = this;
+    const { disposables } = this.root;
 
-    this.disposables.add(
+    this.root.disposables.add(
       this.std
         .get(ThemeProvider)
-        .theme$.subscribe(() => this.surface.refresh()),
+        .theme$.subscribe(() => this.root.surface?.refresh()),
     );
 
     disposables.add(
       effect(() => {
-        this.style.cursor = this.gfx.cursor$.value;
+        this.root.style.cursor = this.gfx.cursor$.value;
       }),
     );
   }
@@ -340,7 +329,7 @@ export class EdgelessRootBlockComponent extends BlockComponent<
         NoteConfigExtension.identifier,
       )?.pageBlockViewportFitAnimation;
       if (animationFn) {
-        const pageBlock = this.model.children.find(
+        const pageBlock = this.root.model.children.find(
           (child): child is NoteBlockModel =>
             matchModels(child, [NoteBlockModel]) && child.isPageBlock(),
         );
@@ -378,42 +367,20 @@ export class EdgelessRootBlockComponent extends BlockComponent<
         wheelCanvas(
           this.gfx.viewport,
           e,
-          this.getBoundingClientRect(),
+          this.root.getBoundingClientRect(),
           edgelessScrollZoom,
         );
       }),
     );
   }
 
-  override bindHotKey(
-    keymap: Record<string, UIEventHandler>,
-    options?: { global?: boolean; flavour?: boolean },
-  ): () => void {
-    Object.keys(keymap).forEach((key) => {
-      if (key.length === 1 && key >= "A" && key <= "z") {
-        const handler = keymap[key];
-
-        keymap[key] = (ctx) => {
-          if (hasTextControlEventTarget(ctx.get("keyboardState").raw)) {
-            return;
-          }
-          handler(ctx);
-        };
-      }
-    });
-
-    return super.bindHotKey(keymap, options);
-  }
-
-  override connectedCallback() {
-    super.connectedCallback();
-
+  connect() {
     this._initViewport();
 
-    this.keyboardManager = new EdgelessPageKeyboardManager(this);
+    this.keyboardManager = new EdgelessPageKeyboardManager(this.root);
 
-    this.handleEvent("selectionChange", () => {
-      const surface = this.host.selection.value.find(
+    this.root.handleEvent("selectionChange", () => {
+      const surface = this.root.host.selection.value.find(
         (sel): sel is SurfaceSelection => sel.is(SurfaceSelection),
       );
       if (!surface) return;
@@ -427,8 +394,7 @@ export class EdgelessRootBlockComponent extends BlockComponent<
     });
   }
 
-  override disconnectedCallback() {
-    super.disconnectedCallback();
+  dispose() {
     cancelAnimationFrame(this._resizeFrame);
     this._resizeFrame = 0;
     if (this._resizeObserver) {
@@ -439,7 +405,7 @@ export class EdgelessRootBlockComponent extends BlockComponent<
     this.keyboardManager = null;
   }
 
-  override firstUpdated() {
+  mount() {
     this._initSlotEffects();
     this._initResizeEffect();
     this._initPixelRatioChangeEffect();
@@ -450,18 +416,28 @@ export class EdgelessRootBlockComponent extends BlockComponent<
     this._initWheelEvent();
     this._initPanEvent();
     this._initPinchEvent();
+    const overlay = this.root.overlayElm;
+    // Retain the existing stack order when a drag extends under the tool dock.
+    const controls = overlay.querySelector(
+      `:scope > ${NOTE_SLICER_WIDGET}, :scope > ${EDGELESS_TOOLBAR_WIDGET}`,
+    );
+    this.root.disposables.add(
+      mountCanvasDraggingArea(overlay, this.gfx.tool, controls),
+    );
 
-    if (this.store.readonly) {
+    if (this.root.store.readonly) {
       this.gfx.tool.setTool(PanTool, { panning: true });
     } else {
       this.gfx.tool.setTool(DefaultTool);
     }
 
-    this.gfx.viewport.elementReady.next(this.gfxViewportElm);
+    const unmountZoom = mountCanvasZoom(this.std, overlay);
+    if (unmountZoom) this.root.disposables.add(unmountZoom);
+    this.gfx.viewport.elementReady.next(this.root.gfxViewportElm);
 
     requestConnectedFrame(() => {
-      this.requestUpdate();
-    }, this);
+      this.root.requestUpdate();
+    }, this.root);
 
     this._disposables.add(
       this.gfx.viewport.viewportUpdated.subscribe(() => {
@@ -471,46 +447,4 @@ export class EdgelessRootBlockComponent extends BlockComponent<
 
     this._refreshLayerViewport();
   }
-
-  override renderBlock() {
-    // An exact-history transaction can remove a Page document's later-added
-    // surface before the consuming editor finishes leaving Edgeless.
-    const surface = this.model.children.find(
-      (child) => child.flavour === "myoxus:surface",
-    ) as SurfaceBlockModel | undefined;
-    const widgets = repeat(
-      Object.entries(this.widgets),
-      ([id]) => id,
-      ([_, widget]) => widget,
-    );
-
-    return html`
-      <div class="edgeless-background edgeless-container">
-        <gfx-viewport .maxConcurrentRenders=${6} .gfx=${this.gfx}>
-          ${this.renderChildren(this.model)}
-          ${surface ? this.renderChildren(surface) : null}
-        </gfx-viewport>
-      </div>
-
-      <!--
-        Used to mount component before widgets
-        Eg., canvas text editor
-      -->
-      <div class="edgeless-mount-point"></div>
-
-      <div class="widgets-container">${widgets}</div>
-    `;
-  }
-
-  @query(".edgeless-background")
-  accessor backgroundElm: HTMLDivElement | null = null;
-
-  @query("gfx-viewport")
-  accessor gfxViewportElm!: GfxViewportElement;
-
-  @query(".edgeless-mount-point")
-  accessor mountElm: HTMLDivElement | null = null;
-
-  @query("myoxus-surface")
-  accessor surface!: SurfaceBlockComponent;
 }

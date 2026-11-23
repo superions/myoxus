@@ -32,6 +32,7 @@ import { matchModels } from "@virgultum/core/utils";
 import {
   type BlockComponent,
   BlockSelection,
+  editorHostSelector,
   TextSelection,
   type WidgetComponent,
 } from "@virgultum/core/runtime";
@@ -282,7 +283,7 @@ export class SelectionToolbarController {
     activate: () => {
       if (!this.host.isConnected) return;
       const active = this.host.ownerDocument.activeElement;
-      const owner = active?.closest("editor-host");
+      const owner = active?.closest(editorHostSelector);
       // Closing an old menu must not steal a newly focused form or nested editor.
       if (owner && owner !== this.host) return;
       if (

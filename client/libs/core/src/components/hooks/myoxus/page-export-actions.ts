@@ -43,7 +43,7 @@ import { printToPdf } from "@virgultum/editor/shared/utils";
 import { DocEmbedProvider } from "@virgultum/editor/shared/services";
 import { DocumentFieldOutputProvider } from "@virgultum/editor/shared/services";
 import type { EmbedSyncedDocModel } from "@virgultum/editor/model";
-import type { BlockStdScope } from "@virgultum/editor/std";
+import type { BlockStdScope, EditorHost } from "@virgultum/editor/std";
 import { type Store, Transformer } from "@virgultum/editor/store";
 import {
   createAssetsArchive,
@@ -88,7 +88,7 @@ export type ExportType =
 
 interface ExportHandlerOptions {
   page: Store;
-  editorRoot: HTMLElementTagNameMap["editor-host"] | null;
+  editorRoot: EditorHost | null;
   /**
    * Editor host root. Pre-B-FIND-02 this was typed as the rich
    * `MyoxusEditorContainer` adapter, but the only branch that

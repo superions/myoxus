@@ -17,8 +17,14 @@ import {
 } from "@virgultum/core/runtime/gfx";
 import { html } from "lit";
 import { state } from "lit/decorators.js";
+import { ref } from "lit/directives/ref.js";
 import { repeat } from "lit/directives/repeat.js";
 import { styleMap } from "lit/directives/style-map.js";
+
+import {
+  FrameTitleIdentifier,
+  mountFrameTitle,
+} from "../../widgets/frame-title/mount-frame-title";
 
 import {
   EdgelessFrameManagerIdentifier,
@@ -29,6 +35,17 @@ const trackSignalDependencies = (...values: readonly unknown[]) =>
   values.length;
 
 export class FrameBlockComponent extends GfxBlockComponent<FrameBlockModel> {
+  private frameTitle?: HTMLElement;
+
+  private readonly bindTitle = (anchor?: Element) => {
+    this.frameTitle?.remove();
+    this.frameTitle =
+      anchor instanceof HTMLElement &&
+      this.std.getOptional(FrameTitleIdentifier)
+        ? mountFrameTitle(anchor, this.model, this.std)
+        : undefined;
+  };
+
   override connectedCallback() {
     super.connectedCallback();
 
@@ -110,6 +127,7 @@ export class FrameBlockComponent extends GfxBlockComponent<FrameBlockModel> {
     return html`
       <div
         class="myoxus-frame-container"
+        ${ref(this.bindTitle)}
         style=${styleMap({
           zIndex: `${frameIndex}`,
           backgroundColor,

@@ -28,7 +28,7 @@ import {
 import type { ExtensionType, Store } from "@virgultum/core/store";
 
 import { CanvasRenderer } from "../../renderer/canvas-renderer.js";
-import type { SurfaceBlockComponent } from "../../surface-block.js";
+import type { SurfaceBlockComponent } from "../../native-surface-block.js";
 import { getBgGridGap } from "../../utils/get-bg-grip-gap.js";
 import {
   checkSnapshotPreflight,

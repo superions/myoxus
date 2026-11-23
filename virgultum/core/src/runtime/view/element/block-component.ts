@@ -1,5 +1,6 @@
 import { consume, provide } from "@lit/context";
-import { computed } from "@preact/signals-core";
+import { computed, type ReadonlySignal } from "@preact/signals-core";
+import type { DisposableGroup } from "../../../primitives/disposable/index";
 import {
   ErrorCode,
   VirgultumError,
@@ -27,20 +28,62 @@ import {
   modelContext,
   serviceContext,
 } from "./consts.js";
-import { stdContext, storeContext } from "./lit-host.js";
+import { type EditorHost, stdContext, storeContext } from "./lit-host.js";
 import { ShadowlessElement } from "./shadowless-element.js";
 import type { WidgetComponent } from "./widget-component.js";
+
+/** Runtime contract shared by native and retained block views. */
+export interface BlockComponent<
+  Model extends BlockModel = BlockModel,
+  Service extends BlockService = BlockService,
+  WidgetName extends string = string,
+> extends HTMLElement {
+  [blockComponentSymbol]: boolean;
+  std: BlockStdScope;
+  store: Store;
+  readonly model: Model;
+  readonly service: Service;
+  readonly blockId: string;
+  readonly flavour: string;
+  readonly host: EditorHost;
+  readonly selection: EditorHost["selection"];
+  readonly disposables: DisposableGroup;
+  readonly selected$: ReadonlySignal<boolean>;
+  readonly parentComponent: BlockComponent | null;
+  readonly rootComponent: BlockComponent | null;
+  readonly topContenteditableElement: BlockComponent | null;
+  readonly childBlocks: BlockComponent[];
+  readonly isVersionMismatch: boolean;
+  readonly widgetComponents: Partial<Record<WidgetName, WidgetComponent>>;
+  readonly renderChildren: EditorHost["renderChildren"];
+  readonly updateComplete: Promise<boolean>;
+  viewType: BlockViewType;
+
+  requestUpdate(): void;
+  handleEvent(
+    name: EventName,
+    handler: UIEventHandler,
+    options?: { global?: boolean; flavour?: boolean },
+  ): void;
+  bindHotKey(
+    keymap: Record<string, UIEventHandler>,
+    options?: { global?: boolean; flavour?: boolean },
+  ): () => void;
+}
 
 @requiredProperties({
   store: PropTypes.instanceOf(Store),
   std: PropTypes.object,
   widgets: PropTypes.recordOf(PropTypes.object),
 })
-export class BlockComponent<
+export class LitBlockComponent<
   Model extends BlockModel = BlockModel,
   Service extends BlockService = BlockService,
   WidgetName extends string = string,
-> extends SignalWatcher(WithDisposable(ShadowlessElement)) {
+>
+  extends SignalWatcher(WithDisposable(ShadowlessElement))
+  implements BlockComponent<Model, Service, WidgetName>
+{
   @consume({ context: stdContext })
   accessor std!: BlockStdScope;
 
@@ -323,3 +366,5 @@ export class BlockComponent<
   })
   accessor widgets!: Record<WidgetName, TemplateResult>;
 }
+
+export const BlockComponent = LitBlockComponent;

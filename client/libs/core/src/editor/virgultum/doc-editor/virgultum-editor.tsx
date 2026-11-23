@@ -655,6 +655,7 @@ const VirgultumEditorImpl = ({
       ) : (
         <VirgultumEdgelessEditor
           shared={shared}
+          readonly={readonly}
           snapshot={snapshot}
           page={page}
           ref={edgelessRef}

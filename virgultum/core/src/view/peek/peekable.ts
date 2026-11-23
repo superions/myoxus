@@ -7,21 +7,18 @@ import {
   GfxControllerIdentifier,
 } from "@virgultum/core/runtime/gfx";
 import type { BlockModel } from "@virgultum/core/store";
-import type { LitElement, TemplateResult } from "lit";
+import type { TemplateResult } from "lit";
 
 import { PeekableController } from "./controller";
 import type { PeekableClass, PeekableOptions } from "./type";
 
 const symbol = Symbol("peekable");
 
-export const isPeekable = <Element extends LitElement>(e: Element): boolean => {
+export const isPeekable = (e: HTMLElement): boolean => {
   return Reflect.has(e, symbol) && (e as any)[symbol]?.peekable;
 };
 
-export const peek = <Element extends LitElement>(
-  e: Element,
-  template?: TemplateResult,
-): void => {
+export const peek = (e: HTMLElement, template?: TemplateResult): void => {
   isPeekable(e) && (e as any)[symbol]?.peek(template);
 };
 

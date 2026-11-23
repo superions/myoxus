@@ -1,13 +1,13 @@
 import { autoUpdate } from "@floating-ui/dom";
 import { signal } from "@preact/signals-core";
-import type { BlockComponent } from "../runtime/index";
+import type { LitBlockComponent } from "../runtime/index";
 import type { ReactiveController } from "lit";
 
 import { DocModeProvider } from "../services/doc-mode-service";
 
 export class VirtualPaddingController implements ReactiveController {
   public readonly virtualPadding$ = signal(0);
-  constructor(private readonly block: BlockComponent) {
+  constructor(private readonly block: LitBlockComponent) {
     block.addController(this);
   }
 

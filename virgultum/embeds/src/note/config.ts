@@ -3,7 +3,6 @@ import {
   type BlockStdScope,
   ConfigExtensionFactory,
 } from "@virgultum/core/runtime";
-import type { TemplateResult } from "lit";
 
 type NoteBlockContext = {
   note: NoteBlockModel;
@@ -11,10 +10,17 @@ type NoteBlockContext = {
 };
 
 export type NoteConfig = {
-  edgelessNoteHeader: (context: NoteBlockContext) => TemplateResult;
+  mountEdgelessNoteHeader: (
+    anchor: HTMLElement,
+    context: NoteBlockContext,
+  ) => () => void;
   /** Host-owned header eligibility; absent predicates preserve Page-block headers. */
   edgelessNoteHeaderVisible?: (context: NoteBlockContext) => boolean;
-  pageBlockTitle: (context: NoteBlockContext) => TemplateResult;
+  pageBlockTitleVisible?: (context: NoteBlockContext) => boolean;
+  mountPageBlockTitle: (
+    anchor: HTMLElement,
+    context: NoteBlockContext,
+  ) => () => void;
   /**
    * @returns if the viewport fit animation executed
    */
@@ -27,7 +33,7 @@ export const NoteConfigExtension =
 export function hasEdgelessNoteHeader(context: NoteBlockContext) {
   const config = context.std.getOptional(NoteConfigExtension.identifier);
   return Boolean(
-    config?.edgelessNoteHeader &&
+    config?.mountEdgelessNoteHeader &&
     (config.edgelessNoteHeaderVisible?.(context) ?? context.note.isPageBlock()),
   );
 }

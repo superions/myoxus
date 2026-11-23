@@ -1,6 +1,6 @@
 export * from "./adapters";
 export * from "./commands";
-export * from "./components/edgeless-note-background";
+export { EdgelessNoteBackground } from "./components/native-note-chrome";
 export * from "./config";
 export * from "./edgeless-clipboard-config";
 export * from "./note-block";

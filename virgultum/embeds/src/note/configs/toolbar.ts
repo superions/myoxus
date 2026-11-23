@@ -375,7 +375,7 @@ const builtinSurfaceToolbarConfig = {
           elements.length > 0 &&
           (!elements[0].isPageBlock() ||
             !ctx.std.getOptional(NoteConfigExtension.identifier)
-              ?.edgelessNoteHeader)
+              ?.mountEdgelessNoteHeader)
         );
       },
       generate(ctx) {

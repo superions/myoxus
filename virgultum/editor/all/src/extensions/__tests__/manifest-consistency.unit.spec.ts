@@ -113,10 +113,8 @@ import { ReferenceStoreExtension } from "@virgultum/content/store";
 import { ReferenceViewExtension } from "@virgultum/content/view";
 import { DragHandleViewExtension } from "../../widgets/drag-handle/view";
 import { EdgelessAutoConnectViewExtension } from "@virgultum/canvas/view";
-import { EdgelessDraggingAreaViewExtension } from "@virgultum/canvas/view";
 import { EdgelessSelectedRectViewExtension } from "@virgultum/canvas/view";
 import { EdgelessToolbarViewExtension } from "@virgultum/canvas/view";
-import { EdgelessZoomToolbarViewExtension } from "../../widgets/edgeless-zoom-toolbar/view";
 import { FrameTitleViewExtension } from "@virgultum/canvas/view";
 import { KeyboardToolbarViewExtension } from "../../widgets/keyboard-toolbar/view";
 import { LinkedDocViewExtension } from "../../widgets/linked-doc/view";
@@ -234,10 +232,8 @@ const LEGACY_VIEW = [
   SlashMenuViewExtension,
   ToolbarViewExtension,
   ViewportOverlayViewExtension,
-  EdgelessZoomToolbarViewExtension,
   PageDraggingAreaViewExtension,
   EdgelessSelectedRectViewExtension,
-  EdgelessDraggingAreaViewExtension,
   NoteSlicerViewExtension,
   EdgelessToolbarViewExtension,
   DocTitleViewExtension,

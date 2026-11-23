@@ -29,7 +29,7 @@ import {
 } from "@virgultum/core/utils";
 import { WidgetComponent, WidgetViewExtension } from "@virgultum/core/runtime";
 import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
-import type { EdgelessSelectedRectWidget } from "../edgeless-selected-rect/edgeless-selected-rect";
+import type { EdgelessSelectedRectWidget } from "../edgeless-selected-rect/native-selection-overlay";
 import {
   css,
   html,
@@ -126,10 +126,9 @@ export class NoteSlicer extends WidgetComponent<RootBlockModel> {
   }
 
   get selectedRectEle() {
-    return this.host.view.getWidget(
+    return this.host.querySelector<EdgelessSelectedRectWidget>(
       "edgeless-selected-rect",
-      this.host.id,
-    ) as EdgelessSelectedRectWidget | null;
+    );
   }
 
   private _sliceNote() {

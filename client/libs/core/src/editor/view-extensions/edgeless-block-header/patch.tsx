@@ -1,13 +1,13 @@
 import { JournalService } from "@myoxus/core/modules/journal";
 import type { FrameworkProvider } from "@myoxus/infra";
-import type { ReactToLit } from "@myoxus/lit-react";
+import type { MountReactPortal, ReactToLit } from "@myoxus/lit-react";
 import { EmbedSyncedDocConfigExtension } from "@virgultum/editor/blocks/embed-doc";
 import { NoteConfigExtension } from "@virgultum/editor/blocks/note";
 import { EDGELESS_BLOCK_CHILD_PADDING } from "@virgultum/editor/blocks/root";
 import { Bound, Vec } from "@virgultum/editor/global/gfx";
 import { DocModeProvider } from "@virgultum/editor/shared/services";
 import { GfxControllerIdentifier } from "@virgultum/editor/std/gfx";
-import { html } from "lit";
+import type { DocTitle } from "@virgultum/content/title";
 
 import { VirgultumEditorJournalDocTitle } from "../../virgultum/doc-editor/journal-doc-title";
 import { EdgelessEmbedSyncedDocHeader } from "./edgeless-embed-synced-doc-header";
@@ -15,7 +15,7 @@ import { EdgelessNoteHeader } from "./edgeless-note-header";
 
 export function patchForEdgelessNoteConfig(
   framework: FrameworkProvider,
-  reactToLit: ReactToLit,
+  mountPortal: MountReactPortal,
   insidePeekView: boolean,
 ) {
   return NoteConfigExtension({
@@ -23,24 +23,24 @@ export function patchForEdgelessNoteConfig(
       note.isPageBlock() ||
       (note.children.length === 1 &&
         note.children[0]?.flavour === "myoxus:mermaid"),
-    edgelessNoteHeader: ({ note, std }) =>
-      reactToLit(<EdgelessNoteHeader note={note} std={std} />, true),
-    pageBlockTitle: ({ note }) => {
-      // A sole diagram already projects its Source title in the Note header.
-      // Mixed notes retain the document title and each child diagram's title.
-      if (
-        note.children.length === 1 &&
-        note.children[0]?.flavour === "myoxus:mermaid"
-      ) {
-        return html``;
-      }
+    mountEdgelessNoteHeader: (anchor, { note, std }) =>
+      mountPortal(anchor, <EdgelessNoteHeader note={note} std={std} />),
+    // A sole diagram projects its Source title in the Note header.
+    pageBlockTitleVisible: ({ note }) =>
+      note.children.length !== 1 ||
+      note.children[0]?.flavour !== "myoxus:mermaid",
+    mountPageBlockTitle: (anchor, { note }) => {
       const journalService = framework.get(JournalService);
-      const isJournal = !!journalService.getJournalDate(note.store.id);
-      if (isJournal) {
-        return reactToLit(<VirgultumEditorJournalDocTitle page={note.store} />);
-      } else {
-        return html`<doc-title .doc=${note.store}></doc-title>`;
+      if (journalService.getJournalDate(note.store.id)) {
+        return mountPortal(
+          anchor,
+          <VirgultumEditorJournalDocTitle page={note.store} />,
+        );
       }
+      const title = anchor.ownerDocument.createElement("doc-title") as DocTitle;
+      title.doc = note.store;
+      anchor.append(title);
+      return () => title.remove();
     },
     pageBlockViewportFitAnimation: insidePeekView
       ? undefined

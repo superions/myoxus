@@ -1,3 +1,4 @@
+import { editorHostSelector } from "../../view/element/lit-host.js";
 import { RANGE_SYNC_EXCLUDE_ATTR } from "./consts";
 
 /**
@@ -13,7 +14,7 @@ export function isActiveInEditor(editorHost: HTMLElement) {
   // The input or textarea in the widget should be ignored.
   if (currentActiveElement.closest(`[${RANGE_SYNC_EXCLUDE_ATTR}="true"]`))
     return false;
-  const currentEditorHost = currentActiveElement?.closest("editor-host");
+  const currentEditorHost = currentActiveElement?.closest(editorHostSelector);
   if (!currentEditorHost) return false;
   return currentEditorHost === editorHost;
 }
