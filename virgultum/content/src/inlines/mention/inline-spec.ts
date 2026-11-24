@@ -1,7 +1,7 @@
 import type { MyoxusTextAttributes } from "@virgultum/core/types";
 import { StdIdentifier } from "@virgultum/core/runtime";
 import { InlineSpecExtension } from "@virgultum/core/runtime/inline";
-import { html } from "lit";
+import { inlineChild } from "@virgultum/core/runtime/inline";
 import { z } from "zod";
 
 export const MentionInlineSpecExtension =
@@ -22,12 +22,8 @@ export const MentionInlineSpecExtension =
       match: (delta) => {
         return !!delta.attributes?.mention?.member;
       },
-      renderer: ({ delta, selected }) => {
-        return html`<myoxus-mention
-          .delta=${delta}
-          .std=${std}
-          .selected=${selected}
-        ></myoxus-mention>`;
+      renderer: ({ delta, selected }, parent) => {
+        return inlineChild(parent, "myoxus-mention", { delta, std, selected });
       },
       embed: true,
     };

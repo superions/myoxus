@@ -30,31 +30,16 @@ export class InlineManager<TextAttributes extends BaseTextAttributes> {
   getRenderer = (): AttributeRenderer<TextAttributes> => {
     const defaultRenderer = getDefaultAttributeRenderer<TextAttributes>();
 
-    const renderer: AttributeRenderer<TextAttributes> = (props) => {
-      // Priority increases from front to back
-      const specs = this.specs.toReversed();
-      const wrapperSpecs = specs.filter((spec) => spec.wrapper);
-      const normalSpecs = specs.filter((spec) => !spec.wrapper);
-
-      let result = defaultRenderer(props);
-
-      for (const spec of normalSpecs) {
-        if (spec.match(props.delta)) {
-          result = spec.renderer(props);
-          break;
-        }
+    const leaves = this.specs.filter((spec) => !spec.wrapper).reverse();
+    const wrappers = this.specs.filter((spec) => spec.wrapper);
+    const renderer: AttributeRenderer<TextAttributes> = (props, parent) => {
+      // Build the outermost matching wrapper first; selection and caret remain
+      // attached to the leaf while the same attribute roles are active.
+      for (const spec of wrappers) {
+        if (spec.match(props.delta)) parent = spec.renderer(props, parent);
       }
-
-      for (const spec of wrapperSpecs) {
-        if (spec.match(props.delta)) {
-          result = spec.renderer({
-            ...props,
-            children: result,
-          });
-        }
-      }
-
-      return result;
+      const leaf = leaves.find((spec) => spec.match(props.delta));
+      return (leaf?.renderer ?? defaultRenderer)(props, parent);
     };
     return renderer;
   };

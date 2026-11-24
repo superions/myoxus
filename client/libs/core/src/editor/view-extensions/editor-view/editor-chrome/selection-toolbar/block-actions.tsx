@@ -194,9 +194,10 @@ export function SelectionActions({
               noPortal
               rootOptions={{
                 onOpen: c.onOpen,
-                // Restore the editor after Mantine has released its focus trap.
+                // Restore the editing range after the menu's close commit and
+                // before the next input event, even when frames are throttled.
                 onClose: () =>
-                  requestAnimationFrame(() => (c.onClose ?? afterAction)?.()),
+                  queueMicrotask(() => (c.onClose ?? afterAction)?.()),
                 returnFocus: !c.onClose && !afterAction,
                 clickOutsideEvents: ["click"],
               }}

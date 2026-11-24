@@ -18,7 +18,7 @@ import {
   type GfxBlockElementModel,
 } from "@virgultum/core/runtime/gfx";
 import { requestThrottledConnectedFrame } from "@virgultum/core/utils";
-import { NativeBlockComponent } from "./native-block-component.js";
+import { NativeBlockComponent } from "@virgultum/core/runtime";
 
 export abstract class NativeGfxBlockComponent<
   Model extends GfxBlockElementModel,

@@ -5,10 +5,9 @@ import {
 import type { MyoxusTextAttributes } from "@virgultum/core/types";
 import {
   dynamicSchema,
+  inlineChild,
   InlineSpecExtension,
 } from "@virgultum/core/runtime/inline";
-import { html, nothing } from "lit-html";
-import { when } from "lit-html/directives/when.js";
 import { z } from "zod";
 
 import { extractCommentIdFromDelta } from "./utils";
@@ -30,23 +29,14 @@ export const CommentInlineSpecExtension =
       const comments = Object.keys(delta.attributes).filter(isInlineCommendId);
       return comments.length > 0;
     },
-    renderer: ({ delta, children }) => {
-      if (!delta.attributes) return html`${nothing}`;
-
-      const unresolved = Object.entries(delta.attributes).some(
-        ([key, value]) => isInlineCommendId(key) && value === true,
-      );
-      return html`<inline-comment
-        .provider=${scope.getOptional(CommentProviderIdentifier)}
-        .unresolved=${unresolved}
-        .commentIds=${extractCommentIdFromDelta(delta)}
-        >${when(
-          children,
-          () => html`${children}`,
-          () => nothing,
-        )}</inline-comment
-      >`;
-    },
+    renderer: ({ delta }, parent) =>
+      inlineChild(parent, "inline-comment", {
+        provider: scope.getOptional(CommentProviderIdentifier) ?? undefined,
+        unresolved: Object.entries(delta.attributes ?? {}).some(
+          ([key, value]) => isInlineCommendId(key) && value === true,
+        ),
+        commentIds: extractCommentIdFromDelta(delta),
+      }),
     wrapper: true,
   }));
 
@@ -58,7 +48,7 @@ export const NullCommentInlineSpecExtension =
       z.boolean().optional().nullable().catch(undefined),
     ),
     match: () => false,
-    renderer: () => html``,
+    renderer: (_props, parent) => parent,
   });
 
 // reuse the same identifier

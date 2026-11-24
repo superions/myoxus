@@ -6,6 +6,5 @@ export * from "./guard.js";
 export * from "./point-conversion.js";
 export * from "./query.js";
 export * from "./range-conversion.js";
-export * from "./renderer.js";
 export * from "./text.js";
 export * from "./transform-input.js";

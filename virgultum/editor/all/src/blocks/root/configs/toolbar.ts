@@ -67,6 +67,10 @@ import {
 import { editorToast, getMostCommonValue } from "@virgultum/core/utils";
 
 import { BlockSelection, BlockViewIdentifier } from "@virgultum/core/runtime";
+import {
+  INLINE_ROOT_ATTR,
+  type InlineRootElement,
+} from "@virgultum/core/runtime/inline";
 import { toDraftModel } from "@virgultum/core/store";
 
 const labelToneMessages = {
@@ -321,6 +325,16 @@ export const labelToneAction = {
       !hasTextSelection && selection?.rangeCount
         ? selection.getRangeAt(0).cloneRange()
         : undefined;
+    // Table text has its own editor. Formatting can replace the marked DOM
+    // nodes, so a live Range alone cannot restore its original endpoints.
+    const owner = nativeRange?.commonAncestorContainer;
+    const inlineRoot = (
+      owner instanceof Element ? owner : owner?.parentElement
+    )?.closest<InlineRootElement>(`[${INLINE_ROOT_ATTR}]`);
+    const inline = inlineRoot?.inlineEditor;
+    const offsets = nativeRange && inline?.toInlineRange(nativeRange);
+    const currentNativeRange = () =>
+      (offsets && inline?.mounted && inline.toDomRange(offsets)) || nativeRange;
     const buttonLabel = `${resolve(label)}: ${
       textAttributeState.mixed
         ? resolve(mixed)
@@ -331,8 +345,9 @@ export const labelToneAction = {
     const restoreSelection = () => {
       if (hasTextSelection && currentTextSelection) {
         std.range.syncTextSelectionToRange(currentTextSelection);
-      } else if (nativeRange) {
-        std.range.set(nativeRange);
+      } else {
+        const range = currentNativeRange();
+        if (range) std.range.set(range);
       }
     };
     const update = (labelTone: MyoxusLabelTone | null) => {
@@ -355,7 +370,7 @@ export const labelToneAction = {
         range?: Range;
       } = {
         ...payload,
-        range: nativeRange,
+        range: currentNativeRange(),
       };
       chain
         .try((candidate) => [

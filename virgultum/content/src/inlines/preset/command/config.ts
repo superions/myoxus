@@ -1,15 +1,6 @@
 import type { MyoxusIconExportName } from "@myoxus/icons/names";
-import {
-  BoldIcon,
-  CodeIcon,
-  ItalicIcon,
-  LinkIcon,
-  StrikethroughIcon,
-  UnderlineIcon,
-} from "@virgultum/core/view/icons";
 import { toggleLink } from "../../link/index";
 import { type EditorHost, TextSelection } from "@virgultum/core/runtime";
-import type { TemplateResult } from "lit";
 
 import {
   isTextAttributeActive,
@@ -23,8 +14,6 @@ import {
 export interface TextFormatConfig {
   id: string;
   name: string;
-  icon: TemplateResult<1>;
-  /** UI-neutral glyph for consumers outside Lit. */
   iconName: MyoxusIconExportName;
   hotkey?: string;
   activeWhen: (host: EditorHost) => boolean;
@@ -36,7 +25,6 @@ export const textFormatConfigs: TextFormatConfig[] = [
   {
     id: "bold",
     name: "Bold",
-    icon: BoldIcon,
     iconName: "BoldIcon",
     hotkey: "Mod-b",
     activeWhen: (host) => {
@@ -53,7 +41,6 @@ export const textFormatConfigs: TextFormatConfig[] = [
   {
     id: "italic",
     name: "Italic",
-    icon: ItalicIcon,
     iconName: "ItalicIcon",
     hotkey: "Mod-i",
     activeWhen: (host) => {
@@ -70,7 +57,6 @@ export const textFormatConfigs: TextFormatConfig[] = [
   {
     id: "underline",
     name: "Underline",
-    icon: UnderlineIcon,
     iconName: "UnderLineIcon",
     hotkey: "Mod-u",
     activeWhen: (host) => {
@@ -87,7 +73,6 @@ export const textFormatConfigs: TextFormatConfig[] = [
   {
     id: "strike",
     name: "Strikethrough",
-    icon: StrikethroughIcon,
     iconName: "StrikeThroughIcon",
     hotkey: "Mod-shift-s",
     activeWhen: (host) => {
@@ -104,7 +89,6 @@ export const textFormatConfigs: TextFormatConfig[] = [
   {
     id: "code",
     name: "Code",
-    icon: CodeIcon,
     iconName: "CodeIcon",
     hotkey: "Mod-e",
     activeWhen: (host) => {
@@ -121,7 +105,6 @@ export const textFormatConfigs: TextFormatConfig[] = [
   {
     id: "link",
     name: "Link",
-    icon: LinkIcon,
     iconName: "LinkIcon",
     hotkey: "Mod-k",
     activeWhen: (host) => {

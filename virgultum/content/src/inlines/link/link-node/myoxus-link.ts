@@ -1,5 +1,4 @@
 import { whenHover } from "@virgultum/core/view/hover";
-import { WithDisposable } from "@virgultum/core/primitives/lit";
 import { RefNodeSlotsProvider } from "../../reference/index";
 import type { ReferenceInfo } from "@virgultum/core/models";
 import {
@@ -13,20 +12,18 @@ import {
   BLOCK_ID_ATTR,
   type BlockComponent,
   type BlockStdScope,
-  ShadowlessElement,
+  NativeViewElement,
+  installEditorStyles,
 } from "@virgultum/core/runtime";
 import {
   INLINE_ROOT_ATTR,
+  inlineChild,
+  setInlineStyles,
   type InlineRootElement,
   ZERO_WIDTH_FOR_EMPTY_LINE,
 } from "@virgultum/core/runtime/inline";
 import type { DeltaInsert } from "@virgultum/core/store";
-import { css, html } from "lit";
-import { property } from "lit/decorators.js";
-import { type StyleInfo, styleMap } from "lit/directives/style-map.js";
-
-export class MyoxusLink extends WithDisposable(ShadowlessElement) {
-  static override styles = css`
+const linkStyles = `
     myoxus-link a {
       text-decoration: var(--myoxus-typography-link-decoration);
     }
@@ -39,6 +36,7 @@ export class MyoxusLink extends WithDisposable(ShadowlessElement) {
     }
   `;
 
+export class MyoxusLink extends NativeViewElement {
   // The link has been identified.
   private _identified: boolean = false;
 
@@ -75,39 +73,39 @@ export class MyoxusLink extends WithDisposable(ShadowlessElement) {
     });
   };
 
-  _whenHover = whenHover(
-    (hovered) => {
-      const message$ = this.std.get(ToolbarRegistryIdentifier).message$;
+  private hover?: ReturnType<typeof whenHover>;
+  connectedCallback() {
+    installEditorStyles(this, linkStyles);
+    this.updateLink();
+    const hover = whenHover(
+      (hovered) => {
+        const message$ = this.std.get(ToolbarRegistryIdentifier).message$;
 
-      if (hovered) {
-        message$.value = {
-          flavour: "myoxus:link",
-          element: this,
-          setFloating: this._whenHover.setFloating,
-        };
-        return;
-      }
+        if (hovered) {
+          message$.value = {
+            flavour: "myoxus:link",
+            element: this,
+            setFloating: hover.setFloating,
+          };
+          return;
+        }
 
-      // Clears previous bindings
-      message$.value = null;
-      this._whenHover.setFloating();
-    },
-    { enterDelay: 500 },
-  );
-
-  override connectedCallback() {
-    super.connectedCallback();
-
-    this._whenHover.setReference(this);
-
-    const message$ = this.std.get(ToolbarRegistryIdentifier).message$;
-
-    this._disposables.add(() => {
-      if (message$?.value) {
+        // Clears previous bindings
         message$.value = null;
-      }
-      this._whenHover.dispose();
-    });
+        hover.setFloating();
+      },
+      { enterDelay: 500 },
+    );
+
+    this.hover = hover;
+    hover.setReference(this);
+  }
+
+  disconnectedCallback() {
+    const message = this.std.get(ToolbarRegistryIdentifier).message$;
+    if (message.peek()?.element === this) message.value = null;
+    this.hover?.dispose();
+    this.hover = undefined;
   }
 
   // Workaround for links not working in contenteditable div
@@ -156,36 +154,12 @@ export class MyoxusLink extends WithDisposable(ShadowlessElement) {
 
   // Keep authored decorations on the text so they coexist with the anchor's
   // theme decoration, including hover and keyboard focus.
-  private _renderLink(style: StyleInfo) {
-    return html`<a
-      href=${this.link}
-      rel="noopener noreferrer"
-      target="_blank"
-      style=${styleMap(style)}
-      @click=${this.openLink}
-      @auxclick=${this.openLink}
-      @mouseup=${this._onMouseUp}
-      ><v-text
-        style=${styleMap({
-          "text-decoration":
-            [
-              this.delta.attributes?.underline ? "underline" : "",
-              this.delta.attributes?.strike ? "line-through" : "",
-            ]
-              .filter(Boolean)
-              .join(" ") || undefined,
-        })}
-        .str=${this.delta.insert}
-      ></v-text
-    ></a>`;
-  }
-
-  override render() {
+  private updateLink() {
     const attributes = this.delta.attributes ?? {};
     const textStyle = !attributes.code ? myoxusTextStyles(attributes) : {};
     // Link defaults come from the theme; explicit document emphasis is retained.
     // Code links keep their monospace face and surrounding code metrics.
-    const linkStyle: StyleInfo = {
+    const linkStyle = {
       ...textStyle,
       color: textStyle.color ?? "var(--myoxus-link-color)",
       fill: textStyle.color ?? "var(--myoxus-link-color)",
@@ -214,20 +188,44 @@ export class MyoxusLink extends WithDisposable(ShadowlessElement) {
         : {}),
     };
 
-    if (attributes.code) {
-      return html`<code style=${styleMap(myoxusTextStyles(attributes))}>
-        ${this._renderLink(linkStyle)}
-      </code>`;
-    }
-
-    return this._renderLink(linkStyle);
+    const parent = attributes.code ? inlineChild(this, "code") : this;
+    if (attributes.code) setInlineStyles(parent, myoxusTextStyles(attributes));
+    const anchor = inlineChild(parent, "a");
+    anchor.setAttribute("href", this.link);
+    anchor.rel = "noopener noreferrer";
+    anchor.target = "_blank";
+    anchor.onclick = this.openLink;
+    anchor.onauxclick = this.openLink;
+    anchor.onmouseup = this._onMouseUp;
+    setInlineStyles(anchor, linkStyle);
+    const text = inlineChild(anchor, "v-text", { str: this.delta.insert });
+    text.style.textDecoration = [
+      attributes.underline ? "underline" : "",
+      attributes.strike ? "line-through" : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
   }
 
-  @property({ type: Object })
-  accessor delta: DeltaInsert<MyoxusTextAttributes> = {
+  private value: DeltaInsert<MyoxusTextAttributes> = {
     insert: ZERO_WIDTH_FOR_EMPTY_LINE,
   };
+  get delta() {
+    return this.value;
+  }
+  set delta(value: DeltaInsert<MyoxusTextAttributes>) {
+    if (value.attributes?.link !== this.value.attributes?.link) {
+      this._identified = false;
+      this._referenceInfo = null;
+    }
+    this.value = value;
+    if (this.isConnected) this.updateLink();
+  }
+  std!: BlockStdScope;
+}
 
-  @property({ attribute: false })
-  accessor std!: BlockStdScope;
+declare global {
+  interface HTMLElementTagNameMap {
+    "myoxus-link": MyoxusLink;
+  }
 }

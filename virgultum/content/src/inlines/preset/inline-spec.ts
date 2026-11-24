@@ -2,12 +2,13 @@ import { AnnotationSchema } from "@virgultum/core/models";
 import { DocumentFieldSchema } from "@virgultum/core/types";
 import type { MyoxusTextAttributes } from "@virgultum/core/types";
 import {
+  inlineChild,
+  type AttributeRenderer,
   type InlineRootElement,
   InlineSpecExtension,
 } from "@virgultum/core/runtime/inline";
 import type { ExtensionType } from "@virgultum/core/store";
 import { StdIdentifier } from "@virgultum/core/runtime";
-import { html } from "lit";
 import { z } from "zod";
 
 export type MyoxusInlineRootElement = InlineRootElement<MyoxusTextAttributes>;
@@ -24,13 +25,13 @@ export const DocumentFieldInlineSpecExtension =
       !!delta.attributes?.documentField &&
       !delta.attributes.documentFieldCaptured,
     embed: true,
-    renderer: ({ delta, editor, startOffset }) =>
-      html`<myoxus-inline-document-field
-        .delta=${delta}
-        .editor=${editor}
-        .startOffset=${startOffset}
-        .std=${provider.get(StdIdentifier)}
-      ></myoxus-inline-document-field>`,
+    renderer: ({ delta, editor, startOffset }, parent) =>
+      inlineChild(parent, "myoxus-inline-document-field", {
+        delta,
+        editor,
+        startOffset,
+        std: provider.get(StdIdentifier),
+      }),
   }));
 
 export const AnnotationInlineSpecExtension =
@@ -42,14 +43,19 @@ export const AnnotationInlineSpecExtension =
     match: (delta) =>
       AnnotationSchema.safeParse(delta.attributes?.annotation).success,
     embed: (delta) => AnnotationSchema.parse(delta.attributes?.annotation).id,
-    renderer: ({ delta, editor, startOffset }) =>
-      html`<myoxus-inline-annotation
-        .delta=${delta}
-        .editor=${editor}
-        .startOffset=${startOffset}
-        .std=${provider.get(StdIdentifier)}
-      ></myoxus-inline-annotation>`,
+    renderer: ({ delta, editor, startOffset }, parent) =>
+      inlineChild(parent, "myoxus-inline-annotation", {
+        delta,
+        editor,
+        startOffset,
+        std: provider.get(StdIdentifier),
+      }),
   }));
+
+const renderText: AttributeRenderer<MyoxusTextAttributes> = (
+  { delta },
+  parent,
+) => inlineChild(parent, "myoxus-text", { delta });
 
 export const BoldInlineSpecExtension =
   InlineSpecExtension<MyoxusTextAttributes>({
@@ -60,9 +66,7 @@ export const BoldInlineSpecExtension =
     match: (delta) => {
       return !!delta.attributes?.bold;
     },
-    renderer: ({ delta }) => {
-      return html`<myoxus-text .delta=${delta}></myoxus-text>`;
-    },
+    renderer: renderText,
   });
 
 export const ItalicInlineSpecExtension =
@@ -74,9 +78,7 @@ export const ItalicInlineSpecExtension =
     match: (delta) => {
       return !!delta.attributes?.italic;
     },
-    renderer: ({ delta }) => {
-      return html`<myoxus-text .delta=${delta}></myoxus-text>`;
-    },
+    renderer: renderText,
   });
 
 export const UnderlineInlineSpecExtension =
@@ -88,9 +90,7 @@ export const UnderlineInlineSpecExtension =
     match: (delta) => {
       return !!delta.attributes?.underline;
     },
-    renderer: ({ delta }) => {
-      return html`<myoxus-text .delta=${delta}></myoxus-text>`;
-    },
+    renderer: renderText,
   });
 
 export const StrikeInlineSpecExtension =
@@ -102,9 +102,7 @@ export const StrikeInlineSpecExtension =
     match: (delta) => {
       return !!delta.attributes?.strike;
     },
-    renderer: ({ delta }) => {
-      return html`<myoxus-text .delta=${delta}></myoxus-text>`;
-    },
+    renderer: renderText,
   });
 
 export const CodeInlineSpecExtension =
@@ -116,9 +114,7 @@ export const CodeInlineSpecExtension =
     match: (delta) => {
       return !!delta.attributes?.code;
     },
-    renderer: ({ delta }) => {
-      return html`<myoxus-text .delta=${delta}></myoxus-text>`;
-    },
+    renderer: renderText,
   });
 
 export const BackgroundInlineSpecExtension =
@@ -130,9 +126,7 @@ export const BackgroundInlineSpecExtension =
     match: (delta) => {
       return !!delta.attributes?.background;
     },
-    renderer: ({ delta }) => {
-      return html`<myoxus-text .delta=${delta}></myoxus-text>`;
-    },
+    renderer: renderText,
   });
 
 export const ColorInlineSpecExtension =
@@ -144,9 +138,7 @@ export const ColorInlineSpecExtension =
     match: (delta) => {
       return !!delta.attributes?.color;
     },
-    renderer: ({ delta }) => {
-      return html`<myoxus-text .delta=${delta}></myoxus-text>`;
-    },
+    renderer: renderText,
   });
 
 export const LabelToneInlineSpecExtension =
@@ -162,9 +154,7 @@ export const LabelToneInlineSpecExtension =
     match: (delta) => {
       return !!delta.attributes?.labelTone;
     },
-    renderer: ({ delta }) => {
-      return html`<myoxus-text .delta=${delta}></myoxus-text>`;
-    },
+    renderer: renderText,
   });
 
 export const InlineSpecExtensions: ExtensionType[] = [

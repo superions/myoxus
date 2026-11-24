@@ -1,10 +1,9 @@
-import { effect } from "@preact/signals-core";
-import { WithDisposable, SignalWatcher } from "@virgultum/core/primitives/lit";
+import { effect, signal } from "@preact/signals-core";
+import { DisposableGroup } from "@virgultum/core/primitives/disposable";
 import {
   CodeBlockModel,
   ListBlockModel,
-  NoteBlockModel,
-  NoteDisplayMode,
+  type NoteBlockModel,
   ParagraphBlockModel,
   type RootBlockModel,
 } from "@virgultum/core/models";
@@ -15,14 +14,14 @@ import {
   editorMessage,
   resolveEditorMessage,
 } from "@virgultum/core/services";
-import { matchModels } from "@virgultum/core/utils";
-import { ShadowlessElement } from "@virgultum/core/runtime";
+import { getFirstNoteBlock, matchModels } from "@virgultum/core/utils";
+import {
+  NativeViewElement,
+  installEditorStyles,
+} from "@virgultum/core/runtime";
 import type { Store } from "@virgultum/core/store";
-import { css, html } from "lit";
-import { property, query, state } from "lit/decorators.js";
 
-export class DocTitle extends SignalWatcher(WithDisposable(ShadowlessElement)) {
-  static override styles = css`
+export const documentTitleStyles = `
     .doc-title-container {
       font-family: var(--myoxus-typography-page-title-family);
       font-size: calc(
@@ -88,12 +87,9 @@ export class DocTitle extends SignalWatcher(WithDisposable(ShadowlessElement)) {
     }
   `;
 
+export class DocTitle extends NativeViewElement {
   private _getOrCreateFirstPageVisibleNote() {
-    const note = this._rootModel?.children.find(
-      (child): child is NoteBlockModel =>
-        matchModels(child, [NoteBlockModel]) &&
-        child.props.displayMode !== NoteDisplayMode.EdgelessOnly,
-    );
+    const note = getFirstNoteBlock(this.doc);
     if (note) return note;
 
     const noteId = this.doc.addBlock("myoxus:note", {}, this._rootModel, 0);
@@ -209,92 +205,102 @@ export class DocTitle extends SignalWatcher(WithDisposable(ShadowlessElement)) {
     );
   }
 
+  private readonly storeSignal = signal<Store>();
+  private readonly placeholderSignal = signal<string>();
+  private readonly wrapSignal = signal(true);
+  private readonly composing = signal(false);
+  private lifecycle?: DisposableGroup;
+  private richText?: RichText;
+
+  get doc() {
+    return this.storeSignal.value!;
+  }
+  set doc(store: Store) {
+    this.storeSignal.value = store;
+  }
+  get placeholder() {
+    return this.placeholderSignal.value;
+  }
+  set placeholder(text: string | undefined) {
+    this.placeholderSignal.value = text;
+  }
+  get wrapText() {
+    return this.wrapSignal.value;
+  }
+  set wrapText(wrap: boolean) {
+    this.wrapSignal.value = wrap;
+  }
   get inlineEditor() {
-    return this._richTextElement.inlineEditor;
+    return this.richText?.inlineEditor;
   }
-
   get inlineEditorContainer() {
-    return this._richTextElement.inlineEditorContainer;
+    return this.richText?.inlineEditorContainer;
+  }
+  get updateComplete() {
+    return Promise.resolve(this.richText?.updateComplete);
   }
 
-  override connectedCallback() {
-    super.connectedCallback();
-
-    this._isReadonly = this.doc.readonly;
-    this._disposables.add(
+  connectedCallback() {
+    installEditorStyles(this, documentTitleStyles);
+    const life = (this.lifecycle = new DisposableGroup());
+    life.addFromEvent(this, "keydown", this._onTitleKeyDown);
+    life.addFromEvent(this, "compositionstart", () => {
+      this.composing.value = true;
+    });
+    life.addFromEvent(this, "compositionend", () => {
+      this.composing.value = false;
+    });
+    const container = this.ownerDocument.createElement("div");
+    container.className = "doc-title-container";
+    container.dataset.blockIsTitle = "true";
+    life.addFromEvent(container, "contextmenu", this._onTitleContextMenu);
+    this.replaceChildren(container);
+    life.add(
       effect(() => {
-        if (this._isReadonly !== this.doc.readonly) {
-          this._isReadonly = this.doc.readonly;
-          this.requestUpdate();
-        }
+        const store = this.storeSignal.value;
+        const root = store?.root as RootBlockModel | null;
+        if (!store || !root) return;
+        const rich = (this.richText =
+          this.ownerDocument.createElement("rich-text"));
+        const text = root.props.title.yText;
+        rich.yText = text;
+        rich.undoManager = store.history.undoManager;
+        rich.verticalScrollContainerGetter = () => this._viewport;
+        rich.enableFormat = false;
+        const disposeProps = effect(() => {
+          rich.readonly = store.readonly;
+          rich.wrapText = this.wrapText;
+          container.dataset.placeholder =
+            this.placeholder ??
+            resolveEditorMessage(
+              editorMessage("Title", "Title"),
+              this._std?.getOptional(EditorI18nProvider) ?? undefined,
+            );
+        });
+        const updateEmpty = () =>
+          container.classList.toggle(
+            "doc-title-container-empty",
+            !text.length && !this.composing.value,
+          );
+        const disposeComposition = effect(() => {
+          updateEmpty();
+        });
+        text.observe(updateEmpty);
+        container.append(rich);
+        return () => {
+          text.unobserve(updateEmpty);
+          disposeComposition();
+          disposeProps();
+          rich.remove();
+          this.richText = undefined;
+        };
       }),
     );
-
-    this._disposables.addFromEvent(this, "keydown", this._onTitleKeyDown);
-
-    // Workaround for inline editor skips composition event
-    this._disposables.addFromEvent(
-      this,
-      "compositionstart",
-      () => (this._isComposing = true),
-    );
-
-    this._disposables.addFromEvent(
-      this,
-      "compositionend",
-      () => (this._isComposing = false),
-    );
-
-    const requestTitleUpdate = () => this.requestUpdate();
-
-    if (this._rootModel) {
-      const rootModel = this._rootModel;
-      rootModel.props.title.yText.observe(requestTitleUpdate);
-      this._disposables.add(() => {
-        rootModel.props.title.yText.unobserve(requestTitleUpdate);
-      });
-    }
   }
 
-  override render() {
-    const isEmpty = !this._rootModel?.props.title.length && !this._isComposing;
-
-    return html`
-      <div
-        class="doc-title-container ${
-          isEmpty ? "doc-title-container-empty" : ""
-        }"
-        data-block-is-title="true"
-        data-placeholder=${this.placeholder ?? resolveEditorMessage(editorMessage("Title", "Title"), this._std?.getOptional(EditorI18nProvider) ?? undefined)}
-        @contextmenu=${this._onTitleContextMenu}
-      >
-        <rich-text
-          .yText=${this._rootModel?.props.title.yText}
-          .undoManager=${this.doc.history.undoManager}
-          .verticalScrollContainerGetter=${() => this._viewport}
-          .readonly=${this.doc.readonly}
-          .enableFormat=${false}
-          .wrapText=${this.wrapText}
-        ></rich-text>
-      </div>
-    `;
+  disconnectedCallback() {
+    this.lifecycle?.dispose();
+    this.composing.value = false;
+    this.replaceChildren();
   }
-
-  @state()
-  private accessor _isComposing = false;
-
-  @state()
-  private accessor _isReadonly = false;
-
-  @query("rich-text")
-  private accessor _richTextElement!: RichText;
-
-  @property({ attribute: false })
-  accessor doc!: Store;
-
-  @property({ attribute: false })
-  accessor placeholder: string | undefined;
-
-  @property({ attribute: false })
-  accessor wrapText = true;
 }

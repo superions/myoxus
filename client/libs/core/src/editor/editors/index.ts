@@ -1,10 +1,12 @@
-import { createReactComponentFromLit } from "@myoxus/lit-react";
-import { DocTitle } from "@virgultum/editor/fragments/doc-title";
-import React from "react";
+import type { DocTitle } from "@virgultum/editor/fragments/doc-title";
+import { createElement, type Ref } from "react";
 
 export { DocumentViewport } from "./document-viewport";
 
-export const LitDocTitle = createReactComponentFromLit({
-  react: React,
-  elementClass: DocTitle,
-});
+export function DocumentTitle(props: {
+  doc: DocTitle["doc"];
+  placeholder?: string;
+  ref?: Ref<DocTitle>;
+}) {
+  return createElement("doc-title", props);
+}

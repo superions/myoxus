@@ -1,7 +1,7 @@
 import type { MyoxusTextAttributes } from "@virgultum/core/types";
 import { StdIdentifier } from "@virgultum/core/runtime";
 import { InlineSpecExtension } from "@virgultum/core/runtime/inline";
-import { html } from "lit";
+import { inlineChild } from "@virgultum/core/runtime/inline";
 import { z } from "zod";
 
 export const LatexInlineSpecExtension =
@@ -13,15 +13,18 @@ export const LatexInlineSpecExtension =
         latex: z.string().optional().nullable().catch(undefined),
       }),
       match: (delta) => typeof delta.attributes?.latex === "string",
-      renderer: ({ delta, selected, editor, startOffset, endOffset }) => {
-        return html`<myoxus-latex-node
-          .std=${std}
-          .delta=${delta}
-          .selected=${selected}
-          .editor=${editor}
-          .startOffset=${startOffset}
-          .endOffset=${endOffset}
-        ></myoxus-latex-node>`;
+      renderer: (
+        { delta, selected, editor, startOffset, endOffset },
+        parent,
+      ) => {
+        return inlineChild(parent, "myoxus-latex-node", {
+          std,
+          delta,
+          selected,
+          editor,
+          startOffset,
+          endOffset,
+        });
       },
       embed: true,
     };
@@ -35,7 +38,7 @@ export const LatexEditorUnitSpecExtension =
       "latex-editor-unit": z.undefined().optional(),
     }),
     match: () => true,
-    renderer: ({ delta }) => {
-      return html`<latex-editor-unit .delta=${delta}></latex-editor-unit>`;
+    renderer: ({ delta }, parent) => {
+      return inlineChild(parent, "latex-editor-unit", { delta });
     },
   });

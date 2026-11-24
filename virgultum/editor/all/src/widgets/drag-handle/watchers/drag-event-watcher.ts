@@ -45,7 +45,8 @@ import {
   matchModels,
 } from "@virgultum/core/utils";
 import {
-  BlockComponent,
+  type BlockComponent,
+  isBlockComponent,
   type BlockStdScope,
   type DragFromVirgultum,
   type DragPayload,
@@ -1329,7 +1330,7 @@ export class DragEventWatcher {
     const slice = Slice.fromModels(
       this.std.store,
       blocks.map((block) =>
-        toDraftModel(block instanceof BlockComponent ? block.model : block),
+        toDraftModel(isBlockComponent(block) ? block.model : block),
       ),
     );
     const job = this._getJob(selectedGfxElms);

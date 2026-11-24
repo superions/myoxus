@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { DisposableGroup } from "../../../primitives/disposable/index.js";
-import type { BlockModel } from "../../../store/index.js";
 import type { BlockStdScope } from "../../scope/std-scope.js";
 import {
   createRetainedBlockView,
   type EditorHost,
-  renderRetainedChildren,
   waitForRetainedRootView,
-} from "./lit-host.js";
+} from "./document-host.js";
 
 /** Ordinary Canvas sessions own a DOM shell while retained views migrate at their own entries. */
 export function createCanvasHost(
@@ -26,10 +24,6 @@ export function createCanvasHost(
     std,
     store: std.store,
     disposables: new DisposableGroup(),
-    renderChildren: (
-      model: BlockModel,
-      filter?: (model: BlockModel) => boolean,
-    ) => renderRetainedChildren(std, model, filter),
     rebuildViews() {
       const root = std.store.root;
       const view = root && createRetainedBlockView(host, root);

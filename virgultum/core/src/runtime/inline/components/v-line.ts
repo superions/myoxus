@@ -2,16 +2,15 @@ import {
   ErrorCode,
   VirgultumError,
 } from "../../../primitives/exceptions/index";
+import { NativeViewElement } from "../../../primitives/env/index.js";
 import type { DeltaInsert } from "../../../store/index";
-import { html, LitElement, type TemplateResult } from "lit";
-import { property } from "lit/decorators.js";
-import { styleMap } from "lit/directives/style-map.js";
 
-import { INLINE_ROOT_ATTR, ZERO_WIDTH_FOR_EMPTY_LINE } from "../consts.js";
+import { INLINE_ROOT_ATTR } from "../consts.js";
 import type { InlineRootElement } from "../inline-editor.js";
-import { EmbedGap } from "./embed-gap.js";
+import { isMaybeInlineRangeEqual } from "../utils/inline-range.js";
+import { createEmbedGap } from "./embed-gap.js";
 
-export class VLine extends LitElement {
+export class VLine extends NativeViewElement {
   get inlineEditor() {
     const rootElement = this.closest(
       `[${INLINE_ROOT_ATTR}]`,
@@ -50,13 +49,12 @@ export class VLine extends LitElement {
     return Array.from(this.querySelectorAll("v-text"));
   }
 
-  override createRenderRoot() {
-    return this;
-  }
+  startOffset = 0;
+  endOffset = 0;
+  index = 0;
 
-  protected override firstUpdated(): void {
-    this.style.display = "block";
-
+  constructor() {
+    super();
     this.addEventListener("mousedown", (e) => {
       if (e.detail >= 2 && this.startOffset === this.endOffset) {
         e.preventDefault();
@@ -65,95 +63,107 @@ export class VLine extends LitElement {
 
       if (e.detail >= 3) {
         e.preventDefault();
-        this.inlineEditor.setInlineRange({
+        const editor = this.inlineEditor;
+        const range = {
           index: this.startOffset,
           length: this.endOffset - this.startOffset,
-        });
+        };
+        const previous = editor.getInlineRange();
+        // The first click can collapse the DOM selection before selectionchange
+        // updates the model. Reapply an equal range on a repeated triple click.
+        if (isMaybeInlineRangeEqual(previous, range))
+          editor.syncInlineRange(range);
+        else editor.setInlineRange(range);
       }
     });
   }
 
-  // vTexts.length > 0 does not mean the line is not empty,
-  override async getUpdateComplete() {
-    const result = await super.getUpdateComplete();
-    await Promise.all(this.vElements.map((el) => el.updateComplete));
-    return result;
+  get updateComplete() {
+    return Promise.all(this.vElements.map((element) => element.updateComplete));
   }
 
-  override render() {
-    if (!this.isConnected) return;
-
-    if (this.inlineEditor.vLineRenderer) {
-      return this.inlineEditor.vLineRenderer(this);
-    }
-    return this.renderVElements();
+  connectedCallback() {
+    this.style.display = "block";
   }
 
-  renderVElements() {
-    if (this.elements.length === 0) {
-      // don't use v-element because it not correspond to the actual delta
-      return html`
-        <div><v-text .str=${ZERO_WIDTH_FOR_EMPTY_LINE}></v-text></div>
-      `;
-    }
-
-    const inlineEditor = this.inlineEditor;
-    const renderElements = this.elements.flatMap(([template, delta], index) => {
-      if (inlineEditor.isEmbed(delta)) {
-        if (typeof inlineEditor.isEmbed(delta) === "string") {
-          // Real zero-width text boundaries keep native caret/IME positioning
-          // outside the non-editable range, even beside ordinary text.
-          return [EmbedGap, template, EmbedGap];
-        }
-        if (inlineEditor.isEmbed(delta) === true && delta.insert.length !== 1) {
-          throw new VirgultumError(
-            ErrorCode.InlineEditorError,
-            `The length of embed node should only be 1.
-            This seems to be an internal issue with inline editor.
-            Please report it to the Myoxus maintainers.`,
-          );
-        }
-        // we add `EmbedGap` to make cursor can be placed between embed elements
-        if (index === 0) {
-          const nextDelta = this.elements[index + 1]?.[1];
-          if (!nextDelta || inlineEditor.isEmbed(nextDelta)) {
-            return [EmbedGap, template, EmbedGap];
-          } else {
-            return [EmbedGap, template];
-          }
-        } else {
-          const nextDelta = this.elements[index + 1]?.[1];
-          if (!nextDelta || inlineEditor.isEmbed(nextDelta)) {
-            return [template, EmbedGap];
-          } else {
-            return [template];
-          }
-        }
+  /** Retain the run at each text position so a model update cannot detach a
+   * native selection or an active IME composition from unchanged text. */
+  updateLine(
+    chunk: readonly DeltaInsert[],
+    index: number,
+    startOffset: number,
+  ) {
+    const editor = this.inlineEditor;
+    const doc = this.ownerDocument;
+    this.index = index;
+    this.startOffset = startOffset;
+    let offset = startOffset;
+    if (editor.lineNumbers) {
+      let number = this.firstElementChild as HTMLElement | null;
+      if (!number || number.className !== "line-number") {
+        number = doc.createElement("span");
+        number.className = "line-number";
+        number.contentEditable = "false";
+        this.prepend(number);
       }
-      return template;
+      const label = String(index + 1);
+      if (number.textContent !== label) number.textContent = label;
+    }
+    let body = this.lastElementChild;
+    if (!(body instanceof HTMLDivElement)) {
+      body = doc.createElement("div");
+      this.append(body);
+    }
+    const contents = body as HTMLDivElement;
+    contents.style.padding = chunk.length ? "0 0.5px" : "";
+    contents.style.display = chunk.length ? "inline-block" : "";
+
+    let next = contents.firstChild;
+    function use<T extends HTMLElement>(tag: string, create: () => T) {
+      const keep = next instanceof HTMLElement && next.localName === tag;
+      const element = keep ? (next as T) : create();
+      if (!keep) contents.insertBefore(element, next);
+      next = element.nextSibling;
+      return element;
+    }
+    const gap = () => use("span", () => createEmbedGap(doc));
+    if (!chunk.length) use("v-text", () => doc.createElement("v-text"));
+    const embeds = chunk.map((delta) => editor.isEmbed(delta));
+    chunk.forEach((delta, i) => {
+      const embed = embeds[i];
+      if (embed === true && delta.insert.length !== 1)
+        throw new VirgultumError(
+          ErrorCode.InlineEditorError,
+          "Embedded elements must occupy a single character.",
+        );
+      if (typeof embed === "string" || (embed && i === 0)) gap();
+      const element = use("v-element", () => doc.createElement("v-element"));
+      element.updateRun({
+        editor,
+        delta: {
+          insert: delta.insert,
+          attributes: editor.attributeService.normalizeAttributes(
+            delta.attributes,
+          ),
+        },
+        startOffset: offset,
+        endOffset: offset + delta.insert.length,
+        lineIndex: index,
+      });
+      offset += delta.insert.length;
+      if (
+        typeof embed === "string" ||
+        (embed && (i === chunk.length - 1 || embeds[i + 1]))
+      )
+        gap();
     });
-
-    // prettier will generate \n and cause unexpected space and line break
-    // prettier-ignore
-    return html`<div style=${styleMap({
-      // this padding is used to make cursor can be placed at the
-      // start and end of the line when the first and last element is embed element
-      padding: '0 0.5px',
-      display: 'inline-block',
-    })}>${renderElements}</div>`;
+    while (next) {
+      const rest = next.nextSibling;
+      next.remove();
+      next = rest;
+    }
+    this.endOffset = offset;
   }
-
-  @property({ attribute: false })
-  accessor elements: [TemplateResult<1>, DeltaInsert][] = [];
-
-  @property({ attribute: false })
-  accessor endOffset!: number;
-
-  @property({ attribute: false })
-  accessor index!: number;
-
-  @property({ attribute: false })
-  accessor startOffset!: number;
 }
 
 declare global {

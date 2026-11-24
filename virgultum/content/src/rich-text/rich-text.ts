@@ -1,23 +1,22 @@
 import { effect, signal } from "@preact/signals-core";
-import { WithDisposable } from "@virgultum/core/primitives/lit";
+import { DisposableGroup } from "@virgultum/core/primitives/disposable";
 import { hasPendingAnnotationInput } from "@virgultum/core/adapters";
 import type {
   MyoxusInlineEditor,
   MyoxusTextAttributes,
 } from "@virgultum/core/types";
-import { ShadowlessElement } from "@virgultum/core/runtime";
+import {
+  installEditorStyles,
+  NativeViewElement,
+} from "@virgultum/core/runtime";
 import {
   type AttributeRenderer,
   InlineEditor,
   type InlineMarkdownMatch,
   type InlineRange,
   type InlineRangeProvider,
-  type VLine,
 } from "@virgultum/core/runtime/inline";
 import { type DeltaInsert, Text } from "@virgultum/core/store";
-import { css, html, type TemplateResult } from "lit";
-import { property, query } from "lit/decorators.js";
-import { classMap } from "lit/directives/class-map.js";
 import * as Y from "yjs";
 import { z } from "zod";
 
@@ -28,8 +27,7 @@ interface RichTextStackItem {
   meta: Map<"richtext-v-range", InlineRange | null>;
 }
 
-export class RichText extends WithDisposable(ShadowlessElement) {
-  static override styles = css`
+const richTextStyles = `
     rich-text {
       display: block;
       height: 100%;
@@ -58,6 +56,10 @@ export class RichText extends WithDisposable(ShadowlessElement) {
     }
   `;
 
+export class RichText extends NativeViewElement {
+  private disposables = new DisposableGroup();
+  private container?: HTMLDivElement;
+  private pending?: Promise<void>;
   #verticalScrollContainer: HTMLElement | null = null;
 
   private readonly _inlineEditor$ = signal<MyoxusInlineEditor | null>(null);
@@ -151,7 +153,7 @@ export class RichText extends WithDisposable(ShadowlessElement) {
   }
 
   get inlineEditorContainer() {
-    return this._inlineEditorContainer;
+    return this.container!;
   }
 
   private _init() {
@@ -174,7 +176,7 @@ export class RichText extends WithDisposable(ShadowlessElement) {
           compositionEnd: onVCompositionEnd,
         },
         inlineRangeProvider: this.inlineRangeProvider,
-        vLineRenderer: this.vLineRenderer,
+        lineNumbers: this.lineNumbers,
       },
     );
     const inlineEditor = this._inlineEditor$.value;
@@ -341,18 +343,49 @@ export class RichText extends WithDisposable(ShadowlessElement) {
     this._inlineEditor$.value = null;
   }
 
-  override connectedCallback() {
-    super.connectedCallback();
+  connectedCallback() {
+    installEditorStyles(this, richTextStyles);
+    this.scheduleSync();
+  }
 
-    if (!this._yText) {
-      console.error("rich-text need yText to init.");
+  disconnectedCallback() {
+    this.releaseBinding();
+  }
+
+  private releaseBinding() {
+    this._unmount();
+    this.disposables.dispose();
+    this.#verticalScrollContainer = null;
+  }
+
+  private scheduleSync() {
+    if (!this.isConnected || this.pending) return;
+    // Parents assign text, rendering options and the undo owner in one turn.
+    // Bind after assignment so a new model never uses the previous undo owner.
+    this.pending = Promise.resolve().then(() => {
+      this.pending = undefined;
+      if (this.isConnected) this.sync();
+    });
+  }
+
+  private sync() {
+    const container = (this.container ??=
+      this.ownerDocument.createElement("div"));
+    if (container.parentElement !== this) this.append(container);
+    container.classList.add("inline-editor");
+    container.classList.toggle("nowrap-lines", !this.wrapText);
+    container.classList.toggle("readonly", this.readonly);
+    const editable = String(!this.readonly);
+    if (container.contentEditable !== editable)
+      container.contentEditable = editable;
+    if (this.inlineEditor && this.inlineEditor.yText === this._yText) {
+      if (this.inlineEditor.isReadonly !== this.readonly)
+        this.inlineEditor.setReadonly(this.readonly);
       return;
     }
-    if (!this._yText.doc) {
-      console.error("yText should be bind to yDoc.");
-      return;
-    }
-
+    this.releaseBinding();
+    if (!this._yText?.doc) return;
+    this.disposables = new DisposableGroup();
     const suppliedUndoManager = this.undoManager;
     const undoManager =
       suppliedUndoManager ??
@@ -400,110 +433,78 @@ export class RichText extends WithDisposable(ShadowlessElement) {
       this.disposables.addFromEvent(this, "paste", this._onPaste);
     }
 
-    this.updateComplete
-      .then(() => {
-        this._unmount();
-        this._init();
-
-        this.disposables.add({
-          dispose: () => {
-            this._unmount();
-          },
-        });
-      })
-      .catch(console.error);
+    this._init();
   }
 
-  override async getUpdateComplete(): Promise<boolean> {
-    const result = await super.getUpdateComplete();
-    await this.inlineEditor?.waitForUpdate();
-    return result;
-  }
-
-  // If it is true rich-text will handle undo/redo by itself. (including v-range restore)
-  override render() {
-    const classes = classMap({
-      "inline-editor": true,
-      "nowrap-lines": !this.wrapText,
-      readonly: this.readonly,
+  get updateComplete(): Promise<boolean> {
+    return Promise.resolve(this.pending).then(async () => {
+      await this.inlineEditor?.waitForUpdate();
+      return this.isConnected;
     });
-
-    return html`<div
-      contenteditable=${this.readonly ? "false" : "true"}
-      class=${classes}
-    ></div>`;
   }
 
-  override updated(changedProperties: Map<string | number | symbol, unknown>) {
-    const inlineEditor = this.inlineEditor;
-    if (inlineEditor && this._yText && this._yText !== inlineEditor.yText) {
-      this._unmount();
-      this._init();
-      return;
-    }
-    if (this.inlineEditor && changedProperties.has("readonly")) {
-      this.inlineEditor.setReadonly(this.readonly);
-    }
-  }
+  attributeRenderer: AttributeRenderer | undefined = undefined;
 
-  @query(".inline-editor")
-  private accessor _inlineEditorContainer!: HTMLDivElement;
+  attributesSchema: z.ZodType<MyoxusTextAttributes> | undefined = undefined;
 
-  @property({ attribute: false })
-  accessor attributeRenderer: AttributeRenderer | undefined = undefined;
-
-  @property({ attribute: false })
-  accessor attributesSchema: z.ZodType<MyoxusTextAttributes> | undefined =
-    undefined;
-
-  @property({ attribute: false })
-  accessor embedChecker: <
+  embedChecker: <
     TextAttributes extends MyoxusTextAttributes = MyoxusTextAttributes,
   >(
     delta: DeltaInsert<TextAttributes>,
   ) => boolean | string = () => false;
 
-  @property({ attribute: false })
-  accessor enableAutoScrollHorizontally = true;
+  enableAutoScrollHorizontally = true;
 
   // If it is true rich-text will prevent events related to clipboard bubbling up and handle them by itself.
-  @property({ attribute: false })
-  accessor enableClipboard = true;
+  enableClipboard = true;
 
   // `attributesSchema` will be overwritten to `z.object({})` if `enableFormat` is false.
-  @property({ attribute: false })
-  accessor enableFormat = true;
+  enableFormat = true;
 
   // bubble up if pressed ctrl+z/ctrl+shift+z.
-  @property({ attribute: false })
-  accessor enableUndoRedo = true;
+  enableUndoRedo = true;
 
-  @property({ attribute: false })
-  accessor inlineEventSource: HTMLElement | undefined = undefined;
+  inlineEventSource: HTMLElement | undefined = undefined;
 
-  @property({ attribute: false })
-  accessor inlineRangeProvider: InlineRangeProvider | undefined = undefined;
+  inlineRangeProvider: InlineRangeProvider | undefined = undefined;
 
-  @property({ attribute: false })
-  accessor markdownMatches: InlineMarkdownMatch<MyoxusTextAttributes>[] = [];
+  markdownMatches: InlineMarkdownMatch<MyoxusTextAttributes>[] = [];
 
-  @property({ attribute: false })
-  accessor readonly = false;
+  private _readonly = false;
+  get readonly() {
+    return this._readonly;
+  }
+  set readonly(value: boolean) {
+    if (this._readonly === value) return;
+    this._readonly = value;
+    this.scheduleSync();
+  }
 
   // rich-text will create a undoManager if it is not provided.
-  @property({ attribute: false })
-  accessor undoManager: Y.UndoManager | undefined;
+  undoManager: Y.UndoManager | undefined;
 
-  @property({ attribute: false })
-  accessor verticalScrollContainerGetter:
-    (() => HTMLElement | null) | undefined = undefined;
+  verticalScrollContainerGetter: (() => HTMLElement | null) | undefined =
+    undefined;
 
-  @property({ attribute: false })
-  accessor vLineRenderer: ((vLine: VLine) => TemplateResult) | undefined;
+  lineNumbers = false;
 
-  @property({ attribute: false })
-  accessor wrapText = true;
+  private _wrapText = true;
+  get wrapText() {
+    return this._wrapText;
+  }
+  set wrapText(value: boolean) {
+    if (this._wrapText === value) return;
+    this._wrapText = value;
+    this.scheduleSync();
+  }
 
-  @property({ attribute: false })
-  accessor yText!: Y.Text | Text;
+  private sourceText!: Y.Text | Text;
+  get yText() {
+    return this.sourceText;
+  }
+  set yText(value: Y.Text | Text) {
+    if (this.sourceText === value) return;
+    this.sourceText = value;
+    this.scheduleSync();
+  }
 }

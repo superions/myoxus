@@ -1,13 +1,6 @@
-import { LitTranscriptionBlock } from "@myoxus/core/editor/ai/blocks/ai-chat-block/ai-transcription-block";
 import type { TranscriptionBlockModel } from "@myoxus/core/editor/ai/blocks/transcription-block/model";
 import { LiveData, useLiveData } from "@myoxus/infra";
-import { createReactComponentFromLit } from "@myoxus/lit-react";
 import React, { useCallback, useMemo } from "react";
-
-const AdaptedTranscriptionBlock = createReactComponentFromLit({
-  react: React,
-  elementClass: LitTranscriptionBlock,
-});
 
 export const TranscriptionBlock = ({
   block,
@@ -32,7 +25,9 @@ export const TranscriptionBlock = ({
       draggable="true"
       onDragStart={onDragStart}
     >
-      <AdaptedTranscriptionBlock blockId={block.id} />
+      {React.createElement("transcription-block", {
+        "data-block-id": block.id,
+      })}
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import {
-  BlockComponent,
+  type BlockComponent,
   type BlockSelection,
   type Command,
   type SurfaceSelection,
@@ -73,11 +73,7 @@ export const getSelectedBlocksCommand: Command<
           if (!parent) {
             break;
           }
-          const view = parent;
-          if (
-            view instanceof BlockComponent &&
-            !roles.includes(view.model.role)
-          ) {
+          if (!roles.includes(parent.role)) {
             break;
           }
           selectionPath = parent.id;
@@ -88,11 +84,7 @@ export const getSelectedBlocksCommand: Command<
         }
       }
       if (["all", "flat"].includes(mode)) {
-        viewStore.walkThrough((node) => {
-          const view = node;
-          if (!(view instanceof BlockComponent)) {
-            return true;
-          }
+        viewStore.walkThrough((view) => {
           if (roles.includes(view.model.role)) {
             blocks.push(view);
           }

@@ -1,24 +1,24 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
-import { computed } from "@preact/signals-core";
-import { DisposableGroup } from "@virgultum/core/primitives/disposable";
+import { computed, effect, signal, untracked } from "@preact/signals-core";
+import { DisposableGroup } from "../../../primitives/disposable/index.js";
+import type { BlockModel, BlockViewType, Store } from "../../../store/index.js";
+import type { EventName, UIEventHandler } from "../../event/index.js";
+import type { BlockService } from "../../extension/service.js";
+import { BlockServiceIdentifier } from "../../identifier.js";
+import type { BlockStdScope } from "../../scope/std-scope.js";
+import { BlockSelection } from "../../selection/block.js";
+import type { BlockComponent } from "./block-component.js";
+import { blockComponentSymbol, NativeViewElement } from "./consts.js";
 import {
-  type BlockComponent,
-  type BlockService,
-  type BlockStdScope,
   type EditorHost,
-  type EventName,
-  type UIEventHandler,
-  BlockSelection,
-  BlockServiceIdentifier,
-  blockComponentSymbol,
+  blockVersionWarning,
+  resolveBlockView,
   createRetainedBlockView,
   createRetainedWidgetViews,
   findEditorHost,
-  NativeViewElement,
-} from "@virgultum/core/runtime";
-import type { BlockModel, BlockViewType, Store } from "@virgultum/core/store";
+} from "./document-host.js";
 
 type ChildView = {
   model: BlockModel;
@@ -46,15 +46,21 @@ export class NativeBlockProjection {
     const remaining = new Set(this.views.keys());
     const ordered: HTMLElement[] = [];
     for (const model of models) {
-      const viewType = this.host.store.getBlock(model.id)?.blockViewType;
+      const view = resolveBlockView(this.host.std, model);
+      const viewType = view?.viewType;
       let entry = this.views.get(model.id);
-      if (entry && (entry.model !== model || entry.viewType !== viewType)) {
+      if (
+        entry &&
+        (entry.model !== model ||
+          entry.viewType !== viewType ||
+          entry.element.localName !== view?.tag)
+      ) {
         entry.element.remove();
         this.views.delete(model.id);
         entry = undefined;
       }
-      if (!entry && viewType) {
-        const element = createRetainedBlockView(this.host, model);
+      if (!entry && view && viewType) {
+        const element = createRetainedBlockView(this.host, model, view);
         if (element) {
           entry = { model, element, viewType };
           this.views.set(model.id, entry);
@@ -131,9 +137,6 @@ export abstract class NativeBlockComponent<
       this.store.schema.flavourSchemaMap.get(this.flavour)?.version !==
       this.model.version
     );
-  }
-  get renderChildren() {
-    return this.host.renderChildren;
   }
   readonly selected$ = computed(
     () =>
@@ -212,5 +215,66 @@ export abstract class NativeBlockComponent<
       flavour: !options?.global && options?.flavour ? this.flavour : undefined,
       blockId: options?.global || options?.flavour ? undefined : this.blockId,
     };
+  }
+}
+
+const installedStyles = new WeakMap<Node, Set<string>>();
+
+/** Light-DOM editor views share their stylesheet within each rendering root. */
+export function installEditorStyles(element: HTMLElement, css: string) {
+  const root = element.getRootNode();
+  const styleRoot =
+    root instanceof ShadowRoot ? root : element.ownerDocument.head;
+  const installed = installedStyles.get(styleRoot) ?? new Set<string>();
+  if (css && !installed.has(css)) {
+    const style = element.ownerDocument.createElement("style");
+    style.textContent = css;
+    styleRoot.append(style);
+    installed.add(css);
+    installedStyles.set(styleRoot, installed);
+  }
+}
+
+/** A container projects registered children in document order. Bypassed
+ * containers keep their children without mounting editing chrome. */
+export abstract class NativeContainerBlock<
+  Model extends BlockModel,
+> extends NativeBlockComponent<Model> {
+  protected abstract readonly blockStyles: string;
+  protected abstract mountBody(): HTMLElement;
+  protected projectedModels(): readonly BlockModel[] {
+    return this.model.children;
+  }
+  protected afterProjection(_body: HTMLElement) {}
+  private readonly revision = signal(0);
+
+  connectedCallback() {
+    if (!this.connectBlock()) return;
+    installEditorStyles(this, this.blockStyles);
+    if (this.viewType === "hidden") return;
+    const display = this.viewType === "display";
+    if (display && this.isVersionMismatch) {
+      this.replaceChildren(blockVersionWarning(this.ownerDocument, this.model));
+      return;
+    }
+    const body = display ? this.mountBody() : this;
+    const children = new NativeBlockProjection(this.host);
+    this.disposables.add(
+      effect(() => {
+        void this.revision.value;
+        const models = display ? this.projectedModels() : this.model.children;
+        untracked(() => children.sync(models, body));
+      }),
+    );
+    this.disposables.add(() => children.dispose());
+    if (display) this.afterProjection(body);
+  }
+
+  override requestUpdate() {
+    this.revision.value++;
+  }
+  override disconnectedCallback() {
+    super.disconnectedCallback();
+    this.replaceChildren();
   }
 }

@@ -1,5 +1,5 @@
 import { useLiveData, useService } from "@myoxus/infra";
-import { BlockComponent } from "@virgultum/editor/std";
+import { isBlockComponent } from "@virgultum/editor/std";
 import {
   lazy,
   Suspense,
@@ -211,8 +211,9 @@ export const PeekViewManagerModal = () => {
 
   useEffect(() => {
     const subscription = peekViewEntity.show$.subscribe(() => {
-      if (activePeekView?.target.element instanceof BlockComponent) {
-        activePeekView.target.element.requestUpdate();
+      const source = activePeekView?.target.element;
+      if (isBlockComponent(source)) {
+        source.requestUpdate();
       }
     });
 

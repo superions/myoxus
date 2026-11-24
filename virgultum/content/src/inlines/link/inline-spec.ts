@@ -1,7 +1,8 @@
+import type {} from "./link-node/myoxus-link";
 import type { MyoxusTextAttributes } from "@virgultum/core/types";
 import { StdIdentifier } from "@virgultum/core/runtime";
 import { InlineSpecExtension } from "@virgultum/core/runtime/inline";
-import { html } from "lit";
+import { inlineChild } from "@virgultum/core/runtime/inline";
 import { z } from "zod";
 
 export const LinkInlineSpecExtension =
@@ -15,8 +16,8 @@ export const LinkInlineSpecExtension =
       match: (delta) => {
         return !!delta.attributes?.link;
       },
-      renderer: ({ delta }) => {
-        return html`<myoxus-link .std=${std} .delta=${delta}></myoxus-link>`;
+      renderer: ({ delta }, parent) => {
+        return inlineChild(parent, "myoxus-link", { std, delta });
       },
     };
   });

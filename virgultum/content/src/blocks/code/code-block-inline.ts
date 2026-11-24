@@ -15,7 +15,7 @@ import {
   InlineManagerExtension,
   InlineSpecExtension,
 } from "@virgultum/core/runtime/inline";
-import { html } from "lit";
+import { inlineChild } from "@virgultum/core/runtime/inline";
 import { z } from "zod";
 
 export const CodeBlockUnitSpecExtension =
@@ -26,8 +26,8 @@ export const CodeBlockUnitSpecExtension =
       "code-block-uint": z.undefined().optional(),
     }),
     match: () => true,
-    renderer: ({ delta }) => {
-      return html`<myoxus-code-unit .delta=${delta}></myoxus-code-unit>`;
+    renderer: ({ delta }, parent) => {
+      return inlineChild(parent, "myoxus-code-unit", { delta });
     },
   });
 

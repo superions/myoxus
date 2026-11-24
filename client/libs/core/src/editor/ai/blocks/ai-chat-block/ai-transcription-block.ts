@@ -1,50 +1,34 @@
 import type { TranscriptionBlockModel } from "@myoxus/core/editor/ai/blocks/transcription-block/model";
-import { unsafeCSSValue } from "@virgultum/editor/shared/theme";
-import { BlockComponent, BlockViewExtension } from "@virgultum/editor/std";
+import {
+  NativeContainerBlock,
+  BlockViewExtension,
+} from "@virgultum/editor/std";
 import type { ExtensionType } from "@virgultum/editor/store";
-import { css, type PropertyValues } from "lit";
-import { property } from "lit/decorators.js";
+import { effect } from "@preact/signals-core";
 
-export class LitTranscriptionBlock extends BlockComponent<TranscriptionBlockModel> {
-  static override styles = [
-    css`
-      transcription-block {
-        outline: none;
-        display: flex;
-        flex-direction: column;
-        gap: ${unsafeCSSValue("var(--mantine-spacing-xs)")};
-      }
-    `,
-  ];
+export class TranscriptionBlockView extends NativeContainerBlock<TranscriptionBlockModel> {
+  protected readonly blockStyles = `
+    transcription-block {
+      outline: none;
+      display: flex;
+      flex-direction: column;
+      gap: var(--mantine-spacing-xs);
+    }
+  `;
 
-  override render() {
-    return this.std.host.renderChildren(this.model);
-  }
-
-  @property({ type: String, attribute: "data-block-id" })
-  override accessor blockId!: string;
-
-  constructor() {
-    super();
-    // questionable:
-    this.widgets = {};
-
-    // to allow text selection across paragraphs in the callout block
-    this.contentEditable = "true";
-  }
-
-  override firstUpdated(changedProperties: PropertyValues) {
-    super.firstUpdated(changedProperties);
-    this.disposables.addFromEvent(this, "click", this.onClick);
-  }
-
-  protected onClick(event: MouseEvent) {
-    event.stopPropagation();
+  protected mountBody() {
+    this.disposables.add(
+      effect(() => {
+        this.contentEditable = String(!this.store.readonly$.value);
+      }),
+    );
+    this.disposables.addFromEvent(this, "click", (event) =>
+      event.stopPropagation(),
+    );
+    return this;
   }
 }
 
 export const AITranscriptionBlockSpec: ExtensionType[] = [
-  BlockViewExtension("myoxus:transcription", () => {
-    return "transcription-block";
-  }),
+  BlockViewExtension("myoxus:transcription", "transcription-block"),
 ];

@@ -1,12 +1,10 @@
-import { html } from "lit";
-import { styleMap } from "lit/directives/style-map.js";
-
-export const EmbedGap = html`<span
-  data-v-embed-gap="true"
-  style=${styleMap({
-    userSelect: "text",
-    padding: "0 0.5px",
-    outline: "none",
-  })}
-  ><v-text></v-text
-></span>`;
+/** A native caret can sit on either side of a non-editable inline embed. */
+export function createEmbedGap(doc: Document) {
+  const gap = doc.createElement("span");
+  gap.dataset.vEmbedGap = "true";
+  gap.style.userSelect = "text";
+  gap.style.padding = "0 0.5px";
+  gap.style.outline = "none";
+  gap.append(doc.createElement("v-text"));
+  return gap;
+}

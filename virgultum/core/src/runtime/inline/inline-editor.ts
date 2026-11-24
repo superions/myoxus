@@ -2,11 +2,9 @@ import { type Signal, signal } from "@preact/signals-core";
 import { DisposableGroup } from "../../primitives/disposable/index";
 import { ErrorCode, VirgultumError } from "../../primitives/exceptions/index";
 import type { BaseTextAttributes, DeltaInsert } from "../../store/index";
-import { nothing, render, type TemplateResult } from "lit";
 import { Subject } from "rxjs";
 import type * as Y from "yjs";
 
-import type { VLine } from "./components/v-line.js";
 import { INLINE_ROOT_ATTR } from "./consts.js";
 import { InlineHookService } from "./services/hook.js";
 import {
@@ -174,7 +172,7 @@ export class InlineEditor<
     keydown: new Subject<KeyboardEvent>(),
   };
 
-  readonly vLineRenderer: ((vLine: VLine) => TemplateResult) | null;
+  readonly lineNumbers: boolean;
 
   readonly yText: Y.Text;
   get yTextDeltas() {
@@ -195,7 +193,7 @@ export class InlineEditor<
       isEmbed?: (delta: DeltaInsert<TextAttributes>) => boolean | string;
       hooks?: InlineHookService<TextAttributes>["hooks"];
       inlineRangeProvider?: InlineRangeProvider;
-      vLineRenderer?: (vLine: VLine) => TemplateResult;
+      lineNumbers?: boolean;
     } = {},
   ) {
     if (!yText.doc) {
@@ -216,12 +214,12 @@ export class InlineEditor<
       isEmbed = () => false,
       hooks = {},
       inlineRangeProvider,
-      vLineRenderer = null,
+      lineNumbers = false,
     } = ops;
     this._inlineRangeProviderOverride = false;
     this.yText = yText;
     this.isEmbed = isEmbed;
-    this.vLineRenderer = vLineRenderer;
+    this.lineNumbers = lineNumbers;
     this.hooksService = new InlineHookService(this, hooks);
     if (inlineRangeProvider) {
       this.inlineRangeProvider = inlineRangeProvider;
@@ -244,8 +242,6 @@ export class InlineEditor<
 
     this._rootElement.replaceChildren();
 
-    delete (this.rootElement as any)["_$litPart$"];
-
     this.eventService.mount();
     this.rangeService.mount();
     this.renderService.mount();
@@ -259,7 +255,7 @@ export class InlineEditor<
   unmount() {
     if (this.rootElement) {
       if (this.rootElement.isConnected) {
-        render(nothing, this.rootElement);
+        this.rootElement.replaceChildren();
       }
       this.rootElement.removeAttribute(INLINE_ROOT_ATTR);
     }

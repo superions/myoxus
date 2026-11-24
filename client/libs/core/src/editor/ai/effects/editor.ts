@@ -1,6 +1,6 @@
 import { AIChatBlockComponent } from "../blocks/ai-chat-block/ai-chat-block";
 import { EdgelessAIChatBlockComponent } from "../blocks/ai-chat-block/ai-chat-edgeless-block";
-import { LitTranscriptionBlock } from "../blocks/ai-chat-block/ai-transcription-block";
+import { TranscriptionBlockView } from "../blocks/ai-chat-block/ai-transcription-block";
 import { AIScrollableTextRenderer } from "../components/ai-scrollable-text-renderer";
 import {
   MYOXUS_AI_PANEL_WIDGET,
@@ -45,7 +45,7 @@ const editorElements = {
   [MYOXUS_BLOCK_DIFF_WIDGET_FOR_BLOCK]: MyoxusBlockDiffWidgetForBlock,
   [MYOXUS_BLOCK_DIFF_WIDGET_FOR_PAGE]: MyoxusBlockDiffWidgetForPage,
   "edgeless-copilot-panel": EdgelessCopilotPanel,
-  "transcription-block": LitTranscriptionBlock,
+  "transcription-block": TranscriptionBlockView,
 } satisfies Record<EditorEffectElementTag, CustomElementConstructor>;
 
 export function registerAIEditorEffects() {

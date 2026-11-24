@@ -14,7 +14,6 @@ import { EditorService } from "@myoxus/core/modules/editor";
 import { WorkspaceServerService } from "@myoxus/core/modules/server";
 import { copyLinkToBlockStdScopeClipboard } from "@myoxus/core/utils/clipboard";
 import { I18n, i18nTime } from "@myoxus/i18n";
-import { LinkIcon } from "@myoxus/icons/lit";
 import type { FrameworkProvider } from "@myoxus/infra";
 import { track } from "@myoxus/track";
 import { notify } from "@myoxus/ui-facade";
@@ -32,10 +31,7 @@ import { EmbedLinkedDocBlockComponent } from "@virgultum/editor/blocks/embed-doc
 import { SurfaceRefBlockComponent } from "@virgultum/editor/blocks/surface-ref";
 import { toggleEmbedCardEditModal } from "@virgultum/editor/components/embed-card-modal";
 import { notifyLinkedDocClearedAliases } from "@virgultum/editor/components/notification";
-import {
-  type MenuContext,
-  type AdvancedMenuItem,
-} from "@virgultum/editor/components/toolbar";
+import { type MenuContext } from "@virgultum/editor/components/toolbar";
 import {
   BookmarkBlockModel,
   EmbedIframeBlockModel,
@@ -73,47 +69,34 @@ import {
 export function createToolbarMoreMenuConfig(framework: FrameworkProvider) {
   return {
     actions: (ctx: MenuContext): SelectionAction[] => {
-      const items: [AdvancedMenuItem<MenuContext>, SelectionAction["icon"]][] =
-        [
-          [createCopyAsPngMenuItem(framework), "CopyAsImgaeIcon"],
-          [createCopyLinkToBlockMenuItem(framework), "LinkIcon"],
-          [
-            {
-              type: "capture-as-task",
-              label: editorMessage(
-                "com.myoxus.database.tasks.capture",
-                "Capture as Task",
-              ),
-              when: () =>
-                !ctx.doc.readonly &&
-                Boolean(
-                  snapshotTaskCaptureSelection(
-                    ctx.std,
-                    ctx.selectedBlockModels,
-                  ),
-                ),
-              action: () => {
-                if (
-                  ctx.doc.readonly ||
-                  !snapshotTaskCaptureSelection(
-                    ctx.std,
-                    ctx.selectedBlockModels,
-                  )
-                )
-                  return;
-                void openTaskCapture(
-                  framework,
-                  ctx.std,
-                  ctx.selectedBlockModels,
-                );
-                ctx.close();
-              },
-            },
-            "CopyIcon",
-          ],
-        ];
-      return items.flatMap(([item, icon]) =>
-        item.when && !item.when(ctx)
+      const items = [
+        createCopyAsPngMenuItem(framework),
+        createCopyLinkToBlockMenuItem(framework),
+        {
+          icon: "CopyIcon" as const,
+          type: "capture-as-task",
+          label: editorMessage(
+            "com.myoxus.database.tasks.capture",
+            "Capture as Task",
+          ),
+          when: () =>
+            !ctx.doc.readonly &&
+            Boolean(
+              snapshotTaskCaptureSelection(ctx.std, ctx.selectedBlockModels),
+            ),
+          action: () => {
+            if (
+              ctx.doc.readonly ||
+              !snapshotTaskCaptureSelection(ctx.std, ctx.selectedBlockModels)
+            )
+              return;
+            void openTaskCapture(framework, ctx.std, ctx.selectedBlockModels);
+            ctx.close();
+          },
+        },
+      ];
+      return items.flatMap((item) =>
+        !item.when(ctx)
           ? []
           : [
               {
@@ -123,10 +106,10 @@ export function createToolbarMoreMenuConfig(framework: FrameworkProvider) {
                     item.label,
                     ctx.std.getOptional(EditorI18nProvider) ?? undefined,
                   ) ?? item.type,
-                icon,
+                icon: item.icon,
                 disabled: false,
                 run: () => {
-                  void item.action?.(ctx);
+                  void item.action(ctx);
                 },
               },
             ],
@@ -138,7 +121,7 @@ export function createToolbarMoreMenuConfig(framework: FrameworkProvider) {
 function createCopyLinkToBlockMenuItem(
   framework: FrameworkProvider,
   item = {
-    icon: LinkIcon({ width: "20", height: "20" }),
+    icon: "LinkIcon" as const,
     label: editorMessage(
       "com.myoxus.editor.toolbar.copy-link-to-block",
       "Copy link to block",

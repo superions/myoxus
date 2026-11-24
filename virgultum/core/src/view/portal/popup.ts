@@ -6,7 +6,7 @@ import {
   type Placement,
   type ReferenceElement,
 } from "@floating-ui/dom";
-import { editorHostSelector } from "../../runtime/view/element/lit-host.js";
+import { editorHostSelector } from "../../runtime/view/element/document-host.js";
 import { RANGE_SYNC_EXCLUDE_ATTR } from "../../runtime/inline/index";
 
 export const getDefaultModalRoot = (ele: HTMLElement) => {

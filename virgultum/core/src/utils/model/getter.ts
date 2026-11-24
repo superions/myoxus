@@ -41,6 +41,13 @@ export function findNoteBlockModel(model: BlockModel) {
   ) as NoteBlockModel | null;
 }
 
+export function visibleInPage(model: BlockModel) {
+  return (
+    !matchModels(model, [NoteBlockModel]) ||
+    model.props.displayMode$.value !== NoteDisplayMode.EdgelessOnly
+  );
+}
+
 export function getLastNoteBlock(doc: Store) {
   let note: NoteBlockModel | null = null;
   if (!doc.root) return null;

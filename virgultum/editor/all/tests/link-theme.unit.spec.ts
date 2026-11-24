@@ -1,31 +1,43 @@
 import pageShellStyles from "../../../../client/libs/ui-facade/src/page-shell.css?raw";
 import { listBlockStyles } from "../../../content/src/blocks/list/styles";
 import { codeBlockStyles } from "../../../content/src/blocks/code/styles";
-import { VText } from "@virgultum/core/runtime/inline";
+import { signal } from "@preact/signals-core";
+import { setInlineStyles, VText } from "@virgultum/core/runtime/inline";
 import { userEvent } from "vitest/browser";
-import { html, render } from "lit";
-import { styleMap } from "lit/directives/style-map.js";
 import { myoxusTextStyles } from "../../../core/src/styles/text.js";
-import { DocTitle } from "../../../content/src/doc-title/doc-title";
+import { documentTitleStyles } from "../../../content/src/doc-title/doc-title";
 import { paragraphBlockStyles } from "../../../content/src/blocks/paragraph/styles";
-import { describe, expect, test } from "vitest";
+import { afterEach, describe, expect, test } from "vitest";
 
 import { MyoxusLink } from "../../../content/src/inlines/link/link-node/myoxus-link";
 
 if (!customElements.get("v-text")) customElements.define("v-text", VText);
 
-class ThemeTestLink extends MyoxusLink {}
-customElements.define("theme-test-link", ThemeTestLink);
+if (!customElements.get("myoxus-link"))
+  customElements.define("myoxus-link", MyoxusLink);
+
+function makeLink() {
+  const message$ = signal(null);
+  return Object.assign(document.createElement("myoxus-link"), {
+    std: { get: () => ({ message$ }) },
+  });
+}
+
+afterEach(() =>
+  document
+    .querySelectorAll("body > myoxus-link")
+    .forEach((link) => link.remove()),
+);
 
 describe("editor link theme projection", () => {
   test("uses theme defaults while retaining authored emphasis and strike", () => {
-    const link = new ThemeTestLink();
+    const link = makeLink();
     link.delta = {
       insert: "Readable link",
       attributes: { link: "https://example.com", strike: true },
     };
-    const container = document.createElement("div");
-    render(link.render(), container);
+    const container = link;
+    document.body.append(link);
     const anchor = container.querySelector("a")!;
     expect(anchor.getAttribute("href")).toBe("https://example.com");
     expect(anchor.style.fontWeight).toBe(
@@ -48,7 +60,6 @@ describe("editor link theme projection", () => {
         underline: true,
       },
     };
-    render(link.render(), container);
     expect(anchor.style.fontWeight).toBe("bolder");
     expect(anchor.style.fontStyle).toBe("italic");
     expect(container.querySelector("v-text")?.getAttribute("style")).toContain(
@@ -57,13 +68,13 @@ describe("editor link theme projection", () => {
   });
 
   test("keeps code links in their code font without suppressing link decoration", () => {
-    const link = new ThemeTestLink();
+    const link = makeLink();
     link.delta = {
       insert: "linked_code",
       attributes: { link: "https://example.com", code: true },
     };
-    const container = document.createElement("div");
-    render(link.render(), container);
+    const container = link;
+    document.body.append(link);
     expect(container.querySelector("code")?.style.fontFamily).toBe(
       "var(--myoxus-typography-mono-family)",
     );
@@ -76,19 +87,15 @@ describe("editor link theme projection", () => {
 test("rendered links and headings respond to theme changes, with inherited text emphasis", async () => {
   const container = document.createElement("div");
   const style = document.createElement("style");
-  style.textContent =
-    MyoxusLink.styles.cssText +
-    paragraphBlockStyles.cssText +
-    DocTitle.styles.cssText;
+  style.textContent = paragraphBlockStyles.cssText + documentTitleStyles;
   container.append(style);
-  const linkHost = document.createElement("myoxus-link");
-  container.append(linkHost);
-  const link = new ThemeTestLink();
+  const link = makeLink();
   link.delta = {
     insert: "Theme link",
     attributes: { link: "https://example.com" },
   };
-  render(link.render(), linkHost);
+  const linkHost = link;
+  container.append(link);
   const heading = document.createElement("div");
   heading.className = "h2";
   heading.textContent = "Theme heading";
@@ -99,12 +106,10 @@ test("rendered links and headings respond to theme changes, with inherited text 
   container.append(title);
   const emphasized = document.createElement("div");
   emphasized.style.fontStyle = "italic";
-  render(
-    html`<span style=${styleMap(myoxusTextStyles({}))}
-      >Inherited emphasis</span
-    >`,
-    emphasized,
-  );
+  const emphasis = document.createElement("span");
+  emphasis.textContent = "Inherited emphasis";
+  setInlineStyles(emphasis, myoxusTextStyles({}));
+  emphasized.append(emphasis);
   container.append(emphasized);
   document.body.append(container);
   try {
@@ -193,7 +198,7 @@ test("personal reading size scales page typography, follows theme changes and re
     paragraphBlockStyles.cssText +
     listBlockStyles.cssText +
     codeBlockStyles.cssText +
-    DocTitle.styles.cssText;
+    documentTitleStyles;
   // A nested theme scope redefines the base, as the actual page editor does.
   const content = document.createElement("div");
   content.style.setProperty(
@@ -203,15 +208,13 @@ test("personal reading size scales page typography, follows theme changes and re
   content.innerHTML =
     '<myoxus-paragraph>Body</myoxus-paragraph><myoxus-list>List</myoxus-list><div class="h2">Heading</div><div class="doc-title-container">Title</div><div class="myoxus-code-block-container">Code block</div>';
   const inline = document.createElement("div");
-  render(
-    html`<code style=${styleMap(myoxusTextStyles({ code: true }))}>Code</code>`,
-    inline,
-  );
-  const link = new ThemeTestLink();
+  const code = document.createElement("code");
+  code.textContent = "Code";
+  setInlineStyles(code, myoxusTextStyles({ code: true }));
+  inline.append(code);
+  const link = makeLink();
   link.delta = { insert: "Link", attributes: { link: "https://example.com" } };
-  const linkHost = document.createElement("div");
-  render(link.render(), linkHost);
-  content.append(inline, linkHost);
+  content.append(inline, link);
   root.append(content);
   outer.append(style, root);
   document.body.append(outer);

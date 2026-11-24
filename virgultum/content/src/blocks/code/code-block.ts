@@ -29,7 +29,6 @@ import {
   INLINE_ROOT_ATTR,
   type InlineRangeProvider,
   type InlineRootElement,
-  type VLine,
 } from "@virgultum/core/runtime/inline";
 import { Slice } from "@virgultum/core/store";
 import { html, nothing, type TemplateResult } from "lit";
@@ -501,14 +500,7 @@ export class CodeBlockComponent extends CaptionedBlockComponent<CodeBlockModel> 
           .enableUndoRedo=${false}
           .wrapText=${this.model.props.wrap}
           .verticalScrollContainerGetter=${() => getViewportElement(this.host)}
-          .vLineRenderer=${(vLine: VLine) => {
-            return html`
-              <span contenteditable="false" class="line-number"
-                >${vLine.index + 1}</span
-              >
-              ${vLine.renderVElements()}
-            `;
-          }}
+          .lineNumbers=${true}
         >
         </rich-text>
         <div

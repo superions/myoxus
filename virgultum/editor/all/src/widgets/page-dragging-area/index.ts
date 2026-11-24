@@ -2,7 +2,7 @@ import type { RootBlockModel } from "@virgultum/core/models";
 import { ViewportElementProvider } from "@virgultum/core/services";
 import { autoScroll, getScrollContainer } from "@virgultum/core/utils";
 import {
-  BlockComponent,
+  type BlockComponent,
   BlockSelection,
   type PointerEventState,
   WidgetComponent,
@@ -119,11 +119,7 @@ export class MyoxusPageDraggingAreaWidget extends WidgetComponent<RootBlockModel
 
     const getAllNodeFromTree = (): BlockComponent[] => {
       const blocks: BlockComponent[] = [];
-      this.host.view.walkThrough((node) => {
-        const view = node;
-        if (!(view instanceof BlockComponent)) {
-          return true;
-        }
+      this.host.view.walkThrough((view) => {
         if (
           view.model.role !== "root" &&
           !MyoxusPageDraggingAreaWidget.excludeFlavours.includes(

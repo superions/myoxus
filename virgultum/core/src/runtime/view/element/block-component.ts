@@ -10,11 +10,12 @@ import {
   type BlockViewType,
   Store,
 } from "../../../store/index";
-import { nothing, type TemplateResult } from "lit";
+import { nothing } from "lit";
 import { property, state } from "lit/decorators.js";
 import { choose } from "lit/directives/choose.js";
+import { repeat } from "lit/directives/repeat.js";
+import { guard } from "lit/directives/guard.js";
 import { when } from "lit/directives/when.js";
-import { html } from "lit/static-html.js";
 
 import type { EventName, UIEventHandler } from "../../event/index.js";
 import type { BlockService } from "../../extension/index.js";
@@ -23,7 +24,14 @@ import type { BlockStdScope } from "../../scope/index.js";
 import { BlockSelection } from "../../selection/index.js";
 import { PropTypes, requiredProperties } from "../decorators/index.js";
 import { blockComponentSymbol } from "./consts.js";
-import { type EditorHost, findEditorHost } from "./lit-host.js";
+import {
+  type EditorHost,
+  findEditorHost,
+  resolveBlockView,
+  blockVersionWarning,
+  createRetainedBlockView,
+  createRetainedWidgetViews,
+} from "./document-host.js";
 import { ShadowlessElement } from "./shadowless-element.js";
 import type { EditorWidgetView } from "../view-store.js";
 
@@ -50,7 +58,6 @@ export interface BlockComponent<
   readonly childBlocks: BlockComponent[];
   readonly isVersionMismatch: boolean;
   readonly widgetComponents: Partial<Record<WidgetName, EditorWidgetView>>;
-  readonly renderChildren: EditorHost["renderChildren"];
   readonly updateComplete: Promise<boolean>;
   viewType: BlockViewType;
 
@@ -173,8 +180,22 @@ export class LitBlockComponent<
     return this.std.view.getBlock(parent.id);
   }
 
-  get renderChildren() {
-    return this.host.renderChildren.bind(this);
+  protected renderChildren(
+    model: BlockModel,
+    filter?: (model: BlockModel) => boolean,
+  ) {
+    return repeat(
+      filter ? model.children.filter(filter) : model.children,
+      (child) => child.id,
+      (child) => {
+        const view = resolveBlockView(this.std, child);
+        return view
+          ? guard([child, view.tag, view.viewType], () =>
+              createRetainedBlockView(this.host, child, view),
+            )
+          : nothing;
+      },
+    );
   }
 
   get rootComponent(): BlockComponent | null {
@@ -218,14 +239,7 @@ export class LitBlockComponent<
   private _renderMismatchBlock(content: unknown) {
     return when(
       this.isVersionMismatch,
-      () => {
-        const actualVersion = this.model.version;
-        const schema = this.store.schema.flavourSchemaMap.get(
-          this.model.flavour,
-        );
-        const expectedVersion = schema?.version ?? -1;
-        return this.renderVersionMismatch(expectedVersion, actualVersion);
-      },
+      () => blockVersionWarning(this.ownerDocument, this.model),
       () => content,
     );
   }
@@ -265,6 +279,9 @@ export class LitBlockComponent<
       this.std = host.std;
       this.store = host.store;
     }
+    this.widgets = Object.fromEntries(
+      createRetainedWidgetViews(this, this.std, this.model),
+    ) as Record<WidgetName, HTMLElement>;
     super.connectedCallback();
 
     this.std.view.setBlock(this);
@@ -303,33 +320,6 @@ export class LitBlockComponent<
     return nothing;
   }
 
-  /**
-   * Render a warning message when the block version is mismatched.
-   * @param expectedVersion If the schema is not found, the expected version is -1.
-   *        Which means the block is not supported in the current editor.
-   * @param actualVersion The version of the block's crdt data.
-   */
-  renderVersionMismatch(
-    expectedVersion: number,
-    actualVersion: number,
-  ): TemplateResult {
-    return html`
-      <dl class="version-mismatch-warning" contenteditable="false">
-        <dt>
-          <h4>Block Version Mismatched</h4>
-        </dt>
-        <dd>
-          <p>
-            We can not render this <var>${this.model.flavour}</var> block
-            because the version is mismatched.
-          </p>
-          <p>Editor version: <var>${expectedVersion}</var></p>
-          <p>Data version: <var>${actualVersion}</var></p>
-        </dd>
-      </dl>
-    `;
-  }
-
   private _model: Model | null = null;
 
   @state()
@@ -346,20 +336,7 @@ export class LitBlockComponent<
   @property({ attribute: false })
   accessor viewType: BlockViewType = "display";
 
-  @property({
-    attribute: false,
-    hasChanged(value, oldValue) {
-      if (!value || !oldValue) {
-        return value !== oldValue;
-      }
-      // Is empty object
-      if (!Object.keys(value).length && !Object.keys(oldValue).length) {
-        return false;
-      }
-      return value !== oldValue;
-    },
-  })
-  accessor widgets!: Record<WidgetName, TemplateResult>;
+  widgets!: Record<WidgetName, HTMLElement>;
 }
 
 export const BlockComponent = LitBlockComponent;

@@ -1,12 +1,38 @@
 import type { BaseTextAttributes } from "../../../store/index";
-import { html } from "lit";
-import { styleMap } from "lit/directives/style-map.js";
 
 import type { AttributeRenderer } from "../types.js";
 
-function inlineTextStyles(
-  props: BaseTextAttributes,
-): ReturnType<typeof styleMap> {
+/** Keep the actual text/interactive child mounted when an attribute changes. */
+export function inlineChild<K extends keyof HTMLElementTagNameMap>(
+  parent: HTMLElement,
+  tag: K,
+  props?: Partial<HTMLElementTagNameMap[K]>,
+): HTMLElementTagNameMap[K] {
+  const existing = parent.firstElementChild;
+  const child =
+    existing?.localName === tag
+      ? (existing as HTMLElementTagNameMap[K])
+      : parent.ownerDocument.createElement(tag);
+  if (props) Object.assign(child, props);
+  if (child !== existing) parent.replaceChildren(child);
+  return child;
+}
+
+export function setInlineStyles(
+  element: HTMLElement,
+  values: Record<string, string | number | null | undefined>,
+) {
+  const style = element.style;
+  for (const key of Array.from(style)) {
+    if (values[key] == null) style.removeProperty(key);
+  }
+  for (const [key, value] of Object.entries(values)) {
+    if (value != null && style.getPropertyValue(key) !== String(value))
+      style.setProperty(key, String(value));
+  }
+}
+
+function inlineTextStyles(props: BaseTextAttributes) {
   let textDecorations = "";
   if (props.underline) {
     textDecorations += "underline";
@@ -29,21 +55,22 @@ function inlineTextStyles(
     };
   }
 
-  return styleMap({
+  return {
     "font-weight": props.bold ? "bold" : "inherit",
     "font-style": props.italic ? "italic" : "inherit",
     "text-decoration": textDecorations.length > 0 ? textDecorations : "inherit",
     ...inlineCodeStyle,
-  });
+  };
 }
 
 export const getDefaultAttributeRenderer =
   <T extends BaseTextAttributes>(): AttributeRenderer<T> =>
-  ({ delta }) => {
-    const style = delta.attributes
-      ? inlineTextStyles(delta.attributes)
-      : styleMap({});
-    return html`<span style=${style}
-      ><v-text .str=${delta.insert}></v-text
-    ></span>`;
+  ({ delta }, parent) => {
+    const span = inlineChild(parent, "span");
+    setInlineStyles(
+      span,
+      delta.attributes ? inlineTextStyles(delta.attributes) : {},
+    );
+    inlineChild(span, "v-text", { str: delta.insert });
+    return span;
   };

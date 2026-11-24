@@ -3,11 +3,9 @@ import {
   VirgultumError,
 } from "../../../primitives/exceptions/index";
 import type { BaseTextAttributes } from "../../../store/index";
-import { html, render } from "lit";
-import { repeat } from "lit/directives/repeat.js";
 import * as Y from "yjs";
 
-import type { VLine } from "../components/v-line.js";
+import { VLine } from "../components/v-line.js";
 import type { InlineEditor } from "../inline-editor.js";
 import type { InlineRange } from "../types.js";
 import { deltaInsertsToChunks } from "../utils/delta-convert.js";
@@ -110,65 +108,22 @@ export class RenderService<TextAttributes extends BaseTextAttributes> {
       (delta) => typeof this.editor.isEmbed(delta) === "string",
     );
 
-    let deltaIndex = 0;
-    // every chunk is a line
-    const lines = chunks.map((chunk, lineIndex) => {
-      if (lineIndex > 0) {
-        deltaIndex += 1; // for '\n'
-      }
-
-      const lineStartOffset = deltaIndex;
-      if (chunk.length > 0) {
-        const elements: VLine["elements"] = chunk.map((delta) => {
-          const startOffset = deltaIndex;
-          deltaIndex += delta.insert.length;
-          const endOffset = deltaIndex;
-
-          return [
-            html`<v-element
-              .inlineEditor=${this.editor}
-              .delta=${{
-                insert: delta.insert,
-                attributes: this.editor.attributeService.normalizeAttributes(
-                  delta.attributes,
-                ),
-              }}
-              .startOffset=${startOffset}
-              .endOffset=${endOffset}
-              .lineIndex=${lineIndex}
-            ></v-element>`,
-            delta,
-          ];
-        });
-
-        return html`<v-line
-          .elements=${elements}
-          .index=${lineIndex}
-          .startOffset=${lineStartOffset}
-          .endOffset=${deltaIndex}
-        ></v-line>`;
-      } else {
-        return html`<v-line
-          .elements=${[]}
-          .index=${lineIndex}
-          .startOffset=${lineStartOffset}
-          .endOffset=${deltaIndex}
-        ></v-line>`;
-      }
-    });
-
-    try {
-      render(
-        repeat(
-          lines.map((line, i) => ({ line, index: i })),
-          (entry) => entry.index,
-          (entry) => entry.line,
-        ),
-        rootElement,
-      );
-    } catch {
-      // Lit may be crashed by IME input and we need to rerender whole editor for it
-      this.editor.rerenderWholeEditor();
+    let offset = 0;
+    let next = rootElement.firstChild;
+    for (const [index, chunk] of chunks.entries()) {
+      const line =
+        next instanceof VLine
+          ? next
+          : rootElement.ownerDocument.createElement("v-line");
+      if (line !== next) rootElement.insertBefore(line, next);
+      line.updateLine(chunk, index, offset);
+      offset = line.endOffset + 1;
+      next = line.nextSibling;
+    }
+    while (next) {
+      const rest = next.nextSibling;
+      next.remove();
+      next = rest;
     }
 
     this.editor
@@ -197,11 +152,6 @@ export class RenderService<TextAttributes extends BaseTextAttributes> {
     if (!rootElement || !rootElement.isConnected) return;
 
     rootElement.replaceChildren();
-    // Because we bypassed Lit and disrupted the DOM structure, this will cause an inconsistency in the original state of `ChildPart`.
-    // Therefore, we need to remove the original `ChildPart`.
-    // https://github.com/lit/lit/blob/a2cd76cfdea4ed717362bb1db32710d70550469d/packages/lit-html/src/lit-html.ts#L2248
-
-    delete (rootElement as any)["_$litPart$"];
     this.render();
   };
 

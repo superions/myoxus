@@ -8,7 +8,6 @@ import { Text } from "@virgultum/core/store";
 import type { RootBlockModel } from "@virgultum/core/models";
 
 import { signal } from "@preact/signals-core";
-import { LitElement } from "lit";
 import { afterEach, expect, it, vi } from "vitest";
 
 import de from "../../../../client/libs/i18n/src/resources/de.json";
@@ -21,7 +20,7 @@ import {
 } from "../../../core/src/services";
 
 const locales = { en, de, fr, es };
-const mounted: LitElement[] = [];
+const mounted: HTMLElement[] = [];
 afterEach(() => mounted.splice(0).forEach((element) => element.remove()));
 
 function translator(language: keyof typeof locales = "de") {

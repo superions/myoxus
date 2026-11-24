@@ -1,8 +1,7 @@
 import { editorMessage, type EditorI18nMessage } from "./i18n-service";
-import { CenterPeekIcon, ExpandFullIcon } from "@myoxus/icons/lit";
+import type { MyoxusIconExportName } from "@myoxus/icons/names";
 import { createIdentifier } from "../primitives/di/index";
 import { type ExtensionType } from "../store/index";
-import type { TemplateResult } from "lit";
 
 export type OpenDocMode =
   | "open-in-active-view"
@@ -15,7 +14,7 @@ export type OpenDocMode =
 export interface OpenDocConfigItem {
   type: OpenDocMode;
   label: string | EditorI18nMessage;
-  icon: TemplateResult<1>;
+  iconName: MyoxusIconExportName;
 }
 export interface OpenDocConfig {
   items: OpenDocConfigItem[];
@@ -38,7 +37,7 @@ const defaultConfig: OpenDocConfig = {
         "com.myoxus.peek-view-controls.open-doc",
         "Open this doc",
       ),
-      icon: ExpandFullIcon(),
+      iconName: "ExpandFullIcon",
     },
     {
       type: "open-in-center-peek",
@@ -46,7 +45,7 @@ const defaultConfig: OpenDocConfig = {
         "com.myoxus.peek-view-controls.open-doc-in-center-peek",
         "Open in center peek",
       ),
-      icon: CenterPeekIcon(),
+      iconName: "CenterPeekIcon",
     },
   ],
 };

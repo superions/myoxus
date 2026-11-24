@@ -4,7 +4,6 @@ import { EditorService } from "@myoxus/core/modules/editor";
 import { getDownloadUrl } from "@myoxus/core/modules/open-in-app/get-download-url-pure";
 import { getDesktopBridge } from "@myoxus/desktop-api-contract/bridge";
 import { I18n } from "@myoxus/i18n";
-import { CopyAsImgaeIcon } from "@myoxus/icons/lit";
 import type { FrameworkProvider } from "@myoxus/infra";
 import { notify } from "@myoxus/ui-facade";
 import type { MenuContext } from "@virgultum/editor/components/toolbar";
@@ -213,7 +212,7 @@ export function copyAsImage(std: BlockStdScope) {
 
 export function createCopyAsPngMenuItem(framework: FrameworkProvider) {
   return {
-    icon: CopyAsImgaeIcon({ width: "20", height: "20" }),
+    icon: "CopyAsImgaeIcon" as const,
     label: editorMessage(
       "com.myoxus.editor.toolbar.copy-as-image",
       "Copy as Image",

@@ -17,21 +17,21 @@ import {
   focusTitle,
   getClosestBlockComponentByPoint,
   getDocTitleInlineEditor,
+  getFirstNoteBlock,
+  visibleInPage,
   getScrollContainer,
   hasTextControlEventTarget,
   matchModels,
 } from "@virgultum/core/utils";
 import {
-  BlockComponent,
+  NativeContainerBlock,
   BlockSelection,
   type PointerEventState,
   TextSelection,
 } from "@virgultum/core/runtime";
 import { INLINE_ROOT_ATTR } from "@virgultum/core/runtime/inline";
 import type { BlockModel, Text } from "@virgultum/core/store";
-import { css, html } from "lit";
-import { query } from "lit/decorators.js";
-import { repeat } from "lit/directives/repeat.js";
+import { effect } from "@preact/signals-core";
 
 import { PageKeyboardManager } from "../keyboard/keyboard-manager.js";
 
@@ -51,8 +51,8 @@ function testClickOnBlankArea(
   return state.raw.clientX < blankLeft || state.raw.clientX > blankRight;
 }
 
-export class PageRootBlockComponent extends BlockComponent<RootBlockModel> {
-  static override styles = css`
+export class PageRootBlockComponent extends NativeContainerBlock<RootBlockModel> {
+  protected readonly blockStyles = `
     editor-host:has(> myoxus-page-root, * > myoxus-page-root) {
       display: block;
       height: 100%;
@@ -181,11 +181,7 @@ export class PageRootBlockComponent extends BlockComponent<RootBlockModel> {
   }
 
   private _getDefaultNoteBlock() {
-    return (
-      this.store.root?.children.find(
-        (child) => child.flavour === "myoxus:note",
-      ) ?? this._createDefaultNoteBlock()
-    );
+    return getFirstNoteBlock(this.store) ?? this._createDefaultNoteBlock();
   }
 
   private _initViewportResizeEffect() {
@@ -214,8 +210,16 @@ export class PageRootBlockComponent extends BlockComponent<RootBlockModel> {
     });
   }
 
-  override connectedCallback() {
-    super.connectedCallback();
+  protected mountBody() {
+    const body = this.ownerDocument.createElement("div");
+    body.className = "myoxus-page-root-block-container";
+    this.rootElementContainer = body;
+    this.append(body);
+    this.disposables.add(
+      effect(() => {
+        this.contentEditable = String(!this.store.readonly$.value);
+      }),
+    );
 
     this.keyboardManager = new PageKeyboardManager(this);
     this.disposables.addFromEvent(this, "beforeinput", (event) => {
@@ -226,8 +230,7 @@ export class PageRootBlockComponent extends BlockComponent<RootBlockModel> {
         (node instanceof Element ? node : node.parentElement)?.closest(
           `[${INLINE_ROOT_ATTR}]`,
         );
-      // Native document-end navigation can leave the caret in Lit's root
-      // markers. Only inline editors own text writes; an unowned native edit
+      // Native document-end navigation can leave the caret outside its inline owner. Only inline editors own text writes; an unowned native edit
       // would remove renderer anchors without updating the document model.
       if (
         !range ||
@@ -407,54 +410,22 @@ export class PageRootBlockComponent extends BlockComponent<RootBlockModel> {
 
       return;
     });
+    return body;
+  }
+
+  protected override afterProjection(body: HTMLElement) {
+    this.mountBlockWidgets(body);
+    this._initViewportResizeEffect();
+  }
+
+  protected override projectedModels() {
+    return this.model.children.filter(visibleInPage);
   }
 
   override disconnectedCallback() {
     super.disconnectedCallback();
-    this._disposables.dispose();
     this.keyboardManager = null;
   }
 
-  override firstUpdated() {
-    this._initViewportResizeEffect();
-    const noteModels = this.model.children.filter((model) =>
-      matchModels(model, [NoteBlockModel]),
-    );
-    noteModels.forEach((note) => {
-      this.disposables.add(
-        note.propsUpdated.subscribe(({ key }) => {
-          if (key === "displayMode") {
-            this.requestUpdate();
-          }
-        }),
-      );
-    });
-  }
-
-  override renderBlock() {
-    const widgets = html`${repeat(
-      Object.entries(this.widgets),
-      ([id]) => id,
-      ([_, widget]) => widget,
-    )}`;
-
-    const children = this.renderChildren(this.model, (child) => {
-      const isNote = matchModels(child, [NoteBlockModel]);
-      const note = child as NoteBlockModel;
-      const displayOnEdgeless =
-        !!note.props.displayMode &&
-        note.props.displayMode === NoteDisplayMode.EdgelessOnly;
-      // Should remove deprecated `hidden` property in the future
-      return !(isNote && displayOnEdgeless);
-    });
-
-    this.contentEditable = String(!this.store.readonly$.value);
-
-    return html`
-      <div class="myoxus-page-root-block-container">${children} ${widgets}</div>
-    `;
-  }
-
-  @query(".myoxus-page-root-block-container")
-  accessor rootElementContainer!: HTMLDivElement;
+  rootElementContainer!: HTMLDivElement;
 }

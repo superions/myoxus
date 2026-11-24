@@ -1,4 +1,4 @@
-import type { StyleInfo } from "lit/directives/style-map.js";
+type StyleInfo = Record<string, string | number | null | undefined>;
 
 import type { MyoxusLabelTone, MyoxusTextAttributes } from "../types";
 

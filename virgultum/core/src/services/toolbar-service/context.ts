@@ -1,6 +1,7 @@
 import { nextTick } from "../../primitives/utils/index";
 import {
-  BlockComponent,
+  type BlockComponent,
+  isBlockComponent,
   BlockSelection,
   type BlockStdScope,
   SurfaceSelection,
@@ -214,7 +215,7 @@ abstract class ToolbarContextBase {
 
     const getFromMessage = () => {
       const block = this.message$.peek()?.element;
-      return block instanceof BlockComponent ? block : null;
+      return isBlockComponent(block) ? block : null;
     };
 
     return getFromSelection() ?? getFromMessage();
@@ -253,7 +254,7 @@ abstract class ToolbarContextBase {
 
     const getFromMessage = () => {
       const block = this.message$.peek()?.element;
-      return block instanceof BlockComponent ? block.model : null;
+      return isBlockComponent(block) ? block.model : null;
     };
 
     return getFromSelection() ?? getFromMessage();

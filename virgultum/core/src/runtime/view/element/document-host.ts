@@ -8,11 +8,6 @@ import {
   type Store,
   type StoreSelectionExtension,
 } from "../../../store/index";
-import { nothing, type TemplateResult } from "lit";
-import { repeat } from "lit/directives/repeat.js";
-import { keyed } from "lit/directives/keyed.js";
-import { html, unsafeStatic } from "lit/static-html.js";
-
 import type { CommandManager } from "../../command/index.js";
 import type { UIEventDispatcher } from "../../event/index.js";
 import { WidgetViewIdentifier } from "../../identifier.js";
@@ -47,10 +42,6 @@ export interface EditorHost extends HTMLElement {
   readonly view: ViewStore;
   readonly disposables: DisposableGroup;
   readonly updateComplete: Promise<boolean>;
-  renderChildren(
-    model: BlockModel,
-    filter?: (model: BlockModel) => boolean,
-  ): TemplateResult;
   rebuildViews(): void;
 }
 
@@ -72,7 +63,7 @@ function blockViewTag(view: BlockViewType, model: BlockModel) {
   return typeof view === "function" ? view(model) : view;
 }
 
-function resolveBlockView(std: BlockStdScope, model: BlockModel) {
+export function resolveBlockView(std: BlockStdScope, model: BlockModel) {
   const block = std.store.getBlock(model.id);
   if (!block || block.blockViewType === "hidden") return;
   const view = std.getView(model.flavour);
@@ -81,55 +72,7 @@ function resolveBlockView(std: BlockStdScope, model: BlockModel) {
     return;
   }
 
-  const widgets: Record<string, TemplateResult> = {};
-  for (const [key, tag] of std.provider
-    .getAll(WidgetViewIdentifier)
-    .entries()) {
-    const [widgetFlavour, id] = key.split("|");
-    if (!isMatchFlavour(widgetFlavour, model)) continue;
-    const widgetId = unsafeStatic(WIDGET_ID_ATTR);
-    const element = unsafeStatic(tag);
-    widgets[id] = html`<${element}
-      ${widgetId}=${id}
-      .editorWidgetContext=${{ std, model }}
-    ></${element}>`;
-  }
-  return {
-    tag: blockViewTag(view, model),
-    viewType: block.blockViewType,
-    widgets,
-  };
-}
-
-function renderBlockView(
-  std: BlockStdScope,
-  model: BlockModel,
-): TemplateResult {
-  const view = resolveBlockView(std, model);
-  if (!view) return html`${nothing}`;
-  const { viewType, widgets } = view;
-  const tag = unsafeStatic(view.tag);
-  // A restored block can retain its ID while acquiring a new model.
-  return html`${keyed(
-    model,
-    html`<${tag}
-      ${unsafeStatic(BLOCK_ID_ATTR)}=${model.id}
-      .widgets=${widgets}
-      .viewType=${viewType}
-    ></${tag}>`,
-  )}`;
-}
-
-export function renderRetainedChildren(
-  std: BlockStdScope,
-  model: BlockModel,
-  filter?: (model: BlockModel) => boolean,
-): TemplateResult {
-  return html`${repeat(
-    filter ? model.children.filter(filter) : model.children,
-    (child) => child.id,
-    (child) => renderBlockView(std, child),
-  )}`;
+  return { tag: blockViewTag(view, model), viewType: block.blockViewType };
 }
 
 export function createRetainedWidgetViews(
@@ -151,13 +94,50 @@ export function createRetainedWidgetViews(
   return widgets;
 }
 
-export function createRetainedBlockView(host: EditorHost, model: BlockModel) {
-  const view = resolveBlockView(host.std, model);
+export function createRetainedBlockView(
+  host: EditorHost,
+  model: BlockModel,
+  view = resolveBlockView(host.std, model),
+) {
   if (!view) return null;
-  const { tag, viewType, widgets } = view;
+  const { tag, viewType } = view;
   const element = host.ownerDocument.createElement(tag);
   element.setAttribute(BLOCK_ID_ATTR, model.id);
-  return Object.assign(element, { widgets, viewType });
+  return Object.assign(element, { viewType });
+}
+
+export function blockVersionWarning(doc: Document, model: BlockModel) {
+  const warning = doc.createElement("dl");
+  warning.className = "version-mismatch-warning";
+  warning.contentEditable = "false";
+  const term = doc.createElement("dt");
+  const heading = doc.createElement("h4");
+  heading.textContent = "Block Version Mismatched";
+  term.append(heading);
+  const description = doc.createElement("dd");
+  const variable = (value: string | number) => {
+    const element = doc.createElement("var");
+    element.textContent = String(value);
+    return element;
+  };
+  const reason = doc.createElement("p");
+  reason.append(
+    "We can not render this ",
+    variable(model.flavour),
+    " block because the version is mismatched.",
+  );
+  const editor = doc.createElement("p"),
+    data = doc.createElement("p");
+  editor.append(
+    "Editor version: ",
+    variable(
+      model.store.schema.flavourSchemaMap.get(model.flavour)?.version ?? -1,
+    ),
+  );
+  data.append("Data version: ", variable(model.version));
+  description.append(reason, editor, data);
+  warning.append(term, description);
+  return warning;
 }
 
 export async function waitForRetainedRootView(
@@ -167,17 +147,11 @@ export async function waitForRetainedRootView(
   if (root && "updateComplete" in root) await root.updateComplete;
   const model = host.store.root;
   if (!model || !host.isConnected) return false;
-  const widgetViews = host.std.provider.getAll(
-    WidgetViewIdentifier(model.flavour),
-  );
+  const block = host.view.getBlock(model.id);
   await Promise.all(
-    Object.entries(widgetViews).map(([key, tag]) => {
-      if (key.split("|")[0] !== model.flavour) return undefined;
-      const element = host.querySelector(tag);
-      return element && "updateComplete" in element
-        ? element.updateComplete
-        : undefined;
-    }),
+    Object.values(block?.widgetComponents ?? {}).map((view) =>
+      view && "updateComplete" in view ? view.updateComplete : undefined,
+    ),
   );
   return host.isConnected;
 }
@@ -212,11 +186,6 @@ export class DocumentEditorHost
   disposables = new DisposableGroup();
   private projected: BlockModel | null = null;
   private pending?: Promise<void>;
-
-  renderChildren = (
-    model: BlockModel,
-    filter?: (model: BlockModel) => boolean,
-  ) => renderRetainedChildren(this.std, model, filter);
 
   connectedCallback() {
     if (!this.store.root) {

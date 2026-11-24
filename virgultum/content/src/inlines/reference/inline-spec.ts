@@ -2,7 +2,7 @@ import { ReferenceInfoSchema } from "@virgultum/core/models";
 import type { MyoxusTextAttributes } from "@virgultum/core/types";
 import { StdIdentifier } from "@virgultum/core/runtime";
 import { InlineSpecExtension } from "@virgultum/core/runtime/inline";
-import { html } from "lit";
+import { inlineChild } from "@virgultum/core/runtime/inline";
 import { z } from "zod";
 
 import {
@@ -44,13 +44,13 @@ export const ReferenceInlineSpecExtension =
       match: (delta) => {
         return !!delta.attributes?.reference;
       },
-      renderer: ({ delta, selected }) => {
-        return html`<myoxus-reference
-          .std=${std}
-          .delta=${delta}
-          .selected=${selected}
-          .config=${configProvider}
-        ></myoxus-reference>`;
+      renderer: ({ delta, selected }, parent) => {
+        return inlineChild(parent, "myoxus-reference", {
+          std,
+          delta,
+          selected,
+          config: configProvider,
+        });
       },
       embed: true,
     };

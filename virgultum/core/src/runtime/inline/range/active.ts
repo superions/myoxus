@@ -1,4 +1,4 @@
-import { editorHostSelector } from "../../view/element/lit-host.js";
+import { editorHostSelector } from "../../view/element/document-host.js";
 import { RANGE_SYNC_EXCLUDE_ATTR } from "./consts";
 
 /**

@@ -27,7 +27,7 @@ import { RangeManager } from "../inline/index.js";
 import {
   DocumentEditorHost,
   type EditorHost,
-} from "../view/element/lit-host.js";
+} from "../view/element/document-host.js";
 import { createCanvasHost } from "../view/element/canvas-host.js";
 import { ViewStore } from "../view/view-store.js";
 

@@ -1,41 +1,22 @@
-import { NoteBlockModel, NoteDisplayMode } from "@virgultum/core/models";
-import { matchModels } from "@virgultum/core/utils";
-import { BlockComponent } from "@virgultum/core/runtime";
-import { css, html } from "lit";
-import { repeat } from "lit/directives/repeat.js";
+import type { RootBlockModel } from "@virgultum/core/models";
+import { NativeContainerBlock } from "@virgultum/core/runtime";
+import { visibleInPage } from "@virgultum/core/utils";
 
-export class PreviewRootBlockComponent extends BlockComponent {
-  static override styles = css`
-    myoxus-preview-root {
-      display: block;
-    }
-  `;
+export class PreviewRootBlockComponent extends NativeContainerBlock<RootBlockModel> {
+  protected readonly blockStyles = "myoxus-preview-root { display: block; }";
 
-  override connectedCallback() {
-    super.connectedCallback();
+  protected mountBody() {
+    const body = this.ownerDocument.createElement("div");
+    body.className = "myoxus-preview-root";
+    this.append(body);
+    return body;
   }
 
-  override disconnectedCallback() {
-    super.disconnectedCallback();
+  protected override projectedModels() {
+    return this.model.children.filter(visibleInPage);
   }
 
-  override renderBlock() {
-    const widgets = html`${repeat(
-      Object.entries(this.widgets),
-      ([id]) => id,
-      ([_, widget]) => widget,
-    )}`;
-
-    const children = this.renderChildren(this.model, (child) => {
-      const isNote = matchModels(child, [NoteBlockModel]);
-      const note = child as NoteBlockModel;
-      const displayOnEdgeless =
-        !!note.props.displayMode &&
-        note.props.displayMode === NoteDisplayMode.EdgelessOnly;
-      // Should remove deprecated `hidden` property in the future
-      return !(isNote && displayOnEdgeless);
-    });
-
-    return html`<div class="myoxus-preview-root">${children} ${widgets}</div>`;
+  protected override afterProjection(body: HTMLElement) {
+    this.mountBlockWidgets(body);
   }
 }

@@ -11,7 +11,7 @@ import {
 import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
 import { RANGE_SYNC_EXCLUDE_ATTR } from "@virgultum/core/runtime/inline";
 
-import { NativeBlockComponent } from "./native-block-component.js";
+import { NativeBlockComponent } from "@virgultum/core/runtime";
 import { ConnectorElementModel } from "./element-model/index.js";
 import { SurfaceScene, surfaceSceneCss } from "./surface-block.js";
 import type { SurfaceBlockModel } from "./surface-model.js";

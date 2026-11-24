@@ -1,100 +1,58 @@
-import { WithDisposable } from "@virgultum/core/primitives/lit";
-import { type CommentId, type CommentProvider } from "@virgultum/core/services";
-import { unsafeCSSVar } from "@virgultum/core/theme";
-import {
-  PropTypes,
-  requiredProperties,
-  ShadowlessElement,
-} from "@virgultum/core/runtime";
-import { css, type PropertyValues } from "lit";
-import { property, state } from "lit/decorators.js";
-import { html } from "lit-html";
-import { isEqual } from "lodash-es";
+import { DisposableGroup } from "@virgultum/core/primitives/disposable";
+import { NativeViewElement } from "@virgultum/core/primitives/env";
+import { installEditorStyles } from "@virgultum/core/runtime";
+import type { CommentId, CommentProvider } from "@virgultum/core/services";
+import { cssVar } from "@virgultum/core/theme";
 
-@requiredProperties({
-  commentIds: PropTypes.arrayOf((id) => typeof id === "string"),
-})
-export class InlineComment extends WithDisposable(ShadowlessElement) {
-  static override styles = css`
+const commentStyles = `
     inline-comment {
       display: inline;
     }
 
     inline-comment.unresolved {
-      background-color: ${unsafeCSSVar("backgroundProcessingColor")};
-      border-bottom: 2px solid ${unsafeCSSVar("primaryColor")};
+      background-color: ${cssVar("backgroundProcessingColor")};
+      border-bottom: 2px solid ${cssVar("primaryColor")};
     }
 
     inline-comment.highlighted {
-      background-color: ${unsafeCSSVar("backgroundProcessingColor")};
+      background-color: ${cssVar("backgroundProcessingColor")};
     }
-  `;
-
-  @property({
-    attribute: false,
-    hasChanged: (newVal: string[], oldVal: string[]) =>
-      !isEqual(newVal, oldVal),
-  })
-  accessor commentIds!: string[];
-
-  @property({ attribute: false })
-  accessor unresolved = false;
-
-  private _index: number = 0;
-
+`;
+export class InlineComment extends NativeViewElement {
+  commentIds: string[] = [];
   provider?: CommentProvider;
+  private index = 0;
+  private lifecycle?: DisposableGroup;
 
-  @state()
-  accessor highlighted = false;
+  get unresolved() {
+    return this.classList.contains("unresolved");
+  }
+  set unresolved(value: boolean) {
+    this.classList.toggle("unresolved", value);
+  }
 
-  private readonly _handleClick = () => {
-    if (this.unresolved) {
-      this.provider?.highlightComment(this.commentIds[this._index]);
-      this._index = (this._index + 1) % this.commentIds.length;
-    }
-  };
-
-  private readonly _handleHighlight = (id: CommentId | null) => {
-    if (this.highlighted) {
-      if (!id || !this.commentIds.includes(id)) {
-        this.highlighted = false;
-      }
-    } else {
-      if (id && this.commentIds.includes(id)) {
-        this.highlighted = true;
-      }
-    }
-  };
-
-  override connectedCallback() {
-    super.connectedCallback();
+  connectedCallback() {
+    installEditorStyles(this, commentStyles);
     const provider = this.provider;
-    if (provider) {
-      this.disposables.addFromEvent(this, "click", this._handleClick);
-      this.disposables.add(
-        provider.onCommentHighlighted(this._handleHighlight),
+    if (!provider) return;
+    const life = (this.lifecycle = new DisposableGroup());
+    life.addFromEvent(this, "click", () => {
+      if (!this.unresolved || !this.commentIds.length) return;
+      provider.highlightComment(
+        this.commentIds[this.index % this.commentIds.length],
       );
-    }
+      this.index = (this.index + 1) % this.commentIds.length;
+    });
+    life.add(
+      provider.onCommentHighlighted((id: CommentId | null) => {
+        this.classList.toggle(
+          "highlighted",
+          id !== null && this.commentIds.includes(id),
+        );
+      }),
+    );
   }
-
-  override willUpdate(_changedProperties: PropertyValues<this>) {
-    if (_changedProperties.has("highlighted")) {
-      if (this.highlighted) {
-        this.classList.add("highlighted");
-      } else {
-        this.classList.remove("highlighted");
-      }
-    }
-    if (_changedProperties.has("unresolved")) {
-      if (this.unresolved) {
-        this.classList.add("unresolved");
-      } else {
-        this.classList.remove("unresolved");
-      }
-    }
-  }
-
-  override render() {
-    return html`<slot></slot>`;
+  disconnectedCallback() {
+    this.lifecycle?.dispose();
   }
 }

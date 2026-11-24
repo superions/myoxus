@@ -1,111 +1,88 @@
-import { effect, signal } from "@preact/signals-core";
-import { DisposableGroup } from "../../../primitives/disposable/index";
+import { computed, effect, signal } from "@preact/signals-core";
+import { NativeViewElement } from "../../../primitives/env/index.js";
 import {
   ErrorCode,
   VirgultumError,
 } from "../../../primitives/exceptions/index";
-import { SignalWatcher } from "../../../primitives/lit/index";
-import type { BaseTextAttributes, DeltaInsert } from "../../../store/index";
-import { html, LitElement } from "lit";
-import { property } from "lit/decorators.js";
-import { styleMap } from "lit/directives/style-map.js";
-
-import { ZERO_WIDTH_FOR_EMPTY_LINE } from "../consts.js";
-import type { InlineEditor } from "../inline-editor.js";
+import type { AttributeRenderer } from "../types.js";
+import { inlineChild } from "../utils/attribute-renderer.js";
 import { isInlineRangeIntersect } from "../utils/inline-range.js";
 
-export class VElement<
-  T extends BaseTextAttributes = BaseTextAttributes,
-> extends SignalWatcher(LitElement) {
-  readonly disposables = new DisposableGroup();
+type Run = Omit<Parameters<AttributeRenderer>[0], "selected">;
 
-  readonly selected = signal(false);
-
-  override connectedCallback(): void {
-    super.connectedCallback();
-
-    this.disposables.add(
-      effect(() => {
-        const inlineRange = this.inlineEditor?.inlineRange$.value;
-        this.selected.value =
-          !!inlineRange &&
-          isInlineRangeIntersect(inlineRange, {
-            index: this.startOffset,
-            length: this.endOffset - this.startOffset,
-          });
-      }),
+export class VElement extends NativeViewElement {
+  private readonly run = signal<Run | undefined>();
+  private readonly selected = computed(() => {
+    const run = this.run.value,
+      range = run?.editor.inlineRange$.value;
+    return (
+      !!run &&
+      !!range &&
+      isInlineRangeIntersect(range, {
+        index: run.startOffset,
+        length: run.endOffset - run.startOffset,
+      })
+    );
+  });
+  private release?: () => void;
+  private rendered?: HTMLElement;
+  get inlineEditor() {
+    return this.run.value!.editor;
+  }
+  get delta() {
+    return this.run.value!.delta;
+  }
+  get lineIndex() {
+    return this.run.value!.lineIndex;
+  }
+  get startOffset() {
+    return this.run.value!.startOffset;
+  }
+  get endOffset() {
+    return this.run.value!.endOffset;
+  }
+  updateRun(run: Run) {
+    this.run.value = run;
+  }
+  get updateComplete() {
+    const child = this.rendered;
+    return Promise.resolve(
+      child && "updateComplete" in child ? child.updateComplete : undefined,
     );
   }
-
-  override createRenderRoot() {
-    return this;
-  }
-
-  override async getUpdateComplete(): Promise<boolean> {
-    const result = await super.getUpdateComplete();
-    const span = this.querySelector('[data-v-element="true"]') as HTMLElement;
-    const el = span.firstElementChild as LitElement;
-    await el.updateComplete;
-    return result;
-  }
-
-  override render() {
-    const inlineEditor = this.inlineEditor;
-    const attributeRenderer = inlineEditor.attributeService.attributeRenderer;
-    const renderProps: Parameters<typeof attributeRenderer>[0] = {
-      delta: this.delta,
-      selected: this.selected.value,
-      startOffset: this.startOffset,
-      endOffset: this.endOffset,
-      lineIndex: this.lineIndex,
-      editor: inlineEditor,
-    };
-
-    const isEmbed = inlineEditor.isEmbed(this.delta);
-    if (isEmbed) {
-      if (isEmbed === true && this.delta.insert.length !== 1) {
+  connectedCallback() {
+    this.release = effect(() => {
+      const run = this.run.value;
+      if (!run) return;
+      const wrapper = inlineChild(this, "span");
+      wrapper.dataset.vElement = "true";
+      const embed = run.editor.isEmbed(run.delta);
+      if (embed === true && run.delta.insert.length !== 1) {
         throw new VirgultumError(
           ErrorCode.InlineEditorError,
-          `The length of embed node should only be 1.
-          This seems to be an internal issue with inline editor.
-          Please report it to the Myoxus maintainers.`,
+          "An inline embed must occupy one character.",
         );
       }
-
-      return html`<span
-        data-v-embed="true"
-        data-v-element="true"
-        contenteditable="false"
-        style=${styleMap({ userSelect: "none" })}
-        >${attributeRenderer(renderProps)}</span
-      >`;
-    }
-
-    // we need to avoid \n appearing before and after the span element, which will
-    // cause the unexpected space
-    return html`<span data-v-element="true"
-      >${attributeRenderer(renderProps)}</span
-    >`;
+      if (embed) {
+        wrapper.dataset.vEmbed = "true";
+        wrapper.contentEditable = "false";
+        wrapper.style.userSelect = "none";
+      } else if (wrapper.hasAttribute("data-v-embed")) {
+        delete wrapper.dataset.vEmbed;
+        wrapper.removeAttribute("contenteditable");
+        wrapper.style.removeProperty("user-select");
+      }
+      this.rendered = run.editor.attributeService.attributeRenderer(
+        { ...run, selected: this.selected.value },
+        wrapper,
+      );
+    });
   }
-
-  @property({ type: Object })
-  accessor delta: DeltaInsert<T> = {
-    insert: ZERO_WIDTH_FOR_EMPTY_LINE,
-  };
-
-  @property({ attribute: false })
-  accessor endOffset!: number;
-
-  @property({ attribute: false })
-  accessor inlineEditor!: InlineEditor;
-
-  @property({ attribute: false })
-  accessor lineIndex!: number;
-
-  @property({ attribute: false })
-  accessor startOffset!: number;
+  disconnectedCallback() {
+    this.release?.();
+    this.rendered = undefined;
+  }
 }
-
 declare global {
   interface HTMLElementTagNameMap {
     "v-element": VElement;

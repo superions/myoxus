@@ -1,7 +1,5 @@
 import type { NoteBlockModel } from "@virgultum/core/models";
-import { BlockComponent } from "@virgultum/core/runtime";
-import { html, unsafeCSS } from "lit";
-import { repeat } from "lit/directives/repeat.js";
+import { NativeContainerBlock } from "@virgultum/core/runtime";
 import { localFootnotePresentation } from "@virgultum/core/commands";
 
 export const noteBlockCss = `
@@ -24,34 +22,36 @@ export function noteDefinitionsInOrder(note: NoteBlockModel) {
     );
 }
 
-export class NoteBlockComponent extends BlockComponent<NoteBlockModel> {
-  static override styles = unsafeCSS(noteBlockCss);
+export class NoteBlockComponent extends NativeContainerBlock<NoteBlockModel> {
+  protected readonly blockStyles = noteBlockCss;
 
-  override connectedCallback() {
-    super.connectedCallback();
+  protected mountBody() {
+    const note = this.ownerDocument.createElement("div");
+    note.className = "myoxus-note-block-container";
+    const body = this.ownerDocument.createElement("div");
+    body.className = "myoxus-block-children-container";
+    note.append(body);
+    this.append(note);
     this.disposables.add(
-      this.store.slots.blockUpdated.subscribe(() => this.requestUpdate()),
+      this.store.slots.blockUpdated.subscribe(() => {
+        if (
+          this.model.children.some(
+            (child) => child.flavour === "myoxus:footnote-definition",
+          )
+        )
+          this.requestUpdate();
+      }),
     );
+    return body;
   }
 
-  override renderBlock() {
-    const definitions = noteDefinitionsInOrder(this.model);
-    return html`
-      <div class="myoxus-note-block-container">
-        <div class="myoxus-block-children-container">
-          ${this.renderChildren(this.model, (child) => child.flavour !== "myoxus:footnote-definition")}
-          ${repeat(
-            definitions,
-            (child) => child.id,
-            (child) =>
-              this.renderChildren(
-                this.model,
-                (candidate) => candidate.id === child.id,
-              ),
-          )}
-        </div>
-      </div>
-    `;
+  protected override projectedModels() {
+    return [
+      ...this.model.children.filter(
+        (child) => child.flavour !== "myoxus:footnote-definition",
+      ),
+      ...noteDefinitionsInOrder(this.model),
+    ];
   }
 }
 

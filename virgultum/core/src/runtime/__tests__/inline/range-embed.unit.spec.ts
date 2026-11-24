@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { expect, test } from "vitest";
-import { html } from "lit";
+import { inlineChild } from "../../inline/utils/attribute-renderer.js";
 import * as Y from "yjs";
 import { z } from "zod";
 import type { BaseTextAttributes, DeltaInsert } from "../../../store/index";
@@ -129,8 +129,8 @@ test("real DOM ranges roundtrip both sides and the entire multiline marker, and 
   const { doc, text, editor } = fixture();
   const root = document.createElement("div");
   document.body.append(root);
-  editor.setAttributeRenderer(
-    ({ delta }) => html`<span><v-text .str=${delta.insert}></v-text></span>`,
+  editor.setAttributeRenderer(({ delta }, parent) =>
+    inlineChild(inlineChild(parent, "span"), "v-text", { str: delta.insert }),
   );
   editor.mount(root);
   try {

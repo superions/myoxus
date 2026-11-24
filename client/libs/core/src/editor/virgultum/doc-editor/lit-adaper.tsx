@@ -2,7 +2,7 @@ import "katex/dist/katex.min.css";
 
 import { useGuard } from "@myoxus/core/components/guard/use-guard";
 import { useEnableAI } from "@myoxus/core/components/hooks/myoxus/use-enable-ai";
-import { DocumentViewport, LitDocTitle } from "@myoxus/core/editor/editors";
+import { DocumentViewport, DocumentTitle } from "@myoxus/core/editor/editors";
 import type { EditorHost } from "@virgultum/editor/std";
 import { getViewManager } from "@myoxus/core/editor/manager/view";
 import { createMyoxusHostServiceAdapter } from "@myoxus/core/editor/virgultum/doc-editor/myoxus-host-adapter";
@@ -394,7 +394,7 @@ export const VirgultumDocEditor = forwardRef<
   }, [docsService, page, readonly]);
 
   const onTitleRef = useCallback(
-    (el: DocTitle) => {
+    (el: DocTitle | null) => {
       titleRef.current = el;
       if (externalTitleRef) {
         if (typeof externalTitleRef === "function") {
@@ -444,7 +444,7 @@ export const VirgultumDocEditor = forwardRef<
             {snapshotTitle ? (
               <SnapshotTitle line={snapshotTitle} />
             ) : (
-              <LitDocTitle
+              <DocumentTitle
                 doc={page}
                 placeholder={t["Title"]()}
                 ref={onTitleRef}

@@ -1,35 +1,31 @@
 import { myoxusTextStyles } from "@virgultum/core/styles";
 import type { MyoxusTextAttributes } from "@virgultum/core/types";
-import { ShadowlessElement } from "@virgultum/core/runtime";
-import { ZERO_WIDTH_FOR_EMPTY_LINE } from "@virgultum/core/runtime/inline";
+import { NativeViewElement } from "@virgultum/core/primitives/env";
+import {
+  inlineChild,
+  setInlineStyles,
+  ZERO_WIDTH_FOR_EMPTY_LINE,
+} from "@virgultum/core/runtime/inline";
 import type { DeltaInsert } from "@virgultum/core/store";
-import { html } from "lit";
-import { property } from "lit/decorators.js";
-import { styleMap } from "lit/directives/style-map.js";
 
-export class MyoxusText extends ShadowlessElement {
-  override render() {
-    const style = this.delta.attributes
-      ? myoxusTextStyles(this.delta.attributes)
-      : {};
-
-    // we need to avoid \n appearing before and after the span element, which will
-    // cause the unexpected space
-    if (this.delta.attributes?.code) {
-      return html`<code style=${styleMap(style)}
-        ><v-text .str=${this.delta.insert}></v-text
-      ></code>`;
-    }
-
-    // we need to avoid \n appearing before and after the span element, which will
-    // cause the unexpected space
-    return html`<span style=${styleMap(style)}
-      ><v-text .str=${this.delta.insert}></v-text
-    ></span>`;
-  }
-
-  @property({ type: Object })
-  accessor delta: DeltaInsert<MyoxusTextAttributes> = {
+export class MyoxusText extends NativeViewElement {
+  private value: DeltaInsert<MyoxusTextAttributes> = {
     insert: ZERO_WIDTH_FOR_EMPTY_LINE,
   };
+  get delta() {
+    return this.value;
+  }
+  set delta(value: DeltaInsert<MyoxusTextAttributes>) {
+    this.value = value;
+    if (this.isConnected) this.updateText();
+  }
+  connectedCallback() {
+    this.updateText();
+  }
+  private updateText() {
+    const { attributes, insert } = this.value;
+    const run = inlineChild(this, attributes?.code ? "code" : "span");
+    setInlineStyles(run, attributes ? myoxusTextStyles(attributes) : {});
+    inlineChild(run, "v-text", { str: insert });
+  }
 }
