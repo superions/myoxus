@@ -50,8 +50,8 @@ export function openEquationEditor(
   mountInlinePopup(
     std,
     () => (valid() ? target : null),
-    (controls) =>
-      chrome.renderEquation({
+    (anchor, controls) =>
+      chrome.mountEquation(anchor, {
         ...controls,
         position,
         restoreFocus,

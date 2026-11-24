@@ -9,7 +9,7 @@ import {
 } from "@myoxus/core/modules/server";
 import { WorkspaceService } from "@myoxus/core/modules/workspace";
 import type { FrameworkProvider } from "@myoxus/infra";
-import type { ReactToLit } from "@myoxus/lit-react";
+import type { MountReactPortal } from "@myoxus/lit-react";
 import {
   DocumentIndexHost,
   DocumentIndexOutputProvider,
@@ -19,7 +19,7 @@ import { Directory, Configuration } from "./document-index";
 
 export function patchDocumentIndex(
   framework: FrameworkProvider,
-  reactToLit: ReactToLit,
+  mountPortal: MountReactPortal,
 ): ExtensionType {
   return {
     setup(di) {
@@ -36,15 +36,12 @@ export function patchDocumentIndex(
         );
       });
       di.addImpl(DocumentIndexHost, () => ({
-        render: (model, std) =>
-          reactToLit(
-            <Directory model={model} readonly={std.store.readonly} />,
-            true,
-          ),
-        configure: (value, apply, close) =>
-          reactToLit(
+        mount: (anchor, model) =>
+          mountPortal(anchor, <Directory model={model} />),
+        configure: (anchor, value, apply, close) =>
+          mountPortal(
+            anchor,
             <Configuration value={value} apply={apply} close={close} />,
-            true,
           ),
       }));
     },

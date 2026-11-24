@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
+import type { ReadonlySignal } from "@preact/signals-core";
 import type { SelectionAction } from "./toolbar-service/presentation";
 
 import type { MyoxusIconExportName } from "@myoxus/icons/names";
@@ -472,19 +473,34 @@ export type EditorChromeHost = {
   renderDocumentOutline: (controls: EditorOutlineControls) => TemplateResult;
   renderOutlineEntry: (controls: EditorOutlineEntryControls) => TemplateResult;
   renderCitationPreview: (controls: EditorCitationControls) => TemplateResult;
-  renderEquation: (controls: EditorEquationControls) => TemplateResult;
-  renderBlockCaption: (controls: EditorBlockCaptionControls) => TemplateResult;
-  renderEmbedCardEdit: (
+  mountEquation: (
+    anchor: HTMLElement,
+    controls: EditorEquationControls,
+  ) => () => void;
+  mountBlockCaption: (
+    anchor: HTMLElement,
+    controls: ReadonlySignal<EditorBlockCaptionControls>,
+  ) => () => void;
+  mountEmbedCardEdit: (
+    anchor: HTMLElement,
     controls: EditorEmbedCardEditControls,
-  ) => TemplateResult;
-  renderEmbedCardCreate: (
+  ) => () => void;
+  mountEmbedCardCreate: (
+    anchor: HTMLElement,
     controls: EditorEmbedCardCreateControls,
-  ) => TemplateResult;
-  renderActionMenu: (controls: EditorActionMenuControls) => TemplateResult;
-  renderAttachmentRename: (
+  ) => () => void;
+  mountActionMenu: (
+    anchor: HTMLElement,
+    controls: EditorActionMenuControls,
+  ) => () => void;
+  mountAttachmentRename: (
+    anchor: HTMLElement,
     controls: EditorAttachmentRenameControls,
-  ) => TemplateResult;
-  renderCodeToolbar: (controls: EditorCodeToolbarControls) => TemplateResult;
+  ) => () => void;
+  mountCodeToolbar: (
+    anchor: HTMLElement,
+    controls: EditorCodeToolbarControls,
+  ) => () => void;
   mountImport: (
     container: HTMLElement,
     controls: EditorImportControls,
@@ -495,13 +511,18 @@ export type EditorChromeHost = {
   renderIframeStatusCard: (
     controls: EditorIframeStatusCardControls,
   ) => TemplateResult;
-  renderIframeLinkEditor: (
+  mountIframeLinkEditor: (
+    anchor: HTMLElement,
     controls: EditorIframeLinkEditorControls,
-  ) => TemplateResult;
-  renderLinkEditor: (controls: EditorLinkEditorControls) => TemplateResult;
-  renderReferenceEditor: (
+  ) => () => void;
+  mountLinkEditor: (
+    anchor: HTMLElement,
+    controls: EditorLinkEditorControls,
+  ) => () => void;
+  mountReferenceEditor: (
+    anchor: HTMLElement,
     controls: EditorReferenceEditorControls,
-  ) => TemplateResult;
+  ) => () => void;
   renderSelection: (controls: EditorSelectionControls) => TemplateResult;
   renderSlash: (controls: EditorSlashControls) => TemplateResult;
   mountCanvasTool?: (

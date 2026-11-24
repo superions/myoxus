@@ -10,6 +10,7 @@
     "./react": "./src/react.ts",
     "./rc": "./src/react.ts",
     "./lit": "./src/lit.ts",
+    "./native": "./src/native.ts",
     "./names": "./src/names.ts",
     "./keywords/en": "./src/keywords/en.ts",
     "./outline": "./src/outline.ts",

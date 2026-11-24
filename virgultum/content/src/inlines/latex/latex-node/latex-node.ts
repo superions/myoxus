@@ -1,18 +1,13 @@
-import {
-  editorMessage,
-  EditorI18nProvider,
-  resolveEditorMessage,
-  type EditorI18nMessage,
-} from "@virgultum/core/services";
-import { signal } from "@preact/signals-core";
+import { renderEquation } from "../render-equation";
+import { effect, signal } from "@preact/signals-core";
 import { openEquationEditor } from "./equation-session";
-import { SignalWatcher, WithDisposable } from "@virgultum/core/primitives/lit";
-import { unsafeCSSVar } from "@virgultum/core/theme";
+import { cssVar } from "@myoxus/theme";
 import type { MyoxusTextAttributes } from "@virgultum/core/types";
 import {
   type BlockComponent,
   type BlockStdScope,
-  ShadowlessElement,
+  NativeViewElement,
+  installEditorStyles,
 } from "@virgultum/core/runtime";
 import {
   type InlineEditor,
@@ -20,21 +15,8 @@ import {
   ZERO_WIDTH_FOR_EMPTY_LINE,
 } from "@virgultum/core/runtime/inline";
 import type { DeltaInsert } from "@virgultum/core/store";
-import katex from "katex";
-import { css, html, render, type PropertyValues } from "lit";
-import { property } from "lit/decorators.js";
-
-export class MyoxusLatexNode extends SignalWatcher(
-  WithDisposable(ShadowlessElement),
-) {
-  private _text(message: EditorI18nMessage) {
-    return resolveEditorMessage(
-      message,
-      this.std.getOptional(EditorI18nProvider) ?? undefined,
-    );
-  }
-
-  static override styles = css`
+export class MyoxusLatexNode extends NativeViewElement {
+  private static readonly styles = `
     myoxus-latex-node {
       display: inline-block;
     }
@@ -42,7 +24,7 @@ export class MyoxusLatexNode extends SignalWatcher(
     myoxus-latex-node .myoxus-latex {
       white-space: nowrap;
       word-break: break-word;
-      color: ${unsafeCSSVar("textPrimaryColor")};
+      color: ${cssVar("textPrimaryColor")};
       fill: var(--myoxus-icon-color);
       border-radius: 4px;
       text-decoration: none;
@@ -56,10 +38,10 @@ export class MyoxusLatexNode extends SignalWatcher(
       margin: 0 2px;
     }
     myoxus-latex-node .myoxus-latex:hover {
-      background: ${unsafeCSSVar("hoverColor")};
+      background: ${cssVar("hoverColor")};
     }
     myoxus-latex-node .myoxus-latex[data-selected="true"] {
-      background: ${unsafeCSSVar("hoverColor")};
+      background: ${cssVar("hoverColor")};
     }
 
     myoxus-latex-node .error-placeholder {
@@ -70,9 +52,9 @@ export class MyoxusLatexNode extends SignalWatcher(
       gap: 10px;
 
       border-radius: 4px;
-      background: ${unsafeCSSVar("tagRed")};
+      background: ${cssVar("tagRed")};
 
-      color: ${unsafeCSSVar("textHighlightForegroundRed")};
+      color: ${cssVar("textHighlightForegroundRed")};
       font-family: Inter;
       font-size: 12px;
       font-weight: 500;
@@ -86,9 +68,9 @@ export class MyoxusLatexNode extends SignalWatcher(
       align-items: flex-start;
 
       border-radius: 4px;
-      background: ${unsafeCSSVar("backgroundSecondaryColor")};
+      background: ${cssVar("backgroundSecondaryColor")};
 
-      color: ${unsafeCSSVar("textSecondaryColor")};
+      color: ${cssVar("textSecondaryColor")};
       font-family: Inter;
       font-size: 12px;
       font-weight: 500;
@@ -104,75 +86,35 @@ export class MyoxusLatexNode extends SignalWatcher(
     return this.delta.attributes?.latex ?? "";
   }
 
-  override connectedCallback() {
-    const result = super.connectedCallback();
+  private stopRendering?: () => void;
+  private clickEquation = (event: MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!this.readonly) this.toggleEditor();
+  };
 
+  connectedCallback() {
+    installEditorStyles(this, MyoxusLatexNode.styles);
+    const doc = this.ownerDocument;
+    const wrapper = doc.createElement("span");
+    wrapper.className = "myoxus-latex";
+    wrapper.dataset.selected = String(this.selected);
+    const preview = doc.createElement("div");
+    preview.className = "latex-container";
+    const caret = doc.createElement("v-text");
+    caret.str = ZERO_WIDTH_FOR_EMBED_NODE;
+    wrapper.append(preview, caret);
+    this.replaceChildren(wrapper);
     this.latexEditorSignal.value = this.deltaLatex;
-
-    this.disposables.add(() => {
-      this._editorAbortController?.abort();
-    });
-
-    this.disposables.addFromEvent(this, "click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (this.readonly) {
-        return;
-      }
-      this.toggleEditor();
-    });
-
-    return result;
+    this.stopRendering = effect(() =>
+      renderEquation(this.std, preview, this.latexEditorSignal.value, false),
+    );
+    this.addEventListener("click", this.clickEquation);
   }
-
-  override willUpdate(changed: PropertyValues<this>) {
-    super.willUpdate(changed);
-    if (
-      changed.has("delta") &&
-      changed.get("delta")?.attributes?.latex !== this.deltaLatex
-    ) {
-      // Undo and remote edits replace the committed source, never write an obsolete draft back.
-      this._editorAbortController?.abort();
-      this.latexEditorSignal.value = this.deltaLatex;
-    }
-  }
-
-  override updated() {
-    const latexContainer = this.querySelector<HTMLElement>(".latex-container");
-    if (!latexContainer) return;
-    const latex = this.latexEditorSignal.value;
-    latexContainer.replaceChildren();
-    // @ts-expect-error lit hack won't fix
-    delete latexContainer["_$litPart$"];
-    if (latex.length === 0) {
-      render(
-        html`<span class="placeholder"
-          >${this._text(editorMessage("com.myoxus.editor.slash.equation", "Equation"))}</span
-        >`,
-        latexContainer,
-      );
-    } else {
-      try {
-        katex.render(latex, latexContainer, { displayMode: false });
-      } catch {
-        render(
-          html`<span class="error-placeholder"
-            >${this._text(editorMessage("com.myoxus.editor.equation.invalid", "Invalid equation"))}</span
-          >`,
-          latexContainer,
-        );
-      }
-    }
-  }
-
-  override render() {
-    // Subscribe before the imperative KaTeX render in updated().
-    void this.latexEditorSignal.value;
-    void this.std.getOptional(EditorI18nProvider)?.locale$.value;
-    return html`<span class="myoxus-latex" data-selected=${this.selected}
-      ><div class="latex-container"></div>
-      <v-text .str=${ZERO_WIDTH_FOR_EMBED_NODE}></v-text
-    ></span>`;
+  disconnectedCallback() {
+    this.stopRendering?.();
+    this.removeEventListener("click", this.clickEquation);
+    this._editorAbortController?.abort();
   }
 
   toggleEditor() {
@@ -224,23 +166,32 @@ export class MyoxusLatexNode extends SignalWatcher(
     return this.std.store.readonly;
   }
 
-  @property({ attribute: false })
-  accessor delta: DeltaInsert<MyoxusTextAttributes> = {
+  private sourceDelta: DeltaInsert<MyoxusTextAttributes> = {
     insert: ZERO_WIDTH_FOR_EMPTY_LINE,
   };
+  get delta() {
+    return this.sourceDelta;
+  }
+  set delta(value: DeltaInsert<MyoxusTextAttributes>) {
+    const previous = this.deltaLatex;
+    this.sourceDelta = value;
+    if (previous !== this.deltaLatex) {
+      // Undo or a remote edit takes precedence over the open source draft.
+      this._editorAbortController?.abort();
+      this.latexEditorSignal.value = this.deltaLatex;
+    }
+  }
 
-  @property({ attribute: false })
-  accessor editor!: InlineEditor<MyoxusTextAttributes>;
-
-  @property({ attribute: false })
-  accessor endOffset!: number;
-
-  @property({ attribute: false })
-  accessor selected = false;
-
-  @property({ attribute: false })
-  accessor startOffset!: number;
-
-  @property({ attribute: false })
-  accessor std!: BlockStdScope;
+  editor!: InlineEditor<MyoxusTextAttributes>;
+  endOffset!: number;
+  private active = false;
+  get selected() {
+    return this.active;
+  }
+  set selected(value: boolean) {
+    this.active = value;
+    this.firstElementChild?.setAttribute("data-selected", String(value));
+  }
+  startOffset!: number;
+  std!: BlockStdScope;
 }

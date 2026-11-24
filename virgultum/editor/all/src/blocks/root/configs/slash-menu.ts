@@ -79,8 +79,12 @@ function openFormattingMenu(
   mountInlinePopup(
     std,
     () => (live() ? editor.toDomRange(target) : null),
-    (controls) =>
-      chrome.renderActionMenu({ ...controls, label: resolved.label, actions }),
+    (anchor, controls) =>
+      chrome.mountActionMenu(anchor, {
+        ...controls,
+        label: resolved.label,
+        actions,
+      }),
     abort,
     () => {
       if (live()) {

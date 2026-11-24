@@ -127,7 +127,6 @@ export async function resumePageIntent(
             const widget = block.querySelector<
               import("@virgultum/editor/blocks/code").MyoxusCodeToolbarWidget
             >("myoxus-code-toolbar-widget");
-            await widget?.updateComplete;
             if (!signal.aborted) widget?.runPageCommand(intent.control);
           } else activateToolbar(editor, intent.control, signal);
         } else if (isPaste || intent.clipboard)

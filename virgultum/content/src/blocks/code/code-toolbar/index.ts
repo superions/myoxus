@@ -9,11 +9,11 @@ import type { CodeBlockModel } from "@virgultum/core/models";
 import {
   BlockSelection,
   TextSelection,
-  WidgetComponent,
+  NativeEditorWidget,
 } from "@virgultum/core/runtime";
-import { html } from "lit";
+import { positionPortal } from "@virgultum/core/view/portal";
 
-import type { CodeBlockComponent } from "../code-block";
+import { CodeBlockComponent } from "../code-block";
 import { CodeBlockToolbarContext } from "./context";
 import {
   createCodeToolbarControls,
@@ -21,22 +21,21 @@ import {
 } from "./controller";
 
 export const MYOXUS_CODE_TOOLBAR_WIDGET = "myoxus-code-toolbar-widget";
-export class MyoxusCodeToolbarWidget extends WidgetComponent<
-  CodeBlockModel,
-  CodeBlockComponent
-> {
-  private _hoverController: HoverController | null = null;
-
-  private _isActivated = false;
-
-  private readonly _setHoverController = () => {
-    this._hoverController = null;
-    this._hoverController = new HoverController(
+export class MyoxusCodeToolbarWidget extends NativeEditorWidget<CodeBlockModel> {
+  private get codeBlock() {
+    const block = this.block;
+    return block instanceof CodeBlockComponent ? block : null;
+  }
+  override connectedCallback() {
+    super.connectedCallback();
+    const codeBlock = this.codeBlock;
+    if (!codeBlock) return;
+    let activeMenu = false;
+    const hover = new HoverController(
       this,
       ({ abortController }) => {
-        const codeBlock = this.block;
         const chrome = this.std.getOptional(EditorChromeHostIdentifier);
-        if (!codeBlock || !chrome) {
+        if (!chrome) {
           return null;
         }
 
@@ -62,9 +61,9 @@ export class MyoxusCodeToolbarWidget extends WidgetComponent<
         }
 
         const setActive = (active: boolean) => {
-          this._isActivated = active;
-          if (!active && !this._hoverController?.isHovering) {
-            this._hoverController?.abort();
+          activeMenu = active;
+          if (!active && !hover.isHovering) {
+            hover.abort();
           }
         };
 
@@ -74,58 +73,62 @@ export class MyoxusCodeToolbarWidget extends WidgetComponent<
           setActive,
         );
 
-        return {
-          shadowDom: false,
-          template: html`${chrome.renderCodeToolbar(
-            createCodeToolbarControls(context, () => this.primaryActions.value),
-          )}`,
-          // Native controls must not participate in the document's caret tree.
-          container: this.host,
-          // stacking-context(editor-host)
-          portalStyles: {
-            zIndex: "var(--myoxus-z-index-popover)",
-          },
-          computePosition: {
-            referenceElement: codeBlock,
-            placement: "top",
-            middleware: [
-              // Canvas content scales; native chrome stays above it at normal UI density.
-              offset(({ rects }) => (edgeless ? 0 : -rects.floating.height)),
-              size({
-                apply({ rects, elements }) {
-                  elements.floating.style.width = edgeless
-                    ? "max-content"
-                    : `${rects.reference.width}px`;
-                },
-              }),
-              shift({
-                crossAxis: true,
-                padding: {
-                  bottom: 12,
-                  right: 12,
-                },
-                limiter: limitShift(),
-              }),
-            ],
-            autoUpdate: { animationFrame: true },
-          },
-        };
+        const anchor = this.ownerDocument.createElement("div");
+        anchor.className = "virgultum-portal";
+        anchor.setAttribute("data-range-sync-exclude", "true");
+        anchor.contentEditable = "false";
+        anchor.style.pointerEvents = "auto";
+        this.host.append(anchor);
+        abortController.signal.addEventListener(
+          "abort",
+          () => anchor.remove(),
+          { once: true },
+        );
+        const unmount = chrome.mountCodeToolbar(
+          anchor,
+          createCodeToolbarControls(context, () => this.primaryActions.value),
+        );
+        abortController.signal.addEventListener("abort", unmount, {
+          once: true,
+        });
+        return positionPortal(anchor, abortController, {
+          referenceElement: codeBlock,
+          placement: "top",
+          middleware: [
+            // Canvas content scales; native chrome stays above it at normal UI density.
+            offset(({ rects }) => (edgeless ? 0 : -rects.floating.height)),
+            size({
+              apply({ rects, elements }) {
+                elements.floating.style.width = edgeless
+                  ? "max-content"
+                  : `${rects.reference.width}px`;
+              },
+            }),
+            shift({
+              crossAxis: true,
+              padding: {
+                bottom: 12,
+                right: 12,
+              },
+              limiter: limitShift(),
+            }),
+          ],
+          autoUpdate: { animationFrame: true },
+        }).portal;
       },
       { allowMultiple: true },
     );
 
-    const codeBlock = this.block;
-    if (!codeBlock) {
-      return;
-    }
-    this._hoverController.setReference(codeBlock);
-    this._hoverController.onAbort = () => {
+    hover.hostConnected();
+    this.disposables.add(() => hover.hostDisconnected());
+    hover.setReference(codeBlock);
+    hover.onAbort = () => {
       // If the more menu is opened, don't close it.
-      if (this._isActivated) return;
-      this._hoverController?.abort();
+      if (activeMenu) return;
+      hover.abort();
       return;
     };
-  };
+  }
 
   private readonly primaryActions = signal<CodeToolbarActions[]>([]);
 
@@ -135,10 +138,11 @@ export class MyoxusCodeToolbarWidget extends WidgetComponent<
   /** Resume an optional Page command only after the receiving widget and its
    * configured extensions own the selected block. */
   runPageCommand(id: string) {
-    if (!this.isConnected || !this.block) return;
+    const block = this.codeBlock;
+    if (!this.isConnected || !block) return;
     const abort = new AbortController();
     this.disposables.add(() => abort.abort());
-    const context = new CodeBlockToolbarContext(this.block, abort, () => {});
+    const context = new CodeBlockToolbarContext(block, abort, () => {});
     const controls = createCodeToolbarControls(
       context,
       () => this.primaryActions.value,
@@ -153,10 +157,6 @@ export class MyoxusCodeToolbarWidget extends WidgetComponent<
       (a) => a.id === id,
     );
     if (action && !action.disabled && action.run)
-      action.run(this.block, new MouseEvent("click"));
-  }
-
-  override firstUpdated() {
-    this._setHoverController();
+      action.run(block, new MouseEvent("click"));
   }
 }

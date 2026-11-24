@@ -1,55 +1,13 @@
-import type { MyoxusTextAttributes } from "@virgultum/core/types";
-import { ShadowlessElement } from "@virgultum/core/runtime";
-import { ZERO_WIDTH_FOR_EMPTY_LINE } from "@virgultum/core/runtime/inline";
-import type { DeltaInsert } from "@virgultum/core/store";
-import { html } from "lit";
-import { property } from "lit/decorators.js";
-import { styleMap } from "lit/directives/style-map.js";
-
-export class LatexEditorUnit extends ShadowlessElement {
-  get latexMenu() {
-    return this.closest("latex-source-editor");
+import { HighlightedText } from "../../../syntax-highlighter/highlighted-text";
+export class LatexEditorUnit extends HighlightedText {
+  protected paint() {
+    const line = this.closest("v-element");
+    this.paintRuns(
+      (line &&
+        this.closest("latex-source-editor")?.highlightTokens$.value[
+          line.lineIndex
+        ]) ??
+        [],
+    );
   }
-
-  get vElement() {
-    return this.closest("v-element");
-  }
-
-  override render() {
-    const plainContent = html`<span
-      ><v-text .str=${this.delta.insert}></v-text
-    ></span>`;
-
-    const latexMenu = this.latexMenu;
-    const vElement = this.vElement;
-    if (!latexMenu || !vElement) {
-      return plainContent;
-    }
-
-    const lineIndex = this.vElement.lineIndex;
-    const tokens = latexMenu.highlightTokens$.value[lineIndex] ?? [];
-    if (
-      tokens.length === 0 ||
-      tokens.reduce((acc, token) => acc + token.content, "") !==
-        this.delta.insert
-    ) {
-      return plainContent;
-    }
-
-    return html`<span
-      >${tokens.map((token) => {
-        return html`<v-text
-          .str=${token.content}
-          style=${styleMap({
-            color: token.color,
-          })}
-        ></v-text>`;
-      })}</span
-    >`;
-  }
-
-  @property({ attribute: false })
-  accessor delta: DeltaInsert<MyoxusTextAttributes> = {
-    insert: ZERO_WIDTH_FOR_EMPTY_LINE,
-  };
 }

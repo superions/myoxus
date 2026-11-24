@@ -1,7 +1,43 @@
-import { unsafeCSSVar } from "@virgultum/core/theme";
-import { css } from "lit";
+import { cssVar } from "@myoxus/theme";
 
-export const paragraphBlockStyles = css`
+export const paragraphBlockStyles = `
+  .myoxus-paragraph-rich-text-wrapper > .heading-icon {
+    display: flex;
+    align-items: start;
+    margin-top: 0.3em;
+    position: absolute;
+    left: 0;
+    transform: translateX(-64px);
+    border-radius: 4px;
+    padding: 2px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+    pointer-events: none;
+
+    background: var(--myoxus-pure-white);
+    color: var(--myoxus-icon-color);
+    box-shadow:
+      var(--Shadow-buttonShadow-1-x, 0px) var(--Shadow-buttonShadow-1-y, 0px)
+        var(--Shadow-buttonShadow-1-blur, 1px) 0px
+        var(--Shadow-buttonShadow-1-color, rgba(0, 0, 0, 0.12)),
+      var(--Shadow-buttonShadow-2-x, 0px) var(--Shadow-buttonShadow-2-y, 1px)
+        var(--Shadow-buttonShadow-2-blur, 5px) 0px
+        var(--Shadow-buttonShadow-2-color, rgba(0, 0, 0, 0.12));
+  }
+
+  .with-drag-handle .heading-icon {
+    opacity: 1;
+  }
+
+  .myoxus-paragraph-block-container[data-has-collapsed-siblings="false"]
+    > .myoxus-paragraph-rich-text-wrapper > .heading-icon {
+    transform: translateX(-48px);
+  }
+  .myoxus-paragraph-rich-text-wrapper > .heading-icon svg {
+    width: 20px;
+    height: 20px;
+  }
   myoxus-paragraph {
     box-sizing: border-box;
     display: block;
@@ -19,8 +55,8 @@ export const paragraphBlockStyles = css`
   }
 
   .myoxus-paragraph-block-container.highlight-comment {
-    background-color: ${unsafeCSSVar("backgroundProcessingColor")};
-    outline: 2px solid ${unsafeCSSVar("primaryColor")};
+    background-color: ${cssVar("backgroundProcessingColor")};
+    outline: 2px solid ${cssVar("primaryColor")};
   }
 
   myoxus-paragraph code {

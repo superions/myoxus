@@ -52,7 +52,8 @@ export class ParagraphViewExtension extends ViewExtensionProvider<
   ) {
     super.setup(context, options);
     const getPlaceholder =
-      options?.getPlaceholder ?? ((model) => placeholders[model.props.type]);
+      options?.getPlaceholder ??
+      ((model) => placeholders[model.props.type$.value]);
 
     context.register([
       FlavourExtension("myoxus:paragraph"),

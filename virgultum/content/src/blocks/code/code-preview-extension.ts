@@ -1,14 +1,13 @@
 import { createIdentifier } from "@virgultum/core/primitives/di";
 import type { CodeBlockModel } from "@virgultum/core/models";
 import type { ExtensionType } from "@virgultum/core/store";
-import type { HTMLTemplateResult } from "lit";
 
 import type { CodeBlockComponent } from "./code-block";
 
 export type CodeBlockPreviewRenderer = (
   model: CodeBlockModel,
-  blockComponent?: CodeBlockComponent,
-) => HTMLTemplateResult | null;
+  blockComponent: CodeBlockComponent,
+) => HTMLElement;
 
 export type CodeBlockPreviewContext = {
   renderer: CodeBlockPreviewRenderer;

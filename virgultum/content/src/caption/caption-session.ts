@@ -1,20 +1,22 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
-import { signal } from "@preact/signals-core";
-import { SignalWatcher } from "@virgultum/core/primitives/lit";
-import { EditorChromeHostIdentifier } from "@virgultum/core/services";
+import { computed, effect, signal } from "@preact/signals-core";
+import {
+  EditorChromeHostIdentifier,
+  type EditorBlockCaptionControls,
+} from "@virgultum/core/services";
 import {
   type BlockStdScope,
-  ShadowlessElement,
+  NativeViewElement,
+  installEditorStyles,
   TextSelection,
 } from "@virgultum/core/runtime";
 import { type BlockModel, Text } from "@virgultum/core/store";
-import { nothing } from "lit";
-import { captionStyles, renderReadonlyCaption } from "./block-caption";
+import { captionStyles } from "./block-caption";
 
 /** One block-scoped input session; only the native view owns focus and input chrome. */
-export class BlockCaptionEditor extends SignalWatcher(ShadowlessElement) {
-  static override styles = captionStyles;
+export class BlockCaptionEditor extends NativeViewElement {
+  private release?: () => void;
   private shown = signal(false);
   private focusRequest = signal(0);
   private valid = () =>
@@ -54,13 +56,24 @@ export class BlockCaptionEditor extends SignalWatcher(ShadowlessElement) {
     ]);
     return true;
   };
-  override render() {
-    const caption = this.model.props.caption$.value ?? "";
+  connectedCallback() {
     const chrome = this.std.getOptional(EditorChromeHostIdentifier);
-    if (!chrome) return renderReadonlyCaption(caption);
-    if (!this.shown.value && !caption) return nothing;
-    return chrome.renderBlockCaption({
-      // Read the notifying signal; legacy raw props update afterward.
+    if (!chrome) {
+      installEditorStyles(this, captionStyles);
+      const caption = this.ownerDocument.createElement("figcaption");
+      caption.className = "block-caption-static";
+      this.release = effect(() => {
+        const value = this.model.props.caption$.value;
+        if (!value) {
+          caption.remove();
+          return;
+        }
+        caption.textContent = value;
+        if (!caption.parentNode) this.append(caption);
+      });
+      return;
+    }
+    const controls = computed<EditorBlockCaptionControls>(() => ({
       getSnapshot: () => this.model.props.caption$.value ?? "",
       subscribe: (listener) => this.model.props.caption$.subscribe(listener),
       readonly: this.model.store.readonly,
@@ -70,7 +83,17 @@ export class BlockCaptionEditor extends SignalWatcher(ShadowlessElement) {
       setFocused: (focused) => {
         this.shown.value = focused;
       },
-    });
+    }));
+    const visible = computed(
+      () => this.shown.value || Boolean(this.model.props.caption$.value),
+    );
+    this.release = effect(() =>
+      visible.value ? chrome.mountBlockCaption(this, controls) : undefined,
+    );
+  }
+  disconnectedCallback() {
+    this.release?.();
+    this.release = undefined;
   }
   model!: BlockModel<{
     caption: string | null | undefined;

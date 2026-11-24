@@ -35,8 +35,8 @@ export function openLinkEditor(
   mountInlinePopup(
     std,
     () => (valid() ? editor.toDomRange(range) : null),
-    (controls) =>
-      host.renderLinkEditor({
+    (anchor, controls) =>
+      host.mountLinkEditor(anchor, {
         ...controls,
         editing: type !== "create",
         text: originalText,

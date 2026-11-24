@@ -48,7 +48,7 @@ import { EditorActionMenu } from "./action-menu";
 import { EditorEmbedCardCreate } from "./embed-card-create";
 import { EditorEmbedCardEdit } from "./embed-card-edit";
 import { EditorEquation } from "./equation-editor";
-import { EditorBlockCaption } from "./block-caption";
+import { RegisteredBlockCaption } from "./block-caption";
 import { EditorCitationPreview } from "./citation-preview";
 import { EditorDocumentOutline, EditorOutlineEntry } from "./document-outline";
 import {
@@ -69,6 +69,10 @@ export function patchEditorChromeHost(
     ) =>
     (controls: Controls) =>
       reactToLit(<View controls={controls} />, true, decorator);
+  const mountControl =
+    <Controls,>(View: ComponentType<{ controls: Controls }>) =>
+    (anchor: HTMLElement, controls: Controls) =>
+      mountPortal(anchor, <View controls={controls} />);
   return EditorChromeHostExtension({
     renderTableControl: renderControl(
       EditorTableControl,
@@ -166,20 +170,21 @@ export function patchEditorChromeHost(
     renderOutlineEntry: (controls) =>
       reactToLit(<EditorOutlineEntry {...controls} />, true),
     renderCitationPreview: renderControl(EditorCitationPreview),
-    renderBlockCaption: renderControl(EditorBlockCaption),
-    renderEquation: renderControl(EditorEquation),
-    renderEmbedCardEdit: renderControl(EditorEmbedCardEdit),
-    renderEmbedCardCreate: renderControl(EditorEmbedCardCreate),
-    renderActionMenu: renderControl(EditorActionMenu),
-    renderAttachmentRename: renderControl(EditorAttachmentRename),
-    renderCodeToolbar: renderControl(EditorCodeToolbar),
+    mountBlockCaption: (anchor, state) =>
+      mountPortal(anchor, <RegisteredBlockCaption state={state} />),
+    mountEquation: mountControl(EditorEquation),
+    mountEmbedCardEdit: mountControl(EditorEmbedCardEdit),
+    mountEmbedCardCreate: mountControl(EditorEmbedCardCreate),
+    mountActionMenu: mountControl(EditorActionMenu),
+    mountAttachmentRename: mountControl(EditorAttachmentRename),
+    mountCodeToolbar: mountControl(EditorCodeToolbar),
     mountImport: (container, controls) =>
       mountPortal(container, <EditorImportDialog controls={controls} />),
     renderDocumentPicker: renderControl(EditorDocumentPicker),
     renderIframeStatusCard: renderControl(EditorIframeStatusCard),
-    renderIframeLinkEditor: renderControl(EditorIframeLinkEditor),
-    renderLinkEditor: renderControl(EditorLinkEditor),
-    renderReferenceEditor: renderControl(EditorReferenceEditor),
+    mountIframeLinkEditor: mountControl(EditorIframeLinkEditor),
+    mountLinkEditor: mountControl(EditorLinkEditor),
+    mountReferenceEditor: mountControl(EditorReferenceEditor),
     renderSelection: renderControl(EditorSelectionToolbar),
     renderSlash: renderControl(EditorSlashMenu),
     mountCanvasTool: (anchor, controls) =>

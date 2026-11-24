@@ -66,8 +66,8 @@ export function toggleEmbedCardEditModal(
   mountInlinePopup(
     std,
     () => (valid() ? block! : null),
-    (controls) =>
-      chrome.renderEmbedCardEdit({
+    (anchor, controls) =>
+      chrome.mountEmbedCardEdit(anchor, {
         ...controls,
         title: original.title || originalDocInfo?.title || "",
         description: original.description || originalDocInfo?.description || "",

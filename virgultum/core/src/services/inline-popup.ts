@@ -3,7 +3,6 @@
 
 import { autoUpdate, type ReferenceElement } from "@floating-ui/dom";
 import type { BlockStdScope } from "../runtime/index";
-import { render, nothing, type TemplateResult } from "lit";
 import type { EditorInlinePopupControls } from "./editor-chrome-host";
 
 const activePopups = new WeakMap<Document, AbortController>();
@@ -12,7 +11,10 @@ const activePopups = new WeakMap<Document, AbortController>();
 export function mountInlinePopup(
   std: BlockStdScope,
   getTarget: () => Range | ReferenceElement | null,
-  view: (controls: EditorInlinePopupControls) => TemplateResult,
+  mount: (
+    anchor: HTMLElement,
+    controls: EditorInlinePopupControls,
+  ) => () => void,
   abort: AbortController,
   restoreFocus: () => void,
 ) {
@@ -37,6 +39,7 @@ export function mountInlinePopup(
     root.append(highlightStyle);
     CSS.highlights.set("myoxus-inline-popup", rangeHighlight);
   }
+  let release: (() => void) | undefined;
   let stopPositioning: (() => void) | undefined;
   const observer = new MutationObserver(() => {
     if (!std.host.isConnected) abort.abort();
@@ -47,7 +50,7 @@ export function mountInlinePopup(
     () => {
       observer.disconnect();
       stopPositioning?.();
-      render(nothing, root);
+      release?.();
       root.remove();
       if (rangeHighlight) CSS.highlights.delete("myoxus-inline-popup");
       activePopups.delete(doc);
@@ -58,8 +61,8 @@ export function mountInlinePopup(
     },
     { once: true },
   );
-  render(
-    view({
+  try {
+    release = mount(root, {
       close: () => abort.abort(),
       setAnchor: (anchor) => {
         stopPositioning?.();
@@ -95,7 +98,10 @@ export function mountInlinePopup(
         );
         if (abort.signal.aborted) stopPositioning();
       },
-    }),
-    root,
-  );
+    });
+    if (abort.signal.aborted) release();
+  } catch (error) {
+    abort.abort();
+    throw error;
+  }
 }

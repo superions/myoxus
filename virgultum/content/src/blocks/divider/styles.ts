@@ -1,6 +1,4 @@
-import { css } from "lit";
-
-export const dividerBlockStyles = css`
+export const dividerBlockStyles = `
   .myoxus-divider-block-container {
     position: relative;
     width: 100%;

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
+import { useSignalValue } from "@myoxus/core/modules/doc-info/utils";
 import { OverviewRegisterConfiguration } from "@myoxus/core/desktop/pages/workspace/overview/register-configuration";
 import { useWorkspaceOverviewRead } from "@myoxus/core/desktop/pages/workspace/overview/read";
 import {
@@ -172,11 +173,13 @@ export function Configuration({
 
 export function Directory({
   model,
-  readonly,
+  readonly: viewReadonly = false,
 }: {
   model: DocumentIndexBlockModel;
-  readonly: boolean;
+  readonly?: boolean;
 }) {
+  const storeReadonly = useSignalValue(model.store.readonly$);
+  const readonly = viewReadonly || storeReadonly;
   const t = useI18n();
   const {
     workspaceService,

@@ -1,43 +1,38 @@
-import { computed, effect, signal } from "@preact/signals-core";
-import { CaptionedBlockComponent } from "../../caption/index";
-import { TOGGLE_BUTTON_PARENT_CLASS } from "@virgultum/core/consts";
-import { DefaultInlineManagerExtension } from "../../inlines/preset/index";
-import type { ParagraphBlockModel } from "@virgultum/core/models";
-import type { RichText } from "../../rich-text/index";
 import {
-  BLOCK_CHILDREN_CONTAINER_PADDING_LEFT,
-  EDGELESS_TOP_CONTENTEDITABLE_SELECTOR,
-} from "@virgultum/core/consts";
+  Heading1Icon,
+  Heading2Icon,
+  Heading3Icon,
+  Heading4Icon,
+  Heading5Icon,
+  Heading6Icon,
+} from "@myoxus/icons/native";
+import { computed, effect, signal } from "@preact/signals-core";
+import type { ParagraphBlockModel } from "@virgultum/core/models";
 import {
   BlockElementCommentManager,
   CitationProvider,
-  DocModeProvider,
-  EditorI18nProvider,
-  textProtectionHint,
 } from "@virgultum/core/services";
 import {
   calculateCollapsedSiblings,
   getNearestHeadingBefore,
-  getViewportElement,
 } from "@virgultum/core/utils";
-import { type BlockComponent, TextSelection } from "@virgultum/core/runtime";
-import {
-  getInlineRangeProvider,
-  type InlineRangeProvider,
-} from "@virgultum/core/runtime/inline";
-import { html, nothing, type TemplateResult } from "lit";
-import { query, state } from "lit/decorators.js";
-import { classMap } from "lit/directives/class-map.js";
-import { repeat } from "lit/directives/repeat.js";
-import { styleMap } from "lit/directives/style-map.js";
-import { unsafeHTML } from "lit/directives/unsafe-html.js";
+import { TextSelection } from "@virgultum/core/runtime";
+import { TextBlock } from "../../rich-text/text-block";
 
 import { ParagraphBlockConfigExtension } from "./paragraph-block-config";
 import { paragraphBlockStyles } from "./styles";
 
-export class ParagraphBlockComponent extends CaptionedBlockComponent<ParagraphBlockModel> {
-  static override styles = paragraphBlockStyles;
+const headingIcons = {
+  h1: Heading1Icon,
+  h2: Heading2Icon,
+  h3: Heading3Icon,
+  h4: Heading4Icon,
+  h5: Heading5Icon,
+  h6: Heading6Icon,
+};
 
+export class ParagraphBlockComponent extends TextBlock<ParagraphBlockModel> {
+  protected readonly blockStyles = paragraphBlockStyles;
   focused$ = computed(() => {
     const selection = this.std.selection.value.find(
       (selection) => selection.blockId === this.model?.id,
@@ -47,21 +42,6 @@ export class ParagraphBlockComponent extends CaptionedBlockComponent<ParagraphBl
   });
 
   private readonly _composing = signal(false);
-
-  private readonly _displayPlaceholder = signal(false);
-
-  private _inlineRangeProvider: InlineRangeProvider | null = null;
-
-  private readonly _isInDatabase = () => {
-    let parent = this.parentElement;
-    while (parent && parent !== document.body) {
-      if (parent.tagName.toLowerCase() === "myoxus-database") {
-        return true;
-      }
-      parent = parent.parentElement;
-    }
-    return false;
-  };
 
   private get _placeholder() {
     return this.std
@@ -73,20 +53,8 @@ export class ParagraphBlockComponent extends CaptionedBlockComponent<ParagraphBl
     return this.std.get(CitationProvider);
   }
 
-  get attributeRenderer() {
-    return this.inlineManager.getRenderer();
-  }
-
-  get attributesSchema() {
-    return this.inlineManager.getSchema();
-  }
-
   get collapsedSiblings() {
     return calculateCollapsedSiblings(this.model);
-  }
-
-  get embedChecker() {
-    return this.inlineManager.embedChecker;
   }
 
   get inEdgelessText() {
@@ -94,14 +62,6 @@ export class ParagraphBlockComponent extends CaptionedBlockComponent<ParagraphBl
       this.topContenteditableElement?.tagName.toLowerCase() ===
       "myoxus-edgeless-text"
     );
-  }
-
-  get inlineEditor() {
-    return this._richTextElement?.inlineEditor;
-  }
-
-  get inlineManager() {
-    return this.std.get(DefaultInlineManagerExtension.identifier);
   }
 
   get hasCitationSiblings() {
@@ -118,17 +78,21 @@ export class ParagraphBlockComponent extends CaptionedBlockComponent<ParagraphBl
     );
   }
 
-  override get topContenteditableElement() {
-    if (this.std.get(DocModeProvider).getEditorMode() === "edgeless") {
-      return this.closest<BlockComponent>(
-        EDGELESS_TOP_CONTENTEDITABLE_SELECTOR,
-      );
-    }
-    return this.rootComponent;
+  protected showDisclosure() {
+    return (
+      this.model.props.type$.value.startsWith("h") &&
+      this.collapsedSiblings.length > 0
+    );
   }
-
-  override connectedCallback() {
-    super.connectedCallback();
+  protected override setCollapsed(value: boolean) {
+    super.setCollapsed(value);
+    if (this.hasCitationSiblings)
+      this.citationService.trackEvent("Expand", {
+        control: "Source Button",
+        type: value ? "Hide" : "Show",
+      });
+  }
+  protected mountControls(container: HTMLElement, line: HTMLElement) {
     this.handleEvent(
       "compositionStart",
       () => {
@@ -144,38 +108,6 @@ export class ParagraphBlockComponent extends CaptionedBlockComponent<ParagraphBl
       { flavour: true },
     );
 
-    this._inlineRangeProvider = getInlineRangeProvider(this);
-
-    this.disposables.add(
-      effect(() => {
-        const composing = this._composing.value;
-        if (composing || this.store.readonly) {
-          this._displayPlaceholder.value = false;
-          return;
-        }
-        const textSelection = this.host.selection.find(TextSelection);
-        const isCollapsed = textSelection?.isCollapsed() ?? false;
-        if (!this.focused$.value || !isCollapsed) {
-          this._displayPlaceholder.value = false;
-          return;
-        }
-
-        this.updateComplete
-          .then(() => {
-            if (
-              (this.inlineEditor?.yTextLength ?? 0) > 0 ||
-              this._isInDatabase()
-            ) {
-              this._displayPlaceholder.value = false;
-              return;
-            }
-            this._displayPlaceholder.value = true;
-            return;
-          })
-          .catch(console.error);
-      }),
-    );
-
     this.disposables.add(
       effect(() => {
         const type = this.model.props.type$.value;
@@ -188,7 +120,6 @@ export class ParagraphBlockComponent extends CaptionedBlockComponent<ParagraphBl
     this.disposables.add(
       effect(() => {
         const collapsed = this.model.props.collapsed$.value;
-        this._readonlyCollapsed = collapsed;
 
         // reset text selection when selected block is collapsed
         if (this.model.props.type$.value.startsWith("h") && collapsed) {
@@ -229,164 +160,73 @@ export class ParagraphBlockComponent extends CaptionedBlockComponent<ParagraphBl
         beforeType = type;
       }),
     );
-  }
 
-  override async getUpdateComplete() {
-    const result = await super.getUpdateComplete();
-    await this._richTextElement?.updateComplete;
-    return result;
-  }
-
-  override renderBlock(): TemplateResult<1> {
-    const widgets = html`${repeat(
-      Object.entries(this.widgets),
-      ([id]) => id,
-      ([_, widget]) => widget,
-    )}`;
-
-    const { type$ } = this.model.props;
-    const collapsed = this.store.readonly
-      ? this._readonlyCollapsed
-      : this.model.props.collapsed;
-    const collapsedSiblings = this.collapsedSiblings;
-
-    let style = html``;
-    if (this.model.props.type$.value.startsWith("h") && collapsed) {
-      style = html`
-        <style>
-          ${collapsedSiblings.map((sibling) =>
-            unsafeHTML(`
-              [data-block-id="${sibling.id}"] {
-                display: none !important;
-              }
-            `),
-          )}
-        </style>
-      `;
-    }
-
-    const textAlignStyle = styleMap({
-      textAlign: this.model.props.textAlign$?.value,
-    });
-
-    const children = html`<div
-      class="myoxus-block-children-container"
-      style=${styleMap({
-        paddingLeft: `${BLOCK_CHILDREN_CONTAINER_PADDING_LEFT}px`,
-        display: collapsed ? "none" : undefined,
-      })}
-    >
-      ${this.renderChildren(this.model)}
-    </div>`;
-
-    return html`
-      ${style}
-      <style>
-        .myoxus-paragraph-block-container[data-has-collapsed-siblings="false"]
-          myoxus-paragraph-heading-icon
-          .heading-icon {
-          transform: translateX(-48px);
+    const doc = this.ownerDocument;
+    const heading = doc.createElement("div");
+    heading.className = "heading-icon";
+    const placeholder = doc.createElement("div");
+    placeholder.contentEditable = "false";
+    placeholder.className = "myoxus-paragraph-placeholder";
+    if (!this.inEdgelessText) line.append(placeholder);
+    const visibility = doc.createElement("style");
+    let previousType = "";
+    this.disposables.add(
+      effect(() => {
+        const type = this.model.props.type$.value;
+        if (previousType) line.classList.remove(previousType);
+        line.classList.add(type);
+        previousType = type;
+        line.classList.toggle(
+          "eyebrow",
+          type === "text" &&
+            this.model.props.presentation$?.value === "eyebrow",
+        );
+        container.classList.toggle(
+          "highlight-comment",
+          this.isCommentHighlighted,
+        );
+        const siblings = type.startsWith("h") ? this.collapsedSiblings : [];
+        container.dataset.hasCollapsedSiblings = String(siblings.length > 0);
+        if (type !== "text" && type !== "quote") {
+          if (heading.dataset.testid !== "heading-icon-" + type.slice(1)) {
+            heading.dataset.testid = "heading-icon-" + type.slice(1);
+            heading.innerHTML = headingIcons[type];
+          }
+          if (!heading.parentNode) line.prepend(heading);
+        } else heading.remove();
+        if (type.startsWith("h") && this.collapsed && siblings.length) {
+          container.setAttribute("data-heading-folded", "");
+          const owner =
+            'myoxus-paragraph[data-block-id="' +
+            CSS.escape(this.blockId) +
+            '"]:has(> .myoxus-block-component > [data-heading-folded]) ~ ';
+          visibility.textContent =
+            siblings
+              .map(
+                (sibling) =>
+                  owner + '[data-block-id="' + CSS.escape(sibling.id) + '"]',
+              )
+              .join(",") + "{display:none!important}";
+          if (!visibility.parentNode) container.append(visibility);
+        } else {
+          visibility.remove();
+          container.removeAttribute("data-heading-folded");
         }
-      </style>
-      <div
-        class=${classMap({
-          "myoxus-paragraph-block-container": true,
-          "highlight-comment": this.isCommentHighlighted,
-        })}
-        style="${textAlignStyle}"
-        data-has-collapsed-siblings="${collapsedSiblings.length > 0}"
-      >
-        <div
-          class=${classMap({
-            "myoxus-paragraph-rich-text-wrapper": true,
-            [type$.value]: true,
-            eyebrow:
-              type$.value === "text" &&
-              this.model.props.presentation === "eyebrow",
-            [TOGGLE_BUTTON_PARENT_CLASS]: true,
-          })}
-        >
-          ${
-            this.model.props.type$.value.startsWith("h")
-              ? html`
-                  <myoxus-paragraph-heading-icon
-                    .model=${this.model}
-                  ></myoxus-paragraph-heading-icon>
-                `
-              : nothing
-          }
-          ${
-            this.model.props.type$.value.startsWith("h") &&
-            collapsedSiblings.length > 0
-              ? html`
-                  <virgultum-toggle-button
-                    .collapsed=${collapsed}
-                    .updateCollapsed=${(value: boolean) => {
-                      if (this.store.readonly) {
-                        this._readonlyCollapsed = value;
-                      } else {
-                        this.store.captureSync();
-                        this.store.updateBlock(this.model, {
-                          collapsed: value,
-                        });
-                      }
-
-                      if (this.hasCitationSiblings) {
-                        this.citationService.trackEvent("Expand", {
-                          control: "Source Button",
-                          type: value ? "Hide" : "Show",
-                        });
-                      }
-                    }}
-                  ></virgultum-toggle-button>
-                `
-              : nothing
-          }
-          <rich-text
-            .yText=${this.model.props.text.yText}
-            .inlineEventSource=${this.topContenteditableElement ?? nothing}
-            .undoManager=${this.store.history.undoManager}
-            .attributesSchema=${this.attributesSchema}
-            .attributeRenderer=${this.attributeRenderer}
-            .markdownMatches=${this.inlineManager?.markdownMatches}
-            .embedChecker=${this.embedChecker}
-            .readonly=${this.store.readonly || this.model.props.textProtection === "fixed"}
-            title=${textProtectionHint(this.model.props.textProtection, this.std.getOptional(EditorI18nProvider) ?? undefined)}
-            .inlineRangeProvider=${this._inlineRangeProvider}
-            .enableClipboard=${false}
-            .enableUndoRedo=${false}
-            .verticalScrollContainerGetter=${() =>
-              getViewportElement(this.host)}
-          ></rich-text>
-          ${
-            this.inEdgelessText
-              ? nothing
-              : html`
-                  <div
-                    contenteditable="false"
-                    class=${classMap({
-                      "myoxus-paragraph-placeholder": true,
-                      visible: this._displayPlaceholder.value,
-                    })}
-                  >
-                    ${this._placeholder}
-                  </div>
-                `
-          }
-        </div>
-
-        ${children} ${widgets}
-      </div>
-    `;
+      }),
+    );
+    this.disposables.add(
+      effect(() => {
+        placeholder.textContent = this._placeholder ?? "";
+        placeholder.classList.toggle(
+          "visible",
+          !this.store.readonly &&
+            !this._composing.value &&
+            this.focused$.value &&
+            this.host.selection.find(TextSelection)?.isCollapsed() === true &&
+            this.model.props.text$.value.length === 0 &&
+            !this.closest("myoxus-database"),
+        );
+      }),
+    );
   }
-
-  @state()
-  private accessor _readonlyCollapsed = false;
-
-  @query("rich-text")
-  private accessor _richTextElement: RichText | null = null;
-
-  override accessor blockContainerStyles = {
-    margin: "var(--myoxus-paragraph-margin, 10px 0)",
-  };
 }

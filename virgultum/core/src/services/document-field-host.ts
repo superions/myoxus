@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { createIdentifier } from "../primitives/di/index";
-import type { TemplateResult } from "lit";
+import type { ReadonlySignal } from "@preact/signals-core";
 import type { DocumentField } from "../types/document-field";
 
 /** The host projects one native occurrence; the Y.Text descriptor remains the
@@ -24,7 +24,10 @@ export interface DocumentFieldInlineHostProps {
 }
 
 export interface DocumentFieldReactHost {
-  renderInline(props: DocumentFieldInlineHostProps): TemplateResult;
+  mountInline(
+    anchor: HTMLElement,
+    state: ReadonlySignal<DocumentFieldInlineHostProps | undefined>,
+  ): () => void;
 }
 
 export const DocumentFieldReactHostIdentifier =

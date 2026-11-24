@@ -134,8 +134,8 @@ export class MyoxusEditorViewExtension extends ViewExtensionProvider<MyoxusEdito
         buildDocDisplayMetaExtension(framework),
         patchDocEmbedService(framework),
         patchDocumentFieldOutput(framework),
-        patchDocumentIndex(framework, reactToLit),
-        patchDocumentFieldHost(reactToLit),
+        patchDocumentIndex(framework, options.mountPortal),
+        patchDocumentFieldHost(options.mountPortal),
         patchForAudioEmbedView(reactToLit),
         patchTextAttachmentPreview(reactToLit),
         ...(options.mountPortal
@@ -147,7 +147,10 @@ export class MyoxusEditorViewExtension extends ViewExtensionProvider<MyoxusEdito
               ),
             ]
           : []),
-        patchAnnotationHost(reactToLit, options.showAnnotations ?? false),
+        patchAnnotationHost(
+          options.mountPortal,
+          options.showAnnotations ?? false,
+        ),
         patchCalloutTitleHost(reactToLit),
         patchFootnoteHost(reactToLit),
         patchEditorChromeHost(reactToLit, options.mountPortal),

@@ -2,7 +2,7 @@ import { createElement } from "react";
 import { WithDisposable } from "@virgultum/editor/global/lit";
 import { scrollbarStyle } from "@virgultum/editor/shared/styles";
 import { ShadowlessElement } from "@virgultum/editor/std";
-import { css, html, type PropertyValues } from "lit";
+import { css, html, type PropertyValues, unsafeCSS } from "lit";
 import { property, query } from "lit/decorators.js";
 import throttle from "lodash-es/throttle";
 
@@ -20,7 +20,7 @@ export class AIScrollableTextRenderer extends WithDisposable(
       overflow-y: auto;
     }
 
-    ${scrollbarStyle(".ai-scrollable-text-renderer")};
+    ${unsafeCSS(scrollbarStyle(".ai-scrollable-text-renderer"))};
   `;
 
   private _lastScrollHeight = 0;

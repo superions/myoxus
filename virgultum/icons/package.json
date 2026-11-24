@@ -31,6 +31,10 @@
       "import": "./dist/keywords/*",
       "require": "./dist/keywords/*"
     },
+    "./native": {
+      "types": "./dist/native.d.ts",
+      "import": "./dist/native.mjs"
+    },
     "./outline": {
       "types": "./dist/outline.d.ts",
       "import": "./dist/outline.mjs"

@@ -8,7 +8,8 @@ import {
   NotificationProvider,
 } from "@virgultum/core/services";
 import { computed, effect, type Signal, signal } from "@preact/signals-core";
-import { CaptionedBlockComponent } from "../../caption/index";
+import { selectionFrame } from "../../caption/selection-frame";
+import type { BlockCaptionEditor } from "../../caption/caption-session";
 import { IS_MAC, IS_MOBILE } from "@virgultum/core/primitives/env";
 import { noop } from "@virgultum/core/primitives/utils";
 import type { CodeBlockModel } from "@virgultum/core/models";
@@ -20,6 +21,7 @@ import {
 
 import { getViewportElement } from "@virgultum/core/utils";
 import {
+  NativeContainerBlock,
   type BlockComponent,
   BlockSelection,
   TextSelection,
@@ -27,14 +29,9 @@ import {
 import {
   getInlineRangeProvider,
   INLINE_ROOT_ATTR,
-  type InlineRangeProvider,
   type InlineRootElement,
 } from "@virgultum/core/runtime/inline";
 import { Slice } from "@virgultum/core/store";
-import { html, nothing, type TemplateResult } from "lit";
-import { query } from "lit/decorators.js";
-import { classMap } from "lit/directives/class-map.js";
-import { styleMap } from "lit/directives/style-map.js";
 import {
   bundledLanguagesInfo,
   type ThemedToken,
@@ -46,7 +43,7 @@ import { CodeBlockHighlighter } from "./code-block-service";
 import { CodeBlockPreviewIdentifier } from "./code-preview-extension";
 import { codeBlockStyles } from "./styles";
 
-export class CodeBlockComponent extends CaptionedBlockComponent<CodeBlockModel> {
+export class CodeBlockComponent extends NativeContainerBlock<CodeBlockModel> {
   private _text(message: EditorI18nMessage) {
     return resolveEditorMessage(
       message,
@@ -54,9 +51,7 @@ export class CodeBlockComponent extends CaptionedBlockComponent<CodeBlockModel> 
     );
   }
 
-  static override styles = codeBlockStyles;
-
-  private _inlineRangeProvider: InlineRangeProvider | null = null;
+  protected readonly blockStyles = codeBlockStyles;
 
   private readonly _localPreview$ = signal<boolean | null>(null);
 
@@ -198,9 +193,7 @@ export class CodeBlockComponent extends CaptionedBlockComponent<CodeBlockModel> 
     }
   }
 
-  override connectedCallback() {
-    super.connectedCallback();
-
+  private bindEditing() {
     // set highlight options getter used by "exportToHtml"
     this.disposables.add(
       effect(() => {
@@ -419,8 +412,6 @@ export class CodeBlockComponent extends CaptionedBlockComponent<CodeBlockModel> 
         return true;
       },
     });
-
-    this._inlineRangeProvider = getInlineRangeProvider(this);
   }
 
   copyCode() {
@@ -456,81 +447,86 @@ export class CodeBlockComponent extends CaptionedBlockComponent<CodeBlockModel> 
     );
   }
 
-  override async getUpdateComplete() {
-    const result = await super.getUpdateComplete();
-    await this._richTextElement?.updateComplete;
-    return result;
+  private get _richTextElement() {
+    return this.querySelector<RichText>("rich-text");
+  }
+  get captionEditor() {
+    return this.querySelector<BlockCaptionEditor>("block-caption-editor");
+  }
+  override get updateComplete() {
+    return Promise.all([
+      super.updateComplete,
+      this._richTextElement?.updateComplete,
+    ]).then(([complete]) => complete);
   }
 
-  override renderBlock(): TemplateResult<1> {
-    const showLineNumbers =
-      (this.std.getOptional(CodeBlockConfigExtension.identifier)
-        ?.showLineNumbers ??
-        true) &&
-      (this.model.props.lineNumber ?? true);
-
-    const preview = this.preview$.value;
-    const previewContext = this.std.getOptional(
-      CodeBlockPreviewIdentifier(this.model.props.language ?? ""),
+  protected mountBody() {
+    const doc = this.ownerDocument;
+    const container = doc.createElement("div");
+    container.className = "myoxus-code-block-container";
+    container.classList.toggle("mobile", IS_MOBILE);
+    const input = doc.createElement("rich-text");
+    input.inlineEventSource = this.topContenteditableElement ?? undefined;
+    input.undoManager = this.store.history.undoManager;
+    input.attributesSchema = this.inlineManager.getSchema();
+    input.attributeRenderer = this.inlineManager.getRenderer();
+    input.inlineRangeProvider = getInlineRangeProvider(this) ?? undefined;
+    input.enableClipboard = false;
+    input.enableUndoRedo = false;
+    input.verticalScrollContainerGetter = () => getViewportElement(this.host);
+    input.lineNumbers = true;
+    const preview = doc.createElement("div");
+    preview.className = "myoxus-code-block-preview";
+    preview.contentEditable = "false";
+    container.append(input, preview);
+    const frame = selectionFrame(this, container, true);
+    frame.style.margin = "18px 0";
+    const caption = doc.createElement("block-caption-editor");
+    caption.model = this.model;
+    caption.std = this.std;
+    container.after(caption);
+    const config = this.std.getOptional(CodeBlockConfigExtension.identifier);
+    this.disposables.add(
+      effect(() => {
+        const props = this.model.props;
+        input.yText = props.text$.value.yText;
+        input.readonly = this.store.readonly;
+        input.wrapText = props.wrap$.value;
+        container.classList.toggle("wrap", input.wrapText);
+        container.classList.toggle(
+          "highlight-comment",
+          this.isCommentHighlighted,
+        );
+        container.classList.toggle(
+          "disable-line-numbers",
+          config?.showLineNumbers === false ||
+            props.lineNumber$?.value === false,
+        );
+      }),
     );
-    const shouldRenderPreview = preview && previewContext;
-
-    return html`
-      <div
-        class=${classMap({
-          "myoxus-code-block-container": true,
-          "highlight-comment": this.isCommentHighlighted,
-          mobile: IS_MOBILE,
-          wrap: this.model.props.wrap,
-          "disable-line-numbers": !showLineNumbers,
-        })}
-      >
-        <rich-text
-          style=${styleMap({
-            display: shouldRenderPreview ? "none" : undefined,
-          })}
-          .yText=${this.model.props.text.yText}
-          .inlineEventSource=${this.topContenteditableElement ?? nothing}
-          .undoManager=${this.store.history.undoManager}
-          .attributesSchema=${this.inlineManager.getSchema()}
-          .attributeRenderer=${this.inlineManager.getRenderer()}
-          .readonly=${this.store.readonly}
-          .inlineRangeProvider=${this._inlineRangeProvider}
-          .enableClipboard=${false}
-          .enableUndoRedo=${false}
-          .wrapText=${this.model.props.wrap}
-          .verticalScrollContainerGetter=${() => getViewportElement(this.host)}
-          .lineNumbers=${true}
-        >
-        </rich-text>
-        <div
-          style=${styleMap({
-            display: shouldRenderPreview ? undefined : "none",
-          })}
-          contenteditable="false"
-          class="myoxus-code-block-preview"
-        >
-          ${shouldRenderPreview && previewContext?.renderer(this.model, this)}
-        </div>
-        ${this.renderChildren(this.model)} ${Object.values(this.widgets)}
-      </div>
-    `;
+    this.disposables.add(
+      effect(() => {
+        const context =
+          this.preview$.value &&
+          this.std.getOptional(
+            CodeBlockPreviewIdentifier(this.model.props.language$.value ?? ""),
+          );
+        input.style.display = context ? "none" : "";
+        preview.style.display = context ? "" : "none";
+        if (context)
+          preview.replaceChildren(context.renderer(this.model, this));
+        else preview.replaceChildren();
+      }),
+    );
+    this.append(frame);
+    this.bindEditing();
+    this.mountBlockWidgets(container);
+    return null;
   }
 
   setWrap(wrap: boolean) {
     this.store.updateBlock(this.model, { wrap });
   }
-
-  @query("rich-text")
-  private accessor _richTextElement: RichText | null = null;
-
-  override accessor blockContainerStyles = {
-    margin: "18px 0",
-  };
-
-  override accessor useCaptionEditor = true;
-
-  override accessor useZeroWidth = true;
 
   setPreviewState(preview: boolean) {
     if (this.store.readonly) {

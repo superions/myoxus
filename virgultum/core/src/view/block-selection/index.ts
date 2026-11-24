@@ -1,27 +1,7 @@
-import { SignalWatcher } from "@virgultum/core/primitives/lit";
-import { css, LitElement, type PropertyValues } from "lit";
-import { property } from "lit/decorators.js";
-
-/**
- * Renders a the block selection.
- *
- * @example
- * ```ts
- * class Block extends LitElement {
- *   state override styles = css`
- *     :host {
- *       position: relative;
- *     }
- *
- *   render() {
- *      return html`<myoxus-block-selection></myoxus-block-selection>
- *   };
- * }
- * ```
- */
-export class BlockSelection extends SignalWatcher(LitElement) {
-  static override styles = css`
-    :host {
+import { NativeViewElement } from "../../primitives/env/index.js";
+import { installEditorStyles } from "../../runtime/view/element/native-block-component.js";
+const selectionStyle = `
+    myoxus-block-selection {
       position: absolute;
       z-index: 1;
       left: 0;
@@ -37,32 +17,28 @@ export class BlockSelection extends SignalWatcher(LitElement) {
       border-style: solid;
     }
   `;
-
-  override connectedCallback(): void {
-    super.connectedCallback();
-
-    this.style.borderRadius = `${this.borderRadius}px`;
-    if (this.borderWidth !== 0) {
+export class BlockSelection extends NativeViewElement {
+  private active = false;
+  get selected() {
+    return this.active;
+  }
+  set selected(value: boolean) {
+    this.active = value;
+    this.style.display = value ? "block" : "none";
+  }
+  borderRadius = 5;
+  borderWidth = 0;
+  connectedCallback() {
+    installEditorStyles(this, selectionStyle);
+    this.selected = this.active;
+    this.style.borderRadius = this.borderRadius + "px";
+    this.style.borderWidth = this.borderWidth + "px";
+    if (this.borderWidth) {
       this.style.boxSizing = "content-box";
-      this.style.transform = `translate(-${this.borderWidth}px, -${this.borderWidth}px)`;
-    }
-    this.style.borderWidth = `${this.borderWidth}px`;
-  }
-
-  protected override updated(changed: PropertyValues) {
-    if (changed.has("selected")) {
-      this.style.display = this.selected ? "block" : "none";
+      this.style.transform =
+        "translate(-" + this.borderWidth + "px,-" + this.borderWidth + "px)";
     }
   }
-
-  @property({ attribute: false })
-  accessor selected = false;
-
-  @property({ attribute: false })
-  accessor borderRadius: number = 5;
-
-  @property({ attribute: false })
-  accessor borderWidth: number = 0;
 }
 
 declare global {

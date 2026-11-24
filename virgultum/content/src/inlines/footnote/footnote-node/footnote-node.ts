@@ -4,6 +4,7 @@ import {
 } from "@virgultum/core/services";
 import { flip, offset, shift } from "@floating-ui/dom";
 import { baseTheme } from "@myoxus/theme";
+import { createLitPortal } from "@virgultum/core/view/portal";
 import { HoverController } from "@virgultum/core/view/hover";
 import { PeekViewProvider } from "@virgultum/core/view/peek";
 import { WithDisposable } from "@virgultum/core/primitives/lit";
@@ -293,7 +294,8 @@ export class MyoxusFootnoteNode extends WithDisposable(ShadowlessElement) {
         control: "Source Footnote",
       });
 
-      return {
+      return createLitPortal({
+        abortController,
         template: this._FootNotePopup(footnote, abortController),
         // Native Facade styles live in the document; custom renderers keep their existing shadow root.
         shadowDom: !!this.customPopupRenderer,
@@ -308,10 +310,15 @@ export class MyoxusFootnoteNode extends WithDisposable(ShadowlessElement) {
             offset(POPUP_OFFSET),
           ],
         },
-      };
+      }).portal;
     },
     { enterDelay: 300 },
   );
+
+  constructor() {
+    super();
+    this.addController(this._whenHover);
+  }
 
   override connectedCallback() {
     super.connectedCallback();

@@ -2,6 +2,7 @@ import { type ReactToLit, toReactNode } from "@myoxus/lit-react";
 import { createElement } from "react";
 import {
   ChatAssistantIdentity,
+  ChatLoading,
   ChatMessageSurface,
 } from "../../components/message-chrome";
 import type { FeatureFlagService } from "@myoxus/core/modules/feature-flag";
@@ -230,7 +231,7 @@ export class ChatMessageAssistant extends SignalWatcher(
     const { isLast, status } = this;
 
     if (isLast && status === "loading") {
-      return html`<ai-loading .reactToLit=${this.reactToLit}></ai-loading>`;
+      return this.reactToLit(createElement(ChatLoading), true);
     }
 
     // Stopping before the first token can leave a stored empty assistant turn.

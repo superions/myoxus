@@ -8,7 +8,9 @@ import {
   PencilIcon,
   DeleteIcon,
 } from "@myoxus/icons/react";
-import type { ReactToLit } from "@myoxus/lit-react";
+import type { ReadonlySignal } from "@preact/signals-core";
+import { useSignalValue } from "@myoxus/core/modules/doc-info/utils";
+import type { MountReactPortal } from "@myoxus/lit-react";
 import {
   AnnotationPaper,
   Button,
@@ -165,15 +167,31 @@ export function AnnotationBlock({
   );
 }
 
+function LiveBlock({
+  state,
+}: {
+  state: ReadonlySignal<AnnotationBlockHostProps>;
+}) {
+  return <AnnotationBlock {...useSignalValue(state)} />;
+}
+function LiveInline({
+  state,
+}: {
+  state: ReadonlySignal<AnnotationInlineHostProps | undefined>;
+}) {
+  const props = useSignalValue(state);
+  return props ? <AnnotationInline key={props.id} {...props} /> : null;
+}
 export function patchAnnotationHost(
-  reactToLit: ReactToLit,
+  mountPortal: MountReactPortal,
   showAnnotations: boolean,
 ) {
   return AnnotationReactHostExtension({
     showAnnotations,
-    renderBlock: (props) => reactToLit(<AnnotationBlock {...props} />, true),
-    renderInline: (props) =>
-      reactToLit(<AnnotationInline key={props.id} {...props} />, true),
+    mountBlock: (anchor, state) =>
+      mountPortal(anchor, <LiveBlock state={state} />),
+    mountInline: (anchor, state) =>
+      mountPortal(anchor, <LiveInline state={state} />),
   });
 }
 

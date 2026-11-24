@@ -15,7 +15,7 @@ import {
   Splitter,
   ThemeIcon,
 } from "@myoxus/ui-facade";
-import { useState, type ReactNode } from "react";
+import { createElement, useState, type ReactNode } from "react";
 
 export function ChatAssistantIdentity({
   withDocs = false,
@@ -66,7 +66,7 @@ export function ChatUserIdentity({
 export function ChatLoading() {
   const t = useI18n();
   return (
-    <Group role="status">
+    <Group role="status" data-testid="ai-loading">
       <MyoxusLoader />
       <MyoxusText tone="secondary">
         {t["com.myoxus.ai.chat-panel.generating"]()}
@@ -130,12 +130,34 @@ export function ChatScrollToLatest({ onClick }: { onClick: () => void }) {
   );
 }
 
-/** Newlines remain content, without a second scrolling surface or local font. */
-export function ChatPlainText({ text }: { text: string }) {
+export function ChatUserMessage({
+  avatarUrl,
+  name,
+  text,
+  images,
+}: {
+  avatarUrl?: string;
+  name?: string;
+  text: string;
+  images?: string[];
+}) {
   return (
-    <MyoxusText component="div" preserveWhitespace>
-      {text}
-    </MyoxusText>
+    <ChatMessageSurface
+      assistant={false}
+      identity={<ChatUserIdentity avatarUrl={avatarUrl} name={name} />}
+    >
+      {images?.length ? createElement("chat-content-images", { images }) : null}
+      {text ? (
+        <Box
+          data-testid="chat-content-pure-text"
+          onCopy={(event) => event.stopPropagation()}
+        >
+          <MyoxusText component="div" preserveWhitespace>
+            {text}
+          </MyoxusText>
+        </Box>
+      ) : null}
+    </ChatMessageSurface>
   );
 }
 
@@ -151,6 +173,7 @@ export function ChatMessageSurface({
   const content = (
     <Stack
       gap="xs"
+      data-testid={assistant ? undefined : "chat-message-user"}
       data-myoxus-ui-role={
         assistant ? "chat-assistant-message" : "chat-user-message"
       }

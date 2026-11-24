@@ -1,13 +1,11 @@
 import { type Signal, signal } from "@preact/signals-core";
-import { WithDisposable } from "@virgultum/core/primitives/lit";
+
 import { ColorScheme } from "@virgultum/core/models";
 import type { RichText } from "../../../rich-text/index";
 import { ThemeProvider } from "@virgultum/core/services";
 import type { MyoxusTextAttributes } from "@virgultum/core/types";
-import { type BlockStdScope, ShadowlessElement } from "@virgultum/core/runtime";
+import { type BlockStdScope, NativeViewElement } from "@virgultum/core/runtime";
 import { InlineManagerExtension } from "@virgultum/core/runtime/inline";
-import { html } from "lit";
-import { property } from "lit/decorators.js";
 import {
   codeToTokensBase,
   type ThemedToken,
@@ -23,7 +21,7 @@ export const LatexEditorInlineManagerExtension =
     specs: [LatexEditorUnitSpecExtension.identifier],
   });
 
-export class LatexSourceEditor extends WithDisposable(ShadowlessElement) {
+export class LatexSourceEditor extends NativeViewElement {
   highlightTokens$: Signal<ThemedToken[][]> = signal([]);
 
   yText!: Y.Text;
@@ -60,61 +58,51 @@ export class LatexSourceEditor extends WithDisposable(ShadowlessElement) {
       .catch(console.error);
   }
 
-  override connectedCallback(): void {
-    super.connectedCallback();
+  private release?: () => void;
 
+  connectedCallback() {
     const doc = new Y.Doc();
-    this.yText = doc.getText("latex");
-    this.yText.insert(0, this.latexSignal.value);
-
-    const yTextObserver = () => {
-      const text = this.yText.toString();
-      if (this.canEdit()) this.change(text);
-
-      this._updateHighlightTokens(text);
+    const text = doc.getText("latex");
+    this.yText = text;
+    text.insert(0, this.latexSignal.value);
+    const input = this.ownerDocument.createElement("rich-text");
+    input.yText = text;
+    input.attributesSchema = this.inlineManager.getSchema();
+    input.attributeRenderer = this.inlineManager.getRenderer();
+    input.verticalScrollContainerGetter = this._getVerticalScrollContainer;
+    const onText = () => {
+      const value = text.toString();
+      if (this.canEdit()) this.change(value);
+      this._updateHighlightTokens(value);
     };
-    this.yText.observe(yTextObserver);
-    this.disposables.add(() => {
-      this.yText.unobserve(yTextObserver);
-      ++this._highlightVersion;
-      doc.destroy();
-    });
-
-    this.disposables.add(
-      this.std.get(ThemeProvider).theme$.subscribe(() => {
-        this._updateHighlightTokens(this.yText.toString());
-      }),
-    );
-
-    this.updateComplete
-      .then(async () => {
-        await this.richText?.updateComplete;
-
-        setTimeout(() => {
-          this.richText?.inlineEditor?.focusEnd();
-        });
+    text.observe(onText);
+    const stopTheme = this.std
+      .get(ThemeProvider)
+      .theme$.subscribe(() => this._updateHighlightTokens(text.toString()));
+    this.replaceChildren(input);
+    let focusTimer: ReturnType<typeof setTimeout> | undefined;
+    input.updateComplete
+      .then(() => {
+        if (input.isConnected)
+          focusTimer = setTimeout(() => input.inlineEditor?.focusEnd());
       })
       .catch(console.error);
+    this.release = () => {
+      clearTimeout(focusTimer);
+      stopTheme();
+      text.unobserve(onText);
+      ++this._highlightVersion;
+      input.remove();
+      doc.destroy();
+    };
   }
 
-  override render() {
-    return html`<rich-text
-      .yText=${this.yText}
-      .attributesSchema=${this.inlineManager.getSchema()}
-      .attributeRenderer=${this.inlineManager.getRenderer()}
-      .verticalScrollContainerGetter=${this._getVerticalScrollContainer}
-    ></rich-text>`;
+  disconnectedCallback() {
+    this.release?.();
+    this.release = undefined;
   }
-
-  @property({ attribute: false })
-  accessor canEdit: () => boolean = () => false;
-
-  @property({ attribute: false })
-  accessor change!: (value: string) => void;
-
-  @property({ attribute: false })
-  accessor latexSignal!: Signal<string>;
-
-  @property({ attribute: false })
-  accessor std!: BlockStdScope;
+  canEdit: () => boolean = () => false;
+  change!: (value: string) => void;
+  latexSignal!: Signal<string>;
+  std!: BlockStdScope;
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { createIdentifier } from "@virgultum/core/primitives/di";
 import type { ExtensionType } from "@virgultum/core/store";
-import type { TemplateResult } from "lit";
+import type { ReadonlySignal } from "@preact/signals-core";
 
 export type AnnotationBlockHostProps = {
   body: string;
@@ -12,8 +12,14 @@ export type AnnotationBlockHostProps = {
 };
 export type AnnotationReactHost = {
   showAnnotations: boolean;
-  renderBlock: (props: AnnotationBlockHostProps) => TemplateResult;
-  renderInline?: (props: AnnotationInlineHostProps) => TemplateResult;
+  mountBlock: (
+    anchor: HTMLElement,
+    props: ReadonlySignal<AnnotationBlockHostProps>,
+  ) => () => void;
+  mountInline?: (
+    anchor: HTMLElement,
+    props: ReadonlySignal<AnnotationInlineHostProps | undefined>,
+  ) => () => void;
 };
 export type AnnotationInlineHostProps = {
   id: string;

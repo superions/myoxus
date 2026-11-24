@@ -47,8 +47,8 @@ export function openIframeLinkEditor(
       model.props.url === initialUrl
         ? anchor
         : null,
-    (controls) =>
-      host.renderIframeLinkEditor({
+    (anchor, controls) =>
+      host.mountIframeLinkEditor(anchor, {
         ...controls,
         editing,
         title: options?.title,

@@ -27,7 +27,7 @@ import type {
   Store,
   TransformerMiddleware,
 } from "@virgultum/editor/store";
-import { css, html, nothing, type PropertyValues } from "lit";
+import { css, html, nothing, type PropertyValues, unsafeCSS } from "lit";
 import { property, query } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { keyed } from "lit/directives/keyed.js";
@@ -133,7 +133,7 @@ export class TextRenderer extends SignalWatcher(
       padding: 0;
     }
 
-    ${scrollbarStyle(".text-renderer-container.show-scrollbar")}
+    ${unsafeCSS(scrollbarStyle(".text-renderer-container.show-scrollbar"))}
 
     .text-renderer-container.show-scrollbar:hover::-webkit-scrollbar-thumb {
       background-color: ${unsafeCSSVar("iconColor")};

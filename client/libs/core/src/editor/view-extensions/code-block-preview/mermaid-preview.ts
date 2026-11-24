@@ -19,12 +19,15 @@ import { styleMap } from "lit/directives/style-map.js";
 
 export const CodeBlockMermaidPreview = CodeBlockPreviewExtension(
   "mermaid",
-  (model, blockComponent) =>
-    html`<mermaid-preview
-      .renderStatus=${blockComponent?.std.get(EditorChromeHostIdentifier).renderCodePreviewStatus}
-      .blockComponent=${blockComponent ?? null}
-      .model=${model}
-    ></mermaid-preview>`,
+  (model, block) => {
+    const preview = block.ownerDocument.createElement("mermaid-preview");
+    preview.model = model;
+    preview.renderStatus = block.std.get(
+      EditorChromeHostIdentifier,
+    ).renderCodePreviewStatus;
+    preview.blockComponent = block;
+    return preview;
+  },
 );
 
 export class MermaidPreview extends SignalWatcher(

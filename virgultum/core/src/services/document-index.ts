@@ -6,8 +6,6 @@ import type {
   DocumentIndexBlockModel,
   DocumentIndexQuery,
 } from "../models/index";
-import type { BlockStdScope } from "../runtime/index";
-import type { TemplateResult } from "lit";
 
 export type DocumentIndexRow = { title: string; href: string };
 export type DocumentIndexTable = {
@@ -28,13 +26,14 @@ export interface DocumentIndexOutputProvider {
 export const DocumentIndexOutputProvider =
   createIdentifier<DocumentIndexOutputProvider>("DocumentIndexOutputProvider");
 export interface DocumentIndexHost {
-  render(model: DocumentIndexBlockModel, std: BlockStdScope): TemplateResult;
+  mount(anchor: HTMLElement, model: DocumentIndexBlockModel): () => void;
   configure(
+    anchor: HTMLElement,
     props: DocumentIndexProps,
     apply: (value: DocumentIndexProps) => void,
     close: () => void,
     docId: string,
-  ): TemplateResult;
+  ): () => void;
 }
 export const DocumentIndexHost =
   createIdentifier<DocumentIndexHost>("DocumentIndexHost");

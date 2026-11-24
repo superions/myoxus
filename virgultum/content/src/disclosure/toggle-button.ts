@@ -1,15 +1,10 @@
-import { WithDisposable } from "@virgultum/core/primitives/lit";
-import { unsafeCSSVar } from "@virgultum/core/theme";
-import { ShadowlessElement } from "@virgultum/core/runtime";
-import { css, unsafeCSS } from "lit";
-import { property } from "lit/decorators.js";
-import { html } from "lit-html";
-
+import {
+  NativeViewElement,
+  installEditorStyles,
+} from "@virgultum/core/runtime";
 import { TOGGLE_BUTTON_PARENT_CLASS } from "@virgultum/core/consts";
 export { TOGGLE_BUTTON_PARENT_CLASS } from "@virgultum/core/consts";
-
-export class ToggleButton extends WithDisposable(ShadowlessElement) {
-  static override styles = css`
+const disclosureStyle = `
     .toggle-icon {
       display: flex;
       align-items: start;
@@ -34,7 +29,7 @@ export class ToggleButton extends WithDisposable(ShadowlessElement) {
       opacity: 1;
     }
 
-    .${unsafeCSS(TOGGLE_BUTTON_PARENT_CLASS)}:hover .toggle-icon {
+    .${TOGGLE_BUTTON_PARENT_CLASS}:hover .toggle-icon {
       opacity: 1;
     }
 
@@ -48,47 +43,36 @@ export class ToggleButton extends WithDisposable(ShadowlessElement) {
     .myoxus-disclosure-triangle {
       width: var(--mantine-spacing-md);
       height: var(--mantine-spacing-md);
-      color: ${unsafeCSSVar("iconColor")};
+      color: var(--myoxus-icon-color);
       transition: transform 0.2s ease-in-out;
     }
 
-    .myoxus-disclosure-triangle[data-collapsed="false"] {
+    .toggle-icon[data-collapsed="false"] .myoxus-disclosure-triangle {
       transform: rotate(90deg);
     }
   `;
-
-  private _disclosureTriangle() {
-    return html`
-      <svg
-        class="myoxus-disclosure-triangle"
-        data-collapsed=${this.collapsed}
-        aria-hidden="true"
-        focusable="false"
-        viewBox="0 0 16 16"
-      >
-        <path d="M5.5 3.5L10.5 8L5.5 12.5Z" fill="currentColor"></path>
-      </svg>
-    `;
+export class ToggleButton extends NativeViewElement {
+  private folded = false;
+  get collapsed() {
+    return this.folded;
   }
-
-  override render() {
-    return html`
-      <div
-        contenteditable="false"
-        class="toggle-icon"
-        data-collapsed=${this.collapsed}
-        @click=${() => this.updateCollapsed(!this.collapsed)}
-      >
-        ${this._disclosureTriangle()}
-      </div>
-    `;
+  set collapsed(value: boolean) {
+    this.folded = value;
+    this.firstElementChild?.setAttribute("data-collapsed", String(value));
   }
-
-  @property({ attribute: false })
-  accessor collapsed!: boolean;
-
-  @property({ attribute: false })
-  accessor updateCollapsed!: (collapsed: boolean) => void;
+  updateCollapsed!: (collapsed: boolean) => void;
+  connectedCallback() {
+    installEditorStyles(this, disclosureStyle);
+    if (this.firstChild) return;
+    const button = this.ownerDocument.createElement("div");
+    button.contentEditable = "false";
+    button.className = "toggle-icon";
+    button.dataset.collapsed = String(this.folded);
+    button.innerHTML =
+      '<svg class="myoxus-disclosure-triangle" aria-hidden="true" focusable="false" viewBox="0 0 16 16"><path d="M5.5 3.5L10.5 8L5.5 12.5Z" fill="currentColor"></path></svg>';
+    button.addEventListener("click", () => this.updateCollapsed(!this.folded));
+    this.append(button);
+  }
 }
 
 declare global {

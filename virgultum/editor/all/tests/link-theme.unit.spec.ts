@@ -87,7 +87,7 @@ describe("editor link theme projection", () => {
 test("rendered links and headings respond to theme changes, with inherited text emphasis", async () => {
   const container = document.createElement("div");
   const style = document.createElement("style");
-  style.textContent = paragraphBlockStyles.cssText + documentTitleStyles;
+  style.textContent = paragraphBlockStyles + documentTitleStyles;
   container.append(style);
   const link = makeLink();
   link.delta = {
@@ -195,9 +195,9 @@ test("personal reading size scales page typography, follows theme changes and re
   const style = document.createElement("style");
   style.textContent =
     pageShellStyles +
-    paragraphBlockStyles.cssText +
-    listBlockStyles.cssText +
-    codeBlockStyles.cssText +
+    paragraphBlockStyles +
+    listBlockStyles +
+    codeBlockStyles +
     documentTitleStyles;
   // A nested theme scope redefines the base, as the actual page editor does.
   const content = document.createElement("div");

@@ -33,7 +33,7 @@ export function openReferenceEditor(
   mountInlinePopup(
     std,
     () => (valid() ? editor.toDomRange(range) : null),
-    (controls) => {
+    (anchor, controls) => {
       const apply = (title?: string) => {
         if (abort.signal.aborted || !valid()) return;
         const next =
@@ -56,7 +56,7 @@ export function openReferenceEditor(
           });
         controls.close();
       };
-      return host.renderReferenceEditor({
+      return host.mountReferenceEditor(anchor, {
         ...controls,
         title: referenceInfo.title ?? docTitle,
         confirm: (title) => {

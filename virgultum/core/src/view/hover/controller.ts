@@ -1,7 +1,5 @@
 import { DisposableGroup } from "@virgultum/core/primitives/disposable";
-import type { ReactiveController, ReactiveElement } from "lit";
 
-import { type AdvancedPortalOptions, createLitPortal } from "../portal/index";
 import type { HoverOptions } from "./types";
 import { whenHover } from "./when-hover";
 
@@ -11,7 +9,6 @@ type OptionsParams = Omit<
 > & {
   abortController: AbortController;
 };
-type HoverPortalOptions = Omit<AdvancedPortalOptions, "abortController">;
 
 const DEFAULT_HOVER_OPTIONS: HoverOptions = {
   transition: {
@@ -64,7 +61,7 @@ const abortHoverPortal = ({
   setTimeout(() => abortController.abort(), hoverOptions.transition.duration);
 };
 
-export class HoverController implements ReactiveController {
+export class HoverController {
   static globalAbortController?: AbortController;
 
   private _abortController?: AbortController;
@@ -73,9 +70,7 @@ export class HoverController implements ReactiveController {
 
   private _isHovering = false;
 
-  private readonly _onHover: (
-    options: OptionsParams,
-  ) => HoverPortalOptions | null;
+  private readonly _onHover: (options: OptionsParams) => HTMLDivElement | null;
 
   private _portal?: HTMLDivElement;
 
@@ -85,7 +80,7 @@ export class HoverController implements ReactiveController {
 
   protected _disposables = new DisposableGroup();
 
-  host: ReactiveElement;
+  host: HTMLElement;
 
   /**
    * Callback when the portal needs to be aborted.
@@ -112,12 +107,12 @@ export class HoverController implements ReactiveController {
   }
 
   constructor(
-    host: ReactiveElement,
-    onHover: (options: OptionsParams) => HoverPortalOptions | null,
+    host: HTMLElement,
+    onHover: (options: OptionsParams) => HTMLDivElement | null,
     hoverOptions?: Partial<HoverOptions>,
   ) {
     this._hoverOptions = { ...DEFAULT_HOVER_OPTIONS, ...hoverOptions };
-    (this.host = host).addController(this);
+    this.host = host;
     this._onHover = onHover;
   }
 
@@ -164,19 +159,16 @@ export class HoverController implements ReactiveController {
         HoverController.globalAbortController = this._abortController;
       }
 
-      const portalOptions = this._onHover({
+      const portal = this._onHover({
         setReference,
         abortController: this._abortController,
       });
-      if (!portalOptions) {
+      if (!portal) {
         // Sometimes the portal is not ready to show
         this._abortController.abort();
         return;
       }
-      this._portal = createLitPortal({
-        ...portalOptions,
-        abortController: this._abortController,
-      }).portal;
+      this._portal = portal;
 
       const transition = this._hoverOptions.transition;
       if (transition) {

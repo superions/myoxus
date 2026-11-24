@@ -1,6 +1,4 @@
-import { css } from "lit";
-
-export const listPrefix = css`
+export const listPrefix = `
   .myoxus-list-block__prefix {
     display: flex;
     user-select: none;
@@ -51,7 +49,7 @@ export const listPrefix = css`
   }
 `;
 
-export const listBlockStyles = css`
+export const listBlockStyles = `
   myoxus-list {
     display: block;
     font-size: calc(
@@ -81,9 +79,6 @@ export const listBlockStyles = css`
 
   .myoxus-list--checked {
     color: var(--myoxus-text-secondary-color);
-  }
-
-  .myoxus-list--checked .myoxus-list-block__todo-prefix {
   }
 
   ${listPrefix}

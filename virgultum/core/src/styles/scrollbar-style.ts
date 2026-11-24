@@ -1,6 +1,4 @@
-import { css, unsafeCSS } from "lit";
-
-import { unsafeCSSValue, unsafeCSSVar } from "../theme/css-variables";
+import { cssVar } from "@myoxus/theme";
 
 /**
  * You should add a container before the scrollbar style to prevent the style pollution of the whole doc.
@@ -10,29 +8,29 @@ export const scrollbarStyle = (container: string) => {
     console.error(
       "To prevent style pollution of the whole doc, you must add a container before the scrollbar style.",
     );
-    return css``;
+    return "";
   }
 
   // sanitize container name
   if (container.includes("{") || container.includes("}")) {
     console.error("Invalid container name! Please use a valid CSS selector.");
-    return css``;
+    return "";
   }
 
-  return css`
-    ${unsafeCSS(container)} {
+  return `
+    ${container} {
       scrollbar-gutter: stable;
     }
-    ${unsafeCSS(container)}::-webkit-scrollbar {
+    ${container}::-webkit-scrollbar {
       -webkit-appearance: none;
-      width: ${unsafeCSSValue("var(--mantine-spacing-xs)")};
-      height: ${unsafeCSSValue("var(--mantine-spacing-xs)")};
+      width: var(--mantine-spacing-xs);
+      height: var(--mantine-spacing-xs);
     }
-    ${unsafeCSS(container)}::-webkit-scrollbar-thumb {
-      border-radius: ${unsafeCSSValue("var(--mantine-radius-xs)")};
-      background-color: ${unsafeCSSVar("iconSecondary")};
+    ${container}::-webkit-scrollbar-thumb {
+      border-radius: var(--mantine-radius-xs);
+      background-color: ${cssVar("iconSecondary")};
     }
-    ${unsafeCSS(container)}::-webkit-scrollbar-corner {
+    ${container}::-webkit-scrollbar-corner {
       display: none;
     }
   `;

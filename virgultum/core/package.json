@@ -107,6 +107,7 @@
     "./view/hover": "./src/view/hover/index.ts",
     "./view/peek": "./src/view/peek/index.ts",
     "./view/portal": "./src/view/portal/index.ts",
+    "./view/list-animation": "./src/view/icons/list.ts",
     "./view/icons": "./src/view/icons/index.ts",
     "./color": "./src/color/index.ts",
     "./resource": "./src/resource/index.ts"

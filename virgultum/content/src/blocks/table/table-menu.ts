@@ -122,8 +122,8 @@ export function openTableMenu(
   mountInlinePopup(
     std,
     () => (live() ? anchor.targetRect : null),
-    (controls) =>
-      chrome.renderActionMenu({
+    (anchor, controls) =>
+      chrome.mountActionMenu(anchor, {
         ...controls,
         // Retain the last native dropdown through its asynchronous unmount.
         menuRef: (element) => {

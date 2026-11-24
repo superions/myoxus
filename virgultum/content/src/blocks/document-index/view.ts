@@ -15,18 +15,23 @@ import {
   mountInlinePopup,
 } from "@virgultum/core/services";
 import {
-  BlockComponent,
+  NativeContainerBlock,
   BlockViewExtension,
   FlavourExtension,
 } from "@virgultum/core/runtime";
 import { SlashMenuConfigExtension } from "@virgultum/core/slash-menu";
-import { html, nothing } from "lit";
-class DocumentIndexBlockComponent extends BlockComponent<DocumentIndexBlockModel> {
-  override renderBlock() {
-    const host = this.std.getOptional(DocumentIndexHost);
-    return html`<div contenteditable="false">
-      ${host?.render(this.model, this.std) ?? nothing}
-    </div>`;
+
+class DocumentIndexBlockComponent extends NativeContainerBlock<DocumentIndexBlockModel> {
+  protected readonly blockStyles = "";
+  protected mountBody() {
+    const anchor = this.ownerDocument.createElement("div");
+    anchor.contentEditable = "false";
+    this.append(anchor);
+    const release = this.std
+      .getOptional(DocumentIndexHost)
+      ?.mount(anchor, this.model);
+    if (release) this.disposables.add(release);
+    return null;
   }
 }
 export class DocumentIndexViewExtension extends ViewExtensionProvider {
@@ -111,8 +116,9 @@ export class DocumentIndexViewExtension extends ViewExtensionProvider {
               mountInlinePopup(
                 std,
                 () => std.host,
-                ({ close }) =>
+                (anchor, { close }) =>
                   host.configure(
+                    anchor,
                     defaultDocumentIndexProps(),
                     (value) => {
                       if (

@@ -1,10 +1,6 @@
-import {
-  autoUpdate,
-  computePosition,
-  type ComputePositionReturn,
-} from "@floating-ui/dom";
-import { cssVar } from "@myoxus/theme";
 import { VirgultumError } from "@virgultum/core/primitives/exceptions";
+import type { ComputePositionReturn } from "@floating-ui/dom";
+import { positionPortal } from "./popup";
 import { render } from "lit";
 import { Subject } from "rxjs";
 
@@ -76,27 +72,6 @@ export function createSimplePortal({
 }
 
 /**
- * Where el is the DOM element you'd like to test for visibility
- */
-function isElementVisible(el: Element) {
-  // The API is not stable, so we need to check the existence of the function first
-  // See also https://caniuse.com/?search=checkVisibility
-  if (el.checkVisibility) {
-    // See https://drafts.csswg.org/cssom-view-1/#dom-element-checkvisibility
-    return el.checkVisibility();
-  }
-  // Fallback to the old way
-  // Remove this when the `checkVisibility` API is stable
-  if (!el.isConnected) return false;
-
-  if (el instanceof HTMLElement) {
-    // See https://stackoverflow.com/questions/19669786/check-if-element-is-visible-in-dom
-    return !(el.offsetParent === null);
-  }
-  return true;
-}
-
-/**
  * Similar to `createSimplePortal`, but supports auto update position.
  *
  * The template should be a **static** template since it will not be re-rendered.
@@ -160,66 +135,12 @@ export function createLitPortal({
     );
   }
 
-  if (!positionConfigOrFn) {
-    return { portal: portalRoot, update: () => {} };
-  }
-
-  const visibility = portalRoot.style.visibility;
-  portalRoot.style.visibility = "hidden";
-  portalRoot.style.position = positionStrategy;
-  portalRoot.style.left = "0";
-  portalRoot.style.top = "0";
-  portalRoot.style.zIndex = cssVar("zIndexPopover");
-
-  Object.assign(portalRoot.style, portalOptions.portalStyles);
-
-  const computePositionOptions =
-    positionConfigOrFn instanceof Function
-      ? positionConfigOrFn(portalRoot)
-      : positionConfigOrFn;
-  const { referenceElement, ...options } = computePositionOptions;
-  const update = () => {
-    if (
-      computePositionOptions.abortWhenRefRemoved !== false &&
-      referenceElement instanceof Element &&
-      !isElementVisible(referenceElement)
-    ) {
-      abortController.abort();
-    }
-    computePosition(referenceElement, portalRoot, {
-      strategy: positionStrategy,
-      ...options,
-    })
-      .then((positionReturn) => {
-        const { x, y } = positionReturn;
-        // Use transform maybe cause overlay-mask offset issue
-        // portalRoot.style.transform = `translate(${x}px, ${y}px)`;
-        portalRoot.style.left = `${x}px`;
-        portalRoot.style.top = `${y}px`;
-        if (portalRoot.style.visibility === "hidden") {
-          portalRoot.style.visibility = visibility;
-        }
-        positionSlot.next(positionReturn);
-      })
-      .catch(console.error);
-  };
-  if (!computePositionOptions.autoUpdate) {
-    update();
-  } else {
-    const autoUpdateOptions =
-      computePositionOptions.autoUpdate === true
-        ? {}
-        : computePositionOptions.autoUpdate;
-    const cleanup = autoUpdate(
-      referenceElement,
-      portalRoot,
-      update,
-      autoUpdateOptions,
-    );
-    abortController.signal.addEventListener("abort", () => {
-      cleanup();
-    });
-  }
-
-  return { portal: portalRoot, update };
+  return positionPortal(
+    portalRoot,
+    abortController,
+    positionConfigOrFn,
+    positionStrategy,
+    portalOptions.portalStyles,
+    (position) => positionSlot.next(position),
+  );
 }

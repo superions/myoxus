@@ -15,11 +15,15 @@ import { linkIframe } from "./iframe-container";
 
 export const CodeBlockHtmlPreview = CodeBlockPreviewExtension(
   "html",
-  (model, block) =>
-    html`<html-preview
-      .model=${model}
-      .renderStatus=${block?.std.get(EditorChromeHostIdentifier).renderCodePreviewStatus}
-    ></html-preview>`,
+  (model, block) => {
+    const preview = block.ownerDocument.createElement("html-preview");
+    preview.model = model;
+    preview.renderStatus = block.std.get(
+      EditorChromeHostIdentifier,
+    ).renderCodePreviewStatus;
+
+    return preview;
+  },
 );
 
 export class HTMLPreview extends SignalWatcher(

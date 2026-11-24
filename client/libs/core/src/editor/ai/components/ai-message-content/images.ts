@@ -2,7 +2,7 @@ import { WithDisposable } from "@virgultum/editor/global/lit";
 import { scrollbarStyle } from "@virgultum/editor/shared/styles";
 import { unsafeCSSValue } from "@virgultum/editor/shared/theme";
 import { ShadowlessElement } from "@virgultum/editor/std";
-import { css, html, nothing } from "lit";
+import { css, html, nothing, unsafeCSS } from "lit";
 import { property } from "lit/decorators.js";
 import { repeat } from "lit/directives/repeat.js";
 
@@ -20,7 +20,7 @@ export class ChatContentImages extends WithDisposable(ShadowlessElement) {
       scrollbar-width: auto;
     }
 
-    ${scrollbarStyle(".chat-content-images-row")}
+    ${unsafeCSS(scrollbarStyle(".chat-content-images-row"))}
 
     .chat-content-images-row img {
       max-inline-size: calc(

@@ -2,7 +2,6 @@ export const sharedEffectElementTags = [
   "ai-error-wrapper",
   "ai-slides-renderer",
   "chat-content-images",
-  "chat-content-pure-text",
   "chat-content-rich-text",
   "chat-content-stream-objects",
   "text-renderer",
@@ -32,16 +31,13 @@ export const editorEffectElementTags = [
 export type EditorEffectElementTag = (typeof editorEffectElementTags)[number];
 
 export const appEffectElementTags = [
-  "ai-loading",
   "ai-chat-content",
   "ai-chat-messages",
   "ai-chat-input",
   "ai-chat-composer",
   "chat-panel-chips",
   "ai-history-clear",
-  "chat-assistant-avatar",
   "chat-message-assistant",
-  "chat-message-user",
 ] as const;
 
 export type AppEffectElementTag = (typeof appEffectElementTags)[number];

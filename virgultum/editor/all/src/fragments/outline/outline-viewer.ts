@@ -14,7 +14,7 @@ import {
   requiredProperties,
   ShadowlessElement,
 } from "@virgultum/core/runtime";
-import { css, html, nothing } from "lit";
+import { css, html, nothing, unsafeCSS } from "lit";
 import { property, query, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { repeat } from "lit/directives/repeat.js";
@@ -110,7 +110,7 @@ export class OutlineViewer extends SignalWatcher(
         opacity var(--duration) var(--timing);
     }
 
-    ${scrollbarStyle(".outline-viewer-panel")}
+    ${unsafeCSS(scrollbarStyle(".outline-viewer-panel"))}
 
     .outline-viewer-header {
       display: flex;

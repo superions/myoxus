@@ -110,6 +110,7 @@ import {
   useState,
 } from "react";
 
+import { registerAIAppEffects } from "@myoxus/core/editor/ai/effects/app";
 import { WorkbenchRouteStatus } from "../../404";
 import { createSessionDeleteHandler } from "../chat-panel-utils";
 import { ChatLoadingState } from "../detail-page/sidecards/ai-chat/loading-state";
@@ -436,6 +437,8 @@ export const WorkspaceChatPage = () => {
     let content = chatContent;
 
     if (!content) {
+      // A direct chat URL can mount before the document sidebar or Peek.
+      registerAIAppEffects();
       content = new AIChatContent();
     }
 

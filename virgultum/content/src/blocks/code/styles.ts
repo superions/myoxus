@@ -1,8 +1,7 @@
 import { scrollbarStyle } from "@virgultum/core/styles";
-import { unsafeCSSVar } from "@virgultum/core/theme";
-import { css } from "lit";
+import { cssVar } from "@myoxus/theme";
 
-export const codeBlockStyles = css`
+export const codeBlockStyles = `
   myoxus-code {
     display: block;
   }
@@ -38,7 +37,7 @@ export const codeBlockStyles = css`
   }
 
   .myoxus-code-block-container.highlight-comment {
-    outline: 2px solid ${unsafeCSSVar("primaryColor")};
+    outline: 2px solid ${cssVar("primaryColor")};
   }
 
   ${scrollbarStyle(".myoxus-code-block-container rich-text")}
@@ -47,7 +46,7 @@ export const codeBlockStyles = css`
   @supports not selector(::-webkit-scrollbar) {
     .myoxus-code-block-container rich-text {
       scrollbar-width: thin;
-      scrollbar-color: ${unsafeCSSVar("iconSecondary")} transparent;
+      scrollbar-color: ${cssVar("iconSecondary")} transparent;
       scrollbar-gutter: stable both-edges;
     }
   }

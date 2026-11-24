@@ -18,11 +18,15 @@ const RENDER_DEBOUNCE_MS = 200;
 
 export const CodeBlockTypstPreview = CodeBlockPreviewExtension(
   "typst",
-  (model, block) =>
-    html`<typst-preview
-      .model=${model}
-      .renderStatus=${block?.std.get(EditorChromeHostIdentifier).renderCodePreviewStatus}
-    ></typst-preview>`,
+  (model, block) => {
+    const preview = block.ownerDocument.createElement("typst-preview");
+    preview.model = model;
+    preview.renderStatus = block.std.get(
+      EditorChromeHostIdentifier,
+    ).renderCodePreviewStatus;
+
+    return preview;
+  },
 );
 
 export class TypstPreview extends SignalWatcher(

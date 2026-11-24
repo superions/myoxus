@@ -1,10 +1,11 @@
 import { stopPropagation } from "@virgultum/core/utils";
-import { type BlockComponent, TextSelection } from "@virgultum/core/runtime";
-import { css, html, LitElement } from "lit";
-import { property } from "lit/decorators.js";
-
-export class BlockZeroWidth extends LitElement {
-  static override styles = css`
+import {
+  type BlockComponent,
+  NativeViewElement,
+  TextSelection,
+} from "@virgultum/core/runtime";
+export class BlockZeroWidth extends NativeViewElement {
+  private static readonly styles = `
     .block-zero-width {
       position: absolute;
       bottom: -15px;
@@ -34,22 +35,18 @@ export class BlockZeroWidth extends LitElement {
     }
   };
 
-  override connectedCallback(): void {
-    super.connectedCallback();
+  block!: BlockComponent;
+
+  connectedCallback() {
+    if (this.shadowRoot) return;
+    const root = this.attachShadow({ mode: "open" });
+    const style = this.ownerDocument.createElement("style");
+    style.textContent = BlockZeroWidth.styles;
+    const hitTarget = this.ownerDocument.createElement("div");
+    hitTarget.className = "block-zero-width";
+    root.append(style, hitTarget);
     this.addEventListener("click", this._handleClick);
   }
-
-  override disconnectedCallback(): void {
-    this.removeEventListener("click", this._handleClick);
-    super.disconnectedCallback();
-  }
-
-  override render() {
-    return html`<div class="block-zero-width"></div>`;
-  }
-
-  @property({ attribute: false })
-  accessor block!: BlockComponent;
 }
 
 declare global {

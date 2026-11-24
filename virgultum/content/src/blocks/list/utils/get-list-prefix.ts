@@ -3,10 +3,9 @@ import {
   CheckBoxUnIcon,
   ToggleDownIcon,
   ToggleRightIcon,
-} from "@myoxus/icons/lit";
+} from "@myoxus/icons/native";
 import type { ListBlockModel } from "@virgultum/core/models";
 import { getNumberPrefix } from "@virgultum/core/utils";
-import { html } from "lit";
 
 const getListDepth = (model: ListBlockModel): number => {
   let depth = 0;
@@ -18,46 +17,41 @@ const getListDepth = (model: ListBlockModel): number => {
   return depth;
 };
 
-export function getListPrefix(
+export function updateListPrefix(
+  prefix: HTMLElement,
   model: ListBlockModel,
-  showChildren: boolean,
-  onClick: (event: MouseEvent) => void,
+  expanded: boolean,
 ) {
-  const depth = getListDepth(model);
-  switch (model.props.type) {
-    case "bulleted":
-      return html`<div
-        contenteditable="false"
-        class="myoxus-list-block__prefix myoxus-list-block__bulleted"
-        data-list-depth=${depth % 3}
-        @click=${onClick}
-      ></div>`;
-    case "numbered":
-      return html`<div
-        contenteditable="false"
-        class="myoxus-list-block__prefix myoxus-list-block__numbered"
-        @click=${onClick}
-      >
-        ${model.props.order ? getNumberPrefix(model.props.order, depth) : "1."}
-      </div>`;
-    case "todo":
-      return html`<div
-        contenteditable="false"
-        class=${`myoxus-list-block__prefix myoxus-list-block__todo-prefix ${model.store.readonly ? "readonly" : ""}`}
-        @click=${onClick}
-      >
-        ${model.props.checked ? CheckBoxCheckSolidIcon() : CheckBoxUnIcon()}
-      </div>`;
-    case "toggle":
-      return html`<div
-        contenteditable="false"
-        class="myoxus-list-block__prefix"
-        @click=${onClick}
-      >
-        ${showChildren ? ToggleDownIcon() : ToggleRightIcon()}
-      </div>`;
-    default:
-      console.error("Unknown list type", model.props.type, model);
-      return null;
+  const type = model.props.type$.value;
+  prefix.className = "myoxus-list-block__prefix";
+  prefix.contentEditable = "false";
+  delete prefix.dataset.listDepth;
+  if (type === "bulleted") {
+    prefix.classList.add("myoxus-list-block__bulleted");
+    prefix.dataset.listDepth = String(getListDepth(model) % 3);
+    prefix.replaceChildren();
+  } else if (type === "numbered") {
+    prefix.classList.add("myoxus-list-block__numbered");
+    prefix.textContent = model.props.order$.value
+      ? getNumberPrefix(model.props.order$.value, getListDepth(model))
+      : "1.";
+  } else if (type === "todo" || type === "toggle") {
+    const svg =
+      type === "todo"
+        ? model.props.checked$.value
+          ? CheckBoxCheckSolidIcon
+          : CheckBoxUnIcon
+        : expanded
+          ? ToggleDownIcon
+          : ToggleRightIcon;
+    if (type === "todo") {
+      prefix.classList.add("myoxus-list-block__todo-prefix");
+      prefix.classList.toggle("readonly", model.store.readonly);
+    }
+    // Only generated, package-owned SVG literals enter this node.
+    prefix.innerHTML = svg;
+  } else {
+    prefix.replaceChildren();
+    prefix.className = "";
   }
 }

@@ -33,8 +33,8 @@ export function openAttachmentRename(
   mountInlinePopup(
     std,
     () => (valid() ? block : null),
-    (controls) =>
-      host.renderAttachmentRename({
+    (anchor, controls) =>
+      host.mountAttachmentRename(anchor, {
         ...controls,
         name: split ? original.slice(0, dot) : original,
         extension,

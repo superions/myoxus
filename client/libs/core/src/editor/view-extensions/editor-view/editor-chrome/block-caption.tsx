@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
+import type { ReadonlySignal } from "@preact/signals-core";
+import { useSignalValue } from "@myoxus/core/modules/doc-info/utils";
 import { useI18n } from "@myoxus/i18n";
 import { Textarea } from "@myoxus/ui-facade";
 import type { EditorBlockCaptionControls } from "@virgultum/editor/shared/services";
@@ -48,4 +50,12 @@ export function EditorBlockCaption({
       }}
     />
   );
+}
+
+export function RegisteredBlockCaption({
+  state,
+}: {
+  state: ReadonlySignal<EditorBlockCaptionControls>;
+}) {
+  return <EditorBlockCaption controls={useSignalValue(state)} />;
 }

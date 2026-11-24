@@ -52,8 +52,8 @@ export function toggleEmbedCardCreateModal(
     mountInlinePopup(
       std,
       () => (valid() ? editor : null),
-      (controls) =>
-        chrome.renderEmbedCardCreate({
+      (anchor, controls) =>
+        chrome.mountEmbedCardCreate(anchor, {
           ...controls,
           title,
           description,

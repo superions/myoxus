@@ -27,10 +27,12 @@ export const DocumentFieldInlineSpecExtension =
     embed: true,
     renderer: ({ delta, editor, startOffset }, parent) =>
       inlineChild(parent, "myoxus-inline-document-field", {
-        delta,
-        editor,
-        startOffset,
-        std: provider.get(StdIdentifier),
+        context: {
+          delta,
+          editor,
+          startOffset,
+          std: provider.get(StdIdentifier),
+        },
       }),
   }));
 
@@ -45,10 +47,12 @@ export const AnnotationInlineSpecExtension =
     embed: (delta) => AnnotationSchema.parse(delta.attributes?.annotation).id,
     renderer: ({ delta, editor, startOffset }, parent) =>
       inlineChild(parent, "myoxus-inline-annotation", {
-        delta,
-        editor,
-        startOffset,
-        std: provider.get(StdIdentifier),
+        context: {
+          delta,
+          editor,
+          startOffset,
+          std: provider.get(StdIdentifier),
+        },
       }),
   }));
 

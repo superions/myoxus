@@ -1,17 +1,14 @@
-import { CaptionedBlockComponent } from "../../caption/index";
+import { selectionFrame } from "../../caption/selection-frame";
 import type { DividerBlockModel } from "@virgultum/core/models";
 import { BLOCK_CHILDREN_CONTAINER_PADDING_LEFT } from "@virgultum/core/consts";
-import { BlockSelection } from "@virgultum/core/runtime";
-import { html } from "lit";
+import { BlockSelection, NativeContainerBlock } from "@virgultum/core/runtime";
 
 import { dividerBlockStyles } from "./styles";
 
-export class DividerBlockComponent extends CaptionedBlockComponent<DividerBlockModel> {
-  static override styles = dividerBlockStyles;
+export class DividerBlockComponent extends NativeContainerBlock<DividerBlockModel> {
+  protected readonly blockStyles = dividerBlockStyles;
 
-  override connectedCallback() {
-    super.connectedCallback();
-
+  protected mountBody() {
     this.contentEditable = "false";
 
     this.handleEvent("click", () => {
@@ -21,26 +18,16 @@ export class DividerBlockComponent extends CaptionedBlockComponent<DividerBlockM
         }),
       ]);
     });
+    const doc = this.ownerDocument;
+    const container = doc.createElement("div");
+    container.className = "myoxus-divider-block-container";
+    const children = doc.createElement("div");
+    children.className = "myoxus-block-children-container";
+    children.style.paddingLeft = BLOCK_CHILDREN_CONTAINER_PADDING_LEFT + "px";
+    container.append(doc.createElement("hr"), children);
+    this.append(selectionFrame(this, container, true));
+    return children;
   }
-
-  override renderBlock() {
-    const children = html`<div
-      class="myoxus-block-children-container"
-      style="padding-left: ${BLOCK_CHILDREN_CONTAINER_PADDING_LEFT}px"
-    >
-      ${this.renderChildren(this.model)}
-    </div>`;
-
-    return html`
-      <div class="myoxus-divider-block-container">
-        <hr />
-
-        ${children}
-      </div>
-    `;
-  }
-
-  override accessor useZeroWidth = true;
 }
 
 declare global {

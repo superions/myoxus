@@ -51,7 +51,10 @@ import {
   mergeStreamContent,
   mergeStreamObjects,
 } from "../utils/stream-objects";
-import { ChatPeekConversation } from "../components/message-chrome";
+import {
+  ChatLoading,
+  ChatPeekConversation,
+} from "../components/message-chrome";
 import type { ChatContext } from "./types";
 import { calcChildBound } from "./utils";
 
@@ -604,10 +607,7 @@ export class AIChatBlockPeekSession {
         : message.content;
 
       if (status === "loading" && isLastReply) {
-        return createElement("ai-loading", {
-          key: idx,
-          reactToLit: this.modalReactToLit,
-        });
+        return createElement(ChatLoading, { key: idx });
       }
 
       const notificationService = this.host.std.get(NotificationProvider);

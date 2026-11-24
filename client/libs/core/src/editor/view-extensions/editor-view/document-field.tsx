@@ -23,7 +23,9 @@ import {
   PopoverTarget,
   Stack,
 } from "@myoxus/ui-facade";
-import type { ReactToLit } from "@myoxus/lit-react";
+import type { ReadonlySignal } from "@preact/signals-core";
+import { useSignalValue } from "@myoxus/core/modules/doc-info/utils";
+import type { MountReactPortal } from "@myoxus/lit-react";
 import {
   DocumentFieldReactHostIdentifier,
   type DocumentFieldInlineHostProps,
@@ -165,16 +167,25 @@ export function PageDocumentField({
 }
 
 /** Register one visual host; the surrounding editor owns its shared context. */
-export function patchDocumentFieldHost(reactToLit: ReactToLit): ExtensionType {
+function LiveField({
+  state,
+}: {
+  state: ReadonlySignal<DocumentFieldInlineHostProps | undefined>;
+}) {
+  const props = useSignalValue(state);
+  return props ? <DocumentFieldInline {...props} /> : null;
+}
+export function patchDocumentFieldHost(
+  mountPortal: MountReactPortal,
+): ExtensionType {
   return {
     setup: (di) =>
       di.addImpl(DocumentFieldReactHostIdentifier, () => ({
-        renderInline: (props: DocumentFieldInlineHostProps) =>
-          reactToLit(<DocumentFieldInline {...props} />, true),
+        mountInline: (anchor, state) =>
+          mountPortal(anchor, <LiveField state={state} />),
       })),
   };
 }
-
 export function DocumentFieldInline({
   field,
   readonly,

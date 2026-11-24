@@ -25,9 +25,10 @@ import {
 } from "@virgultum/core/store";
 import { TestWorkspace } from "@virgultum/core/store/test";
 import { describe, expect, test, vi } from "vitest";
-import { html } from "lit";
+import type { ReadonlySignal } from "@preact/signals-core";
 import {
   AnnotationBlockComponent,
+  AnnotationReactHostExtension,
   annotationSlashMenuConfig,
   type AnnotationBlockHostProps,
   type AnnotationInlineHostProps,
@@ -35,7 +36,7 @@ import {
 import {
   BlockSelection,
   TextSelection,
-  type BlockStdScope,
+  BlockStdScope,
 } from "@virgultum/core/runtime";
 
 import {
@@ -1175,25 +1176,29 @@ describe("canonical annotations", () => {
       if (!customElements.get("myoxus-inline-annotation"))
         customElements.define("myoxus-inline-annotation", InlineAnnotation);
       const component = document.createElement("myoxus-inline-annotation");
-      component.editor = new InlineEditor<MyoxusTextAttributes>(text.yText);
-      component.startOffset = 7;
-      component.delta = {
-        insert: "original\n✓",
-        attributes: { annotation: { id: "a" } },
-      };
       let props!: AnnotationInlineHostProps;
-      component.std = {
-        store,
-        getOptional: () => ({
-          showAnnotations: true,
-          renderInline: (value: AnnotationInlineHostProps) => {
-            props = value;
-            return html``;
-          },
-        }),
-      } as unknown as BlockStdScope;
+      component.context = {
+        editor: new InlineEditor<MyoxusTextAttributes>(text.yText),
+        startOffset: 7,
+        delta: {
+          insert: "original\n✓",
+          attributes: { annotation: { id: "a" } },
+        },
+        std: {
+          store,
+          getOptional: () => ({
+            showAnnotations: true,
+            mountInline: (
+              _anchor: HTMLElement,
+              state: ReadonlySignal<AnnotationInlineHostProps | undefined>,
+            ) => {
+              props = state.value!;
+              return () => {};
+            },
+          }),
+        } as unknown as BlockStdScope,
+      };
       owner.append(component);
-      await component.updateComplete;
       expect(props.body).toBe("original\n✓");
       expect(props.apply("changed\n🙂", props.body)).toBe(true);
       expect(text.toString()).toBe("before changed\n🙂 after");
@@ -1264,26 +1269,32 @@ describe("canonical annotations", () => {
           InlineDocumentField,
         );
       const component = document.createElement("myoxus-inline-document-field");
-      component.editor = new InlineEditor<MyoxusTextAttributes>(text.yText);
-      component.startOffset = 7;
-      component.delta = {
-        insert: " ",
-        attributes: { documentField: field, bold: true },
-      };
       let props!: DocumentFieldInlineHostProps;
       let isTemplate = true;
-      component.std = {
-        store,
-        getOptional: () => ({
-          isTemplateDocument: () => isTemplate,
-          renderInline: (value: DocumentFieldInlineHostProps) => {
-            props = value;
-            return html``;
-          },
-        }),
-      } as unknown as BlockStdScope;
+      const context: InlineDocumentField["context"] = {
+        editor: new InlineEditor<MyoxusTextAttributes>(text.yText),
+        startOffset: 7,
+        delta: {
+          insert: " ",
+          attributes: { documentField: field, bold: true },
+        },
+        std: {
+          store,
+          getOptional: () => ({
+            isTemplateDocument: () => isTemplate,
+            mountInline: (
+              _anchor: HTMLElement,
+              state: ReadonlySignal<DocumentFieldInlineHostProps | undefined>,
+            ) => {
+              return state.subscribe((value) => {
+                if (value) props = value;
+              });
+            },
+          }),
+        } as unknown as BlockStdScope,
+      };
+      component.context = context;
       owner.append(component);
-      await component.updateComplete;
       const edited = {
         ...field,
         definition: { ...field.definition, label: "Edited" },
@@ -1307,12 +1318,14 @@ describe("canonical annotations", () => {
         insert: " ",
         attributes: { documentField: field, bold: true },
       });
-      component.startOffset = 8;
-      component.delta = {
-        insert: " ",
-        attributes: { documentField: adjacent, italic: true },
+      component.context = {
+        ...context,
+        startOffset: 8,
+        delta: {
+          insert: " ",
+          attributes: { documentField: adjacent, italic: true },
+        },
       };
-      await component.updateComplete;
       const reordered = {
         ...adjacent,
         definition: {
@@ -1330,12 +1343,14 @@ describe("canonical annotations", () => {
         attributes: { documentField: reordered, italic: true },
       });
       store.undo();
-      component.startOffset = 7;
-      component.delta = {
-        insert: " ",
-        attributes: { documentField: field, bold: true },
+      component.context = {
+        ...context,
+        startOffset: 7,
+        delta: {
+          insert: " ",
+          attributes: { documentField: field, bold: true },
+        },
       };
-      await component.updateComplete;
       isTemplate = false;
       const answered = { ...field, value: "  Literal {{answer}}  " };
       expect(props.updateValue({ ...field, value: "stale" }, answered)).toBe(
@@ -1387,13 +1402,13 @@ describe("canonical annotations", () => {
       expect(store.getParent(fieldOwner)?.id).toBe(note);
       store.redo();
       expect(store.getParent(fieldOwner)?.id).toBe(layoutNote);
-      component.editor.setReadonly(true);
+      context.editor.setReadonly(true);
       expect(props.updateValue(field, answered)).toBe(true);
       expect(props.convertToText(answered, "forbidden")).toBe(false);
       store.readonly = true;
       expect(props.updateValue(answered, field)).toBe(false);
       store.readonly = false;
-      component.editor.setReadonly(false);
+      context.editor.setReadonly(false);
       expect(props.convertToText(answered, "forbidden")).toBe(false);
       store.undo();
       expect(
@@ -1412,7 +1427,7 @@ describe("canonical annotations", () => {
       store.undo();
       fieldOwner.yBlock.delete("prop:textProtection");
       isTemplate = false;
-      const setRange = vi.spyOn(component.editor, "setInlineRange");
+      const setRange = vi.spyOn(context.editor, "setInlineRange");
       const capture = vi.spyOn(store, "captureSync");
       expect(props.convertToText(field, "A {{literal}}")).toBe(true);
       expect(setRange).toHaveBeenNthCalledWith(1, { index: 7, length: 0 });
@@ -1511,6 +1526,7 @@ describe("canonical annotations", () => {
     const doc = workspace.createDoc("annotation-host");
     doc.load();
     const store = doc.getStore();
+    const owner = document.createElement("div");
     try {
       const root = store.addBlock("myoxus:page");
       const note = store.addBlock("myoxus:note", {}, root);
@@ -1523,19 +1539,25 @@ describe("canonical annotations", () => {
         customElements.define("myoxus-annotation", AnnotationBlockComponent);
       }
       const component = document.createElement("myoxus-annotation");
-      component.store = store;
       component.dataset.blockId = id;
       let props!: AnnotationBlockHostProps;
-      component.std = {
-        getOptional: () => ({
-          showAnnotations: true,
-          renderBlock: (value: AnnotationBlockHostProps) => {
-            props = value;
-            return html``;
-          },
-        }),
-      } as unknown as BlockStdScope;
-      component.renderBlock();
+      const std = new BlockStdScope({
+        store,
+        extensions: [
+          ...testStoreExtensions,
+          AnnotationReactHostExtension({
+            showAnnotations: true,
+            mountBlock: (_anchor, state) => {
+              props = state.value;
+              return () => {};
+            },
+          }),
+        ],
+      });
+      owner.dataset.myoxusCanvasHost = "";
+      Object.assign(owner, { store, std });
+      owner.append(component);
+      document.body.append(owner);
       expect(props.body).toBe("original");
       expect(props.apply("changed\n✓", "original")).toBe(true);
       expect(store.getModelById(id)!.text!.toString()).toBe("changed\n✓");
@@ -1550,6 +1572,7 @@ describe("canonical annotations", () => {
       store.deleteBlock(store.getModelById(id)!);
       expect(props.apply("resurrected", "changed\n✓")).toBe(false);
     } finally {
+      owner.remove();
       workspace.dispose();
     }
   });

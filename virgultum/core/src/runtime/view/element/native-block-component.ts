@@ -241,7 +241,8 @@ export abstract class NativeContainerBlock<
   Model extends BlockModel,
 > extends NativeBlockComponent<Model> {
   protected abstract readonly blockStyles: string;
-  protected abstract mountBody(): HTMLElement;
+  /** Return the child insertion point, or null for a leaf with no projected children. */
+  protected abstract mountBody(): HTMLElement | null;
   protected projectedModels(): readonly BlockModel[] {
     return this.model.children;
   }
@@ -258,6 +259,7 @@ export abstract class NativeContainerBlock<
       return;
     }
     const body = display ? this.mountBody() : this;
+    if (!body) return;
     const children = new NativeBlockProjection(this.host);
     this.disposables.add(
       effect(() => {

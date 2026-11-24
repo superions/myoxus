@@ -298,7 +298,7 @@ class ViewProvider {
             h6: "Heading 6",
             quote: "",
           };
-          return placeholders[model.props.type] ?? "";
+          return placeholders[model.props.type$.value] ?? "";
         },
       });
     } else {
@@ -316,7 +316,7 @@ class ViewProvider {
             h6: "Heading 6",
             quote: "",
           };
-          return placeholders[model.props.type] ?? "";
+          return placeholders[model.props.type$.value] ?? "";
         },
       });
     }

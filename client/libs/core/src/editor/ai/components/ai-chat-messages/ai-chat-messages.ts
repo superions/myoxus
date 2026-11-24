@@ -1,7 +1,7 @@
 import { type ReactToLit, toReactNode } from "@myoxus/lit-react";
 import { createElement } from "react";
 import { nanoid } from "nanoid";
-import { ChatConversation } from "../message-chrome";
+import { ChatConversation, ChatUserMessage } from "../message-chrome";
 import type { AIToolsConfigService } from "@myoxus/core/modules/ai-button";
 import type { AIModelService } from "@myoxus/core/modules/ai-button/services/models";
 import type { PeekViewService } from "@myoxus/core/modules/peek-view";
@@ -169,12 +169,15 @@ export class AIChatMessages extends SignalWatcher(
             (item, index) => {
               const isLast = index === filteredItems.length - 1;
               if (isChatMessage(item) && item.role === "user") {
-                return html`<chat-message-user
-                  .reactToLit=${this.reactToLit}
-                  .item=${item}
-                  .avatarUrl=${this.avatarUrl}
-                  .userName=${this.userName}
-                ></chat-message-user>`;
+                return this.reactToLit(
+                  createElement(ChatUserMessage, {
+                    name: this.userName,
+                    avatarUrl: this.avatarUrl,
+                    text: item.content,
+                    images: item.attachments,
+                  }),
+                  true,
+                );
               } else if (isChatMessage(item) && item.role === "assistant") {
                 return html`<chat-message-assistant
                   .reactToLit=${this.reactToLit}

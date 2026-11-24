@@ -1,7 +1,6 @@
-import { unsafeCSSVar } from "@virgultum/core/theme";
-import { css } from "lit";
+import { cssVar } from "@myoxus/theme";
 
-export const latexBlockStyles = css`
+export const latexBlockStyles = `
   .latex-block-container {
     display: flex;
     position: relative;
@@ -17,11 +16,11 @@ export const latexBlockStyles = css`
   }
 
   .latex-block-container:hover {
-    background: ${unsafeCSSVar("hoverColor")};
+    background: ${cssVar("hoverColor")};
   }
 
   .latex-block-error-placeholder {
-    color: ${unsafeCSSVar("textHighlightForegroundRed")};
+    color: ${cssVar("textHighlightForegroundRed")};
     font-family: Inter;
     font-size: 12px;
     font-weight: 500;
@@ -30,7 +29,7 @@ export const latexBlockStyles = css`
   }
 
   .latex-block-empty-placeholder {
-    color: ${unsafeCSSVar("textSecondaryColor")};
+    color: ${cssVar("textSecondaryColor")};
     font-family: Inter;
     font-size: 12px;
     font-weight: 500;

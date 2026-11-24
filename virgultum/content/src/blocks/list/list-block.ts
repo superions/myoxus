@@ -1,61 +1,26 @@
 import "@virgultum/core/commands";
-
 import { effect } from "@preact/signals-core";
-import { CaptionedBlockComponent } from "../../caption/index";
-import { playCheckAnimation } from "@virgultum/core/view/icons";
-import { TOGGLE_BUTTON_PARENT_CLASS } from "@virgultum/core/consts";
-import { DefaultInlineManagerExtension } from "../../inlines/preset/index";
 import type { ListBlockModel } from "@virgultum/core/models";
-import type { RichText } from "../../rich-text/index";
-import {
-  BLOCK_CHILDREN_CONTAINER_PADDING_LEFT,
-  EDGELESS_TOP_CONTENTEDITABLE_SELECTOR,
-} from "@virgultum/core/consts";
-import {
-  DocModeProvider,
-  EditorI18nProvider,
-  textProtectionHint,
-} from "@virgultum/core/services";
-import { getViewportElement } from "@virgultum/core/utils";
-import {
-  type BlockComponent,
-  BlockSelection,
-  TextSelection,
-} from "@virgultum/core/runtime";
-import {
-  getInlineRangeProvider,
-  type InlineRangeProvider,
-} from "@virgultum/core/runtime/inline";
+import { BlockSelection, TextSelection } from "@virgultum/core/runtime";
 import type { BaseSelection } from "@virgultum/core/store";
-import { html, nothing, type TemplateResult } from "lit";
-import { query, state } from "lit/decorators.js";
-import { classMap } from "lit/directives/class-map.js";
-import { repeat } from "lit/directives/repeat.js";
-import { styleMap } from "lit/directives/style-map.js";
-
+import { playCheckAnimation } from "@virgultum/core/view/list-animation";
+import { TextBlock } from "../../rich-text/text-block";
+import type { RichText } from "../../rich-text/rich-text";
 import { correctNumberedListsOrderToPrev } from "./commands/utils";
 import { listBlockStyles } from "./styles";
-import { getListPrefix } from "./utils/get-list-prefix";
+import { updateListPrefix } from "./utils/get-list-prefix";
 
-export class ListBlockComponent extends CaptionedBlockComponent<ListBlockModel> {
-  static override styles = listBlockStyles;
-
-  private _inlineRangeProvider: InlineRangeProvider | null = null;
-
+export class ListBlockComponent extends TextBlock<ListBlockModel> {
+  protected readonly blockStyles = listBlockStyles;
+  protected showDisclosure() {
+    return this.model.children.length > 0;
+  }
   private readonly _onClickPrefix = (e: MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
 
     if (this.model.props.type === "toggle") {
-      if (this.store.readonly) {
-        this._readonlyCollapsed = !this._readonlyCollapsed;
-      } else {
-        this.store.captureSync();
-        this.store.updateBlock(this.model, {
-          collapsed: !this.model.props.collapsed,
-        });
-      }
-
+      this.setCollapsed(!this.collapsed);
       return;
     } else if (this.model.props.type === "todo") {
       if (this.store.readonly) return;
@@ -74,31 +39,6 @@ export class ListBlockComponent extends CaptionedBlockComponent<ListBlockModel> 
     this._select();
   };
 
-  get attributeRenderer() {
-    return this.inlineManager.getRenderer();
-  }
-
-  get attributesSchema() {
-    return this.inlineManager.getSchema();
-  }
-
-  get embedChecker() {
-    return this.inlineManager.embedChecker;
-  }
-
-  get inlineManager() {
-    return this.std.get(DefaultInlineManagerExtension.identifier);
-  }
-
-  override get topContenteditableElement() {
-    if (this.std.get(DocModeProvider).getEditorMode() === "edgeless") {
-      return this.closest<BlockComponent>(
-        EDGELESS_TOP_CONTENTEDITABLE_SELECTOR,
-      );
-    }
-    return this.rootComponent;
-  }
-
   private _select() {
     const selection = this.host.selection;
     selection.update((selList) => {
@@ -110,18 +50,24 @@ export class ListBlockComponent extends CaptionedBlockComponent<ListBlockModel> 
     });
   }
 
-  override connectedCallback() {
-    super.connectedCallback();
-
-    this._inlineRangeProvider = getInlineRangeProvider(this);
-
+  protected mountControls(
+    _container: HTMLElement,
+    line: HTMLElement,
+    input: RichText,
+  ) {
+    const prefix = this.ownerDocument.createElement("div");
+    prefix.addEventListener("click", this._onClickPrefix);
+    line.insertBefore(prefix, input);
     this.disposables.add(
       effect(() => {
-        const collapsed = this.model.props.collapsed$.value;
-        this._readonlyCollapsed = collapsed;
+        updateListPrefix(prefix, this.model, !this.collapsed);
+        line.classList.toggle(
+          "myoxus-list--checked",
+          this.model.props.type$.value === "todo" &&
+            this.model.props.checked$.value,
+        );
       }),
     );
-
     this.disposables.add(
       effect(() => {
         const type = this.model.props.type$.value;
@@ -137,100 +83,4 @@ export class ListBlockComponent extends CaptionedBlockComponent<ListBlockModel> 
       }),
     );
   }
-
-  override async getUpdateComplete() {
-    const result = await super.getUpdateComplete();
-    await this._richTextElement?.updateComplete;
-    return result;
-  }
-
-  override renderBlock(): TemplateResult<1> {
-    const { model, _onClickPrefix } = this;
-    const widgets = html`${repeat(
-      Object.entries(this.widgets),
-      ([id]) => id,
-      ([_, widget]) => widget,
-    )}`;
-    const collapsed = this.store.readonly
-      ? this._readonlyCollapsed
-      : model.props.collapsed;
-
-    const listPrefix = getListPrefix(model, !collapsed, _onClickPrefix);
-
-    const textAlignStyle = styleMap({
-      textAlign: this.model.props.textAlign$?.value,
-    });
-
-    const children = html`<div
-      class="myoxus-block-children-container"
-      style=${styleMap({
-        paddingLeft: `${BLOCK_CHILDREN_CONTAINER_PADDING_LEFT}px`,
-        display: collapsed ? "none" : undefined,
-      })}
-    >
-      ${this.renderChildren(this.model)}
-    </div>`;
-
-    return html`
-      <div class=${"myoxus-list-block-container"} style="${textAlignStyle}">
-        <div
-          class=${classMap({
-            "myoxus-list-rich-text-wrapper": true,
-            "myoxus-list--checked":
-              this.model.props.type === "todo" && this.model.props.checked,
-            [TOGGLE_BUTTON_PARENT_CLASS]: true,
-          })}
-        >
-          ${
-            this.model.children.length > 0
-              ? html`
-                  <virgultum-toggle-button
-                    .collapsed=${collapsed}
-                    .updateCollapsed=${(value: boolean) => {
-                      if (this.store.readonly) {
-                        this._readonlyCollapsed = value;
-                      } else {
-                        this.store.captureSync();
-                        this.store.updateBlock(this.model, {
-                          collapsed: value,
-                        });
-                      }
-                    }}
-                  ></virgultum-toggle-button>
-                `
-              : nothing
-          }
-          ${listPrefix}
-          <rich-text
-            .yText=${this.model.props.text.yText}
-            .inlineEventSource=${this.topContenteditableElement ?? nothing}
-            .undoManager=${this.store.history.undoManager}
-            .attributeRenderer=${this.attributeRenderer}
-            .attributesSchema=${this.attributesSchema}
-            .markdownMatches=${this.inlineManager?.markdownMatches}
-            .embedChecker=${this.embedChecker}
-            .readonly=${this.store.readonly || this.model.props.textProtection === "fixed"}
-            title=${textProtectionHint(this.model.props.textProtection, this.std.getOptional(EditorI18nProvider) ?? undefined)}
-            .inlineRangeProvider=${this._inlineRangeProvider}
-            .enableClipboard=${false}
-            .enableUndoRedo=${false}
-            .verticalScrollContainerGetter=${() =>
-              getViewportElement(this.host)}
-          ></rich-text>
-        </div>
-
-        ${children} ${widgets}
-      </div>
-    `;
-  }
-
-  @state()
-  private accessor _readonlyCollapsed = false;
-
-  @query("rich-text")
-  private accessor _richTextElement: RichText | null = null;
-
-  override accessor blockContainerStyles = {
-    margin: "var(--myoxus-list-margin, 10px 0)",
-  };
 }
