@@ -24,7 +24,10 @@ import {
   StdIdentifier,
 } from "../identifier.js";
 import { RangeManager } from "../inline/index.js";
-import { LitEditorHost, type EditorHost } from "../view/element/lit-host.js";
+import {
+  DocumentEditorHost,
+  type EditorHost,
+} from "../view/element/lit-host.js";
 import { createCanvasHost } from "../view/element/canvas-host.js";
 import { ViewStore } from "../view/view-store.js";
 
@@ -151,10 +154,9 @@ export class BlockStdScope {
     });
   }
 
-  render(): LitEditorHost {
-    const element = new LitEditorHost();
+  render(): DocumentEditorHost {
+    const element = new DocumentEditorHost();
     element.std = this;
-    element.store = this.store;
     this.bindHost(element);
     return element;
   }

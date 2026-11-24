@@ -57,6 +57,9 @@
   text-decoration: var(--myoxus-typography-page-title-decoration);
   padding-bottom: var(--mantine-spacing-xl);
 }
+[data-page-title="snapshot"] {
+  padding-block: calc(var(--mantine-spacing-lg) + var(--mantine-spacing-xs));
+}
 [data-page-title]:empty::before {
   content: attr(data-placeholder);
   color: var(--myoxus-placeholder-color);
@@ -288,8 +291,8 @@
   display: flex;
   gap: var(--mantine-spacing-md);
 }
-[data-page-code] pre,
-[data-page-code] textarea {
+[data-code-source] pre,
+[data-code-source] textarea {
   padding: 0;
   margin: 0;
   border: 0;

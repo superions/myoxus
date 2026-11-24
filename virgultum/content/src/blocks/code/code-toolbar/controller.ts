@@ -21,12 +21,16 @@ import { isInsidePageEditor } from "@virgultum/core/utils";
 import { CodeBlockConfigExtension } from "../code-block-config";
 import { CodeBlockPreviewIdentifier } from "../code-preview-extension";
 import type { CodeBlockToolbarContext } from "./context";
+import {
+  codeLanguageOptions,
+  readLanguageOrder,
+  saveLanguageOrder,
+} from "../../../syntax-highlighter/language-preferences";
 import { duplicateCodeBlock } from "./utils";
 
 export type CodeToolbarActions = (
   context: CodeBlockToolbarContext,
 ) => SelectionAction[];
-const preferenceKey = "virgultum:code-block:lang-list";
 
 /** A hover session owns commands; cached preferences never replace the language registry. */
 export function createCodeToolbarControls(
@@ -35,18 +39,7 @@ export function createCodeToolbarControls(
 ): EditorCodeToolbarControls {
   const block = context.blockComponent;
   const { model, store, std } = block;
-  const recent = signal<string[]>([]);
-  try {
-    const saved: unknown = JSON.parse(
-      localStorage.getItem(preferenceKey) ?? "[]",
-    );
-    if (Array.isArray(saved))
-      recent.value = saved.flatMap((item) =>
-        typeof item?.name === "string" ? [item.name] : [],
-      );
-  } catch {
-    /* A preference is optional; the configured registry remains authoritative. */
-  }
+  const recent = signal(readLanguageOrder());
   const alive = () =>
     !context.abortController.signal.aborted &&
     block.isConnected &&
@@ -223,24 +216,14 @@ export function createCodeToolbarControls(
           variant: "destructive",
         },
       );
-    const rank = (id: string) => {
-      if (id === model.props.language) return -1;
-      const index = recent.value.indexOf(id);
-      return index < 0 ? Infinity : index;
-    };
     return {
       language: model.props.language ?? "",
       languageName: block.languageName$.value,
-      languages: block.langs
-        .map((lang) => ({
-          value: lang.id,
-          label: lang.name,
-          aliases: lang.aliases,
-        }))
-        .sort(
-          (a, b) =>
-            rank(a.value) - rank(b.value) || a.label.localeCompare(b.label),
-        ),
+      languages: codeLanguageOptions(
+        block.langs,
+        model.props.language,
+        recent.value,
+      ),
       readonly,
       primary,
       more,
@@ -278,21 +261,7 @@ export function createCodeToolbarControls(
         language,
         ...recent.value.filter((id) => id !== language),
       ];
-      try {
-        // Keep the deployed preference format usable by already-open clients.
-        localStorage.setItem(
-          preferenceKey,
-          JSON.stringify(
-            snapshot.value.languages.map(({ value, label, aliases }) => ({
-              name: value,
-              label,
-              aliases,
-            })),
-          ),
-        );
-      } catch {
-        /* Storage may be disabled. */
-      }
+      saveLanguageOrder(snapshot.value.languages);
       track("codeBlockLanguageSelect", language);
     },
   };

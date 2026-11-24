@@ -46,8 +46,6 @@ export class VElement<
     const span = this.querySelector('[data-v-element="true"]') as HTMLElement;
     const el = span.firstElementChild as LitElement;
     await el.updateComplete;
-    const vTexts = Array.from(this.querySelectorAll("v-text"));
-    await Promise.all(vTexts.map((vText) => vText.updateComplete));
     return result;
   }
 

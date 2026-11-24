@@ -1,4 +1,3 @@
-import type { EdgelessEditor, PageEditor } from "@myoxus/core/editor/editors";
 import { EditorSettingService } from "@myoxus/core/modules/editor-setting";
 import { FeatureFlagService } from "@myoxus/core/modules/feature-flag";
 import { MermaidDiagramsService } from "@myoxus/core/modules/mermaid-diagrams";
@@ -194,9 +193,8 @@ const VirgultumEditorImpl = ({
   readingSize: number | null;
 }) => {
   const rootRef = useRef<HTMLDivElement>(null);
-  const docRef = useRef<PageEditor>(null);
+  const hostRef = useRef<EditorHost>(null);
   const docTitleRef = useRef<DocTitle>(null);
-  const edgelessRef = useRef<EdgelessEditor>(null);
   const featureFlags = useService(FeatureFlagService).flags;
   const enableEditorRTL = useLiveData(featureFlags.enable_editor_rtl.$);
   const editorSetting = useService(EditorSettingService).editorSetting;
@@ -215,7 +213,7 @@ const VirgultumEditorImpl = ({
 
   /**
    * Build an explicit `MyoxusEditorContainer` adapter from the
-   * underlying Lit editor refs. The legacy implementation
+   * mounted document host. The legacy implementation
    * returned a `Proxy` that delegated arbitrary property access
    * to the host `HTMLDivElement`, which made the host surface
    * unbounded and the container's exact contract opaque. The
@@ -229,7 +227,7 @@ const VirgultumEditorImpl = ({
     // (the editor surface) never relies on the container being a
     // real HTMLElement. `Object.assign` must not be used here:
     // it evaluates getters immediately and freezes `std`/`host`
-    // as `undefined` before the Lit editor refs are connected.
+    // as `undefined` before the host is connected.
     const adapter = Object.create(null) as MyoxusEditorContainer;
     Object.defineProperties(adapter, {
       page: { value: page, enumerable: true },
@@ -243,11 +241,7 @@ const VirgultumEditorImpl = ({
       host: {
         enumerable: true,
         get() {
-          return (
-            (mode === "page"
-              ? docRef.current?.host
-              : edgelessRef.current?.host) ?? undefined
-          );
+          return hostRef.current ?? undefined;
         },
       },
       model: {
@@ -259,11 +253,7 @@ const VirgultumEditorImpl = ({
       updateComplete: {
         enumerable: true,
         get() {
-          return (
-            mode === "page"
-              ? docRef.current?.updateComplete
-              : edgelessRef.current?.updateComplete
-          ) as Promise<boolean>;
+          return hostRef.current?.updateComplete ?? Promise.resolve(false);
         },
       },
       mode: { value: mode, enumerable: true },
@@ -285,9 +275,7 @@ const VirgultumEditorImpl = ({
       std: {
         enumerable: true,
         get() {
-          return (
-            mode === "page" ? docRef.current?.std : edgelessRef.current?.std
-          ) as BlockStdScope;
+          return hostRef.current?.std as BlockStdScope;
         },
       },
     });
@@ -645,7 +633,7 @@ const VirgultumEditorImpl = ({
         <VirgultumDocEditor
           shared={shared}
           page={page}
-          ref={docRef}
+          ref={hostRef}
           readonly={readonly}
           snapshot={snapshot}
           contentOnly={contentOnly}
@@ -658,7 +646,7 @@ const VirgultumEditorImpl = ({
           readonly={readonly}
           snapshot={snapshot}
           page={page}
-          ref={edgelessRef}
+          ref={hostRef}
         />
       )}
     </DocumentEditorRoot>

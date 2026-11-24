@@ -2,7 +2,6 @@ import { EmbedGithubBlockSchema } from "@virgultum/core/models";
 import { BlockViewExtension, FlavourExtension } from "@virgultum/core/runtime";
 import type { ExtensionType } from "@virgultum/core/store";
 import { SlashMenuConfigExtension } from "@virgultum/core/slash-menu";
-import { literal } from "lit/static-html.js";
 
 import { createBuiltinToolbarConfigExtension } from "../configs/toolbar";
 import { embedGithubSlashMenuConfig } from "./configs/slash-menu";
@@ -20,8 +19,8 @@ export const EmbedGithubViewExtensions: ExtensionType[] = [
   EmbedGithubBlockService,
   BlockViewExtension(flavour, (model) => {
     return model.parent?.flavour === "myoxus:surface"
-      ? literal`myoxus-embed-edgeless-github-block`
-      : literal`myoxus-embed-github-block`;
+      ? "myoxus-embed-edgeless-github-block"
+      : "myoxus-embed-github-block";
   }),
   EmbedGithubBlockOptionConfig,
   EmbedGithubBlockInteraction,

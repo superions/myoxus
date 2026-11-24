@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import type { BlockModel, Store } from "@virgultum/core/store";
-import type { SurfaceBlockModel } from "@virgultum/core/runtime/gfx";
 import type {
   RootBlockModel,
   NoteBlockModel,
@@ -45,13 +44,6 @@ export type PageLine = {
 };
 
 const marks = new Set(["bold", "italic", "underline", "strike", "code"]);
-const canvasPrimitives = new Set([
-  "shape",
-  "brush",
-  "text",
-  "connector",
-  "group",
-]);
 function supportedText(text: YText, inlineObjects = true) {
   return text
     .toDelta()
@@ -123,26 +115,46 @@ function supportedText(text: YText, inlineObjects = true) {
     );
 }
 
+export function readPageTitle(page: Store): PageLine | null {
+  const model = page.root as RootBlockModel | null;
+  if (
+    model?.flavour !== "myoxus:page" ||
+    !model.props.title?.yText ||
+    !supportedText(model.props.title.yText, false)
+  )
+    return null;
+  return {
+    model,
+    text: model.props.title.yText,
+    kind: "title",
+    depth: 0,
+    ordinal: 0,
+    checked: false,
+  };
+}
+
+/** These projections read only the detached Store; none needs a live workspace or a command handoff. */
+export function canReadPageSnapshot(content: PageContent) {
+  return (
+    content.order.every(
+      (item) =>
+        "text" in item ||
+        item.kind === "divider" ||
+        item.kind === "callout" ||
+        item.kind === "equation" ||
+        item.kind === "annotation" ||
+        item.kind === "table",
+    ) && content.lines.every((line) => supportedText(line.text, false))
+  );
+}
+
 /** Inspect the live tree, including disconnected children during materialization.
  * Unknown runs are never flattened into editable plain text. */
 export function readPageContent(page: Store) {
-  const root = page.root as RootBlockModel | null;
-  if (
-    root?.flavour !== "myoxus:page" ||
-    !root.props.title?.yText ||
-    !supportedText(root.props.title.yText, false)
-  )
-    return null;
-  const lines: PageLine[] = [
-    {
-      model: root,
-      text: root.props.title.yText,
-      kind: "title",
-      depth: 0,
-      ordinal: 0,
-      checked: false,
-    },
-  ];
+  const title = readPageTitle(page);
+  if (!title) return null;
+  const root = title.model;
+  const lines: PageLine[] = [title];
   const seen = new Set([root.id]);
   type Item =
     | PageLine
@@ -196,29 +208,16 @@ export function readPageContent(page: Store) {
       if (seen.has(child.id)) return false;
       seen.add(child.id);
       if (child.flavour === "myoxus:surface") {
-        // The Page projection has no visible block for ordinary Canvas geometry.
-        // Inspect the stored types rather than loading painters or editing them;
-        // a specialist element or Surface child still requires its own session.
-        if (parent !== root || child.yBlock.get("sys:children").length)
-          return false;
-        const elements = (child as SurfaceBlockModel).elements.getValue();
-        if (!elements) return false;
-        for (const item of elements.values()) {
-          const type = item.get("type");
-          if (typeof type !== "string" || !canvasPrimitives.has(type))
-            return false;
-        }
+        // The Page surface owner indexes this root child but paints none of its
+        // geometry or descendants. They remain in the live Store for Canvas.
+        if (parent !== root) return false;
         continue;
       }
       if (child.flavour === "myoxus:note") {
         const note = child as NoteBlockModel;
-        if (
-          parent !== root ||
-          note.props.hidden ||
-          note.props.displayMode === "edgeless" ||
-          (note.props.comments && Object.keys(note.props.comments).length)
-        )
-          return false;
+        if (parent !== root) return false;
+        if (note.props.displayMode === "edgeless") continue;
+        if (Object.keys(note.props.comments ?? {}).length) return false;
         if (!children(note, depth)) return false;
         continue;
       }
@@ -306,7 +305,6 @@ export function readPageContent(page: Store) {
         const model = child as AttachmentBlockModel;
         if (
           child.yBlock.get("sys:children").length ||
-          model.props.caption ||
           model.props.footnoteIdentifier ||
           Object.keys(model.props.comments ?? {}).length ||
           (model.props.style &&
@@ -437,7 +435,6 @@ export function readPageContent(page: Store) {
         const model = child as CodeBlockModel;
         if (
           child.yBlock.get("sys:children").length ||
-          model.props.caption ||
           model.props.preview ||
           ["html", "mermaid", "typst"].includes(model.props.language ?? "") ||
           Object.keys(model.props.comments ?? {}).length ||

@@ -4,7 +4,6 @@ import {
 } from "@virgultum/core/extensions";
 import { BlockViewExtension, FlavourExtension } from "@virgultum/core/runtime";
 import { SlashMenuConfigExtension } from "@virgultum/core/slash-menu";
-import { literal } from "lit/static-html.js";
 
 import { CalloutKeymapExtension } from "./callout-keymap";
 import { calloutSlashMenuConfig } from "./configs/slash-menu";
@@ -23,7 +22,7 @@ export class CalloutViewExtension extends ViewExtensionProvider {
     super.setup(context);
     context.register([
       FlavourExtension("myoxus:callout"),
-      BlockViewExtension("myoxus:callout", literal`myoxus-callout`),
+      BlockViewExtension("myoxus:callout", "myoxus-callout"),
       CalloutKeymapExtension,
       SlashMenuConfigExtension("myoxus:callout", calloutSlashMenuConfig),
       ...createBuiltinToolbarConfigExtension("myoxus:callout"),

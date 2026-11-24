@@ -4,7 +4,6 @@ import { ImageSelection } from "@virgultum/core/selection";
 import { createAbsolutePositionFromRelativePosition } from "yjs";
 import {
   ToolbarRegistryIdentifier,
-  CommentProviderIdentifier,
   type EditorSlashControls,
 } from "@virgultum/core/services";
 import { getInlineEditorByModel } from "@virgultum/editor/rich-text";
@@ -28,27 +27,6 @@ export async function resumePageIntent(
   try {
     const { std, page } = editor;
     await editor.updateComplete;
-    if (intent?.kind === "comment-thread") {
-      const view = std.view.getBlock(intent.block);
-      await view?.updateComplete;
-      const text = page.getModelById(intent.block)?.text,
-        at = createAbsolutePositionFromRelativePosition(
-          intent.point,
-          page.spaceDoc,
-        );
-      // A peer may remove or resolve this occurrence while the comment owner loads.
-      if (
-        !signal.aborted &&
-        view?.isConnected &&
-        text &&
-        at?.type === text.yText &&
-        text.sliceToDelta(at.index, at.index + 1)[0]?.attributes?.[
-          `comment-${intent.id}`
-        ] === true
-      )
-        std.getOptional(CommentProviderIdentifier)?.highlightComment(intent.id);
-      return;
-    }
     if (intent?.kind === "table-cell") {
       const table = std.view.getBlock(intent.id);
       await table?.updateComplete;
@@ -112,7 +90,8 @@ export async function resumePageIntent(
           (!isPaste &&
             (intent.clipboard === "copy" ||
               (intent.flavour === "myoxus:code" &&
-                intent.control === "copy-code")))) &&
+                (intent.control === "copy-code" ||
+                  intent.control === "comment"))))) &&
         page.getModelById(intent.id)?.flavour ===
           (isPaste ? "myoxus:divider" : (intent.flavour ?? "myoxus:attachment"))
       ) {
@@ -213,7 +192,7 @@ export async function resumePageIntent(
     inline.rootElement?.focus({ preventScroll: true });
     std.selection.setGroup("note", [selection]);
     std.range.syncTextSelectionToRange(selection);
-    if (intent?.kind === "link-command" && same) {
+    if (intent?.kind === "convert-link" && same) {
       const link = Array.from(
         inline.rootElement?.querySelectorAll<
           import("@virgultum/content/inlines").MyoxusLink
@@ -226,10 +205,7 @@ export async function resumePageIntent(
           node.delta.attributes?.link === intent.url
         );
       });
-      if (!link) return;
-      if (intent.action === "open")
-        link.openLink(new MouseEvent("click", { button: intent.button }));
-      else if (!page.readonly) {
+      if (link && !page.readonly) {
         std.get(ToolbarRegistryIdentifier).message$.value = {
           flavour: "myoxus:link",
           element: link,

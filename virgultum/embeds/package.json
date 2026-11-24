@@ -12,7 +12,6 @@
   "license": "AGPL-3.0-or-later AND MIT",
   "dependencies": {
     "@floating-ui/dom": "^1.6.13",
-    "@lit/context": "^1.1.6",
     "@myoxus/icons": "workspace:*",
     "@myoxus/theme": "workspace:*",
     "@preact/signals-core": "^1.14.5",

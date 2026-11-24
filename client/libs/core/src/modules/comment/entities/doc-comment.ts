@@ -14,7 +14,6 @@ import type {
   DocSnapshot,
   Store,
 } from "@virgultum/editor/store";
-import type { BlockStdScope } from "@virgultum/core/runtime";
 import { nanoid } from "nanoid";
 import {
   catchError,
@@ -57,7 +56,6 @@ type EditingDraft = {
 
 export class DocCommentEntity extends Entity<{
   docId: string;
-  std: BlockStdScope | null;
 }> {
   constructor(
     private readonly snapshotHelper: SnapshotHelper,
@@ -780,7 +778,9 @@ export class DocCommentEntity extends Entity<{
   );
 
   private readonly revalidateCommentsInEditor = () => {
-    this.commentsInEditor$.setValue(this.getCommentsInEditor());
+    this.commentsInEditor$.setValue(
+      this.documentStore ? commentsInStore(this.documentStore) : [],
+    );
   };
 
   private handleTerminalError(error: unknown): boolean {
@@ -790,9 +790,7 @@ export class DocCommentEntity extends Entity<{
     return !this.documentLifecycle.isAvailable(this.props.docId);
   }
 
-  private getCommentsInEditor(): string[] {
-    return this.props.std ? commentsInStore(this.props.std.store) : [];
-  }
+  documentStore?: Store;
 
   override dispose(): void {
     this.stop();

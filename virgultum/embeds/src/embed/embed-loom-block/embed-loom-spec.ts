@@ -2,7 +2,6 @@ import { EmbedLoomBlockSchema } from "@virgultum/core/models";
 import { BlockViewExtension, FlavourExtension } from "@virgultum/core/runtime";
 import type { ExtensionType } from "@virgultum/core/store";
 import { SlashMenuConfigExtension } from "@virgultum/core/slash-menu";
-import { literal } from "lit/static-html.js";
 
 import { createBuiltinToolbarConfigExtension } from "../configs/toolbar";
 import { embedLoomSlashMenuConfig } from "./configs/slash-menu";
@@ -20,8 +19,8 @@ export const EmbedLoomViewExtensions: ExtensionType[] = [
   EmbedLoomBlockService,
   BlockViewExtension(flavour, (model) => {
     return model.parent?.flavour === "myoxus:surface"
-      ? literal`myoxus-embed-edgeless-loom-block`
-      : literal`myoxus-embed-loom-block`;
+      ? "myoxus-embed-edgeless-loom-block"
+      : "myoxus-embed-loom-block";
   }),
   EmbedLoomBlockOptionConfig,
   createBuiltinToolbarConfigExtension(flavour, EmbedLoomBlockComponent),

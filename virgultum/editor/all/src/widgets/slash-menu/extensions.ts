@@ -9,7 +9,6 @@ import {
   SlashMenuConfigExtension,
   SlashMenuConfigIdentifier,
 } from "@virgultum/core/slash-menu";
-import { literal, unsafeStatic } from "lit/static-html.js";
 
 import { defaultSlashMenuConfig } from "./config";
 import { MYOXUS_SLASH_MENU_WIDGET } from "./consts";
@@ -23,7 +22,7 @@ export class SlashMenuExtension extends Extension {
     WidgetViewExtension(
       "myoxus:page",
       MYOXUS_SLASH_MENU_WIDGET,
-      literal`${unsafeStatic(MYOXUS_SLASH_MENU_WIDGET)}`,
+      MYOXUS_SLASH_MENU_WIDGET,
     ).setup(di);
 
     di.add(this, [StdIdentifier]);

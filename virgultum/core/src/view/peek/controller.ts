@@ -1,5 +1,3 @@
-import type { TemplateResult } from "lit";
-
 import { PeekViewProvider } from "./service.js";
 import type { PeekableClass, PeekViewService } from "./type.js";
 
@@ -8,11 +6,10 @@ export class PeekableController<T extends PeekableClass> {
     return this.target.std.getOptional(PeekViewProvider);
   };
 
-  peek = (template?: TemplateResult) => {
+  peek = () => {
     return Promise.resolve<void>(
       this._getPeekViewService()?.peek({
         target: this.target,
-        template,
       }),
     );
   };

@@ -3,7 +3,6 @@ import {
   ViewExtensionProvider,
 } from "@virgultum/core/extensions";
 import { BlockViewExtension, FlavourExtension } from "@virgultum/core/runtime";
-import { literal } from "lit/static-html.js";
 
 import { effects } from "./effects";
 import { ListKeymapExtension, ListTextKeymapExtension } from "./list-keymap";
@@ -21,7 +20,7 @@ export class ListViewExtension extends ViewExtensionProvider {
     super.setup(context);
     context.register([
       FlavourExtension("myoxus:list"),
-      BlockViewExtension("myoxus:list", literal`myoxus-list`),
+      BlockViewExtension("myoxus:list", "myoxus-list"),
       ListKeymapExtension,
       ListTextKeymapExtension,
       ListMarkdownExtension,

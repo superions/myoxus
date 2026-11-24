@@ -15,7 +15,6 @@ import type {
   Query,
   SliceSnapshot,
 } from "@virgultum/core/store";
-import { literal } from "lit/static-html.js";
 
 import { EdgelessDndPreviewElement } from "../components/edgeless-preview/preview.js";
 import type { MyoxusDragHandleWidget } from "../drag-handle.js";
@@ -83,7 +82,7 @@ export class PreviewHelper {
         setup(di) {
           di.override(
             BlockViewIdentifier("myoxus:database"),
-            () => literal`myoxus-dnd-preview-database`,
+            () => "myoxus-dnd-preview-database",
           );
         },
       } as ExtensionType,
@@ -94,10 +93,10 @@ export class PreviewHelper {
               const parent = model.store.getParent(model.id);
 
               if (parent?.flavour === "myoxus:surface") {
-                return literal`myoxus-edgeless-placeholder-preview-image`;
+                return "myoxus-edgeless-placeholder-preview-image";
               }
 
-              return literal`myoxus-placeholder-preview-image`;
+              return "myoxus-placeholder-preview-image";
             };
           });
         },

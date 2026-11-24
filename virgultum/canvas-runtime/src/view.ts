@@ -3,7 +3,6 @@ import {
   ViewExtensionProvider,
 } from "@virgultum/core/extensions";
 import { BlockViewExtension, FlavourExtension } from "@virgultum/core/runtime";
-import { literal } from "lit/static-html.js";
 
 import { effects } from "./effects";
 import {
@@ -32,13 +31,11 @@ export class SurfaceViewExtension extends ViewExtensionProvider {
     ]);
     if (this.isEdgeless(context.scope)) {
       context.register(DefaultTool);
-      context.register(
-        BlockViewExtension("myoxus:surface", literal`myoxus-surface`),
-      );
+      context.register(BlockViewExtension("myoxus:surface", "myoxus-surface"));
       context.register(EditPropsMiddlewareBuilder);
     } else {
       context.register(
-        BlockViewExtension("myoxus:surface", literal`myoxus-surface-void`),
+        BlockViewExtension("myoxus:surface", "myoxus-surface-void"),
       );
     }
   }

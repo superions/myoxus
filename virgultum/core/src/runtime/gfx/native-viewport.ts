@@ -1,18 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { createIdentifier } from "../../primitives/di/index.js";
 import type { GfxController } from "./controller.js";
 import type { GfxBlockElementModel } from "./model/gfx-block-model.js";
 import { GfxViewportRendering, gfxViewportStyle } from "./viewport-element.js";
-
-export interface CanvasCamera {
-  zoom: number;
-  centerX: number;
-  centerY: number;
-}
-
-export const CanvasCameraHandoffIdentifier = createIdentifier<CanvasCamera>(
-  "CanvasCameraHandoff",
-);
 
 export interface GfxViewportElement extends HTMLElement {
   gfx: GfxController;

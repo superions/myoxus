@@ -92,17 +92,22 @@ export default function PageTable({
   model,
   readonly,
   handoff,
+  detached = false,
 }: {
   model: TableBlockModel;
   readonly: boolean;
   handoff: (intent: PageIntent) => void;
+  detached?: boolean;
 }) {
   const t = useI18n(),
     store = model.store;
   const manager = useMemo(() => new TableDataManager(model), [model]);
   const list = useService(TemplateDocService).list;
   const template = useLiveData(
-    useMemo(() => list.isTemplate$(store.id), [list, store.id]),
+    useMemo(
+      () => (readonly ? undefined : list.isTemplate$(store.id)),
+      [readonly, list, store.id],
+    ),
   );
   const i18n = useMemo(
     () => new DefaultEditorI18nService(configureEditorI18n()),
@@ -113,9 +118,12 @@ export default function PageTable({
   const parent = useRef<HTMLDivElement>(null),
     drag = useRef<Address | null>(null);
   // Only IDs survive reload. Cell contents and editor history stay in the Store.
-  const storageKey = `myoxus:page-table-selection:${store.workspace.id}:${store.id}`;
+  const storageKey = detached
+    ? null
+    : `myoxus:page-table-selection:${store.workspace.id}:${store.id}`;
   const [selection, select] = useState<Rectangle | null>(() => {
       try {
+        if (!storageKey) return null;
         const saved = JSON.parse(sessionStorage.getItem(storageKey) ?? "null");
         if (
           saved?.id === model.id &&
@@ -174,10 +182,11 @@ export default function PageTable({
   useLayoutEffect(() => {
     if (!selection) return;
     try {
-      sessionStorage.setItem(
-        storageKey,
-        JSON.stringify({ id: model.id, ...selection }),
-      );
+      if (storageKey)
+        sessionStorage.setItem(
+          storageKey,
+          JSON.stringify({ id: model.id, ...selection }),
+        );
     } catch {
       /* Optional navigation state. */
     }
@@ -190,8 +199,9 @@ export default function PageTable({
         select(null);
         try {
           if (
+            storageKey &&
             JSON.parse(sessionStorage.getItem(storageKey) ?? "null")?.id ===
-            model.id
+              model.id
           )
             sessionStorage.removeItem(storageKey);
         } catch {

@@ -1,4 +1,3 @@
-import { consume } from "@lit/context";
 import { cssVar } from "@myoxus/theme";
 import { effect } from "@preact/signals-core";
 import {
@@ -7,7 +6,6 @@ import {
   WithDisposable,
 } from "@virgultum/core/primitives/lit";
 import type { Constructor } from "@virgultum/core/primitives/utils";
-import type { ColorScheme } from "@virgultum/core/models";
 import type { BlockComponent } from "@virgultum/core/runtime";
 import {
   type GfxController,
@@ -19,14 +17,11 @@ import {
 import type { LitElement } from "lit";
 import { property, state } from "lit/decorators.js";
 
-import {
-  edgelessToolbarContext,
-  type EdgelessToolbarSlots,
-  edgelessToolbarSlotsContext,
-  edgelessToolbarThemeContext,
-} from "../context";
 import { createPopper, type MenuPopper } from "../create-popper";
-import type { EdgelessToolbarWidget } from "../edgeless-toolbar";
+import {
+  EDGELESS_TOOLBAR_WIDGET,
+  type EdgelessToolbarWidget,
+} from "../edgeless-toolbar";
 
 export declare abstract class EdgelessToolbarToolClass extends DisposableClass {
   active: boolean;
@@ -45,11 +40,7 @@ export declare abstract class EdgelessToolbarToolClass extends DisposableClass {
 
   gfx: GfxController;
 
-  theme: ColorScheme;
-
   toolbarContainer: HTMLElement | null;
-
-  toolbarSlots: EdgelessToolbarSlots;
 
   /**
    * @return true if operation was successful
@@ -58,7 +49,7 @@ export declare abstract class EdgelessToolbarToolClass extends DisposableClass {
 
   abstract type: ToolType | ToolType[];
 
-  accessor toolbar: EdgelessToolbarWidget;
+  readonly toolbar: EdgelessToolbarWidget;
 }
 
 export const EdgelessToolbarToolMixin = <T extends Constructor<LitElement>>(
@@ -154,17 +145,15 @@ export const EdgelessToolbarToolMixin = <T extends Constructor<LitElement>>(
     @state()
     public accessor popper: MenuPopper<HTMLElement> | null = null;
 
-    @consume({ context: edgelessToolbarThemeContext, subscribe: true })
-    accessor theme!: ColorScheme;
-
-    @consume({ context: edgelessToolbarContext })
-    accessor toolbar!: EdgelessToolbarWidget;
+    get toolbar() {
+      return this.edgeless.std.view.getWidget(
+        EDGELESS_TOOLBAR_WIDGET,
+        this.edgeless.model.id,
+      ) as EdgelessToolbarWidget;
+    }
 
     @property({ attribute: false })
     accessor toolbarContainer: HTMLElement | null = null;
-
-    @consume({ context: edgelessToolbarSlotsContext })
-    accessor toolbarSlots!: EdgelessToolbarSlots;
   }
 
   return DerivedClass as unknown as T & Constructor<EdgelessToolbarToolClass>;

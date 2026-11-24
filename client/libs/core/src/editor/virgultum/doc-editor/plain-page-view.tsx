@@ -9,9 +9,17 @@ import type { ReferenceInfo } from "@virgultum/core/models";
 import type { ParagraphBlockModel } from "@virgultum/core/models";
 import { calculateCollapsedSiblings } from "@virgultum/core/utils/collapsed";
 import { ChevronDownIcon, ChevronRightIcon } from "@myoxus/icons/react";
-import { createRelativePositionFromTypeIndex } from "yjs";
+import { ServerFeature } from "@myoxus/graphql";
+import {
+  createAbsolutePositionFromRelativePosition,
+  createRelativePositionFromTypeIndex,
+} from "yjs";
 import { normalizeUrl, isValidUrl } from "@virgultum/core/utils/url";
 import type { LinkAnchor } from "./page-link";
+import { useDocumentLinkNavigation } from "../../../components/hooks/use-document-link-navigation";
+import { CoreDocEmbedProvider } from "../../../modules/doc/services/doc-embed";
+import { GuardService } from "../../../modules/permissions";
+import { WorkspaceService } from "../../../modules/workspace";
 import { resolveLinkToDoc } from "../../../modules/navigation/utils";
 import { createPortal } from "react-dom";
 import type { PageInlineObject } from "./page-inline-object";
@@ -35,8 +43,9 @@ import {
   useReducer,
   useCallback,
 } from "react";
+import { FeatureFlagService } from "../../../modules/feature-flag";
 import { EditorSettingService } from "../../../modules/editor-setting";
-import { EditorService } from "../../../modules/editor";
+import { type Editor, EditorService } from "../../../modules/editor";
 import { useWorkbenchSurfaceScrollViewport } from "../../../modules/workbench/view/workbench-surface-scroll";
 import { DocsService } from "../../../modules/doc";
 import {
@@ -124,13 +133,15 @@ function TextField({
   composing,
   linkMenu,
   comment,
+  snapshotTitle,
 }: {
   line: PageLine;
   title?: string;
+  snapshotTitle?: boolean;
   readonly: boolean;
   composing: () => boolean;
   linkMenu?: (value: LinkAnchor, open?: number) => void;
-  comment?: (intent: Extract<PageIntent, { kind: "comment-thread" }>) => void;
+  comment?: (id: string) => void;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
   const previous = useRef<string>(undefined);
@@ -145,7 +156,7 @@ function TextField({
         insert: string;
         attributes?: Record<string, unknown>;
       }[];
-      const key = JSON.stringify(runs);
+      const key = JSON.stringify([!!comment, runs]);
       if (previous.current === key) return;
       previous.current = key;
       const fragment = document.createDocumentFragment();
@@ -308,13 +319,20 @@ function TextField({
             point = createRelativePositionFromTypeIndex(line.text, start, 0);
           el.dataset.pageComment = id;
           el.onclick = () => {
-            if (document.getSelection()?.isCollapsed)
-              comment({
-                kind: "comment-thread",
-                block: line.model.id,
-                id,
-                point,
-              });
+            const text = line.model.store.getModelById(line.model.id)?.text;
+            const at = createAbsolutePositionFromRelativePosition(
+              point,
+              line.model.store.spaceDoc,
+            );
+            if (
+              document.getSelection()?.isCollapsed &&
+              text &&
+              at?.type === text.yText &&
+              text.sliceToDelta(at.index, at.index + 1)[0]?.attributes?.[
+                thread
+              ] === true
+            )
+              comment(id);
           };
           el.append(node);
           node = el;
@@ -339,7 +357,9 @@ function TextField({
         ref={ref}
         data-page-text={line.model.id}
         data-block-id={line.model.id}
-        data-page-title={title ? true : undefined}
+        data-page-title={
+          title ? (snapshotTitle ? "snapshot" : true) : undefined
+        }
         data-placeholder={title}
         aria-label={title}
         contentEditable={title ? !readonly : undefined}
@@ -363,17 +383,7 @@ function TextField({
   );
 }
 
-export function PlainPageView({
-  page,
-  content,
-  readonly,
-  refresh,
-  controller,
-  handoff,
-  enableAI,
-  className,
-  fullWidth,
-}: {
+type PageViewProps = {
   page: Store;
   content: PageContent;
   readonly: boolean;
@@ -383,6 +393,162 @@ export function PlainPageView({
   enableAI: boolean;
   className?: string;
   fullWidth?: string;
+};
+
+export function PlainPageView(props: PageViewProps) {
+  const editor = useService(EditorService).editor;
+  const viewport = useWorkbenchSurfaceScrollViewport();
+  const { page, readonly } = props;
+  const title = props.content.lines[0];
+  const docs = useService(DocsService);
+  const guard = useService(GuardService);
+  const workspace = useService(WorkspaceService).workspace;
+  const navigate = useDocumentLinkNavigation();
+  const dialogs = useService(WorkspaceDialogService),
+    server = useService(ServerService).server;
+  const openCommentThread = useCallback(
+    (id: string) => editor.openCommentThread(id),
+    [editor],
+  );
+  const serverConfig = useLiveData(server.config$);
+  const canComment =
+    workspace.flavour !== "local" &&
+    serverConfig.features.includes(ServerFeature.Comment);
+  const admin = useLiveData(
+      useService(UserFeatureService).userFeature.isAdmin$,
+    ),
+    configure = useGuard("Workspace_Settings_Update");
+  useEffect(
+    () =>
+      readonly
+        ? undefined
+        : bindDocumentTitleSync(page.id, title.text, docs, (e) =>
+            console.error("Title update failed", e),
+          ),
+    [page, readonly, title.text, docs],
+  );
+
+  return (
+    <PageView
+      {...props}
+      editor={editor}
+      viewport={viewport}
+      openThread={canComment ? openCommentThread : undefined}
+      openDocLink={(url, button) => {
+        const link = resolveLinkToDoc(url, server.baseUrl);
+        if (!link) return false;
+        const { docId: pageId, workspaceId, ...params } = link;
+        navigate(
+          {
+            pageId,
+            workspaceId,
+            params,
+            openMode: button === 1 ? "open-in-new-tab" : "open-in-active-view",
+          },
+          workspace.id,
+          (id) => {
+            const provider = new CoreDocEmbedProvider(guard, docs, workspace);
+            const target = provider.inWorkspace(id);
+            if (!target) {
+              provider.dispose();
+              return;
+            }
+            return { ...target, dispose: () => provider.dispose() };
+          },
+        );
+        return true;
+      }}
+      metadata={
+        <DocumentMetadataProvider
+          docId={page.id}
+          readonly={readonly}
+          canOpenGlobalPolicy={Boolean(admin)}
+          canConfigureWorkspaceDefaults={configure}
+          onConfigureWorkspaceDefaults={() =>
+            dialogs.open("workspace-settings", {
+              activeTab: "workspace:documents",
+            })
+          }
+          onOpenGlobalPolicy={() =>
+            window.open(
+              new URL("/adminfrontend/documents?tab=metadata", server.baseUrl),
+              "_blank",
+              "noopener,noreferrer",
+            )
+          }
+        >
+          <DocumentMetadataSummary />
+        </DocumentMetadataProvider>
+      }
+    />
+  );
+}
+
+const notComposing = () => false;
+// The detached text reader has no writable commands and does not bind PageInteraction.
+const noSnapshotCommand = () => {};
+export function SnapshotTitle({ line }: { line: PageLine }) {
+  const t = useI18n();
+  return (
+    <TextField
+      title={t.Title()}
+      line={line}
+      composing={notComposing}
+      snapshotTitle
+      readonly
+    />
+  );
+}
+
+export function PageSnapshot({
+  page,
+  content,
+  className,
+  fullWidth,
+}: Pick<PageViewProps, "page" | "content" | "className" | "fullWidth">) {
+  const rtl = useLiveData(
+    useService(FeatureFlagService).flags.enable_editor_rtl.$,
+  );
+  const controller = useRef<PageInteraction | null>(null);
+  return (
+    <PageView
+      page={page}
+      content={content}
+      className={className}
+      fullWidth={fullWidth}
+      controller={controller}
+      dir={rtl ? "rtl" : "ltr"}
+      readonly
+      enableAI={false}
+      refresh={noSnapshotCommand}
+      handoff={noSnapshotCommand}
+    />
+  );
+}
+
+function PageView({
+  page,
+  content,
+  readonly,
+  refresh,
+  controller,
+  handoff,
+  enableAI,
+  className,
+  fullWidth,
+  editor,
+  viewport,
+  openDocLink,
+  openThread,
+  metadata,
+  dir,
+}: PageViewProps & {
+  openThread?: (id: string) => void;
+  openDocLink?: (url: string, button: number) => boolean;
+  metadata?: import("react").ReactNode;
+  dir?: "ltr" | "rtl";
+  editor?: Editor;
+  viewport?: ReturnType<typeof useWorkbenchSurfaceScrollViewport>;
 }) {
   const { lines, body } = content;
   const [localFolds, setLocalFolds] = useState(
@@ -419,31 +585,21 @@ export function PlainPageView({
     ? lines.filter((l) => !hiddenIds.has(l.model.id))
     : lines;
   const [link, setLink] = useState<LinkAnchor | null>(null);
-  const t = useI18n(),
-    docs = useService(DocsService);
+  const t = useI18n();
   const settings = useLiveData(
     useService(EditorSettingService).editorSetting.settings$,
   );
-  const dialogs = useService(WorkspaceDialogService),
-    server = useService(ServerService).server;
-  const admin = useLiveData(
-      useService(UserFeatureService).userFeature.isAdmin$,
-    ),
-    configure = useGuard("Workspace_Settings_Update");
   const root = useRef<HTMLDivElement>(null);
-  const editor = useService(EditorService).editor,
-    viewport = useWorkbenchSurfaceScrollViewport();
-  const selector = useLiveData(editor.selector$);
-  useLayoutEffect(
-    () =>
-      editor.bindPageOrigin(
-        root.current!,
-        viewport.current,
-        () => controller.current?.relinquish(),
-        () => controller.current?.selectedBlocks() ?? [],
-      ),
-    [editor, controller, viewport],
-  );
+  const selector = useLiveData(editor?.selector$);
+  useLayoutEffect(() => {
+    if (!editor || !viewport) return;
+    return editor.bindPageOrigin(
+      root.current!,
+      viewport.current,
+      () => controller.current?.relinquish(),
+      () => controller.current?.selectedBlocks() ?? [],
+    );
+  }, [editor, controller, viewport]);
   const props = useRef({ lines: visibleLines, readonly });
   useLayoutEffect(() => {
     props.current = { lines: visibleLines, readonly };
@@ -453,6 +609,7 @@ export function PlainPageView({
   const dismissPicker = useCallback(() => setPicker(null), []);
   const [epoch, repaint] = useReducer((n) => n + 1, 0);
   useLayoutEffect(() => {
+    if (!editor) return;
     const el = root.current!;
     const owner = new PageInteraction(
       page,
@@ -513,6 +670,16 @@ export function PlainPageView({
   );
   const [title] = lines;
   useEffect(() => {
+    if (selector?.commentId && openThread) {
+      const anchor = root.current?.querySelector(
+        `[data-page-comment="${CSS.escape(selector.commentId)}"]`,
+      );
+      if (anchor) {
+        anchor.scrollIntoView({ block: "center" });
+        openThread(selector.commentId);
+        return;
+      }
+    }
     if (selector?.commentId || selector?.elementIds?.length) {
       controller.current?.relinquish();
       return;
@@ -523,16 +690,7 @@ export function PlainPageView({
         ?.querySelector(`[data-block-id="${CSS.escape(id)}"]`)
         ?.scrollIntoView({ block: "center" });
     }
-  }, [selector, controller]);
-  useEffect(
-    () =>
-      readonly
-        ? undefined
-        : bindDocumentTitleSync(page.id, title.text, docs, (e) =>
-            console.error("Title update failed", e),
-          ),
-    [page, readonly, title.text, docs],
-  );
+  }, [selector, controller, openThread]);
   const composing = () => !!controller.current?.isComposing;
   const openLink = (info: LinkAnchor, button?: number) => {
     if (button === undefined) {
@@ -540,14 +698,8 @@ export function PlainPageView({
       return;
     }
     const url = normalizeUrl(info.url);
-    if (resolveLinkToDoc(url, server.baseUrl))
-      handoff(info.range, {
-        kind: "link-command",
-        action: "open",
-        button,
-        url: info.url,
-      });
-    else window.open(url, "_blank", "noopener,noreferrer");
+    if (!openDocLink?.(url, button))
+      window.open(url, "_blank", "noopener,noreferrer");
   };
   return (
     <DocumentEditorRoot
@@ -556,39 +708,22 @@ export function PlainPageView({
       readingSize={settings.fontSize}
       className={className}
       data-full-width-layout={fullWidth}
+      dir={dir}
       data-testid={`editor-${page.id}`}
-      data-page-renderer="native"
+      data-page-renderer={editor ? "native" : "snapshot"}
     >
       <DocumentEditorPageViewport>
         <DocumentTitleRow data-testid="doc-title-row">
-          <DocIconPicker docId={page.id} readonly={readonly} />
+          {editor && <DocIconPicker docId={page.id} readonly={readonly} />}
           <TextField
             line={title}
+            snapshotTitle={!editor}
             title={t.Title()}
             readonly={readonly}
             composing={composing}
           />
         </DocumentTitleRow>
-        <DocumentMetadataProvider
-          docId={page.id}
-          readonly={readonly}
-          canOpenGlobalPolicy={Boolean(admin)}
-          canConfigureWorkspaceDefaults={configure}
-          onConfigureWorkspaceDefaults={() =>
-            dialogs.open("workspace-settings", {
-              activeTab: "workspace:documents",
-            })
-          }
-          onOpenGlobalPolicy={() =>
-            window.open(
-              new URL("/adminfrontend/documents?tab=metadata", server.baseUrl),
-              "_blank",
-              "noopener,noreferrer",
-            )
-          }
-        >
-          <DocumentMetadataSummary />
-        </DocumentMetadataProvider>
+        {metadata}
         <PageContentRail width="editor">
           <div
             data-page-body=""
@@ -609,6 +744,8 @@ export function PlainPageView({
               ) : line.kind === "code" ? (
                 <Suspense key={line.model.id} fallback={null}>
                   <Code
+                    enableComment={!!openThread}
+                    enableAI={enableAI}
                     model={line.model}
                     readonly={readonly || page.readonly}
                     handoff={(intent) => handoff(null, intent)}
@@ -699,6 +836,7 @@ export function PlainPageView({
               ) : line.kind === "table" ? (
                 <Suspense key={line.model.id} fallback={null}>
                   <Table
+                    detached={!editor}
                     model={line.model}
                     readonly={readonly || page.readonly}
                     handoff={(intent) => handoff(null, intent)}
@@ -853,7 +991,7 @@ export function PlainPageView({
                   )}
                   <TextField
                     linkMenu={openLink}
-                    comment={(intent) => handoff(null, intent)}
+                    comment={openThread}
                     line={line}
                     readonly={readonly}
                     composing={composing}

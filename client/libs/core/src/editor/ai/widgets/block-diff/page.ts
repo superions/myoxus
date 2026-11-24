@@ -5,7 +5,6 @@ import { track } from "@myoxus/track";
 import { WidgetComponent, WidgetViewExtension } from "@virgultum/editor/std";
 import { nothing } from "lit";
 import { property } from "lit/decorators.js";
-import { literal, unsafeStatic } from "lit/static-html.js";
 
 import { BlockDiffProvider } from "../../services/block-diff";
 
@@ -108,5 +107,5 @@ export class MyoxusBlockDiffWidgetForPage extends WidgetComponent {
 export const blockDiffWidgetForPage = WidgetViewExtension(
   "myoxus:page",
   MYOXUS_BLOCK_DIFF_WIDGET_FOR_PAGE,
-  literal`${unsafeStatic(MYOXUS_BLOCK_DIFF_WIDGET_FOR_PAGE)}`,
+  MYOXUS_BLOCK_DIFF_WIDGET_FOR_PAGE,
 );

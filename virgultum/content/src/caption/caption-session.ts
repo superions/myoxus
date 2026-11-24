@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
-import { consume } from "@lit/context";
 import { signal } from "@preact/signals-core";
 import { SignalWatcher } from "@virgultum/core/primitives/lit";
 import { EditorChromeHostIdentifier } from "@virgultum/core/services";
 import {
   type BlockStdScope,
-  modelContext,
   ShadowlessElement,
-  stdContext,
   TextSelection,
 } from "@virgultum/core/runtime";
 import { type BlockModel, Text } from "@virgultum/core/store";
@@ -75,10 +72,10 @@ export class BlockCaptionEditor extends SignalWatcher(ShadowlessElement) {
       },
     });
   }
-  @consume({ context: modelContext }) accessor model!: BlockModel<{
+  model!: BlockModel<{
     caption: string | null | undefined;
   }>;
-  @consume({ context: stdContext }) accessor std!: BlockStdScope;
+  std!: BlockStdScope;
 }
 
 declare global {

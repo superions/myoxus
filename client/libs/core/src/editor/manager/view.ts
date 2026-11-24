@@ -28,10 +28,7 @@ import type { MountReactPortal, ReactToLit } from "@myoxus/lit-react";
 import { tracker } from "@myoxus/track";
 import { DatabaseReferenceViewExtension } from "@virgultum/editor/blocks/database/reference-view";
 import { ParagraphViewExtension } from "@virgultum/editor/blocks/paragraph/view";
-import type {
-  PeekOptions,
-  PeekViewService as BSPeekViewService,
-} from "@virgultum/editor/components/peek";
+import type { PeekViewService as BSPeekViewService } from "@virgultum/editor/components/peek";
 import { ViewExtensionManager } from "@virgultum/editor/ext-loader";
 import { internalManifestRegistry } from "@virgultum/editor/extensions/manifest-registry";
 import {
@@ -44,7 +41,6 @@ import { getInternalViewExtensions } from "@virgultum/editor/extensions/view";
 import { FoundationViewExtension } from "@virgultum/editor/foundation/view";
 import { InlineCommentViewExtension } from "@virgultum/editor/inlines/comment";
 import { LinkedDocViewExtension } from "@virgultum/editor/widgets/linked-doc/view";
-import type { TemplateResult } from "lit";
 
 import { configureEditorI18n } from "../virgultum/editor-i18n";
 import { configureMermaidI18n } from "../virgultum/mermaid-i18n";
@@ -227,24 +223,14 @@ class ViewProvider {
       peekView: !peekViewService
         ? undefined
         : ({
-            peek: (
-              element: {
-                target: HTMLElement;
-                docId: string;
-                blockIds?: string[];
-                template?: TemplateResult;
-              },
-              options?: PeekOptions,
-            ) => {
-              peekViewLogger.debug("center peek", element);
-              const { template, target, ...props } = element;
-
+            peek: (entry, options) => {
+              peekViewLogger.debug("center peek", entry);
+              const { target, ...docRef } = entry;
               return peekViewService.peekView.open(
                 {
                   element: target,
-                  docRef: props,
+                  docRef: "docId" in docRef ? docRef : undefined,
                 },
-                template,
                 options?.abortSignal,
               );
             },

@@ -107,7 +107,6 @@ test("rendered links and headings respond to theme changes, with inherited text 
   );
   container.append(emphasized);
   document.body.append(container);
-  await linkHost.querySelector("v-text")!.updateComplete;
   try {
     for (const [family, size, weight, decoration] of [
       ["serif", "27px", "700", "underline"],

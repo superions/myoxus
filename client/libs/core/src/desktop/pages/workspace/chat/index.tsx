@@ -192,7 +192,7 @@ function useMockStd() {
  *   to the `AIChatContent` element reactively (without re-rendering React).
  */
 export const WorkspaceChatPage = () => {
-  const [reactToLit, portals] = useLitPortalFactory();
+  const [reactToLit, portals, mountPortal] = useLitPortalFactory();
   const t = useI18n();
   const framework = useFramework();
   const confirmModal = useConfirmModal();
@@ -397,7 +397,7 @@ export const WorkspaceChatPage = () => {
     [framework],
   );
 
-  const specs = useAISpecs();
+  const specs = useAISpecs(reactToLit, mountPortal);
   const mockStd = useMockStd();
   const deleteSession = useMemo(
     () =>

@@ -1,10 +1,6 @@
 export {
   type DenseMenuBuilder,
   getRootBlock,
-  type EdgelessToolbarSlots,
-  edgelessToolbarSlotsContext,
-  edgelessToolbarThemeContext,
-  edgelessToolbarContext,
   type MenuPopper,
   createPopper,
   EdgelessDraggableElementController,

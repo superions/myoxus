@@ -144,7 +144,7 @@ export class EdgelessToolbarShapeDraggable extends EdgelessToolbarToolMixin(
   }
 
   get shapeShadow() {
-    return this.theme === "dark"
+    return this.edgeless.std.get(ThemeProvider).theme$.value === "dark"
       ? "0 0 7px rgba(0, 0, 0, .22)"
       : "0 0 5px rgba(0, 0, 0, .2)";
   }

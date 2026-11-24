@@ -11,7 +11,6 @@ import type {
 } from "@virgultum/editor/model";
 import type { BlockComponent, EditorHost } from "@virgultum/editor/std";
 import type { Block, BlockModel } from "@virgultum/editor/store";
-import type { TemplateResult } from "lit";
 import { firstValueFrom, map, race } from "rxjs";
 
 import type { AIChatBlockModel } from "../../../editor/ai/blocks";
@@ -73,18 +72,12 @@ export type AIChatBlockPeekViewInfo = {
   model: AIChatBlockModel;
 };
 
-export type CustomTemplatePeekViewInfo = {
-  type: "template";
-  template: TemplateResult;
-};
-
 export type ActivePeekView = {
   target: PeekViewTarget;
   info:
     | DocPeekViewInfo
     | ImagePeekViewInfo
     | AttachmentPeekViewInfo
-    | CustomTemplatePeekViewInfo
     | AIChatBlockPeekViewInfo
     | ImageListPeekViewInfo;
 };
@@ -127,15 +120,7 @@ const isAIChatBlockModel = (
 
 function resolvePeekInfoFromPeekTarget(
   peekTarget: PeekViewTarget,
-  template?: TemplateResult,
 ): ActivePeekView["info"] | undefined {
-  if (template) {
-    return {
-      type: "template",
-      template,
-    };
-  }
-
   // A focused card is also an anchor. Its explicit reading action must win
   // over the anchor's ordinary editable Peek resolution.
   if (peekTarget.purpose === "reading" && peekTarget.docRef) {
@@ -262,7 +247,6 @@ export class PeekViewEntity extends Entity {
   // return true if the peek view will be handled
   open = async (
     targetOrInfo: ActivePeekView["target"] | ActivePeekView["info"],
-    template?: TemplateResult,
     abortSignal?: AbortSignal,
   ) => {
     let target: ActivePeekView["target"];
@@ -273,7 +257,7 @@ export class PeekViewEntity extends Entity {
       target = {};
     } else {
       target = targetOrInfo;
-      resolvedInfo = resolvePeekInfoFromPeekTarget(target, template);
+      resolvedInfo = resolvePeekInfoFromPeekTarget(target);
     }
 
     if (!resolvedInfo) {

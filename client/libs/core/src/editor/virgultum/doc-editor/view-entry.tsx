@@ -15,8 +15,8 @@ import { useLiveData, useService } from "@myoxus/infra";
 import { EditorService } from "../../../modules/editor";
 import { useEnableAI } from "../../../components/hooks/myoxus/use-enable-ai";
 import type { EditorProps } from "./virgultum-editor";
-import { readPageContent } from "./plain-page-model";
-import { PlainPageView } from "./plain-page-view";
+import { canReadPageSnapshot, readPageContent } from "./plain-page-model";
+import { PlainPageView, PageSnapshot } from "./plain-page-view";
 import { DesktopPageRendererContext } from "./page-renderer-context";
 import type { PageInteraction } from "./page-interaction";
 import {
@@ -192,7 +192,6 @@ function EditablePage(props: EditorProps) {
         (request.range ||
           request.intent?.kind === "block-paste" ||
           request.intent?.kind === "block-command" ||
-          request.intent?.kind === "comment-thread" ||
           request.intent?.kind === "table-cell")
       )
         void loadLegacy()
@@ -235,11 +234,7 @@ function EditablePage(props: EditorProps) {
     ? last.current
     : readPageContent(page);
   if (content) last.current = content;
-  if (
-    !content ||
-    legacy ||
-    (enableAI && content.order.some((b) => b.kind === "code"))
-  ) {
+  if (!content || legacy) {
     if (owner.current && !pending.current)
       pending.current = { range: owner.current.selection ?? null };
     // Keep this session (and its pending input) mounted while a first
@@ -284,16 +279,39 @@ function EditablePage(props: EditorProps) {
   );
 }
 
+function SnapshotPage(props: EditorProps) {
+  // This store is immutable and fully materialized by the history/reading owner.
+  const content = readPageContent(props.page);
+  if (!content || !canReadPageSnapshot(content)) return <Legacy {...props} />;
+  return (
+    <PageSnapshot
+      page={props.page}
+      content={content}
+      className={props.className}
+      fullWidth={props["data-full-width-layout"]}
+    />
+  );
+}
+
 export function VirgultumEditor(props: EditorProps) {
   const desktopPage = useContext(DesktopPageRendererContext);
   return (
     <Suspense fallback={<EditorLoading />}>
       {(BUILD_CONFIG.isWeb || desktopPage) &&
       props.mode === "page" &&
-      !props.shared &&
-      !props.snapshot &&
+      props.snapshot &&
+      props.readonly &&
+      props.page.readonly &&
+      !props.onEditorReady &&
       !props.contentOnly &&
-      props.plainPage ? (
+      !props.shared ? (
+        <SnapshotPage {...props} />
+      ) : (BUILD_CONFIG.isWeb || desktopPage) &&
+        props.mode === "page" &&
+        !props.shared &&
+        !props.snapshot &&
+        !props.contentOnly &&
+        props.plainPage ? (
         <EditablePage key={props.page.id} {...props} />
       ) : (BUILD_CONFIG.isWeb || desktopPage) &&
         props.mode === "edgeless" &&

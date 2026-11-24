@@ -12,12 +12,10 @@ import {
   type UIEventHandler,
   BlockSelection,
   BlockServiceIdentifier,
-  bindRetainedWidgetContexts,
   blockComponentSymbol,
   createRetainedBlockView,
   createRetainedWidgetViews,
-  editorHostSelector,
-  isEditorHost,
+  findEditorHost,
   NativeViewElement,
 } from "@virgultum/core/runtime";
 import type { BlockModel, BlockViewType, Store } from "@virgultum/core/store";
@@ -93,7 +91,6 @@ export abstract class NativeBlockComponent<
   service!: Service;
   viewType: BlockViewType = "display";
   disposables = new DisposableGroup();
-  private contextsBound = false;
   private retainedWidgets = new Map<string, HTMLElement>();
 
   get blockId() {
@@ -157,8 +154,8 @@ export abstract class NativeBlockComponent<
   }
 
   protected connectBlock() {
-    const owner = this.closest(editorHostSelector);
-    if (!isEditorHost(owner)) return false;
+    const owner = findEditorHost(this);
+    if (!owner) return false;
     const model = owner.store.getModelById<Model>(this.dataset.blockId!);
     if (!model) return false;
     this.std = owner.std;
@@ -169,10 +166,6 @@ export abstract class NativeBlockComponent<
       BlockServiceIdentifier(this.flavour),
     ) as Service;
     this.disposables = new DisposableGroup();
-    if (!this.contextsBound) {
-      bindRetainedWidgetContexts(this, model, this.service);
-      this.contextsBound = true;
-    }
     this.std.view.setBlock(this);
     return true;
   }

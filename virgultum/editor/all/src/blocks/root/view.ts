@@ -12,7 +12,6 @@ import {
   BlockViewExtension,
   FlavourExtension,
 } from "@virgultum/core/runtime";
-import { literal } from "lit/static-html.js";
 import { SlashMenuConfigExtension } from "@virgultum/core/slash-menu";
 import { formattingSlashMenuConfig } from "./configs/slash-menu";
 
@@ -61,13 +60,11 @@ export class RootViewExtension extends ViewExtensionProvider {
     context.register(ViewportElementExtension(".myoxus-page-viewport"));
     if (context.scope === "preview-page") {
       context.register(
-        BlockViewExtension("myoxus:page", literal`myoxus-preview-root`),
+        BlockViewExtension("myoxus:page", "myoxus-preview-root"),
       );
       return;
     }
-    context.register(
-      BlockViewExtension("myoxus:page", literal`myoxus-page-root`),
-    );
+    context.register(BlockViewExtension("myoxus:page", "myoxus-page-root"));
     context.register(PageClipboard);
   };
 
@@ -78,16 +75,13 @@ export class RootViewExtension extends ViewExtensionProvider {
     ]);
     if (context.scope === "preview-edgeless") {
       context.register([
-        BlockViewExtension(
-          "myoxus:page",
-          literal`myoxus-edgeless-root-preview`,
-        ),
+        BlockViewExtension("myoxus:page", "myoxus-edgeless-root-preview"),
         EdgelessLocker,
       ]);
       return;
     }
     context.register([
-      BlockViewExtension("myoxus:page", literal`myoxus-edgeless-root`),
+      BlockViewExtension("myoxus:page", "myoxus-edgeless-root"),
       EdgelessClipboardController,
       AltCloneExtension,
     ]);

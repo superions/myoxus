@@ -2,13 +2,8 @@ import "katex/dist/katex.min.css";
 
 import { useGuard } from "@myoxus/core/components/guard/use-guard";
 import { useEnableAI } from "@myoxus/core/components/hooks/myoxus/use-enable-ai";
-import {
-  type EdgelessEditor,
-  LitDocEditor,
-  LitDocTitle,
-  type PageEditor,
-} from "@myoxus/core/editor/editors";
-import { CanvasViewport } from "../../editors/edgeless-editor";
+import { DocumentViewport, LitDocTitle } from "@myoxus/core/editor/editors";
+import type { EditorHost } from "@virgultum/editor/std";
 import { getViewManager } from "@myoxus/core/editor/manager/view";
 import { createMyoxusHostServiceAdapter } from "@myoxus/core/editor/virgultum/doc-editor/myoxus-host-adapter";
 import { WorkspaceDialogService } from "@myoxus/core/modules/dialogs";
@@ -69,6 +64,8 @@ import {
   observeDocumentTitle,
 } from "./document-title-sync";
 import { VirgultumEditorJournalDocTitle } from "./journal-doc-title";
+import { SnapshotTitle } from "./plain-page-view";
+import { readPageTitle } from "./plain-page-model";
 import { ReadingSnapshotContext } from "./reading-snapshot-context";
 import { StarterBar } from "./starter-bar";
 import { useTemplateVariablePicker } from "./template-variable-picker";
@@ -269,7 +266,7 @@ const usePatchSpecs = (mode: DocMode, shared?: boolean) => {
 };
 
 export const VirgultumDocEditor = forwardRef<
-  PageEditor,
+  EditorHost,
   VirgultumEditorProps & {
     onClickBlank?: () => void;
     titleRef?: React.Ref<DocTitle>;
@@ -287,7 +284,6 @@ export const VirgultumDocEditor = forwardRef<
   ref,
 ) {
   const titleRef = useRef<DocTitle | null>(null);
-  const docRef = useRef<PageEditor | null>(null);
   const journalService = useService(JournalService);
   const templateDocService = useService(TemplateDocService);
   const bpmnEditorService = useService(BpmnEditorService);
@@ -397,20 +393,6 @@ export const VirgultumDocEditor = forwardRef<
     };
   }, [docsService, page, readonly]);
 
-  const onDocRef = useCallback(
-    (el: PageEditor) => {
-      docRef.current = el;
-      if (ref) {
-        if (typeof ref === "function") {
-          ref(el);
-        } else {
-          ref.current = el;
-        }
-      }
-    },
-    [ref],
-  );
-
   const onTitleRef = useCallback(
     (el: DocTitle) => {
       titleRef.current = el;
@@ -450,6 +432,7 @@ export const VirgultumDocEditor = forwardRef<
     window.open(adminUrl.toString(), "_blank", "noopener,noreferrer");
   }, [serverService.server.baseUrl]);
 
+  const snapshotTitle = snapshot && page.readonly ? readPageTitle(page) : null;
   const content = (
     <>
       {!contentOnly &&
@@ -458,19 +441,23 @@ export const VirgultumDocEditor = forwardRef<
             {!snapshot && !BUILD_CONFIG.isMobileEdition ? (
               <DocIconPicker docId={page.id} readonly={readonly || shared} />
             ) : null}
-            <LitDocTitle
-              doc={page}
-              placeholder={t["Title"]()}
-              ref={onTitleRef}
-            />
+            {snapshotTitle ? (
+              <SnapshotTitle line={snapshotTitle} />
+            ) : (
+              <LitDocTitle
+                doc={page}
+                placeholder={t["Title"]()}
+                ref={onTitleRef}
+              />
+            )}
           </DocumentTitleRow>
         ) : (
           <VirgultumEditorJournalDocTitle page={page} />
         ))}
       {showDocumentMetadata ? <DocumentMetadataSummary /> : null}
-      <LitDocEditor
+      <DocumentViewport
         className={documentEditorContentClassName}
-        ref={onDocRef}
+        ref={ref}
         doc={page}
         specs={specs}
         hostExtension={hostExtension}
@@ -521,9 +508,9 @@ export const VirgultumDocEditor = forwardRef<
   );
 });
 export const VirgultumEdgelessEditor = forwardRef<
-  EdgelessEditor,
+  EditorHost,
   VirgultumEditorProps
->(function VirgultumEdgelessEditor({ page, shared, snapshot, readonly }, ref) {
+>(function VirgultumEdgelessEditor({ page, shared, snapshot }, ref) {
   const bpmnEditorService = useService(BpmnEditorService);
   const bpmnEditorView = useServiceOptional(ViewService)?.view;
   const templateDocService = useService(TemplateDocService);
@@ -536,7 +523,7 @@ export const VirgultumEdgelessEditor = forwardRef<
     buildingBlockPicker,
   } = useBuildingBlockPicker();
   const [specs, portals] = usePatchSpecs("edgeless", shared || snapshot);
-  const editorRef = useRef<EdgelessEditor | null>(null);
+  const editorRef = useRef<EditorHost | null>(null);
   const workspaceService = useService(WorkspaceService);
   const workspaceDialogService = useService(WorkspaceDialogService);
   const docsService = useService(DocsService);
@@ -592,7 +579,7 @@ export const VirgultumEdgelessEditor = forwardRef<
   );
 
   const onDocRef = useCallback(
-    (el: EdgelessEditor | null) => {
+    (el: EditorHost | null) => {
       editorRef.current = el;
       if (ref) {
         if (typeof ref === "function") {
@@ -610,7 +597,7 @@ export const VirgultumEdgelessEditor = forwardRef<
       editorRef.current.updateComplete
         .then(() => {
           // make sure editor can get keyboard events on showing up
-          editorRef.current?.host
+          editorRef.current
             ?.querySelector<HTMLElement>("myoxus-edgeless-root")
             ?.click();
         })
@@ -620,14 +607,12 @@ export const VirgultumEdgelessEditor = forwardRef<
 
   return (
     <DocumentEditorEdgelessViewport>
-      <CanvasViewport
+      <DocumentViewport
+        mode="edgeless"
         ref={onDocRef}
         doc={page}
         specs={specs}
         hostExtension={hostExtension}
-        allowNativeHost={
-          !shared && !snapshot && !readonly && !BUILD_CONFIG.isMobileEdition
-        }
       />
       {portals}
       {templateVariablePicker}

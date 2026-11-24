@@ -10,6 +10,7 @@ import "./structure-tree.css";
 import "./media-lightbox.css";
 import "./mobile-swipe-menu.css";
 import "./page-shell.css";
+import "./document-viewport.css";
 import "./pdf-preview.css";
 import "./resize-panel.css";
 import "./safe-area.css";

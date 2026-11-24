@@ -1,3 +1,4 @@
+import { continueInChat, reviewCodeActions } from "./code-actions";
 import {
   CommentIcon,
   DoneIcon,
@@ -264,24 +265,12 @@ const ReviewImageAIGroup: AIItemGroupConfig = {
 
 const ReviewCodeAIGroup: AIItemGroupConfig = {
   name: "review code",
-  items: [
-    {
-      name: "Explain this code",
-      testId: "action-explain-code",
-      icon: ExplainIcon(),
-      iconName: "ExplainIcon",
-      showWhen: codeBlockShowWhen,
-      handler: actionToHandler("explainCode", AIStarIconWithAnimation),
-    },
-    {
-      name: "Check code error",
-      testId: "action-check-code-error",
-      icon: ExplainIcon(),
-      iconName: "ExplainIcon",
-      showWhen: codeBlockShowWhen,
-      handler: actionToHandler("checkCodeErrors", AIStarIconWithAnimation),
-    },
-  ],
+  items: reviewCodeActions.map(({ command, ...item }) => ({
+    ...item,
+    icon: ExplainIcon(),
+    showWhen: codeBlockShowWhen,
+    handler: actionToHandler(command, AIStarIconWithAnimation),
+  })),
 };
 
 const ReviewTextAIGroup: AIItemGroupConfig = {
@@ -407,10 +396,8 @@ const OthersAIGroup: AIItemGroupConfig = {
   name: "Others",
   items: [
     {
-      name: "Continue in AI Chat",
-      testId: "action-continue-with-ai",
+      ...continueInChat,
       icon: CommentIcon(),
-      iconName: "CommentIcon",
       handler: (host) => {
         const panel = getAIPanelWidget(host);
         const edgelessCopilot = getEdgelessCopilotWidget(host);
@@ -520,34 +507,16 @@ export function buildAICodeItemGroups(): AIItemGroupConfig[] {
   return [
     {
       name: "review code",
-      items: [
-        {
-          name: "Explain this code",
-          testId: "action-explain-code",
-          icon: ExplainIcon(),
-          iconName: "ExplainIcon",
-          showWhen: () => true,
-          handler: actionToHandler(
-            "explainCode",
-            AIStarIconWithAnimation,
-            undefined,
-            blockActionTrackerOptions,
-          ),
-        },
-        {
-          name: "Check code error",
-          testId: "action-check-code-error",
-          icon: ExplainIcon(),
-          iconName: "ExplainIcon",
-          showWhen: () => true,
-          handler: actionToHandler(
-            "checkCodeErrors",
-            AIStarIconWithAnimation,
-            undefined,
-            blockActionTrackerOptions,
-          ),
-        },
-      ],
+      items: reviewCodeActions.map(({ command, ...item }) => ({
+        ...item,
+        icon: ExplainIcon(),
+        handler: actionToHandler(
+          command,
+          AIStarIconWithAnimation,
+          undefined,
+          blockActionTrackerOptions,
+        ),
+      })),
     },
     OthersAIGroup,
   ];

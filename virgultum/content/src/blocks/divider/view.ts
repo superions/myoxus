@@ -3,7 +3,6 @@ import {
   ViewExtensionProvider,
 } from "@virgultum/core/extensions";
 import { BlockViewExtension } from "@virgultum/core/runtime";
-import { literal } from "lit/static-html.js";
 
 import { effects } from "./effects";
 import { DividerMarkdownExtension } from "./markdown";
@@ -19,7 +18,7 @@ export class DividerViewExtension extends ViewExtensionProvider {
   override setup(context: ViewExtensionContext) {
     super.setup(context);
     context.register([
-      BlockViewExtension("myoxus:divider", literal`myoxus-divider`),
+      BlockViewExtension("myoxus:divider", "myoxus-divider"),
       DividerMarkdownExtension,
     ]);
   }

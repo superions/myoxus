@@ -41,7 +41,7 @@ describe("Shape rendering with DOM renderer", () => {
     const shapeId = surfaceModel.addElement(shapeProps);
 
     await new Promise((resolve) => setTimeout(resolve, 100));
-    const shapeElement = surfaceView?.renderRoot.querySelector(
+    const shapeElement = surfaceView.querySelector(
       `[data-element-id="${shapeId}"]`,
     );
 
@@ -62,7 +62,7 @@ describe("Shape rendering with DOM renderer", () => {
     };
     const shapeId = surfaceModel.addElement(shapeProps);
     await wait(100);
-    const shapeElement = surfaceView?.renderRoot.querySelector<HTMLElement>(
+    const shapeElement = surfaceView.querySelector<HTMLElement>(
       `[data-element-id="${shapeId}"]`,
     );
 
@@ -86,7 +86,7 @@ describe("Shape rendering with DOM renderer", () => {
 
     await new Promise((resolve) => setTimeout(resolve, 100));
 
-    let shapeElement = surfaceView.renderRoot.querySelector(
+    let shapeElement = surfaceView.querySelector(
       `[data-element-id="${shapeId}"]`,
     );
     expect(shapeElement).not.toBeNull();
@@ -95,9 +95,7 @@ describe("Shape rendering with DOM renderer", () => {
 
     await new Promise((resolve) => setTimeout(resolve, 100));
 
-    shapeElement = surfaceView.renderRoot.querySelector(
-      `[data-element-id="${shapeId}"]`,
-    );
+    shapeElement = surfaceView.querySelector(`[data-element-id="${shapeId}"]`);
     expect(shapeElement).toBeNull();
   });
 
@@ -114,7 +112,7 @@ describe("Shape rendering with DOM renderer", () => {
     };
     const shapeId = surfaceModel.addElement(shapeProps);
     await wait(100);
-    const shapeElement = surfaceView?.renderRoot.querySelector<HTMLElement>(
+    const shapeElement = surfaceView.querySelector<HTMLElement>(
       `[data-element-id="${shapeId}"]`,
     );
 
@@ -137,7 +135,7 @@ describe("Shape rendering with DOM renderer", () => {
     };
     const shapeId = surfaceModel.addElement(shapeProps);
     await wait(100);
-    const shapeElement = surfaceView?.renderRoot.querySelector<HTMLElement>(
+    const shapeElement = surfaceView.querySelector<HTMLElement>(
       `[data-element-id="${shapeId}"]`,
     );
 

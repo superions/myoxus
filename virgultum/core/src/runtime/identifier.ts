@@ -4,7 +4,7 @@ import type { Command } from "./command/index.js";
 import type { EventOptions, UIEventHandler } from "./event/index.js";
 import type { BlockService, LifeCycleWatcher } from "./extension/index.js";
 import type { BlockStdScope } from "./scope/index.js";
-import type { BlockViewType, WidgetViewType } from "./spec/type.js";
+import type { BlockViewType } from "./spec/type.js";
 
 export const BlockServiceIdentifier =
   createIdentifier<BlockService>("BlockService");
@@ -20,8 +20,7 @@ export const ConfigIdentifier =
 
 export const BlockViewIdentifier = createIdentifier<BlockViewType>("BlockView");
 
-export const WidgetViewIdentifier =
-  createIdentifier<WidgetViewType>("WidgetView");
+export const WidgetViewIdentifier = createIdentifier<string>("WidgetView");
 
 export const LifeCycleWatcherIdentifier =
   createIdentifier<LifeCycleWatcher>("LifeCycleWatcher");

@@ -2,17 +2,24 @@ import type {
   EdgelessRootBlockComponent,
   PageRootBlockComponent,
 } from "@virgultum/editor/blocks/root";
-import type { SurfaceBlockComponent } from "@virgultum/editor/blocks/surface";
+import { GfxControllerIdentifier } from "@virgultum/editor/std/gfx";
+import { SurfaceBlockComponent } from "@virgultum/editor/blocks/surface";
 import type { Store } from "@virgultum/editor/store";
 
 import type { TestMyoxusEditorContainer } from "../../index.js";
 
 export function getSurface(doc: Store, editor: TestMyoxusEditorContainer) {
-  const surfaceModel = doc.getModelsByFlavour("myoxus:surface");
-
-  return editor.host!.view.getBlock(
-    surfaceModel[0]!.id,
-  ) as SurfaceBlockComponent;
+  const surface = editor.host?.std.get(
+    GfxControllerIdentifier,
+  ).surfaceComponent;
+  if (
+    !(surface instanceof SurfaceBlockComponent) ||
+    surface.model.store !== doc
+  )
+    throw new Error(
+      "The active Canvas has no mounted surface for this document",
+    );
+  return surface;
 }
 
 export function getDocRootBlock(

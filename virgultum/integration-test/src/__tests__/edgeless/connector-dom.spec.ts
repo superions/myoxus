@@ -46,7 +46,7 @@ describe("Connector rendering with DOM renderer", () => {
 
     await wait(100);
 
-    const connectorElement = surfaceView?.renderRoot.querySelector(
+    const connectorElement = surfaceView.querySelector(
       `[data-element-id="${connectorId}"]`,
     );
 
@@ -76,7 +76,7 @@ describe("Connector rendering with DOM renderer", () => {
     // Wait for path generation and rendering
     await wait(500);
 
-    const connectorElement = surfaceView?.renderRoot.querySelector(
+    const connectorElement = surfaceView.querySelector(
       `[data-element-id="${connectorId}"]`,
     );
 
@@ -112,7 +112,7 @@ describe("Connector rendering with DOM renderer", () => {
 
     await wait(100);
 
-    const connectorElement = surfaceView?.renderRoot.querySelector(
+    const connectorElement = surfaceView.querySelector(
       `[data-element-id="${connectorId}"]`,
     );
 
@@ -141,7 +141,7 @@ describe("Connector rendering with DOM renderer", () => {
 
     await wait(100);
 
-    let connectorElement = surfaceView.renderRoot.querySelector(
+    let connectorElement = surfaceView.querySelector(
       `[data-element-id="${connectorId}"]`,
     );
     expect(connectorElement).not.toBeNull();
@@ -150,7 +150,7 @@ describe("Connector rendering with DOM renderer", () => {
 
     await wait(100);
 
-    connectorElement = surfaceView.renderRoot.querySelector(
+    connectorElement = surfaceView.querySelector(
       `[data-element-id="${connectorId}"]`,
     );
     expect(connectorElement).toBeNull();

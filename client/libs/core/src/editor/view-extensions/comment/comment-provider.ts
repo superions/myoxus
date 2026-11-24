@@ -126,20 +126,20 @@ class MyoxusCommentService implements CommentProvider {
     private readonly framework: FrameworkProvider,
   ) {
     this.docCommentManager = framework.get(DocCommentManagerService);
-    this.docCommentManager.std = std;
   }
 
-  private get currentDocId(): string {
-    return this.std.store.id;
-  }
-
-  // todo: need to handle resource leak
-  private get commentEntityRef() {
-    return this.docCommentManager.get(this.currentDocId);
-  }
+  private entityRef?: ReturnType<DocCommentManagerService["get"]>;
 
   private get commentEntity() {
-    return this.commentEntityRef.obj;
+    if (!this.entityRef) {
+      const ref = this.docCommentManager.get(this.std.store);
+      this.std.host.disposables.add(() => {
+        ref.release();
+        this.entityRef = undefined;
+      });
+      this.entityRef = ref;
+    }
+    return this.entityRef.obj;
   }
 
   addComment(selections: BaseSelection[]): void {

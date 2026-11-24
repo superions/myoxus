@@ -3,7 +3,6 @@ import { DisposableGroup } from "../../../primitives/disposable/index.js";
 import type { BlockModel } from "../../../store/index.js";
 import type { BlockStdScope } from "../../scope/std-scope.js";
 import {
-  bindRetainedBlockContexts,
   createRetainedBlockView,
   type EditorHost,
   renderRetainedChildren,
@@ -64,6 +63,5 @@ export function createCanvasHost(
     shell,
     Object.getOwnPropertyDescriptors(bindings),
   ) as HTMLDivElement & typeof bindings;
-  bindRetainedBlockContexts(host);
   return host;
 }

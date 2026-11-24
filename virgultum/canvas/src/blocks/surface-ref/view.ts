@@ -9,7 +9,6 @@ import {
   BlockViewExtension,
   FlavourExtension,
 } from "@virgultum/core/runtime";
-import { literal } from "lit/static-html.js";
 
 import { SurfaceRefSlashMenuConfigExtension } from "./configs/slash-menu";
 import { surfaceRefToolbarModuleConfig } from "./configs/toolbar";
@@ -34,11 +33,11 @@ export class SurfaceRefViewExtension extends ViewExtensionProvider {
     const isEdgeless = this.isEdgeless(context.scope);
     if (isEdgeless) {
       context.register([
-        BlockViewExtension(flavour, literal`myoxus-edgeless-surface-ref`),
+        BlockViewExtension(flavour, "myoxus-edgeless-surface-ref"),
       ]);
     } else {
       context.register([
-        BlockViewExtension(flavour, literal`myoxus-surface-ref`),
+        BlockViewExtension(flavour, "myoxus-surface-ref"),
         ToolbarModuleExtension({
           id: BlockFlavourIdentifier(flavour),
           config: surfaceRefToolbarModuleConfig,

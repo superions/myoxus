@@ -27,10 +27,7 @@ import {
   type GfxBlockComponent,
   SurfaceSelection,
 } from "@virgultum/core/runtime";
-import {
-  CanvasCameraHandoffIdentifier,
-  GfxBlockElementModel,
-} from "@virgultum/core/runtime/gfx";
+import { GfxBlockElementModel } from "@virgultum/core/runtime/gfx";
 
 import { mountCanvasZoom } from "../../../widgets/edgeless-zoom-toolbar/mount-zoom";
 import { EdgelessPageKeyboardManager } from "./edgeless-keyboard.js";
@@ -355,13 +352,7 @@ export class EdgelessRootController {
       this.gfx.fitToScreen();
     };
 
-    const handoff = std.getOptional(CanvasCameraHandoffIdentifier);
-    if (handoff)
-      gfx.viewport.setViewport(handoff.zoom, [
-        handoff.centerX,
-        handoff.centerY,
-      ]);
-    else run();
+    run();
 
     this._disposables.add(() => {
       std.get(EditPropsStore).setStorage("viewport", {

@@ -10,7 +10,6 @@ import {
 } from "@virgultum/core/services";
 import { WidgetComponent, WidgetViewExtension } from "@virgultum/core/runtime";
 import { html, nothing } from "lit";
-import { literal, unsafeStatic } from "lit/static-html.js";
 
 import {
   defaultKeyboardToolbarConfig,
@@ -122,7 +121,7 @@ export class MyoxusKeyboardToolbarWidget extends WidgetComponent<RootBlockModel>
 export const keyboardToolbarWidget = WidgetViewExtension(
   "myoxus:page",
   MYOXUS_KEYBOARD_TOOLBAR_WIDGET,
-  literal`${unsafeStatic(MYOXUS_KEYBOARD_TOOLBAR_WIDGET)}`,
+  MYOXUS_KEYBOARD_TOOLBAR_WIDGET,
 );
 
 declare global {

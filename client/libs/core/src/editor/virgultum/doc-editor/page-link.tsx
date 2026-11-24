@@ -215,9 +215,7 @@ export default function LinkMenu({
             () => {
               if (current())
                 handoff(a.range, {
-                  kind: "link-command",
-                  action: "convert",
-                  button: 0,
+                  kind: "convert-link",
                   url: a.url,
                 });
             },

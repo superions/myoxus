@@ -19,7 +19,6 @@ import {
 } from "@virgultum/core/commands";
 import { SlashMenuConfigExtension } from "@virgultum/core/slash-menu";
 import { footnoteSlashMenuConfig } from "./footnote-slash-menu";
-import { literal } from "lit/static-html.js";
 
 export class FootnoteDefinitionBlockComponent extends BlockComponent<FootnoteDefinitionBlockModel> {
   override connectedCallback() {
@@ -93,7 +92,7 @@ export class FootnoteDefinitionViewExtension extends ViewExtensionProvider {
       FlavourExtension("myoxus:footnote-definition"),
       BlockViewExtension(
         "myoxus:footnote-definition",
-        literal`myoxus-footnote-definition`,
+        "myoxus-footnote-definition",
       ),
     ]);
   }

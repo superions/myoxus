@@ -1113,17 +1113,16 @@ const ReplyList = ({
   );
 };
 
-const useCommentEntity = (docId: string | undefined) => {
+const useCommentEntity = (
+  store: DocService["doc"]["virgultumDoc"] | undefined,
+) => {
   const docCommentManager = useService(DocCommentManagerService);
   const commentPanelService = useService(CommentPanelService);
   const [entity, setEntity] = useState<DocCommentEntity | null>(null);
 
   useEffect(() => {
-    if (!docId) {
-      return;
-    }
-
-    const entityRef = docCommentManager.get(docId);
+    if (!store) return;
+    const entityRef = docCommentManager.get(store);
     setEntity(entityRef.obj);
     entityRef.obj.start();
 
@@ -1137,14 +1136,14 @@ const useCommentEntity = (docId: string | undefined) => {
       entityRef.obj.stop();
       entityRef.release();
     };
-  }, [docCommentManager, commentPanelService, docId]);
+  }, [docCommentManager, commentPanelService, store]);
 
   return entity;
 };
 
 export const CommentSidebar = () => {
   const doc = useServiceOptional(DocService)?.doc;
-  const entity = useCommentEntity(doc?.id);
+  const entity = useCommentEntity(doc?.virgultumDoc);
 
   const containerRef = useRef<HTMLDivElement>(null);
 

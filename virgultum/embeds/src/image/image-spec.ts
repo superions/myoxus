@@ -2,7 +2,6 @@ import { ImageBlockSchema } from "@virgultum/core/models";
 import { BlockViewExtension, FlavourExtension } from "@virgultum/core/runtime";
 import type { ExtensionType } from "@virgultum/core/store";
 import { SlashMenuConfigExtension } from "@virgultum/core/slash-menu";
-import { literal } from "lit/static-html.js";
 
 import { imageSlashMenuConfig } from "./configs/slash-menu";
 import { createBuiltinToolbarConfigExtension } from "./configs/toolbar";
@@ -17,10 +16,10 @@ export const ImageBlockSpec: ExtensionType[] = [
     const parent = model.store.getParent(model.id);
 
     if (parent?.flavour === "myoxus:surface") {
-      return literal`myoxus-edgeless-image`;
+      return "myoxus-edgeless-image";
     }
 
-    return literal`myoxus-image`;
+    return "myoxus-image";
   }),
   ImageDropOption,
   ImageEdgelessBlockInteraction,

@@ -1,0 +1,26 @@
+/* SPDX-License-Identifier: MIT */
+page-editor {
+  display: block;
+  height: 100%;
+  font-family: var(--myoxus-font-family);
+  background: var(--myoxus-background-primary-color);
+}
+
+page-editor * {
+  box-sizing: border-box;
+}
+
+@media print {
+  page-editor {
+    height: auto;
+  }
+}
+
+.myoxus-page-viewport {
+  position: relative;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  container-name: viewport;
+  container-type: inline-size;
+}

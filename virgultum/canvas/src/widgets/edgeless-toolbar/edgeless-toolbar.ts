@@ -1,14 +1,12 @@
 /* oxlint-disable typescript/no-non-null-assertion */
-import { ContextProvider } from "@lit/context";
 import {
   DefaultTool,
   EdgelessLegacySlotIdentifier,
 } from "@virgultum/canvas-runtime/surface";
-import { ColorScheme, type RootBlockModel } from "@virgultum/core/models";
+import type { RootBlockModel } from "@virgultum/core/models";
 import {
   EditPropsStore,
   EditorChromeHostIdentifier,
-  ThemeProvider,
   editorMessage,
   EditorI18nProvider,
   resolveEditorMessage,
@@ -19,16 +17,8 @@ import { WidgetComponent, WidgetViewExtension } from "@virgultum/core/runtime";
 import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
 import { html, nothing } from "lit";
 import { state } from "lit/decorators.js";
-import { literal, unsafeStatic } from "lit/static-html.js";
 import debounce from "lodash-es/debounce";
-import { Subject } from "rxjs";
 
-import {
-  edgelessToolbarContext,
-  type EdgelessToolbarSlots,
-  edgelessToolbarSlotsContext,
-  edgelessToolbarThemeContext,
-} from "./context.js";
 import type { MenuPopper } from "./create-popper.js";
 import {
   QuickToolIdentifier,
@@ -36,7 +26,6 @@ import {
 } from "./extension/index.js";
 
 const TOOLBAR_PADDING_X = 12;
-const TOOLBAR_HEIGHT = 64;
 const QUICK_TOOLS_GAP = 10;
 const QUICK_TOOL_SIZE = 36;
 const QUICK_TOOL_MORE_SIZE = 20;
@@ -67,7 +56,6 @@ export class EdgelessToolbarWidget extends WidgetComponent<RootBlockModel> {
     ({ w }: { w: number }) => {
       if (!this.isConnected) return;
 
-      this.slots.resize.next({ w, h: TOOLBAR_HEIGHT });
       this.containerWidth = w;
 
       if (this._denseSeniorTools) {
@@ -84,21 +72,6 @@ export class EdgelessToolbarWidget extends WidgetComponent<RootBlockModel> {
   );
 
   private _resizeObserver: ResizeObserver | null = null;
-
-  private readonly _slotsProvider = new ContextProvider(this, {
-    context: edgelessToolbarSlotsContext,
-    initialValue: { resize: new Subject() } satisfies EdgelessToolbarSlots,
-  });
-
-  private readonly _themeProvider = new ContextProvider(this, {
-    context: edgelessToolbarThemeContext,
-    initialValue: ColorScheme.Light,
-  });
-
-  private readonly _toolbarProvider = new ContextProvider(this, {
-    context: edgelessToolbarContext,
-    initialValue: this,
-  });
 
   activePopper: MenuPopper<HTMLElement> | null = null;
 
@@ -279,14 +252,6 @@ export class EdgelessToolbarWidget extends WidgetComponent<RootBlockModel> {
     );
   }
 
-  get slots() {
-    return this._slotsProvider.value;
-  }
-
-  constructor() {
-    super();
-  }
-
   private _onSeniorNavNext() {
     if (this._seniorScrollNextDisabled) return;
     this.scrollSeniorToolIndex = Math.min(
@@ -372,7 +337,6 @@ export class EdgelessToolbarWidget extends WidgetComponent<RootBlockModel> {
 
   override connectedCallback() {
     super.connectedCallback();
-    this._toolbarProvider.setValue(this);
     this._resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width } = entry.contentRect;
@@ -380,11 +344,6 @@ export class EdgelessToolbarWidget extends WidgetComponent<RootBlockModel> {
       }
     });
     this._resizeObserver.observe(this);
-    this.disposables.add(
-      this.std
-        .get(ThemeProvider)
-        .theme$.subscribe((mode) => this._themeProvider.setValue(mode)),
-    );
     if (!this.block) {
       return;
     }
@@ -523,5 +482,5 @@ export class EdgelessToolbarWidget extends WidgetComponent<RootBlockModel> {
 export const edgelessToolbarWidget = WidgetViewExtension(
   "myoxus:page",
   EDGELESS_TOOLBAR_WIDGET,
-  literal`${unsafeStatic(EDGELESS_TOOLBAR_WIDGET)}`,
+  EDGELESS_TOOLBAR_WIDGET,
 );

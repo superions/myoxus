@@ -4,7 +4,6 @@ import {
 } from "@virgultum/core/extensions";
 import { ParagraphBlockModel } from "@virgultum/core/models";
 import { BlockViewExtension, FlavourExtension } from "@virgultum/core/runtime";
-import { literal } from "lit/static-html.js";
 import { z } from "zod";
 
 import { effects } from "./effects";
@@ -57,7 +56,7 @@ export class ParagraphViewExtension extends ViewExtensionProvider<
 
     context.register([
       FlavourExtension("myoxus:paragraph"),
-      BlockViewExtension("myoxus:paragraph", literal`myoxus-paragraph`),
+      BlockViewExtension("myoxus:paragraph", "myoxus-paragraph"),
       ParagraphTextKeymapExtension,
       ParagraphKeymapExtension,
       ParagraphBlockConfigExtension({

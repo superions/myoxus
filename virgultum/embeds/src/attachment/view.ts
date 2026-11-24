@@ -5,7 +5,6 @@ import {
 import { AttachmentBlockSchema } from "@virgultum/core/models";
 import { BlockViewExtension, FlavourExtension } from "@virgultum/core/runtime";
 import { SlashMenuConfigExtension } from "@virgultum/core/slash-menu";
-import { literal } from "lit/static-html.js";
 
 import { AttachmentBlockInteraction } from "./attachment-edgeless-block.js";
 import { AttachmentDropOption } from "./attachment-service.js";
@@ -34,8 +33,8 @@ export class AttachmentViewExtension extends ViewExtensionProvider {
       FlavourExtension(flavour),
       BlockViewExtension(flavour, (model) => {
         return model.parent?.flavour === "myoxus:surface"
-          ? literal`myoxus-edgeless-attachment`
-          : literal`myoxus-attachment`;
+          ? "myoxus-edgeless-attachment"
+          : "myoxus-attachment";
       }),
       AttachmentDropOption,
       AttachmentEmbedConfigExtension(),

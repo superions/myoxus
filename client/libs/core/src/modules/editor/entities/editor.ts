@@ -18,8 +18,8 @@ import { isEqual, omit } from "lodash-es";
 import { skip } from "rxjs";
 
 import { TemplateCheckService } from "../../template-doc/services/template-check";
-import { CommentPanelService } from "../../comment/services/comment-panel-service";
 import { DocCommentManagerService } from "../../comment/services/doc-comment-manager";
+import { CommentPanelService } from "../../comment/services/comment-panel-service";
 import type { DocService } from "../../doc";
 import { parseDocSearchParams } from "../../navigation/utils";
 import type { WorkbenchView } from "../../workbench";
@@ -68,6 +68,21 @@ export class Editor extends Entity {
   private nativeCommandOwner?: () => void;
   private canvasPresentationOwner?: () => void;
   private pageBlockSelection?: () => string[];
+  private commentRef?: ReturnType<DocCommentManagerService["get"]>;
+
+  openCommentThread(id: string) {
+    // Keep the requested highlight across slow sidebar loads and renderer changes.
+    if (!this.commentRef) {
+      const ref = this.framework
+        .get(DocCommentManagerService)
+        .get(this.doc.virgultumDoc);
+      this.commentRef = ref;
+      this.disposables.push(() => ref.release());
+    }
+    this.framework.get(CommentPanelService).openCommentPanel();
+    this.commentRef.obj.highlightComment(id);
+  }
+
   selectedPageBlocks() {
     return this.pageBlockSelection?.() ?? [];
   }
@@ -341,12 +356,7 @@ export class Editor extends Entity {
 
       // highlight comment
       setTimeout(() => {
-        const commentManager = this.framework.get(DocCommentManagerService);
-        const commentPanelService = this.framework.get(CommentPanelService);
-        const commentEntity = commentManager.get(this.doc.id);
-        commentPanelService.openCommentPanel();
-        commentEntity.obj.highlightComment(commentId);
-        commentEntity.release();
+        this.openCommentThread(commentId);
       }, 0);
 
       // do not highlight block

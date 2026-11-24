@@ -23,7 +23,7 @@ function ChromeHost({
   const [reactToLit, portals, mountPortal] = useLitPortalFactory();
   const extension = useMemo(() => {
     const chrome = patchEditorChromeHost(reactToLit, mountPortal);
-    const mermaid = patchMermaidFamilyReactHost(reactToLit);
+    const mermaid = patchMermaidFamilyReactHost(mountPortal);
     return {
       setup(di) {
         chrome.setup(di);

@@ -41,12 +41,8 @@ export class RangeService<TextAttributes extends BaseTextAttributes> {
 
   getInlineRangeFromElement = (element: Element): InlineRange | null => {
     const range = document.createRange();
-    const text = element.querySelector("[data-v-text]");
-    if (!text) {
-      return null;
-    }
-    const textNode = text.childNodes[1];
-    if (!(textNode instanceof Text)) {
+    const [textNode] = getTextNodesFromElement(element);
+    if (!textNode) {
       return null;
     }
     range.setStart(textNode, 0);

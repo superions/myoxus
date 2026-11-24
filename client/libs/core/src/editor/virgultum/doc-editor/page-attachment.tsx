@@ -33,6 +33,7 @@ import {
 import { EditorAttachmentCard } from "../../view-extensions/editor-view/editor-chrome/attachment-card";
 import { EditorSelectionToolbar } from "../../view-extensions/editor-view/editor-chrome/selection-toolbar";
 import { attachmentFileLimit } from "../../view-extensions/editor-view/file-size-limit";
+import { usePageCaption } from "./page-caption";
 import type { PageIntent } from "./plain-page-input";
 const MediaPreview = lazy(async () => ({
   default: (await import("../../attachment-viewer/attachment-embed-preview"))
@@ -75,6 +76,7 @@ export default function PageAttachment({
   handoff: (intent: PageIntent) => void;
 }) {
   const t = useI18n();
+  const captionEditor = usePageCaption(model, readonly);
   const peekView = useService(PeekViewService).peekView;
   const block = useRef<HTMLDivElement>(null);
   const [selected, select] = useState(false);
@@ -229,11 +231,14 @@ export default function PageAttachment({
           link.click();
         },
       },
-      advanced(
-        "e.caption",
-        t["com.myoxus.editor.toolbar.caption"](),
-        "CaptionIcon",
-      ),
+      {
+        ...advanced(
+          "e.caption",
+          t["com.myoxus.editor.toolbar.caption"](),
+          "CaptionIcon",
+        ),
+        run: captionEditor.show,
+      },
     ],
   };
   const clipboard = (e: ClipboardEvent, action: "copy" | "cut" | "paste") => {
@@ -344,6 +349,7 @@ export default function PageAttachment({
           }}
         />
       )}
+      {captionEditor.field}
       {selected && !readonly && (
         <EditorSelectionToolbar
           controls={{

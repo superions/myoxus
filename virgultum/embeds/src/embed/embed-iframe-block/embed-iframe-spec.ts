@@ -2,7 +2,6 @@ import { EmbedIframeBlockSchema } from "@virgultum/core/models";
 import { BlockViewExtension, FlavourExtension } from "@virgultum/core/runtime";
 import type { ExtensionType } from "@virgultum/core/store";
 import { SlashMenuConfigExtension } from "@virgultum/core/slash-menu";
-import { literal } from "lit/static-html.js";
 
 import { embedIframeSlashMenuConfig } from "./configs/slash-menu/slash-menu";
 import { createBuiltinToolbarConfigExtension } from "./configs/toolbar";
@@ -14,8 +13,8 @@ export const EmbedIframeViewExtensions: ExtensionType[] = [
   FlavourExtension(flavour),
   BlockViewExtension(flavour, (model) => {
     return model.parent?.flavour === "myoxus:surface"
-      ? literal`myoxus-embed-edgeless-iframe-block`
-      : literal`myoxus-embed-iframe-block`;
+      ? "myoxus-embed-edgeless-iframe-block"
+      : "myoxus-embed-iframe-block";
   }),
   createBuiltinToolbarConfigExtension(flavour),
   SlashMenuConfigExtension(flavour, embedIframeSlashMenuConfig),

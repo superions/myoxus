@@ -31,7 +31,6 @@ import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
 import type { EdgelessSelectedRectWidget } from "../edgeless-selected-rect/native-selection-overlay";
 import { nothing, render } from "lit";
 import { NativeCanvasWidget } from "../native-canvas-widget";
-import { literal, unsafeStatic } from "lit/static-html.js";
 
 const DIVIDING_LINE_OFFSET = 4;
 const NEW_NOTE_GAP = 40;
@@ -438,5 +437,5 @@ export class NoteSlicer extends NativeCanvasWidget {
 export const noteSlicerWidget = WidgetViewExtension(
   "myoxus:page",
   NOTE_SLICER_WIDGET,
-  literal`${unsafeStatic(NOTE_SLICER_WIDGET)}`,
+  NOTE_SLICER_WIDGET,
 );

@@ -8,7 +8,6 @@ import { WidgetComponent, WidgetViewExtension } from "@virgultum/editor/std";
 import type { Store } from "@virgultum/editor/store";
 import { html, LitElement, nothing } from "lit";
 import { property, query, state } from "lit/decorators.js";
-import { literal, unsafeStatic } from "lit/static-html.js";
 
 import { BlockDiffProvider } from "../../services/block-diff";
 
@@ -139,5 +138,5 @@ export class BlockDiffPlayground extends WidgetComponent {
 export const blockDiffPlayground = WidgetViewExtension(
   "myoxus:page",
   MYOXUS_BLOCK_DIFF_PLAYGROUND,
-  literal`${unsafeStatic(MYOXUS_BLOCK_DIFF_PLAYGROUND)}`,
+  MYOXUS_BLOCK_DIFF_PLAYGROUND,
 );

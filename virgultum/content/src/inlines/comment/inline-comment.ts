@@ -1,16 +1,10 @@
-import { consume } from "@lit/context";
 import { WithDisposable } from "@virgultum/core/primitives/lit";
-import {
-  type CommentId,
-  CommentProviderIdentifier,
-} from "@virgultum/core/services";
+import { type CommentId, type CommentProvider } from "@virgultum/core/services";
 import { unsafeCSSVar } from "@virgultum/core/theme";
 import {
-  type BlockStdScope,
   PropTypes,
   requiredProperties,
   ShadowlessElement,
-  stdContext,
 } from "@virgultum/core/runtime";
 import { css, type PropertyValues } from "lit";
 import { property, state } from "lit/decorators.js";
@@ -48,19 +42,14 @@ export class InlineComment extends WithDisposable(ShadowlessElement) {
 
   private _index: number = 0;
 
-  @consume({ context: stdContext })
-  private accessor _std!: BlockStdScope;
+  provider?: CommentProvider;
 
   @state()
   accessor highlighted = false;
 
-  private get _provider() {
-    return this._std.getOptional(CommentProviderIdentifier);
-  }
-
   private readonly _handleClick = () => {
     if (this.unresolved) {
-      this._provider?.highlightComment(this.commentIds[this._index]);
+      this.provider?.highlightComment(this.commentIds[this._index]);
       this._index = (this._index + 1) % this.commentIds.length;
     }
   };
@@ -79,7 +68,7 @@ export class InlineComment extends WithDisposable(ShadowlessElement) {
 
   override connectedCallback() {
     super.connectedCallback();
-    const provider = this._provider;
+    const provider = this.provider;
     if (provider) {
       this.disposables.addFromEvent(this, "click", this._handleClick);
       this.disposables.add(

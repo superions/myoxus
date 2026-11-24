@@ -5,7 +5,6 @@ import {
 import { TableModelFlavour } from "@virgultum/core/models";
 import { BlockViewExtension, FlavourExtension } from "@virgultum/core/runtime";
 import { SlashMenuConfigExtension } from "@virgultum/core/slash-menu";
-import { literal } from "lit/static-html.js";
 
 import { tableSlashMenuConfig } from "./configs/slash-menu";
 import { effects } from "./effects";
@@ -22,7 +21,7 @@ export class TableViewExtension extends ViewExtensionProvider {
     super.setup(context);
     context.register([
       FlavourExtension(TableModelFlavour),
-      BlockViewExtension(TableModelFlavour, literal`myoxus-table`),
+      BlockViewExtension(TableModelFlavour, "myoxus-table"),
       SlashMenuConfigExtension(TableModelFlavour, tableSlashMenuConfig),
     ]);
   }

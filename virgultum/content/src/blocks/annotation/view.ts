@@ -5,7 +5,6 @@ import {
 } from "@virgultum/core/extensions";
 import { BlockViewExtension, FlavourExtension } from "@virgultum/core/runtime";
 import { SlashMenuConfigExtension } from "@virgultum/core/slash-menu";
-import { literal } from "lit/static-html.js";
 import { AnnotationBlockComponent } from "./annotation-block";
 import { annotationSlashMenuConfig } from "./slash-menu";
 import { annotationToolbarExtension } from "./toolbar";
@@ -20,7 +19,7 @@ export class AnnotationViewExtension extends ViewExtensionProvider {
     super.setup(context);
     context.register([
       FlavourExtension("myoxus:annotation"),
-      BlockViewExtension("myoxus:annotation", literal`myoxus-annotation`),
+      BlockViewExtension("myoxus:annotation", "myoxus-annotation"),
       SlashMenuConfigExtension("myoxus:annotation", annotationSlashMenuConfig),
       annotationToolbarExtension,
     ]);

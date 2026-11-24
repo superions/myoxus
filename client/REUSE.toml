@@ -590,8 +590,7 @@ path = [
   "libs/core/src/editor/attachment-viewer/types.ts",
   "libs/core/src/editor/attachment-viewer/utils.ts",
   "libs/core/src/editor/attachment-viewer/viewer.tsx",
-  "libs/core/src/editor/editors/edgeless-editor.ts",
-  "libs/core/src/editor/editors/page-editor.ts",
+  "libs/ui-facade/src/document-viewport.css",
   "libs/core/src/editor/initialization/index.ts",
   "libs/core/src/editor/manager/store.ts",
   "libs/core/src/editor/manager/view.ts",
@@ -1875,6 +1874,7 @@ path = [
   "libs/core/package.json",
   "libs/core/src/components/providers/workspace-runtime/workspace-ai-runtime.tsx",
   "libs/core/src/components/root-app-sidebar/index.tsx",
+  "libs/core/src/components/hooks/use-document-link-navigation.ts",
   "libs/core/src/components/hooks/use-document-view-context.ts",
   "libs/core/src/desktop/pages/workspace/detail-page/document-editor-lifecycle.ts",
   "libs/core/src/desktop/pages/workspace/detail-page/sidecards/journal/index.tsx",
@@ -5976,7 +5976,11 @@ path = [
 ]
 
 [[annotations]]
-SPDX-FileCopyrightText  = "2026-present Daniel Scharf and Myoxus contributors"
+SPDX-FileCopyrightText = "2026-present Daniel Scharf and Myoxus contributors"
 SPDX-License-Identifier = "AGPL-3.0-or-later"
-X-Myoxus-Origin         = "M0"
-path                    = ["libs/core/src/editor/editors/canvas-handoff.ts"]
+X-Myoxus-Origin = "M0"
+path = [
+  "libs/core/src/editor/ai/_common/code-actions.ts",
+  "libs/core/src/editor/editors/document-viewport.ts",
+  "libs/core/src/editor/virgultum/doc-editor/page-caption.tsx",
+]

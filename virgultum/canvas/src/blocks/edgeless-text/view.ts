@@ -3,7 +3,6 @@ import {
   ViewExtensionProvider,
 } from "@virgultum/core/extensions";
 import { BlockViewExtension } from "@virgultum/core/runtime";
-import { literal } from "lit/static-html.js";
 
 import { EdgelessClipboardEdgelessTextConfig } from "./edgeless-clipboard-config";
 import { EdgelessTextInteraction } from "./edgeless-text-block";
@@ -24,10 +23,7 @@ export class EdgelessTextViewExtension extends ViewExtensionProvider {
 
     if (isEdgeless) {
       context.register([
-        BlockViewExtension(
-          "myoxus:edgeless-text",
-          literal`myoxus-edgeless-text`,
-        ),
+        BlockViewExtension("myoxus:edgeless-text", "myoxus-edgeless-text"),
       ]);
       context.register(edgelessTextToolbarExtension);
       context.register(EdgelessClipboardEdgelessTextConfig);

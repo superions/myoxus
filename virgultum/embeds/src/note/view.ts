@@ -4,7 +4,6 @@ import {
 } from "@virgultum/core/extensions";
 import { NoteBlockSchema } from "@virgultum/core/models";
 import { BlockViewExtension, FlavourExtension } from "@virgultum/core/runtime";
-import { literal } from "lit/static-html.js";
 
 import { NoteSlashMenuConfigExtension } from "./configs/slash-menu";
 import { createBuiltinToolbarConfigExtension } from "./configs/toolbar";
@@ -34,14 +33,12 @@ export class NoteViewExtension extends ViewExtensionProvider {
     const isEdgeless = this.isEdgeless(context.scope);
 
     if (isEdgeless) {
-      context.register(
-        BlockViewExtension(flavour, literal`myoxus-edgeless-note`),
-      );
+      context.register(BlockViewExtension(flavour, "myoxus-edgeless-note"));
       context.register(createBuiltinToolbarConfigExtension(flavour));
       context.register(EdgelessClipboardNoteConfig);
       context.register(EdgelessNoteInteraction);
     } else {
-      context.register(BlockViewExtension(flavour, literal`myoxus-note`));
+      context.register(BlockViewExtension(flavour, "myoxus-note"));
     }
   }
 }

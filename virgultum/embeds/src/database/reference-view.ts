@@ -10,7 +10,6 @@ import {
   SlashMenuConfigExtension,
   type SlashMenuItem,
 } from "@virgultum/core/slash-menu";
-import { literal } from "lit/static-html.js";
 import { z } from "zod";
 
 import { DatabaseReferenceConfigExtension } from "./reference-config";
@@ -57,7 +56,7 @@ export class DatabaseReferenceViewExtension extends ViewExtensionProvider<Databa
     super.setup(context, options);
     context.register([
       FlavourExtension("myoxus:database"),
-      BlockViewExtension("myoxus:database", literal`myoxus-database-reference`),
+      BlockViewExtension("myoxus:database", "myoxus-database-reference"),
       SlashMenuConfigExtension("myoxus:database", {
         disableWhen: ({ model }) => model.flavour === "myoxus:database",
         items: options?.slashMenuItems ?? [],

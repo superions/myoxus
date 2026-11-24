@@ -23,7 +23,6 @@ import {
 } from "@virgultum/core/runtime/gfx";
 import { nothing, render } from "lit";
 import { NativeCanvasWidget } from "../native-canvas-widget";
-import { literal, unsafeStatic } from "lit/static-html.js";
 
 const PAGE_VISIBLE_INDEX_LABEL_HEIGHT = 24;
 const INDEX_LABEL_OFFSET = 16;
@@ -378,7 +377,7 @@ export class EdgelessAutoConnectWidget extends NativeCanvasWidget {
 export const autoConnectWidget = WidgetViewExtension(
   "myoxus:page",
   MYOXUS_EDGELESS_AUTO_CONNECT_WIDGET,
-  literal`${unsafeStatic(MYOXUS_EDGELESS_AUTO_CONNECT_WIDGET)}`,
+  MYOXUS_EDGELESS_AUTO_CONNECT_WIDGET,
 );
 
 declare global {

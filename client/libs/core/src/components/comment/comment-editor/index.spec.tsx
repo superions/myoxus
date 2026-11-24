@@ -18,8 +18,7 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import { CommentEditor } from "./index";
 
 vi.mock("@myoxus/core/editor/editors", () => ({
-  editorEffects: () => {},
-  LitDocEditor: () => <div />,
+  DocumentViewport: () => <div />,
 }));
 // The attachment lifecycle uses a stub editor, not its full chrome/services.
 vi.mock(

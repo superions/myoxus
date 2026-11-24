@@ -371,7 +371,10 @@ export class ImageEdgelessBlockComponent extends GfxBlockComponent<ImageBlockMod
         )}
         <myoxus-block-selection .block=${this}></myoxus-block-selection>
       </div>
-      <block-caption-editor></block-caption-editor>
+      <block-caption-editor
+        .model=${this.model}
+        .std=${this.std}
+      ></block-caption-editor>
 
       ${Object.values(this.widgets)}
     `;

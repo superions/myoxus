@@ -4,7 +4,6 @@ import {
 } from "@virgultum/core/extensions";
 import { BookmarkBlockSchema } from "@virgultum/core/models";
 import { BlockViewExtension, FlavourExtension } from "@virgultum/core/runtime";
-import { literal } from "lit/static-html.js";
 
 import { BookmarkBlockInteraction } from "./bookmark-edgeless-block";
 import { BookmarkSlashMenuConfigExtension } from "./configs/slash-menu";
@@ -28,8 +27,8 @@ export class BookmarkViewExtension extends ViewExtensionProvider {
       FlavourExtension(flavour),
       BlockViewExtension(flavour, (model) => {
         return model.parent?.flavour === "myoxus:surface"
-          ? literal`myoxus-edgeless-bookmark`
-          : literal`myoxus-bookmark`;
+          ? "myoxus-edgeless-bookmark"
+          : "myoxus-bookmark";
       }),
       BookmarkSlashMenuConfigExtension,
     ]);

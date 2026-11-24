@@ -1,20 +1,20 @@
-import { consume } from "@lit/context";
 import { SignalWatcher, WithDisposable } from "../../../primitives/lit/index";
-import type { BlockModel, Store } from "../../../store/index";
+import { BlockServiceIdentifier } from "../../identifier.js";
+import type { BlockModel } from "../../../store/index";
 import { LitElement } from "lit";
 
 import type { EventName, UIEventHandler } from "../../event/index.js";
 import type { BlockService } from "../../extension/index.js";
 import type { BlockStdScope } from "../../scope/index.js";
 import type { BlockComponent } from "./block-component.js";
-import { modelContext, serviceContext } from "./consts.js";
-import { stdContext, storeContext } from "./lit-host.js";
 
 export class WidgetComponent<
   Model extends BlockModel = BlockModel,
   B extends BlockComponent = BlockComponent,
   S extends BlockService = BlockService,
 > extends SignalWatcher(WithDisposable(LitElement)) {
+  editorWidgetContext!: { std: BlockStdScope; model: Model };
+
   handleEvent = (
     name: EventName,
     handler: UIEventHandler,
@@ -32,7 +32,7 @@ export class WidgetComponent<
   }
 
   get store() {
-    return this._store;
+    return this.std.store;
   }
 
   get flavour(): string {
@@ -44,15 +44,15 @@ export class WidgetComponent<
   }
 
   get model() {
-    return this._model;
+    return this.editorWidgetContext.model;
   }
 
   get service() {
-    return this._service;
+    return this.std.getOptional(BlockServiceIdentifier(this.flavour)) as S;
   }
 
   get std() {
-    return this._std;
+    return this.editorWidgetContext.std;
   }
 
   get widgetId() {
@@ -83,16 +83,4 @@ export class WidgetComponent<
   override render(): unknown {
     return null;
   }
-
-  @consume({ context: storeContext })
-  private accessor _store!: Store;
-
-  @consume({ context: modelContext })
-  private accessor _model!: Model;
-
-  @consume({ context: serviceContext as never })
-  private accessor _service!: S;
-
-  @consume({ context: stdContext })
-  private accessor _std!: BlockStdScope;
 }

@@ -11,7 +11,6 @@ import {
 import { html, nothing } from "lit";
 import { state } from "lit/decorators.js";
 import { styleMap } from "lit/directives/style-map.js";
-import { literal, unsafeStatic } from "lit/static-html.js";
 
 import {
   type BlockInfo,
@@ -318,7 +317,7 @@ export class MyoxusPageDraggingAreaWidget extends WidgetComponent<RootBlockModel
 export const pageDraggingAreaWidget = WidgetViewExtension(
   "myoxus:page",
   MYOXUS_PAGE_DRAGGING_AREA_WIDGET,
-  literal`${unsafeStatic(MYOXUS_PAGE_DRAGGING_AREA_WIDGET)}`,
+  MYOXUS_PAGE_DRAGGING_AREA_WIDGET,
 );
 
 declare global {

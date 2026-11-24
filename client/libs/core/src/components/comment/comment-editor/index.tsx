@@ -1,11 +1,7 @@
 import { patchEditorChromeHost } from "@myoxus/core/editor/view-extensions/editor-view/editor-chrome";
 import { useLitPortalFactory } from "@myoxus/lit-react";
-import type { ReactToLit } from "@myoxus/lit-react";
-import {
-  editorEffects,
-  LitDocEditor,
-  type PageEditor,
-} from "@myoxus/core/editor/editors";
+import type { MountReactPortal, ReactToLit } from "@myoxus/lit-react";
+import { DocumentViewport } from "@myoxus/core/editor/editors";
 import { SnapshotHelper } from "@myoxus/core/modules/comment/services/snapshot-helper";
 import type { CommentAttachment } from "@myoxus/core/modules/comment/types";
 import { PeekViewService } from "@myoxus/core/modules/peek-view";
@@ -32,7 +28,7 @@ import { type RichText, selectTextModel } from "@virgultum/editor/rich-text";
 import { ViewportElementExtension } from "@virgultum/editor/shared/services";
 import { openFilesWith } from "@virgultum/editor/shared/utils";
 import { type DocSnapshot, nanoid, Store } from "@virgultum/editor/store";
-import type { TextSelection } from "@virgultum/core/runtime";
+import type { TextSelection, EditorHost } from "@virgultum/core/runtime";
 import { formatByteSize } from "@virgultum/core/primitives/utils";
 import {
   forwardRef,
@@ -51,8 +47,11 @@ import { getCommentEditorViewManager } from "./specs";
 const MAX_ATTACHMENT_COUNT = 10;
 const logger = new DebugLogger("CommentEditor");
 
-const usePatchSpecs = (readonly: boolean, reactToLit: ReactToLit) => {
-  editorEffects();
+const usePatchSpecs = (
+  readonly: boolean,
+  reactToLit: ReactToLit,
+  mountPortal: MountReactPortal,
+) => {
   const framework = useFramework();
   // const confirmModal = useConfirmModal();
 
@@ -62,9 +61,9 @@ const usePatchSpecs = (readonly: boolean, reactToLit: ReactToLit) => {
       .get(readonly ? "preview-page" : "page")
       .concat([
         ViewportElementExtension(`.${commentEditorViewportClassName}`),
-        ...(!readonly ? [patchEditorChromeHost(reactToLit)] : []),
+        ...(!readonly ? [patchEditorChromeHost(reactToLit, mountPortal)] : []),
       ]);
-  }, [framework, readonly, reactToLit]);
+  }, [framework, readonly, reactToLit, mountPortal]);
 
   return patchedSpecs;
 };
@@ -245,12 +244,12 @@ export const CommentEditor = forwardRef<CommentEditorRef, CommentEditorProps>(
     if (!defaultSnapshotOrDoc) {
       throw new Error("Either defaultSnapshot or doc must be provided");
     }
-    const [reactToLit, portals] = useLitPortalFactory();
-    const specs = usePatchSpecs(!!readonly, reactToLit);
+    const [reactToLit, portals, mountPortal] = useLitPortalFactory();
+    const specs = usePatchSpecs(!!readonly, reactToLit, mountPortal);
     const doc = useSnapshotDoc(defaultSnapshotOrDoc, readonly);
     const snapshotHelper = useService(SnapshotHelper);
     const peekViewService = useService(PeekViewService);
-    const editorRef = useRef<PageEditor>(null);
+    const editorRef = useRef<EditorHost>(null);
     const [empty, setEmpty] = useState(true);
     const attachmentsRef = useRef(attachments);
     attachmentsRef.current = attachments;
@@ -494,7 +493,7 @@ export const CommentEditor = forwardRef<CommentEditorRef, CommentEditorProps>(
         const selectionService = editorRef.current.std.selection;
         const selection = selectionService.value.at(-1) as TextSelection;
         editorRef.current.std.event.active = true;
-        await editorRef.current.host?.updateComplete;
+        await editorRef.current.updateComplete;
         if (selection) {
           selectTextModel(
             editorRef.current.std,
@@ -630,7 +629,12 @@ export const CommentEditor = forwardRef<CommentEditorRef, CommentEditorProps>(
         ) : null}
 
         {doc && (
-          <LitDocEditor key={doc.id} ref={editorRef} specs={specs} doc={doc} />
+          <DocumentViewport
+            key={doc.id}
+            ref={editorRef}
+            specs={specs}
+            doc={doc}
+          />
         )}
         {!readonly && (
           <DialogFooterActions>

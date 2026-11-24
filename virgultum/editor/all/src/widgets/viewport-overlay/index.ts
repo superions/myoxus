@@ -4,7 +4,6 @@ import { css, html } from "lit";
 import { state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { styleMap } from "lit/directives/style-map.js";
-import { literal, unsafeStatic } from "lit/static-html.js";
 
 export const MYOXUS_VIEWPORT_OVERLAY_WIDGET = "myoxus-viewport-overlay-widget";
 
@@ -80,7 +79,7 @@ export class MyoxusViewportOverlayWidget extends WidgetComponent<RootBlockModel>
 export const viewportOverlayWidget = WidgetViewExtension(
   "myoxus:page",
   MYOXUS_VIEWPORT_OVERLAY_WIDGET,
-  literal`${unsafeStatic(MYOXUS_VIEWPORT_OVERLAY_WIDGET)}`,
+  MYOXUS_VIEWPORT_OVERLAY_WIDGET,
 );
 
 declare global {

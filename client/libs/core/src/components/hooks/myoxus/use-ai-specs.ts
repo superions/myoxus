@@ -1,13 +1,16 @@
 import { getViewManager } from "@myoxus/core/editor/manager/view";
 import { WorkspaceService } from "@myoxus/core/modules/workspace";
 import { useFramework, useServices } from "@myoxus/infra";
-import { useLitPortalFactory } from "@myoxus/lit-react";
+import type { MountReactPortal, ReactToLit } from "@myoxus/lit-react";
 import { useConfirmModal } from "@myoxus/ui-facade";
 import { useMemo } from "react";
 
 import { useEnableAI } from "./use-enable-ai";
 
-export const useAISpecs = () => {
+export const useAISpecs = (
+  reactToLit: ReactToLit,
+  mountPortal: MountReactPortal,
+) => {
   const framework = useFramework();
   const enableAI = useEnableAI();
   const { openConfirmModal, closeConfirmModal } = useConfirmModal();
@@ -17,7 +20,6 @@ export const useAISpecs = () => {
     () => ({ openConfirmModal, closeConfirmModal }),
     [openConfirmModal, closeConfirmModal],
   );
-  const [reactToLit, _portals, mountPortal] = useLitPortalFactory();
 
   const { workspaceService } = useServices({
     WorkspaceService,
@@ -34,6 +36,7 @@ export const useAISpecs = () => {
       .editorView({
         framework,
         reactToLit,
+        mountPortal,
         confirmModal,
         scope: "workspace",
       })

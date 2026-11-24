@@ -144,7 +144,14 @@ export class MyoxusCodeToolbarWidget extends WidgetComponent<
       () => this.primaryActions.value,
     );
     const { primary, more } = controls.getSnapshot();
-    const action = [...primary, ...more].find((a) => a.id === id);
+    const menu = primary.find((action) => action.id === "ask-ai")?.control;
+    const menuActions =
+      menu?.type === "menu"
+        ? menu.items.flatMap((group) => group.actions ?? [group])
+        : [];
+    const action = [...primary, ...more, ...menuActions].find(
+      (a) => a.id === id,
+    );
     if (action && !action.disabled && action.run)
       action.run(this.block, new MouseEvent("click"));
   }

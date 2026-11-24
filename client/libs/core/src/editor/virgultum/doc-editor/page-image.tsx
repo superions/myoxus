@@ -14,6 +14,7 @@ import type {
   SelectionAction,
 } from "@virgultum/core/services";
 import { autoUpdate } from "@floating-ui/dom";
+import { usePageCaption } from "./page-caption";
 import type { PageIntent } from "./plain-page-input";
 
 export default function PageImage({
@@ -28,6 +29,7 @@ export default function PageImage({
   const { resource, state } = usePageResource(model),
     t = useI18n(),
     peek = useService(PeekViewService).peekView;
+  const captionEditor = usePageCaption(model, readonly);
   const { width, height, caption, sourceId, textAlign, size } = model.props;
   const root = useRef<HTMLDivElement>(null),
     img = useRef<HTMLImageElement>(null);
@@ -112,6 +114,7 @@ export default function PageImage({
         "b.caption",
         t["com.myoxus.editor.toolbar.caption"](),
         "CaptionIcon",
+        captionEditor.show,
       ),
       ...(["left", "center", "right"] as const).map((side, i) =>
         action(
@@ -331,7 +334,7 @@ export default function PageImage({
           }}
         />
       )}
-      {caption && <figcaption>{caption}</figcaption>}
+      {captionEditor.field}
       {selected && !readonly && (
         <EditorSelectionToolbar
           controls={{

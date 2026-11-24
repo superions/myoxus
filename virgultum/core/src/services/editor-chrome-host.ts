@@ -485,7 +485,10 @@ export type EditorChromeHost = {
     controls: EditorAttachmentRenameControls,
   ) => TemplateResult;
   renderCodeToolbar: (controls: EditorCodeToolbarControls) => TemplateResult;
-  renderImport: (controls: EditorImportControls) => TemplateResult;
+  mountImport: (
+    container: HTMLElement,
+    controls: EditorImportControls,
+  ) => () => void;
   renderDocumentPicker: (
     controls: EditorDocumentPickerControls,
   ) => TemplateResult;

@@ -50,7 +50,7 @@ const optionsSchema = z.object({
     .function()
     .input([z.custom<ElementOrFactory>(), z.boolean().optional()], z.unknown())
     .output(z.custom<TemplateResult>()),
-  mountPortal: z.custom<MountReactPortal>().optional(),
+  mountPortal: z.custom<MountReactPortal>(),
   confirmModal: z.object({
     openConfirmModal: z
       .function()

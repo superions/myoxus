@@ -11,6 +11,7 @@ import {
 import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
 import { RANGE_SYNC_EXCLUDE_ATTR } from "@virgultum/core/runtime/inline";
 
+import { NativeBlockComponent } from "./native-block-component.js";
 import { ConnectorElementModel } from "./element-model/index.js";
 import { SurfaceScene, surfaceSceneCss } from "./surface-block.js";
 import type { SurfaceBlockModel } from "./surface-model.js";
@@ -94,8 +95,20 @@ export class SurfaceBlockComponent extends NativeViewElement {
   }
 }
 
+/** Page indexes the surface model without mounting a Canvas scene or any geometry. */
+export class PageSurfaceBlock extends NativeBlockComponent<SurfaceBlockModel> {
+  connectedCallback() {
+    this.connectBlock();
+  }
+
+  override requestUpdate() {
+    // The Page surface has no visible content.
+  }
+}
+
 declare global {
   interface HTMLElementTagNameMap {
     "myoxus-surface": SurfaceBlockComponent;
+    "myoxus-surface-void": PageSurfaceBlock;
   }
 }

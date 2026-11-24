@@ -8,7 +8,6 @@ import {
   WidgetViewExtension,
 } from "@virgultum/core/runtime";
 import { SlashMenuConfigExtension } from "@virgultum/core/slash-menu";
-import { literal, unsafeStatic } from "lit/static-html.js";
 
 import { getCodeClipboardExtensions } from "./clipboard/index";
 import { CodeBlockConfigExtension } from "./code-block-config";
@@ -26,7 +25,7 @@ import { CodeBlockMarkdownExtension } from "./markdown";
 const codeToolbarWidget = WidgetViewExtension(
   "myoxus:code",
   MYOXUS_CODE_TOOLBAR_WIDGET,
-  literal`${unsafeStatic(MYOXUS_CODE_TOOLBAR_WIDGET)}`,
+  MYOXUS_CODE_TOOLBAR_WIDGET,
 );
 
 export class CodeBlockViewExtension extends ViewExtensionProvider {
@@ -42,7 +41,7 @@ export class CodeBlockViewExtension extends ViewExtensionProvider {
     context.register([
       FlavourExtension("myoxus:code"),
       CodeBlockHighlighter,
-      BlockViewExtension("myoxus:code", literal`myoxus-code`),
+      BlockViewExtension("myoxus:code", "myoxus-code"),
       SlashMenuConfigExtension("myoxus:code", codeSlashMenuConfig),
       CodeKeymapExtension,
       CodeBlockMarkdownExtension,

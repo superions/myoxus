@@ -20,7 +20,7 @@ export class CaptionedBlockComponent<
   static override styles = styles;
 
   get captionEditor() {
-    // Block wrappers differ; the consumed model identifies the owning caption,
+    // Block wrappers differ; the bound model identifies the owning caption,
     // including when a synced-document preview contains other captions.
     return [
       ...this.querySelectorAll<BlockCaptionEditor>("block-caption-editor"),
@@ -48,7 +48,10 @@ export class CaptionedBlockComponent<
       ${content}
       ${
         this.useCaptionEditor
-          ? html`<block-caption-editor></block-caption-editor>`
+          ? html`<block-caption-editor
+              .model=${this.model}
+              .std=${this.std}
+            ></block-caption-editor>`
           : nothing
       }
       ${

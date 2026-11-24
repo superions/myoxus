@@ -106,7 +106,7 @@ export interface EditorChatPanelProps {
 }
 
 export const EditorChatPanel = ({ editor, onLoad }: EditorChatPanelProps) => {
-  const [reactToLit, portals] = useLitPortalFactory();
+  const [reactToLit, portals, mountPortal] = useLitPortalFactory();
   const framework = useFramework();
   const workbench = useService(WorkbenchService).workbench;
   const t = useI18n();
@@ -116,7 +116,7 @@ export const EditorChatPanel = ({ editor, onLoad }: EditorChatPanelProps) => {
     () => new NotificationServiceImpl(closeConfirmModal, openConfirmModal),
     [closeConfirmModal, openConfirmModal],
   );
-  const specs = useAISpecs();
+  const specs = useAISpecs(reactToLit, mountPortal);
   const {
     docDisplayConfig,
     searchMenuConfig,

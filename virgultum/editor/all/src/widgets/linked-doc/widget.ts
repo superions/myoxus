@@ -19,7 +19,6 @@ import {
   type InlineRootElement,
 } from "@virgultum/core/runtime/inline";
 import { html, nothing } from "lit";
-import { literal, unsafeStatic } from "lit/static-html.js";
 
 import {
   getMenus,
@@ -262,7 +261,7 @@ export class MyoxusLinkedDocWidget extends WidgetComponent<RootBlockModel> {
 export const linkedDocWidget = WidgetViewExtension(
   "myoxus:page",
   MYOXUS_LINKED_DOC_WIDGET,
-  literal`${unsafeStatic(MYOXUS_LINKED_DOC_WIDGET)}`,
+  MYOXUS_LINKED_DOC_WIDGET,
 );
 
 declare global {

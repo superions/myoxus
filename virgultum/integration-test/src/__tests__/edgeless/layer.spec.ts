@@ -9,8 +9,7 @@ import type {
   NoteBlockModel,
 } from "@virgultum/editor/model";
 import { generateKeyBetween } from "@virgultum/editor/std/gfx";
-import type { BlockComponent } from "@virgultum/editor/std";
-import type { BlockModel, Store } from "@virgultum/editor/store";
+import type { Store } from "@virgultum/editor/store";
 import { beforeEach, describe, expect, test } from "vitest";
 import * as Y from "yjs";
 
@@ -838,29 +837,27 @@ test("the actual rendering z-index should satisfy the logic order of their index
   await wait(500);
 
   const edgeless = getDocRootBlock(doc, editor, "edgeless");
-  const blocks = Array.from(
-    edgeless.querySelectorAll("gfx-viewport > [data-block-id]"),
-  ) as BlockComponent[];
-
+  const blocks = edgeless.querySelectorAll<HTMLElement>(
+    "gfx-viewport > [data-block-id]",
+  );
   expect(blocks.length).toBe(indexes.length + 1);
 
-  blocks
-    .filter((block) => block.flavour !== "myoxus:surface")
-    .forEach((block, index) => {
-      if (index === blocks.length - 1) return;
-
-      const model = block.model as BlockModel<{ index: string }>;
-      const nextModel = blocks[index + 1].model as BlockModel<{
-        index: string;
-      }>;
-
-      const zIndex = Number(block.style.zIndex);
-      const nextZIndex = Number(blocks[index + 1].style.zIndex);
-
-      expect(model.props.index <= nextModel.props.index).equals(
-        zIndex <= nextZIndex,
-      );
-    });
+  // Native surfaces and notes share the viewport. Only notes participate
+  // in this fixture's fractional ordering.
+  const notes = Array.from(blocks).flatMap((element) => {
+    const model = doc.getModelById<NoteBlockModel>(element.dataset.blockId!);
+    return model?.flavour === "myoxus:note"
+      ? [
+          {
+            index: model.props.index,
+            z: Number(getComputedStyle(element).zIndex),
+          },
+        ]
+      : [];
+  });
+  expect(notes.sort((a, b) => a.z - b.z).map((note) => note.index)).toEqual(
+    [...indexes].sort(),
+  );
 });
 
 describe("index generator", () => {

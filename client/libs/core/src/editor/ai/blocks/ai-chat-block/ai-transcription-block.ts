@@ -4,7 +4,6 @@ import { BlockComponent, BlockViewExtension } from "@virgultum/editor/std";
 import type { ExtensionType } from "@virgultum/editor/store";
 import { css, type PropertyValues } from "lit";
 import { property } from "lit/decorators.js";
-import { literal } from "lit/static-html.js";
 
 export class LitTranscriptionBlock extends BlockComponent<TranscriptionBlockModel> {
   static override styles = [
@@ -46,6 +45,6 @@ export class LitTranscriptionBlock extends BlockComponent<TranscriptionBlockMode
 
 export const AITranscriptionBlockSpec: ExtensionType[] = [
   BlockViewExtension("myoxus:transcription", () => {
-    return literal`transcription-block`;
+    return "transcription-block";
   }),
 ];

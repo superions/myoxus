@@ -10,27 +10,37 @@ import type {
 import {
   bundledLanguagesInfo,
   codeToTokensBase,
+  codeLanguageOptions,
+  readLanguageOrder,
+  saveLanguageOrder,
   type ThemedToken,
 } from "@virgultum/content/syntax-highlighter";
-import { useRef, useLayoutEffect, useEffect, useState } from "react";
+import { useRef, useLayoutEffect, useEffect, useState, useMemo } from "react";
 import { EditorCodeToolbar } from "../../view-extensions/editor-view/editor-chrome/code-toolbar";
+import {
+  continueInChat,
+  reviewCodeActions,
+} from "../../ai/_common/code-actions";
 import { bindPageTextarea } from "./page-textarea";
+import { usePageCaption } from "./page-caption";
 import type { PageIntent } from "./plain-page-input";
 
-const languages = bundledLanguagesInfo
-  .map((l) => ({ value: l.id, label: l.name, aliases: l.aliases }))
-  .sort((a, b) => a.label.localeCompare(b.label));
 export default function PageCode({
   model,
   readonly,
   handoff,
+  enableComment,
+  enableAI,
 }: {
   model: CodeBlockModel;
+  enableAI: boolean;
+  enableComment: boolean;
   readonly: boolean;
   handoff: (intent: PageIntent) => void;
 }) {
   const t = useI18n(),
     { resolvedTheme } = useMyoxusTheme();
+  const captionEditor = usePageCaption(model, readonly);
   const field = useRef<HTMLTextAreaElement>(null),
     paint = useRef<HTMLPreElement>(null);
   const { text, language, wrap, lineNumber } = model.props,
@@ -38,6 +48,11 @@ export default function PageCode({
     source = text.toString();
   const [hover, setHover] = useState(false),
     [active, setActive] = useState(false);
+  const [recent, setRecent] = useState(readLanguageOrder);
+  const languages = useMemo(
+    () => codeLanguageOptions(bundledLanguagesInfo, language, recent),
+    [language, recent],
+  );
   const lang = bundledLanguagesInfo.find(
     (l) =>
       l.id === language ||
@@ -117,6 +132,33 @@ export default function PageCode({
     languages,
     readonly,
     primary: [
+      ...(enableAI && !readonly
+        ? [
+            {
+              id: "ask-ai",
+              label: t["com.myoxus.editor.toolbar.ask-ai"](),
+              disabled: false,
+              icon: "AiIcon" as const,
+              control: {
+                type: "menu" as const,
+                onOpen: () => setActive(true),
+                onClose: () => setActive(false),
+                items: [reviewCodeActions, [continueInChat]].map(
+                  (items, index) => ({
+                    id: `ai-group-${index}`,
+                    label: `ai-group-${index}`,
+                    disabled: false,
+                    actions: items.map(({ testId, name, iconName }) =>
+                      action(testId, name, iconName, () => {
+                        if (writable()) command(testId);
+                      }),
+                    ),
+                  }),
+                ),
+              },
+            },
+          ]
+        : []),
       {
         ...action(
           "copy-code",
@@ -132,14 +174,21 @@ export default function PageCode({
               "caption",
               t["com.myoxus.editor.toolbar.caption"](),
               "CaptionIcon",
-              () => command("caption"),
+              captionEditor.show,
             ),
-            action(
-              "comment",
-              t["com.myoxus.editor.toolbar.comment"](),
-              "CommentIcon",
-              () => command("comment"),
-            ),
+          ]
+        : []),
+      ...(enableComment
+        ? [
+            {
+              ...action(
+                "comment",
+                t["com.myoxus.editor.toolbar.comment"](),
+                "CommentIcon",
+                () => command("comment"),
+              ),
+              disabled: false,
+            },
           ]
         : []),
     ],
@@ -165,7 +214,9 @@ export default function PageCode({
         () => command("duplicate"),
       ),
       {
-        ...action("delete", t.Delete(), "DeleteIcon", () => command("delete")),
+        ...action("delete", t.Delete(), "DeleteIcon", () => {
+          if (writable()) store.deleteBlock(model);
+        }),
         variant: "destructive",
       },
     ],
@@ -196,6 +247,11 @@ export default function PageCode({
                 if (writable() && languages.some((l) => l.value === id)) {
                   store.captureSync();
                   store.updateBlock(model, { language: id });
+                  const next = [id, ...recent.filter((value) => value !== id)];
+                  setRecent(next);
+                  saveLanguageOrder(
+                    codeLanguageOptions(bundledLanguagesInfo, id, next),
+                  );
                   store.captureSync();
                   queueMicrotask(() => field.current?.focus());
                 }
@@ -343,6 +399,7 @@ export default function PageCode({
           />
         </div>
       </div>
+      {captionEditor.field}
     </div>
   );
 }

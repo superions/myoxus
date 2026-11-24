@@ -21,7 +21,6 @@ import {
 } from "@virgultum/core/runtime";
 import { SlashMenuConfigExtension } from "@virgultum/core/slash-menu";
 import { html, nothing } from "lit";
-import { literal } from "lit/static-html.js";
 class DocumentIndexBlockComponent extends BlockComponent<DocumentIndexBlockModel> {
   override renderBlock() {
     const host = this.std.getOptional(DocumentIndexHost);
@@ -44,10 +43,7 @@ export class DocumentIndexViewExtension extends ViewExtensionProvider {
     super.setup(context);
     context.register([
       FlavourExtension("myoxus:document-index"),
-      BlockViewExtension(
-        "myoxus:document-index",
-        literal`myoxus-document-index`,
-      ),
+      BlockViewExtension("myoxus:document-index", "myoxus-document-index"),
       SlashMenuConfigExtension("myoxus:document-index", {
         items: [
           {

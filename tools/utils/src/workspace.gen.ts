@@ -144,7 +144,8 @@ export const PackageList = [
       "virgultum/editor/blocks/mermaid",
       "virgultum/content",
       "virgultum/core",
-      "virgultum/editor/all"
+      "virgultum/editor/all",
+      "virgultum/embeds"
     ]
   },
   {

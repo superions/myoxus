@@ -1417,16 +1417,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@lit/context@npm:^1.1.6":
-  version: 1.1.6
-  resolution: "@lit/context@npm:1.1.6"
-  dependencies:
-    "@lit/reactive-element": "npm:^1.6.2 || ^2.1.0"
-  checksum: 10/2d59b388ced1574467f0217292b577268462248bcac1fe0570017c6b06e71022a190fd7ac66e676e5903bb4dda8489fca6cf38dc4160f3f6d6c09434139038b3
-  languageName: node
-  linkType: hard
-
-"@lit/reactive-element@npm:^1.6.2 || ^2.1.0, @lit/reactive-element@npm:^2.1.0":
+"@lit/reactive-element@npm:^2.1.0":
   version: 2.1.0
   resolution: "@lit/reactive-element@npm:2.1.0"
   dependencies:
@@ -5367,7 +5358,6 @@ __metadata:
     "@virgultum/core": "workspace:*"
     fractional-indexing: "npm:^3.2.0"
     html2canvas: "npm:^1.4.1"
-    lit: "npm:^3.3.3"
     lodash-es: "npm:4.18.1"
     nanoid: "npm:6.0.1"
     rxjs: "npm:^7.8.2"
@@ -5381,7 +5371,6 @@ __metadata:
   resolution: "@virgultum/canvas@workspace:virgultum/canvas"
   dependencies:
     "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
     "@preact/signals-core": "npm:^1.14.5"
@@ -5405,7 +5394,6 @@ __metadata:
   dependencies:
     "@atlaskit/pragmatic-drag-and-drop": "npm:^1.4.0"
     "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
     "@preact/signals-core": "npm:^1.14.5"
@@ -5440,7 +5428,6 @@ __metadata:
     "@atlaskit/pragmatic-drag-and-drop-auto-scroll": "npm:^2.1.2"
     "@atlaskit/pragmatic-drag-and-drop-hitbox": "npm:^1.1.0"
     "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
     "@playwright/test": "npm:=1.65.0"
@@ -5525,7 +5512,6 @@ __metadata:
   resolution: "@virgultum/embeds@workspace:virgultum/embeds"
   dependencies:
     "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
     "@myoxus/icons": "workspace:*"
     "@myoxus/theme": "workspace:*"
     "@preact/signals-core": "npm:^1.14.5"
@@ -5568,7 +5554,6 @@ __metadata:
   resolution: "@virgultum/integration-test@workspace:virgultum/integration-test"
   dependencies:
     "@floating-ui/dom": "npm:^1.6.13"
-    "@lit/context": "npm:^1.1.6"
     "@myoxus/bpmn-editor": "workspace:*"
     "@myoxus/core": "workspace:*"
     "@myoxus/env": "workspace:*"

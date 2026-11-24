@@ -3,7 +3,6 @@ import { ThemeProvider } from "@virgultum/core/services";
 import { unsafeCSSValue, unsafeCSSVar } from "@virgultum/core/theme";
 import { css, html, nothing, type TemplateResult } from "lit";
 import { repeat } from "lit/directives/repeat.js";
-import { literal, unsafeStatic } from "lit/static-html.js";
 
 import { BlockDiffProvider } from "../../services/block-diff";
 import type { Block } from "../../utils/apply-model/markdown-diff";
@@ -248,5 +247,5 @@ export class MyoxusBlockDiffWidgetForBlock extends WidgetComponent {
 export const blockDiffWidgetForBlock = WidgetViewExtension(
   "myoxus:note/*",
   MYOXUS_BLOCK_DIFF_WIDGET_FOR_BLOCK,
-  literal`${unsafeStatic(MYOXUS_BLOCK_DIFF_WIDGET_FOR_BLOCK)}`,
+  MYOXUS_BLOCK_DIFF_WIDGET_FOR_BLOCK,
 );

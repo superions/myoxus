@@ -60,7 +60,7 @@ import {
 /** Reuse the owning React tree so editor chrome inherits its theme and services. */
 export function patchEditorChromeHost(
   reactToLit: ReactToLit,
-  mountPortal?: MountReactPortal,
+  mountPortal: MountReactPortal,
 ) {
   const renderControl =
     <Controls,>(
@@ -173,7 +173,8 @@ export function patchEditorChromeHost(
     renderActionMenu: renderControl(EditorActionMenu),
     renderAttachmentRename: renderControl(EditorAttachmentRename),
     renderCodeToolbar: renderControl(EditorCodeToolbar),
-    renderImport: renderControl(EditorImportDialog),
+    mountImport: (container, controls) =>
+      mountPortal(container, <EditorImportDialog controls={controls} />),
     renderDocumentPicker: renderControl(EditorDocumentPicker),
     renderIframeStatusCard: renderControl(EditorIframeStatusCard),
     renderIframeLinkEditor: renderControl(EditorIframeLinkEditor),
@@ -181,13 +182,9 @@ export function patchEditorChromeHost(
     renderReferenceEditor: renderControl(EditorReferenceEditor),
     renderSelection: renderControl(EditorSelectionToolbar),
     renderSlash: renderControl(EditorSlashMenu),
-    mountCanvasTool: mountPortal
-      ? (anchor, controls) =>
-          mountPortal(anchor, <EditorCanvasTool {...controls} />)
-      : undefined,
-    mountZoom: mountPortal
-      ? (anchor, controls) =>
-          mountPortal(anchor, <EditorZoom controls={controls} />)
-      : undefined,
+    mountCanvasTool: (anchor, controls) =>
+      mountPortal(anchor, <EditorCanvasTool {...controls} />),
+    mountZoom: (anchor, controls) =>
+      mountPortal(anchor, <EditorZoom controls={controls} />),
   });
 }

@@ -1,4 +1,3 @@
-import { consume, provide } from "@lit/context";
 import { computed, type ReadonlySignal } from "@preact/signals-core";
 import type { DisposableGroup } from "../../../primitives/disposable/index";
 import {
@@ -23,12 +22,8 @@ import { BlockServiceIdentifier } from "../../identifier.js";
 import type { BlockStdScope } from "../../scope/index.js";
 import { BlockSelection } from "../../selection/index.js";
 import { PropTypes, requiredProperties } from "../decorators/index.js";
-import {
-  blockComponentSymbol,
-  modelContext,
-  serviceContext,
-} from "./consts.js";
-import { type EditorHost, stdContext, storeContext } from "./lit-host.js";
+import { blockComponentSymbol } from "./consts.js";
+import { type EditorHost, findEditorHost } from "./lit-host.js";
 import { ShadowlessElement } from "./shadowless-element.js";
 import type { EditorWidgetView } from "../view-store.js";
 
@@ -84,8 +79,7 @@ export class LitBlockComponent<
   extends SignalWatcher(WithDisposable(ShadowlessElement))
   implements BlockComponent<Model, Service, WidgetName>
 {
-  @consume({ context: stdContext })
-  accessor std!: BlockStdScope;
+  std!: BlockStdScope;
 
   selected$ = computed(
     () => {
@@ -265,6 +259,12 @@ export class LitBlockComponent<
   }
 
   override connectedCallback() {
+    const host = findEditorHost(this);
+    // Table and nested block controllers read their model during hostConnected.
+    if (host) {
+      this.std = host.std;
+      this.store = host.store;
+    }
     super.connectedCallback();
 
     this.std.view.setBlock(this);
@@ -330,9 +330,7 @@ export class LitBlockComponent<
     `;
   }
 
-  @provide({ context: modelContext as never })
-  @state()
-  private accessor _model: Model | null = null;
+  private _model: Model | null = null;
 
   @state()
   protected accessor _renderers: Array<(content: unknown) => unknown> = [
@@ -341,12 +339,9 @@ export class LitBlockComponent<
     this._renderViewType,
   ];
 
-  @provide({ context: serviceContext as never })
-  @state()
-  private accessor _service: Service | null = null;
+  private _service: Service | null = null;
 
-  @consume({ context: storeContext })
-  accessor store!: Store;
+  store!: Store;
 
   @property({ attribute: false })
   accessor viewType: BlockViewType = "display";

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import type { Store } from "@virgultum/core/store";
+import { getFirstNoteBlock } from "@virgultum/core/utils";
 import * as Y from "yjs";
 import type { PageLine } from "./plain-page-model";
 import { expandAnnotationSelection } from "@virgultum/core/models/annotation";
@@ -10,16 +11,8 @@ type RelativePoint = { id: string; position: Y.RelativePosition };
 export type PageBookmark = { anchor: RelativePoint; focus: RelativePoint };
 export type PageIntent =
   | {
-      kind: "comment-thread";
-      block: string;
-      id: string;
-      point: Y.RelativePosition;
-    }
-  | {
-      kind: "link-command";
+      kind: "convert-link";
       url: string;
-      action: "open" | "convert";
-      button: number;
     }
   | {
       kind: "table-cell";
@@ -286,9 +279,7 @@ export function replacePageRange(
   )
     return null;
   const title = first.line.kind === "title";
-  const parent = title
-    ? page.root?.children.find((m) => m.flavour === "myoxus:note")
-    : first.line.model.parent;
+  const parent = title ? getFirstNoteBlock(page) : first.line.model.parent;
   // Rich references have their own removal and clipboard commands. A text
   // replacement across one must be replayed by that command owner.
   const covered =

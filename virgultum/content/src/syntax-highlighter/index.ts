@@ -10,6 +10,11 @@ import { createOnigurumaEngine } from "@shikijs/engine-oniguruma";
 import { bundledLanguagesInfo } from "./languages.gen.js";
 
 export { bundledLanguagesInfo };
+export {
+  codeLanguageOptions,
+  readLanguageOrder,
+  saveLanguageOrder,
+} from "./language-preferences";
 export type {
   BundledLanguageInfo,
   HighlighterCore,

@@ -1,5 +1,4 @@
 import { useLiveData, useService } from "@myoxus/infra";
-import { toReactNode } from "@myoxus/lit-react";
 import { BlockComponent } from "@virgultum/editor/std";
 import {
   lazy,
@@ -33,9 +32,6 @@ import {
 } from "./peek-view-controls";
 
 function renderPeekView({ info }: ActivePeekView, animating?: boolean) {
-  if (info.type === "template") {
-    return toReactNode(info.template);
-  }
   if (info.type === "doc") {
     return (
       <DocPeekPreview

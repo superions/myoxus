@@ -52,7 +52,6 @@ function createFixture() {
   return {
     entity: provider.createEntity(DocCommentEntity, {
       docId: "doc-1",
-      std: null,
     }),
     lifecycle: provider.get(DocumentLifecycleStore),
     listComments,

@@ -1,4 +1,7 @@
-import { type CommentId } from "@virgultum/core/services";
+import {
+  type CommentId,
+  CommentProviderIdentifier,
+} from "@virgultum/core/services";
 import type { MyoxusTextAttributes } from "@virgultum/core/types";
 import {
   dynamicSchema,
@@ -16,7 +19,7 @@ function isInlineCommendId(key: string): key is InlineCommendId {
 }
 
 export const CommentInlineSpecExtension =
-  InlineSpecExtension<MyoxusTextAttributes>({
+  InlineSpecExtension<MyoxusTextAttributes>("comment", (scope) => ({
     name: "comment",
     schema: dynamicSchema(
       isInlineCommendId,
@@ -34,6 +37,7 @@ export const CommentInlineSpecExtension =
         ([key, value]) => isInlineCommendId(key) && value === true,
       );
       return html`<inline-comment
+        .provider=${scope.getOptional(CommentProviderIdentifier)}
         .unresolved=${unresolved}
         .commentIds=${extractCommentIdFromDelta(delta)}
         >${when(
@@ -44,7 +48,7 @@ export const CommentInlineSpecExtension =
       >`;
     },
     wrapper: true,
-  });
+  }));
 
 export const NullCommentInlineSpecExtension =
   InlineSpecExtension<MyoxusTextAttributes>({
