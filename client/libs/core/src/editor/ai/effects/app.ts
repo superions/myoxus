@@ -1,4 +1,3 @@
-import { ChatMessageAssistant } from "../chat-panel/message/assistant";
 import { ChatPanelChips } from "../components/ai-chat-chips/chat-panel-chips";
 import { AIChatComposer } from "../components/ai-chat-composer";
 import { AIChatContent } from "../components/ai-chat-content";
@@ -17,7 +16,6 @@ const appElements = {
   "ai-chat-composer": AIChatComposer,
   "chat-panel-chips": ChatPanelChips,
   "ai-history-clear": AIHistoryClear,
-  "chat-message-assistant": ChatMessageAssistant,
 } satisfies Record<AppEffectElementTag, CustomElementConstructor>;
 
 export function registerAIAppEffects() {

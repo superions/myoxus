@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
-import { type ReactNode, useRef, useState } from "react";
+import { createElement, type ReactNode, useRef, useState } from "react";
+import type { ReadonlySignal } from "@preact/signals-core";
+import { useSignalValue } from "@myoxus/core/modules/doc-info/utils";
 import { useI18n } from "@myoxus/i18n";
 import { toReactNode } from "@myoxus/lit-react";
 import {
@@ -120,14 +122,35 @@ export function EditorCanvasTool({
 }
 
 function renderToolbarItem(item: EditorCanvasToolbarItem) {
-  return "controls" in item ? (
-    <EditorCanvasTool {...item.controls} />
+  if (item.type === "control") return <EditorCanvasTool {...item.controls} />;
+  const hosts = item.tags.map((tag) =>
+    createElement(tag, {
+      key: tag,
+      edgeless: item.edgeless,
+      ...(item.toolbarContainer && { toolbarContainer: item.toolbarContainer }),
+    }),
+  );
+  return hosts.length === 1 ? (
+    hosts[0]
   ) : (
-    toReactNode(item)
+    <Group wrap="nowrap" gap="xs">
+      {hosts.map((host) => (
+        <Box key={host.key}>{host}</Box>
+      ))}
+    </Group>
   );
 }
 
-export function EditorCanvasToolbar({
+export function RegisteredCanvasToolbar({
+  state,
+}: {
+  state: ReadonlySignal<EditorCanvasToolbarControls | null>;
+}) {
+  const controls = useSignalValue(state);
+  return controls && <EditorCanvasToolbar controls={controls} />;
+}
+
+function EditorCanvasToolbar({
   controls,
 }: {
   controls: EditorCanvasToolbarControls;
@@ -148,7 +171,7 @@ export function EditorCanvasToolbar({
         gap="xs"
       >
         {controls.presentation ? (
-          toReactNode(controls.presentation)
+          createElement("presentation-toolbar", controls.presentation)
         ) : (
           <>
             <Group wrap="nowrap" gap="xs">

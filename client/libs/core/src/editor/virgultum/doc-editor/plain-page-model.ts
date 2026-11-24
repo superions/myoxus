@@ -435,8 +435,6 @@ export function readPageContent(page: Store) {
         const model = child as CodeBlockModel;
         if (
           child.yBlock.get("sys:children").length ||
-          model.props.preview ||
-          ["html", "mermaid", "typst"].includes(model.props.language ?? "") ||
           Object.keys(model.props.comments ?? {}).length ||
           model.props.text
             .toDelta()

@@ -34,7 +34,7 @@ import {
   BlockSelection,
   editorHostSelector,
   TextSelection,
-  type WidgetComponent,
+  type NativeEditorWidget,
 } from "@virgultum/core/runtime";
 import {
   GfxBlockElementModel,
@@ -91,7 +91,7 @@ function resolveMermaidOwnerToolbarReference(
 }
 
 export class SelectionToolbarController {
-  constructor(readonly widget: WidgetComponent) {}
+  constructor(readonly widget: NativeEditorWidget) {}
 
   get std() {
     return this.widget.std;
@@ -105,7 +105,7 @@ export class SelectionToolbarController {
   getBoundingClientRect() {
     return this.widget.getBoundingClientRect();
   }
-  handleEvent: WidgetComponent["handleEvent"] = (...args) =>
+  handleEvent: NativeEditorWidget["handleEvent"] = (...args) =>
     this.widget.handleEvent(...args);
 
   sideOptions$ = signal<Partial<SideObject> | null>(null);

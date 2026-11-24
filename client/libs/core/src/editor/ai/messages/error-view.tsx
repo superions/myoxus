@@ -26,7 +26,7 @@ export function ChatErrorView({
 }) {
   const t = useI18n();
   return (
-    <Alert color="myoxusError" role="alert">
+    <Alert data-testid="ai-error" color="myoxusError" role="alert">
       <Stack>
         <MyoxusText>{text}</MyoxusText>
         {details ? (

@@ -7,13 +7,11 @@ vi.mock("@virgultum/core/adapters", () => ({ ImageProxyService: "image" }));
 vi.mock("@virgultum/core/services", () => ({
   DocDisplayMetaProvider: "meta",
   DocEmbedProvider: "doc",
-  EditorChromeHostIdentifier: "chrome",
   LinkPreviewServiceIdentifier: "preview",
 }));
-import { renderCitationPreview } from "../footnote-node/citation-preview-session";
+import { createCitationPreviewControls } from "../footnote-node/citation-preview-session";
 function fixture(reference: any) {
-  let controls: any,
-    current: any = { label: "1", reference },
+  let current: any = { label: "1", reference },
     resolve: any;
   const footnote = current,
     abort = new AbortController(),
@@ -35,12 +33,6 @@ function fixture(reference: any) {
     ),
     meta = vi.fn(() => title);
   const services: any = {
-    chrome: {
-      renderCitationPreview: (c: any) => {
-        controls = c;
-        return "rendered";
-      },
-    },
     doc: provider,
     meta: { title: meta },
     preview: { query },
@@ -56,7 +48,7 @@ function fixture(reference: any) {
       return services[id];
     },
   };
-  renderCitationPreview(
+  const controls = createCitationPreviewControls(
     std,
     target as HTMLElement,
     footnote,

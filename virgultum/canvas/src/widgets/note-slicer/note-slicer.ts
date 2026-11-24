@@ -29,7 +29,6 @@ import {
 import { WidgetViewExtension } from "@virgultum/core/runtime";
 import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
 import type { EdgelessSelectedRectWidget } from "../edgeless-selected-rect/native-selection-overlay";
-import { nothing, render } from "lit";
 import { NativeCanvasWidget } from "../native-canvas-widget";
 
 const DIVIDING_LINE_OFFSET = 4;
@@ -393,11 +392,7 @@ export class NoteSlicer extends NativeCanvasWidget {
         },
       };
       const chrome = this.std.get(EditorChromeHostIdentifier);
-      this.removeButton = chrome.mountCanvasTool?.(this.button, controls);
-      if (!this.removeButton) {
-        render(chrome.renderCanvasTool(controls), this.button);
-        this.removeButton = () => render(nothing, this.button);
-      }
+      this.removeButton = chrome.mountCanvasTool(this.button, controls);
     }
     Object.assign(this.button.style, {
       left: `${position.x - 66 * this._zoom}px`,

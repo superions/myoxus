@@ -7,16 +7,19 @@ import type { RootBlockModel } from "@virgultum/core/models";
 import {
   EditPropsStore,
   EditorChromeHostIdentifier,
+  type EditorCanvasToolbarControls,
   editorMessage,
   EditorI18nProvider,
   resolveEditorMessage,
   type EditorI18nMessage,
 } from "@virgultum/core/services";
 import { stopPropagation } from "@virgultum/core/utils";
-import { WidgetComponent, WidgetViewExtension } from "@virgultum/core/runtime";
+import {
+  NativeEditorWidget,
+  WidgetViewExtension,
+} from "@virgultum/core/runtime";
 import { GfxControllerIdentifier } from "@virgultum/core/runtime/gfx";
-import { html, nothing } from "lit";
-import { state } from "lit/decorators.js";
+import { signal } from "@preact/signals-core";
 import debounce from "lodash-es/debounce";
 
 import type { MenuPopper } from "./create-popper.js";
@@ -36,8 +39,51 @@ const DIVIDER_WIDTH = 8;
 const DIVIDER_SPACE = 8;
 const SAFE_AREA_WIDTH = 64;
 
+const toolbarGeometry = `
+/* Canvas anchoring and presentation auto-hide remain technical geometry. */
+edgeless-toolbar-widget {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 0;
+  width: 100%;
+  pointer-events: none;
+}
+edgeless-toolbar-widget > .edgeless-toolbar-wrapper {
+  display: flex;
+  justify-content: center;
+}
+edgeless-toolbar-widget .edgeless-toolbar-toggle-control {
+  /* The dock's empty inset must not intercept canvas content. */
+  pointer-events: none;
+  padding-bottom: 16px;
+  max-width: calc(100% - 128px);
+}
+edgeless-toolbar-widget
+  .edgeless-toolbar-toggle-control
+  [role="toolbar"] {
+  pointer-events: auto;
+}
+edgeless-toolbar-widget
+  .edgeless-toolbar-toggle-control[data-enable="true"] {
+  pointer-events: auto;
+  transition: 0.23s ease;
+  padding-top: 100px;
+  transform: translateY(100px);
+}
+edgeless-toolbar-widget
+  .edgeless-toolbar-toggle-control[data-enable="true"]:hover {
+  padding-top: 0;
+  transform: translateY(0);
+}
+edgeless-toolbar-widget[disabled] .edgeless-toolbar-container {
+  pointer-events: none;
+}
+`;
+
 export const EDGELESS_TOOLBAR_WIDGET = "edgeless-toolbar-widget";
-export class EdgelessToolbarWidget extends WidgetComponent<RootBlockModel> {
+export class EdgelessToolbarWidget extends NativeEditorWidget<RootBlockModel> {
   private _text(message: EditorI18nMessage) {
     return resolveEditorMessage(
       message,
@@ -45,18 +91,23 @@ export class EdgelessToolbarWidget extends WidgetComponent<RootBlockModel> {
     );
   }
 
-  override createRenderRoot() {
-    return this;
-  }
+  private readonly controls = signal<EditorCanvasToolbarControls | null>(null);
+  private readonly anchor = document.createElement("div");
+  private setContainer = (element: HTMLDivElement | null) => {
+    if (element && this.toolbarContainer !== element) {
+      this.toolbarContainer = element;
+      this.requestUpdate();
+    }
+  };
 
-  @state()
-  accessor containerWidth = 1920;
+  private containerWidth = 1920;
 
   private readonly _onContainerResize = debounce(
     ({ w }: { w: number }) => {
       if (!this.isConnected) return;
 
       this.containerWidth = w;
+      this.requestUpdate();
 
       if (this._denseSeniorTools) {
         this.scrollSeniorToolIndex = Math.min(
@@ -258,6 +309,7 @@ export class EdgelessToolbarWidget extends WidgetComponent<RootBlockModel> {
       this._seniorTools.length - this.scrollSeniorToolSize,
       this.scrollSeniorToolIndex + this.scrollSeniorToolSize,
     );
+    this.requestUpdate();
   }
 
   private _onSeniorNavPrev() {
@@ -266,17 +318,12 @@ export class EdgelessToolbarWidget extends WidgetComponent<RootBlockModel> {
       0,
       this.scrollSeniorToolIndex - this.scrollSeniorToolSize,
     );
+    this.requestUpdate();
   }
 
-  private _renderContent() {
-    return this.std.get(EditorChromeHostIdentifier).renderCanvasToolbar({
-      setContainer: (element) => {
-        if (element && this.toolbarContainer !== element) {
-          this.toolbarContainer = element;
-          // Contributions receive the mounted native anchor on the next render.
-          this.requestUpdate();
-        }
-      },
+  private toolbarControls(): EditorCanvasToolbarControls {
+    return {
+      setContainer: this.setContainer,
       quick: this._quickTools
         .slice(0, this._visibleQuickToolSize)
         .map((tool) => tool.content),
@@ -322,17 +369,24 @@ export class EdgelessToolbarWidget extends WidgetComponent<RootBlockModel> {
             },
           ]
         : [],
-      presentation: this.isPresentMode
-        ? html`<presentation-toolbar
-            .edgeless=${this.block}
-            .settingMenuShow=${this.presentSettingMenuShow}
-            .frameMenuShow=${this.presentFrameMenuShow}
-            .setSettingMenuShow=${(show: boolean) => (this.presentSettingMenuShow = show)}
-            .setFrameMenuShow=${(show: boolean) => (this.presentFrameMenuShow = show)}
-            .containerWidth=${this.containerWidth}
-          ></presentation-toolbar>`
-        : undefined,
-    });
+      presentation:
+        this.isPresentMode && this.block
+          ? {
+              edgeless: this.block,
+              settingMenuShow: this.presentSettingMenuShow,
+              frameMenuShow: this.presentFrameMenuShow,
+              setSettingMenuShow: (show) => {
+                this.presentSettingMenuShow = show;
+                this.requestUpdate();
+              },
+              setFrameMenuShow: (show) => {
+                this.presentFrameMenuShow = show;
+                this.requestUpdate();
+              },
+              containerWidth: this.containerWidth,
+            }
+          : undefined,
+    };
   }
 
   override connectedCallback() {
@@ -344,10 +398,34 @@ export class EdgelessToolbarWidget extends WidgetComponent<RootBlockModel> {
       }
     });
     this._resizeObserver.observe(this);
-    if (!this.block) {
-      return;
+    const style = document.createElement("style");
+    style.textContent = toolbarGeometry;
+    const wrapper = document.createElement("div");
+    wrapper.className = "edgeless-toolbar-wrapper";
+    this.anchor.className = "edgeless-toolbar-toggle-control";
+    for (const event of ["dblclick", "mousedown", "pointerdown"]) {
+      this.anchor.addEventListener(event, stopPropagation);
+      this.disposables.add(() =>
+        this.anchor.removeEventListener(event, stopPropagation),
+      );
     }
-    this._disposables.add(
+    wrapper.append(this.anchor);
+    this.replaceChildren(style, wrapper);
+    this.disposables.add(
+      this.std
+        .get(EditorChromeHostIdentifier)
+        .mountCanvasToolbar(this.anchor, this.controls),
+    );
+    this.disposables.add(
+      this.gfx.tool.currentToolName$.subscribe(() => this.requestUpdate()),
+    );
+    this.disposables.add(
+      this.std.store.readonly$.subscribe(() => this.requestUpdate()),
+    );
+    this.disposables.add(() => this._onContainerResize.cancel());
+    this.observeToolbar();
+    if (!this.block) return;
+    this.disposables.add(
       this.block.bindHotKey(
         {
           Escape: () => {
@@ -370,34 +448,34 @@ export class EdgelessToolbarWidget extends WidgetComponent<RootBlockModel> {
 
   override disconnectedCallback() {
     super.disconnectedCallback();
+    this.controls.value = null;
     if (this._resizeObserver) {
       this._resizeObserver.disconnect();
     }
   }
 
-  override firstUpdated() {
-    const { _disposables, block, gfx } = this;
-    if (!block) return;
+  private observeToolbar() {
+    const { disposables, gfx } = this;
 
     const slots = this.std.get(EdgelessLegacySlotIdentifier);
     const editPropsStore = this.std.get(EditPropsStore);
 
-    _disposables.add(
+    disposables.add(
       gfx.viewport.viewportUpdated.subscribe(() => this.requestUpdate()),
     );
-    _disposables.add(
+    disposables.add(
       slots.readonlyUpdated.subscribe(() => {
         this.requestUpdate();
       }),
     );
-    _disposables.add(
+    disposables.add(
       slots.toolbarLocked.subscribe((disabled) => {
         this.toggleAttribute("disabled", disabled);
       }),
     );
     // This state from `editPropsStore` is not reactive,
     // if the value is updated outside of this component, it will not be reflected.
-    _disposables.add(
+    disposables.add(
       editPropsStore.slots.storageUpdated.subscribe(({ key }) => {
         if (key === "presentHideToolbar") {
           this.requestUpdate();
@@ -406,75 +484,26 @@ export class EdgelessToolbarWidget extends WidgetComponent<RootBlockModel> {
     );
   }
 
-  override render() {
-    const type = this.edgelessTool;
-    if (this.store.readonly && type !== "frameNavigator") {
-      return nothing;
-    }
-
-    return html` <style>
-        /* Canvas anchoring and presentation auto-hide remain technical geometry. */
-        edgeless-toolbar-widget {
-          position: absolute;
-          z-index: 1;
-          left: 50%;
-          transform: translateX(-50%);
-          bottom: 0;
-          width: 100%;
-          pointer-events: none;
-        }
-        edgeless-toolbar-widget > .edgeless-toolbar-wrapper {
-          display: flex;
-          justify-content: center;
-        }
-        edgeless-toolbar-widget .edgeless-toolbar-toggle-control {
-          /* The dock's empty inset must not intercept canvas content. */
-          pointer-events: none;
-          padding-bottom: 16px;
-          max-width: calc(100% - 128px);
-        }
-        edgeless-toolbar-widget
-          .edgeless-toolbar-toggle-control
-          [role="toolbar"] {
-          pointer-events: auto;
-        }
-        edgeless-toolbar-widget
-          .edgeless-toolbar-toggle-control[data-enable="true"] {
-          pointer-events: auto;
-          transition: 0.23s ease;
-          padding-top: 100px;
-          transform: translateY(100px);
-        }
-        edgeless-toolbar-widget
-          .edgeless-toolbar-toggle-control[data-enable="true"]:hover {
-          padding-top: 0;
-          transform: translateY(0);
-        }
-        edgeless-toolbar-widget[disabled] .edgeless-toolbar-container {
-          pointer-events: none;
-        }
-      </style>
-      <div class="edgeless-toolbar-wrapper">
-        <div
-          class="edgeless-toolbar-toggle-control"
-          data-enable=${this._enableAutoHide}
-          @dblclick=${stopPropagation}
-          @mousedown=${stopPropagation}
-          @pointerdown=${stopPropagation}
-        >
-          ${this._renderContent()}
-        </div>
-      </div>`;
+  private pending = false;
+  private requestUpdate() {
+    if (this.pending || !this.isConnected) return;
+    this.pending = true;
+    queueMicrotask(() => {
+      this.pending = false;
+      if (!this.isConnected) return;
+      this.anchor.dataset.enable = String(this._enableAutoHide);
+      this.controls.value =
+        this.std.store.readonly && !this.isPresentMode
+          ? null
+          : this.toolbarControls();
+    });
   }
 
-  @state()
-  accessor presentFrameMenuShow = false;
+  private presentFrameMenuShow = false;
 
-  @state()
-  accessor presentSettingMenuShow = false;
+  private presentSettingMenuShow = false;
 
-  @state()
-  accessor scrollSeniorToolIndex = 0;
+  private scrollSeniorToolIndex = 0;
 
   toolbarContainer!: HTMLElement;
 }

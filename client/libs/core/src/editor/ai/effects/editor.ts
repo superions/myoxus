@@ -17,9 +17,7 @@ import {
 } from "../widgets/block-diff/page";
 import {
   BlockDiffPlayground,
-  BlockDiffPlaygroundModal,
   MYOXUS_BLOCK_DIFF_PLAYGROUND,
-  MYOXUS_BLOCK_DIFF_PLAYGROUND_MODAL,
 } from "../widgets/block-diff/playground";
 import {
   EdgelessCopilotWidget,
@@ -39,7 +37,6 @@ const editorElements = {
   "ai-scrollable-text-renderer": AIScrollableTextRenderer,
   "ai-block-diff-options": BlockDiffOptions,
   [MYOXUS_BLOCK_DIFF_PLAYGROUND]: BlockDiffPlayground,
-  [MYOXUS_BLOCK_DIFF_PLAYGROUND_MODAL]: BlockDiffPlaygroundModal,
   [MYOXUS_AI_PANEL_WIDGET]: MyoxusAIPanelWidget,
   [MYOXUS_EDGELESS_COPILOT_WIDGET]: EdgelessCopilotWidget,
   [MYOXUS_BLOCK_DIFF_WIDGET_FOR_BLOCK]: MyoxusBlockDiffWidgetForBlock,

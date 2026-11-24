@@ -21,8 +21,8 @@ export { DatabaseReferenceBlockComponent, DatabaseReferenceConfigExtension };
 const optionsSchema = z.object({
   renderServerDatabase: z
     .function()
-    .input([z.instanceof(DatabaseReferenceBlockModel)], z.unknown())
-    .output(z.custom<unknown>()),
+    .input([z.custom<HTMLElement>(), z.instanceof(DatabaseReferenceBlockModel)])
+    .output(z.void()),
   slashMenuItems: z.custom<SlashMenuItem[]>().optional(),
 });
 

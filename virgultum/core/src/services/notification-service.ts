@@ -6,7 +6,6 @@ import {
 import { createIdentifier, type ServiceProvider } from "../primitives/di/index";
 import { EditorLifeCycleExtension } from "../runtime/extension/editor-life-cycle";
 import { type ExtensionType, StoreIdentifier } from "../store/index";
-import type { TemplateResult } from "lit";
 import type { MarkdownImportDiagnostics } from "../adapters/markdown/type.js";
 
 export interface NotificationService {
@@ -20,15 +19,15 @@ export interface NotificationService {
     },
   ): void;
   confirm(options: {
-    title: string | TemplateResult;
-    message: string | TemplateResult;
+    title: string;
+    message: string;
     confirmText?: string;
     cancelText?: string;
     abort?: AbortSignal;
   }): Promise<boolean>;
   prompt(options: {
-    title: string | TemplateResult;
-    message: string | TemplateResult;
+    title: string;
+    message: string;
     autofill?: string;
     placeholder?: string;
     confirmText?: string;
@@ -36,14 +35,14 @@ export interface NotificationService {
     abort?: AbortSignal;
   }): Promise<string | null>; // when cancel, return null
   notify(options: {
-    title: string | TemplateResult;
-    message?: string | TemplateResult;
+    title: string;
+    message?: string;
     accent?: "info" | "success" | "warning" | "error";
     duration?: number; // unit ms, give 0 to disable auto dismiss
     abort?: AbortSignal;
     actions?: {
       key: string;
-      label: string | TemplateResult;
+      label: string;
       onClick: () => void;
     }[];
     onClose?: () => void;

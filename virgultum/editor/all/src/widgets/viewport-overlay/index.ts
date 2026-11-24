@@ -1,79 +1,49 @@
 import type { RootBlockModel } from "@virgultum/core/models";
-import { WidgetComponent, WidgetViewExtension } from "@virgultum/core/runtime";
-import { css, html } from "lit";
-import { state } from "lit/decorators.js";
-import { classMap } from "lit/directives/class-map.js";
-import { styleMap } from "lit/directives/style-map.js";
-
+import {
+  NativeEditorWidget,
+  WidgetViewExtension,
+} from "@virgultum/core/runtime";
 export const MYOXUS_VIEWPORT_OVERLAY_WIDGET = "myoxus-viewport-overlay-widget";
 
-export class MyoxusViewportOverlayWidget extends WidgetComponent<RootBlockModel> {
-  static override styles = css`
-    .myoxus-viewport-overlay-widget {
-      position: absolute;
-      top: 0;
-      left: 0;
-      background: transparent;
-      pointer-events: none;
-      z-index: calc(var(--myoxus-z-index-popover) - 1);
-    }
-
-    .myoxus-viewport-overlay-widget.lock {
-      pointer-events: auto;
-    }
-  `;
+export class MyoxusViewportOverlayWidget extends NativeEditorWidget<RootBlockModel> {
+  private readonly overlay = document.createElement("div");
 
   override connectedCallback() {
     super.connectedCallback();
-    this.handleEvent(
-      "dragStart",
-      () => {
-        return this._lockViewport;
-      },
-      { global: true },
-    );
-    this.handleEvent(
-      "pointerDown",
-      () => {
-        return this._lockViewport;
-      },
-      { global: true },
-    );
-    this.handleEvent(
-      "click",
-      () => {
-        return this._lockViewport;
-      },
-      { global: true },
-    );
+    const root = this.shadowRoot ?? this.attachShadow({ mode: "open" });
+    this.overlay.className = "myoxus-viewport-overlay-widget";
+    Object.assign(this.overlay.style, {
+      position: "absolute",
+      top: "0",
+      left: "0",
+      zIndex: "calc(var(--myoxus-z-index-popover) - 1)",
+    });
+    root.replaceChildren(this.overlay);
+    this.setLocked(this.locked);
+    for (const event of ["dragStart", "pointerDown", "click"] as const) {
+      this.handleEvent(event, () => this.locked, { global: true });
+    }
   }
 
+  private locked = false;
+  private setLocked(locked: boolean) {
+    this.locked = locked;
+    this.overlay.classList.toggle("lock", locked);
+    Object.assign(this.overlay.style, {
+      width: locked ? "100vw" : "0",
+      height: locked ? "100%" : "0",
+      pointerEvents: locked ? "auto" : "none",
+    });
+  }
   lock() {
-    this._lockViewport = true;
+    this.setLocked(true);
   }
-
-  override render() {
-    const classes = classMap({
-      "myoxus-viewport-overlay-widget": true,
-      lock: this._lockViewport,
-    });
-    const style = styleMap({
-      width: `${this._lockViewport ? "100vw" : "0"}`,
-      height: `${this._lockViewport ? "100%" : "0"}`,
-    });
-    return html` <div class=${classes} style=${style}></div> `;
-  }
-
   toggleLock() {
-    this._lockViewport = !this._lockViewport;
+    this.setLocked(!this.locked);
   }
-
   unlock() {
-    this._lockViewport = false;
+    this.setLocked(false);
   }
-
-  @state()
-  private accessor _lockViewport = false;
 }
 
 export const viewportOverlayWidget = WidgetViewExtension(

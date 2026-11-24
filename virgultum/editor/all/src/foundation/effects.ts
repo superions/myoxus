@@ -4,7 +4,6 @@ import { effects as componentCaptionEffects } from "@virgultum/content/caption";
 import { effects as componentDropIndicatorEffects } from "@virgultum/core/view/drop-indicator";
 import { effects as componentLinkPreviewEffects } from "@virgultum/content/link-preview";
 import { effects as componentLinkedDocTitleEffects } from "@virgultum/content/linked-doc-title";
-import { effects as componentPortalEffects } from "@virgultum/core/view/portal";
 import { effects as componentToggleButtonEffects } from "@virgultum/content/disclosure";
 import { RichTextEffects as richTextEffects } from "@virgultum/content/effects";
 import { effects as stdEffects } from "@virgultum/core/runtime/effects";
@@ -15,7 +14,6 @@ export function effects() {
   richTextEffects();
 
   componentCaptionEffects();
-  componentPortalEffects();
   componentDropIndicatorEffects();
   componentToggleButtonEffects();
   componentLinkPreviewEffects();

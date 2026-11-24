@@ -2,23 +2,15 @@ import type { FeatureFlagService } from "@myoxus/core/modules/feature-flag";
 import type { PeekViewService } from "@myoxus/core/modules/peek-view";
 import type { ReactToLit } from "@myoxus/lit-react";
 import type { Signal } from "@preact/signals-core";
-import { WithDisposable } from "@virgultum/editor/global/lit";
 import type { ColorScheme } from "@virgultum/editor/model";
-import {
-  type BlockStdScope,
-  type EditorHost,
-  ShadowlessElement,
-} from "@virgultum/editor/std";
+import type { BlockStdScope, EditorHost } from "@virgultum/editor/std";
 import type { ExtensionType } from "@virgultum/editor/store";
 import type { NotificationService } from "@virgultum/core/services";
-import { html } from "lit";
-import { property } from "lit/decorators.js";
 import { createElement, type ReactNode } from "react";
 
 import { StoredToolView } from "./stored-tool-view";
 import { StreamParts } from "./stream-parts";
 
-import { mergeStreamObjects } from "../../utils/stream-objects";
 import type { MyoxusAIPanelState } from "../../widgets/ai-panel/type";
 import type { DocDisplayConfig } from "../ai-chat-chips";
 import type { StreamObject } from "../ai-chat-messages";
@@ -94,89 +86,4 @@ export function StreamObjectsView(p: StreamObjectsPresentation) {
     renderText: richText,
     renderTool: tool,
   });
-}
-
-/** The existing app composer supplies its React context at the mount boundary. */
-export class ChatContentStreamObjects extends WithDisposable(
-  ShadowlessElement,
-) {
-  @property({ attribute: false }) accessor reactToLit: ReactToLit | undefined;
-
-  @property({ attribute: false }) accessor reasoningIdentity: ReactNode;
-
-  @property({ attribute: false })
-  accessor answer!: StreamObject[];
-
-  @property({ attribute: false })
-  accessor host: EditorHost | null | undefined;
-
-  @property({ attribute: false })
-  accessor std: BlockStdScope | null | undefined;
-
-  @property({ attribute: false })
-  accessor state: MyoxusAIPanelState = "finished";
-
-  @property({ attribute: false })
-  accessor width: Signal<number | undefined> | undefined;
-
-  @property({ attribute: false })
-  accessor extensions!: ExtensionType[];
-
-  @property({ attribute: false })
-  accessor myoxusFeatureFlagService!: FeatureFlagService;
-
-  @property({ attribute: false })
-  accessor theme!: Signal<ColorScheme>;
-
-  @property({ attribute: false })
-  accessor independentMode: boolean | undefined;
-
-  @property({ attribute: false })
-  accessor notificationService!: NotificationService;
-
-  @property({ attribute: false })
-  accessor docDisplayService!: DocDisplayConfig;
-
-  @property({ attribute: false })
-  accessor peekViewService!: PeekViewService;
-
-  @property({ attribute: false })
-  accessor onOpenDoc!: (docId: string, sessionId?: string) => void;
-
-  protected override render() {
-    const { reactToLit } = this;
-    const view = createElement(StreamObjectsView, {
-      answer: this.answer,
-      reactToLit,
-      reasoningIdentity: this.reasoningIdentity,
-      host: this.host,
-      std: this.std,
-      state: this.state,
-      width: this.width,
-      extensions: this.extensions,
-      myoxusFeatureFlagService: this.myoxusFeatureFlagService,
-      theme: this.theme,
-      independentMode: this.independentMode,
-      notificationService: this.notificationService,
-      docDisplayService: this.docDisplayService,
-      peekViewService: this.peekViewService,
-      onOpenDoc: this.onOpenDoc,
-    });
-    return (
-      reactToLit?.(view, true) ??
-      html`${mergeStreamObjects(this.answer).map((part) =>
-        part.type === "text-delta"
-          ? html`<chat-content-rich-text
-              .text=${part.textDelta}
-              .state=${this.state}
-              .extensions=${this.extensions}
-              .theme=${this.theme}
-              .myoxusFeatureFlagService=${this.myoxusFeatureFlagService}
-            ></chat-content-rich-text>`
-          : part.type === "tool-call" || part.type === "tool-result"
-            ? part.toolName
-            : null,
-      )}`
-    );
-  }
 }

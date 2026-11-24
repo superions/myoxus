@@ -513,9 +513,8 @@ export class CodeBlockComponent extends NativeContainerBlock<CodeBlockModel> {
           );
         input.style.display = context ? "none" : "";
         preview.style.display = context ? "" : "none";
-        if (context)
-          preview.replaceChildren(context.renderer(this.model, this));
-        else preview.replaceChildren();
+        if (context) return context.mount(preview, this.model, this);
+        return;
       }),
     );
     this.append(frame);

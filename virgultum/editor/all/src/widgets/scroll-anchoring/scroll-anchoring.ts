@@ -3,14 +3,11 @@ import { computed, signal } from "@preact/signals-core";
 import { Bound, deserializeXYWH } from "@virgultum/core/primitives/gfx";
 import type { DocMode } from "@virgultum/core/models";
 import { HighlightSelection } from "@virgultum/core/selection";
-import { WidgetComponent } from "@virgultum/core/runtime";
+import { NativeEditorWidget } from "@virgultum/core/runtime";
 import {
   GfxControllerIdentifier,
   type GfxModel,
 } from "@virgultum/core/runtime/gfx";
-import { css, html, nothing, unsafeCSS } from "lit";
-import { classMap } from "lit/directives/class-map.js";
-import { styleMap } from "lit/directives/style-map.js";
 
 type Anchor = {
   id: string;
@@ -20,8 +17,8 @@ type Anchor = {
 
 export const MYOXUS_SCROLL_ANCHORING_WIDGET = "myoxus-scroll-anchoring-widget";
 
-export class MyoxusScrollAnchoringWidget extends WidgetComponent {
-  static override styles = css`
+export class MyoxusScrollAnchoringWidget extends NativeEditorWidget {
+  private static readonly geometry = `
     :host {
       pointer-events: none;
       position: absolute;
@@ -38,7 +35,7 @@ export class MyoxusScrollAnchoringWidget extends WidgetComponent {
         &.edgeless {
           border-width: 1.39px;
           border-style: solid;
-          border-color: ${unsafeCSS(cssVar("primaryColor"))};
+          border-color: ${cssVar("primaryColor")};
           box-shadow: var(--myoxus-active-shadow);
         }
 
@@ -46,7 +43,7 @@ export class MyoxusScrollAnchoringWidget extends WidgetComponent {
           border-radius: 5px;
           /* Hover surfaces may be opaque in the server theme. This overlay
              sits above document content, so mark bounds without covering it. */
-          border: 1px solid ${unsafeCSS(cssVar("primaryColor"))};
+          border: 1px solid ${cssVar("primaryColor")};
         }
       }
     }
@@ -54,7 +51,8 @@ export class MyoxusScrollAnchoringWidget extends WidgetComponent {
 
   #listened = false;
 
-  readonly #requestUpdateFn = () => this.requestUpdate();
+  readonly #mark = document.createElement("div");
+  readonly #requestUpdateFn = () => this.#scheduleLayoutUpdate();
 
   readonly #resizeObserver: ResizeObserver = new ResizeObserver(
     this.#requestUpdateFn,
@@ -62,12 +60,23 @@ export class MyoxusScrollAnchoringWidget extends WidgetComponent {
 
   #layoutFrame: number | null = null;
   #scrollFrame: number | null = null;
+  #finishLayout?: () => void;
+  #layoutComplete = Promise.resolve();
+
+  get updateComplete() {
+    return this.#layoutComplete;
+  }
 
   readonly #scheduleLayoutUpdate = () => {
     if (!this.anchor$.peek() || this.#layoutFrame !== null) return;
+    this.#layoutComplete = new Promise<void>((resolve) => {
+      this.#finishLayout = resolve;
+    });
     this.#layoutFrame = requestAnimationFrame(() => {
       this.#layoutFrame = null;
-      this.requestUpdate();
+      this.#paint();
+      this.#finishLayout?.();
+      this.#finishLayout = undefined;
     });
   };
 
@@ -196,16 +205,20 @@ export class MyoxusScrollAnchoringWidget extends WidgetComponent {
     this.anchorBounds$.value = Bound.fromDOMRect(
       blockComponent.getBoundingClientRect(),
     );
-    this.requestUpdate();
+    this.#scheduleLayoutUpdate();
   }
 
   override connectedCallback() {
     super.connectedCallback();
 
+    const shadow = this.shadowRoot ?? this.attachShadow({ mode: "open" });
+    const style = this.ownerDocument.createElement("style");
+    style.textContent = MyoxusScrollAnchoringWidget.geometry;
+    shadow.replaceChildren(style);
     this.#resizeObserver.observe(this.host);
     // The title lives outside editor-host. Its layout can move an unchanged
     // host, so observe the overlay's containing block as well as its content.
-    void this.updateComplete.then(() => {
+    queueMicrotask(() => {
       if (this.isConnected && this.offsetParent) {
         this.#resizeObserver.observe(this.offsetParent);
       }
@@ -237,7 +250,11 @@ export class MyoxusScrollAnchoringWidget extends WidgetComponent {
 
     this.disposables.add(
       this.anchor$.subscribe((anchor) => {
-        if (!anchor) return;
+        if (!anchor) {
+          this.#mark.remove();
+          return;
+        }
+        this.#scheduleLayoutUpdate();
 
         const { mode, id } = anchor;
 
@@ -279,29 +296,32 @@ export class MyoxusScrollAnchoringWidget extends WidgetComponent {
     if (this.#scrollFrame !== null) cancelAnimationFrame(this.#scrollFrame);
     this.#layoutFrame = null;
     this.#scrollFrame = null;
+    this.#finishLayout?.();
+    this.#finishLayout = undefined;
   }
 
-  override render() {
+  #paint() {
     const anchor = this.anchor$.value;
-    if (!anchor || !anchor.highlight) return nothing;
+    if (!anchor?.highlight) {
+      this.#mark.remove();
+      return;
+    }
 
     const { mode, id } = anchor;
 
     const bounds =
       mode === "page" ? this.#getBoundsInPage(id) : this.#getBoundsInEdgeless();
-    if (!bounds) return nothing;
-
-    const classes = { highlight: true, [mode]: true };
-    const style = {
+    if (!bounds) {
+      this.#mark.remove();
+      return;
+    }
+    this.#mark.className = "highlight " + mode;
+    Object.assign(this.#mark.style, {
       left: `${bounds.x}px`,
       top: `${bounds.y}px`,
       width: `${bounds.w}px`,
       height: `${bounds.h}px`,
-    };
-
-    return html`<div
-      class=${classMap(classes)}
-      style=${styleMap(style)}
-    ></div>`;
+    });
+    if (!this.#mark.isConnected) this.shadowRoot?.append(this.#mark);
   }
 }

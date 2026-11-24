@@ -23,11 +23,8 @@ import {
   type ThemedToken,
 } from "@virgultum/content/syntax-highlighter";
 
-import { renderCodePreviewStatus } from "../../../view-extensions/code-block-preview/status-view";
-import {
-  EditorChromeHostIdentifier,
-  type EditorCodePreviewStatus,
-} from "@virgultum/editor/shared/services";
+import { HtmlCodePreview } from "../../../view-extensions/code-block-preview/html-preview";
+import { decorateEditorEmbeddedUI } from "../../../view-extensions/editor-view/embedded-ui-root";
 
 import { ArtifactTool } from "./artifact-tool";
 import { CodeArtifactControls } from "./artifact-view";
@@ -291,7 +288,7 @@ export class CodeArtifactTool extends ArtifactTool<
       flex-direction: column;
     }
 
-    .code-artifact-preview > html-preview {
+    .code-artifact-preview > lit-react-portal {
       height: 100%;
     }
 
@@ -333,21 +330,15 @@ export class CodeArtifactTool extends ArtifactTool<
 
     const { html: htmlContent } = result as { html: string };
     const reactToLit = this.reactToLit;
-    const renderStatus =
-      this.std?.getOptional(EditorChromeHostIdentifier)
-        ?.renderCodePreviewStatus ??
-      (reactToLit
-        ? (status: EditorCodePreviewStatus) =>
-            renderCodePreviewStatus(reactToLit, status)
-        : undefined);
 
     return html`<div class="code-artifact-preview">
       ${
         this.mode === "preview"
-          ? html`<html-preview
-              .html=${htmlContent}
-              .renderStatus=${renderStatus}
-            ></html-preview>`
+          ? reactToLit?.(
+              createElement(HtmlCodePreview, { source: htmlContent }),
+              true,
+              decorateEditorEmbeddedUI,
+            )
           : this.std
             ? // A renderer's mount, signal subscription and unmount belong to
               // one scope. Replace it before binding another scope, and wait

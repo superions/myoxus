@@ -10,8 +10,10 @@ export function createDatabaseReferenceOptionsConfig(
   framework: FrameworkProvider,
 ) {
   return {
-    renderServerDatabase: (model: DatabaseReferenceBlockModel) =>
-      renderServerDatabaseBlock(framework, model),
+    renderServerDatabase: (
+      anchor: HTMLElement,
+      model: DatabaseReferenceBlockModel,
+    ) => renderServerDatabaseBlock(framework, anchor, model),
     slashMenuItems: createServerDatabaseSlashMenuItems(framework),
   };
 }

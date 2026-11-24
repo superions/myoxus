@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { createIdentifier } from "../primitives/di/index";
 import type { ExtensionType } from "../store/index";
-import type { TemplateResult } from "lit";
+import type { ReadonlySignal } from "@preact/signals-core";
 import type { FootnotePlacement } from "../models/index";
 export type FootnoteMarkerHostProps = {
   label?: string;
+  hasPreview?: boolean;
   placement?: FootnotePlacement;
   number?: number;
   missing: boolean;
@@ -32,9 +33,18 @@ export type FootnoteInsertionHostProps = {
   cancel: () => void;
 };
 export type FootnoteReactHost = {
-  renderInsertion: (props: FootnoteInsertionHostProps) => TemplateResult;
-  renderMarker: (props: FootnoteMarkerHostProps) => TemplateResult;
-  renderHeader: (props: FootnoteHeaderHostProps) => TemplateResult;
+  mountInsertion: (
+    anchor: HTMLElement,
+    props: FootnoteInsertionHostProps,
+  ) => () => void;
+  mountMarker: (
+    anchor: HTMLElement,
+    props: ReadonlySignal<FootnoteMarkerHostProps>,
+  ) => () => void;
+  mountHeader: (
+    anchor: HTMLElement,
+    props: ReadonlySignal<FootnoteHeaderHostProps>,
+  ) => () => void;
 };
 export const FootnoteReactHostIdentifier =
   createIdentifier<FootnoteReactHost>("FootnoteReactHost");

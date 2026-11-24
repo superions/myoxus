@@ -8,8 +8,11 @@ import {
   VirtualKeyboardProvider,
   type VirtualKeyboardProviderWithAction,
 } from "@virgultum/core/services";
-import { WidgetComponent, WidgetViewExtension } from "@virgultum/core/runtime";
-import { html, nothing } from "lit";
+import {
+  NativeEditorWidget,
+  WidgetViewExtension,
+} from "@virgultum/core/runtime";
+import type { MyoxusKeyboardToolbar } from "./keyboard-toolbar";
 
 import {
   defaultKeyboardToolbarConfig,
@@ -18,7 +21,7 @@ import {
 
 export const MYOXUS_KEYBOARD_TOOLBAR_WIDGET = "myoxus-keyboard-toolbar-widget";
 
-export class MyoxusKeyboardToolbarWidget extends WidgetComponent<RootBlockModel> {
+export class MyoxusKeyboardToolbarWidget extends NativeEditorWidget<RootBlockModel> {
   private readonly _show$ = signal(false);
 
   private _initialInputMode: string = "";
@@ -59,6 +62,7 @@ export class MyoxusKeyboardToolbarWidget extends WidgetComponent<RootBlockModel>
 
   override connectedCallback(): void {
     super.connectedCallback();
+    if (!IS_MOBILE) return;
 
     this.disposables.add(
       effect(() => {
@@ -91,30 +95,29 @@ export class MyoxusKeyboardToolbarWidget extends WidgetComponent<RootBlockModel>
         this._show$.value = false;
       });
     }
-  }
 
-  override render() {
-    if (
-      this.store.readonly ||
-      !IS_MOBILE ||
-      !this.store
-        .get(FeatureFlagService)
-        .getFlag("enable_mobile_keyboard_toolbar")
-    )
-      return nothing;
-
-    if (!this._show$.value) return nothing;
-
-    if (!this.block?.rootComponent) return nothing;
-
-    return html`<virgultum-portal
-      .shadowDom=${false}
-      .template=${html`<myoxus-keyboard-toolbar
-        .keyboard=${this.keyboard}
-        .config=${this.config}
-        .rootComponent=${this.block.rootComponent}
-      ></myoxus-keyboard-toolbar>`}
-    ></virgultum-portal>`;
+    this.disposables.add(
+      effect(() => {
+        if (
+          this.std.store.readonly$.value ||
+          !this._show$.value ||
+          !this.std.store
+            .get(FeatureFlagService)
+            .getFlag("enable_mobile_keyboard_toolbar")
+        )
+          return;
+        const root = this.block?.rootComponent;
+        if (!root) return;
+        const toolbar = this.ownerDocument.createElement(
+          "myoxus-keyboard-toolbar",
+        ) as MyoxusKeyboardToolbar;
+        toolbar.keyboard = this.keyboard;
+        toolbar.config = this.config;
+        toolbar.rootComponent = root;
+        this.ownerDocument.body.append(toolbar);
+        return () => toolbar.remove();
+      }),
+    );
   }
 }
 

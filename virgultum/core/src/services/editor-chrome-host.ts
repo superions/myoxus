@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
+import type { BlockComponent } from "../runtime/view";
 import type { ReadonlySignal } from "@preact/signals-core";
 import type { SelectionAction } from "./toolbar-service/presentation";
 
@@ -249,18 +250,12 @@ export type EditorDocumentCardControls = Readonly<{
       }>
   );
 
-/** Presentation only; preview controllers retain compilation, iframe and clipboard ownership. */
-export type EditorCodePreviewStatus = Readonly<{
-  language: "HTML" | "Typst" | "Mermaid";
-  state: "loading" | "error" | "empty";
-  detail?: string | null;
-  fontError?: boolean;
-  copyState?: "idle" | "copied" | "failed";
-  copy?: () => void;
-}>;
-export type RenderCodePreviewStatus = (
-  status: EditorCodePreviewStatus,
-) => TemplateResult;
+export type EditorCodePreviewControls = {
+  language: "html" | "mermaid" | "typst";
+  getSource: () => string;
+  subscribe: (listener: () => void) => () => void;
+  convertMermaid?: () => void;
+};
 
 /** Existing presentation ordering; document hierarchy and frame geometry never change. */
 export type EditorFrameOrderControls = Readonly<{
@@ -320,7 +315,12 @@ export type EditorKeyboardPanelControls = {
 };
 
 export type EditorCanvasToolbarItem =
-  | TemplateResult
+  | {
+      readonly type: "hosts";
+      readonly tags: readonly `edgeless-${string}`[];
+      readonly edgeless: BlockComponent;
+      readonly toolbarContainer?: HTMLElement;
+    }
   | { readonly type: "control"; readonly controls: EditorCanvasToolControls };
 
 /** Tools can contribute existing controls directly alongside retained drag hosts. */
@@ -331,7 +331,14 @@ export type EditorCanvasToolbarControls = {
   more?: SelectionAction & {
     control: Extract<SelectionAction["control"], { type: "menu" }>;
   };
-  presentation?: TemplateResult;
+  presentation?: {
+    edgeless: BlockComponent;
+    settingMenuShow: boolean;
+    frameMenuShow: boolean;
+    setSettingMenuShow: (show: boolean) => void;
+    setFrameMenuShow: (show: boolean) => void;
+    containerWidth: number;
+  };
   setContainer: (element: HTMLDivElement | null) => void;
 };
 export type EditorCanvasToolControls = {
@@ -435,11 +442,11 @@ export type EditorChromeHost = {
   renderCanvasTemplates: (
     controls: EditorCanvasTemplateControls,
   ) => TemplateResult;
-  renderCanvasToolGroup: (content: readonly TemplateResult[]) => TemplateResult;
   renderCanvasMenu: (controls: EditorCanvasMenuControls) => TemplateResult;
-  renderCanvasToolbar: (
-    controls: EditorCanvasToolbarControls,
-  ) => TemplateResult;
+  mountCanvasToolbar: (
+    anchor: HTMLElement,
+    state: ReadonlySignal<EditorCanvasToolbarControls | null>,
+  ) => () => void;
   renderCanvasTool: (controls: EditorCanvasToolControls) => TemplateResult;
   renderKeyboardToolbar: (
     controls: EditorKeyboardToolbarControls,
@@ -453,7 +460,10 @@ export type EditorChromeHost = {
   ) => TemplateResult;
   renderFrameCard: (controls: EditorFrameCardControls) => TemplateResult;
   renderFrameTitle: (controls: EditorFrameTitleControls) => TemplateResult;
-  renderCodePreviewStatus: RenderCodePreviewStatus;
+  mountCodePreview: (
+    anchor: HTMLElement,
+    controls: EditorCodePreviewControls,
+  ) => () => void;
   renderImageFallback: (
     controls: EditorImageFallbackControls,
   ) => TemplateResult;
@@ -472,7 +482,10 @@ export type EditorChromeHost = {
   renderLoomCard: (controls: EditorLoomCardControls) => TemplateResult;
   renderDocumentOutline: (controls: EditorOutlineControls) => TemplateResult;
   renderOutlineEntry: (controls: EditorOutlineEntryControls) => TemplateResult;
-  renderCitationPreview: (controls: EditorCitationControls) => TemplateResult;
+  mountCitationPreview: (
+    anchor: HTMLElement,
+    controls: EditorCitationControls,
+  ) => () => void;
   mountEquation: (
     anchor: HTMLElement,
     controls: EditorEquationControls,
@@ -505,9 +518,10 @@ export type EditorChromeHost = {
     container: HTMLElement,
     controls: EditorImportControls,
   ) => () => void;
-  renderDocumentPicker: (
+  mountDocumentPicker: (
+    anchor: HTMLElement,
     controls: EditorDocumentPickerControls,
-  ) => TemplateResult;
+  ) => () => void;
   renderIframeStatusCard: (
     controls: EditorIframeStatusCardControls,
   ) => TemplateResult;
@@ -523,9 +537,15 @@ export type EditorChromeHost = {
     anchor: HTMLElement,
     controls: EditorReferenceEditorControls,
   ) => () => void;
-  renderSelection: (controls: EditorSelectionControls) => TemplateResult;
-  renderSlash: (controls: EditorSlashControls) => TemplateResult;
-  mountCanvasTool?: (
+  mountSelection: (
+    anchor: HTMLElement,
+    controls: EditorSelectionControls,
+  ) => () => void;
+  mountSlash: (
+    anchor: HTMLElement,
+    controls: EditorSlashControls,
+  ) => () => void;
+  mountCanvasTool: (
     anchor: HTMLElement,
     controls: EditorCanvasToolControls,
   ) => () => void;

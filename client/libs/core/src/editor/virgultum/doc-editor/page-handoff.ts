@@ -91,6 +91,7 @@ export async function resumePageIntent(
             (intent.clipboard === "copy" ||
               (intent.flavour === "myoxus:code" &&
                 (intent.control === "copy-code" ||
+                  intent.control === "copy-link-to-block" ||
                   intent.control === "comment"))))) &&
         page.getModelById(intent.id)?.flavour ===
           (isPaste ? "myoxus:divider" : (intent.flavour ?? "myoxus:attachment"))
@@ -124,6 +125,20 @@ export async function resumePageIntent(
               block as import("@virgultum/embeds/blocks").EmbedIframeBlockComponent;
             frame.resumeLinkInput();
           } else if (block.flavour === "myoxus:code") {
+            if (intent.control === "convert-mermaid") {
+              const { convertMermaidCodeBlockCommand } =
+                await import("@virgultum/block-mermaid");
+              if (
+                !signal.aborted &&
+                block.isConnected &&
+                !page.readonly &&
+                page.getModelById(intent.id) === block.model
+              )
+                std.command.exec(convertMermaidCodeBlockCommand, {
+                  model: block.model,
+                });
+              return;
+            }
             const widget = block.querySelector<
               import("@virgultum/editor/blocks/code").MyoxusCodeToolbarWidget
             >("myoxus-code-toolbar-widget");

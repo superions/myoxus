@@ -39,7 +39,7 @@ export {
   CodeBlockConfigExtension,
   CodeBlockHighlighter,
   normalizeGetter,
-  type CodeBlockPreviewRenderer,
+  type MountCodeBlockPreview,
   type CodeBlockPreviewContext,
   CodeBlockPreviewIdentifier,
   CodeBlockPreviewExtension,

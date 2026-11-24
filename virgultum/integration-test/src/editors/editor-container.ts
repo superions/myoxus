@@ -1,29 +1,22 @@
 import { getTestViewManager, TestChromeViewExtension } from "../view";
 import { ViewExtensionManagerIdentifier } from "@virgultum/core/extensions";
 import { mountEditorChrome } from "../chrome-host";
-import { computed, signal } from "@preact/signals-core";
-import { SignalWatcher, WithDisposable } from "@virgultum/editor/global/lit";
+import { computed, effect, signal } from "@preact/signals-core";
+import { DisposableGroup } from "@virgultum/editor/global/disposable";
+import type { DocTitle } from "@virgultum/editor/fragments/doc-title";
 import type { DocMode } from "@virgultum/editor/model";
 import {
   DocEmbedProvider,
   ThemeProvider,
 } from "@virgultum/editor/shared/services";
-import { BlockStdScope, ShadowlessElement } from "@virgultum/editor/std";
+import { BlockStdScope, NativeViewElement } from "@virgultum/editor/std";
 import { GfxControllerIdentifier } from "@virgultum/editor/std/gfx";
 import {
   type BlockModel,
   type ExtensionType,
   type Store,
 } from "@virgultum/editor/store";
-import { css, html, nothing } from "lit";
-import { property } from "lit/decorators.js";
-import { keyed } from "lit/directives/keyed.js";
-import { when } from "lit/directives/when.js";
-
-export class TestMyoxusEditorContainer extends SignalWatcher(
-  WithDisposable(ShadowlessElement),
-) {
-  static override styles = css`
+const viewportStyles = `
     .myoxus-page-viewport {
       position: relative;
       display: flex;
@@ -87,7 +80,18 @@ export class TestMyoxusEditorContainer extends SignalWatcher(
       container-name: viewport;
       container-type: inline-size;
     }
-  `;
+`;
+
+export class TestMyoxusEditorContainer extends NativeViewElement {
+  private disposables = new DisposableGroup();
+  private viewport = document.createElement("div");
+  private pendingPaint: Promise<void> = Promise.resolve();
+  private rootRevision = signal(0);
+  private firstPaint = true;
+
+  get updateComplete() {
+    return this.chromeReady.then(() => this.pendingPaint);
+  }
 
   private readonly _doc = signal<Store>();
 
@@ -120,7 +124,7 @@ export class TestMyoxusEditorContainer extends SignalWatcher(
     });
   });
 
-  private readonly _editorTemplate = computed(() => {
+  private readonly editorHost = computed(() => {
     const std = this._std.value;
     // Match PageEditor/EdgelessEditor: native diagram gestures consume the
     // current scope's GFX mode, rather than guessing it from a DOM ancestor.
@@ -176,11 +180,14 @@ export class TestMyoxusEditorContainer extends SignalWatcher(
     return this._std.value;
   }
 
-  override connectedCallback() {
-    super.connectedCallback();
+  connectedCallback() {
+    this.disposables = new DisposableGroup();
+    const style = document.createElement("style");
+    style.textContent = viewportStyles;
+    this.replaceChildren(style, this.viewport);
     const workspace = this.doc.workspace;
     const documentsRevision = signal(0);
-    this._disposables.add(
+    this.disposables.add(
       workspace.slots.docListUpdated.subscribe(() => documentsRevision.value++),
     );
     // The standalone fixture host owns its local documents. Exercise the same
@@ -214,7 +221,7 @@ export class TestMyoxusEditorContainer extends SignalWatcher(
         if (!target.ready) throw new Error("Fixture document is not ready");
       },
     };
-    this._disposables.add(
+    this.disposables.add(
       mountEditorChrome(this, (chrome) => {
         const extension: ExtensionType = {
           setup: (di) => {
@@ -239,68 +246,69 @@ export class TestMyoxusEditorContainer extends SignalWatcher(
       }),
     );
 
-    this._disposables.add(
-      this.doc.slots.rootAdded.subscribe(() => this.requestUpdate()),
+    this.disposables.add(
+      effect(() => {
+        const sub = this.doc.slots.rootAdded.subscribe(
+          () => this.rootRevision.value++,
+        );
+        return () => sub.unsubscribe();
+      }),
+    );
+    this.disposables.add(
+      effect(() => {
+        void this.rootRevision.value;
+        if (!this.chromeExtensions.value.length || !this.doc.root) {
+          this.pendingPaint = Promise.resolve();
+          this.viewport.replaceChildren();
+          return;
+        }
+        const page = this.mode === "page";
+        const theme = this.std.get(ThemeProvider);
+        const color = (page ? theme.app$ : theme.edgeless$).value;
+        const host = this.editorHost.value;
+        const doc = this.doc;
+        // Batch synchronous spec, mode and document changes before mounting the scope.
+        const paint = Promise.resolve().then(() => {
+          if (!this.isConnected || this.pendingPaint !== paint) return;
+          this.viewport.dataset.theme = color;
+          if (this.viewport.contains(host)) return;
+          this.viewport.className = page
+            ? "myoxus-page-viewport"
+            : "myoxus-edgeless-viewport";
+          const container = document.createElement("div");
+          container.className = page
+            ? "page-editor integration-page-editor-container"
+            : "edgeless-editor-container";
+          if (page) {
+            const title = document.createElement("doc-title") as DocTitle;
+            title.doc = doc;
+            this.viewport.replaceChildren(title, container);
+          } else {
+            this.viewport.replaceChildren(container);
+          }
+          container.append(host);
+          if (this.firstPaint && page && this.autofocus) {
+            setTimeout(() => {
+              if (host.isConnected && this.mode === "page")
+                this.querySelector("rich-text")?.inlineEditor?.focusEnd();
+            });
+          }
+          this.firstPaint = false;
+        });
+        this.pendingPaint = paint;
+      }),
     );
   }
 
-  override firstUpdated() {
-    if (this.mode === "page") {
-      setTimeout(() => {
-        if (this.autofocus && this.mode === "page") {
-          const richText = this.querySelector("rich-text");
-          const inlineEditor = richText?.inlineEditor;
-          inlineEditor?.focusEnd();
-        }
-      });
-    }
-  }
-
-  override render() {
-    // React supplies the required chrome host asynchronously. Do not mount a
-    // transient scope without it; consumers retain the first rendered host.
-    if (this.chromeExtensions.value.length === 0) return nothing;
-
-    const mode = this._mode.value;
-    const themeService = this.std.get(ThemeProvider);
-    const appTheme = themeService.app$.value;
-    const edgelessTheme = themeService.edgeless$.value;
-
-    return html`${keyed(
-      this.rootModel.id + mode,
-      html`
-        <div
-          data-theme=${mode === "page" ? appTheme : edgelessTheme}
-          class=${
-            mode === "page"
-              ? "myoxus-page-viewport"
-              : "myoxus-edgeless-viewport"
-          }
-        >
-          ${when(
-            mode === "page",
-            () => html` <doc-title .doc=${this.doc}></doc-title> `,
-          )}
-          <div
-            class=${
-              mode === "page"
-                ? "page-editor integration-page-editor-container"
-                : "edgeless-editor-container"
-            }
-          >
-            ${this._editorTemplate.value}
-          </div>
-        </div>
-      `,
-    )}`;
+  disconnectedCallback() {
+    this.disposables.dispose();
+    this.viewport.replaceChildren();
+    this.chromeExtensions.value = [];
   }
 
   switchEditor(mode: DocMode) {
     this._mode.value = mode;
   }
-
-  @property({ attribute: false })
-  override accessor autofocus = false;
 }
 
 declare global {

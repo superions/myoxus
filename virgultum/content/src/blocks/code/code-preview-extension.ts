@@ -4,13 +4,14 @@ import type { ExtensionType } from "@virgultum/core/store";
 
 import type { CodeBlockComponent } from "./code-block";
 
-export type CodeBlockPreviewRenderer = (
+export type MountCodeBlockPreview = (
+  anchor: HTMLElement,
   model: CodeBlockModel,
   blockComponent: CodeBlockComponent,
-) => HTMLElement;
+) => () => void;
 
 export type CodeBlockPreviewContext = {
-  renderer: CodeBlockPreviewRenderer;
+  mount: MountCodeBlockPreview;
   lang: string;
 };
 
@@ -19,11 +20,11 @@ export const CodeBlockPreviewIdentifier =
 
 export function CodeBlockPreviewExtension(
   lang: string,
-  renderer: CodeBlockPreviewRenderer,
+  mount: MountCodeBlockPreview,
 ): ExtensionType {
   return {
     setup: (di) => {
-      di.addImpl(CodeBlockPreviewIdentifier(lang), { renderer, lang });
+      di.addImpl(CodeBlockPreviewIdentifier(lang), { mount, lang });
     },
   };
 }

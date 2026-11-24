@@ -210,6 +210,7 @@ export function CitationMarker({
           onMouseLeave={() => hover(false)}
         >
           <FootnoteMarker
+            hasPreview
             label={footnote.label}
             missing={false}
             navigate={() => void activate()}

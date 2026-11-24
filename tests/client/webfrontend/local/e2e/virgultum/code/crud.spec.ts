@@ -31,7 +31,7 @@ test.describe("Code Block Preview", () => {
 
   test("enable mermaid preview", async ({ page }) => {
     const code = page.locator("myoxus-code");
-    const mermaidSvg = page.locator("mermaid-preview .mermaid-preview-svg svg");
+    const mermaidSvg = page.locator(".mermaid-preview-svg svg");
 
     await openHomePage(page);
     await createNewPage(page);
@@ -50,7 +50,7 @@ test.describe("Code Block Preview", () => {
 
   test("enable typst preview", async ({ page }) => {
     const code = page.locator("myoxus-code");
-    const typstPreview = page.locator("typst-preview");
+    const typstPreview = page.locator(".typst-preview-svg svg");
 
     await openHomePage(page);
     await createNewPage(page);

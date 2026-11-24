@@ -1,4 +1,5 @@
 import { AiThinkingIcon } from "@myoxus/icons/lit";
+
 import { html } from "lit";
 
 export const AIStarIcon = html`<svg
@@ -25,73 +26,7 @@ export const AIStarIcon = html`<svg
   </defs>
 </svg>`;
 
-// Generating consumers keep their progress text and stop controls; this glyph
-// distinguishes their active state without an animation player.
 export const AIStarIconWithAnimation = AiThinkingIcon({
   width: "20px",
   height: "20px",
 });
-
-export const AIStopIcon = html`<svg
-  width="20"
-  height="20"
-  viewBox="0 0 20 20"
-  fill="none"
-  xmlns="http://www.w3.org/2000/svg"
->
-  <g clip-path="url(#clip0_7496_34464)">
-    <path
-      fill-rule="evenodd"
-      clip-rule="evenodd"
-      d="M17.0827 10C17.0827 13.912 13.9114 17.0834 9.99935 17.0834C6.08733 17.0834 2.91602 13.912 2.91602 10C2.91602 6.088 6.08733 2.91669 9.99935 2.91669C13.9114 2.91669 17.0827 6.088 17.0827 10ZM18.3327 10C18.3327 14.6024 14.6017 18.3334 9.99935 18.3334C5.39698 18.3334 1.66602 14.6024 1.66602 10C1.66602 5.39765 5.39698 1.66669 9.99935 1.66669C14.6017 1.66669 18.3327 5.39765 18.3327 10ZM8.33268 6.66669C7.41221 6.66669 6.66602 7.41288 6.66602 8.33335V11.6667C6.66602 12.5872 7.41221 13.3334 8.33268 13.3334H11.666C12.5865 13.3334 13.3327 12.5872 13.3327 11.6667V8.33335C13.3327 7.41288 12.5865 6.66669 11.666 6.66669H8.33268Z"
-      fill="#1E96EB"
-    />
-  </g>
-  <defs>
-    <clipPath id="clip0_7496_34464">
-      <rect width="20" height="20" fill="white" />
-    </clipPath>
-  </defs>
-</svg>`;
-
-export const AIDoneIcon = html`<svg
-  width="20"
-  height="20"
-  viewBox="0 0 20 20"
-  fill="currentColor"
-  xmlns="http://www.w3.org/2000/svg"
->
-  <path
-    fill-rule="evenodd"
-    clip-rule="evenodd"
-    d="M16.2751 5.39143C16.5192 5.63551 16.5192 6.03124 16.2751 6.27532L7.94178 14.6086C7.6977 14.8527 7.30197 14.8527 7.0579 14.6086L3.72456 11.2753C3.48048 11.0312 3.48048 10.6355 3.72456 10.3914C3.96864 10.1474 4.36437 10.1474 4.60845 10.3914L7.49984 13.2828L15.3912 5.39143C15.6353 5.14735 16.031 5.14735 16.2751 5.39143Z"
-  />
-</svg>`;
-
-export const EnterIcon = html`<svg
-  width="20"
-  height="20"
-  viewBox="0 0 20 20"
-  fill="currentColor"
-  xmlns="http://www.w3.org/2000/svg"
->
-  <path
-    fill-rule="evenodd"
-    clip-rule="evenodd"
-    d="M11.2502 4.16663C11.2502 3.82145 11.53 3.54163 11.8752 3.54163H15.6252C15.9703 3.54163 16.2502 3.82145 16.2502 4.16663V11.25C16.2502 11.4157 16.1843 11.5747 16.0671 11.6919C15.9499 11.8091 15.7909 11.875 15.6252 11.875L5.45567 11.875L8.24903 14.6994C8.49175 14.9448 8.48957 15.3405 8.24414 15.5832C7.99872 15.826 7.603 15.8238 7.36027 15.5783L3.51412 11.6895C3.27329 11.4459 3.27329 11.054 3.51412 10.8105L7.36027 6.92158C7.603 6.67615 7.99872 6.67397 8.24414 6.91669C8.48957 7.15942 8.49175 7.55514 8.24903 7.80056L5.45567 10.625L15.0002 10.625V4.79163H11.8752C11.53 4.79163 11.2502 4.5118 11.2502 4.16663Z"
-  />
-</svg> `;
-
-export const ArrowRightIcon = html`<svg
-  width="20"
-  height="20"
-  viewBox="0 0 20 20"
-  fill="currentColor"
-  xmlns="http://www.w3.org/2000/svg"
->
-  <path
-    fill-rule="evenodd"
-    clip-rule="evenodd"
-    d="M7.05838 5.39143C6.81431 5.63551 6.81431 6.03124 7.05838 6.27532L10.7831 10L7.05838 13.7248C6.81431 13.9688 6.81431 14.3646 7.05838 14.6087C7.30246 14.8527 7.69819 14.8527 7.94227 14.6087L12.1089 10.442C12.353 10.1979 12.353 9.80218 12.1089 9.5581L7.94227 5.39143C7.69819 5.14735 7.30246 5.14735 7.05838 5.39143Z"
-  />
-</svg> `;

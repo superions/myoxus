@@ -152,7 +152,7 @@ export class MyoxusEditorViewExtension extends ViewExtensionProvider<MyoxusEdito
           options.showAnnotations ?? false,
         ),
         patchCalloutTitleHost(reactToLit),
-        patchFootnoteHost(reactToLit),
+        patchFootnoteHost(options.mountPortal),
         patchEditorChromeHost(reactToLit, options.mountPortal),
       ])
       .register(patchDocUrlExtensions(framework))

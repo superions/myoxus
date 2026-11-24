@@ -31,9 +31,13 @@ export class NativeEditorWidget<
     return this.std.view.getBlock(this.model.id);
   }
 
-  handleEvent(name: EventName, handler: UIEventHandler) {
+  handleEvent(
+    name: EventName,
+    handler: UIEventHandler,
+    options?: { global?: boolean },
+  ) {
     const release = this.std.event.add(name, handler, {
-      flavour: this.model.flavour,
+      flavour: options?.global ? undefined : this.model.flavour,
     });
     this.disposables.add(release);
   }

@@ -1,6 +1,5 @@
 import { ChatContentImages } from "../components/ai-message-content/images";
 import { ChatContentRichText } from "../components/ai-message-content/rich-text";
-import { ChatContentStreamObjects } from "../components/ai-message-content/stream-objects";
 import { ArtifactPreviewPanel } from "../components/ai-tools/artifacts-preview-panel";
 import {
   CodeArtifactTool,
@@ -8,7 +7,6 @@ import {
 } from "../components/ai-tools/code-artifact";
 import { DocComposeTool } from "../components/ai-tools/doc-compose";
 import { TextRenderer } from "../components/text-renderer";
-import { AIErrorWrapper } from "../messages/error";
 import { AISlidesRenderer } from "../messages/slides-renderer";
 import { registerMiniMindmapBlocks } from "../mini-mindmap";
 import {
@@ -18,11 +16,9 @@ import {
 
 const sharedRegistries = new WeakSet<CustomElementRegistry>();
 const sharedElements = {
-  "ai-error-wrapper": AIErrorWrapper,
   "ai-slides-renderer": AISlidesRenderer,
   "chat-content-images": ChatContentImages,
   "chat-content-rich-text": ChatContentRichText,
-  "chat-content-stream-objects": ChatContentStreamObjects,
   "text-renderer": TextRenderer,
   "doc-compose-tool": DocComposeTool,
   "code-artifact-tool": CodeArtifactTool,

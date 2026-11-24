@@ -16,6 +16,7 @@ import type {
 import { type Signal } from "@preact/signals-core";
 import { type ReactToLit, toReactNode } from "@myoxus/lit-react";
 import { createElement } from "react";
+import { ChatErrorView } from "../../messages/error-view";
 import { ChatConversationLayout } from "../message-chrome";
 import { SignalWatcher, WithDisposable } from "@virgultum/editor/global/lit";
 import { type EditorHost, ShadowlessElement } from "@virgultum/editor/std";
@@ -443,13 +444,12 @@ export class AIChatContent extends SignalWatcher(
   override render() {
     if (!this.reactToLit) return nothing;
     const historyError = this.historyLoadFailed
-      ? html`<ai-error-wrapper
-          .reactToLit=${this.reactToLit}
-          .text=${chatI18n()["com.myoxus.ai.chat-panel.history-error"]()}
-          .actionText=${chatI18n()["Retry"]()}
-          .onClick=${() => void this.initChatContent()}
-        ></ai-error-wrapper>`
-      : nothing;
+      ? createElement(ChatErrorView, {
+          text: chatI18n()["com.myoxus.ai.chat-panel.history-error"](),
+          action: chatI18n()["Retry"](),
+          onAction: () => void this.initChatContent(),
+        })
+      : null;
     const left = html` <ai-chat-messages
         .aiModelService=${this.aiModelService}
         .onScrollAvailabilityChange=${this.onScrollAvailabilityChange}
@@ -513,7 +513,8 @@ export class AIChatContent extends SignalWatcher(
           open: this.showPreviewPanel,
           preview: toReactNode(this.previewPanelContent ?? undefined),
         },
-        toReactNode(html`${historyError}${left}`),
+        historyError,
+        toReactNode(left),
       ),
       true,
     );

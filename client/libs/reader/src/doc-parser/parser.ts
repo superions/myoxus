@@ -222,6 +222,16 @@ export function parseBlock(
         break;
       }
       case "myoxus:database": {
+        // Server-backed references have no local columns or cells. Keep their
+        // block identity opaque to Copilot when it edits the surrounding text.
+        const databaseId = yBlock.get("prop:serverDatabaseId");
+        if (
+          (typeof databaseId === "string" && databaseId.trim()) ||
+          yBlock.get("prop:serverWorkspaceId") !== undefined ||
+          yBlock.get("prop:serverRowId") !== undefined
+        ) {
+          break;
+        }
         const title = (yBlock.get("prop:title") as YText).toJSON();
         const childrenTitleById = Object.fromEntries(
           childrenIds.map((cid) => {
@@ -419,7 +429,11 @@ export function parseBlock(
     console.warn("Error converting block to md", e);
   }
 
-  if (result.content && aiEditable && blockLevel === 2) {
+  if (
+    aiEditable &&
+    blockLevel === 2 &&
+    (result.content || flavour === "myoxus:database")
+  ) {
     // add a placeholder comment for the block level 2
     if (flavour === "myoxus:database" || placeholder) {
       result.content = `<!-- block_id=${id} flavour=${flavour} placeholder -->\n`;

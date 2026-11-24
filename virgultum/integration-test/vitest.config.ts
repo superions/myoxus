@@ -23,6 +23,11 @@ export default defineConfig((_configEnv) =>
       target: "es2022",
     },
     optimizeDeps: {
+      // The registered code preview loads both Typst modules lazily.
+      include: [
+        "@myriaddreamin/typst-ts-renderer",
+        "@myriaddreamin/typst-ts-web-compiler",
+      ],
       // Per-file processes share this graph; Vite invalidates it when its inputs change.
       rolldownOptions: {
         transform: {

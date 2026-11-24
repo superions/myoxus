@@ -1,27 +1,21 @@
-import { nothing } from "lit";
-import { WidgetComponent } from "@virgultum/core/runtime";
+import { NativeEditorWidget } from "@virgultum/core/runtime";
 import { EditorChromeHostIdentifier } from "@virgultum/core/services";
 import { SelectionToolbarController } from "./selection-controller";
 
 export const MYOXUS_TOOLBAR_WIDGET = "myoxus-toolbar-widget";
 
-export class MyoxusToolbarWidget extends WidgetComponent {
-  override createRenderRoot() {
-    return this;
-  }
+export class MyoxusToolbarWidget extends NativeEditorWidget {
   readonly controller = new SelectionToolbarController(this);
   get toolbar() {
     return this.controller.toolbar;
   }
-  override render() {
-    return (
-      this.std
-        .getOptional(EditorChromeHostIdentifier)
-        ?.renderSelection(this.controller.controls) ?? nothing
-    );
-  }
   override connectedCallback() {
     super.connectedCallback();
     this.controller.connect();
+    const chrome = this.std.getOptional(EditorChromeHostIdentifier);
+    if (chrome)
+      this.disposables.add(
+        chrome.mountSelection(this, this.controller.controls),
+      );
   }
 }

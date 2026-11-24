@@ -1,26 +1,18 @@
-import { SignalWatcher, WithDisposable } from "@virgultum/core/primitives/lit";
+import { DisposableGroup } from "@virgultum/core/primitives/disposable";
 import {
   VirtualKeyboardProvider,
   EditorChromeHostIdentifier,
 } from "@virgultum/core/services";
 import { getViewportElement } from "@virgultum/core/utils";
-import {
-  PropTypes,
-  requiredProperties,
-  ShadowlessElement,
-} from "@virgultum/core/runtime";
-import { nothing } from "lit";
-import { property } from "lit/decorators.js";
+import { NativeViewElement } from "@virgultum/core/runtime";
 import type { LinkedDocContext } from "./config.js";
 import { DocumentPickerSession } from "./document-picker-session";
 
 export const MYOXUS_MOBILE_LINKED_DOC_MENU = "myoxus-mobile-linked-doc-menu";
 
-@requiredProperties({ context: PropTypes.object })
-export class MyoxusMobileLinkedDocMenu extends SignalWatcher(
-  WithDisposable(ShadowlessElement),
-) {
-  private session?: DocumentPickerSession;
+export class MyoxusMobileLinkedDocMenu extends NativeViewElement {
+  context!: LinkedDocContext;
+  private disposables = new DisposableGroup();
 
   private readonly _scrollInputToTop = () => {
     const { inlineEditor } = this.context;
@@ -63,12 +55,10 @@ export class MyoxusMobileLinkedDocMenu extends SignalWatcher(
     return this.context.std.get(VirtualKeyboardProvider);
   }
 
-  override connectedCallback() {
-    super.connectedCallback();
-    const session = (this.session = new DocumentPickerSession(
-      this.context,
-      "docked",
-    ));
+  connectedCallback() {
+    this.disposables = new DisposableGroup();
+    const session = new DocumentPickerSession(this.context, "docked");
+    if (!this.isConnected) return;
     this.disposables.add(session.cancel);
     // The virtual keyboard owns this fixed viewport; native Card/ScrollArea own its chrome.
     Object.assign(this.style, {
@@ -87,21 +77,20 @@ export class MyoxusMobileLinkedDocMenu extends SignalWatcher(
       },
       true,
     );
-  }
-
-  override firstUpdated() {
+    this.disposables.add(
+      this.keyboard.height$.subscribe((height) => {
+        this.style.bottom = `${height}px`;
+      }),
+    );
+    this.disposables.add(
+      this.context.std
+        .get(EditorChromeHostIdentifier)
+        .mountDocumentPicker(this, session),
+    );
     this._scrollInputToTop();
   }
 
-  override render() {
-    if (!this.session) return nothing;
-    this.style.bottom = `${this.keyboard.height$.value}px`;
-    return (
-      this.context.std
-        .getOptional(EditorChromeHostIdentifier)
-        ?.renderDocumentPicker(this.session) ?? nothing
-    );
+  disconnectedCallback() {
+    this.disposables.dispose();
   }
-
-  @property({ attribute: false }) accessor context!: LinkedDocContext;
 }

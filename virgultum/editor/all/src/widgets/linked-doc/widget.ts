@@ -10,7 +10,7 @@ import { getViewportElement } from "@virgultum/core/utils";
 import {
   BLOCK_ID_ATTR,
   type BlockComponent,
-  WidgetComponent,
+  NativeEditorWidget,
   WidgetViewExtension,
 } from "@virgultum/core/runtime";
 import {
@@ -18,7 +18,6 @@ import {
   type InlineEditor,
   type InlineRootElement,
 } from "@virgultum/core/runtime/inline";
-import { html, nothing } from "lit";
 
 import {
   getMenus,
@@ -28,11 +27,13 @@ import {
   MYOXUS_LINKED_DOC_WIDGET,
 } from "./config.js";
 import { highlightDocumentQuery } from "./document-picker-highlight";
+import type { MyoxusMobileLinkedDocMenu } from "./mobile-linked-doc-menu";
 import { DocumentPickerSession } from "./document-picker-session";
 
-export class MyoxusLinkedDocWidget extends WidgetComponent<RootBlockModel> {
+export class MyoxusLinkedDocWidget extends NativeEditorWidget<RootBlockModel> {
   private _context: LinkedDocContext | null = null;
   private session?: DocumentPickerSession;
+  private unmount?: () => void;
 
   private readonly _mode$ = signal<"desktop" | "mobile" | "none">("none");
 
@@ -162,7 +163,7 @@ export class MyoxusLinkedDocWidget extends WidgetComponent<RootBlockModel> {
     mode?: "desktop" | "mobile";
     addTriggerKey?: boolean;
   }) {
-    this.session?.cancel();
+    this._context?.close();
     const host = this.host;
     const {
       primaryTriggerKey = "@",
@@ -201,24 +202,30 @@ export class MyoxusLinkedDocWidget extends WidgetComponent<RootBlockModel> {
     if (!startRange) return;
 
     let stopHighlight = () => {};
-    this._context = {
+    const context: LinkedDocContext = {
       std: this.std,
       inlineEditor,
       startRange,
       triggerKey: primaryTriggerKey,
       config: this.config,
       close: () => {
-        this.session?.cancel();
+        if (this._context !== context) return;
+        const session = this.session;
         this.session = undefined;
+        this._context = null;
+        session?.cancel();
+        const unmount = this.unmount;
+        this.unmount = undefined;
+        unmount?.();
         stopHighlight();
         this._mode$.value = "none";
-        this._context = null;
       },
     };
 
-    stopHighlight = highlightDocumentQuery(this._context);
+    this._context = context;
+    stopHighlight = highlightDocumentQuery(context);
 
-    const enableMobile = this.store
+    const enableMobile = this.std.store
       .get(FeatureFlagService)
       .getFlag("enable_mobile_linked_doc_menu");
     this._mode$.value = enableMobile ? mode : "desktop";
@@ -227,34 +234,32 @@ export class MyoxusLinkedDocWidget extends WidgetComponent<RootBlockModel> {
         this._context.close();
         return;
       }
-      this.session = new DocumentPickerSession(this._context);
+      const session = new DocumentPickerSession(context);
+      if (this._context !== context) return;
+      this.session = session;
+      // The picker uses viewport coordinates, including when Canvas is transformed.
+      const anchor = this.ownerDocument.createElement("div");
+      this.ownerDocument.body.append(anchor);
+      const release = this.std
+        .get(EditorChromeHostIdentifier)
+        .mountDocumentPicker(anchor, session);
+      this.unmount = () => {
+        release();
+        anchor.remove();
+      };
+    } else if (this.block?.rootComponent) {
+      const menu = this.ownerDocument.createElement(
+        "myoxus-mobile-linked-doc-menu",
+      ) as MyoxusMobileLinkedDocMenu;
+      menu.context = this._context;
+      this.unmount = () => menu.remove();
+      this.ownerDocument.body.append(menu);
     }
   }
 
   override disconnectedCallback() {
-    this.session?.cancel();
     this._context?.close();
     super.disconnectedCallback();
-  }
-
-  override render() {
-    if (this._mode$.value === "none") return nothing;
-    const template =
-      this._mode$.value === "desktop"
-        ? this.session
-          ? (this.std
-              .getOptional(EditorChromeHostIdentifier)
-              ?.renderDocumentPicker(this.session) ?? nothing)
-          : nothing
-        : this.block?.rootComponent
-          ? html`<myoxus-mobile-linked-doc-menu
-              .context=${this._context}
-            ></myoxus-mobile-linked-doc-menu>`
-          : nothing;
-    return html`<virgultum-portal
-      .shadowDom=${false}
-      .template=${template}
-    ></virgultum-portal>`;
   }
 }
 

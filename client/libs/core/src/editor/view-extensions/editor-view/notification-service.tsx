@@ -1,9 +1,7 @@
-import { toReactNode } from "@myoxus/lit-react";
 import { I18n } from "@myoxus/i18n";
 import {
   type ConfirmModalProps,
   Input,
-  type MyoxusNotification,
   notify,
   type useConfirmModal,
 } from "@myoxus/ui-facade";
@@ -76,8 +74,8 @@ export class NotificationServiceImpl implements NotificationService {
   }: Parameters<NotificationService["confirm"]>[0]) => {
     return new Promise<boolean>((resolve) => {
       this.openConfirmModal({
-        title: toReactNode(title),
-        description: toReactNode(message),
+        title,
+        description: message,
         confirmText,
         confirmButtonOptions: {
           variant: "primary",
@@ -110,7 +108,7 @@ export class NotificationServiceImpl implements NotificationService {
       let value = autofill || "";
       const description = (
         <div>
-          <span style={{ marginBottom: 12 }}>{toReactNode(message)}</span>
+          <span style={{ marginBottom: 12 }}>{message}</span>
           <Input
             autoSelect={true}
             placeholder={placeholder}
@@ -120,7 +118,7 @@ export class NotificationServiceImpl implements NotificationService {
         </div>
       );
       this.openConfirmModal({
-        title: toReactNode(title),
+        title,
         description: description,
         confirmText: confirmText ?? "Confirm",
         confirmButtonOptions: {
@@ -143,7 +141,7 @@ export class NotificationServiceImpl implements NotificationService {
   };
 
   /**
-   * Legacy `toast(message)` from the Lit-side editor bridge. After the
+   * Legacy `toast(message)` from the editor. After the
    * P-NOTIF-08 slice this routes through the Facade Mantine bridge, so
    * the editor's transient notifications share the same store and
    * theme as the rest of the React shell. The optional `portal`
@@ -154,10 +152,7 @@ export class NotificationServiceImpl implements NotificationService {
     message: string,
     options?: { duration?: number; portal?: HTMLElement },
   ) => {
-    notify(
-      { title: toReactNode(message) },
-      { duration: options?.duration ?? 2500 },
-    );
+    notify({ title: message }, { duration: options?.duration ?? 2500 });
   };
 
   notify = (notification: Parameters<NotificationService["notify"]>[0]) => {
@@ -173,25 +168,11 @@ export class NotificationServiceImpl implements NotificationService {
       throw new Error("Invalid notification accent");
     }
 
-    const toMyoxusNotificationActions = (
-      actions: (typeof notification)["actions"],
-    ): MyoxusNotification["actions"] => {
-      if (!actions) return undefined;
-
-      return actions.map(({ label, onClick, key }) => {
-        return {
-          key,
-          label: toReactNode(label),
-          onClick,
-        };
-      });
-    };
-
     const toastId = fn(
       {
-        title: toReactNode(notification.title),
-        message: toReactNode(notification.message),
-        actions: toMyoxusNotificationActions(notification.actions),
+        title: notification.title,
+        message: notification.message,
+        actions: notification.actions,
         onDismiss: notification.onClose,
       },
       // Pass `duration` only when explicitly provided so the Facade bridge

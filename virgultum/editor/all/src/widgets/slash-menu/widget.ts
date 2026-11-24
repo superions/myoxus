@@ -3,20 +3,18 @@ import type { MyoxusInlineEditor } from "@virgultum/core/types";
 import {
   TextSelection,
   type UIEventStateContext,
-  WidgetComponent,
+  NativeEditorWidget,
 } from "@virgultum/core/runtime";
 import { InlineEditor } from "@virgultum/core/runtime/inline";
 
 import { findSlashMenuTriggerSuffix, isSlashMenuTriggerInput } from "./consts";
 import { SlashMenuExtension } from "./extensions";
 import { EditorChromeHostIdentifier } from "@virgultum/core/services";
-import { nothing } from "lit";
 import type { SlashMenuItem } from "@virgultum/core/slash-menu";
 import { SlashSession } from "./slash-session";
 import type { EditorSlashControls } from "@virgultum/core/services";
-export class MyoxusSlashMenuWidget extends WidgetComponent {
+export class MyoxusSlashMenuWidget extends NativeEditorWidget {
   private session?: SlashSession;
-  private externalMenu = false;
   private request = 0;
   private readonly _getInlineEditor = (evt: CompositionEvent | InputEvent) => {
     if (evt.target instanceof HTMLElement) {
@@ -88,17 +86,20 @@ export class MyoxusSlashMenuWidget extends WidgetComponent {
       triggerEnd,
     );
     this.session = session;
-    this.externalMenu = !!present;
     if (!session.getSnapshot().open) return;
-    present?.(session);
-    this.requestUpdate();
+    const unmount = present
+      ? undefined
+      : this.std
+          .getOptional(EditorChromeHostIdentifier)
+          ?.mountSlash(this, session);
     const unsubscribe = session.subscribe(() => {
-      if (!session.getSnapshot().open) {
-        unsubscribe();
-        present?.(null);
-      }
-      this.requestUpdate();
+      if (session.getSnapshot().open) return;
+      unsubscribe();
+      unmount?.();
+      present?.(null);
+      if (this.session === session) this.session = undefined;
     });
+    present?.(session);
   };
 
   private readonly _onCompositionEnd = (ctx: UIEventStateContext) => {
@@ -144,16 +145,6 @@ export class MyoxusSlashMenuWidget extends WidgetComponent {
   // This is a temporary way for patching the slash menu config
   configItemTransform: (item: SlashMenuItem) => SlashMenuItem = (item) => item;
 
-  override createRenderRoot() {
-    return this;
-  }
-  override render() {
-    return !this.externalMenu && this.session?.getSnapshot().open
-      ? (this.std
-          .getOptional(EditorChromeHostIdentifier)
-          ?.renderSlash(this.session) ?? nothing)
-      : nothing;
-  }
   override connectedCallback() {
     super.connectedCallback();
 

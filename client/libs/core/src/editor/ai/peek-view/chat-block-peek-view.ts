@@ -5,7 +5,7 @@ import type { PeekViewService } from "@myoxus/core/modules/peek-view";
 import type { WorkspaceDialogService } from "@myoxus/core/modules/dialogs";
 import type { FeatureFlagService } from "@myoxus/core/modules/feature-flag";
 import type { ServerService } from "@myoxus/core/modules/server";
-import { type ReactToLit, toReactNode } from "@myoxus/lit-react";
+import type { ReactToLit } from "@myoxus/lit-react";
 import { i18nTime } from "@myoxus/i18n";
 import { InsideModalContext, MyoxusText, Stack } from "@myoxus/ui-facade";
 import { createElement, type ReactNode } from "react";
@@ -623,9 +623,7 @@ export class AIChatBlockPeekSession {
           docDisplayConfig: this.docDisplayConfig,
           peekViewService: this.peekViewService,
         }),
-        shouldRenderError
-          ? toReactNode(AIChatErrorRenderer(error, host, this.modalReactToLit))
-          : null,
+        shouldRenderError ? AIChatErrorRenderer(error, host) : null,
         shouldRenderCopyMore
           ? createElement(CopilotResponseActions, {
               host,

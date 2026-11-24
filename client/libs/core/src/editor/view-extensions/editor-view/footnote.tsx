@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useI18n } from "@myoxus/i18n";
-import type { ReactToLit } from "@myoxus/lit-react";
+import { useSignalValue } from "@myoxus/core/modules/doc-info/utils";
+import type { ReadonlySignal } from "@preact/signals-core";
+import type { MountReactPortal } from "@myoxus/lit-react";
 import {
   Button,
   Group,
@@ -90,6 +92,7 @@ function noteName(
 }
 export function FootnoteMarker({
   label,
+  hasPreview,
   placement,
   number,
   missing,
@@ -103,7 +106,7 @@ export function FootnoteMarker({
         ? t["com.myoxus.editor.note.missing"]()
         : noteName(t, placement, number);
   return (
-    <Tooltip content={name}>
+    <Tooltip content={hasPreview ? undefined : name}>
       <InlineActionButton
         aria-label={name}
         data-footnote-missing={missing || undefined}
@@ -183,11 +186,29 @@ export function FootnoteHeader({
     </Group>
   );
 }
-export function patchFootnoteHost(reactToLit: ReactToLit) {
+function BoundMarker({
+  state,
+}: {
+  state: ReadonlySignal<FootnoteMarkerHostProps>;
+}) {
+  return <FootnoteMarker {...useSignalValue(state)} />;
+}
+
+function BoundHeader({
+  state,
+}: {
+  state: ReadonlySignal<FootnoteHeaderHostProps>;
+}) {
+  return <FootnoteHeader {...useSignalValue(state)} />;
+}
+
+export function patchFootnoteHost(mount: MountReactPortal) {
   return FootnoteReactHostExtension({
-    renderInsertion: (props) =>
-      reactToLit(<FootnoteInsertion {...props} />, true),
-    renderMarker: (props) => reactToLit(<FootnoteMarker {...props} />, true),
-    renderHeader: (props) => reactToLit(<FootnoteHeader {...props} />, true),
+    mountInsertion: (anchor, props) =>
+      mount(anchor, <FootnoteInsertion {...props} />),
+    mountMarker: (anchor, state) =>
+      mount(anchor, <BoundMarker state={state} />),
+    mountHeader: (anchor, state) =>
+      mount(anchor, <BoundHeader state={state} />),
   });
 }

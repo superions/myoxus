@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
-import { renderCodePreviewStatus } from "../../code-block-preview/status-view";
+import { EditorCodePreview } from "../../code-block-preview/preview";
 import { decorateEditorEmbeddedUI } from "../embedded-ui-root";
 import { EditorTableControl } from "./table-control";
 import { EditorDocumentCard } from "./document-card";
@@ -14,8 +14,7 @@ import { EditorYoutubeCard } from "./youtube-card";
 import { EditorFigmaCard } from "./figma-card";
 import { EditorLoomCard } from "./loom-card";
 
-import { Group, Box } from "@myoxus/ui-facade";
-import { type MountReactPortal, toReactNode } from "@myoxus/lit-react";
+import type { MountReactPortal } from "@myoxus/lit-react";
 import {
   EditorAutoCompleteTrigger,
   EditorAutoCompletePanel,
@@ -26,7 +25,7 @@ import { EditorCanvasTemplates } from "./canvas-templates";
 import { EditorKeyboardToolbar, EditorKeyboardPanel } from "./keyboard-toolbar";
 import { EditorFrameOrder } from "./frame-order";
 import { EditorCanvasMenu } from "./canvas-menu";
-import { EditorCanvasToolbar, EditorCanvasTool } from "./canvas-toolbar";
+import { RegisteredCanvasToolbar, EditorCanvasTool } from "./canvas-toolbar";
 
 import { EditorSelectionToolbar } from "./selection-toolbar";
 
@@ -95,15 +94,6 @@ export function patchEditorChromeHost(
       decorateEditorEmbeddedUI,
     ),
     renderCanvasTemplates: renderControl(EditorCanvasTemplates),
-    renderCanvasToolGroup: (content) =>
-      reactToLit(
-        <Group wrap="nowrap" gap="xs">
-          {content.map((item, index) => (
-            <Box key={index}>{toReactNode(item)}</Box>
-          ))}
-        </Group>,
-        true,
-      ),
     renderCanvasMenu: (controls) =>
       reactToLit(
         <EditorCanvasMenu controls={controls} />,
@@ -117,13 +107,13 @@ export function patchEditorChromeHost(
           ? decorateEditorEmbeddedUI
           : undefined,
       ),
-    renderCanvasToolbar: renderControl(EditorCanvasToolbar),
+    mountCanvasToolbar: (anchor, state) =>
+      mountPortal(anchor, <RegisteredCanvasToolbar state={state} />),
     renderCanvasTool: (controls) =>
       reactToLit(
         <EditorCanvasTool {...controls} />,
         true,
         [
-          "note-slicer-split",
           "presentation-settings",
           "presentation-start",
           "presentation-previous",
@@ -143,8 +133,7 @@ export function patchEditorChromeHost(
     renderFrameNavigator: renderControl(EditorFrameNavigator),
     renderFrameCard: renderControl(EditorFrameCard),
     renderFrameTitle: renderControl(EditorFrameTitle),
-    renderCodePreviewStatus: (status) =>
-      renderCodePreviewStatus(reactToLit, status),
+    mountCodePreview: mountControl(EditorCodePreview),
     renderImageFallback: renderControl(EditorImageFallback),
     renderDocumentCard: renderControl(EditorDocumentCard),
     renderAttachmentCard: (controls) =>
@@ -169,7 +158,7 @@ export function patchEditorChromeHost(
     renderDocumentOutline: renderControl(EditorDocumentOutline),
     renderOutlineEntry: (controls) =>
       reactToLit(<EditorOutlineEntry {...controls} />, true),
-    renderCitationPreview: renderControl(EditorCitationPreview),
+    mountCitationPreview: mountControl(EditorCitationPreview),
     mountBlockCaption: (anchor, state) =>
       mountPortal(anchor, <RegisteredBlockCaption state={state} />),
     mountEquation: mountControl(EditorEquation),
@@ -180,13 +169,13 @@ export function patchEditorChromeHost(
     mountCodeToolbar: mountControl(EditorCodeToolbar),
     mountImport: (container, controls) =>
       mountPortal(container, <EditorImportDialog controls={controls} />),
-    renderDocumentPicker: renderControl(EditorDocumentPicker),
+    mountDocumentPicker: mountControl(EditorDocumentPicker),
     renderIframeStatusCard: renderControl(EditorIframeStatusCard),
     mountIframeLinkEditor: mountControl(EditorIframeLinkEditor),
     mountLinkEditor: mountControl(EditorLinkEditor),
     mountReferenceEditor: mountControl(EditorReferenceEditor),
-    renderSelection: renderControl(EditorSelectionToolbar),
-    renderSlash: renderControl(EditorSlashMenu),
+    mountSelection: mountControl(EditorSelectionToolbar),
+    mountSlash: mountControl(EditorSlashMenu),
     mountCanvasTool: (anchor, controls) =>
       mountPortal(anchor, <EditorCanvasTool {...controls} />),
     mountZoom: (anchor, controls) =>

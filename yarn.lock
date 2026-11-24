@@ -5564,7 +5564,6 @@ __metadata:
     "@myoxus/ui-facade": "workspace:*"
     "@preact/signals-core": "npm:^1.14.5"
     "@virgultum/editor": "workspace:*"
-    lit: "npm:^3.3.3"
     react: "npm:19.3.0"
     react-dom: "npm:19.3.0"
     rxjs: "npm:^7.8.2"

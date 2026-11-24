@@ -10,7 +10,9 @@ import {
   DatabaseReferenceBlockComponent,
   DatabaseReferenceConfigExtension,
 } from "@virgultum/editor/blocks/database/reference-view";
-import { html, nothing, type TemplateResult } from "lit";
+import { signal } from "@preact/signals-core";
+import { Subject } from "rxjs";
+import { DisposableGroup } from "@virgultum/core/primitives/disposable";
 import { describe, expect, test, vi } from "vitest";
 import { act, waitFor } from "@testing-library/react";
 import { cssVar } from "@myoxus/theme";
@@ -32,22 +34,31 @@ vi.mock("@myoxus/i18n", async () => {
 function createBlock(
   props: Record<string, unknown>,
   renderServerDatabase = vi.fn(
-    (_model: unknown) => html`<span>server view</span>`,
+    (_anchor: HTMLElement, _model: unknown) => () => {},
   ),
 ) {
-  const model = { id: "block-1", props };
-  const block = {
+  const model = { id: "block-1", props, propsUpdated: new Subject<void>() };
+  const block = Object.assign(document.createElement("div"), {
     model,
+    store: { readonly$: signal(false) },
+    disposables: new DisposableGroup(),
     std: {
       getOptional(identifier: unknown) {
         expect(identifier).toBe(DatabaseReferenceConfigExtension.identifier);
         return { renderServerDatabase, slashMenuItems: [] };
       },
     },
+  });
+  const renderBlock = () => {
+    DatabaseReferenceBlockComponent.prototype["mountBody"].call(block as never);
+    return block.firstElementChild;
   };
-  const renderBlock = () =>
-    DatabaseReferenceBlockComponent.prototype.renderBlock.call(block as never);
-  return { model, renderBlock, renderServerDatabase };
+  return {
+    model,
+    renderBlock,
+    renderServerDatabase,
+    dispose: () => block.disposables.dispose(),
+  };
 }
 
 describe("DatabaseReferenceBlockComponent", () => {
@@ -200,24 +211,30 @@ describe("DatabaseReferenceBlockComponent", () => {
           },
         });
       }
-      const { model, renderBlock, renderServerDatabase } = createBlock(props);
+      const { model, renderBlock, renderServerDatabase, dispose } =
+        createBlock(props);
 
-      const result = renderBlock() as TemplateResult;
+      const result = renderBlock();
 
       expect(renderServerDatabase).toHaveBeenCalledOnce();
-      expect(renderServerDatabase.mock.calls[0]?.[0]).toBe(model);
-      expect(result.values).toContain("database-1");
+      expect(renderServerDatabase.mock.calls[0]?.[0]).toBe(result);
+      expect(renderServerDatabase.mock.calls[0]?.[1]).toBe(model);
+      expect(result?.getAttribute("data-server-database-reference")).toBe(
+        "database-1",
+      );
+      dispose();
     },
   );
 
   test("does not render an editor-local payload without a server reference", () => {
-    const { renderBlock, renderServerDatabase } = createBlock({
+    const { renderBlock, renderServerDatabase, dispose } = createBlock({
       cells: { row: { field: { value: "legacy" } } },
       columns: [{ id: "field" }],
       views: [{ id: "view" }],
     });
 
-    expect(renderBlock()).toBe(nothing);
+    expect(renderBlock()).toBeNull();
     expect(renderServerDatabase).not.toHaveBeenCalled();
+    dispose();
   });
 });

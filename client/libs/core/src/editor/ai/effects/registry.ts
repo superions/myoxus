@@ -1,9 +1,7 @@
 export const sharedEffectElementTags = [
-  "ai-error-wrapper",
   "ai-slides-renderer",
   "chat-content-images",
   "chat-content-rich-text",
-  "chat-content-stream-objects",
   "text-renderer",
   "doc-compose-tool",
   "code-artifact-tool",
@@ -19,7 +17,6 @@ export const editorEffectElementTags = [
   "ai-scrollable-text-renderer",
   "ai-block-diff-options",
   "myoxus-block-diff-playground",
-  "myoxus-block-diff-playground-modal",
   "myoxus-ai-panel-widget",
   "myoxus-edgeless-copilot-widget",
   "myoxus-block-diff-widget-for-block",
@@ -37,7 +34,6 @@ export const appEffectElementTags = [
   "ai-chat-composer",
   "chat-panel-chips",
   "ai-history-clear",
-  "chat-message-assistant",
 ] as const;
 
 export type AppEffectElementTag = (typeof appEffectElementTags)[number];

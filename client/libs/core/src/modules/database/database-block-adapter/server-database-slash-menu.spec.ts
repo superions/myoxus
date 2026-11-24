@@ -325,7 +325,7 @@ describe("server-backed database slash menu", () => {
     expect(serverBlock).not.toContain("<MyoxusUIProvider");
     expect(serverBlock).not.toContain("DatabaseBlockDataSource");
     const renderBlockBody = virgultumBlock.slice(
-      virgultumBlock.indexOf("override renderBlock()"),
+      virgultumBlock.indexOf("protected mountBody()"),
     );
     expect(renderBlockBody).toContain("this.model.props.serverDatabaseId");
     expect(renderBlockBody).toContain("renderServerDatabase");

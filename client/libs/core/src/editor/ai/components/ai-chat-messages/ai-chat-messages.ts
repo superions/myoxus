@@ -1,4 +1,5 @@
-import { type ReactToLit, toReactNode } from "@myoxus/lit-react";
+import type { FeatureFlagService } from "@myoxus/core/modules/feature-flag";
+import type { ReactToLit } from "@myoxus/lit-react";
 import { createElement } from "react";
 import { nanoid } from "nanoid";
 import { ChatConversation, ChatUserMessage } from "../message-chrome";
@@ -11,14 +12,13 @@ import type { Signal } from "@preact/signals-core";
 import { SignalWatcher, WithDisposable } from "@virgultum/editor/global/lit";
 import {
   DocModeProvider,
-  type FeatureFlagService,
   type NotificationService,
 } from "@virgultum/editor/shared/services";
 import { type EditorHost, ShadowlessElement } from "@virgultum/editor/std";
 import type { BaseSelection, ExtensionType } from "@virgultum/editor/store";
-import { html, nothing, type PropertyValues } from "lit";
+import { nothing, type PropertyValues } from "lit";
 import { property, state } from "lit/decorators.js";
-import { repeat } from "lit/directives/repeat.js";
+import { AssistantReply } from "../../chat-panel/message/assistant";
 import { debounce } from "lodash-es";
 
 import { type AIError, AIProvider, UnauthorizedError } from "../../provider";
@@ -162,47 +162,38 @@ export class AIChatMessages extends SignalWatcher(
           loading: isHistoryLoading,
           empty: filteredItems.length === 0,
         },
-        toReactNode(
-          html`${repeat(
-            filteredItems,
-            (_, index) => index,
-            (item, index) => {
-              const isLast = index === filteredItems.length - 1;
-              if (isChatMessage(item) && item.role === "user") {
-                return this.reactToLit(
-                  createElement(ChatUserMessage, {
-                    name: this.userName,
-                    avatarUrl: this.avatarUrl,
-                    text: item.content,
-                    images: item.attachments,
-                  }),
-                  true,
-                );
-              } else if (isChatMessage(item) && item.role === "assistant") {
-                return html`<chat-message-assistant
-                  .reactToLit=${this.reactToLit}
-                  .host=${this.host}
-                  .session=${this.session}
-                  .item=${item}
-                  .isLast=${isLast}
-                  .status=${isLast ? status : "idle"}
-                  .error=${isLast ? error : null}
-                  .extensions=${this.extensions}
-                  .myoxusFeatureFlagService=${this.myoxusFeatureFlagService}
-                  .myoxusThemeService=${this.myoxusThemeService}
-                  .notificationService=${this.notificationService}
-                  .retry=${() => this.retry()}
-                  .width=${this.width}
-                  .independentMode=${this.independentMode}
-                  .docDisplayService=${this.docDisplayService}
-                  .peekViewService=${this.peekViewService}
-                  .onOpenDoc=${this.onOpenDoc}
-                ></chat-message-assistant>`;
-              }
-              return nothing;
-            },
-          )}`,
-        ),
+        filteredItems.map((item, index) => {
+          const isLast = index === filteredItems.length - 1;
+          if (!isChatMessage(item)) return null;
+          if (item.role === "user")
+            return createElement(ChatUserMessage, {
+              key: index,
+              name: this.userName,
+              avatarUrl: this.avatarUrl,
+              text: item.content,
+              images: item.attachments,
+            });
+          if (item.role !== "assistant") return null;
+          return createElement(AssistantReply, {
+            key: index,
+            item,
+            status: isLast ? status : "idle",
+            error: isLast ? error : null,
+            retry: isLast ? () => this.retry() : undefined,
+            sessionId: this.session?.sessionId,
+            host: this.host,
+            reactToLit: this.reactToLit,
+            extensions: this.extensions,
+            myoxusFeatureFlagService: this.myoxusFeatureFlagService,
+            theme: this.myoxusThemeService.appTheme.themeSignal,
+            notificationService: this.notificationService,
+            width: this.width,
+            independentMode: this.independentMode,
+            docDisplayService: this.docDisplayService,
+            peekViewService: this.peekViewService,
+            onOpenDoc: this.onOpenDoc,
+          });
+        }),
       ),
       true,
     );

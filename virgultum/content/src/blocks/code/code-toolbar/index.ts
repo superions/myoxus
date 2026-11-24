@@ -11,7 +11,7 @@ import {
   TextSelection,
   NativeEditorWidget,
 } from "@virgultum/core/runtime";
-import { positionPortal } from "@virgultum/core/view/portal";
+import { mountEditorPortal } from "@virgultum/core/view/portal";
 
 import { CodeBlockComponent } from "../code-block";
 import { CodeBlockToolbarContext } from "./context";
@@ -73,48 +73,42 @@ export class MyoxusCodeToolbarWidget extends NativeEditorWidget<CodeBlockModel> 
           setActive,
         );
 
-        const anchor = this.ownerDocument.createElement("div");
-        anchor.className = "virgultum-portal";
-        anchor.setAttribute("data-range-sync-exclude", "true");
-        anchor.contentEditable = "false";
-        anchor.style.pointerEvents = "auto";
-        this.host.append(anchor);
-        abortController.signal.addEventListener(
-          "abort",
-          () => anchor.remove(),
-          { once: true },
+        return mountEditorPortal(
+          this.host,
+          abortController,
+          (anchor) =>
+            chrome.mountCodeToolbar(
+              anchor,
+              createCodeToolbarControls(
+                context,
+                () => this.primaryActions.value,
+              ),
+            ),
+          {
+            referenceElement: codeBlock,
+            placement: "top",
+            middleware: [
+              // Canvas content scales; native chrome stays above it at normal UI density.
+              offset(({ rects }) => (edgeless ? 0 : -rects.floating.height)),
+              size({
+                apply({ rects, elements }) {
+                  elements.floating.style.width = edgeless
+                    ? "max-content"
+                    : `${rects.reference.width}px`;
+                },
+              }),
+              shift({
+                crossAxis: true,
+                padding: {
+                  bottom: 12,
+                  right: 12,
+                },
+                limiter: limitShift(),
+              }),
+            ],
+            autoUpdate: { animationFrame: true },
+          },
         );
-        const unmount = chrome.mountCodeToolbar(
-          anchor,
-          createCodeToolbarControls(context, () => this.primaryActions.value),
-        );
-        abortController.signal.addEventListener("abort", unmount, {
-          once: true,
-        });
-        return positionPortal(anchor, abortController, {
-          referenceElement: codeBlock,
-          placement: "top",
-          middleware: [
-            // Canvas content scales; native chrome stays above it at normal UI density.
-            offset(({ rects }) => (edgeless ? 0 : -rects.floating.height)),
-            size({
-              apply({ rects, elements }) {
-                elements.floating.style.width = edgeless
-                  ? "max-content"
-                  : `${rects.reference.width}px`;
-              },
-            }),
-            shift({
-              crossAxis: true,
-              padding: {
-                bottom: 12,
-                right: 12,
-              },
-              limiter: limitShift(),
-            }),
-          ],
-          autoUpdate: { animationFrame: true },
-        }).portal;
       },
       { allowMultiple: true },
     );

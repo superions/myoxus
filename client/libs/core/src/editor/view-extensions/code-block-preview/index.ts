@@ -5,18 +5,28 @@ import {
 } from "@virgultum/editor/ext-loader";
 import { z } from "zod";
 
-import {
-  CodeBlockHtmlPreview,
-  effects as htmlPreviewEffects,
-} from "./html-preview";
-import {
-  CodeBlockMermaidPreview,
-  effects as mermaidPreviewEffects,
-} from "./mermaid-preview";
-import {
-  CodeBlockTypstPreview,
-  effects as typstPreviewEffects,
-} from "./typst-preview";
+import { CodeBlockPreviewExtension } from "@virgultum/editor/blocks/code";
+import { EditorChromeHostIdentifier } from "@virgultum/editor/shared/services";
+import { convertMermaidCodeBlockCommand } from "@virgultum/block-mermaid";
+
+function previewExtension(language: "html" | "mermaid" | "typst") {
+  return CodeBlockPreviewExtension(language, (anchor, model, block) =>
+    block.std.get(EditorChromeHostIdentifier).mountCodePreview(anchor, {
+      language,
+      getSource: () => model.props.text.toString(),
+      subscribe: (notify) => model.props.text$.subscribe(notify),
+      convertMermaid:
+        language === "mermaid" && !block.store.readonly
+          ? () => {
+              if (!block.store.readonly)
+                block.std.command.exec(convertMermaidCodeBlockCommand, {
+                  model,
+                });
+            }
+          : undefined,
+    }),
+  );
+}
 
 const optionsSchema = z.object({
   framework: z.instanceof(FrameworkProvider).optional(),
@@ -27,21 +37,15 @@ export class CodeBlockPreviewViewExtension extends ViewExtensionProvider {
 
   override schema = optionsSchema;
 
-  override effect() {
-    super.effect();
-
-    htmlPreviewEffects();
-    mermaidPreviewEffects();
-    typstPreviewEffects();
-  }
-
   override setup(
     context: ViewExtensionContext,
     options?: z.infer<typeof optionsSchema>,
   ) {
     super.setup(context, options);
-    context.register(CodeBlockHtmlPreview);
-    context.register(CodeBlockMermaidPreview);
-    context.register(CodeBlockTypstPreview);
+    context.register([
+      previewExtension("html"),
+      previewExtension("mermaid"),
+      previewExtension("typst"),
+    ]);
   }
 }

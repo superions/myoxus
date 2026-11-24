@@ -2,27 +2,12 @@ import { createIdentifier } from "@virgultum/core/primitives/di";
 import type { FootNote } from "@virgultum/core/models";
 import { type BlockStdScope, StdIdentifier } from "@virgultum/core/runtime";
 import type { ExtensionType } from "@virgultum/core/store";
-import type { TemplateResult } from "lit";
-
-type FootNoteNodeRenderer = (
-  footnote: FootNote,
-  std: BlockStdScope,
-) => TemplateResult<1>;
-
-type FootNotePopupRenderer = (
-  footnote: FootNote,
-  std: BlockStdScope,
-  abortController: AbortController,
-) => TemplateResult<1>;
-
 export type FootNotePopupClickHandler = (
   footnote: FootNote,
   abortController: AbortController,
 ) => void;
 
 export interface FootNoteNodeConfig {
-  customNodeRenderer?: FootNoteNodeRenderer;
-  customPopupRenderer?: FootNotePopupRenderer;
   interactive?: boolean;
   hidePopup?: boolean;
   disableHoverEffect?: boolean;
@@ -30,20 +15,10 @@ export interface FootNoteNodeConfig {
 }
 
 export class FootNoteNodeConfigProvider {
-  private _customNodeRenderer?: FootNoteNodeRenderer;
-  private _customPopupRenderer?: FootNotePopupRenderer;
   private _hidePopup: boolean;
   private _interactive: boolean;
   private _disableHoverEffect: boolean;
   private _onPopupClick?: FootNotePopupClickHandler;
-
-  get customNodeRenderer() {
-    return this._customNodeRenderer;
-  }
-
-  get customPopupRenderer() {
-    return this._customPopupRenderer;
-  }
 
   get onPopupClick() {
     return this._onPopupClick;
@@ -69,20 +44,10 @@ export class FootNoteNodeConfigProvider {
     config: FootNoteNodeConfig,
     readonly std: BlockStdScope,
   ) {
-    this._customNodeRenderer = config.customNodeRenderer;
-    this._customPopupRenderer = config.customPopupRenderer;
     this._hidePopup = config.hidePopup ?? false;
     this._interactive = config.interactive ?? true;
     this._disableHoverEffect = config.disableHoverEffect ?? false;
     this._onPopupClick = config.onPopupClick;
-  }
-
-  setCustomNodeRenderer(renderer: FootNoteNodeRenderer) {
-    this._customNodeRenderer = renderer;
-  }
-
-  setCustomPopupRenderer(renderer: FootNotePopupRenderer) {
-    this._customPopupRenderer = renderer;
   }
 
   setHidePopup(hidePopup: boolean) {

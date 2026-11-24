@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { createLitPortal } from "@virgultum/core/view/portal";
+import { mountEditorPortal } from "@virgultum/core/view/portal";
 import {
   insertLocalFootnote,
   localFootnoteDefinitions,
@@ -16,7 +16,6 @@ import type {
   SlashMenuConfig,
   SlashMenuActionItem,
 } from "@virgultum/core/slash-menu";
-import { html } from "lit";
 
 export const footnoteSlashMenuConfig: SlashMenuConfig = {
   items: (["footnote", "endnote"] as const).map(
@@ -52,49 +51,47 @@ export const footnoteSlashMenuConfig: SlashMenuConfig = {
         const index = localFootnoteCaret(model, selection.from.index);
         const presentation = localFootnotePresentation(model.store);
         const controller = new AbortController();
-        createLitPortal({
-          computePosition: {
-            referenceElement: reference,
-            placement: "bottom-start",
-          },
-          abortController: controller,
-          shadowDom: false,
-          template: html`${host.renderInsertion({
-            placement,
-            definitions: localFootnoteDefinitions(model.store)
-              .filter(
-                (definition) =>
-                  presentation.get(definition.id)?.placement === placement,
-              )
-              .map((definition) => ({
-                id: definition.id,
-                ...presentation.get(definition.id),
-                excerpt: definition.children
-                  .map((child) => child.text?.toString() ?? "")
-                  .join(" ")
-                  .slice(0, 80),
-              })),
-            choose: (id) => {
-              const offset = index();
-              if (offset !== undefined)
-                insertLocalFootnote(std, model, offset, id, placement);
-              controller.abort();
-            },
-            cancel: () => {
-              const offset = index();
-              if (offset !== undefined) {
-                std.event.active = true;
-                std.selection.setGroup("note", [
-                  std.selection.create(TextSelection, {
-                    from: { blockId: model.id, index: offset, length: 0 },
-                    to: null,
-                  }),
-                ]);
-              }
-              controller.abort();
-            },
-          })}`,
-        });
+        mountEditorPortal(
+          reference.ownerDocument.body,
+          controller,
+          (anchor) =>
+            host.mountInsertion(anchor, {
+              placement,
+              definitions: localFootnoteDefinitions(model.store)
+                .filter(
+                  (definition) =>
+                    presentation.get(definition.id)?.placement === placement,
+                )
+                .map((definition) => ({
+                  id: definition.id,
+                  ...presentation.get(definition.id),
+                  excerpt: definition.children
+                    .map((child) => child.text?.toString() ?? "")
+                    .join(" ")
+                    .slice(0, 80),
+                })),
+              choose: (id) => {
+                const offset = index();
+                if (offset !== undefined)
+                  insertLocalFootnote(std, model, offset, id, placement);
+                controller.abort();
+              },
+              cancel: () => {
+                const offset = index();
+                if (offset !== undefined) {
+                  std.event.active = true;
+                  std.selection.setGroup("note", [
+                    std.selection.create(TextSelection, {
+                      from: { blockId: model.id, index: offset, length: 0 },
+                      to: null,
+                    }),
+                  ]);
+                }
+                controller.abort();
+              },
+            }),
+          { referenceElement: reference, placement: "bottom-start" },
+        );
       },
     }),
   ),

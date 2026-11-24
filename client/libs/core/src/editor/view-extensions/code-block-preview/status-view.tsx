@@ -3,7 +3,6 @@
 
 import { useI18n } from "@myoxus/i18n";
 import { CopyIcon, DoneIcon } from "@myoxus/icons/react";
-import type { ReactToLit } from "@myoxus/lit-react";
 import {
   Accordion,
   AccordionControl,
@@ -15,8 +14,16 @@ import {
   Loading,
   MyoxusText,
 } from "@myoxus/ui-facade";
-import type { EditorCodePreviewStatus } from "@virgultum/editor/shared/services";
-import { decorateEditorEmbeddedUI } from "../editor-view/embedded-ui-root";
+
+/** Presentation only; preview controllers retain compilation, iframe and clipboard ownership. */
+export type EditorCodePreviewStatus = Readonly<{
+  language: "HTML" | "Typst" | "Mermaid";
+  state: "loading" | "error" | "empty";
+  detail?: string | null;
+  fontError?: boolean;
+  copyState?: "idle" | "copied" | "failed";
+  copy?: () => void;
+}>;
 
 export function CodePreviewStatus({
   status: s,
@@ -91,17 +98,5 @@ export function CodePreviewStatus({
         )
       ) : null}
     </Alert>
-  );
-}
-
-/** Mount through the owning editor/AI React tree; never create a second React root. */
-export function renderCodePreviewStatus(
-  reactToLit: ReactToLit,
-  status: EditorCodePreviewStatus,
-) {
-  return reactToLit(
-    <CodePreviewStatus status={status} />,
-    true,
-    decorateEditorEmbeddedUI,
   );
 }

@@ -1,10 +1,10 @@
 import { cssVar } from "@myoxus/theme";
-import type { AdvancedPortalOptions } from "./types";
 import {
   autoUpdate,
   computePosition,
   shift,
-  type ComputePositionReturn,
+  type AutoUpdateOptions,
+  type ComputePositionConfig,
   type Middleware,
   type Placement,
   type ReferenceElement,
@@ -143,43 +143,77 @@ function isElementVisible(el: Element) {
   return true;
 }
 
-/** Anchor either native or template content using the same editor geometry. */
-export function positionPortal(
-  portalRoot: HTMLDivElement,
-  abortController: AbortController,
-  positionConfigOrFn: AdvancedPortalOptions["computePosition"],
-  positionStrategy: "absolute" | "fixed" = "absolute",
-  portalStyles?: AdvancedPortalOptions["portalStyles"],
-  onPosition?: (position: ComputePositionReturn) => void,
-) {
-  if (!positionConfigOrFn) {
-    return { portal: portalRoot, update: () => {} };
-  }
+type PortalPosition = Partial<ComputePositionConfig> & {
+  referenceElement: ReferenceElement;
+  autoUpdate?: true | AutoUpdateOptions;
+  abortWhenRefRemoved?: boolean;
+};
 
+/** One abort signal owns the portal, its mounted controls and positioning. */
+export function mountEditorPortal(
+  container: HTMLElement,
+  abort: AbortController,
+  mount: (anchor: HTMLElement) => () => void,
+  position: PortalPosition,
+) {
+  if (abort.signal.aborted) return null;
+  const anchor = container.ownerDocument.createElement("div");
+  anchor.className = "virgultum-portal";
+  anchor.setAttribute(RANGE_SYNC_EXCLUDE_ATTR, "true");
+  anchor.contentEditable = "false";
+  anchor.style.pointerEvents = "auto";
+  container.append(anchor);
+  try {
+    const unmount = mount(anchor);
+    const release = () => {
+      try {
+        unmount();
+      } finally {
+        anchor.remove();
+      }
+    };
+    if (abort.signal.aborted) {
+      release();
+      return null;
+    }
+    abort.signal.addEventListener("abort", release, { once: true });
+    positionPortal(anchor, abort, position);
+    return anchor;
+  } catch (error) {
+    abort.abort();
+    anchor.remove();
+    throw error;
+  }
+}
+
+function positionPortal(
+  portalRoot: HTMLElement,
+  abortController: AbortController,
+  position: PortalPosition,
+) {
   const visibility = portalRoot.style.visibility;
   portalRoot.style.visibility = "hidden";
-  portalRoot.style.position = positionStrategy;
+  portalRoot.style.position = "absolute";
   portalRoot.style.left = "0";
   portalRoot.style.top = "0";
   portalRoot.style.zIndex = cssVar("zIndexPopover");
 
-  Object.assign(portalRoot.style, portalStyles);
-
-  const computePositionOptions =
-    positionConfigOrFn instanceof Function
-      ? positionConfigOrFn(portalRoot)
-      : positionConfigOrFn;
-  const { referenceElement, ...options } = computePositionOptions;
+  const {
+    referenceElement,
+    autoUpdate: observe,
+    abortWhenRefRemoved,
+    ...options
+  } = position;
   const update = () => {
     if (
-      computePositionOptions.abortWhenRefRemoved !== false &&
+      abortWhenRefRemoved !== false &&
       referenceElement instanceof Element &&
       !isElementVisible(referenceElement)
     ) {
       abortController.abort();
     }
     computePosition(referenceElement, portalRoot, {
-      strategy: positionStrategy,
+      strategy: "absolute",
       ...options,
     })
       .then((positionReturn) => {
@@ -191,17 +225,13 @@ export function positionPortal(
         if (portalRoot.style.visibility === "hidden") {
           portalRoot.style.visibility = visibility;
         }
-        if (!abortController.signal.aborted) onPosition?.(positionReturn);
       })
       .catch(console.error);
   };
-  if (!computePositionOptions.autoUpdate) {
+  if (!observe) {
     update();
   } else {
-    const autoUpdateOptions =
-      computePositionOptions.autoUpdate === true
-        ? {}
-        : computePositionOptions.autoUpdate;
+    const autoUpdateOptions = observe === true ? {} : observe;
     const cleanup = autoUpdate(
       referenceElement,
       portalRoot,
@@ -212,6 +242,4 @@ export function positionPortal(
       cleanup();
     });
   }
-
-  return { portal: portalRoot, update };
 }

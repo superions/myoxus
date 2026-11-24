@@ -15,7 +15,15 @@ import {
   saveLanguageOrder,
   type ThemedToken,
 } from "@virgultum/content/syntax-highlighter";
-import { useRef, useLayoutEffect, useEffect, useState, useMemo } from "react";
+import {
+  lazy,
+  Suspense,
+  useRef,
+  useLayoutEffect,
+  useEffect,
+  useState,
+  useMemo,
+} from "react";
 import { EditorCodeToolbar } from "../../view-extensions/editor-view/editor-chrome/code-toolbar";
 import {
   continueInChat,
@@ -24,6 +32,11 @@ import {
 import { bindPageTextarea } from "./page-textarea";
 import { usePageCaption } from "./page-caption";
 import type { PageIntent } from "./plain-page-input";
+
+const Preview = lazy(async () => ({
+  default: (await import("../../view-extensions/code-block-preview/preview"))
+    .CodePreview,
+}));
 
 export default function PageCode({
   model,
@@ -48,6 +61,16 @@ export default function PageCode({
     source = text.toString();
   const [hover, setHover] = useState(false),
     [active, setActive] = useState(false);
+  const [localPreview, setLocalPreview] = useState<boolean | null>(null);
+  const previewLanguage =
+    language === "html" || language === "mermaid" || language === "typst"
+      ? language
+      : undefined;
+  const showPreview =
+    !!previewLanguage &&
+    (readonly
+      ? (localPreview ?? !!model.props.preview)
+      : !!model.props.preview);
   const [recent, setRecent] = useState(readLanguageOrder);
   const languages = useMemo(
     () => codeLanguageOptions(bundledLanguagesInfo, language, recent),
@@ -77,7 +100,7 @@ export default function PageCode({
     [model, text, store],
   );
   useEffect(() => {
-    if (!lang) return;
+    if (!lang || showPreview) return;
     let live = true;
     void codeToTokensBase(source, {
       lang: lang.id,
@@ -96,7 +119,7 @@ export default function PageCode({
     return () => {
       live = false;
     };
-  }, [source, lang, resolvedTheme]);
+  }, [source, lang, resolvedTheme, showPreview]);
   const tokens =
     result?.source === source &&
     result.language === lang?.id &&
@@ -119,7 +142,11 @@ export default function PageCode({
     run: () => void,
     active?: boolean,
   ): SelectionAction => ({ id, label, icon, disabled: readonly, run, active });
-  const toggle = (props: { wrap?: boolean; lineNumber?: boolean }) => {
+  const toggle = (props: {
+    wrap?: boolean;
+    lineNumber?: boolean;
+    preview?: boolean;
+  }) => {
     if (writable()) {
       store.captureSync();
       store.updateBlock(model, props);
@@ -132,6 +159,23 @@ export default function PageCode({
     languages,
     readonly,
     primary: [
+      ...(previewLanguage
+        ? [
+            {
+              ...action(
+                "preview",
+                t["com.myoxus.editor.toolbar.preview"](),
+                "PresentationIcon",
+                () => {
+                  if (readonly) setLocalPreview(!showPreview);
+                  else toggle({ preview: !showPreview });
+                },
+                showPreview,
+              ),
+              disabled: false,
+            },
+          ]
+        : []),
       ...(enableAI && !readonly
         ? [
             {
@@ -207,6 +251,15 @@ export default function PageCode({
         () => toggle({ lineNumber: !(lineNumber ?? true) }),
         lineNumber ?? true,
       ),
+      {
+        ...action(
+          "copy-link-to-block",
+          t["com.myoxus.editor.toolbar.copy-link-to-block"](),
+          "LinkIcon",
+          () => command("copy-link-to-block"),
+        ),
+        disabled: false,
+      },
       action(
         "duplicate",
         t["com.myoxus.editor.keyboard.duplicate"](),
@@ -253,14 +306,20 @@ export default function PageCode({
                     codeLanguageOptions(bundledLanguagesInfo, id, next),
                   );
                   store.captureSync();
-                  queueMicrotask(() => field.current?.focus());
+                  queueMicrotask(() => {
+                    if (field.current?.checkVisibility()) field.current.focus();
+                  });
                 }
               },
             }}
           />
         </div>
       )}
-      <div data-code-source="" data-wrap={wrap || undefined}>
+      <div
+        data-code-source=""
+        hidden={showPreview}
+        data-wrap={wrap || undefined}
+      >
         {lineNumber !== false && (
           <pre aria-hidden data-code-gutter="">
             {source
@@ -399,6 +458,21 @@ export default function PageCode({
           />
         </div>
       </div>
+      {previewLanguage && showPreview && (
+        <Suspense fallback={null}>
+          <Preview
+            language={previewLanguage}
+            source={source}
+            convertMermaid={
+              previewLanguage === "mermaid" && !readonly
+                ? () => {
+                    if (writable()) command("convert-mermaid");
+                  }
+                : undefined
+            }
+          />
+        </Suspense>
+      )}
       {captionEditor.field}
     </div>
   );

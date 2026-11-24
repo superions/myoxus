@@ -5,6 +5,8 @@ import { createDecoratorTransform } from "../../build/scripts/test/vite-decorato
 
 export default defineConfig({
   plugins: [createDecoratorTransform()],
+  // Avoid a mid-run browser reload when the registered block renderer is first imported.
+  optimizeDeps: { include: ["lit/directives/guard.js"] },
   oxc: {
     jsx: { runtime: "automatic" },
     target: "es2018",

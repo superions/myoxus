@@ -3,17 +3,18 @@ import {
   awaitDocEmbedReference,
 } from "@virgultum/core/services";
 import { flip, offset, shift } from "@floating-ui/dom";
-import { baseTheme } from "@myoxus/theme";
-import { createLitPortal } from "@virgultum/core/view/portal";
+import { computed, effect, signal } from "@preact/signals-core";
+import { baseTheme, cssVar } from "@myoxus/theme";
+import { mountEditorPortal } from "@virgultum/core/view/portal";
 import { HoverController } from "@virgultum/core/view/hover";
 import { PeekViewProvider } from "@virgultum/core/view/peek";
-import { WithDisposable } from "@virgultum/core/primitives/lit";
 import type { FootNote } from "@virgultum/core/models";
 import {
   CitationProvider,
+  EditorChromeHostIdentifier,
   FootnoteReactHostIdentifier,
+  type FootnoteMarkerHostProps,
 } from "@virgultum/core/services";
-import { unsafeCSSVar } from "@virgultum/core/theme";
 import {
   navigateLocalFootnote,
   localFootnotePresentation,
@@ -23,7 +24,8 @@ import { isValidUrl, normalizeUrl } from "@virgultum/core/utils";
 import {
   BlockSelection,
   type BlockStdScope,
-  ShadowlessElement,
+  NativeViewElement,
+  installEditorStyles,
   TextSelection,
 } from "@virgultum/core/runtime";
 import {
@@ -33,21 +35,15 @@ import {
   ZERO_WIDTH_FOR_EMPTY_LINE,
 } from "@virgultum/core/runtime/inline";
 import type { DeltaInsert } from "@virgultum/core/store";
-import { css, html, nothing, unsafeCSS } from "lit";
-import { property } from "lit/decorators.js";
-import { classMap } from "lit-html/directives/class-map.js";
-import { ref } from "lit-html/directives/ref.js";
-
 import type { FootNoteNodeConfigProvider } from "./footnote-config";
-import { renderCitationPreview } from "./citation-preview-session";
+import { createCitationPreviewControls } from "./citation-preview-session";
 
 // Virtual padding for the footnote popup overflow detection offsets.
 const POPUP_SHIFT_PADDING = 8;
 // The offset between the footnote node and the popup.
 const POPUP_OFFSET = 4;
 
-export class MyoxusFootnoteNode extends WithDisposable(ShadowlessElement) {
-  static override styles = css`
+const markerStyles = `
     .footnote-node {
       padding: 0 2px;
       user-select: none;
@@ -57,8 +53,8 @@ export class MyoxusFootnoteNode extends WithDisposable(ShadowlessElement) {
     .footnote-node {
       .footnote-content-default {
         display: inline-block;
-        background: ${unsafeCSSVar("primaryColor")};
-        color: ${unsafeCSSVar("pureWhite")};
+        background: ${cssVar("primaryColor")};
+        color: ${cssVar("pureWhite")};
         width: 14px;
         height: 14px;
         line-height: 14px;
@@ -67,7 +63,7 @@ export class MyoxusFootnoteNode extends WithDisposable(ShadowlessElement) {
         border-radius: 50%;
         text-align: center;
         text-overflow: ellipsis;
-        font-family: ${unsafeCSS(baseTheme.fontSansFamily)};
+        font-family: ${baseTheme.fontSansFamily};
         transition: background 0.3s ease-in-out;
         transform: translateY(-0.2em);
       }
@@ -76,25 +72,31 @@ export class MyoxusFootnoteNode extends WithDisposable(ShadowlessElement) {
     .footnote-node.hover-effect {
       .footnote-content-default {
         color: var(--myoxus-text-primary-color);
-        background: ${unsafeCSSVar("backgroundSecondaryColor")};
+        background: ${cssVar("backgroundSecondaryColor")};
       }
     }
 
     .footnote-node.hover-effect:hover {
       .footnote-content-default {
-        color: ${unsafeCSSVar("pureWhite")};
-        background: ${unsafeCSSVar("primaryColor")};
+        color: ${cssVar("pureWhite")};
+        background: ${cssVar("primaryColor")};
       }
     }
   `;
 
-  get customNodeRenderer() {
-    return this.config?.customNodeRenderer;
+export class MyoxusFootnoteNode extends NativeViewElement {
+  std!: BlockStdScope;
+  config?: FootNoteNodeConfigProvider;
+  private readonly input = signal<DeltaInsert<MyoxusTextAttributes>>({
+    insert: ZERO_WIDTH_FOR_EMPTY_LINE,
+  });
+  set delta(value: DeltaInsert<MyoxusTextAttributes>) {
+    this.input.value = value;
   }
-
-  get customPopupRenderer() {
-    return this.config?.customPopupRenderer;
+  get delta() {
+    return this.input.value;
   }
+  private release?: () => void;
 
   get interactive() {
     return this.config?.interactive;
@@ -236,37 +238,13 @@ export class MyoxusFootnoteNode extends WithDisposable(ShadowlessElement) {
     });
   };
 
-  private readonly _FootNoteDefaultContent = (footnote: FootNote) => {
-    return html`<span
-      class="footnote-content-default"
-      @click=${this.onFootnoteClick}
-      >${footnote.label}</span
-    >`;
-  };
-
-  private readonly _FootNotePopup = (
-    footnote: FootNote,
-    abortController: AbortController,
-  ) => {
-    if (footnote.definitionId !== undefined) return html``;
-    return this.customPopupRenderer
-      ? this.customPopupRenderer(footnote, this.std, abortController)
-      : renderCitationPreview(
-          this.std,
-          this,
-          footnote,
-          () => this.footnote,
-          abortController,
-          this.onPopupClick ?? this.onFootnoteClick,
-          this._updateFootnoteAttributes,
-        );
-  };
-
   private readonly _whenHover: HoverController = new HoverController(
     this,
     ({ abortController }) => {
       const { footnote } = this;
-      if (!footnote || footnote.definitionId) return null;
+      const chrome = this.std.getOptional(EditorChromeHostIdentifier);
+      if (!chrome || !footnote || footnote.definitionId !== undefined)
+        return null;
 
       if (
         this.config?.hidePopup ||
@@ -294,13 +272,23 @@ export class MyoxusFootnoteNode extends WithDisposable(ShadowlessElement) {
         control: "Source Footnote",
       });
 
-      return createLitPortal({
+      return mountEditorPortal(
+        this.std.host,
         abortController,
-        template: this._FootNotePopup(footnote, abortController),
-        // Native Facade styles live in the document; custom renderers keep their existing shadow root.
-        shadowDom: !!this.customPopupRenderer,
-        container: this.std.host,
-        computePosition: {
+        (anchor) =>
+          chrome.mountCitationPreview(
+            anchor,
+            createCitationPreviewControls(
+              this.std,
+              this,
+              footnote,
+              () => this.footnote,
+              abortController,
+              this.onPopupClick ?? this.onFootnoteClick,
+              this._updateFootnoteAttributes,
+            ),
+          ),
+        {
           referenceElement: this,
           placement: "top",
           autoUpdate: true,
@@ -310,70 +298,100 @@ export class MyoxusFootnoteNode extends WithDisposable(ShadowlessElement) {
             offset(POPUP_OFFSET),
           ],
         },
-      }).portal;
+      );
     },
     { enterDelay: 300 },
   );
 
-  constructor() {
-    super();
-    this.addController(this._whenHover);
-  }
-
-  override connectedCallback() {
-    super.connectedCallback();
-    this.disposables.add(
-      this.std.store.slots.blockUpdated.subscribe(() => this.requestUpdate()),
-    );
-  }
-
-  override render() {
-    const attributes = this.delta.attributes;
-    const footnote = attributes?.footnote;
-    if (!footnote) {
-      return nothing;
-    }
-
-    if (footnote.definitionId !== undefined) {
-      const presentation = localFootnotePresentation(this.std.store).get(
-        footnote.definitionId,
-      );
-      const missing = !presentation?.placement;
-      const host = this.std.getOptional(FootnoteReactHostIdentifier);
-      return html`<sup contenteditable="false"
-          >${host?.renderMarker({ ...presentation, missing, navigate: this.onFootnoteClick }) ?? html`<button type="button" @click=${this.onFootnoteClick}>${presentation?.number ?? "?"}</button>`}</sup
-        ><v-text .str=${ZERO_WIDTH_FOR_EMBED_NODE}></v-text>`;
-    }
+  connectedCallback() {
+    installEditorStyles(this, markerStyles);
+    const doc = this.ownerDocument,
+      hover = this._whenHover;
+    hover.hostConnected();
     const host = this.std.getOptional(FootnoteReactHostIdentifier);
-    const node = this.customNodeRenderer
-      ? this.customNodeRenderer(footnote, this.std)
-      : host
-        ? html`<sup contenteditable="false"
-            >${host.renderMarker({ label: footnote.label, missing: false, navigate: this.onFootnoteClick })}</sup
-          >`
-        : this._FootNoteDefaultContent(footnote);
-
-    const nodeClasses = classMap({
-      "footnote-node": true,
-      "hover-effect": !this.disableHoverEffect,
+    const kind = computed(() => {
+      const note = this.footnote;
+      return !note
+        ? null
+        : note.definitionId !== undefined
+          ? "local"
+          : "citation";
     });
-
-    return html`<span
-      ${this.hidePopup ? "" : ref(this._whenHover.setReference)}
-      class=${nodeClasses}
-      >${node}<v-text .str=${ZERO_WIDTH_FOR_EMBED_NODE}></v-text
-    ></span>`;
+    const stop = effect(() => {
+      this.replaceChildren();
+      const mode = kind.value;
+      if (!mode) return;
+      const marker = doc.createElement("sup");
+      marker.contentEditable = "false";
+      const caret = doc.createElement("v-text");
+      caret.str = ZERO_WIDTH_FOR_EMBED_NODE;
+      const wrapper = mode === "local" ? this : doc.createElement("span");
+      if (wrapper !== this) {
+        wrapper.className = this.disableHoverEffect
+          ? "footnote-node"
+          : "footnote-node hover-effect";
+        this.append(wrapper);
+      }
+      wrapper.append(marker, caret);
+      if (mode === "citation" && !this.hidePopup) hover.setReference(wrapper);
+      const revision = signal(0);
+      const changes =
+        mode === "local"
+          ? this.std.store.slots.blockUpdated.subscribe(() => revision.value++)
+          : undefined;
+      const state = computed<FootnoteMarkerHostProps>(() => {
+        const note = this.footnote;
+        if (note?.definitionId !== undefined) {
+          void revision.value;
+          const presentation = localFootnotePresentation(this.std.store).get(
+            note.definitionId,
+          );
+          return {
+            ...presentation,
+            missing: !presentation?.placement,
+            navigate: this.onFootnoteClick,
+          };
+        }
+        return {
+          hasPreview:
+            !this.hidePopup &&
+            !!this.std.getOptional(EditorChromeHostIdentifier),
+          label: note?.label,
+          missing: false,
+          navigate: this.onFootnoteClick,
+        };
+      });
+      let unmount: () => void;
+      if (host) unmount = host.mountMarker(marker, state);
+      else {
+        const fallback = doc.createElement(
+          mode === "local" ? "button" : "span",
+        );
+        if (fallback instanceof HTMLButtonElement) fallback.type = "button";
+        else fallback.className = "footnote-content-default";
+        fallback.onclick = this.onFootnoteClick;
+        if (mode === "local") marker.append(fallback);
+        else marker.replaceWith(fallback);
+        unmount = effect(() => {
+          fallback.textContent = String(
+            state.value.label ?? state.value.number ?? "?",
+          );
+        });
+      }
+      return () => {
+        hover.abort(true);
+        hover.setReference(undefined);
+        changes?.unsubscribe();
+        unmount();
+      };
+    });
+    this.release = () => {
+      stop();
+      hover.hostDisconnected();
+    };
   }
-
-  @property({ attribute: false })
-  accessor config: FootNoteNodeConfigProvider | undefined = undefined;
-
-  @property({ type: Object })
-  accessor delta: DeltaInsert<MyoxusTextAttributes> = {
-    insert: ZERO_WIDTH_FOR_EMPTY_LINE,
-    attributes: {},
-  };
-
-  @property({ attribute: false })
-  accessor std!: BlockStdScope;
+  disconnectedCallback() {
+    this.release?.();
+    this.release = undefined;
+  }
 }

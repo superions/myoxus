@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // SPDX-FileCopyrightText: 2026-present Daniel Scharf and Myoxus contributors
 
+import { useState } from "react";
 import { useI18n } from "@myoxus/i18n";
 import {
   ArrowDownSmallIcon,
@@ -96,7 +97,11 @@ export function DiffToolbar({
   );
 }
 
-export function DiffPlaygroundButton({ open }: { open: () => void }) {
+export function DiffPlaygroundButton({
+  open,
+}: {
+  open: (button: HTMLButtonElement) => void;
+}) {
   const t = useI18n();
   return (
     <IconButton
@@ -104,7 +109,7 @@ export function DiffPlaygroundButton({ open }: { open: () => void }) {
       variant="primary"
       data-testid="block-diff-playground"
       tooltip={t["com.myoxus.editor.diff.title"]()}
-      onClick={open}
+      onClick={(event) => open(event.currentTarget)}
     >
       <CodeIcon />
     </IconButton>
@@ -112,18 +117,15 @@ export function DiffPlaygroundButton({ open }: { open: () => void }) {
 }
 
 export function DiffPlaygroundForm({
-  markdown,
-  input,
   load,
   clear,
   confirm,
 }: {
-  markdown: string;
-  input: (value: string) => void;
-  load: () => void;
+  load: () => Promise<string>;
   clear: () => void;
-  confirm: () => void;
+  confirm: (markdown: string) => Promise<void>;
 }) {
+  const [markdown, input] = useState("");
   const t = useI18n();
   return (
     <Card withBorder padding="md">
@@ -145,13 +147,18 @@ export function DiffPlaygroundForm({
           onChange={input}
         />
         <Group justify="flex-end">
-          <Button onClick={load}>
+          <Button onClick={async () => input(await load())}>
             {t["com.myoxus.editor.diff.current-document"]()}
           </Button>
-          <Button onClick={clear}>
+          <Button
+            onClick={() => {
+              input("");
+              clear();
+            }}
+          >
             {t["com.myoxus.editor.field.clear"]()}
           </Button>
-          <Button variant="primary" onClick={confirm}>
+          <Button variant="primary" onClick={() => confirm(markdown)}>
             {t["Confirm"]()}
           </Button>
         </Group>
